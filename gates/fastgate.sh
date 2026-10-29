@@ -77,10 +77,20 @@ main(){
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; G="$ROOT/gates"
 BASE="${1:-}"
 [ -n "$BASE" ] || { echo "fastgate.sh: usage: gates/fastgate.sh <base-sha>   (the sha this tree is diffed against; normally origin/main)"; exit 2; }
-GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
-HEAD="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
+# ── $GIT IS AN ARRAY [#544, item (14) of directOpening_2026_10_28_batch4;
+# jobs/gates-fastgate-sh-keeps-git-in-a-string-so-at-a-checkout-path-with-a-space-every-git-call-fails-and-its-refusals-become-routes-2026-10-22].
+# IT WAS A STRING, used unquoted at 42 sites, and at a checkout path containing a SPACE every git call in this
+# file failed silently: $ROOT word-split, HEAD resolved to the literal string `unknown`, and the base-identity
+# and ancestry REFUSALS did not fire - so exit 1 became exit 2 and a refusal became a route to the full suite.
+# MEASURED by antagonist B of #531 over byte-identical trees at two paths: without a space a bogus base sha
+# gives FAST GATE REFUSED, "the base does not name a commit in this repository"; WITH a space the same sha
+# gives FULL SUITE REQUIRED, exit 2, and the provenance header reads `head unknown`. The script survived only
+# because the read pin further down found no tracked file to pin, not because any check meant to answer did.
+# #531 fixed the same class in gates/gates.sh (DGIT is an array there) and left these 42 under the clock.
+GIT=(git -C "$ROOT" --git-dir="$ROOT/.git" --work-tree="$ROOT")
+HEAD="$("${GIT[@]}" rev-parse HEAD 2>/dev/null || echo unknown)"
 mkdir -p "$G/logs"
-LOG="$G/logs/fast-$($GIT rev-parse --short HEAD 2>/dev/null || date +%s)-all.log"
+LOG="$G/logs/fast-$("${GIT[@]}" rev-parse --short HEAD 2>/dev/null || date +%s)-all.log"
 : > "$LOG"
 say(){ echo "$*" | tee -a "$LOG"; }
 # THE TEMPORARIES GO ON EVERY EXIT PATH, AND A KILL INSIDE A RATCHET IS THE ONE EXCEPTION [#527, item (2)(c) of
@@ -102,7 +112,7 @@ trap fg_cleanup EXIT
 
 say "fastgate.sh  base $BASE  head $HEAD  $(date '+%Y-%m-%d %H:%M:%S %Z')"
 
-DIRTY="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+DIRTY="$("${GIT[@]}" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 if [ "$DIRTY" != "0" ]; then
   say "FAST GATE REFUSED - working tree is DIRTY ($DIRTY path(s)). Fast mode gates a COMMIT, not a working tree:"
   say "  the whole argument is that the changed SET is known, and an uncommitted edit is not in it."
@@ -186,8 +196,8 @@ TAMPER=""
 # added at #523: Part 2 EXECUTES it from the working tree.
 FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh"
 for f in $FG_EXECUTES; do
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
-  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
+  hb="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  wb="$("${GIT[@]}" hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
   [ "$hb" = "$wb" ] || TAMPER="$TAMPER    $f: commit $hb, working tree $wb\n"
 done
 if [ -n "$TAMPER" ]; then
@@ -319,8 +329,8 @@ OSPECS_DIR=(':(glob)claude/agents/gatelogs/*' ':(glob)gates/regress/*')
 # --others with NO --exclude-standard, so a .gitignore'd or .git/info/exclude'd file is LISTED: hiding is the
 # whole mechanism, and `gates/.probe/x.js` above is why an ignored path must not be trusted. awk reads to EOF and
 # only limits what it PRINTS, so there is no early-exit pipeline. `sort -u` drains by definition.
-OSTEER="$( { $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null;
-            $GIT -c core.quotePath=false ls-files --others -- "${OSPECS_DIR[@]}" 2>/dev/null; } \
+OSTEER="$( { "${GIT[@]}" -c core.quotePath=false ls-files --others -- "${OSPECS_GLOB[@]}" 2>/dev/null;
+            "${GIT[@]}" -c core.quotePath=false ls-files --others -- "${OSPECS_DIR[@]}" 2>/dev/null; } \
   | grep -vxF 'gates/.build/app.js' \
   | sort -u \
   | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0} END{if (n>5) print "    ... and " (n-5) " more"}')"
@@ -356,7 +366,7 @@ fi
 # (`git cat-file -e HEAD:<path>`), in gates/verify-log.sh, whose artefact lock is parked-unlanded by another
 # lane, so this run may not touch it. This closes the route into THIS tier and leaves the reader's own premise
 # as it was - a full suite still reads that directory as a live path.
-ODIRS="$( $GIT -c core.quotePath=false ls-files --others --directory 2>/dev/null \
+ODIRS="$( "${GIT[@]}" -c core.quotePath=false ls-files --others --directory 2>/dev/null \
   | grep '/$' | sed 's#/*$##' \
   | grep -E '^(claude/stories/[^/]*\.md|gates/[^/]*\.js|gates/[^/]*/[^/]*\.js|HANDOFF\.md|CLAUDE\.md|claude/agents/gatelogs/[^/]+|gates/regress/[^/]+)$' \
   | sort -u \
@@ -400,13 +410,13 @@ fi
 PSCAN_PATS='regress/*.js mountcheck.js lib.js engine-extract.js drive/*.js'
 read -r -a PSCAN_ARR <<< "$PSCAN_PATS"
 PSPECS=(); for p in "${PSCAN_ARR[@]}"; do PSPECS+=(":(glob)gates/$p"); done
-RSET="$($GIT -c core.quotePath=false ls-files -- "${PSPECS[@]}" 2>/dev/null)"   # v4: raw names, as the catch-all lists them
+RSET="$("${GIT[@]}" -c core.quotePath=false ls-files -- "${PSPECS[@]}" 2>/dev/null)"   # v4: raw names, as the catch-all lists them
 READPIN=""; RN=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   RN=$((RN+1))
-  hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
-  wb="$($GIT hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"
+  hb="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  wb="$("${GIT[@]}" hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"
   # v4: a name the commit cannot resolve is a refusal, never MISSING = MISSING credited as a match
   [ "$hb" != MISSING ] && [ "$hb" = "$wb" ] || READPIN="$READPIN    $f: commit $hb, working tree $wb\n"
 done <<< "$RSET"
@@ -435,23 +445,23 @@ fi
 # respect to BASE; it was still false with respect to MAIN, and main is what GitHub Pages serves. A second
 # reproduction, from the other antagonist: `fastgate.sh HEAD~1` on a two-commit stack reports "changed paths (1)"
 # and authorises a push that carries both commits.
-$GIT rev-parse --quiet --verify "$BASE^{commit}" >/dev/null 2>&1 || {
+"${GIT[@]}" rev-parse --quiet --verify "$BASE^{commit}" >/dev/null 2>&1 || {
   say "FAST GATE REFUSED - the base \"$BASE\" does not name a commit in this repository."; exit 1; }
-BASEFULL="$($GIT rev-parse "$BASE^{commit}")"
-if ! $GIT merge-base --is-ancestor "$BASEFULL" "$HEAD" 2>/dev/null; then
+BASEFULL="$("${GIT[@]}" rev-parse "$BASE^{commit}")"
+if ! "${GIT[@]}" merge-base --is-ancestor "$BASEFULL" "$HEAD" 2>/dev/null; then
   say "FAST GATE REFUSED - the base is NOT AN ANCESTOR of HEAD, so the diff is not what a push would carry:"
   say "    base $BASEFULL"
   say "    head $HEAD"
   exit 1
 fi
-MAINREF="$($GIT rev-parse --quiet --verify refs/remotes/origin/main 2>/dev/null || true)"
+MAINREF="$("${GIT[@]}" rev-parse --quiet --verify refs/remotes/origin/main 2>/dev/null || true)"
 if [ -n "$MAINREF" ]; then
   if [ "$MAINREF" != "$BASEFULL" ]; then
     say "FAST GATE REFUSED - the base is not what origin/main carries, and a fast green is only meaningful"
     say "against the tree main actually serves:"
     say "    base          $BASEFULL"
     say "    origin/main   $MAINREF"
-    if $GIT merge-base --is-ancestor "$MAINREF" "$HEAD" 2>/dev/null; then
+    if "${GIT[@]}" merge-base --is-ancestor "$MAINREF" "$HEAD" 2>/dev/null; then
       say "    origin/main IS an ancestor of HEAD - re-run with origin/main as the base."
     else
       say "    origin/main is NOT an ancestor of HEAD - fetch and rebase first [CLAUDE.md, fetch before you build]."
@@ -465,7 +475,7 @@ else
   exit 1
 fi
 
-CHANGED="$($GIT diff --name-only --no-renames "$BASEFULL".."$HEAD" 2>/dev/null)"   # --no-renames: see header
+CHANGED="$("${GIT[@]}" diff --name-only --no-renames "$BASEFULL".."$HEAD" 2>/dev/null)"   # --no-renames: see header
 if [ -z "$CHANGED" ]; then say "FAST GATE REFUSED - no changed paths between $BASE and $HEAD. Nothing to gate."; exit 1; fi
 say "changed paths ($(echo "$CHANGED" | wc -l | tr -d ' ')):"
 echo "$CHANGED" | sed 's/^/    /' | tee -a "$LOG"
@@ -514,8 +524,8 @@ SHIPPED="app.js lessons.js sw.js stockfish-18-lite-single.js index.html privacy.
 BUNDLEDIFF=""     # any served file other than app.js whose blob moved -> always FULL
 APPDIFF=""        # app.js specifically, which may be stamp-only (see STAMP-ONLY below)
 for f in $SHIPPED; do
-  b="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || echo MISSING)"
-  h="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
+  b="$("${GIT[@]}" rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || echo MISSING)"
+  h="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   [ "$b" = "$h" ] && continue
   if [ "$f" = app.js ] && [ "$b" != MISSING ] && [ "$h" != MISSING ]; then
     APPDIFF="app.js (base ${b%% *} -> head ${h%% *})"
@@ -696,7 +706,7 @@ so_selftest(){
   SO_FIXWHY=""
   D="$(mktemp -d)" || { say "FAST GATE REFUSED - mktemp -d failed, so the stamp-only controls could not run."; exit 1; }
   FG_TMPS+=("$D" "$D.why")   # #527: removed by the EXIT trap on every path, as well as below
-  if ! $GIT cat-file blob "$BASEFULL:app.js" > "$D/base" 2>/dev/null || [ ! -s "$D/base" ]; then
+  if ! "${GIT[@]}" cat-file blob "$BASEFULL:app.js" > "$D/base" 2>/dev/null || [ ! -s "$D/base" ]; then
     rm -rf "$D"; return 2   # no base app.js to cut fixtures from; caller decides
   fi
   node -e '
@@ -1093,8 +1103,8 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-q
     say "  and it is named here so the log records the attempt." ;;
   esac
   RP_B="$(mktemp)"; RP_H="$(mktemp)"; FG_TMPS+=("$RP_B" "$RP_H")   # #527: the EXIT trap removes them on every path
-  $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$RP_B" 2>/dev/null || true
-  $GIT cat-file blob "$HEAD:gates/build-numbers.tsv"     > "$RP_H" 2>/dev/null || true
+  "${GIT[@]}" cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$RP_B" 2>/dev/null || true
+  "${GIT[@]}" cat-file blob "$HEAD:gates/build-numbers.tsv"     > "$RP_H" 2>/dev/null || true
   if [ ! -s "$RP_H" ]; then
     rm -f "$RP_B" "$RP_H"
     say ""
@@ -1235,7 +1245,7 @@ if in_changed 'gates/build-numbers.tsv'; then   # #525: was a printf-into-grep-q
   # EVERY new number counts toward the ceiling. The failure direction is a refusal, never a green.
   # AND THE MEMBERSHIP TEST IS PIPE-FREE, for the reason in_changed() above exists: this set is small today and
   # a `case` is safe at any size, so the class does not come back here when the register grows.
-  RP_HELDBASE="$($GIT show "$BASEFULL:gates/held-trees.tsv" 2>/dev/null \
+  RP_HELDBASE="$("${GIT[@]}" show "$BASEFULL:gates/held-trees.tsv" 2>/dev/null \
     | grep -v '^[[:space:]]*#' | awk -F'\t' 'NF>=2 && $1 !~ /^-/ {print $3}' || true)"
   RP_HELDBASE="$NL_525$RP_HELDBASE$NL_525"
   held_vouches_at_base(){ # <bare number>: 0 iff a LIVE BASE row names it in the NUMBER column
@@ -1344,15 +1354,15 @@ EOF
   # hand-written mint from a real one. NO PIPELINE: blobs go to a temporary file and md5sum reads the file.
   RP_TMPBLOB="$(mktemp)"; FG_TMPS+=("$RP_TMPBLOB")   # removed by the EXIT trap on every path [#527]
   RP_VOUCH=""; RP_SEED=""; RP_BM=""; RP_HK=""   # RP_SEED: changed bundles that may stand for a sibling; RP_HK: held keys
-  for RP_C in "$BASEFULL" "$HEAD" $($GIT rev-list "$BASEFULL..$HEAD" -- app.js 2>/dev/null || true); do
-    if $GIT cat-file blob "$RP_C:app.js" > "$RP_TMPBLOB" 2>/dev/null; then
+  for RP_C in "$BASEFULL" "$HEAD" $("${GIT[@]}" rev-list "$BASEFULL..$HEAD" -- app.js 2>/dev/null || true); do
+    if "${GIT[@]}" cat-file blob "$RP_C:app.js" > "$RP_TMPBLOB" 2>/dev/null; then
       RP_M="$(md5sum "$RP_TMPBLOB" 2>/dev/null || true)"; RP_VOUCH="$RP_VOUCH ${RP_M:0:12}"
       if [ "$RP_C" = "$BASEFULL" ]; then RP_BM="${RP_M:0:12}"
       elif [ "${RP_M:0:12}" != "$RP_BM" ]; then RP_SEED="$RP_SEED ${RP_M:0:12}"; fi   # a bundle this diff changes
     fi
   done
   for RP_C in "$BASEFULL" "$HEAD"; do
-    if $GIT cat-file blob "$RP_C:gates/held-trees.tsv" > "$RP_TMPBLOB" 2>/dev/null; then
+    if "${GIT[@]}" cat-file blob "$RP_C:gates/held-trees.tsv" > "$RP_TMPBLOB" 2>/dev/null; then
       RP_HK="$RP_HK $(awk -F'\t' '$0 !~ /^[[:space:]]*#/ && NF >= 5 {b = $1; n = $3; sub(/^#/, "", n); r = $5; if (b ~ /^[0-9a-f]+$/ && n ~ /^[0-9]+$/ && r != "" && r !~ /[| ]/) printf "%s|%s|%s ", substr(b, 1, 12), n, r}' "$RP_TMPBLOB")"   # live hex rows, keyed on their own number and runId [#529 reviews]
     fi
   done
@@ -1576,15 +1586,15 @@ if [ -n "$APPDIFF" ]; then
   # file resolves to a blob, and #509's antagonist A proved that reading a tree with `cat-file blob` truncates
   # to 0 bytes and makes an empty-against-empty comparison succeed - the block printing its own success line.
   # `^{blob}` is NOT the remedy; it answers `fatal: Needed a single revision` on a real blob.
-  SO_BT="$($GIT cat-file -t "$BASEFULL:app.js" 2>/dev/null || echo none)"
-  SO_HT="$($GIT cat-file -t "$HEAD:app.js" 2>/dev/null || echo none)"
+  SO_BT="$("${GIT[@]}" cat-file -t "$BASEFULL:app.js" 2>/dev/null || echo none)"
+  SO_HT="$("${GIT[@]}" cat-file -t "$HEAD:app.js" 2>/dev/null || echo none)"
   SO_B="$(mktemp)"; SO_H="$(mktemp)"; FG_TMPS+=("$SO_B" "$SO_H")   # #527: see FG_TMPS
   if [ -z "$SO_B" ] || [ -z "$SO_H" ] || [ ! -f "$SO_B" ] || [ ! -f "$SO_H" ]; then
     say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-only test could not be run at all."
     say "    $APPDIFF"; exit 2
   fi
-  $GIT cat-file blob "$BASEFULL:app.js" > "$SO_B" 2>/dev/null || true
-  $GIT cat-file blob "$HEAD:app.js"     > "$SO_H" 2>/dev/null || true
+  "${GIT[@]}" cat-file blob "$BASEFULL:app.js" > "$SO_B" 2>/dev/null || true
+  "${GIT[@]}" cat-file blob "$HEAD:app.js"     > "$SO_H" 2>/dev/null || true
   if [ "$SO_BT" != blob ] || [ "$SO_HT" != blob ] || [ ! -s "$SO_B" ] || [ ! -s "$SO_H" ]; then
     SO_OUT="NOT-STAMP-ONLY app.js is not a non-empty blob on both sides (base $SO_BT, head $SO_HT)"
     SO_RC=1
@@ -1601,12 +1611,12 @@ if [ -n "$APPDIFF" ]; then
       say ""; say "FULL SUITE REQUIRED. mktemp failed, so the stamp-plausibility arm could not be run at all."
       say "    $APPDIFF"; exit 2
     fi
-    $GIT cat-file blob "$HEAD:gates/build-numbers.tsv" > "$PLAUS_REG" 2>/dev/null || true
+    "${GIT[@]}" cat-file blob "$HEAD:gates/build-numbers.tsv" > "$PLAUS_REG" 2>/dev/null || true
     PL_B="$(mktemp)"; PL_H="$(mktemp)"; FG_TMPS+=("$PL_B" "$PL_H")   # #527: see FG_TMPS
-    $GIT cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
-    $GIT cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
+    "${GIT[@]}" cat-file blob "$BASEFULL:app.js" > "$PL_B" 2>/dev/null || true
+    "${GIT[@]}" cat-file blob "$HEAD:app.js"     > "$PL_H" 2>/dev/null || true
     PL_R="$(mktemp)"; FG_TMPS+=("$PL_R")   # #529: the BASE register, for the series top plaus_pred measures from
-    $GIT cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$PL_R" 2>/dev/null || true
+    "${GIT[@]}" cat-file blob "$BASEFULL:gates/build-numbers.tsv" > "$PL_R" 2>/dev/null || true
     PL_M5="$(md5sum < "$PL_H" 2>/dev/null | cut -c1-12)"
     plaus_pred "$PL_B" "$PL_H" "$PL_M5" "$PL_R"; PL_RC=$?
     rm -f "$PLAUS_REG" "$PL_B" "$PL_H" "$PL_R"
@@ -1679,7 +1689,7 @@ fi
 # records-only. Demonstrated end to end at exit 0. `cat-file -t` is the working form and `^{blob}` is not -
 # `rev-parse --verify "<sha>:<path>^{blob}"` answers `fatal: Needed a single revision` on a real blob.
 NOJEKYLL=no
-[ "$($GIT cat-file -t "$HEAD:.nojekyll" 2>/dev/null || echo MISSING)" = blob ] && NOJEKYLL=yes
+[ "$("${GIT[@]}" cat-file -t "$HEAD:.nojekyll" 2>/dev/null || echo MISSING)" = blob ] && NOJEKYLL=yes
 say "root .nojekyll at head: $NOJEKYLL (a BLOB, not merely a resolvable path; it decides whether a ROOT-level"
 say "  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)"
 
@@ -1930,7 +1940,7 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
 # THE RULE: a records commit may ADD records. Removing a gate log, or shortening a register, is not a records
 # action and does not get the cheap tier. It is still perfectly possible - it just pays the full suite and is
 # therefore visible.
-GONE="$($GIT diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
+GONE="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=D "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
 if [ -n "$GONE" ]; then
   say ""
   say "FAST GATE REFUSED - this commit DELETES gate log evidence, which no records commit does:"
@@ -1940,8 +1950,8 @@ if [ -n "$GONE" ]; then
 fi
 SHORTER=""
 for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
-  nb="$($GIT show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
-  nh="$($GIT show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
+  nb="$("${GIT[@]}" show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"
+  nh="$("${GIT[@]}" show "$HEAD:$f" 2>/dev/null | wc -l | tr -d ' ')"; nh="${nh:-0}"
   [ "$nh" -lt "$nb" ] 2>/dev/null && SHORTER="$SHORTER$f ($nb lines -> $nh)\n"
 done
 if [ -n "$SHORTER" ]; then
@@ -2093,7 +2103,7 @@ DEPS="$(grep -ohE "require\(['\"][^'\"]+['\"]\)" $PSCAN 2>/dev/null \
 # (classified RECORDS), with the same green. H30 and H31 in gates/fastgate-drive.sh are those two. Part one now
 # chooses its spelling by what the COMMIT holds; part two counts a reference that is on disk OR in the commit,
 # which only ever adds the hidden ones, so no honest count or verdict moves.
-in_head(){ $GIT cat-file -e "$HEAD:$1" 2>/dev/null; }
+in_head(){ "${GIT[@]}" cat-file -e "$HEAD:$1" 2>/dev/null; }
 UNCOVERED=""
 while IFS= read -r dep; do
   [ -n "$dep" ] || continue
@@ -2234,7 +2244,7 @@ ratchet(){ # ratchet <label> <verdict-grep> <sig-grep, or - for "the same as the
   # check that stopped running - but to let the caller nominate a FIXED-SHAPE, DEFECTS-ONLY line for the
   # comparison while the prose still reaches the log and the terminal. `-` keeps the old behaviour exactly.
   # The base run happens in a DETACHED WORKTREE, never by mutating the lane's own tree. The first version used
-  # `git stash` + `git checkout "$BASE" -- .` with $GIT quoted as one word; $GIT is multi-word, so the command
+  # `git stash` + `git checkout "$BASE" -- .` with "${GIT[@]}" quoted as one word; "${GIT[@]}" is multi-word, so the command
   # silently did nothing, both runs read the SAME tree, and a commit that made the records worse passed as "no
   # worse". A ratchet that compares a tree to itself always says no worse. Both bugs were found by adversarial
   # cases before this shipped, and both are recorded so nobody reintroduces them.
@@ -2345,7 +2355,7 @@ fi
 # (verify-log.sh --citations globs gates/*.js and claude/stories/*.md, control-audit.js reads directories) is not
 # hashed here, and hidden by .git/info/exclude it is not in `git status` either; an independent reader showed one
 # turning the records ratchet RED on an honest commit. Item (4) of WHAT THESE DO NOT COVER in the case register.
-CA_IDX="$($GIT -c core.quotePath=false ls-files -s 2>/dev/null)" || CA_IDX=""
+CA_IDX="$("${GIT[@]}" -c core.quotePath=false ls-files -s 2>/dev/null)" || CA_IDX=""
 if [ -z "$CA_IDX" ]; then
   say ""
   say "FULL SUITE REQUIRED. git ls-files -s listed no tracked file, so the catch-all could not run, and an empty"
@@ -2362,7 +2372,7 @@ if [ -n "$CA_ODD" ]; then
 fi
 CA_PATHS="$(cut -f2- <<< "$CA_IDX")"
 CA_WANT="$(awk '{print $2}' <<< "$CA_IDX")"
-CA_GOT="$($GIT hash-object --no-filters --stdin-paths <<< "$CA_PATHS" 2>/dev/null)"
+CA_GOT="$("${GIT[@]}" hash-object --no-filters --stdin-paths <<< "$CA_PATHS" 2>/dev/null)"
 if [ "$CA_GOT" != "$CA_WANT" ]; then
   mapfile -t CA_P <<< "$CA_PATHS"; mapfile -t CA_W <<< "$CA_WANT"; mapfile -t CA_G <<< "$CA_GOT"
   CA_BAD=""; CA_NB=0; CA_HASHED=0

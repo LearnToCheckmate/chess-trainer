@@ -296,6 +296,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H52) printf 'TC-SUITE-178' ;;
     H53) printf 'TC-SUITE-185' ;;  H54) printf 'TC-SUITE-186' ;;
     H55) printf 'TC-SUITE-212' ;;
+    H56) printf 'TC-SUITE-227' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2074,6 +2075,45 @@ else
     OK=$((OK+1))
   fi
 fi
+
+# H56 A CHECKOUT PATH CONTAINING A SPACE [#544, item (14) of directOpening_2026_10_28_batch4;
+#     jobs/gates-fastgate-sh-keeps-git-in-a-string-so-at-a-checkout-path-with-a-space-every-git-call-fails-and-its-refusals-become-routes-2026-10-22].
+#     WHAT WAS WRONG: gates/fastgate.sh kept `GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"` as a
+#     STRING and used it unquoted at 42 sites. At a path with a space, $ROOT word-split and EVERY git call in
+#     the file failed silently: HEAD resolved to the literal string `unknown`, and the base-identity and
+#     ancestry REFUSALS did not fire - so exit 1 became exit 2 and a refusal became a route to the full suite.
+#     THE CASE IS THE JOB'S OWN whatWouldCloseIt: a clone at a path containing a space, a bogus base sha, and
+#     exit 1 with "does not name a commit in this repository" - which is what a path WITHOUT a space has always
+#     given. MEASURED at #544 in both directions over byte-identical trees: with $GIT an array, exit 1 and the
+#     base refusal; with main's string version, `head unknown` and FULL SUITE REQUIRED at exit 2.
+#     IT CLONES RATHER THAN RENAMING $C, because $C is this harness's own scratch clone and every case above
+#     uses it; a case that moved it would be measuring the previous case's tree.
+reset_clone
+H56D="$W/with space"
+mkdir -p "$H56D"
+if ! git clone --quiet --no-hardlinks --shared "$C" "$H56D/clone" >/dev/null 2>&1; then
+  note "  FAIL H56 [$(tc H56)]  could not clone into a path containing a space, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H56"
+else
+  ( cd "$H56D/clone" && git update-ref refs/remotes/origin/main "$(git rev-parse HEAD)" ) >/dev/null 2>&1
+  printf 'gates/node_modules\n' >> "$H56D/clone/.git/info/exclude"
+  ln -s "$ROOT/gates/node_modules" "$H56D/clone/gates/node_modules" 2>/dev/null || true
+  H56DIRTY="$( cd "$H56D/clone" && git status --porcelain 2>/dev/null | wc -l | tr -d ' ' )"
+  H56OUT="$( cd "$H56D/clone" && CT_FASTGATE_DRIVE=1 timeout 250 bash gates/fastgate.sh 0000000000000000000000000000000000000000 2>&1 )"; H56RC=$?
+  H56HEAD="$( printf '%s' "$H56OUT" | grep -m1 -oE 'head [0-9a-f]{7,40}|head unknown' || true )"
+  if [ "$H56DIRTY" != "0" ]; then
+    note "  FAIL H56 [$(tc H56)]  the spaced clone is DIRTY ($H56DIRTY path(s)), so fastgate refuses for that instead of for the base - the case cannot pose"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H56"
+  elif [ "$H56RC" = 1 ] && case "$H56OUT" in *"does not name a commit in this repository"*) true;; *) false;; esac; then
+    note "  ok  H56 [$(tc H56)]  (exit 1 at a path containing a space, refusing the bogus base by name, with the provenance reading '$H56HEAD')"
+    OK=$((OK+1))
+  else
+    note "  FAIL H56 [$(tc H56)]  exit $H56RC at a path containing a space, provenance '$H56HEAD' - wanted exit 1 refusing the base by name. A STRING \$GIT reads 'head unknown' and routes at exit 2."
+    show_verdict "$H56OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H56"
+  fi
+fi
+rm -rf "$H56D"
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -
