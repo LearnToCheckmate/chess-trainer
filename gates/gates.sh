@@ -29,6 +29,31 @@
 # the regression never ran at all.
 set -uo pipefail
 
+# ── THE SUITE RUNS FROM A COPY OF ITSELF [#545, item (86); jobs/the-suite-must-run-from-a-copy-of-its-own-script-2026-10-02].
+# bash reads a script by byte offset as it goes, so #461's two mid-run edits to this file made the interpreter read a
+# fragment of a shifted file and die at the footer with all 48 sections green (CLAUDE.md, "NEVER EDIT A SHELL SCRIPT
+# WHILE IT IS RUNNING"). The launch-line remedy (cp to gates/.gates-run-<N>.sh) is a habit the routine follows and a
+# hand run can forget, so this file now does it to itself. Unless it is ALREADY a .gates-run-* copy, it copies itself
+# to a sibling INSIDE gates/ (so dirname $0 still resolves G and ROOT) and execs the copy with the same arguments. The
+# copy unlinks itself first thing: bash keeps the open descriptor, so the run continues from the unlinked file, no
+# later edit can reach it, and nothing is left behind. exec keeps the PID, so the lock's kill -0 sees the same
+# process. --selftest is exempt (it reads its own file by name), and CT_GATES_NO_COPY=1 opts out loudly.
+# NOT COVERED, AS THE JOB SAYS: gates/regress/*.js are read by node when each gate STARTS, so editing a gate that has
+# not run yet still changes what runs.
+if [ -n "${CT_GATES_SELFCOPY:-}" ] && [ "$0" = "$CT_GATES_SELFCOPY" ]; then rm -f -- "$CT_GATES_SELFCOPY"; fi
+case "$(basename "$0")" in
+  .gates-run-*) : ;;
+  *) if [ "${1:-}" != "--selftest" ]; then
+       if [ -n "${CT_GATES_NO_COPY:-}" ]; then
+         echo "gates.sh: CT_GATES_NO_COPY set - running from $0 itself, so an edit to it mid-run can corrupt this run (#461)"
+       else
+         _sc="$(cd "$(dirname "$0")" && pwd)/.gates-run-self-$$.sh"
+         if cp -- "$0" "$_sc" 2>/dev/null; then exec env CT_GATES_SELFCOPY="$_sc" bash "$_sc" "$@"; fi
+         echo "gates.sh: could not copy itself to $_sc - running from $0, unprotected against a mid-run edit (#461)"
+       fi
+     fi ;;
+esac
+
 # ── DID HEAD MOVE WHILE THE SUITE RAN? [#545, item (33); jobs/amending-a-commit-after-launching-the-suite-orphans-
 # the-logs-own-gated-sha-2026-10-07]. The ref line names HEAD as sampled at run START, which is right (#417: the
 # thing gated is the tree at launch) and is not enough: #491 amended its commit 3 minutes into a 93-minute suite -
