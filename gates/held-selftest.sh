@@ -200,7 +200,7 @@ eq "9c its field 7 is '-', since its source is main's own" "-" "$(f7)"
 ck "9d it HOLDS its sha"                        1 "$H" check "$SHA9"
 printf 'a tree on no row at all\n' > "$R/chess.jsx"
 ck "9e it does NOT hold main's bundle md5"      0 "$H" check "$(md5sum "$R/app.js" | cut -c1-12)"
-ck "9f the sentinel is not itself a key"        0 "$H" check sha-only
+ck "9f the sentinel is not itself a key"        2 "$H" check sha-only   # exit 2 since #545 (B finding 2): a non-hex key is a usage error, which says the same thing more loudly
 eq "9g list shows it once, as a LIVE sha-only row" "1" "$("$H" list 2>&1 | grep -c 'A SHA-ONLY hold')"
 ck "9h a near miss of the sentinel is refused as a non-hex md5" 2 env CT_RUNID=held-selftest "$H" add SHA-ONLY "$SHA9" '#921' "$RSN"
 printf 'V1 the GATED source\n' > "$R/chess.jsx"
@@ -251,9 +251,9 @@ ck "10d a row added and NOT committed holds at once"       1 "$HU" check eeeeeee
 git -C "$HR" checkout -- gates/held-trees.tsv
 # (e) THE SOURCE KEY, which is the one key that survives a rebuild, must also survive an uncommitted deletion.
 printf 'a tree whose bundle is on no row\n' > "$HR/app.js"
-ck "10e the source key holds on the committed row"         1 "$HU" check zzzzzzzzzzzz
+ck "10e the source key holds on the committed row"         1 "$HU" check 0f0f0f0f0f0f   # a well-formed key on no row since #545 (B finding 2): the hold comes from the SOURCE key
 grep -v '^ddddddddddd1' "$HREG" > "$HR/x" && mv "$HR/x" "$HREG"
-ck "10e a SOURCE-key hold survives an uncommitted deletion" 1 "$HU" check zzzzzzzzzzzz
+ck "10e a SOURCE-key hold survives an uncommitted deletion" 1 "$HU" check 0f0f0f0f0f0f
 git -C "$HR" checkout -- gates/held-trees.tsv; printf 'bundle-held\n' > "$HR/app.js"
 # (f) THE SOURCE IS NAMED IN THE OUTPUT, so a reader of an archived answer can tell a two-source read from a
 #     one-source read rather than having to re-run the tool.
@@ -671,6 +671,14 @@ assert s.count(g)==1, 'guard line not found';open(sys.argv[2],'w').write(s.repla
 NLX="$(nl_case "$NLM")"; set -- $NLX
 ne "15d CONTROL: with the guard removed the row count does NOT rise - the new row was glued onto the last one" "$(( $1 + 1 ))" "$2"
 rm -f "$NLM"
+
+# 16. A NAMED KEY MUST BE A KEY [#545, antagonist B's finding 2]: a malformed or too-short key is a usage error, exit 2, never
+#     a clearance at exit 0.
+ck "16a check zz (not hex) is a usage error, not a clearance"            2 "$H" check zz
+ck "16b check - is a usage error"                                        2 "$H" check -
+ck "16c check a4df39 (6 hex, shorter than any key) is a usage error"     2 "$H" check a4df39
+"$H" check abcdef0123 >/dev/null 2>&1; S16=$?
+ne "16d a well-formed key is NOT refused as malformed - it gets an answer (0 or 1), never the usage exit 2" "2" "$S16"
 
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "22"
 [ "$F" = "0" ] || exit 1

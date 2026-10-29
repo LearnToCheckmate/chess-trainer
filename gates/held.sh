@@ -206,6 +206,12 @@ case "${1:-}" in
     KEY="${2:-}"
     HELD_KEYS=(); HELD_ASKED=(); HELD_MISSED=()
     if [ -n "$KEY" ]; then
+      # A NAMED KEY MUST BE A KEY [#545, antagonist B's finding 2]: `check zz`, `check -` and `check a4df39` (a 6-hex prefix of a
+      # HELD md5) all answered "not held" at exit 0 - a clearance for a question that was never well-formed. CLAUDE.md: exit 2 is
+      # any answer that is not a clearance, a usage error among them. A key is 7 to 40 hex digits (a sha prefix, a 12-hex md5).
+      if ! [[ "$KEY" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+        echo "held.sh check: '$KEY' is not a key - a key is 7 to 40 hex digits (a git sha or its prefix, or a 12-hex bundle md5). NOT a clearance."; exit 2
+      fi
       HELD_KEYS+=("$(printf '%s' "$KEY" | tr 'A-F' 'a-f')")
       HELD_ASKED+=("the key you named -> $KEY")
     else
