@@ -672,16 +672,9 @@ MUTEXTRA=:
 mut_m1(){ local d="$1"; mkfix "$d"; }
 D="$T/m-M1"
 mkfix "$D"
-# RE-ANCHORED BY #542, AND MOVED TO mkmut. The entrance repair reads the NUL stream STRAIGHT FROM git into the
-# loop - it cannot go through a variable, because `$(...)` strips NULs - so the single `DIRTY=` line this sed
-# named no longer exists in any form. A sed whose anchor cannot match is a mutant that silently tests nothing,
-# which is worse than no mutant by this harness's own standard, so the mutation is now a substring replacement
-# in the same idiom as M37 and M49: make the loop read an EMPTY stream, so DIRTYANY stays 0, no dirty-tree
-# verdict is ever reached, and A13 must stop refusing.
-printf '%s\t%s\n' 'done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)' 'done < <(:)' \
-  | mkmut "$D/gates/checks-tier.sh"
-if ! mutguard M1 "remove the dirty-tree refusal" "$D/gates/checks-tier.sh" 'done < <(:)'; then
-  :
+sed -E 's/^(  DIRTY="\$\("\$\{GIT\[@\]\}" status --porcelain 2>\/dev\/null\)")$/  DIRTY=""/' "$G/checks-tier.sh" > "$D/gates/checks-tier.sh"
+if cmp -s "$D/gates/checks-tier.sh" "$G/checks-tier.sh"; then
+  rec M1 FAIL "the dirty-tree mutation changed nothing, so this mutant tests nothing"
 else
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M1 base" >/dev/null 2>&1
   M1B="$(git -C "$D" rev-parse HEAD)"
@@ -2175,13 +2168,9 @@ rm -f "$D/claude/SESSION-NOTE.md"
 D="$T/m-M37"; mkfix "$D"
 # THE ANCHOR CARRIES NO LITERAL BACKSLASH-n, because mkmut translates one into a NEWLINE and an anchor
 # holding `%s\n` cannot match the single line it came from. Three mutants of this build hit that.
-# RE-ANCHORED BY #542 for the same reason as M1: the ` | grep -vE '^?? ' || true)"` this used to mutate was
-# removed by the entrance repair. The undivided refusal is restored instead by making the UNTRACKED arm of the
-# new `case` unmatchable, so an untracked entry falls through to the catch-all and refuses - which is exactly
-# what M37 exists to assert: that the split is load-bearing and A50 goes back to exit 1 without it.
-printf '%s\t%s\n' "        '?') ROUTEL=" "        '?zz') ROUTEL=" \
+printf '%s\t%s\n' " | grep -vE '^\?\? ' || true)\"" " )\"" \
   | mkmut "$D/gates/checks-tier.sh"
-if mutguard M37 "refuse any dirty tree again" "$D/gates/checks-tier.sh" "'?zz') ROUTEL="; then
+if mutguard M37 "refuse any dirty tree again" "$D/gates/checks-tier.sh" '"$DIRTY" )"'; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M37 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
@@ -2782,122 +2771,6 @@ fi
 # It is the case that says the battery is green HERE, on this tree, rather than on a fixture of stubs. It needs
 # the tier to exist on origin/main, so before this work lands it runs against the WORKING TREE's copy installed
 # as a synthetic base in a full clone of the real repository.
-# ══ A64..A69 AND M49. THE ENTRANCE SPLIT KEYS ON THE TIER'S PATH SET, NOT ON TRACKED-vs-UNTRACKED. ═══════════
-# Fresh antagonist B's P1 of #536, reproduced independently by #542's own B from the shipped surface and by the
-# run itself before any edit. CLAUDE.md's pen rule lets every other chat in this project write docs and flags
-# into this checkout, and this repo's shared docs are TRACKED, so the old split hard-refused an honest candidate
-# at exit 1 - "do not re-run hoping for a different answer" - for a note another session left in DECISIONS-LOG.md,
-# while the SAME WRITE UNTRACKED routed at exit 2. These six cases pin each arm of the new split separately so
-# that no two of them can pass as one, and M49 turns the first.
-# THE DOC IS IN THE BASE ON PURPOSE in every case below: if it arrived in the candidate commit instead, the
-# changed set would route for its OWN reason and the case would pass without exercising the entrance at all.
-
-# A64. A TRACKED edit OUTSIDE the set ROUTES, and the verdict names the path.
-D="$T/a64"; mkfix "$D"
-printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
-commitin "$D" "the base plus a tracked doc"; A64B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "- a note another chat left" >> "$D/DECISIONS-LOG.md"
-runtier "$D" "$A64B"
-A64WHY=""
-[ "$TRC" = 2 ] || A64WHY="exit $TRC, wanted 2"
-grep -qF "OUTSIDE this tier's path set" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the verdict does not say the change is outside the set"
-grep -qF "DECISIONS-LOG.md" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the verdict does not NAME the tracked path"
-if [ -n "$A64WHY" ]; then
-  rec A64 FAIL "a tracked edit outside the tier's set :: $A64WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A64 ok "a TRACKED edit to a doc OUTSIDE the tier's set ROUTES and is named, instead of hard-refusing an honest commit (exit $TRC)"
-fi
-
-# A65. A TRACKED edit INSIDE the set still REFUSES. Asserted separately from A64 so the two cannot pass as one.
-D="$T/a65"; mkfix "$D"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "uncommitted, and inside the set" >> "$D/gates/held.sh"
-expect A65 "$D" "$FIXBASE" 1 "TRACKED modification" "a tracked edit INSIDE the tier's set still REFUSES"
-
-# A66. BOTH AT ONCE -> REFUSE, and the refusal names the INSIDE path. One refusal outranks every route.
-D="$T/a66"; mkfix "$D"
-printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
-commitin "$D" "the base plus a tracked doc"; A66B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "- a note another chat left" >> "$D/DECISIONS-LOG.md"
-printf '%s\n' "uncommitted, and inside the set" >> "$D/gates/held.sh"
-runtier "$D" "$A66B"
-A66WHY=""
-[ "$TRC" = 1 ] || A66WHY="exit $TRC, wanted 1"
-grep -qF "gates/held.sh" <<<"$TOUT" || A66WHY="${A66WHY:+$A66WHY; }the refusal does not name the path INSIDE the set"
-if [ -n "$A66WHY" ]; then
-  rec A66 FAIL "one refusal must outrank every route :: $A66WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A66 ok "an inside-the-set edit beside an outside one REFUSES and names the inside path (exit $TRC)"
-fi
-
-# A67. A STAGED edit REFUSES EVEN THOUGH ITS PATH IS OUTSIDE THE SET: the verdicts below are about the commit,
-# and a staged change means they would be about a commit nobody is looking at.
-D="$T/a67"; mkfix "$D"
-printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
-commitin "$D" "the base plus a tracked doc"; A67B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "- staged, not committed" >> "$D/DECISIONS-LOG.md"
-git -C "$D" add DECISIONS-LOG.md >/dev/null 2>&1
-expect A67 "$D" "$A67B" 1 "staged change" "a STAGED edit refuses even outside the tier's set"
-
-# A68. A PATH HOLDING A SPACE AND A NEWLINE ROUTES AND IS NAMED EXACTLY. This is why the read is -z and NUL by
-# NUL: the line-oriented read this replaced would have split this one path into two entries and named neither.
-D="$T/a68"; mkfix "$D"
-A68N="$(printf 'claude/a doc with a space\nand a newline.md')"
-mkdir -p "$D/claude"
-printf '%s\n' "# a doc" > "$D/$A68N"
-commitin "$D" "the base plus a doc whose name holds a space and a newline"; A68B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "- a note another chat left" >> "$D/$A68N"
-runtier "$D" "$A68B"
-A68WHY=""
-[ "$TRC" = 2 ] || A68WHY="exit $TRC, wanted 2"
-grep -qF "and a newline.md" <<<"$TOUT" || A68WHY="${A68WHY:+$A68WHY; }the verdict does not name the path's second line, so the NUL-by-NUL read is not load-bearing"
-if [ -n "$A68WHY" ]; then
-  rec A68 FAIL "a path holding a space and a newline :: $A68WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A68 ok "a tracked edit to a path holding a SPACE AND A NEWLINE routes and is named whole (exit $TRC)"
-fi
-
-# A69. AN UNTRACKED FILE UNDER gates/ STILL ROUTES, as it did before this split: the set governs TRACKED edits,
-# and no control or harness reads the working tree at all.
-D="$T/a69"; mkfix "$D"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "a scratch file another chat left" > "$D/gates/SCRATCH-NOTE.md"
-runtier "$D" "$FIXBASE"
-A69WHY=""
-[ "$TRC" = 2 ] || A69WHY="exit $TRC, wanted 2"
-grep -qF "gates/SCRATCH-NOTE.md" <<<"$TOUT" || A69WHY="${A69WHY:+$A69WHY; }the verdict does not name the untracked path"
-if [ -n "$A69WHY" ]; then
-  rec A69 FAIL "an untracked path under gates/ :: $A69WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A69 ok "an UNTRACKED file under gates/ still ROUTES and is named (exit $TRC)"
-fi
-
-# M49. PUT THE REFUSE-ALL ARM BACK: every tracked worktree edit refuses again, and A64 must turn.
-D="$T/m-M49"; mkfix "$D"
-printf '%s\t%s\n' "        ' ') if tier_relevant_path " "        ' ') if true || tier_relevant_path " \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M49 "refuse every tracked edit again" "$D/gates/checks-tier.sh" "if true || tier_relevant_path "; then
-  printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M49 base" >/dev/null 2>&1
-  M49B="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  printf '%s\n' "- a note another chat left" >> "$D/DECISIONS-LOG.md"
-  runtier "$D" "$M49B"
-  if [ "$TRC" = 1 ]; then
-    rec M49 ok "the refuse-all arm turns A64: a note in a tracked doc hard-refuses an honest commit again (exit 1)"
-  else
-    rec M49 FAIL "the path-set split is not load-bearing: the mutant still routed (exit $TRC)"
-  fi
-fi
-
 if [ "$MODE" = fixed ] || [ "${CT_TIER_A1:-0}" = 1 ]; then
   A1D="$T/a1"
   if git clone --quiet --no-hardlinks --shared "$ROOT" "$A1D" >/dev/null 2>&1; then

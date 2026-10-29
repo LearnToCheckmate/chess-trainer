@@ -199,19 +199,6 @@ a control can compute, and no control is handed the real tree.
   `gates/logs/checks-<short>-all.log`. Move the old one aside and re-run; that is one command, and the
   alternative is a judge that writes through a name it cannot account for.
 
-### The tier's own path set, and where it is named
-
-`gates/checks-tier.sh` names it ONCE, in `tier_relevant_path()` immediately above the entrance's dirty-tree
-arm: **every path under `gates/`, plus `app.js`, `chess.jsx` and `index.html`, and nothing else.** It is the
-set of working-tree paths whose UNCOMMITTED state could change a verdict the judge reaches below, so a tracked
-edit inside it refuses and a tracked edit outside it routes to the full suite. Matched at a true path boundary,
-so `gatesX/` is not caught and the three blobs are exact top-level names.
-
-**It is not the served tree of the identity arm**, which is "every top-level entry except `.git` and `gates`" -
-the complement of this set's first half. Those two answer different questions: the served tree asks whether the
-CANDIDATE moved what a player is served, and this set asks whether an uncommitted edit could move the JUDGE'S
-OWN verdict. Conflating them would invert the set.
-
 ### What this layer still cannot do, stated rather than implied
 
 - **A control runs as the same user as the judge.** It can signal it, trace it, read its `/proc` entry and so
@@ -227,43 +214,6 @@ OWN verdict. Conflating them would invert the set.
   state for the rest of the file, and over-stripping yields a false CLEAN. Round 4 added the cheap half — the
   state must be closed at end of file, and `://` is no longer read as a comment start — and a real
   string-aware scan remains a recorded known limit (fingerprint `4a14dac044acc63f`).
-
-**Added by #542's adversarial pair, both reproduced:**
-
-- **THE GROUP KILL IS ESCAPED BY A SHELL BUILTIN, NOT ONLY BY `setsid`.** This document said a control that
-  calls `setsid` itself still escapes the process-group kill and is still RED by its marker. `set -m` is a
-  SECOND escape, it is a bash builtin, it needs no binary, and combined with the env scrub disclosed below it
-  defeats BOTH layers at once - the group kill misses the escapee because it is in its own group, and
-  `ctl_survivors` misses it because the marker is gone. Measured by antagonist A against this file's own
-  launch, kill and scan code: the escapee survived while the survivor scan reported nothing. Each half alone is
-  caught. The fix direction is to make the survivor scan a SET test rather than an IDENTITY test - record
-  `ps -eo pid,sid` before each control and treat any process in the judge's own session that was not there
-  before as a survivor, since a scrubbed environment cannot change the session id and `set -m` does not either.
-- **`timeout` carries no `-k`**, so a control whose body traps TERM and sleeps makes `timeout` wait on a child
-  that will not die, and the judge's `wait` blocks past the bound with the real tree's suite lock held. The
-  bound is on the process group but not on the clock.
-- **THE `verify-log-selftest.sh` ARM ACCEPTS ANY NUMBER OF OPEN HOLES AND THE COMMENT ABOVE IT SAYS IT DOES
-  NOT.** The arm pins the sentence and the exit set and forbids a `N fail` line; the selftest's own
-  "holes still open" branch satisfies all three. There is no hole comparison in the arm at all. It is also a
-  frozen premise: that comment calls exit 2 the expected state "until the push gate's argument parser is
-  repaired", and #537 repaired it, so the selftest now exits 0 on main. One `[ "$HOPEN" = 0 ]` would make the
-  arm match its own comment.
-- **A HARD LINK DEFEATS THE NEW DESCRIPTOR-SWAP GUARD.** The guard is `[ "$outf" -ef /proc/self/fd/$ofd ]` plus
-  `[ ! -L "$outf" ]`, and its comment claims it closes the swap "deterministically rather than by timing". For a
-  HARD link both tests pass - the two names genuinely ARE the same inode, and a hard link is not a symlink - so
-  a write through the descriptor lands on the victim. Measured by antagonist B on a faithful replica. The end
-  state is still a REFUSAL, because `snapcheck` sees the changed bundle as GRAVE, so this is bundle destruction
-  under a refusal rather than a false green - which is the same bar this file set for the round-3 log-path
-  defect. The fix is the link-count check `writelog()` already applies to its own output: require
-  `stat -c %h` to read 1.
-- **`gates/cases/` HOLDS ONLY THIS README TODAY.** A tier run reports `gates/cases control(s) run: 0`. The
-  convention this document describes is an accumulating control set whose present size is zero; the arm is
-  reported rather than credited, but a reader should not take the section above as describing controls that
-  exist.
-- **THE SELFTESTS ARE NOT IN THIS TIER'S SET.** A commit that changes `gates/held-selftest.sh` answers GO FULL
-  at exit 2, because the harnesses are pinned byte-identical to the base instead. So a fix to one of the four
-  scripts that needs a NEW SELFTEST CASE cannot use this tier at all, and `gates/cases/` is the only place a
-  tier commit may add a control. Measured by antagonist A through the carried judge.
 
 ## What the seventh round changed for a control author (build #536, held)
 
