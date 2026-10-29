@@ -324,4 +324,35 @@ L.run(async()=>{
   L.say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),
         'B7 the panel no longer explains accuracy as average centipawn loss',
         {saysCentipawn:/average centipawn loss/i.test(txt),saysChances:/changed your chances of winning/i.test(txt)});
+
+  // ════════ BLOCK E - THE TWO RUNGS WHERE THE LADDER AND THE OLD FLOOR DISAGREE, READ OFF THE SCREEN ════════
+  // [#545, item (56); jobs/the-mate-ladder-has-no-behavioural-assertion-at-a-discriminating-rung-2026-10-07]. Block C pins
+  // mateLadder's TEXT; B1 reads a grade, but at -649cp, where the ladder, the #441 floor and #439's linear ladder all say
+  // Blunder. These two games put the mate-allowing move on the other two rungs. Both are the Fool's-mate pattern: White
+  // gives material away while e2, d1 and f1 still box the king, then f3 and g4?? allow Qh4#. The standing evaluations were
+  // MEASURED with the app's own engine file in a page Worker before this block was written (startpos + the moves, White to
+  // move before g4): E1's position read -778 at depth 12 and -820 at depth 18, inside the Mistake rung (-701..-999); E2's
+  // read -1123 and -1210, inside the Inaccuracy rung (<= -1000). After g4 both read mate 1. The margins are ~80 and ~120
+  // from the nearest boundary, so a shallower review search can still land on the stated rung.
+  const RUNGS=[
+    {id:'E1',want:'Mistake',ply:17,pgn:'[Event "#545 mate rung Mistake"]\n[White "W"]\n[Black "B"]\n[Result "0-1"]\n\n1. a4 e5 2. Ra3 Bxa3 3. b3 Bb4 4. Nh3 d5 5. Ng5 Qxg5 6. Bb2 a6 7. Bxe5 Qxe5 8. f3 Qg5 9. g4 Qh4# 0-1'},
+    {id:'E2',want:'Inaccuracy',ply:29,pgn:'[Event "#545 mate rung Inaccuracy"]\n[White "W"]\n[Black "B"]\n[Result "0-1"]\n\n1. a4 e5 2. Ra3 Bxa3 3. b3 Bb4 4. Nh3 d5 5. Ng5 Qxg5 6. Bb2 a6 7. Bxe5 Qxe5 8. Nc3 Qg5 9. Ne4 dxe4 10. f3 Nf6 11. c3 Bd6 12. Qc2 O-O 13. Qd1 Nc6 14. c4 Re8 15. g4 Qh4# 0-1'}];
+  for(const g of RUNGS){
+    const e=await L.launch({geo:{w:375,h:730},name:'winprob-rung-'+g.id,store:{ct_pool:'3'}});
+    await e.open(); await e.home(); await e.tile('Review');
+    await e.page.locator('textarea').first().fill(g.pgn);
+    await e.tapText(/^⚡ Analyze Game$/,{wait:300});
+    let eu=true;try{await e.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(x){eu=false;}
+    await e.settle(1200);
+    L.say(eu,g.id+' PRECONDITION the constructed game imported and the review summary rendered');
+    if(!eu){L.note(g.id+' NOT RUN: no summary');await e.close();continue;}
+    await R.startReview(e); await R.goPly(e,g.ply);
+    const line=await e.page.evaluate(()=>{const l=document.querySelector('[data-ct="rev-move-line"]');return l?l.innerText.replace(/\s+/g,' ').trim():null;});
+    // the PLY is asserted before its grade, so a walk that stood on the wrong move cannot pass (#385)
+    L.say(!!line&&/\bg4\b/.test(line),g.id+' PRECONDITION the walk stands on White\'s g4, the move that allows Qh4#',{ply:g.ply,line});
+    const others=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'].filter(x=>x!==g.want);
+    L.say(!!line&&new RegExp('\\b'+g.want+'\\b').test(line)&&!others.some(x=>new RegExp('\\b'+x+'\\b').test(line)),
+      g.id+' TC-R40-MATE-RUNGS-RENDERED the pill on g4 reads '+g.want+' - allowing mate from '+(g.want==='Mistake'?'-701..-999':'-1000 or worse')+' is graded by the ladder, not the old always-Blunder floor',{line});
+    await e.close();
+  }
 });
