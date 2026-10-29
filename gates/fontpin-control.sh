@@ -61,10 +61,14 @@ chk(){ # chk <label> <expected rc 0|1> <env...>
   local label="$1" want="$2"; shift 2
   local out rc
   out="$(env "$@" node "$T/drive.js" 2>&1)"; rc=$?
+  # HERESTRINGS, NOT `printf | grep | head` [#544, close-out push checks]. The piped form is an early-exit
+  # pipe into grep under pipefail: `head` closes the pipe while printf is still writing, and the status is
+  # discarded, so a producer killed by SIGPIPE is indistinguishable from one that finished. gates/gatemanifest.sh
+  # sigpipe named this file's second site as TIER D. A herestring has no producer process to kill.
   local seen
-  seen="$(printf '%s' "$out" | grep -oE '(PASS|FAIL) TC-SUITE-233' | head -1)"
+  seen="$(grep -oE '(PASS|FAIL) TC-SUITE-233' <<<"$out" | head -1)"
   local segoe
-  segoe="$(printf '%s' "$out" | grep -oE '"segoe":[0-9.]+' | head -1)"
+  segoe="$(grep -oE '"segoe":[0-9.]+' <<<"$out" | head -1)"
   if [ "$rc" = "$want" ]; then PASS=$((PASS+1)); printf 'PASS %-34s rc=%s  %s  %s\n' "$label" "$rc" "${seen:-<no TC-SUITE-233 line>}" "$segoe"
   else FAIL=$((FAIL+1)); printf 'FAIL %-34s rc=%s wanted %s  %s  %s\n' "$label" "$rc" "$want" "${seen:-<no TC-SUITE-233 line>}" "$segoe"; fi
 }

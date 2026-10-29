@@ -161,7 +161,18 @@ if [ "${1:-}" = "--citations-selftest" ]; then
     ( cd "$1" && bash gates/verify-log.sh --citations >"$1/out.txt" 2>&1; echo "exit=$?"; grep -E '^CITATIONS (OK|RED)' "$1/out.txt" | head -1 )
   }
   st_ratchet() { # st_ratchet <root> -> the one fixed-shape ratchet line
-    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^CITATIONS RATCHET:' | head -1 )
+    # ── NO PIPELINE OUT OF THE SCRIPT [#544, close-out push checks]. This read
+    #      bash gates/verify-log.sh --citations 2>&1 | grep -E '...' | head -1
+    # which is a TIER D sigpipe site: `head` can close the pipe while the producer is still writing, and the
+    # pipeline's exit status is discarded so a producer killed by SIGPIPE is indistinguishable from one that
+    # finished. gates/gatemanifest.sh's selftest enforces a ceiling on exactly those shapes and THIS SITE
+    # BREACHED IT from the moment item (5) wrote it - `gates/gatemanifest.sh --selftest` read 55 passed, 1
+    # failed, naming this line. It went unseen for eleven commits because nothing between item (5) and the
+    # close-out checks ran that selftest, which is this project's own lesson about a check nobody runs.
+    # Written the way its SIBLING eight lines above already is - to a file, then read the file - so the
+    # script's own exit status is captured and nothing can be killed mid-write.
+    ( cd "$1" && bash gates/verify-log.sh --citations >"$1/ratchet.txt" 2>&1 || true
+      grep -E '^CITATIONS RATCHET:' "$1/ratchet.txt" | head -1 )
   }
   # sig() AS gates/fastgate.sh:2194 DEFINES IT, COPIED HERE ON PURPOSE AND THE COPY IS NAMED. This file must not
   # depend on fastgate.sh being present (it is the push gate's own selftest and runs in bare fixture trees), so
