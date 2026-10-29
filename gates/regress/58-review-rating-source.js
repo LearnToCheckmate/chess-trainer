@@ -47,6 +47,23 @@ const R=require('../drive/review');
 const G=[{w:320,h:568},{w:360,h:640},{w:375,h:667},{w:375,h:730},{w:390,h:844},{w:414,h:896},{w:440,h:956}];
 const gl=g=>g.w+'x'+g.h;
 const HDR={w:'1523',b:'1487'};        // the Elo headers PGN_OPERA and PGN_CORNER both carry
+// #545 item (79): the 21e-SOURCE predicates. A sentence is split at . ! ? and an estimate word counts only inside
+// a sentence that also names a rating OR points back at one ("that includes", "shown above") - so "Accuracy is
+// estimated" is allowed and "The rating above is approximate" is not. The corpus below holds every string the job
+// measured, both ways, so a later loosening is caught in node before any browser starts.
+const EST_WORDS=/\b(rough(ly)?|estimat\w*|approximat\w*|unofficial|not official|guess\w*|ballpark)\b/i;
+const noteSaysPgn=(t)=>/\bPGN\b/.test(t);
+const noteEstimatesRating=(t)=>t.split(/(?<=[.!?])\s+/).some(x=>EST_WORDS.test(x)&&/\brating|\bElo\b|shown above|includes the/i.test(x))
+  ||(/\brating/i.test(t)&&/\b(these|they|both)\s+are\s+(rough|estimat|approximat)/i.test(t));
+const NOTE_CORPUS=[
+  ['Accuracy is estimated from how much each move changed your chances of winning. The ratings are the ones recorded in the game\u2019s PGN.',true],
+  ['Accuracy and rating are rough estimates from average centipawn loss, not official ratings',false],
+  ['Accuracy and rating are rough estimates. They are not official ratings.',false],
+  ['These are rough estimates from average centipawn loss. That includes the rating shown above.',false],
+  ['The rating above is approximate and unofficial.',false],
+  ['The ratings are approximate. They come from the game\u2019s PGN.',false],
+  ['',false],
+];
 
 // the same game with every rating header stripped: Kunal's "show nothing where it does not" branch.
 // Built here rather than found, because the repository has no headerless fixture - stated, not hidden.
@@ -113,6 +130,9 @@ async function importFixture(b,pgn,tag){
 }
 
 L.run(async()=>{
+  // #545 item (79): the 21e-SOURCE predicate against every note the job measured, BOTH WAYS - a no-browser check.
+  for(const [t,ok] of NOTE_CORPUS){const got=t.length>0&&noteSaysPgn(t)&&!noteEstimatesRating(t);
+    L.say(got===ok,'21e-CORPUS the SOURCE predicate '+(ok?'ACCEPTS':'REJECTS')+' "'+(t||'<empty>').slice(0,70)+'"',{want:ok,got});}
   // ---- fixture 1: the game carries WhiteElo 1523 / BlackElo 1487 -------------------------------------
   const b=await L.launch({geo:{w:375,h:730},name:'rating-hdr',store:{ct_pool:'3'}});await b.open();
   L.note('bundle stamp on the page: '+await b.stamp());
@@ -156,6 +176,19 @@ L.run(async()=>{
       const claimsEstimatedRating=!!note&&/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(note);
       L.say(note!==null&&!claimsEstimatedRating,
             '21e '+gl(g)+': the note does not call the shown rating an estimate',{note});
+      // #545 item (79) [jobs/gate58-21e-pins-the-sentence-shape-not-the-clause-2026-09-29]. The line above PINS THE
+      // PRE-VETO SENTENCE'S SHAPE: it needs "rating" BEFORE an estimate word in one sentence, from a list of three
+      // words. So a reordered note ("These are rough estimates... That includes the rating shown above."), a
+      // synonym ("approximate and unofficial") and an EMPTY note all passed it. It is KEPT as the #429 regression
+      // guard. Two assertions are added beside it, each its own L.say (CLAUDE.md, the empty-denominator rule):
+      //   21e-NONEMPTY  the note exists and says something, so a deleted or blank sentence is red, not green;
+      //   21e-SOURCE    the PROPERTY, wording- and order-independent: a rating is on screen, so the note names the
+      //                 game's PGN as where it came from, and NO sentence of it applies an estimate word to a rating.
+      // Controls: three CT_OUT trial bundles, recorded in TC-R21e's row.
+      L.say(typeof note==='string'&&note.length>0,'21e-NONEMPTY '+gl(g)+': the note under the panel exists and is not empty ('+(note===null?'absent':note.length+' chars')+')',{note});
+      L.say(typeof note==='string'&&noteSaysPgn(note)&&!noteEstimatesRating(note),
+            '21e-SOURCE '+gl(g)+': a rating is shown, so the note names the PGN as its source and no sentence calls a rating an estimate',
+            {note,namesPgn:typeof note==='string'&&noteSaysPgn(note),estimates:typeof note==='string'&&noteEstimatesRating(note)});
 
       // TC-R21d WHATEVER IS SHOWN FITS ITS OWN COLUMN (US-INV-05's rule, applied to this line)
       for(const it of rb.items)
@@ -179,6 +212,7 @@ L.run(async()=>{
       const note2=await c.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
         return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
       L.say(note2!==null&&!/rating/i.test(note2),'21e '+gl(g)+': with no rating shown the note does not mention one',{note:note2});
+      L.say(typeof note2==='string'&&note2.length>0,'21e-NONEMPTY '+gl(g)+': with no rating shown the note still exists and is not empty ('+(note2===null?'absent':note2.length+' chars')+') - an absent note would otherwise satisfy "does not mention one"',{note:note2});
     }
   }
   await c.close();
@@ -206,6 +240,9 @@ L.run(async()=>{
         return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
       L.say(n3!==null&&!/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(n3),
             '21f '+gl(g)+': with one side rated the note still does not call it an estimate',{note:n3});
+      L.say(typeof n3==='string'&&n3.length>0&&noteSaysPgn(n3)&&!noteEstimatesRating(n3),
+            '21e-SOURCE '+gl(g)+': with one side rated the note is not empty, names the PGN as the source and no sentence calls a rating an estimate',
+            {note:n3});
     }
   }
   await d.close();

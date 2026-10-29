@@ -589,6 +589,10 @@ nothing where it does not.")
   average centipawn loss, not official ratings" - the INVERSE of the defect being fixed, one string away from
   the line it edits, and invisible to a sweep over `.rating` because that string holds the word with no dot.
   (TC-R21e)
+- And what the sentence says ABOUT the rating is true of the rating it shows: where a rating is shown, the
+  sentence names the game's PGN as its source and calls no rating an estimate, however it is worded or ordered;
+  and the sentence is never simply missing. (#545 item (79): the half the veto proved is the same requirement.
+  TC-R21e's 21e-SOURCE and 21e-NONEMPTY lines.)
 - Where only ONE side carries a rating header, that side shows its rating and the other invents nothing.
   (TC-R21f)
 
