@@ -194,54 +194,67 @@ if [ "${1:-}" = "--citations-selftest" ]; then
   # assertions below stop meaning what they say - which is why the copy is called out here instead of inlined.
   st_sig() { grep -oE '\b(OK|RED|GREEN|FAIL)\b|[0-9]+' <<< "$1" | paste -sd, - ; }
   st_fields() { local IFS=,; local -a f=($1); printf '%s' "${#f[@]}"; }
+  # THE CEILINGS ARE READ FROM THIS SCRIPT'S OWN CONSTANTS, NOT RESTATED [#545, item (71);
+  # jobs/citations-arm-5-lands-with-both-ceilings-at-zero-headroom-2026-10-06]. Every control below hard-coded
+  # 'ceiling 48', '(ceiling 9)' and '(ceiling 2)', and C5/C8d/C14 sized their fixtures to those numbers, so lowering
+  # a ceiling to its measured floor took the selftest from green to nine reds - measured twice, in two builds, each
+  # time an antagonist proposed the 'two-character' fix. Now a ceiling moves in ONE line (its assignment below in
+  # the arm) and the controls follow it; a control that cannot find its constant fails loudly rather than
+  # comparing against an empty string.
+  SA4="$(sed -n 's/^  A4CEIL=\([0-9][0-9]*\)$/\1/p' "$0")"
+  SA5Z="$(sed -n 's/^  A5ZCEIL=\([0-9][0-9]*\)$/\1/p' "$0")"
+  SA5W="$(sed -n 's/^  A5WCEIL=\([0-9][0-9]*\)$/\1/p' "$0")"
+  SA5X="$(sed -n 's/^  A5EXEMPT_CEIL=\([0-9][0-9]*\)$/\1/p' "$0")"
+  st_ck "C0 the four ceilings were read from this script's own constants" "yes" \
+    "$( [ -n "$SA4" ] && [ -n "$SA5Z" ] && [ -n "$SA5W" ] && [ -n "$SA5X" ] && echo yes || echo "no: A4=$SA4 A5Z=$SA5Z A5W=$SA5W A5X=$SA5X")"
   echo "=== citations arm (4) selftest"
 
   # C1 a clean line citation to a real file at a real line is counted and is not a defect.
   R="$(st_tree)"; printf 'see `gates/regress/10-real.js:2` for the pin\n' > "$R/claude/stories/A.md"
   st_ck "C1 clean citation counted, nothing flagged" \
-    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R")"
+    "  (4) 1 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R")"
 
   # C2 DEAD detector fires on a path that is not in the tree, and C2b stays silent when the file exists.
   R2="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R2/claude/stories/A.md"
   st_ck "C2 dead path fires" \
-    "  (4) 1 line-number citation(s), ceiling 48, 1 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+    "  (4) 1 line-number citation(s), ceiling $SA4, 1 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
   # C2b plants a file LONG ENOUGH for the cited line, because the first draft of this fixture copied the
   # 3-line file and C2b then reported 1 past-EOF - the DEAD detector had gone silent exactly as asked and the
   # STALE one had correctly fired on :5 of a 3-line file. The fixture was wrong, not the arm; recorded here
   # rather than silently repaired, because a fixture that quietly agrees with a bug is this project's #432.
   printf 'a\nb\nc\nd\ne\nf\n' > "$R2/gates/regress/99-gone.js"
   st_ck "C2b dead detector silent once the file exists and is long enough" \
-    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
+    "  (4) 1 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R2")"
 
   # C3 STALE detector fires one line past the end and C3b is silent exactly AT the end - the boundary, so an
   # off-by-one in the comparison cannot pass both halves.
   R3="$(st_tree)"; printf 'see `gates/regress/10-real.js:4`\n' > "$R3/claude/stories/A.md"
   st_ck "C3 past-EOF fires at last+1 (file has 3 lines)" \
-    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 1 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+    "  (4) 1 line-number citation(s), ceiling $SA4, 0 dead, 1 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
   printf 'see `gates/regress/10-real.js:3`\n' > "$R3/claude/stories/A.md"
   st_ck "C3b past-EOF silent at the last line itself" \
-    "  (4) 1 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
+    "  (4) 1 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R3")"
 
   # C4 THE NEGATIVE CONTROL THE JOB'S OWN CASE ASKS FOR: a symbol citation must not be reported at all.
   R4="$(st_tree)"; printf 'see `gates/regress/10-real.js` at selectOpening, and `chess.jsx` at fullReset\n' > "$R4/claude/stories/A.md"
   st_ck "C4 symbol-form citations are not counted" \
-    "  (4) 0 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R4")"
+    "  (4) 0 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R4")"
 
   # C5 the CEILING. 48 is accepted, 49 is refused, and the message names the overage.
   R5="$(st_tree)"; : > "$R5/claude/stories/A.md"
-  i=1; while [ "$i" -le 48 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R5/claude/stories/A.md"; i=$((i+1)); done
+  i=1; while [ "$i" -le "$SA4" ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R5/claude/stories/A.md"; i=$((i+1)); done
   st_ck "C5 exactly at the ceiling is not over it" \
-    "  (4) 48 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R5")"
-  printf 'row 49 `gates/regress/10-real.js:1`\n' >> "$R5/claude/stories/A.md"
+    "  (4) $SA4 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R5")"
+  printf 'row %s `gates/regress/10-real.js:1`\n' "$((SA4+1))" >> "$R5/claude/stories/A.md"
   st_ck "C5b one over the ceiling is refused" \
-    "  (4) 49 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 1 over ceiling" "$(st_arm4 "$R5")"
+    "  (4) $((SA4+1)) line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 1 over ceiling" "$(st_arm4 "$R5")"
 
   # C6 SCOPE. The arm is about the story registers, so an identical citation outside claude/stories/ must not
   # be counted - otherwise this file's own comments would redden it, which is how a checker eats itself.
   R6="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R6/HANDOFF.md"
   mkdir -p "$R6/gates/regress"; printf '// gates/regress/99-gone.js:5\n' > "$R6/gates/regress/11-other.js"
   st_ck "C6 citations outside claude/stories/*.md are out of scope" \
-    "  (4) 0 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R6")"
+    "  (4) 0 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R6")"
 
   # C7 THE ONE THAT MATTERS: does arm (4) actually control the verdict, or only print? Arms (1) and (2) are
   # clean in this tree by construction (no story file names a story path, and TEST-CASES.md is absent, which
@@ -306,21 +319,21 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   }
   R9="$(st_tree)"; printf 'one `gates/regress/10-real.js:1`\n' > "$R9/claude/stories/A.md"
   st_ck "C8b under the ceiling, the fall advice names the headroom it would leave" \
-    "  CEILING CAN BE LOWERED: 1 of 48 in use, 47 of headroom." \
+    "  CEILING CAN BE LOWERED: 1 of $SA4 in use, $((SA4-1)) of headroom." \
     "$( cd "$R9" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  CEILING CAN BE LOWERED' | head -1 )"
   st_ck "C8c and it refuses to recommend the fall without naming the zero-headroom P1" \
     "1" "$(st_adv "$R9" '^  AND A FALL TO THE FLOOR IS NOT FREE: committing A4CEIL=1 leaves ZERO headroom')"
   # C8d THE BOUNDARY, and it is the half that stops C8b/C8c passing by accident: exactly AT the ceiling there
   # is no fall to advise, so BOTH advice lines must be silent while the (4) summary still reports 48 of 48.
   R10="$(st_tree)"; : > "$R10/claude/stories/A.md"
-  i=1; while [ "$i" -le 48 ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R10/claude/stories/A.md"; i=$((i+1)); done
+  i=1; while [ "$i" -le "$SA4" ]; do printf 'row %s `gates/regress/10-real.js:1`\n' "$i" >> "$R10/claude/stories/A.md"; i=$((i+1)); done
   st_ck "C8d at the ceiling there is no fall advice at all" \
     "0" "$(st_adv "$R10" '^  (CEILING CAN BE LOWERED: [0-9]+ of [0-9]+ in use|AND A FALL TO THE FLOOR IS NOT FREE)')"
   st_ck "C8d-b and the summary still reads 48 of 48, so C8d is silence and not an empty run" \
-    "  (4) 48 line-number citation(s), ceiling 48, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R10")"
+    "  (4) $SA4 line-number citation(s), ceiling $SA4, 0 dead, 0 past end of file, 0 over ceiling" "$(st_arm4 "$R10")"
   # C8e OVER the ceiling the REFUSAL is untouched by this change - the one assertion that proves the advice
   # edit did not weaken the ratchet it sits beside.
-  printf 'row 49 `gates/regress/10-real.js:1`\n' >> "$R10/claude/stories/A.md"
+  printf 'row %s `gates/regress/10-real.js:1`\n' "$((SA4+1))" >> "$R10/claude/stories/A.md"
   st_ck "C8e over the ceiling still refuses, and the fall advice stays silent" \
     "1 0" "$(st_adv "$R10" '^  NEW LINE CITATION\(S\): 49 exceeds the committed ceiling of 48 by 1') $(st_adv "$R10" '^  CEILING CAN BE LOWERED: [0-9]+ of [0-9]+ in use')"
 
@@ -350,7 +363,7 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # line is wrong every control below is measuring the wrong thing.
   R9="$(st_tree)"; st_reg "$R9"
   st_ck "C9 a minimal valid register is clean" \
-    "  (5) 1 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R9")"
+    "  (5) 1 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R9")"
 
   # C9b VACUITY. Both registers EXIST and yield nothing: that is a refusal, not a clean register. This is the
   # guard that stops a ceiling going stale behind three zeros.
@@ -371,11 +384,11 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R10="$(st_tree)"; st_reg "$R10"
   { printf '\n| id | what | measured |\n|---|---|---|\n| TC-Y-001 | a thing | a reading |\n'; } >> "$R10/claude/stories/TEST-CASES.md"
   st_ck "C10 a story-less table fires" \
-    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 1 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R10")"
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 1 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R10")"
   st_reg "$R10"
   { printf '\n| id | story | what | measured |\n|---|---|---|---|\n| TC-Y-001 | US-X-01 | a thing | a reading |\n'; } >> "$R10/claude/stories/TEST-CASES.md"
   st_ck "C10b silent once that table has a story column" \
-    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R10")"
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R10")"
 
   # C11 the EXEMPTION is keyed to the normalised header text, so the exempt table is counted as exempt and
   # not as a defect; C11b proves the exemption is itself ratcheted, because an exemption with no ceiling is a
@@ -383,22 +396,22 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R11="$(st_tree)"; st_reg "$R11"
   { printf '\n| id | case | measured |\n|---|---|---|\n| TC-SUITE-001 | a case | exit 0 |\n'; } >> "$R11/claude/stories/TEST-CASES.md"
   st_ck "C11 the exempt header text is exempt, not a defect" \
-    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 1 exempt of 1" "$(st_arm5 "$R11")"
+    "  (5) 2 case row(s) in 2 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 1 exempt of $SA5X" "$(st_arm5 "$R11")"
   { printf '\n| id | case | measured |\n|---|---|---|\n| TC-SUITE-002 | another | exit 1 |\n'; } >> "$R11/claude/stories/TEST-CASES.md"
   st_ck "C11b a SECOND exempt-shaped table breaches the exemption ceiling" \
-    "  EXEMPTION COUNT ROSE: 2 story-less table(s) matched the exemption against a ceiling of 1." \
+    "  EXEMPTION COUNT ROSE: 2 story-less table(s) matched the exemption against a ceiling of $SA5X." \
     "$(st_arm5line "$R11" '^  EXEMPTION COUNT ROSE')"
 
   # C12 STORY JOIN fires on a heading nobody cites and C12b goes silent once a row cites it.
   R12="$(st_tree)"; st_reg "$R12"; printf '\n### US-X-02 an uncovered story\n' >> "$R12/claude/stories/USER-STORIES.md"
   st_ck "C12 an uncited story heading is at zero cases" \
-    "  (5) 1 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12")"
+    "  (5) 1 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R12")"
   st_ck "C12 names the story it found, rather than only counting it" \
     "  STORY AT ZERO CASES: US-X-02 is a '### US-' heading in USER-STORIES.md that no case row's story cell cites" \
     "$(st_arm5line "$R12" '^  STORY AT ZERO CASES')"
   printf '| TC-X-002 | US-X-02 | a step | an expectation | gate 10 | pass |\n' >> "$R12/claude/stories/TEST-CASES.md"
   st_ck "C12b silent once a case row cites it" \
-    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12")"
+    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R12")"
 
   # C12c THE NEGATIVE CONTROL THE JOB IS ACTUALLY ABOUT. The join is COLUMN-ANCHORED: a story id mentioned
   # anywhere else on the row must NOT count as coverage. Without this control the arm could be satisfied by
@@ -406,7 +419,7 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R12c="$(st_tree)"; st_reg "$R12c"; printf '\n### US-X-02 an uncovered story\n' >> "$R12c/claude/stories/USER-STORIES.md"
   printf '| TC-X-003 | US-X-01 | a step that mentions US-X-02 in prose | an expectation | gate 10 | pass |\n' >> "$R12c/claude/stories/TEST-CASES.md"
   st_ck "C12c a story named outside the story column is NOT coverage" \
-    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R12c")"
+    "  (5) 2 case row(s) in 1 table(s), 2 story heading(s), 1 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R12c")"
 
   # C13 ROW WIDTH fires on an UNESCAPED pipe and C13b is silent on the escaped form - the boundary, so the
   # detector cannot pass both halves by ignoring escaping. This is the sibling job folded in here
@@ -414,22 +427,21 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   R13="$(st_tree)"; st_reg "$R13"
   printf '| TC-X-004 | US-X-01 | a /this|that/ regex | an expectation | gate 10 | pass |\n' >> "$R13/claude/stories/TEST-CASES.md"
   st_ck "C13 an unescaped pipe shifts the row and is caught" \
-    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 1 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R13")"
+    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 1 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R13")"
   st_reg "$R13"
   printf '| TC-X-004 | US-X-01 | a /this\\|that/ regex | an expectation | gate 10 | pass |\n' >> "$R13/claude/stories/TEST-CASES.md"
   st_ck "C13b the escaped form is silent" \
-    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 0 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R13")"
+    "  (5) 2 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R13")"
 
   # C14 the WIDTH CEILING: 2 is accepted, 3 is refused, and the message names the overage. Both sides, so an
   # off-by-one in the comparison cannot pass.
   R14="$(st_tree)"; st_reg "$R14"
-  printf '| TC-X-005 | US-X-01 | a|b | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
-  printf '| TC-X-006 | US-X-01 | c|d | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
+  i=1; while [ "$i" -le "$SA5W" ]; do printf '| TC-X-0%02d | US-X-01 | a|b | an expectation | gate 10 | pass |\n' "$((i+4))" >> "$R14/claude/stories/TEST-CASES.md"; i=$((i+1)); done
   st_ck "C14 exactly at the width ceiling is not over it" \
-    "  (5) 3 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling 9), 2 wrong-width row(s) (ceiling 2), 0 unexempted story-less table(s), 0 exempt of 1" "$(st_arm5 "$R14")"
-  printf '| TC-X-007 | US-X-01 | e|f | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
+    "  (5) $((SA5W+1)) case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), $SA5W wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R14")"
+  printf '| TC-X-099 | US-X-01 | e|f | an expectation | gate 10 | pass |\n' >> "$R14/claude/stories/TEST-CASES.md"
   st_ck "C14b one over the width ceiling is refused" \
-    "  NEW WRONG-WIDTH ROW(S): 3 exceeds the committed ceiling of 2 by 1." \
+    "  NEW WRONG-WIDTH ROW(S): $((SA5W+1)) exceeds the committed ceiling of $SA5W by 1." \
     "$(st_arm5line "$R14" '^  NEW WRONG-WIDTH')"
 
   # C15 DETERMINISM over one tree [R36 admission test].
@@ -819,7 +831,10 @@ EOF6
   # recorded rather than left to be found: this run holds the artefact lock on THIS FILE and may not write
   # gates.sh [R44], and this mode is RED on main today on arms (1) and (2), so wiring it in unchanged would
   # refuse every build.
-  A5ZCEIL=9
+  # A5ZCEIL LOWERED 9 -> 7 AT #545 (item (71)) to the measured 7 at-zero headings, in the same commit that made the
+  # selftest read its ceilings from these constants - which is what let this be one line. Keep each constant ALONE on
+  # its line: the selftest's C0 reads them with an anchored sed and a trailing comment makes it fail loudly.
+  A5ZCEIL=7
   A5WCEIL=2
   A5EXEMPT_CEIL=1
   # One exemption, by its NORMALISED header text, with its reason. Normalised means "| a | b | c |" with
