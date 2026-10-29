@@ -230,7 +230,7 @@ sigpipe_sites(){
   # and the committed ceilings stay calibrated. Only a site with a REAL continuation can move, and it moves one
   # way: to A, when the continuation reads the status with `||`, `&&` or `then`. A continuation that genuinely
   # discards the status stays D, which is the second half of the control.
-  local root="${1:-$G}" f n n0 line s tier early logical cont j
+  local root="${1:-$G}" f n n0 line s tier early logical cont j sp_pipes
   for f in "$root"/*.sh; do
     [ -e "$f" ] || continue
     n=0
@@ -272,8 +272,16 @@ sigpipe_sites(){
       early=0
       # a reader that LEAVES EARLY: grep -q (any flag cluster containing q), grep -m1, or a head downstream
       # of the grep - in which case head is the one that leaves and grep is the writer that is killed.
-      if [[ $logical =~ \|[[:space:]]*grep[[:space:]]+(-[A-Za-z]*q|-m[[:space:]]*1) ]]; then early=1; fi
-      if [[ $logical =~ \|[[:space:]]*grep[^|]*\|[[:space:]]*head ]]; then early=1; fi   # both read the LOGICAL line [#530]
+      # ── THE PIPE TEST READS THE LINE WITH EVERY `||` MASKED [#545, item (66);
+      # jobs/the-sigpipe-audits-herestring-exemption-is-defeated-by-an-or-chain-so-the-remedy-its-own-message-prescribes-creates-the-site-it-removes-2026-10-23].
+      # `\|[[:space:]]*grep` also matched the SECOND bar of an `||`, so `grep -q x <<<"$a" || grep -q y <<<"$a"` -
+      # two herestrings, no pipe, nothing that can be orphaned - was filed as a pipe into grep, and converting a real
+      # `cmd | grep -q a || cmd | grep -q b` to herestrings (the remedy this audit's own refusal prescribes) left the
+      # line flagged. An OR is not a pipe, so it is masked for detection only; the tier tests below still read the
+      # real `||`. Control: the selftest fixture's line 18.
+      sp_pipes="${logical//||/ ;OR; }"
+      if [[ $sp_pipes =~ \|[[:space:]]*grep[[:space:]]+(-[A-Za-z]*q|-m[[:space:]]*1) ]]; then early=1; fi
+      if [[ $sp_pipes =~ \|[[:space:]]*grep[^|]*\|[[:space:]]*head ]]; then early=1; fi   # both read the LOGICAL line [#530]
       [ "$early" = 1 ] || continue
       # THE EXEMPTION IS APPLIED HERE AND NOT EARLIER, and the first draft had it earlier, which is why the
       # fixture count read 11 instead of 8: a line that merely NAMES the token - the three lines of this
@@ -1090,6 +1098,8 @@ FAB
     printf '  | grep -qxF "$y" || echo nope)"\n'   # SIGPIPE-FIXTURE
     printf 'S="$(printf %s "$x" %s\n' "'%s'" "$SPBS"
     printf '  | grep -oE %s | head -1 || true)"\n' "'z+'"   # SIGPIPE-FIXTURE
+    # LINE 18 [#545, item (66)]: an `||` chain of two HERESTRING greps - no pipe anywhere - must not be a site.
+    printf 'T="$(grep -qx "$g" <<<"$list" || grep -qx "$h" <<<"$list" && echo in)"\n'
   } >> "$SPD/fab.sh"
   spsites="$(sigpipe_sites "$SPD")"
   spck "A" "$(awk -F'\t' '$3==3{print $1}' <<<"$spsites")" "DETECTOR: an if-test pipe into grep -qxF is TIER A"
@@ -1130,7 +1140,8 @@ FAB
   spck "D" "$(awk -F'\t' '$3==12{print $1}' <<<"$spsites")" "DETECTOR: a continuation that merely CONTAINS && inside a substitution stays TIER D"
   spck "B" "$(awk -F'\t' '$3==14{print $1}' <<<"$spsites")" "DETECTOR: a || echo across a continuation is TIER B, not downgraded to D [A's veto V1]"
   spck "C" "$(awk -F'\t' '$3==16{print $1}' <<<"$spsites")" "DETECTOR: a || true across a continuation is TIER C, not downgraded to D [A's veto V1]"
-  spck "8" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 8 of the fixture's 11 candidate logical lines are sites, and no others"
+  spck "" "$(awk -F'\t' '$3==18{print $1}' <<<"$spsites")" "DETECTOR: an || chain of two herestring greps is NOT flagged - an OR is not a pipe [#545, item (66)]"
+  spck "8" "$(printf '%s\n' "$spsites" | grep -c . || true)" "DETECTOR: exactly 8 of the fixture's 12 candidate logical lines are sites, and no others"
   # 40. THE CEILING ITSELF FIRES. Two tier A lines against SP_A_CEIL=1 must be a refusal, otherwise the
   #     ratchet is decoration. The vacuity guard is the pair: an EMPTY directory is clean and says 0.
   cat > "$SPD/fab2.src" <<'FAB2'
