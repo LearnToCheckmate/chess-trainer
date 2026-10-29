@@ -108,6 +108,10 @@ assert_falls(){ # <register.tsv> <log>
        END{ for(k in pin){ if(!(k in seen)) printf "ABSENT %s %d\n",k,pin[k]; else if(got[k]+0<pin[k]) printf "FELL %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
 }
 
+# bundle_stamp <bundle.js>: the ONE "#NNN - YYYY-MM-DD HH:MM ET" build stamp a bundle carries, or nothing if it carries
+# none or more than one. Defined above --selftest so the selftest drives this function and not a copy [#545 item (98)].
+bundle_stamp(){ local n; n="$(grep -oE '"#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET"' "$1" 2>/dev/null | sort -u)"
+  [ -n "$n" ] && [ "$(printf '%s\n' "$n" | grep -c .)" = 1 ] && printf '%s\n' "$n" | grep -oE '^"#[0-9]{3,4}' | tr -d '"'; }
 # ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
 # That job's headline repair LANDED (the herestring at the MANI_LINE assignment below, burst wave 1 patch 03,
@@ -1465,6 +1469,12 @@ M16PY
   : > "$ST_T/ac-empty.tsv"
   st A7-an-EMPTY-register-pins-nothing-and-does-not-read-the-log-as-pins "$(assert_falls "$ST_T/ac-empty.tsv" "$ST_T/ac2.log" | wc -l | tr -d ' ')" 0
   st A6-the-full-suite-refuses-the-green-line-on-a-fall "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] && \[ -z "\${ACFALL:-}" \]; then echo "GATES GREEN' "$SF")" 1
+  # #545 item (98): the preamble's stamp reader, both ways, plus the ambiguous case.
+  printf 'x="#530 - 2026-10-21 20:50 ET";y=1\n' > "$ST_T/bs1.js"; printf 'no stamp here\n' > "$ST_T/bs2.js"
+  printf 'a="#530 - 2026-10-21 20:50 ET";b="#531 - 2026-10-22 09:00 ET"\n' > "$ST_T/bs3.js"
+  st S98a-the-stamp-reader-finds-the-one-stamp "$(bundle_stamp "$ST_T/bs1.js")" "#530"
+  st S98b-and-reports-nothing-for-a-bundle-with-none "$(bundle_stamp "$ST_T/bs2.js" | wc -c | tr -d ' ')" 0
+  st S98c-and-nothing-for-two-different-stamps-so-the-preamble-defers-to-mountcheck "$(bundle_stamp "$ST_T/bs3.js" | wc -c | tr -d ' ')" 0
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -1473,6 +1483,20 @@ N="${1:-}"; [[ "$N" =~ ^#[0-9]{3,4}$ ]] || { echo "usage: gates/gates.sh '#373' 
 SUBSET="${2:-}"
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"; TAG="${N#\#}"
 mkdir -p "$G/logs"
+# ── THE NUMBER ARGUMENT AGAINST THE BUNDLE STAMP, BEFORE ANYTHING IS SPENT [#545, item (98); jobs/gates-sh-never-compares-its-
+# number-argument-to-the-bundle-stamp-so-a-wrong-invocation-costs-a-whole-suite-2026-10-20]. CT_EXPECT defaults to $N and
+# mountcheck is its only reader, so a run for a number the bundle is not stamped for spent the manifest and the unit layer
+# (#524 lost sixteen minutes) before mountcheck went red on the INVOCATION. Read here, before the lock and before the log
+# exists, so a wrong invocation leaves nothing behind. A bundle with no readable stamp, or more than one, is left to
+# mountcheck, said so, and not refused here.
+PRE_APP="${CT_APP:-$ROOT/app.js}"; PRE_WANT="${CT_EXPECT:-$N}"; PRE_HAVE="$(bundle_stamp "$PRE_APP")"
+if [ -n "$PRE_HAVE" ] && [ "$PRE_HAVE" != "$PRE_WANT" ]; then
+  echo "gates.sh: REFUSED BEFORE ANY GATE RAN - the bundle is stamped $PRE_HAVE and this run expects $PRE_WANT."
+  echo "  bundle: $PRE_APP. mountcheck would fail on exactly this after the manifest and the unit layer."
+  echo "  If the bundle is the one you mean to gate, say so: CT_EXPECT='$PRE_HAVE' bash gates/gates.sh '$N'"
+  exit 1
+fi
+[ -n "$PRE_HAVE" ] || echo "gates.sh: note - no single build stamp could be read out of $PRE_APP, so the number check is left to mountcheck."
 # ── #403: A FULL LOG NEVER OVERWRITES AN EARLIER FULL LOG OF THE SAME TAG. ───────────────────────────────────
 # The log name came from the build TAG alone, so two passes gating the SAME bundle wrote the same file and the
 # second silently destroyed the first. That is not hypothetical: #401 and #402 both re-gated the unchanged #400
