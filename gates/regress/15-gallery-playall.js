@@ -483,8 +483,32 @@ L.run(async()=>{
     // expected vacuous by design and kept as a tripwire for the design changing: index.html says #root is the
     // app's scroller and "the page never does", so docScroll is 0 on every screen (CLAUDE.md, two false P0s).
     L.say(pageScroll.length===0,lab+': the page itself cannot scroll - body is out of flow and #root is the scroller',pageScroll.slice(0,3));
-    L.say(shrunk.length===0,lab+': no board shrinks inside a card, against a SETTLED baseline',shrunk.slice(0,3));
-    L.say(unsettled.length===0,lab+': every card whose board is measurable settles inside the 900ms window',unsettled.slice(0,2));
+    // ── THE FIVE BOARD-CONDITIONED CHECKS ARE REPORTED, NEVER CREDITED, WHEN THERE IS NO BOARD TO CHECK
+    // [#544 item (31); jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07,
+    // P1, this file's instance found by antagonist B of #493 while reading the suite log for vacuity].
+    // WHAT WAS WRONG, and this file already said half of it: `const EXPECT_BOARD=[]` makes capWants
+    // constant-FALSE, so missingBoard and noBase are unconditional passes and unexpectedBoard reduces to
+    // `withBoard===0`, which is the NEXT assertion - the same measurement counted as two PASSes. shrunk and
+    // unsettled are conditioned on a board existing in the same way. SIX of the eight board-conditioned PASS
+    // lines could not independently fail, and the file DECLARED that in a comment and credited them anyway,
+    // which is precisely the half #493's own note says must not happen.
+    // THE JOB OFFERS TWO REMEDIES AND ONLY ONE OF THEM IS AVAILABLE HERE [the rule against treating a flag's
+    // proposed fix as a prescription]: "either populate EXPECT_BOARD or convert the vacuous cases to notes".
+    // POPULATING IT WOULD BE FALSE. This walk's own measurement, taken at both geometries over five runs and
+    // recorded above, is that the captions WITHOUT a board are exactly one and that the five board-owning
+    // cards are driven by block S instead - which is why the declaration assertion below asserts
+    // `withBoard===0`. Pinning a card id here would assert a board this walk does not paint.
+    // SO THEY BECOME NOTES, AND ONLY IN THE STATE THAT MAKES THEM INERT. When a board IS painted, or when a
+    // future commit pins one, every one of them is a real assertion again and unexpectedBoard stops being a
+    // duplicate - so this does not weaken the gate, it stops it claiming eight checks where it ran one.
+    const withBoard=cards.filter(c=>c.sawBoard).length;
+    const boardInert=(EXPECT_BOARD.length===0&&withBoard===0);
+    const sayBoard=(cond,msg,detail)=>{
+      if(boardInert)L.note(lab+': NOT CHECKED (no board in this walk, EXPECT_BOARD empty) - '+msg);
+      else L.say(cond,msg,detail);
+    };
+    sayBoard(shrunk.length===0,lab+': no board shrinks inside a card, against a SETTLED baseline',shrunk.slice(0,3));
+    sayBoard(unsettled.length===0,lab+': every card whose board is measurable settles inside the 900ms window',unsettled.slice(0,2));
     /* THE SAMPLE FLOOR IS SCOPED TO THE QUEUE, NOT A CONSTANT 8 [R18]. It read `sampled>=8`, a bare literal from a
        time when the ask list was pinned at eight cards. #451 turned that list into a real QUEUE whose length is the
        thing that varies, and the walk's wall clock is now the queue's total hold: two cards give roughly 24 samples
@@ -510,16 +534,16 @@ L.run(async()=>{
     // geometries over five runs, the captions WITHOUT a board are exactly one, and it is the frame whose own
     // text is "Starting...". So assert that: any other boardless caption is a finding, and a deliberate
     // change to the gallery has to come through here on purpose.
-    const withBoard=cards.filter(c=>c.sawBoard).length;
+    // withBoard is computed above, beside boardInert, so the five checks can be gated on it [#544 item (31)]
     // #451: two-sided against EXPECT_BOARD. `capWants` reads the card id out of the caption itself rather than
     // out of SC, so the expectation stays external to the thing it checks.
     const capWants=(cap)=>EXPECT_BOARD.some(id=>new RegExp('\\s'+id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s').test(cap));
     const missingBoard=cards.filter(c=>!/Starting/.test(c.cap)&&capWants(c.cap)&&!c.sawBoard);
     const unexpectedBoard=cards.filter(c=>!/Starting/.test(c.cap)&&!capWants(c.cap)&&c.sawBoard);
-    L.say(missingBoard.length===0,lab+': every caption whose card is pinned to show a board showed one ('+
+    sayBoard(missingBoard.length===0,lab+': every caption whose card is pinned to show a board showed one ('+
       withBoard+' of '+cards.length+' captions had a board; '+EXPECT_BOARD.length+' card ids pinned)',
       missingBoard.map(c=>c.cap));
-    L.say(unexpectedBoard.length===0,lab+': no caption painted a board where this commit pins none - so a card '+
+    sayBoard(unexpectedBoard.length===0,lab+': no caption painted a board where this commit pins none - so a card '+
       'whose state changes under us cannot pass by being boardless',unexpectedBoard.map(c=>c.cap));
     // AND THE VACUOUS CASE IS STATED, NOT SKIPPED. With EXPECT_BOARD empty every board-conditioned check in this
     // gate (shrunk, unsettled, noBase, and the two above) is trivially satisfied, which is precisely how an
@@ -533,7 +557,7 @@ L.run(async()=>{
         {withBoard,captions:cards.length});
     }
     const noBase=cards.filter(c=>c.sawBoard&&c.base===null);   // #451: inert while EXPECT_BOARD is empty, asserted as such above
-    L.say(noBase.length===0,lab+': every caption whose board was on screen got a settled baseline ('+
+    sayBoard(noBase.length===0,lab+': every caption whose board was on screen got a settled baseline ('+
       cards.filter(c=>c.sawBoard).length+' of '+cards.length+' captions had a board, '+lateBase+' baselined late)',
       noBase.map(c=>c.cap));
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));

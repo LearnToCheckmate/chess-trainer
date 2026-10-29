@@ -85,7 +85,17 @@ const READ=(b)=>b.page.evaluate((src)=>{
     // the vertical cost of nine more pills, which is what this change actually spends (TC-OC-006)
     sheetScroll:(()=>{const sc=[...document.querySelectorAll('div')].filter(x=>{const st=getComputedStyle(x);
       return /auto|scroll/.test(st.overflowY)&&x.scrollHeight>x.clientHeight+1;});
-      const m=sc.map(x=>({sh:x.scrollHeight,ch:x.clientHeight})).sort((a,b)=>b.sh-a.sh)[0];return m||null;})(),
+      // ── THE SCROLLER'S IDENTITY, NOT ONLY ITS SIZE [#544 item (31)]. TC-OC-006b used to assert
+      // `sheetScroll.sh > sheetScroll.ch` on an object this filter only produced BECAUSE scrollHeight was
+      // already greater than clientHeight + 1, so that half of the conjunct was true by construction and the
+      // assertion read as two checks while being one. What the assertion is actually about is WHICH element
+      // pays for the pills, so the element is identified here: whether it is the document or the body, and a
+      // short readable signature a reader can take back to the DOM.
+      const m=sc.map(x=>({sh:x.scrollHeight,ch:x.clientHeight,
+        isDoc:(x===document.documentElement||x===document.body),
+        id:(x.getAttribute('data-ct')||x.id||'')+'/'+x.tagName.toLowerCase()+(x.className&&typeof x.className==='string'?'.'+x.className.trim().split(/\s+/)[0]:''),
+        top:Math.round(x.getBoundingClientRect().top),h:Math.round(x.getBoundingClientRect().height)}))
+        .sort((a,b)=>b.sh-a.sh)[0];return m||null;})(),
     onlineSelected:(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Online$/.test((x.innerText||'').trim()));
       if(!btn)return null;const st=getComputedStyle(btn);return {border:st.borderColor,bg:st.backgroundColor};})(),
     docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight),
@@ -134,8 +144,30 @@ for(const g of geos){
   // asserted is the durable one - the document is never the scroller, the sheet is - and the vertical cost is
   // RECORDED rather than thresholded, which is what the antagonist actually asked for.
   L.note(g.n+': sheet scroll '+(o.sheetScroll?o.sheetScroll.sh+' in '+o.sheetScroll.ch:'fits, no overflow')+'  (the vertical price of nine more pills: +127px at 320x568 and +112px at 375x679 against #399)');
-  L.say(o.docScroll===0&&(o.sheetScroll===null||o.sheetScroll.sh>o.sheetScroll.ch),
-    g.n+': TC-OC-006b nine more pills are paid for in the SHEET\'s own scroll, never the document\'s - docScroll '+o.docScroll+' by design (#root is the app\'s scroller, so a gate reading the document would call this sheet unreachable). Continue and Start game were both confirmed on screen after actually scrolling this ancestor, not by scrollIntoView',{docScroll:o.docScroll,sheet:o.sheetScroll});
+  // ── TC-OC-006b WAS A COMPOUND WHOSE SECOND HALF COULD NOT FAIL, AND IT IS NOW TWO ASSERTIONS
+  // [#544 item (31); jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07,
+  // P1, found by antagonist A of #493 and still live four weeks later].
+  // WHAT WAS HERE: `o.docScroll===0 && (o.sheetScroll===null || o.sheetScroll.sh>o.sheetScroll.ch)`. The
+  // selector above only KEEPS an element when scrollHeight > clientHeight + 1, so any non-null sheetScroll
+  // satisfies sh > ch BY CONSTRUCTION: the assertion reduced to `docScroll===0` while reading as two checks.
+  // That is this project's own named anti-pattern - a conjunct whose halves cannot fail independently is the
+  // missing-denominator trap one level down - inside an assertion that was itself rewritten at #400 to escape
+  // a different one.
+  // THE SPLIT IS NOT COSMETIC: the first half is the durable property (#root is the app's scroller, so the
+  // document never scrolls BY DESIGN and a gate reading document.scrollingElement would call this sheet
+  // unreachable - CLAUDE.md's two false P0s). The second is about WHICH element pays, which is what the
+  // sentence always claimed and never tested, so it asserts the scroller's IDENTITY and not its size.
+  L.say(o.docScroll===0,
+    g.n+': TC-OC-006b the DOCUMENT does not scroll - docScroll '+o.docScroll+' by design, because #root is the app\'s own scroller and index.html says the page never scrolls. Continue and Start game were both confirmed on screen after actually scrolling that ancestor, not by scrollIntoView',{docScroll:o.docScroll});
+  // AND THE DENOMINATOR IS REPORTED, NEVER CREDITED: with the sheet short enough to fit there is no scroller to
+  // identify, and that is a legitimate state (#400 measured it at 390x844 with nine fewer pills), so it is an
+  // L.note and not a PASS. A PASS here would be the very thing this item removes.
+  if(o.sheetScroll===null){
+    L.note(g.n+': TC-OC-006c NOT CHECKED - the sheet fits at '+o.vw+'x'+o.vh+', so no element overflows and there is no scroller to identify. #400 measured exactly this at 390x844 with nine fewer pills, which is why it is a note and not a red');
+  }else{
+    L.say(!o.sheetScroll.isDoc&&o.sheetScroll.id!=='/'&&o.sheetScroll.h>0,
+      g.n+': TC-OC-006c and the element that pays for the pills is a SHEET BOX inside the page, named here rather than merely measured - '+o.sheetScroll.id+' at top '+o.sheetScroll.top+', '+o.sheetScroll.h+'px tall, scrolling '+o.sheetScroll.sh+' in '+o.sheetScroll.ch+'. The old form asserted sh>ch, which the selector above had already guaranteed',o.sheetScroll);
+  }
 
   await b.close();
 }
@@ -188,7 +220,16 @@ for(const g of geos){
   // pills selected; fixed, 'vs Computer · White · No clock' with exactly one. Both halves are asserted: the
   // summary must not advertise a per-move limit off-line, AND the selection must not silently become nothing.
   const summ=(afterBack&&afterBack.summary||[]).join(' | ');
-  L.say(back&&!!afterBack&&!/\/ move/.test(summ),
+  // ── THE DENOMINATOR, IN ITS OWN L.say, BECAUSE A NEGATED REGEX IS TRUE OVER NOTHING [#544 item (31)].
+  // `summary` is selected at the top of this file by a middot test plus a 90-character cap, so dropping the
+  // middot from the copy or pushing the line past 90 characters empties it - and then summ is '' and
+  // `!/\/ move/.test('')` PASSES, loudest exactly when the readout this assertion exists to watch has gone.
+  // The job calls that out by name and it is the third of its three live sites. REPORTED, NEVER CREDITED: the
+  // emptiness is asserted here so a red says WHICH thing broke, rather than letting the next line go green
+  // over a string nobody found.
+  L.say(back&&!!afterBack&&summ.length>0,
+    'TC-OC-010c DENOMINATOR: the app\'s own summary line under the Start button was FOUND, so the assertion below is about what it says and not about its absence - measured "'+summ+'" ('+summ.length+' chars). An empty string satisfies a negated regex, which is how this site could report a correspondence clock on a computer game as clean',{summary:afterBack&&afterBack.summary,len:summ.length});
+  L.say(back&&!!afterBack&&summ.length>0&&!/\/ move/.test(summ),
     'TC-OC-010 R-OC-2 the other way: after switching from Online to Computer the app\'s own summary line does NOT advertise a day-per-move limit - measured "'+summ+'". On #399 and on the menu-only build this read "vs Computer · White · 3 days / move", a correspondence clock on a computer game, and the same string reached a live Pass & Play board',{summary:afterBack&&afterBack.summary});
   L.say(back&&!!afterBack&&afterBack.selected.length===1,
     'TC-OC-010b and the switch leaves EXACTLY ONE pill selected rather than none - 0 selected is how the stale corr clock hid: it was still set, and no pill for it renders off-line, so the screen showed no selection at all while the summary printed one',{selected:afterBack&&afterBack.selected});
