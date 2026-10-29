@@ -192,6 +192,7 @@
 //            the label is centred, so the side it escapes on is an artefact of the budget, and an assertion
 //            that only looked right would have missed two of these three.
 'use strict';
+// CONTROL-RECORD: c1d3d9f 2026-10-29 total=461 red=5 scope=trial:bf15a60187bf how=the Review player-bar name span given maxWidth:90, so the long opponent name paints 90 of 198px at kunal730 where it is not pinned; TC-INV-04c reddens on the five Review screens that show the bars [#545 item (27)]
 const L=require('../lib');
 const R=require('../drive/review');
 const P=require('../drive/play');
