@@ -161,4 +161,11 @@ L.run(async()=>{
       await b.close();
     }
   }
+// ── THE CONTROL RECORD gates/control-audit.js READS [#544, item (9); the first `trial:<md5>` record written in
+// this project, and the form was added in the same run for it]. The control is the SMALLER of the two trial
+// bundles described at the WANT block above: chess.jsx's edge-path board multiplied by 0.9, built with
+// gates/build.sh + CT_OUT, run with CT_APP. 57 pass / 7 fail at 055192b, which is this file as committed - the
+// control was re-run against the committed gate rather than the working tree, so the sha below names the exact
+// L.say lines it exercised.
+// CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
 },'LESSON');

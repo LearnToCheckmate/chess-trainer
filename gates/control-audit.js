@@ -21,12 +21,25 @@
  *   commit  the sha the control was RUN against. HEAD at run time - NOT the gate's last commit.
  *   total   the gate's whole assertion count at that time, under `scope`.
  *   red     how many went red. A record with red=0 is a baseline, not a control.
- *   scope   `full`, or `env:K=V`, `geo:X`, `blocks:X`. A CLOSED VOCABULARY, because a free-form scope is
+ *   scope   `full`, or `env:K=V`, `geo:X`, `blocks:X`, or `trial:<md5>`. A CLOSED VOCABULARY, because a free-form scope is
  *           an opt-out from the only automatic check, held by the party being audited: `scope=FULL` or
  *           `scope=full-run` silenced it with a typo. Why the field exists at all: at #411 two of six
  *           published control counts were SUBSET runs - the full gate gave 27 and 14 where the lane had
  *           published 15 and 12, and one subset had dropped the assertions that proved the breakage.
  *           Neither number was wrong; neither was reproducible.
+ *           `trial:<md5>` IS THE FORM FOR THIS PROJECT'S STRONGEST KIND OF CONTROL and was added at #544
+ *           [item (9); the alsoFound half of
+ *           jobs/control-audit-bounds-total-by-the-L-say-SITE-count-so-no-looping-gate-can-be-covered-2026-10-01].
+ *           A trial-bundle control builds a real bundle made to fail the gate - `gates/build.sh` with CT_OUT -
+ *           and runs the gate against it with CT_APP, which is stronger than any injection because the thing
+ *           under test is a bundle rather than a page this harness has reached into. The md5 is the TRIAL
+ *           bundle's, as build.sh prints it, so the next reader can tell two controls apart and can see which
+ *           artefact each was run against. #451 had to express one as `env:CT_APP=<md5>`, which parses and
+ *           reads oddly, because CT_APP's real value is a path and the md5 is not what the variable held.
+ *           A SCOPE MAY NOT CONTAIN A SPACE, and that is worth saying because the natural thing to write is
+ *           prose: the format RE matches scope as `(\S+)`, so a space does not make the scope invalid - it
+ *           makes the whole LINE UNPARSABLE, which is a different verdict and a more confusing one. Two of
+ *           #451's rows were lost that way on first write.
  *   how     one clause naming the MECHANISM broken, so a reader can re-run it.
  *
  * WHAT IT ASKS, AND THE FIRST VERSION ASKED THE WRONG THING. v1 called a gate CURRENT iff its newest
@@ -102,7 +115,7 @@
  */
 'use strict';
 const fs = require('fs'), path = require('path'), cp = require('child_process'), os = require('os');
-const SCOPE_OK = (s) => s === 'full' || /^(env:[A-Za-z_][A-Za-z0-9_]*=\S+|geo:\S+|blocks:\S+)$/.test(s);
+const SCOPE_OK = (s) => s === 'full' || /^(env:[A-Za-z_][A-Za-z0-9_]*=\S+|geo:\S+|blocks:\S+|trial:[0-9a-f]{12,32})$/.test(s);
 const TODAY = new Date().toISOString().slice(0, 10);
 const RE = /^\s*\/\/\s*CONTROL-RECORD:\s*([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})\s+total=(\d+)\s+red=(\d+)\s+scope=(\S+)\s+how=(\S.*)$/;
 const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-RED', 'BAD-RECORD', 'PARTIAL', 'COVERED'];
@@ -150,7 +163,7 @@ function audit(ROOT, { ranNow, redNow }) {
     for (const r of recs) {
       if (!Gq('cat-file -e ' + r.commit + '^{commit}')) { r.fault = 'sha ' + r.commit + ' is not a commit in this repo'; faults.push(r); continue; }
       if (r.date > TODAY) { r.fault = 'dated ' + r.date + ', which is in the future'; faults.push(r); continue; }
-      if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X)'; faults.push(r); continue; }
+      if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X | trial:<md5>, and no spaces)'; faults.push(r); continue; }
       if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
       let old;
       try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
@@ -351,6 +364,20 @@ function selftest() {
     write(['// fixture gate', rec, A3, A2, A1]); commit('reordered');
     r = run(3, 'selftest-3b');
     ok(/^--- PARTIAL \(1\) ---$/m.test(r.out) && /in a different order since/.test(r.out) && r.rc === 1, '(3b) the same three lines reordered read PARTIAL at exit 1, not COVERED');
+    // ── (4) THE SCOPE VOCABULARY, DRIVEN RATHER THAN READ [#544, item (9)]. SCOPE_OK is the only automatic
+    //     check on a field held by the party being audited, and the `trial:<md5>` form added at #544 is one
+    //     regex away from accepting anything. Four inputs: the new form accepted, a malformed one refused, and
+    //     the SPACE case, which is the one that cost #451 two rows - a space does not make the scope invalid,
+    //     it makes the whole LINE unparsable, and those are different verdicts.
+    write(['// fixture gate', '// CONTROL-RECORD: ' + seed + ' ' + TODAY + ' total=3 red=1 scope=trial:8d809ba235f7 how=a trial bundle with the board shrunk', A1, A2, A3]); commit('a trial-scope record');
+    r = run(3, 'selftest-4');
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out), '(4) a trial:<md5> scope is in the vocabulary and the record reads COVERED');
+    write(['// fixture gate', '// CONTROL-RECORD: ' + seed + ' ' + TODAY + ' total=3 red=1 scope=trial:nothex how=a trial bundle', A1, A2, A3]); commit('a malformed trial scope');
+    r = run(3, 'selftest-4b');
+    ok(/is not in the vocabulary/.test(r.out) && /^--- BAD-RECORD \(1\) ---$/m.test(r.out), '(4b) trial: followed by something that is not an md5 is refused as out of vocabulary');
+    write(['// fixture gate', '// CONTROL-RECORD: ' + seed + ' ' + TODAY + ' total=3 red=1 scope=the whole gate how=a trial bundle', A1, A2, A3]); commit('a scope with a space');
+    r = run(3, 'selftest-4c');
+    ok(/^--- UNPARSABLE \(1\) ---$/m.test(r.out) && !/is not in the vocabulary/.test(r.out), '(4c) a scope containing a SPACE is UNPARSABLE, not out-of-vocabulary - the verdict the format comment now names');
     // (1b) THE EMPTY COLLECTION [#540 repair, A-F1]: a record naming a sha at which the gate carried NO L.say line.
     //      The subset test is vacuously true over nothing; it must read ASSERTIONS-MOVED (as e8dd9cb did), never
     //      PARTIAL, and never count as covered.
