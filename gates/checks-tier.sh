@@ -922,37 +922,6 @@ main(){
     [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
     return 1
   fi
-  # ── AND THE MIRROR IS GIVEN A RESOLVABLE refs/heads/main AT THE BASE. FRESH ANTAGONIST B's UPHELD P1 VETO
-  # [#542]. mkclone below points each control's own refs/remotes/origin/main at the base, which is right and is
-  # NOT what `--on-main` reads: gates/verify-log.sh resolves origin's main with `git ls-remote origin main`, and
-  # from inside a control's clone `origin` is THIS MIRROR. `git clone --mirror` copies $ROOT's refs/heads/*
-  # verbatim and maps $ROOT's refs/remotes/origin/main to the mirror's refs/remotes/origin/*, which ls-remote
-  # does not return - so the mirror carried a main ONLY IF $ROOT HAPPENED TO HAVE A LOCAL main BRANCH. On an
-  # ordinary feature-branch checkout, which has fetched origin/main and has no local main, main's own
-  # gates/verify-log-selftest.sh could not resolve it, its five --on-main cases regressed, the selftest read
-  # "76 pass, 5 fail, A CONFIRMED CASE REGRESSED", and the acceptance arm turned that into CHECKS TIER RED at
-  # EXIT 1 - the verdict that means "stop, do not re-run". So NO honest tier-only commit from such a checkout
-  # could ever go green and this judge's whole purpose was defeated for the common case. REPRODUCED END TO END
-  # BEFORE IT WAS BELIEVED: exit 1 on one comment line in gates/buildnum.sh and again on one in gates/held.sh,
-  # and exit 0 CHECKS TIER GREEN with this line in place, same clone shape.
-  # WHY THE REAL REPOSITORY MASKED IT FOR SEVEN ROUNDS: /home/user/chess-trainer happens to carry a local main
-  # branch, so every hand run resolved. Remove that one variable - which a --shared clone and an ordinary
-  # feature-branch checkout both do - and the tier refuses everything.
-  # WHY $ROOT's OWN LOCAL main IS NOT THE THING TO COPY: it is whatever that checkout happens to carry and it is
-  # routinely STALE - measured at e8dd9cb here while the base under judgement was 65d6cab. The BASE is what
-  # ships for the commit being judged, which is exactly what mkclone already tells each clone, so the mirror is
-  # set to the same value rather than to the root's.
-  # IT CANNOT CREATE A FALSE GREEN: it makes an arm that refused EVERY candidate able to run at all, and a
-  # candidate that genuinely breaks --on-main still reddens it, where before the universal refusal discriminated
-  # nothing at all.
-  if ! git -C "$MIRROR" update-ref refs/heads/main "$BASESHA" >/dev/null 2>&1; then
-    say "REFUSED: could not give the throwaway mirror a refs/heads/main at the base, so every control's clone"
-    say "  would answer \`git ls-remote origin main\` with nothing and main's own push-gate selftest would read"
-    say "  a confirmed regression that is an artefact of this judge's own isolation."
-    rm -rf "$WORK" "$PRIV" 2>/dev/null
-    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
-    return 1
-  fi
   say "  isolation: controls clone from a throwaway mirror in this run's private directory, not from $ROOT,"
   say "    and the mirror records no origin of its own, so the two-hop read of it returns nothing"
 
