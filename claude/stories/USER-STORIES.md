@@ -224,6 +224,29 @@ did not.
 Not in scope for this clause: whether the NEW HERE card should exist, what it should say, or which lesson it
 should choose. It picks the first `openings`/`gambits` entry and that is unchanged.
 
+## Online - the New Game sheet's Online branch · registered #545 from gates/regress/25-online-clocks.js (jobs/online-cases-are-executed-but-unregistered-2026-09-28)
+
+WHERE THESE CAME FROM, SO NOBODY READS THEM AS NEW REQUIREMENTS. Gate 25 asserted these cases from #400 onward,
+citing requirement ids R-OC-1 to R-OC-7 that lived only in its own header. Until #545 there was no `US-OC` clause
+and no `TC-OC` row in this register, although TC-SUITE-251 already cited US-OC-01. The two stories below restate
+what the gate header says R-OC-1, R-OC-2 and R-OC-3 require. Nothing new is decided here. R-OC-4 to R-OC-7 are
+about a LIVE online game (sign-in, Firestore, a two-context harness nobody has written). They get NO story here,
+because no case can execute them, and the gate header names them as NOT COVERED.
+
+### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
+- All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
+- The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).
+- The live row and the day-limit row each have their own heading, and the two headings differ.
+- EXACTLY ONE pill reads as selected, never two and never none (R-OC-1's other half).
+- The "Live ticking clocks for online are still coming" notice is gone, because it stopped being true (R-OC-3).
+- No pill is painted past the right edge of the screen. The sheet, not the document, scrolls to pay for the extra
+  pills, and its action button can be reached by a finger (TC-OC-006e, registered under US-INV-05).
+
+### US-OC-02 The clock I picked survives a switch to Online, and a day limit does not survive a switch away
+- A live clock chosen under Computer is still the one chosen after I pick Online (R-OC-2).
+- A day-per-move limit, which means nothing offline, is dropped when I switch from Online to Computer. The app's
+  own summary line under Start stops advertising it, and exactly one pill stays selected.
+
 ## Cross-app invariants - specced 2026-09-15 by Kunal · invariants 2 and 3 executed #423 (26-invariants.js)
 
 Every clause here is a RELATIONSHIP rather than a value, and that is the whole point of the section. Every other
