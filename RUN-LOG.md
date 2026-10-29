@@ -4,6 +4,13 @@
 Kunal's rule p1/p2: an ETA before each build and the actual against it after; elapsed at the end of every
 response. This file is the persistent record; the chat is not. Times are ET.
 
+**THE COLUMNS ARE THE HEADER'S AGAIN FROM #545 ON [#545, item (73); jobs/the-run-log-header-declares-nine-columns-and-the-rows-have-two-2026-10-09].**
+For dozens of builds every row below carried two cells - build and a prose block - under a nine-column header, so
+the ETA pair and the delta could no longer be read down a column. Of the job's two options, #545 took (b), the one
+consistent with this file's own governing line (Supervisor ruling B and Kunal's p1/p2: ETA stated, actual, delta):
+rows from #545 on use the nine declared columns; every older row stays exactly as written, because this file is a
+record. `gates/audit/run-log-columns.sh` holds every row from #545 on to the header's width.
+
 | build | what | ETA stated (at) | started | staged for his click | actual | delta | gates | live (his commit) |
 |---|---|---|---|---|---|---|---|---|
 | #366 | y3b y15b y11b lay-B | 50 min (16:12) | 16:12 | 17:08 | 56 min | +6 | green (mountcheck reg343 pzgate fit bril357 ipad355 veteran360 kunal364c before366 overlay366) | 17:09 (6cd1449) |
