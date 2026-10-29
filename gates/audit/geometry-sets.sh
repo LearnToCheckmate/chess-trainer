@@ -12,6 +12,7 @@
 # WHAT IT ASSERTS, each its own line, from the committed files and nothing else:
 #   G1 the DRILL SEVEN line in USER-STORIES.md lists exactly the seven WxH of gate 51's ALLGEOS, in order
 #   G2 the LESSON THREE line lists exactly gate 48's GEOS, resolved through gates/lib.js's GEOS table
+#   G4 gates/lib.js TA7 (THE DRILL SEVEN as GEOS names, added #545 item (40)) resolves to gate 51's ALLGEOS
 #   G3 no line of USER-STORIES.md or TEST-CASES.md uses "supported geometry" except inside double quotes
 #      (a quoted mention is the record of the old wording, which the register keeps on purpose)
 #   G0 each set was FOUND before anything was compared [the empty-denominator class: reported, never credited]
@@ -38,6 +39,8 @@ check(){ # <repo-dir>
     say(!!l3&&l3.length>0&&a48.length>0, "G0b THE LESSON THREE line and gate 48 GEOS were both FOUND ("+(l3||[]).length+" and "+a48.length+" members)");
     say(!!d7&&d7.join()===a51.join(), "G1 THE DRILL SEVEN equals gate 51 ALLGEOS member for member: register ["+(d7||[]).join(" ")+"] gate ["+a51.join(" ")+"]");
     say(!!l3&&l3.join()===a48.join(), "G2 THE LESSON THREE equals gate 48 GEOS through gates/lib.js: register ["+(l3||[]).join(" ")+"] gate ["+a48.join(" ")+"]");
+    const t7=(lib.TA7||[]).map(k=>lib.GEOS[k]?lib.GEOS[k].w+"x"+lib.GEOS[k].h:"<"+k+" not in GEOS>");
+    say(t7.length>0&&t7.join()===a51.join(), "G4 gates/lib.js TA7 resolves to gate 51 ALLGEOS member for member: lib ["+t7.join(" ")+"] gate ["+a51.join(" ")+"]");
     const live=[];for(const [f,t] of [["USER-STORIES.md",us],["TEST-CASES.md",tc]])t.split("\n").forEach((l,i)=>{
       const unq=l.replace(/"[^"]*"/g,"");if(/supported geometr/i.test(unq))live.push(f+":"+(i+1));});
     say(live.length===0, "G3 no clause uses \"supported geometry\" as a live term outside double quotes ("+live.length+(live.length?": "+live.join(" "):"")+")");
@@ -58,6 +61,7 @@ selftest(){
   mk; printf '\n- A clause that holds at any supported geometry.\n' >> "$T/r/claude/stories/USER-STORIES.md"; ck "S3 an unquoted 'supported geometry' clause reddens G3" 1
   mk; printf '\n- A clause recording the old wording, "any supported geometry", in quotes.\n' >> "$T/r/claude/stories/USER-STORIES.md"; ck "S4 a QUOTED mention does not redden" 0
   mk; sed -i 's/\*\*THE DRILL SEVEN\*\*/**THE DRILL 7**/' "$T/r/claude/stories/USER-STORIES.md"; ck "S5 a renamed set heading is NOT credited (G0 reddens)" 1
+  mk; sed -i "s/const TA7=\['se','w360'/const TA7=['se'/" "$T/r/gates/lib.js"; ck "S6 a TA7 that drops one geometry reddens G4" 1
   echo "geometry-sets selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
 

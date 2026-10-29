@@ -63,7 +63,15 @@ const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'}
 // 18.91px off a 360x568 screen, 11.41px off 375x568 and 3.91px off 390x568, unchanged from #403, while #404's
 // viewport-width threshold could not reach it by construction. `short375` is that corner, and it is a real
 // phone shape: a 375-wide device in a browser with a large toolbar, or any 16:9 Android at 375dp.
-short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover'}};
+short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover'},
+// #545, item (40) [jobs/harness-names-three-of-seven-geometries-2026-09-27]: the four geometries of THE DRILL SEVEN
+// (claude/stories/USER-STORIES.md; gate 51's ALLGEOS, which that gate calls TA-7) that had no name here, so a gate
+// reached them only by typing a WxH literal. Named, not swept: no gate's geometry list changes by being given a name.
+w360:{w:360,h:640,safe:'',label:'360x640 (TA-7)'},w375h667:{w:375,h:667,safe:'',label:'375x667 (TA-7)'},
+w414:{w:414,h:896,safe:'',label:'414x896 (TA-7)'},w440:{w:440,h:956,safe:'',label:'440x956 (TA-7)'}};
+// THE DRILL SEVEN as GEOS names, in gate 51's order. gates/audit/geometry-sets.sh G4 holds this equal to gate 51's
+// ALLGEOS, so a gate that iterates L.TA7 cannot silently cover six.
+const TA7=['se','w360','w375h667','kunal730','390','w414','w440'];
 
 // #480. WHAT THIS CONTAINER IS, PRINTED INTO EVERY LOG, BECAUSE THE PINS DEPEND ON IT AND NOTHING RECORDED IT.
 // gates/package.json pins esbuild, react and react-dom and NO BROWSER. pw() below resolves whatever playwright
@@ -425,4 +433,4 @@ function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefi
 function note(msg){console.log('     '+msg);}
 function done(label){const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
-module.exports={launch,serve,say,note,done,run,GEOS,ROOT,SHOTS,NET_NOISE,observedInputs};
+module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs};
