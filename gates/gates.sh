@@ -2325,14 +2325,18 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   #                                                                 several gates/fastgate.sh invocations
   #   LOADED, 32 cases (the #527 patches document's own rehearsal, three CPU burners and a disk writer)
   #                                                     444-683s  - 4.5x to 7.0x of idle, and 76% of 900
-  #   idle, 62 cases   (THIS tree, after item (33)'s four cases and their four committed mutants)
-  #                                                     396s      - measured here at 03:58Z, 61 ok / 0 FAIL /
+  #   idle, 62 cases   (item (33)'s four cases and their four committed mutants)
+  #                                                     396s      - measured at 03:58Z, 61 ok / 0 FAIL /
   #                                                                 1 skipped
-  # So the loaded band for THIS tree is 396 x 4.5 to 396 x 7.0 = 1782s to 2772s, against a ceiling of 900.
+  #   idle, 63 cases   (THIS tree, after H62, the case for antagonist A's veto V1)
+  #                                                     450s      - measured at 05:05Z, 62 ok / 0 FAIL /
+  #                                                                 1 skipped. +54s for one case, which is
+  #                                                                 four more gates/fastgate.sh invocations
+  # So the loaded band for THIS tree is 450 x 4.5 to 450 x 7.0 = 2025s to 3150s, against a ceiling of 900.
   # The old ceiling is now BELOW the idle runtime's loaded multiple by a factor of two to three: it was not
   # losing margin, it had lost it.
-  # WHY 1800 AND NOT 3600, said plainly because the upper estimate exceeds it: 1800 covers the idle runtime 4.5
-  # times over and the LOW end of the measured loaded band, and it bounds the worst case this block can cost a
+  # WHY 1800 AND NOT 3600, said plainly because the whole loaded band now exceeds it: 1800 covers the idle
+  # runtime FOUR times over, and it bounds the worst case this block can cost a
   # suite at 30 minutes rather than 60. Above it the suite does not die - it DECLINES, loudly, which is the
   # second half of the fix and the reason this number does not have to cover the worst case alone. A ceiling
   # chosen to cover every load would make a genuine hang cost an hour of a 70-minute suite.
@@ -2542,7 +2546,7 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
     echo "        this log says nothing about gates/fastgate.sh. A timeout is a fact about the CONTAINER, and" | tee -a "$ALL"
     echo "        reddening a 70-minute suite over one is how a whole suite gets lost with no defect in it" | tee -a "$ALL"
     echo "        [#524: four suites abandoned, none authorising anything]. The ceiling is measured beside the" | tee -a "$ALL"
-    echo "        timeout call: 396s idle for 62 cases on this tree, 1782-2772s under the rehearsed load." | tee -a "$ALL"
+    echo "        timeout call: 450s idle for 63 cases on this tree, 2025-3150s under the rehearsed load." | tee -a "$ALL"
     echo "        Full output: $dlog" | tee -a "$ALL"
   elif [ "$drc" -eq 2 ] && [ "$dfail" -eq 0 ] && [ "$dok" -eq 0 ] && [ "$drefuse" -ge 1 ] && [ "$dtblmis" -eq 0 ]; then   # #525: a decline must SAY so; #531: and its table must be readable
     echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)." | tee -a "$ALL"
