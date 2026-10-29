@@ -292,6 +292,7 @@ instance.
 > the refused tree is on gates/held-trees.tsv. Do not read the bullets below as shipped behaviour.
 As a player practising my own mistakes or my own brilliancies, when the app tells me my move was not the one - or
 gives me a hint, or tells me I found it - the board does not move or change size, so my eye stays on the position.
+- **And when I find the move, nothing that celebrates it may cover, move or replace the text that tells me what I did, and nothing that explains it may disappear on a timer** - the same clause US-R17 carries for puzzles, added at #545 from jobs/suite-never-asserts-after-a-success-2026-09-27. (TC-DR-01, NOT YET EXECUTED: see that row.)
 - Kunal reported this twice by hand: 2026-09-20 "Board jumps when the message in red comes up. Thought all of this
   had been tested already." and 2026-09-23 "the chess board just jumped again, I thought we had fixed it across the
   board." Both reports are this clause. (TC-R15)
@@ -456,6 +457,7 @@ wrong way.
 ### US-R17 Once I solve a puzzle I can read the whole explanation
 As a player who has just solved a puzzle, I can read the explanation of what I found in full, without any of it
 being cut off, and the board does not move underneath me while I read it.
+- **When I get something right, nothing that celebrates it may cover, move or replace the text that tells me what I did, and nothing that explains something may disappear on a timer.** Added at #545 from jobs/suite-never-asserts-after-a-success-2026-09-27, which measured that the suite took no assertion after a success - where four of Kunal's thirteen findings live. (TC-PZ-01 for the solved card; TC-PZ-02 for the RANK UP overlay on the 10th Novice solve.)
 - The explanation WRAPS onto as many lines as it needs rather than being ellipsed on one line: on a phone the
   box holding it is not `white-space: nowrap` and not `text-overflow: ellipsis`. (TC-R20 B, C)
 - Every character of the explanation is actually painted inside the box on screen. Not "the box is tall enough",

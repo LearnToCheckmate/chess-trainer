@@ -488,7 +488,7 @@ const PIN_ROWS=[
    at:['kunal730/pz-solved','se/pz-solved','short375/pz-solved'],
    why:'Solved-puzzle bottom row: the back chevron is a 20px box painting 12px of ink, beside a full-width "Next >" whose line box is 16 and whose ink is 16 - so here the arrow really is the smaller of the two on BOTH measures, unlike its unsolved sibling. Reached only through PZ.states["train-solved"], which the twelve original screens did not include, so this row had a red the gate was structurally unable to produce on the commonest outcome in the Puzzles tab.'},
   {sig:'Flip board|Hints|More actions|Try again', h:{'*':[16,18,18,18]}, spread:2,
-   at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice'],
+   at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice','kunal730/lesson-complete','se/lesson-complete','short375/lesson-complete'/* #545: the same practice row stays up under the completion card, at all three */],
    why:'Lesson practice row: "Try again" is 16px where its three neighbours are 18px.'}
 ];
 const pinRow=(sig)=>PIN_ROWS.find(p=>p.sig===sig)||null;
@@ -533,15 +533,15 @@ const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
 const ROW_PIN={
   'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':3/* #430: was 2, see above */,
   'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':3,'se/rev-last-engine':3,
-  'se/rev-why-open':3,'se/rev-more-sheet':0,'se/rev-best-ply30':3,
+  'se/rev-why-open':3,'se/rev-more-sheet':0,'se/rev-best-ply30':3,'se/lesson-complete':3,'se/pz-rankup':1/* #545 */,
   'kunal730/home':1,'kunal730/play-captures':2,'kunal730/play-gameover':2,'kunal730/lesson-demo':3,
   'kunal730/lesson-practice':3,'kunal730/puzzles':2,'kunal730/pz-solved':2,'kunal730/rev-summary':9,
   'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':1/* #492: was 0, see MOVED PINS note B */,
-  'kunal730/rev-best-ply30':3,
+  'kunal730/rev-best-ply30':3,'kunal730/lesson-complete':3,'kunal730/pz-rankup':1/* #545 */,
   'short375/home':1,'short375/play-captures':2,'short375/play-gameover':2,'short375/lesson-demo':3,
   'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
   'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':1/* #492: was 0, see MOVED PINS note B */,
-  'short375/rev-best-ply30':3};
+  'short375/rev-best-ply30':3,'short375/lesson-complete':3,'short375/pz-rankup':1/* #545 */};
 // ── #492: THE IDENTITY PIN, AND IT IS THE ANSWER TO AN UPHELD VETO ────────────────────────────────────────────
 // COVERED_PIN pins a NUMBER. Antagonist A's veto at #492: a pin of 2 admits ANY second occluded control,
 // including a future one at 0% hittable, and stays green - so growing the number is a blank cheque, against an
@@ -556,15 +556,15 @@ const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
   'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':23,'se/rev-ply31':1,'se/rev-last-engine':0,
-  'se/rev-why-open':0,'se/rev-more-sheet':15,'se/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */,
+  'se/rev-why-open':0,'se/rev-more-sheet':15,'se/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */,'se/lesson-complete':0,'se/pz-rankup':3/* #545 */,
   'kunal730/home':6,'kunal730/play-captures':0,'kunal730/play-gameover':0,'kunal730/lesson-demo':0,
   'kunal730/lesson-practice':0,'kunal730/puzzles':0,'kunal730/pz-solved':0,'kunal730/rev-summary':24,
   'kunal730/rev-ply31':0,'kunal730/rev-last-engine':1,'kunal730/rev-why-open':2/* #492: was 1, see MOVED PINS note C - THE ONE THAT IS NOT BOOKKEEPING */,'kunal730/rev-more-sheet':17,
-  'kunal730/rev-best-ply30':1,
+  'kunal730/rev-best-ply30':1,'kunal730/lesson-complete':0,'kunal730/pz-rankup':3/* #545 */,
   'short375/home':6,'short375/play-captures':0,'short375/play-gameover':0,'short375/lesson-demo':0,
   'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':23,
   'short375/rev-ply31':1,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':17,
-  'short375/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */};
+  'short375/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */,'short375/lesson-complete':0,'short375/pz-rankup':3/* #545 */};
 // TWO OF THESE NUMBERS ARE THE INTERESTING ONES AND BOTH ARE STATED RATHER THAN LEFT TO BE NOTICED.
 // `rev-more-sheet` pinned 0 ROWS at every geometry. THAT SENTENCE IS NO LONGER TRUE AND IS WITHDRAWN HERE
 // RATHER THAN QUIETLY EDITED [R18]: since #492 it is 0 at `se` only, and 1 at `kunal730` and `short375`. See
@@ -1092,6 +1092,9 @@ const SCREENS=[
   // pins each button's rect at four geometries; what it does not do is compare a label's ink to its own box,
   // which is the whole of 4b. Two gates over one row, each blind to the other's question.
   ['lesson-practice', async(b)=>{await LS.states['practice-m0'](b);}],
+  // #545 item (20): the lesson practice line played through to 'Complete!' - placed HERE, after lesson-practice, because
+  // its driver starts from the lesson list and a walk that reaches it from the RANK UP overlay cannot open a row.
+  ['lesson-complete', async(b)=>{await LS.states['practice-complete'](b);}],
   ['puzzles',         async(b)=>{await PZ.states['train'](b);}],
   // #423, AND IT IS THE ANTAGONIST'S FINDING RATHER THAN A TIDY-UP. The twelve screens had the UNSOLVED puzzle
   // board only. The moment the player solves it, `pz-bottom` re-renders from five controls to two - a 46x44
@@ -1100,6 +1103,12 @@ const SCREENS=[
   // structurally unable to produce, on the commonest outcome in the Puzzles tab. Twelve screens is not the app,
   // and "zero unpinned spreads" is a claim about what was visited.
   ['pz-solved',       async(b)=>{await PZ.states['train-solved'](b);}],
+  // #545, item (20) [jobs/suite-never-asserts-after-a-success-2026-09-27]: THE OTHER TWO SUCCESS STATES (pz-rankup is
+  // at the END of this list and lesson-complete after lesson-practice - see each entry). The suite took
+  // no assertion after a success, which is where four of Kunal's thirteen findings live. pz-solved was added at
+  // #423; these are the two the job names that were still absent - the RANK UP overlay on the 10th Novice solve, and
+  // a lesson's practice line played through to 'Complete!' (listed after lesson-practice above). Same detectors, two more
+  // states, no new rule.
   ['rev-summary',     async(b)=>{await R.states['summary'](b);}],
   ['rev-ply31',       async(b)=>{await R.states['moves-ply31'](b);}],
   ['rev-last-engine', async(b)=>{await R.states['moves-last-engine'](b);}],
@@ -1113,6 +1122,10 @@ const SCREENS=[
   // them renders the branch beside it. The #404 antagonist pass found that by walking all 34 plies.
   // Ply 30 is 15...Nxd7 ?? Blunder, best Qxd7: the largest `rev-best` overrun in the reference game.
   ['rev-best-ply30',  async(b)=>{await R.states['moves-ply0'](b);await R.goPly(b,30);await b.settle(600);}],
+  // #545 item (20): the RANK UP overlay on the 10th Novice solve, LAST in the walk on purpose: its driver seeds nine
+  // solved puzzles into storage and leaves a modal overlay up, and measured in this gate the next screen's driver
+  // (rev-summary) then timed out at 320x568, so any screen after it would be measuring the overlay's leftovers.
+  ['pz-rankup',       async(b)=>{await PZ.states['rankup'](b);}],
 ];
 
 // THE ONE RESIDUAL THIS GATE PINS RATHER THAN HIDES, and it is not mine to close. #404.
