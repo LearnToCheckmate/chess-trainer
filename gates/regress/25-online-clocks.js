@@ -164,7 +164,7 @@ for(const g of geos){
   // unreachable - CLAUDE.md's two false P0s). The second is about WHICH element pays, which is what the
   // sentence always claimed and never tested, so it asserts the scroller's IDENTITY and not its size.
   L.say(o.docScroll===0,
-    g.n+': TC-OC-006b the DOCUMENT does not scroll - docScroll '+o.docScroll+' by design, because #root is the app\'s own scroller and index.html says the page never scrolls. Continue and Start game were both confirmed on screen after actually scrolling that ancestor, not by scrollIntoView',{docScroll:o.docScroll});
+    g.n+': TC-OC-006b the DOCUMENT does not scroll - docScroll '+o.docScroll+' by design, because #root is the app\'s own scroller and index.html says the page never scrolls. It CANNOT FAIL (html and body are overflow:hidden) and is kept as the record of that design, not as a reachability check - the scroll that used to be claimed here is TC-OC-006e below, which performs it [#545]',{docScroll:o.docScroll});
   // AND THE DENOMINATOR IS REPORTED, NEVER CREDITED: with the sheet short enough to fit there is no scroller to
   // identify, and that is a legitimate state (#400 measured it at 390x844 with nine fewer pills), so it is an
   // L.note and not a PASS. A PASS here would be the very thing this item removes.
@@ -184,6 +184,31 @@ for(const g of geos){
       g.n+': TC-OC-006c and the element that pays for the pills is a box INSIDE the page and not the document or the body - '+o.sheetScroll.id+' at top '+o.sheetScroll.top+', '+o.sheetScroll.h+'px tall, scrolling '+o.sheetScroll.sh+' in '+o.sheetScroll.ch+'. The old form asserted sh>ch, which the selector above had already guaranteed',o.sheetScroll);
   }
 
+  // ── TC-OC-006e: THE SCROLL TC-OC-006b's MESSAGE CLAIMED AND NEVER PERFORMED [#545, item (39); jobs/tc-oc-006b-unfalsifiable].
+  // That message read "Continue and Start game were both confirmed on screen after actually scrolling that ancestor, not by
+  // scrollIntoView", and no scroll was done and no rect was read anywhere in it. On the ONLINE branch the sheet's only action
+  // is "Continue →", and it rests BELOW the fold (measured at #545: top 885.75 on a 568-tall phone, 831.75 on 730). So this
+  // does what the sentence said: find the button, walk to its nearest ancestor that a FINGER can scroll (computed overflow-y
+  // auto or scroll, room to scroll, and no touch-action:none on the chain - gate 74's lesson), move that ancestor's scrollTop
+  // just far enough, then re-read: the button must sit fully inside the viewport and own the point at its own centre. Two
+  // lines, the denominator first, so a missing button reads red and never as a reachability pass.
+  const reach=await b.page.evaluate(()=>{
+    const btn=[...document.querySelectorAll('button')].find(x=>/^Continue/.test((x.innerText||'').trim()));
+    if(!btn)return {found:false};
+    const r0=btn.getBoundingClientRect();
+    let sc=null;for(let p=btn.parentElement;p;p=p.parentElement){const st=getComputedStyle(p);
+      if(st.touchAction==='none')return {found:true,top0:r0.top,blocked:'touch-action:none on '+(p.getAttribute('data-ct')||p.tagName)};
+      if(/auto|scroll/.test(st.overflowY)&&p.scrollHeight>p.clientHeight+1){sc=p;break;}}
+    const need=Math.max(0,r0.bottom-innerHeight+2);
+    let moved=0;if(sc&&need>0){const before=sc.scrollTop;sc.scrollTop=before+need;moved=sc.scrollTop-before;}
+    const r=btn.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;
+    const hit=(cy>=0&&cy<innerHeight)?document.elementFromPoint(cx,cy):null;
+    return {found:true,top0:Math.round(r0.top*100)/100,scroller:sc?(sc.getAttribute('data-ct')||sc.id||sc.tagName.toLowerCase()):null,
+      need:Math.round(need*100)/100,moved:Math.round(moved*100)/100,top:Math.round(r.top*100)/100,bottom:Math.round(r.bottom*100)/100,vh:innerHeight,
+      owns:!!hit&&(hit===btn||btn.contains(hit))};});
+  L.say(reach.found,g.n+': TC-OC-006e the ONLINE sheet carries its action button, "Continue →" - the denominator for the reachability line below, so a missing button reads red rather than as reachable',reach);
+  L.say(reach.found&&!reach.blocked&&reach.top>=0&&reach.bottom<=reach.vh&&reach.owns,
+    g.n+': TC-OC-006e "Continue →" is REACHABLE BY A FINGER - it rests at top '+reach.top0+' on a '+reach.vh+'px viewport; its scroller ('+reach.scroller+') was actually scrolled '+reach.moved+'px and the button then sits fully on screen and owns its own centre',reach);
   await b.close();
 }
 
@@ -231,8 +256,13 @@ for(const g of geos){
   //   (c) o.sheetScroll forced to null (no scroller at all): TC-OC-006c becomes three NOT CHECKED notes and scores
   //       no PASS (31 pass, 0 fail - the three are absent from the count, not credited). (c) has red=0, so it is
   //       recorded here in prose and not as a CONTROL-RECORD, which requires red > 0.
-  // CONTROL-RECORD: 777aa06 2026-10-29 total=34 red=2 scope=full how=a-copy-with-const-summ-set-to-the-empty-string,the-empty-summary-denominator
-  // CONTROL-RECORD: 777aa06 2026-10-29 total=34 red=3 scope=full how=a-copy-with-o.sheetScroll-forced-to-the-document,the-only-scroller-is-the-document
+  // RE-RUN AT #545 item (39), because that item changed TC-OC-006b's message and added TC-OC-006e, which moved the L.say set
+  // the two 777aa06 records were keyed to: (a) 38 pass / 2 fail of 40, red TC-OC-010 and TC-OC-010c; (b) 37 / 3 of 40, red
+  // TC-OC-006c at all three - the same red sets as before, at the new total. And a BUNDLE control for TC-OC-006e: trial
+  // 64bccfe007b8 (the play-setup overlay's overflowY auto -> hidden, one change) reads 36 / 2, red TC-OC-006e at 320x568 and
+  // 375x730 only (at 390x844 the button fits, correctly green), while TC-OC-006b PASSES on it - the vacuity, measured.
+  // The CONTROL-RECORD lines are re-added at #545's close-out: control-audit bounds a full-scope record by the count the
+  // newest archived log runs, and 544-all.log runs this gate at 34.
   // ── TC-OC-010 WAS VACUOUS AND THIS IS THE REPLACEMENT. ────────────────────────────────────────────────────
   // The old assertion was `!selected.includes('3 days / move')`, and it PASSED on three bundles that behave three
   // different ways: #399 (no fix), the menu-only #400 (fix on the wrong call site) and the fully fixed build. It
