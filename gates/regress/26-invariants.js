@@ -1399,6 +1399,14 @@ L.run(async()=>{
           L.note('      grade ladder: '+LADDER.map(k=>k+' '+(grades[k]?grades[k].w+'/'+grades[k].b:'-')).join(', '));
           L.say(W===17,g+' rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)',{sum:W,movesPlayed:17});
           L.say(B===16,g+' rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)',{sum:B,movesPlayed:16});
+        } else {
+          // THE FIVE ARE NAMED, NOT DROPPED [#545, item (61);
+          // jobs/26-invariants-drops-five-ladder-assertions-silently-on-main-when-rev-summary-does-not-resolve-2026-10-13].
+          // When the panel or its rows do not resolve, the L.say(!!grades) above is the one red, and the five ladder
+          // assertions below it do not run. This section's PASS total is a cross-run integrity figure, so a silent
+          // minus five must carry its reason in the log - the same shape as gates/regress/67-sel-cls-consumers.js's own
+          // else branches, which exist because every() and a negated test() are both TRUE over nothing.
+          L.note(g+' rev-summary: TEN-GRADES, EXCELLENT-BUCKET, LADDER-ORDER, WHITE-SUM-17 and BLACK-SUM-16 NOT RUN and NOT COUNTED AS PASSES: the grade table did not resolve, so there is nothing to assert them over. The red is the "grade table was found and read" line above; this section reads five fewer PASS lines than a run in which the panel resolves.');
         }
       }
       seenAny+=res.seen.inked;
