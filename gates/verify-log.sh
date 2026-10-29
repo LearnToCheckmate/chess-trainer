@@ -1845,6 +1845,13 @@ if [ "$ONMAIN" -eq 1 ]; then
   # SO: DEEPEN FIRST, AND IF IT IS STILL SHALLOW, REFUSE WITH THE TRUE CAUSE RATHER THAN THE FALSE ONE.
   # Not a pass: UNKNOWN is not a pass here [the --on-main note above], and a cheap deepen usually removes the
   # question entirely. What changes is that the output can no longer blame the tree for the clone.
+  # [R18, #545 item (95); jobs/the-deepen-400-in-verify-log-is-calibrated-against-a-main-that-has-since-grown-2026-10-13]
+  # THE PARAGRAPH BELOW IS WITHDRAWN AS A STANDING CLAIM AND KEPT AS HISTORY. Its premise was true when written and main
+  # grew out from under it: at #516 origin/main was 1162 commits, the deepest archived ref line 540 back, the deepen reached
+  # 456, and 417b-all.log was REFUSED --on-main in a depth-50 clone AFTER the prescribed deepen - so the branch it calls
+  # unreachable was reached. A literal threshold against a growing main is the frozen denominator. THE FIX IS A METHOD,
+  # NOT A NUMBER: `git fetch --unshallow origin main` (what CLAUDE.md prescribes for every ancestry claim), and only if
+  # that fails a deepen that is reported as such. The still-shallow branch stays, for the case where neither can run.
   # WHY 400, MEASURED RATHER THAN CHOSEN: origin/main is 860 commits and the DEEPEST 'ref: HEAD' line in any
   # archived gatelog is 238 commits behind HEAD (417b-all.log 6eeca3e; 419c-all.log is 234), so 400 covers every
   # log in the register with room to spare and is not the whole history. THE LIMIT OF THAT, NAMED: because every
@@ -1855,12 +1862,12 @@ if [ "$ONMAIN" -eq 1 ]; then
   SHALLOW=0
   if [ "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then
     SHALLOW=1
-    git fetch -q --deepen=400 origin main 2>/dev/null || true
+    git fetch -q --unshallow origin main 2>/dev/null || git fetch -q --deepen=100000 origin main 2>/dev/null || true
     [ "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ] || SHALLOW=0
   fi
   if [ "$REF" != "$MAIN" ] && ! git merge-base --is-ancestor "$REF" "$MAIN" 2>/dev/null && [ "$SHALLOW" -eq 1 ]; then
     echo "REFUSED (--on-main): NOT CHECKED, not 'not on main'. This clone is SHALLOW even after"
-    echo "  'git fetch --deepen=400 origin main', so 'git merge-base --is-ancestor $REF $MAIN' cannot see past"
+    echo "  'git fetch --unshallow origin main' (and a deepen fallback), so 'git merge-base --is-ancestor $REF $MAIN' cannot see past"
     echo "  the graft and returns false for every sha older than it. The ancestry of $REF is UNKNOWN here, which"
     echo "  is not a pass and is also NOT evidence that the tree did not ship."
     echo "  grafts: $(git rev-parse --git-dir >/dev/null 2>&1 && wc -l < "$(git rev-parse --git-dir)/shallow" 2>/dev/null || echo '?')"
