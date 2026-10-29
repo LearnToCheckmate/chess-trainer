@@ -730,7 +730,12 @@ EOF
   # form (hostile today, see the 113) or a token match between the citing prose and the cited line (a
   # heuristic, and a wrong one reads as a defect). What closes it is citing by SYMBOL, which CLAUDE.md #503
   # pointer 4 prescribes in prose; this arm makes the half that IS decidable decidable.
-  A6SCOPE="CLAUDE.md gates/*.sh gates/audit/*.sh gates/regress/README.md gates/pending/README.md gates/cases/README.md"
+  # `gates/cases/README.md` IS OUT OF THIS SCOPE BECAUSE THE PUSH-CHECKS TIER IS REVERTED [#544]. It arrived
+  # with that tier and the tier is reverted whole on four upheld vetoes, so the path does not exist on this
+  # tree or on main. A glob for an absent path is harmless here - arm (6) reports scriptdead=0 either way - and
+  # it is removed rather than left, because the next reader cannot tell a scope entry for a file that is gone
+  # from one for a file that was never written.
+  A6SCOPE="CLAUDE.md gates/*.sh gates/audit/*.sh gates/regress/README.md gates/pending/README.md"
   # HANDOFF.md IS OUT OF SCOPE, and the reason is mechanical: a close-out rewrites it wholesale every run, so
   # its citations are a moving target and 24 of the 113 live there. RUN-LOG.md, claude/PROCESS-LOG.md,
   # claude/process-log/ and claude/agents/ are out for the reason that job gives for RUN-LOG.md: they are

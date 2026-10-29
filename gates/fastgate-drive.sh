@@ -2101,7 +2101,15 @@ s[idx+1:idx+1] = rows
 open(p, 'w', encoding='utf-8').write('\n'.join(s))
 PY
 }
-h55_width(){ ( cd "$C" && timeout 120 bash gates/verify-log.sh --citations 2>&1 | grep -oE 'widthrise=[0-9]+' | head -1 | cut -d= -f2 ) ; }
+# NO PIPELINE OUT OF THE SCRIPT [#544, antagonist A's finding F4]. This read
+#   timeout 120 bash gates/verify-log.sh --citations 2>&1 | grep -oE 'widthrise=[0-9]+' | head -1 | cut -d= -f2
+# which is a TIER D early-exit pipe: `head` can close the pipe while the producer is still writing and the
+# pipeline's status is discarded, so a producer killed by SIGPIPE is indistinguishable from one that finished.
+# It is one of the two sites item (5) and item (14) of this run created, and the close-out commit that fixed two
+# others attributed these two to the wrong file - corrected on the record and fixed here.
+# The output goes to a file and awk reads it: no second process to signal, and the early exit is awk's own.
+h55_width(){ ( cd "$C" && timeout 120 bash gates/verify-log.sh --citations >"$C/.h55w.txt" 2>&1 || true
+                awk 'match($0,/widthrise=[0-9]+/){print substr($0,RSTART+10,RLENGTH-10); exit}' "$C/.h55w.txt" ) ; }
 h55_set broken2
 # `new_base ... >/dev/null` AND NOT `$(new_base ...)`, WHICH IS THE IDIOM EVERY OTHER CALLER USES AND THE FIRST
 # DRAFT OF THIS CASE GOT WRONG: new_base sets the global CASEBASE that run_fastgate gates against, and command
@@ -2170,7 +2178,15 @@ else
   ln -s "$ROOT/gates/node_modules" "$H56D/clone/gates/node_modules" 2>/dev/null || true
   H56DIRTY="$( cd "$H56D/clone" && git status --porcelain 2>/dev/null | wc -l | tr -d ' ' )"
   H56OUT="$( cd "$H56D/clone" && CT_FASTGATE_DRIVE=1 timeout 250 bash gates/fastgate.sh 0000000000000000000000000000000000000000 2>&1 )"; H56RC=$?
-  H56HEAD="$( printf '%s' "$H56OUT" | grep -m1 -oE 'head [0-9a-f]{7,40}|head unknown' || true )"
+  # A HERESTRING AND awk, NOT `printf | grep -m1 || true` [#544, antagonist A's finding F4]: that form is a
+# TIER C site - an early-exiting grep whose status is swallowed by `|| true` - and item (14) of this run
+# created it. awk over a herestring has no producer process to kill and its exit is its own.
+# THE LENGTH BOUND IS A TEST AND NOT AN INTERVAL, because THIS CONTAINER'S awk IS mawk 1.3.4 AND mawk DOES
+# NOT SUPPORT `{n,m}` INTERVALS. Measured while writing this: `/head ([0-9a-f]{7,40}|unknown)/` matched
+# `head 1234567` out of `head 1234567abcdef0` - a TRUNCATED sha, which would have made H56 compare the wrong
+# string and go red for a reason that has nothing to do with provenance. The greedy `+` plus an explicit length
+# test reproduces grep -oE's 7-to-40 bound: "head " is five characters, so seven hex digits is length 12.
+H56HEAD="$( awk 'match($0,/head ([0-9a-f]+|unknown)/){v=substr($0,RSTART,RLENGTH); if(v=="head unknown"||length(v)>=12){print v; exit}}' <<<"$H56OUT" )"
   if [ "$H56DIRTY" != "0" ]; then
     note "  FAIL H56 [$(tc H56)]  the spaced clone is DIRTY ($H56DIRTY path(s)), so fastgate refuses for that instead of for the base - the case cannot pose"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H56"

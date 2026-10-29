@@ -57,14 +57,22 @@
 #   gates/buildnum.sh next           print the next free number (highest issued + 1). Reads, never writes.
 #   gates/buildnum.sh mint <note>    take the next free number AND record it, in one step. Prints "#NNN".
 #   gates/buildnum.sh add <#NNN> <state> <sha> <bundleMd5> <note...>    record a number by hand.
+#                                    state: minted | issued | built | shipped | held | abandoned | cleared
+#                                    (issued = used, final disposition not established). sha and bundleMd5 may
+#                                    be '-'. CT_SRCMD5 sets the sourceMd5 field; CT_RUNID is REQUIRED.
+#                                    REFUSES (exit 2) a number the register's series does not reach: see THE
+#                                    ONE LIMIT ON "HIGHER" below.
 #   gates/buildnum.sh clear <#NNN> <why...>                              record that a number no longer stands
 #                                    (append-only, like every write here; exit 2 if the number has no row at
-#                                    all, exit 3 if it was already cleared). #544.
-#                                    state: minted | issued | built | shipped | held | abandoned (issued =
-#                                    used, final
-#                                    disposition not established). sha and bundleMd5 may be '-'.
-#                                    CT_SRCMD5 sets the sourceMd5 field; CT_RUNID is REQUIRED. REFUSES (exit 2) a number
-#                                    the register's series does not reach: see THE ONE LIMIT ON "HIGHER" below.
+#                                    all, exit 3 if it was already cleared). It takes NO state, NO sha and NO
+#                                    bundleMd5 - it writes a `cleared` row itself. #544.
+# THE FIVE LINES ABOVE WERE ATTRIBUTED TO THE WRONG VERB UNTIL THIS BUILD'S OWN ANTAGONIST READ THE USAGE
+# BLOCK [antagonist B of #544, finding P2-4]. Item (10) inserted `clear` BETWEEN `add` and `add`'s own
+# continuation lines, so everything about a state, a sha and a bundle md5 read as `clear`'s - a verb that takes
+# none of them - and the state list was the stale six-state one as well. The reflowed "used, final /
+# disposition not established" was the tell that something had been inserted. Found from the shipped-surface
+# door by running `bash gates/buildnum.sh` with no arguments, which is the one thing nobody who edits a usage
+# block does.
 #   gates/buildnum.sh record <#NNN> <bundleMd5> <sourceMd5>
 #                                    append a `built` row. gates/build.sh calls this itself after a successful
 #                                    bundle, so every number RESOLVES to the artefacts stamped with it.

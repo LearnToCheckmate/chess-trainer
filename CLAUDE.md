@@ -187,8 +187,18 @@ wider one.
   not - so "a gate leaves only in a commit that says why" is true of the DIFF and not of any check, and deleting the row instead would make the manifest agree with the deletion silently. KNOW ITS
   LIMIT, because it is the #419 limit again: the footer is a claim this harness computes, so `verify-log.sh`
   reading it back is not an independent measurement, and it cannot be - that script runs on archived logs with no
-  tree on disk. **NINETEEN controls as a command, not a paragraph: `gates/gatemanifest.sh selftest`
-  (TC-SUITE-001..019).** It started at twelve, reached fourteen when my own adversarial pass found that an
+  tree on disk. **ITS CONTROLS ARE A COMMAND AND NOT A PARAGRAPH, AND THE COUNT IS NOT WRITTEN HERE:
+  `gates/gatemanifest.sh selftest` IS the authority and it prints its own total.** This bullet read "NINETEEN
+  controls ... (TC-SUITE-001..019)" until #544's antagonist B ran the command: it reports **56** and it prints
+  **NO `TC-SUITE-NNN` ids at all** (`selftest | grep -coE 'TC-SUITE-[0-9]+'` is 0), so a number and an id range
+  written here had gone stale in the one bullet whose own last sentence says the count "is written once here
+  and the authority is the command's own output" - #405's frozen denominator inside the warning about it. The
+  number is therefore DELETED rather than corrected, which is the same one-home principle this file applies to
+  `gates/gate-manifest.tsv` one paragraph below. AND THE ID GAP IS A LIVE CONSEQUENCE, not a tidiness point:
+  the case register joins on ids this executable stopped emitting, which is the direct cause of
+  `--citations`' own `NOT CHECKED: TC-SUITE-013`, `NOT CHECKED: TC-SUITE-067` and `UNSUPPORTED: TC-SUITE-069`.
+  Whoever re-labels those arms closes three ratchet items with them.
+  THE HISTORY, kept because it is the reason the count is no longer here: It started at twelve, reached fourteen when my own adversarial pass found that an
   `absent` row with no reason was accepted, and reached nineteen on the two antagonist vetoes - and the count
   DRIFTED ACROSS THREE DOCUMENTS IN ONE BUILD while the file that records it said "the register and the
   executable cannot drift", which antagonist A caught and which is why the number is written once here and the
@@ -632,8 +642,10 @@ wider one.
   anomaly and is the median. A LOWER BOUND twice over: committed bundles only (#439 reads 1 by this method and
   three existed), and only back to #439. **So "measured on #NNN" is not a reference. Cite the bundle md5.**
   The guard: `gates/build-numbers.tsv` is the register of issued numbers, `gates/buildnum.sh`
-  (`check|stampable|next|mint|add|record|list`) reads and writes it, `gates/buildnum-selftest.sh` is its **47
-  controls as a command rather than a paragraph**, and `gates/build.sh` refuses a number that is not this run's
+  (`check|stampable|next|mint|add|record|list|sweep|clear`) reads and writes it, `gates/buildnum-selftest.sh`
+  is its **controls as a command rather than a paragraph - run it for the count, which is not written here**
+  (it read "47" until #544's antagonist B ran it and got 245, and the verb list omitted `sweep` and the
+  `clear` #544 added; same frozen-denominator shape as the gatemanifest bullet above), and `gates/build.sh` refuses a number that is not this run's
   before esbuild runs. Take one with `CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'`, then build it.
   **BE PRECISE ABOUT WHAT IT ENFORCES: NON-REUSE, NOT MINTEDNESS.** `gates/build.sh '#300'` still succeeds,
   because #300 is absent from the register; the run therefore still CHOOSES its number and what it can no longer
