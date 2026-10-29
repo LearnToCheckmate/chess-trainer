@@ -193,19 +193,55 @@ L.run(async () => {
 
   // (1) THE NEGATIVE CONTROL, in the run. Every denial above is satisfied just as well by a validator that
   // rejects everything, so the denials are only evidence if a validator that rejects NOTHING fails them.
+  //
+  // REWRITTEN AT #544 [item (20); jobs/27-scan-fens-two-negative-controls-assert-a-property-of-their-own-stub-
+  // and-never-call-the-validator-2026-10-13, P1, found by antagonist A of #517 in the ROTATING AUDIT - the one
+  // arm of that charter that looks outside the build's own diff, and neither line had ever appeared in a diff].
+  // WHAT WAS HERE AND WHY IT WAS WORSE THAN NO CONTROL. The comment above stated the purpose exactly and the
+  // code did not do it. TC-BS-027 read `REJECT.filter(([,,fen]) => passThrough(fen).ok === true).length ===
+  // REJECT.length` where `passThrough = () => ({ok:true, ...})` IGNORES its argument, so the predicate was
+  // constant true and the count was REJECT.length for every input. TC-BS-028 was the same shape and its
+  // predicate `denyAll().ok === false` did not even take the fixture. NEITHER LINE CALLED fenCheck, the
+  // validator under test; both held over an EMPTY fixture array (0===0); both would have stayed green with the
+  // validator deleted outright. They were tautologies wearing the label NEGATIVE CONTROL, which is how the
+  // ledger CLAUDE.md records - 'gates-without-a-negative-control', closed at 'ALL 19 SUITES' - goes wrong while
+  // looking right, and exactly the mistake that grep for the word 'control' made over 45-play-setup and 46-play.
+  //
+  // THE SUBSTITUTION IS NOW REAL: one code path per direction, taking the validator as an argument, so the
+  // assertion runs the same comparison it asserts over with only the validator swapped.
+  const rejectHolds = (check) => REJECT.filter(([, , fen, code]) => { const r = check(fen); return r.ok === false && r.err === code; }).length;
+  const acceptHolds = (check) => ACCEPT.filter(([, , fen]) => check(fen).ok === true).length;
   const passThrough = () => ({ok: true, fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', err: null, repaired: []});
-  const stubAccepts = REJECT.filter(([, , fen]) => passThrough(fen).ok === true).length;
-  L.say(stubAccepts === REJECT.length,
-    'TC-BS-027: NEGATIVE CONTROL - a pass-through validator accepts all ' + REJECT.length + ' of the fixtures rejected above, so those ' + REJECT.length + ' denials are evidence rather than the side effect of a validator that says no to everything',
-    {rejectFixtures: REJECT.length, acceptedByStub: stubAccepts});
-
-  // And the control's other half: the ACCEPT fixtures must not be passing because the real validator says yes
-  // to everything either. A stub that rejects everything has to fail them.
   const denyAll = () => ({ok: false, fen: null, err: 'stub', repaired: []});
-  const stubRejects = ACCEPT.filter(() => denyAll().ok === false).length;
-  L.say(stubRejects === ACCEPT.length,
-    'TC-BS-028: NEGATIVE CONTROL, the other direction - a reject-everything validator fails all ' + ACCEPT.length + ' of the accepted fixtures, so the acceptances are not the side effect of a validator that says yes to everything',
-    {acceptFixtures: ACCEPT.length, rejectedByStub: stubRejects});
+
+  // THE DENOMINATOR FIRST, IN ITS OWN L.say [R51 / the empty-denominator class]. `filter().length === 0` is the
+  // shape that reports loudest over nothing, and the two lines this replaces were vacuous over an empty array
+  // as well as over a full one, so the fixture counts are asserted before anything is asserted about them.
+  L.say(REJECT.length > 0 && ACCEPT.length > 0,
+    'TC-BS-029: THE DENOMINATORS - both fixture tables are non-empty (' + REJECT.length + ' rejected, ' + ACCEPT.length + ' accepted), so the four control assertions below are asserted over real inputs rather than over nothing',
+    {rejectFixtures: REJECT.length, acceptFixtures: ACCEPT.length});
+
+  // THE INSTRUMENT, both directions: the substitutable path must reproduce what the loops above measured with
+  // the SHIPPED validator, or the stub runs are measuring a different comparison and prove nothing about it.
+  L.say(rejectHolds(fenCheck) === REJECT.length,
+    'TC-BS-027: INSTRUMENT - the substitutable path reproduces all ' + REJECT.length + ' denials with the SHIPPED validator, so the stub run below swaps the validator and nothing else',
+    {want: REJECT.length, got: rejectHolds(fenCheck)});
+  L.say(rejectHolds(passThrough) === 0,
+    'TC-BS-027b: NEGATIVE CONTROL - with a PASS-THROUGH validator substituted for fenCheck, ZERO of the ' + REJECT.length + ' denials hold, so those denials are evidence about fenCheck rather than the side effect of a validator that says no to everything',
+    {held: rejectHolds(passThrough), of: REJECT.length});
+  L.say(acceptHolds(fenCheck) === ACCEPT.length,
+    'TC-BS-028: INSTRUMENT, the other direction - the substitutable path reproduces all ' + ACCEPT.length + ' acceptances with the SHIPPED validator',
+    {want: ACCEPT.length, got: acceptHolds(fenCheck)});
+  L.say(acceptHolds(denyAll) === 0,
+    'TC-BS-028b: NEGATIVE CONTROL, the other direction - with a REJECT-EVERYTHING validator substituted, ZERO of the ' + ACCEPT.length + ' acceptances hold, so the acceptances are not the side effect of a validator that says yes to everything',
+    {held: acceptHolds(denyAll), of: ACCEPT.length});
+
+  // THE THREE-VALIDATOR TABLE, PRINTED, because the job's pass condition is that the control DISTINGUISHES all
+  // three and neither direction does so alone: on the REJECT fixtures both stubs read 0, and on the ACCEPT
+  // fixtures pass-through reads the full count while deny-all reads 0. It is the PAIR that separates them, and
+  // a reader of this log can see which cell does which rather than taking the claim on trust.
+  L.note('TC-BS-027/028 three-validator table  REJECT holds: shipped=' + rejectHolds(fenCheck) + ' passThrough=' + rejectHolds(passThrough) + ' denyAll=' + rejectHolds(denyAll) +
+         '   ACCEPT holds: shipped=' + acceptHolds(fenCheck) + ' passThrough=' + acceptHolds(passThrough) + ' denyAll=' + acceptHolds(denyAll));
 
   // ── THE THREE CLIENT CHANGES #405 ALSO SHIPPED, ASSERTED ON THE SOURCE AND SAID TO BE SOURCE ASSERTIONS ────
   // CLAUDE.md's first rule is "measure, do not read - no claim about size, spacing, overflow or position taken
