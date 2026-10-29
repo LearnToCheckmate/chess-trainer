@@ -211,13 +211,13 @@ L.run(async()=>{
 // bundles described at the WANT block above: chess.jsx's edge-path board multiplied by 0.9, built with
 // gates/build.sh + CT_OUT, run with CT_APP. The control is re-run against the COMMITTED gate rather than the
 // working tree, so the sha below names the exact L.say lines it exercised.
-// RE-RUN AT #544 ITEM (24), AND THE REASON IS WORTH THE LINE. That item added fourteen assertions to this file
+// RE-RUN AT #544 ITEM (24b), AND THE REASON IS WORTH THE LINE. That item added fourteen assertions to this file
 // for the lesson driver's Try-again state, which took it from 64 L.say sites to 79 - and gates/control-audit.js
 // then reported the record below as PARTIAL ('every line each one ran is still here, but the gate has grown
 // 20 -> 27 L.say sites since - the newer assertions are unshown'), which moved this gate out of COVERED and
 // took that tool's `uncovered` count back up by one. A control record describes a SET OF LINES, so growing the
 // gate expires it; the remedy is to re-run the control, not to edit the numbers. Done: the same recipe rebuilt
-// and re-run against commit 64349de.
+// and re-run against commit 64349de, at 72 pass / 7 fail over 79 assertions.
 // THE RECIPE'S md5 CHANGED AND THE RECIPE DID NOT, which is this project's own #450 note rather than a new
 // finding: gates/build.sh embeds the build MINUTE in the stamp via --define:__BUILD__, so the same patched
 // source gives a different bundle md5 on every rebuild. The first run of this control measured
@@ -226,5 +226,20 @@ L.run(async()=>{
 // assertion plus the kunal demo-end pin - so the fourteen new assertions are all green on the broken bundle
 // and the control still crosses exactly the threshold it crossed before. chess.jsx and app.js were md5-verified
 // restored after the build (1b41d1d1e765 and 049b41dfb6f1, unchanged).
-// CONTROL-RECORD: 64349de 2026-10-29 total=79 red=7 scope=trial:c086633a6d2c how=the edge-path board x0.9, so every lesson board is ~10% small
+// WHY THE RECORD LINE BELOW STILL NAMES 055192b AND total=64, AND NOT THIS RE-RUN. MEASURED, by writing the
+// new line and running the tool: gates/control-audit.js:202 bounds a record's `total` by `now`, and `now` is
+// the gate's assertion count IN THE NEWEST ARCHIVED SUITE LOG that gates/verify-log.sh accepts - today
+// claude/agents/gatelogs/540-all.log, where this gate ran 64. A record saying total=79 is therefore rejected
+// as a BAD-RECORD ('scoped total=79 is not inside 1..64') and the tool's badrecord count rises, which is a
+// WORSE reading than the PARTIAL it replaced. SO A CONTROL RECORD FOR A GATE THAT HAS JUST GROWN CANNOT BE
+// WRITTEN UNTIL A SUITE LOG FOR THE NEW TREE EXISTS - it always lags the growth by one build - and this run
+// cannot close that gap, because the only commit after its suite is the close-out and editing a gate file
+// after the suite has read it makes the pushed gate differ from the gated one [#461, and #522's own refusal of
+// exactly this 'behaviourally inert' comment edit]. The honest end state is PARTIAL with the measurement
+// written beside it: the control covered 64 of the 79 assertions this file now runs, the other 15 are the
+// Try-again block and item (21)'s font-pin line, and every one of them is GREEN on the broken bundle because
+// none of them is about board width. The next run that archives a suite log over this tree can write
+// `CONTROL-RECORD: <that sha> <date> total=79 red=7 scope=trial:c086633a6d2c` with no new measurement needed.
+// Filed as its own finding on the job rather than left in this comment alone.
+// CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
 },'LESSON');
