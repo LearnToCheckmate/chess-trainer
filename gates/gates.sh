@@ -29,6 +29,36 @@
 # the regression never ran at all.
 set -uo pipefail
 
+# ── DID HEAD MOVE WHILE THE SUITE RAN? [#545, item (33); jobs/amending-a-commit-after-launching-the-suite-orphans-
+# the-logs-own-gated-sha-2026-10-07]. The ref line names HEAD as sampled at run START, which is right (#417: the
+# thing gated is the tree at launch) and is not enough: #491 amended its commit 3 minutes into a 93-minute suite -
+# a correct one-character fix to a commit message, tree byte-identical - and its log named 254d939, a sha that
+# `git branch -a --contains` then answered EMPTY for. Both push-authorising tools key on that sha, so the green
+# was unciteable and looked exactly like a citeable one. This re-samples HEAD at the END and reconciles:
+#   same      HEAD did not move.
+#   carried   HEAD moved, and the gated sha is still in HEAD's history or on a ref: a new commit on top. It stays
+#             the sha named, and the line says HEAD moved.
+#   replaced  the gated sha is on NO ref (amended or rebased away), the run started CLEAN, and the end HEAD carries
+#             the BYTE-IDENTICAL tree: the end sha is named instead, because it is the same tree and a ref carries it.
+#   orphaned  on no ref, and the end tree differs (or the start was dirty, so the gated tree was never the commit's):
+#             the log names a tree nothing carries, and the full suite does NOT emit the green verdict.
+# Prints "<verdict><TAB><sha to name><TAB><text for the ref line>". Defined above --selftest so the selftest drives
+# this function and not a copy of it.
+head_reconcile(){ # <repo> <start-sha> <start-tree> <start-dirty-count>
+  local repo="$1" s="$2" st="$3" dn="$4" e et
+  local g=(git -C "$repo" --git-dir="$repo/.git" --work-tree="$repo")
+  e="$("${g[@]}" rev-parse HEAD 2>/dev/null || echo unknown)"
+  if [ "$s" = unknown ] || [ "$e" = unknown ]; then
+    printf 'unknown\t%s\t%s\n' "$s" " | HEAD at the end could not be read - whether HEAD moved during the run is NOT CHECKED"; return 0; fi
+  if [ "$e" = "$s" ]; then printf 'same\t%s\t\n' "$s"; return 0; fi
+  if "${g[@]}" merge-base --is-ancestor "$s" "$e" 2>/dev/null || [ -n "$("${g[@]}" branch -a --contains "$s" 2>/dev/null)" ]; then
+    printf 'carried\t%s\t%s\n' "$s" " | HEAD MOVED DURING THE RUN to $e; the gated sha is still in its history or on a ref, so it stays the one named"; return 0; fi
+  et="$("${g[@]}" rev-parse "$e^{tree}" 2>/dev/null || echo unknown)"
+  if [ "$et" = "$st" ] && [ "$st" != unknown ] && [ "$dn" = 0 ]; then
+    printf 'replaced\t%s\t%s\n' "$e" " | HEAD MOVED DURING THE RUN: it started at $s, which NO ref carries now (amended or rebased), and $e carries the BYTE-IDENTICAL tree $st, so $e is named as HEAD"; return 0; fi
+  printf 'orphaned\t%s\t%s\n' "$s" " | HEAD MOVED DURING THE RUN: the gated sha is on NO ref and HEAD $e does not carry the gated tree - THIS LOG NAMES A TREE NOTHING CARRIES, so it is not a push gate"
+}
+
 # ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
 # That job's headline repair LANDED (the herestring at the MANI_LINE assignment below, burst wave 1 patch 03,
@@ -1354,6 +1384,21 @@ M16PY
   # `cmp` is cheaper than the next reader rediscovering it.
   st M19d-and-the-mutant-actually-DIFFERS-from-the-fix "$(cmp -s "$ST_FB" "$ST_T/m19.sh" && echo same || echo differ)" differ
 
+  # H1-H6 DRIVE head_reconcile [#545, item (33)] in a scratch repository: the four verdicts, the dirty-start case, and
+  # the wiring that keeps an orphaned verdict away from the green line.
+  ST_HR="$ST_T/hr"; mkdir -p "$ST_HR"
+  ( cd "$ST_HR" && git init -q && git config user.email a@b.c && git config user.name t && echo a > f && git add f && git commit -qm A ) >/dev/null 2>&1
+  hr_s="$(git -C "$ST_HR" rev-parse HEAD)"; hr_t="$(git -C "$ST_HR" rev-parse 'HEAD^{tree}')"
+  st H1-HEAD-did-not-move-reads-same "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1)" same
+  ( cd "$ST_HR" && echo b >> f && git commit -qam B ) >/dev/null 2>&1
+  st H2-a-commit-on-top-reads-carried-and-keeps-the-gated-sha "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1,2)" "$(printf 'carried\t%s' "$hr_s")"
+  ( cd "$ST_HR" && git reset -q --hard "$hr_s" && git commit -q --amend -m 'A, message amended' ) >/dev/null 2>&1
+  hr_e="$(git -C "$ST_HR" rev-parse HEAD)"
+  st H3-a-byte-identical-amend-reads-replaced-and-names-the-END-sha "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1,2)" "$(printf 'replaced\t%s' "$hr_e")"
+  st H5-the-same-amend-after-a-DIRTY-start-reads-orphaned "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 3 | cut -f1)" orphaned
+  ( cd "$ST_HR" && echo c >> f && git commit -q --amend -am 'A, tree changed' ) >/dev/null 2>&1
+  st H4-an-amend-that-CHANGES-the-tree-reads-orphaned "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1)" orphaned
+  st H6-the-full-suite-refuses-the-green-line-on-an-orphaned-verdict "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \]; then echo "GATES GREEN' "$SF")" 1
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -1436,6 +1481,7 @@ echo "gates.sh $N  bundle $APP  md5 $BUNDLE_MD5  $(date '+%Y-%m-%d %H:%M:%S %Z')
 # and a gate run launched from a hook or a wrapper that exports them reported another repository's HEAD.
 GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
 HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
+HEADTREE="$($GIT rev-parse 'HEAD^{tree}' 2>/dev/null || echo unknown)"   # for head_reconcile at the end [#545]
 DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 
 # build the gate list: mountcheck always, then either everything or just the named ones
@@ -2811,6 +2857,9 @@ echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text
 # The sha, the dirty count and the bundle md5 were all sampled at run START (see the header above).
 MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
 DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRTYN path(s) - the gated bundle is not this commit's"
+# #545 item (33): did HEAD move while the suite ran? See head_reconcile at the top of this file.
+IFS=$'\t' read -r HR_V HR_SHA HR_TXT < <(head_reconcile "$ROOT" "$HEADSHA" "$HEADTREE" "${DIRTYN:-0}")
+HEADSHA="${HR_SHA:-$HEADSHA}"; DIRTYTXT="${HR_TXT:-}$DIRTYTXT"
 if [ -z "$MAINSHA" ]; then
   REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main UNKNOWN (refs/heads/main unreadable: offline, refused, or no such branch - NOT a pass)$DIRTYTXT"
 elif [ "$HEADSHA" = "$MAINSHA" ]; then
@@ -2828,4 +2877,4 @@ if [ -n "$SUBSET" ]; then
   if [ $red -eq 0 ]; then echo "SUBSET OK $N — NOT A PUSH GATE (${#gates[@]} gates ran: $SUBSET)" | tee -a "$ALL"; exit 0
   else echo "SUBSET RED $N ($SUBSET)" | tee -a "$ALL"; exit 1; fi
 fi
-if [ $red -eq 0 ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi
+if [ $red -eq 0 ] && [ "${HR_V:-}" != orphaned ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi
