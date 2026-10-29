@@ -93,6 +93,77 @@ const sheetRows=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-
   return [...s.querySelectorAll('button')].map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),h:Math.round(r.height*10)/10,bottom:Math.round(r.bottom*10)/10,dis:!!x.disabled};});});
 const shutSheet=async(b)=>{await b.page.mouse.click(4,4);await b.settle(350);};
 const near=(a,c)=>a!=null&&c!=null&&Math.abs(a-c)<0.6;
+// #545 item (35): gates/regress/35-width-containment.js's `overhang`, COPIED VERBATIM (extracted by script, not
+// retyped) so the live game is asked the question that gate already asks of every other screen: does any painted box,
+// whose layout box above its outermost transform is past the viewport, sit past the right edge with no scroller that
+// can bring it back? IF ONE OF THE TWO COPIES CHANGES, CHANGE BOTH - a drift between them is two different oracles.
+const overhangLive=(b)=>b.page.evaluate(()=>{
+  const W=window.innerWidth,out=[],excused=[];
+  // STOP AT THE FIRST CLIPPING ANCESTOR. The first version of this walk kept climbing past an overflow:hidden
+  // ancestor looking for a scroller further up, and so excused the very defect this gate was written to catch:
+  // "Other lines (2)" sits inside a hidden container with a scroller above it, and was reported as reachable.
+  // It is not reachable - hidden means the overhang is simply gone. Only a scroller met BEFORE any hidden
+  // ancestor makes content reachable, and only if it can ACTUALLY scroll: the lesson column carries
+  // overflow-x:auto with scrollWidth equal to clientWidth, which scrolls nowhere.
+  const reachable=(el)=>{
+    for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){
+      const ox=getComputedStyle(p).overflowX;
+      if(ox==='visible')continue;
+      if(ox==='auto'||ox==='scroll')return p.scrollWidth>p.clientWidth+0.5;   // a scroller that cannot scroll is a clip
+      return false;                                                          // hidden/clip eats it
+    }
+    return false;
+  };
+  // The box that LAYOUT put where it is, for an element a transform has moved or scaled. Walk from the element
+  // up to the first clipping ancestor; if anything in that span carries a transform, the honest reference is
+  // the first box ABOVE the outermost transformed one, because everything below it was placed by paint.
+  //
+  // Asking "does this element have a transform" is not enough, and getting that wrong is what made the first
+  // run of this version still report the piece IMAGES. The img sits inside the scaled div and has
+  // transform:none itself, so a walk that stops at the first untransformed element stops on the img and
+  // excuses nothing. The scale is on its parent.
+  const layoutRef=(el)=>{
+    let outermost=null;
+    for(let p=el;p&&p!==document.documentElement;p=p.parentElement){
+      if(getComputedStyle(p).transform!=='none')outermost=p;
+      const ox=getComputedStyle(p).overflowX;
+      if(p!==el&&ox!=='visible')break;          // the clip bounds the span: past it is a different question
+    }
+    return outermost?outermost.parentElement:null;
+  };
+  for(const el of document.body.querySelectorAll('*')){
+    const tag=el.tagName;
+    if(tag==='STYLE'||tag==='SCRIPT'||tag==='DEFS'||tag==='LINK'||tag==='META')continue;
+    // SKIP THE INSIDE OF AN SVG, MEASURE THE SVG ITSELF. A path or ellipse drawn outside its own viewBox is
+    // clipped by the svg element by design - that is how scenery is drawn - and reporting it is a false
+    // positive. The giveaway in the first run of this gate: the same shapes reported identical absolute
+    // coordinates (left 474.3) at 320 AND at 375, which is a fixed user-space coordinate, not a layout that
+    // failed to fit. What matters for containment is where the <svg> BOX sits, and that is still measured.
+    if(el.ownerSVGElement)continue;
+    const st=getComputedStyle(el);
+    if(st.display==='none'||st.visibility==='hidden'||parseFloat(st.opacity||'1')===0)continue;
+    const r=el.getBoundingClientRect();
+    if(r.width<1||r.height<1)continue;
+    if(r.bottom<=0||r.top>=window.innerHeight)continue;   // off-screen vertically: not this gate's business
+    if(r.right<=W+0.5)continue;
+    if(reachable(el))continue;
+    const u=layoutRef(el);
+    if(u&&u.getBoundingClientRect().right<=W+0.5){
+      excused.push({tag:tag.toLowerCase(),w:Math.round(r.width*100)/100,ref:Math.round(u.getBoundingClientRect().width*100)/100});
+      continue;
+    }
+    out.push({
+      ct:el.getAttribute('data-ct')||null,
+      tag:tag.toLowerCase(),
+      text:(el.innerText||'').replace(/\s+/g,' ').trim().slice(0,40),
+      left:Math.round(r.left*10)/10,right:Math.round(r.right*10)/10,
+      over:Math.round((r.right-W)*10)/10,w:Math.round(r.width*10)/10,
+    });
+  }
+  // the outermost offender per overhang is the useful one; children repeat their parent's overflow
+  out.sort((a,b)=>b.over-a.over);
+  return {off:out.slice(0,8),excused};
+});
 
 // Measured on #900, 2026-09-14. vs Computer the eval bar takes 18px off the left, so the board is narrower
 // than in Pass & Play at the same width; the bars are flex:1 1 0 and absorb the leftover height, so they are
@@ -125,6 +196,26 @@ L.run(async()=>{
     L.say(m.over.over<=0&&m.over.docScroll===0,geo+': nothing scrolls vertically in a live game',m.over);
     const sw=await b.page.evaluate(()=>document.documentElement.scrollWidth);
     L.say(sw===b.geo.w,geo+': nothing scrolls sideways either (scrollWidth '+sw+' = viewport '+b.geo.w+')');
+    // #545 item (35) [jobs/gate-46s-sideways-reach-assertion-asks-documentelement-in-an-app-whose-scroller-is-root-...-2026-10-23].
+    // THE LINE ABOVE CANNOT FAIL, AND IT IS KEPT ONLY SO NO EXISTING RECORD MOVES: index.html sets html and body
+    // overflow:hidden (body position:fixed, inset:0), and #root is the app's scroller with overflow-x unset, which
+    // computes to auto - so #root absorbs any horizontal overflow into ITS OWN scroll box and documentElement's
+    // scrollWidth is the viewport whatever happens inside. This file's own header says reach is measured with
+    // L.over(), never docScrollY, because #root is the scroller; nobody had applied that rule to x. The question
+    // this asks is the one CLAUDE.md calls the real unrecoverable bug - HORIZONTAL spill past the viewport - and it
+    // asks the box that moves: #root's own scrollWidth against its clientWidth, with overflow-x read so a reader can
+    // see which box and which policy. Asserted on its own line, plus a denominator line: #root was found and is the
+    // width of the viewport, so a missing #root reads red instead of 0 <= 0.
+    const sx=await b.page.evaluate(()=>{const r=document.getElementById('root');if(!r)return null;
+      return {rootScrollW:r.scrollWidth,rootClientW:r.clientWidth,rootOverflowX:getComputedStyle(r).overflowX,docScrollW:document.documentElement.scrollWidth};});
+    L.say(!!sx&&Math.abs(sx.rootClientW-b.geo.w)<=1,geo+': #root, the app’s scroller, was found and is the viewport’s width, so the sideways check below reads the right box',sx);
+    L.say(!!sx&&sx.rootScrollW<=sx.rootClientW,geo+': nothing in the live game runs off the right edge - #root has NO horizontal scroll range (its scrollWidth is not wider than its clientWidth). Asked of #root and not of documentElement, which html/body overflow:hidden pins to the viewport [#545]',sx);
+    // AND THE LINE ABOVE IS NOT ENOUGH EITHER, MEASURED: on a trial bundle whose player bars are 60px wider than
+    // the board (bars 348 wide on a 320 phone), #root's scrollWidth stayed 320 - an overflow:hidden box inside #root
+    // clips the spill, so NO scroll range anywhere moves, and the overflow is simply unreachable. So the
+    // painted-box check below is the one that sees it; the #root line stays because it is true and cheap.
+    const ohl=await overhangLive(b);
+    L.say(ohl.off.length===0,geo+': no painted box in the live game sits past the right edge where no scroller can bring it back - gate 35\u2019s containment predicate, applied to Play [#545]',ohl.off.length?{off:ohl.off,excused:ohl.excused.length}:{excusedByTransform:ohl.excused.length});
 
     // --- TC-PL-002: the player bars.
     const pt=await b.rect('[data-ct="pbar-top"]'),pb=await b.rect('[data-ct="pbar-bottom"]');

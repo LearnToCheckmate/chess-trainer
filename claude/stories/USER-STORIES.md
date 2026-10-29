@@ -280,6 +280,7 @@ instance.
   named two different sets), because
   `document.documentElement.scrollWidth` equals the viewport there, so nothing scrolls it back. CLAUDE.md calls
   this the one unrecoverable kind of overflow. (TC-INV-05c)
+- And in a LIVE GAME nothing at all sits past the right edge where no scroller can bring it back. The check asks the painted boxes, not a scroll range. Measured at #545: a player bar 60px wider than the board moved neither documentElement's scrollWidth (html and body are overflow:hidden) nor #root's (an overflow:hidden box inside it clips the spill). So the only reading that sees the spill is gate 35's painted-box predicate. The clause above rests on `document.documentElement.scrollWidth` in the same way and is NOT re-checked here: that is TC-INV-05c's own measurement to redo. (TC-INV-05g)
 - Where a row genuinely cannot hold its content, the residual is PINNED at its own measured value per geometry and
   printed every run, never excused - and a pin is retired by a deliberate edit when it is fixed, not left to decay
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
