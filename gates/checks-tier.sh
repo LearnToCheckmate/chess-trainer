@@ -201,7 +201,7 @@ main(){
       *) return 1 ;;
     esac
   }
-  local ROUTEL="" REFUSEL="" dent dsecond dx dx2 dxy dp dline DIRTYANY=0
+  local ROUTEL="" REFUSEL="" dent dsecond dx dp DIRTYANY=0
   # -z AND NUL BY NUL, because a path may hold a SPACE OR A NEWLINE and the line-oriented read this replaces
   # would have split such a path into two entries and named neither correctly. --untracked-files=all so a new
   # directory is named by its files rather than by itself.
@@ -213,41 +213,9 @@ main(){
   # the same shape. A process substitution keeps the loop in THIS shell, so the buckets and DIRTYANY survive it.
   while IFS= read -r -d '' dent; do
       DIRTYANY=1
-      dx="${dent:0:1}"; dx2="${dent:1:1}"; dxy="${dent:0:2}"; dp="${dent:3}"
-      # ── A RENAME OR COPY IS TWO PATHS AND ONE ENTRY, AND IT IS READ WHENEVER EITHER COLUMN SAYS SO [#543,
-      # repair 1 of THE WORK; fresh antagonist A's F1 and B's P3 of #542, the same line from both doors].
-      # `git status --porcelain=v1 -z` emits a rename or copy as THREE NUL-terminated fields - the status entry
-      # carrying the NEW path, then the OLD path - and the arm this replaces consumed the second field only when
-      # the FIRST column was R or C. A WORKTREE rename has the first column BLANK (` R`), so the old path was
-      # never consumed and WAS READ BACK AS THE NEXT ENTRY.
-      # THAT IS WORSE THAN AN UNNAMED PATH AND THE REPRODUCTION SHOWS WHY, measured here before this edit:
-      # `mv RUN-LOG.md RUN-LOG-moved.md` plus `git add -N RUN-LOG-moved.md` gave ` R RUN-LOG-moved.md<NUL>
-      # RUN-LOG.md<NUL>`; the first entry routed on the NEW path, and the leftover `RUN-LOG.md` was then parsed
-      # as a status entry whose first character is `R`, so it matched this very branch, tried to read a second
-      # field that was not there, and REFUSED at exit 1 naming "RUN-LOG.md -> " with nothing after the arrow.
-      # So the verdict on an honest commit was decided by THE FIRST LETTER OF A LEFTOVER PATH: a path beginning
-      # `R` or `C` refused, one beginning `?` would have routed, anything else refused through `*`. A filename
-      # is not a status code, and the fix is to consume the field the format says is there.
-      # AND THE ORDER IS GIT'S OWN, NOT THE READ ORDER [B's P3]: -z gives the NEW path first, so the entry's own
-      # path is the destination and the second field is the source. Printed `old -> new`, which is how `git
-      # status` itself reads and the only order in which the line can be checked against the tree.
-      # CLASSIFIED BY BOTH PATHS, because a rename can move a file INTO or OUT OF the set: either path inside
-      # refuses. A STAGED rename still refuses whatever its paths, which is the arm repair 3 of THE WORK then
-      # rules on; this repair changes only how the entry is READ and NAMED, so the two are separable and their
-      # controls cannot pass as one.
-      if [ "$dx" = R ] || [ "$dx" = C ] || [ "$dx2" = R ] || [ "$dx2" = C ]; then
-        IFS= read -r -d '' dsecond || dsecond=""
-        dline="    $dxy $dsecond -> $dp"
-        if tier_relevant_path "$dp" || tier_relevant_path "$dsecond"; then
-          REFUSEL="$REFUSEL$dline"$'\n'
-        elif [ "$dx" != ' ' ]; then
-          REFUSEL="$REFUSEL$dline"$'\n'
-        else
-          ROUTEL="$ROUTEL$dline"$'\n'
-        fi
-        continue
-      fi
+      dx="${dent:0:1}"; dp="${dent:3}"
       case "$dx" in
+        R|C) IFS= read -r -d '' dsecond || dsecond=""; REFUSEL="$REFUSEL    $dent -> $dsecond"$'\n' ;;
         '?') ROUTEL="$ROUTEL    $dent"$'\n' ;;
         ' ') if tier_relevant_path "$dp"; then REFUSEL="$REFUSEL    $dent"$'\n'; else ROUTEL="$ROUTEL    $dent"$'\n'; fi ;;
         *) REFUSEL="$REFUSEL    $dent"$'\n' ;;
