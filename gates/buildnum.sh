@@ -1126,7 +1126,11 @@ case "${1:-}" in
       echo
     fi
     printf 'build numbers on %s (%s row(s)):\n' "$(basename "$REG")" "$(rows | wc -l | tr -d ' ')"
-    rows | sort -n -k1,1 | while IFS= read -r r; do show_row "$r"; done
+    # `-s` IS THE FIX [#545, item (18); jobs/buildnum-list-scrambles-within-number-chronology-2026-10-02]: without it
+    # GNU sort breaks a tie on field 1 by comparing the WHOLE LINE, so a number's rows came out in alphabetical
+    # order of their state words (built before minted) rather than in the append order this file's header says
+    # is the record. A stable sort keeps the file's own order inside each number. Selftest LO1/LO2.
+    rows | sort -s -n -k1,1 | while IFS= read -r r; do show_row "$r"; done
     # THE SAME ROW-VS-BUNDLE CONFUSION, IN THE SECOND REPORT, which the job's notChecked named and did not
     # drive [#544 item (32)]: `cut -f1 | uniq -d` lists every number with more than one ROW, so the whole
     # mint-then-build population landed in a report headed NUMBERS NAMING MORE THAN ONE ARTEFACT. COUNTED on

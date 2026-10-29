@@ -1139,6 +1139,19 @@ eq "34b MUTANT: counting ROWS again makes the happy path ambiguous, which is the
 eq "34c MUTANT and FIX still agree on the genuine two-bundle number, so the mutant is narrow" "SAME" \
    "$( cd "$SB/amb" && A="$(bash ./mutant32.sh check '#511' 2>/dev/null | grep -c 'AMBIGUOUS')"; B="$(./buildnum.sh check '#511' 2>/dev/null | grep -c 'AMBIGUOUS')"; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
 
+# ── LIST-ORDER: `list` KEEPS A NUMBER'S ROWS IN APPEND ORDER [#545, item (18);
+# jobs/buildnum-list-scrambles-within-number-chronology-2026-10-02]. Two rows for one number written in the order
+# the workflow writes them, minted then built; an unstable sort breaks the tie on the whole line and prints "built"
+# first. 29b is the control: the same register through a copy of buildnum.sh with the `-s` removed must disagree.
+mkdir -p "$SB/chron"; cp "$HERE/buildnum.sh" "$SB/chron/buildnum.sh"; chmod +x "$SB/chron/buildnum.sh"
+{ printf '600\tminted\t-\t-\t-\t2026-01-02T00:00Z\tfixture\tminted\ta note long enough to pass the floor\n'
+  printf '600\tbuilt\t-\t-\t-\t2026-01-03T00:00Z\tfixture\tbuild.sh\ta note long enough to pass the floor\n'; } > "$SB/chron/build-numbers.tsv"
+sed 's/rows | sort -s -n -k1,1 |/rows | sort -n -k1,1 |/' "$SB/chron/buildnum.sh" > "$SB/chron/mutantLO.sh"
+eq "LO1 list prints a number's rows in APPEND order (minted, then built)" "minted built" \
+   "$( cd "$SB/chron" && ./buildnum.sh list 2>/dev/null | awk '$1=="#600"{printf "%s ", $2}' | sed 's/ $//' )"
+eq "LO2 CONTROL: the same register without -s prints them out of order" "built minted" \
+   "$( cd "$SB/chron" && bash ./mutantLO.sh list 2>/dev/null | awk '$1=="#600"{printf "%s ", $2}' | sed 's/ $//' )"
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]
