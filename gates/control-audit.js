@@ -397,6 +397,13 @@ function selftest() {
 /* ---- main ---- */
 if (process.argv[2] === '--selftest') process.exit(selftest());
 
+// ── THE GIT REDIRECT VARIABLES ARE SCRUBBED HERE TOO [#544, item (11); the class sweep of
+// jobs/gatemanifest-derives-its-root-with-git-c-...-2026-10-22, which names this file's audit() `git -C ROOT`
+// as one of the unpinned sites]. This file's own --selftest has deleted these since #540, for the sharper
+// reason that a selftest able to rewrite another repository's history is worse than no selftest; the MAIN path
+// had the same exposure and not the same guard. `git -C` does not override an inherited GIT_DIR, and no pin can
+// override GIT_OBJECT_DIRECTORY, so removing them is the fix that covers both.
+for (const v of ['GIT_DIR','GIT_WORK_TREE','GIT_INDEX_FILE','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES','GIT_NAMESPACE','GIT_CEILING_DIRECTORIES','GIT_COMMON_DIR','GIT_DISCOVERY_ACROSS_FILESYSTEM']) delete process.env[v];
 const ROOT = path.resolve(__dirname, '..');
 const Gq = (a) => { try { cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }); return true; } catch (e) { return false; } };
 const LOGDIR = path.join(ROOT, 'claude/agents/gatelogs');

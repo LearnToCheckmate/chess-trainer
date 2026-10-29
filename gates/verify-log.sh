@@ -85,6 +85,22 @@
 #      a pre-#417 log, no ref line at all           -> REFUSED (--on-main): carries no 'ref: HEAD <sha>' line
 #      --this-bundle with app.js != the logged md5  -> REFUSED (--this-bundle)
 set -uo pipefail
+# ── THE GIT REDIRECT VARIABLES ARE SCRUBBED, ONCE, HERE [#544, item (11) of
+# directOpening_2026_10_28_batch4; the class sweep of
+# jobs/gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22].
+# `git -C <dir>` does NOT override an inherited GIT_DIR or GIT_WORK_TREE, so a hook, a wrapper or a parent
+# process that exports one makes every git call in a script answer about ANOTHER repository - and #540 measured
+# the consequence: the gate anchor read NOT CHECKED at exit 0 with every verdict around it green. #540 fixed
+# that one file by PINNING --git-dir and --work-tree on each call. THE SCRUB IS THE OTHER HALF AND IT IS
+# STRICTLY STRONGER: pinning cannot stop GIT_OBJECT_DIRECTORY, which redirects the OBJECT STORE rather than the
+# repository, and that variable alone still switched the anchor off (that job's knownLimits 48b7b4ab6433ba59,
+# P3). Removing the variables leaves each script's own root derivation - cwd, or the script's location - doing
+# exactly what it did before, which is why this closes the hole without changing any selection.
+# WHY IT IS SAFE: nothing in this project sets these deliberately. A caller that genuinely wants another
+# repository passes a path, which still works.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+      GIT_NAMESPACE GIT_CEILING_DIRECTORIES GIT_COMMON_DIR GIT_DISCOVERY_ACROSS_FILESYSTEM 2>/dev/null || true
+
 # ── (12) THE CITATIONS MODE, added by the 2026-10-03 process burst for
 # jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30 (p9, test-authoring).
 # THE FINDING IT ANSWERS: nothing mechanical checks that the registers' own citations resolve - the job
@@ -1247,6 +1263,37 @@ fi
 # and I reproduced it: there are WHATEVER `ls claude/agents/gatelogs/*.log | wc -l` SAYS TODAY (93 at #462, 91 when this was written - #461's own close-out added the two that made it stale) archived logs and the highest build any of them foots is #460, so
 # gating the STRICT verdict on the log's OWN BUILD NUMBER refuses zero of the 91 and every log from #461 onward.
 # The exemption was free to close and the number justifying it was stale. See MANIERA below.
+# ── THE GATE ANCHOR'S VERDICT REACHES THIS SCRIPT [#544, item (11) of directOpening_2026_10_28_batch4; part (2)
+# of jobs/gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22].
+# WHAT THE ANCHOR IS: gates/gatemanifest.sh's check that no REQUIRED gate vanished or was weakened between the
+# base and the head. #540 pinned its repository derivation so an inherited GIT_DIR can no longer switch it off -
+# that was part (1) - and left part (2) open with the sentence that matters: "otherwise part (1) fixes the
+# instrument and leaves the push gate still unable to see its verdict, which is this project's recurring shape".
+# THE VERDICT IS IN EVERY LOG'S BODY ALREADY and nothing read it. Measured at #544 over all 168 archived
+# gatelogs: 60 carry a `gate anchor:` line, ALL SIXTY read "origin/main, 0 vanished, 0 weakened", and 108 carry
+# none because they predate the anchor. So refusing a NOT CHECKED anchor refuses exactly ZERO archived logs -
+# the same arithmetic that let #462 close the manifest exemption, re-measured here rather than borrowed.
+# THREE OUTCOMES, THE SAME SHAPE THE MANIFEST BLOCK BELOW USES: absent is reported as NOT CHECKED and refuses
+# nothing (a pre-anchor log is honest about what it could not say); a line that READS NOT CHECKED is a REFUSAL,
+# because the anchor being off is exactly the state the job describes as printing green; anything else is
+# reported beside the manifest line.
+ANCHOR="$(grep -m1 '^gate anchor:' "$LOG" || true)"
+ANCHORCHECK="absent"
+if [ -n "$ANCHOR" ]; then
+  case "$ANCHOR" in
+    *"NOT CHECKED"*)
+      echo "REFUSED (gate anchor): $LOG reports its gate anchor as NOT CHECKED."
+      echo "  $ANCHOR"
+      echo "  The anchor is what detects a REQUIRED gate vanishing or being weakened between the base and the"
+      echo "  head, and NOT CHECKED means it did not run - an inherited GIT_DIR, GIT_WORK_TREE or"
+      echo "  GIT_OBJECT_DIRECTORY switches it off, which is the state"
+      echo "  jobs/gatemanifest-derives-its-root-with-git-c-...-2026-10-22 was filed for. Every other verdict"
+      echo "  in such a log reads green, so this is the one line that can tell you."
+      echo "  Re-run the suite in an unredirected environment: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_OBJECT_DIRECTORY ..."
+      exit 1 ;;
+    *) ANCHORCHECK="ran" ;;
+  esac
+fi
 MANICHECK="absent"; MANIMISS=""; MANIUNL=""; MANIUNREAD=""
 MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 # ANTAGONIST B's VETO F1 ON #461, UPHELD, AND THE REASON I HAD WRITTEN FOR THE EXEMPTION WAS NEVER RE-DERIVED.
@@ -1700,6 +1747,13 @@ if [ -n "${FOOT:-}" ]; then
     echo "    build number: NOT CHECKED - gates/build-numbers.tsv is not readable from $(dirname "$0")"
   fi
 fi
+case "$ANCHORCHECK" in
+  ran) echo "    ${ANCHOR}" ;;
+  *)   echo "    gate anchor: NOT CHECKED - this log carries no 'gate anchor:' line. 108 of the 168 archived logs"
+       echo "                 carry none because they predate the anchor; it says nothing about whether a required"
+       echo "                 gate vanished when this suite ran. A log that REPORTS its anchor as NOT CHECKED is"
+       echo "                 refused above rather than reported here." ;;
+esac
 case "$MANICHECK" in
   ran) echo "    manifest: $MANIFOOT" ;;
   notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;

@@ -46,6 +46,22 @@
 # EMITS "FAST GATE GREEN <sha>" on success. Deliberately NOT the full suite's own green string: every consumer
 # greps for that exact string and a fast log must never be mistaken for a full one. Writes its own log name.
 set -uo pipefail
+# ── THE GIT REDIRECT VARIABLES ARE SCRUBBED, ONCE, HERE [#544, item (11) of
+# directOpening_2026_10_28_batch4; the class sweep of
+# jobs/gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22].
+# `git -C <dir>` does NOT override an inherited GIT_DIR or GIT_WORK_TREE, so a hook, a wrapper or a parent
+# process that exports one makes every git call in a script answer about ANOTHER repository - and #540 measured
+# the consequence: the gate anchor read NOT CHECKED at exit 0 with every verdict around it green. #540 fixed
+# that one file by PINNING --git-dir and --work-tree on each call. THE SCRUB IS THE OTHER HALF AND IT IS
+# STRICTLY STRONGER: pinning cannot stop GIT_OBJECT_DIRECTORY, which redirects the OBJECT STORE rather than the
+# repository, and that variable alone still switched the anchor off (that job's knownLimits 48b7b4ab6433ba59,
+# P3). Removing the variables leaves each script's own root derivation - cwd, or the script's location - doing
+# exactly what it did before, which is why this closes the hole without changing any selection.
+# WHY IT IS SAFE: nothing in this project sets these deliberately. A caller that genuinely wants another
+# repository passes a path, which still works.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+      GIT_NAMESPACE GIT_CEILING_DIRECTORIES GIT_COMMON_DIR GIT_DISCOVERY_ACROSS_FILESYSTEM 2>/dev/null || true
+
 # ── THE WHOLE SCRIPT IS ONE FUNCTION, READ BEFORE IT RUNS [#540, F4,
 # jobs/fastgate-runs-the-heads-records-gate-before-it-decides-force-so-a-planted-entries-arm-turns-a-records-gate-change-into-a-fast-green-2026-10-23].
 # bash reads a script by byte offset as it executes it (CLAUDE.md, #461: a mid-run edit made the interpreter

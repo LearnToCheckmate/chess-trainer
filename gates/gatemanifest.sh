@@ -120,6 +120,21 @@ G="$(cd "$(dirname "$0")" && pwd)"; M="$G/gate-manifest.tsv"; REG="$G/regress"
 # reviewers found it. A directory with no readable repository at ROOT/.git is otherwise the only way to reach NOT
 # CHECKED here, which is what that outcome was written for.
 ROOT="$(dirname "$G")"
+# ── THE GIT REDIRECT VARIABLES ARE SCRUBBED, ONCE, HERE [#544, item (11) of
+# directOpening_2026_10_28_batch4; the class sweep of
+# jobs/gatemanifest-derives-its-root-with-git-c-so-an-inherited-git-dir-switches-off-the-gate-anchor-while-the-tier-still-prints-green-2026-10-22].
+# `git -C <dir>` does NOT override an inherited GIT_DIR or GIT_WORK_TREE, so a hook, a wrapper or a parent
+# process that exports one makes every git call in a script answer about ANOTHER repository - and #540 measured
+# the consequence: the gate anchor read NOT CHECKED at exit 0 with every verdict around it green. #540 fixed
+# that one file by PINNING --git-dir and --work-tree on each call. THE SCRUB IS THE OTHER HALF AND IT IS
+# STRICTLY STRONGER: pinning cannot stop GIT_OBJECT_DIRECTORY, which redirects the OBJECT STORE rather than the
+# repository, and that variable alone still switched the anchor off (that job's knownLimits 48b7b4ab6433ba59,
+# P3). Removing the variables leaves each script's own root derivation - cwd, or the script's location - doing
+# exactly what it did before, which is why this closes the hole without changing any selection.
+# WHY IT IS SAFE: nothing in this project sets these deliberately. A caller that genuinely wants another
+# repository passes a path, which still works.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+      GIT_NAMESPACE GIT_CEILING_DIRECTORIES GIT_COMMON_DIR GIT_DISCOVERY_ACROSS_FILESYSTEM 2>/dev/null || true
 GITP=(git -C "$ROOT" --git-dir="$ROOT/.git" --work-tree="$ROOT")
 CMD="${1:-check}"
 
@@ -965,6 +980,24 @@ PY9
     if [ "$rc" = 0 ] && grep -q '^gate anchor: HEAD, 0 vanished, 0 weakened$' <<<"$out"; then
       echo "PASS selftest: ANCHOR under an inherited GIT_DIR and GIT_WORK_TREE still reads this repository's HEAD (NOT CHECKED before the pin)"; pass=$((pass+1))
     else echo "FAIL selftest: ANCHOR followed the inherited GIT_DIR instead of the script's own repository (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+    # 26c. THE ONE VARIABLE NO PIN CAN REACH [#544, item (11); the knownLimits entry 48b7b4ab6433ba59 of the
+    #     same job, found by antagonist B of #540 from the shipped-surface door]. GIT_OBJECT_DIRECTORY redirects
+    #     the OBJECT STORE rather than the repository, so --git-dir and --work-tree - which is all 26b's pin
+    #     does - leave it in force: `GIT_OBJECT_DIRECTORY=<empty dir> gatemanifest.sh check` read
+    #     `gate anchor: NOT CHECKED` at exit 0, the anchor off by one environment variable, on the pinned
+    #     script. The fix is to SCRUB the redirect variables rather than out-pin them, which is what the block
+    #     at the top of this file now does, and the scrub leaves the root derivation doing exactly what it did.
+    #     TWO PASS LINES AGAIN, for 26b's reason: the first shows the redirect is REAL in this state.
+    GT3="$(mktemp -d)"
+    seen3="$( cd "$GT" && GIT_OBJECT_DIRECTORY="$GT3" git cat-file -e HEAD^{commit} 2>/dev/null && echo readable || echo unreadable )"
+    if [ "$seen3" = "unreadable" ]; then
+      echo "PASS selftest: the object-store redirect is real - with GIT_OBJECT_DIRECTORY at an empty directory an unscrubbed git cannot read HEAD"; pass=$((pass+1))
+    else echo "FAIL selftest: the GIT_OBJECT_DIRECTORY control did not take (HEAD still $seen3)"; fail=$((fail+1)); fi
+    out="$( GIT_OBJECT_DIRECTORY="$GT3" "$GM" check 2>&1 )"; rc=$?
+    if [ "$rc" = 0 ] && grep -q '^gate anchor: HEAD, 0 vanished, 0 weakened$' <<<"$out"; then
+      echo "PASS selftest: ANCHOR under an inherited GIT_OBJECT_DIRECTORY still reads this repository's HEAD (NOT CHECKED before the scrub, on the PINNED script)"; pass=$((pass+1))
+    else echo "FAIL selftest: ANCHOR followed the inherited GIT_OBJECT_DIRECTORY (rc=$rc)"; echo "$out" | sed 's/^/      /'; fail=$((fail+1)); fi
+    rm -rf "$GT3"
     rm -rf "$GT2"
     # 27. NOT CHECKED, NEVER A PASS AND NEVER A HARD FAILURE. $T is a mktemp copy and not a work tree, so this
     #     is the real degradation path and not a simulation of one. The exit code must be the one the checks
