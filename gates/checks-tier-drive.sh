@@ -2801,10 +2801,8 @@ printf '%s\n' "- a note another chat left" >> "$D/DECISIONS-LOG.md"
 runtier "$D" "$A64B"
 A64WHY=""
 [ "$TRC" = 2 ] || A64WHY="exit $TRC, wanted 2"
-grep -qF "no uncommitted change to a TRACKED path inside this tier's set" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the verdict does not say nothing inside the set is dirty"
+grep -qF "OUTSIDE this tier's path set" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the verdict does not say the change is outside the set"
 grep -qF "DECISIONS-LOG.md" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the verdict does not NAME the tracked path"
-# ITS OWN BUCKET AND ITS OWN SIDE OF THE SET, asserted separately [#543 repair 3; A's F5].
-grep -qF "[worktree edit, outside the set]" <<<"$TOUT" || A64WHY="${A64WHY:+$A64WHY; }the named line does not carry its bucket and which side of the set it sits on"
 if [ -n "$A64WHY" ]; then
   rec A64 FAIL "a tracked edit outside the tier's set :: $A64WHY"
   printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
@@ -2816,19 +2814,7 @@ fi
 D="$T/a65"; mkfix "$D"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
 printf '%s\n' "uncommitted, and inside the set" >> "$D/gates/held.sh"
-runtier "$D" "$FIXBASE"
-A65WHY=""
-[ "$TRC" = 1 ] || A65WHY="exit $TRC, wanted 1"
-grep -qF "TRACKED path INSIDE this tier's own set" <<<"$TOUT" || A65WHY="${A65WHY:+$A65WHY; }the refusal does not say the path is inside the set"
-# ITS OWN BUCKET AND ITS OWN PATH [#543 repair 3]: a worktree edit inside the set, named as such.
-grep -qF "[worktree edit, inside the set] " <<<"$TOUT" || A65WHY="${A65WHY:+$A65WHY; }the named line does not carry its bucket and side"
-grep -qF "gates/held.sh" <<<"$TOUT" || A65WHY="${A65WHY:+$A65WHY; }the refusal does not NAME the path inside the set"
-if [ -n "$A65WHY" ]; then
-  rec A65 FAIL "a tracked edit inside the tier's set :: $A65WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A65 ok "a tracked edit INSIDE the tier's set still REFUSES, named as a worktree edit inside the set (exit $TRC)"
-fi
+expect A65 "$D" "$FIXBASE" 1 "TRACKED modification" "a tracked edit INSIDE the tier's set still REFUSES"
 
 # A66. BOTH AT ONCE -> REFUSE, and the refusal names the INSIDE path. One refusal outranks every route.
 D="$T/a66"; mkfix "$D"
@@ -2848,32 +2834,15 @@ else
   rec A66 ok "an inside-the-set edit beside an outside one REFUSES and names the inside path (exit $TRC)"
 fi
 
-# A67. A STAGED edit to a record OUTSIDE the set ROUTES at exit 2, named staged and outside.
-# THIS CASE WAS REVERSED BY THE ORCHESTRATOR'S RULING [#543 repair 3 of THE WORK;
-# decisions/a-staged-or-unmerged-doc-outside-the-tier-set-is-an-ordinary-state-so-the-tier-routes-it-2026-10-28].
-# It used to assert exit 1, on the premise that a staged change means the verdicts would be about a commit
-# nobody is looking at. That premise does not reach a path OUTSIDE the set: no verdict of this judge reads
-# working-tree bytes - the acceptance, identity, premise and harness arms read git objects and every control
-# runs in its own clone - and CLAUDE.md lets every other chat write docs here, so a pull or a cherry-pick that
-# conflicts on one of them leaves exactly this state. Exit 1 means "stop, do not re-run", so refusing it was a
-# false hard refusal of an honest commit. Inside the set nothing changed: A76 pins that half.
+# A67. A STAGED edit REFUSES EVEN THOUGH ITS PATH IS OUTSIDE THE SET: the verdicts below are about the commit,
+# and a staged change means they would be about a commit nobody is looking at.
 D="$T/a67"; mkfix "$D"
 printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
 commitin "$D" "the base plus a tracked doc"; A67B="$(git -C "$D" rev-parse HEAD)"
 printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
 printf '%s\n' "- staged, not committed" >> "$D/DECISIONS-LOG.md"
 git -C "$D" add DECISIONS-LOG.md >/dev/null 2>&1
-runtier "$D" "$A67B"
-A67WHY=""
-[ "$TRC" = 2 ] || A67WHY="exit $TRC, wanted 2"
-grep -qF "[staged, outside the set] " <<<"$TOUT" || A67WHY="${A67WHY:+$A67WHY; }the named line does not carry the bucket 'staged' and 'outside the set'"
-grep -qF "DECISIONS-LOG.md" <<<"$TOUT" || A67WHY="${A67WHY:+$A67WHY; }the verdict does not NAME the staged path"
-if [ -n "$A67WHY" ]; then
-  rec A67 FAIL "a staged record outside the tier's set :: $A67WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A67 ok "a STAGED edit to a record OUTSIDE the tier's set ROUTES, named staged and outside, instead of hard-refusing an honest commit (exit $TRC)"
-fi
+expect A67 "$D" "$A67B" 1 "staged change" "a STAGED edit refuses even outside the tier's set"
 
 # A68. A PATH HOLDING A SPACE AND A NEWLINE ROUTES AND IS NAMED EXACTLY. This is why the read is -z and NUL by
 # NUL: the line-oriented read this replaced would have split this one path into two entries and named neither.
@@ -2904,10 +2873,6 @@ runtier "$D" "$FIXBASE"
 A69WHY=""
 [ "$TRC" = 2 ] || A69WHY="exit $TRC, wanted 2"
 grep -qF "gates/SCRATCH-NOTE.md" <<<"$TOUT" || A69WHY="${A69WHY:+$A69WHY; }the verdict does not name the untracked path"
-# AND IT SAYS IT IS INSIDE THE SET, which is the half the route's old wording got wrong: it claimed "nothing
-# inside it" over a path under gates/ [#543 repair 3; B's P2 of round 9, 65c8fa1435481e07].
-grep -qF "[untracked, inside the set]" <<<"$TOUT" || A69WHY="${A69WHY:+$A69WHY; }the named line does not say the untracked path is INSIDE the set"
-grep -qF "nothing inside it" <<<"$TOUT" && A69WHY="${A69WHY:+$A69WHY; }the route claims nothing is inside the set while naming a path under gates/"
 if [ -n "$A69WHY" ]; then
   rec A69 FAIL "an untracked path under gates/ :: $A69WHY"
   printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
@@ -2917,12 +2882,9 @@ fi
 
 # M49. PUT THE REFUSE-ALL ARM BACK: every tracked worktree edit refuses again, and A64 must turn.
 D="$T/m-M49"; mkfix "$D"
-# RE-ANCHORED AT #543 (repair 3): the `' ') if tier_relevant_path` arm this used to mutate no longer exists,
-# because the entrance now classifies every entry by its paths. The equivalent mutation is to call every
-# tracked path inside the set, which restores the refuse-all behaviour A64 turns on.
-printf '%s\t%s\n' '        tier_relevant_path "$dp" && dinside=1' '        dinside=1 # M49: every tracked path reads as inside the set' \
+printf '%s\t%s\n' "        ' ') if tier_relevant_path " "        ' ') if true || tier_relevant_path " \
   | mkmut "$D/gates/checks-tier.sh"
-if mutguard M49 "refuse every tracked edit again" "$D/gates/checks-tier.sh" 'M49: every tracked path reads as inside the set'; then
+if mutguard M49 "refuse every tracked edit again" "$D/gates/checks-tier.sh" "if true || tier_relevant_path "; then
   printf '%s\n' "# decisions" > "$D/DECISIONS-LOG.md"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M49 base" >/dev/null 2>&1
   M49B="$(git -C "$D" rev-parse HEAD)"
@@ -2996,14 +2958,11 @@ fi
 
 # M50. READ THE FIRST COLUMN ONLY, as the arm did before this repair, and A70 must turn.
 D="$T/m-M50"; mkfix "$D"
-# RE-ANCHORED AT #543 (repair 3): the rename test moved into the bucket ladder. Dropping its second-column
-# limb makes a worktree rename read as an ordinary worktree edit, so the second NUL field is never consumed and
-# the leftover old path is read back as the next entry - which is exactly the defect repair 1 removed.
 printf '%s\t%s\n' \
-  '      elif [ "$dx" = R ] || [ "$dx2" = R ]; then' \
-  '      elif [ "$dx" = R ]; then # M50: the first column only' \
+  '      if [ "$dx" = R ] || [ "$dx" = C ] || [ "$dx2" = R ] || [ "$dx2" = C ]; then' \
+  '      if [ "$dx" = R ] || [ "$dx" = C ]; then' \
   | mkmut "$D/gates/checks-tier.sh"
-if mutguard M50 "read the rename's first column only" "$D/gates/checks-tier.sh" 'M50: the first column only'; then
+if mutguard M50 "read the rename's first column only" "$D/gates/checks-tier.sh" '[ "$dx" = C ]; then'; then
   printf '%s\n' "# run log" > "$D/RUN-LOG.md"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M50 base" >/dev/null 2>&1
   M50B="$(git -C "$D" rev-parse HEAD)"
@@ -3105,119 +3064,6 @@ if mutguard M51 "remove the shallow-root route" "$D/gates/checks-tier.sh" 'M51: 
       rec M51 FAIL "the shallow route is not load-bearing: the mutant still named the shallow root (exit $TRC)"
     else
       rec M51 ok "removing the shallow check turns A73: the judge walks past a shallow root instead of routing it (exit $TRC, no shallow-root verdict)"
-    fi
-  fi
-fi
-
-
-# ══ A75..A77 AND M52. THE RULING: AN ENTRY IS CLASSIFIED BY ITS PATHS, NOT BY ITS BUCKET. ════════════════════
-# #543, repair 3 of THE WORK. Fresh antagonist B's P2 of #542 - the class B asked be ruled on - and the
-# orchestrator's ruling
-# (decisions/a-staged-or-unmerged-doc-outside-the-tier-set-is-an-ordinary-state-so-the-tier-routes-it-2026-10-28).
-# Reproduced at 1c7bd01 before the repair: an unmerged `UU README.md` from a conflicted cherry-pick, with HEAD
-# STILL the tier-only candidate, REFUSED at exit 1, and so did a staged `M  README.md`. A75 pins the unmerged
-# half, A76 the inside-the-set refusal that must NOT move, A77 the unmerged entry inside the set, and M52 puts
-# the refuse-every-index-entry arm back and turns A75. A67 was REVERSED by the same ruling and is above.
-# THE CONFLICT IS BUILT FROM A SIDE CHAIN WHOSE PARENT ALREADY DIFFERS FROM THE BASE, which is the only shape
-# that leaves HEAD at the candidate: cherry-picking a commit whose parent IS the base applies cleanly, moves
-# HEAD, and puts the record in the changed set - so the case would route for its own reason and never reach the
-# entrance. That mistake was made once by hand on this run and is pinned here so it is not made again.
-
-# A75. AN UNMERGED record OUTSIDE the set ROUTES at exit 2, named unmerged and outside.
-D="$T/a75"; mkfix "$D"
-printf '%s\n' "# readme" > "$D/README.md"
-commitin "$D" "the base plus a tracked record"; A75B="$(git -C "$D" rev-parse HEAD)"
-git -C "$D" checkout -q -b side >/dev/null 2>&1
-printf '%s\n' "P" > "$D/README.md"; commitin "$D" "side1: the record one way"
-printf '%s\n' "Q" > "$D/README.md"; commitin "$D" "side2: the record another way"
-A75S="$(git -C "$D" rev-parse HEAD)"
-git -C "$D" checkout -q -B cand "$A75B" >/dev/null 2>&1
-printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-A75C="$(git -C "$D" rev-parse HEAD)"
-git -C "$D" cherry-pick "$A75S" >/dev/null 2>&1
-A75WHY=""
-[ "$(git -C "$D" rev-parse HEAD)" = "$A75C" ] || A75WHY="the cherry-pick MOVED HEAD, so this case is not about the entrance"
-git -C "$D" status --porcelain=v1 | grep -q '^UU README.md' || A75WHY="${A75WHY:+$A75WHY; }the fixture is not in the UU state this case is about"
-if [ -n "$A75WHY" ]; then
-  rec A75 FAIL "an unmerged record outside the set :: $A75WHY"
-else
-  runtier "$D" "$A75B"
-  [ "$TRC" = 2 ] || A75WHY="exit $TRC, wanted 2"
-  grep -qF "[unmerged, outside the set] " <<<"$TOUT" || A75WHY="${A75WHY:+$A75WHY; }the named line does not carry the bucket 'unmerged' and 'outside the set'"
-  grep -qF "README.md" <<<"$TOUT" || A75WHY="${A75WHY:+$A75WHY; }the verdict does not NAME the unmerged path"
-  if [ -n "$A75WHY" ]; then
-    rec A75 FAIL "an unmerged record outside the set :: $A75WHY"
-    printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-  else
-    rec A75 ok "an UNMERGED record OUTSIDE the tier's set ROUTES, named unmerged and outside, instead of hard-refusing an honest commit (exit $TRC)"
-  fi
-fi
-
-# A76. A STAGED edit INSIDE the set still REFUSES, named staged and inside. The half the ruling does not touch,
-# asserted separately from A67 so that a route can never swallow it.
-D="$T/a76"; mkfix "$D"
-printf '%s\n' "# changed" >> "$D/gates/buildnum.sh"; commitin "$D" "a tier-only change"
-printf '%s\n' "staged, and inside the set" >> "$D/gates/held.sh"
-git -C "$D" add gates/held.sh >/dev/null 2>&1
-runtier "$D" "$FIXBASE"
-A76WHY=""
-[ "$TRC" = 1 ] || A76WHY="exit $TRC, wanted 1"
-grep -qF "[staged, inside the set] " <<<"$TOUT" || A76WHY="${A76WHY:+$A76WHY; }the named line does not carry the bucket 'staged' and 'inside the set'"
-grep -qF "gates/held.sh" <<<"$TOUT" || A76WHY="${A76WHY:+$A76WHY; }the refusal does not NAME the staged path inside the set"
-if [ -n "$A76WHY" ]; then
-  rec A76 FAIL "a staged edit inside the tier's set :: $A76WHY"
-  printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-else
-  rec A76 ok "a STAGED edit INSIDE the tier's set still REFUSES, named staged and inside (exit $TRC)"
-fi
-
-# A77. AN UNMERGED entry on a path INSIDE the set REFUSES. Separate from A75 so neither can pass for the other:
-# the ruling turns on the PATHS, so both sides of it need their own case in the unmerged bucket.
-D="$T/a77"; mkfix "$D"
-git -C "$D" checkout -q -b side >/dev/null 2>&1
-printf '%s\n' "P" >> "$D/gates/held.sh"; commitin "$D" "side1: the script one way"
-printf '%s\n' "Q" >> "$D/gates/held.sh"; commitin "$D" "side2: the script another way"
-A77S="$(git -C "$D" rev-parse HEAD)"
-git -C "$D" checkout -q -B cand "$FIXBASE" >/dev/null 2>&1
-printf '%s\n' "# changed" >> "$D/gates/buildnum.sh"; commitin "$D" "a tier-only change"
-A77C="$(git -C "$D" rev-parse HEAD)"
-git -C "$D" cherry-pick "$A77S" >/dev/null 2>&1
-A77WHY=""
-[ "$(git -C "$D" rev-parse HEAD)" = "$A77C" ] || A77WHY="the cherry-pick MOVED HEAD, so this case is not about the entrance"
-git -C "$D" status --porcelain=v1 | grep -q '^UU gates/held.sh' || A77WHY="${A77WHY:+$A77WHY; }the fixture is not in the UU state this case is about"
-if [ -n "$A77WHY" ]; then
-  rec A77 FAIL "an unmerged path inside the set :: $A77WHY"
-else
-  expect A77 "$D" "$FIXBASE" 1 "[unmerged, inside the set] " \
-    "an UNMERGED entry on a path INSIDE the tier's set REFUSES, named unmerged and inside"
-fi
-
-# M52. PUT THE REFUSE-EVERY-INDEX-ENTRY ARM BACK, and A75 must turn.
-D="$T/m-M52"; mkfix "$D"
-printf '%s\t%s\n' \
-  '      elif [ "$dinside" = 1 ]; then' \
-  '      elif [ "$dinside" = 1 ] || [ "$dx" != '"'"' '"'"' ]; then # M52: every index entry refuses again' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M52 "refuse every index entry again" "$D/gates/checks-tier.sh" 'M52: every index entry refuses again'; then
-  printf '%s\n' "# readme" > "$D/README.md"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M52 base" >/dev/null 2>&1
-  M52B="$(git -C "$D" rev-parse HEAD)"
-  git -C "$D" checkout -q -b side >/dev/null 2>&1
-  printf '%s\n' "P" > "$D/README.md"; commitin "$D" "side1"
-  printf '%s\n' "Q" > "$D/README.md"; commitin "$D" "side2"
-  M52S="$(git -C "$D" rev-parse HEAD)"
-  git -C "$D" checkout -q -B cand "$M52B" >/dev/null 2>&1
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  M52C="$(git -C "$D" rev-parse HEAD)"
-  git -C "$D" cherry-pick "$M52S" >/dev/null 2>&1
-  if [ "$(git -C "$D" rev-parse HEAD)" != "$M52C" ] || ! git -C "$D" status --porcelain=v1 | grep -q '^UU README.md'; then
-    rec M52 FAIL "refuse every index entry again :: the mutant's fixture is not in the UU state, so the arm is not exercised"
-  else
-    runtier "$D" "$M52B"
-    if [ "$TRC" = 1 ]; then
-      rec M52 ok "the refuse-all-index-entries arm turns A75: an unmerged record outside the set hard-refuses an honest commit again (exit 1)"
-    else
-      rec M52 FAIL "the path-based classification is not load-bearing: the mutant still routed (exit $TRC)"
     fi
   fi
 fi
