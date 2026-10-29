@@ -707,6 +707,28 @@ else
   echo "FAIL GA the real archived log with a gate anchor line is not readable at $GAREAL - section GA did not run"; F=$((F+1))
 fi
 
+# ── SF: PER-SECTION SELF-CONSISTENCY, check (6b) [#545, item (87); jobs/log-self-consistency-is-one-line-forgeable-
+# and-54-per-gate-footers-are-unread-2026-10-03]. The job's three inputs: the real 474-all.log (control), the half-
+# stripped forgery (every second PASS dropped, global footer rewritten - check (6) alone printed "footer agrees"), and
+# the same forgery with every gate's own "N pass" footer fixed up too, which the harness line must still catch.
+SFREAL="$REPO/claude/agents/gatelogs/474-all.log"
+if [ -r "$SFREAL" ]; then
+  SFD="$TD/sf"; mkdir -p "$SFD"
+  SFT="$(grep -o 'regression assertions (PASS lines): [0-9]*' "$SFREAL" | tail -1 | grep -o '[0-9]*$')"
+  awk '/^PASS/{c++; if(c%2==0) next} {print}' "$SFREAL" > "$SFD/half.log"
+  SFH="$(grep -c '^PASS' "$SFD/half.log")"
+  sed -i "s/regression assertions (PASS lines): $SFT\$/regression assertions (PASS lines): $SFH/" "$SFD/half.log"
+  awk 'function out(){ for(i=1;i<=k;i++){ l=b[i]; if(insec && l ~ /^[^ ].*: [0-9]+ pass, [0-9]+ fail$/) sub(/: [0-9]+ pass,/, ": " n " pass,", l); print l } k=0; n=0 }
+       /^=== .* ===$/ || /^--- / || /^regression assertions \(PASS lines\)/ { out(); insec=($0 ~ /^=== /) }
+       { b[++k]=$0; if($0 ~ /^PASS/) n++ }
+       END{ out() }' "$SFD/half.log" > "$SFD/half2.log"
+  ck    "SF0 the real 474-all.log is accepted by the per-section arm"                              0 "$VL" "$SFREAL" '#474'
+  ckmsg "SF1 half the PASS lines dropped and the global footer rewritten is REFUSED, by section"   1 'section by section' "$VL" "$SFD/half.log" '#474'
+  ckmsg "SF2 the same with every gate footer fixed up is still REFUSED, on the harness line"       1 'the harness line says' "$VL" "$SFD/half2.log" '#474'
+else
+  echo "FAIL SF the real archived 474-all.log is not readable at $SFREAL - section SF did not run"; F=$((F+1))
+fi
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."

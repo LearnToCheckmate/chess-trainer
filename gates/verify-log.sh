@@ -1131,6 +1131,38 @@ if [ "$CLAIMED" != "$ACTUAL" ]; then
   fi
   exit 1
 fi
+# (6b) PER-SECTION SELF-CONSISTENCY [#545, item (87); jobs/log-self-consistency-is-one-line-forgeable-and-54-per-gate-
+# footers-are-unread-2026-10-03]. (6) is GLOBAL footer against GLOBAL count, so a forger edits exactly the one line it
+# reads: antagonist B dropped every second PASS line of 474-all.log, rewrote the footer 3784 -> 1892, and this script
+# printed "footer agrees". Every `=== <gate> ===` section carries TWO more claims about itself, the gate's own
+# "<NAME>: N pass, M fail" (L.done) and the harness's "    <gate>: green (N PASS)", and nothing read them. This arm
+# requires each claim present in a section to EQUAL that section's own ^PASS count. Like (6) it is self-consistency, so
+# it has no magnitude and no frozen denominator. The legitimate gap the job names (global minus the per-gate sum) is
+# the `--- ` unit blocks, which this arm does not count, because a `--- ` line ends the current section.
+# WHAT IT CANNOT DO, said so it is not over-read: a forger who rewrites the global footer AND every per-section claim
+# is not caught, because no claim inside the file is independent of the file (CLAUDE.md, #419: what protects a log's
+# provenance is the lock, not anything read afterwards). It raises the forgery from one line to 2N+1 coordinated ones.
+# THE OLD TWO-BLOCK LAYOUT IS EXEMPT BY BUILD NUMBER, NOT BY SHAPE: #377, #378 and #379 print every section summary
+# first and every PASS line after, so per-section counts are meaningless there. The exemption keys on the build being
+# below #380 (the first per-section log), so a forger cannot claim it by moving PASS lines out of their sections.
+SECBAD="$(awk '
+  function flush(){ if(sec!=""){ if(gf!="" && gf+0!=n) printf "%s: the gate footer says %s pass, the section holds %d PASS lines\n",sec,gf,n; if(hl!="" && hl+0!=n) printf "%s: the harness line says %s PASS, the section holds %d PASS lines\n",sec,hl,n } }
+  /^=== .* ===$/ { flush(); sec=$0; sub(/^=== /,"",sec); sub(/ ===$/,"",sec); n=0; gf=""; hl=""; next }
+  /^--- / { flush(); sec=""; next }
+  /^regression assertions \(PASS lines\)/ { flush(); sec=""; next }
+  sec!="" && /^PASS/ { n++ }
+  sec!="" && /^[^ ].*: [0-9]+ pass, [0-9]+ fail$/ { t=$0; sub(/ pass, [0-9]+ fail$/,"",t); sub(/.*: /,"",t); gf=t }
+  sec!="" && index($0,"    " sec ": green (")==1 { t=$0; sub(/.*: green \(/,"",t); sub(/ PASS.*/,"",t); hl=t }
+  END{ flush() }' "$LOG")"
+FOOTN="${FOOT#\#}"; FOOTN="${FOOTN%%[!0-9]*}"
+if [ -n "$SECBAD" ] && [ -n "$FOOTN" ] && [ "$FOOTN" -ge 380 ] 2>/dev/null; then
+  echo "REFUSED: $LOG disagrees with ITSELF section by section, although its global footer agrees with its global count:"
+  awk 'NR<=6{print "  " $0}' <<<"$SECBAD"
+  echo "  A section whose own claims disagree with its own PASS lines is a log that was edited after it was written,"
+  echo "  or assembled from more than one run (#418). It authorises nothing."
+  exit 1
+fi
+
 # (10) THE HELD-TREE REGISTER, AND IT IS ON BY DEFAULT. Added #450 for
 # jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01.
 # Everything above this line asks questions about the LOG: is it a full run, does it end green, does it agree
