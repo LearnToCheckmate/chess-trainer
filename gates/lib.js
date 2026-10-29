@@ -384,6 +384,16 @@ async function launch(opts={}){
     async tapSq(sq){const c=await b.sqCenter(sq);await page.mouse.click(c.x,c.y);await page.waitForTimeout(160);return c;},
     async move(from,to,wait){await b.tapSq(from);await b.tapSq(to);await page.waitForTimeout(wait==null?450:wait);},
     // overflow the way the fit loop measures it: bottom-most laid-out child of #root vs the viewport (#354)
+    // #545 item (44) [jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28]: over() measures the bottom-most
+    // laid-out child of #root against the viewport, which is right about the PAGE and blind to every INNER scroller - the Play
+    // setup sheet hid 273px inside its own scroller at 375x730 while over() read 0. This is the second measurement the job
+    // asks for, BESIDE over() and not instead of it: every element whose computed overflow-y or overflow-x is auto or scroll
+    // and that has room to scroll, with how much it hides on each axis. #root is included and named, since it is a scroller too.
+    async innerScrollers(){return page.evaluate(()=>{const out=[];for(const el of document.querySelectorAll('*')){const st=getComputedStyle(el);
+      const ay=/auto|scroll/.test(st.overflowY),ax=/auto|scroll/.test(st.overflowX);if(!ay&&!ax)continue;
+      const hy=ay?el.scrollHeight-el.clientHeight:0,hx=ax?el.scrollWidth-el.clientWidth:0;if(hy<=1&&hx<=1)continue;
+      out.push({id:(el.id?'#'+el.id:'')+(el.getAttribute('data-ct')?'['+el.getAttribute('data-ct')+']':'')||el.tagName.toLowerCase(),hiddenY:Math.round(hy),hiddenX:Math.round(hx),scrollTop:Math.round(el.scrollTop)});}
+      return out;});},
     async over(){return page.evaluate(()=>{const root=document.getElementById('root');let bottom=0;const walk=(el,depth)=>{for(const c of el.children){const st=getComputedStyle(c);if(st.position==='fixed'||st.position==='absolute')continue;const r=c.getBoundingClientRect();if(r.height>0)bottom=Math.max(bottom,r.bottom);if(depth<4)walk(c,depth+1);}};walk(root,0);return {bottom:Math.round(bottom*10)/10,vh:innerHeight,over:Math.round((bottom-innerHeight)*10)/10,scrollY:Math.round(scrollY),docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});},
     async metrics(){const board=await b.board(),over=await b.over();return {board:board?{w:Math.round(board.w*10)/10,top:Math.round(board.y*10)/10,left:Math.round(board.x*10)/10,flip:board.flip}:null,over,vw:geo.w,vh:geo.h,errs:errs.length};},
     async texts(){return page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||x.getAttribute('aria-label')||x.title||'').replace(/\s+/g,' ').trim()).filter(Boolean));},

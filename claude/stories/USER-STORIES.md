@@ -308,6 +308,22 @@ Kunal adopted this rule on 11 Oct 2026, on Decision Desk card empty-space-limit-
 - PROMOTION. A state becomes asserted in the same commit as the fix that brings it to 60px or under, or on a re-measure that finds it already there.
 - OWNERS. The Review move screen is owned by jobs/eval-graph-into-the-band. Puzzles right after a solve is owned by jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24. Discover goes to its own Desk card first and then its own build. The drill is owned by jobs/board-jumps-on-drill-verdict, then jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12. The Puzzles rankup state has no owner.
 
+### US-INV-07 On arrival, the action a screen exists for is on screen
+As a player arriving at a screen, I can see the button that screen is for without scrolling, because a primary action
+below the fold reads as missing.
+
+WRITTEN AT #545 for jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28, the clause that job proposed.
+gates/lib.js's over() cannot see inside an inner scroller, so this clause had no instrument until L.innerScrollers() and
+gate 78.
+
+- On the Play setup sheet, "▶ Start game" is on screen on arrival, unscrolled, at every geometry of THE DRILL SEVEN.
+  NOT MET TODAY at six of the seven. The distances are pinned (TC-INV-08b), not passed. The fix is the options-row build
+  Kunal chose on 11 Oct 2026 (questions/play-setup-start-game-on-screen-2026-10-10), and that build retires the pins,
+  applying the job's acceptance A to C (320x568 with real insets passes on "reachable by scroll").
+- Below the fold is not unreachable: the button can always be scrolled into view and tapped (TC-INV-08c).
+- NOT COVERED YET: the other screens' primary actions. What counts as the primary action on Puzzles and on Review is
+  this lane's open definition question (Q2 on the job).
+
 ### US-R12 The drill board stays still when the app answers me
 > **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
 > measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and
