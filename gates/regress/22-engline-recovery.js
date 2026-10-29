@@ -282,6 +282,7 @@ L.run(async()=>{
      the worker is healthy before racing. A trapped worker answers nothing, so without that precondition
      this block would redden on every bundle for a reason that is not the defect.
      It also drives ct_pool 3 only. B measured pool 1 working, so that is declared coverage and not a claim.
+     [R18, #545 item (94)] NO LONGER: the arm below runs at ct_pool 3 and again at ct_pool 1.
   */
   {
     const fs=require('fs');
@@ -306,9 +307,12 @@ L.run(async()=>{
        in R4a's own state-reached-not-assumed style, so a future reader can tell a green that means FIXED
        from a green that means THE RACE MISSED. If the engine is so fast or so slow that an arm cannot
        reach its state, R3b goes RED and says so rather than quietly passing. */
-    {
-      const tag='R ';
-      const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race',store:{ct_pool:'3'}});await r.open();
+    // #545 item (94) [jobs/gate-22-block-r-drives-ct-pool-3-only-so-the-single-worker-branch-is-uncovered-2026-10-10]: the arm
+    // now runs at ct_pool 3 AND at ct_pool 1. At pool 1 the review itself falls back to sfEval1 on the very worker under
+    // contention, which is the branch CLAUDE.md's #375 rule demands coverage of. Pool-1 lines carry the tag 'R [ct_pool=1] '.
+    // Antagonist B of #511 measured pool 1 healthy by hand; this makes it an assertion. Costs about a minute of suite.
+    for(const [POOL,tag] of [['3','R '],['1','R [ct_pool=1] ']]){
+      const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race-pool'+POOL,store:{ct_pool:POOL}});await r.open();
       await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze Game$/,{wait:300});
       await r.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await r.settle(600);
       await r.tapText(/^Start review/,{wait:900});
