@@ -21,7 +21,7 @@
 // rule is that a flag's proposed fix is a hypothesis to break, not a prescription.
 'use strict';
 const E=require('./engine-extract');
-const {makeMove,seeSq,SEEVAL,brilliantGate,loadSANs,parsePGN,rankMoves,classify,evalPawns,toSAN,opp}=E;
+const {makeMove,seeSq,SEEVAL,brilliantGate,loadSANs,parsePGN,rankMoves,classify,winDrop,classifyByLoss,evalPawns,toSAN,opp}=E;
 
 // THE MATERIAL THE MOVER LEAVES WINNABLE, over the whole board, in M0's own currency.
 // NOTE WHICH QUANTITY THIS IS, because the first draft of C1 got it wrong and the Opera Game caught it.
@@ -131,7 +131,11 @@ function walk(pgn,side){
       m0:m.m0,c1:m.c1,c2:m.c2,c2maxima:m.c2maxima,c2maximaCap:m.c2maximaCap,c2square:m.c2square,c2squareCap:m.c2squareCap,c1sq:m.c1sq,c1piece:m.c1piece,capVal:m.capVal,
       landSee:m.landSee,beforeLoose:m.beforeLoose,beforeSq:m.beforeSq,
       shipped, g0:gateWith(m.m0,pos,loss,evA,evB), g1:gateWith(m.c1,pos,loss,evA,evB),
-      g2:gateWith(m.c2,pos,loss,evA,evB), label:classify(loss).label,
+      // #545 item (91): classify takes a WIN-PERCENTAGE DROP since #440, and this passed a CENTIPAWN loss - the job measured
+      // 12 of 14 sampled losses mislabelled that way (every loss >= 40cp read Blunder). It threw before engine-extract
+      // carried CLS_BANDS; it would have mislabelled silently after. Now it grades the way the app does, from the drop
+      // between the best and the played line, and keeps the old centipawn ladder alongside under its own name.
+      g2:gateWith(m.c2,pos,loss,evA,evB), label:classify(winDrop(bestVal,actualVal,mc)).label, labelByLoss:classifyByLoss(loss),
       // the four C2 readings carried as verdicts, so a caller never has to rebuild a position
       gC2:{c2maxima:gateWith(m.c2maxima,pos,loss,evA,evB).ok,
            c2maximaCap:gateWith(m.c2maximaCap,pos,loss,evA,evB).ok,
