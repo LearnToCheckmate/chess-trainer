@@ -19,6 +19,28 @@
 const fs=require('fs'),path=require('path'),cp=require('child_process'),net=require('net'),crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..');
 const SHOTS=process.env.CT_SHOTS||path.join(__dirname,'shots');
+// ── OBSERVED INPUTS [#545, item (29); jobs/the-premise-checks-read-the-gates-source-instead-of-asking-them-to-declare-
+// their-inputs-2026-10-07]. gates/fastgate.sh decides a records commit cannot change a browser gate's verdict by
+// PARSING each gate's source for the files it reads, and that parser has been out-grammared three times (quoted
+// literals, then require(), then a fixture read with fs.readFileSync through a path.join whose first segment is a
+// variable). A parser has a grammar and anything outside it is silently declared covered. So this harness OBSERVES
+// instead: from the moment a gate requires this file, every repository path opened through fs (readFileSync,
+// readFile, readdirSync, existsSync, statSync, openSync, createReadStream, fs.promises.readFile) is recorded, and
+// done() prints the set - plus every module require() loaded from the repository - as one note line before the
+// summary, so every gate log carries what that gate actually read. Paths under node_modules, gates/logs and
+// gates/shots are left out (dependencies and outputs, not inputs). CT_INPUTS_OUT=<file> also writes the set there,
+// one path per line, for a tool to read. WHAT IT CANNOT SEE: a read made in a child process, a read made before
+// this file was required, and a file the browser fetches by URL rather than through fs - the bundle reaches the
+// browser through serve(), which reads it here, so it is seen. It does not yet feed gates/fastgate.sh; see the job.
+const _inputs=new Set();
+const _inRepo=(f)=>{try{if(typeof f!=='string'&&!(f instanceof URL)&&!Buffer.isBuffer(f))return;const a=path.resolve(String(f instanceof URL?f.pathname:f));const r=path.relative(ROOT,a);
+  if(!r||r.startsWith('..')||path.isAbsolute(r))return;if(/(^|\/)node_modules(\/|$)|^gates\/(logs|shots)(\/|$)/.test(r))return;_inputs.add(r);}catch(e){}};
+for(const fn of ['readFileSync','readFile','readdirSync','readdir','existsSync','statSync','lstatSync','openSync','createReadStream']){
+  const orig=fs[fn];if(typeof orig!=='function')continue;
+  fs[fn]=function(f,...rest){_inRepo(f);return orig.call(this,f,...rest);};
+}
+if(fs.promises&&typeof fs.promises.readFile==='function'){const o=fs.promises.readFile;fs.promises.readFile=function(f,...rest){_inRepo(f);return o.call(this,f,...rest);};}
+function observedInputs(){for(const k of Object.keys(require.cache))_inRepo(k);return [..._inputs].sort();}
 const NET_NOISE=/ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_REFUSED|ERR_FAILED|net::ERR|gstatic|googleapis|firebase|Failed to load resource/i;
 const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.com|lichess\.org|fonts\.g|google-analytics|googletagmanager|cloudfunctions/;
 // Kunal's phone is 375x761 with insets 51/31 = 375x679 USABLE. Emulate it as a 375x679 viewport with NO ct_safe:
@@ -400,6 +422,6 @@ async function launch(opts={}){
 let _fails=0,_pass=0;
 function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefined?'  ['+(typeof detail==='string'?detail:JSON.stringify(detail))+']':'');console.log(line);if(ok)_pass++;else _fails++;return ok;}
 function note(msg){console.log('     '+msg);}
-function done(label){console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
+function done(label){const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
-module.exports={launch,serve,say,note,done,run,GEOS,ROOT,SHOTS,NET_NOISE};
+module.exports={launch,serve,say,note,done,run,GEOS,ROOT,SHOTS,NET_NOISE,observedInputs};
