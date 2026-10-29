@@ -349,8 +349,8 @@ L.run(async()=>{
   say(sw===17&&sb===16,'B6 every graded move is still counted: White 17 and Black 16 rows, as on #439',{whiteTotal:sw,blackTotal:sb});
   // B7 THE SENTENCE THE CHANGE MADE FALSE. It described the formula #440 replaced, and nothing asserted it
   // before, which is how a wrong sentence survives builds.
-  say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),
-        'B7 the panel no longer explains accuracy as average centipawn loss',
+  L.say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),   // L.say, not the column's say(), so gates/audit/negated-regex-guards.sh still sees this site [#545 item (100) follow-up]
+        'B7 the panel no longer explains accuracy as average centipawn loss'+sfx,
         {saysCentipawn:/average centipawn loss/i.test(txt),saysChances:/changed your chances of winning/i.test(txt)});
   await b.close();
   };
