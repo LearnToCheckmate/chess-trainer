@@ -729,6 +729,21 @@ else
   echo "FAIL SF the real archived 474-all.log is not readable at $SFREAL - section SF did not run"; F=$((F+1))
 fi
 
+# ── SR: NO RED MARKER IN A GREEN LOG, check (6c) [#545, antagonist B's finding 1]. A red log made "green" by its last line,
+# by an appended verdict, and a green log with a second appended GATES GREEN.
+SRRED="$REPO/claude/agents/gatelogs/521-RED-the-pre-existing-gate-48-latch-fired-at-320x540.log"
+if [ -r "$SRRED" ] && [ -r "$REPO/claude/agents/gatelogs/544-all.log" ]; then
+  SRD="$TD/sr"; mkdir -p "$SRD"
+  sed '$ s/GATES RED #521/GATES GREEN #521/' "$SRRED" > "$SRD/lastline.log"
+  { cat "$SRRED"; echo 'GATES GREEN #521'; } > "$SRD/appended.log"
+  { cat "$REPO/claude/agents/gatelogs/544-all.log"; echo 'GATES GREEN #544'; } > "$SRD/twogreen.log"
+  ckmsg "SR1 a RED log whose last line was rewritten to GATES GREEN is REFUSED for its red markers" 1 'red marker' "$VL" "$SRD/lastline.log" '#521'
+  ckmsg "SR2 a RED log with GATES GREEN appended under GATES RED is REFUSED"                        1 'red marker' "$VL" "$SRD/appended.log" '#521'
+  ckmsg "SR3 a green log with a second appended GATES GREEN is REFUSED"                              1 'GATES GREEN' "$VL" "$SRD/twogreen.log" '#544'
+else
+  echo "FAIL SR the archived 521-RED or 544 log is not readable - section SR did not run"; F=$((F+1))
+fi
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."

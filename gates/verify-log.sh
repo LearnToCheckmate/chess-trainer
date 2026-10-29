@@ -1163,6 +1163,26 @@ if [ -n "$SECBAD" ] && [ -n "$FOOTN" ] && [ "$FOOTN" -ge 380 ] 2>/dev/null; then
   exit 1
 fi
 
+# (6c) NO RED MARKER ANYWHERE IN THE BODY [#545, antagonist B's finding 1, before the push]. Every check above reads the LAST
+# line, the PASS footer and the per-section PASS counts, and none read a FAIL. So a RED log became "green" by rewriting its
+# last line, or by APPENDING a "GATES GREEN" line under its "GATES RED" - B measured both on 521-RED-...log, exit 0 and
+# "none failed". This refuses any ^FAIL line, any "GATES RED" or "SUBSET" verdict line, any harness "<gate>: RED (" line,
+# any gate footer with a non-zero fail count, and more than one "GATES GREEN" line. SWEPT over all 175 archived logs: every
+# log this script accepted before carries none of these, except that #377-#379 (the old two-block layout, already exempt
+# from (6b)) print GATES GREEN twice, so the single-GREEN rule shares that exemption.
+REDS="$(grep -cE '^FAIL|^GATES RED|^SUBSET (OK|RED)|^ {4}[^ ]+: RED \(|^[^ ].*: [0-9]+ pass, [1-9][0-9]* fail$' "$LOG" || true)"
+GREENS="$(grep -c '^GATES GREEN' "$LOG" || true)"
+if [ "${REDS:-0}" -gt 0 ] 2>/dev/null; then
+  echo "REFUSED: $LOG ends GATES GREEN but its body carries $REDS red marker(s) (a FAIL line, a RED verdict or section, or a non-zero fail count):"
+  grep -nE '^FAIL|^GATES RED|^SUBSET (OK|RED)|^ {4}[^ ]+: RED \(|^[^ ].*: [0-9]+ pass, [1-9][0-9]* fail$' "$LOG" | awk 'NR<=5{print "  " $0}'
+  echo "  A green log has none. This one was red, or was edited after it was written. It authorises nothing."
+  exit 1
+fi
+if [ "${GREENS:-0}" -gt 1 ] 2>/dev/null && [ -n "$FOOTN" ] && [ "$FOOTN" -ge 380 ] 2>/dev/null; then
+  echo "REFUSED: $LOG carries $GREENS 'GATES GREEN' lines; a suite prints one. An appended verdict is not a verdict."
+  exit 1
+fi
+
 # (10) THE HELD-TREE REGISTER, AND IT IS ON BY DEFAULT. Added #450 for
 # jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01.
 # Everything above this line asks questions about the LOG: is it a full run, does it end green, does it agree
