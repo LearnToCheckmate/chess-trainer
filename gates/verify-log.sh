@@ -1411,6 +1411,40 @@ if [ "${HELD_HAVE:-0}" = "1" ]; then
       done < "$REGALL"
     fi
   fi
+  # (10d) THE PREDICATE KEY, FIELD 8, AT THE PUSH-AUTHORISING DOOR [#545, item (47);
+  # jobs/a-held-row-should-carry-a-predicate-not-only-a-hash-2026-10-01]. (10c)'s own comment above names its limit - "No key
+  # here tracks the DEFECT; that needs a predicate" - and this is that predicate. A row's field 8, when present, is a
+  # question about a TREE in gates/held-predicate.sh's fixed vocabulary (absent:/lacks:/contains:, ';'-joined, all must
+  # hold), asked of the log's gated sha; nothing in it runs as shell. A held tree carried forward with an unrelated edit
+  # matches no hash key and still satisfies its predicate, which is the whole point. AND AN UNEVALUABLE PREDICATE REFUSES:
+  # if the gated sha cannot be read here (a shallow clone - fetch --unshallow) or the predicate is malformed, this is not
+  # a clearance, so it is refused out loud rather than skipped, the #450 fail-open shape turned the right way round.
+  # It reads the same union as the two loops above, through its own name, so verify-log-selftest's F mutant (which
+  # reverts exactly those two loops to the working-tree-only read) still counts the two it was written for.
+  PREDREG="$REGALL"
+  if [ -z "$HELDROW" ] && [ -n "$LOGSHAH" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in ''|'#'*) continue;; esac
+      case "$line" in *"	"*) ;; *) continue;; esac
+      RS="$(printf '%s' "$line" | cut -f1)"; case "$RS" in -*) continue;; esac
+      R8="$(printf '%s' "$line" | cut -f8)"
+      [ -n "$R8" ] && [ "$R8" != "-" ] || continue
+      bash "$(dirname "$REG")/held-predicate.sh" eval "$(dirname "$REG")/.." "$LOGSHAH" "$R8" >/dev/null 2>&1; PRC=$?
+      if [ "$PRC" = 0 ]; then
+        echo "REFUSED (held tree, PREDICATE): $LOG gated sha $LOGSHAH satisfies a held row's field-8 predicate,"
+        echo "  so it carries the DEFECT that row names whatever its bundle md5, sha or source md5."
+        echo "  predicate: $R8"
+        echo "  build:  $(printf '%s' "$line" | cut -f3)   held at $(printf '%s' "$line" | cut -f4) by $(printf '%s' "$line" | cut -f5)"
+        echo "  why:    $(printf '%s' "$line" | cut -f6)"
+        exit 1
+      elif [ "$PRC" != 1 ]; then
+        echo "REFUSED (held tree, PREDICATE NOT EVALUATED): a held row for build $(printf '%s' "$line" | cut -f3) carries the predicate"
+        echo "  '$R8', and it could not be evaluated at $LOGSHAH (a malformed predicate, or a sha this clone cannot read -"
+        echo "  run git fetch --unshallow). That is not a clearance."
+        exit 1
+      fi
+    done < "$PREDREG"
+  fi
   if [ "$MALFORMED" -gt 0 ] && [ -z "$HELDROW" ]; then
     echo "WARNING: $MALFORMED malformed row(s) in $REG were skipped (no tab, or a key outside 8-12 hex for a bundle md5 / under 7 for a sha)."
     echo "  Somebody wrote those rows meaning to hold a tree. Fix them before trusting this check's silence."

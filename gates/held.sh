@@ -319,6 +319,48 @@ case "${1:-}" in
         exit 1
       fi
     fi
+    # ── THE PREDICATE KEY, FIELD 8 [#545, item (47); jobs/a-held-row-should-carry-a-predicate-not-only-a-hash-2026-10-01].
+    # Every key above is a hash of an artefact, so none tracks the DEFECT, and a held tree carried forward with one
+    # unrelated edit matches none of them. Field 8, when a row carries one, is a predicate over a TREE in the fixed
+    # vocabulary of gates/held-predicate.sh (absent:/lacks:/contains:, joined by ';', all must hold) - nothing in it is
+    # executed as shell. Asked only when every hash key missed, so a direct hit still reports as one. The default form
+    # asks it of the WORKING TREE and of HEAD; the named form asks it of the named key IF that key is a commit, and says
+    # so when it is not (an md5 names an artefact, and a predicate is a question about a tree). A predicate that cannot
+    # be evaluated is exit 2 - NEVER a clearance - which is the fail-open shape #450's antagonist vetoed.
+    if [ -z "$HIT" ]; then
+      HELD_PT=(); HELD_PNOTE=""
+      if [ -n "${2:-}" ]; then
+        if "${HELD_GIT[@]}" rev-parse --verify -q "${2}^{commit}" >/dev/null 2>&1; then HELD_PT+=("${2}|the commit you named")
+        else HELD_PNOTE="'${2}' is not a commit here, so no predicate row could be asked of it"; fi
+      else
+        HELD_PT+=("DISK|the working tree")
+        HH2="$("${HELD_GIT[@]}" rev-parse --verify -q HEAD || true)"; [ -z "$HH2" ] || HELD_PT+=("$HH2|HEAD")
+      fi
+      HELD_PERR=0; HELD_PROWS=0
+      while IFS= read -r prow; do
+        pr="$(printf '%s' "$prow" | cut -f8)"; [ -n "$pr" ] && [ "$pr" != "-" ] || continue
+        HELD_PROWS=$((HELD_PROWS+1))
+        [ "${#HELD_PT[@]}" -gt 0 ] || continue
+        for tg in "${HELD_PT[@]}"; do
+          bash "$HERE/held-predicate.sh" eval "$ROOT" "${tg%%|*}" "$pr" >/dev/null 2>&1; prc=$?
+          if [ "$prc" = 0 ]; then
+            echo "HELD BY PREDICATE: ${tg#*|} satisfies a held row's field-8 predicate, so it carries the DEFECT that row names,"
+            echo "  whatever its bundle md5, sha or source md5 - this is the carry-forward no hash key can see."
+            printf '  predicate: %s\n' "$pr"
+            printf '  build:  %s   held at %s by %s\n' "$(printf '%s' "$prow" | cut -f3)" "$(printf '%s' "$prow" | cut -f4)" "$(printf '%s' "$prow" | cut -f5)"
+            printf '  why:    %s\n' "$(printf '%s' "$prow" | cut -f6)"
+            held_whence "$prow"
+            exit 1
+          fi
+          if [ "$prc" != 1 ]; then HELD_PERR=$((HELD_PERR+1)); echo "  predicate NOT EVALUATED against ${tg#*|} for build $(printf '%s' "$prow" | cut -f3): '$pr' is malformed or the tree could not be read"; fi
+        done
+      done < <(match_rows | awk -F'\t' 'NF>=8')
+      [ -z "$HELD_PNOTE" ] || [ "$HELD_PROWS" -eq 0 ] || echo "  predicate rows: $HELD_PROWS, NOT ASKED - $HELD_PNOTE"
+      if [ "$HELD_PERR" -gt 0 ]; then
+        echo "held.sh check: $HELD_PERR predicate evaluation(s) could not be made, so this is NOT a 'not held'. Exit 2 is not a clearance."
+        exit 2
+      fi
+    fi
     if [ -n "$HIT" ]; then
       echo "HELD: $KEY matches a row on the register."
       [ -z "$HELD_HITKEY" ] || printf '  the key that matched: %s\n' "$(held_keyname "$HELD_HITKEY")"
@@ -516,7 +558,15 @@ case "${1:-}" in
       fi
     fi
     [ -n "$SRC7" ] || SRC7="-"
+    # FIELD 8, THE PREDICATE [#545, item (47)], WRITTEN ONLY WHEN CT_HELD_PRED IS SET, so every row written without it is
+    # byte-for-byte the 7-field row it always was. Validated by the same parser that evaluates it, BEFORE the append, so a
+    # malformed predicate is refused here instead of reaching the register as a row that can only ever read exit 2.
+    if [ -n "${CT_HELD_PRED:-}" ]; then
+      bash "$HERE/held-predicate.sh" valid "$CT_HELD_PRED" || { echo "held.sh add: CT_HELD_PRED '$CT_HELD_PRED' is not a well-formed predicate (gates/held-predicate.sh: absent:<path> | lacks:<path>:<text> | contains:<path>:<text>, joined by ';')"; exit 2; }
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "$SRC7" "$CT_HELD_PRED" >> "$REG"
+    else
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$MD5" "$SHA" "$BUILD" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "$REASON" "$SRC7" >> "$REG"
+    fi
     echo "held.sh: field 7 (sourceMd5) = $SRC7, from $SRC7_HOW"
     [ "$SHAONLY" = 1 ] && echo "held.sh: a SHA-ONLY hold [#529]: it holds the sha(s) $SHA and no bundle md5, by design."
     echo "held.sh: recorded $BUILD bundle $MD5 sha $SHA. COMMIT THIS TO MAIN, not to the per-run branch -"
@@ -543,6 +593,7 @@ case "${1:-}" in
       [ "$(printf '%s' "$r" | cut -f1)" = "sha-only" ] && printf '%s\n' "    bundle: none. A SHA-ONLY hold [#529]: that run changed no application file, so its bundle was main's own and is not held."
       printf '    shas: %s\n' "$(printf '%s' "$r" | cut -f2)"
       SRC7="$(printf '%s' "$r" | cut -f7)"; [ -z "$SRC7" ] || [ "$SRC7" = "-" ] || printf '    source md5: %s (chess.jsx at that sha)\n' "$SRC7"
+      P8="$(printf '%s' "$r" | cut -f8)"; [ -z "$P8" ] || [ "$P8" = "-" ] || printf '    predicate: %s (any tree satisfying it is held - gates/held-predicate.sh)\n' "$P8"
       printf '%s\n' "$(printf '%s' "$r" | cut -f6)" | fold -s -w 104 | sed 's/^/    /'
     done
     CLEARED="$(grep -v '^[[:space:]]*#' "$REG" | awk -F'\t' 'NF>=6 && $1 ~ /^-/' | wc -l | tr -d ' ')"
