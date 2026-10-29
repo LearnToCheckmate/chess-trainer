@@ -298,6 +298,8 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H55) printf 'TC-SUITE-212' ;;
     H56) printf 'TC-SUITE-227' ;;
     H57) printf 'TC-SUITE-234' ;;
+    H58) printf 'TC-SUITE-239' ;;  H59) printf 'TC-SUITE-240' ;;
+    H60) printf 'TC-SUITE-241' ;;  H61) printf 'TC-SUITE-242' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2211,6 +2213,159 @@ else
     sed -i -e '/^gates\/lib$/d' -e '/^gates\/drive\/home$/d' "$C/.git/info/exclude"
   fi
 fi
+
+
+# ── H58..H61 FOUR REFUSAL BRANCHES THAT HAD NEITHER A CASE NOR A MUTANT [#544, item (33) of
+# directOpening_2026_10_28_batch4; jobs/four-new-refusal-branches-in-fastgates-read-pin-and-catch-all-have-
+# neither-a-case-nor-a-mutant-2026-10-20, P2, raised by build #527's blind antagonist pair from BOTH doors].
+# #527's P1 added the READ pin and the catch-all with six cases and nine mutants. FOUR of its exit-2/exit-1
+# branches were covered by neither, so their refusals were asserted by their author and by nobody else - which
+# is this project's own "prove a gate against a deliberately broken build" rule unmet for four branches of the
+# script every future push is justified by. All four FAIL SAFE today, which is why the job is a filing and not
+# a veto; the risk is that a later edit turns one into a silent pass.
+#
+# EVERY FIXTURE BELOW LEAVES `git status --porcelain` EMPTY, measured in its own step, because fastgate's first
+# guard refuses a dirty tree at exit 1 and a case that trips it is green for the wrong reason - this project's
+# standing trap, and the reason H57 asserts `hidden` before it asserts anything else.
+#
+# AND EVERY MUTANT IS COMMITTED, WHICH IS NOT A DETAIL: MEASURED while building this item, a mutant sed'd into
+# the clone's working tree and left uncommitted makes the run answer "FAST GATE REFUSED - working tree is DIRTY
+# (1 path(s))" - the mutant run goes red for a reason that has nothing to do with the branch under test, which
+# would read exactly like a mutant that turns. mutant_probe therefore commits the edit, and it CHECKS THE SED
+# CHANGED THE FILE before trusting the result [CLAUDE.md #416: a control that disturbs nothing and leaves the
+# measured quantity untouched reads like a gate that cannot fail].
+MUT_OUT=""; MUT_RC=0
+mutant_probe(){ # <case> <sed expr> <the sentence the branch prints>: 0 when the sentence is GONE after mutation
+  local c="$1" sx="$2" sent="$3" before after
+  before="$(md5sum "$C/gates/fastgate.sh" | cut -d' ' -f1)"
+  sed -i "$sx" "$C/gates/fastgate.sh" 2>/dev/null || { MUT_OUT="sed failed"; MUT_RC=-1; return 1; }
+  after="$(md5sum "$C/gates/fastgate.sh" | cut -d' ' -f1)"
+  if [ "$before" = "$after" ]; then MUT_OUT="THE SED MATCHED NOTHING - the mutant did not mutate"; MUT_RC=-1; return 1; fi
+  if ! bash -n "$C/gates/fastgate.sh" 2>/dev/null; then MUT_OUT="the mutant does not parse"; MUT_RC=-1; return 1; fi
+  commit_case "$c mutant: the branch under test disabled"
+  MUT_OUT="$(run_fastgate)"; MUT_RC=$?
+  case "$MUT_OUT" in *"$sent"*) return 1 ;; *) return 0 ;; esac
+}
+
+# H58 THE READ PIN'S `!= MISSING` CONJUNCT. A name the commit cannot resolve must be a refusal and never
+# MISSING = MISSING credited as a match. THE REACHABLE FIXTURE IS A TRACKED NAME CONTAINING A NEWLINE, and it
+# took three tries to find one that keeps the tree clean: a path staged but absent from HEAD is visible to
+# `git status` as a staged addition, so the dirty guard eats it. `git ls-files` QUOTES a name containing a
+# newline even under core.quotePath=false, so the read pin reads the literal 11-character-prefixed string
+# `"gates/regress/zz\nq.js"`, quotes and backslash included; `rev-parse HEAD:<that>` and
+# `hash-object <that>` both fail, so hb and wb are BOTH MISSING - the exact state the conjunct exists for -
+# while the commit itself is ordinary and the tree is clean.
+reset_clone
+printf 'module.exports={};\n' > "$C/$(printf 'gates/regress/zz\nq.js')"
+commit_case "H58 fixture: a tracked file whose name contains a newline"
+if [ -n "$(git -C "$C" status --porcelain 2>/dev/null)" ]; then
+  note "  FAIL H58 [$(tc H58)]  the fixture left the clone DIRTY, so fastgate would refuse for dirtiness and the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H58"
+elif ! probe 1 "FAST GATE REFUSED" "commit MISSING, working tree MISSING"; then
+  note "  FAIL H58 [$(tc H58)]  exit $PROBE_RC - wanted exit 1 with the read pin naming the unresolvable name as MISSING on both sides"
+  show_verdict "$PROBE_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H58"
+elif ! mutant_probe H58 's|^  \[ "$hb" != MISSING \] && \[ "$hb" = "$wb" \] |  [ "$hb" = "$wb" ] |' "commit MISSING, working tree MISSING"; then
+  note "  FAIL H58 [$(tc H58)]  the MUTANT did not turn: with the \`!= MISSING\` conjunct dropped the run still prints the read pin's refusal (exit $MUT_RC), so the conjunct is not what produced the green above"
+  show_verdict "$MUT_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H58"
+else
+  note "  ok  H58 [$(tc H58)]  (exit 1 naming the name MISSING on both sides; with the conjunct dropped MISSING = MISSING is credited as a match and the run falls through to exit $MUT_RC)"
+  OK=$((OK+1))
+fi
+reset_clone
+
+# H59 THE READ PIN'S EMPTY-SET REFUSAL. An empty input set is the state the non-empty-denominator rule exists
+# for, and the job names it as one of the two that most need a case: with no tracked file matching PSCAN_PATS
+# the pin pins NOTHING, and `[ -n "$READPIN" ]` is false over nothing, so without the RN = 0 branch the tier
+# would be taken on a pin that read no file at all. The fixture commits the removal of every PSCAN path, which
+# keeps index and disk consistent and the tree clean.
+reset_clone
+git -C "$C" rm -q -r gates/regress gates/drive gates/lib.js gates/mountcheck.js gates/engine-extract.js >/dev/null 2>&1
+commit_case "H59 fixture: no tracked file matches PSCAN_PATS"
+if [ -n "$(git -C "$C" status --porcelain 2>/dev/null)" ]; then
+  note "  FAIL H59 [$(tc H59)]  the fixture left the clone DIRTY, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H59"
+elif [ -n "$(git -C "$C" -c core.quotePath=false ls-files -- ':(glob)gates/regress/*.js' ':(glob)gates/lib.js' 2>/dev/null)" ]; then
+  note "  FAIL H59 [$(tc H59)]  the fixture did not empty the set: ls-files still lists a PSCAN path, so RN cannot be 0"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H59"
+elif ! probe 2 "The read pin found NO tracked file matching PSCAN_PATS" "never credited"; then
+  note "  FAIL H59 [$(tc H59)]  exit $PROBE_RC - wanted exit 2 with the read pin reporting its empty set and refusing to credit it"
+  show_verdict "$PROBE_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H59"
+elif ! mutant_probe H59 's|^if \[ "$RN" = 0 \]; then|if false; then|' "The read pin found NO tracked file matching PSCAN_PATS"; then
+  note "  FAIL H59 [$(tc H59)]  the MUTANT did not turn: with the RN = 0 branch disabled the run still reports the empty set (exit $MUT_RC)"
+  show_verdict "$MUT_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H59"
+else
+  note "  ok  H59 [$(tc H59)]  (exit 2 reporting the empty pin set; with the branch disabled an empty pin is silent and the run goes on to exit $MUT_RC)"
+  OK=$((OK+1))
+fi
+reset_clone
+
+# H60 THE CATCH-ALL'S NON-PLAIN-ENTRY REFUSAL, the job's other named priority. The catch-all hashes FILE BYTES,
+# so a symlink, a submodule or a conflict stage is routed to the full suite rather than judged. THE FIXTURE HAD
+# TO BE A RECORDS-ONLY PATH and that is a measurement, not a preference: a tracked symlink at gates/zzlink is
+# refused 1900 lines EARLIER, by the records-only classifier ("gates/ path this script does not recognise -
+# defaulting to FULL"), so CA_ODD never runs and the case would have been green for another branch's reason.
+# A symlink under claude/agents/gatelogs/ is records-only, so the tier is taken and the catch-all is reached.
+# new_base makes the candidate itself the base, so the diff is the fixture alone and nothing else can classify.
+reset_clone
+new_base "H60 base: the candidate itself, so the diff is the fixture alone" >/dev/null
+ln -s 540-all.log "$C/claude/agents/gatelogs/zz-h60.log"
+commit_case "H60 fixture: a records-only path committed as a symlink"
+if [ -n "$(git -C "$C" status --porcelain 2>/dev/null)" ]; then
+  note "  FAIL H60 [$(tc H60)]  the fixture left the clone DIRTY, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H60"
+elif [ "$(git -C "$C" ls-files -s -- claude/agents/gatelogs/zz-h60.log 2>/dev/null | cut -d' ' -f1)" != "120000" ]; then
+  note "  FAIL H60 [$(tc H60)]  the index entry is not mode 120000, so there is no non-plain entry to detect"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H60"
+elif ! probe 2 "these tracked entries are not plain files with a" "zz-h60.log"; then
+  note "  FAIL H60 [$(tc H60)]  exit $PROBE_RC - wanted exit 2 with the catch-all naming the non-plain entry"
+  show_verdict "$PROBE_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H60"
+elif ! mutant_probe H60 's|if ((m\[1\] != "100644" \&\& m\[1\] != "100755") \|\| m\[3\] != "0"|if ((m[3] != "0"|' "these tracked entries are not plain files with a"; then
+  note "  FAIL H60 [$(tc H60)]  the MUTANT did not turn: with the mode test dropped the run still refuses for a non-plain entry (exit $MUT_RC)"
+  show_verdict "$MUT_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H60"
+else
+  note "  ok  H60 [$(tc H60)]  (exit 2 naming the mode-120000 entry; with the mode test dropped the link is hashed as its target's bytes and the run answers exit $MUT_RC instead)"
+  OK=$((OK+1))
+fi
+reset_clone
+
+# H61 THE CATCH-ALL'S PARTIAL-HASH REFUSAL. `git hash-object --stdin-paths` STOPS at the first unreadable path,
+# so the hash stream is shorter than the path list and every tracked file after it is simply not hashed - which
+# without this branch would be reported as a clean comparison over the files that did hash. The fixture is the
+# one route that keeps `git status` empty: --assume-unchanged on a tracked records file and then delete it, so
+# the worktree check is suppressed and the file is gone.
+reset_clone
+new_base "H61 base: the candidate itself, so the diff is the fixture alone" >/dev/null
+printf '\n<!-- H61 fixture row -->\n' >> "$C/RUN-LOG.md"
+commit_case "H61 fixture: a records-only change"
+git -C "$C" update-index --assume-unchanged claude/agents/gatelogs/537-all.log >/dev/null 2>&1
+rm -f "$C/claude/agents/gatelogs/537-all.log"
+if [ -n "$(git -C "$C" status --porcelain 2>/dev/null)" ]; then
+  note "  FAIL H61 [$(tc H61)]  the fixture left the clone DIRTY, so the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H61"
+elif [ -e "$C/claude/agents/gatelogs/537-all.log" ]; then
+  note "  FAIL H61 [$(tc H61)]  the fixture's file is still on disk, so hash-object will not stop and the stream cannot be partial"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H61"
+elif ! probe 1 "working tree MISSING or unreadable, and git hash-object" "stopped there, so the"; then
+  note "  FAIL H61 [$(tc H61)]  exit $PROBE_RC - wanted exit 1 naming the file the hash stream stopped at and how many after it went unhashed"
+  show_verdict "$PROBE_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H61"
+elif ! mutant_probe H61 's|^  if \[ "$CA_HASHED" -lt "${#CA_P\[@\]}" \]; then|  if false; then|' "stopped there, so the"; then
+  note "  FAIL H61 [$(tc H61)]  the MUTANT did not turn: with the partial-stream branch disabled the run still says where the hashing stopped (exit $MUT_RC)"
+  show_verdict "$MUT_OUT"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H61"
+else
+  note "  ok  H61 [$(tc H61)]  (exit 1 naming the stop and the unhashed remainder; with the branch disabled the stop is silent and the refusal counts 0 bad files at exit $MUT_RC)"
+  OK=$((OK+1))
+fi
+reset_clone
+git -C "$C" update-index --no-assume-unchanged claude/agents/gatelogs/537-all.log >/dev/null 2>&1 || true
+git -C "$C" checkout --quiet -- claude/agents/gatelogs/537-all.log >/dev/null 2>&1 || true
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -
