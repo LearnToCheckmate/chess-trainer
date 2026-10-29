@@ -88,10 +88,42 @@ async function openRow(b,which){
   const el=h.asElement();if(!el)throw new Error('openRow: no lesson row '+which);
   await b.page.waitForTimeout(150);const box=await el.boundingBox();await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);
   await b.page.waitForTimeout(350);
-  // hold the intro card: a tap on its title sets introHoldRef so the 4 s auto-dismiss does not fire mid-measure
+  // ── HOLD THE INTRO CARD. THIS TAP USED TO DISMISS IT, AND EVERY GATE THAT COMPOSES FROM `intro` MEASURED A
+  // SCREEN THAT WAS NOT ON THE SCREEN [#544 item (30); jobs/the-lesson-drivers-intro-state-dismisses-the-card-
+  // it-means-to-hold-2026-10-08, P1, found at #497 while measuring the band-16 CTA P0].
+  // WHAT WAS HERE: a walk UP from the 'Got it' button to the first fixed-or-absolute ancestor, clicking THAT
+  // rect at top+14. The loop ADVANCED p before testing it, so it exited on the OVERLAY (the introCard div,
+  // position:fixed inset:0) and never on the card panel inside it. The overlay's rect is the whole viewport, so
+  // the tap landed at (vw/2, 14) - in the overlay's own padding, ON THE BACKDROP - and the overlay's onClick is
+  // setIntroCard(false). THE TAP WRITTEN TO HOLD THE CARD DISMISSED IT.
+  // MEASURED IN BOTH DIRECTIONS IN THIS CONTAINER, same probe, same bundle, one launch per arm, 375x730 and
+  // 320x568: with the old walk the card is UP before the tap and GONE immediately after it, at both geometries
+  // (panel-less overlay rect top 0, tap y 14). With the walk below it is still up immediately AND still up
+  // 4600ms later, past the 4000ms auto-dismiss, at both. That is also #497's five-geometry reading reproduced.
+  // THE CLAMP IS NOT FUSSINESS AND IT IS CARRIED FROM GATE 74's OWN MEASUREMENT, which is the one gate that had
+  // to grow a correct hold of its own while this driver stayed broken: Petroff's panel top is -33.27 at
+  // 320x568, so an unclamped click at panelTop+10 lands OFF the screen, the hold never registers and the card
+  // is gone before anything can be measured. This driver opens an arbitrary row by name, so it meets that case.
   // (NOT 'Got it' minus 30px: that is the Related-lessons chip row, and a chip opens ANOTHER lesson - found 2026-09-13)
-  const card=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;let p=g;for(let i=0;i<8&&p.parentElement;i++){p=p.parentElement;const s=getComputedStyle(p);if(s.position==='fixed'||s.position==='absolute')break;}const r=p.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+14};});
-  if(card){await b.page.mouse.click(card.x,card.y);await b.page.waitForTimeout(120);}
+  const card=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;
+    let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
+    const r=q.getBoundingClientRect();const y=Math.min(Math.max(r.top+10,6),innerHeight-6);
+    return {x:r.left+r.width/2,y,panelTop:Math.round(r.top*100)/100,clamped:(r.top+10)!==y};});
+  // AND THE HOLD IS VERIFIED RATHER THAN ASSUMED, which is the second half of the job's theFIX. A driver that
+  // returns a state it did not reach is this project's `fixture-lies` mode: the old code returned normally with
+  // the card dismissed, so a consumer could not tell. Now a failed hold THROWS, which every consumer already
+  // handles - gate 71:186 wraps this call in try/catch and reds its own B1a ARRIVAL assertion on it - so a
+  // regression in the hold is a loud red and never a silent change of state.
+  if(card){
+    await b.page.mouse.click(card.x,card.y);await b.page.waitForTimeout(120);
+    const still=await b.page.evaluate(()=>!![...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim())));
+    if(!still)throw new Error('openRow: the hold-tap DISMISSED the intro card instead of holding it (panelTop '+card.panelTop+', tap '+Math.round(card.x)+','+Math.round(card.y)+', clamped '+card.clamped+'). This is the #544 item (30) defect returning: the tap must land on the card PANEL, the child of the fixed overlay, and not on the overlay itself.');
+    return {held:true,panelTop:card.panelTop,holdClamped:card.clamped};
+  }
+  // NO CARD AT ALL is a different thing from a dismissed one and is reported as itself rather than as a hold:
+  // nothing was tapped, so nothing can have been dismissed, and a lesson that shows no intro card is a state a
+  // caller may legitimately be in.
+  return {held:false,noCard:true};
 }
 async function openLesson(b,grp,which){await group(b,grp);await openRow(b,which);}
 // 'Got it', pause the autoplay at once, rewind to ply 0

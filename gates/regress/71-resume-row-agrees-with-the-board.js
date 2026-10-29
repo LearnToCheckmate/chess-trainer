@@ -185,6 +185,23 @@ for(const g of GEOS){
 
     let entered=true; try{ await LE.states['intro'](b); }catch(e){ entered=false; }
     L.say(entered,G+' B1a ARRIVAL: the lesson opened, so selectOpening ran and the board was replaced');
+    // ── THE INTRO CARD IS NOW GENUINELY UP, AND THIS BLOCK HAS TO DISMISS IT ITSELF [#544 item (30);
+    // jobs/the-lesson-drivers-intro-state-dismisses-the-card-it-means-to-hold-2026-10-08].
+    // Until that item, D.states['intro'] LEFT THE CARD DISMISSED - its hold-tap landed on the overlay's own
+    // backdrop, whose onClick is setIntroCard(false) - so this block walked straight out of the lesson on the
+    // ✕ below and nobody knew the card had ever been there. With the hold repaired, the card is a fixed
+    // full-viewport overlay and it eats the ✕ tap and the Play tile tap: MEASURED, 39 pass / 10 fail against
+    // this gate's own 48 / 0 baseline in #540's archived log, every red downstream of `sheet:false` at both
+    // kunal730 and se. That is the job's own notChecked - 'whether any gate's EXPECTED numbers would change
+    // once the hold works' - answered by driving it rather than argued.
+    // SO THE CARD IS DISMISSED THE WAY A PLAYER DISMISSES IT, and the dismissal is ASSERTED rather than
+    // assumed: a silent dependency on the card not being there is exactly what this item removed, and
+    // replacing it with a silent dependency on 'Got it' working would be the same fault one step along.
+    const hadCard=await b.page.evaluate(()=>!![...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim())));
+    L.say(hadCard||!entered,G+' TC-R64d B1a2 ARRIVAL: the lesson intro card is UP after the driver held it, so the dismissal below is a change and not a no-op',{hadCard,entered});
+    if(hadCard){ await b.tapText(/^Got it/).catch(()=>{}); await b.settle(400); }
+    const cardGone=await b.page.evaluate(()=>!document.querySelector('button')||![...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim())));
+    L.say(cardGone,G+' TC-R64d B1a3 the intro card is dismissed, so the ✕ below reaches the lesson and not the card overlay',{cardGone});
     await b.tapText(/^✕$/).catch(()=>{}); await b.settle(600);
     await b.tile('Play').catch(()=>{}); await b.settle(800);
 
