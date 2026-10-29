@@ -42,6 +42,27 @@ allow_listed() {
     gates/regress/*|gates/drive/*|gates/audit/*|gates/pending/*) return 0 ;;
     gates/*.sh) return 0 ;;
     claude/stories/*|claude/agents/*|claude/PROCESS-LOG.md) return 0 ;;
+    # #544, item (23); jobs/verify-parked-patch-rejects-every-payload-written-under-the-charters-current-step-6-2026-10-10,
+    # P1, found by process-build lane 4 BY RUNNING THIS SCRIPT OVER ITS OWN PAYLOAD rather than by reading either
+    # document. prompts/process-build's STEP 6 changed on 2026-10-10: a lane's record went from the shared
+    # claude/PROCESS-LOG.md to claude/process-log/lane-<N>.md, YOUR lane's file only. This oracle did not, so from
+    # that day EVERY payload written under the current charter read 'C4-ALLOW-LIST FAIL ... outside the
+    # parallel-lane allow-list' and VERDICT REJECT - and the integration slot plus three sibling lanes run this
+    # script to decide whether a payload is safe to land, so the cheapest reading of that red was the wrong one.
+    # RE-MEASURED AT #544 on the real payload that found it, patches/proc-lane4-...-blockk-2026-10-10, three
+    # declared paths against baseSha b8b2153: main's copy of this script prints exactly that FAIL and REJECT.
+    # WHY THE GLOB IS HERE AND NOT IN PERMITTED_INCIDENTAL, which is the job's own instruction and not a
+    # preference: gates/audit/verify-patch-set.sh's control C57 forbids glob characters in that variable, because
+    # it is word-split and compared as a literal, and its C56 requires the two scripts' literals to be BYTE-
+    # IDENTICAL. So a per-lane shape that needs a glob belongs in this case statement; PERMITTED_INCIDENTAL is
+    # left untouched in both files and C56/C57 stay green.
+    # AND ONE TENSION NAMED RATHER THAN SILENTLY RESOLVED: the same charter revision moved
+    # claude/PROCESS-LOG.md onto the MAY-NOT list, so strictly this allow-list should no longer permit it either.
+    # Removing it would break C56/C57 (it is the whole content of PERMITTED_INCIDENTAL in both scripts) and is a
+    # second decision with its own consequence - gates/audit/verify-patch-set.sh's S4b arm exists only for a
+    # shared edit of that path. It is left as it was, which cannot cause a false REJECT; the false REJECT was
+    # the per-lane path being absent, and that is what this line fixes.
+    claude/process-log/*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -306,6 +327,38 @@ selftest() {
      claude/PROCESS-LOG.md gates/verify-log-selftest.sh
   check "sound: artefact plus the PROCESS-LOG append" 0 'VERDICT SOUND' \
         "$T/sound2" 420d4d4b4f2787eb1f9ec79811ed689f26b13787 gates/verify-log-selftest.sh
+
+  # 2b. THE SHAPE THE CHARTER ACTUALLY PRESCRIBES SINCE 2026-10-10, and the case whose absence let this
+  #     script reject every payload written under it for nineteen days [#544, item (23);
+  #     jobs/verify-parked-patch-rejects-every-payload-written-under-the-charters-current-step-6-2026-10-10].
+  #     A lane's record is claude/process-log/lane-<N>.md, YOUR lane's file only, and it must be SILENT here.
+  #     The FIRING direction was already controlled - "C4 fires on RUN-LOG.md" and "C4 fires on chess.jsx"
+  #     below - so what was missing was this half, which is why the arm read as covered while being wrong in
+  #     the one direction that matters to a payload. Driven as the real thing rather than as a bare path: an
+  #     artefact plus the lane record, which is what every process-lane payload is.
+  mk "$T/sound2b" 7c0a1e9bbb1c4c0d8f1ee2f3a4b5c6d7e8f90123 "process: lane record" \
+     claude/process-log/lane-4.md gates/regress/26-invariants.js
+  #     THE RECORD PATH IS DECLARED HERE AND THAT IS NOT A DETAIL, it is the other half of the job's theFix (b)
+  #     settled by measurement. The first draft of this control left it undeclared, copying case 2's shape above
+  #     where claude/PROCESS-LOG.md is undeclared and still SOUND - and it went red at C2-PATHS-MATCH-MANIFEST,
+  #     not at C4. The reason is that C2's only declared-by-exception path is PERMITTED_INCIDENTAL, a literal
+  #     equality that C57 forbids from holding a glob. MEASURED against the real payload rather than argued:
+  #     patches/proc-lane4-...-blockk-2026-10-10's own artefact field reads
+  #     "gates/regress/65-promotion-after-gameover.js, gates/drive/play.js, claude/process-log/lane-4.md" - a
+  #     lane DECLARES its own record, because under the per-lane regime that file is an artefact of its payload
+  #     and not an incidental shared append. So PERMITTED_INCIDENTAL needs no glob and no change, which is what
+  #     keeps C56 and C57 green, and the per-lane path is handled by allow_listed() plus ordinary declaration.
+  check "sound: artefact plus the per-lane record claude/process-log/lane-4.md" 0 'VERDICT SOUND' \
+        "$T/sound2b" 420d4d4b4f2787eb1f9ec79811ed689f26b13787 'gates/regress/26-invariants.js,claude/process-log/lane-4.md'
+  check "C4 is SILENT on the per-lane record path" 0 'C4-ALLOW-LIST *PASS' \
+        "$T/sound2b" 420d4d4b4f2787eb1f9ec79811ed689f26b13787 'gates/regress/26-invariants.js,claude/process-log/lane-4.md'
+  #     AND THE GLOB IS NOT A HOLE: claude/process-log/* permits a lane file and nothing above or beside it.
+  #     A sibling directory whose name merely begins the same way must still be refused, or the case statement
+  #     is wider than the charter and this control would not know.
+  mk "$T/c4pl" 7c0a1e9bbb1c4c0d8f1ee2f3a4b5c6d7e8f90124 "process: wrong record" \
+     claude/process-logs-elsewhere/lane-4.md gates/regress/26-invariants.js
+  check "C4 fires on a path that only begins like the per-lane record" 1 'C4-ALLOW-LIST *FAIL' \
+        "$T/c4pl" 420d4d4b4f2787eb1f9ec79811ed689f26b13787 'gates/regress/26-invariants.js,claude/process-logs-elsewhere/lane-4.md'
 
   # 3. C1 fires: the burst07 payload, a format-patch of its own baseSha.
   mk "$T/c1" f3ae36a0000000000000000000000000000000 "held.sh field 7" RUN-LOG.md

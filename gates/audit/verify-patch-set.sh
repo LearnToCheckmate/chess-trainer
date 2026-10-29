@@ -216,6 +216,25 @@ fail() { say "$1" FAIL "$2"; FAILED=1; }
 # QUOTE THE EXPANSION. `for q in $PERMITTED_INCIDENTAL` is a deliberate word split, but
 # an unquoted expansion also pathname-expands, so a glob character in a value would
 # match against the CWD instead of being compared. There are none today; C57 pins that.
+# #544, item (23). THIS LITERAL IS DELIBERATELY UNCHANGED, AND S4b HAS LOST ITS ONLY PRODUCTION INSTANCE.
+# jobs/verify-parked-patch-rejects-every-payload-written-under-the-charters-current-step-6-2026-10-10 is about
+# the sibling script's allow-list, which named only this shared path and so REJECTED every payload written
+# under the charter's current STEP 6. That is fixed in gates/audit/verify-parked-patch.sh's allow_listed() with
+# a `claude/process-log/*` case, and NOT here, for two measured reasons: C57 below forbids a glob character in
+# this variable, because it is word-split and compared as a literal, and C56 requires this literal and the
+# sibling's to be BYTE-IDENTICAL - so widening one and not the other reddens C56 on the commit that lands it.
+# THE CONSEQUENCE THIS JOB ASKS TO HAVE NAMED RATHER THAN DISCOVERED LATER [its aSECONDANDMILDERCONSEQUENCE]:
+# under the per-lane regime NO TWO PAYLOADS CAN SHARE A RECORD PATH AT ALL - each lane appends to its own
+# claude/process-log/lane-<N>.md - so S4b's PRODUCTION instance set is now EMPTY BY CONSTRUCTION and the arm
+# reads SKIP over every real payload set. That is a loss of an exercised instance and not a false verdict, and
+# it is not a loss of the CONTROL: C33 below drives S4b over a fixture of two payloads both appending to
+# claude/PROCESS-LOG.md and requires the EXPECTED line, so the arm is still shown able to speak. What no
+# longer exists is a live case, and a reader auditing "is S4b exercised?" should read this paragraph rather
+# than conclude from a run of SKIPs that the arm is broken.
+# ALSO NAMED AND NOT CHANGED: the same charter revision moved claude/PROCESS-LOG.md onto a process lane's
+# MAY-NOT list, so this variable's one value is a path no lane may now park. Emptying it is a second decision
+# with its own cost - it would take S4b's fixture with it and would have to amend C57 in the same commit - and
+# it cannot cause a false REJECT, which is what this job was filed for.
 PERMITTED_INCIDENTAL='claude/PROCESS-LOG.md'
 is_permitted_incidental() {
   local q
