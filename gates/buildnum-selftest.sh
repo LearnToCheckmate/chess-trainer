@@ -446,8 +446,19 @@ ck "26e2 a number is recorded first, so there is something to clear" 0 env -C "$
 ck "26e3 clear with a note under the floor is refused"  2 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "too short"
 ck "26e4 clear with no CT_RUNID is refused"            2 env -C "$OD" CT_RUNID= "$BN" clear "$N26C" "a row whose author cannot be traced is half a record"
 ck "26e5 clear over an existing row exits 0"           0 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "the first clearance of this number, with a reason long enough to pass"
+# RE-ANCHORED AT #544 [antagonist A's F9 fix]. This counted every LINE containing the word "cleared" in
+# check's output and expected exactly 1, so it was a predicate about the PROSE and not about the row: the
+# moment `check` gained a CLEARED verdict line naming what the clearance means, the count went to 4 and the
+# case reddened on a tree where the row is perfectly correct. It now counts the ROW, which is what its own
+# label says it is about - `show_row` prints the number and the state in one field-aligned line.
 eq "26e6 and the row it wrote carries state cleared"   "1" \
-   "$("$BN" check "$N26C" 2>/dev/null | grep -c 'cleared' || true)"
+   "$("$BN" check "$N26C" 2>/dev/null | grep -cE '^ +#[0-9]+ +cleared ' || true)"
+# AND THE VERDICT LINE IS ITS OWN CASE, because the row existing and a reader being TOLD are two things - which
+# is exactly what F9 found: the row was right and the output called the number RESERVED [#544].
+eq "26e6b check NAMES the number as cleared in its own verdict line" "1" \
+   "$("$BN" check "$N26C" 2>/dev/null | grep -c '^  CLEARED: ' || true)"
+eq "26e6c and it does NOT also call a cleared number RESERVED" "0" \
+   "$("$BN" check "$N26C" 2>/dev/null | grep -c 'RESERVED' || true)"
 ck "26e7 a SECOND clearance is recorded and exits 3"   3 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "the second clearance, which is legal and is not the first"
 eq "26e8 and nothing was edited: the register only grew" "grew" \
    "$( before=$(wc -l < "$TD/build-numbers.tsv"); env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "a third clearance, to prove this verb only appends" >/dev/null 2>&1 || true; after=$(wc -l < "$TD/build-numbers.tsv"); [ "$after" -gt "$before" ] && echo grew || echo "same-or-shrank($before,$after)" )"

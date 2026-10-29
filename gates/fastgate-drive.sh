@@ -300,6 +300,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H57) printf 'TC-SUITE-234' ;;
     H58) printf 'TC-SUITE-239' ;;  H59) printf 'TC-SUITE-240' ;;
     H60) printf 'TC-SUITE-241' ;;  H61) printf 'TC-SUITE-242' ;;
+    H62) printf 'TC-SUITE-246' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -458,8 +459,32 @@ mint_in_clone(){ # echoes the minted bare number, or empty
   n="${n#\#}"; n="${n%%[!0-9]*}"      # bare digits only
   badnum "$n" && return 1            # digits only, three or four of them - the bound #525's expansions dropped
   out="$(cd "$C" && CT_RUNID=fastgate-drive bash "$C/gates/buildnum.sh" mint "fastgate-drive.sh fixture, never pushed" 2>&1)" || { note "    (mint failed: $out)" >&2; return 1; }
-  badnum "$n" && return 1            # the output contract, checked on the value actually printed
-  printf '%s' "$n"
+  # ── THE NUMBER RETURNED IS THE ONE `mint` ACTUALLY TOOK, AND IT IS CHECKED AGAINST THE ONE `next` PREDICTED
+  # [antagonist A of #544, finding F3, UPHELD]. This line used to read `badnum "$n" && return 1` with the
+  # comment "the output contract, checked on the value actually printed" - and BOTH halves of that were false:
+  # `n` is not reassigned between the guard above and here, so it could never fire where that one did not, and
+  # `n` comes from `next` while `$out` - what mint PRINTED - was captured and thrown away. A copied this
+  # function byte-for-byte against a stub where `next` predicts 545 and `mint` takes 546 and says so at exit 0,
+  # and the function returned 545: the harness would then restamp with a number nobody minted. Latent against
+  # the real tool, where the two agree, which is why it is a finding and not a veto.
+  # THE DISAGREEMENT IS ITS OWN REFUSAL rather than a silent preference for either value, because a mint that
+  # took a different number than `next` predicted means another writer moved the register under this function,
+  # and a fixture built on either reading would be built on a race.
+  # THE FIRST LINE ONLY, exactly as the `next` parse above does it, and that is not a stylistic echo: `mint`
+  # prints `#NNN` on line one and then three lines of prose that CONTAIN THE SAME NUMBER AGAIN. A parse that
+  # flattened the newlines first - which my first draft of this repair did - leaves the trailing digits of the
+  # last number in the prose, so the check would have compared the wrong token and refused an honest mint.
+  # Measured against the real tool in a clone before this was written.
+  local got
+  got="${out%%$'\n'*}"
+  got="${got##*[!0-9#]}"; got="${got#\#}"; got="${got%%[!0-9]*}"
+  if badnum "$got"; then
+    note "    (mint printed no usable number: $out)" >&2; return 1
+  fi
+  if [ "$got" != "$n" ]; then
+    note "    (mint took #$got while next predicted #$n - the register moved under this function)" >&2; return 1
+  fi
+  printf '%s' "$got"
 }
 record_in_clone(){ # <num> <bundle md5-12> <source md5-12>
   ( cd "$C" && CT_RUNID=fastgate-drive bash "$C/gates/buildnum.sh" record "$1" "$2" "$3" >/dev/null 2>&1 ) || return 1
@@ -2366,6 +2391,50 @@ fi
 reset_clone
 git -C "$C" update-index --no-assume-unchanged claude/agents/gatelogs/537-all.log >/dev/null 2>&1 || true
 git -C "$C" checkout --quiet -- claude/agents/gatelogs/537-all.log >/dev/null 2>&1 || true
+
+
+# ── H62 A ROW WRITTEN BY THE REGISTER'S OWN `clear` VERB MUST NOT BE REFUSED [#544, antagonist A's veto V1,
+# UPHELD; jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01 item 5 is where `clear` came
+# from]. gates/fastgate.sh keeps a HARD COPY of the vocabulary `gates/buildnum.sh add` accepts, and its own
+# comment names that tool as the source of truth. When item (10) added the state `cleared` and a whole `clear`
+# subcommand, the copy went stale: a records-only commit whose single change was a row written by the project's
+# own sanctioned verb was REFUSED at EXIT 1 - "a row no tool in gates/ writes" - which is a refusal with no
+# route onward, as the comment beside it says in terms. A reproduced it and showed with a control that the
+# identical row shape under `abandoned` answered FAST GATE GREEN on the same base, so the state token was the
+# only variable.
+# THIS CASE IS THE GUARD AGAINST THE EIGHTH STATE, which is why it is worth a case rather than only a fix: the
+# list has gone stale once and the only thing that noticed was an adversarial pass.
+# THE FIXTURE IS THE VERB ITSELF, not a hand-written row: `buildnum.sh clear` is run in the clone over a number
+# that already has a row, so what is judged is what the tool produces. new_base makes the candidate the base so
+# the diff is the register row alone and nothing else can classify the commit.
+reset_clone
+new_base "H62 base: the candidate itself, so the diff is the register row alone" >/dev/null
+H62N="$( cd "$C" && bash gates/buildnum.sh list 2>/dev/null | awk '/^ *#[0-9]+ +minted /{gsub(/#/,"",$1); print $1; exit}' )"
+if [ -z "$H62N" ]; then
+  note "  FAIL H62 [$(tc H62)]  no number on the clone's register carries a \`minted\` row, so there is nothing to clear and the case cannot pose"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
+elif ! ( cd "$C" && CT_RUNID=fastgate-drive-h62 bash gates/buildnum.sh clear "#$H62N" "fastgate-drive H62 fixture, never pushed: the sanctioned clear verb" >/dev/null 2>&1 ); then
+  note "  FAIL H62 [$(tc H62)]  \`buildnum.sh clear '#$H62N'\` did not write its row, so the fixture does not exist"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
+else
+  commit_case "H62 fixture: one row written by gates/buildnum.sh clear"
+  H62ROW="$( git -C "$C" show --stat --format= HEAD 2>/dev/null | grep -c 'gates/build-numbers.tsv' || true )"
+  if [ -n "$(git -C "$C" status --porcelain 2>/dev/null)" ]; then
+    note "  FAIL H62 [$(tc H62)]  the fixture left the clone DIRTY, so the case cannot pose"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
+  elif [ "$H62ROW" = "0" ]; then
+    note "  FAIL H62 [$(tc H62)]  the fixture commit does not touch gates/build-numbers.tsv, so the row did not land"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
+  elif probe 0 "FAST GATE GREEN"; then
+    note "  ok  H62 [$(tc H62)]  (exit 0 FAST GATE GREEN over a row written by \`buildnum.sh clear\`; on the pre-veto script this answered exit 1 'a row no tool in gates/ writes')"
+    OK=$((OK+1))
+  else
+    note "  FAIL H62 [$(tc H62)]  exit $PROBE_RC - wanted exit 0. A state the register's own \`clear\` verb writes is being refused by the hard-copied vocabulary in gates/fastgate.sh; add it to ST, to the refusal message and to the comment above them."
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H62"
+  fi
+fi
+reset_clone
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -

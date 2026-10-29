@@ -169,10 +169,24 @@ if [ "${1:-}" = "--citations-selftest" ]; then
     # BREACHED IT from the moment item (5) wrote it - `gates/gatemanifest.sh --selftest` read 55 passed, 1
     # failed, naming this line. It went unseen for eleven commits because nothing between item (5) and the
     # close-out checks ran that selftest, which is this project's own lesson about a check nobody runs.
-    # Written the way its SIBLING eight lines above already is - to a file, then read the file - so the
-    # script's own exit status is captured and nothing can be killed mid-write.
+    # THERE IS NO PIPELINE AT ALL NOW, AND THE FIRST REPAIR'S OWN COMMENT WAS FALSE [antagonist A of #544,
+    # finding F5, UPHELD]. That comment claimed "the script's own exit status is captured and nothing can be
+    # killed mid-write" and that this was "written the way its SIBLING eight lines above already is". Neither
+    # held: `|| true` DISCARDS the status (the sibling genuinely captures it, with `echo "exit=$?"`), and
+    # `grep FILE | head -1` can still SIGPIPE grep under this file's own `set -uo pipefail`. What the first
+    # repair actually changed was WHICH producer can be killed - grep instead of the script - and the detector
+    # does not count that shape, so the site left the audit's vocabulary while the hazard stayed in the code.
+    # IT IS awk AND NOT grep, AND THAT IS THE MEASURED CHOICE RATHER THAN A DODGE. `grep -m1 FILE || true`
+    # removes the pipe and is STILL TIER D, because the audit counts an early-exiting grep whose status is
+    # discarded whether or not a pipe is involved - re-measured here, the total stayed at 30 after that first
+    # attempt. Reading the status in an `if` would make it TIER A, and TIER A is at its own ceiling of 1, so
+    # that repair would breach a different limb. `awk '/re/{print; exit}' FILE` has the same early-exit
+    # semantics, no second process to signal, and its status is the file read rather than the match - so the
+    # hazard is gone rather than relabelled, and the site leaves the audit because it is no longer one.
+    # This helper's contract is the one line it prints; the status is not consumed, and saying so is the
+    # difference between a discarded status and a claimed one.
     ( cd "$1" && bash gates/verify-log.sh --citations >"$1/ratchet.txt" 2>&1 || true
-      grep -E '^CITATIONS RATCHET:' "$1/ratchet.txt" | head -1 )
+      awk '/^CITATIONS RATCHET:/{print; exit}' "$1/ratchet.txt" )
   }
   # sig() AS gates/fastgate.sh:2194 DEFINES IT, COPIED HERE ON PURPOSE AND THE COPY IS NAMED. This file must not
   # depend on fastgate.sh being present (it is the push gate's own selftest and runs in bare fixture trees), so

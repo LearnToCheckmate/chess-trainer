@@ -15,14 +15,28 @@
 #                                    exit 0 = absent, 1 = present (prints every row), 2 = usage.
 #
 #   READ THOSE EXIT STATUSES OFF THE SCRIPT AND NOT OFF A PIPELINE. `check` writes its rows a line at a time, so
-#   a downstream reader that closes the pipe early kills it with SIGPIPE and the status you read is 141, not the
-#   verdict. MEASURED on 2026-10-29 at #544: `gates/buildnum.sh check '#517'` exits 1 (present), and
-#   `gates/buildnum.sh check '#517' | head -2` exits 141. A wrapper written as `buildnum.sh check "$N" | head -5;
-#   if [ $? -eq 1 ]` therefore reads an ISSUED number as neither issued nor free, which is the one answer this
-#   tool exists to prevent. There is nothing to fix in the script - a writer that is signalled cannot choose its
-#   own status - so the remedy belongs to the caller: capture first and page the capture
-#   (`OUT="$(buildnum.sh check "$N")"; RC=$?`), or read "${PIPESTATUS[0]}" rather than `$?`. Found by antagonist B
-#   of #518 (its section 5.1), reproduced here both ways before being written down.
+#   a downstream reader that closes the pipe early kills it with SIGPIPE, and what the caller then reads is not
+#   the verdict. Found by antagonist B of #518 (its section 5.1).
+#   THE PARAGRAPH THAT STOOD HERE FROM #544 item (16b) UNTIL ITS OWN ANTAGONIST READ IT WAS WRONG IN THREE WAYS
+#   AND IS REPLACED [antagonist A of #544, veto V2, UPHELD; every figure below re-measured by hand before this
+#   was written, which is what item (16b) claimed and had not done]. It said the piped form exits 141 and
+#   offered "${PIPESTATUS[0]}" as a remedy. MEASURED on 2026-10-29 against this register, four commands:
+#     bash gates/buildnum.sh check '#517'                                  -> 1          (present: the verdict)
+#     ...check '#517' | head -2            in a DEFAULT shell              -> 0          PIPESTATUS[0]=141
+#     ...check '#517' | head -2            under `set -o pipefail`         -> 141        PIPESTATUS[0]=141
+#     OUT="$(...check '#517')"; RC=$?                                      -> 1          (the verdict)
+#   (1) THE PIPED FORM EXITS 0, NOT 141, unless the caller has set pipefail - which the old text never stated,
+#       so a reader who ran the published line got 0 and had grounds to conclude the note was wrong.
+#   (2) "${PIPESTATUS[0]}" IS THE HAZARD AND NOT THE REMEDY: it is 141 in BOTH shells, because it is precisely
+#       the producer's SIGPIPE status. A caller who followed that sentence read 141 instead of the verdict.
+#   (3) THE DANGEROUS READING IS THE ONE THE OLD TEXT DID NOT NAME. Without pipefail the pipeline's `$?` is 0,
+#       and two lines above this one, exit 0 MEANS ABSENT. So `buildnum.sh check "$N" | head -5; if [ $? -eq 0 ];
+#       then echo free; fi` reports an ISSUED NUMBER AS FREE - the #416 two-trees-one-number shape, and strictly
+#       worse than the 141 the old text warned about.
+#   THERE IS NOTHING TO FIX IN THE SCRIPT: a writer that is signalled cannot choose its own status. THE ONE
+#   REMEDY THAT WORKS IS TO CAPTURE FIRST AND PAGE THE CAPTURE - `OUT="$(buildnum.sh check "$N")"; RC=$?` - and
+#   no caller in this project reads `$?` across a pipe from this script today, which is why all of this is a
+#   hazard for the next caller rather than a live defect.
 #
 #   gates/buildnum.sh stampable <#NNN>   MAY THIS RUN STAMP IT? The predicate gates/build.sh uses.
 #                                    exit 0 = yes, 1 = no (says who holds it), 2 = usage. Needs CT_RUNID.
@@ -464,10 +478,26 @@ case "${1:-}" in
       BCNT="$(nbundles_for "$N")"
       echo "ISSUED: #$N is already on the register ($CNT row(s), naming $BCNT distinct bundle(s))."
       printf '%s\n' "$HITS" | while IFS= read -r r; do show_row "$r"; done
+      # ── A CLEARED NUMBER IS NAMED AS CLEARED, AND NOT AS RESERVED [antagonist A of #544, finding F9].
+      # Item (10) shipped the `clear` verb and its block claimed that "`check` prints cleared rows in their own
+      # labelled section". IT DID NOT: cleared rows printed inline with every other row, and because a cleared
+      # row carries no bundle md5 the note below then told an auditing run the number was RESERVED and names no
+      # artefact yet - true of the md5 field and the opposite of what happened to the number. A measured it on
+      # #517 after two clearances: three rows, "RESERVED and names NO artefact yet", and no mention of the
+      # clearance anywhere in the output. The claim is corrected at the `clear` block and the behaviour is
+      # supplied here, which is the half that a reader actually consumes.
+      CLRN="$(printf '%s\n' "$HITS" | awk -F'\t' '$2=="cleared"{c++} END{print c+0}')"
+      if [ "$CLRN" != "0" ]; then
+        echo "  CLEARED: #$N carries $CLRN 'cleared' row(s), so it was recorded and NO LONGER STANDS. The"
+        echo "  register is append-only, so the earlier rows are still above - read the cleared row's note for"
+        echo "  why. A cleared number is NOT free: \`next\` and \`mint\` still count it as issued."
+      fi
       # RESERVED IS A DIFFERENT AND MORE USEFUL THING TO SAY THAN AMBIGUOUS, and it is the job's own second
       # clause: with rows on the register and no bundle md5 among them, the number names NOTHING yet. #467 and
       # #478 are that shape, and the old note told a reader they named several artefacts where there are zero.
-      if [ "$BCNT" = "0" ]; then
+      # IT IS SUPPRESSED FOR A CLEARED NUMBER, because "names no artefact yet" reads as "still available to
+      # build under" and a cleared number is the opposite of that [F9].
+      if [ "$BCNT" = "0" ] && [ "$CLRN" = "0" ]; then
         echo "  NOTE: #$N is RESERVED and names NO artefact yet - every row's bundle md5 is '-'. Nothing has"
         echo "  been built under it, so there is nothing to cite and nothing ambiguous about it."
       fi
@@ -691,7 +721,12 @@ case "${1:-}" in
     # number is never removed. #454 added a lint to `list` that NAMES such a line; this is the other half, the
     # sanctioned way to say "this number was recorded and no longer stands" without editing or hiding anything.
     # IT IS APPEND-ONLY LIKE EVERY OTHER WRITE HERE: it adds a `cleared` row and changes no existing byte, and
-    # `check` prints cleared rows in their own labelled section, which is what held.sh does for its own.
+    # `check` NAMES A CLEARED NUMBER as cleared, in its own line above the row list, and SUPPRESSES the
+    # RESERVED note for it. THIS SENTENCE USED TO CLAIM A LABELLED SECTION THAT DID NOT EXIST [antagonist A of
+    # #544, F9]: cleared rows printed inline like every other row, and because they carry no bundle md5 the
+    # RESERVED note then told an auditing run the number "names NO artefact yet", which is true of the field and
+    # the opposite of what had happened to the number. Behaviour supplied and claim corrected together, because
+    # correcting only the claim would have left the reader with the wrong reading and no tell.
     # TWO REFUSALS AND ONE CAVEAT CODE, so a caller can tell the three outcomes apart:
     #   exit 2  the number has NO prior row - you cannot clear what was never recorded, and a lone `cleared`
     #           row would be a claim about a number this register has never seen.

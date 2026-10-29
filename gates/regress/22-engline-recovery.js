@@ -408,9 +408,20 @@ L.run(async()=>{
   // What the job asks for instead is exactly what happens: 'the honest form is an explicit NOTE that the run
   // did not enter the state, so the log says so, rather than five silent passes'. So a zero emits NO PASS AT
   // ALL - reported, never credited - and names the five assertions it governs.
+  // AND THE NON-ZERO BRANCH IS A NOTE TOO, NOT A PASS [antagonist A of #544, finding F2, UPHELD].
+  // It was `if(nTrap>0){ L.say(nTrap>0, ...) }` - THE ASSERTION'S CONDITION WAS THE GUARD'S CONDITION, so it
+  // was a PASS line that could not fail, credited to the suite total, inside the repair for a vacuity job.
+  // CLAUDE.md's rule for this class is explicit and it covers both halves: a missing denominator is
+  // "REPORTED, never credited: a red, or an explicit note that says it did not run, and NEVER A PASS". The
+  // zero branch obeyed it and the non-zero branch broke it.
+  // SO NEITHER BRANCH ASSERTS, AND THAT IS THE RIGHT ANSWER RATHER THAN A RETREAT: the count is a fact about
+  // the CONTAINER, and the paragraph above gives the reason a zero may not redden a push. A quantity that must
+  // not gate anything has nothing to assert about it - what the job asked for is that the log always SAY which
+  // happened, and it does, in both directions. The instrument above (trapCount, unit-tested over four inputs
+  // including the empty list) is what is asserted, and it is asserted where it can fail.
   const nTrap=trapCount(b.errs);
   if(nTrap>0){
-    L.say(nTrap>0,'TC-SUITE-236 THE WASM TRAP FIRED '+nTrap+' time(s) on this run, so the five recovery assertions above (the first-visit number, the revisit variation and the revisit sign at each of plies 19 and 25) are about a REAL event rather than a non-event',{nTrap,of:b.errs.length});
+    L.note('TC-SUITE-236 THE WASM TRAP FIRED '+nTrap+' time(s) on this run (of '+b.errs.length+' page error(s)), so the five recovery assertions above - the first-visit number, the revisit variation and the revisit sign at each of plies 19 and 25 - are about a REAL event rather than a non-event. No PASS is emitted: this is a property of the container, not of the tree, and the same rule that forbids reddening on a zero forbids crediting on a non-zero.');
   }else{
     L.note('TC-SUITE-236 NOT CHECKED: ZERO /RuntimeError: unreachable/ page errors were observed on this run, so there was NOTHING TO RECOVER FROM and the five recovery assertions above passed over a NON-EVENT. No PASS is emitted for this line - a missing denominator is reported and never credited. The reference reading in this container is SIX traps against an allowed count of 7, measured at #504 in the 22-engline-recovery section of that run, which this repository does not archive, so a zero here means the trap has stopped firing and this gate has stopped guarding #389.');
   }

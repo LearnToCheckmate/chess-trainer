@@ -226,8 +226,18 @@ async function sayTextMetrics(page){
       'and every absolute text-derived pin in this suite is then OFF CALIBRATION [#537 reddened ten gates on '+
       'main\'s own unchanged bundle this way, with the face line printing clean]',
       {segoe:r.segoe,sentinel:r.bogus,systemUi:r.app,sansSerif:r.sans,fontconfig:_fcState,fcMatchFace:_fcFace});
-    console.log('     text metrics @16px over the reference string: system-ui '+r.app+'  "Segoe UI" '+r.segoe+
-                '  sans-serif '+r.sans+'  (fall-through sentinel '+r.bogus+')'+
+    // ── THE LINE THE SUITE FOOTER PARSES IS FORMATTED TO TWO DECIMALS HERE, BY CONSTRUCTION
+    // [antagonist A of #544, finding F10]. `w()` above returns `+(...).toFixed(2)` - a NUMBER - so a width of
+    // 348.30 prints as "348.3" and one of 322.00 as "322", while gates/gates.sh's calibration gate parses this
+    // line with a regex that requires two decimals. Not reachable on today's quartet, all four of which carry
+    // two; a TRAP for the next recalibration, where one one-decimal value would make the footer permanently red
+    // for the wrong reason - "calibration NOT COMPARED" on an honest tree. Fixed at the PRODUCER because that is
+    // the end that can guarantee the format. NOT by making `w()` return a string: gates/fontpin-control.sh greps
+    // the detail object for `"segoe":[0-9.]+`, which a quoted value would no longer match, so the numbers stay
+    // numbers everywhere except in this one printed line.
+    const f2=(v)=>Number(v).toFixed(2);
+    console.log('     text metrics @16px over the reference string: system-ui '+f2(r.app)+'  "Segoe UI" '+f2(r.segoe)+
+                '  sans-serif '+f2(r.sans)+'  (fall-through sentinel '+f2(r.bogus)+')'+
                 (ftSegoe&&ftSysui?'  *** BOTH \'Segoe UI\' AND system-ui fell ALL THE WAY THROUGH: the app root has no face of its own ***'
                  :ftSysui?'  -- system-ui (the app stack\'s SECOND family) fell all the way through'
                  :ftSegoe?'  -- \'Segoe UI\' (the app stack\'s first family) is unresolvable, so the root renders system-ui; expected in these images'

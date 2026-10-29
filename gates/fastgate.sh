@@ -1363,7 +1363,10 @@ EOF
   # since #524. So the appended rows are now counted WITH THEIR MULTIPLICITY (one awk: the base rows first,
   # then each head row is matched off against them or kept), and every kept row is judged as a row:
   #   (i)   nine tab separated fields and a state from the vocabulary `buildnum.sh add` accepts (minted,
-  #         issued, built, shipped, held, abandoned), which is what every writer in gates/ produces;
+  #         issued, built, shipped, held, abandoned, cleared), which is what every writer in gates/ produces.
+  #         THIS LIST IS A COPY AND THE COPY HAS GONE STALE ONCE ALREADY: `cleared` arrived with #544 item
+  #         (10)'s `clear` subcommand and was missing here, so a row written by that verb was refused at exit 1.
+  #         Whoever adds the eighth state adds it in BOTH places and in the refusal message below;
   #   (ii)  no exact copy of another row in the head register. No tool writes one: `record` is idempotent on
   #         number, bundle and source, `mint` reads back exactly one row for its number, and `add` stamps the
   #         minute, so a copy is a hand, or an operator running `add` twice in one minute;
@@ -1424,7 +1427,16 @@ EOF
     BEGIN { nv = split(vouch, va, " "); for (i = 1; i <= nv; i++) if (va[i] != "") V[va[i]] = 1
             ns = split(seed, sa, " "); for (i = 1; i <= ns; i++) if (sa[i] != "") S[sa[i]] = 1
             nh = split(heldk, ha, " "); for (i = 1; i <= nh; i++) if (split(ha[i], hq, "|") == 3) HK[hq[1] SUBSEP norm(hq[2]) SUBSEP hq[3]] = 1
-            ST["minted"] = 1; ST["issued"] = 1; ST["built"] = 1; ST["shipped"] = 1; ST["held"] = 1; ST["abandoned"] = 1 }
+            # `cleared` ADDED AT #544 [antagonist A of #544, veto V1, UPHELD]. This list is a HARD COPY of the
+            # vocabulary `gates/buildnum.sh add` accepts, and the comment above says so - so when #544 item (10)
+            # added the state `cleared` and a whole `clear` subcommand to that tool, this copy went stale and a
+            # records-only commit carrying a row written by that sanctioned verb was REFUSED here at EXIT 1,
+            # naming it "a row no tool in gates/ writes". Exit 1 is a refusal with no route onward; the comment
+            # eight lines below the refusal says "exit 1 and not exit 2" in terms. A reproduced it with a
+            # control: the identical row shape under `abandoned` answers FAST GATE GREEN on the same base, so
+            # the state token was the only variable. That is the rule about a fix recorded in one home not
+            # travelling, with the two homes one grep apart.
+            ST["minted"] = 1; ST["issued"] = 1; ST["built"] = 1; ST["shipped"] = 1; ST["held"] = 1; ST["abandoned"] = 1; ST["cleared"] = 1 }
     $0 ~ /^[[:space:]]*#/ || $0 == "" { next }
     FILENAME == bfile { B[$0]++; next }
     { H[$0]++; L[++n] = $0 }
@@ -1441,7 +1453,7 @@ EOF
         l = L[i]
         nf = split(l, f, "\t")
         if (nf != 9) { printf "    an appended row has %d fields, and every writer in gates/ writes nine: %s\n", nf, substr(l, 1, 70); continue }
-        if (!(f[2] in ST)) { printf "    appended row #%s carries the state \"%s\", which no tool in gates/ writes (minted, issued, built, shipped, held, abandoned).\n", f[1], f[2]; continue }
+        if (!(f[2] in ST)) { printf "    appended row #%s carries the state \"%s\", which no tool in gates/ writes (minted, issued, built, shipped, held, abandoned, cleared).\n", f[1], f[2]; continue }
         if (H[l] > 1) { printf "    appended row #%s %s (runId %s, written %s) is a BYTE-IDENTICAL copy of another row in the head register, and no tool in gates/ writes one.\n", f[1], f[2], f[7], f[6]; continue }
         if (f[2] == "built" && !((f[4] in V) || held(f) || ((norm(f[1]) SUBSEP f[7]) in P)))
           printf "    appended row #%s built names bundle %s, which nothing in this history holds: not app.js at the base, at the head or between, no live gates/held-trees.tsv row naming it for this number and runId, and no vouched built row for #%s by %s appended in this diff.\n", f[1], f[4], f[1], f[7]

@@ -2728,7 +2728,14 @@ TM_ALL="$(grep -av '^[[:space:]]*instrument:' "$ALL" 2>/dev/null | grep -ao 'tex
 TM_LINE="${TM_ALL%%$'\n'*}"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
 TM_NDIST="$(printf '%s' "$TM_ALL" | grep -c . || true)"
 TM_WANT='402.12 322.15 348.28 322.15'
-TM_GOT="$(printf '%s' "$TM_LINE" | grep -oE '[0-9]+\.[0-9][0-9]' | tr '\n' ' ' || true)"; TM_GOT="${TM_GOT% }"
+# BELT AND BRACES ON THE DECIMAL COUNT [antagonist A of #544, F10]. This required EXACTLY two decimals while
+# gates/lib.js's producer returned a coerced Number, so a metric of 348.30 would print "348.3", go unmatched,
+# take TM_NGOT below 4 and make a FULL run RED for "calibration NOT COMPARED" on an honest tree. The producer is
+# fixed to format the line to two decimals, which is the end that can guarantee it; this widening means the
+# parse no longer depends on that being true. A metric that rounds to a whole number and prints with NO DOT is
+# still missed, and that is the declared residual: the only dotted numbers in this line are the four metrics
+# (the `@16px` carries no dot), so requiring the dot is what keeps the match from picking up the font size.
+TM_GOT="$(printf '%s' "$TM_LINE" | grep -oE '[0-9]+\.[0-9]+' | tr '\n' ' ' || true)"; TM_GOT="${TM_GOT% }"
 TM_NGOT="$(printf '%s' "$TM_GOT" | wc -w | tr -d ' ')"
 TM_PROV='the #534 calibration, authoritative by decisions/an-off-calibration-suite-may-not-push-2026-10-27; the target every green log from #485 to #534 read, on chromium 141.0.7390.37'
 TM_FULL=no; [ -z "${SUBSET:-}" ] && TM_FULL=yes

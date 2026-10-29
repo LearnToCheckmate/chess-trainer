@@ -83,7 +83,13 @@ const READ=(b)=>b.page.evaluate((src)=>{
     summary:[...new Set([...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim())
       .filter(t=>/·/.test(t)&&t.length<90&&/Computer|Human|Pass|Online/i.test(t)))].slice(0,3),
     // the vertical cost of nine more pills, which is what this change actually spends (TC-OC-006)
-    sheetScroll:(()=>{const sc=[...document.querySelectorAll('div')].filter(x=>{const st=getComputedStyle(x);
+    // ── THE CANDIDATE SET IS EVERY ELEMENT AND NOT EVERY DIV [antagonist A of #544, finding F1, UPHELD].
+    // TC-OC-006c below asserts `!isDoc`, and with the set built from querySelectorAll('div') THAT CONJUNCT
+    // COULD NEVER BE TRUE - documentElement is HTML and body is BODY, neither of them a div - so item (31)
+    // replaced one constant-true conjunct with another, in the item whose whole subject is that class. A
+    // measured it in real Chromium over four constructed pages. Widening to '*' can only ADD elements that
+    // genuinely overflow AND carry overflow-y auto or scroll, which is what makes isDoc an assertion.
+    sheetScroll:(()=>{const sc=[...document.querySelectorAll('*')].filter(x=>{const st=getComputedStyle(x);
       return /auto|scroll/.test(st.overflowY)&&x.scrollHeight>x.clientHeight+1;});
       // ── THE SCROLLER'S IDENTITY, NOT ONLY ITS SIZE [#544 item (31)]. TC-OC-006b used to assert
       // `sheetScroll.sh > sheetScroll.ch` on an object this filter only produced BECAUSE scrollHeight was
@@ -163,10 +169,19 @@ for(const g of geos){
   // identify, and that is a legitimate state (#400 measured it at 390x844 with nine fewer pills), so it is an
   // L.note and not a PASS. A PASS here would be the very thing this item removes.
   if(o.sheetScroll===null){
-    L.note(g.n+': TC-OC-006c NOT CHECKED - the sheet fits at '+o.vw+'x'+o.vh+', so no element overflows and there is no scroller to identify. #400 measured exactly this at 390x844 with nine fewer pills, which is why it is a note and not a red');
+    // THE SENTENCE IS NARROWED TO WHAT WAS LOOKED AT [antagonist A of #544, F1]. It used to read "so no
+    // element overflows", which is a claim about the page; the collector asks only about elements whose
+    // computed overflow-y is auto or scroll, so an element that overflows with overflow-y hidden or visible is
+    // outside it and the old wording was a false measurement in a note.
+    L.note(g.n+': TC-OC-006c NOT CHECKED - at '+o.vw+'x'+o.vh+' no element whose computed overflow-y is auto or scroll overflows its own box, so there is no scroller to identify. #400 measured exactly this at 390x844 with nine fewer pills, which is why it is a note and not a red');
   }else{
-    L.say(!o.sheetScroll.isDoc&&o.sheetScroll.id!=='/'&&o.sheetScroll.h>0,
-      g.n+': TC-OC-006c and the element that pays for the pills is a SHEET BOX inside the page, named here rather than merely measured - '+o.sheetScroll.id+' at top '+o.sheetScroll.top+', '+o.sheetScroll.h+'px tall, scrolling '+o.sheetScroll.sh+' in '+o.sheetScroll.ch+'. The old form asserted sh>ch, which the selector above had already guaranteed',o.sheetScroll);
+    // THE `id!=='/'` CONJUNCT IS GONE [antagonist A of #544, F1]. `id` is built as
+    // (data-ct or DOM id or '') + '/' + tagName + (first class), so the tagName is ALWAYS interpolated and the
+    // comparison could never be false - a third decoration reading as a check. What is asserted is what can
+    // turn: the payer is not the document or the body, and it has a real box. Its identity is PRINTED, which is
+    // what a reader needs, and printing is not asserting.
+    L.say(!o.sheetScroll.isDoc&&o.sheetScroll.h>0,
+      g.n+': TC-OC-006c and the element that pays for the pills is a box INSIDE the page and not the document or the body - '+o.sheetScroll.id+' at top '+o.sheetScroll.top+', '+o.sheetScroll.h+'px tall, scrolling '+o.sheetScroll.sh+' in '+o.sheetScroll.ch+'. The old form asserted sh>ch, which the selector above had already guaranteed',o.sheetScroll);
   }
 
   await b.close();
