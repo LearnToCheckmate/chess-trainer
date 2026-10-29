@@ -1,4 +1,6 @@
 # HANDOFF - where the last run left off
+
+> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
 **#544: BATCH 4. THIRTY-FIVE JOBS WORKED, GATES GREEN #544 AT 5171 PASS / 0 FAIL OVER 60 SECTIONS,
 PUSHED TO MAIN - AND THE PUSH CHECKS TIER REVERTED WHOLE ON FOUR UPHELD VETOES.**
 Run `build__1793215280362`, 28-29 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_28_batch4`.

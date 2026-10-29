@@ -1,5 +1,7 @@
 # Build context — everything the builder needs that is not already in this repo
 
+> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
+
 **For the pen-holder to commit to the repo as `claude/BUILD-CONTEXT.md`.** It exists because the
 build session cannot read the claude.ai project docs, and roughly twenty of them accumulated there
 between 2026-09-11 and 2026-09-13. This is those docs, condensed to what changes what you build.

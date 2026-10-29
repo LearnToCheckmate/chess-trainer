@@ -393,3 +393,5 @@ chess.com puts its coach bubble in the right-hand PANEL and never over the board
 panel to put it in; on a phone there is not. Copying the pattern onto the board is the mistake.
 
 Scope is Review only. The lesson screen's note box sits ABOVE its board, not on it, and is untouched.
+
+> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.

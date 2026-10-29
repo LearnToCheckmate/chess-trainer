@@ -26,7 +26,7 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | prefix | suite | file | owner |
 |---|---|---|---|
 | `US-Rnn` / `TC-Rnn` | the **gate-executed** Review suite — every case names the gate that runs it | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md` | this repo |
-| `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (reserved; the document is still in the claude.ai project) | the test-lane sessions |
+| `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (landed at #545 from docs/patch-reconcile-2026-09-22; the project copies are frozen) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
 | `US-BN-nn` / `TC-BN-nnn` | the **build-number register** — tooling and records, nothing a player sees. Its case register is the command `gates/buildnum-selftest.sh`, not a file in `gates/regress/`, so it never blocks a `GATES GREEN` | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, executed by `gates/buildnum-selftest.sh` | this repo (build lane). **Claimed at #465**; 0 hits repo-wide before that commit |
 
@@ -164,8 +164,13 @@ use the new prefix. This applies to gate comments, agent reports, flags and mess
 
 ## What is still outstanding
 
-The project-side half of this cannot be done from the build session: `REVIEW-SUITE-FULL.md` and its `TC-RFnn`
-renumbering live in the claude.ai project, which this session cannot read or write. Tracker flag
-`suite-id-collision-tc-r` carries the request, with the target names above. Until it lands, this register is the
-thing that makes a repo sentence unambiguous, and the reserved row for `REVIEW-SUITE-FULL.md` is what stops anyone
-claiming that path for something else in the meantime.
+BOTH HALVES HAVE NOW LANDED. The project half landed on 22 September 2026: the full suite was renamed to
+`US-RFnn` / `TC-RFnn` and the project copies were frozen (tracker docs/patch-reconcile-2026-09-22). The
+repository half was then the outstanding side for five weeks, while this paragraph still said the PROJECT side
+could not be done from here. That blamed the half that was already done, which is how the patch sat ready while
+builds moved on (jobs/apply-patch-reconcile-2026-09-22, and the duplicate closed into it,
+jobs/reconcile-patch-ready-seven-days-while-the-register-blames-the-side-that-is-done-2026-09-29). #545 landed
+`claude/stories/REVIEW-SUITE-FULL.md` from that patch: 30 stories and 31 cases, 61 distinct `US-RF`/`TC-RF` ids
+and no bare `US-Rnn`. What is still open is a case: no id that heads a case row in `TEST-CASES.md` may also head
+one in the frozen 31-case list, and every file path named in the register table above must exist. It is recorded
+on jobs/apply-patch-reconcile-2026-09-22 and is not built here. Until it exists, the rule above still applies.

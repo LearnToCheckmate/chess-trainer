@@ -1,4 +1,6 @@
 # RUN-LOG — one line per build: ETA stated, started, ready, actual, delta, gates. (Supervisor ruling B, 2026-09-12)
+
+> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
 Kunal's rule p1/p2: an ETA before each build and the actual against it after; elapsed at the end of every
 response. This file is the persistent record; the chat is not. Times are ET.
 
