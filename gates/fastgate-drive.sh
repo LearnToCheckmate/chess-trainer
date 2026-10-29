@@ -2108,8 +2108,13 @@ PY
 # It is one of the two sites item (5) and item (14) of this run created, and the close-out commit that fixed two
 # others attributed these two to the wrong file - corrected on the record and fixed here.
 # The output goes to a file and awk reads it: no second process to signal, and the early exit is awk's own.
-h55_width(){ ( cd "$C" && timeout 120 bash gates/verify-log.sh --citations >"$C/.h55w.txt" 2>&1 || true
-                awk 'match($0,/widthrise=[0-9]+/){print substr($0,RSTART+10,RLENGTH-10); exit}' "$C/.h55w.txt" ) ; }
+# AND THE CAPTURE IS A VARIABLE, NOT A FILE IN THE CLONE. MEASURED: my first draft of this repair wrote
+# `$C/.h55w.txt`, and `commit_case` does `git add -A`, so the scratch file landed IN THE FIXTURE COMMIT and
+# fastgate answered `exit 2 FULL SUITE REQUIRED - These paths are not records-only` - H55 red for a reason
+# that has nothing to do with widthrise, which is a wrong-reason red of exactly the kind this run has spent
+# its day removing. A herestring has no producer process to kill and leaves nothing on disk.
+h55_width(){ local o; o="$( cd "$C" && timeout 120 bash gates/verify-log.sh --citations 2>&1 || true )"
+             awk 'match($0,/widthrise=[0-9]+/){print substr($0,RSTART+10,RLENGTH-10); exit}' <<<"$o" ; }
 h55_set broken2
 # `new_base ... >/dev/null` AND NOT `$(new_base ...)`, WHICH IS THE IDIOM EVERY OTHER CALLER USES AND THE FIRST
 # DRAFT OF THIS CASE GOT WRONG: new_base sets the global CASEBASE that run_fastgate gates against, and command
