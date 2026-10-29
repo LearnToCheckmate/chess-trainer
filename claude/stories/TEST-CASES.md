@@ -1259,12 +1259,19 @@ as `for f in "$G"/regress/*.js`, no regress gate reads it, and it has no `gate-m
 `GATES GREEN` said nothing about it, and #522 landed 291 lines of it under a green suite that read none of them.
 Job: `no-test-drives-gates-fastgate-sh-end-to-end-so-a-same-length-wrong-stamp-and-a-planted-register-row-both-take-a-fast-green-2026-10-15`.
 
-**THE IDS START AT 057 AND THE JOB'S OWN POINTER NEEDED CHECKING [R18].** Its `startHere` says "TC-SUITE-056 is
-the highest id in use", and in THIS FILE the highest is TC-SUITE-019 - 056 is published by
-`gates/audit/cited-not-run.sh` and `gates/audit/r19-phone-geometry.sh` and appears nowhere in the register,
-which is the same "published but unregistered" class #521's pen note records against TC-SUITE-RG-001. Measured
-across the whole repository (`grep -rhoE 'TC-SUITE-[0-9]{3}'`), 056 IS the true ceiling, so the pointer is right
-about the id space and this file is the thing that is incomplete. 057 cannot collide on either reading.
+**THE NEXT FREE TC-SUITE ID IS NOT A FIGURE THIS FILE STATES - IT IS ONE ABOVE WHAT THIS COMMAND PRINTS, RUN WHEN
+YOU NEED IT [#545, item (67); jobs/test-cases-own-tc-suite-ceiling-sentences-are-130-ids-stale-so-the-next-mint-collides-2026-10-28]:**
+`grep -rhoE 'TC-SUITE-[0-9]{3}' claude gates | sort -u | tail -1` (repository-wide, because a gate or an audit
+can publish an id before this register carries it). This paragraph used to say, in the present tense, that the
+highest id in this file was TC-SUITE-019 and the repository-wide ceiling 056; #541's antagonist measured 186 for
+both at 3b79e29, and at #545 the command prints 281. A typed ceiling goes stale with the next mint, and the stale
+one is exactly the collision claude/stories/README.md exists to end.
+
+THE HISTORY, dated rather than deleted: AT #522, when this section's ids were minted, the job's `startHere` said
+"TC-SUITE-056 is the highest id in use", this file's highest was TC-SUITE-019, and 056 was published by
+`gates/audit/cited-not-run.sh` and `gates/audit/r19-phone-geometry.sh` without a row here (the "published but
+unregistered" class #521's pen note records against TC-SUITE-RG-001). Measured repository-wide THEN, 056 was the
+ceiling, so 057 could not collide on either reading. Those figures are true of #522 and of nothing later.
 
 **AND SINCE #524 EVERY LINE THE HARNESS PRINTS CARRIES ITS TC ID.** Until then these ids appeared in this
 register and in NO LOG: `grep -c 'TC-SUITE-0[567]'` on a gate log was 0, so no cell here could be checked
