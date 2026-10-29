@@ -215,8 +215,9 @@ should choose. It picks the first `openings`/`gambits` entry and that is unchang
 
 ## Cross-app invariants - specced 2026-09-15 by Kunal · invariants 2 and 3 executed #423 (26-invariants.js)
 
-Every clause here is a RELATIONSHIP rather than a value, and that is the whole point of the section. The other
-1961 assertions in this suite each pin a number on one element; a property that ought to hold across the app had
+Every clause here is a RELATIONSHIP rather than a value, and that is the whole point of the section. Every other
+assertion in this suite pins a number on one element (how many there are is the newest gate log's footer, not a number
+typed here - this sentence said 1961, #422's figure, inside a section executed against #423); a property that ought to hold across the app had
 no home in it, which is why no test found the inconsistent Review icons and why Kunal found them by hand. Flag
 `build-the-invariant-gate` carries his commission and the reasoning.
 

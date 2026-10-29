@@ -357,6 +357,7 @@ const ROWS = function(){
     const hs=wg.map(c=>c.g.gh);
     rows.push({par:path(par), n:wg.length,
                spread:+(Math.max(...hs)-Math.min(...hs)).toFixed(1),
+               rawSpread:Math.max(...hs)-Math.min(...hs),   // #545 item (42): compared UNROUNDED, see the filter below
                heights:hs.slice().sort((a,b)=>a-b),
                sig:wg.map(c=>c.lab).sort().join('|'),
                kids:wg.map(c=>({lab:c.lab,gh:c.g.gh,ink:c.g.ink,via:c.g.via,box:c.w+'x'+c.h,fs:c.fs}))});
@@ -1311,7 +1312,13 @@ L.run(async()=>{
         L.note('      NOT PINNED at this geometry: row and occlusion counts are REPORTED here, not asserted (rows '+iv.rows.length+', occluded '+iv.covered+'). Only the three swept geometries carry population pins.');
       }
 
-      const spread=iv.rows.filter(r=>r.spread>1.05);
+      // #545 item (42) [jobs/spec-numbers-disagree-with-the-artefact-they-cite-2026-09-27]: US-INV-02 says "within 1px" and this
+      // filter said 1.05 - and compared a value ALREADY ROUNDED by toFixed(1), so a row spreading 1.04px read as 1.0 and passed.
+      // The ceiling was decided as 1px by jobs/desk-route-invariant-2-ceiling-1px-or-105px-2026-09-28 (decisionByOrchestrator_
+      // 2026_10_27, "Kunal's commission as written"). So the comparison is now the RAW spread against 1.0, and every row in the
+      // band the old rule excused, (1.00, 1.05], is printed - it is the band this change could newly redden.
+      for(const r of iv.rows) if(r.rawSpread>1.0&&r.rawSpread<=1.05) L.note('      TC-INV-02a band (1.00, 1.05], newly in scope at #545: '+r.sig+' raw spread '+r.rawSpread.toFixed(3));
+      const spread=iv.rows.filter(r=>r.rawSpread>1.0);
       const unpinned=[], pinMoved=[];
       for(const r of spread){
         const pin=pinRow(r.sig);
@@ -1536,7 +1543,7 @@ L.run(async()=>{
     // gate has quietly stopped covering something.
     L.say(totalSkipped===0, g+': no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)', {skipped:totalSkipped});
     L.say(seenAny>=60, g+': the sweep as a whole measured a real quantity of ink across the screens', {inkedTextNodes:seenAny});
-    // 11 of the 12 screens measure at least one eligible text node today; HOME is the one that measures none
+    // [#423's count, kept as written; the table is fifteen since #545] 11 of the 12 screens measure at least one eligible text node today; HOME is the one that measures none
     // (its two nowrap boxes both clip), and that is named in the header rather than hidden in a green. A floor
     // of 10 leaves room for one more screen to legitimately stop qualifying and still goes red if 4b quietly
     // stops reaching the screens it is supposed to cover - which is the failure `nowrapBoxes>=1` could not see.
@@ -1669,7 +1676,7 @@ L.run(async()=>{
       g+': the screen walk stood on EXACTLY the '+DECLARED.length+' declared screens, each once - a skipped screen asserts nothing and used to stay green, and a revisited one counts twice into the population floors (flags/gate26-screen-walk-can-revisit-and-skip-and-stays-green-2026-09-18; negative control CT_INV_NC_SKIP / CT_INV_NC_DUP)',
       (notWalked.length||walkedTwice.length||undeclared.length)? {neverReached:notWalked, reachedTwice:walkedTwice, notDeclared:undeclared, declared:DECLARED.length}
                                                                : {screensWalked:walked.length, declared:DECLARED.length});
-    L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
+    L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the '+DECLARED.length+' declared screens (the message said "of the 12" while the table held 13, and it holds 15 since #545), so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
     L.say(ivSignalled>0, g+': TC-INV-04c measured a non-empty population of ellipsed (signalled) cuts - over none, "no unreadable label" would be an empty set, not a reading',{signalledMeasured:ivSignalled});
     await b.close();
   }
