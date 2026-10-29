@@ -273,40 +273,6 @@ main(){
     return 2
   fi
 
-  # ── (2b) A SHALLOW ROOT ROUTES. IT DOES NOT ANSWER RED. [#543, repair 2 of THE WORK; fresh antagonist
-  # A's F2 of #542.] gates/verify-log-selftest.sh:46 pins a fixture log whose `ref: HEAD` line names
-  # 1f5ca108701db5476cd6bf552ce3c259e4e8f991, 461 commits behind main, and THE ROUTINE'S OWN CLONE IS SHALLOW AT
-  # 50 COMMITS (CLAUDE.md, #454), which does not hold that object. Main's selftest then regresses inside the
-  # judge's own battery and the acceptance arm turns that into CHECKS TIER RED at exit 1 - the verdict that means
-  # "stop, do not re-run" - on a commit that is perfectly honest.
-  # REPRODUCED END TO END BEFORE THIS WAS BELIEVED, in a depth-50 clone with no local main and the base object
-  # present: one comment line in gates/buildnum.sh read JUDGE EXIT 1, CHECKS TIER RED, with TWO controls red and
-  # not one - gates/verify-log-selftest.sh at 76 pass / 5 fail inside the judge's mirror, and
-  # gates/buildnum-selftest.sh at 218 pass / 1 fail (its case "a real short sha is accepted"), the second of
-  # which neither of #542's pairs had measured. Every other control passed; fastgate-drive.sh read 54 ok, 0 FAIL,
-  # 1 skipped. Run STRAIGHT in that clone the two read 80/1 and 218/1, because that clone's origin can deepen it
-  # over the network; THE JUDGE'S MIRROR CANNOT, so through the judge the count is five.
-  # WHY ROUTING AND NOT A DEEPEN, AND WHY THIS IS NOT #542's (c)(5) MISTAKE. The judge cannot run main's selftest
-  # faithfully where the fixture object does not exist, and it must not call a commit broken for a property of
-  # the CHECKOUT. So it says GO FULL and names the remedy. It does NOT fetch: this judge never reaches the
-  # network and never writes the real repository, and deepening the mirror would break both. And the fixture
-  # itself is NOT repaired here - B's self-contained --on-main repair is the honest fix of the selftest and is
-  # the orchestrator's to file - because #542's own lesson is that a brief's prescribed fix is a hypothesis: its
-  # brief said to repair A1's fixture and the blind door showed the fixture was the faithful shape.
-  # IT CAN ONLY SEND A COMMIT TO THE SUITE. A route is the weaker answer, so this cannot create a false green;
-  # it turns a universal refusal, which discriminated nothing, into the full suite, which judges everything.
-  # PLACED AFTER THE WORKING-TREE READ AND BEFORE THE LOCK, deliberately: a REFUSAL still outranks it, and no
-  # exit path is added after the first snapshot, which is what round 4 learned when a return taken after the lock
-  # skipped the second snapshot.
-  if [ "$("${GIT[@]}" rev-parse --is-shallow-repository 2>/dev/null)" = true ]; then
-    say "GO FULL: this checkout is a SHALLOW clone, so the full suite decides this commit."
-    say "  main's own gates/verify-log-selftest.sh pins a fixture log naming a commit 461 behind main, and a"
-    say "  shallow root does not hold it - so this judge would run main's push-gate selftest against a tree it"
-    say "  cannot read whole and report a regression that is an artefact of the clone and not of your commit."
-    say "  THE REMEDY IS ONE COMMAND, in your own checkout and never in this judge: git fetch --unshallow origin"
-    return 2
-  fi
-
   # ── (3) THE CHANGED SET, AND THE DEFAULT IS FULL. ───────────────────────────────────────────────────────────
   # --no-renames because `git diff --name-only` reports only the DESTINATION of a rename, which is how a
   # `git mv app.js claude/old-app.js.md` once presented as a single records path and took a fast green whose own
