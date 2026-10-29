@@ -297,6 +297,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H53) printf 'TC-SUITE-185' ;;  H54) printf 'TC-SUITE-186' ;;
     H55) printf 'TC-SUITE-212' ;;
     H56) printf 'TC-SUITE-227' ;;
+    H57) printf 'TC-SUITE-234' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2114,6 +2115,60 @@ else
   fi
 fi
 rm -rf "$H56D"
+
+# ── H57 AN EXTENSIONLESS UNTRACKED FILE THAT SHADOWS A COMMITTED MODULE [#544, item (22) of
+# directOpening_2026_10_28_batch4; jobs/the-untracked-plant-scans-of-fastgate-key-on-the-file-extension-so-an-
+# extensionless-gates-lib-that-node-resolves-first-takes-a-fast-green-2026-10-22, P1, antagonist B of #531].
+# WHAT IT POSES: every untracked-plant scan in gates/fastgate.sh before #544 keyed on the EXTENSION, and an
+# extensionless file is the one shape Node tries BEFORE the committed .js. B measured `gates/lib` and
+# `gates/drive/home`, each untracked and hidden in .git/info/exclude, taking EXIT 0 FAST GATE GREEN on 166d2ed,
+# while the inert gates/regress/zz.txt took exit 2 - and proved the shadow LOADS, with require.resolve('../lib')
+# from gates/regress/ resolving to the plant.
+# TWO PLANTS, NOT ONE, because they exercise the two different pathspec depths the scan has to reach:
+# gates/lib is one level under gates/ and gates/drive/home is two, and B measured both.
+# THE PREMISE IS ASSERTED FIRST, in its own step, the way H28, H53 and H56 do it: the honest tree must answer
+# exit 0 FAST GATE GREEN, or a refusal of the planted tree proves nothing about the plant. That step is also
+# what the job's whatWouldCloseIt asks for in its second clause - the four real untracked directories
+# (gates/logs/, gates/node_modules/, gates/shots/, gates/.site/) still read exit 0 - because the clone carries
+# them and this green is over that tree.
+# AND IT ASSERTS THE PLANTS ARE HIDDEN, because if `git status` can see them fastgate refuses for dirtiness and
+# the case would pass for the wrong reason, which is this project's standing trap.
+H57N="$(mint_in_clone)"
+if [ -z "$H57N" ]; then
+  note "  FAIL H57 [$(tc H57)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+else
+  commit_case "H57 register only: one minted row for #$H57N"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H57 [$(tc H57)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+  else
+    printf 'module.exports={PLANTED:"fastgate-drive H57, never pushed"};\n' > "$C/gates/lib"
+    printf 'module.exports={PLANTED:"fastgate-drive H57, never pushed"};\n' > "$C/gates/drive/home"
+    printf 'gates/lib\ngates/drive/home\n' >> "$C/.git/info/exclude"
+    H57RESOLVE="$( cd "$C/gates/regress" && node -e 'process.stdout.write(require.resolve("../lib"))' 2>/dev/null || true )"
+    if ! hidden; then
+      note "  FAIL H57 [$(tc H57)]  the plants are VISIBLE to git status, so fastgate would refuse for dirtiness instead - the case cannot pose"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+    elif [ "$H57RESOLVE" != "$C/gates/lib" ]; then
+      # THE SHADOW MUST ACTUALLY SHADOW, or this case is about a file nothing would load [#385's rule: assert
+      # the thing is PRESENT before asserting anything about its effect]. Node's own resolver answers this.
+      note "  FAIL H57 [$(tc H57)]  require.resolve('../lib') from gates/regress/ answered '$H57RESOLVE', not the plant, so there is no shadow to detect"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+    elif probe 2 "UNTRACKED EXTENSIONLESS FILES" "gates/lib" "gates/drive/home"; then
+      note "  ok  H57 [$(tc H57)]  (exit 2, the extensionless-shadow scan names BOTH plants, and node's own resolver confirms require('../lib') from gates/regress/ loads the plant)"
+      OK=$((OK+1))
+    else
+      note "  FAIL H57 [$(tc H57)]  exit $PROBE_RC - wanted exit 2 naming both extensionless plants. A scan that keys on the extension answers exit 0 FAST GATE GREEN here."
+      show_verdict "$PROBE_OUT"
+      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+    fi
+    rm -f "$C/gates/lib" "$C/gates/drive/home"
+    sed -i -e '/^gates\/lib$/d' -e '/^gates\/drive\/home$/d' "$C/.git/info/exclude"
+  fi
+fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -

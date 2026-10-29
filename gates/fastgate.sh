@@ -345,6 +345,56 @@ if [ -n "$OSTEER" ]; then
   exit 2
 fi
 
+# ── #544. AND AN EXTENSIONLESS SHADOW, WHICH THE SCAN ABOVE CANNOT SEE EITHER. ────────────────────────────
+# jobs/the-untracked-plant-scans-of-fastgate-key-on-the-file-extension-so-an-extensionless-gates-lib-that-node-
+# resolves-first-takes-a-fast-green-2026-10-22, P1, from antagonist B of #531 (p1_1_extensionlessShadow) and
+# routed to the orchestrator because that run's brief let it build only three jobs.
+# THE DEFECT: every pathspec and every regex above keys on the EXTENSION, and an extensionless file is the one
+# shape Node tries BEFORE the committed .js. B measured it on one tree, each path untracked and hidden in
+# .git/info/exclude: `gates/drive/home` and `gates/lib` each took EXIT 0 FAST GATE GREEN, while the inert
+# gates/regress/zz.txt took exit 2. It proved the shadow LOADS - a planted gates/drive/home printed its marker
+# when a probe required ../drive/home, and require.resolve('../lib') from gates/regress/ resolved to the plant -
+# and the run measured that 56 of the 59 regress gates write require('../lib') against 2 writing '../lib.js'.
+# B BOUNDED IT HONESTLY AND SO DOES THIS COMMENT: it is not a live false green on this tier's own three
+# verdicts (control-audit.js requires only fs, path and child_process; the manifest and records doors read
+# named files), and the head-against-base equality the tier rests on survives, because a shadow corrupts both
+# sides alike. What is false is the PREMISE this tier prints in that state, and a planted gates/lib substitutes
+# the harness library for 56 gates in any suite run from that tree.
+# WHY NOT THE OTHER HALF OF B'S REMEDY. It offers either this scan or rewriting the 56 requires as '../lib.js'.
+# The rewrite touches 56 gate files, fixes exactly one module, and leaves gates/drive/*.js - which the same
+# shadow shape reaches - untouched. This closes the class.
+# WHY IT CANNOT FIRE ON THE NORMAL CASE, which is the test every widening of these scans has to pass: it does
+# not glob for untracked files and filter by name. It requires BOTH that the path be untracked AND that
+# `<path>.js` exist IN THE COMMIT - so it names only a file that shadows a committed module, which exists only
+# if somebody made it. The suite's own gitignored artefacts are all excluded twice over: every one of them
+# carries a dot (gates/.gates-run-<N>.sh, gates/.build/app.js, gates/.pin-app.js), and none has a committed
+# `<path>.js` sibling.
+# AND IT ASKS THE COMMIT RATHER THAN THE DISK, with `git cat-file -e HEAD:<path>.js`, which is the durable
+# repair the two comments around this one both name and neither could take.
+# WHAT IT DELIBERATELY DOES NOT COVER: `<path>.json` and `<path>.node` siblings are tried AFTER `<path>.js`, so
+# neither can shadow a committed module; and a DIRECTORY named `gates/lib` loses to `gates/lib.js` for the same
+# reason, because Node tries the extensionless path as a FILE first and only then the .js. So the extensionless
+# FILE is the whole shadow surface for a module whose .js is committed - measured against Node's own resolution
+# order, not assumed.
+OSIB="$( "${GIT[@]}" -c core.quotePath=false ls-files --others -- ':(glob)gates/*' ':(glob)gates/*/*' 2>/dev/null \
+  | while IFS= read -r f; do
+      case "$f" in *.*|'') continue ;; esac
+      "${GIT[@]}" cat-file -e "HEAD:$f.js" 2>/dev/null && printf '%s\n' "$f"
+    done \
+  | sort -u \
+  | awk 'BEGIN{n=0} {n++; if (n<=5) print "    " $0 "   (shadows " $0 ".js, which HEAD carries)"} END{if (n>5) print "    ... and " (n-5) " more"}')"
+if [ -n "$OSIB" ]; then
+  say ""
+  say "FULL SUITE REQUIRED - there are UNTRACKED EXTENSIONLESS FILES (ignored ones included) that SHADOW a"
+  say "    module this commit carries. Node resolves require('../lib') to gates/lib BEFORE gates/lib.js, so"
+  say "    such a file substitutes the harness library for 56 of the 59 regress gates in any suite run from"
+  say "    this tree - while every scan above keys on the extension and sees nothing. An excluded one is in"
+  say "    neither git status nor git ls-files with these pathspecs, so the dirty check passes it too."
+  say "    A verdict about a commit may not be computed from a file the commit does not hold. [#544]"
+  printf '%s\n' "$OSIB" | tee -a "$LOG"
+  exit 2
+fi
+
 # ── #531. AND AN EMPTY UNTRACKED DIRECTORY, WHICH THE SCAN ABOVE CANNOT SEE. ──────────────────────────────
 # jobs/an-untracked-file-hidden-by-info-exclude-steers-the-records-ratchet-of-fastgate-past-every-raw-byte-guard-2026-10-20,
 # part (2) of its remainder, and the P0 the second fresh reviewer of #530 demonstrated end to end: a DIRECTORY
