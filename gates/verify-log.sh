@@ -224,7 +224,7 @@ if [ "${1:-}" = "--citations-selftest" ]; then
   R7="$(st_tree)"; printf 'see `gates/regress/99-gone.js:5`\n' > "$R7/claude/stories/A.md"
   st_ck "C7 a dead line citation turns the whole mode RED at exit 1" \
     "exit=1
-CITATIONS RED: 0 dead path(s), 0 unsupported case id(s), 0 misfiled row(s), 1 dead line citation(s), 0 stale line citation(s), 0 over the line-citation ceiling. 1 row(s) NOT CHECKED." "$(st_verdict "$R7")"
+CITATIONS RED: 0 dead path(s), 0 unsupported case id(s), 0 misfiled row(s), 1 dead line citation(s), 0 stale line citation(s), 0 over the line-citation ceiling, 0 dead and 0 stale script citation(s). 1 row(s) NOT CHECKED." "$(st_verdict "$R7")"
   ST_RED_RAT="$(st_ratchet "$R7")"      # captured WHILE RED, because C7b overwrites the tree below
   printf 'see `gates/regress/99-gone.js` at someSymbol\n' > "$R7/claude/stories/A.md"
   st_ck "C7b the same tree in symbol form is not red - so C7 was arm (4) and not a side effect" \
@@ -243,8 +243,11 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # which is why the RED one is captured above rather than re-derived: the states differ in exactly the dead
   # citation and in nothing else.
   ST_OK_RAT="$(st_ratchet "$R7")"
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (15: one verdict word, 14 counters)" \
-    "15 15" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # THE COUNT MOVED 15 -> 17 AT #544 ITEM (12), when arm (6)'s `scriptdead` and `scriptstale` joined the line,
+  # and THIS CASE IS WHAT NOTICED - which is what it is for. It is the live field count, not a floor: a counter
+  # added without updating it reddens here, and here is the only place that would see it.
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (17: one verdict word, 16 counters)" \
+    "17 17" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -459,6 +462,30 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C17c no UNEXEMPTED membership test in this file's CODE is a pipe into grep -q (ceiling 0, of $SPALL)" "0" "$SPSITES"
   st_ck "C17d the exemption is ratcheted: exactly 1 deliberate site, so marking a real one breaks this" "1" "$SPEX"
 
+  # ── C18: ARM (6) OVER THE REAL TREE, AND WHY IT IS NOT A FABRICATED-ROOT CASE [#544, item (12)].
+  #     Arm (6) resolves every `<script>:<line>` citation in the PRESCRIPTIVE files (CLAUDE.md, the tools under
+  #     gates/ and their READMEs) and refuses a dead path or one past end of file. It reads the repository with
+  #     `git grep`, so it CANNOT be driven from the fabricated roots the C-cases above build: those are mktemp
+  #     directories with no git repository, where `git grep` returns nothing and the arm honestly reports 0 of
+  #     0. That limit is named rather than worked around with a scope override, because a scope knob on a
+  #     push-gate arm is a way to narrow it silently.
+  #     SO THIS CASE IS THE LIVE INVARIANT: on THIS tree the prescriptive set must carry no citation that fails
+  #     to resolve. It reddens the moment someone writes one, which is the guard the job asks for, and the
+  #     DETECTOR's own power is controlled separately - with a planted file carrying one dead and one past-EOF
+  #     citation, measured at #544, where the arm names both and the verdict line counts them.
+  # NO PIPE, AND THE FIRST DRAFT OF THIS LINE PAID FOR IT. It read
+  #   bash "$SELF" --citations | grep -m1 '^  (6) ' | grep -oE '...' || echo 'NO ARM (6) LINE'
+  # and printed BOTH the real value and the fallback: `grep -m1` exits at its first match, SIGPIPEs the
+  # producer behind it, and under this file's `set -uo pipefail` the pipeline's status is non-zero although the
+  # grep itself succeeded - so the `|| echo` arm ran too. That is gates.sh's MANI_LINE defect (#477) and the
+  # class gates/audit/pipefail-grep.sh ratchets, reproduced by me in the very commit that adds an arm about
+  # citations resolving. One capture, then a herestring, which has no pipe and therefore no SIGPIPE.
+  C18OUT="$( bash "$SELF" --citations 2>/dev/null )"
+  C18="$( grep -oE '[0-9]+ dead, [0-9]+ past end of file' <<<"$C18OUT" | head -1 )"
+  [ -n "$C18" ] || C18='NO ARM (6) LINE'
+  st_ck "C18 arm (6): every script line-number citation in the prescriptive set resolves, on this tree" \
+    "0 dead, 0 past end of file" "$C18"
+
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -656,6 +683,62 @@ EOF
     echo "  AND A FALL TO THE FLOOR IS NOT FREE: committing A4CEIL=$A4TOT leaves ZERO headroom, which is the exact state jobs/the-line-citation-ceiling-is-at-48-of-48-so-any-build-touching-claude-stories-reddens-the-push-gate-2026-10-06 was filed as a P1 for and CLOSED on 2026-10-07 by BUYING headroom, not by committing the floor. Lower it together with a de-pinning that leaves headroom - main has gone that way twice, 0fbbc47 and 1f5ca10 - or leave the ceiling and say why."
   fi
   echo "  (4) $A4TOT line-number citation(s), ceiling $A4CEIL, $A4DEAD dead, $A4EOF past end of file, $A4RISE over ceiling"
+
+  # === (6) THE SAME QUESTION, ASKED OF THE DOCUMENTS A BUILDER FOLLOWS [#544, item (12) of
+  #     directOpening_2026_10_28_batch4; the instrument half of
+  #     jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03].
+  # ARM (4) ABOVE COVERS claude/stories/ ONLY, and the class that keeps biting is in the PRESCRIPTIVE files -
+  # CLAUDE.md, the tools under gates/ and their READMEs - where a wrong pointer costs a run rather than a
+  # reader's patience. That job measured the damage twice: #499 found the whole set shifted by +26 and #506 by
+  # +66, every citation into gates.sh above its `set -uo pipefail` wrong by exactly the size of an insertion
+  # below it, and NO TOOL FOUND EITHER - an antagonist did, both times, because nothing resolved a line number
+  # outside claude/stories.
+  # WHAT THIS ARM ASKS, AND WHAT IT DELIBERATELY DOES NOT. It resolves every `<script>:<line>` citation in those
+  # files and refuses a DEAD path or one PAST END OF FILE. It does NOT ratchet the COUNT, and that is a decision
+  # with a measurement behind it rather than a softening: 113 such citations live in the prescriptive set today
+  # (89 outside HANDOFF.md, which every close-out rewrites), and writing one is normal practice in this
+  # project's tool comments - so a ceiling would fire on the normal case, which CLAUDE.md records as how a guard
+  # gets switched off. The count is PUBLISHED instead, so the denominator is in every log.
+  # AND THE BLINDNESS THAT REMAINS IS NAMED RATHER THAN PAPERED OVER: a citation into a file that only GREW
+  # still resolves, so the +26 and +66 shifts would still pass this arm. Nothing mechanical can see them - the
+  # line is real text, just not the right text - and the two cheap fixes that job proposes are a BAN on the
+  # form (hostile today, see the 113) or a token match between the citing prose and the cited line (a
+  # heuristic, and a wrong one reads as a defect). What closes it is citing by SYMBOL, which CLAUDE.md #503
+  # pointer 4 prescribes in prose; this arm makes the half that IS decidable decidable.
+  A6SCOPE="CLAUDE.md gates/*.sh gates/audit/*.sh gates/regress/README.md gates/pending/README.md gates/cases/README.md"
+  # HANDOFF.md IS OUT OF SCOPE, and the reason is mechanical: a close-out rewrites it wholesale every run, so
+  # its citations are a moving target and 24 of the 113 live there. RUN-LOG.md, claude/PROCESS-LOG.md,
+  # claude/process-log/ and claude/agents/ are out for the reason that job gives for RUN-LOG.md: they are
+  # historical rows that must not be rewritten, so a stale pointer in them is a true record of what was cited.
+  A6ALLOW="gates/regress/99-gone.js gates/regress/10-real.js gates/regress/01-fixture.js"
+  # THE ALLOWLIST IS THE FIXTURE PATHS, and without it this arm reports 14 dead citations that are not defects:
+  # every one is a FABRICATED path inside a selftest string in this very file (a deliberately absent gate, so a
+  # case can prove the dead-path detector fires). A scan that counted them would be the "a bad selector is a
+  # reading" trap, and it is listed here by name rather than pattern so a real dead path cannot hide behind it.
+  A6TOT=0; A6DEAD=0; A6EOF=0; A6BAD=""
+  A6CITES="$(git grep -nHoE '(gates/[A-Za-z0-9_./-]+\.(sh|js)|chess\.jsx|app\.js):[0-9]+' -- $A6SCOPE 2>/dev/null || true)"
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    WHERE="${c%%:*}:$(printf '%s' "$c" | cut -d: -f2)"
+    TGT="$(printf '%s' "$c" | cut -d: -f3)"; TLN="$(printf '%s' "$c" | cut -d: -f4)"
+    [ -n "$TGT" ] && [ -n "$TLN" ] || continue
+    case " $A6ALLOW " in *" $TGT "*) continue;; esac
+    A6TOT=$((A6TOT+1))
+    if [ ! -f "$TGT" ]; then
+      A6DEAD=$((A6DEAD+1)); A6BAD="$A6BAD $WHERE->$TGT"
+      echo "  DEAD SCRIPT CITATION: $TGT:$TLN - $TGT is not in the tree (named at $WHERE)"
+    else
+      TL="$(wc -l < "$TGT" 2>/dev/null || echo 0)"
+      if [ "$TLN" -gt "$TL" ] 2>/dev/null; then
+        A6EOF=$((A6EOF+1)); A6BAD="$A6BAD $WHERE->$TGT:$TLN"
+        echo "  STALE SCRIPT CITATION: $TGT:$TLN but $TGT has $TL lines (named at $WHERE)"
+      fi
+    fi
+  done <<EOF6
+$A6CITES
+EOF6
+  echo "  (6) $A6TOT script line-number citation(s) in the prescriptive set, $A6DEAD dead, $A6EOF past end of file (no ceiling, by design - see the comment)"
+  A6BADN=$((A6DEAD+A6EOF))
   # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
   # (runId process-build-2__1791274433682) for the remainder of
   # jobs/register-join-and-input-count-wrong-2026-09-28 (P?, priority 14, finishFirst band 14), whose
@@ -845,11 +928,17 @@ EOF
   # ITS LABELS CARRY NO DIGITS, AND THAT IS LOAD-BEARING RATHER THAN STYLE: sig() takes every integer on the
   # line, so a label like `a5tbad` or `arm5` would contribute a phantom field of its own and shift every counter
   # after it. If you add a counter here, spell its name in letters.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ]
+  # #544, item (12): `scriptdead` and `scriptstale` join the line. ADDING A COUNTER CHANGES ITS FIELD COUNT, and
+  # the consequence is bounded and is the same one the block above describes for the line's own introduction:
+  # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
+  # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
+  # would make the line unable to grow with the arms, which is worse.
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ]; then
-    echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling. $A2NC row(s) NOT CHECKED."
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ]; then
+    [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
+    echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
   fi
   if [ "$A2NC" -gt 0 ]; then
