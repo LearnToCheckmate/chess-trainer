@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# gates/stamp-selftest.sh - the controls for the stamp regex at gates/lib.js:113, as a COMMAND rather
+# gates/stamp-selftest.sh - the controls for the stamp regex at gates/lib.js's stamp literal (serve()'s bundle line and the stamp() method), as a COMMAND rather
 # than as a paragraph.
 #
 # WHY THIS FILE EXISTS. jobs/uat-stamp-regex-4xx (title: "The UAT stamp regex cannot read build numbers
 # from #400 upward") named a case that "exists nowhere": "One case over stamps #399, #400, #416, #422,
 # #1000; input count 5." The orchestrator's 2026-10-04 sweep found the title condition already fixed on
-# main (gates/lib.js:113 reads /#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/, which is 3-OR-4 digits and
+# main (gates/lib.js's stamp literal (serve()'s bundle line and the stamp() method) reads /#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/, which is 3-OR-4 digits and
 # therefore already covers #399, #400, #416, #422 and #1000), but the SECOND half of the job - "add the
 # cases" - was left unwritten, and said so in terms: "nothing in gates/ drives b.stamp()'s regex over
-# synthetic stamps ... a future narrowing of lib.js:113 would be invisible again." This is that driver.
+# synthetic stamps ... a future narrowing of lib.js's stamp literal would be invisible again." This is that driver.
 #
 # IT DOES NOT TOUCH gates/lib.js, chess.jsx, app.js OR ANY BROWSER. The regex is COPIED here as a
-# literal, character for character from gates/lib.js:113, and the copy is asserted against the live
+# literal, character for character from gates/lib.js's stamp literal (serve()'s bundle line and the stamp() method), and the copy is asserted against the live
 # file in case 0 below so the two cannot silently drift - the exact drift this job exists to prevent is
-# "a future narrowing of lib.js:113 would be invisible again", and a copy with no equality check against
+# "a future narrowing of lib.js's stamp literal would be invisible again", and a copy with no equality check against
 # its source is precisely that risk reintroduced one file over.
 #
 # WHAT IT DELIBERATELY DOES NOT DO. It does not add a row to claude/stories/TEST-CASES.md and it does
@@ -35,10 +35,15 @@
 #
 # NOT A GATE. It lives in gates/ and not in gates/regress/, so gates.sh (which globs regress/*.js)
 # never runs it, it is in no manifest, and it can never contribute to or block a GATES GREEN.
+# SO THE REGEX IS CONTROLLED ONLY WHEN THIS IS RUN, and that is the honest state of it [#545, item (62)]: it is a
+# SELFTEST on gates/audit/cited-not-run.sh's roster, run by whoever edits a stamp literal in gates/lib.js. What it
+# catches when run, measured at #545 with CT_STAMP_LIB pointed at a narrowed copy: narrowing EITHER literal ({3,4} ->
+# {3}) gives 7 pass / 1 fail on case 0. The version before #545 passed 8 / 0 on both narrowings, because it compared
+# only the first literal grep found, and a narrowed first copy simply let it find the intact second one.
 
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-LIB="$HERE/lib.js"
+LIB="${CT_STAMP_LIB:-$HERE/lib.js}"   # CT_STAMP_LIB points the file at another copy, which is how its own control runs
 
 P=0; F=0
 ok(){ # ok <label> <expr-as-0-or-1>
@@ -46,27 +51,36 @@ ok(){ # ok <label> <expr-as-0-or-1>
 }
 
 # ── CASE 0: THE COPY HAS NOT DRIFTED FROM THE SOURCE ─────────────────────────────────────────────────
-# Extract the literal regex source text from gates/lib.js:113 and compare it, as a string, to the
+# Extract the literal regex source text from gates/lib.js's stamp literal (serve()'s bundle line and the stamp() method) and compare it, as a string, to the
 # literal this file is about to drive below. If gates/lib.js ever narrows or widens that pattern, this
 # case fails LOUDLY rather than the two copies quietly disagreeing about what "the stamp regex" means.
-LIVE_RE="$(grep -o '/#\\d{3,4} - 20\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d ET/' "$LIB" | head -1)"
+# EVERY LITERAL, NOT THE FIRST ONE [#545, item (62); jobs/stamp-selftest-lands-as-an-instrument-nothing-runs-and-cites-
+# the-wrong-lib-js-line-ten-times-2026-10-13]. lib.js carries the regex TWICE - serve()'s bundle line and the stamp()
+# method - and this used to compare only the first match (and to cite a line, 113, that is the fontconfig branch).
+# Now every stamp-shaped literal in the file is extracted and each must equal THIS_RE, and there must be at least two,
+# so narrowing either copy, or deleting one, turns this case red.
 THIS_RE='/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/'
-if [ "$LIVE_RE" = "$THIS_RE" ]; then ok "the regex this file drives is byte-identical to gates/lib.js:113's own literal" 1
+LIVE="$(node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8");const m=s.match(/\/#\\d\{[^\n]*?ET\//g)||[];console.log(m.join("\n"));' "$LIB" 2>/dev/null)"
+NLIVE=0; NSAME=0
+while IFS= read -r l; do [ -n "$l" ] || continue; NLIVE=$((NLIVE+1)); [ "$l" = "$THIS_RE" ] && NSAME=$((NSAME+1)); done <<< "$LIVE"
+if [ "$NLIVE" -ge 2 ] && [ "$NSAME" = "$NLIVE" ]; then ok "the regex this file drives is byte-identical to every stamp literal in gates/lib.js ($NLIVE found)" 1
 else
-  ok "the regex this file drives is byte-identical to gates/lib.js:113's own literal" 0
-  echo "  gates/lib.js:113 reads: ${LIVE_RE:-<no match found - has the line moved or changed shape?>}"
+  ok "the regex this file drives is byte-identical to every stamp literal in gates/lib.js ($NSAME of $NLIVE equal, at least 2 required)" 0
+  echo "  gates/lib.js carries:"; printf '%s\n' "${LIVE:-<no stamp-shaped literal found>}" | sed 's/^/    /'
   echo "  this file expects:      $THIS_RE"
 fi
 
-# ── THE DRIVER. node's RegExp, built from the SAME pattern gates/lib.js:113 uses, run over synthetic ──
+# ── THE DRIVER. node's RegExp, built from the SAME pattern gates/lib.js's stamp literal (serve()'s bundle line and the stamp() method) uses, run over synthetic ──
 # document.documentElement.innerHTML content shaped exactly like the real stamp line b.stamp() reads.
 drive(){
   node -e '
-    const re = /#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/;
+    // BUILT FROM THIS_RE, NOT A THIRD HAND COPY [#545, item (62)]: case 0 holds THIS_RE equal to lib.js, so the
+    // regex driven here is the one that comparison checked.
+    const src = process.argv[2]; const re = new RegExp(src.slice(1, src.lastIndexOf("/")));
     const html = process.argv[1];
     const m = html.match(re);
     process.stdout.write(m ? m[0] : "");
-  ' "$1"
+  ' "$1" "$THIS_RE"
 }
 
 # ── POSITIVE CASES: the five stamps the job names, INPUT COUNT 5, exactly as specified ──────────────
