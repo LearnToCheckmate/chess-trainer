@@ -302,6 +302,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H60) printf 'TC-SUITE-241' ;;  H61) printf 'TC-SUITE-242' ;;
     H62) printf 'TC-SUITE-246' ;;
     H63) printf 'TC-SUITE-272' ;;  H64) printf 'TC-SUITE-273' ;;  H65) printf 'TC-SUITE-274' ;;  H66) printf 'TC-SUITE-275' ;;
+    H67) printf 'TC-SUITE-276' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2508,6 +2509,13 @@ else
   commit_case "H66 fixture: a gate log deleted AND chess.jsx touched"
   expect H66 2 "chess.jsx"
 fi
+reset_clone
+# H67 THE GREEN VERDICT NAMES WHAT ITS PREMISE CHECK DID NOT SCAN [#545, item (60);
+# jobs/fastgate-premise-check-scans-only-js-so-it-cannot-see-the-shell-consumers-2026-10-10]. The premise check opens
+# JavaScript only; a records-only green must say so in its own line rather than read as a whole-tree claim.
+printf '\n<!-- H67 fixture row -->\n' >> "$C/RUN-LOG.md"
+commit_case "H67 fixture: a records-only change"
+expect H67 0 "NOT SCANNED: no shell script's reads"
 reset_clone
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────

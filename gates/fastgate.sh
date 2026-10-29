@@ -2473,15 +2473,27 @@ say ""
 # while three separate tools compute it (ls gates/regress/*.js = 55, gatemanifest check = 55 required,
 # control-audit = 56 sections counting mountcheck). Both antagonists caught it independently. Compute it.
 NGATES="$(ls "$G"/regress/*.js 2>/dev/null | wc -l | tr -d ' ')"
+# THE SENTENCE SAYS WHAT THE PREMISE CHECK MEASURED, AND NAMES WHAT IT DID NOT [#545, item (60);
+# jobs/fastgate-premise-check-scans-only-js-so-it-cannot-see-the-shell-consumers-2026-10-10]. PSCAN is JavaScript
+# only - require() targets and path.join literals in gates/regress, mountcheck, lib, engine-extract and drive - so
+# "every file any of them reads" is a claim about the REGRESS GATES and their JS harness, and it was printed as if it
+# covered the tree. The shell consumers (gates/held.sh, buildnum.sh, verify-log.sh, gates/audit/*.sh, the readers of
+# the two guard registers and of CLAUDE.md) are opened by no part of this check. They are safe today because every
+# input they read is either FORCE or ratcheted at base and head, which is a property of the current arms and not of
+# this check, so the output now says so in its own line rather than leaving a reader to infer the opposite.
 say "gates ran: records tier only. The $NGATES browser gates in gates/regress were NOT run, and could not have"
 if [ "$STAMPONLY" = yes ]; then
   # "none is in this diff" IS FALSE when the exemption fires - app.js is in the diff - and saying it anyway
   # would be the exact class of defect #490 fixed two lines below. State what was measured instead.
-  say "  differed: every file any of them reads is in the FORCE set, re-derived above, and the only one of those"
-  say "  in this diff is app.js, whose differing bytes are its three build-stamp literals and nothing else."
+  say "  differed: every file the REGRESS GATES and their JS harness read (require() and path.join, re-derived above) is"
+  say "  in the FORCE set, and the only one of those in this diff is app.js, whose differing bytes are its three"
+  say "  build-stamp literals and nothing else."
 else
-  say "  differed: every file any of them reads is in the FORCE set, re-derived above, and none is in this diff."
+  say "  differed: every file the REGRESS GATES and their JS harness read (require() and path.join, re-derived above) is"
+  say "  in the FORCE set, and none is in this diff."
 fi
+say "  NOT SCANNED: no shell script's reads. The premise check opens JavaScript only, so this says nothing about the"
+say "  shell consumers (gates/*.sh, gates/audit/*.sh); they are covered only where their inputs are FORCE or ratcheted."
 # #490: the old ref line read "bundle UNCHANGED (app.js not in the changed set)", which is VERBATIM the ground
 # 6120ecd records as the lie that certified a blank page - a path-list inference. The verdict is now sound because
 # BUNDLE IDENTITY compares blob ids, so the line should state THAT and not the discredited reason.
