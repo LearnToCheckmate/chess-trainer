@@ -90,9 +90,15 @@ EXEMPT_CEIL=2
 # LATENT-NOT-REPRODUCED with its measured rc, never as clean and never silently.
 PROBE_BYTES="${CT_PFG_BYTES:-4000000}"
 PROBE_CACHE=""
+# #545 item (86) side-fix: probe_file used to `mktemp` a 4MB file and remember it in PROBE_TRASH, but every probe runs
+# inside `$(...)`, a SUBSHELL, so the parent never saw PROBE_TRASH and every probe call LEAKED its file - measured on
+# one container, about 7,900 NEEDLE files and 28GB in /tmp, which filled the session's disk. The probe now lives in
+# one directory made HERE, in the parent, under a fixed name, so subshells share it (the filesystem is shared where
+# variables are not) and every EXIT trap below removes the directory.
+PFG_PDIR="$(mktemp -d)"; trap 'rm -rf "$PFG_PDIR"' EXIT
 probe_file() {
-  [ -n "${PROBE_BIG:-}" ] && return 0
-  PROBE_BIG="$(mktemp)"; PROBE_TRASH="${PROBE_TRASH:-} $PROBE_BIG"
+  PROBE_BIG="$PFG_PDIR/needle-$PROBE_BYTES"
+  [ -s "$PROBE_BIG" ] && return 0
   { printf 'NEEDLEx:\n'; head -c "$PROBE_BYTES" /dev/zero | tr '\0' 'y' | fold -w 100; } > "$PROBE_BIG" 2>/dev/null
 }
 # probe <producer-word> <consumer-word> -> the pipeline's rc under pipefail, measured, cached
@@ -242,7 +248,7 @@ ck "C5 WHAT WAS ACTUALLY MEASURED: at 200000 bytes the negated pipe form still s
 ck "C6 the herestring form sees it at 200000 bytes" "present" "$(tierc 200000 herestring)"
 
 # C7..C9 THE SCANNER ITSELF. A scan with no control is a number nobody can trust.
-TD="$(mktemp -d)"; trap 'rm -rf "$TD"' EXIT
+TD="$(mktemp -d)"; trap 'rm -rf "$TD" "$PFG_PDIR"' EXIT
 mkdir -p "$TD/audit"
 # THE PLANT IS ASSEMBLED FROM A VARIABLE RATHER THAN WRITTEN AS A LITERAL, and the reason is a defect this
 # run found in its own first draft: a heredoc holding the defective form put a real tier-A member INTO this
@@ -272,7 +278,7 @@ ck "C10 the probe measures cat as PROPAGATING, so the defect is real and not a s
 ck "C11 the probe measures tr as NOT propagating, which is the fact C5 left open" "0" "$(probe tr grep)"
 PA="$(probe cat grep)"; PB="$(probe tr grep)"
 ck "C12 THE PROBE IS NOT VACUOUS: the two answers differ, so it has discriminating power at all" "differ" "$([ "$PA" != "$PB" ] && echo differ || echo same)"
-TD2="$(mktemp -d)"; trap 'rm -rf "$TD" "$TD2" ${PROBE_TRASH:-}' EXIT
+TD2="$(mktemp -d)"; trap 'rm -rf "$TD" "$TD2" "$PFG_PDIR"' EXIT
 mkdir -p "$TD2/audit"
 { printf 'set -uo pipefail\n'
   printf 'if tr -d %s\\n%s < "$f" %s grep -q NEEDLE; then :; fi\n' "'" "'" "$PIPE"
