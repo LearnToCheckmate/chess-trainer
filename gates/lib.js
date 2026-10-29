@@ -139,11 +139,36 @@ async function sayToolchain(browser){
   if(_tcSaid)return;_tcSaid=true;
   let cv='?';try{cv=browser.version();}catch(e){cv='unavailable: '+e.message;}
   console.log('     toolchain: playwright '+pwVersion()+'  chromium '+cv+'  [no browser is pinned in gates/package.json]');
+  // THE FACE LINE IS PROVENANCE AND IS NO LONGER THE FONT PIN'S ASSERTION [#544, item (21);
+  // jobs/libjs-asserts-the-resolved-font-face-with-fc-match-in-a-host-subprocess-which-cannot-see-what-the-
+  // browser-resolved-2026-10-27, P1, from antagonist B of #538 escalated on antagonist A's measurement, with two
+  // more faces measured by #539's pair]. WHY IT CANNOT BE THE ASSERTION: `fc-match` is a HOST subprocess and the
+  // numbers every text-derived pin rests on come from the BROWSER. #538's antagonist A measured fc-match
+  // answering "DejaVu Sans" for all nine families /etc/fonts/conf.d/56-prefer-inter.conf aliases to Inter -
+  // INCLUDING "Segoe UI" - with and without the pin, while the browser moved that family from 373.42 to 322.15
+  // on the same reference string. gates/fonts.conf:89 already recorded that the two disagree.
+  // AND IT PRINTED A CLEAN LINE STRAIGHT THROUGH THIS PROJECT'S WORST GATING FAILURE, measured on the committed
+  // artefact: claude/agents/gatelogs/537-all.log:113 reads `fontconfig: gates/fonts.conf -> sans-serif resolves
+  // to "DejaVu Sans"`, `grep -c MISMATCH` over that whole log is ZERO, and ten gates reddened on main's own
+  // unchanged bundle. sans-serif resolved correctly in #537; what moved was Segoe UI resolving to Inter through
+  // the system alias - the one slot this reading does not look at.
+  // THE MARKER IS NO LONGER CONDITIONED ON THE PIN BEING LOADED, which is the other half of the same defect
+  // [#539's antagonist B, finding (1); antagonist A called it the eleventh costume of this project's recorded
+  // trap - the check conditioned on the thing it is checking]. It used to fire only when
+  // _fcState==='gates/fonts.conf', so in the three states where the pin is NOT in force the harness printed the
+  // face `Inter` with no marker at all. MEASURED AT #544 in this container, all four states:
+  //   gates/fonts.conf pinned          fc-match "sans-serif" -> DejaVu Sans
+  //   CT_NOFC=1                        fc-match "sans-serif" -> Inter
+  //   caller FONTCONFIG_FILE malformed fc-match "sans-serif" -> Inter
+  //   caller FONTCONFIG_FILE missing   fc-match "sans-serif" -> Inter
+  // All three degraded states printed `Inter` and could not print a marker. They can now.
   console.log('     fontconfig: '+_fcState+'  ->  sans-serif resolves to "'+_fcFace+'"'+
-              ((_fcState==='gates/fonts.conf'&&_fcFace!==FC_WANT)
-                ? '   *** MISMATCH: the pin is loaded but the face is not '+FC_WANT+'. Every text-derived pin in this suite is OFF CALIBRATION. Check gates/fonts.conf parses (xmllint) and that '+FC_WANT+' is installed. ***'
+              ((_fcFace!==FC_WANT)
+                ? '   *** OFF THE PINNED FACE: this is not '+FC_WANT+', so the host fontconfig in force is not the calibrated one'+
+                  (_fcState==='gates/fonts.conf'?' EVEN THOUGH THE PIN IS LOADED - check gates/fonts.conf parses (xmllint) and that '+FC_WANT+' is installed':' (state: '+_fcState+')')+
+                  '. PROVENANCE ONLY: the assertion that decides whether the pins are in calibration is the in-browser relation below. ***'
                 : '')+
-              '   [#485 - every text-derived pin in this suite depends on this line]');
+              '   [#485, demoted to provenance at #544 - the browser, not fc-match, is what the pins depend on]');
 }
 // The one number that explains a moved pixel pin. Printed once per process, so every gate section carries it.
 async function sayTextMetrics(page){
@@ -168,6 +193,39 @@ async function sayTextMetrics(page){
     // a fall-through on the first family alone is NOT a fault - it is the normal, correct outcome for an
     // uninstalled face, and the stack moves on to system-ui. Only ALL of them falling through is.
     const ftSegoe=Math.abs(r.segoe-r.bogus)<0.01, ftSysui=Math.abs(r.app-r.bogus)<0.01;
+    // ── THE FONT PIN'S ASSERTION, AND IT IS AN L.say RATHER THAN A PRINT SINCE #544 [item (21)]. ────────────
+    // gates/fonts.conf's own "WHAT THIS DOES NOT CLAIM (5)" says nothing in this suite fails loudly when the
+    // instrument is wrong. This is the thing that does. It is the IN-BROWSER RELATION, which is the only
+    // reading that moved when the pin moved, and it is asserted in EVERY state rather than only under the pin.
+    // MEASURED AT #544, four fontconfig states x the four printed quantities, one browser launch each:
+    //                                   system-ui   "Segoe UI"   sans-serif   sentinel
+    //   gates/fonts.conf pinned           402.12      322.15       348.28      322.15
+    //   CT_NOFC=1                         373.42      373.42       348.28      322.15
+    //   caller conf malformed             373.42      373.42       348.28      322.15
+    //   caller conf missing               373.42      373.42       348.28      322.15
+    // So "Segoe UI" EQUALS the sentinel if and only if the pin is in force, and it is the one quantity that
+    // separates all four states. sans-serif reads 348.28 in every one of them, which is why a sans-serif-based
+    // reading - host or browser - cannot be the assertion.
+    // GET THE POLARITY RIGHT, because the natural reading is backwards and #539's antagonist B measured why.
+    // An uninstalled face falling through is the NORMAL, CORRECT outcome and this file says so twelve lines
+    // above; 322.15 is the fall-through sentinel; and in #537 the defect was Segoe UI FAILING to fall through,
+    // reading 373.42 because fontconfig substituted Inter. So the FAULT is `Segoe UI != sentinel`, and the
+    // intuitive "falling through means trouble" would red every healthy run and stay green on #537.
+    // WHAT IT COSTS AND WHY THAT IS THE POINT: one assertion per gate process, so every gate in the suite now
+    // carries it and ANY of them goes red if the instrument is wrong. That is the loud failure this job asks
+    // for, and it is deliberately NOT exempted under CT_NOFC=1: that switch is for diagnosis, and a log
+    // produced with the pin off must not be able to authorise a push.
+    // DECLARED LIMIT: in a container that genuinely SHIPS "Segoe UI" this assertion reads red. That is the
+    // right answer rather than a false alarm - every absolute text-derived pin in this suite was calibrated
+    // where the face is absent - but it is a statement about the container, so the detail prints all four
+    // numbers and the fontconfig state beside the verdict.
+    say(ftSegoe,
+      'TC-SUITE-233 FONT PIN: the app stack\'s FIRST family "Segoe UI" falls through to the sentinel ('+r.bogus+
+      '), which is true if and only if the calibrated fontconfig is in force. It read '+r.segoe+
+      '. A value ABOVE the sentinel means a system alias substituted a face - Inter in these images at 373.42 - '+
+      'and every absolute text-derived pin in this suite is then OFF CALIBRATION [#537 reddened ten gates on '+
+      'main\'s own unchanged bundle this way, with the face line printing clean]',
+      {segoe:r.segoe,sentinel:r.bogus,systemUi:r.app,sansSerif:r.sans,fontconfig:_fcState,fcMatchFace:_fcFace});
     console.log('     text metrics @16px over the reference string: system-ui '+r.app+'  "Segoe UI" '+r.segoe+
                 '  sans-serif '+r.sans+'  (fall-through sentinel '+r.bogus+')'+
                 (ftSegoe&&ftSysui?'  *** BOTH \'Segoe UI\' AND system-ui fell ALL THE WAY THROUGH: the app root has no face of its own ***'
