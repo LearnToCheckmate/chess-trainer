@@ -790,11 +790,18 @@ async function input(seed,n,geo,name,thin){
       L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),
         'A15a US-R25 '+tag+': NO limit line is rendered and NO limit sentence is anywhere on screen - the whole history was fetched, so a cap that was reached but did not withhold anything may not be claimed as the bound',
         {element:r.cap.present,line:r.cap.text,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
-      // A15b: and no GAP is claimed either, which is a separate arm of the same sentence. Every one of the
-      // four months answered 200 with 50 usable rows, so `missed` is 0 and the '+gap' suffix must be absent.
-      // Without this, a build that made `missed` count successful months would turn A15a's silence into a
-      // gap sentence and A15a alone would still be green on the line being absent.
-      L.say(!GAP_RE.test(r.body||''),'A15b US-R25 '+tag+': and NO gap is claimed - all four listed months answered with their full fifty rows, so there is nothing to disclose',{bodyHasGap:GAP_RE.test(r.body||''),line:r.cap.text});
+      // A15b: and no GAP is claimed either. Every one of the four months answered 200 with 50 usable rows, so
+      // `missed` is 0 and the '+gap' suffix must be absent. A REDUNDANT ARM OVER A15a, AND SAID SO [#545, item (72);
+      // jobs/gate-61-a15b-cannot-be-red-while-a15a-is-green-and-its-comment-names-an-impossible-mechanism-2026-10-06].
+      // This comment used to claim A15b catches what A15a would miss - "a build that made `missed` count successful
+      // months would turn A15a's silence into a gap sentence and A15a alone would still be green". The app cannot
+      // produce that: the gap sentence has ONE source and renders ONLY inside <div data-ct="games-cap">, and this
+      // gate's locator (with LIMIT itself matching "couldn't be loaded") finds that element whenever GAP_RE matches
+      // the body, which falsifies A15a's own r.cap.present===false. So A15b can never be red while A15a is green.
+      // It is kept because it is cheap and names the gap half explicitly in the log, NOT as an independent guard.
+      // The guard that would be independent - the gap suffix's absence after a month that failed and then
+      // recovered - needs a recovery state the drivers here do not have, and is recorded on that job.
+      L.say(!GAP_RE.test(r.body||''),'A15b US-R25 '+tag+': and NO gap is claimed - all four listed months answered with their full fifty rows, so there is nothing to disclose (a redundant arm over A15a, which already fails if a gap sentence renders; see the comment)',{bodyHasGap:GAP_RE.test(r.body||''),line:r.cap.text});
       // A15c THE SAME STATE AFTER A RELOAD WITH THE NETWORK REFUSING, which is where this input collides
       // with A8a and why it is worth the extra reading. A8a requires that an account sitting at ACCT_GMAX
       // rows in a LEGACY store (no ct_acctcap entry) still states the cap, because at the cap and with no
