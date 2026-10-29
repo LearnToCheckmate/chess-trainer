@@ -1,0 +1,28 @@
+# #545 item (63): jobs/one-in-ten-unfixed-harness-runs-adds-h1-and-the-cause-is-unpinned-2026-10-16
+# Command per run, in a clone at 31c07e5 with origin/main pinned to 1507ade: bash gates/fastgate-drive.sh unfixed > <log> 2>&1
+# Every detailed log was kept (scratchpad t63/logs/unfixed-<run>.log, not committed: ~68 lines each, the summary below carries the verdict lines).
+# Runs 17 and 18 overlapped a disk-full window (0 MB free from before 20:32:49Z to about 20:35:30Z, caused by the pipefail probe leak fixed at 12a8665), so both are EXCLUDED and named here; run 18 read H1 FAIL inside that window, run 17 did not. r1-r4 replace them.
+run	startZ	endZ	load1m	summary	H1	valid
+1	18:42:16	18:48:59	0.08	64 ok, 3 FAIL, 1 skipped	ok	yes
+2	18:48:59	18:55:33	2.28	64 ok, 3 FAIL, 1 skipped	ok	yes
+3	18:55:33	19:02:02	1.47	64 ok, 3 FAIL, 1 skipped	ok	yes
+4	19:02:02	19:08:24	1.23	64 ok, 3 FAIL, 1 skipped	ok	yes
+5	19:08:24	19:15:06	1.45	64 ok, 3 FAIL, 1 skipped	ok	yes
+6	19:15:06	19:21:37	1.86	64 ok, 3 FAIL, 1 skipped	ok	yes
+7	19:21:37	19:28:01	2.31	64 ok, 3 FAIL, 1 skipped	ok	yes
+8	19:28:01	19:34:12	3.05	64 ok, 3 FAIL, 1 skipped	ok	yes
+9	19:34:12	19:40:35	1.64	64 ok, 3 FAIL, 1 skipped	ok	yes
+10	19:40:35	19:47:13	1.13	64 ok, 3 FAIL, 1 skipped	ok	yes
+11	19:47:13	19:54:15	2.30	64 ok, 3 FAIL, 1 skipped	ok	yes
+12	19:54:15	20:01:25	1.48	64 ok, 3 FAIL, 1 skipped	ok	yes
+13	20:01:25	20:07:51	1.94	64 ok, 3 FAIL, 1 skipped	ok	yes
+14	20:07:51	20:14:19	1.75	64 ok, 3 FAIL, 1 skipped	ok	yes
+15	20:14:19	20:20:43	1.76	64 ok, 3 FAIL, 1 skipped	ok	yes
+16	20:20:43	20:27:16	1.65	64 ok, 3 FAIL, 1 skipped	ok	yes
+17	20:27:16	20:32:49	2.62	59 ok, 8 FAIL, 1 skipped	ok	EXCLUDED disk-full
+18	20:32:49	20:38:55	2.95	54 ok, 13 FAIL, 1 skipped	FAIL	EXCLUDED disk-full
+r1	20:45:04	20:51:33	0.58	64 ok, 3 FAIL, 1 skipped	ok	yes
+r2	20:51:34	20:58:03	2.13	64 ok, 3 FAIL, 1 skipped	ok	yes
+r3	20:58:03	21:04:26	2.05	64 ok, 3 FAIL, 1 skipped	ok	yes
+r4	21:04:26	21:10:50	1.22	64 ok, 3 FAIL, 1 skipped	ok	yes
+# RUN 18 IS NOT UNEXPLAINED: its log prints, for H3-H7, H9 and H14, "FULL SUITE REQUIRED. The stamp-only controls could not be BUILT or RUN", and H1/H2 "FAST GATE RED" - the builds failed while the disk was full. That is the same failed-set SHAPE as the flake this job was filed on (H1 H3 H4 ...), so a transient build failure is now the leading candidate for that flake. It is a candidate, not a reproduction.
