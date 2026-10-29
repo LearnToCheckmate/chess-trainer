@@ -579,11 +579,18 @@ L.run(async()=>{
        in the predicate too - a slow container that drifted past 8000 must go RED here rather than quietly
        re-prove the fade and read as a pass. That is the frozen-denominator trap this repository records at
        #405, pointed at a clock.
-       TWO INSTRUMENTS, AND THE SECOND IS NOT A SIBLING OF THE FIRST. `[data-ct="result-card"]`'s text is the
-       obvious reading and a selector that stopped matching would report the card absent in every state, which
-       is exactly the shape CLAUDE.md records at #432. So the board grid's own child COUNT is read beside it:
-       65 with the card up, 64 without, the same quantity TC-PL-027 above already pins across the fade, reached
-       through `b.board()` and not through the card's selector. Both must move together or this arm goes red.
+       THREE READINGS, AND WHAT EACH ONE ACTUALLY IS [#545, item (69);
+       jobs/46-plays-card-cross-check-reads-the-sibling-count-of-the-element-it-cross-checks-so-the-pair-co-varies-by-construction-2026-10-27].
+       This paragraph used to say "TWO INSTRUMENTS, AND THE SECOND IS NOT A SIBLING OF THE FIRST". It is: the result
+       card renders INSIDE the board grid, so the grid's child count (65 with the card, 64 without, via b.board())
+       is the presence of ONE node counted twice, and it co-varies with the card by construction. What that count
+       genuinely guards is selector rot - `[data-ct="result-card"]` failing to match would read the card absent in
+       every state (#432) - and it is kept for that, under its true name. The INDEPENDENT reading is the third:
+       the grid's children are split by SHAPE into the 64 square cells and everything else, and the everything-else
+       is read by WHAT IT SAYS, not by any hook: 'Checkmate' must be painted there at the terminal ply and absent
+       one ply back, with the squares at 64 throughout. CLAUDE.md's #394 question - is the thing I am detecting a
+       descendant of the thing I am asserting over? - is answered by asserting the squares and the overlay
+       separately rather than their sum. The absolute 65 is asserted once, at the terminal ply.
        RECORDED, NOT ENDORSED, the same stance as TC-PL-026 and the Back arm. Whether stepping back into a
        finished game SHOULD take the result away is the product question on
        jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, which is not settled. This arm pins
@@ -596,18 +603,31 @@ L.run(async()=>{
     const c=await L.launch({geo,name:'play-over-card-'+geo,store:{ct_pool:'3'}});await c.open();
     await P.states['pp-mate'](c);
     const t0=Date.now();
+    // THE GRID SPLIT BY SHAPE [#545, item (69)]: square cells (within 1.5px of board/8 on both axes) against every
+    // other child, whose painted text is read whole - no data-ct anywhere in this reading.
+    const gridSplit=()=>c.page.evaluate(()=>{const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+      let g=null;for(const e of els){if(!g||e.getBoundingClientRect().width>g.getBoundingClientRect().width)g=e;}if(!g)return null;
+      const cell=g.getBoundingClientRect().width/8;let squares=0;const other=[];
+      for(const k of g.children){const r=k.getBoundingClientRect();if(Math.abs(r.width-cell)<1.5&&Math.abs(r.height-cell)<1.5)squares++;else other.push((k.innerText||'').replace(/\s+/g,' ').trim());}
+      return {squares,others:other.length,otherText:other.join(' | ')};});
     const pcTerm=await plyCount(c),cardTerm=await c.text('[data-ct="result-card"]'),kidsTerm=(await c.board()).kids;
+    const gTerm=await gridSplit();
     const eTerm=Date.now()-t0;
     L.say(pcTerm===4&&cardTerm==='Checkmate! Black wins'&&eTerm<8000,
       geo+': CARD WINDOW OPEN - at the terminal ply the result card is up and only '+eTerm+'ms have passed, well inside the 8s fade. Every reading below is taken in this window; without this line the three that follow could all be re-readings of the fade',{ply:pcTerm,card:cardTerm,elapsedMs:eTerm,kids:kidsTerm});
     await P.tapBtn(c,/^Back$/,400);
     const wPlyBack=await plyCount(c),wCardBack=await c.text('[data-ct="result-card"]'),wKidsBack=(await c.board()).kids;
+    const gBack=await gridSplit();
     const wElapBack=Date.now()-t0;
+    L.say(kidsTerm===65&&!!gTerm&&gTerm.squares===64&&/Checkmate/.test(gTerm.otherText),
+      geo+': TC-PL-028 THE INDEPENDENT READING, at the terminal ply: the grid holds 65 children, 64 of them square cells, and the non-square remainder PAINTS "Checkmate" - found by shape and text, not by the card\'s selector [#545 item (69)]',{kids:kidsTerm,split:gTerm});
+    L.say(!!gBack&&gBack.squares===64&&!/Checkmate/.test(gBack.otherText),
+      geo+': TC-PL-028 and one ply back the 64 squares are still there and NOTHING in the grid paints "Checkmate" - the card is gone by a reading that shares no selector with wCardBack [#545 item (69)]',{split:gBack,elapsedMs:Date.now()-t0});
     L.say(wPlyBack===pcTerm-1,geo+': the step off the terminal ply is real inside the window too ('+pcTerm+' -> '+wPlyBack+')',{before:pcTerm,after:wPlyBack,elapsedMs:wElapBack});
     L.say(wCardBack===null&&wElapBack<8000,
       geo+': THE RESULT CARD IS GONE ONE PLY BACK AFTER ONLY '+wElapBack+'ms - so its absence is keyed to the PREVIEWED PLY and not to the 8s fade, which is the distinction the Back arm above could not draw and says so in its own note. If the card survived the step this line goes red; if this container ever drifts past 8000ms it goes red too rather than re-proving the fade',{card:wCardBack,elapsedMs:wElapBack});
     L.say(wKidsBack===kidsTerm-1,
-      geo+': and the BOARD GRID agrees, read through b.board() and not through the card\'s own selector ('+kidsTerm+' -> '+wKidsBack+') - a result-card selector that stopped matching would report the card absent in every state, so the one quantity TC-PL-027 already pins across the fade is read here across the PLY instead',{withCard:kidsTerm,oneBack:wKidsBack});
+      geo+': SELECTOR-ROT GUARD (it counts the card\'s own node, so it co-varies with the card - see the comment): the BOARD GRID child count agrees, read through b.board() and not through the card\'s own selector ('+kidsTerm+' -> '+wKidsBack+') - a result-card selector that stopped matching would report the card absent in every state, so the one quantity TC-PL-027 already pins across the fade is read here across the PLY instead',{withCard:kidsTerm,oneBack:wKidsBack});
     await P.tapBtn(c,/^Forward$/,400);
     const pcFwd=await plyCount(c),cardFwd=await c.text('[data-ct="result-card"]'),kidsFwd=(await c.board()).kids;
     const eFwd=Date.now()-t0;
