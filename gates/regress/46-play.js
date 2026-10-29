@@ -594,6 +594,21 @@ L.run(async()=>{
     await P.tapBtn(b,/^Back$/,400);
     const cardB=await b.text('[data-ct="result-card"]'),sinceB=sinceOver();
     const pliesB=await plyCount(b),kidsB=(await b.board()).kids,rowB=await rowBtns(b);
+    // ── THE BOARD IS MEASURED HERE TOO, IN THE MIDDLE OF THE ROUND TRIP [#544, item (13) of
+    // directOpening_2026_10_28_batch4;
+    // jobs/gate-46s-round-trip-board-assertion-reads-the-pre-interaction-metrics-so-a-board-that-jumps-at-game-over-cannot-redden-it-2026-10-28].
+    // THAT JOB'S PREMISE IS FALSE AND IS WITHDRAWN ON THE JOB [R18]: it says `m0=await b.metrics()` "precedes
+    // the Back tap and the Forward tap", and it does not - the Back tap is at :593, the Forward tap at :599 and
+    // the metrics read at :603, identically on origin/main. The assertion below has always read the geometry
+    // AFTER the round trip. Antagonist A read it from the code alone and antagonist B conceded it without
+    // verifying, which that job records in its own foundBy field.
+    // WHAT IS REAL IS THE OVERCLAIM, AND THAT IS WORTH FIXING: the assertion's message says the board "never
+    // moved across the whole round trip" while it measures only the ENDPOINT, so a board that jumps when the
+    // card comes off and settles back when it returns is invisible to it. The remedy the job prescribes is
+    // right for that: measure in the middle as well. CLAUDE.md's rule is the general form - measure after
+    // interaction - and the specific form here is that a message naming an INTERVAL must be measured over the
+    // interval and not at its ends.
+    const mB=await b.metrics();
     const backHappened=(cardB===null&&pliesB===plies0-1);
     // --- and ONE PLY FORWARD BRINGS IT BACK, which is the half a timer can never explain.
     await P.tapBtn(b,/^Forward$/,400);
@@ -637,6 +652,9 @@ L.run(async()=>{
       'ONE Forward tap brings the resignation card BACK at '+sinceF+'ms since the game ended - a card removed by its own timer could not return, so with the precondition and the clock line above this is the assertion that separates the two explanations',
       {card:cardF,plies:pliesF,msSinceGameOver:sinceF,backHappened});
     L.say(kidsF===kids0,'the grid child count returns to '+kids0+' with it',{back:kidsB,forward:kidsF});
+    L.say(near(mB.board.w,W.bw)&&near(mB.board.top,W.by),
+      'and the board does not move IN THE MIDDLE of the round trip either - at one ply back, with the result card off the board, it is still the pinned '+W.bw+' at y='+W.by+'. This is the reading the endpoint assertion below cannot make: a board that jumps when the card unmounts and settles back when it returns passes that one and fails this one [#544, item (13)]',
+      {atOnePlyBack:{w:mB.board.w,top:mB.board.top},want:{w:W.bw,top:W.by},plies:pliesB,card:cardB});
     L.say(near(m0.board.w,W.bw)&&near(m0.board.top,W.by),
       'and the board never moved across the whole round trip - still the pinned '+W.bw+' at y='+W.by+', so stepping the ply at game over is not a layout event',{after:m0.board,want:W});
 
