@@ -2354,8 +2354,13 @@ if [ -z "$SUBSET" ] && [ -f "$UNITJS" ]; then
   ulog="$G/logs/$STEM-unit-drill-why.log"
   echo "--- unit-drill-why (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
   ( cd "$ROOT" && timeout 300 node "$UNITJS" ) > "$ulog" 2>&1; urc=$?
-  uok=$(grep -c '^  ok' "$ulog" || true); ufail=$(grep -c '^  FAIL' "$ulog" || true)
-  sed -n 's/^  ok  *\(.*\)$/PASS unit-drill-why \1/p' "$ulog" >> "$ALL"
+  # #545 item (88) [jobs/the-unit-layers-ok-count-and-its-pass-lines-come-from-two-different-patterns-2026-10-03]: uok was
+  # a PREFIX grep ('^  ok') while the PASS lines came from a stricter sed ('^  ok  *'), so a line '  okay ...' was CLAIMED
+  # in "N ok -> N PASS lines" and never EMITTED, and (6) could not see it because it recounts the file. Both numbers now
+  # come from the one emitted file, the fastgate-drive block's shape, so the claim and the evidence cannot diverge.
+  sed -n 's/^  ok  *\(.*\)$/PASS unit-drill-why \1/p' "$ulog" > "$ulog.pass"
+  uok=$(grep -c '^PASS unit-drill-why ' "$ulog.pass" || true); ufail=$(grep -c '^  FAIL' "$ulog" || true)
+  cat "$ulog.pass" >> "$ALL"
   if [ "$urc" -ne 0 ] || [ "$ufail" -gt 0 ] || [ "$uok" -eq 0 ]; then
     red=1
     echo "    unit-drill-why: RED (exit $urc, $ufail FAIL, $uok ok)" | tee -a "$ALL"
@@ -2380,8 +2385,9 @@ if [ -z "$SUBSET" ] && [ -f "$HGSH" ]; then
   echo "--- unit-held-guard (unit layer, not a regress gate, not in the roster) ---" >> "$ALL"
   echo "--- unit-held-guard (unit layer, not a regress gate, not in the roster) ---"
   ( cd "$ROOT" && timeout 300 bash "$HGSH" ) > "$hlog" 2>&1; hrc=$?
-  hok=$(grep -c '^  ok' "$hlog"); hfail=$(grep -c '^  FAIL' "$hlog")
-  sed -n 's/^  ok  *\(.*\)$/PASS unit-held-guard \1/p' "$hlog" >> "$ALL"
+  sed -n 's/^  ok  *\(.*\)$/PASS unit-held-guard \1/p' "$hlog" > "$hlog.pass"   # one pattern for claim and evidence (#545 item 88)
+  hok=$(grep -c '^PASS unit-held-guard ' "$hlog.pass"); hfail=$(grep -c '^  FAIL' "$hlog")
+  cat "$hlog.pass" >> "$ALL"
   if [ "$hrc" -ne 0 ] || [ "$hfail" -gt 0 ] || [ "$hok" -eq 0 ]; then
     red=1
     echo "    unit-held-guard: RED (exit $hrc, $hfail FAIL, $hok ok). Full output: $hlog" >> "$ALL"
