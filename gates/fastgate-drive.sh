@@ -303,6 +303,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H62) printf 'TC-SUITE-246' ;;
     H63) printf 'TC-SUITE-272' ;;  H64) printf 'TC-SUITE-273' ;;  H65) printf 'TC-SUITE-274' ;;  H66) printf 'TC-SUITE-275' ;;
     H67) printf 'TC-SUITE-276' ;;
+    H68) printf 'TC-SUITE-306' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2517,6 +2518,14 @@ printf '\n<!-- H67 fixture row -->\n' >> "$C/RUN-LOG.md"
 commit_case "H67 fixture: a records-only change"
 expect H67 0 "NOT SCANNED: no shell script's reads"
 reset_clone
+# H68 NO ARGUMENT IS A USAGE ERROR, NOT A VERDICT [#545, item (99)]. fastgate.sh with an empty base exited 2, the code that
+# means FULL SUITE REQUIRED, so a wrapper with an unset $BASE read a route. It must exit 64 and say it is a usage error.
+H68OUT="$( cd "$C" && CT_FASTGATE_DRIVE=1 timeout 60 bash "$C/gates/fastgate.sh" 2>&1 )"; H68RC=$?
+case "$H68RC:$H68OUT" in
+  "64:"*"usage error, not a verdict"*) printf '  ok  H68 [%s]  (exit 64, usage error, not a verdict code)\n' "$(tc H68)"; OK=$((OK+1)) ;;
+  *) printf '  FAIL H68 [%s]  exit %s with no argument, expected 64 and "usage error, not a verdict"\n' "$(tc H68)" "$H68RC"
+     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H68" ;;
+esac
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -

@@ -76,7 +76,11 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OB
 main(){
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; G="$ROOT/gates"
 BASE="${1:-}"
-[ -n "$BASE" ] || { echo "fastgate.sh: usage: gates/fastgate.sh <base-sha>   (the sha this tree is diffed against; normally origin/main)"; exit 2; }
+# A USAGE ERROR EXITS 64, A CODE NO VERDICT USES [#545, item (99); jobs/gates-fastgate-sh-with-no-arguments-exits-2-so-an-
+# empty-base-reads-as-a-route-to-the-full-suite-2026-10-22]. It exited 2, which is FULL SUITE REQUIRED everywhere else in
+# this file, so a wrapper running `fastgate.sh "$BASE"` with an empty $BASE read a verdict; three readers did. 0, 1 and 2
+# stay the verdicts; 64 (EX_USAGE) means this door was never asked a question.
+[ -n "$BASE" ] || { echo "fastgate.sh: usage: gates/fastgate.sh <base-sha>   (the sha this tree is diffed against; normally origin/main). Exit 64: a usage error, not a verdict"; exit 64; }
 # ── $GIT IS AN ARRAY [#544, item (14) of directOpening_2026_10_28_batch4;
 # jobs/gates-fastgate-sh-keeps-git-in-a-string-so-at-a-checkout-path-with-a-space-every-git-call-fails-and-its-refusals-become-routes-2026-10-22].
 # IT WAS A STRING, used unquoted at 42 sites, and at a checkout path containing a SPACE every git call in this
