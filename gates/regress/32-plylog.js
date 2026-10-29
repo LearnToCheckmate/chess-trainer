@@ -42,7 +42,13 @@ const openReadout=async(b)=>{
   });
 };
 const closeMenu=async(b)=>{await b.page.mouse.click(4,4);await b.settle(400);};
-const toggle=async(b)=>{await b.tapText(/^Layout readout$/,{wait:500});};
+// #545 item (80) [jobs/taptext-clicks-outside-the-viewport-...-2026-09-30, twoSecondaryFindingsInGate32Itself]:
+// (b) toggle was UNGUARDED, so a throw escaped L.run and the second geometry never ran (15 of 16 assertions lost on
+// #440, CLAUDE.md's #393 rule). It now reports whether the tap landed and the caller asserts it, and the gate goes on.
+const toggle=async(b)=>{try{await b.tapText(/^Layout readout$/,{wait:500});return true;}catch(e){L.note('      toggle: '+String(e.message||e).slice(0,160));return false;}};
+// (a) "with the switch off there is no readout block" was SATISFIED BY THE MENU FAILING TO OPEN. menuUp() is the
+// precondition, asserted first, so a shut menu is a red of its own and not a green for the absence below it.
+const menuUp=(b)=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
 const step=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(170);}await b.settle(400);};
 const toReview=async(b)=>{
   if(await b.page.locator('[aria-label="Next move"]').first().isVisible().catch(()=>false))return;   // already there
@@ -59,8 +65,9 @@ L.run(async()=>{
     // an ordinary user: the switch is off. Step plies, then turn the readout on and look at the same render.
     await toReview(b);await step(b,4);
     let r=await openReadout(b);
+    L.say(await menuUp(b),geo+': PRECONDITION the menu sheet is open, so the absence asserted next is a reading of an open menu');
     L.say(r.shown===false,geo+': with the switch off there is no Layout readout block in the menu');
-    await toggle(b);
+    L.say(await toggle(b),geo+': the Layout readout row was tapped (a missed tap is a red here, not a throw that ends the gate)');
     r=await b.page.evaluate(()=>{
       const anchor=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&/what THIS device computes/.test(d.innerText||''));
       if(!anchor)return {shown:false,plyLine:null};
@@ -80,6 +87,7 @@ L.run(async()=>{
     await toggle(b);await closeMenu(b);
     await toReview(b);await step(b,2);
     r=await openReadout(b);
+    L.say(await menuUp(b),geo+': PRECONDITION the menu sheet is open again before the switched-off reading');
     L.say(r.shown===false,geo+': switching it off hides the readout again');
     await toggle(b);
     const after=await b.page.evaluate(()=>{
