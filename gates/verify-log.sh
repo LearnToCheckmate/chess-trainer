@@ -735,18 +735,28 @@ EOF
   # tree or on main. A glob for an absent path is harmless here - arm (6) reports scriptdead=0 either way - and
   # it is removed rather than left, because the next reader cannot tell a scope entry for a file that is gone
   # from one for a file that was never written.
-  A6SCOPE="CLAUDE.md gates/*.sh gates/audit/*.sh gates/regress/README.md gates/pending/README.md"
+  # WIDENED AT #545 [item (10) of directOpening_2026_10_29_batch5;
+  # jobs/the-citation-checkers-scope-is-claude-stories-only-so-stale-path-line-citations-inside-gates-scripts-are-unchecked-2026-10-20]:
+  # (i) the two globs gates/*.sh and gates/audit/*.sh became ONE git glob over every shell script under gates/,
+  #     at any depth, so the next directory of scripts is in scope the day it is created instead of the day
+  #     someone remembers this line (measured: today every one of the 26 is at one of the two old depths, so
+  #     the count does not move); and (ii) the TARGET may now be a Markdown file as well as a script, because
+  #     the job's second stale citation was gates/audit/red-count.sh citing HANDOFF.md at line 3395 against a HANDOFF.md
+  #     of 133 lines - past end of file by 3262, and invisible to an arm that only resolved .sh/.js targets.
+  A6SCOPE="CLAUDE.md :(glob)gates/**/*.sh gates/regress/README.md gates/pending/README.md"
   # HANDOFF.md IS OUT OF SCOPE, and the reason is mechanical: a close-out rewrites it wholesale every run, so
   # its citations are a moving target and 24 of the 113 live there. RUN-LOG.md, claude/PROCESS-LOG.md,
   # claude/process-log/ and claude/agents/ are out for the reason that job gives for RUN-LOG.md: they are
   # historical rows that must not be rewritten, so a stale pointer in them is a true record of what was cited.
-  A6ALLOW="gates/regress/99-gone.js gates/regress/10-real.js gates/regress/01-fixture.js"
+  A6ALLOW="gates/regress/99-gone.js gates/regress/10-real.js gates/regress/01-fixture.js gates/regress/ADVICE.md"
   # THE ALLOWLIST IS THE FIXTURE PATHS, and without it this arm reports 14 dead citations that are not defects:
   # every one is a FABRICATED path inside a selftest string in this very file (a deliberately absent gate, so a
   # case can prove the dead-path detector fires). A scan that counted them would be the "a bad selector is a
   # reading" trap, and it is listed here by name rather than pattern so a real dead path cannot hide behind it.
   A6TOT=0; A6DEAD=0; A6EOF=0; A6BAD=""
-  A6CITES="$(git grep -nHoE '(gates/[A-Za-z0-9_./-]+\.(sh|js)|chess\.jsx|app\.js):[0-9]+' -- $A6SCOPE 2>/dev/null || true)"
+  # ADVICE.md is red-count.sh's own selftest fixture (a fabricated gates/regress/ADVICE.md:1 its cases grep for),
+  # allowed by name for the reason the three .js fixtures above are.
+  A6CITES="$(git grep -nHoE '(gates/[A-Za-z0-9_./-]+\.(sh|js)|chess\.jsx|app\.js|([A-Za-z0-9_./-]+/)?[A-Za-z0-9_-]+\.md):[0-9]+' -- $A6SCOPE 2>/dev/null || true)"
   while IFS= read -r c; do
     [ -n "$c" ] || continue
     WHERE="${c%%:*}:$(printf '%s' "$c" | cut -d: -f2)"

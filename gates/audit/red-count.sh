@@ -192,7 +192,7 @@ report() {
       # THE NUMBERS MUST COME FROM A WINDOW AROUND THE CITATION, NOT FROM THE WHOLE DOCUMENT, and
       # the first draft of this section took them from the whole document. Run against the real tree
       # it then reported three over-reports in HANDOFF.md and RUN-LOG.md - and all three were FALSE,
-      # checked by hand before anything was published [R18]: HANDOFF.md:3395 names 451-all-RED.log
+      # checked by hand before anything was published [R18]: line 3395 of HANDOFF.md AS IT STOOD AT 5999484 names 451-all-RED.log
       # beside the figure 16 about a Roadmap element, and the "2 FAIL" it was matched against is
       # thousands of lines away about something else. A back-audit whose hits are mostly noise is a
       # back-audit nobody will read twice, so the window is WINDOW_CHARS either side of the name.
