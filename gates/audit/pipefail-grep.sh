@@ -161,6 +161,13 @@ scan() {
       [ -n "${ln:-}" ] || continue
       case "$txt" in *[!' ']*) ;; *) continue ;; esac
       grep -qE '^[[:space:]]*#' <<<"$txt" && continue
+      # AN OR IS NOT A PIPE [#545, item (70) follow-up of item (66);
+      # jobs/the-sigpipe-audits-herestring-exemption-is-defeated-by-an-or-chain-so-the-remedy-its-own-message-prescribes-creates-the-site-it-removes-2026-10-23].
+      # EARLY's leading `\|` also matches the second bar of `||`, so `grep -q x <<<"$v" || grep -q y <<<"$v"` - two
+      # herestrings and no pipe - was a candidate. The same defect as gatemanifest.sh's sigpipe detector, found here
+      # when item (66)'s own selftest fixture line read as a tier-B member. Re-asked with every `||` masked; the tier
+      # tests below still read the real text. Control: C16.
+      grep -qE "$EARLY" <<<"${txt//||/ ;OR; }" || continue
       # THIS FILE'S OWN REPRODUCTION FIXTURES ARE DELIBERATE MEMBERS AND ARE NOT DEFECTS. They are exempted
       # by the marker below rather than by file name, so a REAL member added to this file would still count.
       grep -qF 'PFG-FIXTURE' <<<"$txt" && { FIXT=$((FIXT+1)); continue; }
@@ -250,6 +257,10 @@ ck "C7 the scan FINDS a planted tier-A member" "1" "$(G="$TD" ; scan | grep -c '
 ck "C8 the scan does NOT count the herestring line beside it" "0" "$(G="$TD"; scan | grep -c 'Y=' || true)"
 sed -i 's/^set -uo pipefail/set -u/' "$TD/plant.sh"
 ck "C9 and it finds nothing in the same file once pipefail is off, so the predicate is pipefail and not grep" "0" "$(G="$TD"; scan | wc -l | tr -d ' ')"
+{ printf 'set -uo pipefail\n'
+  printf 'if grep -qx "$a" <<<"$l" %s%s grep -qx "$b" <<<"$l"; then :; fi\n' "$PIPE" "$PIPE"
+} > "$TD/plant.sh"
+ck "C16 an OR chain of two herestring greps is NOT a member - an OR is not a pipe [#545]" "0" "$(G="$TD"; scan | wc -l | tr -d ' ')"
 
 PIPE="${PIPE:-|}"
 # ── C10..C15 THE PROBE AND THE RE-TIER, WITH A DISCRIMINATOR. ───────────────────────────────────────────
