@@ -122,6 +122,7 @@
 // citing R19 as the authority FOR 730 cites it against itself. #507 removed that exact miscitation from gate
 // 73 and this file's first draft reproduced it; both antagonists caught it.
 
+// CONTROL-RECORD: 1888a7d 2026-10-29 total=121 red=20 scope=trial:745743860a42 how=the #522 refit's idle branch resets the trim and bumps the rAF loop (setFitBump) instead of converging before paint, so the full-size board is painted on entry and on removal; reddens D4 D6 D7 D9 at both short cells, A9 x2, C9 x2, and D6 D8 D9b D9 at both of Kunal's cells [#545 item (34)]
 const L=require('../lib.js');
 const D=require('../drive/lesson.js');
 
@@ -327,6 +328,32 @@ const pair=(n,tag,clean,inj,px,engages)=>{
 //      6a2fc6cded2b2695aea78e461d5d10ffa8577c48 is an ancestor of origin/main.
 //      THE BRACKET USED TO SIT MID-SENTENCE, between "its" and "defect" in "A check that has never seen its
 //      defect proves nothing", which #528's own appended note asked the next run to move. Moved, #544.]
+//   WHICH CONTROL REDDENS WHICH BLOCK-D ASSERTION, DECLARED PER CONTROL AND MEASURED [#545, item (34);
+//      jobs/block-ds-only-negative-control-reddens-d4-d8-and-d9-so-d5-d6-and-d7-are-uncontrolled-2026-10-21]. The
+//      comment above recorded what the one recipe covers and never what it does not, which is how three assertions
+//      sat uncontrolled in a required gate. Every line here is a run with its command, not a reading of the code.
+//      (i) #528's recipe bundle 2a5556c8f281 (orchestrator scratch build, not in this tree): D4, D8, D9 at both
+//          short cells; D6 PASSES. Recorded above and not re-run here.
+//      (ii) #545's reading of the same recipe, bundle 745743860a42: in chess.jsx's idle branch of the pre-paint
+//          refit, KEEP `if(boardTrimRef.current!==0)setBoardTrim(0);`, replace `fitRefitRef.current=1;` plus
+//          `setFitPass(p=>p+1);` with `setFitBump(b=>b+1);`, and return. The trim resets and the rAF loop
+//          re-settles, so the full-size board is PAINTED. Driven over block D alone at 320x540 and 375x568, 88px,
+//          TWELVE runs, three at a time (under load): 12 of 12 identical, 21 pass / 8 fail, red = D4, D6, D7, D9
+//          at both cells. D6's offending frame is practice frame 0 at the full viewport width (320 at 320x540,
+//          358.88 at 375x568) against a settled 192 - the blink D6's own text describes. So D6 IS ABLE TO FAIL, and
+//          the by-construction claim antagonist A first made (reference read after settle, so no transient
+//          visible) is refuted by measurement: the reference is 192 and frame 0 is wider. D7 reddens on removal
+//          (252.39 and 320 against 228.39; 358.88 against 254.88). D8 PASSES on this bundle, because it recovers.
+//          THE WHOLE GATE on that bundle (all four D cells and blocks A to C): 101 pass / 20 fail of 121 - the eight above,
+//          plus A9 at 320x540 and 375x568, C9 at 375x730 and 375x761 LARGE, and D6, D8, D9b and D9 at each of 375x730
+//          and 375x761. Recorded as this file's CONTROL-RECORD.
+//      (iii) main's own bundle 049b41dfb6f1 at 375x761 with an 88px transient - the cell the #544 note below
+//          EXCLUDES from DCELLS - three runs, 3 of 3 identical, 11 pass / 4 fail, red = D6, D8, D9, D9b. D6's
+//          practice frames oscillate 374.23 / 358.23 against a settled 358.23. A natural control on main, recorded
+//          and not added as a cell, for the reason #544 gives.
+//      UNCONTROLLED, NAMED: D5 (the CLEAN arm's removed-phase frames, none wider than its settled width). None of
+//          (i), (ii) or (iii) reddens it, and no bundle in this project has been shown to. The denominators D2, D3,
+//          D9b and the error lines D10 and D11 are preconditions, not detectors, and are not listed as controlled.
 //   AND D4 ALREADY CAUGHT SOMETHING NOBODY HAD FILED (this paragraph called it D1): on main, at 375x568, the CLEAN arm paints one frame at
 //      270.88 when the settled practice board is 254.88 - a one-frame board jump on the ordinary lesson path,
 //      with no injection at all, against the project's first rule that the board must never jump. #522's
