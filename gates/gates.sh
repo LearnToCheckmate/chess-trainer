@@ -59,6 +59,30 @@ head_reconcile(){ # <repo> <start-sha> <start-tree> <start-dirty-count>
   printf 'orphaned\t%s\t%s\n' "$s" " | HEAD MOVED DURING THE RUN: the gated sha is on NO ref and HEAD $e does not carry the gated tree - THIS LOG NAMES A TREE NOTHING CARRIES, so it is not a push gate"
 }
 
+# ── A DELETED ASSERTION INSIDE A GATE MUST NOT BE INVISIBLE [#545, item (37); jobs/a-deleted-assertion-inside-a-
+# gate-is-invisible-in-a-green-run-2026-10-10]. This file's header says the regression total "must only rise", and
+# until #545 nothing compared it with anything: delete one L.say and the footer falls by one, still equals the log's
+# own ^PASS count, and verify-log.sh accepts it. #510 lost 12 assertions that way in its own gate and noticed only by
+# luck. The manifest pins the gate SET and verify-log pins the SECTION count; the one unit nothing pinned was the
+# assertions inside a gate. gates/assertion-counts.tsv pins it PER GATE (a suite total would hide a fall in one gate
+# behind a rise in another), keyed on each gate's SECTION in the log ("=== <gate> ===", which gates.sh writes) and counting the PASS and FAIL
+# lines inside it. Not the gate's own summary label: five gates print the default label GATE and one prints none in
+# the "<label>: N pass, M fail" form, so labels collide and miss - measured on 544-all.log.
+# A FALL, or a pinned label absent from the log, keeps a full run from emitting the green line. A RISE is reported
+# and allowed, so a build that adds assertions commits the new number with gates/assertcount.sh record. MEASURED
+# BEFORE THIS WAS BUILT: across the 25 archived full logs #508 to #544, every gate's count was identical from log to
+# log, except GALLERY-PLAYALL 122 -> 113 at #544, which is #544's own deliberate edit to gate 15 (2dc86b5) - the case
+# this exists to make a commit say out loud. THE LIMIT, the #419 limit again: the count comes from the harness that
+# emits the assertions, so this detects DELETION, not an assertion that was always vacuous.
+# Prints one line per breach: "FELL <label> <pinned> <now>" or "ABSENT <label> <pinned>". Defined above --selftest so
+# the selftest drives this function and not a copy.
+assert_falls(){ # <register.tsv> <log>
+  awk -F'\t' 'FILENAME==ARGV[1]{ if($0 ~ /^[[:space:]]*#/ || NF<2) next; pin[$1]=$2+0; next }
+       /^=== [^ ]+ ===/{ sec=$0; sub(/^=== /,"",sec); sub(/ ===.*/,"",sec); seen[sec]=1; next }
+       sec!="" && /^(PASS|FAIL) /{ got[sec]++ }
+       END{ for(k in pin){ if(!(k in seen)) printf "ABSENT %s %d\n",k,pin[k]; else if(got[k]+0<pin[k]) printf "FELL %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
+}
+
 # ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
 # That job's headline repair LANDED (the herestring at the MANI_LINE assignment below, burst wave 1 patch 03,
@@ -1398,7 +1422,24 @@ M16PY
   st H5-the-same-amend-after-a-DIRTY-start-reads-orphaned "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 3 | cut -f1)" orphaned
   ( cd "$ST_HR" && echo c >> f && git commit -q --amend -am 'A, tree changed' ) >/dev/null 2>&1
   st H4-an-amend-that-CHANGES-the-tree-reads-orphaned "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1)" orphaned
-  st H6-the-full-suite-refuses-the-green-line-on-an-orphaned-verdict "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \]; then echo "GATES GREEN' "$SF")" 1
+  st H6-the-full-suite-refuses-the-green-line-on-an-orphaned-verdict "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] .*then echo "GATES GREEN' "$SF")" 1
+  # A1-A6 DRIVE assert_falls [#545, item (37)] over a fixture register and a fixture log.
+  printf '# fixture\nALPHA\t5\t#1\tx\nBETA\t3\t#1\tx\n' > "$ST_T/ac.tsv"
+  acl(){ local a="$1" b="$2" bf="${3:-0}" i; echo "=== ALPHA ==="; for ((i=0;i<a;i++)); do echo "PASS a$i"; done
+         if [ "$b" != none ]; then echo "=== BETA ==="; for ((i=0;i<b;i++)); do echo "PASS b$i"; done; for ((i=0;i<bf;i++)); do echo "FAIL b$i"; done; fi; echo "=== THIRD ==="; echo "PASS t"; }
+  acl 5 3 > "$ST_T/ac1.log"
+  st A1-equal-counts-print-nothing "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac1.log" | wc -l | tr -d ' ')" 0
+  acl 4 3 > "$ST_T/ac2.log"
+  st A2-one-deleted-assertion-reads-FELL "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac2.log")" "FELL ALPHA 5 4"
+  acl 9 4 > "$ST_T/ac3.log"
+  st A3-a-rise-is-allowed "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac3.log" | wc -l | tr -d ' ')" 0
+  acl 5 none > "$ST_T/ac4.log"
+  st A4-a-pinned-gate-missing-from-the-log-reads-ABSENT "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac4.log")" "ABSENT BETA 3"
+  acl 5 1 1 > "$ST_T/ac5.log"
+  st A5-pass-plus-fail-is-what-is-counted "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac5.log")" "FELL BETA 3 2"
+  : > "$ST_T/ac-empty.tsv"
+  st A7-an-EMPTY-register-pins-nothing-and-does-not-read-the-log-as-pins "$(assert_falls "$ST_T/ac-empty.tsv" "$ST_T/ac2.log" | wc -l | tr -d ' ')" 0
+  st A6-the-full-suite-refuses-the-green-line-on-a-fall "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] && \[ -z "\${ACFALL:-}" \]; then echo "GATES GREEN' "$SF")" 1
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -2877,4 +2918,17 @@ if [ -n "$SUBSET" ]; then
   if [ $red -eq 0 ]; then echo "SUBSET OK $N — NOT A PUSH GATE (${#gates[@]} gates ran: $SUBSET)" | tee -a "$ALL"; exit 0
   else echo "SUBSET RED $N ($SUBSET)" | tee -a "$ALL"; exit 1; fi
 fi
-if [ $red -eq 0 ] && [ "${HR_V:-}" != orphaned ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi
+# #545 item (37): the per-gate assertion count ratchet. See assert_falls at the top of this file.
+ACREG="$G/assertion-counts.tsv"; ACFALL=""
+if [ -f "$ACREG" ]; then
+  ACFALL="$(assert_falls "$ACREG" "$ALL")"
+  if [ -n "$ACFALL" ]; then
+    echo "ASSERTION COUNT FELL - a gate emitted fewer assertions than gates/assertion-counts.tsv pins, so this run is not a push gate. If the fall is deliberate, record it with: bash gates/assertcount.sh record <this log> '<why>'" | tee -a "$ALL"
+    printf '%s\n' "$ACFALL" | sed 's/^/    /' | tee -a "$ALL"
+  else
+    echo "assertion counts: no gate below its pin in gates/assertion-counts.tsv" | tee -a "$ALL"
+  fi
+else
+  echo "assertion counts: NOT CHECKED - gates/assertion-counts.tsv is absent" | tee -a "$ALL"
+fi
+if [ $red -eq 0 ] && [ "${HR_V:-}" != orphaned ] && [ -z "${ACFALL:-}" ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi
