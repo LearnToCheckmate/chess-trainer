@@ -714,6 +714,40 @@ verify_set() {
     rm -f "$s6keys" "$s6unres"
   fi
 
+  # ---- S8 EVERY COMMIT CARRIES A Claude-Session TRAILER [#545, item (70);
+  # jobs/the-patch-set-auditor-never-checks-the-claude-session-trailer-2026-10-06]. #486 landed four commits from
+  # two lanes with no trailer, and this auditor - the one tool that sees a payload before it becomes history -
+  # never looked. Per payload, per commit (split on the same `From <sha>` boundary as ps_from_shas), the commit
+  # subject of any commit whose message carries no `Claude-Session:` line is NAMED.
+  # REPORTED, NOT YET ENFORCED, AND WHY: the job's own analysis says the auditor's refusal must not land before
+  # the lanes can comply - process-lane ledger rows record no session, so a lane cannot emit an id it never
+  # captured, and the prompt change that makes them record it (prompts/process-build) is the orchestrator's and is
+  # outside this run. So the default prints WARN with the names and the count and leaves the exit status alone;
+  # CT_VPS_TRAILER=hard makes it a FAIL, which is the setting to adopt once that prompt change has landed.
+  local s8tot=0 s8miss=0 s8names="" s8out
+  for f in "${payloads[@]}"; do
+    s8out=$(awk '
+      $1=="From" && $2 ~ /^[0-9a-f][0-9a-f]+$/ { if (n) print subj "\t" has; n++; subj=""; has=0; inbody=1; next }
+      /^Subject: / && subj=="" { subj=substr($0,10); sub(/^\[PATCH[^]]*\] */,"",subj) }
+      /^---$/ { inbody=0 }
+      inbody && /^Claude-Session:[[:space:]]*[^[:space:]]/ { has=1 }
+      END { if (n) print subj "\t" has }' "$f")
+    while IFS=$'\t' read -r subj has; do
+      [ -n "$subj$has" ] || continue
+      s8tot=$((s8tot+1))
+      if [ "$has" != 1 ]; then s8miss=$((s8miss+1)); s8names="$s8names $(basename "$f"): \"$subj\";"; fi
+    done <<< "$s8out"
+  done
+  if [ "$s8tot" -eq 0 ]; then
+    say S8-SESSION-TRAILER SKIP "no commits found to read trailers from"
+  elif [ "$s8miss" -eq 0 ]; then
+    say S8-SESSION-TRAILER PASS "all $s8tot commit(s) carry a Claude-Session trailer"
+  elif [ "${CT_VPS_TRAILER:-}" = hard ]; then
+    fail S8-SESSION-TRAILER "$s8miss of $s8tot commit(s) carry no Claude-Session trailer:$s8names"
+  else
+    say S8-SESSION-TRAILER WARN "NOT ENFORCED (set CT_VPS_TRAILER=hard once lanes record their session): $s8miss of $s8tot commit(s) carry no Claude-Session trailer:$s8names"
+  fi
+
   return "$FAILED"
 }
 
@@ -751,6 +785,9 @@ expect_no_line() { # <name> <output> <regex>
 #   newbundle:<p1>,<p2>  two additions in ONE commit
 mk_commit_header() {
   printf 'From %s Mon Sep 17 00:00:00 2001\nFrom: Claude <noreply@anthropic.com>\nDate: Sun, 4 Oct 2026 04:00:00 +0000\nSubject: [PATCH] %s\n\n---\n' "$1" "$2"
+}
+mk_commit_header_tr() { # <sha> <subject>: the same header with a Claude-Session trailer IN THE MESSAGE BODY, before ---
+  printf 'From %s Mon Sep 17 00:00:00 2001\nFrom: Claude <noreply@anthropic.com>\nDate: Sun, 4 Oct 2026 04:00:00 +0000\nSubject: [PATCH] %s\n\nClaude-Session: https://claude.ai/code/session_fixture\n---\n' "$1" "$2"
 }
 mk_new() {
   printf 'diff --git a/%s b/%s\nnew file mode 100644\nindex 0000000..1111111\n--- /dev/null\n+++ b/%s\n@@ -0,0 +1 @@\n+hello\n' "$1" "$1" "$1"
@@ -1206,6 +1243,20 @@ selftest() {
     *'*'*|*'?'*|*'['*) FAILN=$((FAILN+1)); echo "  FAIL C57-permitted-set-has-no-glob-characters ($PERMITTED_INCIDENTAL)";;
     *) PASS=$((PASS+1)); echo "  ok   C57-permitted-set-has-no-glob-characters";;
   esac
+
+  # ---- C93..C96: S8, THE SESSION TRAILER [#545, item (70)], both directions and both modes, plus the per-commit
+  # case the job names (a trailer on one commit of two must name only the other).
+  mkdir -p "$T/TR"
+  { mk_commit_header_tr 1111111 "trailered one"; mk_new gates/regress/81-tr.js
+    mk_commit_header 1111112 "the bare one"; mk_new gates/regress/82-tr.js; } > "$T/TR/lane1"
+  out=$(verify_set "$T/TR"); rc=$?
+  expect_line     C93-S8-warns-and-names-only-the-bare-commit "$out" '^S8-SESSION-TRAILER +WARN .*1 of 2 .*the bare one'
+  expect_no_line  C94-S8-does-not-name-the-trailered-commit   "$out" '^S8-SESSION-TRAILER .*trailered one'
+  out=$(CT_VPS_TRAILER=hard verify_set "$T/TR"); rc=$?
+  expect_line     C95-S8-hard-mode-is-a-FAIL "$out" '^S8-SESSION-TRAILER +FAIL .*the bare one'
+  { mk_commit_header_tr 1111113 "both trailered a"; mk_new gates/regress/83-tr.js; } > "$T/TR/lane1"
+  out=$(CT_VPS_TRAILER=hard verify_set "$T/TR"); rc=$?
+  expect_line     C96-S8-passes-when-every-commit-has-one "$out" '^S8-SESSION-TRAILER +PASS'
 
   # ---- C80: THE CONTROL IDS ARE UNIQUE, AND THIS RUN NEEDED IT. The S7 and S1b
   # controls added on 2026-10-06 were first numbered from C62, which this file was
