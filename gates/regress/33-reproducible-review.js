@@ -150,7 +150,15 @@ L.run(async()=>{
   const dt=Math.abs(A.ms-B.ms)/1000;
   L.say(dt<=12,'the two run times are within 12 s of each other ('+dt.toFixed(1)+' s apart: '+Math.round(A.ms/1000)+' s and '+Math.round(B.ms/1000)+' s)');
   L.say(!!A.ply19&&A.ply19===B.ply19,'10.Nxb5 gets the same verdict in both runs',{A:A.ply19,B:B.ply19});
-  L.say(/Nxb5/.test(A.ply19)&&!/Blunder|Mistake|Inaccuracy/.test(A.ply19),'10.Nxb5 is not scored as a mistake (the shallow-search symptom)',A.ply19);
+  // THE NEGATIVE SET IS THE LADDER'S FOUR BAD GRADES, NOT THREE [#545, item (49); jobs/sweep-for-regexes-checked-in-one-
+  // direction-only-2026-10-02]. This read /Blunder|Mistake|Inaccuracy/ and so passed a 10.Nxb5 graded Miss, a grade the
+  // app has carried since the ladder grew to ten (gate 20's LADDER). Checked both ways against that ladder, here and
+  // in no browser: every bad grade must match and every other grade must not.
+  const BAD33=/\b(Blunder|Mistake|Miss|Inaccuracy)\b/;
+  const LADDER33=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+  const wrong33=LADDER33.filter(g=>BAD33.test(g)!==['Inaccuracy','Miss','Mistake','Blunder'].includes(g));
+  L.say(wrong33.length===0,'TC-SUITE-265 the "scored as a mistake" pattern matches exactly the four bad grades of the ten-grade ladder (checked both ways)',{misclassified:wrong33});
+  L.say(/Nxb5/.test(A.ply19)&&!BAD33.test(A.ply19),'10.Nxb5 is not scored as a mistake, a miss or an inaccuracy (the shallow-search symptom)',A.ply19);
   L.say(A.errs.length===0&&B.errs.length===0,'no app error beyond the allowed engine trap in either run',[A.errs.slice(0,1),B.errs.slice(0,1)]);
 
   /* #377: run C is the same game on ONE worker - the path an older phone actually gets. Before #377 this run

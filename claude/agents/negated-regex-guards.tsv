@@ -1,0 +1,30 @@
+# file	pattern	verdict - the corpus each negated regex was diffed against, and what it cannot see [#545 item (49), TC-SUITE-266]
+# A pattern bound to a NAME (gate 16 STR16, gate 29 DRAW29, gate 33 BAD33, gate 65 PROMO65) is not a literal and is not
+# listed: those four were repaired by #545 and each carries its own both-ways corpus check inside its gate.
+gates/regress/11-lesson.js	/Not the book move/	complete: chess.jsx prints one wrong-move form, '✗ Not the book move — it goes ...'
+gates/regress/14-uat-review-card.js	/RuntimeError: unreachable/	exclusion filter over b.errs, not an absence claim about the UI: the allowed engine trap's fixed WASM text. Over-exclusion needs an app error quoting that text; not swept
+gates/regress/16-cpu-result-line.js	/#/	complete: chess.jsx's SAN builder marks mate with '#' and nothing else
+gates/regress/16-cpu-result-line.js	/Elo/	complete: every strength or rating string chess.jsx prints carries ' Elo' (the three strength notes, the Elo labels)
+gates/regress/20-review.js	/RuntimeError: unreachable/	exclusion filter over b.errs (see 14-uat-review-card.js)
+gates/regress/25-online-clocks.js	/\/ move/	NOT COMPLETE AND KNOWN: CLAUDE.md records summ reading '' when the summary selector drops the line, so this passes over nothing; a separate non-empty assertion is the remedy and is not made here
+gates/regress/28-scan-client.js	/^data:/	complete: a data URI begins with the fixed prefix 'data:'
+gates/regress/28-scan-client.js	/not set up yet/	complete: the live #392 message is 'Board scanning is not set up yet — ...' (TC-SC-024 asserts the same pattern positively, PASS in 544-all.log); the 'not set up on this build yet' string in chess.jsx is a comment about removed dead code
+gates/regress/28-scan-client.js	/You'll play\s*White/	complete for the one template, "You'll play <b>White|Black</b>", which uses a straight apostrophe
+gates/regress/31-antagonist373.js	/RuntimeError: unreachable/	exclusion filter over b.errs (see 14-uat-review-card.js)
+gates/regress/33-reproducible-review.js	/trimming to keep this under/	complete for its purpose: a source-text check that one removed sentence has not come back
+gates/regress/39-pz-streak.js	/\u{1F4A1}/u	complete: one code point, the light-bulb emoji
+gates/regress/45-play-setup.js	/\/ move$/	complete for the setup sheet's increment suffix, which chess.jsx writes as ' / move'
+gates/regress/51-drill-explain-why.js	/centipawn|\bcpl?\b|[+-]\d+\.\d/i	PARTIAL: catches signed decimals and centipawn wording but not an unsigned '1.1 pawns' (dropTxt's form); whether the drill may print that is the gate's intent, not decided here
+gates/regress/53-lesson-hit-area.js	/Copied/i	complete: the copied state's only label is 'Copied!'
+gates/regress/54-play-resume.js	/in progress/i	complete: the resume row's forms are 'Resume your game in progress (N moves played)'
+gates/regress/55-play-from-here-terminal.js	/won by checkmate|Stalemate\. The game is drawn/	PARTIAL: misses the coach line's bare 'Checkmate.' (chess.jsx coach text for a mated ply). It is a precondition at ply 2 of a fixed fixture, where no terminal state is reachable, so not repaired
+gates/regress/58-review-rating-source.js	/≈\s*\d{3,4}/	complete: an estimated rating is printed as '≈NNN'
+gates/regress/58-review-rating-source.js	/rating/i	complete: rev-summary-note has two forms, and only the one that mentions ratings carries the word
+gates/regress/58-review-rating-source.js	/\u2248\s*\d{3,4}/	complete: the same '≈NNN' form written as an escape
+gates/regress/58-review-rating-source.js	/rating[s]?\b[^.]*\b(rough|estimate|not official)/i	complete for its purpose: a disclaimer clause about recorded ratings that must not appear
+gates/regress/66-winprob-ladder.js	/average centipawn loss/i	complete for its purpose: the retired ACPL sentence, which chess.jsx no longer carries at all
+gates/regress/69-setup-sheet-live-game.js	/Computer/	complete: every player-bar form for the engine names it 'Computer'
+gates/regress/71-resume-row-agrees-with-the-board.js	/Tap again/	complete: every arming form begins 'Tap again to ...'
+gates/regress/73-review-list-filter.js	/haven/	complete: one form, '... a game we haven’t graded yet ...'
+gates/regress/73-review-list-filter.js	/ of the 1 games | of 1 games |\b1 games\b/	complete for its purpose: the three singular-plural errors it names
+gates/regress/73-review-list-filter.js	/^No games match/	complete: one form, 'No games match ...'

@@ -182,10 +182,15 @@ L.run(async()=>{
     L.say(elo==='400','C0 375x730: the floor is READ BACK, not inferred - ct_elo is 400 going into the termination, so ne = max(400, 400-50) = 400 == cpuElo and chess.jsx:3144 cannot fire. Without this the whole C block explained an empty slot by a state it never checked (antagonist A, F10)',{ct_elo:elo});
     await resign(b);
     await b.settle(600);const upSlot=await slot(b);
-    L.say(!!upSlot&&!/Strength/.test(upSlot.t),'C1 375x730: at the Elo floor a loss changes no strength, so the slot carries NO strength note while the card is up - the branch the job called unmeasured',{slot:upSlot&&upSlot.t});
+    // ANY STRENGTH NOTE, IN EITHER CASE [#545, item (49)]. chess.jsx's three notes are '▲ Strength now ~N Elo',
+    // '▼ Strength now ~N Elo' and 'Draw — strength stays ~N Elo'; /Strength/ was case-sensitive and missed the third.
+    const STR16=/strength/i;
+    {const yes=['▲ Strength now ~840 Elo','▼ Strength now ~380 Elo','Draw — strength stays ~400 Elo'],no=['Resigned · You lose','Checkmate · You win','Draw agreed'];
+     L.say(yes.every(t=>STR16.test(t))&&!no.some(t=>STR16.test(t)),'TC-SUITE-265 C1 the strength-note pattern catches all three notes the app prints and no result line (checked both ways)',{missed:yes.filter(t=>!STR16.test(t)),wronglyCaught:no.filter(t=>STR16.test(t))});}
+    L.say(!!upSlot&&!STR16.test(upSlot.t),'C1 375x730: at the Elo floor a loss changes no strength, so the slot carries NO strength note while the card is up - the branch the job called unmeasured',{slot:upSlot&&upSlot.t});
     await b.settle(5000);const dn=await slot(b),hits=await resultHits(b);
     L.say(!!dn&&dn.t==='Resigned · You lose','C2 375x730: and with the slot free the result appears there exactly as it does for Pass & Play',{slot:dn&&dn.t});
-    L.say(!!dn&&!/Strength/.test(dn.t)&&hits.some(h=>h.t==='Resigned · You lose'),'C3 375x730: with no strength note to pre-empt it, this input was already correct on #433 and stays correct here',{slot:dn&&dn.t,hits});
+    L.say(!!dn&&!STR16.test(dn.t)&&hits.some(h=>h.t==='Resigned · You lose'),'C3 375x730: with no strength note to pre-empt it, this input was already correct on #433 and stays correct here',{slot:dn&&dn.t,hits});
     L.say(b.errs.length===0,'C4 375x730: zero app errors at the Elo floor',b.errs.slice(0,3));
     await b.close();
   }

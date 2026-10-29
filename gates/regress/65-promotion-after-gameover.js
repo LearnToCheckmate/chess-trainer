@@ -108,6 +108,9 @@
 //     covers them, and this gate does not reach them.
 'use strict';
 const L=require('../lib');
+// ANY PROMOTION, NOT ONLY A QUEEN [#545, item (49)]. chess.jsx's SAN builder writes '='+promo.toUpperCase(), so an
+// under-promotion after the result reads =R, =B or =N; the row checks below used /=Q/ and could not see those.
+const PROMO65=/=[QRBN]/;
 const P=require('../drive/play');
 
 const GEOS=['kunal730','se'];
@@ -205,7 +208,9 @@ async function blockA(){
   if(PICKER_CENTRES&&PICKER_CENTRES.length){await b.page.mouse.click(PICKER_CENTRES[0][0],PICKER_CENTRES[0][1]);await b.page.waitForTimeout(700);}
   const pTap=await plies(b),rTap=await row(b);
   L.say(pTap===pFlag,'A2 a tap where the queen button was appends no move',{before:pFlag,after:pTap,row:rTap});
-  L.say(!/=Q/.test(rTap||''),'A2a the move row carries no promotion played after the result',{row:rTap});
+  {const yes=['e8=Q','e8=R','exd8=N+','b1=B#','h1=Q'],no=['Qe8','Rxe8+','Nd7','O-O-O','e8','Bb1#'];
+   L.say(yes.every(t=>PROMO65.test(t))&&!no.some(t=>PROMO65.test(t)),'TC-SUITE-265 A2a the promotion pattern catches all four promotion pieces and no non-promotion SAN (checked both ways)',{missed:yes.filter(t=>!PROMO65.test(t)),wronglyCaught:no.filter(t=>PROMO65.test(t))});}
+  L.say(!PROMO65.test(rTap||''),'A2a the move row carries no promotion played after the result',{row:rTap});
   const takenAfter=await taken(b);
   L.say(takenAfter===takenBefore,'A2b the captured-material readout is unchanged by that tap',{before:takenBefore,after:takenAfter});
   // A3: Rematch must not resurrect the stale choice (fullReset never cleared `promo`)
@@ -630,7 +635,7 @@ async function blockH(){
   }
   const pTap=await plies(b),rTap=await row(b);
   L.say(pTap===pFlag,'H2 [730x375] a tap where the queen button was appends no move',{before:pFlag,after:pTap,row:rTap,tapLandedOn:hitAt,at:LAND_CENTRES&&LAND_CENTRES[0]});
-  L.say(!/=Q/.test(rTap||''),'H2a [730x375] the move row carries no promotion played after the result',{row:rTap});
+  L.say(!PROMO65.test(rTap||''),'H2a [730x375] the move row carries no promotion played after the result',{row:rTap});
   const takenAfter=await taken(b);
   L.say(takenAfter===takenBefore,'H2b [730x375] the captured-material readout is unchanged by that tap',{before:takenBefore,after:takenAfter});
   L.say(b.errs.length===0,'H3 no console errors in the landscape flag block',{errs:b.errs.length});
