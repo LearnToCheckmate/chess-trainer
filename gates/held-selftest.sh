@@ -585,5 +585,67 @@ ck "13z MUTANT clears a tree it could ask NOTHING about, at exit 0 - the defect"
 eq "13 MUTANT and FIX agree once app.js is readable again" "SAME" \
    "$( timeout 20 "$MM" check >/dev/null 2>&1; A=$?; timeout 20 "$MU" check >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
 
+# ── SECTION 14: ONE UNCOMMITTED NUL BYTE MUST NOT BE A CLEARANCE [#544, item (15) of
+# directOpening_2026_10_28_batch4;
+# jobs/one-uncommitted-nul-byte-in-held-trees-tsv-turns-a-held-tree-into-a-clearance-at-exit-0-2026-10-27, P1,
+# from antagonist B of #539's blind shipped-surface door].
+# WHAT IT WAS: this tool concatenates HEAD's register and the working-tree register into one temp file and greps
+# it, so ONE UNCOMMITTED NUL BYTE made GNU grep switch to binary mode, print "binary file matches" instead of
+# the matching lines, and answer "not held ... (0 matchable row(s) checked)" AT EXIT 0 for a tree a LIVE ROW
+# NAMES. Nothing was committed; the only tell was ` M gates/held-trees.tsv`.
+# THE INPUT SET IS THE JOB'S OWN: three register states (clean, one NUL, many NULs) x two key forms (the bundle
+# md5 by name, and the no-argument form that asks four keys), plus the mutant. Every assertion reads the EXIT
+# CODE, because the defect printed an honest-looking sentence with the wrong status - which is what this job
+# says in terms: "the case must assert the EXIT CODE and not only the message".
+NR_="$TD/nulreg"; mkdir -p "$NR_/gates"
+cp "$HERE/held.sh" "$NR_/gates/held.sh"; chmod +x "$NR_/gates/held.sh"
+NU="$NR_/gates/held.sh"; NREG="$NR_/gates/held-trees.tsv"
+git -C "$NR_" init -q 2>/dev/null; git -C "$NR_" config user.email s@t; git -C "$NR_" config user.name selftest
+printf 'NUL fixture source\n' > "$NR_/chess.jsx"; printf 'NUL fixture bundle\n' > "$NR_/app.js"
+printf '# held-trees.tsv (NUL self-test fixture, not the real register)\n' > "$NREG"
+git -C "$NR_" add -A >/dev/null 2>&1; git -C "$NR_" commit -qm 'the tree that will be held' >/dev/null 2>&1
+NAPP="$(md5sum "$NR_/app.js" | cut -c1-12)"
+# A LIVE ROW NAMING THIS TREE'S BUNDLE, written by the tool itself so the row is the shape a real hold has.
+env CT_RUNID=held-selftest "$NU" add "$NAPP" "$(git -C "$NR_" rev-parse HEAD)" '#944' 'the NUL section fixture row, long enough to pass the reason floor' >/dev/null 2>&1
+ck "14a control: a clean register REFUSES the held bundle at exit 1"  1 timeout 20 env -C "$NR_" "$NU" check "$NAPP"
+ck "14b control: and the no-argument form refuses it too"             1 timeout 20 env -C "$NR_" "$NU" check
+# ONE NUL, inserted at the first newline of the WORKING-TREE copy and never committed - the exact attack.
+python3 -I - "$NREG" <<'NULPY'
+import sys
+p=sys.argv[1]; b=open(p,'rb').read(); i=b.index(b'\n')
+open(p,'wb').write(b[:i]+b'\x00'+b[i:])
+NULPY
+eq "14c the fixture really is damaged: one NUL in the working-tree copy, none in HEAD's" "1 0" \
+   "$( printf '%s %s' "$(tr -cd '\000' < "$NREG" | wc -c | tr -d ' ')" "$(git -C "$NR_" show HEAD:gates/held-trees.tsv 2>/dev/null | tr -cd '\000' | wc -c | tr -d ' ')" )"
+ck "14d ONE uncommitted NUL still REFUSES the held bundle at exit 1 (was exit 0, a clearance)" 1 timeout 20 env -C "$NR_" "$NU" check "$NAPP"
+ck "14e and the no-argument form still refuses"                1 timeout 20 env -C "$NR_" "$NU" check
+eq "14f and the NUL is reported loudly on stderr, not swallowed" "1" \
+   "$( timeout 20 env -C "$NR_" "$NU" check "$NAPP" 2>&1 >/dev/null | grep -c 'NUL byte' )"
+# MANY NULs, to show the guard is not a one-byte special case.
+python3 -I - "$NREG" <<'NULPY2'
+import sys
+p=sys.argv[1]; b=open(p,'rb').read()
+open(p,'wb').write(b.replace(b'\t', b'\x00\t\x00'))
+NULPY2
+eq "14g the many-NUL state is reached" "yes" \
+   "$( [ "$(tr -cd '\000' < "$NREG" | wc -c | tr -d ' ')" -gt 2 ] && echo yes || echo no )"
+ck "14h MANY NULs still refuse at exit 1"                      1 timeout 20 env -C "$NR_" "$NU" check "$NAPP"
+# THE MUTANT: the strip removed, the same many-NUL register. It must NOT refuse - that is the defect, and a
+# case that cannot tell the two apart is not a control.
+MN_="$NR_/gates/.held-nul-mutant.sh"
+python3 -I - "$NR_/gates/held.sh" "$MN_" <<'MUTPY'
+import sys
+src,dst=sys.argv[1],sys.argv[2]
+s=open(src).read()
+i=s.index('HELD_NULS="$(tr -cd')
+j=s.index('# NOW refuse, for the verbs', i)
+open(dst,'w').write(s[:i]+': # the NUL guard removed by the control\n'+s[j:])
+MUTPY
+chmod +x "$MN_"
+ck "14i MUTANT (the strip removed) CLEARS the same register - which is the defect this section is about" 0 timeout 20 env -C "$NR_" "$MN_" check "$NAPP"
+eq "14j and it clears with the honest-looking sentence that made this hard to see" "1" \
+   "$( timeout 20 env -C "$NR_" "$MN_" check "$NAPP" 2>/dev/null | grep -c 'matchable row(s) checked' )"
+rm -f "$MN_"
+
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
 [ "$F" = "0" ] || exit 1

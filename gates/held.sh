@@ -103,6 +103,41 @@ if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work
 else
   HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
 fi
+# ── NUL BYTES ARE STRIPPED BEFORE ANY ROW IS PARSED, AND SAID SO LOUDLY [#544, item (15) of
+# directOpening_2026_10_28_batch4;
+# jobs/one-uncommitted-nul-byte-in-held-trees-tsv-turns-a-held-tree-into-a-clearance-at-exit-0-2026-10-27, P1,
+# from antagonist B of #539's blind shipped-surface door and reproduced by that run on two trees before filing].
+# WHAT WAS WRONG, AND IT WAS A CLEARANCE RATHER THAN A WRONG NUMBER: this file concatenates HEAD's copy of the
+# register and the working-tree copy into one temp file and greps it. ONE UNCOMMITTED NUL BYTE makes GNU grep
+# switch to binary mode and print "binary file matches" to stderr instead of the matching lines, so `held.sh
+# check` answered "not held: no live row ... matches ANY of the 4 key(s) asked above (0 matchable row(s)
+# checked)" AT EXIT 0 - for a tree a LIVE ROW NAMES. HEAD's own copy was clean and still carried the row, so
+# nothing was committed and the only tell was ` M gates/held-trees.tsv` in git status. That is the #450 episode
+# with one byte: a run asks this question before a push precisely to learn that a previous run refused the tree.
+# THE REMEDY IS THE ONE THAT ALREADY EXISTS ONE FILE AWAY, which is CLAUDE.md's "a lesson recorded in one gate
+# does not travel to the next one by itself" with the two files in the same directory: gates/buildnum.sh:124
+# strips NULs before parsing and warns on stderr exactly once, and gates/verify-log.sh carries the same guard.
+# MEASURED at #539: `grep -c 'NUL byte'` reads 2 in buildnum.sh and 2 in verify-log.sh, and ZERO here - the one
+# script without it was the pre-push hold check.
+# AND IF THE STRIP CANNOT BE DONE, THE ANSWER IS UNKNOWN AND NOT A CLEARANCE: with no writable TMPDIR there is
+# nowhere to put the stripped copy, so HELD_UNKNOWN is set and `check` exits 2, which is what --help reserves 2
+# for ("a register it could not read") and what arm 13z of gates/held-selftest.sh already demands in its own
+# words - "with NOT ONE key computable the answer is exit 2, never a clearance".
+HELD_NULS="$(tr -cd '\000' < "$REGALL" 2>/dev/null | wc -c | tr -d ' ')"
+if [ "${HELD_NULS:-0}" != "0" ] 2>/dev/null; then
+  HELD_STRIP="$(mktemp 2>/dev/null || true)"
+  if [ -n "$HELD_STRIP" ] && tr -d '\000' < "$REGALL" > "$HELD_STRIP" 2>/dev/null; then
+    REGALL="$HELD_STRIP"
+    HELD_SRC="$HELD_SRC; ${HELD_NULS} NUL byte(s) stripped before parsing"
+    echo "held.sh: WARNING - the register read ($HELD_SRC) contains ${HELD_NULS} NUL byte(s). Every row is" >&2
+    echo "  still read (they are stripped before parsing, so no verdict below is affected), but a NUL makes" >&2
+    echo "  GNU grep print 'binary file matches' instead of lines - which is how a HELD tree came to read as a" >&2
+    echo "  clearance at exit 0. Find the damaged line: grep -n -a \$'\\000' gates/held-trees.tsv" >&2
+  else
+    HELD_UNKNOWN=1
+    HELD_UNKNOWN_WHY="the register carries ${HELD_NULS} NUL byte(s) and no temporary file could be created to strip them (mktemp failed - an unwritable or missing TMPDIR), so not one row could be read; that is UNKNOWN and never a clearance"
+  fi
+fi
 # NOW refuse, for the verbs that genuinely need the working-tree file, and only if HEAD cannot serve the read.
 if [ "$HELD_REGOK" != "1" ] && [ "$REGALL" = "$REG" ]; then
   echo "held.sh: no readable register at $REG, and HEAD holds no usable gates/held-trees.tsv either."
