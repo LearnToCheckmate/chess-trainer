@@ -2219,8 +2219,8 @@ rm -rf "$H56D"
 # THE PREMISE IS ASSERTED FIRST, in its own step, the way H28, H53 and H56 do it: the honest tree must answer
 # exit 0 FAST GATE GREEN, or a refusal of the planted tree proves nothing about the plant. That step is also
 # what the job's whatWouldCloseIt asks for in its second clause - the four real untracked directories
-# (gates/logs/, gates/node_modules/, gates/shots/, gates/.site/) still read exit 0 - because the clone carries
-# them and this green is over that tree.
+# (gates/logs/, gates/node_modules/, gates/shots/, gates/.site/) still read exit 0. [#545: "the clone carries
+# them" was FALSE as #544 wrote it - a fresh clone carries none of them - so the premise now writes them first.]
 # AND IT ASSERTS THE PLANTS ARE HIDDEN, because if `git status` can see them fastgate refuses for dirtiness and
 # the case would pass for the wrong reason, which is this project's standing trap.
 H57N="$(mint_in_clone)"
@@ -2229,7 +2229,26 @@ if badnum "$H57N"; then
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
 else
   commit_case "H57 register only: one minted row for #$H57N"
-  if ! probe 0 "FAST GATE GREEN"; then
+  # THE SECOND CLAUSE, DRIVEN AND NOT ARGUED [#545, item (5) of directOpening_2026_10_29_batch5]. The orchestrator's
+  # verification of #544 measured that the sentence above ("the clone carries them") was false: the clone is a
+  # fresh `git clone`, and gates/logs/, gates/node_modules/, gates/shots/ and gates/.site/ are gitignored with no
+  # tracked files, so the clone carried NONE of them and the GREEN premise was over a tree without them. So the
+  # premise now POPULATES all four before it probes, with the shapes a real container has - and EXTENSIONLESS files
+  # among them, because that is exactly what the scan hunts: a live suite lock is gates/logs/.suite.lock/ holding
+  # `pid`, `log` and `started`, and node_modules is full of extensionless LICENSE and bin entries. If the scan
+  # ever stops honouring .gitignore, this premise goes red at exit 2 instead of the honest tree reading green.
+  # THREE OF THEM ARE THE SHAPE THE SCAN ACTUALLY READS - two levels under gates/, no dot anywhere in the path, no
+  # extension: gates/logs/h57, gates/node_modules/h57 and gates/shots/h57. The rest are realistic and the scan
+  # skips them by design (a dot in the path, or three levels deep); the three are what make this premise able to
+  # fail. MEASURED in a scratch clone: `ls-files --others` with the scan's pathspecs lists all three, and only the
+  # `HEAD:<f>.js` sibling test keeps them out of the refusal - drop that test and this premise reads exit 2.
+  H57POP="gates/logs/.suite.lock/pid gates/logs/.suite.lock/log gates/logs/545-all.log gates/logs/h57 gates/node_modules/h57pkg/LICENSE gates/node_modules/h57pkg/index.js gates/node_modules/.bin/h57 gates/node_modules/h57 gates/shots/gates-545/h57.png gates/shots/h57 gates/.site/index.html gates/.site/h57"
+  for p in $H57POP; do mkdir -p "$C/$(dirname "$p")"; printf 'fastgate-drive H57 populated ignored path, never pushed\n' > "$C/$p"; done
+  H57POPN=0; for p in $H57POP; do [ -f "$C/$p" ] && H57POPN=$((H57POPN+1)); done
+  if [ "$H57POPN" != 12 ] || ! hidden; then
+    note "  FAIL H57 [$(tc H57)]  the populated ignored directories did not pose: $H57POPN of 12 files written, or git status can see them"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
+  elif ! probe 0 "FAST GATE GREEN"; then
     note "  FAIL H57 [$(tc H57)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
     note "         not exit 0 FAST GATE GREEN, so a refusal of the planted tree would prove nothing"
     show_verdict "$PROBE_OUT"
@@ -2258,6 +2277,8 @@ else
     rm -f "$C/gates/lib" "$C/gates/drive/home"
     sed -i -e '/^gates\/lib$/d' -e '/^gates\/drive\/home$/d' "$C/.git/info/exclude"
   fi
+  for p in $H57POP; do rm -f "$C/$p"; done
+  rm -rf "$C/gates/logs/.suite.lock" "$C/gates/node_modules/h57pkg" "$C/gates/node_modules/.bin/h57" "$C/gates/shots/gates-545" "$C/gates/.site/h57"
 fi
 
 
