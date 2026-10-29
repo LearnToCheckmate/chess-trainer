@@ -683,6 +683,29 @@ ckmsg   "FC9 the refusal names the state it found"                              
 # when the pinned file is absent, and arm (15)'s old prefix match read that line as PINNED and answered OK.
 ckmsg   "FC10 a log whose gates/fonts.conf was MISSING is REFUSED"              1 'REFUSED (fontconfig)' "$VL" "$FCD/fc-absent.log" "$FOOT"
 ckmsg   "FC11 and the refusal names the MISSING state"                          1 'gates/fonts.conf MISSING' "$VL" "$FCD/fc-absent.log" "$FOOT"
+# ── SECTION GA: THE GATE ANCHOR'S COUNTS ARE READ, AND A #545-OR-LATER LOG MUST CARRY THE LINE [#545, item (24);
+# jobs/the-manifest-anchor-count-reaches-the-log-but-not-the-push-gate-2026-10-03, work items 1 and 3]. These run on
+# COPIES OF A REAL ARCHIVED LOG THAT CARRIES THE LINE (544-all.log, 'gate anchor: origin/main, 0 vanished, 0
+# weakened'), because $GOOD predates the anchor and could not pose any of them. Each fixture changes one thing.
+GAD="$TD/ga"; mkdir -p "$GAD"; GAREAL="$HERE/../claude/agents/gatelogs/544-all.log"
+if [ -r "$GAREAL" ] && grep -q '^gate anchor: origin/main, 0 vanished, 0 weakened$' "$GAREAL"; then
+  cp "$GAREAL" "$GAD/ga-ok.log"
+  sed 's/^gate anchor: origin\/main, 0 vanished, 0 weakened$/gate anchor: origin\/main, 1 vanished, 0 weakened/' "$GAREAL" > "$GAD/ga-van.log"
+  sed 's/^gate anchor: origin\/main, 0 vanished, 0 weakened$/gate anchor: origin\/main, 0 vanished, 1 weakened/' "$GAREAL" > "$GAD/ga-weak.log"
+  sed 's/^gate anchor: origin\/main, 0 vanished, 0 weakened$/gate anchor: origin\/main, some vanished/' "$GAREAL" > "$GAD/ga-unparse.log"
+  sed 's/^gate anchor: origin\/main, 0 vanished, 0 weakened$/gate anchor: NOT CHECKED - fixture/' "$GAREAL" > "$GAD/ga-nc.log"
+  grep -v '^gate anchor:' "$GAREAL" > "$GAD/ga-absent-544.log"
+  grep -v '^gate anchor:' "$GAREAL" | sed 's/#544/#545/g' > "$GAD/ga-absent-545.log"
+  ck      "GA0 the real 544-all.log, anchor 0/0, is accepted"                            0 "$VL" "$GAD/ga-ok.log" '#544'
+  ckmsg   "GA1 an anchor reporting 1 VANISHED required gate is REFUSED"                  1 'VANISHED' "$VL" "$GAD/ga-van.log" '#544'
+  ckmsg   "GA2 an anchor reporting 1 WEAKENED required gate is REFUSED"                  1 'WEAKENED' "$VL" "$GAD/ga-weak.log" '#544'
+  ckmsg   "GA3 an anchor line that does not parse into two counts is REFUSED"            1 'cannot read' "$VL" "$GAD/ga-unparse.log" '#544'
+  ckmsg   "GA4 an anchor that reads NOT CHECKED is still REFUSED (#544's arm, kept)"     1 'NOT CHECKED' "$VL" "$GAD/ga-nc.log" '#544'
+  ckmsg   "GA5 a #544 log with NO anchor line is reported, not refused (pre-#545 era)"   0 'gate anchor: NOT CHECKED' "$VL" "$GAD/ga-absent-544.log" '#544'
+  ckmsg   "GA6 a #545-or-later log with NO anchor line is REFUSED"                       1 'carries no' "$VL" "$GAD/ga-absent-545.log" '#545'
+else
+  echo "FAIL GA the real archived log with a gate anchor line is not readable at $GAREAL - section GA did not run"; F=$((F+1))
+fi
 
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then

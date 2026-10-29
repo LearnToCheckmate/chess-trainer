@@ -1501,7 +1501,38 @@ if [ -n "$ANCHOR" ]; then
       echo "  in such a log reads green, so this is the one line that can tell you."
       echo "  Re-run the suite in an unredirected environment: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_OBJECT_DIRECTORY ..."
       exit 1 ;;
-    *) ANCHORCHECK="ran" ;;
+    *)
+      # #545 item (24) [jobs/the-manifest-anchor-count-reaches-the-log-but-not-the-push-gate-2026-10-03, work items 1
+      # and 3]: the COUNTS are now read, not only the NOT CHECKED word. A line reporting even one REQUIRED gate
+      # vanished or weakened between the base and the head is a refusal - it was printed and credited before - and a
+      # line this script cannot parse into those two counts is refused too, because "unreadable" is not "zero".
+      AVW="$(sed -n 's/^gate anchor: .*, \([0-9][0-9]*\) vanished, \([0-9][0-9]*\) weakened$/\1 \2/p' <<<"$ANCHOR")"
+      AVN=""; AWK=""; read -r AVN AWK <<<"$AVW"
+      if [ -z "$AVN" ] || [ -z "$AWK" ]; then
+        echo "REFUSED (gate anchor): $LOG carries a 'gate anchor:' line this script cannot read as '<base>, N vanished, M weakened'."
+        echo "  $ANCHOR"
+        echo "  An anchor verdict that cannot be parsed says nothing about whether a required gate vanished, so it is not credited."
+        exit 1
+      fi
+      if [ "$AVN" -gt 0 ] || [ "$AWK" -gt 0 ]; then
+        echo "REFUSED (gate anchor): $LOG reports $AVN REQUIRED gate(s) VANISHED and $AWK WEAKENED between the base and the head."
+        echo "  $ANCHOR"
+        echo "  A suite that ran without a gate it is required to run cannot authorise a push, however green the rest reads."
+        exit 1
+      fi
+      ANCHORCHECK="ran" ;;
+  esac
+fi
+# AND A LOG FOOTED AT OR AFTER #545 MUST CARRY THE LINE [#545 item (24), work item 1's second half]: gates.sh has
+# printed `gate anchor:` on every full run since the anchor landed, so a #545-or-later log without one was produced
+# by a harness that skipped it. Older logs keep the NOT CHECKED report below; they predate the line and say so.
+if [ "$ANCHORCHECK" = "absent" ]; then
+  case "${FOOT#\#}" in ''|*[!0-9]*) : ;; *)
+    if [ "${FOOT#\#}" -ge 545 ]; then
+      echo "REFUSED (gate anchor): $LOG is footed at #${FOOT#\#} and carries no 'gate anchor:' line. Every full suite"
+      echo "  from #545 on prints one (gates/gatemanifest.sh writes it), so its absence means the anchor did not run."
+      exit 1
+    fi ;;
   esac
 fi
 MANICHECK="absent"; MANIMISS=""; MANIUNL=""; MANIUNREAD=""
