@@ -215,6 +215,35 @@ fi
 # sufficient for them, and the move was withdrawn - see the note in classify(). They are ratcheted here anyway,
 # as #490 intended, as a second line of defence that normally cannot fire.
 RATCHET_APPENDONLY="gates/held-trees.tsv gates/build-numbers.tsv FEEDBACK-INBOX.md DECISIONS-LOG.md"
+
+# ── THE REGISTERS WHOSE OWN HEADER PRESCRIBES A DASH-CLEAR [#544, item (18+1);
+# jobs/the-append-only-ratchet-refuses-the-dash-clear-that-the-held-register-s-own-header-prescribes-2026-10-21].
+# THE CONTRADICTION THIS RESOLVES WAS QUOTABLE FROM FOUR FILES, which is what made it a rule-against-rule
+# finding rather than a bug in one script. gates/held-trees.tsv:40-42 is the register's own instruction - do NOT
+# delete a row, change the first field to a `-` prefix and append to the reason why it was cleared, "the history
+# is the useful part". gates/held.sh's match_rows and live_rows both filter on field 1 not beginning with a dash.
+# gates/verify-log.sh skips a row whose key begins with a dash, citing that header. And main already carries a
+# dash-cleared row. So three consumers and the file's own header sanction the clear while THIS door forbade it.
+# MEASURED, not argued: `records-gate.sh 6010294 894f583` exited 1 on the #529 pair that performed the clear, and
+# so did TWO PAIRS ALREADY ON MAIN - de34e05 (#499) and 7353e67 (#492) - with the identical PREFIX message. A
+# landed, twice-precedented class of main commit failed this door.
+# WHAT IS SANCTIONED, AND THE JOB ASKED FOR THIS DECISION EXPLICITLY. A base row may differ at head only by:
+# field 1 gaining a leading dash, AND appends to the PROSE fields (6 onward). Fields 2 to 5 are the KEYS - the
+# sha, the build number, the timestamp and the runId - and a clear may not touch them. APPENDING to the reason is
+# sanctioned because the header prescribes it in terms ("append to the reason why it was cleared"); REWRITING a
+# field is NOT, because the header does not say that and the history is the whole point of keeping the row.
+# MEASURED AGAINST THE THREE REAL TRANSITIONS the job names, line-wise rather than by byte prefix: 894f583 is
+# three dash-clears each with a field-6 APPEND plus three appended rows; 7353e67 is one dash-clear with a
+# field-7 APPEND; and de34e05 is an IN-PLACE APPEND TO FIELDS 2 AND 6 OF A ROW THAT WAS NEVER CLEARED, which
+# this rule still refuses - and the job asks for exactly that ("a pair that rewrites a row's reason prose
+# without clearing it must still exit 1").
+# WHY THE FALLBACK IS LINE-WISE AND NOT A SECOND BYTE TEST: a dash-clear GROWS the row, so every byte after it
+# shifts and the base-length prefix of head cuts mid-line. Measured on 894f583: the base's 84 lines against 83
+# in head's base-length prefix, with the last one truncated to 6 fields of 7 - an artefact that reads exactly
+# like a row having lost a field. A byte comparison cannot express this rule at all.
+# build-numbers.tsv is NOT in this set and must not be: its own header calls it append-only by design and says a
+# bad row cannot be deleted, only superseded, so it has no clear procedure for this arm to honour.
+RATCHET_CLEARPREFIX="gates/held-trees.tsv"
 RATCHET_NOSHRINK="RUN-LOG.md HANDOFF.md README.md chess-trainer-backlog.md feedback-inbox.md"
 # CLAUDE.md IS DELIBERATELY NOT IN EITHER LIST: classify() FORCES it outright (see the arm below), which is
 # strictly stronger than any ratchet here, so listing it would be dead code that reads like protection.
@@ -339,6 +368,14 @@ rg_mutate(){ # rg_mutate <n> <dir>: apply hostile input number n to a mkreal rep
     11) printf '440\tminted\n' > "$bn" ;;
     12) : > "$bn" ;;
     13) printf '440\tminted\n441\tminted\n442\tm\n' > "$bn" ;;
+    # #544, item (18+1). THE DASH-CLEAR'S OWN BOUNDARY, five inputs, because the arm that now ACCEPTS a clear
+    # must still refuse everything a clear is not. 17 is the sanctioned shape WITH the reason appended to, which
+    # is what the register's header prescribes and what two landed main commits actually did.
+    14) printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tb2\tc2\td2\te2\tZZ\nk3\tb3\tc3\td3\te3\tf3\n' > "$ht" ;;
+    15) printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tbX\tc2\td2\te2\tf2\nk3\tb3\tc3\td3\te3\tf3\n' > "$ht" ;;
+    16) printf 'k1\tb1\tc1\td1\te1\tf1\nk3\tb3\tc3\td3\te3\tf3\n'                          > "$ht" ;;
+    17) printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tb2\tc2\td2\te2\tf2 cleared at #544\nk3\tb3\tc3\td3\te3\tf3\n' > "$ht" ;;
+    18) printf -- '-440\tminted\n441\tminted\n442\tminted\n' > "$bn" ;;
   esac
 }
 
@@ -361,15 +398,50 @@ selftest(){
   case "$out" in *"append-only BY VALUE"*) ok "C4 the APPENDONLY line names the mode it credited" ;;
                  *) no "C4 the APPENDONLY line is missing from a clean run" ;; esac
 
-  # C1  APPENDONLY, EDITED IN PLACE. The threat #490's antagonists reproduced: clearing a row with a leading
-  #     dash changes no line count and disarms the register, so the test is the BYTE PREFIX.
-  B="$(mkfix "$T/c1")"; cp "$door" "$T/c1/gates/records-gate.sh"
-  printf 'h1\th2\n-r1\tv1\n' > "$T/c1/gates/held-trees.tsv"
+  # C1  APPENDONLY, EDITED IN PLACE, AND THE VERDICT CHANGED AT #544 [item (18+1);
+  #     jobs/the-append-only-ratchet-refuses-the-dash-clear-that-the-held-register-s-own-header-prescribes-2026-10-21].
+  #     THIS CONTROL USED TO ASSERT THE OPPOSITE and it was right to, on #490's reading: clearing a row with a
+  #     leading dash changes no line count and disarms the register, so the test was the BYTE PREFIX. What that
+  #     reading missed is that gates/held-trees.tsv's own header at :40-42 PRESCRIBES the dash-clear, and
+  #     gates/held.sh and gates/verify-log.sh both implement it - so the door was refusing the register's
+  #     documented procedure, and main already carried two commits it refused. The threat #490 named is real and
+  #     is now answered by C1f below (an in-place edit with NO dash is still refused) and by inputs 14, 15, 16
+  #     and 18 of TC-SUITE-RG-001, not by refusing the clear.
+  #     AND IT IS BUILT ON mkreal AND NOT ON mkfix, WHICH IS NOT A STYLE CHOICE. mkfix's held-trees rows carry
+  #     TWO fields, and held-trees' own consumer counts rows with NF>=6, so that fixture reads ZERO live rows at
+  #     base and the PARSE-DENOMINATOR-GUARD refuses the pair for a reason that has nothing to do with clearing.
+  #     The first draft of this control used mkfix, asserted rc 0, and failed - while BOTH of its message
+  #     assertions passed, because the clear really had been credited and a later arm then refused. A right
+  #     verdict for the wrong reason is this project's standing trap; measured here rather than reasoned about.
+  B="$(mkreal "$T/c1")"; cp "$door" "$T/c1/gates/records-gate.sh"
+  printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tb2\tc2\td2\te2\tf2\nk3\tb3\tc3\td3\te3\tf3\n' > "$T/c1/gates/held-trees.tsv"
   H="$(commitas "$T/c1" clear-a-row)"
   out="$(bash "$T/c1/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
-  chk "C1 an APPENDONLY row cleared in place is refused" 1 "$rc"
-  case "$out" in *"PREFIX"*held-trees*) ok "C1 the refusal names PREFIX and the file" ;;
-                 *) no "C1 the refusal does not name PREFIX and held-trees.tsv" ;; esac
+  chk "C1 an APPENDONLY row cleared in place by the register's own procedure is ACCEPTED" 0 "$rc"
+  case "$out" in *"CLEAR - the byte prefix differs"*) ok "C1 the acceptance SAYS it credited a dash-clear rather than passing quietly" ;;
+                 *) no "C1 the acceptance does not name the dash-clear it credited" ;; esac
+  case "$out" in *"cleared=1"*) ok "C1 it names HOW MANY rows it credited as cleared, which is the number the live-row fall is bounded by" ;;
+                 *) no "C1 it does not print the cleared count" ;; esac
+
+  # C1f  THE THREAT #490 NAMED, kept: an in-place edit with no dash is not a clear and must still be refused.
+  B="$(mkfix "$T/c1f")"; cp "$door" "$T/c1f/gates/records-gate.sh"
+  printf 'h1\th2\nr1\tCHANGED\n' > "$T/c1f/gates/held-trees.tsv"
+  H="$(commitas "$T/c1f" edit-in-place)"
+  out="$(bash "$T/c1f/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C1f an APPENDONLY row edited in place WITHOUT a dash-clear is still refused" 1 "$rc"
+  case "$out" in *"PREFIX"*held-trees*) ok "C1f the refusal names PREFIX and the file" ;;
+                 *) no "C1f the refusal does not name PREFIX and held-trees.tsv" ;; esac
+  case "$out" in *"not a sanctioned dash-clear either"*) ok "C1f the refusal says WHY it is not a clear, so the reader is not left to guess" ;;
+                 *) no "C1f the refusal does not say why it is not a clear" ;; esac
+
+  # C1h  THE LIVE-ROW FALL IS BOUNDED BY THE CLEARED COUNT AND NOT WAIVED BY IT. One clear may cost one live
+  #      row; a pair that clears one and loses two is still refused. Without this the parse-stability arm would
+  #      be switched off by any clear, which is the shape of a guard that stops guarding once it is relaxed.
+  B="$(mkreal "$T/c1h")"; cp "$door" "$T/c1h/gates/records-gate.sh"
+  printf 'k1\tb1\tc1\td1\te1\tf1\n-k2\tb2\tc2\td2\te2\tf2\n-k3\tb3\tc3\td3\te3\tf3\n' > "$T/c1h/gates/held-trees.tsv"
+  H="$(commitas "$T/c1h" clear-two)"
+  out="$(bash "$T/c1h/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C1h clearing TWO rows is accepted when the live-row fall is TWO (the bound is the count, not a waiver)" 0 "$rc"
 
   # C2  NOSHRINK. And its DISCRIMINATOR: the refusal must name RUN-LOG.md and NOT drag in a file that is fine.
   B="$(mkfix "$T/c2")"; cp "$door" "$T/c2/gates/records-gate.sh"
@@ -642,11 +714,16 @@ selftest(){
     "build-numbers.tsv truncated to its first row"
     "build-numbers.tsv emptied"
     "a build-numbers.tsv row shortened in place, same line count"
+    "a held-trees row dash-cleared AND its reason REWRITTEN rather than appended to"
+    "a held-trees row dash-cleared AND a KEY field (the sha) changed under the clear"
+    "a held-trees row DELETED outright"
+    "a held-trees row dash-cleared WITH its reason appended to - the header's own procedure"
+    "a build-numbers.tsv row dash-cleared, which that register has no clear procedure for"
   )
   sed -e 's/if \[ "\$CH" -lt "\$CB" \]; then   # PARSE-STABILITY-FALL/if false; then   # PARSE-STABILITY-FALL/' "$door" > "$fdoor"
   nchg="$(diff "$door" "$fdoor" | awk '/^[<>]/{n++} END{print n+0}')"
   chk "TC-SUITE-RG-001 setup: the fall comparison's condition line was found and defanged (diff changed 2 lines)" 2 "$nchg"
-  for n in 1 2 3 4 5 6 7 8 9 10 11 12 13; do
+  for n in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
     d="$T/rg$n"; B="$(mkreal "$d")"
     rg_mutate "$n" "$d"
     H="$(commitas "$d" "rg001-$n")"
@@ -659,14 +736,14 @@ selftest(){
     rcs="$rcs $rc"; why="$why $reason"
     [ "$rc" = "$rc2" ] || nvdiff=$((nvdiff+1))
   done
-  chk "TC-SUITE-RG-001 vacuity: thirteen inputs are defined and all thirteen ran" 13 "${#names[@]}"
+  chk "TC-SUITE-RG-001 vacuity: eighteen inputs are defined and all eighteen ran" 18 "${#names[@]}"
   case "${rcs# }" in
-    "0 1 1 0 1 1 0 0 0 1 1 1 1") ok "TC-SUITE-RG-001 the shipped door's exit codes over the thirteen inputs are 0 1 1 0 1 1 0 0 0 1 1 1 1" ;;
-    *)                         no "TC-SUITE-RG-001 the shipped door's exit codes are [${rcs# }], expected [0 1 1 0 1 1 0 0 0 1 1 1 1]" ;;
+    "0 1 1 0 1 0 0 0 0 1 1 1 1 1 1 1 0 1") ok "TC-SUITE-RG-001 the shipped door's exit codes over the eighteen inputs are 0 1 1 0 1 0 0 0 0 1 1 1 1 1 1 1 0 1" ;;
+    *)                         no "TC-SUITE-RG-001 the shipped door's exit codes are [${rcs# }], expected [0 1 1 0 1 0 0 0 0 1 1 1 1 1 1 1 0 1]" ;;
   esac
   case "${why# }" in
-    "ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH") ok "TC-SUITE-RG-001 the REASONS are ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH" ;;
-    *) no "TC-SUITE-RG-001 the reasons are [${why# }], expected [ACCEPT TEXT TEXT ACCEPT PREFIX PREFIX ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH]" ;;
+    "ACCEPT TEXT TEXT ACCEPT PREFIX ACCEPT ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH PREFIX PREFIX NOSHRINK ACCEPT PREFIX") ok "TC-SUITE-RG-001 the REASONS are ACCEPT TEXT TEXT ACCEPT PREFIX ACCEPT ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH PREFIX PREFIX NOSHRINK ACCEPT PREFIX" ;;
+    *) no "TC-SUITE-RG-001 the reasons are [${why# }], expected [ACCEPT TEXT TEXT ACCEPT PREFIX ACCEPT ACCEPT ACCEPT ACCEPT TEXT NOSHRINK NOSHRINK LENGTH PREFIX PREFIX NOSHRINK ACCEPT PREFIX]" ;;
   esac
   chk "TC-SUITE-RG-001 pin: the fall comparison changes 0 of 13 verdicts on this toolchain (the claim in the arm's header)" 0 "$nvdiff"
   [ "$nvdiff" -eq 0 ] || echo "NOTE TC-SUITE-RG-001 the fall comparison changed $nvdiff of 13 verdicts: the toolchain moved and the header's 'changes no verdict' is stale"
@@ -808,8 +885,40 @@ blobtype(){ $GIT cat-file -t "$1:$2" 2>/dev/null || echo MISSING; }
 # consumer_row_count() itself is defined above selftest(), under "THE CONSUMERS' OWN ROW COUNTS", because C12 calls it.
 
 RECBAD=""
+# clear_only_diff <basefile> <headfile>: exit 0 iff every base line that differs at head is a sanctioned
+# dash-clear (see RATCHET_CLEARPREFIX above). On 0 it prints "cleared=<n>"; on 1 it prints the reason, naming the
+# line and the field, so the refusal is as specific as the PREFIX one it replaces. It asserts the head is not
+# SHORTER in lines, which is what keeps a deletion-plus-append from passing as a clear; NOSHRINK above already
+# refuses a plain shortening, so this is the belt to that brace rather than its only statement.
+clear_only_diff(){
+  awk '
+    FNR==NR { nb=FNR; B[FNR]=$0; next }
+    { nh=FNR; H[FNR]=$0 }
+    END{
+      if (nb+0 == 0) { print "the base read as zero lines, so nothing could be compared"; exit 1 }
+      if (nh+0 < nb+0) { print "the head has " nh+0 " line(s) against " nb+0 " at base, so a row was removed"; exit 1 }
+      for (i=1;i<=nb;i++) {
+        if (B[i]==H[i]) continue
+        kb=split(B[i],fb,"\t"); kh=split(H[i],fh,"\t")
+        if (kb!=kh) { print "line " i ": the field count changed, " kb " to " kh; exit 1 }
+        if (fh[1] != "-" fb[1]) {
+          print "line " i ": field 1 reads [" substr(fh[1],1,24) "] where the only sanctioned change to [" substr(fb[1],1,24) "] is a leading dash"; exit 1 }
+        for (j=2;j<=kb;j++) {
+          if (fb[j]==fh[j]) continue
+          if (j<=5) { print "line " i ": field " j " changed under the clear, and fields 2 to 5 are the KEYS (sha, build number, timestamp, runId)"; exit 1 }
+          if (fb[j]=="") continue
+          if (index(fh[j], fb[j]) != 1) { print "line " i ": field " j " was REWRITTEN, not appended to - the header sanctions appending to the reason and nothing else"; exit 1 }
+        }
+        c++
+      }
+      print "cleared=" c+0
+      exit 0
+    }' "$1" "$2"
+}
+
 for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
   case " $RATCHET_APPENDONLY " in *" $f "*) MODE=appendonly ;; *) MODE=noshrink ;; esac
+  CLRN=0   # how many rows THIS pair cleared on THIS file, set only on the sanctioned-clear path below
   bt="$(blobtype "$BASEFULL" "$f")"; ht="$(blobtype "$HEAD" "$f")"
   bb="$($GIT rev-parse --quiet --verify "$BASEFULL:$f" 2>/dev/null || true)"
   hb="$($GIT rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || true)"
@@ -890,11 +999,35 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     head -c "$nb" "$REGTMP/head" > "$REGTMP/prefix" 2>/dev/null
     if ! cmp -s "$REGTMP/prefix" "$REGTMP/base"; then
       WHERE="$(cmp "$REGTMP/prefix" "$REGTMP/base" 2>&1 | head -1 | tr -d '%')"
-      RECBAD="$RECBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
-      RECBAD="$RECBAD    was edited in place, renumbered, cleared with a leading dash, removed, or inserted mid-file.\n"
-      continue
+      # THE DASH-CLEAR FALLBACK, for the registers whose own header prescribes it and for no others.
+      CLRW=""; CLROK=no
+      case " $RATCHET_CLEARPREFIX " in
+        *" $f "*) CLRW="$(clear_only_diff "$REGTMP/base" "$REGTMP/head" 2>&1)" && CLROK=yes ;;
+      esac
+      if [ "$CLROK" = yes ]; then
+        CLRN="$(printf '%s' "$CLRW" | sed -n 's/^cleared=\([0-9]*\)$/\1/p')"; : "${CLRN:=0}"
+        # ACCEPTED, AND IT SAYS SO RATHER THAN PASSING QUIETLY: a door that silently stops refusing a class is
+        # how a guard register stops being evidence, and a reader of this log must be able to see which rows
+        # were credited as cleared.
+        # SAID WITH `say` AT THE POINT OF ACCEPTANCE, NOT ACCUMULATED, and the file's own closing comment is
+        # why: this door prints NO summary line on the clean path, as a measured decision about fastgate's
+        # stdout and log being byte-identical on a clean pair. A `say` here cannot reach a clean pair - it
+        # fires only where the byte prefix differed, i.e. only on pairs this door used to REFUSE - so the
+        # equality that comment protects is untouched, and a door that silently stopped refusing a class
+        # would be how a guard register stops being evidence.
+        say "$f: CLEAR - the byte prefix differs and every differing base row is a sanctioned dash-clear"
+        say "    ($CLRW), which this register's own header at :40-42 prescribes. Deletion, renumbering, a key"
+        say "    field changed under the clear, a rewritten reason and a mid-file insertion are all still refused."
+        ESTAB="TEXT, NOSHRINK, LENGTH, the line boundary and the sanctioned dash-clear"
+      else
+        RECBAD="$RECBAD$f: PREFIX - the $nb bytes present at base are NOT byte-identical at head [$WHERE]. A row\n"
+        RECBAD="$RECBAD    was edited in place, renumbered, removed, or inserted mid-file.\n"
+        [ -n "$CLRW" ] && RECBAD="$RECBAD    It is not a sanctioned dash-clear either: $CLRW\n"
+        continue
+      fi
+    else
+      ESTAB="TEXT, NOSHRINK, LENGTH, the line boundary and PREFIX"
     fi
-    ESTAB="TEXT, NOSHRINK, LENGTH, the line boundary and PREFIX"
   fi
   # PARSE STABILITY, LAST ON PURPOSE (the header above consumer_row_count says why). By here TEXT, NOSHRINK and - for the
   # APPENDONLY files - LENGTH, the line boundary and PREFIX have passed, and ESTAB names which, so the sentence below is
@@ -913,11 +1046,27 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
       continue
     fi
     if [ "$CH" -lt "$CB" ]; then   # PARSE-STABILITY-FALL
+      # A CLEARED ROW IS *MEANT* TO STOP BEING LIVE, so this arm is the second half of the same contradiction
+      # and fixing only the byte arm left it half fixed [#544, item (18+1)]. MEASURED: with the PREFIX arm
+      # repaired, `records-gate.sh 7353e67^ 7353e67` still exited 1 here - the consumer read 8 live rows at
+      # head against 9 at base, which is exactly what one dash-clear does. So the fall is allowed UP TO the
+      # number of rows this pair cleared and not one more: a pair that clears one row and loses two live rows
+      # is still refused, and a file that cleared nothing has CLRN=0 and this arm is exactly as strict as it
+      # was. (894f583 passed the byte arm and then this one only because it cleared three rows and appended
+      # three, so its net live count did not move - luck, not coverage, which is why this is written against
+      # the mechanism and not against that pair.) The `if` line above is unchanged on purpose: the
+      # TC-SUITE-RG-001 driver seds that exact text to defang the comparison and pins the diff at two lines.
+      if [ $(( CB - CH )) -le "$CLRN" ]; then
+        say "    $f: the consumer reads $CH live row(s) at head against $CB at base, a fall of $(( CB - CH ))"
+        say "        within the $CLRN row(s) this pair CLEARED. A cleared row is meant to stop being live."
+      else
       RECBAD="$RECBAD$f: PARSE STABILITY - $f's own consumer reads $CH row(s) at head against $CB at base, a FALL\n"
       RECBAD="$RECBAD    that the checks before this one did not catch (they passed: $ESTAB). Something in the head blob\n"
       RECBAD="$RECBAD    makes the consumer's own grep|awk pipeline drop rows it read at base\n"
       RECBAD="$RECBAD    [jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-consumers-language-2026-10-10].\n"
+      [ "$CLRN" -gt 0 ] && RECBAD="$RECBAD    This pair cleared $CLRN row(s), which would excuse a fall of at most that many.\n"
       continue
+      fi
     fi
   fi
   if [ "$MODE" = appendonly ]; then
