@@ -1270,7 +1270,12 @@ FCSTATE=""; FCVERDICT=""
     FCVERDICT="drifted"
   else
     case "$FCSTATE" in
-      'fontconfig: gates/fonts.conf '*|'fontconfig: gates/fonts.conf') FCVERDICT="pinned" ;;
+      # THE PINNED STATE IS MATCHED EXACTLY: the bare path, or the path followed by gates/lib.js's '  ->  <face>'
+      # [#545, item (7)]. The prefix 'fontconfig: gates/fonts.conf '* that stood here also matched the state
+      # gates/lib.js prints when the file is ABSENT ('fontconfig: gates/fonts.conf MISSING - fonts come from the
+      # image'), so a log whose fonts came from the image answered OK at exit 0 - one of the three states the job
+      # names as unable to authorise a push. FC10 is that state and must be refused.
+      'fontconfig: gates/fonts.conf  ->'*|'fontconfig: gates/fonts.conf') FCVERDICT="pinned" ;;
       *) FCVERDICT="unpinned" ;;
     esac
   fi

@@ -662,6 +662,7 @@ fcmk(){ # fcmk <outfile> <line...>: $GOOD with a toolchain line and whatever fon
 fcmk "$FCD/fc-pinned.log"   'fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"'
 fcmk "$FCD/fc-nofc.log"     'fontconfig: DISABLED by CT_NOFC=1 - fonts come from the image  ->  sans-serif resolves to "Inter"'
 fcmk "$FCD/fc-caller.log"   'fontconfig: caller-supplied FONTCONFIG_FILE=/tmp/whatever.conf  ->  sans-serif resolves to "Inter"'
+fcmk "$FCD/fc-absent.log"   'fontconfig: gates/fonts.conf MISSING - fonts come from the image  ->  sans-serif resolves to "Inter"'
 fcmk "$FCD/fc-drift.log"    'fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"' \
                             'fontconfig: DISABLED by CT_NOFC=1 - fonts come from the image  ->  sans-serif resolves to "Inter"'
 fcmk "$FCD/fc-missing.log"
@@ -678,6 +679,10 @@ ck      "FC7 --ignore-fc overrides the refusal"                                 
 ckmsg   "FC8 and the override is LOUD, not silent"                              0 'FONTCONFIG OVERRIDDEN BY --ignore-fc' "$VL" "$FCD/fc-nofc.log" "$FOOT" --ignore-fc
 # FC9: the state is NAMED in the refusal, or a reader has to re-derive which of the three it was.
 ckmsg   "FC9 the refusal names the state it found"                              1 'CT_NOFC=1' "$VL" "$FCD/fc-nofc.log" "$FOOT"
+# FC10 AND FC11 ARE THE THIRD STATE THE JOB NAMES [#545, item (7)]: gates/lib.js prints 'gates/fonts.conf MISSING'
+# when the pinned file is absent, and arm (15)'s old prefix match read that line as PINNED and answered OK.
+ckmsg   "FC10 a log whose gates/fonts.conf was MISSING is REFUSED"              1 'REFUSED (fontconfig)' "$VL" "$FCD/fc-absent.log" "$FOOT"
+ckmsg   "FC11 and the refusal names the MISSING state"                          1 'gates/fonts.conf MISSING' "$VL" "$FCD/fc-absent.log" "$FOOT"
 
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
