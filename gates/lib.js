@@ -353,8 +353,28 @@ async function launch(opts={}){
     // open the Preview gallery from Home and run one card by its id token (e.g. 'k10'), holding for `hold` ms
     // id may be an item id ('k10'; the FIRST card with that id), a card number (4 -> the 4th card) or a RegExp on the card title
     async card(id,hold){await b.home();const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.waitFor({state:'visible',timeout:8000});await gb.click();await page.waitForTimeout(400);
-      const re=id instanceof RegExp?id:(typeof id==='number'?new RegExp('^'+id+' · '):new RegExp('^\\d+ · '+String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' · '));
-      const c=page.locator('button',{hasText:re}).first();await c.waitFor({state:'visible',timeout:8000});await c.click();await page.waitForTimeout(hold==null?1500:hold);},
+      // ── THE NUMERIC BRANCH IS SCOPED TO THE STATE CARDS, BECAUSE THE GALLERY RENDERS TWO LISTS THAT BOTH
+      // NUMBER FROM ONE [#544 item (35); jobs/b-card-ordinal-is-ambiguous-now-that-the-gallery-has-two-lists-
+      // numbering-from-1-2026-10-01, P1, filed by antagonist A of #451 BEFORE that build's push, as a latent
+      // fault that build had just created].
+      // #451 split one gallery list into two. Kunal's ask queue (SC) renders FIRST in DOM order as
+      // `1 · PHONE ·`, `2 · KEV ·`, and the state cards (TS) follow as `1 · k10 ·` through `8 · y3 ·`. So
+      // `^N · ` plus `.first()` resolves to the ASK card for any N the queue has reached, and the ask queue is
+      // DESIGNED to grow and shrink - that is the whole point of #451. The moment the queue reaches three
+      // cards, b.card(3) stops reaching the k11 demo-end fixture and silently drives an ask card instead:
+      // 11-lesson and 35-width-containment, which are the numeric callers, would measure the wrong screen.
+      // WHY THE COUNT GUARD IS NOT THE ANSWER, which is the sharp half of the job: gate 15's EXPECTED_N reds
+      // first, but it reds on the COUNT and not on the collision - so the natural fix is to bump EXPECTED_N
+      // and send two gates to the wrong screen with NO assertion naming why. That is #451's own worst mistake
+      // ("what I had removed was the ROUTE IN, not a duplicate assertion") repeated one turn later.
+      // NOT RENUMBERED, AND THAT IS THE OPENING'S OWN INSTRUCTION: the job offers 'scope the numeric branch,
+      // or renumber TS from 11', and renumbering means editing chess.jsx. This is the selector fix.
+      // ONLY THE NUMERIC BRANCH MOVES. The id-token branch already matches `^\d+ · <id> · `, which is
+      // unambiguous across both lists, and a RegExp is the caller's own business.
+      const numeric=(typeof id==='number');
+      const re=id instanceof RegExp?id:(numeric?new RegExp('^'+id+' · '):new RegExp('^\\d+ · '+String(id).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' · '));
+      const c=(numeric?page.locator('button[data-ct="state-card"]'):page.locator('button')).filter({hasText:re}).first();
+      await c.waitFor({state:'visible',timeout:8000});await c.click();await page.waitForTimeout(hold==null?1500:hold);},
     async cardTitles(){await b.home();const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.click();await page.waitForTimeout(400);const t=await page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').split('\n')[0]).filter(x=>/^\d+ · /.test(x)));await page.locator('button',{hasText:/^✕$/}).last().click();return t;},
     /* #451: cardTitles() returns EVERY card in the gallery, which since #451 is Kunal's ask queue PLUS the eight
        fixed states the harness drives (chess.jsx, const TS). Gate 14 wants the whole list - it checks the US-R

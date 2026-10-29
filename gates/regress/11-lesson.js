@@ -246,4 +246,67 @@ L.run(async()=>{
 // colon is what makes a line a claim; a prose mention of the form must therefore omit it.
 // Filed as its own finding on the job rather than left in this comment alone.
 // CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
+
+  // ── TC-R64e THE CARD ORDINAL IS SCOPED TO THE STATE CARDS, DRIVEN IN BOTH DIRECTIONS IN ONE BROWSER STATE
+  // [#544 item (35); jobs/b-card-ordinal-is-ambiguous-now-that-the-gallery-has-two-lists-numbering-from-1-
+  // 2026-10-01, P1, filed by antagonist A of #451 before that build's push].
+  // THIS GATE IS THE CONSUMER AT RISK: b.card(3) and b.card(4) at the top of this file are two of the three
+  // numeric call sites in the suite, and the defect is that the ask queue reaching three cards silently steals
+  // the ordinal. So the control lives here rather than beside the selector.
+  // IT IS AN INJECTION AND NOT A SECOND BUNDLE, deliberately: the input that triggers the collision is the
+  // LENGTH OF KUNAL'S ASK QUEUE, which is tracker data and not code, so no bundle can be built that has three
+  // ask cards in it. Injecting a third into the open gallery is the only way to put the real input in front of
+  // the real selector. The injected button carries data-ct="ask-card" and is appended to the ask list's own
+  // parent, so it sits BEFORE the state cards in DOM order exactly as a real third ask would.
+  // BOTH LOCATORS ARE RESOLVED AGAINST THE SAME DOM, which is what makes this a control rather than a claim:
+  // the OLD unscoped form must hit the injected ask card (the defect, reproduced) and the NEW scoped form must
+  // hit the k11 state card (the fix), from one page in one state with one injection.
+  // AND THE DENOMINATOR IS ASSERTED FIRST [the non-empty-denominator rule]: if the injection did not land, or
+  // if the ask list has no cards to append to, both locators resolve to the same button and the pair would
+  // agree for a reason that has nothing to do with the scope.
+  {
+    const b=await L.launch({geo:'kunal',name:'lesson-cardnum'});await b.open();
+    await b.home();
+    const gb=b.page.locator('button[title="Preview gallery (dev)"]');
+    await gb.waitFor({state:'visible',timeout:8000});await gb.click();await b.page.waitForTimeout(400);
+    const pre=await b.page.evaluate(()=>({
+      asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
+      states:document.querySelectorAll('button[data-ct="state-card"]').length,
+      third:(()=>{const t=[...document.querySelectorAll('button[data-ct="state-card"]')]
+        .map(x=>(x.innerText||'').split('\n')[0]).find(x=>/^3 · /.test(x));return t||null;})()}));
+    L.say(pre.asks>=1&&pre.states>=4&&pre.third!==null,
+      'TC-R64e DENOMINATOR: the gallery renders BOTH lists - '+pre.asks+' ask card(s) and '+pre.states+' state card(s) - and the state card numbered 3 exists, so an ordinal collision is constructible and distinguishable',pre);
+    const inj=await b.page.evaluate(()=>{
+      // INSERTED WHERE A REAL THIRD ASK WOULD GO, NOT APPENDED, and that correction is the control working.
+      // The first draft used `askList.parentElement.appendChild(n)`; MEASURED, it put the button LAST, because
+      // the ask cards and the state cards share one flex column in chess.jsx - so the unscoped locator's
+      // `.first()` still found the state card and the negative control went RED on a tree where the defect is
+      // perfectly real. A control that disturbs something genuine and leaves the measured value untouched
+      // reads exactly like a gate that cannot fail [CLAUDE.md, #416]. The injected card goes immediately
+      // after the LAST ask card, which is where the queue's third entry renders.
+      const asks=[...document.querySelectorAll('button[data-ct="ask-card"]')];
+      const last=asks[asks.length-1];
+      if(!last||!last.parentElement)return {ok:false};
+      const n=document.createElement('button');
+      n.setAttribute('data-ct','ask-card');
+      n.textContent='3 · FAKE · an injected third ask card, gate 11 item (35) control';
+      last.parentElement.insertBefore(n,last.nextSibling);
+      const all=[...document.querySelectorAll('button[data-ct="ask-card"],button[data-ct="state-card"]')];
+      return {ok:true,asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
+              injectedIndex:all.indexOf(n),
+              firstStateIndex:all.findIndex(x=>x.getAttribute('data-ct')==='state-card')};});
+    L.say(inj.ok&&inj.asks===pre.asks+1&&inj.injectedIndex<inj.firstStateIndex,
+      'TC-R64e the third ask card was INJECTED into the ask list AND SITS BEFORE THE FIRST STATE CARD in DOM order (index '+inj.injectedIndex+' against '+inj.firstStateIndex+'), so the queue now numbers to 3 the way it will when Kunal asks a third question - the two lists share one flex column, so position is the whole point',inj);
+    const hit=async(sel)=>{const el=b.page.locator(sel).filter({hasText:/^3 · /}).first();
+      const n=await el.count();if(n===0)return null;
+      return await el.evaluate(x=>({ct:x.getAttribute('data-ct'),title:(x.innerText||'').split('\n')[0]}));};
+    const unscoped=await hit('button'), scoped=await hit('button[data-ct="state-card"]');
+    L.say(!!unscoped&&unscoped.ct==='ask-card',
+      'TC-R64e NEGATIVE CONTROL: the OLD unscoped locator `button` + /^3 · / resolves to the ASK card - "'+(unscoped&&unscoped.title)+'" - which is the defect reproduced, so this pair is measuring the scope and not a selector that was never ambiguous',unscoped);
+    L.say(!!scoped&&scoped.ct==='state-card'&&/^3 · /.test(scoped.title),
+      'TC-R64e and the SCOPED locator used by b.card(N) resolves to the STATE card - "'+(scoped&&scoped.title)+'" - with a third ask card present, so the lesson gates keep reaching the k11 demo-end fixture',scoped);
+    L.say(!!unscoped&&!!scoped&&unscoped.title!==scoped.title,
+      'TC-R64e and the two resolutions are DIFFERENT buttons, so neither assertion above could have been satisfied by both locators finding the same thing',{unscoped:unscoped&&unscoped.title,scoped:scoped&&scoped.title});
+    await b.close();
+  }
 },'LESSON');
