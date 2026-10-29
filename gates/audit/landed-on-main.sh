@@ -332,6 +332,18 @@ audit() {
   git -C "$repo" ls-tree -r --name-only origin/main > "$treefile" 2>/dev/null || true
   [ -s "$treefile" ] || nf_readable=0
 
+  # THE CONTENT ARM'S TREE IS origin/main's, AND IT IS BUILT HERE ONCE [#545, item (30);
+  # jobs/landed-on-mains-content-arm-reverse-applies-against-the-working-tree-so-an-integration-pass-contaminates-its-own-audit-2026-10-13].
+  # The arm used to run `git -C "$repo" apply --reverse --check`, which reads $repo's WORKING TREE. L2 and L9 ask
+  # origin/main; this one did not, so an integration pass that ran the audit AFTER applying its payloads read its
+  # own work back as content=ON-MAIN - measured at #517, where five of six fresh payloads came back ON-MAIN and one
+  # was reported delivered that main did not carry. A private index read from origin/main (GIT_INDEX_FILE, so the
+  # repo's own index and working tree are never touched) and `git apply --cached` against it asks the right tree
+  # whatever is checked out. An index that cannot be built is not a reason to fall back to the working tree:
+  # every payload then reads INDETERMINATE, which L3 counts.
+  local mainidx="$tmp/origin-main.index"
+  GIT_INDEX_FILE="$mainidx" git -C "$repo" read-tree origin/main >/dev/null 2>&1 || mainidx=""
+
   local f id ir patchbody artefact nshas s content
   local total=0 withpatch=0 withir=0
   local naive_pile=0 true_undelivered=0
@@ -378,9 +390,9 @@ audit() {
     # ---- tested: the payload is REVERSE-applied against main's tree. If it
     # ---- reverse-applies, its content is already there, whatever any field says.
     content=INDETERMINATE
-    if git -C "$repo" apply --reverse --check "$tmp/$id.patch" >/dev/null 2>&1; then
+    if [ -n "$mainidx" ] && GIT_INDEX_FILE="$mainidx" git -C "$repo" apply --cached --reverse --check "$tmp/$id.patch" >/dev/null 2>&1; then
       content=ON-MAIN
-    elif git -C "$repo" apply --check "$tmp/$id.patch" >/dev/null 2>&1; then
+    elif [ -n "$mainidx" ] && GIT_INDEX_FILE="$mainidx" git -C "$repo" apply --cached --check "$tmp/$id.patch" >/dev/null 2>&1; then
       content=NOT-ON-MAIN
     else
       n3=$((n3+1)); L3_INDET="$L3_INDET $id"
@@ -941,6 +953,18 @@ json.dump(d,open(sys.argv[1],"w"))
   #      the PLAIN key's "APPLIED, commit ..." and L7 classified it CLAIM-UNCONFIRMED, so this document
   #      reported as an unconfirmed claim instead of as a recorded refusal.
   check C36-NEWEST-VERDICT-WINS 1 "L7-REFUSAL-NOT-OWED        FAIL" "$rc" "$out"
+
+  # ===================== C37  THE CONTENT ARM ASKS origin/main, NOT THE WORKING TREE [#545 item (30)] ==
+  # The job's own two-run control. Audit a payload that only MODIFIES a file (the class the newfile arm cannot
+  # rescue), then APPLY it to the working tree the way an integration pass does, and audit again. The content
+  # verdict must be NOT-ON-MAIN both times. Before #545 the second run read content=ON-MAIN.
+  fresh_docdir; mkdoc d-applied-here "$P_STRANDED" ""
+  audit "$D" "$R" > "$T/c37a" 2>&1; rc=$?
+  check C37a-BEFORE-APPLY-NOT-ON-MAIN 0 "d-applied-here | .* | content=NOT-ON-MAIN" "$rc" "$T/c37a"
+  git -C "$R" apply "$P_STRANDED" 2>/dev/null
+  audit "$D" "$R" > "$T/c37b" 2>&1; rc=$?
+  check C37b-AFTER-APPLY-STILL-NOT 0 "d-applied-here | .* | content=NOT-ON-MAIN" "$rc" "$T/c37b"
+  git -C "$R" checkout -q -- . 2>/dev/null
 
   # ===================== C16  determinism of the report ====================
   # Byte-identical output on repeated runs over one input [R36]. A report whose
