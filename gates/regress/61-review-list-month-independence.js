@@ -201,7 +201,51 @@ async function READ(b){
                   alpha:a, effBg:bg.map(v=>Math.round(v*10)/10), opaqueBase:E.base, translucentLayers:E.layers};};
         // #433 the LINE HEIGHT of the line, so "how many line boxes does this sentence occupy" is a
         // measurement rather than a magic pixel number. h/lh is what A11g reads.
-        return {present:!!el, text:el?(el.textContent||'').trim():null, h:el?Math.round(el.getBoundingClientRect().height*10)/10:0,
+        // ── #544, item (5) of this job's remainder: IS THE LINE READABLE, measured rather than inferred.
+        // [jobs/gate-61-storage-and-cap-assertions-cannot-fail-as-written-2026-09-29, the A3b half.] A3b's name
+        // is "a cap of at least N is stated on screen as READABLE TEXT" and it matched CAP_RE against
+        // document.body.innerText alone - no element, no rect, no visibility, no reachability. Antagonist B
+        // measured the sentence it certifies at 4.37:1 contrast and, at 320x568 on first paint, 93% below the
+        // fold, and A3b passed 6 of 6. The string is genuinely present; present in innerText is not readable.
+        // THIS IS COMPUTED INSIDE THE SAME EVALUATE AS EVERY OTHER NUMBER IN THIS READING, and `cap` is the LAST
+        // key of the returned object, so the scroll probe below runs after everything else is captured. Doing it
+        // in a second evaluate after input() returns would have measured a DIFFERENT SCREEN: input() reloads the
+        // page with the stub refusing before it returns (that is what A5 reads), so the live page at assertion
+        // time is the post-reload state and r.cap is the state before it.
+        // AND IT IS REACHABILITY, NOT ABOVE-THE-FOLD, WHICH IS WHERE THIS JOB'S OWN PRESCRIPTION IS WRONG. The
+        // job asks for "rect, visibility, above-the-fold and contrast terms". CLAUDE.md: "'Below the fold' is
+        // not 'unreachable'" - asserting above-the-fold produced TWO false P0s in one night (#380's ... sheet,
+        // #382's Review entry screen), and this app scrolls inside #root by design. So the fold is REPORTED
+        // (top, bottom, vh) and the ASSERTION is the empirical test gates/regress/40-reachability.js is the
+        // reference for: collect only the USER-scrollable ancestors (computed overflowY auto or scroll, with
+        // room to scroll), actually scroll them, re-read the rect, and put every scrollTop back. Not
+        // scrollIntoView, which scrolls an overflow:hidden box a finger cannot move and therefore always says
+        // yes; and not "some scrollable ancestor exists", which certifies content it does not contain.
+        // CONTRAST IS ALREADY ASSERTED BY A7e, A7f, A9b AND A12c over this same element, so `ratio` is carried
+        // into A3b's data and A3b asserts it too - the same measurement, not a second instrument.
+        const vis=(()=>{
+          if(!el)return {painted:false,visible:false,onScreen:false,reachable:false,scrollers:0,vh:innerHeight};
+          let hidden=false;
+          for(let n=el;n&&n!==document.documentElement;n=n.parentElement){const s2=getComputedStyle(n);
+            if(s2.display==='none'||s2.visibility==='hidden'||parseFloat(s2.opacity)===0){hidden=true;break;}}
+          const r0=el.getBoundingClientRect(), vh=innerHeight, vw=innerWidth;
+          const painted=r0.width>0.5&&r0.height>0.5;
+          const onScreen=r0.bottom>0.5&&r0.top<vh-0.5&&r0.right>0.5&&r0.left<vw-0.5;
+          const scs=[];let q=el.parentElement;
+          while(q&&q!==document.documentElement){const s3=getComputedStyle(q);
+            if(/auto|scroll/.test(s3.overflowY)&&q.scrollHeight>q.clientHeight+1)scs.push(q);q=q.parentElement;}
+          const saved=scs.map(x=>x.scrollTop);
+          for(let i=scs.length-1;i>=0;i--){const x=scs[i];
+            const xr=x.getBoundingClientRect(),er=el.getBoundingClientRect();
+            x.scrollTop=Math.max(0,Math.min(x.scrollHeight-x.clientHeight,x.scrollTop+(er.bottom-xr.bottom)+8));}
+          const r1=el.getBoundingClientRect();
+          const reached=onScreen||(r1.bottom<=vh+0.5&&r1.top>=-0.5&&r1.height>0.5);
+          scs.forEach((x,i)=>{x.scrollTop=saved[i];});
+          return {painted,visible:!hidden,onScreen,reachable:!!reached,scrollers:scs.length,
+                  top:Math.round(r0.top),bottom:Math.round(r0.bottom),
+                  afterTop:Math.round(r1.top),afterBottom:Math.round(r1.bottom),vh,
+                  movedByScrolling:Math.round(r0.top-r1.top)};})();
+        return {vis, present:!!el, text:el?(el.textContent||'').trim():null, h:el?Math.round(el.getBoundingClientRect().height*10)/10:0,
                 lh:el?Math.round((parseFloat(getComputedStyle(el).lineHeight)||0)*10)/10:0,
                 ratio:ratio(el), countRatio:ratio(cnt)};})()};
   },NEWEST.label);
@@ -280,7 +324,32 @@ async function input(seed,n,geo,name,thin){
     L.say(r.outside>0,'A2 TC-R35(i) '+tag+': the list holds rows dated OUTSIDE the newest month - the month rule',{outsideNewest:r.outside,inNewest:r.inNewest,months:r.distinct});
     L.note('       WEAK FORM, printed not asserted: "rows > 40" would say '+(r.rows>40?'PASS':'FAIL')+' here. A2 says '+(r.outside>0?'PASS':'FAIL')+'.');
     L.say(r.rows===expect,'A3a TC-R35(ii) '+tag+': rows == accounts x min(total seeded, the cap)',{rows:r.rows,expect,capUsed,capFrom:capN?'stated on screen':'MIN_CAP (no cap stated)'});
-    L.say(!!capN&&capN>=MIN_CAP,'A3b TC-R35(ii) '+tag+': a cap of at least '+MIN_CAP+' is stated on screen as readable text',{stated:cap||'NONE',accepts:'Showing up to '+MIN_CAP+' games per account.'});
+    // ── A3b REWRITTEN [#544, item (7) of directOpening_2026_10_28_batch4; the A3b half of
+    //    jobs/gate-61-storage-and-cap-assertions-cannot-fail-as-written-2026-09-29].
+    //    IT WAS `!!capN&&capN>=MIN_CAP` over document.body.innerText, under the name "stated on screen as
+    //    READABLE TEXT". Four things it did not ask: which element says it, whether that element is painted,
+    //    whether it is visible, and whether a finger can reach it. Antagonist B measured the sentence it
+    //    certifies at 4.37:1 and 93% below the fold at 320x568 on first paint, and A3b passed 6 of 6.
+    //    IT NOW ASKS THE LINE. capLine is CAP_RE against the located element's own text, and the terms are the
+    //    element's: painted (a non-degenerate rect), visible (no display:none, visibility:hidden or opacity 0
+    //    on it or any ancestor), reachable (user-scrollable ancestors actually scrolled and the rect re-read -
+    //    NOT above-the-fold, see the comment in READ), and contrast at AA, which is the same reading A7e
+    //    asserts over the same element rather than a second instrument.
+    //    THE BODY TEXT IS KEPT AS A SEPARATE, REPORTED READING AND A3b-x IS WHAT TELLS THE TWO APART: a cap
+    //    stated somewhere in the body but NOT on the located line is the state where the old assertion was
+    //    satisfied and the new one is not, so it is named rather than folded into A3b's own data.
+    const capLine=((r.cap&&r.cap.text)||'').match(CAP_RE);
+    const capLineN=capLine?parseInt(capLine[1].replace(/,/g,''),10):null;
+    const cv=(r.cap&&r.cap.vis)||{};
+    L.say(!!capLineN&&capLineN>=MIN_CAP&&cv.painted===true&&cv.visible===true&&cv.reachable===true
+          &&!!r.cap.ratio&&r.cap.ratio.r>=4.5,
+      'A3b TC-R35(ii) '+tag+': a cap of at least '+MIN_CAP+' is stated as READABLE text - on the located line, painted, visible, reachable by a finger and at WCAG AA',
+      {statedOnLine:capLine?capLine[0]:'NONE',statedInBody:cap||'NONE',line:r.cap&&r.cap.text,
+       painted:cv.painted,visible:cv.visible,onScreenAtRest:cv.onScreen,reachable:cv.reachable,
+       userScrollableAncestors:cv.scrollers,movedByScrolling:cv.movedByScrolling,
+       top:cv.top,bottom:cv.bottom,viewportH:cv.vh,ratio:r.cap&&r.cap.ratio?r.cap.ratio.r:null,minRatio:4.5,
+       accepts:'Showing up to '+MIN_CAP+' games per account.'});
+    L.say(!(capN&&!capLineN),'A3b-x TC-R35(ii) '+tag+': the cap is not stated SOMEWHERE IN THE BODY while the located limit line says something else - which is the state the old body-text-only A3b could not tell from a readable sentence',{inBody:cap||'NONE',onLine:capLine?capLine[0]:'NONE',line:r.cap&&r.cap.text});
     L.say(r.bytes<BUDGET,'A4 TC-R35(iii) '+tag+': measured localStorage footprint under the pinned budget',{chars:r.bytes,budget:BUDGET,acctGames:r.acctBytes,storedRows:r.stored});
     // A4b and A5 need something to have been stored. With nothing stored they would only restate A1's failure,
     // so they are NOT asserted there - a cascade is not a second finding [R07]. The skip is printed, not silent.
@@ -365,7 +434,16 @@ async function input(seed,n,geo,name,thin){
       // HAS. The old wording ("your last 6 months") satisfied the old regex and was false on a sparse index,
       // so the regex moved with the string it pins and A11c below is what makes the distinction fail-able.
       const mn=(r.body||'').match(PLAY_RE);
-      L.say(!!mn&&+mn[1]===GMONTHS,'A7b US-R25 '+tag+': the screen states the MONTH-OF-PLAY window, which is the limit that actually bound, in the units the walk actually counts',{monthsOfPlay:mn?+mn[1]:null,expect:GMONTHS,calendarClaim:(r.body||'').match(CAL_RE)?((r.body||'').match(CAL_RE))[0]:'none',locatedLine:r.cap.text});
+      // A7b GAINS A3b's READABILITY TERMS [#544, item (7)]: this job's remainder says "A7b and A7c need the
+      // same". A7b yes - it is a POSITIVE claim that the screen states something, and an unreadable sentence
+      // does not state it. A7c NO, AND THAT IS A DELIBERATE DEPARTURE FROM THE JOB'S WORDING, measured
+      // against the mechanism rather than taken as a prescription: A7c is a NEGATIVE claim ("the screen does
+      // NOT state a games cap as the bound"), and narrowing a negative from the whole body to one element
+      // WEAKENS it - a cap sentence anywhere on the screen is the defect, wherever it is painted. That is
+      // #394's containment trap pointed the other way: the thing being excluded must not be allowed to hide
+      // outside the box the assertion looks in. A7c stays body-wide, and this is the record of why.
+      const a7v=(r.cap&&r.cap.vis)||{};
+      L.say(!!mn&&+mn[1]===GMONTHS&&a7v.painted===true&&a7v.visible===true&&a7v.reachable===true,'A7b US-R25 '+tag+': the screen states the MONTH-OF-PLAY window, which is the limit that actually bound, in the units the walk actually counts - and states it READABLY: painted, visible and reachable by a finger',{monthsOfPlay:mn?+mn[1]:null,expect:GMONTHS,calendarClaim:(r.body||'').match(CAL_RE)?((r.body||'').match(CAL_RE))[0]:'none',locatedLine:r.cap.text,painted:a7v.painted,visible:a7v.visible,onScreenAtRest:a7v.onScreen,reachable:a7v.reachable,userScrollableAncestors:a7v.scrollers,movedByScrolling:a7v.movedByScrolling});
       // A7c is the other half and is NOT a restatement of A7b: a screen could name both and still mislead.
       // On the #431 bundle this is the defect itself - "Showing up to 200 games per account." while 200
       // never bound - so this assertion is the one that had to be read off the body to be able to fail.
@@ -741,7 +819,16 @@ async function input(seed,n,geo,name,thin){
   //    375x730 and the WIDTH-sensitive part runs here: nothing on the list is cut off and the first row is
   //    hit-testable at its own centre after scrolling ITS OWN scroller (measurement rules 1, 3, 4).
   const GEOS7=[{w:320,h:568},{w:360,h:640},{w:375,h:667},{w:375,h:730},{w:390,h:844},{w:414,h:896},{w:440,h:956}];
-  const sweep=process.env.CT_FULL==='1'?GEOS7:GEOS7.filter(g=>(g.w===320&&g.h===568)||(g.w===375&&g.h===730)||(g.w===440&&g.h===956));
+  // ── ALL SEVEN GEOMETRIES BY DEFAULT [#544, item (7); this job's remainder, "run the default sweep at all
+  //    seven geometries rather than three"]. It was three unless CT_FULL=1, so four of the seven never ran in
+  //    any suite - and a fit assertion that never runs at a width is not a fit assertion at that width.
+  //    THE COST IS MEASURED, NOT ESTIMATED, because that is the only thing that could argue against it: this
+  //    gate takes 2m39s over three geometries and 2m52s over seven, against a suite of about two hours. THIRTEEN
+  //    SECONDS for twelve more assertions (129 -> 141). Both figures are this container, this bundle
+  //    (049b41dfb6f1), one run each, `time node gates/regress/61-...js` with and without CT_FULL=1.
+  //    CT_FULL=1 IS KEPT AND NOW MEANS THE SAME SET, so no caller that passes it breaks; it is no longer the
+  //    difference between a partial sweep and a full one, because there is no partial sweep any more.
+  const sweep=GEOS7;
   for(const g of sweep){
     const state={seed:'c',hits:[],refuse:false};
     const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'fit-'+g.w+'x'+g.h});
@@ -766,6 +853,37 @@ async function input(seed,n,geo,name,thin){
     L.say(!!m.inside,'A6b reach @'+g.w+'x'+g.h+': the first game row is hit-testable at its own centre (elementFromPoint), not covered',{hit:m.hitTag,inView:m.inView});
     L.say(m.hdrRight!==null&&m.hdrRight<=m.vw+0.5,'A6c fit @'+g.w+'x'+g.h+': the "N loaded" count is inside the viewport',{right:m.hdrRight,vw:m.vw});
     await b.close();
+  }
+  // ── A16 THE EMPTY WALKED WINDOW [#544, item (7); the second half of this job's own coverageHole, measured by
+  //    its antagonist B as "across 41 suites and 2694 PASS lines, ZERO assertions exercise an account thinner
+  //    than 200-games-in-6-months or an EMPTY WALKED WINDOW"].
+  //    THE FIXTURE IS ALREADY REACHABLE AND NOBODY DROVE IT: state.thin with per:0 makes every listed month
+  //    answer 200 with games:[], so the walk succeeds, requests all six months of the window, and finds
+  //    nothing. Measured at #544 on main's bundle (app.js 049b41dfb6f1): rows 0, requests 7 (the index plus
+  //    six months), nothing stored, and NO limit line located at all.
+  //    WHAT IS ASSERTED HERE IS WHAT STAYS TRUE IF THE SCREEN IS LATER IMPROVED, which is deliberate and is
+  //    #544 item (5)'s lesson applied one file over: an assertion pinned to today's wording would go red on a
+  //    better bundle. So A16b asserts there is no limit line - nothing is claimed as the bound when nothing
+  //    was found - and A16c asserts the reload does not invent rows out of storage. Both survive any rewording.
+  //    AND WHAT IS NOT ASSERTED IS RECORDED RATHER THAN DROPPED: the message on this screen today reads
+  //    "Couldn't reach Chess.com (no recent games found). Fetching works once this app is on a real website -
+  //    the preview sandbox blocks outside connections." The headline blames the network for a walk in which
+  //    every request SUCCEEDED, with the true cause in parentheses after it. That is
+  //    jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28, it is an app-side defect in
+  //    chess.jsx and not a gate defect, and #544 built no bundle - so it is a NOTE here, carrying the measured
+  //    string, and the measurement goes on that job. Asserting the right wording before the app has it would
+  //    plant a red on main's own bundle and block every push, which this project has paid for before.
+  {
+    const r=await input('b',1,GEO,'empty-window',{months:GMONTHS,per:0});
+    const a16=L.say(r.rows===0&&r.hitCount>=GMONTHS+1,'A16a vacuity EMPTY WINDOW: every month of the window was requested and all of them answered 200 with no games, so the list is empty because the walk found nothing - not because it never ran',{rows:r.rows,requests:r.hitCount,expectAtLeast:GMONTHS+1,hits:r.hits,stored:r.stored});
+    if(a16){
+      L.say(!(r.cap&&r.cap.present),'A16b EMPTY WINDOW: NO limit line is on screen - with nothing found, neither a games cap nor a month window is claimed as the bound (a limit that did not bind is the whole subject of this file)',{limitLine:r.cap&&r.cap.text,present:r.cap&&r.cap.present,body:(r.body||'').slice(0,200)});
+      L.say(r.afterReload===0,'A16c EMPTY WINDOW: the reload with the network refusing still shows zero rows - an empty walk stores nothing and nothing is invented out of localStorage',{afterReload:r.afterReload,afterErr:r.afterErr,stored:r.stored});
+      L.note('       A16 NOTE, MEASURED AND NOT ASSERTED [jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28]: errorCard='+r.err+'  message='+JSON.stringify((r.body||'').replace(/^.*?(Couldn.t reach[^—]*)/,'$1').slice(0,180))+' - every request in this input SUCCEEDED, so the headline is wrong and the parenthetical is right. An app-side defect; #544 built no bundle, and an assertion on the wording would redden main.');
+    } else {
+      L.note('       A16a failed - A16b and A16c SKIPPED rather than measured on a screen whose walk never ran');
+    }
+    await r.b.close();
   }
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});

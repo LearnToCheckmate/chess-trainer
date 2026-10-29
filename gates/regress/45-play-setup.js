@@ -5,6 +5,25 @@
 // in claude/stories/README.md, and renaming it would rewrite the record of what was measured and when.
 // Nothing else changed: gates.sh runs gates/regress/*.js in NAME order, so the number is ordering only.
 //
+// ── EVERY chess.jsx CITATION IN THIS FILE WAS RE-MEASURED AT #544 AND FIFTEEN OF THEM HAD DRIFTED [item (7) of
+// directOpening_2026_10_28_batch4; the separateButSameFamily_gate45CitationDrift half of
+// jobs/gate-61-storage-and-cap-assertions-cannot-fail-as-written-2026-09-29, found by that job's antagonist A
+// on the rotating audit]. They are comments and one assertion string, so nothing was ever red - and that is the
+// whole problem: they send the next reader to the wrong code, which is #399's control-recipe lesson recurring.
+// The drift is not uniform (the job measured +168 for the 286-317 block and +561 for the header's setup-sheet),
+// so no single offset could have fixed them; each was pinned by searching chess.jsx for its own distinctive
+// text. WHAT MOVED, old -> new: 2000 -> 2575 useState('computer'); 4514 -> 6592 data-ct="setup-sheet";
+// 4513 -> 6591 its fixed overlay parent; 4554 -> 6732 the personas row's overflowX; 4573 -> 6762 the
+// pill(!timeCtrl) "No clock" span; 4597 -> 6812 data-ct="setup-start"; 4598 -> 6813 the footer under it;
+// 4895 -> 7349 data-ct="play-opening"; 4106 -> 8295 setPColor(boardGame.turn) on the review action row;
+// 1547 -> 2122 BOTS Viktor elo:2350; 990 -> 1557 ELO_MIN/ELO_MAX; 994 -> 1561 TIME_CONTROLS;
+// 2164 -> 2853 pColor useState('w'); 4898 -> 6990 the MENU's data-ct="setup-opp-*" spans; 4656 -> 6701 this
+// SHEET's own opponent list.
+// AND THE DURABLE FORM IS THE ANCHOR, NOT THE NUMBER: where a site has a data-ct it is now named beside the
+// line, because a selector survives an edit above it and a line number does not. A citation that cannot be
+// kept correct should not be the only way to find the code [#493's R18 on CLAUDE.md's own copy-pasted
+// prescription]. These numbers are true of chess.jsx md5 1b41d1d1e765, which is origin/main's.
+//
 // regress/45-play-setup.js  (authored as 43-play-setup.js)   PLAY SETUP - the sheet where a game is configured and started.
 //
 // WHY THIS GATE EXISTS. Play setup gates 100% of Play's value: every single game in the app starts here, and a
@@ -15,7 +34,7 @@
 // WHAT THE SUITE ALREADY COVERS, so this file does not duplicate it: gates/regress/30-p1-fixes.js asserts A-13 -
 // that the setup sheet does not scroll and the build line is on screen - but ONLY with PASS & PLAY selected, and
 // only at 375x679, 390x844 and 375x640. Pass & Play is the SHORTEST of the three variants and the only one that
-// fits. The DEFAULT opponent is Computer (chess.jsx:2000, useState('computer')), which adds a persona row, a
+// fits. The DEFAULT opponent is Computer (chess.jsx:2575, useState('computer')), which adds a persona row, a
 // colour row and a strength slider, and that variant has never been measured. This gate measures it.
 //
 // WHAT IT GUARDS
@@ -50,12 +69,12 @@
 //       changes, these numbers are boxes and not paint.
 //
 // SELECTORS. The setup sheet carries exactly ONE data-ct in the whole build: [data-ct="setup-sheet"] on the inner
-// column (chess.jsx:4514). Nothing else on this screen is hooked - not the opponent tiles, not the personas, not
+// column (chess.jsx:6592). Nothing else on this screen is hooked - not the opponent tiles, not the personas, not
 // the time pills, not the colour buttons, not the slider, not the Start button, not the footer line. So every
 // other control here is addressed by its exact rendered text, scoped inside [data-ct="setup-sheet"]. No selector
 // in this file is invented; each string was harvested from chess.jsx and confirmed in the live DOM.
 // NOTE for whoever hooks this screen later: [data-ct="play-context"] is NOT the setup banner. It is the live
-// game's opening/status row (chess.jsx:4895), it renders UNDER the overlay while setup is open, and its text
+// game's opening/status row (chess.jsx:7349), it renders UNDER the overlay while setup is open, and its text
 // there is a single non-breaking space. claude/stories/TEST-CASES-REVIEW.md TC-RL-086 names it as the carrier of
 // the "Continuing from your reviewed position" string; it is not, and a gate written from that case would be
 // asserting on the wrong element. The banner has no data-ct at all - see PS-I.
@@ -70,18 +89,18 @@
 // NEGATIVE CONTROLS - one per asserted property, each a one-line chess.jsx change applied to a SCRATCH COPY only.
 // Every one was built with gates/build.sh and this gate was run against it; the RED lines are recorded beside it.
 // A green that has never been disproved is worth nothing, and two gates were caught passing their own breakage.
-//   P1 Start reachable            chess.jsx:4513  overlay  overflowY:'auto' -> 'hidden'
+//   P1 Start reachable            chess.jsx:6591  overlay  overflowY:'auto' -> 'hidden'
 //        -> 17 FAIL: TC-PS-003 at all six geos, TC-PS-007 at five, TC-PS-010 at all six.
-//   P2 personas reachable         chess.jsx:4554  row      overflowX:'auto' -> 'hidden'
+//   P2 personas reachable         chess.jsx:6732  row      overflowX:'auto' -> 'hidden'
 //        -> TC-PS-017 red at all three geos: Astrid and Viktor hit=false with nowhere left to scroll.
-//   P3 one time control selected  chess.jsx:4573  "No clock" pill(!timeCtrl) -> pill(false)     -> TC-PS-030 red x3.
-//   P4 footer names the choices   chess.jsx:4598  footer   the colour term -> a constant "White" -> TC-PS-028 red x3.
-//   P5 Start label from a review  chess.jsx:4597  label    the setupFromFEN ternary -> the plain Start label
+//   P3 one time control selected  chess.jsx:6762  "No clock" pill(!timeCtrl) -> pill(false)     -> TC-PS-030 red x3.
+//   P4 footer names the choices   chess.jsx:6813  footer   the colour term -> a constant "White" -> TC-PS-028 red x3.
+//   P5 Start label from a review  chess.jsx:6812  label    the setupFromFEN ternary -> the plain Start label
 //        -> TC-PS-040 red at both geos.
-//   P6 side-to-move preselected   chess.jsx:4106  handler  setPColor(boardGame.turn) -> setPColor('w')
+//   P6 side-to-move preselected   chess.jsx:8295  handler  setPColor(boardGame.turn) -> setPColor('w')
 //        -> TC-PS-037 and TC-PS-039 red at both geos: the banner says White and White is preselected.
-//   P7 persona Elos               chess.jsx:1547  BOTS     Viktor elo:2350 -> 2300               -> TC-PS-016 red x3.
-//   P8 Start starts a game        chess.jsx:4597  handler  drop setPlaySetup(false)              -> TC-PS-041 red x2.
+//   P7 persona Elos               chess.jsx:2122  BOTS     Viktor elo:2350 -> 2300               -> TC-PS-016 red x3.
+//   P8 Start starts a game        chess.jsx:6812  handler  drop setPlaySetup(false)              -> TC-PS-041 red x2.
 //
 // P1 IS THE ONE THAT MATTERS, and it discriminates in the right way: with the overlay's scroll removed, every
 // rect-AT-REST number stays byte-identical - Start game still measures 874..922 at 320x568 - so TC-PS-006 and the
@@ -135,7 +154,7 @@ const REACH=(b,txt,opt)=>b.page.evaluate(([t,exact])=>{
   return out;},[txt,!!(opt&&opt.exact)]);
 
 // The overlay that carries the sheet: its scroll range IS the answer to "what does the sheet do when it is
-// taller than the phone". Measured on the PARENT of setup-sheet, which is the fixed overlay (chess.jsx:4513).
+// taller than the phone". Measured on the PARENT of setup-sheet, which is the fixed overlay (chess.jsx:6591).
 const SHEET=(b)=>b.page.evaluate(()=>{
   const s=document.querySelector('[data-ct="setup-sheet"]');if(!s)return null;
   const p=s.parentElement,ps=getComputedStyle(p),sr=s.getBoundingClientRect();
@@ -285,7 +304,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   const oppOn=opp.items.filter(x=>x.on);
   L.say(opp.items.length===3,geo+': TC-PS-011 three opponent tiles - Online, Computer, Pass & Play',opp.items.map(x=>x.t+' '+x.w+'x'+x.h));
   L.say(oppOn.length===1&&oppOn[0].t==='Computer',
-    geo+': TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2000 useState(\'computer\')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.',opp.items);
+    geo+': TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2575 useState(\'computer\')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.',opp.items);
   L.say(opp.items.every(x=>x.h>=44),geo+': TC-PS-013 every opponent tile is at least 44px tall (measured '+opp.items[0].h+')',opp.items.map(x=>x.h));
   await TAP(b,'Pass & Play',500);
   const noSlider=await SLIDER(b);
@@ -314,7 +333,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   // ---- PS-E the strength slider. TC-PS-020..025
   let sl=await SLIDER(b);
   L.say(!!sl&&sl.min==='400'&&sl.max==='2400'&&sl.step==='25',
-    geo+': TC-PS-020 the strength slider runs 400 to 2400 in steps of 25 (ELO_MIN/ELO_MAX, chess.jsx:990)',sl);
+    geo+': TC-PS-020 the strength slider runs 400 to 2400 in steps of 25 (ELO_MIN/ELO_MAX, chess.jsx:1557)',sl);
   L.say(!!sl&&sl.value==='1300'&&sl.label==='≈ 1300 Elo',
     geo+': TC-PS-021 choosing Milo drives the slider to his Elo and the readout to "≈ 1300 Elo" - the persona chips and the slider are one value, not two',sl);
   await SET_SLIDER(b,1900);await b.settle(400);
@@ -337,7 +356,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   const col0=await GROUP(b,/^(White|Black)$/);
   const on0=col0.items.filter(x=>x.on);
   L.say(col0.items.length===2&&on0.length===1&&on0[0].t==='White',
-    geo+': TC-PS-026 two colour buttons, White selected by default (chess.jsx:2164 useState(\'w\'))',col0.items);
+    geo+': TC-PS-026 two colour buttons, White selected by default (chess.jsx:2853 useState(\'w\'))',col0.items);
   L.say(col0.items.every(x=>x.h>=44),geo+': TC-PS-027 both colour buttons are at least 44px tall (measured '+col0.items[0].h+')',col0.items.map(x=>x.h));
   await TAP(b,'Black',400);
   const on1=(await GROUP(b,/^(White|Black)$/)).items.filter(x=>x.on);
@@ -348,7 +367,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   // ---- PS-G time control. TC-PS-029..033
   const tc=await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/);
   const tcOn=tc.items.filter(x=>x.on);
-  L.say(tc.items.length===9,geo+': TC-PS-029 nine time controls: No clock plus the eight in TIME_CONTROLS (chess.jsx:994)',tc.items.map(x=>x.t));
+  L.say(tc.items.length===9,geo+': TC-PS-029 nine time controls: No clock plus the eight in TIME_CONTROLS (chess.jsx:1561)',tc.items.map(x=>x.t));
   L.say(tcOn.length===1&&tcOn[0].t==='No clock',geo+': TC-PS-030 No clock is selected on arrival and it is the only one selected',tc.items);
   await TAP(b,'3+1',400);
   const tc2=(await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/)).items.filter(x=>x.on);
@@ -378,8 +397,8 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   // switch back to Computer, and all nine Computer pills read unselected while the FOOTER named the correspondence
   // limit as the time control of a local game against Stockfish - from a list this screen does not offer and
   // cannot select back. #400's R-OC-2 clears a corr limit when the opponent stops being online. NOTE FOR WHOEVER
-  // READS THE #400 DIFF: the first version of that fix went on the MENU's opponent spans (chess.jsx:4898) and NOT
-  // on this sheet's opponent buttons (chess.jsx:4656), so this very assertion would still have been red - the
+  // READS THE #400 DIFF: the first version of that fix went on the MENU's opponent spans (chess.jsx:6990) and NOT
+  // on this sheet's opponent buttons (chess.jsx:6701), so this very assertion would still have been red - the
   // antagonist pass found it, and this gate would have caught it independently.
   const backSel=back.items.filter(x=>x.on);
   L.say(backSel.length===1&&backSel[0].t==='No clock'&&!/\/ move$/.test(footBack),
@@ -432,7 +451,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
     geo+': TC-PS-038 the banner carries NO data-ct. [data-ct="play-context"] IS in the DOM - it is the live game\'s opening row rendering under the overlay - and it carries no ink at all there (its text is a lone non-breaking space). TEST-CASES-REVIEW.md TC-RL-086 names play-context as the carrier of this string; it is not, and a gate written from that case asserts on the wrong element.',ban);
   const col=(await GROUP(b,/^(White|Black)$/)).items;
   L.say(col.filter(x=>x.on).length===1&&col.find(x=>x.on).t==='Black'&&(await FOOT(b))==='vs Computer · Black · No clock',
-    geo+': TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer\'s own side, and the footer agrees. US-R28 asks for "my side"; this is what the build does (chess.jsx:4106 setPColor(boardGame.turn)).',{col,foot:await FOOT(b)});
+    geo+': TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer\'s own side, and the footer agrees. US-R28 asks for "my side"; this is what the build does (chess.jsx:8295 setPColor(boardGame.turn)).',{col,foot:await FOOT(b)});
   const st=await REACH(b,'▶ Play this position');
   L.say((await START_LABEL(b))==='▶ Play this position'&&st.found&&st.onScreen&&st.hit,
     geo+': TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at '+st.top+'..'+st.bottom+' of '+st.vh+' (at rest it sits at '+st.restTop+', below the fold at both geometries)',st);
