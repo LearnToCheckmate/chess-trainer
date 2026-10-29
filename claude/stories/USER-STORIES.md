@@ -25,7 +25,9 @@ from the gate sources at main f3ae36a, not read from prose [R18].*
 - **THE DRILL SEVEN** - `gates/regress/51-drill-explain-why.js`'s `ALLGEOS`, and the same seven in
   `gates/measure-drill-verdict-reserve.js:51` and `gates/regress/57-pz-solved-explanation.js:55` (`G7`):
   **320x568, 360x640, 375x667, 375x730, 390x844, 414x896, 440x956.** This is the set `prompts/test-authoring`
-  names. The harness default 375x679 (`kunal`) is NOT one of them.
+  names, and gate 51 and that lane document call it **TA-7** - one set, two names, the same seven members (reconciled
+  at #545). The harness default 375x679 (`kunal`) is NOT one of them. `gates/audit/geometry-sets.sh` (TC-SUITE-253)
+  holds THE DRILL SEVEN equal to gate 51's ALLGEOS and THE LESSON THREE equal to gate 48's GEOS.
 - **THE LESSON THREE** - `gates/regress/48-lesson-flow.js:424` (`GEOS`), resolved through `gates/lib.js:34`:
   **320x568 (`se`), 375x730 (`kunal730`), 390x844 (`390`)**, with a separate short-and-wide column in that
   gate's block D (320x520, 375x520, 320x540, 390x568) that is NOT part of the three and is pinned per point.

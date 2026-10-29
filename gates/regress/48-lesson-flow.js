@@ -421,7 +421,7 @@ const PRAC={se:{w:254.9,left:32.6},kunal730:{w:375,left:0},'390':{w:390,left:0}}
 const BOARD_TOP=92, NOTE_H=75, FOOT_H=61;
 const LINE=['1. e4','1… e5','2. Nf3','2… Nc6','3. Bc4','3… Bc5','4. c3','4… Nf6','5. d3','5… d6']; // LIB 0, the Italian Game
 const ROW=['Flip board','Hints','Try again','More actions'];
-const GEOS=['se','kunal730','390'];
+const GEOS=['se','kunal730','390']; // THE LESSON THREE - claude/stories/USER-STORIES.md, section THE GEOMETRY SETS, NAMED ONCE; gates/audit/geometry-sets.sh G2 holds this list equal to that name [#545 item (13)]
 
 L.run(async()=>{
 

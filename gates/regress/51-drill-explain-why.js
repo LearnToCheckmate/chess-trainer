@@ -103,6 +103,8 @@ const ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcou
 // 2026-09-28, whose fix asks for the set to be "named once, in one place, with its members listed" and for
 // every gate header to cite that one name - this paragraph is gate 51's half of that, and it is the half
 // that needed no change).
+//   ONE SET, TWO NAMES, RECONCILED AT #545 [item (13)]: claude/stories/USER-STORIES.md calls this set THE DRILL
+//   SEVEN and this file calls it TA-7; they are the same seven, and gates/audit/geometry-sets.sh G1 holds them equal.
 //   THE NAME: TA-7, the seven geometries prompts/test-authoring (tracker, version 7) names in its gate-
 //   writing step, verbatim: 320x568, 360x640, 375x667, 375x730 (Kunal's phone), 390x844, 414x896, 440x956,
 //   and "the harness geometry 375x679 is never used".
