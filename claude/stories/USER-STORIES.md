@@ -255,6 +255,12 @@ whatever each screen happened to use.
   someone noticing, and the log names any height that appears or vanishes. (TC-INV-03)
 - Which sizes survive is Kunal's choice, not a gate's: collapsing 11 into 4 moves ink on six screens.
   `jobs/invariant-3-icon-size-target-set` carries the measured list to him.
+- AMENDED 2026-10-29 (#545, jobs/spec-clauses-record-a-measurement-not-a-pass-condition-2026-09-27), THE CONDITION A TEST
+  DECIDES, which the bullets above describe without stating. At every width the invariant sweep covers (320 and 375),
+  the set of distinct icon glyph heights equals the set pinned for that width in gates/regress/26-invariants.js
+  (ICON_PIN). A height that appears is red, and a height that vanishes is red. A target set below the drift guard
+  waits on Kunal's choice. The counts quoted above are #423's and are kept as the history of the pin; the pin
+  itself is the current value. (TC-INV-03)
 
 ### US-INV-04 Nothing on screen is cut without saying so
 - 4a. No text's ink extends outside the box that clips it, at every screen and geometry in the invariant sweep, unless the cut is EXCUSED. TC-INV-04a names five excusals and they are ITS list, not the gate's complete one: a text-overflow ellipsis on the clipping box, a -webkit-line-clamp whose own arithmetic accounts for the cut, a finger-scrollable clipping ancestor, the 38x38 king-glyph case, and the pinned rev-best-ply30 residual. THE GATE'S OWN SET IS WIDER AND IS DELIBERATELY NOT REPRODUCED HERE, because a copy of it in this file is a copy that rots: read the classifier and clipper() of gates/regress/26-invariants.js before writing any assertion from this clause. One instance so the gap is not abstract: a cut the gate classifies OVERSHOOT - its box had no layout overflow on that axis - is excused and is on nobody's list of five. Corrected at #541 after four antagonist passes: the five-case wording this replaced was inherited verbatim from TC-INV-04a and is still in that row, and the first repair's own enumeration of the gate's skips was withdrawn for naming a GUARDED one - the rotated-ancestor skip is asserted to be zero at 26-invariants.js:1468, so it reddens the gate rather than hiding anything. (TC-INV-04a)
