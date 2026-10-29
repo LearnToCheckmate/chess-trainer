@@ -175,6 +175,25 @@ want_num() { # echoes the bare number, or exits 2. Accepts "#454" and "454" alik
 
 print_rows_for() { rows | awk -F'\t' -v n="$1" '$1==n'; }
 
+# ── A NUMBER'S DISTINCT BUNDLES, WHICH IS NOT ITS ROW COUNT [#544 item (32);
+# jobs/buildnum-check-counts-rows-not-bundles-so-the-ambiguity-alarm-fires-on-the-happy-path-2026-10-08, P2,
+# found at #497 running the pre-push register check on its own number].
+# `check` printed "#N names <ROW COUNT> artefacts ... 'measured on #N' is AMBIGUOUS", and a `minted` row names
+# NO artefact - its bundle-md5 field is literally `-`, which show_row prints. So the DOCUMENTED happy path,
+# mint a number then build it once, produces two rows naming ONE bundle and the ambiguity note fired on it.
+# MEASURED by the job over the whole register: 15 numbers had more than one row while naming fewer than two
+# distinct bundles - thirteen naming exactly one and two (#467, #478) naming none at all - and every one of
+# them is #457 or later, which is when `mint` came into use. So it was the current happy path, not history.
+# THIS IS #454's OWN DEFECT ONE LAYER DOWN AND THE LESSON IS #454's OWN SENTENCE: it found this same alarm
+# saying "that is a COLLISION ... Do not reuse it" for any number with more than one row, measured that four of
+# the five it fired on were legal mid-pass rebuilds, and fixed THE WORDING while leaving THE COUNT that makes
+# it fire. 'AN ALARM THAT IS WRONG FOUR TIMES IN FIVE DESTROYS THE SIGNAL IT WAS BUILT FOR.'
+# FIELD 4 IS THE BUNDLE MD5 and `-` is its written absence; `record`'s own read-back keys on $4, so the field
+# is not inferred here. Both helpers are used by check, list, record and stampable, so the four reports cannot
+# drift apart again - which is what let this one survive a pass over the same lines.
+bundles_for()  { print_rows_for "$1" | awk -F'\t' '$4!="-" && $4!="" {print $4}' | sort -u; }
+nbundles_for() { bundles_for "$1" | awk 'NF{c++} END{print c+0}'; }
+
 # ── THE LOCK, AND WHY A READ-BACK WAS NOT ENOUGH (#454, antagonist A) ────────────────────────────────────────
 # The first version of `mint` read the highest number, appended a row, then "read it back" with
 #   print_rows_for "$N" | awk '$7==r'   -- rows for this number ATTRIBUTED TO ME
@@ -442,9 +461,17 @@ case "${1:-}" in
     HITS="$(print_rows_for "$N")"
     if [ -n "$HITS" ]; then
       CNT="$(printf '%s\n' "$HITS" | wc -l | tr -d ' ')"
-      echo "ISSUED: #$N is already on the register ($CNT row(s))."
+      BCNT="$(nbundles_for "$N")"
+      echo "ISSUED: #$N is already on the register ($CNT row(s), naming $BCNT distinct bundle(s))."
       printf '%s\n' "$HITS" | while IFS= read -r r; do show_row "$r"; done
-      if [ "$CNT" -gt 1 ]; then
+      # RESERVED IS A DIFFERENT AND MORE USEFUL THING TO SAY THAN AMBIGUOUS, and it is the job's own second
+      # clause: with rows on the register and no bundle md5 among them, the number names NOTHING yet. #467 and
+      # #478 are that shape, and the old note told a reader they named several artefacts where there are zero.
+      if [ "$BCNT" = "0" ]; then
+        echo "  NOTE: #$N is RESERVED and names NO artefact yet - every row's bundle md5 is '-'. Nothing has"
+        echo "  been built under it, so there is nothing to cite and nothing ambiguous about it."
+      fi
+      if [ "$BCNT" -gt 1 ]; then
         # WORDING CORRECTED (#454, antagonist B). This said "that is a COLLISION ... Do not reuse it" for ANY
         # number with more than one row, and FOUR of the five it fired on are not collisions at all: #440,
         # #441, #451 and #452 each name several artefacts because their run rebuilt mid-pass, which `record`
@@ -452,7 +479,10 @@ case "${1:-}" in
         # It fired hardest on #452 - what origin/main actually serves - telling any auditing run that the live
         # build names two trees. An alarm wrong four times out of five is noise by its second day, and it would
         # have destroyed the signal for #416, the one real collision this file was written to make visible.
-        echo "  NOTE: #$N names $CNT artefacts. That is usually LEGAL and expected - a run that fixes something"
+        # THE COUNT IS DISTINCT BUNDLES AND NOT ROWS [#544 item (32)]. The sentence below is #454's, which is
+        # correct; what was wrong was the number in it. A `minted` row, an `issued` row and a `shipped` row of
+        # a bundle already counted all add rows and no artefacts.
+        echo "  NOTE: #$N names $BCNT artefacts. That is usually LEGAL and expected - a run that fixes something"
         echo "  mid-pass rebuilds, so one number names several bundles. It means 'measured on #$N' is AMBIGUOUS:"
         echo "  cite the bundle md5 alongside the number."
         echo "  A GENUINE COLLISION - one number, two different TREES from two different runs - is a different"
@@ -556,7 +586,10 @@ case "${1:-}" in
       echo "  Stamping it would make #$N name more than one tree, which is the #416 defect."
       echo "  Take your own:  CT_RUNID=$CT_RUNID gates/buildnum.sh mint '<what this build is for>'"
       exit 1; fi
-    BUILTN="$(printf '%s\n' "$HITS" | awk -F'\t' '$2=="built"||$2=="shipped"||$2=="held" {c++} END{print c+0}')"
+    # DISTINCT BUNDLES, NOT ROWS [#544 item (32)]: the job's notChecked guessed this one was safe because it
+    # already filters to the states that build. It is not - `built` then `shipped` for ONE bundle is two rows -
+    # so it is counted the same way as the other three reports, from the one helper.
+    BUILTN="$(printf '%s\n' "$HITS" | awk -F'\t' '($2=="built"||$2=="shipped"||$2=="held") && $4!="-" && $4!="" {print $4}' | sort -u | awk 'NF{c++} END{print c+0}')"
     if [ "$BUILTN" != "0" ]; then
       echo "stampable: #$N is yours and already names $BUILTN artefact(s) you built. A REBUILD, which is legal -"
       echo "  this register's own header calls it the median behaviour of a run that fixed something mid-pass."
@@ -721,7 +754,9 @@ case "${1:-}" in
       exit 0; fi
     RID="$(clean_field "${CT_RUNID:-unknown-run}" "CT_RUNID")" || exit 2
     lock_take || exit 1
-    PRIOR="$(rows | awk -F'\t' -v n="$N" '$1==n && $2=="built" {c++} END{print c+0}')"
+    # DISTINCT BUNDLES OTHER THAN THIS ONE, not `built` ROWS [#544 item (32)]. A bundle recorded `built` and
+    # later `shipped` is two rows and one artefact, so the old count announced a rise that had not happened.
+    PRIOR="$(bundles_for "$N" | awk -v m="$MD5" '$0!=m{c++} END{print c+0}')"
     append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
       "$N" "built" "-" "$MD5" "$SRC" "$(date -u +%Y-%m-%dT%H:%MZ)" "$RID" "build.sh" \
       "Bundle built and stamped #$N. Recorded by gates/build.sh so the number resolves to an artefact.")"
@@ -1049,7 +1084,13 @@ case "${1:-}" in
     fi
     printf 'build numbers on %s (%s row(s)):\n' "$(basename "$REG")" "$(rows | wc -l | tr -d ' ')"
     rows | sort -n -k1,1 | while IFS= read -r r; do show_row "$r"; done
-    DUP="$(rows | cut -f1 | sort -n | uniq -d | tr '\n' ' ')"
+    # THE SAME ROW-VS-BUNDLE CONFUSION, IN THE SECOND REPORT, which the job's notChecked named and did not
+    # drive [#544 item (32)]: `cut -f1 | uniq -d` lists every number with more than one ROW, so the whole
+    # mint-then-build population landed in a report headed NUMBERS NAMING MORE THAN ONE ARTEFACT. COUNTED on
+    # this register rather than estimated - and the first draft of this very comment carried a guessed pair of
+    # numbers, which is the fault this item is about: 55 numbers have more than one ROW and 32 of those name
+    # more than one BUNDLE, so the old report named 23 numbers that are not ambiguous at all.
+    DUP="$(for n in $(rows | cut -f1 | sort -n | uniq -d); do [ "$(nbundles_for "$n")" -gt 1 ] && printf '%s ' "$n"; done; true)"
     [ -z "${DUP// /}" ] || { echo; echo "NUMBERS NAMING MORE THAN ONE ARTEFACT: $DUP"
       echo "  Mostly legal: a run that rebuilt mid-pass. It means the NUMBER does not identify a bundle, so"
       echo "  cite the md5 with it. Only #416 is a genuine two-tree collision, and its own rows say so."; }

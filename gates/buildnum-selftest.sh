@@ -1083,6 +1083,51 @@ eq "31 the sweep extractor NORMALISES a leading zero before any guard sees it" "
 eq "31 MUTANT and FIX agree on a well-formed number" "SAME" \
    "$( cd "$SB/rec" && CT_RUNID=fixture ./mutant31.sh record '#541' aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1; A=$?; CT_RUNID=fixture ./buildnum.sh record '#542' aaaaaaaaaaaa bbbbbbbbbbbb >/dev/null 2>&1; B=$?; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
 
+# ── 32 TO 34: THE AMBIGUITY NOTE COUNTS DISTINCT BUNDLES AND NOT REGISTER ROWS [#544, item (32) of
+# directOpening_2026_10_28_batch4; jobs/buildnum-check-counts-rows-not-bundles-so-the-ambiguity-alarm-fires-on-
+# the-happy-path-2026-10-08, P2, found at #497 running the pre-push register check on its own number].
+# `check` printed "#N names <ROW COUNT> artefacts ... 'measured on #N' is AMBIGUOUS", and a `minted` row names
+# NO artefact - its bundle-md5 field is `-`. So the DOCUMENTED happy path, mint a number then build it once,
+# produced two rows naming ONE bundle and the alarm fired on it. The job counted 15 such numbers on the live
+# register, thirteen naming exactly one bundle and two naming none, every one of them #457 or later - the
+# current happy path and not history.
+# AND THE ABSENCE OF THESE TWO CASES IS WHY IT SURVIVED #454's PASS OVER THE SAME LINES: that build fixed the
+# WORDING of this alarm, measured that four of the five numbers it fired on were legal mid-pass rebuilds, wrote
+# down "AN ALARM THAT IS WRONG FOUR TIMES IN FIVE DESTROYS THE SIGNAL IT WAS BUILT FOR" - and left the count.
+# A fixture for mint-then-build-once would have reddened on the day.
+# row_md5 IS row_for WITH A BUNDLE IN FIELD 4, which is the field `record`'s own read-back keys on, so the
+# field is not inferred here either.
+row_md5() { printf '%s\t%s\t-\t%s\t-\t2026-01-01T00:00Z\tfixture\tfixture\ta note long enough to pass the floor\n' "$1" "${2:-built}" "$3"; }
+mkreg "$SB/amb" $(seq 500 509)
+# #510: minted + built, ONE bundle. This is the happy path and the note must be SILENT.
+row_for 510 minted            >> "$SB/amb/build-numbers.tsv"
+row_md5 510 built aaaaaaaaaaaa >> "$SB/amb/build-numbers.tsv"
+# #511: minted + two builds, TWO distinct bundles. A legal mid-pass rebuild, and the note must FIRE.
+row_for 511 minted            >> "$SB/amb/build-numbers.tsv"
+row_md5 511 built bbbbbbbbbbbb >> "$SB/amb/build-numbers.tsv"
+row_md5 511 built cccccccccccc >> "$SB/amb/build-numbers.tsv"
+# #512: minted + issued, NO bundle at all - the #467/#478 shape, where the old note claimed several artefacts
+# where there are zero. RESERVED is a different and more useful thing to tell a run than AMBIGUOUS.
+row_for 512 minted >> "$SB/amb/build-numbers.tsv"
+row_for 512 issued >> "$SB/amb/build-numbers.tsv"
+eq "32 mint-then-build-ONCE: the AMBIGUOUS note is SILENT (2 rows, 1 bundle)" "0" \
+   "$( cd "$SB/amb" && ./buildnum.sh check '#510' 2>/dev/null | grep -c 'AMBIGUOUS' )"
+eq "32b and it does not call a built number RESERVED either" "0" \
+   "$( cd "$SB/amb" && ./buildnum.sh check '#510' 2>/dev/null | grep -c 'RESERVED' )"
+eq "33 mint-then-build-TWICE: the note FIRES and names 2 artefacts (3 rows, 2 bundles)" "1" \
+   "$( cd "$SB/amb" && ./buildnum.sh check '#511' 2>/dev/null | grep -c 'names 2 artefacts' )"
+eq "34 rows but no bundle: RESERVED, and NOT ambiguous" "1-0" \
+   "$( cd "$SB/amb" && O="$(./buildnum.sh check '#512' 2>/dev/null)"; printf '%s-%s' "$(printf '%s' "$O" | grep -c 'RESERVED')" "$(printf '%s' "$O" | grep -c 'AMBIGUOUS')" )"
+# THE MUTANT, AND IT IS WHAT MAKES CASE 32 EVIDENCE RATHER THAN A DESCRIPTION: put the ROW count back in the
+# note's condition and case 32 must turn. Without this the three cases above would be satisfied by any script
+# that happens not to print the word, including one that never prints it at all.
+cp "$SB/amb/buildnum.sh" "$SB/amb/mutant32.sh"
+sed -i 's|^      if \[ "$BCNT" -gt 1 \]; then|      if [ "$CNT" -gt 1 ]; then|' "$SB/amb/mutant32.sh"
+eq "34b MUTANT: counting ROWS again makes the happy path ambiguous, which is the defect" "1" \
+   "$( cd "$SB/amb" && bash ./mutant32.sh check '#510' 2>/dev/null | grep -c 'AMBIGUOUS' )"
+eq "34c MUTANT and FIX still agree on the genuine two-bundle number, so the mutant is narrow" "SAME" \
+   "$( cd "$SB/amb" && A="$(bash ./mutant32.sh check '#511' 2>/dev/null | grep -c 'AMBIGUOUS')"; B="$(./buildnum.sh check '#511' 2>/dev/null | grep -c 'AMBIGUOUS')"; [ "$A" = "$B" ] && echo SAME || echo DIFFER )"
+
 echo "---"
 echo "buildnum self-test: $P pass, $F fail"
 [ "$F" = "0" ]
