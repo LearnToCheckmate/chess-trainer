@@ -407,7 +407,7 @@ const ROWS = function(){
 //         #423's first pass, so counting it would inflate the number this ledger exists to measure.
 // TWO GEOMETRY AXES, which the first pass did not have: the #423 antagonist pointed out that 178 of the then-266
 // assertions lived at se and short375 and no control had ever touched them. NC-A and NC-C now run at se too.
-// short375 is still uncontrolled and that is a named hole, not a silence.
+// short375 is still uncontrolled and that is a named hole, not a silence. [#545 item (76): CLOSED BY NC-E BELOW.]
 //
 // TWO ASSERTIONS IN THIS FILE HAVE NO DELIBERATE CONTROL, NAMED HERE RATHER THAN LEFT TO BE DISCOVERED.
 // UPDATED 2026-10-03 AT THE PROCESS BURST, because the previous wording stated in the PAST TENSE a behaviour
@@ -425,6 +425,14 @@ const ROWS = function(){
 // A THIRD HOLE, (3) short375 having no control at all, is still open and is named lower down. All three are
 // jobs/invariant-gate-two-uncontrolled-assertions, which this burst did NOT close - a control needs a trial
 // bundle and a burst agent holds one gate file and may not touch chess.jsx.
+// #545 item (76), NC-E, MEASURED: holes (2) and (3) now have a deliberate control; hole (1) does NOT.
+//   NC-E is a CT_OUT trial bundle (md5 8fa360ddedd8, never committed) whose only change is the home avatar's
+//   wave span (the 👋 in the "Menu and settings" button) going fontSize 22 -> 19. Run with
+//   CT_INV_GEOS=kunal730,short375 it reads 305 pass / 4 fail: TC-INV-03 red at BOTH kunal730 and short375 with
+//   payload added [] gone [25] - a PURE removal, so the `gone` direction now fires on its own - and TC-INV-02c
+//   red at both with the ["Menu and settings|👋@.../home"] pin missing. So short375 has been shown able to go red.
+//   (1) `appearedSomewhereNew` is STILL UNCONTROLLED: NC-E removes a pinned spread, it does not add one on a new
+//   screen, and no trial bundle built this run does. Said here so the job is not read as closed.
 // WHAT THIS BURST DID ADD IS A FOURTH CONTROL WHERE THERE WAS NONE: the screen-walk coverage ledger has a
 // deliberate negative control (CT_INV_NC_SKIP / CT_INV_NC_DUP), from jobs/gate26-negative-control. It is the
 // first assertion in this file whose control needs no trial bundle, because the thing it guards is a property
