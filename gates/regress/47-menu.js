@@ -564,4 +564,44 @@ if(blk('H'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
   await b.close();
 }
 
+// =========================================================================================================
+// MN-R  THE LAYOUT READOUT, COMPARED FIGURE BY FIGURE AGAINST THE SAME PAGE [#545, item (57); TC-MN-042;
+// jobs/bench-no-gate-asserts-any-figure-the-layout-readout-prints-2026-10-07]. Three gates touched this block and none
+// asserted one of the figures it prints - the one surface in the app that exists to be believed. Every check below
+// reads the printed figure and the truth in the SAME page.evaluate, so nothing is a literal and nothing goes stale
+// when a geometry, an inset or a build number changes. INPUTS: 12 figures x 3 geometries (kunal761, kunal730, se).
+// EXCLUDED BY NAME, with reasons: the four tile-ink ratios (glyph widths from an unpinned font resolution, #480 - they
+// would measure the image, not the app); mode/wide/edge/compact and the eval/moves triple (app state, no independent
+// truth on this screen); board as an absolute (no board is painted under the open menu, so it is checked for
+// consistency instead: square x 8 = board, gap = (vw - board)/2 within the readout's rounding). THE SCREEN ROW IS NOT
+// DISCRIMINATED HERE AND SAYS SO: it prints vp.w x vp.h, and in this headless emulation window.screen equals the
+// viewport, so a label that printed the inner viewport under 'screen' reads identical. It is compared, and a pass
+// on it is not evidence about the label.
+// =========================================================================================================
+if(blk('R'))for(const geo of ['kunal761','kunal730','se']){
+  const MD=require('../drive/menu');
+  const b=await L.launch({geo,name:'menu-readout-'+geo});await b.open();
+  await MD.states['menu-readout'](b);await b.settle(500);
+  const r=await b.page.evaluate(()=>{
+    const els=[...document.querySelectorAll('div,pre')].filter(e=>{const t=e.innerText||'';return /inner\s*\d+x\d+/.test(t)&&/safe top/.test(t)&&/board \d/.test(t);});
+    els.sort((a,c)=>a.innerText.length-c.innerText.length);const t=els[0]?els[0].innerText.replace(/[ \t]+/g,' '):'';
+    const n=(re)=>{const m=re.exec(t);return m?m.slice(1).map(Number):null;};
+    const sf=(localStorage.getItem('ct_safe')||'').split(',').map(Number);
+    return {t,screen:n(/screen (\d+)x(\d+)/),vw:n(/vw (\d+)/),dpr:n(/dpr ([\d.]+)/),inner:n(/inner (\d+)x(\d+)/),vv:n(/vv (\d+)x(\d+)/),
+      safe:n(/safe top (\d+) bottom (\d+)/),bsq:n(/board (\d+) square (\d+) gap (\d+)/),build:(/build (#\d+ - [\d-]+ [\d:]+ ET)/.exec(t)||[])[1]||null,
+      truth:{sw:screen.width,sh:screen.height,cw:document.documentElement.clientWidth,dpr:devicePixelRatio,iw:innerWidth,ih:innerHeight,
+        vvw:visualViewport?Math.round(visualViewport.width):null,vvh:visualViewport?Math.round(visualViewport.height):null,st:sf[0]||0,sb:sf[1]||0}};});
+  const T=r.truth,stamp=await b.stamp();
+  L.say(!!r.t&&!!r.screen&&!!r.vw&&!!r.dpr&&!!r.inner&&!!r.vv&&!!r.safe&&!!r.bsq&&!!r.build,geo+': TC-MN-042 PRECONDITION the readout block was found and every compared figure parsed out of it',{text:r.t.slice(0,240)});
+  if(r.screen&&r.vw&&r.dpr&&r.inner&&r.vv&&r.safe&&r.bsq){
+    const chk=[['screen w (not discriminated: screen = viewport here)',r.screen[0],T.sw],['screen h (not discriminated)',r.screen[1],T.sh],['vw',r.vw[0],T.cw],['dpr',r.dpr[0],T.dpr],
+      ['inner w',r.inner[0],T.iw],['inner h',r.inner[1],T.ih],['vv w',r.vv[0],T.vvw],['vv h',r.vv[1],T.vvh],['safe top',r.safe[0],T.st],['safe bottom',r.safe[1],T.sb]];
+    for(const [name,printed,truth] of chk)L.say(printed===truth,geo+': TC-MN-042 the readout\'s '+name+' equals the page\'s own value',{printed,truth});
+    const [bd,sq,gp]=r.bsq;
+    L.say(sq*8===bd&&Math.abs(gp-(T.cw-bd)/2)<=0.5,geo+': TC-MN-042 board, square and gap agree with each other and with vw (square x 8 = board; gap = (vw - board)/2 within rounding)',{board:bd,square:sq,gap:gp,vw:T.cw});
+    L.say(r.build===stamp,geo+': TC-MN-042 the readout\'s build is the stamp on the served bundle',{printed:r.build,stamp});
+  }
+  await b.close();
+}
+
 },'MENU');
