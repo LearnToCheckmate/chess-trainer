@@ -42,7 +42,12 @@
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
 const PGN='[Event "Opera Game"] [White "Morphy"] [Black "Duke Karl / Count Isouard"] [WhiteElo "2600"] [BlackElo "1800"] [Result "1-0"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
-const CATS=['Brilliant','Great','Best','Good','Book','Inaccuracy','Mistake','Miss','Blunder'];
+// TEN, IN LADDER ORDER [#545, item (74); jobs/repro-gate-reads-nine-of-ten-grades]. Excellent was missing, so the only
+// comparison in the suite that checks two engine paths agree never compared it, and the anti-vacuity line below said
+// "all 9 verdict counts were read" because CATS was both the thing counted and the number it was compared to. The
+// guard that a stale list makes RED is `present` below: the grade rows the summary actually prints, found by shape
+// (a label line followed by two whole-number lines) and never by this list.
+const CATS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
 
 // One review from a clean slate. Returns {ms, accuracy:[w,b], counts:{cat:[w,b]}, verdict19}.
 async function reviewOnce(geo,tag,pool){
@@ -71,6 +76,7 @@ async function reviewOnce(geo,tag,pool){
     const w=i>=0?parseInt(rows[i+1],10):NaN, b2=i>=0?parseInt(rows[i+2],10):NaN;
     counts[c]=(Number.isInteger(w)&&Number.isInteger(b2))?[w,b2]:null;
   }
+  const present=[];for(let i=0;i+2<rows.length;i++){if(/^[A-Za-z]+$/.test(rows[i])&&/^\d+$/.test(rows[i+1])&&/^\d+$/.test(rows[i+2]))present.push(rows[i]);}
   // the verdict on 10.Nxb5!! (ply 19), the move the shallow-search bug mislabelled
   await b.tapText(/^Start review/,{wait:900});
   await b.page.locator('[aria-label="First move"]').first().click().catch(()=>{});
@@ -80,7 +86,7 @@ async function reviewOnce(geo,tag,pool){
   const ml=await b.rect('[data-ct="rev-move-line"]');
   const errs=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   await b.close();
-  return {ms,acc,counts,ply19:(ml&&ml.text||'').replace(/\s+/g,' ').trim(),errs};
+  return {present,ms,acc,counts,ply19:(ml&&ml.text||'').replace(/\s+/g,' ').trim(),errs};
 }
 
 L.run(async()=>{
@@ -143,6 +149,11 @@ L.run(async()=>{
     const dW=Math.abs(A.acc[0]-B.acc[0]),dB=Math.abs(A.acc[1]-B.acc[1]);
     L.say(dW<=1.0&&dB<=1.0,'the two runs agree on accuracy within 1.0 point (white '+dW.toFixed(1)+', black '+dB.toFixed(1)+')',{A:A.acc,B:B.acc});
   }
+  // ROWS READ = ROWS PRESENT [#545, item (74)]: CATS against what the summary prints, by name, in both runs. A list that
+  // drops a grade, or a summary that gains one, is red here - the direction the old self-referential guard could not see.
+  const missA=A.present.filter(x=>!CATS.includes(x)),missB=B.present.filter(x=>!CATS.includes(x)),extra=CATS.filter(x=>!A.present.includes(x));
+  L.say(A.present.length>0&&missA.length===0&&missB.length===0&&extra.length===0&&A.present.length===CATS.length,
+    'TC-R02 the grade rows this gate reads are exactly the grade rows the summary prints ('+A.present.length+' present, '+CATS.length+' read), so no grade is left out of the determinism comparison',{presentA:A.present,printedButNotRead:[...new Set(missA.concat(missB))],readButNotPrinted:extra});
   const readable=CATS.filter(c=>A.counts[c]&&B.counts[c]);
   L.say(readable.length===CATS.length,'all '+CATS.length+' verdict counts were read from the summary in both runs (a partial read would make the comparison below vacuous)',{read:readable,A:A.counts,B:B.counts});
   const differ=readable.filter(c=>A.counts[c][0]!==B.counts[c][0]||A.counts[c][1]!==B.counts[c][1]);
