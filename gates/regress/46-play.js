@@ -223,6 +223,23 @@ L.run(async()=>{
     L.say(!!pt&&!!pb&&near(pt.h,W.barH)&&near(pb.h,W.barH),geo+': both player bars are '+W.barH+' tall',{top:pt&&pt.h,bottom:pb&&pb.h,want:W.barH});
     const chrome=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');return {home:!!(t&&t.querySelector('[data-ct="play-home"]')),menu:!!(t&&t.querySelector('[data-ct="play-menu"]'))};});
     L.say(chrome.home&&chrome.menu,geo+': the ⌂ and ☰ live in the TOP player bar (#351: they were a 40px row of their own and every pixel of it went to the board)',chrome);
+    // #545 item (100) [jobs/gate-46s-351-chrome-assertion-is-an-existence-test-that-the-regression-it-names-satisfies-2026-10-23].
+    // The line above is an EXISTENCE test: a display:none node satisfies it, and so does a tree that re-adds #351's 40px row
+    // while leaving these two nodes inside the bar - the grid.contains() shape CLAUDE.md records at #394. Two halves added,
+    // each its own L.say. VISIBILITY: each control has a non-zero rect INSIDE the bar's rect, is not hidden, and owns the point
+    // at its own centre. OUTCOME: nothing occupies vertical space between the bar and the board - the board's top edge is the
+    // bar's bottom edge, measured, so a re-added row between them is red whatever it contains.
+    const vis=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');if(!t)return null;const tr=t.getBoundingClientRect();
+      return ['play-home','play-menu'].map(id=>{const e=t.querySelector('[data-ct="'+id+'"]');if(!e)return {id,found:false};const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
+        const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+        return {id,found:true,w:+r.width.toFixed(1),h:+r.height.toFixed(1),inside:r.left>=tr.left-0.5&&r.right<=tr.right+0.5&&r.top>=tr.top-0.5&&r.bottom<=tr.bottom+0.5,
+          shown:cs.display!=='none'&&cs.visibility!=='hidden'&&+cs.opacity>0,ownsCentre:!!h&&(h===e||e.contains(h))};});});
+    L.say(!!vis&&vis.every(v=>v.found&&v.w>0&&v.h>0&&v.inside&&v.shown&&v.ownsCentre),geo+': the ⌂ and ☰ are VISIBLE in the top bar - each a non-zero box inside the bar, not hidden, and owning the point at its own centre (existence alone is satisfied by a display:none node)',vis);
+    // THE GAP IS PINNED AT 2px, MEASURED AT #545 ON 049b41dfb6f1 AT ALL THREE GEOMETRIES (se 60.5 -> 62.5, kunal730 91.73 -> 93.7,
+    // 390 101 -> 103): the column's own 2px gap, not a row. The first draft asserted <= 1px and went red on main at all three,
+    // which is the measurement, so the pin moved to it. #351's row was 40px; anything that occupies vertical space is red.
+    const gapTB=(!!pt&&!!m.board)?m.board.top-(pt.y+pt.h):null;
+    L.say(gapTB!=null&&Math.abs(gapTB-2)<=0.6,geo+': NOTHING SITS BETWEEN THE TOP BAR AND THE BOARD - the only space is the 2px column gap measured at #545 (bar bottom '+(pt?(pt.y+pt.h).toFixed(1):'?')+', board top '+(m.board?m.board.top:'?')+', gap '+(gapTB==null?'?':gapTB.toFixed(2))+'), so a re-added #351 row is red whatever it contains',{barBottom:pt&&+(pt.y+pt.h).toFixed(2),boardTop:m.board&&m.board.top,gap:gapTB});
 
     // --- TC-PL-003: the control row, measured BEFORE anything is clicked. locator.click() would scroll a
     // control into view and pass a row a thumb cannot reach; these rects are the pre-tap truth.
