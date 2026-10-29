@@ -248,7 +248,7 @@ async function blockB(){
 
 // ── C, D, E: resign, mate and live. No clock, so both geometries. ────────────────────────────────────────────
 async function blockCDE(geo){
-  const g=geo==='se'?'320x568':'375x730';
+  const g=L.GEOS[geo]?L.GEOS[geo].w+'x'+L.GEOS[geo].h:geo;  // #544: derived from the geometry, not from its name - see blockI below
   // C1 vs Computer, resigned
   {
     const b=await L.launch({geo,name:'65C1-'+geo});await b.open();
@@ -775,12 +775,26 @@ async function blockH(){
 // R36 without pinning the engine at all - which also means it cannot be broken by a future change to the
 // engine's eval, move ordering or styleBias. The seeded-LCG fixture is written up above because it is the part
 // of #488's blocker that IS solved and the next run should not re-derive it, not because this block needs it.
+// #544. THE TOKEN IS A KEY AND NOTHING ELSE, AND IT USED TO BE THE DISCRIMINATOR. This read
+// `const isLand=geoKey!=='kunal730'` and then launched `isLand?LAND:'kunal730'`, so ANY token but that one
+// literal - the correct 375x761 included - routed the portrait case into the landscape branch, and the
+// landscape branch ignores its argument and launches LAND. I00, the instrument that exists to catch exactly
+// that, was built from the same `isLand`, so it asserted the viewport it had been TOLD to expect rather than
+// the one it got: the check and the thing being checked were the same TOKEN.
+// CONTROLLED AT #496 by the external UAT challenger, twice on one bundle: the one-token swap the 761 migration
+// prescribes printed 'I00 [730x375]' TWICE, deleted the portrait run, and the gate still read 20 pass / 0 fail.
+// Identical verdict, identical count, half the coverage. Now every one of the four derived values - the
+// orientation, the tag, the launched geometry and I00's expected rect - comes from GEOS, so a rename moves
+// them together or is caught by gates/audit/r19-phone-geometry.sh A4.
+// 'land' is NOT a GEOS key (LAND is a literal at :566), which is why the fallback is needed and is not slack.
+// jobs/the-geometry-token-is-a-control-flow-discriminator-so-the-761-migration-stays-green-while-deleting-coverage-2026-10-08
 async function blockI(geoKey){
-  const isLand=geoKey!=='kunal730';
-  const tag=isLand?'730x375':'375x730';
-  const b=await L.launch({geo:isLand?LAND:'kunal730',name:'65I-'+(isLand?'land':'port')});await b.open();
+  const G=L.GEOS[geoKey]||LAND;
+  const isLand=G.w>G.h;
+  const tag=G.w+'x'+G.h;
+  const b=await L.launch({geo:isLand?LAND:geoKey,name:'65I-'+(isLand?'land':'port')});await b.open();
   const v=await vp(b);
-  L.say(v.w===(isLand?730:375)&&v.h===(isLand?375:730),'I00 ['+tag+'] INSTRUMENT: the viewport really is '+tag,v);
+  L.say(v.w===G.w&&v.h===G.h,'I00 ['+tag+'] INSTRUMENT: the viewport really is '+tag,v);
   await P.states['cpu-clock-m0'](b);
   await b.settle(500);
   // I0a IS THE INSTRUMENT AND THE OVER-APPLICATION CONTROL IN ONE, and without it everything below is vacuous

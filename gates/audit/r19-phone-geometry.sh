@@ -119,6 +119,57 @@ ANCHOR_TOKEN='kunal761'
 A3_FLOOR="${CT_A3FLOOR:-6}"
 A3_MIN_SUITE="${CT_A3MIN:-20}"
 
+# ── A4. THE GEOMETRY TOKEN MAY NOT BE A CONTROL-FLOW DISCRIMINATOR OR A SOURCE OF DIMENSIONS.
+# Built at #544 for jobs/the-geometry-token-is-a-control-flow-discriminator-so-the-761-migration-stays-green-
+# while-deleting-coverage-2026-10-08, whose case id is TC-GATE-GEOTOKEN-001 (landed as TC-SUITE-230: there is
+# no GATE-GEOTOKEN id space in claude/stories/TEST-CASES.md and every row in it is TC-<SPACE>-<NNN>).
+#
+# WHAT THE JOB PROVED, and it is the reason this arm exists rather than a reading of the code. gates/regress/
+# 65-promotion-after-gameover.js read `const isLand=geoKey!=='kunal730'` and then launched `isLand?LAND:
+# 'kunal730'`, so ANY token but that literal - the correct 375x761 included - routed the portrait case into the
+# landscape branch, which ignores its argument. Its instrument, I00, was built from the same `isLand`, so it
+# asserted the viewport it had been TOLD to expect. The external UAT challenger ran the one-token swap the 761
+# migration prescribes on one bundle at #496: 'I00 [730x375]' printed TWICE, the portrait run was gone, and the
+# gate reported the IDENTICAL 20 pass / 0 fail. Half the coverage, same verdict, same count. That is the twelfth
+# costume of the trap CLAUDE.md records eleven times - the check and the thing being checked were one object,
+# and here they were one TOKEN.
+#
+# I DID NOT IMPLEMENT THE PASS CONDITION THE JOB WROTE, AND THE REASON IS THE RULE ABOUT FLAGS' FIXES BEING
+# HYPOTHESES [CLAUDE.md, #416]. It asks for "zero matches" of `(!==|===)\s*['"](kunal730|...)['"]` over
+# gates/regress/*.js. Measured at #544 that regex returns TEN lines, and THREE OF THE TEN ARE PROSE: gates/
+# regress/21-review-brilliant.js:274 and 48-lesson-flow.js:508 and :813, the last two being THIS PROJECT'S OWN
+# WRITTEN RECORD of this exact trap from #410. A control demanding zero matches would be discharged by deleting
+# the sentences that remember the lesson, which is worse than the defect. So A4 reads CODE and not prose
+# (decomment below), and it splits the remaining seven by MECHANISM instead of banning the shape.
+#
+# A4a HARD, AND THE ONLY ONE THAT IS RED BEFORE THE FIX. A comparison on a geometry token whose result is BOUND
+# TO A VARIABLE (var/let/const <name> =) or which yields a WIDTHxHEIGHT literal on the same line. Binding is
+# precisely how one token becomes a discriminator reused in four places, and a WxH literal is a dimension read
+# off a name. Exactly the job's two sites, and nothing else, measured: 2 before #544's fix, 0 after.
+# WHAT A4a DELIBERATELY DOES NOT FLAG, said out loud because the obvious widening would: gates/regress/
+# 36-evalbar.js:230 selects the explanatory CLAUSE of an assertion message with `geo==='kunal730'?...:...`. It
+# is a ternary on a token and it is not this defect. Its per-geometry pin comes from BOARD_W[geo], a TABLE keyed
+# on the token, and a rename makes that lookup undefined, which the gate reports as `L.note ... NOT YET PINNED`
+# - LOUDLY, two lines above. A rename costs it the specific half of one sentence and nothing else. Widening A4a
+# to every ternary would charge it and would charge any future message that mentions a geometry by name.
+# A4b REPORTED WITH A CEILING, never credited as a pass. The rest: `if(geo==='kunal')` around a per-geometry pin
+# and the message selector above. Legitimate - a pin belongs to one geometry - and still rot-prone, because a
+# rename makes the guarded assertion silently NOT RUN rather than go red. The job measured the real growth
+# vector as ordinary gate authoring (+25 lines of the 730 token in six builds), so the ceiling is what stops a
+# new gate adding another, and it is a committed literal so raising it is a diff someone reads.
+# A4c HARD. A compared token that is NOT a live key of GEOS. ZERO today, and this is the arm that actually fires
+# on the migration this job is about: rename the key in gates/lib.js and every gate still comparing the old
+# literal is named on the next run. It is green on the tree that introduces it and its controls drive it RED
+# over fixtures, which is how this file already treats A2 and A3.
+# THE TOKEN LIST IS DERIVED FROM gates/lib.js AND NEVER TYPED, and that is not tidiness: a typed list is the
+# frozen denominator CLAUDE.md records at #405, and it would answer "no dead tokens" loudest at the moment
+# somebody renames one. The derivation is asserted NON-EMPTY in its own line before anything is asserted over
+# it, and so is the site set [R51/the empty-denominator class: a missing denominator is reported, never credited].
+# A4_CEILING  MEASURED at #544 on this tree AFTER the two gate-65 fixes, by this script's own a4_sites:
+#           FIVE code sites - 11-lesson.js:13, 20-review.js:215, 36-evalbar.js:230, 40-reachability.js:311 and
+#           70-live-game-reset-guard.js:341. Not aspirational and not rounded up.
+A4_CEILING="${CT_A4CEIL:-5}"
+
 # ── SCOPE. The five paths the case names, expanded. Printed as a file count because R18 says count
 # inputs and not assertions: one file is a demonstration, 61 is a measurement.
 scope_files(){
@@ -162,6 +213,110 @@ a3_covered(){ # of those, the ones that name the anchor geometry at all. The NUM
     [ -n "$f" ] || continue
     grep -lF "$ANCHOR_TOKEN" "$f" 2>/dev/null
   done < <(a3_gates)
+}
+
+# ── A4's PIECES.
+# decomment: the file with /*..*/ and //.. removed, so A4 reads code and not the project's own record of this
+# trap. Strings and template literals are respected, which is what keeps a URL or a regex from opening a false
+# comment: at a '/' the next character decides, and a regex literal's next character is never '/' or '*'
+# because JavaScript itself reads those two as comments. DECLARED LIMIT: the state resets at each newline, so a
+# template literal spanning lines is not tracked across the break. C30 and C31 drive both of the cases that
+# could bite - a '//' inside a string and a regex literal containing an escaped slash - and C33 drives the live
+# one, this file's own gate-65 comment block, which quotes `geoKey!=='kunal730'` in prose and MUST NOT be read
+# as a site. That quotation is why a comment-blind A4 would have scored its own fix as only half applied.
+decomment(){
+  awk '
+  BEGIN{ blk=0 }
+  {
+    line=$0; out=""; i=1; n=length(line);
+    while(i<=n){
+      c=substr(line,i,1); c2=substr(line,i,2);
+      if(blk){ if(c2=="*/"){ blk=0; i+=2 } else { i++ } ; continue }
+      if(c2=="/*"){ blk=1; i+=2; continue }
+      if(c2=="//"){ break }
+      if(c=="\047" || c=="\"" || c=="`"){
+        q=c; out=out c; i++;
+        while(i<=n){
+          cc=substr(line,i,1);
+          if(cc=="\\"){ out=out cc; i++; if(i<=n){ out=out substr(line,i,1); i++ } ; continue }
+          out=out cc; i++;
+          if(cc==q) break
+        }
+        continue
+      }
+      out=out c; i++
+    }
+    print out
+  }' "$1"
+}
+
+# geos_keys: the GEOS key set, read off gates/lib.js. Only the OUTER keys match `<key>:{` - every inner field
+# (w, h, safe, label) is followed by a value and not by a brace - and a quoted key like '390' is accepted.
+# Returns 2 when gates/lib.js is unreadable or the literal cannot be found, which the report turns into
+# NOT CHECKED rather than into a pass.
+geos_keys(){
+  local lib="$ROOT/gates/lib.js" body
+  [ -r "$lib" ] || return 2
+  body="$(tr -d '\n' < "$lib" | sed -e 's/.*const GEOS={//' -e 's/};.*//')"
+  [ -n "$body" ] || return 2
+  printf '%s' "$body" | grep -oE "[A-Za-z0-9_]+'?:\{" | sed -e "s/'\{0,1\}:{\$//" | sort -u
+}
+
+a4_files(){
+  {
+    find "$ROOT/gates/regress" -maxdepth 1 -type f -name '*.js' 2>/dev/null
+    find "$ROOT/gates" -maxdepth 1 -type f -name '*.js' 2>/dev/null
+    find "$ROOT/gates/drive" -maxdepth 1 -type f -name '*.js' 2>/dev/null
+  } | sort -u
+}
+
+# a4_sites: every geometry-token comparison in CODE, as path:line:text.
+a4_sites(){
+  local keys alt f
+  keys="$(geos_keys)" || return 2
+  [ -n "$keys" ] || return 2
+  alt="$(printf '%s' "$keys" | tr '\n' '|' | sed -e 's/|$//')"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    decomment "$f" | grep -nE "(!==|===)[[:space:]]*('|\")($alt)('|\")" | sed "s|^|${f#$ROOT/}:|"
+  done < <(a4_files)
+}
+
+# a4_bound: of those, the A4a class - the name turned into a value.
+a4_bound(){
+  a4_sites | grep -E "((var|let|const)[[:space:]]+[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*=[^=]|[0-9]{3}[[:space:]]*x[[:space:]]*[0-9]{3})"
+}
+
+# a4_dead: the A4c class - a compared token that GEOS no longer has. Asks the comparison about the key set
+# rather than the key set about the comparison, so a rename is what moves it.
+a4_dead(){
+  local keys f
+  keys="$(geos_keys)" || return 2
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    decomment "$f" \
+      | grep -oE "(!==|===)[[:space:]]*('|\")[A-Za-z0-9_]+('|\")" \
+      | sed -e "s/^.*['\"]\\([A-Za-z0-9_]*\\)['\"]\$/\\1/" \
+      | while IFS= read -r t; do
+          case "$t" in
+            kunal*|short*|se) : ;;   # only tokens that LOOK like a geometry are asked about.
+            # AND THE THREE-DIGIT KEYS ARE OUT OF A4c's REACH BY CONSTRUCTION, measured rather than assumed.
+            # The first version of this list accepted [0-9][0-9][0-9] so that '390' and '430' were covered, and
+            # running it printed 34 dead tokens over six gates: `==='500'` and `==='800'` and `==='400'` are
+            # timeouts and widths, not geometries, and nothing in the string tells them apart. A list loose
+            # enough to cover '390' is loose enough to report a defect in every gate that compares a number -
+            # which is this project's own "a bad selector is a reading" and would have been ignored by the
+            # second day. So A4c covers the kunal*, short* and se families and CANNOT cover a numeric key; the
+            # rename this job is about is kunal730 -> kunal761 and is inside that scope. A numeric key renamed
+            # silently is a real residual and it is named on the job rather than papered over here.
+            # 'land' IS DELIBERATELY NOT IN THAT LIST and leaving it out is the difference between a check and a
+            # false red: gate 65 calls blockI with 'land', LAND is a literal at :566 and has never been a GEOS
+            # key, so asking GEOS about it would report a dead token on a tree where nothing is wrong.
+            *) continue ;;
+          esac
+          printf '%s\n' "$keys" | grep -qxF "$t" || printf '%s:%s\n' "${f#$ROOT/}" "$t"
+        done
+  done < <(a4_files)
 }
 
 census(){
@@ -232,6 +387,73 @@ report(){
     if [ "$ncov" -gt "$A3_FLOOR" ]; then
       echo "         RATCHET CAN RISE: set A3_FLOOR=$ncov in this file, in a commit, so the new coverage is held."
     fi
+  fi
+  # ── A4. Three checks, each its own line, never a conjunct: a compound whose halves cannot fail
+  # independently reads as two checks while being one [this file's own A3 note].
+  local keys nkeys sites nsites bound nbound dead ndead
+  keys="$(geos_keys)"; local kr=$?
+  nkeys=$(printf '%s' "$keys" | grep -c . || true)
+  if [ "$kr" != 0 ] || [ "$nkeys" -eq 0 ]; then
+    # NOT CHECKED, not a pass. Every A4 check is asserted over this list, so an empty list would make all
+    # three of them report green over nothing - which is the one failure mode this file keeps finding.
+    echo "A4 NOT CHECKED: no GEOS key set could be derived from gates/lib.js under this root, so the"
+    echo "         geometry-token checks were asserted over nothing and are NOT reported as passing."
+    echo "VERDICT UNSOUND"
+    [ "$strict" = strict ] && return 2
+    return 0
+  fi
+  sites="$(a4_sites)"
+  nsites=$(printf '%s' "$sites" | grep -c . || true)
+  if [ "$nsites" -eq 0 ]; then
+    # NOT CHECKED, AND NOT UNSOUND EITHER - and the first draft had it as UNSOUND, which broke five of this
+    # file's own existing controls. C16, C17, C25, C27 and C28 build small fixture trees to drive A1, A2 and
+    # A3, and not one of them contains a geometry COMPARISON, so an UNSOUND verdict here fired on the normal
+    # case and reddened arms it says nothing about. That is CLAUDE.md's "a guard that fires on the normal case
+    # gets switched off" arriving inside the commit that adds the guard, and it was caught by running the
+    # selftest rather than by reading the diff. A4a and A4b are REPORTED as not run - never printed as PASS,
+    # which is the half that matters [R51] - and A4c below is unaffected because it scans independently.
+    # THE RESIDUAL, STATED RATHER THAN HIDDEN: on a real suite a selector that stopped matching would print
+    # these two lines instead of going red. What protects against that is that the lines are printed and are
+    # not a pass, and that this suite's own count is in the report every run.
+    echo "A4a NOT CHECKED: $nkeys GEOS key(s) derived and NOT ONE geometry comparison was found in code under"
+    echo "          gates/regress, gates or gates/drive, so nothing was asserted about binding a name to a value."
+    echo "A4b NOT CHECKED: no comparison site to count against the ceiling of $A4_CEILING."
+  else
+  bound="$(a4_bound)"; nbound=$(printf '%s' "$bound" | grep -c . || true)
+  if [ "$nbound" -eq 0 ]; then
+    echo "A4a PASS: of $nsites code site(s) comparing one of $nkeys geometry token(s), none binds the result to a"
+    echo "          variable or reads a WIDTHxHEIGHT literal off the name."
+  else
+    echo "A4a FAIL: $nbound code site(s) turn a geometry's NAME into a VALUE - the name is bound to a variable or"
+    echo "          yields a WIDTHxHEIGHT literal, so renaming the key changes behaviour rather than the key:"
+    printf '%s\n' "$bound" | cut -c1-200 | sed -e 's/^/  /'
+    rc=1
+  fi
+  if [ "$nsites" -le "$A4_CEILING" ]; then
+    echo "A4b PASS: $nsites comparison site(s) at or under the committed ceiling of $A4_CEILING."
+    [ "$nsites" -lt "$A4_CEILING" ] && \
+      echo "          CEILING CAN BE LOWERED: set A4_CEILING=$nsites in this file, in a commit, so it cannot rise again."
+  else
+    echo "A4b FAIL: $nsites comparison site(s), above the committed ceiling of $A4_CEILING. A new one has been added."
+    echo "          Each is legitimate on its own - a pin belongs to one geometry - and each goes SILENTLY NOT-RUN"
+    echo "          on a rename rather than red, which is why the count is held rather than the shape banned:"
+    printf '%s\n' "$sites" | cut -c1-200 | sed -e 's/^/  /'
+    rc=1
+  fi
+  fi
+  # A4c IS OUTSIDE THAT BRANCH ON PURPOSE. It has its own scan - it asks the comparisons about the key set
+  # rather than the key set about the comparisons - so it is exactly the arm that still speaks when a rename
+  # has made every site invisible to a4_sites. Putting it inside the branch would have made the renamed-key
+  # fixture red for the WRONG REASON (an empty site set) and the right verdict for no reason at all, which is
+  # this project's "a wrong reason that reaches the right verdict is a trap, not a check". Caught by C44.
+  dead="$(a4_dead)"; ndead=$(printf '%s' "$dead" | grep -c . || true)
+  if [ "$ndead" -eq 0 ]; then
+    echo "A4c PASS: every geometry-shaped token compared in code is a live key of GEOS."
+  else
+    echo "A4c FAIL: $ndead comparison(s) name a geometry token GEOS does not have. A key was renamed and the"
+    echo "          gates comparing the old literal were not, so their branches can no longer be taken:"
+    printf '%s\n' "$dead" | sed -e 's/^/  /'
+    rc=1
   fi
   echo "census (context only, asserted by nothing [R18]): kunal730 $(census kunal730) occurrence(s), kunal761 $(census kunal761)"
   if [ "$rc" -eq 0 ]; then echo "VERDICT GREEN"; else echo "VERDICT RED"; fi
@@ -352,6 +574,100 @@ selftest(){
   chk C29-a3-skip-says-so-in-the-report 0 \
       env CT_ROOT="$a" CT_A3FLOOR=1 bash -c 'r=$("$0" 2>&1); case "$r" in *"A3 NOT APPLICABLE"*) exit 0;; *) exit 1;; esac' "$RUNME"
   rm -rf "$a"
+
+
+  echo "-- A4, the geometry-token checks, both directions on each of the three [#544] --"
+  # THE FIXTURE IS A WHOLE SMALL TREE and not a string, because every A4 check walks files and derives its
+  # token list from gates/lib.js. A1 and A2 are held GREEN in it (the GEOS literal states 761 as the phone and
+  # nothing calls 730 his phone) so that the strict rc reports A4 and not a sibling arm - the one-variable
+  # discipline this file's C25-to-C28 set already uses for A3.
+  local q; q="$(mktemp -d)"
+  # A DEFAULT CONTAINING BRACES CANNOT GO INSIDE ${2:-...}, AND THE FIRST VERSION OF mk4 PUT IT THERE.
+  # Parameter expansion ends at the first unescaped '}', so `${2:-kunal730:{w:375,h:730,label:'375x730'}` ended
+  # four characters into the default and the remaining `,kunal761:{...},se:{...}}` was concatenated as LITERAL
+  # TEXT after whatever $2 expanded to. The override therefore never replaced the key set, it prefixed it:
+  # mk4 "..." "@@broken@@" wrote `const GEOS={@@broken@@,kunal761:{...},se:{...}}};`, which still derives two
+  # live keys. C46 was green on that fixture for the WRONG REASON - A4c's dead kunal730, not the empty key set
+  # it was written to drive - and C47, which asserts the report SAYS so, is what caught it. That is this
+  # project's "a wrong reason that reaches the right verdict is a trap, not a check", and the only reason it was
+  # visible is that one of the two controls asserts the WORDS and not just the exit code.
+  local A4DEF="kunal730:{w:375,h:730,label:'375x730'},kunal761:{w:375,h:761,label:'375x761'},se:{w:320,h:568,label:'320x568'}"
+  mk4(){ # mk4 <gates/regress/zz.js contents> [<gates/lib.js GEOS body override>]
+    rm -rf "$q"; mkdir -p "$q/gates/regress" "$q/claude/stories"
+    printf 'const GEOS={%s};\n// kunal761 is the phone this suite is built for.\n' "${2-$A4DEF}" \
+      > "$q/gates/lib.js"
+    printf '%s\n' "$1" > "$q/gates/regress/zz-a4.js"
+    printf 'stories\n' > "$q/claude/stories/USER-STORIES.md"
+    printf 'cases\n'   > "$q/claude/stories/TEST-CASES.md"
+    printf 'claude\n'  > "$q/CLAUDE.md"; }
+  r19(){ env CT_ROOT="$q" "$@" bash "$RUNME" --strict; }
+  says(){ # says <needle>: the report must SAY this, not merely exit a number
+    local needle="$1"; shift
+    local out; out="$(env CT_ROOT="$q" "$@" bash "$RUNME" 2>&1)"
+    case "$out" in *"$needle"*) return 0;; *) return 1;; esac; }
+
+  # A4a. The two shapes, and the guard shape that must NOT be charged.
+  mk4 "const isLand=geoKey!=='kunal730';"
+  chk C30-a4a-bound-to-a-variable-is-red     1 r19 CT_A4CEIL=9
+  mk4 "  const g=geo==='se'?'320x568':'375x730';"
+  chk C31-a4a-widthxheight-literal-is-red    1 r19 CT_A4CEIL=9
+  mk4 "if(geo==='kunal730'){L.say(x,'pin');}"
+  chk C32-a4a-a-plain-guard-is-NOT-charged   0 r19 CT_A4CEIL=9
+  # AND THE ONE THAT KEEPS A4a FROM BECOMING "no ternaries": a message selector is a ternary on a token and is
+  # not this defect - gates/regress/36-evalbar.js:230 is the live instance and its pin comes from a TABLE.
+  mk4 "L.say(ok,tag+': board '+pin+(geo==='kunal730'?', 4px narrower':' (fit to height)'));"
+  chk C33-a4a-a-message-ternary-is-NOT-charged 0 r19 CT_A4CEIL=9
+
+  # decomment. THE LIVE CASE FIRST, because it is the one that bit: the fix committed at #544 explains itself
+  # in a comment that QUOTES `geoKey!=='kunal730'`, so a comment-blind A4a would score its own repair as half
+  # done. Driven against the real repository, not a fixture.
+  chk C34-decomment-this-repo-has-no-bound-site 0 bash -c '[ "$( "$0" | grep -c "^A4a FAIL" )" = 0 ]' "$RUNME"
+  mk4 "/* #410: THIS WAS KEYED TO THE NAME - const isLand=geoKey!=='kunal730' - and stayed green. */
+if(geo==='se'){L.say(x,'pin');}"
+  chk C35-decomment-block-comment-not-a-site 0 r19 CT_A4CEIL=9
+  mk4 "// const isLand=geoKey!=='kunal730';
+if(geo==='se'){L.say(x,'pin');}"
+  chk C36-decomment-line-comment-not-a-site  0 r19 CT_A4CEIL=9
+  # The two cases a naive stripper breaks. Both must still be SEEN as code, so the bound site in each is red.
+  mk4 "const u='https://example.invalid//x';const isLand=geoKey!=='kunal730';"
+  chk C37-decomment-slashes-inside-a-string  1 r19 CT_A4CEIL=9
+  mk4 "const re=/\\/ move/;const isLand=geoKey!=='kunal730';"
+  chk C38-decomment-regex-with-escaped-slash 1 r19 CT_A4CEIL=9
+
+  # A4b, the ceiling, in both directions over the SAME tree so the only variable is the number.
+  mk4 "if(geo==='kunal730'){a();}
+if(geo==='se'){b();}"
+  chk C39-a4b-at-the-ceiling-exactly-is-green 0 r19 CT_A4CEIL=2
+  chk C40-a4b-one-over-the-ceiling-is-red     1 r19 CT_A4CEIL=1
+  chk C41-a4b-says-it-can-be-lowered          0 says "CEILING CAN BE LOWERED: set A4_CEILING=2" CT_A4CEIL=9
+
+  # A4c, the arm that fires on the migration. GREEN on the tree that ships it, so its controls are the only
+  # evidence it can speak at all [R10 item 2].
+  mk4 "if(geo==='kunal730'){a();}"
+  chk C42-a4c-live-token-is-green             0 r19 CT_A4CEIL=9
+  mk4 "if(geo==='kunal730'){a();}" "kunal761:{w:375,h:761,label:'375x761'},se:{w:320,h:568,label:'320x568'}"
+  chk C43-a4c-renamed-key-leaves-a-dead-token 1 r19 CT_A4CEIL=9
+  chk C44-a4c-names-the-dead-token            0 says "zz-a4.js:kunal730" CT_A4CEIL=9
+  # THE FALSE RED THIS RUN CAUGHT AND FIXED. The first version of A4c accepted any three-digit token so that
+  # '390' and '430' were in scope, and printed 34 dead tokens over six real gates because `==='500'` is a
+  # timeout. A list loose enough to cover a numeric key is loose enough to report a defect in every gate that
+  # compares a number.
+  mk4 "if(t==='500'){a();}
+if(geo==='kunal730'){b();}"
+  chk C45-a4c-a-numeric-string-is-not-a-geometry 0 r19 CT_A4CEIL=9
+
+  # THE EMPTY DENOMINATORS. Both must read NOT CHECKED and UNSOUND - never a pass - because all three A4
+  # checks are asserted over these two sets [R51/the empty-denominator class].
+  mk4 "if(geo==='kunal730'){a();}" "@@broken@@"
+  chk C46-a4-no-geos-keys-is-unsound-not-green  1 r19 CT_A4CEIL=9
+  chk C47-a4-no-geos-keys-says-NOT-CHECKED      0 says "A4 NOT CHECKED: no GEOS key set" CT_A4CEIL=9
+  mk4 "nothing compares anything here"
+  chk C48-a4-no-sites-says-NOT-CHECKED          0 says "A4a NOT CHECKED" CT_A4CEIL=9
+  # AND THE HALF THAT ACTUALLY MATTERS: it must not be credited. An arm that prints PASS over an empty set
+  # reports loudest exactly when the thing it guards has disappeared.
+  chk C49-a4-no-sites-is-NOT-printed-as-a-pass  0 \
+      env CT_ROOT="$q" CT_A4CEIL=9 bash -c '[ "$( "$0" | grep -c "^A4[ab] PASS" )" = 0 ]' "$RUNME"
+  rm -rf "$q"
 
   rm -rf "$t" "$e"
   echo "SELFTEST $pass pass / $fail fail"
