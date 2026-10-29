@@ -188,13 +188,7 @@ expect(){
 }
 
 note "checks-tier-drive.sh  mode=$MODE  root=$ROOT  clock=$(TZ=America/New_York date '+%-I:%M%p ET, %-d %b %Y')"
-# THIS LINE NAMES THE ID RANGE AND POINTS AT THE FOOTER FOR THE COUNT, rather than carrying a count of its
-# own [#543]. It read "A1 to A63 ... (M1 to M48)" and was ALREADY STALE at 1c7bd01, where the file ran
-# A1..A69 and M1..M49 - and #543 added six more A cases and five more mutants, so the header understated the
-# very cases its own run was about to print. A number in a message that nothing re-derives goes stale the
-# next time anyone adds a case, which is this project's frozen-denominator class arriving in a header; the
-# authority is the run's own footer, which counts what actually ran.
-note "cases: ids A1 to A83, with one mutant per new arm, M1 to M54. The COUNT is this run's own footer, not this line. Fixture repositories under $T."
+note "cases: A1 to A63 plus one mutant per new arm (M1 to M48). Fixture repositories under $T."
 note ""
 
 # ── A2. A TIER PATH PLUS A RECORD FILE -> GO FULL. ───────────────────────────────────────────────────────────
