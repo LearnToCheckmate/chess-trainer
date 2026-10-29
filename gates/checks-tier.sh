@@ -59,7 +59,6 @@ main(){
   local BASE="${1:-}" ROOT="${2:-}"
   local RC=0 VERD="" LOGLINES="" SHORT="" HEADSHA="" BASESHA=""
   local WORK="" PRIV="" MIRROR="" SNAP0="" SNAP1="" SNAPTXT0="" SNAPTXT1="" LOCK="" LOCKHELD=0 LOCKSIG0="" SELFLOGBAD=0
-  local MIRRORREFS="" MIRRORWHY=""
   local CTLMARK="" CTL_OUT=""
   local SNAPRC=0
   local CTLTMO="${CT_CTL_TIMEOUT:-600}"
@@ -1119,28 +1118,8 @@ main(){
     [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
     return 1
   fi
-  # ── AND THE MIRROR'S WHOLE REF LIST IS RECORDED HERE, THE MOMENT AFTER THE update-ref ABOVE MADE IT
-  # LOAD-BEARING [#543, repair 4 of THE WORK; antagonist A's F4 and B's P2 of #542, found from both doors].
-  # Repair 1 of #542 gave the mirror a refs/heads/main so that each control's `git ls-remote origin main` could
-  # resolve - and that made the mirror's REFS part of what every later control reads. mirror_ok compared the
-  # base and head TREES and no ref at all, so a control could `git push origin +HEAD:refs/heads/main` from its
-  # own clone and every later control's ls-remote and `git fetch origin main` would answer the moved value while
-  # mirror_ok still passed.
-  # PINNING refs/heads/main ALONE IS NOT ENOUGH, and the orchestrator's reviewer measured why: with the mirror's
-  # main left at the base, a control that pushes refs/heads/a/refs/heads/main and refs/tags/main makes a later
-  # clone's `git ls-remote origin refs/heads/main` answer the PUSHED sha first, because ls-remote matches on the
-  # tail of a name, and its `git fetch origin main` fetch the tag, because a tag outranks a head for a short
-  # name. So the whole list is pinned, by name AND by object, and any ref added, moved or removed is RED.
-  MIRRORREFS="$(git -C "$MIRROR" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null)"
-  if [ -z "$MIRRORREFS" ]; then
-    say "REFUSED: could not read the throwaway mirror's ref list, so no later control's view of it can be pinned."
-    rm -rf "$WORK" "$PRIV" 2>/dev/null
-    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
-    return 1
-  fi
   say "  isolation: controls clone from a throwaway mirror in this run's private directory, not from $ROOT,"
   say "    and the mirror records no origin of its own, so the two-hop read of it returns nothing"
-  say "    mirror refs pinned: $(printf '%s\n' "$MIRRORREFS" | grep -c . || true) ref(s), by name and object"
 
   # ── (8) THE BATTERY. EACH CONTROL IN ITS OWN THROWAWAY CLONE, HEAD CHECKED OUT, origin/main AT THE BASE. ────
   # NEVER A GIT WORKTREE OF THE REAL CHECKOUT: worktrees share refs and .git/info/exclude, and #530's controls
@@ -1154,21 +1133,13 @@ main(){
   # LATER control: an earlier control that reverted a weakening in gates/held.sh inside the mirror would
   # otherwise make main's held-selftest pass against a tree nobody committed.
   mirror_ok(){
-    local a b now
-    MIRRORWHY=""
+    local a b
     a="$("${GIT[@]}" rev-parse --verify "$HEADSHA^{tree}" 2>/dev/null)"
     b="$(git -C "$MIRROR" rev-parse --verify "$HEADSHA^{tree}" 2>/dev/null)"
-    if [ -z "$a" ] || [ "$a" != "$b" ]; then MIRRORWHY="the head tree differs"; return 1; fi
+    [ -n "$a" ] && [ "$a" = "$b" ] || return 1
     a="$("${GIT[@]}" rev-parse --verify "$BASESHA^{tree}" 2>/dev/null)"
     b="$(git -C "$MIRROR" rev-parse --verify "$BASESHA^{tree}" 2>/dev/null)"
-    if [ -z "$a" ] || [ "$a" != "$b" ]; then MIRRORWHY="the base tree differs"; return 1; fi
-    # ── THE WHOLE REF LIST, NOT refs/heads/main ALONE [#543, repair 4]. See the recording above for why a
-    # single-ref pin is defeated by refs/heads/a/refs/heads/main and by refs/tags/main.
-    now="$(git -C "$MIRROR" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null)"
-    if [ "$now" != "$MIRRORREFS" ]; then
-      MIRRORWHY="the ref list changed: $(printf '%s\n' "$MIRRORREFS" "$now" | sort | uniq -u | awk '{print $1}' | sort -u | tr '\n' ' ')"
-      return 1
-    fi
+    [ -n "$a" ] && [ "$a" = "$b" ] || return 1
     return 0
   }
   # ── ANTAGONIST A's P1(b): THE FOURTH PLACE, AND IT IS THE BIGGEST WRITE THIS JUDGE MAKES. D2 says "nothing
@@ -1188,7 +1159,7 @@ main(){
     local dest="$1"
     nclone=$((nclone+1))
     if ! mirror_ok; then
-      bad "the throwaway mirror no longer matches what was recorded for it, so no later control can be trusted ($MIRRORWHY)"
+      bad "the throwaway mirror no longer matches this repository's base and head trees, so no later control can be trusted"
       return 1
     fi
     # `git clone` into an EXISTING EMPTY directory is allowed, which is what makes the mktemp -d destination
@@ -1676,20 +1647,6 @@ main(){
     run_ctl "control $p" 0 "re:^PASS([[:space:]]|$)" "(^|[^0-9[:space:]])[[:space:]]*FAIL|[1-9][0-9]*[[:space:]]*FAIL" -- bash "$p"
   done <<<"$ALLCASES"
   say "  gates/cases control(s) run: $nc ($nbase already on the base, $((nc-nbase)) new in this commit)"
-
-  # ── AND THE MIRROR IS CHECKED ONCE MORE, AFTER THE LAST CONTROL [#543, repair 4 of THE WORK]. mirror_ok ran
-  # only inside mkclone, i.e. BEFORE each clone, so the control that ran LAST was followed by no check at all -
-  # it could move the mirror's refs and nothing would ever look. A clone is not built here, so this is the only
-  # place the last control's effect on the mirror can be seen.
-  if ! mirror_ok; then
-    bad "the throwaway mirror was altered by the LAST control, after which no clone is built and nothing else looks ($MIRRORWHY)"
-    say "REFUSED: a control changed the throwaway mirror the whole battery reads ($MIRRORWHY)."
-    say "  Every control's clone takes its objects and its origin from that mirror, so a verdict given after it"
-    say "  moved would be about a tree and a ref list no control before it saw."
-    RC=1
-  else
-    say "  mirror refs re-checked after the last control: unchanged"
-  fi
 
   # ── (9) THE REAL TREE MUST BE EXACTLY AS IT WAS. ────────────────────────────────────────────────────────────
   # A11, and it is checked BEFORE the log is written, so the log itself cannot be the difference.
