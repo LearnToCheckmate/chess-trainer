@@ -283,6 +283,16 @@ instance.
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
 
+### US-INV-06 No screen that does not scroll leaves an empty band over 60px
+On a screen that does not scroll, no empty vertical band is over 60px. This is certified at 375x761 with the real insets (51 top, 31 bottom), and the top 51px status area does not count. Other heights are reported, not asserted. A screen meets it by growing the board or by moving something useful into the gap, not by adding padding.
+
+Kunal adopted this rule on 11 Oct 2026, on Decision Desk card empty-space-limit-per-screen-2026-10-10 ("Yes, adopt the 60px rule"). It was written at #545 for jobs/empty-band-cases-and-clause-at-375x761-report-only-first-2026-10-12.
+
+- THIS CLAUSE NAMES ITS OWN GEOMETRY. 375x761 is in neither THE DRILL SEVEN nor THE LESSON THREE; both list 375x730. The section that names those sets is owned by jobs/registers-canonise-375x730-after-r19-settled-761-2026-10-06, and this clause does not edit it.
+- EVERY CASE IS REPORT-ONLY TODAY. TC-S04 covers nine states across Discover, Puzzles and the Review move screen. TC-S05 covers Discover. TC-S06 covers the Review move screen, and the drill when it is driven. The measurement is gates/regress/77-empty-bands.js.
+- PROMOTION. A state becomes asserted in the same commit as the fix that brings it to 60px or under, or on a re-measure that finds it already there.
+- OWNERS. The Review move screen is owned by jobs/eval-graph-into-the-band. Puzzles right after a solve is owned by jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24. Discover goes to its own Desk card first and then its own build. The drill is owned by jobs/board-jumps-on-drill-verdict, then jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12. The Puzzles rankup state has no owner.
+
 ### US-R12 The drill board stays still when the app answers me
 > **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
 > measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and
