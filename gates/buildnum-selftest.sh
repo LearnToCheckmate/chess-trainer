@@ -387,8 +387,26 @@ eq "the fixture repository the accepting case needs produced a 7-char sha" "7" "
 eq "and that sha names an object there, which is the whole point of the fixture" "yes" \
    "$(git -C "$OD" cat-file -e "${OKSHA:-x}^{object}" 2>/dev/null && echo yes || echo no)"
 ck "a sha that names no object is refused"  2 env -C "$OD" CT_RUNID=selftest "$BN" add "#997" held 004cb86f6a9 - "a note long enough to pass the floor here"
-ck "a real short sha is accepted"           0 env -C "$OD" CT_RUNID=selftest "$BN" add "$MN" held "$OKSHA" - "a note long enough to pass the floor here"
+# EXIT 3, NOT 0, SINCE #544: this adds a SECOND row for $MN, which already carries its `minted` row, and `add`
+# now answers 3 for "recorded, and the number already had rows" [item (10); item 5 of
+# jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01]. The case is about the SHA being
+# accepted, and 3 is an acceptance - the row is written. The two cases below pin the 0-against-3 distinction
+# itself, so this expectation cannot drift back without one of them noticing.
+ck "a real short sha is accepted"           3 env -C "$OD" CT_RUNID=selftest "$BN" add "$MN" held "$OKSHA" - "a note long enough to pass the floor here"
 ck "a sha of a single comma is refused"     2 env -C "$OD" CT_RUNID=selftest "$BN" add "#995" held , - "a note long enough to pass the floor here"
+# ── 26b. EXIT 0 MEANS FIRST, EXIT 3 MEANS DUPLICATE, AND A CALLER CAN NOW TELL [#544, item (10)]. Before this
+# the duplicate was ANNOUNCED in prose at exit 0, so the only way to know was to parse the message. held.sh's
+# sibling refuses with exit 1, which is wrong here on purpose - #416 genuinely has two trees and this register
+# must be able to describe reality - so the answer is a third code rather than a refusal. Both directions are
+# pinned, in that order, over the SAME number, so the pair cannot pass by accident.
+N26="$(CT_RUNID=dupcase "$BN" next 2>/dev/null | head -1)"
+ck "26b the FIRST row for a free number exits 0"        0 env -C "$OD" CT_RUNID=dupcase "$BN" add "$N26" held - - "the first row for this number, written by the duplicate-code case"
+ck "26c a SECOND row for the same number exits 3"       3 env -C "$OD" CT_RUNID=dupcase "$BN" add "$N26" built - - "the second row for this number, which is the duplicate the code now names"
+# THE NEEDLE IS THE WARNING LINE ITSELF, not the words "already had": those occur TWICE in the output now,
+# because the new exit-3 explanation repeats them, and a count of 1 would have been a wrong expectation over a
+# correct message. Measured, then pinned.
+eq "26d and the duplicate said so in words as well as in its code" "1" \
+   "$(env -C "$OD" CT_RUNID=dupcase "$BN" add "$N26" built - - "a third row for this number, to read the message" 2>&1 | grep -c 'row(s). It now has' || true)"
 # AND EACH REFUSAL IS READ FOR ITS REASON AND NOT ONLY FOR ITS EXIT CODE, BECAUSE THE EXIT CODE ALONE CANNOT
 # FAIL HERE - MEASURED, NOT REASONED, AND THIS IS THE PART OF ITEM (3) THAT WAS NOT ASKED FOR.
 # `add` runs the sha checks BEFORE the series guard, and #997 and #995 are 453 and 451 past the end of the
@@ -413,6 +431,26 @@ eq "outside a work tree the object check is SKIPPED: the sha is not what refuses
    "$(grep -ci 'names NO OBJECT' <<<"$OUTMSG" || true)"
 eq "and the refusal that does fire there is the series guard, which is downstream of the sha check" "1" \
    "$(grep -ci 'shape of a stray row' <<<"$OUTMSG" || true)"
+
+# ── 26e. THE `clear` SUBCOMMAND, THREE OUTCOMES AND TWO REFUSALS [#544, item (10); item 5 of
+# jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01].
+# WHY IT EXISTS: gates/held-trees.tsv documents a `-` PREFIX as its clearing convention and the two files are
+# siblings a reader moves between - but in THIS register a `-`-prefixed first field makes the row INVISIBLE to
+# every subcommand, in a file whose header says a number is never removed. #454 added a lint that NAMES such a
+# line; `clear` is the sanctioned way to say "recorded, and no longer stands" without editing or hiding a byte.
+# THE ORDER MATTERS: the no-row refusal is asserted BEFORE anything is cleared, so it cannot be satisfied by a
+# number this file happens to have written already.
+ck "26e clear refuses a number with no row at all"      2 env -C "$OD" CT_RUNID=clearcase "$BN" clear "#993" "there is nothing to clear here, and this note is long enough"
+N26C="$(CT_RUNID=clearcase "$BN" next 2>/dev/null | head -1)"
+ck "26e2 a number is recorded first, so there is something to clear" 0 env -C "$OD" CT_RUNID=clearcase "$BN" add "$N26C" held - - "the row the clear case will clear, written first on purpose"
+ck "26e3 clear with a note under the floor is refused"  2 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "too short"
+ck "26e4 clear with no CT_RUNID is refused"            2 env -C "$OD" CT_RUNID= "$BN" clear "$N26C" "a row whose author cannot be traced is half a record"
+ck "26e5 clear over an existing row exits 0"           0 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "the first clearance of this number, with a reason long enough to pass"
+eq "26e6 and the row it wrote carries state cleared"   "1" \
+   "$("$BN" check "$N26C" 2>/dev/null | grep -c 'cleared' || true)"
+ck "26e7 a SECOND clearance is recorded and exits 3"   3 env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "the second clearance, which is legal and is not the first"
+eq "26e8 and nothing was edited: the register only grew" "grew" \
+   "$( before=$(wc -l < "$TD/build-numbers.tsv"); env -C "$OD" CT_RUNID=clearcase "$BN" clear "$N26C" "a third clearance, to prove this verb only appends" >/dev/null 2>&1 || true; after=$(wc -l < "$TD/build-numbers.tsv"); [ "$after" -gt "$before" ] && echo grew || echo "same-or-shrank($before,$after)" )"
 
 # 27. SWEEP: THE REGISTER'S DENOMINATOR, AND THE SHALLOW CLONE THAT MAKES A CLEAN SWEEP MEANINGLESS.
 # #465 measured 88 numbers named by a commit subject and absent from the register, #463 among them - a number
@@ -731,7 +769,7 @@ eq "28g REASON ORDER: a bad state on that same stray number is refused for the S
 ck "28g add accepts ordinary growth (#512)" 0 env CT_RUNID=selftest "$AR" add '#512' issued - - "ordinary growth one past the top of the series"
 ck "28g add accepts exactly the margin above the top (#522 is #512 + 10)" 0 env CT_RUNID=selftest "$AR" add '#522' issued - - "exactly ten past the top, which is still growth"
 ck "28g and refuses one past the margin (#533 is #522 + 11)" 2 env CT_RUNID=selftest "$AR" add '#533' issued - - "eleven past the top, which is a stray row"
-ck "28g add accepts a second row for a number INSIDE the series (the legal rebuild shape)" 0 env CT_RUNID=selftest "$AR" add '#505' built - - "a second row for a number inside the series"
+ck "28g add accepts a second row for a number INSIDE the series (the legal rebuild shape, which answers 3 since #544)" 3 env CT_RUNID=selftest "$AR" add '#505' built - - "a second row for a number inside the series"
 eq "28g the register holds exactly the three accepted rows more than it began with" "15" "$(grep -c . "$AREG")"
 mkreg "$SB/seed"
 ck "28g seeding an EMPTY register is not a stray (there is no series yet to be cut off from)" 0 env CT_RUNID=selftest "$SB/seed/buildnum.sh" add '#500' issued - - "the first row of a register that has none yet"

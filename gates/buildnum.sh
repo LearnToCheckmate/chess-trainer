@@ -32,6 +32,9 @@
 #   gates/buildnum.sh next           print the next free number (highest issued + 1). Reads, never writes.
 #   gates/buildnum.sh mint <note>    take the next free number AND record it, in one step. Prints "#NNN".
 #   gates/buildnum.sh add <#NNN> <state> <sha> <bundleMd5> <note...>    record a number by hand.
+#   gates/buildnum.sh clear <#NNN> <why...>                              record that a number no longer stands
+#                                    (append-only, like every write here; exit 2 if the number has no row at
+#                                    all, exit 3 if it was already cleared). #544.
 #                                    state: minted | issued | built | shipped | held | abandoned (issued =
 #                                    used, final
 #                                    disposition not established). sha and bundleMd5 may be '-'.
@@ -542,9 +545,10 @@ case "${1:-}" in
     STATE="${3:-}"; SHA="${4:-}"; MD5="${5:-}"; shift 5 2>/dev/null || true; NOTE="${*:-}"
     if [ -z "$STATE" ] || [ -z "$SHA" ] || [ -z "$MD5" ] || [ -z "$NOTE" ]; then
       echo "usage: gates/buildnum.sh add <#NNN> <state> <sha> <bundleMd5> <note...>"
-      echo "  state: minted | issued | built | shipped | held | abandoned.  sha/bundleMd5 may be '-'. CT_SRCMD5 optional."; exit 2; fi
-    case "$STATE" in minted|issued|built|shipped|held|abandoned) ;; *)
-      echo "buildnum.sh add: state '$STATE' is not one of minted, issued, built, shipped, held, abandoned"; exit 2;; esac
+      echo "  state: minted | issued | built | shipped | held | abandoned | cleared.  sha/bundleMd5 may be '-'. CT_SRCMD5 optional."
+      echo "  (\`cleared\` has its own subcommand, which checks that there is something to clear: gates/buildnum.sh clear <#NNN> <why>.)"; exit 2; fi
+    case "$STATE" in minted|issued|built|shipped|held|abandoned|cleared) ;; *)
+      echo "buildnum.sh add: state '$STATE' is not one of minted, issued, built, shipped, held, abandoned, cleared"; exit 2;; esac
     if [ "${#NOTE}" -lt 20 ]; then echo "buildnum.sh add: the note is ${#NOTE} characters. Say what the number names."; exit 2; fi
     case "$NOTE" in *"	"*) echo "buildnum.sh add: the note contains a TAB, which would truncate it at the field break"; exit 2;; esac
     # VALIDATE BOTH KEYS, lowercased, exactly as held.sh had to learn to: it accepted a 32-char md5, an
@@ -604,8 +608,65 @@ case "${1:-}" in
       echo "buildnum.sh: WARNING - #$N already had $EXIST row(s). It now has $(( EXIST + 1 ))."
       echo "  Recorded, not refused: a real collision must be describable. But if you are STAMPING a bundle"
       echo "  with #$N, stop - use \`mint\` and take a fresh number."
+      # ── EXIT 3: RECORDED, AND IT WAS A DUPLICATE [#544, item (10); item 5 of
+      # jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01, antagonist B's residual].
+      # The warning above was printed at EXIT 0, so a CALLER could not tell "recorded" from "recorded, and this
+      # number already had rows" - it had to parse the prose. held.sh's sibling refuses outright with exit 1,
+      # which is wrong here on purpose (#416 genuinely has two trees and the register must be able to describe
+      # reality), so the answer is a THIRD code rather than a refusal: 3 is this project's established "done,
+      # with a caveat" (gates/buildnum.sh sweep already exits 3 on a shallow clone, where it did the work and
+      # cannot vouch for the denominator). Nothing is refused and nothing is silent.
+      echo "buildnum.sh: recorded #$N as $STATE. Commit it to main."
+      echo "  exit 3 = recorded, and the number already had rows. Exit 0 means it was the first."
+      exit 3
     fi
     echo "buildnum.sh: recorded #$N as $STATE. Commit it to main." ;;
+
+  clear)
+    # ── `clear` EXISTS SO THAT CLEARING A NUMBER HAS A VISIBLE FORM [#544, item (10); item 5 of
+    # jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01].
+    # WHAT IT IS FOR. gates/held-trees.tsv documents a `-` PREFIX as its clearing convention, and the two files
+    # are siblings a reader moves between - but in THIS register a `-`-prefixed first field makes the row
+    # INVISIBLE to every subcommand (rows() requires field 1 to be a bare number), in a file whose header says a
+    # number is never removed. #454 added a lint to `list` that NAMES such a line; this is the other half, the
+    # sanctioned way to say "this number was recorded and no longer stands" without editing or hiding anything.
+    # IT IS APPEND-ONLY LIKE EVERY OTHER WRITE HERE: it adds a `cleared` row and changes no existing byte, and
+    # `check` prints cleared rows in their own labelled section, which is what held.sh does for its own.
+    # TWO REFUSALS AND ONE CAVEAT CODE, so a caller can tell the three outcomes apart:
+    #   exit 2  the number has NO prior row - you cannot clear what was never recorded, and a lone `cleared`
+    #           row would be a claim about a number this register has never seen.
+    #   exit 3  it was ALREADY cleared - the row is written (append-only, and a second clearance with a new
+    #           reason is a legitimate record), and 3 says it was not the first.
+    #   exit 0  cleared, and this is the first clearance.
+    N="$(want_num "${2:-}")" || exit 2
+    zero_led_report clear
+    plain_dec_or_die "$N" clear
+    shift 2 2>/dev/null || true; NOTE="${*:-}"
+    if [ -z "$NOTE" ]; then
+      echo "usage: gates/buildnum.sh clear <#NNN> <why it no longer stands, 20+ chars>"; exit 2; fi
+    if [ "${#NOTE}" -lt 20 ]; then echo "buildnum.sh clear: the note is ${#NOTE} characters. Say why it no longer stands."; exit 2; fi
+    case "$NOTE" in *"	"*) echo "buildnum.sh clear: the note contains a TAB, which would truncate it at the field break"; exit 2;; esac
+    if [ -z "${CT_RUNID:-}" ]; then
+      echo "buildnum.sh clear: CT_RUNID is not set. A row whose author cannot be traced is half a record."; exit 2; fi
+    EXIST="$(print_rows_for "$N" | wc -l | tr -d ' ')"
+    if [ "$EXIST" = "0" ]; then
+      echo "buildnum.sh clear: #$N has no row in this register, so there is nothing to clear."
+      echo "  A lone 'cleared' row would be a claim about a number this register has never seen."
+      echo "  Did you mean \`add\`?  gates/buildnum.sh check '#$N'  shows what it holds."
+      exit 2
+    fi
+    WASCLEAR="$(print_rows_for "$N" | awk -F'\t' '$2=="cleared"' | wc -l | tr -d ' ')"
+    stray_check "$N" clear || exit 2
+    lock_take || exit 1
+    append_row "$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' \
+      "$N" "cleared" "-" "-" "-" "$(date -u +%Y-%m-%dT%H:%MZ)" "$CT_RUNID" "cleared" "$NOTE")"
+    lock_free
+    echo "buildnum.sh: #$N recorded as cleared over its $EXIST existing row(s). Commit it to main."
+    if [ "$WASCLEAR" != "0" ]; then
+      echo "  exit 3 = it already carried $WASCLEAR cleared row(s); this is not the first clearance."
+      exit 3
+    fi
+    ;;
 
   record)
     N="$(want_num "${2:-}")" || exit 2

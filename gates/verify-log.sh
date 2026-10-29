@@ -1670,6 +1670,36 @@ if [ "$HELDCHECK" = "ran" ]; then
 else
   echo "    register: NOT CHECKED - gates/held-trees.tsv is missing (see the warning above)"
 fi
+# ── AND THE BUILD-NUMBER REGISTER IS READ AND REPORTED [#544, item (10) of directOpening_2026_10_28_batch4;
+# the last line of item 5's remainder in
+# jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01, which asks that gates/gates.sh and
+# gates/verify-log.sh read gates/build-numbers.tsv. HALF OF THAT ASK WAS ALREADY DONE AND THE JOB'S TEXT IS
+# STALE: gates/gates.sh reads the register in 107 places, including the #533 gap-fill door that refuses a run
+# whose register carries a row nothing accounts for. This file genuinely did not read it - one mention, in a
+# comment - and now does.]
+# IT REPORTS AND REFUSES NOTHING, deliberately and for a measured reason. This script's whole job is archived
+# logs, and the register was BACKFILLED from RUN-LOG.md and the gatelog filenames, so numbers older than the
+# backfill are legitimately absent from it: a refusal here would reject honest logs for a bookkeeping gap in a
+# file written years-of-builds later. What the reader needs is the number's PROVENANCE beside the verdict -
+# whether the number this log foots was issued, and what else it names - which is exactly #454's "a number is
+# ambiguous about as often as not, so cite the bundle md5" made visible at the one place a log is judged.
+if [ -n "${FOOT:-}" ]; then
+  BNREG="$(dirname "$0")/build-numbers.tsv"
+  BNBARE="${FOOT#\#}"
+  if [ -r "$BNREG" ]; then
+    BNROWS="$(awk -F'\t' -v n="$BNBARE" '$1==n' "$BNREG" 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "$BNROWS" = "0" ]; then
+      echo "    build number: $FOOT has NO row in gates/build-numbers.tsv. Not a refusal - the register was"
+      echo "                  backfilled from RUN-LOG.md and the gatelog names, so an older number is"
+      echo "                  legitimately absent. It does mean nothing here can say who issued it."
+    else
+      echo "    build number: $FOOT has $BNROWS row(s) in gates/build-numbers.tsv - $(awk -F'\t' -v n="$BNBARE" '$1==n{printf "%s%s", sep, $2; sep="/"}' "$BNREG" 2>/dev/null), issued to $(awk -F'\t' -v n="$BNBARE" '$1==n{print $7; exit}' "$BNREG" 2>/dev/null)"
+      [ "$BNROWS" != "1" ] && echo "                  More than one row means the number names more than one artefact: cite the bundle md5, not the number [#454]."
+    fi
+  else
+    echo "    build number: NOT CHECKED - gates/build-numbers.tsv is not readable from $(dirname "$0")"
+  fi
+fi
 case "$MANICHECK" in
   ran) echo "    manifest: $MANIFOOT" ;;
   notchecked) echo "    manifest: NOT CHECKED - the run could not read gates/gate-manifest.tsv ($MANIFOOT)" ;;

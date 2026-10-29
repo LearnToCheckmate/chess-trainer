@@ -19,7 +19,7 @@
 # out #778. The run therefore still CHOOSES its number; what it can no longer do is choose one already used.
 # The header first claimed the number was "no longer the run's to choose", which is PROSE: the acceptance test
 # is absence from a file, and CLAUDE.md calls absence the hardest thing to measure. Stamping a number with no
-# `minted` row is WARNED about below and not refused, because refusing it changes the workflow of every lane
+# `minted` row IS REFUSED since #544 (it was a warning until then, and the header said so); refusing it changes the workflow of every lane
 # that builds before minting and that change needs its own run and its own control. Filed as a job.
 #
 # TWO DELIBERATE HOLES, both of which would otherwise break work this project does every day:
@@ -55,6 +55,22 @@ if [ -n "${CT_OUT:-}" ]; then
   fi
 fi
 # ── the build-number refusal, before anything is compiled ────────────────────────────────────────────────────
+# ── IS THIS NUMBER MINTED, AND TO THIS RUN? [#544, item (10) of directOpening_2026_10_28_batch4; item 2 of
+# jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01.]
+# WHAT WAS WRONG: mintedness was WARNED, not enforced, and the warning fired AFTER the bundle was written. So
+# `gates/build.sh '#300'` succeeded - #300 is absent from the register, the acceptance test was ABSENCE FROM A
+# FILE, and CLAUDE.md calls absence the hardest thing to measure. The run still CHOSE its number, which is the
+# thing the register exists to end.
+# IT IS NOW A REFUSAL ON A REAL BUILD AND A REPORTED VERDICT ON A TRIAL ONE, and both halves matter. The
+# refusal is what the header has claimed all along. The reported verdict is #454's lesson: when the trial path
+# SKIPPED the number call entirely, the predicate was never exercised by any test that avoided writing app.js -
+# which is every test that can run while a suite is live - so the mint-then-build deadlock could not be caught.
+# WHY IT COMPOSES WITH `stampable` RATHER THAN RE-DERIVING OWNERSHIP: `stampable` has already established that
+# every row claiming this number is THIS RUN'S, so a `minted` row for it is this run's by construction. This
+# asks the one remaining question - was the number ISSUED or merely chosen.
+NBARE_CHK="${N#\#}"
+minted_row(){ grep -qE "^$NBARE_CHK"$'\t'"minted"$'\t' "$G/build-numbers.tsv" 2>/dev/null; }
+
 if [ -n "${CT_OUT:-}" ]; then
   # CHECKED BUT NOT ENFORCED, rather than skipped outright. Enforcing here would break every negative control
   # in this suite, which builds a trial bundle under an existing number on purpose. But SKIPPING the call meant
@@ -64,6 +80,11 @@ if [ -n "${CT_OUT:-}" ]; then
   if [ -x "$G/buildnum.sh" ]; then
     CT_RUNID="${CT_RUNID:-}" "$G/buildnum.sh" stampable "$N" 2>&1 | sed 's/^/    /' || true
   fi
+  if minted_row; then
+    echo "    minted: yes - $N has a \`minted\` row, so it was issued rather than chosen."
+  else
+    echo "    minted: NO - $N has no \`minted\` row. On a REAL build (no CT_OUT) this is now a REFUSAL [#544]."
+  fi
 elif [ ! -x "$G/buildnum.sh" ]; then
   echo "build.sh: WARNING - $G/buildnum.sh is missing or not executable, so the build number was NOT checked."
   echo "  Proceeding, because a missing tool must not stop a build - but $N may be a reuse."
@@ -72,6 +93,23 @@ elif CT_RUNID="${CT_RUNID:-}" "$G/buildnum.sh" stampable "$N" >/dev/null 2>&1; t
   # just issued, so asking it here deadlocked mint-then-build (#454, antagonist B). `stampable` asks whether the
   # number is THIS RUN'S, which permits the happy path and the mid-run rebuild and refuses another run's number.
   "$G/buildnum.sh" stampable "$N" 2>/dev/null | sed 's/^/build.sh: /'
+  # AND THE NUMBER MUST HAVE BEEN ISSUED, NOT CHOSEN [#544, item (10)]. See minted_row above.
+  if ! minted_row; then
+    if [ "${CT_RENUM:-}" = "1" ]; then
+      echo "build.sh: CT_RENUM=1 - OVERRIDING the mintedness refusal for $N, which has no \`minted\` row."
+      echo "  This bundle is being stamped with a number that was CHOSEN by this run rather than issued to it."
+    else
+      echo "FAIL: $N has no \`minted\` row, so it was CHOSEN by this run rather than issued to it."
+      echo "  The register is what stops two trees carrying one number, and it can only do that if the number"
+      echo "  comes out of it. #416 names two trees; that cost a rebase."
+      echo
+      echo "  Take your own number:  CT_RUNID=<your runId> gates/buildnum.sh mint '<what this build is for>'"
+      echo "                         then: CT_RUNID=<your runId> gates/build.sh '<the number it printed>'"
+      echo "  Trial bundle?          CT_OUT=/path/app.js gates/build.sh '$N'   (checked, reported, not enforced)"
+      echo "  Deliberate exception?  CT_RENUM=1 gates/build.sh '$N'            (loud, and says so in the output)"
+      exit 1
+    fi
+  fi
 else
   RC=$?
   if [ "$RC" = "2" ]; then
@@ -212,10 +250,20 @@ if [ -z "${CT_OUT:-}" ] && [ -x "$G/buildnum.sh" ]; then
   # wrong 4 times in 5, this one was wrong 5 times in 5, and it told the run that had just followed the
   # documented mint-then-build sequence that it had chosen its own number. The one column that proves the
   # happy path ran was therefore unreadable by the only thing that reads it.
+  # #544: THIS IS NO LONGER THE ONLY THING MINTEDNESS GETS - it is a REFUSAL before the build now (see
+  # minted_row above). Reaching here without a `minted` row therefore means an escape was taken, and the note
+  # says which rather than pretending the choice was free.
   NBARE="${N#\#}"
   if ! grep -qE "^$NBARE"$'\t'"minted"$'\t' "$G/build-numbers.tsv" 2>/dev/null; then
     echo "build.sh: NOTE - $N has no \`minted\` row, so it was CHOSEN by this run, not issued to it."
-    echo "  Not an error and not refused. Next time: CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'."
+    # SPELLED OUT RATHER THAN NESTED, because the nested form printed "CT_RENUM=11": with CT_OUT unset, both
+    # `${CT_OUT:-${CT_RENUM:+CT_RENUM=1}}` and `${CT_OUT:-${CT_RENUM:-...}}` expand, so the flag's name and its
+    # value were concatenated. Caught by reading this very line's output in its own control [#544].
+    if [ -n "${CT_OUT:-}" ]; then      _ESC="CT_OUT (a trial bundle)"
+    elif [ "${CT_RENUM:-}" = "1" ]; then _ESC="CT_RENUM=1"
+    else                                 _ESC="an unchecked path (see the warnings above)"; fi
+    echo "  This build got here under $_ESC."
+    echo "  Next time: CT_RUNID=<runId> gates/buildnum.sh mint '<what for>'."
   fi
   # ── AND RUN THE SWEEP, BECAUSE A COMMAND NOTHING CALLS IS NOT A GUARD (#465, antagonist A) ───────────────
   # A measured that `gates/buildnum.sh sweep` had NO CALLER anywhere: not gates.sh, not build.sh, not
