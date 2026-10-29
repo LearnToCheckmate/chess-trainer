@@ -250,6 +250,9 @@ const PZ=require('../drive/puzzles');
 // every number already in the flags, and changing what this invariant measures is a design change with its own
 // control work - jobs/invariant-2-measures-the-box-not-the-ink owns it. Meanwhile the ink is measured and
 // printed beside every row, so the hole is visible in the log rather than implied by a green.
+// [R18, #545 item (77)] "beside every row" WAS FALSE: the ink was printed only beside rows the box method had
+// already flagged, so a box-blind row - the tab bar, the case this paragraph names - printed no ink at all. Each
+// such row now prints an "INV2 BOX-BLIND" note, which reports and does not assert.
 //
 // A ROW REQUIRES CONTROLS SIDE BY SIDE, NOT MERELY TWO OF THEM. Two controls are a row when their vertical
 // bands overlap by more than half the shorter one AND their horizontal bands do not overlap. A vertical stack
@@ -1344,6 +1347,16 @@ L.run(async()=>{
         pinMoved.length? pinMoved : {pinsHere:spread.map(r=>r.sig)});
       for(const r of spread) L.note('    INV2 PINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
       for(const r of unpinned) L.note('    INV2 UNPINNED spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink+' ('+k.via+',fs'+k.fs+')').join(' | '));
+      // #545 item (77) [jobs/invariant-2-measures-the-box-not-the-ink]: the header said the ink is "printed beside every row", and
+      // it was printed only beside rows the BOX method already flagged - so the very rows this hole is about (equal boxes, unequal
+      // strokes, box spread <= 1px) printed nothing, and the tab bar's 13.93..18.15 lived only in the job's prose. REPORTED, NOT
+      // ASSERTED: changing what invariant 2 measures is not the build lane's call (the job's `authority` field), so this line
+      // changes no verdict. It lists every row the box method passes whose members are all SVGs with ink spreading past 1px.
+      for(const r of iv.rows){
+        if(r.rawSpread>1.0||!r.kids.every(k=>k.via==='svg'&&typeof k.ink==='number'))continue;
+        const ik=r.kids.map(k=>k.ink), isp=Math.max(...ik)-Math.min(...ik);
+        if(isp>1.0) L.note('    INV2 BOX-BLIND (reported, not asserted) box spread '+r.spread+'px, INK spread '+isp.toFixed(2)+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' box '+k.gh+' INK '+k.ink).join(' | '));
+      }
 
       /* ── THE GRADE LADDER MUST ACCOUNT FOR EVERY MOVE (#421) ────────────────────────────────────────
          jobs/split-excellent-out-of-best. `classify()` (chess.jsx:347) produces SIX grades including
