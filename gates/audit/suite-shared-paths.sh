@@ -79,6 +79,7 @@ $G/logs/$TAG-subset-all.log	RUN-UNIQUE	$TAG, and a subset run cannot emit GATES 
 $G/logs/$STEM-fastgate-drive.log	RUN-UNIQUE	$STEM, the same derivation as every other per-run log here [#525]
 $G/logs/$STEM-$name.log	RUN-UNIQUE	$STEM, derived at gates.sh:1411 from the suffixed -all log name
 $G/logs/$STEM-unit-drill-why.log	RUN-UNIQUE	$STEM, same derivation
+$G/logs/$STEM-unit-held-guard.log	RUN-UNIQUE	$STEM, same derivation [#545 item (85)]
 $G/shots/gates-$TAG	COLLIDES	$TAG ONLY - no suffix, so two runs at one build number share it
 INV
 )
@@ -102,10 +103,11 @@ say(){ printf '%s\n' "$*"; }
 # assertion-counts.tsv is READ by gates.sh's assert_falls (ACREG) and written only by gates/assertcount.sh, by hand
 # at close-out, so it is a read target like the four names beside it, not a write destination [#545, item (37)
 # follow-up: item (37) added that read and this audit went RED on it, 10 -> 7 selftest, until this line].
+# unit-held-guard.sh is a read target for the same reason: gates.sh runs it and never writes it [#545 item (85)].
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
   grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" \
     | sed 's/}$//' \
-    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)' \
+    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)' \
     | sort -u
 }
 

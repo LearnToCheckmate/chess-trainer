@@ -2343,6 +2343,31 @@ if [ -z "$SUBSET" ] && [ -f "$UNITJS" ]; then
   fi
 fi
 
+# ── THE UNIT LAYER, HELD-GUARD BLOCK: gates/unit-held-guard.sh. ADDED #545 item (85). ───────────────────────────
+# jobs/the-held-tree-guard-has-18-controls-and-no-regression-test-2026-10-01 (P1): #450's held-tree guard
+# (verify-log.sh check 10, held.sh, held-trees.tsv) was proved by hand and nothing in this suite re-ran it, so
+# deleting check 10 still ended GATES GREEN. Same shape as the unit-drill-why block above, deliberately: `--- `
+# marker (never `=== `, the roster arm), oks translated to ^PASS, 0 ok is as red as a FAIL, full runs only.
+# No pipes, because gatemanifest.sh and pipefail-grep ratchet the pipe sites in this file.
+HGSH="$G/unit-held-guard.sh"
+if [ -z "$SUBSET" ] && [ -f "$HGSH" ]; then
+  hlog="$G/logs/$STEM-unit-held-guard.log"
+  echo "--- unit-held-guard (unit layer, not a regress gate, not in the roster) ---" >> "$ALL"
+  echo "--- unit-held-guard (unit layer, not a regress gate, not in the roster) ---"
+  ( cd "$ROOT" && timeout 300 bash "$HGSH" ) > "$hlog" 2>&1; hrc=$?
+  hok=$(grep -c '^  ok' "$hlog"); hfail=$(grep -c '^  FAIL' "$hlog")
+  sed -n 's/^  ok  *\(.*\)$/PASS unit-held-guard \1/p' "$hlog" >> "$ALL"
+  if [ "$hrc" -ne 0 ] || [ "$hfail" -gt 0 ] || [ "$hok" -eq 0 ]; then
+    red=1
+    echo "    unit-held-guard: RED (exit $hrc, $hfail FAIL, $hok ok). Full output: $hlog" >> "$ALL"
+    echo "    unit-held-guard: RED (exit $hrc, $hfail FAIL, $hok ok). Full output: $hlog"
+    sed -n 's/^  FAIL /FAIL unit-held-guard /p' "$hlog" >> "$ALL"
+  else
+    echo "    unit-held-guard: green ($hok ok -> $hok PASS lines)" >> "$ALL"
+    echo "    unit-held-guard: green ($hok ok -> $hok PASS lines)"
+  fi
+fi
+
 # ── THE UNIT LAYER, SECOND BLOCK: gates/fastgate-drive.sh DRIVES THE TIERED PUSH GATE. ADDED #523. ────────────
 # Closes the coverage half of
 # jobs/no-test-drives-gates-fastgate-sh-end-to-end-so-a-same-length-wrong-stamp-and-a-planted-register-row-both-take-a-fast-green-2026-10-15.
