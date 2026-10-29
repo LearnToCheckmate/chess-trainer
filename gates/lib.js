@@ -27,14 +27,15 @@ const SHOTS=process.env.CT_SHOTS||path.join(__dirname,'shots');
 // instead: from the moment a gate requires this file, every repository path opened through fs (readFileSync,
 // readFile, readdirSync, existsSync, statSync, openSync, createReadStream, fs.promises.readFile) is recorded, and
 // done() prints the set - plus every module require() loaded from the repository - as one note line before the
-// summary, so every gate log carries what that gate actually read. Paths under node_modules, gates/logs and
-// gates/shots are left out (dependencies and outputs, not inputs). CT_INPUTS_OUT=<file> also writes the set there,
+// summary, so every gate log carries what that gate actually read. Paths under node_modules, gates/logs,
+// gates/shots and gates/.site are left out (dependencies, outputs, and serve()'s temporary copy of the bundle,
+// whose source - app.js or CT_APP - is recorded where serve() reads it). CT_INPUTS_OUT=<file> also writes the set there,
 // one path per line, for a tool to read. WHAT IT CANNOT SEE: a read made in a child process, a read made before
 // this file was required, and a file the browser fetches by URL rather than through fs - the bundle reaches the
 // browser through serve(), which reads it here, so it is seen. It does not yet feed gates/fastgate.sh; see the job.
 const _inputs=new Set();
 const _inRepo=(f)=>{try{if(typeof f!=='string'&&!(f instanceof URL)&&!Buffer.isBuffer(f))return;const a=path.resolve(String(f instanceof URL?f.pathname:f));const r=path.relative(ROOT,a);
-  if(!r||r.startsWith('..')||path.isAbsolute(r))return;if(/(^|\/)node_modules(\/|$)|^gates\/(logs|shots)(\/|$)/.test(r))return;_inputs.add(r);}catch(e){}};
+  if(!r||r.startsWith('..')||path.isAbsolute(r))return;if(/(^|\/)node_modules(\/|$)|^gates\/(logs|shots|\.site)(\/|$)/.test(r))return;_inputs.add(r);}catch(e){}};
 for(const fn of ['readFileSync','readFile','readdirSync','readdir','existsSync','statSync','lstatSync','openSync','createReadStream']){
   const orig=fs[fn];if(typeof orig!=='function')continue;
   fs[fn]=function(f,...rest){_inRepo(f);return orig.call(this,f,...rest);};
