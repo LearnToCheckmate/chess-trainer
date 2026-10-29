@@ -247,6 +247,7 @@ L.run(async()=>{
 // Filed as its own finding on the job rather than left in this comment alone.
 // CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
 // CONTROL-RECORD: 44bf4b3 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the edge-path board x0.9 again, re-run on the grown 84-assertion gate so the record covers items (24) and (24b) of #544 [#545 item (2)]
+// CONTROL-RECORD: 777aa06 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the same x0.9 trial re-run after #545 item (4) rewrote the kunal demo-end line, whose L.say sites moved the 44bf4b3 record to ASSERTIONS-MOVED
 
   // ── TC-R64e THE CARD ORDINAL IS SCOPED TO THE STATE CARDS, DRIVEN IN BOTH DIRECTIONS IN ONE BROWSER STATE
   // [#544 item (35); jobs/b-card-ordinal-is-ambiguous-now-that-the-gallery-has-two-lists-numbering-from-1-

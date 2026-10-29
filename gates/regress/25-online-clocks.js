@@ -223,6 +223,16 @@ for(const g of geos){
   let back=true;
   try{ await P.tapBtn(b,/^Computer$/,700); }catch(e){ back=false; }
   const afterBack=back?await READ(b):null;
+  // ── #545 item (8): THE TWO DENOMINATOR SITES DRIVEN WITH THE CONSTRUCTED INPUTS THE JOB ASKED FOR
+  // [jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07]. Each control is a
+  // COPY of this file with one line changed, run in full against the shipped bundle 049b41dfb6f1:
+  //   (a) `const summ=''` - the empty summary: TC-OC-010c and TC-OC-010 both FAIL, no PASS for either (32/2).
+  //   (b) o.sheetScroll forced to the DOCUMENT ({isDoc:true}) at each geometry: TC-OC-006c FAILs at all three (31/3).
+  //   (c) o.sheetScroll forced to null (no scroller at all): TC-OC-006c becomes three NOT CHECKED notes and scores
+  //       no PASS (31 pass, 0 fail - the three are absent from the count, not credited). (c) has red=0, so it is
+  //       recorded here in prose and not as a CONTROL-RECORD, which requires red > 0.
+  // CONTROL-RECORD: 777aa06 2026-10-29 total=34 red=2 scope=full how=a-copy-with-const-summ-set-to-the-empty-string,the-empty-summary-denominator
+  // CONTROL-RECORD: 777aa06 2026-10-29 total=34 red=3 scope=full how=a-copy-with-o.sheetScroll-forced-to-the-document,the-only-scroller-is-the-document
   // ── TC-OC-010 WAS VACUOUS AND THIS IS THE REPLACEMENT. ────────────────────────────────────────────────────
   // The old assertion was `!selected.includes('3 days / move')`, and it PASSED on three bundles that behave three
   // different ways: #399 (no fix), the menu-only #400 (fix on the wrong call site) and the fully fixed build. It
