@@ -1333,6 +1333,18 @@ M16PY
   st M20a-MUTANT-off-calibration-no-longer-reddens "$( st_cal "$ST_T/m20.sh" "$ST_T/off.log" )" 0
   st M20b-MUTANT-the-segoe-slot-no-longer-reddens  "$( st_cal "$ST_T/m20.sh" "$ST_T/segoe.log" )" 0
   st M20c-and-ON-calibration-is-still-quiet         "$( st_cal "$ST_T/m20.sh" "$ST_T/cal.log" )" 0
+  # M21 TURNS C90i, THE ON-CALIBRATION DIRECTION, WHICH M20 CANNOT [#545, item (6) of directOpening_2026_10_29_batch5;
+  # the gap the orchestrator's verification of #544 named on
+  # jobs/the-suites-calibration-comparison-is-a-record-and-nothing-refuses-on-a-mismatch-2026-10-27]. M20 makes the
+  # measured quadruple EQUAL the wanted one, so it can only silence a red; C90i expects 0, and a 0 that no mutant has
+  # ever moved could be a comparison that never compares. M21 moves the WANTED value one slot off (the sentinel
+  # 322.15 -> 999.99), so the same on-calibration log must now redden. M21z proves the anchor was found: st_sub
+  # rewrites nothing when its anchor is absent, and an unchanged copy would read 0 = "C90i still quiet" for the
+  # wrong reason - the fail-open M19d already closes for M19.
+  st_sub "$ST_FB" "$ST_T/m21.sh" "TM_WANT='402.12 322.15 348.28 322.15'" "TM_WANT='402.12 322.15 348.28 999.99'"
+  st M21z-the-mutant-REWROTE-the-wanted-quadruple  "$(cmp -s "$ST_FB" "$ST_T/m21.sh" && echo same || echo differs)" differs
+  st M21-the-mutated-comparison-parses             "$(bash -n "$ST_T/m21.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M21a-MUTANT-ON-calibration-now-REDDENS         "$( st_cal "$ST_T/m21.sh" "$ST_T/cal.log" )" 1
   st M19c-and-the-MUTANT-still-prints-a-footer "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c '^instrument:' )" 1
   # M19d CLOSES A FAIL-OPEN A2 MEASURED, and it is why M19c's name no longer claims "differs ONLY in the token":
   # st_sub rewrites nothing when its anchor is absent, so on a tree whose clause ALREADY carries the token the
