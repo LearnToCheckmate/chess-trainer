@@ -1629,10 +1629,24 @@ L.run(async()=>{
     L.note('    invariant 3, '+g+': '+iconKeys.length+' distinct ICON glyph heights (svg box, or a one-grapheme text node): '+iconKeys.join(', '));
     for(const k of iconKeys) L.note('        '+k+'px  '+[...ivIcon[String(k)]].slice(0,3).join(' ; '));
     L.note('    invariant 3, '+g+': over ALL glyphs including multi-line labels and whole cards the count is '+ivAllH.size+', which is NOT an icon count and is reported only so the difference is on the record');
+    // #545 item (45) [jobs/gate-26-invariant-3-short375-returns-two-values-for-one-bundle-2026-09-30]: THE ONE CONTROL WHOSE
+    // ICON-NESS IS RESPONSIVE IS LEFT OUT OF THE COMPARED SET, BY NAME. The lesson practice row's "Try again" button prints
+    // {rowTiny?'\u21bb':rowNarrow?'\u21bb Again':'\u21bb Try again'} (chess.jsx, search rowTiny; rowTiny is boardPx<229), and
+    // the icon predicate admits only the bare-glyph branch. So at short375 a height of 16 entered the set on some runs and
+    // not others ON ONE BUNDLE - #446run, #451 (two full suites over byte-identical source, opposite verdicts), #454 - and the
+    // assertion could certify neither side. mechanism_452_CORRECTED on the job names the element (451-all-RED.log: "16px
+    // Try again") and shows the 320 pin's 16 is a DIFFERENT element (Roadmap), so re-keying the pin by height would excuse one
+    // element with a pin justified by another. A height contributed ONLY by a responsive-label control is therefore printed
+    // and not compared; a height that ALSO has a non-responsive member (320's 16 is Roadmap and Try again together) is still
+    // compared. The glyph is not unguarded: invariant 2's PIN_ROWS pins the practice row's heights at every geometry.
+    const RESPONSIVE_ICON_LABELS=['Try again'];
+    const respOnly=iconKeys.filter(k=>[...ivIcon[String(k)]].every(l=>RESPONSIVE_ICON_LABELS.includes(l)));
+    if(respOnly.length) L.note('    invariant 3, '+g+': height(s) '+respOnly.join(', ')+' come ONLY from a responsive-label control ('+RESPONSIVE_ICON_LABELS.join(', ')+') and are printed, not compared [#545]');
+    const iconKeysCmp=iconKeys.filter(k=>!respOnly.includes(k));
     const wantIcons=ICON_PIN[widthOf(g)];
     if(wantIcons){
-      L.say(JSON.stringify(iconKeys)===JSON.stringify(wantIcons), g+': TC-INV-03 the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
-        {width:widthOf(g), want:wantIcons, got:iconKeys, added:iconKeys.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeys.includes(x))});
+      L.say(JSON.stringify(iconKeysCmp)===JSON.stringify(wantIcons), g+': TC-INV-03 the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
+        {width:widthOf(g), want:wantIcons, got:iconKeysCmp, added:iconKeysCmp.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeysCmp.includes(x)), printedNotCompared:respOnly});
     } else {
       // NOT AN ASSERTION AT AN UNPINNED WIDTH, DELIBERATELY. The first version did `ICON_PIN[g]||[]`, so every
       // geometry the suite does not sweep went red reporting "the app has 0 icon sizes" - red on a healthy
