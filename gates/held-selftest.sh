@@ -647,5 +647,30 @@ eq "14j and it clears with the honest-looking sentence that made this hard to se
    "$( timeout 20 env -C "$NR_" "$MN_" check "$NAPP" 2>/dev/null | grep -c 'matchable row(s) checked' )"
 rm -f "$MN_"
 
-printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "21"
+# 15. A BYTE-APPEND IS NOT A LINE-APPEND [#545, item (93); jobs/held-sh-appends-with-no-ensure-nl-so-a-byte-append-can-
+#     rewrite-the-last-row-2026-10-10]. The job's controls (a) and (c): on a register whose last byte is NOT a newline, `add`
+#     must write a well-formed NEW row and leave the last existing row's sourceMd5 alone; and the normal path stays green
+#     (every section above). Its control is the same section on a held.sh with the guard removed, which must glue the row on.
+nl_case(){ # <held.sh> -> prints "<rows-before> <rows-after> <old-last-field7-after> <new-last-field1>"
+  local hs="$1" reg="$R/gates/held-trees.tsv" before after
+  python3 -c "import sys;p=sys.argv[1];s=open(p).read();open(p,'w').write(s.rstrip('\n'))" "$reg"
+  before="$(grep -vc '^#' "$reg")"; local was7; was7="$(tail -1 "$reg" | cut -f7)"
+  printf 'V1 the GATED source\n' > "$R/chess.jsx"
+  env CT_RUNID=held-selftest "$hs" add ddddddddddd5 "$SHA1" '#915' "$RSN" >/dev/null 2>&1
+  after="$(grep -vc '^#' "$reg")"
+  printf '%s %s %s %s %s\n' "$before" "$after" "$was7" "$(grep -v '^#' "$reg" | tail -2 | head -1 | cut -f7)" "$(tail -1 "$reg" | cut -f1)"
+}
+NLR="$(nl_case "$H")"; set -- $NLR
+eq "15a on a register with no final newline, add writes ONE NEW row (row count +1)" "$(( $1 + 1 ))" "$2"
+eq "15b and the row that was last keeps its sourceMd5, not glued onto"               "$3" "$4"
+eq "15c and the new row's first field is the new bundle md5"                        "ddddddddddd5" "$5"
+NLM="$R/gates/.held-nlmut.sh"
+python3 -c "
+import sys;s=open(sys.argv[1]).read();g='    if [ -s \"\$REG\" ] && [ -n \"\$(tail -c1 \"\$REG\")\" ]; then printf \'\\\\n\' >> \"\$REG\"; fi\n'
+assert s.count(g)==1, 'guard line not found';open(sys.argv[2],'w').write(s.replace(g,''))" "$H" "$NLM" && chmod +x "$NLM"
+NLX="$(nl_case "$NLM")"; set -- $NLX
+ne "15d CONTROL: with the guard removed the row count does NOT rise - the new row was glued onto the last one" "$(( $1 + 1 ))" "$2"
+rm -f "$NLM"
+
+printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "22"
 [ "$F" = "0" ] || exit 1

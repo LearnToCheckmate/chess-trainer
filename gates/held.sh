@@ -558,6 +558,11 @@ case "${1:-}" in
       fi
     fi
     [ -n "$SRC7" ] || SRC7="-"
+    # A BYTE-APPEND IS NOT A LINE-APPEND [#545, item (93); jobs/held-sh-appends-with-no-ensure-nl-so-a-byte-append-can-rewrite-
+    # the-last-row-2026-10-10]. On a register whose last byte is not a newline, `>>` would glue the new row onto the last
+    # existing one and rewrite its final field - sourceMd5, the one key that survives a rebuild. gates/buildnum.sh has had
+    # this guard (ensure_nl) for exactly that reason; this is the same line.
+    if [ -s "$REG" ] && [ -n "$(tail -c1 "$REG")" ]; then printf '\n' >> "$REG"; fi
     # FIELD 8, THE PREDICATE [#545, item (47)], WRITTEN ONLY WHEN CT_HELD_PRED IS SET, so every row written without it is
     # byte-for-byte the 7-field row it always was. Validated by the same parser that evaluates it, BEFORE the append, so a
     # malformed predicate is refused here instead of reaching the register as a row that can only ever read exit 2.

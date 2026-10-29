@@ -18,7 +18,7 @@
 #   U1  gates/verify-log.sh REFUSES it as '#441' (exit 1) and the refusal names the held register
 #   U2  the same command with --ignore-held ACCEPTS it (exit 0), so U1's refusal is the hold and no other check
 #   U3  gates/verify-log.sh ACCEPTS claude/agents/gatelogs/449-all.log as '#449' (exit 0): the guard does not refuse a clean log
-#   U4  gates/held-selftest.sh exits 0 (124 assertions over 21 inputs at #545), so held.sh's own controls run too
+#   U4  gates/held-selftest.sh exits 0 (it prints its own count; the number is not written here), so held.sh's own controls run too
 # USAGE  bash gates/unit-held-guard.sh   exit 0 all ok | 1 any FAIL | 2 could not run (no scratch)
 set -uo pipefail
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"
