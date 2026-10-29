@@ -29,6 +29,15 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 | `US-RFnn` / `TC-RFnn` | the **full** Review suite, 30 stories and 31 cases — a specification, broader than what the gates execute | `claude/stories/REVIEW-SUITE-FULL.md` (landed at #545 from docs/patch-reconcile-2026-09-22; the project copies are frozen) | the test-lane sessions |
 | `TC-RL-nnn` | the Review test lane: the 94 measured cases from `TEST-CASES-REVIEW.md`, 92 of them automatable | `gates/regress/*.js` as they are coded | the test-lane sessions, coded here by the build session |
 | `US-BN-nn` / `TC-BN-nnn` | the **build-number register** — tooling and records, nothing a player sees. Its case register is the command `gates/buildnum-selftest.sh`, not a file in `gates/regress/`, so it never blocks a `GATES GREEN` | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`, executed by `gates/buildnum-selftest.sh` | this repo (build lane). **Claimed at #465**; 0 hits repo-wide before that commit |
+| `TC-SUITE-nnn` | **suite and tooling** cases - the gates, audits, push checks and registers themselves; no player sees them | `claude/stories/TEST-CASES.md` (rows), executed by the scripts each row names; the next free id is one above `grep -rhoE 'TC-SUITE-[0-9]{3}' claude gates \| sort -u \| tail -1` | this repo |
+| `US-INV-nn` / `TC-INV-nn` | the **cross-app invariants** - tap size, icon sizes, cuts, reach, empty bands, arrival | `claude/stories/USER-STORIES.md`, `claude/stories/TEST-CASES.md`; executed by `gates/regress/26-invariants.js` (and 77, 78) | this repo |
+| `TC-MN-nnn` | the **Menu** lane | rows in `claude/stories/MENU-LANE-2026-09-15.md`, NOT in TEST-CASES.md; executed by `gates/regress/47-menu.js` | this repo |
+| `TC-HM-nnn` | the **Home** lane | a few rows in `claude/stories/TEST-CASES.md`; most ids are printed only by `gates/regress/49-home.js` | this repo, partly registered |
+| `TC-OC-nnn` | the **online clocks** | one row in `claude/stories/TEST-CASES.md`; the rest printed only by `gates/regress/25-online-clocks.js` | this repo, partly registered |
+| `TC-PS-nnn` | **Play setup** | NO register rows: printed only by `gates/regress/45-play-setup.js` and `55-play-from-here-terminal.js` | unregistered - the gate file is the only home |
+| `TC-SC-nnn` / `TC-BS-nnn` | **board scanning**, client side and board-scan FEN | NO register rows: printed only by `gates/regress/27-scan-fen.js` and `28-scan-client.js` | unregistered - the gate file is the only home |
+
+*The seven rows above were added at #545 (item (75); jobs/spec-docs-frozen-at-373): the suite printed these id spaces for weeks while this register named none of them, so "the real id space of TEST-CASES.md" could not be satisfied for most of what the gates execute. Where a space has NO register rows, the row says so and names the gate file as its only home, rather than implying cases exist that do not. Giving TC-PS, TC-SC, TC-BS and the rest of TC-HM and TC-OC rows of their own is the remaining work.*
 
 ### The gate-number register — read before adding a gate file
 
