@@ -209,8 +209,22 @@ L.run(async()=>{
 // ── THE CONTROL RECORD gates/control-audit.js READS [#544, item (9); the first `trial:<md5>` record written in
 // this project, and the form was added in the same run for it]. The control is the SMALLER of the two trial
 // bundles described at the WANT block above: chess.jsx's edge-path board multiplied by 0.9, built with
-// gates/build.sh + CT_OUT, run with CT_APP. 57 pass / 7 fail at 055192b, which is this file as committed - the
-// control was re-run against the committed gate rather than the working tree, so the sha below names the exact
-// L.say lines it exercised.
-// CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
+// gates/build.sh + CT_OUT, run with CT_APP. The control is re-run against the COMMITTED gate rather than the
+// working tree, so the sha below names the exact L.say lines it exercised.
+// RE-RUN AT #544 ITEM (24), AND THE REASON IS WORTH THE LINE. That item added fourteen assertions to this file
+// for the lesson driver's Try-again state, which took it from 64 L.say sites to 79 - and gates/control-audit.js
+// then reported the record below as PARTIAL ('every line each one ran is still here, but the gate has grown
+// 20 -> 27 L.say sites since - the newer assertions are unshown'), which moved this gate out of COVERED and
+// took that tool's `uncovered` count back up by one. A control record describes a SET OF LINES, so growing the
+// gate expires it; the remedy is to re-run the control, not to edit the numbers. Done: the same recipe rebuilt
+// and re-run against commit 64349de.
+// THE RECIPE'S md5 CHANGED AND THE RECIPE DID NOT, which is this project's own #450 note rather than a new
+// finding: gates/build.sh embeds the build MINUTE in the stamp via --define:__BUILD__, so the same patched
+// source gives a different bundle md5 on every rebuild. The first run of this control measured
+// trial:8d809ba235f7 at 57 pass / 7 fail over 64 assertions; this one measures trial:c086633a6d2c at 72 pass /
+// 7 fail over 79. SAME SEVEN REDS, named in the log both times - the six geometry/state pairs of the WANT
+// assertion plus the kunal demo-end pin - so the fourteen new assertions are all green on the broken bundle
+// and the control still crosses exactly the threshold it crossed before. chess.jsx and app.js were md5-verified
+// restored after the build (1b41d1d1e765 and 049b41dfb6f1, unchanged).
+// CONTROL-RECORD: 64349de 2026-10-29 total=79 red=7 scope=trial:c086633a6d2c how=the edge-path board x0.9, so every lesson board is ~10% small
 },'LESSON');
