@@ -60,7 +60,7 @@
 //       bundle it measured, the numbers in it are not evidence.
 //
 // CASES IMPLEMENTED (claude/stories/MENU-LANE-2026-09-15.md):
-//   MN-A  TC-MN-001 002 003 004 005 006          MN-E  TC-MN-022 023 024
+//   MN-A  TC-MN-001 002 003 004 005 006          MN-E  TC-MN-022 023 024 043 044 045
 //   MN-B  TC-MN-007 008 009 010                  MN-F  TC-MN-025 026 027 028 029 030 031 032
 //   MN-C  TC-MN-011 012 013 014 015 016 017 018  MN-G  TC-MN-033 034 035
 //   MN-D  TC-MN-019 020 021                      MN-H  TC-MN-036 037 038 039 040
@@ -379,6 +379,28 @@ if(blk('E'))for(const [val,want] of [['0',true],['1',false]]){
     h:!!document.querySelector('[data-ct="eval-bar-h"]')}));
   L.say(ev.v===want,
     '375x730: '+(val==='0'?'TC-MN-022':'TC-MN-023')+' ct_hideEval='+val+' and the play screen '+(want?'paints':'does not paint')+' [data-ct="eval-bar-v"]. This is the whole claim behind guarding this screen: the control lives in the menu sheet and the consequence lives on a screen the menu gate is the only one that would notice',ev);
+  // #545 item (36) [jobs/the-above-the-board-eval-bar-has-no-assertion-anywhere-in-the-suite-because-tc-mn-022-and-023-
+  // assert-only-the-side-bar-2026-10-29]: `ev.h` was collected here and never read. In the default placement the bar ABOVE
+  // the board must not paint whichever way ct_hideEval is set. TC-MN-041 and TC-MN-042 are drafted on
+  // jobs/bench-no-gate-asserts-any-figure-the-layout-readout-prints-2026-10-07, so these take 043 to 045.
+  L.say(ev.h===false,'375x730: TC-MN-043 ct_hideEval='+val+' in the DEFAULT placement (beside the board) and the bar ABOVE the board [data-ct="eval-bar-h"] does not paint either',ev);
+  await b.close();
+}
+// #545 item (36): THE PLACEMENT ABOVE THE BOARD (ct_evalunder 1, the placement Kunal asked for at #340; the app paints it
+// as [data-ct="eval-bar-h"]). Block MN-E never set ct_evalunder, so it only ever drove the placement beside the board,
+// and hiding the eval could stop hiding the bar above the board with TC-MN-022 and TC-MN-023 both green.
+// THE SEED CARRIES ct_evalmig361 TOO: without it, the app's #361 migration rewrites ct_evalunder to 0 on first load
+// (chess.jsx, search ct_evalmig361), and the block would silently drive the placement beside the board again.
+if(blk('E'))for(const [val,want] of [['0',true],['1',false]]){
+  const b=await L.launch({geo:'kunal730',name:'mn-e-under-'+val,store:{ct_evalmig361:'1',ct_evalunder:'1',ct_hideEval:val},fresh:true});await b.open();
+  await b.tile('Play');await b.settle(900);
+  const ev=await b.page.evaluate(()=>({v:!!document.querySelector('[data-ct="eval-bar-v"]'),
+    h:!!document.querySelector('[data-ct="eval-bar-h"]')}));
+  // Two lines and not a conjunct, so each half reddens on its own.
+  L.say(ev.h===want,
+    '375x730: '+(val==='0'?'TC-MN-044':'TC-MN-045')+' ct_evalunder=1 ct_hideEval='+val+' and the bar ABOVE the board '+(want?'paints':'does NOT paint - hiding the eval hides it in this placement too'),ev);
+  L.say(ev.v===false,
+    '375x730: '+(val==='0'?'TC-MN-044':'TC-MN-045')+' ct_evalunder=1 ct_hideEval='+val+' and the bar BESIDE the board does not paint - the placement above replaces it, it does not add to it',ev);
   await b.close();
 }
 if(blk('E')){
