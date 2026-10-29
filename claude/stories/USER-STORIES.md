@@ -34,6 +34,17 @@ from the gate sources at main f3ae36a, not read from prose [R18].*
 
 **Intersection: 3 members (320x568, 375x730, 390x844).** A clause that names neither set names nothing.
 
+**375x730 IN BOTH SETS IS THE GATES' COLUMN, NOT KUNAL'S PHONE, AND A CLAUSE ABOUT HIS PHONE NAMES 375x761 [#545, item
+(55); jobs/registers-canonise-375x730-after-r19-settled-761-2026-10-06].** prompts/common R19 settled the device
+on 2026-10-03: his layout viewport is **375x761** (his own 2026-09-14 diagnostics: vw 375, vh 761, boardPx 349.04),
+and the figure 730 is wrong as a statement about the device. The two sets above are GATE sets, held equal to gates
+51 and 48 by `gates/audit/geometry-sets.sh`, and those gates still visit `kunal730`, so their member is 375x730 and
+is left as measured. What that means for a clause: **naming a set means "what these gates drive", not "what he sees".**
+A clause whose subject is his phone - a height, a fold, a board size he will look at - names **375x761** (`GEOS.kunal761`)
+explicitly, beside whichever set it also names, until the gate sweep moves the sets. Which comes first, the sweep or
+the registers, is the open ordering question on contradictions/r19-height-settled-against-the-phone-card-still-asking-2026-10-04
+and is not decided here.
+
 **A NUMBER THE RAISING JOB CARRIED IS WITHDRAWN HERE [R18], in the clause that inherits it.** The job measured
 gate 48 as a SEVEN-member set at 2026-09-28 ("320x568, 375x568, 375x730, 390x844, 375x520, 320x520, 320x540",
 cited to :647-650). At f3ae36a that gate's `GEOS` is a THREE-member list at :424, and the short points live in

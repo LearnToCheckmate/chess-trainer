@@ -15,6 +15,7 @@
 #   G4 gates/lib.js TA7 (THE DRILL SEVEN as GEOS names, added #545 item (40)) resolves to gate 51's ALLGEOS
 #   G3 no line of USER-STORIES.md or TEST-CASES.md uses "supported geometry" except inside double quotes
 #      (a quoted mention is the record of the old wording, which the register keeps on purpose)
+#   G5 the sets section says its 375x730 member is the gates' column and names 375x761 as the device (prompts/common R19)
 #   G0 each set was FOUND before anything was compared [the empty-denominator class: reported, never credited]
 # USAGE   bash gates/audit/geometry-sets.sh [repo-dir]      exit 0 all hold, 1 any fails, 2 a source unreadable
 #         bash gates/audit/geometry-sets.sh --selftest      the controls
@@ -41,6 +42,8 @@ check(){ # <repo-dir>
     say(!!l3&&l3.join()===a48.join(), "G2 THE LESSON THREE equals gate 48 GEOS through gates/lib.js: register ["+(l3||[]).join(" ")+"] gate ["+a48.join(" ")+"]");
     const t7=(lib.TA7||[]).map(k=>lib.GEOS[k]?lib.GEOS[k].w+"x"+lib.GEOS[k].h:"<"+k+" not in GEOS>");
     say(t7.length>0&&t7.join()===a51.join(), "G4 gates/lib.js TA7 resolves to gate 51 ALLGEOS member for member: lib ["+t7.join(" ")+"] gate ["+a51.join(" ")+"]");
+    const si=us.indexOf("### THE GEOMETRY SETS, NAMED ONCE"),sj=si<0?-1:us.indexOf("\n### ",si+5),sec=si<0?"":us.slice(si,sj<0?undefined:sj);
+    say(/\b375x761\b/.test(sec)&&/R19/.test(sec)&&/375x730[^.]*(gate|GATE)/.test(sec), "G5 the sets section says 375x730 is the gates column and names 375x761 as the device under R19 (#545 item (55))");
     const live=[];for(const [f,t] of [["USER-STORIES.md",us],["TEST-CASES.md",tc]])t.split("\n").forEach((l,i)=>{
       const unq=l.replace(/"[^"]*"/g,"");if(/supported geometr/i.test(unq))live.push(f+":"+(i+1));});
     say(live.length===0, "G3 no clause uses \"supported geometry\" as a live term outside double quotes ("+live.length+(live.length?": "+live.join(" "):"")+")");
@@ -62,6 +65,7 @@ selftest(){
   mk; printf '\n- A clause recording the old wording, "any supported geometry", in quotes.\n' >> "$T/r/claude/stories/USER-STORIES.md"; ck "S4 a QUOTED mention does not redden" 0
   mk; sed -i 's/\*\*THE DRILL SEVEN\*\*/**THE DRILL 7**/' "$T/r/claude/stories/USER-STORIES.md"; ck "S5 a renamed set heading is NOT credited (G0 reddens)" 1
   mk; sed -i "s/const TA7=\['se','w360'/const TA7=['se'/" "$T/r/gates/lib.js"; ck "S6 a TA7 that drops one geometry reddens G4" 1
+  mk; python3 -c "import sys,re;p=sys.argv[1];s=open(p).read();i=s.index('**375x730 IN BOTH SETS');j=s.index('and is not decided here.',i)+len('and is not decided here.');open(p,'w').write(s[:i]+s[j:])" "$T/r/claude/stories/USER-STORIES.md"; ck "S7 deleting the device paragraph reddens G5" 1
   echo "geometry-sets selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
 
