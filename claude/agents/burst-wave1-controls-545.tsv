@@ -1,0 +1,7 @@
+suite	defect state it was written for	control input	exit vs that state	assertion(s) that fired	exit on main (544-all.log, 1507ade)
+40-reachability	finger-scrollable ancestor (burst e9d3017: denominators and the moved-by-scrolling headline)	trial c33b5b9a3f38, #root overflowY hidden	1 (36/2)	'every box below the fold ... can be SCROLLED' and 'AT LEAST ONE OF THOSE BOXES WAS ACTUALLY MOVED BY SCROLLING (0 of 4)'	0 (38/0)
+51-drill-explain-why	#426 veto P0-3, the fen-keyed merge dropping held positions (burst 016382d: A10-A12)	trial 69d24cd608b1, pre-#426 merge	1 (80/1)	TC-R16 A11 THE MERGE	0 (81/0)
+20-review	TC-R04 ten-grade summary (23862f9)	trial 96aafa89f977, Miss row removed	1 (154/6)	TC-R04 all 10 grade rows; the rows are the ten-grade ladder in order (kunal, kunal730, 390)	0 (160/0)
+61-review-list-month-independence	US-R25 bound read back after a reload (ea25f95: A7g/A7h)	trial a01307f4747b, acctCapLoad returns {}	1 (146/5)	A7g and A7h (THIN x1 and x3 accounts), A15c	0 (151/0)
+26-invariants	screen walk that skips a screen (878ff36: the ledger)	CT_INV_NC_SKIP=puzzles, kunal730	1 (146/2)	the screen walk stood on EXACTLY the declared screens; TC-INV-02c	0 (371/0)
+15-gallery-playall	M5, the held bar eating taps (582aec5)	CT_G15_NC=eatTaps, kunal	1 (90/1)	M5 the held instruction bar still passes taps through	0 (113/0)

@@ -1,0 +1,127 @@
+# NOT A PUSH GATE. #545 item (51), jobs/the-six-rewritten-gates-have-never-been-run-against-the-thing-they-were-written-to-catch-2026-10-04.
+# ONE suite run against the defect state it was written for; red BY DESIGN. Gates at branch tip during the run (claude/exciting-noether-8dm3pf, around 8d80037).
+# CT_APP=trial 69d24cd608b1 (the pre-#426 drop-what-you-hold drill merge restored) node gates/regress/51-drill-explain-why.js
+# result: 80 PASS, 1 FAIL
+     bundle: ../../../tmp/claude-0/-home-user-chess-trainer/2d938e0f-123c-599d-8619-1a812611c860/scratchpad/t51/m51-oldmerge.js  md5 69d24cd608b1  stamp #545 - 2026-10-29 13:46 ET  (CT_APP)
+     toolchain: playwright 1.63.0 (/opt/node22/lib/node_modules/playwright)  chromium 153.0.8010.12  [no browser is pinned in gates/package.json]
+     fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"   [#485, demoted to provenance at #544 - the browser, not fc-match, is what the pins depend on]
+PASS TC-SUITE-233 FONT PIN: the app stack's FIRST family "Segoe UI" falls through to the sentinel (322.15), which is true if and only if the calibrated fontconfig is in force. It read 322.15. A value ABOVE the sentinel means a system alias substituted a face - Inter in these images at 373.42 - and every absolute text-derived pin in this suite is then OFF CALIBRATION [#537 reddened ten gates on main's own unchanged bundle this way, with the face line printing clean]  [{"segoe":322.15,"sentinel":322.15,"systemUi":402.12,"sansSerif":348.28,"fontconfig":"gates/fonts.conf","fcMatchFace":"DejaVu Sans"}]
+     text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)  -- 'Segoe UI' (the app stack's first family) is unresolvable, so the root renders system-ui; expected in these images
+     NOTE: the app's stack and bare sans-serif differ by 53.84px on one line here, so every absolute text-derived pin in this suite is container-dependent [#480].
+     bundle on the page: #545 - 2026-10-29 13:46 ET
+     GEOMETRIES THIS RUN: 320x568, 360x640, 375x667, 375x730 KUNAL, 390x844, 414x896, 440x956   (full sweep)
+     SPLIT: content assertions run at 375x730 KUNAL only (no viewport term in the sentence); B6/B7/B8 (the FIT) run at every geometry above.
+     ct_mymistakes captured by the app: 2  [{"uci":"e7b4","played":"cxb5","label":"Mistake","why":"Qb4+ forks two pieces. cxb5 left you losing.","hint":"One move can hit two things at once."},{"uci":"e6d7","played":"Nxd7","label":"Blunder","why":"Qxd7 was stronger. Nxd7 left you completely losing.","hint":"No tactic to spot here — look for the move that improves your worst piece."}]
+     engine branch that produced this capture: sf  (review rows in ct_gamestats: 1)
+PASS TC-R16 A0e the capture was produced by the POOLED STOCKFISH branch, which is the only branch this gate covers - if this is "fallback" the run measured the branch the header says it cannot reach, and its sentence assertions below are reporting on uncovered code  [{"engine":"sf","reviewRows":1,"ct_pool":"3"}]
+PASS TC-R16 A1 the app captured at least 2 of the user's own mistakes from a REAL review - this is the gate's input count, and every A-assertion below runs over all of them  [{"captured":2,"inputs":2}]
+PASS TC-R16 A2[1/2] the captured mistake carries a non-empty `why` (the capture site must store it, as the Brilliant branch does three lines below)  [{"uci":"e7b4","played":"cxb5","why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A3[1/2] clause two names the move the player ACTUALLY PLAYED, so the sentence is a comparison and not a description  [{"played":"cxb5","why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A4[1/2] clause one names a move OTHER than the one played - the solution  [{"played":"cxb5","otherMoves":["Qb4"]}]
+PASS TC-R16 A5[1/2] clause two names at least one eval band IN WORDS, and both when the move changed band (corrected at #426 - see the paragraph above this assertion; as handed it demanded two distinct bands and 2 of 2 real inputs do not cross a boundary)  [{"bands":["losing"],"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A6[1/2] no engine units leak into a player's sentence: no centipawns and no signed decimal eval  [{"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A8[1/2] THE FRAME: the user is BLACK and losing at this ply, so every band named is a losing-side word - a White-frame eval prints "winning" here and is the defect the scratch fix shipped  [{"bands":["losing"],"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A9a[1/2] no band is "level": the user is Black and materially lost at this ply, so a "level" band is a fabricated evalBefore (the fallback-engine P0-1) or a White-frame eval, never an honest read  [{"bands":["losing"],"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A9b[1/2] the sentence SHAPE follows the data: "went from X to Y" is emitted only when evalBefore is a real number and the two bands differ (chess.jsx:877), so a "went from" sentence names two DISTINCT bands  [{"saysWentFrom":false,"bands":["losing"],"distinct":1,"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A9c[1/2] a sentence that does NOT say "went from" uses the one-band form "left you <band>" - the only other branch the builder has  [{"saysWentFrom":false,"why":"Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 A2[2/2] the captured mistake carries a non-empty `why` (the capture site must store it, as the Brilliant branch does three lines below)  [{"uci":"e6d7","played":"Nxd7","why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A3[2/2] clause two names the move the player ACTUALLY PLAYED, so the sentence is a comparison and not a description  [{"played":"Nxd7","why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A4[2/2] clause one names a move OTHER than the one played - the solution  [{"played":"Nxd7","otherMoves":["Qxd7"]}]
+PASS TC-R16 A5[2/2] clause two names at least one eval band IN WORDS, and both when the move changed band (corrected at #426 - see the paragraph above this assertion; as handed it demanded two distinct bands and 2 of 2 real inputs do not cross a boundary)  [{"bands":["completely losing"],"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A6[2/2] no engine units leak into a player's sentence: no centipawns and no signed decimal eval  [{"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A8[2/2] THE FRAME: the user is BLACK and losing at this ply, so every band named is a losing-side word - a White-frame eval prints "winning" here and is the defect the scratch fix shipped  [{"bands":["completely losing"],"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A9a[2/2] no band is "level": the user is Black and materially lost at this ply, so a "level" band is a fabricated evalBefore (the fallback-engine P0-1) or a White-frame eval, never an honest read  [{"bands":["completely losing"],"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A9b[2/2] the sentence SHAPE follows the data: "went from X to Y" is emitted only when evalBefore is a real number and the two bands differ (chess.jsx:877), so a "went from" sentence names two DISTINCT bands  [{"saysWentFrom":false,"bands":["completely losing"],"distinct":1,"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A9c[2/2] a sentence that does NOT say "went from" uses the one-band form "left you <band>" - the only other branch the builder has  [{"saysWentFrom":false,"why":"Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 A7 the 2 whys are all DIFFERENT - one sentence reused on every mistake is the generic-hint defect again (escapes/generic-hint-on-every-mistake-2026-09-20, -8)  [{"distinct":2,"of":2}]
+     PHASE 1B seeded a legacy row: fen=rn2kb1r/p3qppp/2p2n2/1N2p1B1/2B1P3/1Q6/P...  why=<STRIPPED>  hint=<STRIPPED>  ts=1600000000000
+     PHASE 1B store after re-review: 2 rows, 1 at the seeded fen  [{"why":"<ABSENT>","hint":"<ABSENT>","ts":1600000000000,"played":"cxb5"}]
+PASS TC-R16 A10 re-reviewing the same game leaves exactly ONE row at the seeded position - the merge upgrades in place and does not duplicate the entry  [{"rowsAtFen":1,"totalRows":2}]
+FAIL TC-R16 A11 THE MERGE: a pre-#426 entry that was stored WITHOUT a `why` carries one after a re-review of the same game - the fen-keyed merge used to drop every position it already held, which left the ~148 mistakes already in the store permanently unexplained and is the defect Kunal reported twice  [{"why":"<FIELD ABSENT>"}]
+PASS TC-R16 A12 the upgrade is IN PLACE and not a replacement: ts, played and last are the legacy row's own values, so a solved-before card is not silently re-dated or re-queued by the merge  [{"ts":1600000000000,"expectedTs":1600000000000,"played":"cxb5","expectedPlayed":"cxb5"}]
+     320x568 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     320x568 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 320x568 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":307,"cw":307}]
+PASS TC-R16 B7[1/2] 320x568 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 320x568 the verdict box is inside the viewport  [{"bottom":246.5,"vh":568}]
+     320x568 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     320x568 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 320x568 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":307,"cw":307}]
+PASS TC-R16 B7[2/2] 320x568 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 320x568 the verdict box is inside the viewport  [{"bottom":246.5,"vh":568}]
+     360x640 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     360x640 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 360x640 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":347,"cw":347}]
+PASS TC-R16 B7[1/2] 360x640 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 360x640 the verdict box is inside the viewport  [{"bottom":265.7,"vh":640}]
+     360x640 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     360x640 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 360x640 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":347,"cw":347}]
+PASS TC-R16 B7[2/2] 360x640 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 360x640 the verdict box is inside the viewport  [{"bottom":265.7,"vh":640}]
+     375x667 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     375x667 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 375x667 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":362,"cw":362}]
+PASS TC-R16 B7[1/2] 375x667 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 375x667 the verdict box is inside the viewport  [{"bottom":257.8,"vh":667}]
+     375x667 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     375x667 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 375x667 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":362,"cw":362}]
+PASS TC-R16 B7[2/2] 375x667 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 375x667 the verdict box is inside the viewport  [{"bottom":257.8,"vh":667}]
+     375x730 KUNAL item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     375x730 KUNAL item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B1[1/2] 375x730 KUNAL the verdict is more than the fixed praise string - it carries an explanation  [{"len":47,"text":"🎉 Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 B2[1/2] 375x730 KUNAL the explanation ON SCREEN names what the player played  [{"played":"cxb5","text":"🎉 Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 B3[1/2] 375x730 KUNAL the explanation ON SCREEN names the better move  [{"text":"🎉 Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 B4[1/2] 375x730 KUNAL the explanation ON SCREEN names at least one eval band (corrected at #426 with A5 - see that paragraph)  [{"bands":["losing"],"text":"🎉 Qb4+ forks two pieces. cxb5 left you losing."}]
+PASS TC-R16 B5a[1/2] 375x730 KUNAL the hint button put a hint on screen at all - without this the assertion below measures nothing  [{"hint":"💡 One move can hit two things at once."}]
+PASS TC-R16 B5b[1/2] 375x730 KUNAL o.hint is NOT the fixed directive string that fired on every one of 148 captured mistakes. "Look for the most forcing option" misdirects on every quiet position, and Kunal promoted this from secondary to equal first on 2026-09-20  [{"hint":"💡 One move can hit two things at once."}]
+PASS TC-R16 B6[1/2] 375x730 KUNAL the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":362,"cw":362}]
+PASS TC-R16 B7[1/2] 375x730 KUNAL the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 375x730 KUNAL the verdict box is inside the viewport  [{"bottom":257.7,"vh":730}]
+     375x730 KUNAL item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     375x730 KUNAL item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B1[2/2] 375x730 KUNAL the verdict is more than the fixed praise string - it carries an explanation  [{"len":54,"text":"🎉 Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 B2[2/2] 375x730 KUNAL the explanation ON SCREEN names what the player played  [{"played":"Nxd7","text":"🎉 Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 B3[2/2] 375x730 KUNAL the explanation ON SCREEN names the better move  [{"text":"🎉 Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 B4[2/2] 375x730 KUNAL the explanation ON SCREEN names at least one eval band (corrected at #426 with A5 - see that paragraph)  [{"bands":["completely losing"],"text":"🎉 Qxd7 was stronger. Nxd7 left you completely losing."}]
+PASS TC-R16 B5a[2/2] 375x730 KUNAL the hint button put a hint on screen at all - without this the assertion below measures nothing  [{"hint":"💡 No tactic to spot here — look for the move that improves your worst piece."}]
+PASS TC-R16 B5b[2/2] 375x730 KUNAL o.hint is NOT the fixed directive string that fired on every one of 148 captured mistakes. "Look for the most forcing option" misdirects on every quiet position, and Kunal promoted this from secondary to equal first on 2026-09-20  [{"hint":"💡 No tactic to spot here — look for the move that improves your worst piece."}]
+PASS TC-R16 B6[2/2] 375x730 KUNAL the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":362,"cw":362}]
+PASS TC-R16 B7[2/2] 375x730 KUNAL the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 375x730 KUNAL the verdict box is inside the viewport  [{"bottom":257.7,"vh":730}]
+PASS TC-R16 B9 375x730 KUNAL the 2 on-screen explanations are all DIFFERENT  [{"distinct":2,"of":2}]
+PASS TC-R16 B10 375x730 KUNAL the 2 HINTS are all DIFFERENT and all real - the hint must vary with the position (see the note above: this asserts distinctness where "varies with the shape" is the true property)  [{"distinct":2,"of":2,"hints":["💡 One move can hit two things at once.","💡 No tactic to spot here — look for the move that improves your worst piece."]}]
+     390x844 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     390x844 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 390x844 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":377,"cw":377}]
+PASS TC-R16 B7[1/2] 390x844 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 390x844 the verdict box is inside the viewport  [{"bottom":271.3,"vh":844}]
+     390x844 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     390x844 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 390x844 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":377,"cw":377}]
+PASS TC-R16 B7[2/2] 390x844 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 390x844 the verdict box is inside the viewport  [{"bottom":271.3,"vh":844}]
+     414x896 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     414x896 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 414x896 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":401,"cw":401}]
+PASS TC-R16 B7[1/2] 414x896 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 414x896 the verdict box is inside the viewport  [{"bottom":286.3,"vh":896}]
+     414x896 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     414x896 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 414x896 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":401,"cw":401}]
+PASS TC-R16 B7[2/2] 414x896 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 414x896 the verdict box is inside the viewport  [{"bottom":286.3,"vh":896}]
+     440x956 item 1 verdict: 🎉 Qb4+ forks two pieces. cxb5 left you losing.
+     440x956 item 1 hint:    💡 One move can hit two things at once.
+PASS TC-R16 B6[1/2] 440x956 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":427,"cw":427}]
+PASS TC-R16 B7[1/2] 440x956 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":48,"clientHeight":48,"maxHeight":"74px","overflowY":"auto","chars":47}]
+PASS TC-R16 B8[1/2] 440x956 the verdict box is inside the viewport  [{"bottom":293.4,"vh":956}]
+     440x956 item 2 verdict: 🎉 Qxd7 was stronger. Nxd7 left you completely losing.
+     440x956 item 2 hint:    💡 No tactic to spot here — look for the move that improves your worst piece.
+PASS TC-R16 B6[2/2] 440x956 the verdict text is not truncated sideways (scrollWidth <= clientWidth)  [{"sw":427,"cw":427}]
+PASS TC-R16 B7[2/2] 440x956 the whole explanation FITS the verdict box - the 74px maxHeight does not clip it (scrollHeight <= clientHeight)  [{"scrollHeight":70,"clientHeight":70,"maxHeight":"74px","overflowY":"auto","chars":54}]
+PASS TC-R16 B8[2/2] 440x956 the verdict box is inside the viewport  [{"bottom":304.3,"vh":956}]
+     inputs observed (3 repository files read through fs or require): gates/fonts.conf gates/lib.js gates/regress/51-drill-explain-why.js
+51-drill-explain-why: 80 pass, 1 fail
