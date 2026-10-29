@@ -111,6 +111,7 @@
 // still on the setup screen), and MN-G only escapes that because it runs at one geometry. CLAUDE.md, unchanged
 // since #390: before tapping anything in a new gate, ask whether an existing gate already had to fight it.
 'use strict';
+// CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
 const L=require('../lib');
 
 // ---------------------------------------------------------------------------------------------------------
