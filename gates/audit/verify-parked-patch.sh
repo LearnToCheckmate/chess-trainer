@@ -20,6 +20,12 @@
 # USAGE
 #   verify-parked-patch.sh <payload-file> <declared-base-sha> <declared-paths-csv> [repo-dir]
 #   verify-parked-patch.sh --selftest
+#                         Prints its own total, and THE TOTAL DEPENDS ON SELFTEST_REPO: the repository cases
+#                         (sections 9 and 10) run only when it names a repository that resolves origin/main.
+#                         Measured at #545: 26 pass bare, 36 pass with SELFTEST_REPO=<a clone>. Quote a count
+#                         WITH the SELFTEST_REPO it ran under, or it cannot be reproduced (the published '17'
+#                         named none, which is half of jobs/verify-parked-patch-c3-cases-skip-silently-in-a-
+#                         worktree-and-the-published-17-omits-its-scope-2026-10-04).
 #
 #   <payload-file>        the `patch` field of the parked document, written to a file
 #   <declared-base-sha>   the document's baseSha field (full or abbreviated)
@@ -204,7 +210,39 @@ verify() {
       say C3-NOT-ALREADY-ON-MAIN PASS "$fromsha is not on origin/main"
     fi
   else
-    say C3-NOT-ALREADY-ON-MAIN SKIP "$fromsha is in no object database here (expected: the author's container is gone)"
+    # THE SHA IS ABSENT, WHICH IS EVERY REAL PARKED PAYLOAD - SO ASK THE CONTENT, PER COMMIT [#545, item (54);
+    # jobs/verify-parked-patch-c3-cases-skip-silently-in-a-worktree-and-the-published-17-omits-its-scope-2026-10-04].
+    # This arm used to SKIP, and antagonist A measured 7 of 7 parked From-shas absent from every other object database
+    # by construction, so C3 could never fire on the input it exists for while its one firing control took its sha from
+    # the local origin/main. `git apply -R --check` asks "is this commit's post-image what main already holds?" from the
+    # payload text alone. TWO DETAILS THAT DECIDE WHETHER IT IS TRUE: it runs PER COMMIT, because a whole-payload reverse
+    # check reads 'not applied' for a landed artefact whose sibling commit differs (A hit exactly that); and it runs
+    # against a scratch index read from origin/main, NEVER the working tree, which is the #545 item (30) lesson from
+    # landed-on-main.sh - an integration pass with the payload applied would otherwise reverse-apply against itself.
+    # ITS LIMIT, said rather than hidden: a commit that landed and was then edited on main no longer reverse-applies, so
+    # it reads as not landed. That answer is PASS-by-content, never a claim about ancestry.
+    c3t=$(mktemp -d 2>/dev/null)
+    if [ -z "$c3t" ] || ! GIT_INDEX_FILE="$c3t/idx" git -C "$repo" read-tree origin/main 2>/dev/null; then
+      say C3-NOT-ALREADY-ON-MAIN SKIP "$fromsha is in no object database here, and origin/main could not be read into a scratch index to ask the content instead"
+    else
+      awk -v d="$c3t" '/^From [0-9a-f]{40} Mon Sep 17 00:00:00 2001$/{n++} n>0{print > (d "/c" sprintf("%03d",n))}' "$payload"
+      c3n=0; c3landed=""; c3cannot=0
+      for c3f in "$c3t"/c[0-9][0-9][0-9]; do
+        [ -f "$c3f" ] || continue; c3n=$((c3n+1))
+        grep -q '^diff --git ' "$c3f" || { c3cannot=$((c3cannot+1)); continue; }
+        if GIT_INDEX_FILE="$c3t/idx" git -C "$repo" apply --cached -R --check "$c3f" >/dev/null 2>&1; then
+          c3landed="$c3landed $(awk 'NR==1{print substr($2,1,12)}' "$c3f")"
+        fi
+      done
+      if [ "$c3n" -eq 0 ]; then
+        say C3-NOT-ALREADY-ON-MAIN SKIP "$fromsha is in no object database here and the payload splits into no commits to ask by content"
+      elif [ -n "$c3landed" ]; then
+        fail C3-NOT-ALREADY-ON-MAIN "by content: commit(s)$c3landed of $c3n reverse-apply cleanly against origin/main, so this payload carries landed work (the sha is in no object database here; git apply -R --check per commit)"
+      else
+        say C3-NOT-ALREADY-ON-MAIN PASS "by content: none of $c3n commit(s) reverse-applies against origin/main ($c3cannot carry no diff to ask); the sha itself is in no object database here"
+      fi
+    fi
+    [ -n "$c3t" ] && rm -rf "$c3t"
   fi
 
   # ---- C4 ALLOW-LIST ------------------------------------------------------
@@ -419,8 +457,18 @@ selftest() {
     check "C3 fires on a commit already on main" 1 'C3-NOT-ALREADY-ON-MAIN *FAIL' \
           "$T/c3a" f3ae36a gates/regress/20-review.js "$SELFTEST_REPO"
     mk "$T/c3b" 9999999111111111111111111111111111111111 "x" gates/regress/20-review.js
-    check "C3 skips an unknown sha rather than failing" 0 'C3-NOT-ALREADY-ON-MAIN *SKIP' \
+    check "C3 answers an absent sha BY CONTENT, and a commit whose post-image main does not hold PASSES" 0 'C3-NOT-ALREADY-ON-MAIN *PASS.*by content' \
           "$T/c3b" f3ae36a gates/regress/20-review.js "$SELFTEST_REPO"
+    # THE CONTROL THIS CHECK NEVER HAD [#545, item (54)]: real landed content under a sha that is in NO object database,
+    # which is the shape of every real parked payload. origin/main's own tip commit is used because its post-image is
+    # by definition intact at the tip; its sha is swapped for an absent one.
+    git -C "$SELFTEST_REPO" format-patch -1 --stdout origin/main 2>/dev/null \
+      | sed '1s/^From [0-9a-f]\{40\} /From 9999999222222222222222222222222222222222 /' > "$T/c3c"
+    check "C3 FIRES BY CONTENT on landed work whose sha is absent (every real parked payload)" 1 'C3-NOT-ALREADY-ON-MAIN *FAIL.*by content' \
+          "$T/c3c" f3ae36a gates/regress/20-review.js "$SELFTEST_REPO"
+    { cat "$T/c3b"; cat "$T/c3c"; } > "$T/c3d"
+    check "C3 asks PER COMMIT: a two-commit payload whose second commit is landed still fires" 1 'C3-NOT-ALREADY-ON-MAIN *FAIL.*of 2 reverse' \
+          "$T/c3d" f3ae36a gates/regress/20-review.js "$SELFTEST_REPO"
   else
     echo "SKIP  C3 repository cases (set SELFTEST_REPO to a repository that RESOLVES origin/main: a clone or a worktree, not a bare clone of a local repo)"
   fi
