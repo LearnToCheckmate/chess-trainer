@@ -202,7 +202,10 @@ a1_hits(){
 a2_ok(){
   local lib="$ROOT/gates/lib.js"
   [ -r "$lib" ] || return 2
-  tr -d '\n' < "$lib" | grep -qEi "(${ANCHOR_TOKEN}.{0,200}phone|phone.{0,200}${ANCHOR_TOKEN})"
+  # A HERESTRING, NOT A PIPE [#545, item (21)]: this was `tr ... | grep -q`, the tier X site
+  # gates/audit/pipefail-grep.sh named and refused to call clean (measured not to propagate at 4 MB - LATENT).
+  # The herestring is a redirection, so pipefail has no pipe to apply to and the latent case is gone, not bounded.
+  grep -qEi "(${ANCHOR_TOKEN}.{0,200}phone|phone.{0,200}${ANCHOR_TOKEN})" <<<"$(tr -d '\n' < "$lib")"
 }
 
 # A3. The 761 suite-coverage ratchet. Two predicates, each one line, so a control can drive either.
