@@ -135,6 +135,7 @@ work, and I can watch that line on the board.
   Bxb5+ ...") and the next-best comparison (#357, #365). (TC-R10)
 - The "why" / play-out button (rev-playout) exists on Brilliant, Great, Best and Excellent moves and animates
   the line on the board without a console error (#354, #356). (TC-R10)
+- The next-best comparison never names the move I actually played as its own alternative. Kunal found the review telling him "Bxh3 was as good on paper, but nothing like as forcing" about the Bxh3 he had just played (#420): whenever the played move is the engine's second choice, the runner-up IS the played move. This holds on every ply of the Opera Game (TC-R10), and on every ply of Kunal's own game 184024052818, where the played move is the runner-up at 19...Bxh3, 24.c4 and 41...Qh3+, at both worker-pool sizes (TC-R10b, added at #545).
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.

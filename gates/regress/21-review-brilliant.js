@@ -297,4 +297,52 @@ L.run(async()=>{
   const bad761=c.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.note('    375x761 app errors beyond the allowed engine trap: '+bad761.length+(bad761.length?' '+JSON.stringify(bad761.slice(0,2)):''));
   await c.close();
+
+  /* ── 6. THE BXH3 GUARD NEEDS A GAME THAT EXERCISES IT [#545, item (32); jobs/tc-r10-needs-a-runner-up-fixture] ──
+     Block 4's sweep is correct and VACUOUS against the app: on the Opera Game the engine's runner-up is never the
+     move actually played, so chess.jsx's `!(am.fr===pl.fr&&...)` guard never fires, and #422's antagonist A built
+     a bundle with that guard deleted and got 28 pass / 0 fail with a byte-identical sweep, at ct_pool 3 AND 1.
+     THE FIXTURE IS KUNAL'S OWN GAME, claude/agents/bench/pgn/184024052818.pgn - the game where he found the
+     defect by hand (#420, 19...Bxh3). MEASURED at #545 with a probe that walks all 85 plies the way block 4 does:
+     on the guard-deleted bundle b37e93213529 THREE plies name the played move as their own alternative -
+     41...Qh3+ ('only other try'), 24.c4 ('only other try') and 19...Bxh3 ('as good on paper') - and on the
+     shipped bundle 049b41dfb6f1 none do (10 clauses). So this game is where the guard has to fire.
+     Run at BOTH worker-pool sizes, because the pool is chosen by the device (#375/#377 - a gate covers every
+     branch the device can select or it is not a gate). THREE ASSERTIONS PER POOL, A FIXED COUNT, for block 4's
+     reason: per-clause assertions would make the suite total drift with the engine's answers. The offending
+     plies travel in the red payload. */
+  const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
+  const KPLIES=85;
+  for(const pool of ['3','1']){
+    const k=await L.launch({geo:'kunal',name:'review-bxh3-guard-pool'+pool,store:{ct_pool:pool}});await k.open();
+    await k.tile('Review');await k.page.locator('textarea').first().fill(KPGN);await k.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await k.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:300000});await k.settle(600);
+    await k.tapText(/^Start review/,{wait:900});
+    for(let i=0;i<KPLIES+10;i++){await k.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000}).catch(()=>{});}
+    await k.settle(700);
+    const ks=[];
+    for(let i=0;i<KPLIES;i++){
+      const ml=await k.rect('[data-ct="rev-move-line"]');
+      const why=(await k.text('[data-ct="rev-why-txt"]'))||(await k.text('[data-ct="rev-why"]'))||'';
+      const head=String((ml&&ml.text)||'').split('\n')[0].trim();
+      const played=head.split(/\s+/).pop()||'';
+      let form=null,alt=null;
+      for(const f of FORMS){const m=f.re.exec(why); if(m){form=f.k;alt=m[1];break;}}
+      if(played) ks.push({played,form,alt,head});
+      await k.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000}).catch(()=>{});
+      await k.page.waitForTimeout(120);
+      await k.settle(260);
+    }
+    const heads=ks.map(r=>r.head.replace(/\s+/g,' '));
+    const kClause=ks.filter(r=>r.form&&r.alt);
+    const kSelf=kClause.filter(r=>bare(r.alt)===bare(r.played));
+    for(const r of kClause) L.note('      pool '+pool+'  '+r.head.replace(/\s+/g,' ').slice(0,20).padEnd(20)+' played '+String(r.played).padEnd(7)+' alt '+String(r.alt).padEnd(7)+(bare(r.alt)===bare(r.played)?'  <- NAMES THE PLAYED MOVE':''));
+    L.say(ks.length>=KPLIES-2,'TC-R10b pool '+pool+': the sweep walked Kunal’s whole game (184024052818, '+KPLIES+' plies) rather than reading one screen repeatedly',{pliesRead:ks.length,want:KPLIES});
+    // THE DENOMINATOR: the three plies where the guard was MEASURED to fire are among those read. Asserted on
+    // its own line, because the headline below is satisfied by a sweep that never reached them.
+    const need=['19… Bxh3','24. c4','41… Qh3+'].filter(h=>!heads.includes(h));
+    L.say(need.length===0,'TC-R10b pool '+pool+': the sweep stood on the three plies where the played move IS the engine’s runner-up (19…Bxh3, 24.c4, 41…Qh3+), so the guard had something to suppress',{missing:need,clauses:kClause.length});
+    L.say(kSelf.length===0,'TC-R10b pool '+pool+': NO ply of Kunal’s game offers the played move as its own alternative - the #420 Bxh3 defect, on the game it was found on',{selfNamed:kSelf.length,ofClauses:kClause.length,plies:kSelf.map(r=>r.head.replace(/\s+/g,' '))});
+    await k.close();
+  }
 },'REVIEW-BRILLIANT');
