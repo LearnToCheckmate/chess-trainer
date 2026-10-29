@@ -1075,6 +1075,25 @@ for f in $RATCHET_APPENDONLY $RATCHET_NOSHRINK; do
     say "    $f: no shrink and no control bytes ($LB lines at base, $LH at head; $nb -> $nh bytes)."
   fi
 done
+# ── FROZEN: AN ARCHIVED GATE LOG IS NEVER EDITED [#545, item (96); jobs/the-records-tier-permits-rewriting-a-gate-log-and-one-
+# rewritten-line-defeats-the-held-register-2026-10-16, P1]. fastgate.sh refused DELETING claude/agents/gatelogs/<N>.log by
+# name and let a ONE-LINE REWRITE of the same file through, and antagonist B of #524 measured the consequence: the gated sha
+# on the `ref:` line rewritten took verify-log.sh from "REFUSED (held tree)" to "OK ... not held", because
+# gates/held-trees.tsv keys on strings that live INSIDE those logs. A gate log is written once, so the mode is stricter than
+# APPENDONLY: every log present at BASE must have the SAME BLOB at HEAD - an append could add a new last line, which is
+# exactly the line verify-log.sh reads. New logs are free. A deletion is left to the GONE guard that already names it.
+# Silent on the clean path, like everything else here (see the note at the bottom of this file).
+while IFS= read -r gl; do
+  [ -n "$gl" ] || continue
+  gb="$($GIT rev-parse --quiet --verify "$BASEFULL:$gl" 2>/dev/null || true)"
+  gh="$($GIT rev-parse --quiet --verify "$HEAD:$gl" 2>/dev/null || true)"
+  [ -n "$gh" ] || continue
+  if [ "$gb" != "$gh" ]; then
+    RECBAD="$RECBAD$gl: FROZEN - an archived gate log was EDITED in place (blob ${gb:0:12} at base, ${gh:0:12} at head).\n"
+    RECBAD="$RECBAD    gates/held-trees.tsv keys on the sha and md5 inside these logs, so one rewritten line can turn\n"
+    RECBAD="$RECBAD    'REFUSED (held tree)' into 'OK ... not held' [#524 antagonist B]. A gate log is written once.\n"
+  fi
+done < <($GIT ls-tree -r --name-only "$BASEFULL" -- claude/agents/gatelogs/ 2>/dev/null)
 if [ -n "$RECBAD" ]; then
   say ""
   say "FAST GATE REFUSED - a ratcheted record was not appended to or grown, it was CHANGED:"
