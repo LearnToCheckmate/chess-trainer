@@ -552,6 +552,31 @@ const ROW_PIN={
 // POPULATED ONLY WHERE THIS RUN MEASURED IT. The other 38 entries keep the count pin alone, and the log says so
 // rather than implying coverage that was never taken - a half-populated table that reads as complete is the
 // frozen-denominator failure (#405) in a new costume.
+// ── #545, item (27): THE READABILITY PIN [jobs/signalled-truncation-passes-as-green-2026-09-27]. ─────────────────
+// 4a EXCUSES a cut when the clipping box draws an ellipsis (`signalled`), because #387's rule is that nothing is cut
+// WITHOUT SAYING SO. That is right for text a player skims and wrong for a name a player has to READ to act: the
+// #422 log carried 19 SIGNALLED lines under PASS, among them "Italian Game" painted in 18 of its 80px and an
+// opponent's name with 58% of it hidden - Kunal's own three label truncations of 23-24 Sep, measured to the
+// hundredth and passed. So a signalled cut must also paint at least READ_MIN of its string (clientWidth over
+// scrollWidth of the clipping box); below that it is RED unless pinned here, by (geometry, screen) and by the exact
+// text, client and scroll, so a pin that moves in EITHER direction is red and a fix has to retire it by hand.
+// READ_MIN = 0.5 IS THIS BUILD'S CHOICE, NOT AN AGREED NUMBER: the job's own pass condition says "the agreed
+// threshold" and none has been agreed. Half is the line below which the hidden part outweighs the visible one. It
+// is named on the job as owed to the orchestrator; changing it is a one-line edit plus a re-pin.
+// The pins are what the #545 sweep measured on app.js 049b41dfb6f1, and each is a live defect owned by
+// jobs/labels-truncate-in-shared-rows-2026-09-24: the long opponent name in the Review player bar at 320 and at
+// 375x568 (82 of 198px, on the five Review screens that show the bars; the summary overlay covers them), and the
+// lesson title on the demo at 320 (18 of 80px). SELF-CAUGHT: the first table was read off the SIGNALLED notes by
+// position and was one screen out (it pinned rev-summary and doubled rev-more-sheet); this one is the assertion's
+// own payload from its first run, which names its screen. Every other signalled cut in the
+// sweep paints at least 0.80 of its text (the Home coach line, 193 of 240px) and is reported, not pinned.
+const READ_MIN=0.5;
+const READ_PIN_GEOS=['se','kunal730','short375'];
+const DUKE=['DukeKarlCountIsouard99',82,198];
+const READ_PIN={
+  'se/lesson-demo':[['Italian Game',18,80]],
+  'se/rev-ply31':[DUKE],'se/rev-last-engine':[DUKE],'se/rev-why-open':[DUKE],'se/rev-more-sheet':[DUKE],'se/rev-best-ply30':[DUKE],
+  'short375/rev-ply31':[DUKE],'short375/rev-last-engine':[DUKE],'short375/rev-why-open':[DUKE],'short375/rev-more-sheet':[DUKE],'short375/rev-best-ply30':[DUKE]};
 const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
@@ -1223,7 +1248,7 @@ L.run(async()=>{
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
     let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
-    let ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
+    let ivSignalled=0, ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
     for(const [name,go] of WALK){
       let reached=true, res=null;
       try{ await go(b); }catch(e){ reached=false; L.say(false,g+' '+name+': the state could not be reached at all - every ink assertion on this screen is UNRUN, not green',String(e).slice(0,140)); }
@@ -1386,6 +1411,17 @@ L.run(async()=>{
       // something an engine wrote, enumerate what it can legally produce and unit-test the predicate against
       // that list"). Those assertions CAN go red, because the fixture is independent of the classifier.
       for(const r of res.other) L.note('    '+r.kind.toUpperCase()+' '+r.cut+'px '+r.axis+'  "'+r.text+'"  in '+r.anc+'  client '+r.cs+' scroll '+r.ss+'  text-overflow(clipper):'+r.teAnc);
+      // #545 item (27): TC-INV-04c, THE READABILITY HALF OF THE SIGNALLED EXCUSE. See READ_PIN above.
+      const sigRows=res.other.filter(r=>r.kind==='signalled'&&r.ss>0);
+      ivSignalled+=sigRows.length;
+      const unread=sigRows.filter(r=>r.cs/r.ss<READ_MIN).map(r=>r.text+'|'+r.cs+'|'+r.ss).sort();
+      const wantUnread=(READ_PIN[g+'/'+name]||[]).map(x=>x.join('|')).sort();
+      if(READ_PIN_GEOS.includes(g)){
+        L.say(unread.join(';')===wantUnread.join(';'), g+' '+name+': TC-INV-04c no ellipsed text paints less than half of itself unless it is a pinned known defect, and every pin is still found exactly - an ellipsis says a cut happened, it does not make a name readable [#545, jobs/signalled-truncation-passes-as-green-2026-09-27]',
+          {readMin:READ_MIN, unreadable:unread, pinned:wantUnread, signalledMeasured:sigRows.length, shares:sigRows.map(r=>r.text+' '+(r.cs/r.ss).toFixed(2))});
+      } else {
+        L.note('    TC-INV-04c REPORTED, NOT ASSERTED at '+g+' (no readability pins at this geometry): below '+READ_MIN+' painted: '+(unread.join(' ; ')||'none'));
+      }
 
       // ── INVARIANT 4b, THE OTHER HALF OF THE SAME CLASS. #413. ──────────────────────────────────────────
       // TWO SAMPLES, AND THE SECOND ONE IS NOT CEREMONY - IT IS THE FIRST THING THIS ASSERTION GOT WRONG.
@@ -1600,6 +1636,7 @@ L.run(async()=>{
       (notWalked.length||walkedTwice.length||undeclared.length)? {neverReached:notWalked, reachedTwice:walkedTwice, notDeclared:undeclared, declared:DECLARED.length}
                                                                : {screensWalked:walked.length, declared:DECLARED.length});
     L.say(measuredScreens>=10, g+': 4b actually measured ink against its own box on at least 10 of the 12 screens, so its zeros are measurements rather than an empty set (Home measures none: its two nowrap boxes both clip)', {screensMeasured:measuredScreens, nowrapBoxes:nowrapSeen, spills:totalSpill, transientsSeen:totalTransient});
+    L.say(ivSignalled>0, g+': TC-INV-04c measured a non-empty population of ellipsed (signalled) cuts - over none, "no unreadable label" would be an empty set, not a reading',{signalledMeasured:ivSignalled});
     await b.close();
   }
   // THE GRACEFUL PATH MUST NOT BECOME THE NORMAL PATH. Invariant 3 and the population pins report instead of
