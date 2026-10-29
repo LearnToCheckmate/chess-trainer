@@ -50,7 +50,10 @@ L.run(async()=>{
   // NOTE WHAT THIS ALSO EXPOSES about the assertion above: "practice board = demo board" holds only where BOTH
   // are width-bound. It is true at 375x679 and 390x844 and false at 320x568 and 375x667, and it passed for
   // months because this gate ran only the two geometries where it happens to hold.
-  for(const [name,g] of [['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['375x667',{w:375,h:667,safe:''}]]){
+  // #545 item (83): 375x730, Kunal's phone (CLAUDE.md), was in NO block of this gate, so the #395 footer fix he reported
+  // from that phone was asserted only at geometries that are not his. It is added here; the board-fit lines below
+  // run there too.
+  for(const [name,g] of [['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['375x667',{w:375,h:667,safe:''}],['375x730',L.GEOS.kunal730]]){
     for(const st of ['demo-end','practice-m0']){
       const b=await L.launch({geo:g,name:'lesson-'+name+'-'+st,store:{}});await b.open();
       await D.states[st](b);await b.settle(600);
@@ -145,7 +148,7 @@ L.run(async()=>{
           if(svg){const g=svg.getBoundingClientRect();gw=+g.width.toFixed(1);gh=+g.height.toFixed(1);}
           else{const rg=document.createRange();rg.selectNodeContents(e);const g=rg.getBoundingClientRect();gw=+g.width.toFixed(1);gh=+g.height.toFixed(1);}
           return {aria:e.getAttribute('aria-label'),w:+r.width.toFixed(1),h:+r.height.toFixed(1),
-                  fs:parseFloat(getComputedStyle(e).fontSize),gw,gh};
+                  fs:parseFloat(getComputedStyle(e).fontSize),gw,gh,svg:!!svg};
         }).filter(Boolean);
       });
       if(st==='demo-end'){
@@ -153,8 +156,21 @@ L.run(async()=>{
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
         L.say(foot.every(f=>f.gh>=20),name+': every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported',foot.map(f=>({a:f.aria,gh:f.gh})));
         L.say(foot.every(f=>f.gw>=16),name+': and at least 16px wide',foot.map(f=>({a:f.aria,gw:f.gw})));
+        L.note(name+': FOOTER GLYPHS '+JSON.stringify(foot.map(f=>({a:f.aria,gh:f.gh,gw:f.gw,svg:f.svg,fs:f.fs}))));
         const sizes=[...new Set(foot.map(f=>f.fs))];
-        L.say(sizes.length===1,name+': all five carry ONE font size, so "consistent" is a fact rather than a judgement. The play button shipped at 13px because it used to carry the word "Pause" - #347, icons still sized for the labels they stopped carrying',sizes);
+        // [R18, #545 item (83); jobs/gate-11-asserts-consistency-on-fontsize-while-two-of-the-five-glyphs-are-svg-props-2026-09-30]
+        // This line claimed "consistent is a fact" from fontSize, and two of the five glyphs are ChevIcon SVGs sized by a PROP
+        // (size={27}) that fontSize cannot see: size={10} left it green. It now claims only what fontSize governs, the three
+        // TEXT glyphs, and the band below holds all five glyphs at their measured heights.
+        const tsizes=[...new Set(foot.filter(f=>!f.svg).map(f=>f.fs))];
+        L.say(tsizes.length===1&&foot.filter(f=>!f.svg).length===3,name+': the three TEXT glyphs carry ONE font size (the play button shipped at 13px because it used to carry the word "Pause" - #347). fontSize does not size the two SVG chevrons; the band below does',{textSizes:tsizes,svgCount:foot.filter(f=>f.svg).length});
+        // THE GLYPH BAND, two-sided as #395 needs: a floor cannot see a glyph GROW, and growth here costs board height.
+        // Pinned to the heights measured at #545 on 049b41dfb6f1 at all four geometries: chevron SVG box 27, text line box 22.
+        // NOTE the 27 is the SVG BOX, which is what the size prop sets; the polyline INK inside it is 16.2 (gate 26's lesson
+        // footer pin), so this band holds the PROP and gate 26 reports the ink spread. +-1.5px.
+        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':22,'Close lesson':22,'More for this lesson':22};
+        const offBand=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN[f.aria]}));
+        L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 22) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
         L.say(foot.every(f=>f.gw<=f.w-6&&f.gh<=f.h-6),name+': and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
       }
       await b.shot('lesson-'+name+'-'+st);
