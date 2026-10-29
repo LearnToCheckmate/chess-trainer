@@ -1,14 +1,19 @@
-// gates/pending/75-fit-loop-one-way-ratchet.js
+// gates/regress/75-fit-loop-one-way-ratchet.js
 // TC-R64 (US-R72) - THE PORTRAIT FIT LOOP IS A ONE-WAY RATCHET: it shrinks the board on a real overflow and
 // can then never grow it back, so a board stays smaller for the rest of the visit.
 //
-// WHY IT IS IN gates/pending/ AND NOT IN gates/regress/, SAID FIRST BECAUSE IT IS THE MOST IMPORTANT FACT
-// ABOUT THIS FILE. The defect is LIVE ON origin/main and this gate REDS on main by design. L.run exits
-// non-zero, so in regress/ it would fail its section and block every push on a tree no build broke - the
-// trade #508 declined on its own G5-occlusion finding. gates.sh enumerates "$G"/regress/*.js only, so this
-// file is inert here, and gates/gate-manifest.tsv carries an `absent` row naming the job so
-// gatemanifest.sh reports the gap on EVERY run instead of the gap being a silence. It moves to regress/ and
-// the row flips to `required` IN THE SAME COMMIT as the app fix, never before - the route gate 50 waits on.
+// WHERE IT LIVES AND HOW IT GOT HERE. This file is in gates/regress/ and its manifest row reads `required`.
+// It arrived by the route its own header prescribed: it was written into gates/pending/ at #510 with an
+// `absent` manifest row naming the job, because the defect was LIVE ON main and this gate RED on main by
+// design - L.run exits non-zero, so in regress/ it would have failed its section and blocked every push on a
+// tree no build broke, the trade #508 declined on its own G5-occlusion finding - and it MOVED to regress/
+// with the row flipped to `required` IN THE SAME COMMIT as the app fix, at #522 (the pre-paint refit of the
+// lesson board, Kunal's refit-no-blink answer of 13 Oct). That is still the route gate 50 waits on, and the
+// paragraph is kept as HISTORY rather than deleted, because the manifest row cites this header as the route
+// it followed. IT IS NO LONGER AN INSTRUCTION: nothing here should be read as saying the file belongs in
+// pending/ or is inert. [#544, item (18): lines 1 and 5-11 said the opposite of what the tree does from #522
+// until now - the path line still read gates/pending/ and this paragraph was headed "WHY IT IS IN
+// gates/pending/ ... SAID FIRST BECAUSE IT IS THE MOST IMPORTANT FACT ABOUT THIS FILE".]
 // gates/audit/cited-not-run.sh carries the matching ADMIT roster row, declared, because the moment a record
 // document cites this file it joins that audit's set and an unaccounted member breaches a hard ceiling of 0.
 //
@@ -283,31 +288,76 @@ const pair=(n,tag,clean,inj,px,engages)=>{
 // #480 note measures the app's stack and bare sans-serif 53.84px apart on one line).
 //
 // HOW EACH ONE WAS SHOWN ABLE TO FAIL, which is the part this project insists on [CLAUDE.md, #385].
-//   D3 reddens on main: measured on main's own bundle f47aa0197967, 209 of 209 removed-phase frames at 320x540
-//      and 210 of 210 at 375x568 sit at 192.00 against a clean 236.39 / 254.88 - the latch, every frame of it.
-//   D1 does NOT redden on main, because main never overshoots: it only gets stuck. So it is controlled against a
-//      BUNDLE BUILT TO FAIL IT, and the recipe is stated here rather than cited, because a citation to a file
+// THE LABELS IN THIS BLOCK ARE THE FILE'S OWN ASSERTION IDS AND THEY USED TO BE WRONG [#544, item (18)].
+// This paragraph called the no-overshoot property "D1" and the no-latch property "D3". The real D1 is
+// "PRACTICE WAS REACHED" and the real D3 is the injected arm's frame-count denominator; the no-overshoot
+// property is D4..D7 and the latch pair is D8..D9. So anyone auditing "does D1 redden on main?" read an
+// unrelated precondition about the practice tap and could conclude the overshoot half had never been shown
+// able to fail. The ids below are now this file's own.
+//   D8 and D9 redden on main: measured on main's own bundle f47aa0197967, 209 of 209 removed-phase frames at
+//      320x540 and 210 of 210 at 375x568 sit at 192.00 against a clean 236.39 / 254.88 - the latch, every
+//      frame of it. (This is the property this paragraph used to call D3.)
+//   D4 AND D5 ARE CONTROLLED BY MAIN AT BOTH CELLS; D6 AND D7 ARE UNCONTROLLED. That sentence replaces
+//      "D1 does NOT redden on main, because main never overshoots", which was the FALSE one of two published
+//      statements that disagreed in this same header - the next paragraph and the D4 assertion string itself
+//      both said main paints a wider frame at 375x568. #522's antagonist B then measured main painting THREE
+//      wider frames at 320x540 on EVERY lesson entry (320.00 then 260.39 against a settled 236.39) plus two
+//      more returning from landscape, and one of 97 at 375x568. #522's own commit message repeated the false
+//      version and withdrew it in its close-out. THE SPLIT MATTERS AND THE FIRST DRAFT OF THIS CORRECTION
+//      OVERSTATED IT, caught by that run's antagonist A in the cross-read: every overshoot either antagonist
+//      measured is on the CLEAN entry path, and the clean path is what D4 and D5 assert over. D6 and D7
+//      assert over the INJECTED arm and NOTHING HAS SHOWN EITHER ABLE TO FAIL - they rest on the recipe
+//      below and on a close-out md5 that is not in this tree. A correction that fixed a false sentence by
+//      overclaiming in the other direction would leave the next reader believing four assertions are
+//      controlled when two are.
+//   D6 AND D7 are therefore controlled only against a
+//      BUNDLE BUILT TO FAIL THEM, and the recipe is stated here rather than cited, because a citation to a file
 //      this repository does not carry is the STALE-ROSTER red that gates/audit/cited-not-run.sh exists to find.
 //      THE CONTROL, reproducible in one edit: in chess.jsx's #522 refit, replace the converging branch's
 //      `setBoardTrim(...)`/`setFitPass(...)` pair with `setFitBump(b=>b+1)` and return - i.e. reset the trim on a
 //      content change and let the rAF loop re-settle, which is exactly what this job's own outcome.whatIsLeft
 //      proposed. That bundle recovers the latch AND paints the full-size board on the way, so D4 and D6 go red
 //      while D8 and D9 stay green. #522's close-out records the md5 it measured. A check that has never seen its
+//      defect proves nothing, and an uncontrolled assertion in this file would be the thing its header warns of.
 //      [#528, MEASURED: over #527's tree the recipe's bundle (md5 2a5556c8f281 in the orchestrator's scratch
 //      build) reddens D4, D8 and D9 at both cells, plus A9 at 375x568 and C9 at 375x730 and 375x761, 9 FAIL
 //      of 90, while D6 PASSES; the same 9 under this file before and after #528's label fix. So what this
-//      recipe controls today is D4, D8 and D9, not D6; the sentence above is #522's reading and is kept.]
-//      defect proves nothing, and an uncontrolled assertion in this file would be the thing its header warns of.
-//   AND D1 ALREADY CAUGHT SOMETHING NOBODY HAD FILED: on main, at 375x568, the CLEAN arm paints one frame at
+//      recipe controls today is D4, D8 and D9, not D6; the sentence above is #522's reading and is kept.
+//      #528's P1 is on main, verified here at #544 by git rather than from its own note: commit
+//      6a2fc6cded2b2695aea78e461d5d10ffa8577c48 is an ancestor of origin/main.
+//      THE BRACKET USED TO SIT MID-SENTENCE, between "its" and "defect" in "A check that has never seen its
+//      defect proves nothing", which #528's own appended note asked the next run to move. Moved, #544.]
+//   AND D4 ALREADY CAUGHT SOMETHING NOBODY HAD FILED (this paragraph called it D1): on main, at 375x568, the CLEAN arm paints one frame at
 //      270.88 when the settled practice board is 254.88 - a one-frame board jump on the ordinary lesson path,
 //      with no injection at all, against the project's first rule that the board must never jump. #522's
 //      pre-paint refit removes it (0 of 98 frames), which is why this assertion covers the clean arm too.
 //      [#528: 270.88 is the DEMO board's own width at 375x568, and a frame of it at the first practice index is
 //      what the label race described at the sampler produces; whether #522's observation was that race was not
 //      measured, so this note is left standing and the clean arm stays covered.]
+// #544, item (18), fixAddendum (5): KUNAL'S OWN TWO GEOMETRIES ARE NOW IN THIS BLOCK, AND THE ONE CELL THAT IS
+// NOT IS NAMED WITH ITS NUMBERS RATHER THAN LEFT AS A SILENCE.
+// THE GAP #522's ANTAGONIST A FOUND: this list drove 320x540 and 375x568 and NEITHER of the two candidates for
+// his actual phone, so the project's only per-frame fit-loop gate covered neither the geometry the player uses
+// nor the geometry the residual is about. The job asked for both cells plus a measured runtime decision.
+// THE RUNTIME, MEASURED RATHER THAN ESTIMATED, two full runs of this gate on main's own bundle 049b41dfb6f1
+// back to back in one container: two D cells 160s at 92 assertions, FOUR D cells 206s at 120. So the two cells
+// cost 46 SECONDS and 28 assertions - about 29% of this gate and well under one per cent of a 110-minute suite.
+// Affordable, so they are in; the px per cell is that geometry's own measured threshold from this file's
+// manifest row (375x730 loses 29.20px at 88px, 375x761 loses 32.80px at 120px), not a shared constant.
+// WHAT IS EXCLUDED AND WHY, AND IT IS A RED AND NOT A COST. 375x761 AT AN 88px TRANSIENT IS A LIVE DEFECT ON
+// main AND IS DELIBERATELY NOT A CELL HERE. Driven at #544 as its own single-cell run: 74 pass / 4 fail, with
+// D6, D8, D9 and D9b all RED - the clean arm settles at 375.03, the injected arm settles at 358.23 and NEVER
+// returns across all 211 removed-phase frames. That confirms, with numbers, the one line #522's antagonist A
+// left as a claim: 375x761 is the cell where #522's fix does not recover the 88px transient. ADDING IT WOULD
+// REDDEN A REQUIRED GATE ON A TREE NO BUILD BROKE, which is the exact trade #508 declined and the reason this
+// whole file sat in gates/pending/ until its app fix landed - so the residual stays with its owning job,
+// jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29 (cause fingerprints/94a2c0fe0b10aab2,
+// chess.jsx|boardTrim), and this comment is where a reader finds it instead of finding nothing.
 const DCELLS=[
   {n:'320x540', g:{w:320,h:540,safe:''}, px:88},
   {n:'375x568', g:L.GEOS.short375,       px:88},
+  {n:'375x730', g:L.GEOS.kunal730,       px:88},
+  {n:'375x761', g:L.GEOS.kunal761,       px:120},
 ];
 
 // the painted board, measured exactly as gates/lib.js board() does: the widest div whose own
@@ -331,7 +381,16 @@ const SAMPLER=()=>{
 // geometry's DEMO board, 236.39 and 270.88; with the label set inside the same evaluate as the click, under
 // heavier load, 0 of 20 and 0 of 10.
 // Idle, both orders read 0. So each label below is written by the evaluate that performs its action, before
-// the action, and no frame can be sampled under a label its board does not belong to.
+// the action, so no frame from BEFORE THE CLICK can be sampled under the practice label. A D4 red after #528
+// is a real board jump or a cause not found here.
+// [#544, item (18): that clause used to read "and no frame can be sampled under a label its board does not
+// belong to" - a general claim about frames and labels, which #528's own patches document contradicted in
+// terms ("a red of D4 ... is a real board jump or a cause not found here"). #528's antagonist A proposed this
+// exact wording and gave the reason I accept: a 236.39 frame at practice index 0 is EQUALLY the signature of
+// a first post-click repaint at the carried-over demo-derived width before the rAF loop re-trims, and index 0
+// is MORE natural for that mechanism than for a CDP-gap frame, which could land anywhere in the phase. What
+// discriminates is the LOAD-DEPENDENCE measured two lines above - 14 of 40 loaded two-step against 0 of 70
+// loaded one-task, 0 idle in both orders - because a post-click repaint would not care about load.]
 
 const framesArmInner=async(geo,px)=>{
   const b=await L.launch({geo});
@@ -397,6 +456,19 @@ const blockD=(n,px,clean,inj)=>{
   const good=(w)=>typeof clean.final==='number'&&Math.abs(w-clean.final)<=0.5;
   const firstGood=iR.findIndex(good);
   L.say(firstGood>=0,'TC-R64 D8 '+n+' THE BOARD COMES BACK WITHIN THE OBSERVED WINDOW: some removed-phase frame of the injected arm reaches the clean arm\'s settled '+clean.final+'. On main this is RED at both short cells - every one of 209 / 210 removed-phase frames sits at 192.00 and the board never returns',{cleanFinal:clean.final,injectedFinal:inj.final,framesBeforeRecovery:firstGood,removedFrames:iR.length,widths:uniqW(iR)});
+  // D9b IS D9's DENOMINATOR AND IT IS ITS OWN L.say, NOT A CONJUNCT OF D9 [#544, item (18);
+  // jobs/522-gate-75-block-d-hygiene-...-2026-10-14, item 4]. D9's persistence half is
+  // `iR.slice(firstGood).every(good)`, and `every()` is TRUE over nothing: D3 above requires only that iR has
+  // more than 20 frames IN TOTAL, and nothing required frames AFTER firstGood. If recovery landed on the last
+  // sampled frame the slice would have length 1 and "it stays back" would be asserted over a single element -
+  // the empty-denominator class this file's own header cites R18 about. LATENT RATHER THAN LIVE on the measured
+  // bundle (firstGood read 1 and 2 of 210 frames), which is why it is a P2 and why it is fixed by ADDING a
+  // check rather than by changing D9's condition: D9 still says what it said. A CONJUNCT WOULD HAVE BEEN THE
+  // SAME TRAP ONE LEVEL UP, because its halves could not fail independently and the pair would read as two
+  // checks while being one. The 20 is D2/D3's own figure, so the three denominators in this block agree.
+  // WHEN D8 IS RED THIS IS RED TOO AND THAT IS DELIBERATE: there is then no window at all, and a PASS here
+  // would be the credit an absent denominator must never get. The message says which of the two it is.
+  L.say(firstGood>=0&&iR.length-firstGood>20,'TC-R64 D9b '+n+' THE PERSISTENCE WINDOW IS NON-EMPTY: more than 20 removed-phase frames of the injected arm were sampled AFTER the first recovered one, so D9 below is asserted over a real window and not over a slice of length 1'+(firstGood<0?' - RED BECAUSE THE BOARD NEVER CAME BACK AT ALL, which is D8 and not this check':''),{firstGoodFrame:firstGood,removedFrames:iR.length,windowAfterRecovery:firstGood<0?0:iR.length-firstGood});
   L.say(firstGood>=0&&iR.slice(firstGood).every(good),'TC-R64 D9 '+n+' AND IT STAYS BACK: once the board reaches the clean size it is never painted at another size again, so the wrong-size frames are a PREFIX and not a wander. Threshold-free on purpose: a recovery cannot precede the removal that causes it, so some wrong frames are owed; an oscillation is not',{firstGoodFrame:firstGood,afterThat:iR.slice(firstGood<0?0:firstGood).length,distinctAfter:uniqW(iR.slice(firstGood<0?0:firstGood))});
   L.say(clean.errs===0,'TC-R64 D10 '+n+' zero console errors, clean per-frame arm',{errs:clean.errs});
   L.say(inj.errs===0,'TC-R64 D11 '+n+' zero console errors, injected per-frame arm - asserted separately, because a conjunct over both arms cannot say which one errored',{errs:inj.errs});
@@ -414,9 +486,10 @@ L.run(async()=>{
       pair(c.n+' LARGE','C',clean,big,c.large,true);    // a large transient engages at every geometry
     }
   }
-  // BLOCK D, #522: the per-frame check, at the two cells Kunal's bar names. Two further browser launches per
-  // cell, which is why it is scoped to the two short cells rather than to all four: 320x540 and 375x568 are
-  // where a small transient latches, and they are the two the bar asks for by name.
+  // BLOCK D, #522: the per-frame check. Two further browser launches per cell. IT WAS SCOPED TO THE TWO SHORT
+  // CELLS - 320x540 and 375x568, where a small transient latches and the two the bar asks for by name - and
+  // since #544 it also drives Kunal's own two geometries at their own thresholds, for 46 measured seconds.
+  // See the comment above DCELLS for the runtime figures and for the one cell that is excluded and why.
   for(const c of DCELLS){
     const cleanF=await framesArm(c.g,0);
     const injF=await framesArm(c.g,c.px);
