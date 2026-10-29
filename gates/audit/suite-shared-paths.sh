@@ -42,7 +42,7 @@
 #
 # USAGE
 #   gates/audit/suite-shared-paths.sh              report and ratchet. exit 0 clean, 1 on a breach.
-#   gates/audit/suite-shared-paths.sh --selftest   five controls, in both directions. exit 0 / 1.
+#   gates/audit/suite-shared-paths.sh --selftest   six controls, in both directions. exit 0 / 1.
 #
 # THE RATCHET IS ON `COLLIDES`, AND ON NEW UNCLASSIFIED EXPRESSIONS, AND ON NOTHING ELSE.
 # A ceiling over the TOTAL number of write sites would be satisfied by deleting a log, and relieved
@@ -94,13 +94,18 @@ INV
 fail=0
 say(){ printf '%s\n' "$*"; }
 
+# THE EXCLUSION IS A WHOLE-LINE MATCH ON THE $G/-PREFIXED LITERAL [#545, item (64);
+# jobs/suite-shared-paths-new-exclusion-is-a-suffix-match-so-it-excuses-any-path-ending-in-the-name-2026-10-16]. It was
+# anchored only at the end ('/(names)$'), so any path ENDING in one of the names was excused - antagonist D wrote to
+# "$G/logs/fastgate-drive.sh" and the audit answered OK. Now only the exact $G/<name> expressions are excused.
+# Control: --selftest C6.
 # assertion-counts.tsv is READ by gates.sh's assert_falls (ACREG) and written only by gates/assertcount.sh, by hand
 # at close-out, so it is a read target like the four names beside it, not a write destination [#545, item (37)
 # follow-up: item (37) added that read and this audit went RED on it, 10 -> 7 selftest, until this line].
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
   grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" \
     | sed 's/}$//' \
-    | grep -vE '/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)$' \
+    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)' \
     | sort -u
 }
 
@@ -205,7 +210,7 @@ fi
 # ── CONTROLS ─────────────────────────────────────────────────────────────────────────────────────
 if [ "${1:-}" = "--selftest" ]; then
   say ""
-  say "== selftest: five controls, each in the direction that matters =="
+  say "== selftest: six controls, each in the direction that matters =="
   T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
   mkdir -p "$T/regress"
   cp "$GATESH" "$T/gates.sh"; cp "$LIBJS" "$T/lib.js"
@@ -244,6 +249,13 @@ if [ "${1:-}" = "--selftest" ]; then
   ck C5-shots-consumer-fires "$(printf '%s' "$o" | grep -c '98-reads-shots')" 1
   ck C5b-shots-consumer-exit "$rc" 1
   rm -f "$T/regress/98-reads-shots.js"
+
+  # C6 A WRITE DESTINATION THAT MERELY ENDS IN AN EXCLUDED NAME IS NOT EXCUSED [#545, item (64)]: antagonist D's
+  #    evasion, which the end-anchored exclusion answered OK.
+  cp "$T/gates.sh" "$T/g6.sh"; printf 'echo hi > "$G/logs/fastgate-drive.sh"\n' >> "$T/g6.sh"
+  o=$(run "$T/g6.sh" "$T/regress"); rc=$?
+  ck C6-suffix-evasion-fires "$(printf '%s' "$o" | grep -c '+ \$G/logs/fastgate-drive.sh')" 1
+  ck C6b-suffix-evasion-exit "$rc" 1
 
   say ""
   say "selftest: $p pass / $f fail"
