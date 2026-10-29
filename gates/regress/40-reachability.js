@@ -308,7 +308,7 @@ L.run(async()=>{
     L.say(hdrKind(row&&row.all)===HDR_DEPTH_KIND.browse,geo+': THE DENOMINATOR OF THE RIGHT-EDGE ASSERTION, asserted rather than printed. The browse puzzle-header walk is DEPTH-GENERAL and reached '+(((row&&row.all)||[]).length)+' painted descendant(s) to a maximum depth of '+(row&&row.maxDepth)+', of which '+deeper.length+' lie BELOW depth 1 and were INVISIBLE to this gate until now - so the depth-1 walk was missing a real box on this screen, not a hypothetical one. It is DECLARED \'deep\'; if it ever measures \'flat\' the line below has silently become a depth-1 claim again [jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28 item 2].',{n:((row&&row.all)||[]).length,deeper:deeper.length,maxDepth:row&&row.maxDepth,kind:hdrKind(row&&row.all),declared:HDR_DEPTH_KIND.browse});
     const past=spillPast(row&&row.all,row&&row.vw);
     L.say(past.length===0,geo+': NOTHING in the puzzle header runs off the right edge - measured over all '+(((row&&row.all)||[]).length)+' painted descendant(s) rather than over the 3 direct children, which is the correction this line needed. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.',{past,docScrollW:row&&row.docScrollW,over:((row&&row.all)||[]).length});
-    if(geo==='kunal730'){
+    if(L.GEOS[geo].w===375&&L.GEOS[geo].h===730){ // dimensions, not the name [#545 item (4)]
       // Z-06's condition, asserted rather than promised: the 320 fix must not move 375.
       const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
       const got=(row&&row.kids)||[];

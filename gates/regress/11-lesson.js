@@ -10,7 +10,7 @@ L.run(async()=>{
     await b.card(3,2500);const demoEnd=await b.metrics();await b.shot('lesson-'+geo+'-demo-end');
     const note=await b.rect('[data-ct="lesson-note"]');
     L.say(!!demoEnd.board,geo+': demo end shows a board',demoEnd.board);
-    if(geo==='kunal'&&demoEnd.board){L.say(Math.abs(demoEnd.board.w-375)<0.6,'kunal: demo end board is 375 wide ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'kunal: demo end board top is 92 ('+demoEnd.board.top+')');}
+    if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679&&demoEnd.board){ /* keyed on the geometry's DIMENSIONS, not its name [#545 item (4)]: a renamed key now throws here instead of silently skipping these pins */L.say(Math.abs(demoEnd.board.w-375)<0.6,'kunal: demo end board is 375 wide ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'kunal: demo end board top is 92 ('+demoEnd.board.top+')');}
     L.say(!!note&&Math.abs(note.h-75)<1,geo+': note box is 75px',note&&note.h);
     L.say(demoEnd.over.over<=0&&demoEnd.over.docScroll===0,geo+': no scroll at the demo end',demoEnd.over);
     await b.card(4,2500);const prac=await b.metrics();await b.shot('lesson-'+geo+'-practice');

@@ -168,7 +168,11 @@ A3_MIN_SUITE="${CT_A3MIN:-20}"
 # A4_CEILING  MEASURED at #544 on this tree AFTER the two gate-65 fixes, by this script's own a4_sites:
 #           FIVE code sites - 11-lesson.js:13, 20-review.js:215, 36-evalbar.js:230, 40-reachability.js:311 and
 #           70-live-game-reset-guard.js:341. Not aspirational and not rounded up.
-A4_CEILING="${CT_A4CEIL:-5}"
+#           LOWERED TO ZERO AT #545 [item (4) of directOpening_2026_10_29_batch5]: all five sites now test the
+#           geometry's DIMENSIONS (L.GEOS[geo].w/.h, or gate 70's own g.w/g.h) instead of its key, so a renamed key
+#           throws or still selects the right pin rather than silently skipping it, and a4_sites finds 0 code sites.
+#           With the ceiling at 0, the first new token comparison anyone writes reads A4b FAIL.
+A4_CEILING="${CT_A4CEIL:-0}"
 
 # ── SCOPE. The five paths the case names, expanded. Printed as a file count because R18 says count
 # inputs and not assertions: one file is a demonstration, 61 is a measurement.

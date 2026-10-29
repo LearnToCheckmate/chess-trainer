@@ -212,7 +212,7 @@ L.run(async()=>{
     await b.settle(400);await rec('p33');await b.shot('review-'+geo+'-ply33');
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
     L.say(ws.size===1&&tops.size===1&&!ws.has(null),geo+': TC-R06 one board width and one top across plies 0/10/19/33',{ws:[...ws],tops:[...tops]});
-    if(geo==='kunal')L.say(at.p0.board&&Math.abs(at.p0.board.w-349)<0.6,'kunal: TC-R06 review board is 349 wide ('+(at.p0.board&&at.p0.board.w)+')');
+    if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679)L.say(/* dimensions, not the name [#545 item (4)] */at.p0.board&&Math.abs(at.p0.board.w-349)<0.6,'kunal: TC-R06 review board is 349 wide ('+(at.p0.board&&at.p0.board.w)+')');
     // The docScroll===0 conjunct that used to sit beside this one is GONE. index.html:39 sets body{overflow:hidden}
     // and makes #root the scroller, so documentElement scrollHeight minus clientHeight is 0 on every screen in
     // every state BY DESIGN and that half could never redden - while reading as though it covered reachability.

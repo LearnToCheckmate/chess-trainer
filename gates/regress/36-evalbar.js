@@ -227,7 +227,7 @@ async function playAt(geo){
     L.note(tag+': board width measured at '+(at4.board&&at4.board.w)+' - NOT YET PINNED in BOARD_W, so nothing is asserted about it here.');
   }else{
     L.say(!!at4.board&&Math.abs(at4.board.w-pin)<0.6,
-          tag+': the vs-Computer board is '+pin+' here'+(geo==='kunal730'?', 4px narrower than the 357 of #378 - the cost he accepted knowingly':' (fit to height at this size, which is why it is pinned per geometry)'),
+          tag+': the vs-Computer board is '+pin+' here'+(L.GEOS[geo].w===375&&L.GEOS[geo].h===730?', 4px narrower than the 357 of #378 - the cost he accepted knowingly':' (fit to height at this size, which is why it is pinned per geometry)'),
           at4.board&&at4.board.w);
   }
   L.say(!!s4&&Math.abs(s4.w-14)<0.6,tag+': the bar is still 14 wide after four plies',s4&&s4.w);

@@ -338,7 +338,7 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
      would buy repetition rather than discovery [#411]. They are also the two most expensive blocks in the
      gate: each drives a full review or lesson entry. The LAYOUT assertions (B3, C4, H1) do run at all three,
      because those are the ones a geometry can change. */
-  if(G==='kunal'){
+  if(g.w===375&&g.h===730){ // Kunal's geometry by its DIMENSIONS, not the key 'kunal' [#545 item (4)]
   // ---------- J. A POSITION LOADED BUT NOT YET MOVED IN. Both antagonists, from different doors. ----------
   // B drove Review -> ⋯ -> "Play from here" -> "▶ Play this position" and measured 10 of 64 squares changing on
   // ONE tap; A drove the LESSON route (block K) and got a board signature byte-identical to a fresh game. The
