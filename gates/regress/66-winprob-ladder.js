@@ -12,7 +12,17 @@
 // assertion keyed to a hook your own build adds cannot be controlled" - because nothing here is keyed to
 // anything #440 introduced into the DOM: block B locates every number by the words already on screen.
 //
-// WHY BLOCK A CANNOT PASS VACUOUSLY. A0 asserts every extraction FOUND something before any assertion
+// [R18, #545 item (81); jobs/gate-66-block-a-is-27-assertions-that-cannot-fail-2026-09-30] BLOCK A IS A PROVENANCE
+// CHECK PLUS A UNIT TEST OF THIS GATE'S OWN ARITHMETIC, NOT A TEST OF THE BUNDLE'S BEHAVIOUR, and the heading below
+// is withdrawn as a behaviour claim. Block A reads five numbers out of the bundle with a regex and then does all
+// its arithmetic with the GATE'S OWN winPct, drop and lab; no line of the bundle's classify runs. Antagonist A of
+// #441 proved it: a bundle feeding RAW centipawn loss into the ladder, with the band table intact (867ef4cb8e60),
+// scored A0..A27 all green. So A1..A5 are labelled PROVENANCE (the shipped bundle carries these constants, which is
+// real and worth keeping), A6..A27 are labelled GATE-ARITHMETIC, and the four TC-R40 inputs with no constraint
+// (clause 'unconstrained') are now notes, not PASS lines. What executes the bundle's ladder is block B (rendered
+// counts and accuracy on PGN_OPERA) and block E (#545 item (56): the Mistake and Inaccuracy rungs, rendered). A
+// rendered test for every band boundary is the job's option (1) and is still open.
+// WHY BLOCK A CANNOT PASS VACUOUSLY [as an EXTRACTION, which is all it now claims]. A0 asserts every extraction FOUND something before any assertion
 // uses it. That is the E1b discipline from gate 65: a regex that cannot match reports a defect that is
 // not there, and here it would instead report a ladder that is not there. Measured while writing this:
 // esbuild minifies 0.00368208 to `.00368208`, so a pattern anchored on the leading zero matches NOTHING
@@ -91,13 +101,13 @@ L.run(async()=>{
     const lab=d=>{for(let k=0;k<nums.length;k++)if(d<nums[k])return WANT[k][2];return 'Blunder';};
     // A1..A5 the shipped constants ARE the ones the amber record names.
     WANT.forEach(([want,,name],k)=>L.say(Math.abs(nums[k]-want)<1e-9,
-      'A'+(k+1)+' the shipped '+name+' cut-off is '+want+' points of win chance',{shipped:nums[k],want}));
+      'A'+(k+1)+' PROVENANCE the shipped bundle carries the '+name+' cut-off '+want+' points of win chance',{shipped:nums[k],want}));
     // A6..A10 AND THEY INVERT TO OUR OLD CENTIPAWN LADDER AT EVAL 0, which is the whole claim that a
     // LEVEL position grades exactly as it did before #440. Proved by bisection, not asserted.
     WANT.forEach(([d,cp,name],k)=>{
       let lo=0,hi=6000;for(let i=0;i<300;i++){const m=(lo+hi)/2;if(drop(0,-m,'w')<nums[k])lo=m;else hi=m;}
       const got=(lo+hi)/2;
-      L.say(Math.abs(got-cp)<0.01,'A'+(6+k)+' at eval 0 the '+name+' cut-off is still '+cp+'cp (level positions unchanged)',
+      L.say(Math.abs(got-cp)<0.01,'A'+(6+k)+' GATE-ARITHMETIC (this gate\'s winPct over the shipped constant, not the bundle\'s classify) at eval 0 the '+name+' cut-off inverts to '+cp+'cp',
             {invertedTo:Math.round(got*1000)/1000,oldCutoff:cp});});
     // A11..A24 TC-R40: ONE identical 350cp slip, seven standing evaluations, both movers. 14 inputs, never
     // aggregated - the job's own case says a mean or a count is green on the broken build and on the fix alike.
@@ -108,9 +118,11 @@ L.run(async()=>{
       // clause (i): at eval 0 a 350cp slip IS a blunder and must stay one.
       // clause (ii): nothing costing under 10 points of win chance may be called a Blunder.
       const ok=(eb===0?got==='Blunder':true)&&(d<10?got!=='Blunder':true);
-      L.say(ok,'A'+n+' TC-R40 '+mv+' at evalBefore '+eb+'cp: a 350cp slip drops '+d.toFixed(2)+' points -> '+got,
-            {mover:mv,evalBefore:eb,drop:Math.round(d*100)/100,label:got,
-             clause:eb===0?'(i) must be Blunder':(d<10?'(ii) must NOT be Blunder':'unconstrained')});
+      const clause=eb===0?'(i) must be Blunder':(d<10?'(ii) must NOT be Blunder':'unconstrained');
+      // #545 item (81): an input with no constraint is true && true and asserted nothing, so it is a NOTE now.
+      if(clause==='unconstrained') L.note('A'+n+' TC-R40 '+mv+' at evalBefore '+eb+'cp: NOT ASSERTED (no clause constrains this input) - drop '+d.toFixed(2)+' -> '+got);
+      else L.say(ok,'A'+n+' GATE-ARITHMETIC TC-R40 '+mv+' at evalBefore '+eb+'cp: a 350cp slip drops '+d.toFixed(2)+' points -> '+got,
+            {mover:mv,evalBefore:eb,drop:Math.round(d*100)/100,label:got,clause});
       n++;
     }
     // A27 THE SWEEP THAT ACTUALLY DISCRIMINATES, added after the antagonist broke the headline claim.
@@ -123,16 +135,16 @@ L.run(async()=>{
     const mismatches=[];
     for(let l=0;l<=1500;l++){const a=lab(drop(0,-l,'w')),b=oldLadder(l);if(a!==b)mismatches.push({loss:l,shipped:a,pre440:b});}
     L.say(mismatches.length===0,
-      'A27 at eval 0 the shipped ladder agrees with the pre-#440 centipawn ladder at all 1501 integer losses - the claim that a LEVEL position is unchanged, asserted over its whole input space rather than at five boundaries',
+      'A27 GATE-ARITHMETIC at eval 0 the ladder built from the shipped constants agrees with the pre-#440 centipawn ladder at all 1501 integer losses - the claim that a LEVEL position is unchanged, asserted over its whole input space rather than at five boundaries',
       {inputs:1501,mismatches:mismatches.length,first:mismatches.slice(0,4)});
 
     // A25 THE CAP, which is a product statement and not a bug: a drop is bounded by the chances you had.
     const capped=lab(drop(-1200,-100000,'w'));
-    L.say(capped==='Best','A25 at -1200cp every move grades Best - the cap is real and is the published behaviour',
+    L.say(capped==='Best','A25 GATE-ARITHMETIC at -1200cp every move grades Best - the cap is real and is the published behaviour',
           {worstReachableAtMinus1200:capped});
     // A26 and the asymmetry: from +1000, throwing the game away is STILL a Blunder.
     const fromWinning=lab(drop(1000,-100000,'w'));
-    L.say(fromWinning==='Blunder','A26 from +1000cp throwing the whole game away is still a Blunder (the ladder is not symmetric)',
+    L.say(fromWinning==='Blunder','A26 GATE-ARITHMETIC from +1000cp throwing the whole game away is still a Blunder (the ladder is not symmetric)',
           {worstReachableAtPlus1000:fromWinning});
   }
 
