@@ -54,7 +54,34 @@ const hasVar=(s)=>{if(!s)return false;const rest=s.replace(/^\S+\s*/,'');return 
 const num=(s)=>{if(!s)return null;const m=String(s).match(/^([+-]?\d+\.\d)/);return m?parseFloat(m[1]):null;};
 const fwd=async(b,n,w)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(w||110);}};
 const back=async(b,n,w)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000});await b.page.waitForTimeout(w||110);}};
+// ── THE TRAP COUNTER, AND ITS UNIT CONTROL [#544, item (25);
+// jobs/gate-22-never-requires-the-wasm-trap-to-have-fired-so-five-recovery-assertions-pass-over-a-non-event-2026-10-09,
+// P2, found by antagonist A of #504 in the ROTATING AUDIT of ten pre-existing assertions].
+// THE FINDING: this file exists to prove the app RECOVERS from the Stockfish WASM trap - the #389 defect, 'a
+// failed query is not an answer, and caching it is how broken once becomes broken for ever'. Its five recovery
+// assertions ALLOW /RuntimeError: unreachable/ at the error check below and REQUIRE it nowhere. So on any run,
+// container or machine where the trap does not occur there is nothing to recover from, all five pass over a
+// NON-EVENT, and nobody can tell which happened from the log. That is the missing-denominator rule applied to
+// a whole gate: every() and a negated test() are both true over nothing, and so is a recovery check over a
+// failure that never happened. The irony the job records is that this gate's SUBJECT is #389.
+// AND THE PRIORITY ARGUMENT INVERTS RATHER THAN WEAKENS, which the job measured after filing it: at #504 the
+// trap fired SIX times in this container's own section and TWO of the five went RED, catching the live P0
+// jobs/two-analysis-queries-on-one-worker-abort-each-other-and-the-loser-is-cached-as-an-answer-2026-10-09 and
+// stopping that push. A gate that has caught something is worth MORE hardening, not less: the day the trap
+// stops firing is the day a proven-necessary guard goes silent with no tell.
+const TRAP_RE=/RuntimeError: unreachable/;
+const trapCount=(errs)=>(errs||[]).filter(e=>TRAP_RE.test(String(e))).length;
 L.run(async()=>{
+  // THE PREDICATE IS UNIT-TESTED BEFORE THE BROWSER STARTS, over the three inputs that matter, because
+  // CLAUDE.md's #391 rule is that a predicate parsing what an engine wrote must be checked against what the
+  // engine can produce - including the cases it must REJECT - and because the LIVE line below cannot be
+  // controlled in a container where the trap always fires. Eight strings take a second and would have caught
+  // #391 on the day.
+  L.say(trapCount([])===0 && trapCount(['TypeError: x is not a function'])===0
+        && trapCount(['RuntimeError: unreachable'])===1
+        && trapCount(['a','RuntimeError: unreachable at wasm://wasm/0001','RuntimeError: unreachable'])===2,
+    'TC-SUITE-236 INSTRUMENT: the trap counter counts /RuntimeError: unreachable/ and reads ZERO over an empty list - which is the reading that makes the non-vacuity line below mean something',
+    {empty:trapCount([]),unrelated:trapCount(['TypeError: x is not a function']),one:trapCount(['RuntimeError: unreachable']),two:trapCount(['a','RuntimeError: unreachable at wasm://wasm/0001','RuntimeError: unreachable'])});
   const b=await L.launch({geo:'kunal730',name:'engline-recovery',store:{ct_pool:'3'}});await b.open();
   await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(600);
@@ -371,4 +398,20 @@ L.run(async()=>{
   L.note('page errors seen (the WASM trap is EXPECTED and allowed by exact text): '+JSON.stringify(b.errs.slice(0,6)));
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'no app error beyond the allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
+  // ── THE NON-VACUITY LINE THE RECOVERY ASSERTIONS ABOVE DEPEND ON [#544, item (25)]. ──────────────────────
+  // IT IS READ HERE AND NOT BEFORE THE FIVE, and the reason is mechanical rather than stylistic: b.errs
+  // accumulates across the whole run, so this is the first point at which the count is authoritative for all
+  // of it. The unit control sits above L.run's browser work so a reader meets the instrument first.
+  // IT IS NOT A RED WHEN THE COUNT IS ZERO, and that is a decision with a cost on both sides. A red would
+  // make this gate - and so the suite, and so every push - fail on a container property rather than on the
+  // tree, which is the trade #508 declined and the reason gate 75 sat in gates/pending/ for twelve builds.
+  // What the job asks for instead is exactly what happens: 'the honest form is an explicit NOTE that the run
+  // did not enter the state, so the log says so, rather than five silent passes'. So a zero emits NO PASS AT
+  // ALL - reported, never credited - and names the five assertions it governs.
+  const nTrap=trapCount(b.errs);
+  if(nTrap>0){
+    L.say(nTrap>0,'TC-SUITE-236 THE WASM TRAP FIRED '+nTrap+' time(s) on this run, so the five recovery assertions above (the first-visit number, the revisit variation and the revisit sign at each of plies 19 and 25) are about a REAL event rather than a non-event',{nTrap,of:b.errs.length});
+  }else{
+    L.note('TC-SUITE-236 NOT CHECKED: ZERO /RuntimeError: unreachable/ page errors were observed on this run, so there was NOTHING TO RECOVER FROM and the five recovery assertions above passed over a NON-EVENT. No PASS is emitted for this line - a missing denominator is reported and never credited. The reference reading in this container is SIX traps against an allowed count of 7, measured at #504 in the 22-engline-recovery section of that run, which this repository does not archive, so a zero here means the trap has stopped firing and this gate has stopped guarding #389.');
+  }
 },'ENGLINE-RECOVERY');

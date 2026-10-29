@@ -395,6 +395,28 @@ expect_build(){ # <case> <expected rc> <expected substring> <bare number> <CT_ST
   printf '  ok  %s [%s]  (exit %s, %s)\n' "$name" "$id" "$rc" "$want"
   OK=$((OK+1)); return 0
 }
+# badnum <value>: TRUE (0) when the value is NOT a plausible build number, so a caller reads
+#   `if badnum "$H1N"; then <the labelled FAIL>; fi`
+# It is the SHAPE test the job's theFix asks the guards to use in place of emptiness, and it is one function so
+# the twelve call sites cannot drift from each other - which is the defect #490 recorded about a second
+# hand-written list. Three or four digits: the register's own ^#[0-9]{3,4}$ shape, and the bound the pipeline
+# this harness used to run had in its grep.
+badnum(){ case "${1:-}" in ''|*[!0-9]*) return 0 ;; esac
+  { [ "${#1}" -ge 3 ] && [ "${#1}" -le 4 ]; } && return 1 || return 0; }
+# AND badnum HAS ITS OWN CONTROL, AT STARTUP, IN BOTH MODES, BECAUSE TWENTY GUARDS NOW DEPEND ON IT [#544,
+# item (27)]. A predicate that twenty call sites read is the last place to accept "it looks right": this is
+# CLAUDE.md's #391 rule - enumerate what the producer can emit and unit-test the predicate against it,
+# INCLUDING the cases it must reject - and it costs microseconds. The three rejected strings in the first list
+# are the job's own: `error 2`, `#52 6` and `#10000` all parsed to a NUMBER under the expansions that replaced
+# the old grep's {3,4} bound. It REFUSES rather than reporting, because a harness whose own guard is broken
+# cannot judge a tree.
+for _bn in '' ' ' 'x' '2' '52' '10000' '00001' 'error 2' '1e3' '545x' '-545'; do
+  badnum "$_bn" || { echo "fastgate-drive.sh: REFUSING - badnum ACCEPTED [$_bn], which is not a build number."; exit 2; }
+done
+for _bn in '100' '545' '1234' '9999'; do
+  badnum "$_bn" && { echo "fastgate-drive.sh: REFUSING - badnum REJECTED [$_bn], which is a valid build number."; exit 2; }
+done
+unset _bn
 mint_in_clone(){ # echoes the minted bare number, or empty
   # NO PIPELINE HERE EITHER [#525, antagonist B's finding 4]. This was
   #   bash buildnum.sh next | grep -oE '#?[0-9]{3,4}' | head -1 | tr -d '#'
@@ -408,13 +430,33 @@ mint_in_clone(){ # echoes the minted bare number, or empty
   # suspected cause, which is the only honest response to a defect whose cause is unknown.
   # SCOPE, so nobody over-reads it: `fixed` is the only mode gates/gates.sh runs, and B measured it
   # stable at 25 ok / 0 FAIL / 1 skipped in 3 of 3, one of them at loadavg 3.47.
+  # ── TWO FAULTS REPAIRED AT #544, item (27) [jobs/mint-in-clones-failure-note-is-captured-into-its-own-
+  # return-value-and-its-parse-is-unbounded-2026-10-16, P2, from #525's re-read pair at the diff door].
+  # (1) THE FAILURE NOTE WENT TO STDOUT AND WAS CAPTURED INTO THE VARIABLE IT IS MEANT TO LEAVE EMPTY. Every
+  # caller is `HxN="$(mint_in_clone)"`, and `note` prints to STDOUT, so `note "    (mint failed: $out)"` was
+  # captured instead of reaching the log - the variable was then NON-EMPTY, the `[ -z "$HxN" ]` branch was not
+  # taken, the labelled FAIL never printed, and the harness went on to restamp with the ERROR TEXT as the build
+  # number. The diff door reproduced it with the function copied byte-for-byte and CT_SRCMD5 carrying a TAB so
+  # `mint` refuses. It is PRE-EXISTING and not #525's: a3829c2 shows that line as context. It is filed P2 and
+  # not vetoed because nobody could make it fire on an HONEST tree - but the direction is a false red on the
+  # one block that authorises a push, which is the expensive direction.
+  # (2) THE PARSE LOST THE BOUND THE PIPELINE IT REPLACED HAD. #525 correctly removed a four-stage pipeline
+  # with `head -1` in the middle (the early-exit-pipe class), and the parameter expansions that replaced
+  # `grep -oE '#?[0-9]{3,4}'` kept the digits and dropped the {3,4}: `error 2` parsed to 2, `#52 6` to 6,
+  # `#10000` to 10000. Against the real producer in six register states it never returned a wrong number, so
+  # this is latent - one new stdout line ending in a digit makes it reachable.
+  # THE CONTRACT IS NOW ENFORCED AT THIS FUNCTION'S OWN EXIT, which is why the callers' `[ -z ]` guards are
+  # sound again rather than merely unbroken: on ANY failure path it prints NOTHING to stdout and returns 1, and
+  # on success it prints three or four digits and nothing else. Both halves are asserted here rather than
+  # trusted at twelve call sites.
   local n out raw
   raw="$(cd "$C" && bash "$C/gates/buildnum.sh" next 2>/dev/null || true)"
   n="${raw%%$'\n'*}"                 # first line, in-shell
   n="${n##*[!0-9#]}"                 # drop any leading prose
   n="${n#\#}"; n="${n%%[!0-9]*}"      # bare digits only
-  [ -n "$n" ] || return 1
-  out="$(cd "$C" && CT_RUNID=fastgate-drive bash "$C/gates/buildnum.sh" mint "fastgate-drive.sh fixture, never pushed" 2>&1)" || { note "    (mint failed: $out)"; return 1; }
+  badnum "$n" && return 1            # digits only, three or four of them - the bound #525's expansions dropped
+  out="$(cd "$C" && CT_RUNID=fastgate-drive bash "$C/gates/buildnum.sh" mint "fastgate-drive.sh fixture, never pushed" 2>&1)" || { note "    (mint failed: $out)" >&2; return 1; }
+  badnum "$n" && return 1            # the output contract, checked on the value actually printed
   printf '%s' "$n"
 }
 record_in_clone(){ # <num> <bundle md5-12> <source md5-12>
@@ -428,7 +470,7 @@ md5_12(){ md5sum "$1" 2>/dev/null | cut -c1-12; }
 #     Eastern minute, all three sites) and register rows written by the real mint and record.
 reset_clone
 H1N="$(mint_in_clone)"
-if [ -z "$H1N" ]; then
+if badnum "$H1N"; then
   note "  FAIL H1 [$(tc H1)]  could not mint a fixture number in the clone, so the positive case cannot be built"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H1"
 else
@@ -442,7 +484,7 @@ fi
 #     must not tax it - APPDIFF is empty so the stamp block never runs, and only Part 2(c) applies.
 reset_clone
 H2N="$(mint_in_clone)"
-if [ -z "$H2N" ]; then
+if badnum "$H2N"; then
   note "  FAIL H2 [$(tc H2)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H2"
 else
@@ -1084,7 +1126,7 @@ open(p,'w',encoding='utf-8').write(s.replace(o,n))
 PY
   new_base "H10 base: gate 49's stamp regex tightened to three digits" >/dev/null
   H10N="$(mint_in_clone)"
-  if [ -z "$H10N" ]; then
+  if badnum "$H10N"; then
     note "  FAIL H10 [$(tc H10)]  could not mint a fixture number in the clone"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H10"
   else
@@ -1132,7 +1174,7 @@ H11F=gates/regress/10-gameover.js
 printf '\n// fastgate-drive.sh H11 fixture, never pushed: a gate that requires a records-only path\nrequire("../../claude/agents/zz-h11-fixture.js");\n' >> "$C/$H11F"
 new_base "H11 base: gate 10 requires a records-only path" >/dev/null
 H11N="$(mint_in_clone)"
-if [ -z "$H11N" ]; then
+if badnum "$H11N"; then
   note "  FAIL H11 [$(tc H11)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H11"
 else
@@ -1216,7 +1258,7 @@ else
   printf "\n// fastgate-drive.sh H30 fixture, never pushed: a gate that names a records file\nconst _zzH30=path.join(__dirname,'..','..','claude','process-log','lane-2.md');\n" >> "$C/$H30F"
   new_base "H30 base: gate 12 names a records file with path.join" >/dev/null
   H30N="$(mint_in_clone)"
-  if [ -z "$H30N" ]; then
+  if badnum "$H30N"; then
     note "  FAIL H30 [$(tc H30)]  could not mint a fixture number in the clone"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H30"
   else
@@ -1255,7 +1297,7 @@ printf '// fastgate-drive.sh H31 fixture, never pushed: a records-only file a ga
 printf '\n// fastgate-drive.sh H31 fixture, never pushed: a gates-level file that requires a records-only path\nrequire("../claude/agents/zz-h31-fixture.js");\n' >> "$C/$H31L"
 new_base "H31 base: gates/lib.js requires a records-only file that the commit carries" >/dev/null
 H31N="$(mint_in_clone)"
-if [ -z "$H31N" ]; then
+if badnum "$H31N"; then
   note "  FAIL H31 [$(tc H31)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H31"
 else
@@ -1292,7 +1334,7 @@ fi
 reset_clone
 H32F=gates/verify-log.sh
 H32N="$(mint_in_clone)"
-if [ -z "$H32N" ]; then
+if badnum "$H32N"; then
   note "  FAIL H32 [$(tc H32)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H32"
 else
@@ -1371,7 +1413,7 @@ else
   done
   new_base "H33 case base: eleven minted-only rows #$((H33TOP+1))..#$((H33TOP+11)), the shape held runs leave" >/dev/null
   H33N="$(mint_in_clone)"
-  if [ -z "$H33N" ]; then
+  if badnum "$H33N"; then
     note "  FAIL H33 [$(tc H33)]  could not mint a fixture number in the clone above the held mints"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H33"
   else
@@ -1394,7 +1436,7 @@ fi
 #     stamp arm's function calls the value unusable. Reverting either change makes this case read exit 1.
 reset_clone
 H34N="$(mint_in_clone)"
-if [ -z "$H34N" ]; then
+if badnum "$H34N"; then
   note "  FAIL H34 [$(tc H34)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H34"
 else
@@ -1425,7 +1467,7 @@ fi
 #     match. Since #529 a built row must name a bundle this history holds.
 reset_clone
 H36N="$(mint_in_clone)"
-if [ -z "$H36N" ]; then
+if badnum "$H36N"; then
   note "  FAIL H36 [$(tc H36)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H36"
 else
@@ -1471,7 +1513,7 @@ fi
 reset_clone
 H38N="$(mint_in_clone)"
 H38E="$(TZ=America/New_York date -d "$NOWET" '+%s' 2>/dev/null || true)"
-if [ -z "$H38N" ] || [ -z "$H38E" ]; then
+if badnum "$H38N" || [ -z "$H38E" ]; then
   note "  FAIL H38 [$(tc H38)]  could not mint a fixture number or read the harness clock"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H38"
 else
@@ -1483,7 +1525,7 @@ fi
 #     any stamp this project has shipped, so the home screen would go backwards. Same door as H38, other bound.
 reset_clone
 H39N="$(mint_in_clone)"
-if [ -z "$H39N" ]; then
+if badnum "$H39N"; then
   note "  FAIL H39 [$(tc H39)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H39"
 else
@@ -1509,7 +1551,7 @@ fi
 reset_clone
 H41ROW="$(awk -F'\t' '$0 !~ /^[[:space:]]*#/ && NF == 9 && $2 == "built" {r = $1 " " $7} END {print r}' "$C/gates/build-numbers.tsv")"
 H41N="${H41ROW%% *}"; H41R="${H41ROW#* }"
-if [ -z "$H41N" ] || [ -z "$H41R" ] || [ "$H41N" = "$H41ROW" ]; then
+if badnum "$H41N" || [ -z "$H41R" ] || [ "$H41N" = "$H41ROW" ]; then
   note "  FAIL H41 [$(tc H41)]  the base register carries no built row to copy"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H41"
 else
@@ -1539,7 +1581,7 @@ fi
 # H43: H1's honest rebuild, plus a second built row for the same number by another run, naming ffffffffffff.
 reset_clone
 H43N="$(mint_in_clone)"
-if [ -z "$H43N" ]; then
+if badnum "$H43N"; then
   note "  FAIL H43 [$(tc H43)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H43"
 else
@@ -1581,7 +1623,7 @@ fi
 #     #527's script, so this case is a control that reads ok in both modes.
 reset_clone
 H45N="$(mint_in_clone)"
-if [ -z "$H45N" ]; then
+if badnum "$H45N"; then
   note "  FAIL H45 [$(tc H45)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H45"
 else
@@ -1697,7 +1739,7 @@ fi
 reset_clone
 H49U=gates/zz-h49-steer.js
 H49N="$(mint_in_clone)"
-if [ -z "$H49N" ]; then
+if badnum "$H49N"; then
   note "  FAIL H49 [$(tc H49)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H49"
 else
@@ -1731,7 +1773,7 @@ fi
 reset_clone
 H50U=claude/agents/gatelogs/999999-all.log
 H50N="$(mint_in_clone)"
-if [ -z "$H50N" ]; then
+if badnum "$H50N"; then
   note "  FAIL H50 [$(tc H50)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H50"
 else
@@ -1778,7 +1820,7 @@ fi
 reset_clone
 H51D=gates/zz-h51-dead-citation.js
 H51N="$(mint_in_clone)"
-if [ -z "$H51N" ]; then
+if badnum "$H51N"; then
   note "  FAIL H51 [$(tc H51)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H51"
 else
@@ -1829,7 +1871,7 @@ fi
 reset_clone
 H52U=gates/zz-h52-plant.js
 H52N="$(mint_in_clone)"
-if [ -z "$H52N" ]; then
+if badnum "$H52N"; then
   note "  FAIL H52 [$(tc H52)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H52"
 else
@@ -1973,7 +2015,7 @@ rm -f "$H54M"
 reset_clone
 sed -i "2i case \"\${1:-}\" in next) : > $H54M ;; esac" "$C/gates/buildnum.sh"
 H54N="$(mint_in_clone)"
-if [ -z "$H54N" ]; then
+if badnum "$H54N"; then
   H54FAIL="$H54FAIL mint(could not mint a fixture number in the clone with the planted buildnum.sh)"
 elif [ ! -e "$H54M" ]; then
   H54FAIL="$H54FAIL premise(the planted next arm did not write its marker while the mint ran, so the plant is not live)"
@@ -2134,7 +2176,7 @@ rm -rf "$H56D"
 # AND IT ASSERTS THE PLANTS ARE HIDDEN, because if `git status` can see them fastgate refuses for dirtiness and
 # the case would pass for the wrong reason, which is this project's standing trap.
 H57N="$(mint_in_clone)"
-if [ -z "$H57N" ]; then
+if badnum "$H57N"; then
   note "  FAIL H57 [$(tc H57)]  could not mint a fixture number in the clone"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H57"
 else
