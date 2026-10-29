@@ -5,13 +5,7 @@
 #
 # HOW IT IS RUN, AND IT IS NEVER RUN FROM THE WORKING TREE:
 #   T="$(mktemp -d)"; git show origin/main:gates/checks-tier.sh > "$T/checks-tier.sh"
-#   git fetch origin main
-#   CT_TIER_REMOTE_MAIN="$(git ls-remote origin refs/heads/main | cut -f1)" \
-#     bash "$T/checks-tier.sh" "$(git rev-parse origin/main)" "$(git rev-parse --show-toplevel)"
-#
-# CT_TIER_REMOTE_MAIN IS REQUIRED FOR A GREEN AND ITS ABSENCE ROUTES TO THE FULL SUITE. It is the sha the
-# CALLER read from the real remote, and the caller is the push step, which can see the network; this judge
-# deliberately cannot, so it can check a LOCAL ref and can never ESTABLISH main. See step (0b).
+#   bash "$T/checks-tier.sh" "$(git rev-parse origin/main)" "$(git rev-parse --show-toplevel)"
 #
 # WHY THIS EXISTS (Kunal, 2026-10-23, "Yes." at about 2:39am ET; decisions/push-checks-only-tier-yes-2026-10-23).
 # A commit that changes only gates/fastgate.sh, gates/verify-log.sh, gates/held.sh or gates/buildnum.sh pays the
@@ -64,13 +58,6 @@ main(){
   # ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   local BASE="${1:-}" ROOT="${2:-}"
   local RC=0 VERD="" LOGLINES="" SHORT="" HEADSHA="" BASESHA=""
-  # [#544, repair 3] The lists the survivor set test fills, and the one it routes on.
-  local UNATTRIB="" CTL_T0TICKS=0 CTL_CLONEDIR="" CTL_CHOME="" CTL_TIEDSURV="" CTL_UNTIEDSURV="" sl ul
-  # The kernel's tick rate, read once: /proc/uptime is in seconds and /proc/<pid>/stat field 22 in ticks.
-  local CTLHZ; CTLHZ="$(getconf CLK_TCK 2>/dev/null || echo 100)"
-  case "$CTLHZ" in ''|*[!0-9]*) CTLHZ=100 ;; esac
-  # [#544, repair 2] The per-control origin, its pinned ref list and the reason it failed.
-  local CLONEORIG="" CLONEORIGREFS="" CLONEORIGWHY=""
   local WORK="" PRIV="" MIRROR="" SNAP0="" SNAP1="" SNAPTXT0="" SNAPTXT1="" LOCK="" LOCKHELD=0 LOCKSIG0="" SELFLOGBAD=0
   local MIRRORREFS="" MIRRORWHY=""
   local CTLMARK="" CTL_OUT=""
@@ -132,66 +119,6 @@ main(){
     say "  origin/main as the base, or run the full suite."
     return 2
   fi
-
-  # ── (0b) A LOCAL REF CANNOT ESTABLISH MAIN, SO THIS JUDGE STOPS CLAIMING TO [#544; fresh antagonist B's F1
-  # of #543, upheld as a P0 veto, and A confirmed it from the diff door by reading step (0) in full]. ────────
-  # WHAT (0) ABOVE ACTUALLY CHECKS: that the base ARGUMENT equals refs/remotes/origin/main. Both halves are
-  # READ FROM THE CANDIDATE'S OWN CHECKOUT, and a remote-tracking ref is an ordinary local ref that anything
-  # with write access to the repository may move. B drove the consequence to exit 0 over a REPLACED app.js:
-  # one `git update-ref refs/remotes/origin/main <candidate sha>` makes (0) agree with itself, and every arm
-  # below then compares HEAD against a base of the candidate's choosing. A's words for it: step (0) compares
-  # two halves of ONE INPUT, which is this project's eleven-times-recorded shape - the check and the thing
-  # being checked are the same object - and round 4 "fixed" an unchecked base by moving the unchecked half one
-  # hop. The only occurrences of ls-remote and fetch in this whole file are comments saying in terms that this
-  # judge never reaches the network, so no arm of it can close this.
-  # SO THE AUTHORITATIVE CHECK MOVES TO THE CALLER, WHICH CAN SEE THE REAL REMOTE, AND THIS JUDGE ENFORCES
-  # THAT IT HAPPENED. CT_TIER_REMOTE_MAIN is the sha the caller read with `git ls-remote origin
-  # refs/heads/main`. It is not in the candidate's gift: it is computed by the operator in the same command
-  # line that runs this judge, where the candidate's committed bytes and its repository's refs cannot reach
-  # it. An attacker who moves the local ref now produces a MISMATCH here rather than a green.
-  # ITS ABSENCE ROUTES TO THE FULL SUITE AND NEVER TO A GREEN, which is this file's own stated default: a
-  # caller that forgets it pays the suite, and no forgetting can produce a false green. That is deliberately
-  # NOT an opt-in guard - an opt-in guard is one a caller switches off by omission, and omission here costs
-  # the 113 minutes this tier exists to save, so the incentive points at supplying the proof.
-  # WHAT IT DOES NOT DO, stated so no reader over-reads it: it does not authenticate the remote and it cannot
-  # tell a caller that typed a sha from one that read it. It moves the trust from a ref INSIDE the tree under
-  # judgement to a value OUTSIDE it, which is the whole of what is wrong with (0) alone.
-  local REMOTEMAIN="${CT_TIER_REMOTE_MAIN:-}"
-  if [ -z "$REMOTEMAIN" ]; then
-    say "GO FULL: CT_TIER_REMOTE_MAIN is not set, so nothing here read MAIN from the real remote and this judge"
-    say "  cannot establish that ${BASESHA:0:12} is main. refs/remotes/origin/main is a LOCAL ref that anything"
-    say "  with write access to this checkout may move, so checking the base against it checks one input against"
-    say "  itself. Supply the caller's own remote read and re-run:"
-    say "    git fetch origin main"
-    say "    CT_TIER_REMOTE_MAIN=\"\$(git ls-remote origin refs/heads/main | cut -f1)\" \\"
-    say "      bash <this script> \"\$(git rev-parse origin/main)\" \"\$(git rev-parse --show-toplevel)\""
-    return 2
-  fi
-  case "$REMOTEMAIN" in
-    *[!0-9a-f]*|"")
-      say "GO FULL: CT_TIER_REMOTE_MAIN is not a sha ('$REMOTEMAIN'), so it proves nothing about main."
-      return 2 ;;
-  esac
-  if [ "${#REMOTEMAIN}" != 40 ]; then
-    say "GO FULL: CT_TIER_REMOTE_MAIN is ${#REMOTEMAIN} hex characters and a full sha is 40, so it proves"
-    say "  nothing about main. Pass the first field of \`git ls-remote origin refs/heads/main\` whole."
-    return 2
-  fi
-  if [ "$REMOTEMAIN" != "$BASESHA" ]; then
-    say "GO FULL: the real remote's main is ${REMOTEMAIN:0:12} and the base you passed is ${BASESHA:0:12}."
-    say "  Either your fetch is stale, or refs/remotes/origin/main in this checkout has been moved to something"
-    say "  the remote does not carry - which is exactly the state step (0) alone cannot tell apart from an"
-    say "  honest base. Fetch and re-run against the remote's own main, or run the full suite."
-    return 2
-  fi
-  # AND THE REF'S OWN REFLOG REASON IS PRINTED AS EVIDENCE AND IS NOT A GATE. A reflog message is written by
-  # whoever moved the ref, so `git update-ref -m "fetch origin: forced-update"` forges it: it is the same
-  # same-object shape one layer down, and routing on it would add a second defeasible gate and would redden
-  # every honest `git init` fixture that writes the ref directly. The proof above is what binds; this line is
-  # for the reader of the log.
-  local REFLOGWHY
-  REFLOGWHY="$("${GIT[@]}" log -g -1 --format='%gs' refs/remotes/origin/main 2>/dev/null || true)"
-  say "  base proof: remote main ${REMOTEMAIN:0:12} == base ${BASESHA:0:12}; local ref last moved by: ${REFLOGWHY:-no reflog entry}"
 
   # ── (1) THE SELF PIN. THE RUNNING BYTES MUST BE MAIN'S BYTES. ────────────────────────────────────────────────
   # A6. The judge is only main's judge if it IS main's copy. Both blob ids are printed, so a reader can see which
@@ -276,23 +203,6 @@ main(){
     esac
   }
   local ROUTEL="" REFUSEL="" dent dsecond dx dx2 dxy dp dline dbucket dinside dwhere DIRTYANY=0
-  # ── THE READ'S EXIT STATUS IS CARRIED OUT OF THE PROCESS SUBSTITUTION BY A NUL SENTINEL [#544; fresh
-  # antagonist B's F2 of #543, upheld as a P0 veto, and A's V2 is the same line from the diff door]. ─────────
-  # A FAILED READ WAS THE CLEAN-TREE PATH. The stream below is read with 2>/dev/null and `done < <(...)`
-  # discards the producer's status, so when `git status` FAILS it emits nothing, the loop body never runs,
-  # DIRTYANY stays 0 and the judge proceeds as though the tree were clean. B reproduced it end to end:
-  # `head -c 400 /dev/urandom > .git/index` turned a tree carrying uncommitted edits to gates/held.sh and
-  # app.js from exit 1 into exit 0 CHECKS TIER GREEN. An empty stream from a failed command is not a clean
-  # tree, and this is the whole of why it read as one.
-  # WHY A SENTINEL AND NOT A TEMPORARY FILE: the loop must stay in THIS shell or its buckets and DIRTYANY are
-  # lost in a subshell - the comment below records the harness run that cost - and at this point in the run
-  # the private directory does not exist yet, so there is nowhere of ours to spool to. The producer therefore
-  # appends ONE extra NUL-terminated field carrying its own `$?`, which this shell reads like any other field.
-  # A PATH CANNOT FORGE IT: every real entry of `--porcelain=v1 -z` is `XY <path>`, three characters or more
-  # with a space at offset 2, so a field matching `CTSTATUSRC=<digits>` whole is not a status entry, and the
-  # check below requires the digits form. A MISSING sentinel is also a failure (the producer was killed), so
-  # the variable starts at a value no read can produce.
-  local DIRTYRC=missing
   # -z AND NUL BY NUL, because a path may hold a SPACE OR A NEWLINE and the line-oriented read this replaces
   # would have split such a path into two entries and named neither correctly. --untracked-files=all so a new
   # directory is named by its files rather than by itself.
@@ -303,16 +213,6 @@ main(){
   # EVERY dirty state including a staged change. Measured: 11 of this file's own cases failed that way, all with
   # the same shape. A process substitution keeps the loop in THIS shell, so the buckets and DIRTYANY survive it.
   while IFS= read -r -d '' dent; do
-      # THE SENTINEL IS CONSUMED BEFORE ANYTHING ELSE, so a clean tree - whose whole stream is the sentinel -
-      # still leaves DIRTYANY at 0 and routes nothing.
-      case "$dent" in
-        CTSTATUSRC=*)
-          case "${dent#CTSTATUSRC=}" in
-            ''|*[!0-9]*) DIRTYRC=notanumber ;;
-            *) DIRTYRC="${dent#CTSTATUSRC=}" ;;
-          esac
-          continue ;;
-      esac
       DIRTYANY=1
       dx="${dent:0:1}"; dx2="${dent:1:1}"; dxy="${dent:0:2}"; dp="${dent:3}"
       # ── A RENAME OR COPY IS TWO PATHS AND ONE ENTRY, AND IT IS READ WHENEVER EITHER COLUMN SAYS SO [#543,
@@ -400,20 +300,7 @@ main(){
       else
         ROUTEL="$ROUTEL$dline"$'\n'
       fi
-  done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null; printf 'CTSTATUSRC=%d\0' "$?")
-  # GO FULL AND NOT RED, for the reason step (0) gives for the base: a `git status` that cannot run is the
-  # OPERATOR'S state - a corrupt or unreadable index, a repository mid-operation - and not a fault in the
-  # commit, and this file's own default is the full suite for anything it cannot recognise. What must never
-  # happen is the green it used to give.
-  if [ "$DIRTYRC" != 0 ]; then
-    say "GO FULL: this judge could not read the working tree's status (\`git status\` exited $DIRTYRC), so it"
-    say "  cannot tell a clean tree from a dirty one. Every verdict below is about the COMMITTED candidate and"
-    say "  is only sound on a tree whose uncommitted state is known. An empty status stream from a FAILED read"
-    say "  used to be this judge's clean-tree path, which is how a tree carrying uncommitted edits to app.js"
-    say "  reached a green. Repair the repository (a corrupt .git/index is the measured cause) and re-run, or"
-    say "  run the full suite."
-    return 2
-  fi
+  done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)
   if [ "$DIRTYANY" = 1 ]; then
     # ONE REFUSAL OUTRANKS EVERY ROUTE.
     # EACH BUCKET IS EMITTED BY ONE `say` WITH A MULTI-LINE ARGUMENT, NOT BY A LOOP FED THROUGH A PIPE: `say`
@@ -853,25 +740,6 @@ main(){
   # with its reproduction, and not a wording in this file.
   LOCKSIG0="$(stat -c '%i %z' "$LOCK" 2>/dev/null || echo none)"
 
-  # ── EVERY READ snapshot() MAKES CARRIES ITS OWN EXIT STATUS OUT, AND THIS IS THE SECOND HALF OF THE SAME
-  # P0 [#544; B's F2 of #543, the cross-read's own site count]. ───────────────────────────────────────────────
-  # The entrance read above is one site of three; the cross-read between the two antagonists settled the count
-  # against the first report and past it. Inside snapshot() the SAME blindness collapses five of its types at
-  # once, and it is WORSE here than at the entrance for one reason: the two snapshots CANCEL. Both are taken
-  # by this one function, so when a read fails in both it fails identically, the text matches, SNAP0 equals
-  # SNAP1, and the judge prints "the real tree was not touched" having compared nothing. B drove that to exit
-  # 0 with a control that replaced app.js and reduced gates/verify-log.sh to `exit 0` IN THE TREE UNDER
-  # JUDGEMENT; A measured the half B did not, that the same read blinds snapcheck's TRACKED/UNTRACKED half, so
-  # a control's PLANT into the real tree is invisible under the same green.
-  # THE STATUS COMES BACK THROUGH THE STREAM AND NEVER THROUGH A GLOBAL, because snapshot() is called in a
-  # command substitution at both call sites, so a variable it sets dies with the subshell. That is the
-  # same subshell trap this file records twice already, and it is why the rcs are PRINTED: one `SNAPREAD <name>
-  # <rc>` line per read, always present, so a reader sees which read failed and the caller can refuse without
-  # consulting the diff. A failure in BOTH snapshots cancels in the diff and is still caught, because the
-  # caller greps each snapshot's own text.
-  snapread_bad(){ printf '%s\n' "$1" | grep -qE '^SNAPREAD [a-z0-9-]+ [^0]'; }
-  snapread_why(){ printf '%s\n' "$1" | grep -E '^SNAPREAD [a-z0-9-]+ [^0]' | tr '\n' ' '; }
-
   snapshot(){
     # THERE IS NO EXCLUSION AT ALL ANY MORE, AND THAT IS THE SECOND ROUND OF ANTAGONIST B's P3 [#535]. The first
     # filter was `grep -v 'gates/logs/'`, a SUBSTRING match that dropped EVERY line mentioning that directory
@@ -903,7 +771,6 @@ main(){
     # evidence - and the run printed EXIT 0, CHECKS TIER GREEN and "the real tree was not touched". The README's
     # "NOTHING IS EXCLUDED FROM IT" was true of the SET and false of the BYTES.
     local f h d rec
-    local rc_lsfiles=0 rc_lsbytes=0 rc_refs=0 rc_stash=0 rc_diff=0 rc_wt=missing dtxt
     # TRACKED IS THE INDEX'S RECORDED OIDS, SO THE WORKTREE'S BYTES ARE HASHED SEPARATELY - AND ANTAGONIST B's
     # P1-b IS WHY, AFTER I NEARLY TALKED MYSELF OUT OF IT [R18]. B reported that a control can rewrite a
     # tracked file in place, at the same size, with its mtime restored, and move nothing in this snapshot,
@@ -920,18 +787,11 @@ main(){
     # SO THE BYTES ARE HASHED, 592 files and 135MB in 0.77s a pass on the real tree, and a tracked file whose
     # CONTENT moves is grave whatever the index and the stat cache say.
     "${GIT[@]}" ls-files -s 2>/dev/null | sed 's/^/TRACKED /'
-    rc_lsfiles="${PIPESTATUS[0]}"
-    # `set -o pipefail` is on, so the SUBSHELL's own status is the first non-zero inside it: this one value
-    # covers both the ls-files read and the sha256sum of the bytes it named.
     ( cd "$ROOT" 2>/dev/null && "${GIT[@]}" ls-files -z 2>/dev/null | xargs -0 -r sha256sum 2>/dev/null ) \
       | sed 's/^/TRACKEDBYTES /'
-    rc_lsbytes="${PIPESTATUS[0]}"
     "${GIT[@]}" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null | sed 's/^/REF /'
-    rc_refs="${PIPESTATUS[0]}"
     "${GIT[@]}" stash list 2>/dev/null | sed 's/^/STASH /'
-    rc_stash="${PIPESTATUS[0]}"
-    dtxt="$("${GIT[@]}" diff --no-ext-diff HEAD 2>/dev/null | sha256sum | cut -c1-64)"; rc_diff=$?
-    printf 'DIFF %s\n' "$dtxt"
+    printf 'DIFF %s\n' "$("${GIT[@]}" diff --no-ext-diff HEAD 2>/dev/null | sha256sum | cut -c1-64)"
     # CONFIG, HOOK and INFO: the CONTENT of .git/config, of every file under .git/hooks and of every file under
     # .git/info - exclude and attributes BODIES included, which the round-3 snapshot listed by NAME only, so a
     # rewritten .git/info/exclude was invisible to it.
@@ -961,16 +821,9 @@ main(){
         '?? '*|'!! '*)
           f="${rec:3}"
           printf 'UNTRACKED %s %s\n' "$f" "$(stat -c '%i %s %z' -- "$ROOT/$f" 2>/dev/null || echo gone)" ;;
-        # THE SENTINEL, AS AT THE ENTRANCE, AND CONSUMED BEFORE THE TYPED BRANCHES so it is never printed as a
-        # WT line - which would make it a GRAVE difference the moment the rc changed between snapshots.
-        CTSNAPRC=*)
-          case "${rec#CTSNAPRC=}" in
-            ''|*[!0-9]*) rc_wt=notanumber ;;
-            *) rc_wt="${rec#CTSNAPRC=}" ;;
-          esac ;;
         *) printf 'WT %s\n' "$rec" ;;
       esac
-    done < <("${GIT[@]}" status --porcelain=v1 -uall --ignored -z 2>/dev/null; printf 'CTSNAPRC=%d\0' "$?")
+    done < <("${GIT[@]}" status --porcelain=v1 -uall --ignored -z 2>/dev/null)
     # EVIDENCE: the CONTENT of every file under gates/logs/ and claude/agents/gatelogs/, typed apart from
     # UNTRACKED so that a file which EXISTED at the first snapshot and then changed or vanished is GRAVE while a
     # newly ADDED one only routes. That split is what makes a rewritten gate log a refusal: the fifth round's
@@ -999,24 +852,6 @@ main(){
     printf 'GITDIR logs %s\n' "$glog"
     printf 'GITDIR worktrees %s\n' "$(find "$ROOT/.git/worktrees" -mindepth 1 -maxdepth 2 2>/dev/null | sort | sha256sum | cut -c1-64)"
     printf 'GITDIR packs %s\n' "$(find "$ROOT/.git/objects" -maxdepth 2 -type f -printf '%P %s\n' 2>/dev/null | sort | sha256sum | cut -c1-64)"
-    # ── AND THE OBJECT STORE'S BYTES ARE HASHED BESIDE THAT LISTING [#544, repair 4; fresh antagonist B's F3
-    # of #543, an upheld P1 veto]. ──────────────────────────────────────────────────────────────────────────
-    # WHAT THE LINE ABOVE DOES AND DOES NOT SEE. It is (name, size) only, and its own comment reasons solely
-    # about truncation - "a truncated pack changes its size". B reproduced the gap it leaves: a control
-    # corrupted the BASE'S OWN gates/checks-tier.sh blob, which is the object the self pin in step (1) rests
-    # on, at the same size, and the run read exit 0 with `git fsck` dirty afterwards. A same-size rewrite of
-    # any object moves nothing in that listing.
-    # WHY THIS IS AFFORDABLE WHERE HASHING EVERY OBJECT IS NOT, which is the objection the line above records
-    # ("53MB of objects twice a run is not affordable") and the reason it was left at a size: the LOOSE objects
-    # and the pack INDEXES are the whole of what needs hashing. A pack's .idx carries the checksum of the pack
-    # it indexes, so a rewritten .pack contradicts its own index, and rewriting the index to match changes the
-    # index's bytes - which this hash reads. MEASURED on this repository at #544: 57MB of objects, 3 .idx files
-    # and 4 loose objects, hashed in 0.009s a pass, against the 0.77s the TRACKEDBYTES arm already spends on
-    # 135MB. So the objection does not reach this form of the check.
-    # ITS LIMIT, NAMED: this does not detect a rewrite inside a .pack whose .idx is left alone, because that
-    # pack no longer matches its index and git will refuse to read the object rather than return the forged
-    # bytes. It is a corruption, not a substitution, and the GITDIR logs and packs lines above see it as one.
-    printf 'GITDIR objectbytes %s\n' "$(find "$ROOT/.git/objects" -type f \( -name '*.idx' -o -path '*/objects/??/*' \) -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null | sha256sum | cut -c1-64)"
     for f in ORIG_HEAD COMMIT_EDITMSG HEAD packed-refs shallow; do
       if [ -f "$ROOT/.git/$f" ]; then
         printf 'GITDIR %s %s\n' "$f" "$(sha256sum < "$ROOT/.git/$f" 2>/dev/null | cut -c1-64)"
@@ -1033,50 +868,6 @@ main(){
     done
     printf 'OUTSIDE git-config-global %s\n' "$(git config --global --list 2>/dev/null | sha256sum | cut -c1-64)"
     printf 'OUTSIDE git-config-system %s\n' "$(git config --system --list 2>/dev/null | sha256sum | cut -c1-64)"
-    # ── AND THE SET NOW REACHES THE OPERATOR'S OWN KEYS AND SETTINGS, WHICH IS WHAT ITS COMMENT ABOVE ALREADY
-    # CLAIMED [#544, repair 4; fresh antagonist B's F4 of #543, an upheld P1 veto]. ─────────────────────────
-    # B's WORDS FOR IT: the OUTSIDE arm "omits $HOME/.ssh and $HOME/.claude, which is the arm's own stated
-    # subject", and it drove the consequence - a control appended an attacker key to authorized_keys and
-    # overwrote the Claude settings file, at exit 0 under a verdict whose own sentence is that the real tree
-    # was not touched. The shell dotfiles above are in the set for exactly this reason; the two directories
-    # that actually carry credentials were not.
-    # ~/.ssh IS HASHED WHOLE, file set and contents, so an ADDED authorized_keys is as visible as an edited one.
-    # THE CLAUDE SETTINGS ARE HASHED BY NAME AND THE WHOLE DIRECTORY IS NOT, AND THAT IS A MEASUREMENT AND NOT
-    # A PREFERENCE [CLAUDE.md: a flag's proposed fix is a hypothesis, checked against the mechanism first].
-    # B's repair asks for ~/.claude content-hashed. MEASURED HERE BEFORE IMPLEMENTING IT: hashing that whole
-    # tree twice, two seconds apart, with nothing attacking anything, gives TWO DIFFERENT VALUES (d2e87fcabfae
-    # against 1d1808e795b9) - the directory carries this harness's own live session state, so it churns while
-    # the judge runs. An OUTSIDE line is in the GRAVE set, so taking it whole would make every honest run of
-    # this judge REFUSE with "a file outside this repository changed", which is the false-hard-refusal family
-    # B itself reported four of in the same pass. The named settings files do not churn and are what the attack
-    # overwrote, so they are what the check reads.
-    # TWO LIMITS, NAMED RATHER THAN IMPLIED. (i) A control that writes a NEW file under ~/.claude that is not
-    # one of the names below is not seen by this arm. (ii) `$HOME/.claude.json` IS DELIBERATELY NOT IN THE LIST
-    # even though it is the most settings-shaped name there: it is where this harness's own runner keeps session
-    # and project state, so it is written DURING a run, and the only slow case in this project's tier harness
-    # (A1, the whole real battery) takes about 6.5 minutes - long enough for that write to land between the two
-    # snapshots and refuse an honest run on a grave line. The five below are configuration rather than state and
-    # were measured stable while the judge ran. Closing (i) and (ii) needs a stable subset of that directory to
-    # be identified, which is a measurement on the harness rather than a change to this judge.
-    if [ -d "$HOME/.ssh" ]; then
-      printf 'OUTSIDE %s/.ssh %s\n' "$HOME" "$(find "$HOME/.ssh" -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null | sha256sum | cut -c1-64)"
-    else printf 'OUTSIDE %s/.ssh absent\n' "$HOME"; fi
-    for f in "$HOME/.claude/settings.json" "$HOME/.claude/settings.local.json" \
-             "$HOME/.config/claude/settings.json" "$HOME/.claude/remote-settings.json" \
-             "$HOME/.claude/launcher-settings.json"; do
-      if [ -f "$f" ]; then printf 'OUTSIDE %s %s\n' "$f" "$(sha256sum < "$f" 2>/dev/null | cut -c1-64)"
-      else printf 'OUTSIDE %s absent\n' "$f"; fi
-    done
-    printf 'OUTSIDE crontab %s\n' "$(crontab -l 2>/dev/null | sha256sum | cut -c1-64)"
-    # ── AND THE SIX READ STATUSES, LAST, ONE LINE EACH AND ALWAYS PRESENT. A name whose rc is anything but 0
-    # means this snapshot does not describe the tree, and the two callers below refuse on it rather than
-    # comparing two descriptions that are both empty for the same reason.
-    printf 'SNAPREAD ls-files %s\n'   "$rc_lsfiles"
-    printf 'SNAPREAD ls-bytes %s\n'   "$rc_lsbytes"
-    printf 'SNAPREAD for-each-ref %s\n' "$rc_refs"
-    printf 'SNAPREAD stash %s\n'      "$rc_stash"
-    printf 'SNAPREAD diff-head %s\n'  "$rc_diff"
-    printf 'SNAPREAD wt-status %s\n'  "$rc_wt"
   }
 
   # THE SECOND SNAPSHOT IS TAKEN ON EVERY EXIT PATH AFTER THE LOCK IS HELD, WHICH IS ROUND 4's OWN RESIDUAL
@@ -1134,18 +925,6 @@ main(){
     SNAPRC=0
     [ "$LOCKHELD" = 1 ] || return 0
     SNAPTXT1="$(snapshot)"
-    # AFTER THE BATTERY A FAILED READ IS GRAVE AND NOT A ROUTE, and the asymmetry is the point. Candidate code
-    # has now run. "I cannot tell whether the real tree moved" is the one answer this arm may never downgrade,
-    # because the sentence it exists to print is "the real tree was not touched".
-    if snapread_bad "$SNAPTXT1"; then
-      SNAPRC=1
-      say "REFUSED: after the battery this judge could not take a complete picture of the real tree"
-      say "  ($(snapread_why "$SNAPTXT1")- each name is a read of the real repository and the number is its"
-      say "  exit status), so it CANNOT say whether a control changed it. A control that makes these reads fail"
-      say "  gets the same empty picture in both snapshots, they compare equal, and the green asserts something"
-      say "  nothing measured."
-      return 1
-    fi
     SNAP1="$(printf '%s\n' "$SNAPTXT1" | sha256sum | cut -c1-64)"
     [ "$SNAP0" = "$SNAP1" ] && return 0
     local SNAPDIFF gcount ecount dl
@@ -1193,22 +972,6 @@ main(){
     return 0
   }
   SNAPTXT0="$(snapshot)"
-  # BEFORE THE BATTERY A FAILED READ IS THE OPERATOR'S STATE AND ROUTES, exactly as the entrance read does:
-  # no candidate code has run yet, so there is nothing to call red, and the full suite is the answer for a
-  # tree this judge cannot describe.
-  if snapread_bad "$SNAPTXT0"; then
-    say "GO FULL: this judge could not take a complete picture of the real tree before the battery"
-    say "  ($(snapread_why "$SNAPTXT0")- each name is a read of the real repository and the number is its exit"
-    say "  status). The picture is what proves afterwards that no control touched the tree, and two pictures"
-    say "  that are both empty for the same reason compare EQUAL - which is how a control that replaced app.js"
-    say "  reached a green. Repair the repository (a corrupt .git/index is the measured cause) and re-run, or"
-    say "  run the full suite."
-    # ONLY THE LOCK EXISTS TO RELEASE AT THIS POINT: $WORK and $PRIV are created BELOW this snapshot, so this
-    # path must not pretend to clean them. A cleanup line naming a variable that is still empty is the shape
-    # this file already refuses elsewhere - a guard that reads as doing something and does nothing.
-    [ "$LOCKHELD" = 1 ] && rm -rf "$LOCK"
-    return 2
-  fi
   SNAP0="$(printf '%s\n' "$SNAPTXT0" | sha256sum | cut -c1-64)"
   say "  real-tree snapshot taken under the lock: ${SNAP0:0:16}"
 
@@ -1282,109 +1045,6 @@ main(){
       if grep -qxF "CT_CTL_MARK=$CTLMARK" <<<"$envtxt"; then printf '%s\n' "$pid"; fi
     done
     return 0
-  }
-
-  # ── AND THE SCAN NO LONGER ASKS THE SURVIVOR [#544, repair 3 of THE WORK; fresh antagonist A's P2(2) of #543,
-  # which is V1's enabler]. ───────────────────────────────────────────────────────────────────────────────────
-  # WHAT A MEASURED: `setsid env -u CT_CTL_MARK` leaves nothing to match, so A's helper ran through the whole
-  # battery, logged itself alive AFTER the judge exited, and no survivor line was printed. The marker is IN THE
-  # SURVIVOR'S OWN GIFT, which is this project's eleven-times-recorded shape - the check and the thing being
-  # checked are the same object - and the function above concedes the escape in its own comment while missing
-  # this consequence of it.
-  # THE REPLACEMENT IS A SET DIFFERENCE OVER THE PROCESS TABLE, because EXISTING is the one thing a survivor
-  # cannot scrub. The set is taken immediately before the control is launched and again after its group is
-  # killed, and what is new and still alive is a survivor whatever its environment says.
-  # KEYED ON (pid, starttime) AND NOT ON pid, so that pid reuse cannot forge membership: field 22 of
-  # /proc/<pid>/stat is the process's own start time in clock ticks, and it is read AFTER THE LAST `)` because
-  # a process's comm may itself contain spaces and parentheses - the standard trap in parsing that file, and
-  # the reason this is one awk over every file rather than a shell loop with a fork per pid.
-  # AND THE SECOND POST-SCAN IS NOT BELT AND BRACES: the first post-scan's own pipeline (awk, sort, the command
-  # substitution's subshell) is itself new and alive at the moment it runs, so a single scan reports this
-  # judge's own instruments as survivors. Taking the set twice and keeping only what is in BOTH drops them,
-  # because each scan's own transients differ, while a real survivor is in both by construction.
-  proc_set(){
-    awk 'FNR==1{ s=$0; sub(/^.*\) /,"",s); n=split(s,f," "); split(FILENAME,g,"/");
-                 print g[3] " " (n>=20 ? f[20] : "x") }' /proc/[0-9]*/stat 2>/dev/null | sort
-  }
-  # proc_fields <pid> -> "<pgid> <sid>" out of /proc/<pid>/stat, read after the last close-paren for the same
-  # reason proc_set gives: a comm may itself contain spaces and parentheses.
-  proc_fields(){
-    awk '{ s=$0; sub(/^.*\) /,"",s); n=split(s,f," "); if (n>=4) print f[3] " " f[4] }' "/proc/$1/stat" 2>/dev/null
-  }
-  # ctl_newprocs <launch-ticks> <control-pgid> -> the pids that were STARTED AFTER the control was launched,
-  # are still alive, and are CAPABLE OF HAVING ESCAPED that control's process group, one per line.
-  # THREE FILTERS, AND EVERY ONE OF THEM WAS MEASURED INTO EXISTENCE BY AN EARLIER DRAFT OF THIS ARM THAT WAS
-  # UNUSABLE AS A GATE. The first draft reported every new pid and the harness went THIRTEEN FAIL in one run,
-  # each an honest case whose verdict fell from 0 to 2 - the false-hard-refusal family antagonist B reported
-  # four instances of in the same pass, committed by the fix for its sibling. The second draft added (1) and
-  # (3) and went green, and then FAILED INTERMITTENTLY: A22, A28 and the whole real battery A1 read GO FULL on
-  # one run and not on the next.
-  #   (1) NO CMDLINE, NO ACTOR. A pid whose /proc/<pid>/cmdline is empty is a zombie the judge's own shell has
-  #       not reaped yet, a process that died between the scan and the read, or a kernel thread. None of them
-  #       can write into the real tree, which is this arm's whole subject. All 21 pids the first draft reported
-  #       were of this kind.
-  #   (2) IT MUST HAVE STARTED AFTER THE CONTROL DID, AND THE TEST IS THE KERNEL'S OWN CLOCK RATHER THAN A SET
-  #       DIFFERENCE. The second draft took a snapshot of the process table before the launch and called
-  #       anything absent from it new - so ANY process the snapshot happened to miss read as a survivor, and
-  #       that is exactly what the intermittent failures were: the reported pid was THE HARNESS'S OWN LAUNCHER
-  #       SHELL, which had existed for minutes. A snapshot's completeness is not something this judge can
-  #       guarantee, and a gate whose verdict depends on it is a flaky gate - worse than none by this
-  #       project's own rule. Field 22 of /proc/<pid>/stat is the process's start time in clock ticks since
-  #       boot, and /proc/uptime read at the launch gives the same scale, so "started after the control" is a
-  #       comparison of two kernel numbers and cannot be distorted by a missed read.
-  #   (3) IT MUST BE ABLE TO HAVE ESCAPED, derived from the escape MECHANISM and not from a guess at which
-  #       processes look suspicious. The group kill is `kill -TERM -- -<control pgid>`, so a descendant of the
-  #       control outlives it only by LEAVING that group: `setsid`, which makes it a SESSION LEADER, or
-  #       `setpgid`, which leaves it in the judge's session under a pgid that is neither the judge's nor the
-  #       control's. The control's OWN group is excluded for the same reason it is killed: anything still in it
-  #       is dying, not escaping, and an escapee by definition has left it.
-  #       MEASURED, because the point is to exclude the CONTAINER'S OWN NOISE and not to narrow the test: with
-  #       a `setsid env -u CT_CTL_MARK sleep` running beside five unrelated background sleeps of other shells in
-  #       this container, ALL SIX led their own process GROUP - so group leadership discriminates nothing - and
-  #       exactly one, the escapee, led its own SESSION.
-  ctl_newprocs(){
-    local t0="$1" cpg="$2" a b cand pid st pg sd jpg jsd cl
-    read -r jpg jsd < <(proc_fields "$$")
-    [ -n "$jpg" ] && [ -n "$jsd" ] || { jpg=0; jsd=0; }
-    a="$(proc_set)"
-    # The gap is between the two ALIVENESS scans and nothing rests on it: a transient of the first scan's own
-    # pipeline dies inside it, and a real survivor is in both by construction.
-    sleep 0.2
-    b="$(proc_set)"
-    cand="$(comm -12 <(printf '%s\n' "$a") <(printf '%s\n' "$b") || true)"
-    while IFS=' ' read -r pid st; do
-      [ -n "$pid" ] && [ -n "$st" ] || continue
-      [ "$pid" = "$$" ] && continue
-      case "$st" in ''|*[!0-9]*) continue ;; esac
-      [ "$st" -ge "$t0" ] 2>/dev/null || continue
-      cl="$( { tr '\0' ' ' < "/proc/$pid/cmdline"; } 2>/dev/null )"
-      [ -n "$(printf '%s' "$cl" | tr -d '[:space:]')" ] || continue
-      read -r pg sd < <(proc_fields "$pid")
-      [ -n "$pg" ] && [ -n "$sd" ] || continue
-      [ -n "$cpg" ] && [ "$pg" = "$cpg" ] && continue
-      if [ "$sd" = "$pid" ] || { [ "$sd" = "$jsd" ] && [ "$pg" != "$jpg" ]; }; then
-        printf '%s\n' "$pid"
-      fi
-    done <<<"$cand"
-    return 0
-  }
-  # ctl_tied <pid> <clone-dir> <control-home> -> 0 when this pid can be TIED TO THE CONTROL without asking it
-  # for a marker: it carries the marker anyway, or its cwd, its root, its executable or any open descriptor
-  # resolves inside the clone, the control's home, or either of this judge's own directories.
-  # THIS IS DEFEASIBLE AND THE VERDICTS BELOW ARE SPLIT BECAUSE OF IT. A helper that chdirs to / and closes
-  # every descriptor is untied; it is still DETECTED by the set test, and the untied case routes rather than
-  # reddens, so a defeat of this function costs the full suite and can never buy a green.
-  ctl_tied(){
-    local pid="$1" cd_="$2" ch="$3" l t
-    { tr '\0' '\n' < "/proc/$pid/environ"; } 2>/dev/null | grep -qxF "CT_CTL_MARK=$CTLMARK" && return 0
-    for l in "/proc/$pid/cwd" "/proc/$pid/root" "/proc/$pid/exe" "/proc/$pid"/fd/*; do
-      t="$(readlink -f -- "$l" 2>/dev/null)" || continue
-      [ -n "$t" ] || continue
-      case "$t" in
-        "$cd_"/*|"$cd_"|"$ch"/*|"$ch"|"$WORK"/*|"$WORK"|"$PRIV"/*|"$PRIV") return 0 ;;
-      esac
-    done
-    return 1
   }
 
   # ── ROUND 4, D1: GIT NO LONGER HANDS A CONTROL THE REAL TREE. ───────────────────────────────────────────────
@@ -1524,40 +1184,6 @@ main(){
   # would make `dirname "$PWD"` resolve to PRIV from inside every control, which is the same hole one directory
   # over. A's own measurement of this repair: the plant creates NOTHING in the real tree and the honest case
   # stays green.
-  # ── EACH CONTROL GETS ITS OWN ORIGIN, AND THAT IS #543's REPAIR 4 REPLACED RATHER THAN PATCHED [#544,
-  # repair 2 of THE WORK; fresh antagonist A's V1 of #543, an upheld veto AGAINST #543's OWN REPAIR, with B's
-  # cross-read supplying the reason it cannot be fixed where it was]. ─────────────────────────────────────────
-  # WHAT V1 ESTABLISHED. Repair 4 pins the shared mirror's ref list at TWO INSTANTS - inside mkclone before each
-  # clone, and once after the last control - so it is A POLL, NOT A LOCK. A candidate whose new gates/cases
-  # control detaches an unmarked helper can move refs/heads/main AFTER the pre-clone check, let the NEXT control
-  # read the forged value through `git ls-remote origin main`, and restore the exact object before the
-  # post-battery check. A move restored to the same sha is byte-identical to no move, so an END-STATE comparison
-  # over a SEQUENCE cannot see it. A reached exit 0 that way on its third attempt; B reached the same conclusion
-  # by READING the pin rather than by winning the race, which is why the property is not in doubt.
-  # WHY THE JOB'S OTHER TWO SUGGESTIONS WERE CHECKED AND NOT TAKEN [CLAUDE.md: a flag's proposed fix is a
-  # hypothesis, and where it offers alternatives they are not interchangeable]. "Make the mirror unwritable for
-  # the battery's duration" does not bind: a control runs as the SAME UID as this judge, and in this container
-  # as root, so chmod is reversible by the very process it is meant to stop - this file's own words about mode
-  # 700 are "buys nothing against a control running as the same uid". "Verify the ref at the moment of use in
-  # the clone that reads it" cannot be implemented from here: the read is `git ls-remote` inside the control's
-  # own process and this judge cannot interpose on it.
-  # SO THE THIRD SUGGESTION IS THE ONE THAT CLOSES V1's MECHANISM, and it is taken in its CHEAP form. Each
-  # clone's `origin` is now a FRESH BARE REPOSITORY created immediately before it, whose objects are the shared
-  # mirror's by `objects/info/alternates` - milliseconds and no copying, against the 1.7s and 53MB a real
-  # mirror costs - and whose refs are written by this judge and by nobody else. A helper detached from control
-  # N cannot forge what control N+1 reads, because control N+1's origin DID NOT EXIST while control N ran: it
-  # is created after that control's process group is killed and after the survivor scan. V1's "let the NEXT
-  # control read the forged value" is the whole of its mechanism, and it has nowhere left to land.
-  # WHAT IS STILL OPEN, STATED HERE RATHER THAN IMPLIED, because this judge has now had an unread claim broken
-  # in each of ten rounds: a control can still write to ITS OWN origin, whose path is exactly
-  # `git config --get remote.origin.url` from inside its clone, and move its own refs/heads/main between this
-  # judge's pin and its own `ls-remote`. That forges only ITS OWN view - no later control can read it - but its
-  # own view is what main's gates/verify-log-selftest.sh resolves `--on-main` from, so a control can still make
-  # that selftest judge the candidate's head as main. The post-control re-check below catches a PERSISTENT
-  # move and cannot catch a move-and-restore inside one control's own window, which is the same end-state limit
-  # one scope smaller. It is filed rather than papered over, because no option on the job's list closes it and
-  # the honest closure needs the judge to compute that verdict itself instead of delegating it to a control's
-  # clone - which the tier's own rule that main's harnesses may not change forbids.
   mkclone(){
     local dest="$1"
     nclone=$((nclone+1))
@@ -1565,44 +1191,11 @@ main(){
       bad "the throwaway mirror no longer matches what was recorded for it, so no later control can be trusted ($MIRRORWHY)"
       return 1
     fi
-    # THE PREVIOUS CONTROL'S ORIGIN IS DESTROYED BEFORE THIS ONE IS BUILT, so two controls never share one.
-    [ -n "$CLONEORIG" ] && rm -rf "$CLONEORIG" 2>/dev/null
-    CLONEORIG=""; CLONEORIGREFS=""
-    local porig
-    porig="$(mktemp -d "$PRIV/o-XXXXXXXXXX" 2>/dev/null)" || return 1
-    [ -n "$porig" ] && [ -d "$porig" ] || return 1
-    git init --quiet --bare "$porig" >/dev/null 2>&1 || return 1
-    # THE OBJECTS COME FROM THE SHARED MIRROR BY ALTERNATES AND ARE NEVER COPIED. The mirror is still guarded by
-    # mirror_ok above - a control can delete its objects, and git checks content on read - but its REFS are no
-    # longer read by any control, so moving them buys nothing.
-    printf '%s\n' "$MIRROR/objects" > "$porig/objects/info/alternates" 2>/dev/null || return 1
-    # TWO REFS AND NO MORE. refs/heads/main AT THE BASE is what `git ls-remote origin main` must answer, which
-    # is #542's upheld P1 veto and the reason the shared mirror was given one at all. The second ref exists only
-    # to make HEAD's objects reachable for the clone and checkout below; it is named so that nothing mistakes
-    # it for a branch of this project.
-    git -C "$porig" update-ref refs/heads/main "$BASESHA" >/dev/null 2>&1 || return 1
-    git -C "$porig" update-ref refs/heads/ct-candidate-head "$HEADSHA" >/dev/null 2>&1 || return 1
-    git -C "$porig" symbolic-ref HEAD refs/heads/main >/dev/null 2>&1 || return 1
-    CLONEORIGREFS="$(git -C "$porig" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null)"
-    [ -n "$CLONEORIGREFS" ] || return 1
-    CLONEORIG="$porig"
     # `git clone` into an EXISTING EMPTY directory is allowed, which is what makes the mktemp -d destination
     # work: mktemp creates the directory itself, so there is nothing for a control to pre-plant at that name.
-    git clone --quiet --no-hardlinks --shared "$porig" "$dest" >/dev/null 2>&1 || return 1
+    git clone --quiet --no-hardlinks --shared "$MIRROR" "$dest" >/dev/null 2>&1 || return 1
     git -C "$dest" -c advice.detachedHead=false checkout --quiet "$HEADSHA" >/dev/null 2>&1 || return 1
     git -C "$dest" update-ref refs/remotes/origin/main "$BASESHA" >/dev/null 2>&1 || return 1
-    return 0
-  }
-  # cloneorig_ok -> 0 when this control's own origin still carries the refs this judge wrote for it.
-  cloneorig_ok(){
-    CLONEORIGWHY=""
-    [ -n "$CLONEORIG" ] || return 0
-    local now
-    now="$(git -C "$CLONEORIG" for-each-ref --format='%(refname) %(objectname)' 2>/dev/null)"
-    if [ "$now" != "$CLONEORIGREFS" ]; then
-      CLONEORIGWHY="the ref list changed: $(printf '%s\n' "$CLONEORIGREFS" "$now" | sort | uniq -u | awk '{print $1}' | sort -u | tr '\n' ' ')"
-      return 1
-    fi
     return 0
   }
 
@@ -1700,12 +1293,6 @@ main(){
     # limit this file already discloses (a control can read the judge's cwd and argv out of /proc), and it buys
     # the removal of the only place where a control's bytes became a root signal. A control that calls
     # `setsid` itself still escapes the group and is still caught by the marker, exactly as before.
-    # THE LAUNCH TICK IS TAKEN HERE, as late as possible and before any of the control's bytes run. It is the
-    # kernel's own clock, on the same scale as field 22 of /proc/<pid>/stat, so "started after the control" is
-    # a comparison of two kernel numbers - see ctl_newprocs filter (2) for the draft this replaced and why.
-    CTL_T0TICKS="$(awk -v hz="$CTLHZ" '{printf "%d", $1*hz}' /proc/uptime 2>/dev/null || echo 0)"
-    [ -n "$CTL_T0TICKS" ] || CTL_T0TICKS=0
-    CTL_CLONEDIR="$d"; CTL_CHOME="$chome"
     set -m
     ( cd "$d" && env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_OBJECT_DIRECTORY \
           -u GIT_ALTERNATE_OBJECT_DIRECTORIES -u GIT_CEILING_DIRECTORIES \
@@ -1725,22 +1312,6 @@ main(){
       ''|*[!0-9]*) : ;;
       *) [ "$pgid" -gt 1 ] && kill -TERM -- "-$pgid" 2>/dev/null; : ;;
     esac
-    # AND WHAT IS NEW AND STILL ALIVE AFTER THAT KILL IS CLASSIFIED HERE, while the clone and the control's
-    # home are still in hand: CTL_TIEDSURV is grave, CTL_UNTIEDSURV routes. The split is the whole of repair 3's
-    # honesty - see ctl_tied - and both lists carry the pid and its command line so a reader can see what the
-    # judge refused or routed on rather than taking a number on trust.
-    CTL_TIEDSURV=""; CTL_UNTIEDSURV=""
-    local np cl
-    while IFS= read -r np; do
-      [ -n "$np" ] || continue
-      cl="$( { tr '\0' ' ' < "/proc/$np/cmdline"; } 2>/dev/null | cut -c1-120)"
-      [ -n "$cl" ] || cl="(no cmdline; a kernel thread or already reaped)"
-      if ctl_tied "$np" "$CTL_CLONEDIR" "$CTL_CHOME"; then
-        CTL_TIEDSURV="$CTL_TIEDSURV$np $cl"$'\n'
-      else
-        CTL_UNTIEDSURV="$CTL_UNTIEDSURV$np $cl"$'\n'
-      fi
-    done < <(ctl_newprocs "$CTL_T0TICKS" "$pgid")
     return $rc
   }
 
@@ -1871,41 +1442,14 @@ main(){
     # AND A SURVIVOR IS GRAVE EVEN WHEN THE CONTROL ITSELF PASSED, because what it leaves behind is the point:
     # a process that outlives the battery can write into the real tree after the snapshot that was supposed to
     # prove nothing did. The group kill above cannot see one that called `setsid` itself; the marker can.
-    # ── AND THIS CONTROL'S OWN ORIGIN IS RE-CHECKED, IMMEDIATELY AFTER IT RAN AND BEFORE THE NEXT ONE IS
-    # BUILT [#544, repair 2]. A persistent move of the refs this judge wrote for this control is grave for the
-    # same reason a move of the shared mirror's was: the verdict above is about a clone whose `origin` is no
-    # longer the one the judge set up. What this CANNOT see is a move-and-restore inside this control's own
-    # window, which is the end-state limit the comment on mkclone states and files.
-    if ! cloneorig_ok; then
-      bad "$label: it changed the refs of its OWN throwaway origin, so its clone's view of main was not the judge's ($CLONEORIGWHY)"
-      say "  RED  $label - a control moved the refs of the origin this judge built for it ($CLONEORIGWHY)"
-      say "        That origin is what \`git ls-remote origin main\` answers from inside its clone, which is how"
-      say "        main's own push-gate selftest resolves --on-main."
-      return 1
-    fi
     local surv
     surv="$(ctl_survivors)"
-    # THE MARKER SCAN AND THE SET TEST ARE BOTH READ, AND THE SET TEST IS THE ONE THAT CANNOT BE SCRUBBED
-    # [#544, repair 3]. A TIED survivor is grave exactly as a marked one always was.
-    if [ -n "$(printf '%s' "$surv" | tr -d '[:space:]')" ] || [ -n "$(printf '%s' "$CTL_TIEDSURV" | tr -d '[:space:]')" ]; then
-      bad "$label: left a live process of its own behind (marked: $(printf '%s' "$surv" | tr '\n' ' '); tied by the set test: $(printf '%s' "$CTL_TIEDSURV" | awk '{print $1}' | tr '\n' ' '))"
-      say "  RED  $label - a process of this control OUTLIVED it"
-      [ -n "$surv" ] && say "        carrying this run's marker: $(printf '%s' "$surv" | tr '\n' ' ')"
-      while IFS= read -r sl; do [ -n "$sl" ] && say "        new and still alive, tied to this control: $sl"; done < <(printf '%s' "$CTL_TIEDSURV")
+    if [ -n "$(printf '%s' "$surv" | tr -d '[:space:]')" ]; then
+      bad "$label: left a live process carrying this run's control marker (pid $(printf '%s' "$surv" | tr '\n' ' '))"
+      say "  RED  $label - a process of this control OUTLIVED it: pid $(printf '%s' "$surv" | tr '\n' ' ')"
       say "        A control that escapes its own process group can write into the real tree after the snapshot"
-      say "        that is supposed to prove nothing did. The set test keys on (pid, starttime) and so cannot be"
-      say "        defeated by scrubbing the marker out of the environment, which is how A's helper escaped."
+      say "        that is supposed to prove nothing did."
       return 1
-    fi
-    # AN UNTIED NEW PROCESS ROUTES AND IS NEVER CREDITED. This judge cannot establish that it belongs to the
-    # control - it may be the operator's own - and it cannot establish that it does not, so the one thing it
-    # may not do is issue a green. GO FULL is this file's own default for anything it does not recognise, so a
-    # false positive here costs the suite and never a false red.
-    if [ -n "$(printf '%s' "$CTL_UNTIEDSURV" | tr -d '[:space:]')" ]; then
-      UNATTRIB="$UNATTRIB$label: $(printf '%s' "$CTL_UNTIEDSURV" | tr '\n' '; ')"$'\n'
-      say "  NOTE $label - a process appeared while it ran and is still alive, and this judge cannot tie it to"
-      say "        the control. That is not a red and it is not a green: it routes."
-      while IFS= read -r sl; do [ -n "$sl" ] && say "        $sl"; done < <(printf '%s' "$CTL_UNTIEDSURV")
     fi
     CTLOK=$((CTLOK+1))
     say "  PASS $label"
@@ -1958,21 +1502,11 @@ main(){
       # gates/fastgate.sh by way of main's harness, so it needs every guard a gates/cases control gets.
       CTL_BOUND=900 ctl_exec "$d" -- bash gates/fastgate-drive.sh fixed; rc=$?
       out="$CTL_OUT"
-      # THE SAME ORIGIN RE-CHECK AS run_ctl's [#544, repair 2]: this arm runs the CANDIDATE's own
-      # gates/fastgate.sh by way of main's harness, so it needs every guard a gates/cases control gets - which
-      # is the sentence antagonist B's P1-e put on ctl_exec and it applies to this one for the same reason.
-      if ! cloneorig_ok; then
-        bad "fastgate-drive.sh fixed: it changed the refs of its OWN throwaway origin ($CLONEORIGWHY)"
-        say "  RED  fastgate-drive.sh fixed - a control moved the refs of the origin this judge built for it ($CLONEORIGWHY)"
-      fi
       local dsurv
       dsurv="$(ctl_survivors)"
-      if [ -n "$(printf '%s' "$dsurv" | tr -d '[:space:]')" ] || [ -n "$(printf '%s' "$CTL_TIEDSURV" | tr -d '[:space:]')" ]; then
-        bad "fastgate-drive.sh fixed: left a live process of its own behind (marked: $(printf '%s' "$dsurv" | tr '\n' ' '); tied by the set test: $(printf '%s' "$CTL_TIEDSURV" | awk '{print $1}' | tr '\n' ' '))"
-        say "  RED  fastgate-drive.sh fixed - a process of this arm OUTLIVED it"
-      fi
-      if [ -n "$(printf '%s' "$CTL_UNTIEDSURV" | tr -d '[:space:]')" ]; then
-        UNATTRIB="$UNATTRIB fastgate-drive.sh fixed: $(printf '%s' "$CTL_UNTIEDSURV" | tr '\n' '; ')"$'\n'
+      if [ -n "$(printf '%s' "$dsurv" | tr -d '[:space:]')" ]; then
+        bad "fastgate-drive.sh fixed: left a live process carrying this run's control marker (pid $(printf '%s' "$dsurv" | tr '\n' ' '))"
+        say "  RED  fastgate-drive.sh fixed - a process of this arm OUTLIVED it: pid $(printf '%s' "$dsurv" | tr '\n' ' ')"
       fi
       okn="$(grep -cE '^[[:space:]]*H[0-9]+b?[[:space:]]+ok' <<<"$out" || true)"; okn=$((okn+0))
       skn="$(grep -cE 'SKIP' <<<"$out" || true)"; skn=$((skn+0))
@@ -2306,17 +1840,6 @@ main(){
   if [ "$SNAPRC" = 1 ]; then
     RC=1
   elif [ "$SNAPRC" = 2 ]; then
-    [ "$RC" = 0 ] && RC=2
-  fi
-  # ── AN UNATTRIBUTED SURVIVOR ROUTES, AND IT IS READ HERE SO IT CANNOT BE OUTRANKED BY A GREEN [#544, repair
-  # 3]. It never turns a RED into a route and never turns a route into a red: it only stops a GREEN.
-  if [ -n "$(printf '%s' "$UNATTRIB" | tr -d '[:space:]')" ]; then
-    say ""
-    say "GO FULL: a process appeared while the battery ran and was still alive after its control's group was"
-    say "  killed, and this judge cannot tie it to that control. It may be the operator's own and it may be a"
-    say "  helper a control detached with its marker scrubbed, which is the escape the marker scan cannot see."
-    say "  Either way the battery cannot be called clean, so this is not a green. The full suite decides it."
-    while IFS= read -r ul; do [ -n "$ul" ] && say "    $ul"; done < <(printf '%s' "$UNATTRIB")
     [ "$RC" = 0 ] && RC=2
   fi
 

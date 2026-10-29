@@ -136,28 +136,14 @@ runtier(){
   # passes origin/main as the base, so this mirrors it for every case at once, and a case that wants to test the
   # arm itself points the ref somewhere else AFTER calling this (see A38).
   git -C "$d" update-ref refs/remotes/origin/main "$base" >/dev/null 2>&1 || true
-  # AND THE CALLER'S OWN REMOTE READ IS SUPPLIED, BECAUSE A GREEN NOW REQUIRES IT [#544, step (0b)]. The judge
-  # can check a local ref and can never ESTABLISH main, so the authoritative base check moved to the caller and
-  # CT_TIER_REMOTE_MAIN is what the caller read from the real remote. Here the harness IS the caller and the
-  # fixture's base IS its remote's main, so the default is "$base" - which mirrors the real invocation exactly.
-  # $DRIVEREMOTE OVERRIDES IT FOR THE CASES THAT TEST THE ARM ITSELF, and the literal __UNSET__ omits it, so a
-  # case can model a caller that forgot. Defaulting it here rather than per case is deliberate: a case that
-  # forgot it would route at 2 for a reason it was not about, which is the shape #543's own fixture fault had.
-  local dremote="${DRIVEREMOTE:-$base}"
   git -C "$d" show "$base:gates/checks-tier.sh" > "$tf/ct.sh" 2>/dev/null
   # $DRIVEHOME OVERRIDES THE JUDGE'S HOME FOR ONE CASE ONLY (A47), and it exists so that the OUTSIDE arm of
   # round 4's snapshot can be exercised WITHOUT a control writing to the real operator's ~/.bashrc. A harness
   # that proved that arm by editing the real home would be a harness nobody could run twice.
-  if [ "$dremote" = __UNSET__ ]; then
-    if [ -n "${DRIVEHOME:-}" ]; then
-      TOUT="$(cd "$d" && HOME="$DRIVEHOME" bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
-    else
-      TOUT="$(cd "$d" && bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
-    fi
-  elif [ -n "${DRIVEHOME:-}" ]; then
-    TOUT="$(cd "$d" && HOME="$DRIVEHOME" CT_TIER_REMOTE_MAIN="$dremote" bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
+  if [ -n "${DRIVEHOME:-}" ]; then
+    TOUT="$(cd "$d" && HOME="$DRIVEHOME" bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
   else
-    TOUT="$(cd "$d" && CT_TIER_REMOTE_MAIN="$dremote" bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
+    TOUT="$(cd "$d" && bash "$tf/ct.sh" "$base" "$d" 2>&1)"; TRC=$?
   fi
   rm -rf "$tf"
 }
@@ -208,7 +194,7 @@ note "checks-tier-drive.sh  mode=$MODE  root=$ROOT  clock=$(TZ=America/New_York 
 # very cases its own run was about to print. A number in a message that nothing re-derives goes stale the
 # next time anyone adds a case, which is this project's frozen-denominator class arriving in a header; the
 # authority is the run's own footer, which counts what actually ran.
-note "cases: ids A1 to A94, with one mutant per new arm, M1 to M64. The COUNT is this run's own footer, not this line. Fixture repositories under $T."
+note "cases: ids A1 to A83, with one mutant per new arm, M1 to M54. The COUNT is this run's own footer, not this line. Fixture repositories under $T."
 note ""
 
 # ── A2. A TIER PATH PLUS A RECORD FILE -> GO FULL. ───────────────────────────────────────────────────────────
@@ -294,7 +280,7 @@ commitin "$D" "a tier-only change"
 TF="$(mktemp -d)"; git -C "$D" show "$FIXBASE:gates/checks-tier.sh" > "$TF/ct.sh"
 printf '%s\n' "# an extra byte that main does not have" >> "$TF/ct.sh"
 git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1 || true
-A6OUT="$(cd "$D" && CT_TIER_REMOTE_MAIN="$FIXBASE" bash "$TF/ct.sh" "$FIXBASE" "$D" 2>&1)"; A6RC=$?
+A6OUT="$(cd "$D" && bash "$TF/ct.sh" "$FIXBASE" "$D" 2>&1)"; A6RC=$?
 rm -rf "$TF"
 if [ "$A6RC" = 1 ] && grep -qF "REFUSED" <<<"$A6OUT" && grep -qF "self pin" <<<"$A6OUT"; then
   rec A6 ok "a judge whose bytes are not the base's blob REFUSES itself (exit 1)"
@@ -580,7 +566,7 @@ cp "$G/checks-tier.sh" "$D/gates/checks-tier.sh"; chmod +x "$D/gates/checks-tier
 printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "add the tier and change a tier path"
 TF="$(mktemp -d)"; cp "$G/checks-tier.sh" "$TF/ct.sh"
 git -C "$D" update-ref refs/remotes/origin/main "$B" >/dev/null 2>&1 || true
-A21OUT="$(cd "$D" && CT_TIER_REMOTE_MAIN="$B" bash "$TF/ct.sh" "$B" "$D" 2>&1)"; A21RC=$?
+A21OUT="$(cd "$D" && bash "$TF/ct.sh" "$B" "$D" 2>&1)"; A21RC=$?
 rm -rf "$TF"
 if [ "$A21RC" = 2 ] && grep -qF "GO FULL" <<<"$A21OUT" && grep -qF "predating this tier" <<<"$A21OUT"; then
   rec A21 ok "a base carrying no gates/checks-tier.sh routes to the full suite (exit 2), not REFUSED"
@@ -656,11 +642,6 @@ if n==0:
 open(sys.argv[2],"w").write(src)
 ' "$G/checks-tier.sh" "$out"
 }
-# AN ANCHOR MUST NOT CONTAIN A LITERAL BACKSLASH-n, AND #544 HIT THIS THREE TIMES IN ONE RUN. mkmut above turns
-# `\n` into a REAL NEWLINE in both halves of every replacement line - it exists so a mutation can span lines -
-# so an anchor quoting a `printf '%s\n'` out of the judge can never match the file, mkmut appends nothing, and
-# mutguard reports "the mutation changed NOTHING". That is the guard working, and it costs a harness run each
-# time. Anchor on a neighbouring line, or on the part of the line that carries no backslash.
 # mutguard <id> <desc> <outfile> <expect-substring> -> 0 if the mutant is usable, 1 if it is not (and records FAIL)
 mutguard(){
   local id="$1" desc="$2" out="$3" expect="$4"
@@ -716,22 +697,9 @@ mkfix "$D"
 # which is worse than no mutant by this harness's own standard, so the mutation is now a substring replacement
 # in the same idiom as M37 and M49: make the loop read an EMPTY stream, so DIRTYANY stays 0, no dirty-tree
 # verdict is ever reached, and A13 must stop refusing.
-# RE-ANCHORED AGAIN BY #544, AND THE REASON IS THIS HARNESS'S OWN STANDARD. #544's repair appended a NUL
-# sentinel carrying the read's exit status to this producer, so the old anchor - the line without it - matched
-# NOTHING, mkmut refused, the file came through unchanged and mutguard reported "the mutation changed NOTHING".
-# That is the harness catching a mutant that would otherwise have tested nothing, which is what it is for.
-# AND THE REPLACEMENT CANNOT BE `:` ANY MORE: an empty stream now carries no sentinel, so DIRTYRC stays at its
-# `missing` value and #544's own arm routes at 2 - which would turn A13 for a reason that is NOT the dirty-tree
-# refusal this mutant is about, and a mutant that turns a case through the wrong arm proves nothing about
-# either. The stream is therefore the sentinel ALONE, reading exit 0: the status read "succeeded" and found
-# nothing, DIRTYANY stays 0, no dirty-tree verdict is ever reached, and A13 must stop refusing.
-printf '%s\t%s\n' 'done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null; printf '"'"'CTSTATUSRC=%d\0'"'"' "$?")' 'done < <(printf '"'"'CTSTATUSRC=0\0'"'"')' \
+printf '%s\t%s\n' 'done < <("${GIT[@]}" status --porcelain=v1 -z --untracked-files=all 2>/dev/null)' 'done < <(:)' \
   | mkmut "$D/gates/checks-tier.sh"
-# AND THE EXPECT STRING MOVED WITH THE REPLACEMENT [#544]. mutguard's fourth argument is the text the mutation
-# was meant to INSTALL, and leaving it at the old `done < <(:)` made mutguard report "does not carry the text
-# the mutation was meant to install" on a mutation that had in fact applied - a guard failing for a reason that
-# is about the guard. That is the fourth argument doing exactly its job, so it is updated rather than removed.
-if ! mutguard M1 "remove the dirty-tree refusal" "$D/gates/checks-tier.sh" "done < <(printf 'CTSTATUSRC=0"; then
+if ! mutguard M1 "remove the dirty-tree refusal" "$D/gates/checks-tier.sh" 'done < <(:)'; then
   :
 else
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M1 base" >/dev/null 2>&1
@@ -758,7 +726,7 @@ else
   TF="$(mktemp -d)"; git -C "$D" show "$M2B:gates/checks-tier.sh" > "$TF/ct.sh"
   printf '%s\n' "# an extra byte" >> "$TF/ct.sh"
   git -C "$D" update-ref refs/remotes/origin/main "$M2B" >/dev/null 2>&1 || true
-  O="$(cd "$D" && CT_TIER_REMOTE_MAIN="$M2B" bash "$TF/ct.sh" "$M2B" "$D" 2>&1)"; R=$?; rm -rf "$TF"
+  O="$(cd "$D" && bash "$TF/ct.sh" "$M2B" "$D" 2>&1)"; R=$?; rm -rf "$TF"
   if [ "$R" = 1 ] && grep -qF "self pin" <<<"$O" && grep -qF "REFUSED" <<<"$O"; then
     rec M2 FAIL "the self pin still refused with its comparison removed"
   else
@@ -1085,7 +1053,7 @@ if mutguard M15 "refuse a pre-tier base" "$D/gates/checks-tier.sh" 'return 1'; t
   printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
   TF="$(mktemp -d)"; printf '%s\t%s\n' '    say "GO FULL: the base ${BASESHA:0:12} carries no gates/checks-tier.sh, so there is no main copy to judge by."\n    say "  That is a base predating this tier, not a fault in your commit. The full suite decides it."\n    return 2' '    say "REFUSED: the base ${BASESHA:0:12} carries no gates/checks-tier.sh."\n    return 1' | mkmut "$TF/ct.sh"
   git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1 || true
-  O="$(cd "$D" && CT_TIER_REMOTE_MAIN="$MB" bash "$TF/ct.sh" "$MB" "$D" 2>&1)"; R=$?; rm -rf "$TF"
+  O="$(cd "$D" && bash "$TF/ct.sh" "$MB" "$D" 2>&1)"; R=$?; rm -rf "$TF"
   if [ "$R" = 1 ]; then
     rec M15 ok "restoring the refusal turns A21: a pre-tier base is REFUSED again rather than routed (exit 1)"
   else
@@ -1634,7 +1602,7 @@ commitin "$D" "a BROWSER GATE change past the base the operator will pass"
 runtier "$D" "$MID"
 git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1
 TF38="$(mktemp -d)"; git -C "$D" show "$MID:gates/checks-tier.sh" > "$TF38/ct.sh" 2>/dev/null
-A38OUT="$(cd "$D" && CT_TIER_REMOTE_MAIN="$MID" bash "$TF38/ct.sh" "$MID" "$D" 2>&1)"; A38RC=$?
+A38OUT="$(cd "$D" && bash "$TF38/ct.sh" "$MID" "$D" 2>&1)"; A38RC=$?
 rm -rf "$TF38"
 if [ "$A38RC" = 2 ] && grep -qF "refs/remotes/origin/main is" <<<"$A38OUT"; then
   rec A38 ok "a base that is not origin/main routes to the full suite and names both shas (exit $A38RC)"
@@ -1727,7 +1695,7 @@ if mutguard M29 "remove the base-vs-origin/main arm" "$D/gates/checks-tier.sh" '
   printf '%s\n' "// touched" >> "$D/gates/regress/01-x.js"; commitin "$D" "a browser gate past the base"
   git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1
   TF29="$(mktemp -d)"; git -C "$D" show "$MB:gates/checks-tier.sh" > "$TF29/ct.sh" 2>/dev/null
-  O29="$(cd "$D" && CT_TIER_REMOTE_MAIN="$MID29" bash "$TF29/ct.sh" "$MID29" "$D" 2>&1)"; R29=$?
+  O29="$(cd "$D" && bash "$TF29/ct.sh" "$MID29" "$D" 2>&1)"; R29=$?
   rm -rf "$TF29"
   if grep -qF "refs/remotes/origin/main is" <<<"$O29"; then
     rec M29 FAIL "the base-vs-main arm still fired with its branch removed"
@@ -1800,10 +1768,7 @@ expect A42 "$D" "$FIXBASE" 0 "CHECKS TIER GREEN" "no control's clone names the r
 
 # ── M31. PUT `--shared "$ROOT"` BACK: A42's control must FAIL, so the tier goes RED.
 D="$T/m-M31"; mkfix "$D"
-# RE-ANCHORED BY #544: repair 2 made each control's origin a per-control bare repository, so the clone line
-# names $porig and no longer $MIRROR. The mutation is unchanged in meaning - put the real root back as the
-# controls' origin - and A42's control must then see the tree under judgement.
-printf '%s\t%s\n' '    git clone --quiet --no-hardlinks --shared "$porig" "$dest" >/dev/null 2>&1 || return 1' '    git clone --quiet --no-hardlinks --shared "$ROOT" "$dest" >/dev/null 2>&1 || return 1' \
+printf '%s\t%s\n' '    git clone --quiet --no-hardlinks --shared "$MIRROR" "$dest" >/dev/null 2>&1 || return 1' '    git clone --quiet --no-hardlinks --shared "$ROOT" "$dest" >/dev/null 2>&1 || return 1' \
   | mkmut "$D/gates/checks-tier.sh"
 if mutguard M31 "clone the controls from the real root again" "$D/gates/checks-tier.sh" '--shared "$ROOT" "$dest"'; then
   mkdir -p "$D/gates/cases"
@@ -2182,18 +2147,10 @@ fi
 while IFS= read -r svpid; do [ -n "$svpid" ] && kill -TERM "$svpid" 2>/dev/null || true
 done < <(ps -eo pid=,cmd= 2>/dev/null | awk '$2=="sleep" && $3=="600" {print $1}')
 
-# ── M36. REMOVE BOTH PER-CONTROL SURVIVOR SCANS: A49 must stop reddening.
-# TWO-STAGE SINCE #544, AND THE REASON IS REPAIR 3 RATHER THAN A WEAKNESS IN THIS MUTANT. Removing the MARKER
-# scan alone no longer turns A49: the (pid, starttime) set test names the same survivor, so the single-arm
-# version read exit 1 and "a control was still named as having outlived itself" - MEASURED on this harness
-# before this edit. That is the arm repair 3 added doing its job, and it is also why a one-arm mutant here
-# would now prove nothing. So both per-control arms come out together and the claim is the pair's; A91 carries
-# the claim that the SET TEST alone catches what the marker scan cannot, which is the asymmetry that matters.
+# ── M36. REMOVE THE MARKER SCAN: A49 must stop reddening.
 D="$T/m-M36"; mkfix "$D"
-{ printf '%s\t%s\n' '    surv="$(ctl_survivors)"' '    surv=""'
-  printf '%s\t%s\n' '      if [ "$sd" = "$pid" ] || { [ "$sd" = "$jsd" ] && [ "$pg" != "$jpg" ]; }; then' '      if false; then'
-} | mkmut "$D/gates/checks-tier.sh"
-if mutguard M36 "remove both per-control survivor scans" "$D/gates/checks-tier.sh" '    surv=""'; then
+printf '%s\t%s\n' '    surv="$(ctl_survivors)"' '    surv=""' | mkmut "$D/gates/checks-tier.sh"
+if mutguard M36 "remove the per-control survivor scan" "$D/gates/checks-tier.sh" '    surv=""'; then
   mkdir -p "$D/gates/cases"
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M36 base" >/dev/null 2>&1
   MB="$(git -C "$D" rev-parse HEAD)"
@@ -2280,7 +2237,7 @@ printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only chan
 A52T="$(mktemp -d)"
 git -C "$D" update-ref refs/remotes/origin/main "$FIXBASE" >/dev/null 2>&1 || true
 git -C "$D" show "$FIXBASE:gates/checks-tier.sh" > "$A52T/ct.sh" 2>/dev/null
-A52OUT="$(cd "$A52T" && CT_TIER_REMOTE_MAIN="$FIXBASE" bash ./ct.sh "$FIXBASE" "$D" 2>&1)"; A52RC=$?
+A52OUT="$(cd "$A52T" && bash ./ct.sh "$FIXBASE" "$D" 2>&1)"; A52RC=$?
 A52WHY=""
 [ "$A52RC" = 0 ] || A52WHY="exit $A52RC, wanted 0"
 grep -qF "running=none" <<<"$A52OUT" && A52WHY="${A52WHY:+$A52WHY; }the self pin still printed running=none"
@@ -2305,7 +2262,7 @@ if mutguard M40 "stop making the judge's own path absolute" "$D/gates/checks-tie
   M40T="$(mktemp -d)"
   git -C "$D" update-ref refs/remotes/origin/main "$MB" >/dev/null 2>&1 || true
   git -C "$D" show "$MB:gates/checks-tier.sh" > "$M40T/ct.sh" 2>/dev/null
-  M40OUT="$(cd "$M40T" && CT_TIER_REMOTE_MAIN="$MB" bash ./ct.sh "$MB" "$D" 2>&1)"; M40RC=$?
+  M40OUT="$(cd "$M40T" && bash ./ct.sh "$MB" "$D" 2>&1)"; M40RC=$?
   if [ "$M40RC" != 0 ]; then
     rec M40 ok "without the path resolution a relative invocation cannot pin and the judge stops (exit $M40RC)"
   else
@@ -2841,624 +2798,6 @@ CTL
   fi
 fi
 
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-# #544, REPAIR 1 OF THE WORK: THE TWO FOUNDATIONS. A84 to A88 and M55 to M58.
-# A84 to A86 cover step (0b), the base proof, which is fresh antagonist B's F1 of #543 (a P0 veto, confirmed by
-# A from the diff door). A87 and A88 cover the unchecked reads, which is B's F2 and A's V2 - the same line from
-# both doors - and the cross-read settled the site count at three.
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-# ── A84. NO CALLER'S REMOTE READ -> GO FULL, NEVER GREEN. ────────────────────────────────────────────────────
-# THE HONEST VERDICT FOR THIS FIXTURE IS 0: it is a tier-only change over green stub controls, which is what
-# every other green case here is. So this case asserts that the ABSENCE of the proof costs the suite, and M55
-# shows that without the arm the same fixture goes green - i.e. that the arm is what stands between a local
-# ref and a verdict.
-D="$T/a84"; mkfix "$D"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change"
-DRIVEREMOTE=__UNSET__ runtier "$D" "$FIXBASE"
-A84WHY=""
-[ "$TRC" = 2 ] || A84WHY="exit $TRC, wanted 2"
-grep -qF "CT_TIER_REMOTE_MAIN is not set" <<<"$TOUT" || A84WHY="${A84WHY:+$A84WHY; }the route does not name the missing proof"
-grep -qF "CHECKS TIER GREEN" <<<"$TOUT" && A84WHY="${A84WHY:+$A84WHY; }it emitted the GREEN token anyway"
-if [ -n "$A84WHY" ]; then
-  rec A84 FAIL "a caller that read nothing from the remote is routed, not greened :: $A84WHY"
-  printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
-else
-  rec A84 ok "with no CT_TIER_REMOTE_MAIN the judge routes to the full suite and names it (exit $TRC)"
-fi
-
-# ── A85. A PROOF THAT IS NOT A SHA -> GO FULL. Two poses, because the shape check has two arms: a value with
-# non-hex characters in it, and a hex value of the wrong length. A truncated sha is the likelier operator slip
-# of the two (`cut -c1-12` instead of `cut -f1`), and it must not be accepted as a proof of anything.
-A85BAD=""
-for pose in notahex short; do
-  D="$T/a85-$pose"; mkfix "$D"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"
-  commitin "$D" "a tier-only change"
-  case "$pose" in
-    notahex) R="origin/main" ;;
-    short)   R="${FIXBASE:0:12}" ;;
-  esac
-  DRIVEREMOTE="$R" runtier "$D" "$FIXBASE"
-  [ "$TRC" = 2 ] || A85BAD="$A85BAD $pose(exit $TRC)"
-  grep -qF "CHECKS TIER GREEN" <<<"$TOUT" && A85BAD="$A85BAD $pose(GREEN)"
-  case "$pose" in
-    notahex) grep -qF "is not a sha" <<<"$TOUT" || A85BAD="$A85BAD $pose(unnamed)" ;;
-    short)   grep -qF "hex characters and a full sha is 40" <<<"$TOUT" || A85BAD="$A85BAD $pose(unnamed)" ;;
-  esac
-done
-if [ -n "$A85BAD" ]; then rec A85 FAIL "a malformed proof is routed and named ::$A85BAD"
-else rec A85 ok "a proof that is not a 40-hex sha routes in both poses (non-hex, truncated)"; fi
-
-# ── A86. B's F1 ITSELF: THE LOCAL REF IS MOVED AND THE BASE FOLLOWS IT, AND THE CALLER'S REMOTE READ IS WHAT
-# CATCHES IT. ───────────────────────────────────────────────────────────────────────────────────────────────
-# THE ATTACK, AS B RAN IT: a branch two commits past main where the FIRST commit changes a browser gate and the
-# second changes only a tier script. Passing the first commit as the base makes every arm of the judge compare
-# HEAD against it, so the browser-gate change is never in the changed set and the tier answers GREEN. Step (0)
-# alone cannot see it, because one `git update-ref refs/remotes/origin/main <that sha>` makes the base and the
-# ref agree - both of them read out of the candidate's own checkout.
-# THIS CASE IS THE ATTACK WITH THE PROOF SUPPLIED, which is what the real invocation now does: the caller's
-# `git ls-remote` says main is FIXBASE while the base handed over is the moved sha, and the mismatch routes.
-D="$T/a86"; mkfix "$D"
-printf '%s\n' "// a browser gate changed, which no tier green may ever carry" >> "$D/gates/regress/01-x.js"
-commitin "$D" "commit 1: a browser gate"
-A86MID="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "commit 2: a tier-only change"
-# The attacker's move: the LOCAL remote-tracking ref is pointed at commit 1, so step (0) agrees with itself.
-git -C "$D" update-ref refs/remotes/origin/main "$A86MID" >/dev/null 2>&1
-A86T="$(mktemp -d)"; git -C "$D" show "$A86MID:gates/checks-tier.sh" > "$A86T/ct.sh" 2>/dev/null
-A86OUT="$(cd "$D" && CT_TIER_REMOTE_MAIN="$FIXBASE" bash "$A86T/ct.sh" "$A86MID" "$D" 2>&1)"; A86RC=$?
-rm -rf "$A86T"
-A86WHY=""
-[ "$A86RC" = 2 ] || A86WHY="exit $A86RC, wanted 2"
-grep -qF "the real remote's main is" <<<"$A86OUT" || A86WHY="${A86WHY:+$A86WHY; }the route does not name the remote's main against the base"
-grep -qF "${FIXBASE:0:12}" <<<"$A86OUT" || A86WHY="${A86WHY:+$A86WHY; }it does not print the remote's own sha"
-grep -qF "CHECKS TIER GREEN" <<<"$A86OUT" && A86WHY="${A86WHY:+$A86WHY; }it emitted the GREEN token over a changed browser gate"
-if [ -n "$A86WHY" ]; then
-  rec A86 FAIL "a moved local ref with a matching base is caught by the caller's remote read :: $A86WHY"
-  printf '%s\n' "$A86OUT" | tail -10 | sed 's/^/          /'
-else
-  rec A86 ok "B's F1 attack - the local ref moved to commit 1 and passed as the base - routes on the caller's remote read (exit $A86RC)"
-fi
-
-# ── A87. B's F2: A `git status` THAT FAILS IS NOT A CLEAN TREE. ──────────────────────────────────────────────
-# B's reproduction, verbatim in mechanism: a tree carrying uncommitted edits answers exit 1 with a readable
-# index and answered exit 0 CHECKS TIER GREEN with a corrupt one, because the entrance read runs with
-# 2>/dev/null inside a process substitution whose exit status nothing looked at - so an empty stream from a
-# FAILED read was the clean-tree path.
-# THE CASE IS BUILT IN TWO MEASUREMENTS, NOT ONE, because a case that only shows the repaired verdict cannot
-# show that the trigger works: pose `readable` is the same tree with a good index and must still REFUSE at 1
-# (that is A13's verdict, re-measured here so the pair is on one fixture), and pose `corrupt` must NOT be 0.
-A87BAD=""; A87NOTE=""
-for pose in readable corrupt; do
-  D="$T/a87-$pose"; mkfix "$D"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"
-  commitin "$D" "a tier-only change"
-  # The uncommitted edit the judge must see: a TRACKED path inside the tier's own set.
-  printf '%s\n' "uncommitted, and inside the set" >> "$D/gates/held.sh"
-  if [ "$pose" = corrupt ]; then
-    head -c 400 /dev/urandom > "$D/.git/index" 2>/dev/null || true
-    # MEASURED RATHER THAN ASSUMED: if `git status` still works on this index, the trigger did not fire and
-    # this pose proves nothing, so it says so instead of reporting a pass.
-    if git -C "$D" status --porcelain >/dev/null 2>&1; then
-      A87NOTE="the corrupt index did not make git status fail, so the trigger did not fire"
-      continue
-    fi
-  fi
-  runtier "$D" "$FIXBASE"
-  case "$pose" in
-    readable)
-      [ "$TRC" = 1 ] || A87BAD="$A87BAD readable(exit $TRC, wanted 1)"
-      grep -qF "TRACKED path INSIDE this tier's own set" <<<"$TOUT" || A87BAD="$A87BAD readable(not named)" ;;
-    corrupt)
-      [ "$TRC" = 0 ] && A87BAD="$A87BAD corrupt(GREEN over an unreadable status)"
-      [ "$TRC" = 2 ] || A87BAD="$A87BAD corrupt(exit $TRC, wanted 2)"
-      grep -qF "could not read the working tree's status" <<<"$TOUT" || A87BAD="$A87BAD corrupt(the route does not name the failed read)" ;;
-  esac
-done
-if [ -n "$A87NOTE" ]; then rec A87 SKIP "the unreadable-status pose could not be built :: $A87NOTE"
-elif [ -n "$A87BAD" ]; then rec A87 FAIL "an unreadable status is not a clean tree ::$A87BAD"
-else rec A87 ok "the same dirty tree REFUSES with a readable index (1) and ROUTES with an unreadable one (2), never green"; fi
-
-# ── A88. A's HALF OF V2: A CONTROL THAT CORRUPTS THE INDEX MID-BATTERY AND PLANTS INTO THE REAL TREE. ────────
-# WHAT THIS CASE CAN AND CANNOT SHOW, STATED BEFORE ITS ASSERTIONS so no reader over-reads its green. With the
-# entrance read now checked, a tree whose index is ALREADY unreadable never reaches the battery, so the
-# both-snapshots-cancel green B reproduced is closed at the door and not here. What is left for this arm is the
-# ONE-SIDED case: a control corrupts the index while the battery runs, so SNAP1's reads fail and SNAP0's did
-# not. The repair's effect here is to make that GRAVE (exit 1) instead of a ROUTE (exit 2) - the difference
-# between "a control changed the real tree" and "another session wrote a doc" - which is A's own words for the
-# half B did not measure. M58 asserts exactly that threshold and nothing stronger.
-D="$T/a88"; mkfix "$D"
-{ printf '%s\n' "#!/usr/bin/env bash"
-  printf '%s\n' 'printf "%s\n" planted > "$OLDPWD/planted-by-a-control.txt" 2>/dev/null || true'
-  printf '%s\n' 'head -c 400 /dev/urandom > "$OLDPWD/.git/index" 2>/dev/null || true'
-  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-commitin "$D" "a gates.sh whose selftest corrupts the real tree's index and plants a file"
-A88B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change over an index-corrupting control"
-runtier "$D" "$A88B"
-A88WHY=""
-[ "$TRC" = 0 ] && A88WHY="exit 0: it went GREEN while the real tree's index was corrupt and a file was planted"
-[ "$TRC" = 1 ] || A88WHY="${A88WHY:+$A88WHY; }exit $TRC, wanted 1 (grave, not a route)"
-grep -qF "could not take a complete picture of the real tree" <<<"$TOUT" || A88WHY="${A88WHY:+$A88WHY; }the refusal does not say the picture could not be taken"
-if [ -n "$A88WHY" ]; then
-  rec A88 FAIL "a control that corrupts the index mid-battery is grave :: $A88WHY"
-  printf '%s\n' "$TOUT" | tail -12 | sed 's/^/          /'
-else
-  rec A88 ok "a control that corrupts the real tree's index mid-battery is REFUSED as grave, not routed (exit $TRC)"
-fi
-
-# ── M55. GIVE THE PROOF A DEFAULT OF THE LOCAL REF: A84 MUST GO GREEN. ──────────────────────────────────────
-# THIS IS THE PRE-REPAIR BEHAVIOUR EXACTLY, which is what makes it the right mutation: before #544 the judge
-# had no proof at all and trusted refs/remotes/origin/main, so defaulting the variable to the base reproduces
-# the old arm in one substitution rather than deleting the new one.
-D="$T/m-M55"; mkfix "$D"
-printf '%s\t%s\n' '  local REMOTEMAIN="${CT_TIER_REMOTE_MAIN:-}"' '  local REMOTEMAIN="${CT_TIER_REMOTE_MAIN:-$BASESHA}"' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M55 "default the base proof to the local ref" "$D/gates/checks-tier.sh" 'CT_TIER_REMOTE_MAIN:-$BASESHA'; then
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M55 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  DRIVEREMOTE=__UNSET__ runtier "$D" "$MB"
-  if [ "$TRC" = 2 ] && grep -qF "CT_TIER_REMOTE_MAIN is not set" <<<"$TOUT"; then
-    rec M55 FAIL "the base proof is not load-bearing: A84's verdict survived the mutation (exit $TRC)"
-  else
-    rec M55 ok "with the proof defaulted to the local ref the same fixture needs no remote read (exit $TRC, honest is 2)"
-  fi
-fi
-
-# ── M56. REMOVE THE MISMATCH ARM: A86 MUST STOP ROUTING. ────────────────────────────────────────────────────
-D="$T/m-M56"; mkfix "$D"
-printf '%s\t%s\n' '  if [ "$REMOTEMAIN" != "$BASESHA" ]; then' '  if false; then' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M56 "remove the proof-vs-base mismatch arm" "$D/gates/checks-tier.sh" '  if false; then'; then
-  printf '%s\n' "// a browser gate changed" >> "$D/gates/regress/01-x.js"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M56 base" >/dev/null 2>&1
-  M56B="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "// commit 1 under the mutant: a browser gate" >> "$D/gates/regress/01-x.js"
-  commitin "$D" "commit 1: a browser gate"
-  M56MID="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "commit 2: a tier-only change"
-  git -C "$D" update-ref refs/remotes/origin/main "$M56MID" >/dev/null 2>&1
-  M56T="$(mktemp -d)"; git -C "$D" show "$M56MID:gates/checks-tier.sh" > "$M56T/ct.sh" 2>/dev/null
-  O56="$(cd "$D" && CT_TIER_REMOTE_MAIN="$M56B" bash "$M56T/ct.sh" "$M56MID" "$D" 2>&1)"; R56=$?
-  rm -rf "$M56T"
-  if grep -qF "the real remote's main is" <<<"$O56"; then
-    rec M56 FAIL "the mismatch arm is not load-bearing: it still routed with the comparison removed (exit $R56)"
-  else
-    rec M56 ok "without the mismatch arm a base the remote does not carry is no longer named (exit $R56, honest routes at 2)"
-  fi
-fi
-
-# ── M57. MAKE BOTH READ-STATUS ARMS OF REPAIR 1 VACUOUS: A87's CORRUPT POSE MUST GO GREEN. ─────────────────
-# THIS MUTANT IS B's REPRODUCTION, AND IT IS THE ONE THAT MATTERS MOST ON THIS LIST: it restores the exact
-# behaviour B drove to exit 0 over a tree carrying uncommitted edits to gates/held.sh and app.js.
-# IT IS TWO-STAGE BECAUSE THE TWO HALVES OF REPAIR 1 OVERLAP ON THIS INPUT, AND THAT WAS MEASURED RATHER THAN
-# ASSUMED. The first version mutated the ENTRANCE check alone and read exit 2, not 0: an unreadable .git/index
-# also fails the reads inside snapshot(), so SNAP0's own arm routed the run and the single-arm mutant could not
-# reach a green. That is defence in depth working, and it is also a mutant that proves less than it claims - a
-# FAIL for the right reason, caught by the harness's own contract. So this mutant removes BOTH arms and its
-# claim is the pair's: with neither read checked, an unreadable index reads as a clean tree AND as a complete
-# picture, which is exactly the state B reproduced. A87 still shows that the ENTRANCE arm is the one that
-# REPORTS it, by naming the failed status read in the verdict at exit 2.
-D="$T/m-M57"; mkfix "$D"
-{ printf '%s\t%s\n' '  if [ "$DIRTYRC" != 0 ]; then' '  if false; then'
-  printf '%s\t%s\n' "grep -qE '^SNAPREAD [a-z0-9-]+ [^0]'" "grep -qE 'ZZZ-NO-SNAPSHOT-LINE-MATCHES-THIS'"
-} | mkmut "$D/gates/checks-tier.sh"
-if mutguard M57 "make both read-status arms vacuous" "$D/gates/checks-tier.sh" 'ZZZ-NO-SNAPSHOT-LINE-MATCHES-THIS'; then
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M57 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  printf '%s\n' "uncommitted, and inside the set" >> "$D/gates/held.sh"
-  head -c 400 /dev/urandom > "$D/.git/index" 2>/dev/null || true
-  if git -C "$D" status --porcelain >/dev/null 2>&1; then
-    rec M57 SKIP "the corrupt index did not make git status fail, so this mutant was not attempted"
-  else
-    runtier "$D" "$MB"
-    if [ "$TRC" = 0 ]; then
-      rec M57 ok "without the status check an unreadable index reads as a CLEAN TREE and the judge goes GREEN over uncommitted edits (exit 0, honest is 2)"
-    else
-      rec M57 FAIL "the status check is not what stands between an unreadable index and a green (exit $TRC, wanted 0)"
-      printf '%s\n' "$TOUT" | tail -8 | sed 's/^/          /'
-    fi
-  fi
-fi
-
-# ── M58. MAKE snapread_bad ALWAYS FALSE: A88 MUST FALL FROM GRAVE TO A ROUTE. ───────────────────────────────
-# THE THRESHOLD THIS MUTANT CROSSES IS 1 -> 2 AND NOT 0, and saying so is the whole of its honesty: the
-# SNAPREAD lines are part of the snapshot text, so a one-sided read failure ALSO shows as a plain difference,
-# which the typed classifier calls a route. The arm's job is to make it GRAVE. A mutant asserted to reach 0
-# here would be asserting something the arm never claimed, and it would pass for the wrong reason.
-D="$T/m-M58"; mkfix "$D"
-# THE ANCHOR DELIBERATELY AVOIDS A BACKSLASH-n, AND THE FIRST VERSION OF THIS MUTANT DID NOT [#544]. mkmut
-# turns a literal `\n` in its anchor into a REAL NEWLINE (it exists so a mutation can span lines), so an anchor
-# quoting snapread_bad's own `printf '%s\n'` could never match the file and the mutation silently applied
-# nothing - which mutguard reported as "the mutation changed NOTHING", exactly as it is built to. The anchor is
-# therefore the grep INSIDE that function, which is unique (snapread_why's copy has no -q) and carries no
-# backslash at all.
-printf '%s\t%s\n' "grep -qE '^SNAPREAD [a-z0-9-]+ [^0]'" "grep -qE 'ZZZ-NO-SNAPSHOT-LINE-MATCHES-THIS'" \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M58 "make the snapshot read-status test vacuous" "$D/gates/checks-tier.sh" 'ZZZ-NO-SNAPSHOT-LINE-MATCHES-THIS'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'printf "%s\n" planted > "$OLDPWD/planted-by-a-control.txt" 2>/dev/null || true'
-    printf '%s\n' 'head -c 400 /dev/urandom > "$OLDPWD/.git/index" 2>/dev/null || true'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M58 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  if [ "$TRC" = 1 ] && grep -qF "could not take a complete picture of the real tree" <<<"$TOUT"; then
-    rec M58 FAIL "the read-status test is not load-bearing: the refusal survived the mutation (exit $TRC)"
-  else
-    rec M58 ok "without the read-status test an index corrupted mid-battery is no longer grave (exit $TRC, honest is 1)"
-  fi
-fi
-
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-# #544, REPAIRS 2, 3 AND 4. A89 to A94 and M59 to M64.
-# A89/A90 and M59/M60 cover the per-control origin, which is A's V1 of #543 - an upheld veto against #543's own
-# repair 4. A91/A92 and M61/M62 cover the survivor set test, which is A's P2(2) and V1's enabler. A93/A94 and
-# M63/M64 cover B's F3 and F4, the two smaller vetoes this run's brief names as required.
-# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-# ── A89. V1's MECHANISM, WITH mirror_ok's REF COMPARISON DELIBERATELY WEAKENED, BECAUSE THAT IS THE ONLY
-# DETERMINISTIC WAY TO SEE WHAT THE PER-CONTROL ORIGIN BUYS. ─────────────────────────────────────────────────
-# THE FIRST VERSION OF THIS CASE COULD NOT OBSERVE ITS OWN ATTACK AND THE HARNESS SAID SO: with a control that
-# moves the shared mirror's `refs/heads/main` and LEAVES it moved, #543's own mirror_ok arm refuses the NEXT
-# clone outright - "the ref list changed: refs/heads/main" - so the later control never runs and records
-# nothing. MEASURED here before this rewrite; the case read FAIL with 'the later control recorded nothing'.
-# THAT IS TWO BARRIERS WORKING IN ORDER, AND IT HIDES THE SECOND ONE. A's V1 defeats the FIRST barrier by
-# RESTORING the ref before the post-battery check, which an end-state comparison cannot see - and A needed
-# three attempts to win that race, losing it twice. A case built on that race would be flaky, and a flaky
-# assertion is worse than none by this project's own rule.
-# SO THE RACE IS REPLACED BY A MUTATION THAT MODELS ITS EFFECT: mirror_ok's ref comparison is made vacuous,
-# which is exactly the state A's restore produces, and the question becomes what a later control READS. Under
-# the per-control origin it reads the BASE; M59, which additionally puts every control back on one shared
-# origin, is the same fixture reading the CANDIDATE'S HEAD. The two together isolate repair 2's contribution
-# and neither depends on timing.
-A89MARK="$T/a89-ls-remote-answer"; rm -f "$A89MARK"
-D="$T/a89"; mkfix "$D"
-printf '%s\t%s\n' '    if [ "$now" != "$MIRRORREFS" ]; then' '    if false; then' | mkmut "$D/gates/checks-tier.sh"
-A89OK=1
-if ! mutguard A89 "weaken mirror_ok's ref comparison, as A's restore does" "$D/gates/checks-tier.sh" '    if false; then'; then
-  A89OK=0
-fi
-if [ "$A89OK" = 1 ]; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' '# control 1: move the SHARED mirror'"'"'s refs/heads/main to this candidate'"'"'s own HEAD.'
-    printf '%s\n' 'O="$(git config --get remote.origin.url 2>/dev/null)"'
-    printf '%s\n' 'M="$(dirname "$O")/mirror.git"'
-    printf '%s\n' '[ -d "$M" ] || M="$O"'
-    printf '%s\n' 'H="$(git rev-parse HEAD 2>/dev/null)"'
-    printf '%s\n' '[ -d "$M" ] && git -C "$M" update-ref refs/heads/main "$H" 2>/dev/null || true'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  mkdir -p "$D/gates/cases"
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' '# control 2, which runs AFTER control 1: record what origin says main is.'
-    printf '  printf "%%s\\n" "$(git ls-remote origin main 2>/dev/null | cut -f1)" > %s\n' "$A89MARK"
-    printf '%s\n' 'echo "PASS a89 recorded what origin calls main"' "exit 0"; } > "$D/gates/cases/c-a89.sh"
-  chmod +x "$D/gates/cases/c-a89.sh"
-  git -C "$D" add -A >/dev/null 2>&1
-  git -C "$D" commit --quiet -m "a89 base: gates.sh moves the shared mirror, a control reads origin" >/dev/null 2>&1
-  A89B="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"
-  commitin "$D" "a tier-only change"
-  A89HEAD="$(git -C "$D" rev-parse HEAD)"
-  runtier "$D" "$A89B"
-  A89READ="$(cat "$A89MARK" 2>/dev/null | tr -d '[:space:]')"
-  A89WHY=""
-  if [ -z "$A89READ" ]; then
-    A89WHY="the later control recorded nothing, so this case did not run its own attack"
-  elif [ "$A89READ" = "$A89HEAD" ]; then
-    A89WHY="the later control read the CANDIDATE'S OWN HEAD as main - V1 reproduced with the per-control origin in place"
-  elif [ "$A89READ" != "$A89B" ]; then
-    A89WHY="the later control read $A89READ, which is neither the base nor the head"
-  fi
-  if [ -n "$A89WHY" ]; then
-    rec A89 FAIL "with mirror_ok weakened, a moved shared mirror still cannot reach a later control :: $A89WHY"
-    printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
-  else
-    rec A89 ok "with mirror_ok's ref comparison vacuous - A's restore modelled - the later control STILL read the base (${A89READ:0:12}), because its origin is its own (exit $TRC)"
-  fi
-fi
-
-# ── A90. A PERSISTENT MOVE OF A CONTROL'S OWN ORIGIN IS GRAVE. ──────────────────────────────────────────────
-# This is the half the post-control re-check adds, and it is deliberately NOT claimed to close the whole class:
-# a move-and-restore inside one control's own window is byte-identical to no move, which the comment on
-# mkclone states and files. What is asserted is the persistent case.
-D="$T/a90"; mkfix "$D"
-{ printf '%s\n' "#!/usr/bin/env bash"
-  printf '%s\n' 'O="$(git config --get remote.origin.url 2>/dev/null)"'
-  printf '%s\n' 'H="$(git rev-parse HEAD 2>/dev/null)"'
-  printf '%s\n' '[ -d "$O" ] && git -C "$O" update-ref refs/heads/main "$H" 2>/dev/null || true'
-  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-commitin "$D" "a base whose gates.sh moves its OWN origin's main"
-A90B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change"
-runtier "$D" "$A90B"
-A90WHY=""
-[ "$TRC" = 0 ] && A90WHY="exit 0: a control moved the refs of the origin its own verdict was computed against"
-[ "$TRC" = 1 ] || A90WHY="${A90WHY:+$A90WHY; }exit $TRC, wanted 1"
-grep -qF "refs of its OWN throwaway origin" <<<"$TOUT" || A90WHY="${A90WHY:+$A90WHY; }the refusal does not name the control's own origin"
-if [ -n "$A90WHY" ]; then
-  rec A90 FAIL "a persistent move of a control's own origin is grave :: $A90WHY"
-  printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
-else
-  rec A90 ok "a control that moves the refs of its own throwaway origin is REFUSED and named (exit $TRC)"
-fi
-
-# ── A91. AN UNMARKED HELPER TIED TO THE CONTROL IS GRAVE, WHICH THE MARKER SCAN ALONE CANNOT SEE. ───────────
-# A's P2(2) VERBATIM IN MECHANISM: `setsid env -u CT_CTL_MARK` leaves nothing for the marker scan to match, so
-# A's helper ran through the whole battery and no survivor line was printed. This helper keeps its cwd inside
-# the clone, which is what ctl_tied reads, and the set test is what finds it at all.
-D="$T/a91"; mkfix "$D"
-{ printf '%s\n' "#!/usr/bin/env bash"
-  printf '%s\n' '# Detach a helper with the marker scrubbed, in its own session, cwd left in the clone.'
-  printf '%s\n' 'setsid env -u CT_CTL_MARK sleep 25 >/dev/null 2>&1 &'
-  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-commitin "$D" "a base whose gates.sh detaches an UNMARKED helper"
-A91B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change"
-runtier "$D" "$A91B"
-A91WHY=""
-[ "$TRC" = 0 ] && A91WHY="exit 0: an unmarked process of the control outlived it and the judge went GREEN"
-[ "$TRC" = 1 ] || A91WHY="${A91WHY:+$A91WHY; }exit $TRC, wanted 1"
-grep -qF "tied to this control" <<<"$TOUT" || A91WHY="${A91WHY:+$A91WHY; }the refusal does not name the set test's own finding"
-if [ -n "$A91WHY" ]; then
-  rec A91 FAIL "an unmarked helper tied to the control is grave :: $A91WHY"
-  printf '%s\n' "$TOUT" | tail -14 | sed 's/^/          /'
-else
-  rec A91 ok "a helper with CT_CTL_MARK UNSET is caught by the (pid, starttime) set test and refused (exit $TRC)"
-fi
-
-# ── A92. AN UNMARKED, UNTIED HELPER ROUTES AND IS NEVER CREDITED. ───────────────────────────────────────────
-# THE HONEST BOUNDARY OF REPAIR 3, ASSERTED RATHER THAN DESCRIBED. A helper that scrubs the marker, chdirs out
-# of the clone and closes its descriptors cannot be TIED to the control by anything this judge can read - so
-# the verdict is GO FULL and not RED. The point of the case is that it is also not GREEN: the battery cannot be
-# called clean, and a run that cannot be called clean pays the suite.
-D="$T/a92"; mkfix "$D"
-{ printf '%s\n' "#!/usr/bin/env bash"
-  printf '%s\n' '# A helper with no marker, no cwd in the clone and no inherited descriptors.'
-  printf '%s\n' 'setsid env -u CT_CTL_MARK sh -c "cd / && exec sleep 25" >/dev/null 2>&1 </dev/null &'
-  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-commitin "$D" "a base whose gates.sh detaches an UNMARKED, UNTIED helper"
-A92B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change"
-runtier "$D" "$A92B"
-A92WHY=""
-[ "$TRC" = 0 ] && A92WHY="exit 0: a process appeared, outlived its control and the judge still went GREEN"
-grep -qF "CHECKS TIER GREEN" <<<"$TOUT" && A92WHY="${A92WHY:+$A92WHY; }it emitted the GREEN token"
-if [ "$TRC" != 1 ] && [ "$TRC" != 2 ]; then A92WHY="${A92WHY:+$A92WHY; }exit $TRC, wanted 1 or 2"; fi
-if [ -n "$A92WHY" ]; then
-  rec A92 FAIL "an untied survivor stops a green :: $A92WHY"
-  printf '%s\n' "$TOUT" | tail -14 | sed 's/^/          /'
-else
-  rec A92 ok "a survivor this judge cannot tie to its control stops the green and is reported (exit $TRC, 1 or 2 both honest)"
-fi
-
-# ── A93. B's F3: A SAME-SIZE REWRITE OF AN OBJECT IN THE REAL STORE IS GRAVE. ───────────────────────────────
-# B's own attack was against the base's gates/checks-tier.sh blob - the object the self pin rests on - at the
-# same size, which the (name, size) listing cannot see. This control rewrites a loose object byte for byte in
-# length, which is the same defect with a fixture-safe target.
-D="$T/a93"; mkfix "$D"
-{ printf '%s\n' "#!/usr/bin/env bash"
-  printf '%s\n' 'F="$(find "$OLDPWD/.git/objects" -type f -path "*/objects/??/*" 2>/dev/null | head -1)"'
-  printf '%s\n' 'if [ -n "$F" ]; then S="$(stat -c %s "$F" 2>/dev/null)"; head -c "$S" /dev/urandom > "$F" 2>/dev/null || true; fi'
-  printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-commitin "$D" "a base whose gates.sh rewrites a loose object at the same size"
-A93B="$(git -C "$D" rev-parse HEAD)"
-printf '%s\n' "# changed" >> "$D/gates/held.sh"
-commitin "$D" "a tier-only change"
-runtier "$D" "$A93B"
-A93WHY=""
-[ "$TRC" = 0 ] && A93WHY="exit 0: an object in the real store was rewritten and the judge went GREEN"
-[ "$TRC" = 1 ] || A93WHY="${A93WHY:+$A93WHY; }exit $TRC, wanted 1"
-if [ -n "$A93WHY" ]; then
-  rec A93 FAIL "a same-size rewrite of an object is grave :: $A93WHY"
-  printf '%s\n' "$TOUT" | tail -12 | sed 's/^/          /'
-else
-  rec A93 ok "a same-size rewrite of a loose object in the real store is REFUSED (exit $TRC)"
-fi
-
-# ── A94. B's F4: THE OPERATOR'S KEYS AND SETTINGS ARE IN THE SET. ──────────────────────────────────────────
-# RUN UNDER $DRIVEHOME, which is exactly why A47 introduced it: a case that proved this arm by editing the real
-# operator's ~/.ssh would be a case nobody could run twice.
-# AND THE PLANT GOES BY ABSOLUTE PATH, WHICH IS A47's OWN MECHANISM AND NOT A CONVENIENCE. THE FIRST VERSION OF
-# THIS CASE WENT GREEN IN BOTH POSES AND THE REASON IS WORTH THE LINE: `ctl_exec` gives every control its own
-# HOME under the judge's private directory, so a control writing to "$HOME/.ssh" edits ITS OWN throwaway home
-# and never the operator's - the arm had nothing to see. B's attack reached the real home by its PATH, which is
-# discoverable by any means, so the case has to deliver it the same way.
-A94BAD=""
-for pose in ssh settings; do
-  D="$T/a94-$pose"; mkfix "$D"
-  DRIVEHOME="$T/a94home-$pose"; mkdir -p "$DRIVEHOME/.ssh" "$DRIVEHOME/.claude"
-  printf '%s\n' "ssh-rsa AAAAthehonestkey operator@host" > "$DRIVEHOME/.ssh/authorized_keys"
-  printf '%s\n' '{"honest":true}' > "$DRIVEHOME/.claude/settings.json"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"
-  mkdir -p "$D/gates/cases"
-  case "$pose" in
-    ssh)      ACT='printf "%s\n" "ssh-rsa AAAAattacker attacker@host" >> "$H/.ssh/authorized_keys" 2>/dev/null || true' ;;
-    settings) ACT='printf "%s\n" "{\"honest\":false}" > "$H/.claude/settings.json" 2>/dev/null || true' ;;
-  esac
-  { printf '%s\n' "#!/usr/bin/env bash" 'H="__CTHOME__"' "$ACT"
-    printf '%s\n' "echo \"PASS c-operator-$pose asserts nothing\"" "exit 0"; } > "$D/gates/cases/c-operator.sh"
-  sed -i "s|__CTHOME__|$DRIVEHOME|g" "$D/gates/cases/c-operator.sh"
-  commitin "$D" "held.sh plus a control that reaches the operator by absolute path ($pose)"
-  runtier "$D" "$FIXBASE"
-  unset DRIVEHOME
-  [ "$TRC" = 0 ] && A94BAD="$A94BAD $pose(GREEN)"
-  [ "$TRC" = 1 ] || A94BAD="$A94BAD $pose(exit $TRC, wanted 1)"
-  grep -qF "OUTSIDE" <<<"$TOUT" || A94BAD="$A94BAD $pose(no OUTSIDE line named)"
-done
-if [ -n "$A94BAD" ]; then rec A94 FAIL "a control that reaches the operator's keys or settings is grave ::$A94BAD"
-else rec A94 ok "both operator poses (an appended authorized_keys, an overwritten settings.json) are REFUSED and name an OUTSIDE line"; fi
-
-# ── M59. CLONE FROM THE SHARED MIRROR AGAIN: A89 MUST SEE THE FORGED VALUE. ─────────────────────────────────
-# THIS IS #543's REPAIR 4 RESTORED, which is what makes it the right mutation: one substitution puts every
-# control back on one shared origin, and V1's mechanism works again.
-A89MARK2="$T/m59-ls-remote-answer"; rm -f "$A89MARK2"
-D="$T/m-M59"; mkfix "$D"
-# THE SAME mirror_ok WEAKENING AS A89, PLUS ONE MORE MUTATION, so the pair differs in exactly the thing under
-# test: A89 keeps each control's own origin and M59 puts them all back on the shared mirror. Without the first
-# mutation neither could see anything, because mirror_ok refuses the next clone outright - see A89's own note.
-{ printf '%s\t%s\n' '    if [ "$now" != "$MIRRORREFS" ]; then' '    if false; then'
-  printf '%s\t%s\n' '    git clone --quiet --no-hardlinks --shared "$porig" "$dest" >/dev/null 2>&1 || return 1' '    git clone --quiet --no-hardlinks --shared "$MIRROR" "$dest" >/dev/null 2>&1 || return 1'
-} | mkmut "$D/gates/checks-tier.sh"
-if mutguard M59 "clone from the shared mirror instead of the per-control origin" "$D/gates/checks-tier.sh" '--shared "$MIRROR" "$dest"'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'O="$(git config --get remote.origin.url 2>/dev/null)"'
-    printf '%s\n' 'M="$(dirname "$O")/mirror.git"'
-    printf '%s\n' '[ -d "$M" ] || M="$O"'
-    printf '%s\n' 'H="$(git rev-parse HEAD 2>/dev/null)"'
-    printf '%s\n' '[ -d "$M" ] && git -C "$M" update-ref refs/heads/main "$H" 2>/dev/null || true'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  mkdir -p "$D/gates/cases"
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '  printf "%%s\\n" "$(git ls-remote origin main 2>/dev/null | cut -f1)" > %s\n' "$A89MARK2"
-    printf '%s\n' 'echo "PASS m59 recorded what origin calls main"' "exit 0"; } > "$D/gates/cases/c-m59.sh"
-  chmod +x "$D/gates/cases/c-m59.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M59 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  MH="$(git -C "$D" rev-parse HEAD)"
-  runtier "$D" "$MB"
-  M59READ="$(cat "$A89MARK2" 2>/dev/null | tr -d '[:space:]')"
-  if [ -n "$M59READ" ] && [ "$M59READ" = "$MH" ]; then
-    rec M59 ok "on one shared origin the later control reads the CANDIDATE'S HEAD as main (${M59READ:0:12}) - V1 reproduced, so the per-control origin is what closes it"
-  elif [ -n "$M59READ" ] && [ "$M59READ" = "$MB" ]; then
-    rec M59 FAIL "the per-control origin is not what stands between a moved mirror and a later control: the later control still read the base"
-  else
-    rec M59 SKIP "the mutant's own controls recorded nothing (read='${M59READ:0:12}'), so this mutant proved nothing this time"
-  fi
-fi
-
-# ── M60. MAKE cloneorig_ok VACUOUS: A90 MUST STOP REDDENING. ────────────────────────────────────────────────
-D="$T/m-M60"; mkfix "$D"
-printf '%s\t%s\n' '    if [ "$now" != "$CLONEORIGREFS" ]; then' '    if false; then' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M60 "make the per-control origin re-check vacuous" "$D/gates/checks-tier.sh" '    if false; then'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'O="$(git config --get remote.origin.url 2>/dev/null)"'
-    printf '%s\n' 'H="$(git rev-parse HEAD 2>/dev/null)"'
-    printf '%s\n' '[ -d "$O" ] && git -C "$O" update-ref refs/heads/main "$H" 2>/dev/null || true'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M60 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  if grep -qF "refs of its OWN throwaway origin" <<<"$TOUT"; then
-    rec M60 FAIL "the per-control origin re-check is not load-bearing: it still named the move (exit $TRC)"
-  else
-    rec M60 ok "without the re-check a control's move of its own origin is no longer named (exit $TRC, honest is 1)"
-  fi
-fi
-
-# ── M61. MAKE THE SET TEST RETURN NOTHING: A91 MUST GO GREEN. ───────────────────────────────────────────────
-# AND THIS IS THE SHARPEST MUTANT OF REPAIR 3, because the marker scan survives it untouched: with the set test
-# gone, an unmarked helper is invisible again and the judge answers exit 0 - which is A's P2(2) exactly.
-D="$T/m-M61"; mkfix "$D"
-# RE-ANCHORED ONTO THE CANDIDATE TEST RATHER THAN THE SCAN, for two reasons: the scan's own line now carries a
-# backslash-n (mkmut would turn it into a newline, see its header), and the candidate test is the thing whose
-# removal makes the function emit nothing - which is what this mutant claims.
-printf '%s\t%s\n' '      if [ "$sd" = "$pid" ] || { [ "$sd" = "$jsd" ] && [ "$pg" != "$jpg" ]; }; then' '      if false; then' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M61 "make the survivor set test return nothing" "$D/gates/checks-tier.sh" '      if false; then'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'setsid env -u CT_CTL_MARK sleep 25 >/dev/null 2>&1 &'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M61 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  if [ "$TRC" = 0 ]; then
-    rec M61 ok "without the set test an UNMARKED helper is invisible to the marker scan and the judge goes GREEN (exit 0, honest is 1) - A's P2(2) reproduced"
-  else
-    rec M61 FAIL "the set test is not what catches an unmarked helper (exit $TRC, wanted 0)"
-    printf '%s\n' "$TOUT" | tail -10 | sed 's/^/          /'
-  fi
-fi
-
-# ── M62. MAKE ctl_tied ALWAYS FALSE: A91 MUST FALL FROM GRAVE TO A ROUTE. ───────────────────────────────────
-# THE THRESHOLD IS 1 -> 2 AND NOT 0, and that is repair 3's split asserted rather than described: the set test
-# still DETECTS the helper, so it cannot be a green; what ctl_tied decides is whether it is grave.
-D="$T/m-M62"; mkfix "$D"
-# TWO REPLACEMENTS, NEITHER CARRYING A BACKSLASH-n, FOR THE REASON mkmut's OWN HEADER NOW RECORDS: the marker
-# limb and the descriptor limb are turned separately, because turning one leaves the other deciding.
-{ printf '%s\t%s\n' 'grep -qxF "CT_CTL_MARK=$CTLMARK" && return 0' 'grep -qxF "CT_CTL_MARK=$CTLMARK" && return 1'
-  printf '%s\t%s\n' '    for l in "/proc/$pid/cwd" "/proc/$pid/root" "/proc/$pid/exe" "/proc/$pid"/fd/*; do' '    for l in; do'
-} | mkmut "$D/gates/checks-tier.sh"
-if mutguard M62 "make ctl_tied always false" "$D/gates/checks-tier.sh" '    for l in; do'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'setsid env -u CT_CTL_MARK sleep 25 >/dev/null 2>&1 &'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M62 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  if [ "$TRC" = 1 ] && grep -qF "tied to this control" <<<"$TOUT"; then
-    rec M62 FAIL "ctl_tied is not what makes a detected survivor grave: it still reddened (exit $TRC)"
-  elif [ "$TRC" = 0 ]; then
-    rec M62 FAIL "without ctl_tied a detected survivor reached a GREEN, which the set test alone should prevent (exit 0)"
-  else
-    rec M62 ok "without ctl_tied the same helper is still DETECTED but only routes (exit $TRC, honest is 1)"
-  fi
-fi
-
-# ── M63. REPLACE THE OBJECT-BYTES HASH WITH A CONSTANT: A93 MUST STOP BEING GRAVE. ──────────────────────────
-D="$T/m-M63"; mkfix "$D"
-# THE ANCHOR IS THE find AND NOT THE printf, because the printf carries a backslash-n and mkmut would turn it
-# into a real newline (see mkmut's header). Prefixing the find with `:` makes the command substitution empty, so
-# the line prints a CONSTANT where it printed a hash - which is the mutation this mutant is named for.
-printf '%s\t%s\n' '"$(find "$ROOT/.git/objects" -type f \( -name '"'"'*.idx'"'"'' '"$(: find "$ROOT/.git/objects" -type f \( -name '"'"'*.idx'"'"'' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M63 "replace the object-bytes hash with a constant" "$D/gates/checks-tier.sh" '"$(: find "$ROOT/.git/objects"'; then
-  { printf '%s\n' "#!/usr/bin/env bash"
-    printf '%s\n' 'F="$(find "$OLDPWD/.git/objects" -type f -path "*/objects/??/*" 2>/dev/null | head -1)"'
-    printf '%s\n' 'if [ -n "$F" ]; then S="$(stat -c %s "$F" 2>/dev/null)"; head -c "$S" /dev/urandom > "$F" 2>/dev/null || true; fi'
-    printf '%s\n' 'echo "SELFTEST 3 pass / 0 fail"' "exit 0"; } > "$D/gates/gates.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M63 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  if [ "$TRC" = 1 ]; then
-    rec M63 FAIL "the object-bytes hash is not what catches a same-size rewrite (exit $TRC, still grave)"
-  else
-    rec M63 ok "without the object-bytes hash a same-size rewrite of an object is no longer grave (exit $TRC, honest is 1)"
-  fi
-fi
-
-# ── M64. DROP THE ~/.ssh LINE: A94's ssh POSE MUST STOP BEING GRAVE. ────────────────────────────────────────
-D="$T/m-M64"; mkfix "$D"
-printf '%s\t%s\n' '    if [ -d "$HOME/.ssh" ]; then' '    if false; then' \
-  | mkmut "$D/gates/checks-tier.sh"
-if mutguard M64 "drop the operator key material from the OUTSIDE set" "$D/gates/checks-tier.sh" '    if false; then'; then
-  DRIVEHOME="$T/m64home"; mkdir -p "$DRIVEHOME/.ssh"
-  printf '%s\n' "ssh-rsa AAAAthehonestkey operator@host" > "$DRIVEHOME/.ssh/authorized_keys"
-  # BY ABSOLUTE PATH, FOR A94's OWN REASON: a control's $HOME is its own throwaway home, so "$HOME/.ssh" would
-  # edit nothing the arm watches and this mutant would pass for the wrong reason.
-  mkdir -p "$D/gates/cases"
-  { printf '%s\n' "#!/usr/bin/env bash" 'H="__CTHOME__"'
-    printf '%s\n' 'printf "%s\n" "ssh-rsa AAAAattacker attacker@host" >> "$H/.ssh/authorized_keys" 2>/dev/null || true'
-    printf '%s\n' 'echo "PASS c-operator-m64 asserts nothing"' "exit 0"; } > "$D/gates/cases/c-operator.sh"
-  sed -i "s|__CTHOME__|$DRIVEHOME|g" "$D/gates/cases/c-operator.sh"
-  git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M64 base" >/dev/null 2>&1
-  MB="$(git -C "$D" rev-parse HEAD)"
-  printf '%s\n' "# changed" >> "$D/gates/held.sh"; commitin "$D" "a tier-only change"
-  runtier "$D" "$MB"
-  unset DRIVEHOME
-  if [ "$TRC" = 1 ]; then
-    rec M64 FAIL "the ~/.ssh line is not what catches an appended authorized_keys (exit $TRC, still grave)"
-  else
-    rec M64 ok "without the ~/.ssh line an appended authorized_keys is no longer grave (exit $TRC, honest is 1)"
-  fi
-fi
-
 # ── A1. THE WHOLE REAL BATTERY, IN THE REAL REPOSITORY. The only slow case, about 6.5 minutes. ──────────────
 # It is the case that says the battery is green HERE, on this tree, rather than on a fixture of stubs. It needs
 # the tier to exist on origin/main, so before this work lands it runs against the WORKING TREE's copy installed
@@ -3952,22 +3291,13 @@ tier_mirror_case A81 'refs/heads/a/refs/heads/main' 1 "a tail-matching ref pushe
 tier_mirror_case A82 'refs/tags/main'               0 "a TAG named main pushed by the LAST control is caught (a tag outranks a head for a short name)"
 tier_mirror_case A83 'refs/tags/main'               1 "a TAG named main pushed with another control after it is caught"
 
-# M53. REMOVE BOTH REF-LIST COMPARISONS, and the case a second control follows must turn.
-# TWO-STAGE SINCE #544, AND THE CAUSE IS A CHANGE IN WHAT THE CONTROL REACHES RATHER THAN A WEAKNESS HERE.
-# `git push origin ...` from inside a control's clone used to land on the SHARED mirror; since repair 2 each
-# control's `origin` is its OWN throwaway bare repository, so the push lands there and `cloneorig_ok` refuses
-# it. MEASURED on this harness before this edit: the single-arm mutant read exit 1 and this case reported "the
-# ref-list comparison is not load-bearing", when what had actually happened is that a second arm now catches
-# the same push. So both comparisons come out together.
-# AND THE DETECTION IS TIGHTENED IN THE SAME EDIT, because the old test was `TRC = 1` AND the output mentioning
-# the word `mirror` - which the judge prints on its own PASS line ("mirror refs re-checked after the last
-# control: unchanged"). A test that reads a benign line as evidence of a refusal is this project's
-# wrong-reason-right-verdict trap, so it now names the refusal sentences themselves.
+# M53. REMOVE THE REF-LIST COMPARISON from mirror_ok, and the case a second control follows must turn.
 D="$T/m-M53"; mkfix "$D"
-{ printf '%s\t%s\n' '    if [ "$now" != "$MIRRORREFS" ]; then' '    if false; then # M53: the ref list comparison removed'
-  printf '%s\t%s\n' '    if [ "$now" != "$CLONEORIGREFS" ]; then' '    if false; then # M53: the per-control origin comparison removed'
-} | mkmut "$D/gates/checks-tier.sh"
-if mutguard M53 "remove both ref-list comparisons" "$D/gates/checks-tier.sh" 'M53: the per-control origin comparison removed'; then
+printf '%s\t%s\n' \
+  '    if [ "$now" != "$MIRRORREFS" ]; then' \
+  '    if false; then # M53: the ref list comparison removed' \
+  | mkmut "$D/gates/checks-tier.sh"
+if mutguard M53 "remove the mirror ref-list comparison" "$D/gates/checks-tier.sh" 'M53: the ref list comparison removed'; then
   git -C "$D" add -A >/dev/null 2>&1; git -C "$D" commit --quiet -m "mutant M53 base" >/dev/null 2>&1
   M53B="$(git -C "$D" rev-parse HEAD)"
   mkdir -p "$D/gates/cases"
@@ -3976,10 +3306,10 @@ if mutguard M53 "remove both ref-list comparisons" "$D/gates/checks-tier.sh" 'M5
   { printf '%s\n' '#!/usr/bin/env bash' 'echo "PASS the second control"' 'exit 0'; } > "$D/gates/cases/z-second.sh"
   commitin "$D" "a candidate adding a gates/cases control"
   runtier "$D" "$M53B"
-  if [ "$TRC" = 1 ] && grep -qE 'no longer matches what was recorded for it|altered by the LAST control|refs of its OWN throwaway origin' <<<"$TOUT"; then
-    rec M53 FAIL "the two ref-list comparisons are not load-bearing: the mutant still named the pushed ref (exit $TRC)"
+  if [ "$TRC" = 1 ] && grep -qiE 'mirror' <<<"$TOUT"; then
+    rec M53 FAIL "the ref-list comparison is not load-bearing: the mutant still caught the pushed ref (exit $TRC)"
   else
-    rec M53 ok "removing both ref-list comparisons turns A79: a control's push to its origin's main is no longer seen (exit $TRC)"
+    rec M53 ok "removing the ref-list comparison turns A79: a control's push to the mirror's main is no longer seen (exit $TRC)"
   fi
 fi
 
@@ -4034,7 +3364,7 @@ if [ "$MODE" = fixed ] || [ "${CT_TIER_A1:-0}" = 1 ]; then
     # so pointing the ref at A1BASE is what makes this fixture mirror reality rather than a convenience.
     git -C "$A1D" update-ref refs/remotes/origin/main "$A1BASE" >/dev/null 2>&1 || true
     TF="$(mktemp -d)"; git -C "$A1D" show "$A1BASE:gates/checks-tier.sh" > "$TF/ct.sh"
-    A1OUT="$(cd "$A1D" && CT_TIER_REMOTE_MAIN="$A1BASE" bash "$TF/ct.sh" "$A1BASE" "$A1D" 2>&1)"; A1RC=$?
+    A1OUT="$(cd "$A1D" && bash "$TF/ct.sh" "$A1BASE" "$A1D" 2>&1)"; A1RC=$?
     rm -rf "$TF"
     A1E="$(date -u +%s)"
     if [ "$A1RC" = 0 ] && grep -qF "CHECKS TIER GREEN" <<<"$A1OUT"; then
