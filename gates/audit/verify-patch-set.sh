@@ -34,7 +34,7 @@
 #
 #  (2) TWO PAYLOADS CLAIMING ONE GATE NUMBER. AND THIS ONE IS A COMPLEMENT TO A
 #      CHECK THAT ALREADY EXISTS, SAID PLAINLY SO NOBODY DOUBLE-COUNTS IT [R18]:
-#      gates/gates.sh:134 has failed loudly on two files in gates/regress/ sharing a
+#      gates/gates.sh:1454 has failed loudly on two files in gates/regress/ sharing a
 #      number since #399. That check fires only AFTER both files are in the directory,
 #      which means after both payloads have landed on main. S3 below fires BEFORE the
 #      integration slot applies either one. The gap between the two is not academic:
@@ -299,7 +299,7 @@ ps_from_shas() { awk '$1 == "From" && $2 ~ /^[0-9a-f][0-9a-f]+$/ { print $2 }' "
 # The leading-zero strip is not a nicety: gates/gates.sh's own duplicate-number
 # guard was shipped at #399 WITHOUT it, 047-foo.js beside 47-menu.js was missed
 # because `sort | uniq -d` compares the strings "047" and "47", and both gates ran.
-# That bug is recorded in gates/gates.sh:124. A set-level check that compares the
+# That bug is recorded in gates/gates.sh:1442. A set-level check that compares the
 # strings would reintroduce it one layer earlier, so this uses the same arithmetic
 # normalisation gates.sh now uses ($((10#...))), and control C30 asserts it [R06].
 gate_number() {

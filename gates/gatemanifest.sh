@@ -104,7 +104,7 @@ G="$(cd "$(dirname "$0")" && pwd)"; M="$G/gate-manifest.tsv"; REG="$G/regress"
 # wrapper inherits one. Under that inheritance the three reads below answered for the OTHER repository, the manifest
 # was "tracked at neither origin/main nor HEAD" there, and the gate anchor switched itself off with a NOT CHECKED
 # line while every verdict around it stayed green. So every git call in this file now goes through GITP, which
-# names the repository the way gates/gates.sh:1279 and :2314 do: the directory above gates/, with --git-dir and
+# names the repository the way gates/gates.sh:1425 and :2418 do: the directory above gates/, with --git-dir and
 # --work-tree set explicitly, so GIT_DIR and GIT_WORK_TREE cannot redirect it. WHAT THE PIN DOES NOT COVER, named
 # rather than implied [#540, antagonist B's B-F5 and the fresh pair's A2-F3/B2-F1, all P3]: GIT_OBJECT_DIRECTORY.
 # Measured on this script and on e8dd9cb's alike (git 2.43.0), at exit 0 both ways: pointed at an EXISTING EMPTY

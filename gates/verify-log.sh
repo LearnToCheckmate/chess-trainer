@@ -1596,7 +1596,7 @@ if [ -n "$MANIFOOT" ]; then
       exit 1
     fi
     # ── #462. ANTAGONIST B'S GROUND 1: THE ROSTER LINE WAS NEVER READ, SO THIS SCRIPT ACCEPTED A FORGERY. ──────
-    # gates.sh:232 writes `gates ran (N): <names>` - the ONLY record in a log of WHICH gates actually ran, and the
+    # gates.sh:2623 writes `gates ran (N): <names>` - the ONLY record in a log of WHICH gates actually ran, and the
     # entire subject of the job the manifest was built for. Nothing here read it. Worse, the section count WAS
     # computed, inside the final OK echo, and compared to nothing - so the message printed "4 suites" and
     # "47 required, 47 present" on adjacent lines and did not notice.
@@ -1618,7 +1618,7 @@ if [ -n "$MANIFOOT" ]; then
     #   check written to stop a log overstating itself. A trimmed roster fails (1) vs (2); a truncated
     #   or hand-made log fails (3); a shrunken required set fails (4).
     # GATED ON MANIERA, exactly as the manifest line is, and that is not a detail: MEASURED, not one of the 93
-    # archived logs carries a roster line, because gates.sh:232 is #461 code and #461 never shipped. An ungated
+    # archived logs carries a roster line, because gates.sh:2623 (:232 when this was written) is #461 code and #461 never shipped. An ungated
     # version of this check would refuse all 93 and I nearly wrote one.
     ROSTER="$(grep -m1 '^gates ran (' "$LOG" || true)"
     if [ -z "$ROSTER" ]; then

@@ -25,7 +25,7 @@
 #
 # THE CLASSIFICATION, AND THE KEY IS THE WHOLE ARGUMENT.
 #   RUN-UNIQUE        the path interpolates something that DIFFERS between two concurrent runs:
-#                     $STEM (derived at gates.sh:159 from the -all log's own b/c-suffixed name),
+#                     $STEM (derived at gates.sh:1411 from the -all log's own b/c-suffixed name),
 #                     a mktemp directory, or a pid. Two runs cannot land on one of these.
 #   SHARED-BY-DESIGN  the mutex itself. Two runs MUST land on it; that is what a lock is.
 #   COLLIDES          the path interpolates only things two concurrent runs SHARE - $TAG, which is
@@ -35,7 +35,7 @@
 # WHY $TAG AND $STEM ARE NOT THE SAME KEY, which is the fact this whole script turns on. #419's fix
 # gave the -all log a b/c/d suffix when the name is taken, and derived every PER-GATE log name from
 # that suffixed name. So two runs at build #510 write 510-all.log and 510b-all.log, and their
-# per-gate logs are 510-* and 510b-*: safe. CT_SHOTS is set at gates.sh:160 to $G/shots/gates-$TAG,
+# per-gate logs are 510-* and 510b-*: safe. CT_SHOTS is set at gates.sh:1412 to $G/shots/gates-$TAG,
 # which carries NO suffix, so both runs write gates/shots/gates-510/ and lib.js:294's
 # `shot(name)` -> SHOTS/<name>.png puts both runs' screenshots on each other. The #419 fix covered
 # the logs and not the shots, and nothing has said so since.
@@ -73,11 +73,11 @@ INVENTORY=$(cat <<'INV'
 $G/logs	RUN-SAFE-DIR	mkdir -p, idempotent, holds no run's data itself
 $G/logs/	RUN-SAFE-DIR	the same directory as a bare prefix in a message string
 $G/logs/.suite.lock	SHARED-BY-DESIGN	nothing - it IS the mutex, and pid/started/log live inside it
-$G/logs/$TAG-all.log	RUN-UNIQUE	$TAG plus the b..z suffix search at gates.sh:145-151 (#418's guard)
+$G/logs/$TAG-all.log	RUN-UNIQUE	$TAG plus the b..z suffix search at gates.sh:1397-1401 (#418's guard)
 $G/logs/$TAG$sfx-all.log	RUN-UNIQUE	$sfx, the b..z suffix that makes the -all log unique
 $G/logs/$TAG-subset-all.log	RUN-UNIQUE	$TAG, and a subset run cannot emit GATES GREEN in any case
 $G/logs/$STEM-fastgate-drive.log	RUN-UNIQUE	$STEM, the same derivation as every other per-run log here [#525]
-$G/logs/$STEM-$name.log	RUN-UNIQUE	$STEM, derived at gates.sh:159 from the suffixed -all log name
+$G/logs/$STEM-$name.log	RUN-UNIQUE	$STEM, derived at gates.sh:1411 from the suffixed -all log name
 $G/logs/$STEM-unit-drill-why.log	RUN-UNIQUE	$STEM, same derivation
 $G/shots/gates-$TAG	COLLIDES	$TAG ONLY - no suffix, so two runs at one build number share it
 INV
@@ -193,8 +193,8 @@ if [ "$ncol" -eq 0 ]; then
 else
   say "    Before removing $G/logs/.suite.lock by hand, give each run its own CT_SHOTS:"
   say "      CT_SHOTS=\$G/shots/gates-\$TAG-\$\$   (or anything carrying the -all log's own suffix)"
-  say "    CT_SHOTS is already an environment override at gates.sh:160, so this needs NO edit to"
-  say "    the suite and no second opt-out hole of the kind gates.sh:121 refuses on principle."
+  say "    CT_SHOTS is already an environment override at gates.sh:1412, so this needs NO edit to"
+  say "    the suite and no second opt-out hole of the kind gates.sh:1373 refuses on principle."
   say "    Two runs that skip this produce interleaved screenshots under one directory and nothing"
   say "    in this project would report it - which is #418 in the artefact class #419 did not fix."
 fi

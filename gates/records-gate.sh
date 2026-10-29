@@ -45,7 +45,7 @@
 #      proceeds when its ratchet could not run is the shape this block exists to prevent.
 #
 # IT RESOLVES ITS OWN ROOT FROM ITS OWN LOCATION, AND THAT IS NOT A STYLE CHOICE [CLAUDE.md, #493, R18].
-# gates.sh:33 derives the suite directory and the repository root from `dirname "$0"`, and CLAUDE.md records what
+# gates.sh:1351 derives the suite directory and the repository root from `dirname "$0"`, and CLAUDE.md records what
 # that cost: a prescription to copy the suite script to a scratch directory "does not merely fail to help, it
 # cannot be followed", because the copy then resolves ROOT to the scratch directory's parent and finds no app.js.
 # This file does the same thing deliberately, so `bash gates/records-gate.sh` works from any cwd and a copy

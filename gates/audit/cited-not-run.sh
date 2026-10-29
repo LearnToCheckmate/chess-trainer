@@ -96,7 +96,7 @@ reachable_seed(){
   [ -r "$sh" ] || return 0
   printf '%s\n' "$1"
   local CODE; CODE="$(mktemp)"; decomment "$sh" > "$CODE"
-  # the regress glob at gates.sh:112 is the suite's whole enumeration
+  # the regress glob at gates.sh:1430 is the suite's whole enumeration
   if grep -qE '"\$G"/regress/\*\.js' "$CODE"; then
     local f
     for f in "$G"/regress/*.js; do [ -e "$f" ] && printf '%s\n' "gates/regress/$(basename "$f")"; done

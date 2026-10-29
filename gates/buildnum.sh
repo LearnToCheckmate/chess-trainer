@@ -225,7 +225,7 @@ nbundles_for() { bundles_for "$1" | awk 'NF{c++} END{print c+0}'; }
 # project's oldest trap - the check and the thing being checked were the same object; here the read-back and the
 # write were the same row. Two changes, because either alone is insufficient: the read-modify-append is now
 # serialised by a lock, AND the read-back counts rows for the NUMBER (exactly 1) rather than rows for me.
-# The lock is mkdir-based with stale takeover, copied in shape from gates/gates.sh:57-73, which shipped at #419
+# The lock is mkdir-based with stale takeover, copied in shape from gates/gates.sh:57-73 as it shipped at #419 (that lock is at gates.sh:1375-1392 today)
 # for this same reason. Never pgrep/pkill here: CLAUDE.md records that both match the asking process's own
 # command line, so one hangs and the other kills its own shell.
 LOCKD="$HERE/.buildnum.lock"

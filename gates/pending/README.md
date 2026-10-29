@@ -1,6 +1,6 @@
 # gates/pending — gates that are written, proved, and deliberately NOT in the suite
 
-`gates/gates.sh` reaches `gates/regress/*.js` (globbed at `gates.sh:112`) plus exactly two files it invokes
+`gates/gates.sh` reaches `gates/regress/*.js` (globbed at `gates.sh:1430`) plus exactly two files it invokes
 BY NAME — `gates/mountcheck.js` (`:202`) and `gates/unit-drill-why.js` (`:250`). Nothing in *this* directory
 is reached by any of the three. A gate in here is finished work held out of the suite, with the reason
 written down.

@@ -361,7 +361,7 @@ report() {
       echo "    log's RED SECTION COUNT and never a marker count - it has no true component at all,"
       echo "    which is strictly worse than the FAIL case, where the raw count at least over-reports"
       echo "    a real number. USE: grep '<<<' <log> | grep -vE '^ {4}[^ ]+: RED \(' | wc -l"
-      echo "    THE SUITE'S OWN VERDICT IS UNAFFECTED: gates/gates.sh:340 counts marks from the"
+      echo "    THE SUITE'S OWN VERDICT IS UNAFFECTED: gates/gates.sh:2581 counts marks from the"
       echo "    PER-GATE log, not from the all-log, so no build was reddened or greened by this."
     fi
   fi

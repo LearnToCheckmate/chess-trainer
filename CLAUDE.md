@@ -487,7 +487,7 @@ wider one.
   script: run the suite from a COPY, so a later edit to the repo copy cannot reach the running interpreter.
   Filed as `jobs/the-suite-must-run-from-a-copy-of-its-own-script-2026-10-02`.
   **THE COPY MUST STAY INSIDE `gates/`, AND THE `cp gates/gates.sh "$T"/` THIS LINE USED TO PRESCRIBE IS WRONG
-  [#493, R18].** `gates.sh:33` is `G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"`, so the script
+  [#493, R18].** `gates.sh:1351` (it was `:33` when #493 wrote this) is `G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"`, so the script
   derives the suite directory and the repository root FROM ITS OWN LOCATION. Copied to a scratch directory it
   resolves `ROOT` to that directory's parent, finds no `app.js` and no `regress/`, and the run dies at once -
   so the prescription as written does not merely fail to help, it cannot be followed. Use a sibling name inside

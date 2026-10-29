@@ -2,9 +2,9 @@
 
 **`gates/gates.sh` reaches exactly three things, and two of them are NOT in this directory:**
 
-- `gates/regress/*.js`, globbed at `gates.sh:112` — this directory, in name order;
-- `gates/mountcheck.js`, seeded as the first element at `gates.sh:202`;
-- `gates/unit-drill-why.js`, invoked **by name** at `gates.sh:250`, before the regress loop.
+- `gates/regress/*.js`, globbed at `gates.sh:1430` — this directory, in name order;
+- `gates/mountcheck.js`, seeded as the first element at `gates.sh:2180`;
+- `gates/unit-drill-why.js`, invoked **by name** at `gates.sh:2228`, before the regress loop.
 
 Nothing else runs, however much a run report cites it. `grep -noE '\$G/[a-z0-9-]+\.js' gates/gates.sh`
 returns those last two and nothing more.
@@ -33,7 +33,7 @@ What belongs in `gates/pending/` and why a gate may be held out of the suite del
 
 `gates.sh` **replays** a red section's first five FAIL lines into its own summary block (`| head -5`), so one
 failing assertion can produce several `^FAIL` lines in a suite-level `-all.log`. `^PASS` lines are **not**
-replayed (`gates.sh:290` replays only `grep '^FAIL' "$log" | head -5`). The replayed lines are
+replayed (`gates.sh:2597` replays only `grep '^FAIL' "$log" | head -5`). The replayed lines are
 **byte-identical** to the originals, which is what makes whole-line dedup exact and is why the inflation is
 invisible to a spot-check.
 
@@ -56,7 +56,7 @@ stopping at the first hyphen:
 - The **457** log is 3 genuine failures replayed once into a summary; the recipe reports **1**, because all
   six lines begin with the word `the`. It is therefore **worse than the raw line count** — 6 is wrong by +3,
   1 is wrong by −2, and −2 is the dangerous direction.
-- The **unit layer** is the sharpest case and it is this project's own newly-wired one: `gates.sh:260` emits
+- The **unit layer** is the sharpest case and it is this project's own newly-wired one: `gates.sh:2238` emits
   `FAIL unit-drill-why <name>`, and `[A-Za-z0-9]*` truncates at the hyphen, so **all 40 of its assertions
   collapse to the single token `unit`**. A fully red unit layer would publish as one red.
 - The **473** log is the only one of the three where the recipe is right, and it is the log the job measured
@@ -82,7 +82,7 @@ comment beside its own PASS check** — filed, not silently edited, because #477
 
 #405's check — the log's own `regression assertions (PASS lines): N` footer must equal the number of `^PASS`
 lines in the file — is sound, and it is worth being precise about *why*, because the obvious explanation is
-wrong. `gates.sh:292` computes the footer as `grep -c '^PASS' "$ALL"` and `verify-log.sh` recomputes
+wrong. `gates.sh:2599` computes the footer as `grep -c '^PASS' "$ALL"` and `verify-log.sh` recomputes
 `ACTUAL` with the same predicate over the same bytes. **It would hold identically even if PASS were
 replayed**, and `verify-log.sh`'s own comment says so in terms: the two "agree by construction whatever
 gates.sh does with duplicates." So it is a self-consistency test, which is a real and useful property and a
