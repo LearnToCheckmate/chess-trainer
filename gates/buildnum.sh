@@ -13,6 +13,17 @@
 #
 #   gates/buildnum.sh check <#NNN>   is this number on the register AT ALL? A QUERY, for a reader or an audit.
 #                                    exit 0 = absent, 1 = present (prints every row), 2 = usage.
+#
+#   READ THOSE EXIT STATUSES OFF THE SCRIPT AND NOT OFF A PIPELINE. `check` writes its rows a line at a time, so
+#   a downstream reader that closes the pipe early kills it with SIGPIPE and the status you read is 141, not the
+#   verdict. MEASURED on 2026-10-29 at #544: `gates/buildnum.sh check '#517'` exits 1 (present), and
+#   `gates/buildnum.sh check '#517' | head -2` exits 141. A wrapper written as `buildnum.sh check "$N" | head -5;
+#   if [ $? -eq 1 ]` therefore reads an ISSUED number as neither issued nor free, which is the one answer this
+#   tool exists to prevent. There is nothing to fix in the script - a writer that is signalled cannot choose its
+#   own status - so the remedy belongs to the caller: capture first and page the capture
+#   (`OUT="$(buildnum.sh check "$N")"; RC=$?`), or read "${PIPESTATUS[0]}" rather than `$?`. Found by antagonist B
+#   of #518 (its section 5.1), reproduced here both ways before being written down.
+#
 #   gates/buildnum.sh stampable <#NNN>   MAY THIS RUN STAMP IT? The predicate gates/build.sh uses.
 #                                    exit 0 = yes, 1 = no (says who holds it), 2 = usage. Needs CT_RUNID.
 #
