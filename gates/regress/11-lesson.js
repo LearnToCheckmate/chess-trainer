@@ -161,6 +161,51 @@ L.run(async()=>{
       await b.close();
     }
   }
+  // ── THE LESSON DRIVER'S TRY-AGAIN STATE, AND ITS NEGATIVE CONTROL IN THE SAME BLOCK [#544, item (24);
+  // jobs/522-the-lesson-drivers-try-again-selector-is-stale-so-practice-tryagain-throws-on-every-bundle-2026-10-14].
+  // WHY IT IS HERE AT ALL: `grep -rn practice-tryagain gates/ claude/stories/` returned the driver's own
+  // definition and its doc comment AND NOTHING ELSE, so that state had ZERO consumers and the job's "the count
+  // of affected assertions is unmeasured, so the blast radius is unknown" resolves to ZERO ASSERTIONS. These
+  // are the first, which is what makes the repair checkable rather than merely written.
+  // THE TWO GEOMETRIES ARE THE JOB'S OWN two inputs, 375x568 and 320x540, and both are geometries where the
+  // OLD selector could not match: at 375x568 the button reads '↻ Again' (98.9px) and at 320x540 '↻' (72.4px),
+  // measured at #544 on main's own bundle. At 375x679 and 390x844 the label IS '↻ Try again' and the old
+  // selector worked, which is why this block does not drive those - the defect is geometry-conditioned.
+  // T0 IS THE NEGATIVE CONTROL AND IT LIVES IN THE GATE RATHER THAN IN A BROKEN BUNDLE, because the thing that
+  // was wrong is a SELECTOR and a selector's falsity is measurable in the healthy app: the old pattern must
+  // match no button here while the accessible name matches one. If a future layout change makes the visible
+  // label '↻ Try again' at these sizes, T0 goes red and says the control has stopped controlling - which is
+  // better than it silently becoming a tautology.
+  for(const tg of [{n:'375x568',g:L.GEOS.short375},{n:'320x540',g:{w:320,h:540,safe:''}}]){
+    // (a) the wrong state, where the old selector is shown unable to match.
+    {
+      const b=await L.launch({geo:tg.g,name:'tryagain-ctl-'+tg.n});await b.open();
+      await D.states['practice-wrong'](b);
+      const seen=await b.page.evaluate(()=>[...document.querySelectorAll('button')]
+        .map(e=>({t:(e.innerText||'').replace(/\s+/g,' ').trim(),a:e.getAttribute('aria-label')||'',w:+e.getBoundingClientRect().width.toFixed(1)}))
+        .filter(x=>/↻/.test(x.t)||/Try again/.test(x.a)));
+      const oldHits=seen.filter(x=>/^↻ Try again$/.test(x.t)||/^↻ Try again$/.test(x.a)).length;
+      const newHits=seen.filter(x=>/^Try again$/.test(x.t)||/^Try again$/.test(x.a)).length;
+      L.say(newHits===1,'TC-R64c T0a '+tg.n+' INSTRUMENT: exactly one button is reachable by the ACCESSIBLE NAME \'Try again\' - the one string that is identical at every geometry',{seen,newHits});
+      L.say(oldHits===0,'TC-R64c T0b '+tg.n+' NEGATIVE CONTROL: the OLD selector /^↻ Try again$/ matches NO button here, which is why gates/drive/lesson.js\'s practice-tryagain threw at this geometry on every bundle',{seen,oldHits});
+      const nw=await b.text('[data-ct="lesson-note"]');
+      L.say(/Not the book move/.test(nw||''),'TC-R64c T1 '+tg.n+' the wrong-move line IS PRESENT before anything claims it was cleared [#385]',{note:nw});
+      L.say(b.errs.length===0,'TC-R64c T1e '+tg.n+' zero app errors in the wrong state',b.errs.slice(0,3));
+      await b.close();
+    }
+    // (b) the state itself, which is the thing the job asks to be shown reachable.
+    {
+      const b=await L.launch({geo:tg.g,name:'tryagain-'+tg.n});await b.open();
+      let threw=null;
+      try{ await D.states['practice-tryagain'](b); }catch(e){ threw=String((e&&e.message)||e).slice(0,120); }
+      L.say(threw===null,'TC-R64c T2 '+tg.n+' D.states[\'practice-tryagain\'] REACHES ITS STATE instead of throwing - tapBtn throws when its target is absent, which is how this state failed silently rather than loudly',{threw});
+      const n1=threw===null?await b.text('[data-ct="lesson-note"]'):null;
+      L.say(threw===null&&/Your move/.test(n1||'')&&!/Not the book move/.test(n1||''),'TC-R64c T3 '+tg.n+' and the wrong-move line is CLEARED: the note is back to the move-0 prompt',{note:n1});
+      L.say(b.errs.length===0,'TC-R64c T3e '+tg.n+' zero app errors through the Try-again tap',b.errs.slice(0,3));
+      await b.shot('tryagain-'+tg.n);
+      await b.close();
+    }
+  }
 // ── THE CONTROL RECORD gates/control-audit.js READS [#544, item (9); the first `trial:<md5>` record written in
 // this project, and the form was added in the same run for it]. The control is the SMALLER of the two trial
 // bundles described at the WANT block above: chess.jsx's edge-path board multiplied by 0.9, built with

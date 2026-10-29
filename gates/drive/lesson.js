@@ -38,7 +38,9 @@
 //   practice-complete     the whole line played (learned from the demo): 'Complete!'
 //   practice-more         the practice row's ⋯ ("More actions") sheet
 //   practice-bottom-more  the bottom bar's ⋯ ("More for this lesson") sheet in practice
-//   practice-tryagain     '↻ Try again' after a wrong move (practice back at move 0)
+//   practice-tryagain     the Try-again button after a wrong move (practice back at move 0). Matched by its
+//                         ACCESSIBLE NAME: the visible label is '↻ Try again', '↻ Again' or '↻' depending on
+//                         the row's width, and only aria-label='Try again' is the same at every geometry [#544]
 //   close                 ✕ from practice: back to the Openings list
 //   gambits-list          Discover -> ⚔️ Gambits
 //   gambit-demo-end       the first gambit row (King's Gambit) at the demo end
@@ -143,7 +145,26 @@ S['practice-m0']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^✋ Now I'll
 S['practice-correct']=async(b)=>{await S['practice-m0'](b);await b.move('e2','e4',1200);};
 S['practice-wrong']=async(b)=>{await S['practice-m0'](b);await b.move('d2','d4',900);};
 S['practice-wrong-hintoff']=async(b)=>{await S['practice-m0'](b);await tapBtn(b,/^Hints$/,300);await b.move('d2','d4',900);};
-S['practice-tryagain']=async(b)=>{await S['practice-wrong'](b);await tapBtn(b,/^↻ Try again$/,600);};
+// #544, item (24); jobs/522-the-lesson-drivers-try-again-selector-is-stale-so-practice-tryagain-throws-on-every-
+// bundle-2026-10-14, P2, from #522's own antagonist B at the shipped-surface door.
+// THE SELECTOR WAS /^↻ Try again$/ - THE VISIBLE LABEL - AND THE APP HAS THREE OF THEM. chess.jsx:9100 renders
+// {rowTiny?'↻':rowNarrow?'↻ Again':'↻ Try again'} with a CONSTANT aria-label="Try again", so the visible text
+// depends on how much width the lesson's action row has. MEASURED AT #544 on main's own bundle 049b41dfb6f1,
+// five geometries, one launch each, reading every button whose text or aria-label mentions it:
+//   320x540          '↻'            72.4px   aria-label 'Try again'   old selector: NO MATCH
+//   320x568 (se)     '↻ Again'      98.9px   aria-label 'Try again'   old selector: NO MATCH
+//   375x568          '↻ Again'      98.9px   aria-label 'Try again'   old selector: NO MATCH
+//   375x679 (kunal)  '↻ Try again'  219px    aria-label 'Try again'   old selector: matches
+//   390x844          '↻ Try again'  234px    aria-label 'Try again'   old selector: matches
+// ONE CORRECTION TO THE JOB'S OWN READING, offered as a measurement rather than a contradiction [R18]: its
+// title says the state "throws on every bundle". It throws at the three SHORT-AND-NARROW geometries and WORKS
+// at kunal and 390, because the label tracks the action row's width and the row's width tracks the viewport's
+// HEIGHT here - the board is fit to height, so 375x568 and 375x679 render different labels at the same width.
+// So the failure is geometry-conditioned, not bundle-conditioned, and it is still a real defect: the two
+// geometries this project cares most about at the short end are two of the three that throw.
+// THE FIX IS THE ACCESSIBLE NAME, which tapBtn has always been able to match (it tests innerText OR
+// aria-label, see its own comment) and which is the one string that is identical at all five geometries.
+S['practice-tryagain']=async(b)=>{await S['practice-wrong'](b);await tapBtn(b,/^Try again$/,600);};
 S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await noteText(b))||''))break;}await b.settle(600);};
 S['practice-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More actions$/,500);};
 S['practice-bottom-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More for this lesson$/,500);};
