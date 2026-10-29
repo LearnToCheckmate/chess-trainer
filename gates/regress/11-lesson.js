@@ -238,8 +238,12 @@ L.run(async()=>{
 // exactly this 'behaviourally inert' comment edit]. The honest end state is PARTIAL with the measurement
 // written beside it: the control covered 64 of the 79 assertions this file now runs, the other 15 are the
 // Try-again block and item (21)'s font-pin line, and every one of them is GREEN on the broken bundle because
-// none of them is about board width. The next run that archives a suite log over this tree can write
-// `CONTROL-RECORD: <that sha> <date> total=79 red=7 scope=trial:c086633a6d2c` with no new measurement needed.
+// none of them is about board width. The next run that archives a suite log over this tree can write the
+// record for it as `<that sha> <date> total=79 red=7 scope=trial:c086633a6d2c`, with no new measurement
+// needed - and the token that would normally open that line is deliberately NOT written here, because
+// control-audit.js counts any comment carrying it WITH ITS COLON as a claim and read this very sentence as
+// an UNPARSABLE record, taking that ratchet field from 0 to 1 against main. The tool's own comment says the
+// colon is what makes a line a claim; a prose mention of the form must therefore omit it.
 // Filed as its own finding on the job rather than left in this comment alone.
 // CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
 },'LESSON');

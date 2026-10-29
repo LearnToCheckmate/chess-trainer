@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--this-suite] [--ignore-held]
+# gates/verify-log.sh <logfile> [expected-build] [--on-main] [--this-bundle] [--this-suite] [--ignore-held] [--ignore-fc]
 # The four options may come in any order, before or after the build number. An unrecognised token is REFUSED at
 # exit 1 and never read as the build number: a misspelled flag used to be swallowed silently and the gate then
 # answered OK over a question nobody had asked (#537).
@@ -948,7 +948,7 @@ EOF
   echo "CITATIONS OK: every named path resolves, every published case id occurs in the log it cites, and every line-number citation resolves within its file at or below the ceiling of $A4CEIL."
   exit 0
 fi
-LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; THISSUITE=0; IGNOREHELD=0
+LOG="${1:-}"; WANT=""; ONMAIN=0; THISBUNDLE=0; THISSUITE=0; IGNOREHELD=0; IGNOREFC=0
 # ── THE ARGUMENT PARSER REFUSES WHAT IT DOES NOT RECOGNISE (#537, the VLMISS job) ──────────────────────────
 # jobs/verify-log-accepts-a-misspelled-this-bundle-and-returns-ok-2026-10-03, from an antagonist B of 3 Oct
 # 2026, re-sighted by #534's third pair. THE DEFECT: this loop's catch-all `*)` took ANY unrecognised token as
@@ -977,6 +977,7 @@ for a in "${@:2}"; do
     --this-bundle) THISBUNDLE=1 ;;
     --this-suite)  THISSUITE=1 ;;   # #540, SUITEKEY: arm (8b) below
     --ignore-held) IGNOREHELD=1 ;;
+    --ignore-fc) IGNOREFC=1 ;;
     # AN EMPTY POSITIONAL IS NOT A TYPO, AND REFUSING IT WAS A REGRESSION THIS PARSER INTRODUCED.
     # `verify-log.sh "$LOG" "$NUM"` with NUM unset or empty passes an empty string, which ed65bab ignored
     # (exit 0, no build number pinned) and the new loop sent to the "not a build number" arm at exit 1.
@@ -997,7 +998,7 @@ for a in "${@:2}"; do
       echo "  It looks like a flag, so it is a TYPO and is NEVER read as a build number. Before this check a"
       echo "  misspelling placed before the build number was silently overwritten by it, and the gate then"
       echo "  answered OK over a question nobody had asked."
-      echo "  The four options are --on-main, --this-bundle, --this-suite and --ignore-held, in any order, before or after"
+      echo "  The five options are --on-main, --this-bundle, --this-suite, --ignore-held and --ignore-fc, in any order, before or after"
       echo "  the build number."
       exit 1 ;;
     '#'[0-9][0-9][0-9]|'#'[0-9][0-9][0-9][0-9])
@@ -1010,7 +1011,7 @@ for a in "${@:2}"; do
       exit 1 ;;
   esac
 done
-[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--this-suite] [--ignore-held]"
+[ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--this-suite] [--ignore-held] [--ignore-fc]"
   echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
   echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arms (4) and (5))"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
@@ -1198,6 +1199,81 @@ elif [ -f "$REG" ] && [ -r "$REG" ]; then
     HELD_SRC="working tree only (not a git work tree), sha256 $(sha256sum "$REG" 2>/dev/null | cut -c1-16)"
   fi
 fi
+# ── (15) WHICH FONTCONFIG PRODUCED THIS LOG [#544, item (29);
+# jobs/no-push-authority-tool-can-see-which-fontconfig-produced-a-gate-log-2026-10-06, P1, raised by
+# antagonist A of #485 as item 4 of its veto and independently reached by antagonist B's F3].
+# THE FINDING: #485 made the harness's fontconfig deterministic and made every gate log PRINT which one
+# produced it, and made nothing READ that line. Measured at the filing: `grep -rn 'FONTCONFIG|CT_NOFC|fonts.conf'
+# gates/*.sh` returned NOTHING, so this script, gatemanifest.sh and held.sh were all blind to it and a
+# full-suite log ending GATES GREEN still authorised a push when it was produced with CT_NOFC=1, in a tree
+# with no gates/fonts.conf, or under an inherited FONTCONFIG_FILE. It is #450's shape recreated by the commit
+# that created the variable: every mechanical check asked a question about the log while the thing that
+# mattered was not being read out of it. P1 and not P0 because the evidence EXISTS in the log - the gap was a
+# missing reader.
+# THE ERA PROBLEM, which this job names in its own notChecked and which a naive arm gets wrong: 113 of the
+# archived logs carry no fontconfig line at all, so refusing on the line's bare ABSENCE would refuse every
+# historical log. So the arm keys on the LOG'S OWN ERA rather than on a build number: a log that carries a
+# `toolchain: playwright` line is from #485 onward and must also carry the pinned fontconfig; one that does
+# not is from before the instrument existed and is REPORTED as unreadable on this question, never credited
+# and never refused. A build number would have been the wrong key twice over - it is in the filename as well
+# as the footer, and #416 names two different trees.
+# AND IT DOES NOT DUPLICATE ITEM (28). That one makes gates/gates.sh refuse a LIVE run whose measured metrics
+# are off calibration. This one asks a question about an ARCHIVED log, which is the only artefact a later
+# reader or a push-authority citation has, and it still answers on a log produced by an older gates.sh.
+# NO "is it a full green log" GUARD IS NEEDED HERE AND THAT IS WORTH ONE LINE: by this point the script has
+# already refused a SUBSET RUN and any log that does not end in a clean `GATES GREEN #NNN`, so every log that
+# reaches here is a full-suite green. The first draft guarded on two variables that do not exist in this file
+# at all, which `set -u` would have turned into a crash on the first real log - caught by grepping for them
+# rather than by assuming they were there.
+# AND IT SITS OUTSIDE THE HELD-REGISTER BLOCK, not inside it. The first draft nested it under
+# `if [ "$HELD_HAVE" = "1" ]`, so an unreadable held register would have silently skipped the fontconfig
+# question too - two independent checks sharing one precondition, which is how a guard stops guarding.
+FCSTATE=""; FCVERDICT=""
+{
+  FCTOOL="$(grep -m1 -e 'toolchain: playwright' "$LOG" 2>/dev/null || true)"
+  FCSTATE="$(grep -ao 'fontconfig: [^|]*' "$LOG" 2>/dev/null | sed 's/[[:space:]]*$//' | sort -u || true)"
+  if [ -z "$FCTOOL" ]; then
+    FCVERDICT="pre-instrument"
+  elif [ -z "$FCSTATE" ]; then
+    FCVERDICT="missing"
+  elif [ "$(printf '%s' "$FCSTATE" | grep -c . || true)" != 1 ]; then
+    FCVERDICT="drifted"
+  else
+    case "$FCSTATE" in
+      'fontconfig: gates/fonts.conf '*|'fontconfig: gates/fonts.conf') FCVERDICT="pinned" ;;
+      *) FCVERDICT="unpinned" ;;
+    esac
+  fi
+  case "$FCVERDICT" in
+    pre-instrument)
+      echo "FONTCONFIG NOT CHECKED: $LOG carries no 'toolchain: playwright' line, so it predates the #485"
+      echo "  instrument and cannot say which fontconfig produced it. REPORTED, NEVER CREDITED - this log is"
+      echo "  not refused on this question and it is not cleared on it either." ;;
+    pinned) : ;;
+    *)
+      if [ "$IGNOREFC" -eq 1 ]; then
+        echo "!! FONTCONFIG OVERRIDDEN BY --ignore-fc. This log was NOT produced under the pinned fontconfig:"
+        echo "   state: ${FCSTATE:-<no fontconfig line at all, though the log is from the instrumented era>}"
+        echo "   Every text-derived pixel pin in it was measured on whatever fonts the image happened to carry."
+        echo "!! You are overriding that. Say so, and why, wherever you cite this log - a reader who sees only"
+        echo "!! the OK line below will not know the pins were read off calibration."
+      else
+        echo "REFUSED (fontconfig): $LOG is a full-suite green that was NOT produced under the pinned fontconfig."
+        case "$FCVERDICT" in
+          missing)  echo "  This log is from the instrumented era - it carries a toolchain line - and carries NO fontconfig line." ;;
+          drifted)  echo "  This log carries MORE THAN ONE distinct fontconfig state, so the instrument moved mid-run:"
+                    printf '%s\n' "$FCSTATE" | sed 's/^/    /' ;;
+          unpinned) echo "  state: $FCSTATE" ;;
+        esac
+        echo "  gates/fonts.conf is what every text-derived pin in this suite was calibrated under. A log"
+        echo "  produced with CT_NOFC=1, with that file absent, or under an inherited FONTCONFIG_FILE measured"
+        echo "  the image's own fonts instead - which is the substitution that cost seven containers and ten"
+        echo "  red gates at #537 over a bundle byte-identical to main. --ignore-fc overrides this out loud."
+        exit 1
+      fi ;;
+  esac
+} 
+
 if [ "$HELD_HAVE" = "1" ]; then
   # THE LIVE COUNT PER SOURCE, so the OK line reports what each gave rather than one total a reader cannot
   # decompose. A row live in BOTH is counted once in each, which is why these are reported separately and

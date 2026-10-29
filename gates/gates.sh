@@ -1257,10 +1257,57 @@ M16PY
   st C90h-and-the-range-ends-at-EXACTLY-ONE-instrument-echo "$( grep -c '^echo "instrument:' "$ST_FB" )" 1
   # M19 IS THE MUTANT, AND WITHOUT IT C90b WOULD BE A GREEN THAT HAS NEVER BEEN SHOWN ABLE TO FAIL - which is
   # the defect this whole arm exists to answer. It restores #539's first draft one word at a time.
-  st_sub "$ST_FB" "$ST_T/m19.sh" 'cannot withhold the verdict below' 'cannot withhold GATES GREEN'
+  st_sub "$ST_FB" "$ST_T/m19.sh" 'cannot reach the verdict below' 'cannot withhold GATES GREEN'
   st M19-the-first-draft-mutant-parses "$(bash -n "$ST_T/m19.sh" 2>/dev/null && echo yes || echo no)" yes
   st M19a-MUTANT-leaks-the-token-on-the-agreeing-path "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
   st M19b-and-on-the-disagreeing-path-too "$( ALL="$ST_T/off.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c 'GATES GREEN' )" 1
+  # ── C90i..C90n AND M20: THE CALIBRATION COMPARISON IS A GATE SINCE #544 AND THESE ARE ITS CONTROLS
+  # [item (28); jobs/the-suites-calibration-comparison-is-a-record-and-nothing-refuses-on-a-mismatch-2026-10-27,
+  # which asks for "a case and a turning mutant for both directions (off-calibration must redden, on-calibration
+  # must not)"]. THEY ASSERT `red` AND NOT THE PRINTED SENTENCE, because the printed sentence is what #539
+  # already had and the whole finding was that nothing refused. The block is sourced with red=0 and `red` is read
+  # back, which is the pattern this selftest already uses for the build-number door.
+  # st_cal <blockfile> <logfile> [subset]: the value of `red` after the footer block runs over that log.
+  # THE LOG AND THE SUBSET ARE PASSED AS ARGUMENTS AND EXPORTED ON THE `bash` CALL, not set as shell-function
+  # prefixes, and the first draft did it the other way: `ALL=... st_cal ...` assigns in the CURRENT shell, a
+  # child `bash -c` inherits only EXPORTED variables, so every arm ran with ALL unset - which took the
+  # metrics-less-full-run path and returned red=1. FOUR ARMS WERE GREEN FOR THE WRONG REASON that way (the
+  # off-calibration, Segoe-slot, drift and unparsable ones all expect 1), and the two that expect 0 were the
+  # only ones that failed and so the only tell. A prefix on a function is not a prefix on a process.
+  st_cal(){
+    ALL="$2" SUBSET="${3-}" BLK="$1" bash -c 'red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null
+  }
+  printf '%s\n' 'text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 373.42  sans-serif 348.28  (fall-through sentinel 322.15)' > "$ST_T/segoe.log"
+  { printf '%s\n' 'text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)'
+    printf '%s\n' 'text metrics @16px over the reference string: system-ui 373.42  "Segoe UI" 373.42  sans-serif 348.28  (fall-through sentinel 322.15)'; } > "$ST_T/drift.log"
+  printf '%s\n' 'text metrics @16px over the reference string: system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28' > "$ST_T/three.log"
+  st C90i-ON-calibration-does-NOT-redden            "$( st_cal "$ST_FB" "$ST_T/cal.log" )" 0
+  st C90j-OFF-calibration-REDDENS                   "$( st_cal "$ST_FB" "$ST_T/off.log" )" 1
+  # C90k IS THE SLOT THAT ACTUALLY MOVED IN #537 AND NO OTHER: only "Segoe UI" changed, 373.42 against a
+  # calibrated 322.15, so a comparison over sans-serif alone, over system-ui alone, or over any subset omitting
+  # the app stack's FIRST family misses the one real event this project has had. That fixture is 537-all.log's
+  # own quadruple.
+  st C90k-the-SEGOE-slot-alone-REDDENS              "$( st_cal "$ST_FB" "$ST_T/segoe.log" )" 1
+  # C90l is the limit #539 filed as not-fixed: `grep -m1` read the first line of a log that carries one per gate
+  # launch, and antagonist B2 DROVE a real mid-run drift whose footer said AGREES at exit 0.
+  st C90l-a-MID-RUN-DRIFT-REDDENS                   "$( st_cal "$ST_FB" "$ST_T/drift.log" )" 1
+  st C90l2-and-the-verdict-names-the-drift          "$( ALL="$ST_T/drift.log" bash "$ST_FB" 2>/dev/null | grep -c 'calibration DRIFTED MID-RUN' )" 1
+  # C90m AND C90n ARE THE GUARD THAT MUST NOT FIRE ON THE NORMAL CASE, in both directions: an unparsable line
+  # reddens a FULL run and must NOT redden a subset, because a subset of a mechanical gate launches no browser
+  # and prints no metrics line at all. A guard that fires on the normal case gets switched off [CLAUDE.md].
+  st C90m-an-UNPARSABLE-line-reddens-a-FULL-run     "$( st_cal "$ST_FB" "$ST_T/three.log" )" 1
+  st C90n-but-NOT-a-subset-run                      "$( st_cal "$ST_FB" "$ST_T/three.log" 20-review )" 0
+  st C90n2-nor-does-a-metrics-less-SUBSET-run       "$( st_cal "$ST_FB" "$ST_T/empty.log" 20-review )" 0
+  st C90n3-while-a-metrics-less-FULL-run-does       "$( st_cal "$ST_FB" "$ST_T/empty.log" )" 1
+  # M20 IS THE TURNING MUTANT THE JOB ASKS FOR BY NAME. It defangs the comparison the only way that keeps the
+  # block parsing - by making the measured quadruple equal the wanted one - and every REDDENING arm above must
+  # go quiet while C90i stays 0. Without it C90j..C90n would be greens that have never been shown able to fail,
+  # which is the defect this whole item exists to answer.
+  st_sub "$ST_FB" "$ST_T/m20.sh" 'TM_NGOT="$(printf' 'TM_GOT="$TM_WANT"; TM_NGOT="$(printf'
+  st M20-the-defanged-comparison-parses            "$(bash -n "$ST_T/m20.sh" 2>/dev/null && echo yes || echo no)" yes
+  st M20a-MUTANT-off-calibration-no-longer-reddens "$( st_cal "$ST_T/m20.sh" "$ST_T/off.log" )" 0
+  st M20b-MUTANT-the-segoe-slot-no-longer-reddens  "$( st_cal "$ST_T/m20.sh" "$ST_T/segoe.log" )" 0
+  st M20c-and-ON-calibration-is-still-quiet         "$( st_cal "$ST_T/m20.sh" "$ST_T/cal.log" )" 0
   st M19c-and-the-MUTANT-still-prints-a-footer "$( ALL="$ST_T/cal.log" bash "$ST_T/m19.sh" 2>/dev/null | grep -c '^instrument:' )" 1
   # M19d CLOSES A FAIL-OPEN A2 MEASURED, and it is why M19c's name no longer claims "differs ONLY in the token":
   # st_sub rewrites nothing when its anchor is absent, so on a tree whose clause ALREADY carries the token the
@@ -2569,15 +2616,67 @@ echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s '
 #   never exceeds 1 - because a sound claim resting on a five-log denominator is the very shape this comment
 #   corrects two paragraphs down. Filed rather than fixed,
 #   because a new predicate in this block is what produced the P1 the fresh pair vetoed on.
+# ── #544, item (28). IT REFUSES NOW, ON KUNAL'S OWN RULING, AND IT PARSES NUMBERS INSTEAD OF MATCHING A
+# SENTENCE [jobs/the-suites-calibration-comparison-is-a-record-and-nothing-refuses-on-a-mismatch-2026-10-27,
+# raised at P1 by antagonist B of #539 as a veto ground and left at P2 pending a ruling].
+# THE RULING: decisions/an-off-calibration-suite-may-not-push-2026-10-27. Kunal chose between 7:07pm and 7:11pm
+# ET on Tue 27 Oct 2026 that the #534 calibration is AUTHORITATIVE for this suite's text-derived pins and that a
+# full suite measuring off it MAY NOT PUSH. That is the authority question #539 correctly refused to settle for
+# itself, and it is why this block can now reach `red` where the paragraph above says it could not.
+# THE OTHER REASON #539 MADE IT A PRINT IS DISSOLVED RATHER THAN OVERRIDDEN. Its stated limit was that the test
+# was STRING CONTAINMENT, so a reword or respacing of gates/lib.js's metrics sentence flipped it to DISAGREES and
+# it could not tell "the metrics moved" from "the sentence changed" - and a check that can false-alarm on a
+# reword must not be able to refuse a push. Correct, and that is why this one PARSES THE FOUR NUMBERS: a reword
+# cannot move them, and the verdict prints both the wanted and the measured quadruple so a reader sees which
+# slot moved rather than being told a sentence differs.
+# AND IT CLOSES THE SECOND LIMIT THAT COMMENT NAMED AS FILED-NOT-FIXED: `grep -m1` read the FIRST metrics line
+# while a full suite carries one per gate launch, and antagonist B2 of #539 DROVE the mid-run drift - a real
+# subset with gates/fonts.conf moved out after mountcheck had printed its line, giving a log whose line 22 is
+# calibrated, whose line 54 reads Inter and is off calibration, and whose footer said AGREES at exit 0. So this
+# reads EVERY distinct metrics line and refuses when they disagree with each other, which is the only reading
+# under which the footer's claim is about the whole run.
+# THE INVERSION TRAP, carried from the job because an implementer who gets it wrong reds every healthy run:
+# gates/lib.js says in terms that a "Segoe UI" fall-through is the NORMAL, correct outcome for an uninstalled
+# face, and 322.15 IS the fall-through sentinel. In #537 the defect was Segoe UI FAILING to fall through. So the
+# calibrated quadruple below has 322.15 in that slot ON PURPOSE and the comparison is EQUALITY against it - not
+# "the sentinel means trouble", which would have reddened every healthy log and stayed green on 537-all.log.
+# WHY A MISSING OR UNPARSABLE LINE REDDENS ONLY A FULL RUN: a subset of a mechanical gate launches no browser
+# and so prints no metrics line, and a guard that fires on the normal case gets switched off. A FULL suite
+# always launches browsers, so an absent line there means the instrument did not report - and under the ruling a
+# suite that cannot say whether it was on calibration may not push either. Reported in every case, credited in
+# none.
 TC_LINE="$(grep -m1 -e 'toolchain: playwright' "$ALL" 2>/dev/null)"; TC_LINE="${TC_LINE#"${TC_LINE%%[! ]*}"}"
-TM_LINE="$(grep -m1 -e 'text metrics @16px' "$ALL" 2>/dev/null)"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
-TM_CAL='system-ui 402.12  "Segoe UI" 322.15  sans-serif 348.28  (fall-through sentinel 322.15)'
-TM_PROV='the target every green log from #485 to #534 read, on chromium 141.0.7390.37'
-case "$TM_LINE" in
-  '')          CAL_V="calibration NOT COMPARED - this log carries no text metrics line, or it is binary";;
-  *"$TM_CAL"*) CAL_V="calibration AGREES - the measured line contains [$TM_CAL], $TM_PROV";;
-  *)           CAL_V="*** calibration DISAGREES - every text-derived pin in this log is OFF CALIBRATION. Wanted [$TM_CAL], $TM_PROV ***";;
-esac
+# THE COLLECTOR SKIPS THE FOOTER'S OWN instrument: LINE, and that is not tidiness - without it this block
+# reads its own output back. A finished log CARRIES the instrument line, and TM_LINE is interpolated into it,
+# so a second reading of any archived log would see TWO "distinct" metrics lines and report a MID-RUN DRIFT on
+# a log that never drifted. Found by running the selftest: its arms re-run the block over one fixture and the
+# block `tee -a`s into that same fixture, so the second arm onward saw the pollution - which is the trap this
+# selftest's own comment warns about four screens up, and the eleventh costume of the check and the thing being
+# checked being one object. Trailing blanks are trimmed too, because the appended copy ends at a ` | ` and so
+# differs from the pristine line by whitespace alone.
+TM_ALL="$(grep -av '^[[:space:]]*instrument:' "$ALL" 2>/dev/null | grep -ao 'text metrics @16px[^|]*' | sed 's/[[:space:]]*$//' | sort -u || true)"
+TM_LINE="${TM_ALL%%$'\n'*}"; TM_LINE="${TM_LINE#"${TM_LINE%%[! ]*}"}"
+TM_NDIST="$(printf '%s' "$TM_ALL" | grep -c . || true)"
+TM_WANT='402.12 322.15 348.28 322.15'
+TM_GOT="$(printf '%s' "$TM_LINE" | grep -oE '[0-9]+\.[0-9][0-9]' | tr '\n' ' ' || true)"; TM_GOT="${TM_GOT% }"
+TM_NGOT="$(printf '%s' "$TM_GOT" | wc -w | tr -d ' ')"
+TM_PROV='the #534 calibration, authoritative by decisions/an-off-calibration-suite-may-not-push-2026-10-27; the target every green log from #485 to #534 read, on chromium 141.0.7390.37'
+TM_FULL=no; [ -z "${SUBSET:-}" ] && TM_FULL=yes
+if [ -z "$TM_ALL" ]; then
+  CAL_V="calibration NOT COMPARED - this log carries no text metrics line, or it is binary"
+  if [ "$TM_FULL" = yes ]; then red=1; CAL_V="*** calibration NOT COMPARED and this is a FULL run, so the instrument did not report at all and nothing can say whether these pins were read on calibration. A suite that cannot answer that may not push [decisions/an-off-calibration-suite-may-not-push-2026-10-27] ***"; fi
+elif [ "$TM_NDIST" != 1 ]; then
+  red=1
+  CAL_V="*** calibration DRIFTED MID-RUN - this log carries $TM_NDIST DISTINCT text metrics lines, so the instrument moved while the suite was running and the gates before and after it were read on different fonts. First: [$TM_LINE] ***"
+elif [ "$TM_NGOT" != 4 ]; then
+  CAL_V="calibration NOT COMPARED - the metrics line parsed to $TM_NGOT number(s) and not 4, so the comparison has no quadruple to make. Line: [$TM_LINE]"
+  if [ "$TM_FULL" = yes ]; then red=1; CAL_V="*** $CAL_V This is a FULL run, and a suite that cannot answer whether it was on calibration may not push ***"; fi
+elif [ "$TM_GOT" = "$TM_WANT" ]; then
+  CAL_V="calibration AGREES - measured [$TM_GOT] equals $TM_PROV"
+else
+  red=1
+  CAL_V="*** calibration DISAGREES - every text-derived pin in this log is OFF CALIBRATION. Measured [$TM_GOT], wanted [$TM_WANT], which is $TM_PROV. The four slots in order are system-ui, \"Segoe UI\", sans-serif and the fall-through sentinel ***"
+fi
 # THE CLAUSE BELOW MUST NOT CONTAIN THE TWO-WORD VERDICT TOKEN. #539's first draft ended it "this line cannot
 #   withhold GATES GREEN", which put that literal into EVERY log on EVERY run - subset and red logs included - and
 #   this repository states in six places that a subset log mechanically cannot carry it, and EVERY ONE IS NAMED BY
@@ -2609,7 +2708,7 @@ esac
 #   verdict below" and never the token. It does not say "the GREEN verdict below" either, which round three's
 #   clause did: on a red or subset run the verdict below is SUBSET RED or the red one, so that adjective was
 #   false on exactly the runs a careless reader is most likely to be holding [antagonist B2, P3].
-echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | RECORD ONLY, NOT A GATE: this line cannot withhold the verdict below" | tee -a "$ALL"
+echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text metrics: NOT FOUND in this log} | $CAL_V | A GATE SINCE #544: an off-calibration or mid-run-drifted full run cannot reach the verdict below [decisions/an-off-calibration-suite-may-not-push-2026-10-27]" | tee -a "$ALL"
 # ── WHICH TREE DID THIS GATE? (#417, flag class-gate-verifies-a-bundle-never-a-ref-2026-09-18) ──────────────
 # Every one of this suite's assertions answers "is the tree in this working directory correct?" and NOT ONE
 # answers "is this the tree that ships". #416 went green at 1940 PASS, verify-log.sh passed it and the dashboard

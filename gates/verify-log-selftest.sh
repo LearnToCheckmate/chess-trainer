@@ -309,8 +309,14 @@ ckmsg "D+ --on-main REFUSES a gated sha that is not on main, and says which" 1 "
 # "is NOT on origin/main" for a sha that genuinely is not there. This fixture is not shallow, so the second is
 # the only one that may fire - and if a later edit ever made the shallow arm swallow the real one, this is the
 # line that notices.
+# THE SELECTOR IS THE SHALLOW REFUSAL'S OWN SENTENCE AND NOT THE BARE WORDS "NOT CHECKED", corrected at #544
+# item (29) after that item's new arm made this one go red. The arm counted every occurrence of a generic
+# phrase, and verify-log.sh now prints "FONTCONFIG NOT CHECKED" for a log that predates the #485 instrument -
+# which is a true, unrelated report. So the count rose to 1 and this line read as the shallow refusal having
+# swallowed the real one, which it had not. A bad selector is a reading, not a measurement [CLAUDE.md]: it now
+# names the shallow arm's own first clause, which nothing else in this script prints.
 eq "D+ and it is the genuine refusal, not the shallow-clone NOT CHECKED one" "0" \
-   "$(onmain "$GOODOFF" "$FOOT" --on-main 2>&1 | grep -c 'NOT CHECKED' || true)"
+   "$(onmain "$GOODOFF" "$FOOT" --on-main 2>&1 | grep -c "NOT CHECKED, not 'not on main'" || true)"
 echo
 
 # ── SECTION G (the build-number series door, #534 VLDOOR) WAS REVERTED OUT WITH THE CHECK IT CONTROLLED.
@@ -632,6 +638,46 @@ ck "J MUTANT an edited gate is ACCEPTED - the defect" 0 "$SK/gates/vl-mutant.sh"
 ck "J FIX the same tree still REFUSES" 1 "$SKVL" "$SKLOG" "$FOOT" --this-suite
 "${SKG[@]}" checkout -q -- gates/regress/01-selftest-gate.js
 rm -f "$SK/gates/vl-mutant.sh"
+
+# ── SECTION FC: WHICH FONTCONFIG PRODUCED THIS LOG [#544, item (29);
+# jobs/no-push-authority-tool-can-see-which-fontconfig-produced-a-gate-log-2026-10-06, P1, raised by
+# antagonist A of #485 as item 4 of its veto and reached independently by antagonist B's F3].
+# THE FIXTURES CARRY A toolchain LINE AND $GOOD DOES NOT, which is the whole reason this section builds its own
+# rather than reusing it: claude/agents/gatelogs/474-integration-all.log predates the #485 instrument, so every
+# arm above this one reads "pre-instrument" and is untouched by the new check. MEASURED before writing them -
+# `grep -c 'toolchain: playwright'` on that log is 0 - because an added arm that silently changed ninety
+# existing verdicts would be the worst way to find that out.
+# THE ERA CASE IS THE ONE THAT MATTERS MOST and it is FC6: 113 archived logs carry no fontconfig line at all, so
+# a check that refused on the line's bare absence would refuse every historical log. The arm keys on the LOG'S
+# OWN ERA instead, and FC6 is what proves that a pre-instrument log is reported and not refused.
+FCD="$TD/logs"; mkdir -p "$FCD"
+fcmk(){ # fcmk <outfile> <line...>: $GOOD with a toolchain line and whatever fontconfig lines are given,
+        # inserted after its first line so the header md5 and the footer total are both untouched.
+  local out="$1"; shift
+  { head -1 "$GOOD"
+    printf '     toolchain: playwright 1.63.0 (/opt/node22/lib/node_modules/playwright)  chromium 153.0.8010.12\n'
+    for l in "$@"; do printf '     %s\n' "$l"; done
+    tail -n +2 "$GOOD"; } > "$out"
+}
+fcmk "$FCD/fc-pinned.log"   'fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"'
+fcmk "$FCD/fc-nofc.log"     'fontconfig: DISABLED by CT_NOFC=1 - fonts come from the image  ->  sans-serif resolves to "Inter"'
+fcmk "$FCD/fc-caller.log"   'fontconfig: caller-supplied FONTCONFIG_FILE=/tmp/whatever.conf  ->  sans-serif resolves to "Inter"'
+fcmk "$FCD/fc-drift.log"    'fontconfig: gates/fonts.conf  ->  sans-serif resolves to "DejaVu Sans"' \
+                            'fontconfig: DISABLED by CT_NOFC=1 - fonts come from the image  ->  sans-serif resolves to "Inter"'
+fcmk "$FCD/fc-missing.log"
+ck      "FC1 a log produced under the PINNED fontconfig is accepted"            0 "$VL" "$FCD/fc-pinned.log" "$FOOT"
+ckmsg   "FC2 a CT_NOFC=1 log is REFUSED"                                        1 'REFUSED (fontconfig)' "$VL" "$FCD/fc-nofc.log" "$FOOT"
+ckmsg   "FC3 a caller-supplied FONTCONFIG_FILE log is REFUSED"                  1 'REFUSED (fontconfig)' "$VL" "$FCD/fc-caller.log" "$FOOT"
+ckmsg   "FC4 a log with TWO fontconfig states is REFUSED as drifted"            1 'MORE THAN ONE distinct fontconfig state' "$VL" "$FCD/fc-drift.log" "$FOOT"
+ckmsg   "FC5 an instrumented log with NO fontconfig line is REFUSED"            1 'carries NO fontconfig line' "$VL" "$FCD/fc-missing.log" "$FOOT"
+ckmsg   "FC6 a PRE-INSTRUMENT log is reported and NOT refused"                  0 'FONTCONFIG NOT CHECKED' "$VL" "$GOOD" "$FOOT"
+# FC7 AND FC8 ARE THE #450 LESSON, AND THEY ARE TWO ARMS AND NOT ONE. The first draft of --ignore-held SKIPPED
+# THE LOOKUP ENTIRELY and so overrode SILENTLY, which #450 caught with its own control; an exit code alone
+# cannot tell a loud override from a check that was never made.
+ck      "FC7 --ignore-fc overrides the refusal"                                 0 "$VL" "$FCD/fc-nofc.log" "$FOOT" --ignore-fc
+ckmsg   "FC8 and the override is LOUD, not silent"                              0 'FONTCONFIG OVERRIDDEN BY --ignore-fc' "$VL" "$FCD/fc-nofc.log" "$FOOT" --ignore-fc
+# FC9: the state is NAMED in the refusal, or a reader has to re-derive which of the three it was.
+ckmsg   "FC9 the refusal names the state it found"                              1 'CT_NOFC=1' "$VL" "$FCD/fc-nofc.log" "$FOOT"
 
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then

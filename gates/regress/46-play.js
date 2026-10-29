@@ -207,7 +207,61 @@ L.run(async()=>{
     await P.tapBtn(b,/^Flip$/,700);
     const bdF=await b.board(),topAfter=await barText(b,'pbar-top'),botAfter=await barText(b,'pbar-bottom'),gPost=await b.metrics();
     L.say(bdF&&bdF.flip===true,'Flip turns the board round',{flip:bdF&&bdF.flip});
-    L.say(topBefore!==topAfter&&botBefore!==botAfter,'Flip swaps which player is in which bar',{topBefore,topAfter,botBefore,botAfter});
+    // ── THE SWAP, STATED, AND IMMUNE TO THE CLOCK RATHER THAN DEPENDENT ON IT [#544, item (26);
+    // jobs/gate-46s-flip-assertion-says-both-bar-strings-changed-not-that-the-bars-swapped-so-the-clocks-own-
+    // tick-satisfies-it-2026-10-23, P2, from antagonist A of #535's FIFTH adversarial round, duty 4].
+    // WHAT WAS HERE: `topBefore!==topAfter && botBefore!==botAfter` under the claim that Flip swaps which
+    // player is in which bar. IT DOES NOT ASSERT A SWAP - only that BOTH STRINGS CHANGED - and a long list of
+    // things satisfies that with no flip whatsoever. The sharpest is THE CLOCK'S OWN TICK: clockOf above
+    // proves the m:ss readout lives INSIDE pbar-top and pbar-bottom, so in any state with a running clock both
+    // bar texts differ second to second. An eval readout, a move counter, a captured-material string, or BOTH
+    // NAMES BEING REPLACED BY TWO WRONG NAMES would do it too. That is CLAUDE.md's 'an alternation that
+    // matches every branch pins nothing' with an inequality in place of the alternation.
+    // THE FIX THE JOB PRESCRIBES IS `topAfter===botBefore && botAfter===topBefore`, AND THAT LITERAL FORM
+    // WOULD BE RED ON A HEALTHY BUILD - which is why it is not what is written here. The strings contain the
+    // clock, so after the flip neither bar's text can be byte-equal to the other's text from before it: the
+    // clock has advanced. So the comparison is on the NAME, with the m:ss token stripped, which is also what
+    // makes it immune to the clock instead of satisfied by it - the property the job's own theFix asks for in
+    // its closing note.
+    // AND THE DENOMINATOR IS ITS OWN L.say, because the swap assertion is satisfied by NOTHING HAPPENING when
+    // the two bars name the same player: if both read 'You', topAfter===botBefore holds with no flip at all.
+    // That is the empty-denominator class this project reports and never credits, and it is the reason the
+    // repair is two lines rather than one.
+    const nm=(t)=>String(t==null?'':t).replace(/\d+:\d\d/g,'').replace(/\s+/g,' ').trim();
+    const nTopB=nm(topBefore),nBotB=nm(botBefore),nTopA=nm(topAfter),nBotA=nm(botAfter);
+    L.say(nTopB!==''&&nBotB!==''&&nTopB!==nBotB,
+      'TC-PL-038 DENOMINATOR: the two player bars name DIFFERENT players before the flip, so a swap is distinguishable from nothing happening',
+      {topBefore:nTopB,botBefore:nBotB,raw:{topBefore,botBefore}});
+    // AND THE COMPARISON IS CONTAINMENT, NOT EQUALITY, BECAUSE THE TOP BAR CARRIES CHROME THAT DOES NOT MOVE.
+    // theFix's `topAfter===botBefore && botAfter===topBefore` is RED on a healthy build, and this is the
+    // measurement that says so rather than an argument - the first draft of this repair was that literal form
+    // and it went red at 184 pass / 1 fail. What the bars actually read, vs Computer at this geometry:
+    //   before   top "⌂ -0.7 Pip 500 +1 ☰"   bottom "♔ You"
+    //   after    top "⌂ -0.7 ♔ You ☰"        bottom "Pip 500 +1"
+    // So FLIP DOES SWAP THE PLAYERS CORRECTLY - which is the thing this job's own notChecked asked someone to
+    // drive once before concluding either way, and this is that reading: it is a coverage defect and NOT a
+    // report that Flip is broken. The top bar keeps ⌂, the evaluation and ☰ in place and only its PLAYER
+    // segment moves, so an equality over whole bar texts can never hold whatever the app does.
+    // IT STILL DISCRIMINATES, which is the only thing that matters: with NO flip, topAfter is topBefore and
+    // botAfter is botBefore, so `topAfter contains botBefore` asks whether "⌂ -0.7 Pip 500 +1 ☰" contains
+    // "♔ You" - it does not - and the mirror half fails the same way. BOTH halves are false with no flip and
+    // both are true with one, and neither can be satisfied by a clock tick, an eval change or a material
+    // string, because what is matched is the OTHER player's name and a tick does not move a name.
+    // THE NEGATIVE CONTROL, IN THE GATE AND NOT IN A DOCTORED BUNDLE, because what is being controlled is a
+    // PREDICATE and a predicate's falsity is measurable in the healthy app. Before the flip the top bar must
+    // NOT contain the bottom player's name - which is exactly the state a run with no flip would leave the two
+    // assertions below in, so it proves they are false when nothing swaps rather than asking a reader to take
+    // the derivation on trust. If a future layout puts both names in the top bar this goes red and says the
+    // control has stopped controlling, instead of letting the two below become tautologies.
+    L.say(nTopB.indexOf(nBotB)<0&&nBotB.indexOf(nTopB)<0,
+      'TC-PL-038 NEGATIVE CONTROL: BEFORE the flip neither bar contains the other player name, so the two containment assertions below are FALSE with no flip and cannot be satisfied by a clock tick, an eval change or a material string',
+      {topBefore:nTopB,botBefore:nBotB});
+    L.say(nTopA.indexOf(nBotB)>=0,
+      'TC-PL-038 Flip puts the BOTTOM player in the TOP bar: the top bar now contains the name that was on the bottom. Containment and not equality because the top bar keeps its own chrome (the home glyph, the evaluation and the menu) in place - measured, see the comment',
+      {wasOnBottom:nBotB,topAfter:nTopA,topBefore:nTopB});
+    L.say(nTopB.indexOf(nBotA)>=0,
+      'TC-PL-038 and the TOP player in the BOTTOM bar: the bottom bar now reads the name that was in the top bar before. Asserted separately so a red says WHICH side failed',
+      {nowOnBottom:nBotA,topBefore:nTopB,botBefore:nBotB});
     L.say(near(gPost.board.w,gPre.board.w)&&near(gPost.board.top,gPre.board.top)&&near(gPost.board.w,W.bw),
       'the board does not change size or position when it is flipped',{before:gPre.board,after:gPost.board});
     await P.tapBtn(b,/^Flip$/,700);
