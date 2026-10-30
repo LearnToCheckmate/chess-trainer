@@ -1554,6 +1554,18 @@ M16PY
   st S98a-the-stamp-reader-finds-the-one-stamp "$(bundle_stamp "$ST_T/bs1.js")" "#530"
   st S98b-and-reports-nothing-for-a-bundle-with-none "$(bundle_stamp "$ST_T/bs2.js" | wc -c | tr -d ' ')" 0
   st S98c-and-nothing-for-two-different-stamps-so-the-preamble-defers-to-mountcheck "$(bundle_stamp "$ST_T/bs3.js" | wc -c | tr -d ' ')" 0
+  # ── V1a TO V1d: A GATE THAT ASSERTED AND THEN STOPPED IS RED [#546, antagonist A's veto V1]. gates/lib.js unrefs
+  # serve()'s child (item (65)) and prints a stopped gate's inputs line on exit (item (86)), so a gate stalled on a promise
+  # that never settles exited 0 with that line and read green. The exit hook now FAILs it. Fixtures run exactly as the loop
+  # below runs a gate: CT_OBSERVE_EXIT=1 under `timeout`, with lib.js preloaded by -r.
+  printf "'use strict';const L=require(process.env.ST_LIB);L.run(async()=>{L.say(true,'first');await new Promise(()=>{});L.say(false,'never');},'STALL');\n" > "$ST_T/v1-stall.js"
+  printf "'use strict';const L=require(process.env.ST_LIB);L.run(async()=>{L.say(true,'a');L.say(true,'b');},'OKGATE');\n" > "$ST_T/v1-ok.js"
+  ( cd "$ST_T" && ST_LIB="$SG/lib.js" CT_OBSERVE_EXIT=1 timeout 60 node -r "$SG/lib.js" "$ST_T/v1-stall.js" ) > "$ST_T/v1-stall.out" 2>&1; V1RC=$?
+  ( cd "$ST_T" && ST_LIB="$SG/lib.js" CT_OBSERVE_EXIT=1 timeout 60 node -r "$SG/lib.js" "$ST_T/v1-ok.js" ) > "$ST_T/v1-ok.out" 2>&1; V1OK=$?
+  st V1a-a-gate-stalled-after-an-assertion-exits-non-zero "$V1RC" 1
+  st V1b-and-prints-the-harness-FAIL-that-names-the-stop "$(grep -c '^FAIL HARNESS: this gate ran 1 assertion' "$ST_T/v1-stall.out")" 1
+  st V1c-a-gate-that-reaches-done-is-untouched-exit-0 "$V1OK" 0
+  st V1d-and-prints-no-harness-FAIL "$(grep -c '^FAIL' "$ST_T/v1-ok.out")" 0
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0

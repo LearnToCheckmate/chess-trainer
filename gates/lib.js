@@ -523,7 +523,13 @@ let _fails=0,_pass=0;
 // gate with `node -r`, so the fs recorder above is live from the first byte even in a gate that never requires it (68, 72,
 // 75 and 79 on the tree of #546). A gate that never reaches done() gets its inputs line printed here on exit instead, so
 // every section of a suite log carries one - and gates.sh reddens a section that does not.
+// AND A GATE THAT ASSERTED AND THEN STOPPED IS RED [#546, antagonist A's veto V1]. serve()'s child is unref'd since item (65),
+// so a gate whose work stalls on a promise that never settles no longer hangs to gates.sh's `timeout 900` - node simply
+// exits 0, and the line above would then hand gates.sh the one 'inputs observed' line its RED test looks for. A stopped gate
+// read green. So when L.say ran and done() never did, this hook prints a FAIL and sets the exit code: the assertions after
+// the stall never ran, and that is reported, never credited. Gates that never call L.say (68, 72, 75, 79) are unaffected.
 let _doneRan=false;
+process.on('exit',(code)=>{if(!_doneRan&&(_pass+_fails)>0){process.stdout.write('FAIL HARNESS: this gate ran '+(_pass+_fails)+' assertion(s) and exited (code '+code+') without reaching done() - every assertion after the point it stopped never ran\n');_fails++;if(!code)process.exitCode=1;}});
 process.on('exit',()=>{if(_doneRan||process.env.CT_OBSERVE_EXIT!=='1')return;try{const ins=observedInputs();process.stdout.write('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' ')+'\n');}catch(e){}});
 function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefined?'  ['+(typeof detail==='string'?detail:JSON.stringify(detail))+']':'');console.log(line);if(ok)_pass++;else _fails++;return ok;}
 function note(msg){console.log('     '+msg);}
