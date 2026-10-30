@@ -285,9 +285,10 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # and THIS CASE IS WHAT NOTICED - which is what it is for. It is the live field count, not a floor: a counter
   # added without updating it reddens here, and here is the only place that would see it.
   # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end; 18 -> 20 AT #546 ITEM (6):
-  # `idtwospaces` and `registerpathabsent` (arm (7)) after it; 20 -> 21 AT #546 ITEM (18): `danglingstory` (arm (5)).
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (21: one verdict word, 20 counters)" \
-    "21 21" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # `idtwospaces` and `registerpathabsent` (arm (7)) after it; 20 -> 21 AT #546 ITEM (18): `danglingstory` (arm (5));
+  # 21 -> 22 AT #546 ITEM (20): `gatestoryundefined` (arm (8)).
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (22: one verdict word, 21 counters)" \
+    "22 22" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -541,6 +542,19 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C21c the same id written as a bare line is defined, not dangling" "danglingstory=0" \
     "$(st_arm5line "$R21" 'danglingstory=[0-9]+' | grep -oE 'danglingstory=[0-9]+')"
   rm -rf "$R21"
+
+  # ── C22: ARM (8), A GATE QUOTING A STORY THE REGISTER NEVER WROTE [#546, item (20)]. Arm (8) reads gates with
+  #     `git grep`, so this fixture is a git repository (unlike C18's, which the arm-(6) note explains). One gate
+  #     quoting US-Z-01 and US-Z-02; the register defines US-Z-01 as a ### heading. Then US-Z-02 as a bare line.
+  R22="$(st_tree)"; ( cd "$R22" && git init -q && git config user.email t@t && git config user.name t )
+  printf "L.say(true,'US-Z-01 and US-Z-02 hold')\n" > "$R22/gates/regress/10-real.js"
+  printf '### US-Z-01 a story\n\ntext\n' > "$R22/claude/stories/USER-STORIES.md"
+  ( cd "$R22" && git add -A >/dev/null 2>&1 && git commit -qm fixture >/dev/null 2>&1 )
+  st_8() { ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -oE 'gate story quotes: [0-9]+ of [0-9]+|gatestoryundefined=[0-9]+' | tr '\n' ' ' ); }
+  st_ck "C22 a gate quoting one written and one unwritten story reads 1 of 2 and counts it" "gate story quotes: 1 of 2 gatestoryundefined=1 " "$(st_8 "$R22")"
+  printf 'US-Z-02  **a story written as a bare line**\n' >> "$R22/claude/stories/USER-STORIES.md"
+  st_ck "C22b once the register writes it (as a bare line), 0 of 2" "gate story quotes: 0 of 2 gatestoryundefined=0 " "$(st_8 "$R22")"
+  rm -rf "$R22"
 
   # ── C19: ARM (3m), THE MARKED md5 [#546, item (4)]. One fabricated register with a section citing a log that
   #     carries md5 aaaabbbbcccc and not ddddeeeeffff. Three rows, so the marker is what decides and not the md5:
@@ -906,6 +920,28 @@ EOF6
     A7B="checked"
   else A7B="NOT CHECKED (claude/stories/README.md is absent)"; fi
   echo "  (7) id space: $A7DUP id(s) heading rows in both TEST-CASES.md and REVIEW-SUITE-FULL.md, of $A7NID ids read ($A7A); $A7MISS of $A7NP prefix-table path(s) absent ($A7B)"
+  # === (8) A STORY A GATE QUOTES MUST BE A STORY THE REGISTER WRITES [#546, item (20); part (3) of
+  #     jobs/spec-docs-frozen-at-373, "each gate assertion quoting a US- id finds that clause"]. A gate that names US-PL-05
+  #     in an assertion is claiming a clause; when USER-STORIES.md defines no US-PL-05 (in any of its three forms: a
+  #     `### ` heading, a `## ` heading, or a line opening with the id) the claim cannot be checked against anything.
+  #     MEASURED at #546: 60 distinct US- ids are quoted under gates/regress/, 30 of them defined nowhere in
+  #     USER-STORIES.md - the Home, Lesson and most Play stories live in project documents this repository does not
+  #     carry. REPORTED, NOT REFUSED, because those 30 are a register that was never imported rather than a gate
+  #     that is wrong, and refusing would redden every build on a records gap; but the count is on the ratchet
+  #     line as `gatestoryundefined`, so a NEW undefined quote is a rise the records tier can see.
+  A8N=0; A8U=0
+  if [ -f claude/stories/USER-STORIES.md ]; then
+    A8DEF="$(grep -oE '^(#+[[:space:]]+)?US-[A-Za-z0-9-]+' claude/stories/USER-STORIES.md | sed -E 's/^#+[[:space:]]+//' | sort -u)"
+    A8Q="$(git grep -ohE '\bUS-[A-Z]+(-[A-Z]+)?-?[0-9]+[a-z]?\b' -- 'gates/regress/*.js' 2>/dev/null | sort -u || true)"
+    while IFS= read -r u; do
+      [ -n "$u" ] || continue
+      A8N=$((A8N+1))
+      grep -qxF "$u" <<<"$A8DEF" && continue
+      A8U=$((A8U+1))
+      echo "  GATE QUOTES AN UNWRITTEN STORY: $u is quoted in $(git grep -lE "\b$u\b" -- 'gates/regress/*.js' | sed -n 1p) and USER-STORIES.md defines no $u"
+    done <<<"$A8Q"
+    echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md (REPORTED, not refused)"
+  else echo "  (8) NOT CHECKED: claude/stories/USER-STORIES.md is absent"; fi
   # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
   # (runId process-build-2__1791274433682) for the remainder of
   # jobs/register-join-and-input-count-wrong-2026-09-28 (P?, priority 14, finishFirst band 14), whose
@@ -1121,7 +1157,7 @@ EOF
   # would make the line unable to grow with the arms, which is worse.
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0}"
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0}"
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
