@@ -169,8 +169,8 @@
 # EXIT 0 only when every applicable check passed. 1 on any FAIL. 2 when the measurement
 # could not be made at all (bad usage, shallow clone, no origin/main, nothing to read).
 #
-# IT LEAVES ITS SELFTEST SCRATCH BEHIND, ON PURPOSE. The scratch lives under mktemp -d
-# and is a few kilobytes; no line in this file deletes a path built from a variable,
+# IT LEAVES ITS SELFTEST SCRATCH BEHIND, ON PURPOSE - ONE directory per selftest run since #546 (item (59)), which
+# holds every audit's own scratch; the closing line counts them. The scratch is a few kilobytes; no line in this file deletes a path built from a variable,
 # because a selftest is not worth the class of accident that `rm -rf "$VAR"/...` is.
 
 set -u
@@ -640,6 +640,12 @@ audit() {
 # ---------------------------------------------------------------------------
 selftest() {
   local T; T=$(mktemp -d) || { echo "cannot mktemp"; return 2; }
+  # EVERY AUDIT THIS SELFTEST RUNS MAKES ITS SCRATCH INSIDE $T [#546, item (59); jobs/landed-on-mains-selftest-reports-one-
+  # leftover-scratch-directory-and-leaves-thirty-three-2026-10-20]. audit() takes its own `mktemp -d` and, by this file's
+  # rule, never deletes it - so a selftest that runs ~35 audits left ~35 directories in TMPDIR while its last line named
+  # ONE (measured at #546: 303 -> 339 over one run, 45 PASS). Pointing TMPDIR at $T for the duration puts every one of
+  # them under the directory that line names, so the line becomes true without adding an rm of a variable-built path.
+  local TMPDIR_WAS="${TMPDIR-}" TMPDIR_SET="${TMPDIR+set}"; export TMPDIR="$T"
   local R="$T/repo" rc=0 n=0 ok=0 dseq=0
   local out D
 
@@ -996,7 +1002,10 @@ json.dump(d,open(sys.argv[1],"w"))
 
   echo
   echo "landed-on-main.sh selftest: $ok PASS / $((n-ok)) FAIL  (of $n controls)"
-  echo "scratch left at $T (nothing in this file deletes a variable-built path)"
+  if [ "$TMPDIR_SET" = set ]; then export TMPDIR="$TMPDIR_WAS"; else unset TMPDIR; fi
+  # THE FOOTPRINT IS COUNTED, NOT TYPED: one directory in TMPDIR, and how many audit scratch directories it holds.
+  local inner; inner=$(find "$T" -mindepth 1 -maxdepth 1 -name 'tmp.*' -type d 2>/dev/null | wc -l | tr -d ' ')
+  echo "scratch left: 1 directory in TMPDIR, $T, holding this run's $inner audit scratch directories (nothing in this file deletes a variable-built path)"
   [ "$ok" -eq "$n" ]
 }
 
