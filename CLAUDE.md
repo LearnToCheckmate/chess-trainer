@@ -783,6 +783,16 @@ wider one.
   number in this project is a genuine two-tree collision and it is #416, whose own rows say so. Reserve the loud
   word for the real case and say "names N artefacts, cite the md5" for the ordinary one, or the second day of
   the alarm is the day it gets ignored.
+- **A VETO THAT CHANGES THE TREE RESETS EVERY FIGURE ALREADY WRITTEN ABOUT IT, AND THE RUN-LOG ROW IS ONE OF THEM.**
+  #423's close-out committed its RUN-LOG headline cell as written BEFORE its antagonist veto, and the veto
+  response at bf6a455 rewrote the gate under it, so six figures in that cell described the vetoed gate while
+  later paragraphs of the same row published the corrections: the row contradicted itself and a reader of the
+  headline got the superseded number. #422 needed the same correction one build earlier (8cd81ec, its elapsed
+  minutes 97 -> 92), so it is a class, not an accident. So after any veto response, culprit drop or revert
+  that changes the tree, re-derive from the shipped artefacts - the final log, the pushed sha, `date -u` -
+  every figure in your RUN-LOG row, run report and builds record before the close-out commit, and never carry
+  a cell forward because it was already written. (#546, item (5);
+  jobs/run-log-423-cell-describes-the-pre-veto-gate-2026-09-27. The #423 cell itself was corrected at #545.)
 - **Absence is the hardest thing to measure.** "This does not exist" must list the screens and
   states actually checked.
 - **The board is sacred.** Maximise the board, minimise everything else, and the board must never
