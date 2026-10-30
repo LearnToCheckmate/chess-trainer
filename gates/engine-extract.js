@@ -59,11 +59,21 @@ function staleRefs(names){
     for(const id of new Set(strip(b.text).match(/[A-Za-z_$][\w$]*/g)||[])) if(id!==n&&top.has(id)&&!inN.has(id)) out.push(n+' -> '+id);}
   return out;
 }
-const STALE=staleRefs(NAMES);
+// A CONTROL SOURCE MAY PREDATE A HELPER, AND THAT IS NOT THE SAME AS A STALE LIST [#546, item (16);
+// jobs/gate-68-publishes-a-negative-control-against-half-its-current-size-2026-10-07]. Since #545 item (91) took the
+// eleven grading helpers, a pre-fix CT_SRC (gate 68's own control is df79fb7's chess.jsx, which has none of them) threw
+// at require, so a gate's documented control could not run at all. So: with CT_SRC set, a name the control source does
+// not DECLARE is left out of the export and named on stderr - a caller that uses it then fails loudly on its first call,
+// which is the honest answer for a control that does not have it. WITHOUT CT_SRC NOTHING CHANGES: the shipped
+// chess.jsx must declare every name and need() still throws on a missing one.
+const ABSENT=process.env.CT_SRC?NAMES.filter(n=>!blocks.has(n)):[];
+if(ABSENT.length) process.stderr.write('engine-extract: CT_SRC '+SRC_PATH+' declares none of '+ABSENT.join(', ')+' - not exported (a control source older than those helpers)\n');
+const TAKE=NAMES.filter(n=>!ABSENT.includes(n));
+const STALE=staleRefs(TAKE);
 if(STALE.length&&!process.env.CT_EXTRACT_ALLOW_STALE) throw new Error('engine-extract: NAMES is stale against '+SRC_PATH+' - exported blocks reference top-level declarations it does not take: '+STALE.join('; ')+'. Add them to NAMES.');
-const code=need(NAMES)+'\nmodule.exports={'+NAMES.join(',')+'};';
+const code=need(TAKE)+'\nmodule.exports={'+TAKE.join(',')+'};';
 const mod={exports:{}};
 // `window` is referenced by declarations we did not take; give the sandbox a stub so a stray
 // reference throws a clear error rather than a ReferenceError from nowhere.
 new Function('module','window',code)(mod,{});
-module.exports=Object.assign({},mod.exports,{SOURCE_MD5,SRC_PATH,NAMES:NAMES.slice(),staleRefs});
+module.exports=Object.assign({},mod.exports,{SOURCE_MD5,SRC_PATH,NAMES:NAMES.slice(),ABSENT:ABSENT.slice(),staleRefs});
