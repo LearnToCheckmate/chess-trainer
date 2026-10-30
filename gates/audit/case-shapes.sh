@@ -19,6 +19,9 @@
 #   S1 no id is DEFINED in two of ROW, BARE and BOLD (a second definition is a fork of one case). A HEAD may sit
 #      over ONE of them: that is a section title over its own row or entry, which is how TC-R58, R63 and R64 are written
 #   S2 every id that OPENS a line in any other way is on the RESERVED list below - a mention, not a definition
+#   S6 every ROW line defines a DISTINCT id, so the row count and the case count are one number [#546, item (88); the
+#      job's testCase asks that |P| equal the rows the section tables contain]. A second row for one id is a fork of a
+#      case inside ONE shape, which S1 cannot see because it compares shapes. Measured at #546: 344 row lines, 344 ids.
 # and it prints the total, the one number to quote: `bash gates/audit/case-shapes.sh | tail -1`.
 # USAGE  bash gates/audit/case-shapes.sh [repo-dir]   exit 0 holds | 1 a check fails | 2 the register is unreadable
 #        bash gates/audit/case-shapes.sh --selftest
@@ -45,6 +48,8 @@ check(){ ( cd "$1" && node -e '
   const all=new Set([...row.keys(),...bare.keys(),...bold.keys(),...head.keys()]);const res=new Set((process.env.CS_RESERVED||"").split(/\s+/).filter(Boolean));
   const stray=[...open.keys()].filter(id=>!all.has(id)&&!res.has(id));
   say(stray.length===0,"S2 every id opening a line outside the four shapes is a declared reservation ("+stray.length+(stray.length?": "+stray.map(id=>id+"@"+open.get(id).join("/")).join(" "):"")+")");
+  const rowLines=[...row.values()].reduce((n,v)=>n+v.length,0);const dupRows=[...row.entries()].filter(([,v])=>v.length>1);
+  say(row.size>0&&rowLines===row.size,"S6 every ROW line defines a distinct id - "+rowLines+" row lines, "+row.size+" distinct row ids"+(dupRows.length?": "+dupRows.map(([id,v])=>id+"@"+v.join("/")).join(" "):"")+" [#546, item (88)]");
   const headOnly=[...head.keys()].filter(id=>!row.has(id)&&!bare.has(id)&&!bold.has(id));
   console.log("CASES "+all.size+" defined (row "+row.size+", bare "+bare.size+", bold "+bold.size+", head "+head.size+" of which "+headOnly.length+" heading-only: "+headOnly.join(" ")+"), "+res.size+" reserved");
 ' ); }
@@ -61,6 +66,7 @@ selftest(){
   mk; sed -i -E 's/^\*\*(TC-[A-Z]+-?[0-9]+[a-z]?)( - | \()/\1:\2/' "$T/r/claude/stories/TEST-CASES.md"; ck "S3 a register with no BOLD-shape entry is NOT credited (S0 reddens)" 1
   mk; printf '\n### TC-ZZ-005 (US-X) a heading over its own row\n| TC-ZZ-005 | US-X | a | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S5 a HEAD over one row is a section title and holds" 0
   mk; printf '\n## TC-ZZ-003: a FIFTH shape, a heading with no (story)\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S4 a case opened in an undeclared fifth shape reddens via S2" 1
+  mk; printf '\n| TC-ZZ-006 | US-X | a | b | c | d |\n| TC-ZZ-006 | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S6 one id given TWO rows reddens (one shape, so S1 is blind to it)" 1
   echo "case-shapes selftest: $p pass / $f fail"; [ "$f" -eq 0 ]
 }
 
