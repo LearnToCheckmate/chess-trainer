@@ -637,9 +637,9 @@ L.run(async()=>{
     const gBack=await gridSplit();
     const wElapBack=Date.now()-t0;
     L.say(kidsTerm===65&&!!gTerm&&gTerm.squares===64&&/Checkmate/.test(gTerm.otherText),
-      geo+': TC-PL-028 THE INDEPENDENT READING, at the terminal ply: the grid holds 65 children, 64 of them square cells, and the non-square remainder PAINTS "Checkmate" - found by shape and text, not by the card\'s selector [#545 item (69)]',{kids:kidsTerm,split:gTerm});
+      geo+': TC-PL-039 THE INDEPENDENT READING, at the terminal ply: the grid holds 65 children, 64 of them square cells, and the non-square remainder PAINTS "Checkmate" - found by shape and text, not by the card\'s selector [#545 item (69)]',{kids:kidsTerm,split:gTerm});
     L.say(!!gBack&&gBack.squares===64&&!/Checkmate/.test(gBack.otherText),
-      geo+': TC-PL-028 and one ply back the 64 squares are still there and NOTHING in the grid paints "Checkmate" - the card is gone by a reading that shares no selector with wCardBack [#545 item (69)]',{split:gBack,elapsedMs:Date.now()-t0});
+      geo+': TC-PL-039 and one ply back the 64 squares are still there and NOTHING in the grid paints "Checkmate" - the card is gone by a reading that shares no selector with wCardBack [#545 item (69)]',{split:gBack,elapsedMs:Date.now()-t0});
     L.say(wPlyBack===pcTerm-1,geo+': the step off the terminal ply is real inside the window too ('+pcTerm+' -> '+wPlyBack+')',{before:pcTerm,after:wPlyBack,elapsedMs:wElapBack});
     L.say(wCardBack===null&&wElapBack<8000,
       geo+': THE RESULT CARD IS GONE ONE PLY BACK AFTER ONLY '+wElapBack+'ms - so its absence is keyed to the PREVIEWED PLY and not to the 8s fade, which is the distinction the Back arm above could not draw and says so in its own note. If the card survived the step this line goes red; if this container ever drifts past 8000ms it goes red too rather than re-proving the fade',{card:wCardBack,elapsedMs:wElapBack});
