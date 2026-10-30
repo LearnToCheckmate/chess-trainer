@@ -201,7 +201,9 @@ L.run(async()=>{
   // ---- fixture 2: the same game with the rating headers removed ---------------------------------------
   const c=await L.launch({geo:{w:375,h:730},name:'rating-nohdr',store:{ct_pool:'3'}});await c.open();
   if(await importFixture(c,PGN_NOELO,'no headers')){
-    for(const g of [G[0],G[3],G[6]]){                        // 320x568, 375x730, 440x956
+    // ALL SEVEN GEOMETRIES, NOT THREE [#546, item (22); jobs/gate58-21e-pins-the-sentence-shape-not-the-clause-2026-09-29,
+    // whose case asks for 3 fixtures x 7 geometries]. The resize is in-page, so the four extra cells cost seconds.
+    for(const g of G){
       await c.page.setViewportSize({width:g.w,height:g.h});await c.settle(500);
       const t=await summaryText(c),rb=await ratingBoxes(c);
       L.note(gl(g)+' no-header rating lines: '+JSON.stringify(rb.items.map(x=>x.text)));
@@ -220,7 +222,7 @@ L.run(async()=>{
   // ---- fixture 3: ONE side carries a rating, the other is [BlackElo "?"] ------------------------------
   const d=await L.launch({geo:{w:375,h:730},name:'rating-oneside',store:{ct_pool:'3'}});await d.open();
   if(await importFixture(d,PGN_ONESIDE,'one side rated')){
-    for(const g of [G[0],G[3]]){                             // 320x568, 375x730
+    for(const g of G){                                       // all seven [#546, item (22)], as fixture 2 above
       await d.page.setViewportSize({width:g.w,height:g.h});await d.settle(500);
       const t=await summaryText(d),rb=await ratingBoxes(d);
       L.note(gl(g)+' one-sided rating lines: '+JSON.stringify(rb.items.map(x=>x.text+' [spill '+x.spill+']')));
