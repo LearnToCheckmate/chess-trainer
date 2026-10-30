@@ -267,7 +267,7 @@ case "${1:-}" in
     # named form could turn one of that form's "not held" answers into HELD BY SOURCE, which the job says to
     # leave alone. It catches the tree whose working copy has moved on but whose COMMIT is the held source.
     HELD_SRCKEYS=(); HELD_SRCNAMES=()
-    if [ -r "$ROOT/chess.jsx" ]; then
+    if [ -f "$ROOT/chess.jsx" ] && [ -r "$ROOT/chess.jsx" ]; then  # -f too: -r is true of a DIRECTORY [#546, B F1]
       HELD_SRCKEYS+=("$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"); HELD_SRCNAMES+=("chess.jsx on disk")
     else
       [ -n "${2:-}" ] || HELD_MISSED+=("chess.jsx on disk (cannot read $ROOT/chess.jsx)")
@@ -510,7 +510,7 @@ case "${1:-}" in
         echo "  which source you mean: CT_SRCMD5=\$(git show <the gated sha>:chess.jsx | md5sum | cut -c1-12)"
         echo "  gates/held.sh add ...   (CT_SRCMD5=- is legal and records that this hold has no source key.)"
         exit 2;; esac
-      DISKSRC=""; [ -r "$ROOT/chess.jsx" ] && DISKSRC="$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"
+      DISKSRC=""; [ -f "$ROOT/chess.jsx" ] && [ -r "$ROOT/chess.jsx" ] && DISKSRC="$(md5sum "$ROOT/chess.jsx" | cut -c1-12)"
       if git -C "$ROOT" cat-file -e "$SHA^{commit}" 2>/dev/null; then
         SRC7="$(git -C "$ROOT" show "$SHA:chess.jsx" 2>/dev/null | md5sum 2>/dev/null | cut -c1-12)"
         if [ -z "$SRC7" ] || [ "$SRC7" = "d41d8cd98f00" ]; then

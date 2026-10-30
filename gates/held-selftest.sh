@@ -551,6 +551,12 @@ ck "13 MUTANT answers 'not held' at exit 0 with the bundle key unaskable - the d
 eq "13 MUTANT and it even reports the miss while clearing the tree" "1 1" \
    "$( cd "$KM" && printf '%s %s' "$( timeout 20 "$MM" check 2>&1 | grep -c 'could NOT ask: app.js' )" "$( timeout 20 "$MM" check 2>&1 | grep -c '^not held: ' )" )"
 mv "$KM/app.js.aside" "$KM/app.js"
+# ---- 13d: chess.jsx is a DIRECTORY [#546, antagonist B's F1]. `[ -r ]` is true for a directory, so held.sh asked an
+# EMPTY source key, counted it as asked, and CLEARED the tree at exit 0. A key it could not compute is exit 2.
+mv "$KM/chess.jsx" "$KM/chess.jsx.aside"; mkdir "$KM/chess.jsx"
+ck "13d chess.jsx a DIRECTORY: UNKNOWN (exit 2), never a clearance" 2 timeout 20 "$MU" check
+eq "13d and NO 'not held:' verdict line is printed" "0" "$( cd "$KM" && timeout 20 "$MU" check 2>&1 | grep -c '^not held: ' )"
+rmdir "$KM/chess.jsx"; mv "$KM/chess.jsx.aside" "$KM/chess.jsx"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the
