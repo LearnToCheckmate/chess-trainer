@@ -17,7 +17,11 @@
 // method is the round trip.
 //
 // WHAT MAKES IT ABLE TO FAIL, run against BOTH bundles rather than asserted (#435's own lesson, its note (3)):
-//   A1/A2/A3 fresh==rotated     -> #435: 224 vs 216 / 224 vs 232 / 224 vs 216 = 3 FAIL.  #436: 3 PASS.
+//   A@<geo>1 x3 fresh==rotated  -> #435: 224 vs 216 / 224 vs 232 / 224 vs 216 = 3 FAIL.  #436: 3 PASS.
+//   (THE LOG'S IDS, NOT A1/A2/A3 [R18, #546 item (46)]: this row first read "A1/A2/A3", meaning assertion 1 at each
+//   of three geometries, while the paragraph below used "A3" for the code's THIRD assertion - one label, two
+//   meanings, opposite verdicts. The tag is 'A@'+w+'x'+h with the assertion number appended and no separator,
+//   so the three reds read A@730x3751, A@844x3901 and A@667x3751 in the log.)
 //   A4       the board RESPONDS -> #435 fresh: {224,224,224}, one distinct value = FAIL. #436: {216,232,216}.
 //   A5       portrait control   -> green on BOTH bundles by design; see its own block for why the FIRST draft
 //                                 of it was vacuous and what makes this one able to fail.
@@ -29,8 +33,8 @@
 //   HEIGHT (730x375 and 667x375 both give availH 221), and wcap never binds at any of the three, so 667x375 is
 //   NOT an independent input to A4 - it is an independent input to A1 (the route), which is what it is here for.
 //   A4 therefore rests on TWO distinct heights, not three. Caught by #436's antagonist A.
-//   A3 PASSES ON #435 TOO, and that is correct rather than a weakness: #435's ROTATED value was already each
-//   screen's analytic cap - the whole finding is that its FRESH value was not. So A3 is not part of the 4-red
+//   A@<geo>3, THE ANALYTIC-CAP CHECK, PASSES ON #435 TOO, and that is correct rather than a weakness: #435's ROTATED value was already each
+//   screen's analytic cap - the whole finding is that its FRESH value was not. So A@<geo>3 is not part of the 4-red
 //   control and a reader should not count it as one.
 // AND THE HEADLINE NUMBER IS NOT A CONSTANT [R18]. An earlier draft of this header, of the commit message and of
 // the story clause said the #435 fresh board "is 224.00 at every width". That is true of the three geometries
@@ -84,7 +88,7 @@ L.run(async()=>{
   // A4: the assertion that needs no knowledge of the right answer.
   const distinct=[...new Set(Object.values(fresh).filter(v=>v!==null))];
   L.say(distinct.length>=2,
-    'A4 THE FRESH LANDSCAPE BOARD RESPONDS TO THE SCREEN IT IS ON. Three landscape geometries whose available heights are 221, 236 and 221 must not all produce ONE board width. On #435 this set was {224} - a single value across three different screens, which is what identified 224 as an artifact rather than an answer, because no derivation from the geometry can be constant when the geometry is not. This assertion is pinned to no number and survives any later change to the 130px chrome budget',
+    'A4 THE FRESH LANDSCAPE BOARD RESPONDS TO THE SCREEN IT IS ON. Three landscape geometries must not all produce ONE board width. Two of the three share an available height (730x375 and 667x375 both give 221, cap 216), so this rests on TWO distinct heights, 221 and 236, and on the single live comparison 232 against 216. On #435 this set was {224} - a single value across three different screens, which is what identified 224 as an artifact rather than an answer, because no derivation from the geometry can be constant when the geometry is not. This assertion is pinned to no number and survives any later change to the 130px chrome budget',
     {freshByWidth:fresh,distinct});
   // ══ A5: THE PORTRAIT CONTROL, AND ITS FIRST DRAFT WAS VACUOUS - #436's ANTAGONIST A VETOED THE PUSH ON IT ══
   // The draft asserted ONE geometry, 375x730, and said of itself: "if this ever reddens, the landscape fix has
