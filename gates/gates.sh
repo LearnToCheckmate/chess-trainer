@@ -2803,7 +2803,11 @@ fi
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
   echo "=== $name ===" | tee -a "$ALL"
-  ( cd "$ROOT" && timeout 900 node "$f" ) > "$log" 2>&1; rc=$?
+  # EVERY GATE RUNS WITH THE INPUT RECORDER PRELOADED [#546, item (86)]: `-r gates/lib.js` makes the fs recorder live in
+  # gates that never require the harness, and CT_OBSERVE_EXIT makes such a gate print its inputs line on exit. A section
+  # with no inputs line is RED below: an unobserved gate is exactly the blind spot the source parser kept missing.
+  ( cd "$ROOT" && CT_OBSERVE_EXIT=1 timeout 900 node -r "$G/lib.js" "$f" ) > "$log" 2>&1; rc=$?
+  obs=$(grep -c '^     inputs observed (' "$log" || true)
   cat "$log" >> "$ALL"
   fails=$(grep -c '^FAIL' "$log" || true); marks=$(grep -c '<<<' "$log" || true); passn=$(grep -c '^PASS' "$log" || true)
   # ── #461, ANTAGONIST B's F4. "PRESENT" WAS A FILENAME, NOT A GATE. ──────────────────────────────────────────
@@ -2821,6 +2825,7 @@ for f in "${gates[@]}"; do
     echo "        A gate that is present and asserts nothing is indistinguishable from a gate that is absent," | tee -a "$ALL"
     echo "        and the manifest cannot see the difference: the file exists. Either it is broken, or it was" | tee -a "$ALL"
     echo "        emptied. If a gate ever legitimately asserts nothing, it should not be in the suite." | tee -a "$ALL"
+  elif [ "$obs" -eq 0 ]; then red=1; echo "    $name: RED (printed no 'inputs observed' line, so what this gate read is unknown - the recorder is preloaded with -r gates/lib.js; a gate that bypasses it is the blind spot #490 kept finding)" | tee -a "$ALL"
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)

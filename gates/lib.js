@@ -518,8 +518,15 @@ async function launch(opts={}){
   return b;
 }
 let _fails=0,_pass=0;
+// EVERY GATE IS OBSERVED, NOT ONLY THE ONES THAT CALL done() [#546, item (86); jobs/the-premise-checks-read-the-gates-source-
+// instead-of-asking-them-to-declare-their-inputs-2026-10-07, whatIsLeft (2)]. gates.sh now preloads this file into every
+// gate with `node -r`, so the fs recorder above is live from the first byte even in a gate that never requires it (68, 72,
+// 75 and 79 on the tree of #546). A gate that never reaches done() gets its inputs line printed here on exit instead, so
+// every section of a suite log carries one - and gates.sh reddens a section that does not.
+let _doneRan=false;
+process.on('exit',()=>{if(_doneRan||process.env.CT_OBSERVE_EXIT!=='1')return;try{const ins=observedInputs();process.stdout.write('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' ')+'\n');}catch(e){}});
 function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefined?'  ['+(typeof detail==='string'?detail:JSON.stringify(detail))+']':'');console.log(line);if(ok)_pass++;else _fails++;return ok;}
 function note(msg){console.log('     '+msg);}
-function done(label){const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
+function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
 module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs};
