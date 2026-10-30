@@ -84,6 +84,21 @@ head_reconcile(){ # <repo> <start-sha> <start-tree> <start-dirty-count>
   printf 'orphaned\t%s\t%s\n' "$s" " | HEAD MOVED DURING THE RUN: the gated sha is on NO ref and HEAD $e does not carry the gated tree - THIS LOG NAMES A TREE NOTHING CARRIES, so it is not a push gate"
 }
 
+# ── AND DID THE WORKING TREE CHANGE WHILE THE SUITE RAN? [#546, item (32); jobs/refline-sample-both-ends, from flag
+# refline-samples-one-end-so-a-tree-edited-mid-run-reads-clean-2026-09-18]. head_reconcile above re-samples the COMMIT at
+# the end; the dirty count beside it was still sampled only at the start, so a tree that started clean and was edited
+# mid-run without a commit wrote "clean" into its ref line - the flag's original case. This compares the two
+# `git status --porcelain` listings, start and end (every output of the suite - logs, shots, .site, the frozen copy -
+# is gitignored, so an honest run's two listings are equal), and prints the text for the ref line when they differ.
+# It REPORTS rather than refuses, as the dirty count always has: the suite's verdict is about the bundle it served,
+# which a mid-run edit to a source file does not change, but the log must not claim a tree it did not have.
+tree_reconcile(){ # <porcelain-at-start> <porcelain-at-end>
+  [ "$1" = "$2" ] && return 0
+  # the symmetric difference of the two listings' NON-EMPTY lines: an empty listing is no entry, not an empty one
+  local n; n="$(comm -3 <(printf '%s\n' "$1" | sed '/^$/d' | sort) <(printf '%s\n' "$2" | sed '/^$/d' | sort) | grep -c . || true)"
+  printf ' | WORKING TREE CHANGED DURING THE RUN: %s line(s) of git status differ between start and end - the tree at the end is not the tree this log describes' "$n"
+}
+
 # ── A DELETED ASSERTION INSIDE A GATE MUST NOT BE INVISIBLE [#545, item (37); jobs/a-deleted-assertion-inside-a-
 # gate-is-invisible-in-a-green-run-2026-10-10]. This file's header says the regression total "must only rise", and
 # until #545 nothing compared it with anything: delete one L.say and the footer falls by one, still equals the log's
@@ -1452,6 +1467,14 @@ M16PY
   ( cd "$ST_HR" && echo c >> f && git commit -q --amend -am 'A, tree changed' ) >/dev/null 2>&1
   st H4-an-amend-that-CHANGES-the-tree-reads-orphaned "$(head_reconcile "$ST_HR" "$hr_s" "$hr_t" 0 | cut -f1)" orphaned
   st H6-the-full-suite-refuses-the-green-line-on-an-orphaned-verdict "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] .*then echo "GATES GREEN' "$SF")" 1
+  # T1-T3 DRIVE tree_reconcile [#546, item (32)] over a scratch repository's real porcelain, before and after an edit.
+  tr_0="$(git -C "$ST_HR" status --porcelain)"
+  st T1-an-unchanged-tree-prints-nothing "[$(tree_reconcile "$tr_0" "$(git -C "$ST_HR" status --porcelain)")]" "[]"
+  echo edited-mid-run >> "$ST_HR/f"
+  st T2-an-edit-made-after-the-start-sample-is-reported "$(tree_reconcile "$tr_0" "$(git -C "$ST_HR" status --porcelain)" | grep -o 'WORKING TREE CHANGED DURING THE RUN: 1 line')" "WORKING TREE CHANGED DURING THE RUN: 1 line"
+  tr_1="$(git -C "$ST_HR" status --porcelain)"
+  st T3-the-same-edit-present-at-BOTH-ends-is-not-a-change "[$(tree_reconcile "$tr_1" "$(git -C "$ST_HR" status --porcelain)")]" "[]"
+  st T4-the-full-run-appends-it-to-the-ref-line "$(grep -c 'DIRTYTXT="\$DIRTYTXT\$(tree_reconcile "\$DIRTYL0"' "$SF")" 1
   # A1-A6 DRIVE assert_falls [#545, item (37)] over a fixture register and a fixture log.
   printf '# fixture\nALPHA\t5\t#1\tx\nBETA\t3\t#1\tx\n' > "$ST_T/ac.tsv"
   acl(){ local a="$1" b="$2" bf="${3:-0}" i; echo "=== ALPHA ==="; for ((i=0;i<a;i++)); do echo "PASS a$i"; done
@@ -1573,6 +1596,7 @@ GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
 HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
 HEADTREE="$($GIT rev-parse 'HEAD^{tree}' 2>/dev/null || echo unknown)"   # for head_reconcile at the end [#545]
 DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+DIRTYL0="$($GIT status --porcelain 2>/dev/null || true)"   # the whole listing, for tree_reconcile at the end [#546]
 
 # build the gate list: mountcheck always, then either everything or just the named ones
 ALLREG=(); for f in "$G"/regress/*.js; do [ -e "$f" ] && ALLREG+=("$f"); done
@@ -2981,6 +3005,7 @@ DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRT
 # #545 item (33): did HEAD move while the suite ran? See head_reconcile at the top of this file.
 IFS=$'\t' read -r HR_V HR_SHA HR_TXT < <(head_reconcile "$ROOT" "$HEADSHA" "$HEADTREE" "${DIRTYN:-0}")
 HEADSHA="${HR_SHA:-$HEADSHA}"; DIRTYTXT="${HR_TXT:-}$DIRTYTXT"
+DIRTYTXT="$DIRTYTXT$(tree_reconcile "$DIRTYL0" "$($GIT status --porcelain 2>/dev/null || true)")"   # [#546, item (32)]
 if [ -z "$MAINSHA" ]; then
   REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main UNKNOWN (refs/heads/main unreadable: offline, refused, or no such branch - NOT a pass)$DIRTYTXT"
 elif [ "$HEADSHA" = "$MAINSHA" ]; then
