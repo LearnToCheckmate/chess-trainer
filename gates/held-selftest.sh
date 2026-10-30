@@ -606,6 +606,28 @@ printf 'abcdef012347\t1234567\t#913\t2026-10-30T00:00Z\tbuild__F\ta last row wit
 ck "13j a working copy with NO FINAL NEWLINE still clears a clean tree" 0 timeout 20 "$MU" check
 ck "13j and its unterminated last row still holds its key" 1 timeout 20 "$MU" check abcdef012347
 cp "$KM/gates/held-trees.tsv.keep" "$KM/gates/held-trees.tsv"; rm -f "$KM/gates/held-trees.tsv.keep"
+# 13k: EVERY FREE-TEXT FIELD `add` WRITES IS REFUSED WITH A NEWLINE OR TAB IN IT, the sha list is never glob-expanded, a
+# leading-space retired-looking row is validated as the live row the matcher reads, and a live sha-only row must carry a sha
+# [#546, fifth-round antagonist A V1, F1, F2, F3].
+cp "$KM/gates/held-trees.tsv" "$KM/gates/held-trees.13k"
+cp "$HERE/held-predicate.sh" "$KM/gates/held-predicate.sh"   # without the validator beside it, add refuses ANY predicate and the arm below controls nothing
+ck "13k add refuses a NEWLINE in the reason" 2 env CT_RUNID=held-selftest CT_SRCMD5=- "$MU" add abcdef012348 1234567 '#914' "$(printf 'a reason long enough for the forty-character floor here\nand a second line')"
+cp "$KM/gates/held-trees.13k" "$KM/gates/held-trees.tsv"
+ck "13k add refuses a TAB in CT_RUNID" 2 env CT_RUNID="$(printf 'held\tselftest')" CT_SRCMD5=- "$MU" add abcdef012348 1234567 '#914' "a reason long enough for the forty-character floor here"
+cp "$KM/gates/held-trees.13k" "$KM/gates/held-trees.tsv"
+ck "13k add refuses a NEWLINE in CT_HELD_PRED" 2 env CT_RUNID=held-selftest CT_SRCMD5=- CT_HELD_PRED="$(printf 'absent:no\nx')" "$MU" add abcdef012348 1234567 '#914' "a reason long enough for the forty-character floor here"
+cp "$KM/gates/held-trees.13k" "$KM/gates/held-trees.tsv"
+mkdir -p "$TD/globdir"; : > "$TD/globdir/abcdef1"
+ck "13k add refuses a glob in the sha list, run where it WOULD expand (a file abcdef1 is present)" 2 sh -c 'cd "$1" && CT_RUNID=held-selftest CT_SRCMD5=- "$2" add abcdef012348 "abcdef?" "#914" "a reason long enough for the forty-character floor here"' _ "$TD/globdir" "$MU"
+cp "$KM/gates/held-trees.13k" "$KM/gates/held-trees.tsv"
+ck "13k and check still clears the clean tree after those refusals" 0 timeout 20 "$MU" check
+for BADROW in ' -abcdef012345\t"abcdef0123456789abcdef0123456789abcdef01"\t#915\t2026-10-30T00:00Z\tbuild__F\ta leading-space row the matcher reads as LIVE, long enough\t-' \
+              'sha-only\t-\t#915\t2026-10-30T00:00Z\tbuild__F\ta live sha-only row with no sha, long enough for the floor\t-'; do
+  printf "$BADROW\n" >> "$KM/gates/held-trees.tsv"
+  ck "13k a row the matcher would read but cannot key is UNKNOWN (exit 2): $(printf "$BADROW" | cut -f1-2 | cut -c1-30)" 2 timeout 20 "$MU" check
+  cp "$KM/gates/held-trees.13k" "$KM/gates/held-trees.tsv"
+done
+rm -f "$KM/gates/held-trees.13k"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the

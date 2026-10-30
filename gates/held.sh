@@ -212,10 +212,12 @@ case "${1:-}" in
     # one legal `add deadbeef ...`, which the third-round antagonist B found [#546]; no {n,m} intervals, for mawk);
     # AND ON A LIVE ROW EVERY KEY FIELD, NOT ONLY FIELD 1 [#546, third-round antagonist A's V2]: a sha-only row's ONLY key is
     # field 2, so a quoted, prefixed or 6-hex sha there, or a space- or semicolon-separated list, cleared at exit 0. Each
+    # LIVENESS IS READ FROM THE RAW FIELD 1 (`$1 !~ /^-/`), exactly as match_rows and list read it - a trimmed test let ' -x' rows
+    # skip validation while the matcher held them live; and a live SHA-ONLY row must carry a sha, its only key [#546, fifth-round A F1, F2].
     # comma element of field 2 must be 7 to 40 hex (or the whole field '-'), and on a LIVE row field 7 exactly '-' or 8 to 12 hex - a note after a live
     # source key is refused, because the matcher glues the note onto the key and reads nothing [#546, fourth-round A V2];
     # non-comment line is reported and the answer is exit 2, before any key is asked.
-    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; gsub(/[ \r]/,"",f); f0=f; sub(/^-/,"",f); bad=(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")); if(!bad && f0 !~ /^-/){ z=$2; gsub(/^[ \r]+|[ \r]+$/,"",z); if(z!="-"){ n=split(z,S,","); for(i=1;i<=n;i++){x=S[i]; gsub(/^ +| +$/,"",x); if(!(x ~ /^[0-9a-fA-F]+$/ && length(x)>=7 && length(x)<=40)) bad=1} } if(NF>=7){ y=$7; gsub(/^[ \r]+|[ \r]+$/,"",y); if(!(y=="-" || (y ~ /^[0-9a-fA-F]+$/ && length(y)>=8 && length(y)<=12))) bad=1 } } if(bad) print}')"
+    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; gsub(/[ \r]/,"",f); sub(/^-/,"",f); bad=(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")); if(!bad && $1 !~ /^-/){ z=$2; gsub(/^[ \r]+|[ \r]+$/,"",z); if(f=="sha-only" && (z=="" || z=="-")) bad=1; if(z==""&&f!="sha-only") z="-"; if(z!="-"){ n=split(z,S,","); for(i=1;i<=n;i++){x=S[i]; gsub(/^ +| +$/,"",x); if(!(x ~ /^[0-9a-fA-F]+$/ && length(x)>=7 && length(x)<=40)) bad=1} } if(NF>=7){ y=$7; gsub(/^[ \r]+|[ \r]+$/,"",y); if(!(y=="-" || (y ~ /^[0-9a-fA-F]+$/ && length(y)>=8 && length(y)<=12))) bad=1 } } if(bad) print}')"
     if [ -n "$HELD_BAD" ]; then
       echo "UNKNOWN: $(printf '%s\n' "$HELD_BAD" | grep -c .) row(s) of held-trees.tsv ($HELD_SRC) are in no shape this tool can match - fewer"
       echo "  than six TAB-separated fields; field 1 not 8-12 hex or 'sha-only'; or, on a live row, a field-2 element not 7-40 hex"
@@ -484,13 +486,20 @@ case "${1:-}" in
     # THE WRITER REFUSES WHAT THE CHECKER REFUSES [#546, fourth-round antagonist A's V1]: word splitting dropped empty comma
     # elements and split on spaces, and nothing bounded the length, so `add` wrote 'abc1234,', 'a b' or a 64-hex field 2
     # that check's row guard then answered UNKNOWN on, for every tree, until a hand edit.
-    case "$SHA" in ""|*[[:space:]]*|,*|*,|*,,*) [ "$SHA" = "-" ] || { echo "held.sh add: sha list '$SHA' has whitespace or an empty comma element; write 7-40 hex shas joined by single commas"; exit 2; };; esac
+    case "$SHA" in ""|*[[:space:]]*|,*|*,|*,,*) echo "held.sh add: sha list '$SHA' has whitespace or an empty comma element; write 7-40 hex shas joined by single commas"; exit 2;; esac
+    case "$SHA" in *[!0-9a-fA-F,]*) echo "held.sh add: sha list '$SHA' carries a character that is neither hex nor a comma"; exit 2;; esac   # before the unquoted loop below can glob-expand it [#546, fifth-round A F3]
     for one in $(printf '%s' "$SHA" | tr ',' ' '); do
       [ "${#one}" -le 40 ] || { echo "held.sh add: sha '$one' is over 40 chars"; exit 2; }
       case "$one" in *[!0-9a-f]*) echo "held.sh add: sha '$one' is not hex"; exit 2;; esac
       [ "${#one}" -ge 7 ] || { echo "held.sh add: sha '$one' is under 7 chars"; exit 2; }
     done
     case "$REASON" in *"	"*) echo "held.sh add: the reason contains a TAB, which would truncate it at the field break"; exit 2;; esac
+    # AND A NEWLINE, AND THE SAME IN CT_RUNID AND CT_HELD_PRED [#546, fifth-round antagonist A's V1]: a newline split the row in
+    # two and a TAB shifted every later field, so `add` exited 0 and every later `check` answered UNKNOWN until a hand edit.
+    NLTAB="$(printf '\n\t\r')"
+    for HELD_FV in "reason:$REASON" "CT_RUNID:${CT_RUNID:-}" "CT_HELD_PRED:${CT_HELD_PRED:-}"; do
+      case "${HELD_FV#*:}" in *["$NLTAB"]*) echo "held.sh add: ${HELD_FV%%:*} contains a newline, TAB or CR, which would break the row into fields or lines the check cannot read"; exit 2;; esac
+    done
     # DUPLICATE CHECK WITHOUT grep -x: A found that a '-'-prefixed md5 made `grep -qx "$MD5\t$SHA"` parse the
     # pattern as an option ("grep: invalid option -- '\t'"), print a usage dump, AND APPEND THE ROW ANYWAY,
     # since there is no `set -e`. A trust tool printing an error and then succeeding is the wrong-reason shape.
