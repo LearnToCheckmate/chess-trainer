@@ -1256,8 +1256,13 @@ L.run(async()=>{
      THE DELIBERATE CONTROL, which is the half the job asked for and the half the gates-without-a-negative-
      control ledger says is always the missing one: CT_INV_NC_SKIP=<screen>[,<screen>] drops those screens
      from the walk and CT_INV_NC_DUP=<screen> walks one twice. Either MUST turn this gate RED on the ledger
-     assertion below. Input count 12 - one skip per declared screen - which is the case's stated count and is
-     a property run rather than a demonstration at one input [R18]. The controls are env-gated, so a normal
+     assertion below. The input count is ONE SKIP PER DECLARED SCREEN, which is SCREENS.length - 15 on the tree of
+     #546. [R18, #546 item (74); jobs/gate-26s-landed-negative-control-publishes-an-input-count-that-contradicts-its-own-
+     screen-list-2026-10-04]: this line read "Input count 12 ... the case's stated count" when SCREENS held 13, the
+     case it cited stated 6, and the run that landed it reported 26 - three sources, three numbers, none of them 12.
+     The count is the list's length and is named that way here so it cannot go stale again as screens are added; a
+     case citing this control should carry SCREENS.length, not a literal. It is a property run rather than a
+     demonstration at one input [R18]. The controls are env-gated, so a normal
      suite run is unchanged and the control cannot be left switched on by accident: a control run prints a
      loud note, is red by design, and the default-run guard at the foot of this file asserts both are off. */
   const NC_SKIP=(process.env.CT_INV_NC_SKIP||'').split(',').map(x=>x.trim()).filter(Boolean);
