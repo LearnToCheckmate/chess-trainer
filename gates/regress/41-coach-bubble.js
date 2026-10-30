@@ -112,11 +112,18 @@ L.run(async()=>{
     L.say(!st.ana,G+': PRECONDITION - not in analysis mode, the one state the bubble was always hidden in anyway',st);
 
     // ── THE REMOVAL ITSELF ──────────────────────────────────────────────────────────────────────────
-    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': the coach bubble is GONE at a ply that has a verdict and a sentence');
-    L.say((await rect(b,'[data-ct="coach-bubble"]'))===null,G+': and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps');
-    L.say((await rect(b,'[data-ct="coach-say"]'))===null,G+': its sentence element is gone with it');
-    L.say((await rect(b,'[data-ct="coach-eval"]'))===null,G+': its eval chip is gone with it');
-    L.say((await rect(b,'[data-ct="coach-verdict"]'))===null,G+': its verdict pill is gone with it');
+    // NAME TRIPWIRES, NOT THE COVERAGE [#546, item (84); jobs/gate-41-five-coach-overlay-absence-assertions-cannot-fail-2026-10-13].
+    // The next five lines ask for four data-ct names that occur 0 times in app.js (measured on 049b41dfb6f1: coach-bubble,
+    // coach-say, coach-eval and coach-verdict; in chess.jsx coach-bubble and coach-eval appear once each, inside comments).
+    // So against any bundle built from main they CANNOT FAIL - they only fire if someone reinstates those exact names. They
+    // are kept as cheap tripwires and labelled so nobody counts them as 'nothing covers the board'. THE COVERAGE is the
+    // nine-point square hit-test below: name-independent, scoped to the board, and requiring the hit element to BE one of the
+    // 64 squares - that is what reddens on a reinstated overlay under ANY name.
+    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': NAME TRIPWIRE - the coach bubble is GONE at a ply that has a verdict and a sentence');
+    L.say((await rect(b,'[data-ct="coach-bubble"]'))===null,G+': NAME TRIPWIRE - and it is absent from the DOM, not merely invisible - an element still laid out over the board would still eat taps');
+    L.say((await rect(b,'[data-ct="coach-say"]'))===null,G+': NAME TRIPWIRE - its sentence element is gone with it');
+    L.say((await rect(b,'[data-ct="coach-eval"]'))===null,G+': NAME TRIPWIRE - its eval chip is gone with it');
+    L.say((await rect(b,'[data-ct="coach-verdict"]'))===null,G+': NAME TRIPWIRE - its verdict pill is gone with it');
 
     // ── WHAT HE ACTUALLY ASKED FOR: THE BOARD BACK. ────────────────────────────────────────────────
     // Not "the bubble is gone" but "nothing covers the board". Asserted by hit-testing the squares the
