@@ -52,6 +52,9 @@ cp "$SRC" "$TD/gates/verify-log.sh"; chmod +x "$TD/gates/verify-log.sh"
 # gate-manifest.tsv is read by the manifest block; copy it so the sandbox answers as the real tree does.
 [ -r "$HERE/gate-manifest.tsv" ] && cp "$HERE/gate-manifest.tsv" "$TD/gates/gate-manifest.tsv"
 [ -r "$HERE/held-trees.tsv" ] && cp "$HERE/held-trees.tsv" "$TD/gates/held-trees.tsv"
+# held-predicate.sh is the evaluator verify-log.sh's (10d) arm calls beside the register; without it every field-8
+# predicate reads NOT EVALUATED here, which is how the first draft of case F8 passed for the wrong reason [#546].
+[ -r "$HERE/held-predicate.sh" ] && cp "$HERE/held-predicate.sh" "$TD/gates/held-predicate.sh"
 VL="$TD/gates/verify-log.sh"
 
 # The bundle the fixture log says it gated. app.js in the sandbox is fabricated to have exactly that md5 is NOT
@@ -432,6 +435,31 @@ ck "F6 and it survives an uncommitted deletion of its row" 1 env -C "$TD" "$VL" 
 # (f) THE SOURCE IS NAMED IN THE OK LINE, so an archived answer says whether one source was read or two.
 gt0 "F7 the OK line names the register source and the per-source live counts" \
     "$( env -C "$TD" "$VL" "$GOOD" "$FOOT" 2>&1 | grep -c 'source: HEAD and the working tree' )"
+# (g) THE PREDICATE ARM, (10d), DRIVEN AND NOT ONLY READ [#546, item (13);
+#     jobs/a-held-row-should-carry-a-predicate-not-only-a-hash-2026-10-01, whose whatIsLeft says the verify-log arm was
+#     controlled "only by reading"]. One uncommitted row whose three hash keys miss GOOD on purpose, so field 8 alone can
+#     decide; the predicate is varied three ways over the SAME row. True of GOOD's gated sha -> REFUSED (PREDICATE);
+#     false -> accepted, which is the control that the refusal was the predicate and not the row; unparseable ->
+#     REFUSED (PREDICATE NOT EVALUATED), because an unevaluable predicate is not a clearance. F8 names the TRUE-predicate
+#     message and not the bare word PREDICATE: the first draft matched the word, and with the evaluator missing from the
+#     sandbox it passed on the NOT EVALUATED refusal - a red for the wrong reason, which F8b exposed by going red.
+# GOOD's own ref line names a sha from the real fixture log, which this sandbox repository does not carry, so a
+# predicate asked of it can only answer "cannot evaluate". F8LOG is GOOD with its ref pointed at the sandbox's ROOT
+# commit - not HEAD, whose chess.jsx is F6's source-key hold, which would refuse first and hide the predicate arm.
+F8SHA="$( cd "$TD" && git rev-list --max-parents=0 HEAD | head -1 )"; F8LOG="$TD/logs/f8.log"
+sed "s|^ref: HEAD [0-9a-f]*|ref: HEAD $F8SHA|" "$GOOD" > "$F8LOG"
+f8row(){ printf 'ffffffffff08\t%s\t#908\t2026-10-30T04:50Z\tbuild__PREDFIXTURE\ta predicate-only hold: every hash key misses GOOD on purpose\t-\t%s\n' \
+  "0000000000000000000000000000000000000908" "$1" >> "$TD/gates/held-trees.tsv"; }
+f8row 'absent:gates/no-such-file-for-the-f8-case.js'
+ckmsg "F8 a held row whose field-8 predicate is TRUE of the gated sha REFUSES" 1 "satisfies a held row's field-8 predicate" env -C "$TD" "$VL" "$F8LOG" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+f8row 'contains:gates/held-trees.tsv:NO-ROW-OF-THE-REGISTER-CARRIES-THIS-F8-TEXT'
+ck "F8b the same row with a FALSE predicate is accepted - so F8 was the predicate" 0 env -C "$TD" "$VL" "$F8LOG" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+f8row 'nosuchverb:gates/held-trees.tsv'
+ckmsg "F8c an unevaluable predicate REFUSES rather than clears" 1 "PREDICATE NOT EVALUATED" env -C "$TD" "$VL" "$F8LOG" "$FOOT"
+( cd "$TD" && git checkout -- gates/held-trees.tsv )
+ck "F8d and with the row gone F8LOG is accepted again" 0 env -C "$TD" "$VL" "$F8LOG" "$FOOT"
 # ---- THE MUTANT: the working-tree-only read restored, which is verify-log.sh as 707599b had it. ----
 # One literal edit: the two loops read "$REG" again instead of the union. It must turn F2 from REFUSED to OK.
 sed 's|done < "\$REGALL"|done < "$REG"|' "$VL" > "$TD/gates/vl-mutant.sh"; chmod +x "$TD/gates/vl-mutant.sh"
