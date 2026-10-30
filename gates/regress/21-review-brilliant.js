@@ -356,3 +356,4 @@ L.run(async()=>{
     await k.close();
   }
 },'REVIEW-BRILLIANT');
+// CONTROL-RECORD: a35524b 2026-10-30 total=52 red=3 scope=trial:a9605ca30843 how=chess.jsx's played-move guard deleted from the runner-up clause, one change - TC-R10 on the Opera Game and TC-R10b at pool 3 and pool 1 on Kunal's game go red (3 self-named plies there: 41...Qh3+, 24.c4, 19...Bxh3) [#546 item (89), rebuild of #545's b37e93213529 on the 52-assertion gate]

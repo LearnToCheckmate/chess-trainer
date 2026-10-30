@@ -263,6 +263,12 @@ for(const g of geos){
   // 375x730 only (at 390x844 the button fits, correctly green), while TC-OC-006b PASSES on it - the vacuity, measured.
   // The CONTROL-RECORD lines are re-added at #545's close-out: control-audit bounds a full-scope record by the count the
   // newest archived log runs, and 544-all.log runs this gate at 34.
+  // LANDED AT #546 item (89), not at #545's close-out, which deferred them so the gated tree would not change. 545-all.log
+  // runs this gate at 40. The two gate-mutant records are #545's own measurement on 991357c, the commit that last changed this
+  // file, so their L.say set is today's. The bundle control was REBUILT at #546, because 64bccfe007b8 did not survive #545's container.
+  // CONTROL-RECORD: 991357c 2026-10-29 total=40 red=2 scope=full how=a-copy-with-const-summ-set-to-the-empty-string,the-empty-summary-denominator-TC-OC-010-and-010c-red,measured-at-545-item-39
+  // CONTROL-RECORD: 991357c 2026-10-29 total=40 red=3 scope=full how=a-copy-with-o.sheetScroll-forced-to-the-document,TC-OC-006c-red-at-all-three,measured-at-545-item-39
+  // CONTROL-RECORD: a35524b 2026-10-30 total=38 red=2 scope=trial:1275f308ef27 how=the play-setup overlay's overflowY auto -> hidden, one change - TC-OC-006e red at 320x568 and 375x730, green at 390x844 where the button fits, and TC-OC-006b still PASSES on it [#546 item (89), rebuild of #545's 64bccfe007b8]
   // ── TC-OC-010 WAS VACUOUS AND THIS IS THE REPLACEMENT. ────────────────────────────────────────────────────
   // The old assertion was `!selected.includes('3 days / move')`, and it PASSED on three bundles that behave three
   // different ways: #399 (no fix), the menu-only #400 (fix on the wrong call site) and the fully fixed build. It
