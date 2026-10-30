@@ -1249,6 +1249,10 @@ done
 [ -n "$LOG" ] || { echo "usage: gates/verify-log.sh <logfile> [#NNN] [--on-main] [--this-bundle] [--this-suite] [--ignore-held] [--ignore-fc]"
   echo "       gates/verify-log.sh --citations    (checks the registers' citations against the tree, see (12))"
   echo "       gates/verify-log.sh --citations-selftest   (the both-direction controls for citation arms (4) and (5))"; exit 1; }
+# A LOG IS A REGULAR FILE, CHECKED BEFORE ANYTHING READS IT [#546, item (78); jobs/verify-log-sh-given-a-directory-prints-
+# three-raw-tool-errors-before-its-refusal-2026-10-22]. `-s` is true of a non-empty DIRECTORY, so `verify-log.sh gates` ran tr, grep
+# and tail on it and printed three raw tool errors ahead of the right refusal - noise a reader could chase instead of the reason.
+[ -e "$LOG" ] && [ ! -f "$LOG" ] && { echo "REFUSED: $LOG is not a regular file (a directory or a device), so there is no log to read"; exit 1; }
 [ -s "$LOG" ] || { echo "REFUSED: $LOG is missing or empty"; exit 1; }
 # (9) NUL bytes mean the file was read while something else was writing it, so no part of it can be trusted
 # to be what that run measured. #418 produced exactly this: two full suites ran ten seconds apart, the per-gate

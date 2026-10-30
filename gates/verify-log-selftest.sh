@@ -218,6 +218,10 @@ sed 's/^regression assertions (PASS lines): [0-9]*/regression assertions (PASS l
 ckmsg "a footer that overstates its PASS lines is refused" 1 "claims"     "$VL" "$TD/logs/miscount.log"
 sed 's/^regression assertions (PASS lines): [0-9]*/regression assertions (PASS lines): 0/' "$GOOD" > "$TD/logs/zero.log"
 ckmsg "a full suite that asserted nothing is refused" 1 "0 assertions"    "$VL" "$TD/logs/zero.log"
+# #546 item (78): a DIRECTORY is refused in one line, with no raw tool error ahead of it.
+ckmsg "a directory where a log belongs is refused as not a regular file" 1 "is not a regular file" "$VL" "$TD/logs"
+DIROUT="$("$VL" "$TD/logs" 2>&1)"
+if printf '%s' "$DIROUT" | grep -q "Is a directory"; then F=$((F+1)); echo "FAIL a directory argument prints no raw tool error before the refusal: $(printf '%s' "$DIROUT" | head -1)"; else P=$((P+1)); echo "PASS a directory argument prints no raw tool error before the refusal ($(printf '%s' "$DIROUT" | grep -c .) line)"; fi
 # #546 item (52): THE TWO-NUMBER FOOTER. A log that carries the unit-layer line is held to the REGRESS count (the ^PASS
 # lines at or after the first `=== ` section). One rewritten that way from GOOD verifies, and the same log still
 # claiming the raw total in its headline is refused - so a new-format log cannot pass on the legacy reading.
