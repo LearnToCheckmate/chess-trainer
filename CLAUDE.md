@@ -258,7 +258,7 @@ wider one.
   question you asked and silently corrupts the one you ask next; use it only if `--unshallow` fails, and state the depth you
   actually reached.
   **AND THE PROJECT'S OWN PUSH-GATE TOOL CARRIES THE STALE VERSION OF THAT NUMBER. NOT FIXED HERE, AND THE REASON IS
-  WRITTEN DOWN.** `gates/verify-log.sh:1736` (it was `:1222` when #516 wrote this) documents its own deepen as "WHY 400, MEASURED RATHER THAN CHOSEN: origin/main
+  WRITTEN DOWN.** `gates/verify-log.sh`, at its comment `WHY 400, MEASURED RATHER THAN CHOSEN` (cited by line as `:1222` at #516 and `:1736` at #545, and moved both times - so it is cited by its text since #546), documents its own deepen as "WHY 400, MEASURED RATHER THAN CHOSEN: origin/main
   is 860 commits and the DEEPEST 'ref: HEAD' line in any archived gatelog is 238 commits behind HEAD ... so 400 covers
   every log in the register with room to spare", and concludes that the still-shallow-after-deepen branch "CANNOT be
   exercised by any log in this repository today, so it is reasoned, not measured". **MEASURED 2026-10-13: `origin/main` is
