@@ -389,8 +389,17 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
     geo+': TC-PS-032 the blitz control a player picked SURVIVES the switch to Online, and the live row is on screen there to show it - nine live pills plus the day limits, with exactly one selection across both rows. Before #400 this screen offered no minute clocks for an online game at all and showed four day pills with nothing selected',{live:onlLive.length,corr:onlCorr.length,selected:onlSel});
   L.say(onlCorr.length===3&&!onlCorr.some(x=>x.t==='No limit'),
     geo+': TC-PS-032b the day-limit row no longer carries its own "No limit" null pill - the null option lives ONCE, as "No clock" in the live row above, because two null pills keyed off the same !timeCtrl state both lit up at once and the screen showed two selections for one setting',onlCorr.map(x=>x.t));
-  await TAP(b,'3 days / move',400);
-  await TAP(b,'Computer',600);
+  const okDay=await TAP(b,'3 days / move',400);
+  // TC-PS-033's STEP, ASSERTED BEFORE ITS CLAIM [#546, item (61); jobs/gate-45-tc-ps-038-and-tc-ps-033-pass-when-the-step-
+  // they-test-never-happened-so-each-rests-on-a-neighbouring-assertion-2026-10-23]. TAP returns false on a miss and never
+  // throws, and every call site here discarded it - so the case below read "the day limit did not follow you back" over a
+  // screen where the day limit was never picked. Now: the tap landed, the day-limit pill is the ONE selection, and no live
+  // pill is lit, as its own line, so a miss is a red that names the step.
+  const dayLive=(await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/)).items.filter(x=>x.on);
+  const dayCorr=(await GROUP(b,/^(No limit|\d days? \/ move)$/)).items.filter(x=>x.on);
+  L.say(okDay&&dayCorr.length===1&&dayCorr[0].t==='3 days / move'&&dayLive.length===0,
+    geo+': TC-PS-033 PRECONDITION the "3 days / move" tap landed and it is the only selection - no live pill is lit - so the claim below is about a day limit that was really chosen',{tapped:okDay,corr:dayCorr,live:dayLive});
+  const okComp=await TAP(b,'Computer',600);
   const back=await GROUP(b,/^(No clock|\d+ min|\d\+\d)$/);
   const footBack=await FOOT(b);
   // #400 CLOSED THIS ONE TOO, and it was the worse half. What it used to pin: pick "3 days / move" under Online,
@@ -401,7 +410,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   // on this sheet's opponent buttons (chess.jsx:6701), so this very assertion would still have been red - the
   // antagonist pass found it, and this gate would have caught it independently.
   const backSel=back.items.filter(x=>x.on);
-  L.say(backSel.length===1&&backSel[0].t==='No clock'&&!/\/ move$/.test(footBack),
+  L.say(okComp&&backSel.length===1&&backSel[0].t==='No clock'&&!/\/ move$/.test(footBack),
     geo+': TC-PS-033 a correspondence day-limit does NOT follow the player back into a local game: exactly one live pill is selected ("No clock") and the footer reads "'+footBack+'" with no per-move limit in it. Before #400 nine pills read unselected and the footer named a multi-day limit on a game against Stockfish',{selected:backSel,foot:footBack});
   await TAP(b,'No clock',400);
 
@@ -447,7 +456,9 @@ if(blk('I'))for(const geo of ['se','kunal730']){
   L.note(geo+': came from '+JSON.stringify(ply));
   L.say(!!ban&&ban.present&&ban.t==="♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.",
     geo+': TC-PS-037 the setup sheet opens with the banner, word for word, naming the side to move',ban);
-  L.say(!!ban&&ban.ct===null&&ban.pcPresent&&ban.pcInk==='',
+  /* ban.present FIRST [#546, item (61)]: ct is null when the banner is ABSENT, so without it this line passed over a
+     screen with no banner at all and only TC-PS-037's red said so. */
+  L.say(!!ban&&ban.present&&ban.ct===null&&ban.pcPresent&&ban.pcInk==='',
     geo+': TC-PS-038 the banner carries NO data-ct. [data-ct="play-context"] IS in the DOM - it is the live game\'s opening row rendering under the overlay - and it carries no ink at all there (its text is a lone non-breaking space). TEST-CASES-REVIEW.md TC-RL-086 names play-context as the carrier of this string; it is not, and a gate written from that case asserts on the wrong element.',ban);
   const col=(await GROUP(b,/^(White|Black)$/)).items;
   L.say(col.filter(x=>x.on).length===1&&col.find(x=>x.on).t==='Black'&&(await FOOT(b))==='vs Computer · Black · No clock',
