@@ -3,7 +3,7 @@
 // the container (global) or playwright-core (executablePath from PLAYWRIGHT_BROWSERS_PATH).
 //
 //   const L=require('./lib');
-//   const b=await L.launch({geo:'kunal'});      // 375x679 = his phone's usable area (no ct_safe: see GEOS), or '390' (390x844), or {w,h,safe}
+//   const b=await L.launch({geo:'kunal730'});   // 375x730 = Kunal's real phone; 'kunal' is 375x679, the SHORTER-phone column, not his phone [#546]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
@@ -362,7 +362,12 @@ async function serve(opts={}){
 const sq2xy=(sq)=>({f:sq.charCodeAt(0)-97,r:parseInt(sq[1],10)-1});
 
 async function launch(opts={}){
-  const geo=typeof opts.geo==='object'?opts.geo:(GEOS[opts.geo||'kunal']);
+  // AN OMITTED GEOMETRY IS AN ERROR, NOT A QUIET 375x679 [#546, item (34); jobs/harness-default-geo-and-comment]. A launch
+  // with no geo used to take the 'kunal' column (375x679) while this file's own header called that his phone, so a probe
+  // that forgot the argument measured the wrong height with nothing saying so. Which geometry a default SHOULD be is the
+  // open R19 ordering question and is not decided here; refusing the omission means nothing has to be.
+  if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal730\'} is Kunal\'s phone, 375x730; see GEOS); an omitted geometry no longer defaults to 375x679');
+  const geo=typeof opts.geo==='object'?opts.geo:GEOS[opts.geo];
   if(!geo)throw new Error('unknown geo '+opts.geo);
   const srv=await serve(opts);
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;

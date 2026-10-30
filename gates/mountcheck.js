@@ -7,6 +7,9 @@
 'use strict';
 const L=require('./lib');
 L.run(async()=>{
+  // [#546, item (34)] an omitted geometry is refused before any browser starts, so no probe measures 375x679 by accident
+  let nogeo='launched';try{const x=await L.launch({name:'mount-nogeo'});await x.close();}catch(e){nogeo=String(e&&e.message||e);}
+  L.say(/^L\.launch: no geo given/.test(nogeo),'harness: L.launch with no geo is refused, not defaulted to 375x679',nogeo.slice(0,90));
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'mount-'+geo});
     const t0=Date.now();await b.open();const ms=Date.now()-t0;
