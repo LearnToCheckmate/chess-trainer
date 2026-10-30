@@ -886,7 +886,17 @@ builder is exactly what collided on 13 September. It runs only if there is work,
 deliberately high: a flag counts as outstanding only when `broken` is true AND it has no `handled`
 field. **`acked` is not `handled`** — the first means someone read it, the second means it shipped.
 An answered decision counts only when the `choice` selects a real option; "draw me options first" and
-"let's talk" are not answers. Nothing outstanding means stop silently; a quiet night on a clean queue
+"let's talk" are not answers. **AND MOST UNHANDLED `broken` FLAGS ARE ARCHIVES, NOT WORK, SO THE BAR EXCLUDES THEM BY PREFIX [#546,
+item (30); jobs/the-overnight-run-bar-counts-125-flags-and-77-are-per-build-archives-2026-10-10].** A lane files its
+per-build and per-sweep reports `broken: true` by convention and nobody closes an archive, so the literal bar above
+never reads zero. Flags whose id begins `antagonist-`, `auditor-`, `uat-ext-`, `standing-`, `orch-sweep-`, `sit-`,
+`spec-gate-`, `specgate-`, `supervisor-` or `build-ext-` are reports, not work - prompts/build-run STEP 1's own
+exclusion list, which also drops the standing-rule ids (`pen-lock-one-writer` and its siblings). THE DECOMPOSITION,
+re-derive it rather than trust it: MEASURED 30 Oct 2026, 12:2xam ET, over all 687 flags (two pages) - 266 `broken`,
+118 of them with no `handled`, of which 83 are `antagonist-a-`/`antagonist-b-`, 9 `standing-`, 5 `orch-sweep-`,
+5 `auditor-`, 5 `spec-gate-`/`specgate-`, 1 each `sit-`, `supervisor-`, `build-ext-`, `uat` and `antagonist-pair-`,
+and 6 others; after STEP 1's exclusions ONE was a candidate. (The job measured 125 unhandled and 77 archives on
+10 Oct.) A quiet night reads that the candidates are zero, not that the raw count is. Nothing outstanding means stop silently; a quiet night on a clean queue
 is the right outcome, and inventing work to justify the run is the failure mode.
 
 ## Parked
