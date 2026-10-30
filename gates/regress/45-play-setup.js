@@ -487,6 +487,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
 
 // =========================================================================================================
 // PS-J  Leaving the screen - the only two ways out. TC-PS-041..043.
+// CONTROL-RECORD: b4d4792 2026-10-30 total=19 red=2 scope=blocks:J how=trial bundle 4348d577958a flips the board for every computer game whatever colour was chosen - both TC-PS-042 WHITE POSE lines red, the Black-only TC-PS-042 green [#546 item (62)]
 // =========================================================================================================
 if(blk('J'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'ps-j-'+geo});await b.open();await openSetup(b);
