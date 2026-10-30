@@ -15,7 +15,9 @@
 // were built and sampled before #8f8d9e was chosen, which paints rgb(112,110,124) for 3.62:1. A ratio computed
 // from a hex literal is a reading, not a measurement, and this one was wrong by a whole category.
 // A gate cannot sample painted pixels without a screenshot pipeline it does not have, so it pins the SOURCE
-// values that were arrived at by measurement, and this comment carries the measurement that justifies them. If
+// values that were arrived at by measurement, and this comment carries the measurement that justifies them.
+// [R18, #546 item (82)]: that sentence is WITHDRAWN - pngPx() below samples painted pixels from a 2x2 screenshot, and the
+// PAINTED contrast is now asserted beside the declared colour. The declared-colour pin stays, as the SOURCE half. If
 // anyone changes the colour, they must re-sample rather than re-compute.
 //
 // WHAT IT PROVES
@@ -181,6 +183,23 @@ const barStyle=(b)=>b.page.evaluate(()=>{
   return {w:n(r.width),l:n(r.left),r:n(r.right),bg:s.backgroundColor,border:s.borderTopWidth+' '+s.borderTopColor,radius:s.borderTopLeftRadius};
 });
 const rgb=(s)=>{const m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s||'');return m?[+m[1],+m[2],+m[3]]:null;};
+// THE PAINTED COLOUR, SAMPLED [#546, item (82); jobs/gate-36-evalbar-pins-the-declared-colour-not-the-painted-one-2026-09-30].
+// The header below said a gate cannot sample painted pixels; it can - a Playwright screenshot of a 2x2 clip and the PNG
+// decoder here, which needs nothing but zlib. MEASURED at #546 on 049b41dfb6f1: the track's declared colour is
+// rgb(143,141,158) and it PAINTS rgb(131,129,145) near its top, because a child layer composites over it - which is neither
+// the declared value nor the rgb(112,110,124) the header records from the #379 screenshot. So the contrast is asserted on the
+// PAINTED pair, the track against the page beside the bar, and every input is printed so a reader can see which numbers it used.
+const zlib=require('zlib');
+const pngPx=(png)=>{let i=8,idat=[],w=0,h=0,ct=2;while(i<png.length){const ln=png.readUInt32BE(i),t=png.toString('ascii',i+4,i+8),c=png.slice(i+8,i+8+ln);i+=12+ln;if(t==='IHDR'){w=c.readUInt32BE(0);h=c.readUInt32BE(4);ct=c[9];}if(t==='IDAT')idat.push(c);}
+  const raw=zlib.inflateSync(Buffer.concat(idat)),bpp=ct===6?4:3,st=w*bpp;let prev=Buffer.alloc(st),p=0;const out=[];
+  for(let y=0;y<h;y++){const f=raw[p++];const row=Buffer.from(raw.slice(p,p+st));p+=st;
+    for(let x=0;x<st;x++){const a=x>=bpp?row[x-bpp]:0,b=prev[x],c=x>=bpp?prev[x-bpp]:0;let v=row[x];
+      if(f===1)v+=a;else if(f===2)v+=b;else if(f===3)v+=(a+b)>>1;else if(f===4){const pa=Math.abs(b-c),pb=Math.abs(a-c),pc=Math.abs(a+b-2*c);v+=(pa<=pb&&pa<=pc)?a:(pb<=pc?b:c);}row[x]=v&255;}
+    for(let x=0;x<w;x++)out.push([row[x*bpp],row[x*bpp+1],row[x*bpp+2]]);prev=row;}
+  return out;};
+const paintedAt=async(b,x,y)=>pngPx(await b.page.screenshot({clip:{x:Math.max(0,x),y,width:2,height:2}}))[0];
+const lum=(c)=>{const f=(v)=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]);};
+const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);};
 const n2=(v)=>Math.round(v*100)/100;
 
 // The Play half. Returns the one pair the cross-state invariant needs, or null if the bar never appeared.
@@ -199,6 +218,13 @@ async function playAt(geo){
   L.say(!!c&&!(c[0]===43&&c[1]===41&&c[2]===50),tag+': the track is no longer the old #2b2932, which painted at 1.12:1 against the page and is the whole reason for this change',s0&&s0.bg);
   L.say(!!c&&c[0]===143&&c[1]===141&&c[2]===158,tag+': the track is #8f8d9e, the value chosen by SAMPLING six candidates on a running build (it paints rgb(112,110,124) for 3.62:1). The plan\'s #6b6978 computed over 3:1 and measured 2.36:1, so this number must be re-sampled and never re-computed.',s0&&s0.bg);
 
+  // THE PAINTED CONTRAST, asserted with its inputs [#546, item (82)]. Track sampled 4px inside its top-left corner; page
+  // sampled 3px to the left of the bar (x clamps at 0). 3:1 is the WCAG floor for a non-text graphic and the floor the
+  // header says motivated #379.
+  const box=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-v"]');if(!e)return null;const r=e.getBoundingClientRect();return {l:r.left,t:r.top};});
+  const pTrack=box?await paintedAt(b,box.l+4,box.t+4):null, pPage=box?await paintedAt(b,box.l-3,box.t+4):null;
+  const cr=(pTrack&&pPage)?Math.round(ratio(pTrack,pPage)*100)/100:null;
+  L.say(cr!==null&&cr>=3.0,tag+': the PAINTED track contrasts with the PAINTED page at '+cr+':1 (>= 3:1) - painted track rgb('+pTrack+') against page rgb('+pPage+'), declared '+(s0&&s0.bg),{paintedTrack:pTrack,paintedPage:pPage,declared:s0&&s0.bg,ratio:cr});
   const bwid=s0&&parseFloat(s0.border);
   L.say(!!bwid&&bwid>=1,tag+': the bar carries a hairline outline, which is what shows where it ENDS independently of the track colour',s0&&s0.border);
 
