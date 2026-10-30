@@ -72,8 +72,16 @@ L.run(async()=>{
   for(let i=iElo-1;i>=0;i--){ if(/^(isready|stop)$/.test(V.uci[i])){prior=V.uci[i];break;} }
   L.say(prior==='isready','THE FIX: the opponent search handshakes - the last control message before its setoption block is `isready`, not `stop`. Posting setoption straight after stop is the UCI violation the #356 comment says makes Stockfish trap, and it is what #389 and #392 were both built to survive',{prior:prior,window:V.uci.slice(Math.max(0,iElo-4),iElo+2)});
 
+  // AN ASSERTION THAT CAN FAIL ON ITS OWN [#546, item (83); jobs/gate-24-assertion-4-is-true-by-construction-2026-10-01].
+  // This line used to read `iReady<iElo` with iReady = lastIndexOf('isready', iElo) - which can only return an index at or
+  // before iElo, so it was TRUE BY CONSTRUCTION once the line above had found an isready. What the line above does NOT
+  // check is the GAP: it walks back to the nearest isready OR stop and ignores everything else, so a `go` or `position`
+  // posted between the handshake and the options would leave it green. So: every message between that isready and the
+  // UCI_Elo line is itself a setoption - the options block follows the handshake with nothing in between. MEASURED
+  // traffic on 049b41dfb6f1: stop, stop, isready, setoption UCI_LimitStrength, setoption UCI_Elo, ..., position, go.
   const iReady=V.uci.lastIndexOf('isready',iElo);
-  L.say(iReady>=0&&iReady<iElo,'and that isready is genuinely BEFORE the setoption block rather than somewhere after it',{isready:iReady,uciElo:iElo});
+  const gap=iReady>=0?V.uci.slice(iReady+1,iElo):null;
+  L.say(!!gap&&gap.every(m=>/^setoption /.test(m)),'and nothing but setoption lines sits between that isready and the UCI_Elo line - no go, position or stop slips in between the handshake and the options',{isready:iReady,uciElo:iElo,between:gap});
 
   L.say(V.errs.filter(e=>/RuntimeError: unreachable/.test(e)).length===0,'no engine trap fired during the strong-bot move',V.errs.slice(0,3));
 
