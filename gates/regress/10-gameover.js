@@ -24,6 +24,13 @@ L.run(async()=>{
       // here with it - the one thing never to do is re-pin them to whatever the build now happens to produce.
       const WANT={kunal:351,'390':390};
       if(WANT[geo]!=null)L.say(Math.abs(end.board.w-WANT[geo])<0.6,geo+': the board at game over is '+WANT[geo]+' wide, the measured size for this geometry - not merely the same as it was a moment ago',{measured:end.board.w,want:WANT[geo]});
+      // THE TOP IS PINNED TOO [#546, item (72); jobs/gate-10-compares-board-top-only-against-itself-while-pinning-width-2026-10-02].
+      // #381's lesson was applied to the width in this file and not to the top beside it: 'top unchanged' compares two samples
+      // that can both be wrong, so a board sitting at the wrong height for the whole card passed. MEASURED, not chosen: 78 at
+      // 375x679 and 103 at 390x844 in every archived full-suite log from #520 to #545. Same rule as WANT: move it with a
+      // deliberate change, never re-pin it to whatever a build produces.
+      const WANT_TOP={kunal:78,'390':103};
+      if(WANT_TOP[geo]!=null)L.say(Math.abs(end.board.top-WANT_TOP[geo])<0.6,geo+': the board at game over sits at top '+WANT_TOP[geo]+', the measured position for this geometry - not merely where it was a moment ago',{measured:end.board.top,want:WANT_TOP[geo]});
     }
     L.say(end.over.over<=0&&end.over.docScroll===0,geo+': nothing scrolls at game over',end.over);
     L.say(row.includes('Review')&&row.includes('Rematch')&&!row.includes('Resign'),geo+': row reads Review · Rematch, no Resign',row.join(' | '));
