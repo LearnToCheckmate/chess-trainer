@@ -578,6 +578,12 @@ ck "13g the full 12-hex key reads HELD" 1 timeout 20 "$MU" check abcdef012345
 ck "13g a 7-hex prefix of it reads HELD too, not a clearance" 1 timeout 20 "$MU" check abcdef0
 ck "13g an unrelated 7-hex key still clears" 0 timeout 20 "$MU" check 1234567
 sed -i '/#907/d' "$KM/gates/held-trees.tsv"
+# 13h: AN 8-HEX BUNDLE ROW, WHICH `add` ACCEPTS, IS A READABLE ROW [#546, third-round antagonist B F3]. The 13f guard first
+# required exactly 12 hex, so one legal `add deadbeef ...` made every later check answer UNKNOWN.
+printf 'deadbeef\t-\t#908\t2026-10-30T00:00Z\tbuild__F\tan 8-hex bundle row as add writes one, long enough for the floor\t-\n' >> "$KM/gates/held-trees.tsv"
+ck "13h an 8-hex row does not block a clean tree (exit 0, not 2)" 0 timeout 20 "$MU" check
+ck "13h and its own key still reads HELD" 1 timeout 20 "$MU" check deadbeef
+sed -i '/#908/d' "$KM/gates/held-trees.tsv"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the

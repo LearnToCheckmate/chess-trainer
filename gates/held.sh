@@ -208,8 +208,10 @@ case "${1:-}" in
     # and committing #441's row with spaces turned `check a4df39c38222` from HELD (1) to "not held" (0), while
     # verify-log.sh counted the same row as malformed and warned. Every live row carries field 1 as a 12-hex md5 or
     # 'sha-only', either one optionally retired with a leading '-', and at least six tab-separated fields; any other
+    # (field 1 is 8 to 12 hex, the range `add` accepts and the matcher reads - a 12-only guard bricked every check after
+    # one legal `add deadbeef ...`, which the third-round antagonist B found [#546]; no {n,m} intervals, for mawk);
     # non-comment line is reported and the answer is exit 2, before any key is asked.
-    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); if(NF<6 || !(f ~ /^[0-9a-fA-F]{12}$/ || f=="sha-only")) print}')"
+    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); if(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")) print}')"
     if [ -n "$HELD_BAD" ]; then
       echo "UNKNOWN: $(printf '%s\n' "$HELD_BAD" | grep -c .) row(s) of held-trees.tsv ($HELD_SRC) are in no shape this tool can match - fewer"
       echo "  than six TAB-separated fields, or field 1 neither a 12-hex md5 nor 'sha-only' (spaces instead of tabs, a 32-hex md5,"
