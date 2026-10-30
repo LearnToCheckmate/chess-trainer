@@ -210,8 +210,11 @@ case "${1:-}" in
     # 'sha-only', either one optionally retired with a leading '-', and at least six tab-separated fields; any other
     # (field 1 is 8 to 12 hex, the range `add` accepts and the matcher reads - a 12-only guard bricked every check after
     # one legal `add deadbeef ...`, which the third-round antagonist B found [#546]; no {n,m} intervals, for mawk);
+    # AND ON A LIVE ROW EVERY KEY FIELD, NOT ONLY FIELD 1 [#546, third-round antagonist A's V2]: a sha-only row's ONLY key is
+    # field 2, so a quoted, prefixed or 6-hex sha there, or a space- or semicolon-separated list, cleared at exit 0. Each
+    # comma element of field 2 must be 7 to 40 hex (or the whole field '-'), and field 7's first token (a note may follow) '-' or 8 to 12 hex;
     # non-comment line is reported and the answer is exit 2, before any key is asked.
-    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); if(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")) print}')"
+    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); bad=(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")); if(!bad && $1 !~ /^[[:space:]]*-/){ z=$2; gsub(/^[ \r]+|[ \r]+$/,"",z); if(z!="-"){ n=split(z,S,","); for(i=1;i<=n;i++){x=S[i]; gsub(/^ +| +$/,"",x); if(!(x ~ /^[0-9a-fA-F]+$/ && length(x)>=7 && length(x)<=40)) bad=1} } if(NF>=7){ split($7,T," "); y=T[1]; gsub(/\r/,"",y); if(!(y=="-" || (y ~ /^[0-9a-fA-F]+$/ && length(y)>=8 && length(y)<=12))) bad=1 } } if(bad) print}')"
     if [ -n "$HELD_BAD" ]; then
       echo "UNKNOWN: $(printf '%s\n' "$HELD_BAD" | grep -c .) row(s) of held-trees.tsv ($HELD_SRC) are in no shape this tool can match - fewer"
       echo "  than six TAB-separated fields, or field 1 neither a 12-hex md5 nor 'sha-only' (spaces instead of tabs, a 32-hex md5,"

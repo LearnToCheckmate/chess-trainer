@@ -584,6 +584,16 @@ printf 'deadbeef\t-\t#908\t2026-10-30T00:00Z\tbuild__F\tan 8-hex bundle row as a
 ck "13h an 8-hex row does not block a clean tree (exit 0, not 2)" 0 timeout 20 "$MU" check
 ck "13h and its own key still reads HELD" 1 timeout 20 "$MU" check deadbeef
 sed -i '/#908/d' "$KM/gates/held-trees.tsv"
+# 13i: EVERY KEY FIELD OF A LIVE ROW IS VALIDATED, NOT ONLY FIELD 1 [#546, third-round antagonist A V2]: a sha-only row's only
+# key is field 2, and a quoted sha there cleared at exit 0.
+for BADROW in 'sha-only\t"abcdef0123456789abcdef0123456789abcdef01"\t#909\t2026-10-30T00:00Z\tbuild__F\ta quoted sha, long enough for the floor\t-' \
+              'sha-only\tabcdef0 1234567\t#909\t2026-10-30T00:00Z\tbuild__F\ta space-separated sha list, long enough for the floor\t-' \
+              'abcdef012345\t-\t#909\t2026-10-30T00:00Z\tbuild__F\ta 32-hex source md5 in field 7, long enough\tabcdef0123456789abcdef0123456789'; do
+  printf "$BADROW\n" >> "$KM/gates/held-trees.tsv"
+  ck "13i a live row with a malformed key field is UNKNOWN (exit 2): $(printf "$BADROW" | cut -f2 | cut -c1-24)" 2 timeout 20 "$MU" check
+  sed -i '/#909/d' "$KM/gates/held-trees.tsv"
+done
+ck "13i control: a field 7 with a note after its key is still a readable row" 0 sh -c 'printf "abcdef012345\t-\t#910\t2026-10-30T00:00Z\tbuild__F\ta held bundle whose field 7 carries a note, long enough\t55288417624a ||| CLEARED AT #999\n" >> "$1/gates/held-trees.tsv"; cd "$1" && timeout 20 "$2" check 1234567 >/dev/null; r=$?; sed -i "/#910/d" "$1/gates/held-trees.tsv"; exit $r' _ "$KM" "$MU"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the
@@ -704,6 +714,9 @@ assert s.count(g)==1, 'guard line not found';open(sys.argv[2],'w').write(s.repla
 NLX="$(nl_case "$NLM")"; set -- $NLX
 ne "15d CONTROL: with the guard removed the row count does NOT rise - the new row was glued onto the last one" "$(( $1 + 1 ))" "$2"
 rm -f "$NLM"
+# The mutant left a GLUED row (two rows on one line) on the fixture register, and held.sh now refuses a register
+# carrying an unreadable row (13f/13i) - which is right, so the fixture is restored rather than the guard relaxed [#546].
+sed -i '/#915/d' "$R/gates/held-trees.tsv"
 
 # 16. A NAMED KEY MUST BE A KEY [#545, antagonist B's finding 2]: a malformed or too-short key is a usage error, exit 2, never
 #     a clearance at exit 0.
