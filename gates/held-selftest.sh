@@ -593,7 +593,19 @@ for BADROW in 'sha-only\t"abcdef0123456789abcdef0123456789abcdef01"\t#909\t2026-
   ck "13i a live row with a malformed key field is UNKNOWN (exit 2): $(printf "$BADROW" | cut -f2 | cut -c1-24)" 2 timeout 20 "$MU" check
   sed -i '/#909/d' "$KM/gates/held-trees.tsv"
 done
-ck "13i control: a field 7 with a note after its key is still a readable row" 0 sh -c 'printf "abcdef012345\t-\t#910\t2026-10-30T00:00Z\tbuild__F\ta held bundle whose field 7 carries a note, long enough\t55288417624a ||| CLEARED AT #999\n" >> "$1/gates/held-trees.tsv"; cd "$1" && timeout 20 "$2" check 1234567 >/dev/null; r=$?; sed -i "/#910/d" "$1/gates/held-trees.tsv"; exit $r' _ "$KM" "$MU"
+ck "13i a LIVE field 7 with a note after its key is UNKNOWN (exit 2): the matcher would glue the note on and read nothing" 2 sh -c 'printf "abcdef012345\t-\t#910\t2026-10-30T00:00Z\tbuild__F\ta held bundle whose field 7 carries a note, long enough\t55288417624a ||| CLEARED AT #999\n" >> "$1/gates/held-trees.tsv"; cd "$1" && timeout 20 "$2" check 1234567 >/dev/null; r=$?; sed -i "/#910/d" "$1/gates/held-trees.tsv"; exit $r' _ "$KM" "$MU"
+ck "13i control: the same note on a RETIRED row is still readable (a retired row matches nothing)" 0 sh -c 'printf -- "-abcdef012345\t-\t#911\t2026-10-30T00:00Z\tbuild__F\ta retired row whose field 7 carries a note, long enough\t55288417624a ||| CLEARED AT #999\n" >> "$1/gates/held-trees.tsv"; cd "$1" && timeout 20 "$2" check 1234567 >/dev/null; r=$?; sed -i "/#911/d" "$1/gates/held-trees.tsv"; exit $r' _ "$KM" "$MU"
+# 13j: THE WRITER REFUSES WHAT THE CHECKER REFUSES [#546, fourth-round A V1], and a working copy with no final newline
+# is read as its rows, not glued onto HEAD's first line [fourth-round A F1].
+for BADSHA in "abc1234," ",abc1234" "abc1234,,def5678" "abc1234 def5678" "$(printf 'a%.0s' $(seq 41))"; do
+  ck "13j add refuses sha list '$(printf %s "$BADSHA" | cut -c1-20)'" 2 env CT_RUNID=held-selftest CT_SRCMD5=- "$MU" add abcdef012346 "$BADSHA" '#912' "a refused sha list, long enough for the reason floor here"
+done
+ck "13j and check still clears the clean tree after those refusals" 0 timeout 20 "$MU" check
+cp "$KM/gates/held-trees.tsv" "$KM/gates/held-trees.tsv.keep"
+printf 'abcdef012347\t1234567\t#913\t2026-10-30T00:00Z\tbuild__F\ta last row with no final newline, long enough for the floor\t-' >> "$KM/gates/held-trees.tsv"
+ck "13j a working copy with NO FINAL NEWLINE still clears a clean tree" 0 timeout 20 "$MU" check
+ck "13j and its unterminated last row still holds its key" 1 timeout 20 "$MU" check abcdef012347
+cp "$KM/gates/held-trees.tsv.keep" "$KM/gates/held-trees.tsv"; rm -f "$KM/gates/held-trees.tsv.keep"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the

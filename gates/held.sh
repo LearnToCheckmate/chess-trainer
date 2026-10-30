@@ -87,7 +87,7 @@ if command -v git >/dev/null 2>&1 && "${HELD_GIT[@]}" rev-parse --is-inside-work
   if [ -n "$HELD_HEADREG" ] && "${HELD_GIT[@]}" show HEAD:gates/held-trees.tsv > "$HELD_HEADREG" 2>/dev/null && [ -s "$HELD_HEADREG" ]; then
     if [ "$HELD_REGOK" = "1" ]; then
       HELD_UNION="$(mktemp 2>/dev/null || true)"
-      if [ -n "$HELD_UNION" ] && cat "$REG" "$HELD_HEADREG" > "$HELD_UNION" 2>/dev/null; then
+      if [ -n "$HELD_UNION" ] && { cat "$REG"; echo; cat "$HELD_HEADREG"; } > "$HELD_UNION" 2>/dev/null; then  # the echo: a working copy with no final newline glued its last row onto HEAD's first line [#546, fourth-round A F1]
         REGALL="$HELD_UNION"; HELD_SRC="HEAD and the working tree"
       fi
     else
@@ -212,13 +212,15 @@ case "${1:-}" in
     # one legal `add deadbeef ...`, which the third-round antagonist B found [#546]; no {n,m} intervals, for mawk);
     # AND ON A LIVE ROW EVERY KEY FIELD, NOT ONLY FIELD 1 [#546, third-round antagonist A's V2]: a sha-only row's ONLY key is
     # field 2, so a quoted, prefixed or 6-hex sha there, or a space- or semicolon-separated list, cleared at exit 0. Each
-    # comma element of field 2 must be 7 to 40 hex (or the whole field '-'), and field 7's first token (a note may follow) '-' or 8 to 12 hex;
+    # comma element of field 2 must be 7 to 40 hex (or the whole field '-'), and on a LIVE row field 7 exactly '-' or 8 to 12 hex - a note after a live
+    # source key is refused, because the matcher glues the note onto the key and reads nothing [#546, fourth-round A V2];
     # non-comment line is reported and the answer is exit 2, before any key is asked.
-    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); bad=(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")); if(!bad && $1 !~ /^[[:space:]]*-/){ z=$2; gsub(/^[ \r]+|[ \r]+$/,"",z); if(z!="-"){ n=split(z,S,","); for(i=1;i<=n;i++){x=S[i]; gsub(/^ +| +$/,"",x); if(!(x ~ /^[0-9a-fA-F]+$/ && length(x)>=7 && length(x)<=40)) bad=1} } if(NF>=7){ split($7,T," "); y=T[1]; gsub(/\r/,"",y); if(!(y=="-" || (y ~ /^[0-9a-fA-F]+$/ && length(y)>=8 && length(y)<=12))) bad=1 } } if(bad) print}')"
+    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; gsub(/[ \r]/,"",f); f0=f; sub(/^-/,"",f); bad=(NF<6 || !((f ~ /^[0-9a-fA-F]+$/ && length(f)>=8 && length(f)<=12) || f=="sha-only")); if(!bad && f0 !~ /^-/){ z=$2; gsub(/^[ \r]+|[ \r]+$/,"",z); if(z!="-"){ n=split(z,S,","); for(i=1;i<=n;i++){x=S[i]; gsub(/^ +| +$/,"",x); if(!(x ~ /^[0-9a-fA-F]+$/ && length(x)>=7 && length(x)<=40)) bad=1} } if(NF>=7){ y=$7; gsub(/^[ \r]+|[ \r]+$/,"",y); if(!(y=="-" || (y ~ /^[0-9a-fA-F]+$/ && length(y)>=8 && length(y)<=12))) bad=1 } } if(bad) print}')"
     if [ -n "$HELD_BAD" ]; then
       echo "UNKNOWN: $(printf '%s\n' "$HELD_BAD" | grep -c .) row(s) of held-trees.tsv ($HELD_SRC) are in no shape this tool can match - fewer"
-      echo "  than six TAB-separated fields, or field 1 neither a 12-hex md5 nor 'sha-only' (spaces instead of tabs, a 32-hex md5,"
-      echo "  a quoted key). A row it cannot read could be the hold that names this tree, so this is NOT a clearance:"
+      echo "  than six TAB-separated fields; field 1 not 8-12 hex or 'sha-only'; or, on a live row, a field-2 element not 7-40 hex"
+      echo "  or a field 7 that is not exactly '-' or 8-12 hex (spaces instead of tabs, a 32-hex md5, a quoted key, a note after"
+      echo "  a live source key). A row it cannot read could be the hold that names this tree, so this is NOT a clearance:"
       printf '%s\n' "$HELD_BAD" | head -5 | cut -c1-160 | sed 's/^/    /'
       exit 2
     fi
@@ -479,7 +481,12 @@ case "${1:-}" in
     if [ "$SHAONLY" = 0 ] && { [ "${#MD5}" -lt 8 ] || [ "${#MD5}" -gt 12 ]; }; then
       echo "held.sh add: bundle md5 '$MD5' is ${#MD5} chars. gates.sh writes 12 (\`md5sum app.js | cut -c1-12\`)."
       echo "  Anything outside 8-12 can never prefix-match a log's md5, so the row would look live and match nothing."; exit 2; fi
+    # THE WRITER REFUSES WHAT THE CHECKER REFUSES [#546, fourth-round antagonist A's V1]: word splitting dropped empty comma
+    # elements and split on spaces, and nothing bounded the length, so `add` wrote 'abc1234,', 'a b' or a 64-hex field 2
+    # that check's row guard then answered UNKNOWN on, for every tree, until a hand edit.
+    case "$SHA" in ""|*[[:space:]]*|,*|*,|*,,*) [ "$SHA" = "-" ] || { echo "held.sh add: sha list '$SHA' has whitespace or an empty comma element; write 7-40 hex shas joined by single commas"; exit 2; };; esac
     for one in $(printf '%s' "$SHA" | tr ',' ' '); do
+      [ "${#one}" -le 40 ] || { echo "held.sh add: sha '$one' is over 40 chars"; exit 2; }
       case "$one" in *[!0-9a-f]*) echo "held.sh add: sha '$one' is not hex"; exit 2;; esac
       [ "${#one}" -ge 7 ] || { echo "held.sh add: sha '$one' is under 7 chars"; exit 2; }
     done
