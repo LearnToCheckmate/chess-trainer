@@ -429,6 +429,16 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
 }
 
 // =========================================================================================================
+// THE ERRS ALLOWANCE, ANCHORED AND SHARED [#546, item (62)]. Block I filtered /RuntimeError: unreachable/ anywhere in the
+// text and block J allowed nothing, so the two blocks measured "no app error" by two different rules. The engine trap
+// arrives as exactly 'PAGEERROR RuntimeError: unreachable' (lib.js prefixes page errors; measured in 545-all.log).
+const ERR_ALLOWED=/^PAGEERROR RuntimeError: unreachable\b/;
+// AND THE COLLECTOR IS SHOWN ALIVE. "zero errors" over a listener that stopped listening is an empty denominator, so
+// each block ends by throwing one error of its own in the page and asserting the collector caught it.
+const ERRS_LIVE=async(b,tag)=>{const n0=b.errs.length;
+  await b.page.evaluate(()=>{setTimeout(()=>{throw new Error('ct-errs-probe');},0);});await b.settle(200);
+  const got=b.errs.slice(n0).some(e=>/ct-errs-probe/.test(e));
+  L.say(got,tag+': the error collector is live - an error thrown in the page now is caught, so the zero above is a measurement',{caught:got});};
 // PS-I  "Play from here" - setup arriving from a review. TC-PS-037..040.
 // CONTROL-RECORD: 429cdb8 2026-10-30 total=11 red=4 scope=blocks:I how=trial bundle 24ff0a75b3d0 renames the banner's text so the banner is not found - TC-PS-037 and TC-PS-038 red at se and kunal730; the pre-#546 TC-PS-038 passes on it [#546 item (61)]
 // CONTROL-RECORD: 429cdb8 2026-10-30 total=88 red=6 scope=blocks:C how=gate mutant aims the day-limit tap at '9 days / move', which does not exist, so TAP misses - TC-PS-033 PRECONDITION and TC-PS-033 red at se, kunal730 and 430 [#546 item (61)]
@@ -469,8 +479,9 @@ if(blk('I'))for(const geo of ['se','kunal730']){
   L.say((await START_LABEL(b))==='▶ Play this position'&&st.found&&st.onScreen&&st.hit,
     geo+': TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at '+st.top+'..'+st.bottom+' of '+st.vh+' (at rest it sits at '+st.restTop+', below the fold at both geometries)',st);
   await b.shot('ps-i-'+geo);
-  const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  const bad=b.errs.filter(e=>!ERR_ALLOWED.test(e));
   L.say(bad.length===0,geo+': no app error beyond the allowed engine trap',bad.slice(0,2));
+  await ERRS_LIVE(b,geo+' I');
   await b.close();
 }
 
@@ -484,15 +495,38 @@ if(blk('J'))for(const geo of ['se','kunal730']){
   const after=await b.page.evaluate(()=>({sheet:!!document.querySelector('[data-ct="setup-sheet"]'),
     home:!!document.querySelector('[data-ct="play-home"]')}));
   const bd=await b.board();
-  L.say(!after.sheet&&!!bd&&after.home,
-    geo+': TC-PS-041 Start game dismisses the setup sheet and lands on a painted board with the live Play chrome',{after,board:bd&&{x:Math.round(bd.x),y:Math.round(bd.y),w:Math.round(bd.w)}});
+  // TC-PS-041 IS THREE PROPERTIES AND NOW THREE LINES [#546, item (62); jobs/gate-45s-colour-assertion-only-ever-taps-
+  // black-so-a-build-that-always-flips-the-board-passes-it-2026-10-23]. One welded L.say could not say WHICH failed.
+  L.say(!after.sheet,geo+': TC-PS-041 Start game dismisses the setup sheet',{after});
+  L.say(!!bd,geo+': TC-PS-041b and lands on a painted board',{board:bd&&{x:Math.round(bd.x),y:Math.round(bd.y),w:Math.round(bd.w)}});
+  L.say(after.home,geo+': TC-PS-041c with the live Play chrome (the play-home control) on screen',{after});
   L.say(!!bd&&bd.flip===true,
     geo+': TC-PS-042 and the colour chosen is honoured - Black was selected, so the board comes up flipped',{flip:bd&&bd.flip});
+  // TC-PS-043's NEGATIVE HALF, ASSERTED: leaving setup starts nothing, so the live game's move row is the same text
+  // before the sheet opens and after "‹ Home" closes it. And Home is identified by its own control, not by a text
+  // heuristic that any panel reading "Play" satisfies.
+  const rowBefore=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
   await openSetup(b);
   await TAP(b,'‹ Home',700);
   const left=await b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-sheet"]'));
-  L.say(!left&&await b.onHome(),geo+': TC-PS-043 "‹ Home" leaves setup without starting anything and returns to Home');
-  L.say(b.errs.length===0,geo+': zero app errors leaving the screen',b.errs.slice(0,3));
+  const rowAfter=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+  const homeScreen=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-menu"]');if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;});
+  L.say(!left&&homeScreen,geo+': TC-PS-043 "‹ Home" leaves setup and returns to Home - identified by Home\'s own menu control on screen',{sheetStill:left,homeMenu:homeScreen});
+  L.say(rowBefore!==null&&rowAfter===rowBefore,geo+': TC-PS-043b and starts nothing - the live game\'s move row reads the same before the sheet opened and after it closed',{before:rowBefore,after:rowAfter});
+  const badJ=b.errs.filter(e=>!ERR_ALLOWED.test(e));
+  L.say(badJ.length===0,geo+': no app error beyond the allowed engine trap, leaving the screen (the same anchored allowance as block I)',badJ.slice(0,3));
+  await ERRS_LIVE(b,geo+' J');
+  await b.close();
+}
+// TC-PS-042's OTHER HALF [#546, item (62)]. The block above only ever taps Black, so a build that ignored the choice and
+// always flipped the board passed it. White is also the DEFAULT and the side Kunal plays most.
+if(blk('J'))for(const geo of ['se','kunal730']){
+  const b=await L.launch({geo,name:'ps-j-white-'+geo});await b.open();await openSetup(b);
+  const okW=(await TAP(b,'Milo',450))&&(await TAP(b,'White',400));
+  await TAP(b,'▶ Start game',1500);
+  const bd=await b.board();
+  L.say(okW&&!!bd&&bd.flip===false,
+    geo+': TC-PS-042 WHITE POSE the colour chosen is honoured the other way too - White was selected, so the board comes up NOT flipped',{tapped:okW,flip:bd&&bd.flip});
   await b.close();
 }
 
