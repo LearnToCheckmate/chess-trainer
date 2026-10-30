@@ -354,6 +354,12 @@ async function serve(opts={}){
   }catch(e){console.log('     bundle: '+app+'  (could not be read: '+e.message+')');}
   const dir=siteDir(app,_want.slice(0,12));const port=await freePort();
   const p=cp.spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1'],{cwd:dir,stdio:'ignore'});
+  // THE SERVER DOES NOT HOLD THE PROCESS OPEN [#546, item (65); jobs/an-adhoc-probe-that-finishes-never-exits-2026-09-27].
+  // Its child handle kept Node's event loop alive, so a probe that finished - printed its own COMPLETE line - never exited:
+  // seven residents at #424, the oldest 2h17m, and a sequential `node a; node b` never reached b. unref() lets the loop end
+  // when the work does; the exit handler above kills the server on the way out. While a browser is open its own sockets
+  // keep the loop alive, so a gate in progress is unaffected.
+  p.unref();
   const url='http://127.0.0.1:'+port+'/';
   for(let i=0;i<50;i++){try{await new Promise((res,rej)=>{const s=net.connect(port,'127.0.0.1',()=>{s.end();res();});s.on('error',rej);});break;}catch(e){await new Promise(r=>setTimeout(r,100));}}
   _srv={url,dir,app,md5:_want,port,proc:p,close(){try{p.kill();}catch(e){}fs.rmSync(dir,{recursive:true,force:true});_srv=null;}};
