@@ -99,6 +99,19 @@ tree_reconcile(){ # <porcelain-at-start> <porcelain-at-end>
   printf ' | WORKING TREE CHANGED DURING THE RUN: %s line(s) of git status differ between start and end - the tree at the end is not the tree this log describes' "$n"
 }
 
+# ── WHICH BROWSERS WERE ALREADY RUNNING WHEN THE SUITE STARTED? [#546, item (39); jobs/the-suite-lock-does-not-see-
+# the-build-lanes-own-subagent-browsers-2026-09-30]. The lock above refuses a second gates.sh and nothing else, and at
+# #439 the build lane's own antagonists and auditor drove headless Chromium beside a running suite, which went red on
+# a settle-based assertion in a way that read exactly like a product defect. At the moment this runs the suite has
+# started no browser, so EVERY Chromium process is someone else's. It is NAMED in the log header, not refused: a
+# subagent browser is often legitimate, and a refusal would fire on the normal case. ps, not pgrep -f, because
+# pgrep -f matches its own command line (#407, #416). Prints "<count> <pids, comma-joined>". The comm Playwright's own
+# browser shows is `chrome-headless` (a truncation of chrome-headless-shell); the first draft matched only the three
+# exact names and counted 0 beside a running Playwright browser, which the live check caught.
+foreign_browsers(){
+  ps -eo pid=,comm=,args= 2>/dev/null | awk -v me="$$" '$1!=me && ($2 ~ /^(chrome|chromium|headless_shell|chrome-headless)/ || $3 ~ /\/(chrome|chrome-headless-shell|headless_shell)( |$)/){n++; p=p (p?",":"") $1} END{printf "%d %s", n+0, p}'
+}
+
 # ── A DELETED ASSERTION INSIDE A GATE MUST NOT BE INVISIBLE [#545, item (37); jobs/a-deleted-assertion-inside-a-
 # gate-is-invisible-in-a-green-run-2026-10-10]. This file's header says the regression total "must only rise", and
 # until #545 nothing compared it with anything: delete one L.say and the footer falls by one, still equals the log's
@@ -1475,6 +1488,14 @@ M16PY
   tr_1="$(git -C "$ST_HR" status --porcelain)"
   st T3-the-same-edit-present-at-BOTH-ends-is-not-a-change "[$(tree_reconcile "$tr_1" "$(git -C "$ST_HR" status --porcelain)")]" "[]"
   st T4-the-full-run-appends-it-to-the-ref-line "$(grep -c 'DIRTYTXT="\$DIRTYTXT\$(tree_reconcile "\$DIRTYL0"' "$SF")" 1
+  # B1-B2 [#546, item (39)]: foreign_browsers counts a process whose comm is a Chromium name and ignores others. A
+  # copy of /bin/sleep NAMED headless_shell stands in for a browser, so no real browser is needed to drive it.
+  cp "$(command -v sleep)" "$ST_T/headless_shell"; "$ST_T/headless_shell" 30 & fb_pid=$!
+  read -r fb_n fb_p <<<"$(foreign_browsers)"
+  st B1-a-running-headless_shell-is-counted-and-named "$(case ",$fb_p," in *",$fb_pid,"*) echo named;; *) echo "not named [$fb_n $fb_p]";; esac)" named
+  kill "$fb_pid" 2>/dev/null; wait "$fb_pid" 2>/dev/null
+  read -r fb_n2 fb_p2 <<<"$(foreign_browsers)"
+  st B2-and-once-it-exits-it-is-no-longer-named "$(case ",$fb_p2," in *",$fb_pid,"*) echo "still named";; *) echo gone;; esac)" gone
   # A1-A6 DRIVE assert_falls [#545, item (37)] over a fixture register and a fixture log.
   printf '# fixture\nALPHA\t5\t#1\tx\nBETA\t3\t#1\tx\n' > "$ST_T/ac.tsv"
   acl(){ local a="$1" b="$2" bf="${3:-0}" i; echo "=== ALPHA ==="; for ((i=0;i<a;i++)); do echo "PASS a$i"; done
@@ -1583,6 +1604,9 @@ export CT_EXPECT="${CT_EXPECT:-$N}"; export CT_SHOTS="${CT_SHOTS:-$G/shots/gates
 APP="${CT_APP:-$ROOT/app.js}"; export CT_APP="$APP"   # CT_APP=/path/bundle.js gates a trial bundle; the default is the repo's app.js, named explicitly so a gates/.pin-app.js cannot divert the gate
 BUNDLE_MD5="$(md5sum "$APP" | cut -c1-12)"
 echo "gates.sh $N  bundle $APP  md5 $BUNDLE_MD5  $(date '+%Y-%m-%d %H:%M:%S %Z')" | tee -a "$ALL"
+read -r FB_N FB_P <<<"$(foreign_browsers)"   # [#546, item (39)] before this suite has started any browser
+if [ "${FB_N:-0}" -gt 0 ]; then echo "browsers at launch: ${FB_N} Chromium process(es) NOT started by this suite (pids ${FB_P}) - settle-based assertions in this run share the CPU with them" | tee -a "$ALL"
+else echo "browsers at launch: 0 Chromium processes besides this suite's own" | tee -a "$ALL"; fi
 # WHICH TREE IS THIS, SAMPLED NOW AND NOT AT THE END. The #417 antagonist broke the first version of the ref
 # line below by pointing out that it read `git rev-parse HEAD` when the run FINISHED: this very build's suite
 # started at 12:41:53Z against an uncommitted tree and HEAD moved at 12:43:38Z, 105 seconds in, so the log would
