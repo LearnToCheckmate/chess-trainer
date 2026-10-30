@@ -572,6 +572,12 @@ printf 'abcdef0123456789abcdef0123456789\t-\t#906\t2026-10-30T00:00Z\tbuild__F\t
 ck "13f a 32-hex md5 in field 1 is UNKNOWN (exit 2)" 2 timeout 20 "$MU" check
 cp "$KM/gates/held-trees.tsv.keep" "$KM/gates/held-trees.tsv"; rm -f "$KM/gates/held-trees.tsv.keep"
 ck "13f control: the restored register clears the clean tree again" 0 timeout 20 "$MU" check
+# 13g: A SHORT PREFIX OF A HELD BUNDLE IS HELD [#546, fresh antagonist B F1]: a4df39c38222 read 1 and a4df39c read 0.
+printf 'abcdef012345\t-\t#907\t2026-10-30T00:00Z\tbuild__F\ta held bundle, for the short-prefix arm, long enough for the floor\t-\n' >> "$KM/gates/held-trees.tsv"
+ck "13g the full 12-hex key reads HELD" 1 timeout 20 "$MU" check abcdef012345
+ck "13g a 7-hex prefix of it reads HELD too, not a clearance" 1 timeout 20 "$MU" check abcdef0
+ck "13g an unrelated 7-hex key still clears" 0 timeout 20 "$MU" check 1234567
+sed -i '/#907/d' "$KM/gates/held-trees.tsv"
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the

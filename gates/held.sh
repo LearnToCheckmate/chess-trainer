@@ -266,7 +266,11 @@ case "${1:-}" in
     for HELD_K in "${HELD_KEYS[@]}"; do
       HIT="$(match_rows | awk -F'\t' -v k="$HELD_K" '
         { m=tolower($1); gsub(/[ \r]/,"",m)
-          if (m != "sha-only" && length(m)>=8 && length(m)<=12 && substr(k,1,length(m))==m) { print; exit }   # sha-only is no bundle key [#529]
+          # BOTH DIRECTIONS OF PREFIX [#546, fresh antagonist B F1]: a key SHORTER than the md5 in the row (7 to 11 hex of a held
+          # bundle) used to clear at exit 0, because only a key that has the row as its prefix matched. Compared on the
+          # shorter length, with a 7-hex floor; a false match would read HELD, which fails closed.
+          L2=(length(k)<length(m))?length(k):length(m)
+          if (m != "sha-only" && length(m)>=8 && length(m)<=12 && L2>=7 && substr(k,1,L2)==substr(m,1,L2)) { print; exit }   # sha-only is no bundle key [#529]
           n=split(tolower($2), SH, ",")
           for (i=1;i<=n;i++) { gsub(/[ \r]/,"",SH[i])
             if (length(SH[i])>=7 && (SH[i]==k || substr(SH[i],1,7)==substr(k,1,7))) { print; exit } } }')"
