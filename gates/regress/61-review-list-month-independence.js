@@ -892,5 +892,38 @@ async function input(seed,n,geo,name,thin){
     }
     await r.b.close();
   }
+  // ── A17 A MONTH THAT FAILED AND THEN RECOVERED [#546, item (19); option (b) of
+  //    jobs/gate-61-a15b-cannot-be-red-while-a15a-is-green-and-its-comment-names-an-impossible-mechanism-2026-10-06].
+  //    A15b asserts "no gap is claimed" where nothing ever failed, so it cannot be red while A15a is green (its own
+  //    comment says so since #545). The state where "no gap" is a real question is a gap that WAS true: one month
+  //    answers 503, the screen says months could not be loaded, then the month answers and the app is reloaded.
+  //    MEASURED at #546 on main's bundle (app.js 049b41dfb6f1) before this block was written: 10 rows and the gap
+  //    sentence, then 15 rows and no gap sentence after the reload - so the state exists and the app recovers.
+  //    A17-0 and A17a are the denominators (the failure was real and was said; the recovery really refetched the
+  //    month), so A17b - no gap claimed once nothing is missing - is red on any build that keeps a stale gap.
+  //    CONTROLLED at #546: a CT_OUT trial bundle whose chess.jsx keeps '+gap' whenever ct_acctcap already carried
+  //    one (the stored-bound line's `(missed?'+gap':'')` widened to also test localStorage, md5 054755c392d0) reads
+  //    153 pass / 1 fail with the ONE red A17b; main's 049b41dfb6f1 reads 154 / 0. A15b stays green on it.
+  {
+    const PER=5, MONTHS=3, FAILM=NEWEST.y+'/'+String(NEWEST.m-1).padStart(2,'0');
+    const state={seed:'b',hits:[],refuse:false,thin:{months:MONTHS,per:PER},fail:FAILM};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'gap-recovered'});
+    await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2200);
+    const r1=await READ(b);
+    const tag='RECOVERED: '+MONTHS+' months x '+PER+' with '+FAILM+' answering 503, then 200 after a reload';
+    const failed=L.say(r1.rows===(MONTHS-1)*PER&&GAP_RE.test(r1.body||''),'A17-0 vacuity '+tag+': the month really failed and the screen said so - '+((MONTHS-1)*PER)+' rows and the gap sentence',{rows:r1.rows,gap:GAP_RE.test(r1.body||'')});
+    if(failed){
+      if(!process.env.CT_A17_KEEPFAIL)state.fail=null;   // CT_A17_KEEPFAIL=1 is this block's own control: the month never recovers
+      const h0=state.hits.length;
+      await b.page.reload(); await b.settle(1500); await b.tile('Review'); await b.settle(2200);
+      const r2=await READ(b); const refetched=state.hits.slice(h0).some(h=>h.indexOf(FAILM)>=0);
+      const rec=L.say(r2.rows===MONTHS*PER&&refetched,'A17a vacuity '+tag+': after the reload the failed month was requested again and every row is present ('+(MONTHS*PER)+')',{rows:r2.rows,refetched,newRequests:state.hits.length-h0});
+      if(rec) L.say(!GAP_RE.test(r2.body||''),'A17b US-R25 '+tag+': and NO gap is claimed any more - nothing is missing, so a lingering "months couldn\'t be loaded" would be a false statement about the list',{gapText:((r2.body||'').match(GAP_RE)||[''])[0]});
+      else L.note('       A17a failed - A17b SKIPPED rather than measured on a screen that never recovered');
+    } else {
+      L.note('       A17-0 failed - A17a and A17b SKIPPED rather than measured on a walk that never failed');
+    }
+    await b.close();
+  }
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});
