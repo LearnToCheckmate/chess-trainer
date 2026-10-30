@@ -1283,9 +1283,17 @@ ACTUAL="$(grep -c '^PASS' "$LOG" || true)"
 # so the two agree by construction whatever gates.sh does with duplicates. A RED COUNT is not that: gates.sh
 # replays failed assertions, so one failing assertion can produce several ^FAIL lines and a line count
 # over-reports the number of distinct reds (measured at up to five on one gatelog). Wherever a red count is
-# PUBLISHED - a run report, a RUN-LOG row, a ledger row - count distinct assertion ids, not lines:
-#     grep -o '^FAIL [A-Za-z0-9]*' <log> | sort -u | wc -l
-# That is correct on both log shapes and costs nothing. The rejected alternative was changing gates.sh's FAIL
+# PUBLISHED - a run report, a RUN-LOG row, a ledger row - count DISTINCT LINES, not lines:
+#     grep '^FAIL' <log> | sort -u | wc -l
+# That is exact because the replay is byte-identical, and on a log with no suite summary (sections == 0, so no
+# replay can exist) it equals the raw line count - 19/19, 16/16, 2/2 measured - so it removes only duplicates
+# that were manufactured. Its one limit: two distinct failures printing byte-identical text collapse to one.
+# THE "DISTINCT ASSERTION ID" FORM THIS COMMENT FIRST GAVE WAS UNSOUND AND IS WITHDRAWN [R18, #546 item (48)].
+# It took the token after 'FAIL ' as an id, and this format has no id field: on a gate-48-shaped log that token is
+# a geometry label (6 counted where there are 19), and `[A-Za-z0-9]*` stops at the hyphen, so every
+# `FAIL unit-drill-why ...` line collapsed to `unit` - a fully red unit layer read as ONE red. The same
+# withdrawal is in gates/regress/README.md (#477), and gates/audit/red-count.sh section (3) keeps it out.
+# The rejected alternative was changing gates.sh's FAIL
 # prefix so a line count would be right by construction; it would break every existing reader that greps the
 # log, so it needs its own control and is not done here. This script publishes no red count of its own - it
 # refuses or it does not - so nothing above changes; the recipe is here because this is the file a reader opens

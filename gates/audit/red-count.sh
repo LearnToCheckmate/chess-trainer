@@ -160,7 +160,8 @@ report() {
     [ "$sitelive" = "1" ] && LIVE="$LIVE $s"
   done
   NLIVE="$(printf '%s\n' $LIVE | grep -c . || true)"
-  CEIL="${CT_TOKEN_CEIL:-1}"
+  # CEILING LOWERED 1 -> 0 AT #546 (item (48)): the one site, gates/verify-log.sh, now withdraws the recipe.
+  CEIL="${CT_TOKEN_CEIL:-0}"
   echo "    $NLIVE site(s) carry it as advice, against a ceiling of $CEIL. THE CEILING MAY ONLY FALL."
   if [ "$NLIVE" -gt "$CEIL" ]; then
     echo "    RECIPE COUNT ROSE: $NLIVE sites against a ceiling of $CEIL. A withdrawn recipe gained a home."
@@ -168,10 +169,9 @@ report() {
   else
     PASSN=$((PASSN+1)); echo "PASS (3) the withdrawn recipe is at or below its ceiling"
   fi
-  echo "    THE ONE SITE AT THE CEILING IS KNOWN AND IS PARKED, NOT FORGOTTEN:"
-  echo "    jobs/verify-log-sh-carries-the-unsound-fail-count-recipe-beside-its-own-pass-check-2026-10-04,"
-  echo "    parked until after the 30 October launch. This section exists so that park stays visible"
-  echo "    and so a SECOND site cannot appear quietly while the first one waits."
+  echo "    THE CEILING IS 0 SINCE #546: the last site, gates/verify-log.sh, withdrew the recipe under"
+  echo "    jobs/verify-log-sh-carries-the-unsound-fail-count-recipe-beside-its-own-pass-check-2026-10-04."
+  echo "    This section exists so that the withdrawn recipe cannot regain a home quietly."
   echo
 
   # ── 4. THE BACK-AUDIT ────────────────────────────────────────────────────────────────────────
