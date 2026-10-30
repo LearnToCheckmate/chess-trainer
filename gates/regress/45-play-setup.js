@@ -430,6 +430,8 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
 
 // =========================================================================================================
 // PS-I  "Play from here" - setup arriving from a review. TC-PS-037..040.
+// CONTROL-RECORD: 429cdb8 2026-10-30 total=11 red=4 scope=blocks:I how=trial bundle 24ff0a75b3d0 renames the banner's text so the banner is not found - TC-PS-037 and TC-PS-038 red at se and kunal730; the pre-#546 TC-PS-038 passes on it [#546 item (61)]
+// CONTROL-RECORD: 429cdb8 2026-10-30 total=88 red=6 scope=blocks:C how=gate mutant aims the day-limit tap at '9 days / move', which does not exist, so TAP misses - TC-PS-033 PRECONDITION and TC-PS-033 red at se, kunal730 and 430 [#546 item (61)]
 // Two geometries: the 568 floor and Kunal's real phone. Each needs a real analysis, so this is the slow block.
 // =========================================================================================================
 if(blk('I'))for(const geo of ['se','kunal730']){
