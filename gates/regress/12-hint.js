@@ -8,9 +8,14 @@ L.run(async()=>{
   for(const geo of ['kunal','390','se']){
     const b=await L.launch({geo,name:'hint-'+geo});await b.open();
     await b.card('A-06',350);const before=await b.metrics();
+    // THE HINT WAS ABSENT WHEN `before` WAS SAMPLED [#546, item (38); jobs/rotating-audit-433-two-assertions-that-cannot-
+    // discriminate-2026-09-29]. 'board unmoved by the hint' compares the +350ms sample with the +2150ms one; if the hint ever
+    // arrived inside 350ms both samples would be hint-up and the comparison could not fail. Read it in the same breath.
+    const hintAtBefore=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');return e?(e.innerText||'').trim():null;});
     await b.settle(1800);const after=await b.metrics();await b.shot('hint-'+geo);
     const head=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height,sh:e.scrollHeight,ch:e.clientHeight,text:(e.innerText||'').trim()};});
     L.say(!!before.board&&!!after.board,geo+': puzzle board present before and with the hint');
+    L.say(!hintAtBefore,geo+': PRECONDITION the hint was NOT yet showing at the before sample, so the next line compares a hintless board with a hinted one',{hintAtBefore:hintAtBefore&&hintAtBefore.slice(0,60)});
     if(before.board&&after.board){L.say(Math.abs(before.board.top-after.board.top)<0.6&&Math.abs(before.board.w-after.board.w)<0.6,geo+': board unmoved by the hint (top '+before.board.top+' -> '+after.board.top+', w '+after.board.w+')');}
       // #384 (derived test-lane item 6): the board-movement assertion above compares two MEASURED values and nothing else, so it is true of a board that has been the wrong size since before the first sample. That is exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. The width is pinned here for the same reason. Measured on #383.
       const WANT={kunal:375,'390':390,se:259};
