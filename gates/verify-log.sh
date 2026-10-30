@@ -143,8 +143,15 @@ if [ "${1:-}" = "--citations-selftest" ]; then
     if [ "$2" = "$3" ]; then SPASS=$((SPASS+1)); echo "  ok   $1"
     else SFAIL=$((SFAIL+1)); echo "  FAIL $1: expected [$2] got [$3]"; fi
   }
+  # EVERY FIXTURE ROOT LIVES UNDER ONE PARENT, REMOVED ON EVERY EXIT PATH [#546, item (60); jobs/verify-logs-citations-
+  # selftest-leaves-twenty-mktemp-directories-behind-on-every-green-run-2026-10-20]. st_tree runs inside $(...), so a
+  # list it appended to would die with the subshell; what survives is a parent made HERE, in the selftest's own shell,
+  # with the trap beside it. Measured at #546: one green run added 20 /tmp/tmp.* directories (55 pass), and nothing
+  # removed them. The TERM/INT traps turn a signal into an exit, so the EXIT trap fires on an interrupted run too.
+  ST_PARENT="$(mktemp -d)" || { echo "  FAIL cannot mktemp"; exit 2; }
+  trap 'rm -rf "$ST_PARENT"' EXIT; trap 'exit 143' TERM; trap 'exit 130' INT
   st_tree() { # st_tree -> prints a fresh root with this script in place and a minimal tree
-    T="$(mktemp -d)"
+    T="$(mktemp -d "$ST_PARENT/t.XXXXXX")"
     mkdir -p "$T/gates/regress" "$T/claude/stories"
     cp "$SELF" "$T/gates/verify-log.sh"
     printf 'line1\nline2\nline3\n' > "$T/gates/regress/10-real.js"
