@@ -285,9 +285,9 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # and THIS CASE IS WHAT NOTICED - which is what it is for. It is the live field count, not a floor: a counter
   # added without updating it reddens here, and here is the only place that would see it.
   # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end; 18 -> 20 AT #546 ITEM (6):
-  # `idtwospaces` and `registerpathabsent` (arm (7)) after it.
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (20: one verdict word, 19 counters)" \
-    "20 20" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # `idtwospaces` and `registerpathabsent` (arm (7)) after it; 20 -> 21 AT #546 ITEM (18): `danglingstory` (arm (5)).
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (21: one verdict word, 20 counters)" \
+    "21 21" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -524,6 +524,23 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   [ -n "$C18" ] || C18='NO ARM (6) LINE'
   st_ck "C18 arm (6): every script line-number citation in the prescriptive set resolves, on this tree" \
     "0 dead, 0 past end of file" "$C18"
+
+  # ── C21: ARM (5), THE STORY COLUMN BY INDEX AND THE DANGLING DIRECTION [#546, item (18)]. A register whose ONE
+  #     table puts `story` THIRD: under the old parser (C[2] read unconditionally) its row joins to nothing and US-X-01
+  #     reads at zero cases - the wrong-reason red. Then a row citing a story USER-STORIES.md never defines, which
+  #     nothing reported; then the same id defined as a bare line (the form US-BN-01 uses), which must NOT be dangling.
+  R21="$(st_tree)"; printf '### US-X-01 a story\n\ntext\n' > "$R21/claude/stories/USER-STORIES.md"
+  { printf '| id | steps | story | expected | by | last result |\n|---|---|---|---|---|---|\n'
+    printf '| TC-X-001 | a step | US-X-01 | an expectation | gate 10 | pass |\n'; } > "$R21/claude/stories/TEST-CASES.md"
+  st_ck "C21 a table with its story column THIRD still joins: 0 at zero cases" \
+    "  (5) 1 case row(s) in 1 table(s), 1 story heading(s), 0 at zero cases (ceiling $SA5Z), 0 wrong-width row(s) (ceiling $SA5W), 0 unexempted story-less table(s), 0 exempt of $SA5X" "$(st_arm5 "$R21")"
+  printf '| TC-X-002 | a step | US-X-99 | an expectation | gate 10 | pass |\n' >> "$R21/claude/stories/TEST-CASES.md"
+  st_ck "C21b a row citing a story nobody wrote is reported and counted" "danglingstory=1" \
+    "$(st_arm5line "$R21" 'danglingstory=[0-9]+' | grep -oE 'danglingstory=[0-9]+')"
+  printf 'US-X-99  **As a reader, a bare-line story is still a story.**\n' >> "$R21/claude/stories/USER-STORIES.md"
+  st_ck "C21c the same id written as a bare line is defined, not dangling" "danglingstory=0" \
+    "$(st_arm5line "$R21" 'danglingstory=[0-9]+' | grep -oE 'danglingstory=[0-9]+')"
+  rm -rf "$R21"
 
   # ── C19: ARM (3m), THE MARKED md5 [#546, item (4)]. One fabricated register with a section citing a log that
   #     carries md5 aaaabbbbcccc and not ddddeeeeffff. Three rows, so the marker is what decides and not the md5:
@@ -945,14 +962,20 @@ EOF6
     function trim(s){ sub(/^[ \t]+/,"",s); sub(/[ \t]+$/,"",s); return s }
     function ncell(l, arr,   t,k){ t=l; gsub(/\\\|/,"\001",t); t=trim(t); sub(/^\|/,"",t); sub(/\|$/,"",t); k=split(t,arr,"|"); return k }
     FNR==1 { fn++ }
-    fn==1 { if ($0 ~ /^### US-/){ s=$0; sub(/^### /,"",s); split(s,A," "); story[A[1]]=1; so[++sn]=A[1] } next }
+    fn==1 { if ($0 ~ /^### US-/){ s=$0; sub(/^### /,"",s); split(s,A," "); story[A[1]]=1; so[++sn]=A[1] }
+            if (match($0, /^(#+[ \t]+)?US-[A-Za-z0-9-]+/)) { d=substr($0,RSTART,RLENGTH); sub(/^#+[ \t]+/,"",d); defd[d]=1 }
+            next }
     { L[++n]=$0 }
     END {
       hl=""
       for(i=1;i<=n;i++){
         if (substr(L[i],1,1)=="|" && L[i+1] ~ /^\|[ :|-]+$/) {
           k=ncell(L[i],C); hl=i; hcols[hl]=k; hrows[hl]=0; hstory[hl]=0; h=""
-          for(j=1;j<=k;j++){ if (tolower(trim(C[j]))=="story") hstory[hl]=1; h=h "| " trim(C[j]) " " }
+          # THE INDEX OF THE STORY COLUMN IS STORED, NOT ASSUMED [#546, item (18); parserBugFoundByAntagonistA on
+          # jobs/citations-arm-5-lands-with-both-ceilings-at-zero-headroom-2026-10-06]. This recorded only a boolean and the
+          # row loop read C[2], so a table putting `story` third would join every row to nothing and redden on the WRONG
+          # reason; it passed only because every story table here puts it second - the fixture agreeing with the bug.
+          for(j=1;j<=k;j++){ if (tolower(trim(C[j]))=="story" && !hstory[hl]) { hstory[hl]=1; hsc[hl]=j }; h=h "| " trim(C[j]) " " }
           hdr[hl]=h "|"
           continue
         }
@@ -961,16 +984,22 @@ EOF6
           if (hl==""){ print "ORPHANROW\t" i "\t" id; continue }
           hrows[hl]++
           if (k != hcols[hl]) print "WIDTH\t" i "\t" id "\t" k "\t" hcols[hl] "\t" hl
-          if (hstory[hl]) { m = (k>=2 ? C[2] : "")
-            while (match(m, /US-[A-Za-z0-9-]+/)) { cited[substr(m,RSTART,RLENGTH)]=1; m=substr(m,RSTART+RLENGTH) } }
+          if (hstory[hl]) { m = (k>=hsc[hl] ? C[hsc[hl]] : "")
+            while (match(m, /US-[A-Za-z0-9-]+/)) { u=substr(m,RSTART,RLENGTH); cited[u]=1; if (!(u in citedat)) citedat[u]=i " " id; m=substr(m,RSTART+RLENGTH) } }
         }
       }
       for(hl2 in hrows) if (hrows[hl2]>0) { tabs++; print "TABLE\t" hl2 "\t" (hstory[hl2]?"story":"nostory") "\t" hrows[hl2] "\t" hdr[hl2] }
       z=0; for(i=1;i<=sn;i++) if (!(so[i] in cited)) { print "ZERO\t" so[i]; z++ }
+      # THE OTHER DIRECTION [#546, item (18); oneDirectionOnly on the same job]: the story cell of a case row citing a US- id
+      # that has no `### US-` heading. ZERO above reports a heading no row cites; nothing reported a row citing nothing.
+      # A story counts as WRITTEN in any of the three forms USER-STORIES.md uses - a `### ` heading, a `## ` heading, or a
+      # line that opens with the id (measured at #546: US-BN-01, US-P01 and US-P02 are bare lines, US-R50 a `## ` heading) -
+      # because the defect is a citation of a clause that does not exist, not one written in a minority format.
+      for(u in cited) if (!(u in story) && !(u in defd)) { split(citedat[u],P," "); print "DANGLING\t" P[1] "\t" P[2] "\t" u }
       print "TOTALS\t" rows+0 "\t" sn+0 "\t" z+0 "\t" tabs+0
     }
   ' claude/stories/USER-STORIES.md claude/stories/TEST-CASES.md 2>/dev/null || true)"
-  A5TBAD=0; A5EX=0; A5WIDE=0; A5ZERO=0; A5ROWS=0; A5STORIES=0; A5TABS=0; A5ORPH=0; A5ZLIST=""
+  A5TBAD=0; A5EX=0; A5WIDE=0; A5ZERO=0; A5ROWS=0; A5STORIES=0; A5TABS=0; A5ORPH=0; A5ZLIST=""; A5DANG=0
   while IFS="$(printf '\t')" read -r TAG F2 F3 F4 F5 F6; do
     [ -n "$TAG" ] || continue
     case "$TAG" in
@@ -993,6 +1022,10 @@ EOF6
       ZERO)
         A5ZERO=$((A5ZERO+1)); A5ZLIST="$A5ZLIST $F2"
         echo "  STORY AT ZERO CASES: $F2 is a '### US-' heading in USER-STORIES.md that no case row's story cell cites"
+        ;;
+      DANGLING)
+        A5DANG=$((A5DANG+1))
+        echo "  STORY CITED BUT NOT WRITTEN: TEST-CASES.md:$F2 $F3 cites $F4 in its story cell and USER-STORIES.md defines no $F4 (no heading and no line opening with it)"
         ;;
       ORPHANROW)
         A5ORPH=$((A5ORPH+1))
@@ -1086,14 +1119,15 @@ EOF
   # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
   # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
   # would make the line unable to grow with the arms, which is worse.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ]
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0}"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ]; then
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
     [ "${A7DUP:-0}" -gt 0 ] && echo "  (7) $A7DUP case id(s) belong to two id spaces at once"
     [ "${A7MISS:-0}" -gt 0 ] && echo "  (7) $A7MISS path(s) named by the register's prefix table are not in the tree"
+    [ "${A5DANG:-0}" -gt 0 ] && echo "  (5) $A5DANG story id(s) cited by a case row have no heading in USER-STORIES.md"
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
   fi
