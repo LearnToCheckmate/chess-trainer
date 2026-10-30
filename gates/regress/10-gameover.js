@@ -1,6 +1,7 @@
 // regress/10-gameover.js  (port of gameover371.js)  k10 / A-02 / X-01: a finished game keeps the board.
 // Gallery card 1 plays Scholar's mate in seven moves. The board's width and top mid-game must equal
 // its width and top after the mate; nothing scrolls; the row reads Review · Rematch; zero app errors.
+// CONTROL-RECORD: ccbe925 2026-10-30 total=17 red=4 scope=full how=gate mutant pads #root's top by 10px after open - the WANT_TOP pin is red at both geometries while the width pin and 'top unchanged' stay green; 'nothing scrolls' also reddens because the pad overflows [#546 item (72)]
 'use strict';
 const L=require('../lib');
 L.run(async()=>{
