@@ -292,8 +292,23 @@ function freePort(){return new Promise(r=>{const s=net.createServer();s.listen(0
 
 // A site dir is the repo with one file swapped: app.js -> the bundle under test (CT_APP, default the repo's app.js).
 // Symlinks for everything else, so index.html, lessons.js, sw.js and the engine are always the repo's own.
+// A SITE DIR WHOSE PROCESS IS GONE IS SWEPT ON THE NEXT START, AND A PROCESS REMOVES ITS OWN ON EXIT [#546, item (33);
+// jobs/gates-site-dirs-cleanup, flag gates-site-dirs-leak-on-abnormal-exit-2026-09-18]. close() removed the dir, but a
+// gate that threw past it, called process.exit() first, or was killed left .site/<pid>-<tag> behind for ever (one was
+// there at #546's start, pid 32347, dead). The sweep keys on the LEADING PID of each entry and removes it only when that
+// process does not exist (kill(pid,0) -> ESRCH), so a concurrent gate's live dir is never touched; EPERM means alive.
+function sweepStaleSites(){
+  const root=path.join(__dirname,'.site');let gone=0;
+  try{for(const e of fs.readdirSync(root)){const m=/^(\d+)(?:-|$)/.exec(e);if(!m)continue;const pid=+m[1];if(pid===process.pid)continue;
+    let alive=true;try{process.kill(pid,0);}catch(err){alive=err.code==='EPERM';}
+    if(!alive){fs.rmSync(path.join(root,e),{recursive:true,force:true});gone++;}}}catch(e){}
+  return gone;
+}
+const _ownSites=new Set();
+process.on('exit',()=>{try{if(_srv&&_srv.proc)_srv.proc.kill();}catch(e){}for(const d of _ownSites){try{fs.rmSync(d,{recursive:true,force:true});}catch(e){}}});
 function siteDir(app,tag){
-  const d=path.join(__dirname,'.site',String(process.pid)+(tag?'-'+tag:''));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});
+  const swept=sweepStaleSites();if(swept)console.log('     swept '+swept+' stale site dir(s) left by a process that no longer exists [#546]');
+  const d=path.join(__dirname,'.site',String(process.pid)+(tag?'-'+tag:''));fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});_ownSites.add(d);
   for(const f of fs.readdirSync(ROOT)){if(f==='.git'||f==='gates'||f==='app.js')continue;fs.symlinkSync(path.join(ROOT,f),path.join(d,f));}
   fs.copyFileSync(app,path.join(d,'app.js'));return d;
 }
