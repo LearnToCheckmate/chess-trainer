@@ -118,7 +118,7 @@ const fs = require('fs'), path = require('path'), cp = require('child_process'),
 const SCOPE_OK = (s) => s === 'full' || /^(env:[A-Za-z_][A-Za-z0-9_]*=\S+|geo:\S+|blocks:\S+|trial:[0-9a-f]{12,32})$/.test(s);
 const TODAY = new Date().toISOString().slice(0, 10);
 const RE = /^\s*\/\/\s*CONTROL-RECORD:\s*([0-9a-f]{7,40})\s+(\d{4}-\d{2}-\d{2})\s+total=(\d+)\s+red=(\d+)\s+scope=(\S+)\s+how=(\S.*)$/;
-const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-RED', 'BAD-RECORD', 'PARTIAL', 'COVERED'];
+const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-RED', 'UNVERIFIABLE-HERE', 'BAD-RECORD', 'PARTIAL', 'COVERED'];
 
 /* ---- the log's own account of what each gate ran ---- */
 function parseLog(logText) {
@@ -136,6 +136,12 @@ function parseLog(logText) {
 function audit(ROOT, { ranNow, redNow }) {
   const G = (a) => cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
   const Gq = (a) => { try { G(a); return true; } catch (e) { return false; } };
+  // A SHALLOW CLONE CANNOT TELL A MISSING SHA FROM AN INVENTED ONE [#546, item (67); jobs/control-audit-verdict-depends-on-
+  // clone-depth]. Same tree, two depths: `--depth 1` read '0 covered ... 2 bad-record' with every record a FAULT, and after
+  // `git fetch --unshallow` the same command read '1 covered'. The sha check is this tool's only defence against a fabricated
+  // record, and in a shallow clone it condemned the honest ones. So an absent sha in a shallow clone is UNVERIFIABLE-HERE -
+  // its own verdict and its own exit code, 3 - and never BAD-RECORD. In a complete clone an absent sha is still BAD-RECORD.
+  let SHALLOW = false; try { SHALLOW = G('rev-parse --is-shallow-repository') === 'true'; } catch (e) {}
   const targets = fs.readdirSync(path.join(ROOT, 'gates/regress')).filter(f => f.endsWith('.js'))
     .map(f => 'gates/regress/' + f).concat(['gates/mountcheck.js']).sort();   // mountcheck runs in the suite too
   const rows = [];
@@ -161,7 +167,10 @@ function audit(ROOT, { ranNow, redNow }) {
     const nowL = linesOf(nowSrc);
     const faults = [];
     for (const r of recs) {
-      if (!Gq('cat-file -e ' + r.commit + '^{commit}')) { r.fault = 'sha ' + r.commit + ' is not a commit in this repo'; faults.push(r); continue; }
+      if (!Gq('cat-file -e ' + r.commit + '^{commit}')) {
+        if (SHALLOW) { r.fault = 'sha ' + r.commit + ' is absent from this SHALLOW clone, so this tool cannot tell it from an invented one - run `git fetch --unshallow` (or `git fetch --depth 1 origin ' + r.commit + '`) and re-run'; r.unverifiable = true; }
+        else r.fault = 'sha ' + r.commit + ' is not a commit in this repo';
+        faults.push(r); continue; }
       if (r.date > TODAY) { r.fault = 'dated ' + r.date + ', which is in the future'; faults.push(r); continue; }
       if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X | trial:<md5>, and no spaces)'; faults.push(r); continue; }
       if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
@@ -215,6 +224,7 @@ function audit(ROOT, { ranNow, redNow }) {
     else if (faults.some(r => r.moved)) { verdict = 'ASSERTIONS-MOVED'; note = faults.find(r => r.moved).fault; }
     else if (faults.some(r => r.nolog)) { verdict = 'NO-LOG'; note = faults.find(r => r.nolog).fault; }
     else if (faults.every(r => r.baseline)) { verdict = 'NO-RED'; note = 'every record has red=0 - baselines, not controls'; }
+    else if (faults.some(r => r.unverifiable)) { verdict = 'UNVERIFIABLE-HERE'; note = faults.find(r => r.unverifiable).fault; }
     else { verdict = 'BAD-RECORD'; note = faults[0].fault; }
     rows.push({ name, rel, recs, bad, now, verdict, note, faults });
   }
@@ -272,6 +282,11 @@ function report(rows, logLabel) {
     ' none=' + n('NONE') + ' unparsable=' + n('UNPARSABLE') + ' dirty=' + n('DIRTY') +
     ' assertionsmoved=' + n('ASSERTIONS-MOVED') + ' nolog=' + n('NO-LOG') + ' nored=' + n('NO-RED') +
     ' badrecord=' + n('BAD-RECORD'));
+  if (n('UNVERIFIABLE-HERE')) {
+    console.log('CONTROL-AUDIT UNDECIDED: ' + n('UNVERIFIABLE-HERE') + ' gate(s) cite a sha this SHALLOW clone does not hold. That is neither a pass nor');
+    console.log('a fault: run `git fetch --unshallow` and re-run before citing any verdict above. Exit 3.');
+    return 3;
+  }
   if (bad.length) {
     console.log('CONTROL-AUDIT RED: ' + bad.length + ' gate(s) cannot show that the assertions they run TODAY have ever');
     console.log('been shown able to fail. Back-fill only what you can verify - an invented record is worse than none,');
@@ -387,8 +402,22 @@ function selftest() {
     r = run(3, 'selftest-1b');
     ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /carried no L.say\( line at/.test(r.out), '(1b) a record whose sha carried no L.say line reads ASSERTIONS-MOVED, not PARTIAL over nothing');
     ok(/^SUMMARY  0 covered, of 1 gates/m.test(r.out) && r.rc === 1, '(1b) and it is not counted covered, at exit 1');
+    // (6) THE SHALLOW CLONE [#546, item (67)]. A real `git clone --depth 1` of this scratch repo holds HEAD only, so the
+    //     record above names a sha it does not have. That must read UNVERIFIABLE-HERE at exit 3 - never BAD-RECORD.
+    const root2 = root + '-shallow';
+    cp.execSync('git clone -q --depth 1 ' + JSON.stringify('file://' + root) + ' ' + JSON.stringify(root2), { stdio: 'pipe' });
+    const r6 = capture(() => report(audit(root2, parseLog('=== 01-fixture ===\n  01-fixture: green (3 PASS)\n')), 'selftest-6'));
+    ok(/^--- UNVERIFIABLE-HERE \(1\) ---$/m.test(r6.out) && r6.rc === 3 && /^--- BAD-RECORD \(0\) ---$/m.test(r6.out),
+      '(6) in a SHALLOW clone a record whose sha is beyond the graft reads UNVERIFIABLE-HERE at exit 3, not BAD-RECORD');
+    fs.rmSync(root2, { recursive: true, force: true });
+    // (6b) and in a COMPLETE clone an absent sha is still a fault: the shallow exemption keys on the clone, not the sha.
+    write(['// fixture gate', '// CONTROL-RECORD: deadbee ' + TODAY + ' total=3 red=1 scope=full how=an invented sha', A1, A2, A3]); commit('an invented sha');
+    r = run(3, 'selftest-6b');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /is not a commit in this repo/.test(r.out) && r.rc === 1,
+      '(6b) in a COMPLETE clone an invented sha reads BAD-RECORD at exit 1 - the exemption is for the clone, not for the sha');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root + '-shallow', { recursive: true, force: true });
   }
   console.log('control-audit selftest: ' + pass + ' pass / ' + fail + ' fail');
   return fail ? 1 : 0;
