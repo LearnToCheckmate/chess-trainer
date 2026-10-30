@@ -58,6 +58,7 @@ async function traffic(geo,botName){
   return {elo:parseInt(elo||'0',10),uci,errs};
 }
 
+// CONTROL-RECORD: 0d38795 2026-10-30 total=8 red=1 scope=full how=gate mutant splices 'go movetime 1' into the recorded UCI traffic between the handshake isready and the UCI_Elo setoption - the fourth assertion goes red while assertion 3 (THE FIX) stays green [#546 item (83)]
 L.run(async()=>{
   // ── VIKTOR (2350): the only routinely reachable bot on the Stockfish opponent path ────────────────
   const V=await traffic('kunal730','Viktor');
