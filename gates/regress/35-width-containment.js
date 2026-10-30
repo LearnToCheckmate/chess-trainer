@@ -242,10 +242,17 @@ const STATES=[
 // and its width is no longer the 169.19px that was identical at every viewport.
 const FIXED={state:'lesson-demo-end',ct:'lesson-lines',wasOver:38.9};
 
+// THE LANDSCAPE COLUMN [#546, item (69); jobs/gate-35-width-containment-has-never-measured-landscape-2026-09-30]. The
+// header promises containment 'at any width the app claims to support', and every column was PORTRAIT and at most
+// 375 wide - so the layout #438 was entirely about had never been measured here. 844x390 is the landscape of the 390x844
+// phone in R19's list. Measured clean on 049b41dfb6f1 (25 more assertions, all green) before it was added.
+const COLS=['se','short375','kunal730','land844'];
+const GEO_OF=(g)=>g==='land844'?{w:844,h:390}:g;
+const W_OF=(g)=>g==='land844'?844:L.GEOS[g].w;
 L.run(async()=>{
   const report={};
-  for(const geo of ['se','short375','kunal730']){
-    const b=await L.launch({geo,name:'width-'+geo,store:{ct_pool:'3'}});
+  for(const geo of COLS){
+    const b=await L.launch({geo:GEO_OF(geo),name:'width-'+geo,store:{ct_pool:'3'}});
     const rows=[];
     for(const [name,go] of STATES){
       try{
@@ -268,8 +275,8 @@ L.run(async()=>{
     await b.close();
   }
 
-  for(const geo of ['se','short375','kunal730']){
-    const w=L.GEOS[geo].w;
+  for(const geo of COLS){
+    const w=W_OF(geo);
     for(const r of report[geo]){
       if(r.err){L.say(false,geo+' ('+w+' wide): the state "'+r.state+'" could not be reached, so containment there is UNMEASURED rather than green',r.err);continue;}
       const off=r.off;   // #404: nothing is excluded any more - the one exclusion this gate had was `lesson-lines`, and it is fixed
@@ -282,9 +289,16 @@ L.run(async()=>{
   // more, which is necessary and not sufficient: "it no longer hangs off" would also be satisfied by the button
   // disappearing, or by the count dropping at EVERY width - and the second of those breaks Kunal's Z-06
   // condition rather than meeting it. So both halves of his answer are asserted, at both widths.
-  for(const geo of ['se','short375','kunal730']){
+  for(const geo of COLS){
     const fRow=report[geo].find(r=>r.state===FIXED.state);
     const hit=fRow&&!fRow.err&&fRow.off.find(o=>o.ct===FIXED.ct);
+    // THE ELEMENT EXISTS BEFORE IT IS CALLED CONTAINED [#546, item (69)]: `!hit` is also true when "lesson-lines" is
+    // not on the screen at all, so a build that deleted the button passed the containment line below.
+    // MEASURED: in LANDSCAPE (844x390) the lesson end screen does not paint "lesson-lines" at all, so there is nothing
+    // to call contained. That is REPORTED as unmeasured and not credited as a PASS; in portrait an absent label is red.
+    const present=!!fRow&&!fRow.err&&fRow.lines!==null&&fRow.lines!==undefined;
+    if(geo==='land844'&&!present){L.note(geo+': "'+FIXED.ct+'" is NOT painted on '+FIXED.state+' in landscape, so its containment is UNMEASURED here - reported, not credited');continue;}
+    L.say(present,geo+': "'+FIXED.ct+'" is ON the screen it is checked on, so "contained" below is not satisfied by its absence',{label:fRow&&fRow.lines});
     L.say(!!fRow&&!fRow.err&&!hit,
       geo+': "'+FIXED.ct+'" is contained - the #404 fix for the one defect this gate used to pin as BLOCKED at '+FIXED.wasOver+'px off the right edge at 320 (decision lesson-lines-320-label)',
       hit||(fRow&&fRow.err)||'contained');
@@ -313,16 +327,24 @@ L.run(async()=>{
   // defect appearing beside the pieces. So the assertion is on WHAT is excused instead: every excused box must
   // be a piece-sized box whose layout reference is the board square it sits in. Anything else - a button, a
   // label, a box of the wrong size - fails here even if the count never moves.
-  for(const geo of ['se','short375','kunal730']){
-    const w=L.GEOS[geo].w;
+  const excusedBy={};
+  for(const geo of COLS){
+    const w=W_OF(geo);
     const all=[];for(const r of report[geo]){if(!r.err)for(const e of (r.ex||[]))all.push({state:r.state,...e});}
     const withBoard=[...new Set(all.map(e=>e.state))];
     // the scaled box is the square x 1.06, so the ratio is the mechanism and it holds at any board width
     const wrong=all.filter(e=>!(e.tag==='div'||e.tag==='img')||!(e.ref>0&&Math.abs(e.w/e.ref-1.06)<0.02));
+    excusedBy[geo]=all.length;
     L.say(wrong.length===0,geo+' ('+w+' wide): every box the transform rule excused is a piece - a div or img exactly 1.06x the square it sits in, which is the scale(1.06) in chess.jsx and nothing else. '+all.length+' excused across '+(withBoard.join(', ')||'nowhere')+'.',wrong.slice(0,4));
     L.say(all.every(e=>/^(play-live|play-gameover|lesson-demo-end|lesson-practice|puzzles|review-paste)$/.test(e.state)),geo+' ('+w+' wide): the exclusion only ever fires on a screen that paints a board, never on home, the menu or a picker',withBoard);
   }
 
+  // THE EXCUSED SET IS NON-EMPTY SOMEWHERE BEFORE ITS MEMBERS ARE TRUSTED [#546, item (69)]. The two per-column lines above
+  // are every() over the excused boxes, and every() over nothing is TRUE. MEASURED on 049b41dfb6f1: the exclusion fires
+  // ONLY at kunal730 (34 boxes on 4 board screens) - at 320, 375x568 and 844x390 no scaled piece crosses the viewport
+  // edge, so an empty set there is correct and a per-column precondition would be red on a healthy build. So the
+  // precondition is ACROSS the columns, as its own line: if no column excuses anything, the two lines judged nothing.
+  L.say(Object.values(excusedBy).some(n=>n>0),'the transform exclusion fired in at least one column ('+COLS.map(g=>g+' '+excusedBy[g]).join(', ')+'), so the per-column "every excused box is a piece" lines judged a real set somewhere',excusedBy);
   // his condition, stated as an assertion rather than left to a reader: 375 must be clean too, not merely
   // "no worse". If this gate is ever green at 320 and red at 375, the 320 fix cost him the large screen.
   const wide=report['kunal730'].filter(r=>!r.err&&r.off.length);
