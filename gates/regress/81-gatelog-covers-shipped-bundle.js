@@ -27,6 +27,12 @@ const MIN_LOGS=8;
 const SKIP=/SUPERSEDED|VOID/;
 
 L.run(async()=>{
+  // A SHALLOW CLONE CANNOT ANSWER THIS, SO IT IS ONE RED THAT SAYS SO [#546, antagonist B's V3 and A's F1]. Every log older
+  // than the graft boundary has its --diff-filter=A commit read as the boundary commit, so a depth-50 clone of a healthy
+  // tree read 77 misattributed reds. The routine's containers arrive at depth 50 (CLAUDE.md), so this is checked first.
+  const shallow=g('rev-parse --is-shallow-repository').toString().trim();
+  L.say(shallow==='false','TC-SUITE-351 PRECONDITION the clone is COMPLETE (git rev-parse --is-shallow-repository reads '+shallow+'), because a shallow clone attributes every older log to its graft boundary - run `git fetch --unshallow` before the suite; nothing below was checked if this is red',{shallow});
+  if(shallow!=='false')return;
   const held=new Set();
   try{for(const l of g('show HEAD:gates/held-trees.tsv').toString().split('\n')){if(/^\s*#/.test(l))continue;const f=l.split('\t');if(f.length>=2&&/^[0-9a-f]{12}$/.test(f[0]))held.add(f[0]);}}catch(e){}
   L.say(held.size>0,'TC-SUITE-351 PRECONDITION the committed held register was read ('+held.size+' live bundle rows), so the held-tree skip below is a lookup and not a silence',{liveBundleRows:held.size});

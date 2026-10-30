@@ -10,7 +10,8 @@
 # THE FOUR DECLARED SHAPES, each a definition only at the START of a line (ID = TC-<LETTERS>[-]<digits>[letter]).
 # The job counted three; building this found a FOURTH, the ### heading, and three cases (TC-R51, TC-R60, TC-R62) that
 # exist ONLY as headings - so TC-R51, which the TC-R gap paragraph calls 'reserved', is in fact defined:
-#   ROW   | ID |                 a pipe-table row, the column contract
+#   ROW   | ID |  or  | ID (...) |   a pipe-table row, the column contract; the first cell may carry a parenthetical note,
+#                                as TC-R15 and TC-R17 do - the counter skipped both until #546 (antagonist B's F3)
 #   BARE  ID<two or more spaces> a bare entry: the id, a gap, then the story and the text (TC-PL-031.., TC-R30, ..)
 #   BOLD  **ID - ...  or  **ID (...  a bold paragraph opening (TC-GL-001, TC-GL-002, TC-R41, TC-R42)
 #   HEAD  ### ID (...            a heading opening a case's own section (TC-R51, TC-R58, TC-R60, TC-R62, TC-R63, TC-R64)
@@ -21,7 +22,9 @@
 #   S2 every id that OPENS a line in any other way is on the RESERVED list below - a mention, not a definition
 #   S6 every ROW line defines a DISTINCT id, so the row count and the case count are one number [#546, item (88); the
 #      job's testCase asks that |P| equal the rows the section tables contain]. A second row for one id is a fork of a
-#      case inside ONE shape, which S1 cannot see because it compares shapes. Measured at #546: 344 row lines, 344 ids.
+#      case inside ONE shape, which S1 cannot see because it compares shapes. The count is not written here: the
+#      tool prints it (`bash gates/audit/case-shapes.sh | tail -1`) [#546, antagonists A F8 and B F3 - it read 344 and was stale
+#      within the build that wrote it].
 # and it prints the total, the one number to quote: `bash gates/audit/case-shapes.sh | tail -1`.
 # USAGE  bash gates/audit/case-shapes.sh [repo-dir]   exit 0 holds | 1 a check fails | 2 the register is unreadable
 #        bash gates/audit/case-shapes.sh --selftest
@@ -37,11 +40,11 @@ check(){ ( cd "$1" && node -e '
   const row=new Map(),bare=new Map(),bold=new Map(),head=new Map(),open=new Map();
   const add=(m,id,i)=>{if(!m.has(id))m.set(id,[]);m.get(id).push(i+1);};
   L.forEach((l,i)=>{let m;
-    if((m=l.match(new RegExp("^\\|\\s*("+ID+")\\s*\\|"))))add(row,m[1],i);
+    if((m=l.match(new RegExp("^\\|\\s*("+ID+")(?:\\s*\\||\\s+\\()"))))add(row,m[1],i);
     else if((m=l.match(new RegExp("^("+ID+") {2,}"))))add(bare,m[1],i);
     else if((m=l.match(new RegExp("^\\*\\*("+ID+")( - | \\()"))))add(bold,m[1],i);
     else if((m=l.match(new RegExp("^#{2,4} ("+ID+") \\("))))add(head,m[1],i);
-    else if((m=l.match(new RegExp("^(?:#+\\s*|\\*\\*|[-*]\\s+)?\\s*("+ID+")\\b"))))add(open,m[1],i);});
+    else if((m=l.match(new RegExp("^(?:#+\\s*|\\*\\*|[-*]\\s+|\\|\\s*)?\\s*("+ID+")\\b"))))add(open,m[1],i);});
   say(row.size>0&&bare.size>0&&bold.size>0&&head.size>0,"S0 all four declared shapes were FOUND (row "+row.size+", bare "+bare.size+", bold "+bold.size+", head "+head.size+")");
   const multi=[];for(const id of new Set([...row.keys(),...bare.keys(),...bold.keys()])){const n=[row,bare,bold].filter(m=>m.has(id)).length;if(n>1)multi.push(id+" @ "+[row,bare,bold].map(m=>(m.get(id)||[]).join("/")).join(" | "));}
   say(multi.length===0,"S1 no id is defined in two shapes ("+multi.length+(multi.length?": "+multi.join("; "):"")+")");
@@ -67,6 +70,8 @@ selftest(){
   mk; printf '\n### TC-ZZ-005 (US-X) a heading over its own row\n| TC-ZZ-005 | US-X | a | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S5 a HEAD over one row is a section title and holds" 0
   mk; printf '\n## TC-ZZ-003: a FIFTH shape, a heading with no (story)\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S4 a case opened in an undeclared fifth shape reddens via S2" 1
   mk; printf '\n| TC-ZZ-006 | US-X | a | b | c | d |\n| TC-ZZ-006 | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S6 one id given TWO rows reddens (one shape, so S1 is blind to it)" 1
+  mk; printf '\n| TC-ZZ-007 (a note in the first cell) | US-X | a | b | c | d |\n| TC-ZZ-007 | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S7 a parenthetical first cell is a ROW, so its duplicate reddens S6" 1
+  mk; printf '\n| TC-ZZ-008: a pipe line opened some fifth way | a |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S8 a pipe line opening with an id in no declared shape reddens S2" 1
   echo "case-shapes selftest: $p pass / $f fail"; [ "$f" -eq 0 ]
 }
 
