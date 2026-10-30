@@ -178,6 +178,11 @@ const spillPast=(boxes,vw)=>(boxes||[]).filter(k=>k.right>vw+0.5);
 // the declaration, which is falsifiable in BOTH directions. 'deep' flipping to 'flat' means the right-edge claim
 // has quietly become a depth-1 claim again; 'flat' flipping to 'deep' means a wrapper has appeared on a screen
 // whose spill was only ever measured at depth 1, which is the condition this whole item was filed about.
+// A DECLARED SNAPSHOT, AND ITS RED IS THE DECLARATION'S [#546, item (49) (iii); jobs/three-weak-predicates-ride-in-on-the-two-gate-payloads-this-batch-lands-2026-10-04].
+// These two kinds record what each header measured when this block was written; they are not a requirement on the app's
+// layout. A legitimate header restructure will redden the two lines that read them. When that happens, first check the
+// right-edge spill assertion beside each one: if it is green at the new depth, update this declaration in the same
+// commit and say why. Do not file it as an app defect.
 const HDR_DEPTH_KIND={browse:'deep',online:'flat'};
 const hdrKind=(all)=>((all||[]).some(k=>k.depth>=2)?'deep':'flat');
 

@@ -237,6 +237,11 @@ L.run(async()=>{
   const over761of=(r)=>EL761.filter(k=>r[k]&&(r[k].over>0.5||r[k].cut));
   const samePin761=(a,z)=>typeof a==='string'&&a.length>20&&a===z;
   const barOk761=(n)=>n!==null&&n>=2&&n<20;
+  /* MATE IS SCORED ON ITS OWN BRANCH [#546, item (49); jobs/three-weak-predicates-ride-in-on-the-two-gate-payloads-this-batch-lands-2026-10-04 (ii)].
+     cN761 maps a 'mate' bar to 99, and the band above rejects 99 as a hundredfold error - so a LEGITIMATE mate reading
+     on a position White is winning would be called the #385 defect. A hundredfold error prints a number, never the
+     word: the bar's own text decides the branch. 'mate' (White mates) agrees in sign; '-mate' does not. */
+  const barAgree761=(bar,n)=>bar==='mate'?true:(bar==='-mate'?false:barOk761(n));
   const EL_OK={x:2,y:10,w:371,h:32,right:373,over:0,cut:false};
   const mk=(o={})=>{const r={};for(const k of EL761)r[k]=Object.assign({},EL_OK);for(const k in o)r[k]=o[k];return r;};
   L.say(absent761(mk()).length===0,'TC-R10 control: the absent-element detector is SILENT on a complete reading');
@@ -247,6 +252,8 @@ L.run(async()=>{
   L.say(samePin761('You give up a piece. If cxb5, Bxb5+ and White is winning here.','You give up a piece. If cxb5, Bxb5+ and White is winning here.')&&!samePin761('You give up a piece. If cxb5, Bxb5+ and White is winning here.','You give up a piece. If cxb5, Bxb5+ and White is clearly better.')&&!samePin761('','' ),'TC-R10 control: the cross-geometry sentence comparator is silent on two identical sentences, FIRES on two that differ by their last clause, and FIRES on an empty pair rather than calling two blanks equal');
   L.say(barOk761(2.8)&&barOk761(2.0),'TC-R10 control: the eval-agreement predicate is SILENT on +2.8 and on the +2.0 boundary');
   L.say(!barOk761(-2.8)&&!barOk761(0.1)&&!barOk761(99)&&!barOk761(null),'TC-R10 control: the eval-agreement predicate FIRES on a wrong sign (-2.8, the #389 shipped defect), on a near-zero (+0.1, the #385 defect), on a hundredfold error (99) and on an unreadable bar');
+  L.say(barAgree761('mate',99)&&barAgree761('2.8',2.8),'TC-R10 control: the 761 agreement check is SILENT on a mate bar for White (its own branch, not the 99 band) and on +2.8 [#546 item (49)]');
+  L.say(!barAgree761('-mate',-99)&&!barAgree761('99.0',99)&&!barAgree761('-2.8',-2.8),'TC-R10 control: and it FIRES on a mate for Black, on a printed 99.0 (a number, so still the hundredfold band) and on -2.8 [#546 item (49)]');
   const c=await L.launch({geo:'kunal761',name:'review-brilliant-761',store:{ct_pool:'3'}});await c.open();
   await c.tile('Review');await c.page.locator('textarea').first().fill(PGN);await c.tapText(/^⚡ Analyze Game$/,{wait:300});
   await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await c.settle(600);
@@ -289,13 +296,16 @@ L.run(async()=>{
   L.say(over761.length===0,'TC-R10 geo 375x761: nothing the gate reads is cut off at 375 - no element runs past the viewport width and none is clipping its own content [R10 item 6]',{offenders:over761.map(k=>({el:k,over:read761[k].over,cut:read761[k].cut}))});
   const bar761=await c.text('[data-ct="eval-bar-num"]');
   const cN761=(bar761==='mate')?99:((bar761==='-mate')?-99:(/^[+-]?\d+\.\d$/.test(String(bar761))?parseFloat(bar761):null));
-  L.say(barOk761(cN761),'TC-R10 geo 375x761: the independent eval bar agrees in SIGN AND SCALE with the 375x679 column (both >= +2.0 and < 20 on a position White is winning) - two heights, one verdict',{at679:chip,at761:bar761});
+  L.say(barAgree761(bar761,cN761),'TC-R10 geo 375x761: the independent eval bar agrees in SIGN AND SCALE with the 375x679 column (both >= +2.0 and < 20 on a position White is winning) - two heights, one verdict',{at679:chip,at761:bar761});
   const s761=await gridSig(c);await c.tapCt('rev-playout',400);let moved761=false;
   for(let i=0;i<12;i++){await c.settle(350);if((await gridSig(c))!==s761){moved761=true;break;}}
   L.say(moved761,'TC-R10 geo 375x761: the play-out still moves a piece within ~4 s at the taller viewport');
   await c.settle(1200);await c.shot('review-brilliant-761');
   const bad761=c.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
-  L.note('    375x761 app errors beyond the allowed engine trap: '+bad761.length+(bad761.length?' '+JSON.stringify(bad761.slice(0,2)):''));
+  /* AN ASSERTION, NOT A NOTE [#546, item (49) (i)]. This line was L.note while the 375x679 column ASSERTS the same
+     thing at line 184, so an app error at Kunal's settled 761 height alone could not redden the gate - in the column
+     landed to cover that height. Same filter, same strength as 679. */
+  L.say(bad761.length===0,'TC-R10 geo 375x761: no app error beyond the one allowed engine trap - asserted with the same strength as the 375x679 column',{allowed:c.errs.length-bad761.length,other:bad761.slice(0,2)});
   await c.close();
 
   /* ── 6. THE BXH3 GUARD NEEDS A GAME THAT EXERCISES IT [#545, item (32); jobs/tc-r10-needs-a-runner-up-fixture] ──
