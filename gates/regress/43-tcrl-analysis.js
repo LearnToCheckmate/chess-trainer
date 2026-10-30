@@ -52,6 +52,20 @@
 
 'use strict';
 const L=require('../lib');
+
+// THE HORIZONTAL AXIS, MEASURED RATHER THAN READ FROM A QUANTITY PINNED TO ZERO [#546, item (76); jobs/gate-43-asserts-a-
+// quantity-the-apps-design-pins-to-zero-2026-10-16]. TC-RL-011's 'does not scroll sideways' read
+// document.documentElement.scrollLeft, and index.html sets html,body to overflow:hidden, so that number is 0 on every
+// screen of every bundle - three PASS lines per run that could not fail, on the axis CLAUDE.md calls the unrecoverable one.
+// This asks the question directly: every painted element whose box crosses EITHER vertical edge of the viewport, unless an
+// ancestor can scroll it horizontally (overflow-x auto/scroll with real overflow). `n` is how many painted elements were
+// scanned, so an empty walk is visible rather than green.
+const hspill=(b)=>b.page.evaluate(()=>{const vw=innerWidth,bad=[];let n=0;
+  const inScroller=(e)=>{let p=e.parentElement;while(p&&p!==document.body){const s=getComputedStyle(p);if(/auto|scroll/.test(s.overflowX)&&p.scrollWidth>p.clientWidth+1)return true;p=p.parentElement;}return false;};
+  for(const e of document.querySelectorAll('#root *')){const s=getComputedStyle(e);if(s.visibility==='hidden'||s.display==='none')continue;
+    const r=e.getBoundingClientRect();if(r.width<1||r.height<1||r.bottom<0||r.top>innerHeight)continue;n++;
+    if((r.right>vw+0.5||r.left<-0.5)&&!inScroller(e))bad.push({tag:e.tagName.toLowerCase(),left:Math.round(r.left*10)/10,right:Math.round(r.right*10)/10,t:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,24)});}
+  return {vw,n,bad:bad.slice(0,6),nbad:bad.length};});
 const R=require('../drive/review');
 
 // one ply, for TC-RL-003. Result '*' so the head reads "A vs B · *".
@@ -95,9 +109,10 @@ L.run(async()=>{
   // metrics().over is an OBJECT ({bottom,vh,over,scrollY,docScroll}), not a number. The first run of this
   // gate compared the object to 0 and went red on a screen that overflows by exactly nothing.
   const m1=await b.metrics();
-  const sx1=await b.page.evaluate(()=>document.documentElement.scrollLeft||document.body.scrollLeft||0);
+  const hs1=await hspill(b);
   L.say(m1.over.over<=0,'TC-RL-011 (375x730): the progress screen does not overflow the viewport (over '+m1.over.over+')',m1.over);
-  L.say(sx1===0,'TC-RL-011 (375x730): the progress screen does not scroll sideways');
+  L.say(hs1.n>0,'TC-RL-011 (375x730): PRECONDITION the horizontal walk scanned '+hs1.n+' painted elements, so the line below is not over nothing');
+  L.say(hs1.nbad===0,'TC-RL-011 (375x730): nothing on the progress screen crosses either side of the viewport where no scroller can bring it back ('+hs1.nbad+' found)',hs1.bad);
 
   // TC-RL-002: the percentage never goes backwards, sampled every 900 ms until the summary
   const samples=[];
@@ -127,9 +142,10 @@ L.run(async()=>{
     const onProgress=await seen(c,'[data-ct="ana-engines"]');
     L.say(onProgress,'TC-RL-011 ('+g.label+'): the progress screen was actually reached, so the two measurements below are of the state the case names');
     const m=await c.metrics();
-    const sx=await c.page.evaluate(()=>document.documentElement.scrollLeft||document.body.scrollLeft||0);
+    const hs=await hspill(c);
     L.say(m.over.over<=0,'TC-RL-011 ('+g.label+'): the progress screen does not overflow the viewport (over '+m.over.over+')',m.over);
-    L.say(sx===0,'TC-RL-011 ('+g.label+'): the progress screen does not scroll sideways');
+    L.say(hs.n>0,'TC-RL-011 ('+g.label+'): PRECONDITION the horizontal walk scanned '+hs.n+' painted elements, so the line below is not over nothing');
+    L.say(hs.nbad===0,'TC-RL-011 ('+g.label+'): nothing on the progress screen crosses either side of the viewport where no scroller can bring it back ('+hs.nbad+' found)',hs.bad);
     await c.close();   // abandoned on purpose: waiting out five more full analyses buys nothing this case needs
   }
 
