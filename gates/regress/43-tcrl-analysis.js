@@ -6,11 +6,14 @@
 //
 // CODED HERE: 001, 002, 003, 005, 006, 007, 010, 011 — eight of the eleven.
 // DELIBERATELY NOT CODED, and named so the absence is a record rather than a gap:
-//   TC-RL-004  NEEDS-KUNAL (K15): a 200-ply review takes 93 s and TEST-CASES.md calls >40 plies uncovered.
-//              His call whether that is a supported case, so it is not coded against a guess.
-//   TC-RL-008  NEEDS-KUNAL: backgrounding the app. The doc's own note says headless Chromium would not stop
-//              the run, so the sandbox CANNOT measure it - it needs a phone recording.
-//   TC-RL-009  NEEDS-KUNAL: no failure state is defined in the build, so there is nothing to assert.
+//   TC-RL-004  K15 ANSWERED [#546 item (68) sweep]: decisions/k15-long-game-wait, "Improve the wait, do not cap
+//              the game". A 200-ply review IS a supported case, so this is owed as a case, not parked - the wait
+//              itself is what he asked to improve. Still uncoded here; the label is what changed.
+//   TC-RL-008  K16 ANSWERED: decisions/k16-backgrounding, "It must finish, or pick up where it left off", and his
+//              note says the current behaviour is already right on his device - "PIN IT WITH A GATE". Headless
+//              Chromium still cannot stop the run, so the pin needs a route this sandbox does not have yet.
+//   TC-RL-009  K14 ANSWERED BUT ON HOLD: decisions/k14-analysis-failed-screen, "A short message with a Try again
+//              button", with the note "HOLD - show me mockups ... DO NOT BUILD". Still nothing to assert.
 //
 // WHAT IS PINNED AND WHAT IS DELIBERATELY NOT. The doc measured the summary arriving in 15-27 s across six
 // geometries. That number is a property of the MACHINE, not of the app, so pinning it here would make this

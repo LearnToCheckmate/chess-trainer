@@ -248,7 +248,7 @@ L.run(async()=>{
     L.say(r4.every(x=>near(x.h,51)),geo+': every control button is 51 tall',r4.map(x=>x.t+':'+x.h).join(' '));
     L.say(r4.every(x=>x.bottom<=b.geo.h+0.5&&x.y>=0),geo+': the whole control row is inside the viewport before any tap (bottom '+(r4[0]&&r4[0].bottom)+' <= '+b.geo.h+')',{bottom:r4[0]&&r4[0].bottom,vh:b.geo.h});
     L.say(r4.every(x=>x.right<=b.geo.w+0.5&&x.x>=0),geo+': no control button hangs off either edge',r4.map(x=>x.x+'..'+x.right).join(' '));
-    L.note(geo+': narrowest control button is '+Math.min(...r4.map(x=>x.w))+' wide x 51 tall (NEEDS-KUNAL K-PL-1: 44px)');
+    L.note(geo+': narrowest control button is '+Math.min(...r4.map(x=>x.w))+' wide x 51 tall (K-PL-1 ANSWERED - decisions/k5k7-tap-size-44, \'No - 44 binds only where a story says so\', so 44 is not a floor here)');
 
     // --- TC-PL-007: Back is live after moves, Forward is dead at the head.
     L.say(r4[1].dis===false&&r4[2].dis===true,geo+': after four plies Back is live and Forward is dead - the board is at the head of the game',{back:r4[1].dis,forward:r4[2].dis});
@@ -438,11 +438,14 @@ L.run(async()=>{
     L.say(!!rows&&!rows.some(x=>/Resign/i.test(x.t)),geo+': there is no way to resign a game that is already over',rows&&rows.map(x=>x.t));
     L.say(!!rows&&rows[rows.length-1].bottom<=b.geo.h+0.5,geo+': the LAST row of the sheet ends inside the viewport ('+(rows&&rows[rows.length-1].bottom)+' <= '+b.geo.h+') - the content, not just the container',{last:rows&&rows[rows.length-1],vh:b.geo.h});
     L.say(!!rows&&rows.every(x=>x.h>=44),geo+': every sheet row is at least 44 tall',rows&&rows.map(x=>x.t+':'+x.h).join(' '));
-    // --- TC-PL-026: Flip is NOT reachable once the game is over. Measured, and it contradicts the comment at
-    // chess.jsx:5319 ("Flip is still in More"). Asserted as the BUILD behaves so the gate is honest; if Kunal
-    // rules the comment is right, this assertion is the one that moves. NEEDS-KUNAL K-PL-4.
+    // --- TC-PL-026: Flip is NOT reachable once the game is over, AND THAT IS DECIDED [#546, item (68);
+    // jobs/gate-46-carries-a-needs-kunal-label-for-a-question-answered-five-builds-ago-2026-09-30]. This comment read
+    // "if Kunal rules the comment is right, this assertion is the one that moves. NEEDS-KUNAL K-PL-4" for five builds
+    // after he had ruled: decisions/q-play-flip-gameover, choice "Flip a finished game in Review instead", empty note,
+    // so nothing holds it. #437 read the stale label, restored Flip to the play More sheet, and reddened the suite.
+    // The assertion pins a DECIDED behaviour; the chess.jsx comment that says "Flip is still in More" is what is wrong.
     const anyFlip=await b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;}).some(x=>/^Flip$/.test((x.innerText||'').trim())));
-    L.say(anyFlip===false,geo+': RECORDED, NOT ENDORSED - after the game ends there is no Flip anywhere: not in the row, not in the More sheet. chess.jsx:5319 says "Flip is still in More"; it is not. K-PL-4',{flipAnywhere:anyFlip});
+    L.say(anyFlip===false,geo+': DECIDED (q-play-flip-gameover: "Flip a finished game in Review instead") - after the game ends there is no Flip anywhere: not in the row, not in the More sheet. chess.jsx:5319 says "Flip is still in More"; it is not, by decision. K-PL-4',{flipAnywhere:anyFlip});
     await shutSheet(b);
 
     // --- TC-PL-027: the result card leaves the board, and the board is unchanged when it goes. THE 8000 BELOW
