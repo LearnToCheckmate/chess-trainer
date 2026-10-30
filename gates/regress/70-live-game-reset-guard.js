@@ -133,7 +133,21 @@ async function tapNewGame(b){
 }
 // the More sheet's rows, by their text, with rects
 const sheetRows=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="more-sheet"]');if(!s)return null;const o=[];for(const e of s.querySelectorAll('button,[role=button],div')){const t=(e.innerText||'').replace(/\s+/g,' ').trim();if(!t||t.length>44)continue;const r=e.getBoundingClientRect();if(r.width<40||r.height<20||r.height>90)continue;o.push({t,y:Math.round(r.top*100)/100,h:Math.round(r.height*100)/100});}return o;});
-const resultText=(b)=>b.page.evaluate(()=>{const hits=[];for(const e of document.querySelectorAll('*')){if(e.children.length)continue;const t=(e.innerText||'').trim();if(t&&t.length<44&&/won|win|lose|lost|Time!|Resigned|Checkmate|Stalemate|draw/i.test(t))hits.push(t);}return hits;});
+/* THE RESULT PREDICATE IS THE APP'S OWN VOCABULARY, ANCHORED, AND KEYED TO THE TWO ELEMENTS THAT STATE A RESULT
+   [#546, item (57); jobs/gate-70-resulttext-predicate-matches-close-withdraw-and-is-winning-2026-10-13]. It was an
+   unanchored /won|win|lose|lost|Time!|Resigned|Checkmate|Stalemate|draw/i over EVERY leaf under 44 chars, so 'Close'
+   matched via 'lose', 'Withdraw' via 'draw' and 'is winning here' via 'win' - F0 and F1b could be satisfied by sheet
+   chrome. #391's rule, applied: ENUMERATE WHAT THE APP CAN PRINT. chess.jsx's gameResult has head in {Checkmate!,
+   Stalemate, Draw, Time!, Resigned} and sub in {White wins, Black wins, You win! 🎉, You lose, Draw, Fifty-move rule,
+   Threefold repetition}; the result card prints them as two leaves, and the status slot above the board
+   ([data-ct="play-opening"]) prints head + ' · ' + sub once the card has gone. A hit must be a leaf inside one of
+   those two elements whose WHOLE text is one of those strings. The U-block below drives the predicate both ways
+   before any browser is opened. */
+const RESULT_HEADS=['Checkmate!','Stalemate','Draw','Time!','Resigned'];
+const RESULT_SUBS=['White wins','Black wins','You win! 🎉','You lose','Draw','Fifty-move rule','Threefold repetition'];
+const RESULT_SRC='^(?:(?:'+RESULT_HEADS.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?: \u00b7 (?:'+RESULT_SUBS.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+'))?|'+RESULT_SUBS.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')$';
+const isResult=(t)=>new RegExp(RESULT_SRC,'u').test(String(t||'').trim());
+const resultText=(b)=>b.page.evaluate((src)=>{const re=new RegExp(src,'u');const hits=[];for(const host of document.querySelectorAll('[data-ct="result-card"],[data-ct="play-opening"]')){for(const e of [host,...host.querySelectorAll('*')]){if(e.children.length)continue;const t=(e.innerText||'').trim();if(t&&re.test(t))hits.push(t);}}return hits;},RESULT_SRC);
 /* THE 64-SQUARE OCCUPANCY STRING, not a piece COUNT. K2 first asserted "fewer than 32 pieces" and went RED on
    a correct bundle, because an OPENING lesson position has all 32 pieces and is still not the opening array -
    a count is not a position. This reads which squares are occupied, in the board's own DOM order. */
@@ -163,6 +177,15 @@ const rowY=(rows,re)=>{const r=(rows||[]).find(x=>re.test(x.t));return r?r.y:nul
 async function tryTap(fn){try{await fn();return true;}catch(e){return false;}}
 
 L.run(async()=>{
+// U. THE RESULT PREDICATE, DRIVEN BOTH WAYS IN NODE [#546, item (57)]. Every string the app can print must be accepted,
+// and the chrome the old predicate mistook for a result must be rejected - each named, so a red says which.
+{
+  const accept=[...RESULT_HEADS,...RESULT_SUBS,'Checkmate! \u00b7 Black wins','Resigned \u00b7 White wins','Time! \u00b7 You lose','Draw \u00b7 Threefold repetition','Draw \u00b7 Fifty-move rule','Stalemate \u00b7 Draw','Checkmate! \u00b7 You win! \ud83c\udf89'];
+  const reject=['Close','Withdraw','is winning here','The eval bar shows who is winning','White is winning here.','Lost on time? No.','New game','Rematch','Black wins the exchange','Checkmate in 2','Draw offer'];
+  const badA=accept.filter(t=>!isResult(t)),badR=reject.filter(t=>isResult(t));
+  L.say(badA.length===0,'U1 the result predicate ACCEPTS every result string chess.jsx can print ('+accept.length+': each head, each sub, and head \u00b7 sub as the status slot joins them)',{missed:badA});
+  L.say(badR.length===0,'U2 and REJECTS the chrome the old unanchored predicate matched - Close (via lose), Withdraw (via draw), is winning (via win) - plus '+(reject.length-3)+' near-misses',{wronglyAccepted:badR});
+}
 for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
   const G=g.k;
 
