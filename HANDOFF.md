@@ -1,11 +1,40 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
+**#546: BATCH 6. ALL 89 ORDERED JOBS WORKED, GATES GREEN #546 AT 5699 PASS / 0 FAIL OVER 65 SECTIONS, PUSHED TO MAIN.**
+Run `build__1793333947000`, 30 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_30_batch6`.
+**NO APPLICATION CODE CHANGED.** `app.js` is still #530's bundle, md5 `049b41dfb6f1`; `chess.jsx` is `1b41d1d1e765`.
+The gated sha is `84e3c4f`; the log is `claude/agents/gatelogs/546c-all.log` (verify-log OK with --this-bundle and --this-suite).
+
+## 0. WHAT THE NEXT RUN NEEDS FROM #546
+
+1. **The suite now FAILS a gate that asserted and never reached done()** (gates/lib.js exit hook, fb5f2f0, antagonist A's
+   upheld veto). A gate that stalls, throws past L.run or exits early reads `FAIL HARNESS: ...`, not green. Every gate on
+   the tree reaches done(); a new gate must too.
+2. **gates.sh fingerprints the tree before its first browser gate and reds on any move** (item 87). DO NOT commit, fetch,
+   mint or write anything in the repository while a suite runs - the ~12-minute fastgate-drive window before the first
+   browser gate is where an innocent ref update turns the suite red (antagonist A F10). Run every probe in a clone.
+3. **held.sh is stricter, and `add` and `check` now agree on what a row is** (seven repair rounds, 2a4ea90 to 84e3c4f). A
+   held-trees.tsv row in a shape check cannot read - spaces for tabs, field 1 not 8-12 hex or 'sha-only', a live field 2
+   element not 7-40 hex, a live field 7 not exactly '-' or 8-12 hex - makes `check` answer exit 2 for EVERY tree. Write rows
+   only with `held.sh add`, which refuses those shapes. A short 7-11 hex prefix of a held md5 now reads HELD.
+4. **CONTROL-RECORD lines for the nine gates #545 deferred are landed** (item 89). control-audit reads badrecord 0,
+   assertionsmoved 2 (gates 15 and 49, older than both batches), 16 covered. The trials were REBUILT (none survived #545's
+   container); recipes are in each record's how= and in the job outcome.
+5. **New gates 79, 80 and 81 are required and pinned** (gates/assertion-counts.tsv). Gate 81 needs a COMPLETE clone: in the
+   routine's depth-50 arrival shape it reds in one PRECONDITION line - run `git fetch --unshallow` before the suite.
+6. **Open, recorded for the orchestrator to route (pre-existing, measured on main 4aae4ed too):** verify-log.sh's default held
+   arm skips a key it cannot read (a leading blank line, no ref line) and answers OK for a held log; it reads held-row shapes
+   differently from held.sh; an empty held register clears; audit-all skips mode-644 instruments; buildnum reads only the
+   working-tree register. All are on flags antagonist-a-546 and antagonist-b-546 with their commands.
+7. **The rotating audit resumes at gates/regress/47-menu.js:562** (docs/rotating-audit-pointer v24). #545's flag named a
+   different resume point and never moved the pointer; the pointer is authoritative.
+
 **#545: BATCH 5. ALL 100 ORDERED JOBS WORKED, GATES GREEN #545 AT 5542 PASS / 0 FAIL OVER 62 SECTIONS, PUSHED TO MAIN.**
 Run `build__1793280238451`, 29-30 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_29_batch5`.
 **NO APPLICATION CODE CHANGED.** `app.js` is still #530's bundle, md5 `049b41dfb6f1`; `chess.jsx` is `1b41d1d1e765`.
 
-## 0. WHAT THE NEXT RUN NEEDS FROM #545
+## 0b. WHAT #545 LEFT (items 1 and 5 discharged at #546)
 
 1. **CONTROL-RECORD lines are owed, and they were deferred on purpose.** They are comment lines inside gate files, so adding
    them after the gated sha would change the gated tree. Land them with the next suite, using the measured trials in each

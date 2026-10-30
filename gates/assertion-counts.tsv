@@ -1,9 +1,9 @@
 # gates/assertion-counts.tsv - the per-gate assertion pins. gates.sh's assert_falls refuses GATES GREEN when a
 # gate emits FEWER (pass + fail) than its row. Written ONLY by gates/assertcount.sh record; a fall reaches main
 # in a commit whose diff shows the old and new number and the reason. Columns: label, count, set by, why.
-10-gameover	15	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+10-gameover	17	#546	was 15: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 11-lesson	102	#545	was 84: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
-12-hint	25	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+12-hint	28	#546	was 25: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 13-play-after-moves	25	#545	was 19: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 14-uat-review-card	15	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 15-gallery-playall	113	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
@@ -11,7 +11,7 @@
 18-drill-credit-provenance	53	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 19-review-grade-counts	58	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 20-review	160	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-21-review-brilliant	49	#545	was 43: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
+21-review-brilliant	52	#546	was 49: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 22-engline-recovery	43	#545	was 33: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 23-full-walk	23	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 24-opponent-handshake	8	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
@@ -24,17 +24,17 @@
 31-antagonist373	15	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 32-plylog	23	#545	was 17: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 33-reproducible-review	23	#545	was 21: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
-34-takeback	16	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-35-width-containment	77	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-36-evalbar	32	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+34-takeback	48	#546	was 16: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+35-width-containment	104	#546	was 77: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+36-evalbar	34	#546	was 32: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 37-strip-sync	45	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 38-rev-sheet-reach	46	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 39-pz-streak	51	#545	was 49: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 40-reachability	38	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 41-coach-bubble	74	#545	was 55: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 42-home-devrow	46	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-43-tcrl-analysis	34	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-45-play-setup	169	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+43-tcrl-analysis	37	#546	was 34: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+45-play-setup	184	#546	was 169: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 46-play	206	#545	was 187: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 47-menu	132	#545	was 87: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 48-lesson-flow	354	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
@@ -44,8 +44,8 @@
 54-play-resume	94	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 55-play-from-here-terminal	62	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 57-pz-solved-explanation	141	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-58-review-rating-source	79	#545	was 53: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
-61-review-list-month-independence	151	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+58-review-rating-source	116	#546	was 79: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+61-review-list-month-independence	154	#546	was 151: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 62-landscape-board-stable	27	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 63-gameover-chrome-keying	85	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 64-landscape-gameover-row	88	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
@@ -54,7 +54,7 @@
 67-sel-cls-consumers	34	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 68-brilliant-sac-empty-square	78	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 69-setup-sheet-live-game	74	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
-70-live-game-reset-guard	115	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+70-live-game-reset-guard	117	#546	was 115: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
 71-resume-row-agrees-with-the-board	53	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 72-drill-prev	139	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 73-review-list-filter	106	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
@@ -62,4 +62,7 @@
 75-fit-loop-one-way-ratchet	121	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
 77-empty-bands	61	#545	new: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
 78-inner-scroller-fold	22	#545	new: #545 suite: the per-gate counts rise from items 20, 25, 27, 32, 35, 36, 50, 56, 61, 66, 69, 74, 76-84, 92, 94 and 100; gate 66 is 61 (55 at #544)
-mountcheck	17	#544	new: seeded at #545 from the archived #544 full-suite log, the newest on main
+79-extractor-is-callable	9	#546	new: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+80-castle-input	40	#546	new: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+81-gatelog-covers-shipped-bundle	91	#546	new: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
+mountcheck	18	#546	was 17: #546 close-out: pins taken from GATES GREEN #546 (546c-all.log, gated 84e3c4f); first pins for new gates 79, 80, 81; every rise is this batch adding assertions
