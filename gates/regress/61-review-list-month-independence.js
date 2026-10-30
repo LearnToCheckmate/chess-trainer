@@ -252,6 +252,28 @@ async function READ(b){
 }
 
 // one input: seed s, n accounts. Returns the reading plus the post-reload reading (A5).
+// THE READING WAITS FOR THE ROWS, NOT FOR A CLOCK [#546, item (73); jobs/gate-61-a7a-at-three-accounts-and-a9a-differ-
+// between-two-identical-runs-2026-10-03]. Two runs of this gate on one bundle disagreed on A7a at three accounts and on A9a,
+// because the read was taken a fixed settle after the LAST Fetch tap while that account's fetch could still be landing.
+// This polls until the Fetch control is back (the app paints '…' while ccLoading) AND the total row count in
+// ct_acctgames has held still for three reads 250ms apart - or it times out at 20s, which
+// the caller NOTES so a reading taken anyway is never silent.
+async function rowsSettled(b,nAccts){
+  let last=-1,same=0,read=null;
+  for(let i=0;i<80;i++){
+    read=await b.page.evaluate(()=>{let M={};try{M=JSON.parse(localStorage.getItem('ct_acctgames')||'{}');}catch(e){}
+      const ids=Object.keys(M);let rows=0;ids.forEach(id=>{rows+=(M[id]||[]).length;});
+      // THE ACCOUNT COUNT IS REPORTED, NOT WAITED ON: an account whose fetch returns no games is stored in NEITHER
+      // ct_acctgames NOR ct_accts (measured on the 'empty-window' input, which waited the full 20s on both), so the
+      // settle condition is 'Fetch is idle and the row count held still', and accts rides along for the reader.
+      let A=[];try{A=JSON.parse(localStorage.getItem('ct_accts')||'[]');}catch(e){}
+      const idle=[...document.querySelectorAll('button')].some(x=>(x.textContent||'').trim()==='Fetch'&&x.offsetParent!==null&&!x.disabled);
+      return {accts:Array.isArray(A)?A.length:0,rows,idle};});
+    if(read.idle&&read.rows===last){if(++same>=3)return Object.assign({ok:true,polls:i+1,acctsWanted:nAccts},read);}else same=0;
+    last=read.rows;await b.settle(250);
+  }
+  return Object.assign({ok:false,polls:80},read||{});
+}
 async function input(seed,n,geo,name,thin){
   const state={seed,hits:[],refuse:false,thin:thin||null};
   const b=await L.launch({geo,store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name});
@@ -284,7 +306,10 @@ async function input(seed,n,geo,name,thin){
     }catch(e){L.note('       ADD-ACCOUNT THREW on account '+(i+1)+': '+String(e.message).slice(0,120)+'. A0b asserts this.');break;}
   }
   await b.settle(700);
+  const settled=await rowsSettled(b,added);
+  if(!settled.ok)L.note('       ROWS NOT SETTLED for '+name+' after 20s ('+JSON.stringify(settled)+'); the reading below is taken anyway and is not a stable one');
   const r=await READ(b);
+  r.settled=settled;
   r.hits=state.hits.slice(0,4); r.hitCount=state.hits.length;
   r.accountsAdded=added; r.accountsWanted=n;
   // A5: the same context, the stub now refusing, reloaded. Whatever is on screen came out of localStorage.
@@ -524,6 +549,8 @@ async function input(seed,n,geo,name,thin){
     await b.page.locator('input[placeholder="Chess.com username"]').fill(ACCTS[1]);
     await b.settle(150); await b.tapText(/^Fetch$/,{wait:2600});        // acct2 = busy, games-bound
     await b.settle(800);
+    const settledM=await rowsSettled(b,2);
+    if(!settledM.ok)L.note('MIXED BOUNDS rows NOT SETTLED after 20s ('+JSON.stringify(settledM)+'); A9 below reads an unstable state');
     const r=await READ(b);
     const caps=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_acctcap')||'{}');}catch(e){return {};}});
     const vals=Object.keys(caps).sort().map(k=>caps[k]);
