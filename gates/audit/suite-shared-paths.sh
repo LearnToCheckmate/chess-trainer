@@ -108,6 +108,8 @@ say(){ printf '%s\n' "$*"; }
 # at close-out, so it is a read target like the four names beside it, not a write destination [#545, item (37)
 # follow-up: item (37) added that read and this audit went RED on it, 10 -> 7 selftest, until this line].
 # unit-held-guard.sh is a read target for the same reason: gates.sh runs it and never writes it [#545 item (85)].
+# lib.js is a read target too: gates.sh PRELOADS it into every gate with `node -r "$G/lib.js"` (#546 item (86)) and
+# never writes it. That line made this audit RED until this exclusion [#546, antagonist B's V2].
 # ONE LEVEL OF VARIABLE COMPOSITION [#546, item (58); jobs/suite-shared-paths-derive-cannot-see-a-write-destination-
 # built-from-a-variable-2026-10-16]. The literal scan below sees `$G/`-prefixed text and nothing else, so a destination
 # written as a variable plus a suffix - `> "$dlog.pass"`, `2> "$dlog.err"` - was invisible to it, and arm (1) printed
@@ -130,7 +132,7 @@ composed(){
 }
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
   { grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" | sed 's/}$//'; composed; } \
-    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)' \
+    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|lib\.js|regress/?)' \
     | sort -u
 }
 

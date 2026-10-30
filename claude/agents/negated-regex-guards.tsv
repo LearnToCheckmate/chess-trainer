@@ -31,3 +31,4 @@ gates/regress/73-review-list-filter.js	/^No games match/	complete: one form, 'No
 gates/regress/39-pz-streak.js	/in a row/	complete: chess.jsx shows a streak only as '🔥 N in a row' (pzStreak>=2); every streak form carries the phrase
 gates/regress/39-pz-streak.js	/\b6 in a row/	complete for its purpose: the seed's best value printed as if it were the streak
 gates/regress/46-play.js	/Checkmate/	complete for its subject: the result card of the pp-mate state (Fool's-mate drive) reads 'Checkmate! Black wins' - the positive half at the terminal ply asserts the same pattern IS painted, so this absence check is paired with a presence check on the same reading
+gates/regress/80-castle-input.js	/O-O/	complete for its subject: chess.jsx writes a castle only as 'O-O' or 'O-O-O' (with any +/# after), and /O-O/ matches both; the same L.say also requires the move row byte-equal and the ply count unchanged, so a castle in any other spelling still reddens it [#546, antagonist B V2]
