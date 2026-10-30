@@ -39,6 +39,8 @@ The audit of 2026-09-14 asked for one of the two to be renamed, and asked for it
 
 *The seven rows above were added at #545 (item (75); jobs/spec-docs-frozen-at-373): the suite printed these id spaces for weeks while this register named none of them, so "the real id space of TEST-CASES.md" could not be satisfied for most of what the gates execute. Where a space has NO register rows, the row says so and names the gate file as its only home, rather than implying cases exist that do not. Giving TC-PS, TC-SC, TC-BS and the rest of TC-HM and TC-OC rows of their own is the remaining work.*
 
+**A row's measured bundle is marked, from #546.** A case row that publishes a result writes `measured on md5 <first 12 hex>` for the ONE bundle that result was measured on, and that md5 must occur in the log the row is checked against (the row's own `gates/logs/` log, else the `#NNN` its result cell names, else its section's log). `gates/verify-log.sh --citations` arm (3m) REFUSES a marked md5 the log does not carry and counts it as `measuredabsent` on the ratchet line. Every other md5 in a row - a negative-control bundle built inside a gate - stays unmarked and is only reported, because a control bundle never reaches a committed log. Rows written before #546 carry no marker and are unchanged (jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30).
+
 ### The gate-number register — read before adding a gate file
 
 Three lanes published a gate on the afternoon of 2026-09-14 and two of them chose the same number, because

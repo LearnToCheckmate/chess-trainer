@@ -284,8 +284,9 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # THE COUNT MOVED 15 -> 17 AT #544 ITEM (12), when arm (6)'s `scriptdead` and `scriptstale` joined the line,
   # and THIS CASE IS WHAT NOTICED - which is what it is for. It is the live field count, not a floor: a counter
   # added without updating it reddens here, and here is the only place that would see it.
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (17: one verdict word, 16 counters)" \
-    "17 17" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end.
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (18: one verdict word, 17 counters)" \
+    "18 18" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -523,6 +524,29 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C18 arm (6): every script line-number citation in the prescriptive set resolves, on this tree" \
     "0 dead, 0 past end of file" "$C18"
 
+  # ── C19: ARM (3m), THE MARKED md5 [#546, item (4)]. One fabricated register with a section citing a log that
+  #     carries md5 aaaabbbbcccc and not ddddeeeeffff. Three rows, so the marker is what decides and not the md5:
+  #     the SAME absent md5 unmarked is only REPORTED, marked it is REFUSED, and a marked md5 that IS in the log
+  #     is silent. The assertions read the (3m) summary and the ratchet's last field, never the verdict, because
+  #     a fabricated tree reddens on other arms (its section's gates/logs/ path does not resolve) and a verdict
+  #     assertion here would be red for the wrong reason.
+  st_3m() { # st_3m <root> -> "(3m) count | measuredabsent field"
+    ( cd "$1" && bash gates/verify-log.sh --citations >"$1/c19.txt" 2>&1 || true
+      printf '%s | %s' "$(awk '/^  \(3m\) [0-9]/{print $2; exit}' "$1/c19.txt")" "$(grep -oE 'measuredabsent=[0-9]+' "$1/c19.txt" | head -1)" )
+  }
+  R19="$(st_tree)"; mkdir -p "$R19/claude/agents/gatelogs"
+  printf 'bundle md5 aaaabbbbcccc\nPASS TC-Z01\nPASS TC-Z02\nPASS TC-Z03\n' > "$R19/claude/agents/gatelogs/900-all.log"
+  { printf '## Fixture - executed against #900 (gates/regress/10-real.js; log gates/logs/900-all.log)\n\n'
+    printf '| id | story | steps | expected | by | result |\n|---|---|---|---|---|---|\n'
+    printf '| TC-Z01 | US-Z | s | e | 10-real.js | 3 PASS, measured on md5 aaaabbbbcccc |\n'
+    printf '| TC-Z02 | US-Z | s | e | 10-real.js | 3 PASS; control bundle md5 ddddeeeeffff |\n'; } > "$R19/claude/stories/TEST-CASES.md"
+  st_ck "C19 a marked md5 that IS in the log, and an absent md5 left UNMARKED, refuse nothing" "0 | measuredabsent=0" "$(st_3m "$R19")"
+  printf '| TC-Z03 | US-Z | s | e | 10-real.js | 3 PASS, measured on md5 ddddeeeeffff |\n' >> "$R19/claude/stories/TEST-CASES.md"
+  st_ck "C19b the SAME absent md5, MARKED, is refused and counted on the ratchet line" "1 | measuredabsent=1" "$(st_3m "$R19")"
+  st_ck "C19c and the refusal names the row and the md5" "yes" \
+    "$(grep -qF 'REFUSED (3m): TC-Z03 was MEASURED ON md5 ddddeeeeffff' "$R19/c19.txt" && echo yes || echo no)"
+  rm -rf "$R19"
+
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -571,7 +595,7 @@ EOF
   echo "  (1) $A1OK resolved, $A1ALLOW allowlisted, $A1BAD dead"
   # (2) and (3) read the case register only. No register, no claim: NOT CHECKED, never a pass.
   TC="claude/stories/TEST-CASES.md"
-  A2BAD=0; A2OK=0; A2NC=0; A2MIS=0; A3BAD=0; A3OK=0; A3NC=0
+  A2BAD=0; A2OK=0; A2NC=0; A2MIS=0; A3BAD=0; A3OK=0; A3NC=0; A3MBAD=0
   echo "=== citations (2): does every published case id occur in the log its section cites?"
   if [ ! -f "$TC" ]; then
     echo "  NOT CHECKED: $TC is absent, so no case id can be resolved. That is not a pass."
@@ -629,17 +653,32 @@ EOF
           A3BAD=$((A3BAD+1)); echo "  REPORTED (3): $ID cites bundle md5 $M, which does not occur in $USELOG"
         fi
       done
+      # (3m) A MARKED md5 IS REFUSED, NOT REPORTED [#546, item (4);
+      # jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30]. The loop above cannot refuse,
+      # because a row cites two kinds of bundle and its syntax did not separate them (the comment below the arm).
+      # THIS IS THE CONVENTION THAT SEPARATES THEM: a row writes `measured on md5 <hex>` for the ONE bundle its
+      # published result was measured on, and that md5 must occur in the log the row is checked against - a
+      # result measured on a bundle the log never gated is the #436 defect the job names. Every other md5 in the
+      # row (a negative-control bundle built inside a gate) stays unmarked and is only REPORTED above. The marked
+      # md5 is ALSO counted by the loop above, so the (3) totals are unchanged by this arm; it adds a refusal and a
+      # counter, `measuredabsent`, appended at the END of the ratchet line so no existing field moves.
+      for M in $(printf '%s' "$line" | grep -oiE 'measured on md5[ ]+[0-9a-f]{12,32}' | awk '{print $NF}' | tr 'A-F' 'a-f' | sort -u); do
+        grep -qiF "$M" "$USELOG" && continue
+        A3MBAD=$((A3MBAD+1)); echo "  REFUSED (3m): $ID was MEASURED ON md5 $M (marked), which does not occur in $USELOG"
+      done
     done < "$TC"
   fi
   echo "  (2) $A2OK supported, $A2BAD unsupported, $A2MIS misfiled under a section citing another log, $A2NC not checked"
   echo "=== citations (3): bundle md5s cited by a row - REPORTED, NOT REFUSED"
   echo "  (3) $A3OK found in the cited log, $A3BAD not found"
+  echo "  (3m) $A3MBAD marked 'measured on md5' bundle(s) absent from the row's log (refused)"
   # A3 IS REPORTED RATHER THAN REFUSED, AND THE REASON IS A REAL GAP, NOT CAUTION. A case row legitimately
   # cites TWO kinds of bundle: the one its published result was measured on, which must be in the log, and the
   # NEGATIVE-CONTROL bundles built inside the gate, which never reach a committed log and must not be. Nothing
-  # in the row's syntax separates them, so a refusal here would redden correct rows. Separating them needs a
-  # row-level convention that does not exist yet; that remainder is named on
-  # jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30, not left for a reader to infer.
+  # in the row's syntax separated them, so a refusal here would redden correct rows. #546 added the row-level
+  # convention that does: `measured on md5 <hex>` marks the one measured bundle, and arm (3m) above REFUSES a
+  # marked md5 absent from the row's log while this loop goes on only REPORTING every md5
+  # (jobs/case-rows-publish-a-figure-from-a-bundle-that-did-not-ship-2026-09-30; claude/stories/README.md).
   # === (4) LINE-NUMBER CITATIONS IN THE STORY REGISTERS. A COMPARATOR, AND A RATCHET RATHER THAN A BAN.
   # jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03 (P2, priority 9, build). Antagonist A,
   # on the cross-read of #474's batch: arms (1), (2) and (3) above ask "does the named PATH resolve?", "does
@@ -996,11 +1035,12 @@ EOF
   # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
   # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
   # would make the line unable to grow with the arms, which is worse.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ]
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0}"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ]; then
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
+    [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
   fi
