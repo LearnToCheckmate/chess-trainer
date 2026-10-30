@@ -2878,6 +2878,9 @@ for f in "${gates[@]}"; do
     echo "        A gate that is present and asserts nothing is indistinguishable from a gate that is absent," | tee -a "$ALL"
     echo "        and the manifest cannot see the difference: the file exists. Either it is broken, or it was" | tee -a "$ALL"
     echo "        emptied. If a gate ever legitimately asserts nothing, it should not be in the suite." | tee -a "$ALL"
+  # A TIMEOUT IS NAMED BEFORE THE MISSING INPUTS LINE [#546, antagonist A's F7]: `timeout` sends SIGTERM, so a killed gate
+  # never runs lib.js's exit hook and has no inputs line either - and the obs branch below would misdiagnose it.
+  elif [ $rc -eq 124 ]; then red=1; echo "    $name: RED (TIMED OUT - killed by 'timeout 900', exit 124; $passn PASS lines before the kill)" | tee -a "$ALL"
   elif [ "$obs" -eq 0 ]; then red=1; echo "    $name: RED (printed no 'inputs observed' line, so what this gate read is unknown - the recorder is preloaded with -r gates/lib.js; a gate that bypasses it is the blind spot #490 kept finding)" | tee -a "$ALL"
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
 done

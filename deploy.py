@@ -63,8 +63,12 @@ def run(cmd, cwd=None):
 #       HELD and 2 is "could not tell", and both refuse (CLAUDE.md: read the status, not the last line).
 #   (2) --gatelog <log>, which gates/verify-log.sh must accept for '#<build>'. It is REQUIRED: there is no skip flag,
 #       because a skip flag is how the bar would be stepped over. WHAT IT CANNOT SAY: the bundle this script then builds
-#       was not the one the log gated (the stamp moves the md5), so the log vouches for the build number and the
-#       source, not for the bytes - the same limit CLAUDE.md records for a rebuild.
+#       was not the one the log gated (the stamp moves the md5), and verify-log.sh is called WITHOUT --this-bundle and a log
+#       carries no source hash - so the log vouches for the BUILD NUMBER ONLY: any tree with an accepted '#<build>' log
+#       passes this check. Tying the deployed chess.jsx to the log is what (1)'s source keys do NOT do either; it is an open
+#       limit, not a property [corrected at #546 on antagonist A's F6 - this said 'the build number and the source'].
+#       A relative --gatelog is resolved against the CALLER's directory before anything runs (it was resolved against
+#       --repo, which named a different file whenever the two differed - also F6).
 def gate_bar(repo, build, gatelog):
     held = os.path.join(repo, "gates", "held.sh")
     if not os.path.exists(held):
@@ -77,6 +81,7 @@ def gate_bar(repo, build, gatelog):
     if not gatelog:
         sys.exit("ABORT: no --gatelog. A deploy needs the full-suite log that authorises #%d, accepted by "
                  "gates/verify-log.sh. Not deploying." % build)
+    gatelog = os.path.abspath(gatelog)
     v = subprocess.run(["bash", os.path.join(repo, "gates", "verify-log.sh"), gatelog, "#%d" % build],
                        cwd=repo, capture_output=True, text=True)
     sys.stdout.write(v.stdout[-600:])
