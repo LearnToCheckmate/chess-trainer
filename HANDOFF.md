@@ -1,6 +1,30 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
+**#545: BATCH 5. ALL 100 ORDERED JOBS WORKED, GATES GREEN #545 AT 5542 PASS / 0 FAIL OVER 62 SECTIONS, PUSHED TO MAIN.**
+Run `build__1793280238451`, 29-30 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_29_batch5`.
+**NO APPLICATION CODE CHANGED.** `app.js` is still #530's bundle, md5 `049b41dfb6f1`; `chess.jsx` is `1b41d1d1e765`.
+
+## 0. WHAT THE NEXT RUN NEEDS FROM #545
+
+1. **CONTROL-RECORD lines are owed, and they were deferred on purpose.** They are comment lines inside gate files, so adding
+   them after the gated sha would change the gated tree. Land them with the next suite, using the measured trials in each
+   job's outcome. The gates are 11 (777aa06's x0.9 record moved by item 83), 21 (00670be 49/3 trial b37e93213529),
+   25 (991357c), 26 (7c596e9 467/13 trial d5f222191c63), 46 (now 206; 2f7fe2a 196/23 trial ebf59f1ad606),
+   47 (8d80037 trial 78fd19c1c246), 58 (b9f71c7 trials 1b0a45293f13, 46a520e7b3aa and 1c2f3b4ad8bd), 66 (now 61;
+   d1a2b0e trial 60c7535e7880) and 78 (488f642 22/7 trial 5e17541ffc01). control-audit reads assertionsmoved=3 until they land.
+2. **gates/lib.js tapText now carries #441's straddle fix** (item 80, ported from fdca93d). A tapText call on a control that is
+   wholly off screen and cannot be scrolled now THROWS instead of clicking blind. #545's full suite was green with it.
+3. **gates.sh runs from a copy of itself** (item 86), **refuses a number the bundle is not stamped for** before any gate runs
+   (item 98, so launch with CT_EXPECT set to the stamp), and has a third unit block, **unit-held-guard** (item 85, +5 PASS).
+4. **verify-log.sh** gained check (6b) per-section self-consistency and check (6c) no red marker in a green log, and unshallows
+   instead of `--deepen=400`. **held.sh check** refuses a malformed key at exit 2. **records-gate** freezes archived gatelogs.
+   **fastgate.sh** with no argument exits 64.
+5. **Open from the antagonists, not this build's:** red-count.sh's replay-cap red [5,8] is pre-existing on 1507ade, and
+   `engine-extract.staleRefs()` with no argument throws. A's rotating audit resumes at gates/regress/13-play-after-moves.js.
+6. **The disk:** gates/audit/pipefail-grep.sh leaked a 4MB file per probe call until 12a8665. If /tmp fills, look for leaked
+   `tmp.*` files first.
+
 **#544: BATCH 4. THIRTY-FIVE JOBS WORKED, GATES GREEN #544 AT 5171 PASS / 0 FAIL OVER 60 SECTIONS,
 PUSHED TO MAIN - AND THE PUSH CHECKS TIER REVERTED WHOLE ON FOUR UPHELD VETOES.**
 Run `build__1793215280362`, 28-29 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_28_batch4`.
