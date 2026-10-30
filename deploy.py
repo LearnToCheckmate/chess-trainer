@@ -8,6 +8,7 @@ polls GitHub Pages until the new commit is built.
   python3 deploy.py --build 229 --msg "#229 strip move prefixes from old lessons"
   python3 deploy.py --build 230 --msg "..." --files extra1.py extra2.md
   python3 deploy.py --build 231 --msg "..." --skip-audit   # non-content builds
+  Every deploy also needs --gatelog <the full-suite log for that build>, and refuses a held tree (#546).
 
 Token: read from $GITHUB_TOKEN, else /home/claude/.ght (the session stash).
 Dirs:  --repo (default /home/claude/work/repo), --build-dir (/home/claude/work/build).
@@ -52,6 +53,38 @@ def run(cmd, cwd=None):
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
 
 
+# THE GATE BAR [#546, item (71); jobs/deploy-py-is-the-path-that-ships-and-has-no-gate-bar-in-it-2026-10-01]. This
+# script pushes straight to main through the Git Data API, and GitHub Pages serves main, so it is a route to Kunal's
+# phone. It checked the content audit, a compile, `node --check` and the stamp - and never asked whether anyone had
+# REFUSED this tree, nor whether a suite had passed it. Two checks now, both BEFORE the token is read or anything built:
+#   (1) gates/held.sh check, with no argument, so it asks all four keys (app.js and chess.jsx on disk, HEAD's sha, and
+#       chess.jsx at HEAD). The SOURCE keys are the ones that matter here: this script REBUILDS the bundle with a new
+#       stamp, so the deployed md5 is never one any log or register row named. Exit 0 is the only clearance; 1 is
+#       HELD and 2 is "could not tell", and both refuse (CLAUDE.md: read the status, not the last line).
+#   (2) --gatelog <log>, which gates/verify-log.sh must accept for '#<build>'. It is REQUIRED: there is no skip flag,
+#       because a skip flag is how the bar would be stepped over. WHAT IT CANNOT SAY: the bundle this script then builds
+#       was not the one the log gated (the stamp moves the md5), so the log vouches for the build number and the
+#       source, not for the bytes - the same limit CLAUDE.md records for a rebuild.
+def gate_bar(repo, build, gatelog):
+    held = os.path.join(repo, "gates", "held.sh")
+    if not os.path.exists(held):
+        sys.exit("ABORT: %s is missing, so nobody can say whether this tree was refused. Not deploying." % held)
+    h = subprocess.run(["bash", held, "check"], cwd=repo, capture_output=True, text=True)
+    sys.stdout.write(h.stdout)
+    if h.returncode != 0:
+        sys.exit("ABORT: gates/held.sh check exited %d (%s). Only 0 clears a tree. Not deploying."
+                 % (h.returncode, "HELD" if h.returncode == 1 else "not a clearance"))
+    if not gatelog:
+        sys.exit("ABORT: no --gatelog. A deploy needs the full-suite log that authorises #%d, accepted by "
+                 "gates/verify-log.sh. Not deploying." % build)
+    v = subprocess.run(["bash", os.path.join(repo, "gates", "verify-log.sh"), gatelog, "#%d" % build],
+                       cwd=repo, capture_output=True, text=True)
+    sys.stdout.write(v.stdout[-600:])
+    if v.returncode != 0:
+        sys.exit("ABORT: gates/verify-log.sh refused %s for #%d (exit %d). Not deploying." % (gatelog, build, v.returncode))
+    print("gate bar: not held (all four keys), and %s authorises #%d" % (gatelog, build))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", required=True, type=int)
@@ -61,7 +94,10 @@ def main():
     ap.add_argument("--build-dir", default="/home/claude/work/build")
     ap.add_argument("--skip-audit", action="store_true")
     ap.add_argument("--skip-pages", action="store_true")
+    ap.add_argument("--gatelog", default=None,
+                    help="the full-suite gate log that authorises this build; gates/verify-log.sh must accept it for --build")
     a = ap.parse_args()
+    gate_bar(a.repo, a.build, a.gatelog)
     tok = token()
     repo, bd = a.repo, a.build_dir
     stamp = "#%d \u00b7 %s EDT" % (
