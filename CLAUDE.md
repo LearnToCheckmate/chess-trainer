@@ -22,7 +22,17 @@ The full build procedure lives in the tracker, not in this file: artifact `5326E
 collection `prompts`, doc `build-run`. Where that doc and this file differ, the tracker doc wins.
 
 - **Never use GitHub's upload page.** It strips the `Claude-Session` trailer, which is why `14f06ac`
-  is the one commit here whose author cannot be traced.
+  cannot be traced to a session. **IT IS NOT THE ONLY ONE, AND THE UPLOAD PAGE IS NOT THE ONLY CAUSE [#546, item (29);
+  jobs/claude-md-says-one-commit-is-untraceable-and-main-now-carries-five-2026-10-06].** This line said `14f06ac` was
+  "the one commit here whose author cannot be traced". MEASURED on 4aae4ed (unshallowed, 1531 commits) with
+  `git log origin/main --format='%h %cs %(trailers:key=Claude-Session,valueonly)'`: **516 carry no trailer** - 435
+  dated June 2026, before trailers were the practice, 69 in September and 12 in October. The October ones arrived by
+  `git am` of parked process-lane patches whose authoring runs recorded no session (`02537d9`, `097327e`, `7e8a911`,
+  `98d0c62` among them - the last is the +287-line arm-(5) change to `gates/verify-log.sh`), and by reverts. Those
+  trailers are not recoverable by anyone. The mitigation that exists is `claude/agents/PROVENANCE-486.md`, which
+  maps the four named shas to lane, runId and payload and says plainly that it is weaker than a trailer. So the
+  rule is wider than the upload page: **every commit you make carries the trailer, and a patch you land carries its
+  authoring run's session, or a provenance row saying it has none.**
 - **Build numbers are issued by the routine only**, one sequence. Two trees must never carry the
   same number; that happened once with #375 and cost a rebase.
 - **Before any push:** `git fetch && git log -1 origin/main`. If main moved, rebase onto it. Never
