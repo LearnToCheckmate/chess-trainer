@@ -1304,6 +1304,21 @@ fi
 if [ "$CLAIMED" -eq 0 ] 2>/dev/null; then
   echo "REFUSED: $LOG says it ran 0 assertions. A full suite that asserted nothing is not evidence"; exit 1
 fi
+# (6) READS TWO FOOTER SHAPES [#546, item (52)]. From #546 the headline counts only the ^PASS lines at or after the
+# first `=== ` section, and a second line states the unit layer and the raw total. A log that carries that second line
+# is held to all three numbers. A log without it predates the change, and its headline is the raw total as before, so
+# every archived log still verifies against what it actually claimed. The split is decided by the line's PRESENCE,
+# never by the numbers, so a new log cannot fall back to the looser legacy check by mis-stating its own headline.
+UNITLINE="$(grep -E '^unit-layer assertions \(PASS lines before the first gate section, not regress gates\): [0-9]+; all PASS lines: [0-9]+$' "$LOG" | tail -1 || true)"
+if [ -n "$UNITLINE" ] && [ -n "$CLAIMED" ]; then
+  REGACT="$(awk '/^=== .* ===$/{s=1} s&&/^PASS/{n++} END{print n+0}' "$LOG")"
+  UCLAIM="$(sed -E 's/^[^:]*: ([0-9]+);.*/\1/' <<<"$UNITLINE")"; TCLAIM="$(sed -E 's/.*all PASS lines: ([0-9]+)$/\1/' <<<"$UNITLINE")"
+  if [ "$CLAIMED" != "$REGACT" ] || [ "$TCLAIM" != "$ACTUAL" ] || [ "$((CLAIMED+UCLAIM))" != "$ACTUAL" ]; then
+    echo "REFUSED: $LOG's footer does not reconcile with its own lines: regress claimed $CLAIMED against $REGACT ^PASS lines in its gate sections; unit layer claimed $UCLAIM; all-PASS claimed $TCLAIM against $ACTUAL in the file."
+    exit 1
+  fi
+  ACTUAL="$CLAIMED"
+fi
 if [ "$CLAIMED" != "$ACTUAL" ]; then
   echo "REFUSED: $LOG claims $CLAIMED assertions in its footer but contains $ACTUAL '^PASS' lines."
   if [ "$ACTUAL" -eq 0 ]; then

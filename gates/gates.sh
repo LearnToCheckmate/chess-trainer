@@ -2824,7 +2824,17 @@ for f in "${gates[@]}"; do
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
-echo "regression assertions (PASS lines): $PASSN" | tee -a "$ALL"
+# THE HEADLINE COUNTS REGRESS GATES ONLY [#546, item (52); jobs/the-published-regression-assertion-count-includes-40-
+# assertions-the-log-itself-says-are-not-regress-gates-2026-10-07]. This line was a raw ^PASS grep over the whole log,
+# so it included the `--- <name> (unit layer, not a regress gate, not in the roster) ---` blocks that this script
+# writes BEFORE the first `=== <gate> ===` section - 113 of #545's 5542 (fastgate-drive 68, unit-drill-why 40,
+# unit-held-guard 5). The offset is constant run to run, which is the harm: a change that silently dropped that many
+# REAL regress assertions would not move the one number every close-out trends. The regress figure is the ^PASS lines
+# at or after the first section header; the unit layer and the raw total are printed on their own line, so the three
+# numbers reconcile in the log itself and gates/verify-log.sh check (6) can hold each one to the file.
+REGN=$(awk '/^=== .* ===$/{s=1} s&&/^PASS/{n++} END{print n+0}' "$ALL")
+echo "regression assertions (PASS lines): $REGN" | tee -a "$ALL"
+echo "unit-layer assertions (PASS lines before the first gate section, not regress gates): $((PASSN-REGN)); all PASS lines: $PASSN" | tee -a "$ALL"
 # ── #461. THE FOOTER NAMES THE GATES THAT RAN, AND RESTATES THE MANIFEST VERDICT. ────────────────────────────
 # The job's title is the point: "GATES GREEN asserts that the gates present all passed, not that the gates that
 # MATTER were present". A reader of an archived log could count "=== name ===" headers by hand; now the log says

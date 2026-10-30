@@ -218,6 +218,14 @@ sed 's/^regression assertions (PASS lines): [0-9]*/regression assertions (PASS l
 ckmsg "a footer that overstates its PASS lines is refused" 1 "claims"     "$VL" "$TD/logs/miscount.log"
 sed 's/^regression assertions (PASS lines): [0-9]*/regression assertions (PASS lines): 0/' "$GOOD" > "$TD/logs/zero.log"
 ckmsg "a full suite that asserted nothing is refused" 1 "0 assertions"    "$VL" "$TD/logs/zero.log"
+# #546 item (52): THE TWO-NUMBER FOOTER. A log that carries the unit-layer line is held to the REGRESS count (the ^PASS
+# lines at or after the first `=== ` section). One rewritten that way from GOOD verifies, and the same log still
+# claiming the raw total in its headline is refused - so a new-format log cannot pass on the legacy reading.
+NFREG="$(awk '/^=== .* ===$/{s=1} s&&/^PASS/{n++} END{print n+0}' "$GOOD")"; NFALL="$(grep -c '^PASS' "$GOOD")"
+awk -v r="$NFREG" -v a="$NFALL" '/^regression assertions \(PASS lines\): [0-9]+$/{print "regression assertions (PASS lines): " r; print "unit-layer assertions (PASS lines before the first gate section, not regress gates): " (a-r) "; all PASS lines: " a; next} {print}' "$GOOD" > "$TD/logs/twofoot.log"
+ck "a two-number footer that reconciles with its own lines is accepted ($NFREG regress of $NFALL)" 0 "$VL" "$TD/logs/twofoot.log"
+sed "s/^regression assertions (PASS lines): $NFREG\$/regression assertions (PASS lines): $NFALL/" "$TD/logs/twofoot.log" > "$TD/logs/twofootraw.log"
+ckmsg "a two-number footer whose headline is the raw total is refused" 1 "does not reconcile" "$VL" "$TD/logs/twofootraw.log"
 echo
 
 echo "-- C. --this-bundle's own refusals, which are the #416 half-merge guard"
