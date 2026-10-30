@@ -60,6 +60,7 @@ const L=require('../lib');
 // This asks the question directly: every painted element whose box crosses EITHER vertical edge of the viewport, unless an
 // ancestor can scroll it horizontally (overflow-x auto/scroll with real overflow). `n` is how many painted elements were
 // scanned, so an empty walk is visible rather than green.
+// CONTROL-RECORD: d9b25e1 2026-10-30 total=37 red=3 scope=full how=gate mutant inserts a 500px-wide painted block into the progress screen before each reading - the three TC-RL-011 spill lines go red at 375x730, 320x568 and 390x844 while the old document scrollLeft reads 0 at all three [#546 item (76)]
 const hspill=(b)=>b.page.evaluate(()=>{const vw=innerWidth,bad=[];let n=0;
   const inScroller=(e)=>{let p=e.parentElement;while(p&&p!==document.body){const s=getComputedStyle(p);if(/auto|scroll/.test(s.overflowX)&&p.scrollWidth>p.clientWidth+1)return true;p=p.parentElement;}return false;};
   for(const e of document.querySelectorAll('#root *')){const s=getComputedStyle(e);if(s.visibility==='hidden'||s.display==='none')continue;
