@@ -986,7 +986,9 @@ EOF6
   # selftest read its ceilings from these constants - which is what let this be one line. Keep each constant ALONE on
   # its line: the selftest's C0 reads them with an anchored sed and a trailing comment makes it fail loudly.
   A5ZCEIL=7
-  A5WCEIL=2
+  # A5WCEIL LOWERED 2 -> 0 AT #546 (item (45)): TC-R19's regex pipes are escaped, TC-R37's single cell is split
+  # into its four columns, and TC-SUITE-321's quoted ref-line pipe is escaped - zero rows misalign today.
+  A5WCEIL=0
   A5EXEMPT_CEIL=1
   # One exemption, by its NORMALISED header text, with its reason. Normalised means "| a | b | c |" with
   # single spaces, which is what the awk below prints, so a reflow of the table's whitespace cannot silently
