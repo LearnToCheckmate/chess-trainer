@@ -42,7 +42,7 @@
 #
 # USAGE
 #   gates/audit/suite-shared-paths.sh              report and ratchet. exit 0 clean, 1 on a breach.
-#   gates/audit/suite-shared-paths.sh --selftest   six controls, in both directions. exit 0 / 1.
+#   gates/audit/suite-shared-paths.sh --selftest   seven controls, in both directions. exit 0 / 1.
 #
 # THE RATCHET IS ON `COLLIDES`, AND ON NEW UNCLASSIFIED EXPRESSIONS, AND ON NOTHING ELSE.
 # A ceiling over the TOTAL number of write sites would be satisfied by deleting a log, and relieved
@@ -80,6 +80,10 @@ $G/logs/$STEM-fastgate-drive.log	RUN-UNIQUE	$STEM, the same derivation as every 
 $G/logs/$STEM-$name.log	RUN-UNIQUE	$STEM, derived in gates.sh at its `STEM=` line from the suffixed -all log name
 $G/logs/$STEM-unit-drill-why.log	RUN-UNIQUE	$STEM, same derivation
 $G/logs/$STEM-unit-held-guard.log	RUN-UNIQUE	$STEM, same derivation [#545 item (85)]
+$G/logs/$STEM-fastgate-drive.log.err	RUN-UNIQUE	$STEM, via $dlog plus a suffix - found only once derive() followed variable composition [#546 item (58)]
+$G/logs/$STEM-fastgate-drive.log.pass	RUN-UNIQUE	$STEM, via $dlog plus a suffix - the job's named instance [#546 item (58)]
+$G/logs/$STEM-unit-drill-why.log.pass	RUN-UNIQUE	$STEM, via $ulog plus a suffix [#546 item (58)]
+$G/logs/$STEM-unit-held-guard.log.pass	RUN-UNIQUE	$STEM, via $hlog plus a suffix [#546 item (58)]
 $G/shots/gates-$TAG	COLLIDES	$TAG ONLY - no suffix, so two runs at one build number share it
 INV
 )
@@ -104,9 +108,28 @@ say(){ printf '%s\n' "$*"; }
 # at close-out, so it is a read target like the four names beside it, not a write destination [#545, item (37)
 # follow-up: item (37) added that read and this audit went RED on it, 10 -> 7 selftest, until this line].
 # unit-held-guard.sh is a read target for the same reason: gates.sh runs it and never writes it [#545 item (85)].
+# ONE LEVEL OF VARIABLE COMPOSITION [#546, item (58); jobs/suite-shared-paths-derive-cannot-see-a-write-destination-
+# built-from-a-variable-2026-10-16]. The literal scan below sees `$G/`-prefixed text and nothing else, so a destination
+# written as a variable plus a suffix - `> "$dlog.pass"`, `2> "$dlog.err"` - was invisible to it, and arm (1) printed
+# "11 of 11" over a list that was not the whole list. composed() follows exactly one level: a variable ASSIGNED a
+# quoted $G/ literal (`dlog="$G/logs/..."`) and then used as a REDIRECT TARGET with a suffix appended
+# (`>`, `>>` or `2>` into "$var<suffix>"). It emits the literal with the suffix, so the new destination joins the
+# inventory as a real row. ITS LIMIT, STATED: two levels (a variable built from another variable), a suffix applied
+# outside quotes, and writes by tools other than a shell redirect (cp, mv, tee -a) are still not followed.
+composed(){
+  awk '
+    match($0,/^[[:space:]]*(local[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*="\$G\/[^"]*"/){
+      line=substr($0,RSTART,RLENGTH); sub(/^[[:space:]]*(local[[:space:]]+)?/,"",line)
+      v=line; sub(/=.*/,"",v); e=line; sub(/^[^=]*="/,"",e); sub(/"$/,"",e); var[v]=e }
+    { rest=$0
+      while (match(rest,/[0-9]?>>?[[:space:]]*"\$[A-Za-z_][A-Za-z0-9_]*[.][A-Za-z0-9_.-]+"/)) {
+        t=substr(rest,RSTART,RLENGTH); rest=substr(rest,RSTART+RLENGTH)
+        sub(/^[0-9]?>>?[[:space:]]*"\$/,"",t); sub(/"$/,"",t)
+        v=t; sub(/[.].*/,"",v); sfx=t; sub(/^[A-Za-z_][A-Za-z0-9_]*/,"",sfx)
+        if (v in var) print var[v] sfx } }' "$GATESH"
+}
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
-  grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" \
-    | sed 's/}$//' \
+  { grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" | sed 's/}$//'; composed; } \
     | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|regress/?)' \
     | sort -u
 }
@@ -212,7 +235,7 @@ fi
 # ── CONTROLS ─────────────────────────────────────────────────────────────────────────────────────
 if [ "${1:-}" = "--selftest" ]; then
   say ""
-  say "== selftest: six controls, each in the direction that matters =="
+  say "== selftest: seven controls, each in the direction that matters =="
   T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
   mkdir -p "$T/regress"
   cp "$GATESH" "$T/gates.sh"; cp "$LIBJS" "$T/lib.js"
@@ -258,6 +281,13 @@ if [ "${1:-}" = "--selftest" ]; then
   o=$(run "$T/g6.sh" "$T/regress"); rc=$?
   ck C6-suffix-evasion-fires "$(printf '%s' "$o" | grep -c '+ \$G/logs/fastgate-drive.sh')" 1
   ck C6b-suffix-evasion-exit "$rc" 1
+
+  # C7 A DESTINATION BUILT FROM A VARIABLE PLUS A SUFFIX IS SEEN [#546, item (58)]. Before composed() the literal scan
+  #    could not see it at all, so this control reads 0 found against the old derive().
+  cp "$T/gates.sh" "$T/g7.sh"; printf 'zlog="$G/logs/$STEM-zz.log"\necho hi > "$zlog.side"\n' >> "$T/g7.sh"
+  o=$(run "$T/g7.sh" "$T/regress"); rc=$?
+  ck C7-composed-destination-fires "$(printf '%s' "$o" | grep -c '+ \$G/logs/\$STEM-zz.log.side')" 1
+  ck C7b-composed-destination-exit "$rc" 1
 
   say ""
   say "selftest: $p pass / $f fail"
