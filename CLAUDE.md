@@ -33,6 +33,16 @@ collection `prompts`, doc `build-run`. Where that doc and this file differ, the 
   maps the four named shas to lane, runId and payload and says plainly that it is weaker than a trailer. So the
   rule is wider than the upload page: **every commit you make carries the trailer, and a patch you land carries its
   authoring run's session, or a provenance row saying it has none.**
+- **COMMITS ARE SIGNED HERE, SIGNING WORKS, AND NO RUN PASSES `commit.gpgsign=false` [#546, item (85);
+  jobs/a-defensive-commit-gpgsign-false-left-two-commits-unsigned-in-a-fully-signed-repository-2026-10-16].** The
+  container's config is `commit.gpgsign=true` with an ssh signing key, and it works: measured at #546, all 64 commits on
+  the per-run branch and the last 200 on `origin/main` carry a `gpgsig` header. #524 passed the flag "defensively" against a
+  failure it never checked for, and its two commits were the only unsigned objects in the repository - the same
+  provenance class as the trailer rule above. **AND `git log --format=%G?` CANNOT TELL YOU:** it prints `N` for every
+  commit here, signed or not, because verification needs an allowedSignersFile this container lacks. The instrument that
+  separates the two is the header itself: `git cat-file commit <sha> | sed -n '1,/^$/p' | grep -c '^gpgsig'` is 1 on a
+  signed commit and 0 on an unsigned one. Check it over `origin/main..HEAD` BEFORE launching the suite, not at the stop
+  hook, because a rebase after the suite orphans the log's gated sha.
 - **Build numbers are issued by the routine only**, one sequence. Two trees must never carry the
   same number; that happened once with #375 and cost a rebase.
 - **Before any push:** `git fetch && git log -1 origin/main`. If main moved, rebase onto it. Never
