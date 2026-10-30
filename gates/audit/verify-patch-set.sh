@@ -247,7 +247,13 @@ is_permitted_incidental() {
 # ---------------------------------------------------------------------------
 
 # Every path the payload touches, one per line.
-ps_paths() { sed -n 's|^diff --git a/.* b/||p' "$1"; }
+# BOTH SPELLINGS GIT EMITS [#546, item (51); jobs/a-payload-the-parser-cannot-fully-read-produces-a-better-verdict-rather-than-a-red-2026-10-06].
+# The bare form only matched `diff --git a/x b/x`; git QUOTES both sides for a path with a space or (under the default
+# core.quotepath) a non-ASCII byte, `diff --git "a/x y" "b/x y"`, and that line parsed as nothing - so two payloads
+# editing one such path read as no collision. A quoted path is returned still quoted-and-escaped, which is consistent
+# across payloads and so compares correctly. S0 also counts `diff --git` lines against this reader, so a spelling
+# neither branch knows is a RED there rather than a silence here.
+ps_paths() { sed -n -e 's|^diff --git a/.* b/||p' -e 's|^diff --git "a/.*" "b/\(.*\)"$|\1|p' "$1"; }
 
 # Deletion lines inside ONE path's diff sections of ONE payload, summed over every
 # commit in that payload. THIS IS THE MECHANISM S4b EXCUSES, so it is measured rather
@@ -339,6 +345,24 @@ verify_set() {
       fail S0-SET-READABLE "$(basename "$f") does not begin 'From <sha>': not format-patch output"
       continue
     fi
+    # A FIRST LINE IS NOT A PAYLOAD [#546, item (51)]. This check used to stop at line 1, so a payload cut off mid-diff
+    # (a tracker write that hit a size cap, a paste that lost its tail) was certified well-formed - and because the cut
+    # removed its later commits, S4 then reported FEWER collisions than the intact set has. The verdict improved as the
+    # input got worse. Two structural reads now, each a RED with its reason rather than a silence:
+    #   (a) every `diff --git` header is one ps_paths can read, so no path is invisible to S1..S6;
+    #   (b) `git apply --stat` reads the whole stream - it is the parser `git am` uses, and it refuses a hunk cut short
+    #       ("corrupt patch at line N"). ITS LIMIT, stated: a cut that falls exactly on a hunk boundary leaves a stream
+    #       that is short but valid, and nothing here can see that; only the payload's own commit count could.
+    local nd np
+    nd=$(grep -c '^diff --git ' "$f" || true); np=$(ps_paths "$f" | grep -c . || true)
+    if [ "$nd" != "$np" ]; then
+      fail S0-SET-READABLE "$(basename "$f") has $nd 'diff --git' header(s) and ps_paths reads $np: an unparsed path is invisible to every collision check"
+      continue
+    fi
+    if ! git apply --stat "$f" >/dev/null 2>&1; then
+      fail S0-SET-READABLE "$(basename "$f") is not a whole patch stream (git apply --stat: $(git apply --stat "$f" 2>&1 | head -n 1)): truncated or corrupt"
+      continue
+    fi
     payloads+=("$f")
   done
 
@@ -347,7 +371,7 @@ verify_set() {
     say S0-SET-READABLE SKIP "no well-formed payloads in $dir; nothing to cross-check"
     return "$FAILED"
   fi
-  say S0-SET-READABLE PASS "$n well-formed payload(s)"
+  say S0-SET-READABLE PASS "$n well-formed payload(s): each begins From <sha>, every diff header parses, and git apply --stat reads it whole"
 
   # A set of one cannot collide with itself. Say so rather than printing five
   # vacuous passes: a check that cannot fail on this input is a SKIP [R18].
@@ -378,7 +402,9 @@ verify_set() {
   while read -r cnt p; do
     [ -n "$p" ] || continue
     if [ "$cnt" -gt 1 ]; then collided+=("$p"); fi
-  done < <(cut -f1 "$tmp" | sort | uniq -c | awk '{print $1, $2}')
+  # THE PATH IS THE REST OF THE LINE, NOT FIELD 2 [#546, item (51)]: awk's $2 cut a path at its first space, so a
+  # quoted path that ps_paths now reads still reached the verdict as 'claude/x' - C99 caught it on its first run.
+  done < <(cut -f1 "$tmp" | sort | uniq -c | sed -E 's/^ *([0-9]+) /\1 /')
 
   if [ "${#collided[@]}" -eq 0 ]; then
     say S1-NEWFILE-COLLISION PASS "no path is added as a new file by two payloads"
@@ -407,7 +433,9 @@ verify_set() {
   while read -r cnt p; do
     [ -n "$p" ] || continue
     [ "$cnt" -gt 1 ] && sharedmod+=("$p")
-  done < <(cut -f1 "$mtmp" | sort | uniq -c | awk '{print $1, $2}')
+  # THE PATH IS THE REST OF THE LINE, NOT FIELD 2 [#546, item (51)]: awk's $2 cut a path at its first space, so a
+  # quoted path that ps_paths now reads still reached the verdict as 'claude/x' - C99 caught it on its first run.
+  done < <(cut -f1 "$mtmp" | sort | uniq -c | sed -E 's/^ *([0-9]+) /\1 /')
 
   # ---- S7 ADDED BY ONE PAYLOAD, MODIFIED BY ANOTHER ----------------------
   # The third bucket. S1 keys on two adders and S4 on two modifiers, so this pair
@@ -860,6 +888,31 @@ selftest() {
   expect_line  C14-S4-fires-on-a-shared-edit "$out" '^S4-NO-SHARED-EDIT +FAIL .*gates/verify-log\.sh'
   expect_line  C15-S1-silent-on-a-shared-edit "$out" '^S1-NEWFILE-COLLISION +PASS'
   expect_rc    C16-set-E-exit-1 "$rc" 1
+
+  # ---- #546 item (51): a payload the parser cannot fully read must be a RED, never a better verdict.
+  # C97/C98: TRUNCATION. A two-commit payload cut inside its second commit's hunk. Before the fix S0 passed it and the
+  # S4 collision that second commit carries vanished, so the set read cleaner than the intact one.
+  mkdir -p "$T/V"
+  { mk_commit_header 0a1b2c3 "lane1"; mk_mod gates/verify-log.sh; } > "$T/V/lane1"
+  { mk_commit_header 0d4e5f6 "lane2a"; mk_new gates/regress/97-x.js; mk_commit_header 0d4e5f7 "lane2b"; mk_mod gates/verify-log.sh; } > "$T/V/lane2.full"
+  head -c $(( $(wc -c < "$T/V/lane2.full") - 12 )) "$T/V/lane2.full" > "$T/V/lane2"; rm -f "$T/V/lane2.full"
+  out=$(verify_set "$T/V"); rc=$?
+  expect_line  C97-S0-fires-on-a-truncated-payload "$out" '^S0-SET-READABLE +FAIL .*lane2 is not a whole patch stream'
+  expect_rc    C98-truncated-set-exit-1 "$rc" 1
+  # C99/C100: QUOTED PATHS. Two payloads modifying one path with a space: S4 must name it, which it could not when
+  # ps_paths read the quoted header as nothing.
+  mkdir -p "$T/W"
+  qmod() { printf 'diff --git "a/%s" "b/%s"\nindex 1111111..2222222 100644\n--- "a/%s"\n+++ "b/%s"\n@@ -1 +1 @@\n-hello\n+world\n' "$1" "$1" "$1" "$1"; }
+  { mk_commit_header 0a1b2c3 "lane1"; qmod "claude/x y.md"; } > "$T/W/lane1"
+  { mk_commit_header 0d4e5f6 "lane2"; qmod "claude/x y.md"; } > "$T/W/lane2"
+  out=$(verify_set "$T/W"); rc=$?
+  expect_line  C99-S4-fires-on-a-shared-quoted-path "$out" '^S4-NO-SHARED-EDIT +FAIL .*x y\.md'
+  expect_line  C100-S0-passes-a-quoted-payload "$out" '^S0-SET-READABLE +PASS 2 well-formed'
+  # C101: a diff header neither spelling reads is a RED in S0, not an invisible path.
+  mkdir -p "$T/X"
+  { mk_commit_header 0a1b2c3 "lane1"; printf 'diff --git a/odd b/odd\nindex 1..2 100644\n--- a/odd\n+++ b/odd\n@@ -1 +1 @@\n-a\n+b\n'; printf 'diff --git "a/one" b/two\n'; } > "$T/X/lane1"
+  out=$(verify_set "$T/X")
+  expect_line  C101-S0-fires-on-an-unparsed-diff-header "$out" '^S0-SET-READABLE +FAIL .*2 .diff --git. header\(s\) and ps_paths reads 1'
 
   # ---- fixture set F: one payload carrying another's commit (the 1-in-15 case).
   mkdir -p "$T/F"
