@@ -189,6 +189,7 @@ const rgb=(s)=>{const m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s||'');return m?[+
 // rgb(143,141,158) and it PAINTS rgb(131,129,145) near its top, because a child layer composites over it - which is neither
 // the declared value nor the rgb(112,110,124) the header records from the #379 screenshot. So the contrast is asserted on the
 // PAINTED pair, the track against the page beside the bar, and every input is printed so a reader can see which numbers it used.
+// CONTROL-RECORD: 30f6a47 2026-10-30 total=34 red=2 scope=full how=gate mutant lays a rgba(20,22,27,0.9) layer over the track after cpu-m0 - the two PAINTED-contrast lines go red at 1.12 and 1.1 while the declared-colour pin stays green [#546 item (82)]
 const zlib=require('zlib');
 const pngPx=(png)=>{let i=8,idat=[],w=0,h=0,ct=2;while(i<png.length){const ln=png.readUInt32BE(i),t=png.toString('ascii',i+4,i+8),c=png.slice(i+8,i+8+ln);i+=12+ln;if(t==='IHDR'){w=c.readUInt32BE(0);h=c.readUInt32BE(4);ct=c[9];}if(t==='IDAT')idat.push(c);}
   const raw=zlib.inflateSync(Buffer.concat(idat)),bpp=ct===6?4:3,st=w*bpp;let prev=Buffer.alloc(st),p=0;const out=[];
