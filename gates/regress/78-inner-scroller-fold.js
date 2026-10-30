@@ -53,3 +53,7 @@ L.run(async()=>{
   }
   L.note('    FOLD MEASURED (px past the fold on arrival): '+JSON.stringify(got));
 },'78-inner-scroller-fold');
+// THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
+// tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
+// gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
+// CONTROL-RECORD: a35524b 2026-10-30 total=22 red=7 scope=trial:f6c76d217316 how=setup-start 20px lower (marginTop 4 -> 24), one change - TC-INV-08b off its FOLD_PIN at all seven geometries, each by 20px [rebuild of #545's 5e17541ffc01]

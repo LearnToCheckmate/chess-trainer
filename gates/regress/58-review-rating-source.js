@@ -249,3 +249,7 @@ L.run(async()=>{
   }
   await d.close();
 },'GATE 58 review-rating-source');
+// THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
+// tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
+// gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
+// CONTROL-RECORD: a35524b 2026-10-30 total=116 red=28 scope=trial:a504ef0c8d0c how=the rating-branch note replaced with 'The ratings shown above are only estimates.' - 21e, 21e-SOURCE (both header branches) and 21f red at all seven geometries. NOT one of #545's three strings: this one also names a rating beside an estimate word, so the ORIGINAL 21e goes red too, where #545's reordered and synonym strings showed it vacuous [#546 item (89)]

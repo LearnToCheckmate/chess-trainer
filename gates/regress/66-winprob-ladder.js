@@ -388,3 +388,7 @@ L.run(async()=>{
     await e.close();
   }
 });
+// THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
+// tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
+// gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
+// CONTROL-RECORD: a35524b 2026-10-30 total=52 red=4 scope=trial:082e9b529698 how=mateLadder returns the old always-Blunder floor - E1 and E2 read Blunder on g4 instead of Mistake and Inaccuracy, and block C's instrument pins C0 and C0b go red on the changed helper shape [rebuild of #545's 60c7535e7880]

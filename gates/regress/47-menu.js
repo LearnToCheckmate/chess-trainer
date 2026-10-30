@@ -605,3 +605,7 @@ if(blk('R'))for(const geo of ['kunal761','kunal730','se']){
 }
 
 },'MENU');
+// THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
+// tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
+// gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
+// CONTROL-RECORD: a35524b 2026-10-30 total=132 red=1 scope=trial:4f80bef2ed94 how=the Layout readout's safe top prints safeBot - TC-MN-042 red at kunal761 alone (printed 31, truth 51), every other readout figure green [rebuild of #545's 78fd19c1c246, now on the whole gate]
