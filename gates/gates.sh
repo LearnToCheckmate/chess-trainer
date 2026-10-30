@@ -92,6 +92,24 @@ head_reconcile(){ # <repo> <start-sha> <start-tree> <start-dirty-count>
 # is gitignored, so an honest run's two listings are equal), and prints the text for the ref line when they differ.
 # It REPORTS rather than refuses, as the dirty count always has: the suite's verdict is about the bundle it served,
 # which a mid-run edit to a source file does not change, but the log must not claim a tree it did not have.
+# ── THE TREE THE BROWSER GATES READ IS THE TREE THE SUITE STARTED ON [#546, item (87); jobs/gates-sh-runs-push-check-
+# code-before-its-browser-loop-and-never-re-checks-the-tree-so-a-planted-side-effect-can-change-browser-verdicts-
+# 2026-10-23]. Before its first browser gate this script runs code that can write to the repository - the unit layer's
+# harnesses and the build-number door - and nothing checked afterwards. tree_fingerprint prints FOUR lines, one per
+# thing that can move: tracked bytes READ RAW (not git's index view), the untracked set INCLUDING ignored files, every
+# ref, and .git's config, hooks and info. The suite's own outputs (gates/logs, gates/shots, gates/.site, the frozen
+# gates/.gates-run-* copy) are excluded by name, because writing them is the suite's job. tree_fp_moved names each
+# part that differs; the full run marks the suite RED before its first browser gate when any does.
+tree_fingerprint(){ # <root>
+  local r="$1" h
+  h=$( (cd "$r" && git ls-files -z | xargs -0 -r sha1sum 2>&1) | sha1sum | cut -c1-16); echo "tracked $h"
+  h=$( (cd "$r" && git ls-files -o --directory 2>/dev/null) | grep -vE '^gates/(logs|shots|\.site)/|^gates/\.gates-run-' | sort | sha1sum | cut -c1-16); echo "untracked $h"
+  h=$( (git -C "$r" for-each-ref --format='%(refname) %(objectname)'; git -C "$r" symbolic-ref -q HEAD; git -C "$r" rev-parse HEAD) 2>/dev/null | sha1sum | cut -c1-16); echo "refs $h"
+  h=$( (cd "$r/.git" && cat config 2>/dev/null; for f in hooks/* info/*; do [ -f "$f" ] && { echo "== $f"; cat "$f"; }; done) 2>/dev/null | sha1sum | cut -c1-16); echo "gitmeta $h"
+}
+tree_fp_moved(){ # <fingerprint-at-start> <fingerprint-now>  -> the names of the parts that moved, space-joined
+  comm -13 <(printf '%s\n' "$1" | sort) <(printf '%s\n' "$2" | sort) | cut -d' ' -f1 | tr '\n' ' ' | sed 's/ $//'
+}
 tree_reconcile(){ # <porcelain-at-start> <porcelain-at-end>
   [ "$1" = "$2" ] && return 0
   # the symmetric difference of the two listings' NON-EMPTY lines: an empty listing is no entry, not an empty one
@@ -1488,6 +1506,23 @@ M16PY
   tr_1="$(git -C "$ST_HR" status --porcelain)"
   st T3-the-same-edit-present-at-BOTH-ends-is-not-a-change "[$(tree_reconcile "$tr_1" "$(git -C "$ST_HR" status --porcelain)")]" "[]"
   st T4-the-full-run-appends-it-to-the-ref-line "$(grep -c 'DIRTYTXT="\$DIRTYTXT\$(tree_reconcile "\$DIRTYL0"' "$SF")" 1
+  # F1-F7 DRIVE tree_fingerprint [#546, item (87)] over the scratch repository: one part per kind of write, each named.
+  # the scratch tree tracks a file under gates/, as the real one does, so an untracked gates/logs/ is listed as
+  # gates/logs/ and not collapsed into gates/ - which is the shape the exclusion is written for.
+  ( cd "$ST_HR" && mkdir -p gates && echo k > gates/keep && git add gates/keep && git commit -q -m 'a tracked file under gates/' ) >/dev/null 2>&1
+  fp0="$(tree_fingerprint "$ST_HR")"
+  st F1-an-untouched-tree-moves-nothing "[$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")]" "[]"
+  mkdir -p "$ST_HR/gates/logs" && echo x > "$ST_HR/gates/logs/suite-output.log"
+  st F2-the-suite-s-own-log-directory-is-not-a-move "[$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")]" "[]"
+  echo planted > "$ST_HR/planted.txt"
+  st F3-a-planted-untracked-file-moves-untracked "$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")" untracked
+  rm -f "$ST_HR/planted.txt"; fp0="$(tree_fingerprint "$ST_HR")"; echo tracked-edit >> "$ST_HR/f"
+  st F4-a-tracked-byte-change-moves-tracked "$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")" tracked
+  fp0="$(tree_fingerprint "$ST_HR")"; git -C "$ST_HR" branch -q planted-ref >/dev/null 2>&1
+  st F5-a-new-ref-moves-refs "$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")" refs
+  fp0="$(tree_fingerprint "$ST_HR")"; printf '#!/bin/sh\nexit 0\n' > "$ST_HR/.git/hooks/pre-commit"
+  st F6-a-planted-hook-moves-gitmeta "$(tree_fp_moved "$fp0" "$(tree_fingerprint "$ST_HR")")" gitmeta
+  st F7-the-full-run-checks-it-before-the-browser-loop "$(grep -c '^TREEMOVED="\$(tree_fp_moved "\$TREEFP0"' "$SF")" 1
   # B1-B2 [#546, item (39)]: foreign_browsers counts a process whose comm is a Chromium name and ignores others. A
   # copy of /bin/sleep NAMED headless_shell stands in for a browser, so no real browser is needed to drive it.
   cp "$(command -v sleep)" "$ST_T/headless_shell"; "$ST_T/headless_shell" 30 & fb_pid=$!
@@ -1621,6 +1656,7 @@ HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
 HEADTREE="$($GIT rev-parse 'HEAD^{tree}' 2>/dev/null || echo unknown)"   # for head_reconcile at the end [#545]
 DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 DIRTYL0="$($GIT status --porcelain 2>/dev/null || true)"   # the whole listing, for tree_reconcile at the end [#546]
+TREEFP0="$(tree_fingerprint "$ROOT")"   # the four-part fingerprint, re-taken before the first browser gate [#546, item (87)]
 
 # build the gate list: mountcheck always, then either everything or just the named ones
 ALLREG=(); for f in "$G"/regress/*.js; do [ -e "$f" ] && ALLREG+=("$f"); done
@@ -2800,6 +2836,11 @@ if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
   fi
 fi
 
+# [#546, item (87)] everything above this line ran with the repository writable; the browser gates below must read the
+# tree the suite started on. A part that moved is a RED, named, before any gate runs - not a footnote at the end.
+TREEMOVED="$(tree_fp_moved "$TREEFP0" "$(tree_fingerprint "$ROOT")")"
+if [ -n "$TREEMOVED" ]; then red=1; echo "TREE MOVED BEFORE THE BROWSER GATES: $TREEMOVED changed between the start of this suite and its first browser gate - something run above wrote to the repository, so the gates below would not read the tree this log describes. RED." | tee -a "$ALL"
+else echo "tree unchanged before the browser gates: tracked bytes, untracked set, refs and .git config/hooks/info as at the start [#546]" | tee -a "$ALL"; fi
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
   echo "=== $name ===" | tee -a "$ALL"
