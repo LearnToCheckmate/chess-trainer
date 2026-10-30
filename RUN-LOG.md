@@ -11,6 +11,10 @@ consistent with this file's own governing line (Supervisor ruling B and Kunal's 
 rows from #545 on use the nine declared columns; every older row stays exactly as written, because this file is a
 record. `gates/audit/run-log-columns.sh` holds every row from #545 on to the header's width.
 
+**TWO ROWS BELOW NAME A GREEN WHOSE LOG IS NOT HERE, AND WHICH OF THEM IS CHECKABLE IS NOW WRITTEN DOWN [#546, item (63); jobs/gatelogs-missing-for-401-and-418-2026-09-27].** The rows themselves stay as written, because this file is a record. Measured on 30 Oct 2026, on an unshallowed clone, with `git log --all -- 'claude/agents/gatelogs/401*' 'claude/agents/gatelogs/418*' 'gates/logs/401*' 'gates/logs/418*'`, which is EMPTY:
+- **#401 IS CHECKABLE, AND NOT AGAINST A #401 LOG.** It was a gates-only build with no bundle change, and its row cites `GATES GREEN #400 - 30 suites, 1174 PASS`. That log is committed as `claude/agents/gatelogs/400-all.log`, and `gates/verify-log.sh` accepts it today (30 suites, 1174 PASS, footer agrees). No #401 log was ever written, and none was owed.
+- **#418 IS NOT CHECKABLE, AND CANNOT BE MADE SO.** Its row names `418-all.log`, `418b-all.log` and `418c-all.log`; none of the three was committed on any ref, and the session scratch that held them is gone. The figures that row quotes, including 418c's 1935 PASS and 418b's 1855-against-1851 footer, are recorded claims with no artefact behind them. #418's work landed on main through the #422 merge and was gated there - `claude/agents/gatelogs/422-all.log`, which `gates/verify-log.sh` accepts (36 suites, 1961 PASS) - so nothing that ships rests on the missing logs.
+
 | build | what | ETA stated (at) | started | staged for his click | actual | delta | gates | live (his commit) |
 |---|---|---|---|---|---|---|---|---|
 | #366 | y3b y15b y11b lay-B | 50 min (16:12) | 16:12 | 17:08 | 56 min | +6 | green (mountcheck reg343 pzgate fit bril357 ipad355 veteran360 kunal364c before366 overlay366) | 17:09 (6cd1449) |
