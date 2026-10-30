@@ -755,7 +755,15 @@ EOF
   #     the count does not move); and (ii) the TARGET may now be a Markdown file as well as a script, because
   #     the job's second stale citation was gates/audit/red-count.sh citing HANDOFF.md at line 3395 against a HANDOFF.md
   #     of 133 lines - past end of file by 3262, and invisible to an arm that only resolved .sh/.js targets.
-  A6SCOPE="CLAUDE.md :(glob)gates/**/*.sh gates/regress/README.md gates/pending/README.md"
+  # WIDENED AGAIN AT #546 [item (2) of directOpening_2026_10_30_batch6, part (b) of
+  # jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03]: the gates themselves are in scope.
+  # `:(glob)gates/**/*.js` adds every tracked JavaScript file under gates/ - the gates in gates/regress/, the
+  # drivers in gates/drive/, gates/lib.js and the probes - because their comments cite chess.jsx and gates.sh
+  # by line exactly as the scripts do, and a stale one there misleads a builder just as much. MEASURED on
+  # 4aae4ed before the change: 254 such citations under gates/**/*.js, 0 dead and 0 past end of file, so the
+  # widening raises the published count (66 -> 320) and neither counter. It still sees only a DEAD or PAST-EOF
+  # target; a citation into a file that only grew is the blindness named above, and it is not closed here.
+  A6SCOPE="CLAUDE.md :(glob)gates/**/*.sh :(glob)gates/**/*.js gates/regress/README.md gates/pending/README.md"
   # HANDOFF.md IS OUT OF SCOPE, and the reason is mechanical: a close-out rewrites it wholesale every run, so
   # its citations are a moving target and 24 of the 113 live there. RUN-LOG.md, claude/PROCESS-LOG.md,
   # claude/process-log/ and claude/agents/ are out for the reason that job gives for RUN-LOG.md: they are
