@@ -86,16 +86,26 @@ const rowState=(b)=>b.page.evaluate(()=>{
   return {present:true,disabled:!!e.disabled,label:(e.innerText||'').trim()};
 });
 
+// EVERY POOL WIDTH THE DEVICE CAN CHOOSE, AND THE NARROW PHONE [#546, item (81); jobs/gate-34-takeback-pins-a-three-worker-
+// pool-and-one-geometry-2026-09-30]. Both launches pinned ct_pool:'3' and the only geometry was kunal730 - verbatim the
+// #375 trap, on the gate whose own subject is the shared worker. poolWanted() sizes the pool from the device (hc 2 or 3 gives
+// ONE worker), so the computer block now runs at ct_pool '3', '1' and UNSET (the device's own choice) at kunal730, and at
+// '3' at 320x568. The minimax fallback is still unreachable from a store value; the header above says why.
+const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',pool:null},{geo:'se',pool:'3'}];
+// The board after a takeback, per geometry: 353 at 375x730 (measured on #383, this file's original pin) and 288 at 320x568
+// (measured at #546 on 049b41dfb6f1). A pin per geometry, never one number for both.
+const WANT_W={kunal730:353,se:288};
 L.run(async()=>{
-  const geo='kunal730';
-  const b=await L.launch({geo,name:'takeback-'+geo,store:{ct_pool:'3'}});await b.open();
+ for(const C of COLS){
+  const geo=C.geo, T=geo+'/pool '+(C.pool||'unset')+': ';
+  const b=await L.launch({geo,name:'takeback-'+geo+'-'+(C.pool||'unset'),store:C.pool?{ct_pool:C.pool}:{}});await b.open();
 
   // --- move 0 vs Computer: the row exists (opponent is computer) but there is nothing to give back.
   await P.states['cpu-m0'](b);
   await openMore(b);
   const at0=await rowState(b);
-  L.say(at0.present===true,'vs Computer the Takeback row is in the More sheet',at0);
-  L.say(at0.disabled===true,'at move 0 Takeback is DISABLED - nothing has been played to give back',at0);
+  L.say(at0.present===true,T+'vs Computer the Takeback row is in the More sheet',at0);
+  L.say(at0.disabled===true,T+'at move 0 Takeback is DISABLED - nothing has been played to give back',at0);
   await shutMore(b);
 
   // --- his move, engine still thinking: still disabled. Measured in the window BEFORE the reply lands.
@@ -103,14 +113,15 @@ L.run(async()=>{
   await openMore(b);
   const midThinking=await thinking(b);
   const mid=await rowState(b);
-  L.say(mid.present===true,'the row is still mounted while the engine thinks (it is disabled, not unmounted, so the sheet never reflows under a finger)',mid);
   if(midThinking){
-    L.say(mid.disabled===true,'while the engine is SEARCHING Takeback is disabled. A takeback here would change the position under an in-flight search on the shared worker, and its bestmove would land on a dead position.',mid);
+    // INSIDE THE GUARD [#546 item (81)]: 'mounted while the engine thinks' is only a statement about thinking when it was sampled.
+    L.say(mid.present===true,T+'the row is still mounted while the engine thinks (it is disabled, not unmounted, so the sheet never reflows under a finger)',mid);
+    L.say(mid.disabled===true,T+'while the engine is SEARCHING Takeback is disabled. A takeback here would change the position under an in-flight search on the shared worker, and its bestmove would land on a dead position.',mid);
   }else{
     // Pip searches for 1100 ms and opening the sheet costs about 600, so this window is genuinely racy on a
     // fast machine. SAY SO rather than asserting on a sample that was never taken: a gate that reports a pass
     // it did not measure is the exact failure this suite exists to prevent.
-    L.note('NOT SAMPLED: the engine finished before the sheet opened, so the mid-search case was not exercised on this run. The disabled path itself is proved by the move-0 and post-takeback cases.');
+    L.note(T+'NOT SAMPLED: the engine finished before the sheet opened, so the mid-search case was not exercised on this run. The disabled path itself is proved by the move-0 and post-takeback cases.');
   }
   await shutMore(b);
 
@@ -120,38 +131,40 @@ L.run(async()=>{
   const pBefore=await plyCount(b);
   await openMore(b);
   const armed=await rowState(b);
-  L.say(armed.present===true&&armed.disabled===false,'after the engine has replied, Takeback is ENABLED',armed);
-  L.say(/Takeback/i.test(armed.label||''),'the row reads Takeback',armed.label);
+  L.say(armed.present===true&&armed.disabled===false,T+'after the engine has replied, Takeback is ENABLED',armed);
+  L.say(/Takeback/i.test(armed.label||''),T+'the row reads Takeback',armed.label);
   await b.tapText(/^Takeback$/,{wait:900});
   await b.settle(700);
   const after=await b.metrics();
   const pAfter=await plyCount(b);
 
-  L.say(pBefore>=2,'there were at least two plies on the board before the takeback',{before:pBefore});
-  L.say(pAfter===pBefore-2,'the takeback gave back BOTH plies - the engine\'s reply and his move - so it is his move again ('+pBefore+' -> '+pAfter+')',{before:pBefore,after:pAfter});
+  L.say(pBefore>=2,T+'there were at least two plies on the board before the takeback',{before:pBefore});
+  L.say(pAfter===pBefore-2,T+'the takeback gave back BOTH plies - the engine\'s reply and his move - so it is his move again ('+pBefore+' -> '+pAfter+')',{before:pBefore,after:pAfter});
   L.say(!!before.board&&!!after.board&&Math.abs(before.board.w-after.board.w)<0.6&&Math.abs(before.board.top-after.board.top)<0.6,
         'the board does not move across a takeback (w '+(before.board&&before.board.w)+' -> '+(after.board&&after.board.w)+', top '+(before.board&&before.board.top)+' -> '+(after.board&&after.board.top)+')');
   // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
   // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
   // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
-  L.say(!!after.board&&Math.abs(after.board.w-353)<0.6,'the vs-Computer board is 353 wide after the takeback - the measured size for his phone, not merely unchanged',{measured:after.board&&after.board.w,want:353});
-  L.say(after.over.over<=0&&after.over.docScroll===0,'no scroll after a takeback',after.over);
-  await b.shot('takeback-'+geo+'-after');
+  L.say(!!after.board&&Math.abs(after.board.w-WANT_W[geo])<0.6,T+'the vs-Computer board is '+WANT_W[geo]+' wide after the takeback - the measured size for this geometry, not merely unchanged',{measured:after.board&&after.board.w,want:WANT_W[geo]});
+  L.say(after.over.over<=0&&after.over.docScroll===0,T+'no scroll after a takeback',after.over);
+  await b.shot('takeback-'+geo+'-'+(C.pool||'unset')+'-after');
 
   // the sheet closed behind it, so the board is reachable again
   const sheetGone=await b.rect('[data-ct="more-sheet"]');
-  L.say(!sheetGone,'the More sheet closes behind a takeback (it is zIndex 9990 and would cover the board)');
+  L.say(!sheetGone,T+'the More sheet closes behind a takeback (it is zIndex 9990 and would cover the board)');
 
   // Back at move 0 by way of a takeback: the row must go disabled again. This is the DETERMINISTIC proof that
   // the enabled state tracks the position rather than being latched on when the game starts.
   await openMore(b);
   const back0=await rowState(b);
-  L.say(back0.present===true&&back0.disabled===true,'after giving back the only pair of plies, Takeback is disabled again - the state tracks the position, it is not latched on at game start',{row:back0,plies:pAfter});
+  L.say(back0.present===true&&back0.disabled===true,T+'after giving back the only pair of plies, Takeback is disabled again - the state tracks the position, it is not latched on at game start',{row:back0,plies:pAfter});
   await shutMore(b);
 
   // --- and it can be taken again, back to the start
   await P.waitPlies(b,2).catch(()=>{});
   await b.close();
+ }
+  const geo='kunal730';
 
   // --- PASS & PLAY: "Computer only". The More sheet opens here too, so this is the half that is easy to miss.
   const b2=await L.launch({geo,name:'takeback-passplay',store:{ct_pool:'3'}});await b2.open();
