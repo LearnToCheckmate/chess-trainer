@@ -1749,3 +1749,8 @@ L.run(async()=>{
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
   }
 },'26-invariants');
+// THE CONTROL RECORDS gates/control-audit.js READS [#546 item (89)]. #545 measured both trials and deferred these lines so its
+// gated tree would not change; neither bundle survived its container, so both were REBUILT from their recipes at #546 and
+// re-run against this file at a35524b, whose L.say set is today's.
+// CONTROL-RECORD: a35524b 2026-10-30 total=467 red=13 scope=trial:3c1c8eb09026 how=rev-back's width 34 to 32, one change - TC-INV-01b red at se, kunal730 and short375 naming the Back box, and TC-INV-04c red on ten Review screens as the opponent name gains those 2px, a pin moving as designed [rebuild of #545's d5f222191c63]
+// CONTROL-RECORD: a35524b 2026-10-30 total=467 red=5 scope=trial:673a21b4473e how=the Review player-bar name span given maxWidth:90, so the long opponent name paints 90 of 198px at kunal730 where it is not pinned - TC-INV-04c red on the five Review screens that show the bar [rebuild of #545's bf15a60187bf, the c1d3d9f record withdrawn at #545]
