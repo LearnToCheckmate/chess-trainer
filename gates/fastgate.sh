@@ -571,9 +571,17 @@ in_changed(){ # <path>: 0 if $CHANGED carries it as a WHOLE LINE. Pipe-free, so 
 first_line(){ printf '%s' "${1%%"$NL_525"*}"; }
 
 # ── BUNDLE IDENTITY. MEASURED, NOT INFERRED FROM THE PATH LIST. ─────────────────────────────────────────────
-# Every file GitHub Pages actually serves, compared by blob id at base and at head. A rename, a delete, a mode
-# change or a content change all move the blob id or remove the object, and any of those sends you to the full
-# suite. This is the premise stated as a measurement, and it does not care how the path list was computed.
+# THE SERVED FILES WHOSE BLOB IDS ARE COMPARED DIRECTLY, at base and at head. A rename, a delete, a mode change or a
+# content change all move the blob id or remove the object, and any of those sends you to the full suite.
+# NOT EVERY FILE PAGES SERVES [R18, #546 item (54); jobs/fastgate-shipped-list-comment-claims-a-completeness-the-
+# list-does-not-have-2026-10-10]. This comment used to say "Every file GitHub Pages actually serves", and the list omits
+# at least eight tracked files that Pages serves: manifest.webmanifest, icon-192.png, icon-512.png and
+# apple-touch-icon.png (all four precached BY NAME in sw.js's ASSETS), og-card.png, stockfish-18-lite-single.wasm,
+# chess-tracker.template.html and .nojekyll. Those are covered by a different mechanism, not by this block: a path this
+# script does not recognise falls through to the default arm and the verdict is FULL (exit 2), which antagonist B of
+# #509 measured by touching manifest.webmanifest and icon-192.png, and #546 measured for all eight by calling classify()
+# itself: every one answers FORCE (chess-tracker.template.html by its own arm, the other seven by the default). So the guarantee is "a served file either matches
+# by blob id here or forces FULL", and this list is the subset named for a better diagnosis, not the served surface.
 SHIPPED="app.js lessons.js sw.js stockfish-18-lite-single.js index.html privacy.html terms.html refund.html delete-account.html chess-tracker.html"
 BUNDLEDIFF=""     # any served file other than app.js whose blob moved -> always FULL
 APPDIFF=""        # app.js specifically, which may be stamp-only (see STAMP-ONLY below)
