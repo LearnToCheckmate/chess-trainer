@@ -284,9 +284,10 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # THE COUNT MOVED 15 -> 17 AT #544 ITEM (12), when arm (6)'s `scriptdead` and `scriptstale` joined the line,
   # and THIS CASE IS WHAT NOTICED - which is what it is for. It is the live field count, not a floor: a counter
   # added without updating it reddens here, and here is the only place that would see it.
-  # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end.
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (18: one verdict word, 17 counters)" \
-    "18 18" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end; 18 -> 20 AT #546 ITEM (6):
+  # `idtwospaces` and `registerpathabsent` (arm (7)) after it.
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (20: one verdict word, 19 counters)" \
+    "20 20" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -546,6 +547,27 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C19c and the refusal names the row and the md5" "yes" \
     "$(grep -qF 'REFUSED (3m): TC-Z03 was MEASURED ON md5 ddddeeeeffff' "$R19/c19.txt" && echo yes || echo no)"
   rm -rf "$R19"
+
+  # ── C20: ARM (7), THE ID SPACE [#546, item (6)]. A fabricated tree where both registers and the README exist:
+  #     clean, then one id heading a row in BOTH registers, then a prefix-table path that is not there. Read off
+  #     the (7) line and the ratchet's last two fields, not the verdict (the fabricated tree reddens elsewhere).
+  st_7() { ( cd "$1" && bash gates/verify-log.sh --citations >"$1/c20.txt" 2>&1 || true
+    printf '%s %s | %s' "$(awk '/^  \(7\) id space:/{print $4; exit}' "$1/c20.txt")" \
+      "$(awk '/^  \(7\) id space:/{for(i=1;i<=NF;i++) if($i=="prefix-table"){print $(i-3); exit}}' "$1/c20.txt")" \
+      "$(grep -oE 'idtwospaces=[0-9]+ registerpathabsent=[0-9]+' "$1/c20.txt" | head -1)" ); }
+  R20="$(st_tree)"
+  printf '| id | x |\n|---|---|\n| TC-Z01 | a |\n' > "$R20/claude/stories/TEST-CASES.md"
+  printf '| id | x |\n|---|---|\n| TC-RFZ01 | a |\n' > "$R20/claude/stories/REVIEW-SUITE-FULL.md"
+  printf '## The register\n\n| prefix | file |\n|---|---|\n| `TC-Z` | `claude/stories/TEST-CASES.md`, `gates/regress/10-real.js` |\n\n## Next\n' > "$R20/claude/stories/README.md"
+  st_ck "C20 two disjoint id spaces and a prefix table whose paths exist read 0 and 0" "0 0 | idtwospaces=0 registerpathabsent=0" "$(st_7 "$R20")"
+  st_ck "C20a and it read the table's paths, so the 0 is not an empty scan" "yes" "$(grep -q 'absent, *of\|of 2 prefix-table' "$R20/c20.txt" && echo yes || echo "no: $(grep '(7)' "$R20/c20.txt")")"
+  printf '| TC-Z01 | b |\n' >> "$R20/claude/stories/REVIEW-SUITE-FULL.md"
+  st_ck "C20b an id heading a row in BOTH registers is counted" "1 0 | idtwospaces=1 registerpathabsent=0" "$(st_7 "$R20")"
+  printf '| `TC-Y` | `gates/regress/99-gone.js` |\n' > "$R20/claude/stories/README.tail"
+  awk 'NR==FNR{t=t $0 "\n"; next} /^## Next/{printf "%s\n", t} {print}' "$R20/claude/stories/README.tail" "$R20/claude/stories/README.md" > "$R20/claude/stories/README.new"
+  mv "$R20/claude/stories/README.new" "$R20/claude/stories/README.md"
+  st_ck "C20c a prefix-table path that is not in the tree is counted" "1 1 | idtwospaces=1 registerpathabsent=1" "$(st_7 "$R20")"
+  rm -rf "$R20"
 
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
@@ -838,6 +860,35 @@ $A6CITES
 EOF6
   echo "  (6) $A6TOT script line-number citation(s) in the prescriptive set, $A6DEAD dead, $A6EOF past end of file (no ceiling, by design - see the comment)"
   A6BADN=$((A6DEAD+A6EOF))
+  # === (7) THE ID SPACE AGAINST ITS OWN REGISTER [#546, item (6); the closeCompanion's (b) case extension on
+  #     jobs/apply-patch-reconcile-2026-09-22]. Two facts claude/stories/README.md's register table asserts and
+  #     nothing checked: (7a) the frozen full Review suite (claude/stories/REVIEW-SUITE-FULL.md, 31 TC-RF cases)
+  #     and the gate-executed register (claude/stories/TEST-CASES.md) are DIFFERENT id spaces, so no id may head
+  #     a row in both - TC-R20 meant two things for weeks before the TC-RF rename; and (7b) every repository path
+  #     named in a cell of the PREFIX table under '## The register' (the rows whose first cell is an id prefix in
+  #     backticks) exists. The gate-number table further down that section is NOT read, because its cells name
+  #     gates/logs/<N>-all.log, a gitignored path a clone never carries. A path with a glob (*) or a placeholder
+  #     (<...>) is skipped as a pattern, not resolved. Each absent file is NOT CHECKED rather than passed.
+  A7DUP=0; A7MISS=0; A7NID=0; A7NP=0
+  if [ -f claude/stories/REVIEW-SUITE-FULL.md ] && [ -f claude/stories/TEST-CASES.md ]; then
+    A7RF="$(grep -oE '^\| *TC-[A-Za-z0-9-]+' claude/stories/REVIEW-SUITE-FULL.md | tr -d '| ' | sort -u)"
+    A7TC="$(grep -oE '^\| *TC-[A-Za-z0-9-]+' claude/stories/TEST-CASES.md | tr -d '| ' | sort -u)"
+    A7NID=$(grep -c . <<<"$A7RF$(printf '\n')$A7TC" || true)
+    while IFS= read -r i; do
+      [ -n "$i" ] || continue
+      A7DUP=$((A7DUP+1)); echo "  ID IN TWO SPACES: $i heads a row in claude/stories/TEST-CASES.md AND in claude/stories/REVIEW-SUITE-FULL.md"
+    done <<<"$(comm -12 <(printf '%s\n' "$A7RF") <(printf '%s\n' "$A7TC"))"
+    A7A="checked"
+  else A7A="NOT CHECKED (a register is absent)"; fi
+  if [ -f claude/stories/README.md ]; then
+    A7ROWS="$(awk '/^## The register/{f=1;next} f&&/^#/{exit} f&&/^\| `/' claude/stories/README.md)"
+    for q in $(grep -oE '`[^`]+`' <<<"$A7ROWS" | tr -d '`' | grep -E '^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+$' | sort -u); do
+      A7NP=$((A7NP+1))
+      [ -e "$q" ] || { A7MISS=$((A7MISS+1)); echo "  REGISTER PATH ABSENT: claude/stories/README.md's prefix table names $q, which is not in the tree"; }
+    done
+    A7B="checked"
+  else A7B="NOT CHECKED (claude/stories/README.md is absent)"; fi
+  echo "  (7) id space: $A7DUP id(s) heading rows in both TEST-CASES.md and REVIEW-SUITE-FULL.md, of $A7NID ids read ($A7A); $A7MISS of $A7NP prefix-table path(s) absent ($A7B)"
   # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
   # (runId process-build-2__1791274433682) for the remainder of
   # jobs/register-join-and-input-count-wrong-2026-09-28 (P?, priority 14, finishFirst band 14), whose
@@ -1035,12 +1086,14 @@ EOF
   # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
   # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
   # would make the line unable to grow with the arms, which is worse.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ]
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0}"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ]; then
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
+    [ "${A7DUP:-0}" -gt 0 ] && echo "  (7) $A7DUP case id(s) belong to two id spaces at once"
+    [ "${A7MISS:-0}" -gt 0 ] && echo "  (7) $A7MISS path(s) named by the register's prefix table are not in the tree"
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
   fi
