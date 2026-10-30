@@ -203,6 +203,20 @@ case "${1:-}" in
     # A KEY IT COULD NOT ASK IS REPORTED AND NEVER CREDITED, which is this file's own rule from #534's third-round
     # antagonist A (see the HELD_HEADREG block above): outside a git work tree there is no HEAD, and that is
     # printed rather than silently treated as a key that missed.
+    # A ROW THIS TOOL CANNOT READ IS NOT A CLEARANCE [#546, fresh antagonist B's V2]. match_rows splits on TABS and keeps
+    # NF>=2, so a row written with spaces, or with a 32-hex md5 or a quoted md5 in field 1, was skipped without a word -
+    # and committing #441's row with spaces turned `check a4df39c38222` from HELD (1) to "not held" (0), while
+    # verify-log.sh counted the same row as malformed and warned. Every live row carries field 1 as a 12-hex md5 or
+    # 'sha-only', either one optionally retired with a leading '-', and at least six tab-separated fields; any other
+    # non-comment line is reported and the answer is exit 2, before any key is asked.
+    HELD_BAD="$(grep -v '^[[:space:]]*#' "$REGALL" | awk -F'\t' 'NF==0||$0~/^[[:space:]]*$/{next} {f=$1; sub(/^[[:space:]]+/,"",f); sub(/^-/,"",f); if(NF<6 || !(f ~ /^[0-9a-fA-F]{12}$/ || f=="sha-only")) print}')"
+    if [ -n "$HELD_BAD" ]; then
+      echo "UNKNOWN: $(printf '%s\n' "$HELD_BAD" | grep -c .) row(s) of held-trees.tsv ($HELD_SRC) are in no shape this tool can match - fewer"
+      echo "  than six TAB-separated fields, or field 1 neither a 12-hex md5 nor 'sha-only' (spaces instead of tabs, a 32-hex md5,"
+      echo "  a quoted key). A row it cannot read could be the hold that names this tree, so this is NOT a clearance:"
+      printf '%s\n' "$HELD_BAD" | head -5 | cut -c1-160 | sed 's/^/    /'
+      exit 2
+    fi
     KEY="${2:-}"
     HELD_KEYS=(); HELD_ASKED=(); HELD_MISSED=()
     if [ -n "$KEY" ]; then
@@ -416,7 +430,13 @@ case "${1:-}" in
       # held" answers into HELD BY SOURCE and the job says to leave that form alone. That makes it two keys
       # weaker than the form CLAUDE.md prescribes, and its negative said nothing about the difference - the
       # unmeasured claim R18 is about, on the line a run reads before a push. Found by antagonist B, #537.
-      echo "  NOTE: that is the key you named, plus chess.jsx on disk. This form does NOT ask HEAD's sha or"
+      # It said "plus chess.jsx on disk" even when chess.jsx could not be read and was never asked [#546, fresh
+      # antagonist B's V1]: the named form deliberately keeps its exit code, so the sentence is what must be true.
+      case " ${HELD_SRCNAMES[*]:-} " in
+        *"chess.jsx on disk"*) echo "  NOTE: that is the key you named, plus chess.jsx on disk. This form does NOT ask HEAD's sha or";;
+        *) echo "  NOTE: that is the key you named ONLY - chess.jsx on disk could NOT be read here, so it was not asked."
+           echo "  This form does NOT ask HEAD's sha or";;
+      esac
       echo "  chess.jsx at HEAD, so a hold recorded under either is invisible to it. Before a push, run"
       echo "  \`gates/held.sh check\` with NO argument, which asks all four."
     fi

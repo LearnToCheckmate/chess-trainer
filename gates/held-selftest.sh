@@ -556,7 +556,22 @@ mv "$KM/app.js.aside" "$KM/app.js"
 mv "$KM/chess.jsx" "$KM/chess.jsx.aside"; mkdir "$KM/chess.jsx"
 ck "13d chess.jsx a DIRECTORY: UNKNOWN (exit 2), never a clearance" 2 timeout 20 "$MU" check
 eq "13d and NO 'not held:' verdict line is printed" "0" "$( cd "$KM" && timeout 20 "$MU" check 2>&1 | grep -c '^not held: ' )"
+# 13e: THE NAMED FORM keeps its exit code by design (#537), so its NOTE must not claim a source key it never asked
+# [#546, fresh antagonist B's V1: it said "plus chess.jsx on disk" with chess.jsx a directory].
+eq "13e the named form with chess.jsx a DIRECTORY says the key was NOT asked" "1 0" \
+   "$( cd "$KM" && printf '%s %s' "$( timeout 20 "$MU" check abcdef012345 2>&1 | grep -c 'could NOT be read here, so it was not asked' )" "$( timeout 20 "$MU" check abcdef012345 2>&1 | grep -c 'plus chess.jsx on disk' )" )"
 rmdir "$KM/chess.jsx"; mv "$KM/chess.jsx.aside" "$KM/chess.jsx"
+# 13f: A ROW THIS TOOL CANNOT READ IS NOT A CLEARANCE [#546, fresh antagonist B's V2]. A row written with spaces, or
+# with a 32-hex md5 in field 1, was silently skipped - committing #441's row with spaces lifted its hold.
+cp "$KM/gates/held-trees.tsv" "$KM/gates/held-trees.tsv.keep"
+printf '%s    -    #905    2026-10-30T00:00Z    build__F    a row written with spaces    -\n' "abcdef012345" >> "$KM/gates/held-trees.tsv"
+ck "13f a row written with SPACES is UNKNOWN (exit 2), never a clearance" 2 timeout 20 "$MU" check
+ck "13f and the named form too" 2 timeout 20 "$MU" check abcdef012345
+cp "$KM/gates/held-trees.tsv.keep" "$KM/gates/held-trees.tsv"
+printf 'abcdef0123456789abcdef0123456789\t-\t#906\t2026-10-30T00:00Z\tbuild__F\ta 32-hex md5 in field 1\t-\n' >> "$KM/gates/held-trees.tsv"
+ck "13f a 32-hex md5 in field 1 is UNKNOWN (exit 2)" 2 timeout 20 "$MU" check
+cp "$KM/gates/held-trees.tsv.keep" "$KM/gates/held-trees.tsv"; rm -f "$KM/gates/held-trees.tsv.keep"
+ck "13f control: the restored register clears the clean tree again" 0 timeout 20 "$MU" check
 # ---- THE ZERO-KEY LIMB, A DIFFERENT BRANCH, WHICH HAD NO ASSERTION AT ALL ----
 # Everything above is taken in the PARTIAL-miss state: app.js unreadable, three keys still asked. The limb where
 # NOT ONE key can be computed is a separate branch with its own exit, and antagonist B proved it uncontrolled the
