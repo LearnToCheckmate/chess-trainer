@@ -856,12 +856,18 @@ for(const geo of GEOS){
       return {panelRoom:q.scrollHeight-q.clientHeight,childRoom:kids.length?Math.max(...kids.map(c=>c.scrollHeight-c.clientHeight)):0,
               kids:kids.length,ctaTop:r2(gr.top),ctaBottom:r2(gr.bottom),ctaFullyOn:gr.top>=0&&gr.bottom<=innerHeight,vh:innerHeight};});
     if(!pop){L.say(false,'74 F0c [se] the intro card was not up for the incidental-scroll check',{});}
-    else if(!(pop.panelRoom===0&&pop.childRoom>0)){
+    /* #547: THE POPULATION IS NOW "A PANEL WITH A SCROLLABLE CHILD", NOT "...AND NO PANEL ROOM". The panelRoom===0 term existed because,
+       under the 4000ms auto-dismiss, a panel that COULD scroll legitimately permitted the hold, so F1 there was a positive control. Item
+       (143) removed the timer: the card stays up whatever the panel can do, so the term no longer separates anything - and item (98)
+       capped the panel at the viewport less its insets, which gave Queen's Gambit at se 13px of panel room (543 in 530, measured on both
+       8d3b4af and cc641d4) and emptied the old population, reddening F1G over nothing. F1/F2 assert the same rule over the population
+       that exists. */
+    else if(!(pop.childRoom>0)){
       // THE POPULATION IS NOT PRESENT. Reported, never credited: F1 over a card whose panel CAN scroll is a
       // positive control, because the guard legitimately permits the hold there.
-      L.note('74 F [se] NOT EXERCISED HERE, reported rather than credited: this card is not in the population F is about (panelRoom '+pop.panelRoom+', childRoom '+pop.childRoom+'); F1 needs panelRoom 0 AND a scrollable child. No PASS emitted.');
+      L.note('74 F [se] NOT EXERCISED HERE, reported rather than credited: this card is not in the population F is about (panelRoom '+pop.panelRoom+', childRoom '+pop.childRoom+'); F1 needs a scrollable child. No PASS emitted.');
     }else{
-      FPOP.push('se/'+o.name+' panelRoom 0 childRoom '+pop.childRoom);
+      FPOP.push('se/'+o.name+' panelRoom '+pop.panelRoom+' childRoom '+pop.childRoom);
       // F0d: THE PRECONDITION THAT MAKES F1 A STATEMENT ABOUT AN UNNEEDED HOLD. If the CTA were off screen the
       // reader WOULD need a gesture and holding the card would be right, so F1 would be asserting the wrong thing.
       L.say(pop.ctaFullyOn,'74 F0d [se] '+o.name+': the CTA is ALREADY fully on screen at rest ('+pop.ctaTop+'..'+pop.ctaBottom+' in '+pop.vh+'), so no gesture is needed to reach it and a hold here buys the reader nothing. This is what makes F1 a statement about an UNNEEDED hold rather than about the hold this build exists to create',{ctaTop:pop.ctaTop,ctaBottom:pop.ctaBottom,vh:pop.vh});
@@ -898,7 +904,7 @@ for(const geo of GEOS){
       if(!kids.length)return {none:true,panelRoom:q.scrollHeight-q.clientHeight};
       const ch=kids[kids.length-1];ch.setAttribute('data-ct-f2','1');const r=ch.getBoundingClientRect();
       return {x:r.left+r.width/2,y:r.top+r.height/2,h:r.height,before:ch.scrollTop,panelRoom:q.scrollHeight-q.clientHeight};});
-    if(!tgt||tgt.none||tgt.panelRoom!==0){L.note('74 F2 [se] NOT EXERCISED HERE, reported rather than credited: the card is not in F\'s population ('+JSON.stringify(tgt)+')');}
+    if(!tgt||tgt.none){/* #547: panelRoom no longer gates F2, as for F above */L.note('74 F2 [se] NOT EXERCISED HERE, reported rather than credited: the card is not in F\'s population ('+JSON.stringify(tgt)+')');}
     else{
       await fingerDrag(b,tgt.x,tgt.y+Math.min(30,tgt.h/3),tgt.y-Math.min(30,tgt.h/3));await b.settle(200);
       const after=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct-f2]');return c?c.scrollTop:null;});
@@ -913,7 +919,7 @@ for(const geo of GEOS){
   await b.close();
 }
 L.say(FPOP.length>=1,
-  '74 F1G ANTI-VACUITY FOR BLOCK F, global: at least one card in this run is in the population F is about - panel with NO scroll room and a scrollable child - so F1 is capable of failing somewhere. Without this, a lesson or geometry list that happened to miss that population would report F1 green over nothing, which is exactly how #505s first fix regressed 80 of 97 cards with the suite green: '+(FPOP.join(' | ')||'NONE'),
+  '74 F1G ANTI-VACUITY FOR BLOCK F, global: at least one card in this run is in the population F is about - a panel with a scrollable child (#547: the no-panel-room term went with the timer) - so F1 is capable of failing somewhere. Without this, a lesson or geometry list that happened to miss that population would report F1 green over nothing, which is exactly how #505s first fix regressed 80 of 97 cards with the suite green: '+(FPOP.join(' | ')||'NONE'),
   {count:FPOP.length,items:FPOP});
 
 // B1bG IS NOW AN ASSERTION, NOT A TALLY. #497 printed the residual because it did not fix it; #498 fixes it, so the
