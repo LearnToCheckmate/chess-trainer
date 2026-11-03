@@ -213,6 +213,27 @@ L.run(async()=>{
         }, LONGEST_CURATED);
         L.note('CAPACITY vs the longest curated explanation (measured, NOT a pass condition): '+JSON.stringify(capNote));
       }catch(e){L.note('CAPACITY: not measured ('+String(e.message).slice(0,70)+'); not a pass condition.');}
+      // TC-R85 (US-R81), #547 item (121): WHEN THE EXPLANATION RUNS PAST ITS BOX, THE BOX SAYS SO. The same longest curated string is
+      // put in the live verdict node and the box is sent a scroll event (React does not see a DOM text edit; the app re-measures on
+      // scroll as well as on every new message). Overflowing: a '▾ more' chip is on screen, taps to itself, each tap scrolls the box,
+      // and at the end it goes. Not overflowing: no chip. THE BOX IS FOUND BY WHAT IT IS - the nearest scrolling ancestor of the 🎉
+      // line - and NOT by the data-ct this build added: the first draft keyed on it, so the pre-fix control went red on a missing hook
+      // rather than on the missing chip (CLAUDE.md, #432).
+      try{
+        const prep=await b.page.evaluate((txt)=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];
+          const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!el||!box)return null;window.__r85keep=el.textContent;el.textContent='🎉 Solved! '+txt;box.scrollTop=0;box.dispatchEvent(new Event('scroll'));return {sh:box.scrollHeight,ch:box.clientHeight};},LONGEST_CURATED);
+        await b.page.waitForTimeout(250);
+        const chip=()=>b.page.evaluate(()=>{const c=document.querySelector('[data-ct="pz-verdict-more"]');const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!c)return {on:false,st:box&&box.scrollTop};const r=c.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {on:true,inView:r.top>=0&&r.bottom<=innerHeight,self:!!h&&(h===c||c.contains(h)),cx:r.left+r.width/2,cy:r.top+r.height/2,st:box&&box.scrollTop};});
+        if(L.say(!!prep,label+' '+state+': TC-R85 PRECONDITION the verdict box and its text node are found',prep)){
+          const c0=await chip();
+          if(prep.sh>prep.ch+1){
+            L.say(c0.on&&c0.inView&&c0.self,label+' '+state+': TC-R85 the explanation overruns its box ('+prep.sh+' > '+prep.ch+') and a "more" chip is on screen and taps to itself',c0);
+            let last=c0,moved=false,k=0;for(;k<8&&last.on;k++){await b.page.mouse.click(last.cx,last.cy);await b.page.waitForTimeout(250);const nx=await chip();if(nx.st>last.st)moved=true;last=nx;}
+            L.say(moved&&!last.on,label+' '+state+': TC-R85 each tap scrolls the box, and once the end is reached the chip is gone ('+k+' taps)',{moved,end:last});
+          }else L.say(!c0.on,label+' '+state+': TC-R85 the explanation fits here ('+prep.sh+' <= '+prep.ch+'), so there is no "more" chip',c0);
+        }
+        await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];if(el&&window.__r85keep!=null)el.textContent=window.__r85keep;const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(box){box.scrollTop=0;box.dispatchEvent(new Event('scroll'));}});await b.page.waitForTimeout(200);
+      }catch(e){L.say(false,label+' '+state+': TC-R85 block threw',String(e.message).slice(0,90));}
       if(/KUNAL/.test(label)&&state==='long-solved'){
         await b.shot('57-pz-solved-long-kunal730');
         // MEASURED, NOT ASSERTED: the rank-up concatenation, filed separately. See the header.
@@ -264,6 +285,22 @@ L.run(async()=>{
        L.say(lits.every(l=>ACK.some(t=>l.startsWith(t.slice(0,12)))||EXPL.some(t=>l.startsWith(t.slice(0,12)))),'TC-R82 U4 every literal the source prints is classified one way or the other - a new line must be added to a list, not left to default',lits.filter(l=>!(ACK.some(t=>l.startsWith(t.slice(0,12)))||EXPL.some(t=>l.startsWith(t.slice(0,12))))));
      }else L.note('TC-R82 U1-U4 NOT RUN and not counted: ONLINE_ACK_RE was not found in chess.jsx, which U0 reports red');}
     let ord=null;try{ord=pzOrder(fs.readFileSync(SRCP,'utf8'));}catch(e){}
+    // TC-R84 (US-R80), #547 item (120): FROM A TIER'S FIRST PUZZLE, PREVIOUS STAYS IN THE TIER. A fresh store starts tier 0 on its
+    // first puzzle; pre-fix Previous loaded 890/890 (Expert) under the Novice chip. Then Next from the tier's last puzzle - the
+    // sibling control the job's classSwept names - must also stay in the tier. Tier bounds come from chess.jsx via pzOrder.
+    if(ord&&ord.T&&ord.T[0]){const T0=ord.T[0];
+      for(const [label,geo] of [['375x730',{w:375,h:730,safe:''}],['320x568',{w:320,h:568,safe:''}]]){
+        const b=await L.launch({geo,name:'pz57-r84-'+geo.w+'x'+geo.h});await b.open();
+        const at=()=>b.page.evaluate((N)=>{const t=document.querySelector('[data-ct="pz-top"]');const m=t&&new RegExp('\\b(\\d+)\\s*/\\s*'+N+'\\b').exec(t.innerText||'');return m?+m[1]:null;},ord.N);
+        let ok=true;try{await Z.states['train'](b);await b.settle(500);}catch(e){ok=false;}
+        const i0=await at();
+        if(!L.say(ok&&i0===T0.start+1,'TC-R84 '+label+' PRECONDITION a fresh store starts training on the first tier\'s first puzzle ('+i0+' of '+ord.N+', tier 1 spans '+(T0.start+1)+'..'+T0.end+')',{i0,start:T0.start+1,end:T0.end})){await b.close();continue;}
+        let t1=true;try{await Z.tapAria(b,'Previous puzzle',700);}catch(e){t1=false;}const i1=await at();
+        L.say(t1&&i1===T0.end,'TC-R84 '+label+' Previous from the tier\'s FIRST puzzle wraps to the tier\'s LAST ('+i1+'), not to the end of the whole pool ('+ord.N+')',{i1,want:T0.end});
+        let t2=true;try{await Z.tapAria(b,'Next puzzle',700);}catch(e){t2=false;}const i2=await at();
+        L.say(t2&&i2!=null&&i2>=T0.start+1&&i2<=T0.end,'TC-R84 '+label+' and Next from the tier\'s last puzzle stays in the tier ('+i2+', within '+(T0.start+1)+'..'+T0.end+')',{i2});
+        await b.close();}
+    }else L.say(false,'TC-R84 PRECONDITION the tier order computes from chess.jsx',null);
     const at=ord?ord.PZ.findIndex(q=>q.id==='c7'):-1;const ti=ord?ord.T.findIndex(x=>x.ids.includes('c7')):-1;
     L.say(at>=0&&ti>=0&&at-ord.T[ti].start>=9,'TC-R58 PRECONDITION the puzzle order computes from chess.jsx and c7 sits at least 10th in its tier (absolute '+at+', tier '+ti+')',{at,tier:ti,rel:ti>=0?at-ord.T[ti].start:null});
     if(at>=0&&ti>=0){

@@ -1718,6 +1718,10 @@ const PZSTORE={
 const PZKEY='chesstrainer.progress.v1';
 const PZUKEY='chesstrainer.unlock.v1';
 const PZ_PIN='23123';   // ← unlock code: enter on the roadmap to open all tiers. Change to any code you like.
+/* #547 item (120), jobs/puzzles-previous-from-the-first-puzzle-wraps-to-the-hardest-2026-09-28: Previous used puzIdx-1 over the
+   WHOLE pool, so from a tier's first puzzle a beginner landed on 890/890 (Expert, 2799) under the Novice chip. In tier training it
+   now wraps inside the tier, as pzNextInTier already does at the tier's end. */
+const pzPrevInTier=(t,idx)=>{const tier=PZ_TIERS[t];if(!tier)return idx-1;return (idx-1<tier.start||idx-1>=tier.end)?tier.end-1:idx-1;};
 const pzSolvedInTier=(solved,t)=>PZ_TIERS[t].ids.reduce((n,id)=>n+(solved[id]?1:0),0);
 // current rank = number of fully-completed tiers (0..8). Active/unlocked tier = min(rank, last).
 function pzRank(solved){let r=0;for(let t=0;t<PZ_TIERS.length;t++){if(pzSolvedInTier(solved,t)>=PZ_TIERS[t].need)r=t+1;else break;}return r;}
@@ -3358,6 +3362,17 @@ export default function App(){
   const [puzMsg,setPuzMsg]=useState('');
   const [puzSolved,setPuzSolved]=useState(false);
   const [puzReveal,setPuzReveal]=useState(false);
+  /* #547 item (121), jobs/pz-solved-explanation-longest-curated-still-overruns-the-new-box-2026-09-28: the solved verdict box scrolls
+     (overflow-y auto) but said nothing when its text ran past it - the longest curated explanation painted 177 of 247 characters
+     at 320x568 with no sign of the rest. A '▾ more' chip now shows exactly while text is hidden below, and tapping it scrolls. */
+  /* #547 item (123), jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28: the hint and the ✗ line shared ONE slot (puzMsg), so a
+     wrong move deleted the hint just asked for. The hint is now state: once asked for it stays in the header row until the puzzle
+     changes or is solved, and the ✗ line goes to the verdict box. pzWrongRef counts wrong moves on this puzzle, so the second one
+     points at Show instead of repeating the same sentence. */
+  const [pzHintMsg,setPzHintMsg]=useState('');const pzWrongRef=useRef(0);
+  const pzVerdRef=useRef(null);const [pzVerdMore,setPzVerdMore]=useState(false);
+  const _pzVerdMeasure=()=>{const e=pzVerdRef.current;setPzVerdMore(!!e&&e.scrollHeight>e.clientHeight+1&&e.scrollTop+e.clientHeight<e.scrollHeight-1);};
+  useEffect(()=>{const t=setTimeout(_pzVerdMeasure,80);return()=>clearTimeout(t);},[puzMsg,puzSolved,vp.w,vp.h]);
   /* #547 item (66), jobs/show-the-answer-credits-a-full-puzzle-solve-2026-09-30 (Kunal chose "show-no-rank"): puzReveal
      clears after every correct move, so the solve could not see that Show was used. This ref is set by Show and cleared
      only when a puzzle loads, so a puzzle finished after a reveal earns streak, XP and the Daily 3 step but no solved
@@ -4350,7 +4365,7 @@ export default function App(){
   // ── Puzzles ──
   const loadPuzzle=(idx)=>{
     const n=PZ.length;const i=((idx%n)+n)%n;const p=PZ[i];const g=fromFEN(p.fen);
-    setPuzIdx(i);setCurPuz(p);setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);{const _k='pz:'+i;pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}/* Show then Reset then play used to earn a full solve */setPuzSide(g.turn);
+    setPuzIdx(i);setCurPuz(p);setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='pz:'+i;pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}/* Show then Reset then play used to earn a full solve */setPuzSide(g.turn);
     setGame(g);setLastMv(null);setFlip(g.turn==='b');UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
 
@@ -5170,7 +5185,7 @@ export default function App(){
          rebuild it - which is strictly worse for that player than the defect being fixed. Same predicate,
          sibling site, one pass [R06]. Found by #460's antagonist A at the diff door (its F1). classSwept is
          therefore 2 found / 2 fixed / 0 left, and the earlier figure of 1/1/0 is WITHDRAWN. */
-      }else{if(!p.mine)pzBreakStreak();setPuzMsg('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)")); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;setPuzMsg(pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'){
@@ -5975,7 +5990,7 @@ export default function App(){
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
     if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
     localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
-  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
+  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
      away the work he went back to look at, which is the thing he actually asked for twice.
@@ -8973,8 +8988,8 @@ export default function App(){
         {pzBurst>0&&(<div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:9500}}>{Array.from({length:14}).map((_,i)=>(<span key={pzBurst+'_'+i} style={{position:'absolute',left:(8+(i*6.3)%84)+'%',top:'16%',fontSize:15+(i*7)%14,animation:'ctFall '+(0.7+(i%5)*0.12)+'s ease-in forwards',animationDelay:(i%4)*0.05+'s',opacity:.95}}>{['🎉','✨','⭐','🟡'][i%4]}</span>))}</div>)}
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           {/* #372 (antagonist Y-03, then Z-01): on phones a hint takes over this header row - the one row that costs the board nothing and covers no piece. While it shows, Roadmap shrinks to a chevron and the counters step aside, so three lines at 12.5px hold the longest curated hint (135 characters); the banner over rank 8 (#371) is gone. */}
-          {(!wide&&puzMsg&&/^💡/.test(puzMsg))?(<><button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 44px',width:44,minWidth:44,padding:'8px 0'}}>‹</button>
-          <span data-ct="pz-hint-head" style={{flex:'1 1 auto',minWidth:0,fontSize:(vp.w<=340?11:12),fontWeight:700,letterSpacing:-0.15,color:'#cfe0ff',lineHeight:1.12,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{puzMsg}</span></>):(<>
+          {(!wide&&!puzSolved&&((puzMsg&&/^💡/.test(puzMsg))||pzHintMsg))?(<><button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 44px',width:44,minWidth:44,padding:'8px 0'}}>‹</button>
+          <span data-ct="pz-hint-head" style={{flex:'1 1 auto',minWidth:0,fontSize:(vp.w<=340?11:12),fontWeight:700,letterSpacing:-0.15,color:'#cfe0ff',lineHeight:1.12,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{(puzMsg&&/^💡/.test(puzMsg))?puzMsg:pzHintMsg}</span></>):(<>
           {/* #382 uat378-puzzle-header-clipped-320: on a 320 screen this row laid out 333px of content into 312px
               and the tier badge ran 16.8px off the right, with an ancestor at overflow-x hidden and
               document.scrollWidth pinned at 320 - so it was simply gone, not scrollable. The label shrinks to a
@@ -9016,7 +9031,8 @@ export default function App(){
             <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}</span>
           </div>
         </div>
-        <div style={puzSolved?{position:'absolute',left:0,right:0,top:0,bottom:0,overflowY:'auto',display:'flex',flexDirection:'column'}:{width:'100%',height:(vp.h<820?30:74),marginTop:8,overflowY:'auto'}}>{puzMsg&&!(!wide&&/^💡/.test(puzMsg))&&(/* #364: this box reserves room for the puzzle verdict so nothing jumps when it appears. 74px on a 761px phone (Kunal's) was a tenth of the screen, taken straight out of the board. One line is enough there. */<div key={puzMsg} style={{width:'100%',boxSizing:'border-box',...(puzSolved?{marginTop:'auto',marginBottom:'auto',flexShrink:0}:null)/* #547 item (87), Kunal's 60px rule (adopted 11 Oct): after a solve the verdict card sat at the TOP of the box the hidden goal card reserves, leaving an 89.4px empty band above the board at 375x761. Auto margins centre it - and collapse to 0 when a long explanation overflows, so it still scrolls from its first line */,fontSize:(vp.h<820)?14:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:(vp.h<820)?1.3:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:(vp.h<820)?'4px 10px':'12px 13px',...((vp.h<820&&!puzSolved)?{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',height:30}:null),animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}{/* #381 Z-04, Kunal's answer: "Streak". While a hint is up on a phone the hint TAKES the header row (see Y-03/Z-01 above) and the counters step aside, so this reserved verdict box sat EMPTY - 30px of empty bordered space - and the streak was not readable anywhere on the screen. This puts the displaced readout into the space that was already reserved for it. Deliberately the same text the header gives up rather than a new one, and deliberately NOT the hint repeated. It cannot move the board: the height is fixed by the parent and repeated here, it renders only in the branch where the box would otherwise be empty, and the moment puzMsg stops being a hint the verdict above replaces it in the same box. */}{!wide&&puzMsg&&/^\uD83D\uDCA1/.test(puzMsg)&&(<div data-ct="pz-streak" style={{width:'100%',boxSizing:'border-box',height:(vp.h<820?30:74),display:'flex',alignItems:'center',justifyContent:'center',gap:5,fontSize:(vp.h<820)?12.5:14,fontWeight:700,letterSpacing:.3,color:'rgba(255,255,255,.5)',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,padding:'0 10px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} {'\u00b7'} <span style={{color:'var(--ac2)',fontWeight:800}}>{pzStreak>=2?('\uD83D\uDD25 '+pzStreak+' in a row'):(pzSolvedMap[p.id]?'\u2713 solved':('rating '+p.rating))}</span></div>)}</div>
+        <div ref={pzVerdRef} onScroll={_pzVerdMeasure} data-ct="pz-verdict-box" style={puzSolved?{position:'absolute',left:0,right:0,top:0,bottom:0,overflowY:'auto',display:'flex',flexDirection:'column'}:{width:'100%',height:(vp.h<820?30:74),marginTop:8,overflowY:'auto'}}>{puzMsg&&!(!wide&&/^💡/.test(puzMsg))&&(/* #364: this box reserves room for the puzzle verdict so nothing jumps when it appears. 74px on a 761px phone (Kunal's) was a tenth of the screen, taken straight out of the board. One line is enough there. */<div key={puzMsg} style={{width:'100%',boxSizing:'border-box',...(puzSolved?{marginTop:'auto',marginBottom:'auto',flexShrink:0}:null)/* #547 item (87), Kunal's 60px rule (adopted 11 Oct): after a solve the verdict card sat at the TOP of the box the hidden goal card reserves, leaving an 89.4px empty band above the board at 375x761. Auto margins centre it - and collapse to 0 when a long explanation overflows, so it still scrolls from its first line */,fontSize:(vp.h<820)?14:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:(vp.h<820)?1.3:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:(vp.h<820)?'4px 10px':'12px 13px',...((vp.h<820&&!puzSolved)?{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',height:30}:null),animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}{/* #381 Z-04, Kunal's answer: "Streak". While a hint is up on a phone the hint TAKES the header row (see Y-03/Z-01 above) and the counters step aside, so this reserved verdict box sat EMPTY - 30px of empty bordered space - and the streak was not readable anywhere on the screen. This puts the displaced readout into the space that was already reserved for it. Deliberately the same text the header gives up rather than a new one, and deliberately NOT the hint repeated. It cannot move the board: the height is fixed by the parent and repeated here, it renders only in the branch where the box would otherwise be empty, and the moment puzMsg stops being a hint the verdict above replaces it in the same box. */}{!wide&&puzMsg&&/^\uD83D\uDCA1/.test(puzMsg)&&(<div data-ct="pz-streak" style={{width:'100%',boxSizing:'border-box',height:(vp.h<820?30:74),display:'flex',alignItems:'center',justifyContent:'center',gap:5,fontSize:(vp.h<820)?12.5:14,fontWeight:700,letterSpacing:.3,color:'rgba(255,255,255,.5)',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,padding:'0 10px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} {'\u00b7'} <span style={{color:'var(--ac2)',fontWeight:800}}>{pzStreak>=2?('\uD83D\uDD25 '+pzStreak+' in a row'):(pzSolvedMap[p.id]?'\u2713 solved':('rating '+p.rating))}</span></div>)}</div>
+        {puzSolved&&pzVerdMore&&(<button data-ct="pz-verdict-more" aria-label="Show the rest of the explanation" onClick={()=>{const e=pzVerdRef.current;if(e){e.scrollTop=Math.min(e.scrollHeight,e.scrollTop+Math.max(20,e.clientHeight-24));_pzVerdMeasure();}}} style={{position:'absolute',right:8,bottom:6,zIndex:6,minHeight:28,padding:'3px 10px',borderRadius:14,border:'1px solid rgba(123,216,143,.55)',background:'rgba(16,28,22,.96)',color:'#aef0bd',fontSize:12.5,fontWeight:800,cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,.45)'}}>▾ more</button>)}
         </div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
@@ -9027,21 +9043,21 @@ export default function App(){
             it was told; what it was told was too much chrome. Prev/Next become chevrons at the ends of the same
             row as Hint/Show/Reset, which is also how his chess.com screenshot lays its row out. iPad keeps two rows. */}
         {!wide?(<div style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
-          <button onClick={()=>loadPuzzle(puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
+          <button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
           {!puzSolved&&(<>
-            <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
+            <button onClick={()=>{setPzHintMsg('💡 '+p.hint);setPuzMsg('💡 '+p.hint);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
             <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
             <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
           </>)}
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
         </div>):(<>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
-          <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
+          <button onClick={()=>{setPzHintMsg('💡 '+p.hint);setPuzMsg('💡 '+p.hint);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadPuzzle(puzIdx)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%'}}>
-          <button onClick={()=>loadPuzzle(puzIdx-1)} style={navBtn(false)}>‹ Prev</button>
+          <button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} style={navBtn(false)}>‹ Prev</button>
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} style={navBtn(puzSolved)}>Next ›</button>
         </div>
         </>)}
@@ -9404,8 +9420,12 @@ export default function App(){
                 {(()=>{const _av=LIB[openIdx].vars.find(v=>learnLabel.endsWith(v.name));return _av&&_av.idea?(<div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.58)',lineHeight:1.4,marginTop:2}}>{_av.idea}</div>):null;})()}
               </div>
             )}
-            <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8}}>
-              <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>
+            {/* #547 item (124), jobs/lesson-moves-head-and-action-row-jump-12px-demo-to-practice-2026-09-29 (Kunal's N-lesson-3): this
+                progress strip (4px) plus the column's 8px gap existed only in practice, so 'Now I'll try it' pushed the control row, the
+                MOVES head and Analyze 12px down (375x730), and at 568 tall the board shrank instead. The strip now sits ABSOLUTELY in the
+                gap above the row, so it takes no layout and the demo and practice stacks are the same height. */}
+            <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8,position:'relative'}}>
+              <div data-ct="lesson-progress" style={{position:'absolute',left:0,right:0,top:-7,height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>
               {openStep>0&&lpHist.length>1&&wide&&(()=>{/* #372 (antagonist Y-01): on phones this 44px row joined the stack after the first practice move and took the lesson board from 375 to 320; wide only */const n=lpHist.length-1;const cur=lpv==null?n:lpv;const sb=(lbl,fn,dis)=>(<button key={lbl} disabled={dis} onClick={fn} style={{flex:1,minHeight:36,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(<div style={{display:'flex',gap:6,alignItems:'center'}}>{sb('⏮',()=>setLpv(0),cur===0)}{sb('‹',()=>setLpv(Math.max(0,cur-1)),cur===0)}<span style={{flex:'0 0 auto',minWidth:74,textAlign:'center',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:lpv==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{lpv==null?'● LIVE':('Move '+cur+'/'+n)}</span>{sb('›',()=>{const nv=Math.min(n,cur+1);setLpv(nv>=n?null:nv);},cur>=n)}{sb('⏭',()=>setLpv(null),lpv==null)}</div>);})()}
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>

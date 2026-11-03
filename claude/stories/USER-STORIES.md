@@ -1488,6 +1488,27 @@ As a player learning a basic mate, I start where the method is still to be used,
 - Every line ends where the technique ends, in mate or the pawn queening, with a note for every move. Each new line was checked move by move: legal in chess.js, a forced mate by Stockfish depth 22 with the distance to mate falling by one each move, and 70 square claims in the notes checked against the board. That is not a tablebase, which this environment cannot reach. (TC-LS-038)
 - Rook vs Pawn keeps its position, with the rook in front of a pawn on the 7th, and its plan now says why that is right there. (no case: one clause of text)
 
+### US-R80 Stepping back from a tier's first puzzle keeps me in my tier
+*Added #547, from jobs/puzzles-previous-from-the-first-puzzle-wraps-to-the-hardest-2026-09-28.*
+As a beginner training in my tier, tapping Previous on its first puzzle takes me to that tier's last puzzle, not to the hardest puzzle in the whole collection under my tier's name.
+- Previous from the tier's first puzzle lands on the tier's last puzzle; Next from there stays in the tier. (TC-R84)
+
+### US-R81 When a solved puzzle's explanation is longer than its box, the box says there is more
+*Added #547, from jobs/pz-solved-explanation-longest-curated-still-overruns-the-new-box-2026-09-28.*
+As a player reading why a puzzle's answer works, I can tell when the explanation continues below what I can see, and reach the rest with one tap.
+- While text is hidden below the box, a "▾ more" chip is on screen; each tap scrolls the box, and the chip goes when the end is reached. Where the text fits, there is no chip. (TC-R85)
+
+### US-R82 A hint I asked for stays while I keep trying
+*Added #547, from jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28.*
+As a player stuck on a puzzle, the hint I asked for stays on screen while I try moves, and a second wrong move tells me where to look next instead of repeating itself.
+- After 💡 Hint, a wrong move shows its ✗ line in the verdict box and the hint stays in the header; it is still there after a second wrong move. (TC-R86)
+- The second wrong move on the same puzzle points at 👁 Show rather than printing the first sentence again. (TC-R86)
+
+### US-R83 Starting to practise a lesson moves nothing on screen
+*Added #547, from jobs/lesson-moves-head-and-action-row-jump-12px-demo-to-practice-2026-09-29 (Kunal's N-lesson-3, 13 Sep 2026).*
+As a player who taps "Now I'll try it", the board, the MOVES heading and the Analyze button stay exactly where they were, so my thumb does not miss.
+- Across that tap the board's size and position, the MOVES head and the Analyze row are unchanged; the practice progress strip still shows, below the board. (TC-LS-039)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

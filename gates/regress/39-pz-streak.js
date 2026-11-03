@@ -175,4 +175,24 @@ L.run(async()=>{
       await b.close();
     }
   }
+  // ════════ TC-R86 (US-R82), #547 item (123): A WRONG MOVE DOES NOT DELETE THE HINT, AND THE SECOND ONE POINTS AT SHOW ════════
+  // jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28. Pre-fix the hint and the ✗ line shared one slot: after 💡 Hint then a
+  // wrong move (Re7) the header lost the hint, and every wrong move printed the same sentence. Phones only (the header carries
+  // the hint below the iPad width); 375x730 and 320x568.
+  for(const geo of ['kunal730','se']){
+    const b=await L.launch({geo,name:'pz-hint-keep-'+geo});await b.open();
+    const rd=()=>b.page.evaluate(()=>{const h=document.querySelector('[data-ct="pz-hint-head"]');const t=document.querySelector('[data-ct="pz-top"]');
+      const x=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^✗/.test((e.innerText||'').trim())).map(e=>e.innerText.trim()):[];return {head:h?(h.innerText||'').trim():null,x};});
+    let ok=true;try{await Z.states['train-hint'](b);await b.settle(400);}catch(e){ok=false;}
+    const r0=await rd();
+    if(!L.say(ok&&!!r0.head&&/^\u{1F4A1}/u.test(r0.head),geo+': TC-R86 PRECONDITION the hint was asked for and is in the header',r0)){await b.close();continue;}
+    await b.move('e1','e7',0);try{await Z.waitMsg(b,/^✗/,3000);}catch(e){}await b.settle(500);const r1=await rd();
+    L.say(r1.x.length===1,geo+': TC-R86 PRECONDITION the wrong move printed its ✗ line',r1);
+    L.say(r1.head===r0.head,geo+': TC-R86 the hint is STILL in the header after the wrong move - it is state, not an event the next message overwrites',{before:r0.head,after:r1.head});
+    await b.move('e1','e7',0);await b.settle(900);const r2=await rd();
+    L.say(r2.head===r0.head,geo+': TC-R86 and still after a second wrong move',{after:r2.head});
+    L.say(r2.x.length===1&&r2.x[0]!==r1.x[0]&&/\u{1F441}/u.test(r2.x[0]),geo+': TC-R86 the second wrong move says something new: it points at 👁 Show instead of repeating the first sentence',{first:r1.x[0],second:r2.x[0]});
+    L.say(b.errs.length===0,geo+': TC-R86 no console errors',{errs:b.errs.slice(0,2)});
+    await b.close();
+  }
 },'PZ-STREAK');

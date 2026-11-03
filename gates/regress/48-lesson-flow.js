@@ -1398,4 +1398,20 @@ L.run(async()=>{
    }else L.note(n+': TC-R78 the try-it control is on screen at rest here (bottom '+(r.tryBot&&Math.round(r.tryBot))+'), so no chip is required - not credited as a pass');
    await b.close();
  }
+ // TC-LS-039 (US-R83), #547 item (124): 'NOW I'LL TRY IT' MOVES NOTHING. Pre-fix the practice progress strip (4px + the column's 8px
+ // gap) existed only in practice: at 375x730 the MOVES head and Analyze dropped 12px; at 320x568 the board shrank 270.9 -> 254.9.
+ for(const geo of ['kunal730','se']){
+   const b=await L.launch({geo,name:'lesson-try-still-'+geo});await b.open();
+   const rd=()=>b.page.evaluate(()=>{const gs=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);const g=gs[0]&&gs[0].getBoundingClientRect();
+     const head=[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&/^MOVES$/i.test((e.innerText||'').trim()));const an=[...document.querySelectorAll('button')].find(x=>/Analyze$/.test((x.innerText||'').trim()));
+     const r=n=>n?Math.round(n.getBoundingClientRect().top*10)/10:null;return {bw:g?Math.round(g.width*10)/10:null,bt:g?Math.round(g.top*10)/10:null,bb:g?g.bottom:null,head:r(head),an:r(an)};});
+   let ok=true;try{await D.states['demo-end'](b);await b.settle(900);}catch(e){ok=false;}const a0=await rd();
+   try{await D.tapBtn(b,/^✋ Now I'll try it$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
+   if(!L.say(ok&&a0.bw&&a0.head!=null&&a0.an!=null&&a1.head!=null,geo+': TC-LS-039 PRECONDITION demo end and practice move 0 were both reached, with the board, MOVES head and Analyze found',{a0,a1})){await b.close();continue;}
+   L.say(a1.bw===a0.bw&&a1.bt===a0.bt,geo+': TC-LS-039 the board keeps its size and place across "Now I\'ll try it" ('+a0.bw+' at '+a0.bt+' -> '+a1.bw+' at '+a1.bt+')',{a0,a1});
+   L.say(a1.head===a0.head&&a1.an===a0.an,geo+': TC-LS-039 and the MOVES head and the Analyze row do not move ('+a0.head+'/'+a0.an+' -> '+a1.head+'/'+a1.an+')',{a0,a1});
+   const pg=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-progress"]')||[...document.querySelectorAll('div')].find(d=>d.style.height==='4px'&&d.firstElementChild&&/width/.test(d.firstElementChild.getAttribute('style')||''));if(!e)return null;const r=e.getBoundingClientRect();return {top:r.top,h:r.height,w:r.width};});
+   L.say(!!pg&&pg.h>=3&&pg.w>100&&pg.top>=a1.bb-0.5,geo+': TC-LS-039 the practice progress strip is still painted, below the board',pg);
+   await b.close();
+ }
 },'LESSON-FLOW');
