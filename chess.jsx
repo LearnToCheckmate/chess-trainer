@@ -4927,11 +4927,16 @@ export default function App(){
        review's header read 'White vs Black' with no result, where an imported game on the same screen names both players and the
        result. It now carries White, Black and Result the way an imported PGN does: You (or your signed-in name) and the bot's name
        vs the computer, both players online, the plain colours in Pass & Play (nothing else is known there). */
-    try{const _q=x=>String(x||'').replace(/["\\]/g,'');let _w='White',_b='Black';
+    try{const _q=x=>String(x||'').replace(/["\\]/g,'');let _w='White',_b='Black',_wr='',_br='';
       if(opponent==='computer'){const _me=(cloudUser&&cloudUser.name)||'You';const _bt=(botById(selBot)&&botById(selBot).name)||'Computer';_w=pColor==='w'?_me:_bt;_b=pColor==='w'?_bt:_me;}
-      else if(opponent==='online'){const og=onlineGameRef.current;if(og&&og.w&&og.w.name)_w=og.w.name;if(og&&og.b&&og.b.name)_b=og.b.name;}
+      else if(opponent==='online'){const og=onlineGameRef.current;if(og&&og.w&&og.w.name)_w=og.w.name;if(og&&og.b&&og.b.name)_b=og.b.name;
+        /* #547 item (146), jobs/played-game-review-shows-no-rating-though-the-app-holds-one-2026-09-28, the half its own theFix calls
+           cheap and clearly right: an online game's ratings are already held (og.w/og.b.rating, which the player bars print), so they
+           ride in as WhiteElo/BlackElo and the summary's hdrElo path shows them as for an imported game. vs Computer and Pass & Play
+           get none: what to show there is the Desk half, Kunal's, and is not decided here. */
+        _wr=(og&&og.w&&og.w.rating!=null)?String(og.w.rating):'';_br=(og&&og.b&&og.b.rating!=null)?String(og.b.rating):'';}
       const _r=_gameOver?(_winSide==null?'1/2-1/2':(_winSide==='w'?'1-0':'0-1')):'*';
-      pgn='[White "'+_q(_w)+'"]\n[Black "'+_q(_b)+'"]\n[Result "'+_r+'"]\n\n'+pgn+(_r!=='*'?(' '+_r):'');}catch(e){}
+      pgn='[White "'+_q(_w)+'"]\n[Black "'+_q(_b)+'"]\n'+(/^\d{3,4}$/.test(_wr)?('[WhiteElo "'+_wr+'"]\n'):'')+(/^\d{3,4}$/.test(_br)?('[BlackElo "'+_br+'"]\n'):'')+'[Result "'+_r+'"]\n\n'+pgn+(_r!=='*'?(' '+_r):'');}catch(e){}
     setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
   const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
   const _liveOpening=useMemo(()=>{try{if(mode!=='play')return null;const h=(boardGame&&boardGame.history)||[];if(!h.length)return null;const sans=h.slice(0,24).map(x=>x.san);const o=nameOpening(sans);return (o&&o.name)?{name:String(o.name).split(' \u2014 ')[0].split(' - ')[0]}:null;}catch(e){return null;}},[mode,boardGame]); /* #370 n3; #371: the base name only - lesson titles carry commentary after an em dash (the antagonist found 49 of 114 do) */
