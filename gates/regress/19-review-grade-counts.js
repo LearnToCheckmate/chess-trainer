@@ -1,4 +1,5 @@
 // regress/19-review-grade-counts.js  #464, jobs/review-grade-counts-vs-the-moves-they-name, case TC-R30,
+// CONTROL-RECORD: a0ebc70 2026-11-03 total=78 red=4 scope=trial:e950c3422e02 how=#547 item (108)'s pre-fix bundle, where a side with no graded move prints 99.5%: TC-R34 red for White and Black at kunal730 and se (run nc108) [#547 close-out, ratchet]
 // story US-R20. THE NUMBER ON THE SUMMARY AND THE MOVES IT NAMES MUST BE COMPUTED BY ONE RULE.
 //
 // WHAT IT GUARDS. The grade counter reassigns every ply below the opening-book prefix to Book. Two other

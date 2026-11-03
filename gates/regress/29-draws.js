@@ -1,4 +1,5 @@
 // regress/29-draws.js   A DRAWN GAME MUST END. #414.
+// CONTROL-RECORD: a0ebc70 2026-11-03 total=35 red=4 scope=trial:e950c3422e02 how=#547 item (106)'s pre-fix bundle without the insufficient-material draw: (G) and TC-PL-041 (F) red (run nc106) [#547 close-out, ratchet]
 //
 // WHY THIS GATE EXISTS. `getStatus` (chess.jsx:110) knows exactly one of the four ways a game can be drawn:
 // no legal moves and no check is a stalemate, and that DOES end the game. Threefold repetition and the

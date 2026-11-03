@@ -1,4 +1,5 @@
 // regress/33-reproducible-review.js  THE ONLY GUARD ON THE STUCK-WORKER TIMEOUT. Rebuilt from repro373.js, which
+// CONTROL-RECORD: f77b636 2026-11-03 total=24 red=1 scope=trial:3853c4cf2a59 how=#547 control run j102nc: a bundle carrying a double-escaped \\uXXXX string - TC-SUITE-366 red [#547 close-out, ratchet]
 // lived in a sandbox that no longer exists and was never in git.
 //
 // What it protects, in the retiring build chat's own words: the review's stuck-worker timeout was

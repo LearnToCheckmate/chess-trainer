@@ -1,4 +1,5 @@
 // regress/15-gallery-playall.js  THE RECORDING-FREE GALLERY GATE (Kunal's feedback session, flag
+// CONTROL-RECORD: de0deaa 2026-11-03 total=128 red=3 scope=trial:c2ec502721bd how=#547 item (174)'s pre-fix bundle, gallery exit 34x34 and action buttons 42/41 tall: TC-GL-004 red at 320x568, 375x730 and 375x568 (run nc174) [#547 close-out, ratchet]
 // uat372-headless-run, 2026-09-12 22:30 ET: "the whole Play-all runs headlessly in real Chromium ... this is the
 // shape the daily UAT check now takes: Playwright, not a phone recording ... worth committing under gates/").
 // Drives "▶ Play all N" from Home at his geometry and at 375x812, sampling every 700 ms: every card's caption is
