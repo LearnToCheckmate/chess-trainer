@@ -753,7 +753,7 @@ L.run(async()=>{
        build adds: the overlay is the fixed layer at zIndex 9990, the exit is its button reading exactly the close glyph,
        and the full-width controls are its buttons at least 80% of the viewport wide that are not cards. The denominator
        is asserted on its own line first, so an overlay that lost its buttons cannot pass over nothing. Control: the
-       pre-fix bundle reds TC-GL-004 at all three geometries (exit 34x34, Play/Walk 42, Diagnostics 41). */
+       pre-fix bundle reds TC-GL-004 at all three geometries (exit 34x34, Play 42, Walk 42 - 58 at 320x568, where its label wraps - Diagnostics 41; measured by #547's antagonist A). */
     const tgt=await b.page.evaluate(()=>{
       const ov=[...document.querySelectorAll('div')].find(d=>{const cs=getComputedStyle(d);return cs.position==='fixed'&&cs.zIndex==='9990';});
       if(!ov)return {ov:false,exit:null,wide:[]};const vw=window.innerWidth;

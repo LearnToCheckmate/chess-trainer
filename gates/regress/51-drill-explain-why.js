@@ -140,7 +140,7 @@ const verdictBox=(b)=>b.page.evaluate(()=>{const top=document.querySelector('[da
   const all=[...top.querySelectorAll('div,span')].filter(e=>{const t=(e.innerText||'').trim();return /^(?:🎉|✗)/.test(t)&&e.children.length===0;});
   const e=all[all.length-1];if(!e)return null;const r=e.getBoundingClientRect();const p=e.parentElement,pr=p.getBoundingClientRect();
   return {text:(e.innerText||'').replace(/\s+/g,' ').trim(),w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,
-          sw:e.scrollWidth,cw:e.clientWidth,esh:e.scrollHeight,ech:e.clientHeight,eovf:getComputedStyle(e).overflowY,psh:p.scrollHeight,pch:p.clientHeight,pmax:getComputedStyle(p).maxHeight,povf:getComputedStyle(p).overflowY,pbottom:Math.round(pr.bottom*10)/10,vh:innerHeight,vw:innerWidth};});
+          sw:e.scrollWidth,cw:e.clientWidth,esh:e.scrollHeight,ech:e.clientHeight,eovf:getComputedStyle(e).overflowY,ancCut:(()=>{const out=[];for(let a=e.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);if(cs.overflowY==='visible'&&cs.overflowX==='visible')continue;const q=a.getBoundingClientRect(),cb=q.top+a.clientTop+a.clientHeight;const canScroll=/auto|scroll/.test(cs.overflowY)&&a.scrollHeight>a.clientHeight+1;if(r.bottom>cb+1&&!canScroll)out.push({ct:a.dataset.ct||a.tagName,ovf:cs.overflowY,clipBottom:Math.round(cb*10)/10,msgBottom:Math.round(r.bottom*10)/10});}return out;})(),psh:p.scrollHeight,pch:p.clientHeight,pmax:getComputedStyle(p).maxHeight,povf:getComputedStyle(p).overflowY,pbottom:Math.round(pr.bottom*10)/10,vh:innerHeight,vw:innerWidth};});
 // enter the drill and solve the ONE item the store was seeded with.
 //
 // #422 RUN, FIRST ATTEMPT, AND THE MISTAKE IS RECORDED RATHER THAN QUIETLY FIXED. This function first read
@@ -354,8 +354,12 @@ L.run(async()=>{
          card and a long one RUNS DOWN OVER THE BOARD IN FULL, its parent overflow:visible. So "fits the parent" no longer describes the
          design - measured 91.3px over a 62px pz-float at 390x844, by intent - and B7 asserts what it always protected: no line of the
          explanation is CUT. Either it fits a parent that clips, or the parent does not clip and the message box itself holds all its text. */
-      const _cut=(r.box.povf!=='visible')?(r.box.psh>r.box.pch+1):(r.box.esh>r.box.ech+1&&r.box.eovf!=='visible');
-      L.say(!_cut,'TC-R16 B7['+(i+1)+'/'+N+'] '+g.n+' the whole explanation is SHOWN - no clipping box cuts it (a clipping parent: scrollHeight <= clientHeight; the float, whose parent does not clip: the message box itself is not cut)',{scrollHeight:r.box.psh,clientHeight:r.box.pch,maxHeight:r.box.pmax,overflowY:r.box.povf,msgScrollHeight:r.box.esh,msgClientHeight:r.box.ech,msgOverflowY:r.box.eovf,chars:t.length});
+      /* #547, ANTAGONIST A's A2: the first version only looked at the message and its parent, so with both overflow:visible (all 18 rows,
+         every geometry) it was a constant. It now ALSO walks every ancestor that clips: the text is cut if any of them ends above the
+         message's bottom and cannot be scrolled to show the rest (overflow hidden, or no room). In landscape the verdict sits in an
+         auto scroller with 96px spare - a longer verdict there is reachable by scrolling and is not "cut"; a hidden box is. */
+      const _cut=((r.box.povf!=='visible')?(r.box.psh>r.box.pch+1):(r.box.esh>r.box.ech+1&&r.box.eovf!=='visible'))||(r.box.ancCut&&r.box.ancCut.length>0);
+      L.say(!_cut,'TC-R16 B7['+(i+1)+'/'+N+'] '+g.n+' the whole explanation is SHOWN - no clipping box cuts it (a clipping parent: scrollHeight <= clientHeight; the float, whose parent does not clip: the message box itself is not cut)',{scrollHeight:r.box.psh,clientHeight:r.box.pch,maxHeight:r.box.pmax,overflowY:r.box.povf,msgScrollHeight:r.box.esh,msgClientHeight:r.box.ech,msgOverflowY:r.box.eovf,clippingAncestorsThatCut:r.box.ancCut,chars:t.length});
       L.say(r.box.bottom<=r.box.vh+0.5,'TC-R16 B8['+(i+1)+'/'+N+'] '+g.n+' the verdict box is inside the viewport',{bottom:r.box.bottom,vh:r.box.vh});
       await c.close();
     }

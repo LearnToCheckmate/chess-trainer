@@ -305,12 +305,17 @@ const layer=(b)=>b.page.evaluate(()=>{
        over 58 commits with this gate cut to Petroff and King's Gambit at se: 29b60c2 PASS, 476e9d7 FAIL. */
     let clip={l:0,t:0,r:innerWidth,b:innerHeight};
     for(let a=x.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);
-      if(cs.overflowY!=='visible'||cs.overflowX!=='visible'){const q=a.getBoundingClientRect();
+      /* #547, ANTAGONIST A's VETO (A1), UPHELD: the first version excused ANY ancestor whose overflow was not visible, so an
+         overflow:hidden box nobody can scroll cut the CTA and the whole gate went 230 PASS / 0 FAIL (A's ctl-wrap.js, md5
+         2ccba37a424b; the pre-repair gate read 21 FAIL on it). A clip excuses a point ONLY when a FINGER can bring it back: the
+         ancestor is user-scrollable by the same test as userScrollables below - overflow-y auto|scroll, real room, and no
+         touch-action that forbids a vertical pan. fingerCanPanY is defined before sample() is first called. */
+      if(/auto|scroll/.test(cs.overflowY)&&a.scrollHeight>a.clientHeight+1&&fingerCanPanY(a)){const q=a.getBoundingClientRect();
         clip={l:Math.max(clip.l,q.left+a.clientLeft),t:Math.max(clip.t,q.top+a.clientTop),r:Math.min(clip.r,q.left+a.clientLeft+a.clientWidth),b:Math.min(clip.b,q.top+a.clientTop+a.clientHeight)};}}
     const pt=(fy)=>{const cy=r.top+r.height*fy;
       const on=!(cx<0||cx>=innerWidth||cy<0||cy>=innerHeight);
       if(!on)return {onScreen:false,own:false,what:'(OUTSIDE THE VIEWPORT)'};
-      if(cx<clip.l||cx>=clip.r||cy<clip.t||cy>=clip.b)return {onScreen:false,own:false,clipped:true,what:'(CLIPPED BY A SCROLLING ANCESTOR)'};
+      if(cx<clip.l||cx>=clip.r||cy<clip.t||cy>=clip.b)return {onScreen:false,own:false,clipped:true,what:'(CLIPPED BY A USER-SCROLLABLE ANCESTOR)'};
       const e=document.elementFromPoint(cx,cy);
       return {onScreen:true,own:!!(e&&(e===x||x.contains(e))),what:nm(e).slice(0,34)};};
     const fully=r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth;

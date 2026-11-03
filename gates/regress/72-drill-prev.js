@@ -288,12 +288,13 @@ L.run(async()=>{
     L.say(!!q3&&q3.i===1,'TC-R47 B10 '+tag+' (b) Prev comes back to card 1 across the same gap',{counter:q3});
     // and the END: with row 5 unplayable, card 2 is the last one, so Next there is a COMPLETION
     await tap(b,'drill-next',1000);
+    const qPre=await idx(b);   // #547, antagonist A's A3: "not earlier" is now READ - the last card must be on screen before the end tap
     await tap(b,'drill-next',1200);
     const t4=await state(b);
     // #547 item (147): Next from the last card no longer LEAVES the drill - it shows the drill's end state (TC-R92), which is the
     // completion now. So B11 asserts the end card, reached from card 2 of 2 and not earlier, instead of the exit it used to read.
     const end4=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="drill-end"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-    L.say(!!end4&&new RegExp('of '+PLAYABLE+'\\b').test(end4),'TC-R47 B11 '+tag+' Next from the LAST playable card is a completion - the drill\'s end state, counting the '+PLAYABLE+' playable cards - and it did not come early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill,end:end4});
+    L.say(!!qPre&&qPre.i===PLAYABLE&&qPre.n===PLAYABLE&&!!end4&&new RegExp('of '+PLAYABLE+'\\b').test(end4),'TC-R47 B11 '+tag+' Next from the LAST playable card is a completion - the drill\'s end state, counting the '+PLAYABLE+' playable cards - and it did not come early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill,end:end4,counterBeforeTheEndTap:qPre});
     L.say(b.errs.length===0,'TC-R47 B12 '+tag+' no console errors over the unplayable-row walk',{errs:b.errs.slice(0,2)});
     await b.close();
   }
