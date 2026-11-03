@@ -3396,6 +3396,7 @@ export default function App(){
   const botRowRef=useRef(null);const [botMore,setBotMore]=useState(false);
   const _botMeasure=()=>{const e=botRowRef.current;setBotMore(!!e&&e.scrollLeft+e.clientWidth<e.scrollWidth-1);};
   useEffect(()=>{const t=setTimeout(_botMeasure,60);return()=>clearTimeout(t);},[playSetup,vp.w,vp.h,mode,opponent]);
+  const [drillEnd,setDrillEnd]=useState(null);
   const pzVerdRef=useRef(null);const [pzVerdMore,setPzVerdMore]=useState(false);
   const _pzVerdMeasure=()=>{const e=pzVerdRef.current;setPzVerdMore(!!e&&e.scrollHeight>e.clientHeight+1&&e.scrollTop+e.clientHeight<e.scrollHeight-1);};
   useEffect(()=>{const t=setTimeout(_pzVerdMeasure,80);return()=>clearTimeout(t);},[puzMsg,puzSolved,vp.w,vp.h]);
@@ -6104,7 +6105,7 @@ export default function App(){
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
      PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
-  const drillGo=(pos)=>{const pl=drillPlayRef.current||[],q=mistakeQueueRef.current||[];
+  const drillGo=(pos)=>{setDrillEnd(null);const pl=drillPlayRef.current||[],q=mistakeQueueRef.current||[];
     if(pos<0||pos>=pl.length)return false;
     const qi=pl[pos],o=puzzleFromMistake(q[qi]);
     if(!o)return false;
@@ -6118,13 +6119,16 @@ export default function App(){
     if(!(rec&&loadExternalSolved(o,rec)))loadExternal(o);
     return true;};
   const drillStep=(step)=>drillGo(drillPosRef.current+step);
-  const nextMistake=()=>{if(!drillStep(1))exitMistakes();};
+  /* #547 item (147), jobs/drill-past-the-last-mistake-drops-you-on-the-review-landing-with-nothing-said-2026-09-29: Next from the last card
+     used to EXIT - no board, no acknowledgement, the Review landing. The end now gets a state of its own in the drill's own space: how
+     many of the set were fixed (against the session's ORIGINAL size), with Go again and back to Review. */
+  const nextMistake=()=>{if(!drillStep(1)){const n=(drillPlayRef.current||[]).length;const fixed=Object.keys(drillSolvedRef.current||{}).length;setDrillEnd({n,fixed:Math.min(fixed,n),kind:drillKindRef.current});}};
   /* PREV IS INERT AT THE FRONT, NOT AN EXIT, and the asymmetry with Next is deliberate: Next falling off
      the END of the queue is a completion, so leaving the drill is the right answer there. Falling off the
      FRONT is not an event at all - he is on card 1 and asked to go back - so the control is disabled and
      visibly inert [TC-R37 (a)] instead of throwing him out of the drill he is working. */
   const prevMistake=()=>{drillStep(-1);};
-  const exitMistakes=()=>{setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
+  const exitMistakes=()=>{setDrillEnd(null);setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
   useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
   /* #464: what the current ply is PRESENTED as, by the same rule the summary counts with. */
@@ -9190,6 +9194,10 @@ export default function App(){
             </div>)}
           </div>
           {puzMsg&&(<div data-ct="pz-msg" key={puzMsg} style={{position:'absolute',left:0,right:0,top:0,minHeight:'100%',boxSizing:'border-box',zIndex:30,boxShadow:'0 6px 18px rgba(0,0,0,.45)',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:(t=>'linear-gradient('+t+','+t+'),'+baseBg)(puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)')),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}
+          {_drill&&drillEnd&&(<div data-ct="drill-end" role="status" style={{position:'absolute',left:0,right:0,top:0,minHeight:'100%',boxSizing:'border-box',zIndex:31,boxShadow:'0 6px 18px rgba(0,0,0,.45)',background:'linear-gradient(rgba(123,216,143,.16),rgba(123,216,143,.16)),'+baseBg,border:'1px solid rgba(123,216,143,.45)',borderLeft:'4px solid #7bd88f',borderRadius:10,padding:'12px 13px',display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:800,color:'#aef0bd',lineHeight:1.4}}>{'🎉 That\'s all '+drillEnd.n+(drillEnd.kind==='brilliant'?' of your brilliant moves':' of your mistakes')+' — you '+(drillEnd.kind==='brilliant'?'found ':'fixed ')+drillEnd.fixed+' of '+drillEnd.n+'.'}</div>
+            <div style={{display:'flex',gap:8}}><button data-ct="drill-end-again" onClick={()=>{setDrillEnd(null);drillSolvedRef.current={};drillGo(0);}} style={{...btn('rgba(255,255,255,.1)','1px solid rgba(255,255,255,.25)','#fff'),flex:1,minHeight:44}}>↻ Go again</button><button data-ct="drill-end-review" onClick={exitMistakes} style={{...btn('#4a6741','none','#fff'),flex:1,minHeight:44,fontWeight:800}}>‹ Review</button></div>
+          </div>)}
           </div>
         </>)}
       </div>);})()}

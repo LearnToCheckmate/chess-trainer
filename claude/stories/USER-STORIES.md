@@ -1574,6 +1574,11 @@ As a learner part-way through a lesson, I can see which of my moves I am on and 
 As a player importing my games, I am told the real reason nothing arrived: no such account, no games in the months searched, a Chess.com error, or no connection.
 - Those four outcomes produce four different sentences; the no-games one does not mention the network or a sandbox; a real connection failure still says the app could not reach Chess.com. (TC-R91)
 
+### US-R94 Finishing a drill is a moment, not an exit
+*Added #547, from jobs/drill-past-the-last-mistake-drops-you-on-the-review-landing-with-nothing-said-2026-09-29.*
+As a player who has just worked through my mistakes, Next on the last one tells me I am done and how many I fixed, and offers to go again or go back.
+- Next from the last card keeps me in the drill with an end card saying "fixed X of N" (N the set I started with); Go again returns to card 1. (TC-R92)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

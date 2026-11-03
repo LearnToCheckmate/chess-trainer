@@ -377,4 +377,19 @@ L.run(async()=>{
     L.say(b.errs.length===0,'TC-R81 D8 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
+  // ════════ BLOCK E - TC-R92 (US-R94), #547 item (147): THE END OF THE DRILL IS A STATE, NOT AN EXIT ════════
+  // Pre-fix Next from the last card left the drill (pz-top null, no board, the Review landing). Two mistakes, both solved, then Next.
+  {const ER=[{fen:FENS[0],uci:UCIS[0],label:'Blunder',played:'Kd1',ts:1791000000000,last:null,why:'w1'},{fen:FENS[1],uci:UCIS[1],label:'Blunder',played:'Kd1',ts:1791000001000,last:null,why:'w2'}];
+   const b=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-end',store:{ct_mymistakes:ER,ct_pool:'3'}});await b.open();
+   let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);
+     await b.move(UCIS[0].slice(0,2),UCIS[0].slice(2,4),900);await b.settle(900);await tap(b,'drill-next',1000);await b.move(UCIS[1].slice(0,2),UCIS[1].slice(2,4),900);await b.settle(900);}catch(e){ok=false;}
+   const q=await idx(b);
+   if(L.say(ok&&!!q&&q.i===2&&q.n===2,'TC-R92 PRECONDITION both cards were solved and the drill is on its LAST card (2 of 2)',{counter:q})){
+     await tap(b,'drill-next',1200);
+     const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="drill-end"]');return {inDrill:!!document.querySelector('[data-ct="pz-top"]'),end:e?(e.innerText||'').replace(/\s+/g,' ').trim():null};});
+     L.say(r.inDrill&&!!r.end,'TC-R92 Next from the last card stays in the drill and shows an end state, instead of dropping the player on the Review landing',r);
+     L.say(!!r.end&&/fixed 2 of 2/.test(r.end),'TC-R92 and the end state says how many were fixed, against the set\'s original size',{end:r.end});
+     let again=true;try{await b.page.click('[data-ct="drill-end-again"]');await b.settle(1000);}catch(e){again=false;}
+     const q2=await idx(b);L.say(again&&!!q2&&q2.i===1,'TC-R92 Go again returns to card 1',{counter:q2});}
+   await b.close();}
 },'72-drill-prev');
