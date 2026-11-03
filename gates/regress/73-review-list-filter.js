@@ -1529,5 +1529,18 @@ function mkTap(b,READ){
      L.say(r.reviewed===2,'375x730 legacy: TC-R49 two full reviews stored before #331 (no src) still count as reviewed games - only the estimates (src est) are left out',r);
      await b.close();}
   }
+  // TC-R76 [#547 item (99); jobs/the-games-list-badge-slot-reserves-no-space-so-the-list-jumps-252px-2026-10-09]: THE LIST DOES NOT
+  // JUMP WHEN THE FIRST TALLY LANDS. 40 stored games with no cached stats, sampled every 150ms from first paint while the background
+  // pass runs: the progress panel used to MOUNT above the list on the first tally (+253px) and every row grew. The first row's
+  // top must hold across the transition; the row height change is REPORTED (a tally that wraps past one line still grows it).
+  {const src=require('fs').readFileSync(require('path').join(__dirname,'20-review.js'),'utf8');const OPERA=eval(src.match(/^const PGN=(.*);$/m)[1]);
+   const rows=[];for(let i=0;i<40;i++)rows.push({src:'cc',acct:'me',pgn:OPERA.replace('Morphy','me').replace('1858.11.02','2026.08.'+String(1+i%27).padStart(2,'0')).replace('Duke Karl / Count Isouard','opp'+i),white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:1789000000000+i*1e6});
+   const b=await L.launch({geo:'kunal730',name:'r76-jump',store:{ct_ccuser:'me',ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows},ct_pool:'3'}});await b.open();await b.tile('Review');
+   const seen=[];for(let k=0;k<60;k++){const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');if(!e)return null;const q=e.getBoundingClientRect();
+     const t=!!e.querySelector('[data-ct="gstat-est"],[data-ct="gstat-rev"]');return {top:Math.round(q.top),h:Math.round(q.height),tally:t};});if(r)seen.push(r);await b.page.waitForTimeout(150);}
+   const pre=seen.filter(x=>!x.tally),post=seen.filter(x=>x.tally);
+   L.say(pre.length>0&&post.length>0,'kunal730: TC-R76 DENOMINATOR the first row was sampled both BEFORE its tally ('+pre.length+') and AFTER it ('+post.length+')',{pre:pre.length,post:post.length});
+   L.say(pre.length>0&&post.length>0&&pre[0].top===post[post.length-1].top,'kunal730: TC-R76 the first game row does not move when the tally lands ('+(pre[0]&&pre[0].top)+' -> '+(post.length&&post[post.length-1].top)+'); row height '+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+' (reported)',{first:pre[0],last:post[post.length-1]});
+   await b.close();}
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});
