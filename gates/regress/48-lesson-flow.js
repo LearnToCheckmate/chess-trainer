@@ -424,6 +424,29 @@ const ROW=['Flip board','Hints','Try again','More actions'];
 const GEOS=['se','kunal730','390']; // THE LESSON THREE - claude/stories/USER-STORIES.md, section THE GEOMETRY SETS, NAMED ONCE; gates/audit/geometry-sets.sh G2 holds this list equal to that name [#545 item (13)]
 
 L.run(async()=>{
+  // ════════ TC-LS-038 (US-R79), #547 item (117): THE TECHNIQUE ENDGAMES BEGIN BEFORE THEIR GOVERNING IDEA ════════
+  // jobs/seven-endgame-lessons-start-after-the-idea-2026-09-28, Kunal's 'all-six' on questions/q-seven-lessons-start-too-late.
+  // Unit layer, no browser: lessons.js is loaded in node (CT_LESSONS points it at another copy, which is how the control runs).
+  // The five mates must START with the defending king OFF the edge (the job's own predicate: distance 0 means the driving is
+  // done before the learner touches a piece); King & Pawn must start with the white king BELOW the 6th rank, because getting
+  // there is the decision (the sit lane's widening: the edge test alone would pass that lesson).
+  {const LP=process.env.CT_LESSONS||require('path').join(__dirname,'..','..','lessons.js');let C=null;
+   try{const ctx={window:{}};new Function('window',require('fs').readFileSync(LP,'utf8'))(ctx.window);C=ctx.window.CTLESSONS;}catch(e){C=null;}
+   const ALL=C?(C.ENDGAMES||[]).concat(C.MORE||[]):[];const by=n=>ALL.find(x=>x.name===n);
+   const MATES=['King & Queen Mate','King & Rook Mate','Two Bishops Mate','Rook & Knight Mate','Bishop & Knight Mate'],KP='King & Pawn: the 6th Rank';
+   const found=MATES.concat([KP]).map(n=>[n,!!by(n)]);
+   L.say(!!C&&found.every(x=>x[1]),'TC-LS-038 PRECONDITION lessons.js loads and all six technique lessons are found by name',{file:LP,found});
+   const sq=(fen,ch)=>{const rows=String(fen).split(' ')[0].split('/');for(let r=0;r<8;r++){let c=0;for(const x of rows[r]){if(/\d/.test(x))c+=+x;else{if(x===ch)return {r,c};c++;}}}return null;};
+   const edge=p=>p?Math.min(p.r,7-p.r,p.c,7-p.c):-1;
+   if(C){
+     const d=MATES.filter(by).map(n=>{const l=by(n);const loser=(l.side==='w')?'k':'K';return [n,edge(sq(l.fen,loser))];});
+     L.say(d.length===5&&d.every(x=>x[1]>=1),'TC-LS-038 each mate lesson starts with the defending king OFF the edge (distance to the nearest edge at least 1)',d);
+     const k=by(KP);const wk=k&&sq(k.fen,'K');const rank=wk?8-wk.r:null;
+     L.say(!!k&&rank!==null&&rank<6,'TC-LS-038 King & Pawn starts with the white king BELOW the 6th rank, so stepping in front onto it is the learner\'s move (rank '+rank+')',{fen:k&&k.fen,rank});
+     const ends=MATES.concat([KP]).filter(by).map(n=>{const l=by(n);const last=l.line[l.line.length-1]||'';return [n,l.line.length,(l.notes||[]).length,last];});
+     L.say(ends.length===6&&ends.every(([n,a,b,last])=>a===b&&(n===KP?/=Q/.test(last):/#$/.test(last))),'TC-LS-038 each line ends where the technique ends - mate, or the pawn queening - with one note per ply',ends);
+   }else L.note('TC-LS-038 assertions NOT RUN and not counted: lessons.js did not load, which the PRECONDITION reports red');}
+
 
  for(const geo of GEOS){
   const vw=L.GEOS[geo].w, vh=L.GEOS[geo].h, Dm=DEMO[geo], Pr=PRAC[geo];

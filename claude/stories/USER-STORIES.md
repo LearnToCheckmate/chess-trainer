@@ -1480,6 +1480,14 @@ As a player reviewing a game that ended on the board, I see why the engine shows
 - At a stalemate the engine row reads "Stalemate — no legal move."; at a checkmate, "Checkmate — the game is over." The reason is fully visible and stays; there is no ellipsis. (TC-R83)
 - At any position the game is not over, the row still shows the engine's line. (TC-R83)
 
+### US-R79 A technique endgame lesson starts before the technique, not at its last move
+*Added #547, from jobs/seven-endgame-lessons-start-after-the-idea-2026-09-28 and Kunal's 'all-six' answer on questions/q-seven-lessons-start-too-late (recorded 28 Sep 2026).*
+As a player learning a basic mate, I start where the method is still to be used, so I play the driving and not only the final blow.
+- King & Queen, King & Rook, Two Bishops, Rook & Knight and Bishop & Knight start with the lone king two squares from any edge, and the line drives it there and mates. (TC-LS-038)
+- King & Pawn starts with my king on the 5th rank, so stepping in front of the pawn onto the 6th is my move. (TC-LS-038)
+- Every line ends where the technique ends, in mate or the pawn queening, with a note for every move. Each new line was checked move by move: legal in chess.js, a forced mate by Stockfish depth 22 with the distance to mate falling by one each move, and 70 square claims in the notes checked against the board. That is not a tablebase, which this environment cannot reach. (TC-LS-038)
+- Rook vs Pawn keeps its position, with the rook in front of a pawn on the 7th, and its plan now says why that is right there. (no case: one clause of text)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
