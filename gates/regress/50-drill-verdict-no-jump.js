@@ -324,7 +324,8 @@ L.run(async()=>{
         // asserted after a solve. The 🎉 line is on screen, at least 18px of it unclipped, and the element under its centre is
         // the line itself - nothing celebrating the find covers the text that says what was found. (The board half is the
         // 'did not move' line below, from item (80).)
-        if(path==='solved'){const vs=await verdictSeen(b,'\u{1F389}');L.say(vs.ok,tag+': TC-DR-01 the success line is visible and on top (>=18px unclipped, hit-test lands on it) - nothing covers what was found',vs);}
+        if(path==='solved'){const vs=await verdictSeen(b,'\u{1F389}');L.say(vs.ok,tag+': TC-DR-01 the success line is visible and on top (>=18px unclipped, hit-test lands on it) - nothing covers what was found',vs);
+          await b.settle(6000);const vs6=await verdictSeen(b,'\u{1F389}');L.say(vs6.ok,tag+': TC-DR-01 and it is STILL visible and on top 6000ms later - the find is not cleared by a timer',vs6);}
         if(path==='wrong'){const vs=await verdictSeen(b);L.say(vs.ok,tag+': the verdict is visible and on top (>=18px unclipped, hit-test lands on it)',vs);
           // #500: THE MESSAGE KUNAL ACTUALLY REPORTED. The red line is 36 characters and must need NO scroll at
           // any geometry - a reserve that makes the player scroll to read 'a3 isn't it' would be a worse defect
