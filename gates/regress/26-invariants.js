@@ -1157,7 +1157,12 @@ const SCREENS=[
   ['lesson-practice', async(b)=>{await LS.states['practice-m0'](b);}],
   // #545 item (20): the lesson practice line played through to 'Complete!' - placed HERE, after lesson-practice, because
   // its driver starts from the lesson list and a walk that reaches it from the RANK UP overlay cannot open a row.
-  ['lesson-complete', async(b)=>{await LS.states['practice-complete'](b);}],
+  // #547 item (90) made hints start OFF, so the drive's practice run is now FLAWLESS and the app raises its 2.8s
+  // 'Line learned · flawless' bank toast (chess.jsx, celebrate kind 'bank', position:fixed at the top) - measured covering
+  // lesson-note's centre and adding one 'occluded' control. The invariants are about the screen at rest, so wait the toast
+  // out (it clears itself; 5s cap) rather than re-pin the count to a transient.
+  ['lesson-complete', async(b)=>{await LS.states['practice-complete'](b);
+    await b.page.waitForFunction(()=>!/Line learned \u00b7 flawless/.test(document.body.innerText||''),null,{timeout:5000}).catch(()=>{});await b.settle(300);}],
   ['puzzles',         async(b)=>{await PZ.states['train'](b);}],
   // #423, AND IT IS THE ANTAGONIST'S FINDING RATHER THAN A TIDY-UP. The twelve screens had the UNSOLVED puzzle
   // board only. The moment the player solves it, `pz-bottom` re-renders from five controls to two - a 46x44
