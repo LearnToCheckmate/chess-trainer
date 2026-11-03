@@ -381,6 +381,22 @@ L.run(async()=>{
       await b.close();
     }
   }
+  // TC-R36 [#547 item (103); Kunal's 'drop-word', desk round 1]: THE BEST MOVE IS SHOWN IN FULL ON A NARROW BOARD. Walk the stored
+  // review at 320x568 and 375x568 (a WIDE viewport over a NARROW board - the row is sized to the board) and 375x730; at every ply that
+  // shows a best-move chip, the chip's text is not cut and it ends inside its row. On the narrow boards the verdict word yields (the ??
+  // and its colour stay); at 375x730 it stays. Denominator first: plies with a chip were found.
+  {const RV=require('../drive/review');
+   for(const g of ['se','short375','kunal730']){const b=await L.launch({geo:g,name:'r36-'+g,store:RV.SEED});await b.open();
+     let ok=true;try{await RV.states['moves-ply0'](b);await b.settle(500);}catch(e){ok=false;}
+     let n=0;const bad=[];const pills=new Set();
+     if(ok)for(let k=0;k<70;k++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click().catch(()=>{});await b.page.waitForTimeout(140);
+       const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');if(!e)return null;const row=e.parentElement.getBoundingClientRect();const q=e.getBoundingClientRect();const p=e.previousElementSibling;
+         return {sw:e.scrollWidth,cw:e.clientWidth,inRow:q.right<=row.right+0.5,pill:p?(p.innerText||'').replace(/\s+/g,' ').trim():'',glyph:p?/[?!]/.test(p.innerText||''):false};});
+       if(r){n++;pills.add(r.pill);if(r.sw>r.cw+0.5||!r.inRow||!r.glyph)bad.push(k+1+':'+r.sw+'/'+r.cw+(r.inRow?'':' out')+(r.glyph?'':' no-glyph'));}}
+     L.say(n>0,g+': TC-R36 DENOMINATOR the walk found plies with a best-move chip ('+n+')',{n});
+     L.say(n>0&&bad.length===0,g+': TC-R36 at every such ply the best move is shown in full and inside its row, and the verdict glyph stays',{n,bad,pills:[...pills]});
+     await b.close();}
+  }
   // TC-R03 stored accounts survive a reload and name both players
   const games=(u)=>[{src:'cc',acct:u,pgn:PGN.replace('Morphy',u).replace('Duke Karl / Count Isouard','DukeKarlCountIsouard99'),white:u,black:'DukeKarlCountIsouard99',wr:'win',tc:'rapid',date:1789000000000}];
   const b=await L.launch({geo:'kunal',name:'review-accounts',store:{ct_accts:['cc:jsmiller1112','cc:kunal2023'],ct_acctgames:{'cc:jsmiller1112':games('jsmiller1112'),'cc:kunal2023':games('kunal2023')}}});await b.open();await b.tile('Review');await b.settle(600);
