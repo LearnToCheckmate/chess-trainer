@@ -502,8 +502,14 @@ const PIN_ROWS=[
    at:['kunal730/pz-solved','se/pz-solved','short375/pz-solved'],
    why:'Solved-puzzle bottom row: the back chevron is a 20px box painting 12px of ink, beside a full-width "Next >" whose line box is 16 and whose ink is 16 - so here the arrow really is the smaller of the two on BOTH measures, unlike its unsolved sibling. Reached only through PZ.states["train-solved"], which the twelve original screens did not include, so this row had a red the gate was structurally unable to produce on the commonest outcome in the Puzzles tab.'},
   {sig:'Flip board|Hints|More actions|Try again', h:{'*':[16,18,18,18]}, spread:2,
-   at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice','kunal730/lesson-complete','se/lesson-complete','short375/lesson-complete'/* #545: the same practice row stays up under the completion card, at all three */],
-   why:'Lesson practice row: "Try again" is 16px where its three neighbours are 18px.'}
+   at:['kunal730/lesson-practice','se/lesson-practice','short375/lesson-practice'],
+   why:'Lesson practice row: "Try again" is 16px where its three neighbours are 18px.'},
+  // #547 item (82): at Complete! the same slot offers the NEXT lesson, so the row's signature changes under the same 16-vs-18 spread -
+  // measured on the #547 trial at all three geometries, the Next label 16px (font 14) beside 18px glyphs. The SAME known failure
+  // as the pin above, moved with the slot, not a new one; the lesson-complete states move here from that pin.
+  {sig:'Flip board|Hints|More actions|Next lesson: Ruy López (Spanish)', h:{'*':[16,18,18,18]}, spread:2,
+   at:['kunal730/lesson-complete','se/lesson-complete','short375/lesson-complete'],
+   why:'Lesson practice row at Complete!: the Next-lesson label is 16px where its three neighbours are 18px (the Try again pin, moved with the slot).'}
 ];
 const pinRow=(sig)=>PIN_ROWS.find(p=>p.sig===sig)||null;
 // KEYED BY VIEWPORT WIDTH, NOT BY GEOMETRY NAME, and that is a correction the #423 antagonist forced. The first
