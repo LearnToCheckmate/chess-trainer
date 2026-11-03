@@ -4813,7 +4813,8 @@ export default function App(){
        second product change nobody asked for, so it stays and is named under notChecked instead. */
     const _ga=gameAcc(_winsW,_accs,_idxs);
     const acc=Math.max(15,Math.min(99.5,_ga==null?100:_ga));
-    const rating=Math.max(450,Math.min(2500,Math.round(600+(acc-50)*28)));return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10,rating};};
+    /* #547 item (186): the accuracy-derived `rating` this returned was rendered nowhere after #429 - dropped. */
+    return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
