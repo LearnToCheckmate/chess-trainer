@@ -40,6 +40,9 @@ function fromFEN(fen){const parts=String(fen||'').trim().split(/\s+/);const rows
 function toFEN(game){const rows=[];for(let r=0;r<8;r++){let row='',empty=0;for(let c=0;c<8;c++){const p=game.board[r][c];if(p){if(empty){row+=empty;empty=0;}row+=p.c==='w'?p.t.toUpperCase():p.t;}else empty++;}if(empty)row+=empty;rows.push(row);}const cs=[game.castling.wK?'K':'',game.castling.wQ?'Q':'',game.castling.bK?'k':'',game.castling.bQ?'q':''].join('')||'-';const ep=game.ep?FILES[game.ep[1]]+(8-game.ep[0]):'-';return rows.join('/')+' '+game.turn+' '+cs+' '+ep+' 0 1';}
 // Net material from White's point of view, in standard points (pawn 1, N/B 3, R 5, Q 9). Positive = White ahead.
 function materialDiff(board){const v={p:1,n:3,b:3,r:5,q:9,k:0};let s=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p)s+=(p.c==='w'?1:-1)*v[p.t];}return s;}
+// #547 item (106): a position neither side can mate in is a draw by INSUFFICIENT MATERIAL - K v K, K + one minor v K, and any
+// number of bishops (either side) all standing on squares of one colour. Kept to one line so a gate can read it from this file.
+function insufficientMaterial(board){const minors=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(!p||p.t==='k')continue;if(p.t==='p'||p.t==='r'||p.t==='q')return false;minors.push({t:p.t,sq:(r+c)%2});}if(minors.length<=1)return true;if(minors.every(m=>m.t==='b')){const s0=minors[0].sq;return minors.every(m=>m.sq===s0);}return false;}
 function capturedList(board){const full={p:8,n:2,b:2,r:2,q:1};const cnt={w:{p:0,n:0,b:0,r:0,q:0},b:{p:0,n:0,b:0,r:0,q:0}};for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.t!=='k'&&cnt[p.c])cnt[p.c][p.t]++;}const mk=(side)=>{const o=side==='w'?'b':'w';const a=[];['q','r','b','n','p'].forEach(t=>{const miss=full[t]-cnt[o][t];for(let i=0;i<miss;i++)a.push(t);});return a;};return {w:mk('w'),b:mk('b')};}
 // Player-facing material readout. tone: good/bad (vs computer), lead (vs human), neutral (even).
 function materialLabel(board,opponent,pColor){const md=materialDiff(board);if(opponent==='computer'){const pl=pColor==='w'?md:-md;return{text:pl>0?`You're up ${pl}`:pl<0?`You're down ${-pl}`:'Material even',tone:pl>0?'good':pl<0?'bad':'neutral',diff:md};}return{text:md>0?`White +${md}`:md<0?`Black +${-md}`:'Material even',tone:md!==0?'lead':'neutral',diff:md};}
@@ -4193,6 +4196,7 @@ export default function App(){
     const keys=[...playHist,game].map(toFEN);
     const cur=keys[keys.length-1];
     let seen=0; for(const k of keys) if(k===cur) seen++;
+    if(insufficientMaterial(game.board))return 'material';   // #547 item (106)
     if(seen>=3)return 'repetition';
     const h=game.history||[];
     let quiet=0;
@@ -5649,7 +5653,7 @@ export default function App(){
   // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone
   // does not tell the player why a game they were still playing has just ended. `_winTxt` already reads
   // 'Draw' here, since `playEnd.winner` is undefined for a draw and `_winSide==null` is a loose comparison.
-  const gameResult=_gameOver?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(_gameTermStatus==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':playEnd.by==='agreed'?'Draw agreed':'Threefold repetition'):_winTxt}:null;
+  const gameResult=_gameOver?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(_gameTermStatus==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':playEnd.by==='agreed'?'Draw agreed':playEnd.by==='material'?'Insufficient material':'Threefold repetition'):_winTxt}:null;
   const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;

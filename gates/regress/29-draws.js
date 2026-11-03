@@ -128,6 +128,20 @@ L.run(async()=>{
     '(A) the enumeration itself is balanced - at least five strings on each side of both predicates, so neither is tested only on what it should accept (#388)',
     {captures:SANS.filter(r=>r[1]).length,notCaptures:SANS.filter(r=>!r[1]).length,pawns:SANS.filter(r=>r[2]).length,notPawns:SANS.filter(r=>!r[2]).length});
 
+  // ── (G) INSUFFICIENT MATERIAL [#547 item (106); jobs/draws-insufficient-material-and-dead-positions]. The predicate is read out of
+  // chess.jsx (one line, by name) and run over the job's property set PLUS the cases it must REJECT, so a predicate that answers
+  // 'draw' to everything cannot pass. Unit layer: this proves the rule, not the wiring - the wiring is the drawBy memo's one line.
+  {const src=require('fs').readFileSync(process.env.CT_SRC||require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
+   const m=/^function insufficientMaterial\(board\)\{.*\}$/m.exec(src);const fromF=/^function fromFEN\(fen\)\{.*\}$/m.exec(src);
+   L.say(!!m&&!!fromF,'(G) the insufficient-material predicate and fromFEN are both found in chess.jsx',{found:!!m,fromFEN:!!fromF});
+   if(m&&fromF){const fns=Function(fromF[0]+'\n'+m[0]+'\nreturn {fromFEN,insufficientMaterial};')();
+     const CASES=[['K v K','8/8/4k3/8/8/4K3/8/8 w - - 0 1',true],['KB v K','8/8/4k3/8/8/4K3/2B5/8 w - - 0 1',true],['KN v K','8/8/4k3/8/8/4K3/8/1n6 b - - 0 1',true],
+       ['KB v KB same colour (d6 and c1)','8/8/3bk3/8/8/4K3/8/2B5 w - - 0 1',true],['KB v KB opposite colour (c6 and c1)','8/8/2b1k3/8/8/4K3/8/2B5 w - - 0 1',false],
+       ['KNN v K (can mate only with help: NOT called)','8/8/4k3/8/8/4K3/8/1NN5 w - - 0 1',false],['KBN v K','8/8/4k3/8/8/4K3/8/1NB5 w - - 0 1',false],
+       ['K+P v K','8/8/4k3/8/8/4K3/4P3/8 w - - 0 1',false],['KR v K','8/8/4k3/8/8/4K3/8/R7 w - - 0 1',false],['KQ v K','8/8/4k3/8/8/4K3/8/Q7 w - - 0 1',false]];
+     const bad=CASES.filter(([n,f,want])=>fns.insufficientMaterial(fns.fromFEN(f).board)!==want).map(c=>c[0]);
+     L.say(CASES.filter(c=>c[2]).length>=4&&CASES.filter(c=>!c[2]).length>=5,'(G) the case set is balanced - '+CASES.filter(c=>c[2]).length+' draws and '+CASES.filter(c=>!c[2]).length+' it must reject',{});
+     L.say(bad.length===0,'(G) insufficient material is called for K v K, K + one minor v K and same-coloured bishops, and NOT for opposite bishops, two knights, B+N, a pawn, a rook or a queen',{bad});}}
   // ── (B) and (C): repetition through the UI, in both local configurations.
   for(const [label,state] of [['pass-and-play','pp-m0']]){
     const b=await L.launch({geo:'kunal730',name:'draws-'+label});
