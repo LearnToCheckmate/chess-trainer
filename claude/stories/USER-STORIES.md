@@ -1599,6 +1599,12 @@ As a player stepping through a review, "Blunder" and "Brilliant" on the board re
 As a player trying moves on the analysis board, the engine's suggested line carries the right move numbers for the position on the board.
 - After 1.e4 e5 played on the analysis board from the start, the line begins "2. ...". (TC-R94)
 
+### US-R97 While my games are fetched, the Review screen says what it is doing
+*Added #547, from jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29 (item (166), direction (a)).*
+As a player opening Review with an account connected, I see what the fetch is doing while it runs, and not only a collapsed button.
+- While Chess.com months are read, a status line names the month being read, of how many at most, and the games found so far. It
+  is gone when the walk ends. Lichess shows a single line for its one request. (TC-R95)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

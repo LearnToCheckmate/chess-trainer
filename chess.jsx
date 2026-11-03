@@ -3237,6 +3237,7 @@ export default function App(){
   const gamesListRef=useRef(null);
   const [ccErr,setCcErr]=useState('');
   const [ccLoading,setCcLoading]=useState(false);
+  const [ccProg,setCcProg]=useState('');   // #547 item (166): what the fetch is doing, while it does it
   const [review,setReview]=useState(null);
   const [reviewView,setReviewView]=useState('moves');
   const [pgnCopied,setPgnCopied]=useState(false);
@@ -4998,7 +4999,7 @@ export default function App(){
   const fetchChessCom=async()=>{
     const u=chessUser.trim().toLowerCase().replace(/^@/,'');
     if(!u){setCcErr('Enter your Chess.com username first.');return;}
-    setCcErr('');setCcLoading(true);
+    setCcErr('');setCcLoading(true);setCcProg('Asking Chess.com for '+u+'’s game list…');
     try{
       const ar=await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);
       if(!ar.ok)throw new Error(ar.status===404?'username not found':'server '+ar.status);
@@ -5021,6 +5022,9 @@ export default function App(){
       const games=[];let i=archives.length-1,missed=0,leftover=false;
       for(;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
         let mj=null;
+        /* #547 item (166), jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29: the walk took ~2.2s over five
+           requests with nothing on screen but a collapsed '…'. It now says which month it is reading and what it has so far. */
+        setCcProg('Reading Chess.com, month '+(archives.length-i)+' of up to '+Math.min(ACCT_GMONTHS,archives.length)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
         try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
         const mg=(mj.games||[]).filter(g=>g.pgn);
         // #433 AND A MONTH THAT ANSWERS 200 WITH NOTHING USABLE IS A GAP TOO. The first version of this
@@ -5059,7 +5063,7 @@ export default function App(){
       else if(/no games on that account|no recent games found/.test(_m))setCcErr('Chess.com answered, but “'+u+'” has no games in the months searched. Paste a PGN below to review one now.');
       else if(/^server \d+/.test(_m))setCcErr('Chess.com answered with an error ('+_m+'). Try again in a minute, or paste a PGN below.');
       else setCcErr('Couldn’t reach Chess.com ('+(_m||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
-    setCcLoading(false);
+    setCcLoading(false);setCcProg('');
   };
   const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
   const gkey=(g)=>g.src+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');
@@ -5072,7 +5076,7 @@ export default function App(){
   const fetchLichess=async()=>{
     const u=lichessUser.trim().replace(/^@/,'');
     if(!u){setCcErr('Enter your Lichess username first.');return;}
-    setCcErr('');setCcLoading(true);
+    setCcErr('');setCcLoading(true);setCcProg('Downloading up to '+ACCT_GMAX+' games from Lichess…');
     try{
       const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=${ACCT_GMAX}&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
       if(!r.ok)throw new Error(r.status===404?'username not found':'server '+r.status);
@@ -5086,7 +5090,7 @@ export default function App(){
       // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
       liRawRef.current=null; acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
-    setCcLoading(false);
+    setCcLoading(false);setCcProg('');
   };
   const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null});};
   // #353 show what is already stored the moment the Review screen opens, before any network call
@@ -7989,6 +7993,7 @@ export default function App(){
                   <button onClick={()=>acctForget(id)} aria-label={'Remove '+_u} title={'Remove '+_u+' and its games'} style={{width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>{'\u00d7'}</button>
                 </span>);})}
             </div>)}
+            {ccLoading&&ccProg&&<div data-ct="cc-progress" role="status" aria-live="polite" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{ccProg}</div>}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
               // #476 ONE PREDICATE, so the count, the rows, the empty state and the coverage line can never

@@ -1018,5 +1018,25 @@ async function input(seed,n,geo,name,thin){
      L.say(new Set(lead).size===4,'TC-R91 the four outcomes - empty months, no such account, a server error, no connection - produce FOUR DIFFERENT sentences, not one sentence with a different code in brackets',{lead});
      L.say(!/Couldn.t reach|sandbox/.test(said.empty),'TC-R91 a fetch that succeeded and found no games does NOT blame the network or the sandbox',{empty:said.empty});
      L.say(/Couldn.t reach Chess\.com/.test(said.abort),'TC-R91 and a real network failure still says it could not reach Chess.com',{abort:said.abort});}}
+  // TC-R95 (US-R97), #547 item (166): THE WALK SAYS WHAT IT IS DOING. Pre-fix the 2.2s walk showed only the Fetch button collapsed to
+  // an ellipsis. Stub: an index of 4 months, 3 games each, every request held 900ms so the walk is observable. Sampled every 150ms
+  // from the tap, the screen must carry a status line reading which month it is on, and it must be gone once the rows are in.
+  // LOCATED BY WHAT IT SAYS, not by the data-ct hook this build adds, so the pre-fix bundle reads null and goes red.
+  {const b=await L.launch({geo:'kunal730',name:'r95'});
+   const mk=(m,n)=>({games:Array.from({length:n},(_,k)=>({pgn:'[Event "r95"]\n\n1. e4 e5 *',end_time:1790000000+m*100000+k,time_class:'blitz',white:{username:'r95',result:'win'},black:{username:'opp'+k,result:'checkmated'}}))});
+   await b.ctx.route(/api\.chess\.com/,async(route)=>{const u=route.request().url();await new Promise(r=>setTimeout(r,900));
+     if(/\/games\/archives$/.test(u))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:['2026/07','2026/08','2026/09','2026/10'].map(m=>'https://api.chess.com/pub/player/r95/games/'+m)})});
+     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mk(+u.slice(-2),3))});});
+   await b.open();let ok=true;
+   try{await b.tile('Review');await b.settle(500);await b.page.locator('input[placeholder="Chess.com username"]').fill('r95');await b.settle(150);await b.tapText(/^Fetch$/,{wait:50});}catch(e){ok=false;}
+   const seen=[];let rowsAt=-1;
+   for(let w=0;w<60&&ok;w++){const r=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(Reading Chess\.com|Asking Chess\.com)[^\n]*/);return {line:m?m[0]:null,rows:document.querySelectorAll('[data-ct="game-row"],[data-ct="games-row"]').length,fetchBtn:[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()==='Fetch')};});
+     if(r.line&&seen[seen.length-1]!==r.line)seen.push(r.line);if(r.fetchBtn&&w>3){rowsAt=w;break;}await b.page.waitForTimeout(150);}
+   const after=await b.page.evaluate(()=>/(Reading Chess\.com|Asking Chess\.com)/.test(document.body.innerText||''));
+   L.say(ok&&rowsAt>0,'TC-R95 PRECONDITION the fetch ran to the end: Fetch was tapped and the button came back ('+rowsAt+' samples of 150ms)',{ok,rowsAt});
+   L.say(seen.some(x=>/month \d+ of up to 4/.test(x)),'TC-R95 while the months are fetched the screen says which month it is reading, of how many',{seen});
+   L.say(seen.some(x=>/month [2-4] of up to 4 · [1-9]\d* games? so far/.test(x)),'TC-R95 and, after the first month, how many games it has so far',{seen});
+   L.say(!after,'TC-R95 the status line is gone once the walk ends',{after});
+   await b.close();}
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});
