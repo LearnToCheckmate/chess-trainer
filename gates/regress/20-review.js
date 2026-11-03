@@ -495,4 +495,14 @@ L.run(async()=>{
    if(L.say(ok&&hits.length>=1,geo+': TC-R93 PRECONDITION the walk met at least one ply that paints both the badge and its word pill ('+hits.length+': plies '+hits.join(',')+')',{hits}))
      L.say(bad.length===0,geo+': TC-R93 at every such ply the badge and the pill do not overlap',bad);
    await b.close();}
+  // TC-R94 (US-R96), #547 item (171): ON THE ANALYSIS BOARD THE ENGINE LINE IS NUMBERED FROM THE POSITION ANALYSED. Drive 'analysis'
+  // enters analysis at ply 0 and plays 1.e4 e5, so the engine's line starts with White's SECOND move. Pre-fix it read '1. Nf3 ...':
+  // the number of the ply analysis was entered at, drifting a full move every two plies played.
+  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r94-ana-num'});await b.open();
+   let ok=true;try{await RV.states['analysis'](b);}catch(e){ok=false;}
+   let t=null;for(let k=0;k<40&&!/\d+\.\s/.test(t||'');k++){await b.page.waitForTimeout(500);t=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});}
+   const m=/(\d+)(\.{1,3})\s/.exec(t||'');
+   if(L.say(ok&&!!m,'TC-R94 PRECONDITION after 1.e4 e5 on the analysis board the engine row printed a numbered line',{line:t}))
+     L.say(+m[1]===2&&m[2]==='.','TC-R94 the line starts at White\'s move 2 ("2. ..."), the move after 1.e4 e5 - not at the move analysis was entered on ("'+m[0].trim()+'")',{line:t});
+   await b.close();}
 },'REVIEW');

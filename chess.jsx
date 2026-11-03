@@ -5625,7 +5625,7 @@ export default function App(){
       const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}})); /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
       if(dead)return;
       let line='';
-      try{let g=pos,n=0,num=Math.floor(ply/2)+1,first=true;
+      try{let g=pos,n=0,num=Math.floor(((pos&&Array.isArray(pos.history))?pos.history.length:ply)/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
         for(const u of (pv||[])){const mv=uciToMove(g,u);if(!mv)break;const nb=applyMove(g.board,mv);const san=toSAN(g,mv,nb);
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}

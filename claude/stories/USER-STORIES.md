@@ -1594,6 +1594,11 @@ As a player, black pieces carry the faint light outline the app gives them, so t
 As a player stepping through a review, "Blunder" and "Brilliant" on the board read in full.
 - At every ply where the board shows both the round badge and the word pill, they do not overlap. (TC-R93)
 
+### US-R96 On the analysis board the engine's line is numbered from the position I am looking at
+*Added #547, from the job on the analysis engine line keeping the entry ply's move number (item (171)).*
+As a player trying moves on the analysis board, the engine's suggested line carries the right move numbers for the position on the board.
+- After 1.e4 e5 played on the analysis board from the start, the line begins "2. ...". (TC-R94)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
