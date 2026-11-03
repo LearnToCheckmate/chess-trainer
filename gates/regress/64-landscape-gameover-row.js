@@ -219,7 +219,10 @@ L.run(async()=>{
       // B8 [#547 item (92); jobs/landscape-game-over-banner-is-cut-mid-letter-2026-09-29]: the result card's WORD is painted whole.
       // Its font was 5.2vw - 38px at 730 wide - inside a box sized from a 216px board, so the player read 'Checkma'. The card is
       // found first (its own line), then the word's glyph box must lie inside the card AND inside the board that clips it.
-      {const w=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="result-card"]');if(!c)return null;const h=[...c.querySelectorAll('div')].find(d=>d.children.length===0&&(d.textContent||'').trim());
+      // ON 'M' ONLY: the 'R' drive taps (8,8) after resigning, which DISMISSES the result card by design, so there is no card to
+      // measure there and B8 would be a red about the drive, not the app (the first #547 run did exactly that).
+      if(k.id!=='M')L.note(G+'B8 NOT RUN on '+k.id+' and not counted: this drive dismisses the result card before the rotate, so there is no headline to measure');
+      else {const w=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="result-card"]');if(!c)return null;const h=[...c.querySelectorAll('div')].find(d=>d.children.length===0&&(d.textContent||'').trim());
          const t=h&&[...h.childNodes].find(n=>n.nodeType===3&&n.nodeValue.trim());const rg=document.createRange();if(t)rg.selectNodeContents(t);const r=t?rg.getBoundingClientRect():null;
          const cr=c.getBoundingClientRect();const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,b)=>b.width-a.width)[0];
          return {word:t?t.nodeValue.trim():null,ink:r&&[Math.round(r.left*10)/10,Math.round(r.right*10)/10],card:[Math.round(cr.left*10)/10,Math.round(cr.right*10)/10],board:g&&[Math.round(g.left*10)/10,Math.round(g.right*10)/10]};});
