@@ -1,7 +1,7 @@
 # file	pattern	verdict - the corpus each negated regex was diffed against, and what it cannot see [#545 item (49), TC-SUITE-266]
 # A pattern bound to a NAME (gate 16 STR16, gate 29 DRAW29, gate 33 BAD33, gate 65 PROMO65) is not a literal and is not
 # listed: those four were repaired by #545 and each carries its own both-ways corpus check inside its gate.
-gates/regress/11-lesson.js	/Not the book move/	complete: chess.jsx prints one wrong-move form, '✗ Not the book move — it goes ...'
+gates/regress/11-lesson.js	/Not the book move|isn.t the line/	#547 (90): widened to the hint-OFF wording (warn-first) - both wordings the wrong-move note can print, so T3 rejects either. Was: complete: chess.jsx prints one wrong-move form, '✗ Not the book move — it goes ...'
 gates/regress/14-uat-review-card.js	/RuntimeError: unreachable/	exclusion filter over b.errs, not an absence claim about the UI: the allowed engine trap's fixed WASM text. Over-exclusion needs an app error quoting that text; not swept
 gates/regress/16-cpu-result-line.js	/#/	complete: chess.jsx's SAN builder marks mate with '#' and nothing else
 gates/regress/16-cpu-result-line.js	/Elo/	complete: every strength or rating string chess.jsx prints carries ' Elo' (the three strength notes, the Elo labels)

@@ -5,6 +5,7 @@
 //   A-10 Next puzzle changes the puzzle before it is solved (and Previous returns)
 //   A-11 tap boxes >= 40px: moves-analyze, moves-copy (live game), piece chips and footer links (menu)
 //   A-12 toggling Moves in a live game leaves the board's width and top unchanged (panel reserves its space)
+//   TC-PL-044 (#547) at 375x640 the setup sheet's build line is one line, uncut, and ends with the stamp's (src <12 hex>)
 // A-09 (rank-8 badge) is asserted by 20-review.js TC-R07; X-07 (wrong-move text) by the puzzles drive when it lands.
 'use strict';
 const L=require('../lib');
@@ -76,5 +77,12 @@ L.run(async()=>{
   // A-13 where it is real: a 640px-tall phone (at 375x679 the sheet fitted before the fix; at 320x568 it scrolls either way)
   {const b=await L.launch({geo:{w:375,h:640,safe:'',label:'375x640'},name:'p1-640'});await b.open();await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.settle(500);
    const ov=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="setup-sheet"]');const p=s&&s.parentElement;return p?Math.round(p.scrollHeight-p.clientHeight):null;});
-   L.say(ov!==null&&ov<=0,'375x640: A-13 the Pass & Play setup sheet does not scroll (overflow '+ov+', was 16 on #372)');await b.close();}
+   L.say(ov!==null&&ov<=0,'375x640: A-13 the Pass & Play setup sheet does not scroll (overflow '+ov+', was 16 on #372)');
+   // TC-PL-044 (#547): item (1) put ' (src <12 hex>)' in the stamp; the line wrapped to two and A-13 above went 12 over. The line must stay ONE
+   // line AND carry the whole stamp - an ellipsis that ate the hash would pass a height check and lose the very thing item (1) added.
+   const sbl=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('[data-ct="setup-sheet"] div')].find(d=>/^Build #/.test((d.innerText||'').trim())&&d.children.length===0);if(!e)return null;const cs=getComputedStyle(e);return {t:e.innerText.trim(),h:Math.round(e.getBoundingClientRect().height*10)/10,lh:parseFloat(cs.fontSize)*1.6,sw:e.scrollWidth,cw:e.clientWidth,fs:cs.fontSize};});
+   L.say(!!sbl,'375x640: TC-PL-044 PRECONDITION the setup sheet\'s build line is found',sbl);
+   L.say(!!sbl&&/\(src [0-9a-f]{12}\)$/.test(sbl.t),'375x640: TC-PL-044 the build line carries the source md5 the stamp now ends with',sbl&&sbl.t);
+   L.say(!!sbl&&sbl.h<=sbl.lh&&sbl.sw<=sbl.cw,'375x640: TC-PL-044 the build line is ONE line and nothing of it is cut (height '+(sbl&&sbl.h)+' within one line of '+(sbl&&Math.round(sbl.lh*10)/10)+', scrollWidth '+(sbl&&sbl.sw)+' <= '+(sbl&&sbl.cw)+')',sbl);
+   await b.close();}
 },'P1-FIXES');

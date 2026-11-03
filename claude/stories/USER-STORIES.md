@@ -1448,6 +1448,12 @@ to resign a game we did not lose.
 - Against the computer there is no such item: an offer to the bot needs a rule for when it accepts, and that rule is
   Kunal's to choose. (TC-PL-041)
 
+### US-PL-16 The New Game sheet fits a short phone, and still says exactly which build it is
+*Added #547, from gate 30 A-13 going red on this build's own CHECK round: item (1) lengthened the build stamp.*
+As a player on a 640px-tall phone, I can see Start game and the build line on the New Game sheet without scrolling, and
+the build line names the source it was built from, so a screenshot of it identifies the code.
+- The build line is one line, nothing of it is cut, and it ends with the stamp's "(src <12 hex>)". (TC-PL-044)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
