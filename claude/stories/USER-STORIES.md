@@ -1579,6 +1579,11 @@ As a player importing my games, I am told the real reason nothing arrived: no su
 As a player who has just worked through my mistakes, Next on the last one tells me I am done and how many I fixed, and offers to go again or go back.
 - Next from the last card keeps me in the drill with an end card saying "fixed X of N" (N the set I started with); Go again returns to card 1. (TC-R92)
 
+### US-PL-20 A double tap cannot resign my game
+*Added #547, from jobs/resign-double-tap-defeats-its-own-two-tap-guard-2026-09-29.*
+As a player, resigning takes two separate taps; an accidental double tap on Resign only arms it.
+- Two clicks 100ms apart on Resign do not resign; a second tap 700ms after the first does. Agree a draw has the same guard. (TC-PL-048)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

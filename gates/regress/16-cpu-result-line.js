@@ -609,4 +609,16 @@ L.run(async()=>{
      L.say(/· 0-1$/.test(hd),geo+': TC-PL-046 and states the result - you resigned as White, so 0-1 ("'+hd+'")',{hd});
    }
    await b.close();}
+  // TC-PL-048 (US-PL-20), #547 item (150): A DOUBLE TAP CANNOT RESIGN. 'Tap again to resign' takes the same rect as 'Resign', so two
+  // clicks 100ms apart on one pixel used to arm and confirm. A deliberate second tap (700ms) must still resign - both halves asserted.
+  for(const gap of [100,700]){
+   const b=await L.launch({geo:'kunal730',name:'resign-dwell-'+gap});await b.open();
+   let ok=true;try{await P.states['cpu-more'](b);await b.settle(400);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Resign$/.test((e.innerText||'').trim()));if(!x)return null;const q=x.getBoundingClientRect();return {x:q.left+q.width/2,y:q.top+q.height/2};});
+   if(L.say(ok&&!!r,'375x730: TC-PL-048 PRECONDITION the More sheet offers Resign ('+gap+'ms input)',r)){
+     await b.page.mouse.click(r.x,r.y);await b.page.waitForTimeout(gap);await b.page.mouse.click(r.x,r.y);await b.settle(900);
+     const over=await b.page.evaluate(()=>/Resigned|You lose/.test(document.body.innerText||''));
+     if(gap<400)L.say(!over,'375x730: TC-PL-048 two clicks 100ms apart on the same pixel do NOT resign - the confirm needs the arm to be 400ms old',{resigned:over});
+     else L.say(over,'375x730: TC-PL-048 and a deliberate second tap 700ms later still resigns',{resigned:over});}
+   await b.close();}
 }, 'CPU-RESULT-LINE');
