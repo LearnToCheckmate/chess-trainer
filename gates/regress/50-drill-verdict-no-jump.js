@@ -264,12 +264,13 @@ const _readable=(b,lead)=>b.page.evaluate((lead)=>{
   };
   const atRest=count();
   const overflows=box.scrollHeight>box.clientHeight+1;
+  const padV=parseFloat(bs.paddingTop)+parseFloat(bs.paddingBottom);   // #547: how much of an overflow can be the box's own padding
   const isScroller=bs.overflowY==='auto'||bs.overflowY==='scroll';
   box.scrollTop=box.scrollHeight;            // ACTUALLY scroll it, then re-read
   const atBottom=count();
   box.scrollTop=0;
   return {ok:true,srcLen:atRest.full.length,paintedAtRest:atRest.painted,
-          ch:box.clientHeight,sh:box.scrollHeight,need,overflows,isScroller,overflowY:bs.overflowY,
+          ch:box.clientHeight,sh:box.scrollHeight,need,overflows,padV,isScroller,overflowY:bs.overflowY,
           tailReached:overflows?atBottom.lastPainted:atRest.lastPainted,
           paintedAtBottom:atBottom.painted,
           text:atRest.full.replace(/\s+/g,' ').slice(0,56)};
@@ -334,7 +335,11 @@ L.run(async()=>{
           // any geometry - a reserve that makes the player scroll to read 'a3 isn't it' would be a worse defect
           // than the jump. The gate had no assertion over this state's TEXT at all before #500.
           const rv=await readableVerdict(b);
-          L.say(rv.ok&&rv.paintedAtRest===rv.srcLen&&!rv.overflows,tag+': the red verdict is FULLY painted with no scroll needed ('+(rv.ok?rv.paintedAtRest+' of '+rv.srcLen+', sh '+rv.sh+' v ch '+rv.ch:'n/a')+')',rv);}
+          /* #547, B1: the box is now a scroller at exactly the reserve, so at 390x844 the two-line red line reads sh 68 v ch 60 with all 47
+             characters painted - the 8px is the box's bottom PADDING, which a 60px reserve cannot also hold. "No scroll needed" is what this
+             protects, and every character painted at rest proves it; an overflow larger than the box's own vertical padding (text past the
+             edge) still reds. */
+          L.say(rv.ok&&rv.paintedAtRest===rv.srcLen&&(!rv.overflows||(rv.sh-rv.ch)<=rv.padV+0.5),tag+': the red verdict is FULLY painted with no scroll needed ('+(rv.ok?rv.paintedAtRest+' of '+rv.srcLen+', sh '+rv.sh+' v ch '+rv.ch:'n/a')+')',rv);}
         L.say(same(before,after),tag+': the board did not move when the verdict appeared ('+fmt(before)+' -> '+fmt(after)+')',
               before&&after?{dTop:Math.round((after.y-before.y)*10)/10,dW:Math.round((after.w-before.w)*10)/10}:null);
         }
