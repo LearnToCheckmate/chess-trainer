@@ -455,4 +455,29 @@ L.run(async()=>{
                   ['quiet move','4k3/8/8/8/8/8/8/4K2R w K - 0 1',m=>m.fr===7&&m.fc===4&&m.tr===7&&m.tc===3,/^No tactic/]];
      for(const [nm,fen,pick,want] of CASES){const pos=M.fromFEN(fen);const mv=M.getLegal(pos).find(pick);const h=mv?M.mistakeHint(pos,mv,null):null;
        L.say(!!mv&&want.test(h||''),'TC-R96 the hint on a best move that is a(n) '+nm+' reads '+want,{fen,hint:h});}}}
+  // ════════ BLOCK I - TC-R97 (US-R12), #547, final antagonist B's VETO (B1): THE HINT MAY NOT TAKE THE BOARD'S TAPS ════════
+  // Since item (48) the message floated over the goal card with minHeight 100% and no cap, so the brilliant drill's fixed 66-character
+  // hint grew down over rank 8: at 320x568 all 16 rank-8 sample points (top edge and centre) hit pz-msg and d1-d8 did not solve. The
+  // message now sits at exactly the reserve and scrolls (Kunal: "Don't change the size just allow the player to scroll through the
+  // text"). Per geometry: PRECONDITION the hint is longer than the reserve (the state that used to cover); then rank 8 hit-tests to
+  // the board at all 16 points, the box is a real scroller whose last line is reachable, and the back-rank answer solves.
+  {const BR=[{fen:'6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',uci:'d1d8',label:'Brilliant',played:'Rd8#',ts:1791000000000,last:null}];
+   for(const [w,h] of [[320,568],[375,568],[375,730]]){const tag=w+'x'+h;
+     const b=await L.launch({geo:{w,h,safe:''},name:'drill-hint-board-'+tag,store:{ct_mybrilliancies:BR,ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
+     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);await b.tapText(/Hint/,{wait:700});}catch(e){ok=false;}
+     const r=ok?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('[data-ct="pz-top"] div')].find(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute');
+       const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
+       if(!m||!g)return null;const gr=g.getBoundingClientRect(),sq=gr.width/8,res=m.parentElement.getBoundingClientRect();
+       let lost=0;for(let c=0;c<8;c++)for(const fy of [0.15,0.5]){const e=document.elementFromPoint(gr.left+sq*(c+.5),gr.top+sq*fy);if(!e||!g.contains(e))lost++;}
+       const longer=m.scrollHeight>res.height+1;const ovf=getComputedStyle(m).overflowY;
+       m.scrollTop=m.scrollHeight;const rg=document.createRange();rg.selectNodeContents(m);const rs=[...rg.getClientRects()];const lr=rs[rs.length-1],vr=m.getBoundingClientRect();
+       const lastIn=!!lr&&lr.bottom<=vr.bottom+1&&lr.top>=vr.top-1;m.scrollTop=0;
+       return {lost,longer,ovf,sh:m.scrollHeight,ch:m.clientHeight,reserve:+res.height.toFixed(1),lastIn};}):null;
+     if(L.say(!!r&&r.longer,'TC-R97 PRECONDITION '+tag+' the brilliant drill\'s hint is up and its text is LONGER than the reserve - the state that used to run over the board',r)){
+       L.say(r.lost===0,'TC-R97 '+tag+' with the hint up, every rank-8 square hit-tests to the board at its top edge and centre ('+r.lost+' of 16 lost; pre-fix 16 at 320x568, 8 at 375)',r);
+       L.say(/^(auto|scroll)$/.test(r.ovf)&&r.sh>r.ch+1&&r.lastIn,'TC-R97 '+tag+' and the hint box is a real scroller whose LAST line scrolls into view',r);
+       let mv=true;try{await b.move('d1','d8',900);await b.settle(1500);}catch(e){mv=false;}
+       const still=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="pz-top"] div')].some(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute'));
+       L.say(mv&&!still,'TC-R97 '+tag+' and the back-rank answer d1-d8, tapped at the square centres, SOLVES - the hint is gone (pre-fix at 320x568 it stayed up after two tries)',{mv,hintStillUp:still});}
+     await b.close();}}
 },'72-drill-prev');

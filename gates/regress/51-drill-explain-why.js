@@ -358,7 +358,7 @@ L.run(async()=>{
          every geometry) it was a constant. It now ALSO walks every ancestor that clips: the text is cut if any of them ends above the
          message's bottom and cannot be scrolled to show the rest (overflow hidden, or no room). In landscape the verdict sits in an
          auto scroller with 96px spare - a longer verdict there is reachable by scrolling and is not "cut"; a hidden box is. */
-      const _cut=((r.box.povf!=='visible')?(r.box.psh>r.box.pch+1):(r.box.esh>r.box.ech+1&&r.box.eovf!=='visible'))||(r.box.ancCut&&r.box.ancCut.length>0);
+      const _cut=((r.box.povf!=='visible')?(r.box.psh>r.box.pch+1):(r.box.esh>r.box.ech+1&&!/^(visible|auto|scroll)$/.test(r.box.eovf))/* #547 B1: pz-msg is now a scroller at the reserve - auto/scroll is REACHED by scrolling, not cut */)||(r.box.ancCut&&r.box.ancCut.length>0);
       L.say(!_cut,'TC-R16 B7['+(i+1)+'/'+N+'] '+g.n+' the whole explanation is SHOWN - no clipping box cuts it (a clipping parent: scrollHeight <= clientHeight; the float, whose parent does not clip: the message box itself is not cut)',{scrollHeight:r.box.psh,clientHeight:r.box.pch,maxHeight:r.box.pmax,overflowY:r.box.povf,msgScrollHeight:r.box.esh,msgClientHeight:r.box.ech,msgOverflowY:r.box.eovf,clippingAncestorsThatCut:r.box.ancCut,chars:t.length});
       L.say(r.box.bottom<=r.box.vh+0.5,'TC-R16 B8['+(i+1)+'/'+N+'] '+g.n+' the verdict box is inside the viewport',{bottom:r.box.bottom,vh:r.box.vh});
       await c.close();
