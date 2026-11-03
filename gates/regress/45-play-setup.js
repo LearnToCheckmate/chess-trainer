@@ -440,8 +440,10 @@ const ERRS_LIVE=async(b,tag)=>{const n0=b.errs.length;
   const got=b.errs.slice(n0).some(e=>/ct-errs-probe/.test(e));
   L.say(got,tag+': the error collector is live - an error thrown in the page now is caught, so the zero above is a measurement',{caught:got});};
 // PS-I  "Play from here" - setup arriving from a review. TC-PS-037..040.
-// CONTROL-RECORD: 429cdb8 2026-10-30 total=11 red=4 scope=blocks:I how=trial bundle 24ff0a75b3d0 renames the banner's text so the banner is not found - TC-PS-037 and TC-PS-038 red at se and kunal730; the pre-#546 TC-PS-038 passes on it [#546 item (61)]
-// CONTROL-RECORD: 429cdb8 2026-10-30 total=88 red=6 scope=blocks:C how=gate mutant aims the day-limit tap at '9 days / move', which does not exist, so TAP misses - TC-PS-033 PRECONDITION and TC-PS-033 red at se, kunal730 and 430 [#546 item (61)]
+// [#547, item (22)] the two 429cdb8 records below read FAULT on 29b60c2 (gate 45's L.say set changed after 429cdb8), so both
+// controls were RE-RUN on the current file (unchanged since 29b60c2) and re-recorded naming 29b60c2; the 429cdb8 lines are retired.
+// CONTROL-RECORD: 29b60c2 2026-11-03 total=13 red=4 scope=blocks:I how=trial bundle 9150269e7094 renames the banner's text ('Continuing' -> 'Carrying on') so the banner is not found - TC-PS-037 and TC-PS-038 red at se and kunal730, 9 green [#547 item (22), re-run of #546 item (61)'s control]
+// CONTROL-RECORD: 29b60c2 2026-11-03 total=88 red=6 scope=blocks:C how=gate mutant aims the day-limit tap at '9 days / move', which does not exist, so TAP misses - TC-PS-033 PRECONDITION and TC-PS-033 red at se, kunal730 and 430, 82 green, served trial df679e0fb534 [#547 item (22), re-run of #546 item (61)'s control]
 // Two geometries: the 568 floor and Kunal's real phone. Each needs a real analysis, so this is the slow block.
 // =========================================================================================================
 if(blk('I'))for(const geo of ['se','kunal730']){
