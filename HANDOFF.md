@@ -1,7 +1,25 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#546: BATCH 6. ALL 89 ORDERED JOBS WORKED, GATES GREEN #546 AT 5699 PASS / 0 FAIL OVER 65 SECTIONS, PUSHED TO MAIN.**
+**#547: BATCH 7. ALL 191 ORDERED JOBS READ (94 WITH A FIX COMMIT, 97 DECIDED WITHOUT ONE), GATES GREEN #547 AT 6397 PASS / 0 FAIL OVER 66 SECTIONS.**
+Run `build__1793671541605`, 2-3 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_02_batch7b`, base 29b60c2.
+**APPLICATION CODE CHANGED.** `app.js` md5 `c7f6a1228e43`, stamp '#547 - 2026-11-03 04:29 ET', from chess.jsx `ec83770812c4`.
+The log is `claude/agents/gatelogs/547b-all.log` (the second full suite; the first went red on three gate-side faults, see RUN-LOG).
+
+## 00. WHAT THE NEXT RUN NEEDS FROM #547
+1. SIX ITEMS OF THE BATCH WERE NEVER WORKED, missed in the in-order walk and found only by the receipts sweep: (18) gate 11 glyph
+   band, (71) P1 review grades depend on CPU load, (74) widen the input space, (104) scan orientation, (105) icon-only transport
+   (amber), (145) P1 stale story-id register. Their receipts say NOT WORKED, with scope.
+2. NEW P1 JOBS FROM THE AUDITOR (not checked against base): lesson-complete-note-reports-progress-one-step-behind-2026-11-03 and
+   puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03. Four P2s in auditor-547-p2-findings-2026-11-03.
+3. PRE-EXISTING ON MAIN, FOUND BY THE SUITE: review-engine-line-never-arrives-at-ply-8-of-the-stalemate-game-2026-11-03. Gate 22's
+   TC-R83 control was narrowed to (116)'s claim; restore its line half when that is fixed.
+4. KNOWN LIMITS: the drill message now scrolls inside its reserve (Kunal's ruling) with no cue beyond the scroll bar; gate 74 F0d
+   reads the viewport, not the panel clip; the same puzzle id solved twice in one session never shows 'solved before'.
+5. THE FINAL PAIR'S B3-B6 are P3 jobs dated 2026-11-03 (intro card below fold, captured digit clipped, gallery button lost,
+   landscape puzzle Prev/Next unnamed).
+
+**(previous) #546: BATCH 6. ALL 89 ORDERED JOBS WORKED, GATES GREEN #546 AT 5699 PASS / 0 FAIL OVER 65 SECTIONS, PUSHED TO MAIN.**
 Run `build__1793333947000`, 30 Oct 2026, under `docs/restart-readiness.directOpening_2026_10_30_batch6`.
 **NO APPLICATION CODE CHANGED.** `app.js` is still #530's bundle, md5 `049b41dfb6f1`; `chess.jsx` is `1b41d1d1e765`.
 The gated sha is `84e3c4f`; the log is `claude/agents/gatelogs/546c-all.log` (verify-log OK with --this-bundle and --this-suite).
