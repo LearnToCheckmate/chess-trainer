@@ -1544,6 +1544,11 @@ As a player working towards Mastered, a flawless day means a run with no wrong m
 As a player choosing a computer opponent on a phone, I can tell there are more bots to the right and reach the strongest one.
 - While a bot is hidden past the row's edge, a "›" chip shows in the row; tapping it scrolls the row until the last bot is fully in view, and then it goes. (TC-PL-047)
 
+### US-R88 The grade table's White and Black headers sit over their own numbers
+*Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
+As a player reading the grade table, each column's header is directly above its numbers.
+- The White and Black headers are centred over the first row's digits, within 1px. (TC-R89)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

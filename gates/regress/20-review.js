@@ -471,4 +471,15 @@ L.run(async()=>{
      L.say(t&&r1.tints.every(x=>x.bg!==graded)&&JSON.stringify(r1.tints.map(x=>x.i))!==JSON.stringify(r0.tints.map(x=>x.i)),'TC-R88 and no square carries the played move\'s grade tint: the tint is on the line\'s own last move, in the plain last-move colour',{before:r0.tints,during:r1.tints});
    }
    await b.close();}
+  // TC-R89 (US-R88), #547 item (139): THE GRADE TABLE'S COLUMN HEADERS SIT OVER THEIR COLUMNS. Pre-fix the header grid was 1fr 48px
+  // 48px over rows of 1fr 56px 56px: at 375x730 'White' inked at 262 over digits at 250, 'Black' at 318 over 314. Located by structure
+  // (the header's own text), not by the data-ct this build added - so the pre-fix bundle reds on the misalignment, not a selector.
+  for(const geo of ['kunal730','se']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r89-grade-head-'+geo});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const ink=e=>{const rg=document.createRange();rg.selectNodeContents(e);const q=rg.getBoundingClientRect();return Math.round((q.left+q.right)/2*10)/10;};
+     const head=[...document.querySelectorAll('div')].find(d=>/^1fr \d+px \d+px$/.test(d.style.gridTemplateColumns||'')&&/^\s*White\s*Black\s*$/.test(d.innerText||''));if(!head||!head.nextElementSibling)return null;
+     const hc=[...head.children],rc=[...head.nextElementSibling.children];if(hc.length<3||rc.length<3)return null;return {white:ink(hc[1]),black:ink(hc[2]),wDig:ink(rc[1]),bDig:ink(rc[2])};});
+   if(L.say(ok&&!!r,geo+': TC-R89 PRECONDITION the summary\'s grade table and its White/Black header are found',r))
+     L.say(Math.abs(r.white-r.wDig)<=1&&Math.abs(r.black-r.bDig)<=1,geo+': TC-R89 each header\'s ink is centred over its column\'s digits, within 1px (White '+r.white+' vs '+r.wDig+', Black '+r.black+' vs '+r.bDig+')',r);
+   await b.close();}
 },'REVIEW');
