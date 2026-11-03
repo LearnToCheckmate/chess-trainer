@@ -237,7 +237,10 @@ const _readable=(b,lead)=>b.page.evaluate((lead)=>{
   const el=leaves[leaves.length-1];
   if(!el)return {ok:false,why:'no hint element under pz-top'};
   // the nearest ancestor that actually clips vertically - the reserved box
-  let box=null;for(let a=el.parentElement;a;a=a.parentElement){const st=getComputedStyle(a);
+  /* #547, final antagonist B's B1: the message box pz-msg is now ITSELF the scroller at the reserve, so the search starts AT the
+     element - starting at its parent found an outer container, scrolled that, and never moved the hint (90 of 102 at rest and at
+     the bottom, a false red). */
+  let box=null;for(let a=el;a;a=a.parentElement){const st=getComputedStyle(a);
     if(st.overflowY==='auto'||st.overflowY==='scroll'||st.overflowY==='hidden'){box=a;break;}}
   if(!box)return {ok:false,why:'no clipping ancestor - the box no longer reserves or clips anything'};
   const bs=getComputedStyle(box), es=getComputedStyle(el);
@@ -354,7 +357,17 @@ L.run(async()=>{
       if(!m)return {found:false,alt:/that works too/.test(t)};const q=m.getBoundingClientRect();let e=m,clip=null;while((e=e.parentElement)){const s=getComputedStyle(e);if(/hidden|auto|scroll/.test(s.overflowY)&&e!==document.getElementById('root')){clip=e.getBoundingClientRect();break;}}
       return {found:true,sh:m.scrollHeight,ch:m.clientHeight,top:q.top,bottom:q.bottom,vh:innerHeight,clipTop:clip&&clip.top,clipBottom:clip&&clip.bottom};});
     L.say(ok&&r.found,geo+': TC-DR-02 PRECONDITION the drill accepted Ra8# as a different mate and printed its verdict',r);
-    L.say(r.found&&r.sh<=r.ch+0.5&&r.top>=-0.5&&r.bottom<=r.vh+0.5&&(r.clipBottom==null||(r.bottom<=r.clipBottom+0.5&&r.top>=r.clipTop-0.5)),geo+': TC-DR-02 the found-mate verdict is painted whole - its box holds its text and nothing clips that box',r);
+    /* #547, final antagonist B's B1: the verdict now floats at the reserve and SCROLLS (Kunal: "Don't change the size just allow the
+       player to scroll through the text"). So "whole" is: painted whole, OR its own box is a real scroller (overflow auto/scroll, a
+       vertical pan allowed) whose LAST character scrolls into view - never a silent clip, which is what (94) fixed. At 320x568 the
+       73-char verdict reads sh 89 in a 78px box, so it is the scroller branch there. */
+    const sr=r.found?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('div')].filter(d=>/that works too/.test(d.textContent||'')&&![...d.children].some(c=>/that works too/.test(c.textContent||'')))[0];
+      if(!m)return null;let sc=m;while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;if(!sc||sc===document.getElementById('root'))return {scroller:false};
+      let pan=true;for(let p=sc;p&&p!==document.documentElement;p=p.parentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();if(/\bnone\b/.test(ta)||(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta)))pan=false;}
+      sc.scrollTop=sc.scrollHeight;const rg=document.createRange();rg.selectNodeContents(m);const rs=[...rg.getClientRects()];const lr=rs[rs.length-1],vr=sc.getBoundingClientRect();
+      const lastIn=!!lr&&lr.bottom<=vr.bottom+1&&lr.top>=vr.top-1&&lr.bottom<=innerHeight+0.5;sc.scrollTop=0;return {scroller:true,pan,lastIn,ovf:getComputedStyle(sc).overflowY};}):null;
+    const whole=r.found&&r.sh<=r.ch+0.5&&r.top>=-0.5&&r.bottom<=r.vh+0.5&&(r.clipBottom==null||(r.bottom<=r.clipBottom+0.5&&r.top>=r.clipTop-0.5));
+    L.say(whole||(!!sr&&sr.scroller&&sr.pan&&sr.lastIn),geo+': TC-DR-02 the found-mate verdict is never silently cut - painted whole, or in its own real scroller (a finger may pan it) whose last character scrolls into view',Object.assign({},r,{scrollerReach:sr}));
     await b.close();
   }
 },'50-drill-verdict-no-jump');
