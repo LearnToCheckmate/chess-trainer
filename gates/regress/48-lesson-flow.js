@@ -692,7 +692,9 @@ L.run(async()=>{
 
     // --- TC-LS-024…026: the hint. Named squares, not a count: counting cannot tell the right hint from a
     // wrong one, and this lesson exists to teach 1.e4.
-    L.say(JSON.stringify(await hintSquares(b))==='["e2","e4"]',geo+': hints are ON by default and paint exactly e2 and e4 - the book move\'s own two squares',await hintSquares(b));
+    // #547 item (90), Kunal's 'warn-first': the lightbulb now STARTS OFF, so the walk is off -> on -> off -> on (it ends ON, as the
+    // wrong-move block below expects).
+    L.say(JSON.stringify(await hintSquares(b))==='[]',geo+': hints START OFF (Kunal\'s warn-first) - no square is painted until 💡 is tapped',await hintSquares(b));
     // #403: THESE TWO TAPS WERE UNGUARDED AND THEY TOOK THE WHOLE GATE DOWN. D.tapBtn THROWS when no button
     // matches, and L.run catches the throw at the top level - so one absent control ended the run and left 141
     // of 189 assertions UNRUN. That is #393's lesson verbatim ("a gate that halts on the first missing element
@@ -704,17 +706,20 @@ L.run(async()=>{
     try{ await D.tapBtn(b,/^Hints$/,500); }catch(e){ hintsTappable=false; }
     L.say(hintsTappable,geo+': the 💡 Hints control is present and tappable at all - asserted separately because the two assertions below are meaningless if it is not, and because a throw here used to end the run',{tappable:hintsTappable});
     if(hintsTappable){
-      L.say(JSON.stringify(await hintSquares(b))==='[]',geo+': 💡 turns the hint off - no square is painted',await hintSquares(b));
+      L.say(JSON.stringify(await hintSquares(b))==='["e2","e4"]',geo+': 💡 turns the hint ON and it paints exactly e2 and e4 - the book move\'s own two squares',await hintSquares(b));
       const afterToggle=await b.metrics();
       L.say(near(afterToggle.board.w,beforeToggle.board.w)&&near(afterToggle.board.top,beforeToggle.board.top),
         geo+': and toggling it does not move the board',{before:beforeToggle.board,after:afterToggle.board});
       let back=true;
       try{ await D.tapBtn(b,/^Hints$/,500); }catch(e){ back=false; }
-      L.say(back&&JSON.stringify(await hintSquares(b))==='["e2","e4"]',geo+': and 💡 again brings the same two squares back',{back,sq:await hintSquares(b)});
+      L.say(back&&JSON.stringify(await hintSquares(b))==='[]',geo+': and 💡 again turns it off - no square is painted',{back,sq:await hintSquares(b)});
+      let again=true;try{ await D.tapBtn(b,/^Hints$/,500); }catch(e){ again=false; }
+      L.say(again&&JSON.stringify(await hintSquares(b))==='["e2","e4"]',geo+': and a third 💡 brings the same two squares back, leaving the hint ON for the moves below',{again,sq:await hintSquares(b)});
     } else {
-      L.say(false,geo+': 💡 turns the hint off - no square is painted  [NOT RUN: the Hints control could not be tapped]',null);
+      L.say(false,geo+': 💡 turns the hint ON and it paints exactly e2 and e4  [NOT RUN: the Hints control could not be tapped]',null);
       L.say(false,geo+': and toggling it does not move the board  [NOT RUN: the Hints control could not be tapped]',null);
-      L.say(false,geo+': and 💡 again brings the same two squares back  [NOT RUN: the Hints control could not be tapped]',null);
+      L.say(false,geo+': and 💡 again turns it off  [NOT RUN: the Hints control could not be tapped]',null);
+      L.say(false,geo+': and a third 💡 brings the same two squares back  [NOT RUN: the Hints control could not be tapped]',null);
     }
 
     // --- TC-LS-027…029: a WRONG move. Rule 2: the position is compared by piece identity per square, never
