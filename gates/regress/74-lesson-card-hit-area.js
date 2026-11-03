@@ -295,9 +295,22 @@ const layer=(b)=>b.page.evaluate(()=>{
   // build fixes. B1 asserts over the on-screen points; B1b asserts over the overflow.
   const sample=(x)=>{
     const r=x.getBoundingClientRect();const cx=r.left+r.width/2;
+    /* #547: "ON THE SCREEN" IS THE VIEWPORT INTERSECTED WITH EVERY ANCESTOR THAT CLIPS. Item (98) capped the intro panel at the
+       viewport less its insets, so at 320x568 the panel FITS and SCROLLS where it used to run -33..600 off both edges; the lower band of
+       a control near its bottom is then cut by the panel's OWN scroll box, and a sample there lands on the backdrop. That band is not
+       painted, it is reachable by scrolling (this same gate's reachability pass reads reachable:true, byScrolling:true for exactly those
+       controls), so it is the OVERFLOW question B1b and the reachability walk own, not the hit-test fault B1 exists for. The defect B1
+       was written against - the fixed footer at z 471 painting OVER the card - is a SIBLING layer, never a clipping ANCESTOR of the
+       control, so this cannot excuse it: the #496 control still reds B1 on points inside the panel's clip. Bisected to 476e9d7 (98)
+       over 58 commits with this gate cut to Petroff and King's Gambit at se: 29b60c2 PASS, 476e9d7 FAIL. */
+    let clip={l:0,t:0,r:innerWidth,b:innerHeight};
+    for(let a=x.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);
+      if(cs.overflowY!=='visible'||cs.overflowX!=='visible'){const q=a.getBoundingClientRect();
+        clip={l:Math.max(clip.l,q.left+a.clientLeft),t:Math.max(clip.t,q.top+a.clientTop),r:Math.min(clip.r,q.left+a.clientLeft+a.clientWidth),b:Math.min(clip.b,q.top+a.clientTop+a.clientHeight)};}}
     const pt=(fy)=>{const cy=r.top+r.height*fy;
       const on=!(cx<0||cx>=innerWidth||cy<0||cy>=innerHeight);
       if(!on)return {onScreen:false,own:false,what:'(OUTSIDE THE VIEWPORT)'};
+      if(cx<clip.l||cx>=clip.r||cy<clip.t||cy>=clip.b)return {onScreen:false,own:false,clipped:true,what:'(CLIPPED BY A SCROLLING ANCESTOR)'};
       const e=document.elementFromPoint(cx,cy);
       return {onScreen:true,own:!!(e&&(e===x||x.contains(e))),what:nm(e).slice(0,34)};};
     const fully=r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth;
