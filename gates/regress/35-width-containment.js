@@ -188,7 +188,10 @@ const overhang=(b)=>b.page.evaluate(()=>{
   }
   // the outermost offender per overhang is the useful one; children repeat their parent's overflow
   out.sort((a,b)=>b.over-a.over);
-  return {off:out.slice(0,8),excused};
+  // THE FULL LIST, NOT ITS FIRST EIGHT [#547, item (24); jobs/gate-35-width-containment-has-never-measured-landscape-2026-09-30].
+  // The lesson-lines containment line searches this list for one element, and a slice made a ninth offender invisible
+  // to it. Every print below slices its own excerpt.
+  return {off:out,excused};
 });
 const pageScroll=(b)=>b.page.evaluate(()=>({sw:document.documentElement.scrollWidth,iw:window.innerWidth}));
 
@@ -280,7 +283,7 @@ L.run(async()=>{
     for(const r of report[geo]){
       if(r.err){L.say(false,geo+' ('+w+' wide): the state "'+r.state+'" could not be reached, so containment there is UNMEASURED rather than green',r.err);continue;}
       const off=r.off;   // #404: nothing is excluded any more - the one exclusion this gate had was `lesson-lines`, and it is fixed
-      L.say(off.length===0,geo+' ('+w+' wide): nothing runs off the right edge on "'+r.state+'"',off);
+      L.say(off.length===0,geo+' ('+w+' wide): nothing runs off the right edge on "'+r.state+'"',off.length>8?{count:off.length,first8:off.slice(0,8)}:off);
       L.say(r.ps.sw<=r.ps.iw+0.5,geo+' ('+w+' wide): the page does not scroll sideways on "'+r.state+'" (scrollWidth '+r.ps.sw+' vs '+r.ps.iw+')');
     }
   }
@@ -347,6 +350,12 @@ L.run(async()=>{
   L.say(Object.values(excusedBy).some(n=>n>0),'the transform exclusion fired in at least one column ('+COLS.map(g=>g+' '+excusedBy[g]).join(', ')+'), so the per-column "every excused box is a piece" lines judged a real set somewhere',excusedBy);
   // his condition, stated as an assertion rather than left to a reader: 375 must be clean too, not merely
   // "no worse". If this gate is ever green at 320 and red at 375, the 320 fix cost him the large screen.
+  // NOT A RE-DERIVATION OF THE PER-STATE LINES [#547, item (24)]. This used to be `wide.length===0` over the same kunal730 rows the
+  // per-state lines had already judged, so it could not be red unless one of them was, and it EXCUSED rows carrying an error, so a
+  // column whose states all failed to load satisfied it. It now asserts what those lines cannot: the kunal730 walk REACHED every
+  // state the 320 walk reached (same names, none errored), and is clean on all of them - his Z-06 condition as a comparison of columns.
   const wide=report['kunal730'].filter(r=>!r.err&&r.off.length);
-  L.say(wide.length===0,'375x730, his own phone, is clean at the same time as 320 - his condition on Z-06 was that supporting the small screen must not cost anything on the large one',wide.map(r=>r.state+': '+JSON.stringify(r.off.slice(0,2))));
+  const seReached=report['se'].filter(r=>!r.err).map(r=>r.state), kReached=report['kunal730'].filter(r=>!r.err).map(r=>r.state);
+  const notAt375=seReached.filter(x=>!kReached.includes(x));
+  L.say(wide.length===0&&seReached.length>0&&notAt375.length===0,'375x730, his own phone, is clean at the same time as 320 - his condition on Z-06 was that supporting the small screen must not cost anything on the large one - and it REACHED every state the 320 walk reached, so "clean" is not satisfied by states that failed to load',{offenders:wide.map(r=>r.state+': '+JSON.stringify(r.off.slice(0,2))),reachedAt320:seReached.length,notReachedAt375:notAt375});
 },'WIDTH-CONTAINMENT');
