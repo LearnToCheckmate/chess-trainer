@@ -248,6 +248,21 @@ L.run(async()=>{
       for(let k=0;k<K;k++){const s=Math.round(N*k/K),e=Math.round(N*(k+1)/K);T.push({start:s,end:e,ids:PZ.slice(s,e).map(p=>p.id)});}
       return {PZ,T,N,K};
     }
+    // TC-R82 unit layer (#547 item (115)): the onlineInfo split, read out of chess.jsx. No browser can raise these lines here
+    // (they need a live online game), so this checks the CLASSIFIER against every literal the source can print: each
+    // acknowledgement matches ONLINE_ACK_RE (and so may time out) and each explanation does not (so it stays, with a close).
+    {let src='';try{src=fs.readFileSync(SRCP,'utf8');}catch(e){}
+     const m=/const ONLINE_ACK_RE=(\/.+\/);/.exec(src);let re=null;try{re=m?eval(m[1]):null;}catch(e){re=null;}
+     const lits=[...src.matchAll(/setOnlineInfo\('([^']+)'/g)].map(x=>x[1]);
+     L.say(!!re&&lits.length>=8,'TC-R82 U0 PRECONDITION ONLINE_ACK_RE and the setOnlineInfo literals are read out of chess.jsx ('+lits.length+' literals)',{re:m&&m[1],n:lits.length});
+     const ACK=['Code copied!','Invite link copied — send it to your friend!','Creating game…','Joining…','Opening your game…','Syncing… give it a second and tap your move again.'];
+     const EXPL=['That position needs a fix and is unavailable right now.','Move not saved (','Game created. Send ','Could not copy the link — share the code instead.'];
+     if(re){
+       L.say(ACK.every(t=>lits.some(l=>l.startsWith(t.slice(0,12))))&&EXPL.every(t=>lits.some(l=>l.startsWith(t.slice(0,12)))),'TC-R82 U1 PRECONDITION every listed line is still one the source prints - the lists below are not about strings that no longer exist',{lits});
+       L.say(ACK.every(t=>re.test(t)),'TC-R82 U2 every ACKNOWLEDGEMENT line matches the time-out class',ACK.map(t=>[t,re.test(t)]));
+       L.say(EXPL.every(t=>!re.test(t)),'TC-R82 U3 no EXPLANATION line matches it, so each stays until dismissed or the next move',EXPL.map(t=>[t,re.test(t)]));
+       L.say(lits.every(l=>ACK.some(t=>l.startsWith(t.slice(0,12)))||EXPL.some(t=>l.startsWith(t.slice(0,12)))),'TC-R82 U4 every literal the source prints is classified one way or the other - a new line must be added to a list, not left to default',lits.filter(l=>!(ACK.some(t=>l.startsWith(t.slice(0,12)))||EXPL.some(t=>l.startsWith(t.slice(0,12))))));
+     }else L.note('TC-R82 U1-U4 NOT RUN and not counted: ONLINE_ACK_RE was not found in chess.jsx, which U0 reports red');}
     let ord=null;try{ord=pzOrder(fs.readFileSync(SRCP,'utf8'));}catch(e){}
     const at=ord?ord.PZ.findIndex(q=>q.id==='c7'):-1;const ti=ord?ord.T.findIndex(x=>x.ids.includes('c7')):-1;
     L.say(at>=0&&ti>=0&&at-ord.T[ti].start>=9,'TC-R58 PRECONDITION the puzzle order computes from chess.jsx and c7 sits at least 10th in its tier (absolute '+at+', tier '+ti+')',{at,tier:ti,rel:ti>=0?at-ord.T[ti].start:null});
@@ -260,6 +275,18 @@ L.run(async()=>{
         const top=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||'').replace(/\s+/g,' '):'';});
         L.say(ok&&new RegExp('\\b'+(at+1)+'\\s*/\\s*'+ord.N+'\\b').test(top)&&/Smothered mate|mate in 2/i.test(top),'TC-R58 '+label+' PRECONDITION the screen is on c7: header '+(at+1)+'/'+ord.N+', mate in 2',{top:top.slice(0,140)});
         await b.move('d5','g8',0);await Z.waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('h6','f7',0);await Z.waitMsg(b,/^🎉/,3000);await b.settle(1500);
+        // TC-R82 (US-R77), #547 item (115): the rank-up card EXPLAINS, so it must still be up after 10s with no interaction (it
+        // had a 5000ms timer) and go only on its Continue. Run at the first geometry; the presence check is its own line.
+        if(label==='375x761 real'){
+          const up=()=>b.page.evaluate(()=>/RANK UP!/.test(document.body.innerText||''));
+          const u0=await up();
+          L.say(u0,'TC-R82 '+label+' PRECONDITION the 10th solve raised the RANK UP card',{up:u0});
+          if(u0){await b.page.waitForTimeout(10000);const u1=await up();
+            L.say(u1,'TC-R82 '+label+' the RANK UP card is STILL UP 10s later with no interaction - it explains, so it does not time out',{upAfter10s:u1});
+            let tapped=true;try{await Z.tapBtn(b,/^Continue ▶$/,800);}catch(e){tapped=false;}
+            const u2=await up();
+            L.say(tapped&&!u2,'TC-R82 '+label+' and its Continue control dismisses it',{tapped,upAfter:u2});}
+        }
         try{await Z.tapBtn(b,/^Continue ▶$/,800);}catch(e){}
         const r=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
           const leaf=[...t.querySelectorAll('div,span')].filter(d=>d.children.length===0&&/^🎉/.test((d.innerText||'').trim())).pop();if(!leaf)return null;

@@ -1468,6 +1468,18 @@ As a player working through my drill, I see an evaluation bar once I have solved
 - Once the card is solved, or Show move is tapped, a bar appears in the drill's header row, beside "‹ Review"; the header, and the board's size and position, do not change. (TC-R81)
 - The number and the fill are from my side: a position where I am a queen up reads positive whether I am White or Black. (TC-R81)
 
+### US-R77 A box that explains something stays until I have read it
+*Added #547, from jobs/explanation-boxes-must-not-time-out-2026-09-24 (Kunal, 24 Sep 2026: "realistically it's not on long enough for me to fully read it"). The spec reserved US-R35 for this, but #475 had already used that id.*
+As a player, a message that explains something stays on screen until I dismiss it or make my next move. Only messages that confirm something I just did (copied, saved, joining) go away by themselves.
+- The rank-up card is still up ten seconds later and closes on Continue. (TC-R82)
+- The online explanations ("Move not saved", "Game created. Send ... your invite code", "That position needs a fix", "Could not copy the link") have a close control and never time out; the acknowledgements still do. (TC-R82)
+
+### US-R78 At the end of a game, the engine row says why it has no line
+*Added #547, from jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27. The spec reserved US-R21, but that id is already in use.*
+As a player reviewing a game that ended on the board, I see why the engine shows no line at the last move, so I never mistake a finished game for an engine that has stopped answering.
+- At a stalemate the engine row reads "Stalemate — no legal move."; at a checkmate, "Checkmate — the game is over." The reason is fully visible and stays; there is no ellipsis. (TC-R83)
+- At any position the game is not over, the row still shows the engine's line. (TC-R83)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

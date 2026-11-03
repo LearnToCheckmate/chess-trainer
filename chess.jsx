@@ -121,6 +121,8 @@ const VAL={p:100,n:320,b:330,r:500,q:900,k:0};
    A mated side to move is encoded as half a mate for the OTHER side, so the sign carries the winner and the magnitude
    (<1) tells the labels to print the result instead of a number. */
 const mateW=(raw,sign)=>(raw===0?-sign*0.5:sign*raw);
+/* #547 item (115): the onlineInfo lines that only ACKNOWLEDGE an action or show a passing status, and so may time out. */
+const ONLINE_ACK_RE=/^(Code copied!|Invite link copied|Creating game…|Joining…|Opening your game…|Syncing…)/;
 const mateLbl=(m)=>(Math.abs(m)<1?(m>0?'1-0':'0-1'):((m>0?'M':'-M')+Math.abs(m)));
 const PST={
   p:[0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
@@ -3095,7 +3097,11 @@ export default function App(){
   const [tourBusy,setTourBusy]=useState(false);
   const [tourMsg,setTourMsg]=useState('');
   useEffect(()=>{if(celebrate&&celebrate.kind==='bank'){const t=setTimeout(()=>setCelebrate(null),2800);return ()=>clearTimeout(t);}},[celebrate]);
-  useEffect(()=>{if(onlineInfo){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
+  // #547 item (115): only the ACKNOWLEDGEMENTS and transient statuses time out; an explanation ('Move not saved (...)',
+  // 'Game created. Send ... your invite code', 'That position needs a fix', 'Could not copy the link') stays, gains a close
+  // control, and the next move on the board clears it.
+  useEffect(()=>{if(onlineInfo&&ONLINE_ACK_RE.test(onlineInfo)){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
+  useEffect(()=>{setOnlineInfo(i=>(i&&!ONLINE_ACK_RE.test(i))?'':i);},[(game.history||[]).length]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!tourOpen||!C||!C.tourList)return;const un=C.tourList(a=>setTours(Array.isArray(a)?a:[]));return ()=>{try{un&&un();}catch(e){}};},[tourOpen]);
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
@@ -3474,7 +3480,11 @@ export default function App(){
   // PIN box → unlock all tiers (or re-lock)
   const pzTryPin=()=>{const code=String(pzPin||'').trim();if(code.toLowerCase()===PZ_PIN.toLowerCase()){setPzUnlock(true);setPzPin('');setPzPinErr('');PZSTORE.set(PZUKEY,'1');}else{setPzPinErr('Wrong code.');setTimeout(()=>setPzPinErr(''),2000);}};
   const pzRelock=()=>{setPzUnlock(false);PZSTORE.set(PZUKEY,'0');};
-  useEffect(()=>{if(pzCelebrate){const t=setTimeout(()=>setPzCelebrate(null),5000);return()=>clearTimeout(t);}},[pzCelebrate]);
+  /* #547 item (115), jobs/explanation-boxes-must-not-time-out-2026-09-24 (Kunal, 24 Sep: "it's not on long enough for me to fully read it").
+     THE RULE: a box that ACKNOWLEDGES what the player just did may time out; a box that EXPLAINS something stays until it is
+     dismissed or the next real action clears it. The classification of every auto-dismiss timer is in
+     claude/agents/547-timer-classification.md. The rank-up card explains, and it already has Continue and a backdrop tap,
+     so it simply loses its 5000ms timer. */
   const boardRef=useRef(null);
   const pvJumpRef=useRef(null); /* #372: a Preview gallery card can ask the next finished review to open on its last move */
   useEffect(()=>{if(review&&pvJumpRef.current==='last'){pvJumpRef.current=null;setReviewView('moves');setPly(review.plies.length);}},[review]);
@@ -6326,7 +6336,7 @@ export default function App(){
           </div>}
           </div>
         </div>);})()}
-      {onlineInfo&&<div style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:'10px 16px',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
+      {onlineInfo&&<div data-ct="online-info" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 10px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'linear-gradient(135deg,rgba(110,168,254,.96),rgba(74,120,220,.96))',color:'#0d1626',borderRadius:14,padding:ONLINE_ACK_RE.test(onlineInfo)?'10px 16px':'10px 44px 10px 16px',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,boxShadow:'0 8px 24px rgba(0,0,0,.5)',maxWidth:'92vw',textAlign:'center',animation:'ctDrop .4s cubic-bezier(.2,1.4,.4,1)'}}>{onlineInfo}{!ONLINE_ACK_RE.test(onlineInfo)&&(<button data-ct="online-info-close" aria-label="Dismiss" onClick={()=>setOnlineInfo('')} style={{position:'absolute',top:0,right:0,width:44,height:'100%',minHeight:40,background:'none',border:'none',color:'#0d1626',fontSize:18,fontWeight:900,cursor:'pointer',lineHeight:1}}>✕</button>)}<style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}}'}</style></div>}
       {/* #372 CHARTER 2.5: the caption names the item id and what should be true right now, and each card holds its state for at least its own hold time (never under 5s), so the moment survives frame sampling; the last frame says RECORDING COMPLETE so a cut clip is obvious. */}
       {recCap&&(<div data-ct="rec-cap" style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 12px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:recCap.done?'rgba(30,110,60,.96)':'rgba(10,12,18,.94)',border:'1px solid '+(recCap.done?'#7bd88f':'rgba(110,168,254,.55)'),borderRadius:12,padding:'9px 14px',color:'#fff',fontSize:13,fontWeight:800,lineHeight:1.3,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'92vw',width:'92vw',textAlign:'center'}}>{recCap.hold&&<button data-ct="rec-cap-back" aria-label="Back to the card and its steps" onClick={()=>{setRecCap(null);setPreview(true);}} style={{position:'absolute',top:-16,left:-8,width:44,height:44,borderRadius:22,border:'1px solid rgba(110,168,254,.55)',background:'rgba(10,12,18,.98)',color:'#9fc4ff',fontSize:18,fontWeight:800,cursor:'pointer',pointerEvents:'auto',lineHeight:1}}>‹</button>/* #547 item (93): the held bar keeps a 46-character label of a 608-character instruction; this is the route back to the card and its steps, ON the bar, so the dev row stays hidden */}{recCap.hold&&<button data-ct="rec-cap-done" aria-label="Hide this instruction" onClick={()=>setRecCap(null)} style={{position:'absolute',top:-16,right:-8,width:44,height:44,borderRadius:22,border:'1px solid rgba(110,168,254,.55)',background:'rgba(10,12,18,.98)',color:'#9fc4ff',fontSize:15,fontWeight:800,cursor:'pointer',pointerEvents:'auto',lineHeight:1}}>✕</button>}<div style={{fontSize:12,color:recCap.done?'#e6ffe9':'#9fc4ff'}}>🎬 {BUILD_INFO?BUILD_INFO.split(' ')[0]:''}{recCap.i>0?(' · '+recCap.i+'/'+recCap.n):''}{recCap.id?(' · '+recCap.id):''} · {vp.w}x{vp.h}</div><div>{recCap.l}</div></div>)}
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
@@ -8517,8 +8527,12 @@ export default function App(){
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
             {engOn&&(<div data-ct="rev-engline" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
+              {/* #547 item (116), jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27: at a checkmate or a stalemate there is no
+                  line to find, and the row used to print '0.0 …' for ever - the exact shape of a dead query (#389). It now says
+                  why in words, so a bare ellipsis means only one thing: the engine has not answered yet. */}
+              {(status==='checkmate'||status==='stalemate')?(<span data-ct="rev-engline-over" style={{flex:'0 0 auto',color:'rgba(255,255,255,.62)',fontWeight:700}}>{status==='checkmate'?'Checkmate \u2014 the game is over.':'Stalemate \u2014 no legal move.'}</span>):(<>
               {engLine&&<b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,color:engLine.cp==null?'rgba(255,255,255,.5)':(engLine.cp>=0?'#e8e8ea':'#9fb4c9')}}>{engLine.txt}</b>}
-              {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}
+              {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}</>)}
             </div>)}
           </div>);})()}
           {/* #344: ONE control row. Kunal: Prev/Next here duplicated the thin arrows either side of the move strip,

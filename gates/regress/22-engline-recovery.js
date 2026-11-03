@@ -423,6 +423,39 @@ L.run(async()=>{
   // not gate anything has nothing to assert about it - what the job asked for is that the log always SAY which
   // happened, and it does, in both directions. The instrument above (trapCount, unit-tested over four inputs
   // including the empty list) is what is asserted, and it is asserted where it can fail.
+  // ════════ TC-R83 (US-R78), #547 item (116): AT A GAME-OVER PLY THE ENGINE ROW SAYS WHY THERE IS NO LINE ════════
+  // jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27. Pre-fix the row read "0.0 …" at the stalemate's 19/19 and "0-1 …"
+  // at Fool's Mate's 4/4, unchanged over 12s - the shape of a dead query (#389). These are the first drawn and lost games
+  // this suite has ever imported. Ply 8 of the same stalemate game is the must-stay-green control: a live position, where
+  // the reason must NOT appear and a real line must arrive. (NOT ply 10: measured on both the fixed and the pre-fix bundle, ply
+  // 10 - after 5.Qxc7 - never gets a line, '+5.1 …' for 24s+ even when reached directly while 9 and 8 answer in 5s. That is
+  // a separate dead-query finding, recorded in the #547 run report, and a control must not stand on a defect.)
+  {const GAMES=[{k:'stalemate',want:/^Stalemate — /,pgn:'[Result "1/2-1/2"]\n\n1. e3 a5 2. Qh5 Ra6 3. Qxa5 h5 4. h4 Rah6 5. Qxc7 f6 6. Qxd7+ Kf7 7. Qxb7 Qd3 8. Qxb8 Qh7 9. Qxc8 Kg6 10. Qe6 1/2-1/2',n:19},
+                {k:'checkmate',want:/^Checkmate — /,pgn:'[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1',n:4}];
+   for(const G of GAMES){
+    const t=await L.launch({geo:'kunal730',name:'engline-terminal-'+G.k,store:{ct_pool:'3'}});await t.open();
+    let ok=true;
+    try{await t.tile('Review');await t.page.locator('textarea').first().fill(G.pgn);await t.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await t.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await t.settle(600);
+      await t.tapText(/^Start review/,{wait:900});await t.tapText(/^⋯$/,{wait:500}).catch(()=>{});await t.tapText(/Analyze with the engine/,{wait:900}).catch(()=>{});await t.settle(1200);
+      for(let i=0;i<G.n+4;i++){await t.page.keyboard.press('ArrowRight');await t.page.waitForTimeout(80);}}catch(e){ok=false;}
+    const rd=()=>t.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');const pl=(document.body.innerText||'').match(/(\d+)\s*\/\s*(\d+)/);
+      return {txt:e?(e.innerText||'').replace(/\s+/g,' ').trim():null,sw:e?e.scrollWidth:0,cw:e?e.clientWidth:0,ply:pl?pl[0]:null};});
+    const r0=await rd();
+    if(!L.say(ok&&r0.txt!==null&&r0.ply===G.n+'/'+G.n,'TC-R83 '+G.k+' PRECONDITION the review reached the last ply '+G.n+'/'+G.n+' with the engine row on',r0)){await t.close();continue;}
+    const reads=[];for(let k=0;k<3;k++){await t.page.waitForTimeout(4000);reads.push(await rd());}
+    L.say(reads.every(r=>G.want.test(r.txt||'')),'TC-R83 '+G.k+' at the game-over ply the row SAYS WHY there is no line, on all three reads over 12s',reads.map(r=>r.txt));
+    L.say(reads.every(r=>!/…/.test(r.txt||'')),'TC-R83 '+G.k+' and it is not the dead-query shape: no ellipsis anywhere in the row',reads.map(r=>r.txt));
+    L.say(reads.every(r=>r.sw<=r.cw+1),'TC-R83 '+G.k+' the whole reason is visible in its one-line row (scrollWidth '+reads[0].sw+' <= clientWidth '+reads[0].cw+')',reads.map(r=>[r.sw,r.cw]));
+    if(G.k==='stalemate'){
+      for(let i=0;i<G.n-8;i++){await t.page.keyboard.press('ArrowLeft');await t.page.waitForTimeout(80);}
+      let c=await rd();for(let k=0;k<24&&!/[a-h][1-8]/.test(c.txt||'');k++){await t.page.waitForTimeout(500);c=await rd();}
+      L.say(c.ply==='8/'+G.n,'TC-R83 control PRECONDITION the walk came back to ply 8, a live position',{ply:c.ply});
+      L.say(!/^(Stalemate|Checkmate) — /.test(c.txt||'')&&/[a-h][1-8]/.test(c.txt||''),'TC-R83 control at ply 8 the reason does NOT appear and a real engine line arrives - the fix is confined to game-over plies',{txt:c.txt});
+    }
+    L.say(t.errs.length===0,'TC-R83 '+G.k+' no console errors',{errs:t.errs.slice(0,2)});
+    await t.close();
+   }}
   const nTrap=trapCount(b.errs);
   if(nTrap>0){
     L.note('TC-SUITE-236 THE WASM TRAP FIRED '+nTrap+' time(s) on this run (of '+b.errs.length+' page error(s)), so the five recovery assertions above - the first-visit number, the revisit variation and the revisit sign at each of plies 19 and 25 - are about a REAL event rather than a non-event. No PASS is emitted: this is a property of the container, not of the tree, and the same rule that forbids reddening on a zero forbids crediting on a non-zero.');
