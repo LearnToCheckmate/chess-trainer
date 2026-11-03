@@ -1475,6 +1475,26 @@ function mkTap(b,READ){
     }
   }
 
+  // ── TC-R70: THE FILTER IS PER VISIT [#547, item (133); jobs/the-review-list-filter-survives-leaving-the-review-screen-
+  // 2026-10-06]. Narrow the list with the Blunder chip, leave the Review screen for Home, come back: the list must be the whole
+  // list again, because a filter that survives the trip is the silently narrowed list the feature was built to cure.
+  // Two arrivals first: the chip really narrowed the list, and we really left and came back.
+  {
+    const b=await L.launch({geo:GEO,store:STORE,name:'R-per-visit'});
+    await b.open(); await b.tile('Review'); await b.settle(1200);
+    const tap=mkTap(b,READ);
+    const base=await READ(b);
+    const nar=await tap('gf-blun');
+    L.say(base.rows>0&&nar.rows<base.rows,'TC-R70 R0 ARRIVAL the Blunder chip narrowed the list ('+base.rows+' -> '+nar.rows+' rows), so there is a filter to survive or not',{base:base.rows,narrowed:nar.rows,count:nar.count});
+    await b.home(); await b.settle(600);
+    const atHome=await b.page.evaluate(()=>!document.querySelector('[data-ct="game-row"]'));
+    await b.tile('Review'); await b.settle(1200);
+    const back=await READ(b);
+    L.say(atHome&&back.rows===base.rows,'TC-R70 R1 after leaving for Home and coming back the list is WHOLE again - '+back.rows+' of '+base.rows+' rows, count "'+back.count+'" - the filter does not follow the player out of the screen',{atHome,back:back.rows,base:base.rows,count:back.count});
+    L.say(back.count===base.count,'TC-R70 R2 and the count readout is the unfiltered one ("'+base.count+'"), not an "N of M"',{back:back.count,base:base.count});
+    L.say(b.errs.length===0,'TC-R70 R3 zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
   // ── TC-R49: ESTIMATES ARE NOT REVIEWS [#547, item (67); jobs/a-count-from-the-background-estimate-map-is-printed-as-the-
   // players-own-reviewed-games-2026-10-04; Kunal chose "real-only"]. ct_gamestats holds full reviews (src:'review') and the
   // background pass's depth-2 estimates (src:'est'); the Your progress panel printed the whole key count as "Games reviewed",
