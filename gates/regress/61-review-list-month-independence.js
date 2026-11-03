@@ -145,7 +145,14 @@ async function READ(b){
     const sc=document.querySelector('[data-ct="game-row"]')?document.querySelector('[data-ct="game-row"]').parentElement:null;
     return {rows:rows.length, outside:labels.filter(x=>x&&x!==NEW_LABEL).length, inNewest:labels.filter(x=>x===NEW_LABEL).length,
       distinct:[...new Set(labels.filter(Boolean))].sort(), bytes, acctBytes:keys['ct_acctgames']||0, stored,
-      storedMonths:Object.keys(storedMonths).sort(), body:body.slice(0,2000),
+      storedMonths:Object.keys(storedMonths).sort(),
+      // THE WHOLE BODY, NOT ITS FIRST 2000 CHARACTERS [#547, item (14); jobs/gate-61-a15b-cannot-be-red-while-a15a-is-
+      // green-and-its-comment-names-an-impossible-mechanism-2026-10-06]. A15a, A15c, A7b, A7c and A14b test the body for a
+      // limit or gap sentence, and with the cap a sentence rendered after 2000 characters of row text was invisible to all of
+      // them - safe only because the games-cap div precedes the row list in DOM order, which nothing asserted. Every print of
+      // r.body in this file slices its own excerpt, so the log does not grow. bodyLen is reported so a reader can see
+      // whether the old cap would have bitten.
+      body, bodyLen:body.length,
       err:(()=>{const e=[...document.querySelectorAll('div')].find(d=>/Couldn.t reach Chess\.com/.test(d.innerText||'')&&d.children.length===0);return e?'yes':'no';})(),
       scrollerH:sc?sc.scrollHeight:null, scrollerC:sc?sc.clientHeight:null,
       // #432 the limit line as an ELEMENT, so "no line at all" is a measurement and not the absence of a
@@ -816,7 +823,7 @@ async function input(seed,n,geo,name,thin){
       // states the cap wrongly.
       L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),
         'A15a US-R25 '+tag+': NO limit line is rendered and NO limit sentence is anywhere on screen - the whole history was fetched, so a cap that was reached but did not withhold anything may not be claimed as the bound',
-        {element:r.cap.present,line:r.cap.text,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+        {element:r.cap.present,line:r.cap.text,heightPx:r.cap.h,bodyLen:r.bodyLen,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
       // A15b: and no GAP is claimed either. Every one of the four months answered 200 with 50 usable rows, so
       // `missed` is 0 and the '+gap' suffix must be absent. A REDUNDANT ARM OVER A15a, AND SAID SO [#545, item (72);
       // jobs/gate-61-a15b-cannot-be-red-while-a15a-is-green-and-its-comment-names-an-impossible-mechanism-2026-10-06].
