@@ -449,7 +449,7 @@ L.run(async()=>{
     L.say(reads.every(r=>r.sw<=r.cw+1),'TC-R83 '+G.k+' the whole reason is visible in its one-line row (scrollWidth '+reads[0].sw+' <= clientWidth '+reads[0].cw+')',reads.map(r=>[r.sw,r.cw]));
     if(G.k==='stalemate'){
       for(let i=0;i<G.n-8;i++){await t.page.keyboard.press('ArrowLeft');await t.page.waitForTimeout(80);}
-      let c=await rd();for(let k=0;k<24&&!/[a-h][1-8]/.test(c.txt||'');k++){await t.page.waitForTimeout(500);c=await rd();}
+      let c=await rd();for(let k=0;k<60&&!/[a-h][1-8]/.test(c.txt||'');k++){await t.page.waitForTimeout(500);c=await rd();}   // 30s: under the suite's load the ply-8 line took more than the 12s first allowed (#547 h3c), unloaded it came in ~5s
       L.say(c.ply==='8/'+G.n,'TC-R83 control PRECONDITION the walk came back to ply 8, a live position',{ply:c.ply});
       L.say(!/^(Stalemate|Checkmate) — /.test(c.txt||'')&&/[a-h][1-8]/.test(c.txt||''),'TC-R83 control at ply 8 the reason does NOT appear and a real engine line arrives - the fix is confined to game-over plies',{txt:c.txt});
     }

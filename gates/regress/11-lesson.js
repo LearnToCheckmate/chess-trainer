@@ -84,7 +84,7 @@ L.run(async()=>{
       L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
       // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
       // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
-      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':254.9/* #430: was 230.9; the MOVES row no longer wraps here, see the note above */,'360x640 demo-end':342.4,'360x640 practice-m0':326.4,'375x667 demo-end':375,'375x667 practice-m0':352.2};
+      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':270.9/* #547 item (124): the practice-only progress strip no longer takes layout, so practice equals the demo end at every geometry (was 254.9; #430 was 230.9) */,'360x640 demo-end':342.4,'360x640 practice-m0':342.4/* #547 (124): was 326.4 */,'375x667 demo-end':375,'375x667 practice-m0':375/* #547 (124): was 352.2 */};
       /* ── RE-KEYED TO THE TWO STATES THE FIT LOOP IS BISTABLE BETWEEN [#544, item (8) of
          directOpening_2026_10_28_batch4;
          jobs/461-the-gate-manifest-is-built-and-controlled-and-held-on-a-bistable-literal-in-gate-11-2026-10-02,
@@ -214,7 +214,10 @@ L.run(async()=>{
   // follows the row's budget (long at 96px or more), so at 375x568 (budget 98.8) it reads '↻ Try again' and T0b went red there
   // on this run's trial: the control had stopped controlling. Measured at #547: 375x552 reads '↻ Again' at a budget of 80.3
   // (board 236.3), the middle of the short-label window (73 to 96), so the old selector is again unable to match.
-  for(const tg of [{n:'375x552',g:{w:375,h:552,safe:''}},{n:'320x540',g:{w:320,h:540,safe:''}}]){
+  // #547 item (124) MOVED IT AGAIN: the practice board no longer loses 16px to the progress strip, so 375x552 now has a 252.3
+  // board, a budget of 96.3 and the long label - the control stopped controlling, as the paragraph above says it will. Measured:
+  // 375x544 reads '↻ Again' at 247.0 (budget 91, near the edge), 375x536 at 233.8 (budget 77.8, inside 73..96). 375x536 it is.
+  for(const tg of [{n:'375x536',g:{w:375,h:536,safe:''}},{n:'320x540',g:{w:320,h:540,safe:''}}]){
     // (a) the wrong state, where the old selector is shown unable to match.
     {
       const b=await L.launch({geo:tg.g,name:'tryagain-ctl-'+tg.n});await b.open();

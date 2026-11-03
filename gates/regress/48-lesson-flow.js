@@ -417,7 +417,7 @@ const DEMO={se:{w:270.9,left:24.6},kunal730:{w:375,left:0},'390':{w:390,left:0}}
    320x568, and the DEMO end is unchanged to the hundredth on each (board 270.9, panel 70.13), which is the
    check that this moved because the chrome shrank rather than because something started stealing width.
    kunal730 and 390 are width-bound at 375 and 390 and do not move. */
-const PRAC={se:{w:254.9,left:32.6},kunal730:{w:375,left:0},'390':{w:390,left:0}};
+const PRAC={se:{w:270.9,left:24.6}/* #547 item (124): was 254.9 at 32.6 - the practice-only progress strip (4px + an 8px gap) no longer takes layout, so practice is the demo's own square */,kunal730:{w:375,left:0},'390':{w:390,left:0}};
 const BOARD_TOP=92, NOTE_H=75, FOOT_H=61;
 const LINE=['1. e4','1… e5','2. Nf3','2… Nc6','3. Bc4','3… Bc5','4. c3','4… Nf6','5. d3','5… d6']; // LIB 0, the Italian Game
 const ROW=['Flip board','Hints','Try again','More actions'];
@@ -703,7 +703,7 @@ L.run(async()=>{
     // --- TC-LS-022/023: the practice board, pinned; and the footer loses the transport.
     const p0=await b.metrics();
     L.say(!!p0.board&&near(p0.board.w,Pr.w)&&near(p0.board.left,Pr.left)&&near(p0.board.top,BOARD_TOP,1),
-      geo+': the practice board is '+Pr.w+' wide at left '+Pr.left+', top '+BOARD_TOP+' - a different square from the demo\'s '+Dm.w+', because practice carries the progress bar and the control row',{measured:p0.board,want:Pr});
+      geo+': the practice board is '+Pr.w+' wide at left '+Pr.left+', top '+BOARD_TOP+(Pr.w===Dm.w?' - the SAME square as the demo\'s '+Dm.w+' (#547 (124): the progress strip no longer takes layout)':' - a different square from the demo\'s '+Dm.w),{measured:p0.board,want:Pr});
     L.say(p0.over.over<=0&&p0.over.docScroll===0,geo+': nothing scrolls in practice either',p0.over);
     const fp=await footer(b);
     L.say(!!fp&&fp.btns.join(',')==='Close lesson,More for this lesson',
