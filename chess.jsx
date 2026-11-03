@@ -715,7 +715,7 @@ function moveMotifs(pos,mv){
   const out=[];
   try{
     const me=pos.turn, them=opp(me);
-    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const cap=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap&&pos.board[mv.fr]&&pos.board[mv.fr][mv.tc])||null;   // #547 item (164)(3): en passant lands on an EMPTY square
     const nb=applyMove(pos.board,mv);
     const g2=makeMove(pos,mv);
     const st=getStatus(g2);
@@ -794,7 +794,7 @@ function moveGist(pos,mv){
   try{
     const me=pos.turn,them=opp(me);
     const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc]; if(!pc)return{did:[],left};
-    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const cap=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap&&pos.board[mv.fr]&&pos.board[mv.fr][mv.tc])||null;   // #547 item (164)(3): en passant lands on an EMPTY square
     const nb=applyMove(pos.board,mv);
     const g2={...pos,board:nb,ep:null};   // ep from BEFORE the move must not survive into a SEE probe
     const mvVal=SEEVAL[pc.t]||0;
@@ -1165,7 +1165,7 @@ function whyShape(pos,mv,playedMv){
   if(has('discovered check'))return ' is a discovered check';
   if(has('promotion'))return ' promotes the pawn';
   try{
-    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];
+    const cap=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap&&pos.board[mv.fr]&&pos.board[mv.fr][mv.tc])||null;   // #547 item (164)(3): en passant lands on an EMPTY square
     const sameSquare=playedMv&&playedMv.tr===mv.tr&&playedMv.tc===mv.tc;
     if(cap&&!sameSquare)return ' wins material';
   }catch(e){}
@@ -3521,6 +3521,7 @@ export default function App(){
   useEffect(()=>{try{if(!localStorage.getItem('ct_bril_reset_v1')){localStorage.setItem('ct_bril_reset_v1','1');setMyBrilliant([]);}}catch(e){}},[]);
   const pzOSolvedRef=useRef(pzOSolved); pzOSolvedRef.current=pzOSolved;
   const pzOSolvedIdsRef=useRef(pzOSolvedIds); pzOSolvedIdsRef.current=pzOSolvedIds;
+  const pzSeenRef=useRef({id:null,was:false});   // #547 item (164)(1)
   const pzDiffRef=useRef(pzDiff); pzDiffRef.current=pzDiff;
   // Load saved progress once on mount
   useEffect(()=>{(async()=>{try{const raw=await PZSTORE.get(PZKEY);if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'){setPzSolvedMap(o.solved||{});setPzStreak(o.streak||0);setPzBest(o.best||0);setPzXP(o.xp||0);setPzOSolved(o.online||0);setPzOSolvedIds(o.onlineIds||{});}}}catch(e){}try{const u=await PZSTORE.get(PZUKEY);if(u==='1')setPzUnlock(true);}catch(e){}})();},[]);
@@ -6106,7 +6107,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -9146,7 +9147,7 @@ export default function App(){
       {/* #338: on the puzzle screens the board is capped by the screen WIDTH, so a tall phone leaves slack; these two flexible spacers centre the stack between the top of the screen and the tab bar instead of pooling it all at the bottom. They collapse to zero when there is no slack. */}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:0,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
       {pzLow&&!wide&&(<div aria-hidden="true" style={{order:98,flex:'1 1 0',minHeight:0,width:'100%'}}/>)}
-      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(drillPlayRef.current||[]).length,_di=drillPosRef.current+1;return(
+      {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;/* #547 item (164)(1): 'solved before' read pzOSolvedIds, which the solve itself writes, so it painted on a FIRST solve. It is snapshotted when the card is first rendered, before this visit's solve can touch it. */if(p&&pzSeenRef.current.id!==p.id)pzSeenRef.current={id:p.id,was:!!pzOSolvedIds[p.id]};const _solvedBefore=!!(p&&pzSeenRef.current.was);const bw=Math.min(vw-8,440);const _drill=mistakeMode;const _dn=(drillPlayRef.current||[]).length,_di=drillPosRef.current+1;return(
       <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>{if(_drill)exitMistakes();else setPzView('roadmap');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{_drill?'‹ Review':'‹ Roadmap'}</button>
@@ -9199,11 +9200,11 @@ export default function App(){
               board in full instead of scrolling inside a cap. Nothing in this column changes height. */}
           <div data-ct="pz-float" style={{position:'relative',width:'100%'}}>
           <div style={{width:'100%',visibility:puzMsg?'hidden':'visible',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
-            <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:(p.motif||p.level||pzOSolvedIds[p.id])?6:0}}>🎯 {p.goal}</div>
-            {(p.motif||p.level||pzOSolvedIds[p.id])&&(<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:(p.motif||p.level||_solvedBefore)?6:0}}>🎯 {p.goal}</div>
+            {(p.motif||p.level||_solvedBefore)&&(<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               {p.motif&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#cfe0ff',background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.3)',borderRadius:20,padding:'2px 9px'}}>{p.motif}</span>)}
               {p.level&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}{p.rating?(' · '+p.rating):''}</span>)}
-              {pzOSolvedIds[p.id]&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#86d99a',background:'rgba(123,216,143,.13)',border:'1px solid rgba(123,216,143,.35)',borderRadius:20,padding:'2px 9px'}}>✓ solved before</span>)}
+              {_solvedBefore&&(<span data-ct="pz-solved-before" style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#86d99a',background:'rgba(123,216,143,.13)',border:'1px solid rgba(123,216,143,.35)',borderRadius:20,padding:'2px 9px'}}>✓ solved before</span>)}
             </div>)}
           </div>
           {puzMsg&&(<div data-ct="pz-msg" key={puzMsg} style={{position:'absolute',left:0,right:0,top:0,minHeight:'100%',boxSizing:'border-box',zIndex:30,boxShadow:'0 6px 18px rgba(0,0,0,.45)',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:(t=>'linear-gradient('+t+','+t+'),'+baseBg)(puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)')),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}

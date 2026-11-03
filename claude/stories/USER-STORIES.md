@@ -1605,6 +1605,15 @@ As a player opening Review with an account connected, I see what the fetch is do
 - While Chess.com months are read, a status line names the month being read, of how many at most, and the games found so far. It
   is gone when the walk ends. Lichess shows a single line for its one request. (TC-R95)
 
+### US-R98 The drill card tells me only true things
+*Added #547, from jobs/drill-small-truths-solved-before-and-missing-played-2026-09-28 (item (164)), with the folded-in
+solved-before-chip-paints-on-a-first-solve-2026-10-02.*
+As a player drilling puzzles and my own mistakes, nothing on the card is false.
+- A puzzle I have never solved shows no "solved before" chip, before or after I solve it this time. (TC-R96)
+- When my mistake was saved without the move I played, the goal line reads "your move here was a blunder", not "you played
+  here, a blunder". (TC-R96)
+- When the best move is an en-passant capture, the hint says there is material to take, not that there is no tactic. (TC-R96)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

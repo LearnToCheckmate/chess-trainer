@@ -392,4 +392,63 @@ L.run(async()=>{
      let again=true;try{await b.page.click('[data-ct="drill-end-again"]');await b.settle(1000);}catch(e){again=false;}
      const q2=await idx(b);L.say(again&&!!q2&&q2.i===1,'TC-R92 Go again returns to card 1',{counter:q2});}
    await b.close();}
+  // ════════ BLOCK F - TC-R96 (US-R98), #547 item (164): TWO SMALL TRUTHS ON THE DRILL CARD ════════
+  // One card whose entry carries NO `played` (the app's own guard says the field can be missing). Pre-fix the goal read
+  // 'White to move — you played here, a blunder.' with the word gone. And the '✓ solved before' chip must not appear on the FIRST
+  // solve of a card never seen: pre-fix it was gated on the very map the solve writes. Both located by text, not by a new hook.
+  {const FR=[{fen:FENS[2],uci:UCIS[2],label:'Blunder',ts:1791000000000,last:null,why:'f1'}];
+   const b=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-truths',store:{ct_mymistakes:FR,ct_pool:'3'}});await b.open();
+   let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
+   const rd=()=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');const tx=t?(t.innerText||'').replace(/\s+/g,' '):'';
+     return {goal:(tx.match(/(White|Black) to move[^.]*\.[^.]*\./)||[''])[0],chip:/solved before/.test(document.body.innerText||'')};});
+   const g0=await rd();
+   if(L.say(ok&&/to move/.test(g0.goal),'TC-R96 PRECONDITION the one-card drill opened and its goal line is on screen',g0)){
+     L.say(!/you played\s+here/.test(g0.goal)&&!/\s{2}/.test(g0.goal),'TC-R96 with no recorded move the goal line does not say "you played here" with the move missing',g0);
+     L.say(/your move here was a blunder/.test(g0.goal),'TC-R96 it says "your move here was a blunder" instead',g0);
+     L.say(!g0.chip,'TC-R96 TRIPWIRE (cannot fail on a drill card since #460; block G is the controlled one) before the first solve there is no "solved before" chip',g0);
+     let mv=true;try{await b.move(UCIS[2].slice(0,2),UCIS[2].slice(2,4),900);await b.settle(1200);}catch(e){mv=false;}
+     const solved=await b.page.evaluate(()=>/\u{1F389}|Solved|solved it|Correct/u.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
+     const g1=await rd();
+     if(L.say(mv&&solved,'TC-R96 PRECONDITION the card was solved (a verdict is on the card)',{mv,solved})){
+       L.say(!g1.chip,'TC-R96 TRIPWIRE (as above) after the FIRST solve of a drill card there is still no "solved before" chip',g1);}}
+   await b.close();}
+  // ════════ BLOCK G - TC-R96 (US-R98), #547 item (164)(1) on the path where the chip actually lies: a LICHESS puzzle ════════
+  // Block F's chip lines cannot fail on a drill card (since #460 a drill solve writes nothing to the solved map - measured: both
+  // bundles PASS there). The defect lives on Lichess puzzles, where the solve writes the very map the chip read. Stub the daily
+  // puzzle with a one-move mate never seen (empty store), solve it, and the chip must stay absent.
+  {const b=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-truths-lichess',store:{ct_pool:'3'}});
+   await b.ctx.route(/lichess\.org\/api\/puzzle/,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({game:{pgn:'e4 e5 Bc4 Nc6 Qh5 Nf6'},puzzle:{id:'r96aa',initialPly:5,solution:['h5f7'],rating:900,themes:['mateIn1']}})}));
+   await b.open();
+   let ok=true;try{await b.tile('Puzzles');await b.settle(700);const _h=await b.page.evaluateHandle(()=>[...document.querySelectorAll('button')].find(x=>/Online puzzles \(Lichess\)/.test(x.innerText||''))||null);const _el=_h.asElement();if(!_el)throw new Error('no Online puzzles button');await _el.scrollIntoViewIfNeeded();await _el.click();/* below the fold on the roadmap: tapText landed on nothing */await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
+   // READ IN THE DOM (textContent), NOT innerText: measured on the pre-fix bundle, the chip IS rendered after the first solve but the
+   // goal box is visibility:hidden while the verdict is up, so innerText skips it and an innerText read passed on the broken bundle.
+   const chip=()=>b.page.evaluate(()=>[...document.querySelectorAll('span')].some(x=>/solved before/.test(x.textContent||'')));
+   const c0=await chip();
+   if(L.say(ok,'TC-R96 PRECONDITION the stubbed Lichess puzzle opened (never seen: empty store)',{ok,c0})){
+     let mv=true;try{await b.move('h5','f7',900);await b.settle(1500);}catch(e){mv=false;}
+     const solved=await b.page.evaluate(()=>/\u{1F389}|Solved|Correct/u.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
+     const c1=await chip();
+     if(L.say(mv&&solved,'TC-R96 PRECONDITION the Lichess puzzle was solved (a verdict is on the card)',{mv,solved})){
+       L.say(!c0&&!c1,'TC-R96 the FIRST solve of a Lichess puzzle never seen renders no "solved before" chip, before or after the solve (pre-fix: in the DOM at top 205, hidden behind the verdict)',{before:c0,after:c1});}}
+   await b.close();}
+  // ════════ BLOCK H - TC-R96 (US-R98), #547 item (164)(3): THE HINT ON AN EN-PASSANT BEST MOVE ════════
+  // A UNIT block over the TREE's chess.jsx, NOT the bundle under test (the bundle's names are not addressable): the engine
+  // functions up to explainAnno are pure, so they are transformed with esbuild and called. An en-passant capture lands on an EMPTY
+  // square, and every capture test read the destination, so the hint said 'No tactic to spot here' about a capture. Enumerated
+  // per #391: en passant, an ordinary capture, a promotion, a castle and a quiet move, each with the hint it must and must not get.
+  {let M=null,why='';
+   try{const fs=require('fs'),path=require('path'),es=require('esbuild');const src=fs.readFileSync(path.join(__dirname,'..','..','chess.jsx'),'utf8');
+     const end=src.indexOf('\nfunction explainAnno(');const body=src.slice(src.indexOf('\n')+1,end);
+     const js=es.transformSync(body,{loader:'jsx',format:'cjs'}).code;
+     const W=global.window;global.window=new Proxy({},{get:(t,k)=>t[k]!==undefined?t[k]:({OPENINGS:[],MORE:[],ENDGAMES:[]})});
+     try{M=new Function('React','memo','useState',js+';return {fromFEN,getLegal,mistakeHint};')({createElement(){}},x=>x,()=>[]);}finally{global.window=W;}
+   }catch(e){why=e.message.slice(0,160);}
+   if(L.say(!!M,'TC-R96 PRECONDITION the tree\'s move functions load for the unit block',{why})){
+     const CASES=[['en passant','4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1',m=>m.epCap,/material to be taken/],
+                  ['ordinary capture','4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1',m=>m.fr===4&&m.fc===4&&m.tr===3&&m.tc===3,/material to be taken/],
+                  ['promotion','8/4P3/8/8/8/8/8/k6K w - - 0 1',m=>m.promo==='q',/pawn is closer/],
+                  ['castle','4k3/8/8/8/8/8/8/4K2R w K - 0 1',m=>m.castle==='K',/^No tactic/],
+                  ['quiet move','4k3/8/8/8/8/8/8/4K2R w K - 0 1',m=>m.fr===7&&m.fc===4&&m.tr===7&&m.tc===3,/^No tactic/]];
+     for(const [nm,fen,pick,want] of CASES){const pos=M.fromFEN(fen);const mv=M.getLegal(pos).find(pick);const h=mv?M.mistakeHint(pos,mv,null):null;
+       L.say(!!mv&&want.test(h||''),'TC-R96 the hint on a best move that is a(n) '+nm+' reads '+want,{fen,hint:h});}}}
 },'72-drill-prev');
