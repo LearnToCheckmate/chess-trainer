@@ -215,6 +215,16 @@ async function runFixture(geo,name,pgn,acc){
   const okRows=!rows.err&&LBL.every(l=>Array.isArray(rows[l]));
   L.say(okRows,tag+' A1 the summary paints all ten grade rows with two numbers each'+(rows.err?' ('+rows.err+')':''));
   if(!okRows){await b.close();return null;}
+  // TC-R34 [#547 item (108)]: A SIDE WITH NO GRADED MOVE IS NOT SCORED. Graded plies per side = the summary's own non-Book rows; the
+  // accuracy is read by STRUCTURE (the element before the 'Accuracy' / 'Not scored' label, White's column first), not by a new hook.
+  {const acc=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;
+     const labs=[...s.querySelectorAll('div')].filter(d=>d.children.length===0&&/^(Accuracy|Not scored)$/.test((d.textContent||'').trim()));
+     return labs.slice(0,2).map(l=>({label:(l.textContent||'').trim(),value:((l.previousElementSibling&&l.previousElementSibling.textContent)||'').trim()}));});
+   const graded=[0,1].map(sd=>LBL.filter(l=>l!=='Book').reduce((n,l)=>n+((rows[l]&&rows[l][sd]&&rows[l][sd].n)||0),0));
+   L.say(!!acc&&acc.length===2,tag+' TC-R34 PRECONDITION both sides\' accuracy blocks are found (graded plies w '+graded[0]+', b '+graded[1]+')',acc);
+   if(acc&&acc.length===2)for(let sd=0;sd<2;sd++){const a=acc[sd],side=sd?'Black':'White';
+     if(graded[sd]===0)L.say(a.value==='\u2014'&&a.label==='Not scored',tag+' TC-R34 '+side+' has NO graded move, and is shown as not scored ("'+a.value+'" / '+a.label+') - not the 99.5% an empty average used to print',a);
+     else L.say(/^\d+(\.\d)?%$/.test(a.value)&&a.label==='Accuracy',tag+' TC-R34 '+side+' has '+graded[sd]+' graded moves and shows a number ('+a.value+')',a);}}
   {const dots=await b.page.evaluate(DOTS,LBL);const known=LBL.filter(l=>CLASSIFIER_COL[l]);
    L.say(known.length===LBL.length&&Object.keys(dots).length===LBL.length,tag+' TC-R75 DENOMINATOR the classifier source resolves a colour for all ten grades ('+known.length+') and the summary paints a dot for all ten ('+Object.keys(dots).length+')',{known:known.length,dots:Object.keys(dots).length});
    const bad=LBL.filter(l=>CLASSIFIER_COL[l]&&dots[l]&&dots[l]!==hexRgb(CLASSIFIER_COL[l])).map(l=>l+': summary '+dots[l]+' vs classifier '+hexRgb(CLASSIFIER_COL[l]));
