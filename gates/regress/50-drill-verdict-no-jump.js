@@ -161,8 +161,8 @@ const verdictText=(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[
 // screen. The assertion that WOULD have caught it is an ink delta, not a hit test: make the goal title's text
 // colour transparent and require that no bright pixel in its own band changes. Antagonist A demonstrated it at
 // 26-74% of the title band's ink belonging to the goal card and showing through the message.
-const verdictSeen=(b)=>b.page.evaluate(()=>{
-  const d=[...document.querySelectorAll('div')].filter(x=>/^✗/.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>0);
+const verdictSeen=(b,lead)=>b.page.evaluate((lead)=>{
+  const d=[...document.querySelectorAll('div')].filter(x=>(x.innerText||'').trim().startsWith(lead||'✗')&&x.getBoundingClientRect().height>0);
   const el=d[d.length-1];if(!el)return {ok:false,why:'no ✗ element'};
   let r=el.getBoundingClientRect();let top=r.top,bot=r.bottom,left=r.left,right=r.right;
   for(let a=el.parentElement;a;a=a.parentElement){const st=getComputedStyle(a);if(st.overflowY!=='visible'||st.overflowX!=='visible'){const q=a.getBoundingClientRect();top=Math.max(top,q.top);bot=Math.min(bot,q.bottom);left=Math.max(left,q.left);right=Math.min(right,q.right);}}
@@ -170,7 +170,7 @@ const verdictSeen=(b)=>b.page.evaluate(()=>{
   const vis=Math.round((bot-top)*10)/10;if(vis<18||right-left<40)return {ok:false,vis,why:'clipped'};
   const hit=document.elementFromPoint((left+right)/2,(top+bot)/2);
   return {ok:!!hit&&(el===hit||el.contains(hit)),vis,hit:hit?(hit.tagName+' '+(hit.innerText||'').slice(0,20)):null};
-});
+},lead);
 
 // THE RANGE WALK. "Painted" is not "present": a character inside a box that clips is in the DOM, has a rect, and
 // is invisible. So every character of the hint gets its own Range rect, and is counted painted only if that rect
@@ -320,6 +320,11 @@ L.run(async()=>{
         const v=await verdictText(b,path==='wrong'?/^✗/:/^🎉/);
         const after=await b.board();
         L.say(!!v,tag+': the verdict rendered ('+(path==='wrong'?'✗ line':'🎉 line')+')',v);
+        // TC-DR-01 [#547, item (49); jobs/suite-never-asserts-after-a-success-2026-09-27]: the drill's SUCCESS state, which no gate
+        // asserted after a solve. The 🎉 line is on screen, at least 18px of it unclipped, and the element under its centre is
+        // the line itself - nothing celebrating the find covers the text that says what was found. (The board half is the
+        // 'did not move' line below, from item (80).)
+        if(path==='solved'){const vs=await verdictSeen(b,'\u{1F389}');L.say(vs.ok,tag+': TC-DR-01 the success line is visible and on top (>=18px unclipped, hit-test lands on it) - nothing covers what was found',vs);}
         if(path==='wrong'){const vs=await verdictSeen(b);L.say(vs.ok,tag+': the verdict is visible and on top (>=18px unclipped, hit-test lands on it)',vs);
           // #500: THE MESSAGE KUNAL ACTUALLY REPORTED. The red line is 36 characters and must need NO scroll at
           // any geometry - a reserve that makes the player scroll to read 'a3 isn't it' would be a worse defect
