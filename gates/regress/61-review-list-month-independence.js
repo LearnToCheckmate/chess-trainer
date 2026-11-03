@@ -314,7 +314,10 @@ async function input(seed,n,geo,name,thin){
   }
   await b.settle(700);
   const settled=await rowsSettled(b,added);
-  if(!settled.ok)L.note('       ROWS NOT SETTLED for '+name+' after 20s ('+JSON.stringify(settled)+'); the reading below is taken anyway and is not a stable one');
+  // A SETTLE THAT TIMED OUT IS A RED, NOT A NOTE [#547, item (25); jobs/gate-61-a7a-at-three-accounts-and-a9a-differ-between-
+  // two-identical-runs-2026-10-03]. It was an L.note, so an unsettled three-account reading was taken anyway and every
+  // assertion below it judged an unstable state silently. The reading is still taken, so the rest of the file runs.
+  L.say(settled.ok,'A0s '+name+': the rows SETTLED before the reading - Fetch idle and the stored row count held still for three reads 250ms apart, inside 20s',settled);
   const r=await READ(b);
   r.settled=settled;
   r.hits=state.hits.slice(0,4); r.hitCount=state.hits.length;
@@ -557,7 +560,7 @@ async function input(seed,n,geo,name,thin){
     await b.settle(150); await b.tapText(/^Fetch$/,{wait:2600});        // acct2 = busy, games-bound
     await b.settle(800);
     const settledM=await rowsSettled(b,2);
-    if(!settledM.ok)L.note('MIXED BOUNDS rows NOT SETTLED after 20s ('+JSON.stringify(settledM)+'); A9 below reads an unstable state');
+    L.say(settledM.ok,'A0s mixed-bounds: the rows SETTLED before the reading (Fetch idle, row count still for three reads, inside 20s), so A9 below reads a stable state [#547 item (25)]',settledM);
     const r=await READ(b);
     const caps=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_acctcap')||'{}');}catch(e){return {};}});
     const vals=Object.keys(caps).sort().map(k=>caps[k]);
