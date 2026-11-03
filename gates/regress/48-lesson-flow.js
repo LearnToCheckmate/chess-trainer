@@ -1459,4 +1459,22 @@ L.run(async()=>{
     let t=true;try{await D.tapBtn(b,/^Got it/,400);}catch(e){t=false;}await b.page.waitForTimeout(3500);const s2=await st();
     L.say(t&&!s2.card&&s2.ply>=1,'375x730: TC-LS-042 Got it closes the card and the demo then starts ('+s2.ply+' moves after 3.5s)',s2);}
   await b.close();}
+ // TC-LS-043 (US-R92), #547 item (142): A LESSON SAYS WHERE THE LEARNER IS IN IT. Pre-fix nothing on the lesson screen gave a count,
+ // a bar or a fraction. N and M are DERIVED FROM lessons.js (the learner's plies from the lesson's start, by its side), not typed.
+ {const LP=require('path').join(__dirname,'..','..','lessons.js');let C=null;try{const w={};new Function('window',require('fs').readFileSync(LP,'utf8'))(w);C=w.CTLESSONS;}catch(e){}
+  const mineCount=(op)=>{const first=op.fen?(String(op.fen).split(/\s+/)[1]||'w'):'w';let n=0;for(let i=0;i<op.line.length;i++){const mv=(i%2===0)?first:(first==='w'?'b':'w');if(mv===op.side)n++;}return n;};
+  const IT=C&&C.OPENINGS.find(x=>x.name==='Italian Game'),KQ=C&&C.ENDGAMES.find(x=>x.name==='King & Queen Mate');
+  if(L.say(!!IT&&!!KQ,'TC-LS-043 PRECONDITION lessons.js loads and the Italian Game and King & Queen Mate are found',{it:!!IT,kq:!!KQ})){
+   const M=mineCount(IT);const b=await L.launch({geo:'kunal730',name:'lesson-counter'});await b.open();
+   let ok=true;try{await D.states['practice-m0'](b);await b.settle(500);}catch(e){ok=false;}
+   const seen=[await D.noteText(b)];for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3']]){await b.move(f,t,1600);seen.push(await D.noteText(b));}
+   const got=seen.map(x=>{const m=/·\s*(\d+)\s+of\s+(\d+)/.exec(x||'');return m?[+m[1],+m[2]]:null;});
+   L.say(ok&&got.every(x=>!!x),'TC-LS-043 PRECONDITION every practice note before the last move carries an "N of M" counter',{seen:seen.map(x=>(x||'').slice(0,50))});
+   L.say(got.every((x,i)=>!!x&&x[0]===i+1&&x[1]===M),'TC-LS-043 the counter counts the learner\'s own moves: 1 of '+M+' up to 5 of '+M+' for the Italian Game, M taken from lessons.js',{got,M});
+   await b.close();
+   const M2=mineCount(KQ);const b2=await L.launch({geo:'kunal730',name:'lesson-counter-fen'});await b2.open();
+   let ok2=true;try{await D.states['endgame-practice-m0'](b2);await b2.settle(500);}catch(e){ok2=false;}
+   const n0=await D.noteText(b2);const g0=/·\s*(\d+)\s+of\s+(\d+)/.exec(n0||'');
+   L.say(ok2&&!!g0&&+g0[1]===1&&+g0[2]===M2,'TC-LS-043 and a lesson that starts from a position counts from it too: King & Queen Mate reads 1 of '+M2+' at its first move',{note:(n0||'').slice(0,60),M2});
+   await b2.close();}}
 },'LESSON-FLOW');

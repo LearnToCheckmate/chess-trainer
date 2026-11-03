@@ -1564,6 +1564,11 @@ As a player signed in on two devices, my reviewed-game tallies are combined when
 As a player opening a lesson, I can read its introduction at my own pace, and the demonstration does not start playing behind it.
 - Untouched, the intro card is still up after six seconds and no demo move has been played; "Got it" closes it and the demo starts. (TC-LS-042; the card staying after a scroll or a drag is gate 74's F1 and F2)
 
+### US-R92 A lesson tells me how far through it I am
+*Added #547, from jobs/bench-lesson-no-progress-indicator-2026-09-28 (the spec's US-R4x ids are taken).*
+As a learner part-way through a lesson, I can see which of my moves I am on and how many there are.
+- Every practice note before the last move ends with "N of M", counting only my own moves, from the lesson's own start position. (TC-LS-043)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
