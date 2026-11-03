@@ -862,7 +862,9 @@ for(const geo of GEOS){
       L.say(moved.after>moved.before,'74 F0e [se] '+o.name+': THE DENOMINATOR FOR F1 - a child of the panel actually scrolled ('+moved.before+' -> '+moved.after+') with no click anywhere, so F1 below is a statement about an incidental scroll and not about a non-event',moved);
       await b.page.waitForTimeout(4600);
       const up=await cardUp(b);
-      L.say(!up,'74 F1 [se] '+o.name+': AN INCIDENTAL SCROLL OF A PARAGRAPH DOES NOT PIN THE CARD. On a card whose panel has NO scroll room and whose button is already on screen, a descendant scroll with no click must leave the 4000ms auto-dismiss alone - the card is gone at +4600ms. #505s own first fix held it here indefinitely (+4600, +12000 and +20000ms all measured card-up) because the hook fired on any descendant scroll on any card, which antagonist B swept at 80 of 97 Openings rows; the shipped guard requires the PANEL to have somewhere to scroll before a scroll may hold the card',{cardUpAt4600:up,panelRoom:pop.panelRoom,childScrolled:moved.after});
+      // #547 item (143) REMOVED THE 4000ms AUTO-DISMISS (an explanation does not time out, (115)'s rule), so 'not pinned' no longer
+      // means 'gone at 4600ms': the card now stays whatever the reader did. F1 and F2 keep their place and assert the new rule.
+      L.say(up,'74 F1 [se] '+o.name+': (#547 (143)) after an incidental scroll and 4600ms with no tap, the card is STILL UP - it no longer times out at all, so a reader is never cut off mid-paragraph. Was: AN INCIDENTAL SCROLL OF A PARAGRAPH DOES NOT PIN THE CARD. On a card whose panel has NO scroll room and whose button is already on screen, a descendant scroll with no click must leave the 4000ms auto-dismiss alone - the card is gone at +4600ms. #505s own first fix held it here indefinitely (+4600, +12000 and +20000ms all measured card-up) because the hook fired on any descendant scroll on any card, which antagonist B swept at 80 of 97 Openings rows; the shipped guard requires the PANEL to have somewhere to scroll before a scroll may hold the card',{cardUpAt4600:up,panelRoom:pop.panelRoom,childScrolled:moved.after});
     }
   }
   await b.close();
@@ -889,7 +891,7 @@ for(const geo of GEOS){
       const after=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct-f2]');return c?c.scrollTop:null;});
       if(after!=null&&after>tgt.before){
         await b.page.waitForTimeout(4600);const up=await cardUp(b);
-        L.say(!up,'74 F2 [se] '+o.name+': a FINGER drag that scrolled the paragraph ('+tgt.before+' -> '+after+', instrument: touch) does not pin the card - the gesture form of F1',{before:tgt.before,after,stillUp:up});
+        L.say(up,'74 F2 [se] '+o.name+': (#547 (143)) after a FINGER drag that scrolled the paragraph ('+tgt.before+' -> '+after+', instrument: touch) the card is still up - the gesture form of F1',{before:tgt.before,after,stillUp:up});
       }else{
         L.note('74 F2 [se] NOT EXERCISED HERE, reported rather than credited: the finger drag did not scroll the child in this container ('+tgt.before+' -> '+after+'), so the scroll F1 rests on came from the programmatic instrument only. This is the gesture disagreement #505 recorded, now measured on every run.');
       }

@@ -1445,4 +1445,18 @@ L.run(async()=>{
    L.say(!!lp&&!(lp['Italian Game']&&(lp['Italian Game'].learned||(lp['Italian Game'].days||[]).length)),geo+': TC-LS-041 and it banks no learned day',{learnprog:lp});
    await b.close();
  }
+ // TC-LS-042 (US-R91), #547 item (143): THE INTRO CARD WAITS FOR THE READER, AND SO DOES THE DEMO. Pre-fix the card closed itself at
+ // ~4.2s (58 words) and the demo had already played two moves behind it. Opened with NO touch on the card - the hold is what this
+ // is about, so the drive's held open is deliberately not used.
+ {const b=await L.launch({geo:'kunal730',name:'lesson-intro-waits'});await b.open();
+  let ok=true;try{await D.group(b,'Openings');const rw=await D.rows(b);await b.page.mouse.click(Math.round(b.geo.w/2),rw[0].y+rw[0].h/2);}catch(e){ok=false;}
+  const st=()=>b.page.evaluate(()=>({card:!![...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim())),ply:(document.body.innerText.match(/\b\d+\.\s*[KQRBN]?[a-h]?x?[a-h][1-8]/g)||[]).length}));
+  await b.page.waitForTimeout(800);const s0=await st();
+  if(L.say(ok&&s0.card,'375x730: TC-LS-042 PRECONDITION opening the first lesson raised its intro card',s0)){
+    await b.page.waitForTimeout(5200);const s1=await st();
+    L.say(s1.card,'375x730: TC-LS-042 six seconds later, untouched, the card is still up - it explains the lesson, so it does not time out',s1);
+    L.say(s1.ply===0,'375x730: TC-LS-042 and the demo has NOT played behind it ('+s1.ply+' moves in the list)',s1);
+    let t=true;try{await D.tapBtn(b,/^Got it/,400);}catch(e){t=false;}await b.page.waitForTimeout(3500);const s2=await st();
+    L.say(t&&!s2.card&&s2.ply>=1,'375x730: TC-LS-042 Got it closes the card and the demo then starts ('+s2.ply+' moves after 3.5s)',s2);}
+  await b.close();}
 },'LESSON-FLOW');

@@ -3076,7 +3076,9 @@ export default function App(){
   // Learn
   const [openIdx,setOpenIdx]=useState(null);
   const lessonFocus=(mode==='learn'&&openIdx!==null); // #316
-  useEffect(()=>{if(!(mode==='learn'&&openIdx!==null&&introCard))return;introHoldRef.current=false;const t=setTimeout(()=>{if(!introHoldRef.current)setIntroCard(false);},4000);return()=>clearTimeout(t);},[introCard,openIdx,mode]); // #315 intro auto-dismiss
+  /* #547 item (143), jobs/lesson-intro-sheet-clears-itself-while-the-demo-plays-behind-it-2026-09-28: the intro card dismissed ITSELF
+     after 4000ms (measured gone at 4171ms over a 58-word body) unless touched, while the demo played behind it. It explains the
+     lesson, so by (115)'s rule it stays until 'Got it' or its X (or a backdrop tap); the timer is gone, and introHoldRef is inert. */
   useEffect(()=>{setLessonMore(false);},[openIdx,mode]);
   const [openStep,setOpenStep]=useState(0);
   const [openMsg,setOpenMsg]=useState('');
@@ -4332,11 +4334,11 @@ export default function App(){
 
   // Auto-play the demo walkthrough (gentle pace so the glide can register)
   useEffect(()=>{
-    if(mode!=='learn'||learnPhase!=='demo'||!demoPlaying)return;
+    if(mode!=='learn'||learnPhase!=='demo'||!demoPlaying||introCard)return;   // #547 item (143): the demo does not spend its moves and notes behind the intro card
     if(demoPly>=learnLine.length){setDemoPlaying(false);return;}
     const id=setTimeout(()=>setDemoPly(p=>Math.min(learnLine.length,p+1)),1500);
     return()=>clearTimeout(id);
-  },[mode,learnPhase,demoPlaying,demoPly,learnLine]);
+  },[mode,learnPhase,demoPlaying,demoPly,learnLine,introCard]);
 
   // Glide the moving piece across the board on a forward demo step
   useEffect(()=>{

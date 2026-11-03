@@ -1559,6 +1559,11 @@ As Kunal checking a layout dispute from a screenshot of the readout, the row lab
 As a player signed in on two devices, my reviewed-game tallies are combined when my progress syncs, not replaced by whichever copy happens to be longer.
 - After a cloud pull, every game either copy held is kept, and where both hold a game, this device's entry wins. (TC-R90)
 
+### US-R91 A lesson's intro card waits for me, and the demo waits with it
+*Added #547, from jobs/lesson-intro-sheet-clears-itself-while-the-demo-plays-behind-it-2026-09-28.*
+As a player opening a lesson, I can read its introduction at my own pace, and the demonstration does not start playing behind it.
+- Untouched, the intro card is still up after six seconds and no demo move has been played; "Got it" closes it and the demo starts. (TC-LS-042; the card staying after a scroll or a drag is gate 74's F1 and F2)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
