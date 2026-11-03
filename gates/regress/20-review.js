@@ -284,7 +284,7 @@ L.run(async()=>{
     await b.tapText(/Undo/,{wait:500});const sig1=await gridSig(b);L.say(sig1!==sig2,geo+': TC-R11 Undo takes one move back');
     await b.tapText(/Exit analysis/,{wait:700});const after=await b.metrics();const ml19b=await b.rect('[data-ct="rev-move-line"]');
     L.say(!!after.board&&Math.abs(after.board.w-bd.w)<0.6&&!!ml19b&&/Nxb5/.test(ml19b.text),geo+': TC-R11 Exit returns to 10.Nxb5 with the board unchanged ('+(after.board&&after.board.w)+')');
-    await b.settle(1500);{const eng=await b.rect('[data-ct="rev-engline"]');const cmp=await b.rect('[data-ct="rev-compact"]');const m=await b.metrics();
+    await b.settle(1500);{const eng=await b.rect('[data-ct="rev-engline"]');const cmp=await b.rect('[data-ct="rev-compact"]');const m={board:await b.board()};
       L.say(!eng,geo+': TC-R71 after Exit analysis and a 1.5s settle the engine-line row is GONE again - the switch went back to what it read before analysis',{eng});
       L.say(!!cmp&&!!cmp71a&&Math.abs(cmp.h-cmp71a.h)<0.6&&!!m.board&&Math.abs(m.board.y-bd.y)<0.6&&Math.abs(m.board.w-bd.w)<0.6,geo+': TC-R71 rev-compact is the height it was before analysis, and the board top and width are unchanged',{cmp:cmp&&cmp.h,was:cmp71a&&cmp71a.h,board:m.board&&[m.board.y,m.board.w],wasBoard:[bd.y,bd.w]});}
     // TC-R13 sheet + navigation out
