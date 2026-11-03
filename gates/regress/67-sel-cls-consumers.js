@@ -523,7 +523,9 @@ L.run(async()=>{
   }catch(e){gbErr=String(e.message||e).slice(0,160);}
   try{await bgB.close();}catch(e){}
 
-  const BRIL_RE=/found a brilliant move here/i;
+  // #547 item (110) cut the brilliancy goal to the bare side to move, so the card is recognised by EITHER shape: the old
+  // sentence, or a goal line that is exactly '🎯 <side> to move' (the mistake goal always continues with ' — you played').
+  const BRIL_RE=/found a brilliant move here|\u{1F3AF} (White|Black) to move[ \t]*$/imu;
   const gbGoal=G_GOAL_RE.exec(gbTxt);
   // G4a THE INSTRUMENT. The mistakes drill opened on a store whose only row is Brilliant-labelled, and the
   // card painted ONE of the two sentences this site can produce. Without this, G4b passes over a blank page.

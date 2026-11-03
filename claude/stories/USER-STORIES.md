@@ -1454,6 +1454,20 @@ As a player on a 640px-tall phone, I can see Start game and the build line on th
 the build line names the source it was built from, so a screenshot of it identifies the code.
 - The build line is one line, nothing of it is cut, and it ends with the stamp's "(src <12 hex>)". (TC-PL-044)
 
+### US-R75 A brilliancy card spends its space on the board, not on what every card says
+*Added #547, from jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep 2026: "the box right on top ... is the same text everywhere in all of those brilliancies ... everybody knows it's a brilliant move").*
+As a player replaying my own brilliant moves, I see the board as large as the screen allows, with only what differs from card to card above it.
+- The goal box is one line naming the side to move; there is no motif or level chip, which on my own cards read the same on every one. (TC-R80)
+- When I find the move, the verdict is that move's own explanation, with no line telling me it was brilliant; when there is nothing to explain, no message appears at all. (TC-R80)
+- The board takes the full column width, and it does not move when the verdict appears. (TC-R80)
+
+### US-R76 Once I have found the move, the drill shows me how good the position is, from my side
+*Added #547, from jobs/eval-bar-on-the-drill-board-2026-09-23 (Kunal, 23 Sep 2026: "The bar that goes up and down, points wise ... you can use that space on top"), and his ruling in that job's theOneRuleToDecide: hidden on an unsolved card, shown once it is solved or the line is shown.*
+As a player working through my drill, I see an evaluation bar once I have solved the card or asked to see the move, so it never gives the answer away, and it costs the board nothing.
+- On an unsolved card there is no bar at all. (TC-R81)
+- Once the card is solved, or Show move is tapped, a bar appears in the drill's header row, beside "‹ Review"; the header, and the board's size and position, do not change. (TC-R81)
+- The number and the fill are from my side: a position where I am a queen up reads positive whether I am White or Black. (TC-R81)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

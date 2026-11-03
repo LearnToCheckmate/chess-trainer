@@ -5,6 +5,10 @@
 // US-R27 and a second TC-R37 - one id, two meanings, which is R45 shape (1). #475 allocated US-R35 and TC-R47,
 // both past the highest id in use, and filed the cause as a job rather than only stepping around it.
 // you already solved must come back solved rather than asking again.
+// BLOCK C, TC-R80 (US-R75, #547 item (110)): the brilliancy card's goal box is one line, chipless, and the verdict is the
+// move's own explanation or nothing.
+// BLOCK D, TC-R81 (US-R76, #547 item (111)): the drill's evaluation bar - absent until solved or shown, in the header row,
+// from the player's side.
 //
 // WHY IT EXISTS. Kunal asked for this TWICE - 2026-09-23 ("I also want the ability to go backwards, not just
 // forward, because sometimes I see a position and I want to come back to it after four or five additional
@@ -288,6 +292,89 @@ L.run(async()=>{
     const t4=await state(b);
     L.say(t4.inDrill===false,'TC-R47 B11 '+tag+' Next from the LAST playable card leaves the drill, which is a completion - and it did not leave early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill});
     L.say(b.errs.length===0,'TC-R47 B12 '+tag+' no console errors over the unplayable-row walk',{errs:b.errs.slice(0,2)});
+    await b.close();
+  }
+  // ════════ BLOCK C - TC-R80 (US-R75), #547 item (110): THE BRILLIANCY CARD SPENDS ITS SPACE ON THE BOARD ════════
+  // Kunal, 23 Sep: the top box "is the same text everywhere in all of those brilliancies" and the praise line says what
+  // "everybody knows". Measured at 375x730 on the pre-fix bundle: the goal box 107px ('... you found a brilliant move here.
+  // Can you spot it again? | Tactic | Medium'), the board 355 wide at top 186, the verdict opening "That's your brilliant
+  // move. Nicely done." After: 44px, 375 at 144. Card 1 carries a `why`; card 2 deliberately has none, so the empty case
+  // (no message at all, not a bare 🎉) is exercised and not assumed.
+  // PRE is the board width MEASURED on the pre-fix bundle (5b66d2fb6147, HEAD~1 of the (110) commit) at the same geometry and
+  // card. A full-column-width test is right at 375x730, where the board is width-bound, and WRONG at 320x568, where it is
+  // height-bound (216 of 320 after the fix) - which is the first draft's mistake, caught by its own run on the fixed bundle.
+  for(const G of [{n:'375x730',g:{w:375,h:730,safe:''},PRE:355},{n:'320x568',g:L.GEOS.se,PRE:192}]){
+    const tag='brilliancy card @ '+G.n;
+    const CR=[{fen:FENS[0],uci:UCIS[0],label:'Brilliant',ts:1791000000000,last:null,why:'You gave up a piece and it still worked (card 1).'},
+              {fen:FENS[1],uci:UCIS[1],label:'Brilliant',ts:1791000001000,last:null}];
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-bril-card-'+G.n,store:{ct_mybrilliancies:CR,ct_bril_reset_v1:'1',ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(700);
+    let ok=true;try{await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-float"]').waitFor({state:'visible',timeout:15000});}catch(e){ok=false;}
+    await b.settle(600);
+    const rd=()=>b.page.evaluate(()=>{const f=document.querySelector('[data-ct="pz-float"]');
+      const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
+      const m=document.querySelector('[data-ct="pz-msg"]');const fr=f&&f.getBoundingClientRect(),gr=g&&g.getBoundingClientRect();
+      return {float:fr?Math.round(fr.height):null,lines:f?f.innerText.split('\n').map(x=>x.trim()).filter(Boolean):[],msg:m?m.innerText.trim():null,
+              chips:f?[...f.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).filter(Boolean):[],
+              board:gr?{w:Math.round(gr.width),top:Math.round(gr.top)}:null,vw:innerWidth};});
+    const c1=await rd();
+    if(!L.say(ok&&!!c1.board&&c1.lines.length>0,'TC-R80 C0 '+tag+' PRECONDITION the brilliancies drill opened on a card with a goal box and a board',c1)){await b.close();continue;}
+    L.say(c1.lines.length===1&&/^\u{1F3AF} White to move$/u.test(c1.lines[0]),'TC-R80 C1 '+tag+' the goal box is ONE line naming only the side to move - no "you found a brilliant move here", which was the same on every card',c1.lines);
+    L.say(c1.chips.length===0,'TC-R80 C2 '+tag+' no motif or level chip: on an own-game card they read "Tactic" and "Medium" on every card',c1.chips);
+    L.say(c1.board.w>=Math.min(G.PRE+10,Math.min(c1.vw,440)-0.5),'TC-R80 C3 '+tag+' the reclaimed height goes into the board: '+c1.board.w+'px wide against '+G.PRE+' measured pre-fix here (at least +10, or the full column)',{board:c1.board,pre:G.PRE,col:Math.min(c1.vw,440)});
+    await b.move(UCIS[0].slice(0,2),UCIS[0].slice(2,4),900);await b.settle(1100);
+    const s1=await rd();
+    L.say(s1.msg==='\u{1F389} You gave up a piece and it still worked (card 1).','TC-R80 C4 '+tag+' the verdict is the move\'s own explanation and nothing else - no "That\'s your brilliant move. Nicely done."',{msg:s1.msg});
+    L.say(!!s1.board&&s1.board.top===c1.board.top&&s1.board.w===c1.board.w,'TC-R80 C5 '+tag+' the board does not move when the verdict appears',{before:c1.board,after:s1.board});
+    let nx=true;try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){nx=false;}await b.settle(1200);
+    const c2=await rd();
+    L.say(nx&&c2.lines.length===1&&c2.msg===null,'TC-R80 C6 PRECONDITION '+tag+' card 2 (no `why`) is on screen and asking',{nx,lines:c2.lines,msg:c2.msg});
+    await b.move(UCIS[1].slice(0,2),UCIS[1].slice(2,4),900);await b.settle(1100);
+    const s2=await rd();
+    L.say(s2.msg===null&&s2.lines.length===1&&/to move$/.test(s2.lines[0]),'TC-R80 C7 '+tag+' with nothing true to say the verdict area holds nothing - no message box and no bare 🎉 - and the goal line keeps its place',{msg:s2.msg,lines:s2.lines});
+    L.say(!!s2.board&&s2.board.top===c1.board.top,'TC-R80 C8 '+tag+' and the board has still not moved',{first:c1.board,now:s2.board});
+    L.say(b.errs.length===0,'TC-R80 C9 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
+    await b.close();
+  }
+  // ════════ BLOCK D - TC-R81 (US-R76), #547 item (111): THE DRILL'S EVALUATION BAR ════════
+  // jobs/eval-bar-on-the-drill-board-2026-09-23. Lives here, not in gate 36, because this gate already seeds and walks the
+  // drill; gate 36's Play/Review assertions are untouched because the side bar there did not change. Three cards: White a
+  // queen up (solved), BLACK a queen up (solved - the sign test: White's view would print it negative), and White again
+  // opened with Show move (the other half of the spoiler rule). Before any solve the bar must not exist at all.
+  for(const G of [{n:'375x730',g:{w:375,h:730,safe:''}},{n:'320x568',g:L.GEOS.se}]){
+    const tag='drill eval bar @ '+G.n;
+    const DR=[{fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Brilliant',ts:1791000000000,last:null,why:'White card.'},
+              {fen:'4k3/1q6/8/8/8/8/8/4K3 b - - 0 1',uci:'b7b2',label:'Brilliant',ts:1791000001000,last:null,why:'Black card.'},
+              {fen:'4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1',uci:'c2c7',label:'Brilliant',ts:1791000002000,last:null,why:'Shown card.'}];
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-evalbar-'+G.n,store:{ct_mybrilliancies:DR,ct_bril_reset_v1:'1',ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(700);
+    let ok=true;try{await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});}catch(e){ok=false;}
+    await b.settle(600);
+    const rd=()=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');const hr=t&&t.firstElementChild;
+      const e=document.querySelector('[data-ct="drill-eval"]'),f=document.querySelector('[data-ct="drill-eval-fill"]'),n=document.querySelector('[data-ct="drill-eval-num"]');
+      const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
+      const gr=g&&g.getBoundingClientRect(),er=e&&e.getBoundingClientRect();
+      return {hdr:hr?Math.round(hr.getBoundingClientRect().height*10)/10:null,bar:e?{w:Math.round(er.width),h:Math.round(er.height),right:Math.round(er.right),fill:f?Math.round(f.getBoundingClientRect().width):null,num:n?n.innerText.trim():null}:null,
+              board:gr?{w:Math.round(gr.width),top:Math.round(gr.top)}:null,vw:innerWidth};});
+    const settled=async()=>{let r=await rd();for(let k=0;k<20&&r.bar&&(r.bar.num==='…'||r.bar.num==null);k++){await b.page.waitForTimeout(500);r=await rd();}return r;};
+    const r0=await rd();
+    if(!L.say(ok&&!!r0.board&&r0.hdr>0,'TC-R81 D0 '+tag+' PRECONDITION the brilliancies drill opened with its header row and a board',r0)){await b.close();continue;}
+    L.say(r0.bar===null,'TC-R81 D1 '+tag+' on an UNSOLVED card there is no evaluation bar at all - it would say who is winning (Kunal\'s spoiler rule)',r0.bar);
+    await b.move('b2','b7',900);await b.settle(1500);const r1=await settled();
+    L.say(!!r1.bar,'TC-R81 D2a PRECONDITION '+tag+' once the White card is solved the bar is on screen',r1.bar);
+    L.say(!!r1.bar&&/^\+\d/.test(r1.bar.num||'')&&r1.bar.fill>r1.bar.w/2,'TC-R81 D2 '+tag+' White a queen up reads POSITIVE and fills past half: '+(r1.bar&&r1.bar.num),r1.bar);
+    L.say(!!r1.bar&&r1.bar.right<=r1.vw&&r1.bar.w>=56&&r1.bar.h>=15,'TC-R81 D3 '+tag+' the bar is on screen and readable (at least 56 wide, 15 tall)',r1.bar);
+    L.say(r1.hdr===r0.hdr&&!!r1.board&&r1.board.top===r0.board.top&&r1.board.w===r0.board.w,'TC-R81 D4 '+tag+' it SHARES the header row: that row\'s height, and the board\'s width and top, are unchanged',{before:{hdr:r0.hdr,board:r0.board},after:{hdr:r1.hdr,board:r1.board}});
+    let nx=true;try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){nx=false;}await b.settle(1200);
+    const r2=await rd();
+    L.say(nx&&r2.bar===null,'TC-R81 D5 '+tag+' the next (unsolved) card hides the bar again',{nx,bar:r2.bar});
+    await b.move('b7','b2',900);await b.settle(1500);const r3=await settled();
+    L.say(!!r3.bar&&/^\+\d/.test(r3.bar.num||''),'TC-R81 D6 '+tag+' BLACK a queen up ALSO reads positive: the number is the PLAYER\'s, not White\'s (White\'s view prints it negative)',r3.bar);
+    try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){}await b.settle(1200);
+    const r4=await rd();
+    let sh=true;try{await b.tapText(/Show move$/,{wait:700});}catch(e){sh=false;}await b.settle(1500);const r5=await settled();
+    L.say(r4.bar===null&&sh&&!!r5.bar,'TC-R81 D7 '+tag+' Show move on an unsolved card brings the bar up - "or he asks to see the line"',{before:r4.bar,shown:sh,after:r5.bar});
+    L.say(b.errs.length===0,'TC-R81 D8 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
 },'72-drill-prev');

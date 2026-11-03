@@ -5131,7 +5131,7 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){const _m='🎉 '+(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":p.explain);
+          if(p.ext){const _mb=(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||''));const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
             /* #475 KEYED ON THE QUEUE INDEX, NOT ON THE CARD ID. The id is 'lichess:mine:<fen>', so two queue
                rows in the SAME position shared one key: antagonist B solved row A and row B then arrived
                already solved, with row A's move on the board and row A's sentence under it. A review batch does
@@ -5706,7 +5706,9 @@ export default function App(){
        setup screen is an opaque full-viewport overlay. A measured 0 worker postMessages while the sheet was
        up, so the SEARCH half of this was never proven to fire; the guard goes in anyway because the missing
        term is the defect, not the symptom. */
-    const showEval=inReview?(ply>0):(mode==='play'&&opponent==='computer'&&!playSetup);
+    /* #547 item (111): the drill asks too, but ONLY once the card is solved or the move is shown - Kunal's spoiler rule
+       (jobs/eval-bar-on-the-drill-board-2026-09-23, theOneRuleToDecide): on an unsolved card the bar would say who is winning. */
+    const showEval=inReview?(ply>0):((mode==='puzzle'&&mistakeMode&&(puzSolved||puzReveal))||(mode==='play'&&opponent==='computer'&&!playSetup));
     if(!showEval)return;
     const w=sfRef.current; if(!w||!sfReady)return;
     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
@@ -5716,7 +5718,7 @@ export default function App(){
       try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); }catch(e){}
     });
     return()=>{cancel();try{w.postMessage('stop');}catch(e){}};
-  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup]);
+  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup,mistakeMode,puzSolved,puzReveal]);
 
   const SHADOW_BTN=boardDepth?'0 4px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.40),0 5px 11px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22)';
   const SHADOW_BOX=boardDepth?'0 3px 0 rgba(0,0,0,.28),0 9px 22px rgba(0,0,0,.34),inset 0 1.5px 0 rgba(255,255,255,.16),inset 0 -4px 10px rgba(0,0,0,.24)':'0 2px 0 rgba(0,0,0,.20),0 6px 15px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.08)';
@@ -5976,7 +5978,7 @@ export default function App(){
     if(!mv||!ng)return false;
     if(!loadExternal(obj))return false;
     setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);
-    setPuzMsg(rec.msg||('🎉 '+(obj.explain||'')));repaint();return true;};
+    setPuzMsg(rec.msg!=null?rec.msg:(obj.explain?('🎉 '+obj.explain):''));repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't reach Lichess. This works on the deployed site with internet — it may be blocked in this in-app preview.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
@@ -6007,7 +6009,13 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move — you found a brilliant move here. Can you spot it again?'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?("That's your brilliant move. Nicely done."+(m.why?(' '+m.why):'')):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;return o;}catch(e){return null;}};
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — you played '+(m.played?(m.played+' '):'')+'here, '+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.');o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;
+    /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
+       everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
+       thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
+       verdict is the move's own explanation or nothing at all. The motif and level chips are dropped on EVERY own-game card:
+       _themeLabel(['mix']) and _lvlR(null) print the same two words on all of them. '✓ solved before' still varies, so it stays. */
+    o.motif=null;o.level=null;return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
@@ -9033,7 +9041,20 @@ export default function App(){
       <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:p?8:6,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <button onClick={()=>{if(_drill)exitMistakes();else setPzView('roadmap');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{_drill?'‹ Review':'‹ Roadmap'}</button>
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?'✨ Your brilliant moves':'🔎 Your mistakes')+(_dn>1?(' · '+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>
+          {/* #547 item (111), jobs/eval-bar-on-the-drill-board-2026-09-23: the drill's evaluation bar SHARES THIS ROW, so the
+              board neither shrinks nor moves for it. It exists only once the card is solved or the move is shown (Kunal's
+              spoiler rule), and it reads from the PLAYER'S side - the side to move on the card - fill and number alike, the
+              convention the drill's explanations use. While it shows, the counter drops its words to make room. */}
+          {(()=>{const _bar=_drill&&p&&(puzSolved||puzReveal);if(!_bar)return null;const _ps=(p.side==='b')?-1:1;
+            const _v=sfHit?(sfHit.mate!=null?(sfHit.mate*_ps>0?10:-10):_ps*sfHit.cp/100):null;
+            const _t=sfHit?(sfHit.mate!=null?mateLbl(_ps*sfHit.mate):(((_v>0)?'+':'')+Math.max(-9.9,Math.min(9.9,_v)).toFixed(1))):'…';
+            const fr=_v==null?0.5:Math.max(0.03,Math.min(0.97,0.5+_v/12));
+            return(<div data-ct="drill-eval" aria-label={'Evaluation for you: '+_t} style={{flex:1,minWidth:56,height:17,borderRadius:5,overflow:'hidden',position:'relative',background:'#2b2932',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}>
+              <div data-ct="drill-eval-fill" style={{position:'absolute',top:0,bottom:0,left:0,width:(fr*100)+'%',background:'linear-gradient(90deg,#f6f4ee,#dcd9cf)',transition:'width .35s ease'}}/>
+              <div style={{position:'absolute',top:0,bottom:0,left:'50%',width:1,background:'rgba(0,0,0,.35)'}}/>
+              <div data-ct="drill-eval-num" style={{position:'absolute',top:0,bottom:0,[(_v==null||_v>=0)?'left':'right']:6,display:'flex',alignItems:'center',fontSize:12,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',color:(_v==null||_v>=0)?'#141414':'#f2f2f2',zIndex:2,pointerEvents:'none'}}>{_t}</div>
+            </div>);})()}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':'✨ Your brilliant moves'):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Your mistakes'))+(_dn>1?(((p&&(puzSolved||puzReveal))?' ':' · ')+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>
         </div>
         {!_drill&&(<div style={{width:'100%',background:'rgba(110,168,254,.09)',border:'1px solid rgba(110,168,254,.28)',borderRadius:12,padding:'11px 12px',display:'flex',flexDirection:'column',gap:8}}>
           <button disabled={pzOLoading} onClick={loadDaily} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),width:'100%',fontWeight:800}}>📅 Lichess Daily Puzzle</button>
@@ -9069,12 +9090,12 @@ export default function App(){
               board in full instead of scrolling inside a cap. Nothing in this column changes height. */}
           <div data-ct="pz-float" style={{position:'relative',width:'100%'}}>
           <div style={{width:'100%',visibility:puzMsg?'hidden':'visible',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
-            <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:6}}>🎯 {p.goal}</div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#cfe0ff',background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.3)',borderRadius:20,padding:'2px 9px'}}>{p.motif}</span>
-              <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}{p.rating?(' · '+p.rating):''}</span>
+            <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:(p.motif||p.level||pzOSolvedIds[p.id])?6:0}}>🎯 {p.goal}</div>
+            {(p.motif||p.level||pzOSolvedIds[p.id])&&(<div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {p.motif&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#cfe0ff',background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.3)',borderRadius:20,padding:'2px 9px'}}>{p.motif}</span>)}
+              {p.level&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'rgba(255,255,255,.6)',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',borderRadius:20,padding:'2px 9px'}}>{p.level}{p.rating?(' · '+p.rating):''}</span>)}
               {pzOSolvedIds[p.id]&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#86d99a',background:'rgba(123,216,143,.13)',border:'1px solid rgba(123,216,143,.35)',borderRadius:20,padding:'2px 9px'}}>✓ solved before</span>)}
-            </div>
+            </div>)}
           </div>
           {puzMsg&&(<div data-ct="pz-msg" key={puzMsg} style={{position:'absolute',left:0,right:0,top:0,minHeight:'100%',boxSizing:'border-box',zIndex:30,boxShadow:'0 6px 18px rgba(0,0,0,.45)',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:(t=>'linear-gradient('+t+','+t+'),'+baseBg)(puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)')),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}
           </div>
