@@ -844,7 +844,7 @@ The clauses, each one measurable:
    every bundle, it did not — the only "Flip board" item in the file belongs to the REVIEW sheet. So #437's
    antagonist B was right that fixing clause 1 closed the last route to flipping a finished game, and #437 then
    added Flip to the play sheet to restore it. **That was wrong, and the full suite caught it**: Kunal had
-   already answered the question at #390 — `decisions/q-play-flip-gameover`, choice *"Flip a finished game in
+   already answered the question at #390 — `decisions/q-play-flip-gameover` (on the old Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN - not the tracker or the Desk; located at #547, item (177)), choice *"Flip a finished game in
    Review instead"*, with no holding note. So the route to flipping a finished game IS the Review screen, by his
    decision; this row is right to drop Flip, the play sheet is right not to carry it, and
    `gates/regress/46-play.js`'s assertion that Flip is nowhere after a game ends is ENDORSED rather than merely

@@ -441,7 +441,7 @@ L.run(async()=>{
     // --- TC-PL-026: Flip is NOT reachable once the game is over, AND THAT IS DECIDED [#546, item (68);
     // jobs/gate-46-carries-a-needs-kunal-label-for-a-question-answered-five-builds-ago-2026-09-30]. This comment read
     // "if Kunal rules the comment is right, this assertion is the one that moves. NEEDS-KUNAL K-PL-4" for five builds
-    // after he had ruled: decisions/q-play-flip-gameover, choice "Flip a finished game in Review instead", empty note,
+    // after he had ruled: decisions/q-play-flip-gameover [on the OLD Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN, not the tracker or the Desk - #547 item (177) found it there, v1, choice and build as quoted], choice "Flip a finished game in Review instead", empty note,
     // so nothing holds it. #437 read the stale label, restored Flip to the play More sheet, and reddened the suite.
     // The assertion pins a DECIDED behaviour; the chess.jsx comment that says "Flip is still in More" is what is wrong.
     const anyFlip=await b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;}).some(x=>/^Flip$/.test((x.innerText||'').trim())));

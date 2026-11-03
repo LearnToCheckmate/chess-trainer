@@ -190,7 +190,7 @@ L.run(async()=>{
           // 11 FLIP IS ABSENT AT GAME OVER, AND THAT IS KUNAL'S DECISION RATHER THAN THIS BUILD'S OPINION.
           // #437 first ADDED Flip to this sheet, because antagonist B measured that fixing the row above removed
           // the last route to it - and that was WRONG, caught by the suite going red on 46-play.js. The question
-          // was already answered: decisions/q-play-flip-gameover (Kunal, #390) says "Flip a finished game in
+          // was already answered: decisions/q-play-flip-gameover [on the OLD Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN, not the tracker or the Desk - #547 item (177) found it there, v1, choice and build as quoted] (Kunal, #390) says "Flip a finished game in
           // Review instead", with no holding note. So the route is the Review screen BY DECISION, and what #437
           // removed was an ACCIDENTAL route that existed only through the defect this gate covers - stepping back
           // rebuilt the live row and Flip returned with it. This assertion pins the decided behaviour at the ply
