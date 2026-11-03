@@ -1487,7 +1487,7 @@ function mkTap(b,READ){
     const nar=await tap('gf-blun');
     L.say(base.rows>0&&nar.rows<base.rows,'TC-R70 R0 ARRIVAL the Blunder chip narrowed the list ('+base.rows+' -> '+nar.rows+' rows), so there is a filter to survive or not',{base:base.rows,narrowed:nar.rows,count:nar.count});
     await b.home(); await b.settle(600);
-    const atHome=await b.page.evaluate(()=>!document.querySelector('[data-ct="game-row"]'));
+    const atHome=await b.page.evaluate(()=>{const h=document.querySelector('[data-ct="home-menu"]');if(!h)return false;const r=h.getBoundingClientRect();return r.width>0&&r.height>0;}); /* Home is an OVERLAY: the Review list stays mounted under it, so 'no game row in the DOM' is false at Home - its own menu button is the tell */
     await b.tile('Review'); await b.settle(1200);
     const back=await READ(b);
     L.say(atHome&&back.rows===base.rows,'TC-R70 R1 after leaving for Home and coming back the list is WHOLE again - '+back.rows+' of '+base.rows+' rows, count "'+back.count+'" - the filter does not follow the player out of the screen',{atHome,back:back.rows,base:base.rows,count:back.count});

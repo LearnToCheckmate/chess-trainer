@@ -1239,7 +1239,10 @@ L.run(async()=>{
       hands the flexible button boardPx - 3*46 - 3*6, so boardPx < 229 is budget < 73 and boardPx < 340 is
       budget < 184. The INK widths are what those thresholds are there to clear: 63.78px for "↻ Again" and
       92.52px for "↻ Try again". */
-   const wantLabel = budget===null?null : budget<73 ? '↻' : budget<184 ? '↻ Again' : '↻ Try again';
+   /* #547 item (187): the WORDS now follow the budget directly - long at a budget of 96px or more - so the middle step is
+      budget < 96, not the old board threshold's budget < 184. The glyph-only step (rowTiny, boardPx < 229 = budget < 73)
+      is unchanged. */
+   const wantLabel = budget===null?null : budget<73 ? '↻' : budget<96 ? '↻ Again' : '↻ Try again';
    L.say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row.',{budget,label:r0.length===4?r0[2].t:null});
    const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
    L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
