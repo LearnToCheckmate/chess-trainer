@@ -5845,6 +5845,12 @@ export default function App(){
   const hLand=(vp.w>vp.h&&vp.w>=720)||forcePreviewWide;   // landscape Home: two columns (Continue/streak left, tiles right). forcePreviewWide lets a gallery card show it on any device.
   const hbig=hb&&!hLand;              // tablet PORTRAIT Home: scale up (landscape stays compact to fit the short height)
   const outerRowStyle=railed?{display:'flex',flexDirection:'row',alignItems:'flex-start',justifyContent:'flex-start',gap:14,width:'100%'}:{display:'contents'};
+  /* #547 item (100): the landscape rail SCROLLS (overflowY auto, height = the board), and at 956x440 the lesson demo's whole action
+     row sat below its fold with nothing on screen saying the pane moves. railMore says there is more below; the chip is the
+     affordance, hung from a zero-height sticky wrapper so it adds no height (and so cannot change the answer it reports). */
+  const railRef=useRef(null);const [railMore,setRailMore]=useState(false);
+  const railCheck=useCallback(()=>{const e=railRef.current;const m=!!e&&(e.scrollHeight-e.clientHeight-e.scrollTop>4);setRailMore(v=>v===m?v:m);},[]);
+  useEffect(()=>{if(!railed){setRailMore(false);return;}railCheck();const e=railRef.current;if(!e||typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(railCheck);ro.observe(e);[...e.children].forEach(c=>ro.observe(c));const t=setTimeout(railCheck,600);return()=>{ro.disconnect();clearTimeout(t);};},[railed,mode,openIdx,learnPhase,demoPly,inReview,railCheck]);
   const sideColStyle=railed?{display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:8,width:sideW,height:boardPx,paddingTop:42,overflowY:'auto',overflowX:'hidden'}:{display:'contents'};
   const learnPlansBox=(mode==='learn'&&openIdx!==null&&learnPlans)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(var(--acr),.18),rgba(var(--acr),.06))',border:'1px solid rgba(var(--acr),.42)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}>
 <div style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'var(--ac2)',marginBottom:4}}>🎯 What we're trying to do</div><div style={{fontSize:'clamp(14px,2.7vw,14.5px)',color:'rgba(255,255,255,.9)',lineHeight:1.55}}>{learnPlans}</div></div>):null;
@@ -9723,7 +9729,7 @@ export default function App(){
         return railed ? (
           <div style={outerRowStyle}>
             {_board}
-            <div className="ctside" style={sideColStyle}>{_blurbs}{_controls}</div>
+            <div className="ctside" ref={railRef} onScroll={railCheck} style={sideColStyle}>{_blurbs}{_controls}{railMore&&(<div style={{position:'sticky',bottom:0,height:0,flexShrink:0,zIndex:5}}><button data-ct="rail-more" onClick={()=>{const e=railRef.current;if(e)e.scrollBy({top:Math.round(e.clientHeight*0.8),behavior:'smooth'});}} aria-label="More below - scroll" style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',padding:'4px 12px',borderRadius:14,border:'1px solid rgba(255,255,255,.25)',background:'rgba(16,18,24,.94)',color:'#cfe0ff',fontSize:12.5,fontWeight:800,cursor:'pointer',boxShadow:'0 -6px 14px rgba(0,0,0,.45)',whiteSpace:'nowrap'}}>▾ More below</button></div>)}</div>
           </div>
         ) : (mode==='learn'&&openIdx!==null) ? (
           <div style={{flex:1,alignSelf:'stretch',width:'100%',minHeight:0,display:'flex',flexDirection:'column',alignItems:'center'}}>

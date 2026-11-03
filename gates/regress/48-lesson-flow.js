@@ -1348,4 +1348,22 @@ L.run(async()=>{
    L.say(!!r&&r.top>=51-0.5&&r.bottom<=r.vh-31+0.5,'730x375 insets: TC-R77 the capped card stays inside the safe area - top '+(r&&Math.round(r.top))+' >= 51, bottom '+(r&&Math.round(r.bottom))+' <= '+(r&&(r.vh-31)),r);
    await b.close();
  }
+ // TC-R78 [#547 item (100); jobs/lesson-demo-action-row-is-entirely-below-the-fold-at-956x440-...-2026-10-09]: IN A LANDSCAPE RAIL THAT
+ // SCROLLS, THE SCREEN SAYS SO. At the demo's end the action row ('Now I'll try it', Flip, the variations, Analyze, Copy) sat below the
+ // rail's fold with no sign the pane moves. Where the try-it control is below the fold: a 'More below' chip is on screen and
+ // hit-tests to itself, and tapping it brings the control into view. Where it is not, the chip is not required (stated, not credited).
+ for(const g of [{w:956,h:440,safe:'',label:'956x440'},{w:568,h:320,safe:'',label:'568x320'}]){
+   const n=g.w+'x'+g.h;const b=await L.launch({geo:g,name:'lesson-railmore-'+n});await b.open();
+   let ok=true;try{await D.states['demo-end'](b);await b.settle(1500);}catch(e){ok=false;}
+   const rd=()=>b.page.evaluate(()=>{const t=[...document.querySelectorAll('button')].find(x=>/try it/i.test(x.innerText||''));const m=document.querySelector('[data-ct="rail-more"]');const q=t&&t.getBoundingClientRect();const mq=m&&m.getBoundingClientRect();
+     const h=m&&document.elementFromPoint(mq.left+mq.width/2,mq.top+mq.height/2);return {tryBot:q?q.bottom:null,vh:innerHeight,more:!!m,moreOn:!!mq&&mq.top>=0&&mq.bottom<=innerHeight,moreSelf:!!(m&&h&&(h===m||m.contains(h)))};});
+   const r=await rd();
+   L.say(ok&&r.tryBot!=null,n+': TC-R78 PRECONDITION the demo reached its end and the "Now I\'ll try it" control is in the DOM',r);
+   if(r.tryBot!=null&&r.tryBot>r.vh+0.5){
+     L.say(r.more&&r.moreOn&&r.moreSelf,n+': TC-R78 the try-it control is below the rail\'s fold ('+Math.round(r.tryBot)+' > '+r.vh+'), and a "More below" chip is on screen and hit-tests to itself',r);
+     if(r.more){await b.tapCt('rail-more',900);await b.settle(800);}const r2=await rd();
+     L.say(r2.tryBot!=null&&r2.tryBot<=r2.vh+0.5,n+': TC-R78 and tapping the chip brings the try-it control on screen (bottom '+(r2.tryBot&&Math.round(r2.tryBot))+')',r2);
+   }else L.note(n+': TC-R78 the try-it control is on screen at rest here (bottom '+(r.tryBot&&Math.round(r.tryBot))+'), so no chip is required - not credited as a pass');
+   await b.close();
+ }
 },'LESSON-FLOW');
