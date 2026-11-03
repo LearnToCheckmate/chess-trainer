@@ -154,6 +154,10 @@ L.run(async()=>{
       if(st==='demo-end'){
         L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
+        // ONE READING, NOT THREE [#547, item (21); jobs/rotating-audit-433-two-assertions-that-cannot-discriminate-2026-09-29]: the glyph
+        // heights (27/22/27/22/22) and widths are byte-identical at 320, 360 and 375 - the glyphs do not scale with width - so the geometries
+        // below contribute one measurement of these two floors, not one each. What the sweep adds is the board-fit lines; an accessibility font
+        // scale or a width where the 5x44 row must compress is the untested half. Comment only, so the a35524b record's L.say set is unchanged.
         L.say(foot.every(f=>f.gh>=20),name+': every footer GLYPH is at least 20px tall. The boxes were always big enough; the ink was not, and that is what he reported',foot.map(f=>({a:f.aria,gh:f.gh})));
         L.say(foot.every(f=>f.gw>=16),name+': and at least 16px wide',foot.map(f=>({a:f.aria,gw:f.gw})));
         L.note(name+': FOOTER GLYPHS '+JSON.stringify(foot.map(f=>({a:f.aria,gh:f.gh,gw:f.gw,svg:f.svg,fs:f.fs}))));
