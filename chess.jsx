@@ -7415,7 +7415,7 @@ export default function App(){
             </button>
             {layoutInfo&&(<div style={{marginTop:6,padding:'9px 11px',borderRadius:12,background:'rgba(0,0,0,.42)',border:'1px solid rgba(255,255,255,.16)',fontFamily:'monospace',fontSize:11.5,lineHeight:1.55,color:'rgba(255,255,255,.86)',WebkitUserSelect:'text',userSelect:'text'}}>
               <div style={{color:'var(--ac2)',fontWeight:700,marginBottom:3}}>what THIS device computes</div>
-              <div>{'screen '+vp.w+'x'+vp.h+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
+              <div>{/* #547 item (135), jobs/bench-the-layout-readout-row-labelled-screen-prints-the-inner-viewport-2026-10-07: 'screen' printed vp (innerWidth x innerHeight) - the INNER viewport, which the row below already prints as 'inner' - so the reading meant to settle 730-vs-761 said 'screen 375x761' on an 812-point screen. It now prints the device screen. */'screen '+((typeof screen!=='undefined'&&screen.width)?(screen.width+'x'+screen.height):(vp.w+'x'+vp.h))+'  vw '+vw+'  dpr '+((typeof devicePixelRatio!=='undefined')?devicePixelRatio:'?')}</div>
               {/* #451: THE LINE GALLERY CARD 1 EXISTS TO CAPTURE. flags/kunal-phone-may-not-be-375 settled the WIDTH
                    (375 CSS px) and left the HEIGHT open - the record carries both 730 and 761 and its own arithmetic
                    shows the 761 reading came off a 1125-physical-pixel panel, which is not the 15 Pro Max. The row

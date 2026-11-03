@@ -1549,6 +1549,11 @@ As a player choosing a computer opponent on a phone, I can tell there are more b
 As a player reading the grade table, each column's header is directly above its numbers.
 - The White and Black headers are centred over the first row's digits, within 1px. (TC-R89)
 
+### US-R89 The Layout readout's "screen" figure is the screen
+*Added #547, from jobs/bench-the-layout-readout-row-labelled-screen-prints-the-inner-viewport-2026-10-07.*
+As Kunal checking a layout dispute from a screenshot of the readout, the row labelled "screen" gives the device screen and the "inner" row gives the viewport the app lays out in, so the two numbers that started the 730-vs-761 argument are no longer the same number twice.
+- Over a 375x812 screen with a 375x730 viewport, the readout prints "screen 375x812" and "inner 375x730". (TC-MN-048)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

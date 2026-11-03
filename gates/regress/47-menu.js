@@ -574,7 +574,8 @@ if(blk('H'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
 // would measure the image, not the app); mode/wide/edge/compact and the eval/moves triple (app state, no independent
 // truth on this screen); board as an absolute (no board is painted under the open menu, so it is checked for
 // consistency instead: square x 8 = board, gap = (vw - board)/2 within the readout's rounding). THE SCREEN ROW IS NOT
-// DISCRIMINATED HERE AND SAYS SO: it prints vp.w x vp.h, and in this headless emulation window.screen equals the
+// DISCRIMINATED HERE AND SAYS SO: it printed vp.w x vp.h until #547 (135) (it prints window.screen now, and TC-MN-048 discriminates
+// it under an emulated 812-tall screen); and in this headless emulation window.screen equals the
 // viewport, so a label that printed the inner viewport under 'screen' reads identical. It is compared, and a pass
 // on it is not evidence about the label.
 // =========================================================================================================
@@ -619,6 +620,24 @@ if(blk('X'))for(const g of [{k:{w:730,h:375,safe:'',label:'730x375'},n:'730x375'
   L.say(o2,g.n+': TC-MN-047 PRECONDITION the menu sheet is open again before Escape',{open:o2});
   await b.page.keyboard.press('Escape');await b.settle(400);const c2=!(await up());
   L.say(c2,g.n+': TC-MN-047 Escape closes the menu sheet',{closed:c2});
+  await b.close();
+}
+// TC-MN-048 (US-R89), #547 item (135): THE READOUT'S 'screen' ROW PRINTS THE SCREEN, NOT THE INNER VIEWPORT. TC-MN-042 cannot
+// tell the two apart (headless screen = viewport, its own note says so). Here CDP emulates a 375x812 SCREEN over a 375x730 viewport, so a
+// row that printed innerWidth x innerHeight under 'screen' reads 375x730 and reds. Pre-fix it did exactly that.
+if(blk('S')){
+  const MD=require('../drive/menu');
+  const b=await L.launch({geo:'kunal730',name:'menu-readout-screen'});await b.open();
+  let emu=true;try{const cdp=await b.page.context().newCDPSession(b.page);await cdp.send('Emulation.setDeviceMetricsOverride',{width:375,height:730,deviceScaleFactor:1,mobile:true,screenWidth:375,screenHeight:812});}catch(e){emu=false;}
+  await b.settle(300);
+  let ok=true;try{await MD.states['menu-readout'](b);await b.settle(500);}catch(e){ok=false;}
+  const r=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('div,pre')].filter(e=>{const t=e.innerText||'';return /screen\s*\d+x\d+/.test(t)&&/inner\s*\d+x\d+/.test(t);});
+    els.sort((a,c)=>a.innerText.length-c.innerText.length);const t=els[0]?els[0].innerText.replace(/[ \t]+/g,' '):'';
+    const n=(re)=>{const m=re.exec(t);return m?m.slice(1).map(Number):null;};return {screen:n(/screen (\d+)x(\d+)/),inner:n(/inner (\d+)x(\d+)/),truth:{sw:screen.width,sh:screen.height,iw:innerWidth,ih:innerHeight}};});
+  if(L.say(emu&&ok&&r.truth.sh===812&&r.truth.ih===730&&!!r.screen&&!!r.inner,'375x730 over a 375x812 screen: TC-MN-048 PRECONDITION the emulation took (screen.height 812, innerHeight 730) and the readout printed both rows',r)){
+    L.say(r.screen[0]===375&&r.screen[1]===812,'375x730 over a 375x812 screen: TC-MN-048 the "screen" row prints the device SCREEN ('+r.screen.join('x')+'), not the inner viewport',r);
+    L.say(r.inner[0]===375&&r.inner[1]===730,'375x730 over a 375x812 screen: TC-MN-048 and "inner" still prints the viewport the app lays out in ('+r.inner.join('x')+')',r);
+  }
   await b.close();
 }
 },'MENU');
