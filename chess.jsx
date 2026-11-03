@@ -3373,6 +3373,12 @@ export default function App(){
      changes or is solved, and the ✗ line goes to the verdict box. pzWrongRef counts wrong moves on this puzzle, so the second one
      points at Show instead of repeating the same sentence. */
   const [pzHintMsg,setPzHintMsg]=useState('');const pzWrongRef=useRef(0);
+  /* #547 item (141), jobs/bench-play-bot-row-hides-a-third-2026-09-28: the opponent row is 520px of tiles in a 343px scroller at 375
+     (288 at 320), so Astrid is cut and Viktor - the strongest - is wholly off the edge, with nothing saying the row moves. A '›'
+     chip shows exactly while tiles are hidden to the right, and tapping it scrolls the row on. */
+  const botRowRef=useRef(null);const [botMore,setBotMore]=useState(false);
+  const _botMeasure=()=>{const e=botRowRef.current;setBotMore(!!e&&e.scrollLeft+e.clientWidth<e.scrollWidth-1);};
+  useEffect(()=>{const t=setTimeout(_botMeasure,60);return()=>clearTimeout(t);},[playSetup,vp.w,vp.h,mode,opponent]);
   const pzVerdRef=useRef(null);const [pzVerdMore,setPzVerdMore]=useState(false);
   const _pzVerdMeasure=()=>{const e=pzVerdRef.current;setPzVerdMore(!!e&&e.scrollHeight>e.clientHeight+1&&e.scrollTop+e.clientHeight<e.scrollHeight-1);};
   useEffect(()=>{const t=setTimeout(_pzVerdMeasure,80);return()=>clearTimeout(t);},[puzMsg,puzSolved,vp.w,vp.h]);
@@ -7067,7 +7073,8 @@ export default function App(){
 
           {opponent==='computer'&&(<div>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Choose your opponent</div>
-            <div className="scroll" style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,marginBottom:14,WebkitOverflowScrolling:'touch'}}>
+            <div style={{position:'relative',marginBottom:14}}>
+            <div ref={botRowRef} onScroll={_botMeasure} data-ct="bot-row" className="scroll" style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,WebkitOverflowScrolling:'touch'}}>
               {BOTS.map(bt=>{const on=selBot===bt.id;return(
                 <button key={bt.id} onClick={()=>{setSelBot(bt.id);setCpuElo(bt.elo);}} style={{flex:'0 0 auto',width:96,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'8px 6px',borderRadius:14,cursor:'pointer',textAlign:'center',background:on?'rgba(var(--acr),.18)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:'#fff',boxShadow:on?SHADOW_BOX:'none'}}>
                   <BotFace id={bt.id} size={40}/>
@@ -7075,6 +7082,8 @@ export default function App(){
                   <span style={{fontSize:'clamp(13px,2.3vw,13px)',color:on?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>≈ {bt.elo} Elo</span>
                   {on&&<span style={{fontSize:'clamp(11.5px,2.1vw,11.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.25}}>{bt.blurb}</span>}
                 </button>);})}
+            </div>
+            {botMore&&(<button data-ct="bot-row-more" aria-label="More opponents" onClick={()=>{const e=botRowRef.current;if(e){e.scrollLeft=Math.min(e.scrollWidth,e.scrollLeft+Math.round(e.clientWidth*0.8));_botMeasure();}}} style={{position:'absolute',right:0,top:0,bottom:6,width:44,display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:4,border:'none',cursor:'pointer',background:'linear-gradient(90deg,rgba(0,0,0,0),'+baseBg+' 65%)',color:'var(--ac2)',fontSize:26,fontWeight:900,lineHeight:1}}>›</button>)}
             </div>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Play as</div>
             <div style={{display:'flex',gap:8,marginBottom:14}}>

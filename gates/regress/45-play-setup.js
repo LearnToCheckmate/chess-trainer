@@ -533,4 +533,23 @@ if(blk('J'))for(const geo of ['se','kunal730']){
   await b.close();
 }
 
+  // TC-PL-047 (US-PL-19), #547 item (141): EVERY COMPUTER OPPONENT CAN BE FOUND. Pre-fix the 520px row sat in a 343px scroller at 375
+  // (288 at 320): Astrid cut, Viktor - the strongest - wholly off the edge, nothing saying the row moves.
+  for(const geo of ['kunal730','se']){
+    const b=await L.launch({geo,name:'bot-row-more-'+geo});await b.open();
+    let ok=true;try{await b.tile('Play');await b.tapText(/^Computer$/).catch(()=>{});await b.settle(600);}catch(e){ok=false;}
+    const rd=()=>b.page.evaluate(()=>{const tiles=[...document.querySelectorAll('button')].filter(x=>/Elo/.test(x.innerText||'')&&x.getBoundingClientRect().height>30);if(!tiles.length)return null;
+      let row=tiles[0].parentElement;while(row&&!(/auto|scroll/.test(getComputedStyle(row).overflowX)))row=row.parentElement;if(!row)return null;const rr=row.getBoundingClientRect();
+      const last=tiles[tiles.length-1].getBoundingClientRect();const c=document.querySelector('[data-ct="bot-row-more"]');let chip=null;
+      if(c){const q=c.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);chip={self:!!h&&(h===c||c.contains(h)),inRow:q.left>=rr.left-0.5&&q.right<=rr.right+0.5,cx:q.left+q.width/2,cy:q.top+q.height/2};}
+      return {n:tiles.length,lastIn:last.right<=rr.right+0.5,sl:row.scrollLeft,chip};});
+    let r=await rd();
+    if(!L.say(ok&&!!r&&r.n===5,geo+': TC-PL-047 PRECONDITION the opponent row is on screen with its five bots and its scroller is found',r)){await b.close();continue;}
+    if(!r.lastIn){
+      L.say(!!r.chip&&r.chip.self&&r.chip.inRow,geo+': TC-PL-047 the strongest bot is off the row\'s edge, so a "more" chip is painted inside the row and taps to itself',r);
+      let k=0;for(;k<4&&r.chip;k++){await b.page.mouse.click(r.chip.cx,r.chip.cy);await b.page.waitForTimeout(300);r=await rd();}
+      L.say(r.lastIn&&!r.chip,geo+': TC-PL-047 tapping it brings the last bot fully into the row, and then the chip goes ('+k+' taps)',r);
+    }else L.note(geo+': TC-PL-047 every bot fits here, so no chip is required - not credited as a pass');
+    await b.close();
+  }
 },'PLAY-SETUP');

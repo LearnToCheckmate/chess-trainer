@@ -1539,6 +1539,11 @@ As a player watching the engine's better line in a review, the board shows only 
 As a player working towards Mastered, a flawless day means a run with no wrong move, so the badge cannot be earned by playing a wrong move and tapping Try again.
 - A wrong move, then ↻ Try again, then the line to the end, is not called flawless and banks no learned day. (TC-LS-041)
 
+### US-PL-19 I can find every computer opponent, even the ones off the edge
+*Added #547, from jobs/bench-play-bot-row-hides-a-third-2026-09-28 (the spec's US-R45 id is used elsewhere).*
+As a player choosing a computer opponent on a phone, I can tell there are more bots to the right and reach the strongest one.
+- While a bot is hidden past the row's edge, a "›" chip shows in the row; tapping it scrolls the row until the last bot is fully in view, and then it goes. (TC-PL-047)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
