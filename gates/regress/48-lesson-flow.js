@@ -1414,4 +1414,19 @@ L.run(async()=>{
    L.say(!!pg&&pg.h>=3&&pg.w>100&&pg.top>=a1.bb-0.5,geo+': TC-LS-039 the practice progress strip is still painted, below the board',pg);
    await b.close();
  }
+ // TC-LS-040 (US-R84), #547 item (125): FIRING COPY MOVES NOTHING ELSE IN THE ROW. Pre-fix the right-anchored chip became
+ // '✓ Copied!', grew 28px leftwards, and slid Analyze from under the finger (375x730: Analyze 261.6..323 -> 233.6..294.9).
+ for(const geo of ['kunal730','se']){
+   const b=await L.launch({geo,name:'lesson-copy-still-'+geo});await b.open();
+   const rd=()=>b.page.evaluate(()=>{const f=s=>{const e=document.querySelector('[data-ct="'+s+'"]');if(!e)return null;const r=(e.querySelector('span')||e).getBoundingClientRect();return [Math.round(r.left*10)/10,Math.round(r.right*10)/10];};
+     const cp=document.querySelector('[data-ct="moves-copy"]');return {an:f('moves-analyze'),cp:f('moves-copy'),said:cp?(cp.innerText||'').replace(/\s+/g,' ').trim():null,vw:innerWidth,vh:innerHeight};});
+   let ok=true;try{await D.states['demo-end'](b);await b.settle(800);}catch(e){ok=false;}
+   const a0=await rd();
+   if(!L.say(ok&&!!a0.an&&!!a0.cp,geo+': TC-LS-040 PRECONDITION the lesson\'s Analyze and Copy chips are on screen at the demo end',a0)){await b.close();continue;}
+   await b.page.click('[data-ct="moves-copy"]');await b.page.waitForTimeout(250);const a1=await rd();
+   L.say(/Copied|Copy failed/.test(a1.said||''),geo+': TC-LS-040 PRECONDITION the tap fired Copy - its acknowledgement is up ("'+a1.said+'")',a1);
+   L.say(JSON.stringify(a1.an)===JSON.stringify(a0.an)&&JSON.stringify(a1.cp)===JSON.stringify(a0.cp),geo+': TC-LS-040 Analyze and the Copy chip keep their exact x-range while the acknowledgement shows - nothing slides under the finger',{before:a0,after:a1});
+   L.say(b.errs.length===0,geo+': TC-LS-040 no console errors',{errs:b.errs.slice(0,2)});
+   await b.close();
+ }
 },'LESSON-FLOW');

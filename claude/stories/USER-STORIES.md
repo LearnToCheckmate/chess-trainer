@@ -1509,6 +1509,11 @@ As a player stuck on a puzzle, the hint I asked for stays on screen while I try 
 As a player who taps "Now I'll try it", the board, the MOVES heading and the Analyze button stay exactly where they were, so my thumb does not miss.
 - Across that tap the board's size and position, the MOVES head and the Analyze row are unchanged; the practice progress strip still shows, below the board. (TC-LS-039)
 
+### US-R84 Copying the moves does not move Analyze
+*Added #547, from jobs/copy-chip-flash-slides-analyze-under-the-finger-2026-09-29.*
+As a player who has just copied the moves, Analyze is still exactly where my finger expects it, so a second tap does what I meant.
+- While the copy acknowledgement shows, Analyze and the Copy chip keep their exact positions; the acknowledgement appears just above the chip. (TC-LS-040)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
