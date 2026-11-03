@@ -998,6 +998,13 @@ EOF6
   # A5WCEIL LOWERED 2 -> 0 AT #546 (item (45)): TC-R19's regex pipes are escaped, TC-R37's single cell is split
   # into its four columns, and TC-SUITE-321's quoted ref-line pipe is escaped - zero rows misalign today.
   A5WCEIL=0
+  # WHY THE WIDTH CHECK IS NOT WIDENED TO THE OTHER REGISTERS UNDER claude/stories/ [#547, item (183);
+  # jobs/tc-mn-018-in-the-menu-lane-register-has-four-cells-against-a-five-cell-header-2026-10-30]. Those files are
+  # lane documents whose tables each carry their own header (MENU-LANE's MN-C is case|row|default|one tap|key), so
+  # this arm's register-shaped awk cannot read them, and a second scanner here would widen the one script that
+  # decides whether a log authorises a push on the pass that needs it to gate itself. MEASURED at #547 over the five
+  # non-register .md files there, header width against every non-separator row: 222 rows, ONE wrong-width - the
+  # TC-MN-018 row this item fixed - so today they are all aligned. Re-measure rather than trust that count.
   A5EXEMPT_CEIL=1
   # One exemption, by its NORMALISED header text, with its reason. Normalised means "| a | b | c |" with
   # single spaces, which is what the awk below prints, so a reflow of the table's whitespace cannot silently
