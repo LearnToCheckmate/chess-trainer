@@ -313,7 +313,11 @@ L.run(async()=>{
     const inDrill=await n.page.evaluate(()=>/Your mistakes/.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
     const drillSig=await n.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));return g?[...g.children].slice(0,64).map(k=>(k.innerText||'').trim()).join('|'):null;});
     L.say(inDrill&&!!drillSig,'TC-R69 N0 ARRIVAL: the mistakes drill opened on its own card (header names Your mistakes, a board is painted)',{inDrill});
-    await n.tapText(/^‹ Review$/,{wait:900}).catch(()=>{});
+    // THE ROUTE IS THE HOME TAB, NOT ‹ Review: ‹ Review runs exitMistakes, which clears curPuz, so this block's first
+    // draft left that way and went GREEN on the pre-fix bundle. The finding's route was Home -> Puzzles, which leaves
+    // mistakeMode on and the drill card loaded; measured on the #547 trials, it reddens N2 and N3 there and only there.
+    const left=await n.tapText(/^Home$/,{wait:900}).then(()=>true).catch(()=>false);
+    L.say(left,'TC-R69 N0b the drill is left by the Home tab (the route the finding measured - ‹ Review clears the card and cannot show the defect)',{left});
     await n.tile('Puzzles');await n.settle(1000);
     const ob=n.page.locator('button',{hasText:/^🌐 Online puzzles/}).last();
     await ob.scrollIntoViewIfNeeded().catch(()=>{});
