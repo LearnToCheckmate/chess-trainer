@@ -254,4 +254,47 @@ const QUIET106=[
     L.say(!!at&&/repetition/i.test(at.card||''),'(E) and when it does fire it is the REPETITION branch, so this pins the key rather than some other ending',at||{});
     await d.close();
   }
+  // ── (F) DRAW BY AGREEMENT [#547 item (189); jobs/no-draw-offer-control-exists-anywhere-in-local-play-2026-09-30].
+  // Pass & Play only: both players hold the phone, so arming the item and tapping again is the agreement. The FIRST
+  // tap must not end the game (the same two-tap guard Resign carries), the second must, and the card must name it.
+  // vs Computer carries NO such item - a draw offer to the bot needs an accept rule, which is a product choice not
+  // built here - and that half is asserted too, so the item cannot leak into a game the bot cannot answer.
+  {
+    const b=await L.launch({geo:'kunal730',name:'draws-agreed'});
+    await b.open();
+    let reached=true;
+    try{ await P.states['pp-m0'](b); }catch(e){ reached=false; L.say(false,'TC-PL-041 (F) pass-and-play: the state could not be reached - the agreement assertions are UNRUN, not green',String(e).slice(0,140)); }
+    if(reached){
+      await b.move('e2','e4',700);await b.move('e7','e5',700);
+      const s0=await b.page.evaluate(S);
+      L.say(s0.live&&!s0.over,'TC-PL-041 (F) pass-and-play: the game is live after 1.e4 e5, before the sheet is opened',s0);
+      await b.tapText(/^More$/,{wait:600}).catch(()=>{});
+      const item=await b.rect('[data-ct="more-draw"]');
+      L.say(!!item&&/Agree a draw/.test(item.text||''),'TC-PL-041 (F) pass-and-play: the More sheet offers "Agree a draw"',item);
+      if(item){
+        await b.tapCt('more-draw',500).catch(()=>{});
+        const s1=await b.page.evaluate(S);const armed=await b.rect('[data-ct="more-draw"]');
+        L.say(s1.live&&!s1.over&&!!armed&&/Tap again/.test(armed.text||''),'TC-PL-041 (F) the FIRST tap only arms it ("Tap again to agree a draw") - the game is still live',{s1,armed:armed&&armed.text});
+        await b.tapCt('more-draw',800).catch(()=>{});await b.settle(500);
+        const s2=await b.page.evaluate(S);
+        L.say(s2.over&&!s2.live,'TC-PL-041 (F) the SECOND tap ends the game - the control row is the game-over row',s2);
+        L.say(/Draw/.test(s2.card||'')&&/agreed/i.test(s2.card||''),'TC-PL-041 (F) and the result card says Draw and names the agreement',s2);
+      }
+    }
+    L.say(b.errs.length===0,'TC-PL-041 (F) zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+  {
+    const b=await L.launch({geo:'kunal730',name:'draws-agreed-cpu'});
+    await b.open();
+    let reached=true;
+    try{ await P.states['cpu-m0'](b); }catch(e){ reached=false; L.say(false,'TC-PL-041 (F) vs-computer: the state could not be reached',String(e).slice(0,140)); }
+    if(reached){
+      await b.tapText(/^More$/,{wait:600}).catch(()=>{});
+      const sheet=await b.rect('[data-ct="more-sheet"]');const item=await b.rect('[data-ct="more-draw"]');
+      L.say(!!sheet,'TC-PL-041 (F) vs-computer PRECONDITION: the More sheet is open',sheet&&{h:sheet.h});
+      L.say(!!sheet&&!item,'TC-PL-041 (F) vs-computer: the sheet carries NO "Agree a draw" - the bot has no rule to accept one',{item});
+    }
+    await b.close();
+  }
 },'29-draws');

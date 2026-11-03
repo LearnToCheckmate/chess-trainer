@@ -1429,3 +1429,12 @@ shrink before dropping words (questions/R2-NARROW-LEVERS, icon-font-ls).
 - The long label is never shown where the budget cannot hold it - #384's ink over the button beside it. (gate 48's
   one-directional assertion, kept)
 
+### US-PL-15 Two players sharing the phone can agree a draw
+*Added #547, from jobs/no-draw-offer-control-exists-anywhere-in-local-play-2026-09-30.*
+As two players sharing one phone in Pass & Play, when the position is dead we can agree a draw, so neither of us has
+to resign a game we did not lose.
+- The live game's More sheet offers "Agree a draw". The first tap arms it ("Tap again to agree a draw") and leaves the
+  game live; the second ends it as a draw, and the result card says Draw and names the agreement. (TC-PL-041)
+- Against the computer there is no such item: an offer to the bot needs a rule for when it accepts, and that rule is
+  Kunal's to choose. (TC-PL-041)
+
