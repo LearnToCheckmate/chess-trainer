@@ -142,7 +142,7 @@ L.run(async()=>{
       await Z.states['train'](b);await b.settle(500);
       const p0=await prog(b);
       await b.move('e1','e8',1300);await b.settle(500);
-      if(shown){const ok=await tapBtn(b,/^\u{1F441} Show move$/u);await b.settle(500);
+      if(shown){const ok=await tapBtn(b,/^\u{1F441} Show( move)?$/u) /* the compact row (375x730) labels it '👁 Show', the wide one '👁 Show move' */;await b.settle(500);
         const msg=await b.page.evaluate(()=>[...document.querySelectorAll('div,span')].map(x=>(x.innerText||'').trim()).find(t=>/^\u{1F441} Play /u.test(t))||null);
         L.say(!!msg,tag+': R0 PRECONDITION Show was tapped and printed its "Play ..." line, so the finish below is a revealed one',{tapped:ok,msg});}
       await b.move('e8','f8',1300);await b.settle(900);

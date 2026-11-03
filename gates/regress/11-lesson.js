@@ -210,7 +210,11 @@ L.run(async()=>{
   // match no button here while the accessible name matches one. If a future layout change makes the visible
   // label '↻ Try again' at these sizes, T0 goes red and says the control has stopped controlling - which is
   // better than it silently becoming a tautology.
-  for(const tg of [{n:'375x568',g:L.GEOS.short375},{n:'320x540',g:{w:320,h:540,safe:''}}]){
+  // #547 item (187) MOVED THE FIRST INPUT, AS THE PARAGRAPH ABOVE SAID A LAYOUT CHANGE WOULD HAVE TO. The practice label now
+  // follows the row's budget (long at 96px or more), so at 375x568 (budget 98.8) it reads '↻ Try again' and T0b went red there
+  // on this run's trial: the control had stopped controlling. Measured at #547: 375x552 reads '↻ Again' at a budget of 80.3
+  // (board 236.3), the middle of the short-label window (73 to 96), so the old selector is again unable to match.
+  for(const tg of [{n:'375x552',g:{w:375,h:552,safe:''}},{n:'320x540',g:{w:320,h:540,safe:''}}]){
     // (a) the wrong state, where the old selector is shown unable to match.
     {
       const b=await L.launch({geo:tg.g,name:'tryagain-ctl-'+tg.n});await b.open();
