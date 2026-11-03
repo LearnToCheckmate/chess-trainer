@@ -74,11 +74,13 @@ WHAT I CHANGED. One new file, `gates/stamp-selftest.sh`, nothing else. No existi
 WHY. jobs/uat-stamp-regex-4xx names a gap: the title condition ("the UAT stamp regex cannot read
 build numbers from #400 upward") was already fixed on main by 2026-10-04, but the job's own second
 half - "add the cases" - was left unwritten, in the orchestrator's own words: "nothing in gates/
-drives b.stamp()'s regex over synthetic stamps ... a future narrowing of lib.js:113 would be
+drives b.stamp()'s regex over synthetic stamps ... a future narrowing of lib.js's `stamp()` regex [the quote's line cite replaced by the symbol at #547; the regex has
+moved since] would be
 invisible again." This is that driver: 8 assertions over 7 inputs (5 positive, matching the job's own
 "input count 5" over #399/#400/#416/#422/#1000; 2 negative, a 2-digit and a 5-digit number that must
 NOT match), plus a case 0 that fails loudly if this file's own copy of the regex ever drifts from
-gates/lib.js:113's literal.
+the literal in gates/lib.js's `async stamp()` (cited by symbol since #547: it has moved from the line this
+record first named).
 
 WHAT I DELIBERATELY DID NOT DO, AND WHY, NAMED RATHER THAN SILENTLY SKIPPED. I did not add a row to
 claude/stories/TEST-CASES.md and did not add this file to gates/audit/cited-not-run.sh's roster.
