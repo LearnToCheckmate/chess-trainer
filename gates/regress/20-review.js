@@ -314,6 +314,12 @@ L.run(async()=>{
       await b.tapText(/^Start review/,{wait:900});
       const gOn=await b.rect('[data-ct="eval-graph"]');const mOn=await b.metrics();
       L.say(!!gOn&&gOn.w>60,'kunal730: TC-R12b with nothing seeded the eval graph RENDERS in the player bar - on by default',gOn&&{w:gOn.w,h:gOn.h});
+      // TC-R68 [#547, item (161)]: the review just opened asked for both players' countries and the harness REFUSED both
+      // requests (it aborts chess.com and lichess). A refused lookup must not be cached as an answer - before the fix it was
+      // written as '' ("no country") and that player's flag was gone for good. Read the cache after the lookups settled.
+      await b.settle(1500);
+      const ccache=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_country')||'{}');}catch(e){return {bad:true};}});
+      L.say(!Object.prototype.hasOwnProperty.call(ccache,'cc:morphy')&&!Object.prototype.hasOwnProperty.call(ccache,'cc:duke karl / count isouard'),'kunal730: TC-R68 a REFUSED country lookup is not cached - the review asked for both players and the harness refused both, and ct_country holds no entry for either, so the next review asks again',ccache);
       await b.page.evaluate(()=>{localStorage.setItem('ct_evalgraph','0');});await b.open();await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
       await b.tapText(/^⚡ Analyze Game$/,{wait:200});try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){}
       await b.tapText(/^Start review/,{wait:900});

@@ -309,17 +309,21 @@ async function fetchCountry(site,user){
   if(!user)return '';
   const hit=countryCacheGet(site,user);
   if(hit!==undefined)return hit;
-  let cc='';
+  // #547 item (161), jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10:
+  // ONLY A RESPONSE THAT WAS READ IS CACHED. A refused, failed or non-2xx lookup used to be cached as '' - "this player has no
+  // country" - so one review taken offline removed that player's flag for ever. Now `answered` is set only after r.ok and the
+  // body parsed; anything else returns '' for this render and leaves the cache untouched, so the next review asks again.
+  let cc='',answered=false;
   try{
     if(site==='cc'){
       const r=await fetch('https://api.chess.com/pub/player/'+encodeURIComponent(String(user).toLowerCase()));
-      if(r.ok){const j=await r.json();const u=j&&j.country;if(u)cc=String(u).split('/').pop()||'';}
+      if(r.ok){const j=await r.json();const u=j&&j.country;if(u)cc=String(u).split('/').pop()||'';answered=true;}
     }else if(site==='li'){
       const r=await fetch('https://lichess.org/api/user/'+encodeURIComponent(user));
-      if(r.ok){const j=await r.json();cc=(j&&j.profile&&j.profile.flag)||'';if(cc.indexOf('_')>=0)cc='';}
+      if(r.ok){const j=await r.json();cc=(j&&j.profile&&j.profile.flag)||'';if(cc.indexOf('_')>=0)cc='';answered=true;}
     }
-  }catch(e){cc='';}
-  countryCacheSet(site,user,cc);
+  }catch(e){cc='';answered=false;}
+  if(answered)countryCacheSet(site,user,cc);
   return cc;
 }
 
