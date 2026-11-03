@@ -290,7 +290,10 @@ L.run(async()=>{
     await tap(b,'drill-next',1000);
     await tap(b,'drill-next',1200);
     const t4=await state(b);
-    L.say(t4.inDrill===false,'TC-R47 B11 '+tag+' Next from the LAST playable card leaves the drill, which is a completion - and it did not leave early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill});
+    // #547 item (147): Next from the last card no longer LEAVES the drill - it shows the drill's end state (TC-R92), which is the
+    // completion now. So B11 asserts the end card, reached from card 2 of 2 and not earlier, instead of the exit it used to read.
+    const end4=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="drill-end"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+    L.say(!!end4&&new RegExp('of '+PLAYABLE+'\\b').test(end4),'TC-R47 B11 '+tag+' Next from the LAST playable card is a completion - the drill\'s end state, counting the '+PLAYABLE+' playable cards - and it did not come early. The pre-fix build ejected the player at "3 of 5" while its own counter claimed two cards remained',{inDrill:t4.inDrill,end:end4});
     L.say(b.errs.length===0,'TC-R47 B12 '+tag+' no console errors over the unplayable-row walk',{errs:b.errs.slice(0,2)});
     await b.close();
   }
