@@ -1599,6 +1599,13 @@ As a player stepping through a review, "Blunder" and "Brilliant" on the board re
 As a player trying moves on the analysis board, the engine's suggested line carries the right move numbers for the position on the board.
 - After 1.e4 e5 played on the analysis board from the start, the line begins "2. ...". (TC-R94)
 
+### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
+*Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
+As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and
+above all the one way out of it.
+- The gallery's close control is at least 44x44, and every full-width action button on it is at least 44 tall, at 320x568,
+  375x730 and 375x568. The header row does not grow to pay for it. (TC-GL-004)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

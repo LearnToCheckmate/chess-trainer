@@ -748,6 +748,23 @@ L.run(async()=>{
        changing, and it is NOT the assertion that protects the acceptance condition - the two above are, and both
        are controlled. Claiming this one as coverage would be the frozen-denominator shape (#405). */
     L.say(fit.docW<=fit.vw+0.5,'F1 '+glab+': TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow',{docW:fit.docW,vw:fit.vw});
+    /* #547 item (174), jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01: the gallery's ONLY exit measured
+       34x34 and three of its full-width buttons 41-42px tall, at every geometry. LOCATED BY STRUCTURE, not by a hook this
+       build adds: the overlay is the fixed layer at zIndex 9990, the exit is its button reading exactly the close glyph,
+       and the full-width controls are its buttons at least 80% of the viewport wide that are not cards. The denominator
+       is asserted on its own line first, so an overlay that lost its buttons cannot pass over nothing. Control: the
+       pre-fix bundle reds TC-GL-004 at all three geometries (exit 34x34, Play/Walk 42, Diagnostics 41). */
+    const tgt=await b.page.evaluate(()=>{
+      const ov=[...document.querySelectorAll('div')].find(d=>{const cs=getComputedStyle(d);return cs.position==='fixed'&&cs.zIndex==='9990';});
+      if(!ov)return {ov:false,exit:null,wide:[]};const vw=window.innerWidth;
+      const bs=[...ov.querySelectorAll('button')];const rd=(el)=>{const r=el.getBoundingClientRect();return {t:(el.innerText||'').trim().slice(0,28),w:+r.width.toFixed(2),h:+r.height.toFixed(2)};};
+      const ex=bs.find(x=>(x.innerText||'').trim()==='✕');
+      const wide=bs.filter(x=>!x.dataset.ct||!/card$/.test(x.dataset.ct)).filter(x=>x.getBoundingClientRect().width>=0.8*vw);
+      return {ov:true,exit:ex?rd(ex):null,wide:wide.map(rd)};
+    });
+    L.say(tgt.ov&&!!tgt.exit&&tgt.wide.length>=2,'F1 '+glab+': PRECONDITION the gallery overlay is up with its close control and at least two full-width action buttons ('+tgt.wide.length+')',tgt);
+    const small=[].concat(tgt.exit&&(tgt.exit.w<44||tgt.exit.h<44)?[tgt.exit]:[],tgt.wide.filter(x=>x.h<44));
+    L.say(small.length===0,'F1 '+glab+': TC-GL-004 the gallery\'s only exit is at least 44x44 ('+(tgt.exit?tgt.exit.w+'x'+tgt.exit.h:'none')+') and every full-width action button is at least 44 tall',small);
 
     /* F2: card 1 exists so ONE screenshot settles the height question, which makes the readout's own numbers
        load-bearing. Asserted against what the browser reports in the same evaluate, so a readout that printed a
