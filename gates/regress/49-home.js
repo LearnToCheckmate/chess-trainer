@@ -551,8 +551,13 @@ if(blk('C'))for(const geo of GEOS){
   L.say(bld.found&&near(bld.restTop,W.build.y,1)&&bld.onScreen&&bld.hit,
     geo+': TC-HM-021 and so is the build stamp at '+W.build.y+', which is the line every bug report is read off - unreachable, and nobody can tell you which bundle they are looking at'+vac(bld),bld);
   const stamp=await b.text('[data-ct="home-build"]');
-  L.say(/^Build #\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET$/.test(stamp||''),
+  L.say(/^Build #\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET( \(src [0-9a-f]{12}\))?$/.test(stamp||''),
     geo+': TC-HM-022 and it reads a real stamp in the house format',stamp);
+  // #547 item (1): from #547 gates/build.sh appends the first 12 hex of the compiled chess.jsx's md5, so the line a bug
+  // report is read off names the SOURCE, which survives a rebuild in a new minute where the bundle md5 does not.
+  // TC-HM-022 keeps the suffix optional so that fastgate.sh's containment control (g) still holds; this asserts it.
+  L.say(/ ET \(src [0-9a-f]{12}\)$/.test(stamp||''),
+    geo+': TC-HM-052 and the stamp names its source tree, " (src <12 hex of the chess.jsx md5>)" after "ET"',stamp);
   await b.close();
 }
 

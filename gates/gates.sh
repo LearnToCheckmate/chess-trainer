@@ -156,7 +156,8 @@ assert_falls(){ # <register.tsv> <log>
 
 # bundle_stamp <bundle.js>: the ONE "#NNN - YYYY-MM-DD HH:MM ET" build stamp a bundle carries, or nothing if it carries
 # none or more than one. Defined above --selftest so the selftest drives this function and not a copy [#545 item (98)].
-bundle_stamp(){ local n; n="$(grep -oE '"#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET"' "$1" 2>/dev/null | sort -u)"
+# #547 item (1): a stamp may end ' (src <12 hex>)' before its closing quote, since gates/build.sh emits the source md5.
+bundle_stamp(){ local n; n="$(grep -oE '"#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET( \(src [0-9a-f]{12}\))?"' "$1" 2>/dev/null | sort -u)"
   [ -n "$n" ] && [ "$(printf '%s\n' "$n" | grep -c .)" = 1 ] && printf '%s\n' "$n" | grep -oE '^"#[0-9]{3,4}' | tr -d '"'; }
 # ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
@@ -1554,6 +1555,12 @@ M16PY
   st S98a-the-stamp-reader-finds-the-one-stamp "$(bundle_stamp "$ST_T/bs1.js")" "#530"
   st S98b-and-reports-nothing-for-a-bundle-with-none "$(bundle_stamp "$ST_T/bs2.js" | wc -c | tr -d ' ')" 0
   st S98c-and-nothing-for-two-different-stamps-so-the-preamble-defers-to-mountcheck "$(bundle_stamp "$ST_T/bs3.js" | wc -c | tr -d ' ')" 0
+  # #547 item (1): gates/build.sh now appends ' (src <12 hex>)' to the stamp; the reader must find it, and must still
+  # refuse a malformed suffix rather than read the bare prefix out of it (the closing quote stays inside the pattern).
+  printf 'x="#547 - 2026-11-03 21:07 ET (src 1b41d1d1e765)";y=1\n' > "$ST_T/bs4.js"
+  printf 'x="#547 - 2026-11-03 21:07 ET (src XYZ)";y=1\n' > "$ST_T/bs5.js"
+  st S547a-the-stamp-reader-finds-a-stamp-carrying-its-source-md5 "$(bundle_stamp "$ST_T/bs4.js")" "#547"
+  st S547b-and-reads-nothing-from-a-malformed-source-suffix "$(bundle_stamp "$ST_T/bs5.js" | wc -c | tr -d ' ')" 0
   # ── V1a TO V1d: A GATE THAT ASSERTED AND THEN STOPPED IS RED [#546, antagonist A's veto V1]. gates/lib.js unrefs
   # serve()'s child (item (65)) and prints a stopped gate's inputs line on exit (item (86)), so a gate stalled on a promise
   # that never settles exited 0 with that line and read green. The exit hook now FAILs it. Fixtures run exactly as the loop

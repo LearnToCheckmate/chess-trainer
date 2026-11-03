@@ -222,7 +222,14 @@ fi
 B="$G/.build"; rm -rf "$B"; mkdir -p "$B"
 cp "$ROOT/chess.jsx" "$B/chess.jsx"; cp "$G/entry.jsx" "$B/entry.jsx"
 ln -s "$G/node_modules" "$B/node_modules"
-STAMP="$N - ${CT_STAMP_TIME:-$(TZ=America/New_York date '+%Y-%m-%d %H:%M')} ET"
+# THE STAMP CARRIES ITS SOURCE (#547, item (1); jobs/the-build-number-register-landed-with-a-named-remainder-2026-10-01,
+# item 4). " (src <first 12 hex of the md5 of the chess.jsx actually compiled>)" follows "ET", so a stamp seen on
+# Home or in a bug report names the SOURCE tree, which survives a rebuild in a new minute where the bundle md5 does
+# not. Every stamp reader under gates/ matches "#NNN - YYYY-MM-DD HH:MM ET" unanchored at the end, except gates.sh's
+# bundle_stamp (which reads the quoted define and was widened in this same commit) and 49-home TC-HM-022 (widened
+# to an optional suffix, with TC-HM-052 asserting the suffix is there).
+SRC12="$(md5sum "$B/chess.jsx" | cut -c1-12)"
+STAMP="$N - ${CT_STAMP_TIME:-$(TZ=America/New_York date '+%Y-%m-%d %H:%M')} ET (src $SRC12)"
 ESB="$G/node_modules/.bin/esbuild"
 # 1) compile check (warnings count as failures, as deploy.py did)
 CC=$("$ESB" "$B/chess.jsx" --bundle --external:react --external:react-dom --outfile=/dev/null --log-level=warning 2>&1 || true)
