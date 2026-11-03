@@ -148,6 +148,15 @@ work, and I can watch that line on the board.
   the line on the board without a console error (#354, #356). (TC-R10)
 - The next-best comparison never names the move I actually played as its own alternative. Kunal found the review telling him "Bxh3 was as good on paper, but nothing like as forcing" about the Bxh3 he had just played (#420): whenever the played move is the engine's second choice, the runner-up IS the played move. This holds on every ply of the Opera Game (TC-R10), and on every ply of Kunal's own game 184024052818, where the played move is the runner-up at 19...Bxh3, 24.c4 and 41...Qh3+, at both worker-pool sizes (TC-R10b, added at #545).
 
+- THE LINE RUNS TO MY OWN RECOVERY (#547, item (63), landing #512's work from claude/cool-noether-9p0hf1). Where the
+  engine's line has a forcing continuation of the player who moved, the reason shows up to three of its plies and
+  ends on that player's own capture, check or mate - never on a quiet move and never on the opponent's reply. On
+  13.Rxd7 in the Opera Game it reads "If Nxd7, Bxe7 Bxe7 Bxd7+ ..."; on 10.Nxb5, whose line has no forcing
+  continuation of White's own, it stays at one ply. A recovery outside the three plies is not shown and the reason
+  falls back to its one ply: the line shown is never wrong, only sometimes shorter. A failed engine search is never
+  shown and never remembered as an answer (#389, #511). (Kunal, 2026-10-04: "the line runs one move further so the
+  recapture is on screen".) (TC-R10)
+
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.
 - The round Analyze button (rev-fab, 42px, #366) sits on the board's bottom-right corner, translucent, and
