@@ -125,4 +125,36 @@ L.run(async()=>{
     else L.say(!!v&&!/in a row/.test(t)&&/rating \d{3,4}/.test(t),'kunal730: a streak of 1 is below the display floor (pzStreak>=2), so the box shows the rating and no streak, not "1 in a row" and not best ('+best+')',t);
     await b3.close();
   }
+  // ---- R: A REVEALED ANSWER FINISHES THE PUZZLE BUT DOES NOT RANK IT [#547, item (66), TC-PZ-03;
+  // jobs/show-the-answer-credits-a-full-puzzle-solve-2026-09-30; Kunal chose "show-no-rank"]. Puzzle 1, Back-rank mate in 2
+  // (Re8+ Rf8 Rxf8#), on a fresh store at 375x730 and at 375x761 with insets. Unaided: the solved map gains the puzzle. With
+  // Show tapped before the mating move: no solved entry (so no solved count, no rank, no tier step), the streak still +1, XP
+  // and the Daily 3 puzzle step still credited, and the closing line is not "Solved!" and says the answer was shown.
+  const prog=(b)=>b.page.evaluate((k)=>{let p=null,d=null;try{p=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}try{d=JSON.parse(localStorage.getItem('ct_daily3')||'null');}catch(e){}
+    return {solved:p&&p.solved?Object.keys(p.solved).length:0,streak:p?p.streak:null,xp:p?p.xp:null,puz:d?d.puz:null};},PZKEY);
+  const closing=(b)=>b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^(\u{1F389}|\u{1F441})/u.test(t)&&t.length>12);return d.length?d[d.length-1].slice(0,120):null;});
+  for(const geo of ['kunal730','kunal761']){
+    for(const shown of [false,true]){
+      const tag=geo+(shown?' shown':' unaided');
+      const b=await L.launch({geo,name:'pzreveal-'+geo+(shown?'-shown':'-plain'),store:{}});await b.open();
+      await Z.states['train'](b);await b.settle(500);
+      const p0=await prog(b);
+      await b.move('e1','e8',1300);await b.settle(500);
+      if(shown){const ok=await tapBtn(b,/^\u{1F441} Show move$/u);await b.settle(500);
+        const msg=await b.page.evaluate(()=>[...document.querySelectorAll('div,span')].map(x=>(x.innerText||'').trim()).find(t=>/^\u{1F441} Play /u.test(t))||null);
+        L.say(!!msg,tag+': R0 PRECONDITION Show was tapped and printed its "Play ..." line, so the finish below is a revealed one',{tapped:ok,msg});}
+      await b.move('e8','f8',1300);await b.settle(900);
+      const p1=await prog(b), line=await closing(b);
+      L.say(p0.solved===0&&p1.streak===((p0.streak||0)+1),tag+': R1 ARRIVAL the puzzle was finished - the streak went '+(p0.streak||0)+' -> '+p1.streak,{p0,p1});
+      if(!shown){
+        L.say(p1.solved===1&&!!line&&/Solved!/.test(line),tag+': R2 unaided, TC-PZ-03 the solved map gains the puzzle and the closing line says Solved!',{p1,line});
+      } else {
+        L.say(p1.solved===0,tag+': R2 TC-PZ-03 after a reveal the solved map is UNCHANGED - no solved count, no rank, no tier step',{p1});
+        L.say((p1.xp||0)>(p0.xp||0)&&(p1.puz||0)>=1,tag+': R3 and the XP and the Daily 3 puzzle step are still credited',{xpBefore:p0.xp,xpAfter:p1.xp,daily3puz:p1.puz});
+        L.say(!!line&&!/Solved!/.test(line)&&/answer shown/i.test(line),tag+': R4 the closing line is not "Solved!" and says the answer was shown',{line});
+      }
+      L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,tag+': R5 no app error beyond the allowed engine trap',b.errs.slice(0,2));
+      await b.close();
+    }
+  }
 },'PZ-STREAK');

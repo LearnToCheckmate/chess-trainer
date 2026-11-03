@@ -3296,6 +3296,11 @@ export default function App(){
   const [puzMsg,setPuzMsg]=useState('');
   const [puzSolved,setPuzSolved]=useState(false);
   const [puzReveal,setPuzReveal]=useState(false);
+  /* #547 item (66), jobs/show-the-answer-credits-a-full-puzzle-solve-2026-09-30 (Kunal chose "show-no-rank"): puzReveal
+     clears after every correct move, so the solve could not see that Show was used. This ref is set by Show and cleared
+     only when a puzzle loads, so a puzzle finished after a reveal earns streak, XP and the Daily 3 step but no solved
+     entry and no rank. ct_pzshown remembers which puzzles were finished that way, so a second reveal earns +2 XP only. */
+  const pzShownRef=useRef(false);
   const [puzDone,setPuzDone]=useState({});
   const [puzSide,setPuzSide]=useState('w');
   // ── Roadmap / progression ──
@@ -4275,7 +4280,7 @@ export default function App(){
   // ── Puzzles ──
   const loadPuzzle=(idx)=>{
     const n=PZ.length;const i=((idx%n)+n)%n;const p=PZ[i];const g=fromFEN(p.fen);
-    setPuzIdx(i);setCurPuz(p);setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);setPuzSide(g.turn);
+    setPuzIdx(i);setCurPuz(p);setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);pzShownRef.current=false;setPuzSide(g.turn);
     setGame(g);setLastMv(null);setFlip(g.turn==='b');UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
 
@@ -4952,10 +4957,15 @@ export default function App(){
 
   // ── Move handling ──
   // Record a solved puzzle into persistent progress; returns the new tier if the player just ranked up.
-  const recordSolve=(p)=>{
+  const recordSolve=(p,shown)=>{
     if(!p||!p.id)return null;
-    const map=pzSolvedRef.current, already=!!map[p.id];
-    const nmap=already?map:{...map,[p.id]:1};
+    // #547 item (66): a puzzle finished after Show adds NOTHING to the solved map, so the solved count, the rank and the
+    // tier bar do not move; it still earns the streak, the XP and the Daily 3 step. `already` also counts an earlier
+    // revealed finish (ct_pzshown), so a second reveal of the same puzzle earns +2 XP only.
+    let shownMap={};try{shownMap=JSON.parse(localStorage.getItem('ct_pzshown')||'{}')||{};}catch(e){shownMap={};}
+    const map=pzSolvedRef.current, already=!!map[p.id]||(!!shown&&!!shownMap[p.id]);
+    const nmap=(already||shown)?map:{...map,[p.id]:1};
+    if(shown&&!shownMap[p.id]){try{localStorage.setItem('ct_pzshown',JSON.stringify({...shownMap,[p.id]:1}));}catch(e){}}
     const rankBefore=pzRank(map);
     const nstreak=pzStreakRef.current+1, nbest=Math.max(pzBestRef.current,nstreak);
     const nxp=pzXPRef.current+(already?2:Math.max(5,Math.round((p.rating||800)/10)));
@@ -5056,9 +5066,9 @@ export default function App(){
                Storing the PLAYER'S move and the message they actually saw also fixes the alt-mate case B
                measured: play a different legal mate, come back, and the board used to show the STORED move
                instead of yours, under a sentence you had never seen. */
-            if(!p.mine)onlineSolved(p);else drillSolvedRef.current[mistakeIdxRef.current]={uci:_mvUci(mv),msg:_m};
+            if(!p.mine){if(!pzShownRef.current)onlineSolved(p);}else drillSolvedRef.current[mistakeIdxRef.current]={uci:_mvUci(mv),msg:_m};   // #547 item (66): Show leaves onlineSolved unchanged (Lichess puzzles have no rank)
             setPuzMsg(_m);}
-          else{setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p);if(ru)setPzCelebrate(ru);setPuzMsg('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':''));}
+          else{const _shown=pzShownRef.current;if(!_shown)setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p,_shown);if(ru)setPzCelebrate(ru);setPuzMsg(_shown?('👁 Finished with the answer shown — not counted as solved. '+p.explain):('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':'')));}
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
           // the royal-fork puzzle's own moves are Ne2+ then Nxc3, the king step and the capture -
@@ -5866,7 +5876,7 @@ export default function App(){
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
     if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
     localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
-  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
+  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPuzSolved(false);setPuzReveal(false);pzShownRef.current=false;setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
      away the work he went back to look at, which is the thing he actually asked for twice.
@@ -8909,14 +8919,14 @@ export default function App(){
           <button onClick={()=>loadPuzzle(puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
           {!puzSolved&&(<>
             <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
-            <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
+            <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
             <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
           </>)}
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
         </div>):(<>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
-          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
+          <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadPuzzle(puzIdx)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%'}}>
@@ -8985,7 +8995,7 @@ export default function App(){
       <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
         {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
-          <button onClick={()=>{setPuzReveal(true);setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
+          <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
