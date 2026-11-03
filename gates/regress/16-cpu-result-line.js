@@ -582,4 +582,18 @@ L.run(async()=>{
     L.say(b.errs.length===0,'G2 375x730: zero app errors',b.errs.slice(0,3));
     await b.close();
   }
+  // TC-PL-045 (US-PL-17), #547 item (126): IN THE LANDSCAPE RAIL THE RESULT ROW CANNOT BE SCROLLED AWAY. The rail scrolls (380 vs 216
+  // at 730x375 after a resign); pre-fix the row went y 68 -> 16 (cut by the rail's clip at 26) -> -96 as it scrolled. Measured
+  // against the rail's own clip box at scrollTop 0, 52 and the end - not against the viewport, which would excuse the cut.
+  {const b=await L.launch({geo:{w:730,h:375,safe:'',label:'730x375'},name:'cpu-result-rail-pin'});await b.open();
+   let ok=true;try{await P.states['cpu-resigned'](b);await b.settle(1500);}catch(e){ok=false;}
+   const rd=(st)=>b.page.evaluate((st)=>{const r=document.querySelector('[data-ct="play-context"]');let x=r&&r.parentElement;while(x&&!(/auto|scroll/.test(getComputedStyle(x).overflowY)&&x.scrollHeight>x.clientHeight+1))x=x.parentElement;
+     if(!r||!x)return {row:!!r,scroller:!!x};x.scrollTop=st==='max'?x.scrollHeight:st;const xr=x.getBoundingClientRect(),rr=r.getBoundingClientRect();
+     return {row:true,scroller:true,sh:x.scrollHeight,ch:x.clientHeight,st:Math.round(x.scrollTop),rowY:[Math.round(rr.top*10)/10,Math.round(rr.bottom*10)/10],clip:[Math.round(xr.top*10)/10,Math.round(xr.bottom*10)/10],txt:(r.innerText||'').trim()};},st);
+   const r0=await rd(0);
+   if(L.say(ok&&r0.row&&r0.scroller&&r0.sh>r0.ch&&!!r0.txt,'730x375: TC-PL-045 PRECONDITION after a resign the result row is found, it says something, and its rail really scrolls ('+r0.sh+' > '+r0.ch+')',r0)){
+     for(const st of [0,52,'max']){const r=await rd(st);
+       L.say(r.rowY[0]>=r.clip[0]-0.5&&r.rowY[1]<=r.clip[1]+0.5,'730x375: TC-PL-045 at rail scrollTop '+r.st+' the result row is wholly inside the rail\'s visible window (row '+r.rowY.join('..')+', window '+r.clip.join('..')+')',r);}
+   }
+   await b.close();}
 }, 'CPU-RESULT-LINE');

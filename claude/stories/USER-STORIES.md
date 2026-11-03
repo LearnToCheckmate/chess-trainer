@@ -1514,6 +1514,11 @@ As a player who taps "Now I'll try it", the board, the MOVES heading and the Ana
 As a player who has just copied the moves, Analyze is still exactly where my finger expects it, so a second tap does what I meant.
 - While the copy acknowledgement shows, Analyze and the Copy chip keep their exact positions; the acknowledgement appears just above the chip. (TC-LS-040)
 
+### US-PL-17 In landscape, scrolling the side column never hides how the game ended
+*Added #547, from jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29.*
+As a player who finishes a game holding the phone sideways and scrolls the side column to read further down, the line stating the result stays in view.
+- After the game ends, the status row stays wholly inside the side column's visible window at every scroll position. (TC-PL-045)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
