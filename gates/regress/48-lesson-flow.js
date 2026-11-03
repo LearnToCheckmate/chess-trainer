@@ -1303,6 +1303,11 @@ L.run(async()=>{
    L.say(!!nx&&/^Next lesson: .+/.test(nx.a)&&/^(Next: .+ ›|Next lesson ›|Next ›|›)$/.test(nx.t),geo+': TC-LS-036 the row offers the NEXT lesson in the slot Try again held ("'+(nx&&nx.t)+'", named in its label: '+(nx&&nx.a)+')',nx);
    L.say(!!nx&&nx.sw<=nx.cw+0.5,geo+': TC-LS-036 and its label is not cut - the name is shown only where the slot measures wide enough for it',nx);
    const want=nx?nx.a.replace(/^Next lesson: /,''):null;
+   // [#547 antagonist A] with Next in the slot, practising the same line again must still have a route: the lesson's ⋯ sheet
+   await b.page.locator('button[aria-label="More actions"]').first().click().catch(()=>{});await b.settle(400);
+   const pa=await b.rect('[data-ct="learn-practice-again"]');
+   L.say(!!pa,geo+': TC-LS-036 the ⋯ sheet offers "Practise this line again", so Next taking the slot does not remove the replay',pa&&{text:pa.text});
+   await b.page.mouse.click(Math.round(b.geo.w/2),20);await b.settle(400);
    if(nx){await b.tapCt('lesson-next',900);}
    const opened=await b.page.evaluate(()=>{const c=document.querySelector('[aria-label="Close lesson"]');const row=c&&c.parentElement;return row?(row.innerText||'').replace(/\s+/g,' '):'';});
    L.say(!!want&&opened.indexOf(want)>=0,geo+': TC-LS-036 the tap opens that lesson - its name is in the lesson footer ('+want+')',{want,footer:opened.slice(0,80)});

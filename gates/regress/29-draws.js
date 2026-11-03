@@ -275,6 +275,13 @@ const QUIET106=[
         await b.tapCt('more-draw',500).catch(()=>{});
         const s1=await b.page.evaluate(S);const armed=await b.rect('[data-ct="more-draw"]');
         L.say(s1.live&&!s1.over&&!!armed&&/Tap again/.test(armed.text||''),'TC-PL-041 (F) the FIRST tap only arms it ("Tap again to agree a draw") - the game is still live',{s1,armed:armed&&armed.text});
+        // [#547 antagonist A] closing the sheet must DISARM: close by the backdrop, reopen within the 4s arm, tap once - still live
+        await b.page.mouse.click(Math.round(b.geo.w/2),20);await b.settle(300);
+        await b.tapText(/^More$/,{wait:500}).catch(()=>{});
+        const re=await b.rect('[data-ct="more-draw"]');
+        L.say(!!re&&/^Agree a draw/.test((re.text||'').trim()),'TC-PL-041 (F) closing the sheet by its backdrop DISARMS the draw - reopened at once it reads "Agree a draw" again, not "Tap again"',{text:re&&re.text});
+        await b.tapCt('more-draw',500).catch(()=>{});const s1b=await b.page.evaluate(S);
+        L.say(s1b.live&&!s1b.over,'TC-PL-041 (F) and one tap after reopening only arms it again - the game is still live',s1b);
         await b.tapCt('more-draw',800).catch(()=>{});await b.settle(500);
         const s2=await b.page.evaluate(S);
         L.say(s2.over&&!s2.live,'TC-PL-041 (F) the SECOND tap ends the game - the control row is the game-over row',s2);

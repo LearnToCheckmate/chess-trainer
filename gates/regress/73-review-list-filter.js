@@ -1520,6 +1520,14 @@ function mkTap(b,READ){
       L.say(b.errs.length===0,'375x730 '+tag+': TC-R49 zero app errors',b.errs.slice(0,2));
       await b.close();
     }
+    // [#547 antagonist A on item (67)]: FULL REVIEWS WRITTEN BEFORE #331 CARRY NO `src` - only the background pass stamps 'est'. The
+    // first (67) counted src==='review' and so dropped every legacy review from Games reviewed. Two legacy reviews + 3 estimates.
+    {const leg=(i)=>({bril:1,great:0,inacc:0,mist:0,blun:0,engine:'sf',gv:1});const o=mk(3,0);o['cc:1788000000000:kunal2023:old0']=leg(0);o['cc:1788000000001:kunal2023:old1']=leg(1);
+     const b=await L.launch({geo:'kunal730',name:'r49-legacy',store:{ct_pool:'3',ct_gamestats:o}});await b.open();
+     await b.tile('Review');await b.settle(1200);const r=await panel(b);
+     L.say(r.shown,'375x730 legacy: TC-R49 PRECONDITION the Your progress panel is on the Review screen',r);
+     L.say(r.reviewed===2,'375x730 legacy: TC-R49 two full reviews stored before #331 (no src) still count as reviewed games - only the estimates (src est) are left out',r);
+     await b.close();}
   }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});

@@ -211,6 +211,12 @@ L.run(async()=>{
  // the board's rect is unchanged to 0.6px AND the chrome's mounted state and rects are unchanged. The board assertion is
  // the one that matters. Both arrivals are asserted first (#385): the game ended by mate, and the step really moved the
  // position. Landscape is reached by mating in portrait and rotating, the route a real phone takes (gate 62's rule).
+ // WHAT THIS BLOCK CANNOT SEE, MEASURED BY #547's OWN ANTAGONIST A AND STATED SO NOBODY READS IT AS A CONTROL [R18]. Against a
+ // pre-fix bundle from 29b60c2 (md5 7764c96e00bd) E1-E5 are GREEN at kunal730, se and land730: this route is Pass & Play, and two
+ // of the five re-keyed sites (the wide Elo pill, the eval pill) render only vs Computer, the header Home button cannot render in
+ // a live game at all, and _livePlay is inert. So E pins the board and the bars across a step back - true and worth having - and
+ // controls none of the five sites by name. A vs-Computer mate needs a set position (the Opera Game's 17.Rd8# from 'Play from
+ // here'), and in the harness that route raises the Pro sheet first; building it is the named remainder of item (62).
  const chromeOf=(b)=>b.page.evaluate(()=>{
    const vis=(x)=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;};
    const rr=(x)=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');};

@@ -158,5 +158,21 @@ L.run(async()=>{
       L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,tag+': R5 no app error beyond the allowed engine trap',b.errs.slice(0,2));
       await b.close();
     }
+    // R6 [#547 antagonist A on item (66)]: SHOW, THEN RESET, THEN PLAY IT. Reset reloads the same puzzle, and it used to clear the
+    // reveal with it, so a revealed answer replayed from the start earned a full solve. The reveal belongs to the PUZZLE.
+    {
+      const tag=geo+' shown-then-reset';
+      const b=await L.launch({geo,name:'pzreveal-reset-'+geo,store:{}});await b.open();
+      await Z.states['train'](b);await b.settle(500);
+      const p0=await prog(b);
+      const okS=await tapBtn(b,/^\u{1F441} Show( move)?$/u);await b.settle(400);
+      const okR=await tapBtn(b,/^\u21ba Reset$/u);await b.settle(500);
+      L.say(okS&&okR,tag+': R6 PRECONDITION Show and then Reset were both tapped',{show:okS,reset:okR});
+      await b.move('e1','e8',1300);await b.settle(500);await b.move('e8','f8',1300);await b.settle(900);
+      const p1=await prog(b), line=await closing(b);
+      L.say(p1.streak===((p0.streak||0)+1),tag+': R6 ARRIVAL the puzzle was finished after the Reset',{p0,p1,line});
+      L.say(p1.solved===0&&!!line&&/answer shown/i.test(line),tag+': R6 a reveal survives Reset of the same puzzle - no solved count, and the closing line says the answer was shown',{p1,line});
+      await b.close();
+    }
   }
 },'PZ-STREAK');

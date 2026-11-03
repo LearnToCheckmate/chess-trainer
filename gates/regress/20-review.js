@@ -362,9 +362,22 @@ L.run(async()=>{
       await b.tapText(/^⚡ Analyze Game$/,{wait:2500});
       const r=await b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
         return {summary:!!document.querySelector('[data-ct="rev-summary"]'),err:(t.match(/This game starts from a set-up position[^.]*\.[^.]*\./)||[null])[0],acc:/Accuracy/i.test(t)};});
-      L.say(!!r.err&&/FEN/.test(r.err),'kunal730: TC-R66 '+tag+': the import is REFUSED with a sentence that names the FEN',r);
+      L.say(!!r.err&&/FEN/.test(r.err),'kunal730: TC-R66 '+tag+': the import is REFUSED with a sentence that names the [FEN] header',r);
       L.say(!r.summary&&!r.acc,'kunal730: TC-R66 '+tag+': and no summary, accuracy or grade count is rendered for a game the review could not start correctly',r);
       L.say(b.errs.length===0,'kunal730: TC-R66 '+tag+': zero app errors',b.errs.slice(0,2));
+      await b.close();
+    }
+    // THE OTHER DIRECTION [#547 antagonist A on item (78)]: a refusal that fires on ORDINARY games would block reviews, and no
+    // input above could see it. A [FEN] equal to the standard start (SetUp 1), and SetUp "0" with a junk FEN, are NOT set-up
+    // games: each must reach the summary with no refusal sentence.
+    const STD='[Event "Standard start in a FEN header"]\n[SetUp "1"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *';
+    const SU0='[Event "SetUp zero"]\n[SetUp "0"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 *';
+    for(const [tag,pgn] of [['standard-start FEN',STD],['SetUp 0',SU0]]){
+      const b=await L.launch({geo:'kunal730',name:'review-fen-ok-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
+      await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
+      const refused=await b.page.evaluate(()=>/This game starts from a set-up position/.test(document.body.innerText||''));
+      L.say(sum&&!refused,'kunal730: TC-R66 '+tag+': NOT refused - it reaches the summary, because it is not a set-up game',{summary:sum,refused});
       await b.close();
     }
   }
