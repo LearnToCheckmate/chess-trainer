@@ -6280,7 +6280,7 @@ export default function App(){
       {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>setIntroCard(false),60);};
         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};
-        const _play=(fen,col)=>{setHomeScreen(false);setOpenIdx(null);setOpponent('computer');setPColor(col);setTimeCtrl(null);timeCtrlRef.current=null;setPlaySetup(false);setMode('play');fullReset(fromFEN(fen));};
+        /* #547 item (190): the `_play(fen,col)` helper that stood here was called nowhere (#466's class sweep) - deleted. */
         const _autogame=(SCRIPT_IN)=>{
           setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('play');setOpponent('demo');setPColor('w');setTimeCtrl(null);timeCtrlRef.current=null;setFlip(false);
           fullReset(initGame());
