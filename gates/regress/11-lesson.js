@@ -59,6 +59,7 @@ L.run(async()=>{
   // from that phone was asserted only at geometries that are not his. It is added here; the board-fit lines below
   // run there too.
   for(const [name,g] of [['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['375x667',{w:375,h:667,safe:''}],['375x730',L.GEOS.kunal730]]){
+    const W73={}; // TC-R73 [#547 item (59)]: the board width in each of the two states, for the transition assertion below
     for(const st of ['demo-end','practice-m0']){
       const b=await L.launch({geo:g,name:'lesson-'+name+'-'+st,store:{}});await b.open();
       await D.states[st](b);await b.settle(600);
@@ -74,6 +75,7 @@ L.run(async()=>{
                 board:gr?{w:Math.round(gr.width*10)/10,x:Math.round(gr.left*10)/10}:null};
       });
       const tag=name+' '+st;
+      W73[st]=m.board?m.board.w:null;
       L.say(!!m.board,tag+': the lesson board is on screen',m.board);
       // THIS ONE DOES NOT DISCRIMINATE, and it is kept only because it is true and explains the shape.
       // Proved: against a bundle with the board shrunk to 90% it still passes, because the MOVES panel carries
@@ -185,6 +187,13 @@ L.run(async()=>{
       await b.shot('lesson-'+name+'-'+st);
       await b.close();
     }
+    // TC-R73 [#547 item (59); jobs/action-row-fix-widens-the-lesson-board-jump-2026-09-28]: tapping into practice from a finished
+    // demo must not shrink the board by MORE than the #428 baseline of 40.00px (main bundle md5 4d4bb99dd44f at 320x568; the job
+    // measured #428's action-row fix taking it to 56). The TARGET IS ZERO and this pin is a ceiling that must only fall - it is
+    // not a value to hold. Two denominators first, as their own lines, so a missing board is never read as a zero jump.
+    L.say(W73['demo-end']!=null&&W73['practice-m0']!=null,name+': TC-R73 DENOMINATOR the board was measured in both demo-end and practice-m0',W73);
+    {const jump=(W73['demo-end']!=null&&W73['practice-m0']!=null)?Math.round(Math.abs(W73['demo-end']-W73['practice-m0'])*10)/10:null;
+     L.say(jump!=null&&jump<=40.0,name+': TC-R73 entering practice from the finished demo changes the board width by '+jump+'px - no more than the #428 baseline of 40px (the job measured 56 after #428; the target is 0, so this ceiling only falls)',{jump,demoEnd:W73['demo-end'],practice:W73['practice-m0']});}
   }
   // ── THE LESSON DRIVER'S TRY-AGAIN STATE, AND ITS NEGATIVE CONTROL IN THE SAME BLOCK [#544, item (24);
   // jobs/522-the-lesson-drivers-try-again-selector-is-stale-so-practice-tryagain-throws-on-every-bundle-2026-10-14].

@@ -1419,6 +1419,11 @@ font arrived a frame late.
 CASE: TC-R64, gate `gates/pending/75-fit-loop-one-way-ratchet.js` (renamed from `75-lesson-demo-board-latch.js` during the run, because the same ratchet was measured on PLAY and PUZZLE) — in `pending/` and manifest-`absent`
 because it reds on main by design, and it moves to `regress/` in the same commit as the fix.
 
+- **Entering practice from a finished demo does not cost the board more than it already did.** The action row's own
+  control takes the player from demo-end to practice; the board-width change across that step is held at or under the
+  40px #428 started from (it measured 56 after #428's action-row fix), and the target is zero. (TC-R73; #547 item (59),
+  from jobs/action-row-fix-widens-the-lesson-board-jump-2026-09-28, whose own TC-R41 / US-R31 were taken by #430.)
+
 ### US-R73 The practice row says "Try again" whenever the row has room for it
 *Added #547, from jobs/practice-row-label-keyed-to-a-board-threshold-not-its-budget-2026-09-29.*
 As a player practising a lesson line on a narrow phone, the button that restarts the line says "Try again" in
