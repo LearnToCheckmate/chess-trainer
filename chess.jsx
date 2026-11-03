@@ -3301,7 +3301,11 @@ export default function App(){
     try{const pb=document.createElement('div');pb.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pb);const h2=Math.round(pb.getBoundingClientRect().height);document.body.removeChild(pb);if(h2>=0&&h2<80)setSafeBot(h2);}catch(e){}},[]);
   const [bestLineBoard,setBestLineBoard]=useState(null);
   const [bestLineSan,setBestLineSan]=useState('');   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
-  const [engOn,setEngOn]=useState(false);          // #341: engine analysis of the position on screen, on demand
+  const [engOn,setEngOn]=useState(false);
+  /* #547 item (188): what the engine-line switch read before analysis turned it on, so leaving analysis puts it
+     back. null = not inside an analysis entry. Exiting analysis used to leave the row on for the rest of the session. */
+  const engPreAnaRef=useRef(null);
+  const _engRestore=()=>{if(engPreAnaRef.current!==null){setEngOn(engPreAnaRef.current);engPreAnaRef.current=null;}};          // #341: engine analysis of the position on screen, on demand
   const [anaMode,setAnaMode]=useState(false);      // #342: analysis board - play the position out yourself from the review
   const anaModeRef=useRef(false);anaModeRef.current=anaMode;
   const [anaHist,setAnaHist]=useState([]);
@@ -5584,7 +5588,7 @@ export default function App(){
         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
     let plays=0;const step=(i)=>{if(bestLineTokenRef.current!==tok)return;if(i>=moves.length){setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setAnim(null);setSlideFromHide(false);plays++;if(plays<2){setBestLineBoard(states[0]);setTimeout(()=>step(0),650);}else{setBestLineBoard(null);}},950);return;}const pc=states[i].board[moves[i].fr][moves[i].fc];setBestLineBoard(states[i]);setSlideFromHide(true);setAnim({piece:pc,from:[moves[i].fr,moves[i].fc],to:[moves[i].tr,moves[i].tc]});setAnimTo(false);requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setBestLineBoard(states[i+1]);setSlideFromHide(false);setAnim(null);setTimeout(()=>step(i+1),430);},470);};step(0);};
-  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setAnaMode(false);setAnaHist([]);},[ply]);
+  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
 
   const{sel:_uSel,tgts:_uTgts,drag,dragging}=UI.current;const sel=_pvLive?null:_uSel;const tgts=_pvLive?[]:_uTgts;
   const dBoard=flip?[...boardGame.board].reverse().map(r=>[...r].reverse()):boardGame.board;
@@ -8339,7 +8343,7 @@ export default function App(){
            map. Kunal's round-2 answer: round button on the board, but keep the board full size. So the board
            keeps every pixel it has, the row keeps first / play / last / key-moment, and this one handler is
            shared by the round button (rev-fab, inside the board grid) and analysis mode's own exit path. */
-        const _goAnalyze=()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+        const _goAnalyze=()=>{setRevAuto(false);setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[ply]);setLastMv(null);if(!anaModeRef.current&&engPreAnaRef.current===null)engPreAnaRef.current=engOn;anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
         const _controls=(<>
       {/* ── Review controls, one-screen preview (#333) ── */}
       {inReview&&revCompact&&(()=>{
@@ -8462,7 +8466,7 @@ export default function App(){
           <div data-ct="rev-row1" style={{display:'flex',gap:6,alignItems:'stretch'}}>
             {anaMode?(<>
               {cb('\u21b6 Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
-              {cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
+              {cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
             </>):(<>
               {cb('\u23ee',()=>{setRevAuto(false);setPly(0);},0,false,'First move')}
               {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}

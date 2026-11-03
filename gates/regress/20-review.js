@@ -273,13 +273,20 @@ L.run(async()=>{
     L.say(!!fab&&!!bd&&fab.y>=bd.y+bd.h-0.5,geo+': TC-R11 A-08 - the Analyze button is BELOW the board and no longer covers h1/g1 (fab top '+(fab&&fab.y)+' vs board bottom '+(bd&&(bd.y+bd.h))+')',{fab,boardBottom:bd&&(bd.y+bd.h)});
     L.say(!!fab&&!!bar&&fab.y>=bar.y-0.5&&fab.y+fab.h<=bar.y+bar.h+0.5,geo+': TC-R11 it sits inside the bottom player bar - "the right edge of Morphy\'s box", which is the answer he asked us to read',{fab,bar});
     L.say(!!fab&&!!bar&&Math.abs((bar.x+bar.w)-(fab.x+fab.w)-9)<1.5,geo+': TC-R11 it is flush to the bar\'s right edge, on the same 9px gutter as ⋯ in the top bar (gap '+(fab&&bar&&Math.round(((bar.x+bar.w)-(fab.x+fab.w))*10)/10)+')',{fabRight:fab&&(fab.x+fab.w),barRight:bar&&(bar.x+bar.w)});
+    // TC-R71 (#547 item (188)): leaving analysis puts the engine-line switch back. Read BEFORE the round button.
+    const eng71a=await b.rect('[data-ct="rev-engline"]');const cmp71a=await b.rect('[data-ct="rev-compact"]');
+    L.say(!eng71a&&!!cmp71a,geo+': TC-R71 PRECONDITION at 10.Nxb5 before analysis there is NO engine-line row, and rev-compact is measured',{eng:eng71a,cmp:cmp71a&&cmp71a.h});
     const sig0=await gridSig(b);await b.tapCt('rev-fab',700);const tx=await b.texts();
     L.say(tx.some(t=>/Undo/.test(t))&&tx.some(t=>/Exit analysis/.test(t)),geo+': TC-R11 analysis board offers Undo and Exit analysis',tx.join(' | ').slice(0,200));
+    {const e=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-engline"]'));L.say(e,geo+': TC-R71 PRECONDITION analysis turned the engine line ON - the row is in the DOM inside analysis',{inAnalysis:e});}
     await b.move('a7','a6',500);await b.move('h2','h3',500);const sig2=await gridSig(b);
     L.say(sig2!==sig0,geo+': TC-R11 two moves register on the analysis board');
     await b.tapText(/Undo/,{wait:500});const sig1=await gridSig(b);L.say(sig1!==sig2,geo+': TC-R11 Undo takes one move back');
     await b.tapText(/Exit analysis/,{wait:700});const after=await b.metrics();const ml19b=await b.rect('[data-ct="rev-move-line"]');
     L.say(!!after.board&&Math.abs(after.board.w-bd.w)<0.6&&!!ml19b&&/Nxb5/.test(ml19b.text),geo+': TC-R11 Exit returns to 10.Nxb5 with the board unchanged ('+(after.board&&after.board.w)+')');
+    await b.settle(1500);{const eng=await b.rect('[data-ct="rev-engline"]');const cmp=await b.rect('[data-ct="rev-compact"]');const m=await b.metrics();
+      L.say(!eng,geo+': TC-R71 after Exit analysis and a 1.5s settle the engine-line row is GONE again - the switch went back to what it read before analysis',{eng});
+      L.say(!!cmp&&!!cmp71a&&Math.abs(cmp.h-cmp71a.h)<0.6&&!!m.board&&Math.abs(m.board.y-bd.y)<0.6&&Math.abs(m.board.w-bd.w)<0.6,geo+': TC-R71 rev-compact is the height it was before analysis, and the board top and width are unchanged',{cmp:cmp&&cmp.h,was:cmp71a&&cmp71a.h,board:m.board&&[m.board.y,m.board.w],wasBoard:[bd.y,bd.w]});}
     // TC-R13 sheet + navigation out
     await b.tapCt('rev-more',500);L.say(!!(await b.rect('[data-ct="rev-sheet"]')),geo+': TC-R13 the ⋯ sheet opens');
     await b.page.mouse.click(8,120);await b.settle(400);const sheetGone=!(await b.rect('[data-ct="rev-sheet"]'));const afterSheet=await b.metrics();
