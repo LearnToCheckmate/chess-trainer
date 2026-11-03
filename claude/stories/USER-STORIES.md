@@ -1433,6 +1433,8 @@ shrink before dropping words (questions/R2-NARROW-LEVERS, icon-font-ls).
   threshold. Where the budget holds the long label with a margin, the long label shows. (TC-LS-035)
 - The long label is never shown where the budget cannot hold it - #384's ink over the button beside it. (gate 48's
   one-directional assertion, kept)
+- The lesson lightbulb starts off, and before the first move one line says that using it means the run won't bank a
+  day; a clean first run banks one. (TC-LS-037; #547 item (90), Kunal's 'warn-first' on lesson-hint-what-it-should-do)
 - When the practice line is complete the same slot offers the NEXT lesson of the group instead of Try again, named in
   full only where the slot is wide enough, and never cut; with no next lesson it stays Try again. (TC-LS-036; #547 item
   (82), jobs/build-lesson-next-button)

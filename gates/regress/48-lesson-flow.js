@@ -1308,4 +1308,27 @@ L.run(async()=>{
    L.say(!!want&&opened.indexOf(want)>=0,geo+': TC-LS-036 the tap opens that lesson - its name is in the lesson footer ('+want+')',{want,footer:opened.slice(0,80)});
    await b.close();
  }
+ // TC-LS-037 [#547 item (90); Kunal's Desk answer 'warn-first', 11 Oct]: THE LESSON LIGHTBULB STARTS OFF, A LINE BEFORE THE FIRST MOVE
+ // SAYS WHAT A HINT COSTS, AND A CLEAN FIRST RUN BANKS A DAY. A fresh store (no ct_hintprefs, no ct_learnprog), so the default is
+ // what is read. The hint itself is unchanged and is not re-tested here.
+ for(const geo of ['kunal730','se']){
+   const b=await L.launch({geo,name:'lesson-warn-'+geo,store:{}});await b.open();
+   let ok=true;try{await D.states['practice-m0'](b);await b.settle(600);}catch(e){ok=false;}
+   const st=await b.page.evaluate(()=>{const h=document.querySelector('button[aria-label="Hints"]');const w=document.querySelector('[data-ct="lesson-hint-warn"]');
+     let hp=null;try{hp=localStorage.getItem('ct_hintprefs');}catch(e){}
+     return {hint:!!h,bg:h?getComputedStyle(h).backgroundColor:null,warn:w?(w.innerText||'').trim():null,prefs:hp};});
+   L.say(ok&&st.hint,geo+': TC-LS-037 PRECONDITION practice is at move 0 and the Hints button is on screen',st);
+   L.say(st.hint&&st.bg==='rgba(255, 255, 255, 0.08)',geo+': TC-LS-037 with no saved preference the lightbulb starts OFF (its inactive surface, not the lit one)',st);
+   L.say(!!st.warn&&/won.t bank a day/.test(st.warn),geo+': TC-LS-037 before the first move one line says a hinted run will not bank a day ("'+st.warn+'")',st);
+   await b.close();
+ }
+ {
+   const b=await L.launch({geo:'kunal730',name:'lesson-warn-bank',store:{}});await b.open();
+   let ok=true;try{await D.states['practice-complete'](b);await b.settle(800);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{let lp={};try{lp=JSON.parse(localStorage.getItem('ct_learnprog')||'{}');}catch(e){}
+     const days=Object.values(lp).reduce((n,v)=>n+((v&&Array.isArray(v.days))?v.days.length:0),0);return {done:/Complete!/.test(document.body.innerText||''),hintsOn:/hints on/i.test(document.body.innerText||''),days};});
+   L.say(ok&&r.done,'kunal730: TC-LS-037 PRECONDITION the first practice run, untouched, reached Complete!',r);
+   L.say(r.done&&!r.hintsOn&&r.days>=1,'kunal730: TC-LS-037 the clean first run banks a day (a day recorded in ct_learnprog, and no "hints on" in the closing note) - which a lightbulb that started ON could not',r);
+   await b.close();
+ }
 },'LESSON-FLOW');
