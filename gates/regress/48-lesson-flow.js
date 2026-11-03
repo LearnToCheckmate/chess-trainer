@@ -1291,4 +1291,21 @@ L.run(async()=>{
    await b.shot('lesson-flip-wide-'+geo);
    await b.close();
  }
+ // TC-LS-036 [#547 item (82); jobs/build-lesson-next-button]: AT Complete! THE ROW OFFERS THE NEXT LESSON. The finished lesson used
+ // to leave a row byte-identical to the row at move 0. Preconditions first, each its own line: the practice line really completed
+ // (the Complete! note is on screen), then the slot names a next lesson, is not cut, and the tap opens THAT lesson.
+ for(const geo of ['kunal730','se']){
+   const b=await L.launch({geo,name:'lesson-next-'+geo});await b.open();
+   let ok=true;try{await D.states['practice-complete'](b);await b.settle(800);}catch(e){ok=false;}
+   const done=await b.page.evaluate(()=>/Complete!/.test(document.body.innerText||''));
+   L.say(ok&&done,geo+': TC-LS-036 PRECONDITION the practice line was played to its end and the Complete! note is on screen',{ok,done});
+   const nx=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-next"]');if(!e)return null;return {t:(e.innerText||'').trim(),a:e.getAttribute('aria-label')||'',sw:e.scrollWidth,cw:e.clientWidth};});
+   L.say(!!nx&&/^Next lesson: .+/.test(nx.a)&&/^(Next: .+ ›|Next lesson ›|Next ›|›)$/.test(nx.t),geo+': TC-LS-036 the row offers the NEXT lesson in the slot Try again held ("'+(nx&&nx.t)+'", named in its label: '+(nx&&nx.a)+')',nx);
+   L.say(!!nx&&nx.sw<=nx.cw+0.5,geo+': TC-LS-036 and its label is not cut - the name is shown only where the slot measures wide enough for it',nx);
+   const want=nx?nx.a.replace(/^Next lesson: /,''):null;
+   if(nx){await b.tapCt('lesson-next',900);}
+   const opened=await b.page.evaluate(()=>{const c=document.querySelector('[aria-label="Close lesson"]');const row=c&&c.parentElement;return row?(row.innerText||'').replace(/\s+/g,' '):'';});
+   L.say(!!want&&opened.indexOf(want)>=0,geo+': TC-LS-036 the tap opens that lesson - its name is in the lesson footer ('+want+')',{want,footer:opened.slice(0,80)});
+   await b.close();
+ }
 },'LESSON-FLOW');
