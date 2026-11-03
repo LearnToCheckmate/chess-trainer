@@ -1008,7 +1008,7 @@ L.run(async()=>{
     L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
     L.say(q.asks===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) ('+q.asks+')',q);
     if(wantAsks===0)L.say(q.play.length===0,'Q empty: TC-GL-003 an EMPTY queue offers NO Play button - there is nothing to walk, and a button that walked zero cards would say otherwise',q.play);
-    else L.say(q.play.length===1&&!/\ball\b/.test(q.play[0]),'Q one: TC-GL-003 a ONE-card queue offers one Play button and it does not say "all" - "Play all 1" would claim a set',q.play);
+    else L.say(q.play.length===1&&!/\ball\b/i.test(q.play[0]),'Q one: TC-GL-003 a ONE-card queue offers one Play button and it does not say "all" - "Play all 1" would claim a set',q.play);
     L.say(b.errs.length===0,'Q '+qlab+': zero app errors',b.errs.slice(0,2));
     await b.close();
   }
