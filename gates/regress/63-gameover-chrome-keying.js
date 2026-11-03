@@ -233,7 +233,11 @@ L.run(async()=>{
    await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
    await b.move('f2','f3',500);await b.move('e7','e5',500);await b.move('g2','g4',500);await b.move('d8','h4',500);await b.settle(1100);
    if(land){await b.page.setViewportSize({width:gv.w,height:gv.h});await b.settle(1500);}   // the insets ride on the launch (ct_safe), as on a real phone
-   const res=await resultText(b);
+   /* #547, the full suite: E1 read only [data-ct=result-card], and in LANDSCAPE the result is not a card - the rail's head
+      [data-ct=play-opening] reads 'Checkmate! · Black wins' (measured on a1b7914 and c7f6a1228e43). E1 went red at land730/land730i on
+      every bundle since block E was written at 5386af5, which was never a defect in the app. It now reads the card, or in landscape
+      the rail head - and still requires the word Checkmate, so a game that did not end reds it. */
+   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);
    const arrived=!!res&&/Checkmate/i.test(res);
    L.say(arrived,glab+': E1 ARRIVAL the game ended by checkmate and the result card says so',{result:res});
    const endBoard=await b.board(), endChrome=await chromeOf(b), endSig=await sigOf(b);

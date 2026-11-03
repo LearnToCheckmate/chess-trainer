@@ -135,7 +135,10 @@ L.run(async()=>{
   // the sentence reddens the gate instead of quietly blinding it [#432].
   const src=fs.readFileSync(BUNDLE,'utf8');
   const GOAL_TAIL='. Find the stronger move.';
-  const callSite=src.match(/"here, "\+([A-Za-z_$][\w$]*)\(String\(/);
+  /* #547 item (164) split the sentence's head: 'you played <san> here, ' when the move is stored, 'your move here was ' when it is not -
+     both followed by the SAME article call. The bundle now reads ("you played "+o.played+" here, ":"your move here was ")+Mk(String(...),
+     so the call site is found after either head; the full suite's U0..U13 went red on the old locator alone (shape NOT FOUND). */
+  const callSite=src.match(/"here, "\+([A-Za-z_$][\w$]*)\(String\(/)||src.match(/"your move here was "\)\+([A-Za-z_$][\w$]*)\(String\(/);
   const litSite =src.match(/"here, (an? )"\+String\(/);
 
   // U0 THE INSTRUMENT, AND IT IS AN ASSERTION NOW RATHER THAN A REPORT. If neither shape is present the
