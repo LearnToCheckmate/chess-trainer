@@ -296,4 +296,36 @@ L.run(async()=>{
   L.note('console errors in launch 3: '+e.errs.length);
   L.say(e.errs.length===0,'TC-R42 E8 no console errors in the streak-sink walk',{errs:e.errs.slice(0,3)});
   await e.close();
+
+  /* ================= LAUNCH 4: BLOCK N, ONLINE PUZZLES AFTER A DRILL [#547, item (156), TC-R69]. ===================
+     jobs/online-puzzles-button-reopens-the-drill-card-2026-10-02. The roadmap's "Online puzzles (Lichess)" button loaded a
+     Lichess puzzle only when no `ext` card was loaded - and a DRILL card is ext too, so after a drill it reopened the
+     player's own game position under the Lichess header. Open the mistakes drill, leave it, tap Online puzzles: the daily
+     endpoint must be asked (the stub counts it) and the board must show the daily's position, not the drill card's. */
+  {
+    const n=await L.launch({geo:'kunal730',name:'drill-then-online',store:{ct_mymistakes:MIST,[PZKEY]:ZERO}});
+    let hits=0;
+    await n.ctx.route(/lichess\.org\/api\/puzzle\/daily/,r=>{hits++;return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(DAILY)});});
+    await n.open();
+    await n.tile('Review');await n.settle(900);
+    await n.tapText(/find the move you missed/,{wait:1800});
+    await n.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
+    const inDrill=await n.page.evaluate(()=>/Your mistakes/.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
+    const drillSig=await n.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));return g?[...g.children].slice(0,64).map(k=>(k.innerText||'').trim()).join('|'):null;});
+    L.say(inDrill&&!!drillSig,'TC-R69 N0 ARRIVAL: the mistakes drill opened on its own card (header names Your mistakes, a board is painted)',{inDrill});
+    await n.tapText(/^‹ Review$/,{wait:900}).catch(()=>{});
+    await n.tile('Puzzles');await n.settle(1000);
+    const ob=n.page.locator('button',{hasText:/^🌐 Online puzzles/}).last();
+    await ob.scrollIntoViewIfNeeded().catch(()=>{});
+    const obox=await ob.boundingBox().catch(()=>null);
+    L.say(!!obox&&obox.y>=0&&(obox.y+obox.height)<=n.geo.h,'TC-R69 N1 INSTRUMENT: the Online-puzzles control is on screen before it is tapped',obox);
+    const h0=hits;
+    if(obox){await ob.click();await n.settle(2600);}
+    await n.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:20000}).catch(()=>{});
+    const sig=await n.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));return g?[...g.children].slice(0,64).map(k=>(k.innerText||'').trim()).join('|'):null;});
+    L.say(hits>h0,'TC-R69 N2 after a drill, Online puzzles ASKS LICHESS for a puzzle (the daily endpoint was called '+(hits-h0)+' time(s)) instead of reopening the drill card',{before:h0,after:hits});
+    L.say(!!sig&&sig!==drillSig,'TC-R69 N3 and the board shows a different position from the drill card - the player\'s own game is not shown under the Lichess header',{same:sig===drillSig});
+    L.say(n.errs.length===0,'TC-R69 N4 zero app errors',n.errs.slice(0,3));
+    await n.close();
+  }
 },'18-drill-credit-provenance');
