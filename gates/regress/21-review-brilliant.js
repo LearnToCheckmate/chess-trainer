@@ -368,6 +368,14 @@ L.run(async()=>{
     const brl1=EA(annoB,{refute:{capSan:'Nxd7',replySan:'Bxe7',replyLine:['Bxe7'],verdict:'and White is winning'},maxw:400});
     L.say(typeof brl3==='string'&&brl3.indexOf('If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE. This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
     L.say(typeof brl1==='string'&&brl1.indexOf('If Nxd7, Bxe7 and White is winning.')>=0&&brl1.indexOf('Bxd7+')<0,'TC-R10/S27 #512 and the BRILLIANT branch still renders the SINGLE-ply form unchanged from what shipped before, so the change can only ever ADD the recovery on this branch too',brl1);
+    // TC-R87 (US-R85), #547 item (128): A PLY WITH NO STORED EVAL MUST NOT BE CALLED LEVEL. explainAnno defaulted a missing
+    // evalAfter to 0 and printed 'The position stays roughly level.' - the sentence for a balanced position. The genuinely level
+    // case is the PRECONDITION (with evalAfter 0 the clause must appear), so the second line cannot pass on a sentence that never
+    // carries the clause at all.
+    {const lvl=EA({cls:{label:'Good'},evalAfter:0,loss:10,pv:[]},{mover:'White',maxw:400});
+     const none=EA({cls:{label:'Good'},loss:10,pv:[]},{mover:'White',maxw:400});
+     L.say(typeof lvl==='string'&&/roughly level/.test(lvl),'TC-R87 PRECONDITION a genuinely level position (evalAfter 0) is still called level',lvl);
+     L.say(typeof none==='string'&&none.length>0&&none.indexOf('roughly level')<0,'TC-R87 a ply with NO stored eval says nothing about the standing - "I do not know" is no longer printed as "it is equal"',none);}
     /* ── S28 to S31: THE STORE DECISION, WHICH IS THE ONE FINDING BOTH ANTAGONISTS REACHED ────────────
        #512's first cut tested `sanLine.length` alone and published the reason as "sfBestLine resolves an
        ARRAY or NULL and all four failure paths resolve NULL". THAT IS FALSE: sfBestLine has SIX settle

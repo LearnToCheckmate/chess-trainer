@@ -1287,7 +1287,10 @@ function explainAnno(a,ctx){
   if(has('mate'))return 'Checkmate.';
   if(has('stalemate'))return 'Stalemate. The game is drawn.';
   // nothing that follows a forced mate is worth reading, least of all how the position "stands"
-  const standing=pvMates?'':evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
+  /* #547 item (128), jobs/a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29: a ply with NO stored eval defaulted
+     to 0 above and printed 'The position stays roughly level.' - word for word the sentence for a balanced position, once beside a
+     bar reading +3.2. With no stored eval the sentence now claims nothing about the standing. */
+  const standing=(pvMates||typeof a.evalAfter!=='number')?'':evM>=3?(mover+' is winning here.'):evM>=1?(mover+' is clearly better.'):evM<=-3?(mover+' is losing here.'):evM<=-1?(mover+' is clearly worse.'):'The position stays roughly level.';
   // #357 The verdict chip already says "Brilliant", so saying it again is a wasted clause. What it
   // does NOT say is what the sacrifice buys, and that is the only thing worth reading here.
   if(L==='Brilliant'){const g=a.gate||{};

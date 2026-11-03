@@ -1524,6 +1524,11 @@ As a player who finishes a game holding the phone sideways and scrolls the side 
 As a player who taps Review straight after a game, the summary names me and my opponent and states the result, as it does for a game I import.
 - After resigning against the computer, the header reads "You vs <bot> · 0-1", not "White vs Black". (TC-PL-046)
 
+### US-R85 The review never calls a position level when it simply has no evaluation for it
+*Added #547, from jobs/a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29.*
+As a player stepping through a review, "the position stays roughly level" means the position IS level, not that the app has no number for that move.
+- A move with no stored evaluation gets no sentence about who stands better; a genuinely level position is still called level. (TC-R87)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
