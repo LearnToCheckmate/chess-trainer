@@ -192,8 +192,10 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
    (3) W1 TO W6 AND CAPS8 ARE UNTOUCHED. CAPS8 is a pure FIXTURE for unit-testing walkOk() against caption shapes
        it must accept and reject; it is not an assertion about the live card set, and it carries gate 15's real
        invariant - that every card actually played, in order, with a coherent n/N token. Nothing here weakens it. */
-const PINNED_IDS='1 PHONE|2 KEV';
-const EXPECTED_N=2;
+/* #547 item (53): PHONE removed from the ask queue (Kunal's phone is settled at 375x761), so KEV is card 1 and the
+   queue holds one card. */
+const PINNED_IDS='1 KEV';
+const EXPECTED_N=1;
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -811,8 +813,8 @@ L.run(async()=>{
      CONTROL, RUN AND RECORDED: CT_APP=<the shipped #451 app.js, md5 aba551f896c7> - the ideal control, free, and
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
-  const MANUAL_CARD='2 · KEV';     // as PINNED_IDS spells it; present on #451 and on #452
-  const EXPECTED_MANUAL=1, EXPECTED_AUTO=1, HOLD_MS=30000;
+  const MANUAL_CARD='1 · KEV';     // as PINNED_IDS spells it (it was '2 · KEV' until #547 removed PHONE)
+  const EXPECTED_MANUAL=1, EXPECTED_AUTO=0, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
@@ -950,7 +952,9 @@ L.run(async()=>{
        persist" could have been implemented for every card and nothing would have noticed. */
     const b=await L.launch({geo:'kunal730',name:'autoexpire',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
-    const auto=b.page.locator('button[data-ct="ask-card"]',{hasText:'1 · PHONE'}).first();
+    /* #547 item (53): PHONE, the one self-driving ASK card, is gone, so M8 drives the first harness STATE card, k10, which
+       runs the same caption path with a fixed hold (h:13000) - a self-driving card that must still expire on its own. */
+    const auto=b.page.locator('button[data-ct="state-card"]',{hasText:'1 · k10'}).first();
     if(await auto.count()>0){
       const t0=Date.now();await auto.click();await b.settle(1200);
       const up0=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
