@@ -6606,7 +6606,7 @@ export default function App(){
    ],h:84000},
         ];
         /* #373 (charter, UAT): a card may carry `steps` - checkpoints inside one journey. Each step re-captions the strip with its own item id and, if it has fn, moves the app on. Timed from the card's start; a step that arrives before the app is ready is harmless (setters only, DOM clicks guarded). */
-        const _steps=(sc)=>{(sc.steps||[]).forEach(st=>setTimeout(()=>{setRecCap(p=>p?{...p,id:st.id||p.id,l:st.l||p.l}:{i:0,n:0,id:st.id||'',l:st.l||''});try{st.fn&&st.fn();}catch(e){}},st.at));};
+        const _steps=(sc)=>{(sc.steps||[]).forEach(st=>setTimeout(()=>{setRecCap(p=>p?{...p,id:st.id||p.id,l:st.l||p.l}:{i:0,n:0,id:st.id||'',l:st.l||'',hold:!!sc.m});/* #547 item (173): the fallback carried no hold, so a step after Hide resurrected a bar with neither Hide nor timer */try{st.fn&&st.fn();}catch(e){}},st.at));};
         const _dom=(sel,txt)=>{const els=[...document.querySelectorAll(sel)];const el=txt?els.find(x=>(x.innerText||'').trim()===txt):els[0];if(el)el.click();return !!el;};
         const _runWalk=()=>{
           setPreview(false);setTrainerDemo(false);const N=WK.length;let i=0;

@@ -772,7 +772,7 @@ L.run(async()=>{
        by matching /^inner \d+x\d+/ over the rendered text. #432 - an assertion keyed only to a selector its own
        build adds cannot see the defect that build removes, and would have reported PASS against the old bundle by
        reading null. This way it goes red on any bundle whose readout lacks the line, including #450's. */
-    await b.page.locator('button',{hasText:/^\u2715$/}).last().click().catch(()=>{});
+    await (await b.galleryClose()).click().catch(()=>{});
     await b.settle(300);await b.home();
     await b.page.locator('button[data-ct="home-menu"]').click();await b.settle(500);
     const tog=b.page.locator('button',{hasText:/^Layout readout/}).first();
