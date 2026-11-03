@@ -4967,7 +4967,7 @@ export default function App(){
   /* #547 item (133), jobs/the-review-list-filter-survives-leaving-the-review-screen-2026-10-06: the #476 filter (gFil) and the
      search box (gameSearch) are PER VISIT. Leaving the Review screen used to keep them, so the next visit showed a silently
      narrowed list - the complaint the filter was built to cure. Both are reset together when the app leaves the screen. */
-  useEffect(()=>{if(mode==='analyze')return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);},[mode]);
+  useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);},[mode,homeScreen]);
   useEffect(()=>{if(mode!=='analyze'||gamesAutoRef.current)return;const cu=chessUser.trim(),lu=lichessUser.trim();if(cu||lu){gamesAutoRef.current=true;if(cu)fetchChessCom();if(lu)fetchLichess();}},[mode]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.

@@ -1506,9 +1506,9 @@ function mkTap(b,READ){
     const rev=(i)=>({bril:2,great:3,inacc:0,mist:0,blun:0,src:'review',engine:'sf',gv:1});
     const mk=(nEst,nRev)=>{const o={};for(let i=0;i<nEst;i++)o['cc:'+(1789000000000+i)+':kunal2023:opp'+i]=est(i);for(let i=0;i<nRev;i++)o['cc:'+(1790000000000+i)+':kunal2023:rev'+i]=rev(i);return o;};
     const panel=(b)=>b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
-      const num=(lab)=>{const m=new RegExp('(\\d+) '+lab).exec(t);return m?+m[1]:null;};
+      const num=(lab)=>{const m=new RegExp('(\\d+) '+lab,'i').exec(t);return m?+m[1]:null;};
       let achv=[];try{achv=JSON.parse(localStorage.getItem('ct_achv')||'[]');}catch(e){}
-      return {shown:/Your progress/.test(t),reviewed:num('Games reviewed'),bril:num('Brilliancies'),achv};});
+      return {shown:/Your progress/i.test(t),reviewed:num('Games reviewed'),bril:num('Brilliancies'),achv};});
     for(const [tag,nEst,nRev,wantRev,wantBril,rv1,rv10] of [['7 est',7,0,0,0,false,false],['7 est + 1 review',7,1,1,2,true,false],['4 est + 9 review',4,9,9,18,true,false]]){
       const b=await L.launch({geo:'kunal730',name:'r49-'+nEst+'-'+nRev,store:{ct_pool:'3',ct_gamestats:mk(nEst,nRev)}});await b.open();
       await b.tile('Review');await b.settle(1200);
