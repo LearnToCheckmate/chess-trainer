@@ -522,4 +522,29 @@ L.run(async()=>{
     const injF=await framesArm(c.g,c.px);
     blockD(c.n,c.px,cleanF,injF);
   }
+  // TC-R64-D12 [#547 item (73); jobs/522-the-fit-wake-compares-two-different-boxes-and-keeps-its-refs-across-screens-2026-10-14].
+  // A LESSON REACHED FROM ANOTHER SCREEN SETTLES WHERE A FRESH ENTRY DOES. The fit wake's refs (the panel height the last
+  // refit left, the epoch's wake budget) used to survive the observer re-attaching on another screen, so lesson-to-lesson and
+  // play-to-lesson began their epoch with a height from a DIFFERENT screen. Harmless while the refit is idempotent; this pins
+  // the property the reset protects. Two routes x 320x540 and 375x568, each against a fresh entry to the SAME lesson.
+  {
+    const P=require('../drive/play.js');
+    const lessonBoard=async(b)=>{await D.startDemoPaused(b);await b.settle(1200);const m=await b.metrics();return m.board?Math.round(m.board.w*10)/10:null;};
+    for(const [n,g] of [['320x540',{w:320,h:540,safe:''}],['375x568',L.GEOS.short375]]){
+      const W={};
+      for(const route of ['fresh','lesson-to-lesson','play-to-lesson']){
+        const b=await L.launch({geo:g,name:'d12-'+n+'-'+route});await b.open();let ok=true;
+        try{
+          if(route==='lesson-to-lesson'){await D.openLesson(b,'Openings',0);await D.startDemoPaused(b);await b.settle(600);await D.tapBtn(b,/^Close lesson$/,500).catch(()=>{});
+            const lab=await b.page.evaluate(()=>{const e=document.querySelector('[aria-label="Close lesson"]');return !!e;});if(lab){const el=b.page.locator('[aria-label="Close lesson"]').first();await el.click();await b.settle(500);}}
+          if(route==='play-to-lesson'){await P.states['pp-m0'](b);await b.move('e2','e4',400);await b.settle(400);}
+          await D.openLesson(b,'Openings',1);W[route]=await lessonBoard(b);
+        }catch(e){ok=false;W[route]=null;}
+        await b.close();
+      }
+      L.say(W.fresh!=null&&W['lesson-to-lesson']!=null&&W['play-to-lesson']!=null,'TC-R64-D12 '+n+' DENOMINATOR all three routes reached the second Openings lesson and measured its settled board',W);
+      L.say(W.fresh!=null&&W['lesson-to-lesson']!=null&&Math.abs(W['lesson-to-lesson']-W.fresh)<0.6,'TC-R64-D12 '+n+' lesson-to-lesson settles the board where a fresh entry does ('+W['lesson-to-lesson']+' vs '+W.fresh+')',W);
+      L.say(W.fresh!=null&&W['play-to-lesson']!=null&&Math.abs(W['play-to-lesson']-W.fresh)<0.6,'TC-R64-D12 '+n+' play-to-lesson settles the board where a fresh entry does ('+W['play-to-lesson']+' vs '+W.fresh+')',W);
+    }
+  }
 },'75-fit-loop-one-way-ratchet');

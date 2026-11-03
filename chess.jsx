@@ -3685,12 +3685,12 @@ export default function App(){
     if(!window.ResizeObserver||!movesPanelRef.current)return;
     const ro=new ResizeObserver(es=>{
       if(fitRefitRef.current>0)return;                                  // our own convergence is in flight
-      const h=Math.round(es[0].contentRect.height);
+      const h=Math.round(es[0].target.getBoundingClientRect().height); /* #547 item (73): the BORDER box, the same box the settle below records - contentRect is the content box, equal today only because the panel has no padding or border, and the two sites must agree */
       if(fitPanelHRef.current<0){fitPanelHRef.current=h;return;}
       if(Math.abs(h-fitPanelHRef.current)<=2)return;                    // this is where the last refit left it
       if(fitWakeNRef.current>=4)return;                                 // epoch budget spent
       fitWakeNRef.current++;setFitWake(w=>w+1);});
-    ro.observe(movesPanelRef.current);return()=>ro.disconnect();},[mode,openIdx,wide]);
+    ro.observe(movesPanelRef.current);return()=>{ro.disconnect();fitPanelHRef.current=-1;fitWakeNRef.current=0;};},[mode,openIdx,wide]); /* #547 item (73): a new screen starts its epoch with no inherited height and a full wake budget */
   /* #522 PART A: THE PRE-PAINT REFIT. See the block beside `fitPass` above for why from-scratch is the only sound
      magnitude and why this runs before paint rather than in the rAF loop.
      HOW THE NO-BLINK PROPERTY IS OBTAINED, because it is the whole point and it is not obvious from the code shape.
@@ -3706,7 +3706,7 @@ export default function App(){
      normal screen gets switched off. */
   useLayoutEffect(()=>{
     const _lessonFit=!wide&&mode==='learn'&&openIdx!==null;
-    if(!_lessonFit){fitSigRef.current='';fitRefitRef.current=0;return;}
+    if(!_lessonFit){fitSigRef.current='';fitRefitRef.current=0;fitPanelHRef.current=-1;fitWakeNRef.current=0;return;}
     if(fitRefitRef.current===0){
       // IDLE. Start a refit only when the content this trim was derived for has actually changed. `fitWake` is in the
       // signature so a flow change React cannot see (the absorber's height moving) starts one too.
