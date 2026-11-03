@@ -9346,7 +9346,12 @@ export default function App(){
                     (kunal-q-narrow-threshold-everywhere-2026-09-17) and re-measured here before it was
                     believed; recorded as an amber default in amber-409-try-again-keyed-to-the-row, and the RULE
                     is a question open with Kunal rather than settled by this build. */}
-                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':rowNarrow?'↻ Again':'↻ Try again'}</button>
+                {/* #547 item (187): the WORDS follow the row's own budget - its width (the board's) less the three 46px
+                    buttons and their three 6px gaps - and not boardPx<340. Gate 48 measures the long label at 92.52px
+                    min-content at the default padding; 96 keeps a margin, and below 340 the padding is already the
+                    tight 9px 4px, so the label has more room than that figure assumes. rowNarrow still sets the
+                    padding and rowTiny (the glyph alone) is untouched, per orchestrator direction 2026-10-11. */}
+                <button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':(boardPx-3*46-3*6)>=96?'↻ Try again':'↻ Again'}</button>
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
               </div>
               {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>

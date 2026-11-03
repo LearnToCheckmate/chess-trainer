@@ -1418,3 +1418,14 @@ font arrived a frame late.
 
 CASE: TC-R64, gate `gates/pending/75-fit-loop-one-way-ratchet.js` (renamed from `75-lesson-demo-board-latch.js` during the run, because the same ratchet was measured on PLAY and PUZZLE) — in `pending/` and manifest-`absent`
 because it reds on main by design, and it moves to `regress/` in the same commit as the fix.
+
+### US-R73 The practice row says "Try again" whenever the row has room for it
+*Added #547, from jobs/practice-row-label-keyed-to-a-board-threshold-not-its-budget-2026-09-29.*
+As a player practising a lesson line on a narrow phone, the button that restarts the line says "Try again" in
+full whenever the row has room for it, and shortens only when it does not - Kunal's rule for narrow phones is to
+shrink before dropping words (questions/R2-NARROW-LEVERS, icon-font-ls).
+- The words follow the row's own budget, its width less the three fixed buttons and their gaps, not a board-width
+  threshold. Where the budget holds the long label with a margin, the long label shows. (TC-LS-035)
+- The long label is never shown where the budget cannot hold it - #384's ink over the button beside it. (gate 48's
+  one-directional assertion, kept)
+

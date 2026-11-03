@@ -658,10 +658,15 @@ L.run(async()=>{
       ' and it reads "'+(r0[2]&&r0[2].t)+'" (#384: the long label painted 8.83px outside its own button and 2.83px '+
       'over the ⋯ next to it, which is the one-directional defect this guards)',
       {label:r0[2]&&r0[2].t,budget:Math.round(budget*100)/100,longNeeds:92.52,mustBeShort:mustBeShort});
-    if(!mustBeShort&&r0[2]&&r0[2].t!=='↻ Try again')
-      L.note(geo+': NOTE the budget ('+Math.round(budget*100)/100+'px) now HOLDS the long label and the app still '+
-        'shortens, because its predicate is boardPx<340 rather than the budget. Conservative, not broken; filed '+
-        'at #430 and not fixed here because re-keying rowNarrow is a barred decision.');
+    // TC-LS-035 [#547 item (187)]: THE OTHER DIRECTION, now that the app keys the words to the budget. Where the
+    // budget clears the long label with a margin (>= 96px, against its measured 92.52) the label is the LONG one.
+    // The window between 92.52 and 96 is left to a note, so the margin is the app's choice and not a pin.
+    if(budget>=96)L.say(r0.length===4&&r0[2].t==='↻ Try again',
+      geo+': TC-LS-035 the budget ('+Math.round(budget*100)/100+'px) holds the long label with a margin, so it reads "↻ Try again" - not shortened by a board threshold (#430 measured se at 98.9 reading "↻ Again")',
+      {label:r0[2]&&r0[2].t,budget:Math.round(budget*100)/100});
+    else if(!mustBeShort&&r0[2]&&r0[2].t!=='↻ Try again')
+      L.note(geo+': NOTE the budget ('+Math.round(budget*100)/100+'px) holds the long label by under 96 - inside the '+
+        'margin the app keeps (#547 item (187)) - so it shortens.');
 
     /* #409: AND THE INK, not only the boxes. The defect that produced these two assertions painted the long
        label 8.83px past its own right edge and 2.83px OVER the ⋯ button beside it, at 375x568 and 390x568,
