@@ -397,6 +397,24 @@ L.run(async()=>{
      L.say(n>0&&bad.length===0,g+': TC-R36 at every such ply the best move is shown in full and inside its row, and the verdict glyph stays',{n,bad,pills:[...pills]});
      await b.close();}
   }
+  // TC-R79 [#547 item (107); jobs/review-summary-runs-under-the-status-bar-2026-09-22]: THE SUMMARY STAYS BELOW THE STATUS BAR. At
+  // 375x761 with ct_safe 51,31 (Kunal's insets): the summary's scroller starts at or below the 51px inset, the menu button sits below
+  // it, and with the summary scrolled to the bottom no VISIBLE text is above 51 (text the scroller clips is not painted, so it is not
+  // counted). The inset used to be padding inside the scroller, which scrolled away with the content.
+  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal761',name:'r79-summary-inset',store:RV.SEED});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   const rd=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);
+     const scr=sc?sc.getBoundingClientRect():null;const mb=document.querySelector('[data-ct="rev-summary-menu"]');let vis=1e9;const tw=document.createTreeWalker(s,NodeFilter.SHOW_TEXT);let n;
+     while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);const q=rg.getBoundingClientRect();if(q.height<=0)continue;
+       const inSc=sc&&sc.contains(n.parentElement);const top=inSc?Math.max(q.top,scr.top):q.top;if(inSc&&q.bottom<=scr.top)continue;if(top<vis)vis=top;}
+     return {scTop:scr&&scr.top,menuTop:mb?mb.getBoundingClientRect().top:null,visTop:vis};});
+   const r0=await rd();
+   L.say(ok&&!!r0&&r0.scTop!=null,'kunal761: TC-R79 PRECONDITION the summary is up and its scroller is found',r0);
+   await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const sc=s&&[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(sc)sc.scrollTop=sc.scrollHeight;});await b.settle(400);
+   const r1=await rd();
+   L.say(!!r0&&r0.scTop>=50.5&&r0.menuTop>=50.5,'kunal761: TC-R79 the summary scroller and its menu button both start below the 51px status bar ('+(r0&&Math.round(r0.scTop))+', '+(r0&&Math.round(r0.menuTop))+')',r0);
+   L.say(!!r1&&r1.visTop>=50.5,'kunal761: TC-R79 scrolled to the bottom, no visible text of the summary is under the status bar (top visible text at '+(r1&&Math.round(r1.visTop))+')',r1);
+   await b.close();}
   // TC-R03 stored accounts survive a reload and name both players
   const games=(u)=>[{src:'cc',acct:u,pgn:PGN.replace('Morphy',u).replace('Duke Karl / Count Isouard','DukeKarlCountIsouard99'),white:u,black:'DukeKarlCountIsouard99',wr:'win',tc:'rapid',date:1789000000000}];
   const b=await L.launch({geo:'kunal',name:'review-accounts',store:{ct_accts:['cc:jsmiller1112','cc:kunal2023'],ct_acctgames:{'cc:jsmiller1112':games('jsmiller1112'),'cc:kunal2023':games('kunal2023')}}});await b.open();await b.tile('Review');await b.settle(600);

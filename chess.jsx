@@ -7697,7 +7697,7 @@ export default function App(){
       {null}
       {railed&&learnVideoBox}{railed&&learnBranchesBox}
       {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=GRADE_LADDER.map(g=>[g[0],g[1]]);   /* #547 item (84): derived, not re-listed */const sides=[['w','White'],['b','Black']];return(
-        <div data-ct="rev-summary" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'stretch',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+        <div data-ct="rev-summary" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'stretch',boxSizing:'border-box',paddingTop:'max('+safeTop+'px, env(safe-area-inset-top,0px))'/* #547 item (107): the SCROLLER starts below the status bar - the inset used to be padding INSIDE it, which scrolled away and let the Coach's take run under the bar */,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           {/* #393 (uat390-review-summary-menu-covered): THE SUMMARY HAD NO WAY INTO THE MENU. This panel is
               position:fixed inset:0 zIndex:500 and opaque, so the shared header row - and the ☰ in it - is
               behind it: measured at 375x730 the row's button sits at (337,-4) and a pixel scan of that region
@@ -7708,9 +7708,9 @@ export default function App(){
               putting a dedicated button INSIDE the overlay rather than trying to lift the buried row. Raising
               the row cannot work here anyway - a z-index of 5 on a sibling cannot beat a fixed z-500 panel -
               and it would cost board height on every screen that shares that row. */}
-          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:'calc(env(safe-area-inset-top,0px) + 10px)',right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
+          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:'calc(max('+safeTop+'px, env(safe-area-inset-top,0px)) + 10px)',right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
-          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:`max(24px,env(safe-area-inset-top,0px)) 18px 16px`,WebkitOverflowScrolling:'touch'}}>
+          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'24px 18px 16px',WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
               <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
