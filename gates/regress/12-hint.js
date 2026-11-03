@@ -27,7 +27,7 @@ L.run(async()=>{
     // 'It's mate in N - start with the most forcing check.' for a mate puzzle and 'Find the forcing move - ... (<motif>)' otherwise.
     // Exactly one must match, and a mate hint's N must equal the N the puzzle's own goal line printed before the hint, so a stale
     // hint from another puzzle, a wrong count, or a hint under the wrong template is red. The bare length test it replaces passed all three.
-    {const t=head?head.text:'';const HM=/^It.s mate in (\d) \u2014 start with the most forcing check\.$/,HF=/^Find the forcing move \u2014 a check, capture, or strong threat\. \(.+\)$/;
+    {const t=head?head.text:'';const HM=/^(?:\u{1F4A1} )?It.s mate in (\d) \u2014 start with the most forcing check\.$/u,HF=/^(?:\u{1F4A1} )?Find the forcing move \u2014 a check, capture, or strong threat\. \(.+\)$/u;   // the header prefixes the bulb the Hint button sets
      const hm=t.match(HM),hf=HF.test(t);
      L.say(!!head&&goalN!=null&&((!!hm&&!hf&&+hm[1]===goalN&&goalN>0)||(!hm&&hf&&goalN===0)),geo+': hint header shows THIS puzzle\'s hint - one of _pzHint\'s two templates, and a mate hint\'s count equals the goal line\'s (mate in '+goalN+')',{hint:t.slice(0,80),goalN});}
     L.say(!!head&&head.sh<=head.ch+1,geo+': hint text not clipped (scroll '+(head&&head.sh)+' vs '+(head&&head.ch)+')');
