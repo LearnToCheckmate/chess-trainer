@@ -42,7 +42,9 @@ L.run(async()=>{
   // shorter-phone column [CLAUDE.md], and the one literal pin in this file (the 349 board width) stays bound to
   // 679 by its own geo check below rather than being moved - which reading changed has not been established.
   for(const geo of ['kunal','kunal730','390']){
-    const b=await L.launch({geo,name:'review-'+geo,store:{ct_pool:'3'}});await b.open();
+    // #547 item (56): the eval graph is ON by default now, so this walk pins it OFF to keep its baseline the graph-off bar
+    // that TC-R12 below compares the graph-on reload against (otherwise that comparison would read graph-on against itself).
+    const b=await L.launch({geo,name:'review-'+geo,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
     // TC-R01 import
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
     const t0=Date.now();await b.tapText(/^⚡ Analyze Game$/,{wait:300});
@@ -295,6 +297,32 @@ L.run(async()=>{
     L.say(!!g&&g.w>60,geo+': TC-R12 the eval graph renders in the player bar with the switch on',g&&{w:g.w,h:g.h});
     L.say(bars2[1]&&at.p0.bars[1]&&Math.abs(bars2[1].h-at.p0.bars[1].h)<0.6&&m2.board&&Math.abs(m2.board.w-at.p0.board.w)<0.6,geo+': TC-R12 graph on: bar height and board width unchanged',{bar:bars2[1]&&bars2[1].h,was:at.p0.bars[1].h,board:m2.board&&m2.board.w});
     if(g){await b.page.mouse.click(g.x+g.w*0.7,g.y+g.h/2);await b.settle(500);const mlg=await b.rect('[data-ct="rev-move-line"]');L.say(!!mlg&&mlg.text!==(at.p0.ml||''),geo+': TC-R12 a tap on the graph jumps to a later ply',mlg&&mlg.text);}
+    await b.close();
+  }
+  // TC-R12b THE GRAPH IS ON BY DEFAULT [#547, item (56); jobs/eval-graph-into-the-band; Kunal answered this on 14 and 15 Sep,
+  // and what shipped at #369 was the switch, not the answer]. At 375x730 with NO ct_evalgraph key seeded the graph renders in
+  // the player bar, and the board's width and top are identical to the same review with the graph switched off - the graph
+  // lives in the band and costs the board nothing. Both readings are taken in one session, off after on, at ply 0.
+  {
+    const b=await L.launch({geo:'kunal730',name:'review-graph-default',store:{ct_pool:'3'}});await b.open();
+    const key0=await b.page.evaluate(()=>localStorage.getItem('ct_evalgraph'));
+    await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
+    await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+    let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){ok=false;}
+    L.say(ok,'kunal730: TC-R12b PRECONDITION the review reached its summary with no ct_evalgraph key in the store (key read at launch: '+JSON.stringify(key0)+')',{key0});
+    if(ok){
+      await b.tapText(/^Start review/,{wait:900});
+      const gOn=await b.rect('[data-ct="eval-graph"]');const mOn=await b.metrics();
+      L.say(!!gOn&&gOn.w>60,'kunal730: TC-R12b with nothing seeded the eval graph RENDERS in the player bar - on by default',gOn&&{w:gOn.w,h:gOn.h});
+      await b.page.evaluate(()=>{localStorage.setItem('ct_evalgraph','0');});await b.open();await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
+      await b.tapText(/^⚡ Analyze Game$/,{wait:200});try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){}
+      await b.tapText(/^Start review/,{wait:900});
+      const gOff=await b.rect('[data-ct="eval-graph"]');const mOff=await b.metrics();
+      L.say(!gOff,'kunal730: TC-R12b and switched off it is gone, so the reading above was the default and not a stale render',{gOff:!!gOff});
+      L.say(!!mOn.board&&!!mOff.board&&Math.abs(mOn.board.w-mOff.board.w)<0.6&&Math.abs(mOn.board.top-mOff.board.top)<0.6,
+        'kunal730: TC-R12b the board is the same width and top with the graph on as off - the graph sits in the band ('+(mOn.board&&mOn.board.w)+'/'+(mOn.board&&mOn.board.top)+' on, '+(mOff.board&&mOff.board.w)+'/'+(mOff.board&&mOff.board.top)+' off)',{on:mOn.board,off:mOff.board});
+    }
+    L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'kunal730: TC-R12b no app error beyond the allowed engine trap',b.errs.slice(0,3));
     await b.close();
   }
   // TC-R03 stored accounts survive a reload and name both players

@@ -2780,7 +2780,7 @@ export default function App(){
      evalAfter per ply in the bottom player bar's spare width, white's advantage filled light above the middle,
      black's dark below, red ticks on blunders and teal on brilliancies, the current ply marked; tapping it
      jumps to that ply. Nothing else moves: the bar keeps its height, the board keeps its size. */
-  const [evalGraph,setEvalGraph]=useState(()=>{try{return localStorage.getItem('ct_evalgraph')==='1';}catch{return false;}});
+  const [evalGraph,setEvalGraph]=useState(()=>{try{return localStorage.getItem('ct_evalgraph')!=='0';}catch{return true;}}); /* #547 item (56), jobs/eval-graph-into-the-band: ON by default - Kunal answered this on 14 and 15 Sep; only an explicit '0' turns it off */
   useEffect(()=>{try{localStorage.setItem('ct_evalgraph',evalGraph?'1':'0');}catch{}},[evalGraph]);
   // #359 ONE-TIME MIGRATION, and the reason Kunal kept seeing "empty space along the sides".
   // #340 moved the eval bar above the board and made that the default, but every device that had
