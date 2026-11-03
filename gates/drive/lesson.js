@@ -197,7 +197,12 @@ S['practice-wrong-hintoff']=async(b)=>{await S['practice-m0'](b);await tapBtn(b,
 // THE FIX IS THE ACCESSIBLE NAME, which tapBtn has always been able to match (it tests innerText OR
 // aria-label, see its own comment) and which is the one string that is identical at all five geometries.
 S['practice-tryagain']=async(b)=>{await S['practice-wrong'](b);await tapBtn(b,/^Try again$/,600);};
-S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await noteText(b))||''))break;}await b.settle(600);};
+S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await noteText(b))||''))break;}await b.settle(600);
+  // #547 item (90): hints now start OFF, so this run is FLAWLESS and the app raises its 2.8s 'Line learned · flawless' toast at the
+  // top of the screen. Measured at #547: a gate's click at y=20 (closing a sheet) hit the toast instead, the sheet stayed open, and
+  // the next tap landed on its backdrop (TC-LS-036 opened nothing). Every consumer of this state wants the screen at rest, so wait
+  // the toast out here (it clears itself; 5s cap) - the state the hints-on run used to arrive in.
+  await b.page.waitForFunction(()=>!/Line learned \u00b7 flawless/.test(document.body.innerText||''),null,{timeout:5000}).catch(()=>{});await b.settle(200);};
 S['practice-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More actions$/,500);};
 S['practice-bottom-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More for this lesson$/,500);};
 S['close']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^Close lesson$/,600);};

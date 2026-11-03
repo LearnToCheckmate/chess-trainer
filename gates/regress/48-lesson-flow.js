@@ -1380,7 +1380,11 @@ L.run(async()=>{
  // SCROLLS, THE SCREEN SAYS SO. At the demo's end the action row ('Now I'll try it', Flip, the variations, Analyze, Copy) sat below the
  // rail's fold with no sign the pane moves. Where the try-it control is below the fold: a 'More below' chip is on screen and
  // hit-tests to itself, and tapping it brings the control into view. Where it is not, the chip is not required (stated, not credited).
- for(const g of [{w:956,h:440,safe:'',label:'956x440'},{w:568,h:320,safe:'',label:'568x320'}]){
+ // 956x440 only, the job's own geometry. 568x320 was in the first draft and is NOT RUN: the shared lesson drive cannot reach a
+ // lesson there - its tap on the 'Openings' group lands on the fixed tab bar's 'Puzzles' (measured on main's #530 bundle and on
+ // #547 alike: 'openRow: no lesson row 0'), the #386/#390 tap trap, so the precondition went red on the DRIVE, not the app.
+ L.note('TC-R78 568x320 NOT RUN and not counted: the lesson drive cannot open a lesson at that size (its group tap lands on the tab bar), measured on main\'s bundle too');
+ for(const g of [{w:956,h:440,safe:'',label:'956x440'}]){
    const n=g.w+'x'+g.h;const b=await L.launch({geo:g,name:'lesson-railmore-'+n});await b.open();
    let ok=true;try{await D.states['demo-end'](b);await b.settle(1500);}catch(e){ok=false;}
    const rd=()=>b.page.evaluate(()=>{const t=[...document.querySelectorAll('button')].find(x=>/try it/i.test(x.innerText||''));const m=document.querySelector('[data-ct="rail-more"]');const q=t&&t.getBoundingClientRect();const mq=m&&m.getBoundingClientRect();
