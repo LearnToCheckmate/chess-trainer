@@ -5036,7 +5036,15 @@ export default function App(){
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
       ccRawRef.current=null; acctStore('cc',u,rows,bound); mergeGames();
-    }catch(e){setCcErr('Couldn’t reach Chess.com ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
+    }catch(e){
+      /* #547 item (144), jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28: every failure here - including a fetch that
+         SUCCEEDED and found no games - printed 'Couldn't reach Chess.com ... the preview sandbox blocks outside connections'. The cause
+         is now told apart by the error this function itself threw, and the network sentence is kept for an actual network failure. */
+      const _m=String((e&&e.message)||'');
+      if(/username not found/.test(_m))setCcErr('Chess.com has no account called “'+u+'”. Check the spelling, or paste a PGN below.');
+      else if(/no games on that account|no recent games found/.test(_m))setCcErr('Chess.com answered, but “'+u+'” has no games in the months searched. Paste a PGN below to review one now.');
+      else if(/^server \d+/.test(_m))setCcErr('Chess.com answered with an error ('+_m+'). Try again in a minute, or paste a PGN below.');
+      else setCcErr('Couldn’t reach Chess.com ('+(_m||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
   const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};

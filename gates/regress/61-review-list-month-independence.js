@@ -1000,5 +1000,23 @@ async function input(seed,n,geo,name,thin){
     }
     await b.close();
   }
+  // TC-R91 (US-R93), #547 item (144): A FETCH THAT WORKED IS NOT CALLED A NETWORK FAILURE. Pre-fix every failure, including two 200s
+  // with an empty month, printed 'Couldn't reach Chess.com ... the preview sandbox blocks outside connections'. Four inputs, each its
+  // own route registered after launch (it wins over lib.js's BLOCK): an index of 3 months each holding no games; the index 404; the
+  // index 500; the request aborted (a real fetch rejection). The four sentences must differ, and the empty one must not blame the net.
+  {const CASES=[['empty',async(route)=>{const u=route.request().url();if(/\/games\/archives$/.test(u))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:['2026/08','2026/09','2026/10'].map(m=>'https://api.chess.com/pub/player/r91/games/'+m)})});return route.fulfill({status:200,contentType:'application/json',body:'{"games":[]}'});}],
+     ['404',route=>route.fulfill({status:404,contentType:'application/json',body:'{}'})],['500',route=>route.fulfill({status:500,contentType:'application/json',body:'{}'})],['abort',route=>route.abort()]];
+   const said={};
+   for(const [k,h] of CASES){const b=await L.launch({geo:'kunal730',name:'r91-'+k});await b.ctx.route(/api\.chess\.com/,h);await b.open();
+     let ok=true;try{await b.tile('Review');await b.settle(500);await b.page.locator('input[placeholder="Chess.com username"]').fill('r91');await b.settle(150);await b.tapText(/^Fetch$/,{wait:2500});}catch(e){ok=false;}
+     let t=null;for(let w=0;w<20&&!t;w++){t=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(Couldn.t reach Chess\.com|Chess\.com has no account|Chess\.com answered)[^\n]*/);return m?m[0]:null;});if(!t)await b.settle(250);}
+     said[k]=ok?t:null;await b.close();}
+   if(L.say(Object.values(said).every(x=>!!x),'TC-R91 PRECONDITION each of the four fetch outcomes put a Chess.com sentence on the Review screen',said)){
+     // compared on the WORDING before any '(...)': pre-fix the four differed only in the error text in brackets, which a plain
+     // inequality counted as four different sentences on the very bundle that told the player the same wrong thing four times.
+     const lead=Object.values(said).map(x=>x.split('(')[0].trim());
+     L.say(new Set(lead).size===4,'TC-R91 the four outcomes - empty months, no such account, a server error, no connection - produce FOUR DIFFERENT sentences, not one sentence with a different code in brackets',{lead});
+     L.say(!/Couldn.t reach|sandbox/.test(said.empty),'TC-R91 a fetch that succeeded and found no games does NOT blame the network or the sandbox',{empty:said.empty});
+     L.say(/Couldn.t reach Chess\.com/.test(said.abort),'TC-R91 and a real network failure still says it could not reach Chess.com',{abort:said.abort});}}
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});

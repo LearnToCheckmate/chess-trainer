@@ -1569,6 +1569,11 @@ As a player opening a lesson, I can read its introduction at my own pace, and th
 As a learner part-way through a lesson, I can see which of my moves I am on and how many there are.
 - Every practice note before the last move ends with "N of M", counting only my own moves, from the lesson's own start position. (TC-LS-043)
 
+### US-R93 When importing from Chess.com fails, the app says why, and only blames the network when the network failed
+*Added #547, from jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28 (the job's TC-R36 id is taken).*
+As a player importing my games, I am told the real reason nothing arrived: no such account, no games in the months searched, a Chess.com error, or no connection.
+- Those four outcomes produce four different sentences; the no-games one does not mention the network or a sandbox; a real connection failure still says the app could not reach Chess.com. (TC-R91)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
