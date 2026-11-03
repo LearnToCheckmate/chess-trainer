@@ -469,13 +469,13 @@ L.run(async()=>{
        const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
        if(!m||!g)return null;const gr=g.getBoundingClientRect(),sq=gr.width/8,res=m.parentElement.getBoundingClientRect();
        let lost=0;for(let c=0;c<8;c++)for(const fy of [0.15,0.5]){const e=document.elementFromPoint(gr.left+sq*(c+.5),gr.top+sq*fy);if(!e||!g.contains(e))lost++;}
-       const longer=m.scrollHeight>res.height+1;const ovf=getComputedStyle(m).overflowY;
+       const longer=m.scrollHeight>res.height+1;const ovf=getComputedStyle(m).overflowY;let pan=true;for(let p=m;p&&p!==document.documentElement;p=p.parentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();if(/\bnone\b/.test(ta)||(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta)))pan=false;}/* cross-read A(2): script scrolls what a finger may not - require a vertical pan to be allowed */
        m.scrollTop=m.scrollHeight;const rg=document.createRange();rg.selectNodeContents(m);const rs=[...rg.getClientRects()];const lr=rs[rs.length-1],vr=m.getBoundingClientRect();
        const lastIn=!!lr&&lr.bottom<=vr.bottom+1&&lr.top>=vr.top-1;m.scrollTop=0;
-       return {lost,longer,ovf,sh:m.scrollHeight,ch:m.clientHeight,reserve:+res.height.toFixed(1),lastIn};}):null;
+       return {lost,longer,ovf,pan,sh:m.scrollHeight,ch:m.clientHeight,reserve:+res.height.toFixed(1),lastIn};}):null;
      if(L.say(!!r&&r.longer,'TC-R97 PRECONDITION '+tag+' the brilliant drill\'s hint is up and its text is LONGER than the reserve - the state that used to run over the board',r)){
        L.say(r.lost===0,'TC-R97 '+tag+' with the hint up, every rank-8 square hit-tests to the board at its top edge and centre ('+r.lost+' of 16 lost; pre-fix 16 at 320x568, 8 at 375)',r);
-       L.say(/^(auto|scroll)$/.test(r.ovf)&&r.sh>r.ch+1&&r.lastIn,'TC-R97 '+tag+' and the hint box is a real scroller whose LAST line scrolls into view',r);
+       L.say(/^(auto|scroll)$/.test(r.ovf)&&r.pan&&r.sh>r.ch+1&&r.lastIn,'TC-R97 '+tag+' and the hint box is a real scroller whose LAST line scrolls into view',r);
        let mv=true;try{await b.move('d1','d8',900);await b.settle(1500);}catch(e){mv=false;}
        const still=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="pz-top"] div')].some(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute'));
        L.say(mv&&!still,'TC-R97 '+tag+' and the back-rank answer d1-d8, tapped at the square centres, SOLVES - the hint is gone (pre-fix at 320x568 it stayed up after two tries)',{mv,hintStillUp:still});}
