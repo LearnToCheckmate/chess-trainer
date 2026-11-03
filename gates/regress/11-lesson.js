@@ -11,6 +11,11 @@ L.run(async()=>{
     const note=await b.rect('[data-ct="lesson-note"]');
     L.say(!!demoEnd.board,geo+': demo end shows a board',demoEnd.board);
     if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679&&demoEnd.board){ /* keyed on the geometry's DIMENSIONS, not its name [#545 item (4)]: a renamed key now throws here instead of silently skipping these pins */L.say(Math.abs(demoEnd.board.w-375)<0.6,'kunal: demo end board is 375 wide ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'kunal: demo end board top is 92 ('+demoEnd.board.top+')');}
+    // THE OTHER GEOMETRY THIS LOOP RUNS IS PINNED TOO [#547, item (38); jobs/gate-11-pins-the-demo-end-board-only-at-one-geometry-
+    // 2026-10-02]. At 390x844 the demo-end board was asserted to exist and nothing else, so it could move with this gate green.
+    // Pinned from MEASUREMENT, not copied from 375/92: claude/agents/gatelogs/545-all.log and 546c-all.log both print the 390
+    // demo-end board as w 390, top 92 (bundle 049b41dfb6f1). New lines, so the kunal lines and the a35524b record stand.
+    if(L.GEOS[geo].w===390&&L.GEOS[geo].h===844&&demoEnd.board){L.say(Math.abs(demoEnd.board.w-390)<0.6,'390: demo end board is 390 wide, edge to edge ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'390: demo end board top is 92 ('+demoEnd.board.top+')');}
     L.say(!!note&&Math.abs(note.h-75)<1,geo+': note box is 75px',note&&note.h);
     L.say(demoEnd.over.over<=0&&demoEnd.over.docScroll===0,geo+': no scroll at the demo end',demoEnd.over);
     await b.card(4,2500);const prac=await b.metrics();await b.shot('lesson-'+geo+'-practice');
