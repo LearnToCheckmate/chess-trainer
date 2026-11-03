@@ -4862,7 +4862,13 @@ export default function App(){
     const M={...(acctGamesRef.current||{})};
     M[id]=rows.slice(0,ACCT_GMAX);
     let ids=Object.keys(M);
-    const order=[...ccAccts.filter(x=>x!==id),id];
+    /* #547 item (61): the account ORDER is read from what the last store WROTE, not from the ccAccts this closure captured.
+       On entry to Review the chess.com and Lichess fetches run together; each closure held the ccAccts of the render that
+       started it, so the second store rebuilt the list from a stale [] and dropped the first account - measured on gate 61's
+       mixed-source input: 230 rows from two accounts, ccAccts ['cc:...'] alone, and a limit line that never mentioned the
+       Lichess account's 200-game cut. ACCT_K is written synchronously below, so it is always the newest list. */
+    const _cur=(()=>{try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');return Array.isArray(a)?a:ccAccts;}catch(e){return ccAccts;}})();
+    const order=[..._cur.filter(x=>x!==id&&x in M),id];
     while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];ids=Object.keys(M);}
     acctGamesRef.current=M; acctGamesSave(M,order);   // #431 oldest account first: `order` is [...older, justFetched]
     // #432 the bound rides the SAME eviction as the games it describes, in this one place, so a

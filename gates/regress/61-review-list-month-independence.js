@@ -580,6 +580,44 @@ async function input(seed,n,geo,name,thin){
     await b.close();
   }
 
+  // ── A18 #547 item (61), MIXED SOURCES [jobs/mixed-source-accounts-get-one-limit-sentence-that-is-false-for-one-of-them-2026-09-29].
+  //    A9 mixes two CHESS.COM accounts. The case the job is about mixes SOURCES: a thin chess.com account stopped by the
+  //    month window beside a LICHESS account stopped by games - and Lichess has no month window at all (one request,
+  //    max=ACCT_GMAX), so a line naming months alone is false for it. No gate stubbed lichess.org before this block: the
+  //    stub below serves ACCT_GMAX (200) ndjson games for one user and counts its own requests, which is the vacuity
+  //    guard. The wording was settled at #432 as "name both limits"; this is the input that exercises it across sources.
+  {
+    const LIU='listubuser';let liHits=0;
+    const state={seed:'b',hits:[],refuse:false,thin:{months:24,per:5}};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_liuser:LIU,ct_accts:'[]',ct_acctgames:'{}'},name:'mixed-source'});
+    await stub(b,state);
+    await b.ctx.route(/lichess\.org\/api\/games\/user\//,route=>{liHits++;const lines=[];
+      for(let i=0;i<200;i++){const dd=String(1+i%27).padStart(2,'0');
+        const pgn='[Event "Rated blitz game"]\n[Site "https://lichess.org/stub'+i+'"]\n[Date "2026.08.'+dd+'"]\n[White "'+LIU+'"]\n[Black "liopp'+i+'"]\n[Result "1-0"]\n\n'+MOVES+'\n';
+        const t=Date.UTC(2026,7,1+i%27,12,i%60);
+        lines.push(JSON.stringify({id:'stub'+i,pgn,players:{white:{user:{name:LIU}},black:{user:{name:'liopp'+i}}},winner:'white',speed:'blitz',createdAt:t,lastMoveAt:t}));}
+      return route.fulfill({status:200,contentType:'application/x-ndjson',body:lines.join('\n')+'\n'});});
+    await b.open(); await b.tile('Review'); await b.settle(2500);
+    const settledS=await rowsSettled(b,2);
+    L.say(settledS.ok,'A0s mixed-source: the rows SETTLED before the reading (Fetch idle, row count still for three reads, inside 20s)',settledS);
+    const r=await READ(b);
+    const caps=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_acctcap')||'{}');}catch(e){return {};}});
+    L.note('MIXED SOURCES  rows '+r.rows+'  lichess requests '+liHits+'  ct_acctcap '+JSON.stringify(caps)+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    L.say(settledS.accts===2,'A18-0c MIXED-SOURCE: BOTH accounts are in the account list (ccAccts) - on main the two fetches raced and the second store rebuilt the list from a stale [] and dropped the first, so the line was computed over one account [#547 item (61)]',{accts:settledS.accts,wanted:2});
+    L.say(liHits>=1,'A18-0a vacuity MIXED-SOURCE: the Lichess stub was actually asked ('+liHits+' request(s)), so a Lichess account is in the list',{liHits});
+    const ks=Object.keys(caps);const liK=ks.filter(k=>/^li/i.test(k)),ccK=ks.filter(k=>!/^li/i.test(k));
+    const a0=L.say(liK.some(k=>caps[k]==='games')&&ccK.some(k=>caps[k]==='months'),
+      'A18-0b vacuity MIXED-SOURCE: the Lichess account was stopped by GAMES and the chess.com account by MONTHS, so the line is made to cover two sources with two different bounds',{acctcap:caps});
+    if(a0){
+      const t=(r.cap&&r.cap.text)||'';
+      L.say(MONTH_RE.test(t)&&CAP_RE.test(t),
+        'A18a US-R25 MIXED-SOURCE: the line names BOTH limits - the month window (true of chess.com) and the games cap (the only bound Lichess has) - so it is not false for either account',
+        {line:t,namesMonths:MONTH_RE.test(t),namesGames:CAP_RE.test(t)});
+    }
+    L.say(b.errs.length===0,'A18 mixed-source: zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+
   // ── A10 #432, THE LEGACY STORE. THE SECOND STATE ANTAGONIST A BROKE THIS BUILD IN.
   //    A8 seeds 200 rows and 12. ACCT_GMAX was 40 from #353 to #430, so NO store written by any shipped build
   //    before #431 can hold 200 rows - the entire installed base sits at or under 40, and inferring at today's
