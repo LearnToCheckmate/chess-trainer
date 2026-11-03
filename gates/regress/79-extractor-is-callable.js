@@ -86,5 +86,12 @@ const SRCPATH=process.env.CT_SRC||path.join(ROOT,'chess.jsx');
   const missing=present.filter(w=>!provided.has(w));
   L.say(missing.length===0, 'X4b every grading helper chess.jsx defines is exported by the extractor'
         +(missing.length?' - NOT CARRIED: '+missing.join(', '):''));
+  // ---- S: THREE SOURCE INVARIANTS FROM BATCH 7 (#547), each one a property of the source the bundle is built from. ----
+  // S1 (item (181), TC-SUITE-367): every setPlayEnd that ENDS a game writes playEndRef in the same statement, so #439's two
+  //     move guards read the end synchronously instead of one effect flush late. Denominator first: the sites exist.
+  const pe=src.match(/setPlayEnd\((?!null)[^)]*\)/g)||[];
+  L.say(pe.length>=4,'S1a TC-SUITE-367 chess.jsx ends a game through '+pe.length+' setPlayEnd site(s) (clock flag x2, the auto-draw, resign)',{n:pe.length});
+  const lagging=src.split('\n').filter(l=>/setPlayEnd\((?!null)/.test(l)&&!/playEndRef\.current=/.test(l)).map(l=>l.trim().slice(0,90));
+  L.say(pe.length>=4&&lagging.length===0,'S1b TC-SUITE-367 and every one of them writes playEndRef.current on its own line, so the ref never lags the state',{lagging});
   L.done('79-extractor-is-callable');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('79-extractor-is-callable');});

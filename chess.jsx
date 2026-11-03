@@ -4101,8 +4101,10 @@ export default function App(){
   useEffect(()=>{
     if(mode!=='play'||!timeCtrl||timeCtrl.kind==='corr'||playEnd)return;
     if(getStatus(game)==='checkmate'||getStatus(game)==='stalemate')return;
-    if(clock.w<=0&&(clock.w||clock.b))setPlayEnd({reason:'time',winner:'b'});
-    else if(clock.b<=0&&(clock.w||clock.b))setPlayEnd({reason:'time',winner:'w'});
+    // #547 item (181), jobs/playendref-lags-playend-by-one-effect-flush-2026-09-30: every setPlayEnd site also writes
+    // playEndRef in the same breath (fullReset already did for null), so #439's two move guards are exact, not one flush late.
+    if(clock.w<=0&&(clock.w||clock.b)){const _pe={reason:'time',winner:'b'};playEndRef.current=_pe;setPlayEnd(_pe);}
+    else if(clock.b<=0&&(clock.w||clock.b)){const _pe={reason:'time',winner:'w'};playEndRef.current=_pe;setPlayEnd(_pe);}
   },[clock.w,clock.b,mode,timeCtrl,playEnd,game]);
 
   // #414 A DRAWN GAME MUST END, AND TWO OF THE FOUR WAYS IT HAPPENS DID NOT END IT.
@@ -4165,7 +4167,7 @@ export default function App(){
     return null;
   },[mode,opponent,playEnd,game,playHist]);
   useEffect(()=>{
-    if(drawBy&&!playEnd&&mode==='play'&&opponent!=='online')setPlayEnd({reason:'draw',by:drawBy});
+    if(drawBy&&!playEnd&&mode==='play'&&opponent!=='online'){const _pe={reason:'draw',by:drawBy};playEndRef.current=_pe;setPlayEnd(_pe);}   // #547 item (181)
   },[drawBy,playEnd,mode,opponent]);
 
   // Adaptive Elo — adjust once when a vs-Computer game ends
@@ -5210,7 +5212,7 @@ export default function App(){
     if(mode!=='play'||playEnd)return;
     const st=getStatus(game);if(st==='checkmate'||st==='stalemate')return;
     const loser=opponent==='computer'?pColor:game.turn;
-    setThinking(false);setPreMv(null);setPlayEnd({reason:'resign',winner:opp(loser)});setClock(c=>({...c,run:false}));
+    setThinking(false);setPreMv(null);{const _pe={reason:'resign',winner:opp(loser)};playEndRef.current=_pe;setPlayEnd(_pe);}   /* #547 item (181) */setClock(c=>({...c,run:false}));
   };
 
   // ─── Online multiplayer handlers ───
