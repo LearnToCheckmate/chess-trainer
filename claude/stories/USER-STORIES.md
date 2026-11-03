@@ -1584,6 +1584,11 @@ As a player who has just worked through my mistakes, Next on the last one tells 
 As a player, resigning takes two separate taps; an accidental double tap on Resign only arms it.
 - Two clicks 100ms apart on Resign do not resign; a second tap 700ms after the first does. Agree a draw has the same guard. (TC-PL-048)
 
+### US-PL-21 Black pieces stand out from dark squares as designed
+*Added #547, from the job on --pcfilter resolving to 'none' (item (160)).*
+As a player, black pieces carry the faint light outline the app gives them, so they separate from the dark squares.
+- Every black piece computes both white drop-shadows its style declares. (TC-PL-049)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

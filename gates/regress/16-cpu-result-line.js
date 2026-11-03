@@ -621,4 +621,13 @@ L.run(async()=>{
      if(gap<400)L.say(!over,'375x730: TC-PL-048 two clicks 100ms apart on the same pixel do NOT resign - the confirm needs the arm to be 400ms old',{resigned:over});
      else L.say(over,'375x730: TC-PL-048 and a deliberate second tap 700ms later still resigns',{resigned:over});}
    await b.close();}
+  // TC-PL-049 (US-PL-21), #547 item (160): BLACK PIECES GET THE SEPARATION SHADOW THEIR STYLE DECLARES. Each black piece's inline
+  // filter is 'var(--pcfilter) drop-shadow(...) drop-shadow(...)'; --pcfilter defaulted to the keyword 'none', which cannot be combined
+  // with filter functions, so the whole list was invalid and computed to 'none' on all 16. Read from the COMPUTED style.
+  {const b=await L.launch({geo:'kunal730',name:'piece-shadow'});await b.open();
+   let ok=true;try{await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});await b.settle(600);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const imgs=[...document.querySelectorAll('img')].filter(i=>/var\(--pcfilter\) drop-shadow/.test(i.getAttribute('style')||''));return {n:imgs.length,computed:imgs.map(i=>getComputedStyle(i).filter)};});
+   if(L.say(ok&&r.n===16,'375x730: TC-PL-049 PRECONDITION the start position paints 16 black pieces whose style declares the white separation shadows',{n:r.n}))
+     L.say(r.computed.every(f=>(f.match(/drop-shadow\(/g)||[]).length===2),'375x730: TC-PL-049 and every one of them actually COMPUTES both drop-shadows - not "none" from an invalid filter list',{sample:r.computed[0]});
+   await b.close();}
 }, 'CPU-RESULT-LINE');
