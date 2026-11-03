@@ -482,4 +482,17 @@ L.run(async()=>{
    if(L.say(ok&&!!r,geo+': TC-R89 PRECONDITION the summary\'s grade table and its White/Black header are found',r))
      L.say(Math.abs(r.white-r.wDig)<=1&&Math.abs(r.black-r.bDig)<=1,geo+': TC-R89 each header\'s ink is centred over its column\'s digits, within 1px (White '+r.white+' vs '+r.wDig+', Black '+r.black+' vs '+r.bDig+')',r);
    await b.close();}
+  // TC-R93 (US-R95), #547 item (170): THE VERDICT BADGE NEVER PAINTS OVER ITS WORD PILL. Pre-fix the pill was centred on the square and
+  // the round badge sat on the square's corner: 18x13px of overlap at ply 30 at 375x730, 'Blunder' read 'Blund'. Every ply of the
+  // reference game is walked, so the clamped edge squares are in the population; plies with no pill are not counted.
+  for(const geo of ['kunal730','se']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r93-pill-'+geo});await b.open();
+   let ok=true;try{await RV.states['moves-ply0'](b);}catch(e){ok=false;}
+   const hits=[],bad=[];
+   for(let p=1;ok&&p<=33;p++){try{await RV.goPly(b,p);await b.settle(500);}catch(e){break;}
+     const r=await b.page.evaluate(()=>{const bd=document.querySelector('[data-ct="rev-badge"]'),lb=document.querySelector('[data-ct="rev-badge-label"]');if(!bd||!lb)return null;const sp=lb.querySelector('span')||lb;const a=bd.getBoundingClientRect(),c=sp.getBoundingClientRect();
+       return {area:Math.max(0,Math.min(a.right,c.right)-Math.max(a.left,c.left))*Math.max(0,Math.min(a.bottom,c.bottom)-Math.max(a.top,c.top)),t:(sp.innerText||'').trim()};});
+     if(r){hits.push(p);if(r.area>0.5)bad.push({ply:p,area:Math.round(r.area),t:r.t});}}
+   if(L.say(ok&&hits.length>=1,geo+': TC-R93 PRECONDITION the walk met at least one ply that paints both the badge and its word pill ('+hits.length+': plies '+hits.join(',')+')',{hits}))
+     L.say(bad.length===0,geo+': TC-R93 at every such ply the badge and the pill do not overlap',bad);
+   await b.close();}
 },'REVIEW');

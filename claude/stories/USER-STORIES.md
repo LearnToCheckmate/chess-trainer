@@ -1589,6 +1589,11 @@ As a player, resigning takes two separate taps; an accidental double tap on Resi
 As a player, black pieces carry the faint light outline the app gives them, so they separate from the dark squares.
 - Every black piece computes both white drop-shadows its style declares. (TC-PL-049)
 
+### US-R95 The verdict word on the board is never covered by its own badge
+*Added #547, from the job on the round verdict chip painting over the word pill (item (170)).*
+As a player stepping through a review, "Blunder" and "Brilliant" on the board read in full.
+- At every ply where the board shows both the round badge and the word pill, they do not overlap. (TC-R93)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
