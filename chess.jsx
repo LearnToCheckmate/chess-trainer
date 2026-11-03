@@ -8773,7 +8773,16 @@ export default function App(){
         {pzOErr&&(<div style={{width:'100%',fontSize:'clamp(13.5px,2.3vw,13.5px)',fontWeight:600,color:'#ec9a90',lineHeight:1.5,background:'rgba(236,154,144,.08)',border:'1px solid rgba(236,154,144,.25)',borderRadius:12,padding:'9px 11px'}}>{pzOErr}</div>)}
         {!pzOErr&&pzOInfo&&p&&(<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.55)',fontWeight:600,textAlign:'center'}}>{pzOInfo}</div>)}
         {p&&(<>
-          <div style={{width:'100%',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
+          {/* THE VERDICT AND THE HINT FLOAT OVER THE GOAL CARD AND ADD NOTHING TO THE LAYOUT [#547, item (48);
+              jobs/board-jumps-on-drill-verdict; Kunal chose 'float' on questions/drill-verdict-float-or-slot-2026-10-10].
+              The message used to sit in a maxHeight:74 slot BELOW the goal card that was 0px tall until a message
+              arrived, so every verdict, hint and 'Show move' pushed the board down. Now the goal card keeps its box
+              (visibility:hidden while a message shows - the cost he accepted: the goal sentence hides while a message
+              is up) and the message is position:absolute over it, OPAQUE (its tint composited over the app ground, so
+              no goal ink shows through - the defect that held #500's version), and a long one runs down over the
+              board in full instead of scrolling inside a cap. Nothing in this column changes height. */}
+          <div data-ct="pz-float" style={{position:'relative',width:'100%'}}>
+          <div style={{width:'100%',visibility:puzMsg?'hidden':'visible',background:puzSolved?'rgba(123,216,143,.12)':'rgba(110,168,254,.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(110,168,254,.3)'}`,borderRadius:12,padding:'12px 14px'}}>
             <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:6}}>🎯 {p.goal}</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#cfe0ff',background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.3)',borderRadius:20,padding:'2px 9px'}}>{p.motif}</span>
@@ -8781,7 +8790,8 @@ export default function App(){
               {pzOSolvedIds[p.id]&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'#86d99a',background:'rgba(123,216,143,.13)',border:'1px solid rgba(123,216,143,.35)',borderRadius:20,padding:'2px 9px'}}>✓ solved before</span>)}
             </div>
           </div>
-          <div style={{width:'100%',maxHeight:74,overflowY:'auto'}}>{puzMsg&&(<div key={puzMsg} style={{width:'100%',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)'),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}</div>
+          {puzMsg&&(<div data-ct="pz-msg" key={puzMsg} style={{position:'absolute',left:0,right:0,top:0,minHeight:'100%',boxSizing:'border-box',zIndex:30,boxShadow:'0 6px 18px rgba(0,0,0,.45)',fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:700,color:puzSolved?'#aef0bd':(puzMsg[0]==='✗'?'#ffb3a8':'#cfe0ff'),lineHeight:1.5,background:(t=>'linear-gradient('+t+','+t+'),'+baseBg)(puzSolved?'rgba(123,216,143,.16)':(puzMsg[0]==='✗'?'rgba(236,154,144,.16)':'rgba(110,168,254,.14)')),border:'1px solid '+(puzSolved?'rgba(123,216,143,.45)':(puzMsg[0]==='✗'?'rgba(236,154,144,.45)':'rgba(110,168,254,.4)')),borderLeft:'4px solid '+(puzSolved?'#7bd88f':(puzMsg[0]==='✗'?'#ec9a90':'#6ea8fe')),borderRadius:10,padding:'12px 13px',animation:'pzflash .3s ease-out'}}>{puzMsg}</div>)}
+          </div>
         </>)}
       </div>);})()}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);return(p&&(
