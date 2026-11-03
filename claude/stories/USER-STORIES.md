@@ -1534,6 +1534,11 @@ As a player stepping through a review, "the position stays roughly level" means 
 As a player watching the engine's better line in a review, the board shows only that line: the verdict badge and coloured squares of my own move leave the board while it plays.
 - During the best-line replay there is no verdict badge, and the last-move tint is on the line's own move in the plain colour. (TC-R88)
 
+### US-R87 A run with a wrong move is not flawless, even after Try again
+*Added #547, from jobs/try-again-clears-the-wrong-try-so-a-flawless-day-banks-on-a-run-that-was-not-flawless-2026-10-06.*
+As a player working towards Mastered, a flawless day means a run with no wrong move, so the badge cannot be earned by playing a wrong move and tapping Try again.
+- A wrong move, then ↻ Try again, then the line to the end, is not called flawless and banks no learned day. (TC-LS-041)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

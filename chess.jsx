@@ -4359,9 +4359,13 @@ export default function App(){
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const startPractice=(line,label)=>{
-    learnRepRef.current={hints:!!showHintRef.current,miss:false};
+    /* #547 item (134), jobs/try-again-clears-the-wrong-try-so-a-flawless-day-banks-on-a-run-that-was-not-flawless-2026-10-06: this
+       used to reset miss to false, and '↻ Try again' re-enters here - so a wrong move, Try again, finish banked a FLAWLESS day.
+       A wrong move now stays on the record until that line is completed (finishRep resets it there) or a different line starts. */
+    const _prevRep=learnRepRef.current||{};
     {const _op0=LIB[openIdxRef.current];let _k=_op0?_op0.name:(label||'');
      if(_op0&&Array.isArray(line)){const lj=line.join('|');if(_op0.line&&_op0.line.join('|')===lj)_k=_op0.name;else{const _vv=(_op0.vars||[]).find(v=>v.line&&v.line.join('|')===lj);if(_vv)_k=_op0.name+'§'+_vv.name;}}
+     learnRepRef.current={hints:!!showHintRef.current,miss:!!(_prevRep.miss&&_prevRep.key===_k),key:_k};
      learnKeyRef.current=_k;}
     setLearnPhase('practice');setDemoPlaying(false);setLearnLine(line);setLearnLabel(label);setOpenMsg('');setInfoOpen(false);
     const op=LIB[openIdxRef.current];let g=op&&op.fen?fromFEN(op.fen):initGame();
