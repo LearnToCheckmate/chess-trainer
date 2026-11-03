@@ -1336,4 +1336,16 @@ L.run(async()=>{
    L.say(r.done&&!r.hintsOn&&r.days>=1,'kunal730: TC-LS-037 the clean first run banks a day (a day recorded in ct_learnprog, and no "hints on" in the closing note) - which a lightbulb that started ON could not',r);
    await b.close();
  }
+ // TC-R77 [#547 item (98); jobs/the-intro-card-cap-is-100vh-so-where-it-binds-the-card-fills-the-inset-bands-2026-10-08]: WHERE THE
+ // INTRO CARD'S HEIGHT CAP BINDS, THE CARD STAYS OUT OF THE INSET BANDS. 730x375 with ct_safe 51,31 is where it binds (its content is
+ // taller than the screen): the cap was 100vh, so the card ran 0..375 over the status bar and the home indicator.
+ {
+   const g={w:730,h:375,safe:'51,31',label:'730x375 insets 51,31'};
+   const b=await L.launch({geo:g,name:'lesson-intro-cap'});await b.open();
+   let ok=true;try{await D.states['intro'](b);await b.settle(700);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const o=[...document.querySelectorAll('div')].find(d=>getComputedStyle(d).zIndex==='472');if(!o)return null;const p=o.firstElementChild;const q=p.getBoundingClientRect();return {top:q.top,bottom:q.bottom,vh:innerHeight,sh:p.scrollHeight,ch:p.clientHeight};});
+   L.say(ok&&!!r&&r.sh>r.ch,'730x375 insets: TC-R77 PRECONDITION the intro card is up and its cap BINDS (content '+(r&&r.sh)+' > box '+(r&&r.ch)+'), so this is the state the job is about',r);
+   L.say(!!r&&r.top>=51-0.5&&r.bottom<=r.vh-31+0.5,'730x375 insets: TC-R77 the capped card stays inside the safe area - top '+(r&&Math.round(r.top))+' >= 51, bottom '+(r&&Math.round(r.bottom))+' <= '+(r&&(r.vh-31)),r);
+   await b.close();
+ }
 },'LESSON-FLOW');
