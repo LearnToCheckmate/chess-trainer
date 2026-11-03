@@ -10,7 +10,7 @@ module.exports=[
  "The king is in the corner.",
  "Bring your king to f6. Always leave the king a move: here it still has g8, so this is not stalemate.",
  "Its only move.",
- "The queen lands beside the king, guarded by your own king: checkmate. The method: box it in, bring your king, and mate on the edge."],
+ "The method: box it in, bring your king, and mate on the edge. The queen lands beside the king, guarded by your own king: checkmate."],
  claims:[[0,'d5','w',true],[0,'d7','w',true],[0,'e8','w',true],[2,'e6','w',true],[2,'f6','w',true],[2,'g6','w',true],[6,'g8','w',false],[8,'g8','w',true]]},
 {name:"King & Rook Mate",fen:"8/8/4k3/8/4K3/8/8/R7 w - - 0 1",
  line:["Rd1","Kf6","Rd6+","Ke7","Ke5","Kf7","Rd5","Ke7","Kf5","Kf7","Rd7+","Ke8","Ke6","Kf8","Kf6","Kg8","Rd8+","Kh7","Re8","Kh6","Rh8#"],
@@ -96,7 +96,7 @@ module.exports=[
  "Still running.",
  "One step from queening, and your king guards e8.",
  "Nothing to be done.",
- "The pawn queens. Your king went first, and the pawn walked in behind it."],
+ "Your king went first, and the pawn walked in behind it. The pawn queens."],
  claims:[[2,'e7','w',true],[2,'e8','w',true],[8,'e8','w',true]]},
 {name:"Bishop & Knight Mate",fen:"8/8/4k3/8/4K3/5N2/5B2/8 w - - 0 1",
  line:["Bg3","Kf6","Nd4","Kg5","Bc7","Kg4","Ne6","Kh5","Kf5","Kh4","Ng5","Kh5","Bg3","Kh6","Ne6","Kh5","Nf4+","Kh6","Kf6","Kh7","Kf7","Kh8","Bh4","Kh7","Bg5","Kh8","Ne6","Kh7","Nf8+","Kh8","Bf6#"],
@@ -130,6 +130,6 @@ module.exports=[
  "Out to h7 once more.",
  "Knight check: the king must go back to h8.",
  "Its only square.",
- "The bishop checks on the long diagonal. Knight, bishop and king cover every square: checkmate in the dark corner. Against a king that runs to the WRONG corner, the knight's looping W path drives it across first."],
+ "Mate only in the corner of your bishop's colour, where knight, bishop and king cover every square. The bishop checks on the long diagonal: checkmate in the dark corner. Against a king that runs to the WRONG corner, the knight's looping W path drives it across first."],
  claims:[[0,'d6','w',true],[0,'e5','w',true],[2,'e6','w',true],[2,'f5','w',true],[4,'f4','w',true],[6,'f4','w',true],[6,'g5','w',true],[8,'g4','w',true],[8,'g5','w',true],[8,'g6','w',true],[10,'h3','w',true],[10,'h7','w',true],[12,'h4','w',true],[14,'g5','w',true],[14,'g7','w',true],[18,'g5','w',true],[18,'g6','w',true],[18,'g7','w',true],[20,'g6','w',true],[20,'g7','w',true],[20,'g8','w',true],[24,'h6','w',true]]}
 ];
