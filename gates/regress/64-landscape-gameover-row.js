@@ -216,6 +216,15 @@ L.run(async()=>{
       }
       await rotate(b,g);
       await assertOver(b,G+'B1-B4 TERMINAL PLY:',true);
+      // B8 [#547 item (92); jobs/landscape-game-over-banner-is-cut-mid-letter-2026-09-29]: the result card's WORD is painted whole.
+      // Its font was 5.2vw - 38px at 730 wide - inside a box sized from a 216px board, so the player read 'Checkma'. The card is
+      // found first (its own line), then the word's glyph box must lie inside the card AND inside the board that clips it.
+      {const w=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="result-card"]');if(!c)return null;const h=[...c.querySelectorAll('div')].find(d=>d.children.length===0&&(d.textContent||'').trim());
+         const t=h&&[...h.childNodes].find(n=>n.nodeType===3&&n.nodeValue.trim());const rg=document.createRange();if(t)rg.selectNodeContents(t);const r=t?rg.getBoundingClientRect():null;
+         const cr=c.getBoundingClientRect();const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,b)=>b.width-a.width)[0];
+         return {word:t?t.nodeValue.trim():null,ink:r&&[Math.round(r.left*10)/10,Math.round(r.right*10)/10],card:[Math.round(cr.left*10)/10,Math.round(cr.right*10)/10],board:g&&[Math.round(g.left*10)/10,Math.round(g.right*10)/10]};});
+       L.say(!!w&&!!w.word&&!!w.ink,G+'B8 PRECONDITION the result card is up and its headline word is found ('+(w&&w.word)+')',w);
+       L.say(!!w&&!!w.ink&&!!w.board&&w.ink[0]>=w.card[0]-0.5&&w.ink[1]<=w.card[1]+0.5&&w.ink[0]>=w.board[0]-0.5&&w.ink[1]<=w.board[1]+0.5,G+'B8 the headline "'+(w&&w.word)+'" is painted whole - inside its card and inside the board that clips it',w);}
       await b.shot('g64-'+g.w+'x'+g.h+'-'+k.id+'-terminal');
 
       // ===== B5: after Back x2. #437's trap - the clip must not become permanent, and the row must not be ply-keyed. =====
