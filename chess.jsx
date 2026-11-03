@@ -3153,6 +3153,14 @@ export default function App(){
   // Every fetch used to overwrite ccRawRef wholesale, and the username was a single string, so
   // looking up a friend cost you your own history. Games are now filed PER ACCOUNT and kept in
   // localStorage, so they survive a reload as well as the next import.
+  /* #547 item (79), Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026): a switch per imported account
+     saying whether it is HIS. Only accounts marked his feed the mistakes drill and the brilliant-moves list; another
+     player's games stay reviewable. Stored as {acctId:false} for accounts switched OFF, so every account - including
+     every one already imported - starts as his: the app cannot tell his accounts from anyone else's, and starting ON
+     keeps today's behaviour until he flips one. */
+  const [acctMine,setAcctMine]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_acctmine')||'{}')||{};}catch(e){return {};}});
+  const acctMineRef=useRef(acctMine);acctMineRef.current=acctMine;
+  useEffect(()=>{try{localStorage.setItem('ct_acctmine',JSON.stringify(acctMine));}catch(e){}},[acctMine]);
   const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
   const acctGamesRef=useRef(acctGamesLoad());
   const acctCapRef=useRef(acctCapLoad());   // #432 which bound stopped each account's walk
@@ -4750,7 +4758,8 @@ export default function App(){
     // Capture the user's Mistakes/Blunders (to practice) and Brilliant moves (to replay)
     try{
       const uc2=meta&&meta.userColor;
-      if(uc2){
+      const _notMine=!!(meta&&meta.acctId&&(acctMineRef.current||{})[meta.acctId]===false);   // #547 item (79): an account he marked not his feeds neither pool
+      if(uc2&&!_notMine){
         const caps=[],bril=[];
         const lastOf=(j)=>{if(j<=0||!res.plies[j-1])return null;const lm=res.plies[j-1].move;return {fr:lm.fr,fc:lm.fc,tr:lm.tr,tc:lm.tc};};
         for(let i=0;i<out.length;i++){
@@ -4974,7 +4983,7 @@ export default function App(){
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);
   };
-  const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor});};
+  const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null});};
   // #353 show what is already stored the moment the Review screen opens, before any network call
   useEffect(()=>{if(mode!=='analyze')return;const M=acctGamesRef.current||{};if(Object.keys(M).length)mergeGames();},[mode]);
   /* #547 item (133), jobs/the-review-list-filter-survives-leaving-the-review-screen-2026-10-06: the #476 filter (gFil) and the
@@ -7850,6 +7859,8 @@ export default function App(){
               {ccAccts.map(id=>{const _s=id.split(':')[0],_u=id.slice(_s.length+1),_n=((acctGamesRef.current||{})[id]||[]).length;return(
                 <span key={id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 6px 4px 10px',borderRadius:16,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',fontSize:'clamp(13px,2.5vw,14px)',color:'#fff',fontWeight:700}}>
                   {_u}<span style={{color:'rgba(255,255,255,.42)',fontWeight:600}}>{_n}</span>
+                  {/* #547 item (79): his, or not his - only his feed the mistakes drill and brilliant moves */}
+                  <button data-ct="acct-mine" onClick={()=>setAcctMine(m=>{const n={...m};if(n[id]===false)delete n[id];else n[id]=false;return n;})} aria-label={(acctMine[id]===false?'Mark '+_u+' as your account':'Mark '+_u+' as not your account')} aria-pressed={acctMine[id]!==false} title={acctMine[id]===false?'Not yours: its games stay out of your mistakes drill and brilliant moves. Tap if it is yours.':'Yours: its games feed your mistakes drill and brilliant moves. Tap if it is someone else\u2019s.'} style={{height:20,borderRadius:10,border:'1px solid '+(acctMine[id]===false?'rgba(255,255,255,.18)':'rgba(123,216,143,.5)'),background:acctMine[id]===false?'transparent':'rgba(123,216,143,.14)',color:acctMine[id]===false?'rgba(255,255,255,.5)':'#9be3ab',cursor:'pointer',fontSize:11.5,fontWeight:700,lineHeight:1,padding:'0 7px'}}>{acctMine[id]===false?'not mine':'mine'}</button>
                   <button onClick={()=>acctForget(id)} aria-label={'Remove '+_u} title={'Remove '+_u+' and its games'} style={{width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>{'\u00d7'}</button>
                 </span>);})}
             </div>)}
@@ -8311,7 +8322,7 @@ export default function App(){
                   <span style={{flexShrink:0,width:44,textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>
                   <span style={{minWidth:0,flex:1}}>
                     <span style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{info.opp?('vs '+info.opp):(g.white+' vs '+g.black)}</span>
-                    <span style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><span style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{g.src==='li'?'Lichess':'Chess.com'}</span>{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
+                    <span style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><span data-ct="game-src" style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{(ccAccts.length>1&&g.acct)?g.acct:(g.src==='li'?'Lichess':'Chess.com')}</span>{/* #547 item (79): with more than one account the card names WHOSE game it is, in the slot the site name used - no extra space; the site stays as the colour */}{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
                     {st&&(()=>{const est=st.src!=='review';return(<span data-ct={est?'gstat-est':'gstat-rev'} style={{display:'inline-flex',flexWrap:'wrap',alignItems:'center',gap:9,marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace',opacity:est?.78:1}}>
                       {est&&<span data-ct="gstat-esttag" style={{fontSize:'.72em',fontWeight:700,letterSpacing:.6,color:'rgba(255,255,255,.5)',border:'1px solid rgba(255,255,255,.22)',borderRadius:5,padding:'0 5px'}}>EST</span>}
                       {st.bril>0&&(est

@@ -1443,3 +1443,14 @@ to resign a game we did not lose.
 - Against the computer there is no such item: an offer to the bot needs a rule for when it accepts, and that rule is
   Kunal's to choose. (TC-PL-041)
 
+### US-R74 Only my own accounts feed my drills
+*Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
+As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
+mistakes drill and my brilliant moves - so the drill never asks me to find a move in a game I did not play.
+- Each imported account carries a switch reading "mine" or "not mine". Every account starts as mine - the app cannot tell
+  my accounts from anyone else's - and one tap flips it. (TC-R74)
+- Reviewing a game from an account marked not mine adds nothing to either pool; the same game from an account marked mine
+  does. (TC-R74)
+- With more than one account imported, each game card names the account it came from, in the slot the site name used, at
+  no extra height.
+

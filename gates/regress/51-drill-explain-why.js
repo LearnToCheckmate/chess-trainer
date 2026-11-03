@@ -364,4 +364,21 @@ L.run(async()=>{
     // worse than a known-narrow assertion.
     if(isC&&hints.length===N)L.say(new Set(hints).size===N&&hints.every(h=>h.length>0&&h.indexOf('<HINT')<0),'TC-R16 B10 '+g.n+' the '+N+' HINTS are all DIFFERENT and all real - the hint must vary with the position (see the note above: this asserts distinctness where "varies with the shape" is the true property)',{distinct:new Set(hints).size,of:N,hints:hints});
   }
+  // ===== TC-R74 [#547 item (79); Kunal's Desk answer 'per-account' on drill-own-games-only]. THE SAME REVIEW, ITS ACCOUNT MARKED
+  // NOT HIS, CAPTURES NOTHING. Phase 1 above is the positive half (A1: the same game from the same stored account captured
+  // at least 2 mistakes); here the only difference is ct_acctmine switching that account off. The chip must SAY so first
+  // (precondition), the review must actually finish (precondition), and then neither pool may gain a row.
+  {
+    const ID='cc:dukekarlcountisouard99';
+    const c=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-not-mine',store:{...ACCT,ct_acctmine:{[ID]:false},ct_mymistakes:[],ct_mybrilliancies:[]}});await c.open();
+    await c.tile('Review');await c.settle(700);
+    const chip=await c.page.evaluate(()=>{const e=document.querySelector('[data-ct="acct-mine"]');return e?{t:(e.innerText||'').trim(),p:e.getAttribute('aria-pressed')}:null;});
+    L.say(!!chip&&chip.t==='not mine'&&chip.p==='false','TC-R74 PRECONDITION the account chip reads "not mine" - the switch the player sets is on screen, and set',chip);
+    let done=true;try{await c.page.locator('button',{hasText:/Review ›/}).first().click();await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await c.settle(1200);}catch(e){done=false;}
+    L.say(done,'TC-R74 PRECONDITION the review of that account\'s game reached its summary, so a capture had every chance to run',{done});
+    const pools=await c.page.evaluate(()=>({mis:JSON.parse(localStorage.getItem('ct_mymistakes')||'[]').length,bril:JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]').length}));
+    L.say(done&&pools.mis===0&&pools.bril===0,'TC-R74 a game from an account marked NOT his adds nothing to his mistakes drill or his brilliant moves (phase 1 captured '+mis.length+' mistakes from the same game when the account was his)',{...pools,phase1:mis.length});
+    L.say(c.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'TC-R74 no app error beyond the allowed engine trap',c.errs.slice(0,2));
+    await c.close();
+  }
 },'51-drill-explain-why');
