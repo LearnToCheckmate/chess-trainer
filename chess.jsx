@@ -3146,6 +3146,13 @@ export default function App(){
   // function and gameStatsRef, so a blob written by a pre-#503 build arrives unstamped on a signed-in
   // device. Found by antagonist A; filed with its measurement rather than fixed here, because the merge
   // rule it lands in is a pre-existing length comparison and changing it needs its own control.
+  /* #547 item (67), jobs/a-count-from-the-background-estimate-map-is-printed-as-the-players-own-reviewed-games-2026-10-04
+     (Kunal chose "real-only"): ct_gamestats holds BOTH full reviews (src:'review') and the background pass's depth-2
+     ESTIMATES (src:'est'), and four readers printed its whole key count as the player's own reviewed games. Only a
+     src:'review' entry is a game the player reviewed; an entry with no src is an old skim and counts as one. Readers:
+     coachNudge and coachPlan (REAL), achvStats.reviewed for rv1/rv10 (REAL), the Your progress panel's Games reviewed and
+     Brilliancies tiles (REAL), and that panel's show condition (ALL, so the Achievements link stays reachable). */
+  const gsRealKeys=()=>{const GS=gameStatsRef.current||{};return Object.keys(GS).filter(k=>GS[k]&&GS[k].src==='review');};
   const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
   const [ccGames,setCcGames]=useState(null);
   const gamesListRef=useRef(null);
@@ -5816,8 +5823,8 @@ export default function App(){
    const sendFbNote=()=>{const t=String(fbText||'').trim();if(!t){setFbOpen(false);return;}const ctx=fbCtx();const block='[Chess Trainer feedback]\n'+ctx+'\nnote: '+t;let ok=false;try{navigator.clipboard.writeText(block);ok=true;}catch(e){}if(!ok){try{const ta=document.createElement('textarea');ta.value=block;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');document.body.removeChild(ta);ok=true;}catch(_){}}try{const arr=JSON.parse(localStorage.getItem('ct_feedback_notes')||'[]');arr.push({t,ctx,ts:Date.now()});localStorage.setItem('ct_feedback_notes',JSON.stringify(arr.slice(-50)));}catch(e){}try{postReport('feedback',{ctx,note:t,ts:Date.now()});}catch(_){}setFbCopied(ok);setFbSent(true);setFbText('');};
   const _lessonNm=(mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:null;
   const _coachRec=useMemo(()=>{const lvl=cpuElo<1000?'endgames':(cpuElo<1500?'openings':'gambits');const pool=LIB.map((o,i)=>({o,i})).filter(x=>groupOf(x.o.cat)===lvl);const list=pool.length?pool:LIB.map((o,i)=>({o,i}));if(!list.length)return null;const seed=Math.floor(Date.now()/86400000);const pick=list[seed%list.length];const msg=cpuElo<1000?'New to chess? Lock in the endgame basics':(cpuElo<1500?'Build a solid opening you can trust':'Ready for sharp play? Learn to attack');return {idx:pick.i,name:pick.o.name,msg};},[cpuElo]);
-  const coachNudge=()=>{const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const gReviewed=Object.keys(gameStatsRef.current||{}).length;const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
-    if(gReviewed===0)return{tip:"Import one of your games and I'll show you exactly where it turned.",goLabel:'Review',go:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}};
+  const coachNudge=()=>{const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const gReviewed=gsRealKeys().length,gAny=Object.keys(gameStatsRef.current||{}).length;const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
+    if(gReviewed===0)return{tip:gAny>0?"Review one of your games in full and I'll show you where it turned.":"Import one of your games and I'll show you exactly where it turned.",goLabel:'Review',go:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}};
     if(pTot===0)return{tip:"Warm up with a quick tactics puzzle. They sharpen your eye fast.",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     if(dTd<DAILY_GOAL)return{tip:"You're "+dTd+" of "+DAILY_GOAL+" on today's puzzle goal. A few more?",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Daily goal done, nice. Try the next puzzle tier.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
@@ -5832,13 +5839,13 @@ export default function App(){
     const goTrain=()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('train');};
     const goDisc=()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);};
     const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;
-    const gReviewed=Object.keys(gameStatsRef.current||{}).length;
+    const gReviewed=gsRealKeys().length,gAny=Object.keys(gameStatsRef.current||{}).length;
     const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
     const learnedN=Object.values(trainMastery).filter(m=>m&&m.learned).length;
     const dueN=Object.values(trainMastery).filter(m=>m&&m.learned&&Date.now()>(m.due||0)).length;
     const mineN=(myMistakesRef.current||[]).length;
     const plan=[];
-    if(gReviewed===0)plan.push({ic:'📥',text:"Import one of your games so I can show you where it turned.",goLabel:'Review',go:goRev});
+    if(gReviewed===0)plan.push({ic:'📥',text:gAny>0?"Review one of your games in full so I can show you where it turned.":"Import one of your games so I can show you where it turned.",goLabel:'Review',go:goRev});
     if(dTd<DAILY_GOAL)plan.push({ic:'🧩',text:'Solve '+(DAILY_GOAL-dTd)+' more puzzle'+((DAILY_GOAL-dTd)>1?'s':'')+" to finish today's goal.",goLabel:'Solve',go:goPz});
     if(mineN>0)plan.push({ic:'🔎',text:'Practice '+mineN+' position'+(mineN>1?'s':'')+' you slipped on in your games.',goLabel:'Practice',go:()=>{setCoachOpen(false);startMistakes();}});
     if(dueN>0)plan.push({ic:'🎯',text:'Review '+dueN+' opening'+(dueN>1?'s':'')+' that are due today.',goLabel:'Train',go:goTrain});
@@ -5846,7 +5853,7 @@ export default function App(){
     if(plan.length<3){const fill=[{ic:'🔭',text:'Explore a new opening over in Discover.',goLabel:'Discover',go:goDisc},{ic:'📊',text:'Review your latest game and hunt the turning point.',goLabel:'Review',go:goRev},{ic:'🧗',text:'Push into the next puzzle tier.',goLabel:'Solve',go:goPz}];for(const f of fill){if(plan.length>=3)break;if(!plan.some(p=>p.goLabel===f.goLabel))plan.push(f);}}
     return plan.slice(0,3);
   };
-  const achvStats=()=>({pz:pzTotalSolved(pzSolvedMap)+pzOSolved,streak:(daily&&daily.streak)||0,bestStreak:pzBest||0,learned:Object.values(trainMastery).filter(m=>m&&m.learned).length,reviewed:Object.keys(gameStatsRef.current||{}).length,bril:(myBrilliant||[]).length});
+  const achvStats=()=>({pz:pzTotalSolved(pzSolvedMap)+pzOSolved,streak:(daily&&daily.streak)||0,bestStreak:pzBest||0,learned:Object.values(trainMastery).filter(m=>m&&m.learned).length,reviewed:gsRealKeys().length,bril:(myBrilliant||[]).length});
   useEffect(()=>{const s=achvStats();const got=ACHV.filter(a=>{try{return a.test(s);}catch(e){return false;}}).map(a=>a.id);setAchv(prev=>{const set=new Set(prev||[]);let ch=false;got.forEach(id=>{if(!set.has(id)){set.add(id);ch=true;}});return ch?[...set]:prev;});},[pzSolvedMap,pzOSolved,daily,pzBest,trainMastery,gsVer,myBrilliant]);
   useEffect(()=>{try{localStorage.setItem('ct_achv',JSON.stringify(achv));}catch(e){}},[achv]);
   const realOpeningStats=useMemo(()=>{
@@ -7745,7 +7752,7 @@ export default function App(){
             <div style={{fontSize:'clamp(15px,3.6vw,18px)',color:'#fff',fontWeight:800}}>Review any game, from anywhere</div>
             <div style={{fontSize:'clamp(15px,3.4vw,17px)',color:'var(--ac2)',fontWeight:600,marginTop:3,lineHeight:1.45}}>Pull in your games from Chess.com or Lichess and review them all. Unlimited and free.</div>
           </div>
-          {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReviewed=gk.length;let tB=0;gk.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gReviewed>0||pTot>0||pzXP>0;if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliancies',tB,'#22d3ee']];return(
+          {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReal=gk.filter(k=>GS[k]&&GS[k].src==='review');const gReviewed=gReal.length;let tB=0;gReal.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gk.length>0||pTot>0||pzXP>0; /* #547 item (67): the tiles count REAL reviews only; the panel still shows on ANY entry */if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliancies',tB,'#22d3ee']];return(
             <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:14,padding:'12px 12px',boxShadow:SHADOW_BOX}}>
               <div style={{fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginBottom:10}}>Your progress</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:9}}>

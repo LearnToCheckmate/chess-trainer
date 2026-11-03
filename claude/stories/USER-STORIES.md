@@ -1301,6 +1301,12 @@ CASE: TC-R60, gate `gates/regress/74-lesson-card-hit-area.js`.
 
 **AND ONE THING THIS CLAUSE SHOULD RECORD THAT NEITHER THE JOB NOR THE FIX NOTICED.** The intro card has **no re-entry**: the only `setIntroCard(true)` outside `selectOpening` is an "about" button that sits inside a block whose contents are wrapped in `{!lessonFocus&&(...)}` while `lessonFocus` is the same predicate the block tests, so it never renders. The card is therefore only ever on screen in the first moments of a lesson — which is why (iii)'s cost is small, and which also means a player has no way back to the lesson's own idea text once it is gone. Argued from the source by antagonist A, not driven in a browser, and labelled as such. Recorded on the overflow job rather than filed separately, because it bounds that job's exposure.
 
+- (4b) WIDENED AT #547 (item (67); Kunal chose "real-only"): the same principle holds for the whole Review screen, not only
+  the filter. A count the screen prints as the games I REVIEWED - the Your progress panel's Games reviewed and Brilliancies, and
+  the review badges (Self-Aware at one review, Analyst at ten) - counts only games I gave a full review. The background pass's
+  estimates, and old entries that carry no source, are skims and never count as reviews; the panel itself still shows when
+  any entry exists, so the Achievements route stays reachable. (TC-R49)
+
 ### US-R47 — a box that carries news shows the news, or does not carry it
 
 **ARRIVED AT #502** for `jobs/rank-up-verdict-line-is-cut-mid-word-2026-09-28` (ship-list id 8, priority 13, finishFirst). The clause was drafted **verbatim** on that job by `spec-c__1790639770809` on 2026-09-28 and never written here; #496 recorded that it deliberately did not take the id because it was reserved by that job. This is that write, and the clause text is the job's own, unchanged.

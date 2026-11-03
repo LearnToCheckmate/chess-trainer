@@ -1475,5 +1475,31 @@ function mkTap(b,READ){
     }
   }
 
+  // ── TC-R49: ESTIMATES ARE NOT REVIEWS [#547, item (67); jobs/a-count-from-the-background-estimate-map-is-printed-as-the-
+  // players-own-reviewed-games-2026-10-04; Kunal chose "real-only"]. ct_gamestats holds full reviews (src:'review') and the
+  // background pass's depth-2 estimates (src:'est'); the Your progress panel printed the whole key count as "Games reviewed",
+  // summed estimate brilliants into "Brilliancies", and the Self-Aware badge (rv1) unlocked off estimates alone. Three seeds at
+  // 375x730: 7 estimate rows; 7 estimate rows plus 1 review row; and 9 review rows plus 4 estimates (rv10 Analyst at ten). The
+  // panel must SHOW on the estimates-only store (the Achievements link stays reachable), so its absence cannot pass anything.
+  {
+    const est=(i)=>({bril:1,great:2,inacc:1,mist:0,blun:0,src:'est',gv:1});
+    const rev=(i)=>({bril:2,great:3,inacc:0,mist:0,blun:0,src:'review',engine:'sf',gv:1});
+    const mk=(nEst,nRev)=>{const o={};for(let i=0;i<nEst;i++)o['cc:'+(1789000000000+i)+':kunal2023:opp'+i]=est(i);for(let i=0;i<nRev;i++)o['cc:'+(1790000000000+i)+':kunal2023:rev'+i]=rev(i);return o;};
+    const panel=(b)=>b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
+      const num=(lab)=>{const m=new RegExp('(\\d+) '+lab).exec(t);return m?+m[1]:null;};
+      let achv=[];try{achv=JSON.parse(localStorage.getItem('ct_achv')||'[]');}catch(e){}
+      return {shown:/Your progress/.test(t),reviewed:num('Games reviewed'),bril:num('Brilliancies'),achv};});
+    for(const [tag,nEst,nRev,wantRev,wantBril,rv1,rv10] of [['7 est',7,0,0,0,false,false],['7 est + 1 review',7,1,1,2,true,false],['4 est + 9 review',4,9,9,18,true,false]]){
+      const b=await L.launch({geo:'kunal730',name:'r49-'+nEst+'-'+nRev,store:{ct_pool:'3',ct_gamestats:mk(nEst,nRev)}});await b.open();
+      await b.tile('Review');await b.settle(1200);
+      const r=await panel(b);
+      L.say(r.shown,'375x730 '+tag+': TC-R49 PRECONDITION the Your progress panel is on the Review screen (it shows on ANY entry, estimates included, so the Achievements link stays reachable)',r);
+      L.say(r.reviewed===wantRev,'375x730 '+tag+': TC-R49 "Games reviewed" counts REAL reviews only and reads '+wantRev+' ('+r.reviewed+'); an estimate is not a game the player reviewed',r);
+      L.say(r.bril===wantBril,'375x730 '+tag+': TC-R49 "Brilliancies" sums brilliants over real reviews only and reads '+wantBril+' ('+r.bril+')',r);
+      L.say(r.achv.includes('rv1')===rv1&&r.achv.includes('rv10')===rv10,'375x730 '+tag+': TC-R49 Self-Aware (rv1) is '+(rv1?'':'NOT ')+'unlocked and Analyst (rv10) is not - review badges come from real reviews',{achv:r.achv});
+      L.say(b.errs.length===0,'375x730 '+tag+': TC-R49 zero app errors',b.errs.slice(0,2));
+      await b.close();
+    }
+  }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});
