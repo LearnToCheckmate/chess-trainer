@@ -604,6 +604,23 @@ if(blk('R'))for(const geo of ['kunal761','kunal730','se']){
   await b.close();
 }
 
+// BLOCK X [#547 item (180); jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30]: the sheet is
+// modal, so it must have a way out besides its own X - a tap outside it, and Escape. Both read from the sheet being
+// GONE from the DOM, each after a separate precondition that it was open, at the landscape phone and at his phone.
+if(blk('X'))for(const g of [{k:{w:730,h:375,safe:'',label:'730x375'},n:'730x375'},{k:'kunal730',n:'375x730'}]){
+  const b=await L.launch({geo:g.k,name:'mn-x-'+g.n});await b.open();
+  const up=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
+  await b.tapCt('home-menu',700);const o1=await up();
+  L.say(o1,g.n+': TC-MN-046 PRECONDITION the menu sheet is open before the outside tap',{open:o1});
+  const sr=await b.rect('[data-ct="menu-sheet"]');const pt=sr&&sr.x>16?[8,Math.round(sr.y+sr.h/2)]:[8,8];
+  await b.page.mouse.click(pt[0],pt[1]);await b.settle(500);const c1=!(await up());
+  L.say(c1,g.n+': TC-MN-046 a tap OUTSIDE the sheet, at ('+pt+'), closes it',{closed:c1,sheet:sr});
+  await b.tapCt('home-menu',700);const o2=await up();
+  L.say(o2,g.n+': TC-MN-047 PRECONDITION the menu sheet is open again before Escape',{open:o2});
+  await b.page.keyboard.press('Escape');await b.settle(400);const c2=!(await up());
+  L.say(c2,g.n+': TC-MN-047 Escape closes the menu sheet',{closed:c2});
+  await b.close();
+}
 },'MENU');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with

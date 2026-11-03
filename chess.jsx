@@ -2671,6 +2671,9 @@ export default function App(){
   const [skinOpen,setSkinOpen]=useState(false);
   const [lookOpen,setLookOpen]=useState(false); /* #367 y12c: the Look and feel picker - a drawn board that changes as you tap, so you pick by looking */
   const [menuOpen,setMenuOpen]=useState(false);
+  /* #547 item (180): Escape closes the menu sheet. Measured on the #547 trial at 730x375 and 375x730: a tap outside the
+     sheet closed it, Escape did nothing - so a keyboard or a hardware back key had no way out but the sheet's own X. */
+  useEffect(()=>{if(!menuOpen)return;const k=e=>{if(e.key==='Escape'){e.stopPropagation();setMenuOpen(false);}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[menuOpen]);
   const [boardDepth,setBoardDepth]=useState(()=>{try{return localStorage.getItem('ct_depth')==='1';}catch{return false;}});
   const cyclingRef=useRef(false);
   const [learnCat,setLearnCat]=useState(null);
