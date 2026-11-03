@@ -9014,7 +9014,10 @@ export default function App(){
       </div>);})()}
       {mode==='puzzle'&&pzView==='online'&&(()=>{const p=(curPuz&&curPuz.ext)?curPuz:null;const bw=Math.min(vw-8,440);return(p&&(
       <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:8,width:bw,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'stretch',gap:8}}>
-        {!puzSolved&&(<div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
+        {/* #547 item (80), jobs/drill-solved-board-jumps-bottom-row-collapse: this row UNMOUNTED on a solve, pz-bottom lost
+            its height and the centring spacers re-laid the stack, so the board jumped at the moment of the find. It now keeps
+            its box (visibility:hidden, and inert to taps and focus) once solved, so nothing in the column changes height. */}
+        {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>

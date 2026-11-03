@@ -277,7 +277,9 @@ const fmt=(r)=>r?('top '+Math.round(r.y*10)/10+' w '+Math.round(r.w*10)/10):'no 
 L.run(async()=>{
   for(const g of GEOS){
     for(const K of KINDS){
-      for(const path of ['wrong','hint']){
+      // #547 item (80), jobs/drill-solved-board-jumps-bottom-row-collapse: the SOLVED path joins as a third pair - the find
+      // (Qxf7#, f3-f7) must not move the board either. It was red on the fixed-reserve bundle at 3 of 3 geometries tried.
+      for(const path of ['wrong','hint','solved']){
         const tag=g.label+' '+K.kind+' '+path;
         const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'dv-'+g.w+'x'+g.h+'-'+K.kind+'-'+path,store:{[K.key]:CARD(K.kind==='brilliant'?'Brilliant':'Mistake')}});
         await b.open();
@@ -313,7 +315,7 @@ L.run(async()=>{
         // running - and it is exactly where #500's two antagonists found the explanation painted on top of the
         // goal sentence while this gate read 98 pass / 0 fail. A third path ('solve') belongs here and is on
         // jobs/500-the-drill-reserve-is-measured-and-held-on-an-unreadable-solved-overlay-2026-10-08.
-        await b.move('a2','a3',900);
+        if(path==='solved')await b.move('f3','f7',1200);else await b.move('a2','a3',900);
         await b.settle(700);
         const v=await verdictText(b,path==='wrong'?/^✗/:/^🎉/);
         const after=await b.board();
