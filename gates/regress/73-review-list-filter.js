@@ -1542,5 +1542,20 @@ function mkTap(b,READ){
    L.say(pre.length>0&&post.length>0,'kunal730: TC-R76 DENOMINATOR the first row was sampled both BEFORE its tally ('+pre.length+') and AFTER it ('+post.length+')',{pre:pre.length,post:post.length});
    L.say(pre.length>0&&post.length>0&&pre[0].top===post[post.length-1].top,'kunal730: TC-R76 the first game row does not move when the tally lands ('+(pre[0]&&pre[0].top)+' -> '+(post.length&&post[post.length-1].top)+'); row height '+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+' (reported)',{first:pre[0],last:post[post.length-1]});
    await b.close();}
+  // TC-R90 (US-R90), #547 item (136): A CLOUD PULL MERGES THE GAME TALLIES, IT DOES NOT TRADE THEM FOR A LONGER STRING. The signed-in
+  // path, which no gate drove before: window.CTCloud is stubbed (held against index.html's own assignment). This device holds three
+  // stamped games; the cloud holds one of them padded long plus one other. Pre-fix the longer cloud string won and g2, g3 - games
+  // only this device had - were gone. The union keeps all four, with this device's entry where both have one.
+  {const LOCAL={g1:{bril:0,blun:1,gv:1},g2:{bril:1,blun:0,gv:1},g3:{bril:0,blun:2,gv:1}};const CLOUD={g1:{bril:0,blun:1,pad:'x'.repeat(300)},g4:{bril:2,blun:0}};
+   const b=await L.launch({geo:'kunal730',name:'r90-cloud-merge',store:{ct_gamestats:LOCAL}});
+   await b.page.addInitScript((cloud)=>{const st={ready:true,user:null,_cbs:[],onAuth(cb){setTimeout(()=>cb({uid:'u-test',name:'Tester'}),80);},_emit(){},
+     load(){window.__r90loaded=(window.__r90loaded||0)+1;return Promise.resolve({ctProgress:{ct_gamestats:JSON.stringify(cloud)}});},save(){return Promise.resolve();},signIn(){return Promise.resolve();},signOut(){}};
+     Object.defineProperty(window,'CTCloud',{get(){return st;},set(v){},configurable:false});},CLOUD);
+   await b.open();await b.settle(2500);
+   const r=await b.page.evaluate(()=>{let m={};try{m=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}return {loaded:window.__r90loaded||0,keys:Object.keys(m).sort(),g1:m.g1||null};});
+   if(L.say(r.loaded>=1,'TC-R90 PRECONDITION the signed-in cloud pull ran (the stubbed CTCloud.load was called '+r.loaded+' time(s))',r)){
+     L.say(['g1','g2','g3','g4'].every(k=>r.keys.indexOf(k)>=0),'TC-R90 the pull keeps every game either side holds (g1..g4), so no game this device has is lost to a longer cloud string',r.keys);
+     L.say(!!r.g1&&r.g1.gv===1&&!('pad' in r.g1),'TC-R90 and where both sides hold a game, this device\'s stamped entry is the one kept',r.g1);}
+   await b.close();}
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});

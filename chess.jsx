@@ -2772,8 +2772,17 @@ export default function App(){
     let dead=false;
     C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;
       if(prog){SYNC_KEYS.forEach(k=>{try{const cloudV=prog[k];if(cloudV==null)return;const localV=localStorage.getItem(k);
-        if(localV==null){localStorage.setItem(k,cloudV);applied++;return;}
+        if(localV==null){localStorage.setItem(k,cloudV);if(k==='ct_gamestats'){try{gameStatsRef.current=JSON.parse(cloudV)||{};}catch(_e){}}applied++;return;}
         // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
+        /* #547 item (136), jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09: ct_gamestats is a MAP of per-game
+           tallies, and 'keep the longer string' is the wrong test for it - #503's 7-byte grading stamp alone could tip it, so a
+           device with MORE games could take a shorter remote map, and the write went past gameStatsRef so memory and store disagreed
+           until reload. For this key: keep the union of games, this device's entry winning where both have one (it carries the
+           stamp this build writes), and refresh the in-memory map in the same step. Every other key keeps the old rule. */
+        if(k==='ct_gamestats'){let lo=null,co=null;try{lo=JSON.parse(localV);co=JSON.parse(cloudV);}catch(_e){}
+          if(lo&&co&&typeof lo==='object'&&typeof co==='object'&&!Array.isArray(lo)&&!Array.isArray(co)){const mg={...co,...lo};
+            if(Object.keys(mg).length>Object.keys(lo).length){const sv=JSON.stringify(mg);localStorage.setItem(k,sv);try{gameStatsRef.current=mg;}catch(_e){}applied++;}
+            return;}}
         if(localV!==cloudV&&String(cloudV).length>String(localV).length){localStorage.setItem(k,cloudV);applied++;}
       }catch(e){}});}
       setSyncPulled(true);

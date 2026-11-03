@@ -1554,6 +1554,11 @@ As a player reading the grade table, each column's header is directly above its 
 As Kunal checking a layout dispute from a screenshot of the readout, the row labelled "screen" gives the device screen and the "inner" row gives the viewport the app lays out in, so the two numbers that started the 730-vs-761 argument are no longer the same number twice.
 - Over a 375x812 screen with a 375x730 viewport, the readout prints "screen 375x812" and "inner 375x730". (TC-MN-048)
 
+### US-R90 Signing in on another device never loses the games this one has reviewed
+*Added #547, from jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09.*
+As a player signed in on two devices, my reviewed-game tallies are combined when my progress syncs, not replaced by whichever copy happens to be longer.
+- After a cloud pull, every game either copy held is kept, and where both hold a game, this device's entry wins. (TC-R90)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
