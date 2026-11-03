@@ -227,4 +227,51 @@ L.run(async()=>{
       await b.close();
     }
   }
+  // ===== TC-R58 / US-R47 [#547 item (58); jobs/rank-up-verdict-line-is-cut-mid-word-2026-09-28]. THE RANK-UP NEWS IS PAINTED
+  // IN FULL. The orchestrator's recorded default (remedy one, 10 Oct) puts the news FIRST in the verdict, right after the lead,
+  // so a long explanation scrolls under it instead of hiding it. The input is the job's own: curated c7 (Smothered mate, absolute
+  // index 720), the 10th Master solve, reached by seeding the 677 ids below it in rating order, entering training at 677 and
+  // tapping the next-puzzle chevron 43 times. The order is COMPUTED from chess.jsx's raw arrays the way PZ and PZ_TIERS are, so a
+  // retuned rating does not silently move the target - and the header and goal are asserted before anything is read.
+  {
+    const fs=require('fs'),path=require('path');
+    const SRCP=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');
+    function pzOrder(src){
+      const a=src.indexOf('const PUZZLES=[');let i=src.indexOf('[',a),d=0,j=i;
+      for(;j<src.length;j++){const c=src[j];if(c==='"'||c==="'"||c==='`'){const q=c;j++;while(j<src.length&&src[j]!==q){if(src[j]==='\\')j++;j++;}continue;}if(c==='[')d++;else if(c===']'){d--;if(d===0)break;}}
+      const PUZZLES=Function('return '+src.slice(i,j+1))();
+      const g=src.indexOf('const PZGEN_RAW=');const gl=src.indexOf('\n',g);const RAW=JSON.parse(src.slice(src.indexOf('[',g),gl).replace(/;\s*$/,''));
+      const GEN=RAW.map((p,k)=>({id:'g'+k,rating:p.r}));
+      const CUR=PUZZLES.map((p,k)=>{const base=p.level==='Easy'?760:p.level==='Medium'?1240:1660;const bump=/trap|smother/i.test(p.motif)?150:0;return {id:'c'+k,rating:Math.min(2050,base+bump+(k%5)*13),motif:p.motif};});
+      const PZ=CUR.concat(GEN).sort((x,y)=>x.rating-y.rating);
+      const K=(src.match(/const _RANKS=\[(.*?)\];/)[1].match(/\['/g)||[]).length,N=PZ.length,T=[];
+      for(let k=0;k<K;k++){const s=Math.round(N*k/K),e=Math.round(N*(k+1)/K);T.push({start:s,end:e,ids:PZ.slice(s,e).map(p=>p.id)});}
+      return {PZ,T,N,K};
+    }
+    let ord=null;try{ord=pzOrder(fs.readFileSync(SRCP,'utf8'));}catch(e){}
+    const at=ord?ord.PZ.findIndex(q=>q.id==='c7'):-1;const ti=ord?ord.T.findIndex(x=>x.ids.includes('c7')):-1;
+    L.say(at>=0&&ti>=0&&at-ord.T[ti].start>=9,'TC-R58 PRECONDITION the puzzle order computes from chess.jsx and c7 sits at least 10th in its tier (absolute '+at+', tier '+ti+')',{at,tier:ti,rel:ti>=0?at-ord.T[ti].start:null});
+    if(at>=0&&ti>=0){
+      const seed=ord.PZ.slice(0,ord.T[ti].start+9).map(q=>q.id);const startAt=seed.length;
+      for(const [label,geo] of [['375x761 real',{w:375,h:761,safe:'51,31'}],['320x568',{w:320,h:568,safe:''}],['390x844',{w:390,h:844,safe:''}]]){
+        const b=await L.launch({geo,name:'pz57-r58-'+geo.w+'x'+geo.h});await b.open();
+        let ok=true;
+        try{await Z.seedSolved(b,seed);await Z.startTraining(b);for(let k=startAt;k<at;k++)await Z.tapAria(b,'Next puzzle',120);await b.settle(500);}catch(e){ok=false;}
+        const top=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||'').replace(/\s+/g,' '):'';});
+        L.say(ok&&new RegExp('\\b'+(at+1)+'\\s*/\\s*'+ord.N+'\\b').test(top)&&/Smothered mate|mate in 2/i.test(top),'TC-R58 '+label+' PRECONDITION the screen is on c7: header '+(at+1)+'/'+ord.N+', mate in 2',{top:top.slice(0,140)});
+        await b.move('d5','g8',0);await Z.waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('h6','f7',0);await Z.waitMsg(b,/^🎉/,3000);await b.settle(1500);
+        try{await Z.tapBtn(b,/^Continue ▶$/,800);}catch(e){}
+        const r=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
+          const leaf=[...t.querySelectorAll('div,span')].filter(d=>d.children.length===0&&/^🎉/.test((d.innerText||'').trim())).pop();if(!leaf)return null;
+          let box=leaf;while(box&&box!==t&&!/auto|scroll|hidden/.test(getComputedStyle(box).overflowY))box=box.parentElement;if(!box)box=t;
+          box.scrollTop=0;const br=box.getBoundingClientRect();const txt=leaf.textContent;const s0=txt.indexOf('\u2b06');const s1=s0>=0?txt.indexOf('!',s0):-1;
+          let ink=0,painted=0;const n=leaf.firstChild;if(s0>=0&&s1>s0&&n&&n.nodeType===3){let off=s0;for(const cp of Array.from(txt.slice(s0,s1+1))){const len=cp.length;if(!/\s/.test(cp)){ink++;const rg=document.createRange();rg.setStart(n,off);rg.setEnd(n,off+len);const cr=rg.getBoundingClientRect();if(cr.width>0&&cr.left>=br.left-0.5&&cr.right<=br.right+0.5&&cr.top>=br.top-0.5&&cr.bottom<=br.bottom+0.5)painted++;}off+=len;}}
+          return {news:s0>=0?txt.slice(s0,s1+1):null,ink,painted,hidden:Math.round((box.scrollHeight-box.clientHeight)*10)/10,head:txt.slice(0,60)};});
+        L.say(!!r&&!!r.news&&r.ink>0,'TC-R58 '+label+' DENOMINATOR the verdict carries the rank-up announcement and it has ink to count ('+(r&&r.ink)+' code points)',r);
+        L.say(!!r&&r.ink>0&&r.painted===r.ink,'TC-R58 '+label+' every ink code point of the rank-up announcement is painted inside the verdict box ('+(r&&r.painted)+' of '+(r&&r.ink)+') - the news is not the part the box cuts',r);
+        if(r)L.note('TC-R58 '+label+' COST of remedy one (reported, not a pass condition): the explanation hides '+r.hidden+'px under the scroll');
+        await b.close();
+      }
+    }
+  }
 },'PZ57-SOLVED-EXPLANATION');

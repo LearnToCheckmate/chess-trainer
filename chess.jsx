@@ -5114,7 +5114,7 @@ export default function App(){
                instead of yours, under a sentence you had never seen. */
             if(!p.mine){if(!pzShownRef.current)onlineSolved(p);}else drillSolvedRef.current[mistakeIdxRef.current]={uci:_mvUci(mv),msg:_m};   // #547 item (66): Show leaves onlineSolved unchanged (Lichess puzzles have no rank)
             setPuzMsg(_m);}
-          else{const _shown=pzShownRef.current;if(!_shown)setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p,_shown);if(ru)setPzCelebrate(ru);setPuzMsg(_shown?('👁 Finished with the answer shown — not counted as solved. '+p.explain):('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+p.explain+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!':'')));}
+          else{const _shown=pzShownRef.current;if(!_shown)setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p,_shown);if(ru)setPzCelebrate(ru);setPuzMsg(_shown?('👁 Finished with the answer shown — not counted as solved. '+p.explain):('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!   ':'')+p.explain));} /* #547 item (58), the orchestrator's recorded default (remedy one, 10 Oct): the rank-up news goes FIRST, right after the lead, same words, same box - it used to be appended after the explanation and was the part the box cut */
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
           // the royal-fork puzzle's own moves are Ne2+ then Nxc3, the king step and the capture -
