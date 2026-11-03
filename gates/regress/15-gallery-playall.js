@@ -937,6 +937,12 @@ L.run(async()=>{
           'M10: the Hide control is labelled with ONE character, not with the escape sequence that names it',
           {label:st.doneTxt,codePoints:[...String(st.doneTxt)].length});
       }
+      // M11 [#547 item (93); jobs/the-held-instruction-keeps-the-label-and-loses-the-steps-and-the-route-back-2026-10-01]: the held bar
+      // keeps a short label of a long instruction, so it must carry a ROUTE BACK to the card and its steps - on the bar itself, since
+      // the dev row stays hidden while an instruction is held. Read while the bar is up (M7 below hides it).
+      {const bk=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap"] [data-ct="rec-cap-back"]');if(!d)return null;const r=d.getBoundingClientRect();
+         const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {pe:getComputedStyle(d).pointerEvents,aria:d.getAttribute('aria-label'),w:r.width,h:r.height,self:!!(h&&(h===d||d.contains(h)))};});
+       L.say(!!bk&&bk.pe==='auto'&&bk.self&&bk.w>=43.5&&bk.h>=43.5&&/card/i.test(bk.aria||''),'M11: the held bar carries a route back to the card and its steps - a 44px control that hit-tests to itself and says where it goes',bk);}
       // M7: the control does what it says
       if(st.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(500);
         const gone=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));

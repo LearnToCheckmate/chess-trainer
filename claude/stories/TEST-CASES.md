@@ -476,6 +476,7 @@ audited **23-full-walk** instead, all 11 of its assertions, and the next pass st
 
 **TC-GL-002 - the gallery declares which of its two modes each card is, and a card the player has to drive himself
 keeps its instruction on screen until he hides it.** US-GL-01, clauses 6 and 7.
+M11 (#547 item (93)): while a manual card's instruction is held, the bar also carries a route BACK to the card and its steps - a 44px `rec-cap-back` control on the bar that hit-tests to itself (the dev row stays hidden). Gate 15 M11.
 
 *(Added #452, from the two P1 jobs #451's antagonist B raised from the shipped-surface door:
 `gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01` and
