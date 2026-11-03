@@ -3550,6 +3550,10 @@ export default function App(){
   },[mode,learnPhase,openIdx,openStep,learnLine]);
   const _lpLive=(mode==='learn'&&learnPhase==='practice'&&lpv!=null&&lpHist.length>0&&lpv<lpHist.length);
   const _pvLive=(mode==='play'&&!inReview&&!inDemo&&pvIdx!=null&&pvIdx<playHist.length);
+  /* #547 item (149), jobs/promotion-picker-survives-navigation-and-replays-the-abandoned-ply-2026-09-29: the picker stayed up after
+     Back rewound the board, and choosing from it quietly restored the abandoned ply and played the promotion. The picker records the
+     position it was raised on; when the board on screen is no longer that position, it closes. */
+  useEffect(()=>{if(!promo||!promo.fen)return;let f=null;try{f=toFEN(_pvLive?playHist[pvIdx]:game);}catch(e){}if(f&&f!==promo.fen)setPromo(null);},[promo,pvIdx,_pvLive,game,mode]);
   const boardGame=inReview?(anaMode?game:(bestLineBoard||review.positions[ply])):(inDemo?demoSt.game:(_pvLive?playHist[pvIdx]:(_lpLive?lpHist[lpv]:game)));
   /* #547 item (129), jobs/best-line-preview-keeps-the-played-moves-verdict-badge-and-square-tint-2026-09-30: while the best line
      replays (bestLineBoard, outside analysis), the board shows a DIFFERENT line, but the last-move tint, its grade colour and the
@@ -5302,7 +5306,7 @@ export default function App(){
       return false;
     }
     const proms=opts.filter(m=>m.promo);
-    if(proms.length>1){setPromo({g,choices:proms,tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return true;}
+    if(proms.length>1){setPromo({g,choices:proms,tr:r,tc:c,fen:(()=>{try{return toFEN(g);}catch(e){return null;}})()});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return true;}
     doMove(g,opts[0]);return true;
   };
 
