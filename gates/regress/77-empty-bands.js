@@ -99,6 +99,7 @@ const STATES=[
   ['TC-S04 TC-S06','review analysis',    R.states['analysis'],       R.SEED],
   ['TC-S06','review moves-ply0',         R.states['moves-ply0'],     R.SEED],
 ];
+const PROMOTED77=['puzzles train','puzzles train-solved','puzzles train-fail','puzzles train-hint','review moves-ply10','review moves-last','review analysis'];
 const cutBands=(bands,top)=>bands.map(([a,b])=>[Math.max(a,top),b]).filter(([a,b])=>b-a>=8).map(([a,b])=>[+a.toFixed(1),+b.toFixed(1),+(b-a).toFixed(1)]);
 const sum=(bands)=>+bands.reduce((s,x)=>s+x[2],0).toFixed(1);
 const big=(bands)=>bands.reduce((m,x)=>(!m||x[2]>m[2])?x:m,null);
@@ -126,6 +127,11 @@ L.run(async()=>{
       if(!m)continue;
       const raw=m.bands, cut=c.cut?cutBands(raw,c.cut):raw.map(x=>x.slice());
       const bg=big(cut);
+      // PROMOTED [#547 items (87), (56)/(184)]: states measured at or under 60px at 375x761 real are now ASSERTED there, per the
+      // promotion rule above. Measured on the #547 trial: train-solved 49 (was 89.4, item 87 centres the verdict card), review
+      // moves-ply10 25.1, moves-last 42, analysis 11 (were 68.5/68.5/99, the graph moved into the band), puzzles train 46.6,
+      // train-fail and train-hint 15.5 (already under). Discover, rankup and review moves-ply0 (71) stay report-only.
+      if(c.real&&PROMOTED77.indexOf(label)>=0)L.say(!!bg&&bg[2]<=60,cs+' '+label+' @'+c.n+': PROMOTED - the largest empty band is at most 60px (Kunal\'s rule, adopted 11 Oct): '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'none'),{largest:bg&&bg[2],at:bg&&(bg[0]+'-'+bg[1])});
       row[c.n]={largest:bg?bg[2]:0,at:bg?bg[0]+'-'+bg[1]:'',empty:sum(cut),rawLargest:m.largest,rawAt:m.at};
       L.note('    REPORT '+cs+' '+label+' @'+c.n+(c.cut?'  RAW from y 0: largest '+m.largest+' @'+m.at+', empty '+m.empty+'  |  TOP '+c.cut+'px EXCLUDED:':':')+
         ' largest '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'0')+', empty '+sum(cut)+', bands >= 8: '+fmt(cut)+(c.cut?'   (60px rule, not asserted: '+((bg?bg[2]:0)<=60?'within':'OVER')+')':''));
