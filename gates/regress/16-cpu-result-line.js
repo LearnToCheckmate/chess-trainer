@@ -565,4 +565,21 @@ L.run(async()=>{
   // ROTATION. Antagonist B, on THIS bundle: resizing a finished game from 375x730 to 730x375 and back makes the
   // result disappear and reappear, because landscape has no slot at all. On #433 both orientations agreed (neither
   // showed it), so this build creates that disagreement. Recorded on the landscape job.
+  // ══ G: THE PLAYER BAR STATES THE STRENGTH THE ENGINE IS GIVEN [#547, item (68), TC-PL-040;
+  // jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-2026-10-08; Kunal chose "name-stays"]. ══
+  // The adaptive ladder moves cpuElo after every result while the chosen bot (ct_bot) stays, so from the second game on
+  // the bar printed the bot's NOMINAL Elo while the engine played the adapted one. Seeded here as the state the ladder
+  // leaves: ct_bot pip (nominal 500) and ct_elo 640. The bar must print 640 and must still name Pip. Two arrivals first:
+  // a game against the computer is running, and ct_elo still reads 640 once it has started (nothing re-seated it).
+  {
+    const b=await L.launch({geo:'kunal730',name:'cpu-bar-elo',store:{ct_pool:'3',ct_bot:'pip',ct_elo:'640'}});await b.open();
+    await P.states['setup'](b);await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(400);
+    const r=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('[data-ct^="pbar-rating-"]')].map(e=>({ct:e.getAttribute('data-ct'),t:(e.innerText||'').trim()}));
+      const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].map(e=>(e.innerText||'').replace(/\s+/g,' ').trim());
+      let elo=null;try{elo=localStorage.getItem('ct_elo');}catch(e){}return {els,bars,elo};});
+    L.say(r.elo==='640'&&r.bars.some(t=>/\bPip\b/.test(t)),'G0 375x730: PRECONDITION a game against Pip is running and ct_elo still reads 640 after the start, so the bar below is judged against the strength the engine was given',r);
+    L.say(r.els.length===1&&r.els[0].t==='640','G1 375x730: TC-PL-040 the computer\'s bar prints 640, the strength the engine plays, not Pip\'s nominal 500 - and the bot\'s name stays its name',r.els);
+    L.say(b.errs.length===0,'G2 375x730: zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
 }, 'CPU-RESULT-LINE');

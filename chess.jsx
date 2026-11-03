@@ -9409,11 +9409,15 @@ export default function App(){
           else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
           const taken=_cap[col]||[]; const lead=col==='w'?(_md>0?_md:0):(_md<0?-_md:0);
           // #348: whatever we actually know about this player. Rating from the PGN headers in review (chess.com
-          // and lichess both set WhiteElo/BlackElo), the bot's own Elo in play. Nothing is invented: if we do not
-          // have it, nothing is shown. The flag is a cached best-effort lookup and is simply absent when it fails.
+          // and lichess both set WhiteElo/BlackElo), and in play the strength the ENGINE IS GIVEN (cpuElo). Nothing is
+          // invented: if we do not have it, nothing is shown. The flag is a cached best-effort lookup and is simply
+          // absent when it fails. [#547, item (68); jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-
+          // 2026-10-08; Kunal chose "name-stays" on questions/bot-strength-shown-on-tile-and-bar-2026-10-10]: this printed
+          // the bot's NOMINAL Elo (bot.elo) for the whole of every game after the first, while the adaptive ladder had moved
+          // cpuElo and the engine played at that. The bot's name stays a name; the number is what the engine plays.
           let rating='';
           if(inReview){const _H=(review&&review.headers)||{};const _r=col==='w'?_H.WhiteElo:_H.BlackElo;if(_r&&/^\d{3,4}$/.test(String(_r).trim()))rating=String(_r).trim();}
-          else if(opponent==='computer'&&col!==pColor){const _b=botById(selBot);rating=String((_b&&_b.elo)||cpuElo);}
+          else if(opponent==='computer'&&col!==pColor){rating=cpuElo!=null?String(cpuElo):'';}
           else if(_isOnlineG){const _pd=col==='w'?_og.w:_og.b;
             if(_pd&&typeof _pd.rating==='number')rating=String(_pd.rating);
             else if(col===myColor)rating=String(Math.round(ratingRef.current.r));}
