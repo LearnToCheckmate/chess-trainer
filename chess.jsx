@@ -359,6 +359,18 @@ function eloDelta(mine,theirs,score,games){
 // exactly how #429's first cut shipped '1523 RATING' under 'rating ... not official ratings'.
 function hdrElo(h,col){const v=h&&(col==='w'?h.WhiteElo:h.BlackElo);return (v&&/^\d{3,4}$/.test(String(v).trim()))?String(v).trim():null;}
 
+/* #547 item (78), jobs/honour-fen-header: a PGN whose [FEN] header names a set-up position was analysed FROM THE
+   STANDARD START, so its moves either failed to fit or - worse - fitted a different game, and the review graded a game
+   nobody played. Until the review can start from the header (board, move numbers and the side to move all follow it),
+   such a game is REFUSED with a sentence that names the FEN, rather than analysed wrongly. A [FEN] equal to the standard
+   start, or SetUp "0", is not a set-up position. Returns the FEN string, or '' when the game starts normally. */
+const START_FEN_PLACEMENT='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+function pgnSetupFen(pgn){
+  const m=/\[FEN\s+"([^"]*)"\]/.exec(String(pgn||''));if(!m)return '';
+  const su=/\[SetUp\s+"([^"]*)"\]/.exec(String(pgn||''));if(su&&su[1].trim()==='0')return '';
+  const f=m[1].trim();if(f.split(/\s+/)[0]===START_FEN_PLACEMENT)return '';
+  return f||'(empty)';
+}
 function parsePGNHeaders(pgn){
   const h={};
   const re=/\[(\w+)\s+"([^"]*)"\]/g;let m;
@@ -1467,6 +1479,7 @@ const gradeCacheUsable=(st)=>!!st&&(gradeVerOf(st)===GRADE_VER||st.src==='review
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
 async function analyzeGameCounts(pgn,userColor){
   try{
+    if(pgnSetupFen(pgn))return null;   // #547 item (78): never estimate a set-up game from the standard start
     const sans=parsePGN(pgn);if(!sans||!sans.length)return null;
     const res=loadSANs(sans);if(!res||!res.plies.length)return null;
     let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0;
@@ -4482,6 +4495,7 @@ export default function App(){
   const importGame=async(pgnArg,meta)=>{
     const text=(typeof pgnArg==='string')?pgnArg:pgnText;
     setPgnErr('');
+    if(pgnSetupFen(text)){setPgnErr("This game starts from a set-up position (its [FEN] header), and the review can only start from the opening position, so it was not analysed.");return;}   // #547 item (78)
     const sans=parsePGN(text);
     if(sans.length===0){setPgnErr('No moves found — paste a PGN or a list of moves like "1. e4 e5 2. Nf3".');return;}
     const res=loadSANs(sans);

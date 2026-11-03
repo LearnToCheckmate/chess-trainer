@@ -325,6 +325,29 @@ L.run(async()=>{
     L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'kunal730: TC-R12b no app error beyond the allowed engine trap',b.errs.slice(0,3));
     await b.close();
   }
+  // TC-R66 (TC-R66 in the job, which is taken) A SET-UP GAME IS REFUSED, NOT ANALYSED FROM THE WRONG POSITION [#547, item (78); jobs/honour-fen-header].
+  // The review starts every game from the opening position, so a PGN whose [FEN] header names a set-up position used to be
+  // graded as a game nobody played (or broke at its first move). Until the review can start from the header, it is refused
+  // with a sentence naming the FEN. Inputs at 375x730: a legal K+R endgame whose moves fit only from its header, and the
+  // same game with a malformed FEN. Precondition: the paste box took the text. Assert the refusal names the FEN, and that
+  // NO summary, accuracy or grade count renders for it. The honoured half (board and numbering from the header) is not built.
+  {
+    const FENG='[Event "Set-up endgame"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 42. Kd3 Kb5 *';
+    const BADF='[Event "Malformed set-up"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/9/4K3/R7 w - -"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 *';
+    for(const [tag,pgn] of [['legal FEN',FENG],['malformed FEN',BADF]]){
+      const b=await L.launch({geo:'kunal730',name:'review-fen-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
+      await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
+      const took=await ta.inputValue().catch(()=>'');
+      L.say(/\[FEN /.test(took),'kunal730: TC-R66 '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
+      await b.tapText(/^⚡ Analyze Game$/,{wait:2500});
+      const r=await b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
+        return {summary:!!document.querySelector('[data-ct="rev-summary"]'),err:(t.match(/This game starts from a set-up position[^.]*\.[^.]*\./)||[null])[0],acc:/Accuracy/i.test(t)};});
+      L.say(!!r.err&&/FEN/.test(r.err),'kunal730: TC-R66 '+tag+': the import is REFUSED with a sentence that names the FEN',r);
+      L.say(!r.summary&&!r.acc,'kunal730: TC-R66 '+tag+': and no summary, accuracy or grade count is rendered for a game the review could not start correctly',r);
+      L.say(b.errs.length===0,'kunal730: TC-R66 '+tag+': zero app errors',b.errs.slice(0,2));
+      await b.close();
+    }
+  }
   // TC-R03 stored accounts survive a reload and name both players
   const games=(u)=>[{src:'cc',acct:u,pgn:PGN.replace('Morphy',u).replace('Duke Karl / Count Isouard','DukeKarlCountIsouard99'),white:u,black:'DukeKarlCountIsouard99',wr:'win',tc:'rapid',date:1789000000000}];
   const b=await L.launch({geo:'kunal',name:'review-accounts',store:{ct_accts:['cc:jsmiller1112','cc:kunal2023'],ct_acctgames:{'cc:jsmiller1112':games('jsmiller1112'),'cc:kunal2023':games('kunal2023')}}});await b.open();await b.tile('Review');await b.settle(600);
