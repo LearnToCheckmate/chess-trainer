@@ -389,12 +389,16 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // sh is the overlay's scrollHeight. It is the same 872 at 320 and 375 because the tile subtitles wrap at both,
 // 857 at 390 where they fit on one line, and equal to the viewport at 430 where the content is shorter than the
 // screen and there is nothing to scroll.
+// RE-MEASURED AT #547 (item (1)): the build stamp now ends ' (src <12 hex>)', about 51 monospace characters, which
+// wraps to a second 13px line in the 284, 339 and 354px columns and fits in the 394px one. So sh and travel rise by
+// exactly 13 at se, kunal730 and 390 (885/317, 885/155, 870/26 - measured on trial df679e0fb534) and 430 is unchanged;
+// every y above the stamp is unchanged because the stamp is the last line of the column.
 const M={
-  se      :{colW:284,sh:872,travel:304,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  se      :{colW:284,sh:885,travel:317,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:366},coach:{y:656,h:39},look:{y:713,h:30},devrow:{y:795},build:{y:839}},
-  kunal730:{colW:339,sh:872,travel:142,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  kunal730:{colW:339,sh:885,travel:155,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:366},coach:{y:656,h:39},look:{y:713,h:30},devrow:{y:795},build:{y:839}},
-  '390'   :{colW:354,sh:857,travel:13, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  '390'   :{colW:354,sh:870,travel:26, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:350.5},coach:{y:640.5,h:39},look:{y:697.5,h:30},devrow:{y:779.5},build:{y:823.5}},
   '430'   :{colW:394,sh:932,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:102},
             tiles:{y:292,h:357.8},coach:{y:649.8,h:39},look:{y:706.8,h:30},devrow:{y:750.8},build:{y:794.8}}};
