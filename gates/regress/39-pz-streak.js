@@ -73,7 +73,9 @@ L.run(async()=>{
     // ships no app code, so the numbers are pinned here with either separator and the escape is reported by name below,
     // never silently: jobs/the-puzzle-hint-fill-prints-a-literal-unicode-escape-2026-10-29.
     const cTxt=((filled&&filled.t)||'').replace(/\s+/g,' ').trim();
-    const cm=/^(\d+) \/ (\d+) (?:\u00b7|\\u00b7) rating (\d{3,4})$/.exec(cTxt);
+    // #547 item (102): the escape is fixed in chess.jsx (the separator is now {'\u00b7'}, an expression, so JSX
+    // processes it), so the counter must carry the REAL middle dot; the literal backslash form is no longer accepted.
+    const cm=/^(\d+) \/ (\d+) \u00b7 rating (\d{3,4})$/.exec(cTxt);
     if(/\\u[0-9a-fA-F]{4}/.test(cTxt))L.note(geo+': KNOWN DEFECT, REPORTED NOT ASSERTED - the fill prints a literal escape where the app meant a middle dot: '+JSON.stringify(cTxt)+' (jobs/the-puzzle-hint-fill-prints-a-literal-unicode-escape-2026-10-29)');
     const cN=cm?+cm[1]:null,cD=cm?+cm[2]:null,cR=cm?+cm[3]:null;
     L.say(!!cm&&cN>=1&&cN<=cD&&cD>=2&&cR>=400&&cR<=3200&&!/in a row/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up - a real position N of D (1 <= N <= D, D >= 2) and the puzzle rating, never a streak of zero',{text:filled&&filled.t,N:cN,D:cD,rating:cR});

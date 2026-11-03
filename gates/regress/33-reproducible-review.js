@@ -101,6 +101,13 @@ L.run(async()=>{
   // timeout or the depth moves, the verdicts rot and this line goes red.
   const bundle=process.env.CT_APP||path.join(L.ROOT,'app.js');
   const src=fs.readFileSync(bundle,'utf8');
+  // NO PAINTED STRING IN THE WHOLE BUNDLE IS A LITERAL ESCAPE SEQUENCE [#547, item (154); jobs/the-escape-sequence-sweep-should-be-
+  // bundle-wide-not-gallery-only-2026-10-01, TC-SUITE-366]. A \uXXXX written in JSX TEXT position is not an escape, so the
+  // compiler keeps the backslash and the bundle carries it as "\\uXXXX" (an escaped backslash); gate 15's M9 found that class
+  // on the gallery only. This reads the bundle under test for the double-escaped form, anywhere. It was 1 on 049b41dfb6f1 (the
+  // puzzle hint fill's separator, item (102)), fixed in the same commit, so this line lands green and can only go red on a new one.
+  {const esc=src.match(/\\\\u[0-9a-fA-F]{4}/g)||[];const ctx=[];let m;const re=/.{0,40}\\\\u[0-9a-fA-F]{4}.{0,20}/g;while((m=re.exec(src))&&ctx.length<5)ctx.push(m[0]);
+   L.say(esc.length===0,'TC-SUITE-366 the bundle under test carries NO double-escaped \\\\uXXXX - no string anywhere in the app is painted as its own escape sequence',{count:esc.length,where:ctx});}
   // THE IDENTIFIER CLASS MUST INCLUDE `$`, AND #457 IS THE BUILD THAT PROVED IT. This regex read `\w+` for
   // both minified identifiers, and `\w` is [A-Za-z0-9_] - it does NOT match `$`, which is a perfectly legal
   // JavaScript identifier character that esbuild uses freely. Measured at #457: origin/main's bundle minified
