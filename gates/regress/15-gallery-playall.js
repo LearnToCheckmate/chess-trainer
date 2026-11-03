@@ -992,4 +992,24 @@ L.run(async()=>{
     }
     await b.close();
   }
+  /* Q: THE QUEUE'S OWN LENGTHS, POSITIVELY [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-
+     which-is-its-success-condition-2026-10-01, TC-GL-003]. The empty queue is the queue's SUCCESS condition and until now no
+     gate could reach it: the guard above only stopped the walk from throwing when it arrived. chess.jsx now honours
+     localStorage ct_scmax=<n> (truncate SC to n cards), so this block opens the gallery at ct_scmax=0 and at the natural
+     one-card queue and asserts each. Two of the three lengths: the >=2 branch ('▶ Play all N') is the walk above whenever the
+     queue holds two or more, and no seam can ADD cards. Each length asserts the gallery really opened first (the harness
+     state cards are on screen), so an absent Play button cannot pass by the gallery never rendering [#385]. */
+  for(const [qlab,store,wantAsks] of [['empty',{ct_pool:'3',ct_scmax:'0'},0],['one',{ct_pool:'3'},1]]){
+    const b=await L.launch({geo:'kunal730',name:'queue-'+qlab,store});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
+      states:document.querySelectorAll('button[data-ct="state-card"]').length,
+      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^▶ Play/.test(t))}));
+    L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
+    L.say(q.asks===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) ('+q.asks+')',q);
+    if(wantAsks===0)L.say(q.play.length===0,'Q empty: TC-GL-003 an EMPTY queue offers NO Play button - there is nothing to walk, and a button that walked zero cards would say otherwise',q.play);
+    else L.say(q.play.length===1&&!/\ball\b/.test(q.play[0]),'Q one: TC-GL-003 a ONE-card queue offers one Play button and it does not say "all" - "Play all 1" would claim a set',q.play);
+    L.say(b.errs.length===0,'Q '+qlab+': zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
 },'GALLERY-PLAYALL');

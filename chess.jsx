@@ -6138,6 +6138,11 @@ export default function App(){
      Kevitsch file is held; gate 15's PINNED_IDS changes in the same commit. */
   {id:"KEV",c:"Review: the grade rows for Kunal2023 v Kevitsch",l:"1 \u00b7 KEV \u00b7 Our review of Kunal2023 v Kevitsch", n:"One screenshot, then upload it in the Claude chat. This card opens the Review tab for you; the game is in your own list, so these taps are yours: open Kunal2023 v Kevitsch, Analyze, open the summary, and screenshot the grade rows so Brilliant down to Blunder shows for BOTH players along with both accuracies (two screenshots if it does not fit). This is the one game chess.com's own review is already recorded for, so it is the only place we can compare our ten grades against theirs on a game you played.", r:()=>{setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('analyze');setReview(null);}, h:9000, m:true},
         ];
+        /* THE ASK-QUEUE SEAM [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-
+           success-condition-2026-10-01]. localStorage ct_scmax=<n> truncates SC to its first n cards at render, so a gate can
+           reach the EMPTY queue - the queue's success condition - and the one-card queue without editing this list. Dev
+           surface only: nothing sets the key except a gate, and an absent or unreadable key leaves SC as written. */
+        try{const _scm=localStorage.getItem('ct_scmax');if(_scm!=null&&/^\d+$/.test(_scm))SC.splice(+_scm);}catch(e){}
         /* #451: THE EIGHT STATES THE TEST HARNESS DRIVES. SEPARATED FROM KUNAL'S QUEUE, NOT DELETED, AND THE
            DISTINCTION IS THE WHOLE FIX. These eight entries were serving two masters at once: they were Kunal's
            "what I still need" list AND they were the ONLY way five gates reach the states they assert over, through

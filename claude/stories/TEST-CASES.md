@@ -1670,3 +1670,9 @@ case and H19 (TC-SUITE-076) the refusal at four. Nothing in this arm can tell a 
 since the row carries no proof of who wrote it beyond a runId anyone can type, and a contiguous BUILT row naming a bundle
 never built is accepted the same way; that residual is
 `jobs/the-register-arm-of-fastgate-checks-the-numbers-of-appended-rows-and-not-the-rows-so-a-duplicate-or-wrong-bundle-row-takes-a-fast-green-2026-10-16`.
+
+## Batch 7 (#547) - cases added by the batch's own items, each executed by the gate it names
+
+| id | story | steps (harness) | expected, measured | executed by | last result |
+|---|---|---|---|---|---|
+| TC-GL-003 | US-GL-01 | Open the Preview gallery at 375x730 twice: once with localStorage `ct_scmax=0` (the seam #547 item (51) added to chess.jsx, which truncates SC at render) and once with the natural queue. Precondition at each: at least four harness state cards are on screen, so the gallery really rendered. | EMPTY queue: 0 ask cards and NO `▶ Play` button. ONE-card queue: 1 ask card and exactly one `▶ Play` button whose text does not contain the word "all". The >=2 branch is the walk earlier in the same gate whenever the queue holds two or more; no seam can add cards. | `gates/regress/15-gallery-playall.js` block Q | measured on the #547 trial bundle; see the job's outcome |
