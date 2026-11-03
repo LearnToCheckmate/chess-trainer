@@ -182,8 +182,11 @@ L.run(async()=>{
         L.say(liveL.some(function(t){return /resign/i.test(t);}),G+k.id+'9b POSITIVE CONTROL: the LIVE game sheet offers a resign control, read with the same selector the absence check uses - so a rename or removal reddens HERE and names the cause',liveL.join(' | '));
         if(overSheet.length&&liveL.length){
           var gone=liveL.filter(function(t){return overL.indexOf(t)<0;});
-          L.say(gone.length===1&&/resign/i.test(gone[0]),
-            G+k.id+'10 THE DEFECT, as a SET DIFFERENCE so a rename cannot make it pass: the ONLY thing the finished sheet drops relative to the live sheet is the resign control. On the shipped #436 it drops NOTHING, because stepping back resurrected it, and resign() returns immediately on getStatus(game) - a second enabled-but-inert control',{live:liveL.join(' | '),over:overL.join(' | '),dropped:gone});
+          // #547 item (189) added Pass & Play's 'Agree a draw' to the LIVE sheet, which a finished game rightly drops too - the full
+          // suite measured 'dropped: resign + Agree a draw' and went red. The set is now: resign exactly once, plus at most the other
+          // live-only control. A finished sheet that kept resign still reds, which is the defect this line exists for.
+          L.say(gone.filter(function(t){return /resign/i.test(t);}).length===1&&gone.every(function(t){return /resign|^(?:\S+\s+)?Agree a draw$/i.test(t);}),
+            G+k.id+'10 THE DEFECT, as a SET DIFFERENCE so a rename cannot make it pass: the finished sheet drops the resign control and nothing else but the other live-only control, Agree a draw (#547 (189)). On the shipped #436 it drops NOTHING, because stepping back resurrected it, and resign() returns immediately on getStatus(game) - a second enabled-but-inert control',{live:liveL.join(' | '),over:overL.join(' | '),dropped:gone});
           // 11 FLIP IS ABSENT AT GAME OVER, AND THAT IS KUNAL'S DECISION RATHER THAN THIS BUILD'S OPINION.
           // #437 first ADDED Flip to this sheet, because antagonist B measured that fixing the row above removed
           // the last route to it - and that was WRONG, caught by the suite going red on 46-play.js. The question
