@@ -202,4 +202,46 @@ L.run(async()=>{
     await b.close();
   }
  }
+
+ // ================= E. STEPPING BACK MOVES NOTHING ON SCREEN, AT FOUR GEOMETRIES [#547, item (62)] =================
+ // jobs/ten-isover-readings-left-keyed-to-the-previewed-ply-2026-09-29. Five play-chrome sites still read `isOver`, which
+ // is the PREVIEWED ply, so stepping Back inside a finished game re-mounted live chrome (the header Home button, the wide
+ // Elo pill, the eval pill) and in the landscape column that churn moves the board. #547 re-keys them to `_gameOver`.
+ // The job's case: reach a checkmate, record the board and the chrome at the terminal ply, step Back twice, and assert
+ // the board's rect is unchanged to 0.6px AND the chrome's mounted state and rects are unchanged. The board assertion is
+ // the one that matters. Both arrivals are asserted first (#385): the game ended by mate, and the step really moved the
+ // position. Landscape is reached by mating in portrait and rotating, the route a real phone takes (gate 62's rule).
+ const chromeOf=(b)=>b.page.evaluate(()=>{
+   const vis=(x)=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;};
+   const rr=(x)=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');};
+   const home=[...document.querySelectorAll('button[title="Home"],[data-ct="play-home"]')].filter(vis).map(rr);
+   const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].filter(vis).map(x=>x.getAttribute('data-ct')+'@'+rr(x));
+   return {home,bars};
+ });
+ for(const [glab,gv] of [['kunal730','kunal730'],['se','se'],['land730',{w:730,h:375,safe:'',label:'730x375'}],['land730i',{w:730,h:375,safe:'51,31',label:'730x375 insets 51,31'}]]){
+   const land=typeof gv==='object';
+   const b=await L.launch({geo:land?{w:375,h:730,safe:gv.safe,label:'375x730 then rotated to '+gv.label}:gv,name:'gk-E-'+glab});await b.open();
+   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+   await b.move('f2','f3',500);await b.move('e7','e5',500);await b.move('g2','g4',500);await b.move('d8','h4',500);await b.settle(1100);
+   if(land){await b.page.setViewportSize({width:gv.w,height:gv.h});await b.settle(1500);}   // the insets ride on the launch (ct_safe), as on a real phone
+   const res=await resultText(b);
+   const arrived=!!res&&/Checkmate/i.test(res);
+   L.say(arrived,glab+': E1 ARRIVAL the game ended by checkmate and the result card says so',{result:res});
+   const endBoard=await b.board(), endChrome=await chromeOf(b), endSig=await sigOf(b);
+   await b.tapText(/^Back$/).catch(()=>{});await b.settle(350);
+   await b.tapText(/^Back$/).catch(()=>{});await b.settle(700);
+   const backBoard=await b.board(), backChrome=await chromeOf(b), backSig=await sigOf(b);
+   await b.shot('gk547-E-'+glab+'-backx2');
+   const stepped=!!backSig&&!!endSig&&backSig!==endSig;
+   L.say(stepped,glab+': E2 ARRIVAL stepping Back twice really changed the position on the board',{moved:stepped});
+   if(arrived&&stepped){
+     const d=(k)=>endBoard&&backBoard?Math.abs(endBoard[k]-backBoard[k]):null;
+     L.say(!!endBoard&&!!backBoard&&d('y')<0.6&&d('w')<0.6&&d('x')<0.6,
+       glab+': E3 THE BOARD DID NOT MOVE across the step back in a finished game - rect unchanged to 0.6px (chrome keyed to the previewed ply re-mounts and moves it)',{end:endBoard,back:backBoard});
+     L.say(JSON.stringify(endChrome)===JSON.stringify(backChrome),
+       glab+': E4 and the play chrome is unchanged - the same Home controls and player bars, at the same rects, mounted at the terminal ply and two plies back',{end:endChrome,back:backChrome});
+   }
+   L.say(b.errs.length===0,glab+': E5 zero app errors through the mate and the step back',b.errs.slice(0,3));
+   await b.close();
+ }
 },'GAMEOVER-CHROME-KEYING');
