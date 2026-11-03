@@ -1529,6 +1529,11 @@ As a player who taps Review straight after a game, the summary names me and my o
 As a player stepping through a review, "the position stays roughly level" means the position IS level, not that the app has no number for that move.
 - A move with no stored evaluation gets no sentence about who stands better; a genuinely level position is still called level. (TC-R87)
 
+### US-R86 When the best line plays, the board stops marking the move I did not make there
+*Added #547, from jobs/best-line-preview-keeps-the-played-moves-verdict-badge-and-square-tint-2026-09-30.*
+As a player watching the engine's better line in a review, the board shows only that line: the verdict badge and coloured squares of my own move leave the board while it plays.
+- During the best-line replay there is no verdict badge, and the last-move tint is on the line's own move in the plain colour. (TC-R88)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my

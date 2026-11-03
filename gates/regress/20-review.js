@@ -455,4 +455,20 @@ L.run(async()=>{
     }
     await b3.close();
   }
+  // TC-R88 (US-R86), #547 item (129): WHILE THE BEST LINE PLAYS, THE PLAYED MOVE'S BADGE AND TINT ARE NOT ON THE BOARD. Pre-fix at
+  // ply 30 of the reference game the blunder badge and its red tint stayed on squares 11 and 21 throughout the replay of a line
+  // that never played that move. The tint must follow the board (the plain last-move colour, on the line's own moves).
+  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r88-bestline-badge'});await b.open();
+   let ok=true;try{await RV.states['moves-ply0'](b);await RV.goPly(b,30);await b.settle(900);}catch(e){ok=false;}
+   const rd=()=>b.page.evaluate(()=>{const bd=document.querySelector('[data-ct="rev-badge"]');const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+     const tints=g?[...g.children].slice(0,64).map((c,i)=>{const o=[...c.children].find(x=>x.style&&x.style.position==='absolute'&&/inset/.test(x.getAttribute('style')||'')&&x.style.zIndex==='1');return o?{i,bg:o.style.background}:null;}).filter(Boolean):[];
+     return {badge:bd?(bd.innerText||'').trim():null,tints};});
+   const r0=await rd();
+   if(L.say(ok&&!!r0.badge&&r0.tints.length===2,'TC-R88 PRECONDITION at ply 30 the played move carries its verdict badge and its two tinted squares, and rev-best is offered',r0)){
+     const graded=r0.tints[0].bg;let t=true;try{await b.page.click('[data-ct="rev-best"]');}catch(e){t=false;}
+     await b.page.waitForTimeout(2500);const r1=await rd();
+     L.say(t&&r1.badge===null,'TC-R88 while the best line plays, the played move\'s verdict badge is gone',r1);
+     L.say(t&&r1.tints.every(x=>x.bg!==graded)&&JSON.stringify(r1.tints.map(x=>x.i))!==JSON.stringify(r0.tints.map(x=>x.i)),'TC-R88 and no square carries the played move\'s grade tint: the tint is on the line\'s own last move, in the plain last-move colour',{before:r0.tints,during:r1.tints});
+   }
+   await b.close();}
 },'REVIEW');
