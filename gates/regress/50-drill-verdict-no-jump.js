@@ -341,4 +341,20 @@ L.run(async()=>{
       }
     }
   }
+  // TC-DR-02 [#547 item (94); jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02]: A DIFFERENT CHECKMATE
+  // FROM THE STORED MOVE IS ANNOUNCED WHOLE. Card 6k1/5ppp/8/8/8/8/5PPP/R6K w, stored Kg1, the player mates with Ra8#: the 73-char
+  // 'Checkmate — that works too! ...' verdict was cut 17px at 320x568 by a 74px container with no ellipsis. Since item (48) the
+  // verdict floats; this pins that it is not cut - its own box holds its text, and that box is inside the viewport.
+  for(const geo of ['se','kunal730']){
+    const MIST1=[{fen:'6k1/5ppp/8/8/8/8/5PPP/R6K w - - 0 1',uci:'h1g1',label:'Mistake',played:'Ra2',why:'The king needed air.'}];
+    const b=await L.launch({geo,name:'drill-altmate-'+geo,store:{ct_mymistakes:MIST1,ct_pool:'3'}});await b.open();
+    await b.tile('Review');await b.settle(900);
+    let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});await b.settle(800);await b.move('a1','a8',900);await b.settle(1200);}catch(e){ok=false;}
+    const r=await b.page.evaluate(()=>{const t=document.body.innerText||'';const m=[...document.querySelectorAll('div')].filter(d=>/that works too/.test(d.textContent||'')&&![...d.children].some(c=>/that works too/.test(c.textContent||''))).pop();
+      if(!m)return {found:false,alt:/that works too/.test(t)};const q=m.getBoundingClientRect();let e=m,clip=null;while((e=e.parentElement)){const s=getComputedStyle(e);if(/hidden|auto|scroll/.test(s.overflowY)&&e!==document.getElementById('root')){clip=e.getBoundingClientRect();break;}}
+      return {found:true,sh:m.scrollHeight,ch:m.clientHeight,top:q.top,bottom:q.bottom,vh:innerHeight,clipTop:clip&&clip.top,clipBottom:clip&&clip.bottom};});
+    L.say(ok&&r.found,geo+': TC-DR-02 PRECONDITION the drill accepted Ra8# as a different mate and printed its verdict',r);
+    L.say(r.found&&r.sh<=r.ch+0.5&&r.top>=-0.5&&r.bottom<=r.vh+0.5&&(r.clipBottom==null||(r.bottom<=r.clipBottom+0.5&&r.top>=r.clipTop-0.5)),geo+': TC-DR-02 the found-mate verdict is painted whole - its box holds its text and nothing clips that box',r);
+    await b.close();
+  }
 },'50-drill-verdict-no-jump');
