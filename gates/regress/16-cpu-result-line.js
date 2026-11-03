@@ -596,4 +596,17 @@ L.run(async()=>{
        L.say(r.rowY[0]>=r.clip[0]-0.5&&r.rowY[1]<=r.clip[1]+0.5,'730x375: TC-PL-045 at rail scrollTop '+r.st+' the result row is wholly inside the rail\'s visible window (row '+r.rowY.join('..')+', window '+r.clip.join('..')+')',r);}
    }
    await b.close();}
+  // TC-PL-046 (US-PL-18), #547 item (127): THE REVIEW OF A GAME YOU JUST PLAYED NAMES THE OPPONENT AND THE RESULT. Pre-fix its
+  // header read 'White vs Black' with no result, where an imported PGN on the same screen reads '<White> vs <Black> · 1-0'.
+  for(const geo of ['kunal730','se']){
+   const b=await L.launch({geo,name:'cpu-review-header-'+geo});await b.open();
+   let ok=true;try{await P.states['cpu-resigned'](b);await b.settle(1500);await b.page.mouse.click(8,8).catch(()=>{});await b.settle(400);await P.tapBtn(b,/^(🔍 )?Review$/,1200);
+     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(800);}catch(e){ok=false;}
+   const lines=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');return s?(s.innerText||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,6):[];});
+   const hd=lines.find(x=>/ vs /.test(x))||null;
+   if(L.say(ok&&!!hd,geo+': TC-PL-046 PRECONDITION resigning vs the computer and tapping Review reached the summary, and its "A vs B" header line is found',{lines})){
+     L.say(!/^White vs Black\b/.test(hd)&&/^You vs \S/.test(hd),geo+': TC-PL-046 the header names you and the opponent you played, not the colours ("'+hd+'")',{hd});
+     L.say(/· 0-1$/.test(hd),geo+': TC-PL-046 and states the result - you resigned as White, so 0-1 ("'+hd+'")',{hd});
+   }
+   await b.close();}
 }, 'CPU-RESULT-LINE');

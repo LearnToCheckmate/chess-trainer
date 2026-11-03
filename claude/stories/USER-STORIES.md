@@ -1519,6 +1519,11 @@ As a player who has just copied the moves, Analyze is still exactly where my fin
 As a player who finishes a game holding the phone sideways and scrolls the side column to read further down, the line stating the result stays in view.
 - After the game ends, the status row stays wholly inside the side column's visible window at every scroll position. (TC-PL-045)
 
+### US-PL-18 The review of a game I just played says who I played and how it ended
+*Added #547, from jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29.*
+As a player who taps Review straight after a game, the summary names me and my opponent and states the result, as it does for a game I import.
+- After resigning against the computer, the header reads "You vs <bot> · 0-1", not "White vs Black". (TC-PL-046)
+
 ### US-R74 Only my own accounts feed my drills
 *Added #547, from jobs/games-list-card-whose-game-and-layout-2026-09-21 and Kunal's Desk answer 'per-account' on drill-own-games-only (22 Sep 2026).*
 As a player who imports other people's games to look at, I mark which imported accounts are mine, and only mine feed my
