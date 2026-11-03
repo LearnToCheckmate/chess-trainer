@@ -555,6 +555,13 @@ function classifyByLoss(loss){
 // place this build claims nothing changes. 8.2096 and 26.4635 invert to 89.999034 and 319.998777, and
 // the corrected ladder now agrees with #439 at EVERY integer loss from 0 to 1500 - swept, not argued.
 const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','✓'],[8.2096,'Good','#c9d06a','·'],[14.3166,'Inaccuracy','#f0cf5e','?!'],[26.4635,'Mistake','#f0a24e','?']];
+/* #547 item (84), jobs/grade-ladder-has-five-independent-copies: THE ONE LADDER - name, colour, glyph, in display order. The band
+   grades take their colour and glyph FROM CLS_BANDS, and the five grades no band produces are the same literals the classifier
+   writes (Brilliant/Great/Book/Miss/Blunder). The Review summary's key derives from this; it used to re-list all ten by hand and
+   three of its colours had drifted from what the classifier paints (Best #7bd88f vs #6fd66f, Excellent #8bd18f vs #9fcf6f,
+   Good #9ccb8f vs #c9d06a), so the same grade wore two colours on two screens. */
+const _bandOf=(n)=>{const b=CLS_BANDS.find(x=>x[1]===n);return [n,b[2],b[3]];};
+const GRADE_LADDER=[['Brilliant','#22d3ee','!!'],['Great','#5d93e8','!'],_bandOf('Best'),_bandOf('Excellent'),_bandOf('Good'),['Book','#9aa6b2','≡'],_bandOf('Inaccuracy'),['Miss','#f08a5d','×'],_bandOf('Mistake'),['Blunder','#ec5c4e','??']];
 function classify(drop){
   const d=Math.max(0,drop||0);
   for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(d<b[0])return{label:b[1],c:b[2],i:b[3]};}
@@ -7678,7 +7685,7 @@ export default function App(){
       {railed&&learnPlansBox}
       {null}
       {railed&&learnVideoBox}{railed&&learnBranchesBox}
-      {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=[['Brilliant','#22d3ee'],['Great','#5d93e8'],['Best','#7bd88f'],['Excellent','#8bd18f'],['Good','#9ccb8f'],['Book','#9aa6b2'],['Inaccuracy','#f0cf5e'],['Miss','#f08a5d'],['Mistake','#f0a24e'],['Blunder','#ec5c4e']];const sides=[['w','White'],['b','Black']];return(
+      {inReview&&reviewView==='summary'&&review.summary&&(()=>{const S=review.summary;const CATS=GRADE_LADDER.map(g=>[g[0],g[1]]);   /* #547 item (84): derived, not re-listed */const sides=[['w','White'],['b','Black']];return(
         <div data-ct="rev-summary" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'stretch',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           {/* #393 (uat390-review-summary-menu-covered): THE SUMMARY HAD NO WAY INTO THE MENU. This panel is
               position:fixed inset:0 zIndex:500 and opaque, so the shared header row - and the ☰ in it - is
@@ -7733,7 +7740,7 @@ export default function App(){
               <div style={{marginTop:13,borderTop:'1px solid rgba(255,255,255,.1)',paddingTop:10,display:'flex',flexDirection:'column',gap:6}}>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 48px 48px',gap:8,fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.6)',fontWeight:800}}><span></span><span style={{textAlign:'center'}}>White</span><span style={{textAlign:'center'}}>Black</span></div>
                 {CATS.map(([lbl,col])=>(<div key={lbl} style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',alignItems:'center',fontSize:'clamp(15.5px,3.5vw,17px)',gap:8}}>
-                  <span style={{display:'flex',alignItems:'center',gap:7,color:'rgba(255,255,255,.8)'}}><span style={{width:9,height:9,borderRadius:'50%',background:col,flexShrink:0}}/>{lbl}</span>
+                  <span style={{display:'flex',alignItems:'center',gap:7,color:'rgba(255,255,255,.8)'}}><span data-ct="sum-dot" data-grade={lbl} style={{width:9,height:9,borderRadius:'50%',background:col,flexShrink:0}}/>{lbl}</span>
                   {['w','b'].map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=i%2===0?'w':'b';if(mc===sd&&effLabel(an[i].cls,i,S.book||0)===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
                   return(<button key={sd} onClick={jump} disabled={!n} style={{textAlign:'center',background:n?'rgba(255,255,255,.06)':'none',border:n?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'3px 0',color:n?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:'clamp(17px,4vw,19px)',cursor:n?'pointer':'default'}}>{n}</button>);})}
                 </div>))}

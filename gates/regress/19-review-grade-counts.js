@@ -44,6 +44,18 @@ const path=require('path');
 const L=require('../lib');
 
 const LBL=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+// TC-R75 [#547 item (84)]: THE COLOUR THE CLASSIFIER PAINTS EACH GRADE, read from chess.jsx's CLASSIFIER source - CLS_BANDS for the
+// five band grades and the {label:'X',c:'#..'} literals classify writes for the other five - NOT from the summary's own list,
+// which is the copy under test. A grade the source does not resolve is reported, never credited.
+const CLASSIFIER_COL=(()=>{const out={};try{const src=require('fs').readFileSync(process.env.CT_SRC||require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
+  const cb=/const CLS_BANDS=\[(.*?)\];/.exec(src);if(cb){const re=/\[[\d.]+,'([A-Za-z]+)','(#[0-9a-f]{6})'/g;let m;while((m=re.exec(cb[1])))out[m[1]]=m[2];}
+  const re2=/\{label:'([A-Za-z]+)',c:'(#[0-9a-f]{6})',i:'[^']*'\}/g;let m2;while((m2=re2.exec(src)))if(!out[m2[1]])out[m2[1]]=m2[2];}catch(e){}return out;})();
+const hexRgb=(h)=>'rgb('+parseInt(h.slice(1,3),16)+', '+parseInt(h.slice(3,5),16)+', '+parseInt(h.slice(5,7),16)+')';
+// each grade's DOT in the summary key, found by STRUCTURE (the 9px round span beside the label text), not by a hook this build added
+const DOTS=(labels)=>{const s=document.querySelector('[data-ct="rev-summary"]');const out={};if(!s)return out;
+  for(const sp of s.querySelectorAll('span')){const d=sp.firstElementChild;if(!d||d.tagName!=='SPAN')continue;const t=(sp.textContent||'').trim();
+    if(labels.indexOf(t)<0||out[t])continue;const r=d.getBoundingClientRect();if(Math.round(r.width)!==9||Math.round(r.height)!==9)continue;out[t]=getComputedStyle(d).backgroundColor;}
+  return out;};
 
 // Two elements paint the same grade colour at different alphas ('...22' behind the chip, solid on the badge), so
 // compare the HUE and not the string: normalise each rgb/rgba to its colour ratios.
@@ -203,6 +215,10 @@ async function runFixture(geo,name,pgn,acc){
   const okRows=!rows.err&&LBL.every(l=>Array.isArray(rows[l]));
   L.say(okRows,tag+' A1 the summary paints all ten grade rows with two numbers each'+(rows.err?' ('+rows.err+')':''));
   if(!okRows){await b.close();return null;}
+  {const dots=await b.page.evaluate(DOTS,LBL);const known=LBL.filter(l=>CLASSIFIER_COL[l]);
+   L.say(known.length===LBL.length&&Object.keys(dots).length===LBL.length,tag+' TC-R75 DENOMINATOR the classifier source resolves a colour for all ten grades ('+known.length+') and the summary paints a dot for all ten ('+Object.keys(dots).length+')',{known:known.length,dots:Object.keys(dots).length});
+   const bad=LBL.filter(l=>CLASSIFIER_COL[l]&&dots[l]&&dots[l]!==hexRgb(CLASSIFIER_COL[l])).map(l=>l+': summary '+dots[l]+' vs classifier '+hexRgb(CLASSIFIER_COL[l]));
+   L.say(known.length===LBL.length&&Object.keys(dots).length===LBL.length&&bad.length===0,tag+' TC-R75 every grade\'s summary dot is the colour the classifier paints that grade - one ladder, not two copies'+(bad.length?' ('+bad.join('; ')+')':''),{bad});}
 
   const bookPainted=(rows.Book[0].n||0)+(rows.Book[1].n||0);
   const bookExpected=expectedPrefix(pgn);
