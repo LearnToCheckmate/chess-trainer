@@ -4,7 +4,7 @@
 **#547: BATCH 7. ALL 191 ORDERED JOBS READ (94 WITH A FIX COMMIT, 97 DECIDED WITHOUT ONE), GATES GREEN #547 AT 6397 PASS / 0 FAIL OVER 66 SECTIONS.**
 Run `build__1793671541605`, 2-3 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_02_batch7b`, base 29b60c2.
 **APPLICATION CODE CHANGED.** `app.js` md5 `c7f6a1228e43`, stamp '#547 - 2026-11-03 04:29 ET', from chess.jsx `ec83770812c4`.
-The log is `claude/agents/gatelogs/547b-all.log` (the second full suite; the first went red on three gate-side faults, see RUN-LOG).
+The push-gate log is `claude/agents/gatelogs/547d-all.log`, the FOURTH full suite (see RUN-LOG for why there are four).
 
 ## 00. WHAT THE NEXT RUN NEEDS FROM #547
 1. SIX ITEMS OF THE BATCH WERE NEVER WORKED, missed in the in-order walk and found only by the receipts sweep: (18) gate 11 glyph
