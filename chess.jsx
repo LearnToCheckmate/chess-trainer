@@ -2800,6 +2800,12 @@ export default function App(){
      evalAfter per ply in the bottom player bar's spare width, white's advantage filled light above the middle,
      black's dark below, red ticks on blunders and teal on brilliancies, the current ply marked; tapping it
      jumps to that ply. Nothing else moves: the bar keeps its height, the board keeps its size. */
+  /* #547 items (56) and (184): the review's empty band under the bottom player bar. revBandH is that band row's own
+     measured height; the graph moves into the band when the band has room for it (>= 40px) and stays in the player bar
+     where it does not, so a short phone keeps the small graph and loses nothing. */
+  const [revBandH,setRevBandH]=useState(0);
+  const revBandRO=useRef(null);
+  const revBandRef=useCallback((el)=>{try{if(revBandRO.current){revBandRO.current.disconnect();revBandRO.current=null;}if(!el){setRevBandH(0);return;}const f=()=>{const c=document.querySelector('[data-ct="rev-compact"]');const v=c?Math.max(0,Math.round(c.getBoundingClientRect().top-el.getBoundingClientRect().top)):0;setRevBandH(h=>v===h?h:v);};f();requestAnimationFrame(f);if(typeof ResizeObserver!=='undefined'&&el.parentElement){revBandRO.current=new ResizeObserver(f);revBandRO.current.observe(el.parentElement);}}catch(e){}},[]);
   const [evalGraph,setEvalGraph]=useState(()=>{try{return localStorage.getItem('ct_evalgraph')!=='0';}catch{return true;}}); /* #547 item (56), jobs/eval-graph-into-the-band: ON by default - Kunal answered this on 14 and 15 Sep; only an explicit '0' turns it off */
   useEffect(()=>{try{localStorage.setItem('ct_evalgraph',evalGraph?'1':'0');}catch{}},[evalGraph]);
   // #359 ONE-TIME MIGRATION, and the reason Kunal kept seeing "empty space along the sides".
@@ -9549,7 +9555,7 @@ export default function App(){
                   accessibility font would have cashed it in. */}
               <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&<div data-ct={'pbar-takenpc-'+col} style={{display:'flex',alignItems:'center',flexWrap:'nowrap',minWidth:0,flexShrink:1,overflow:'hidden'}}>{taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:(i===taken.length-1?0:-2)}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}</div>}{lead>0&&<span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_fgDim,marginLeft:6,flexShrink:0}}>+{lead}</span>}</div>
             </div>
-            {!isTop&&inReview&&revCompact&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(130,Math.round(boardPx*0.36))); /* #371: 154 left 'Duke Kar…' in 89px; 126 on his phone */const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
+            {!isTop&&inReview&&revCompact&&evalGraph&&!(revBandH>=40)&&review&&review.analysis&&review.analysis.length>1&&(()=>{const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(130,Math.round(boardPx*0.36))); /* #371: 154 left 'Duke Kar…' in 89px; 126 on his phone */const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
               const xs=(i)=>Math.round((i/(n-1))*(gw-2)*10)/10+1;const ys=(v)=>Math.round((mid-cl(v)/5*(mid-1))*10)/10;
               const pts=A.map((a,i)=>xs(i)+','+ys(a.evalAfter));const line='M'+pts.join(' L');
               const area='M'+xs(0)+','+mid+' L'+pts.join(' L')+' L'+xs(n-1)+','+mid+' Z';
@@ -9672,6 +9678,13 @@ export default function App(){
           </div>
         </div>
         {_showBars&&pBar(bottomColor,false)}
+        {/* #547 items (56) and (184): Kunal adopted the 60px rule (no empty band over 60px on a screen that does not scroll,
+            certified at 375x761) and answered "on by default, in the band under the board" for the eval graph. A ZERO-HEIGHT marker after the bottom bar; the graph hangs from it
+            ABSOLUTELY, sized to the gap the marker measures down to rev-compact. Absolute content cannot move the board,
+            the bars or the fit loop - three flex versions on the #547 trial each did one of those (a 62px basis trimmed the
+            board at 375x679 and 320x568; grow 1 squeezed the bars; grow 0.001 got nothing). The graph shows only when
+            the gap is >= 40px; otherwise the small graph stays in the bottom player bar. */}
+        {inReview&&revCompact&&!wide&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(<div ref={revBandRef} data-ct="rev-graph-band" style={{position:'relative',width:boardPx,marginLeft:evalW,height:0,flex:'0 0 0px'}}>{revBandH>=40&&(<div data-ct="eval-graph" style={{position:'absolute',left:0,top:0,width:'100%',height:revBandH,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>{setRevAuto(false);setPly(Math.max(0,Math.min(review.plies.length,p)));}} width={Math.round(boardPx)} height={Math.min(84,revBandH-8)}/></div>)}</div>)}
       </div>);})()}
         </>);
         return railed ? (

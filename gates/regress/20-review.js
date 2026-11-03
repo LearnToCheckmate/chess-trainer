@@ -301,7 +301,7 @@ L.run(async()=>{
     const sum2=await summaryCounts(b);const nums=(s)=>(s.match(/\d+/g)||[]).slice(0,40).join(',');
     L.say(nums(sum2)===nums(sumText),geo+': TC-R02 the cached summary carries identical numbers');
     await b.tapText(/^Start review/,{wait:900});const g=await b.rect('[data-ct="eval-graph"]');const bars2=await barInfo(b);const m2=await b.metrics();
-    L.say(!!g&&g.w>60,geo+': TC-R12 the eval graph renders in the player bar with the switch on',g&&{w:g.w,h:g.h});
+    L.say(!!g&&g.w>60,geo+': TC-R12 the eval graph renders with the switch on - in the band under the board where the band holds it, else in the player bar (#547 items (56), (184))',g&&{w:g.w,h:g.h});
     L.say(bars2[1]&&at.p0.bars[1]&&Math.abs(bars2[1].h-at.p0.bars[1].h)<0.6&&m2.board&&Math.abs(m2.board.w-at.p0.board.w)<0.6,geo+': TC-R12 graph on: bar height and board width unchanged',{bar:bars2[1]&&bars2[1].h,was:at.p0.bars[1].h,board:m2.board&&m2.board.w});
     if(g){await b.page.mouse.click(g.x+g.w*0.7,g.y+g.h/2);await b.settle(500);const mlg=await b.rect('[data-ct="rev-move-line"]');L.say(!!mlg&&mlg.text!==(at.p0.ml||''),geo+': TC-R12 a tap on the graph jumps to a later ply',mlg&&mlg.text);}
     await b.close();
@@ -320,7 +320,14 @@ L.run(async()=>{
     if(ok){
       await b.tapText(/^Start review/,{wait:900});
       const gOn=await b.rect('[data-ct="eval-graph"]');const mOn=await b.metrics();
-      L.say(!!gOn&&gOn.w>60,'kunal730: TC-R12b with nothing seeded the eval graph RENDERS in the player bar - on by default',gOn&&{w:gOn.w,h:gOn.h});
+      L.say(!!gOn&&gOn.w>60,'kunal730: TC-R12b with nothing seeded the eval graph RENDERS - on by default',gOn&&{w:gOn.w,h:gOn.h});
+      // TC-R72 [#547 items (56) and (184)]: AT HIS PHONE THE GRAPH IS IN THE BAND - below the bottom player bar and above
+      // rev-compact, and NOT inside the bar. The 60px rule (Kunal, 11 Oct) is met by moving a real element into the band.
+      {const pb=await b.rect('[data-ct="pbar-bottom"]');const cp=await b.rect('[data-ct="rev-compact"]');
+       const inBar=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pbar-bottom"] [data-ct="eval-graph"]'));
+       L.say(!!gOn&&!!pb&&!!cp&&!inBar&&gOn.y>=pb.y+pb.h-0.5&&gOn.y+gOn.h<=cp.y+0.5,'kunal730: TC-R72 the graph sits IN THE BAND - under the bottom player bar ('+(pb&&(pb.y+pb.h))+') and over rev-compact ('+(cp&&cp.y)+'), not inside the bar',{g:gOn&&[gOn.y,gOn.h],barBottom:pb&&pb.y+pb.h,cmpTop:cp&&cp.y,inBar});
+       const ink=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-graph"] svg');if(!e)return null;const r=e.getBoundingClientRect();return {y:r.y,h:r.height};});
+       L.say(!!ink&&!!pb&&!!cp&&(ink.y-(pb.y+pb.h))<=60&&(cp.y-(ink.y+ink.h))<=60,'kunal730: TC-R72 and neither the gap above the drawn graph nor the gap below it is over 60px',{ink,above:ink&&pb&&Math.round((ink.y-(pb.y+pb.h))*10)/10,below:ink&&cp&&Math.round((cp.y-(ink.y+ink.h))*10)/10});}
       // TC-R68 [#547, item (161)]: the review just opened asked for both players' countries and the harness REFUSED both
       // requests (it aborts chess.com and lichess). A refused lookup must not be cached as an answer - before the fix it was
       // written as '' ("no country") and that player's flag was gone for good. Read the cache after the lookups settled.
