@@ -40,6 +40,11 @@
 # HOW TO CLEAR A ROW. Do NOT delete it. A tree does not become shippable by being forgotten. Change the first
 # field to a `-` prefix (e.g. `-a4df39c38222`), which stops it matching, and append to the reason why it was
 # cleared, with the sha that superseded it. The history is the useful part.
+# A HOLD WHOSE CAUSE WAS DISCHARGED IS CLEARED THE SAME WAY - NO NEW ROW TYPE [#548, item (81); the orchestrator's ruling on
+# jobs/held-trees-tsv-cannot-record-that-a-holds-cause-was-discharged-2026-10-10]. When a later build fixes the defect a row was
+# held on (the #504 row's P0, fixed at #511, is the case that found this), prefix the first field with `-` as above and append to
+# the reason, in the note column, `DISCHARGED <YYYY-MM-DD> by <sha>: <what fixed it>` - the discharging commit's sha and date, so
+# the clearing is checkable against git. gates/held.sh keeps add, check and list; there is deliberately no retire verb.
 #
 # A LIMIT OF THE FIRST TWO KEYS, MEASURED AT #450 RATHER THAN LEFT FOR SOMEONE TO FIND. `gates/build.sh:14`
 # builds the stamp as `$N - $(TZ=America/New_York date '+%Y-%m-%d %H:%M') ET` and embeds it with
