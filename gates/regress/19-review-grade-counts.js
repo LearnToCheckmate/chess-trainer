@@ -347,50 +347,27 @@ async function runFixture(geo,name,pgn,acc){
   return {bookPainted,bookExpected};
 }
 
-// GROUND 4 of #464's antagonist A, upheld: the CLASSIC (non-compact) review screen renders its own verdict chip,
-// and this build edits it. revCompact defaults to '1', so the four fixture runs above never render that hunk -
-// the fix would have shipped as unexecuted code behind a green gate. This block enters classic mode explicitly.
-// It navigates by CLICKING A SUMMARY GRADE ROW rather than by a transport control, because the compact
-// transport does not exist here and the row click is the very mechanism under test.
+// #548 item (103), jobs/classic-review-overflows-and-no-gate-can-see-it-2026-09-28: THE CLASSIC REVIEW LAYOUT IS RETIRED (Kunal's pick
+// (3) on questions/B8-LAYOUT), so the classic verdict chip this block used to drive (#464's antagonist A, ground 4) no longer exists.
+// What is asserted instead is the retirement itself, on the profile most likely to reach the old screen: one that STORED
+// ct_revCompact='0' (an install that once chose Classic) with the #339 migration already seen. It must come up COMPACT, and the
+// review sheet must not offer a way back. The sheet row is found by its text, not by any hook this build adds (#432).
 async function classicRun(acc){
-  const tag='OPERA-classic';
-  const b=await L.launch({geo:'kunal730',name:'rgc-'+tag,store:{ct_pool:'3',ct_revCompact:'0',ct_revmig339:'1'}  /* #339's one-time migration overwrites ct_revCompact to '1' on any profile that has not seen it, so seeding ct_revCompact ALONE silently leaves the run in compact mode - C1 caught exactly that, with C4/C5 green over the compact chip */});
+  const tag='OPERA-classic-retired';
+  const b=await L.launch({geo:'kunal730',name:'rgc-'+tag,store:{ct_pool:'3',ct_revCompact:'0',ct_revmig339:'1'}});
   await openReview(b,FIX.OPERA);
   const compact=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-compact"]'));
-  L.say(!compact,tag+' C1 the run really is in CLASSIC mode: no [data-ct="rev-compact"] is rendered'+(compact?' -- it IS compact, so this block proves nothing about the classic chip':''));
-  const rows=await b.page.evaluate(ROWS,LBL);
-  const bookN=rows.Book?(rows.Book[0].n||0):0;
-  L.say(bookN>0,tag+' C2 the summary shows a non-zero Book count to click ('+bookN+')');
-  const clicked=await b.page.evaluate(()=>{
-    const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return false;
-    for(const g of Array.prototype.slice.call(s.querySelectorAll('div'))){
-      const bs=Array.prototype.slice.call(g.querySelectorAll('button'));
-      if(bs.length!==2)continue;
-      const first=(g.firstElementChild&&g.firstElementChild.textContent||'').replace(/\s+/g,'').trim();
-      if(first!=='Book')continue;
-      bs[0].click();return true;
-    }
-    return false;
-  });
-  L.say(clicked,tag+' C3 the Book row button was found and clicked');
-  await b.settle(600);
-  // the classic chip carries no data-ct, so find it by WHAT IT SAYS anywhere on the page, requiring the icon
-  // prefix so the summary table's own bare row labels cannot be mistaken for it.
-  const chip=await b.page.evaluate((labels)=>{
-    for(const sp of Array.prototype.slice.call(document.querySelectorAll('span'))){
-      const t=(sp.textContent||'').replace(/\s+/g,'').trim();
-      for(const l of labels){
-        if(t.length>l.length&&t.length-l.length<=2&&t.slice(-l.length)===l)
-          return {label:l,raw:t,bg:getComputedStyle(sp).backgroundColor};
-      }
-    }
-    return null;
-  },LBL);
-  L.say(!!chip,tag+' C4 the classic verdict chip renders and this gate can read it'+(chip?'':' -- NOT FOUND, so the classic hunk is unexercised'));
-  L.say(!!chip&&chip.label==='Book',tag+' C5 clicking the Book row in CLASSIC mode lands on a ply whose chip reads Book, not its underlying grade'+(chip?' (read "'+chip.raw+'")':''));
+  L.say(compact,tag+' TC-R100 C1 a profile that stored ct_revCompact=0 now opens the COMPACT review - [data-ct="rev-compact"] is rendered, so the retired classic screen is unreachable');
+  // openReview lands on the SUMMARY, which carries no \u22ef control; the sheet lives on the move screen, so step into it first.
+  await b.tapText(/^Start review/,{wait:900}).catch(()=>{});await b.settle(600);
+  const opened=await b.tapCt('rev-more',500).then(()=>b.page.locator('[data-ct="rev-sheet"]').waitFor({state:'visible',timeout:5000})).then(()=>true).catch(()=>false);await b.settle(400);
+  const sheet=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-sheet"]');if(!s)return null;
+    return [...s.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(Boolean);});
+  L.say(opened&&!!sheet&&sheet.length>=4,tag+' C2 PRECONDITION the review sheet opened and lists its rows ('+(sheet?sheet.length:0)+')',{rows:sheet});
+  L.say(!!sheet&&sheet.length>=4&&!sheet.some(t=>/classic/i.test(t)),tag+' TC-R100 C3 the review sheet offers no "Classic review layout" row - there is no way back to the retired layout',{rows:sheet});
   const errs=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
-  L.say(errs.length===0,tag+' C6 no page errors in classic mode'+(errs.length?' -- '+errs.slice(0,2).join(' | '):''));
-  acc.classic=!!chip&&chip.label==='Book';
+  L.say(errs.length===0,tag+' C6 no page errors on the retired-classic profile'+(errs.length?' -- '+errs.slice(0,2).join(' | '):''));
+  acc.classic=compact;
   await b.close();
 }
 

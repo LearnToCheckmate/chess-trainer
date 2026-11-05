@@ -124,7 +124,7 @@ async function reviewed(b){
 L.run(async()=>{
   const runs=[
     {geo:'kunal730',compact:'1',what:'his phone, compact review (the stored default)'},
-    {geo:'kunal730',compact:'0',what:'his phone, CLASSIC review - ct_revCompact=0, the other branch of this very row'},
+    {geo:'kunal730',compact:'0',what:'his phone, a profile that STORED ct_revCompact=0. #548 item (103) retired the Classic layout (Kunal, questions/B8-LAYOUT pick (3)), so this run now asserts it comes up COMPACT and the strip still syncs there'},
     {geo:'se',       compact:'1',what:'320x568, where the strip overflows hardest'},
   ];
   for(const r of runs){
@@ -138,7 +138,7 @@ L.run(async()=>{
     // "‹ Prev" / "Next ›" nav row instead. Asserting it here is what stops this gate from running the same branch
     // three times and calling it coverage.
     const arrows=await b.page.locator('[aria-label="Next move"]').count();
-    L.say(r.compact==='1'?arrows>0:arrows===0,tag+': the run is genuinely in '+(r.compact==='1'?'COMPACT':'CLASSIC')+' review - strip chevrons present: '+arrows,{arrows});
+    L.say(arrows>0,tag+': the run is genuinely in COMPACT review'+(r.compact==='0'?' even though the profile stored ct_revCompact=0 - the retired Classic layout is unreachable':'')+' - strip chevrons present: '+arrows,{arrows});
 
     const s0=await strip(b),c0=await counter(b);
     L.say(!!s0,tag+': the move strip is on the review screen',s0);
@@ -161,7 +161,7 @@ L.run(async()=>{
     // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
     // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
     // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
-    const WANTW={'kunal730/compact1':349,'kunal730/compact0':336,'se/compact1':264};
+    const WANTW={'kunal730/compact1':349,'kunal730/compact0':349/* #548 (103): was 336 on the retired Classic layout; a stored '0' now renders compact */,'se/compact1':264};
     if(WANTW[tag]!=null)L.say(!!mTop.board&&Math.abs(mTop.board.w-WANTW[tag])<0.6,tag+': the review board is '+WANTW[tag]+' wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here',{measured:mTop.board&&mTop.board.w,want:WANTW[tag]});
     L.say(!!m0.board&&!!mTop.board&&Math.abs(m0.board.w-mTop.board.w)<0.6&&Math.abs(m0.board.top-mTop.board.top)<0.6,
           tag+': the board did not move across the end-and-back trip (w '+(m0.board&&m0.board.w)+' -> '+(mTop.board&&mTop.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(mTop.board&&mTop.board.top)+')');
@@ -191,8 +191,8 @@ L.run(async()=>{
     // before this change and unrelated to it - noted with its number rather than asserted, because a gate that
     // fails on a pre-existing condition it did not cause blocks every later build. Filed as a finding instead.
     L.say(mEnd.over.docScroll===0,tag+': the document itself does not scroll - the strip scrolls inside its own box',mEnd.over);
-    if(r.compact==='1')L.say(mEnd.over.over<=0,tag+': the compact review screen still fits its viewport after all of that',mEnd.over);
-    else L.note(tag+': classic review lays out '+mEnd.over.over+'px past the viewport (bottom '+mEnd.over.bottom+' vs vh '+mEnd.over.vh+'). PRE-EXISTING: measured identically on #379, before this change. Not asserted here; see FEEDBACK-INBOX.md.');
+    // #548 (103): every run is compact now (the Classic layout is retired), so the fit is asserted on all three.
+    L.say(mEnd.over.over<=0,tag+': the compact review screen still fits its viewport after all of that',mEnd.over);
     await b.shot('strip-'+r.geo+'-c'+r.compact+'-ply0');
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
     L.say(bad.length===0,tag+': no app error beyond the allowed engine trap',bad.slice(0,2));

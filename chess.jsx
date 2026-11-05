@@ -3328,11 +3328,12 @@ export default function App(){
   const [showBest,setShowBest]=useState(false);
   const [showGates,setShowGates]=useState(false);
   // #333 PREVIEW: one-screen review move view (Kunal's Sep 11 screenshot feedback). Off by default until he approves it; the gallery card and the review sheet toggle it.
-  const [revCompact,setRevCompact]=useState(()=>{try{
-    if(localStorage.getItem('ct_revmig339')!=='1'){localStorage.setItem('ct_revmig339','1');localStorage.setItem('ct_revCompact','1');return true;} // #339 one-time: a '0' stored during the #333 preview was pinning existing installs to the classic screen
-    return localStorage.getItem('ct_revCompact')!=='0';
-  }catch{return true;}});
-  useEffect(()=>{try{localStorage.setItem('ct_revCompact',revCompact?'1':'0');}catch{}},[revCompact]);
+  /* #548 item (103), jobs/classic-review-overflows-and-no-gate-can-see-it-2026-09-28, Kunal's pick (3) on questions/B8-LAYOUT: THE
+     CLASSIC REVIEW LAYOUT IS RETIRED. It ran 445px past the viewport at 375x730 and #547 measured that fitting it cannot work (board
+     336 -> 192, still 1258px tall). The compact review is the only layout: a stored ct_revCompact='0' no longer reaches the old screen,
+     the "Classic review layout" sheet row is gone, and the two classic-only blocks are deleted rather than left as dead code.
+     revCompact stays as a constant so the many compact-branch conditions below read as they did. */
+  const revCompact=true;
   const [revMore,setRevMore]=useState(false);
   const [safeTop,setSafeTop]=useState(0);
   const [safeBot,setSafeBot]=useState(0);
@@ -6523,7 +6524,6 @@ export default function App(){
         <_SheetItem icon="moves" label={pgnCopied?'Copied':'Copy PGN'} on={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}}/>
         <_SheetItem icon="more" label={hideEval?'Eval bar: off':(evalUnder?'Eval bar: above the board':'Eval bar: beside the board')} on={()=>{if(hideEval){setHideEval(false);setEvalUnder(true);}else if(evalUnder){setEvalUnder(false);}else{setHideEval(true);}setRevMore(false);}}/>
         <_SheetItem icon="draw" label={showGates?'Hide brilliant-gate numbers':'Show brilliant-gate numbers'} on={()=>{setShowGates(g=>!g);setRevMore(false);}}/>
-        <_SheetItem icon="back" label="Classic review layout" on={()=>{setRevCompact(false);setRevMore(false);}}/>
         <_SheetItem icon="more" label="Menu and settings" on={()=>{setRevMore(false);setMenuOpen(true);}}/>
         <_SheetItem icon="newgame" label="New game" on={()=>{setRevMore(false);resetReview();}}/>
       </div></div>)}
@@ -8004,16 +8004,7 @@ export default function App(){
           </div>
         </div>);})()}
       {/* #351 the compact review header row is gone; its back arrow and ⋯ live in the top player bar */}
-      {inReview&&!revCompact&&(<div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginBottom:6}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-          <button onClick={()=>setReviewView('summary')} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Summary</button>
-          <button onClick={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 13px',borderRadius:10,background:pgnCopied?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',border:'1px solid '+(pgnCopied?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),color:pgnCopied?'var(--ac2)':'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.9vw,15px)',fontWeight:700,boxShadow:SHADOW_BTN}}>{pgnCopied?'✓ Copied':'📋 Copy PGN'}</button>
-        </div>
-        <div style={{textAlign:'center',marginTop:7,fontSize:'clamp(14px,2.8vw,15px)',fontWeight:600,color:'rgba(255,255,255,.85)'}}>
-          {review.headers.White||'White'} <span style={{color:'rgba(255,255,255,.4)'}}>vs</span> {review.headers.Black||'Black'}
-          {review.headers.Result&&<span style={{color:'var(--ac)',marginLeft:6}}>{review.headers.Result}</span>}
-        </div>
-      </div>)}
+      {/* #548 item (103): the CLASSIC review header that rendered here is retired with the layout. */}
 
       {/* ── Analyze: import panel (no review yet) ── */}
       {mode==='analyze'&&!inReview&&!analyzing&&(
@@ -8731,59 +8722,7 @@ export default function App(){
           {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
         </div>);})()}
       {/* ── Review controls ── */}
-      {inReview&&!revCompact&&(
-        <div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:8,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-          {/* move annotation */}
-          <div style={{height:118,width:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',gap:5,overflowY:'auto'}}>
-            {curAnno?(<>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,flexWrap:'wrap'}}>
-                <span style={{fontSize:'clamp(15px,3.7vw,19px)',fontWeight:700,color:'#fff'}}>{Math.floor((ply-1)/2)+1}{(ply-1)%2===0?'.':'…'} {review.plies[ply-1].san}</span>
-                <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:curCls.c,background:curCls.c+'22',border:'1px solid '+curCls.c+'66',borderRadius:22,padding:'4px 12px'}}><span style={{fontSize:'clamp(15px,3.7vw,19px)',lineHeight:1}}>{curCls.i}</span>{curCls.label}</span>
-              </div>
-              {(_curSel==='Inaccuracy'||_curSel==='Mistake'||_curSel==='Blunder')&&<button onClick={()=>{setShowBest(true);playBestLine();}} title="Show the best move on the board" style={{background:'none',border:'none',cursor:'pointer',padding:'2px 4px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(15px,3.6vw,17px)',fontWeight:600,color:'rgba(255,255,255,.82)',display:'inline-flex',alignItems:'center',gap:7,flexWrap:'wrap',justifyContent:'center'}}>Better was <b style={{color:'var(--ac2)',fontWeight:800}}>{curAnno.bestSan}</b> <span style={{color:'var(--ac)',fontWeight:700,textDecoration:'underline',textUnderlineOffset:3}}>{showBest?'shown below':'tap to see it'}</span></button>}
-              {_annoWhy&&<div style={{width:'100%',maxWidth:440,fontSize:'clamp(14px,2.8vw,14.5px)',color:'rgba(255,255,255,.84)',lineHeight:1.5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'9px 12px',textAlign:'center'}}>{_annoWhy}</div>}
-            </>):(<span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.5)'}}>Starting position — step forward to review →</span>)}
-          </div>
-          {/* nav */}
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);}} title={revAuto?'Pause':'Auto-play through the game'} style={revAuto?{...btn('rgba(var(--acr),.22)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{revAuto?'⏸':'▶'}</button><button onClick={()=>{setRevAuto(false);setPly(0);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏮</button>
-            <button onClick={()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹ Prev</button>
-            <span style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.6)',minWidth:54,textAlign:'center',fontFamily:'monospace'}}>{ply}/{review.plies.length}</span>
-            <button onClick={()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>Next ›</button>
-            <button onClick={()=>{setRevAuto(false);setPly(review.plies.length);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⏭</button>
-          </div>
-          {/* on-device brilliant-gate readout (for validating !! against real Stockfish) */}
-          {inReview&&(<div style={{width:'100%',maxWidth:boardPx,marginTop:2,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-            <button onClick={()=>setShowGates(g=>!g)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.5)',textDecoration:'underline',textUnderlineOffset:2,padding:'2px 4px'}}>{showGates?'hide brilliant-gate numbers':'show brilliant-gate numbers'}</button>
-            {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;const cell=(k,v)=>(<span style={{display:'inline-flex',gap:4}}><b style={{color:'rgba(255,255,255,.5)',fontWeight:700}}>{k}</b><span style={{color:'#fff'}}>{v}</span></span>);const verdict=G.ok?('!! Brilliant — sac '+G.sac+', winning, within '+G.cap+'cp of best'):(G.sac>=2?(G.evAfter<0.8?'real sac, but engine does not rate it winning (evAfter '+G.evAfter+')':(G.loss>=G.cap?'real sac, but too far from the best move (loss '+G.loss+' ≥ cap '+G.cap+')':'sac ok')):'not a sacrifice (sac '+G.sac+')');return(<div style={{width:'100%',maxWidth:440,fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'8px 11px'}}><div style={{display:'flex',flexWrap:'wrap',gap:'3px 14px',justifyContent:'center'}}>{cell('loss',G.loss)}{cell('sac',G.sac)}{cell('evAfter',G.evAfter)}{cell('evBefore',G.evBefore)}{cell('cap',G.cap)}</div><div style={{textAlign:'center',marginTop:5,fontWeight:800,color:G.ok?'#22d3ee':'rgba(255,255,255,.62)'}}>{verdict}</div></div>);})():<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.4)'}}>step to a played move to see its gate</div>)}
-          </div>)}
-          {keyPlies.length>0&&(<div style={{display:'flex',gap:7,alignItems:'center',justifyContent:'center'}}>
-            <button onClick={()=>jumpKey(-1)} title="Previous key moment" style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>‹</button>
-            <button onClick={()=>jumpKey(1)} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),fontWeight:800}}>⏭ Next key moment</button>
-            <span style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.5)'}}>{keyPlies.length} total</span>
-          </div>)}
-          {/* summary + actions */}
-          <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center'}}>
-            {review.counts.Brilliant>0&&<button onClick={()=>jumpToIssue('Brilliant')} title="Jump to next brilliant move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:'#22d3ee',background:'#22d3ee1f',border:'1px solid #22d3ee66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4.2vw,20px)'}}>{review.counts.Brilliant}</b> brilliant{review.counts.Brilliant>1?' moves':' move'} !! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
-            {review.counts.Great>0&&<button onClick={()=>jumpToIssue('Great')} title="Jump to next great move" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:'#5d93e8',background:'#5d93e81f',border:'1px solid #5d93e866',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4.2vw,20px)'}}>{review.counts.Great}</b> great{review.counts.Great>1?' moves':' move'} ! <span style={{opacity:.75,fontSize:'.9em'}}>›</span></button>}
-            {[[review.counts.Blunder,'#ec5c4e','blunders','Blunder'],[review.counts.Mistake,'#f0a24e','mistakes','Mistake'],[review.counts.Inaccuracy,'#f0cf5e','inaccuracies','Inaccuracy']].map(([cn,c,lab,L])=>(
-              cn>0
-                ? <button key={lab} onClick={()=>jumpToIssue(L)} title={`Jump to next ${lab.replace(/s$/,'')}`} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,16px)',fontWeight:700,color:c,background:c+'1f',border:'1px solid '+c+'66',borderRadius:20,padding:'5px 12px',cursor:'pointer',boxShadow:'0 2px 0 rgba(0,0,0,.25),0 4px 9px rgba(0,0,0,.22)'}}><b style={{fontSize:'clamp(16px,4.2vw,20px)'}}>{cn}</b> {lab} <span style={{opacity:.7,fontSize:'.9em'}}>›</span></button>
-                : <span key={lab} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(14px,3.2vw,16px)',fontWeight:700,color:c,opacity:.5,background:c+'14',border:'1px solid '+c+'33',borderRadius:20,padding:'5px 12px'}}><b style={{fontSize:'clamp(16px,4.2vw,20px)'}}>{cn}</b> {lab}</span>
-            ))}
-          </div>
-          {/* eval graph */}
-          <EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>setPly(Math.max(0,Math.min(review.plies.length,p)))} width={wide?Math.max(160,sideW-12):boardPx} height={wide?86:62}/>
-          {review.openingName&&(<div style={{width:'100%',textAlign:'center',fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.8)'}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
-            <button onClick={()=>{setSetupSrc('review');setSetupFromFEN(toFEN(boardGame));setOpponent('computer');setPColor(boardGame.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}} style={btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)')}>▶ Play from here</button>
-            <button onClick={()=>setShowBest(b=>!b)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)',showBest?'var(--ac)':'rgba(255,255,255,.7)')}>{showBest?'✓ Showing best':'💡 Show best move'}</button>
-            <button onClick={()=>{let _p=(review.pgn&&review.pgn.trim())?review.pgn.trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>{pgnCopied?'✓ Copied':'Copy game'}</button>
-            <button onClick={()=>setFlip(f=>!f)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>⟳ Flip</button>
-            <button onClick={resetReview} style={btn('#4a6741','none','#fff')}>＋ New game</button>
-          </div>
-        </div>
-      )}
+      {/* #548 item (103): the CLASSIC review panel that rendered here is retired (Kunal, questions/B8-LAYOUT pick (3)). */}
 
       {/* ── Play controls ── */}
       {/* #548 item (118), jobs/landscape-control-row-buttons-are-under-the-44px-minimum-width-2026-09-30, Kunal B8B-LANDSCAPE-ROW
