@@ -87,6 +87,13 @@ const COLS=[
 // [case, label, driver state, store]. TC-S04 is the draft's nine states; TC-S05 is Discover; TC-S06 is the Review move
 // screen in the card's three states (moves-ply10 mid-game, moves-ply0 move 0, analysis engine lines open). The ninth
 // TC-S04 state moves-last and the extra moves-ply0 are named, as the job asks.
+const DRFENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];
+const DRUCI=['b2b7','c2c7','d2d7'];
+const drRows=(label)=>DRFENS.map((f,i)=>({fen:f,uci:DRUCI[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file'}));
+const DRSEED={mistakes:{ct_mymistakes:drRows('Blunder')},brilliant:{ct_mybrilliancies:drRows('Brilliant'),ct_bril_reset_v1:'1'}};
+const DR=(k,solve)=>async(b)=>{await b.tile('Review');await b.settle(700);
+  await b.tapText(k==='mistakes'?/find the move you missed/:/can you spot them again\?/,{wait:1800});
+  if(solve){await b.move(DRUCI[0].slice(0,2),DRUCI[0].slice(2,4),900);await b.settle(1500);}};
 const STATES=[
   ['TC-S04 TC-S05','home discover',      HM.states['discover'],      {}],
   ['TC-S04','puzzles train',             PZ.states['train'],         {}],
@@ -98,6 +105,14 @@ const STATES=[
   ['TC-S04','review moves-last',         R.states['moves-last'],     R.SEED],
   ['TC-S04 TC-S06','review analysis',    R.states['analysis'],       R.SEED],
   ['TC-S06','review moves-ply0',         R.states['moves-ply0'],     R.SEED],
+  // #548 item (146), jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12: THE TWO DRILLS, now that the drill float
+  // build (#547 item (80), the solved board no longer jumps) is on main. REPORT-ONLY like the rest until a reading is promoted by the rule
+  // above: each drill ASKED (card 1) and SOLVED (card 1 played). Seeded the way gate 72 seeds them - five one-move cards - so the state is
+  // the drill's own layout and not a fixture of a real review; ct_bril_reset_v1 is required or the brilliancies seed is wiped on boot.
+  ['TC-S07','drill mistakes asked',      DR('mistakes',false),       DRSEED.mistakes],
+  ['TC-S07','drill mistakes solved',     DR('mistakes',true),        DRSEED.mistakes],
+  ['TC-S07','drill brilliant asked',     DR('brilliant',false),      DRSEED.brilliant],
+  ['TC-S07','drill brilliant solved',    DR('brilliant',true),       DRSEED.brilliant],
 ];
 const PROMOTED77=['puzzles train','puzzles train-solved','puzzles train-fail','puzzles train-hint','review moves-ply10','review moves-last','review analysis'];
 const cutBands=(bands,top)=>bands.map(([a,b])=>[Math.max(a,top),b]).filter(([a,b])=>b-a>=8).map(([a,b])=>[+a.toFixed(1),+b.toFixed(1),+(b-a).toFixed(1)]);
