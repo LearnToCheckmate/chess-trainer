@@ -30,7 +30,10 @@
 'use strict';
 const L=require('../lib');
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e). Board width and top, per geometry, for BOTH configurations.
-const PIN={kunal:{card:{w:351,top:78},pp:{w:351,top:78}},'390':{card:{w:390,top:103},pp:{w:390,top:103}}};
+// #548 item (92) RE-PINNED ON PURPOSE, as jobs/chrome-row-still-unbuilt-2026-09-28 says this pin must be: Home and Menu left the top
+// player bar for a 44px row of their own and the move strip under the board went (Kunal's 'everywhere'). Measured on the #548 trial:
+// 375x679 card k8 and Pass & Play 351@78 -> 367@102 (WIDER by 16 and 24px lower), 390x844 390@103 -> 390@128 (same width, 25px lower).
+const PIN={kunal:{card:{w:367,top:102},pp:{w:367,top:102}},'390':{card:{w:390,top:128},pp:{w:390,top:128}}};
 L.run(async()=>{
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'k8-'+geo});await b.open();

@@ -1621,6 +1621,18 @@ As a player, resigning takes two separate taps; an accidental double tap on Resi
 As a player, black pieces carry the faint light outline the app gives them, so they separate from the dark squares.
 - Every black piece computes both white drop-shadows its style declares. (TC-PL-049)
 
+
+### US-PL-22 On a phone, Home and the menu sit in a top row of their own above the game
+
+Kunal, 13 and 14 September 2026, then 'everywhere' on questions/play-top-row-home-and-menu-2026-10-10 and 'ship' on
+questions/B8-CHROME-ROW (jobs/chrome-row-still-unbuilt-2026-09-28). Built at #548.
+
+- On every phone, in a live and a finished game, Pass and Play and vs Computer, the Home and Menu controls are in a row of
+  their own at the top - not inside the top player bar - each at least 44px wide and the element under its own centre. (TC-PL-057)
+- The middle of that row is the screen's one status line: the app name, then the opening once it is named, 'thinking',
+  'Check!' or the result - so nothing on the screen says the opening twice and no blank band sits under the row.
+- The move list is painted in exactly one place, the Moves box below the board; the strip that repeated the last moves under
+  the board is gone. In landscape the side rail is unchanged.
 ### US-R95 The verdict word on the board is never covered by its own badge
 *Added #547, from the job on the round verdict chip painting over the word pill (item (170)).*
 As a player stepping through a review, "Blunder" and "Brilliant" on the board read in full.

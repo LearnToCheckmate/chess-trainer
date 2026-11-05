@@ -615,7 +615,9 @@ const READ_PIN={
 // reddens. Rect precision is the key's own 0.1px rounding, tighter than the job's 0.6px.
 // #548 item (160): "1 blunders › 104.8x27" RE-PINNED to "1 blunder › 97.3x27" at se, kunal730 and short375 - the review sheet's count chips
 // now agree with their count (jobs/auditor-547-p2-findings-2026-11-03, p2_plurals). Measured on the #548 trial; the control is still undersized and still pinned.
-const SMALL_PIN={"se": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 36.5x51", "Back 39.4x51", "Discover 63.2x43", "First move 67x42", "Flip 39.4x51", "Hint 39.4x51", "Home 34x30", "Home 63.2x43", "Last move 67x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "More 36.5x51", "More 39.4x51", "Moves 36.6x51", "Moves 39.4x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 63.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 63.2x43", "Review 40x51", "Review 63.2x43", "Roadmap 38.1x44", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"], "kunal730": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 88.3x42", "Back 34x30", "Discover 74.2x43", "First move 88.3x42", "Home 34x30", "Home 74.2x43", "Last move 88.3x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "Next key moment (10) 88.3x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 68.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "home-look 199.9x30", "rev-best 102.4x23", "🎓 New to chess? Lock in the endga 339x39"], "short375": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 36.5x51", "Back 39.4x51", "Discover 74.2x43", "First move 67x42", "Flip 39.4x51", "Hint 39.4x51", "Home 34x30", "Home 74.2x43", "Last move 67x42", "Menu and settings 34x30", "Menu and settings 38x30", "More 34x30", "More 36.5x51", "More 39.4x51", "Moves 36.6x51", "Moves 39.4x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 40x51", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"]};
+// #548 item (92) RE-PINNED from gate 26's own report on the #548 trial: Home and Menu left the top player bar (34x30) for the top row
+// (44x40 - 44 wide, under 44 tall, so still population (a)); at se and short375 the boards are wider, so the play control buttons are too.
+const SMALL_PIN={"se": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 63.2x43", "First move 67x42", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 63.2x43", "Last move 67x42", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 63.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 63.2x43", "Review 40x51", "Review 63.2x43", "Roadmap 38.1x44", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"], "kunal730": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 88.3x42", "Back 34x30", "Discover 74.2x43", "First move 88.3x42", "Home 44x40", "Home 74.2x43", "Last move 88.3x42", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "Next key moment (10) 88.3x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 68.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "home-look 199.9x30", "rev-best 102.4x23", "🎓 New to chess? Lock in the endga 339x39"], "short375": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Auto-play 67x42", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 74.2x43", "First move 67x42", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 74.2x43", "Last move 67x42", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Next key moment (10) 67x42", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 40x51", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"]};
 const smallExcluded=(k,p)=>/span>span$/.test(p)||/^\d+ \d/.test(k);
 const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
 const COVERED_PIN={
@@ -754,7 +756,7 @@ const COVERED_PIN={
 // Returns one row per TEXT NODE whose painted ink crosses the content box of the nearest ancestor that clips it
 // on that axis. `cut` is in PIXELS OF INK, which is the number that distinguishes a real defect from geometry.
 const SCAN = function(){
-  const out=[], other=[], skipped=[];
+  const out=[], other=[], skipped=[], srSkipped=[];
   let nodes=0, inked=0, clipped=0, scrollable=0;
   const vis=(el)=>{
     for(let e=el;e&&e!==document.documentElement;e=e.parentElement){
@@ -799,6 +801,14 @@ const SCAN = function(){
     const el=n.parentElement; if(!el) continue;
     nodes++;
     if(!vis(el)) continue;
+    // #548 item (92): A SCREEN-READER-ONLY BOX PAINTS NOTHING, so its text is not "cut" - it is not drawn. The Play screen's move log
+    // (play-moverow) became one on a phone when the strip under the board was removed: 1x1, overflow hidden, clip-path inset(50%).
+    // Skipped by that exact MECHANISM, never by a name, and counted in `srSkipped` - NOT in `skipped`, whose zero is assertion (b) below
+    // about ROTATED ancestors and which went red on exactly this (18 skips, the trial's first run) - and printed per geometry, so a new
+    // hidden box is visible in the log.
+    {let srOnly=null;for(let a=el;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a),br=a.getBoundingClientRect();
+       if(br.width<=1.5&&br.height<=1.5&&cs.overflow==='hidden'&&(cs.clipPath==='inset(50%)'||/rect\(0px,? 0px,? 0px,? 0px\)/.test(cs.clip))){srOnly=a;break;}}
+     if(srOnly){srSkipped.push({why:'screen-reader-only box (1x1, clipped)',el:path(el)});continue;}}
     const rg=document.createRange(); rg.selectNodeContents(n);
     const rects=[...rg.getClientRects()].filter(r=>r.width>0.2&&r.height>0.2);
     if(!rects.length) continue;
@@ -871,7 +881,7 @@ const SCAN = function(){
       if(kind==='cut') out.push(row); else other.push(row);
     }
   }
-  return {rows:out, other, skipped, seen:{nodes,inked,clipped,scrollable}};
+  return {rows:out, other, skipped, srSkipped, seen:{nodes,inked,clipped,scrollable}};
 };
 
 
@@ -1301,7 +1311,7 @@ L.run(async()=>{
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
-    let totalRows=0, totalSkipped=0, seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
+    let totalRows=0, totalSkipped=0, totalSr=0, srPaths=new Set(), seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
     let ivSignalled=0, ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
     for(const [name,go] of WALK){
       let reached=true, res=null;
@@ -1463,7 +1473,7 @@ L.run(async()=>{
         }
       }
       seenAny+=res.seen.inked;
-      totalRows+=res.rows.length; totalSkipped+=res.skipped.length;
+      totalRows+=res.rows.length; totalSkipped+=res.skipped.length; totalSr+=(res.srSkipped||[]).length; (res.srSkipped||[]).forEach(x=>srPaths.add(name+': '+x.el));
       // PRESENCE FIRST: an empty screen scans clean, so a zero-ink screen is not evidence of anything (#385).
       L.say(res.seen.inked>=6, g+' '+name+': the screen actually painted text for the scanner to measure - a clean result on an empty screen is not a green', res.seen);
       const pin=pinFor(g,name);
@@ -1602,6 +1612,7 @@ L.run(async()=>{
 
     // (b): a rotated ancestor is skipped rather than measured wrong, so the skip count must stay zero or the
     // gate has quietly stopped covering something.
+    L.note(g+': screen-reader-only text nodes not scanned (they paint nothing; #548 item (92)): '+totalSr+(totalSr?' - '+[...srPaths].slice(0,6).join(' | '):''));
     L.say(totalSkipped===0, g+': no clipping ancestor was skipped for a rotated/skewed transform (a skip is coverage silently lost, not a pass)', {skipped:totalSkipped});
     L.say(seenAny>=60, g+': the sweep as a whole measured a real quantity of ink across the screens', {inkedTextNodes:seenAny});
     // [#423's count, kept as written; the table is fifteen since #545] 11 of the 12 screens measure at least one eligible text node today; HOME is the one that measures none

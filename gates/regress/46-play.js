@@ -168,8 +168,11 @@ const overhangLive=(b)=>b.page.evaluate(()=>{
 // Measured on #900, 2026-09-14. vs Computer the eval bar takes 18px off the left, so the board is narrower
 // than in Pass & Play at the same width; the bars are flex:1 1 0 and absorb the leftover height, so they are
 // taller where the board is narrower. Both facts are why every number here is per-geometry.
-const CPU={se:{bw:288,bx:25,by:62.5,barW:288,barH:33.5},kunal730:{bw:353,bx:20,by:93.8,barW:353,barH:64.8},'390':{bw:368,bx:20,by:103,barW:368,barH:74}};
-const PP ={se:{bw:272,bx:24,by:63,barW:272,barH:34},kunal730:{bw:375,bx:0,by:84.8,barW:375,barH:55.8},'390':{bw:390,bx:0,by:103,barW:390,barH:74}};
+// #548 item (92) RE-PINNED, measured on the #548 trial with the same probe that reproduces the old pins on main c7f6a1228e43 to 0.1px:
+// Home and Menu have a 44px top row of their own and the move strip under the board is gone, so every board sits lower and at 320x568
+// the boards are WIDER (vs Computer 288 -> 298, Pass & Play 272 -> 280); at 375x730 and 390x844 the widths are unchanged.
+const CPU={se:{bw:298,bx:20,by:88,barW:298,barH:34},kunal730:{bw:353,bx:20,by:121.7,barW:353,barH:67.7},'390':{bw:368,bx:20,by:128,barW:368,barH:74}};
+const PP ={se:{bw:280,bx:20,by:89,barW:280,barH:35},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
 const ROW_LIVE=['Moves','Back','Forward','Hint','Flip','More'];
 const ROW_OVER=['Moves','Back','Forward','Review','Rematch','More'];
 
@@ -221,20 +224,23 @@ L.run(async()=>{
     const pt=await b.rect('[data-ct="pbar-top"]'),pb=await b.rect('[data-ct="pbar-bottom"]');
     L.say(!!pt&&!!pb&&near(pt.w,W.barW)&&near(pb.w,W.barW),geo+': both player bars are '+W.barW+' wide - the board\'s own width',{top:pt&&pt.w,bottom:pb&&pb.w,want:W.barW});
     L.say(!!pt&&!!pb&&near(pt.h,W.barH)&&near(pb.h,W.barH),geo+': both player bars are '+W.barH+' tall',{top:pt&&pt.h,bottom:pb&&pb.h,want:W.barH});
-    const chrome=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');return {home:!!(t&&t.querySelector('[data-ct="play-home"]')),menu:!!(t&&t.querySelector('[data-ct="play-menu"]'))};});
-    L.say(chrome.home&&chrome.menu,geo+': the ⌂ and ☰ live in the TOP player bar (#351: they were a 40px row of their own and every pixel of it went to the board)',chrome);
-    // #545 item (100) [jobs/gate-46s-351-chrome-assertion-is-an-existence-test-that-the-regression-it-names-satisfies-2026-10-23].
-    // The line above is an EXISTENCE test: a display:none node satisfies it, and so does a tree that re-adds #351's 40px row
-    // while leaving these two nodes inside the bar - the grid.contains() shape CLAUDE.md records at #394. Two halves added,
-    // each its own L.say. VISIBILITY: each control has a non-zero rect INSIDE the bar's rect, is not hidden, and owns the point
-    // at its own centre. OUTCOME: nothing occupies vertical space between the bar and the board - the board's top edge is the
-    // bar's bottom edge, measured, so a re-added row between them is red whatever it contains.
+    // TC-PL-057 [#548 item (92); jobs/chrome-row-still-unbuilt-2026-09-28, Kunal's 'everywhere' then 'ship']: THE ⌂ AND ☰ HAVE A TOP ROW
+    // OF THEIR OWN. This block asserted the OPPOSITE until #548 - #351's call, that they live inside the top player bar - and Kunal reversed
+    // it on 13 and 14 September and chose 'everywhere' on 11 October. So: neither control is a descendant of pbar-top; each is a visible,
+    // non-zero box ABOVE the bar that owns the point at its own centre and is at least 44 wide; and exactly one PAINTED element renders
+    // the move list (the strip under the board is gone; the Moves box stays). Main c7f6a1228e43 has both inside pbar-top and paints the
+    // strip, so it reds here.
     const vis=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');if(!t)return null;const tr=t.getBoundingClientRect();
-      return ['play-home','play-menu'].map(id=>{const e=t.querySelector('[data-ct="'+id+'"]');if(!e)return {id,found:false};const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
+      return ['play-home','play-menu'].map(id=>{const e=document.querySelector('[data-ct="'+id+'"]');if(!e)return {id,found:false};const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
         const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-        return {id,found:true,w:+r.width.toFixed(1),h:+r.height.toFixed(1),inside:r.left>=tr.left-0.5&&r.right<=tr.right+0.5&&r.top>=tr.top-0.5&&r.bottom<=tr.bottom+0.5,
+        return {id,found:true,inBar:t.contains(e),w:+r.width.toFixed(1),h:+r.height.toFixed(1),above:r.bottom<=tr.top+0.5,
           shown:cs.display!=='none'&&cs.visibility!=='hidden'&&+cs.opacity>0,ownsCentre:!!h&&(h===e||e.contains(h))};});});
-    L.say(!!vis&&vis.every(v=>v.found&&v.w>0&&v.h>0&&v.inside&&v.shown&&v.ownsCentre),geo+': the ⌂ and ☰ are VISIBLE in the top bar - each a non-zero box inside the bar, not hidden, and owning the point at its own centre (existence alone is satisfied by a display:none node)',vis);
+    L.say(!!vis&&vis.every(v=>v.found&&v.inBar===false),geo+': TC-PL-057 the ⌂ and ☰ are NOT inside the top player bar',vis);
+    L.say(!!vis&&vis.every(v=>v.found&&v.w>=44&&v.h>0&&v.above&&v.shown&&v.ownsCentre),geo+': TC-PL-057 and each is a visible box at least 44 wide in a row ABOVE the bar, owning the point at its own centre',vis);
+    const lists=await b.page.evaluate(()=>{const paints=(e)=>{const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return r.width>4&&r.height>4&&cs.visibility!=='hidden'&&cs.display!=='none';};
+      const strip=document.querySelector('[data-ct="play-moverow"]'),panel=document.querySelector('[data-ct="moves-panel"]');
+      return {strip:!!strip&&paints(strip),panel:!!panel&&paints(panel)};});
+    L.say(lists.panel===true&&lists.strip===false,geo+': TC-PL-057 exactly ONE painted element renders the move list - the Moves box - and the strip under the board is not painted',lists);
     // THE GAP IS PINNED AT 2px, MEASURED AT #545 ON 049b41dfb6f1 AT ALL THREE GEOMETRIES (se 60.5 -> 62.5, kunal730 91.73 -> 93.7,
     // 390 101 -> 103): the column's own 2px gap, not a row. The first draft asserted <= 1px and went red on main at all three,
     // which is the measurement, so the pin moved to it. #351's row was 40px; anything that occupies vertical space is red.
@@ -889,6 +895,23 @@ L.run(async()=>{
     await P.tapBtn(b,/^Forward$/,500);await P.tapBtn(b,/^Forward$/,700);
     const h2=await hl();
     L.say(h0>0&&h2>0,'TC-PL-055 and back at the live ply the hint is shown again - stepping back hid it, it did not throw it away ('+h2+' squares)',{h2});
+    await b.close();
+  }
+  // TC-PL-057 (b), THE SCRIPTED FADE [#548 item (92), the spec's 'the fade is checked with a scripted known opening']: Pass & Play
+  // 1.e4 e5 2.Nf3 Nc6 3.Bc4 at 375x730 and 320x568. Before the opening is named the row's middle shows the app name; once it is named
+  // the middle shows it and the app name is faded out - the SAME box, so the board's top and width do not move across the swap.
+  for(const geo of ['kunal730','se']){
+    const b=await L.launch({geo,name:'play-chrome-fade-'+geo});await b.open();
+    const mid=()=>b.page.evaluate(()=>{const a=document.querySelector('[data-ct="chrome-app"]'),o=document.querySelector('[data-ct="play-opening"]');
+      const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];
+      return {app:a?+getComputedStyle(a).opacity:null,op:o?+getComputedStyle(o).opacity:null,txt:o?(o.innerText||'').trim():null,bt:gr?+gr.top.toFixed(1):null,bw:gr?+gr.width.toFixed(2):null};});
+    let ok=true;try{await P.states['pp-m0'](b);}catch(e){ok=false;}await b.settle(600);
+    const m0=await mid();
+    try{for(const [f,t] of [['e2','e4'],['e7','e5'],['g1','f3'],['b8','c6'],['f1','c4']])await b.move(f,t,500);}catch(e){ok=false;}
+    await b.settle(900);const m5=await mid();
+    L.say(ok&&m0.app===1&&m0.op===0,geo+': TC-PL-057 PRECONDITION before any move the row\'s middle shows the app name and no opening',m0);
+    L.say(ok&&!!m5.txt&&m5.op===1&&m5.app===0,geo+': TC-PL-057 after 1.e4 e5 2.Nf3 Nc6 3.Bc4 the middle shows the opening ("'+m5.txt+'") and the app name has faded out',m5);
+    L.say(m0.bt!=null&&m0.bt===m5.bt&&m0.bw===m5.bw,geo+': TC-PL-057 and the swap moved nothing - the board top and width are the same before and after ('+m0.bt+'/'+m0.bw+' -> '+m5.bt+'/'+m5.bw+')',{m0,m5});
     await b.close();
   }
 },'PLAY');

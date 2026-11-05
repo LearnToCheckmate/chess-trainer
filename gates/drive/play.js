@@ -106,7 +106,10 @@ async function scrollSheetTop(b){await b.page.evaluate(()=>{for(const el of docu
 // rect of the smallest element whose text matches (any element)
 async function textRect(b,re){return b.page.evaluate((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of document.querySelectorAll('button,[role=button],a,div,span,label')){const t=(el.innerText||'').trim();if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best={x:Math.round(r.left*10)/10,y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,bottom:Math.round(r.bottom*10)/10,text:t.slice(0,60),tag:el.tagName,sw:el.scrollWidth,cw:el.clientWidth};}}return best;},[re.source,re.flags]);}
 async function btnRects(b){return b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||x.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim().slice(0,30),x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height)};}));}
-async function closeSheet(b){await b.page.mouse.click(8,8);await b.page.waitForTimeout(300);}
+// #548 item (92): (8,8) IS NOW THE TOP ROW'S HOME BUTTON on a phone (Home and Menu left the player bar for a row of their own), so a
+// blind tap there with no sheet open takes the player Home. The backdrop tap is made only while the More sheet is up, which is the
+// only thing this helper was ever closing.
+async function closeSheet(b){const up=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="more-sheet"]');if(!s)return false;const r=s.getBoundingClientRect();return r.width>2&&r.height>2;});if(up){await b.page.mouse.click(8,8);await b.page.waitForTimeout(300);}}
 async function noClock(b){try{await b.tapText(/^No clock$/,{wait:200});}catch(e){}}
 
 const S={};

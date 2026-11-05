@@ -149,7 +149,7 @@ const KINDS=[
      await tapTitle(b,'More',600);
      await b.tapText(/^Resign$/).catch(()=>{});await b.settle(400);             // #375: the first tap only ARMS it
      await b.tapText(/^Tap again to resign$/).catch(()=>{});await b.settle(1100);
-     await b.page.mouse.click(8,8).catch(()=>{});await b.settle(400);}},
+     await P.closeSheet(b).catch(()=>{}); /* #548 item (92): (8,8) is the top row's Home now */await b.settle(400);}},
 ];
 
 // #548 item (118), TC-PL-053, Kunal B8B-LANDSCAPE-ROW 'side': in landscape the row moves into the side space beside the

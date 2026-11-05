@@ -44,7 +44,10 @@ L.run(async()=>{
       await b.shot('play-'+tag+'-20ply-moves-hidden');
       // the Analyze tap box top edge: does it fire?
       const ar=await b.rect('[data-ct="moves-analyze"]');await b.page.mouse.click(ar.x+ar.w/2,ar.y+1);await b.settle(1500);
-      const left=!(await b.page.locator('[data-ct="play-moverow"]').last().isVisible().catch(()=>false));const txt=await b.texts();
+      // #548 item (92): the move strip is no longer PAINTED on a phone (a 1x1 visually hidden log), so isVisible() on it would read true
+      // inside the live game and the check below would always say 'still in the game'. Leaving the live game is proved by the Play
+      // screen's own top row and move log both being GONE from the DOM - a count, which a hidden element cannot fake.
+      const left=(await b.page.locator('[data-ct="board-chrome"]').count())===0&&(await b.page.locator('[data-ct="play-moverow"]').count())===0;const txt=await b.texts();
       L.say(left,tag+': A-11 a click at the top edge of Analyze leaves the game (analysis/import opens)',txt.slice(0,6).join(' | '));
     }catch(e){L.say(false,tag+': 20-ply section threw',String(e).slice(0,160));}
     L.say(b.errs.length===0,tag+': zero app errors',b.errs.slice(0,3));
