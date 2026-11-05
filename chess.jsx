@@ -5172,6 +5172,10 @@ export default function App(){
     if(days.indexOf(today)>=0)return ' Flawless again. Today is already banked, tomorrow counts next.';
     days.push(today);
     setLearnProg(p=>({...p,[key]:{learned:true,days}}));
+    /* #548 item (37), jobs/try-again-clears-the-wrong-try-so-a-flawless-day-banks-on-a-run-that-was-not-flawless-2026-10-06 (its folded
+       defect): lessonStats reads learnProgRef, which React only refreshes on the next render, so the counts printed here and on the
+       celebration card were one bank behind - a first bank read 'Lines learned: 0/4. 0 of 10 days'. The ref carries the new bank now. */
+    learnProgRef.current={...learnProgRef.current,[key]:{learned:true,days}};
     const stN=lessonStats(op);
     const tail=(stN.lines>1)?(' Lines learned: '+stN.linesLearned+'/'+stN.lines+'.'):'';
     if(stN.mastered){if(!st0.mastered)setCelebrate({kind:'mastered',title:op.name,sub:LEARN_GOAL+' flawless days · every line learned'});return st0.mastered?' Still mastered. \ud83c\udfc5':' \ud83c\udfc5 MASTERED \u00b7 '+LEARN_GOAL+' flawless days across the whole lesson. Seriously impressive.';}

@@ -1390,6 +1390,10 @@ L.run(async()=>{
     const d2=await days(b);
     L.say(/Complete!/.test(n2),'kunal730: TC-LS-044b PRECONDITION the run with the hint switched on and off before the first move completed',{n2});
     L.say(/Complete!/.test(n2)&&d2>=1&&!/[Hh]ints were on|hints on/.test(n2),'kunal730: TC-LS-044b a hint switched ON and OFF again before the first move leaves the run clean - it banks a day ('+d2+') and the note does not blame the hint',{n2,d2});
+    // TC-LS-045 [#548, item (37)]: and the counts in that first bank's note are the counts AFTER it - one line learned and one day -
+    // not one bank behind. On main the note read 'Lines learned: 0/4. 0 of 10 days toward Mastered.' after banking the first day.
+    {const m=n2.match(/Lines learned: (\d+)\/(\d+)\. (\d+) of (\d+) days/);
+     L.say(!!m&&+m[1]===1&&+m[3]===1&&d2===1,'kunal730: TC-LS-045 the first bank\'s note counts the bank it just made: 1 line learned and day 1 ("'+(m?m[0]:n2.slice(0,90))+'")',{n2,d2});}
     await b.close();}
  }
  // TC-R77 [#547 item (98); jobs/the-intro-card-cap-is-100vh-so-where-it-binds-the-card-fills-the-inset-bands-2026-10-08]: WHERE THE
