@@ -5045,7 +5045,7 @@ export default function App(){
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
             const _gv2=(_g.given!=null?_g.given:_g.sac);const _why='You gave up '+(_gv2>=5?'a rook or more':_gv2>=3?'a piece':'material')+' and the position still read '+((out[i].evalAfter>0?'+':'')+(out[i].evalAfter||0).toFixed(1))+'. '+
               (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?'It forks two pieces at once.':_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
-            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why});
+            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor(i/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
           }
         }
         /* #426 antagonist B, P0-3, MEASURED: this merge is fen-keyed and used to DROP every position it
@@ -5102,7 +5102,7 @@ export default function App(){
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
   };
-  const resetReview=()=>{setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
+  const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;let pgn='';for(let i=0;i<mvs.length;i++){if(i%2===0)pgn+=(i/2+1)+'. ';pgn+=mvs[i]+' ';}pgn=pgn.trim();
     /* #547 item (127), jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29: this PGN carried no tags, so the
        review's header read 'White vs Black' with no result, where an imported game on the same screen names both players and the
@@ -5810,7 +5810,7 @@ export default function App(){
       let line='';
       try{let g=pos,n=0,num=Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
         for(const u of (pv||[])){const mv=uciToMove(g,u);if(!mv)break;const nb=applyMove(g.board,mv);const san=toSAN(g,mv,nb);
-          const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
+          const wt=g.turn==='w';const pre=(review&&review.noNum)?'':(wt?(num+'. '):(first?(num+'... '):''));
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
       const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen,no:Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
@@ -6326,10 +6326,12 @@ export default function App(){
   const analyseFromDrill=()=>{const p=curPuz;if(!p||!p.pos||!puzSolved||!mistakeMode)return;let g0=null;try{g0=fromFEN(toFEN(p.pos));}catch(e){g0=null;}if(!g0)return;
     drillAnaRef.current={pos:drillPosRef.current,review,reviewView,ply,flip,pending:true};
     /* round-2 antagonist A veto: a FEN-built position has an empty history, so every line read move 1. plyBase is the plies BEFORE the card's
-       position, from the card's own move number (captures since #548 carry `no`; an older card falls back to its FEN's fullmove field). */
-    const _q=(mistakeQueueRef.current||[])[mistakeIdxRef.current]||{};const _no=(_q.no>0)?_q.no:(parseInt(String(_q.fen||'').trim().split(/\s+/)[5],10)||1);
+       position, from the card's own move number (captures since #548 carry `no`, mistakes and brilliants alike). A card stored before #548 has NO
+       recoverable move number - toFEN always writes ' 0 1', so its FEN says 1 whatever the truth (final-read antagonist A, MEASURED) - and for it
+       the board prints the line WITHOUT move numbers (noNum) rather than a number that is wrong. */
+    const _q=(mistakeQueueRef.current||[])[mistakeIdxRef.current]||{};const _known=_q.no>0;const _no=_known?_q.no:1;
     const z={};GRADE_LADDER.forEach(x=>{z[x[0]]=0;});
-    setRevAuto(false);setReview({positions:[g0],plies:[],headers:{},analysis:[],counts:z,openingName:null,summary:null,skills:null,pgn:'',fromDrill:true,plyBase:2*(_no-1)+(g0.turn==='b'?1:0)});setReviewView('moves');setPly(0);setFlip(g0.turn==='b');setHomeScreen(false);setMode('analyze');};
+    setRevAuto(false);setReview({positions:[g0],plies:[],headers:{},analysis:[],counts:z,openingName:null,summary:null,skills:null,pgn:'',fromDrill:true,plyBase:2*(_no-1)+(g0.turn==='b'?1:0),noNum:!_known});setReviewView('moves');setPly(0);setFlip(g0.turn==='b');setHomeScreen(false);setMode('analyze');};
   const leaveDrillAnalysis=()=>{const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};
     setReview(d?d.review:null);setReviewView(d&&d.reviewView?d.reviewView:'summary');setPly(d&&d.ply?d.ply:0);setMode('puzzle');if(d)drillGo(d.pos);};
   /* #547 item (147), jobs/drill-past-the-last-mistake-drops-you-on-the-review-landing-with-nothing-said-2026-09-29: Next from the last card
@@ -8846,7 +8848,7 @@ export default function App(){
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
-            {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no);const ew=evalWords(engLine.cp);return(
+            {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no).map(r=>(review&&review.noNum)?{...r,san:String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')}:r);const ew=evalWords(engLine.cp);return(
               <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
                 {/* #548 item (114): what each move of the engine's line is FOR, in words the board can confirm (explainLine), and what the
                     number means (evalWords). An overlay, so opening it moves nothing; a tap anywhere on it closes it. */}

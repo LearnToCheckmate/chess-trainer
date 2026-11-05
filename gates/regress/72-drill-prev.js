@@ -565,4 +565,31 @@ L.run(async()=>{
    let rd=null;if(row){await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);rd=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rev-engwhy-move"]');return m?(m.innerText||'').replace(/\s+/g,' ').trim():null;});}
    L.say(!!rd&&/^20(\.|…)/.test(rd),'TC-R106 A9b and the plain-words reading opens on 20 too ("'+(rd||'').slice(0,24)+'")',{reading:rd});
    await b.close();}
+  // TC-R106 A9c/A9d/A10 [#548 final-read antagonist A vetoes]. A9 seeds only a MISTAKE card that carries `no`, which is why two routes stayed
+  // wrong under it: a BRILLIANT card (captured with no `no` until the fix) and any card stored before #548 (no `no`, and its FEN always says
+  // move 1). A9c: such a legacy card prints the line with NO move numbers - never a wrong '1...'. A9d: a brilliant card at move 20 reads 20.
+  // A10: leaving the drill board by ⋯ -> New game must not carry the analysis board into the next game - it did (rev-row1 Undo/Exit on a fresh import).
+  {const R72=require('../drive/review');
+   const card={fen:'4k3/1q6/8/8/8/8/8/4K3 b - - 0 1',uci:'b7b2',ts:1791000000000,last:null,why:'the queen comes down',hint:'look down the file'};
+   const openAna=async(store,enter)=>{const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-analyse-'+Object.keys(store)[0],store:Object.assign({ct_pool:'3'},store)});
+     await b.open();await b.tile('Review');await b.settle(700);let ok=true;try{await b.tapText(enter,{wait:1800});}catch(e){ok=false;}
+     if(ok){await b.move('b7','b2',900);await b.settle(1200);}const r=ok?await tap(b,'drill-analyse',2500):{hit:false};
+     let row='';if(r.hit){for(let k=0;k<40&&!/[KQRBN][a-h1-8x]|[a-h][1-8]/.test(row.replace(/^\S+\s*/,''));k++){await b.page.waitForTimeout(500);row=await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').replace(/\s+/g,' '));}}
+     return {b,ok,r,row};};
+   {const {b,ok,r,row}=await openAna({ct_mymistakes:[Object.assign({label:'Blunder',played:'Kd8'},card)]},/find the move you missed/);
+    L.say(ok&&!!r.hit&&!!row,'TC-R106 A9c PRECONDITION a legacy Black card (no stored move number) was solved, opened on the analysis board, its line arrived',{row});
+    L.say(!!row&&!/(?:^|\s)\d+\.+\s*[KQRBNOa-h]/.test(row)&&/Qb2/.test(row),'TC-R106 A9c a card with no recoverable move number prints its line WITHOUT move numbers, never a wrong "1..." ("'+row.slice(0,40)+'")',{row:row.slice(0,60)});
+    let rd=null;if(row){await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);rd=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rev-engwhy-move"]');return m?(m.innerText||'').replace(/\s+/g,' ').trim():null;});await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(300);}
+    L.say(!!rd&&!/^\d/.test(rd)&&/^Qb2/.test(rd),'TC-R106 A9c and the plain-words reading opens on the move with no number ("'+(rd||'').slice(0,20)+'")',{reading:rd});
+    // A10 from the same board: ⋯ -> New game, then a fresh import must open on the ordinary review controls
+    let row1=null,okA=false;if(r.hit){try{await b.tapCt('rev-more',500);await b.tapText(/^New game$/,{wait:800});await R72.importPgn(b,R72.PGN_OPERA,180000);await R72.startReview(b);await R72.goPly(b,10);okA=true;}catch(e){}
+      row1=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-row1"] button')].map(x=>(x.innerText||'').trim()));}
+    L.say(okA,'TC-R106 A10 PRECONDITION from the drill analysis board, ⋯ -> New game -> a fresh import reached its move screen',{row1});
+    L.say(okA&&!!row1&&row1.length>0&&!row1.some(t=>/Undo|Exit analysis|Back to the card/.test(t)),'TC-R106 A10 the next game opens on its ordinary review controls, NOT the analysis board left on from the drill',{row1});
+    await b.close();}
+   {const {b,ok,r,row}=await openAna({ct_mybrilliancies:[Object.assign({label:'Brilliant',no:20},card)],ct_bril_reset_v1:'1'},/can you spot them again\?/);
+    L.say(ok&&!!r.hit&&!!row,'TC-R106 A9d PRECONDITION a Black BRILLIANT card at move 20 was solved, opened on the analysis board, its line arrived',{row});
+    const rn=(row.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1];
+    L.say(rn==='20','TC-R106 A9d the brilliancies drill numbers its analysis line from the card\'s move too ("'+row.slice(0,40)+'")',{first:rn});
+    await b.close();}}
 },'72-drill-prev');
