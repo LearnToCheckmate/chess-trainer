@@ -61,7 +61,10 @@ SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 1, and the one member is US-INV-04, the cross-app invariant that has had no case since
 # 2026-09-15. It is named rather than merely counted, because a ceiling of 1 with no name is
 # satisfied by ANY single orphan and would let the real one be swapped out silently.
-G_CEIL=1
+# #548 item (136), jobs/register-join-and-input-count-wrong-2026-09-28 remainder step (2): LOWERED 1 -> 0. Measured on the tree of
+# ba629d1 with this script: "GENUINE 0 of ceiling 1" and "NAMED MEMBER US-INV-04 is no longer a genuine orphan and there are none",
+# cross-checked against verify-log.sh --citations arm (5). The order the job required held: the case landed first, then the read.
+G_CEIL=0
 G_NAMED="US-INV-04"
 
 ROOT="${CT_ROOT:-.}"
@@ -250,7 +253,10 @@ selftest(){
   T="$(mktemp -d)"; trap 'rm -rf "${T:-}"' EXIT
   mk(){ # mk <dir> <stories-body> <cases-body>
     mkdir -p "$1"; printf '%s\n' "$2" > "$1/us.md"; printf '%s\n' "$3" > "$1/tc.md"; }
-  run(){ CT_ROOT="$1" CT_STORIES=us.md CT_CASES=tc.md CT_CROSS=0 ${2:+CT_GCEIL=$2} bash "$SELF/story-join.sh" 2>&1; }
+  # #548 item (136): `${2:+CT_GCEIL=$2}` in the assignment prefix was NOT an assignment - bash recognises assignments before
+  # expansion, so the expanded word "CT_GCEIL=2" ran as a COMMAND, failed, and C6 passed on "command not found" (no 'exceeds' in
+  # the output). Found when the committed ceiling went to 0 and the controls that pass a ceiling went red. `env` takes it as data.
+  run(){ env CT_ROOT="$1" CT_STORIES=us.md CT_CASES=tc.md CT_CROSS=0 ${2:+CT_GCEIL=$2} bash "$SELF/story-join.sh" 2>&1; }
   say(){ if [ "$2" = "1" ]; then P=$((P+1)); echo "  PASS  $1"; else F=$((F+1)); echo "  FAIL  $1"; fi; }
   has(){ case "$1" in *"$2"*) echo 1;; *) echo 0;; esac; }
 
@@ -261,7 +267,7 @@ selftest(){
   # C1 / C2  GENUINE ORPHAN, firing and silent. One line differs: whether US-B-02 is cited at all.
   mk "$T/c1" '### US-A-01 a
 ### US-B-02 b' "$TBL"
-  out="$(run "$T/c1")"; rc=$?
+  out="$(run "$T/c1" 1)"; rc=$?   # #548: ceiling 1 named, since the committed G_CEIL is now 0
   say "C1  a story named nowhere in the case register is a GENUINE ORPHAN" "$(has "$out" 'GENUINE ORPHAN  US-B-02')"
   # C1b WAS WRONG WHEN FIRST WRITTEN AND IS KEPT IN ITS CORRECTED FORM RATHER THAN DELETED.
   # It asserted that one orphan against a ceiling of 1 is CLEAN. It is not, and should not be: the
@@ -291,7 +297,7 @@ A paragraph that merely mentions US-B-02 and names no case."
   mk "$T/c5" '### US-A-01 a
 ### US-B-02 b
 ### US-C-03 c' "$TBL"
-  out="$(run "$T/c5")"; rc=$?
+  out="$(run "$T/c5" 1)"; rc=$?
   say "C5  two genuine orphans against ceiling 1 REFUSES, exit 2" "$([ $rc -eq 2 ] && [ "$(has "$out" 'exceeds the committed ceiling of 1')" = 1 ] && echo 1 || echo 0)"
   out="$(run "$T/c5" 2)"; rc=$?
   say "C6  the same two against ceiling 2 does NOT refuse on the ratchet - the fixture is not what refused in C5" "$([ "$(has "$out" 'exceeds the committed ceiling')" = 0 ] && echo 1 || echo 0)"
@@ -332,9 +338,9 @@ A paragraph that merely mentions US-B-02 and names no case."
   # C11 THE NAMED MEMBER. A ceiling of 1 must not be satisfiable by a DIFFERENT single orphan.
   mk "$T/c11" '### US-A-01 a
 ### US-INV-04 the named one' "$TBL"
-  out="$(run "$T/c11")"; rc=$?
+  out="$(run "$T/c11" 1)"; rc=$?
   say "C11 the committed named member as the single orphan is CLEAN and says so" "$([ $rc -eq 0 ] && [ "$(has "$out" 'NAMED MEMBER    US-INV-04 is present')" = 1 ] && echo 1 || echo 0)"
-  out="$(run "$T/c1")"
+  out="$(run "$T/c1" 1)"
   say "C11b a DIFFERENT single orphan against the same ceiling REFUSES - the ceiling guards one story, not a count" "$([ "$(has "$out" 'the committed member has CHANGED')" = 1 ] && echo 1 || echo 0)"
 
   # C12 / C12b  BLOCK SCOPE, firing and silent. The ONE character that differs is a blank line.
