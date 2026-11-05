@@ -186,6 +186,16 @@ L.run(async()=>{
   L.note('engine branch that produced this capture: '+_eng.engine+'  (review rows in ct_gamestats: '+_eng.n+')');
   L.say(_eng.engine==='sf','TC-R16 A0e the capture was produced by the POOLED STOCKFISH branch, which is the only branch this gate covers - if this is "fallback" the run measured the branch the header says it cannot reach, and its sentence assertions below are reporting on uncovered code',{engine:_eng.engine,reviewRows:_eng.n,ct_pool:'3'});
   L.say(mis.length>=2,'TC-R16 A1 the app captured at least 2 of the user\'s own mistakes from a REAL review - this is the gate\'s input count, and every A-assertion below runs over all of them',{captured:mis.length,inputs:mis.length});
+  // TC-R103 [#548 item (125); jobs/mistake-drill-is-single-move-by-construction-2026-09-28, Kunal's feature 2]: EACH CAPTURED MISTAKE
+  // CARRIES THE NEXT TWO OR THREE MOVES OF THE BETTER LINE, from the app's own engine search on the card's position - read out of the
+  // store the review wrote, not seeded. Each `line` is 2 or 3 SAN plies, numbered, and never repeats the better move it follows.
+  {const withLine=mis.filter(m=>typeof m.line==='string'&&m.line.trim());
+   // NOT 'every': a card whose engine line stops one ply after the better move carries NONE by design (the app's own rule - one ply is not
+   // 'the next two or three moves'), and the first trial measured exactly that on 1 of 2 cards. So A asks that at least half carry one (and
+   // at least one, which main's 0 of N fails), and A2 holds every line that IS shown to the shape.
+   L.say(mis.length>0&&withLine.length>=1&&withLine.length>=Math.ceil(mis.length/2),'TC-R103 A the captured mistakes carry the better line\'s continuation - at least half of them ('+withLine.length+' of '+mis.length+')',mis.map(m=>({uci:m.uci,line:m.line===undefined?'<ABSENT>':m.line})));
+   const bad=withLine.filter(m=>{const t=m.line.trim().split(/\s+/).map(x=>x.replace(/^\d+(\.|\u2026)/,''));return t.length<2||t.length>3||!/^\d+(\.|\u2026)/.test(m.line.trim());});
+   L.say(withLine.length>0&&bad.length===0,'TC-R103 A2 each continuation is 2 or 3 plies of numbered SAN',{bad:bad.map(m=>m.line)});}
   const N=mis.length;
   for(let i=0;i<N;i++){const m=mis[i],w=m.why;
     L.say(typeof w==='string'&&w.trim().length>0,'TC-R16 A2['+(i+1)+'/'+N+'] the captured mistake carries a non-empty `why` (the capture site must store it, as the Brilliant branch does three lines below)',{uci:m.uci,played:m.played,why:w===undefined?'<FIELD ABSENT>':w});
@@ -341,6 +351,7 @@ L.run(async()=>{
         L.say(t.indexOf(mis[i].played)>=0,'TC-R16 B2['+(i+1)+'/'+N+'] '+g.n+' the explanation ON SCREEN names what the player played',{played:mis[i].played,text:t});
         L.say((t.match(SAN)||[]).filter(s=>s!==mis[i].played).length>0,'TC-R16 B3['+(i+1)+'/'+N+'] '+g.n+' the explanation ON SCREEN names the better move',{text:t});
         L.say(bandsIn(t).length>=1,'TC-R16 B4['+(i+1)+'/'+N+'] '+g.n+' the explanation ON SCREEN names at least one eval band (corrected at #426 with A5 - see that paragraph)',{bands:bandsIn(t),text:t});
+        if(mis[i].line)L.say(t.indexOf('It goes on '+mis[i].line)>=0,'TC-R103 B['+(i+1)+'/'+N+'] '+g.n+' the solved card shows what the better move led to - "It goes on '+mis[i].line+'"',{line:mis[i].line,text:t});
         L.say(r.hint.length>0&&r.hint.indexOf('<HINT BUTTON NOT REACHED')<0,'TC-R16 B5a['+(i+1)+'/'+N+'] '+g.n+' the hint button put a hint on screen at all - without this the assertion below measures nothing',{hint:r.hint});
         L.say(r.hint.length>0&&r.hint.indexOf(GENERIC_HINT)<0,'TC-R16 B5b['+(i+1)+'/'+N+'] '+g.n+' o.hint is NOT the fixed directive string that fired on every one of 148 captured mistakes. "Look for the most forcing option" misdirects on every quiet position, and Kunal promoted this from secondary to equal first on 2026-09-20',{hint:r.hint});
       }

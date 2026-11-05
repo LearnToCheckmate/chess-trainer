@@ -1059,6 +1059,25 @@ const SAC_LINE_MAX=3;
    a pure function is the fix for that, not an assertion written around it"). #511's token, ownership
    re-validation, yield and `else delete` are all still the only cache machinery in this file. */
 function sacKeep(ok,line){return !!ok&&!!line&&line.length>0;}
+/* #548 item (125), jobs/mistake-drill-is-single-move-by-construction-2026-09-28, Kunal's '1 and 2 in batch 8' (feature 2, the small
+   version): the mistakes drill shows the next two or three moves of what the better move led to. `pv` is the engine line from the
+   card's position, starting WITH the better move; this formats the up to `k` plies AFTER it as numbered SAN ('18...Kh8 19.Qh5 Rf8'),
+   reading the move number and side from the FEN, and stops at the first ply that does not parse. '' when fewer than two plies follow. */
+function bestLineTail(fen,pv,k){
+  try{
+    if(!pv||pv.length<2)return '';
+    const parts=String(fen||'').trim().split(/\s+/);let no=parseInt(parts[5],10)||1;let g=fromFEN(fen);
+    const m0=uciToMove(g,pv[0]);if(!m0)return '';
+    if(g.turn==='b')no++;g=makeMove(g,m0);
+    const out=[];
+    for(let i=1;i<pv.length&&out.length<k;i++){
+      const m=uciToMove(g,pv[i]);if(!m)break;const san=toSAN(g,m,applyMove(g.board,m));
+      out.push(g.turn==='w'?(no+'.'+san):(out.length===0?(no+'\u2026'+san):san));
+      if(g.turn==='b')no++;g=makeMove(g,m);
+    }
+    return out.length>=2?out.join(' '):'';   // one ply is not 'the next two or three moves' - show none (gate 51 A2 caught a lone '2.Qb7')
+  }catch(e){return '';}
+}
 function sacLine(gAfterCap,pvUci){
   const out=[];
   try{
@@ -4969,10 +4988,14 @@ export default function App(){
            complaint, twice. A solved card is also deleted from the queue, so there is no second chance.
            Existing entries are now UPGRADED in place when a fresh capture of the same position carries a
            sentence they lack. Nothing else about them is touched, so ts, last and played stay as they were. */
+        /* #548 item (125): each new card carries the next two or three moves of the better line, from a short engine search on the
+           card's own position (the line starts with the better move; bestLineTail formats what follows it). Bounded: 12 cards, 300ms
+           each, only with the analysis engine up - a card without a line simply shows none. */
+        if(caps.length&&useSF&&sfAnaReadyRef.current){for(const c of caps.slice(0,12)){try{let t=bestLineTail(c.fen,await sfBestLine(c.fen,300),3);if(!t)t=bestLineTail(c.fen,await sfBestLine(c.fen,900),3);/* a 300ms pv can stop one ply after the better move; one longer try */if(t)c.line=t;}catch(e){}}}
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
-            const patch={};if(!x.why&&f.why)patch.why=f.why;if(!x.hint&&f.hint)patch.hint=f.hint;
+            const patch={};if(!x.why&&f.why)patch.why=f.why;if(!x.hint&&f.hint)patch.hint=f.hint;if(!x.line&&f.line)patch.line=f.line;
             return Object.keys(patch).length?{...x,...patch}:x;});
           const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
           const changed=add.length||up.some((x,i)=>x!==prev[i]);
@@ -6195,7 +6218,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):(m.why||"That's the move you missed — well spotted.");o.url=null;o.mine=true;o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
