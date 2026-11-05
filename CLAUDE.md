@@ -116,10 +116,12 @@ collection `decisions` on the dashboard, not your memory. Twenty-three questions
 
 ## How this app is tested
 
-Headless, in real Chromium, against the bundle under test, at **375x730** — his actual phone's
-layout viewport. It is not 375x679; that number came from subtracting the status bar twice, and two
-sessions made the mistake independently. Keep 375x679 as a shorter-phone column and 390x844 as the
-wider one.
+Headless, in real Chromium, against the bundle under test, at **375x761 with insets 51/31** (`kunal761` in
+`gates/lib.js`) — his actual phone, an iPhone 15 Pro Max at Larger Text (375x812 points less the 51px top
+inset), SETTLED 2026-10-03 by the tracker's R19. **This paragraph said 375x730 until #548 item (157)
+[R18]**, and R19 says the 730 figure "is wrong and should be corrected wherever it appears": `kunal730` stays
+in `GEOS` only because 43 gate files still pin numbers measured there. It is not 375x679 either; that number
+came from subtracting the status bar twice. Keep 375x679 as a shorter-phone column and 390x844 as the wider one.
 
 - `cd gates && npm ci` once. **Then TAKE A NUMBER BEFORE YOU STAMP ONE** (#454):
   `CT_RUNID=<your runId> gates/buildnum.sh mint '<what this build is for>'` prints it, and

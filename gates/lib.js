@@ -3,7 +3,8 @@
 // the container (global) or playwright-core (executablePath from PLAYWRIGHT_BROWSERS_PATH).
 //
 //   const L=require('./lib');
-//   const b=await L.launch({geo:'kunal730'});   // 375x730 = Kunal's real phone; 'kunal' is 375x679, the SHORTER-phone column, not his phone [#546]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
+//   const b=await L.launch({geo:'kunal761'});   // 375x761 with ct_safe 51,31 = Kunal's phone (R19, settled 2026-10-03); 'kunal730' is the superseded
+//   375x730 column kept for the gates pinned there, 'kunal' is 375x679 (shorter-phone column) [#546, #548]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
@@ -54,10 +55,13 @@ const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.c
 // cross-checks; its Play numbers differ because headless Chromium has no real env() padding.
 // 2026-09-13, from Kunal and his feedback session: his phone's LAYOUT VIEWPORT is 375x730. The 679 came from a
 // readout that subtracted the 51pt status bar a second time, and two sessions made that mistake independently.
-// 'kunal730' is the real phone and new gates should use it; 'kunal' stays 375x679 as the shorter-phone column
+// [SUPERSEDED 2026-10-03 by R19, relabelled at #548 item (157)] 'kunal730' WAS called the real phone here. R19 settled it: iPhone 15
+// Pro Max at Larger Text is 375x812 points, and with the 51px top inset the installed-PWA viewport is 375x761 - so NEW GATES USE
+// 'kunal761', and 'kunal730' is kept as a historical column because 43 gate files still pin numbers measured there.
+// 'kunal' stays 375x679 as the shorter-phone column
 // until each existing assertion has been re-measured at 730 deliberately, one gate at a time, rather than having
 // every expected number change at once inside an unrelated build.
-const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = Kunal\'s real phone'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
+const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (his phone is 375x761), kept for gates pinned here'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
 // #406, from SIT run 5: "a geometry list has TWO axes and this project has only ever laddered one". Every
 // geometry above either is narrow AND short or wide AND tall, so NO size in this list, in the headless UAT's
 // nine, or in #404's own sweep table had width >= 360 AND height <= 600. That corner is where the lesson
@@ -372,7 +376,7 @@ async function launch(opts={}){
   // with no geo used to take the 'kunal' column (375x679) while this file's own header called that his phone, so a probe
   // that forgot the argument measured the wrong height with nothing saying so. Which geometry a default SHOULD be is the
   // open R19 ordering question and is not decided here; refusing the omission means nothing has to be.
-  if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal730\'} is Kunal\'s phone, 375x730; see GEOS); an omitted geometry no longer defaults to 375x679');
+  if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal761\'} is Kunal\'s phone, 375x761 with insets, per R19; see GEOS); an omitted geometry no longer defaults to 375x679');
   const geo=typeof opts.geo==='object'?opts.geo:GEOS[opts.geo];
   if(!geo)throw new Error('unknown geo '+opts.geo);
   const srv=await serve(opts);
