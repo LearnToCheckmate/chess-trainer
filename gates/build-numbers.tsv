@@ -592,3 +592,4 @@
 547	built	-	fa330b50500d	e0fabb5a3bd7	2026-11-03T08:27Z	build__1793671541605	build.sh	Bundle built and stamped #547. Recorded by gates/build.sh so the number resolves to an artefact.
 547	built	-	c7f6a1228e43	ec83770812c4	2026-11-03T09:29Z	build__1793671541605	build.sh	Bundle built and stamped #547. Recorded by gates/build.sh so the number resolves to an artefact.
 548	minted	-	-	-	2026-11-05T04:16Z	build__1793852110388	minted	batch 8 build #548: the 164-job ordered list of directOpening_2026_11_04_batch8c under a 48-hour window; app changes, bundle built once at the end
+548	built	-	42fef8651a75	90d7ca57f9f4	2026-11-05T14:49Z	build__1793852110388	build.sh	Bundle built and stamped #548. Recorded by gates/build.sh so the number resolves to an artefact.
