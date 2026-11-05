@@ -1198,7 +1198,13 @@ function whyShape(pos,mv,playedMv){
    The real fix is to stop making the sentence fit a fixed box: Kunal has already answered that for this very
    screen (Desk answers/bench-puzzles-solved-explanation, 2026-09-22 - once solved, the goal card gives its
    space to the sentence and the board does not move), queued as build-puzzles-solved-explanation-wraps. */
-const WHY_DRILL_MAXW=52;
+/* #548 item (102), jobs/drill-verdict-box-cannot-hold-the-agreed-two-clause-sentence-2026-09-28: 52 -> 72. The box this budget was
+   sized for is gone: #547's 'float' puts the verdict OVER the goal card (which has no job once the move is found - Kunal's
+   answers/bench-puzzles-solved-explanation, 22 Sep) and lets a long one run down over the board in full, so nothing in the column
+   changes height. At 72 the two-clause sentence he agreed on 2026-09-20 ships ('Rf3 was stronger. Qxh3 went from clearly better to
+   level.', 57) instead of the one-band fallback; gates/unit-drill-why.js pins the new sentences and gate 51 B6-B8 measure the real
+   box at all seven geometries. */
+const WHY_DRILL_MAXW=72;
 function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userColor,playedMv){
   try{
     if(!bestSan||!playedSan)return '';

@@ -45,17 +45,20 @@ console.log('\n--- crossing a boundary names BOTH bands ---');
 // residual is filed as jobs/drill-verdict-box-cannot-hold-the-agreed-two-clause-sentence-2026-09-28 and its
 // fix is Kunal's already-given answer for this screen (the solved card gives the goal row its space).
 // These two assert what actually ships, so a future budget lift shows up here as a red rather than a surprise.
-eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',2.0,0.2,'w'),'Rf3 was stronger. Qxh3 left you level.','white, crossing, band pair dropped by the 52 budget');
-eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',-2.0,-0.2,'b'),'Rf3 was stronger. Qxh3 left you level.','black frame mirrors it');
+// #548 item (102) IS THAT LIFT: since #547's 'float' (Kunal, questions/drill-verdict-float-or-slot-2026-10-10) the verdict is no
+// longer a 74px slot - it floats over the goal card, which has no job once solved, and a long one runs down over the board in
+// full (his 22 Sep answer answers/bench-puzzles-solved-explanation). So the budget is 72 and the band pair is what ships.
+eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',2.0,0.2,'w'),'Rf3 was stronger. Qxh3 went from clearly better to level.','white, crossing, BOTH bands named at the #548 budget of 72');
+eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',-2.0,-0.2,'b'),'Rf3 was stronger. Qxh3 went from clearly better to level.','black frame mirrors it');
 // the band pair DOES survive when the words are short enough, which is the 7.6% case:
 // AND THE ORDERING IS A DELIBERATE CHOICE, PINNED HERE. cands is [shape+pair, shape+one, bare+pair, bare+one],
 // so a sentence that can afford the REASON with one band is preferred over one that drops the reason to show
 // both bands. That is antagonist A's 4b applied, and it is WHY the measured band-pair rate is only 7.6%:
 // "Rf3 was stronger. Qxh3 went from level to clearly better." is 57 characters and the budget is 52, while
 // "Rf3 was stronger. Qxh3 left you clearly better." is 46 and fits. The reason wins.
-eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',-0.2,-2.0,'b'),'Rf3 was stronger. Qxh3 left you clearly better.','the REASON is preferred over the band pair when only one fits');
+eq(mistakeWhy(pos,mvEmpty,'Rf3','Qxh3',-0.2,-2.0,'b'),'Rf3 was stronger. Qxh3 went from level to clearly better.','the REASON and the band pair BOTH fit at 72 - the two-clause sentence Kunal agreed on 2026-09-20');
 console.log('\n--- motifs come from the BEST move, and a capture is named as material ---');
-MOT=['fork'];   eq(mistakeWhy(pos,mvEmpty,'Nd5','Qxc2',1.0,0.1,'w'),'Nd5 forks two pieces. Qxc2 left you level.','fork clause (the REASON is kept, the band pair is what the budget spends)');
+MOT=['fork'];   eq(mistakeWhy(pos,mvEmpty,'Nd5','Qxc2',1.0,0.1,'w'),'Nd5 forks two pieces. Qxc2 went from slightly better to level.','fork clause with the band pair (both clauses survive at 72)');
 MOT=['mate'];   eq(mistakeWhy(pos,mvEmpty,'Rd8','Kh8',8.0,7.0,'w'),'Rd8 forces mate. Kh8 left you completely winning.','mate clause');
 MOT=[];         eq(mistakeWhy(posCap,mvCap,'Qxd7','Nxd7',7.0,9.0,'b'),'Qxd7 wins material. Nxd7 left you completely losing.','capture clause, black');
 console.log('\n--- no engine units ever leak (NC3 shape) ---');
