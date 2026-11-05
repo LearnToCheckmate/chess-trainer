@@ -1028,9 +1028,15 @@ L.run(async()=>{
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
       states:document.querySelectorAll('button[data-ct="state-card"]').length,
-      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^▶ Play/.test(t))}));
+      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^▶ Play/.test(t)),
+      empty:[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^Nothing needed right now\./.test((d.innerText||'').trim())).map(d=>{const r=d.getBoundingClientRect();return {t:(d.innerText||'').trim().slice(0,60),h:Math.round(r.height),top:Math.round(r.top),vh:innerHeight};})}));
     L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
     L.say(q.asks===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) ('+q.asks+')',q);
+    /* TC-GL-005 [#548, item (10)]: the EMPTY queue says so in words. The sentence has been in chess.jsx since #167 (search
+       'Nothing needed right now'); this is the first assertion over it. It must be rendered and painted (non-zero height,
+       top inside the viewport) at zero cards and absent at one, so a build that drops it, or shows it beside a card, is red. */
+    if(wantAsks===0)L.say(q.empty.length===1&&q.empty[0].h>0&&q.empty[0].top<q.empty[0].vh,'Q empty: TC-GL-005 an EMPTY queue renders its empty-state sentence ("Nothing needed right now. ...") on screen',q.empty);
+    else L.say(q.empty.length===0,'Q one: TC-GL-005 a queue holding a card does NOT render the empty-state sentence',q.empty);
     if(wantAsks===0)L.say(q.play.length===0,'Q empty: TC-GL-003 an EMPTY queue offers NO Play button - there is nothing to walk, and a button that walked zero cards would say otherwise',q.play);
     else L.say(q.play.length===1&&!/\ball\b/i.test(q.play[0]),'Q one: TC-GL-003 a ONE-card queue offers one Play button and it does not say "all" - "Play all 1" would claim a set',q.play);
     L.say(b.errs.length===0,'Q '+qlab+': zero app errors',b.errs.slice(0,2));
