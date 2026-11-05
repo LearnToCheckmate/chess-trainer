@@ -137,6 +137,14 @@ L.run(async()=>{
       // ARRIVAL CHECK 2: we really stepped back. Without this, every assertion below is about the terminal ply.
       L.say(!!backSig&&backSig!==endSig,G+k.id+'3 ARRIVAL: stepping Back actually changed the position on the board',{moved:backSig!==endSig});
 
+      // TC-PL-052 [#548, item (126); jobs/stepping-back-after-a-game-over-either-keeps-a-stale-result-or-drops-it-2026-09-29,
+      // Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER (final-only)]: the result is stated only at the last move. Two plies back
+      // the status slot above the board must not carry the result's words, however the game ended. On main it does after a
+      // resignation ('Resigned · Black wins' over a position from before the resignation) and does not after a mate.
+      if(backSig&&backSig!==endSig){
+        const slot=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+        L.say(slot!==null&&!k.term.test(slot)&&!/wins\b|drawn|Draw ½/i.test(slot),G+k.id+'3b TC-PL-052 two plies back inside a game that ended by '+k.name+', the status slot does NOT state the result ("'+slot+'") - it is shown only at the last move',{slot});
+      }
       if(backSig&&backSig!==endSig){
         // THE DEFECT ITSELF.
         L.say(backRow.labels.indexOf('Review')>=0&&backRow.labels.indexOf('Rematch')>=0,
