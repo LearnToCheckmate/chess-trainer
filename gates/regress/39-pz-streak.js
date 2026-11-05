@@ -154,6 +154,10 @@ L.run(async()=>{
         L.say(p1.solved===0,tag+': R2 TC-PZ-03 after a reveal the solved map is UNCHANGED - no solved count, no rank, no tier step',{p1});
         L.say((p1.xp||0)>(p0.xp||0)&&(p1.puz||0)>=1,tag+': R3 and the XP and the Daily 3 puzzle step are still credited',{xpBefore:p0.xp,xpAfter:p1.xp,daily3puz:p1.puz});
         L.say(!!line&&!/Solved!/.test(line)&&/answer shown/i.test(line),tag+': R4 the closing line is not "Solved!" and says the answer was shown',{line});
+        // R4b [#548 item (153); jobs/puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03]: and it does not PRAISE in the same
+        // breath - the line read '... not counted as solved. Mate in 2 — nicely done.' The streak and XP half of that job is Kunal's
+        // 'show-no-rank' (R3 above) and is not changed.
+        L.say(!!line&&/answer shown/i.test(line)&&!/nicely done/i.test(line),tag+': R4b TC-PZ-SHOWN the revealed finish does not say "nicely done" beside "not counted as solved"',{line});
       }
       L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,tag+': R5 no app error beyond the allowed engine trap',b.errs.slice(0,2));
       await b.close();
