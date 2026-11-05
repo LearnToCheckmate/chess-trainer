@@ -220,7 +220,11 @@ const L=require('../lib');
 // is 0. 375x679 ('kunal') was proposed by the job because #505's antagonist measured 5px of room there; RE-MEASURED at #545
 // it is ALSO 0 (CT_74_GEOS=kunal: D not exercised, and the global anti-vacuity lines go red because nothing in that run
 // binds), so it is NOT added - it would add a geometry to manufacture nothing.
-const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730').split(',');
+// #548 item (69): ADDED ON THE ORCHESTRATOR'S RULING (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-
+// 2026-11-04: "Add 375x679 to gate 74's default GEOS, as whatWouldCloseIt requires"), over the #545 measurement above. Its block D
+// reports NOT EXERCISED there while the panel's scroll room is 0, which is now asserted on every run rather than measured once:
+// a future build that gives 375x679 scroll room is exercised here the day it happens.
+const GEOS=(process.env.CT_74_GEOS||'se,short375,kunal730,kunal').split(',');
 // geometries at which no measured card reached the fixed bar, so B1 could not have failed there
 const VACUOUS=[];
 // D2EXERCISED: every geometry whose reader-drag actually scrolled something inside the card, so block D's
