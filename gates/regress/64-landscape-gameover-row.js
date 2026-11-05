@@ -321,5 +321,24 @@ L.run(async()=>{
    await b.close();
   }
  }
+ // TC-PL-056 [#548 item (111); jobs/landscape-320-tall-is-unusable-and-a-mate-cannot-be-played-2026-09-30]: A 320-TALL LANDSCAPE GAME FITS.
+ // At 568x320 and 480x320 the side-rail layout never engaged ((vp.w-RAIL-48) < 360), so the portrait stack laid out 480px in a 320px
+ // viewport with the whole control row at y 350-401 - measured on main c7f6a1228e43. A Pass & Play fool's mate is played to the end,
+ // then the board and every control in the row are read: both inside the viewport, and the row hit-testable at its own centres.
+ for(const g of [{w:568,h:320},{w:480,h:320}]){
+  const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'l64-320tall-'+g.w});await b.open();const G='land '+g.w+'x'+g.h+' 320-TALL: ';
+  try{
+   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+   const live=await rowOf(b,ROW);
+   L.say(live.items.length>=5&&live.bottom!=null&&live.bottom<=g.h+0.5,G+'TC-PL-056 the LIVE control row is on screen ('+live.labels.join(',')+', bottom '+live.bottom+' of '+g.h+')',{labels:live.labels.join(','),bottom:live.bottom});
+   await b.move('f2','f3',450);await b.move('e7','e5',450);await b.move('g2','g4',450);await b.move('d8','h4',900);await b.settle(700);
+   const over=await b.page.evaluate(()=>/Checkmate/i.test(document.body.innerText||''));
+   L.say(over,G+'TC-PL-056 PRECONDITION the fool\'s mate was played to the end - the game reads Checkmate',{over});
+   const row=await rowOf(b,ROW),hm=await hitMap(b,ROW),bd=await b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];return gr?{top:gr.top,bottom:gr.bottom}:null;});
+   L.say(!!bd&&bd.top>=-0.5&&bd.bottom<=g.h+0.5,G+'TC-PL-056 the whole board is inside the viewport at game over',{board:bd,vh:g.h});
+   L.say(row.items.length>=3&&row.bottom!=null&&row.bottom<=g.h+0.5&&hm.length>0&&hm.every(h=>h.centre),G+'TC-PL-056 the game-over control row ('+row.labels.join(',')+') is on screen and every control is the element under its own centre',{bottom:row.bottom,centres:hm.map(h=>h.label+':'+h.centre).join(' ')});
+  }catch(e){L.say(false,G+'TC-PL-056 block drove to its state',String(e.message||e));}
+  await b.close();
+ }
  L.done();
 });

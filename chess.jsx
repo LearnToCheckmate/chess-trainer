@@ -3751,7 +3751,11 @@ export default function App(){
   },[boardGame]);
 
   const RAIL=Math.max(190,Math.min(320,Math.round(vp.w*0.255)));   // comfortable side-rail width, scales with screen
-  const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=360;                       // one sidebar + board; board fills the rest
+  /* #548 item (111), jobs/landscape-320-tall-is-unusable-and-a-mate-cannot-be-played-2026-09-30: the side-rail layout also engages on a
+     SHORT landscape screen whose height, not width, bounds the board - 568x320 and 480x320 used to fall through to the portrait stack,
+     which is 480px tall in a 320px viewport with the whole control row at y 350-401, below the screen at rest. The rail needs
+     only a board as tall as the screen allows beside it: (vp.w-RAIL-48) at least 0.75 of the height. */
+  const wide=vp.w>vp.h&&(vp.w-RAIL-48)>=Math.min(360,Math.round(vp.h*0.75));   // one sidebar + board; board fills the rest
   // #351 Kunal: "the whole page is too small, there are visible borders on the top and the sides".
   // On a board screen the root's 3px side padding and the 98vw caps are exactly those borders, and
   // they cost the board twice over: once in width, and again in height because it is square. Board
