@@ -9116,7 +9116,10 @@ export default function App(){
               and which is why the precedent is safe. Nothing changes at 360 and above: measured identical. */}
           <button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" title="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 auto'}}>{vp.w<=340?'‹':'‹ Roadmap'}</button>
           {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name+' puzzles'):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
+          {/* #548 item (133) follow-up: this chip stays '<icon> <tier>' WITHOUT ' puzzles'. d88994a appended it here too and, measured
+              at 375x730 and 375x568, that cut the chip (client 147 / scroll 161) AND squeezed the counter beside it (85 / 93) - main cuts
+              neither. The roadmap card's heading is where the tier is named (TC-PZ-TIER); gate 40's Z-06 pin is what caught this. */}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
         </div>
         {wide&&(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.5}}>PUZZLE {puzIdx+1} / {PZ.length}</span>
