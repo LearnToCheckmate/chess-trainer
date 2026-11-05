@@ -522,6 +522,19 @@ function winDrop(beforeW,afterW,mover){
    `ct_mymistakes` SURVIVES A BUILD - a store written by any earlier build can hold a vowel-initial
    grade (Inaccuracy) whatever this build now writes into it, so fixing the producer does not fix the
    existing installed base. One helper, so the article is chosen from the word rather than assumed. */
+/* #548 item (132), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28, Kunal's default
+   (questions/B8-SMALL-DEFAULTS (2)): WHEN THE MISTAKES LIST IS FULL IT DROPS ONES ALREADY PRACTISED FIRST, THEN THE OLDEST, so
+   none is lost before he has seen it while there is a practised one to drop instead. The list is newest-first (captures are
+   prepended), so "oldest" is the tail. An entry is practised once the drill has served it (drillGo stamps practisedAt). The
+   old rule was `.slice(0,cap)`, which cut the tail whatever it held - and the drill walks from the head, so the tail was the
+   part never served (the job measured 600 entries lost unserved over 40 sessions at 20 captures and 5 solves each). */
+function capMistakes(list,cap){
+  if(!Array.isArray(list)||list.length<=cap)return list;
+  const out=list.slice();
+  for(let i=out.length-1;i>=0&&out.length>cap;i--){if(out[i]&&out[i].practisedAt)out.splice(i,1);}
+  while(out.length>cap)out.pop();
+  return out;
+}
 function artic(w){const t=String(w||'').trim();return (/^[aeiou]/i.test(t)?'an ':'a ')+t;}
 /* #494: AND artic() MADE THAT SENTENCE GRAMMATICAL WITHOUT MAKING IT TRUE. The same installed base the
    comment above describes can also hold a PRAISE grade, which is a different defect from the article and was
@@ -4908,7 +4921,7 @@ export default function App(){
             return Object.keys(patch).length?{...x,...patch}:x;});
           const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
           const changed=add.length||up.some((x,i)=>x!==prev[i]);
-          return changed?[...add,...up].slice(0,150):prev;});
+          return changed?capMistakes([...add,...up],150):prev;});   /* #548 item (132): practised first, then oldest */
         if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,80):prev;});
       }
     }catch(e){}
@@ -6143,6 +6156,7 @@ export default function App(){
     const qi=pl[pos],o=puzzleFromMistake(q[qi]);
     if(!o)return false;
     drillPosRef.current=pos;mistakeIdxRef.current=qi;
+    if(drillKindRef.current==='mistake'&&q[qi]&&q[qi].fen){const _f=q[qi].fen;setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}   /* #548 item (132): served = practised, which is what capMistakes evicts first */
     const rec=drillSolvedRef.current[qi];
     /* A FAILED REPLAY MUST NOT CLAIM THE CARD IS SOLVED. loadExternalSolved returns false rather than
        swallowing the error, and the card is then ASKED, which is the honest degradation. The first version

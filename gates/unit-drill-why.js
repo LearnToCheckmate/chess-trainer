@@ -91,5 +91,23 @@ MOT=[];eq(mistakeHint(posCap,mvCap),'There is material to be taken here.','captu
 MOT=[];eq(/forcing/.test(mistakeHint(pos,mvEmpty)),false,'quiet hint contains no "forcing"');
 const hints=[mistakeHint(pos,mvEmpty),mistakeHint(posCap,mvCap)];
 eq(new Set(hints).size,2,'two different shapes give two different hints');
+console.log('\n--- the mistakes pool cap: practised first, then oldest [#548 item (132), Kunal\'s default B8-SMALL-DEFAULTS (2)] ---');
+{const cm={exports:{}};new Function('module',grab('capMistakes')+'\nmodule.exports=capMistakes;')(cm);const capMistakes=cm.exports;
+ const mk=(n,pr)=>Array.from({length:n},(_,i)=>({fen:'F'+i,...(pr&&pr(i)?{practisedAt:1}:{})}));   // index 0 is the newest
+ const base=mk(150,i=>i>=40&&i<50);                                  // ten practised entries in the middle of a full pool
+ const add5=[...mk(5).map(x=>({fen:'N'+x.fen})),...base];
+ const r5=capMistakes(add5,150);
+ eq(r5.length,150,'cap: five new captures over a full pool keep it at 150');
+ eq(r5.filter(x=>/^NF/.test(x.fen)).length,5,'cap: all five new captures are kept');
+ eq(r5.filter(x=>x.practisedAt).length,5,'cap: the five dropped are practised ones (ten practised before, five after)');
+ eq(base.filter(x=>!x.practisedAt).every(x=>r5.some(y=>y.fen===x.fen)),true,'cap: no UNPRACTISED entry is dropped while a practised one remains');
+ eq(r5.some(x=>x.fen==='F149'),true,'cap: the oldest unpractised entry (the tail) survives when practised ones can go instead - the old .slice(0,150) dropped it');
+ const add20=[...mk(20).map(x=>({fen:'N'+x.fen})),...base];
+ const r20=capMistakes(add20,150);
+ eq(r20.length,150,'cap: twenty new over a full pool keep it at 150');
+ eq(r20.filter(x=>x.practisedAt).length,0,'cap: all ten practised entries go first');
+ eq(r20.filter(x=>/^F/.test(x.fen)&&!r20.some(()=>false)).length,130,'cap: then the ten OLDEST unpractised go (130 of the 140 left)');
+ eq(r20.some(x=>x.fen==='F139')&&!r20.some(x=>x.fen==='F149')&&!r20.some(x=>x.fen==='F140'),true,'cap: the ones dropped after the practised are the tail - F140 to F149 - and F139 stays');
+ eq(capMistakes(mk(10),150).length,10,'cap: a pool under the cap is returned unchanged');}
 console.log('\n'+(fails?('*** '+fails+' UNIT FAILURES ***'):'all unit checks passed'));
 process.exit(fails?1:0);
