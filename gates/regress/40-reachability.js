@@ -233,6 +233,15 @@ L.run(async()=>{
     const help=await reach(b,/Getting your game from Chess\.com/i);
     HELP_REST[geo]=help.found?!!help.onScreenAtRest:null;
     L.say(help.found,geo+': the help text the report named is on this screen at all',help);
+    // TC-R40-HELP-REST [#548, item (79); the orchestrator's ruling on jobs/gate-40s-named-help-text-assertion-is-on-screen-at-
+    // rest-at-both-geometries-2026-10-03: "assert the help text is on screen at rest at both named geometries, the state that holds,
+    // with a negative control that hides it"]. MEASURED at #473 and again at #548: at se (rest top 468 of 568) and at kunal730
+    // (448 of 730) the help text is in the entry screen's FIRST view, so the reachability line below exercises no scroll and the
+    // property that actually holds - and that a player relies on - is that no scroll or tap is needed to find it at all. That is
+    // what is asserted here. WHY THE TAP ROUTE IS GONE: the help used to be reached by scrolling an overflowing entry screen (the
+    // 80.2px the #382 report misread); the entry screen now fits it above the fold, so there is no route left to exercise, and
+    // the line below stays as a guard should it ever fall below the fold again.
+    L.say(help.found&&help.onScreenAtRest===true&&(help.restBottom-help.restTop)>=8,geo+': TC-R40-HELP-REST the named help text is ON SCREEN AT REST AND PAINTED (at least 8px tall - the first control, which hid it, read a 0x0 box at top 0 and passed) - no scroll and no tap needed to find it (rest top '+help.restTop+', bottom '+help.restBottom+' of '+help.vh+')',{restTop:help.restTop,restBottom:help.restBottom,vh:help.vh});
     // THE SECOND VACUITY IN THE SAME FILE, from the same audit's first alsoFromTheSameAudit item: at kunal730
     // this gate's own note read "scrollers:0, top 466, bottom 482, vh 730", i.e. the text is on screen AT REST,
     // so the next assertion certifies no scrolling there either. Recorded per geometry and asserted across the
