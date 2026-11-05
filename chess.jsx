@@ -3597,9 +3597,11 @@ export default function App(){
      THE WHOLE CLASS IS WIDER THAN setupFromFEN AND WAS COUNTED: the predicate is "a place that starts a game
      from a position that is not the initial one", i.e. fullReset(<a position>). There are THREE - this
      committer, the lesson practice sheet, and a `_play(fen,col)` helper in the preview-gallery block. The third
-     is UNREACHABLE: the identifier `_play` occurs exactly once in this file, its own definition, and is called
-     zero times, so it is dead code and is left rather than guarded (filed, not deleted here, to keep this diff
-     to the defect). Said as a measurement because a count that excuses a site has to name why.
+     was UNREACHABLE: the identifier `_play` occurred exactly once in this file, its own definition, and was called
+     zero times, so it was dead code and was left rather than guarded (filed, not deleted here, to keep this diff
+     to the defect). Said as a measurement because a count that excuses a site has to name why. [#548 item (51):
+     #547 item (190) has since DELETED that helper, so today the class has TWO members - this committer and the
+     lesson practice sheet; `grep -c '_play(' chess.jsx` reads 0 outside comments.]
      THE SENTENCE THAT WAS HERE IS WITHDRAWN [R18]. It read: "The lesson practice sheet is the single route
      that bypasses this sheet (it calls fullReset directly) and is guarded at its own button, on `isOver`, which
      asks this same question of the board." THAT IS FALSE AND #471's antagonist A DROVE IT: `isOver` asks
