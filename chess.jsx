@@ -3788,11 +3788,22 @@ export default function App(){
      (set trim 0 -> measure -> shrink -> measure -> settle) happens entirely between layout and paint, and the only
      board width that ever reaches the screen is the settled one. A rAF-driven version of the same arithmetic paints
      every intermediate value, which is the jump #355 refused and the thing Kunal priced.
-     IT IS CAPPED AT EIGHT PASSES. The shrink term adds at least 16px and the lesson cap is a few hundred px, so two or
-     three passes is the real cost; the cap is there so that a layout that cannot settle degrades to "stop" rather than
-     to React's own update-depth error, and so this can never spin. If it hits the cap it leaves the trim where it got
-     to - the same state the loop below would have reached - and says nothing, because a diagnostic that fires on a
-     normal screen gets switched off. */
+     IT IS CAPPED AT FORTY PASSES (#548; it was eight). The cap is there so that a layout that cannot settle degrades to
+     "stop" rather than to React's own update-depth error, and so this can never spin. If it hits the cap it leaves the
+     trim where it got to and says nothing, because a diagnostic that fires on a normal screen gets switched off.
+     WHY EIGHT WAS WRONG, MEASURED AT #548 rather than argued (jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29,
+     the 375x761 residual): where the board is WIDTH-bound the trim has a DEAD ZONE - at 375x761 with ct_safe 51,31 the
+     lesson heightCap is 486.26 against a widthCap of 375, so the first ~111px of trim move nothing and `over` stays
+     exactly where it was. A small overflow (over <= 8, so a 16px step) then spent all eight passes inside the dead
+     zone: an instrumented _fitOver read over 6.03 at trim 0, 16, 32 ... 96, and 5.23 at 112, where the cap stopped it.
+     The rAF loop below finished the shrink (112 -> 128, board 374.23 -> 358.23), that moved the moves panel, the
+     ResizeObserver read its own excursion as a flow change and restarted the refit from 0, and the same eight passes
+     ran again - four times, which spent the epoch's wake budget. So when the transient LEFT the flow the observer was
+     out of wakes and the board stayed at 358.23 for good: the 16.80px residual #522 and #544 recorded, with the
+     374.23 frames as its blink. Forty is derived, not tuned: every pass adds at least 16 and the trim is clamped at
+     600, so 40 x 16 = 640 passes the clamp and the refit can always reach any trim the loop could. Each pass is one
+     synchronous commit before paint, measured at 1 to 2ms here; the converged result is the trim the rAF loop would
+     have reached by the same step formula, so a cell that settled inside eight passes settles where it did. */
   useLayoutEffect(()=>{
     const _lessonFit=!wide&&mode==='learn'&&openIdx!==null;
     if(!_lessonFit){fitSigRef.current='';fitRefitRef.current=0;fitPanelHRef.current=-1;fitWakeNRef.current=0;return;}
@@ -3811,7 +3822,7 @@ export default function App(){
     }
     // CONVERGING. The DOM is already committed at the trial trim, so this measurement is of the trial layout.
     const over=_fitOver();
-    if(over>0&&fitRefitRef.current<8){
+    if(over>0&&fitRefitRef.current<40){
       fitRefitRef.current++;
       /* THE SAME STEP THE LOOP BELOW USES, SPARE MARGIN AND ALL, AND THE CHOICE IS MEASURED RATHER THAN TIDY.
          The margin (`+8` on top of ceil(over/8)*8) is a safety term the loop pays because it does not re-measure

@@ -385,6 +385,19 @@ const DCELLS=[
   {n:'375x568', g:L.GEOS.short375,       px:88},
   {n:'375x730', g:L.GEOS.kunal730,       px:88},
   {n:'375x761', g:L.GEOS.kunal761,       px:120},
+  // #548, jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29: THE EXCLUDED CELL, NOW IN, AT THE SIZE THAT
+  // REDDENS IT IN THIS CONTAINER. The #544 note above excluded 375x761 at 88px because main was red there. Re-driven
+  // at #548 on main's own bundle c7f6a1228e43 (#547), the 88px transient NO LONGER LATCHES in this container (the
+  // absorber's slack is container-dependent, #480's text-metrics note) - 375.03 throughout - while 104px reproduces
+  // the residual exactly: injected practice 374.23 -> 358.23 and 358.23 for every removed-phase frame, two runs of
+  // two. THE CAUSE, measured with an instrumented _fitOver rather than inferred: the board is WIDTH-bound here, so
+  // the first ~111px of trim move nothing; an overflow of 6.03 takes 16px steps and the pre-paint refit's eight-pass
+  // cap stopped at trim 112, inside the dead zone; the rAF loop finished the shrink, the moves-panel observer read
+  // that as a flow change and restarted the refit, four times, which spent the wake budget, so the removal could not
+  // wake it. #548 raised the cap to forty (chess.jsx, search CAPPED AT FORTY PASSES). The fixed bundle sweeps clean
+  // at 64, 80, 96, 100, 104, 108, 112, 120 and 140px here. `engage` makes the cell prove the transient bit: a cell
+  // whose transient no longer costs board would otherwise go green on a bundle that never exercised the latch.
+  {n:'375x761 104', g:L.GEOS.kunal761,   px:104, engage:true},
 ];
 
 // the painted board, measured exactly as gates/lib.js board() does: the widest div whose own
@@ -520,6 +533,7 @@ L.run(async()=>{
   for(const c of DCELLS){
     const cleanF=await framesArm(c.g,0);
     const injF=await framesArm(c.g,c.px);
+    if(c.engage)L.say(typeof injF.practiceSettled==='number'&&typeof cleanF.practiceSettled==='number'&&injF.practiceSettled<cleanF.practiceSettled-0.5,'TC-R64-D13 '+c.n+' THE TRANSIENT ENGAGED: with the '+c.px+'px transient in the flow the practice board settled SMALLER than the clean arm\'s, so D6 to D9 below are asserted over a board that really lost width and not over a no-op [#548]',{clean:cleanF.practiceSettled,injected:injF.practiceSettled});
     blockD(c.n,c.px,cleanF,injF);
   }
   // TC-R64-D12 [#547 item (73); jobs/522-the-fit-wake-compares-two-different-boxes-and-keeps-its-refs-across-screens-2026-10-14].
