@@ -1364,6 +1364,34 @@ L.run(async()=>{
    L.say(r.done&&!r.hintsOn&&r.days>=1,'kunal730: TC-LS-037 the clean first run banks a day (a day recorded in ct_learnprog, and no "hints on" in the closing note) - which a lightbulb that started ON could not',r);
    await b.close();
  }
+ // TC-LS-044 [#548, item (22); jobs/bench-lesson-hint-does-nothing-2026-09-28, the completion-message defect folded into its warn-first
+ // build]: (a) A HINTED RUN ON A LESSON THAT ALREADY HAS A BANKED DAY SAYS WHY IT BANKED NOTHING. The first run is played clean (it banks a
+ // day, its own precondition), then the same lesson is practised again with the lightbulb switched on before the first move: the closing
+ // note must name the hint. On main the note was the bare 'Complete! That's the Italian Game.' - a congratulation, no day, no reason.
+ // (b) SWITCHING THE HINT ON AND OFF AGAIN BEFORE THE FIRST MOVE LEAVES THE RUN CLEAN: on main the mark was a one-way latch, so the run
+ // banked nothing although no move was made with the hint on.
+ {
+   const LINE=[['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']];
+   const note=(b)=>b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');return n?(n.innerText||'').replace(/\s+/g,' ').trim():'';});
+   const play=async(b)=>{for(const [f,t] of LINE){await b.move(f,t,1100);if(/Complete!/.test(await note(b)))break;}await b.settle(600);};
+   const days=(b)=>b.page.evaluate(()=>{let lp={};try{lp=JSON.parse(localStorage.getItem('ct_learnprog')||'{}');}catch(e){}return Object.values(lp).reduce((n,v)=>n+((v&&Array.isArray(v.days))?v.days.length:0),0);});
+   const hintBtn=async(b)=>{const h=b.page.locator('button[aria-label="Hints"]').first();await h.click();await b.settle(300);};
+   {const b=await L.launch({geo:'kunal730',name:'lesson-hint-reason',store:{}});await b.open();let ok=true;
+    try{await D.states['practice-complete'](b);}catch(e){ok=false;}
+    const d0=await days(b);
+    L.say(ok&&d0>=1,'kunal730: TC-LS-044a PRECONDITION the first, clean run banked a day ('+d0+'), so the lesson has a prior day',{d0});
+    let n1='';try{await D.states['practice-m0'](b);await hintBtn(b);await play(b);n1=await note(b);}catch(e){n1='THREW '+e.message;}
+    const d1=await days(b);
+    L.say(/Complete!/.test(n1)&&d1===d0,'kunal730: TC-LS-044a PRECONDITION the hinted second run completed and banked nothing ('+d0+' -> '+d1+' days)',{n1,d0,d1});
+    L.say(/Complete!/.test(n1)&&/[Hh]int/.test(n1)&&/bank/.test(n1),'kunal730: TC-LS-044a on a lesson WITH a banked day, the hinted run\'s closing note says the hint is why it banked nothing - it is not the bare congratulation ("'+n1+'")',{n1});
+    await b.close();}
+   {const b=await L.launch({geo:'kunal730',name:'lesson-hint-offon',store:{}});await b.open();let n2='';
+    try{await D.states['practice-m0'](b);await hintBtn(b);await hintBtn(b);await play(b);n2=await note(b);}catch(e){n2='THREW '+e.message;}
+    const d2=await days(b);
+    L.say(/Complete!/.test(n2),'kunal730: TC-LS-044b PRECONDITION the run with the hint switched on and off before the first move completed',{n2});
+    L.say(/Complete!/.test(n2)&&d2>=1&&!/[Hh]ints were on|hints on/.test(n2),'kunal730: TC-LS-044b a hint switched ON and OFF again before the first move leaves the run clean - it banks a day ('+d2+') and the note does not blame the hint',{n2,d2});
+    await b.close();}
+ }
  // TC-R77 [#547 item (98); jobs/the-intro-card-cap-is-100vh-so-where-it-binds-the-card-fills-the-inset-bands-2026-10-08]: WHERE THE
  // INTRO CARD'S HEIGHT CAP BINDS, THE CARD STAYS OUT OF THE INSET BANDS. 730x375 with ct_safe 51,31 is where it binds (its content is
  // taller than the screen): the cap was 100vh, so the card ran 0..375 over the status bar and the home indicator.

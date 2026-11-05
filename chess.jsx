@@ -5159,7 +5159,10 @@ export default function App(){
     const st0=lessonStats(op);
     const cur=learnProgRef.current[key]||{};
     const days=Array.isArray(cur.days)?cur.days.slice():[];
-    if(rep.hints)return days.length?'':' Nice run with hints on. Hints-off runs are the ones that bank days.';
+    /* #548 item (22), jobs/bench-lesson-hint-does-nothing-2026-09-28, the completion-message defect folded into its warn-first build:
+       the sentence names the TRUE reason (the hint was on at some point in this run - the mark is a latch) and is no longer SILENT on a
+       lesson that already has a banked day, where the old ternary returned '' and the player got a congratulation, no day and no reason. */
+    if(rep.hints)return ' Hints were on during this run, so it doesn\u2019t bank a day. Play it with \ud83d\udca1 off to bank one.';
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
     const today=dstr(new Date());
     const wasM=days.length>=LEARN_GOAL;
@@ -9518,7 +9521,7 @@ export default function App(){
               {openStep>0&&lpHist.length>1&&wide&&(()=>{/* #372 (antagonist Y-01): on phones this 44px row joined the stack after the first practice move and took the lesson board from 375 to 320; wide only */const n=lpHist.length-1;const cur=lpv==null?n:lpv;const sb=(lbl,fn,dis)=>(<button key={lbl} disabled={dis} onClick={fn} style={{flex:1,minHeight:36,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(<div style={{display:'flex',gap:6,alignItems:'center'}}>{sb('⏮',()=>setLpv(0),cur===0)}{sb('‹',()=>setLpv(Math.max(0,cur-1)),cur===0)}<span style={{flex:'0 0 auto',minWidth:74,textAlign:'center',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:lpv==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{lpv==null?'● LIVE':('Move '+cur+'/'+n)}</span>{sb('›',()=>{const nv=Math.min(n,cur+1);setLpv(nv>=n?null:nv);},cur>=n)}{sb('⏭',()=>setLpv(null),lpv==null)}</div>);})()}
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>
-                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>💡</button>
+                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);/* #548 item (22): switching the hint OFF before the first practice move clears the run's hinted mark - no move has been made with it on, so the run is still clean; after a move the mark stays */if(!nv&&learnPhase==='practice'&&openStep===0&&!revealHint&&learnRepRef.current)learnRepRef.current.hints=false;}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>💡</button>
                 {/* #384 (Z-06 "Support 320 properly"): this row is three fixed 46px buttons and one flexible one, and the
                     flexible one defaulted to min-width:auto - so it refused to shrink below its own min-content width and
                     pushed the trailing (...) button 3.1px off a 320 screen, with no page scroll to recover it. minWidth:0
