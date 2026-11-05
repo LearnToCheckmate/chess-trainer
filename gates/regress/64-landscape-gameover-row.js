@@ -152,10 +152,28 @@ const KINDS=[
      await b.page.mouse.click(8,8).catch(()=>{});await b.settle(400);}},
 ];
 
+// #548 item (118), TC-PL-053, Kunal B8B-LANDSCAPE-ROW 'side': in landscape the row moves into the side space beside the
+// board and EVERY control is at least 44px wide. Found by title (the row has no hook, and none was added), against the
+// board found the only way there is - the widest repeat(8,...) grid. Main (c7f6a1228e43) pins the row to boardPx, so
+// at 730x375 Hint and Flip read 27px and this reds.
+const boardOf=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
+  return g?{l:g.left,r:g.right,vw:innerWidth}:null;});
+async function assertWide(b,row,tag){
+  const bd=await boardOf(b);
+  L.say(row.items.length>=3,tag+' TC-PL-053 PRECONDITION the control row was found by title ('+row.items.length+' controls)',{labels:row.labels.join(',')});
+  const narrow=row.items.filter(i=>i.w<44);
+  L.say(row.items.length>=3&&narrow.length===0,tag+' TC-PL-053 every control in the landscape row is at least 44px wide',
+    {widths:row.items.map(i=>i.label+' '+i.w).join(' '),narrow:narrow.map(i=>i.label+' '+i.w).join(' ')||'none'});
+  const out=row.items.filter(i=>!bd||i.x<bd.r-0.5||i.x+i.w>bd.vw+0.5);
+  L.say(!!bd&&row.items.length>=3&&out.length===0,tag+' TC-PL-053 and every control sits in the side space: right of the board and inside the viewport',
+    {boardRight:bd&&Math.round(bd.r),vw:bd&&bd.vw,outside:out.map(i=>i.label+' x'+i.x+' w'+i.w).join(' ')||'none'});
+}
+
 // assert the three terminal-ply properties; used at the terminal ply AND again after Back x2
 async function assertOver(b,tag,shots){
   const row=await rowOf(b,ROW),hm=await hitMap(b,ROW),rail=await railOf(b);
   const has=(l)=>row.labels.indexOf(l)>=0;
+  await assertWide(b,row,tag);
   L.say(has('Review')&&has('Rematch'),
     tag+' a finished game offers Review AND Rematch in the control row',{labels:row.labels.join(',')});
   L.say(!has('Hint'),
@@ -185,6 +203,7 @@ L.run(async()=>{
       await b.move('e2','e4',450);await b.move('e7','e5',450);await b.settle(400);
       await rotate(b,g);
       const live=await rowOf(b,ROW);
+      await assertWide(b,live,G+'B6w LIVE');
       const before=await sigOf(b);
       L.say(!!before&&before.split(';').length===64,G+'B0a the 64-square signature reads 64 squares',before?before.split(';').length:null);
       const tapped=await tapTitle(b,'Hint',1200);

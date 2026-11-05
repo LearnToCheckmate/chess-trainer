@@ -8775,7 +8775,11 @@ export default function App(){
       )}
 
       {/* ── Play controls ── */}
-      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:boardPx,maxWidth:_edge?'100vw':'98vw'}}>
+      {/* #548 item (118), jobs/landscape-control-row-buttons-are-under-the-44px-minimum-width-2026-09-30, Kunal B8B-LANDSCAPE-ROW
+          'side': in the railed (landscape) layout this block sits in the rail beside the board, and pinning it to boardPx
+          (216px at 730x375) left the six controls at 27-45px wide with 278px of rail unused beside them. It now takes the
+          rail's width, so each control is ~77px at 730x375. Portrait is unchanged: the block is still boardPx there. */}
+      {mode==='play'&&opponent!=='online'&&(<div style={{marginTop:5,display:'flex',flexDirection:'column',alignItems:'center',gap:7,width:railed?'100%':boardPx,maxWidth:_edge?'100vw':'98vw'}}>
         {/* #438: THE NEXT THREE SITES GAIN `&&!_gameOver`, AND THIS IS THE HALF OF THE FIX THAT PASS & PLAY
             COULD NOT SEE. All three read `!(opponent&&!isOver&&!playEnd)&&wide`, which is true pre-game AND at
             game over, so at game over in LANDSCAPE they mount the bot chip, the Elo pill and the Elo slider.
