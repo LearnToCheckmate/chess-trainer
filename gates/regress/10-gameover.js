@@ -23,14 +23,17 @@ L.run(async()=>{
       // A gate that compares a value only against itself cannot see a change that arrives before its first sample.
       // Numbers measured on #381: 351 at 375x679, 390 at 390x844. If a deliberate change moves them, move them
       // here with it - the one thing never to do is re-pin them to whatever the build now happens to produce.
-      const WANT={kunal:351,'390':390};
+      // #548 item (92) MOVED THEM, deliberately: the phone's top row (Home and the menu) took the strip under the board's place, and this
+      // gate's own report on the #548 trial measured 367 at 375x679 (was 351) and 390 at 390x844. Missed in (92)'s checks; caught re-running
+      // this gate as a control. Same numbers as gate 13's (92) re-pin.
+      const WANT={kunal:367,'390':390};
       if(WANT[geo]!=null)L.say(Math.abs(end.board.w-WANT[geo])<0.6,geo+': the board at game over is '+WANT[geo]+' wide, the measured size for this geometry - not merely the same as it was a moment ago',{measured:end.board.w,want:WANT[geo]});
       // THE TOP IS PINNED TOO [#546, item (72); jobs/gate-10-compares-board-top-only-against-itself-while-pinning-width-2026-10-02].
       // #381's lesson was applied to the width in this file and not to the top beside it: 'top unchanged' compares two samples
       // that can both be wrong, so a board sitting at the wrong height for the whole card passed. MEASURED, not chosen: 78 at
       // 375x679 and 103 at 390x844 in every archived full-suite log from #520 to #545. Same rule as WANT: move it with a
       // deliberate change, never re-pin it to whatever a build produces.
-      const WANT_TOP={kunal:78,'390':103};
+      const WANT_TOP={kunal:102,'390':128};   // #548 item (92): 78 -> 102 and 103 -> 128, measured (see WANT)
       if(WANT_TOP[geo]!=null)L.say(Math.abs(end.board.top-WANT_TOP[geo])<0.6,geo+': the board at game over sits at top '+WANT_TOP[geo]+', the measured position for this geometry - not merely where it was a moment ago',{measured:end.board.top,want:WANT_TOP[geo]});
     }
     L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
