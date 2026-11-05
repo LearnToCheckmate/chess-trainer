@@ -236,4 +236,37 @@ L.run(async()=>{
     L.say(!!h&&want.test(h)&&!/^(Novice|Apprentice)$/.test(h),'TC-PZ-TIER '+st+': the roadmap heading names the TIER and the progress into it ("'+h+'"), not a bare rank name',{h});
     await b.close();
   }
+  // TC-PZ-LBL [#548, item (134); jobs/a-file-label-under-a-highlight-falls-to-1-58-to-1-contrast-2026-10-04, Kunal's default
+  // questions/B8-SMALL-DEFAULTS (3)]: THE BOARD'S LETTERS KEEP THEIR OWN CONTRAST ON HIGHLIGHTED SQUARES. Puzzle 1's Show
+  // highlights e1 (a rank-1 square, so it carries the 'e' file label). Every file and rank label is found BY STRUCTURE (a
+  // one-character absolutely placed span inside the board), never by the hook #548 adds (#432), and its PAINTED contrast is read
+  // off a screenshot of its own box: background = the commonest pixel, ink = the pixel farthest from it in luminance. The job
+  // measured 1.58:1 under a highlight and 3.37:1 as the plain baseline; the assertion is that no label falls under 3.0 in either
+  // state, and the denominator (labels read, and at least one of them on a highlighted square) is its own line.
+  // MEASURED at #548: main c7f6a1228e43 reads the 'e' label on the highlighted e1 at 1.98:1 at 375x730 (red here) and the fix
+  // reads 4.24:1; at 320x568 the same scan reads 10.59 on main (the letter's box there also takes in piece ink), so 320x568 is
+  // not a discriminating arm and is kept only as a second reading.
+  for(const geo of ['kunal730','se']){
+    for(const st of ['train-show']){   // train-hint highlights no labelled square on puzzle 1 (measured: 0 of 16 at both geometries), so only Show is a real input
+      const b=await L.launch({geo,name:'pz-lbl-'+geo+'-'+st});await b.open();let ok=true;
+      try{await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
+      const labs=ok?await b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,b)=>b.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!gr)return [];
+        return [...gr.querySelectorAll('span')].filter(x=>getComputedStyle(x).position==='absolute'&&/^[a-h1-8]$/.test((x.textContent||'').trim())).map(x=>{const r=x.getBoundingClientRect();const sqd=x.parentElement;const _sw=sqd.getBoundingClientRect().width;const hl=[...sqd.children].some(c=>{if(c===x||c.tagName!=='DIV')return false;const cs=getComputedStyle(c);return cs.position==='absolute'&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&c.getBoundingClientRect().width>=_sw*0.9;});return {t:(x.textContent||'').trim(),x:r.left,y:r.top,w:r.width,h:r.height,hl};});}):[];
+      const out=[];
+      for(const l of labs){const buf=await b.page.screenshot({clip:{x:Math.max(0,l.x),y:Math.max(0,l.y),width:Math.max(1,l.w),height:Math.max(1,l.h)}});
+        const cr=await b.page.evaluate(async(b64)=>{const im=new Image();im.src='data:image/png;base64,'+b64;await im.decode();const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,c.width,c.height).data;
+          const lum=(r,gg,bb)=>{const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};return 0.2126*f(r)+0.7152*f(gg)+0.0722*f(bb);};
+          const cnt=new Map();for(let i=0;i<d.length;i+=4){const k=d[i]+','+d[i+1]+','+d[i+2];cnt.set(k,(cnt.get(k)||0)+1);}
+          const bg=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0][0].split(',').map(Number);const Lb=lum(...bg);let Lt=Lb;
+          for(let i=0;i<d.length;i+=4){const L2=lum(d[i],d[i+1],d[i+2]);if(Math.abs(L2-Lb)>Math.abs(Lt-Lb))Lt=L2;}
+          return Math.round(((Math.max(Lb,Lt)+0.05)/(Math.min(Lb,Lt)+0.05))*100)/100;},buf.toString('base64'));
+        out.push({t:l.t,hl:l.hl,cr});}
+      const tag=geo+' '+st;
+      L.say(ok&&out.length>=15&&out.some(o=>o.hl),tag+': TC-PZ-LBL DENOMINATOR the puzzle state was reached, '+out.length+' board labels were read off the screen, and '+out.filter(o=>o.hl).length+' of them sit on a highlighted square',{n:out.length,onHighlight:out.filter(o=>o.hl)});
+      const low=out.filter(o=>o.cr<3.0);
+      L.say(out.length>0&&low.length===0,tag+': TC-PZ-LBL no board label is painted under 3.0:1 against what is behind it - a highlight cannot take a letter down to the 1.58:1 the job measured (lowest '+Math.min(...out.map(o=>o.cr))+')',{low,onHighlight:out.filter(o=>o.hl)});
+      L.say(b.errs.length===0,tag+': TC-PZ-LBL no console errors',{errs:b.errs.slice(0,2)});
+      await b.close();
+    }
+  }
 },'PZ-STREAK');
