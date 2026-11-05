@@ -729,6 +729,24 @@ EOF
     done < "$TC"
   fi
   echo "  (2) $A2OK supported, $A2BAD unsupported, $A2MIS misfiled under a section citing another log, $A2NC not checked"
+  # (2b) THE FOUR COVERAGE NUMBERS, PRINTED SO THE TREND IS IN EVERY LOG [#548, item (76); the orchestrator's ruling on
+  # jobs/register-coverage-fell-at-423-2026-09-27: "The four number print is the (2) line of --citations: make it print the four
+  # numbers the case names"]. Against the highest-numbered archived full log: case ids WRITTEN (heading a row of TEST-CASES.md),
+  # case ids EXECUTED (occurring in that log), the INTERSECTION, and the TRACED SHARE (that log's PASS lines naming a written
+  # id, over all its PASS lines). Reported, never refused - a ratio that falls only because the denominator grew is the finding
+  # the job recorded at #423 (108 of 1961 -> 108 of 2144), and a refusal would punish adding assertions.
+  A2B_LOG="$(ls claude/agents/gatelogs 2>/dev/null | grep -E '^[0-9]+[a-z]?-all\.log$' | sort -V | tail -1 || true)"
+  if [ -f "$TC" ] && [ -n "$A2B_LOG" ]; then
+    A2B_W="$(grep -oE '^\| *TC-[A-Za-z0-9-]+' "$TC" | tr -d '| ' | sort -u || true)"
+    A2B_E="$(grep -oE 'TC-[A-Z]+(-[A-Z0-9]+)*-?[0-9]+[a-z]?' "claude/agents/gatelogs/$A2B_LOG" | sort -u || true)"
+    A2B_NW=$(printf '%s\n' "$A2B_W" | grep -c . || true); A2B_NE=$(printf '%s\n' "$A2B_E" | grep -c . || true)
+    A2B_NB=$(comm -12 <(printf '%s\n' "$A2B_W") <(printf '%s\n' "$A2B_E") | grep -c . || true)
+    A2B_PT=$(grep -c '^PASS' "claude/agents/gatelogs/$A2B_LOG" || true)
+    A2B_PW=$(grep '^PASS' "claude/agents/gatelogs/$A2B_LOG" | grep -cwFf <(printf '%s\n' "$A2B_W") || true)
+    echo "  (2b) coverage against $A2B_LOG: $A2B_NW case id(s) written, $A2B_NE executed, $A2B_NB both; $A2B_PW of $A2B_PT PASS line(s) name a written id - reported, never refused"
+  else
+    echo "  (2b) coverage NOT CHECKED: no case register or no archived full log in this tree"
+  fi
   echo "=== citations (3): bundle md5s cited by a row - REPORTED, NOT REFUSED"
   echo "  (3) $A3OK found in the cited log, $A3BAD not found"
   echo "  (3m) $A3MBAD marked 'measured on md5' bundle(s) absent from the row's log (refused)"
