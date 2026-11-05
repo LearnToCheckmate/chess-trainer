@@ -36,6 +36,7 @@
 //   cpu-rematch           Rematch from the resigned game (a fresh game, move 0)
 //   cpu-black             vs Pip as Black: the engine has moved first, board flipped
 //   cpu-clock-m0          vs Pip, 1 min clock, move 0 (the clock pills are in the bars)
+//   cpu-black-clock       vs Pip as Black, 1 min clock: the engine has moved first AND the clock is running
 //   cpu-viktor-1e4        vs Viktor (2350), 1.e4 just played - the state to sample the 'thinking' status line
 //   pp-m0                 Pass & Play, move 0
 //   pp-1                  ... 1.f3 (the board turns to Black)
@@ -163,6 +164,10 @@ S['cpu-rematch']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^Rematch$
 S['cpu-resigned-with-moves']=async(b)=>{await S['cpu-resigned'](b);};
 S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
 S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
+// cpu-black-clock [#548 item (141), from the parked lane-4 patch]: cpu-black AND the 1-minute clock, which cpu-black and
+// cpu-clock-m0 each give only half of. setup-clock (which taps the '1 min' chip) in place of setup, then cpu-black byte for byte -
+// the Black chip, Start, and a wait for the engine's first move. THE CLOCK THAT RUNS OUT HERE IS BLACK'S, i.e. the HUMAN'S.
+S['cpu-black-clock']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
 S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Viktor\n/,200);await tapStart(b,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
 // Pass & Play
 S['pp-m0']=async(b)=>{await S['setup-passplay'](b);await tapStart(b,900);await ensureMovesShown(b);};

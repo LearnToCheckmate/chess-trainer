@@ -1209,6 +1209,105 @@ async function blockK(){
   L.say(b.errs.length===0,'K4 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
+// #548 item (141), jobs/gate-65-never-drives-the-human-plays-black-clock-flag-cell-and-a-register-clause-says-it-was-filed-2026-10-09,
+// Kunal's 'move-close' on questions/B8-LANE-JOBS: REBUILT BY HAND from the parked patch
+// patches/proc-lane4-art-gates-regress-65-promotion-after-gameover-js-blockk-2026-10-10 (authored by lane 4, run recorded there),
+// renamed from block K to block L because #548 item (46) took K, with its L0e answering the standing veto.
+// ── BLOCK L  vs COMPUTER, THE HUMAN PLAYING BLACK, ENDED ON A CLOCK FLAG ─────────────────────────────────────
+// RUN IT AS:  CT_APP=<bundle> CT_B65=L node gates/regress/65-promotion-after-gameover.js
+//
+// THE CELL, AND IT IS THE LAST REACHABLE ONE OF THE PARENT JOB'S INPUT SPEC. Block C3 drives the human as BLACK
+// and ends the game by RESIGN; block I drives the engine AND a real clock flag and plays the human as WHITE. So
+// COLOUR x ENDING had one empty square - human as Black, ended by the clock - and C3's own header says so in
+// terms: "A flag variant needs the clock composed onto cpu-black, which gates/drive/play.js does not offer
+// (cpu-clock-m0 selects the default White) and which this lane did not take a second artefact lock to add".
+// This block is that variant. gates/drive/play.js now offers `cpu-black-clock`, and the two artefacts were
+// claimed together [R44] because the state and its only consumer cannot be delivered separately.
+//
+// WHY THE CELL IS NOT A DUPLICATE OF C3 OR I, stated as a mechanism rather than as a grid cell. The defect this
+// gate exists for is in `playEnd`, and the three routes that set it - resign, the clock flag and the #414
+// auto-draws - are different code paths, while `humanCanMove`'s colour term is a different term again. C3 varies
+// the colour over RESIGN only; I varies the ending over WHITE only. If a future change guarded the board on
+// (playEnd && humanIsWhite), or cleared playEnd on a flag for the side that is not to move, C3 and I would both
+// stay green and this block is the only thing that goes red.
+//
+// AND THE FLAG HERE IS THE HUMAN'S OWN CLOCK, WHICH NO OTHER BLOCK IN THIS FILE DRIVES. In block I White - the
+// human - is to move and never moves, so the human flags; but the human is also the side the board belongs to.
+// Here the human is BLACK: the engine opens, the human answers once (K0b, the instrument), the engine replies,
+// and then the human simply never moves again, so it is BLACK'S clock that runs out and the result card reads
+// for WHITE. That asymmetry is the whole content of the cell.
+//
+// WHAT THIS BLOCK DOES NOT COVER, said here so a green K is not read as more than it is [R06, R18]:
+//   * NO PICKER, for the same measured reason block I gives: #495 drove 17 games over six probes and none
+//     reached a promotion against the built-in engine, so the vs-Computer picker needs a position fixture play
+//     setup does not offer. Nothing below asserts anything about the promotion overlay, in either direction.
+//   * ONE GEOMETRY, 375x730 (kunal730). Each flag costs a real 60-second clock and this block pays one. No
+//     claim here is a claim at 320x568 or at 730x375. Block H pays the landscape clock for the Pass & Play
+//     picker path and block I pays both geometries for the vs-Computer WHITE path; this cell is portrait-only
+//     and that is a cost choice, recorded rather than hidden.
+//   * NOT SEEDED, and deliberately, exactly as block I is not: no assertion below depends on WHICH move the bot
+//     chose, only that it moved. K0a reads the ply count and the board flip, K0b reads that a Black move was
+//     accepted, and everything after the flag asserts that NOTHING moves.
+//
+// THE LEGALITY OF THE REFUSED MOVE IS ESTABLISHED BY READING THE BOARD AND NOT BY ASSUMING IT, which is the
+// discipline C3d introduced in this file: a refusal assertion over an ILLEGAL move passes for the wrong reason.
+// The human's one live move is g8-f6, legal after any White first move, and the move attempted after the flag is
+// the retreat f6-g8 - legal iff the knight is still on f6 and g8 is still empty, which K1pre asserts by reading
+// both squares. The move row at the flag is logged on that same assertion so a reader can see the engine's two
+// moves rather than take the geometry on trust.
+async function blockL(){
+  const b=await L.launch({geo:'kunal730',name:'65L-port'});await b.open();
+  const v=await vp(b);
+  L.say(v.w===375&&v.h===730,'TC-PL-054 L00 INSTRUMENT: the viewport really is 375x730',v);
+  await P.states['cpu-black-clock'](b);
+  await b.settle(500);
+  const pStart=await plies(b),bdStart=await b.board();
+  // K0a THE CELL IS THE CELL, and it is two independent readings for the same reason C3a gives: the whole value
+  // of this block is that the human is BLACK, so the engine has already moved before the human has touched the
+  // board (which cannot happen on the White side) AND the board is flipped.
+  L.say(pStart>=1&&!!bdStart&&bdStart.flip===true,
+    'TC-PL-054 L0a the human really is on the BLACK side with the clock running - the engine has already moved and the board is flipped',
+    {plies:pStart,row:await row(b),flip:bdStart?bdStart.flip:null});
+  L.say((await card(b))===null,'TC-PL-054 L0b INSTRUMENT: no result card while the game is live',{card:await card(b)});
+  // K0c INSTRUMENT, AND THE OVER-APPLICATION CONTROL IN ONE. "The board refused a tap" is worthless unless the
+  // same kind of tap is shown to do something first, and if the fix ever over-applied and froze the board for
+  // the Black side, or froze the engine under a clock, this is the assertion that goes red.
+  await b.move('g8','f6',900);
+  const pLive=await plies(b);
+  L.say(pLive>pStart,
+    'TC-PL-054 L0c INSTRUMENT: a BLACK move from the human side is accepted while the game is LIVE and the clock runs',
+    {before:pStart,after:pLive,row:await row(b)});
+  const rowBefore=await row(b),pBefore=await plies(b);
+  // Now simply wait. It is BLACK's move - the human's - and Black never moves again, so BLACK's clock runs out.
+  const ms=await waitFlag(b,140000);
+  L.say(ms!==null,'TC-PL-054 L0d BLACK'+"'"+'s clock - the HUMAN'+"'"+'s - flagged with the engine as opponent',{ms});
+  const cd=await card(b);
+  // L0e CARRIES THE VETO THAT DROPPED THIS BLOCK THREE TIMES (integrationResult517/518/520 on the parked patch): 'Time!' is the
+  // head for ANY time-out, whichever clock ran out, so /Time/ alone cannot say whose clock it was. The card's sub line is
+  // 'You lose' vs the computer when the HUMAN'S side ran out (chess.jsx _winTxt: _winSide===pColor ? 'You win!' : 'You lose'),
+  // and a flag on the ENGINE'S clock would read 'You win!'. So the side is asserted, not only the ending.
+  L.say(/Time/i.test(cd||'')&&/You lose/.test(cd||'')&&!/You win/.test(cd||''),'TC-PL-054 L0e the vs-Computer game ended ON TIME and it was the HUMAN (Black) who flagged - the card reads "You lose", not "You win"',{card:cd});
+  L.say(/Rematch/.test(await ctrls(b)),'TC-PL-054 L0f the control row swapped to the game-over set',{});
+  const onF6=await pieceAt(b,'f6'),onG8=await pieceAt(b,'g8');
+  L.say(!!onF6&&onG8===null,
+    'TC-PL-054 L1pre PRECONDITION: the Black knight is still on f6 and g8 is empty, so f6-g8 is a legal Black move in this position',
+    {f6:!!onF6,g8empty:onG8===null,rowAtFlag:rowBefore});
+  // K1 THE HEADLINE: the cell nothing covered - the human on the BLACK side, the engine present, and the ending
+  // produced by the HUMAN'S OWN CLOCK rather than by a resignation.
+  await b.move('f6','g8',600);
+  const pAfter=await plies(b);
+  L.say(pAfter===pBefore,
+    'TC-PL-054 L1 the board refuses a legal BLACK move after a clock flag, vs COMPUTER, with the human playing Black - no ply appended',
+    {before:pBefore,after:pAfter,row:await row(b)});
+  await b.settle(2200);
+  const pSettled=await plies(b);
+  L.say(pSettled===pBefore,'TC-PL-054 L1b the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
+  L.say((await row(b))===rowBefore,'TC-PL-054 L1c the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
+  L.say(b.errs.length===0,'TC-PL-054 L1d no console errors in the human-plays-Black clock-flag block',{errs:b.errs.length});
+  await b.shot('65-L-black-clock-flag');
+  await b.close();
+}
+
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -1222,4 +1321,5 @@ L.run(async()=>{
   if(want('J'))for(const g of GEOS)await blockJ(g);
   if(want('JS'))await blockJS();
   if(want('K'))await blockK();
+  if(want('L'))await blockL();
 },'65-promotion-after-gameover');
