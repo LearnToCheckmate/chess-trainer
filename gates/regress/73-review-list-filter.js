@@ -1557,5 +1557,24 @@ function mkTap(b,READ){
      L.say(['g1','g2','g3','g4'].every(k=>r.keys.indexOf(k)>=0),'TC-R90 the pull keeps every game either side holds (g1..g4), so no game this device has is lost to a longer cloud string',r.keys);
      L.say(!!r.g1&&r.g1.gv===1&&!('pad' in r.g1),'TC-R90 and where both sides hold a game, this device\'s stamped entry is the one kept',r.g1);}
    await b.close();}
+  // ── G, TC-R101 [#548 item (128); jobs/opponent-brilliancies-on-the-games-list-2026-09-30, Kunal's 'marker']: a game whose
+  // tally says the OPPONENT played a brilliant move (obril) carries ONE small marker on its row, with no number, and the player's own
+  // count beside it is untouched. Found by what it says to a screen reader and by its text, not by the hook this build adds (#432):
+  // main has no marker at all, so the presence line reds there for the right reason. g1 (own bril 1) gets obril:1; g2 gets obril:0.
+  {
+    const T=JSON.parse(JSON.stringify(TALLY));T[gk(G[0])].obril=1;T[gk(G[1])].obril=0;
+    const b=await L.launch({geo:GEO,name:'G-oppbril',store:Object.assign({},STORE,{ct_gamestats:T})});
+    await b.open(); await b.tile('Review'); await b.settle(1200);
+    const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('button')].filter(x=>/Review ›/.test(x.innerText||''));
+      return rows.map(x=>{const t=(x.innerText||'').replace(/\s+/g,' ');const m=[...x.querySelectorAll('[aria-label]')].filter(e=>/opponent played a brilliant/i.test(e.getAttribute('aria-label')));
+        return {opp:(t.match(/vs (\S+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
+    const g1=r.find(x=>x.opp==='opp1'),g2=r.find(x=>x.opp==='opp2');
+    L.say(!!g1&&!!g2,'TC-R101 PRECONDITION the rows for g1 (obril 1) and g2 (obril 0) are on the list',{rows:r.length,g1,g2});
+    L.say(!!g1&&g1.mark===1,'TC-R101 the row of a game where the opponent played a brilliant carries ONE marker that says so',g1);
+    L.say(!!g1&&g1.mark===1&&!/\d/.test(g1.markText||''),'TC-R101 and the marker carries no number ("'+(g1&&g1.markText)+'")',g1);
+    L.say(!!g1&&g1.own==='1','TC-R101 and the player\'s own brilliant count beside it is untouched (reads 1)',g1);
+    L.say(!!g2&&g2.mark===0,'TC-R101 a game with obril 0 carries no marker',g2);
+    await b.close();
+  }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});

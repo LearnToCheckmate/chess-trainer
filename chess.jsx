@@ -1526,9 +1526,9 @@ async function analyzeGameCounts(pgn,userColor){
     if(pgnSetupFen(pgn))return null;   // #547 item (78): never estimate a set-up game from the standard start
     const sans=parsePGN(pgn);if(!sans||!sans.length)return null;
     const res=loadSANs(sans);if(!res||!res.plies.length)return null;
-    let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0;
+    let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0;
     for(let i=0;i<res.plies.length;i++){
-      const mc=i%2===0?'w':'b';if(userColor&&mc!==userColor)continue;
+      const mc=i%2===0?'w':'b';const _opp=!!userColor&&mc!==userColor;   // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
       const pos=res.positions[i],scored=rankMoves(pos,2);if(!scored||!scored.length)continue;
       const bestVal=scored[0].v,pl=res.plies[i].move;
       const actual=scored.find(s=>s.m.fr===pl.fr&&s.m.fc===pl.fc&&s.m.tr===pl.tr&&s.m.tc===pl.tc);
@@ -1545,10 +1545,11 @@ async function analyzeGameCounts(pgn,userColor){
       let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
       const L=_c3.label;
+      if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
-    return {bril,great,inacc,mist,blun};
+    return {bril,great,inacc,mist,blun,obril};
   }catch(e){return null;}
 }
 
@@ -4895,15 +4896,15 @@ export default function App(){
     const counts={Brilliant:0,Great:0,Blunder:0,Mistake:0,Inaccuracy:0};
     out.forEach(o=>{if(counts[o.cls.label]!==undefined)counts[o.cls.label]++;});
     if(meta&&meta.key){
-      const uc=meta.userColor;let bril=0,great=0,inacc=0,mist=0,blun=0;
-      out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(uc&&mc!==uc)return;const L=o.cls.label;if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;});
+      const uc=meta.userColor;let bril=0,great=0,inacc=0,mist=0,blun=0,obril=0;
+      out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(uc&&mc!==uc){if(o.cls.label==='Brilliant')obril++;return;}const L=o.cls.label;if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;});
       // #331: a full review STAMPS the game (src:'review'). If a background estimate had shown more brilliants than
       // the review found, keep the old number as `was` so the row can say "review found N (estimate said M)" instead of
       // silently erasing the pill. A later review that finds the brilliant again clears the note.
       const _prev=gameStatsRef.current[meta.key];
       let _was=null;
       if(_prev){if((_prev.bril||0)>bril)_was=_prev.bril||0;else if(_prev.was!=null&&(_prev.bril||0)===bril)_was=_prev.was;}
-      recordGameStats(meta.key,{bril,great,inacc,mist,blun,src:'review',engine:useSF?'sf':'fallback',...(_was!=null?{was:_was}:{})});
+      recordGameStats(meta.key,{bril,great,inacc,mist,blun,obril,src:'review',engine:useSF?'sf':'fallback',...(_was!=null?{was:_was}:{})});
     }
     const playedSans=res.positions.slice(0,res.plies.length).map((pos,i)=>toSAN(pos,res.plies[i].move,applyMove(pos.board,res.plies[i].move)));
     const openingName=nameOpening(playedSans);
@@ -8538,6 +8539,10 @@ export default function App(){
                         ?<span data-ct="bril-pill-est" style={{color:'#7be9f7',background:'transparent',border:'1px dashed rgba(34,211,238,.75)',borderRadius:8,padding:'1px 8px',fontWeight:800}}>!! {st.bril} brilliant?</span>
                         :<span data-ct="bril-pill" style={{color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'1px 8px',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)'}}>!! {st.bril} brilliant</span>)}
                       <span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span>
+                      {/* #548 item (128), jobs/opponent-brilliancies-on-the-games-list-2026-09-30, Kunal's 'marker': ONE small marker, no
+                          number, when the OPPONENT played a brilliant move; the player's own count beside it is untouched. Outlined and
+                          muted so it never reads as his own pill. */}
+                      {st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{color:'rgba(123,233,247,.8)',border:'1px solid rgba(123,233,247,.45)',borderRadius:8,padding:'0 6px',fontWeight:800,fontSize:'.85em'}}>opp !!</span>}
                       {!est&&st.was!=null&&st.was>(st.bril||0)&&<span data-ct="bril-downgrade" style={{flexBasis:'100%',fontSize:'.8em',fontWeight:600,fontFamily:"'Segoe UI',system-ui,sans-serif",color:'rgba(123,233,247,.75)'}}>review found {st.bril||0} brilliant (estimate said {st.was})</span>}
                     </span>);})()}
                   </span>
