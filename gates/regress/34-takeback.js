@@ -94,7 +94,9 @@ const rowState=(b)=>b.page.evaluate(()=>{
 const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',pool:null},{geo:'se',pool:'3'}];
 // The board after a takeback, per geometry: 353 at 375x730 (measured on #383, this file's original pin) and 288 at 320x568
 // (measured at #546 on 049b41dfb6f1). A pin per geometry, never one number for both.
-const WANT_W={kunal730:353,se:288};
+// #548 item (92) MOVED THE 320x568 FIGURE: the phone's top row took the strip under the board's place, so vs Computer at 320x568 is 298 (was
+// 288), the figure gate 46 re-pinned to; 375x730 stays 353. Caught red in #548's round-1 suite.
+const WANT_W={kunal730:353,se:298};
 L.run(async()=>{
  for(const C of COLS){
   const geo=C.geo, T=geo+'/pool '+(C.pool||'unset')+': ';
