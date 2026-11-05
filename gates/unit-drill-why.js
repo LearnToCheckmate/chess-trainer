@@ -112,5 +112,46 @@ console.log('\n--- the mistakes pool cap: practised first, then oldest [#548 ite
  eq(r20.filter(x=>/^F/.test(x.fen)&&!r20.some(()=>false)).length,130,'cap: then the ten OLDEST unpractised go (130 of the 140 left)');
  eq(r20.some(x=>x.fen==='F139')&&!r20.some(x=>x.fen==='F149')&&!r20.some(x=>x.fen==='F140'),true,'cap: the ones dropped after the practised are the tail - F140 to F149 - and F139 stays');
  eq(capMistakes(mk(10),150).length,10,'cap: a pool under the cap is returned unchanged');}
+console.log('\n--- #548 item (114): the engine line in plain words (explainLine, evalWords), on the REAL chess helpers ---');
+// The functions above are lifted out with stubs; explainLine reads the board through moveMotifs, moveGist and the move generator, so it
+// is tested on the real code: chess.jsx is bundled for node with esbuild (React stubbed - nothing here renders) and the three functions
+// are exported from the bundle. The golden case is the job's own fixture and Kunal's reference reading of its row 2.
+{const os=require('os'),path=require('path'),cp=require('child_process');
+ const d=fs.mkdtempSync(path.join(os.tmpdir(),'ct-ew-'));
+ fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN};\n');
+ fs.writeFileSync(path.join(d,'react.js'),'module.exports={useState:()=>[null,()=>{}],useMemo:f=>f(),useRef:()=>({}),useEffect:()=>{},useLayoutEffect:()=>{},memo:x=>x,useCallback:f=>f};');
+ let M=null;
+ try{cp.execFileSync(path.join(__dirname,'node_modules','.bin','esbuild'),[path.join(d,'c.jsx'),'--bundle','--platform=node','--format=cjs','--alias:react='+path.join(d,'react.js'),'--outfile='+path.join(d,'c.cjs'),'--log-level=error']);
+   global.window={location:{search:'',hostname:'x',href:'x'},addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}}),navigator:{},CTLESSONS:new Proxy({},{get:()=>[]})};
+   global.document={addEventListener(){},createElement:()=>({}),querySelector:()=>null};global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};global.sessionStorage=global.localStorage;global.self=global.window;
+   if(!global.navigator)try{global.navigator={userAgent:'node',hardwareConcurrency:2};}catch(e){}
+   M=require(path.join(d,'c.cjs'));}catch(e){console.log('  bundle error:',String(e.message||e).slice(0,200));}
+ eq(!!(M&&M.explainLine&&M.evalWords),true,'explainLine and evalWords load from the real chess.jsx');
+ if(M){
+  const FEN='3k4/ppp1b2p/8/5b2/3N1B2/2N5/PP3prP/2K4R w - - 0 22';
+  const r2=M.explainLine(FEN,['f4e3','f5d3','d4e2','f2f1q'],4);
+  eq(r2.map(x=>x.san).join(' '),'22.Be3 Bd3 23.Nde2 f1=Q+','golden: the line is numbered from the FEN');
+  eq(r2[0].why,'hits the pawn on f2','golden 22.Be3: attacks the f2 pawn (reference: "attacks the f2 pawn")');
+  eq(r2[1].why,'aims at f1, where the f-pawn queens','golden 22...Bd3: aims at f1 (reference: "aims through e2 at f1")');
+  eq(r2[2].why,'blocks the bishop on d3','golden 23.Nde2: blocks that diagonal (reference: "blocks that diagonal")');
+  eq(r2[3].why,'queens, with check','golden 23...f1=Q+: queens with check (reference: "queens anyway, with check")');
+  eq(M.evalWords(-0.78),'Black is better by about three quarters of a pawn','evalWords row 1 (-0.78)');
+  eq(M.evalWords(-1.33),'Black is better by about a pawn and a quarter','evalWords row 2 (-1.33)');
+  eq(M.evalWords(0.1),'About level','evalWords near zero');
+  eq(M.evalWords(99),'White has a forced mate','evalWords on a mate score');
+  // NOT GENERIC, the job's 25% cap: every position of the bench games, with the next four PLAYED moves as the line. No phrase family
+  // (the words before the first 'the', 'at' or ',') may account for more than 25% of the moves that got a phrase. The count is printed.
+  const dir=path.join(__dirname,'..','claude','agents','bench','pgn');let fam={},n=0,lines=0;
+  for(const f of fs.readdirSync(dir).filter(x=>/\.pgn$/.test(x))){
+    const sans=M.parsePGN(fs.readFileSync(path.join(dir,f),'utf8'));const res=M.loadSANs(sans);if(!res||!res.plies)continue;
+    for(let i=0;i+4<=res.plies.length;i+=2){const fen=M.toFEN(res.positions[i]);
+      const uci=res.plies.slice(i,i+4).map(p=>{const m=p.move,sq=(r,c)=>'abcdefgh'[c]+(8-r);return sq(m.fr,m.fc)+sq(m.tr,m.tc)+(m.promo||'');});
+      lines++;for(const x of M.explainLine(fen,uci,4)){if(!x.why)continue;n++;const k=x.why.split(/ the | at |,/)[0];fam[k]=(fam[k]||0)+1;}}}
+  const top=Object.entries(fam).sort((a,b)=>b[1]-a[1]);
+  console.log('   corpus: '+lines+' lines, '+n+' explained moves; top families: '+top.slice(0,6).map(([k,v])=>k+' '+Math.round(100*v/n)+'%').join(', '));
+  eq(n>=100,true,'the corpus explained at least 100 moves, so the cap below is a measurement and not a sample of one');
+  eq(n>0&&top[0][1]/n<=0.25,true,'NOT GENERIC: no phrase family explains more than 25% of the moves ('+(top[0]?top[0][0]+' '+Math.round(100*top[0][1]/n)+'%':'none')+')');
+ }
+ try{fs.rmSync(d,{recursive:true,force:true});}catch(e){}}
 console.log('\n'+(fails?('*** '+fails+' UNIT FAILURES ***'):'all unit checks passed'));
 process.exit(fails?1:0);

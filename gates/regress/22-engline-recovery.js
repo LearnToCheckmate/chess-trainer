@@ -478,4 +478,29 @@ L.run(async()=>{
   }else{
     L.note('TC-SUITE-236 NOT CHECKED: ZERO /RuntimeError: unreachable/ page errors were observed on this run, so there was NOTHING TO RECOVER FROM and the five recovery assertions above passed over a NON-EVENT. No PASS is emitted for this line - a missing denominator is reported and never credited. The reference reading in this container is SIX traps against an allowed count of 7, measured at #504 in the 22-engline-recovery section of that run, which this repository does not archive, so a zero here means the trap has stopped firing and this gate has stopped guarding #389.');
   }
+  // TC-R105 [#548 item (114); jobs/explain-engine-lines-in-plain-words, Kunal's feature 1 for batch 8]: THE ENGINE LINE SAYS IN PLAIN
+  // WORDS WHAT EACH MOVE IS FOR. Review, Opera Game, ply 10 with the engine on, at 375x730 and 320x568: wait for the line, tap the row,
+  // and read the reading it opens. It states who is better and roughly by how much, gives at least two of the line's moves a phrase,
+  // cuts nothing (each line wraps inside its box), moves nothing (the board's top and width are unchanged), and a tap closes it. The
+  // generator's own truth-by-rule and its 25% fan-out cap are the unit layer's (gates/unit-drill-why.js, the #548 item (114) block).
+  {const R=require('../drive/review');
+   for(const geo of ['kunal730','se']){const b=await L.launch({geo,store:R.SEED,name:'engwhy-'+geo});await b.open();let ok=true;
+    try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await b.page.waitForFunction(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return !!e&&/\d\.\S/.test(e.innerText||'');},{timeout:60000});await b.settle(500);}catch(e){ok=false;}
+    const bd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];return g?[+g.top.toFixed(1),+g.width.toFixed(1)]:null;});
+    const b0=await bd();
+    await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);
+    const r=await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="rev-engwhy"]');if(!p)return null;const q=p.getBoundingClientRect();
+      const ev=p.querySelector('[data-ct="rev-engwhy-eval"]');const mv=[...p.querySelectorAll('[data-ct="rev-engwhy-move"]')];
+      const cut=[p,...mv].filter(e=>e.scrollWidth>e.clientWidth+1).length;
+      return {ev:ev?(ev.innerText||'').trim():null,moves:mv.map(m=>(m.innerText||'').replace(/\s+/g,' ').trim()),withWhy:mv.filter(m=>(m.children[1]&&(m.children[1].innerText||'').trim().length>2)).length,cut,inView:q.top>=-0.5&&q.bottom<=innerHeight+0.5,right:q.right,vw:innerWidth};});
+    const b1=await bd();
+    L.say(ok&&!!r,geo+': TC-R105 PRECONDITION the engine line arrived and a tap on it opened its plain-words reading',r);
+    if(r){
+     L.say(/^(About level|(White|Black) (is better by about .+|is winning|has a forced mate))$/.test(r.ev||''),geo+': TC-R105 it says in words who is better and roughly by how much ("'+r.ev+'")',{ev:r.ev});
+     L.say(r.moves.length>=2&&r.withWhy>=2,geo+': TC-R105 and at least two of the line\'s moves carry a phrase saying what they are for ('+r.withWhy+' of '+r.moves.length+')',{moves:r.moves});
+     L.say(r.cut===0&&r.inView&&r.right<=r.vw+0.5,geo+': TC-R105 nothing in it is cut and it is inside the screen',{cut:r.cut,inView:r.inView,right:r.right,vw:r.vw});
+     L.say(!!b0&&!!b1&&b0[0]===b1[0]&&b0[1]===b1[1],geo+': TC-R105 opening it moved nothing - the board top and width are unchanged ('+JSON.stringify(b0)+' -> '+JSON.stringify(b1)+')',{b0,b1});
+     await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(400);
+     L.say(!(await b.page.locator('[data-ct="rev-engwhy"]').count()),geo+': TC-R105 and a tap on it closes it');}
+    await b.close();}}
 },'ENGLINE-RECOVERY');

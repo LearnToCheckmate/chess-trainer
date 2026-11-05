@@ -1059,6 +1059,69 @@ const SAC_LINE_MAX=3;
    a pure function is the fix for that, not an assertion written around it"). #511's token, ownership
    re-validation, yield and `else delete` are all still the only cache machinery in this file. */
 function sacKeep(ok,line){return !!ok&&!!line&&line.length>0;}
+/* #548 item (114), jobs/explain-engine-lines-in-plain-words, Kunal's '1-2-3 (1 and 2 in batch 8)' - feature 1: Review engine lines say in
+   plain words what each move is for. ONE GENERATOR, NOT TWO (the job's own rule): every phrase comes from moveMotifs and moveGist, the
+   readers the review and the drill already use, and both read the BOARD - 'hits the bishop on c5' means the moved piece attacks it
+   after the move, 'gives check' means the opponent's king is attacked, 'wins the knight' is a capture the exchange count favours. A move
+   none of them can say anything TRUE about gets no phrase at all, never a generic one (correction 024's lesson). Returns up to `k`
+   {san,why} for the line `pv` (UCI) from the position `fen`, numbered from the FEN. */
+function explainLine(fen,pv,k){
+  const out=[];
+  try{
+    const parts=String(fen||'').trim().split(/\s+/);let no=parseInt(parts[5],10)||1;let g=fromFEN(fen);
+    for(let i=0;i<(pv||[]).length&&out.length<(k||4);i++){
+      const m=uciToMove(g,pv[i]);if(!m)break;
+      const san=toSAN(g,m,applyMove(g.board,m));
+      const mo=moveMotifs(g,m)||[];const gi=(moveGist(g,m)||{}).did||[];
+      const me=g.turn,them=opp(me),pc=g.board[m.fr][m.fc],nb=applyMove(g.board,m);
+      // THREE MORE READINGS, each checked on the board and each worded only when it is true (the job's 'true by rule'):
+      // (a) a slider that, after the move, attacks the square where one of ITS side's pawns queens next move - 'aims at f1, where the
+      //     f-pawn queens'; (b) a move that lands BETWEEN an enemy slider and a square it reached before the move - one of the mover's
+      //     pieces, or the square where an enemy pawn queens next move - so the slider no longer reaches it: 'blocks the bishop on d3';
+      // (c) the moved piece newly attacks an enemy piece or pawn (highest value first, never the king): 'hits the pawn on f2'.
+      const qsq=(side)=>{const o=[];const r7=side==='w'?1:6,rq=side==='w'?0:7;for(let c=0;c<8;c++){const p=g.board[r7][c];if(p&&p.t==='p'&&p.c===side&&!g.board[rq][c])o.push([rq,c]);}return o;};
+      let aim='',blk='',hit='';
+      try{
+        if(pc&&'brq'.indexOf(pc.t)>=0){for(const [qr,qc] of qsq(me)){if(moveHits(nb,m.tr,m.tc,qr,qc)&&!moveHits(g.board,m.fr,m.fc,qr,qc)){aim='aims at '+rc2sq(qr,qc)+', where the '+FILES[qc]+'-pawn queens';break;}}}
+        const tgts=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=g.board[r][c];if(p&&p.c===me&&!(r===m.fr&&c===m.fc))tgts.push([r,c]);}
+        for(const q of qsq(them))tgts.push(q);
+        outer:for(let r=0;r<8;r++)for(let c=0;c<8;c++){const S=g.board[r][c];if(!S||S.c!==them||'brq'.indexOf(S.t)<0)continue;
+          for(const [tr,tc] of tgts){if(!moveHits(g.board,r,c,tr,tc)||moveHits(nb,r,c,tr,tc))continue;
+            const between=Math.sign(m.tr-r)===Math.sign(tr-r)&&Math.sign(m.tc-c)===Math.sign(tc-c)&&Math.abs(m.tr-r)<=Math.abs(tr-r)&&Math.abs(m.tc-c)<=Math.abs(tc-c)&&!(m.tr===tr&&m.tc===tc);
+            if(between){blk='blocks the '+PNAME[S.t]+' on '+rc2sq(r,c);break outer;}}}
+        if(pc){let best=null;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=nb[r][c];if(!p||p.c!==them||p.t==='k')continue;
+          if(moveHits(nb,m.tr,m.tc,r,c)&&!moveHits(g.board,m.fr,m.fc,r,c)){const v=VAL[p.t]||0;if(!best||v>best.v)best={v,t:p.t,sq:rc2sq(r,c)};}}
+          if(best)hit='hits the '+PNAME[best.t]+' on '+best.sq;}
+      }catch(e){}
+      let why='';
+      if(mo.indexOf('mate')>=0)why='mates';
+      else if(m.promo)why=(m.promo==='q'?'queens':'promotes')+(mo.indexOf('check')>=0?', with check':'');
+      else if(mo.indexOf('discovered check')>=0)why='a discovered check';
+      else if(aim)why=aim;
+      else if(blk)why=blk;
+      else if(gi[0])why=gi[0]+(mo.indexOf('check')>=0&&!/check/.test(gi[0])?', with check':'');
+      else if(hit)why=hit+(mo.indexOf('check')>=0?', with check':'');
+      else if(mo.indexOf('check')>=0)why='gives check';
+      out.push({san:(g.turn==='w'?(no+'.'):(i===0?(no+'\u2026'):''))+san,why});
+      if(g.turn==='b')no++;g=makeMove(g,m);
+    }
+  }catch(e){}
+  return out;
+}
+/* The evaluation in words, from White's side in pawns (mate as +-99): who is better and roughly by how much. */
+function evalWords(cp){
+  if(cp==null||isNaN(cp))return '';
+  if(Math.abs(cp)>=90)return (cp>0?'White':'Black')+' has a forced mate';
+  const a=Math.abs(cp),side=cp>0?'White':'Black';
+  if(a<0.3)return 'About level';
+  if(a>=5)return side+' is winning';
+  const q=Math.max(0.25,Math.round(a*4)/4),w=Math.floor(q),f=q-w;
+  const frac=f===0.5?'half':f===0.25?'a quarter':f===0.75?'three quarters':'';
+  const amt=w===0?(frac==='half'?'half a pawn':frac+' of a pawn'):
+    w===1?('a pawn'+(frac?(' and '+(frac==='half'?'a half':frac)):'')):
+    (frac?(w+' and '+(frac==='half'?'a half':frac)+' pawns'):(w+' pawns'));
+  return side+' is better by about '+amt;
+}
 /* #548 item (125), jobs/mistake-drill-is-single-move-by-construction-2026-09-28, Kunal's '1 and 2 in batch 8' (feature 2, the small
    version): the mistakes drill shows the next two or three moves of what the better move led to. `pv` is the engine line from the
    card's position, starting WITH the better move; this formats the up to `k` plies AFTER it as numbered SAN ('18...Kh8 19.Qh5 Rf8'),
@@ -3440,6 +3503,7 @@ export default function App(){
   const [anaMode,setAnaMode]=useState(false);      // #342: analysis board - play the position out yourself from the review
   const anaModeRef=useRef(false);anaModeRef.current=anaMode;
   const [anaHist,setAnaHist]=useState([]);
+  const [engWhy,setEngWhy]=useState(false);   // #548 item (114): the plain-words reading of the engine line, opened by a tap
   const [engLine,setEngLine]=useState(null);       // {txt, cp, line} for the current ply
   const engCacheRef=useRef({});                    // fen -> {txt,cp,line}, so stepping back and forth never re-runs the engine
   const bestLineTokenRef=useRef(0);
@@ -5718,6 +5782,7 @@ export default function App(){
   const hintMove=useMemo(()=>{if(mode==='play')return (opponent==='online'||pvIdx!=null)?null:playHintMv; /* #548 item (160): a hint is computed for the LIVE position, so stepping back (pvIdx) hides it - it stayed on d2/d4 at ply 2 for a ply-4 hint; returning to the live ply shows it again */if(mode==='puzzle'){if(!puzReveal||puzSolved)return null;const p=curPuz;if(!p||puzStep>=p.sol.length)return null;return findMoveBySAN(game,p.sol[puzStep]);}if(mode!=='learn'||learnPhase!=='practice'||openIdx===null||(!showHint&&!revealHint))return null;const op=LIB[openIdx];if(openStep>=learnLine.length||game.turn!==op.side)return null;return findMoveBySAN(game,learnLine[openStep]);},[mode,learnPhase,openIdx,openStep,game,showHint,revealHint,learnLine,puzReveal,puzSolved,curPuz,puzStep,playHintMv,opponent,pvIdx]);
   // Best move arrow in review
   // #341: engine analysis of the position on screen. One Stockfish call per position, cached by FEN, so stepping back and forth is free.
+  useEffect(()=>{setEngWhy(false);},[ply,anaMode,engOn,mode]);   // #548 item (114): the reading belongs to one position; a new one closes it
   useEffect(()=>{
     if(!engOn||!inReview||!review||!review.positions){setEngLine(null);return;}
     const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
@@ -5746,7 +5811,7 @@ export default function App(){
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim()};
+      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen};   /* #548 item (114): the raw line and its position, for the plain-words reading */
       /* #392 (review-engline-wrong-sign-on-trap): A DEAD SEARCH'S SCORE IS AS UNTRUSTWORTHY AS ITS MISSING LINE.
          #389 stopped CACHING a failed query, so the position is re-queried and recovers on the next visit. It
          left the worse half: the trapped search returns a PARTIAL SCORE, and that score has the wrong sign.
@@ -6769,7 +6834,7 @@ export default function App(){
             <div style={{fontSize:11.5,color:'rgba(255,255,255,.62)',marginTop:3}}>{celebrate.sub}</div>
             <button onClick={()=>setCelebrate(null)} style={{marginTop:14,padding:'10px 24px',borderRadius:12,border:'none',background:celebrate.kind==='mastered'?'var(--gold)':'var(--ac)',color:'#101010',fontWeight:800,fontSize:13,cursor:'pointer'}}>Keep going</button>
           <style>{'@media (prefers-reduced-motion: no-preference){@keyframes ctDrop{from{transform:translate(-50%,-16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}@keyframes ctStamp{0%{transform:scale(2.6);opacity:0}70%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}}'}</style></div></div>)}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Cinzel:wght@600;700&family=Baloo+2:wght@600;700;800&display=swap');*{box-sizing:border-box;}button:active{transform:translateY(1px);filter:brightness(.93);}select,textarea{font-family:inherit;}textarea{touch-action:auto;}input:not([type=range]),textarea{font-size:16px !important;}.scroll::-webkit-scrollbar{height:5px;width:5px;}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}.ctside>*{max-width:100%!important;min-width:0!important;}@keyframes iconpop{0%{transform:scale(.4) rotate(-14deg);opacity:0}60%{transform:scale(1.14) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes brilburst{0%{transform:scale(.35);opacity:.85}100%{transform:scale(1.85);opacity:0}}@keyframes ctqdrop{0%{transform:translateY(-175px) rotate(-6deg);opacity:0}10%{opacity:1}64%{transform:translateY(0) rotate(0)}74%{transform:translateY(0) scaleY(.87) scaleX(1.1)}85%{transform:translateY(-8px) scaleY(1.04) scaleX(.98)}100%{transform:translateY(0) scaleY(1) scaleX(1)}}@keyframes ctTopL{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(-86deg) translate(-22px,9px);opacity:0}}@keyframes ctTopR{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(86deg) translate(22px,9px);opacity:0}}.ct-qdrop{animation:ctqdrop 3s cubic-bezier(.42,0,.5,1) both}.ct-topl{animation:ctTopL 1.2s cubic-bezier(.3,.45,.5,1) both}.ct-topr{animation:ctTopR 1.2s cubic-bezier(.3,.45,.5,1) both}@keyframes ctScanSpin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Cinzel:wght@600;700&family=Baloo+2:wght@600;700;800&display=swap');*{box-sizing:border-box;}button:active{transform:translateY(1px);filter:brightness(.93);}select,textarea{font-family:inherit;}textarea{touch-action:auto;}input:not([type=range]),textarea{font-size:16px !important;}.scroll::-webkit-scrollbar{height:5px;width:5px;}.ct-q::before{content:'?';}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}.ctside>*{max-width:100%!important;min-width:0!important;}@keyframes iconpop{0%{transform:scale(.4) rotate(-14deg);opacity:0}60%{transform:scale(1.14) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes brilburst{0%{transform:scale(.35);opacity:.85}100%{transform:scale(1.85);opacity:0}}@keyframes ctqdrop{0%{transform:translateY(-175px) rotate(-6deg);opacity:0}10%{opacity:1}64%{transform:translateY(0) rotate(0)}74%{transform:translateY(0) scaleY(.87) scaleX(1.1)}85%{transform:translateY(-8px) scaleY(1.04) scaleX(.98)}100%{transform:translateY(0) scaleY(1) scaleX(1)}}@keyframes ctTopL{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(-86deg) translate(-22px,9px);opacity:0}}@keyframes ctTopR{0%{transform:rotate(0) translate(0,0);opacity:1}100%{transform:rotate(86deg) translate(22px,9px);opacity:0}}.ct-qdrop{animation:ctqdrop 3s cubic-bezier(.42,0,.5,1) both}.ct-topl{animation:ctTopL 1.2s cubic-bezier(.3,.45,.5,1) both}.ct-topr{animation:ctTopR 1.2s cubic-bezier(.3,.45,.5,1) both}@keyframes ctScanSpin{to{transform:rotate(360deg)}}`}</style>
 
       {homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:`max(12px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {/* #373 (audit A-04): Home had no way into the menu - every ☰ sits under this overlay (zIndex 500). Same size and row as the account button. */}
@@ -8753,11 +8818,19 @@ export default function App(){
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
-            {engOn&&(<div data-ct="rev-engline" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
+            {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4);const ew=evalWords(engLine.cp);return(
+              <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
+                {/* #548 item (114): what each move of the engine's line is FOR, in words the board can confirm (explainLine), and what the
+                    number means (evalWords). An overlay, so opening it moves nothing; a tap anywhere on it closes it. */}
+                {ew&&<div data-ct="rev-engwhy-eval" style={{fontWeight:800,color:'#fff',marginBottom:6}}>{ew}</div>}
+                {rows.map((r,i)=>(<div key={i} data-ct="rev-engwhy-move" style={{display:'flex',gap:8,alignItems:'baseline'}}><b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',color:'var(--ac2)'}}>{r.san}</b><span style={{minWidth:0}}>{r.why||'\u00a0'}</span></div>))}
+              </div>);})()}
+            {engOn&&(<div data-ct="rev-engline" onClick={()=>{if(engLine&&engLine.pv&&engLine.pv.length)setEngWhy(o=>!o);}} aria-label="Engine line - tap for what each move is for" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden',cursor:'pointer'}} className="scroll">
               {/* #547 item (116), jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27: at a checkmate or a stalemate there is no
                   line to find, and the row used to print '0.0 …' for ever - the exact shape of a dead query (#389). It now says
                   why in words, so a bare ellipsis means only one thing: the engine has not answered yet. */}
               {(status==='checkmate'||status==='stalemate')?(<span data-ct="rev-engline-over" style={{flex:'0 0 auto',color:'rgba(255,255,255,.62)',fontWeight:700}}>{status==='checkmate'?'Checkmate \u2014 the game is over.':'Stalemate \u2014 no legal move.'}</span>):(<>
+              {engLine&&engLine.pv&&engLine.pv.length>0&&<span data-ct="rev-engwhy-open" aria-hidden="true" style={{flex:'0 0 auto',alignSelf:'center',display:'inline-flex',alignItems:'center',justifyContent:'center',width:16,height:16,borderRadius:8,fontSize:11,fontWeight:800,color:'var(--ac2)',border:'1px solid rgba(var(--acr),.55)'}} className="ct-q"/>}{/* the '?' is CSS generated content, NOT text: every reader of this row's innerText (gate 22's leading-number checks, the eval cross-checks) must still see the evaluation first - the first draft put a text '?' here and turned gate 22 red at ply 19 and 25 */}
               {engLine&&<b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',fontWeight:800,color:engLine.cp==null?'rgba(255,255,255,.5)':(engLine.cp>=0?'#e8e8ea':'#9fb4c9')}}>{engLine.txt}</b>}
               {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}</>)}
             </div>)}
