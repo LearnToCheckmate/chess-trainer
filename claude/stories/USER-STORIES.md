@@ -387,6 +387,18 @@ gate 78.
 - NOT COVERED YET: the other screens' primary actions. What counts as the primary action on Puzzles and on Review is
   this lane's open definition question (Q2 on the job).
 
+### US-INV-08 A check that passes was able to fail on the build it was guarding against
+
+Written at #548 from the parked lane record of jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29
+(Kunal's 'move-close' on questions/B8-LANE-JOBS). The lane reserved US-INV-07 and TC-INV-08a..c; both were taken on main by the
+drill-setup invariant before the rows were written, so this story and its cases carry the next free ids instead.
+
+- When a build adds an attribute to the app and, in the same build, writes an assertion that reads it, that assertion has never
+  been run against a bundle where the thing it looks for is absent - so a green from it is a statement about the fix and not about
+  the defect. (TC-INV-11a)
+- I can ask, mechanically and with no browser, how many assertions are in that position, and the tool's own controls prove it
+  reports what it should and declines what it should. (TC-INV-11b)
+- A selector the app never emits as a literal is named rather than counted as coverage. (TC-INV-11c)
 ### US-R12 The drill board stays still when the app answers me
 > **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
 > measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and
