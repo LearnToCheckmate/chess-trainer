@@ -591,3 +591,4 @@
 547	minted	-	-	-	2026-11-03T02:07Z	build__1793671541605	minted	batch 7 build #547: the 191-job ordered list of directOpening_2026_11_02_batch7b under a 48-hour window; app changes, bundle built once at the end
 547	built	-	fa330b50500d	e0fabb5a3bd7	2026-11-03T08:27Z	build__1793671541605	build.sh	Bundle built and stamped #547. Recorded by gates/build.sh so the number resolves to an artefact.
 547	built	-	c7f6a1228e43	ec83770812c4	2026-11-03T09:29Z	build__1793671541605	build.sh	Bundle built and stamped #547. Recorded by gates/build.sh so the number resolves to an artefact.
+548	minted	-	-	-	2026-11-05T04:16Z	build__1793852110388	minted	batch 8 build #548: the 164-job ordered list of directOpening_2026_11_04_batch8c under a 48-hour window; app changes, bundle built once at the end
