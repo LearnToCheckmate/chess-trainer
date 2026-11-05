@@ -222,4 +222,18 @@ L.run(async()=>{
     L.say(b.errs.length===0,geo+': TC-PZ-BURST no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
+  // TC-PZ-TIER [#548, item (133); jobs/pz-rank-up-announces-a-rank-the-screen-already-showed-2026-09-28, Kunal's choice
+  // questions/B8B-RANK-UP (wording, candidate (a))]: BEFORE THE RANK UP THE ROADMAP NAMES THE TIER, NOT THE PLAYER. Fresh store: the
+  // card's heading - found by its position as the card's first bold line, not by the hook #548 adds (#432) - reads 'Novice puzzles ·
+  // 0 of 10'. After Novice is earned (roadmap-rank1) it names the next tier the same way. main's heading is the bare 'Novice', which
+  // is what made 'you reached Novice' at the 10th solve announce a rank the screen had shown from the first puzzle.
+  for(const [st,want] of [['roadmap',/^Novice puzzles · 0 of 10$/],['roadmap-rank1',/^\S+ puzzles · \d+ of \d+$/]]){
+    const b=await L.launch({geo:'kunal730',name:'pz-tier-'+st});await b.open();let ok=true;
+    try{await Z.states[st](b);await b.settle(400);}catch(e){ok=false;}
+    const h=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ (Start training|Train next puzzle)$/.test((x.innerText||'').trim()));if(!btn)return null;
+      const card=btn.parentElement;const bolds=[...card.querySelectorAll('div')].filter(d=>d.children.length===0&&parseInt(getComputedStyle(d).fontWeight)>=800&&(d.innerText||'').trim());return bolds.length?(bolds[0].innerText||'').trim():null;});
+    L.say(ok&&!!h,'TC-PZ-TIER '+st+' PRECONDITION the roadmap card is on screen and its heading was read',{h});
+    L.say(!!h&&want.test(h)&&!/^(Novice|Apprentice)$/.test(h),'TC-PZ-TIER '+st+': the roadmap heading names the TIER and the progress into it ("'+h+'"), not a bare rank name',{h});
+    await b.close();
+  }
 },'PZ-STREAK');

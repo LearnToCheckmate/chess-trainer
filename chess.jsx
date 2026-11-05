@@ -9030,7 +9030,7 @@ export default function App(){
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div style={{fontSize:34,lineHeight:1}}>{allDone?'🏆':at.icon}</div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:'clamp(14px,3.6vw,17px)',fontWeight:800,color:'#fff'}}>{allDone?'Journey complete!':at.name}</div>
+              <div data-ct="pz-tier-title" style={{fontSize:'clamp(14px,3.6vw,17px)',fontWeight:800,color:'#fff'}}>{allDone?'Journey complete!':(at.name+' puzzles \u00b7 '+inActive+' of '+at.need)}</div>{/* #548 item (133), jobs/pz-rank-up-announces-a-rank-the-screen-already-showed-2026-09-28, Kunal's choice (questions/B8B-RANK-UP, wording, candidate (a)): the card names the TIER being worked on and how far into it the player is ('Novice puzzles · 0 of 10'), not the player - so the RANK UP that says 'you reached Novice' is news. The ladder is unchanged */}
               <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>Rank {Math.min(rank,PZ_TIERS.length)} / {PZ_TIERS.length} · {total} solved · ⭐ {pzXP} XP</div>
             </div>
             <div style={{textAlign:'right'}}><div style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'var(--ac2)'}}>🔥 {pzStreak}</div><div style={{fontSize:'clamp(12px,1.7vw,12px)',color:'rgba(255,255,255,.58)'}}>best {pzBest}</div></div>
@@ -9082,7 +9082,7 @@ export default function App(){
               and which is why the precedent is safe. Nothing changes at 360 and above: measured identical. */}
           <button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" title="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 auto'}}>{vp.w<=340?'‹':'‹ Roadmap'}</button>
           {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name+' puzzles'):'Free play'} · ✓ {pzTotalSolved(pzSolvedMap)}</span></>)}
         </div>
         {wide&&(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.5}}>PUZZLE {puzIdx+1} / {PZ.length}</span>
