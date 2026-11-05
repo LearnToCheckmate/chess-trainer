@@ -174,7 +174,9 @@ const L=require('../lib');
 const P=require('../drive/play');
 
 // The board is fit to WIDTH at 375x730 and to HEIGHT at 375x568, so it has one measured width per geometry.
-const BOARD_W={kunal730:353,short375:280};
+// #548 item (92) MOVED THE short375 FIGURE: the phone's top row took the strip under the board's place, so vs Computer at short375 is 296
+// (was 280), measured by this gate in #548's round-1 suite; 375x730 stays 353.
+const BOARD_W={kunal730:353,short375:296};
 
 const barStyle=(b)=>b.page.evaluate(()=>{
   const e=document.querySelector('[data-ct="eval-bar-v"]');
