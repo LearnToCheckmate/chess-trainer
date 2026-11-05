@@ -118,7 +118,7 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
 // are exported from the bundle. The golden case is the job's own fixture and Kunal's reference reading of its row 2.
 {const os=require('os'),path=require('path'),cp=require('child_process');
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'ct-ew-'));
- fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN};\n');
+ fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN,bestLineTail};\n');
  fs.writeFileSync(path.join(d,'react.js'),'module.exports={useState:()=>[null,()=>{}],useMemo:f=>f(),useRef:()=>({}),useEffect:()=>{},useLayoutEffect:()=>{},memo:x=>x,useCallback:f=>f};');
  let M=null;
  try{cp.execFileSync(path.join(__dirname,'node_modules','.bin','esbuild'),[path.join(d,'c.jsx'),'--bundle','--platform=node','--format=cjs','--alias:react='+path.join(d,'react.js'),'--outfile='+path.join(d,'c.cjs'),'--log-level=error']);
@@ -135,6 +135,12 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
   eq(r2[1].why,'aims at f1, where the f-pawn queens','golden 22...Bd3: aims at f1 (reference: "aims through e2 at f1")');
   eq(r2[2].why,'blocks the bishop on d3','golden 23.Nde2: blocks that diagonal (reference: "blocks that diagonal")');
   eq(r2[3].why,'queens, with check','golden 23...f1=Q+: queens with check (reference: "queens anyway, with check")');
+  // THE APP'S OWN FENs SAY MOVE 1 [#548 round-1 antagonist A veto]: toFEN always writes ' 0 1', so the golden fixture's hand-written
+  // '0 22' encoded the very assumption the app broke. The same position as the APP writes it, with the caller's move number:
+  const FEN1=FEN.replace(/ 0 22$/,' 0 1');
+  eq(M.explainLine(FEN1,['f4e3','f5d3','d4e2','f2f1q'],4,22).map(x=>x.san).join(' '),'22.Be3 Bd3 23.Nde2 f1=Q+','an app-written FEN (move 1) is numbered from the CALLER\'s move number');
+  eq(M.bestLineTail(FEN1,['f4e3','f5d3','d4e2','f2f1q'],3,22),'22\u2026Bd3 23.Nde2 f1=Q+','bestLineTail numbers from the caller too');
+  eq(M.bestLineTail(FEN1,['f4e3','f5d3','d4e2'],3,22,'d4e2'),'','bestLineTail refuses a line that does not start with the card\'s own better move');
   eq(M.evalWords(-0.78),'Black is better by about three quarters of a pawn','evalWords row 1 (-0.78)');
   eq(M.evalWords(-1.33),'Black is better by about a pawn and a quarter','evalWords row 2 (-1.33)');
   eq(M.evalWords(0.1),'About level','evalWords near zero');

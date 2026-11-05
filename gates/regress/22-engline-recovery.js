@@ -488,6 +488,7 @@ L.run(async()=>{
     try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await b.page.waitForFunction(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return !!e&&/\d\.\S/.test(e.innerText||'');},{timeout:60000});await b.settle(500);}catch(e){ok=false;}
     const bd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];return g?[+g.top.toFixed(1),+g.width.toFixed(1)]:null;});
     const b0=await bd();
+    const rowTxt=await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').replace(/\s+/g,' '));
     await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);
     const r=await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="rev-engwhy"]');if(!p)return null;const q=p.getBoundingClientRect();
       const ev=p.querySelector('[data-ct="rev-engwhy-eval"]');const mv=[...p.querySelectorAll('[data-ct="rev-engwhy-move"]')];
@@ -500,6 +501,10 @@ L.run(async()=>{
      L.say(r.moves.length>=2&&r.withWhy>=2,geo+': TC-R105 and at least two of the line\'s moves carry a phrase saying what they are for ('+r.withWhy+' of '+r.moves.length+')',{moves:r.moves});
      L.say(r.cut===0&&r.inView&&r.right<=r.vw+0.5,geo+': TC-R105 nothing in it is cut and it is inside the screen',{cut:r.cut,inView:r.inView,right:r.right,vw:r.vw});
      L.say(!!b0&&!!b1&&b0[0]===b1[0]&&b0[1]===b1[1],geo+': TC-R105 opening it moved nothing - the board top and width are unchanged ('+JSON.stringify(b0)+' -> '+JSON.stringify(b1)+')',{b0,b1});
+     // THE NUMBERS ARE THE GAME'S [#548 round-1 antagonist A veto]: the first draft numbered the reading from move 1 at every ply, because
+     // toFEN always writes ' 0 1'. Pinned to the DOMAIN first (ply 10 is after 5...; White plays move 6) and to the row beside it second.
+     const rn=(rowTxt.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1] /* a MOVE number: digits, dots, then a SAN letter - not the '1.3' inside the evaluation '+1.3', which the first draft read */,en=((r.moves[0]||'').match(/^(\d+)(\.|\u2026)/)||[])[1];
+     L.say(en==='6'&&rn==='6','TC-R105 '+geo+': the reading numbers its moves from the GAME - its first move is 6., as the row\'s is (reading "'+(r.moves[0]||'').slice(0,20)+'", row "'+rowTxt.slice(0,30)+'")',{reading:en,row:rn});
      await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(400);
      L.say(!(await b.page.locator('[data-ct="rev-engwhy"]').count()),geo+': TC-R105 and a tap on it closes it');}
     await b.close();}}

@@ -195,7 +195,13 @@ L.run(async()=>{
    // at least one, which main's 0 of N fails), and A2 holds every line that IS shown to the shape.
    L.say(mis.length>0&&withLine.length>=1&&withLine.length>=Math.ceil(mis.length/2),'TC-R103 A the captured mistakes carry the better line\'s continuation - at least half of them ('+withLine.length+' of '+mis.length+')',mis.map(m=>({uci:m.uci,line:m.line===undefined?'<ABSENT>':m.line})));
    const bad=withLine.filter(m=>{const t=m.line.trim().split(/\s+/).map(x=>x.replace(/^\d+(\.|\u2026)/,''));return t.length<2||t.length>3||!/^\d+(\.|\u2026)/.test(m.line.trim());});
-   L.say(withLine.length>0&&bad.length===0,'TC-R103 A2 each continuation is 2 or 3 plies of numbered SAN',{bad:bad.map(m=>m.line)});}
+   L.say(withLine.length>0&&bad.length===0,'TC-R103 A2 each continuation is 2 or 3 plies of numbered SAN',{bad:bad.map(m=>m.line)});
+   // A2 IS A SHAPE, AND A SHAPE IS NOT A VALUE [#548 round-1 antagonist A veto]: the first draft printed '2.Qxb4 Bxb4+ 3.c3' for a card
+   // at Black's 10th move, because toFEN always writes ' 0 1'. A2b pins the NUMBER to the fixture game itself (PGN above): 10...Qb4 for
+   // 10...cxb5 continues 11.Qxb4, and 15...Qxd7 for 15...Nxd7 continues 16.<White>. Each line's first move number is read and compared.
+   const WANT={e7b4:'11',e6d7:'16'};const known=withLine.filter(m=>WANT[m.uci]);
+   const wrongNo=known.filter(m=>(m.line.trim().match(/^(\d+)/)||[])[1]!==WANT[m.uci]);
+   L.say(known.length>0&&wrongNo.length===0,'TC-R103 A2b each continuation is numbered from the GAME, not from move 1 ('+known.map(m=>m.uci+' '+m.line.split(' ')[0]).join(', ')+')',{known:known.length,wrong:wrongNo.map(m=>({uci:m.uci,line:m.line,want:WANT[m.uci]}))});}
   const N=mis.length;
   for(let i=0;i<N;i++){const m=mis[i],w=m.why;
     L.say(typeof w==='string'&&w.trim().length>0,'TC-R16 A2['+(i+1)+'/'+N+'] the captured mistake carries a non-empty `why` (the capture site must store it, as the Brilliant branch does three lines below)',{uci:m.uci,played:m.played,why:w===undefined?'<FIELD ABSENT>':w});

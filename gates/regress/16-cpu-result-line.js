@@ -308,6 +308,9 @@ L.run(async()=>{
       // #548, the follow-up to item (126) [e4ed497]: Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER ('final-only') - THE RESULT IS STATED
       // ONLY AT THE LAST MOVE. G3/G4 asserted the opposite (#471's 'the row answers whether the GAME is finished'), which was right until
       // he chose; they are inverted, and G1 (stated at the terminal ply) and G6 (stated again after the round trip) still hold the other half.
+      // NOT TIGHTENED TO 'non-empty' (#548 round-1 antagonist A, note 7, tried and withdrawn): MEASURED on the trial, one ply back in
+      // these mate and resign games the slot is EMPTY because they reach no named opening, so an empty slot is the right reading here -
+      // the non-empty pin went red 5 times on a correct build. What the slot shows one ply back is pinned by 4b, which has an opening.
       L.say(!!post&&post.t!==want,t+'3 '+geo+' '+ending+': one Back tap after the game ended, the slot does NOT state the result - it is stated only at the last move (Kunal, final-only)',{slot:post&&post.t,want});
       L.say(!postHits.some(h=>h.t===want),t+'4 '+geo+' '+ending+': and an independent painted-element scan finds that string NOWHERE on screen one ply back',{hits:postHits,want});
       // G5: the second instance of the class - the dismissed card must not re-open on the way back.

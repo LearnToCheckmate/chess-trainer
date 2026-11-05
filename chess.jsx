@@ -1065,10 +1065,10 @@ function sacKeep(ok,line){return !!ok&&!!line&&line.length>0;}
    after the move, 'gives check' means the opponent's king is attacked, 'wins the knight' is a capture the exchange count favours. A move
    none of them can say anything TRUE about gets no phrase at all, never a generic one (correction 024's lesson). Returns up to `k`
    {san,why} for the line `pv` (UCI) from the position `fen`, numbered from the FEN. */
-function explainLine(fen,pv,k){
+function explainLine(fen,pv,k,no0){
   const out=[];
   try{
-    const parts=String(fen||'').trim().split(/\s+/);let no=parseInt(parts[5],10)||1;let g=fromFEN(fen);
+    const parts=String(fen||'').trim().split(/\s+/);let no=(no0>0?no0:0)||parseInt(parts[5],10)||1;let g=fromFEN(fen);   /* the CALLER's move number first: toFEN always writes ' 0 1', so an app-made FEN says move 1 at every ply (#548 round-1 antagonist A veto) */
     for(let i=0;i<(pv||[]).length&&out.length<(k||4);i++){
       const m=uciToMove(g,pv[i]);if(!m)break;
       const san=toSAN(g,m,applyMove(g.board,m));
@@ -1126,10 +1126,11 @@ function evalWords(cp){
    version): the mistakes drill shows the next two or three moves of what the better move led to. `pv` is the engine line from the
    card's position, starting WITH the better move; this formats the up to `k` plies AFTER it as numbered SAN ('18...Kh8 19.Qh5 Rf8'),
    reading the move number and side from the FEN, and stops at the first ply that does not parse. '' when fewer than two plies follow. */
-function bestLineTail(fen,pv,k){
+function bestLineTail(fen,pv,k,no0,first){
   try{
     if(!pv||pv.length<2)return '';
-    const parts=String(fen||'').trim().split(/\s+/);let no=parseInt(parts[5],10)||1;let g=fromFEN(fen);
+    if(first&&pv[0]!==first)return '';   // the line must CONTINUE the card's own better move, not a different one a fresh search preferred (round-1 antagonist A note 3)
+    const parts=String(fen||'').trim().split(/\s+/);let no=(no0>0?no0:0)||parseInt(parts[5],10)||1;let g=fromFEN(fen);   /* the CALLER's move number first: toFEN always writes ' 0 1', so an app-made FEN says move 1 at every ply (#548 round-1 antagonist A veto) */
     const m0=uciToMove(g,pv[0]);if(!m0)return '';
     if(g.turn==='b')no++;g=makeMove(g,m0);
     const out=[];
@@ -5038,7 +5039,7 @@ export default function App(){
                very expression the `if` above filters on, so the card can only ever say "a mistake"
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
+            caps.push({fen:toFEN(_cpos),no:Math.floor(i/2)+1,uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
@@ -5056,7 +5057,7 @@ export default function App(){
         /* #548 item (125): each new card carries the next two or three moves of the better line, from a short engine search on the
            card's own position (the line starts with the better move; bestLineTail formats what follows it). Bounded: 12 cards, 300ms
            each, only with the analysis engine up - a card without a line simply shows none. */
-        if(caps.length&&useSF&&sfAnaReadyRef.current){for(const c of caps.slice(0,12)){try{let t=bestLineTail(c.fen,await sfBestLine(c.fen,300),3);if(!t)t=bestLineTail(c.fen,await sfBestLine(c.fen,900),3);/* a 300ms pv can stop one ply after the better move; one longer try */if(t)c.line=t;}catch(e){}}}
+        if(caps.length&&useSF&&sfAnaReadyRef.current){for(const c of caps.slice(0,12)){try{let t=bestLineTail(c.fen,await sfBestLine(c.fen,300),3,c.no,c.uci);if(!t)t=bestLineTail(c.fen,await sfBestLine(c.fen,900),3,c.no,c.uci);/* a 300ms pv can stop one ply after the better move; one longer try */if(t)c.line=t;}catch(e){}}}
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
@@ -5812,7 +5813,7 @@ export default function App(){
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen};   /* #548 item (114): the raw line and its position, for the plain-words reading */
+      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen,no:Math.floor(((pos&&Array.isArray(pos.history))?pos.history.length:ply)/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
       /* #392 (review-engline-wrong-sign-on-trap): A DEAD SEARCH'S SCORE IS AS UNTRUSTWORTHY AS ITS MISSING LINE.
          #389 stopped CACHING a failed query, so the position is re-queried and recovers on the next visit. It
          left the worse half: the trapped search returns a PARTIAL SCORE, and that score has the wrong sign.
@@ -8837,14 +8838,14 @@ export default function App(){
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}
-            {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4);const ew=evalWords(engLine.cp);return(
+            {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no);const ew=evalWords(engLine.cp);return(
               <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
                 {/* #548 item (114): what each move of the engine's line is FOR, in words the board can confirm (explainLine), and what the
                     number means (evalWords). An overlay, so opening it moves nothing; a tap anywhere on it closes it. */}
                 {ew&&<div data-ct="rev-engwhy-eval" style={{fontWeight:800,color:'#fff',marginBottom:6}}>{ew}</div>}
                 {rows.map((r,i)=>(<div key={i} data-ct="rev-engwhy-move" style={{display:'flex',gap:8,alignItems:'baseline'}}><b style={{flex:'0 0 auto',fontFamily:'ui-monospace,Menlo,monospace',color:'var(--ac2)'}}>{r.san}</b><span style={{minWidth:0}}>{r.why||'\u00a0'}</span></div>))}
               </div>);})()}
-            {engOn&&(<div data-ct="rev-engline" onClick={()=>{if(engLine&&engLine.pv&&engLine.pv.length)setEngWhy(o=>!o);}} aria-label="Engine line - tap for what each move is for" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden',cursor:'pointer'}} className="scroll">
+            {engOn&&(<div data-ct="rev-engline" onClick={()=>{if(engLine&&engLine.pv&&engLine.pv.length)setEngWhy(o=>!o);}} role={engLine&&engLine.pv&&engLine.pv.length?"button":undefined} tabIndex={engLine&&engLine.pv&&engLine.pv.length?0:undefined} onKeyDown={(e)=>{if((e.key==="Enter"||e.key===" ")&&engLine&&engLine.pv&&engLine.pv.length){e.preventDefault();setEngWhy(o=>!o);}}} aria-label="Engine line - tap for what each move is for" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden',cursor:'pointer'}} className="scroll">
               {/* #547 item (116), jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27: at a checkmate or a stalemate there is no
                   line to find, and the row used to print '0.0 …' for ever - the exact shape of a dead query (#389). It now says
                   why in words, so a bare ellipsis means only one thing: the engine has not answered yet. */}
