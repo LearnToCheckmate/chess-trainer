@@ -1374,6 +1374,16 @@ L.run(async()=>{
       // strokes, box spread <= 1px) printed nothing, and the tab bar's 13.93..18.15 lived only in the job's prose. REPORTED, NOT
       // ASSERTED: changing what invariant 2 measures is not the build lane's call (the job's `authority` field), so this line
       // changes no verdict. It lists every row the box method passes whose members are all SVGs with ink spreading past 1px.
+      // TC-INV-02e [#548 item (144); the orchestrator's ruling of 4 Nov on jobs/invariant-2-measures-the-box-not-the-ink]: THE INK
+      // MEASURE, REPORT-ONLY, BESIDE THE BOX METHOD, which stays the asserted measure. One line per row of two or more glyphs whose INK
+      // heights (the painted shapes for an SVG, the glyph rect for text - gates/lib.js INK_RECT is the same union, as a helper for other
+      // gates) spread past 1px, whatever the box method said. It prints and never fails this batch; promotion to an assertion waits on
+      // the app defects it finds.
+      for(const r of iv.rows){
+        const ik=r.kids.map(k=>k.ink).filter(x=>typeof x==='number');if(ik.length<2)continue;
+        const isp=Math.max(...ik)-Math.min(...ik);
+        if(isp>1.0) L.note('    TC-INV-02e (report only, never fails) INK spread '+isp.toFixed(2)+'px, box spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.via+' INK '+k.ink).join(' | '));
+      }
       for(const r of iv.rows){
         if(r.rawSpread>1.0||!r.kids.every(k=>k.via==='svg'&&typeof k.ink==='number'))continue;
         const ik=r.kids.map(k=>k.ink), isp=Math.max(...ik)-Math.min(...ik);

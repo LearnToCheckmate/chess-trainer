@@ -559,4 +559,14 @@ async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: 
    ONE COPY STAYS OUTSIDE: gates/regress/19-review-grade-counts.js keeps its literal inside a page.evaluate (the chip scan),
    because a function serialised into the browser cannot reach this module; it is marked there. */
 const GRADES=Object.freeze(['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder']);
-module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES};
+// INK_RECT [#548 item (144); jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29 is the specification]: the GLYPH's own rect, not
+// the box it sits in. A control's box on a flex-fill row is set by the row, so asserting the box against the row cannot fail; the ink
+// is the union of the client rects of the element's own text nodes (Range.getClientRects) and of the painted shapes inside any SVG
+// (getClientRects of path/line/circle/ellipse/rect/polyline/polygon/text). It is a FUNCTION SOURCE so it runs in the page:
+//   const r=await b.page.evaluate(new Function('el','return ('+L.INK_RECT+')(el)'), handle)   or embed it in an evaluate string.
+// Returns {l,t,r,b,w,h,n} in CSS px, or null when nothing is painted. n is the number of rects unioned, so a caller can refuse n=0.
+const INK_RECT=`function(el){let l=Infinity,t=Infinity,r=-Infinity,bt=-Infinity,n=0;const add=(q)=>{if(q.width<0.01&&q.height<0.01)return;l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom);n++;};
+  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){if(!tn.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(tn);for(const q of rg.getClientRects())add(q);}
+  for(const k of el.querySelectorAll('svg path,svg line,svg circle,svg ellipse,svg rect,svg polyline,svg polygon,svg text'))for(const q of k.getClientRects())add(q);
+  return n?{l,t,r,b:bt,w:r-l,h:bt-t,n}:null;}`;
+module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT};
