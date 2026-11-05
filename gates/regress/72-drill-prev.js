@@ -582,7 +582,7 @@ L.run(async()=>{
     let rd=null;if(row){await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);rd=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rev-engwhy-move"]');return m?(m.innerText||'').replace(/\s+/g,' ').trim():null;});await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(300);}
     L.say(!!rd&&!/^\d/.test(rd)&&/^Qb2/.test(rd),'TC-R106 A9c and the plain-words reading opens on the move with no number ("'+(rd||'').slice(0,20)+'")',{reading:rd});
     // A10 from the same board: ⋯ -> New game, then a fresh import must open on the ordinary review controls
-    let row1=null,okA=false;if(r.hit){try{await b.tapCt('rev-more',500);await b.tapText(/^New game$/,{wait:800});await R72.importPgn(b,R72.PGN_OPERA,180000);await R72.startReview(b);await R72.goPly(b,10);okA=true;}catch(e){}
+    let row1=null,okA=false;if(r.hit){try{await b.tapCt('rev-more',500);await b.tapText(/^New game$/,{wait:800});await R72.importPgn(b,R72.PGN_OPERA,180000);await R72.startReview(b);await b.settle(800);okA=true;}catch(e){}/* read AT ARRIVAL, before any ply change: a ply change clears anaMode by itself, and the first draft's goPly(10) made A10 pass on the broken bundle */
       row1=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-row1"] button')].map(x=>(x.innerText||'').trim()));}
     L.say(okA,'TC-R106 A10 PRECONDITION from the drill analysis board, ⋯ -> New game -> a fresh import reached its move screen',{row1});
     L.say(okA&&!!row1&&row1.length>0&&!row1.some(t=>/Undo|Exit analysis|Back to the card/.test(t)),'TC-R106 A10 the next game opens on its ordinary review controls, NOT the analysis board left on from the drill',{row1});
@@ -590,6 +590,6 @@ L.run(async()=>{
    {const {b,ok,r,row}=await openAna({ct_mybrilliancies:[Object.assign({label:'Brilliant',no:20},card)],ct_bril_reset_v1:'1'},/can you spot them again\?/);
     L.say(ok&&!!r.hit&&!!row,'TC-R106 A9d PRECONDITION a Black BRILLIANT card at move 20 was solved, opened on the analysis board, its line arrived',{row});
     const rn=(row.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1];
-    L.say(rn==='20','TC-R106 A9d the brilliancies drill numbers its analysis line from the card\'s move too ("'+row.slice(0,40)+'")',{first:rn});
+    L.say(rn==='20','TC-R106 A9d the brilliancies drill numbers its analysis line from the card\'s STORED move too - it pins the drill path; the capture now writing `no` for a brilliant is not asserted here ("'+row.slice(0,40)+'")',{first:rn});
     await b.close();}}
 },'72-drill-prev');
