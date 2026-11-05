@@ -5808,12 +5808,12 @@ export default function App(){
       const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}})); /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
       if(dead)return;
       let line='';
-      try{let g=pos,n=0,num=Math.floor(((pos&&Array.isArray(pos.history))?pos.history.length:ply)/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
+      try{let g=pos,n=0,num=Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
         for(const u of (pv||[])){const mv=uciToMove(g,u);if(!mv)break;const nb=applyMove(g.board,mv);const san=toSAN(g,mv,nb);
           const wt=g.turn==='w';const pre=wt?(num+'. '):(first?(num+'... '):'');
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen,no:Math.floor(((pos&&Array.isArray(pos.history))?pos.history.length:ply)/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
+      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen,no:Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
       /* #392 (review-engline-wrong-sign-on-trap): A DEAD SEARCH'S SCORE IS AS UNTRUSTWORTHY AS ITS MISSING LINE.
          #389 stopped CACHING a failed query, so the position is re-queried and recovers on the next visit. It
          left the worse half: the trapped search returns a PARTIAL SCORE, and that score has the wrong sign.
@@ -5915,7 +5915,7 @@ export default function App(){
   useEffect(()=>{const d=drillAnaRef.current;if(!d||!d.pending||!review||!review.fromDrill||mode!=='analyze')return;d.pending=false;
     setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[0]);setLastMv(null);if(!anaModeRef.current&&engPreAnaRef.current===null)engPreAnaRef.current=engOn;anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},[review,mode,ply]);
   // and if he leaves by any other door (a tab), the one-position review is not left behind as "the game" on the Review tab
-  useEffect(()=>{if(review&&review.fromDrill&&mode!=='analyze'){const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setReview(d?d.review:null);if(d&&d.reviewView)setReviewView(d.reviewView);}},[mode]);
+  useEffect(()=>{if(review&&review.fromDrill&&mode!=='analyze'){const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setReview(d?d.review:null);if(d&&d.reviewView)setReviewView(d.reviewView);if(d){setPly(d.ply||0);if(typeof d.flip==='boolean')setFlip(d.flip);}}},[mode]);
 
   const{sel:_uSel,tgts:_uTgts,drag,dragging}=UI.current;const sel=_pvLive?null:_uSel;const tgts=_pvLive?[]:_uTgts;
   const dBoard=flip?[...boardGame.board].reverse().map(r=>[...r].reverse()):boardGame.board;
@@ -6324,9 +6324,12 @@ export default function App(){
      game in importGame still stands for every other route, as the answer says. The way back returns to the SAME card at the same
      index, solved, through drillGo, and puts back whatever review was open before. */
   const analyseFromDrill=()=>{const p=curPuz;if(!p||!p.pos||!puzSolved||!mistakeMode)return;let g0=null;try{g0=fromFEN(toFEN(p.pos));}catch(e){g0=null;}if(!g0)return;
-    drillAnaRef.current={pos:drillPosRef.current,review,reviewView,ply,pending:true};
+    drillAnaRef.current={pos:drillPosRef.current,review,reviewView,ply,flip,pending:true};
+    /* round-2 antagonist A veto: a FEN-built position has an empty history, so every line read move 1. plyBase is the plies BEFORE the card's
+       position, from the card's own move number (captures since #548 carry `no`; an older card falls back to its FEN's fullmove field). */
+    const _q=(mistakeQueueRef.current||[])[mistakeIdxRef.current]||{};const _no=(_q.no>0)?_q.no:(parseInt(String(_q.fen||'').trim().split(/\s+/)[5],10)||1);
     const z={};GRADE_LADDER.forEach(x=>{z[x[0]]=0;});
-    setRevAuto(false);setReview({positions:[g0],plies:[],headers:{},analysis:[],counts:z,openingName:null,summary:null,skills:null,pgn:'',fromDrill:true});setReviewView('moves');setPly(0);setFlip(g0.turn==='b');setHomeScreen(false);setMode('analyze');};
+    setRevAuto(false);setReview({positions:[g0],plies:[],headers:{},analysis:[],counts:z,openingName:null,summary:null,skills:null,pgn:'',fromDrill:true,plyBase:2*(_no-1)+(g0.turn==='b'?1:0)});setReviewView('moves');setPly(0);setFlip(g0.turn==='b');setHomeScreen(false);setMode('analyze');};
   const leaveDrillAnalysis=()=>{const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};
     setReview(d?d.review:null);setReviewView(d&&d.reviewView?d.reviewView:'summary');setPly(d&&d.ply?d.ply:0);setMode('puzzle');if(d)drillGo(d.pos);};
   /* #547 item (147), jobs/drill-past-the-last-mistake-drops-you-on-the-review-landing-with-nothing-said-2026-09-29: Next from the last card

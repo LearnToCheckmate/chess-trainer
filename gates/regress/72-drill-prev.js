@@ -551,4 +551,18 @@ L.run(async()=>{
     L.say(left&&!!bs.verdict&&!bs.asking,'TC-R106 A8 '+tag+' and that card is still SOLVED, not asked again',{verdict:bs.verdict,asking:bs.asking});
     await b.close();
   }
+  // TC-R106 A9 [#548 round-2 antagonist A veto]: THE ANALYSIS BOARD NUMBERS ITS LINES FROM THE CARD'S MOVE, NOT FROM 1. Every fixture above
+  // is a White card at move 1, which is why A4's shape check could not see that a FEN-built position read '1.' on every card. This one is
+  // BLACK to move at move 20 (the card's own `no`), so a line from move 1 reads '1...' and a right one '20...' - in the row AND the reading.
+  {const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-analyse-no20',store:{ct_mymistakes:[{fen:'4k3/1q6/8/8/8/8/8/4K3 b - - 0 1',no:20,uci:'b7b2',label:'Blunder',played:'Kd8',ts:1791000000000,last:null,why:'the queen comes down',hint:'look down the file'}],ct_pool:'3'}});
+   await b.open();await b.tile('Review');await b.settle(700);let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});}catch(e){ok=false;}
+   if(ok){await b.move('b7','b2',900);await b.settle(1200);}
+   const r=ok?await tap(b,'drill-analyse',2500):{hit:false};
+   let row='';if(r.hit){for(let k=0;k<40&&!/\d\.\S|\d\.\.\.\s*\S/.test(row);k++){await b.page.waitForTimeout(500);row=await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').replace(/\s+/g,' '));}}
+   L.say(ok&&!!r.hit&&!!row,'TC-R106 A9 PRECONDITION the Black move-20 card was solved, opened on the analysis board, and its engine line arrived',{row,reach:r});
+   const rn=(row.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1];
+   L.say(rn==='20','TC-R106 A9 the engine row numbers the line from the CARD\'s move: "20... " for a Black card at move 20 ("'+row.slice(0,40)+'")',{row:row.slice(0,60),first:rn});
+   let rd=null;if(row){await b.page.click('[data-ct="rev-engline"]').catch(()=>{});await b.settle(600);rd=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rev-engwhy-move"]');return m?(m.innerText||'').replace(/\s+/g,' ').trim():null;});}
+   L.say(!!rd&&/^20(\.|…)/.test(rd),'TC-R106 A9b and the plain-words reading opens on 20 too ("'+(rd||'').slice(0,24)+'")',{reading:rd});
+   await b.close();}
 },'72-drill-prev');

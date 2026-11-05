@@ -107,7 +107,7 @@ const STATES=[
   ['TC-S06','review moves-ply0',         R.states['moves-ply0'],     R.SEED],
   // #548 item (146), jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12: THE TWO DRILLS, now that the drill float
   // build (#547 item (80), the solved board no longer jumps) is on main. REPORT-ONLY like the rest until a reading is promoted by the rule
-  // above: each drill ASKED (card 1) and SOLVED (card 1 played). Seeded the way gate 72 seeds them - five one-move cards - so the state is
+  // above: each drill ASKED (card 1) and SOLVED (card 1 played). Seeded the way gate 72 seeds them, with THREE one-move cards (round-2 antagonist A: this said five) - so the state is
   // the drill's own layout and not a fixture of a real review; ct_bril_reset_v1 is required or the brilliancies seed is wiped on boot.
   ['TC-S07','drill mistakes asked',      DR('mistakes',false),       DRSEED.mistakes],
   ['TC-S07','drill mistakes solved',     DR('mistakes',true),        DRSEED.mistakes],
