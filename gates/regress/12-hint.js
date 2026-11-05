@@ -33,7 +33,7 @@ L.run(async()=>{
      L.say(!!head&&goalN!=null&&((!!hm&&!hf&&+hm[1]===goalN&&goalN>0)||(!hm&&hf&&goalN===0)),geo+': hint header shows THIS puzzle\'s hint - one of _pzHint\'s two templates, and a mate hint\'s count equals the goal line\'s (mate in '+goalN+')',{hint:t.slice(0,80),goalN});}
     L.say(!!head&&head.sh<=head.ch+1,geo+': hint text not clipped (scroll '+(head&&head.sh)+' vs '+(head&&head.ch)+')');
     L.say(!!head&&head.y>=0&&head.y+head.h<=(after.board?after.board.top:1e9)+0.5,geo+': hint header sits above the board, on screen');
-    L.say(after.over.over<=0&&after.over.docScroll===0,geo+': no scroll with the hint',after.over);
+    L.say(after.over.over<=0,geo+': no scroll with the hint',after.over);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

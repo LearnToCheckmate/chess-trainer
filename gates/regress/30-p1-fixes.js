@@ -64,7 +64,7 @@ L.run(async()=>{
     const A12={kunal:351,'390':390};
     if(A12[geo]!=null)L.say(!!m2.board&&Math.abs(m2.board.w-A12[geo])<0.6,geo+': A-12 the board is '+A12[geo]+' wide after the toggle, the measured size - not merely the same as before it',{measured:m2.board&&m2.board.w,want:A12[geo]});
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
-    L.say(m2.over.over<=0&&m2.over.docScroll===0,geo+': A-12 no scroll after toggling',m2.over);
+    L.say(m2.over.over<=0,geo+': A-12 no scroll after toggling',m2.over);
     // A-10
     await b.home();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
     const s0=await gridSig(b);await b.page.locator('[aria-label="Next puzzle"]').first().click();await b.settle(800);const s1=await gridSig(b);

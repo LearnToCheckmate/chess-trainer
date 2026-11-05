@@ -466,7 +466,7 @@ L.run(async()=>{
 
     // --- TC-LS-003/004: nothing scrolls. Rule 1: over() is the bottom-most laid-out child of #root, not
     // scrollHeight; docScroll is asserted to be ZERO rather than read for a conclusion.
-    L.say(m0.over.over<=0&&m0.over.docScroll===0,geo+': nothing scrolls vertically in the demo',m0.over);
+    L.say(m0.over.over<=0,geo+': nothing scrolls vertically in the demo',m0.over);
     const sw=await b.page.evaluate(()=>document.documentElement.scrollWidth);
     L.say(sw===vw,geo+': nothing scrolls sideways either (scrollWidth '+sw+' = viewport '+vw+')');
 
@@ -704,7 +704,7 @@ L.run(async()=>{
     const p0=await b.metrics();
     L.say(!!p0.board&&near(p0.board.w,Pr.w)&&near(p0.board.left,Pr.left)&&near(p0.board.top,BOARD_TOP,1),
       geo+': the practice board is '+Pr.w+' wide at left '+Pr.left+', top '+BOARD_TOP+(Pr.w===Dm.w?' - the SAME square as the demo\'s '+Dm.w+' (#547 (124): the progress strip no longer takes layout)':' - a different square from the demo\'s '+Dm.w),{measured:p0.board,want:Pr});
-    L.say(p0.over.over<=0&&p0.over.docScroll===0,geo+': nothing scrolls in practice either',p0.over);
+    L.say(p0.over.over<=0,geo+': nothing scrolls in practice either',p0.over);
     const fp=await footer(b);
     L.say(!!fp&&fp.btns.join(',')==='Close lesson,More for this lesson',
       geo+': in practice the footer drops the transport and carries only ✕ and ⋯ - there is no demo to step through',fp&&fp.btns.join(','));

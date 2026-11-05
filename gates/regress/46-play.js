@@ -193,7 +193,7 @@ L.run(async()=>{
     // --- TC-PL-001: the board is the size measured for THIS geometry, not merely the size it was a moment ago.
     L.say(!!m.board&&near(m.board.w,W.bw)&&near(m.board.left,W.bx)&&near(m.board.top,W.by),
       geo+': the vs-Computer board is '+W.bw+' wide at ('+W.bx+','+W.by+') - the measured size for this geometry',{measured:m.board,want:W});
-    L.say(m.over.over<=0&&m.over.docScroll===0,geo+': nothing scrolls vertically in a live game',m.over);
+    L.say(m.over.over<=0,geo+': nothing scrolls vertically in a live game',m.over);
     const sw=await b.page.evaluate(()=>document.documentElement.scrollWidth);
     L.say(sw===b.geo.w,geo+': nothing scrolls sideways either (scrollWidth '+sw+' = viewport '+b.geo.w+')');
     // #545 item (35) [jobs/gate-46s-sideways-reach-assertion-asks-documentelement-in-an-app-whose-scroller-is-root-...-2026-10-23].
@@ -421,7 +421,7 @@ L.run(async()=>{
     // --- TC-PL-022/023 (US-PL-09)
     L.say(card==='Checkmate! Black wins',geo+': the result card names the result in full',{card});
     L.say(!!end.board&&near(end.board.w,W.bw)&&near(end.board.top,W.by),geo+': the board at game over is still the pinned '+W.bw+' at y='+W.by+' - the mate is not a layout event',{measured:end.board,want:W});
-    L.say(end.over.over<=0&&end.over.docScroll===0,geo+': nothing scrolls at game over',end.over);
+    L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
     const rE=await rowBtns(b);
     L.say(rE.length===6&&rE.map(x=>x.t).join(',')===ROW_OVER.join(','),geo+': at game over the row is '+ROW_OVER.join(' · ')+' - Hint and Flip give their two slots to Review and Rematch, same row, same height (#371)',rE.map(x=>x.t).join(','));
     L.say(rE.every(x=>near(x.h,51)),geo+': and every one of them is still 51 tall, so the row below the board did not change height',rE.map(x=>x.t+':'+x.h).join(' '));
@@ -686,7 +686,7 @@ L.run(async()=>{
     L.say(rowOver[3].t==='Review'&&rowOver[3].dis===true,'resigning at move 0 leaves Review DISABLED - there is no game to review',{review:rowOver[3]});
     L.say(rowOver[1].dis===true&&rowOver[2].dis===true,'and Back and Forward are dead too, because no ply was ever played',{back:rowOver[1].dis,forward:rowOver[2].dis});
     L.say(near(m.board.w,W.bw)&&near(m.board.top,W.by),'the board is still the pinned '+W.bw+' after a resignation at move 0',{measured:m.board,want:W});
-    L.say(m.over.over<=0&&m.over.docScroll===0,'nothing scrolls after a resignation',m.over);
+    L.say(m.over.over<=0,'nothing scrolls after a resignation',m.over);
     await b.shot('play-resign-m0');
     L.say(b.errs.length===0,'zero app errors across a resignation',b.errs.slice(0,3));
     await b.close();

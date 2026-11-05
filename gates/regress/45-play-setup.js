@@ -255,8 +255,12 @@ if(blk('A'))for(const geo of GEOS){
   L.say(!!sh&&Math.abs(sh.w-SHEET_W[geo])<0.6,geo+': TC-PS-002 the sheet is '+SHEET_W[geo]+' wide - the measured number, not "the same as last time". It is the viewport less the overlay\'s 16px gutters, capped at maxWidth 420',{measured:sh&&sh.w,want:SHEET_W[geo]});
   L.say(!!sh&&sh.pos==='fixed'&&/auto|scroll/.test(sh.overflowY),
     geo+': TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY '+(sh&&sh.overflowY)+'). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.',sh);
-  L.say(!!sh&&sh.docScroll===0&&sh.docScrollY===0,
-    geo+': TC-PS-004 the DOCUMENT still does not scroll (docScroll '+(sh&&sh.docScroll)+'). #root carries overflow-y:auto by design, so document.scrollingElement never moves in this app - pinned here because reading it and concluding "nothing scrolls" is the error that produced three false findings in one night.',sh);
+  // #548 item (84), jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28: TC-PS-004 USED TO ASSERT docScroll===0 AND
+  // docScrollY===0, which this app holds at 0 BY DESIGN (#root is the scroller; measured 0 at 11 geometries while #root overflowed by
+  // 118px), so it could not fail. It now asserts the reading the job asked for: the overlay's OWN scroll range is at least the sheet's
+  // excess over the viewport, so a sheet taller than the phone can be scrolled whole into view by the layer TC-PS-003 names.
+  L.say(!!sh&&sh.maxScroll>=Math.max(0,sh.h-sh.vh)-1,
+    geo+': TC-PS-004 the overlay can scroll the WHOLE sheet into view - its scroll range ('+(sh&&sh.maxScroll)+'px) covers the sheet\'s excess over the viewport ('+(sh?Math.max(0,Math.round(sh.h-sh.vh)):null)+'px). The document is never the scroller here (#root is), so reading docScroll would say "nothing scrolls" whatever the sheet did.',sh);
   const hs=await HSPILL(b);
   L.say(!!hs&&hs.bad.length===0&&hs.docScrollW<=hs.vw+0.5,
     geo+': TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at '+(hs&&hs.vw)+'. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).',hs);

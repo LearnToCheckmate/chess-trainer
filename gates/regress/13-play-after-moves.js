@@ -63,7 +63,7 @@ L.run(async()=>{
     L.say(!!m4.board&&Math.abs(m4.board.top-P.card.top)<0.6,geo+': card k8 board top is PINNED at '+P.card.top+' after four plies',m4.board&&m4.board.top);
     L.say(!!p5.board&&Math.abs(p5.board.w-P.pp.w)<0.6,geo+': Pass & Play board is PINNED at '+P.pp.w+' after five plies',p5.board&&p5.board.w);
     L.say(!!p5.board&&Math.abs(p5.board.top-P.pp.top)<0.6,geo+': Pass & Play board top is PINNED at '+P.pp.top+' after five plies',p5.board&&p5.board.top);
-    L.say(p5.over.over<=0&&p5.over.docScroll===0,geo+': no scroll after five plies',p5.over);
+    L.say(p5.over.over<=0,geo+': no scroll after five plies',p5.over);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

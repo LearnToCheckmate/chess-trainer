@@ -17,12 +17,12 @@ L.run(async()=>{
     // demo-end board as w 390, top 92 (bundle 049b41dfb6f1). New lines, so the kunal lines and the a35524b record stand.
     if(L.GEOS[geo].w===390&&L.GEOS[geo].h===844&&demoEnd.board){L.say(Math.abs(demoEnd.board.w-390)<0.6,'390: demo end board is 390 wide, edge to edge ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'390: demo end board top is 92 ('+demoEnd.board.top+')');}
     L.say(!!note&&Math.abs(note.h-75)<1,geo+': note box is 75px',note&&note.h);
-    L.say(demoEnd.over.over<=0&&demoEnd.over.docScroll===0,geo+': no scroll at the demo end',demoEnd.over);
+    L.say(demoEnd.over.over<=0,geo+': no scroll at the demo end',demoEnd.over);
     await b.card(4,2500);const prac=await b.metrics();await b.shot('lesson-'+geo+'-practice');
     L.say(!!prac.board&&!!demoEnd.board&&Math.abs(prac.board.w-demoEnd.board.w)<0.6&&Math.abs(prac.board.top-demoEnd.board.top)<0.6,geo+': practice board = demo board (w '+(prac.board&&prac.board.w)+' top '+(prac.board&&prac.board.top)+')');
     await b.move('e2','e4',1800);const after=await b.metrics();await b.shot('lesson-'+geo+'-practice-e4');
     L.say(!!after.board&&Math.abs(after.board.w-prac.board.w)<0.6&&Math.abs(after.board.top-prac.board.top)<0.6,geo+': board unchanged after one practice move (w '+(after.board&&after.board.w)+' top '+(after.board&&after.board.top)+')');
-    L.say(after.over.over<=0&&after.over.docScroll===0,geo+': no scroll after the move',after.over);
+    L.say(after.over.over<=0,geo+': no scroll after the move',after.over);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

@@ -258,7 +258,7 @@ async function playAt(geo){
           at4.board&&at4.board.w);
   }
   L.say(!!s4&&Math.abs(s4.w-14)<0.6,tag+': the bar is still 14 wide after four plies',s4&&s4.w);
-  L.say(at4.over.over<=0&&at4.over.docScroll===0,tag+': nothing scrolls',at4.over);
+  L.say(at4.over.over<=0,tag+': nothing scrolls',at4.over);
   await b.shot('evalbar-play-4ply-'+geo);
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,tag+': no app error beyond the allowed engine trap',bad.slice(0,2));

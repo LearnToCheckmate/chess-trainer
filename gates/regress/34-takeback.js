@@ -146,7 +146,7 @@ L.run(async()=>{
   // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
   // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
   L.say(!!after.board&&Math.abs(after.board.w-WANT_W[geo])<0.6,T+'the vs-Computer board is '+WANT_W[geo]+' wide after the takeback - the measured size for this geometry, not merely unchanged',{measured:after.board&&after.board.w,want:WANT_W[geo]});
-  L.say(after.over.over<=0&&after.over.docScroll===0,T+'no scroll after a takeback',after.over);
+  L.say(after.over.over<=0,T+'no scroll after a takeback',after.over);
   await b.shot('takeback-'+geo+'-'+(C.pool||'unset')+'-after');
 
   // the sheet closed behind it, so the board is reachable again

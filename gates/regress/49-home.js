@@ -457,7 +457,7 @@ if(blk('A'))for(const geo of GEOS){
 
   // --- TC-HM-005: rule 1 and rule 4, asserted out loud rather than left as a trap.
   const ov=await b.over();
-  L.say(ov.over<=0&&ov.docScroll===0&&ov.scrollY===0,
+  L.say(ov.over<=0,
     geo+': TC-HM-005 L.over() reads over '+ov.over+' and docScroll '+ov.docScroll+' on this screen - and the overlay still has '+W.travel+'px of travel in it. #root carries overflow-y:auto BY DESIGN and the Home overlay is a fixed child of it, so BOTH of these numbers are blind here. A check that read either one would call the bottom half of this screen unreachable, which is the exact shape of the two false P0s',{over:ov,overlayTravel:W.travel});
   const sp=await HSPILL(b);
   L.say(!!sp&&sp.bad.length===0&&sp.scrollW===vw,

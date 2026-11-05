@@ -33,7 +33,7 @@ L.run(async()=>{
       const WANT_TOP={kunal:78,'390':103};
       if(WANT_TOP[geo]!=null)L.say(Math.abs(end.board.top-WANT_TOP[geo])<0.6,geo+': the board at game over sits at top '+WANT_TOP[geo]+', the measured position for this geometry - not merely where it was a moment ago',{measured:end.board.top,want:WANT_TOP[geo]});
     }
-    L.say(end.over.over<=0&&end.over.docScroll===0,geo+': nothing scrolls at game over',end.over);
+    L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
     L.say(row.includes('Review')&&row.includes('Rematch')&&!row.includes('Resign'),geo+': row reads Review · Rematch, no Resign',row.join(' | '));
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
