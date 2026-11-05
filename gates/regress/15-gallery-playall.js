@@ -844,7 +844,7 @@ L.run(async()=>{
       const bt=blurb?(blurb.innerText||'').replace(/\s+/g,' ').trim():null;
       return {n:cards.length, blurb:bt,
         cards:cards.map(c=>{const t=(c.innerText||'').replace(/\s+/g,' ').trim();
-          return {head:t.split(' · ').slice(0,2).join(' · ').slice(0,20), auto:t.indexOf(A)>=0, manual:t.indexOf(M)>=0};}),
+          return {head:t.split(' · ').slice(0,2).join(' · ').slice(0,20), auto:t.indexOf(A)>=0, manual:t.indexOf(M)>=0, badge:(()=>{const bd=c.querySelector('[data-ct="ask-mode"]');return bd?(bd.innerText||'').replace(/\s+/g,' ').trim():null;})()};}),
         headerNamesAuto:bt?bt.indexOf(A)>=0:false, headerNamesManual:bt?bt.indexOf(M)>=0:false,
         headerStillClaimsAllDrive:bt?bt.indexOf('Each card drives itself')>=0:false};
     },{A:MODE_AUTO,M:MODE_MANUAL});
@@ -859,6 +859,11 @@ L.run(async()=>{
     L.say(EXPECTED_MANUAL+EXPECTED_AUTO===EXPECTED_N,'M2: the mode pin is self-consistent with EXPECTED_N',{EXPECTED_MANUAL,EXPECTED_AUTO,EXPECTED_N});
     L.say(nMan===EXPECTED_MANUAL&&nAuto===EXPECTED_AUTO,
       'M2: the queue holds the '+EXPECTED_MANUAL+' manual and '+EXPECTED_AUTO+' self-driving card this commit declares',{nMan,nAuto});
+    // M2b TC-GL-006 [#548, item (119); jobs/the-ask-card-mode-badge-is-false-inside-the-play-all-path-2026-10-01, Kunal's default
+    // B8-SMALL-DEFAULTS (6)]: a manual card's badge says WHEN its instruction holds - tapped on its own - because inside Play all the
+    // walk moves on and the old 'its instruction stays up until you hide it' was false there. Read off each manual card's badge.
+    {const man=screen.cards.filter(c=>c.manual);
+     L.say(man.length>0&&man.every(c=>!!c.badge&&/on its own/.test(c.badge)&&/stays up until you hide it/.test(c.badge)),'M2b TC-GL-006 every manual card\'s badge qualifies the hold: it stays up only when the card is tapped on its own',man.map(c=>c.badge));}
     // M3: the header states both modes and no longer asserts that every card drives itself (the measured falsehood)
     L.say(screen.headerNamesAuto&&screen.headerNamesManual,
       'M3: the header names BOTH modes in the same words the cards use',{auto:screen.headerNamesAuto,manual:screen.headerNamesManual});
@@ -1013,6 +1018,15 @@ L.run(async()=>{
       L.note('M6 '+glab+': hide control '+JSON.stringify(r));
       L.say(!!r&&r.w>=44&&r.h>=44&&r.right<=r.vw&&r.left>=0&&r.top>=0,
         'M6 '+glab+': the Hide control is a 44px target, fully inside the viewport',r);
+      /* M6b TC-GL-008 [#548, item (112); Kunal's default B8-SMALL-DEFAULTS (6): the instruction bar moved off the footer]: neither the
+         held bar nor its Hide control overlaps any button in the bottom quarter of the screen - the tab bar and the pinned footers
+         live there, and at the bottom the bar covered 96% of the Review summary's footer and its Hide sat over 'Start review'. */
+      const ov=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="rec-cap"]');if(!bar)return null;const R=(e)=>e.getBoundingClientRect();const br=R(bar);
+        const hit=(a,c)=>a.left<c.right-0.5&&a.right>c.left+0.5&&a.top<c.bottom-0.5&&a.bottom>c.top+0.5;
+        const low=[...document.querySelectorAll('button')].filter(x=>!bar.contains(x)).map(x=>({t:(x.innerText||x.getAttribute('aria-label')||'').trim().slice(0,24),r:R(x)})).filter(o=>o.r.width>1&&o.r.height>1&&o.r.top>=innerHeight*0.75&&o.r.top<innerHeight);
+        return {bar:[Math.round(br.top),Math.round(br.bottom)],low:low.length,over:low.filter(o=>hit(br,o.r)).map(o=>o.t)};});
+      L.say(!!ov&&ov.low>0,'M6b '+glab+': TC-GL-008 DENOMINATOR the held bar is up and there are buttons in the bottom quarter to check it against',ov);
+      L.say(!!ov&&ov.over.length===0,'M6b '+glab+': TC-GL-008 the held instruction bar covers no button in the bottom quarter of the screen (tab bar, pinned footer)',ov);
     }
     await b.close();
   }
@@ -1042,4 +1056,30 @@ L.run(async()=>{
     L.say(b.errs.length===0,'Q '+qlab+': zero app errors',b.errs.slice(0,2));
     await b.close();
   }
+  /* TC-GL-007 [#548, item (129); jobs/gallery-header-takes-69-percent-of-a-320x568-screen-2026-10-01, Kunal's default
+     B8-SMALL-DEFAULTS (6)]: ON A SHORT PHONE THE HEADER IS SHORT ENOUGH FOR THE FIRST ASK CARD TO BE SEEN WHOLE. At 320x568 the
+     first ask card must lie fully inside BOTH its scroll clip and the viewport at rest - the job measured it never doing so at
+     any scroll position on aba551f896c7 (header 390 of 568px). The folded explanation must still open on a tap. */
+  {const b=await L.launch({geo:'se',name:'gallery-header-se',store:{ct_pool:'3'}});await b.open();
+   await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+   const g=await b.page.evaluate(()=>{const c=document.querySelector('button[data-ct="ask-card"]');if(!c)return null;let p=c.parentElement;while(p&&!(/auto|scroll/.test(getComputedStyle(p).overflowY)))p=p.parentElement;
+     const r=c.getBoundingClientRect(),q=p?p.getBoundingClientRect():null;return {card:[Math.round(r.top),Math.round(r.bottom)],clip:q?[Math.round(q.top),Math.round(q.bottom)]:null,vh:innerHeight};});
+   L.say(!!g&&!!g.clip,'TC-GL-007 320x568 PRECONDITION the gallery opened and its first ask card and that card\'s scroll clip were found',g);
+   L.say(!!g&&!!g.clip&&g.card[0]>=g.clip[0]-0.5&&g.card[1]<=g.clip[1]+0.5&&g.card[1]<=g.vh,'TC-GL-007 320x568 the FIRST ask card is seen whole at rest - inside its scroll clip and inside the viewport',g);
+   const more=b.page.locator('[data-ct="gallery-blurb-more"]');let opened=false;
+   if(await more.count()){await more.first().click();await b.settle(300);opened=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0));}
+   else opened=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0));
+   L.say(opened,'TC-GL-007 320x568 the full explanation is still reachable on this phone (folded behind one tap, or shown)',{opened});
+   L.say(b.errs.length===0,'TC-GL-007 320x568 zero app errors',b.errs.slice(0,2));
+   await b.close();}
+  /* TC-GL-009 [#548, item (162); jobs/preview-gallery-button-gone-after-running-a-card-2026-11-03]: TWO STATE CARDS IN A ROW. Home
+     hides the Preview gallery button while a card's instruction bar is up (the hide is kept, bounded by the bar's timer - the
+     orchestrator's ruling on item (120)), so b.card(2) straight after b.card(1) timed out at 375x730 and 320x568. gates/lib.js's
+     card() now waits the bar out; this is the harness's own control over that path. */
+  for(const geo of ['kunal730','se']){const b=await L.launch({geo,name:'two-cards-'+geo});await b.open();
+    let ok1=true,ok2=true;try{await b.card(1,2500);}catch(e){ok1=false;}
+    const t0=Date.now();try{await b.card(2,2500);}catch(e){ok2=false;}
+    L.say(ok1,geo+': TC-GL-009 PRECONDITION state card 1 was reached');
+    L.say(ok2,geo+': TC-GL-009 b.card(2) straight after b.card(1) reaches its card ('+(Date.now()-t0)+'ms) - the harness waits out the instruction bar that hides the gallery button');
+    await b.close();}
 },'GALLERY-PLAYALL');

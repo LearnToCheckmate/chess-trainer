@@ -482,7 +482,14 @@ async function launch(opts={}){
     async shot(name,o={}){fs.mkdirSync(SHOTS,{recursive:true});const p=path.join(SHOTS,name+'.png');await page.screenshot(Object.assign({path:p},o));return p;},
     // open the Preview gallery from Home and run one card by its id token (e.g. 'k10'), holding for `hold` ms
     // id may be an item id ('k10'; the FIRST card with that id), a card number (4 -> the 4th card) or a RegExp on the card title
-    async card(id,hold){await b.home();const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.waitFor({state:'visible',timeout:8000});await gb.click();await page.waitForTimeout(400);
+    async card(id,hold){await b.home();
+      // #548 item (162), jobs/preview-gallery-button-gone-after-running-a-card-2026-11-03: Home hides its dev row (and so the
+      // Preview gallery button) while a gallery instruction bar is up - kept by the orchestrator's ruling on item (120), bounded by
+      // the bar's own timer - so a second b.card() right after a first one timed out waiting for a button the app had hidden on
+      // purpose. Wait the bar out first (a state card's hold is at most ~13s); a held manual bar is hidden with its own control.
+      {const hide=page.locator('[data-ct="rec-cap-done"]');if(await hide.count().catch(()=>0)){await hide.first().click().catch(()=>{});await page.waitForTimeout(200);}
+       await page.waitForFunction(()=>!document.querySelector('[data-ct="rec-cap"]'),null,{timeout:20000}).catch(()=>{});}
+      const gb=page.locator('button[title="Preview gallery (dev)"]');await gb.waitFor({state:'visible',timeout:8000});await gb.click();await page.waitForTimeout(400);
       // ── THE NUMERIC BRANCH IS SCOPED TO THE STATE CARDS, BECAUSE THE GALLERY RENDERS TWO LISTS THAT BOTH
       // NUMBER FROM ONE [#544 item (35); jobs/b-card-ordinal-is-ambiguous-now-that-the-gallery-has-two-lists-
       // numbering-from-1-2026-10-01, P1, filed by antagonist A of #451 BEFORE that build's push, as a latent
