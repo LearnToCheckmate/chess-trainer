@@ -1743,6 +1743,67 @@ L.run(async()=>{
     L.say(ivSignalled>0, g+': TC-INV-04c measured a non-empty population of ellipsed (signalled) cuts - over none, "no unreadable label" would be an empty set, not a reading',{signalledMeasured:ivSignalled});
     await b.close();
   }
+  // TC-INV-09 [#548 item (82); jobs/gate-26-rev-best-ply30-pin-covers-one-ply-of-a-class-that-cuts-at-plies-12-20-and-30-2026-10-12].
+  // THE rev-best PIN IS A CLASS, NOT ONE PLY. antagonist-b-422 measured the best-move pill cut at EVERY ply that carries it at
+  // 320x568 (12, 20 and 30), and this file pinned only rev-best-ply30. So: walk the reference game's 34 positions at each
+  // swept geometry, assert the pill appears at EXACTLY the plies it is pinned for (a count moving either way is red), and
+  // assert each of those plies separately cuts nothing (scrollWidth against clientWidth of [data-ct="rev-best"], the same
+  // reading the pinned residual takes). CONTROL, recorded below: #546's bundle 049b41dfb6f1 at se reads ply 12 client 44 /
+  // scroll 44, ply 20 29/59 and ply 30 45/56 - so the per-ply lines go red at 20 and 30 while 12 stays green, which a ply-30
+  // pin alone could never report. 375x730 is clean at all three (acceptance C) and is asserted here, not excluded.
+  {
+    const BEST_PLIES=[12,20,30];
+    for(const g of GEOS){
+      const b=await L.launch({geo:g,store:R.SEED,name:'inv-revbest-'+g});await b.open();
+      const seen=[],hitWalk=[];let drove=true;
+      try{
+        await R.states['moves-ply0'](b);
+        for(let p=0;p<=33;p++){
+          await R.goPly(b,p);await b.settle(450);
+          const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');if(!e)return null;const q=e.getBoundingClientRect();
+            if(q.width<1||q.height<1)return null;return {cw:e.clientWidth,sw:e.scrollWidth};});
+          if(r)seen.push(Object.assign({ply:p},r));
+          // TC-INV-10 [#548 item (85); jobs/the-review-move-strip-overflows-with-no-scroller-so-a-move-chip-is-unreachable-on-main-
+          // 2026-10-07, part (1)]: every move chip's PAINTED region is hittable. The chip rect is intersected with its CLIP box (the
+          // nearest ancestor that clips x), not the viewport - a chip past the strip's edge is scrolled to, not lost - and every
+          // integer x across what is painted, at the chip's vertical centre, must return the chip from elementFromPoint.
+          const hm=await b.page.evaluate(()=>{const st=document.querySelector('[data-mstrip]');if(!st)return null;
+            const ptr=(e)=>getComputedStyle(e).cursor==='pointer';
+            const chips=[...st.querySelectorAll('*')].filter(e=>{if(!ptr(e))return false;for(let a=e.parentElement;a&&a!==st;a=a.parentElement)if(ptr(a))return false;return true;});
+            let painted=0,samples=0;const bad=[];
+            for(const c of chips){const q=c.getBoundingClientRect();if(q.width<1||q.height<1)continue;
+              let l=Math.max(0,q.left),r=Math.min(innerWidth,q.right);
+              for(let a=c.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);
+                if(cs.overflowX!=='visible'){const aq=a.getBoundingClientRect();l=Math.max(l,aq.left);r=Math.min(r,aq.right);}}
+              if(r-l<1)continue;painted++;const y=(Math.max(q.top,0)+Math.min(q.bottom,innerHeight))/2;
+              // ONE PIXEL IS DROPPED AT EACH EDGE, MEASURED: the first run of this went red on every position at ONE column per chip -
+              // at 375x730, d4 spans 250.48..279.34 and elementFromPoint(278.5) returns the NEXT chip (Bg4, left 279.34), because hit
+              // testing works on device-pixel-snapped boxes. That is the boundary between two chips, not a covered chip. The control
+              // this assertion was proved on covers 10px, so it is unaffected.
+              for(let x=Math.ceil(l)+1;x<=Math.floor(r)-2;x++){samples++;const h=document.elementFromPoint(x+0.5,y);
+                if(!(h&&(h===c||c.contains(h)))){bad.push({chip:(c.innerText||'').trim().slice(0,10),x,hit:h?(h.tagName+(h.getAttribute('data-ct')?'['+h.getAttribute('data-ct')+']':'')):null});}}}
+            return {chips:chips.length,painted,samples,bad:bad.slice(0,6),nbad:bad.length};});
+          if(hm)hitWalk.push(Object.assign({ply:p},hm));
+        }
+      }catch(e){drove=false;L.say(false,g+' TC-INV-09 the 34-position walk drove to its end',String(e.message||e));}
+      if(drove){
+        const plies=seen.map(x=>x.ply);
+        L.say(plies.length===BEST_PLIES.length&&BEST_PLIES.every((p,i)=>plies[i]===p),
+          g+' TC-INV-09 the best-move pill appears at exactly plies '+BEST_PLIES.join(', ')+' of the reference game - the class the per-ply pins below cover, so a pill gained or lost at any ply is red',{plies});
+        for(const p of BEST_PLIES){
+          const x=seen.find(s=>s.ply===p);
+          L.say(!!x&&x.sw<=x.cw+0.5,g+' TC-INV-09 ply '+p+': the best-move pill cuts nothing (scrollWidth within clientWidth)',x||{absent:true});
+        }
+        // TC-INV-10: non-empty first, in its own line - a strip that painted no chip would pass the hit test over nothing.
+        const painted=hitWalk.reduce((a,h)=>a+h.painted,0),samples=hitWalk.reduce((a,h)=>a+h.samples,0);
+        L.say(hitWalk.length>=30&&painted>0&&samples>0,g+' TC-INV-10 PRECONDITION the move strip was found at '+hitWalk.length+' of 34 positions and painted '+painted+' chip(s) across '+samples+' sampled x',{positions:hitWalk.length,painted,samples});
+        const badAt=hitWalk.filter(h=>h.nbad>0);
+        L.say(painted>0&&badAt.length===0,g+' TC-INV-10 every painted pixel column of every move chip hit-tests to that chip, measured against the strip\'s clip box and not the viewport',
+          badAt.length?{positions:badAt.length,first:badAt.slice(0,3).map(h=>({ply:h.ply,nbad:h.nbad,bad:h.bad}))}:{painted,samples});
+      }
+      await b.close();
+    }
+  }
   // THE GRACEFUL PATH MUST NOT BECOME THE NORMAL PATH. Invariant 3 and the population pins report instead of
   // asserting at an unpinned width, which is right for an ad-hoc run and would be a silent hole if the suite's
   // own geometries ever drifted out of the pin table. So: every geometry this suite sweeps by DEFAULT must be
