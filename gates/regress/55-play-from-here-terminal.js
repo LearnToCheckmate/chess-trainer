@@ -98,6 +98,16 @@ async function terminal(b,pgn,kind,tag){
   const atOnline=await noteAndButton(b);
   L.say(atOnline.note===false&&atOnline.btn&&atOnline.btn.dis===false, tag+': A12 Online - the refusal is OFF, so the warning must be GONE too: no warning above an enabled button', JSON.stringify(atOnline));
   L.say(!!atOnline.btn&&/Continue/.test(atOnline.btn.txt), tag+': A13 and that enabled button is the ONLINE one, not a Play-this-position', atOnline.btn&&atOnline.btn.txt);
+  // A14/A15 [#548 item (122); jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02]:
+  // THE SHEET'S ONE EXIT GOES BACK TO THE REVIEW HE CAME FROM. The note tells him to step back a move in his review; until #548 the only
+  // button on this sheet was '‹ Home'. Found by TEXT inside the sheet's overlay, not by a hook (#432). A15 reads the review's OWN words for
+  // this ply, so it proves the same ply and not merely the Review screen.
+  const exitB=await b.page.evaluate(()=>{const xs=[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&/^\u2039 (Home|Back to review)$/.test((x.innerText||'').trim());});return xs.map(x=>(x.innerText||'').trim());});
+  L.say(exitB.includes('\u2039 Back to review')&&!exitB.includes('\u2039 Home'), tag+': A14 the sheet\'s exit reads "Back to review", not "Home"', JSON.stringify(exitB));
+  if(exitB.includes('\u2039 Back to review'))await b.tapText(/^\u2039 Back to review$/,{wait:1200});
+  const back=await b.page.evaluate(()=>({sheet:!!document.querySelector('[data-ct="setup-sheet"]'),root:document.getElementById('root').innerText.replace(/\s+/g,' ')}));
+  const sameTerminal=kind==='mate'?/won by checkmate|Checkmate/.test(back.root):/Stalemate\. The game is drawn|Draw ½|Stalemate/.test(back.root);
+  L.say(exitB.includes('\u2039 Back to review')&&!back.sheet&&sameTerminal, tag+': A15 and it lands back on the review at the SAME terminal ply (the review says so again), with the setup sheet gone', JSON.stringify({sheet:back.sheet,sameTerminal}));
 }
 
 // ---- C: the POSITIVE CONTROL. The ordinary route must still work. ----
