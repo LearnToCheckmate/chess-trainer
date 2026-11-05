@@ -105,7 +105,9 @@ L.run(async()=>{
   // 336.00 with over +42 on the loop-off control - 56px of board and a 42px overflow, so the control now reddens
   // twice over. 375x730 is KEPT as a second row because it is Kunal's own phone and a change that reached it would
   // be the worst case; it is simply not sufficient on its own.
-  for(const [geo,want,label] of [['short375',280.00,'375x568, where HEIGHT binds and the trim can actually move the board'],
+  // #548 item (92): short375's portrait vs Computer board is 296 since the phone's top row replaced the strip under the board (was 280); measured
+  // by this gate in #548's round-1 suite. It is still the board HEIGHT binds, so the control's point stands.
+  for(const [geo,want,label] of [['short375',296.00,'375x568, where HEIGHT binds and the trim can actually move the board'],
                                  ['kunal730',353.03,"375x730, Kunal's own phone, where WIDTH binds"]]){
     const b=await L.launch({geo,name:'land-stable-portrait-'+geo,store:{ct_pool:'3'}});
     await b.open();await liveGame(b);
