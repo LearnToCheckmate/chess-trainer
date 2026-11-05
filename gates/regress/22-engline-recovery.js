@@ -458,6 +458,17 @@ L.run(async()=>{
          The control keeps its one assertion and asserts what (116) is about: the reason row is confined to the game-over plies. */
       L.say(c.ply==='8/'+G.n&&!/^(Stalemate|Checkmate) — /.test(c.txt||'')&&!!(c.txt||'').trim(),'TC-R83 control at ply 8 the game-over reason does NOT appear - the row shows the live position\'s evaluation, so the fix is confined to game-over plies',{txt:c.txt});
     }
+    /* TC-R83b [#548, item (29); the stalemate Analyze prompt folded into jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27]:
+       analysing FROM the game-over ply, before any move is played, the analysis line used to read 'your board · play any move' -
+       at a position with no legal move. Walk to the last ply, open analysis there, and read the analysis line's prompt. Arrival
+       first (#385): the last ply was reached and the analysis prompt is on screen; then it names the terminal kind and does not
+       invite a move. */
+    {let a={ply:null,line:null};
+     try{for(let i=0;i<G.n+4;i++){await t.page.keyboard.press('ArrowRight');await t.page.waitForTimeout(60);}await t.settle(400);
+       await t.tapCt('rev-fab',900);
+       a=await t.page.evaluate(()=>{const l=document.querySelector('[data-ct="rev-move-line"]');const pl=(document.body.innerText||'').match(/(\d+)\s*\/\s*(\d+)/);return {ply:pl?pl[0]:null,line:l?(l.innerText||'').replace(/\s+/g,' ').trim():null};});}catch(e){a.err=String(e&&e.message||e);}
+     L.say(!!a.line&&/your board/.test(a.line),'TC-R83b '+G.k+' PRECONDITION analysis opened at the game-over ply with no move played - the line reads the "your board" prompt',a);
+     L.say(!!a.line&&new RegExp(G.k+', no legal move').test(a.line)&&!/play any move/.test(a.line),'TC-R83b '+G.k+' the analysis prompt at the game-over ply names the '+G.k+' and does NOT say "play any move"',a);}
     L.say(t.errs.length===0,'TC-R83 '+G.k+' no console errors',{errs:t.errs.slice(0,2)});
     await t.close();
    }}
