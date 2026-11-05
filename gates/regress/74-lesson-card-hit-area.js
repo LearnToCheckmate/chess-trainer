@@ -965,5 +965,24 @@ L.say(VACUOUS.length<GEOS.length,
   L.say(bad.length===0,'74 E2 [se] and every one of them owns its own centre, the lesson footer\'s five included',bad.length?bad.map(x=>x.t+'->'+x.p50.what):'all '+ly.els.length);
   await b.close();
 }
+// TC-LS-047 [#548 item (163); jobs/intro-card-got-it-below-the-fold-on-arrival-at-320x568-2026-11-03]: THE PRIMARY BUTTON IS ON SCREEN ON
+// ARRIVAL. The four cards B measured below their own fold (Petroff and King's Gambit and Albin at 320x568, Italian in 730x375). Each one:
+// the 'Got it' button (found by TEXT) lies wholly inside the card's visible panel with no scrolling and owns its own centre; and the
+// Related-lessons chips, now below it, still exist and are reachable by scrolling the card - the reorder must not drop the secondary path.
+{const DL=require('../drive/lesson');
+ const CARDS=[['Openings',/^Petroff/,{w:320,h:568,safe:''},'320x568'],['Gambits',/^King'?s Gambit/,{w:320,h:568,safe:''},'320x568'],
+              ['Gambits',/^Albin/,{w:320,h:568,safe:''},'320x568'],['Openings',/^Italian/,{w:730,h:375,safe:''},'730x375']];
+ for(const [grp,re,geo,gn] of CARDS){const tag='TC-LS-047 '+String(re).replace(/[\/^]/g,'').replace("'?","'")+' @'+gn;
+  const b=await L.launch({geo,name:'ls047-'+gn});await b.open();let ok=true;
+  try{await DL.group(b,grp);await DL.openRow(b,re);await b.settle(700);}catch(e){ok=false;}
+  const m=ok?await b.page.evaluate(()=>{const got=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!got)return null;
+    const card=got.parentElement,r=got.getBoundingClientRect(),c=card.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+    const chips=[...card.querySelectorAll('button')].filter(x=>x!==got&&x.getAttribute('aria-label')!=='Close'&&!/^Got it/.test((x.innerText||'').trim()));
+    let reach=null;if(chips.length){const last=chips[chips.length-1];card.scrollTop=card.scrollHeight;const lr=last.getBoundingClientRect(),cr=card.getBoundingClientRect();reach=lr.top>=cr.top-0.5&&lr.bottom<=cr.bottom+0.5;card.scrollTop=0;}
+    return {got:[+r.top.toFixed(1),+r.bottom.toFixed(1)],panel:[+c.top.toFixed(1),+c.bottom.toFixed(1)],own:!!(h&&(h===got||got.contains(h))),chips:chips.length,reach};}):null;
+  L.say(ok&&!!m,tag+': PRECONDITION the lesson\'s intro card opened and its Got it was found by text',{m});
+  if(m){L.say(m.got[0]>=m.panel[0]-0.5&&m.got[1]<=m.panel[1]+0.5&&m.own,tag+': Got it is wholly inside the card\'s visible panel on ARRIVAL and owns its centre ('+m.got.join('..')+' in '+m.panel.join('..')+')',m);
+   L.say(m.chips>0&&m.reach===true,tag+': and the Related-lessons chips are still there ('+m.chips+') and the last one is reachable by scrolling the card',{chips:m.chips,reach:m.reach});}
+  await b.close();}}
 L.done();
 })().catch(e=>{console.error('74 THREW',e);process.exit(1);});
