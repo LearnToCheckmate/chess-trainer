@@ -1167,6 +1167,34 @@ async function blockJS(){
   }
 }
 
+// ── K: AN ENDED GAME LIFTS NO PIECE AND PAINTS NO TARGET [#548, item (46); the job folded into
+// jobs/playendref-lags-playend-by-one-effect-flush-2026-09-30]. humanCanMove's playEnd guard (#439) is the line that stops a
+// RESIGNED game - an ending that is not on the board - from admitting a move, and nothing under gates/regress read selection or
+// targets, so the guard had no negative control. Pass & Play, no clock: 1.e4 e5, then resign; tap White's d2 pawn (White to move,
+// a pawn with two legal pushes on a live board). The legal-target dots are counted BY STRUCTURE (round absolutely placed divs of
+// the two dot colours inside the board), never by a hook. Arrival first (#385): on the live board, before the resignation, the same
+// tap DOES paint targets, so the counter can see them; then the tap after the resignation paints none and moves nothing.
+// Control: a trial with the guard line removed (chess.jsx, search "playEndRef.current)return false") reddens K2.
+async function blockK(){
+  const b=await L.launch({geo:'kunal730',name:'65K'});await b.open();
+  await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await tapBtn(b,/^▶ Start game$/,900);
+  await b.move('e2','e4',400);await b.move('e7','e5',500);
+  const dots=()=>b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!gr)return -1;
+    return [...gr.querySelectorAll('div')].filter(d=>{const st=d.style;return st.position==='absolute'&&st.borderRadius==='50%'&&/rgba\(0, ?0, ?0, ?0?\.(18|22)\)/.test(st.background||'');}).length;});
+  await b.tapSq('d2');await b.settle(300);const live=await dots();
+  await b.tapSq('d2');await b.settle(300);   // deselect
+  L.say(live>=2,'K0 ARRIVAL on the LIVE board the d2 pawn, tapped, paints its legal targets ('+live+' dots), so the counter below can see them',{live});
+  const p0=await plies(b);
+  await resignHere(b);await b.settle(600);
+  const cd=await card(b);
+  L.say(/Resign/i.test(cd||''),'K1 ARRIVAL the game ended by resignation (an ending that is not on the board)',{card:cd});
+  await b.tapSq('d2');await b.settle(300);const after=await dots();
+  L.say(after===0,'K2 after the resignation, tapping the d2 pawn lifts nothing: no legal-target dot is painted ('+after+')',{after,live});
+  await b.tapSq('d4');await b.settle(500);const p1=await plies(b);
+  L.say(p1===p0,'K3 and tapping a target square after it commits no move ('+p0+' -> '+p1+' plies)',{p0,p1});
+  L.say(b.errs.length===0,'K4 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
 L.run(async()=>{
   const only=(process.env.CT_B65||'').split(',').filter(Boolean);
   const want=(x)=>!only.length||only.includes(x);
@@ -1179,4 +1207,5 @@ L.run(async()=>{
   if(want('I'))for(const g of ['kunal730','land'])await blockI(g);
   if(want('J'))for(const g of GEOS)await blockJ(g);
   if(want('JS'))await blockJS();
+  if(want('K'))await blockK();
 },'65-promotion-after-gameover');
