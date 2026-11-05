@@ -1094,13 +1094,21 @@ function explainLine(fen,pv,k,no0){
           if(best)hit='hits the '+PNAME[best.t]+' on '+best.sq;}
       }catch(e){}
       let why='';
+      /* #548 final-read antagonist B veto: Opera ply 24 read '13.Rxd7 chases the queen off e7' - the rook TAKES the knight on d7 and is taken
+         back at once, and the queen never moves. Two rules, both read off the board and the line: (1) a capture says what it takes, unless the
+         gist already says so; (2) 'chases' is never said of a piece the line's very next move captures. */
+      const capP=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);
+      const nx=(pv&&pv[i+1])?uciToMove(makeMove(g,m),pv[i+1]):null;const takenBack=!!(nx&&nx.tr===m.tr&&nx.tc===m.tc);
+      const gist0=(gi[0]&&!(takenBack&&/^chases\b/.test(gi[0])))?gi[0]:'';
+      const takes=capP&&!/\b(takes|wins|captures|trades|exchanges)\b/.test(gist0)?('takes the '+PNAME[capP.t]+' on '+rc2sq(m.tr,m.tc)):'';
       if(mo.indexOf('mate')>=0)why='mates';
       else if(m.promo)why=(m.promo==='q'?'queens':'promotes')+(mo.indexOf('check')>=0?', with check':'');
       else if(mo.indexOf('discovered check')>=0)why='a discovered check';
       else if(aim)why=aim;
       else if(blk)why=blk;
-      else if(gi[0])why=gi[0]+(mo.indexOf('check')>=0&&!/check/.test(gi[0])?', with check':'');
-      else if(hit)why=hit+(mo.indexOf('check')>=0?', with check':'');
+      else if(takes)why=takes+(mo.indexOf('check')>=0?', with check':'');
+      else if(gist0)why=gist0+(mo.indexOf('check')>=0&&!/check/.test(gist0)?', with check':'');
+      else if(hit&&!takenBack)why=hit+(mo.indexOf('check')>=0?', with check':'');
       else if(mo.indexOf('check')>=0)why='gives check';
       out.push({san:(g.turn==='w'?(no+'.'):(i===0?(no+'\u2026'):''))+san,why});
       if(g.turn==='b')no++;g=makeMove(g,m);

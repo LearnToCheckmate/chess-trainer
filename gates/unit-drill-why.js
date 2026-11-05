@@ -141,6 +141,13 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
   eq(M.explainLine(FEN1,['f4e3','f5d3','d4e2','f2f1q'],4,22).map(x=>x.san).join(' '),'22.Be3 Bd3 23.Nde2 f1=Q+','an app-written FEN (move 1) is numbered from the CALLER\'s move number');
   eq(M.bestLineTail(FEN1,['f4e3','f5d3','d4e2','f2f1q'],3,22),'22\u2026Bd3 23.Nde2 f1=Q+','bestLineTail numbers from the caller too');
   eq(M.bestLineTail(FEN1,['f4e3','f5d3','d4e2'],3,22,'d4e2'),'','bestLineTail refuses a line that does not start with the card\'s own better move');
+  // #548 final-read antagonist B veto, as a fixed case: the Opera Game after 12...Rd8, line 13.Rxd7 Nxd7 14.Bxe7 Bxe7. The reading said
+  // '13.Rxd7 chases the queen off e7'; the rook TAKES the knight on d7 and is taken back, and the queen never moves.
+  {const OP='1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8#';
+   const res=M.loadSANs(M.parsePGN(OP));const r=M.explainLine(M.toFEN(res.positions[24]),['d1d7','f6d7','g5e7','f8e7'],4,13);
+   eq(r.length&&r[0].san,'13.Rxd7','the Opera ply-24 line is read from 13.Rxd7');
+   eq(r.length&&r[0].why,'takes the knight on d7','13.Rxd7 says what it TAKES (it read "chases the queen off e7")');
+   eq(r.some(x=>/^chases/.test(x.why||'')),false,'no move in that line is said to chase a piece');}
   eq(M.evalWords(-0.78),'Black is better by about three quarters of a pawn','evalWords row 1 (-0.78)');
   eq(M.evalWords(-1.33),'Black is better by about a pawn and a quarter','evalWords row 2 (-1.33)');
   eq(M.evalWords(0.1),'About level','evalWords near zero');
