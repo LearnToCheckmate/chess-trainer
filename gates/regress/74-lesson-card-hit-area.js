@@ -1,5 +1,6 @@
 'use strict';
 // CONTROL-RECORD: 3dc43e1 2026-11-03 total=229 red=16 scope=trial:2ccba37a424b how=#547 final antagonist A's ctl-wrap.js: the intro card's Got it wrapped in a 44px overflow:hidden box and pushed 20px down, so 20 of its 44px are cut by a box no finger can scroll - B1/B4 red across cards and geometries (run v74wrap); the pre-repair dda714e gate went 230/0 on it [#547 close-out, ratchet]
+// CONTROL-RECORD: 7ce928e 2026-11-05 total=311 red=3 scope=trial:c7f6a1228e43 how=#548 item (163), main #547's own bundle: the intro card's Got it still sits below the Related chips, so TC-LS-047 goes red at Petroff and King's Gambit @320x568 and Italian @730x375 (308 pass / 3 fail, run ck-g74final at 19:36Z) [#548 close-out, control-audit ratchet]
 // gates/regress/74-lesson-card-hit-area.js   TC-R60 (US-R50): a MODAL's own controls own their own centres.
 //
 // ARRIVED AT #497 for jobs/the-lesson-cta-centre-hit-tests-to-the-lesson-footer-and-a-tap-closes-the-lesson-at-
