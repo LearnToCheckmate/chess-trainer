@@ -480,4 +480,28 @@ L.run(async()=>{
        const still=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="pz-top"] div')].some(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute'));
        L.say(mv&&!still,'TC-R97 '+tag+' and the back-rank answer d1-d8, tapped at the square centres, SOLVES - the hint is gone (pre-fix at 320x568 it stayed up after two tries)',{mv,hintStillUp:still});}
      await b.close();}}
+  // ════════ BLOCK G - TC-R102, #548 item (160): THE BOARD DOES NOT MOVE BETWEEN MISTAKE CARDS ════════
+  // jobs/auditor-547-p2-findings-2026-11-03, p2_drillBoardBetweenCards: the mistakes-drill goal names the played move and its grade,
+  // so it wraps to a different number of lines card by card and the board below moved (162.5 -> 153.5 -> 162.5 measured by the
+  // auditor). Three cards whose goals differ in length - a short played move and grade, a long one, the short again - and the board
+  // top read on each. The board is found the only way there is (the widest repeat(8,...) grid); the goal card by its text.
+  for(const G2 of [{n:'375x730',g:{w:375,h:730,safe:''}},{n:'320x568',g:{w:320,h:568,safe:''}}]){
+    // MEASURED ON MAIN c7f6a1228e43 at 375x730 with exactly these three: goal heights 36 / 54 / 54 and board tops 153.5 / 162.5 /
+    // 162.5 - the auditor's 9px, reproduced. A card with no `played` reads 'your move here was a blunder' and wraps one line shorter.
+    const VR=[{fen:FENS[0],uci:UCIS[0],label:'Blunder',played:'',ts:1791000000000,last:null,why:'w1'},
+              {fen:FENS[1],uci:UCIS[1],label:'Inaccuracy',played:'exd8=Q+',ts:1791000001000,last:null,why:'w2'},
+              {fen:FENS[2],uci:UCIS[2],label:'Mistake',played:'Kd1',ts:1791000002000,last:null,why:'w3'}];
+    const b=await L.launch({geo:G2.g,name:'drill-goalwrap-'+G2.n,store:{ct_mymistakes:VR,ct_pool:'3'}});await b.open();
+    const rd=()=>b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
+      const gl=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&/^\u{1F3AF}/u.test((d.innerText||'').trim()));
+      return {top:gr?Math.round(gr.top*10)/10:null,goalH:gl?Math.round(gl.getBoundingClientRect().height):null,goal:gl?(gl.innerText||'').trim().slice(0,90):null};});
+    let ok=true;const seen=[];
+    try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(700);
+      seen.push(await rd());await tap(b,'drill-next',1000);await b.settle(500);seen.push(await rd());await tap(b,'drill-next',1000);await b.settle(500);seen.push(await rd());}catch(e){ok=false;}
+    const tag=G2.n;
+    L.say(ok&&seen.length===3&&seen.every(x=>x.top!=null&&!!x.goal)&&new Set(seen.map(x=>x.goal)).size===3,'TC-R102 PRECONDITION '+tag+' three cards were shown, each with its board and its own goal',{seen});
+    L.say(seen.length===3&&new Set(seen.map(x=>x.goal.length)).size>1,'TC-R102 PRECONDITION '+tag+' the three goals differ in LENGTH, so a board that held still is evidence and not a fixture that cannot wrap differently',{lens:seen.map(x=>x.goal&&x.goal.length)});
+    L.say(seen.length===3&&seen.every(x=>x.top!=null&&Math.abs(x.top-seen[0].top)<0.6),'TC-R102 '+tag+' the board top is the same on all three cards ('+seen.map(x=>x.top).join(' / ')+') - the goal card reserves its height',{seen});
+    await b.close();
+  }
 },'72-drill-prev');

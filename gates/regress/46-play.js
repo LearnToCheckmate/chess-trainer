@@ -874,6 +874,23 @@ L.run(async()=>{
     L.say(b.errs.length===0,'zero app errors across a resignation and two two-ply round trips',b.errs.slice(0,3));
     await b.close();
   }
+  // TC-PL-055 [#548 item (160); jobs/auditor-547-p2-findings-2026-11-03, p2_hintAfterBack]: A HINT IS FOR THE LIVE POSITION. vs Computer,
+  // four plies, Hint, then Back twice: the auditor found the hint's highlight still painted on d2/d4 at ply 2, computed for ply 4.
+  // The highlight is read as painted squares carrying the hint tint (rgba(255,200,30,.75)), not by any hook.
+  {
+    const b=await L.launch({geo:'kunal730',name:'play-hint-back'});await b.open();
+    const hl=()=>b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(d=>{const c=getComputedStyle(d).backgroundColor;const r=d.getBoundingClientRect();return /^rgba\(255, 200, 30, 0\.75\)$/.test(c)&&r.width>10&&r.height>10;}).length);
+    let ok=true;try{await P.states['cpu-hint'](b);await b.settle(500);}catch(e){ok=false;}
+    const h0=await hl();
+    L.say(ok&&h0>0,'TC-PL-055 PRECONDITION the hint is painted at the live ply ('+h0+' squares)',{h0});
+    await P.tapBtn(b,/^Back$/,500);await P.tapBtn(b,/^Back$/,600);
+    const h1=await hl();
+    L.say(h0>0&&h1===0,'TC-PL-055 two plies back, the live position\'s hint is NOT painted on the earlier position ('+h1+' squares)',{h0,h1});
+    await P.tapBtn(b,/^Forward$/,500);await P.tapBtn(b,/^Forward$/,700);
+    const h2=await hl();
+    L.say(h0>0&&h2>0,'TC-PL-055 and back at the live ply the hint is shown again - stepping back hid it, it did not throw it away ('+h2+' squares)',{h2});
+    await b.close();
+  }
 },'PLAY');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
