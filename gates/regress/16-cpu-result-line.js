@@ -636,4 +636,30 @@ L.run(async()=>{
    if(L.say(ok&&r.n===16,'375x730: TC-PL-049 PRECONDITION the start position paints 16 black pieces whose style declares the white separation shadows',{n:r.n}))
      L.say(r.computed.every(f=>(f.match(/drop-shadow\(/g)||[]).length===2),'375x730: TC-PL-049 and every one of them actually COMPUTES both drop-shadows - not "none" from an invalid filter list',{sample:r.computed[0]});
    await b.close();}
+  // TC-PL-049b [#548 item (40); jobs/every-black-piece-loses-its-two-white-drop-shadows-because-pcfilter-resolves-to-the-keyword-none-
+  // 2026-10-09]: THE SAME RULE OVER THE REST OF ITS INPUT SPACE. TC-PL-049 reads the 16 board pieces at the Pass and Play start, at one
+  // geometry, in the default skin. Here: the four IMAGE skins (classic, merida, chessnut, spatial - symbol draws glyphs, not images, and
+  // is excluded) at 375x730 and 320x568, the WHITE pieces as the control the rule must not touch (no white separation shadow), and the
+  // CAPTURED black pieces in the player bar after a capture (pp-captures). Read from the COMPUTED style, never the inline one.
+  {const P=require('../drive/play');
+   const read=(b)=>b.page.evaluate(()=>{const all=[...document.querySelectorAll('img')].filter(i=>{const r=i.getBoundingClientRect();return r.width>2&&r.height>2&&/var\(--pcfilter\)/.test(i.getAttribute('style')||'');});
+     const blk=all.filter(i=>/drop-shadow/.test(i.getAttribute('style')||'')),wht=all.filter(i=>!/drop-shadow/.test(i.getAttribute('style')||''));
+     const wsh=(f)=>(f.match(/drop-shadow\([^)]*rgba\(255, 255, 255/g)||[]).length;
+     return {nb:blk.length,nw:wht.length,blackOk:blk.filter(i=>(getComputedStyle(i).filter.match(/drop-shadow\(/g)||[]).length>=2).length,
+       whiteWithWhiteShadow:wht.filter(i=>wsh(getComputedStyle(i).filter)>0).length,sample:blk[0]?getComputedStyle(blk[0]).filter:null};});
+   for(const geo of ['kunal730','se'])for(const skin of ['classic','merida','chessnut','spatial']){
+     const b=await L.launch({geo,name:'piece-shadow-'+skin+'-'+geo,store:{ct_pieceSet:skin}});await b.open();
+     let ok=true;try{await P.states['pp-m0'](b);await b.settle(600);}catch(e){ok=false;}
+     const r=await read(b);const tag=geo+' '+skin+': TC-PL-049b ';
+     if(L.say(ok&&r.nb===16&&r.nw===16,tag+'PRECONDITION the start position paints 16 black and 16 white image pieces',{nb:r.nb,nw:r.nw}))
+       {L.say(r.blackOk===16,tag+'every black piece COMPUTES both drop-shadows',{blackOk:r.blackOk,sample:r.sample});
+        L.say(r.whiteWithWhiteShadow===0,tag+'and no white piece computes a white separation shadow - the rule is for black pieces only',{whiteWithWhiteShadow:r.whiteWithWhiteShadow});}
+     await b.close();}
+   {const b=await L.launch({geo:'kunal730',name:'piece-shadow-captured'});await b.open();let ok=true;
+    try{await P.states['pp-captures'](b);await b.settle(700);}catch(e){ok=false;}
+    const r=await b.page.evaluate(()=>{const imgs=[...document.querySelectorAll('[data-ct^="pbar-taken"] img')].filter(i=>/drop-shadow/.test(i.getAttribute('style')||''));
+      return {n:imgs.length,ok:imgs.filter(i=>(getComputedStyle(i).filter.match(/drop-shadow\(/g)||[]).length>=2).length};});
+    if(L.say(ok&&r.n>0,'kunal730 captured: TC-PL-049b PRECONDITION a captured black piece is painted in a player bar ('+r.n+')',r))
+      L.say(r.ok===r.n,'kunal730 captured: TC-PL-049b and every captured black piece computes both drop-shadows',r);
+    await b.close();}}
 }, 'CPU-RESULT-LINE');
