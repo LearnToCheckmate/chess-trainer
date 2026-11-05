@@ -98,6 +98,10 @@ As a player who just finished a game on chess.com, I paste its PGN and get a rev
 - The analysis of a 33-ply game finishes in under 90 s on the test machine with the 3-worker pool, and a
   second analysis of the same PGN comes from the cache in under 8 s (#341, #343 cache key). (TC-R01, TC-R02)
 - Zero application console errors during import and analysis. (TC-R01)
+- A best-effort lookup the review makes on the side (the players' countries for their flags) that FAILS leaves the app as it
+  was and is tried again the next time the review opens: a refused or offline lookup is never stored as the answer, so one
+  offline review cannot remove a player's flag for good. (TC-R68; #548 item (41),
+  jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10)
 
 ### US-R02 Games fetched from an account are kept, per account, across reloads
 As a player with several chess.com or Lichess accounts (or friends' accounts), every account I have fetched
