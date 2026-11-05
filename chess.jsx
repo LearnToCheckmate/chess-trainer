@@ -5039,7 +5039,7 @@ export default function App(){
                very expression the `if` above filters on, so the card can only ever say "a mistake"
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-            caps.push({fen:toFEN(_cpos),no:Math.floor(i/2)+1,uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint});
+            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,no:Math.floor(i/2)+1/* last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
