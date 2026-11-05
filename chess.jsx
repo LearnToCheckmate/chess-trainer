@@ -9701,9 +9701,9 @@ export default function App(){
             if(_pd&&typeof _pd.rating==='number')rating=String(_pd.rating);
             else if(col===myColor)rating=String(Math.round(ratingRef.current.r));}
           const flag=inReview?flagOf(revFlags[col]||''):'';
-          let clk=null, ticking=false;
-          if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
-          else if(!inReview&&!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); ticking=(col===game.turn)&&!_gameOver; }
+          let clk=null, ticking=false, clkMs=null;
+          if(_isOnlineG&&_og.tc&&_og.tc.kind!=='corr'&&_og.tc.init&&_og.clk){ const base=liveNow-(_og.moveAt||liveNow); const rem=Math.max(0,(_og.clk[col]||0)-(col===game.turn?base:0)); clk=clockFmt(rem); clkMs=rem; ticking=(col===game.turn)&&_og.status==='active'&&!_og.result; }
+          else if(!inReview&&!_isOnlineG&&timeCtrl&&timeCtrl.kind!=='corr'&&clock){ clk=clockFmt(clock[col]); clkMs=clock[col]; ticking=(col===game.turn)&&!_gameOver; }
           const _myTurn=inReview?(col===boardGame.turn):((col===game.turn)&&!_gameOver&&!(_isOnlineG&&_og&&_og.result)); /* #437: was !isOver&&!playEnd, which re-lit the turn highlight on a finished game the moment you stepped back */
           const _lightBar=(col==='w');
           const _barBg=_lightBar?'linear-gradient(180deg,#f1f0e8,#dbd9ce)':'linear-gradient(180deg,#252934,#14161c)';
@@ -9786,7 +9786,7 @@ export default function App(){
                 5px of vertical padding; the button is measured at every geometry rather than trusted to fit. */}
             {!isTop&&inReview&&revCompact&&reviewView!=='summary'&&!anaMode&&<button data-ct="rev-fab" onClick={e=>{e.stopPropagation();_goAnalyze();}} title="Analyze: play this position out yourself" aria-label="Analyze this position" style={{flex:'0 0 auto',width:40,height:40,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',padding:0,touchAction:'manipulation'}}><MagIcon size={22}/></button>}
             {_hbPlay&&<button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" style={{..._hbSty,fontSize:17}}>{'\u2630'}</button>}
-            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:clk==='0:00'?'#d23b2e':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}}>{clk}</div>}
+            {clk!=null&&<div style={{fontFamily:'monospace',fontSize:'clamp(15px,4.4vw,21px)',fontWeight:800,padding:'4px 11px',borderRadius:8,flexShrink:0,background:ticking?'rgba(110,180,90,.22)':_pillBg,border:'1px solid '+(ticking?'rgba(110,180,90,.55)':_pillBd),color:(clk==='0:00'||(clkMs!=null&&Math.ceil(Math.max(0,clkMs|0)/1000)<10))?'#d23b2e':(clkMs!=null&&Math.ceil(Math.max(0,clkMs|0)/1000)<30)?'#e8a317':(ticking?(_lightBar?'#2f7a26':'#86d99a'):_fg)}} data-ct="pbar-clock" data-low={clk==='0:00'||(clkMs!=null&&Math.ceil(Math.max(0,clkMs|0)/1000)<10)?'red':(clkMs!=null&&Math.ceil(Math.max(0,clkMs|0)/1000)<30)?'amber':''} /* the bands are keyed on the SECONDS SHOWN (clockFmt rounds up), so the face never reads 0:30 in amber or 0:10 in red */>{clk}</div>/* #548 item (127), jobs/the-clock-gives-no-low-time-warning-until-after-the-flag-2026-09-29, Kunal's default (questions/B8-SMALL-DEFAULTS (1)): the clock turns AMBER under 30 seconds and RED under 10, so the warning comes before the flag and not after it */}
           </div>);
         };
         // #344: one base shell for every board screen. A square board on a tall phone always leaves slack;

@@ -193,7 +193,21 @@ async function blockA(){
   const pDuring=await plies(b);
   L.say(pDuring===8,'A0b opening the picker commits no move',{plies:pDuring});
   const takenBefore=await taken(b);
+  // TC-PL-051 [#548, item (127); jobs/the-clock-gives-no-low-time-warning-until-after-the-flag-2026-09-29, Kunal's default
+  // questions/B8-SMALL-DEFAULTS (1)]: this flag is the only place the suite watches a clock run down, so the low-time warning is
+  // sampled here. The clocks are found BY WHAT THEY SHOW (a leaf div whose whole text is m:ss in a monospace face), never by the
+  // data-ct hook #548 adds, so main's bundle - which has the hook's absence AND the defect - is red on the colour, not on a selector
+  // (#432). Every 150ms each clock's seconds and painted colour are read while White's 1-minute clock runs out.
+  await b.page.evaluate(()=>{window.__clk=[];window.__clkT=setInterval(()=>{for(const e of document.querySelectorAll('div')){if(e.children.length)continue;const m=(e.innerText||'').trim().match(/^(\d+):(\d\d)$/);if(!m)continue;const cs=getComputedStyle(e);if(!/monospace/.test(cs.fontFamily))continue;window.__clk.push({s:(+m[1])*60+(+m[2]),col:cs.color});}},150);});
   const ms=await waitFlag(b,140000);
+  const CK=await b.page.evaluate(()=>{clearInterval(window.__clkT);return window.__clk;});
+  {const AMBER='rgb(232, 163, 23)',RED='rgb(210, 59, 46)';   // the two colours the fix paints; plain is whatever 0:30 and above wears
+   const band=(x)=>x<10?'red':x<30?'amber':'plain';
+   const by={plain:CK.filter(c=>band(c.s)==='plain'),amber:CK.filter(c=>band(c.s)==='amber'),red:CK.filter(c=>band(c.s)==='red')};
+   L.say(by.plain.length>0&&by.amber.length>0&&by.red.length>0,'TC-PL-051 DENOMINATOR the run-down was sampled in all three bands - '+CK.length+' readings',{plain:by.plain.length,amber:by.amber.length,red:by.red.length});
+   L.say(by.amber.length>0&&by.amber.every(c=>c.col===AMBER),'TC-PL-051 under 30 seconds the clock is painted AMBER ('+AMBER+') at every reading from 0:29 to 0:10',{cols:[...new Set(by.amber.map(c=>c.col))]});
+   L.say(by.red.length>0&&by.red.every(c=>c.col===RED),'TC-PL-051 under 10 seconds it is painted RED ('+RED+') at every reading, BEFORE the flag and not only at 0:00',{cols:[...new Set(by.red.map(c=>c.col))]});
+   L.say(by.plain.length>0&&by.plain.every(c=>c.col!==AMBER&&c.col!==RED),'TC-PL-051 at 0:30 and above it is neither amber nor red',{cols:[...new Set(by.plain.map(c=>c.col))]});}
   L.say(ms!==null,'A0c White'+"'"+'s clock flagged with the picker open',{ms});
   const cd=await card(b);
   L.say(/Time/i.test(cd||''),'A0d the game ended on time',{card:cd});
