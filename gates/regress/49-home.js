@@ -803,6 +803,29 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     geo+': TC-HM-050b FIXED AT #425 - and Home COMES DOWN with it, so a brand-new user\'s one primary call to action visibly does something. Until #425 the Home overlay stayed mounted and stayed the element at the centre of the screen three seconds after the tap, so the only visible change was the Daily 3 dot switching to "Continue: Italian Game". Measured here as the zIndex-500 overlay being absent AND not the elementFromPoint at the viewport centre - two readings, because "absent" and "not covering" fail differently',
     {home:after.home,homeCoversMiddle:after.homeCoversMiddle});
   L.say(b.errs.length===0,geo+': zero app errors across the NEW HERE tap',b.errs.slice(0,3));
+  // TC-HM-053 [#548 item (154); jobs/new-user-first-lesson-journey-2026-09-27, Kunal's 'home' on Finding A]: CLOSING THAT LESSON GOES
+  // BACK HOME. The lesson's only close control (aria-label "Close lesson") used to land a brand-new player on Discover, a screen they had
+  // never seen. The intro card is dismissed first by its own button, found by text.
+  if(box&&after.lesson){
+    await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(g)g.click();});await b.settle(600);
+    const cl=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button[aria-label="Close lesson"]')].find(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;});if(!x)return false;x.click();return true;});
+    await b.settle(900);
+    const h=await homeUp(b),disc=await b.page.evaluate(()=>/What do you want to learn\?/.test(document.body.innerText||''));
+    L.say(cl,geo+': TC-HM-053 PRECONDITION the lesson\'s Close control was found and tapped',{cl});
+    L.say(cl&&h===true,geo+': TC-HM-053 closing the lesson the NEW HERE card opened lands on HOME (the overlay is back), not on Discover',{homeUp:h,discoverText:disc});
+  }
+  await b.close();
+}
+// TC-HM-053b, THE OVER-APPLICATION CONTROL: a lesson opened from DISCOVER still closes to Discover - the NEW HERE route is the only one changed.
+for(const geo of ['kunal730']){
+  const D=require('../drive/lesson');const b=await L.launch({geo,name:'home-053b-'+geo,store:{}});await b.open();let ok=true;
+  try{await D.openLesson(b,'Openings',0);await b.settle(600);await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(g)g.click();});await b.settle(500);}catch(e){ok=false;}
+  const cl=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button[aria-label="Close lesson"]')].find(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;});if(!x)return false;x.click();return true;});
+  await b.settle(900);
+  // ON DISCOVER means the group list the lesson came from (its lesson rows, the ♔/♚-badged buttons drive/lesson.js's rows() reads) or
+  // Discover's own heading - the first draft read only the heading, which a drilled-in group list does not show, and went red on main too.
+  const h=await homeUp(b),disc=await b.page.evaluate(()=>/What do you want to learn\?/.test(document.body.innerText||'')||[...document.querySelectorAll('button')].some(x=>/[♔♚]/.test((x.innerText||'').slice(0,3))&&(()=>{const r=x.getBoundingClientRect();return r.width>200&&r.bottom>0&&r.top<innerHeight;})()));
+  L.say(ok&&cl&&h===false&&disc,geo+': TC-HM-053b a lesson opened from Discover still closes to Discover, not Home',{ok,cl,homeUp:h,discover:disc});
   await b.close();
 }
 
