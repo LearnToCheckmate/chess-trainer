@@ -533,7 +533,11 @@ L.run(async()=>{
     L.say(!!r.hit,'TC-R106 A1b '+tag+' the control is reachable by a finger (clear of the tab bar) and was tapped',{reach:r});
     const rowBtns=()=>b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-row1"] button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
     const rb=r.hit?await rowBtns():[];const anaPlc=r.hit?await placement(b):null;
-    L.say(rb.some(t=>/Undo/.test(t))&&rb.some(t=>/Reset/.test(t))&&rb.some(t=>/Back to the card/.test(t)),'TC-R106 A2 '+tag+' it opens the review ANALYSIS board with take back, reset and the way back',{row:rb});
+    L.say(rb.some(t=>/Undo/.test(t))&&rb.some(t=>/Reset/.test(t))&&rb.some(t=>/\u2039 Card|Back to the card/.test(t)),'TC-R106 A2 '+tag+' it opens the review ANALYSIS board with take back, reset and the way back',{row:rb});
+    // A2b [#548 final auditor P1]: every control on that row FITS ITS OWN BOX - '\u2039 Back to the card' needed 132px in 119.7px at 375 and read
+    // 'Back to the car' while A2's text test stayed green. scrollWidth against clientWidth, per button, and the row inside the screen.
+    const fit=r.hit?await b.page.evaluate(()=>{const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;const bs=[...row.querySelectorAll('button')].map(x=>({t:(x.innerText||'').trim(),sw:x.scrollWidth,cw:x.clientWidth}));const q=row.getBoundingClientRect();return {bs,right:+q.right.toFixed(1),vw:innerWidth,rowSw:row.scrollWidth,rowCw:row.clientWidth};}):null;
+    L.say(!!fit&&fit.bs.length>=3&&fit.bs.every(x=>x.sw<=x.cw+1)&&fit.rowSw<=fit.rowCw+1&&fit.right<=fit.vw+0.5,'TC-R106 A2b '+tag+' every control on the analysis row fits its own box and the row is inside the screen (no clipped label)',fit);
     L.say(!!anaPlc&&anaPlc===askPlc,'TC-R106 A3 '+tag+' the analysis board shows EXACTLY the card\'s position (the painted pieces equal the asked card\'s)',{same:anaPlc===askPlc});
     const eng=r.hit?await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').trim()):'';
     L.say(/^(M\d+|[+-]?\d+\.\d)/.test(eng),'TC-R106 A4 '+tag+' the engine is on and reads the position',{eng:eng.slice(0,60)});
@@ -543,10 +547,10 @@ L.run(async()=>{
     if(r.hit)await b.page.evaluate(()=>{const x=[...document.querySelectorAll('[data-ct="rev-row1"] button')].find(e=>/Reset/.test(e.innerText||''));x&&x.click();});
     await b.settle(700);const rs=r.hit?await placement(b):null;
     L.say(!!rs&&rs===askPlc,'TC-R106 A6 '+tag+' Reset puts the card\'s position back',{same:rs===askPlc});
-    if(r.hit)await b.page.evaluate(()=>{const x=[...document.querySelectorAll('[data-ct="rev-row1"] button')].find(e=>/Back to the card/.test(e.innerText||''));x&&x.click();});
+    if(r.hit)await b.page.evaluate(()=>{const x=[...document.querySelectorAll('[data-ct="rev-row1"] button')].find(e=>/\u2039 Card|Back to the card/.test(e.innerText||''));x&&x.click();});
     await b.settle(1500);const back=await idx(b);const bs=await state(b);
     // A7/A8 REQUIRE THAT IT LEFT: without the round trip the card never moved and both would pass on a build with no way in (main did).
-    const left=!!r.hit&&rb.some(t=>/Back to the card/.test(t));
+    const left=!!r.hit&&rb.some(t=>/\u2039 Card|Back to the card/.test(t));
     L.say(left&&!!back&&!!p2&&back.i===p2.i&&back.n===p2.n,'TC-R106 A7 '+tag+' the way back lands on the SAME card number out of the same total ('+(back?back.i+' of '+back.n:'none')+')',{back,before:p2});
     L.say(left&&!!bs.verdict&&!bs.asking,'TC-R106 A8 '+tag+' and that card is still SOLVED, not asked again',{verdict:bs.verdict,asking:bs.asking});
     await b.close();
@@ -585,7 +589,7 @@ L.run(async()=>{
     let row1=null,okA=false;if(r.hit){try{await b.tapCt('rev-more',500);await b.tapText(/^New game$/,{wait:800});await R72.importPgn(b,R72.PGN_OPERA,180000);await R72.startReview(b);await b.settle(800);okA=true;}catch(e){}/* read AT ARRIVAL, before any ply change: a ply change clears anaMode by itself, and the first draft's goPly(10) made A10 pass on the broken bundle */
       row1=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-row1"] button')].map(x=>(x.innerText||'').trim()));}
     L.say(okA,'TC-R106 A10 PRECONDITION from the drill analysis board, ⋯ -> New game -> a fresh import reached its move screen',{row1});
-    L.say(okA&&!!row1&&row1.length>0&&!row1.some(t=>/Undo|Exit analysis|Back to the card/.test(t)),'TC-R106 A10 the next game opens on its ordinary review controls, NOT the analysis board left on from the drill',{row1});
+    L.say(okA&&!!row1&&row1.length>0&&!row1.some(t=>/Undo|Exit analysis|\u2039 Card|Back to the card/.test(t)),'TC-R106 A10 the next game opens on its ordinary review controls, NOT the analysis board left on from the drill',{row1});
     await b.close();}
    {const {b,ok,r,row}=await openAna({ct_mybrilliancies:[Object.assign({label:'Brilliant',no:20},card)],ct_bril_reset_v1:'1'},/can you spot them again\?/);
     L.say(ok&&!!r.hit&&!!row,'TC-R106 A9d PRECONDITION a Black BRILLIANT card at move 20 was solved, opened on the analysis board, its line arrived',{row});

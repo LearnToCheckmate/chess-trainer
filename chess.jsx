@@ -8881,7 +8881,7 @@ export default function App(){
               {cb('\u21b6 Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
               {review&&review.fromDrill?(<>
                 {cb('\u21ba Reset',()=>{setAnaHist([]);setGame(review.positions[0]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Back to the card\'s position')}
-                {cb('\u2039 Back to the card',leaveDrillAnalysis,0,true,'Back to the same drill card')}
+                {cb('\u2039 Card',leaveDrillAnalysis,0,true,'Back to the same drill card')/* final auditor P1: '‹ Back to the card' needed 132px in a 119.7px button at 375 and read 'Back to the car'; the words live in the title */}
               </>):cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
             </>):(<>
               {cb('\u23ee',()=>{setRevAuto(false);setPly(0);},0,false,'First move')}
