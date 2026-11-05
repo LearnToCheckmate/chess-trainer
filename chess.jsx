@@ -8825,7 +8825,7 @@ export default function App(){
                 because the only "Flip board" _SheetItem in this file belongs to the REVIEW sheet (it calls
                 setRevMore). THE COMMENT IS WRONG AND THE BEHAVIOUR IS RIGHT, and that distinction cost this
                 build a reverted change. #437 first ADDED Flip to this sheet, on its antagonist's finding that
-                fixing the row above removed the last route to it. That was wrong: decisions/q-play-flip-gameover
+                fixing the row above removed the last route to it. That was wrong: decisions/q-play-flip-gameover [on the OLD Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN, not the tracker or the Desk; READ at #548: v1, choice "Flip a finished game in Review instead", build #390, note empty]
                 (Kunal, #390) already answered this question - "Flip a finished game in Review instead" - with no
                 holding note. So the route to flipping a finished game is the Review screen BY DECISION, this row
                 is right to drop Flip, this sheet is right not to carry it, and gates/regress/46-play.js's

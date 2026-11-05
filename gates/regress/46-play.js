@@ -532,9 +532,11 @@ L.run(async()=>{
        So the two halves of the chrome behave DIFFERENTLY at one ply back, and the difference is the point:
        the control row is NOT ply-keyed and the result card IS. Both are asserted below, two-sided, so either
        one changing is red.
-       THE CARD ASSERTION IS RECORDED, NOT ENDORSED - the same stance this file already takes at TC-PL-026 on
-       Flip. Whether the result card SHOULD vanish when you step back into the game to look at it is a product
-       question that belongs to jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30 and
+       THE CARD ASSERTION IS NOW ENDORSED [#548, item (44)]: Kunal answered questions/B8B-BACK-AFTER-GAME-OVER on 4 Nov 2026
+       ('final-only': the result shows only at the last move), and TC-PL-026's Flip stance is DECIDED by
+       decisions/q-play-flip-gameover [on the OLD Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN, not the tracker or the Desk; READ at #548: v1, choice 'Flip a finished game in Review instead', build #390, note empty]. What follows is the history of why it was once only recorded.
+       Whether the result card SHOULD vanish when you step back into the game to look at it was a product
+       question that belonged to jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30 and
        jobs/the-control-row-is-keyed-to-the-ply-shown-not-to-whether-the-game-is-over-2026-09-29, neither of
        which is settled. Asserting the behaviour I would prefer would hand the build lane a red gate it did
        not cause, which is how an assertion gets edited away under time pressure. Asserting what the build
@@ -611,9 +613,10 @@ L.run(async()=>{
        one ply back, with the squares at 64 throughout. CLAUDE.md's #394 question - is the thing I am detecting a
        descendant of the thing I am asserting over? - is answered by asserting the squares and the overlay
        separately rather than their sum. The absolute 65 is asserted once, at the terminal ply.
-       RECORDED, NOT ENDORSED, the same stance as TC-PL-026 and the Back arm. Whether stepping back into a
-       finished game SHOULD take the result away is the product question on
-       jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30, which is not settled. This arm pins
+       ENDORSED SINCE #548 [item (44)]: Kunal's questions/B8B-BACK-AFTER-GAME-OVER answer ('final-only', 4 Nov 2026) settles the
+       product question that was on jobs/play-status-slot-loses-the-result-on-one-back-tap-2026-09-30 - stepping back into a
+       finished game shows the position without the result. TC-PL-026's Flip stance is decided the same way (decisions/
+       q-play-flip-gameover [on the OLD Agent Metrics artifact 7UnnqXyJ5knRwB4t1qHaiN, not the tracker or the Desk; READ at #548: v1, choice 'Flip a finished game in Review instead', build #390, note empty]). This arm pins
        what the build does so the term is operative today and the decision stays where it belongs.
        WHAT IS STILL NOT DONE, named as specifically as what is: the non-board ending (block 11 resigns at
        move 0, where Back and Forward are both disabled, so a resign-with-moves drive state is needed and
