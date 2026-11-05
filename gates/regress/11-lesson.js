@@ -72,7 +72,7 @@ L.run(async()=>{
         const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''))
           .map(e=>e.getBoundingClientRect()).sort((a,b)=>b.width-a.width)[0];
         return {vw:innerWidth,vh:innerHeight,bottom:Math.round(bottom*10)/10,
-                board:gr?{w:Math.round(gr.width*10)/10,x:Math.round(gr.left*10)/10}:null};
+                board:gr?{w:Math.round(gr.width*10)/10,x:Math.round(gr.left*10)/10,top:Math.round(gr.top*10)/10}:null};
       });
       const tag=name+' '+st;
       W73[st]=m.board?m.board.w:null;
@@ -84,7 +84,7 @@ L.run(async()=>{
       L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
       // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
       // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
-      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':270.9/* #547 item (124): the practice-only progress strip no longer takes layout, so practice equals the demo end at every geometry (was 254.9; #430 was 230.9) */,'360x640 demo-end':342.4,'360x640 practice-m0':342.4/* #547 (124): was 326.4 */,'375x667 demo-end':375,'375x667 practice-m0':375/* #547 (124): was 352.2 */};
+      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':270.9/* #547 item (124): the practice-only progress strip no longer takes layout, so practice equals the demo end at every geometry (was 254.9; #430 was 230.9) */,'360x640 demo-end':342.4,'360x640 practice-m0':342.4/* #547 (124): was 326.4 */,'375x667 demo-end':375,'375x667 practice-m0':375/* #547 (124): was 352.2 */,'375x730 demo-end':375,'375x730 practice-m0':375/* #548 item (8): Kunal's phone, measured 375 in both states on c7f6a1228e43 and in 547d-all.log; width-bound, so one value */};
       /* ── RE-KEYED TO THE TWO STATES THE FIT LOOP IS BISTABLE BETWEEN [#544, item (8) of
          directOpening_2026_10_28_batch4;
          jobs/461-the-gate-manifest-is-built-and-controlled-and-held-on-a-bistable-literal-in-gate-11-2026-10-02,
@@ -123,6 +123,11 @@ L.run(async()=>{
          AND THE LOWER STATE IS REPORTED EVERY TIME IT HAPPENS, so "bistable" stays a measurement rather than
          an excuse: if the log never shows the note, the second state has stopped occurring and the pin can go
          back to one value. */
+      /* #548, item (8); jobs/gate-11-pins-the-demo-end-board-only-at-one-geometry-2026-10-02: THE TOP IS PINNED AT ALL FOUR
+         SWEEP GEOMETRIES, not only at kunal and 390. Measured on main's own bundle c7f6a1228e43 at #548: the board's top is 92.0
+         in both states at 320x568, 360x640, 375x667 and 375x730 - the same 92 the kunal and 390 lines pin. A board that moves
+         down (a row grew above it) or up (the header lost height) is red here at every geometry this block runs. */
+      L.say(!!m.board&&Math.abs(m.board.top-92)<1,tag+': TC-R73b the lesson board top is 92 ('+(m.board&&m.board.top)+')',m.board);
       const TRIM_STEP=8;
       if(WANT[tag]!=null){
         const w=m.board?m.board.w:null;
