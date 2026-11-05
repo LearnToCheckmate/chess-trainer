@@ -305,8 +305,11 @@ L.run(async()=>{
       L.say(tap.ok&&postFwd.found&&postFwd.dis===false,t+'2c '+geo+' '+ending+': THE WITNESS - Forward is now ENABLED, so the tap really moved the previewed ply. Without this, G3 passes on a tap that did nothing, which is #416 exactly',{before:preFwd,after:postFwd});
       // THE DEFECT ITSELF, asserted on the slot ELEMENT rather than on a substring of body text, so "no slot
       // at all" is a measurement and not a silence (#393/#394).
-      L.say(!!post&&post.t===want,t+'3 '+geo+' '+ending+': AND THE RESULT IS STILL THERE after one Back tap - the row answers whether the GAME is finished, not whether the previewed position is terminal. On #471 the mate arm read "" here',{slot:post&&post.t,want,wasBefore:pre&&pre.t});
-      L.say(postHits.some(h=>h.t===want),t+'4 '+geo+' '+ending+': and an independent painted-element scan still finds that exact string somewhere on screen, so G3 cannot be satisfied by a hidden or zero-area node',{hits:postHits,want});
+      // #548, the follow-up to item (126) [e4ed497]: Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER ('final-only') - THE RESULT IS STATED
+      // ONLY AT THE LAST MOVE. G3/G4 asserted the opposite (#471's 'the row answers whether the GAME is finished'), which was right until
+      // he chose; they are inverted, and G1 (stated at the terminal ply) and G6 (stated again after the round trip) still hold the other half.
+      L.say(!!post&&post.t!==want,t+'3 '+geo+' '+ending+': one Back tap after the game ended, the slot does NOT state the result - it is stated only at the last move (Kunal, final-only)',{slot:post&&post.t,want});
+      L.say(!postHits.some(h=>h.t===want),t+'4 '+geo+' '+ending+': and an independent painted-element scan finds that string NOWHERE on screen one ply back',{hits:postHits,want});
       // G5: the second instance of the class - the dismissed card must not re-open on the way back.
       const fwd=await tapFwd(b);await b.settle(800);
       const card=await b.text('[data-ct="result-card"]'),back=await slot(b);
@@ -349,8 +352,9 @@ L.run(async()=>{
     await b.settle(900);
     const postFwd=await fwdState(b),post=await slot(b),hits=await resultHits(b);
     L.say(tap.ok&&postFwd.found&&postFwd.dis===false,'L2c 375x730 stalemate: THE WITNESS - Forward is now enabled, so the ply moved',{before:preFwd,after:postFwd});
-    L.say(!!post&&post.t===want,'L3 375x730 stalemate: AND THE RESULT IS STILL THERE after one Back tap. This is the branch no other input in this file evaluates - `_gameTermStatus` returns \'stalemate\' and `_winSide` is null, so the sub comes from `_winTxt`\'s Draw fall-through. On #471 and on NC1 this read ""',{slot:post&&post.t,want});
-    L.say(hits.some(h=>h.t===want),'L4 375x730 stalemate: and an independent painted-element scan finds that exact string',{hits,want});
+    // #548 follow-up to item (126): final-only (see G3) - inverted the same way.
+    L.say(!!post&&post.t!==want,'L3 375x730 stalemate: one Back tap after the stalemate, the slot does NOT state the result - final-only',{slot:post&&post.t,want});
+    L.say(!hits.some(h=>h.t===want),'L4 375x730 stalemate: and no painted element shows that string one ply back',{hits,want});
     L.say(b.errs.length===0,'L5 375x730 stalemate: zero app errors across a 19-ply stalemate and a step back',b.errs.slice(0,3));
     await b.close();
   }
@@ -411,7 +415,9 @@ L.run(async()=>{
     L.say(!!slIn&&slIn.t==="Scholar's Mate",tag+'4a '+geo+': WHILE THE CARD IS UP the slot carries the OPENING NAME, not the result - #434\'s time-split, measured at this frame on both bundles',{slot:slIn&&slIn.t});
     await b.settle(4200);                                  // past the 3300ms fade, same previewed ply
     const slOut=await slot(b);
-    L.say(!!slOut&&slOut.t==="Checkmate! \u00b7 White wins",tag+'4b '+geo+': AND AFTER THE FADE, STILL AT THAT PREVIEWED PLY, the result takes the slot back - which is this build\'s actual fix holding at a non-final ply. White mates with Qxf7#, so WHITE wins',{slot:slOut&&slOut.t});
+    // #548, the follow-up to item (126): FINAL-ONLY (Kunal, questions/B8B-BACK-AFTER-GAME-OVER) - at a NON-final ply the result is not
+    // stated, so after the fade this previewed ply keeps the opening name. 4b asserted the opposite until he chose.
+    L.say(!!slOut&&slOut.t!=="Checkmate! \u00b7 White wins"&&slOut.t==="Scholar's Mate",tag+'4b '+geo+': AFTER THE FADE, STILL AT THAT PREVIEWED (non-final) PLY, the slot does NOT state the result - final-only - and keeps the opening name',{slot:slOut&&slOut.t});
     L.say(b.errs.length===0,tag+'5 '+geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
