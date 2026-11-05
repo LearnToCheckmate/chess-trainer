@@ -109,7 +109,10 @@ async function btnRects(b){return b.page.evaluate(()=>[...document.querySelector
 // #548 item (92): (8,8) IS NOW THE TOP ROW'S HOME BUTTON on a phone (Home and Menu left the player bar for a row of their own), so a
 // blind tap there with no sheet open takes the player Home. The backdrop tap is made only while the More sheet is up, which is the
 // only thing this helper was ever closing.
-async function closeSheet(b){const up=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="more-sheet"]');if(!s)return false;const r=s.getBoundingClientRect();return r.width>2&&r.height>2;});if(up){await b.page.mouse.click(8,8);await b.page.waitForTimeout(300);}}
+/* #548 item (92), corrected in round 1: tap (8,8) whenever what is UNDER it is not the Home button - i.e. some sheet's backdrop covers it (the
+   More sheet OR the Menu sheet). The first version tapped only when the More sheet was up, so gate 70's I block left the Menu sheet open and
+   read its own still-armed pill as the arm surviving a close. With nothing open, (8,8) is the phone's Home button, which must not be tapped. */
+async function closeSheet(b){const up=await b.page.evaluate(()=>{const h=document.elementFromPoint(8,8);if(!h)return false;const home=document.querySelector('[data-ct="play-home"]');return !(home&&(h===home||home.contains(h)));});if(up){await b.page.mouse.click(8,8);await b.page.waitForTimeout(300);}}
 async function noClock(b){try{await b.tapText(/^No clock$/,{wait:200});}catch(e){}}
 
 const S={};
