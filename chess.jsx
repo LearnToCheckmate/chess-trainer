@@ -9162,8 +9162,8 @@ export default function App(){
           <button onClick={()=>loadPuzzle(puzIdx)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
         <div style={{display:'flex',gap:7,width:'100%'}}>
-          <button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} style={navBtn(false)}>‹ Prev</button>
-          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} style={navBtn(puzSolved)}>Next ›</button>
+          {/* #548 item (161), jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: the landscape pair carries the same accessible names as the portrait pair, so a screen reader and the puzzles driver find them in both layouts */}<button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} aria-label="Previous puzzle" style={navBtn(false)}>‹ Prev</button>
+          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={navBtn(puzSolved)}>Next ›</button>
         </div>
         </>)}
       </div>);})()}

@@ -269,4 +269,16 @@ L.run(async()=>{
       await b.close();
     }
   }
+  // TC-PZ-LAND [#548, item (161); jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03]: IN LANDSCAPE THE PUZZLE
+  // PREV/NEXT PAIR HAS THE SAME ACCESSIBLE NAMES AS IN PORTRAIT. Found by their visible text ('‹ Prev', 'Next ›'), then their
+  // aria-label read; on main the landscape pair carried none, so the puzzles driver's tapAria states failed there.
+  for(const g of [{w:730,h:375,safe:''},{w:844,h:390,safe:''}]){
+    const b=await L.launch({geo:g,name:'pz-land-'+g.w});await b.open();let ok=true;
+    try{await Z.states['train'](b);await b.settle(400);}catch(e){ok=false;}
+    const r=await b.page.evaluate(()=>{const bs=[...document.querySelectorAll('button')];const f=(re)=>bs.filter(x=>re.test((x.innerText||'').trim()));
+      return {prev:f(/^‹ Prev$/).map(x=>x.getAttribute('aria-label')),next:f(/^Next ›$/).map(x=>x.getAttribute('aria-label'))};});
+    L.say(ok&&r.prev.length===1&&r.next.length===1,g.w+'x'+g.h+': TC-PZ-LAND PRECONDITION the landscape puzzle screen shows one ‹ Prev and one Next ›',r);
+    L.say(r.prev[0]==='Previous puzzle'&&r.next[0]==='Next puzzle',g.w+'x'+g.h+': TC-PZ-LAND the landscape pair is named "Previous puzzle" / "Next puzzle", as in portrait',r);
+    await b.close();
+  }
 },'PZ-STREAK');
