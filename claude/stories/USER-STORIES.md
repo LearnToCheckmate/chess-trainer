@@ -247,6 +247,14 @@ about a LIVE online game (sign-in, Firestore, a two-context harness nobody has w
 because no case can execute them, and the gate header names them as NOT COVERED.
 
 
+### US-HM-12 The Discover tiles fill the screen they are on
+
+Kunal's answer on questions/B8-DISCOVER ('tiles', 4 Nov 2026): the four Discover tiles grow into the space the screen gives them
+rather than leaving most of it empty (jobs/bench-discover-is-57-per-cent-empty-2026-09-30).
+
+- The band between the last row of tiles and the tab bar is at most 60px at 320x568, 375x730 and 375x812, because the extra height
+  went into the tiles and their icons, and no tile runs under the tab bar. (TC-HM-DISC)
+
 ### US-HM-13 The coach can be the owl
 
 Kunal's answer on questions/B8B-OWL ('new', 4 Nov 2026): the owl coach drawing approved on 14 September ships as a fifth coach look

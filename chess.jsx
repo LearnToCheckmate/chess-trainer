@@ -2700,7 +2700,7 @@ function _navIcon(n,c){
 }
 function _TabBar({active,go}){
   const tabs=[['home','Home'],['learn','Discover'],['puzzle','Puzzles'],['analyze','Review'],['play','Play']];
-  return(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',minHeight:56,background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+  return(<div data-ct="tabbar" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',minHeight:56,background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
     {tabs.map(([k,lab])=>{const on=active===k;const c=on?'var(--ac2)':'rgba(255,255,255,.6)';return(
       <button key={k} onClick={()=>go(k)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0}}>
         <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
@@ -2735,6 +2735,7 @@ export default function App(){
   const cyclingRef=useRef(false);
   const [learnCat,setLearnCat]=useState(null);
   const [learnGroup,setLearnGroup]=useState(null);
+  const [discRowH,setDiscRowH]=useState(0);const discGridRef=useRef(null);   // #548 item (135): the Discover tiles' row height, measured so the four tiles fill the screen
   const [trainerDemo,setTrainerDemo]=useState(false);
   useEffect(()=>{if(learnGroup!=='tactics')setTrainerDemo(false);},[learnGroup]);
   const skEff=(SKINS[skin]&&SKINS[skin].pro&&!isPro)?CLASSIC_IDX:skin;
@@ -3752,6 +3753,21 @@ export default function App(){
   const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
   const SQ=useMemo(()=>{if(wide){const _bars=((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70; /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const availH=vp.h-24-_bars;const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20;const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalUnder;const reserved=(_evOn?4:0)+(_evOn?EVAL_BAR_W(inReview):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 18 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;const _cap=Math.min(widthCap,Math.min(heightCap,hardCap)-_trim);if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
+  /* #548 item (135), jobs/bench-discover-is-57-per-cent-empty-2026-09-30, Kunal's answer questions/B8-DISCOVER ('tiles'): THE FOUR
+     TILES GROW TO FILL THE SCREEN, AND EXTRA PHONE HEIGHT GOES INTO THEM rather than into the band under them (measured on main
+     c7f6a1228e43: the tiles end at y 402 whatever the phone, leaving 354px empty at 375x812, 272 at 375x730, 110 at 320x568). The row
+     height is measured from where the grid starts to 14px above the tab bar and split between the two rows; it never goes below
+     the tiles' natural height (about 147px), so a short phone keeps today's layout. Portrait only - landscape keeps its rail. */
+  useLayoutEffect(()=>{
+    if(!(mode==='learn'&&openIdx===null&&learnGroup===null&&!wide)){if(discRowH)setDiscRowH(0);return;}
+    /* measured again on the next frame too: the tab bar mounts in the same commit as this screen, so the first read can find it
+       absent - and a row sized against the viewport bottom then overlapped the bar by ~40px (measured on the first trial) */
+    const run=()=>{const g=discGridRef.current;if(!g)return;
+      const tb=document.querySelector('[data-ct="tabbar"]');const lim=(tb?tb.getBoundingClientRect().top:(vp.h-56))-14;
+      const row=Math.floor((lim-g.getBoundingClientRect().top-6)/2);
+      const next=row>150?row:0;setDiscRowH(r=>Math.abs(next-r)>1?next:r);};
+    run();const id=requestAnimationFrame(run);return()=>cancelAnimationFrame(id);
+  },[mode,openIdx,learnGroup,wide,vp.h,vp.w]);
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
   // #344: fit the board to whatever screen this actually is.
@@ -9363,10 +9379,10 @@ export default function App(){
               <div style={{fontFamily:"var(--head)",fontSize:'clamp(20px,5.2vw,28px)',color:'#fff',fontWeight:700,letterSpacing:.3,lineHeight:1.12}}>What do you want to learn?</div>
               <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:4}}>{LIB.length} lessons, taught move by move</div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',rowGap:6,columnGap:10,width:'100%',maxWidth:380,margin:'0 auto'}}>
+            <div ref={discGridRef} data-ct="discover-tiles" style={{display:'grid',gridTemplateColumns:'1fr 1fr',rowGap:6,columnGap:10,width:'100%',maxWidth:380,margin:'0 auto',...(discRowH?{gridAutoRows:discRowH+'px'}:null)}}>
               {[{key:'openings',label:'Openings',icon:'🚀',tint:['#3b82f6','#1d4ed8']},{key:'gambits',label:'Gambits',icon:'⚔️',tint:['#ef4444','#b91c1c']},{key:'endgames',label:'Endgames',icon:'👑',tint:['#a855f7','#7c3aed']},{key:'tactics',label:'Tactics',icon:'💡',tint:['#10b981','#047857'],isNew:true}].map((t,gi)=>{const n=t.isNew?null:LIB.filter(o=>groupOf(o.cat)===t.key).length;if(!t.isNew&&!n)return null;return(
-                <button key={t.key} onClick={()=>setLearnGroup(t.key)} style={{background:'transparent',border:'none',padding:'12px 4px',cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',color:'inherit'}}>
-                  <div style={{position:'relative',width:76,height:76,borderRadius:22,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,fontSize:38,lineHeight:1,background:`linear-gradient(150deg,${t.tint[0]},${t.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.26),0 12px 20px ${t.tint[1]}55,inset 0 2px 0 rgba(255,255,255,.45),inset 0 -5px 9px rgba(0,0,0,.26)`,animation:'iconpop .5s cubic-bezier(.34,1.56,.64,1) both',animationDelay:`${gi*0.07}s`}}>{t.icon}</div>
+                <button key={t.key} onClick={()=>setLearnGroup(t.key)} style={{background:'transparent',border:'none',padding:'12px 4px',cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'inherit'}}>
+                  <div style={{position:'relative',width:(discRowH?Math.min(150,Math.round(discRowH*0.52)):76),height:(discRowH?Math.min(150,Math.round(discRowH*0.52)):76),borderRadius:22,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,fontSize:(discRowH?Math.min(74,Math.round(discRowH*0.26)):38),lineHeight:1,background:`linear-gradient(150deg,${t.tint[0]},${t.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.26),0 12px 20px ${t.tint[1]}55,inset 0 2px 0 rgba(255,255,255,.45),inset 0 -5px 9px rgba(0,0,0,.26)`,animation:'iconpop .5s cubic-bezier(.34,1.56,.64,1) both',animationDelay:`${gi*0.07}s`}}>{t.icon}</div>
                   <div style={{color:'rgba(255,255,255,.98)',fontSize:'clamp(15px,4.1vw,18px)',fontWeight:800,marginBottom:2,letterSpacing:.2}}>{t.label}</div>
                   <div style={{color:'rgba(255,255,255,.46)',fontSize:'clamp(11px,2.6vw,12.5px)',lineHeight:1.3}}>{t.isNew?'New':n+' lessons'}</div>
                 </button>);})}

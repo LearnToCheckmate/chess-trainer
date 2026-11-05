@@ -1155,4 +1155,22 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
   await b.close();
 }
 
+// TC-HM-DISC [#548, item (135); jobs/bench-discover-is-57-per-cent-empty-2026-09-30, Kunal's answer questions/B8-DISCOVER ('tiles'):
+// the four tiles grow to fill the screen, and extra phone height goes into them, not into the band under them]. The four tiles are
+// found by their labels (never by the hook #548 adds), the tab bar as the fixed layer that carries the tab names. At every geometry
+// the band between the tiles' bottom and the tab bar is at most 60px (Kunal's 60px rule, answers/empty-space-limit-per-screen-
+// 2026-10-10) and the tiles do not run under the bar. MEASURED on main c7f6a1228e43: the tiles end at y 402 at every phone, a band
+// of 354px at 375x812, 272 at 375x730, 110 at 320x568.
+for(const g of [{w:375,h:812,safe:''},L.GEOS.kunal730,{w:320,h:568,safe:''}]){
+  const b=await L.launch({geo:g,name:'discover-tiles-'+g.w+'x'+g.h});await b.open();let ok=true;
+  try{await H.states['discover'](b);await b.settle(600);}catch(e){ok=false;}
+  const m=await b.page.evaluate(()=>{const btns=[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').split('\n').some(l=>/^(Openings|Gambits|Endgames|Tactics)$/.test(l.trim())));
+    const tb=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/Discover/.test(d.innerText||'')&&/Puzzles/.test(d.innerText||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.top-a.top)[0];
+    const r=btns.map(x=>x.getBoundingClientRect());return {n:btns.length,bottom:r.length?Math.round(Math.max(...r.map(x=>x.bottom))):null,tabTop:tb?Math.round(tb.top):null};});
+  const tag=g.w+'x'+g.h;
+  L.say(ok&&m.n===4&&m.tabTop!=null,tag+': TC-HM-DISC PRECONDITION Discover shows its four tiles and the tab bar was found',m);
+  L.say(m.n===4&&m.tabTop!=null&&m.tabTop-m.bottom<=60,tag+': TC-HM-DISC the band between the tiles and the tab bar is at most 60px ('+(m.tabTop-m.bottom)+'px) - the extra height went into the tiles',m);
+  L.say(m.n===4&&m.tabTop!=null&&m.bottom<=m.tabTop,tag+': TC-HM-DISC and the grown tiles stop above the tab bar (bottom '+m.bottom+' <= '+m.tabTop+')',m);
+  await b.close();
+}
 },'HOME');
