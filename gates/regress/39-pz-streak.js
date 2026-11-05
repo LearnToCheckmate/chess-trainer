@@ -195,4 +195,31 @@ L.run(async()=>{
     L.say(b.errs.length===0,geo+': TC-R86 no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
+  // TC-PZ-BURST [#548, item (21); jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24, acceptance A]: THE SOLVE
+  // BURST NEVER PAINTS OVER THE TOP BOX. Puzzle 1 (Re8+ Rf8 Rxf8#) is solved, and every animation frame for 1.4s the confetti
+  // pieces of the burst layer (found by structure: the fixed, zIndex 9500, pointer-events none layer) are read against [data-ct=pz-top] and against the board. Arrival first (#385): the burst was
+  // sampled, non-empty, in its own L.say, so an absent burst cannot pass the overlap check over nothing (R18's empty-denominator
+  // rule). Then: no piece intersects the top box, and every piece lies inside the board's rect (the layer is clipped to it).
+  // Control: main's c7f6a1228e43, whose burst is viewport-wide from 16% of the height, reddens the overlap line here.
+  for(const geo of ['se','w375h667','430']){
+    const b=await L.launch({geo,name:'pz-burst-'+geo});await b.open();let ok=true;
+    try{await Z.states['train-step1'](b);}catch(e){ok=false;}
+    await b.page.evaluate(()=>{window.__bs=[];window.__bstop=false;const R=(e)=>{const r=e.getBoundingClientRect();return [r.left,r.top,r.right,r.bottom];};
+      const tick=()=>{if(window.__bstop)return;const L=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='9500'&&d.style.pointerEvents==='none');   /* by STRUCTURE (the burst's own fixed layer), not by the data-ct #548 adds (#432) */
+        if(L){const top=document.querySelector('[data-ct="pz-top"]');const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(R).sort((a,b)=>(b[2]-b[0])-(a[2]-a[0]))[0];
+          const vis=[...L.querySelectorAll('span')].map(R).map(r=>{const c=L.getBoundingClientRect();return [Math.max(r[0],c.left),Math.max(r[1],c.top),Math.min(r[2],c.right),Math.min(r[3],c.bottom)];}).filter(r=>r[2]-r[0]>0.5&&r[3]-r[1]>0.5);
+          window.__bs.push({top:top?R(top):null,board:bd||null,p:vis});}
+        requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+    if(ok){await b.move('e8','f8',0);await b.settle(1400);}
+    const S=await b.page.evaluate(()=>{window.__bstop=true;return window.__bs;});
+    const pieces=S.reduce((n,f)=>n+f.p.length,0);
+    L.say(ok&&S.length>0&&pieces>0,geo+': TC-PZ-BURST DENOMINATOR the puzzle was solved and the burst was sampled on screen ('+S.length+' frames, '+pieces+' painted pieces)',{frames:S.length,pieces});
+    const hit=(a,c)=>a&&c&&a[0]<c[2]-0.5&&a[2]>c[0]+0.5&&a[1]<c[3]-0.5&&a[3]>c[1]+0.5;
+    const over=S.filter(f=>f.p.some(p=>hit(p,f.top)));
+    L.say(S.length>0&&over.length===0,geo+': TC-PZ-BURST no painted confetti piece intersects the top box (prompt and verdict text) in any frame',{framesOverTop:over.length,frames:S.length,first:over[0]||null});
+    const out=S.filter(f=>f.board&&f.p.some(p=>p[0]<f.board[0]-1||p[1]<f.board[1]-1||p[2]>f.board[2]+1||p[3]>f.board[3]+1));
+    L.say(S.length>0&&out.length===0,geo+': TC-PZ-BURST every painted piece lies inside the board rect - the layer is the board\'s size and clips at its edges',{framesOutside:out.length,first:out[0]||null});
+    L.say(b.errs.length===0,geo+': TC-PZ-BURST no console errors',{errs:b.errs.slice(0,2)});
+    await b.close();
+  }
 },'PZ-STREAK');
