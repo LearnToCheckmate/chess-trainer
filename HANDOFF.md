@@ -1,7 +1,23 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#547: BATCH 7. ALL 191 ORDERED JOBS READ (94 WITH A FIX COMMIT, 97 DECIDED WITHOUT ONE), GATES GREEN #547 AT 6397 PASS / 0 FAIL OVER 66 SECTIONS.**
+**#548: BATCH 8. ALL 164 ORDERED JOBS READ - 46 FIXED, 14 FIXED IN PART, 33 NOT YET, 71 CANNOT THIS PASS - GATES GREEN #548 AT 6829 PASS / 0 FAIL OVER 66 SECTIONS.**
+Run `build__1793852110388`, 5 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_04_batch8c`, base d083b72.
+**APPLICATION CODE CHANGED.** `app.js` md5 `e07e3d4fb9ea`, stamp '#548 - 2026-11-05 11:26 ET', from chess.jsx `91d7fb10cadc`.
+The push-gate log is `claude/agents/gatelogs/548d-all.log`, gated sha 2ef1165. Every job's outcome is on the job itself as `outcome_548` and `receipt_548`.
+
+## 00. WHAT THE NEXT RUN NEEDS FROM #548
+1. NEW P1, PRE-EXISTING ON MAIN (final antagonist B, B1): `jobs/review-engine-line-recommends-the-losing-recapture-at-opera-ply-29-2026-11-05`.
+2. NEW P2 RESIDUAL OF (123) (B3): `jobs/the-first-tallied-game-row-is-still-below-the-tab-bar-on-kunals-phone-2026-11-05`.
+3. THE DRILL ANALYSIS BOARD (109) is new surface: a solved card opens a one-position review flagged `fromDrill`, numbered from the
+   card's `no` (`plyBase`); a card with no known move number shows no numbers at all (`noNum`). Its exit is "‹ Card".
+4. (92) MOVED THE BOARD on Home-adjacent screens: gates 10, 30, 34, 36 and 62 carry new pins, each with a CONTROL-RECORD.
+5. SET ASIDE, NOT WORKED THIS PASS (not-yet, with reasons on each job): (18) (19) (55) (56) (66) (71)-(75) (77) (78) (83) (87)-(89)
+   (93) (94) (98) (99) (104) (106) (110) (115) (120) (137) (142) (149)-(152) (156). (138)'s register half was done at close-out (fixed-in-part; the verify-log arm stays with jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30).
+6. THE PUSH GATE IS THE FOURTH #548 SUITE, 548d-all.log; see the RUN-LOG row for why 548, 548b and 548c do not authorise it.
+7. gatemanifest selftest's sigpipe miscount (23 vs 15) is PRE-EXISTING on main, not this batch's.
+
+**(previous) #547: BATCH 7. ALL 191 ORDERED JOBS READ (94 WITH A FIX COMMIT, 97 DECIDED WITHOUT ONE), GATES GREEN #547 AT 6397 PASS / 0 FAIL OVER 66 SECTIONS.**
 Run `build__1793671541605`, 2-3 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_02_batch7b`, base 29b60c2.
 **APPLICATION CODE CHANGED.** `app.js` md5 `c7f6a1228e43`, stamp '#547 - 2026-11-03 04:29 ET', from chess.jsx `ec83770812c4`.
 The push-gate log is `claude/agents/gatelogs/547d-all.log`, the FOURTH full suite (see RUN-LOG for why there are four).
