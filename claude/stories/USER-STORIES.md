@@ -246,6 +246,14 @@ what the gate header says R-OC-1, R-OC-2 and R-OC-3 require. Nothing new is deci
 about a LIVE online game (sign-in, Firestore, a two-context harness nobody has written). They get NO story here,
 because no case can execute them, and the gate header names them as NOT COVERED.
 
+
+### US-HM-13 The coach can be the owl
+
+Kunal's answer on questions/B8B-OWL ('new', 4 Nov 2026): the owl coach drawing approved on 14 September ships as a fifth coach look
+(jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10).
+
+- The Coach look picker offers five looks, Owl among them, every one a drawing inside its own button and inside the screen's width,
+  and tapping Owl chooses it. (TC-MN-049)
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).

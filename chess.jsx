@@ -2256,6 +2256,25 @@ function _AppIcon({name,size=24,color='currentColor',sw=2,style}){
   return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{P[name]||null}</svg>);
 }
 function _Coach({size=46,accent='var(--ac)',style='comb'}){
+  /* #548 item (113), jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10, Kunal's answer questions/B8B-OWL ('new'): A NEW OWL
+     COACH, drawn in the look picker's own style - the same 64x64 frame, flat fills, the accent-coloured shoulders the four human looks
+     wear, and the coach's round reading glasses, so it sits in the row as a fifth look rather than a clip-art insert. He looks at it
+     in the app after the push. */
+  if(style==='owl')return(<svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.4))'}}>
+    <path d="M9 64 Q9 50 22 46 L42 46 Q55 50 55 64 Z" fill={accent}/>
+    <path d="M17 14 L21 4 L27 12 Z" fill="#6b4a30"/><path d="M47 14 L43 4 L37 12 Z" fill="#6b4a30"/>
+    <ellipse cx="32" cy="32" rx="17.5" ry="19.5" fill="#8a6142"/>
+    <ellipse cx="32" cy="39" rx="10.5" ry="11.5" fill="#e9d3b4"/>
+    <path d="M25 36 q2 2 4 0 M31 39 q2 2 4 0 M27 42 q2 2 4 0 M33 45 q2 2 4 0" fill="none" stroke="#c9ad88" strokeWidth="1.2" strokeLinecap="round"/>
+    <path d="M14.5 30 C12 40 15 49 21 52 C19 45 18.5 37 19.5 31 Z" fill="#6b4a30"/><path d="M49.5 30 C52 40 49 49 43 52 C45 45 45.5 37 44.5 31 Z" fill="#6b4a30"/>
+    <circle cx="24.5" cy="26" r="7.2" fill="#f6efe2"/><circle cx="39.5" cy="26" r="7.2" fill="#f6efe2"/>
+    <circle cx="24.5" cy="26" r="5.6" fill="#fff" fillOpacity="0.12" stroke="#2a2118" strokeWidth="1.6"/>
+    <circle cx="39.5" cy="26" r="5.6" fill="#fff" fillOpacity="0.12" stroke="#2a2118" strokeWidth="1.6"/>
+    <line x1="30.1" y1="26" x2="33.9" y2="26" stroke="#2a2118" strokeWidth="1.6"/>
+    <circle cx="25.3" cy="26.5" r="2.4" fill="#2a2118"/><circle cx="38.7" cy="26.5" r="2.4" fill="#2a2118"/>
+    <circle cx="26" cy="25.6" r="0.8" fill="#fff"/><circle cx="39.4" cy="25.6" r="0.8" fill="#fff"/>
+    <path d="M29.6 31.5 L34.4 31.5 L32 36 Z" fill="#f0a24e" stroke="#b86e2a" strokeWidth="0.8" strokeLinejoin="round"/>
+  </svg>);
   const hair=style==='side'?(<path d="M16 25 C15 12 24 8 33 8 C43 8 49 12 48 26 C46 19 41 17 36 17 C38 14 34.5 13 32.5 14.5 C30 12.5 26 13 25 16.5 C22 16 18 19 16 25 Z" fill="#6b4a30"/>)
    :style==='recede'?(<path d="M18 25 C18 13 24 10 32 10 C40 10 46 13 46 25 C45 20 40 18.5 36 18.5 C36 15 33 14 32 15 C31 14 28 15 28 18.5 C24 18.5 19 20 18 25 Z" fill="#5f4128"/>)
    :style==='bald'?(<><path d="M16.5 30 C15.5 21 16.5 16 20 14 C20.5 20 19.5 26 19.5 30 Z" fill="#6b4a30"/><path d="M47.5 30 C48.5 21 47.5 16 44 14 C43.5 20 44.5 26 44.5 30 Z" fill="#6b4a30"/><path d="M19 16 C23 13 41 13 45 16 C40 14.5 24 14.5 19 16 Z" fill="#6b4a30"/></>)
@@ -7534,9 +7553,9 @@ export default function App(){
             <div style={{width:'100%',height:1,background:'rgba(255,255,255,.08)',margin:'4px 0 2px'}}/>
             <div style={{width:'100%'}}>
               <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',fontWeight:700,marginBottom:7}}>Coach look</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7}}>
-                {[{k:'side',t:'Side part'},{k:'recede',t:'Receding'},{k:'bald',t:'Balding'},{k:'comb',t:'Combed back'}].map(c=>{const on=coachStyle===c.k;return(
-                  <button key={c.k} onClick={()=>setCoachStyle(c.k)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:11,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer'}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))',gap:6 /* #548 (113): minmax(0,..) - with a bare 1fr the five cells sized to their content and the Owl ran to 327 on a 320 screen */}}>
+                {[{k:'side',t:'Side part'},{k:'recede',t:'Receding'},{k:'bald',t:'Balding'},{k:'comb',t:'Combed back'},{k:'owl',t:'Owl'}].map(c=>{const on=coachStyle===c.k;return(
+                  <button key={c.k} onClick={()=>setCoachStyle(c.k)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 2px',minWidth:0,borderRadius:11,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer'}}>
                     <Coach size={40} accent="var(--ac)" style={c.k}/>
                     <span style={{fontSize:'clamp(12px,2vw,12px)',fontWeight:700,color:on?'var(--ac2)':'rgba(255,255,255,.6)',textAlign:'center',lineHeight:1.1}}>{c.t}</span>
                   </button>);})}

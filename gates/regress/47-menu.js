@@ -640,6 +640,23 @@ if(blk('S')){
   }
   await b.close();
 }
+  // TC-MN-049 [#548, item (113); jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10, Kunal's answer questions/B8B-OWL ('new')]:
+  // THE COACH LOOK PICKER OFFERS THE OWL. At 375x730 and 320x568 the picker at the menu's foot shows five looks - the four human ones
+  // and Owl - each a labelled button with a drawing inside it and inside the viewport's width; tapping Owl stores it and marks it
+  // chosen. Found by label, not by any hook.
+  {const MD=require('../drive/menu');
+   for(const g of [L.GEOS.kunal730,{w:320,h:568,safe:''}]){
+    const b=await L.launch({geo:g,name:'menu-owl-'+g.w});await b.open();let ok=true;
+    try{await MD.states['menu-bottom'](b);await b.settle(500);}catch(e){ok=false;}
+    const looks=await b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>/^(Side part|Receding|Balding|Combed back|Owl)$/.test((x.innerText||'').trim())).map(x=>{const q=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),svg:!!x.querySelector('svg'),l:Math.round(q.left),r:Math.round(q.right),vw:innerWidth};}));
+    const tag=g.w+'x'+g.h;
+    L.say(ok&&looks.length===5&&looks.some(x=>x.t==='Owl'),tag+': TC-MN-049 the Coach look picker offers five looks, Owl among them',looks.map(x=>x.t));
+    L.say(looks.length===5&&looks.every(x=>x.svg&&x.l>=0&&x.r<=x.vw),tag+': TC-MN-049 every look is a drawing inside its button and inside the screen\'s width',looks);
+    let st=null;const ow=b.page.locator('button',{hasText:/^Owl$/}).first();
+    if(await ow.count()){await ow.scrollIntoViewIfNeeded();await ow.click();await b.settle(400);st=await b.page.evaluate(()=>localStorage.getItem('ct_coachstyle'));}
+    L.say(st==='owl',tag+': TC-MN-049 tapping Owl chooses it (ct_coachstyle '+st+')',{st});
+    L.say(b.errs.length===0,tag+': TC-MN-049 zero app errors',b.errs.slice(0,2));
+    await b.close();}}
 },'MENU');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
