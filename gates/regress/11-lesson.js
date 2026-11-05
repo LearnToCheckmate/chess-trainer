@@ -76,6 +76,16 @@ L.run(async()=>{
       });
       const tag=name+' '+st;
       W73[st]=m.board?m.board.w:null;
+      // TC-LS-046 [#548 item (86); jobs/gate-11-and-26-practice-pins-are-insensitive-to-the-430-defect-2026-09-30, the job's
+      // cheaper fix]: assert the MOVES header row's HEIGHT directly - one line, 23px measured at #548 at 320x568 and 375x730 -
+      // rather than inferring the wrap from the board width, which has 24px of slack and stayed green against the pre-#430 label.
+      // The row is found as the grandparent of the Copy chip (moves-copy is the chip's own hook from #430, not this build's).
+      if(st==='practice-m0'){
+        const mh=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="moves-copy"]');const r=c&&c.parentElement&&c.parentElement.parentElement;
+          if(!r)return null;const q=r.getBoundingClientRect();return {h:Math.round(q.height*10)/10,w:Math.round(q.width),text:(r.innerText||'').replace(/\s+/g,' ').trim()};});
+        L.say(!!mh&&/^MOVES\b/.test(mh.text),tag+': TC-LS-046 PRECONDITION the MOVES header row was found by the Copy chip and reads MOVES',mh);
+        L.say(!!mh&&mh.h<=30,tag+': TC-LS-046 the MOVES header row is ONE line ('+(mh&&mh.h)+'px, ceiling 30; two lines measure 46+) - the wrap #430 removed, asserted at its own height',mh);
+      }
       L.say(!!m.board,tag+': the lesson board is on screen',m.board);
       // THIS ONE DOES NOT DISCRIMINATE, and it is kept only because it is true and explains the shape.
       // Proved: against a bundle with the board shrunk to 90% it still passes, because the MOVES panel carries
