@@ -504,4 +504,51 @@ L.run(async()=>{
     L.say(seen.length===3&&seen.every(x=>x.top!=null&&Math.abs(x.top-seen[0].top)<0.6),'TC-R102 '+tag+' the board top is the same on all three cards ('+seen.map(x=>x.top).join(' / ')+') - the goal card reserves its height',{seen});
     await b.close();
   }
+
+  // TC-R106 [#548 item (109); jobs/analyze-this-position-from-the-drill-2026-09-23, Kunal's 'analyse (Let Review analyse it)' on
+  // questions/B8B-DRILL-POSITION]: FROM A SOLVED CARD HE TAKES OVER THE BOARD AND COMES BACK TO THE SAME CARD. The entry is found by its
+  // TEXT as well as its hook (#432: a check that reads only what the fix added cannot see the defect the fix removes - on main the
+  // button is absent, and A1 is red for THAT, not for a missing selector). The position is read from the PAINTED BOARD, never the
+  // store: analysis opens on exactly the card's start, a move for EACH side changes it, Reset puts the start back, and the way back
+  // lands on the same card number out of the same total, still solved.
+  for(const G of GS){
+    const tag='mistakes @ '+G.n;
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-analyse-'+G.n,store:{ct_mymistakes:rows('Blunder'),ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(700);
+    let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});}catch(e){ok=false;}
+    L.say(ok,'TC-R106 PRECONDITION '+tag+' the mistakes drill opened');
+    const find=()=>b.page.evaluate(()=>{const vis=e=>{const r=e.getBoundingClientRect();return r.width>1&&r.height>1&&getComputedStyle(e).visibility!=='hidden';};
+      const x=[...document.querySelectorAll('button')].find(e=>vis(e)&&(e.getAttribute('data-ct')==='drill-analyse'||/Analy[sz]e this position/i.test(e.innerText||'')));
+      if(!x)return null;const r=x.getBoundingClientRect();return {w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,ct:x.getAttribute('data-ct'),text:(x.innerText||'').trim()};});
+    if(ok){await tap(b,'drill-next',1000);}
+    const p2=await idx(b);
+    L.say(!!p2&&p2.i===2,'TC-R106 PRECONDITION '+tag+' the drill is on card 2',{counter:p2});
+    const asked=await find();const askPlc=await placement(b);
+    L.say(asked===null,'TC-R106 A0 '+tag+' an UNSOLVED card offers no analysis - the spoiler rule (offered there it is a hint button)',{found:asked});
+    await b.move(UCIS[1].slice(0,2),UCIS[1].slice(2,4),900);await b.settle(1200);
+    const sv=await state(b);const btn=await find();
+    L.say(!!sv.verdict,'TC-R106 PRECONDITION '+tag+' card 2 is SOLVED (the verdict is painted)',{verdict:sv.verdict});
+    L.say(!!btn&&btn.h>=44,'TC-R106 A1 '+tag+' the solved card offers "Analyse this position", a full-size tap target',{btn});
+    const r=btn&&btn.ct?await tap(b,'drill-analyse',2500):{hit:false};
+    L.say(!!r.hit,'TC-R106 A1b '+tag+' the control is reachable by a finger (clear of the tab bar) and was tapped',{reach:r});
+    const rowBtns=()=>b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-row1"] button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
+    const rb=r.hit?await rowBtns():[];const anaPlc=r.hit?await placement(b):null;
+    L.say(rb.some(t=>/Undo/.test(t))&&rb.some(t=>/Reset/.test(t))&&rb.some(t=>/Back to the card/.test(t)),'TC-R106 A2 '+tag+' it opens the review ANALYSIS board with take back, reset and the way back',{row:rb});
+    L.say(!!anaPlc&&anaPlc===askPlc,'TC-R106 A3 '+tag+' the analysis board shows EXACTLY the card\'s position (the painted pieces equal the asked card\'s)',{same:anaPlc===askPlc});
+    const eng=r.hit?await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').trim()):'';
+    L.say(/^(M\d+|[+-]?\d+\.\d)/.test(eng),'TC-R106 A4 '+tag+' the engine is on and reads the position',{eng:eng.slice(0,60)});
+    if(r.hit){await b.move('e1','d1',900);await b.settle(700);}const w1=r.hit?await placement(b):null;
+    if(r.hit){await b.move('e8','d8',900);await b.settle(900);}const b1=r.hit?await placement(b):null;
+    L.say(!!w1&&w1!==anaPlc&&!!b1&&b1!==w1,'TC-R106 A5 '+tag+' he moves BOTH sides: a White move changes the board, then a Black move changes it again',{white:w1!==anaPlc,black:b1!==w1});
+    if(r.hit)await b.page.evaluate(()=>{const x=[...document.querySelectorAll('[data-ct="rev-row1"] button')].find(e=>/Reset/.test(e.innerText||''));x&&x.click();});
+    await b.settle(700);const rs=r.hit?await placement(b):null;
+    L.say(!!rs&&rs===askPlc,'TC-R106 A6 '+tag+' Reset puts the card\'s position back',{same:rs===askPlc});
+    if(r.hit)await b.page.evaluate(()=>{const x=[...document.querySelectorAll('[data-ct="rev-row1"] button')].find(e=>/Back to the card/.test(e.innerText||''));x&&x.click();});
+    await b.settle(1500);const back=await idx(b);const bs=await state(b);
+    // A7/A8 REQUIRE THAT IT LEFT: without the round trip the card never moved and both would pass on a build with no way in (main did).
+    const left=!!r.hit&&rb.some(t=>/Back to the card/.test(t));
+    L.say(left&&!!back&&!!p2&&back.i===p2.i&&back.n===p2.n,'TC-R106 A7 '+tag+' the way back lands on the SAME card number out of the same total ('+(back?back.i+' of '+back.n:'none')+')',{back,before:p2});
+    L.say(left&&!!bs.verdict&&!bs.asking,'TC-R106 A8 '+tag+' and that card is still SOLVED, not asked again',{verdict:bs.verdict,asking:bs.asking});
+    await b.close();
+  }
 },'72-drill-prev');

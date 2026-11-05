@@ -3581,6 +3581,7 @@ export default function App(){
      counts what can be shown, Prev is live exactly when an earlier card exists, and Next leaves at the true
      end. */
   const drillPlayRef=useRef([]); const drillPosRef=useRef(0);
+  const drillAnaRef=useRef(null);   // #548 item (109): {pos, review, reviewView, ply, pending} while a SOLVED drill card's position is open in Review analysis
   const [pzOSolved,setPzOSolved]=useState(0);        // count of Lichess puzzles solved
   const dstr=(dt)=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
   const DAILY_GOAL=5;
@@ -5908,6 +5909,12 @@ export default function App(){
       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
     let plays=0;const step=(i)=>{if(bestLineTokenRef.current!==tok)return;if(i>=moves.length){setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setAnim(null);setSlideFromHide(false);plays++;if(plays<2){setBestLineBoard(states[0]);setTimeout(()=>step(0),650);}else{setBestLineBoard(null);}},950);return;}const pc=states[i].board[moves[i].fr][moves[i].fc];setBestLineBoard(states[i]);setSlideFromHide(true);setAnim({piece:pc,from:[moves[i].fr,moves[i].fc],to:[moves[i].tr,moves[i].tc]});setAnimTo(false);requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setBestLineBoard(states[i+1]);setSlideFromHide(false);setAnim(null);setTimeout(()=>step(i+1),430);},470);};step(0);};
   useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
+  /* #548 item (109): ENTER the analysis board once the one-position review is on screen. Declared AFTER the [ply] effect above on
+     purpose: that one turns analysis off on every ply change, and setPly(0) is one, so this must run later in the same flush. */
+  useEffect(()=>{const d=drillAnaRef.current;if(!d||!d.pending||!review||!review.fromDrill||mode!=='analyze')return;d.pending=false;
+    setShowBest(false);bestLineTokenRef.current++;setBestLineBoard(null);setAnaHist([]);setGame(review.positions[0]);setLastMv(null);if(!anaModeRef.current&&engPreAnaRef.current===null)engPreAnaRef.current=engOn;anaModeRef.current=true;setAnaMode(true);setEngOn(true);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},[review,mode,ply]);
+  // and if he leaves by any other door (a tab), the one-position review is not left behind as "the game" on the Review tab
+  useEffect(()=>{if(review&&review.fromDrill&&mode!=='analyze'){const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setReview(d?d.review:null);if(d&&d.reviewView)setReviewView(d.reviewView);}},[mode]);
 
   const{sel:_uSel,tgts:_uTgts,drag,dragging}=UI.current;const sel=_pvLive?null:_uSel;const tgts=_pvLive?[]:_uTgts;
   const dBoard=flip?[...boardGame.board].reverse().map(r=>[...r].reverse()):boardGame.board;
@@ -6309,6 +6316,18 @@ export default function App(){
     if(!(rec&&loadExternalSolved(o,rec)))loadExternal(o);
     return true;};
   const drillStep=(step)=>drillGo(drillPosRef.current+step);
+  /* #548 item (109), jobs/analyze-this-position-from-the-drill-2026-09-23, Kunal's 'analyse (Let Review analyse it)' on
+     questions/B8B-DRILL-POSITION: route (a). A SOLVED drill card (the spoiler rule - analysis on an unsolved card is a hint button)
+     opens its own position in Review's analysis board: same side to move, free moves for both sides, take back, reset to the card's
+     position, the engine on. It is a ONE-POSITION review built here rather than imported, so #547 item (78)'s refusal of a [FEN]
+     game in importGame still stands for every other route, as the answer says. The way back returns to the SAME card at the same
+     index, solved, through drillGo, and puts back whatever review was open before. */
+  const analyseFromDrill=()=>{const p=curPuz;if(!p||!p.pos||!puzSolved||!mistakeMode)return;let g0=null;try{g0=fromFEN(toFEN(p.pos));}catch(e){g0=null;}if(!g0)return;
+    drillAnaRef.current={pos:drillPosRef.current,review,reviewView,ply,pending:true};
+    const z={};GRADE_LADDER.forEach(x=>{z[x[0]]=0;});
+    setRevAuto(false);setReview({positions:[g0],plies:[],headers:{},analysis:[],counts:z,openingName:null,summary:null,skills:null,pgn:'',fromDrill:true});setReviewView('moves');setPly(0);setFlip(g0.turn==='b');setHomeScreen(false);setMode('analyze');};
+  const leaveDrillAnalysis=()=>{const d=drillAnaRef.current;drillAnaRef.current=null;anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};
+    setReview(d?d.review:null);setReviewView(d&&d.reviewView?d.reviewView:'summary');setPly(d&&d.ply?d.ply:0);setMode('puzzle');if(d)drillGo(d.pos);};
   /* #547 item (147), jobs/drill-past-the-last-mistake-drops-you-on-the-review-landing-with-nothing-said-2026-09-29: Next from the last card
      used to EXIT - no board, no acknowledgement, the Review landing. The end now gets a state of its own in the drill's own space: how
      many of the set were fixed (against the session's ORIGINAL size), with Go again and back to Review. */
@@ -8841,7 +8860,10 @@ export default function App(){
           <div data-ct="rev-row1" style={{display:'flex',gap:6,alignItems:'stretch'}}>
             {anaMode?(<>
               {cb('\u21b6 Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
-              {cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
+              {review&&review.fromDrill?(<>
+                {cb('\u21ba Reset',()=>{setAnaHist([]);setGame(review.positions[0]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Back to the card\'s position')}
+                {cb('\u2039 Back to the card',leaveDrillAnalysis,0,true,'Back to the same drill card')}
+              </>):cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
             </>):(<>
               {cb('\u23ee',()=>{setRevAuto(false);setPly(0);},0,false,'First move')}
               {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}
@@ -9389,11 +9411,15 @@ export default function App(){
         {/* #547 item (80), jobs/drill-solved-board-jumps-bottom-row-collapse: this row UNMOUNTED on a solve, pz-bottom lost
             its height and the centring spacers re-laid the stack, so the board jumped at the moment of the find. It now keeps
             its box (visibility:hidden, and inert to taps and focus) once solved, so nothing in the column changes height. */}
+        {/* #548 item (109): on a SOLVED drill card the hidden row's box carries the one new control, so nothing changes height. */}
+        <div style={{position:'relative'}}>
         {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
           <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
+        {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyse this position'}</button></div>)}
+        </div>
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
           {/* #475 jobs/drill-needs-a-previous-card-2026-09-23. This slot used to be a SECOND '‹ Review',
               doing exactly what the header control seven pixels up does, so Prev costs no height and removes a
@@ -9862,7 +9888,7 @@ export default function App(){
              data-ct="board-chrome". The #435 class-sweep note that sat here said the predicate was inert at its one consumer; it now has none. */
           const _hb=isTop&&inReview&&revCompact;
           const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>setReviewView('summary')} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:boardPx,marginLeft:evalW,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:isTop?'12px 12px 0 0':'0 0 12px 12px',boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
             {/* #548 item (92): Home moved OUT of the player bar into data-ct="board-chrome", the top row of its own. */}
             {isTop&&_evalOn&&!inReview&&!(mode==='play'?_gameOver:isOver)&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}

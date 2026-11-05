@@ -1658,6 +1658,14 @@ As a player drilling puzzles and my own mistakes, nothing on the card is false.
   here, a blunder". (TC-R96)
 - When the best move is an en-passant capture, the hint says there is material to take, not that there is no tactic. (TC-R96)
 
+
+### US-R99 From a drill card I have solved, I can take over the board and work the position out myself
+*Added #548, from jobs/analyze-this-position-from-the-drill-2026-09-23 and Kunal's answer 'analyse (Let Review analyse it)' on questions/B8B-DRILL-POSITION (4 Nov 2026).*
+As a player who has just found the move, I can open that card's position on the review's analysis board, try the move I was
+actually considering, see what the engine says, take it back, and come back to the same card without losing my place.
+- Only a solved card offers it; on an unsolved card it would hand me the answer. (TC-R106)
+- It opens on exactly the card's position, the same side to move, with the engine on; I can move either side, take back, and reset to the card's position. (TC-R106)
+- The way back lands on the same card, the same number out of the same total, still solved. (TC-R106)
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and
