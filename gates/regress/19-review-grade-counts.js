@@ -44,7 +44,7 @@
 const path=require('path');
 const L=require('../lib');
 
-const LBL=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+const LBL=[...L.GRADES];
 // TC-R75 [#547 item (84)]: THE COLOUR THE CLASSIFIER PAINTS EACH GRADE, read from chess.jsx's CLASSIFIER source - CLS_BANDS for the
 // five band grades and the {label:'X',c:'#..'} literals classify writes for the other five - NOT from the summary's own list,
 // which is the copy under test. A grade the source does not resolve is reported, never credited.
@@ -310,7 +310,7 @@ async function runFixture(geo,name,pgn,acc){
       const pick=(el)=>el?getComputedStyle(el).backgroundColor:null;
       const row=document.querySelector('[data-ct="rev-move-line"]');
       let chip=null;
-      if(row){const L=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+      if(row){const L=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];   /* browser context: lib's L.GRADES cannot reach page.evaluate; this one copy stays and is named in lib.js [#548 item (20)] */
         for(const sp of row.querySelectorAll('span')){const t=(sp.textContent||'').replace(/\s+/g,'').trim();
           for(const l of L){if(t===l||(t.length>l.length&&t.length-l.length<=2&&t.slice(-l.length)===l)){chip=sp;break;}}
           if(chip)break;}}

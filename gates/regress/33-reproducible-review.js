@@ -48,7 +48,7 @@ const PGN='[Event "Opera Game"] [White "Morphy"] [Black "Duke Karl / Count Isoua
 // "all 9 verdict counts were read" because CATS was both the thing counted and the number it was compared to. The
 // guard that a stale list makes RED is `present` below: the grade rows the summary actually prints, found by shape
 // (a label line followed by two whole-number lines) and never by this list.
-const CATS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+const CATS=[...L.GRADES];
 
 // One review from a clean slate. Returns {ms, accuracy:[w,b], counts:{cat:[w,b]}, verdict19}.
 async function reviewOnce(geo,tag,pool){
@@ -174,7 +174,7 @@ L.run(async()=>{
   // app has carried since the ladder grew to ten (gate 20's LADDER). Checked both ways against that ladder, here and
   // in no browser: every bad grade must match and every other grade must not.
   const BAD33=/\b(Blunder|Mistake|Miss|Inaccuracy)\b/;
-  const LADDER33=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+  const LADDER33=[...L.GRADES];
   const wrong33=LADDER33.filter(g=>BAD33.test(g)!==['Inaccuracy','Miss','Mistake','Blunder'].includes(g));
   L.say(wrong33.length===0,'TC-SUITE-265 the "scored as a mistake" pattern matches exactly the four bad grades of the ten-grade ladder (checked both ways)',{misclassified:wrong33});
   L.say(/Nxb5/.test(A.ply19)&&!BAD33.test(A.ply19),'10.Nxb5 is not scored as a mistake, a miss or an inaccuracy (the shallow-search symptom)',A.ply19);

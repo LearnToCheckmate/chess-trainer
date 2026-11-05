@@ -303,7 +303,7 @@ L.run(async()=>{
   const txt=await b.page.locator('[data-ct="rev-summary"]').innerText();
   // Locate every number by THE WORDS ALREADY ON SCREEN, never by a hook #440 added (#432).
   const accs=[...txt.matchAll(/([\d.]+)%\s*\n\s*ACCURACY/g)].map(m=>parseFloat(m[1]));
-  const ROWS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+  const ROWS=[...L.GRADES];
   const grade={};
   for(const r of ROWS){
     const m=txt.match(new RegExp('\\n'+r+'\\s*\\n\\s*(\\d+)\\s*\\n\\s*(\\d+)'));
@@ -382,7 +382,7 @@ L.run(async()=>{
     const line=await e.page.evaluate(()=>{const l=document.querySelector('[data-ct="rev-move-line"]');return l?l.innerText.replace(/\s+/g,' ').trim():null;});
     // the PLY is asserted before its grade, so a walk that stood on the wrong move cannot pass (#385)
     L.say(!!line&&/\bg4\b/.test(line),g.id+' PRECONDITION the walk stands on White\'s g4, the move that allows Qh4#',{ply:g.ply,line});
-    const others=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'].filter(x=>x!==g.want);
+    const others=[...L.GRADES].filter(x=>x!==g.want);
     L.say(!!line&&new RegExp('\\b'+g.want+'\\b').test(line)&&!others.some(x=>new RegExp('\\b'+x+'\\b').test(line)),
       g.id+' TC-R40-MATE-RUNGS-RENDERED the pill on g4 reads '+g.want+' - allowing mate from '+(g.want==='Mistake'?'-701..-999':'-1000 or worse')+' is graded by the ladder, not the old always-Blunder floor',{line});
     await e.close();

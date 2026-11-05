@@ -1410,7 +1410,7 @@ L.run(async()=>{
          they are not a property of the app, they are a property of the game being graded, and the gate
          says so rather than deriving them from the thing under test. */
       if(name==='rev-summary'){
-        const LADDER=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+        const LADDER=[...L.GRADES];
         const grades=await b.page.evaluate((LAD)=>{
           const panel=document.querySelector('[data-ct="rev-summary"]');
           if(!panel)return null;

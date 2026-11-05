@@ -13,7 +13,7 @@ const PGN='[Event "Opera Game"] [Site "Paris"] [Date "1858.11.02"] [White "Morph
 // IT IS RESTATED HERE ON PURPOSE AND MUST NOT BE DERIVED FROM THE APP'S OWN CATS ARRAY: test-authoring measured
 // that deriving it makes the assertion vacuous - it then agrees with any ladder the bundle happens to render,
 // which is the defect, not the check. The literal is the expectation; the count below is what stops it freezing.
-const LADDER=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];
+const LADDER=[...L.GRADES];
 // The Opera Game is 33 plies: White played 17, Black 16, and every ply gets exactly one grade, so each side's
 // ten counts must sum to its own ply count. That is a VALUE assertion over the counters and it is what tells a
 // broken counter from a correct one - the old assertion could not (it only looked for the words on the panel).

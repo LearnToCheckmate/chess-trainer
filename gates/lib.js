@@ -539,4 +539,13 @@ function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefi
 function note(msg){console.log('     '+msg);}
 function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
-module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs};
+/* THE TEN GRADES, IN DISPLAY ORDER - THE ONE HAND-TYPED COPY IN THE HARNESS [#548, item (20);
+   jobs/grade-ladder-has-five-independent-copies]. Five gates each carried their own literal of this list (gates 19, 20, 26,
+   33, 66: eight copies), so freezing the denominator meant editing it in eight places and missing one was silent. It is
+   deliberately NOT read from chess.jsx's GRADE_LADDER: a list the gates read from the thing under test cannot see a grade go
+   missing (the title of the job: deleting the tenth summary row left 35 of 36 suites green). It is an external expectation a
+   human edits, and every gate that walks the ladder imports it from here. Frozen so a gate cannot mutate it for the next.
+   ONE COPY STAYS OUTSIDE: gates/regress/19-review-grade-counts.js keeps its literal inside a page.evaluate (the chip scan),
+   because a function serialised into the browser cannot reach this module; it is marked there. */
+const GRADES=Object.freeze(['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder']);
+module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES};
