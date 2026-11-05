@@ -126,6 +126,7 @@
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=board display:none after the entry window - the hole the antagonist found
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=board display:none before the entry window
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=body forced out of position:fixed with 3000px appended, so the page really scrolls
+// CONTROL-RECORD: 8c9a628 2026-11-05 total=143 red=4 scope=trial:c7f6a1228e43 how=#548 items (119)(129)(112)(162): main #547 - TC-GL-006, TC-GL-007 and TC-GL-008 red
 //
 // THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
 // Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:

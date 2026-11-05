@@ -919,3 +919,4 @@ L.run(async()=>{
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
 // gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
 // CONTROL-RECORD: a35524b 2026-10-30 total=206 red=26 scope=trial:95bf8d0efc91 how=chess.jsx's player bar width:boardPx+60, one change - the painted-box overhang line goes red at all three geometries, and the widened bars cascade into the bar-width, board-size and game-over-row lines (#545 read 23 red on the 196-assertion gate) [rebuild of #545's ebf59f1ad606]
+// CONTROL-RECORD: 8c9a628 2026-11-05 total=218 red=33 scope=trial:c7f6a1228e43 how=#548: main #547 (no phone top row) - TC-PL-057 (Home and Menu in the player bar, the strip still painted) and the re-pinned board sizes red

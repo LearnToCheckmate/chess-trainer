@@ -2,6 +2,7 @@
 // Gallery card 1 plays Scholar's mate in seven moves. The board's width and top mid-game must equal
 // its width and top after the mate; nothing scrolls; the row reads Review · Rematch; zero app errors.
 // CONTROL-RECORD: ccbe925 2026-10-30 total=17 red=4 scope=full how=gate mutant pads #root's top by 10px after open - the WANT_TOP pin is red at both geometries while the width pin and 'top unchanged' stay green; 'nothing scrolls' also reddens because the pad overflows [#546 item (72)]
+// CONTROL-RECORD: 02c92a8 2026-11-05 total=17 red=2 scope=trial:9fd16ca819b5 how=#548 control for item (84): a zero-height in-flow box whose 1px relative child sits at 110vh, so #root's content runs past the viewport with nothing moved - 'nothing scrolls at game over' red at kunal and 390 (the conjunct-free assertion (84) left)
 'use strict';
 const L=require('../lib');
 L.run(async()=>{

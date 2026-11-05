@@ -1,5 +1,6 @@
 // regress/12-hint.js  (port of gallery372.js / hintcap372.js, the live-app half)  A-06 / Z-01: a puzzle hint takes
 // CONTROL-RECORD: ea49ec3 2026-11-03 total=28 red=3 scope=trial:ac743b970f97 how=#547 control run j12nc: a bundle whose hint header shows another puzzle's hint - 'hint header shows THIS puzzle's hint' red at 390, kunal and se [#547 close-out, ratchet]
+// CONTROL-RECORD: 8c9a628 2026-11-05 total=28 red=3 scope=trial:9fd16ca819b5 how=#548 control for item (84): the same 110vh relative child under a zero-height box - 'no scroll with the hint' red
 // the header row and never moves the board. Card 5 enters the first puzzle and sets its hint after 700ms: the
 // board top before the hint must equal the board top with the hint showing; the hint header is on screen and its
 // text is not clipped (scrollHeight == clientHeight).
