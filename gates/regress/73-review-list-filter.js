@@ -426,6 +426,15 @@ async function READ(b){
 // this gate one run to rediscover because I reached for the harness helper without asking that question.
 // A missing control reddens one assertion of its own and every later assertion is still measured against
 // an unchanged screen rather than skipped [#393], so one absent chip never hides the rest of the file.
+// #548 item (123): THE CHIPS ARE FOLDED BEHIND ONE FILTER BUTTON (Kunal's pick (2) on questions/B8-LAYOUT), so every block that reads or
+// taps a chip opens it first. Found by its hook OR by its text, and a no-op where there is no such button (main c7f6a1228e43 paints the
+// chips at rest), so the blocks keyed on nothing this build added still run on both bundles unchanged.
+async function openF(b){
+  const t=b.page.locator('[data-ct="gf-toggle"]');
+  if(await t.count()===0)return false;
+  if((await t.first().getAttribute('aria-expanded'))==='true')return true;
+  await t.first().scrollIntoViewIfNeeded().catch(()=>{});await t.first().click();await b.page.waitForTimeout(500);return true;
+}
 function mkTap(b,READ){
   const warned={};
   return async function tap(ct,wait){
@@ -464,7 +473,7 @@ function mkTap(b,READ){
   //    bundles and its red on the shipped bundle is evidence rather than a missing selector.
   {
     const b=await L.launch({geo:GEO,store:STORE,name:'A-silent-filter'});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const base=await READ(b);
     L.say(base.rows===7,'A1 the seven seeded games are listed before any filtering',{rows:base.rows,opps:base.opps.length});
     L.say(base.countFound&&base.count==='7 loaded',
@@ -492,7 +501,7 @@ function mkTap(b,READ){
   // ══ BLOCK B. THE NEW CHIPS. Not controlled by the shipped bundle - see the header.
   {
     const b=await L.launch({geo:GEO,store:STORE,name:'B-chips'});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const base=await READ(b);
     L.say(base.filFound,'B0 a filter row is on screen at 7 games',{found:base.filFound,chips:base.chips.length});
     L.say(base.esc.length===0,'B0a nothing the player can read on this screen contains an uninterpreted escape sequence',{found:base.esc});
@@ -617,7 +626,7 @@ function mkTap(b,READ){
   //    the obvious implementation of this feature reproduces the complaint that opened the job.
   {
     const b=await L.launch({geo:GEO,store:STORE,name:'C-coverage'});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const base=await READ(b);
     L.say(!base.ungFound,'C0 with no grade filter on, no coverage line is shown (it is not noise on the default screen)',{line:base.ungraded});
 
@@ -844,7 +853,7 @@ function mkTap(b,READ){
     const T2={};[...A,...Bv].forEach(g=>{T2[g.src+':'+g.date+':'+g.white+':'+g.black]={bril:0,great:1,inacc:0,mist:0,blun:(g.black==='opp5'?2:0),src:'est'};});
     const b=await L.launch({geo:GEO,name:'D-strand',store:{ct_ccuser:'',ct_liuser:'',
       ct_accts:['cc:alpha','cc:beta'],ct_acctgames:{'cc:alpha':A,'cc:beta':Bv},ct_gamestats:T2}});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const tapD=mkTap(b,READ);
     const d0=await READ(b);
     L.say(d0.rows===7&&d0.filFound,'D0 seven games over two accounts, filter row on screen',{rows:d0.rows,fil:d0.filFound});
@@ -955,7 +964,7 @@ function mkTap(b,READ){
       ct_accts:['cc:alpha','cc:beta'],
       ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
       ct_gamestats:T3}});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
 
     const MAP=()=>b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch(e){return {};}});
     const K1=gk(G[0]),K2=gk(G[1]),K3=gk(G[2]),K4=gk(G[3]),K5=gk(G[4]);
@@ -1092,7 +1101,7 @@ function mkTap(b,READ){
         ct_accts:['cc:alpha','cc:beta'],
         ct_acctgames:{'cc:alpha':G.slice(0,4).map(row),'cc:beta':G.slice(4).map(row)},
         ct_gamestats:T4}});
-      await b3.open(); await b3.tile('Review'); await b3.settle(1200);
+      await b3.open(); await b3.tile('Review'); await b3.settle(1200); await openF(b3);   // #548 item (123): this block launches as b3, so the b. sweep missed it
       await b3.page.waitForTimeout(6000);
       const tapE=mkTap(b3,READ);
       const c=await tapE('gf-blun');
@@ -1223,7 +1232,7 @@ function mkTap(b,READ){
     for(const gname of ['se','kunal730','kunal761']){
       const g=L.GEOS[gname];
       const b=await L.launch({geo:g,store:STORE,name:'F-reserve-'+gname});
-      await b.open(); await b.tile('Review'); await b.settle(1200);
+      await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
       const tapF=mkTap(b,READ);
       const pre=await READ(b);
       const preClear=pre.chips.find(c=>c.ct==='gf-clear');
@@ -1332,7 +1341,7 @@ function mkTap(b,READ){
     for(const gname of ['kunal730','kunal761']){
       const g=L.GEOS[gname];
       const b=await L.launch({geo:g,store:STORE4,name:'G-reserve4-'+gname});
-      await b.open(); await b.tile('Review'); await b.settle(1200);
+      await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
       const tapG=mkTap(b,READ);
       const pre=await READ(b);
       const preClear=pre.chips.find(c=>c.ct==='gf-clear');
@@ -1481,14 +1490,14 @@ function mkTap(b,READ){
   // Two arrivals first: the chip really narrowed the list, and we really left and came back.
   {
     const b=await L.launch({geo:GEO,store:STORE,name:'R-per-visit'});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const tap=mkTap(b,READ);
     const base=await READ(b);
     const nar=await tap('gf-blun');
     L.say(base.rows>0&&nar.rows<base.rows,'TC-R70 R0 ARRIVAL the Blunder chip narrowed the list ('+base.rows+' -> '+nar.rows+' rows), so there is a filter to survive or not',{base:base.rows,narrowed:nar.rows,count:nar.count});
     await b.home(); await b.settle(600);
     const atHome=await b.page.evaluate(()=>{const h=document.querySelector('[data-ct="home-menu"]');if(!h)return false;const r=h.getBoundingClientRect();return r.width>0&&r.height>0;}); /* Home is an OVERLAY: the Review list stays mounted under it, so 'no game row in the DOM' is false at Home - its own menu button is the tell */
-    await b.tile('Review'); await b.settle(1200);
+    await b.tile('Review'); await b.settle(1200); await openF(b);
     const back=await READ(b);
     L.say(atHome&&back.rows===base.rows,'TC-R70 R1 after leaving for Home and coming back the list is WHOLE again - '+back.rows+' of '+base.rows+' rows, count "'+back.count+'" - the filter does not follow the player out of the screen',{atHome,back:back.rows,base:base.rows,count:back.count});
     L.say(back.count===base.count,'TC-R70 R2 and the count readout is the unfiltered one ("'+base.count+'"), not an "N of M"',{back:back.count,base:base.count});
@@ -1564,7 +1573,7 @@ function mkTap(b,READ){
   {
     const T=JSON.parse(JSON.stringify(TALLY));T[gk(G[0])].obril=1;T[gk(G[1])].obril=0;
     const b=await L.launch({geo:GEO,name:'G-oppbril',store:Object.assign({},STORE,{ct_gamestats:T})});
-    await b.open(); await b.tile('Review'); await b.settle(1200);
+    await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('button')].filter(x=>/Review ›/.test(x.innerText||''));
       return rows.map(x=>{const t=(x.innerText||'').replace(/\s+/g,' ');const m=[...x.querySelectorAll('[aria-label]')].filter(e=>/opponent played a brilliant/i.test(e.getAttribute('aria-label')));
         return {opp:(t.match(/vs (\S+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
@@ -1574,6 +1583,31 @@ function mkTap(b,READ){
     L.say(!!g1&&g1.mark===1&&!/\d/.test(g1.markText||''),'TC-R101 and the marker carries no number ("'+(g1&&g1.markText)+'")',g1);
     L.say(!!g1&&g1.own==='1','TC-R101 and the player\'s own brilliant count beside it is untouched (reads 1)',g1);
     L.say(!!g2&&g2.mark===0,'TC-R101 a game with obril 0 carries no marker',g2);
+    await b.close();
+  }
+  // ── H, TC-R104 [#548 item (123); jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's
+  // pick (2) on questions/B8-LAYOUT]: THE FIRST GAME IS ABOVE THE FOLD ON HIS PHONE. The job's own fixture: 3 accounts, 8 games, two of
+  // them graded, at 375x761. Measured on main c7f6a1228e43: the first game row at 733..805 under a tab bar starting at 705 - none of it
+  // visible; on the #548 trial 636..708. The pass condition is the job's, sharpened to what a player sees: at least 90% of the first game
+  // row's height is above the tab bar at the screen's initial scroll. Then the fold itself: no chip is painted at rest, and one tap on the
+  // Filter button paints them.
+  {
+    const G8=G.concat([{n:'g8',src:'cc',acct:'gamma',white:'gamma',black:'opp8',wr:'win',tc:'blitz',date:1757000008000,moves:1}]);
+    const S3={ct_ccuser:'',ct_liuser:'',ct_accts:['cc:alpha','cc:beta','cc:gamma'],ct_acctgames:{'cc:alpha':G8.slice(0,4).map(row),'cc:beta':G8.slice(4,7).map(row),'cc:gamma':G8.slice(7).map(row)},
+      ct_gamestats:{[gk(G8[0])]:TALLY[gk(G8[0])],[gk(G8[3])]:TALLY[gk(G8[3])]}};
+    const b=await L.launch({geo:'kunal761',store:S3,name:'H-first-game-fold'});
+    await b.open(); await b.tile('Review'); await b.settle(1500);
+    const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-ct="game-row"]')];const q=rows[0]?rows[0].getBoundingClientRect():null;
+      const tb=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/Discover/.test(d.innerText||'')&&/Puzzles/.test(d.innerText||'')).map(d=>d.getBoundingClientRect().top).sort((a,c)=>c-a)[0];
+      const chipsPainted=['gf-bril','gf-blun','gf-mist'].filter(k=>{const e=document.querySelector('[data-ct="'+k+'"]');if(!e)return false;const x=e.getBoundingClientRect();return x.width>2&&x.height>2;});
+      return {n:rows.length,top:q?Math.round(q.top*10)/10:null,h:q?Math.round(q.height*10)/10:null,tabTop:tb!=null?Math.round(tb*10)/10:null,chipsPainted};});
+    L.say(r.n===8&&r.top!=null&&r.tabTop!=null,'TC-R104 PRECONDITION the eight-game, three-account list is on screen and the tab bar was found',r);
+    const vis=(r.top!=null&&r.tabTop!=null&&r.h)?Math.max(0,Math.min(r.h,r.tabTop-r.top))/r.h:0;
+    L.say(vis>=0.9,'TC-R104 at 375x761 the FIRST game row is above the fold on arrival - '+Math.round(vis*100)+'% of it above the tab bar (row '+r.top+' + '+r.h+', tab bar '+r.tabTop+')',r);
+    L.say(r.chipsPainted.length===0,'TC-R104 the filter chips are folded at rest - none of the grade chips is painted',{chipsPainted:r.chipsPainted});
+    const opened=await openF(b);
+    const after=await b.page.evaluate(()=>['gf-bril','gf-blun','gf-mist'].filter(k=>{const e=document.querySelector('[data-ct="'+k+'"]');if(!e)return false;const x=e.getBoundingClientRect();return x.width>2&&x.height>2;}));
+    L.say(opened&&after.length===3,'TC-R104 and one tap on the Filter button paints the three grade chips',{opened,after});
     await b.close();
   }
   L.done('73-review-list-filter');

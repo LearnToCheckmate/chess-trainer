@@ -3237,6 +3237,7 @@ export default function App(){
   // at nine chips wrapping to three 44px rows on this screen, and REMOVED as scope he did not ask for -
   // see flags/amber-476-review-list-filter-row, which records the change and the reason.
   const [gFil,setGFil]=useState({bril:0,blun:0,mist:0,acct:''});
+  const [gfOpen,setGfOpen]=useState(false);   // #548 item (123): the filter chips fold behind one Filter button
   const gfTog=(k,v)=>setGFil(f=>({...f,[k]:(f[k]===v?(typeof v==='number'?0:''):v)}));
   const ccRawRef=useRef(null),liRawRef=useRef(null),gamesAutoRef=useRef(false);
   // #353 Kunal: "only one chess.com ID is kept at a time, so importing friends wiped my games.
@@ -8327,7 +8328,17 @@ export default function App(){
               return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
+                {/* #548 item (123), jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's pick
+                    (2) on questions/B8-LAYOUT: THE FILTER CHIPS FOLD INTO ONE FILTER BUTTON, so the first game is above the fold on his phone.
+                    The button sits in this header line, so a closed filter costs the list NO row at all (#476's row was 94px at 375 and 144px
+                    at 320 over two and three lines); it names how many filters are on, so a narrowed list is never silent, and the chips
+                    (with Clear) open on the lines below on a tap - a jump the player asked for, not one under his finger. Its 44px tap box
+                    is padding cancelled by an equal negative margin, the moves-copy idiom, so the header line keeps its height. */}
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,flexShrink:0}}>
+                {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0);const _on=gfOpen||_nAct>0;return(
+                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} onClick={()=>setGfOpen(o=>!o)} style={{padding:'11px 0',margin:'-11px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}><span style={{display:'inline-block',padding:'3px 10px',borderRadius:14,fontSize:'clamp(13.5px,2.9vw,14.5px)',fontWeight:700,color:_on?'var(--ac2)':'rgba(255,255,255,.82)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.07)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.22)')}}>{'Filter'+(_nAct?(' \u00b7 '+_nAct):'')+(gfOpen?' \u25b4':' \u25be')}</span></button>);})()}
                 <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
+                </span>
               </div>
               {/* #431 US-R25: the limit is one the app STATES. The count above is a count, not a
                   limit. ACCT_GMAX is rendered, never retyped, so the number on screen cannot drift
@@ -8440,8 +8451,8 @@ export default function App(){
                   only strands a non-empty filtered list - found by reading the diff and by antagonist A's F9
                   independently. The pre-existing gameSearch box has the identical shape and now inherits the
                   fix, since _anyF includes it. */}
-              {(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-                {_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
+              {gfOpen&&(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+{gfOpen&&_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
                 {_chip(!!_F.blun,'?? blunder','gf-blun',()=>gfTog('blun',1),'#ec5c4e')}
                 {_chip(!!_F.mist,'? mistake','gf-mist',()=>gfTog('mist',1),'#f0a24e')}
                 {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
