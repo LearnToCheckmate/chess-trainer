@@ -8131,15 +8131,18 @@ export default function App(){
               over the scroller, inside the content column's width, so at 56 of 237 scroll positions it sat on summary text (the players
               line, the coach's sentence, the grade table's 'Black' and '2/10') at every inset. This strip does not scroll and the
               scroller starts below it, so nothing can pass under the button. The summary has no board, so the 46px costs no board. */}
-          <div data-ct="rev-summary-top" style={{flexShrink:0,height:46,position:'relative'}}>
+          {/* #549 item (44), gate 26 at se: the title moved up into this row so the row costs no summary height. With the title
+              left in the scroller the whole summary sat 26px lower and at 320x568 the Best row went under the footer (gate 26's
+              se/rev-summary pin read 1 side-by-side row, not 2). The title stays centred and clear of the button. */}
+          <div data-ct="rev-summary-top" style={{flexShrink:0,height:46,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
           <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:10,right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
           </div>
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
-          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'4px 18px 16px',WebkitOverflowScrolling:'touch'}}>
+          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 18px 16px',WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
-              <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
-              <div style={{marginTop:4,fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
+              <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
             </div>
             {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const an=review.analysis||[];if(!an.length)return null;const uc=S.userColor; // coach take (#310)
               const mine=(i)=>{const mc=i%2===0?'w':'b';return uc?mc===uc:true;};
