@@ -1132,9 +1132,9 @@ EOF9
   # jobs/tc-mn-018-in-the-menu-lane-register-has-four-cells-against-a-five-cell-header-2026-10-30]. Those files are
   # lane documents whose tables each carry their own header (MENU-LANE's MN-C is case|row|default|one tap|key), so
   # this arm's register-shaped awk cannot read them, and a second scanner here would widen the one script that
-  # decides whether a log authorises a push on the pass that needs it to gate itself. MEASURED at #547 over the five
-  # non-register .md files there, header width against every non-separator row: 222 rows, ONE wrong-width - the
-  # TC-MN-018 row this item fixed - so today they are all aligned. Re-measure rather than trust that count.
+  # decides whether a log authorises a push on the pass that needs it to gate itself. SO THE CHECK THAT READS THEM IS
+  # gates/audit/story-table-widths.sh [#549, item (93)]: every table in every claude/stories/*.md against its own
+  # header, red on the 29b60c2 TC-MN-018 row. Run it; its own output is the count, which is not written here.
   A5EXEMPT_CEIL=1
   # One exemption, by its NORMALISED header text, with its reason. Normalised means "| a | b | c |" with
   # single spaces, which is what the awk below prints, so a reflow of the table's whitespace cannot silently
