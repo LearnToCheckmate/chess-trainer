@@ -349,6 +349,43 @@ L.run(async()=>{
       }
     }
   }
+  // TC-DR-03 [#549 item (41); jobs/the-drill-board-latches-to-its-192px-floor-at-360x640-in-the-hint-state-2026-10-03]: ONE CARD,
+  // ONE SESSION, FOUR STATES. Every pair above is a fresh launch compared with its own rest, which is the settled-pair trap the job
+  // names: a board that drifts a little at each state, or latches only when the states are reached IN SEQUENCE, passes every pair.
+  // The finding was measured as a sequence (rest 265.03 -> wrong 208 -> hint 192, the floor -> solved 247.03 at 360x640, #471), so
+  // this walks it as one: rest, the wrong move, the hint button, the solve, in one browser, and asserts the board's top, left and
+  // width SPREAD over all four readings is under the house 0.6px. Each state is asserted REACHED first in its own line (a sequence
+  // whose hint never appeared proves nothing about the hint), and the four readings must all exist before the spread is read.
+  for(const g of GEOS){
+    const tag=g.label+' TC-DR-03 sequence';
+    const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'dv-seq-'+g.w+'x'+g.h,store:{ct_mymistakes:CARD('Mistake')}});
+    await b.open();
+    await b.tapCt('tile-ic-analyze');await b.settle(500);
+    await b.tapText(/^Practice your mistakes/);await b.settle(900);
+    const seq=[];
+    const rest=await b.board();seq.push(['rest',rest]);
+    L.say(!!rest&&(await verdictText(b,/^(✗|🎉)/))===null,tag+': rest - the drill opened on a board with no verdict yet',{board:fmt(rest)});
+    await b.move('a2','a3',900);await b.settle(700);
+    const vw=await verdictText(b,/^✗/);const wrong=await b.board();seq.push(['wrong',wrong]);
+    L.say(!!vw,tag+': wrong - the ✗ verdict rendered after a2a3',{verdict:vw,board:fmt(wrong)});
+    let hr=true;try{await b.tapText(/^\u{1F4A1} Hint$/u,{wait:900});}catch(e){hr=false;L.note(tag+': hint button not reached - '+e.message.slice(0,80));}
+    await b.settle(700);
+    const hp=await hintPainted(b);const hint=await b.board();seq.push(['hint',hint]);
+    L.say(hr&&hp.ok,tag+': hint - the hint button was reachable AFTER the wrong answer and put the hint on screen',hp.ok?{text:String(hp.text).slice(0,50),board:fmt(hint)}:hp);
+    let mv=true;try{await b.move('f3','f7',1200);}catch(e){mv=false;L.note(tag+': solve not played - '+e.message.slice(0,80));}
+    await b.settle(700);
+    const vs=await verdictText(b,/^🎉/);const solved=await b.board();seq.push(['solved',solved]);
+    L.say(mv&&!!vs,tag+': solved - the 🎉 verdict rendered after Qxf7# in the same session',{verdict:vs,board:fmt(solved)});
+    const got=seq.filter(s=>!!s[1]);
+    L.say(got.length===4,tag+': all four states produced a board reading ('+got.length+' of 4) - the spread below is over a real sequence, not a subset',seq.map(s=>s[0]+' '+fmt(s[1])).join('; '));
+    const span=(k)=>got.length?Math.max(...got.map(s=>s[1][k]))-Math.min(...got.map(s=>s[1][k])):Infinity;
+    const sp={top:Math.round(span('y')*100)/100,left:Math.round(span('x')*100)/100,width:Math.round(span('w')*100)/100};
+    L.say(got.length===4&&sp.top<0.6&&sp.left<0.6&&sp.width<0.6,tag+': the board is the SAME across rest, wrong, hint and solved (spread top '+sp.top+' left '+sp.left+' width '+sp.width+' px; '+seq.map(s=>s[0]+' '+fmt(s[1])).join(' / ')+')',sp);
+    if(g.w===360&&g.h===640)L.say(!!hint&&hint.w>192.6,tag+': the hint state is NOT on the 192px board floor the job measured at 360x640 (width '+(hint?Math.round(hint.w*100)/100:'n/a')+')',{w:hint&&hint.w});
+    const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(bad.length===0,tag+': no app error beyond the allowed engine trap',bad.slice(0,2));
+    await b.close();
+  }
   // TC-DR-02 [#547 item (94); jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02]: A DIFFERENT CHECKMATE
   // FROM THE STORED MOVE IS ANNOUNCED WHOLE. Card 6k1/5ppp/8/8/8/8/5PPP/R6K w, stored Kg1, the player mates with Ra8#: the 73-char
   // 'Checkmate — that works too! ...' verdict was cut 17px at 320x568 by a 74px container with no ellipsis. Since item (48) the
