@@ -119,7 +119,21 @@ NOWET="$(TZ=America/New_York date '+%Y-%m-%d %H:%M')"
 
 W="$(mktemp -d)" || { echo "fastgate-drive.sh: REFUSING - mktemp -d failed."; exit 2; }
 cleanup(){ rm -rf "$W"; }
-trap cleanup EXIT INT TERM
+# A SIGNAL ENDS THE RUN; IT DOES NOT JUST DELETE THE CLONE [#549 fix round 5]. This line used to read
+# `trap cleanup EXIT INT TERM`. A trap that does not exit RESUMES the script, so when gates.sh's
+# `timeout "$DRIVE_TIMEOUT"` sent SIGTERM, the handler deleted $W and every case after that point ran
+# against a clone that no longer existed. MEASURED on the round-5 background suite (tree 46340d1, under load):
+# timeout fired during H57, and H57 to H64 then printed EIGHT FAIL lines, among them "no number on the clone's
+# register carries a `minted` row" and "the index entry is not mode 120000". Those were fixtures missing
+# because the clone was gone, not defects. Because dfail > 0, gates.sh's timeout-is-a-decline branch
+# (drc 124 AND dfail 0) could not fire, so a timeout, which is a fact about the container, reddened the suite.
+# That is the exact failure #544 item (34) built that branch to prevent. Now INT and TERM exit, and the EXIT
+# trap still removes the clone, so a killed run writes nothing after the signal. The case that was running
+# when the signal came is the one exception: if its child returns 143 and its FAIL line prints before bash
+# acts on the pending trap, that line stays. That case was killed, and it reads red, which is the safe side.
+trap cleanup EXIT
+trap 'echo "fastgate-drive.sh: stopped by SIGINT; no case after this point ran" >&2; exit 130' INT
+trap 'echo "fastgate-drive.sh: stopped by SIGTERM (a timeout?); no case after this point ran" >&2; exit 143' TERM
 C="$W/clone"
 
 OK=0; BAD=0; SKIP=0; FAILED_CASES=""
