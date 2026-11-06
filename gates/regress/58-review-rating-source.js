@@ -76,6 +76,17 @@ const PGN_NOELO=R.PGN_OPERA.replace(/\[(White|Black)Elo "[^"]*"\]\s*/g,'');
 // asserting either verdict: exactly one rating line, it carries the side that has a header, and it fits.
 const PGN_ONESIDE=R.PGN_OPERA.replace(/\[BlackElo "[^"]*"\]/,'[BlackElo "?"]');
 
+// THE NOTE IS FOUND BY WHAT IT SAYS, not by the data-ct #429 added in the same commit as these assertions [#549 item (19);
+// jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Opened against the pre-#429 bundle
+// (b8c03e11c84e, `git show 5b717839^:app.js`), the hook-keyed read returned null at every cell, so 21e/21f went red for a
+// MISSING SELECTOR while the defect sentence - "Accuracy and rating are rough estimates ..., not official ratings" - sat on
+// screen unread. Every wording this note has ever had begins "Accuracy" (chess.jsx, search rev-summary-note), so the
+// reader takes the leaf inside [data-ct="rev-summary"] (a #393 hook, older than this gate) whose text begins so; the hook
+// is a fallback for convenience only. Control: the CONTROL-RECORD at the foot of this file.
+const readNote=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');
+  const leaf=s&&[...s.querySelectorAll('div')].find(d=>d.children.length===0&&/^Accuracy\b/.test((d.innerText||'').trim()));
+  const n=leaf||document.querySelector('[data-ct="rev-summary-note"]');
+  return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
 const summaryText=(b)=>b.page.evaluate(()=>{
   const s=document.querySelector('[data-ct="rev-summary"]');
   return s?(s.innerText||'').replace(/\s+/g,' ').trim():null;});
@@ -171,8 +182,7 @@ L.run(async()=>{
       // and rating are rough estimates from average centipawn loss, not official ratings" - so the panel
       // showed a real, official rating and told the player it was neither. The INVERSE of the defect
       // being fixed. No .rating grep could reach it: the string holds the word "rating" with no dot.
-      const note=await b.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
-        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      const note=await readNote(b);
       const claimsEstimatedRating=!!note&&/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(note);
       L.say(note!==null&&!claimsEstimatedRating,
             '21e '+gl(g)+': the note does not call the shown rating an estimate',{note});
@@ -211,8 +221,7 @@ L.run(async()=>{
       L.say(rb.items.length===0&&!/≈\s*\d{3,4}/.test(t),'21c '+gl(g)+': a game with no Elo header shows no rating at all',
             {linesFound:rb.items.length,shown:rb.items.map(x=>x.n)});
       // 21e in the OTHER branch: with no rating on screen the note must not mention one at all.
-      const note2=await c.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
-        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      const note2=await readNote(c);
       L.say(note2!==null&&!/rating/i.test(note2),'21e '+gl(g)+': with no rating shown the note does not mention one',{note:note2});
       L.say(typeof note2==='string'&&note2.length>0,'21e-NONEMPTY '+gl(g)+': with no rating shown the note still exists and is not empty ('+(note2===null?'absent':note2.length+' chars')+') - an absent note would otherwise satisfy "does not mention one"',{note:note2});
     }
@@ -238,8 +247,7 @@ L.run(async()=>{
         L.say(it.spill!==null&&it.spill<=0.5,'21f '+gl(g)+': "'+it.text+'" is inside its accuracy column',
               {worstChild:it.worstChild,col:[it.colLeft,it.colRight],spill:it.spill});
       // the note must still be the rating-bearing wording, because a rating IS on screen
-      const n3=await d.page.evaluate(()=>{const n=document.querySelector('[data-ct="rev-summary-note"]');
-        return n?(n.innerText||'').replace(/\s+/g,' ').trim():null;});
+      const n3=await readNote(d);
       L.say(n3!==null&&!/rating[s]?\b[^.]*\b(rough|estimate|not official)/i.test(n3),
             '21f '+gl(g)+': with one side rated the note still does not call it an estimate',{note:n3});
       L.say(typeof n3==='string'&&n3.length>0&&noteSaysPgn(n3)&&!noteEstimatesRating(n3),
