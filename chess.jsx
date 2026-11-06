@@ -1064,6 +1064,7 @@ const SAC_LINE_MAX=3;
    a pure function is the fix for that, not an assertion written around it"). #511's token, ownership
    re-validation, yield and `else delete` are all still the only cache machinery in this file. */
 function sacKeep(ok,line){return !!ok&&!!line&&line.length>0;}
+const SAC_DEAD_RETRY=2;   /* #549 item (81): re-asks on one visit after the analysis worker died under sacRun's search; see sacRun */
 /* #548 item (114), jobs/explain-engine-lines-in-plain-words, Kunal's '1-2-3 (1 and 2 in batch 8)' - feature 1: Review engine lines say in
    plain words what each move is for. ONE GENERATOR, NOT TWO (the job's own rule): every phrase comes from moveMotifs and moveGist, the
    readers the review and the drill already use, and both read the BOARD - 'hits the bishop on c5' means the moved piece attacks it
@@ -6613,12 +6614,25 @@ export default function App(){
          it stays a named residual on the job. It is pre-existing for sfBestLine's other caller. */
       const _fen=toFEN(w.t.after);
       const _sgn=((_fen.split(' ')[1]||'w')==='w')?1:-1;
-      let pv=null,_cpW=null,_mtW=null,_ansOk=false;
-      try{ if(sfReadyRef.current&&await ensureAna()) pv=await sfBestLine(_fen,700,(sc)=>{
+      let pv=null,_cpW=null,_mtW=null,_ansOk=false,_w0=null;
+      try{ if(sfReadyRef.current&&await ensureAna()){ _w0=sfAnaRef.current; pv=await sfBestLine(_fen,700,(sc)=>{
         if((sc.mpv||1)!==1)return;
         if(sc.mate!=null){_mtW=mateW(sc.mate,_sgn);_cpW=null;}
         else if(sc.cp!=null){_cpW=_sgn*sc.cp;_mtW=null;}
-      },(ok)=>{_ansOk=ok;}); }catch(e){}
+      },(ok)=>{_ansOk=ok;}); } }catch(e){}
+      /* #549 item (81), jobs/a-trapped-analysis-worker-leaves-the-brilliant-explanation-permanently-short-and-two-fast-taps-reach-it-2026-10-10.
+         THE WORKER DIED UNDER THIS ATTEMPT, so its failure says nothing about the position: ask again ON THIS VISIT. MEASURED on HEAD
+         before this line (kunal730, ct_pool 3, Kunal's game ply 38, 19...Bxh3!!): with the analysis worker killed 150 ms into sacRun's
+         search (an `error` event, then terminate - the shape a real WASM trap produces, measured on main's #548 bundle: one worker `error`
+         plus the PAGEERROR), the sentence stayed "You give up a piece. Black is clearly better." for the whole 20 s the reader stood
+         there, and came back only when they stepped off and returned. #511's drop-and-retry-on-return is right for a search that was
+         ABORTED (the reader moved, so nobody is waiting); it is the wrong remedy when the reader is still on the ply and the only thing
+         that failed was the worker. The worker's own onerror has already cleared sfAnaRef, so `sfAnaRef.current!==_w0` is the death
+         test and ensureAna builds a fresh worker on the re-run. BOUNDED at SAC_DEAD_RETRY so a worker that dies on every search cannot
+         spin; past it the entry is dropped exactly as before, so a later visit still tries again. Recovering a worker that dies SILENTLY
+         (no `error` event, still marked ready) is NOT this change: no death is detectable there, and it is the worker-recovery half the
+         job excludes. */
+      const _died=!_ansOk&&!!_w0&&sfAnaRef.current!==_w0;
       const sanLine=sacLine(w.t.after,pv);
       const replySan=sanLine[0]||'';
       const mover=w.pos.turn, moverName=mover==='w'?'White':'Black';
@@ -6666,6 +6680,7 @@ export default function App(){
            closed on this very function half an hour earlier. `ok` now comes from sfBestLine's own
            `best`-delivered flag, so the question asked here is the same one #511's `r.ok` asked. */
         if(sacKeep(_ansOk,sanLine))sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
+        else if(_died&&(w.deadRetry||0)<SAC_DEAD_RETRY&&!sacWantRef.current)sacWantRef.current={...w,yields:0,deadRetry:(w.deadRetry||0)+1};   /* #549 (81): marker kept pending, same token; the finally re-runs it */
         else delete sacRef.current.byPly[w.ai];
       }
       setSacTick(x=>x+1);

@@ -168,6 +168,10 @@ work, and I can watch that line on the board.
   falls back to its one ply: the line shown is never wrong, only sometimes shorter. A failed engine search is never
   shown and never remembered as an answer (#389, #511). (Kunal, 2026-10-04: "the line runs one move further so the
   recapture is on screen".) (TC-R10)
+- IF THE ENGINE DIES WHILE THAT LINE IS BEING WORKED OUT, I STILL GET IT WITHOUT LEAVING THE MOVE (#549, item (81)). When the
+  analysis worker fails under the search for the reason's "If ..." clause, the app asks again on a fresh worker while I stay on
+  the ply, so the clause arrives a few seconds late instead of only after I step off and come back. A worker that stops
+  answering without reporting an error is not covered. (TC-R115)
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.

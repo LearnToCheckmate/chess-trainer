@@ -586,4 +586,41 @@ L.run(async()=>{
    const pe=b.errs.filter(e=>/^PAGEERROR/.test(e));
    L.say(pe.length===0,'TC-R109 handshake 0 PAGEERRORs on the walk - the WASM worker never traps (RuntimeError: unreachable) ('+pe.length+')',{pe:pe.slice(0,3),workerErrs:all.map(w=>w.err)});
    await b.close();}
+  // ── BLOCK S [#549, item (81); jobs/a-trapped-analysis-worker-leaves-the-brilliant-explanation-permanently-short-and-two-fast-taps-reach-it-2026-10-10, P1].
+  // TC-R115. THE ANALYSIS WORKER DIES UNDER sacRun's SEARCH AND THE READER STAYS ON THE PLY. Measured on the pre-fix HEAD bundle (d335e71dffd4)
+  // at 375x730, Kunal's game ply 38 (19...Bxh3!!): the sentence read "You give up a piece. Black is clearly better." for the whole 20 s, 2 of 2,
+  // and the clause came back only on a revisit. THE DEATH IS INJECTED, NOT RACED: an init script wraps window.Worker and, once armed, fires an
+  // `error` event on the review's analysis worker 150 ms after it receives sacRun's own `go movetime 700`, then terminates it - the shape a
+  // real WASM trap takes (measured on main's #548 bundle: one worker `error` event plus the PAGEERROR). A race would make the state a coin
+  // flip (#391); the injection makes it certain, and S1/S2 prove it was entered. Pool workers are told apart by their `Hash value 16`.
+  // NOT COVERED, said out loud: a worker that dies SILENTLY (no `error`, still marked ready) stays short for ever on every bundle - measured
+  // 3 visits of 20 s on HEAD - and is the worker-recovery half the job excludes.
+  {const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
+   const T=38, IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+   const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+   const b=await L.launch({geo:'kunal761',store:{ct_pool:'3',ct_safe:'51,31'},name:'engline-sac-worker-death'});
+   await b.ctx.addInitScript(()=>{if(window.__ctDie)return;const W=window.Worker;const log=window.__ctDie={n:0,err:0,killed:0,armed:false};
+     window.Worker=function(u,o){const w=new W(u,o);log.n++;let pool=false;w.addEventListener('error',()=>{log.err++;});const pm=w.postMessage.bind(w);
+       w.postMessage=(m,...a)=>{const t=String(m);if(/Hash value 16/.test(t))pool=true;
+         if(log.armed&&!log.killed&&!pool&&t==='go movetime 700'){log.killed=Math.round(performance.now());log.nAtKill=log.n;setTimeout(()=>{try{w.dispatchEvent(new ErrorEvent('error',{message:'injected worker death'}));w.terminate();}catch(e){}},150);}
+         return pm(m,...a);};return w;};window.Worker.prototype=W.prototype;});
+   await b.open();let ok=true,short=null,landed=null,got=null,atT=null;
+   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(600);
+     await b.tapText(/^Start review/,{wait:900});
+     await fwd(b,T-2,80);await b.settle(4000);
+     await b.tapText(/^⋯$/,{wait:500}).catch(()=>{});await b.tapText(/Analyze with the engine/,{wait:900}).catch(()=>{});await b.settle(5000);
+     await b.page.evaluate(()=>{window.__ctDie.armed=true;});
+     await fwd(b,1,150);await fwd(b,1,60);atT=await plyTxt(b);
+     for(let i=0;i<60&&!(await b.page.evaluate(()=>window.__ctDie.killed));i++)await b.page.waitForTimeout(100);
+     await b.page.waitForTimeout(450);short=await why(b);
+     const t0=Date.now();for(let i=0;i<40;i++){landed=await why(b);if(IF(landed)){got=Date.now()-t0;break;}await b.page.waitForTimeout(500);}
+   }catch(e){ok=false;}
+   const d=await b.page.evaluate(()=>window.__ctDie||null);const atEnd=await plyTxt(b);
+   L.say(ok&&!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant/.test(atT)&&!!(await b.rect('[data-ct="rev-engline"]')),'TC-R115 PRECONDITION the review reached ply '+T+', the Brilliant 19...Bxh3, with the engine line on screen',{atT});
+   L.say(!!d&&!!d.killed&&d.err>=1,'TC-R115 DENOMINATOR the analysis worker really died under sacRun\'s search: an error event 150 ms after its go movetime 700, then terminate',d);
+   L.say(!!short&&!IF(short)&&/give up/.test(short),'TC-R115 STATE ENTERED half a second after the death the sentence is the short one - the sacrifice named, no "If they take it" clause ("'+short+'")',{short});
+   L.say(IF(landed)&&atEnd===atT,'TC-R115 WITHOUT STEPPING OFF THE PLY the clause still arrives: sacRun asks again on a fresh worker after the one under it died (in '+(got===null?'never, 20 s watched':got+' ms')+'; was never on the pre-fix bundle)',{landed,got,atEnd});
+   L.say(!!d&&d.n>(d.nAtKill||0),'TC-R115 and it was asked on a NEW worker - '+(d?d.n-(d.nAtKill||0):0)+' created after the death - not on the dead one',d);
+   await b.close();}
 },'ENGLINE-RECOVERY');
