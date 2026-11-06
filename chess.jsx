@@ -6103,10 +6103,17 @@ export default function App(){
   const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
+  /* #549 item (79), jobs/review-mate-label-not-plus9-9; Amber: flags/amber-549-review-mate-holds-over-shallow-cp. The live
+     depth-12 probe paints EVERY info line, so on a ply the stored depth-16 analysis calls a forced mate its shallow depths
+     arrive first as numbers: measured at Lasker v Thomas ply 28 (14...Kf4) the label went M -> +8.1 -> +9.7 -> M4. While the
+     stored analysis says mate and the live probe has not itself found one, the bar and its label stay on the stored mate
+     (sfBar null, so the _fbMate branch paints); once the probe reports a mate its M<n> shows. Review plies only, not anaMode. */
+  const _stMate=inReview&&!anaMode&&ply>0&&Math.abs(evalFallback)>=99;
+  const sfBar=(sfHit&&_stMate&&sfHit.mate==null)?null:sfHit;
   // #342: when the engine readout is on in review, the bar and the engine line are the same number.
   // They used to come from two different searches at two different depths and disagreed on screen.
   const _engBar=(inReview&&engOn&&engLine&&engLine.cp!=null&&engLine.txt)?engLine:null;
-  const evalNow=_engBar?Math.max(-99,Math.min(99,_engBar.cp)):(sfHit?(sfHit.mate!=null?(sfHit.mate>0?10:-10):sfHit.cp/100):evalFallback);
+  const evalNow=_engBar?Math.max(-99,Math.min(99,_engBar.cp)):(sfBar?(sfBar.mate!=null?(sfBar.mate>0?10:-10):sfBar.cp/100):evalFallback);
   /* #489 (jobs/review-mate-label-not-plus9-9, the remainder item (1) the job names): THE STORED-ANALYSIS
      PATH CLAMPED A FORCED MATE TO "+9.9". review.analysis[].evalAfter is already clamped to +-99 pawns where
      it is written (chess.jsx:4015, `Math.max(-99,Math.min(99,after/100))`), and a mated line scores +-99950
@@ -6143,7 +6150,7 @@ export default function App(){
     let m1=false;try{m1=getLegal(boardGame).some(m=>getStatus(makeMove(boardGame,m))==='checkmate');}catch(e){}
     return m1?(bare+'1'):bare;
   },[dispFen,evalFallback,inReview]);
-  const evalTxt=_engBar?_engBar.txt:(sfHit?(sfHit.mate!=null?mateLbl(sfHit.mate):((sfHit.cp>0?'+':'')+(sfHit.cp/100).toFixed(1))):(_fbMate!=null?_fbMate:((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1))));
+  const evalTxt=_engBar?_engBar.txt:(sfBar?(sfBar.mate!=null?mateLbl(sfBar.mate):((sfBar.cp>0?'+':'')+(sfBar.cp/100).toFixed(1))):(_fbMate!=null?_fbMate:((evalFallback>0?'+':'')+Math.max(-9.9,Math.min(9.9,evalFallback)).toFixed(1))));
   // Live eval bar — full-strength Stockfish on the displayed position (separate from the strength-limited opponent search).
   useEffect(()=>{
     /* #470: `!playSetup` added after antagonist A found this effect was a THIRD site gated on `opponent`

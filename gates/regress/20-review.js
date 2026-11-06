@@ -587,4 +587,94 @@ L.run(async()=>{
      L.say(blind.length===0,geo+': TC-R114 the centre of every control hit-tests to it and the control is on screen',blind);
      L.say(!!bd&&BOARD_FLOOR!=null&&bd.w>=BOARD_FLOOR,geo+': TC-R114 the board keeps its shipped width at '+dim+' ('+(bd&&bd.w.toFixed(2))+' >= '+BOARD_FLOOR+')',{board:bd&&bd.w});}
    await b.close();}
+  // TC-R09d [#549 item (79); jobs/review-mate-label-not-plus9-9]: A FORCED MATE IS LABELLED AS A MATE AT EVERY REVIEW RENDER SITE, AT
+  // THREE MATE DISTANCES, AND A GENUINE +9.9 IS NOT. TC-R09/TC-R09c cover the Opera Game only, whose mates are M2 and shorter, so a
+  // long mate and a real large number were never inputs. Two more games, both from the opening position (a [FEN] game is refused, TC-R66):
+  // Edward Lasker v Thomas 1912, whose 11.Qxh7+!! starts a forced mate, and a queen-and-two-knights blunder game that sits at a REAL +9.7 to
+  // +10.3. MEASURED BEFORE WRITING with this repo's own stockfish-18-lite-single.js under node, at depth 16 (the review pool's DCAP) and
+  // depth 12 (the live bar's), White's point of view [jobs/79/sf/line.js]: Lasker ply 21 (after 11.Qxh7+) M8 and M8, ply 22 M8 and M8,
+  // ply 28 (after 14...Kf4) M3 and M3, ply 33 (after 17.Rh2+) M1 and M1, ply 35 18.Kd2# mate delivered; blunder game ply 15 (after 8.exd5)
+  // +9.77 and +9.86, ply 16 (after 8...a6) +9.88 and +10.31. The long mate is M8, not the M7 the job's case names: no ply of a real game
+  // tried held M7 at both depths, and M8 held at both on two consecutive plies, which is the property the case needs (a mate far past M1).
+  // Plies where the two depths DISAGREE (Lasker 20, 24, 27, 30: e.g. ply 24 is M6 at 16 and +8.04 at 12) are deliberately not inputs.
+  // RENDER SITES, every one the review paints an evaluation in: eval-bar-num (first paint = stored analysis, via a MutationObserver, and
+  // the settled value), rev-engline's leading evaluation with the engine line on, and rev-engwhy-eval (the words the engine line's
+  // explanation opens with). rev-cmp is read wherever it renders and its count is printed. Sites x positions is the denominator.
+  {
+    const LASKER='[Event "London"] [White "Edward Lasker"] [Black "George Thomas"] [Result "1-0"] 1. d4 e6 2. Nf3 f5 3. Nc3 Nf6 4. Bg5 Be7 5. Bxf6 Bxf6 6. e4 fxe4 7. Nxe4 b6 8. Ne5 O-O 9. Bd3 Bb7 10. Qh5 Qe7 11. Qxh7+ Kxh7 12. Nxf6+ Kh6 13. Neg4+ Kg5 14. h4+ Kf4 15. g3+ Kf3 16. Be2+ Kg2 17. Rh2+ Kg1 18. Kd2# 1-0';
+    const BIG='[Event "Queen and two knights"] [White "W"] [Black "B"] [Result "*"] 1. e4 e5 2. Nf3 Qh4 3. Nxh4 Nf6 4. Qf3 Ng4 5. Qxg4 Nc6 6. Nf3 Nb4 7. a3 Nd5 8. exd5 a6 *';
+    // kind: 'mate' with an N band for the settled label, or 'num' with a pawn band. Bands, not exact values: the live bar's N is an
+    // engine answer and pinning it exactly would be the #391 coin flip; the band still rejects M1-for-M8 and every number.
+    const CASES=[
+      {pgn:LASKER,tag:'Lasker',plies:[[21,'mate',6,10],[22,'mate',6,10],[24,'hold',4,8],[28,'mate',2,4],[33,'mate',1,1]]},
+      {pgn:BIG,tag:'blunder',plies:[[15,'num',8.5,12],[16,'num',8.5,12]]}];
+    const geo='kunal761';
+    const rows=[];
+    for(const C of CASES){
+      const b=await L.launch({geo,name:'r09d-'+C.tag,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
+      await b.tile('Review');await b.page.locator('textarea').first().fill(C.pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});}catch(e){ok=false;}
+      L.say(ok,geo+': TC-R09d '+C.tag+' PRECONDITION the game is analysed and reaches the summary');
+      if(!ok){await b.close();continue;}
+      await b.settle(600);await b.tapText(/^Start review/,{wait:900});await b.settle(700);
+      let at=0;
+      for(const [p,kind,lo,hi] of C.plies){
+        while(at<p-1){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(120);at++;}
+        await b.settle(300);
+        await b.page.evaluate(()=>{window.__ctSeq=[];const read=()=>{const e=document.querySelector('[data-ct="eval-bar-num"]');const t=e?(e.innerText||'').trim():null;
+          const a=window.__ctSeq;if(!a.length||a[a.length-1]!==t)a.push(t);};window.__ctObs=new MutationObserver(read);
+          window.__ctObs.observe(document.body,{subtree:true,childList:true,characterData:true});});
+        await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});at++;
+        await b.page.waitForTimeout(2500);
+        const bar=await b.page.evaluate(()=>{try{window.__ctObs.disconnect();}catch(e){}const e=document.querySelector('[data-ct="eval-bar-num"]');
+          const c=document.querySelector('[data-ct="rev-cmp"]');const ml=document.querySelector('[data-ct="rev-move-line"]');
+          return {seq:(window.__ctSeq||[]).filter(x=>x),settled:e?(e.innerText||'').trim():null,cmp:c?(c.innerText||'').replace(/\s+/g,' ').trim():null,ml:ml?(ml.innerText||'').replace(/\s+/g,' ').trim().slice(0,40):null};});
+        // engine line on, read it, open its explanation, read the words, close both
+        await b.tapCt('rev-more',400);await b.tapText(/^Analyze with the engine$/,{wait:0});
+        const engOk=await b.page.locator('[data-ct="rev-engline"]').last().waitFor({state:'visible',timeout:12000}).then(()=>true).catch(()=>false);
+        let eng=null,why=null;
+        if(engOk){await b.page.waitForFunction(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e&&/\S/.test((e.innerText||'').replace(/…/g,''))&&!!document.querySelector('[data-ct="rev-engwhy-open"]');},null,{timeout:15000}).catch(()=>{});
+          eng=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+          await b.page.locator('[data-ct="rev-engline"]').last().click({timeout:3000}).catch(()=>{});await b.page.waitForTimeout(400);
+          why=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engwhy-eval"]');return e?(e.innerText||'').trim():null;});
+          if(why!=null){await b.page.locator('[data-ct="rev-engwhy"]').click({timeout:3000}).catch(()=>{});await b.page.waitForTimeout(250);}}
+        await b.tapCt('rev-more',400);await b.tapText(/^Engine line: on$/,{wait:500});
+        rows.push({tag:C.tag,p,kind,lo,hi,first:bar.seq[0]||null,seq:bar.seq,settled:bar.settled,eng,engLead:eng?(eng.split(' ')[0]):null,why,cmp:bar.cmp,ml:bar.ml});
+      }
+      L.say(b.errs.length===0,geo+': TC-R09d '+C.tag+' zero app errors',b.errs.slice(0,3));
+      await b.close();
+    }
+    L.note('TC-R09d readings: '+JSON.stringify(rows));
+    const want=CASES.reduce((n,C)=>n+C.plies.length,0);
+    // DENOMINATOR, in its own assertion: every planned ply was reached and every one of the three always-present sites was read.
+    L.say(rows.length===want&&rows.every(r=>r.first&&r.settled&&r.engLead&&r.why),geo+': TC-R09d DENOMINATOR '+rows.length+' of '+want+' plies reached, each with a first paint, a settled label, an engine-line evaluation and its explanation words read ('+rows.length*4+' readings; rev-cmp rendered on '+rows.filter(r=>r.cmp).length+')',rows.map(r=>({p:r.tag+r.p,first:r.first,settled:r.settled,eng:r.engLead,why:r.why})));
+    const MATE=/^(-?M\d*|1-0|0-1)$/, NUM=/^[+-]?\d+\.\d$/;
+    const nOf=(s)=>{const m=/^M(\d+)$/.exec(String(s||''));return m?Number(m[1]):null;};
+    for(const r of rows.filter(r=>r.kind==='mate')){
+      const id=geo+': TC-R09d '+r.tag+' ply '+r.p+' (a forced mate, measured M'+r.lo+(r.hi!==r.lo?'..'+r.hi:'')+')';
+      const paints=r.seq.concat([r.settled]);
+      L.say(paints.length>0&&paints.every(x=>MATE.test(x))&&!paints.some(x=>NUM.test(x)),id+': every value the eval label took, first paint to settled, is a mate label and never a number',{seq:r.seq,settled:r.settled});
+      L.say(nOf(r.settled)!=null&&nOf(r.settled)>=r.lo&&nOf(r.settled)<=r.hi,id+': the settled eval label says mate in N with N in the measured band ('+r.settled+')',{settled:r.settled});
+      L.say(!!r.engLead&&/^M\d+$/.test(r.engLead)&&nOf(r.engLead)>=r.lo&&nOf(r.engLead)<=r.hi,id+': the engine line leads with mate in N, not a number ('+r.engLead+')',{eng:r.eng});
+      L.say(r.why==='White has a forced mate',id+': the engine line\'s explanation says White has a forced mate ('+r.why+')',{why:r.why});
+      if(r.cmp)L.say(!/[+-]?9\.9\b|[+-]?99\.0/.test(r.cmp),id+': the comparison strip prints no clamped 9.9 or 99.0 ('+r.cmp+')',{cmp:r.cmp});
+    }
+    // THE DEPTH DISAGREEMENT, as its own input: Lasker ply 24 (12...Kh6) is M6 at depth 16 and +8.04 at depth 12, so the stored analysis
+    // says mate and the live bar's own search NEVER finds it. Before #549 the label settled on that number; it must hold the mate.
+    // Precondition first, in its own line: the stored analysis really is a mate here (the first paint is mate-shaped), else not run.
+    for(const r of rows.filter(r=>r.kind==='hold')){
+      const id=geo+': TC-R09d '+r.tag+' ply '+r.p+' (stored M6 at depth 16, +8.04 at the live bar\'s depth 12)';
+      if(L.say(MATE.test(String(r.first||'')),id+': PRECONDITION the first paint, which is the stored analysis, is a mate label ('+r.first+')',{first:r.first})){
+        const paints=r.seq.concat([r.settled]);
+        L.say(paints.every(x=>MATE.test(x)),id+': the eval label never leaves the mate for the shallower search\'s number, first paint to settled',{seq:r.seq,settled:r.settled});}
+    }
+    for(const r of rows.filter(r=>r.kind==='num')){
+      const id=geo+': TC-R09d '+r.tag+' ply '+r.p+' (a REAL evaluation of about +9.9, NOT a mate)';
+      const paints=r.seq.concat([r.settled]);const v=parseFloat(r.settled);
+      L.say(paints.length>0&&paints.every(x=>NUM.test(x)),id+': every value the eval label took is a number and none is a mate label',{seq:r.seq,settled:r.settled});
+      L.say(v>=r.lo&&v<=r.hi,id+': and the settled number is in the measured band '+r.lo+'..'+r.hi+' ('+r.settled+')',{settled:r.settled});
+      L.say(!!r.engLead&&NUM.test(r.engLead)&&parseFloat(r.engLead)>=r.lo&&parseFloat(r.engLead)<=r.hi,id+': the engine line leads with that number, not a mate ('+r.engLead+')',{eng:r.eng});
+      L.say(r.why==='White is winning',id+': the explanation says White is winning, not that White has a forced mate ('+r.why+')',{why:r.why});
+    }
+  }
 },'REVIEW');

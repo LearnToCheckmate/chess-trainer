@@ -1375,7 +1375,9 @@ Two clauses, separate because they failed separately:
 
 WHAT THIS CLAUSE DOES NOT SAY: it does not promise the mate DISTANCE is exact before the search lands. The stored value carries no distance — the clamp destroyed it long before this readout — so the honest first paint is `M` where a mate exists and `M1` where one is available immediately, and the distance arrives with the search. Promising a distance would need the analysis pass to carry mate through, which is a larger change and is still open on `jobs/review-mate-label-not-plus9-9`.
 
-CASE: TC-R09c, gate `gates/regress/20-review.js`.
+(3) [#549 item (79)] A SHALLOWER SEARCH DOES NOT TALK THE READOUT OUT OF A MATE. The live probe paints every depth it reaches, so on a ply the stored analysis calls a forced mate its first depths arrive as numbers: MEASURED on the #549 trial bundle before the fix, Lasker v Thomas 1912 at ply 28 (14...Kf4, mate in 3) painted `M`, `+8.1`, `+9.7`, `M4` in turn, and plies 21 and 24 did the same. While the stored analysis says mate and the live search has not itself found one, the readout stays on the stored mate label; once the search reports a mate, its `M<n>` shows. And the converse holds: a REAL evaluation near +9.9 (measured +9.7 to +10.3) is printed as a number at every site and never as a mate. Amber: `flags/amber-549-review-mate-holds-over-shallow-cp`.
+
+CASE: TC-R09c and TC-R09d, gate `gates/regress/20-review.js`.
 
 NOTE ON THE ID [#489]. US-R37 was checked free by grep over `claude/` and `gates/` before use; there were no hits. It follows US-R36 (#476).
 
