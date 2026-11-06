@@ -41,6 +41,7 @@
 // (ct_safe 51,31) plus Chromium's Emulation.setSafeAreaInsetsOverride top 51 bottom 31, so CSS env(safe-area-inset-*)
 // reads 51 and 31 rather than 0.
 // CONTROL-RECORD: 752b6d3 2026-10-29 total=61 red=6 scope=trial:dfd2bce100c5 how=the Home tile relabelled "Discovery" so home discover cannot be reached; the REACHED and MEASURED pair reddens at all three columns [#545 item (25)]
+// CONTROL-RECORD: 8f55589 2026-11-06 total=93 red=1 scope=trial:14ea26b79b33 how=the #549 base bundle (rows read against the viewport less 56, icons at 0.52 of the row); restricted to home discover, the PROMOTED line reds at 375x761 real reading 89 @379.2-468.2; a row-fix-reverted bundle 05984d62dcd7 reds it at 68 [#549 item (18)]
 const L=require('../lib');
 const HM=require('../drive/home');
 const PZ=require('../drive/puzzles');
