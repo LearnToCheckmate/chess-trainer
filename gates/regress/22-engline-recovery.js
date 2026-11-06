@@ -548,4 +548,42 @@ L.run(async()=>{
    L.say(!!onAna,'TC-R109 PRECONDITION drill: the 15...Nxd7 card was solved with 15...Qxd7 and "Analyse this position" opened a board with the engine line',{ok,onAna});
    await marks('drill analyse',onAna?'Qxd7':null);
    await b.close();}
+
+  // ── BLOCK Q [#549, item (26), antagonist A round 2, A2-R2 P1 on cedb498]. TC-R109, THE HANDSHAKE HALF: NO `go` IS EVER POSTED TO A
+  // STOCKFISH WORKER WHILE ANOTHER `go` ON THAT WORKER HAS NOT ANSWERED `bestmove`. cedb498's anaIdle waited for the stopped search's
+  // bestmove, but (a) a SECOND query arriving inside that wait replaced the first waiter and left its 2.5 s timer armed, and the orphan
+  // timer then cleared the running flag while a newer search ran; and (b) a late bestmove of a search already given up on cleared it too.
+  // Either way the next query took the bare readyok path and posted `go` into a running search - the #356 violation - and the WASM
+  // trapped (RuntimeError: unreachable), 2/2 for the antagonist on a double-step then 300 ms steps. THE INSTRUMENT IS THE PROTOCOL
+  // ITSELF, NOT A READOUT: an init script wraps window.Worker before the app loads and counts, per worker, every `go` posted while that
+  // worker's previous `go` has no `bestmove` yet. DENOMINATORS, each its own assertion: the walk really ran the engine (gos were posted
+  // on the review's worker, and more than one step's worth), so a page that never searched cannot pass the zero.
+  // SCOPE, said out loud: the protocol assertion is over the REVIEW's workers (the analysis worker and the pool). The app's MAIN worker
+  // (sfRef: the eval bar's `go depth 12` and the computer's moves in Play) still uses the bare readyok handshake, which is the same #356
+  // class, and on this walk it posts a go before its stopped search's bestmove in some runs (measured at #549: 1 of 3 runs on the fixed
+  // bundle, 2 of 2 on cedb498's). It is EXCLUDED BY ITS MECHANISM, not by position: exactly one worker may be excluded, it must be the one
+  // created before the review opened, and it must be the one posting `go depth 12`; its count is printed as a NOTE, never credited.
+  {const R=require('../drive/review');
+   const b=await L.launch({geo:'kunal761',store:{...R.SEED,ct_pool:'3'},name:'engline-handshake'});
+   await b.ctx.addInitScript(()=>{if(window.__ctWk)return;const W=window.Worker;const log=window.__ctWk={workers:[],viol:[]};
+     window.Worker=function(url,o){const w=new W(url,o);const rec={url:String(url),born:Math.round(performance.now()),gos:0,best:0,out:0,viol:0,d12:0,err:0};log.workers.push(rec);w.addEventListener('error',()=>{rec.err++;});
+       w.addEventListener('message',(e)=>{const m=String(e.data||'');if(m.startsWith('bestmove')){rec.best++;if(rec.out>0)rec.out--;}});
+       const pm=w.postMessage.bind(w);w.postMessage=(m,...a)=>{const t=String(m);if(/^go\b/.test(t)){rec.gos++;if(t==='go depth 12')rec.d12++;if(rec.out>0){rec.viol++;if(log.viol.length<8)log.viol.push({w:log.workers.indexOf(rec),go:t,out:rec.out,at:Math.round(performance.now())});}rec.out++;}return pm(m,...a);};
+       return w;};window.Worker.prototype=W.prototype;});
+   await b.open();let ok=true,steps=0;const revAt=await b.page.evaluate(()=>Math.round(performance.now()));
+   try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await b.settle(1500);
+     for(let k=0;k<3;k++){await b.page.keyboard.press('ArrowRight');await b.page.waitForTimeout(10);await b.page.keyboard.press('ArrowRight');steps+=2;
+       for(let i=0;i<5;i++){await b.page.waitForTimeout(300);await b.page.keyboard.press('ArrowRight');steps++;}}
+     await b.settle(4000);}catch(e){ok=false;}
+   const wk=await b.page.evaluate(()=>window.__ctWk||null);
+   const all=wk?wk.workers.filter(w=>/stockfish/i.test(w.url)):[];const mainW=all.filter(w=>w.d12>0);
+   L.say(mainW.length===1&&mainW[0]===all[0]&&mainW[0].born<revAt,'TC-R109 handshake EXCLUSION PINNED the one worker left out is the main one: exactly one worker posts the eval bar\'s go depth 12, and it is the first, created before the review opened',{mainW:mainW.map(w=>({born:w.born,d12:w.d12})),revAt,n:all.length});
+   const sf=all.filter(w=>!mainW.includes(w));const gos=sf.reduce((a,w)=>a+w.gos,0),viol=sf.reduce((a,w)=>a+w.viol,0);
+   L.note('TC-R109 handshake NOT ASSERTED, the main worker (eval bar and Play): '+(mainW[0]?mainW[0].viol+' go(s) posted before the previous go answered, of '+mainW[0].gos+', worker errors '+mainW[0].err:'not found')+' - the same #356 class, outside this fix');
+   L.say(ok&&!!wk&&steps===21,'TC-R109 handshake PRECONDITION the Worker wrap was installed before the app loaded and the walk ran: engine on at ply 10, three double-steps (two ArrowRight 10 ms apart) each followed by five steps 300 ms apart ('+steps+' steps)',{ok,steps,workers:wk&&wk.workers.length});
+   L.say(gos>steps,'TC-R109 handshake DENOMINATOR the walk made the engine search: '+gos+' go(s) posted to the review\'s '+sf.length+' Stockfish worker(s), more than the '+steps+' steps',{gos,workers:sf.map(w=>({gos:w.gos,best:w.best}))});
+   L.say(!!wk&&viol===0,'TC-R109 handshake no go is posted to a review worker while its previous go has not answered bestmove ('+viol+' of '+gos+')',{viol,first:wk&&wk.viol.filter(v=>!mainW.includes(wk.workers[v.w]))});
+   const pe=b.errs.filter(e=>/^PAGEERROR/.test(e));
+   L.say(pe.length===0,'TC-R109 handshake 0 PAGEERRORs on the walk - the WASM worker never traps (RuntimeError: unreachable) ('+pe.length+')',{pe:pe.slice(0,3),workerErrs:all.map(w=>w.err)});
+   await b.close();}
 },'ENGLINE-RECOVERY');

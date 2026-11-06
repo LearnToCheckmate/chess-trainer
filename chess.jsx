@@ -2952,7 +2952,8 @@ export default function App(){
   const sfAnaRef=useRef(null);                      // dedicated Stockfish worker for game review analysis (separate from play/eval-bar)
   const sfAnaReadyRef=useRef(false);
   const sfAnaSyncRef=useRef(null);                  // #356 fired on the next readyok, so a caller can wait for the engine to be idle
-  const sfAnaGoRef=useRef(false);                   // #549 item (26): a `go` was posted to the analysis worker and its `bestmove` has not come back
+  const sfAnaGoRef=useRef(0);                       // #549 item (26): how many `go`s posted to the analysis worker have not answered `bestmove` (A2-R2: a COUNT, so a bestmove answers one go and cannot clear a newer one)
+  const sfAnaOwedRef=useRef(0);                     // #549 item (26) A2-R2: bestmoves still owed by searches anaIdle stopped waiting for; they are dropped on arrival, never read as the running search's
   const sfAnaStopWaitRef=useRef(null);              // #549 item (26): anaIdle's waiter for that `bestmove`
   const sfAnaAbortRef=useRef(null);                 // #356 cancels whatever query currently owns the analysis worker
   const sfSyncRef=useRef(null);                     // #356 same idle hook for the play / eval-bar worker
@@ -4625,8 +4626,8 @@ export default function App(){
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg.startsWith('bestmove')){sfAnaGoRef.current=false;const _sw=sfAnaStopWaitRef.current;if(_sw){sfAnaStopWaitRef.current=null;try{_sw();}catch(_e){}return;}}if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
-        w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;sfAnaGoRef.current=false;sfAnaStopWaitRef.current=null;};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg.startsWith('bestmove')){if(sfAnaOwedRef.current>0){sfAnaOwedRef.current--;return;}/* #549 item (26) A2-R2: a search anaIdle gave up on - not this search's answer */if(sfAnaGoRef.current>0)sfAnaGoRef.current--;const _sw=sfAnaStopWaitRef.current;if(_sw&&!sfAnaGoRef.current){sfAnaStopWaitRef.current=null;try{_sw.wake();}catch(_e){}return;}}if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;sfAnaGoRef.current=0;sfAnaOwedRef.current=0;sfAnaStopWaitRef.current=null;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
       }catch(e){resolve(false);return;}
@@ -4662,12 +4663,21 @@ export default function App(){
      `bestmove` - which the worker always sends for a stopped search - before the readyok handshake. Same 2.5 s ceiling, same
      abandon-never-proceed rule as engIdle; the flag is cleared on the ceiling so a wedged worker costs one wait, not every one. */
   const anaIdle=(w,then)=>{
+    /* A2-R2 [#549 round-2 antagonist A on cedb498]: ONE WAITER AT A TIME, AND ONLY THE CURRENT ONE MAY GIVE UP ON THE SEARCH. A second
+       query arriving inside the wait used to REPLACE the waiter and leave the first one's 2.5 s timer armed, and that orphan timer then
+       cleared the running flag while a newer search ran, so the next query posted `go` into it and the WASM trapped. Now the replaced
+       waiter is cancelled at once (its timer cleared, its caller told `false` - it has been superseded), and the ceiling of the current
+       one moves the outstanding count into sfAnaOwedRef instead of forgetting it, so those late bestmoves are dropped on arrival rather
+       than read as a newer search's answer. */
+    const _old=sfAnaStopWaitRef.current;if(_old){sfAnaStopWaitRef.current=null;try{_old.cancel();}catch(_e){}}
     if(!sfAnaGoRef.current)return engIdle(w,sfAnaSyncRef,then);
     let fired=false;
-    const t=setTimeout(()=>{if(fired)return;fired=true;if(sfAnaStopWaitRef.current===wake)sfAnaStopWaitRef.current=null;sfAnaGoRef.current=false;then(false);},2500);
-    const wake=()=>{if(fired)return;fired=true;clearTimeout(t);engIdle(w,sfAnaSyncRef,then);};
-    sfAnaStopWaitRef.current=wake;
-    try{w.postMessage('stop');}catch(e){wake();}
+    const me={};
+    const t=setTimeout(()=>{if(fired)return;fired=true;if(sfAnaStopWaitRef.current===me){sfAnaStopWaitRef.current=null;sfAnaOwedRef.current+=sfAnaGoRef.current;sfAnaGoRef.current=0;}then(false);},2500);
+    me.wake=()=>{if(fired)return;fired=true;clearTimeout(t);engIdle(w,sfAnaSyncRef,then);};
+    me.cancel=()=>{if(fired)return;fired=true;clearTimeout(t);then(false);};
+    sfAnaStopWaitRef.current=me;
+    try{w.postMessage('stop');}catch(e){me.wake();}
   };
   /* #377: sfEval1 takes an optional DEPTH. With it, this path searches exactly like the pool path
      (sfEvalOn, 'go depth '+DCAP with DCAP=16, and a 20 s stuck-worker guard); without it, it is the old
@@ -4708,7 +4718,7 @@ export default function App(){
        close it, because the yield reads the same busy flag. Moving the assignment inside the idle callback
        means a stray message from a search we did not issue finds a null slot and is ignored (see the handler's
        own `if(!cb)return`). anaIdle's own `readyok` handling does not read this slot, so nothing else moves. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);sfAnaGoRef.current=true;w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   /* #512, ANTAGONIST A's F1, VETO UPHELD: THIS FUNCTION NOW SAYS WHETHER THE ENGINE ACTUALLY ANSWERED.
@@ -4766,7 +4776,7 @@ export default function App(){
        must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
        timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
        position's principal variation. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);sfAnaGoRef.current=true;w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
