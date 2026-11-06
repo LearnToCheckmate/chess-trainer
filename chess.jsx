@@ -369,8 +369,8 @@ function eloDelta(mine,theirs,score,games){
 }
 
 // #429: THE ONE PLACE THAT DECIDES WHETHER A PGN CARRIES A USABLE RATING FOR A SIDE.
-// It returns the header value or null, and both the summary's rating line and the sentence under the
-// summary ask it, so the number shown and the sentence describing it can never disagree - which is
+// It returns the header value or null, and the summary's rating line, the sentence under the summary and (since
+// #549 item (94)) the review player bar all ask it, so the number shown and the sentence describing it can never disagree - which is
 // exactly how #429's first cut shipped '1523 RATING' under 'rating ... not official ratings'.
 function hdrElo(h,col){const v=h&&(col==='w'?h.WhiteElo:h.BlackElo);return (v&&/^\d{3,4}$/.test(String(v).trim()))?String(v).trim():null;}
 
@@ -386,10 +386,17 @@ function pgnSetupFen(pgn){
   const f=m[1].trim();if(f.split(/\s+/)[0]===START_FEN_PLACEMENT)return '';
   return f||'(empty)';
 }
+// #549 item (94), folded jobs/two-game-paste-prints-the-other-games-rating-2026-09-28: this scanned the WHOLE paste and
+// was last-write-wins, so with two games pasted it held game 2's tags while loadSANs analysed game 1, and the summary
+// printed game 2's rating over game 1's accuracy. It now reads the FIRST game's tag block only: it stops at the first
+// tag that follows movetext (anything but whitespace or a {comment} between two tags), which is where game 2 begins.
 function parsePGNHeaders(pgn){
-  const h={};
-  const re=/\[(\w+)\s+"([^"]*)"\]/g;let m;
-  while((m=re.exec(pgn)))h[m[1]]=m[2];
+  const h={};const s=String(pgn||'');
+  const re=/\[(\w+)\s+"([^"]*)"\]/g;let m,last=-1;
+  while((m=re.exec(s))){
+    if(last>=0&&/\S/.test(s.slice(last,m.index).replace(/\{[^}]*\}/g,'')))break;
+    h[m[1]]=m[2];last=re.lastIndex;
+  }
   return h;
 }
 
@@ -8377,8 +8384,11 @@ export default function App(){
                     <span style={{color:'var(--ac)',fontWeight:800,flexShrink:0}}>›</span>
                   </button>);})}
               </div>);})()}
-            {(()=>{const _H=(review&&review.headers)||{};const _anyR=!!(hdrElo(_H,'w')||hdrElo(_H,'b'));return(
-            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_anyR?'Accuracy is estimated from how much each move changed your chances of winning. The ratings are the ones recorded in the game\u2019s PGN.':'Accuracy is estimated from how much each move changed your chances of winning.'}</div>);})()}
+            {(()=>{const _H=(review&&review.headers)||{};/* #549 item (94), folded jobs/review-note-is-a-boolean-describing-a-count-2026-09-29: the note was chosen
+              from ONE boolean (any side rated) while the panel paints 0, 1 or 2 ratings, so one rating sat under "The ratings
+              are". It is now chosen from the COUNT of sides hdrElo rates - the same predicate each column's rating line asks.
+              Amber: flags/amber-549-rating-note-count. */const _nR=(hdrElo(_H,'w')?1:0)+(hdrElo(_H,'b')?1:0);const _acc='Accuracy is estimated from how much each move changed your chances of winning.';return(
+            <div data-ct="rev-summary-note" style={{textAlign:'center',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.4)',lineHeight:1.5}}>{_nR===2?_acc+' The ratings are the ones recorded in the game\u2019s PGN.':_nR===1?_acc+' The rating shown is the one recorded in the game\u2019s PGN, which records none for the other player.':_acc}</div>);})()}
           </div>
           </div>
           <div data-ct="rev-summary-foot" style={{flexShrink:0,display:'flex',gap:10,alignItems:'stretch',justifyContent:'center',padding:'10px 14px calc(10px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',boxShadow:'0 -6px 20px rgba(0,0,0,.45)'}}>
@@ -10141,7 +10151,7 @@ export default function App(){
           // the bot's NOMINAL Elo (bot.elo) for the whole of every game after the first, while the adaptive ladder had moved
           // cpuElo and the engine was set to that. The bot's name stays a name; the number is what the engine is set to.
           let rating='';
-          if(inReview){const _H=(review&&review.headers)||{};const _r=col==='w'?_H.WhiteElo:_H.BlackElo;if(_r&&/^\d{3,4}$/.test(String(_r).trim()))rating=String(_r).trim();}
+          if(inReview){const _r=hdrElo((review&&review.headers)||{},col);if(_r)rating=_r;}   // #549 item (94): hdrElo, not the predicate written out again (folded jobs/hdrelo-is-not-the-one-place-that-decides-2026-09-29)
           else if(opponent==='computer'&&col!==pColor){rating=cpuElo!=null?String(cpuElo):'';}
           else if(_isOnlineG){const _pd=col==='w'?_og.w:_og.b;
             if(_pd&&typeof _pd.rating==='number')rating=String(_pd.rating);

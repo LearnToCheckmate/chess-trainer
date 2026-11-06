@@ -758,6 +758,14 @@ nothing where it does not.")
   TC-R21e's 21e-SOURCE and 21e-NONEMPTY lines.)
 - Where only ONE side carries a rating header, that side shows its rating and the other invents nothing.
   (TC-R21f)
+- The sentence under the panel describes exactly what is on the panel: it speaks of ONE rating when one side is
+  rated (and says the game records none for the other player), of the ratings when both are, and of no rating when
+  neither is. Before #549 item (94) it was chosen from one boolean and said "The ratings are" over a single number.
+  (TC-R21g)
+- With several games pasted at once, the rating shown is the analysed game's own: the first game's, because that is
+  the game the review loads. Before #549 item (94) the header scan was last-write-wins over the whole paste, so the
+  summary printed game 2's rating over game 1's accuracy. What the app does with games 2..n otherwise is not
+  settled here. (TC-R56)
 
 NOTE ON THE ID: this clause was handed over as US-R17 by test-authoring at 21:24Z and renumbered here, because
 build #428 landed US-R17 (the puzzle explanation) at 22:53Z, 89 minutes later. The handover's id reasoning was

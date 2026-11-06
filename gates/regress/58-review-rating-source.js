@@ -75,6 +75,20 @@ const PGN_NOELO=R.PGN_OPERA.replace(/\[(White|Black)Elo "[^"]*"\]\s*/g,'');
 // are right - it is the container-is-not-its-contents split - so this fixture PINS THE BEHAVIOUR rather than
 // asserting either verdict: exactly one rating line, it carries the side that has a header, and it fits.
 const PGN_ONESIDE=R.PGN_OPERA.replace(/\[BlackElo "[^"]*"\]/,'[BlackElo "?"]');
+// #549 item (94), TC-R21g [folded jobs/review-note-is-a-boolean-describing-a-count-2026-09-29]: the note describes HOW
+// MANY ratings are on the panel. Plural when two are shown, singular when one is. Read by what the note SAYS.
+const notePlural=(t)=>typeof t==='string'&&/\bratings\b/i.test(t);
+const noteSingular=(t)=>typeof t==='string'&&/\bThe rating\b/.test(t)&&!/\bratings\b/i.test(t);
+// #549 item (94), TC-R56 [folded jobs/two-game-paste-prints-the-other-games-rating-2026-09-28]: TWO games pasted at
+// once, with different Elo tag pairs. The analysis is of game 1 (loadSANs stops at its end), so its rating must be game
+// 1's. A single-game fixture cannot tell a last-write-wins global scan from a correct one - there is no second pair to
+// win - which is why every other fixture in this file was green on the broken parser. The EXPECTED pair is parsed here
+// from the text up to game 2's first tag, not taken from a constant, so a fixture edit cannot make the case agree.
+const PGN_GAME2=R.PGN_CORNER.replace(/\[WhiteElo "[^"]*"\]/,'[WhiteElo "2111"]').replace(/\[BlackElo "[^"]*"\]/,'[BlackElo "2099"]');
+const PGN_TWO=R.PGN_OPERA.trim()+'\n\n'+PGN_GAME2;
+const _g1=PGN_TWO.slice(0,PGN_TWO.indexOf('[Event',1));
+const TWO_EXPECT={w:(/\[WhiteElo "(\d+)"\]/.exec(_g1)||[])[1],b:(/\[BlackElo "(\d+)"\]/.exec(_g1)||[])[1]};
+const TWO_OTHER={w:'2111',b:'2099'};
 
 // THE NOTE IS FOUND BY WHAT IT SAYS, not by the data-ct #429 added in the same commit as these assertions [#549 item (19);
 // jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Opened against the pre-#429 bundle
@@ -199,6 +213,7 @@ L.run(async()=>{
       L.say(typeof note==='string'&&noteSaysPgn(note)&&!noteEstimatesRating(note),
             '21e-SOURCE '+gl(g)+': a rating is shown, so the note names the PGN as its source and no sentence calls a rating an estimate',
             {note,namesPgn:typeof note==='string'&&noteSaysPgn(note),estimates:typeof note==='string'&&noteEstimatesRating(note)});
+      L.say(rb.items.length===2&&notePlural(note),'TC-R21g '+gl(g)+': two ratings are shown and the note speaks of them in the plural',{lines:rb.items.length,note});
 
       // TC-R21d WHATEVER IS SHOWN FITS ITS OWN COLUMN (US-INV-05's rule, applied to this line)
       for(const it of rb.items)
@@ -253,9 +268,26 @@ L.run(async()=>{
       L.say(typeof n3==='string'&&n3.length>0&&noteSaysPgn(n3)&&!noteEstimatesRating(n3),
             '21e-SOURCE '+gl(g)+': with one side rated the note is not empty, names the PGN as the source and no sentence calls a rating an estimate',
             {note:n3});
+      L.say(rb.items.length===1&&noteSingular(n3),'TC-R21g '+gl(g)+': one rating is shown and the note speaks of ONE rating ("The rating", never "ratings")',{lines:rb.items.length,note:n3});
     }
   }
   await d.close();
+
+  // ---- fixture 4: TWO games pasted at once, game 1 rated 1523/1487 and game 2 rated 2111/2099 -----------
+  L.say(TWO_EXPECT.w===HDR.w&&TWO_EXPECT.b===HDR.b,'TC-R56 the two-game fixture: game 1 parsed from the text up to game 2 carries '+TWO_EXPECT.w+'/'+TWO_EXPECT.b+' and game 2 carries '+TWO_OTHER.w+'/'+TWO_OTHER.b,{expect:TWO_EXPECT});
+  const e=await L.launch({geo:{w:375,h:730},name:'rating-twogame',store:{ct_pool:'3'}});await e.open();
+  if(await importFixture(e,PGN_TWO,'two games pasted')){
+    for(const g of G){
+      await e.page.setViewportSize({width:g.w,height:g.h});await e.settle(500);
+      const t=await summaryText(e),rb=await ratingBoxes(e);const shown=rb.items.map(x=>x.n);
+      L.note(gl(g)+' two-game rating lines: '+JSON.stringify(shown));
+      L.say(shown.length===2&&shown[0]===+TWO_EXPECT.w&&shown[1]===+TWO_EXPECT.b,
+            'TC-R56 '+gl(g)+': with two games pasted the summary shows game 1\'s ratings '+TWO_EXPECT.w+' and '+TWO_EXPECT.b+' (the game it analysed)',{shown});
+      L.say(!t.includes(TWO_OTHER.w)&&!t.includes(TWO_OTHER.b),
+            'TC-R56 '+gl(g)+': game 2\'s ratings '+TWO_OTHER.w+'/'+TWO_OTHER.b+' appear nowhere on the summary',{text:t.slice(0,200)});
+    }
+  }
+  await e.close();
 },'GATE 58 review-rating-source');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
