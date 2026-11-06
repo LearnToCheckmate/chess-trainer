@@ -390,8 +390,12 @@ mismatched glyphs looks broken whatever each individual size is.
   the same height within 1px. Measured as 11-lesson.js measures a glyph: the SVG box where there is an SVG,
   otherwise a Range over the control's own contents. (TC-INV-02a)
 - Six rows fail this today and each is pinned to its measured heights per geometry, so the suite is green now
-  and goes red the day any of them moves in EITHER direction - a fix included, so a pin must be retired on
-  purpose rather than decaying into a permanent excuse. (TC-INV-02b)
+  and goes red the day any of them moves in EITHER direction, a fix included. (TC-INV-02b)
+- A RULE ABOUT THE SUITE, NOT A PROPERTY OF THE APP, split out of the bullet above at #549 item (77)
+  (jobs/five-of-ten-423-spec-items-are-not-singular-2026-09-27): a pin is retired on purpose, in a commit that
+  says why, rather than decaying into a permanent excuse. No gate can assert intent; what the suite asserts is
+  the mechanism that forces it - a pin that moves is red (TC-INV-02b) and a pin that vanishes is red
+  (TC-INV-02c) - so the only route to a green after a fix is editing the pin.
 - The pinned failures must be found in exactly the states they were measured in: one that disappears is red,
   and one that appears on a new screen is red. (TC-INV-02c)
 
@@ -401,7 +405,10 @@ whatever each screen happened to use.
 - The commission's "at most four" is a PLACEHOLDER. Measured at #423: 11 distinct icon glyph heights at
   375x730 and 375x568, 12 at 320x568, 13 across the union. The measured set is pinned per geometry as a DRIFT
   GUARD, not a target - nothing here claims the current set is right, only that it cannot change without
-  someone noticing, and the log names any height that appears or vanishes. (TC-INV-03)
+  someone noticing. (TC-INV-03)
+- When that set changes, the red names WHICH height appeared and which vanished, not merely that the set
+  differs: the TC-INV-03 failure carries `added` and `gone` lists beside `want` and `got`. Split out of the
+  bullet above at #549 item (77). (TC-INV-03)
 - Which sizes survive is Kunal's choice, not a gate's: collapsing 11 into 4 moves ink on six screens.
   `jobs/invariant-3-icon-size-target-set` carries the measured list to him.
 - AMENDED 2026-10-29 (#545, jobs/spec-clauses-record-a-measurement-not-a-pass-condition-2026-09-27), THE CONDITION A TEST
