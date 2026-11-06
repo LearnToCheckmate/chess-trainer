@@ -89,6 +89,14 @@ const PGN_TWO=R.PGN_OPERA.trim()+'\n\n'+PGN_GAME2;
 const _g1=PGN_TWO.slice(0,PGN_TWO.indexOf('[Event',1));
 const TWO_EXPECT={w:(/\[WhiteElo "(\d+)"\]/.exec(_g1)||[])[1],b:(/\[BlackElo "(\d+)"\]/.exec(_g1)||[])[1]};
 const TWO_OTHER={w:'2111',b:'2099'};
+// #549 antagonist A round 4 (A3), TC-R56 continued: the first-game-only reader stopped at the FIRST thing between two
+// tags it could not read, so three PGN-legal header blocks lost every tag after the odd line - an escaped quote in a
+// value, a ';' comment line and a '%' escape line. Each one is put AFTER [Site] and BEFORE the names and Elos, so a
+// reader that stops at it loses both ratings. Built from PGN_OPERA so the expected pair is HDR, the fixture's own.
+const _opIns=(x)=>R.PGN_OPERA.replace(/(\[Site "[^"\n]*"\]\s*\n)/,'$1'+x+'\n');
+const PGN_ODD=[['an escaped quote in a value','[Annotator "Joe \\"JJ\\" Smith"]'],
+               ['a ; comment line between tags','; annotated by hand'],
+               ['a % escape line between tags','% private data']].map(([k,x])=>({k,x,pgn:_opIns(x)}));
 
 // THE NOTE IS FOUND BY WHAT IT SAYS, not by the data-ct #429 added in the same commit as these assertions [#549 item (19);
 // jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Opened against the pre-#429 bundle
@@ -288,6 +296,21 @@ L.run(async()=>{
     }
   }
   await e.close();
+
+  // ---- fixture 5: the three PGN-legal odd lines between tags (A3-R4), at Kunal's phone only ------------------
+  // the header reader does not depend on the viewport, so one geometry suffices; the import itself is the cost.
+  for(const o of PGN_ODD){
+    // the fixture really does put the odd line before the Elo tags - asserted, so a PGN_OPERA edit cannot hollow it
+    L.say(o.pgn.includes(o.x)&&o.pgn.indexOf(o.x)<o.pgn.indexOf('[WhiteElo'),'TC-R56 fixture "'+o.k+'": the odd line sits between [Site] and [WhiteElo]',{line:o.x});
+    const f=await L.launch({geo:'kunal761',name:'rating-odd',store:{ct_pool:'3'}});await f.open();
+    const ok=await importFixture(f,o.pgn,'TC-R56 '+o.k);
+    const rb=ok?await ratingBoxes(f):{items:[]};const shown=(rb.items||[]).map(x=>x.n);
+    L.note('TC-R56 '+o.k+': rating lines '+JSON.stringify(shown));
+    // not skipped when the import failed: a reader that turns the odd line into moves must go red HERE too
+    L.say(shown.length===2&&shown[0]===+HDR.w&&shown[1]===+HDR.b,
+          'TC-R56 '+o.k+': the tags after it are still read - the summary shows '+HDR.w+' and '+HDR.b,{shown,imported:ok});
+    await f.close();
+  }
 },'GATE 58 review-rating-source');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with

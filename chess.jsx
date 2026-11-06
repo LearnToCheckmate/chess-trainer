@@ -220,6 +220,7 @@ function cleanSAN(s){return s.replace(/[+#!?]/g,'').replace(/0-0-0/gi,'O-O-O').r
 function parsePGN(pgn){
   let t=pgn.replace(/\[[^\]]*\]/g,' ');       // tag headers
   t=t.replace(/\{[^}]*\}/g,' ');              // {comments}
+  t=pgnStripLineComments(t);                  // ';' comments and '%' escape lines, AFTER tags and {}: a ';' inside either is text (#549 A3-R4: they leaked words as moves)
   t=t.replace(/\([^()]*\)/g,' ');             // (variations) – simple
   t=t.replace(/\$\d+/g,' ');                  // $NAGs
   t=t.replace(/\d+\.(\.\.)?/g,' ');           // move numbers 12. / 12...
@@ -393,12 +394,17 @@ function pgnPublic(pgn){return String(pgn||'').replace(/^[ \t]*\[CTEnded "[^"\n]
 // was last-write-wins, so with two games pasted it held game 2's tags while loadSANs analysed game 1, and the summary
 // printed game 2's rating over game 1's accuracy. It now reads the FIRST game's tag block only: it stops at the first
 // tag that follows movetext (anything but whitespace or a {comment} between two tags), which is where game 2 begins.
+// #549 antagonist A round 4 (A3): "anything" was too wide. PGN allows three more things between two tags that are not
+// movetext - a ';' rest-of-line comment, a '%' escape line (a '%' in column 1) and a value holding an escaped quote
+// ([Annotator "Joe \"JJ\" Smith"]) - and each one used to end the header block early, dropping every later tag, so the
+// names and ratings vanished. All three are now skipped, and \" and \\ in a value are read as the characters they escape.
+const pgnStripLineComments=(t)=>t.replace(/(^|\n)%[^\n]*/g,'$1').replace(/;[^\n]*/g,' ');
 function parsePGNHeaders(pgn){
   const h={};const s=String(pgn||'');
-  const re=/\[(\w+)\s+"([^"]*)"\]/g;let m,last=-1;
+  const re=/\[(\w+)\s+"((?:[^"\\\n]|\\.)*)"\]/g;let m,last=-1;
   while((m=re.exec(s))){
-    if(last>=0&&/\S/.test(s.slice(last,m.index).replace(/\{[^}]*\}/g,'')))break;
-    h[m[1]]=m[2];last=re.lastIndex;
+    if(last>=0&&/\S/.test(pgnStripLineComments(s.slice(last,m.index).replace(/\{[^}]*\}/g,''))))break;
+    h[m[1]]=m[2].replace(/\\(["\\])/g,'$1');last=re.lastIndex;
   }
   return h;
 }
