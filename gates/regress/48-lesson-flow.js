@@ -1573,8 +1573,10 @@ L.run(async()=>{
  // 956x440 only, the job's own geometry. 568x320 was in the first draft and is NOT RUN: the shared lesson drive cannot reach a
  // lesson there - its tap on the 'Openings' group lands on the fixed tab bar's 'Puzzles' (measured on main's #530 bundle and on
  // #547 alike: 'openRow: no lesson row 0'), the #386/#390 tap trap, so the precondition went red on the DRIVE, not the app.
- L.note('TC-R78 568x320 NOT RUN and not counted: the lesson drive cannot open a lesson at that size (its group tap lands on the tab bar), measured on main\'s bundle too');
- for(const g of [{w:956,h:440,safe:'',label:'956x440'}]){
+ // #549 item (43): 568x320 IS RUN now - measured on the #549 trial bundle (md5 9fa003788d91) the drive reaches the demo end there
+ // and the side column is railed, with the try-it control at 663..707 against 320. And TC-R78b/c widen the one-control check
+ // to the job's whole prescription: every control in the action row, at the six portrait geometries and both landscape ones.
+ for(const g of [{w:956,h:440,safe:'',label:'956x440'},{w:568,h:320,safe:'',label:'568x320'}]){
    const n=g.w+'x'+g.h;const b=await L.launch({geo:g,name:'lesson-railmore-'+n});await b.open();
    let ok=true;try{await D.states['demo-end'](b);await b.settle(1500);}catch(e){ok=false;}
    const rd=()=>b.page.evaluate(()=>{const t=[...document.querySelectorAll('button')].find(x=>/try it/i.test(x.innerText||''));const m=document.querySelector('[data-ct="rail-more"]');const q=t&&t.getBoundingClientRect();const mq=m&&m.getBoundingClientRect();
@@ -1583,9 +1585,52 @@ L.run(async()=>{
    L.say(ok&&r.tryBot!=null,n+': TC-R78 PRECONDITION the demo reached its end and the "Now I\'ll try it" control is in the DOM',r);
    if(r.tryBot!=null&&r.tryBot>r.vh+0.5){
      L.say(r.more&&r.moreOn&&r.moreSelf,n+': TC-R78 the try-it control is below the rail\'s fold ('+Math.round(r.tryBot)+' > '+r.vh+'), and a "More below" chip is on screen and hit-tests to itself',r);
-     if(r.more){await b.tapCt('rail-more',900);await b.settle(800);}const r2=await rd();
-     L.say(r2.tryBot!=null&&r2.tryBot<=r2.vh+0.5,n+': TC-R78 and tapping the chip brings the try-it control on screen (bottom '+(r2.tryBot&&Math.round(r2.tryBot))+')',r2);
+     // #549 item (43): at 568x320 one tap (0.8 of the rail's 224px) is not enough - try-it sat at 707 and one tap left it at 528 -
+     // so the chip is tapped until the control is on screen or the chip goes; 956x440 still needs exactly one.
+     let r2=r,taps=0;while(r2.more&&r2.tryBot!=null&&r2.tryBot>r2.vh+0.5&&taps<8){await b.tapCt('rail-more',900);await b.settle(800);r2=await rd();taps++;}
+     L.say(r2.tryBot!=null&&r2.tryBot<=r2.vh+0.5,n+': TC-R78 and tapping the chip brings the try-it control on screen (bottom '+(r2.tryBot&&Math.round(r2.tryBot))+', '+taps+' tap(s))',Object.assign({taps},r2));
    }else L.note(n+': TC-R78 the try-it control is on screen at rest here (bottom '+(r.tryBot&&Math.round(r.tryBot))+'), so no chip is required - not credited as a pass');
+   // TC-R78b [#549 item (43)]: EVERY control in the rail that rests below its fold - not only try-it: Flip, the variation chips,
+   // Analyze, Copy and the related-lesson chips - comes on screen by tapping the chip, and at EVERY step where the rail still has
+   // more below, the chip is on screen and hit-tests to itself. The fold is the rail's own bottom edge (min of it and innerHeight),
+   // because the rail clips above the viewport's bottom; "on screen" is inside that clip AND hit-testing to itself at its centre.
+   if(r.tryBot!=null){
+     await b.page.evaluate(()=>{const h=document.querySelector('.ctside');if(h)h.scrollTop=0;});await b.settle(700);
+     const walk=()=>b.page.evaluate(()=>{const h=document.querySelector('.ctside');if(!h)return null;const hq=h.getBoundingClientRect();const fold=Math.min(innerHeight,hq.bottom);
+       const m=document.querySelector('[data-ct="rail-more"]');const mq=m&&m.getBoundingClientRect();const mh=m&&document.elementFromPoint(mq.left+mq.width/2,mq.top+mq.height/2);
+       // THE CHIP SCROLLS THE RAIL VERTICALLY, so the hit test goes at the vertical centre and at the horizontal centre of the part of
+       // the button its horizontally clipping ancestors leave visible: the variation chips sit in an overflow-x row (507px of content
+       // in a 320px box at 956x440), and the second chip lies wholly past that row's right edge. Such a button is credited on its
+       // vertical band alone and NAMED (hclip), because whether that row says it scrolls sideways is not this case's claim.
+       const bs=[...h.querySelectorAll('button')].filter(x=>x!==m).map((x,i)=>{const q=x.getBoundingClientRect();if(q.width<=2||q.height<=2)return null;
+         let l=q.left,rr=q.right,a=x.parentElement;while(a&&a!==h){if(getComputedStyle(a).overflowX!=='visible'){const aq=a.getBoundingClientRect();l=Math.max(l,aq.left);rr=Math.min(rr,aq.right);}a=a.parentElement;}
+         const k=i+':'+(x.innerText||x.getAttribute('aria-label')||'').trim().slice(0,30),vin=q.top>=hq.top-0.5&&q.bottom<=fold+0.5;
+         if(rr-l<2)return {k,bot:q.bottom,on:vin,hclip:true};
+         const e=document.elementFromPoint((l+rr)/2,q.top+q.height/2);return {k,bot:q.bottom,on:vin&&!!e&&(e===x||x.contains(e))};}).filter(Boolean);
+       return {fold,left:h.scrollHeight-h.clientHeight-h.scrollTop,chipOn:!!(m&&mq.top>=0&&mq.bottom<=innerHeight&&mh&&(mh===m||m.contains(mh))),bs};});
+     const w0=await walk();const below=w0?w0.bs.filter(x=>x.bot>w0.fold+0.5).map(x=>x.k):[];const seen=new Set();const silent=[];let steps=0,w=w0;
+     L.say(!!w0&&below.length>0,n+': TC-R78b PRECONDITION at rest the rail holds controls below its fold ('+below.length+': '+below.join(', ')+'), so the walk has something to find',w0&&{fold:w0.fold,left:w0.left});
+     while(w&&steps<12){w.bs.filter(x=>x.on).forEach(x=>seen.add(x.k));if(w.left>4&&!w.chipOn)silent.push({step:steps,left:Math.round(w.left)});if(w.left<=4||!w.chipOn)break;
+       await b.tapCt('rail-more',700);await b.settle(500);w=await walk();steps++;}
+     const missed=below.filter(k=>!seen.has(k));const hclip=[...new Set(((w&&w.bs)||[]).filter(x=>x.hclip).map(x=>x.k))];
+     if(hclip.length)L.note(n+': TC-R78b credited on the vertical band alone, because they sit wholly outside their sideways-scrolling row: '+hclip.join(', '));
+     L.say(below.length>0&&silent.length===0,n+': TC-R78b at every step where the rail still had more below, the "More below" chip was on screen and hit-testing to itself ('+steps+' taps; silent steps: '+JSON.stringify(silent)+')',{steps,silent});
+     L.say(below.length>0&&missed.length===0,n+': TC-R78b every one of the '+below.length+' controls resting below the rail\'s fold came on screen and hit-tested to itself by tapping the chip (missed: '+JSON.stringify(missed)+')',{below,missed,steps});
+   }
+   await b.close();
+ }
+ // TC-R78c [#549 item (43)]: ON THE SIX PORTRAIT GEOMETRIES THE ACTION ROW IS ON SCREEN AT REST. There is no rail and no chip in
+ // portrait, so nothing would say a scroll was needed: each of 'Now I'll try it', the variation control ('Other lines' / Flip),
+ // Analyze and Copy must lie inside the viewport and hit-test to itself at its centre (not under the bottom bar). Measured on the
+ // #549 trial bundle: lowest is Copy at 566 of 679 (375x679) and 461 of 568 (320x568).
+ for(const geo of ['kunal761','kunal730','kunal','se','390','430']){
+   const b=await L.launch({geo,name:'lesson-actrow-'+geo});await b.open();
+   let ok=true;try{await D.states['demo-end'](b);await b.settle(1200);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const RES=[/try it/i,/Other lines|Flip/i,/Analyze$/,/Copy/];const vis=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();return q.width>2&&q.height>2;});
+     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim()));if(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+       return {re:String(re),found:true,top:Math.round(q.top),bot:Math.round(q.bottom),on:q.top>=-0.5&&q.bottom<=innerHeight+0.5&&!!e&&(e===x||x.contains(e))};})};});
+   L.say(ok&&r.c.every(x=>x.found),geo+': TC-R78c PRECONDITION the demo reached its end and all four action-row controls are in the DOM',r);
+   L.say(r.c.length===4&&r.c.every(x=>x.found&&x.on),geo+': TC-R78c every action-row control is on screen at rest and hit-tests to itself ('+r.c.map(x=>x.re+' '+(x.found?x.top+'..'+x.bot+(x.on?'':' OFF'):'absent')).join('; ')+' of '+r.vh+')',r);
    await b.close();
  }
  // TC-LS-039 (US-R83), #547 item (124): 'NOW I'LL TRY IT' MOVES NOTHING. Pre-fix the practice progress strip (4px + the column's 8px
