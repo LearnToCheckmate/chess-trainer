@@ -173,6 +173,7 @@ L.run(async()=>{
                   fs:parseFloat(getComputedStyle(e).fontSize),gw,gh,svg:!!svg};
         }).filter(Boolean);
       });
+      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':22,'Close lesson':22,'More for this lesson':22}; // the practice block's copy of GLYPH_PIN below [#549 item (54)]
       if(st==='demo-end'){
         L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
@@ -197,7 +198,22 @@ L.run(async()=>{
         const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':22,'Close lesson':22,'More for this lesson':22};
         const offBand=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN[f.aria]}));
         L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 22) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
+        // ROTATION AUDIT [#549 item (54)]: this line DISCRIMINATES (slack 11px wide, 11px tall at the 44px box), but its HEIGHT
+        // half is now dominated by the band above (27+1.5 and 22+1.5 both sit under 44-6), so what it adds is the WIDTH ceiling.
         L.say(foot.every(f=>f.gw<=f.w-6&&f.gh<=f.h-6),name+': and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
+      }
+      // THE PRACTICE-PHASE FOOTER [#549 item (54); jobs/gate-11-asserts-consistency-on-fontsize-while-two-of-the-five-glyphs-are-svg-props-
+      // 2026-09-30, twoMoreAssertionsWorthNoting]: every footer line above sits inside if(st==='demo-end'), so the footer a player sees
+      // while PRACTISING was checked at no geometry. In practice chess.jsx hides the transport (learnPhase!=='practice'), leaving Close
+      // and More, measured on 4a23e434e3bb at 320x568 and 375x761: both 44x44, glyph line box 22 tall, 16.8-20.3 wide. The same band
+      // and pins as the demo end, so a practice-only change to either glyph is red here and invisible to every line above.
+      if(st==='practice-m0'){
+        const pa=foot.map(f=>f.aria).sort().join('|');
+        L.say(pa==='Close lesson|More for this lesson',name+': PRACTICE footer PRECONDITION shows exactly Close and More, the transport hidden - so practice was reached and the lines below measure two glyphs, not none',foot.map(f=>f.aria));
+        L.say(foot.length>0&&foot.every(f=>f.h>=44&&f.h<=46),name+': PRACTICE every footer button is 44 to 46 tall',foot.map(f=>f.h));
+        const offP=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN_ALL[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN_ALL[f.aria]}));
+        L.say(foot.length>0&&offP.length===0,name+': PRACTICE every footer glyph is within 1.5px of its pinned height (22, the demo end\'s text pin) - a band, so a practice-only glyph grown or shrunk is red',offP.length?offP:foot.map(f=>({a:f.aria,gh:f.gh})));
+        L.say(foot.length>0&&foot.every(f=>f.gw>=16&&f.gw<=f.w-6),name+': PRACTICE every footer glyph is 16px wide or more and does not fill its box edge to edge',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
       }
       await b.shot('lesson-'+name+'-'+st);
       await b.close();
