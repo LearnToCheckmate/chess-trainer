@@ -1807,3 +1807,13 @@ mistakes drill and my brilliant moves - so the drill never asks me to find a mov
 - With more than one account imported, each game card names the account it came from, in the slot the site name used, at
   no extra height.
 
+
+US-SC-01  **As a player who photographs a real board, I need it never set up the wrong way round.**
+*Added #549, from jobs/scan-orientation-double-check (item (67)) and Kunal's Desk answer "double" (decisions/desk-round-1-2026-09-19). Amber: flags/amber-549-scan-ask-which-side. Its cases live only in gates/regress/28-scan-client.js, the TC-SC space having no register rows (claude/stories/README.md).*
+I get the position that was in front of me - not its mirror, which is just as
+legal and which nothing downstream can catch when the photo was taken from the other side.
+- The app reads the photo twice, once as shot and once turned 180 degrees, so one photo is two reads. (TC-SC-014, TC-SC-039)
+- When both reads give the same position it is set up at once. (TC-SC-040)
+- When they disagree, or only one of them reads, nothing is set up until I say which side of the board the camera was on,
+  White's or Black's; my answer sets up that reading, and the question then goes. (TC-SC-041 to TC-SC-047)
+- When neither reads, I am told why, as before, and asked nothing. (TC-SC-048)

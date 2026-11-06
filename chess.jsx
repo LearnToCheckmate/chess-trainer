@@ -3026,6 +3026,7 @@ export default function App(){
   const [setupFromFEN,setSetupFromFEN]=useState(null); // when set, the next game starts from this position (e.g. "Play from here" in Review)
   const [scanBusy,setScanBusy]=useState(false);
   const [scanMsg,setScanMsg]=useState('');
+  const [scanAsk,setScanAsk]=useState(null);   /* #549 item (67): {w,b} when the two readings of a scan disagree */
   const scanInputRef=useRef(null);
   const uploadInputRef=useRef(null);
   const timeCtrlRef=useRef(null);
@@ -5642,8 +5643,17 @@ export default function App(){
   };
 
   // ─── Online multiplayer handlers ───
+  /* #549 item (67): where a scanned position lands, shared by the agreed reading and the player's answer to "which
+     side was the camera on". */
+  const landScan=(fen)=>{
+    let g=null; try{ g=fromFEN(fen); }catch(e){ g=null; }
+    if(!g){ setScanMsg('The scan came back unreadable. Try another photo.'); return; }
+    setScanAsk(null); setScanMsg('');
+    setSetupFromFEN(fen); setSetupSrc('scan'); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
+  };
   const scanBoardFile=(file)=>{
     if(!file) return;
+    setScanAsk(null);
     const C=(typeof window!=='undefined')?window.CTCloud:null;
     /* #405, R-BS-3 of the board-scan spec. THE SECOND HALF OF THIS GUARD - the one that tested the facade for a
        scanBoard method - CAME OUT BECAUSE IT COULD NEVER FIRE, and while it sat here it was the reason the
@@ -5670,7 +5680,31 @@ export default function App(){
         const sc=Math.min(1,max/Math.max(w,h)); w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc));
         const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
         const b64=cv.toDataURL('image/jpeg',0.85).split(',')[1];
-        const r=await C.scanBoard(b64);
+        /* #549 item (67), jobs/scan-orientation-double-check. KUNAL ANSWERED "double" (decisions/desk-round-1-2026-09-19):
+           A BOARD PHOTOGRAPHED FROM THE OPPONENT'S SIDE READS AS A LEGAL POSITION THAT IS THE MIRROR OF THE REAL ONE,
+           and no legality check downstream can catch it. So the photo is read TWICE - once as shot, once turned 180
+           degrees - and the second call is a cost he accepted. Reading A assumes the camera was on White's side,
+           reading B that it was on Black's. If both give the same placement the reader decided the orientation from
+           the picture itself and the position is taken. Otherwise the player is ASKED which side the camera was on
+           (amber flags/amber-549-scan-ask-which-side: asking, rather than picking one, is what the job's brief
+           recommends). A reading that failed is filled by turning the other one 180 degrees, so the question always
+           offers two real positions; if neither reads, the refusal below is A's. A's rejection still reaches the
+           catch, so the #392 deploy and sign-in messages are unchanged. */
+        const cv2=document.createElement('canvas'); cv2.width=w; cv2.height=h; const x2=cv2.getContext('2d'); x2.translate(w,h); x2.rotate(Math.PI); x2.drawImage(img,0,0,w,h);
+        const b64r=cv2.toDataURL('image/jpeg',0.85).split(',')[1];
+        const [sA,sB]=await Promise.all([C.scanBoard(b64).then(v=>({ok:1,v}),e=>({ok:0,e})),C.scanBoard(b64r).then(v=>({ok:1,v}),e=>({ok:0,e}))]);
+        if(!sA.ok) throw sA.e;
+        const r=sA.v;
+        const _usable=(x)=>{ const f=x&&x.ok!==false&&x.fen; if(!f)return null; const pl=String(f).split(/\s+/)[0]||''; if((pl.match(/K/g)||[]).length<1||(pl.match(/k/g)||[]).length<1)return null; return String(f).trim(); };
+        const fA=_usable(r), fB=sB.ok?_usable(sB.v):null;
+        if(fA||fB){
+          const _turn=(f)=>{ const pl=f.split(/\s+/)[0], ex=pl.split('/').map(rw=>rw.replace(/[1-8]/g,d=>'.'.repeat(+d))).join('').split('').reverse().join('');
+            const rows=[]; for(let i=0;i<8;i++) rows.push(ex.slice(i*8,i*8+8).replace(/\.+/g,m=>String(m.length)));
+            return rows.join('/')+' '+(f.split(/\s+/)[1]==='b'?'b':'w')+' - - 0 1'; };
+          const wSide=fA||_turn(fB), bSide=fB||_turn(fA);
+          if(wSide.split(/\s+/)[0]===bSide.split(/\s+/)[0]){ setScanBusy(false); landScan(wSide); return; }
+          setScanBusy(false); setScanMsg(''); setScanAsk({w:wSide,b:bSide}); return;
+        }
         const fen=r&&r.fen;
         /* #408, R-BS-1 of the board-scan spec. AN HONEST REFUSAL IS A SUCCESSFUL CALL AND MUST NOT READ AS A
            CRASH. The deployed function answers {fen:null, ok:false, reason} when it could see the photo and
@@ -5694,8 +5728,7 @@ export default function App(){
         if((pp.match(/K/g)||[]).length<1 || (pp.match(/k/g)||[]).length<1){ setScanBusy(false); setScanMsg('That photo did not read as a full chess position. Try again with the whole board in frame.'); return; }
         let g=null; try{ g=fromFEN(fen); }catch(e){ g=null; }
         if(!g){ setScanBusy(false); setScanMsg('The scan came back unreadable. Try another photo.'); return; }
-        setScanBusy(false); setScanMsg('');
-        setSetupFromFEN(fen); setSetupSrc('scan'); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
+        setScanBusy(false); landScan(fen);
       }catch(e){
         setScanBusy(false);
         /* #392 (scan-board-cloud-function-never-deployed): DO NOT TELL SOMEONE TO TRY AGAIN AT SOMETHING THAT
@@ -7357,8 +7390,8 @@ export default function App(){
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
           <div>
             <div style={{display:'flex',gap:10}}>
-              <button data-ct="scan-camera" onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
-              <button data-ct="scan-upload" onClick={()=>{ setScanMsg(''); if(!cloudUser){ setUpgradeMsg('Sign in to read a board.'); setAcctOpen(true); return; } if(uploadInputRef.current) uploadInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>🖼 Upload a photo</button>
+              <button data-ct="scan-camera" onClick={()=>{ setScanMsg(''); setScanAsk(null); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
+              <button data-ct="scan-upload" onClick={()=>{ setScanMsg(''); setScanAsk(null); if(!cloudUser){ setUpgradeMsg('Sign in to read a board.'); setAcctOpen(true); return; } if(uploadInputRef.current) uploadInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>🖼 Upload a photo</button>
             </div>
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
             <input ref={uploadInputRef} type="file" accept="image/*" onChange={e=>{const f=e.target.files&&e.target.files[0];e.target.value='';scanBoardFile(f);}} style={{display:'none'}}/>
@@ -7394,6 +7427,15 @@ export default function App(){
                   always safe, so the trigger is specifically an unbroken run. */}
               {!!scanMsg&&<div data-ct="scan-msg" style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45,minWidth:0,overflowWrap:'anywhere',wordBreak:'break-word'}}>{scanMsg}</div>}
             </div>
+            {/* #549 item (67): the two readings disagree about which way round the board is, so the player says. Shown
+                only after a scan ends, so the reserved row above is unchanged while one runs. */}
+            {!!scanAsk&&<div data-ct="scan-ask" style={{marginTop:6}}>
+              <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>Which side of the board was the camera on?</div>
+              <div style={{display:'flex',gap:8,marginTop:6}}>
+                <button data-ct="scan-side-w" onClick={()=>{ const f=scanAsk&&scanAsk.w; if(f) landScan(f); }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>White's side</button>
+                <button data-ct="scan-side-b" onClick={()=>{ const f=scanAsk&&scanAsk.b; if(f) landScan(f); }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>Black's side</button>
+              </div>
+            </div>}
             <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',marginTop:7,lineHeight:1.4}}>Point at a board, or read a screenshot from your library.</div>
           </div>
 
