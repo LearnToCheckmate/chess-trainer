@@ -294,9 +294,9 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end; 18 -> 20 AT #546 ITEM (6):
   # `idtwospaces` and `registerpathabsent` (arm (7)) after it; 20 -> 21 AT #546 ITEM (18): `danglingstory` (arm (5));
   # 21 -> 22 AT #546 ITEM (20): `gatestoryundefined` (arm (8)); 22 -> 23 AT #549 ITEM (5): `prefixunregistered`
-  # (arm (7c)), at its end.
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (23: one verdict word, 22 counters)" \
-    "23 23" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # (arm (7c)), at its end; 23 -> 24 AT #549 ITEM (56): `symbolabsent` (arm (9)), at its end.
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (24: one verdict word, 23 counters)" \
+    "24 24" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -620,6 +620,40 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C20e a prefix heading a case row with no register row is counted: 1 of 3, ratchet 1" "1 3 | prefixunregistered=1" "$(st_7c "$R20")"
   st_ck "C20f and the refusal names the prefix" "yes" "$(grep -qF 'PREFIX UNREGISTERED: TC-Q heads a case row' "$R20/c20.txt" && echo yes || echo no)"
   rm -rf "$R20"
+
+  # ── C23: ARM (9), A SYMBOL CITATION WHOSE TEXT IS NOT IN ITS FILE [#549, item (56); TC-SUITE-371]. Arm (9) reads
+  #     with `git grep`, so the fixture is a git repository (as C22's). Both grammars resolving first, with the
+  #     denominator, plus the two prose forms arm (9) must NOT read (C4's and C7b's); then each form pointed at
+  #     text the file does not hold, one at a time, so each grammar is shown able to fail on its own.
+  #     THE FIXTURE LINES ARE ASSEMBLED WITH %s, AND THE SITE "A.md" LINE 4 BELOW FROM TWO VARIABLES, ON PURPOSE: this
+  #     file is in the scope of arms (6) and (9), so a literal citation in these strings would be read on the real
+  #     tree (measured: the first draft's literal raised scriptstale there). The fixture COMMITS ONLY claude/ and
+  #     gates/regress/, leaving its copy of this script untracked, so `git grep` reads the fixture and not this
+  #     file's own comments (which cite gates/fastgate.sh, absent here) - that is what lets C23a/C23d read a verdict.
+  F23=gates/regress/11-sym.js; S23=claude/stories/A.md
+  R23="$(st_tree)"; ( cd "$R23" && git init -q && git config user.email t@t && git config user.name t )
+  printf 'function realSym(){}\n' > "$R23/gates/regress/11-sym.js"
+  { printf 'see `%s`, search `%s`\n' "$F23" realSym
+    printf 'and `%s` in `%s`\n' realSym "$F23"
+    printf 'not read: `gates/regress/11-sym.js` at goneSym, and gates/regress/11-sym.js at goneSym\n'; } > "$R23/claude/stories/A.md"
+  ( cd "$R23" && git add claude gates/regress >/dev/null 2>&1 && git commit -qm fixture >/dev/null 2>&1 )
+  st_9() { ( cd "$1" && bash gates/verify-log.sh --citations >"$1/c23.txt" 2>&1 || true
+    printf '%s | %s' "$(awk '/^  \(9\) [0-9]+ symbol/{for(i=1;i<=NF;i++) if($i=="naming") n=$(i-1); print $2, n; exit}' "$1/c23.txt")" "$(grep -oE 'symbolabsent=[0-9]+' "$1/c23.txt" | head -1)" ); }
+  st_ck "C23 both grammars resolving read 2 citations, 0 absent, ratchet 0 (and the two prose forms are not read)" \
+    "2 0 | symbolabsent=0" "$(st_9 "$R23")"
+  st_ck "C23a and that clean tree exits 0, so C23d's RED below is arm (9) and not the fixture" "exit=0" \
+    "$(st_verdict "$R23" | head -1)"
+  printf 'see `%s`, search `%s`\n' "$F23" goneSym >> "$R23/claude/stories/A.md"
+  ( cd "$R23" && git add claude gates/regress >/dev/null 2>&1 && git commit -qm a >/dev/null 2>&1 )
+  st_ck "C23b form (A) naming text the file lacks is counted" \
+    "3 1 | symbolabsent=1" "$(st_9 "$R23")"
+  printf 'and `%s` in `%s`\n' goneSym "$F23" >> "$R23/claude/stories/A.md"
+  ( cd "$R23" && git add claude gates/regress >/dev/null 2>&1 && git commit -qm b >/dev/null 2>&1 )
+  st_ck "C23c form (B) naming text the file lacks is counted too" \
+    "4 2 | symbolabsent=2" "$(st_9 "$R23")"
+  st_ck "C23d and the refusal names the symbol and the site, and turns the mode RED" "yes yes" \
+    "$( ( cd "$R23" && bash gates/verify-log.sh --citations >"$R23/c23.txt" 2>&1 ); [ $? -eq 1 ] && grep -q '^CITATIONS RATCHET: RED' "$R23/c23.txt" && echo -n yes || echo -n no; echo -n ' '; grep -qF "SYMBOL ABSENT: 'goneSym' does not occur in gates/regress/11-sym.js (cited at ${S23}:4)" "$R23/c23.txt" && echo yes || echo no)"
+  rm -rf "$R23"
 
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
@@ -1004,6 +1038,45 @@ EOF6
     done <<<"$A8Q"
     echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md (REPORTED, not refused)"
   else echo "  (8) NOT CHECKED: claude/stories/USER-STORIES.md is absent"; fi
+  # === (9) A SYMBOL CITATION MUST NAME TEXT ITS FILE CONTAINS [#549, item (56); TC-SUITE-371; part (a) of
+  #     jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03, on orchestratorRuling_2026_11_04: "Cite by
+  #     symbol, as CLAUDE.md #503 pointer 4 says: --citations checks that a cited function or identifier exists in
+  #     the cited file"]. Arms (4) and (6) resolve `path:NNN`, and a citation into a file that only GREW still
+  #     resolves; the remedy this project prescribes is to cite by symbol, and until now nothing read a symbol
+  #     citation at all, so one whose symbol was renamed or deleted was exactly as invisible as a shifted line.
+  #     THE GRAMMAR IS THE TWO FORMS THE REGISTERS ACTUALLY WRITE, measured on HEAD at #549 (11 sites, all resolving):
+  #       (A) `file`, search `text`   - e.g. CLAUDE.md's temporary-code table; the backticks round the file are optional
+  #       (B) `symbol` in `file`      - a bare identifier in backticks, then a backticked .jsx/.js/.sh path
+  #     Nothing looser: "at selectOpening" or "`chess.jsx` at fullReset" (C4, C7b) are NOT read, because a heuristic
+  #     over prose reads honest citations as defects. The text is matched as a FIXED STRING anywhere in the file.
+  #     Scope is arm (6)'s prescriptive set plus claude/stories/*.md. A cited file that is absent counts too (no
+  #     other arm reads this form's path). The fixture paths arm (6) allows are allowed here for the same reason:
+  #     this file's own selftest strings cite them. Counted as `symbolabsent`, last on the ratchet line, and REFUSED.
+  A9SCOPE="$A6SCOPE :(glob)claude/stories/*.md"; A9TOT=0; A9BAD=0; A9LIST=""
+  A9CITES="$(git grep -nHoE '`?[A-Za-z0-9_./-]+\.(jsx|js|sh|md|tsv|html|json)`?, search `[^`]+`|`[A-Za-z_$][A-Za-z0-9_$.]*` in `[A-Za-z0-9_./-]+\.(jsx|js|sh)`' -- $A9SCOPE 2>/dev/null || true)"
+  A9RA='^`?([A-Za-z0-9_./-]+)`?, search `(.+)`$'; A9RB='^`([^`]+)` in `([^`]+)`$'
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    WHERE="${c%%:*}:$(printf '%s' "$c" | cut -d: -f2)"; M="${c#*:}"; M="${M#*:}"
+    if [[ "$M" =~ $A9RA ]]; then TGT="${BASH_REMATCH[1]}"; SYM="${BASH_REMATCH[2]}"
+    elif [[ "$M" =~ $A9RB ]]; then SYM="${BASH_REMATCH[1]}"; TGT="${BASH_REMATCH[2]}"
+    else continue; fi
+    case " $A6ALLOW " in *" $TGT "*) continue;; esac
+    A9TOT=$((A9TOT+1))
+    if [ ! -f "$TGT" ]; then
+      A9BAD=$((A9BAD+1)); A9LIST="$A9LIST $WHERE->$TGT"
+      echo "  DEAD SYMBOL CITATION: $TGT is not in the tree (cited for '$SYM' at $WHERE)"
+    else
+      A9N="$(grep -cF -- "$SYM" "$TGT" 2>/dev/null)"
+      if [ "${A9N:-0}" -eq 0 ] 2>/dev/null; then
+        A9BAD=$((A9BAD+1)); A9LIST="$A9LIST $WHERE->$TGT"
+        echo "  SYMBOL ABSENT: '$SYM' does not occur in $TGT (cited at $WHERE)"
+      fi
+    fi
+  done <<EOF9
+$A9CITES
+EOF9
+  echo "  (9) $A9TOT symbol citation(s) in the prescriptive set and the story registers, $A9BAD naming text their file does not contain"
   # ── (13) ARM (5), THE REGISTER SELF-CHECK. Added 2026-10-06 by process-build lane 2
   # (runId process-build-2__1791274433682) for the remainder of
   # jobs/register-join-and-input-count-wrong-2026-09-28 (P?, priority 14, finishFirst band 14), whose
@@ -1230,16 +1303,17 @@ EOF
   # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
   # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
   # would make the line unable to grow with the arms, which is worse.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0} prefixunregistered=${A7UNREG:-0}"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]; then
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0} prefixunregistered=${A7UNREG:-0} symbolabsent=${A9BAD:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
     [ "${A7DUP:-0}" -gt 0 ] && echo "  (7) $A7DUP case id(s) belong to two id spaces at once"
     [ "${A7MISS:-0}" -gt 0 ] && echo "  (7) $A7MISS path(s) named by the register's prefix table are not in the tree"
     [ "${A7UNREG:-0}" -gt 0 ] && echo "  (7c) $A7UNREG prefix(es) head a case row with no row in the register's prefix table"
     [ "${A5DANG:-0}" -gt 0 ] && echo "  (5) $A5DANG story id(s) cited by a case row have no heading in USER-STORIES.md"
+    [ "${A9BAD:-0}" -gt 0 ] && echo "  (9) $A9BAD symbol citation(s) name text their file does not contain:$A9LIST"
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
   fi
