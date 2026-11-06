@@ -245,6 +245,66 @@ did not.
 Not in scope for this clause: whether the NEW HERE card should exist, what it should say, or which lesson it
 should choose. It picks the first `openings`/`gambits` entry and that is unchanged.
 
+## Home, Lesson and Play lane stories, imported #549 from the gate headers that quote them
+
+DATED AMENDMENT, 2026-11-06, #549 item (69) (jobs/spec-docs-frozen-at-373). The Home section above says it "does not
+transcribe" US-HM-01 … US-HM-10. That stood until the orchestrator's ruling of 2026-11-05T02:43:05Z on Kunal's
+word (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04): "Re-point the gates'
+quotes to existing story ids where they match, and import only the stories that have none." Measured before
+this edit, `gates/verify-log.sh --citations` arm (8) read 30 of 94 US- ids quoted under gates/regress/ defined
+nowhere here. Three of the 30 matched a story this repo already holds and the gate's quote was re-pointed, not
+imported: the id quoted in `45-play-setup.js` as "R28" is the project-space id of US-RF28 (claude/stories/REVIEW-SUITE-FULL.md,
+"take a position into a real game"); the "R30" in `66-winprob-ladder.js`'s header is the grading ladder, which
+TC-R40, the case that gate prints, already files under US-R03; and the "INV-05b" in `58-review-rating-source.js`
+names a clause of US-INV-05 (TC-INV-05a/05b), not a story. The other 27 have no story here, so they are
+imported below.
+
+WHAT THESE LINES ARE, SAID PLAINLY. Each is the one-line summary the gate's own header gives for that id,
+copied word for word. The lane documents that hold the full stories (the Home and Lesson lanes' of 2026-09-15 and the Play
+lane's of 2026-09-14, which each gate header names) are NOT in this repository, so the gate header is the
+only text of these stories a build session can read. Where a fuller lane text later reaches this repo it
+amends the line with a dated note; it does not replace it. US-HM-01 is imported too, because until now it was
+"defined" here only by a sentence that happens to open with it. Numbers in these lines (92, 75, 61, 44,
+2600ms, 3300ms, 84x84, 88px) are the gate's pins as written there, measured on the builds that header names,
+and are owned by the gate, not by this file.
+
+US-HM-01  the Home overlay is a fixed, self-scrolling layer whose column is min(vw-36, 420) wide, and NOTHING escapes it sideways at any width. (gates/regress/49-home.js)
+US-HM-02  the card set and its ORDER on a fresh store - intro, Daily 3, NEW HERE, tiles, coach line, look row, dev row, build stamp - asserted as an exact signature, so a card that appears or disappears is a red line rather than a silent change of screen. (49-home.js)
+US-HM-03  four tiles, their labels, their subtitles, their 84x84 icon boxes and their #366 ink scales, measured BEFORE any tap. (49-home.js)
+US-HM-04  every tile is reachable and hit-testable, including the bottom row at 320x568 where it is 88px below the fold at rest. (49-home.js)
+US-HM-05  each tile opens ITS screen and Home comes down with it. (49-home.js; US-HM-11 extends it to every card)
+US-HM-06  the ☰ and the 👋 open the menu sheet and the account sheet OVER Home, without dismounting it. (49-home.js)
+US-HM-07  the streak card: it is absent on a fresh store, present once anything is earned, and its three chips and goal bar read the stored numbers. (49-home.js)
+US-HM-08  the Daily 3 card: three dots, ticked from ct_daily3, and "Continue: <lesson>" from ct_lastlesson. (49-home.js)
+US-HM-09  the coach line is one row of three spans and it changes to the at-risk wording when the streak is at risk. (49-home.js)
+US-HM-10  the foot of the column - the look row, the dev row and the build stamp - is reachable. (49-home.js)
+
+US-LS-01  the demo board is a PINNED size per geometry and its top is 92 at every geometry. (gates/regress/48-lesson-flow.js)
+US-LS-02  nothing scrolls on either axis, in demo or practice. (48-lesson-flow.js)
+US-LS-03  the note box is EXACTLY 75 tall on every ply, whatever the note says (#366), and its width is min(98vw, board+44). (48-lesson-flow.js)
+US-LS-04  a note too long for three lines gets the "more ▾" badge, and only then; tapping it opens a sheet in which the whole note fits UNCLIPPED; closing it leaves the board where it was. (48-lesson-flow.js)
+US-LS-05  the demo transport: ▶ paused, ⏸ playing, ↻ at the end; Back at ply 0 is a no-op; ten Forwards walk the Italian Game line exactly. (48-lesson-flow.js)
+US-LS-06  the fixed footer is 61 tall, pinned to the bottom, and carries five buttons in demo and TWO in practice - and NO laid-out control is hidden underneath it. (48-lesson-flow.js)
+US-LS-07  the practice control row is ⟳ 💡 ↻Try-again ⋯, 44 tall, the board's own width, and fits inside a 320 screen with the short label (#384). (48-lesson-flow.js; US-R73 is the later clause on when the row says "Try again")
+US-LS-08  hints are on by default and paint EXACTLY the two squares of the book move; 💡 turns them off and on again, and the board does not move either way. (48-lesson-flow.js)
+US-LS-09  a wrong move changes nothing on the board and does not advance the progress bar; ↻ Try again puts the lesson back to move 0; a correct move advances it one step and moves the hint on. (48-lesson-flow.js)
+US-LS-10  the ⋯ sheet's prev/next row names the neighbouring lessons and disables the end it is at. (48-lesson-flow.js)
+
+The Play header numbers its ten lines 1 to 10 under the heading "US-PL-01 … US-PL-10"; line n is US-PL-0n, which
+is how the gate's own comments use them (TC-PL-009 under US-PL-04, TC-PL-012 under US-PL-06). US-PL-02 and
+US-PL-03 are quoted by no gate and are imported with the rest so the series has no hole.
+
+US-PL-01  the board is a PINNED size per geometry in a live game, and nothing scrolls on either axis. (gates/regress/46-play.js)
+US-PL-02  the two player bars are the board's width and carry the ⌂ and ☰ chrome. (46-play.js; US-PL-22 later moved that chrome to a top row of its own on a phone)
+US-PL-03  the control row is exactly Moves Back Forward Hint Flip More, 51 tall, fully inside the viewport. (46-play.js)
+US-PL-04  Moves toggles the list's VISIBILITY and the board does not move (the #373 rule). (46-play.js)
+US-PL-05  Back/Forward step the painted position; Forward is dead at the live head, Back at move 0. (46-play.js)
+US-PL-06  a board tap while previewing returns to live and plays NO move. (46-play.js)
+US-PL-07  Hint paints exactly two squares and clears on the next move, without moving the board. (46-play.js)
+US-PL-08  Flip turns the board and swaps the bars, without moving the board. (46-play.js)
+US-PL-09  a clock counts down the side to move only, and not before the first move. (46-play.js)
+US-PL-10  at game over the row becomes Moves Back Forward Review Rematch More, the result card shows, fades at 2600ms and UNMOUNTS at 3300ms - there is no "8s fade" - Resign leaves the sheet, and the board is the same PINNED size it was mid-game. (46-play.js; US-PL-11 to US-PL-14 are the later game-over clauses)
+
 ## Online - the New Game sheet's Online branch · registered #545 from gates/regress/25-online-clocks.js (jobs/online-cases-are-executed-but-unregistered-2026-09-28)
 
 WHERE THESE CAME FROM, SO NOBODY READS THEM AS NEW REQUIREMENTS. Gate 25 asserted these cases from #400 onward,

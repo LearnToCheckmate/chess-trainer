@@ -498,7 +498,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
     geo+': TC-PS-038 the banner carries NO data-ct. [data-ct="play-context"] IS in the DOM - it is the live game\'s opening row rendering under the overlay - and it carries no ink at all there (its text is a lone non-breaking space). TEST-CASES-REVIEW.md TC-RL-086 names play-context as the carrier of this string; it is not, and a gate written from that case asserts on the wrong element.',ban);
   const col=(await GROUP(b,/^(White|Black)$/)).items;
   L.say(col.filter(x=>x.on).length===1&&col.find(x=>x.on).t==='Black'&&(await FOOT(b))==='vs Computer · Black · No clock',
-    geo+': TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer\'s own side, and the footer agrees. US-R28 asks for "my side"; this is what the build does (chess.jsx:8295 setPColor(boardGame.turn)).',{col,foot:await FOOT(b)});
+    geo+': TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer\'s own side, and the footer agrees. US-RF28 (claude/stories/REVIEW-SUITE-FULL.md) asks for "my side"; this is what the build does (chess.jsx:8295 setPColor(boardGame.turn)).',{col,foot:await FOOT(b)});
   const st=await REACH(b,'▶ Play this position');
   L.say((await START_LABEL(b))==='▶ Play this position'&&st.found&&st.onScreen&&st.hit,
     geo+': TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at '+st.top+'..'+st.bottom+' of '+st.vh+' (at rest it sits at '+st.restTop+', below the fold at both geometries)',st);

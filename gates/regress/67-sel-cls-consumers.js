@@ -1,4 +1,5 @@
-// gates/regress/67-sel-cls-consumers.js - #442. TC-SELCLS-CONSUMERS / US-R13, US-R30.
+// gates/regress/67-sel-cls-consumers.js - #442. TC-SELCLS-CONSUMERS / US-R13, US-R03 (the grading ladder; #442 wrote
+// a Review story id USER-STORIES.md never defined, re-pointed at #549 item (69) as gate 66's was).
 //
 // WHAT THIS GUARDS. #440 split the grade in two: `sel` (the old centipawn ladder, which SELECTS which
 // moves go in a pool) and `cls` (the win-percentage label, which is DISPLAYED). It migrated the four

@@ -1,4 +1,5 @@
-// gates/regress/66-winprob-ladder.js - #440. TC-R40 / US-R30.
+// gates/regress/66-winprob-ladder.js - #440. TC-R40 / US-R03 (the grading ladder; #440 wrote a Review story id this repo's
+// USER-STORIES.md never defined - re-pointed at #549 item (69) to the story TC-R40's register row already names).
 //
 // WHAT THIS GUARDS. Kunal, 2026-09-23, on a game between 2000-strength players: "you're saying they
 // committed like a bunch of blunders, especially at the end." classify() saw only the centipawn loss, so

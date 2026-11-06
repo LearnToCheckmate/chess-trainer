@@ -110,7 +110,7 @@ const ratingBoxes=(b)=>b.page.evaluate(()=>{
     // MEASURE THE PIECES, NOT THE ROW. The row is a flex box inside a fixed-width column, so its rect STOPS at
     // the column edge while a nowrap child runs straight past it: negative control NC2 put a 31-character label
     // on this line and the ROW still read 36..148.5 inside a column of 33..151.5, spill -3, GREEN. That is the
-    // box-not-the-ink error US-INV-05b was written for and jobs/invariant-2-measures-the-box-not-the-ink names
+    // box-not-the-ink error US-INV-05 (clauses TC-INV-05a/05b) was written for and jobs/invariant-2-measures-the-box-not-the-ink names
     // again, reproduced inside a gate written by the lane that keeps finding it. So every CHILD's own rect is
     // compared with the column, and the worst is reported.
     const kids=[...line.children].length?[...line.children]:[line];
