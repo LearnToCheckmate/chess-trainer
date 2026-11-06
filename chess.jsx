@@ -3874,12 +3874,23 @@ export default function App(){
     if(!(mode==='learn'&&openIdx===null&&learnGroup===null&&!wide)){if(discRowH)setDiscRowH(0);return;}
     /* measured again on the next frame too: the tab bar mounts in the same commit as this screen, so the first read can find it
        absent - and a row sized against the viewport bottom then overlapped the bar by ~40px (measured on the first trial) */
+    /* #549 item (18): AND AGAIN FOR UP TO 30 FRAMES, because one frame was not enough at Kunal's own geometry. Measured on the #549
+       base at 375x761 with the real insets (51 top, 31 bottom): the rows were 263px where the tab bar allows 248, so the second row's
+       tiles ran 15px UNDER the bar - the read had fallen back to the viewport minus 56, which ignores the bottom inset. 375x730 and
+       375x812 hid it because with no inset the fallback and the bar agree. The fallback now subtracts the bottom inset too. */
+    let k=0,id=0;
     const run=()=>{const g=discGridRef.current;if(!g)return;
-      const tb=document.querySelector('[data-ct="tabbar"]');const lim=(tb?tb.getBoundingClientRect().top:(vp.h-56))-14;
+      const tb=document.querySelector('[data-ct="tabbar"]');const lim=(tb?tb.getBoundingClientRect().top:(vp.h-56-safeBot))-14;
       const row=Math.floor((lim-g.getBoundingClientRect().top-6)/2);
       const next=row>150?row:0;setDiscRowH(r=>Math.abs(next-r)>1?next:r);};
-    run();const id=requestAnimationFrame(run);return()=>cancelAnimationFrame(id);
-  },[mode,openIdx,learnGroup,wide,vp.h,vp.w]);
+    const tick=()=>{run();if(++k<30)id=requestAnimationFrame(tick);};
+    run();id=requestAnimationFrame(tick);return()=>cancelAnimationFrame(id);
+  },[mode,openIdx,learnGroup,wide,vp.h,vp.w,safeBot]);
+  /* #549 item (18), Amber: flags/amber-549-discover-tile-ink. The icon square grows with the row at 0.64 of its height (was 0.52, cap 150),
+     capped at 160 and at the tile's own width less 20 (the grid is at most 380 wide, 4px page padding each side, a 10px column gap),
+     and the emoji at half the square. Measured on the #549 base at 375x761 real: 137px icons left an 89px empty band between the
+     two rows, over the 60px rule Kunal adopted on 11 Oct; the row fix above alone leaves about 74. */
+  const _discIc=Math.max(76,Math.min(160,Math.floor((Math.min(380,vw-8)-10)/2)-20,Math.round(discRowH*0.64)));
   // #346: the geometry this trim belongs to. Anything NOT in here is content, and content must not reset the trim.
   const _geoKey=vp.w+'x'+vp.h+':'+safeTop+':'+safeBot+':'+mode+':'+(inReview?1:0)+(revCompact?1:0)+(wide?1:0)+(playSetup?1:0)+':'+pzView+':'+openIdx+':'+reviewView+':'+(evalUnder?1:0)+(hideEval?1:0);
   // #344: fit the board to whatever screen this actually is.
@@ -9527,7 +9538,7 @@ export default function App(){
             <div ref={discGridRef} data-ct="discover-tiles" style={{display:'grid',gridTemplateColumns:'1fr 1fr',rowGap:6,columnGap:10,width:'100%',maxWidth:380,margin:'0 auto',...(discRowH?{gridAutoRows:discRowH+'px'}:null)}}>
               {[{key:'openings',label:'Openings',icon:'🚀',tint:['#3b82f6','#1d4ed8']},{key:'gambits',label:'Gambits',icon:'⚔️',tint:['#ef4444','#b91c1c']},{key:'endgames',label:'Endgames',icon:'👑',tint:['#a855f7','#7c3aed']},{key:'tactics',label:'Tactics',icon:'💡',tint:['#10b981','#047857'],isNew:true}].map((t,gi)=>{const n=t.isNew?null:LIB.filter(o=>groupOf(o.cat)===t.key).length;if(!t.isNew&&!n)return null;return(
                 <button key={t.key} onClick={()=>setLearnGroup(t.key)} style={{background:'transparent',border:'none',padding:'12px 4px',cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'inherit'}}>
-                  <div style={{position:'relative',width:(discRowH?Math.min(150,Math.round(discRowH*0.52)):76),height:(discRowH?Math.min(150,Math.round(discRowH*0.52)):76),borderRadius:22,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,fontSize:(discRowH?Math.min(74,Math.round(discRowH*0.26)):38),lineHeight:1,background:`linear-gradient(150deg,${t.tint[0]},${t.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.26),0 12px 20px ${t.tint[1]}55,inset 0 2px 0 rgba(255,255,255,.45),inset 0 -5px 9px rgba(0,0,0,.26)`,animation:'iconpop .5s cubic-bezier(.34,1.56,.64,1) both',animationDelay:`${gi*0.07}s`}}>{t.icon}</div>
+                  <div style={{position:'relative',width:(discRowH?_discIc:76),height:(discRowH?_discIc:76),borderRadius:22,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,fontSize:(discRowH?Math.round(_discIc/2):38),lineHeight:1,background:`linear-gradient(150deg,${t.tint[0]},${t.tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 5px 0 rgba(0,0,0,.26),0 12px 20px ${t.tint[1]}55,inset 0 2px 0 rgba(255,255,255,.45),inset 0 -5px 9px rgba(0,0,0,.26)`,animation:'iconpop .5s cubic-bezier(.34,1.56,.64,1) both',animationDelay:`${gi*0.07}s`}}>{t.icon}</div>
                   <div style={{color:'rgba(255,255,255,.98)',fontSize:'clamp(15px,4.1vw,18px)',fontWeight:800,marginBottom:2,letterSpacing:.2}}>{t.label}</div>
                   <div style={{color:'rgba(255,255,255,.46)',fontSize:'clamp(11px,2.6vw,12.5px)',lineHeight:1.3}}>{t.isNew?'New':n+' lessons'}</div>
                 </button>);})}

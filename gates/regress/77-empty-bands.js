@@ -16,7 +16,7 @@
 // in the SAME COMMIT as the fix that brings it to 60px or under, or on a re-measure that finds it already there.
 // Owners today: the Review move screen - jobs/eval-graph-into-the-band; Puzzles right after a solve -
 // jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24; Discover - its own Desk card (owed to Kunal, a
-// taste call) and then its own build; the drill - jobs/board-jumps-on-drill-verdict and then
+// taste call) and then its own build (answered 'tiles', promoted at #549); the drill - jobs/board-jumps-on-drill-verdict and then
 // jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12 (the drill states are NOT driven here yet).
 // The Puzzles rankup state has no owner job and stays report-only.
 //
@@ -114,7 +114,10 @@ const STATES=[
   ['TC-S07','drill brilliant asked',     DR('brilliant',false),      DRSEED.brilliant],
   ['TC-S07','drill brilliant solved',    DR('brilliant',true),       DRSEED.brilliant],
 ];
-const PROMOTED77=['puzzles train','puzzles train-solved','puzzles train-fail','puzzles train-hint','review moves-ply10','review moves-last','review analysis'];
+// #549 item (18), jobs/bench-discover-is-57-per-cent-empty-2026-09-30: HOME DISCOVER PROMOTED in the same commit as its fix, per the rule
+// above. On the #549 base (md5 14ea26b79b33) it read 89 @379.2-468.2 at 375x761 real; the fix (rows measured against the real tab bar,
+// icon at 0.64 of the row) reads 52 @381.7-433.7. 375x730 (78) and 375x812 (119) stay reported, as the rule says.
+const PROMOTED77=['home discover','puzzles train','puzzles train-solved','puzzles train-fail','puzzles train-hint','review moves-ply10','review moves-last','review analysis'];
 const cutBands=(bands,top)=>bands.map(([a,b])=>[Math.max(a,top),b]).filter(([a,b])=>b-a>=8).map(([a,b])=>[+a.toFixed(1),+b.toFixed(1),+(b-a).toFixed(1)]);
 const sum=(bands)=>+bands.reduce((s,x)=>s+x[2],0).toFixed(1);
 const big=(bands)=>bands.reduce((m,x)=>(!m||x[2]>m[2])?x:m,null);
@@ -145,7 +148,7 @@ L.run(async()=>{
       // PROMOTED [#547 items (87), (56)/(184)]: states measured at or under 60px at 375x761 real are now ASSERTED there, per the
       // promotion rule above. Measured on the #547 trial: train-solved 49 (was 89.4, item 87 centres the verdict card), review
       // moves-ply10 25.1, moves-last 42, analysis 11 (were 68.5/68.5/99, the graph moved into the band), puzzles train 46.6,
-      // train-fail and train-hint 15.5 (already under). Discover, rankup and review moves-ply0 (71) stay report-only.
+      // train-fail and train-hint 15.5 (already under). Rankup and review moves-ply0 (71) stay report-only; Discover was promoted at #549 (see PROMOTED77).
       if(c.real&&PROMOTED77.indexOf(label)>=0)L.say(!!bg&&bg[2]<=60,cs+' '+label+' @'+c.n+': PROMOTED - the largest empty band is at most 60px (Kunal\'s rule, adopted 11 Oct): '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'none'),{largest:bg&&bg[2],at:bg&&(bg[0]+'-'+bg[1])});
       row[c.n]={largest:bg?bg[2]:0,at:bg?bg[0]+'-'+bg[1]:'',empty:sum(cut),rawLargest:m.largest,rawAt:m.at};
       L.note('    REPORT '+cs+' '+label+' @'+c.n+(c.cut?'  RAW from y 0: largest '+m.largest+' @'+m.at+', empty '+m.empty+'  |  TOP '+c.cut+'px EXCLUDED:':':')+
