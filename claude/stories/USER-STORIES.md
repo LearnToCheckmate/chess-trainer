@@ -184,6 +184,12 @@ work, and I can watch that line on the board.
   analysis worker fails under the search for the reason's "If ..." clause, the app asks again on a fresh worker while I stay on
   the ply, so the clause arrives a few seconds late instead of only after I step off and come back. A worker that stops
   answering without reporting an error is not covered. (TC-R115)
+- WHAT I HAVE STARTED READING IS NEVER TAKEN BACK (#549, item (102)). The "If ..." clause is worked out after the move is
+  shown, so until it arrives the reason stops at its opening clause ("You give up a piece.", "The only move that keeps it.")
+  and the rest is then added after it; nothing already on screen is deleted or moved. Before this, at 37...Rf7 in Kunal's own
+  game the reason read "... Nothing else came close: Kh6 was 1.7 pawns worse." and that clause vanished a second later. The
+  settled reason and the size of its box are unchanged: the comparison still gives way to the "If ..." clause only when both
+  do not fit. (TC-R117)
 
 ### US-R07 I can analyse any position myself
 As a player, from any ply I open an analysis board where both colours are movable, with Undo and Exit.

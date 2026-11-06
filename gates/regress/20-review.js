@@ -258,7 +258,9 @@ L.run(async()=>{
     L.say(colours.length>=3,geo+': TC-R08 the move strip uses at least three distinct colours ('+colours.length+')');
     // TC-R10 (the why text) is asserted in 21-review-brilliant.js; here only that the reason exists on the brilliancy
     await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click();await b.settle(500);
-    const why={text:(await b.text('[data-ct="rev-why"]'))||''};L.say(why.text.length>20,geo+': TC-R08 the reason line is present on 10.Nxb5',why&&why.text.slice(0,70));
+    /* #549 item (102): until its "If ..." refutation arrives the Brilliant reason stops at its opening clause ('You give up a piece.',
+       20 characters) so the arrival only appends; read the reason once it has settled (up to 6 s), not at a fixed 500 ms. */
+    const why={text:''};for(let k=0;k<13;k++){why.text=(await b.text('[data-ct="rev-why"]'))||'';if(why.text.length>20)break;await b.page.waitForTimeout(500);}L.say(why.text.length>20,geo+': TC-R08 the reason line is present on 10.Nxb5',why&&why.text.slice(0,70));
     // TC-R11 analysis board from the round button at ply 19 (Black to move)
     // #381 A-08: this assertion MOVED WITH THE BUTTON rather than being deleted. It used to read "42x42 in the
     // board's bottom corner", which was the defect: the button sat ON the board over h1 and part of g1, and in

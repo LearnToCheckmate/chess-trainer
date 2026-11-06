@@ -1432,8 +1432,19 @@ function explainAnno(a,ctx){
     const what=_gv>=9?'the queen':_gv>=5?'a rook':_gv>=2?'a piece':_gv>=1?'a pawn':'material';
     const R=ctx&&ctx.refute;
     const refTxt=refuteTxt(R);
-    const _l=refTxt?'':pvShow(pvTakes);   // the refutation says it better than the bare line
+    /* #549 (102) jobs/the-coach-sentence-is-rewritten-two-seconds-in-and-portrait-headroom-is-now-0-3px-2026-10-10,
+       Amber: flags/amber-549-refutation-replaces-comparison-from-first-paint. The refutation clause is answered
+       by a search that lands AFTER first paint (under a second with the engine line off, seconds later with it
+       on), and pack() is a fixed greedy budget, so its arrival used to EVICT a clause the reader had already
+       started - 'Nothing else came close: Kh6 was 1.7 pawns worse.' at Kunal's ply 74. While a refutation is
+       DUE (ctx.refuteDue: the sacrifice effect will ask for one and has not answered) the sentence stops at its
+       opening clause, so the arrival only ever APPENDS: pack() is first-fit from the front, so the settled
+       sentence always begins with what was shown. The settled sentence, the budget and the box are unchanged;
+       the comparison still yields to the refutation only when both cannot fit (orchWrite_1791683630517). */
+    const _due=!R&&!!(ctx&&ctx.refuteDue);
+    const _l=(refTxt||_due)?'':pvShow(pvTakes);   // the refutation says it better than the bare line
     const _give='You give up '+what+(_l?(', and '+_l):'.');
+    if(_due)return pack([_give]);
     // #365 WHY it works: what happens if they take (analysed on demand, handed in through ctx.refute),
     // and what the next best move would have got instead. Those two clauses are the explanation;
     // the material count and the standing were only ever the definition.
@@ -1442,6 +1453,7 @@ function explainAnno(a,ctx){
   if(L==='Great'){const alt=(a.altSan&&a.altDrop!=null&&a.altDrop>=120)?dropTxt(a.altSan,a.altDrop):'';
     const R=ctx&&ctx.refute;
     const refTxt=refuteTxt(R);
+    if(!R&&ctx&&ctx.refuteDue)return pack(['The only move that keeps it.']);   /* #549 (102): as the Brilliant branch above */
     const _pv=(refTxt?'':pvTxt);   /* #365 the refutation says the line with its reason attached; do not say it twice */
     return pack(['The only move that keeps it.',refTxt,_pv,didTxt,motifTxt,alt]);}
   const gapTxt=(()=>{if(!a.altSan||a.altDrop==null)return '';if(a.altDrop<35)return a.altSan+' was just as good.';return dropTxt(a.altSan,a.altDrop);})();
@@ -6683,7 +6695,7 @@ export default function App(){
       if(w.yields>20){
         sacWantRef.current=null;
         const _y=sacRef.current.byPly[w.ai];
-        if(sacRef.current.key===w.key&&_y&&_y.pending&&_y.tok===w.tok)delete sacRef.current.byPly[w.ai];
+        if(sacRef.current.key===w.key&&_y&&_y.pending&&_y.tok===w.tok){sacRef.current.byPly[w.ai]={failed:true,tok:w.tok};setSacTick(x=>x+1);}   /* #549 (102): not due any more, so the held tail is shown */
         return;
       }
       if(sacYieldRef.current)clearTimeout(sacYieldRef.current);
@@ -6792,7 +6804,7 @@ export default function App(){
            `best`-delivered flag, so the question asked here is the same one #511's `r.ok` asked. */
         if(sacKeep(_ansOk,sanLine))sacRef.current.byPly[w.ai]={capSan:w.t.san,replySan,replyLine:sanLine,verdict,cpW:_cpW,mateW:_mtW};
         else if(_died&&(w.deadRetry||0)<SAC_DEAD_RETRY&&!sacWantRef.current)sacWantRef.current={...w,yields:0,deadRetry:(w.deadRetry||0)+1};   /* #549 (81): marker kept pending, same token; the finally re-runs it */
-        else delete sacRef.current.byPly[w.ai];
+        else sacRef.current.byPly[w.ai]={failed:true,tok:w.tok};   /* #549 (102): was a delete; 'failed' releases the held tail now and is dropped when the reader leaves, so a return re-queries as before */
       }
       setSacTick(x=>x+1);
     }finally{
@@ -6805,7 +6817,7 @@ export default function App(){
     const L=curAnno.cls&&curAnno.cls.label; if(L!=='Brilliant'&&L!=='Great')return;
     const key=(review.headers&&(review.headers.White+'|'+review.headers.Black+'|'+review.plies.length))||String(review.plies.length);
     if(sacRef.current.key!==key){sacRef.current={key,byPly:{}};}
-    const ai=ply-1; if(sacRef.current.byPly[ai])return;
+    const ai=ply-1; if(sacRef.current.byPly[ai]&&!sacRef.current.byPly[ai].failed)return;
     const pos=review.positions&&review.positions[ai], pl=review.plies[ai];
     if(!pos||!pl||!pl.move){sacRef.current.byPly[ai]={none:true};return;}
     const t=sacTaker(pos,pl.move);
@@ -6817,13 +6829,18 @@ export default function App(){
     const tok=++sacTokRef.current;
     sacRef.current.byPly[ai]={pending:true,capSan:t.san,tok};
     const timer=setTimeout(()=>{sacWantRef.current={key,ai,t,pos,tok};sacRun();},450);
-    return()=>{clearTimeout(timer);const _c=sacRef.current.byPly[ai];if(_c&&_c.pending&&_c.tok===tok)delete sacRef.current.byPly[ai];};
+    return()=>{clearTimeout(timer);const _c=sacRef.current.byPly[ai];if(_c&&(_c.pending||_c.failed)&&_c.tok===tok)delete sacRef.current.byPly[ai];};
   },[inReview,review,ply,curAnno,sacRun]);
   const _annoWhy=useMemo(()=>{
     if(!curAnno||!inReview||!review)return null;
     const ai=ply-1;
     const R=sacRef.current.byPly[ai]; const refute=(R&&!R.pending&&!R.none&&R.replySan)?R:null;
-    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,maxw:(!wide?150:WHY_MAXW)});
+    /* #549 (102): a refutation is DUE when the sacrifice effect below will ask for one - its own test, Brilliant
+       or Great and sacTaker finds a capture - and has not answered (none, failed or a reply). Computed here and
+       not read off the pending marker, because that marker is written by the effect AFTER this first render. */
+    const _L=curAnno.cls&&curAnno.cls.label;
+    const refuteDue=!refute&&!(R&&(R.none||R.failed))&&(_L==='Brilliant'||_L==='Great')&&ai>=0&&(()=>{const pos=review.positions&&review.positions[ai],pl=review.plies[ai];return !!(pos&&pl&&pl.move&&sacTaker(pos,pl.move));})();
+    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
   },[curAnno,inReview,review,ply,sacTick,wide]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was

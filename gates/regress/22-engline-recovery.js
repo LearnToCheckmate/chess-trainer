@@ -663,4 +663,34 @@ L.run(async()=>{
     L.say(!!b1&&!!b2&&Math.abs(b1.top-b2.top)<=0.5&&Math.abs(b1.w-b2.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 and switching it OFF again moves nothing ('+JSON.stringify(b2&&[b2.top,b2.w])+')',{b1,b2});
     await b.close();}
   }
+  /* ── TC-R117, BLOCK T: THE COACH SENTENCE ONLY GROWS WHILE THE REFUTATION ARRIVES (#549 item (102)) ──────────────────────────────
+     jobs/the-coach-sentence-is-rewritten-two-seconds-in-and-portrait-headroom-is-now-0-3px-2026-10-10. The refutation clause
+     ("If <capture>, <reply> ...") is answered by a search that lands after first paint, and pack() is a fixed greedy budget,
+     so its arrival used to EVICT a clause the reader had started: at Kunal's ply 74 (37...Rf7, Great) the first paint read
+     "... Nothing else came close: Kh6 was 1.7 pawns worse." and a second later that clause was gone. Engine line OFF on purpose:
+     the refutation then lands inside about a second, so the first paint and the arrival are both inside the 6 s watched and the
+     state is not a race. Sampled every 100 ms from the landing tap; every sample must be a PREFIX of the next one. The
+     denominator is that the refutation really arrived (the last sample carries the "If" clause), so a green is not a ply where
+     nothing happened. Plies 38 (Brilliant) and 74 (Great) cover both branches of explainAnno that take a refutation. */
+  {const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
+   const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+   const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+   const b=await L.launch({geo:'kunal761',store:{ct_pool:'3',ct_safe:'51,31'},name:'coach-sentence-only-grows'});await b.open();let ok=true;
+   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(600);
+     await b.tapText(/^Start review/,{wait:900});}catch(e){ok=false;}
+   let at=0;
+   for(const T of [38,74]){let samples=[],atT=null;
+     try{await fwd(b,T-1-at,80);await b.settle(3000);
+       await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});at=T;
+       for(let i=0;i<60;i++){samples.push(await why(b));await b.page.waitForTimeout(100);}
+       atT=await plyTxt(b);}catch(e){ok=false;}
+     const ss=samples.filter(x=>x&&x.trim());const last=ss[ss.length-1]||null;
+     const bad=[];for(let i=1;i<ss.length;i++)if(ss[i]!==ss[i-1]&&!ss[i].startsWith(ss[i-1]))bad.push({from:ss[i-1],to:ss[i]});
+     const distinct=[...new Set(ss)];
+     L.say(ok&&!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant|Great/.test(atT),'TC-R117 PRECONDITION ply '+T+' of Kunal’s game reached, a Brilliant or Great move (the classes that take a refutation)',{atT});
+     L.say(IF(last),'TC-R117 DENOMINATOR at ply '+T+' the refutation clause really arrived inside the 6 s watched ("'+last+'")',{last,distinct:distinct.length});
+     L.say(ss.length>=50&&bad.length===0,'TC-R117 at ply '+T+' NOTHING SHOWN IS REMOVED: every one of '+ss.length+' samples (100 ms apart from the landing tap) is a prefix of the next - '+distinct.length+' distinct sentence(s), '+bad.length+' rewrite(s)',{bad:bad.slice(0,2),distinct});
+   }
+   await b.close();}
 },'ENGLINE-RECOVERY');
