@@ -96,6 +96,7 @@
 //   (forcingKind) is the gate's own board arithmetic, unit-tested on 15 moves as B5c-PREDICATE; the per-card check
 //   runs on every quiet captured card. THIS FIXTURE HAS NONE (e7b4 is a check, e6d7 a capture), so B5c prints that
 //   it DID NOT RUN rather than passing; a fixture with a quiet better move is what makes it bite.
+// CONTROL-RECORD: 6ebc189 2026-11-06 total=69 red=4 scope=env:CT_GEO51=375x730,320x568 how=#549 item (113) TC-R16 B11b, pz-float gains paddingBottom:40 once the card is solved so the board drops when the verdict lands, trial md5 6ab721ae0ed1 - FAIL TC-R16 B11b at 4 of 4 (dTop 40 and 36.5) with B11a green; the HEAD trial 1f47e032b8e7 reads 119 pass 0 fail over the full sweep
 // CONTROL-RECORD: 03f1aea 2026-11-06 total=89 red=1 scope=full how=#549 item (13) TC-R103 A every-card form run against the #548 capture code (search on the card's own position, the first-move guard drops e6d7), trial md5 f2281c9d65cf - FAIL TC-R103 A (1 of 2); the fixed trial f29eb175f86d reads 90 pass 0 fail
 'use strict';
 const L=require('../lib');
