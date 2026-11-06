@@ -159,6 +159,26 @@ assert_falls(){ # <register.tsv> <log>
 # #547 item (1): a stamp may end ' (src <12 hex>)' before its closing quote, since gates/build.sh emits the source md5.
 bundle_stamp(){ local n; n="$(grep -oE '"#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET( \(src [0-9a-f]{12}\))?"' "$1" 2>/dev/null | sort -u)"
   [ -n "$n" ] && [ "$(printf '%s\n' "$n" | grep -c .)" = 1 ] && printf '%s\n' "$n" | grep -oE '^"#[0-9]{3,4}' | tr -d '"'; }
+# obs_records <gate log> <fastgate.sh>: every path in the log's 'inputs observed' line that gates/fastgate.sh's OWN
+# classify() calls RECORDS, one per line. Exit 3 when classify() cannot be read out of that file - which the caller must
+# treat as NOT CHECKED, never as clean [#549, item (71); jobs/the-premise-checks-read-the-gates-source-instead-of-asking-
+# them-to-declare-their-inputs-2026-10-07]. WHY THIS IS A REFUSAL IN THE FULL SUITE: fastgate.sh lets a commit that touches
+# only RECORDS paths push without the suite, on the premise that no gate reads a records path - and it established that
+# premise by PARSING gate source (require(), then path.join's leading literals), which missed a new input shape three times
+# (#489, #490 twice). Every gate's read set is OBSERVED since #545/#546 (lib.js's fs recorder, preloaded with -r), so the
+# premise is now checked where it is measured: a section that READ a path fastgate calls records-only is RED here, whatever
+# grammar it reached it by. A gate that needs such a fixture therefore cannot go green until the path is FORCE in
+# classify(), and a fast green can never rest on a gate whose input a records commit could change. classify() is TAKEN
+# FROM fastgate.sh, not copied, so the two cannot drift; BNRATCHET and NOJEKYLL are set to yes, the setting under which
+# classify() calls the MOST paths records, so the refusal is the strict one. THE LIMIT: only reads the run actually made
+# are seen - a fixture read on a branch the run did not take is not in the line, which is the observer's limit, not this one.
+obs_records(){
+  local cls; cls="$(awk '/^classify\(\)\{/{p=1} p{print} p&&/^\}/{exit}' "$2" 2>/dev/null)"
+  case "$cls" in *'echo "RECORDS"'*) ;; *) return 3 ;; esac
+  ( BNRATCHET=yes; NOJEKYLL=yes; eval "$cls" || exit 3
+    grep -m1 '^     inputs observed (' "$1" | sed 's/^[^:]*: //' | tr ' ' '\n' | while IFS= read -r p; do
+      [ -n "$p" ] || continue; [ "$(classify "$p")" = RECORDS ] && printf '%s\n' "$p"; done; exit 0 )
+}
 # ── gates/gates.sh --selftest ─────────────────────────────────────────────────────────────────────────────────
 # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02, THE REMAINDER.
 # That job's headline repair LANDED (the herestring at the MANI_LINE assignment below, burst wave 1 patch 03,
@@ -1573,6 +1593,38 @@ M16PY
   st V1b-and-prints-the-harness-FAIL-that-names-the-stop "$(grep -c '^FAIL HARNESS: this gate ran 1 assertion' "$ST_T/v1-stall.out")" 1
   st V1c-a-gate-that-reaches-done-is-untouched-exit-0 "$V1OK" 0
   st V1d-and-prints-no-harness-FAIL "$(grep -c '^FAIL' "$ST_T/v1-ok.out")" 0
+  # ── R71a TO R71k: A SECTION THAT READ A RECORDS-ONLY PATH IS RED, BY OBSERVATION [#549, item (71); TC-FG-004]. The four
+  # input shapes fastgate's source parser never modelled - path.join with a variable first segment, a template literal,
+  # __dirname concatenation, a process.env default - each read a fixture under claude/ from a probe gate that never
+  # requires the harness, run exactly as the loop runs a gate (lib.js preloaded with -r, CT_OBSERVE_EXIT=1), and
+  # obs_records with THIS tree's fastgate.sh must name the fixture for every one of the four.
+  printf '     inputs observed (3 repository files read through fs or require): chess.jsx gates/lib.js claude/agents/x.md\n' > "$ST_T/r71-1.log"
+  printf '     inputs observed (2 repository files read through fs or require): chess.jsx claude/agents/bench/pgn/a.pgn\n' > "$ST_T/r71-2.log"
+  printf 'classify(){ echo FORCE; }\n' > "$ST_T/r71-nofg.sh"
+  st R71a-a-records-path-in-the-inputs-line-is-named "$(obs_records "$ST_T/r71-1.log" "$SG/fastgate.sh")" "claude/agents/x.md"
+  st R71b-a-FORCE-fixture-dir-is-not "$(obs_records "$ST_T/r71-2.log" "$SG/fastgate.sh" | wc -l | tr -d ' ')" 0
+  obs_records "$ST_T/r71-1.log" "$ST_T/r71-nofg.sh" >/dev/null; st R71c-no-readable-classify-is-exit-3-never-clean "$?" 3
+  mkdir -p "$ST_T/r71t/gates/regress" "$ST_T/r71t/claude/fx"; cp "$SG/lib.js" "$ST_T/r71t/gates/lib.js"
+  for f in a b c d; do echo "$f" > "$ST_T/r71t/claude/fx/$f.txt"; done
+  cat > "$ST_T/r71t/gates/regress/probe.js" <<'JS'
+const fs=require('fs'),path=require('path');const S=process.env.R71_SHAPE;
+if(S==='a'){const D=path.join(__dirname,'..','..','claude','fx');fs.readFileSync(path.join(D,'a.txt'),'utf8');}
+if(S==='b')fs.readFileSync(`${__dirname}/../../claude/fx/b.txt`,'utf8');
+if(S==='c')fs.readFileSync(__dirname+'/../../claude/fx/c.txt','utf8');
+if(S==='d')fs.readFileSync(process.env.R71_FIX||path.resolve(__dirname,'../../claude/fx/d.txt'),'utf8');
+console.log('PASS probe '+S);
+JS
+  for sh in a b c d none; do
+    ( cd "$ST_T/r71t" && R71_SHAPE=$sh CT_OBSERVE_EXIT=1 timeout 60 node -r "$ST_T/r71t/gates/lib.js" gates/regress/probe.js ) > "$ST_T/r71-$sh.out" 2>&1
+  done
+  st R71d-path-join-with-a-variable-first-segment-is-RED "$(obs_records "$ST_T/r71-a.out" "$SG/fastgate.sh")" "claude/fx/a.txt"
+  st R71e-a-template-literal-is-RED "$(obs_records "$ST_T/r71-b.out" "$SG/fastgate.sh")" "claude/fx/b.txt"
+  st R71f-dirname-concatenation-is-RED "$(obs_records "$ST_T/r71-c.out" "$SG/fastgate.sh")" "claude/fx/c.txt"
+  st R71g-a-process-env-default-is-RED "$(obs_records "$ST_T/r71-d.out" "$SG/fastgate.sh")" "claude/fx/d.txt"
+  st R71h-negative-control-a-probe-reading-nothing-printed-its-line "$(grep -c '^     inputs observed (' "$ST_T/r71-none.out")" 1
+  st R71i-and-names-no-records-path "$(obs_records "$ST_T/r71-none.out" "$SG/fastgate.sh" | wc -l | tr -d ' ')" 0
+  st R71j-the-gate-loop-reddens-on-it "$(grep -c '^  elif \[ -n "\$orec" \]; then red=1;' "$SF")" 1
+  st R71k-and-on-an-unreadable-classify "$(grep -c '^  elif \[ "\$orc" -ne 0 \]; then red=1;' "$SF")" 1
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -2868,6 +2920,7 @@ for f in "${gates[@]}"; do
   # with no inputs line is RED below: an unobserved gate is exactly the blind spot the source parser kept missing.
   ( cd "$ROOT" && CT_OBSERVE_EXIT=1 timeout 900 node -r "$G/lib.js" "$f" ) > "$log" 2>&1; rc=$?
   obs=$(grep -c '^     inputs observed (' "$log" || true)
+  orec="$(obs_records "$log" "$G/fastgate.sh")"; orc=$?   # #549 item (71): what this gate READ that fastgate calls records
   cat "$log" >> "$ALL"
   fails=$(grep -c '^FAIL' "$log" || true); marks=$(grep -c '<<<' "$log" || true); passn=$(grep -c '^PASS' "$log" || true)
   # ── #461, ANTAGONIST B's F4. "PRESENT" WAS A FILENAME, NOT A GATE. ──────────────────────────────────────────
@@ -2889,6 +2942,8 @@ for f in "${gates[@]}"; do
   # never runs lib.js's exit hook and has no inputs line either - and the obs branch below would misdiagnose it.
   elif [ $rc -eq 124 ]; then red=1; echo "    $name: RED (TIMED OUT - killed by 'timeout 900', exit 124; $passn PASS lines before the kill)" | tee -a "$ALL"
   elif [ "$obs" -eq 0 ]; then red=1; echo "    $name: RED (printed no 'inputs observed' line, so what this gate read is unknown - the recorder is preloaded with -r gates/lib.js; a gate that bypasses it is the blind spot #490 kept finding)" | tee -a "$ALL"
+  elif [ "$orc" -ne 0 ]; then red=1; echo "    $name: RED (NOT CHECKED - classify() could not be read out of gates/fastgate.sh, so whether this gate read a records-only path is unknown; never a pass)" | tee -a "$ALL"
+  elif [ -n "$orec" ]; then red=1; echo "    $name: RED (READ A RECORDS-ONLY PATH - gates/fastgate.sh's classify() calls these RECORDS, so a records commit could change this gate's verdict while the fast tier reports no gate can differ: $(printf '%s' "$orec" | tr '\n' ' ') - make the path FORCE in classify(), or stop reading it [#549 item (71)])" | tee -a "$ALL"
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
