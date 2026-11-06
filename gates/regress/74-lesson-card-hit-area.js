@@ -1016,22 +1016,26 @@ L.say(VACUOUS.length<GEOS.length,
  // arrived unshifted (antagonist A round 3: 149 -> Closed Sicilian, 150 -> Ruy Lopez Steinitz, 169 -> no Continue at all). Fresh store, sign
  // in through CTCloud._emit with a cloud double whose load returns the payload, let the pull and its push run, then RELOAD (the app reads
  // ct_lastlesson at startup) and read Continue. The fourth payload carries the stamp and must NOT be shifted a second time.
- for(const [ll,stamp,want] of [['149',null,'Petroff (Russian) Defense'],['150',null,'Closed Sicilian'],['169',null,'Wing Gambit (French)'],['149','1','Closed Sicilian']]){
-  const tag='TC-LS-052 cloud ct_lastlesson '+ll+(stamp?' (stamped)':' (no stamp)');
-  const b=await L.launch({geo:'kunal761',name:'ls052-'+ll+(stamp?'s':'')});await b.open();await b.settle(600);
+ // A4-R4 [antagonist A round 4]: the stamp now NAMES THE VALUE IT COVERS (ct_lastlesson549, the ct_lastlesson this build pushed). The
+ // fifth payload is the two-device path the bare stamp could not see: this build pushed 149 (stamp '1' and copy '149', so the case means
+ // the same to the bare-stamp reader and to the value-stamp reader), then a pre-#549 device's merge-save wrote ct_lastlesson '150' in the
+ // OLD indexing (Closed Sicilian) and left both markers standing. 150 must be shifted to 149; the bare-stamp reader opens Ruy Lopez Steinitz.
+ for(const [ll,stamp,want] of [['149',null,'Petroff (Russian) Defense'],['150',null,'Closed Sicilian'],['169',null,'Wing Gambit (French)'],['149','149','Closed Sicilian'],['150','149','Closed Sicilian']]){
+  const tag='TC-LS-052 cloud ct_lastlesson '+ll+(stamp?(stamp===ll?' (stamped, copy equal)':' (stamped for '+stamp+', overwritten by an old device)'):' (no stamp)');
+  const b=await L.launch({geo:'kunal761',name:'ls052-'+ll+(stamp?'s'+stamp:'')});await b.open();await b.settle(600);
   const pre=await b.page.evaluate(()=>({ll:localStorage.getItem('ct_lastlesson'),mig:localStorage.getItem('ct_libmig549')}));
-  const signed=await b.page.evaluate(([ll,stamp])=>{const C=window.CTCloud;if(!C||!C._emit)return false;const prog={ct_lastlesson:ll};if(stamp)prog.ct_libmig549=stamp;
+  const signed=await b.page.evaluate(([ll,stamp])=>{const C=window.CTCloud;if(!C||!C._emit)return false;const prog={ct_lastlesson:ll};if(stamp){prog.ct_libmig549='1';prog.ct_lastlesson549=stamp;}
     window.__ls052saved=[];C._load=async()=>({ctProgress:prog});C._save=async(d)=>{window.__ls052saved.push(JSON.parse(JSON.stringify(d)));};
     C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});return true;},[ll,stamp]);
   await b.settle(3600);
   const mid=await b.page.evaluate(()=>{const s=(window.__ls052saved||[]).map(d=>d&&d.ctProgress).filter(Boolean);const last=s[s.length-1]||null;
-    return {ll:localStorage.getItem('ct_lastlesson'),pushed:last?{ll:last.ct_lastlesson,mig:last.ct_libmig549}:null};});
+    return {ll:localStorage.getItem('ct_lastlesson'),pushed:last?{ll:last.ct_lastlesson,copy:last.ct_lastlesson549}:null};});
   await b.open();await b.settle(900);
   const cont=await b.page.evaluate(()=>[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null);
   if(L.say(signed&&pre.ll===null&&pre.mig==='1'&&mid.ll!==null,tag+' PRECONDITION a fresh device (no last lesson, migration flag already set by its first load) signed in and the pull wrote a last lesson',{signed,pre,mid})){
    const w18=want.slice(0,18).trim();   // Daily 3 prints the name cut to 18 characters, and innerText drops a trailing space
    L.say(!!cont&&cont.indexOf('Continue: '+w18)===0,tag+': after the reload Home says "Continue: '+w18+'" ('+cont+')',{cont,ll:mid.ll});
-   L.say(!!mid.pushed&&mid.pushed.mig==='1'&&mid.pushed.ll===mid.ll,tag+': and the copy pushed back to the cloud carries the stamp beside the value it holds, so no device shifts it again',mid.pushed);}
+   L.say(!!mid.pushed&&mid.pushed.ll===mid.ll&&mid.pushed.copy===mid.ll,tag+': and the copy pushed back to the cloud carries a stamp NAMING the value it holds (ct_lastlesson549 = ct_lastlesson), so no device shifts it again and a later old-device write is told apart',mid.pushed);}
   await b.close();}}
 L.done();
 })().catch(e=>{console.error('74 THREW',e);process.exit(1);});
