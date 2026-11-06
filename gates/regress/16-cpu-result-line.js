@@ -633,7 +633,8 @@ L.run(async()=>{
   ];
   for(const k of ends)for(const geo of k.geos){
    const b=await L.launch({geo,name:'review-ended-'+k.id+'-'+geo});await b.open();
-   let ok=true;try{await k.drive(b);await b.settle(1500);await P.closeSheet(b).catch(()=>{});await b.settle(400);await P.tapBtn(b,/^(🔍 )?Review$/,1200);
+   let ok=true;try{await k.drive(b);await b.settle(1500);await P.closeSheet(b).catch(()=>{});await b.settle(400);
+     await P.tapBtn(b,/^(🔍 )?Review$/,1200);
      await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(800);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;const e=s.querySelector('[data-ct="rev-ended"]');
      const q=e&&e.getBoundingClientRect();const c=[...s.querySelectorAll('div')].find(d=>(d.innerText||'').trim()==="Coach's take");
@@ -646,6 +647,29 @@ L.run(async()=>{
      // still in book once, no graded mistake twice), so the coach may take any of its three branches; none may call the game clean, and
      // the no-mistake branch must name the resignation. The control's kunal761 launch landed on the 'A clean game' branch and went red.
      if(k.id==='resign')L.say(!!r.coach&&!/^A clean game/.test(r.coach)&&(/^You resigned, yet none of your moves/.test(r.coach)||/^Most of your trouble came in /.test(r.coach)||/^Nothing to score yet/.test(r.coach)),geo+': TC-PL-063 (resign) the coach does not call the resigned game "a clean game" ("'+r.coach+'")',{coach:r.coach});
+   // TC-PL-064 (US-PL-18), #549 (49) A4-R3: CTEnded IS THE APP'S PRIVATE TAG AND NEVER LEAVES IT. The summary above reads it; the PGN a
+   // player takes away must not carry it - not Copy PGN (the review's ⋯ sheet) and not the paste box the game is put in. Copy is caught
+   // at both of the app's clipboard routes (navigator.clipboard.writeText and the execCommand fallback's textarea). Each export is
+   // first shown to BE the game's PGN (its Result tag), so an empty or missing export reads as a red precondition, not as a pass.
+   if(k.id==='resign'){
+    const RV=require('../drive/review');let ok2=true;
+    // The paste box is NOT painted on this route (MEASURED: sampled every 25ms from the Review tap to the summary, no textarea was ever
+    // visible - the import panel renders only with no review, and '‹ Back to games' clears it). What setPgnText carries is therefore read
+    // from the app's own state: every string held in a component state hook, found by walking the React fiber tree from #root. Read-only.
+    const ta=await b.page.evaluate(()=>{const host=document.getElementById('root');if(!host)return null;const ck=Object.keys(host).find(x=>x.indexOf('__reactContainer$')===0);
+      let f=ck?host[ck]:null;if(!f)return null;const out=[],stack=[f],seen=new Set();
+      while(stack.length){const n=stack.pop();if(!n||seen.has(n))continue;seen.add(n);let h=n.memoizedState;let g=0;
+        while(h&&typeof h==='object'&&'memoizedState' in h&&g++<400){if(typeof h.memoizedState==='string'&&/\[Result "/.test(h.memoizedState))out.push(h.memoizedState);h=h.next;}
+        if(n.child)stack.push(n.child);if(n.sibling)stack.push(n.sibling);}
+      return out.length?out.join('\n----\n'):null;});
+    try{await b.page.evaluate(()=>{window.__ctCopied=[];try{navigator.clipboard.writeText=(t)=>{window.__ctCopied.push(String(t));return Promise.resolve();};}catch(e){}
+        const ex=document.execCommand.bind(document);document.execCommand=function(c){try{const a=document.activeElement;if(c==='copy'&&a&&a.tagName==='TEXTAREA')window.__ctCopied.push(a.value);}catch(e){}return ex.apply(document,arguments);};});
+      await RV.startReview(b);await b.tapCt('rev-more',500);await b.tapText(/^Copy PGN$/);await b.settle(400);}catch(e){ok2=false;}
+    const cp=await b.page.evaluate(()=>(window.__ctCopied||[]).slice());
+    if(L.say(ok2&&cp.length>0&&cp.every(t=>/\[Result "0-1"\]/.test(t)&&/1\. /.test(t)),geo+': TC-PL-064 PRECONDITION Copy PGN on the resigned game put its PGN on the clipboard ('+cp.length+' write(s), Result 0-1 and moves present)',{n:cp.length,head:cp[0]&&cp[0].slice(0,160)}))
+      L.say(cp.every(t=>!/CTEnded/.test(t)),geo+': TC-PL-064 and the copied PGN carries no CTEnded tag',{copied:cp[0]&&cp[0].slice(0,200)});
+    if(L.say(ta!==null&&/\[Result "0-1"\]/.test(ta),geo+': TC-PL-064 PRECONDITION the paste box\'s state (pgnText) holds the resigned game\'s PGN (Result 0-1)',{ta:ta&&ta.slice(0,160)}))
+      L.say(!/CTEnded/.test(ta),geo+': TC-PL-064 and the paste box\'s PGN carries no CTEnded tag',{ta:ta&&ta.slice(0,200)});}
    }
    await b.close();}}
   // TC-PL-048 (US-PL-20), #547 item (150): A DOUBLE TAP CANNOT RESIGN. 'Tap again to resign' takes the same rect as 'Resign', so two
