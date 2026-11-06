@@ -80,3 +80,37 @@ capture, not the log.
 | file | run under | bundle gated | note |
 |---|---|---|---|
 | `390-all.log` | #390 | #390 | replaced at #391 with the real `gates/logs` file, 1228 lines, 1029 PASS |
+
+## #549: which instrument produced a log, and the boundary before which no log can say
+
+A log in here records its own instrument only from **#485** on. `gates.sh` writes a `toolchain:` line (playwright
+and chromium versions), a `fontconfig:` line (the pinned `gates/fonts.conf` and, from #486, the face `sans-serif`
+resolves to) and a `text metrics:` line into the header of each gate section; since #539 its footer also carries an
+`instrument:` line with the calibration verdict. Before #485 none of that existed, and nothing retroactive can be
+written into an old log (see "Never edit a log" above).
+
+MEASURED at #549 over this directory, by `ls *.log | wc -l` and
+`grep -l -e 'toolchain: playwright' *.log`: **181 logs; every one numbered 485 or above (68) carries the
+toolchain, fontconfig and text-metrics lines, and every one numbered below 485 (113) carries none of them**
+(`480-container-fingerprint-control.log` mentions the word `toolchain` but has no `toolchain: playwright` line).
+The 68 split into two toolchains, also read from the logs: playwright 1.56.1 with chromium 141.0.7390.37, and
+playwright 1.63.0 with chromium 153.0.8010.12; every `fontconfig:` line that names a face names `DejaVu Sans`.
+Re-run the two commands rather than trusting these counts - the directory grows every build.
+
+**What that means for a reader.** A log from before #485 is not wrong, and neither is a number pinned from it: the
+#485 antagonist's root cause (`/etc/fonts/conf.d/56-prefer-inter.conf`, dated 2026-10-03; without it the stock
+Debian chain answers the app's font stack with DejaVu Sans, the face #485 pinned) makes it likely that the older
+logs measured DejaVu too. But that is a DERIVATION about what the image used to hold, not a record, and no
+pre-#485 log can confirm it from its own contents. So a text-derived number (a width, a height, a line count)
+whose only evidence is a pre-#485 log rests on that inference. If a re-derivation disagrees with such a log, the
+log cannot tell you whether the pin or the face moved; re-measure on the current instrument instead of reasoning
+from the old log.
+
+**Whether a pre-#485 log may still be CITED as the calibration source for a pinned number is not decided here.**
+It is a policy question for the orchestrator (job
+`jobs/the-harness-has-two-font-regimes-and-no-archived-log-can-say-which-one-produced-it-2026-10-06`, and the
+related `jobs/no-push-authority-tool-can-see-which-fontconfig-produced-a-gate-log-2026-10-06`).
+`decisions/an-off-calibration-suite-may-not-push-2026-10-27` governs whether a NEW suite may push; it does not
+say what an archived log may be cited for. One live citation of this kind, found at #549 by grepping
+`gates/regress/*.js` for archived log names below 485: `gates/regress/26-invariants.js` (search `451-all-RED.log`)
+identifies the element behind a pinned height at short375 from that pre-#485 log.
