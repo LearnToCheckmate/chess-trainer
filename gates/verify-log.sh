@@ -293,9 +293,10 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # added without updating it reddens here, and here is the only place that would see it.
   # 17 -> 18 AT #546 ITEM (4): `measuredabsent` (arm (3m)) joined the line, at its end; 18 -> 20 AT #546 ITEM (6):
   # `idtwospaces` and `registerpathabsent` (arm (7)) after it; 20 -> 21 AT #546 ITEM (18): `danglingstory` (arm (5));
-  # 21 -> 22 AT #546 ITEM (20): `gatestoryundefined` (arm (8)).
-  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (22: one verdict word, 21 counters)" \
-    "22 22" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
+  # 21 -> 22 AT #546 ITEM (20): `gatestoryundefined` (arm (8)); 22 -> 23 AT #549 ITEM (5): `prefixunregistered`
+  # (arm (7c)), at its end.
+  st_ck "C7c the ratchet line reduces to the same FIELD COUNT red and ok (23: one verdict word, 22 counters)" \
+    "23 23" "$(printf '%s %s' "$(st_fields "$(st_sig "$ST_RED_RAT")")" "$(st_fields "$(st_sig "$ST_OK_RAT")")")"
   # AND THE TWO READINGS MUST ACTUALLY DIFFER, or C7c is 15 == 15 over one string twice [prompts/common: assert
   # the denominator in its own line]. The verdict word flips and the deadline counter moves 1 -> 0, so the pair
   # is a real flip of the mode and not two samples of one state.
@@ -605,6 +606,19 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   awk 'NR==FNR{t=t $0 "\n"; next} /^## Next/{printf "%s\n", t} {print}' "$R20/claude/stories/README.tail" "$R20/claude/stories/README.md" > "$R20/claude/stories/README.new"
   mv "$R20/claude/stories/README.new" "$R20/claude/stories/README.md"
   st_ck "C20c a prefix-table path that is not in the tree is counted" "1 1 | idtwospaces=1 registerpathabsent=1" "$(st_7 "$R20")"
+  # C20d-f: ARM (7c) on the same tree [#549, item (5); TC-SUITE-370]. TC-Z heads rows in both files and has a
+  #   register row, and TC-RFZ (REVIEW-SUITE-FULL.md's row) is given one here, so clean first, with its
+  #   denominator; then a TC-Q row in TEST-CASES.md with no register row.
+  printf '| `TC-RFZ` | `claude/stories/REVIEW-SUITE-FULL.md` |\n' > "$R20/claude/stories/README.tail"
+  awk 'NR==FNR{t=t $0 "\n"; next} /^## Next/{printf "%s\n", t} {print}' "$R20/claude/stories/README.tail" "$R20/claude/stories/README.md" > "$R20/claude/stories/README.new"
+  mv "$R20/claude/stories/README.new" "$R20/claude/stories/README.md"
+  ( cd "$R20" && bash gates/verify-log.sh --citations >"$R20/c20.txt" 2>&1 || true )
+  st_7c() { printf '%s | %s' "$(awk '/^  \(7c\) prefixes:/{print $3, $5; exit}' "$1/c20.txt")" "$(grep -oE 'prefixunregistered=[0-9]+' "$1/c20.txt" | head -1)"; }
+  st_ck "C20d every prefix heading a case row has a register row: 0 of 2 (TC-Z, TC-RFZ), ratchet 0" "0 2 | prefixunregistered=0" "$(st_7c "$R20")"
+  printf '| TC-Q01 | c |\n' >> "$R20/claude/stories/TEST-CASES.md"
+  ( cd "$R20" && bash gates/verify-log.sh --citations >"$R20/c20.txt" 2>&1 || true )
+  st_ck "C20e a prefix heading a case row with no register row is counted: 1 of 3, ratchet 1" "1 3 | prefixunregistered=1" "$(st_7c "$R20")"
+  st_ck "C20f and the refusal names the prefix" "yes" "$(grep -qF 'PREFIX UNREGISTERED: TC-Q heads a case row' "$R20/c20.txt" && echo yes || echo no)"
   rm -rf "$R20"
 
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
@@ -945,6 +959,29 @@ EOF6
     A7B="checked"
   else A7B="NOT CHECKED (claude/stories/README.md is absent)"; fi
   echo "  (7) id space: $A7DUP id(s) heading rows in both TEST-CASES.md and REVIEW-SUITE-FULL.md, of $A7NID ids read ($A7A); $A7MISS of $A7NP prefix-table path(s) absent ($A7B)"
+  # (7c) EVERY PREFIX THAT HEADS A CASE ROW HAS A REGISTER ROW [#549, item (5); TC-SUITE-370, the job's TC-IDS-01;
+  #     jobs/id-space-register-is-stale-against-its-own-subject]. (7b) checks the register's PATHS and nothing
+  #     checked its PREFIXES, so the register went stale twice by hand (TC-HM and TC-INV before #545; TC-DR, TC-GL,
+  #     TC-LS, TC-PZ and TC-S before #548), each found only by someone grepping. The prefix of a case id is its
+  #     leading `TC-` plus capital letters (TC-R01 -> TC-R, TC-SUITE-001 -> TC-SUITE, TC-S04 -> TC-S); a register
+  #     prefix is the same reduction of every backticked TC- token in the FIRST cell of a prefix-table row
+  #     (`TC-Rnn` -> TC-R, `TC-PZ-<NAME>` -> TC-PZ). Rows read: those heading a table row in TEST-CASES.md and
+  #     REVIEW-SUITE-FULL.md, the two files arm (7a) already reads. The denominator is printed so a 0 over an empty
+  #     scan cannot read as clean.
+  A7UNREG=0; A7NPFX=0
+  if [ -f claude/stories/README.md ] && [ -f claude/stories/TEST-CASES.md ]; then
+    A7REG="$(awk '/^## The register/{f=1;next} f&&/^#/{exit} f&&/^\| `/' claude/stories/README.md | awk -F'|' '{print $2}' \
+      | grep -oE '`TC-[A-Z]+' | tr -d '`' | sort -u)"
+    A7USED="$(cat claude/stories/TEST-CASES.md $( [ -f claude/stories/REVIEW-SUITE-FULL.md ] && echo claude/stories/REVIEW-SUITE-FULL.md ) \
+      | grep -oE '^\| *TC-[A-Z]+' | tr -d '| ' | sort -u)"
+    A7NPFX=$(grep -c . <<<"$A7USED" || true)
+    while IFS= read -r i; do
+      [ -n "$i" ] || continue
+      A7UNREG=$((A7UNREG+1)); echo "  PREFIX UNREGISTERED: $i heads a case row and claude/stories/README.md's prefix table has no row for it"
+    done <<<"$(comm -23 <(printf '%s\n' "$A7USED") <(printf '%s\n' "$A7REG"))"
+    A7C="checked"
+  else A7C="NOT CHECKED (claude/stories/README.md or TEST-CASES.md is absent)"; fi
+  echo "  (7c) prefixes: $A7UNREG of $A7NPFX prefix(es) heading a case row have no register row ($A7C)"
   # === (8) A STORY A GATE QUOTES MUST BE A STORY THE REGISTER WRITES [#546, item (20); part (3) of
   #     jobs/spec-docs-frozen-at-373, "each gate assertion quoting a US- id finds that clause"]. A gate that names US-PL-05
   #     in an assertion is claiming a clause; when USER-STORIES.md defines no US-PL-05 (in any of its three forms: a
@@ -1193,14 +1230,15 @@ EOF
   # a records-tier ratchet whose BASE predates this commit falls back to the verdict-grep comparison, out loud,
   # and once the commit is on main both sides carry 16 fields again. The alternative - never adding a counter -
   # would make the line unable to grow with the arms, which is worse.
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
-  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0}"
-  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]; then
+  echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0} prefixunregistered=${A7UNREG:-0}"
+  if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"
     [ "${A7DUP:-0}" -gt 0 ] && echo "  (7) $A7DUP case id(s) belong to two id spaces at once"
     [ "${A7MISS:-0}" -gt 0 ] && echo "  (7) $A7MISS path(s) named by the register's prefix table are not in the tree"
+    [ "${A7UNREG:-0}" -gt 0 ] && echo "  (7c) $A7UNREG prefix(es) head a case row with no row in the register's prefix table"
     [ "${A5DANG:-0}" -gt 0 ] && echo "  (5) $A5DANG story id(s) cited by a case row have no heading in USER-STORIES.md"
     echo "CITATIONS RED: $A1BAD dead path(s), $A2BAD unsupported case id(s), $A2MIS misfiled row(s), $A4DEAD dead line citation(s), $A4EOF stale line citation(s), $A4RISE over the line-citation ceiling, ${A6DEAD:-0} dead and ${A6EOF:-0} stale script citation(s). $A2NC row(s) NOT CHECKED."
     exit 1
