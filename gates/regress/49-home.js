@@ -199,6 +199,7 @@
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');
+const LD=require('../drive/lesson');   // #549 item (22) A2-R1: TC-HM-054 plays the walkthrough to its end
 
 // ── the screen under test ────────────────────────────────────────────────────────────────────────────────
 // The Home overlay has no data-ct of its own (chess.jsx:4312). position:fixed + zIndex 500 is its unique mark,
@@ -689,14 +690,19 @@ if(blk('E'))for(const geo of ['se','kunal730']){
   // what the player has DONE, not by a score. Each store has NO puzzle XP and NO ct_train mastery - the only two terms the card read
   // before #549 - so on the base bundle (md5 a19136012900) the card painted in all three, measured at 375x761. Each store is its own
   // assertion, and each first asserts the column rendered (Daily 3 is on it), so an absent Home cannot pass as an absent card.
-  for(const [nm,seed] of [['drill-only',{ct_mymistakes:[{fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',uci:'e7e5',played:'a7a6',label:'Mistake'}]}],
-                          ['banked-day',{ct_learnprog:{'Italian Game':{learned:true,days:['2026-11-05']}}}],
-                          ['opened-a-lesson',{ct_lastlesson:'0'}]]){
+  // A2-R1 (#549 item (22) fix): the third store was 'opened-a-lesson' (ct_lastlesson seeded) asserting the card GONE - but selectOpening
+  // writes ct_lastlesson on the tap itself, so that rule retired the card the moment it was used. Opening is not use: that store now
+  // asserts the card is STILL THERE, and TC-HM-056 drives the same path for real. 'watched-the-walkthrough' is the walkthrough's own record.
+  for(const [nm,seed,gone] of [['drill-only',{ct_mymistakes:[{fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',uci:'e7e5',played:'a7a6',label:'Mistake'}]},true],
+                          ['banked-day',{ct_learnprog:{'Italian Game':{learned:true,days:['2026-11-05']}}},true],
+                          ['opened-a-lesson',{ct_lastlesson:'0'},false]]){
     const b=await L.launch({geo,name:'home-e-used-'+nm+'-'+geo,store:seed});
     await b.open();await SEEDED(b);
     const cards=await CARDS(b);
-    L.say(!!cards&&cards.some(c=>c.id==='daily3')&&!cards.some(c=>c.id==='newhere'),
+    if(gone)L.say(!!cards&&cards.some(c=>c.id==='daily3')&&!cards.some(c=>c.id==='newhere'),
       geo+': TC-HM-055 ['+nm+'] a player with no XP and no learned drill line who has '+nm.replace(/-/g,' ')+' is not new - the column renders and the NEW HERE card does not',cards&&cards.map(c=>c.id));
+    else L.say(!!cards&&cards.some(c=>c.id==='daily3')&&cards.some(c=>c.id==='newhere'),
+      geo+': TC-HM-055 ['+nm+'] a player whose only trace is an OPENED lesson (ct_lastlesson, written by the tap itself) has used nothing yet - the column renders and the NEW HERE card is STILL on it',cards&&cards.map(c=>c.id));
     await b.close();
   }
   {
@@ -829,6 +835,9 @@ if(blk('F'))for(const geo of ['se','kunal730']){
   // never seen. The intro card is dismissed first by its own button, found by text.
   if(box&&after.lesson){
     await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(g)g.click();});await b.settle(600);
+    // A2-R1: the walkthrough is played to its END before the close, because reaching the end is what retires the card (TC-HM-054).
+    let ended=false;try{await LD.toEnd(b);ended=(await LD.playBtnLabel(b))==='↻';}catch(e){}
+    L.say(ended,geo+': TC-HM-054 PRECONDITION the walkthrough was played to its end (the play control reads the replay arrow) before the close',{ended});
     const cl=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button[aria-label="Close lesson"]')].find(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;});if(!x)return false;x.click();return true;});
     await b.settle(900);
     const h=await homeUp(b),disc=await b.page.evaluate(()=>/What do you want to learn\?/.test(document.body.innerText||''));
@@ -838,9 +847,32 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     // #549 base bundle (md5 a19136012900) at 375x761 it was byte-identical here, 'START HERE' beside Daily 3's 'Continue: Italian Game'.
     if(cl&&h===true){await SEEDED(b);
       const c2=await CARDS(b);
-      L.say(!!c2&&c2.some(c=>c.id==='daily3')&&!c2.some(c=>c.id==='newhere'),geo+': TC-HM-054 back on Home after the lesson the NEW HERE card opened, the NEW HERE card has RETIRED (Daily 3 is on the column and NEW HERE is not), so Home no longer says "Start here" beside "Continue" for the same lesson',c2&&c2.map(c=>c.id));}
+      L.say(!!c2&&c2.some(c=>c.id==='daily3')&&!c2.some(c=>c.id==='newhere'),geo+': TC-HM-054 back on Home after the walkthrough the NEW HERE card opened has reached its end, the NEW HERE card has RETIRED (Daily 3 is on the column and NEW HERE is not), so Home no longer says "Start here" beside "Continue" for the same lesson',c2&&c2.map(c=>c.id));
+      await b.open();await SEEDED(b);const c3=await CARDS(b);
+      L.say(!!c3&&c3.some(c=>c.id==='daily3')&&!c3.some(c=>c.id==='newhere'),geo+': TC-HM-054 and after a RELOAD it stays retired - the end of the walkthrough is recorded, not held in memory',c3&&c3.map(c=>c.id));}
   }
   await b.close();
+  // TC-HM-056 [#549 item (22) A2-R1 fix]: OPENING THE LESSON IS NOT USING IT. The real path antagonist A drove: a fresh store, tap NEW
+  // HERE, back to Home about a second later (Got it, then Close lesson, long before the walkthrough ends), then a reload. On 4471c98's
+  // bundle the card was gone both times, because selectOpening writes ct_lastlesson on the tap and that alone retired it.
+  {
+    const b2=await L.launch({geo,name:'home-f-056-'+geo});await b2.open();await H.states['home'](b2);
+    const bx=await b2.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+      const el=ov?[...ov.querySelectorAll('button')].find(x=>/^NEW HERE/.test((x.innerText||'').trim())):null;if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
+    if(bx)await b2.page.mouse.click(bx.x,bx.y);
+    await b2.settle(1000);
+    await b2.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(g)g.click();});await b2.settle(300);
+    const ll=await LS(b2,'ct_lastlesson');
+    const cl=await b2.page.evaluate(()=>{const x=[...document.querySelectorAll('button[aria-label="Close lesson"]')].find(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;});if(!x)return false;x.click();return true;});
+    await b2.settle(900);
+    L.say(!!bx&&ll==='0'&&cl,geo+': TC-HM-056 PRECONDITION the NEW HERE card was tapped, the lesson opened (ct_lastlesson "0", written by the tap) and its Close control was tapped about a second later',{bx,ll,cl});
+    await SEEDED(b2);const c1=await CARDS(b2);
+    L.say(!!c1&&c1.some(c=>c.id==='daily3')&&c1.some(c=>c.id==='newhere'),geo+': TC-HM-056 back on Home a second after opening the lesson, the NEW HERE card is STILL there - opening a lesson is not using it',c1&&c1.map(c=>c.id));
+    await b2.open();await SEEDED(b2);const c2=await CARDS(b2);
+    L.say(!!c2&&c2.some(c=>c.id==='daily3')&&c2.some(c=>c.id==='newhere'),geo+': TC-HM-056 and after a RELOAD the NEW HERE card is still there',c2&&c2.map(c=>c.id));
+    L.say(b2.errs.length===0,geo+': TC-HM-056 zero app errors across the open-and-return path',b2.errs.slice(0,3));
+    await b2.close();
+  }
 }
 // TC-HM-053b, THE OVER-APPLICATION CONTROL: a lesson opened from DISCOVER still closes to Discover - the NEW HERE route is the only one changed.
 for(const geo of ['kunal730']){

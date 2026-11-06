@@ -277,9 +277,11 @@ the-new-here-card-now-never-clears-for-a-drill-only-player-2026-10-02), taken on
 flags/amber-549-new-here-retires and flags/amber-549-new-here-promise. US-HM-11 covers the NEW HERE card landing on its
 lesson and leaves what the card says, and when it shows, out of scope. This clause covers those two.
 
-- Once I have opened a lesson, banked a lesson day, or have a saved mistakes or brilliancies drill, Home stops showing me the
-  NEW HERE card, even with no puzzle XP and no learned drill line, so it never says "Start here" beside Daily 3's
-  "Continue" for the same lesson. (TC-HM-054, TC-HM-055)
+- Once I have watched the walkthrough to its end, banked a lesson day, or have a saved mistakes or brilliancies drill, Home
+  stops showing me the NEW HERE card, even with no puzzle XP and no learned drill line, so it never says "Start here" beside
+  Daily 3's "Continue" for the same lesson. (TC-HM-054, TC-HM-055)
+- Merely opening the lesson is not using it: if I tap NEW HERE and come straight back to Home, the card is still there, and
+  still there after a reload (#549 item (22), antagonist A2-R1). (TC-HM-055, TC-HM-056)
 - The card promises only what the journey delivers: a clean practice run banks a day, and the card says that, not "a win".
   (TC-HM-055)
 
