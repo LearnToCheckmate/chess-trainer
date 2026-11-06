@@ -7,6 +7,7 @@
 // you already solved must come back solved rather than asking again.
 // BLOCK C, TC-R80 (US-R75, #547 item (110)): the brilliancy card's goal box is one line, chipless, and the verdict is the
 // move's own explanation or nothing.
+// BLOCK J, TC-R108 (US-R100, #549 item (15)): the first card served is stamped practised, and the 150 cap holds on load.
 // BLOCK D, TC-R81 (US-R76, #547 item (111)): the drill's evaluation bar - absent until solved or shown, in the header row,
 // from the player's side.
 //
@@ -596,4 +597,30 @@ L.run(async()=>{
     const rn=(row.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1];
     L.say(rn==='20','TC-R106 A9d the brilliancies drill numbers its analysis line from the card\'s STORED move too - it pins the drill path; the capture now writing `no` for a brilliant is not asserted here ("'+row.slice(0,40)+'")',{first:rn});
     await b.close();}}
+  // ════════ BLOCK J - TC-R108 (US-R100), #549 item (15), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 ════════
+  // Kunal's default (questions/B8-SMALL-DEFAULTS (2)): a full mistakes list drops ones already PRACTISED first, then the oldest. #548 made
+  // drillGo stamp practisedAt, but the FIRST card of every session is opened by startMistakes through loadExternal and was never stamped,
+  // and the 150 cap ran only on the review merge, so a store arriving over it was kept whole. Both are read from the STORE, not the screen.
+  {const J=FENS[0];
+   const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-pool-stamp',store:{ct_mymistakes:rows('Blunder'),ct_pool:'3'}});
+   await b.open();await b.tile('Review');await b.settle(700);let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});}catch(e){ok=false;}
+   await b.settle(800);const p=ok?await idx(b):null;
+   const st=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mymistakes')||'[]');}catch(e){return null;}});
+   L.say(ok&&!!p&&p.i===1&&p.n===N&&Array.isArray(st)&&st.length===N,'TC-R108 A1 PRECONDITION the mistakes drill opened on card 1 of '+N+' and the stored list reads back with '+N+' rows',{counter:p,stored:st&&st.length});
+   const e1=Array.isArray(st)?st.find(x=>x.fen===J):null;
+   L.say(!!e1&&typeof e1.practisedAt==='number'&&e1.practisedAt>0,'TC-R108 A2 the FIRST card the drill serves is stamped practised in the store - it is opened by startMistakes, not drillGo, and was never stamped, so capMistakes kept it over an older unseen one',{first:e1&&{fen:e1.fen,practisedAt:e1.practisedAt}});
+   const others=Array.isArray(st)?st.filter(x=>x.fen!==J):[];
+   L.say(others.length===N-1,'TC-R108 A3pre the other '+(N-1)+' rows are in the store to be read',{n:others.length});
+   L.say(others.length===N-1&&others.every(x=>!x.practisedAt),'TC-R108 A3 and NO card the drill has not yet served is stamped - the instrument can say no, and the stamp is not sprayed over the queue',{stamped:others.filter(x=>x.practisedAt).map(x=>x.fen)});
+   await b.close();}
+  {const mk=i=>({fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 '+(i+1),uci:'b2b7',label:'Blunder',played:'Kd1',ts:1791000000000-i*1000,last:null,why:'w'+i,hint:'h'+i,...(i>=10&&i<20?{practisedAt:1791000000000}:{})});
+   const seed=Array.from({length:160},(_,i)=>mk(i));   // newest first: index 159 is the oldest; ten practised rows at 10..19
+   const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-pool-cap-on-load',store:{ct_mymistakes:seed,ct_pool:'3'}});
+   await b.open();await b.settle(1500);
+   const st=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mymistakes')||'null');}catch(e){return null;}});
+   L.say(Array.isArray(st)&&st.length>0,'TC-R108 A4pre the stored list reads back after boot',{stored:st&&st.length});
+   L.say(Array.isArray(st)&&st.length===150,'TC-R108 A4 a store arriving with 160 rows is held at the 150 cap on load, not only on the review merge',{stored:st&&st.length});
+   L.say(Array.isArray(st)&&st.length===150&&st.every(x=>!x.practisedAt),'TC-R108 A5 the ten it dropped are the ten PRACTISED rows',{practisedLeft:Array.isArray(st)?st.filter(x=>x.practisedAt).length:null});
+   L.say(Array.isArray(st)&&st.some(x=>x.fen===seed[159].fen)&&st.some(x=>x.fen===seed[0].fen),'TC-R108 A6 the oldest unpractised row and the newest both survive',{oldest:seed[159].fen});
+   await b.close();}
 },'72-drill-prev');

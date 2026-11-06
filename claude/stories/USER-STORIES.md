@@ -1670,6 +1670,11 @@ actually considering, see what the engine says, take it back, and come back to t
 - Only a solved card offers it; on an unsolved card it would hand me the answer. (TC-R106)
 - It opens on exactly the card's position, the same side to move, with the engine on; I can move either side, take back, and reset to the card's position. (TC-R106)
 - The way back lands on the same card, the same number out of the same total, still solved. (TC-R106)
+### US-R100 When my mistakes list is full, nothing I have not yet seen goes first
+*Added #549, from jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 and Kunal's default on questions/B8-SMALL-DEFAULTS (2), 4 Nov 2026: when the list is full it drops ones already practised first, then the oldest.*
+As a player who reviews more games than I drill, my mistakes list holds at most 150 positions, and when it is full the ones the drill has already shown me go first, then the oldest, so a mistake is not lost before I have seen it while a practised one could go instead.
+- Every position the drill shows me counts as practised, the first card of a session included. (TC-R108)
+- The 150 limit holds however the list arrives - from a review, or already stored over the limit by an earlier build - by the same rule. (TC-R108)
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

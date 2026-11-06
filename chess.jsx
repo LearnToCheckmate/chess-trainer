@@ -3567,7 +3567,7 @@ export default function App(){
   const [pzPin,setPzPin]=useState('');              // PIN input box
   const [pzPinErr,setPzPinErr]=useState('');
   const [curPuz,setCurPuz]=useState(null);          // puzzle currently on the board (roadmap or external)
-  const [myMistakes,setMyMistakes]=useState(()=>{try{const v=localStorage.getItem('ct_mymistakes');return v?JSON.parse(v):[];}catch{return [];}});
+  const [myMistakes,setMyMistakes]=useState(()=>{try{const v=localStorage.getItem('ct_mymistakes');return v?capMistakes(JSON.parse(v),150):[];}catch{return [];}});   /* #549 item (15): the 150 cap on load too, not only on the review merge - a store arriving over it (an earlier build, a sync) is trimmed by the same rule, practised first, then oldest */
   const [mistakeMode,setMistakeMode]=useState(false); // practicing your own mistakes (uses the puzzle player, bypasses the puzzle paywall)
   const myMistakesRef=useRef([]); const mistakeQueueRef=useRef([]); const mistakeIdxRef=useRef(0);
   /* #475 WHICH DRILL CARDS THE PLAYER SOLVED IN **THIS** DRILL SESSION, keyed on the card id
@@ -6313,7 +6313,8 @@ export default function App(){
        verdict is the move's own explanation or nothing at all. The motif and level chips are dropped on EVERY own-game card:
        _themeLabel(['mix']) and _lvlR(null) print the same two words on all of them. '✓ solved before' still varies, so it stays. */
     o.motif=null;o.level=null;return o;}catch(e){return null;}};
-  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
+  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
+    {const _f=qs[pl[0]]&&qs[pl[0]].fen;if(_f)setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}};   /* #549 item (15): the FIRST card is served here, not through drillGo, so it is stamped practised here too - else capMistakes keeps it over an older unseen one */
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
      PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
