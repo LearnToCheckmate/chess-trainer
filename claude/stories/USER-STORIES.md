@@ -143,6 +143,10 @@ board, #350), and what the engine preferred (the best-move chip) when the played
   (TC-R08)
 - A checkmate is written 1-0 / 0-1 in the eval label, never M0 (#371), and still when the engine line is switched
   on from the ⋯ sheet (audit N-review-2: it read +99.0 on #372; fixed #373). (TC-R09)
+- The engine line never recommends a move the review itself calls a blunder: it is searched as deep as the review graded
+  (depth 16), and until that search finishes it shows the stored evaluation with no move after it. At Opera ply 29 (after
+  15.Bxd7+) it reads 15... Qxd7, never 15... Nxd7 (which loses to 16.Qb8+ Nxb8 17.Rd8#), on Review and on the drill's
+  'Analyse this position' board (#549, from #548's antagonist B). (TC-R109)
 
 ### US-R06 A brilliancy explains what the sacrifice buys, and can be played out
 As a player who played (or suffered) a brilliancy, I read what was given up and the forcing line that makes it

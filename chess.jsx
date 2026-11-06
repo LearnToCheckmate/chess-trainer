@@ -2947,6 +2947,8 @@ export default function App(){
   const sfAnaRef=useRef(null);                      // dedicated Stockfish worker for game review analysis (separate from play/eval-bar)
   const sfAnaReadyRef=useRef(false);
   const sfAnaSyncRef=useRef(null);                  // #356 fired on the next readyok, so a caller can wait for the engine to be idle
+  const sfAnaGoRef=useRef(false);                   // #549 item (26): a `go` was posted to the analysis worker and its `bestmove` has not come back
+  const sfAnaStopWaitRef=useRef(null);              // #549 item (26): anaIdle's waiter for that `bestmove`
   const sfAnaAbortRef=useRef(null);                 // #356 cancels whatever query currently owns the analysis worker
   const sfSyncRef=useRef(null);                     // #356 same idle hook for the play / eval-bar worker
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
@@ -4609,8 +4611,8 @@ export default function App(){
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
-        w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg.startsWith('bestmove')){sfAnaGoRef.current=false;const _sw=sfAnaStopWaitRef.current;if(_sw){sfAnaStopWaitRef.current=null;try{_sw();}catch(_e){}return;}}if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;sfAnaGoRef.current=false;sfAnaStopWaitRef.current=null;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
       }catch(e){resolve(false);return;}
@@ -4639,7 +4641,20 @@ export default function App(){
     try{w.postMessage('stop');w.postMessage('isready');}catch(e){go(false);}
     return()=>{fired=true;clearTimeout(t);if(ref.current===readyGo)ref.current=null;};   // cancel a pending handshake
   };
-  const anaIdle=(w,then)=>engIdle(w,sfAnaSyncRef,then);
+  /* #549 item (26): READYOK IS NOT IDLE. Stockfish answers `isready` at once even mid-search, so engIdle's handshake let the next
+     query's setoption/position/go in while the stopped search was still unwinding - the #356 protocol violation, measured at #549
+     as the aborted search's `info ... pv` and `bestmove` arriving AFTER this query's `go` (and read as its answer), and a
+     `RuntimeError: unreachable` 50 ms after it. So when a `go` is outstanding on this worker, `stop` it and wait for ITS
+     `bestmove` - which the worker always sends for a stopped search - before the readyok handshake. Same 2.5 s ceiling, same
+     abandon-never-proceed rule as engIdle; the flag is cleared on the ceiling so a wedged worker costs one wait, not every one. */
+  const anaIdle=(w,then)=>{
+    if(!sfAnaGoRef.current)return engIdle(w,sfAnaSyncRef,then);
+    let fired=false;
+    const t=setTimeout(()=>{if(fired)return;fired=true;if(sfAnaStopWaitRef.current===wake)sfAnaStopWaitRef.current=null;sfAnaGoRef.current=false;then(false);},2500);
+    const wake=()=>{if(fired)return;fired=true;clearTimeout(t);engIdle(w,sfAnaSyncRef,then);};
+    sfAnaStopWaitRef.current=wake;
+    try{w.postMessage('stop');}catch(e){wake();}
+  };
   /* #377: sfEval1 takes an optional DEPTH. With it, this path searches exactly like the pool path
      (sfEvalOn, 'go depth '+DCAP with DCAP=16, and a 20 s stuck-worker guard); without it, it is the old
      time-based search, which is still right for the callers that want a quick opinion inside a fixed budget.
@@ -4679,7 +4694,7 @@ export default function App(){
        close it, because the yield reads the same busy flag. Moving the assignment inside the idle callback
        means a stray message from a search we did not issue finds a null slot and is ignored (see the handler's
        own `if(!cb)return`). anaIdle's own `readyok` handling does not read this slot, so nothing else moves. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);sfAnaGoRef.current=true;w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   /* #512, ANTAGONIST A's F1, VETO UPHELD: THIS FUNCTION NOW SAYS WHETHER THE ENGINE ACTUALLY ANSWERED.
@@ -4706,7 +4721,22 @@ export default function App(){
      WHY NOT JUST MAKE THE TIMEOUT RESOLVE NULL: because the resolved value is the contract for two other
      callers, and the Review play-out legitimately wants whatever line it got. Reporting beside the value
      changes nothing for them. */
-  const sfBestLine=(fen,movetime,onScore,onDone)=>new Promise(resolve=>{
+  /* #549 item (26), jobs/review-engine-line-recommends-the-losing-recapture-at-opera-ply-29-2026-11-05.
+     TWO DEFECTS IN THIS FUNCTION, MEASURED AT OPERA PLY 29 (after 15.Bxd7+) WITH A WORKER-MESSAGE LOG.
+     (1) THE PREVIOUS SEARCH'S OUTPUT WAS READ AS THIS ONE'S. anaIdle waits for readyok, but Stockfish answers
+     `isready` AT ONCE even mid-search, so readyok arrived BEFORE the aborted search's last `info ... pv b5d7`
+     and `bestmove b5d7` - which then landed in THIS query's callbacks: the line resolved as White's previous
+     move in a Black-to-move position, failed to parse, and the row read a bare ellipsis for the rest of the
+     visit (no cache, no retry). #511's comment below assumed the handshake made that impossible; it does not.
+     A new search always opens at `info depth 1` (`depth 0` on a terminal position), so nothing before that
+     line belongs to this query: `started` drops it.
+     (2) A 900 ms SEARCH IS SHALLOWER THAN THE ANALYSIS THAT GRADED THE MOVE. The lite engine prefers 15...Nxd7
+     (+2.5, 16.Qb7) at every depth up to 15 and finds 15...Qxd7 only at depth 16 - which is the depth the
+     review graded with (DCAP in sfEvalOn, sfEval1's 16). So whenever 900 ms stopped short of depth 16 - the
+     finder's container, and any phone slower than this one - the line recommended the recapture the review
+     calls a blunder, and it walks into 16.Qb8+ Nxb8 17.Rd8#. `depth` (optional) searches to the review's
+     own depth instead, with sfEval1's 20 s stuck-worker guard; callers that pass none are unchanged. */
+  const sfBestLine=(fen,movetime,onScore,onDone,depth)=>new Promise(resolve=>{
     const _say=(ok)=>{if(onDone)try{onDone(!!ok);}catch(e){}};
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){_say(false);resolve(null);return;}
@@ -4716,12 +4746,13 @@ export default function App(){
     const finish=(r,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);_say(ok);resolve(r);};
     const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
     /* #512: still resolves the partial `line` - that is the existing contract - but reports ok:false. */
-    const to=setTimeout(()=>finish(line,false),Math.max(4000,movetime*8));
+    const to=setTimeout(()=>finish(line,false),depth?20000:Math.max(4000,movetime*8));
+    let started=false;   /* #549 item (26): see above - nothing before this search's own depth-0/1 line is ours */
     /* #511: the same move as in sfEval1 above, for the same reason - a previous search's `bestmove` or `info`
        must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
        timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
        position's principal variation. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(arr&&arr.length)line=arr;},best:(bm)=>finish(line||(bm&&bm!=='(none)'?[bm]:null),true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage('go movetime '+movetime);}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);sfAnaGoRef.current=true;w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));}catch(e){finish(null,false);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.
@@ -5832,7 +5863,8 @@ export default function App(){
       if(!ok){setEngLine({txt,cp:ev,line:'engine not loaded'});return;}
       let _lcp=null,_lmate=null;
       const _sgn=((fen.split(' ')[1]||'w')==='w')?1:-1;
-      const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}})); /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
+      let _lok=false;
+      const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}}),((ok)=>{_lok=ok;}),16); /* #549 item (26): searched to the review's own depth (16, DCAP), and `ok` read - a line from a search that never reached its bestmove (the 20 s guard) is a search not finished, not an answer */ /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
       if(dead)return;
       let line='';
       try{let g=pos,n=0,num=Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
@@ -5840,7 +5872,8 @@ export default function App(){
           const wt=g.turn==='w';const pre=(review&&review.noNum)?'':(wt?(num+'. '):(first?(num+'... '):''));
           line+=(first?'':' ')+pre+san;if(!wt)num++;first=false;g=makeMove(g,mv);n++;if(n>=6)break;}
       }catch(e){}
-      const val={line:line.trim(),pv:(pv||[]).slice(0,6),fen,no:Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
+      if(!_lok)line='';   /* #549 item (26): unfinished search -> the stored analysis's number and no line, uncached, as #389/#392 treat a dead one */
+      const val={line:line.trim(),pv:(_lok?(pv||[]):[]).slice(0,6),fen,no:Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1};   /* #548 item (114): the raw line and its position, for the plain-words reading */
       /* #392 (review-engline-wrong-sign-on-trap): A DEAD SEARCH'S SCORE IS AS UNTRUSTWORTHY AS ITS MISSING LINE.
          #389 stopped CACHING a failed query, so the position is re-queried and recovers on the next visit. It
          left the worse half: the trapped search returns a PARTIAL SCORE, and that score has the wrong sign.

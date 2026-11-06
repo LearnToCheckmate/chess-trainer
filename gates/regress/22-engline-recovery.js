@@ -508,4 +508,44 @@ L.run(async()=>{
      await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(400);
      L.say(!(await b.page.locator('[data-ct="rev-engwhy"]').count()),geo+': TC-R105 and a tap on it closes it');}
     await b.close();}}
+
+  // ── BLOCK P [#549, item (26); jobs/review-engine-line-recommends-the-losing-recapture-at-opera-ply-29-2026-11-05, P1]. TC-R109.
+  // THE ENGINE LINE AT OPERA PLY 29 (after 15.Bxd7+) MUST NOT RECOMMEND THE RECAPTURE THE REVIEW CALLS A BLUNDER. #548's antagonist B read
+  // '+2.5 15... Nxd7 16. Qb7' there, through Review and through the drill's 'Analyse this position' board, and Nxd7 loses to 16.Qb8+
+  // Nxb8 17.Rd8#. MEASURED at #549 with a worker-message log: the lite engine prefers Nxd7 at every depth to 15 and finds Qxd7 only at
+  // depth 16, the review's own grading depth - so a 900 ms search that stopped short of 16 printed it; and on this container the line
+  // read a bare '+6.5 ...' for the whole visit instead, because the aborted previous search's `bestmove b5d7` arrived AFTER readyok and
+  // was taken as this query's answer. THE PIN IS THE STORED ANALYSIS, NOT A SIBLING READOUT: the move the review's best chip names at
+  // ply 30 (a separate pooled search) on the Review door, and the card's own stored move on the drill door. At 0.5, 2 and 5 s after
+  // landing the row either shows a variation that begins with that move or is still pending ('<eval> ...' with no move after it); and
+  // within 25 s it must show the variation (a search that never finishes is a red, not a pass over nothing).
+  {const R=require('../drive/review');
+   const ELT=()=>b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').replace(/\s+/g,' ').trim());
+   let b=null;
+   const firstMv=(s)=>{const m=String(s||'').match(/15\.\.\.\s*(\S+)/);return m?m[1].replace(/[+#!?]+$/,''):null;};
+   const pending=(s)=>/^([+-]?\d+\.\d|M\d*|-M\d*)\s*…$/.test(String(s||''));
+   const marks=async(tag,want)=>{const t0=Date.now();const seen=[];
+     for(const ms of [500,2000,5000]){const w=ms-(Date.now()-t0);if(w>0)await b.page.waitForTimeout(w);seen.push({ms,eng:await ELT()});}
+     for(const x of seen)L.say(!!want&&(pending(x.eng)||firstMv(x.eng)===want),'TC-R109 '+tag+' at '+(x.ms/1000)+' s the engine line is still pending or begins 15... '+want+' as the stored analysis does - never 15... Nxd7, which the review calls a blunder ("'+x.eng.slice(0,60)+'")',{eng:x.eng,want,first:firstMv(x.eng)});
+     let fin='';for(let k=0;k<40;k++){fin=await ELT();if(firstMv(fin))break;await b.page.waitForTimeout(500);}
+     L.say(!!want&&firstMv(fin)===want,'TC-R109 '+tag+' and the search FINISHES: within 25 s the line shows its variation and it begins 15... '+want+' ("'+fin.slice(0,60)+'")',{fin,want});};
+   // DOOR 1: Review, Opera Game, engine on.
+   b=await L.launch({geo:'kunal761',store:{...R.SEED,ct_pool:'3'},name:'engline-ply29'});await b.open();let ok=true,best=null,ml30='';
+   try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await R.goPly(b,30);await b.settle(800);
+     ml30=await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-move-line"]')||{}).innerText||'').replace(/\s+/g,' ').trim());
+     best=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');const m=e&&(e.innerText||'').match(/(O-O(?:-O)?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)/);return m?m[1]:null;});
+     await R.goPly(b,29);}catch(e){ok=false;}
+   const ml29=await b.page.evaluate(()=>((document.querySelector('[data-ct="rev-move-line"]')||{}).innerText||'').replace(/\s+/g,' ').trim());
+   L.say(ok&&/Nxd7/.test(ml30)&&/Blunder/.test(ml30)&&!!best&&best!=='Nxd7','TC-R109 PRECONDITION review: at ply 30 the stored analysis calls 15...Nxd7 a Blunder and its best chip names another move ('+best+')',{ml30,best});
+   L.say(/29\/33/.test(ml29),'TC-R109 PRECONDITION review: the board is on ply 29, after 15.Bxd7+',{ml29});
+   await marks('review ply 29',best);
+   L.note('TC-R109 review errors: '+JSON.stringify(b.errs.slice(0,3)));await b.close();
+   // DOOR 2: the drill card for 15...Nxd7, solved, then 'Analyse this position'.
+   b=await L.launch({geo:'kunal761',name:'engline-drill29',store:{ct_pool:'3',ct_mymistakes:[{fen:'4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 1',no:15,uci:'e6d7',label:'Blunder',played:'Nxd7',ts:1791000000000,last:null,why:'the queen takes back',hint:'which piece recaptures?'}]}});
+   await b.open();await b.tile('Review');await b.settle(700);ok=true;
+   try{await b.tapText(/find the move you missed/,{wait:1800});await b.move('e6','d7',900);await b.settle(1200);await b.tapCt('drill-analyse',300);}catch(e){ok=false;}
+   const onAna=ok&&await b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-engline"]'));
+   L.say(!!onAna,'TC-R109 PRECONDITION drill: the 15...Nxd7 card was solved with 15...Qxd7 and "Analyse this position" opened a board with the engine line',{ok,onAna});
+   await marks('drill analyse',onAna?'Qxd7':null);
+   await b.close();}
 },'ENGLINE-RECOVERY');
