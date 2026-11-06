@@ -1647,5 +1647,23 @@ function mkTap(b,READ){
     L.say(b.errs.length===0,geo+': TC-R110 zero app errors',b.errs.slice(0,2));
     await b.close();}
   }
+  // ── I2, TC-R110 at 320x568 [#549 item (27) A4-R2, antagonist A round 2]: THE ONE LINE IS ONE LINE AND IS NOT CUT ON THE NARROWEST
+  // PHONE. Block I runs only the 375 columns; at 320x568 the uppercase label took 136px and left the summary 126px, so
+  // '12 reviewed · 0 solved' (148px) read '12 reviewed · 0 s…'. Seeded through ct_gamestats (N real reviews), so the count is the
+  // one the summary prints. Found by TEXT (#432): the button whose own text carries '<N> reviewed · <M> solved', and inside it the
+  // leaf whose text starts '<N> reviewed'.
+  for(const N of [12,150]){
+    const gs={};for(let i=0;i<N;i++)gs['g'+i]={src:'cc',bril:0};
+    const b=await L.launch({geo:'se',name:'I2-narrow-'+N,store:{ct_gamestats:gs}});await b.open();await b.tile('Review');await b.settle(800);
+    const q=await b.page.evaluate((N)=>{const btn=[...document.querySelectorAll('button')].find(x=>new RegExp('\\b'+N+' reviewed\\s*·\\s*\\d+ solved').test((x.innerText||'').replace(/\s+/g,' ')));if(!btn)return {found:false,vw:innerWidth};
+      const e=[...btn.querySelectorAll('span,div')].find(x=>x.children.length===0&&new RegExp('^'+N+' reviewed').test((x.textContent||'').trim()));if(!e)return {found:true,leaf:false};
+      const rg=document.createRange();rg.selectNodeContents(e);const tops=new Set([...rg.getClientRects()].filter(r=>r.width>0).map(r=>Math.round(r.top)));
+      const lh=parseFloat(getComputedStyle(e).lineHeight)||e.getBoundingClientRect().height;
+      return {found:true,leaf:true,vw:innerWidth,t:e.textContent,sw:e.scrollWidth,cw:e.clientWidth,lines:tops.size,h:Math.round(e.getBoundingClientRect().height*10)/10,lh,btnH:Math.round(btn.getBoundingClientRect().height*10)/10};},N);
+    L.say(!!(q.found&&q.leaf&&q.vw===320),'se '+N+' games: TC-R110 PRECONDITION the Review landing at 320 wide shows the one-line YOUR PROGRESS summary for '+N+' reviewed games',q);
+    L.say(!!(q.leaf&&q.lines===1&&q.h<=q.lh*1.5+0.5&&q.btnH<=60),'se '+N+' games: TC-R110 the summary is ONE line at 320x568 ('+q.lines+' line box(es), '+q.h+'px, row '+q.btnH+'px)',q);
+    L.say(!!(q.leaf&&q.cw>0&&q.sw<=q.cw),'se '+N+' games: TC-R110 the summary is NOT cut at 320x568 (scrollWidth '+q.sw+' <= clientWidth '+q.cw+': "'+q.t+'")',q);
+    L.say(b.errs.length===0,'se '+N+' games: TC-R110 zero app errors',b.errs.slice(0,2));
+    await b.close();}
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});
