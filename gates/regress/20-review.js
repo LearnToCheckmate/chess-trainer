@@ -341,6 +341,37 @@ L.run(async()=>{
       L.say(!gOff,'kunal730: TC-R12b and switched off it is gone, so the reading above was the default and not a stale render',{gOff:!!gOff});
       L.say(!!mOn.board&&!!mOff.board&&Math.abs(mOn.board.w-mOff.board.w)<0.6&&Math.abs(mOn.board.top-mOff.board.top)<0.6,
         'kunal730: TC-R12b the board is the same width and top with the graph on as off - the graph sits in the band ('+(mOn.board&&mOn.board.w)+'/'+(mOn.board&&mOn.board.top)+' on, '+(mOff.board&&mOff.board.w)+'/'+(mOff.board&&mOff.board.top)+' off)',{on:mOn.board,off:mOff.board});
+      // TC-R107 [#549 item (3); jobs/a-failed-country-lookup-is-cached-as-an-answer-...-2026-10-10, the job's "TC-R27" seeded
+      // arm - that id is already a case in the register]. TC-R68 above proves a refused lookup leaves no answer behind; this proves the
+      // other half, that an ANSWER in the cache paints. Three arms in this one session, graph off, ply 0 of the Opera Game:
+      // UNSEEDED (the reading just taken: TC-R68 left no entry, so no flag), SEEDED with 'us' (lowercase, so flagOf must
+      // uppercase it) and 'DE', and REJECTS with 'USA' and '1A', which flagOf must refuse. Flags are counted as text nodes
+      // made of regional-indicator letters inside the two player bars, and the names are found by WHAT THEY SAY, not by any
+      // data-ct - #432's rule. A painted flag must push its own player's name right by the flag's width plus the computed gap of the row they share (6px today; read, not hard-coded).
+      // CONTROL-RECORD: 5fec51b 2026-11-06 total=217 red=2 scope=full how=flagOf without toUpperCase (seeded us paints nothing), trial md5 7995a040f477; red: TC-R107 two-flags and Morphy's name shift. The good trial 0ec547e8eecc reads 217 PASS 0 FAIL.
+      // CONTROL-RECORD: 5fec51b 2026-11-06 total=217 red=2 scope=full how=flag span position absolute (flag paints, names do not move), trial md5 5e5a52a68228; red: both TC-R107 name shifts, while the two-flags assertion stays green. NOT controlled: the USA/1A arm.
+      {const NAMES={w:'Morphy',b:'Duke Karl / Count Isouard'};
+       const readBars=async()=>b.page.evaluate((NAMES)=>{const out={flags:[],names:{}};
+         for(const sel of ['[data-ct="pbar-top"]','[data-ct="pbar-bottom"]']){const bar=document.querySelector(sel);if(!bar)continue;
+           const tw=document.createTreeWalker(bar,NodeFilter.SHOW_TEXT);let n;
+           while((n=tw.nextNode())){const t=(n.nodeValue||'').trim();if(!t)continue;const rg=document.createRange();rg.selectNodeContents(n);const r=rg.getBoundingClientRect();
+             if(/^(?:[\u{1F1E6}-\u{1F1FF}]{2})+$/u.test(t)){const row=n.parentElement&&n.parentElement.parentElement;const gap=row?parseFloat(getComputedStyle(row).columnGap):NaN;out.flags.push({t,x:r.x,w:r.width,h:r.height,bar:sel,gap});}
+             for(const k of Object.keys(NAMES))if(t===NAMES[k])out.names[k]={x:r.x,y:r.y,bar:sel};}}
+         return out;},NAMES);
+       const reopen=async(cc)=>{await b.page.evaluate((cc)=>{localStorage.setItem('ct_country',JSON.stringify(cc));},cc);await b.open();await b.tile('Review');
+         await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+         let s=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){s=false;}
+         if(s){await b.tapText(/^Start review/,{wait:900});await b.settle(600);}return s;};
+       const un=await readBars();
+       L.say(!!un.names.w&&!!un.names.b&&un.flags.length===0,'kunal730: TC-R107 PRECONDITION unseeded arm: both names are found by their text in the player bars and no flag is painted',un);
+       const okS=await reopen({'cc:morphy':'us','cc:duke karl / count isouard':'DE'});const se=await readBars();
+       const want={w:String.fromCodePoint(0x1F1FA,0x1F1F8),b:String.fromCodePoint(0x1F1E9,0x1F1EA)};
+       L.say(okS&&se.flags.length===2&&se.flags.some(f=>f.t===want.w)&&se.flags.some(f=>f.t===want.b),'kunal730: TC-R107 seeded with us and DE: EXACTLY TWO flags paint in the player bars, US (from lowercase us) and DE',{flags:se.flags.map(f=>[f.t,Math.round(f.w*10)/10,f.bar])});
+       for(const k of ['w','b']){const f=se.flags.find(x=>x.t===want[k]);const d=(se.names[k]&&un.names[k])?se.names[k].x-un.names[k].x:null;
+         L.say(!!f&&d!=null&&d>=10&&isFinite(f.gap)&&Math.abs(d-(f.w+f.gap))<=1.5&&se.names[k].bar===f.bar,'kunal730: TC-R107 seeded: '+NAMES[k]+'\'s name moves right by its own flag\'s width plus its row\'s computed gap ('+(d==null?'?':Math.round(d*10)/10)+'px, flag '+(f?Math.round(f.w*10)/10:'?')+'px + gap '+(f?f.gap:'?')+'px), in the same bar',{d,flag:f,name:se.names[k],was:un.names[k]});}
+       const okR=await reopen({'cc:morphy':'USA','cc:duke karl / count isouard':'1A'});const rj=await readBars();
+       const dR=['w','b'].map(k=>(rj.names[k]&&un.names[k])?Math.abs(rj.names[k].x-un.names[k].x):99);
+       L.say(okR&&rj.flags.length===0&&dR.every(d=>d<0.6),'kunal730: TC-R107 seeded with USA and 1A, which are not two-letter codes: NO flag paints and neither name moves ('+dR.map(d=>Math.round(d*10)/10).join(', ')+'px)',{flags:rj.flags,dR});}
     }
     L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'kunal730: TC-R12b no app error beyond the allowed engine trap',b.errs.slice(0,3));
     await b.close();

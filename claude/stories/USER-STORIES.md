@@ -100,7 +100,8 @@ As a player who just finished a game on chess.com, I paste its PGN and get a rev
 - Zero application console errors during import and analysis. (TC-R01)
 - A best-effort lookup the review makes on the side (the players' countries for their flags) that FAILS leaves the app as it
   was and is tried again the next time the review opens: a refused or offline lookup is never stored as the answer, so one
-  offline review cannot remove a player's flag for good. (TC-R68; #548 item (41),
+  offline review cannot remove a player's flag for good. A country that IS known paints as its flag in that player's
+  bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107; #548 item (41), #549 item (3),
   jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10)
 
 ### US-R02 Games fetched from an account are kept, per account, across reloads
