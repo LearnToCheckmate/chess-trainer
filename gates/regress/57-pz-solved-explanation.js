@@ -228,6 +228,17 @@ L.run(async()=>{
           const c0=await chip();
           if(prep.sh>prep.ch+1){
             L.say(c0.on&&c0.inView&&c0.self,label+' '+state+': TC-R85 the explanation overruns its box ('+prep.sh+' > '+prep.ch+') and a "more" chip is on screen and taps to itself',c0);
+            // TC-R112 (US-R81), #549 item (45): AT REST THE OVERRUNNING BOX SHOWS WHOLE LINES - no line of the explanation is painted
+            // cut through its glyphs at the box's bottom edge. Read from the glyphs' own rects (a Range per code point, grouped by line)
+            // against the box found as the nearest scrolling ancestor, so it does not depend on the hook or the style the fix uses. On the
+            // pre-fix HEAD bundle (208ec0354fc6) the sixth line straddled the edge with 12.1px of a 16px glyph row shown at 375x761.
+            const cutL=await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];
+              let box=el&&el.parentElement;while(box&&!/auto|scroll/.test(getComputedStyle(box).overflowY))box=box.parentElement;if(!el||!box||box.scrollTop>0.5)return null;
+              const br=box.getBoundingClientRect(),lines={},rg=document.createRange(),n=el.firstChild;let off=0;
+              for(const cp of Array.from(n.nodeValue)){rg.setStart(n,off);rg.setEnd(n,off+cp.length);off+=cp.length;if(/\s/.test(cp))continue;const c=rg.getBoundingClientRect();if(!c.width)continue;const k=Math.round(c.top);lines[k]=lines[k]||{t:+c.top.toFixed(1),b:+c.bottom.toFixed(1)};}
+              const ls=Object.values(lines);return {boxBottom:+br.bottom.toFixed(1),lines:ls.length,whole:ls.filter(l=>l.b<=br.bottom+0.5).length,straddling:ls.filter(l=>l.t<br.bottom-0.5&&l.b>br.bottom+0.5)};});
+            if(L.say(!!cutL&&cutL.lines>0&&cutL.whole>0,label+' '+state+': TC-R112 PRECONDITION the box is at rest at its top and its glyph lines are counted',cutL))
+              L.say(cutL.straddling.length===0,label+' '+state+': TC-R112 at rest the overrunning box shows whole lines only - no line is painted cut through its glyphs at the bottom edge ('+cutL.whole+' whole, '+cutL.straddling.length+' cut)',cutL);
             let last=c0,moved=false,k=0;for(;k<8&&last.on;k++){await b.page.mouse.click(last.cx,last.cy);await b.page.waitForTimeout(250);const nx=await chip();if(nx.st>last.st)moved=true;last=nx;}
             L.say(moved&&!last.on,label+' '+state+': TC-R85 each tap scrolls the box, and once the end is reached the chip is gone ('+k+' taps)',{moved,end:last});
           }else L.say(!c0.on,label+' '+state+': TC-R85 the explanation fits here ('+prep.sh+' <= '+prep.ch+'), so there is no "more" chip',c0);

@@ -1563,6 +1563,7 @@ As a beginner training in my tier, tapping Previous on its first puzzle takes me
 *Added #547, from jobs/pz-solved-explanation-longest-curated-still-overruns-the-new-box-2026-09-28.*
 As a player reading why a puzzle's answer works, I can tell when the explanation continues below what I can see, and reach the rest with one tap.
 - While text is hidden below the box, a "▾ more" chip is on screen; each tap scrolls the box, and the chip goes when the end is reached. Where the text fits, there is no chip. (TC-R85)
+- At rest the box shows whole lines: no line of the explanation is painted cut through its glyphs at the box's bottom edge. (TC-R112)
 
 ### US-R82 A hint I asked for stays while I keep trying
 *Added #547, from jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28.*
