@@ -1588,6 +1588,13 @@ font arrived a frame late.
   (259.03 → 235.03) at 375x568. Compact review did not reproduce with a ply-change trigger, which is NOT
   REPRODUCED and not immune. This clause is written for the lesson because that is where the gate drives;
   play and puzzle are measured-affected and uncovered, and that is owed work rather than a claim.
+- **A PHONE GAME'S BOARD COMES BACK TOO (#549 run fix, 1029033 and its gate).** In Play against the computer the
+  board, after a transient block of in-flow content has come and gone across one fit-loop dependency change (the
+  Moves toggle), returns to within the loop's 8px step of its fresh-launch width. The mechanism there was not the
+  lesson's: the two player bars and the moves panel grow into the room a shrink leaves and swallowed it back, so the
+  loop read no overflow and no slack. Measured pre-fix (5a6c918bebaf) at 375x568: 296 -> 232 and stayed 232; fixed
+  (8332d8e5c3a8): back to 296. COMPACT REVIEW HAS THE SAME DEFECT AND IS NOT COVERED: at 375x568, Opera Game ply 10, a
+  60px block across one ply change left the Review board at 208 against a fresh 264, on both bundles. (TC-R64-D15)
 - THE MECHANISM IS ESTABLISHED AND THE TRIGGER IS NOT. The portrait fit loop (`chess.jsx`, search
   `boardTrim`) shrinks on a real overflow and can never grow back, for two independent reasons either of
   which alone is sufficient: the slack a single shrink leaves is `ceil(over/8)*8+8-over`, which lies in

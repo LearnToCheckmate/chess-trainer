@@ -591,4 +591,50 @@ L.run(async()=>{
         L.say(typeof WK[r]==='number'&&typeof WKP[r]==='number'&&WKP[r]===WK[r],'TC-R64-D14 '+n+' '+r+': '+PADPX+'px of padding on the moves panel adds NO fit wake ('+WKP[r]+' padded vs '+WK[r]+' unpadded) - the observer and the settle measure the same box',{route:r,padded:WKP[r],unpadded:WK[r]});
     }
   }
+  // TC-R64-D15 [#549 run fix fixr3d, over 1029033 (fixr3c)]. A PHONE GAME'S BOARD COMES BACK AFTER A TRANSIENT, the PLAY
+  // half of the class this file's header names as "measured-affected and uncovered". THE MECHANISM IS NOT THE LESSON'S: in a
+  // phone game the two player bars (pbar-top/pbar-bottom, flex 1 1 0 over their minHeight) and the moves panel and its list
+  // grow into whatever room the board leaves, so after ONE transient overflow trims the board they absorb the room that comes
+  // back, _fitOver reads 0 for ever and the growth branch (over < -24) never fires. 1029033 makes _fitOver subtract that
+  // swallowed slack in mode play. THE DRIVE: vs Computer at move 0, a PX-tall in-flow block prepended to #root's first child
+  // while Moves is toggled (movesOpen is a fit-loop dependency), then the block removed and Moves toggled back. PX is a
+  // property of the cell, not of its name: 60 where the board is height-bound, 180 at the two tall cells, where the board is
+  // width-bound and 60 (and, on the fix, 120 at 375x761) never moves it, so the shrink assertion would have no state to stand
+  // on. MEASURED at #549, pre-fix trial 5a6c918bebaf (376ccde) vs fix trial 8332d8e5c3a8: 375x568 296 -> 232 -> 232 vs
+  // 296 -> 232 -> 296; 320x568 298 -> 232 -> 232 vs 298 -> 232 -> 296 (2px under fresh: the loop grows in 8px steps); 375x730
+  // 353 -> 250 -> 250 vs 353 -> 250 -> 353; 375x761 353 -> 281 -> 281 vs 353 -> 289 -> 353.
+  {
+    const P=require('../drive/play.js');
+    const PCELLS=[
+      {n:'320x540', g:{w:320,h:540,safe:''}, px:60},
+      {n:'375x568', g:L.GEOS.short375,       px:60},
+      {n:'320x568', g:L.GEOS.se,             px:60},
+      {n:'375x730', g:L.GEOS.kunal730,       px:180},
+      {n:'375x761', g:L.GEOS.kunal761,       px:180},
+    ];
+    const STEP=8;   // the fit loop grows in 8px steps (Math.floor(-over/8)*8), so recovery is to within one step of fresh
+    const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;});
+    for(const c of PCELLS){
+      const R={};
+      const b=await L.launch({geo:c.g,name:'d15-'+c.n,store:{ct_pool:'3'}});
+      try{
+        await b.open();await P.states['cpu-m0'](b);await b.settle(500);
+        R.fresh=await bw(b);
+        R.injRect=await b.page.evaluate((px)=>{const r=document.getElementById('root');const d=document.createElement('div');d.id='ct-d15-kick';d.style.cssText='height:'+px+'px;flex:0 0 '+px+'px';r.firstElementChild.prepend(d);
+          const q=d.getBoundingClientRect(),cs=getComputedStyle(d);return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'&&cs.display!=='none'};},c.px);
+        R.tap1=await tapMoves(b);await b.settle(800);
+        R.during=await bw(b);
+        R.removed=await b.page.evaluate(()=>{const d=document.getElementById('ct-d15-kick');if(d)d.remove();return !document.getElementById('ct-d15-kick');});
+        R.tap2=await tapMoves(b);await b.settle(1200);
+        R.after=await bw(b);
+      }catch(e){R.threw=String(e&&e.message||e).slice(0,200);}
+      await b.close();
+      L.say(!R.threw,'TC-R64-D15 '+c.n+' the play arm ran without throwing'+(R.threw?' - '+R.threw:''),R);
+      L.say(typeof R.fresh==='number'&&R.fresh>40,'TC-R64-D15 '+c.n+' DENOMINATOR a fresh vs-Computer board is painted at move 0 ('+R.fresh+')',{fresh:R.fresh});
+      L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1&&R.tap1===true,'TC-R64-D15 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height while Moves was toggled',{injRect:R.injRect,tap1:R.tap1});
+      L.say(typeof R.fresh==='number'&&typeof R.during==='number'&&R.during<R.fresh-STEP,'TC-R64-D15 '+c.n+' THE STATE WAS REACHED: with the '+c.px+'px block in the flow the fit loop shrank the board ('+R.fresh+' -> '+R.during+'), so the recovery below is asserted over a board that really lost width',{fresh:R.fresh,during:R.during});
+      L.say(R.removed===true&&R.tap2===true,'TC-R64-D15 '+c.n+' the block was removed and Moves toggled back (the dependency change the recovery needs)',{removed:R.removed,tap2:R.tap2});
+      L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D15 '+c.n+' THE PHONE-GAME BOARD COMES BACK: after the block is gone the board is within the loop\'s '+STEP+'px step of its fresh-launch width ('+R.after+' vs '+R.fresh+'). Pre-fix the player bars and moves panel swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
+    }
+  }
 },'75-fit-loop-one-way-ratchet');
