@@ -1,6 +1,6 @@
 'use strict';
 // gates/regress/78-inner-scroller-fold.js - THE PRIMARY ACTION'S DISTANCE FROM THE FOLD, MEASURED INSIDE THE SCROLLER WHERE
-// over() CANNOT SEE IT. TC-INV-08a..c, US-INV-07.
+// over() CANNOT SEE IT. TC-INV-08a..e, US-INV-07 (08d/08e: the Discover -> Tactics board clear of the tab bar, #549).
 //
 // WHY [#545, item (44); jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28]. gates/lib.js's over() measures
 // the bottom-most laid-out child of #root against the viewport. That is right about the page (#354) and blind to every inner
@@ -20,6 +20,7 @@
 // scrolled and the button must then sit on screen - below the fold is not unreachable (CLAUDE.md), and this checks both.
 const L=require('../lib');
 const P=require('../drive/play');
+const D=require('../drive/lesson');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
 const FOLD_PIN={"320x568":383,"360x640":280,"375x667":218,"375x730":191,"390x844":59.5,"414x896":7.5,"440x956":-51.5};
 L.run(async()=>{
@@ -52,6 +53,32 @@ L.run(async()=>{
     await b.close();
   }
   L.note('    FOLD MEASURED (px past the fold on arrival): '+JSON.stringify(got));
+  // TC-INV-08d/08e [#549, item (87); jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28; Kunal's default
+  // (5) on questions/B8-SMALL-DEFAULTS, 4 Nov 2026: "Tactics keeps the board clear of the tab bar, as Lessons and Puzzles do"].
+  // Discover -> Tactics, both of its tabs, AT REST (#root unscrolled): the board is the thing that screen is for, and its bottom
+  // must sit at or above the fixed tab bar's top, read on the LIVE elements. Before #549 it ran 14px under at 375x730, 65 at
+  // 375x679 and 119.5 at 320x568. The board is found as the widest 8-column grid, NOT by the data-ct hook #549 added, so this
+  // assertion reads the same element on a bundle that predates the fix (CLAUDE.md, the selector-its-own-build-adds rule).
+  const tgot={};
+  for(const g of ['kunal761',...L.TA7]){
+    const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
+    const b=await L.launch({geo:g,name:'tactics-'+n});await b.open();
+    let reached=true;try{await D.states['tactics'](b);await b.settle(400);}catch(e){reached=false;}
+    for(const tab of ['Tactics','Strategy']){
+      if(reached&&tab==='Strategy'){await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Strategy');if(x)x.click();});await b.settle(400);}
+      const m=reached?await b.page.evaluate(()=>{const root=document.getElementById('root');if(root)root.scrollTop=0;
+        const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
+        const bar=document.querySelector('[data-ct="tabbar"]');const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy');
+        if(!gs.length||!bar)return {board:!!gs.length,bar:!!bar,head};const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
+        return {board:true,bar:true,head,top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10};}):null;
+      L.say(!!m&&m.board&&m.bar&&m.head,n+' '+tab+': TC-INV-08d Discover -> Tactics was reached ("Tactics & Strategy" on screen) with its board and the tab bar both found - the denominator, so a missing board reads red and not as clear',m);
+      if(!m||!m.board||!m.bar)continue;
+      const under=Math.round((m.bottom-m.barTop)*10)/10;tgot[n+' '+tab]=under;
+      L.say(under<=0,n+' '+tab+': TC-INV-08e at rest the board ('+m.w+'px, bottom '+m.bottom+') is clear of the tab bar (top '+m.barTop+'): '+(under<=0?(-under)+'px above it':under+'px UNDER it'));
+    }
+    await b.close();
+  }
+  L.note('    TACTICS BOARD vs TAB BAR (px under the bar at rest; <= 0 is clear): '+JSON.stringify(tgot));
 },'78-inner-scroller-fold');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with

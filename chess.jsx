@@ -2707,6 +2707,22 @@ function TacticsTrainer({light,dark,demo}){
   const [wrong,setWrong]=useState(false);
   const [showHint,setShowHint]=useState(false);
   const [si,setSi]=useState(0);
+  /* #549 item (87), jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28 (Kunal, 4 Nov 2026, B8-SMALL-DEFAULTS
+     (5): "Tactics keeps the board clear of the tab bar, as Lessons and Puzzles do"). The board here was width-sized (maxWidth 400)
+     and never asked how tall the screen is, so at rest its bottom ranks sat under the fixed tab bar: 14px at 375x730, 65 at 375x679,
+     119.5 at 320x568. The board is now capped at the room between its own top (at rest, #root unscrolled) and the bar's top, less a
+     6px gap, re-measured when the tab, the motif or the strategy card changes (the idea box above it changes height). FLOOR 176
+     (22px squares): below that the board stays at 176 and is reached by scrolling #root, rather than shrinking into something no
+     finger can use. The piece glyphs scale with the square so they never overrun it. */
+  const bRef=useRef(null);
+  const [cap,setCap]=useState(400);
+  useLayoutEffect(()=>{
+    const fit=()=>{const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
+      const top=el.getBoundingClientRect().top+(root?root.scrollTop:0);const avail=Math.floor(bar.getBoundingClientRect().top-top-6);
+      setCap(Math.max(176,Math.min(400,avail)));};
+    fit();window.addEventListener('resize',fit);return()=>window.removeEventListener('resize',fit);
+  },[tab,mi,si]);
+  const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
     if(!demo)return;
     let cancel=false;const ids=[];const at=(fn,ms)=>{ids.push(setTimeout(()=>{if(!cancel)fn();},ms));};
@@ -2749,12 +2765,12 @@ function TacticsTrainer({light,dark,demo}){
     return(<div key={r+'-'+c} onClick={()=>tap(r,c)} style={{aspectRatio:'1',background:bg,position:'relative',cursor:doneM?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
       {c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd',pointerEvents:'none'}}>{8-r}</span>}
       {r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd',pointerEvents:'none'}}>{FILES[c]}</span>}
-      {p&&<span style={isTo&&doneM?{animation:'iconpop .45s cubic-bezier(.34,1.56,.64,1) both'}:undefined}><Piece t={p.t} color={p.c} sz={37}/></span>}
+      {p&&<span style={isTo&&doneM?{animation:'iconpop .45s cubic-bezier(.34,1.56,.64,1) both'}:undefined}><Piece t={p.t} color={p.c} sz={psz}/></span>}
     </div>);
   };
   const tabBtn=(k,lbl)=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',borderRadius:12,background:tab===k?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:tab===k?'1px solid var(--ac)':'1px solid rgba(255,255,255,.14)',color:tab===k?'var(--ac2)':'rgba(255,255,255,.8)',fontWeight:800,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>{lbl}</button>);
   const cstr=STRAT[si%STRAT.length];const spos=fromFEN(cstr.fen);
-  const scell=(r,c)=>{const lt=(r+c)%2===0;const p=spos.board[r][c];return(<div key={r+'-'+c} style={{aspectRatio:'1',background:lt?light:dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>{c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{8-r}</span>}{r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{FILES[c]}</span>}{p&&<Piece t={p.t} color={p.c} sz={37}/>}</div>);};
+  const scell=(r,c)=>{const lt=(r+c)%2===0;const p=spos.board[r][c];return(<div key={r+'-'+c} style={{aspectRatio:'1',background:lt?light:dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>{c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{8-r}</span>}{r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{FILES[c]}</span>}{p&&<Piece t={p.t} color={p.c} sz={psz}/>}</div>);};
   return(<div style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
     <div style={{textAlign:'center',marginBottom:12}}>
       <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & Strategy</div>
@@ -2767,7 +2783,7 @@ function TacticsTrainer({light,dark,demo}){
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{cur.level} · {(mi%TACTICS.length)+1}/{TACTICS.length}</span>
       </div>
       <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(14.5px,3.1vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.5,marginBottom:11}}>{cur.idea}</div>
-      <div style={{maxWidth:400,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
       <div style={{minHeight:24,textAlign:'center',margin:'10px 0 4px'}}>
@@ -2790,7 +2806,7 @@ function TacticsTrainer({light,dark,demo}){
         <span style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#fff'}}>{cstr.title}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{(si%STRAT.length)+1}/{STRAT.length}</span>
       </div>
-      <div style={{maxWidth:400,margin:'0 auto 11px',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto 11px',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c)))}
       </div>
       <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'9px 12px',fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:700,textAlign:'center',marginBottom:9}}>👀 {cstr.look}</div>

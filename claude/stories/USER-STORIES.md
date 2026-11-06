@@ -497,6 +497,10 @@ gate 78.
   Kunal chose on 11 Oct 2026 (questions/play-setup-start-game-on-screen-2026-10-10), and that build retires the pins,
   applying the job's acceptance A to C (320x568 with real insets passes on "reachable by scroll").
 - Below the fold is not unreachable: the button can always be scrolled into view and tapped (TC-INV-08c).
+- On Discover -> Tactics, both tabs, the board is the thing the screen is for: at rest its bottom sits at or above the fixed
+  tab bar's top at 375x761 and every geometry of THE DRILL SEVEN, as on Lessons and Puzzles (Kunal's default (5) on
+  questions/B8-SMALL-DEFAULTS, 4 Nov 2026). The board shrinks to the room above the bar, never below 176px. (TC-INV-08d,
+  TC-INV-08e; #549, jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28)
 - NOT COVERED YET: the other screens' primary actions. What counts as the primary action on Puzzles and on Review is
   this lane's open definition question (Q2 on the job).
 
