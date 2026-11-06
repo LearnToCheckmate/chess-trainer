@@ -6,6 +6,9 @@
 //   const b=await L.launch({geo:'kunal761'});   // 375x761 with ct_safe 51,31 = Kunal's phone (R19, settled 2026-10-03). NEW GATES USE IT.
 //   'kunal730' is the superseded 375x730 column kept for the gates pinned there, 'kunal' is 375x679 (shorter-phone column) [#546, #548]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
+//   L.launch({geo,engineFail:'pool'})           // make the engine's review-pool workers FAIL, so the review takes sfEval1 on the analysis
+//   L.launch({geo,engineFail:'all'})            // worker; 'all' = every Stockfish worker fails, so the app uses its built-in engine.
+//   await b.engineFail()                        // {mode,created,failed}: a gate driving it MUST assert failed>0 (see ENGINE FAILURE below)
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
 //                                               // are not supported - the second launch closes the first one's server.
@@ -378,6 +381,7 @@ async function launch(opts={}){
   if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal761\'} is Kunal\'s phone, 375x761 with insets, per R19; see GEOS); an omitted geometry no longer defaults to 375x679');
   const geo=typeof opts.geo==='object'?opts.geo:GEOS[opts.geo];
   if(!geo)throw new Error('unknown geo '+opts.geo);
+  if(opts.engineFail!=null&&opts.engineFail!=='pool'&&opts.engineFail!=='all')throw new Error('L.launch: engineFail must be \'pool\' or \'all\', not '+JSON.stringify(opts.engineFail));
   const srv=await serve(opts);
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;
   const browser=await P.chromium.launch(launchOpts);
@@ -387,6 +391,47 @@ async function launch(opts={}){
   const store=Object.assign({},geo.safe?{ct_safe:geo.safe}:{},opts.store||{});
   // #353 harness hole: addInitScript re-runs on every navigation; seed once per origin, guarded by a marker.
   await ctx.addInitScript((st)=>{try{if(!sessionStorage.getItem('ct_seeded')){for(const k in st)localStorage.setItem(k,typeof st[k]==='string'?st[k]:JSON.stringify(st[k]));sessionStorage.setItem('ct_seeded','1');}}catch(e){}},store);
+  // ── ENGINE FAILURE [#549, item (108); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-
+  // route-reaches-the-single-worker-fallback-2026-10-21]. Every gate that reviews a game forces ct_pool, and ct_pool=1
+  // still takes the POOL branch with one block (#377), so no launch could reach the paths a device takes when the engine
+  // worker itself fails: sfEval1 on the analysis worker when the pool has no live worker, and the built-in minimax engine
+  // when no Stockfish worker can start at all. This option reaches both WITHOUT an app change, by wrapping window.Worker
+  // before the page's scripts run:
+  //   engineFail:'all'  - constructing any stockfish-*.js worker THROWS, which every `new Worker` site in chess.jsx
+  //                       catches (the mount worker, ensureAna, ensurePool), so sfReady never becomes true.
+  //   engineFail:'pool' - a stockfish worker is real until it is sent `setoption name Hash value ...`, which only
+  //                       ensurePool sends (the mount worker and ensureAna never set Hash); that worker is then
+  //                       terminated and its onerror fired, which is exactly what a worker that dies does - the slot is
+  //                       marked dead, ensurePool resolves with no live slot after its own ~9 s wait, and the review
+  //                       falls back to sfEval1. The analysis worker and the mount worker stay alive.
+  // KNOW ITS LIMIT: 'pool' recognises the pool by the message the app sends it. If ensurePool stops setting Hash the
+  // route silently fails nothing, so a gate that drives it must assert `(await b.engineFail()).failed>0` in its own
+  // L.say - a fallback that was never taken is reported, never credited (CLAUDE.md, "assert the collection is
+  // non-empty"). An unknown mode is an error, not a quiet normal launch (checked at the top of launch, before a browser starts).
+  if(opts.engineFail){
+    console.log('     engineFail: '+opts.engineFail+' (stockfish workers are made to fail by the harness; read b.engineFail() for the count)');
+    await ctx.addInitScript((mode)=>{try{
+      const RW=window.Worker;if(!RW||window.__ctEngineFail)return;
+      const S=window.__ctEngineFail={mode,created:0,failed:0};
+      const W=function(url,o){
+        if(!/stockfish/i.test(String(url)))return new RW(url,o);
+        S.created++;
+        if(mode==='all'){S.failed++;throw new Error('ct engineFail:all - '+url);}
+        const w=new RW(url,o);const pm=w.postMessage.bind(w);let dead=false;
+        w.postMessage=function(m){
+          if(dead)return;
+          if(typeof m==='string'&&/^setoption name Hash value /.test(m)){
+            dead=true;S.failed++;try{w.terminate();}catch(e){}
+            setTimeout(()=>{let ev;try{ev=new ErrorEvent('error',{message:'ct engineFail:pool'});}catch(e){ev={type:'error',message:'ct engineFail:pool'};}try{if(typeof w.onerror==='function')w.onerror(ev);}catch(e){}},0);
+            return;
+          }
+          return pm(m);
+        };
+        return w;
+      };
+      W.prototype=RW.prototype;window.Worker=W;
+    }catch(e){}},opts.engineFail);
+  }
   const page=await ctx.newPage();
   const errs=[],noise=[];
   page.on('console',m=>{if(m.type()==='error'){const t=m.text();(NET_NOISE.test(t)?noise:errs).push(t.slice(0,300));}});
@@ -397,6 +442,8 @@ async function launch(opts={}){
       await page.waitForTimeout(opts.settle||900);await sayTextMetrics(page);return b;},
     async stamp(){return page.evaluate(()=>{const m=document.documentElement.innerHTML.match(/#\d{3,4} - 20\d\d-\d\d-\d\d \d\d:\d\d ET/);return m?m[0]:null;});},
     async settle(ms){await page.waitForTimeout(ms==null?600:ms);},
+    // ENGINE FAILURE readout (see launch): null when the launch did not ask for engineFail.
+    async engineFail(){return page.evaluate(()=>window.__ctEngineFail?Object.assign({},window.__ctEngineFail):null);},
     // visible element whose own trimmed text matches; buttons first
     loc(re,opts2={}){const r=re instanceof RegExp?re:new RegExp('^'+String(re).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$');return page.locator(opts2.sel||'button, [role=button], a, div, span',{hasText:r}).filter({has:page.locator(':scope')}).last();},
     async tapText(re,opts2={}){const r=re instanceof RegExp?re:new RegExp('^\\s*'+String(re).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*$');
