@@ -424,6 +424,7 @@ const ROWS = function(){
 //      and was never that evidence anyway: it fired because wantPins was empty at an unpinned name, which is
 //      a false red rather than a control, and the width-keying plus the report-not-assert path now remove it.
 //      So this half is MORE uncontrolled after that fix, not less, and saying so is the point of this block.
+//      [#549 item (61): CONTROLLED SINCE, by NC-H below - a pure add on the screen axis at all three geometries.]
 //  (2) the `gone` direction of invariant 3's set. NC-B and NC-D only ever ADD a height.
 // A THIRD HOLE, (3) short375 having no control at all, is still open and is named lower down. All three are
 // jobs/invariant-gate-two-uncontrolled-assertions, which this burst did NOT close - a control needs a trial
@@ -436,6 +437,21 @@ const ROWS = function(){
 //   red at both with the ["Menu and settings|👋@.../home"] pin missing. So short375 has been shown able to go red.
 //   (1) `appearedSomewhereNew` is STILL UNCONTROLLED: NC-E removes a pinned spread, it does not add one on a new
 //   screen, and no trial bundle built this run does. Said here so the job is not read as closed.
+//   [#549 item (61): HOLE (1) IS NOW CONTROLLED, BY NC-H. All three holes of the job have a measured control.]
+// #549 item (61), NC-H, MEASURED: the `appearedSomewhereNew` half fires ON ITS OWN, on the SCREEN axis, at all
+//   three swept geometries. NC-H is a CT_OUT trial bundle (md5 b12ad0fc76c0, never committed; diff kept at
+//   scratchpad jobs/61/nc-f.diff of build__1793935200785) whose only change is the Review ⋯ sheet's full-screen
+//   BACKDROP given pointerEvents:'none' (the sheet itself 'auto', plus a 20x20 click-catcher at the top-left so the
+//   driver's closeSheet tap at (8,8) still closes it - without that the walk could not leave the sheet and
+//   rev-best-ply30 was unreachable, which put a `missing` entry in the payload and made the control impure). It is
+//   a real defect class, a backdrop that stops blocking touches, and it puts pbar-top's pinned `Back|More` spread
+//   in reach on rev-more-sheet, the one Review screen its `at` list leaves out because the sheet occludes it.
+//   kunal730 160 pass / 3 FAIL; se + short375 318 pass / 7 FAIL. TC-INV-02c red at each geometry with
+//   missing [] and appearedSomewhereNew ["Back|More@<geo>/rev-more-sheet"] - a PURE ADD on a new screen. The other
+//   reds are rev-more-sheet's row-count and occluded-count pins (the row and the exclusion genuinely changed),
+//   plus, once, TC-INV-01b at short375 (tab-bar widths 41 -> 27..36.6) while a second gate run shared the machine -
+//   it DID NOT REPEAT: short375 re-run alone read 160 pass / 3 FAIL, the same three as kunal730. Clean bundle
+//   (md5 fe4212436de7, same tree): kunal730 163 pass / 0 fail, se + short375 325 pass / 0 fail.
 // WHAT THIS BURST DID ADD IS A FOURTH CONTROL WHERE THERE WAS NONE: the screen-walk coverage ledger has a
 // deliberate negative control (CT_INV_NC_SKIP / CT_INV_NC_DUP), from jobs/gate26-negative-control. It is the
 // first assertion in this file whose control needs no trial bundle, because the thing it guards is a property
@@ -1869,3 +1885,6 @@ L.run(async()=>{
 // CONTROL-RECORD: a35524b 2026-10-30 total=467 red=13 scope=trial:3c1c8eb09026 how=the SHARED header-button style _hbSty width 34 to 32, one change that shrinks Back, Home, More and Menu together - TC-INV-01b red at se, kunal730 and short375 naming all four 34x30 boxes missing and 32x30 extra (text corrected at #546 on antagonist A's F4; it first said rev-back alone), and TC-INV-04c red on ten Review screens as the opponent name gains those 2px, a pin moving as designed [rebuild of #545's d5f222191c63]
 // CONTROL-RECORD: a35524b 2026-10-30 total=467 red=5 scope=trial:673a21b4473e how=the Review player-bar name span given maxWidth:90, so the long opponent name paints 90 of 198px at kunal730 where it is not pinned - TC-INV-04c red on the five Review screens that show the bar [rebuild of #545's bf15a60187bf, the c1d3d9f record withdrawn at #545]
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=485 red=7 scope=trial:c7f6a1228e43 how=#548: main #547 - TC-INV-01b's pinned undersized set (no engine-line tap target, Home/Menu in the bar) and the rev-more-sheet occluded and row counts red at se, kunal730, short375
+// CONTROL-RECORD: a4dcc2e 2026-11-06 total=163 red=3 scope=trial:b12ad0fc76c0 how=#549 item (61) NC-H, CT_INV_GEOS=kunal730: the Review more-sheet backdrop given pointerEvents none, so pbar-top's pinned Back/More spread is reachable on rev-more-sheet - TC-INV-02c red with missing [] and appearedSomewhereNew [Back|More@kunal730/rev-more-sheet], plus that screen's row-count and occluded-count pins
+// CONTROL-RECORD: a4dcc2e 2026-11-06 total=325 red=7 scope=trial:b12ad0fc76c0 how=#549 item (61) NC-H, CT_INV_GEOS=se,short375: the same bundle - TC-INV-02c red at both with missing [] and appearedSomewhereNew naming rev-more-sheet, the row-count and occluded-count pins at both, and TC-INV-01b at short375 (tab-bar widths) which did not repeat when short375 was re-run alone (the next record), so it was load
+// CONTROL-RECORD: a4dcc2e 2026-11-06 total=163 red=3 scope=trial:b12ad0fc76c0 how=#549 item (61) NC-H re-run alone, CT_INV_GEOS=short375: TC-INV-02c red with missing [] and appearedSomewhereNew [Back|More@short375/rev-more-sheet], plus the rev-more-sheet row-count and occluded-count pins - the same three reds as kunal730
