@@ -1,0 +1,39 @@
+# gates/gate-required-floor.tsv - THE MONOTONIC FLOOR UNDER THE GATE MANIFEST'S `required` COUNT, AND THE DIGEST
+# OF THE REQUIRED SET. Seeded #549, 2026-11-06, for item (36):
+# jobs/468-the-floor-and-the-digest-fix-are-built-and-controlled-and-held-on-the-detector-they-added-2026-10-03.
+# Designed and controlled at #467 and #468 on branch claude/cool-noether-me7uq8 (c69a304), where this file was
+# seeded at 49 and NEVER LANDED; the mechanism is rebuilt here by hand, onto a gatemanifest.sh that has since
+# gained the committed-self anchor. The branch's seed row is NOT carried: it described a 49-gate tree.
+#
+# THE DEFECT IT CLOSES. The manifest's own `required` count is the suite's denominator and nothing bounded it from
+# below: delete a gate, flip its row to `absent`, type any reason into field 7, and `gatemanifest.sh check`
+# reported one fewer required gate and exited 0 (measured at #467 on 21-review-brilliant.js, the only cover for
+# brilliancy explanations). The committed-self anchor (#540/#544) now catches that edit against origin/main - but
+# only where git can answer, and only for a weakening that has not already landed. This register needs neither.
+#
+# THE MECHANISM. Append-only, like gates/build-numbers.tsv and gates/held-trees.tsv, with a CHAIN FIELD: every
+# row carries the floor that stood BEFORE it (field 2), so row i's prev must equal row i-1's floor and an edited or
+# deleted INTERIOR row is a hard failure with no git. Field 9 is a digest of the sorted REQUIRED gate names
+# (sha256, first 12 hex), so a SWAP at constant count - promote a known-absent row, de-require a real gate - is
+# visible although no count moves [#467, antagonist A's 5.1]. Field 9 is ALWAYS 12 hex: there is no `-` sentinel,
+# because on the branch one `-` in it switched the set check off with no message [#468, antagonist B's F1].
+#
+# THE RULES `gatemanifest.sh check` ENFORCES: row 1 is kind `seed`; a `raise` increases the floor; a `lower`
+# decreases it by EXACTLY ONE, carries a reason in field 7, and names in field 8 a gate whose manifest state is
+# `retired` (one gate leaves per row, so one row cannot account for twenty removals - #467, B's F1 and F2); the
+# tree's required count is >= the last floor and its required-set digest equals the last row's; and the rows
+# committed at origin/main (or HEAD) are a PREFIX of the rows here.
+#
+# THE TWO RESIDUALS, NAMED. (1) That last rule is the only defence against a TRAILING TRUNCATION or a rewrite of
+# ROW 1 - a chain cannot see either from inside the file - and it is only as good as git: where the anchor reads
+# NOT CHECKED, deleting the last row lowers the floor silently. (2) `sync` records whatever set the tree has when
+# the count RISES, so a de-require hidden behind two arrivals is recorded as a raise; the manifest anchor is what
+# sees the de-required row in that case.
+#
+# WHO WRITES IT: `CT_BUILD=#NNN CT_RUNID=<runId> gates/gatemanifest.sh sync '<why>'` raises it;
+# `... retire <gate.js> '<why>'` lowers it by one. Both REFUSE without CT_BUILD and CT_RUNID. `check` NEVER writes.
+# A tree whose required set changed without either door (a hand-added row, a branch rebased under this file) is
+# repaired by running sync: it raises the floor to the count that stands and records the set.
+#
+# floor  prev  kind   at          build  runId                   why                                   gate  reqset
+65	-	seed	2026-11-06	549	build__1793935200785	seeded at the measured required count of the tree that introduced the register: gates/gatemanifest.sh check on 46bb18d read 65 required, 65 present, 0 missing, 0 unlisted, 3 known-absent, 0 retired, 0 unjustified, 0 unreadable. Read off the tool, not chosen.	-	a11d1951843e

@@ -1850,7 +1850,10 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
     gates/regress/*|gates/mountcheck.js|gates/lib.js) echo "FORCE a gate or the harness" ;;
     gates/drive/*)                                  echo "FORCE 33 of the regress gates require these drivers - #489 finding 2" ;;
     gates/audit/*|gates/engine-extract.js)          echo "FORCE executable harness, not a record: gates/audit holds 0 non-code files" ;;
-    gates/build.sh|gates/gates.sh|gates/gatemanifest.sh|gates/gate-manifest.tsv) echo "FORCE how the suite is built or enumerated" ;;
+    # gates/gate-required-floor.tsv [#549 item (36)]: the floor and required-set register gatemanifest.sh check
+    # reads as a VERDICT input - a guard register whose protection lives in its row values, like held-trees.tsv
+    # below - so it is FORCE and not the gates/*.tsv RECORDS arm it would otherwise fall into.
+    gates/build.sh|gates/gates.sh|gates/gatemanifest.sh|gates/gate-manifest.tsv|gates/gate-required-floor.tsv) echo "FORCE how the suite is built or enumerated" ;;
     gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
     functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
     claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;

@@ -787,6 +787,54 @@ else
   echo "FAIL SR the archived 521-RED or 544 log is not readable - section SR did not run"; F=$((F+1))
 fi
 
+# ── SECTION FR: THE GATE-REQUIRED FLOOR AND THE REQUIRED-SET DIGEST, check (8) [#549 item (36);
+# jobs/468-the-floor-and-the-digest-fix-are-built-and-controlled-and-held-on-the-detector-they-added-2026-10-03].
+# No archived log carries the two fields yet, so these run on COPIES OF THE REAL 548d-all.log with its manifest line
+# rewritten to the ten-field shape at the register's SEED STATE (read from the register's own first row, so the
+# fixture follows the file rather than a number typed here) plus the VERIFIED token. The register is append-only, so
+# that state stays a row for ever. Each fixture changes ONE thing from FR-ok. The register is copied into the sandbox
+# for this section and removed for FR9, the absent-register case.
+FRREAL="$REPO/claude/agents/gatelogs/548d-all.log"; FRREG="$HERE/gate-required-floor.tsv"
+FRSEED="$( [ -r "$FRREG" ] && awk -F'\t' '!/^[[:space:]]*#/ && NF>=9 {gsub(/[ \r]/,"",$1); gsub(/[ \r]/,"",$9); print $1" "$9; exit}' "$FRREG" )"
+FRF="${FRSEED% *}"; FRD="${FRSEED#* }"
+if [ -r "$FRREAL" ] && [ -n "$FRSEED" ] && grep -q "^gate manifest: $FRF required, $FRF present, 0 missing, 0 unlisted, [0-9]* known-absent, 0 retired, 0 unjustified, 0 unreadable\$" "$FRREAL"; then
+  FRDIR="$TD/fr"; mkdir -p "$FRDIR"; cp "$FRREG" "$TD/gates/gate-required-floor.tsv"
+  frmk(){ # frmk <out> <floor> <reqset> <token-digest or ''> [required/present override]
+    local rq="${5:-$FRF}"
+    awk -v fl="$2" -v dg="$3" -v tok="$4" -v rq="$rq" '
+      /^gate manifest: [0-9]+ required, / {
+        sub(/^gate manifest: [0-9]+ required, [0-9]+ present,/, "gate manifest: " rq " required, " rq " present,")
+        if (!done && tok != "") print "gate reqset: VERIFIED against the register (" tok ")"
+        done=1; print $0 ", " fl " floor, " dg " reqset"; next }
+      { print }' "$FRREAL" > "$1"
+  }
+  frmk "$FRDIR/ok.log"      "$FRF"         "$FRD"         "$FRD"
+  frmk "$FRDIR/nc.log"      "NOT-CHECKED"  "NOT-CHECKED"  ""
+  frmk "$FRDIR/badfl.log"   "$((FRF-1))"   "$FRD"         "$FRD"
+  frmk "$FRDIR/baddg.log"   "$FRF"         "0123456789ab" "0123456789ab"
+  frmk "$FRDIR/notok.log"   "$FRF"         "$FRD"         ""
+  frmk "$FRDIR/othertok.log" "$FRF"        "$FRD"         "0123456789ab"
+  frmk "$FRDIR/below.log"   "$FRF"         "$FRD"         "$FRD"         "$((FRF-1))"
+  frmk "$FRDIR/huge.log"    "1234567"      "$FRD"         "$FRD"
+  grep -v '^gate reqset:' "$FRDIR/ok.log" | sed 's/#548/#550/g' > "$FRDIR/era550-fields-notoken.log"
+  sed 's/#548/#550/g' "$FRREAL" > "$FRDIR/era550-short.log"
+  ckmsg "FR0 a 548d copy at the register's seed state, with the VERIFIED token, is accepted and SAYS the floor arm ran" 0 'is affirmatively logged as VERIFIED' "$VL" "$FRDIR/ok.log" '#548'
+  ckmsg "FR1 the real 548d-all.log (8-field line, #548) is accepted and REPORTS the floor as NOT CHECKED"            0 'gate-required floor: NOT CHECKED' "$VL" "$FRREAL" '#548'
+  ckmsg "FR2 a NOT-CHECKED floor/reqset token is REFUSED, naming the register"                                      1 'could not read gates/gate-required-floor.tsv' "$VL" "$FRDIR/nc.log" '#548'
+  ckmsg "FR3 a floor no register row records (with a recorded digest) is REFUSED as an unrecorded PAIR"             1 'REFUSED (floor/reqset pair)' "$VL" "$FRDIR/badfl.log" '#548'
+  ckmsg "FR4 a digest no register row records (the SWAP case) is REFUSED as an unrecorded PAIR"                     1 'REFUSED (floor/reqset pair)' "$VL" "$FRDIR/baddg.log" '#548'
+  ckmsg "FR5 a log with the right values and NO VERIFIED token is REFUSED - a skipped comparison is not a pass"      1 'required-set digest not verified' "$VL" "$FRDIR/notok.log" '#548'
+  ckmsg "FR6 a VERIFIED token for ANOTHER digest does not satisfy arm 3"                                            1 'required-set digest not verified' "$VL" "$FRDIR/othertok.log" '#548'
+  ckmsg "FR7 required below the floor the log itself reports is REFUSED by arm 1"                                    1 'required gate(s) against a floor of' "$VL" "$FRDIR/below.log" '#548'
+  ckmsg "FR8 a seven-digit floor does not parse and is REFUSED rather than reaching an unbounded test"               1 'does not parse' "$VL" "$FRDIR/huge.log" '#548'
+  ckmsg "FR10 a #550 log whose manifest line LACKS the floor fields is REFUSED (the era test)"                      1 "carries no 'N floor, <hex> reqset' fields" "$VL" "$FRDIR/era550-short.log" '#550'
+  ckmsg "FR11 and a #550 log that carries the fields is checked by the arms, not by the era (here: no token)"        1 'required-set digest not verified' "$VL" "$FRDIR/era550-fields-notoken.log" '#550'
+  rm -f "$TD/gates/gate-required-floor.tsv"
+  ckmsg "FR9 with NO register on the tree, a log carrying a floor is REFUSED, not passed on arm 1 alone"            1 'is not on this tree' "$VL" "$FRDIR/ok.log" '#548'
+else
+  echo "FAIL FR the real 548d-all.log at its seed-state shape, or the floor register's seed row, is not readable - section FR did not run"; F=$((F+1))
+fi
+
 echo "verify-log self-test: $P pass, $F fail, $HOPEN hole(s) open, $HCLOSED hole(s) closed"
 if [ "$F" != "0" ]; then
   echo "A CONFIRMED CASE REGRESSED. That is a real break in the push gate, not a known hole."

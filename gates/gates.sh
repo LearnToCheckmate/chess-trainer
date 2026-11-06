@@ -1785,11 +1785,11 @@ fi
 # DIRECTORY, not about which gates this invocation executes.
 #
 # TWO OUTCOMES, DELIBERATELY NOT ONE [see the header of gates/gatemanifest.sh]:
-#   exit 1  a required gate is MISSING -> this suite stops here and cannot emit GATES GREEN.
+#   exit 1  a required gate MISSING, or [#549 item (36)] the GATE-REQUIRED FLOOR breached, the REQUIRED-SET DIGEST changed or the floor register corrupt -> this suite stops here and cannot emit GATES GREEN.
 #   exit 2  a gate on disk is UNLISTED -> the suite RUNS (a build that adds a gate must be able to run it), the
 #           count goes in the footer, and gates/verify-log.sh refuses the log, so it cannot reach main unlisted.
-#   exit 3  the manifest itself is missing -> NOT CHECKED, reported, and the suite runs. A stale checkout must
-#           not be able to wedge the lane, but it must not read as a pass either.
+#   exit 3  the manifest or the floor register ABSENT -> NOT CHECKED, reported, and the suite runs; the footer then carries a
+#           NOT-CHECKED token verify-log.sh refuses. (gatemanifest.sh's VERIFIED token is `gate reqset:`, so the grep below cannot take it.)
 MANI_OUT="$("$G/gatemanifest.sh" check 2>&1)"; MANI_RC=$?
 printf '%s\n' "$MANI_OUT" | tee -a "$ALL"
 # ── jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02 ───────────────
