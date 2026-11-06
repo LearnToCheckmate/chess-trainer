@@ -3,8 +3,8 @@
 // the container (global) or playwright-core (executablePath from PLAYWRIGHT_BROWSERS_PATH).
 //
 //   const L=require('./lib');
-//   const b=await L.launch({geo:'kunal761'});   // 375x761 with ct_safe 51,31 = Kunal's phone (R19, settled 2026-10-03); 'kunal730' is the superseded
-//   375x730 column kept for the gates pinned there, 'kunal' is 375x679 (shorter-phone column) [#546, #548]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
+//   const b=await L.launch({geo:'kunal761'});   // 375x761 with ct_safe 51,31 = Kunal's phone (R19, settled 2026-10-03). NEW GATES USE IT.
+//   'kunal730' is the superseded 375x730 column kept for the gates pinned there, 'kunal' is 375x679 (shorter-phone column) [#546, #548]; or '390' (390x844), or {w,h,safe}. geo is REQUIRED.
 //   await b.open();                             // serves the repo (or CT_APP) and waits for the app to mount
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
@@ -18,7 +18,7 @@
 //
 // RULES BAKED IN (from HANDOFF): overflow is measured from the bottom-most laid-out child of #root, not
 // scrollHeight (clamped, #354); a move is piece-tap then target-tap (#343 trap); measure AFTER interaction
-// (#370 k8 rule); Kunal's geometry is 375x679 with insets 51/31, height binds there (#364).
+// (#370 k8 rule); Kunal's geometry is 375x761 with insets 51/31 (R19); height binds hardest in the shorter columns (#364).
 'use strict';
 const fs=require('fs'),path=require('path'),cp=require('child_process'),net=require('net'),crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..');
@@ -48,20 +48,19 @@ if(fs.promises&&typeof fs.promises.readFile==='function'){const o=fs.promises.re
 function observedInputs(){for(const k of Object.keys(require.cache))_inRepo(k);return [..._inputs].sort();}
 const NET_NOISE=/ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_CONNECTION_REFUSED|ERR_FAILED|net::ERR|gstatic|googleapis|firebase|Failed to load resource/i;
 const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.com|lichess\.org|fonts\.g|google-analytics|googletagmanager|cloudfunctions/;
-// Kunal's phone is 375x761 with insets 51/31 = 375x679 USABLE. Emulate it as a 375x679 viewport with NO ct_safe:
-// the 679 already is the usable area, and ct_safe would make the app subtract the insets a second time (measured
-// 2026-09-12: with both, the review board is 293 instead of the 349 his phone shows; with 679 alone, 349 and the
-// Pass & Play board 351, both matching HANDOFF). 'kunal761' is the other emulation (full height + ct_safe), kept for
-// cross-checks; its Play numbers differ because headless Chromium has no real env() padding.
-// 2026-09-13, from Kunal and his feedback session: his phone's LAYOUT VIEWPORT is 375x730. The 679 came from a
-// readout that subtracted the 51pt status bar a second time, and two sessions made that mistake independently.
-// [SUPERSEDED 2026-10-03 by R19, relabelled at #548 item (157)] 'kunal730' WAS called the real phone here. R19 settled it: iPhone 15
-// Pro Max at Larger Text is 375x812 points, and with the 51px top inset the installed-PWA viewport is 375x761 - so NEW GATES USE
-// 'kunal761', and 'kunal730' is kept as a historical column because 43 gate files still pin numbers measured there.
-// 'kunal' stays 375x679 as the shorter-phone column
-// until each existing assertion has been re-measured at 730 deliberately, one gate at a time, rather than having
+// WHAT HOLDS TODAY (prompts/common R19, settled 2026-10-03): iPhone 15 Pro Max at Larger Text is 375x812 points, and
+// with the 51px top inset the installed-PWA viewport is 375x761. That is Kunal's phone, emulated as 'kunal761' (full
+// height + ct_safe 51,31), and NEW GATES USE 'kunal761'. Its Play numbers differ from the no-inset columns because
+// headless Chromium has no real env() padding.
+// THE TWO SUPERSEDED FIGURES, kept as columns and as history [#548 item (157), #549 item (23)]. 2026-09-12: 375x679
+// was emulated as the usable area with NO ct_safe (with both, the review board read 293 against the 349 then
+// reported; with 679 alone, 349 and the Pass & Play board 351, both matching HANDOFF). 2026-09-13: a feedback session
+// gave the layout viewport as 375x730, and the 679 was traced to a readout that subtracted the 51pt status bar a
+// second time. R19 corrects both. 'kunal730' was the documented default for new gates here until R19, and it is kept
+// as a historical column because 43 gate files still pin numbers measured there; 'kunal' stays 375x679 as the
+// shorter-phone column. Each pinned assertion moves to 761 deliberately, one gate at a time, rather than having
 // every expected number change at once inside an unrelated build.
-const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (his phone is 375x761), kept for gates pinned here'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
+const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (which settled 375x761), kept for gates pinned here'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
 // #406, from SIT run 5: "a geometry list has TWO axes and this project has only ever laddered one". Every
 // geometry above either is narrow AND short or wide AND tall, so NO size in this list, in the headless UAT's
 // nine, or in #404's own sweep table had width >= 360 AND height <= 600. That corner is where the lesson

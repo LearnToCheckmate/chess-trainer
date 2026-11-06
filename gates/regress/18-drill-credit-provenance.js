@@ -38,7 +38,7 @@
 // was reached, the verdict box carries the app's own 🎉 string, and the board accepted the move. If any of
 // those fails the gate goes red on ITS OWN assertion rather than passing by not looking.
 //
-// GEOMETRY: 375x730, Kunal's phone [R19], and ONE geometry deliberately. The decision under test is
+// GEOMETRY: 375x730 (the superseded column; R19 settled 375x761), and ONE geometry deliberately. The decision under test is
 // arithmetic on a localStorage object with no viewport term anywhere in its expression - stated rather than
 // implied, so this is not read as a sweep it did not run. The three FIT/paint questions on this screen
 // belong to jobs/board-jumps-on-drill-verdict and are not touched here.

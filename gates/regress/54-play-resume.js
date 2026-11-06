@@ -70,7 +70,7 @@ const crypto=require('crypto');
 // the seven geometries of the test-authoring lane. 375x679 is the HARNESS geometry and is never used here.
 const GEOS=[
   {k:'320x568',w:320,h:568},{k:'360x640',w:360,h:640},{k:'375x667',w:375,h:667},
-  {k:'375x730',w:375,h:730},  // Kunal's phone
+  {k:'375x730',w:375,h:730},  // the column R19 superseded (it settled 375x761)
   {k:'390x844',w:390,h:844},{k:'414x896',w:414,h:896},{k:'440x956',w:440,h:956}];
 const KUNAL='375x730';
 // CT_GEO=375x730 runs one column only. The SUITE always runs all seven (the env is unset in gates.sh);

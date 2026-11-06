@@ -1,6 +1,6 @@
 // regress/20-review.js  The Review screen's regression suite: TC-R01..TC-R09 and TC-R11..TC-R14 of
-// claude/stories/TEST-CASES.md, executed on the bundle under test at THREE geometries: 375x730, which is
-// Kunal's actual phone (lib.js GEOS.kunal730, and R19); 375x679, which is NOT his phone and is kept only as a
+// claude/stories/TEST-CASES.md, executed on the bundle under test at THREE geometries: 375x730 (lib.js GEOS.kunal730,
+// the column R19 superseded - R19 settled 375x761, which this loop does not yet visit [#549 item (23)]); 375x679, which is NOT his phone and is kept only as a
 // shorter-phone column (the 679 came from subtracting the 51pt status bar twice - CLAUDE.md corrects it by name,
 // and the header of this file asserted the wrong one from #348 to 2026-10-03); and 390x844. The Opera Game (33 plies, 10.Nxb5!! at ply 19, 14.Rd1 at ply 27, 17.Rd8# at ply 33) is the
 // fixture; its PGN carries WhiteElo/BlackElo so the rating pills render (#348). Every line is a measured claim.

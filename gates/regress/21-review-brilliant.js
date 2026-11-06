@@ -674,8 +674,8 @@ L.run(async()=>{
      next run instead of a reader having to diff two logs. */
   L.say(P25hit===1,'TC-R10/N10 #512 the WHOLE ply-25 sentence is byte-identical to EXACTLY ONE of the two sentences this code can legally print, so a clause silently entering or leaving it is still a red rather than a diff - and a THIRD string, which is what a regression would produce, reddens here. Replaces a single-template pin that was measured flaky at 2 runs in 8',{hits:P25hit,got:P25.why,chars:P25.why&&P25.why.length,pinned:P25OK.length});
   /* ── #504 N9: THE NARROWEST SUPPORTED PHONE ───────────────────────────────────────────────────────
-     CLAUDE.md: "375x730 is Kunal's phone, not the standard, and the app must be playable on any standard
-     phone." Block N above drives 375x730 only, so 320x568 was measured on BOTH bundles.
+     CLAUDE.md, as it then read (R19 has since settled 375x761 as the device): the 730 figure "is
+     not the standard, and the app must be playable on any standard phone." Block N above drives 375x730 only, so 320x568 was measured on BOTH bundles.
      MY FIRST VERSION OF THIS BLOCK CLAIMED A DEFECT HERE AND THE CLAIM IS WITHDRAWN [#504 antagonist B,
      upheld]. I measured the SHIPPED bundle at 320x568 reading scrollHeight 68 in a clientHeight 51 box,
      144 characters, and wrote that as "about a whole line CUT with no ellipsis, because the box is

@@ -54,7 +54,7 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 //
 // kunal761 IS ADDED AND NOTHING IS REPLACED, AND THAT IS DELIBERATE RATHER THAN TIMID.
 // contradictions/r19-height-settled-against-the-phone-card-still-asking-2026-10-04 is OPEN with eight sides:
-// R19 says 761, gates/lib.js:31 says "'kunal730' is the real phone and new gates should use it", and
+// R19 says 761, gates/lib.js then named kunal730 as the device and the default for new gates (fixed #548, #549), and
 // claude/stories/USER-STORIES.md names 375x730 in both canonical geometry sets. R45 reserves resolving a
 // contradiction to someone other than whoever reports it, so this gate does not pick a side, does not touch
 // gates/lib.js (which is outside the process lane's allow-list in any case) and DELETES NO COLUMN - deleting

@@ -107,7 +107,7 @@ const ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcou
 //   ONE SET, TWO NAMES, RECONCILED AT #545 [item (13)]: claude/stories/USER-STORIES.md calls this set THE DRILL
 //   SEVEN and this file calls it TA-7; they are the same seven, and gates/audit/geometry-sets.sh G1 holds them equal.
 //   THE NAME: TA-7, the seven geometries prompts/test-authoring (tracker, version 7) names in its gate-
-//   writing step, verbatim: 320x568, 360x640, 375x667, 375x730 (Kunal's phone), 390x844, 414x896, 440x956,
+//   writing step, verbatim: 320x568, 360x640, 375x667, 375x730 (named there as the device; R19 settled 375x761), 390x844, 414x896, 440x956,
 //   and "the harness geometry 375x679 is never used".
 //   VERIFIED 2026-10-03 by reading that lane document rather than by reading another gate: ALLGEOS below is
 //   TA-7 member for member, in that order. So this file's attribution is CORRECT.

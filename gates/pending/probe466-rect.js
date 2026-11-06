@@ -7,7 +7,7 @@
 const L=require('../lib'), R=require('../drive/review');
 const MATE='[Event "T"]\n[Site "Chess.com"]\n[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1';
 L.run(async()=>{
-  for(const geo of ['kunal730','se','kunal']){   // 375x730 = his phone, 320x568 = narrowest, 375x679 = the one the comment names
+  for(const geo of ['kunal730','se','kunal']){   // 375x730 = the column R19 superseded (R19 settled 375x761), 320x568 = narrowest, 375x679 = the one the comment names
     const b=await L.launch({geo,store:{ct_pool:'3'},name:'rect466-'+geo});
     await b.open(); L.note('=== '+geo+' '+b.geo.w+'x'+b.geo.h+'  bundle '+(await b.stamp()));
     try{

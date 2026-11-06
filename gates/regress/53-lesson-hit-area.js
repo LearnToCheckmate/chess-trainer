@@ -171,7 +171,7 @@ const COLS=[
   ['practice-m0'     ,{w:375,h:568,safe:'',label:'375x568'},              true ,'PRACTICE at the wide-and-short corner: the row wraps here while the demo end does not'],
   ['endgame-demo-end',{w:375,h:568,safe:'',label:'375x568'},              false,'THE CONTRAST, one step across the boundary: board 270.88, no wrap'],
   ['endgame-demo-end',{w:390,h:568,safe:'',label:'390x568'},              false,'THE CONTRAST, wider still'],
-  ['endgame-demo-end',{w:375,h:730,safe:'',label:"375x730 = Kunal's real phone"},false,"KUNAL'S OWN PHONE at the demo end - healthy, and this is why he has never reported it from here"],
+  ['endgame-demo-end',{w:375,h:730,safe:'',label:'375x730'},false,"THE 375x730 COLUMN (R19 settled 375x761 for Kunal) at the demo end - healthy, and this is why he has never reported it from here"],
 ];
 
 // The margin floor for N2b, and the fast form for suite admission [R36]: CT_COLS=320x520,375x568 runs those

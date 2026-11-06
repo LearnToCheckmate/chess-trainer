@@ -55,9 +55,9 @@ L.run(async()=>{
   // NOTE WHAT THIS ALSO EXPOSES about the assertion above: "practice board = demo board" holds only where BOTH
   // are width-bound. It is true at 375x679 and 390x844 and false at 320x568 and 375x667, and it passed for
   // months because this gate ran only the two geometries where it happens to hold.
-  // #545 item (83): 375x730, Kunal's phone (CLAUDE.md), was in NO block of this gate, so the #395 footer fix he reported
-  // from that phone was asserted only at geometries that are not his. It is added here; the board-fit lines below
-  // run there too.
+  // #545 item (83): 375x730, then CLAUDE.md's figure for the device, was in NO block of this gate, so the #395 footer
+  // fix he reported was asserted only at geometries that are not his. It is added here; the board-fit lines below
+  // run there too. R19 has since settled 375x761 as his phone [#549 item (23)]: this column is the superseded one.
   for(const [name,g] of [['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['375x667',{w:375,h:667,safe:''}],['375x730',L.GEOS.kunal730]]){
     const W73={}; // TC-R73 [#547 item (59)]: the board width in each of the two states, for the transition assertion below
     for(const st of ['demo-end','practice-m0']){
@@ -94,7 +94,7 @@ L.run(async()=>{
       L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
       // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
       // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
-      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':270.9/* #547 item (124): the practice-only progress strip no longer takes layout, so practice equals the demo end at every geometry (was 254.9; #430 was 230.9) */,'360x640 demo-end':342.4,'360x640 practice-m0':342.4/* #547 (124): was 326.4 */,'375x667 demo-end':375,'375x667 practice-m0':375/* #547 (124): was 352.2 */,'375x730 demo-end':375,'375x730 practice-m0':375/* #548 item (8): Kunal's phone, measured 375 in both states on c7f6a1228e43 and in 547d-all.log; width-bound, so one value */};
+      const WANT={'320x568 demo-end':270.9,'320x568 practice-m0':270.9/* #547 item (124): the practice-only progress strip no longer takes layout, so practice equals the demo end at every geometry (was 254.9; #430 was 230.9) */,'360x640 demo-end':342.4,'360x640 practice-m0':342.4/* #547 (124): was 326.4 */,'375x667 demo-end':375,'375x667 practice-m0':375/* #547 (124): was 352.2 */,'375x730 demo-end':375,'375x730 practice-m0':375/* #548 item (8): the 730 column (R19 settled 761), measured 375 in both states on c7f6a1228e43 and in 547d-all.log; width-bound, so one value */};
       /* ── RE-KEYED TO THE TWO STATES THE FIT LOOP IS BISTABLE BETWEEN [#544, item (8) of
          directOpening_2026_10_28_batch4;
          jobs/461-the-gate-manifest-is-built-and-controlled-and-held-on-a-bistable-literal-in-gate-11-2026-10-02,

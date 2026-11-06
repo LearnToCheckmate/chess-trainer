@@ -16,7 +16,7 @@
 //
 // WHAT WAS MEASURED ON #427 (90abeba, app.js md5 95fa1c00fcc8) BEFORE A LINE OF THIS GATE WAS WRITTEN.
 // The 150-character Novice verdict (drive state 'long-solved', PZ[95] = c0, Qd8#):
-//   375x730 (Kunal's phone)  box scrollWidth 1215 against clientWidth 362 — 853px of the sentence unreachable,
+//   375x730 (R19: not 761)   box scrollWidth 1215 against clientWidth 362 — 853px of the sentence unreachable,
 //                            whiteSpace nowrap, textOverflow ellipsis, reserved height 30. Cut off mid-word.
 //   320x568                  scrollWidth 1215 against clientWidth 307 — 908px unreachable. Same branch.
 //   390x844                  whiteSpace normal, so it DOES wrap — to 113px — inside a RESERVED BOX OF 74px

@@ -136,8 +136,8 @@ async function reviewed(b){
 
 L.run(async()=>{
   const runs=[
-    {geo:'kunal730',compact:'1',what:'his phone, compact review (the stored default)'},
-    {geo:'kunal730',compact:'0',what:'his phone, a profile that STORED ct_revCompact=0. #548 item (103) retired the Classic layout (Kunal, questions/B8-LAYOUT pick (3)), so this run now asserts it comes up COMPACT and the strip still syncs there'},
+    {geo:'kunal730',compact:'1',what:'375x730 column, compact review (the stored default)'},
+    {geo:'kunal730',compact:'0',what:'375x730 column, a profile that STORED ct_revCompact=0. #548 item (103) retired the Classic layout (Kunal, questions/B8-LAYOUT pick (3)), so this run now asserts it comes up COMPACT and the strip still syncs there'},
     {geo:'se',       compact:'1',what:'320x568, where the strip overflows hardest'},
   ];
   for(const r of runs){

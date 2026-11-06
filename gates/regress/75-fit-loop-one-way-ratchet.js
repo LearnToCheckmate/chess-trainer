@@ -116,7 +116,7 @@
 //
 // GEOMETRY. 320x540 and 375x568 are the two cells where a SMALL transient latches; 320x540 is not invented
 // here, gates/regress/48-lesson-flow.js already drives it, labelled "inside the overflow band, not at its
-// floor" (#424). 375x761 is Kunal's phone (R19's settled figure) and 375x730 is the legacy lib.js
+// floor" (#424). 375x761 is R19's settled figure for the device, and 375x730 is the legacy lib.js
 // GEOS.kunal730 entry - a deliberate wording change, because R19's own text says "USE 375 x 761. The figure
 // 730 is wrong and should be corrected wherever it appears, including the GEOS entry labelled kunal730", so
 // citing R19 as the authority FOR 730 cites it against itself. #507 removed that exact miscitation from gate

@@ -390,7 +390,7 @@ async function classicRun(acc){
 
 L.run(async()=>{
   const acc={prefixes:[],checked:[]};
-  // 375x730 is Kunal's phone and is where the defect was measured; 320x568 is the narrow column, run on the
+  // 375x730 is the column (superseded by R19's 375x761) where the defect was measured; 320x568 is the narrow column, run on the
   // long-book fixture because that is the one whose Book row is largest and whose rows are most crowded.
   await runFixture('kunal730','NOBOOK', FIX.NOBOOK, acc);
   await runFixture('kunal730','OPERA',  FIX.OPERA,  acc);

@@ -664,8 +664,9 @@ L.run(async()=>{
      cards are due, what each removed card's verdict was) and two are properties of the running app:
        "Every card fits at 320 and 375 with nothing cut off."
        "Card 1's numbers match what the browser reports on the same device."
-     F1/F2 run at 320x568, at 375x730 - Kunal's real phone, which the walk above does NOT visit (it runs 375x679
-     and 375x812), so this block is also the only place in this gate that measures his own geometry - AND, added
+     F1/F2 run at 320x568, at 375x730 - the column then taken for the device (R19 has since settled 375x761), which
+     the walk above does NOT visit (it runs 375x679 and 375x812), so this block is also the only place in this gate
+     that measures that column - AND, added
      here, at 375x568.
      WHY 375x568 IS ADDED TO THIS BLOCK AND NOT TO THE WALK ABOVE, because the choice is the finding. Counted across
      all 47 sections of gates/logs/451-all.log, exactly FOUR PASS lines asserted the #451 ask queue - log lines 206,

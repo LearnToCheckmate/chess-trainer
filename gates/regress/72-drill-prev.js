@@ -138,7 +138,7 @@ async function tap(b,ct,wait){const r=await reach(b,ct);if(!r.hit)return r;
   await b.page.mouse.click(r.cx,r.cy);await b.page.waitForTimeout(wait==null?600:wait);return r;}
 
 L.run(async()=>{
-  L.note('GEOMETRIES: '+GS.map(x=>x.n).join(', ')+'   [R19: 375x761 is his phone; TC-R47 says 375x730 and that is the figure R19 corrects]');
+  L.note('GEOMETRIES: '+GS.map(x=>x.n).join(', ')+'   [R19 settled 375x761 as the device; TC-R47 says 375x730 and that is the figure R19 corrects]');
   L.note('INPUTS: '+DRILLS.length+' drills x '+GS.length+' geometries, queue of '+N+' cards each');
   for(const d of DRILLS){
     for(const G of GS){
