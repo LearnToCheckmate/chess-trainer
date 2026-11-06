@@ -576,22 +576,21 @@ one I played, in a comparison, so I learn something from my own game rather than
   (TC-R16 A8 - the assertion a White-frame implementation fails and nothing else in the gate catches)
 - The hint shown before I solve VARIES WITH THE POSITION. (TC-R16 B5a, B10 - B10 asserts the N hints are all
   distinct and all real, which is the weaker proxy the gate's own note at :201 concedes it to be.)
-- And the hint never tells me to look for a forcing move in a quiet position. (TC-R16 B5b - asserted today only
-  as "the hint is not the fixed generic directive string", `51-drill-explain-why.js`'s `TC-R16 B5b` assertion. **"QUIET" IS NOT YET A
-  NUMBER**: until it is defined as a threshold the gate can read from the position's own engine data, a
-  position-specific hint that still misdirects on a quiet position passes this clause. That definition is the
-  remaining work and it is gate-side, not story-side.)
+- And the hint never tells me to look for a forcing move in a quiet position. A position is QUIET when its better
+  move is not a check, a capture or a promotion (Kunal, Desk questions/B9-QUIET, 5 Nov 2026). (TC-R16 B5c, with its
+  predicate held by TC-R16 B5c-PREDICATE; TC-R16 B5b still asserts the hint is not the fixed generic string. B5c bites
+  only on a captured card whose better move is quiet, and gate 51's reference game captures none - e7b4 is a check
+  and e6d7 a capture - so on that fixture the gate prints that B5c DID NOT RUN, never a PASS. A fixture with a quiet
+  card is the remaining gate-side work, jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28.)
 - The whole explanation fits the verdict box HORIZONTALLY at every geometry in THE DRILL SEVEN, 320x568 through
   440x956 (see THE GEOMETRY SETS, NAMED ONCE, above). (TC-R16 B6 - verdict `scrollWidth <= clientWidth`)
 - And the box does not grow to make it fit: the reserved parent's `scrollHeight` stays inside its `clientHeight`,
   the 74px cap. (TC-R16 B7)
 - And the box's bottom stays on screen. (TC-R16 B8)
-- **And the board does not move while the explanation lands. THIS CLAUSE IS ASSERTED BY NOTHING TODAY** and is
-  kept rather than deleted because it is a real requirement. Measured 2026-10-03 at main f3ae36a: `grep -i board`
-  over `gates/regress/51-drill-explain-why.js` returns exactly one comment (the 'no board on screen' note) and no assertion, and TC-R16 B6/B7/B8
-  are the three fit assertions above, none of which reads the board. What would decide it: the board's `top` and
-  `width` before and after the verdict lands, at each of THE DRILL SEVEN, equal within the 0.05px tolerance gate
-  16 already uses. That is gate-side work and is why this reads as a named gap rather than as a covered clause.
+- And the board does not move while the explanation lands: its top, left and width each stay within 0.6px from
+  just before the solving move to after the verdict renders, at every geometry in THE DRILL SEVEN. (TC-R16 B11b,
+  with TC-R16 B11a asserting the before/after pair was really measured. Asserted from #549 item (113); until then
+  it was asserted by nothing. Measured at #549 on HEAD 37f44ea: 0,0,0 at all 14 states, which #547's float is why.)
   (jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28)
 - **AND IT MUST BE RIGHT ON THE ENGINE BRANCH THE DEVICE CHOOSES, NOT ONLY ON THE ONE THE FIXTURE GETS.**
   Every clause above is a promise about a sentence, and the sentence is built from the review's engine output, so

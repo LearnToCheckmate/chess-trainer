@@ -75,12 +75,27 @@
 // where the drill accepts a DIFFERENT mating move from the one stored in `uci`. drillSolve() below plays
 // exactly m.uci, which is the stored best move, so the solve always takes the primary branch. Reaching the
 // alt branch needs a captured position with a second, equally-mating move AND the drill accepting it; the
-// reference game (the Opera Game as Black) provides neither at its two captured plies - both are quiet
-// Mistake positions, not mates. So the state is not reachable from this fixture, and seeding one by hand
+// reference game (the Opera Game as Black) provides neither at its two captured plies - neither is a mate
+// position. ["both are quiet" WAS WRITTEN HERE AND IS WITHDRAWN at #549 item (113) [R18]: by Kunal's 5 Nov 2026
+// definition neither is quiet - e7b4 (Qb4+) is a check and e6d7 (Qxd7) a capture, measured by B5c's predicate.] So the state is not reachable from this fixture, and seeding one by hand
 // would be the vacuity shape PHASE 1 exists to design out (the fixture would be asserting against itself).
 // It stays uncovered here, on purpose and in writing. The clip antagonist A measured in that state is
 // jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02.
 
+// ── B11 AND B5c, #549 item (113), jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28 ──────────────
+// Rebuilt by hand from docs/patch-clauses-cite-assertions-that-do-not-assert-them-2026-09-28-2026-10-08 (test-
+// authoring, 2026-10-08, against #497), which no longer applied: #547's FLOAT (Kunal, 11 Oct) rewrote this screen.
+// B11 - US-R13 "the board does not move while the explanation lands". Three board rects per card: on open, before
+//   the solving move with the hint up, after the verdict. B11a asserts the pair was really measured (no verdict
+//   before, a verdict after); B11b asserts the clause AS WRITTEN, all three deltas under 0.6px. The 2026-10-08 patch
+//   had to make it a ratchet plus a soft clause, because #497 violated it at 13 of 14 states (worst dTop 36.9, dW 52).
+//   RE-MEASURED at #549 on HEAD 37f44ea, trial md5 1f47e032b8e7: 0,0,0 at ALL 14 states (7 geometries x 2 cards),
+//   and the hint line's own delta is 0,0,0 too - the float does what Kunal chose it for, so the clause is now HARD.
+// B5c - US-R13 "the hint never tells me to look for a forcing move in a quiet position". QUIET is Kunal's answer
+//   (Desk questions/B9-QUIET, 5 Nov 2026): the better move is not a check, a capture or a promotion. The predicate
+//   (forcingKind) is the gate's own board arithmetic, unit-tested on 15 moves as B5c-PREDICATE; the per-card check
+//   runs on every quiet captured card. THIS FIXTURE HAS NONE (e7b4 is a check, e6d7 a capture), so B5c prints that
+//   it DID NOT RUN rather than passing; a fixture with a quiet better move is what makes it bite.
 // CONTROL-RECORD: 03f1aea 2026-11-06 total=89 red=1 scope=full how=#549 item (13) TC-R103 A every-card form run against the #548 capture code (search on the card's own position, the first-move guard drops e6d7), trial md5 f2281c9d65cf - FAIL TC-R103 A (1 of 2); the fixed trial f29eb175f86d reads 90 pass 0 fail
 'use strict';
 const L=require('../lib');
@@ -158,6 +173,7 @@ const verdictBox=(b)=>b.page.evaluate(()=>{const top=document.querySelector('[da
 async function drillSolve(b,m){
   await b.tapText(/find the move you missed/,{wait:1500});
   await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
+  const bdOpen=await b.board();   // B11: on open, BEFORE the hint button - see the board pair below
   // o.hint at the render site, reached the only way a player reaches it
   let hint='';
   try{await b.tapText(/^💡 Hint$/,{wait:900});
@@ -165,9 +181,53 @@ async function drillSolve(b,m){
         const c=[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^💡/.test((e.innerText||'').trim()));
         return c.length?(c[c.length-1].innerText||'').replace(/\s+/g,' ').trim():'';});
   }catch(e){hint='<HINT BUTTON NOT REACHED: '+e.message.slice(0,60)+'>';}
+  // THE BOARD PAIR, for B11 (US-R13's "without the board moving"). A jump is a DIFFERENCE between two states, so
+  // the rect is read immediately BEFORE the solving move (hint already up, so the hint line is present in both
+  // readings and is not a confound) and again once the verdict has landed. bdOpen is read on open, before the
+  // hint, so the hint line's own effect is PRINTED as a separate delta and never folded into the clause's.
+  const vtxt=()=>b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');if(!top)return null;
+    const all=[...top.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^(?:\u{1F389}|\u2717)/u.test((e.innerText||'').trim()));
+    return all.length?(all[all.length-1].innerText||'').replace(/\s+/g,' ').trim().slice(0,80):null;});
+  const preVerdict=await vtxt();
+  const bdPre=await b.board();
   const u=m.uci;await b.move(u.slice(0,2),u.slice(2,4),900);await b.settle(1100);
-  return {hint,box:await verdictBox(b)};
+  const bdPost=await b.board();
+  const postVerdict=await vtxt();
+  return {hint,box:await verdictBox(b),bdOpen,bdPre,bdPost,preVerdict,postVerdict};
 }
+// the three deltas B11 reads, rounded to a tenth. null when either rect is missing - B11a is what refuses that.
+const jump=(a,c)=>(!a||!c)?null:{dTop:Math.round((c.y-a.y)*10)/10,dLeft:Math.round((c.x-a.x)*10)/10,dW:Math.round((c.w-a.w)*10)/10};
+const bfmt=(r)=>r?('top '+Math.round(r.y*10)/10+' left '+Math.round(r.x*10)/10+' w '+Math.round(r.w*10)/10):'no board';
+// ===== B5c's PREDICATE: IS THE BETTER MOVE A CHECK, A CAPTURE OR A PROMOTION? ===========================
+// Kunal, Desk questions/B9-QUIET, 5 Nov 2026 (decisions/a-drill-position-is-quiet-when-its-better-move-is-not-a-
+// check-capture-or-promotion-2026-11-05): a drill position is QUIET when its better move is none of the three.
+// Computed HERE from the stored fen and uci with a few lines of board arithmetic, NOT from the app's moveMotifs or
+// whyShape - those are what produce the hint, so reading them would make the check and the thing checked one object.
+// Check is decided on the WHOLE board after the move, so a discovered check and a castling rook's check count.
+function forcingKind(fen,uci){
+  const pa=String(fen).split(' '),ep=pa[3]||'-';const B=pa[0].split('/').map(row=>{const r=[];for(const ch of row){if(/\d/.test(ch)){for(let k=0;k<+ch;k++)r.push(null);}else r.push(ch);}return r;});
+  const at=(s)=>({c:s.charCodeAt(0)-97,r:8-(+s[1])});const f=at(uci.slice(0,2)),t=at(uci.slice(2,4));const p=B[f.r]&&B[f.r][f.c];if(!p)return null;
+  const white=p===p.toUpperCase(),pawn=/p/i.test(p),mine=(x)=>!!x&&(white?x===x.toUpperCase():x===x.toLowerCase());
+  let capture=!!B[t.r][t.c];
+  if(pawn&&f.c!==t.c&&!B[t.r][t.c]&&ep===uci.slice(2,4)){capture=true;B[f.r][t.c]=null;}   // en passant lands on an EMPTY square
+  const promotion=uci.length>4||(pawn&&(t.r===0||t.r===7));
+  B[t.r][t.c]=uci.length>4?(white?uci[4].toUpperCase():uci[4].toLowerCase()):p;B[f.r][f.c]=null;
+  if(/k/i.test(p)&&Math.abs(t.c-f.c)===2){const rc=t.c>f.c?7:0,nc=t.c>f.c?5:3;B[f.r][nc]=B[f.r][rc];B[f.r][rc]=null;}
+  let kr=-1,kc=-1;for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(B[r][c]===(white?'k':'K')){kr=r;kc=c;}
+  if(kr<0)return null;
+  const on=(r,c)=>r>=0&&r<8&&c>=0&&c<8,is=(r,c,re)=>on(r,c)&&mine(B[r][c])&&re.test(B[r][c]);
+  let check=false;const pr=white?kr+1:kr-1;                       // a white pawn attacks toward rank 8 (row 0)
+  if(is(pr,kc-1,/p/i)||is(pr,kc+1,/p/i))check=true;
+  for(const [dr,dc] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])if(is(kr+dr,kc+dc,/n/i))check=true;
+  for(const [dr,dc,re] of [[1,0,/[rq]/i],[-1,0,/[rq]/i],[0,1,/[rq]/i],[0,-1,/[rq]/i],[1,1,/[bq]/i],[1,-1,/[bq]/i],[-1,1,/[bq]/i],[-1,-1,/[bq]/i]]){
+    let r=kr+dr,c=kc+dc;while(on(r,c)&&!B[r][c]){r+=dr;c+=dc;}if(is(r,c,re))check=true;}
+  return {check,capture,promotion,quiet:!check&&!capture&&!promotion};
+}
+// the hints that send the player hunting for a forcing move. mistakeHint's own vocabulary plus the generic and the
+// puzzle-hint wording, so a hint copied from either path onto a quiet card is caught. A FORK hint ("one move can hit
+// two things at once") is NOT here: a quiet fork is a threat, not a check, capture or promotion, and the decision
+// draws the line at those three.
+const FORCING_HINT=/forcing|\bcheck|captur|material to be taken|ends the game|promot|closer to the end|uncover/i;
 L.run(async()=>{
   // ===== PHASE 1: THE CAPTURE. A real review, by the app, into localStorage. =============================
   const b=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-explain',store:ACCT});await b.open();
@@ -343,9 +403,22 @@ L.run(async()=>{
     await b2.close();
   } else { L.say(false,'TC-R16 A10/A11/A12 PHASE 1B did not run: phase 1 harvested no mistake to build a legacy row from'); }
 
+  // ===== B5c's PREDICATE, UNIT-TESTED BEFORE IT IS TRUSTED [CLAUDE.md: enumerate what can be produced, including
+  // what the predicate must reject]. Every class the decision names, plus the two that a naive test misses: en passant
+  // (lands on an empty square) and a check the moving piece does not give (discovered, and the castling rook).
+  {
+    const U=[['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4','quiet'],['4k3/8/8/8/8/8/8/R5K1 w - - 0 1','g1g2','quiet'],
+             ['4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1','e4d5','capture'],['4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1','e5d6','capture'],
+             ['8/P7/7k/8/8/8/8/4K3 w - - 0 1','a7a8q','promotion'],['4k3/8/8/8/8/8/8/R3K3 w - - 0 1','a1a8','check'],
+             ['4k3/8/8/8/4N3/8/8/4R1K1 w - - 0 1','e4c3','check'],['5k2/8/8/8/8/8/8/4K2R w K - 0 1','e1g1','check'],
+             ['4k3/8/8/8/8/7K/3p4/8 b - - 0 1','d2d1q','promotion'],['4k3/8/8/8/8/8/p7/4K3 b - - 0 1','e8e7','quiet'],['4k3/8/8/8/8/5p2/8/4K3 b - - 0 1','f3f2','check'],['4k3/8/8/8/1n6/8/8/4K3 b - - 0 1','b4d3','check'],
+             ['4k3/8/8/8/8/8/8/3K4 b - - 0 1','e8d8','quiet'],['4k3/8/8/8/8/2n5/8/4K3 b - - 0 1','c3d1','quiet'],['4k3/8/8/8/8/2n5/8/K7 b - - 0 1','c3b5','quiet']];
+    const bad=U.map(([f,u,want])=>{const k=forcingKind(f,u);const got=!k?'null':k.quiet?'quiet':k.check?'check':k.capture?'capture':'promotion';return got===want?null:{fen:f,uci:u,want,got};}).filter(Boolean);
+    L.say(bad.length===0,'TC-R16 B5c-PREDICATE the quiet test classifies '+U.length+' known moves correctly - quiet, capture (en passant too), promotion (both colours), and check (direct, by a pawn and a knight, discovered, by the castling rook)',{cases:U.length,wrong:bad});
+  }
   // ===== PHASE 2: THE RENDER. Content at one geometry, the FIT at all of them. ===========================
   for(const g of GEOS){
-    const seen=[],hints=[];const isC=(g.n===CONTENT_GEO);
+    const seen=[],hints=[];const isC=(g.n===CONTENT_GEO);let quietN=0;
     for(let i=0;i<N;i++){
       // ONE entry seeded, so the drill opens on it: deterministic, and no 'solved before' carry-over.
       const c=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill-'+g.n.replace(/\s+/g,'_')+'-'+i,store:{ct_mymistakes:[mis[i]],ct_pool:'3'}});await c.open();
@@ -363,6 +436,12 @@ L.run(async()=>{
         if(mis[i].line)L.say(t.indexOf('It goes on '+mis[i].line)>=0,'TC-R103 B['+(i+1)+'/'+N+'] '+g.n+' the solved card shows what the better move led to - "It goes on '+mis[i].line+'"',{line:mis[i].line,text:t});
         L.say(r.hint.length>0&&r.hint.indexOf('<HINT BUTTON NOT REACHED')<0,'TC-R16 B5a['+(i+1)+'/'+N+'] '+g.n+' the hint button put a hint on screen at all - without this the assertion below measures nothing',{hint:r.hint});
         L.say(r.hint.length>0&&r.hint.indexOf(GENERIC_HINT)<0,'TC-R16 B5b['+(i+1)+'/'+N+'] '+g.n+' o.hint is NOT the fixed directive string that fired on every one of 148 captured mistakes. "Look for the most forcing option" misdirects on every quiet position, and Kunal promoted this from secondary to equal first on 2026-09-20',{hint:r.hint});
+        // B5c: US-R13's second hint claim, now that "quiet" is a definition (Kunal, 5 Nov 2026): on a card whose better move
+        // is not a check, a capture or a promotion, the hint on screen does not send the player looking for one.
+        const fk=forcingKind(mis[i].fen,mis[i].uci);
+        L.note(g.n+' item '+(i+1)+' better move '+mis[i].uci+' is '+(fk?JSON.stringify(fk):'<NOT CLASSIFIED>'));
+        if(fk&&fk.quiet){quietN++;L.say(!FORCING_HINT.test(r.hint),'TC-R16 B5c['+(i+1)+'/'+N+'] '+g.n+' QUIET POSITION (the better move '+mis[i].uci+' is not a check, a capture or a promotion): the hint on screen does not tell the player to look for a forcing move',{hint:r.hint,kind:fk});}
+        else L.note(g.n+' item '+(i+1)+' TC-R16 B5c NOT APPLICABLE: the better move is forcing ('+JSON.stringify(fk)+'), so a forcing hint is allowed here');
       }
       // THE FIT, AT EVERY GEOMETRY. The verdict box is maxHeight 74 with overflowY auto, so a two-clause
       // sentence that is too long is CLIPPED rather than wrapped and the player sees part of it. This is the
@@ -381,8 +460,15 @@ L.run(async()=>{
       const _cut=((r.box.povf!=='visible')?(r.box.psh>r.box.pch+1):(r.box.esh>r.box.ech+1&&(!/^(visible|auto|scroll)$/.test(r.box.eovf)||(/^(auto|scroll)$/.test(r.box.eovf)&&!r.box.epan)))/* cross-read A(1): a scroller a FINGER cannot pan (touch-action) still cuts *//* #547 B1: pz-msg is now a scroller at the reserve - auto/scroll is REACHED by scrolling, not cut */)||(r.box.ancCut&&r.box.ancCut.length>0);
       L.say(!_cut,'TC-R16 B7['+(i+1)+'/'+N+'] '+g.n+' the whole explanation is SHOWN - no clipping box cuts it (a clipping parent: scrollHeight <= clientHeight; the float, whose parent does not clip: the message box itself is not cut)',{scrollHeight:r.box.psh,clientHeight:r.box.pch,maxHeight:r.box.pmax,overflowY:r.box.povf,msgScrollHeight:r.box.esh,msgClientHeight:r.box.ech,msgOverflowY:r.box.eovf,clippingAncestorsThatCut:r.box.ancCut,chars:t.length});
       L.say(r.box.bottom<=r.box.vh+0.5,'TC-R16 B8['+(i+1)+'/'+N+'] '+g.n+' the verdict box is inside the viewport',{bottom:r.box.bottom,vh:r.box.vh});
+      // ===== B11: THE BOARD DOES NOT MOVE WHILE THE EXPLANATION LANDS (US-R13). ==========================
+      const jp=jump(r.bdPre,r.bdPost),jh=jump(r.bdOpen,r.bdPre);
+      L.note(g.n+' item '+(i+1)+' board ON OPEN: '+bfmt(r.bdOpen)+'   BEFORE THE MOVE (hint up): '+bfmt(r.bdPre)+'   AFTER THE EXPLANATION: '+bfmt(r.bdPost)+'   deltas: verdict lands '+(jp?JSON.stringify(jp):'<NOT MEASURED>')+', hint line (printed, not asserted) '+(jh?JSON.stringify(jh):'<NOT MEASURED>'));
+      L.say(!!r.bdPre&&!!r.bdPost&&r.preVerdict===null&&r.postVerdict!==null,'TC-R16 B11a['+(i+1)+'/'+N+'] '+g.n+' THE PAIR WAS REALLY MEASURED: a board on screen before the solving move with NO verdict up, and a board on screen after the verdict rendered - without this B11b compares two readings of the same state',{boardBefore:bfmt(r.bdPre),verdictBefore:r.preVerdict,boardAfter:bfmt(r.bdPost),verdictAfter:r.postVerdict?r.postVerdict.slice(0,40):null});
+      if(jp)L.say(Math.abs(jp.dTop)<0.6&&Math.abs(jp.dLeft)<0.6&&Math.abs(jp.dW)<0.6,'TC-R16 B11b['+(i+1)+'/'+N+'] '+g.n+' US-R13 AS WRITTEN: the board does not move while the explanation lands - top, left and width each within the 0.6px house tolerance',{delta:jp});
       await c.close();
     }
+    // A missing denominator is REPORTED, never credited: on a fixture with no quiet card B5c asserts nothing, and says so.
+    if(isC&&quietN===0)L.note('TC-R16 B5c DID NOT RUN at '+g.n+' - NOT A PASS: none of the '+N+' captured mistakes has a quiet better move (each is a check, a capture or a promotion - see the lines above), so the quiet-position hint check had no input here.');
     if(isC&&seen.length===N)L.say(new Set(seen).size===N,'TC-R16 B9 '+g.n+' the '+N+' on-screen explanations are all DIFFERENT',{distinct:new Set(seen).size,of:N});
     // B10 AS HANDED asserted the N hints are all DIFFERENT. #426 keeps it, and records that it is the WEAKER
     // of the two properties it could assert and will mis-fire one day: a hint names a SHAPE ("one move can
