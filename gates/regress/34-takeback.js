@@ -18,21 +18,23 @@
 //   5. It is ABSENT in Pass & Play - "Computer only" is the decision, and the More sheet opens there too, so
 //      absence on that screen is the half that is easy to get wrong.
 //   6. It is absent at move 0: there is nothing to give back.
-// Run at his real 375x730.
+// Run at 375x730 and 320x568 (COLS below). 375x730 is NOT his phone any more: R19 settled that at 375x761 (kunal761), and
+// moving this gate there needs its own measured board pin, which this file does not yet have [#549 item (70), stated not fixed].
 //
 // NEGATIVE CONTROL: proved against a bundle built with the `opponent==='computer'` guard removed, which makes
 // the row appear in Pass & Play. Assertion 5 goes red on it. See claude/agents/REGRESSION-LOG.md.
 //
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [jobs/four-gates-force-a-three-worker-pool-and-never-
-// test-the-fallback-2026-09-27, doneWhen route 2 - the same route gates 51 and 66 took]. Both launches below (lines 57 and 123) pass store:{ct_pool:'3'}, so this gate
-// runs the POOLED Stockfish worker twice over and the single-worker fallback not at all.
-//
-// THIS FILE IS THE WORST MEMBER OF THE CLASS AND THE HEADER SHOULD SAY SO. Assertion 4 - Takeback is
-// DISABLED while the engine is still searching - is a claim about the SHARED STOCKFISH WORKER, and it
-// is measured only in the one pool width the launch pins. The #375/#377 rule CLAUDE.md states is that
-// when a code path is chosen by the device, the gate covers every branch or it is not a gate; this
-// gate's own subject is that path. On a cheap or busy phone poolWanted() returns 1 (hc 2 or 3), and
-// nothing here has ever run that configuration.
+// test-the-fallback-2026-09-27, doneWhen route 2 - the same route gates 51 and 66 took]. This paragraph read "Both
+// launches below (lines 57 and 123) pass store:{ct_pool:'3'}, so this gate runs the POOLED Stockfish worker twice over and
+// the single-worker fallback not at all", and the next one called this file the worst member of the class because nothing
+// here had ever run the one-worker configuration. BOTH ARE HISTORY SINCE #546 item (81) and are withdrawn here [R18, #549
+// item (70)]: the computer block now runs at ct_pool '3', '1' and UNSET at kunal730 and at '3' at 320x568 (COLS below),
+// and only the Pass & Play launch still pins '3' - where no engine runs, so its pool width selects nothing. What stays true
+// is that ct_pool only SIZES the Stockfish pool; the minimax fallback remains unreachable, as the next paragraph says.
+// And assertion 4 (disabled while SEARCHING) was never once MEASURED through #548 - every configuration printed NOT
+// SAMPLED because the engine replied before the sheet opened. #549 holds the reply open from the harness (HOLD_BESTMOVE)
+// and makes reaching that state an assertion of its own.
 //
 // WHICH BRANCH IS NOT COVERED, AND WHY IT CANNOT BE FROM HERE. Read off origin/main 7353e67 on
 // 2026-10-07 by process-build lane 2, re-derived rather than copied: every line number the job and
@@ -97,6 +99,21 @@ const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',
 // #548 item (92) MOVED THE 320x568 FIGURE: the phone's top row took the strip under the board's place, so vs Computer at 320x568 is 298 (was
 // 288), the figure gate 46 re-pinned to; 375x730 stays 353. Caught red in #548's round-1 suite.
 const WANT_W={kunal730:353,se:298};
+// HOLDING THE SEARCH OPEN, FROM THE HARNESS SIDE [#549 item (70); jobs/gate-34-takeback-pins-a-three-worker-pool-and-one-
+// geometry-2026-09-30, whatIsLeft 'a way to hold the engine's search open long enough to sample the in-flight state']. No
+// chess.jsx change: an init script subclasses Worker so that, while window.__ctTbHold is a positive number of ms, any
+// 'bestmove' line a worker posts reaches the app's onmessage that much LATER. Every other line passes straight through,
+// and the hold is set only around the one sample below and cleared straight after it, so the reply still lands and the
+// rest of the block runs on the real game. The app's engine still searches for exactly as long as it would; only its
+// answer is late, which is the state 'thinking' names. Every worker in chess.jsx is wired by `w.onmessage=` (the play
+// worker, the analysis worker and the pool slots), so the accessor on the subclass's prototype is the one that sees it.
+const HOLD_BESTMOVE=()=>{try{const W0=window.Worker;if(!W0||W0.__ctHeld)return;
+  class W extends W0{
+    set onmessage(f){super.onmessage=(typeof f!=='function')?f:(e)=>{const m=String((e&&e.data)||'');const h=+window.__ctTbHold||0;
+      if(h>0&&m.startsWith('bestmove'))setTimeout(()=>f.call(this,e),h);else f.call(this,e);};}
+    get onmessage(){return super.onmessage;}
+  }
+  W.__ctHeld=true;window.Worker=W;}catch(e){}};
 L.run(async()=>{
  for(const C of COLS){
   const geo=C.geo, T=geo+'/pool '+(C.pool||'unset')+': ';
@@ -120,10 +137,12 @@ L.run(async()=>{
     L.say(mid.present===true,T+'the row is still mounted while the engine thinks (it is disabled, not unmounted, so the sheet never reflows under a finger)',mid);
     L.say(mid.disabled===true,T+'while the engine is SEARCHING Takeback is disabled. A takeback here would change the position under an in-flight search on the shared worker, and its bestmove would land on a dead position.',mid);
   }else{
-    // Pip searches for 1100 ms and opening the sheet costs about 600, so this window is genuinely racy on a
-    // fast machine. SAY SO rather than asserting on a sample that was never taken: a gate that reports a pass
-    // it did not measure is the exact failure this suite exists to prevent.
-    L.note(T+'NOT SAMPLED: the engine finished before the sheet opened, so the mid-search case was not exercised on this run. The disabled path itself is proved by the move-0 and post-takeback cases.');
+    // This comment said "Pip searches for 1100 ms and opening the sheet costs about 600, so this window is genuinely
+    // racy". WITHDRAWN [R18, #549 item (70)]: Pip is elo 500, and the computer-move effect sends every cpuElo below 1320
+    // to the BUILT-IN engine on `setTimeout(..., 300)` - Stockfish (and its 1100 ms movetime) is only the >=1320 branch.
+    // So vs Pip this window is not racy, it is closed: through #548 every configuration on every run printed NOT
+    // SAMPLED. The held-Stockfish block after this loop is where the mid-search case is measured.
+    L.note(T+'NOT SAMPLED vs Pip: the built-in engine replies on a 300 ms timer, before the sheet opens. The mid-search case is measured in the HELD STOCKFISH block after this loop.');
   }
   await shutMore(b);
 
@@ -166,6 +185,38 @@ L.run(async()=>{
   await P.waitPlies(b,2).catch(()=>{});
   await b.close();
  }
+
+  // --- THE MID-SEARCH CASE, MEASURED [#549 item (70), case TC-SUITE-374]. vs Astrid (1900) the Stockfish branch plays (go movetime 1900), and
+  // HOLD_BESTMOVE keeps its answer from the app for 3000 ms more, so the More sheet opens while the computer is genuinely
+  // still to move. Run with ct_pool UNSET: the move search runs on the app's one play worker (sfRef), not on the review
+  // pool that ct_pool sizes, so a pool width selects nothing here [read from chess.jsx, the computer-move effect].
+  for(const geo of ['kunal730','se']){
+    const T='held stockfish/'+geo+': ';
+    const bh=await L.launch({geo,name:'takeback-held-'+geo,store:{}});
+    await bh.ctx.addInitScript(HOLD_BESTMOVE);await bh.open();
+    const hooked=await bh.page.evaluate(()=>!!(window.Worker&&window.Worker.__ctHeld));
+    L.say(hooked,T+'the bestmove hold is installed in the page (window.Worker is the harness subclass), so a NOT REACHED below is the app and not the harness',{hooked});
+    await P.states['setup-bot-astrid'](bh);await P.tapStart(bh,900);await P.ensureMovesShown(bh);
+    await bh.settle(2500); // the play worker's readyok: before it, the effect takes the built-in engine instead
+    await bh.page.evaluate(()=>{window.__ctTbHold=3000;});
+    await bh.move('e2','e4',0);await bh.settle(120);
+    await openMore(bh);
+    const hThink=await thinking(bh);
+    const hRow=await rowState(bh);
+    const hPlies=await plyCount(bh);
+    await bh.page.evaluate(()=>{window.__ctTbHold=0;});
+    // ARRIVAL CHECK, ITS OWN L.say: the state the next two lines name must have been reached, or they assert nothing.
+    L.say(hThink===true&&hPlies===1,T+'the mid-search state was REACHED: "thinking" is on screen with the More sheet open and only his move on the list',{thinking:hThink,plies:hPlies});
+    L.say(hRow.present===true,T+'the row is still mounted while Stockfish searches (disabled, not unmounted)',hRow);
+    L.say(hRow.disabled===true,T+'while Stockfish is SEARCHING Takeback is DISABLED - measured, with the reply held in flight',hRow);
+    await shutMore(bh);
+    await P.waitPlies(bh,2);await bh.settle(600);
+    await openMore(bh);
+    const hArmed=await rowState(bh);
+    L.say(hArmed.present===true&&hArmed.disabled===false,T+'once the held reply lands Takeback is ENABLED, so the disabled reading above was the search and not a stuck row',hArmed);
+    await shutMore(bh);
+    await bh.close();
+  }
   const geo='kunal730';
 
   // --- PASS & PLAY: "Computer only". The More sheet opens here too, so this is the half that is easy to miss.
