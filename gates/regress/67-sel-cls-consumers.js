@@ -78,7 +78,7 @@ const PGN_LOST='[Event "Live Chess"]\n[White "Jsmiller1112"]\n[Black "Crusher900
 // classifyByLoss emits six; classify/CLS_BANDS emits the same six; the overlays add Great, Miss and
 // Brilliant; Book is a seventh display label. `ct_mymistakes` survives a build, so a store written by
 // ANY of them can reach the card whatever this build now writes.
-const ALL_GRADES=['Best','Excellent','Good','Inaccuracy','Mistake','Blunder','Great','Miss','Brilliant','Book'];
+const ALL_GRADES=[...L.GRADES];   // #549 item (1): the harness's one list, not a hand-typed copy (U3..U12 now run in display order)
 const PRAISE=['Best','Excellent','Good','Great','Brilliant'];   // a drill card may never name one of these
 const VOWEL=['Excellent','Inaccuracy'];                          // ...and these two need "an", not "a"
 

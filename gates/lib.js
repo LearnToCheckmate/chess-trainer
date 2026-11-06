@@ -556,8 +556,8 @@ async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: 
    deliberately NOT read from chess.jsx's GRADE_LADDER: a list the gates read from the thing under test cannot see a grade go
    missing (the title of the job: deleting the tenth summary row left 35 of 36 suites green). It is an external expectation a
    human edits, and every gate that walks the ladder imports it from here. Frozen so a gate cannot mutate it for the next.
-   ONE COPY STAYS OUTSIDE: gates/regress/19-review-grade-counts.js keeps its literal inside a page.evaluate (the chip scan),
-   because a function serialised into the browser cannot reach this module; it is marked there. */
+   NO COPY STAYS OUTSIDE since #549 item (1): gate 19's chip scan receives this list as a page.evaluate argument, and gate 67's
+   ALL_GRADES is [...GRADES]. */
 const GRADES=Object.freeze(['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder']);
 // INK_RECT [#548 item (144); jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29 is the specification]: the GLYPH's own rect, not
 // the box it sits in. A control's box on a flex-fill row is set by the row, so asserting the box against the row cannot fail; the ink

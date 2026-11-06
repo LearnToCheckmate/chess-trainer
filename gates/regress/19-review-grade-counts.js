@@ -84,6 +84,10 @@ const FIX={
   // ALLBOOK is the opening library's OWN Evans Gambit line, every ply of it and nothing after, so its legality is
   // guaranteed by the app's own data and the book prefix covers EVERY reviewed ply - the state antagonist A named
   // as untested and the one where "the count equals the moves" is most easily satisfied by accident.
+  // SCHOLAR [#549 item (1)] is the library's own Scholar's Mate line, whole: 3...Nf6 is a BOOK ply that allows mate in one, so
+  // its raw grade is one the move strip colours while its badge reads Book. It is the only fixture here whose book prefix
+  // holds a ply the strip would paint, so it is what lets A6's move-strip half fail (the other four never put one on it).
+  SCHOLAR:'[Event "Scholar book line"] [White "A"] [Black "B"] [WhiteElo "1200"] [BlackElo "1200"] [Result "1-0"] 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7# 1-0',
   ALLBOOK:'[Event "Evans, book only"] [White "A"] [Black "B"] [WhiteElo "1800"] [BlackElo "1800"] [Result "*"] 1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 Ba5 6. d4 exd4 7. O-O Nge7 8. cxd4 d5 9. exd5 Nxd5 10. Ba3 *',
 };
 
@@ -307,19 +311,30 @@ async function runFixture(geo,name,pgn,acc){
     // paints this ply's GRADE COLOUR must paint the SAME one. Before the fix the chip went Book grey while the
     // board badge on the destination square stayed Best green and the "play it out" button beside the chip
     // stayed Best green with it. Colour is the right instrument because colour is exactly what disagreed.
-    const cols=await b.page.evaluate(()=>{
+    const cols=await b.page.evaluate((L)=>{   /* #549 item (1): the grade list is passed in from LBL (L.GRADES), not re-typed in the page */
       const pick=(el)=>el?getComputedStyle(el).backgroundColor:null;
       const row=document.querySelector('[data-ct="rev-move-line"]');
       let chip=null;
-      if(row){const L=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Miss','Mistake','Blunder'];   /* browser context: lib's L.GRADES cannot reach page.evaluate; this one copy stays and is named in lib.js [#548 item (20)] */
+      if(row){
         for(const sp of row.querySelectorAll('span')){const t=(sp.textContent||'').replace(/\s+/g,'').trim();
           for(const l of L){if(t===l||(t.length>l.length&&t.length-l.length<=2&&t.slice(-l.length)===l)){chip=sp;break;}}
           if(chip)break;}}
-      return {chip:pick(chip), badge:pick(document.querySelector('[data-ct="rev-badge"]')), playout:pick(document.querySelector('[data-ct="rev-playout"]'))};
-    });
+      // #549 item (1), folded job: the MOVE STRIP's current ply, found by structure (the bold span in [data-mstrip]), not by a hook
+      let strip=null;const ms=document.querySelector('[data-mstrip]');
+      if(ms)for(const sp of ms.querySelectorAll('span')){const cs=getComputedStyle(sp);if(cs.fontWeight==='700'&&sp.children.length===0){strip={color:cs.color,bg:cs.backgroundColor,txt:(sp.textContent||'').trim()};break;}}
+      return {chip:pick(chip), badge:pick(document.querySelector('[data-ct="rev-badge"]')), playout:pick(document.querySelector('[data-ct="rev-playout"]')), strip};
+    },LBL);
     if(cols.chip){
       if(cols.badge&&!sameHue(cols.chip,cols.badge))colourBad.push(mv+' '+bg.label+': chip '+cols.chip+' vs board badge '+cols.badge);
       if(cols.playout&&!sameHue(cols.chip,cols.playout))colourBad.push(mv+' '+bg.label+': chip '+cols.chip+' vs play-it-out button '+cols.playout);
+      // THE MOVE STRIP [#549 item (1)]: it colours only the six notable grades and paints every other ply with the neutral
+      // current-ply wash rgba(255,216,77,.28). So it is painted iff the BADGE's grade is notable, and when painted its ink
+      // is the chip's hue. A book ply whose raw grade is Inaccuracy painted orange beside a grey Book chip is the defect.
+      const NOTABLE=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'];
+      if(!cols.strip)colourBad.push(mv+' '+bg.label+': the move strip has no current ply this gate can read');
+      else{const neutral=/^rgba\(255, 216, 77, 0\.28\)$/.test(cols.strip.bg);const want=NOTABLE.indexOf(bg.label)>=0;
+        if(want===neutral)colourBad.push(mv+' '+bg.label+': move strip '+(neutral?'unpainted':'painted '+cols.strip.color)+' ('+cols.strip.txt+') for a '+(want?'notable':'non-notable')+' grade');
+        else if(want&&!sameHue(cols.chip,cols.strip.color))colourBad.push(mv+' '+bg.label+': chip '+cols.chip+' vs move strip '+cols.strip.color);}
     }
   }
   L.say(missing.length===0,tag+' A3 every one of the '+visited+' reviewed plies paints a badge this gate can read'+(missing.length?' -- '+missing.slice(0,3).join(' | '):''));
@@ -380,6 +395,10 @@ L.run(async()=>{
   await runFixture('kunal730','OPERA',  FIX.OPERA,  acc);
   await runFixture('kunal730','ALLBOOK',FIX.ALLBOOK,acc);
   await runFixture('se',      'ALLBOOK',FIX.ALLBOOK,acc);
+  // #549 item (1): Kunal's phone, the book ply the move strip used to paint. Its own accumulator, so Z1..Z3 keep reading the
+  // four runs they were written for; A6's line text is unchanged too (its colourBad now also carries the move strip, see the
+  // walk), which keeps this gate's earlier control records judgeable. SCHOLAR's own A0..A6 are its completion evidence.
+  await runFixture('kunal761','SCHOLAR',FIX.SCHOLAR,{prefixes:[],checked:[]});
   await classicRun(acc);
 
   // THE ANTI-VACUITY GUARD. A green here must mean the book path was entered AND the no-book path was entered.
