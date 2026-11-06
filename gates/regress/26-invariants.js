@@ -380,7 +380,14 @@ const ROWS = function(){
     allH[String(c.g.gh)]=1;
     const txt=(c.e.innerText||c.e.textContent||'').trim();
     const one=[...txt].length<=2&&txt.length>0&&!/^[0-9A-Za-z]+$/.test(txt);
-    if(c.g.via==='svg'||one){ if(!iconH[String(c.g.gh)])iconH[String(c.g.gh)]=[];
+    // #549 item (74) [jobs/invariant-2-and-3-sheets-and-unswept-screens, part (3)]: THE SVG BRANCH ADMITTED ANY SVG BOX, so a
+    // 112x112 roadmap rank illustration counted as an 'icon' in a number defended on the ground that it excluded 155px whole
+    // cards - the one-grapheme rule disciplined the TEXT half only. An svg now counts as an icon only when its box is at most
+    // 48 x 48 (the largest any of the thirteen swept screens carries is 28, so their pinned sets do not move). The 40px coach
+    // hair chips on the menu sheet are <=48 and still count; that they are pictures rather than icons is a population call
+    // left to jobs/invariant-3-icon-size-target-set, not taken here.
+    const svgIcon=c.g.via==='svg'&&c.g.gh<=48&&c.g.gw<=48;
+    if(svgIcon||one){ if(!iconH[String(c.g.gh)])iconH[String(c.g.gh)]=[];
       if(iconH[String(c.g.gh)].length<3)iconH[String(c.g.gh)].push(c.lab); }
   }
 
@@ -606,6 +613,13 @@ const widthOf=(g)=>L.GEOS[g].w;
 const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
                 375:[17,18,19,20,21,22,24,25,27,28],
                 390:[17,18,19,20,21,22,23,25,27,28]};
+// TC-INV-03b's PINNED SETS [#549 item (74)]: the icon heights over the unswept states listed at TC-INV-03b, measured on this run's
+// trial bundle by this gate. Same width keying as ICON_PIN, and an unpinned width reports rather than asserts. MEASURED on
+// aac698bd851a (#549 trial), identical at se, kunal730 and short375: 17 the sheets' close x (home-newhere, feedback, menu, Look),
+// 22 the roadmap's tab bar, 26 the Play setup opponent tiles (Online, Computer, Pass & Play), 30 'More opponents', 40 the bot
+// avatars and the menu's coach hair chips. Of antagonist B's five heights 26 and 40 remain; 26.8 (home-newhere) and 36.3
+// (feedback-home) no longer occur on this bundle, and 112 (the roadmap illustration) is out by the 48 x 48 svg cap.
+const ICON_PIN_EXTRA={320:[17,22,26,30,40], 375:[17,22,26,30,40]};
 
 // ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
 // V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
@@ -1872,6 +1886,42 @@ L.run(async()=>{
     L.say(ivSignalled>0, g+': TC-INV-04c measured a non-empty population of ellipsed (signalled) cuts - over none, "no unreadable label" would be an empty set, not a reading',{signalledMeasured:ivSignalled});
     await b.close();
   }
+  // TC-INV-03b [#549 item (74); jobs/invariant-2-and-3-sheets-and-unswept-screens, part (3)]. INVARIANT 3's DRIFT GUARD ONLY
+  // GUARDED THE SCREENS IN SCREENS. antagonist B (#423) ran this file's own icon rule over seventeen unswept states and found five
+  // heights outside the pinned set (26 Play setup, 26.8 home-newhere, 36.3 feedback-home, 40 menu coach-hair chips, 112 the
+  // roadmap illustration), so a new icon size could arrive anywhere outside the walk and TC-INV-03 stayed green. These states
+  // are swept HERE, for invariant 3 ONLY, each from a fresh launch: adding them to SCREENS would put them under every per-screen
+  // row, occlusion and pin assertion, which part (1) of the job ties to the ink redesign (jobs/invariant-2-measures-the-box-not-
+  // the-ink) - under the box method the menu sheet's rows all read spread 0, so they would add counts and no assertion that
+  // can fire. The set asserted is the set over THESE states alone, not unioned with TC-INV-03's: a union would let a height
+  // already used somewhere in the walk appear on a sheet unseen. Non-empty is its own line first (a sweep that reached nothing
+  // would match an empty pin by construction). A width with no pinned set is reported, never asserted, exactly as TC-INV-03.
+  {
+    const H=require('../drive/home'), M=require('../drive/menu');
+    const EXTRA=[['play-setup',P.states['setup']],['home-newhere',H.states['home-newhere']],['feedback-home',M.states['feedback-home']],
+                 ['menu-discover',M.states['menu-discover']],['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
+                 ['pz-roadmap',PZ.states['roadmap']]];
+    for(const g of GEOS){
+      const set={}; const reached=[];
+      for(const [name,go] of EXTRA){
+        const b=await L.launch({geo:g,store:R.SEED,name:'inv3b-'+name+'-'+g}); await b.open();
+        try{ await go(b); await b.settle(450);
+          const iv=await b.page.evaluate(ROWS); reached.push(name);
+          for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); }
+        }catch(e){ L.say(false,g+' TC-INV-03b '+name+': the state could not be reached, so its icons are UNRUN, not green',String(e.message||e).slice(0,140)); }
+        await b.close();
+      }
+      const keys=Object.keys(set).map(Number).sort((a,b)=>a-b);
+      L.note('    TC-INV-03b, '+g+': '+keys.length+' distinct ICON glyph heights over '+reached.length+' unswept states ('+reached.join(', ')+'): '+keys.join(', '));
+      for(const k of keys) L.note('        '+k+'px  '+[...set[String(k)]].slice(0,4).join(' ; '));
+      L.say(reached.length===EXTRA.length&&keys.length>0, g+' TC-INV-03b PRECONDITION every one of the '+EXTRA.length+' unswept states was reached and between them carried at least one icon',{reached,heights:keys.length});
+      const want=ICON_PIN_EXTRA[widthOf(g)];
+      if(want){
+        L.say(JSON.stringify(keys)===JSON.stringify(want), g+': TC-INV-03b the set of distinct ICON glyph heights over the unswept sheets and states (Play setup, home-newhere, feedback, the menu sheet top, bottom and Look picker, the puzzle roadmap) is exactly what #549 measured at '+widthOf(g)+'px wide - a drift guard over the states TC-INV-03 does not walk, not a target',
+          {width:widthOf(g), want, got:keys, added:keys.filter(x=>!want.includes(x)), gone:want.filter(x=>!keys.includes(x))});
+      } else L.note('    TC-INV-03b, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');
+    }
+  }
   // TC-INV-09 [#548 item (82); jobs/gate-26-rev-best-ply30-pin-covers-one-ply-of-a-class-that-cuts-at-plies-12-20-and-30-2026-10-12].
   // THE rev-best PIN IS A CLASS, NOT ONE PLY. antagonist-b-422 measured the best-move pill cut at EVERY ply that carries it at
   // 320x568 (12, 20 and 30), and this file pinned only rev-best-ply30. So: walk the reference game's 34 positions at each
@@ -1940,6 +1990,8 @@ L.run(async()=>{
   if(!process.env.CT_INV_GEOS){
     const unpinnedW=ALL_GEOS.filter(g=>!ICON_PIN[L.GEOS[g].w]);
     const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
+    const unpinnedX=ALL_GEOS.filter(g=>!ICON_PIN_EXTRA[L.GEOS[g].w]);
+    L.say(unpinnedX.length===0, 'TC-INV-03b every geometry the suite sweeps by default carries a pinned unswept-state icon set, so TC-INV-03b never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedX});
     L.say(unpinnedW.length===0, 'TC-INV-03 every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
     L.say(unpinnedPop.length===0, 'TC-INV-02d every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
     // AND THE SAME GUARD FOR THE PIN-LOCATION ASSERTION, added with the width-keying above: that assertion

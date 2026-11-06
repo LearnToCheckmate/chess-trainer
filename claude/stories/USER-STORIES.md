@@ -417,6 +417,11 @@ whatever each screen happened to use.
   (ICON_PIN). A height that appears is red, and a height that vanishes is red. A target set below the drift guard
   waits on Kunal's choice. The counts quoted above are #423's and are kept as the history of the pin; the pin
   itself is the current value. (TC-INV-03)
+- AMENDED 2026-11-06 (#549 item (74), jobs/invariant-2-and-3-sheets-and-unswept-screens, part (3)), THE GUARD COVERS THE STATES
+  THE WALK DOES NOT. The same condition holds over a second, named list of states the invariant walk does not stand on - the
+  Play setup sheet, the first-lesson screen NEW HERE opens, the feedback sheet, the menu sheet at its top and its bottom, the
+  Look picker, and the puzzle roadmap - against its own pinned set per width (ICON_PIN_EXTRA). An svg counts as an icon only
+  when its box is at most 48 x 48, so an illustration is not an icon size. (TC-INV-03b)
 
 ### US-INV-04 Nothing on screen is cut without saying so
 - 4a. No text's ink extends outside the box that clips it, at every screen and geometry in the invariant sweep, unless the cut is EXCUSED. TC-INV-04a names five excusals as EXAMPLES and, since #545 item (68), points at the gate for the set instead of claiming 'only' those five: a text-overflow ellipsis on the clipping box, a -webkit-line-clamp whose own arithmetic accounts for the cut, a finger-scrollable clipping ancestor, the 38x38 king-glyph case, and the pinned rev-best-ply30 residual. THE GATE'S OWN SET IS WIDER AND IS DELIBERATELY NOT REPRODUCED HERE, because a copy of it in this file is a copy that rots: read the classifier and clipper() of gates/regress/26-invariants.js before writing any assertion from this clause. One instance so the gap is not abstract: a cut the gate classifies OVERSHOOT - its box had no layout overflow on that axis - is excused and is on nobody's list of five. Corrected at #541 after four antagonist passes: the five-case wording this replaced was inherited verbatim from TC-INV-04a and is still in that row, and the first repair's own enumeration of the gate's skips was withdrawn for naming a GUARDED one - the rotated-ancestor skip is asserted to be zero at 26-invariants.js:1468, so it reddens the gate rather than hiding anything. (TC-INV-04a)
