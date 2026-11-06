@@ -32,6 +32,10 @@ White confused him. He has now seen both and wants it gone. Do not re-add withou
 
 **Coach avatar.** → *A chess piece with character.*
 Not a person, not abstract, not no-avatar. He rejected two earlier illustrated-person options.
+**SUPERSEDED, recorded 2026-11-06 (#549 item (10)):** his 14 Sep 2026 answer on two drawn coaches, a Sage and an Owl, was
+*"All except Sage"* ("these are all good. except sage. get rid of him please"), so the Owl, not a chess piece. On 4 Nov 2026
+he chose a NEW owl drawing (Desk questions/B8B-OWL, "new"); it shipped at #548 as a fifth Coach look beside the four
+hairstyles, and the default stays Combed back. Nothing about the coach avatar is waiting on him.
 
 **Coach speech bubble.** → *Build it WITHOUT the avatar.*
 The bubble and the eval chip, but no face until the piece-mascot direction is drawn.

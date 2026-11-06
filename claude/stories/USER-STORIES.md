@@ -262,6 +262,8 @@ Kunal's answer on questions/B8B-OWL ('new', 4 Nov 2026): the owl coach drawing a
 
 - The Coach look picker offers five looks, Owl among them, every one a drawing inside its own button and inside the screen's width,
   and tapping Owl chooses it. (TC-MN-049)
+- Each of the five looks draws its own picture at one and the same size, and the look I pick is the one I find again after a reload.
+  (TC-MN-050)
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).

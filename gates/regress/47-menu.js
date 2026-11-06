@@ -657,6 +657,33 @@ if(blk('S')){
     L.say(st==='owl',tag+': TC-MN-049 tapping Owl chooses it (ct_coachstyle '+st+')',{st});
     L.say(b.errs.length===0,tag+': TC-MN-049 zero app errors',b.errs.slice(0,2));
     await b.close();}}
+  // TC-MN-050 [#549, item (10); jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10, acceptance E]: EACH OF THE FIVE LOOKS
+  // PAINTS ITS OWN DRAWING, AND THE CHOICE SURVIVES A RELOAD. TC-MN-049 proves five tiles exist and Owl is stored; it cannot see a
+  // _Coach that ignores `style`, because the tiles carry their labels whatever they draw. Acceptance E named the Home 'Your coach'
+  // card, but MEASURED at #549 that card is never rendered: chess.jsx defines `const _coach` beside the Home blocks and no JSX places
+  // it (it has not been placed since #314, `git log -S"{_coach}"`), and the 58px coach sheet opens only from that card. A probe at
+  // 375x761 on a fresh store finds no 'Your coach' text and no 46px svg on Home. So the only surface that draws the look is the picker,
+  // and this case reads it there: ONE browser at his phone (375x761, one theme, one accent) picks each look by its label, RELOADS and
+  // reads ct_coachstyle back; then the five tiles' svgs (found by their labels, not a hook) must be the SAME size and pairwise DIFFERENT.
+  // Size and theme are held fixed; the look is the only thing varied. Reviving the Home card is NOT this job (mustNotDo: no new place).
+  if(blk('O')){const MD=require('../drive/menu');
+   const LOOKS=[['side','Side part'],['recede','Receding'],['bald','Balding'],['comb','Combed back'],['owl','Owl']];
+   const b=await L.launch({geo:'kunal761',name:'menu-owl-reload'});await b.open();
+   for(const [k,t] of LOOKS){let ok=true;
+    try{await MD.states['menu-bottom'](b);await b.settle(400);const tl=b.page.locator('button',{hasText:new RegExp('^'+t+'$')}).first();
+      await tl.scrollIntoViewIfNeeded();await tl.click();await b.settle(400);}catch(e){ok=false;}
+    await b.open();await b.settle(700);
+    const st=await b.page.evaluate(()=>localStorage.getItem('ct_coachstyle'));
+    L.say(ok&&st===k,'375x761: TC-MN-050 '+t+' picked in the menu reads back as ct_coachstyle '+k+' after a reload (read '+st+')',{k,st,ok});}
+   let ok=true;try{await MD.states['menu-bottom'](b);await b.settle(500);}catch(e){ok=false;}
+   const got=await b.page.evaluate((names)=>names.map(t=>{const x=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').trim()===t);
+      const sv=x&&x.querySelector('svg');if(!sv)return {t,svg:null};const q=sv.getBoundingClientRect();return {t,svg:sv.innerHTML,w:Math.round(q.width),h:Math.round(q.height)};}),LOOKS.map(l=>l[1]));
+   const sz=got.filter(g=>g.svg).map(g=>g.w+'x'+g.h);
+   L.say(ok&&sz.length===5&&new Set(sz).size===1,'375x761: TC-MN-050 PRECONDITION all five look tiles carry a drawing, every one at the same size ('+[...new Set(sz)].join(',')+')',got.map(g=>g.t+':'+(g.svg?g.w+'x'+g.h:'none')));
+   const n=new Set(got.filter(g=>g.svg).map(g=>g.svg)).size;
+   L.say(n===5,'375x761: TC-MN-050 the five looks paint five DIFFERENT drawings at that one size ('+n+' distinct of 5)',got.map(g=>g.t+':'+(g.svg?g.svg.length:0)));
+   L.say(b.errs.length===0,'375x761: TC-MN-050 zero app errors',b.errs.slice(0,2));
+   await b.close();}
 },'MENU');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with

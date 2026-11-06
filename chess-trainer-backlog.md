@@ -992,7 +992,7 @@ From #2 Feedback chat (additional, beyond the first sweep; VERIFY, some may be d
 - [CLAUDE] Lesson auto-play: after a correct answer, auto-play the finishing moves.
 - [CLAUDE] Hint cooldown friction - replace the timer cooldown with an activity-based unlock.
 - [CLAUDE] Avatar position: move from bottom-right to the top.
-- [DESIGN] Coach avatar redesign (Chess.com / Lichess refs; Canva + image-gen).
+- [DONE #548, no longer waiting on Kunal] ~~[DESIGN] Coach avatar redesign (Chess.com / Lichess refs; Canva + image-gen).~~ He answered 14 Sep 2026 ("All except Sage": the Owl) and chose a new owl drawing on 4 Nov 2026 (questions/B8B-OWL, "new"); it shipped at #548 as a fifth Coach look. Marked here at #549 item (10).
 - [CLAUDE] Time controls discoverability: on the vs-Computer setup the minute pills sit below the strength slider (off-screen); surface them higher.
 DELIVERED THIS TURN: HTML "answer all open questions" form (chess-questions.html) - the flagged priority item; presented to Kunal to fill in + paste back.
 
