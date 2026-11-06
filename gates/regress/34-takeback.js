@@ -18,7 +18,7 @@
 //   5. It is ABSENT in Pass & Play - "Computer only" is the decision, and the More sheet opens there too, so
 //      absence on that screen is the half that is easy to get wrong.
 //   6. It is absent at move 0: there is nothing to give back.
-// Run at 375x730 and 320x568 (COLS below). 375x730 is NOT his phone any more: R19 settled that at 375x761 (kunal761), and
+// Run at 375x730 and 320x568 (COLS below). 375x730 is NOT the device any more: R19 settled the device at 375x761 (kunal761), and
 // moving this gate there needs its own measured board pin, which this file does not yet have [#549 item (70), stated not fixed].
 //
 // NEGATIVE CONTROL: proved against a bundle built with the `opponent==='computer'` guard removed, which makes
