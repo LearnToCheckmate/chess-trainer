@@ -240,6 +240,36 @@ L.run(async()=>{
     L.say(!!h&&want.test(h)&&!/^(Novice|Apprentice)$/.test(h),'TC-PZ-TIER '+st+': the roadmap heading names the TIER and the progress into it ("'+h+'"), not a bare rank name',{h});
     await b.close();
   }
+  // TC-PZ-CHIP [#549, item (16); the same job's remainder after the orchestrator's PARTLY on #548, amber
+  // flags/amber-549-pz-chip-tier-progress]: THE PUZZLE SCREEN'S HEADER CHIP NAMES THE TIER AND THE PROGRESS INTO IT, NOT THE
+  // PLAYER. #548 fixed the roadmap heading and put the chip back to '<icon> Novice · ✓ <total>' (9e4ff22, ' puzzles' clipped it),
+  // so before the first RANK UP the chip still called the player Novice. The chip is found BY STRUCTURE - the last child of the
+  // pz-top header row, the row gate 40's Z-06 pin walks - never by a new hook (#432). Three inputs: a fresh store (Novice 0/10),
+  // the 10th Novice solve after Continue (Novice 10/10, the tier the RANK UP just completed), and Start training once Novice is
+  // earned (the next tier at 0/10). Each at 375x761 (his phone) and 320x568, and the chip must not be cut (scrollWidth vs clientWidth), because
+  // fitting at both widths is the condition the orchestrator wrote into whatIsLeft.
+  const chipStates=[['train',/^🌱 Novice 0\/10$/],['rankup-continue',/^🌱 Novice 10\/10$/],
+    ['rank1-train',/^\S+ Apprentice 0\/10$/]];
+  for(const geo of ['kunal761','se']){
+    for(const [st,want] of chipStates){
+      const b=await L.launch({geo,name:'pz-chip-'+geo+'-'+st});await b.open();let ok=true;
+      try{if(st==='rank1-train'){await Z.states['roadmap-rank1'](b);await Z.tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);}else await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
+      const c=await b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');const k=r&&r.lastElementChild;
+        if(!k)return null;const q=k.getBoundingClientRect();return {t:(k.innerText||'').replace(/\s+/g,' ').trim(),sw:k.scrollWidth,cw:k.clientWidth,right:Math.round(q.right*100)/100,vw:innerWidth};});
+      L.say(ok&&!!c&&!!c.t,'TC-PZ-CHIP '+geo+' '+st+' PRECONDITION the puzzle header row is on screen and its last chip was read',{c});
+      L.say(!!c&&want.test(c.t)&&!/✓/.test(c.t),'TC-PZ-CHIP '+geo+' '+st+': the header chip names the TIER and the progress into it ("'+(c&&c.t)+'"), not the tier name beside the all-time solved count',{c});
+      // THE CUT ARM IS ASSERTED WHERE THE ROW HAS ROOM FOR IT, AND REPORTED - NOT CREDITED - WHERE IT DOES NOT. Measured at #549: at
+      // 375 after a solve the middle counter grows to 'n / 890 · ✓ solved' and, on a 4-digit Apprentice rating, to '1 / 890 · 1xxx', and
+      // the space-between row squeezes BOTH shrinkable children: the chip loses 6-8px (111/103, 132/126) and the counter 10. #548's text
+      // ('🌱 Novice · ✓ 10', 5px wider) is cut in the same states, so it is not this change; it is the shared-row truncation of
+      // jobs/labels-truncate-in-shared-rows-2026-09-24 (the same header row, different defect), left to that job. 320 hides the counter
+      // and every state fits there, and the fresh-store state - the one this job measured - fits at both widths.
+      const roomy=geo==='se'||st==='train';
+      if(roomy)L.say(!!c&&c.sw<=c.cw+0.5&&c.right<=c.vw+0.5,'TC-PZ-CHIP '+geo+' '+st+': the chip is not cut - scrollWidth '+(c&&c.sw)+' <= clientWidth '+(c&&c.cw)+', right edge '+(c&&c.right)+' inside '+(c&&c.vw),{c});
+      else L.note('TC-PZ-CHIP '+geo+' '+st+': NOT ASSERTED - the chip reads scrollWidth '+(c&&c.sw)+' in clientWidth '+(c&&c.cw)+' beside a squeezed counter; the shared-row truncation belongs to jobs/labels-truncate-in-shared-rows-2026-09-24');
+      await b.close();
+    }
+  }
   // TC-PZ-LBL [#548, item (134); jobs/a-file-label-under-a-highlight-falls-to-1-58-to-1-contrast-2026-10-04, Kunal's default
   // questions/B8-SMALL-DEFAULTS (3)]: THE BOARD'S LETTERS KEEP THEIR OWN CONTRAST ON HIGHLIGHTED SQUARES. Puzzle 1's Show
   // highlights e1 (a rank-1 square, so it carries the 'e' file label). Every file and rank label is found BY STRUCTURE (a

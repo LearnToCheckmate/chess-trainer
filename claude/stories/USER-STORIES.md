@@ -577,6 +577,7 @@ wrong way.
 As a player who has just solved a puzzle, I can read the explanation of what I found in full, without any of it
 being cut off, and the board does not move underneath me while I read it.
 - **When I get something right, nothing that celebrates it may cover, move or replace the text that tells me what I did, and nothing that explains something may disappear on a timer.** Added at #545 from jobs/suite-never-asserts-after-a-success-2026-09-27, which measured that the suite took no assertion after a success - where four of Kunal's thirteen findings live. (TC-PZ-01 for the solved card; TC-PZ-02 for the RANK UP overlay on the 10th Novice solve.)
+- **And before the RANK UP, nothing on the Puzzles screens names me by the rank it is about to award:** the roadmap heading and the puzzle header chip name the TIER and my progress into it ('Novice puzzles · 0 of 10', '🌱 Novice 0/10'), so 'you reached Novice' at the 10th solve is news (Kunal, questions/B8B-RANK-UP, wording; jobs/pz-rank-up-announces-a-rank-the-screen-already-showed-2026-09-28). (TC-PZ-TIER for the roadmap heading; TC-PZ-CHIP for the header chip.)
 - The explanation WRAPS onto as many lines as it needs rather than being ellipsed on one line: on a phone the
   box holding it is not `white-space: nowrap` and not `text-overflow: ellipsis`. (TC-R20 B, C)
 - Every character of the explanation is actually painted inside the box on screen. Not "the box is tall enough",

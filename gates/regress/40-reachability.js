@@ -338,10 +338,13 @@ L.run(async()=>{
     L.say(past.length===0,geo+': NOTHING in the puzzle header runs off the right edge - measured over all '+(((row&&row.all)||[]).length)+' painted descendant(s) rather than over the 3 direct children, which is the correction this line needed. This is the spill that cannot be recovered - the row sits inside an ancestor with overflow-x hidden and document.scrollWidth stays at the viewport width, so anything past the edge is gone rather than scrollable.',{past,docScrollW:row&&row.docScrollW,over:((row&&row.all)||[]).length});
     if(L.GEOS[geo].w===375&&L.GEOS[geo].h===730){ // dimensions, not the name [#545 item (4)]
       // Z-06's condition, asserted rather than promised: the 320 fix must not move 375.
-      const want=[{w:119,x:4},{w:93,x:148},{w:105,x:266}];
+      // RE-PINNED at #549 item (16) (amber flags/amber-549-pz-chip-tier-progress): the tier chip's TEXT changed from '🌱 Novice · ✓ 0'
+      // (105@266) to '🌱 Novice 0/10' (102@269), so the space-between row moved the counter 148 -> 150. Measured on the trial bundle
+      // f275508b8f5e at 375x730; the Roadmap button and both widths of the 320 fix are untouched, which is what Z-06 protects.
+      const want=[{w:119,x:4},{w:93,x:150},{w:102,x:269}];
       const got=(row&&row.kids)||[];
       const same=got.length===want.length&&want.every((wv,i)=>Math.abs(got[i].w-wv.w)<1.5&&Math.abs(got[i].x-wv.x)<1.5);
-      L.say(same,'kunal730: the header is UNCHANGED at 375 by the 320 fix - Roadmap 119@4, counter 93@148, tier badge 105@266. His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.',got);
+      L.say(same,'kunal730: the header is UNCHANGED at 375 by the 320 fix - Roadmap 119@4, counter 93@150, tier badge 102@269 (re-pinned at #549 for the new chip text). His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.',got);
     }
     // NOT asserted here, and said out loud so nobody reads its absence as coverage: at 375x730 a board-square box
     // inside the grid measures 49.69 wide ending at 376.39, 1.39px past the viewport, clipped by an ancestor at
