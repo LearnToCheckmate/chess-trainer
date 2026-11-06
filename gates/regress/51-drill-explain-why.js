@@ -139,9 +139,13 @@ const ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcou
 // CT_GEO51='375x730' narrows the sweep for a control run. The gate PRINTS the list it ran, every time, so a
 // narrowed run can never be read as a full one - the #388 lesson is that a green whose scope is not stated is
 // worth less than it looks. gates/gates.sh must NEVER set it.
-const ALLGEOS=[{w:320,h:568,n:'320x568'},{w:360,h:640,n:'360x640'},{w:375,h:667,n:'375x667'},{w:375,h:730,n:'375x730 KUNAL'},{w:390,h:844,n:'390x844'},{w:414,h:896,n:'414x896'},{w:440,h:956,n:'440x956'}];
+const ALLGEOS=[{w:320,h:568,n:'320x568'},{w:360,h:640,n:'360x640'},{w:375,h:667,n:'375x667'},{w:375,h:730,n:'375x730 KUNAL',content:true},{w:390,h:844,n:'390x844'},{w:414,h:896,n:'414x896'},{w:440,h:956,n:'440x956'}];
 const GEOS=process.env.CT_GEO51?ALLGEOS.filter(g=>process.env.CT_GEO51.split(',').some(x=>g.n.indexOf(x)===0)):ALLGEOS;
-const CONTENT_GEO='375x730 KUNAL';           // the one geometry the content assertions run at, per the split
+// the one geometry the content assertions run at, per the split. A10-R4 [antagonist A round 4]: the split was `g.n===CONTENT_GEO` with
+// CONTENT_GEO='375x730 KUNAL' - a comparison of a geometry's DISPLAY LABEL, which r19-phone-geometry.sh's A4 could not see and which a
+// relabel would turn into a silent NOT RUN of every content assertion. It is now a PROPERTY of the entry (content:true), and the label is
+// read off that entry for messages only.
+const CONTENT_GEO=(ALLGEOS.find(g=>g.content)||{n:'<no content geometry>'}).n;
 const FIXED="That's the move you missed";                 // the string under test, the render site
 const GENERIC_HINT='There was a better move than the one you chose.';  // the hint under test, same line
 const SAN=/\b(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)\b/g;
@@ -419,7 +423,7 @@ L.run(async()=>{
   }
   // ===== PHASE 2: THE RENDER. Content at one geometry, the FIT at all of them. ===========================
   for(const g of GEOS){
-    const seen=[],hints=[];const isC=(g.n===CONTENT_GEO);let quietN=0;
+    const seen=[],hints=[];const isC=(g.content===true);let quietN=0;
     for(let i=0;i<N;i++){
       // ONE entry seeded, so the drill opens on it: deterministic, and no 'solved before' carry-over.
       const c=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill-'+g.n.replace(/\s+/g,'_')+'-'+i,store:{ct_mymistakes:[mis[i]],ct_pool:'3'}});await c.open();

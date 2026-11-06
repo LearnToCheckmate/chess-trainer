@@ -173,6 +173,19 @@ A3_MIN_SUITE="${CT_A3MIN:-20}"
 #           throws or still selects the right pin rather than silently skipping it, and a4_sites finds 0 code sites.
 #           With the ceiling at 0, the first new token comparison anyone writes reads A4b FAIL.
 A4_CEILING="${CT_A4CEIL:-0}"
+# A4d, ADDED AT #549 FOR ANTAGONIST A ROUND 4 (A10-R4). A4a/A4b/A4c read only comparisons against a GEOS KEY ('kunal761').
+# gates/regress/51-drill-explain-why.js split its content assertions with `g.n===CONTENT_GEO`, CONTENT_GEO='375x730 KUNAL' - a
+# geometry's DISPLAY LABEL held in a gate-local const - and A4a read NOT CHECKED ("not one geometry comparison was found") over it.
+# A4d is that blind spot made an instrument: a comparison (=== or !==, either side) against a WIDTHxHEIGHT-shaped string literal
+# ('375x730 KUNAL', '320x540', '375x761 real'), or against a const/let/var IN THE SAME FILE whose initialiser is one. It is a
+# SEPARATE ARM WITH ITS OWN CEILING and is not folded into A4a/A4b, because widening those was measured and is not sound today:
+# the widened scan finds 12 label sites in five other gates (16, 48, 54, 57, 69), two of them bound to a variable, so folding
+# them in would turn A4a and A4b red on a tree where the only change is the instrument - the fix goes in those gates, not here.
+# A4D_CEILING MEASURED at #549 after gate 51 moved to a `content:true` property: 12, listed on every run. Lower it as they go.
+# WHAT A4d STILL CANNOT SEE, said rather than hidden: a label compared through an object property or a const in ANOTHER file,
+# a label that does not begin with WIDTHxHEIGHT (a bare 'KUNAL'), and indexOf/startsWith/includes tests on a label
+# (CT_GEO51's `g.n.indexOf(x)===0` filter is one, and it is an environment narrowing, not a pin).
+A4D_CEILING="${CT_A4DCEIL:-12}"
 
 # ── SCOPE. The five paths the case names, expanded. Printed as a file count because R18 says count
 # inputs and not assertions: one file is a demonstration, 61 is a measurement.
@@ -286,6 +299,22 @@ a4_sites(){
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     decomment "$f" | grep -nE "(!==|===)[[:space:]]*('|\")($alt)('|\")" | sed "s|^|${f#$ROOT/}:|"
+  done < <(a4_files)
+}
+
+# a4_label_sites: the A4d class - a comparison against a geometry LABEL (a WIDTHxHEIGHT-shaped string), as path:line:text.
+a4_label_sites(){
+  local f d names n lit
+  lit="('|\")[0-9]{3}x[0-9]{3}[^'\"]*('|\")"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    d="$(decomment "$f")"
+    { printf '%s\n' "$d" | grep -nE "(!==|===)[[:space:]]*$lit|$lit[[:space:]]*(!==|===)"
+      names="$(printf '%s\n' "$d" | grep -oE "(const|let|var)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*('|\")[0-9]{3}x[0-9]{3}" \
+               | sed -E 's/^(const|let|var)[[:space:]]+([A-Za-z0-9_]+).*/\2/' | sort -u)"
+      for n in $names; do
+        printf '%s\n' "$d" | grep -nE "(!==|===)[[:space:]]*$n([^A-Za-z0-9_]|\$)|(^|[^A-Za-z0-9_.])$n[[:space:]]*(!==|===)"
+      done; } | sort -t: -k1,1n -u | sed "s|^|${f#$ROOT/}:|"
   done < <(a4_files)
 }
 
@@ -460,6 +489,24 @@ report(){
     echo "A4c FAIL: $ndead comparison(s) name a geometry token GEOS does not have. A key was renamed and the"
     echo "          gates comparing the old literal were not, so their branches can no longer be taken:"
     printf '%s\n' "$dead" | sed -e 's/^/  /'
+    rc=1
+  fi
+  # A4d, its own arm and its own ceiling (see A4D_CEILING). An empty set is NOT CHECKED, never a pass.
+  local lsites nl
+  lsites="$(a4_label_sites)"; nl=$(printf '%s' "$lsites" | grep -c . || true)
+  if [ "$nl" -eq 0 ]; then
+    echo "A4d NOT CHECKED: no comparison against a WIDTHxHEIGHT-shaped geometry label was found in code, so nothing"
+    echo "          was counted against the ceiling of $A4D_CEILING."
+  elif [ "$nl" -le "$A4D_CEILING" ]; then
+    echo "A4d PASS: $nl comparison(s) against a geometry LABEL string, at or under the committed ceiling of $A4D_CEILING."
+    echo "          Each goes silently NOT-RUN on a relabel; listed so they can be moved to a property of the entry:"
+    printf '%s\n' "$lsites" | cut -c1-160 | sed -e 's/^/  /'
+    [ "$nl" -lt "$A4D_CEILING" ] && \
+      echo "          CEILING CAN BE LOWERED: set A4D_CEILING=$nl in this file, in a commit, so it cannot rise again."
+  else
+    echo "A4d FAIL: $nl comparison(s) against a geometry LABEL string, above the committed ceiling of $A4D_CEILING. A new"
+    echo "          one has been added - key it on a property of the geometry entry (w, h, safe, or a flag), never its label:"
+    printf '%s\n' "$lsites" | cut -c1-160 | sed -e 's/^/  /'
     rc=1
   fi
   echo "census (context only, asserted by nothing [R18]): kunal730 $(census kunal730) occurrence(s), kunal761 $(census kunal761)"
@@ -674,6 +721,20 @@ if(geo==='kunal730'){b();}"
   # reports loudest exactly when the thing it guards has disappeared.
   chk C49-a4-no-sites-is-NOT-printed-as-a-pass  0 \
       env CT_ROOT="$q" CT_A4CEIL=9 bash -c '[ "$( "$0" | grep -c "^A4[ab] PASS" )" = 0 ]' "$RUNME"
+
+  # A4d [#549, A10-R4]: the label comparison A4a/A4b cannot see, both directions, and the three shapes that must NOT count.
+  mk4 "const isC=(g.n==='375x730 KUNAL');"
+  chk C50-a4d-literal-label-comparison-over-ceiling-is-red 1 r19 CT_A4CEIL=9 CT_A4DCEIL=0
+  chk C51-a4d-at-the-ceiling-exactly-is-green              0 r19 CT_A4CEIL=9 CT_A4DCEIL=1
+  mk4 "const CONTENT_GEO='375x730 KUNAL';
+const isC=(g.n===CONTENT_GEO);"
+  chk C52-a4d-a-const-holding-a-label-is-seen-and-named    0 says "zz-a4.js:2:" CT_A4CEIL=9 CT_A4DCEIL=0
+  chk C53-a4d-a-const-holding-a-label-is-red               1 r19 CT_A4CEIL=9 CT_A4DCEIL=0
+  mk4 "// const isC=(g.n==='375x730 KUNAL');
+const G=[{w:375,h:730,n:'375x730 KUNAL',content:true}];const isC=(g.content===true);"
+  chk C54-a4d-a-property-split-and-a-quoted-label-are-not-sites 0 says "A4d NOT CHECKED" CT_A4CEIL=9 CT_A4DCEIL=0
+  # AND THE LIVE CASE: gate 51 must not be one of the listed sites on this repository after its fix.
+  chk C55-a4d-this-repo-gate-51-is-not-a-label-site 0 bash -c '[ "$( "$0" | grep -c "51-drill-explain-why.js:" )" = 0 ]' "$RUNME"
   rm -rf "$q"
 
   rm -rf "$t" "$e"
