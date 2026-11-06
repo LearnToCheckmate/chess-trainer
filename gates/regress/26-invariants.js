@@ -562,7 +562,7 @@ const PIN_ROWS=[
        'se/rev-ply31','se/rev-last-engine','se/rev-why-open','se/rev-best-ply30',
        'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-best-ply30'],
    why:'Review pbar-top: the Back chevron is 28px of ink and the More dots are 21. Named by hand in flag build-the-invariant-gate a fortnight before any test could see it; job lesson-footer-icons-consistent owns the fix.'},
-  {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{320:[24,24,24,27,27],375:[24,24,24,27,27],390:[23,23,23,27,27]}, spread:null, /* PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn (Review's 21px, Segoe/system-ui), so 22 -> 24 measured at se, kunal730 and short375 on trial 0a7612ca7dc3; the 390 entry is not walked by this gate's default geometries and is left as measured before */
+  {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{320:[24,24,24,27,27],375:[24,24,24,27,27],390:[25,25,25,27,27]}, spread:null, /* PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn (Review's 21px, Segoe/system-ui), so 22 -> 24 measured at se, kunal730 and short375 on trial 0a7612ca7dc3. The 390 entry moved 23 -> 25 at #549's A3-R3 (antagonist A, round 3): measured CT_INV_GEOS=390 on trial bb925b8d210d, got [25,25,25,27,27] - it had been left at the pre-FootBtn value and read RED there */
    at:['kunal730/lesson-demo','se/lesson-demo','short375/lesson-demo'],
    why:'Lesson footer. THE BOX SAYS 27 AND THE INK SAYS 16.2, AND THE FIRST VERSION OF THIS LINE HAD IT BACKWARDS: it read "two 27px SVG arrows beside three 22px glyphs", which would send a fixer to shrink the arrows. The 27 is the chevrons viewBox; the polyline inside each paints 10.8 x 16.2, so the arrows are the SMALLEST ink in the bar and the three text glyphs at 22 are the largest. The flag names this row ("27 / 22 / 22 against one shared 20.25px font") from the same box method. 11-lesson.js asserts all five are >=20 and share a font size - which they do, fontSize 20.25 to the decimal - so it is green over exactly this spread, which is the finding gate11-is-green-over-the-very-glyph-spread-kunal-reported-2026-09-27. Heights are per WIDTH because the three text glyphs track fontSize (20 at 320, 20.25 at 375, 21.06 at 390) while the two SVG boxes do not scale at all.'},
   // THE `CHESS TRAINER|☰` PIN WAS HERE AND IT WAS NOT A DEFECT. Removed at #423 after both antagonists
@@ -612,7 +612,7 @@ const widthOf=(g)=>L.GEOS[g].w;
 // differ between geometries only in the wordmark, which is font-sized (21.6 at 375 wide, 20.7 at 320).
 const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
                 375:[17,18,19,20,21,22,24,25,27,28],
-                390:[17,18,19,20,21,22,23,25,27,28]};
+                390:[17,18,19,20,21,22,25,27,28]};   // 23 dropped at #549 A3-R3: it was the lesson footer's pre-FootBtn glyph, measured gone at 390 on bb925b8d210d
 // TC-INV-03b's PINNED SETS [#549 item (74)]: the icon heights over the unswept states listed at TC-INV-03b, measured on this run's
 // trial bundle by this gate. Same width keying as ICON_PIN, and an unpinned width reports rather than asserts. MEASURED on
 // aac698bd851a (#549 trial), identical at se, kunal730 and short375: 17 the sheets' close x (home-newhere, feedback, menu, Look),
