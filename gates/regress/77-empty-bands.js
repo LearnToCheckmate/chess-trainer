@@ -88,13 +88,45 @@ const COLS=[
 // [case, label, driver state, store]. TC-S04 is the draft's nine states; TC-S05 is Discover; TC-S06 is the Review move
 // screen in the card's three states (moves-ply10 mid-game, moves-ply0 move 0, analysis engine lines open). The ninth
 // TC-S04 state moves-last and the extra moves-ply0 are named, as the job asks.
-const DRFENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];
-const DRUCI=['b2b7','c2c7','d2d7'];
-const drRows=(label)=>DRFENS.map((f,i)=>({fen:f,uci:DRUCI[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file'}));
-const DRSEED={mistakes:{ct_mymistakes:drRows('Blunder')},brilliant:{ct_mybrilliancies:drRows('Brilliant'),ct_bril_reset_v1:'1'}};
-const DR=(k,solve)=>async(b)=>{await b.tile('Review');await b.settle(700);
+// #549 item (21), jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12: THE DRILL CARDS ARE CAPTURED BY THE APP, never
+// hand-written (the job's mustNotDo; #548 seeded three invented one-move cards here). PHASE 1 below reviews the Opera Game through the
+// stored-account path twice, as gate 51 does: as BLACK the app captures 2 mistakes (e7b4 after 10.Nxb5, e6d7 after 15.Bxd7+), as WHITE
+// it captures 1 brilliancy (c3b5, 10.Nxb5), measured on the #549 trial 96d043bdf18f at about 15s each. Each drill state then re-seeds
+// ONE harvested card (gate 51's pattern (b): deterministic, nothing inherited from a previous card) - the FIRST captured one (e7b4 and
+// c3b5 on that trial, neither side in check), and the wrong move is a single pawn push (a7a6 for Black, a2a3 for White).
+const PGN77=`[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2026.09.01"]
+[White "Jsmiller1112"]
+[Black "DukeKarlCountIsouard99"]
+[Result "1-0"]
+[TimeControl "600"]
+
+1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
+const ACCT77=(u,wr)=>({ct_accts:['cc:'+u],ct_acctgames:{['cc:'+u]:[{src:'cc',acct:u,pgn:PGN77,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr,tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3',ct_bril_reset_v1:'1'});
+const DRSEED={mistakes:null,brilliant:null};   // filled by PHASE 1 with the app's own capture
+const DRCARD={mistakes:null,brilliant:null};
+const WRONG={w:'a2a3',b:'a7a6'};
+// ASKED, WRONG (a legal non-solution move; the ✗ verdict must render), HINT (the 💡 button; the 💡 line must render), SOLVED (the
+// captured uci played). The wrong and hint states assert they were entered, not merely driven (CLAUDE.md, "a gate that enters a state
+// by the shortest route often enters the wrong one").
+const DR=(k,path)=>async(b)=>{const card=DRCARD[k];if(!card)throw new Error('PHASE 1 captured no '+k+' card');
+  await b.tile('Review');await b.settle(700);
   await b.tapText(k==='mistakes'?/find the move you missed/:/can you spot them again\?/,{wait:1800});
-  if(solve){await b.move(DRUCI[0].slice(0,2),DRUCI[0].slice(2,4),900);await b.settle(1500);}};
+  await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
+  const leaf=(re)=>b.page.evaluate((src)=>{const re=new RegExp(src,'u');const t=document.querySelector('[data-ct="pz-top"]');if(!t)return '';
+    const c=[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&re.test((e.innerText||'').trim()));return c.length?(c[c.length-1].innerText||'').trim():'';},re.source);
+  if(path==='wrong'){const w=WRONG[card.fen.split(' ')[1]];await b.move(w.slice(0,2),w.slice(2,4),900);await b.settle(1100);
+    if(!(await leaf(/^✗/)))throw new Error('wrong move '+w+' played and no ✗ verdict rendered - the wrong-move state was not entered');}
+  if(path==='hint'){await b.tapText(/^\u{1F4A1} Hint$/u,{wait:900});
+    if(!(await leaf(/^\u{1F4A1}/u)))throw new Error('hint tapped and no 💡 line rendered - the hint state was not entered');}
+  if(path==='solved'){await b.move(card.uci.slice(0,2),card.uci.slice(2,4),900);await b.settle(1500);
+    if(!(await leaf(/^🎉/u)))throw new Error('captured move '+card.uci+' played and no 🎉 verdict rendered - the solved state was not entered');}
+};
+// PROMOTED BY RE-MEASURE [#549 item (21)], per the promotion rule's "or on a re-measure that finds it already there": every drill state
+// read at or under 60px at 375x761 real on the #549 trial 96d043bdf18f (the readings are in this item's CONTROL-RECORD and the job's
+// outcome). Kept apart from PROMOTED77 and appended to it at run start.
+const PROMOTED77D=['drill mistakes asked','drill mistakes wrong','drill mistakes hint','drill mistakes solved','drill brilliant asked','drill brilliant wrong','drill brilliant hint','drill brilliant solved'];
 const STATES=[
   ['TC-S04 TC-S05','home discover',      HM.states['discover'],      {}],
   ['TC-S04','puzzles train',             PZ.states['train'],         {}],
@@ -107,13 +139,16 @@ const STATES=[
   ['TC-S04 TC-S06','review analysis',    R.states['analysis'],       R.SEED],
   ['TC-S06','review moves-ply0',         R.states['moves-ply0'],     R.SEED],
   // #548 item (146), jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12: THE TWO DRILLS, now that the drill float
-  // build (#547 item (80), the solved board no longer jumps) is on main. REPORT-ONLY like the rest until a reading is promoted by the rule
-  // above: each drill ASKED (card 1) and SOLVED (card 1 played). Seeded the way gate 72 seeds them, with THREE one-move cards (round-2 antagonist A: this said five) - so the state is
-  // the drill's own layout and not a fixture of a real review; ct_bril_reset_v1 is required or the brilliancies seed is wiped on boot.
-  ['TC-S07','drill mistakes asked',      DR('mistakes',false),       DRSEED.mistakes],
-  ['TC-S07','drill mistakes solved',     DR('mistakes',true),        DRSEED.mistakes],
-  ['TC-S07','drill brilliant asked',     DR('brilliant',false),      DRSEED.brilliant],
-  ['TC-S07','drill brilliant solved',    DR('brilliant',true),       DRSEED.brilliant],
+  // build (#547 item (80), e384760, the solved board no longer jumps) is on main. #549 item (21) adds the wrong-move and hint states the
+  // job's acceptance B names, and captures the cards through the app (PHASE 1) instead of seeding invented ones.
+  ['TC-S07','drill mistakes asked',    DR('mistakes','asked'), ()=>DRSEED.mistakes],
+  ['TC-S07','drill mistakes wrong',    DR('mistakes','wrong'), ()=>DRSEED.mistakes],
+  ['TC-S07','drill mistakes hint',     DR('mistakes','hint'), ()=>DRSEED.mistakes],
+  ['TC-S07','drill mistakes solved',   DR('mistakes','solved'), ()=>DRSEED.mistakes],
+  ['TC-S07','drill brilliant asked',   DR('brilliant','asked'), ()=>DRSEED.brilliant],
+  ['TC-S07','drill brilliant wrong',   DR('brilliant','wrong'), ()=>DRSEED.brilliant],
+  ['TC-S07','drill brilliant hint',    DR('brilliant','hint'), ()=>DRSEED.brilliant],
+  ['TC-S07','drill brilliant solved',  DR('brilliant','solved'), ()=>DRSEED.brilliant],
 ];
 // #549 item (18), jobs/bench-discover-is-57-per-cent-empty-2026-09-30: HOME DISCOVER PROMOTED in the same commit as its fix, per the rule
 // above. On the #549 base (md5 14ea26b79b33) it read 89 @379.2-468.2 at 375x761 real; the fix (rows measured against the real tab bar,
@@ -126,11 +161,26 @@ const fmt=(bands)=>bands.map(x=>x[2]+' @'+x[0]+'-'+x[1]).join(' ; ')||'none';
 
 L.run(async()=>{
   const table=[];
+  PROMOTED77.push(...PROMOTED77D);
+  // PHASE 1 [#549 item (21)]: the app captures the drill cards. Its own two assertions, so an empty harvest is a RED and never a quiet
+  // "no drill states" (CLAUDE.md, "before asserting a property of a collection, assert the collection is non-empty").
+  for(const [k,u,wr,key] of [['mistakes','dukekarlcountisouard99','loss','ct_mymistakes'],['brilliant','jsmiller1112','win','ct_mybrilliancies']]){
+    let got=[],err=null;const b=await L.launch({geo:{w:375,h:730,safe:''},name:'eb-capture-'+k,store:ACCT77(u,wr)});
+    try{await b.open();await b.tile('Review');await b.settle(700);
+      await b.page.locator('button',{hasText:/Review ›/}).first().click();
+      await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1200);
+      got=await b.page.evaluate((key)=>JSON.parse(localStorage.getItem(key)||'[]'),key);}catch(e){err=String(e&&e.message||e).slice(0,160);}
+    await b.close();
+    const card=got.find(m=>m&&m.fen&&m.uci)||null;   // the FIRST captured card; if its side to move cannot make the pawn push the wrong state goes red and says so
+    L.say(!err&&got.length>0,'TC-S07 PHASE 1 the app CAPTURED at least one '+k+' card by reviewing the Opera Game as '+(k==='mistakes'?'Black':'White')+' through the stored-account path ('+got.length+' in '+key+')',err?{err}:got.map(m=>({uci:m.uci,played:m.played,fen:m.fen})));
+    L.say(!!card,'TC-S07 PHASE 1 a captured '+k+' card was chosen to drive the four drill states (the first captured)',card&&{uci:card.uci,fen:card.fen});
+    if(card){DRCARD[k]=card;DRSEED[k]=k==='mistakes'?{ct_mymistakes:[card]}:{ct_mybrilliancies:[card],ct_bril_reset_v1:'1'};}
+  }
   for(const [cs,label,drive,store] of STATES){
     const row={label,cs};
     for(const c of COLS){
       let m=null,err=null,ink=0;
-      const b=await L.launch({geo:c.geo,store:Object.assign({ct_pool:'3'},store),name:'eb-'+label.replace(/ /g,'-')+'-'+c.n.split(' ')[0]});
+      const b=await L.launch({geo:c.geo,store:Object.assign({ct_pool:'3'},typeof store==='function'?(store()||{}):store),name:'eb-'+label.replace(/ /g,'-')+'-'+c.n.split(' ')[0]});
       try{
         if(c.real){const cdp=await b.ctx.newCDPSession(b.page);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:51,bottom:31,left:0,right:0}});}
         await b.open();
