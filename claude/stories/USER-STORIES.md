@@ -1638,6 +1638,8 @@ questions/B8-CHROME-ROW (jobs/chrome-row-still-unbuilt-2026-09-28). Built at #54
   'Check!' or the result - so nothing on the screen says the opening twice and no blank band sits under the row.
 - The move list is painted in exactly one place, the Moves box below the board; the strip that repeated the last moves under
   the board is gone. In landscape the side rail is unchanged.
+- The Moves box's MOVES label keeps a gutter from the screen edge - at least 11px, as vs Computer - in Pass and Play too, where
+  the board and so the Moves box run edge to edge (#549, from the #547 auditor's P2). (TC-PL-060)
 ### US-R95 The verdict word on the board is never covered by its own badge
 *Added #547, from the job on the round verdict chip painting over the word pill (item (170)).*
 As a player stepping through a review, "Blunder" and "Brilliant" on the board read in full.

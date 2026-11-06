@@ -428,6 +428,13 @@ L.run(async()=>{
     L.say(card==='Checkmate! Black wins',geo+': the result card names the result in full',{card});
     L.say(!!end.board&&near(end.board.w,W.bw)&&near(end.board.top,W.by),geo+': the board at game over is still the pinned '+W.bw+' at y='+W.by+' - the mate is not a layout event',{measured:end.board,want:W});
     L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
+    // --- TC-PL-060 [#549 item (24), the #547 auditor's P2]: the MOVES label keeps a gutter from the screen edge.
+    // In Pass & Play at 375 the board, and so the moves panel, runs edge to edge (panel left 0), and the label sat at
+    // x=0 touching the edge while vs Computer it sits at x=11. Measured on the TEXT's own box (a Range), not the row,
+    // because the row is meant to span the panel. 320 is the control column: its panel already starts at 20.
+    const mh=await b.page.evaluate(()=>{const h=document.querySelector('[data-ct="moves-head"]'),p=document.querySelector('[data-ct="moves-panel"]');if(!h||!p)return null;const g=document.createRange();g.selectNodeContents(h);const q=g.getBoundingClientRect(),pr=p.getBoundingClientRect();return {inkLeft:Math.round(q.left*10)/10,inkW:Math.round(q.width*10)/10,panelLeft:Math.round(pr.left*10)/10,panelW:Math.round(pr.width*10)/10,vw:innerWidth};});
+    L.say(!!mh&&mh.inkW>20,geo+': TC-PL-060 the MOVES label is laid out and has ink at game over (the denominator for the gutter line below)',mh);
+    L.say(!!mh&&mh.inkLeft>=10.5,geo+': TC-PL-060 the MOVES label sits at least 11px in from the screen edge (it read '+(mh&&mh.inkLeft)+'; vs Computer reads 11) - the Pass & Play panel runs edge to edge and the label must not',mh);
     const rE=await rowBtns(b);
     L.say(rE.length===6&&rE.map(x=>x.t).join(',')===ROW_OVER.join(','),geo+': at game over the row is '+ROW_OVER.join(' · ')+' - Hint and Flip give their two slots to Review and Rematch, same row, same height (#371)',rE.map(x=>x.t).join(','));
     L.say(rE.every(x=>near(x.h,51)),geo+': and every one of them is still 51 tall, so the row below the board did not change height',rE.map(x=>x.t+':'+x.h).join(' '));
