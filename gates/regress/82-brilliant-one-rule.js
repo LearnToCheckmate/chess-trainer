@@ -15,6 +15,15 @@
 // gave the gate (stockfish-18-lite-single, depth 16, MultiPV 2, measured by gates/measure-brilliant-one-rule.js), so the verdict
 // asserted is the gate's on the app engine's inputs. Block H is a BROWSER block over the bundle under test (CT_APP): the
 // 'Grading changed' sheet on a stored review graded by an older build, its Update and its Not now.
+// ── CONTROL-RECORD lines for gates/control-audit.js. Node controls are CT_SRC (a mutated copy of chess.jsx; the bundle is minified and
+// cannot be extracted, as gate 68 says); bundle controls are CT_APP trial bundles built from chess.jsx with one change.
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=24 scope=env:CT_SRC=nc1-nohang how=hanging arm disabled (if(false&&hs>sac)) - A2 A3 B1 B3 B4 B6 C1 C3-C7 E1 FT06 FT07 FT08 FT10 FT11 G1 H1 H2 H9 Z2 red
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=2 scope=env:CT_SRC=nc2-noneeded how=needed forced true - B2 and B5 red
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=2 scope=env:CT_SRC=nc3-frame how=brilCardWhy reads evalAfter in White's frame - E6 and E8 red
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=1 scope=env:CT_SRC=nc4-checkhang how=hanging scan runs when the mover is in check - A6 red
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=25 scope=env:CT_SRC=nc5-oldfloor how=rule 2 keeps the old evAfter>=0.8 floor and evBefore window - C1 C3-C6 FT01 FT03-FT06 FT08 FT11-FT13 G1 H1 H2 H9 Z2 and more red
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=2 scope=trial:20f9b6fd7e42 how=regradeAnswer applies the changes on Not now - H13 red at kunal761 and se
+// CONTROL-RECORD: 3720349 2026-11-06 total=79 red=16 scope=trial:ea84253b6902 how=no sheet, the regrade applied silently on arrival - H4-H7 H9 H10 H12 H13 red at both geometries
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');
