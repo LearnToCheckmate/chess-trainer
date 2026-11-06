@@ -876,6 +876,11 @@ function moveGist(pos,mv){
       const capV=SEEVAL[cap.t]||0;
       const back=seeSq({...g2,turn:them},mv.tr,mv.tc,them);
       if(capV-back>=1)D.push({r:90,s:'wins the '+PNAME[cap.t]});
+      // #549 item (50), Amber: flags/amber-549-capture-that-gives-more-is-not-a-trade. A recaptured capture is a TRADE only
+      // when it is even AND like for like. 25.Bxg6 hxg6 (a bishop for a pawn) and 18.Rxe4 dxe4 (a rook for a knight) both
+      // printed 'trades the <captured>s off' - once with no white knight left to trade. Say what is given for what is got.
+      else if(back>0&&capV>0&&back-capV>=1&&pc.t!==cap.t)D.push({r:20,s:'gives up the '+PNAME[pc.t]+' for the '+PNAME[cap.t]});
+      else if(back>0&&capV>0&&pc.t!==cap.t)D.push({r:20,s:'trades the '+PNAME[pc.t]+' for the '+PNAME[cap.t]});
       else if(back>0&&capV>0)D.push({r:20,s:'trades the '+PNAME[cap.t]+'s off'});
     }
     // --- a piece pulled out of danger, or newly defended.

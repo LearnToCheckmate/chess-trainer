@@ -376,6 +376,23 @@ L.run(async()=>{
      const none=EA({cls:{label:'Good'},loss:10,pv:[]},{mover:'White',maxw:400});
      L.say(typeof lvl==='string'&&/roughly level/.test(lvl),'TC-R87 PRECONDITION a genuinely level position (evalAfter 0) is still called level',lvl);
      L.say(typeof none==='string'&&none.length>0&&none.indexOf('roughly level')<0,'TC-R87 a ply with NO stored eval says nothing about the standing - "I do not know" is no longer printed as "it is equal"',none);}
+    // TC-R113 (US-R85), #549 item (50): A CAPTURE THAT GIVES MORE THAN IT GETS IS NOT A TRADE. moveGist printed
+    // 'trades the <captured>s off' for any recaptured capture, so 25.Bxg6 hxg6 read 'trades the pawns off' and 18.Rxe4 dxe4
+    // 'trades the knights off' with no white knight on the board. The real moveGist, read out of the same source as above
+    // (CT_SRC), over four constructed positions; the like-for-like knight trade is the PRECONDITION that the clause still
+    // fires at all, so the other three cannot pass on a gist that has simply stopped describing captures.
+    {const fs=require('fs');let MG=null,err='';
+     try{const sl=fs.readFileSync(SAC_SRC.file,'utf8').split('\n');
+       const blk=n=>{const a=sl.findIndex(l=>new RegExp('^(?:function|const) '+n+'\\b').test(l));if(a<0)throw new Error('no '+n);let z=a+1;while(z<sl.length&&!/^(async\s+function|function|const|let|var)\s/.test(sl[z]))z++;return sl.slice(a,z).join('\n');};
+       const E=SAC_SRC.E,nm=Object.keys(E).filter(k=>/^[A-Za-z_$][\w$]*$/.test(k));
+       MG=new Function(...nm,['PNAME','moveHits','moveGist'].map(blk).join('\n')+'\nreturn moveGist;')(...nm.map(k=>E[k]));}catch(e){err=e.message;}
+     const gist=(fen,san)=>{if(!MG)return null;const E=SAC_SRC.E,g=E.fromFEN(fen),m=E.getLegal(g).find(x=>E.toSAN(g,x,E.applyMove(g.board,x))===san);return m?(MG(g,m).did||[]).join(' / '):null;};
+     const nn=gist('6k1/5ppp/5n2/8/4N3/8/8/6K1 w - - 0 1','Nxf6+'),bp=gist('6k1/5p1p/6p1/8/8/3B4/8/6K1 w - - 0 1','Bxg6'),
+       rn=gist('6k1/5ppp/8/3p4/4n3/8/8/4R1K1 w - - 0 1','Rxe4'),bn=gist('6k1/5ppp/5n2/6B1/8/8/8/6K1 w - - 0 1','Bxf6');
+     L.say(MG&&nn==='trades the knights off','TC-R113 PRECONDITION moveGist is extractable and a like-for-like recaptured capture (Nxf6+ gxf6) is still a trade',nn||err);
+     L.say(typeof bp==='string'&&bp.indexOf('gives up the bishop for the pawn')>=0&&!/trades/.test(bp),'TC-R113 a bishop taking a defended pawn (Bxg6 hxg6) says it gives up the bishop for the pawn, not "trades the pawns off"',bp);
+     L.say(typeof rn==='string'&&rn.indexOf('gives up the rook for the knight')>=0&&!/trades the knights/.test(rn),'TC-R113 a rook taking a pawn-defended knight (Rxe4 dxe4) says it gives up the rook for the knight, not "trades the knights off"',rn);
+     L.say(typeof bn==='string'&&bn.indexOf('trades the bishop for the knight')>=0&&!/knights off/.test(bn),'TC-R113 an even trade of unlike pieces (Bxf6 gxf6) names both, not "trades the knights off"',bn);}
     /* ── S28 to S31: THE STORE DECISION, WHICH IS THE ONE FINDING BOTH ANTAGONISTS REACHED ────────────
        #512's first cut tested `sanLine.length` alone and published the reason as "sfBestLine resolves an
        ARRAY or NULL and all four failure paths resolve NULL". THAT IS FALSE: sfBestLine has SIX settle
@@ -929,3 +946,4 @@ L.run(async()=>{
   }
 },'REVIEW-BRILLIANT');
 // CONTROL-RECORD: a35524b 2026-10-30 total=52 red=3 scope=trial:a9605ca30843 how=chess.jsx's played-move guard deleted from the runner-up clause, one change - TC-R10 on the Opera Game and TC-R10b at pool 3 and pool 1 on Kunal's game go red (3 self-named plies there: 41...Qh3+, 24.c4, 19...Bxh3) [#546 item (89), rebuild of #545's b37e93213529 on the 52-assertion gate]
+// CONTROL-RECORD: 5b1e1bb 2026-11-06 total=104 red=3 scope=trial:b38abbbb04fb how=CT_SRC pointed at HEAD 5b1e1bb chess.jsx (moveGist without the #549 item (50) give-up and unlike-trade branches), bundle unchanged - TC-R113 Bxg6, Rxe4 and Bxf6 go red, the Nxf6+ precondition stays green [#549 item (50)]
