@@ -1888,3 +1888,4 @@ legal and which nothing downstream can catch when the photo was taken from the o
 - When they disagree, or only one of them reads, nothing is set up until I say which side of the board the camera was on,
   White's or Black's; my answer sets up that reading, and the question then goes. (TC-SC-041 to TC-SC-047)
 - When neither reads, I am told why, as before, and asked nothing. (TC-SC-048)
+- When the first read fails outright but the turned one reads, I am not told it failed: I am asked which side the camera was on, as when they disagree. (TC-SC-049)

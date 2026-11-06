@@ -5755,15 +5755,19 @@ export default function App(){
            the picture itself and the position is taken. Otherwise the player is ASKED which side the camera was on
            (amber flags/amber-549-scan-ask-which-side: asking, rather than picking one, is what the job's brief
            recommends). A reading that failed is filled by turning the other one 180 degrees, so the question always
-           offers two real positions; if neither reads, the refusal below is A's. A's rejection still reaches the
+           offers two real positions; if neither reads, the refusal below is A's. A's rejection reaches the (only when B did not read)
            catch, so the #392 deploy and sign-in messages are unchanged. */
         const cv2=document.createElement('canvas'); cv2.width=w; cv2.height=h; const x2=cv2.getContext('2d'); x2.translate(w,h); x2.rotate(Math.PI); x2.drawImage(img,0,0,w,h);
         const b64r=cv2.toDataURL('image/jpeg',0.85).split(',')[1];
         const [sA,sB]=await Promise.all([C.scanBoard(b64).then(v=>({ok:1,v}),e=>({ok:0,e})),C.scanBoard(b64r).then(v=>({ok:1,v}),e=>({ok:0,e}))]);
-        if(!sA.ok) throw sA.e;
-        const r=sA.v;
         const _usable=(x)=>{ const f=x&&x.ok!==false&&x.fen; if(!f)return null; const pl=String(f).split(/\s+/)[0]||''; if((pl.match(/K/g)||[]).length<1||(pl.match(/k/g)||[]).length<1)return null; return String(f).trim(); };
-        const fA=_usable(r), fB=sB.ok?_usable(sB.v):null;
+        /* #549 (67) A6-R3 fix: a REJECTED call A is treated like an unusable reading A - when B read, B is turned 180 degrees to fill the
+           White's-side reading and the player is asked, as for a disagreement. Only when B did not read either does A's rejection reach the
+           catch, so the #392 deploy and sign-in messages are unchanged. */
+        const fB=sB.ok?_usable(sB.v):null;
+        if(!sA.ok&&!fB) throw sA.e;
+        const r=sA.ok?sA.v:null;
+        const fA=_usable(r);
         if(fA||fB){
           const _turn=(f)=>{ const pl=f.split(/\s+/)[0], ex=pl.split('/').map(rw=>rw.replace(/[1-8]/g,d=>'.'.repeat(+d))).join('').split('').reverse().join('');
             const rows=[]; for(let i=0;i<8;i++) rows.push(ex.slice(i*8,i*8+8).replace(/\.+/g,m=>String(m.length)));

@@ -342,6 +342,20 @@ L.run(async()=>{
   L.say(!!m9&&m9.indexOf('a hand is covering')>=0&&a9===false,'TC-SC-048 when NEITHER reading reads, the refusal shown is reading A\'s reason and no question is asked',{m:m9,ask:a9});
   await b9.shot('scan-client-orient-refused');
   await b9.close();
+  // (5) TC-SC-049 [#549 (67) A6-R3]: call A REJECTS (a transient internal failure) while call B reads. The rejection used to be thrown
+  // before B was looked at, so the player got A's error though the photo had read; it is now treated like an unusable reading A: B is
+  // turned 180 degrees to fill White's side and the player is asked, as for a disagreement.
+  const b10=await L.launch({geo:'kunal761',name:'scan-orient5',store:{ct_pool:'3'}});await b10.open();
+  await P.states['setup'](b10); await b10.settle(200); await signIn(b10); await b10.settle(250);
+  await stub(b10,'seq',[{reject:{code:'functions/internal',message:'INTERNAL'}},{fen:FB,ok:true}]); await feed(b10,FILE2); await b10.settle(1200);
+  const c10=await b10.page.evaluate(()=>window.__scan.calls.length);
+  const m10=await msg(b10), a10=await b10.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-ask"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+  if(L.say(c10===2,'TC-SC-049 PRECONDITION the photo made both calls, so call A\'s rejection and call B\'s reading both came back ('+c10+')',c10)){
+    L.say(!!a10&&/Which side of the board was the camera on\?/.test(a10)&&!m10,'TC-SC-049 when call A REJECTS but call B reads, the scan is not refused: no error message, and the player is asked which side the camera was on',{ask:a10,m:m10});
+    await b10.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b10.settle(900);
+    const t10=await screenText(b10);
+    L.say(landed(t10)&&/You'll play\s*Black\s*\(the side to move\)/.test(t10),'TC-SC-049 ... and answering Black\'s side sets up reading B itself (Black to move)',{landed:landed(t10)});}
+  await b10.close();
 
   // ── The success path, and G3 across the whole cycle. ──
   const b4=await L.launch({geo:'kunal730',name:'scan-success',store:{ct_pool:'3'}});await b4.open();
