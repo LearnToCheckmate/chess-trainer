@@ -1,5 +1,6 @@
 // RENUMBERED BY THE BUILD SESSION, 2026-09-14. This file was authored as 43-play-setup.js. The build session had
 // CONTROL-RECORD: f41fd3c 2026-11-03 total=190 red=4 scope=trial:078c3f87ef2b how=#547 item (141)'s pre-fix bundle, the bot row with no 'more' chip and the strongest bot off its edge: TC-PL-047 red x4 at kunal730 and se (run nc141) [#547 close-out, ratchet]
+// CONTROL-RECORD: 096531f 2026-11-06 total=100 red=3 scope=blocks:C how=gate mutant hands the page a box-returning function in place of gates/lib.js INK_RECT, served trial cd7e18670623 - TC-INV-02f red at se, kunal730 and 430, 97 green [#549 item (20)]
 // already committed and pushed gates/regress/43-tcrl-analysis.js (TC-RL batch 1) the same afternoon,
 // so 43 AND 44 were both spoken for by the time these two lanes arrived. Theirs moved rather than mine
 // because 43-tcrl-analysis is referenced by name in a pushed commit, in gates/logs/, in RUN-LOG.md and
