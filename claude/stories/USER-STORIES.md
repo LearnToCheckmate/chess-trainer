@@ -1204,6 +1204,12 @@ The clauses, each one measurable:
    manual card's instruction now persists until he hides it, and the bar stays `pointerEvents:none` so it cannot eat
    the very taps it is asking for. A self-driving card still expires on its own hold, which is asserted separately
    so that "make it persist" cannot quietly become "make everything persist".
+   **Its cost is bounded, and on purpose** (#549 item (88), jobs/a-held-gallery-instruction-hides-the-home-dev-row-for-an-unbounded-time-2026-10-01,
+   the orchestrator's ruling of 4 Nov 2026): while any instruction is up, Home deliberately hides its dev row
+   (Preview and feedback), because build-run 6d keeps that chrome out of a recording. The hide lasts only as long
+   as the instruction: a timed one clears on its own single timer (one pending clear at a time, cleared before every
+   new instruction, so an earlier card's timer cannot take down a later one), and a held one clears on the bar's
+   own Hide or Back, after which the row is back on Home. TC-GL-012.
 
 ## US-R32 - what the Puzzles screen counts as a Lichess puzzle is a Lichess puzzle
 

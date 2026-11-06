@@ -968,10 +968,24 @@ L.run(async()=>{
       {const bk=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap"] [data-ct="rec-cap-back"]');if(!d)return null;const r=d.getBoundingClientRect();
          const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {pe:getComputedStyle(d).pointerEvents,aria:d.getAttribute('aria-label'),w:r.width,h:r.height,self:!!(h&&(h===d||d.contains(h)))};});
        L.say(!!bk&&bk.pe==='auto'&&bk.self&&bk.w>=43.5&&bk.h>=43.5&&/card/i.test(bk.aria||''),'M11: the held bar carries a route back to the card and its steps - a 44px control that hit-tests to itself and says where it goes',bk);}
+      /* M12/M13 [#549 item (88); jobs/a-held-gallery-instruction-hides-the-home-dev-row-for-an-unbounded-time-2026-10-01]: until
+         now this block never rendered HOME, so the dev row's state while an instruction is held was asserted by nobody. The
+         orchestrator's ruling of 4 Nov 2026 keeps the hide ON PURPOSE (build-run 6d: no Preview or feedback chrome in a recording),
+         so M12 asserts it DELIBERATELY - on Home, with the bar proven still up first (#385) - and M13 asserts the row is back on
+         Home after the bar's Hide. Without M13 a hide that never lifts is indistinguishable from the ruling. */
+      let onHomeHeld=false;
+      if(st.up){await b.home();await b.settle(400);
+        const hm=await b.page.evaluate(()=>({bar:!!document.querySelector('[data-ct="rec-cap"] [data-ct="rec-cap-done"]'),row:!!document.querySelector('[data-ct="home-devrow"]')}));
+        onHomeHeld=hm.bar&&await b.onHome();
+        if(!onHomeHeld)L.say(false,'M12: Home was reached with the held instruction still up (the state M12 and M13 are about)',{bar:hm.bar,onHome:await b.onHome()});
+        else L.say(hm.row===false,'M12: while an instruction is held, Home DELIBERATELY hides its dev row (Preview and feedback) - the orchestrator ruling of 4 Nov 2026',hm);}
       // M7: the control does what it says
       if(st.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(500);
         const gone=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
-        L.say(gone===false,'M7: tapping Hide clears the instruction',{stillUp:gone});}
+        L.say(gone===false,'M7: tapping Hide clears the instruction',{stillUp:gone});
+        if(onHomeHeld){await b.settle(600);const back=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-devrow"]');if(!e)return null;
+            return {preview:!!e.querySelector('[data-ct="home-preview"]'),feedback:!!e.querySelector('[data-ct="home-feedback"]')};});
+          L.say(!!back&&back.preview&&back.feedback,'M13: after Hide the dev row is back on Home, Preview and feedback both - the hide is bounded, not for the session',back);}}
     }
     const badM=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
     L.say(badM.length===0,'M: no app error while holding and hiding the instruction',{other:badM.slice(0,2)});
