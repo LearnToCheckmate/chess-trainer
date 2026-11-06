@@ -81,6 +81,7 @@
 // It stays uncovered here, on purpose and in writing. The clip antagonist A measured in that state is
 // jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02.
 
+// CONTROL-RECORD: 03f1aea 2026-11-06 total=89 red=1 scope=full how=#549 item (13) TC-R103 A every-card form run against the #548 capture code (search on the card's own position, the first-move guard drops e6d7), trial md5 f2281c9d65cf - FAIL TC-R103 A (1 of 2); the fixed trial f29eb175f86d reads 90 pass 0 fail
 'use strict';
 const L=require('../lib');
 // the stored-account path is the ONLY one that captures: the bare textarea import leaves meta null, so the
