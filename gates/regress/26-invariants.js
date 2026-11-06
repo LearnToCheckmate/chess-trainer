@@ -1338,6 +1338,17 @@ L.run(async()=>{
       for(const c of iv.coveredList) L.note('      OCCLUDED (not a control a finger can reach) '+c.lab+' '+c.box+'  centre hits '+c.hitWas);
       ivCovered+=iv.covered; ivBoardExcluded+=iv.inBoard;
       const rk=g+'/'+name;
+      // TC-INV-12 [#549 item (9); jobs/gate-11-and-26-practice-pins-are-insensitive-to-the-430-defect-2026-09-30, gate 26's
+      // half of the job's cheaper fix, gate 11's half being TC-LS-046 at #548]: the lesson-practice ROW_PIN below infers the
+      // MOVES row's wrap from a COUNT of control rows, which a wrap that keeps both chips in one flex line cannot move. So the
+      // MOVES header row is read by its own HEIGHT - found as the grandparent of the Copy chip (moves-copy, #430's hook, not
+      // this build's) - and must be one line: 23px measured at se, kunal730 and short375 on #549; two lines measure 46+.
+      if(name==='lesson-practice'){
+        const mh=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="moves-copy"]');const r=c&&c.parentElement&&c.parentElement.parentElement;
+          if(!r)return null;const q=r.getBoundingClientRect();return {h:Math.round(q.height*10)/10,w:Math.round(q.width),text:(r.innerText||'').replace(/\s+/g,' ').trim().slice(0,60)};});
+        L.say(!!mh&&/^MOVES\b/.test(mh.text),g+' '+name+': TC-INV-12 PRECONDITION the MOVES header row was found by the Copy chip and reads MOVES',mh);
+        L.say(!!mh&&mh.h<=30,g+' '+name+': TC-INV-12 the MOVES header row is ONE line ('+(mh&&mh.h)+'px, ceiling 30; two lines measure 46+) - the wrap #430 removed, asserted at its own height rather than inferred from the row count',mh);
+      }
       if(Object.prototype.hasOwnProperty.call(ROW_PIN,rk)){
         L.say(iv.rows.length===ROW_PIN[rk], g+' '+name+': the screen still presents the '+ROW_PIN[rk]+' side-by-side control rows it presented on #423 - pinned per screen because the headline assertion below is satisfied by an empty set, and a floor over the whole sweep had 14 rows of slack to hide a screen going silent in',
           {want:ROW_PIN[rk], got:iv.rows.length, rows:iv.rows.map(r=>r.sig)});
