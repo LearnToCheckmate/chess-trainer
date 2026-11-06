@@ -311,6 +311,22 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   L.say(oppOn.length===1&&oppOn[0].t==='Computer',
     geo+': TC-PS-012 exactly ONE is selected on arrival and it is Computer (chess.jsx:2575 useState(\'computer\')). This is why the default screen is the tall one, and why measuring only Pass & Play measures the variant nobody lands on.',opp.items);
   L.say(opp.items.every(x=>x.h>=44),geo+': TC-PS-013 every opponent tile is at least 44px tall (measured '+opp.items[0].h+')',opp.items.map(x=>x.h));
+  // TC-INV-02f [#549 item (20); jobs/invariant-2-measures-the-box-not-the-ink]: THE FIRST GATE THAT CALLS gates/lib.js INK_RECT,
+  // on the job brief's second worked example. The three tiles' icons are each a 26x26 svg box, so a box reading says they match;
+  // INK_RECT reads the painted shapes. The ASSERTION is about the INSTRUMENT, not the icons: every icon is found, INK_RECT unions at
+  // least one painted rect, and the ink is at least 0.5px shorter than the box - a helper that returned the box would read 26 = 26 and
+  // go red here (its control is the CONTROL-RECORD for TC-INV-02f). The icons' own spread is REPORTED by the TC-INV-02e line beside
+  // it and never fails, by the orchestrator's ruling of 4 Nov: promotion waits on the app defects the ink measure finds.
+  const modeInk=await b.page.evaluate((src)=>{const INK=new Function('return ('+src+')')();const sh=document.querySelector('[data-ct="setup-sheet"]');if(!sh)return [];
+    return [...sh.querySelectorAll('button,span')].filter(x=>/^(Online|Computer|Pass & Play)$/.test((x.innerText||'').trim().split('\n')[0])&&getComputedStyle(x).borderTopWidth!=='0px').map(x=>{
+      const s=x.querySelector('svg'),q=s&&s.getBoundingClientRect(),k=s&&INK(s);
+      return {t:(x.innerText||'').trim().split('\n')[0],box:q?Math.round(q.height*100)/100:null,ink:k?Math.round(k.h*100)/100:null,n:k?k.n:0};});},L.INK_RECT);
+  L.say(modeInk.length===3,geo+': TC-INV-02f PRECONDITION the three opponent tiles were found for the ink read ('+modeInk.length+')',modeInk);
+  L.say(modeInk.length===3&&modeInk.every(x=>x.box>0&&x.n>0&&typeof x.ink==='number'&&x.ink<=x.box-0.5),
+    geo+': TC-INV-02f gates/lib.js INK_RECT reads the GLYPH, not its box: on each opponent tile icon it unions at least one painted rect and reads an ink height at least 0.5px under the svg box ('+modeInk.map(x=>x.t+' box '+x.box+' ink '+x.ink+' n'+x.n).join(' | ')+')',modeInk);
+  {const ik=modeInk.map(x=>x.ink).filter(x=>typeof x==='number');const isp=ik.length>1?Math.max(...ik)-Math.min(...ik):0;
+   const bx=modeInk.map(x=>x.box).filter(x=>typeof x==='number');const bsp=bx.length>1?Math.max(...bx)-Math.min(...bx):0;
+   L.note('    TC-INV-02e (report only, never fails) Play setup opponent tiles: INK spread '+isp.toFixed(2)+'px, box spread '+bsp.toFixed(2)+'px  '+modeInk.map(x=>x.t+' svg INK '+x.ink).join(' | '));}
   await TAP(b,'Pass & Play',500);
   const noSlider=await SLIDER(b);
   const pp=await SHEET(b);
