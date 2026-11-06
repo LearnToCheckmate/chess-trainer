@@ -331,4 +331,39 @@ L.run(async()=>{
     L.say(!!(hitPair&&hitPair.prev&&hitPair.prev.self&&hitPair.next&&hitPair.next.self),g.w+'x'+g.h+': TC-PZ-LAND2 one tap on the chip brings ‹ Prev and Next › on screen, each hit-testing to itself at its centre',hitPair);
     await b.close();
   }
+  // TC-PZ-RANKUP [#549, item (37); jobs/suite-never-asserts-after-a-success-2026-09-27 theFix (2) and (4)]: AFTER THE 10TH NOVICE
+  // SOLVE (state 'rankup': PZ[9] with nine solves seeded) THE RANK-UP LAYER MAY COVER THE SCREEN, BUT IT MUST NOT MOVE THE BOARD, AND
+  // ONCE IT IS DISMISSED NOTHING CELEBRATING MAY BE LEFT OVER THE VERDICT THAT SAYS WHAT I DID. The layer is found by WHAT IT SAYS
+  // ('RANK UP!' inside a position:fixed ancestor), never only by the data-ct hook this build adds, so the hook check is its own line
+  // and a bundle without the hook still has its overlap and board assertions measured. train-solved's verdict hit test and board
+  // pin are gate 57's G and A (TC-PZ-01); the card's no-timer rule is gate 57's TC-R82; this block is the rankup half of the job.
+  const pzLayer=(b)=>b.page.evaluate(()=>{const leaf=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&/^RANK UP!$/.test((d.textContent||'').trim()));
+    if(!leaf)return null;let e=leaf;while(e&&getComputedStyle(e).position!=='fixed')e=e.parentElement;if(!e)return {fixed:false};
+    const r=e.getBoundingClientRect();return {fixed:true,ct:e.getAttribute('data-ct'),z:getComputedStyle(e).zIndex,cover:r.width>=innerWidth-1&&r.height>=innerHeight-1};});
+  const pzVerdictHit=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
+    const leaf=[...t.querySelectorAll('div,span')].filter(d=>d.children.length===0&&/^\u{1F389}/u.test((d.innerText||'').trim())).pop();if(!leaf)return {found:false};
+    const rg=document.createRange();rg.selectNodeContents(leaf);const rs=[...rg.getClientRects()].filter(r=>r.width>0&&r.height>0);
+    const pts=rs.slice(0,2).map(r=>[r.left+Math.min(8,r.width/2),r.top+r.height/2]);
+    const hits=pts.map(([x,y])=>{const h=document.elementFromPoint(x,y);return {x:Math.round(x),y:Math.round(y),self:!!h&&(h===leaf||leaf.contains(h)),got:h?(h.getAttribute('data-ct')||h.tagName):null};});
+    return {found:true,news:/⬆ Rank up/.test(leaf.textContent||''),hits};});
+  for(const geo of ['kunal761','kunal730','se']){
+    const b=await L.launch({geo,name:'pz-rankup-'+geo,store:{}});await b.open();let ok=true,m0=null,m1=null,lay=null,m2=null,vh=null,gone=null;
+    try{await Z.seedSolved(b,Z.FIRST9);await Z.startTraining(b);await b.settle(500);m0=await b.metrics();
+      const goal=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||''):'';});
+      if(!/mate in 2/.test(goal))throw new Error('expected PZ[9], got '+goal.replace(/\s+/g,' ').slice(0,80));
+      await b.move('d5','d8',0);await Z.waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('d1','d8',0);await b.settle(1600);
+      m1=await b.metrics();lay=await pzLayer(b);
+      if(lay&&lay.fixed){await Z.tapBtn(b,/^Continue ▶$/,800);}
+      await b.settle(600);m2=await b.metrics();gone=await pzLayer(b);vh=await pzVerdictHit(b);
+    }catch(e){ok=false;L.note(geo+': TC-PZ-RANKUP drive threw: '+String(e.message).slice(0,120));}
+    L.say(ok&&!!m0&&!!m0.board&&!!lay&&lay.fixed&&lay.cover,geo+': TC-PZ-RANKUP PRECONDITION the unsolved PZ[9] card was measured and the 10th solve raised the full-screen RANK UP layer',{board0:m0&&m0.board,lay});
+    L.say(!!lay&&lay.ct==='pz-celebrate',geo+': TC-PZ-RANKUP the rank-up layer carries data-ct="pz-celebrate", so a gate can name it',lay);
+    const same=(a,c)=>!!a&&!!c&&!!a.board&&!!c.board&&Math.abs(a.board.top-c.board.top)<0.6&&Math.abs(a.board.left-c.board.left)<0.6&&Math.abs(a.board.w-c.board.w)<0.6;
+    L.say(same(m0,m1),geo+': TC-PZ-RANKUP the board under the rank-up layer has the unsolved card\'s rect (top, left, width) - celebrating does not move it',{before:m0&&m0.board,under:m1&&m1.board});
+    L.say(ok&&gone===null&&same(m0,m2),geo+': TC-PZ-RANKUP after Continue the layer is gone and the board is still where the unsolved card had it',{after:m2&&m2.board,layerAfter:gone});
+    L.say(!!vh&&vh.found&&vh.news&&vh.hits.length>0&&vh.hits.every(h=>h.self),geo+': TC-PZ-RANKUP the verdict carrying the rank-up news is on top at its first lines - nothing that celebrated is left over the text that says what I did',vh);
+    const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(bad.length===0,geo+': TC-PZ-RANKUP no app error beyond the allowed engine trap',bad.slice(0,2));
+    await b.close();
+  }
 },'PZ-STREAK');
