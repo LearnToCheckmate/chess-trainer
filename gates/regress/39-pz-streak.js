@@ -248,25 +248,30 @@ L.run(async()=>{
   // the 10th Novice solve after Continue (Novice 10/10, the tier the RANK UP just completed), and Start training once Novice is
   // earned (the next tier at 0/10). Each at 375x761 (his phone) and 320x568, and the chip must not be cut (scrollWidth vs clientWidth), because
   // fitting at both widths is the condition the orchestrator wrote into whatIsLeft.
-  const chipStates=[['train',/^🌱 Novice 0\/10$/],['rankup-continue',/^🌱 Novice 10\/10$/],
+  // #549 item (16) VETO FIX (antagonist A1-R1): the first version asserted the cut arm only where the row "had room" - chosen by
+  // comparing the geometry NAME, which r19-phone-geometry.sh A4 rightly refuses - and wrote an L.note where the fraction WAS cut
+  // ('🌱 Novice 10/1…' 111/103 after RANK UP, '♟️ Apprentice 0/1…' 132/126 at 375x761, 111/110 at 390x844). The chip now does not
+  // shrink and the counter beside it yields, so not-cut is ASSERTED at every geometry and in every state, no exception list: a fresh
+  // store, the first solve (Novice 1/10, the counter at its widest 'n / 890 · ✓ solved'), RANK UP then Continue (Novice 10/10) and
+  // Start training once Novice is earned (Apprentice 0/10; its counter reads a 3-digit rating, 800 - a 4-digit one only widens the counter, which is the child that yields). Two readings per state, never a conjunct: the
+  // chip's own scrollWidth against its clientWidth, and a Range over the n/need text, whose right edge must sit inside the chip's box
+  // and the viewport - the INK of the fraction, not only the box around it (#395).
+  // Negative control (#549 (16) veto fix): a trial of the tree before the fix (chip minWidth 0, shrinkable), md5 e824097dfb8e.
+  const chipStates=[['train',/^🌱 Novice 0\/10$/],['train-solved',/^🌱 Novice 1\/10$/],['rankup-continue',/^🌱 Novice 10\/10$/],
     ['rank1-train',/^\S+ Apprentice 0\/10$/]];
-  for(const geo of ['kunal761','se']){
+  for(const geo of ['kunal761','kunal730','390','se']){
     for(const [st,want] of chipStates){
       const b=await L.launch({geo,name:'pz-chip-'+geo+'-'+st});await b.open();let ok=true;
       try{if(st==='rank1-train'){await Z.states['roadmap-rank1'](b);await Z.tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);}else await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
       const c=await b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');const k=r&&r.lastElementChild;
-        if(!k)return null;const q=k.getBoundingClientRect();return {t:(k.innerText||'').replace(/\s+/g,' ').trim(),sw:k.scrollWidth,cw:k.clientWidth,right:Math.round(q.right*100)/100,vw:innerWidth};});
+        if(!k)return null;const q=k.getBoundingClientRect();
+        // the fraction's ink: a Range over the 'n/need' characters of the chip's text node
+        let fr=null;const w=document.createTreeWalker(k,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){const m=/\d+\/\d+$/.exec(tn.data);if(m){const rg=document.createRange();rg.setStart(tn,m.index);rg.setEnd(tn,tn.data.length);const rr=rg.getBoundingClientRect();fr={txt:m[0],left:Math.round(rr.left*100)/100,right:Math.round(rr.right*100)/100,w:Math.round(rr.width*100)/100};}}
+        return {t:(k.innerText||'').replace(/\s+/g,' ').trim(),sw:k.scrollWidth,cw:k.clientWidth,left:Math.round(q.left*100)/100,right:Math.round(q.right*100)/100,h:Math.round(r.getBoundingClientRect().height*100)/100,vw:innerWidth,fr};});
       L.say(ok&&!!c&&!!c.t,'TC-PZ-CHIP '+geo+' '+st+' PRECONDITION the puzzle header row is on screen and its last chip was read',{c});
       L.say(!!c&&want.test(c.t)&&!/✓/.test(c.t),'TC-PZ-CHIP '+geo+' '+st+': the header chip names the TIER and the progress into it ("'+(c&&c.t)+'"), not the tier name beside the all-time solved count',{c});
-      // THE CUT ARM IS ASSERTED WHERE THE ROW HAS ROOM FOR IT, AND REPORTED - NOT CREDITED - WHERE IT DOES NOT. Measured at #549: at
-      // 375 after a solve the middle counter grows to 'n / 890 · ✓ solved' and, on a 4-digit Apprentice rating, to '1 / 890 · 1xxx', and
-      // the space-between row squeezes BOTH shrinkable children: the chip loses 6-8px (111/103, 132/126) and the counter 10. #548's text
-      // ('🌱 Novice · ✓ 10', 5px wider) is cut in the same states, so it is not this change; it is the shared-row truncation of
-      // jobs/labels-truncate-in-shared-rows-2026-09-24 (the same header row, different defect), left to that job. 320 hides the counter
-      // and every state fits there, and the fresh-store state - the one this job measured - fits at both widths.
-      const roomy=geo==='se'||st==='train';
-      if(roomy)L.say(!!c&&c.sw<=c.cw+0.5&&c.right<=c.vw+0.5,'TC-PZ-CHIP '+geo+' '+st+': the chip is not cut - scrollWidth '+(c&&c.sw)+' <= clientWidth '+(c&&c.cw)+', right edge '+(c&&c.right)+' inside '+(c&&c.vw),{c});
-      else L.note('TC-PZ-CHIP '+geo+' '+st+': NOT ASSERTED - the chip reads scrollWidth '+(c&&c.sw)+' in clientWidth '+(c&&c.cw)+' beside a squeezed counter; the shared-row truncation belongs to jobs/labels-truncate-in-shared-rows-2026-09-24');
+      L.say(!!c&&c.sw<=c.cw+0.5,'TC-PZ-CHIP '+geo+' '+st+': chip not cut - scrollWidth '+(c&&c.sw)+' <= clientWidth '+(c&&c.cw),{c});
+      L.say(!!c&&!!c.fr&&c.fr.w>0&&c.fr.right<=c.right+0.5&&c.right<=c.vw+0.5,'TC-PZ-CHIP '+geo+' '+st+': the fraction "'+(c&&c.fr&&c.fr.txt)+'" is painted inside the chip - ink right '+(c&&c.fr&&c.fr.right)+' <= chip right '+(c&&c.right)+' <= viewport '+(c&&c.vw)+' (header row '+(c&&c.h)+'px)',{c});
       await b.close();
     }
   }

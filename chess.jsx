@@ -9362,7 +9362,10 @@ export default function App(){
           {/* #548 item (133) follow-up: this chip stays '<icon> <tier>' WITHOUT ' puzzles'. d88994a appended it here too and, measured
               at 375x730 and 375x568, that cut the chip (client 147 / scroll 161) AND squeezed the counter beside it (85 / 93) - main cuts
               neither. The roadmap card's heading is where the tier is named (TC-PZ-TIER); gate 40's Z-06 pin is what caught this. */}
-          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name+' '+Math.min(pzSolvedInTier(pzSolvedMap,pzTrainTier),PZ_TIERS[pzTrainTier].need)+'/'+PZ_TIERS[pzTrainTier].need):('Free play · ✓ '+pzTotalSolved(pzSolvedMap))}</span></>)}
+          {/* #549 item (16) veto fix (antagonist A1-R1): the chip does NOT shrink - flex 0 0 auto - so its n/need fraction can never be cut;
+              the counter beside it keeps minWidth 0 and its ellipsis, and is the child that yields when the row is tight (after a solve,
+              on a 4-digit rating). nowrap on both, so the row height does not change. Gate 39 TC-PZ-CHIP asserts not-cut at every geometry. */}
+          <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',flex:'0 0 auto',overflow:'hidden',textOverflow:'ellipsis'}}>{pzTrainTier!=null?(PZ_TIERS[pzTrainTier].icon+' '+PZ_TIERS[pzTrainTier].name+' '+Math.min(pzSolvedInTier(pzSolvedMap,pzTrainTier),PZ_TIERS[pzTrainTier].need)+'/'+PZ_TIERS[pzTrainTier].need):('Free play · ✓ '+pzTotalSolved(pzSolvedMap))}</span></>)}
         </div>
         {wide&&(<div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.5}}>PUZZLE {puzIdx+1} / {PZ.length}</span>
