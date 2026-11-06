@@ -313,6 +313,22 @@ L.run(async()=>{
       return {prev:f(/^‹ Prev$/).map(x=>x.getAttribute('aria-label')),next:f(/^Next ›$/).map(x=>x.getAttribute('aria-label'))};});
     L.say(ok&&r.prev.length===1&&r.next.length===1,g.w+'x'+g.h+': TC-PZ-LAND PRECONDITION the landscape puzzle screen shows one ‹ Prev and one Next ›',r);
     L.say(r.prev[0]==='Previous puzzle'&&r.next[0]==='Next puzzle',g.w+'x'+g.h+': TC-PZ-LAND the landscape pair is named "Previous puzzle" / "Next puzzle", as in portrait',r);
+    // TC-PZ-LAND2 [#549, item (25); same job]: THE '▾ More below' CHIP SITS AT THE BOTTOM OF THE RAIL, NOT THE TOP, AND TAPPING IT
+    // BRINGS THE PAIR ON SCREEN. The pair starts below the rail's fold here (the rail clips at 296.5, the pair at 329.5 at 730x375),
+    // so the chip is the only thing at rest saying the pane moves. On HEAD before #549 the chip's wrapper had flex order 0 against the
+    // puzzle children's 1 and 3, so it painted at the TOP (30-55) pointing down at the board's top rank.
+    const rc=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rail-more"]');const prev=[...document.querySelectorAll('button')].find(x=>/^‹ Prev$/.test((x.innerText||'').trim()));
+      if(!m||!prev)return {chip:!!m,prev:!!prev};let sc=m.parentElement;while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;
+      const R=sc.getBoundingClientRect(),c=m.getBoundingClientRect(),p=prev.getBoundingClientRect();
+      return {chip:true,prev:true,rail:[R.top,R.bottom],chipR:[c.top,c.bottom],prevR:[p.top,p.bottom],pairBelowFold:p.bottom>R.bottom+1};});
+    L.say(!!(rc.chip&&rc.prev&&rc.pairBelowFold),g.w+'x'+g.h+': TC-PZ-LAND2 PRECONDITION the pair starts below the rail fold at rest and the More-below chip is shown',rc);
+    L.say(!!(rc.rail&&rc.chipR[0]>=rc.rail[0]+(rc.rail[1]-rc.rail[0])/2&&rc.chipR[1]<=rc.rail[1]+0.5),g.w+'x'+g.h+': TC-PZ-LAND2 the More-below chip sits in the BOTTOM half of the rail, inside its clip (on HEAD before #549 it painted at the top)',rc);
+    let hitPair=null;
+    if(rc.chip){try{await b.tapCt('rail-more',900);await b.settle(900);
+      hitPair=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));const out={};
+        for(const [k,re] of [['prev',/^‹ Prev$/],['next',/^Next ›$/]]){const e=f(re);if(!e){out[k]=null;continue;}const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);out[k]={y:[r.top,r.bottom],self:!!h&&(h===e||e.contains(h))};}
+        return out;});}catch(e){hitPair={err:String(e).slice(0,120)};}}
+    L.say(!!(hitPair&&hitPair.prev&&hitPair.prev.self&&hitPair.next&&hitPair.next.self),g.w+'x'+g.h+': TC-PZ-LAND2 one tap on the chip brings ‹ Prev and Next › on screen, each hit-testing to itself at its centre',hitPair);
     await b.close();
   }
 },'PZ-STREAK');

@@ -377,6 +377,11 @@ instance.
   printed every run, never excused - and a pin is retired by a deliberate edit when it is fixed, not left to decay
   into a permanent exception. At #424 that is the lesson demo row at viewport height 520, where the board is 192px
   and the row is short by nearly twice everything Kunal's three-rung shrink ladder can free. (TC-INV-05d)
+- And where a control starts below the fold of the landscape side column, the '▾ More below' chip that says so sits
+  at the BOTTOM of that column, inside its clip, and one tap on it brings the control on screen. Measured at #549 on
+  the landscape puzzle screen at 730x375: the chip painted at the TOP of the rail (30-55) while the Prev/Next pair sat
+  clipped below it at 329.5. Whether the pair should fit at rest is a layout decision this clause does not take
+  (jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03). (TC-PZ-LAND2)
 
 ### US-INV-06 No screen that does not scroll leaves an empty band over 60px
 On a screen that does not scroll, no empty vertical band is over 60px. This is certified at 375x761 with the real insets (51 top, 31 bottom), and the top 51px status area does not count. Other heights are reported, not asserted. A screen meets it by growing the board or by moving something useful into the gap, not by adding padding.
