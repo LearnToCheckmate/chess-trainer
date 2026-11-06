@@ -196,6 +196,8 @@
 // CONTROL-RECORD: 08d8cb0 2026-09-17 total=158 red=27 scope=full how=tile icon box 84->70, trial md5 cfe6b6e31f65
 // CONTROL-RECORD: 08d8cb0 2026-09-17 total=15 red=15 scope=blocks:A,B how=tile icon box 84->70 with CT_HM_BLOCKS=A,B - the published 15 that the full gate gives as 27
 // CONTROL-RECORD: 08d8cb0 2026-09-17 total=12 red=12 scope=blocks:B how=Review and Play swapped with CT_HM_BLOCKS=B - the published 12 that the full gate gives as 14
+// CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=6 scope=blocks:E,F how=4471c98's tree (trial e824097dfb8e), where opening the lesson retired the NEW HERE card - TC-HM-055 opened-a-lesson and both TC-HM-056 card lines red at se and kunal730 [#549 item (22) A2-R1 fix]
+// CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=4 scope=blocks:E,F how=a trial whose walkthrough-end record never fires (md5 6bad0aa116d5) - both TC-HM-054 retired lines red at se and kunal730 [#549 item (22) A2-R1 fix]
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');
