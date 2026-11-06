@@ -6803,6 +6803,11 @@ export default function App(){
            reach the EMPTY queue - the queue's success condition - and the one-card queue without editing this list. Dev
            surface only: nothing sets the key except a gate, and an absent or unreadable key leaves SC as written. */
         try{const _scm=localStorage.getItem('ct_scmax');if(_scm!=null&&/^\d+$/.test(_scm))SC.splice(+_scm);}catch(e){}
+        /* THE STEPS SEAM [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-
+           2026-10-01]. No ask card declares steps today, so _steps' fallback (a step arriving after Hide, which must bring the bar
+           back WITH its hold) is unreachable by any gate. localStorage ct_scsteps=<ms> gives every step-less ask card one step at
+           <ms>, so gate 15's block SF can drive that path. Dev surface only: an absent or unreadable key leaves SC as written. */
+        try{const _sst=localStorage.getItem('ct_scsteps');if(_sst!=null&&/^\d+$/.test(_sst))SC.forEach(x=>{if(!x.steps)x.steps=[{at:+_sst,l:x.l}];});}catch(e){}
         /* #451: THE EIGHT STATES THE TEST HARNESS DRIVES. SEPARATED FROM KUNAL'S QUEUE, NOT DELETED, AND THE
            DISTINCTION IS THE WHOLE FIX. These eight entries were serving two masters at once: they were Kunal's
            "what I still need" list AND they were the ONLY way five gates reach the states they assert over, through

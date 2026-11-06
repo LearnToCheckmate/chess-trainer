@@ -1009,12 +1009,19 @@ L.run(async()=>{
   /* M6 at the two narrow/short geometries the job named under notChecked: the dwell is a timeout and is not
      geometry-dependent, but the Hide control's RECT is. Checked without the 30s wait - the banner is held, so the
      control is there the moment the card is tapped. */
-  for(const [glab,ggeo] of [['320x568','se'],['375x568','short375']]){
-    const b=await L.launch({geo:ggeo,name:'hide-'+ggeo,store:{ct_pool:'3'}});await b.open();
+  /* 730x375 LANDSCAPE [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-
+     2026-10-01]: the held bar is permanent until hidden, and landscape is the one orientation nobody had measured it in. Driven
+     the way gates 62, 64 and 16 drive landscape, as a {w,h,safe} geo, so M6 and M6b (TC-GL-008) now read it there too, and
+     M6c reads the bar against EVERY button on that 375-tall screen rather than only the bottom quarter, as a recorded measurement. */
+  for(const [glab,ggeo] of [['320x568','se'],['375x568','short375'],['730x375',{w:730,h:375,safe:''}]]){
+    const b=await L.launch({geo:ggeo,name:'hide-'+glab,store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
     if(await card.count()>0){
       await card.click();await b.settle(1500);
+      /* NC landLow controls M6 and M6b AT 730x375 ONLY: the held bar pushed back to the bottom edge and 30px past it, the
+         pre-(112) placement made worse, so its Hide control leaves the viewport and the bar lies over the tab bar. */
+      if(NC==='landLow'&&(L.GEOS[ggeo]||ggeo).w>(L.GEOS[ggeo]||ggeo).h){await b.page.evaluate(()=>{const st6=document.createElement('style');st6.textContent='[data-ct="rec-cap"]{top:auto!important;bottom:-30px!important}';document.head.appendChild(st6);});await b.settle(300);L.note('NC landLow: the held bar sits at bottom:-30px in landscape');}
       const r=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap-done"]');if(!d)return null;
         const q=d.getBoundingClientRect();return {w:+q.width.toFixed(2),h:+q.height.toFixed(2),left:+q.left.toFixed(2),right:+q.right.toFixed(2),top:+q.top.toFixed(2),vw:innerWidth,vh:innerHeight};});
       L.note('M6 '+glab+': hide control '+JSON.stringify(r));
@@ -1029,9 +1036,54 @@ L.run(async()=>{
         return {bar:[Math.round(br.top),Math.round(br.bottom)],low:low.length,over:low.filter(o=>hit(br,o.r)).map(o=>o.t)};});
       L.say(!!ov&&ov.low>0,'M6b '+glab+': TC-GL-008 DENOMINATOR the held bar is up and there are buttons in the bottom quarter to check it against',ov);
       L.say(!!ov&&ov.over.length===0,'M6b '+glab+': TC-GL-008 the held instruction bar covers no button in the bottom quarter of the screen (tab bar, pinned footer)',ov);
+      if((L.GEOS[ggeo]||ggeo).w>(L.GEOS[ggeo]||ggeo).h){
+        /* M6c, A MEASUREMENT AND NOT AN ASSERTION, AND WHY [#549, item (51)]. Read against EVERY on-screen button, not only the bottom
+           quarter: at 730x375 the bar (top 18..70, 14% of the height) overlaps the Review tab's menu button, and the button's centre
+           hit-tests to the bar's Hide control - the Hide control takes the menu's tap. A probe found the same at 375x761 and 320x568,
+           so it is not a landscape fault but item (112)'s move of the bar to the top. Where the controls should sit instead is a layout
+           call no answer on this job settles, so it is printed here as notChecked and routed, never asserted green or left red. */
+        const all=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="rec-cap"]');if(!bar)return null;const br=bar.getBoundingClientRect();
+          const hit=(a,c)=>a.left<c.right-0.5&&a.right>c.left+0.5&&a.top<c.bottom-0.5&&a.bottom>c.top+0.5;
+          return {bar:[Math.round(br.left),Math.round(br.top),Math.round(br.right),Math.round(br.bottom)],vh:innerHeight,barShare:+((br.bottom-Math.max(0,br.top))/innerHeight).toFixed(3),
+            over:[...document.querySelectorAll('button')].filter(x=>!bar.contains(x)).map(x=>({x,r:x.getBoundingClientRect()})).filter(o=>o.r.width>1&&o.r.bottom>0&&o.r.top<innerHeight&&hit(br,o.r))
+              .map(o=>{const h=document.elementFromPoint(o.r.left+o.r.width/2,o.r.top+o.r.height/2);return {t:(o.x.innerText||o.x.getAttribute('aria-label')||'').trim().slice(0,24),takenBy:h&&!(h===o.x||o.x.contains(h))?(h.getAttribute('data-ct')||h.tagName):null};})};});
+        L.note('M6c 730x375 notChecked (routed, not asserted): '+JSON.stringify(all));
+      }
     }
     await b.close();
   }
+  /* SF TC-GL-011 [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-2026-10-01]:
+     A STEP THAT ARRIVES AFTER HIDE. _steps' fallback branch (no bar up when a step fires) built a bar with no hold until #547, so it
+     came back with neither a Hide control nor a timer - stuck for good. No ask card carries steps, so no gate could reach that
+     branch; chess.jsx's ct_scsteps seam gives the manual card one step at STEP_MS. Each state is proven reached before its claim
+     [#385]: the bar is up after the tap, gone after Hide, and BACK after the step (so the fallback really ran) before SF3 asks
+     whether it came back hideable. CONTROL: a trial bundle with the fallback's hold removed (the #452 code) reddens SF3 and SF4. */
+  {const STEP_MS=4500;
+   const b=await L.launch({geo:'kunal761',name:'steps-fallback',store:{ct_pool:'3',ct_scsteps:String(STEP_MS)}});await b.open();
+   await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+   const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+   const found=await card.count();
+   L.say(found>0,'SF TC-GL-011 PRECONDITION the manual card "'+MANUAL_CARD+'" is on the gallery to tap',{found});
+   if(found>0){
+     const t0=Date.now();await card.click();await b.settle(800);
+     const q=()=>b.page.evaluate(()=>({up:!!document.querySelector('[data-ct="rec-cap"]'),done:!!document.querySelector('[data-ct="rec-cap-done"]')}));
+     const s0=await q();
+     L.say(s0.up&&s0.done,'SF1 TC-GL-011 the held bar and its Hide control are up just after the tap',s0);
+     if(s0.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(300);}
+     const s1=await q();const hidAt=Date.now()-t0;
+     L.say(!s1.up&&hidAt<STEP_MS,'SF2 TC-GL-011 PRECONDITION Hide cleared the bar BEFORE the step fires ('+hidAt+'ms < '+STEP_MS+'ms), so the step lands on the fallback branch',{s1,hidAt});
+     while(Date.now()-t0<STEP_MS+1500)await b.settle(500);
+     const s2=await q();
+     L.say(s2.up,'SF2b TC-GL-011 PRECONDITION the step brought the bar back (the fallback branch ran)',s2);
+     if(s2.up){
+       L.say(s2.done,'SF3 TC-GL-011 a bar brought back by a step after Hide still carries its Hide control - it is never stuck',s2);
+       if(s2.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(300);}
+       const s3=await q();
+       L.say(!s3.up,'SF4 TC-GL-011 and that Hide control clears it',s3);
+     }else L.note('SF3/SF4 not asserted: the step did not bring the bar back, which is SF2b\'s red above');
+   }
+   L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'SF TC-GL-011 zero app errors',b.errs.slice(0,2));
+   await b.close();}
   /* Q: THE QUEUE'S OWN LENGTHS, POSITIVELY [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-
      which-is-its-success-condition-2026-10-01, TC-GL-003]. The empty queue is the queue's SUCCESS condition and until now no
      gate could reach it: the guard above only stopped the walk from throwing when it arrived. chess.jsx now honours
