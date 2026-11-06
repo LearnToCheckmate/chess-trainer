@@ -351,8 +351,18 @@ const pair=(n,tag,clean,inj,px,engages)=>{
 //          EXCLUDES from DCELLS - three runs, 3 of 3 identical, 11 pass / 4 fail, red = D6, D8, D9, D9b. D6's
 //          practice frames oscillate 374.23 / 358.23 against a settled 358.23. A natural control on main, recorded
 //          and not added as a cell, for the reason #544 gives.
-//      UNCONTROLLED, NAMED: D5 (the CLEAN arm's removed-phase frames, none wider than its settled width). None of
-//          (i), (ii) or (iii) reddens it, and no bundle in this project has been shown to. The denominators D2, D3,
+//      (iv) #549's control for D5, bundle 1a505e703b1f [#549, item (57); same job]: D5 USED TO BE NAMED HERE AS
+//          UNCONTROLLED - none of (i), (ii) or (iii) reddens it. The defect D5 exists for is a wrong-size board painted
+//          on the ORDINARY path after the board has settled, with nothing injected. THE RECIPE, one edit with CT_OUT:
+//          in chess.jsx, immediately above the pre-paint refit's `useLayoutEffect` (search `const _lessonFit=`), add
+//          `useEffect(()=>{if(!(mode==='learn'&&learnPhase==='practice'))return;const t=setTimeout(()=>{setBoardTrim(0);setFitBump(b=>b+1);},2600);return()=>clearTimeout(t);},[mode,learnPhase]);`
+//          - a late idle re-fit 2.6s into practice that resets the trim and lets the rAF loop re-settle, so it lands
+//          inside the removed phase (labelled at click + 1600ms) of BOTH arms. Whole gate on HEAD b12fd21, two runs
+//          (finished 11:03Z and 11:10Z, 6 Nov 2026): 146 pass / 6 fail of 152 both times, red = D5, D7 and D9 at 320x540 and
+//          375x568 and nothing else. D5's offending frame is the full-size board, 320 against a settled 236.39 and
+//          358.88 against 270.88. D5 stays GREEN at 375x730, 375x761 and 375x761 104, because the board is width-bound
+//          there and the full-size board IS the settled one (375.03), so no wider frame can exist to catch - a limit
+//          of the geometry, not of the assertion. So no block-D detector is now uncontrolled. The denominators D2, D3,
 //          D9b and the error lines D10 and D11 are preconditions, not detectors, and are not listed as controlled.
 //   AND D4 ALREADY CAUGHT SOMETHING NOBODY HAD FILED (this paragraph called it D1): on main, at 375x568, the CLEAN arm paints one frame at
 //      270.88 when the settled practice board is 254.88 - a one-frame board jump on the ordinary lesson path,
