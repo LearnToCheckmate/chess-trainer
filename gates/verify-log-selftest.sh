@@ -818,6 +818,9 @@ if [ -r "$FRREAL" ] && [ -n "$FRSEED" ] && grep -q "^gate manifest: $FRF require
   frmk "$FRDIR/huge.log"    "1234567"      "$FRD"         "$FRD"
   grep -v '^gate reqset:' "$FRDIR/ok.log" | sed 's/#548/#550/g' > "$FRDIR/era550-fields-notoken.log"
   sed 's/#548/#550/g' "$FRREAL" > "$FRDIR/era550-short.log"
+  sed 's/#548/#549/g' "$FRREAL" > "$FRDIR/era549-short.log"   # A5-R5: the era starts at #549 itself
+  grep -v '^gate reqset:' "$FRDIR/ok.log" | sed 's/#548/#549/g' > "$FRDIR/era549-fields-notoken.log"
+  sed 's/#548/#549/g' "$FRDIR/ok.log" > "$FRDIR/era549-ok.log"
   ckmsg "FR0 a 548d copy at the register's seed state, with the VERIFIED token, is accepted and SAYS the floor arm ran" 0 'is affirmatively logged as VERIFIED' "$VL" "$FRDIR/ok.log" '#548'
   ckmsg "FR1 the real 548d-all.log (8-field line, #548) is accepted and REPORTS the floor as NOT CHECKED"            0 'gate-required floor: NOT CHECKED' "$VL" "$FRREAL" '#548'
   ckmsg "FR2 a NOT-CHECKED floor/reqset token is REFUSED, naming the register"                                      1 'could not read gates/gate-required-floor.tsv' "$VL" "$FRDIR/nc.log" '#548'
@@ -829,6 +832,9 @@ if [ -r "$FRREAL" ] && [ -n "$FRSEED" ] && grep -q "^gate manifest: $FRF require
   ckmsg "FR8 a seven-digit floor does not parse and is REFUSED rather than reaching an unbounded test"               1 'does not parse' "$VL" "$FRDIR/huge.log" '#548'
   ckmsg "FR10 a #550 log whose manifest line LACKS the floor fields is REFUSED (the era test)"                      1 "carries no 'N floor, <hex> reqset' fields" "$VL" "$FRDIR/era550-short.log" '#550'
   ckmsg "FR11 and a #550 log that carries the fields is checked by the arms, not by the era (here: no token)"        1 'required-set digest not verified' "$VL" "$FRDIR/era550-fields-notoken.log" '#550'
+  ckmsg "FR12 a #549 log whose manifest line LACKS the floor fields is REFUSED - #549's own push log is in the era [A5-R5]" 1 "carries no 'N floor, <hex> reqset' fields" "$VL" "$FRDIR/era549-short.log" '#549'
+  ckmsg "FR13 and a #549 log that carries the fields with no token is refused by arm 3, not by the era"             1 'required-set digest not verified' "$VL" "$FRDIR/era549-fields-notoken.log" '#549'
+  ckmsg "FR14 and a #549 log that carries the fields and the VERIFIED token is ACCEPTED (the era does not over-refuse)" 0 'is affirmatively logged as VERIFIED' "$VL" "$FRDIR/era549-ok.log" '#549'
   rm -f "$TD/gates/gate-required-floor.tsv"
   ckmsg "FR9 with NO register on the tree, a log carrying a floor is REFUSED, not passed on arm 1 alone"            1 'is not on this tree' "$VL" "$FRDIR/ok.log" '#548'
 else

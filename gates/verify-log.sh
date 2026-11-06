@@ -32,7 +32,7 @@
 #      gates/gate-required-floor.tsv records (a test of the log against something outside it); arm 3, the log
 #      carries `gate reqset: VERIFIED against the register (<that digest>)`, the token gatemanifest.sh prints
 #      only when the comparison RAN - so a skipped comparison reads as a missing token, not as a pass. A
-#      NOT-CHECKED floor or reqset token, and an absent register, are REFUSALS. A log footed #550 or later whose
+#      NOT-CHECKED floor or reqset token, and an absent register, are REFUSALS. A log footed #549 or later whose
 #      manifest line lacks the two fields is refused (the era test MANIERA already uses, for its reason).
 #
 # WHY EACH OF THESE IS HERE, because every one is a mistake that actually happened:
@@ -2006,15 +2006,18 @@ MANIFOOT="$(grep -m1 '^gate manifest:' "$LOG" || true)"
 # FOOT is parsed at line 102 from the footer regex, ~180 lines above here, so this costs nothing.
 MANIERA=0
 case "${FOOT#\#}" in ''|*[!0-9]*) MANIERA=0;; *) [ "${FOOT#\#}" -ge 461 ] && MANIERA=1;; esac
-# #549 item (36). A SECOND ERA FOR THE FLOOR FIELDS, AND WHY IT IS 550 AND NOT 549. From #549 the manifest line
+# #549 item (36). A SECOND ERA FOR THE FLOOR FIELDS, STARTING AT #549 ITSELF. From #549 the manifest line
 # carries `, N floor, <12 hex> reqset`; without an era test, stripping them would fall back to the 8-field regex
-# and switch the floor check off - #461's F1 shape. The era starts at the build AFTER the one that introduces the
-# fields because #549's own suite may legitimately have been launched over a pre-floor tree (a background suite
-# runs from its own clone), and a log that never could carry the fields must not be refused for lacking them.
-# A #549 log THAT CARRIES THEM IS CHECKED IN FULL: the era decides only whether ABSENCE refuses. MEASURED on
-# this tree: no archived gatelog foots a build at or above 550, so the era refuses zero archived logs.
+# and switch the floor check off - #461's F1 shape. The era was first set at #550, the build AFTER the one that
+# introduced the fields, on the ground that #549's own suite might be launched over a pre-floor tree. MOVED TO
+# #549 at fix round 5 [antagonist A's A5-R5]: at 550 the one log the floor could not refuse by absence was
+# #549's own push log, and every #549 suite that can authorise the push runs over a tree carrying cbc5432 (the
+# register and the ten-field line), so such a log CAN carry the fields and must. A #549 suite launched over a
+# pre-floor tree is now refused for lacking them, which is right: that tree is not the one being pushed.
+# MEASURED at fix round 5: claude/agents/gatelogs/ holds no 549* log and the archived-log sweep's verdicts are
+# unchanged by the move, so the era refuses zero archived logs.
 FLOORERA=0
-case "${FOOT#\#}" in ''|*[!0-9]*) FLOORERA=0;; *) [ "${FOOT#\#}" -ge 550 ] && FLOORERA=1;; esac
+case "${FOOT#\#}" in ''|*[!0-9]*) FLOORERA=0;; *) [ "${FOOT#\#}" -ge 549 ] && FLOORERA=1;; esac
 MANIFLOOR=""; MANIREQSET=""; FLOORNOTE=""
 if [ -n "$MANIFOOT" ]; then
   # HERESTRING, NOT A PIPE [antagonist A's veto 1 on #461]: `printf | grep -q` under `set -o pipefail` reports
@@ -2501,7 +2504,7 @@ echo "OK: $LOG is a full-suite green for $FOOT ($(grep -c '^=== ' "$LOG") suites
 if [ -n "$FLOORNOTE" ]; then
   echo "    gate-required $FLOORNOTE"
 else
-  echo "    gate-required floor: NOT CHECKED - this log's manifest line carries no floor field ($FOOT predates #550's"
+  echo "    gate-required floor: NOT CHECKED - this log's manifest line carries no floor field ($FOOT predates #549's"
   echo "      requirement), so nothing here says whether its tree required fewer gates than an accepted tree did."
 fi
 # AND SAY WHAT THAT OK IS NOT, EVERY TIME. Added #450. "OK" above is a statement about the SUITE: these
