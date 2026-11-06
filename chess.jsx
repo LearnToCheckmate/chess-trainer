@@ -3292,6 +3292,7 @@ export default function App(){
   const [fbMap,setFbMap]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_feedback')||'{}');}catch{return{};}});
   const [achv,setAchv]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_achv')||'[]');}catch{return[];}});
   const [achvOpen,setAchvOpen]=useState(false);
+  const [progOpen,setProgOpen]=useState(false); // #549 item (27): the Review screen's YOUR PROGRESS panel, one line until tapped
   const [friendsOpen,setFriendsOpen]=useState(false);
   const [friendsData,setFriendsData]=useState({incoming:[],friends:[]});
   const [friendIdInput,setFriendIdInput]=useState('');
@@ -8191,8 +8192,16 @@ export default function App(){
             <div style={{fontSize:'clamp(15px,3.4vw,17px)',color:'var(--ac2)',fontWeight:600,marginTop:3,lineHeight:1.45}}>Pull in your games from Chess.com or Lichess and review them all. Unlimited and free.</div>
           </div>
           {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReal=gk.filter(k=>GS[k]&&GS[k].src!=='est');const gReviewed=gReal.length;let tB=0;gReal.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gk.length>0||pTot>0||pzXP>0||(ccGames&&ccGames.length>0);   /* #547 item (99): shown from FIRST PAINT when the list has games, so the background pass's first tally cannot mount it above the list and push every row 253px down */ /* #547 item (67): the tiles count REAL reviews only; the panel still shows on ANY entry */if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliancies',tB,'#22d3ee']];return(
-            <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:14,padding:'12px 12px',boxShadow:SHADOW_BOX}}>
-              <div style={{fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginBottom:10}}>Your progress</div>
+            <div data-ct="prog-panel" style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:14,padding:0,boxShadow:SHADOW_BOX}}>
+              {/* #549 item (27), Kunal's "collapse" on questions/B9-TALLIED-ROW: the panel is ONE LINE that opens on tap, so the
+                  first tallied game row (124px) sits wholly above the tab bar at 375x761 and 375x679. It starts closed on every visit.
+                  Amber: flags/amber-549-progress-one-line (the summary wording, and not remembering the open state). */}
+              <button data-ct="prog-toggle" onClick={()=>setProgOpen(o=>!o)} aria-expanded={progOpen} style={{display:'flex',alignItems:'center',gap:10,width:'100%',minHeight:44,padding:'11px 12px',background:'transparent',border:'none',color:'#fff',cursor:'pointer',textAlign:'left'}}>
+                <span style={{flexShrink:0,fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',lineHeight:1.2}}>Your progress</span>
+                <span data-ct="prog-summary" style={{flex:1,minWidth:0,textAlign:'right',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.75)',fontWeight:700,lineHeight:1.2}}>{gReviewed} reviewed {'\u00b7'} {pTot} solved</span>
+                <span aria-hidden="true" style={{flexShrink:0,fontSize:16,color:'var(--ac2)',opacity:.8,lineHeight:1,transform:progOpen?'rotate(90deg)':'none'}}>›</span>
+              </button>
+              {progOpen&&(<div data-ct="prog-body" style={{padding:'0 12px 12px'}}>
               <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:9}}>
                 {cells.map(([lab,val,col])=>(<div key={lab} style={{background:'rgba(255,255,255,.04)',borderRadius:11,padding:'10px 6px',textAlign:'center'}}><div style={{fontSize:'clamp(18px,5vw,24px)',fontWeight:900,color:col,lineHeight:1}}>{val}</div><div style={{fontSize:'clamp(14.5px,3.1vw,15px)',color:'rgba(255,255,255,.6)',fontWeight:600,marginTop:4,lineHeight:1.2}}>{lab}</div></div>))}
               </div>
@@ -8203,6 +8212,7 @@ export default function App(){
                 <span style={{fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:800}}>{(achv||[]).length}/{ACHV.length}</span>
                 <span style={{fontSize:18,color:'var(--ac2)',opacity:.6}}>›</span>
               </div>
+              </div>)}
             </div>);})()}
           {myMistakes.length>0&&(<button onClick={startMistakes} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(240,162,78,.2),rgba(240,162,78,.06))',border:'1px solid rgba(240,162,78,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
             <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>

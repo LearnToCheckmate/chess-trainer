@@ -1514,13 +1514,17 @@ function mkTap(b,READ){
     const est=(i)=>({bril:1,great:2,inacc:1,mist:0,blun:0,src:'est',gv:1});
     const rev=(i)=>({bril:2,great:3,inacc:0,mist:0,blun:0,src:'review',engine:'sf',gv:1});
     const mk=(nEst,nRev)=>{const o={};for(let i=0;i<nEst;i++)o['cc:'+(1789000000000+i)+':kunal2023:opp'+i]=est(i);for(let i=0;i<nRev;i++)o['cc:'+(1790000000000+i)+':kunal2023:rev'+i]=rev(i);return o;};
+    // #549 item (27): the panel is one line until tapped (Kunal's "collapse" on questions/B9-TALLIED-ROW), so the tiles this case
+    // reads are behind a tap. Found by its TEXT, not by the build's hook; a no-op on a bundle whose tiles already show.
+    const openProg=(b)=>b.page.evaluate(()=>{const t=(document.body.innerText||'');if(/Games\s+reviewed/i.test(t))return 'already';
+      const btn=[...document.querySelectorAll('button')].find(x=>/^your progress/i.test((x.innerText||'').trim()));if(!btn)return 'none';btn.click();return 'tapped';}).then(async v=>{await b.settle(300);return v;});
     const panel=(b)=>b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
       const num=(lab)=>{const m=new RegExp('(\\d+) '+lab,'i').exec(t);return m?+m[1]:null;};
       let achv=[];try{achv=JSON.parse(localStorage.getItem('ct_achv')||'[]');}catch(e){}
       return {shown:/Your progress/i.test(t),reviewed:num('Games reviewed'),bril:num('Brilliancies'),achv};});
     for(const [tag,nEst,nRev,wantRev,wantBril,rv1,rv10] of [['7 est',7,0,0,0,false,false],['7 est + 1 review',7,1,1,2,true,false],['4 est + 9 review',4,9,9,18,true,false]]){
       const b=await L.launch({geo:'kunal730',name:'r49-'+nEst+'-'+nRev,store:{ct_pool:'3',ct_gamestats:mk(nEst,nRev)}});await b.open();
-      await b.tile('Review');await b.settle(1200);
+      await b.tile('Review');await b.settle(1200);await openProg(b);
       const r=await panel(b);
       L.say(r.shown,'375x730 '+tag+': TC-R49 PRECONDITION the Your progress panel is on the Review screen (it shows on ANY entry, estimates included, so the Achievements link stays reachable)',r);
       L.say(r.reviewed===wantRev,'375x730 '+tag+': TC-R49 "Games reviewed" counts REAL reviews only and reads '+wantRev+' ('+r.reviewed+'); an estimate is not a game the player reviewed',r);
@@ -1533,7 +1537,7 @@ function mkTap(b,READ){
     // first (67) counted src==='review' and so dropped every legacy review from Games reviewed. Two legacy reviews + 3 estimates.
     {const leg=(i)=>({bril:1,great:0,inacc:0,mist:0,blun:0,engine:'sf',gv:1});const o=mk(3,0);o['cc:1788000000000:kunal2023:old0']=leg(0);o['cc:1788000000001:kunal2023:old1']=leg(1);
      const b=await L.launch({geo:'kunal730',name:'r49-legacy',store:{ct_pool:'3',ct_gamestats:o}});await b.open();
-     await b.tile('Review');await b.settle(1200);const r=await panel(b);
+     await b.tile('Review');await b.settle(1200);await openProg(b);const r=await panel(b);
      L.say(r.shown,'375x730 legacy: TC-R49 PRECONDITION the Your progress panel is on the Review screen',r);
      L.say(r.reviewed===2,'375x730 legacy: TC-R49 two full reviews stored before #331 (no src) still count as reviewed games - only the estimates (src est) are left out',r);
      await b.close();}
@@ -1609,6 +1613,39 @@ function mkTap(b,READ){
     const after=await b.page.evaluate(()=>['gf-bril','gf-blun','gf-mist'].filter(k=>{const e=document.querySelector('[data-ct="'+k+'"]');if(!e)return false;const x=e.getBoundingClientRect();return x.width>2&&x.height>2;}));
     L.say(opened&&after.length===3,'TC-R104 and one tap on the Filter button paints the three grade chips',{opened,after});
     await b.close();
+  }
+  // ── I, TC-R110 [#549 item (27); jobs/the-first-tallied-game-row-is-still-below-the-tab-bar-on-kunals-phone-2026-11-05, Kunal's
+  // "collapse" on questions/B9-TALLIED-ROW]: A TALLIED FIRST ROW IS WHOLLY ABOVE THE TAB BAR AT BOTH 375 COLUMNS. TC-R104's fixture
+  // row is 72px, which is why that case held while the real row did not: ten Opera games on one account, tallied by the app's own
+  // background pass (EST badge, brilliant line, grade counts: 124px). Measured on #549 HEAD a4949b532459: row 614.9..738.9 under a
+  // tab bar at 705 (kunal761) and 623 (kunal). The fix collapses YOUR PROGRESS (242.7px) to one line that opens on tap. Found by
+  // TEXT, never by the build's new hooks (#432): the panel is the bordered box around the "Your progress" label.
+  {const src=require('fs').readFileSync(require('path').join(__dirname,'20-review.js'),'utf8');const OPERA=eval(src.match(/^const PGN=(.*);$/m)[1]);
+   const rows=[];for(let i=0;i<10;i++)rows.push({src:'cc',acct:'me',pgn:OPERA.replace('Morphy','me').replace('1858.11.02','2026.08.'+String(1+i).padStart(2,'0')).replace('Duke Karl / Count Isouard','opp'+i),white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:1789000000000+i*1e6});
+   for(const geo of ['kunal761','kunal']){
+    const b=await L.launch({geo,name:'I-tallied-fold-'+geo,store:{ct_ccuser:'',ct_liuser:'',ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows},ct_pool:'3'}});
+    await b.open();await b.tile('Review');
+    const M=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');const q=e?e.getBoundingClientRect():null;
+      const tb=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/Discover/.test(d.innerText||'')&&/Puzzles/.test(d.innerText||'')).map(d=>d.getBoundingClientRect().top).sort((a,c)=>c-a)[0];
+      // the PANEL, not its label: the nearest bordered box above the element whose own text is exactly "Your progress" (the
+      // label alone is 16px on any bundle, which made a first draft of the one-line assertion pass on the uncollapsed panel)
+      const lab=[...document.querySelectorAll('div,span')].find(x=>/^your progress$/i.test((x.innerText||'').trim()));let pe=lab;
+      while(pe&&pe!==document.body&&!(parseFloat(getComputedStyle(pe).borderTopWidth)>0))pe=pe.parentElement;
+      const pan=(pe&&pe!==document.body)?{h:pe.getBoundingClientRect().height,t:(pe.innerText||'').replace(/\s+/g,' ')}:null;
+      const r1=v=>v==null?null:Math.round(v*10)/10;
+      return {n:document.querySelectorAll('[data-ct="game-row"]').length,top:q&&r1(q.top),bot:q&&r1(q.bottom),h:q&&r1(q.height),tally:!!(e&&e.querySelector('[data-ct="gstat-est"],[data-ct="gstat-rev"]')),
+        brilLine:!!(e&&/brilliant/i.test(e.innerText||'')),tabTop:r1(tb),panH:pan&&r1(pan.h),panTiles:!!(pan&&/Games reviewed/i.test(pan.t)&&/Achievements/i.test(pan.t))};});
+    let r=null;for(let k=0;k<60;k++){r=await M();if(r.tally&&r.brilLine)break;await b.page.waitForTimeout(250);}
+    await b.settle(600);r=await M();
+    L.say(r.n===10&&r.tally&&r.brilLine&&r.tabTop!=null,geo+': TC-R110 PRECONDITION ten games on one account, the first row TALLIED (EST/grade badge and the brilliant line) and the tab bar found',r);
+    L.say(r.h>=124,geo+': TC-R110 DENOMINATOR the first row is the tall tallied row, at least 124px ('+r.h+'), not TC-R104\'s 72px fixture',r);
+    L.say(r.bot!=null&&r.tabTop!=null&&r.bot<=r.tabTop,geo+': TC-R110 the WHOLE first tallied game row is above the tab bar on arrival (row '+r.top+'..'+r.bot+', tab bar '+r.tabTop+')',r);
+    L.say(r.panH!=null&&r.panH<=60&&!r.panTiles,geo+': TC-R110 YOUR PROGRESS is ONE line at rest ('+r.panH+'px, tiles hidden) - the layout Kunal chose',r);
+    const tap=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^your progress/i.test((x.innerText||'').trim()));if(!btn)return false;btn.click();return true;});
+    await b.settle(400);const o=await M();
+    L.say(tap&&o.panTiles&&o.panH>r.panH+100,geo+': TC-R110 and one tap on that line opens it in place: the six tiles and the Achievements row show ('+o.panH+'px)',{tap,panH:o.panH,panTiles:o.panTiles});
+    L.say(b.errs.length===0,geo+': TC-R110 zero app errors',b.errs.slice(0,2));
+    await b.close();}
   }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});
