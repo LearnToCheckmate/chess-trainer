@@ -63,7 +63,18 @@ const BLOCK=/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.c
 // as a historical column because 43 gate files still pin numbers measured there; 'kunal' stays 375x679 as the
 // shorter-phone column. Each pinned assertion moves to 761 deliberately, one gate at a time, rather than having
 // every expected number change at once inside an unrelated build.
-const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (which settled 375x761), kept for gates pinned here'},kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column'},kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31'},'390':{w:390,h:844,safe:'',label:'390x844'},'430':{w:430,h:932,safe:'',label:'430x932'},se:{w:320,h:568,safe:'',label:'320x568'},
+// EACH ENTRY CARRIES A ONE-LINE `why` [#549 item (111); jobs/harness-names-three-of-seven-geometries-2026-09-27]. The
+// orchestrator ruled on 2026-11-04 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04,
+// on Kunal's word) that THIS table, not prompts/uat-internal-challenger's 3.3 list, is the one authoritative geometry
+// list: it names every geometry the lane uses, 375x761 as his phone (R19), each with a one-line why.
+// gates/audit/geometry-sets.sh G6 refuses an entry without one, so a new column cannot arrive unexplained.
+const GEOS={
+kunal761:{w:375,h:761,safe:'51,31',label:'375x761 with ct_safe 51,31',why:"Kunal's phone (R19, settled 2026-10-03): iPhone 15 Pro Max at Larger Text, 375x812pt less the 51px top inset. NEW GATES USE IT."},
+kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (which settled 375x761), kept for gates pinned here',why:'the 2026-09-13 layout-viewport reading R19 superseded; kept as a column because gates still pin numbers measured here, and a member of THE DRILL SEVEN and THE LESSON THREE.'},
+kunal:{w:375,h:679,safe:'',label:'375x679 = shorter-phone column',why:'the 2026-09-12 usable-area figure (the 51pt bar subtracted twice); kept as the shorter-phone column CLAUDE.md names.'},
+'390':{w:390,h:844,safe:'',label:'390x844',why:'the wider-phone column CLAUDE.md names; a member of THE DRILL SEVEN and THE LESSON THREE.'},
+'430':{w:430,h:932,safe:'',label:'430x932',why:'the widest-and-tallest column outside TA-7, for layouts that only fail with spare width and height (gates 38, 39, 45, 47, 48, 49).'},
+se:{w:320,h:568,safe:'',label:'320x568',why:'the narrowest named screen and the shortest of THE DRILL SEVEN, where width and height both run out first; a member of THE DRILL SEVEN and THE LESSON THREE.'},
 // #406, from SIT run 5: "a geometry list has TWO axes and this project has only ever laddered one". Every
 // geometry above either is narrow AND short or wide AND tall, so NO size in this list, in the headless UAT's
 // nine, or in #404's own sweep table had width >= 360 AND height <= 600. That corner is where the lesson
@@ -72,12 +83,12 @@ const GEOS={kunal730:{w:375,h:730,safe:'',label:'375x730 = superseded by R19 (wh
 // 18.91px off a 360x568 screen, 11.41px off 375x568 and 3.91px off 390x568, unchanged from #403, while #404's
 // viewport-width threshold could not reach it by construction. `short375` is that corner, and it is a real
 // phone shape: a 375-wide device in a browser with a large toolbar, or any 16:9 Android at 375dp.
-short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover'},
+short375:{w:375,h:568,safe:'',label:'375x568 = the wide-and-short corner nothing used to cover',why:'the wide-and-short corner (#406): width >= 360 AND height <= 600, where the height-fit lesson board leaves rows to overhang.'},
 // #545, item (40) [jobs/harness-names-three-of-seven-geometries-2026-09-27]: the four geometries of THE DRILL SEVEN
 // (claude/stories/USER-STORIES.md; gate 51's ALLGEOS, which that gate calls TA-7) that had no name here, so a gate
 // reached them only by typing a WxH literal. Named, not swept: no gate's geometry list changes by being given a name.
-w360:{w:360,h:640,safe:'',label:'360x640 (TA-7)'},w375h667:{w:375,h:667,safe:'',label:'375x667 (TA-7)'},
-w414:{w:414,h:896,safe:'',label:'414x896 (TA-7)'},w440:{w:440,h:956,safe:'',label:'440x956 (TA-7)'}};
+w360:{w:360,h:640,safe:'',label:'360x640 (TA-7)',why:'a member of THE DRILL SEVEN (prompts/test-authoring TA-7), driven by gate 51; named so no gate reaches it by a WxH literal.'},w375h667:{w:375,h:667,safe:'',label:'375x667 (TA-7)',why:'a member of THE DRILL SEVEN (prompts/test-authoring TA-7), driven by gate 51; named so no gate reaches it by a WxH literal.'},
+w414:{w:414,h:896,safe:'',label:'414x896 (TA-7)',why:'a member of THE DRILL SEVEN (prompts/test-authoring TA-7), driven by gate 51; named so no gate reaches it by a WxH literal.'},w440:{w:440,h:956,safe:'',label:'440x956 (TA-7)',why:'a member of THE DRILL SEVEN (prompts/test-authoring TA-7), driven by gate 51; named so no gate reaches it by a WxH literal.'}};
 // THE DRILL SEVEN as GEOS names, in gate 51's order. gates/audit/geometry-sets.sh G4 holds this equal to gate 51's
 // ALLGEOS, so a gate that iterates L.TA7 cannot silently cover six.
 const TA7=['se','w360','w375h667','kunal730','390','w414','w440'];

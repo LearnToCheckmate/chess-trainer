@@ -16,6 +16,9 @@
 #   G3 no line of USER-STORIES.md or TEST-CASES.md uses "supported geometry" except inside double quotes
 #      (a quoted mention is the record of the old wording, which the register keeps on purpose)
 #   G5 the sets section says its 375x730 member is the gates' column and names 375x761 as the device (prompts/common R19)
+#   G6 every gates/lib.js GEOS entry carries a one-line `why` (the authoritative list, orchestrator ruling of
+#      2026-11-04 on job 111), and the one entry that emulates the inset phone (safe set, 375x761) names R19 and
+#      the phone in it. Read by PROPERTY (w, h, safe), never by key name. G6a is the non-empty denominator.
 #   G0 each set was FOUND before anything was compared [the empty-denominator class: reported, never credited]
 # USAGE   bash gates/audit/geometry-sets.sh [repo-dir]      exit 0 all hold, 1 any fails, 2 a source unreadable
 #         bash gates/audit/geometry-sets.sh --selftest      the controls
@@ -44,6 +47,12 @@ check(){ # <repo-dir>
     say(t7.length>0&&t7.join()===a51.join(), "G4 gates/lib.js TA7 resolves to gate 51 ALLGEOS member for member: lib ["+t7.join(" ")+"] gate ["+a51.join(" ")+"]");
     const si=us.indexOf("### THE GEOMETRY SETS, NAMED ONCE"),sj=si<0?-1:us.indexOf("\n### ",si+5),sec=si<0?"":us.slice(si,sj<0?undefined:sj);
     say(/\b375x761\b/.test(sec)&&/R19/.test(sec)&&/375x730[^.]*(gate|GATE)/.test(sec), "G5 the sets section says 375x730 is the gates column and names 375x761 as the device under R19 (#545 item (55))");
+    const ge=Object.entries(lib.GEOS||{});
+    say(ge.length>0, "G6a gates/lib.js GEOS was FOUND ("+ge.length+" entries)");
+    const nowhy=ge.filter(([k,v])=>typeof v.why!=="string"||v.why.trim().length<20||/\n/.test(v.why)).map(([k])=>k);
+    say(ge.length>0&&nowhy.length===0, "G6b every GEOS entry carries a one-line why of 20+ characters ("+(ge.length-nowhy.length)+" of "+ge.length+(nowhy.length?"; missing: "+nowhy.join(" "):"")+")");
+    const ph=ge.filter(([k,v])=>v.w===375&&v.h===761&&v.safe);
+    say(ph.length===1&&/R19/.test(ph[0][1].why||"")&&/phone/i.test(ph[0][1].why||""), "G6c exactly one GEOS entry is 375x761 with insets ("+ph.length+") and its why names R19 and the phone");
     const live=[];for(const [f,t] of [["USER-STORIES.md",us],["TEST-CASES.md",tc]])t.split("\n").forEach((l,i)=>{
       const unq=l.replace(/"[^"]*"/g,"");if(/supported geometr/i.test(unq))live.push(f+":"+(i+1));});
     say(live.length===0, "G3 no clause uses \"supported geometry\" as a live term outside double quotes ("+live.length+(live.length?": "+live.join(" "):"")+")");
@@ -66,6 +75,8 @@ selftest(){
   mk; sed -i 's/\*\*THE DRILL SEVEN\*\*/**THE DRILL 7**/' "$T/r/claude/stories/USER-STORIES.md"; ck "S5 a renamed set heading is NOT credited (G0 reddens)" 1
   mk; sed -i "s/const TA7=\['se','w360'/const TA7=['se'/" "$T/r/gates/lib.js"; ck "S6 a TA7 that drops one geometry reddens G4" 1
   mk; python3 -c "import sys,re;p=sys.argv[1];s=open(p).read();i=s.index('**375x730 IN BOTH SETS');j=s.index('about what a set means.',i)+len('about what a set means.');open(p,'w').write(s[:i]+s[j:])" "$T/r/claude/stories/USER-STORIES.md"; ck "S7 deleting the device and ordering paragraphs reddens G5" 1
+  mk; python3 -c "import sys,re;p=sys.argv[1];s=open(p).read();s2=re.sub(r\",why:'[^']*'\}\",'}',s,count=1);assert s2!=s;open(p,'w').write(s2)" "$T/r/gates/lib.js"; ck "S8 a GEOS entry with its why removed reddens G6b" 1
+  mk; sed -i 's/why:"Kunal.s phone (R19, settled 2026-10-03)/why:"the device, settled 2026-10-03/' "$T/r/gates/lib.js"; ck "S9 the 375x761 entry's why losing R19 and the phone reddens G6c" 1
   echo "geometry-sets selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
 
