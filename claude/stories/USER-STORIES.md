@@ -1605,6 +1605,13 @@ As a player working towards Mastered, a flawless day means a run with no wrong m
 As a player choosing a computer opponent on a phone, I can tell there are more bots to the right and reach the strongest one.
 - While a bot is hidden past the row's edge, a "›" chip shows in the row; tapping it scrolls the row until the last bot is fully in view, and then it goes. (TC-PL-047)
 
+### US-PL-23 A number the app shows about the computer opponent is the number it is set to
+*Added #549 item (39), from jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-2026-10-08 (Kunal chose "name-stays" on questions/bot-strength-shown-on-tile-and-bar-2026-10-10); it carries the tile half of jobs/bot-tile-advertises-the-nominal-rating-while-the-live-strength-is-elsewhere-and-off-screen-2026-09-29. US-R10 covers the review branch of the same player-bar line.*
+As a player against a named computer character, every strength the app prints for it - the player bar in a game and the selected tile on the New Game sheet - is the strength the computer is set to, which moves by 50 after each result; the character's name and face stay its own.
+- For each of the five characters at 375x761 and 320x568: at the start, after a resignation, and in the next game started without tapping the tile again, the computer's bar prints exactly the stored strength (ct_elo), and on the reopened sheet the selected tile prints it too (after one loss from Pip both read 450). (TC-PS-044)
+- Tapping a character's tile sets its starting number again, and a slider move off the ladder clears the character, so no tile claims a number. (TC-PS-044)
+- The character blurbs do not track strength (Kunal accepted Pip reading "just learning" at any number). Only a loss is driven; the ladder line is symmetric, so a win changes no reader.
+
 ### US-R88 The grade table's White and Black headers sit over their own numbers
 *Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
 As a player reading the grade table, each column's header is directly above its numbers.

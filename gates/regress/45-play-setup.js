@@ -575,4 +575,61 @@ if(blk('J'))for(const geo of ['se','kunal730']){
     }else L.note(geo+': TC-PL-047 every bot fits here, so no chip is required - not credited as a pass');
     await b.close();
   }
+// PS-K  THE NUMBER SHOWN ABOUT THE OPPONENT IS THE NUMBER IT IS SET TO. TC-PS-044 (US-PL-23).
+// [#549 item (39); jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-2026-10-08, Kunal chose
+// "name-stays" on questions/bot-strength-shown-on-tile-and-bar-2026-10-10; it carries the tile half of
+// jobs/bot-tile-advertises-the-nominal-rating-while-the-live-strength-is-elsewhere-and-off-screen-2026-09-29.]
+// The adaptive ladder moves ct_elo by 50 after every result and leaves the chosen character (ct_bot) where it is.
+// For each of the five characters at Kunal's phone and the 320 floor: tap its tile and Start (read point 2), resign
+// the game at move 0 - a real player action that scores, see chess.jsx "#466: A BOARD ENDING THE PLAYER DID NOT PLAY"
+// (read point 4), then reopen the sheet via Home -> Play and press Start without tapping the tile again (read point 6).
+// At every read point the computer's bar ([data-ct^="pbar-rating-"]) must print exactly ct_elo, and at 6 the
+// SELECTED tile (the one carrying its blurb, found by its TEXT, not by any hook this build added) must print ct_elo too.
+// PRECONDITIONS are their own lines: the tile tap set ct_elo to the nominal value, and the resign MOVED it by -50 -
+// without the second, every "equals ct_elo" below would be satisfied by a ladder that never moved.
+// A WIN IS NOT DRIVEN: no input in this suite makes the computer lose (see
+// jobs/two-elomsg-branches-are-unreachable-by-every-input-in-the-suite-2026-09-29); chess.jsx's ladder line is
+// `cpuElo+(winner===pColor?50:-50)`, so the direction does not change which value the readers print. Said by L.note.
+// CT_PS_BLOCKS=K runs only this block.
+const BOTS_K=[['Pip',500],['Rosa',900],['Milo',1300],['Astrid',1900],['Viktor',2350]];
+const RD_K=(b)=>b.page.evaluate(()=>{let elo=null;try{elo=localStorage.getItem('ct_elo');}catch(e){}
+  const bar=[...document.querySelectorAll('[data-ct^="pbar-rating-"]')].map(e=>(e.innerText||'').trim());
+  const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].map(e=>(e.innerText||'').replace(/\s+/g,' ').trim());
+  const sh=document.querySelector('[data-ct="setup-sheet"]');let tiles=[];
+  if(sh)tiles=[...sh.querySelectorAll('button')].map(x=>(x.innerText||'').trim()).filter(t=>/^(Pip|Rosa|Milo|Astrid|Viktor)\n≈ \d+ Elo/.test(t))
+    .map(t=>{const ln=t.split('\n');return {name:ln[0],elo:(ln[1].match(/\d+/)||[''])[0],on:ln.length>=3};});
+  return {elo,bar,bars,tiles,sel:tiles.filter(t=>t.on)};});
+if(blk('K')){
+  const P=require('../drive/play');
+  for(const geo of ['kunal761','se'])for(const [bot,nom] of BOTS_K){
+    const tag=geo+' '+bot;const b=await L.launch({geo,name:'ps-k-'+geo+'-'+bot.toLowerCase()});await b.open();await openSetup(b);
+    let ok=(await TAP(b,'Computer',300))&&(await TAP(b,bot,400))&&(await TAP(b,'White',300));
+    const r1s=await RD_K(b);
+    ok=ok&&(await TAP(b,'▶ Start game',1500));
+    const r2=await RD_K(b);
+    L.say(ok&&r1s.elo===String(nom)&&r2.bars.some(t=>new RegExp('\\b'+bot+'\\b').test(t)),tag+': TC-PS-044 PRECONDITION tapping '+bot+' set ct_elo to its starting '+nom+' and the game against '+bot+' is running',{ok,r1s:{elo:r1s.elo,sel:r1s.sel},bars:r2.bars});
+    L.say(r2.bar.length===1&&r2.bar[0]===r2.elo,tag+': TC-PS-044 (2) at the start the computer\'s bar prints exactly ct_elo',{bar:r2.bar,elo:r2.elo});
+    let okR=true;try{await P.tapBtn(b,/^More$/,500);await P.tapBtn(b,/^Resign$/,600);await P.tapBtn(b,/^Tap again to resign$/,1100);await b.settle(3000);}catch(e){okR=false;}
+    const r4=await RD_K(b);
+    L.say(okR&&r4.elo===String(Math.max(400,nom-50)),tag+': TC-PS-044 PRECONDITION the resignation moved ct_elo by -50 to '+(nom-50)+' while '+bot+' stays chosen',{okR,elo:r4.elo});
+    L.say(r4.bar.length===1&&r4.bar[0]===r4.elo,tag+': TC-PS-044 (4) after the result the computer\'s bar prints exactly ct_elo, not '+bot+'\'s starting '+nom,{bar:r4.bar,elo:r4.elo});
+    await openSetup(b);
+    const r5=await RD_K(b);
+    L.say(r5.sel.length===1&&r5.sel[0].name===bot&&r5.sel[0].elo===r5.elo,tag+': TC-PS-044 (6) on the reopened sheet '+bot+'\'s selected tile prints ct_elo ('+r5.elo+'), the strength it is set to, not its starting '+nom,{sel:r5.sel,elo:r5.elo});
+    let okS=true;try{await P.tapStart(b,1500);}catch(e){okS=false;}
+    const r6=await RD_K(b);
+    L.say(okS&&r6.bar.length===1&&r6.bar[0]===r6.elo&&r6.bars.some(t=>new RegExp('\\b'+bot+'\\b').test(t)),tag+': TC-PS-044 (6) the next game\'s bar still names '+bot+' and prints exactly ct_elo ('+r6.elo+')',{okS,bar:r6.bar,bars:r6.bars,elo:r6.elo});
+    if(geo==='kunal761'&&bot==='Pip'){
+      // ACCEPTANCE C and D of the job's START_HERE card: tapping the tile again resets to the starting number, and a slider
+      // drag off the ladder clears the character (the path that already called setSelBot).
+      await openSetup(b);await TAP(b,'Pip',400);const rc=await RD_K(b);
+      L.say(rc.elo==='500'&&rc.sel.length===1&&rc.sel[0].elo==='500',tag+': TC-PS-044 tapping Pip\'s tile again resets the strength to its starting 500, and the tile says so',{elo:rc.elo,sel:rc.sel});
+      await SET_SLIDER(b,625);await b.settle(400);const rd=await RD_K(b);
+      L.say(rd.elo==='625'&&rd.sel.length===0&&rd.tiles.length===5,tag+': TC-PS-044 a slider move off the ladder (625) clears the character: no tile is selected, so none can claim a number',{elo:rd.elo,sel:rd.sel,n:rd.tiles.length});
+    }
+    L.say(b.errs.filter(e=>!ERR_ALLOWED.test(e)).length===0,tag+': TC-PS-044 zero app errors outside the engine-trap allowance',b.errs.slice(0,3));
+    await b.close();
+  }
+  L.note('TC-PS-044: a WIN is not driven - no input in this suite makes the computer lose; the ladder line is symmetric (+50/-50), so only a loss is measured here');
+}
 },'PLAY-SETUP');

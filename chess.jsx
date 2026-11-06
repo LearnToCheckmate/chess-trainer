@@ -7397,7 +7397,11 @@ export default function App(){
                 <button key={bt.id} onClick={()=>{setSelBot(bt.id);setCpuElo(bt.elo);}} style={{flex:'0 0 auto',width:96,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'8px 6px',borderRadius:14,cursor:'pointer',textAlign:'center',background:on?'rgba(var(--acr),.18)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:'#fff',boxShadow:on?SHADOW_BOX:'none'}}>
                   <BotFace id={bt.id} size={40}/>
                   <span style={{fontSize:'clamp(14px,3.2vw,15px)',fontWeight:800}}>{bt.name}</span>
-                  <span style={{fontSize:'clamp(13px,2.3vw,13px)',color:on?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>≈ {bt.elo} Elo</span>
+                  {/* #549 item (39), US-PL-23, TC-PS-044 [jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-2026-10-08,
+                      Kunal chose "name-stays"]: the SELECTED character's tile states the strength the computer is set to (cpuElo),
+                      which the ladder moves by 50 after every result, so after one loss from Pip it reads 450 like the bar does.
+                      The other tiles keep their starting number, which is what tapping them sets. */}
+                  <span style={{fontSize:'clamp(13px,2.3vw,13px)',color:on?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>≈ {on?cpuElo:bt.elo} Elo</span>
                   {on&&<span style={{fontSize:'clamp(11.5px,2.1vw,11.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.25}}>{bt.blurb}</span>}
                 </button>);})}
             </div>
@@ -9953,7 +9957,7 @@ export default function App(){
           // absent when it fails. [#547, item (68); jobs/bench-the-player-bar-prints-the-stale-bot-label-for-every-live-game-
           // 2026-10-08; Kunal chose "name-stays" on questions/bot-strength-shown-on-tile-and-bar-2026-10-10]: this printed
           // the bot's NOMINAL Elo (bot.elo) for the whole of every game after the first, while the adaptive ladder had moved
-          // cpuElo and the engine played at that. The bot's name stays a name; the number is what the engine plays.
+          // cpuElo and the engine was set to that. The bot's name stays a name; the number is what the engine is set to.
           let rating='';
           if(inReview){const _H=(review&&review.headers)||{};const _r=col==='w'?_H.WhiteElo:_H.BlackElo;if(_r&&/^\d{3,4}$/.test(String(_r).trim()))rating=String(_r).trim();}
           else if(opponent==='computer'&&col!==pColor){rating=cpuElo!=null?String(cpuElo):'';}
