@@ -245,6 +245,11 @@ did not.
 - The card's own work still happens: the lesson loads. This half was ALREADY TRUE while the defect was live -
   it is why the card looked dead rather than broken - and is kept as a separate assertion so that "Home came
   down" can never pass on a card that navigated nowhere. (TC-HM-050a)
+- The clause is checked over its whole class, not over the three cards above: the clickable controls in the Home
+  layer are enumerated off the running screen on a fresh store and on an earned one (which trades NEW HERE for the
+  streak card and turns Daily 3 into "Continue"), the set must equal the declared roster, every control declared
+  as opening a screen must take Home down and land where it named, and every control that opens a sheet must leave
+  Home up. (TC-HM-051a, TC-HM-051b, TC-HM-051c, TC-HM-051d)
 
 Not in scope for this clause: whether the NEW HERE card should exist, what it should say, or which lesson it
 should choose. It picks the first `openings`/`gambits` entry and that is unchanged.
