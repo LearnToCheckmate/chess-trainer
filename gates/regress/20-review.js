@@ -454,7 +454,8 @@ L.run(async()=>{
   // summary that lost its text cannot pass.
   for(const g of ['kunal761','kunal730']){const RV=require('../drive/review');const b=await L.launch({geo:g,name:'r111-menu-over-text-'+g,store:RV.SEED});await b.open();
    let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
-   const inset=g==='kunal761'?51:0;
+   // The top inset is a PROPERTY OF THE GEOMETRY ENTRY (L.GEOS[g].safe, 'top,bottom'), never inferred from its name [#549 veto A1-R2].
+   const inset=+(String((L.GEOS[g]||{}).safe||'').split(',')[0])||0;
    const r=ok?await b.page.evaluate((inset)=>{const s=document.querySelector('[data-ct="rev-summary"]');const mb=document.querySelector('[data-ct="rev-summary-menu"]');if(!s||!mb)return null;
      const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(!sc)return null;
      const max=sc.scrollHeight-sc.clientHeight;const o={max,positions:0,hitPos:0,colPos:0,underInset:0,ex:[],minTop:1e9};

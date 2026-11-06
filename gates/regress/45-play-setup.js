@@ -602,7 +602,10 @@ const RD_K=(b)=>b.page.evaluate(()=>{let elo=null;try{elo=localStorage.getItem('
   return {elo,bar,bars,tiles,sel:tiles.filter(t=>t.on)};});
 if(blk('K')){
   const P=require('../drive/play');
-  for(const geo of ['kunal761','se'])for(const [bot,nom] of BOTS_K){
+  // Each run is DATA: its geometry and which bot (if any) also gets the re-tap and slider sub-block (ACCEPTANCE C and D).
+  // The sub-block belongs to its run, never to a geometry NAME compared in code [#549 veto A1-R2].
+  const RUNS_K=[{geo:'kunal761',reTapBot:'Pip'},{geo:'se',reTapBot:null}];
+  for(const run of RUNS_K)for(const [bot,nom] of BOTS_K){const geo=run.geo;
     const tag=geo+' '+bot;const b=await L.launch({geo,name:'ps-k-'+geo+'-'+bot.toLowerCase()});await b.open();await openSetup(b);
     let ok=(await TAP(b,'Computer',300))&&(await TAP(b,bot,400))&&(await TAP(b,'White',300));
     const r1s=await RD_K(b);
@@ -620,7 +623,7 @@ if(blk('K')){
     let okS=true;try{await P.tapStart(b,1500);}catch(e){okS=false;}
     const r6=await RD_K(b);
     L.say(okS&&r6.bar.length===1&&r6.bar[0]===r6.elo&&r6.bars.some(t=>new RegExp('\\b'+bot+'\\b').test(t)),tag+': TC-PS-044 (6) the next game\'s bar still names '+bot+' and prints exactly ct_elo ('+r6.elo+')',{okS,bar:r6.bar,bars:r6.bars,elo:r6.elo});
-    if(geo==='kunal761'&&bot==='Pip'){
+    if(run.reTapBot===bot){
       // ACCEPTANCE C and D of the job's START_HERE card: tapping the tile again resets to the starting number, and a slider
       // drag off the ladder clears the character (the path that already called setSelBot).
       await openSetup(b);await TAP(b,'Pip',400);const rc=await RD_K(b);
