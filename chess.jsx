@@ -4027,8 +4027,26 @@ export default function App(){
       if(c.getAttribute('aria-hidden')==='true'&&parseFloat(cs.flexGrow)>0&&c.children.length===0){spacers+=r.height;continue;}
       if(r.bottom-rb.top>bottom)bottom=r.bottom-rb.top;
     }
+    /* #549 run fix (fixr3c): THE SAME #364 SWALLOW, ONE LEVEL DOWN, IN A PHONE GAME. The two player bars (flex 1 1 0 above their
+       minHeight) and the moves panel (flex 1 1 auto, #373) grow into whatever room the board leaves, so after ONE transient
+       overflow trims the board they absorb the room that comes back, "over" reads 0 for ever, and the board never grows back.
+       MEASURED on run head 37f44ea at 375x568: a 60px block held in the column for one fit run and then removed left the board
+       at 232 (bars 34.5 -> 50.5, panel 68 -> 98) instead of 296, and the round-3 suite under load measured 256 (gate 36) and the
+       action row 5px narrower at 320x568 (gate 26 TC-INV-01b). Their growth above their own floor is slack, not content. Play only:
+       in a lesson the panel is MEANT to hold the slack (#372), and Review's bars were not measured. */
+    let absorbed=0;
+    if(modeRef.current==='play'){
+      for(const k of ['pbar-top','pbar-bottom']){const e=rEl.querySelector('[data-ct="'+k+'"]');if(!e)continue;const cs=getComputedStyle(e);if(!(parseFloat(cs.flexGrow)>0))continue;
+        absorbed+=Math.max(0,e.getBoundingClientRect().height-(parseFloat(cs.minHeight)||0));}
+      const mp=rEl.querySelector('[data-ct="moves-panel"]');
+      if(mp&&parseFloat(getComputedStyle(mp).flexGrow)>0&&mp.children.length){const cs=getComputedStyle(mp);const r=mp.getBoundingClientRect();
+        const f=mp.firstElementChild.getBoundingClientRect(),l=mp.lastElementChild.getBoundingClientRect();
+        const content=(l.bottom-f.top)+(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0)+(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+        absorbed+=Math.max(0,r.height-content);
+        for(const c of mp.children){const cc=getComputedStyle(c);if(parseFloat(cc.flexGrow)>0)absorbed+=Math.max(0,c.getBoundingClientRect().height-(parseFloat(cc.minHeight)||0));}}   /* the move list inside it grows too (flex 1, minHeight 34) */
+    }
     const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
-    return bottom>0?(bottom-spacers+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+    return bottom>0?(bottom-spacers-absorbed+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
   },[]);
   /* MOVED HERE FROM BESIDE ITS STATE, AND THE REASON IS A MEASURED CRASH, NOT TIDINESS. Declared next to `fitWake`
      above, this effect's dependency list named `wide`, which is a const declared ~300 lines further down, so the
