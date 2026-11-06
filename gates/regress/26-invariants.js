@@ -316,6 +316,7 @@ const ROWS = function(){
     b.unshift(n.getAttribute('data-ct')?('['+n.getAttribute('data-ct')+']'):n.tagName.toLowerCase());}return b.join('>');};
 
   const ctls=[], byWhy={}; let inBoard=0, nested=0, svgKid=0, covered=0; const coveredList=[];
+  window.__ctOccl=[];   // TC-INV-13 [#549 item (75)]: every occluded control, kept for REACH below (a JS property, so the DOM is not touched)
   const isCtl=(e)=>!!why(e);
   for(const e of document.querySelectorAll('*')){
     if(!why(e))continue;
@@ -334,6 +335,7 @@ const ROWS = function(){
     if(hit && hit!==e && !e.contains(hit) && !hit.contains(e)){
       covered++;
       if(coveredList.length<12) coveredList.push({lab:label(e),box:+r.width.toFixed(1)+'x'+r.height.toFixed(1),hitWas:(hit.getAttribute('data-ct')||hit.tagName)});
+      window.__ctOccl.push({e,hit,lab:label(e)});
       continue;
     }
     byWhy[why(e)]=(byWhy[why(e)]||0)+1;
@@ -390,6 +392,66 @@ const ROWS = function(){
           withGlyph:ctls.filter(c=>c.g).length,
           rows:rows.sort((a,b)=>b.spread-a.spread), iconH, allH:Object.keys(allH).map(Number), small};
 };
+
+// ── TC-INV-13 [#549 item (75); jobs/441-three-controls-left-the-scanners-reach-when-the-grade-counts-changed-2026-09-30] ──
+// The occlusion exclusion above asks ONE point, the control's centre, at the screen's scroll position AT REST. So a control
+// a finger brings on screen by scrolling is excluded exactly like one buried for ever, and the COVERED_PIN count cannot
+// tell the two apart. #441 found three controls newly excluded: the grade-count cells behind the pinned rev-summary-foot at
+// 320x568, and 'Bxb5+!' in the Review move strip at 375x730. REACH gives each a DEFINITE verdict the way
+// gates/regress/40-reachability.js does: walk the ancestors, and for each one whose COMPUTED overflow on an axis is auto or
+// scroll AND which has a scroll range on it (a finger cannot scroll overflow:hidden, so script scrolling of one proves
+// nothing), scroll it so the control's centre sits in the middle of that box, RE-READ the rect and hit-test the new centre.
+// Reachable only if that hit is the control itself (or inside it, or its own padding - the rule ROWS uses), and the rect
+// must have MOVED, so a scroller that does not carry this control cannot vouch for it. The scroll is put back before the next
+// assertion reads the screen. scrollIntoView is NOT used: it scrolls overflow:hidden boxes a finger cannot.
+const REACH = async function(spec){
+  const raf=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const pick=(window.__ctOccl||[]).filter(o=>(spec.lab?o.lab===spec.lab:true)&&
+    (spec.within?!!o.e.closest('[data-ct="'+spec.within+'"]'):true)&&
+    (spec.hitWithin?!!(o.hit&&o.hit.closest&&o.hit.closest('[data-ct="'+spec.hitWithin+'"]')):true));
+  const out=[];
+  for(const o of pick){
+    const e=o.e, r0=e.getBoundingClientRect();
+    const v={lab:o.lab, hitAtRest:(o.hit.getAttribute&&o.hit.getAttribute('data-ct'))||o.hit.tagName,
+             restCentre:[+(r0.left+r0.width/2).toFixed(1),+(r0.top+r0.height/2).toFixed(1)], reachable:false, scrollersTried:0};
+    for(let a=e.parentElement;a&&a!==document.documentElement&&!v.reachable;a=a.parentElement){
+      const s=getComputedStyle(a);
+      for(const ax of ['y','x']){
+        const ov=ax==='y'?s.overflowY:s.overflowX;
+        if(ov!=='auto'&&ov!=='scroll')continue;
+        const range=ax==='y'?a.scrollHeight-a.clientHeight:a.scrollWidth-a.clientWidth;
+        if(range<1)continue;
+        v.scrollersTried++;
+        const save={left:a.scrollLeft,top:a.scrollTop};
+        const ar=a.getBoundingClientRect(), er=e.getBoundingClientRect();
+        if(ax==='y') a.scrollTo({top:a.scrollTop+(er.top+er.height/2)-(ar.top+a.clientTop+a.clientHeight/2),behavior:'instant'});
+        else a.scrollTo({left:a.scrollLeft+(er.left+er.width/2)-(ar.left+a.clientLeft+a.clientWidth/2),behavior:'instant'});
+        await raf();
+        const r=e.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+        const moved=+Math.hypot(r.left-er.left,r.top-er.top).toFixed(1);
+        const inVp=cx>=0&&cy>=0&&cx<innerWidth&&cy<innerHeight;
+        const hit=inVp?document.elementFromPoint(cx,cy):null;
+        const ok=moved>0.5&&!!hit&&(hit===e||e.contains(hit)||hit.contains(e));
+        a.scrollTo({left:save.left,top:save.top,behavior:'instant'}); await raf();
+        if(ok){v.reachable=true; v.via=(a.getAttribute('data-ct')||(a.getAttribute('data-mstrip')?'[data-mstrip]':a.tagName.toLowerCase()+'.'+(a.className||''))); v.axis=ax; v.moved=moved; v.scrolledCentre=[+cx.toFixed(1),+cy.toFixed(1)]; break;}
+        v['miss_'+ax+v.scrollersTried]={moved, hit:hit?((hit.getAttribute&&hit.getAttribute('data-ct'))||hit.tagName):null};
+      }
+    }
+    out.push(v);
+  }
+  return out;
+};
+// WHICH CONTROLS, AND WHY THEY ARE NAMED BY WHAT COVERS THEM RATHER THAN BY LABEL: the summary's grade cells are bare
+// numbers ('1', '0', '6', '0'), not unique labels, so they are picked as "the occluded controls INSIDE rev-summary whose
+// centre lands inside rev-summary-foot". Measured on trial b7e80a4958a2 at se: that is FOUR grade cells (the #423 pair and
+// the two #441 added), all reachable by the summary's own y scroller. The `within` half is load-bearing: without it the
+// pick also takes the Home tab bar (Home, Discover, Puzzles, Review, Play) of the screen MOUNTED BEHIND the opaque summary,
+// which REACH correctly calls unreachable (no scroller carries it; it is another screen) - 9 picked, 5 unreachable, red.
+// `n` is the measured member count, asserted in its own line (an empty pick would make the verdict
+// assertion pass over nothing). `want` is the measured verdict. A later build that buries one for good reddens the verdict.
+const REACH_PIN={
+  'se/rev-summary':{spec:{within:'rev-summary',hitWithin:'rev-summary-foot'}, n:4, want:true},
+  'kunal730/rev-why-open':{spec:{lab:'Bxb5+!'}, n:1, want:true}};
 
 // ── INVARIANTS 2 AND 3: THE NEGATIVE CONTROLS, WITH THEIR SCOPE, BECAUSE A COUNT WITH NO SCOPE CANNOT BE CHECKED
 // Command for every row: `CT_INV_GEOS=<geo> CT_APP=<bundle> node gates/regress/26-invariants.js`. One geometry
@@ -1384,6 +1446,16 @@ L.run(async()=>{
             {want:wantLabs, got:gotLabs, which:iv.coveredList});
         } else {
           L.note('      occluded set NOT identity-pinned at this (geometry, screen) - count only. COVERED_LABELS carries '+Object.keys(COVERED_LABELS).length+' of '+Object.keys(COVERED_PIN).length+' entries and the rest are a count pin alone.');
+        }
+        if(Object.prototype.hasOwnProperty.call(REACH_PIN,rk)){
+          const rp=REACH_PIN[rk];
+          const vs=await b.page.evaluate(REACH,rp.spec);
+          for(const v of vs) L.note('      REACH '+v.lab+' at rest hits '+v.hitAtRest+' -> '+(v.reachable?('REACHABLE by scrolling '+v.via+' on '+v.axis+' (moved '+v.moved+'px)'):'UNREACHABLE ('+v.scrollersTried+' scrollers tried)'));
+          L.say(vs.length===rp.n, g+' '+name+': TC-INV-13 PRECONDITION the occluded controls this verdict is about were found - '+rp.n+' picked by '+JSON.stringify(rp.spec)+', so the verdict below is not over an empty set',
+            {want:rp.n, got:vs.length, picked:vs.map(v=>v.lab)});
+          L.say(vs.length>0&&vs.every(v=>v.reachable===rp.want), g+' '+name+': TC-INV-13 every control the occlusion test excludes here is '+(rp.want?'REACHABLE':'UNREACHABLE')+' by a finger - its scroller, scrolled, brings its centre on screen where it hit-tests to the control itself - so the exclusion is a scroll position and not a buried control [#549 item (75)]',
+            {want:rp.want, verdicts:vs});
+          await b.settle(200);
         }
       } else {
         L.note('      NOT PINNED at this geometry: row and occlusion counts are REPORTED here, not asserted (rows '+iv.rows.length+', occluded '+iv.covered+'). Only the three swept geometries carry population pins.');
