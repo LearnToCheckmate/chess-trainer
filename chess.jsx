@@ -1457,7 +1457,16 @@ function explainAnno(a,ctx){
 // so the first paint lands close; the real work is done by the fit loop below, which measures actual overflow and
 // shrinks the board until there is none. Do not tune this number to fix a specific phone - that is what the loop is
 // for, and a constant cannot know about a wrapped name, a two-line reason, a mate score or a larger system font.
-const LESSON_FOOT_GLYPH='clamp(20px,5.4vw,24px)';  // #394 (kunal-lesson-footer-icons-small): one glyph size for all five lesson-footer buttons. #347's shape, scaled to this row's 44px box rather than that one's 48px. Raised INSIDE the box, so no layout height moves.
+const FOOT_ICON_GLYPH='clamp(21px,5.4vw,26px)';  // #549 item (80), jobs/lesson-footer-icons-consistent: the ONE glyph size of every footer icon button (FootBtn below). It was the Review transport row's own size; the lesson footer's old clamp(20px,5.4vw,24px) folds into it.
+const LESSON_FOOT_GLYPH=FOOT_ICON_GLYPH;  // #394 (kunal-lesson-footer-icons-small): one glyph size for all five lesson-footer buttons. #347's shape, scaled to this row's 44px box rather than that one's 48px. Raised INSIDE the box, so no layout height moves.
+/* #549 item (80), jobs/lesson-footer-icons-consistent (Kunal 2026-09-14: lesson and demo footer icons "consistent with Review").
+   ONE component for the footer icon buttons of the lesson footer (demo and practice) and the Review transport row, so the two
+   rows cannot drift apart again: one glyph size, one 44px floor (48 on a wide Review row), one radius, no outline (Kunal's
+   jobs/transport-row-icon-only call for Review), flat tint, gold tint for the hot state. `primary` is the lesson's solid-gold
+   Play, kept as that row's one primary action. Amber: flags/amber-549-footer-one-component. */
+function FootBtn({onClick,label,hot,primary,wide,flex,minW,text,children}){
+  return(<button onClick={onClick} title={label} aria-label={label} data-ct="foot-btn" style={{flex:flex||'0 0 auto',minWidth:(minW==null?44:minW),minHeight:(wide?48:44),borderRadius:12,cursor:'pointer',fontSize:(text?'clamp(14px,2.9vw,15px)':FOOT_ICON_GLYPH),fontWeight:800,background:primary?'var(--ac)':hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'none',border:'none',color:primary?'#191919':hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:'none',padding:'0 6px'}}>{children}</button>);
+}
 /* #394: COACH_MAXH went with the bubble. The #387 work it encoded - that a CLAMP must do the cutting
    rather than a box, so an ellipsis is drawn - now applies to rev-why-txt, which is clamped, not clipped. */
 const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their 74px cap. They are flex and their
@@ -8965,7 +8974,7 @@ export default function App(){
            buttons. The border, the gradient and the four-layer shadow are gone; the flat tint stays (it carries the hot state of
            Auto-play and the star), and the phone target rises 42->44, the touch floor. Measured: the board keeps 349.03 at 375x761
            and 264 at 320x568 - the row moves up 2px into slack under it, so the 2px is not taken from the board. */
-        const cb=(lab,on,w,hot,title)=>(<button onClick={on} title={title} aria-label={title} style={{flex:w?('0 0 '+w+'px'):'1 1 0',minWidth:0,minHeight:(wide?48:44),borderRadius:12,cursor:'pointer',fontSize:(String(lab).length<=2?'clamp(21px,5.4vw,26px)':'clamp(14px,2.9vw,15px)'),fontWeight:800,background:hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'none',border:'none',color:hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:'none',padding:'0 6px'}}>{lab}</button>);
+        const cb=(lab,on,w,hot,title)=>(<FootBtn onClick={on} label={title} hot={hot} wide={wide} flex={w?('0 0 '+w+'px'):'1 1 0'} minW={0} text={String(lab).length>2}>{lab}</FootBtn>);   /* #549 item (80): the shared footer component, same styles as before */
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
           <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:(wide?38:32),whiteSpace:'nowrap'}}>
@@ -10344,12 +10353,12 @@ export default function App(){
           measured - the #389 recording covers it with the caption strip in every frame - so what "consistent"
           means numerically over there is still open. Guessing it would be inventing scope while he is asleep. */}
       {lessonFocus&&(<div style={{position:'fixed',left:0,right:0,bottom:0,zIndex:471,display:'flex',gap:10,alignItems:'center',padding:'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
-        {learnPhase!=='practice'&&(<><button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} aria-label="Back a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={27} dir="left"/></button>
-        <button onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} aria-label="Play or pause" style={{minWidth:52,minHeight:44,borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</button>
-        <button onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} aria-label="Forward a move" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={27} dir="right"/></button></>)}
-        <button onClick={()=>{setLessonMore(false);setOpenIdx(null);}} aria-label="Close lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{'\u2715'}</button>
+        {learnPhase!=='practice'&&(<><FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} label="Back a move"><ChevIcon size={27} dir="left"/></FootBtn>
+        <FootBtn onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} label="Play or pause" primary minW={52}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</FootBtn>
+        <FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} label="Forward a move"><ChevIcon size={27} dir="right"/></FootBtn></>)}
+        <FootBtn onClick={()=>{setLessonMore(false);setOpenIdx(null);}} label="Close lesson">{'\u2715'}</FootBtn>
         <div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>
-        <button onClick={()=>setLessonMore(v=>!v)} aria-label="More for this lesson" style={{minWidth:44,minHeight:44,borderRadius:10,background:lessonMore?'rgba(212,175,55,.2)':'rgba(255,255,255,.08)',border:'1px solid '+(lessonMore?'rgba(212,175,55,.55)':'rgba(255,255,255,.2)'),color:lessonMore?'var(--ac2)':'#fff',fontSize:LESSON_FOOT_GLYPH,cursor:'pointer'}}>{'\u22EF'}</button>
+        <FootBtn onClick={()=>setLessonMore(v=>!v)} label="More for this lesson" hot={lessonMore}>{'\u22EF'}</FootBtn>
       </div>)}
       {lessonFocus&&lessonMore&&(<div onClick={()=>setLessonMore(false)} style={{position:'fixed',inset:0,zIndex:470,background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
         <div onClick={e=>e.stopPropagation()} style={{maxHeight:'72vh',overflowY:'auto',background:'#151922',borderTop:'1px solid rgba(212,175,55,.35)',borderRadius:'16px 16px 0 0',padding:'14px 14px calc(72px + env(safe-area-inset-bottom,0px))',display:'flex',flexDirection:'column',gap:10}}>

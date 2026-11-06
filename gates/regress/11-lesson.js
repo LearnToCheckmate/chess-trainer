@@ -173,7 +173,7 @@ L.run(async()=>{
                   fs:parseFloat(getComputedStyle(e).fontSize),gw,gh,svg:!!svg};
         }).filter(Boolean);
       });
-      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':22,'Close lesson':22,'More for this lesson':22}; // the practice block's copy of GLYPH_PIN below [#549 item (54)]
+      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':24,'Close lesson':24,'More for this lesson':24}; // the practice block's copy of GLYPH_PIN below [#549 item (54)]; text pin 22 -> 24 at #549 item (80), see GLYPH_PIN
       if(st==='demo-end'){
         L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
@@ -195,9 +195,12 @@ L.run(async()=>{
         // Pinned to the heights measured at #545 on 049b41dfb6f1 at all four geometries: chevron SVG box 27, text line box 22.
         // NOTE the 27 is the SVG BOX, which is what the size prop sets; the polyline INK inside it is 16.2 (gate 26's lesson
         // footer pin), so this band holds the PROP and gate 26 reports the ink spread. +-1.5px.
-        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':22,'Close lesson':22,'More for this lesson':22};
+        // PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn, the component the
+        // Review transport row uses - 21px in the Segoe/system-ui stack where they were 20-20.25px in the inherited stack - so the text line
+        // box measured 22 on 2c323ead88f0 and 24 on the fixed trial 0a7612ca7dc3 at all four geometries. The chevrons are unchanged at 27.
+        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':24,'Close lesson':24,'More for this lesson':24};
         const offBand=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN[f.aria]}));
-        L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 22) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
+        L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 24) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
         // ROTATION AUDIT [#549 item (54)]: this line DISCRIMINATES (slack 11px wide, 11px tall at the 44px box), but its HEIGHT
         // half is now dominated by the band above (27+1.5 and 22+1.5 both sit under 44-6), so what it adds is the WIDTH ceiling.
         L.say(foot.every(f=>f.gw<=f.w-6&&f.gh<=f.h-6),name+': and no glyph fills its box edge to edge - raising the ink must not make the button look like a solid block',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
@@ -212,7 +215,7 @@ L.run(async()=>{
         L.say(pa==='Close lesson|More for this lesson',name+': PRACTICE footer PRECONDITION shows exactly Close and More, the transport hidden - so practice was reached and the lines below measure two glyphs, not none',foot.map(f=>f.aria));
         L.say(foot.length>0&&foot.every(f=>f.h>=44&&f.h<=46),name+': PRACTICE every footer button is 44 to 46 tall',foot.map(f=>f.h));
         const offP=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN_ALL[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN_ALL[f.aria]}));
-        L.say(foot.length>0&&offP.length===0,name+': PRACTICE every footer glyph is within 1.5px of its pinned height (22, the demo end\'s text pin) - a band, so a practice-only glyph grown or shrunk is red',offP.length?offP:foot.map(f=>({a:f.aria,gh:f.gh})));
+        L.say(foot.length>0&&offP.length===0,name+': PRACTICE every footer glyph is within 1.5px of its pinned height (24, the demo end\'s text pin) - a band, so a practice-only glyph grown or shrunk is red',offP.length?offP:foot.map(f=>({a:f.aria,gh:f.gh})));
         L.say(foot.length>0&&foot.every(f=>f.gw>=16&&f.gw<=f.w-6),name+': PRACTICE every footer glyph is 16px wide or more and does not fill its box edge to edge',foot.map(f=>({a:f.aria,gw:f.gw,w:f.w})));
       }
       await b.shot('lesson-'+name+'-'+st);
@@ -321,6 +324,45 @@ L.run(async()=>{
 // CONTROL-RECORD: 44bf4b3 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the edge-path board x0.9 again, re-run on the grown 84-assertion gate so the record covers items (24) and (24b) of #544 [#545 item (2)]
 // CONTROL-RECORD: 777aa06 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the same x0.9 trial re-run after #545 item (4) rewrote the kunal demo-end line, whose L.say sites moved the 44bf4b3 record to ASSERTIONS-MOVED
 // CONTROL-RECORD: a35524b 2026-10-30 total=102 red=7 scope=trial:dfb25d27c4b4 how=the same edge-path board x0.9, REBUILT at #546 because #545's trial bundle did not survive its container, and re-run on the 102-assertion gate whose L.say set moved the 777aa06 record: red at kunal demo-end and at all six bistable-pin cells [#546 item (89)]
+
+  // ── TC-LS-051 (US-LS-11) [#549 item (80); jobs/lesson-footer-icons-consistent, Kunal 2026-09-14 "consistent with Review"]:
+  // THE LESSON FOOTER (demo AND practice) AND THE REVIEW TRANSPORT ROW ARE ONE COMPONENT. Measured on the pre-fix bundle
+  // 2c323ead88f0 (#549 HEAD before item 80): the lesson's text glyphs were 20.25px at 375 and 20px at 320 against Review's
+  // 21px, radius 10 against 12, and every lesson button carried a 1px outline Review had dropped at item (68). Read from
+  // the RENDERED computed style of both rows, never from a hook this build adds, so the pre-fix bundle is the control.
+  // DENOMINATORS FIRST, as their own lines: Review's row must show its glyph controls and the lesson its five and two.
+  for(const geo of ['kunal761','se']){
+    const G=L.GEOS[geo],dim=G.w+'x'+G.h;
+    const RV=require('../drive/review');
+    const read=(sel)=>b=>b.page.evaluate((sel)=>{const vh=innerHeight;
+      return [...document.querySelectorAll(sel)].map(e=>{const r=e.getBoundingClientRect();if(r.width<1||r.bottom<vh-160||r.top>vh)return null;
+        const st=getComputedStyle(e);const lab=e.getAttribute('aria-label')||'';
+        const txt=(e.innerText||'').trim();
+        return {a:lab,glyph:!e.querySelector('svg')&&txt.length>0&&txt.length<=2,fs:parseFloat(st.fontSize),rad:st.borderTopLeftRadius,
+          bw:parseFloat(st.borderTopWidth)||0,mh:st.minHeight,ff:st.fontFamily,w:+r.width.toFixed(1),h:+r.height.toFixed(1)};}).filter(Boolean);},sel);
+    let rv=null;{const b=await L.launch({geo,name:'ls051-review-'+geo,store:RV.SEED});await b.open();
+      try{await RV.states['moves-ply10'](b);await b.settle(500);rv=await read('[data-ct="rev-row1"] > button')(b);}catch(e){rv=null;}
+      await b.close();}
+    const rg=(rv||[]).filter(k=>k.glyph);
+    L.say(rg.length>=3,dim+': TC-LS-051 DENOMINATOR the Review transport row shows its glyph controls at ply 10 ('+rg.map(k=>k.a).join(' | ')+')',rv);
+    for(const st of ['demo-end','practice-m0']){
+      const b=await L.launch({geo,name:'ls051-lesson-'+geo+'-'+st,store:{}});await b.open();
+      let lf=null;try{await D.states[st](b);await b.settle(600);lf=await read('button[aria-label]')(b);}catch(e){lf=null;}
+      await b.close();
+      lf=(lf||[]).filter(k=>/^(Back a move|Forward a move|Play or pause|Close lesson|More for this lesson)$/.test(k.a));
+      const want=st==='demo-end'?5:2;
+      if(!L.say(lf.length===want,dim+' '+st+': TC-LS-051 DENOMINATOR the lesson footer shows its '+want+' buttons',lf.map(k=>k.a)))continue;
+      if(!rg.length)continue;
+      const R=rg[0];
+      const lg=lf.filter(k=>k.glyph);
+      const offFs=lg.filter(k=>Math.abs(k.fs-R.fs)>0.01).map(k=>({a:k.a,fs:k.fs}));
+      L.say(lg.length>0&&offFs.length===0,dim+' '+st+': TC-LS-051 every lesson footer TEXT glyph carries the Review transport glyph size ('+R.fs+'px; lesson '+lg.map(k=>k.fs).join('/')+')',offFs);
+      const offShape=lf.filter(k=>k.rad!==R.rad||k.bw>0.01||k.mh!==R.mh||k.ff!==R.ff).map(k=>({a:k.a,rad:k.rad,bw:k.bw,mh:k.mh}));
+      L.say(offShape.length===0,dim+' '+st+': TC-LS-051 every lesson footer button has the Review button SHAPE - radius '+R.rad+', no outline, min-height '+R.mh+', one font family',offShape);
+      const small=lf.concat(rv).filter(k=>k.h<43.99||(k.w<43.99&&k.glyph));
+      L.say(small.length===0,dim+' '+st+': TC-LS-051 every footer icon tap target on both rows is at least 44 tall and every glyph button at least 44 wide',small);
+    }
+  }
 
   // ── TC-R64e THE CARD ORDINAL IS SCOPED TO THE STATE CARDS, DRIVEN IN BOTH DIRECTIONS IN ONE BROWSER STATE
   // [#544 item (35); jobs/b-card-ordinal-is-ambiguous-now-that-the-gallery-has-two-lists-numbering-from-1-
