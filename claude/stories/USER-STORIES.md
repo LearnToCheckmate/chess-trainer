@@ -518,10 +518,12 @@ gate 78.
 - Below the fold is not unreachable: the button can always be scrolled into view and tapped (TC-INV-08c).
 - On Discover -> Tactics, both tabs, the board is the thing the screen is for: at rest its bottom sits at or above the fixed
   tab bar's top at 375x761 and every geometry of THE DRILL SEVEN, as on Lessons and Puzzles (Kunal's default (5) on
-  questions/B8-SMALL-DEFAULTS, 4 Nov 2026). The board shrinks to the room above the bar, never below 176px. (TC-INV-08d,
-  TC-INV-08e; #549, jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28)
+  questions/B8-SMALL-DEFAULTS, 4 Nov 2026). The board shrinks to the room above the bar, never below 176px. That holds on
+  EVERY card, not only the first, and the board is ONE size on every card of a tab: it never changes size or jumps as the
+  player steps from card to card (a longer motif idea scrolls inside its two-line box). (TC-INV-08d, TC-INV-08e,
+  TC-INV-08k; #549, jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28)
 - On Puzzles (the roadmap, fresh store) "▶ Start training", and on Review's import box "⚡ Analyze Game", are above the
-  fold on arrival - the fold being the fixed tab bar's top - at every geometry of THE DRILL SEVEN (TC-INV-08f to 08h).
+  fold on arrival - the fold being the fixed tab bar's top - at 375x761 (Kunal's phone) and every geometry of THE DRILL SEVEN (TC-INV-08f to 08h).
   Q2 settled by the orchestrator's ruling of 4 Nov 2026 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04).
   MET with no stored games. NOT MET with stored games at six of the seven: "⚡ Analyze Game" sits under the game list,
   28.5 to 373.5px below the fold. Pinned (TC-INV-08i), not passed, and reachable by scroll (TC-INV-08j).

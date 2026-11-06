@@ -2741,10 +2741,25 @@ function TacticsTrainer({light,dark,demo}){
      6px gap, re-measured when the tab, the motif or the strategy card changes (the idea box above it changes height). FLOOR 176
      (22px squares): below that the board stays at 176 and is reached by scrolling #root, rather than shrinking into something no
      finger can use. The piece glyphs scale with the square so they never overrun it. */
-  const bRef=useRef(null);
+  /* #549 fix round 4 (antagonist A, A1-R4): THE BOARD MUST BE THE SAME SIZE ON EVERY CARD. Fitting each card on its own made the
+     board change width card to card, because what sits above it changes height: the motif's idea runs to 1, 2 or 3 lines (375x761:
+     367.5 on every card but Decoy, 356 there; 375x730: 347, 367.5 or 325), and at 320 four strategy titles wrap to a second line.
+     So everything above the board now has ONE height per screen width: the idea box is two lines tall on every motif (a longer idea
+     scrolls inside it, and fades at its foot while there is more to read), and the strategy title row is as tall as the tallest
+     title at this width (measured on a detached copy, so no hidden text is left in the page). The cap is then one number per
+     screen. Amber: flags/amber-549-tactics-board-fits-above-tab-bar (its round-4 note). */
+  const bRef=useRef(null),rowRef=useRef(null),ideaRef=useRef(null);
   const [cap,setCap]=useState(400);
+  const [rowH,setRowH]=useState(0);
+  const [ideaMore,setIdeaMore]=useState(false);
+  const ideaCheck=()=>{const el=ideaRef.current;setIdeaMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};
   useLayoutEffect(()=>{
-    const fit=()=>{const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
+    const fit=()=>{const row=rowRef.current;
+      if(row&&row.parentNode){const k=row.cloneNode(true);k.style.minHeight='';k.style.position='absolute';k.style.visibility='hidden';k.style.width=row.offsetWidth+'px';
+        row.parentNode.appendChild(k);let mx=0;STRAT.forEach((s,i)=>{k.firstChild.textContent=s.title;k.lastChild.textContent=(i+1)+'/'+STRAT.length;mx=Math.max(mx,k.offsetHeight);});
+        k.remove();row.style.minHeight=mx+'px';setRowH(mx);}
+      if(ideaRef.current){ideaRef.current.scrollTop=0;ideaCheck();}
+      const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
       const top=el.getBoundingClientRect().top+(root?root.scrollTop:0);const avail=Math.floor(bar.getBoundingClientRect().top-top-6);
       setCap(Math.max(176,Math.min(400,avail)));};
     fit();window.addEventListener('resize',fit);return()=>window.removeEventListener('resize',fit);
@@ -2809,7 +2824,7 @@ function TacticsTrainer({light,dark,demo}){
         <span style={{fontSize:'clamp(15px,3.5vw,17px)',fontWeight:800,color:'#fff'}}>{cur.motif}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{cur.level} · {(mi%TACTICS.length)+1}/{TACTICS.length}</span>
       </div>
-      <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(14.5px,3.1vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.5,marginBottom:11}}>{cur.idea}</div>
+      <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(14.5px,3.1vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.5,marginBottom:11}}><div ref={ideaRef} data-ct="tactics-idea" onScroll={ideaCheck} style={{height:'3em',overflowY:'auto',WebkitMaskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined}}>{cur.idea}</div></div>
       <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
@@ -2829,7 +2844,7 @@ function TacticsTrainer({light,dark,demo}){
       </div>
     </div>)}
     {tab==='strategy'&&(<div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+      <div ref={rowRef} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,minHeight:rowH||undefined}}>
         <span style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#fff'}}>{cstr.title}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{(si%STRAT.length)+1}/{STRAT.length}</span>
       </div>

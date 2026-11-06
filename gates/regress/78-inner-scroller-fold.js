@@ -1,6 +1,6 @@
 'use strict';
 // gates/regress/78-inner-scroller-fold.js - THE PRIMARY ACTION'S DISTANCE FROM THE FOLD, MEASURED INSIDE THE SCROLLER WHERE
-// over() CANNOT SEE IT. TC-INV-08a..j, US-INV-07 (08d/08e: the Discover -> Tactics board clear of the tab bar; 08f..08j: Puzzles' and Review's primary actions, #549).
+// over() CANNOT SEE IT. TC-INV-08a..k, US-INV-07 (08d/08e/08k: the Discover -> Tactics board clear of the tab bar and one size on every card; 08f..08j: Puzzles' and Review's primary actions, #549).
 //
 // WHY [#545, item (44); jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28]. gates/lib.js's over() measures
 // the bottom-most laid-out child of #root against the viewport. That is right about the page (#354) and blind to every inner
@@ -35,7 +35,10 @@ L.run(async()=>{
   // screen (it covers whatever sits under it), else innerHeight - both are printed. Stored-games Review is a known below-the-fold
   // defect, so it is PINNED as 08b is: a move either way is red, and the build that fixes it retires the pin.
   // measured at #549 on trial 1d1679f9c883 (HEAD afc6977): px of "⚡ Analyze Game"'s bottom past the fold, stored games, SETTLED (identical on two runs)
-  const REV_PIN={"320x568":373.5,"360x640":320.3,"375x667":294.3,"375x730":231.3,"390x844":94.3,"414x896":28.5,"440x956":-26.5};
+  const REV_PIN={"320x568":373.5,"360x640":320.3,"375x667":294.3,"375x730":231.3,"390x844":94.3,"414x896":28.5,"440x956":-26.5,
+    // [#549 fix round 4, A8-R4] Kunal's phone joins this loop. Its key carries the insets (w x h + safe), read from the GEOS entry, so
+    // it can never collide with a no-inset column of the same size. Measured at #549 on trial 27d9c9980e1b (settled, first read 870.5) and again on c738ab207551 (HEAD 376ccde): 200.3 both.
+    "375x761+51,31":200.3};
   const pv={};
   const find=(re)=>b=>b.page.evaluate((src)=>{const re=new RegExp(src);const btn=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
     const bar=document.querySelector('[data-ct="tabbar"]');const t=bar?bar.getBoundingClientRect():null;const fold=t&&t.height>0&&t.top<innerHeight?t.top:innerHeight;
@@ -50,8 +53,8 @@ L.run(async()=>{
     {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
     {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
     {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:true}];
-  for(const g of L.TA7){
-    const geo=L.GEOS[g];const n=geo.w+'x'+geo.h;
+  for(const g of ['kunal761',...L.TA7]){
+    const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
     const b=await L.launch({geo:g,name:'prim-'+n});await b.open();
     for(const s of SURF){
       let reached=true;try{await s.go(b);}catch(e){reached=false;}
@@ -112,22 +115,45 @@ L.run(async()=>{
   // must sit at or above the fixed tab bar's top, read on the LIVE elements. Before #549 it ran 14px under at 375x730, 65 at
   // 375x679 and 119.5 at 320x568. The board is found as the widest 8-column grid, NOT by the data-ct hook #549 added, so this
   // assertion reads the same element on a bundle that predates the fix (CLAUDE.md, the selector-its-own-build-adds rule).
+  // [#549 fix round 4, A1-R4 and A2-R4] EVERY CARD, NOT THE FIRST ONE, AND THE STRATEGY TAB PROVEN REACHED. The first version read
+  // only the landing motif and the first strategy card, so it could not see that the 12th motif (Decoy, whose idea runs a line
+  // longer) put the board 4.8px under the bar on #548 and shrank it 367.5 -> 356 on Kunal's phone once the fit landed, nor that at
+  // 375x730 the width changed card to card. So each tab is now STEPPED THROUGH EVERY CARD (Tactics: "Show answer" then "Next motif";
+  // Strategy: "Next"), each card read at rest before it is touched; 08e asserts every card is clear of the bar and 08k asserts the
+  // board is ONE width on every card (the board must never jump). 08d is the denominator: the tab's own controls are on screen
+  // (Tactics: "Show answer"; Strategy: "‹ Prev" and no "Show answer") - the heading is on both tabs, so it cannot tell them apart -
+  // and every card from 1/N to N/N was visited, read from the card's own counter.
   const tgot={};
+  const readCard=b=>b.page.evaluate(()=>{const root=document.getElementById('root');if(root)root.scrollTop=0;
+    const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
+    const bar=document.querySelector('[data-ct="tabbar"]');const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy');
+    const btn=re=>[...document.querySelectorAll('button')].some(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
+    const ctr=[...document.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).map(t=>/(?:^|· )(\d+)\/(\d+)$/.exec(t)).find(Boolean);
+    const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^‹ Prev$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null};
+    if(!gs.length||!bar)return o;const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
+    return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10});});
+  const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));if(x)x.click();return !!x;},re.source);
   for(const g of ['kunal761',...L.TA7]){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
     const b=await L.launch({geo:g,name:'tactics-'+n});await b.open();
     let reached=true;try{await D.states['tactics'](b);await b.settle(400);}catch(e){reached=false;}
     for(const tab of ['Tactics','Strategy']){
-      if(reached&&tab==='Strategy'){await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Strategy');if(x)x.click();});await b.settle(400);}
-      const m=reached?await b.page.evaluate(()=>{const root=document.getElementById('root');if(root)root.scrollTop=0;
-        const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
-        const bar=document.querySelector('[data-ct="tabbar"]');const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy');
-        if(!gs.length||!bar)return {board:!!gs.length,bar:!!bar,head};const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
-        return {board:true,bar:true,head,top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10};}):null;
-      L.say(!!m&&m.board&&m.bar&&m.head,n+' '+tab+': TC-INV-08d Discover -> Tactics was reached ("Tactics & Strategy" on screen) with its board and the tab bar both found - the denominator, so a missing board reads red and not as clear',m);
-      if(!m||!m.board||!m.bar)continue;
-      const under=Math.round((m.bottom-m.barTop)*10)/10;tgot[n+' '+tab]=under;
-      L.say(under<=0,n+' '+tab+': TC-INV-08e at rest the board ('+m.w+'px, bottom '+m.bottom+') is clear of the tab bar (top '+m.barTop+'): '+(under<=0?(-under)+'px above it':under+'px UNDER it'));
+      if(reached&&tab==='Strategy'){await press(b,/^Strategy$/);await b.settle(400);}
+      const cards=[];let m=reached?await readCard(b):null;const first=m;
+      const onTab=c=>!!c&&(tab==='Tactics'?c.tacticsCtl&&!c.strategyCtl:c.strategyCtl&&!c.tacticsCtl);
+      if(m&&m.board&&m.bar&&onTab(m)&&m.of){
+        for(let k=0;k<m.of;k++){
+          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
+          if(!m||!m.board||!m.bar||!onTab(m))break;cards.push(m);}
+      }
+      const seen=cards.map(c=>c.card);const all=!!first&&!!first.of&&cards.length===first.of&&seen.every((c,k)=>c===k+1);
+      L.say(!!first&&first.board&&first.bar&&first.head&&onTab(first)&&all,n+' '+tab+': TC-INV-08d Discover -> Tactics was reached, the '+tab+' tab is the one on screen (its own controls are, the other tab\'s are not) with its board and the tab bar found, and every card 1/'+(first&&first.of)+' to '+(first&&first.of)+'/'+(first&&first.of)+' was read - the denominator, so a missed tab or a missing card reads red and not as clear',{first,visited:seen});
+      if(!cards.length)continue;
+      const unders=cards.map(c=>Math.round((c.bottom-c.barTop)*10)/10);const worst=Math.max(...unders);const wk=unders.indexOf(worst)+1;
+      tgot[n+' '+tab]=worst;
+      L.say(worst<=0,n+' '+tab+': TC-INV-08e at rest the board is clear of the tab bar on EVERY card ('+cards.length+'): the worst is card '+wk+' at '+(worst<=0?(-worst)+'px above it':worst+'px UNDER it'),{unders});
+      const ws=[...new Set(cards.map(c=>c.w))];
+      L.say(ws.length===1,n+' '+tab+': TC-INV-08k the board is ONE width on every card ('+ws.join(', ')+'px'+(ws.length>1?', cards '+cards.map((c,k)=>(k+1)+':'+c.w).join(' '):'')+') - the board must never jump between cards',{widths:cards.map(c=>c.w),tops:cards.map(c=>c.top)});
     }
     await b.close();
   }
