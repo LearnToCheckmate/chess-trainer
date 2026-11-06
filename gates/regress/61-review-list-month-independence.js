@@ -172,7 +172,16 @@ function stub(b,state){
 // migrates ct_acctgames out of localStorage on launch - reading localStorage here would report every store as empty.
 // `held` is per account {n, old}: the row count and the oldest row's date, passed INTO the page so the date string
 // is formatted by the same browser, locale and time zone that formats the app's own line.
+// #549 item (78): THE LIST RENDERS ONE PAGE (GLIST_PAGE) and offers "Show N more games" below it, so `rows` here is every row a
+// player can REACH: the page control is tapped until it is gone before anything is counted, and how many taps that took rides on
+// the reading (r.pages). Without this every assertion below that compares rows on screen with rows stored would be measuring the
+// page size. The page itself is asserted where it is the subject, in A24.
+async function showAll(b){let n=0;
+  for(;n<40;n++){const hit=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));if(!x)return false;x.click();return true;});
+    if(!hit)break;await b.settle(120);}
+  return n;}
 async function READ(b){
+  const pages=await showAll(b);
   const AG=await L.acctGames(b.page);
   const held={};Object.keys(AG.map).forEach(id=>{const rs=AG.map[id]||[];let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});held[id]={n:rs.length,old};});
   const r=await b.page.evaluate(([NEW_LABEL,AGM,held])=>{
@@ -299,7 +308,7 @@ async function READ(b){
                 lh:el?Math.round((parseFloat(getComputedStyle(el).lineHeight)||0)*10)/10:0,
                 ratio:ratio(el), countRatio:ratio(cnt)};})()};
   },[NEWEST.label,AG.map,held]);
-  r.storeFrom=AG.from; r.migrated=AG.migrated; r.idbMap=AG.idb;
+  r.storeFrom=AG.from; r.migrated=AG.migrated; r.idbMap=AG.idb; r.pages=pages;
   return r;
 }
 
@@ -1260,5 +1269,122 @@ async function input(seed,n,geo,name,thin){
    L.say(seen.some(x=>/month [2-4] of up to 4 · [1-9]\d* games? so far/.test(x)),'TC-R95 and, after the first month, how many games it has so far',{seen});
    L.say(!after,'TC-R95 the status line is gone once the walk ends',{after});
    await b.close();}
+  // ── A26..A28 #549 item (78), jobs/review-list-caps-at-about-40-games-2026-09-23 work[3] [Amber: flags/amber-549-review-load-older-games].
+  //    LOAD OLDER GAMES. Every walk starts at the newest month, so even with job (31)'s merged store (2000 per account) the list
+  //    could never reach further back than one walk of 200 games / 6 archive months from today. TC-R138 is the chess.com walk
+  //    back from the oldest held game, to the end of the account's history; TC-R139 the store cap, where the control must go
+  //    and the cap must be said; TC-R140 the same for Lichess (`until=`). THE CONTROL IS LOCATED BY WHAT IT SAYS ("Load older
+  //    games"), never by the data-ct this build adds, so a bundle without it reads "absent", not "selector missing".
+  //    The index is SPARSE-SHAPED (only months that have games), which is what api.chess.com returns, so no listed month is
+  //    empty and no gap sentence is owed; 45 games a month, so the first walk is cut by games INSIDE a month (4 x 45 + 20).
+  const olderBtn=(b)=>b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^(Load older games|Reading older Chess\.com games|Asking Chess\.com|Downloading up to \d+ older games|Loading older games)/.test((e.textContent||'').trim()));
+    return x?{present:true,text:(x.textContent||'').trim(),disabled:!!x.disabled,w:Math.round(x.getBoundingClientRect().width),h:Math.round(x.getBoundingClientRect().height)}:{present:false};});
+  const tapOlder=async(b)=>{const loc=b.page.locator('button',{hasText:/^Load older games$/});
+    if(!(await loc.count()))return false;try{await loc.first().click({timeout:4000});}catch(e){return false;}
+    await b.settle(400);await rowsSettled(b,1);
+    for(let w=0;w<40;w++){const o=await olderBtn(b);if(!o.present||o.text==='Load older games')break;await b.settle(250);}
+    return true;};
+  const spanMonths=(n)=>{const out=[];for(let i=n-1;i>=0;i--){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-i,1));out.push([t.getUTCFullYear(),t.getUTCMonth()+1]);}return out;};
+  const oldestOf=(r)=>{let o=0;Object.keys(r.idbMap||{}).forEach(id=>(r.idbMap[id]||[]).forEach(g=>{const d=g.date||0;if(d>0&&(!o||d<o))o=d;}));return o;};
+  {
+    const PER=45, NM=15, TOTAL=PER*NM;
+    const state={seed:'c',hits:[],refuse:false,sparse:{list:spanMonths(NM),per:PER}};
+    const b=await L.launch({geo:'kunal761',store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'older-all'});
+    await stub(b,state);
+    const tag='TC-R138 LOAD OLDER, '+NM+' listed months x '+PER+' = '+TOTAL+' games';
+    const r0=await refresh(b,state,{});const o0=await olderBtn(b);
+    if(L.say(r0.rows===MIN_CAP&&o0.present,'A26-0 vacuity '+tag+': the first walk stored '+MIN_CAP+' games (cut inside a month) and the list offers "Load older games"',{rows:r0.rows,button:o0,line:r0.cap&&r0.cap.text})){
+      L.say(o0.h>=44,'A26-0b '+tag+': the control is a 44px-tall tap target',{button:o0});
+      const k0=keysOf(r0),old0=oldestOf(r0),h0=state.hits.length;
+      const t1=await tapOlder(b);const r1=await READ(b);const k1=keysOf(r1),s1=new Set(k1);
+      const asked=state.hits.slice(h0).filter(h=>/games\/\d{4}\/\d{2}$/.test(h));
+      const fresh1=r1.rows-r0.rows;
+      L.say(t1&&asked.length>0,'A26a-0 vacuity '+tag+': the tap ran a walk - '+asked.length+' month(s) requested',{tapped:t1,asked});
+      L.say(k0.every(k=>s1.has(k))&&s1.size===k1.length&&r1.rows===k1.length&&fresh1>0,'A26a '+tag+': one tap ADDS older games - '+r0.rows+' -> '+r1.rows+', every game held before still held, each once, and the list shows what is stored',{before:r0.rows,after:r1.rows,stored:k1.length,distinct:s1.size,lost:k0.filter(k=>!s1.has(k)).length});
+      // the games it added are OLDER than anything held before the tap: it walked back from the oldest held game, not from today
+      const added=[];Object.keys(r1.idbMap||{}).forEach(id=>(r1.idbMap[id]||[]).forEach(g=>{const k=(g.src||'')+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');if(k0.indexOf(k)<0)added.push(g.date||0);}));
+      L.say(added.length===fresh1&&added.every(d=>d<=old0)&&oldestOf(r1)<old0,'A26b '+tag+': and every game it added is OLDER than the oldest game held before the tap - the walk went back from what is held, not again from the newest month',{added:added.length,oldestBefore:new Date(old0).toISOString(),oldestAfter:new Date(oldestOf(r1)).toISOString(),newestAdded:added.length?new Date(Math.max(...added)).toISOString():null});
+      L.say(fresh1<=MIN_CAP,'A26c '+tag+': one tap brings at most one walk\'s worth ('+MIN_CAP+') - the control pages, it does not walk the whole history at once',{added:fresh1});
+      const h11=HELD_OK(r1.cap&&r1.cap.text,r1.heldDates||{},Object.keys(r1.heldDates||{}));
+      L.say(h11.ok,'A26d US-R25 '+tag+': the limit line moves with it - it names the date of the NEW oldest held game',{held:h11,line:r1.cap&&r1.cap.text});
+      let taps=1,rN=r1;
+      while(taps<12){const o=await olderBtn(b);if(!o.present)break;if(!(await tapOlder(b)))break;taps++;rN=await READ(b);}
+      const kN=keysOf(rN),oN=await olderBtn(b);
+      L.say(rN.rows===TOTAL&&kN.length===TOTAL&&new Set(kN).size===TOTAL,'A26e '+tag+': tapping until the control goes reaches EVERY game the account has - '+TOTAL+', each once ('+taps+' taps)',{rows:rN.rows,stored:kN.length,distinct:new Set(kN).size,taps});
+      L.say(!oN.present,'A26f '+tag+': and once the history is exhausted the control is gone - it never offers a walk that can bring nothing',{button:oN});
+      L.say(!(rN.cap&&rN.cap.present)&&!GAP_RE.test(rN.body||''),'A26g US-R25 '+tag+': and with every game held there is no limit to state: no "older ones aren\'t loaded", no gap',{line:rN.cap&&rN.cap.text});
+      L.say(b.errs.length===0,'A26h '+tag+': zero app errors across '+taps+' taps',b.errs.slice(0,3));
+      const rR=await refresh(b,state,{refuse:true});
+      L.say(rR.rows===TOTAL,'A26i '+tag+': and the '+TOTAL+' survive a launch with the network refusing',{afterReload:rR.rows});
+      // a refresh on a clean network walks the newest months again; the whole history stays, and it stays "all" (no line)
+      const rF=await refresh(b,state,{refuse:false});
+      L.say(rF.rows===TOTAL&&!(rF.cap&&rF.cap.present)&&!(await olderBtn(b)).present,'A26j '+tag+': a later refresh keeps all '+TOTAL+' and does not bring back a limit or the control - the history is still complete',{rows:rF.rows,line:rF.cap&&rF.cap.text});
+    }
+    await b.close();
+  }
+  {
+    // TC-R139 THE STORE CAP. 50 listed months x 45 = 2250 games against ACCT_GMAX_STORE (2000, read off the screen's own sentence).
+    // At the cap a further walk would be cut straight back off by the store, so the control must go and the cap must be said.
+    const PER=45, NM=50, TOTAL=PER*NM;
+    const state={seed:'c',hits:[],refuse:false,sparse:{list:spanMonths(NM),per:PER}};
+    const b=await L.launch({geo:'kunal761',store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'older-cap'});
+    await stub(b,state);
+    const tag='TC-R139 LOAD OLDER TO THE STORE CAP, '+NM+' months x '+PER+' = '+TOTAL+' games';
+    const r0=await refresh(b,state,{});
+    if(L.say(r0.rows===MIN_CAP&&(await olderBtn(b)).present,'A27-0 vacuity '+tag+': first walk '+MIN_CAP+', control offered',{rows:r0.rows})){
+      let taps=0,rN=r0;const tapMs=[];
+      while(taps<20){const o=await olderBtn(b);if(!o.present)break;const t=Date.now();if(!(await tapOlder(b)))break;tapMs.push(Date.now()-t);taps++;rN=await READ(b);}
+      const capM=((rN.body||'').match(/This app keeps up to ([\d,]+) games per account/)||[])[1];const capN=capM?parseInt(capM.replace(/,/g,''),10):null;
+      L.say(!!capN&&capN>MIN_CAP&&capN<TOTAL,'A27-0b vacuity '+tag+': the store cap is stated on the line and lies between one walk and the seeded total, so this input reaches it',{capStated:capN,line:rN.cap&&rN.cap.text});
+      const kN=keysOf(rN);
+      L.say(!!capN&&rN.rows===capN&&kN.length===capN&&new Set(kN).size===capN,'A27a '+tag+': the list fills to the stated cap and no further - '+rN.rows+' rows, '+kN.length+' stored, each once ('+taps+' taps)',{rows:rN.rows,stored:kN.length,capN,taps});
+      L.say(!(await olderBtn(b)).present,'A27b '+tag+': at the cap the control is gone - a walk would be cut back off by the store',{button:await olderBtn(b)});
+      L.say(OLDER_RE.test((rN.cap&&rN.cap.text)||''),'A27c US-R25 '+tag+': and the line still says older games are not loaded, beside the cap that is why',{line:rN.cap&&rN.cap.text});
+      // work[3]'s "paginate ... with an explicit 'load more' ... so the first paint stays fast". A launch with the full store and the
+      // network refusing: the count says every held game, the list RENDERS one page, and a control says how many are not shown.
+      state.refuse=true;const t0=Date.now();await b.open();await b.tile('Review');
+      let pg=null;for(let w=0;w<80;w++){pg=await b.page.evaluate(()=>{const c=[...document.querySelectorAll('span')].find(x=>/^\d[\d,]* loaded$/.test((x.textContent||'').trim()));
+          const m=[...document.querySelectorAll('button')].find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));
+          return {loaded:c?parseInt((c.textContent||'').replace(/[^\d]/g,''),10):0,rows:document.querySelectorAll('[data-ct="game-row"]').length,more:m?(m.textContent||'').trim():null,
+            moreH:m?Math.round(m.getBoundingClientRect().height):0};});
+        if(pg.loaded>=(capN||1)&&pg.rows>0)break;await b.settle(100);}
+      const ms=Date.now()-t0;
+      const blk=await b.page.evaluate(()=>new Promise(res=>{const t=performance.now();requestAnimationFrame(()=>res(Math.round(performance.now()-t)));}));
+      L.note('       A27 FIRST PAINT, measured not asserted: '+pg.rows+' rows rendered of '+pg.loaded+' held, '+ms+'ms after open(), next frame '+blk+'ms; per Load-older tap '+JSON.stringify(tapMs)+'ms (includes this gate\'s own settle polls)');
+      const mm=(pg.more||'').match(/^Show (\d+) more games · ([\d,]+) not shown/);
+      const shownN=mm?+mm[1]:null,hidN=mm?parseInt(mm[2].replace(/,/g,''),10):null;
+      L.say(pg.loaded===capN&&pg.rows>0&&pg.rows<pg.loaded&&pg.rows<=MIN_CAP,'A27d '+tag+': a launch with '+capN+' held RENDERS ONE PAGE - '+pg.rows+' rows, no more than one walk ('+MIN_CAP+') - while the count still says all '+capN,{rows:pg.rows,loaded:pg.loaded,ms});
+      L.say(!!mm&&hidN===pg.loaded-pg.rows&&shownN===Math.min(pg.rows,hidN)&&pg.moreH>=44,'A27e '+tag+': and below it a 44px control states how many more it shows and how many are not shown ('+(pg.loaded-pg.rows)+'), so nothing is cut without saying so',{button:pg.more,h:pg.moreH,expectHidden:pg.loaded-pg.rows});
+      const r1rows=pg.rows;await b.page.locator('button',{hasText:/^Show \d+ more games/}).first().click({timeout:4000}).catch(()=>{});await b.settle(400);
+      const r2rows=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);
+      L.say(shownN!==null&&r2rows===r1rows+shownN,'A27f '+tag+': one tap shows exactly the '+shownN+' it promised, in the oldest direction ('+r1rows+' -> '+r2rows+')',{before:r1rows,after:r2rows,promised:shownN});
+      const rAll=await READ(b);
+      L.say(rAll.rows===capN&&rAll.pages>0,'A27g '+tag+': and tapping on reaches every held game - '+rAll.rows+' of '+capN+' after '+rAll.pages+' more tap(s)',{rows:rAll.rows,pages:rAll.pages});
+    }
+    await b.close();
+  }
+  {
+    // TC-R140 LICHESS: one request per tap with until=<oldest held>, 450 games, newest first. The stub honours max and until.
+    const LIU='lioldstub';const liReq=[];const N=450;
+    const T=(i)=>Date.UTC(2026,8,28,12,0)-i*3600*1000*7;   // game i is i*7 hours before the newest
+    const b=await L.launch({geo:'kunal761',store:{ct_liuser:LIU,ct_accts:'[]',ct_acctgames:'{}'},name:'older-li'});
+    await b.ctx.route(/lichess\.org\/api\/games\/user\//,route=>{const u=new URL(route.request().url());liReq.push(u.search);
+      const max=+(u.searchParams.get('max')||N),until=u.searchParams.get('until');const lines=[];
+      for(let i=0;i<N&&lines.length<max;i++){const t=T(i);if(until&&t>+until)continue;
+        const pgn='[Event "Rated blitz game"]\n[Site "https://lichess.org/old'+i+'"]\n[White "'+LIU+'"]\n[Black "liold'+i+'"]\n[Result "1-0"]\n\n'+MOVES+'\n';
+        lines.push(JSON.stringify({id:'old'+i,pgn,players:{white:{user:{name:LIU}},black:{user:{name:'liold'+i}}},winner:'white',speed:'blitz',createdAt:t,lastMoveAt:t}));}
+      return route.fulfill({status:200,contentType:'application/x-ndjson',body:lines.join('\n')+(lines.length?'\n':'')});});
+    await b.open();await b.tile('Review');await b.settle(1800);await rowsSettled(b,1);
+    const tag='TC-R140 LOAD OLDER, LICHESS, '+N+' games';
+    const r0=await READ(b);
+    if(L.say(r0.rows===MIN_CAP&&(await olderBtn(b)).present,'A28-0 vacuity '+tag+': the first request stored '+MIN_CAP+' and the control is offered',{rows:r0.rows,requests:liReq})){
+      let taps=0,rN=r0;
+      while(taps<6){const o=await olderBtn(b);if(!o.present)break;if(!(await tapOlder(b)))break;taps++;rN=await READ(b);}
+      const kN=keysOf(rN);
+      L.say(liReq.slice(1).length>0&&liReq.slice(1).every(q=>/[?&]until=\d+/.test(q)),'A28a '+tag+': every tap asked Lichess for games UNTIL the oldest held one',{requests:liReq});
+      L.say(rN.rows===N&&new Set(kN).size===N&&!(await olderBtn(b)).present,'A28b '+tag+': and tapping until the control goes holds all '+N+', each once ('+taps+' taps), with the control gone',{rows:rN.rows,distinct:new Set(kN).size,taps});
+    }
+    await b.close();
+  }
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});

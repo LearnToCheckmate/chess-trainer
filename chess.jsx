@@ -349,6 +349,7 @@ async function acctGamesSave(map,order,changed,removed){
 // than letting an empty map be written over a store that could not be read. An open that never answers (seen on
 // iOS Safari) times out to the same fallback. A device with no IndexedDB keeps the old store: localStorage,
 // byte-bounded, ACCT_GMAX per account.
+const GLIST_PAGE=ACCT_GMAX;   // #549 item (78): rows rendered before the player asks for more
 const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
 let _acctIdbP=null, ACCT_MODE='ls';
 function acctIdbOpen(){
@@ -3857,6 +3858,13 @@ export default function App(){
   const gamesListRef=useRef(null);
   const [ccErr,setCcErr]=useState('');
   const [ccLoading,setCcLoading]=useState(false);
+  const [olderBusy,setOlderBusy]=useState(false);   // #549 item (78): the Load older games walk is running
+  /* #549 item (78) work[3]: the list renders ONE PAGE and pages on in the oldest direction by an explicit tap. MEASURED on the
+     job's own trial bundle (684860251855, headless Chromium in this container, 375x761): with 2000 held games entering Review
+     took 1170-1363ms against 722-798ms at 200, and every later re-render of the list - the background grader re-renders it
+     once per game graded - blocked a frame for 232-300ms against 14-31ms. GLIST_PAGE is one walk's worth (ACCT_GMAX), which is
+     the most one refresh can bring for an account, so one account that never asks for more sees the list it saw before (31). */
+  const [gPage,setGPage]=useState(GLIST_PAGE);
   const [ccProg,setCcProg]=useState('');   // #547 item (166): what the fetch is doing, while it does it
   const [review,setReview]=useState(null);
   const [reviewView,setReviewView]=useState('moves');
@@ -5953,13 +5961,75 @@ export default function App(){
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);setCcProg('');
   };
+  /* #549 item (78), jobs/review-list-caps-at-about-40-games-2026-09-23 work[3] [Amber: flags/amber-549-review-load-older-games].
+     LOAD OLDER GAMES. Every walk above starts at the NEWEST month and stops at ACCT_GMAX games or ACCT_GMONTHS archive entries, so
+     even with job (31)'s merged store (ACCT_GMAX_STORE per account) the list could never reach further back than the first walk
+     did: a player with 15,930 games saw at most the last 200 of them however often he refreshed. This walks back from an account's
+     OLDEST HELD game instead, by one more walk's worth, and merges through acctStore exactly as a refresh does - so nothing held is
+     lost and the bound it records ('games' / 'months' / 'all', '+gap') means what it means everywhere else. acctCanGrow is the
+     one predicate for "this account has older games it does not hold and the store has room for them", read by the button and
+     by this function alike, so the button cannot offer a walk this function would refuse. */
+  const acctCanGrow=(id)=>{const rs=(acctGamesRef.current||{})[id]||[];if(!rs.length||rs.length>=acctStoreCap())return false;
+    const v=(acctCapRef.current||{})[id];const b=v?String(v).split('+')[0]:(rs.length>=ACCT_GMAX||rs.length===ACCT_GMAX_LEGACY?'games':'all');
+    return b==='games'||b==='months';};
+  const acctOldest=(id)=>{let o=0;((acctGamesRef.current||{})[id]||[]).forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!o||d<o))o=d;});return o;};
+  const loadOlderGames=async()=>{
+    await acctReady();
+    const ids=(ccAccts||[]).filter(acctCanGrow);if(!ids.length)return;
+    setCcErr('');setCcLoading(true);setOlderBusy(true);
+    const _heldN=()=>{const M=acctGamesRef.current||{};return Object.keys(M).reduce((n,k)=>n+((M[k]||[]).length),0);};
+    const n0=_heldN();
+    for(const id of ids){
+      const src=id.slice(0,id.indexOf(':')),u=id.slice(id.indexOf(':')+1),old=acctOldest(id);if(!old)continue;
+      const _pv=String((acctCapRef.current||{})[id]||'');const _pgap=_pv.split('+').length>1;   // a gap already held is not healed by walking older
+      try{
+        if(src==='cc'){
+          setCcProg('Asking Chess.com for '+u+'’s game list…');
+          const ar=await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);
+          if(!ar.ok)throw new Error(ar.status===404?'username not found':'server '+ar.status);
+          const archives=((await ar.json()).archives)||[];
+          // start AT the month holding the oldest held game, not the one before it: a walk cut by games inside a month left
+          // older games IN that month. chess.com files a game under the UTC month it ended in, and the URL ends /YYYY/MM.
+          const od=new Date(old),okey=od.getUTCFullYear()*100+(od.getUTCMonth()+1);
+          const mkey=(s)=>{const m=String(s).match(/(\d{4})\/(\d{2})\/?$/);return m?(+m[1])*100+(+m[2]):0;};
+          let i=archives.length-1;while(i>=0&&mkey(archives[i])>okey)i--;
+          const start=i,games=[];let missed=0,leftover=false;
+          for(;i>=0&&games.length<ACCT_GMAX&&(start-i)<ACCT_GMONTHS;i--){
+            setCcProg('Reading older Chess.com games, month '+(start-i+1)+' of up to '+Math.min(ACCT_GMONTHS,start+1)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
+            let mj=null;try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
+            const all=(mj.games||[]).filter(g=>g.pgn);
+            if(!all.length){missed++;continue;}   // #433: a listed month with nothing usable is a gap
+            const mg=all.filter(g=>(g.end_time||0)*1000<=old).sort((x,y)=>(y.end_time||0)-(x.end_time||0));
+            const took=games.length;
+            for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
+            if(mg.length>games.length-took)leftover=true;
+          }
+          const cutByGames=games.length>=ACCT_GMAX&&(leftover||i>=0);
+          const bound=(cutByGames?'games':(i<0?'all':'months'))+((missed||_pgap)?'+gap':'');
+          const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
+          await acctStore('cc',u,rows,bound);
+        }else if(src==='li'){
+          setCcProg('Downloading up to '+ACCT_GMAX+' older games from Lichess…');
+          const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=${ACCT_GMAX}&until=${old}&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
+          if(!r.ok)throw new Error(r.status===404?'username not found':'server '+r.status);
+          const games=(await r.text()).trim().split('\n').filter(Boolean).map(l=>{try{return JSON.parse(l);}catch{return null;}}).filter(g=>g&&g.pgn);
+          const rows=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',acct:u,pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});
+          await acctStore('li',u,rows,(rows.length>=ACCT_GMAX?'games':'all')+(_pgap?'+gap':''));
+        }
+      }catch(e){setCcErr('Couldn’t load older games for '+u+' ('+(((e&&e.message)||'network blocked'))+'). The games already listed are kept.');}
+    }
+    // the games this tap brought in are SHOWN: the page grows by what was added, so the tap is never answered by a list that
+    // looks unchanged. The next visit starts again at one page (the per-visit reset beside item (133)).
+    const n1=_heldN();if(n1>n0)setGPage(p=>Math.max(p,n0)+(n1-n0));
+    setCcLoading(false);setCcProg('');setOlderBusy(false);setGsVer(v=>v+1);
+  };
   const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null});};
   // #353 show what is already stored the moment the Review screen opens, before any network call
   useEffect(()=>{if(mode!=='analyze')return;const M=acctGamesRef.current||{};if(Object.keys(M).length)mergeGames();},[mode]);
   /* #547 item (133), jobs/the-review-list-filter-survives-leaving-the-review-screen-2026-10-06: the #476 filter (gFil) and the
      search box (gameSearch) are PER VISIT. Leaving the Review screen used to keep them, so the next visit showed a silently
      narrowed list - the complaint the filter was built to cure. Both are reset together when the app leaves the screen. */
-  useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);},[mode,homeScreen]);
+  useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);setGPage(GLIST_PAGE);},[mode,homeScreen]);
   useEffect(()=>{if(mode!=='analyze'||gamesAutoRef.current)return;const cu=chessUser.trim(),lu=lichessUser.trim();if(cu||lu){gamesAutoRef.current=true;if(cu)fetchChessCom();if(lu)fetchLichess();}},[mode]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.
@@ -9523,7 +9593,7 @@ export default function App(){
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
               <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
-              {_shown.map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
+              {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
                 <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
                   <span style={{flexShrink:0,width:44,textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>
                   <span style={{minWidth:0,flex:1}}>
@@ -9544,6 +9614,10 @@ export default function App(){
                   </span>
                   <span style={{flexShrink:0,fontSize:'clamp(14.5px,3vw,15.5px)',color:'var(--ac2)',fontWeight:700}}>Review ›</span>
                 </button>);})}
+              {/* #549 item (78) work[3]: the list pages in the OLDEST direction by an explicit tap, at its end, never by scrolling
+                  [Amber: flags/amber-549-review-load-older-games]. Shown only while acctCanGrow says a walk would bring something. */}
+              {_shown.length>gPage&&(<button data-ct="glist-more" onClick={()=>setGPage(p=>p+GLIST_PAGE)} style={{flexShrink:0,minHeight:44,padding:'8px 11px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'clamp(14px,3.1vw,16px)',fontFamily:"'Segoe UI',system-ui,sans-serif",lineHeight:1.35}}>{'Show '+Math.min(GLIST_PAGE,_shown.length-gPage)+' more games · '+(_shown.length-gPage).toLocaleString('en-US')+' not shown'}</button>)}
+              {_shown.length<=gPage&&ccAccts.some(acctCanGrow)&&(<button data-ct="glist-older" disabled={ccLoading} aria-busy={olderBusy?'true':'false'} onClick={loadOlderGames} style={{flexShrink:0,minHeight:44,padding:'8px 11px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px dashed rgba(255,255,255,.28)',color:ccLoading?'rgba(255,255,255,.6)':'#fff',fontWeight:700,cursor:ccLoading?'default':'pointer',fontSize:'clamp(14px,3.1vw,16px)',fontFamily:"'Segoe UI',system-ui,sans-serif",lineHeight:1.35}}>{olderBusy?(ccProg||'Loading older games…'):'Load older games'}</button>)}
               </div>
               {/* #476 AN EMPTY RESULT NAMES THE FILTER. Without this the screen is a blank list under a
                   header that still reads a count, which is how a filter gets read as an empty archive - the
