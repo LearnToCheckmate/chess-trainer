@@ -228,6 +228,8 @@ L.run(async()=>{
  // a live game at all, and _livePlay is inert. So E pins the board and the bars across a step back - true and worth having - and
  // controls none of the five sites by name. A vs-Computer mate needs a set position (the Opera Game's 17.Rd8# from 'Play from
  // here'), and in the harness that route raises the Pro sheet first; building it is the named remainder of item (62).
+ // [#549, item (38)] BUILT, as block F below: the vs-Computer mate is reached by the SCAN route (no Pro sheet, no cold analysis),
+ // with a 1 min clock, and F names the eval pill, the wide Elo pill, `ticking` and `_myTurn` one assertion each.
  const chromeOf=(b)=>b.page.evaluate(()=>{
    const vis=(x)=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;};
    const rr=(x)=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');};
@@ -263,6 +265,89 @@ L.run(async()=>{
        glab+': E4 and the play chrome is unchanged - the same Home controls and player bars, at the same rects, mounted at the terminal ply and two plies back',{end:endChrome,back:backChrome});
    }
    L.say(b.errs.length===0,glab+': E5 zero app errors through the mate and the step back',b.errs.slice(0,3));
+   await b.close();
+ }
+ // ================= F. THE SAME STEP BACK VS THE COMPUTER, WITH A CLOCK [#549, item (38)] =================
+ // jobs/ten-isover-readings-left-keyed-to-the-previewed-ply-2026-09-29, the remainder #548 set aside: block E plays Pass & Play,
+ // so the re-keyed sites that render only vs the Computer (the eval pill in the top bar, the wide Elo pill) and the two that need a
+ // time control (`ticking` on the clock pill, `_myTurn`'s ring on the player bar - coverageOfTheFourMovedSites) were asserted by
+ // nothing. THE ROUTE: the human cannot force a mate on the engine from move 0, so the game starts from a SET POSITION one move from
+ // mate (White: Qxf7#), loaded by the SCAN route with the scanner doubled, the seam gates/regress/28 and 55 already use - not by
+ // Review's "Play from here", which costs a cold analysis per launch. MEASURED on this route before it was written (c9933e8a8949,
+ // 375x730): no Pro sheet, the '1 min' chip taps on the setup sheet after the scan, and the live game shows the eval pill 'M1', the
+ // White clock ticking (rgba(110, 180, 90, 0.22)) and the 3px turn ring - so F1 is the PRESENCE each absence below is taken against.
+ // Each site is asserted BY NAME, at the terminal ply and two plies back, so a re-mount on the step back is a named red.
+ const zlib=require('zlib');
+ const png8=()=>{const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){raw[y*(1+w*3)]=0;for(let x=0;x<w*3;x++)raw[y*(1+w*3)+1+x]=((x+y)%2)?200:40;}
+   const T=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);T[n]=c>>>0;}
+   const crc=(buf)=>{let c=0xffffffff;for(let i=0;i<buf.length;i++)c=T[(c^buf[i])&0xff]^(c>>>8);return (c^0xffffffff)>>>0;};
+   const chunk=(type,data)=>{const len=Buffer.alloc(4);len.writeUInt32BE(data.length,0);const td=Buffer.concat([Buffer.from(type,'ascii'),data]);const cr=Buffer.alloc(4);cr.writeUInt32BE(crc(td),0);return Buffer.concat([len,td,cr]);};
+   const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(w,0);ihdr.writeUInt32BE(h,4);ihdr[8]=8;ihdr[9]=2;
+   return Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),chunk('IHDR',ihdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);};
+ const P=require('../drive/play');
+ const PRE_MATE='r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4';   // 4.Qxf7# is mate
+ // Read by what the bar paints, never by a hook this build adds (#432): the eval pill is the bar's monospace SPAN on a pill ground
+ // (the rating beside it is a monospace span on transparent), the clock is the bar's monospace DIV, the turn ring is the bar's 3px
+ // inset shadow (the idle bar's is 1px), and the Elo pill is the Weaker/Stronger pair the app has always titled.
+ const cpuChromeOf=(b)=>b.page.evaluate(()=>{
+   const vis=(x)=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;};
+   const rr=(x)=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');};
+   const mono=(x)=>getComputedStyle(x).fontFamily.indexOf('monospace')>=0;
+   const clear=(c)=>c==='rgba(0, 0, 0, 0)'||c==='transparent';
+   const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].filter(vis).map(x=>({ct:x.getAttribute('data-ct'),r:rr(x),
+     ring:/0px 0px 0px 3px inset/.test(getComputedStyle(x).boxShadow),
+     evalPill:[...x.querySelectorAll('span')].filter(e=>vis(e)&&mono(e)&&!clear(getComputedStyle(e).backgroundColor)).map(e=>(e.innerText||'').trim()),
+     clocks:[...x.querySelectorAll('div')].filter(e=>vis(e)&&mono(e)&&/^\d+:\d\d/.test((e.innerText||'').trim())).map(e=>({t:(e.innerText||'').trim(),ticking:getComputedStyle(e).backgroundColor==='rgba(110, 180, 90, 0.22)',r:rr(e)}))}));
+   const elo=[...document.querySelectorAll('button[title="Weaker"],button[title="Stronger"]')].filter(vis).map(rr);
+   const home=[...document.querySelectorAll('button[title="Home"],[data-ct="play-home"]')].filter(vis).map(rr);
+   return {bars,elo,home};
+ });
+ const shape=(c)=>JSON.stringify({bars:c.bars.map(x=>({ct:x.ct,r:x.r,ring:x.ring,evalPill:x.evalPill,clocks:x.clocks.map(k=>({ticking:k.ticking,r:k.r}))})),elo:c.elo,home:c.home});
+ for(const [glab,gv] of [['kunal730','kunal730'],['se','se'],['land730',{w:730,h:375,safe:'',label:'730x375'}],['land730i',{w:730,h:375,safe:'51,31',label:'730x375 insets 51,31'}]]){
+   const land=typeof gv==='object';
+   const G='F '+glab+': ';
+   const b=await L.launch({geo:land?{w:375,h:730,safe:gv.safe,label:'375x730 then rotated to '+gv.label}:gv,name:'gk-F-'+glab});await b.open();
+   let live=null;
+   try{
+     await P.states['setup'](b);await b.settle(200);
+     await b.page.evaluate(()=>{const C=window.CTCloud;if(C&&C._emit)C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
+     await b.settle(250);
+     await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},PRE_MATE);
+     await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});
+     await b.settle(1200);
+     await b.tapText(/^1 min$/,{wait:300});
+     await b.tapText(/^▶ (Play this position|Start game)$/,{wait:1600});
+     live=await cpuChromeOf(b);
+     await b.move('h5','f7',600);await b.settle(1500);
+   }catch(e){L.say(false,G+'F0 harness threw driving the scan route to the vs-Computer mate (NOT an app result)',String(e&&e.message||e).slice(0,160));}
+   // F1 PRESENCE BEFORE ABSENCE (#385): in the LIVE game each instrument below reads the thing it must later find absent.
+   const lt=live&&live.bars.filter(x=>x.ct==='pbar-top')[0], lb=live&&live.bars.filter(x=>x.ct==='pbar-bottom')[0];
+   L.say(!!lt&&lt.evalPill.length===1,G+'F1a PRESENCE the live vs-Computer game shows the eval pill in the top bar (the instrument F5 reads)',lt&&lt.evalPill);
+   L.say(!!lb&&lb.clocks.length===1&&lb.clocks[0].ticking,G+'F1b PRESENCE the live game with 1 min shows the player\'s clock TICKING (the instrument F6 reads)',lb&&lb.clocks);
+   L.say(!!lb&&lb.ring,G+'F1c PRESENCE the live game rings the player\'s bar for his turn (the instrument F7 reads)',lb&&lb.ring);
+   if(land){await b.page.setViewportSize({width:gv.w,height:gv.h});await b.settle(1500);}
+   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);
+   const arrived=!!res&&/Checkmate/i.test(res)&&/win/i.test(res);
+   L.say(arrived,G+'F2 ARRIVAL the game vs the Computer ended by HIS checkmate and the screen says so',{result:res});
+   const endBoard=await b.board(), endC=await cpuChromeOf(b), endSig=await sigOf(b);
+   await b.tapText(/^Back$/).catch(()=>{});await b.settle(350);
+   await b.tapText(/^Back$/).catch(()=>{});await b.settle(700);
+   const backBoard=await b.board(), backC=await cpuChromeOf(b), backSig=await sigOf(b);
+   await b.shot('gk549-F-'+glab+'-backx2');
+   const stepped=!!backSig&&!!endSig&&backSig!==endSig;
+   L.say(stepped,G+'F3 ARRIVAL stepping Back twice really changed the position on the board',{moved:stepped});
+   if(arrived&&stepped){
+     const d=(k)=>endBoard&&backBoard?Math.abs(endBoard[k]-backBoard[k]):null;
+     L.say(!!endBoard&&!!backBoard&&d('y')<0.6&&d('w')<0.6&&d('x')<0.6,G+'F4 THE BOARD DID NOT MOVE across the step back in a finished game vs the Computer - rect unchanged to 0.6px',{end:endBoard,back:backBoard});
+     const evals=(c)=>c.bars.reduce((n,x)=>n+x.evalPill.length,0), tick=(c)=>c.bars.some(x=>x.clocks.some(k=>k.ticking)), ring=(c)=>c.bars.some(x=>x.ring);
+     L.say(evals(endC)===0&&evals(backC)===0,G+'F5 the EVAL PILL stays down two plies back in a finished game (it re-mounted on the previewed ply before #547)',{end:endC.bars.map(x=>x.evalPill),back:backC.bars.map(x=>x.evalPill)});
+     L.say(endC.bars.every(x=>x.clocks.length===1)&&!tick(endC)&&!tick(backC),G+'F6 no CLOCK ticks two plies back in a finished game - `ticking` reads the real game (#437)',{end:endC.bars.map(x=>x.clocks),back:backC.bars.map(x=>x.clocks)});
+     L.say(!ring(endC)&&!ring(backC),G+'F7 no player bar carries the TURN RING two plies back in a finished game - `_myTurn` reads the real game (#437)',{end:endC.bars.map(x=>x.ring),back:backC.bars.map(x=>x.ring)});
+     L.say(land?(endC.elo.length===2&&JSON.stringify(endC.elo)===JSON.stringify(backC.elo)):(endC.elo.length===0&&backC.elo.length===0),
+       G+'F8 the wide ELO PILL '+(land?'is mounted at the terminal ply and STAYS mounted, at the same rects, two plies back':'is absent in portrait at both plies')+' (#547 item (62))',{end:endC.elo,back:backC.elo});
+     L.say(shape(endC)===shape(backC),G+'F9 and the whole vs-Computer play chrome is unchanged across the step back - bars, pills, clocks, Home, at the same rects',{end:shape(endC),back:shape(backC)});
+   }
+   L.say(b.errs.length===0,G+'F10 zero app errors through the vs-Computer mate and the step back',b.errs.slice(0,3));
    await b.close();
  }
 },'GAMEOVER-CHROME-KEYING');
