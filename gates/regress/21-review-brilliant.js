@@ -35,7 +35,9 @@
 const L=require('../lib');
 const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e) at 375x679, ct_pool 3, ply 19, twice with the same result
-const WANT='You give up a piece. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here.';
+// #549 item (28), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03 (theSentence): the piece is NAMED with
+// what it took, where the old ladder said "a piece" for any knight, bishop or the exchange. Re-measured on #549's trial bundle.
+const WANT='You give up the knight for a pawn. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here.';
 const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)[+#]?';
 // the four forms of dropTxt(), chess.jsx:667-673, with the drop band each one is printed for
 const FORMS=[
@@ -74,13 +76,13 @@ const SAC_SRC=(()=>{
     const m=/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(lines[a]);
     if(m&&!blocks.has(m[1])) blocks.set(m[1],lines.slice(a,z).join('\n'));
   }
-  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','explainAnno'];
+  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','brilGiveTxt','forkTxt','explainAnno'];   // #549 item (28): explainAnno's Brilliant clause reads brilGiveTxt and forkTxt
   const missing=want.filter(n=>!blocks.has(n));
   if(missing.length) return {missing,md5,file};
   try{
     const E=require('../engine-extract');
     const code=want.map(n=>blocks.get(n)).join('\n')+'\nreturn {SAC_LINE_MAX:SAC_LINE_MAX,sacLine:sacLine,refuteTxt:refuteTxt,sacKeep:sacKeep,explainAnno:explainAnno};';
-    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove',code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove);
+    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove','PNAME',code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove,E.PNAME);
     return Object.assign({missing:[],md5,file,E},api);
   }catch(e){return {missing:['<eval: '+e.message+'>'],md5,file};}
 })();
@@ -384,7 +386,7 @@ L.run(async()=>{
     {const fs=require('fs');let MG=null,err='';
      try{const sl=fs.readFileSync(SAC_SRC.file,'utf8').split('\n');
        const blk=n=>{const a=sl.findIndex(l=>new RegExp('^(?:function|const) '+n+'\\b').test(l));if(a<0)throw new Error('no '+n);let z=a+1;while(z<sl.length&&!/^(async\s+function|function|const|let|var)\s/.test(sl[z]))z++;return sl.slice(a,z).join('\n');};
-       const E=SAC_SRC.E,nm=Object.keys(E).filter(k=>/^[A-Za-z_$][\w$]*$/.test(k));
+       const E=SAC_SRC.E,nm=Object.keys(E).filter(k=>/^[A-Za-z_$][\w$]*$/.test(k)&&!['PNAME','moveHits','moveGist'].includes(k));   // #549: the extractor exports these three now; the blocks below declare them
        MG=new Function(...nm,['PNAME','moveHits','moveGist'].map(blk).join('\n')+'\nreturn moveGist;')(...nm.map(k=>E[k]));}catch(e){err=e.message;}
      const gist=(fen,san)=>{if(!MG)return null;const E=SAC_SRC.E,g=E.fromFEN(fen),m=E.getLegal(g).find(x=>E.toSAN(g,x,E.applyMove(g.board,x))===san);return m?(MG(g,m).did||[]).join(' / '):null;};
      const nn=gist('6k1/5ppp/5n2/8/4N3/8/8/6K1 w - - 0 1','Nxf6+'),bp=gist('6k1/5p1p/6p1/8/8/3B4/8/6K1 w - - 0 1','Bxg6'),
@@ -465,8 +467,8 @@ L.run(async()=>{
 
   // ── 1. THE PIN, and the four clauses separately so a red names the one that moved ────────────────
   L.say(txt===WANT,'TC-R10 PINNED the brilliancy sentence is EXACTLY the one measured on #387',{want:WANT,got:txt});
-  L.say(/^You give up (?:the queen|a rook|a piece|a pawn|material)(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches the _give template verbatim',txt.slice(0,44));
-  L.say(/^You give up a piece\./.test(txt),'TC-R10 clause 1 PINNED to "a piece" - Nxb5 gives up a knight',txt.slice(0,24));
+  L.say(/^You (?:give up the (?:queen|rook|bishop|knight|pawn) (?:for an? (?:pawn|knight|bishop|rook|queen)|on [a-h][1-8])|leave the (?:queen|rook|bishop|knight|pawn) on [a-h][1-8] to be taken|give up (?:the queen|a rook|a piece|a pawn|material))(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches a brilGiveTxt template verbatim (#549: named piece, or the pre-#549 ladder for an old stored gate)',txt.slice(0,44));
+  L.say(/^You give up the knight for a pawn\./.test(txt),'TC-R10 clause 1 PINNED to "the knight for a pawn" - 10.Nxb5 gives a knight for the b5 pawn (#549; it read "a piece" before)',txt.slice(0,36));
   L.say(/(?:^|[.] )If cxb5, Bxb5\+(?:[^.]*)?\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>."');
   L.say(STAND.test(txt),'TC-R10 clause 4 matches a `standing` template verbatim and closes the sentence','...'+txt.slice(-34));
 

@@ -1880,6 +1880,16 @@ As a learner browsing the openings, I see each opening as one lesson, and nothin
 *Added #549 item (68), from jobs/transport-row-icon-only. Kunal, 2026-09-19: "do we need the outline, or can we just make the icons look like buttons themselves to save space".*
 As a player stepping through a review on my phone, the first, play, last and key-moment controls under the board are bare icons on a flat tint, with no outline, gradient or shadow, and each is still at least 44 x 44 so my thumb lands on it; the board is not made smaller to pay for it.
 - At 375x761, 320x568, 375x730 and 390x844 every control is at least 44 x 44, carries no border, gradient or shadow, hit-tests to itself at its centre, and the board keeps its width. (TC-R114)
+### US-R105 A move is Brilliant by one rule, the reason names what I gave, and no stored verdict changes behind my back
+*Added #549 item (28), from jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03 (Kunal: the needed test at about +7, 4 Nov 2026; "recompute (Grade them again, show me the changes first)", 4 Nov 2026). Shipped switched OFF (BRIL_RULE_DEFAULT 1) until he has seen the 124 Brilliants it adds across his 196 chess.com games; flags/amber-549-one-brilliant-rule-ships-off.*
+As a player who also reviews on chess.com, a move of mine is Brilliant when it is sound, gives up real material (the piece I moved or one I leave hanging), leaves me no worse than about a pawn down, and was needed (the next best move would not already have won easily, at +7); the reason says which piece I gave and for what; and when the rule changes, the app shows me every Brilliant that comes or goes before it changes any.
+- A piece left en prise elsewhere is a sacrifice, unless I was answering check. (TC-R122, TC-R123)
+- The needed test is +7 in the mover's own frame, both colours, and a move with no second choice is needed. (TC-R124)
+- About -1 after the move is the floor; who was winning before the move does not gate it; the soundness cap is unchanged. (TC-R125)
+- The reason names the piece and what it took or where it stood, never calls it a trade, reads in my own frame, says mate in words, and names both targets of a fork. (TC-R126)
+- The thirteen Brilliants chess.com found in my games are Brilliant on the app's own engine. (TC-R127)
+- A stored review graded by an older rule is graded again from its own engine output, and every change is listed game by game and move by move in a "Grading changed" sheet; Update applies them and Not now keeps everything; a game with no stored engine output waits for its next review. (TC-R128, TC-R129, TC-R130)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

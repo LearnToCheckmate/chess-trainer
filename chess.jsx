@@ -1133,6 +1133,35 @@ function dropTxt(altSan,altDrop){
   if(d>=0.35)return altSan+' was the only other try, '+d.toFixed(1)+' worse.';
   return altSan+' was as good on paper, but nothing like as forcing.';
 }
+/* #549 item (28), theSentence of jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03: WHAT A BRILLIANT
+   GAVE UP, by name, from the fields brilliantGate returns. The old ladder read a number (`given`) and printed "a piece" for a
+   knight, a bishop AND the exchange, "a rook or more" for a queen, and had no words at all for a piece left en prise elsewhere.
+   Now: the landing arm names the piece and what it took ("You give up the rook for a knight", "the queen on f1"); the hanging arm
+   names the piece and its square ("You leave the bishop on a6 to be taken"). Never "trade": a recaptured capture that gives more
+   than it takes is a sacrifice, which is the only reason the gate fired. A stored gate from before #549 carries no gT, so it
+   falls back to the old ladder rather than printing nothing. `past` gives the past tense the practice card uses. */
+function brilGiveTxt(g,past){
+  g=g||{};const _gv=(g.given!=null?g.given:g.sac);
+  if(!g.gT||!PNAME[g.gT]){const what=_gv>=9?'the queen':_gv>=5?'a rook':_gv>=2?'a piece':_gv>=1?'a pawn':'material';return (past?'You gave up ':'You give up ')+what;}
+  const pc=PNAME[g.gT];
+  if(g.arm==='hang')return (past?'You left the ':'You leave the ')+pc+' on '+g.gSq+' to be taken';
+  if(g.capT&&PNAME[g.capT])return (past?'You gave up the ':'You give up the ')+pc+' for '+(g.capT==='p'?'a pawn':('a '+PNAME[g.capT]));
+  return (past?'You gave up the ':'You give up the ')+pc+' on '+g.gSq;
+}
+/* THE FORK, NAMED. moveMotifs says only that a fork happened; the sentence said "It forks two pieces at once" and so never said
+   which two. The targets are read the way moveMotifs counts them (the moved piece's legal captures onto pieces worth 3 or more,
+   plus the king when it gives check), most valuable first. Pure; empty when there is no fork. */
+function forkTargets(pos,mv){
+  try{
+    const me=pos.turn,them=opp(me),g2=makeMove(pos,mv);if(!g2)return [];
+    const nb=g2.board,out=[];
+    for(const m of getLegal({...g2,turn:me})){if(m.fr!==mv.tr||m.fc!==mv.tc)continue;const t=nb[m.tr]&&nb[m.tr][m.tc];if(t&&t.c===them&&t.t!=='k'&&(SEEVAL[t.t]||0)>=3)out.push(t.t);}
+    if(isInCheck(nb,them))out.push('k');
+    const u=[...new Set(out)].sort((a,b)=>(SEEVAL[b]||0)-(SEEVAL[a]||0));
+    return out.length>=2?u.map(t=>PNAME[t]):[];
+  }catch(e){return [];}
+}
+const forkTxt=(names)=>(names&&names.length>=2)?('It forks the '+names.slice(0,-1).join(', the ')+' and the '+names[names.length-1]+'.'):'It forks two pieces at once.';
 /* #512 jobs/the-brilliant-sentence-prices-the-move-instead-of-explaining-it-2026-10-04, part (b).
    KUNAL, 2026-10-04, from his own game review on his own phone: the move was brilliant BECAUSE the piece
    comes back, and "the why preview stops short before actually taking the knight". His own test for this
@@ -1512,6 +1541,7 @@ function explainAnno(a,ctx){
     }catch(e){}
     return tail==='mate'?(reply+' is mate.'):(reply+' is the answer'+tail+'.');})();
   const motifTxt=has('mate')?'Checkmate.':has('fork')?'It forks two pieces at once.':has('discovered check')?'A discovered check, which is why it lands so hard.':has('promotion')?'The pawn promotes.':'';
+  const motifTxtAll=motifTxt;
   // A continuation is only an EXPLANATION when it is forcing. On a quiet move the next few plies
   // are just the next few plies - "Then e5 Nf3 d6 d4 follows" after 1.e4 says nothing at all - so
   // the line is shown when every move in it is a capture, a check or mate, and on a sacrifice when
@@ -1536,10 +1566,8 @@ function explainAnno(a,ctx){
   // #357 The verdict chip already says "Brilliant", so saying it again is a wasted clause. What it
   // does NOT say is what the sacrifice buys, and that is the only thing worth reading here.
   if(L==='Brilliant'){const g=a.gate||{};
-    // #448: `given` (material handed over) not `sac` (net cost after the exchange). A stored gate
-    // from before #448 carries no `given`, so fall back to `sac` rather than printing 'material'.
-    const _gv=(g.given!=null?g.given:g.sac);
-    const what=_gv>=9?'the queen':_gv>=5?'a rook':_gv>=2?'a piece':_gv>=1?'a pawn':'material';
+    // #448: `given` (material handed over) not `sac` (net cost after the exchange). #549 item (28): the piece is NAMED now, from
+    // the gate's gT/gSq/capT/arm (brilGiveTxt above); a stored gate from before either build falls back inside brilGiveTxt.
     const R=ctx&&ctx.refute;
     const refTxt=refuteTxt(R);
     /* #549 (102) jobs/the-coach-sentence-is-rewritten-two-seconds-in-and-portrait-headroom-is-now-0-3px-2026-10-10,
@@ -1553,7 +1581,8 @@ function explainAnno(a,ctx){
        the comparison still yields to the refutation only when both cannot fit (orchWrite_1791683630517). */
     const _due=!R&&!!(ctx&&ctx.refuteDue);
     const _l=(refTxt||_due)?'':pvShow(pvTakes);   // the refutation says it better than the bare line
-    const _give='You give up '+what+(_l?(', and '+_l):'.');
+    const _give=brilGiveTxt(g,false)+(_l?(', and '+_l):'.');
+    const motifTxt=(has('fork')&&a.forkT&&a.forkT.length>=2)?forkTxt(a.forkT):motifTxtAll;
     if(_due)return pack([_give]);
     // #365 WHY it works: what happens if they take (analysed on demand, handed in through ctx.refute),
     // and what the next best move would have got instead. Those two clauses are the explanation;
@@ -1615,8 +1644,35 @@ const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their
 // asserted: barW + boardW is the same number in Play and in Review by this construction.
 const EVAL_BAR_W = (inReview) => inReview ? 22 : 18;
 
-function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
+/* #549 item (28), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03: THE ONE BRILLIANT RULE. A move is
+   Brilliant when all four hold, and this function is the one place every brilliant in the app is decided (the review label at both
+   engine sites, the summary counts, the practice list, the opponents' brilliants on the games list, and the regrade preview):
+     1 SOUND       loss < cap, cap = 220 when the sacrifice leaves the mover at least +1.2, else 90 (the cap, kept exactly).
+     2 A SACRIFICE sac >= 2: the opponent can win at least 2 pawns more than the move took, by seeSq, either on the landing square
+                   (the arm below, byte-identical since #448) OR on any OTHER square holding one of the mover's pieces (the
+                   HANGING arm, new here). A piece left hanging counts only when the mover was NOT in check before the move.
+     3 NOT BAD AFTER  the mover's eval after the move is at least BRIL_FLOOR (about -1 pawn).
+     4 NEEDED      the next best move would NOT have left the mover above BRIL_NEEDED (+7): Kunal, about 3:05pm EST Wed 4 Nov 2026,
+                   decisions/brilliant-moves-follow-one-rule-with-the-needed-test-at-about-plus-7-2026-11-04. `evalNextWhite` is the
+                   eval (pawns, White's frame) of the best move OTHER than the one played; null means there was none (the only legal
+                   move, or an engine that returned no second line), and then the move is needed by definition.
+   DROPPED, per the job's theRule and decisions/brilliant-is-not-gated-by-who-is-winning-2026-09-23: the evBefore window (> -1.0,
+   < 4.5) and the evAfter >= 0.8 floor. GRADE_VER moves with this rule (see its comment). */
+const BRIL_FLOOR=-1.0;   // condition 3: the mover's eval after the move, at worst about -1 pawn
+const BRIL_NEEDED=7.0;   // condition 4: a next best at or above this leaves the mover winning easily, so the move was not needed
+/* WHICH RULE THE APP GRADES BY, AND WHY IT IS STILL THE OLD ONE ON THIS BUILD. The job's own close condition reads "before it ships
+   he sees every new Brilliant it fires across his reviewed games", and measured on the app's engine over his 196 chess.com games
+   since 1 Sep 2026 (gates/measure-brilliant-one-rule.js) the one rule fires 164 times where the old one fires 40: it takes all 13
+   of chess.com's named Brilliants, and it adds 124 moves he has not yet seen. So the rule ships BUILT, GATED AND SWITCHED OFF:
+   BRIL_RULE_DEFAULT is 1 (the rule it replaces, brilliantV1ok below, byte-identical in verdict) until his word on that list, and
+   turning it on is this one number (it also raises GRADE_VER, which opens the regrade preview). `ct_bril_rule`='2' turns the one
+   rule on for one device, so the list can be checked on his own phone first. Amber: flags/amber-549-one-brilliant-rule-ships-off. */
+const BRIL_RULE_DEFAULT=1;
+const BRIL_RULE=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_bril_rule')==='2')?2:BRIL_RULE_DEFAULT;}catch(e){return BRIL_RULE_DEFAULT;}})();
+function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule){
+  if(rule!==1&&rule!==2)rule=BRIL_RULE;
   const mc=pos.turn,sgn=mc==='w'?1:-1;
+  let arm='land',gT=null,gSq=null,capT=null,hang=0,hangT=null,hangSq=null,sacLand=0;
   // Sacrifice size = (value of the piece we just placed) minus (value of what this move captured),
   // but ONLY if the opponent can actually win that piece (SEE on the landing square > 0). A trade
   // (capture of equal/greater value) and a safely-defended move both score 0, so neither can be a !!.
@@ -1674,19 +1730,52 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
         // so a ladder keyed on it printed "You give up a rook" for a queen. The ladder reads `given`.
         given=Math.max(0,movedVal-capVal-promoGain);
         sac=(before||pl.epCap)?given:Math.max(0,seeOpp-promoGain);
+        gT=cell?cell.t:(mover?mover.t:null);gSq=rc2sq(pl.tr,pl.tc);capT=before?before.t:(pl.epCap?'p':null);
+      }
+      /* THE HANGING ARM (#549 item 28, condition 2's second half). A sacrifice made by LEAVING a piece en prise - the queen
+         ignored while a mating net closes, a rook left on its square - scored 0 above, because only the landing square was asked.
+         Every other square holding one of the mover's pieces (the king excepted: it is not material) is asked the same seeSq
+         question, which is legality-aware (it reads getLegal), so a capture the opponent cannot legally make does not count. The
+         net is charged against what the move took and any promotion gain, as the capture arm is. Skipped when the mover was in
+         check: a piece "left" while answering check was not chosen to be left. */
+      const _cap0=pos.board[pl.tr]&&pos.board[pl.tr][pl.tc];
+      const _capV=_cap0?(SEEVAL[_cap0.t]||0):(pl.epCap?(SEEVAL.p||0):0);
+      const _mv0=pos.board[pl.fr]&&pos.board[pl.fr][pl.fc],_cl=g2.board[pl.tr]&&g2.board[pl.tr][pl.tc];
+      const _pg=Math.max(0,(_cl?(SEEVAL[_cl.t]||0):0)-(_mv0?(SEEVAL[_mv0.t]||0):0));
+      sacLand=sac;
+      if(!isInCheck(pos.board,mc)){
+        for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+          if(r===pl.tr&&c===pl.tc)continue;
+          const p=g2.board[r]&&g2.board[r][c];if(!p||p.c!==mc||p.t==='k')continue;
+          let v=0;try{v=seeSq(g2,r,c,g2.turn);}catch(e){v=0;}
+          if(v>hang){hang=v;hangT=p.t;hangSq=rc2sq(r,c);}
+        }
+        const hs=Math.max(0,hang-_capV-_pg);
+        if(rule===2&&hs>sac){sac=hs;given=Math.max(0,(SEEVAL[hangT]||0)-_capV-_pg);arm='hang';gT=hangT;gSq=hangSq;capT=_cap0?_cap0.t:(pl.epCap?'p':null);}
       }
     }
   }catch(e){}
   const isSac=sac>=2;
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
+  const evNext=(evalNextWhite==null||typeof evalNextWhite!=='number'||isNaN(evalNextWhite))?null:sgn*evalNextWhite;
   // A clearly-winning sacrifice may be up to ~2 pawns off the engine's top move; anything else must be essentially best.
   const cap=(isSac&&evAfter>=1.2)?220:90;
-  const ok=loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5;
-  return {ok, loss:Math.round(loss), sac:Math.round(sac*10)/10, given:Math.round(given*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac};
+  const needed=evNext==null||evNext<BRIL_NEEDED;
+  const ok=rule===2?(loss<cap && isSac && evAfter>=BRIL_FLOOR && needed):(loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5);
+  return {ok, rule, hang:Math.round(hang*10)/10, hangT, hangSq, loss:Math.round(loss), sac:Math.round(sac*10)/10, given:Math.round(given*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac,
+    needed, evNext:evNext==null?null:Math.round(evNext*100)/100, arm, gT, gSq, capT, sacLand:Math.round(sacLand*10)/10};   // sacLand: the landing-square arm alone, which is the whole of the pre-#549 measure
 }
-function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
+function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule){
   if(loss>=250)return false;
-  return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite).ok;
+  return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule).ok;
+}
+/* #549 item (28): THE NEXT-BEST EVAL the NEEDED test reads, from the two lines an engine gives. `bestW` and `secondW` are the
+   evals of the engine's first and second moves (any unit, White's frame), `playedIsBest` says whether the move played was the
+   first one. If it was, the next best is the second line; if it was not, the next best is the engine's own best move. Null when
+   there is no such line. One function so the three grading sites cannot each pick a different "next best". */
+function nextBestW(bestW,secondW,playedIsBest){
+  const v=playedIsBest?secondW:bestW;
+  return (v==null||typeof v!=='number'||isNaN(v))?null:v;
 }
 
 /* #503 THE GRADING-VERSION STAMP. work[3] of jobs/review-list-filter-and-search-2026-09-23, and its own
@@ -1749,7 +1838,12 @@ function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite){
    not a build-lane one, so it is routed with its measurement instead of taken here. What ships is the
    MECHANISM, which is what work[3] asked for and what must exist before the gate moves at all. The bump is
    jobs/bump-grade-ver-to-clear-the-four-shipped-grading-changes-2026-10-09. */
-const GRADE_VER=1;
+/* #549 item (28): RAISED TO 2 WITH THE ONE BRILLIANT RULE, AND ONLY WITH IT (BRIL_RULE). Estimates stamped 1 (or unstamped) are graded again by the background
+   pass, as this mechanism was built to do; a stored REVIEW is not touched by that pass (the src:'review' clause below, unchanged)
+   and instead goes through the regrade preview (regradeGame, the 'Grading changed' sheet on the games list), which lists every
+   Brilliant that goes and every one that appears, game by game, and changes nothing until the player confirms. Kunal, about
+   5:18pm EST Wed 4 Nov 2026, questions/B8-BRILLIANT-RECOMPUTE: "recompute (Grade them again, show me the changes first)". */
+const GRADE_VER=BRIL_RULE===2?2:1;   // 2 only with the one rule on (BRIL_RULE above)
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
    alone when stale, and that is not an oversight: the background pass can only produce a depth-2 ESTIMATE, so
@@ -1758,6 +1852,118 @@ const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
    writer. Named as a residual on the job rather than hidden here. */
 const gradeCacheUsable=(st)=>!!st&&(gradeVerOf(st)===GRADE_VER||st.src==='review');
 
+/* #549 item (28): THE STOCKFISH REVIEW'S PER-PLY GRADER, lifted out of importGame unchanged so the REGRADE PREVIEW can run the very
+   same code over a stored review's cached engine output (ct_evalcache: evW, ev2W, bU, aU) without a new engine pass. `before`/`after`
+   are evW[i]/evW[i+1] (White-frame centipawns), `ev2` is ev2W[i], `buI`/`auI` are bU[i]/aU[i]. Returns the review row minus `pv`,
+   which the caller fills in a second pass because it reads forward. Pure: no React, no storage. */
+function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule){
+    const mover=pos.turn;
+    let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
+    let bestMv=null,bestSan='';const bu=buI;
+    if(bu){bestMv=uciToMove(pos,bu);if(bestMv)bestSan=toSAN(pos,bestMv,applyMove(pos.board,bestMv));}
+    const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
+    let _wasBest=false;
+    if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;_wasBest=true;}
+    // #440: computed AFTER the override above, and keyed on the explicit _wasBest flag rather than
+    // inferred from bestMv being null - bestMv is ALSO null when the engine returned no best move at
+    // all, and those two cases must not share a branch. A played move that IS the engine's best scores
+    // a zero drop instead of being charged for the sharpness of the position it was played in.
+    const _wd=_wasBest?0:winDrop(before,after,mover);
+    const _ma=moveAcc(_wd);
+    // #549 item (28): the NEEDED test reads the best move OTHER than the one played - the second line when the move was the
+    // engine's first choice, the first line (evW[i] itself) when it was not. Clamped to pawns exactly as evA and evB are.
+    const _nbW=nextBestW(before,ev2,_wasBest);
+    const _g=brilliantGate(pos,pl,loss,evA,evB,_nbW==null?null:Math.max(-99,Math.min(99,_nbW/100)),rule);
+    // okOverride: the regrade preview asks what the SAME engine data graded under the previous rule (brilliantV1ok) would have
+    // labelled this move, so the two runs differ in the brilliant decision and nothing else.
+    const _ok=typeof okOverride==='function'?!!okOverride(_g):_g.ok;
+    let cls=_ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
+    /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
+       always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
+       evW[i] and evW[i+1], white-POV centipawns, which is why evB is before/100 two lines up. */
+    const _newMate=matesMover(after,mover,before);
+    if(_newMate&&cls.label!=='Brilliant')cls=mateLadder(before,mover);
+    /* #442: THESE TWO OVERLAYS ARE DECISIONS, NOT LABELS, so they read the SELECTION ladder.
+       They gated on `cls.label` and were calibrated when cls WAS classifyByLoss - Best/Excellent
+       then meant the player had played at or within 40cp of the engine's move, which is the whole
+       premise of "the only move that keeps it". #440 re-banded cls onto the win-percentage ladder
+       without moving these, so in a decided position a move losing 1.8 pawns still reads
+       Best/Excellent (it cost no winning chances that were left to lose) and GREAT FIRED ON A MOVE
+       THAT WAS NOT THE ENGINE'S: ply 19 of the Crusher9000 game rendered "! Great ... The only move
+       that keeps it." with the rev-best button 7px away offering a DIFFERENT move. False about
+       chess, on Kunal's own geometry. Miss failed the other way: it needs the old Mistake/Blunder
+       band and stopped firing once those moves softened. `_selL` is classifyByLoss(loss), i.e.
+       exactly the ladder both gates were written against, so this RESTORES the pre-#440 firing
+       condition rather than inventing one. ONE definition, read by the overlays AND by the row's
+       own `sel`, which is the hoist that #441's _cSel P0 taught. Instance 1 of
+       jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
+    const _selL=classifyByLoss(loss);
+    /* #491, antagonist A: `&&!_newMate` IS LOAD-BEARING AND WAS MISSING. For any mate-allowing move
+       `loss` clamps to 1500 so _selL is 'Blunder', and _pm is about -99900 so both of Miss's eval
+       conditions hold trivially - leaving `_bm>=200` as the only live term. So EVERY mate allowed from
+       +200 or better was relabelled '× Miss', discarding the ladder's verdict, over exactly the range
+       the rule claims to own: the comment on mateLadder says #375's case "is still called a Blunder at
+       anything better than 700 down", and without this guard it was called a Miss. The Great branch is
+       the same shape in the one case where _wasBest sets loss=0 so _selL is 'Best' - reachable when the
+       engine's own best move allows a mate straddling the search horizon - and it rendered
+       "! Great - The only move that keeps it." on a move that gets mated next. The ladder is the last
+       word on a move that forces mate against its own mover; these two overlays are not. */
+    if(cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2!=null,_s2=_h2?(mover==='w'?ev2:-ev2):null;
+      if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
+      else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
+    let altSan='',altDrop=null;
+    try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
+      if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
+    return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl)});
+}
+/* #549 item (28): THE RULE THIS BUILD REPLACED, from the fields brilliantGate still returns - kept ONLY so the regrade preview can
+   say which stored Brilliants go and which appear. The landing arm alone (sacLand) was the whole sacrifice measure, the cap read
+   it, and the three eval conditions were `evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5`. Not a grader: nothing labels a move
+   with it. */
+function brilliantV1ok(g){
+  if(!g)return false;const s=(g.sacLand!=null?g.sacLand:g.sac)>=2,cap=(s&&g.evAfter>=1.2)?220:90;
+  return g.loss<cap&&s&&g.evAfter>=0.8&&g.evBefore>-1.0&&g.evBefore<4.5;
+}
+/* The practice card's sentence for a Brilliant, from a review row (one builder, used by the review's capture and by the regrade). */
+function brilCardWhy(o,mc){
+  const _g=(o&&o.gate)||{};const _mo=(o&&o.motifs)||[];
+  const _evM=(o&&typeof o.evalAfter==='number')?(mc==='w'?1:-1)*o.evalAfter:null;
+  const _stand=(_evM==null||_mo.indexOf('mate')>=0)?'':(Math.abs(_evM)>=99?(_evM>0?', and it leads to mate':', and the engine still finds a mate against you'):(' and the position still read '+(_evM>0?'+':'')+_evM.toFixed(1)+' for you'));
+  return brilGiveTxt(_g,true)+_stand+'. '+
+    (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?forkTxt(o.forkT):_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
+}
+const _tallyBucket=(L)=>L==='Brilliant'?'bril':(L==='Best'||L==='Great')?'great':L==='Inaccuracy'?'inacc':(L==='Mistake'||L==='Miss')?'mist':L==='Blunder'?'blun':null;
+/* #549 item (28), Kunal's answer on questions/B8-BRILLIANT-RECOMPUTE ("recompute: grade them again, show me the changes first").
+   A stored REVIEW is graded again from its own cached engine output, twice over the same numbers: under the previous rule and
+   under this one, so every difference is the brilliant rule's and nothing else's. Returns null when this phone holds no engine
+   output for the game (ct_evalcache keeps 24 games) - that game is graded again by its next review, never estimated. `changes`
+   lists every move whose Brilliant verdict differs, game order, with both labels; `delta` is the tally change (new minus old,
+   the player's buckets, plus obril for the opponent's brilliants), applied to the stored tally rather than replacing it, so a
+   count graded by an older build in some other respect is not silently rewritten here. Pure. */
+function regradeGame(res,cache,userColor,rule){
+  if(!res||!res.plies||!res.plies.length||!cache||!cache.evW)return null;
+  const N=res.plies.length;if(cache.evW.length!==N+1)return null;
+  const evW=cache.evW.slice();
+  for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}   // the #371 read patch importGame applies
+  const changes=[],delta={bril:0,great:0,inacc:0,mist:0,blun:0,obril:0},rows=[];
+  for(let i=0;i<N;i++){
+    const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
+    const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule);   // rule: the app's own (BRIL_RULE) unless a caller names one
+    const ol=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1);
+    rows.push(nw);
+    const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
+    const mc=i%2===0?'w':'b',mine=!userColor||mc===userColor;
+    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;}
+    else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
+    if(OL==='Brilliant'||NL==='Brilliant'){
+      const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
+      const lm=i>0&&res.plies[i-1]?res.plies[i-1].move:null;
+      changes.push({i,no:Math.floor(i/2)+1,side:mc,mine,san:res.plies[i].san,from:OL,to:NL,fen:toFEN(pos),uci:u,
+        last:lm?{fr:lm.fr,fc:lm.fc,tr:lm.tr,tc:lm.tc}:null,why:NL==='Brilliant'?brilCardWhy(nw,mc):null});
+    }
+  }
+  return {changes,delta,plies:N};
+}
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
 async function analyzeGameCounts(pgn,userColor){
   try{
@@ -1780,7 +1986,10 @@ async function analyzeGameCounts(pgn,userColor){
          COUNT a player sees disagrees with the verdict the review screen prints for the same move. Same
          operands as the fallback site: the mate question is asked of actualVal against bestVal, the rung
          comes from the position's own eval in pawns. */
-      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos))?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
+      // #549 item (28): the NEEDED test's next best. rankMoves returns every legal move ranked, so the next best is scored[1]
+      // when the move played was scored[0], and scored[0] otherwise (white-POV centipawns, to pawns as evalPawns gives them).
+      const _nb3=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);
+      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)))?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
       const L=_c3.label;
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
@@ -5261,61 +5470,7 @@ export default function App(){
       evalCacheSet(_ck,{evW,ev2W,bU,aU});
       }
       poolClose();
-      for(let i=0;i<N;i++){
-        const pos=res.positions[i],mover=pos.turn,before=evW[i],after=evW[i+1];
-        let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
-        let bestMv=null,bestSan='';const bu=bU[i];
-        if(bu){bestMv=uciToMove(pos,bu);if(bestMv)bestSan=toSAN(pos,bestMv,applyMove(pos.board,bestMv));}
-        const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
-        const pl=res.plies[i].move;
-        let _wasBest=false;
-        if(bestMv&&bestMv.fr===pl.fr&&bestMv.fc===pl.fc&&bestMv.tr===pl.tr&&bestMv.tc===pl.tc){loss=0;bestSan='';bestMv=null;_wasBest=true;}
-        // #440: computed AFTER the override above, and keyed on the explicit _wasBest flag rather than
-        // inferred from bestMv being null - bestMv is ALSO null when the engine returned no best move at
-        // all, and those two cases must not share a branch. A played move that IS the engine's best scores
-        // a zero drop instead of being charged for the sharpness of the position it was played in.
-        const _wd=_wasBest?0:winDrop(before,after,mover);
-        const _ma=moveAcc(_wd);
-        const _g=brilliantGate(pos,pl,loss,evA,evB);
-        let cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
-        /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
-           always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
-           evW[i] and evW[i+1], white-POV centipawns, which is why evB is before/100 two lines up. */
-        const _newMate=matesMover(after,mover,before);
-        if(_newMate&&cls.label!=='Brilliant')cls=mateLadder(before,mover);
-        /* #442: THESE TWO OVERLAYS ARE DECISIONS, NOT LABELS, so they read the SELECTION ladder.
-           They gated on `cls.label` and were calibrated when cls WAS classifyByLoss - Best/Excellent
-           then meant the player had played at or within 40cp of the engine's move, which is the whole
-           premise of "the only move that keeps it". #440 re-banded cls onto the win-percentage ladder
-           without moving these, so in a decided position a move losing 1.8 pawns still reads
-           Best/Excellent (it cost no winning chances that were left to lose) and GREAT FIRED ON A MOVE
-           THAT WAS NOT THE ENGINE'S: ply 19 of the Crusher9000 game rendered "! Great ... The only move
-           that keeps it." with the rev-best button 7px away offering a DIFFERENT move. False about
-           chess, on Kunal's own geometry. Miss failed the other way: it needs the old Mistake/Blunder
-           band and stopped firing once those moves softened. `_selL` is classifyByLoss(loss), i.e.
-           exactly the ladder both gates were written against, so this RESTORES the pre-#440 firing
-           condition rather than inventing one. ONE definition, read by the overlays AND by the row's
-           own `sel`, which is the hoist that #441's _cSel P0 taught. Instance 1 of
-           jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-        const _selL=classifyByLoss(loss);
-        /* #491, antagonist A: `&&!_newMate` IS LOAD-BEARING AND WAS MISSING. For any mate-allowing move
-           `loss` clamps to 1500 so _selL is 'Blunder', and _pm is about -99900 so both of Miss's eval
-           conditions hold trivially - leaving `_bm>=200` as the only live term. So EVERY mate allowed from
-           +200 or better was relabelled '× Miss', discarding the ladder's verdict, over exactly the range
-           the rule claims to own: the comment on mateLadder says #375's case "is still called a Blunder at
-           anything better than 700 down", and without this guard it was called a Miss. The Great branch is
-           the same shape in the one case where _wasBest sets loss=0 so _selL is 'Best' - reachable when the
-           engine's own best move allows a mate straddling the search horizon - and it rendered
-           "! Great - The only move that keeps it." on a move that gets mated next. The ladder is the last
-           word on a move that forces mate against its own mover; these two overlays are not. */
-        if(cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2W[i]!=null,_s2=_h2?(mover==='w'?ev2W[i]:-ev2W[i]):null;
-          if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
-          else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
-        let altSan='',altDrop=null;
-        try{const au=aU[i];if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
-          if(ev2W[i]!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2W[i]:-ev2W[i];altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-        out.push({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null});
-      }
+      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i]));
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
       for(let i=0;i<out.length;i++){
@@ -5352,7 +5507,8 @@ export default function App(){
         // chooses is covered or the gate is not a gate - so the drop is computed here too, not only above.
         const _wd2=winDrop(bestVal,actualVal,mover);
         const _ma2=moveAcc(_wd2);
-        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB);
+        const _nbF=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);   // #549 item (28): as in analyzeGameCounts
+        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB,_nbF==null?null:Math.max(-99,Math.min(99,_nbF/100)));
         /* #491: THE MATE RULE REACHES THIS SITE TOO, and until antagonist A measured it, it did not.
            The comment two lines up invokes the #375 rule for the DROP and #491 then left the mate rule at
            the Stockfish site only, so on this engine a move allowing a forced mate graded, measured against
@@ -5424,8 +5580,10 @@ export default function App(){
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
-            const _gv2=(_g.given!=null?_g.given:_g.sac);const _why='You gave up '+(_gv2>=5?'a rook or more':_gv2>=3?'a piece':'material')+' and the position still read '+((out[i].evalAfter>0?'+':'')+(out[i].evalAfter||0).toFixed(1))+'. '+
-              (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?'It forks two pieces at once.':_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
+            /* #549 item (28): the practice card's sentence (brilCardWhy): in the MOVER's frame, a mate in words, the piece given named
+               and a fork's two targets with it. evalAfter is White's frame, so a Black brilliancy used to read as a minus number for the
+               player who made it, and a mating line read "+99.0". */
+            const _why=brilCardWhy(out[i],mc);
             bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor(i/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
           }
         }
@@ -5737,6 +5895,40 @@ export default function App(){
     })();
     return ()=>{cancelled=true;};
   },[ccGames,mode]);
+  /* #549 item (28): THE REGRADE PREVIEW. Every stored REVIEW graded under an older GRADE_VER is graded again from its own cached
+     engine output (regradeGame), and nothing stored changes until the player says so. A game whose regrade changes no Brilliant is
+     restamped at once (nothing he can see moves). A game this phone holds no engine output for is left as it is and is graded again
+     by its next review. The sheet is asked once per app session; "Not now" keeps everything and asks again the next time the app opens. */
+  const [regrade,setRegrade]=useState(null);
+  const regradeDoneRef=useRef(false);
+  useEffect(()=>{
+    if(mode!=='analyze'||homeScreen||regradeDoneRef.current||!ccGames||!ccGames.length)return;
+    const GS=gameStatsRef.current||{};const all=evalCacheAll();const games=[];let noCache=0;
+    for(const g of ccGames){
+      const k=gkey(g),st=GS[k];if(!st||st.src!=='review'||gradeVerOf(st)>=GRADE_VER)continue;
+      let r=null;try{const sans=parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans):null;if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies)]||null,gameInfo(g).userColor);}catch(e){r=null;}
+      if(!r){noCache++;continue;}
+      if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version
+      const info=gameInfo(g);
+      games.push({key:k,opp:info.opp||(g.white+' v '+g.black),date:g.date||0,acct:g.acct?acctId(g.src,g.acct):null,...r});
+    }
+    if(games.length)setRegrade({games,noCache});
+  },[ccGames,mode,homeScreen]);
+  const regradeAnswer=(yes)=>{
+    regradeDoneRef.current=true;const R=regrade;setRegrade(null);if(!yes||!R)return;
+    const GS=gameStatsRef.current||{};const addB=[],dropB=new Set();
+    for(const G of R.games){
+      const st=GS[G.key];if(!st)continue;const d=G.delta,nt={...st};
+      for(const f of ['bril','great','inacc','mist','blun','obril'])if(d[f])nt[f]=Math.max(0,(nt[f]||0)+d[f]);
+      recordGameStats(G.key,nt);
+      const _notMine=!!(G.acct&&(acctMineRef.current||{})[G.acct]===false);   // #547 item (79): an account he marked not his feeds no pool
+      if(_notMine)continue;
+      for(const c of G.changes){if(!c.mine)continue;
+        if(c.from==='Brilliant')dropB.add(c.fen+'|'+c.uci);
+        else if(c.to==='Brilliant')addB.push({fen:c.fen,uci:c.uci,label:'Brilliant',ts:Date.now(),last:c.last,why:c.why,no:c.no});}
+    }
+    if(addB.length||dropB.size)setMyBrilliant(prev=>{const kept=prev.filter(x=>!dropB.has(x.fen+'|'+x.uci));const seen=new Set(kept.map(x=>x.fen));const add=addB.filter(c=>!seen.has(c.fen));return [...add,...kept].slice(0,80);});
+  };
 
   // ── Move handling ──
   // Record a solved puzzle into persistent progress; returns the new tier if the player just ranked up.
@@ -7142,6 +7334,23 @@ export default function App(){
       {diagMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>🩺 {diagMsg}</div>)}
       {shareMsg&&(<div style={{position:'fixed',bottom:'calc(env(safe-area-inset-bottom,0px) + 54px)',left:'50%',transform:'translateX(-50%)',zIndex:9998,background:'rgba(10,12,18,.95)',border:'1px solid rgba(110,168,254,.55)',borderRadius:12,padding:'10px 16px',color:'#cfe0ff',fontSize:13,fontWeight:700,boxShadow:'0 6px 20px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90vw',textAlign:'center'}}>{shareMsg}</div>)}
       {moreOpen&&mode==='play'&&opponent!=='online'&&(<div onClick={()=>{setMoreOpen(false);setResignArm(false);setDrawArm(false);/* #547 antagonist A on (189): closing the sheet disarms the draw too */}} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="more-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>{/* fb-takeback: back HERE only - vs Computer, in the More sheet, not a seventh button (the six-button row and the board keep their height). MOUNTED for the whole game and merely DISABLED when there is nothing to give back, rather than unmounted: opponent does not change mid-game, so no row above New game ever appears or disappears under a finger. Resign already unmounts at game over, but it is the LAST row, so nothing moves above it. */}{opponent==='computer'&&<_SheetItem ct="more-takeback" icon="takeback" label="Takeback" dis={!canTakeback} on={()=>{takeback();setMoreOpen(false);}}/>}<_SheetItem ct="more-newgame" icon="newgame" label={resetArm==='more-newgame'?'Tap again to discard':'New game'} warn={resetArm==='more-newgame'} on={()=>{guardReset('more-newgame',()=>{fullReset();setMoreOpen(false);});}}/>{!_gameOver&&opponent==='human'&&<_SheetItem ct="more-draw" icon="draw" label={drawArm?'Tap again to agree a draw':'Agree a draw'} warn={drawArm} on={()=>{if(!drawArm){armAtRef.current.draw=Date.now();setDrawArm(true);setTimeout(()=>setDrawArm(false),4000);return;}if(Date.now()-(armAtRef.current.draw||0)<400)return;setDrawArm(false);agreeDraw();setMoreOpen(false);}}/>}{!_gameOver&&<_SheetItem icon="resign" label={resignArm?'Tap again to resign':'Resign'} warn on={()=>{if(!resignArm){armAtRef.current.resign=Date.now();setResignArm(true);setTimeout(()=>setResignArm(false),4000);return;}if(Date.now()-(armAtRef.current.resign||0)<400)return;setResignArm(false);resign();setMoreOpen(false);}}/>}<_SheetItem ct="moves-analyze" icon="analyze" label="Analyze" on={()=>{setResignArm(false);setMoreOpen(false);analyzeLine();}}/><_SheetItem ct="moves-copy" icon="moves" label={copyMsg||'Copy moves'} on={copyMoves}/>{/* fb-controls (Kunal, "Just those two"): Analyze and Copy moves came out of the MOVES row into this sheet. Analyze MUST close the sheet - analyzeLine only sets mode, so moreOpen would still be true when Play comes back. Copy must NOT close it, or the copyMsg flash is the one thing the user never sees. */} {/* #375 (audit A2-03): a 45px row under "New game" ended the game on one tap */}</div></div>)}
+      {/* #549 item (28): THE 'GRADING CHANGED' SHEET (regrade above). Every move whose Brilliant verdict changes, game by game, before
+          anything stored changes; Update applies them, Not now keeps every stored verdict as it is. A sheet, so no board height moves. */}
+      {regrade&&mode==='analyze'&&!homeScreen&&!inReview&&(<div style={{position:'fixed',inset:0,zIndex:9991,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="regrade-preview" style={{width:'100%',maxWidth:440,maxHeight:'82vh',display:'flex',flexDirection:'column',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'12px 14px calc(14px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)',color:'#e8edf3',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+        <div style={{fontSize:17,fontWeight:800,marginBottom:4}}>Grading changed</div>
+        <div style={{fontSize:14,lineHeight:1.4,color:'rgba(255,255,255,.75)',marginBottom:8}}>{'Brilliant moves now follow one rule. Graded again, '+(regrade.games.length===1?'one of your reviewed games changes':(regrade.games.length+' of your reviewed games change'))+'. Nothing changes until you tap Update.'}</div>
+        <div data-ct="regrade-list" className="scroll" style={{overflowY:'auto',flex:'1 1 auto',minHeight:0}}>
+          {regrade.games.map(G=>(<div key={G.key} data-ct="regrade-game" style={{padding:'8px 0',borderTop:'1px solid rgba(255,255,255,.08)'}}>
+            <div style={{fontSize:14,fontWeight:700}}>{'vs '+G.opp+(G.date?(' · '+new Date(G.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):'')}</div>
+            {G.changes.map(c=>(<div key={c.i} data-ct={c.to==='Brilliant'?'regrade-add':'regrade-drop'} style={{fontSize:14,lineHeight:1.45,color:c.to==='Brilliant'?'#7fe3f5':'rgba(255,255,255,.7)'}}>{(c.to==='Brilliant'?'+ ':'− ')+c.no+(c.side==='w'?'. ':'... ')+c.san+(c.mine?'':' (opponent)')+(c.to==='Brilliant'?(' is now Brilliant (was '+c.from+')'):(' is no longer Brilliant (now '+c.to+')'))}</div>))}
+          </div>))}
+          {regrade.noCache>0&&<div data-ct="regrade-nocache" style={{fontSize:13,lineHeight:1.4,color:'rgba(255,255,255,.55)',padding:'8px 0',borderTop:'1px solid rgba(255,255,255,.08)'}}>{regrade.noCache+(regrade.noCache===1?' other reviewed game is':' other reviewed games are')+' graded again the next time you review '+(regrade.noCache===1?'it':'them')+'.'}</div>}
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:10}}>
+          <button data-ct="regrade-later" onClick={()=>regradeAnswer(false)} style={{flex:1,minHeight:44,borderRadius:12,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:15,fontWeight:700,cursor:'pointer'}}>Not now</button>
+          <button data-ct="regrade-confirm" onClick={()=>regradeAnswer(true)} style={{flex:1,minHeight:44,borderRadius:12,border:'none',background:'var(--ac)',color:'#191919',fontSize:15,fontWeight:800,cursor:'pointer'}}>Update</button>
+        </div>
+      </div></div>)}
       {revMore&&inReview&&(<div onClick={()=>setRevMore(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="rev-sheet" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'82vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:'2px auto 12px'}}/>
         {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:10}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:10}}>

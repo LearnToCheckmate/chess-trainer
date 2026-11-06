@@ -39,13 +39,16 @@ function need(names){
 
 // The pure engine, in source order. OPENINGS (chess.jsx:203) is deliberately NOT here: it reads
 // window.CTLESSONS and nothing below needs it.
+// #549 item (28): the last row (PNAME .. styleBias) is the one brilliant rule's sentence and its regrade, with what they read, so
+// gate 82 measures the shipped functions and not copies.
 const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN','cloneB','isAttacked','findKing','isInCheck','pseudoMoves',
   'applyMove','getLegal','getMovesFrom','disambig','toSAN','makeMove','getStatus','VAL','mateW','PST',
   'evaluate','makeFast','orderMoves','QDEPTH','quiesce','minimax','evalPawns','cleanSAN','parsePGN',
-  'matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','brilliantGate','isBrilliant',
+  'pgnStripLineComments','matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','BRIL_FLOOR','BRIL_NEEDED','BRIL_RULE_DEFAULT','BRIL_RULE','brilliantGate','isBrilliant','nextBestW',
   // #545 item (91): the eleven grading helpers #440 and #491 added. classify reads CLS_BANDS, so without them E.classify()
   // threw "CLS_BANDS is not defined" on every call.
-  'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc'];
+  'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',
+  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','regradeGame','moveHits','bestMove','styleBias'];
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,
 // so it throws HERE, at require time, naming it - instead of a ReferenceError on first call in whatever caller hits it.

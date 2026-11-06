@@ -284,7 +284,9 @@ console.log('\n-- B3. the corpus-wide count and identities');
       const actual=scored.find(s=>s.m.fr===pl.fr&&s.m.fc===pl.fc&&s.m.tr===pl.tr&&s.m.tc===pl.tc);
       const av=actual?actual.v:(pos.turn==='w'?-9999:9999);
       const loss=Math.round(Math.max(0,mc==='w'?scored[0].v-av:av-scored[0].v));
-      if(E.brilliantGate(pos,pl,loss,E.evalPawns(res.positions[i+1]),E.evalPawns(pos)).ok)
+      // #549 item (28): the gate now takes the NEEDED test's next best; fed exactly as analyzeGameCounts feeds it.
+      const nb=E.nextBestW(scored[0].v,scored[1]?scored[1].v:null,actual===scored[0]);
+      if(E.brilliantGate(pos,pl,loss,E.evalPawns(res.positions[i+1]),E.evalPawns(pos),nb==null?null:Math.max(-99,Math.min(99,nb/100))).ok)
         hits.push(`${f.replace('.pgn','')} ${Math.floor(i/2)+1}${mc==='w'?'.':'...'}${res.plies[i].san}`);
     }
   }
