@@ -1,0 +1,63 @@
+fastgate.sh  base 194b2901018c7fa5f9e2d45468603aa13c54a851  head 5650e44c955ed4a7c4093627482cd743f6e15da2  2026-11-06 19:33:35 UTC
+base check: the base IS origin/main (194b2901018c7fa5f9e2d45468603aa13c54a851), and is an ancestor of HEAD.
+changed paths (2):
+    app.js
+    gates/build-numbers.tsv
+
+stamp-only controls, all answered correctly against fixtures cut from this base's own app.js:
+    (a) a same-length restamp is recognised   (b) one code byte outside the stamps is not
+    (c) a non-stamp byte inside a stamp site is not   (f) a one-character-longer valid stamp is not
+    (g) every stamp this exemption accepts is accepted by the regex in gates/regress/49-home.js
+
+app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:
+    app.js (base 60f6c4653ef099637ebadc684ad48779355de512 -> head 6511326a4cbfd3f756eb006181ec9449368399a8)
+    STAMP-ONLY 3 sites, base "#522 - 2026-10-14 20:37 ET" -> head "#526 - 2026-11-06 14:33 ET", 970354 -> 970354 bytes, identical elsewhere
+    FIVE assertions read the build stamp: two are FORMAT (one of them 49-home.js:554's regex, which
+    control (g) checks rather than assumes) and three are GEOMETRY, held by the equal-length pin above.
+    The three gates that read app.js off disk match minified CODE, byte-identical here.
+root .nojekyll at head: yes (a BLOB, not merely a resolvable path; it decides whether a ROOT-level
+  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)
+gates/build-numbers.tsv in the records door's APPENDONLY ratchet (asked of the door via --entries, which is
+  the same file this script runs below): yes - it decides whether the register is records-only.
+    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit.
+    (BOTH conditions are now met: #521 took gates/build-numbers.tsv out of the shared FORCE arm, so a
+     commit that rebuilt the bundle AND minted its number CAN reach this tier. Measured over origin/main's
+     last 400 commits: this exemption reaches 11 that were unreachable before, 192 of 400 in total.)
+    gates/held-trees.tsv: untouched by this commit (appendonly, same blob id at base and head).
+    gates/build-numbers.tsv: append-only BY VALUE (235098 base bytes all identical at head; 274 appended, 2 lines, 0 control bytes).
+    FEEDBACK-INBOX.md: untouched by this commit (appendonly, same blob id at base and head).
+    DECISIONS-LOG.md: untouched by this commit (appendonly, same blob id at base and head).
+    RUN-LOG.md: untouched by this commit (noshrink, same blob id at base and head).
+    HANDOFF.md: untouched by this commit (noshrink, same blob id at base and head).
+    README.md: untouched by this commit (noshrink, same blob id at base and head).
+    chess-trainer-backlog.md: untouched by this commit (noshrink, same blob id at base and head).
+    feedback-inbox.md: untouched by this commit (noshrink, same blob id at base and head).
+
+premise check: 21 distinct require() targets across the regress gates, every one of them
+  inside the FORCE set.
+  app.js IS in this diff, so the no-verdict-can-differ conclusion rests on the stamp-only proof as well.
+  Three regress gates read app.js as DATA (33, 66, 67) and match minified CODE; 68 hashes it for a note;
+  gates/lib.js serves it to all 58. Every code byte here is identical, so none of those can differ.
+  FIVE assertions DO read the build stamp. Two are format - 49-home.js:554's regex is this script's own
+  anchored, which control (g) checks rather than assumes - and three are GEOMETRY, held by the length pin.
+  NOTE WHAT THIS TIER DOES NOT DO: it runs no mountcheck either, so this bundle has been mounted in a
+  browser by nothing. What covers that is the byte proof above, not another gate.
+premise check part two: 4 existing repo paths reached by path.join in the gates, every one of them FORCE.
+
+running the checks a records commit CAN break:
+    gate manifest: green
+    records: no worse than base
+    control audit: no worse than base
+
+gates ran: records tier only. The 59 browser gates in gates/regress were NOT run, and could not have
+  differed: every file any of them reads is in the FORCE set, re-derived above, and the only one of those
+  in this diff is app.js, whose differing bytes are its three build-stamp literals and nothing else.
+ref: HEAD 5650e44c955ed4a7c4093627482cd743f6e15da2 | base 194b2901018c7fa5f9e2d45468603aa13c54a851 (= origin/main) | 10 served files: all byte-identical by BLOB ID except app.js, whose only differing bytes are its 3 build-stamp sites (proved above)
+FAST GATE GREEN 5650e44c955ed4a7c4093627482cd743f6e15da2
+This authorises a push of THIS COMMIT ONLY. It is not the full suite's own green footer and must never
+be cited as one; gates/verify-log.sh refuses this log as a push gate, correctly, and was confirmed doing
+so at #490 - it exits 1 because this log does not end in the full suite's green footer.
+The NIGHTLY full suite on main is what certifies the bundle. Its verdict is recorded on the TRACKER as
+  docs/fast-gate-state (artifact 5326ERvZCZ5tEYRkPavPTF) - NOT a file in this repository. #490's antagonist B,
+  which deliberately has no database tools, read the old wording as naming a repo file and reported it
+  missing; it was right that nothing in the repo carries it, and the wording was what misled it.

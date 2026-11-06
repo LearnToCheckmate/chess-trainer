@@ -1,0 +1,29 @@
+fastgate.sh  base 744b37337b1a04ede5503d0345f02f0999ac8f67  head 2f7ca6cc5dd6bfd1a7e15f63820cf50f586b8fd1  2026-11-06 19:33:57 UTC
+base check: the base IS origin/main (744b37337b1a04ede5503d0345f02f0999ac8f67), and is an ancestor of HEAD.
+changed paths (2):
+    app.js
+    gates/build-numbers.tsv
+
+stamp-only controls, all answered correctly against fixtures cut from this base's own app.js:
+    (a) a same-length restamp is recognised   (b) one code byte outside the stamps is not
+    (c) a non-stamp byte inside a stamp site is not   (f) a one-character-longer valid stamp is not
+    (g) every stamp this exemption accepts is accepted by the regex in gates/regress/49-home.js
+
+app.js differs from the base BY ITS BUILD STAMP ONLY, so it does not force the full suite:
+    app.js (base 60f6c4653ef099637ebadc684ad48779355de512 -> head 6511326a4cbfd3f756eb006181ec9449368399a8)
+    STAMP-ONLY 3 sites, base "#522 - 2026-10-14 20:37 ET" -> head "#526 - 2026-11-06 14:33 ET", 970354 -> 970354 bytes, identical elsewhere
+    FIVE assertions read the build stamp: two are FORMAT (one of them 49-home.js:554's regex, which
+    control (g) checks rather than assumes) and three are GEOMETRY, held by the equal-length pin above.
+    The three gates that read app.js off disk match minified CODE, byte-identical here.
+root .nojekyll at head: yes (a BLOB, not merely a resolvable path; it decides whether a ROOT-level
+  .md is records-only - see classify. Absent or a directory means the ROOT .md arm goes back to FORCE.)
+gates/build-numbers.tsv in the records door's APPENDONLY ratchet (asked of the door via --entries, which is
+  the same file this script runs below): no - it decides whether the register is records-only.
+    app.js: classify() forces it, and the stamp-only proof above exempts it for THIS commit.
+    (BOTH conditions are now met: #521 took gates/build-numbers.tsv out of the shared FORCE arm, so a
+     commit that rebuilt the bundle AND minted its number CAN reach this tier. Measured over origin/main's
+     last 400 commits: this exemption reaches 11 that were unreachable before, 192 of 400 in total.)
+
+FULL SUITE REQUIRED. These paths are not records-only:
+    gates/build-numbers.tsv (the build-number register, and gates/records-gate.sh --entries no longer lists it as appendonly, so nothing would protect its row VALUES - run that command to see what left the door)
+Run: gates/gates.sh "#<N>"   (the full suite, and only its own green footer authorises this push)

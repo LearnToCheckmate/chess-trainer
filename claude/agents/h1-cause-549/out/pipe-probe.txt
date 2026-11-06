@@ -1,0 +1,24 @@
+-- plain
+racy    status=0 BNRATCHET=yes
+racy    status=0 BNRATCHET=yes
+racy    status=0 BNRATCHET=yes
+racy    status=141 0 BNRATCHET=no
+racy    status=141 0 BNRATCHET=no
+-- delayed
+racy    status=141 0 BNRATCHET=no
+racy    status=141 0 BNRATCHET=no
+racy    status=141 0 BNRATCHET=no
+racy    status=141 0 BNRATCHET=no
+racy    status=141 0 BNRATCHET=no
+-- plain
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+-- delayed
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
+capture BNRATCHET=yes
