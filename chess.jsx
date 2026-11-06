@@ -1865,9 +1865,14 @@ const migTrain=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out=
   for(const k of Object.keys(o)){const to=LIB_RENAMED[k];if(!to)continue;ch=true;const a=out[to],b=o[k];
     if(!a||((b&&b.reps)||0)>((a&&a.reps)||0))out[to]=b;delete out[k];}
   return ch?out:o;};
+const shiftLastLesson=(n)=>(n==null||isNaN(n))?n:n===LIB_IDX_MOVED.removedAt?LIB_IDX_MOVED.survivorAt:n>LIB_IDX_MOVED.removedAt?n-1:n;
 const migLastLesson=(n)=>{try{if(localStorage.getItem('ct_libmig549')==='1')return n;localStorage.setItem('ct_libmig549','1');
-  if(n==null||isNaN(n))return n;const m=n===LIB_IDX_MOVED.removedAt?LIB_IDX_MOVED.survivorAt:n>LIB_IDX_MOVED.removedAt?n-1:n;
-  if(m!==n)localStorage.setItem('ct_lastlesson',String(m));return m;}catch(e){return n;}};
+  const m=shiftLastLesson(n);if(m!==n)localStorage.setItem('ct_lastlesson',String(m));return m;}catch(e){return n;}};
+/* #549 (65) A1-R3 fix: ct_lastlesson syncs, and the per-device flag above is set on a fresh device's FIRST load - before the sign-in pull - so a
+   cloud copy written by a build that still had both lessons arrived unshifted and was never shifted (149 opened Closed Sicilian, 169 lost
+   Continue). ct_libmig549 now syncs with it, and a pulled ct_lastlesson is shifted exactly when the cloud copy carries no stamp: a stamped
+   copy was written by this build and is already in the new indexing, so it is never shifted twice. */
+const migPulledLastLesson=(v,prog)=>{try{if(prog&&prog.ct_libmig549==='1')return v;const n=parseInt(v);if(isNaN(n))return v;return String(shiftLastLesson(n));}catch(e){return v;}};
 const RELATED={"Evans Gambit":["Italian Game"],"Scotch Gambit":["Scotch Game"],"Vienna Gambit":["Vienna Game"],"Göring Gambit":["Scotch Game","Ponziani Opening"],"Fried Liver Attack":["Two Knights Defense"],"Max Lange Attack":["Two Knights Defense","Italian Game"],"Traxler Counterattack":["Two Knights Defense","Fried Liver Attack"],"Belgrade Gambit":["Four Knights Game"],"Halloween Gambit":["Four Knights Game"],"Urusov Gambit":["Bishop's Opening"],"Jerome Gambit":["Italian Game"],"Blackburne Shilling Gambit":["Italian Game"],"Rousseau Gambit":["Italian Game"],"Fishing Pole Trap":["Ruy López (Spanish)"],"Scholar's Mate":["Italian Game"],"Légal Trap":["Philidor Defense"],"King's Gambit":["Falkbeer Counter-Gambit","King's Gambit: Bishop's Gambit","King's Gambit: Cunningham"],"Falkbeer Counter-Gambit":["King's Gambit"],"King's Gambit: Bishop's Gambit":["King's Gambit"],"King's Gambit: Cunningham":["King's Gambit"],"Muzio Gambit":["King's Gambit"],"Kieseritzky Gambit":["King's Gambit"],"Queen's Gambit":["Albin Counter-Gambit","Queen's Gambit Declined","Queen's Gambit Accepted"],"Albin Counter-Gambit":["Queen's Gambit","Albin Counter-Gambit: Lasker Trap"],"Albin Counter-Gambit: Lasker Trap":["Albin Counter-Gambit"],"Budapest Gambit":["Budapest Gambit: Kieninger Trap"],"Budapest Gambit: Kieninger Trap":["Budapest Gambit"],"Englund Gambit":["Englund Gambit: Rosen Trap"],"Englund Gambit: Rosen Trap":["Englund Gambit"],"Stafford Gambit: Mating Trap":["Petroff (Russian) Defense"],"Smith-Morra Gambit":["Sicilian Defense"],"Wing Gambit (Sicilian)":["Sicilian Defense"],"Marshall Attack":["Ruy López (Spanish)"],"Schliemann Gambit":["Ruy López (Spanish)"],"Cochrane Gambit":["Petroff (Russian) Defense"],"Staunton Gambit":["Dutch Defense"],"From's Gambit":["Bird's Opening","King's Gambit"],"Danish Gambit":["Center Game"],"Tennison Gambit":["Scandinavian Defense"],"Benko Gambit":["Modern Benoni","Benoni Defense"],"Blumenfeld Gambit":["Modern Benoni"],"Scandinavian: Icelandic Gambit":["Scandinavian Defense","Scandinavian: Portuguese"],"Scandinavian: Portuguese":["Scandinavian Defense","Scandinavian: Icelandic Gambit"],"Latvian Gambit":["Elephant Gambit"],"Elephant Gambit":["Latvian Gambit"],"Italian Game":["Evans Gambit","Fried Liver Attack"],"Scotch Game":["Scotch Gambit","Göring Gambit"],"Vienna Game":["Vienna Gambit"],"Two Knights Defense":["Fried Liver Attack","Traxler Counterattack"],"Sicilian Defense":["Smith-Morra Gambit","Wing Gambit (Sicilian)"],"Ruy López (Spanish)":["Marshall Attack","Schliemann Gambit"],"Petroff (Russian) Defense":["Cochrane Gambit","Stafford Gambit: Mating Trap"],"Scandinavian Defense":["Scandinavian: Icelandic Gambit","Scandinavian: Portuguese"],"Dutch Defense":["Staunton Gambit"],"Four Knights Game":["Halloween Gambit","Belgrade Gambit"],"Bird's Opening":["From's Gambit"],"Philidor Defense":["Légal Trap"]};
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
 const _PZMEM={};
@@ -2946,7 +2951,7 @@ export default function App(){
   const noteInnerRef=useRef(null);
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier'];
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_libmig549'];
   const syncTimer=useRef(null);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -2966,7 +2971,7 @@ export default function App(){
   useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);return;}
     let dead=false;
     C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;
-      if(prog){SYNC_KEYS.forEach(k=>{try{const cloudV=prog[k];if(cloudV==null)return;const localV=localStorage.getItem(k);
+      if(prog){SYNC_KEYS.forEach(k=>{try{let cloudV=prog[k];if(cloudV==null)return;if(k==='ct_lastlesson')cloudV=migPulledLastLesson(cloudV,prog);const localV=localStorage.getItem(k);
         if(localV==null){localStorage.setItem(k,cloudV);if(k==='ct_gamestats'){try{gameStatsRef.current=JSON.parse(cloudV)||{};}catch(_e){}}applied++;return;}
         // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
         /* #547 item (136), jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09: ct_gamestats is a MAP of per-game

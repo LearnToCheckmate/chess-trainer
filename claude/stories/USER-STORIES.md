@@ -1852,6 +1852,7 @@ As Kunal settling a layout or strength question from a screenshot, every number 
 As a learner browsing the openings, I see each opening as one lesson, and nothing I banked on a lesson that was merged into another is lost.
 - The Openings list offers the Petrov/Petroff opening once, as "Petroff (Russian) Defense". (TC-LS-049)
 - Days banked and drill records kept under the removed name move onto the survivor with no day lost, and the last lesson I opened still opens the same lesson. (TC-LS-050)
+- That holds on a new phone too: a last lesson pulled from my account, saved by a build that still had both lessons, opens the same lesson there, and one saved by this build is not moved twice. (TC-LS-052)
 - Not yet true of the whole class: "Sicilian Dragon" and "Sicilian: Dragon" are still two rows; gate 74 records it and credits nothing.
 
 ### US-R104 The review transport row's icons are the buttons, and every one is still a thumb-sized target

@@ -1010,6 +1010,28 @@ L.say(VACUOUS.length<GEOS.length,
   L.say(!!st.lp&&!('Petrov (Russian) Defense' in st.lp)&&!!pf&&(pf.days||[]).join(',')==='2026-11-01,2026-11-02,2026-11-03'&&!!st.lp['Italian Game'],'TC-LS-050 a day banked under the removed name "Petrov (Russian) Defense" is kept: ct_learnprog re-keys it onto Petroff with the days UNIONED (2026-11-01,2026-11-02,2026-11-03) and leaves other lessons alone',st.lp);
   L.say(!!st.tr&&!('Petrov (Russian) Defense' in st.tr)&&!!st.tr['Petroff (Russian) Defense']&&st.tr['Petroff (Russian) Defense'].reps===2,'TC-LS-050 and the drill record in ct_train moves with it (reps 2 on Petroff)',st.tr);
   L.say(st.ll==='149'&&st.mig==='1'&&/^Continue: Closed Sicilian/.test(st.cont||''),'TC-LS-050 and a stored last-lesson INDEX past the removed copy moves down one, so Home still says "Continue: Closed Sicilian" ('+st.ll+', '+st.cont+')',{ll:st.ll,mig:st.mig,cont:st.cont});
+  await b.close();}
+ // TC-LS-052 [#549 (65) A1-R3; same job]: THE SAME INDEX MOVE ON A FRESH DEVICE THAT PULLS AN OLD CLOUD COPY. ct_lastlesson syncs, and
+ // ct_libmig549 is set on a fresh device's first load, BEFORE the sign-in pull - so a value written by a build that still had both lessons
+ // arrived unshifted (antagonist A round 3: 149 -> Closed Sicilian, 150 -> Ruy Lopez Steinitz, 169 -> no Continue at all). Fresh store, sign
+ // in through CTCloud._emit with a cloud double whose load returns the payload, let the pull and its push run, then RELOAD (the app reads
+ // ct_lastlesson at startup) and read Continue. The fourth payload carries the stamp and must NOT be shifted a second time.
+ for(const [ll,stamp,want] of [['149',null,'Petroff (Russian) Defense'],['150',null,'Closed Sicilian'],['169',null,'Wing Gambit (French)'],['149','1','Closed Sicilian']]){
+  const tag='TC-LS-052 cloud ct_lastlesson '+ll+(stamp?' (stamped)':' (no stamp)');
+  const b=await L.launch({geo:'kunal761',name:'ls052-'+ll+(stamp?'s':'')});await b.open();await b.settle(600);
+  const pre=await b.page.evaluate(()=>({ll:localStorage.getItem('ct_lastlesson'),mig:localStorage.getItem('ct_libmig549')}));
+  const signed=await b.page.evaluate(([ll,stamp])=>{const C=window.CTCloud;if(!C||!C._emit)return false;const prog={ct_lastlesson:ll};if(stamp)prog.ct_libmig549=stamp;
+    window.__ls052saved=[];C._load=async()=>({ctProgress:prog});C._save=async(d)=>{window.__ls052saved.push(JSON.parse(JSON.stringify(d)));};
+    C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});return true;},[ll,stamp]);
+  await b.settle(3600);
+  const mid=await b.page.evaluate(()=>{const s=(window.__ls052saved||[]).map(d=>d&&d.ctProgress).filter(Boolean);const last=s[s.length-1]||null;
+    return {ll:localStorage.getItem('ct_lastlesson'),pushed:last?{ll:last.ct_lastlesson,mig:last.ct_libmig549}:null};});
+  await b.open();await b.settle(900);
+  const cont=await b.page.evaluate(()=>[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null);
+  if(L.say(signed&&pre.ll===null&&pre.mig==='1'&&mid.ll!==null,tag+' PRECONDITION a fresh device (no last lesson, migration flag already set by its first load) signed in and the pull wrote a last lesson',{signed,pre,mid})){
+   const w18=want.slice(0,18).trim();   // Daily 3 prints the name cut to 18 characters, and innerText drops a trailing space
+   L.say(!!cont&&cont.indexOf('Continue: '+w18)===0,tag+': after the reload Home says "Continue: '+w18+'" ('+cont+')',{cont,ll:mid.ll});
+   L.say(!!mid.pushed&&mid.pushed.mig==='1'&&mid.pushed.ll===mid.ll,tag+': and the copy pushed back to the cloud carries the stamp beside the value it holds, so no device shifts it again',mid.pushed);}
   await b.close();}}
 L.done();
 })().catch(e=>{console.error('74 THREW',e);process.exit(1);});
