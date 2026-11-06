@@ -299,9 +299,27 @@ function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{
 // The in-memory map is NOT trimmed: the games stay on screen for this session, and what survives
 // a reload is a predictable oldest-first subset instead of an arbitrary silent one.
 // Returns what was actually stored.
-function acctGamesSave(map,order){
+// #549 item (31) NOW A PROMISE, and its value is USED (the folded-in
+// jobs/store-eviction-drops-accounts-while-the-screen-keeps-counting-2026-09-29: the caller used to keep the
+// pre-eviction map, so the screen counted 400 rows over a store holding 200 and the next launch showed an account
+// with 0 games). On the IndexedDB store only the accounts named in `changed` are written and those in `removed`
+// deleted, in one transaction; a quota failure aborts it whole, and the oldest account is dropped and the write
+// tried again, exactly as the localStorage branch below has always done.
+async function acctGamesSave(map,order,changed,removed){
   const m={...(map||{})};
   const queue=((order&&order.length)?order.slice():Object.keys(m)).filter(k=>k in m);
+  if(ACCT_MODE==='idb'){
+    const puts={};(changed||Object.keys(m)).forEach(k=>{if(k in m)puts[k]=m[k];});
+    const dels=(removed||[]).slice();
+    for(;;){
+      if(await acctIdbWrite(puts,dels))return m;
+      if(!queue.length||!Object.keys(puts).length)break;   // a write with nothing to put is never "too big": evicting would not help
+      const k=queue.shift();delete m[k];delete puts[k];dels.push(k);
+    }
+    // nothing could be written: what is stored is what reads back. A read that fails is not "nothing stored" - it is
+    // unknown - so the map is returned as it was rather than reporting every account as dropped.
+    const back=await acctIdbReadAll();return back||{...(map||{})};
+  }
   for(;;){
     try{localStorage.setItem(ACCT_G,JSON.stringify(m));return m;}catch(e){}
     if(!queue.length)break;
@@ -310,6 +328,92 @@ function acctGamesSave(map,order){
   try{localStorage.removeItem(ACCT_G);}catch(e){}
   return {};
 }
+// #549 item (31), jobs/refetching-an-account-replaces-its-stored-list-instead-of-merging-2026-09-29, Kunal's answer
+// 'merge-big' on questions/B8B-MERGED-GAMES (4 Nov 2026): A REFRESH MERGES, AND THE STORE MOVES TO INDEXEDDB.
+// acctStore used to do M[id]=rows, so a walk that half-failed (5 of 6 months answering 503) or a thin recent window
+// REPLACED 200 stored games with the 5 that came back, silently and for good - antagonist A measured 200 -> 5 and,
+// on a clean network with a thin window, 200 -> 4. Now the fetched rows are UNIONED with the stored ones on the
+// same game key mergeGames dedupes on (fresh rows win a tie, so a re-fetched game carries its newest fields),
+// sorted newest first, and only then capped - so a fetch can add games and can never remove one.
+// The cap on what is HELD is ACCT_GMAX_STORE per account ("thousands more games stay"); ACCT_GMAX is still the
+// cap on ONE walk, so the network cost of a refresh is unchanged. localStorage (~5MB for the whole app) could not
+// hold thousands of full-PGN rows, so the games live in IndexedDB: database 'ct', object store 'acctgames', ONE
+// RECORD PER ACCOUNT (key = account id, value = its rows), so a write touches only the account it is about and
+// two fetches landing together cannot overwrite each other's account.
+// MIGRATION WITHOUT LOSS: on launch, a ct_acctgames found in localStorage is unioned INTO IndexedDB (its rows win a
+// tie), the records are READ BACK, and only when every account reads back with the row count that was written is
+// ct_acctgames removed and ct_acctgames_migrated stamped. A failed or short read-back leaves localStorage as it
+// was and the app on the localStorage store for that session; the next launch tries again.
+// EVERY IndexedDB CALL RESOLVES AND NONE REJECTS, AND A FAILURE IS NEVER READ AS "EMPTY" (CLAUDE.md, "a failed
+// query is not an answer"): a read that fails returns null, and null puts the session on localStorage rather
+// than letting an empty map be written over a store that could not be read. An open that never answers (seen on
+// iOS Safari) times out to the same fallback. A device with no IndexedDB keeps the old store: localStorage,
+// byte-bounded, ACCT_GMAX per account.
+const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
+let _acctIdbP=null, ACCT_MODE='ls';
+function acctIdbOpen(){
+  if(_acctIdbP)return _acctIdbP;
+  _acctIdbP=new Promise(res=>{
+    let done=false;const fin=v=>{if(!done){done=true;res(v);}};
+    try{
+      if(typeof indexedDB==='undefined'||!indexedDB){fin(null);return;}
+      setTimeout(()=>fin(null),4000);
+      const rq=indexedDB.open(ACCT_IDB);
+      rq.onupgradeneeded=()=>{try{const db=rq.result;if(!db.objectStoreNames.contains(ACCT_IDB_OS))db.createObjectStore(ACCT_IDB_OS);}catch(e){}};
+      // A database that exists WITHOUT the store (created by anything that opened 'ct' first) is upgraded once more
+      // rather than left unusable, which would put every later launch on the localStorage fallback for good.
+      rq.onsuccess=()=>{const db=rq.result;if(db.objectStoreNames.contains(ACCT_IDB_OS)){fin(db);return;}
+        const v=db.version+1;db.close();try{const r2=indexedDB.open(ACCT_IDB,v);
+          r2.onupgradeneeded=()=>{try{r2.result.createObjectStore(ACCT_IDB_OS);}catch(e){}};
+          r2.onsuccess=()=>fin(r2.result);r2.onerror=()=>fin(null);r2.onblocked=()=>fin(null);}catch(e){fin(null);}};
+      rq.onerror=()=>fin(null); rq.onblocked=()=>fin(null);
+    }catch(e){fin(null);}
+  });
+  return _acctIdbP;
+}
+// every record -> {id:rows}, or null on ANY failure
+async function acctIdbReadAll(){
+  const db=await acctIdbOpen(); if(!db)return null;
+  return new Promise(res=>{try{
+    const tx=db.transaction(ACCT_IDB_OS,'readonly'),out={};const rq=tx.objectStore(ACCT_IDB_OS).openCursor();
+    rq.onsuccess=()=>{const c=rq.result;if(c){if(Array.isArray(c.value))out[String(c.key)]=c.value;c.continue();}};
+    tx.oncomplete=()=>res(out); tx.onerror=()=>res(null); tx.onabort=()=>res(null);
+  }catch(e){res(null);}});
+}
+// puts and deletes in ONE transaction; true only when it COMMITTED (a quota failure aborts it whole)
+async function acctIdbWrite(puts,dels){
+  const db=await acctIdbOpen(); if(!db)return false;
+  return new Promise(res=>{try{
+    const tx=db.transaction(ACCT_IDB_OS,'readwrite'),st=tx.objectStore(ACCT_IDB_OS);
+    Object.keys(puts||{}).forEach(k=>st.put(puts[k],k)); (dels||[]).forEach(k=>st.delete(k));
+    tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); tx.onabort=()=>res(false);
+  }catch(e){res(false);}});
+}
+const acctRowKey=(g)=>((g&&g.src)||'')+':'+((g&&g.date)||0)+':'+((g&&g.white)||'')+':'+((g&&g.black)||'');
+// fresh rows first, so a game present in both keeps the fresh copy; newest first; then the cap
+function acctMergeRows(fresh,held,cap){
+  const seen={},a=[];
+  [...(fresh||[]),...(held||[])].forEach(g=>{if(!g)return;const k=acctRowKey(g);if(seen[k])return;seen[k]=1;a.push(g);});
+  a.sort((x,y)=>(y.date||0)-(x.date||0));
+  return cap?a.slice(0,cap):a;
+}
+const acctStoreCap=()=>ACCT_MODE==='idb'?ACCT_GMAX_STORE:ACCT_GMAX;
+async function acctGamesLoadAsync(){
+  let ls=null;try{const v=localStorage.getItem(ACCT_G);if(v!=null){const o=JSON.parse(v);ls=(o&&typeof o==='object')?o:{};}}catch(e){ls=null;}
+  const held=await acctIdbReadAll();
+  if(held==null){ACCT_MODE='ls';return ls||{};}
+  if(ls==null){ACCT_MODE='idb';return held;}
+  const merged={...held},puts={};
+  Object.keys(ls).forEach(id=>{if(!Array.isArray(ls[id]))return;merged[id]=acctMergeRows(ls[id],held[id],ACCT_GMAX_STORE);puts[id]=merged[id];});
+  const ok=await acctIdbWrite(puts,[]);
+  const back=ok?await acctIdbReadAll():null;
+  const same=!!back&&Object.keys(puts).every(id=>Array.isArray(back[id])&&back[id].length===puts[id].length);
+  if(!same){ACCT_MODE='ls';return merged;}
+  try{localStorage.setItem(ACCT_MIG,new Date().toISOString());localStorage.removeItem(ACCT_G);}catch(e){}
+  ACCT_MODE='idb';return merged;
+}
+// started once, when the bundle loads, so the read is under way before the first render asks for it
+const ACCT_LOAD_P=(typeof window!=='undefined')?acctGamesLoadAsync().catch(()=>{ACCT_MODE='ls';return null;}):Promise.resolve(null);
 const acctId=(src,user)=>src+':'+String(user||'').trim().toLowerCase().replace(/^@/,'');
 // Country lookup, cached in localStorage for good. An ANSWERED miss is remembered too (a player with no country set, or
 // a 404 for no such player), so they are not looked up again on every review; a refused or failed request is not (#547). Never throws, never blocks anything.
@@ -3465,7 +3569,9 @@ export default function App(){
   const acctMineRef=useRef(acctMine);acctMineRef.current=acctMine;
   useEffect(()=>{try{localStorage.setItem('ct_acctmine',JSON.stringify(acctMine));}catch(e){}},[acctMine]);
   const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
-  const acctGamesRef=useRef(acctGamesLoad());
+  const acctGamesRef=useRef(acctGamesLoad());   // #549 item (31): the localStorage copy paints first; the IndexedDB store replaces it below
+  const acctLoadedRef=useRef(false);
+  const [acctDropped,setAcctDropped]=useState([]);   // #549 item (31): accounts a full device could not keep, this session
   const acctCapRef=useRef(acctCapLoad());   // #432 which bound stopped each account's walk
   const gameStatsRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_gamestats')||'{}')||{};}catch{return {};}})());  // gkey -> {bril,great,inacc,mist,blun}
   const [gsVer,setGsVer]=useState(0);   // bump to re-render game rows as background stats fill in
@@ -5407,11 +5513,36 @@ export default function App(){
     a.sort((x,y)=>(y.date||0)-(x.date||0));
     setCcGames(a.length?a:null);
   };
+  // #549 item (31) THE STORE IS READ ONCE, BEFORE ANY WRITE. acctReady() swaps the first-paint localStorage map
+  // for what IndexedDB holds (or what the migration just put there), and every writer awaits it first - so a fetch
+  // that lands before the read cannot merge into a stale map and write it over the real store.
+  const acctReady=async()=>{
+    const r=await ACCT_LOAD_P;
+    if(!acctLoadedRef.current){acctLoadedRef.current=true;if(r&&typeof r==='object')acctGamesRef.current=r;}
+  };
+  useEffect(()=>{let live=true;acctReady().then(()=>{if(!live)return;
+    if(modeRef.current==='analyze'&&Object.keys(acctGamesRef.current||{}).length)mergeGames();
+    setGsVer(v=>v+1);});return ()=>{live=false;};},[]);
   // file one account's fetch, evicting the oldest account if we are at the cap
-  const acctStore=(src,user,rows,bound)=>{
+  // #549 item (31) MERGED, NOT REPLACED: see acctMergeRows. The recorded bound is merged too, because it is a claim
+  // about what is HELD: an account whose whole history was once fetched ('all') stays 'all' while a later walk
+  // overlaps what is stored, and a later walk that was cut and does NOT reach back to the newest stored game has
+  // left games out between the two, which is recorded as a gap ('+gap') rather than hidden.
+  const acctStore=async(src,user,rows,bound)=>{
     const id=acctId(src,user); if(!id.split(':')[1])return;
+    await acctReady();
     const M={...(acctGamesRef.current||{})};
-    M[id]=rows.slice(0,ACCT_GMAX);
+    const held=M[id]||[], fresh=(rows||[]).slice(0,ACCT_GMAX), cap=acctStoreCap();
+    const _fb=String(bound||'all').split('+');let _base=_fb[0];const _gapF=_fb.length>1;
+    const _newestHeld=held.reduce((m,g)=>Math.max(m,(g&&g.date)||0),0);
+    const _oldestFresh=fresh.reduce((m,g)=>Math.min(m,(g&&g.date)||0),Infinity);
+    const _hole=held.length>0&&_base!=='all'&&fresh.length>0&&_oldestFresh>_newestHeld;
+    const _prev=(acctCapRef.current||{})[id];
+    if(held.length&&!_hole&&_prev&&String(_prev).split('+')[0]==='all')_base='all';
+    const merged=acctMergeRows(fresh,held,0);
+    if(merged.length>cap)_base='games';   // the store cap cut the oldest games off
+    M[id]=merged.slice(0,cap);
+    bound=_base+((_gapF||_hole)?'+gap':'');
     let ids=Object.keys(M);
     /* #547 item (61): the account ORDER is read from what the last store WROTE, not from the ccAccts this closure captured.
        On entry to Review the chess.com and Lichess fetches run together; each closure held the ccAccts of the render that
@@ -5420,24 +5551,42 @@ export default function App(){
        Lichess account's 200-game cut. ACCT_K is written synchronously below, so it is always the newest list. */
     const _cur=(()=>{try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');return Array.isArray(a)?a:ccAccts;}catch(e){return ccAccts;}})();
     const order=[..._cur.filter(x=>x!==id&&x in M),id];
-    while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];ids=Object.keys(M);}
-    acctGamesRef.current=M; acctGamesSave(M,order);   // #431 oldest account first: `order` is [...older, justFetched]
+    const evicted=[];
+    while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];evicted.push(drop);ids=Object.keys(M);}
+    acctGamesRef.current=M;
     // #432 the bound rides the SAME eviction as the games it describes, in this one place, so a
     // dropped account cannot leave a stale limit behind for the screen to state.
-    const C={};const _stored=acctGamesRef.current||{};const _prev={...(acctCapRef.current||{}),[id]:bound||'all'};
-    Object.keys(_prev).forEach(k=>{if(k in _stored)C[k]=_prev[k];});
-    acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
+    const _caps=(stored)=>{const C={};const _p={...(acctCapRef.current||{}),[id]:bound||'all'};
+      Object.keys(_p).forEach(k=>{if(k in stored)C[k]=_p[k];});
+      acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}};
+    _caps(M);
     const next=order.filter(x=>M[x]);
     setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
+    mergeGames();
+    // #431 oldest account first: `order` is [...older, justFetched]. #549 item (31): and what was STORED is what the
+    // screen keeps - an account the device had no room for leaves the list and is named on screen, instead of being
+    // counted now and gone on the next launch.
+    const stored=await acctGamesSave(M,order,[id],evicted);
+    const lost=Object.keys(M).filter(k=>!(k in stored));
+    if(lost.length){
+      const M2={...(acctGamesRef.current||{})};lost.forEach(k=>delete M2[k]);acctGamesRef.current=M2;
+      _caps(M2);
+      let _now=next;try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');if(Array.isArray(a))_now=a;}catch(e){}
+      const n2=_now.filter(x=>lost.indexOf(x)<0);setCcAccts(n2);try{localStorage.setItem(ACCT_K,JSON.stringify(n2));}catch(e){}
+      setAcctDropped(d=>[...new Set([...d,...lost])]);
+      mergeGames();
+    }
   };
-  const acctForget=(id)=>{
+  const acctForget=async(id)=>{
+    await acctReady();
     const M={...(acctGamesRef.current||{})}; delete M[id];
-    acctGamesRef.current=M; acctGamesSave(M);
+    acctGamesRef.current=M; acctGamesSave(M,null,[],[id]);
     const C={...(acctCapRef.current||{})}; delete C[id];   // #432
     acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
     const next=ccAccts.filter(x=>x!==id); setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
+    setAcctDropped(d=>d.filter(x=>x!==id));
     mergeGames();
   };
   const fetchChessCom=async()=>{
@@ -5497,7 +5646,7 @@ export default function App(){
       const bound=(cutByGames?'games':(i<0?'all':'months'))+(missed?'+gap':'');
       if(!games.length)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
-      ccRawRef.current=null; acctStore('cc',u,rows,bound); mergeGames();
+      ccRawRef.current=null; await acctStore('cc',u,rows,bound); mergeGames();
     }catch(e){
       /* #547 item (144), jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28: every failure here - including a fetch that
          SUCCEEDED and found no games - printed 'Couldn't reach Chess.com ... the preview sandbox blocks outside connections'. The cause
@@ -5532,7 +5681,7 @@ export default function App(){
       // #432 Lichess is ONE request with max=ACCT_GMAX, so the month window cannot bind here and
       // 'months' is not reachable on this path. Fewer rows back than we asked for means the account
       // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
-      liRawRef.current=null; acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); mergeGames();
+      liRawRef.current=null; await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); mergeGames();
     }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     setCcLoading(false);setCcProg('');
   };
@@ -8917,51 +9066,47 @@ export default function App(){
                   if(_n>=ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
                   if(_n===ACCT_GMAX_LEGACY)return {b:'games',cap:ACCT_GMAX_LEGACY,gap:false};
                   return {b:'all',cap:0,gap:false};};
-                const _b=ccAccts.map(_bound1);
-                const _months=_b.some(x=>x.b==='months');
-                const _gbound=_b.some(x=>x.b==='games');
-                // #433 THE CAP IS COLLECTED FROM EVERY ACCOUNT THAT HAS ONE, not only from the accounts the
-                // cap happened to STOP. Collecting from the games-bound ones alone was a regression against
-                // #432 that antagonist A measured: a legacy account cut at 40 beside a months-bound modern
-                // account holding 200 rows printed "up to 40 games" over 200 rows on screen, because the
-                // modern account contributed no cap at all. Whether the games CLAUSE renders is still
-                // decided by whether the games cap actually bound something (_gbound).
-                const _caps=[...new Set(_b.filter(x=>x.cap>0).map(x=>x.cap))].sort((x,y)=>x-y);
+                // #549 item (31) [Amber: flags/amber-549-merged-list-limit-line] THE LINE NAMES WHAT IS HELD, NOT THE LAST
+                // WALK. Kunal, merge-big on questions/B8B-MERGED-GAMES: "the stated limit names what is held, not the last
+                // N months". Once a refresh merges instead of replacing, the list holds every game any walk ever brought
+                // in, so "your 6 most recent months of play" and "up to 200 games" - true of ONE walk - stop being true of
+                // the list: a merged account holds games older than the window and more than 200 of them. What IS true of
+                // an account that was cut (an older game exists that is not held) is how far back it reaches, so that is
+                // the quantity stated: the date of its oldest held game, read off the rows themselves rather than inferred.
+                // The walk caps ACCT_GMONTHS and ACCT_GMAX are no longer printed, because neither bounds what is held;
+                // the store's own cap is printed only when an account actually sits at it, which is the only state in which
+                // it is the limit that bound (#431's rule: never state a limit that did not bind). The bound VALUES are
+                // unchanged ('games' / 'months' / 'all' + '+gap'), and so is when the line renders: nothing cut, no line.
+                const _scap=acctStoreCap();
+                const _b=ccAccts.map(id=>{const x=_bound1(id);const rs=_M[id]||[];
+                  let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});
+                  const full=rs.length>=_scap;
+                  return {...x,b:full?'games':x.b,id,old,full,n:rs.length};});
+                const _cut=_b.filter(x=>x.n>0&&(x.b==='games'||x.b==='months'));
                 const _gap=_b.some(x=>x.gap);
-                if(!_months&&!_gbound&&!_gap)return null;
+                const _drop=(acctDropped||[]).filter(Boolean);
+                if(!_cut.length&&!_gap&&!_drop.length)return null;
                 const _sty={fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',marginTop:-1,lineHeight:1.4};
-                // #432 MIXED BOUNDS. The first version let 'months' win the union and printed it "per account".
-                // Antagonist A measured the consequence on this very bundle: one thin account (months) and one
-                // busy account (games) together printed "your last 6 months per account" while the busy one was
-                // showing FOUR months and 200 games, with archives it never asked for behind it. That is the
-                // #431 defect verbatim - a limit stated that did not bind - so the union had to go.
-                // Both limits apply to every account and whichever comes first stops that account's walk, so
-                // when the accounts disagree the only sentence true of all of them names BOTH.
-                // #433 THE UNITS. "your last 6 months" is a CALENDAR claim and the app does not possess that
-                // quantity: ACCT_GMONTHS bounds ARCHIVE INDEX ENTRIES and api.chess.com lists only months in
-                // which the player HAS games, so for anyone who plays in bursts the two differ - antagonist B
-                // measured 8 entries spread over 28 calendar months under a six-month claim, wrong by 4.7x,
-                // on a screen whose row dates carry no year to contradict it. It cannot be fixed by rephrasing
-                // around the same number; what changes is WHICH quantity is named. The walk's own unit is
-                // "months you played in", so that is what the sentence says. Bounding the walk by calendar
-                // months instead was measured and rejected: it shows a player who last played 8 months ago
-                // nothing at all, which removes a capability to correct a sentence (defaults/433-review-limit-
-                // sentence-units, jobs/acct-gmonths-counts-archive-entries-not-calendar-months-2026-09-29).
-                const _gtxt=(_gbound&&_caps.length)?('up to '+_caps[_caps.length-1]+' games'+(_caps.length>1?' ('+_caps[0]+' for accounts imported before this update)':'')):'';
-                const _mtxt=_months?('your '+ACCT_GMONTHS+' most recent months of play'):'';
-                // #433 "per account" is carried ONLY when there is more than one account, because with one
-                // it is noise that costs a line: MEASURED at 375x730, the months sentence with it runs 33.6px
-                // (two lines) and without it 16.8px (one), on the screen #432 spent a whole assertion buying
-                // 24.8px back on. It is also the more accurate sentence - there is no "per" with one account.
-                const _per=ccAccts.length>1?' per account':'';
-                const _lim=_gtxt&&_mtxt?('Showing '+_gtxt+' or '+_mtxt+_per+'.')
-                  :_gtxt?('Showing '+_gtxt+_per+'.')
-                  :_mtxt?('Showing '+_mtxt+_per+'.'):'';
+                const _u=(id)=>id.slice(id.indexOf(':')+1);
+                const _d=(t)=>{try{return new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}catch(e){return '';}};
+                const _dated=_cut.filter(x=>x.old>0).map(x=>({u:_u(x.id),d:_d(x.old)})).filter(x=>x.d);
+                const _one=_dated.length>0&&_dated.every(x=>x.d===_dated[0].d);
+                // "for <account>" only when it is needed to make the sentence true: with one account, or when every
+                // account was cut back to the same day, the bare date is true of all of them (#433's "per account" rule).
+                const _all=_cut.length===_b.filter(x=>x.n>0).length;
+                const _join=(xs)=>xs.length<2?xs.join(''):xs.slice(0,-1).join(', ')+' and '+xs[xs.length-1];
+                const _lim=!_cut.length?''
+                  :!_dated.length?'Older games aren\u2019t loaded.'
+                  :(_one&&(_all||_dated.length===1&&_cut.length===1))?('Games back to '+_dated[0].d+(_all?'':' for '+_dated[0].u)+'; older ones aren\u2019t loaded.')
+                  :('Games back to '+_join(_dated.map(x=>x.d+' for '+x.u))+'; older ones aren\u2019t loaded.');
+                const _capTxt=_cut.some(x=>x.full)?('This app keeps up to '+_scap.toLocaleString('en-US')+' games per account.'):'';
                 // #433 a failed month is stated rather than swallowed, and it is a SEPARATE sentence because
                 // it is a different fact: the one above says what bound the list, this one says the list is
                 // short of that bound. Both can be true at once and either can be true alone.
-                const _gtxt2=_gap?'Some months couldn’t be loaded, so some games are missing.':'';
-                return <div data-ct="games-cap" style={_sty}>{[_lim,_gtxt2].filter(Boolean).join(' ')}</div>;})()}
+                const _gtxt2=_gap?'Some months couldn\u2019t be loaded, so some games are missing.':'';
+                // #549 item (31), the folded-in store-eviction job: an account the device had no room to keep is said.
+                const _dtxt=_drop.length?('There wasn\u2019t room on this device to keep '+_join(_drop.map(_u))+'\u2019s games.'):'';
+                return <div data-ct="games-cap" style={_sty}>{[_lim,_capTxt,_gtxt2,_dtxt].filter(Boolean).join(' ')}</div>;})()}
               {/* #476 `||_anyF` IS LOAD-BEARING, NOT DEFENSIVE. The row renders above six games, but gFil
                   is component state that nothing resets when the list SHRINKS - remove an account with the
                   Imported row's x and rmAcct calls mergeGames() without touching the filter. So at 7+ games

@@ -75,6 +75,33 @@ const MIN_CAP=200, ACCT_SLOTS=8, BUDGET=4000000;
 const REAL_ROW_MEDIAN=2612, REAL_ROW_MAX=4670, REAL_ROW_BLITZ=2475;
 const BREAKEVEN=Math.floor(BUDGET/(MIN_CAP*ACCT_SLOTS));   // 2500 chars per row at the pinned cap x slots
 const CAP_RE=/(?:up to|at most|limit)\s+([\d][\d,]*)\s+games/i;
+// ── #549 item (31), jobs/refetching-an-account-replaces-its-stored-list-instead-of-merging-2026-09-29, Kunal's
+//    merge-big [Amber: flags/amber-549-merged-list-limit-line]. A refresh now MERGES into what is held, so the line
+//    names what is held - "Games back to <oldest held date>[ for <account>]; older ones aren't loaded." -
+//    and no longer the walk's own window ("your 6 most recent months of play", "up to 200 games"), which is true of
+//    one walk and false of a merged list. The assertions below that pinned those words now pin the DATE, and the date
+//    is checked against a MEASURED quantity: the oldest row the store actually holds for that account (r.heldDates,
+//    read out of IndexedDB by L.acctGames), never against a number this file computes from its own fixture.
+//    HELD_CLAIM parses the line into [{d,u}]: a bare date is a claim about every cut account, "d for u" about one.
+const OLDER_RE=/older (?:ones|games) aren.t loaded/i;
+const ANY_LIMIT_RE=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months|\d+\s*most recent months of play|older (?:ones|games) aren.t loaded|games back to/i;
+function HELD_CLAIM(text){
+  const m=String(text||'').match(/Games back to (.*?); older ones aren.t loaded\./i);if(!m)return null;
+  const out=[];const re=/([A-Z][a-z]{2} \d{1,2}, \d{4})(?: for ([A-Za-z0-9_.-]+))?/g;let x;
+  while((x=re.exec(m[1])))out.push({d:x[1],u:x[2]||null});
+  return out;
+}
+// every cut account is covered by the claim with ITS OWN oldest date, and the claim names nothing else
+function HELD_OK(text,heldDates,cutIds){
+  const c=HELD_CLAIM(text);if(!c||!c.length)return {ok:false,why:'no "Games back to <date>; older ones aren\'t loaded." on the line',line:text};
+  const user=(id)=>id.slice(id.indexOf(':')+1);
+  const bad=[];
+  for(const id of cutIds){const want=heldDates[id];
+    const hit=c.find(e=>e.u===user(id))||c.find(e=>!e.u);
+    if(!want||!hit||hit.d!==want)bad.push({acct:id,want:want||'no dated row',stated:hit?hit.d:'not named'});}
+  const extra=c.filter(e=>e.u&&!cutIds.some(id=>user(id)===e.u));
+  return {ok:!bad.length&&!extra.length,claim:c,bad,extra,expect:cutIds.map(id=>({acct:id,oldest:heldDates[id]}))};
+}
 const NEWEST={y:2026,m:9,label:'Sep'};
 const ACCTS=['gateacct1','gateacct2','gateacct3'];
 const SEEDN={a:0,b:5,c:60};
@@ -103,6 +130,8 @@ function stub(b,state){
       }
       const NM=state.thin?state.thin.months:(state.mixed?state.mixed.months:24);
       const ar=[];for(let i=0;i<NM;i++){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-(NM-1-i),1));ar.push('https://api.chess.com/pub/player/'+who+'/games/'+t.getUTCFullYear()+'/'+String(t.getUTCMonth()+1).padStart(2,'0'));}
+      // #549 item (31) EXTRA: one more month AFTER the newest, so a second walk brings in games the first never saw
+      if(state.extra)ar.push('https://api.chess.com/pub/player/'+who+'/games/'+state.extra.y+'/'+String(state.extra.m).padStart(2,'0'));
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:ar})});
     }
     const m=u.match(/games\/(\d{4})\/(\d{2})$/);
@@ -116,8 +145,12 @@ function stub(b,state){
     // that the first #433 counted only !ok and a throw, so this path walked on in silence.
     if(state.empty&&state.empty===(y+'/'+String(mo).padStart(2,'0')))
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({games:[]})});
+    // #549 item (31) THE BAD MORNING antagonist A measured: every month but one answers 503.
+    if(state.failExcept&&state.failExcept!==(y+'/'+String(mo).padStart(2,'0')))
+      return route.fulfill({status:503,contentType:'application/json',body:'{}'});
     let n=0;
-    if(state.mixed)n=(who===state.mixed.thin)?state.mixed.per:state.mixed.busyPer;   // #432 two accounts, two bounds
+    if(state.extra&&y===state.extra.y&&mo===state.extra.m)n=state.extra.n;
+    else if(state.mixed)n=(who===state.mixed.thin)?state.mixed.per:state.mixed.busyPer;   // #432 two accounts, two bounds
     else if(state.sparse)n=state.sparse.per;                          // #433 every listed month equally thin
     else if(state.thin)n=state.thin.per;                             // #432 every month equally thin
     else if(y===NEWEST.y&&mo===NEWEST.m)n=SEEDN[state.seed];
@@ -135,16 +168,25 @@ function stub(b,state){
 }
 
 // everything the assertions read, in ONE evaluate, so every number in a row comes from one screen state
+// #549 item (31): THE STORE IS READ THROUGH L.acctGames, because the app now keeps the games in IndexedDB and
+// migrates ct_acctgames out of localStorage on launch - reading localStorage here would report every store as empty.
+// `held` is per account {n, old}: the row count and the oldest row's date, passed INTO the page so the date string
+// is formatted by the same browser, locale and time zone that formats the app's own line.
 async function READ(b){
-  return b.page.evaluate((NEW_LABEL)=>{
+  const AG=await L.acctGames(b.page);
+  const held={};Object.keys(AG.map).forEach(id=>{const rs=AG.map[id]||[];let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});held[id]={n:rs.length,old};});
+  const r=await b.page.evaluate(([NEW_LABEL,AGM,held])=>{
     const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
     const labels=rows.map(r=>{const m=(r.innerText||'').replace(/\s+/g,' ').match(/·\s([A-Z][a-z]{2})\s(\d{1,2})/);return m?m[1]:null;});
     let bytes=0,keys={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k)||'';bytes+=k.length+v.length;keys[k]=v.length;}
-    let stored=0,storedMonths={};try{const M=JSON.parse(localStorage.getItem('ct_acctgames')||'{}');Object.keys(M).forEach(id=>{(M[id]||[]).forEach(g=>{stored++;const d=new Date(g.date||0);storedMonths[d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')]=1;});});}catch(e){}
+    let stored=0,storedMonths={};try{const M=AGM||{};Object.keys(M).forEach(id=>{(M[id]||[]).forEach(g=>{stored++;const d=new Date(g.date||0);storedMonths[d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')]=1;});});}catch(e){}
+    const heldDates={};Object.keys(held||{}).forEach(id=>{if(held[id].old>0)heldDates[id]=new Date(held[id].old).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});});
+    // the OLDEST ROW ON SCREEN, as the row prints it ("Aug 1"): the readout A11h checks the line's date against
+    const lastMD=(()=>{const rr=[...document.querySelectorAll('[data-ct="game-row"]')];if(!rr.length)return null;const m=(rr[rr.length-1].innerText||'').replace(/\s+/g,' ').match(/·\s([A-Z][a-z]{2}\s\d{1,2})/);return m?m[1]:null;})();
     const body=(document.body.innerText||'').replace(/\s+/g,' ');
     const sc=document.querySelector('[data-ct="game-row"]')?document.querySelector('[data-ct="game-row"]').parentElement:null;
     return {rows:rows.length, outside:labels.filter(x=>x&&x!==NEW_LABEL).length, inNewest:labels.filter(x=>x===NEW_LABEL).length,
-      distinct:[...new Set(labels.filter(Boolean))].sort(), bytes, acctBytes:keys['ct_acctgames']||0, stored,
+      distinct:[...new Set(labels.filter(Boolean))].sort(), bytes, acctBytes:JSON.stringify(AGM||{}).length, lsAcctBytes:keys['ct_acctgames']||0, stored, heldDates, lastMD,
       storedMonths:Object.keys(storedMonths).sort(),
       // THE WHOLE BODY, NOT ITS FIRST 2000 CHARACTERS [#547, item (14); jobs/gate-61-a15b-cannot-be-red-while-a15a-is-
       // green-and-its-comment-names-an-impossible-mechanism-2026-10-06]. A15a, A15c, A7b, A7c and A14b test the body for a
@@ -169,7 +211,8 @@ async function READ(b){
         // #433 the locator carries BOTH wordings - the calendar one #432 printed and the play-months one
         // #433 prints - plus the gap sentence, so one instrument finds the line on either bundle. A locator
         // that knows only the new wording is the "reads only what the fix added" trap of #432's A7b.
-        const LIMIT=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months|months of play|couldn.t be loaded/i;
+        // #549 item (31) and the merged-list wording ("Games back to <date>; older ones aren't loaded.").
+        const LIMIT=/(?:up to|at most|limit)\s+[\d][\d,]*\s+games|last\s*\d+\s*months|months of play|couldn.t be loaded|older (?:ones|games) aren.t loaded|games back to/i;
         const el=document.querySelector('[data-ct="games-cap"]')||
           [...document.querySelectorAll('div,span,p')].find(x=>x.children.length===0&&LIMIT.test((x.textContent||'').trim()));
         const cnt=[...document.querySelectorAll('span')].find(x=>/^\d+ loaded$/.test((x.textContent||'').trim()));
@@ -255,7 +298,9 @@ async function READ(b){
         return {vis, present:!!el, text:el?(el.textContent||'').trim():null, h:el?Math.round(el.getBoundingClientRect().height*10)/10:0,
                 lh:el?Math.round((parseFloat(getComputedStyle(el).lineHeight)||0)*10)/10:0,
                 ratio:ratio(el), countRatio:ratio(cnt)};})()};
-  },NEWEST.label);
+  },[NEWEST.label,AG.map,held]);
+  r.storeFrom=AG.from; r.migrated=AG.migrated; r.idbMap=AG.idb;
+  return r;
 }
 
 // one input: seed s, n accounts. Returns the reading plus the post-reload reading (A5).
@@ -268,14 +313,15 @@ async function READ(b){
 async function rowsSettled(b,nAccts){
   let last=-1,same=0,read=null;
   for(let i=0;i<80;i++){
-    read=await b.page.evaluate(()=>{let M={};try{M=JSON.parse(localStorage.getItem('ct_acctgames')||'{}');}catch(e){}
+    const _AG=await L.acctGames(b.page);   // #549 item (31): the store is IndexedDB now
+    read=await b.page.evaluate((M)=>{
       const ids=Object.keys(M);let rows=0;ids.forEach(id=>{rows+=(M[id]||[]).length;});
       // THE ACCOUNT COUNT IS REPORTED, NOT WAITED ON: an account whose fetch returns no games is stored in NEITHER
       // ct_acctgames NOR ct_accts (measured on the 'empty-window' input, which waited the full 20s on both), so the
       // settle condition is 'Fetch is idle and the row count held still', and accts rides along for the reader.
       let A=[];try{A=JSON.parse(localStorage.getItem('ct_accts')||'[]');}catch(e){}
       const idle=[...document.querySelectorAll('button')].some(x=>(x.textContent||'').trim()==='Fetch'&&x.offsetParent!==null&&!x.disabled);
-      return {accts:Array.isArray(A)?A.length:0,rows,idle};});
+      return {accts:Array.isArray(A)?A.length:0,rows,idle};},_AG.map);
     if(read.idle&&read.rows===last){if(++same>=3)return Object.assign({ok:true,polls:i+1,acctsWanted:nAccts},read);}else same=0;
     last=read.rows;await b.settle(250);
   }
@@ -373,17 +419,21 @@ async function input(seed,n,geo,name,thin){
     //    THE BODY TEXT IS KEPT AS A SEPARATE, REPORTED READING AND A3b-x IS WHAT TELLS THE TWO APART: a cap
     //    stated somewhere in the body but NOT on the located line is the state where the old assertion was
     //    satisfied and the new one is not, so it is named rather than folded into A3b's own data.
+    //    #549 item (31): THE CLAIM IS NOW WHAT IS HELD, NOT A CAP. Every account in these inputs is cut (300+ games
+    //    against a walk of 200), so the line must name the date of each account's oldest HELD game, measured out of
+    //    the store; the readability terms are unchanged.
     const capLine=((r.cap&&r.cap.text)||'').match(CAP_RE);
     const capLineN=capLine?parseInt(capLine[1].replace(/,/g,''),10):null;
     const cv=(r.cap&&r.cap.vis)||{};
-    L.say(!!capLineN&&capLineN>=MIN_CAP&&cv.painted===true&&cv.visible===true&&cv.reachable===true
+    const h3=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},Object.keys(r.heldDates||{}));
+    L.say(h3.ok&&cv.painted===true&&cv.visible===true&&cv.reachable===true
           &&!!r.cap.ratio&&r.cap.ratio.r>=4.5,
-      'A3b TC-R35(ii) '+tag+': a cap of at least '+MIN_CAP+' is stated as READABLE text - on the located line, painted, visible, reachable by a finger and at WCAG AA',
-      {statedOnLine:capLine?capLine[0]:'NONE',statedInBody:cap||'NONE',line:r.cap&&r.cap.text,
+      'A3b TC-R35(ii) '+tag+': what the list HOLDS is stated as READABLE text - the located line names the date of each account\'s oldest held game and says older ones are not loaded, painted, visible, reachable by a finger and at WCAG AA',
+      {held:h3,statedOnLine:capLine?capLine[0]:'NONE',statedInBody:cap||'NONE',line:r.cap&&r.cap.text,
        painted:cv.painted,visible:cv.visible,onScreenAtRest:cv.onScreen,reachable:cv.reachable,
        userScrollableAncestors:cv.scrollers,movedByScrolling:cv.movedByScrolling,
        top:cv.top,bottom:cv.bottom,viewportH:cv.vh,ratio:r.cap&&r.cap.ratio?r.cap.ratio.r:null,minRatio:4.5,
-       accepts:'Showing up to '+MIN_CAP+' games per account.'});
+       accepts:'Games back to <oldest held date>; older ones aren\'t loaded.'});
     L.say(!(capN&&!capLineN),'A3b-x TC-R35(ii) '+tag+': the cap is not stated SOMEWHERE IN THE BODY while the located limit line says something else - which is the state the old body-text-only A3b could not tell from a readable sentence',{inBody:cap||'NONE',onLine:capLine?capLine[0]:'NONE',line:r.cap&&r.cap.text});
     L.say(r.bytes<BUDGET,'A4 TC-R35(iii) '+tag+': measured localStorage footprint under the pinned budget',{chars:r.bytes,budget:BUDGET,acctGames:r.acctBytes,storedRows:r.stored});
     // A4b and A5 need something to have been stored. With nothing stored they would only restate A1's failure,
@@ -469,6 +519,9 @@ async function input(seed,n,geo,name,thin){
       // HAS. The old wording ("your last 6 months") satisfied the old regex and was false on a sparse index,
       // so the regex moved with the string it pins and A11c below is what makes the distinction fail-able.
       const mn=(r.body||'').match(PLAY_RE);
+      // #549 item (31): the month window is no longer printed; what is stated is the oldest held date, which in
+      // this input IS the month window's reach (nothing older was ever fetched), so the claim is still the bound.
+      const h7=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},Object.keys(r.heldDates||{}));
       // A7b GAINS A3b's READABILITY TERMS [#544, item (7)]: this job's remainder says "A7b and A7c need the
       // same". A7b yes - it is a POSITIVE claim that the screen states something, and an unreadable sentence
       // does not state it. A7c NO, AND THAT IS A DELIBERATE DEPARTURE FROM THE JOB'S WORDING, measured
@@ -478,7 +531,7 @@ async function input(seed,n,geo,name,thin){
       // #394's containment trap pointed the other way: the thing being excluded must not be allowed to hide
       // outside the box the assertion looks in. A7c stays body-wide, and this is the record of why.
       const a7v=(r.cap&&r.cap.vis)||{};
-      L.say(!!mn&&+mn[1]===GMONTHS&&a7v.painted===true&&a7v.visible===true&&a7v.reachable===true,'A7b US-R25 '+tag+': the screen states the MONTH-OF-PLAY window, which is the limit that actually bound, in the units the walk actually counts - and states it READABLY: painted, visible and reachable by a finger',{monthsOfPlay:mn?+mn[1]:null,expect:GMONTHS,calendarClaim:(r.body||'').match(CAL_RE)?((r.body||'').match(CAL_RE))[0]:'none',locatedLine:r.cap.text,painted:a7v.painted,visible:a7v.visible,onScreenAtRest:a7v.onScreen,reachable:a7v.reachable,userScrollableAncestors:a7v.scrollers,movedByScrolling:a7v.movedByScrolling});
+      L.say(h7.ok&&!mn&&a7v.painted===true&&a7v.visible===true&&a7v.reachable===true,'A7b US-R25 '+tag+': the screen states how far back the HELD list reaches - the oldest held date of each account, which is where the month window stopped the walk - and no longer a months-of-play window, which is not true of a merged list; READABLY: painted, visible and reachable by a finger',{held:h7,monthsOfPlay:mn?+mn[1]:null,calendarClaim:(r.body||'').match(CAL_RE)?((r.body||'').match(CAL_RE))[0]:'none',locatedLine:r.cap.text,painted:a7v.painted,visible:a7v.visible,onScreenAtRest:a7v.onScreen,reachable:a7v.reachable,userScrollableAncestors:a7v.scrollers,movedByScrolling:a7v.movedByScrolling});
       // A7c is the other half and is NOT a restatement of A7b: a screen could name both and still mislead.
       // On the #431 bundle this is the defect itself - "Showing up to 200 games per account." while 200
       // never bound - so this assertion is the one that had to be read off the body to be able to fail.
@@ -491,7 +544,7 @@ async function input(seed,n,geo,name,thin){
       // SCREEN TO SCREEN, not screen to storage, because a store that is right and a render that drops it
       // look identical from the storage side.
       L.say(!!r.afterCap&&r.afterCap.text===r.cap.text,'A7g US-R25 '+tag+': the limit the screen names SURVIVES a reload with the network refusing - the bound is read back from storage and still names the limit that actually bound',{before:r.cap&&r.cap.text,afterReload:r.afterCap&&r.afterCap.text,rowsBefore:r.rows,rowsAfterReload:r.afterReload});
-      L.say(!!r.afterBody&&PLAY_RE.test(r.afterBody)&&!(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i).test(r.afterBody),'A7h US-R25 '+tag+': after the reload the screen STILL states the month-of-play window and still does NOT state a games cap - the wording does not degrade to the games wording on the persisted path',{afterReloadMonths:(r.afterBody||'').match(PLAY_RE)?((r.afterBody||'').match(PLAY_RE))[0]:'none',afterReloadGamesCap:(r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i)?((r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i))[0]:'no'});
+      L.say(!!r.afterBody&&HELD_OK(r.afterCap&&r.afterCap.text,r.heldDates||{},Object.keys(r.heldDates||{})).ok&&!(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i).test(r.afterBody),'A7h US-R25 '+tag+': after the reload the screen STILL states the held list\'s reach (the same oldest dates) and still does NOT state a games cap - the wording does not degrade to the games wording on the persisted path',{afterLine:r.afterCap&&r.afterCap.text,afterReloadMonths:(r.afterBody||'').match(PLAY_RE)?((r.afterBody||'').match(PLAY_RE))[0]:'none',afterReloadGamesCap:(r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i)?((r.afterBody||'').match(/(?:up to|at most|limit)\s+[\d][\d,]*\s+games/i))[0]:'no'});
       L.say(!gc,'A7c US-R25 '+tag+': the screen does NOT state a games cap as the bound, because the games cap is not what stopped the walk',{matchedGamesCap:gc?gc[0]:'no',locatedLine:r.cap.text});
       L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A7e '+tag+': the limit line meets WCAG AA for normal text (>= 4.5:1) against everything painted behind it',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
     }else{
@@ -501,7 +554,7 @@ async function input(seed,n,geo,name,thin){
       // in the state that needs it; absence with no presence anywhere is the unfalsifiable shape [#385].
       // Absence is asserted on BOTH the element and the body [R: absence must list what was checked]: a
       // missing data-ct alone is satisfied by any bundle that never had the attribute, #431 included.
-      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A7d '+tag+': NO limit line is rendered and NO limit sentence is anywhere on the screen when nothing bound the list, so it costs no height on a history that fits',{element:r.cap.present,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A7d '+tag+': NO limit line is rendered and NO limit sentence is anywhere on the screen when nothing bound the list, so it costs no height on a history that fits',{element:r.cap.present,heightPx:r.cap.h,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
     }
     L.say(!!r.cap.countRatio&&r.cap.countRatio.r>=4.5,'A7f '+tag+': the "N loaded" count beside it meets WCAG AA (>= 4.5:1) - PRE-EXISTING and swept with the line rather than left [R06]',r.cap.countRatio?{...r.cap.countRatio,min:4.5}:{ratio:null,min:4.5});
     await r.b.close();
@@ -534,9 +587,10 @@ async function input(seed,n,geo,name,thin){
       if(a0){
         if(t.expect==='games'){
           const gc=(r.body||'').match(CAP_RE);
-          L.say(!!gc,'A8a US-R25 '+tag+': the games cap is STILL stated after an upgrade - an account at the cap was cut by the cap, and that is inferable from the old store alone',{stated:gc?gc[0]:'NONE',note:t.why});
+          const h8=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},['cc:me']);
+          L.say(h8.ok,'A8a US-R25 '+tag+': the cut is STILL stated after an upgrade - an account at the cap was cut by the cap, which is inferable from the old store alone, so the line says how far back the held games reach and that older ones are not loaded [#549 item (31): the date, not the cap]',{held:h8,gamesCap:gc?gc[0]:'none',note:t.why,store:r.storeFrom});
         }else{
-          L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A8b US-R25 '+tag+': NO limit is stated when the old store cannot say which bound applied - a limit the app cannot know bound is not one it may claim',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no',note:t.why});
+          L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A8b US-R25 '+tag+': NO limit is stated when the old store cannot say which bound applied - a limit the app cannot know bound is not one it may claim',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthsInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no',note:t.why});
         }
       }
       await b.close();
@@ -572,9 +626,13 @@ async function input(seed,n,geo,name,thin){
       {acctcap:caps,distinct:[...new Set(vals)].sort()});
     if(a0){
       const t=(r.cap&&r.cap.text)||'';
-      L.say(MONTH_RE.test(t)&&CAP_RE.test(t),
-        'A9a US-R25 MIXED: with accounts stopped by different bounds the line names BOTH limits, because that is the only statement true of every account - naming one of them "per account" is a limit stated that did not bind for the other',
-        {line:t,namesMonths:MONTH_RE.test(t),namesGames:CAP_RE.test(t)});
+      // #549 item (31): the two accounts were cut by different bounds and so reach back to DIFFERENT dates; the only
+      // sentence true of both names each account with its own oldest held date. A bare single date is false for one.
+      const h9=HELD_OK(t,r.heldDates||{},Object.keys(r.heldDates||{}));
+      const dd9=[...new Set(Object.values(r.heldDates||{}))];
+      L.say(h9.ok&&dd9.length===2,
+        'A9a US-R25 MIXED: with accounts stopped by different bounds the line names EACH account with how far back ITS held games reach, because that is the only statement true of every account - one date "per account" would be false for the other',
+        {held:h9,distinctOldestDates:dd9,line:t});
       L.say(r.cap&&r.cap.ratio&&r.cap.ratio.r>=4.5,'A9b MIXED: the line still meets WCAG AA',r.cap&&r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null});
     }
     await b.close();
@@ -610,9 +668,10 @@ async function input(seed,n,geo,name,thin){
       'A18-0b vacuity MIXED-SOURCE: the Lichess account was stopped by GAMES and the chess.com account by MONTHS, so the line is made to cover two sources with two different bounds',{acctcap:caps});
     if(a0){
       const t=(r.cap&&r.cap.text)||'';
-      L.say(MONTH_RE.test(t)&&CAP_RE.test(t),
-        'A18a US-R25 MIXED-SOURCE: the line names BOTH limits - the month window (true of chess.com) and the games cap (the only bound Lichess has) - so it is not false for either account',
-        {line:t,namesMonths:MONTH_RE.test(t),namesGames:CAP_RE.test(t)});
+      const h18=HELD_OK(t,r.heldDates||{},Object.keys(r.heldDates||{}));
+      L.say(h18.ok&&Object.keys(r.heldDates||{}).length===2,
+        'A18a US-R25 MIXED-SOURCE: the line covers BOTH accounts - the chess.com one the month window cut and the Lichess one its 200-game request cut - each with the date its held games reach back to, so it is not false for either [#549 item (31)]',
+        {held:h18,line:t});
     }
     L.say(b.errs.length===0,'A18 mixed-source: zero app errors',b.errs.slice(0,3));
     await b.close();
@@ -656,7 +715,7 @@ async function input(seed,n,geo,name,thin){
       L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
       if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
         if(t.expect==='games'){
-          L.say(CAP_RE.test(r.body||''),'A10a US-R25 '+tag+': a limit IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'NONE',note:t.why});
+          L.say(OLDER_RE.test(r.body||''),'A10a US-R25 '+tag+': a cut IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(OLDER_RE)?((r.body||'').match(OLDER_RE))[0]:'NONE',line:r.cap&&r.cap.text,note:t.why});
           // #433 A10c. A10a ASKS ONLY WHETHER A SENTENCE IS THERE, AND THAT IS HOW THE WRONG NUMBER GOT
           // THROUGH IT. #432 inferred 'games' from this exact store and then printed today's ACCT_GMAX, so
           // 40 rows cut at 40 read "Showing up to 200 games per account." - A10a is green on that, because
@@ -664,10 +723,14 @@ async function input(seed,n,geo,name,thin){
           // WROTE it, and the only one it can ever have been is 40. Asserted against the ROW COUNT on
           // screen rather than against a constant this gate holds: whatever number the line names must be
           // the number of rows the store was cut at, which is a fact about this input and not about the app.
+          // #549 item (31): what is stated is no longer a cap number but the date the held games reach back to, and
+          // the same rule applies to it: it must be the store's OWN oldest row, measured, and no cap number may be
+          // printed - neither ACCT_GMAX nor the legacy 40 is a limit on what a merged list holds.
           {const gcm=(r.body||'').match(CAP_RE);const stated=gcm?+String(gcm[1]).replace(/,/g,''):null;
-           L.say(stated===t.n,'A10c US-R25 '+tag+': the number stated is the cap that ACTUALLY cut this account ('+t.n+'), not the cap of the build reading it',{stated,expect:t.n,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});}
+           const h10=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},['cc:me']);
+           L.say(h10.ok&&stated===null,'A10c US-R25 '+tag+': the date stated is the oldest game THIS store holds, and no cap number is printed as the bound of a held list',{held:h10,capNumberStated:stated,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});}
         }else
-          L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
+          L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
       }
       await b.close();
     }
@@ -710,7 +773,10 @@ async function input(seed,n,geo,name,thin){
       const cal=(r.body||'').match(CAL_RE);
       L.say(!cal||+cal[1]>=span,'A11c US-R25 '+tag+': THE UNITS. Any CALENDAR claim on screen must cover the calendar span actually shown - the screen may not say "last N months" over more than N months of games',{calendarClaim:cal?cal[0]:'none',claimedMonths:cal?+cal[1]:null,measuredSpan:span,line:r.cap&&r.cap.text});
       const pl=(r.body||'').match(PLAY_RE);
-      L.say(!!pl&&+pl[1]===GMONTHS,'A11d US-R25 '+tag+': the bound IS stated, in the units the walk counts - '+GMONTHS+' most recent months of play',{monthsOfPlay:pl?+pl[1]:null,expect:GMONTHS,line:r.cap&&r.cap.text});
+      // #549 item (31): the bound is stated as the oldest HELD date, measured from the store - which on a sparse index
+      // is the oldest of the 6 entries walked, so the units question A11c guards cannot arise from this wording.
+      const h11=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},Object.keys(r.heldDates||{}));
+      L.say(h11.ok&&!pl,'A11d US-R25 '+tag+': the bound IS stated, as the date the held games reach back to (the oldest of the '+GMONTHS+' entries walked), and no months-of-play count is printed',{held:h11,monthsOfPlay:pl?+pl[1]:null,line:r.cap&&r.cap.text});
       L.say(!CAP_RE.test(r.body||''),'A11e US-R25 '+tag+': no games cap is named as the bound, because '+(TAKEN*PER)+' rows never reached it',{matchedGamesCap:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no'});
       // #433 A11g. THE FIX MUST NOT COST THE HEIGHT #432 SPENT AN ASSERTION BUYING BACK. Naming the bound in
       // the units the app has is longer than naming it wrongly, and the first #433 wording ran to TWO line
@@ -726,7 +792,10 @@ async function input(seed,n,geo,name,thin){
       // green. So: whatever number the line names as months of play must EQUAL the number of distinct
       // calendar months actually in the store. Asserted only when no gap is claimed - a gap is precisely the
       // disclosure that the window was not fully realised, and A12 is what covers that case.
-      L.say(GAP_RE.test(r.body||'')||(!!pl&&+pl[1]===r.storedMonths.length),'A11h US-R25 '+tag+': THE NUMBER IS THE MEASURED ONE - the months-of-play claim equals the distinct calendar months actually on screen',{claimed:pl?+pl[1]:null,monthsOnScreen:r.storedMonths.length,months:r.storedMonths,gapClaimed:GAP_RE.test(r.body||'')});
+      // #549 item (31): THE DATE IS THE MEASURED ONE, against a second readout: the oldest ROW ON SCREEN prints its own
+      // month and day ("Aug 1"), so the line's date must begin with exactly that.
+      {const c11=HELD_CLAIM(r.cap&&r.cap.text)||[];const md=c11.length===1?c11[0].d.replace(/, \d{4}$/,''):null;
+       L.say(GAP_RE.test(r.body||'')||(!!md&&md===r.lastMD),'A11h US-R25 '+tag+': THE DATE IS THE MEASURED ONE - the date the line names is the date the oldest row on screen prints',{claimed:c11,claimedMonthDay:md,oldestRowOnScreen:r.lastMD,gapClaimed:GAP_RE.test(r.body||'')});}
       L.say(!!r.cap.lh&&r.cap.h<=r.cap.lh*1.6,'A11g '+tag+': with ONE account the limit line occupies ONE line box at 375x730 - the units fix costs no height on the screen with least room',{h:r.cap.h,lineHeight:r.cap.lh,lineBoxes:r.cap.lh?Math.round(r.cap.h/r.cap.lh*100)/100:null,max:1.6,text:r.cap.text});
       L.say(!GAP_RE.test(r.body||''),'A11f '+tag+': no gap is claimed when every requested month answered - the gap sentence must not fire on a clean walk',{body:(r.body||'').slice(0,160)});
     }
@@ -754,7 +823,7 @@ async function input(seed,n,geo,name,thin){
     // A12-0 is the vacuity guard AND the proof the hole is real: (MONTHS-1) x PER rows, not MONTHS x PER.
     if(L.say(r.rows===(MONTHS-1)*PER,'A12-0 vacuity '+tag+': a month really was dropped - '+((MONTHS-1)*PER)+' rows where an unbroken walk gives '+(MONTHS*PER),{rows:r.rows,expect:(MONTHS-1)*PER,ifNoGap:MONTHS*PER,requests:r.hitCount})){
       L.say(r.cap.present===true&&GAP_RE.test(r.body||''),'A12a US-R25 '+tag+': the screen SAYS a month could not be loaded, instead of rendering nothing and thereby claiming the whole history is here',{lineRendered:r.cap.present,line:r.cap.text,bodyHasGap:GAP_RE.test(r.body||'')});
-      L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A12b US-R25 '+tag+': and it names NO limit as the bound, because neither bound was reached - the index ran out',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+      L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A12b US-R25 '+tag+': and it names NO limit as the bound, because neither bound was reached - the index ran out',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
       L.say(!!r.cap.ratio&&r.cap.ratio.r>=4.5,'A12c '+tag+': the gap sentence meets WCAG AA (>= 4.5:1) like every other state of this line',r.cap.ratio?{...r.cap.ratio,min:4.5}:{ratio:null,min:4.5});
     }
     await b.close();
@@ -776,7 +845,7 @@ async function input(seed,n,geo,name,thin){
     L.note(tag+'  rows '+r.rows+'  requests '+r.hitCount+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
     if(L.say(r.rows===(MONTHS-1)*PER,'A13-0 vacuity '+tag+': a month really was lost - '+((MONTHS-1)*PER)+' rows where an unbroken walk gives '+(MONTHS*PER),{rows:r.rows,expect:(MONTHS-1)*PER,ifNoGap:MONTHS*PER,requests:r.hitCount})){
       L.say(r.cap.present===true&&GAP_RE.test(r.body||''),'A13a US-R25 '+tag+': the screen SAYS so - a 200 with nothing in it is not a reason to claim the whole history is present',{lineRendered:r.cap.present,line:r.cap.text});
-      L.say(!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),'A13b US-R25 '+tag+': and names no limit, because the index ran out rather than either bound being reached',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
+      L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A13b US-R25 '+tag+': and names no limit, because the index ran out rather than either bound being reached',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
     }
     await b.close();
   }
@@ -800,11 +869,15 @@ async function input(seed,n,geo,name,thin){
     L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
     // the precondition, asserted rather than assumed: both shapes really are present at once.
     if(L.say(r.rows===40+GMONTHS*THIN_PER,'A14-0 vacuity '+tag+': both accounts are on screen at once - 40 legacy rows plus the '+(GMONTHS*THIN_PER)+' the month window allowed',{rows:r.rows,expect:40+GMONTHS*THIN_PER})){
+      // #549 item (31): both accounts are cut, by different bounds, back to different dates - so each is named with its own.
       const gc=(r.body||'').match(CAP_RE);const stated=gc?+String(gc[1]).replace(/,/g,''):null;
-      L.say(stated===MIN_CAP,'A14a US-R25 '+tag+': the games cap stated is the CURRENT one, not the legacy cap of the one account it happened to stop - naming 40 over '+r.rows+' rows on screen is a limit that did not bind',{stated,expect:MIN_CAP,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});
-      L.say(/\(\s*40\s*for accounts imported before/i.test(r.body||''),'A14b US-R25 '+tag+': and the legacy cap is still named, as the qualifier that makes the sentence true of the older account too',{line:r.cap&&r.cap.text});
+      const hAll=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},Object.keys(r.heldDates||{}));
+      const ent=(u)=>((HELD_CLAIM(r.cap&&r.cap.text)||[]).find(e=>e.u===u)||null);
+      const hL={entry:ent('kunalold'),want:(r.heldDates||{})['cc:kunalold']},hF={entry:ent(ACCTS[0]),want:(r.heldDates||{})['cc:'+ACCTS[0]]};
+      L.say(!!hL.entry&&hL.entry.d===hL.want&&hL.want!==hF.want,'A14a US-R25 '+tag+': the LEGACY account is named with the date ITS held games reach back to - not a cap, and not the other account\'s date',{held:hL,line:r.cap&&r.cap.text});
+      L.say(!!hF.entry&&hF.entry.d===hF.want&&hAll.ok,'A14b US-R25 '+tag+': and the FETCHED account is named with its own date too, so the sentence is true of both and names nothing else',{fetched:hF,all:hAll,line:r.cap&&r.cap.text});
       const pl2=(r.body||'').match(PLAY_RE);
-      L.say(!!pl2&&+pl2[1]===GMONTHS,'A14c US-R25 '+tag+': the month bound is named as well, because it is what stopped the other account',{monthsOfPlay:pl2?+pl2[1]:null,expect:GMONTHS});
+      L.say(stated===null&&!pl2,'A14c US-R25 '+tag+': and neither the legacy cap of 40, nor the walk\'s 200, nor its month window is printed - none of them bounds what a merged list holds',{capNumberStated:stated,monthsOfPlay:pl2?+pl2[1]:null,line:r.cap&&r.cap.text});
     }
     await b.close();
   }
@@ -862,7 +935,7 @@ async function input(seed,n,geo,name,thin){
       // limit to state. Read off the BODY as well as the element, because #432's own negative control
       // proved that an assertion reading only the attribute the fix adds goes PASS on the bundle that
       // states the cap wrongly.
-      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!MONTH_RE.test(r.body||''),
+      L.say(r.cap.present===false&&!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),
         'A15a US-R25 '+tag+': NO limit line is rendered and NO limit sentence is anywhere on screen - the whole history was fetched, so a cap that was reached but did not withhold anything may not be claimed as the bound',
         {element:r.cap.present,line:r.cap.text,heightPx:r.cap.h,bodyLen:r.bodyLen,gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',monthClaimInBody:(r.body||'').match(MONTH_RE)?((r.body||'').match(MONTH_RE))[0]:'no'});
       // A15b: and no GAP is claimed either. Every one of the four months answered 200 with 50 usable rows, so
@@ -900,6 +973,111 @@ async function input(seed,n,geo,name,thin){
   // ── A6, the geometry sweep. This gate's subject is data, not pixels, so the matrix above runs at Kunal's
   //    375x730 and the WIDTH-sensitive part runs here: nothing on the list is cut off and the first row is
   //    hit-testable at its own centre after scrolling ITS OWN scroller (measurement rules 1, 3, 4).
+  // ── A19..A21 #549 item (31), jobs/refetching-an-account-replaces-its-stored-list-instead-of-merging-2026-09-29, Kunal's
+  //    merge-big on questions/B8B-MERGED-GAMES. EVERY INPUT ABOVE FETCHES ONCE PER CONTEXT, so none of them could see what a
+  //    SECOND fetch does to what the first one stored - and acctStore REPLACED it (M[id]=rows): antagonist A measured 200 -> 5
+  //    with 5 of 6 months answering 503, and 200 -> 4 on a clean network with a thin recent window. TC-R119 is the refresh,
+  //    TC-R120 the move of the store from localStorage into IndexedDB, TC-R121 the folded-in
+  //    jobs/store-eviction-drops-accounts-while-the-screen-keeps-counting-2026-09-29. NOTHING HERE TOUCHES chess.com: the same
+  //    ctx.route stub as above answers every request. Each refresh is a RELOAD, because the auto-fetch on entering Review
+  //    is what refreshes an account on every launch - the path a player takes without asking for it.
+  const refresh=async(b,state,patch)=>{Object.keys(patch).forEach(k=>{state[k]=patch[k];});const h0=state.hits.length;
+    await b.open();await b.tile('Review');await b.settle(1800);const st=await rowsSettled(b,1);const r=await READ(b);r.settled=st;r.newHits=state.hits.length-h0;return r;};
+  const keysOf=(r)=>{const ks=[];Object.keys(r.idbMap||{}).forEach(id=>(r.idbMap[id]||[]).forEach(g=>ks.push((g.src||'')+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||''))));return ks;};
+  {
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'merge-outage'});
+    await stub(b,state);
+    const r0=await refresh(b,state,{});
+    const tag='TC-R119 MERGE, A BAD MORNING: 200 stored, then a walk where 5 of 6 months answer 503 and the newest holds 5';
+    if(L.say(r0.rows===MIN_CAP&&r0.storeFrom==='idb'&&keysOf(r0).length===MIN_CAP,'A19-0 vacuity '+tag+': the first walk stored '+MIN_CAP+' games, in IndexedDB',{rows:r0.rows,store:r0.storeFrom,idbRows:keysOf(r0).length,settled:r0.settled.ok})){
+      const r1=await refresh(b,state,{seed:'b',failExcept:NEWEST.y+'/'+String(NEWEST.m).padStart(2,'0')});
+      L.say(r1.newHits>=2&&r1.settled.ok,'A19a-0 vacuity '+tag+': the second walk really ran - the index and the months were asked again',{newRequests:r1.newHits,settled:r1.settled});
+      L.say(r1.rows>=r0.rows&&keysOf(r1).length>=keysOf(r0).length,'A19a '+tag+': THE REFRESH REMOVES NOTHING - the list and the store still hold every game they held before the half-failed walk (antagonist A measured 200 -> 5)',{before:r0.rows,after:r1.rows,storedBefore:keysOf(r0).length,storedAfter:keysOf(r1).length});
+      L.say(GAP_RE.test(r1.body||''),'A19b '+tag+': and the months that failed are still DISCLOSED, because the newest walk asked for them and did not get them',{line:r1.cap&&r1.cap.text});
+      const r2=await refresh(b,state,{refuse:true});
+      L.say(r2.rows===r1.rows,'A19c '+tag+': and the held list survives the next launch with the network refusing - the store, not the last walk, is what the screen shows',{afterMerge:r1.rows,afterReload:r2.rows});
+    }
+    await b.close();
+  }
+  {
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'merge-grow'});
+    await stub(b,state);
+    const tag='TC-R119 MERGE, A CLEAN NETWORK';
+    const r0=await refresh(b,state,{});
+    if(L.say(r0.rows===MIN_CAP,'A20-0 vacuity '+tag+': the first walk stored '+MIN_CAP,{rows:r0.rows})){
+      // the CONTROL the antagonist ran: the same walk again changes nothing and duplicates nothing
+      const r1=await refresh(b,state,{});
+      const k1=keysOf(r1);
+      L.say(r1.rows===MIN_CAP&&k1.length===MIN_CAP&&new Set(k1).size===MIN_CAP,'A20a '+tag+': the same walk twice holds '+MIN_CAP+' -> '+MIN_CAP+', with no game stored or shown twice - the merge dedupes on the game key',{rows:r1.rows,stored:k1.length,distinct:new Set(k1).size});
+      // a THIN recent window: the same 24-month index, one game a month, so the 6-month walk returns 6 games
+      // (an index that suddenly listed ONE month would be a different account's history: chess.com lists every month
+      // that has games, so an exhausted index is a statement that nothing older exists)
+      const r2=await refresh(b,state,{thin:{months:24,per:1}});
+      // Three of those 6 are games the first walk never took (the day-1 games of Jun, May and Apr, which the 200 cut off),
+      // so the held list GROWS by exactly the games it did not have: the expected count is measured, not assumed.
+      const k2=keysOf(r2),s2=new Set(k2),lost2=k1.filter(k=>!s2.has(k));
+      L.say(r2.newHits>=2&&lost2.length===0&&r2.rows===k2.length&&r2.rows>=MIN_CAP,'A20b '+tag+': a thin recent window (6 months of 1 game) leaves EVERY one of the '+MIN_CAP+' held games in place and adds only what was new (antagonist A measured 200 -> 4)',{rows:r2.rows,stored:k2.length,lostFromBefore:lost2.length,newRequests:r2.newHits});
+      // a NEWER month with 30 games: the walk takes 200 again, newest first, and the union is LARGER than any walk
+      const r3=await refresh(b,state,{thin:null,extra:{y:2026,m:10,n:30}});
+      const k3=keysOf(r3);
+      L.say(r3.rows===r2.rows+30&&k3.length===r2.rows+30&&new Set(k3).size===k3.length&&r3.rows>MIN_CAP,'A20c '+tag+': a walk that brings in 30 newer games ADDS them to what is held - '+(r2.rows+30)+' games, more than one walk of '+MIN_CAP+' can return, each once',{rows:r3.rows,stored:k3.length,distinct:new Set(k3).size,expect:r2.rows+30});
+      const h20=HELD_OK(r3.cap&&r3.cap.text,r3.heldDates||{},Object.keys(r3.heldDates||{}));
+      L.say(h20.ok&&!CAP_RE.test(r3.body||'')&&!PLAY_RE.test(r3.body||''),'A20d US-R25 '+tag+': the line names what is HELD - the date of the oldest of the '+r3.rows+' games - and neither the walk\'s 200 nor its month window, which are no longer true of the list',{held:h20,line:r3.cap&&r3.cap.text});
+      const r4=await refresh(b,state,{refuse:true});
+      L.say(r4.rows===r3.rows&&r4.rows>MIN_CAP,'A20e '+tag+': and the '+r3.rows+' survive a launch with the network refusing',{afterMerge:r3.rows,afterReload:r4.rows});
+    }
+    await b.close();
+  }
+  {
+    // TC-R120 THE MOVE TO INDEXEDDB, WITHOUT LOSS. A player who upgrades has their games in localStorage['ct_acctgames'];
+    // the app must carry every one of them into IndexedDB, and remove the localStorage copy only after reading it back.
+    const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n\n'+MOVES+'\n';
+    const mk=(i,day)=>({src:'cc',acct:'me',pgn:PGN,white:'me',black:'mig'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,6,day,12,i%60,0)});
+    const rows=[];for(let i=0;i<50;i++)rows.push(mk(i,1+(i%28)));
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}},name:'migrate'});
+    await b.open();await b.tile('Review');await b.settle(1200);
+    const r=await READ(b);const tag='TC-R120 MIGRATION, 50 games in localStorage from an earlier build';
+    L.say(r.rows===50,'A21-0 vacuity '+tag+': the 50 stored games are on screen',{rows:r.rows});
+    L.say(!!r.idbMap&&(r.idbMap['cc:me']||[]).length===50&&new Set(keysOf(r)).size===50,'A21a '+tag+': IndexedDB holds every one of the 50, each once',{idbRows:r.idbMap?(r.idbMap['cc:me']||[]).length:null,store:r.storeFrom});
+    const ls=await b.page.evaluate(()=>({g:localStorage.getItem('ct_acctgames'),m:localStorage.getItem('ct_acctgames_migrated')}));
+    L.say(ls.g===null&&!!ls.m,'A21b '+tag+': and only then is the localStorage copy gone - removed after the read-back, with the migration stamped',{lsCopy:ls.g===null?'removed':('still '+ls.g.length+' chars'),migrated:ls.m});
+    // a localStorage copy that turns up AFTER the move (an older build ran in between) is merged in, not ignored
+    const extra=[];for(let i=50;i<60;i++)extra.push(mk(i,1+(i%28)));extra.push(rows[0]);
+    await b.page.evaluate((x)=>localStorage.setItem('ct_acctgames',JSON.stringify({'cc:me':x})),extra);
+    await b.open();await b.tile('Review');await b.settle(1200);
+    const r2=await READ(b);
+    L.say(r2.rows===60&&(r2.idbMap&&(r2.idbMap['cc:me']||[]).length)===60,'A21c '+tag+': a localStorage copy written later by an older build is UNIONED into the store - 50 held + 10 new + 1 already held = 60, nothing lost and nothing twice',{rows:r2.rows,idbRows:r2.idbMap?(r2.idbMap['cc:me']||[]).length:null});
+    L.say(b.errs.length===0,'A21d '+tag+': zero app errors across the migration and the re-migration',b.errs.slice(0,3));
+    await b.close();
+  }
+  {
+    // TC-R121 A FULL DEVICE, on the store a device without IndexedDB still uses (localStorage, byte-bounded, oldest account
+    // first). Antagonist B's state on #433: the second account does not fit, the writer drops the first to fit it, and the
+    // screen went on counting 400 while the store held 200 - and after a reload an account chip read 0. The writer's
+    // RETURN VALUE is what the screen must show, and the account it could not keep must be said.
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'store-full'});
+    await b.ctx.addInitScript(()=>{try{Object.defineProperty(window,'indexedDB',{value:undefined,configurable:true});}catch(e){}});
+    await stub(b,state);
+    const r0=await refresh(b,state,{});
+    const tag='TC-R121 STORE FULL (no IndexedDB, localStorage filled to leave room for half an account)';
+    if(L.say(r0.rows===MIN_CAP&&r0.storeFrom==='ls','A22-0 vacuity '+tag+': the first account is stored in localStorage, the fallback store',{rows:r0.rows,store:r0.storeFrom})){
+      const fill=await b.page.evaluate(()=>{const A=(localStorage.getItem('ct_acctgames')||'').length;let lo=0,hi=12e6;
+        while(hi-lo>2000){const mid=Math.floor((lo+hi)/2);try{localStorage.setItem('zz_fill','x'.repeat(mid));lo=mid;}catch(e){hi=mid;}}
+        const keep=Math.max(0,lo-Math.floor(A/2));try{localStorage.setItem('zz_fill','x'.repeat(keep));}catch(e){}return {A,fill:keep};});
+      await b.page.locator('input[placeholder="Chess.com username"]').fill(ACCTS[1]);await b.settle(150);
+      await b.tapText(/^Fetch$/,{wait:2400});await b.settle(800);await rowsSettled(b,2);
+      const r1=await READ(b);const stored=r1.stored;
+      L.say(r1.rows===stored&&stored>0,'A22a '+tag+': the rows on screen are the rows STORED - the screen does not count games the device could not keep',{onScreen:r1.rows,stored,fill});
+      L.say(/There wasn.t room on this device to keep/i.test(r1.body||'')&&new RegExp(ACCTS[0]).test((r1.cap&&r1.cap.text)||''),'A22b '+tag+': and the account that was dropped is NAMED on the line, instead of vanishing on the next launch',{line:r1.cap&&r1.cap.text});
+      const r2=await refresh(b,state,{refuse:true});
+      L.say(r2.rows===r1.rows,'A22c '+tag+': after a reload the list is what it was - nothing counted before the reload disappears with it',{before:r1.rows,afterReload:r2.rows});
+    }
+    await b.close();
+  }
+
   const GEOS7=[{w:320,h:568},{w:360,h:640},{w:375,h:667},{w:375,h:730},{w:390,h:844},{w:414,h:896},{w:440,h:956}];
   // ── ALL SEVEN GEOMETRIES BY DEFAULT [#544, item (7); this job's remainder, "run the default sweep at all
   //    seven geometries rather than three"]. It was three unless CT_FULL=1, so four of the seven never ran in

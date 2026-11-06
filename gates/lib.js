@@ -626,4 +626,36 @@ const INK_RECT=`function(el){let l=Infinity,t=Infinity,r=-Infinity,bt=-Infinity,
   const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){if(!tn.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(tn);for(const q of rg.getClientRects())add(q);}
   for(const k of el.querySelectorAll('svg path,svg line,svg circle,svg ellipse,svg rect,svg polyline,svg polygon,svg text'))for(const q of k.getClientRects())add(q);
   return n?{l,t,r,b:bt,w:r-l,h:bt-t,n}:null;}`;
-module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT};
+// #549 item (31): THE IMPORTED-ACCOUNT GAMES LIVE IN INDEXEDDB NOW (database 'ct', object store 'acctgames', one
+// record per account id), migrated out of localStorage['ct_acctgames'] on launch. A gate that reads the store reads
+// it HERE, so it reads what the app holds: {map:{id:rows}, from:'idb'|'ls'|'both'|'none', idb:<the IndexedDB map or
+// null>, ls:<the localStorage map or null>, migrated:<ct_acctgames_migrated or null>}. `map` is the union, IndexedDB
+// rows first - the same precedence the app's own load gives a store found in both places. Seeding is unchanged: put
+// ct_acctgames in `store` and the app migrates it on load, which is itself the path a returning player takes.
+// Never throws; a store it cannot open reads as idb:null, which is NOT the same answer as an empty store.
+async function acctGames(page){
+  return page.evaluate(()=>new Promise(res=>{
+    let ls=null;try{const v=localStorage.getItem('ct_acctgames');if(v!=null)ls=JSON.parse(v)||{};}catch(e){ls=null;}
+    const migrated=(()=>{try{return localStorage.getItem('ct_acctgames_migrated');}catch(e){return null;}})();
+    const fin=(idb)=>{const map={};
+      [idb||{},ls||{}].forEach(M=>Object.keys(M).forEach(id=>{const seen=new Set((map[id]||[]).map(g=>(g.src||'')+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'')));
+        map[id]=(map[id]||[]).concat((M[id]||[]).filter(g=>!seen.has((g.src||'')+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||''))));}));
+      res({map,idb,ls,migrated,from:idb&&ls?'both':idb?'idb':ls?'ls':'none'});};
+    try{
+      if(typeof indexedDB==='undefined'){fin(null);return;}
+      const t=setTimeout(()=>fin(null),4000);
+      const rq=indexedDB.open('ct');
+      // Opening a database that does not exist would CREATE it empty, at version 1 with no store - and the app's own
+      // open at version 1 would then never run its upgrade. So a missing database is aborted here and read as empty.
+      let absent=false;
+      rq.onupgradeneeded=()=>{absent=true;try{rq.transaction.abort();}catch(e){}};
+      rq.onerror=()=>{clearTimeout(t);fin(absent?{}:null);};
+      rq.onsuccess=()=>{const db=rq.result;
+        if(!db.objectStoreNames.contains('acctgames')){clearTimeout(t);db.close();fin({});return;}
+        const tx=db.transaction('acctgames','readonly'),out={};const c=tx.objectStore('acctgames').openCursor();
+        c.onsuccess=()=>{const k=c.result;if(k){out[String(k.key)]=k.value||[];k.continue();}};
+        tx.oncomplete=()=>{clearTimeout(t);db.close();fin(out);};tx.onerror=()=>{clearTimeout(t);db.close();fin(null);};};
+    }catch(e){fin(null);}
+  }));
+}
+module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
