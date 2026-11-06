@@ -87,6 +87,7 @@ const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root')
   return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
     docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
 const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
+// CONTROL-RECORD: 3bb86e8 2026-11-06 total=46 red=3 scope=trial:541b28b94918 how=chess.jsx sets document.body.style.position=static at load, one change - the PAGELOCK pin red at kunal730/compact1, kunal730/compact0 and se/compact1 while docScroll still reads 0, so the docScroll===0 it replaced stays green on this bundle [#549 item (7)]
 
 // 16 plies of the Opera Game. Long enough that the strip overflows every geometry under test by a wide margin
 // (measured: scrollWidth-clientWidth is over 600px at 375), short enough that three analyses fit the gate budget.

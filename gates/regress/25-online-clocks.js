@@ -282,6 +282,7 @@ for(const g of geos){
   // CONTROL-RECORD: 991357c 2026-10-29 total=40 red=2 scope=full how=a-copy-with-const-summ-set-to-the-empty-string,the-empty-summary-denominator-TC-OC-010-and-010c-red,measured-at-545-item-39
   // CONTROL-RECORD: 991357c 2026-10-29 total=40 red=3 scope=full how=a-copy-with-o.sheetScroll-forced-to-the-document,TC-OC-006c-red-at-all-three,measured-at-545-item-39
   // CONTROL-RECORD: a35524b 2026-10-30 total=38 red=2 scope=trial:1275f308ef27 how=the play-setup overlay's overflowY auto -> hidden, one change - TC-OC-006e red at 320x568 and 375x730, green at 390x844 where the button fits, and TC-OC-006b still PASSES on it [#546 item (89), rebuild of #545's 64bccfe007b8]
+  // CONTROL-RECORD: 3bb86e8 2026-11-06 total=40 red=3 scope=trial:541b28b94918 how=chess.jsx sets document.body.style.position=static at load, one change - the PAGELOCK pin red at 320x568, 375x730 and 390x844 (TC-OC-006b) while docScroll still reads 0, so the docScroll===0 it replaced stays green on this bundle [#549 item (7)]
   // ── TC-OC-010 WAS VACUOUS AND THIS IS THE REPLACEMENT. ────────────────────────────────────────────────────
   // The old assertion was `!selected.includes('3 days / move')`, and it PASSED on three bundles that behave three
   // different ways: #399 (no fix), the menu-only #400 (fix on the wrong call site) and the fully fixed build. It
