@@ -332,11 +332,19 @@ L.run(async()=>{
     // so the chip is the only thing at rest saying the pane moves. On HEAD before #549 the chip's wrapper had flex order 0 against the
     // puzzle children's 1 and 3, so it painted at the TOP (30-55) pointing down at the board's top rank.
     const rc=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rail-more"]');const prev=[...document.querySelectorAll('button')].find(x=>/^‹ Prev$/.test((x.innerText||'').trim()));
-      if(!m||!prev)return {chip:!!m,prev:!!prev};let sc=m.parentElement;while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;
-      const R=sc.getBoundingClientRect(),c=m.getBoundingClientRect(),p=prev.getBoundingClientRect();
-      return {chip:true,prev:true,rail:[R.top,R.bottom],chipR:[c.top,c.bottom],prevR:[p.top,p.bottom],pairBelowFold:p.bottom>R.bottom+1};});
+      if(!m||!prev)return {chip:!!m,prev:!!prev};let sc=prev.parentElement;/* A3-R2: walk up from the PAIR, which is inside the rail's scroller on every bundle; the chip now hangs outside it */while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;
+      const R=sc.getBoundingClientRect(),c=m.getBoundingClientRect(),p=prev.getBoundingClientRect();const tb=document.querySelector('[data-ct="tabbar"]');const tbTop=tb?tb.getBoundingClientRect().top:innerHeight;
+      const ch=document.elementFromPoint(c.left+c.width/2,c.top+c.height/2);
+      // A3-R2: Show's own hit area at rest, sampled on a 4px grid over the part of it inside the rail's clip (the visible part).
+      const sh=[...document.querySelectorAll('button')].find(x=>/^👁 Show move$/.test((x.innerText||'').trim()));let show=null;
+      if(sh){const s=sh.getBoundingClientRect();const cx=s.left+s.width/2,cy=Math.min(s.top+s.height/2,(s.top+Math.min(s.bottom,R.bottom))/2);const hc=document.elementFromPoint(cx,cy);let n=0,ok=0;
+        for(let x=s.left+1;x<s.right-1;x+=4)for(let y=s.top+1;y<Math.min(s.bottom,R.bottom)-1;y+=4){n++;const h=document.elementFromPoint(x,y);if(h&&(h===sh||sh.contains(h)))ok++;}
+        show={rect:[s.left,s.right,s.top,s.bottom],centreSelf:!!hc&&(hc===sh||sh.contains(hc)),centreHit:hc&&(hc.getAttribute('data-ct')||hc.tagName),n,ok};}
+      return {chip:true,prev:true,rail:[R.top,R.bottom],chipR:[c.top,c.bottom],tbTop,chipSelf:!!ch&&(ch===m||m.contains(ch)),prevR:[p.top,p.bottom],pairBelowFold:p.bottom>R.bottom+1,show};});
     L.say(!!(rc.chip&&rc.prev&&rc.pairBelowFold),g.w+'x'+g.h+': TC-PZ-LAND2 PRECONDITION the pair starts below the rail fold at rest and the More-below chip is shown',rc);
-    L.say(!!(rc.rail&&rc.chipR[0]>=rc.rail[0]+(rc.rail[1]-rc.rail[0])/2&&rc.chipR[1]<=rc.rail[1]+0.5),g.w+'x'+g.h+': TC-PZ-LAND2 the More-below chip sits in the BOTTOM half of the rail, inside its clip (on HEAD before #549 it painted at the top)',rc);
+    // A3-R2 [#549, antagonist A round 2]: the chip hangs just below the rail's clip, above the tab bar, so it covers no rail control.
+    L.say(!!(rc.rail&&rc.chipR[0]>=rc.rail[0]+(rc.rail[1]-rc.rail[0])/2&&rc.chipR[1]<=rc.tbTop+0.5&&rc.chipSelf),g.w+'x'+g.h+': TC-PZ-LAND2 the More-below chip sits at the BOTTOM of the rail, wholly above the tab bar, and hit-tests to itself (on HEAD before #549 it painted at the top)',rc);
+    L.say(!!(rc.show&&rc.show.n>=20&&rc.show.centreSelf&&rc.show.ok>=0.95*rc.show.n),g.w+'x'+g.h+': TC-PZ-LAND2 at rest the chip covers no control: Show move\'s centre and >= 95% of its visible sample points hit-test to Show (round 2 of #549 measured the chip over it: 289/418 at 844x390)',rc.show);
     let hitPair=null;
     if(rc.chip){try{await b.tapCt('rail-more',900);await b.settle(900);
       hitPair=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));const out={};
