@@ -544,21 +544,41 @@ L.run(async()=>{
   {
     const P=require('../drive/play.js');
     const lessonBoard=async(b)=>{await D.startDemoPaused(b);await b.settle(1200);const m=await b.metrics();return m.board?Math.round(m.board.w*10)/10:null;};
+    // TC-R64-D14's instrument: the moves panel's data-fitwake attribute is the `fitWake` counter itself (#549 item (40)),
+    // i.e. how many times the ResizeObserver woke the refit since the lesson screen mounted. null when the hook is absent.
+    const wakeOf=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');const v=e?e.getAttribute('data-fitwake'):null;return v==null?null:+v;});
+    const padOf=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="moves-panel"]');return e?parseFloat(getComputedStyle(e).paddingTop):null;});
+    const PADPX=4;
     for(const [n,g] of [['320x540',{w:320,h:540,safe:''}],['375x568',L.GEOS.short375]]){
-      const W={};
-      for(const route of ['fresh','lesson-to-lesson','play-to-lesson']){
-        const b=await L.launch({geo:g,name:'d12-'+n+'-'+route});await b.open();let ok=true;
+      const W={},WK={},WKP={},PADM={};
+      for(const [route,pad] of [['fresh',0],['lesson-to-lesson',0],['play-to-lesson',0],['fresh',PADPX],['lesson-to-lesson',PADPX],['play-to-lesson',PADPX]]){
+        const b=await L.launch({geo:g,name:'d12-'+n+'-'+route+(pad?'-pad':'')});await b.open();let ok=true;
+        if(pad)await b.page.addStyleTag({content:'[data-ct="moves-panel"]{padding:'+pad+'px !important}'});
         try{
           if(route==='lesson-to-lesson'){await D.openLesson(b,'Openings',0);await D.startDemoPaused(b);await b.settle(600);await D.tapBtn(b,/^Close lesson$/,500).catch(()=>{});
             const lab=await b.page.evaluate(()=>{const e=document.querySelector('[aria-label="Close lesson"]');return !!e;});if(lab){const el=b.page.locator('[aria-label="Close lesson"]').first();await el.click();await b.settle(500);}}
           if(route==='play-to-lesson'){await P.states['pp-m0'](b);await b.move('e2','e4',400);await b.settle(400);}
-          await D.openLesson(b,'Openings',1);W[route]=await lessonBoard(b);
-        }catch(e){ok=false;W[route]=null;}
+          await D.openLesson(b,'Openings',1);const bd=await lessonBoard(b);
+          if(pad){WKP[route]=await wakeOf(b);PADM[route]=await padOf(b);}else{W[route]=bd;WK[route]=await wakeOf(b);}
+        }catch(e){ok=false;if(pad){WKP[route]=null;PADM[route]=null;}else W[route]=null;}
         await b.close();
       }
       L.say(W.fresh!=null&&W['lesson-to-lesson']!=null&&W['play-to-lesson']!=null,'TC-R64-D12 '+n+' DENOMINATOR all three routes reached the second Openings lesson and measured its settled board',W);
       L.say(W.fresh!=null&&W['lesson-to-lesson']!=null&&Math.abs(W['lesson-to-lesson']-W.fresh)<0.6,'TC-R64-D12 '+n+' lesson-to-lesson settles the board where a fresh entry does ('+W['lesson-to-lesson']+' vs '+W.fresh+')',W);
       L.say(W.fresh!=null&&W['play-to-lesson']!=null&&Math.abs(W['play-to-lesson']-W.fresh)<0.6,'TC-R64-D12 '+n+' play-to-lesson settles the board where a fresh entry does ('+W['play-to-lesson']+' vs '+W.fresh+')',W);
+      // TC-R64-D14 [#549 item (40); jobs/522-the-fit-wake-compares-two-different-boxes-and-keeps-its-refs-across-screens-2026-10-14].
+      // THE PADDING CONTROL D12 COULD NOT BE. D12 reads the board, and a wake that re-runs an idempotent refit leaves the
+      // board where it was, so D12 is green on a bundle whose observer reads contentRect while the settle records the
+      // border box. That defect costs RE-RENDERS, not pixels, so this reads the wake counter (data-fitwake) directly, with
+      // 4px of padding injected on the moves panel - the one condition under which the two boxes differ (by 8px, past the
+      // 2px threshold). ASSERTED AGAINST THE SAME ROUTE UNPADDED rather than against 0, so a legitimate wake (a flow change
+      // React cannot see) is owed to both arms equally and only the padding's own wakes count. MEASURED at #549 on
+      // e171a71bddbd: 0 wakes on every route at both cells, padded and unpadded; on the contentRect control b1e1d4a06f70
+      // padded: 1 fresh, 2 lesson-to-lesson, 1 play-to-lesson, at both cells, and 0 unpadded.
+      L.say(Object.keys(PADM).length===3&&Object.values(PADM).every(v=>v===PADPX),'TC-R64-D14 '+n+' THE CONTROL WAS APPLIED: the moves panel computed '+PADPX+'px padding on all three padded routes. A fact about the injection, not about the app',PADM);
+      L.say(['fresh','lesson-to-lesson','play-to-lesson'].every(r=>typeof WK[r]==='number'&&typeof WKP[r]==='number'),'TC-R64-D14 '+n+' DENOMINATOR the wake counter (data-fitwake on the moves panel) was read on all three routes in both arms - a missing hook is red here, never a pass below',{unpadded:WK,padded:WKP});
+      for(const r of ['fresh','lesson-to-lesson','play-to-lesson'])
+        L.say(typeof WK[r]==='number'&&typeof WKP[r]==='number'&&WKP[r]===WK[r],'TC-R64-D14 '+n+' '+r+': '+PADPX+'px of padding on the moves panel adds NO fit wake ('+WKP[r]+' padded vs '+WK[r]+' unpadded) - the observer and the settle measure the same box',{route:r,padded:WKP[r],unpadded:WK[r]});
     }
   }
 },'75-fit-loop-one-way-ratchet');
