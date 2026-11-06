@@ -632,4 +632,24 @@ L.run(async()=>{
    L.say(IF(landed)&&atEnd===atT,'TC-R115 WITHOUT STEPPING OFF THE PLY the clause still arrives: sacRun asks again on a fresh worker after the one under it died (in '+(got===null?'never, 20 s watched':got+' ms')+'; was never on the pre-fix bundle)',{landed,got,atEnd});
    L.say(!!d&&d.n>(d.nAtKill||0),'TC-R115 and it was asked on a NEW worker - '+(d?d.n-(d.nAtKill||0):0)+' created after the death - not on the dead one',d);
    await b.close();}
+  // TC-R116 [#549 item (95); jobs/exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30, folding in
+  // jobs/engine-line-toggle-moves-the-board-9-5px-at-568-tall-2026-10-01]: SWITCHING THE ENGINE LINE ON OR OFF MOVES NOTHING ON THE BOARD.
+  // Measured on #549's HEAD before the fix (bundle 8c672822fc88), Opera Game ply 10, engine line off -> on from the ... sheet: 320x568 and
+  // 375x568 board top 55.5 -> 45.5 (width 264 kept), 375x667 56 -> 52.48; zero at 375x679/730/761, 390, 430. This gate used to run only at
+  // kunal730, where the shift is zero, so it could not see it. The geometries are read from GEOS, not named in a comparison. 360x640 is
+  // left out ON PURPOSE: there the reservation would cost the board 14px for good, so the app does not reserve and the board still
+  // shrinks 334 -> 320 on the toggle - the job's named remainder, not a pass.
+  {const R=require('../drive/review');
+   for(const geo of ['se','short375','w375h667','kunal761']){const b=await L.launch({geo,store:{...R.SEED,ct_pool:'3'},name:'engtoggle-'+geo});await b.open();let ok=true;
+    const bd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];return g?{top:+g.top.toFixed(2),w:+g.width.toFixed(2),eng:!!document.querySelector('[data-ct="rev-engline"]')}:null;});
+    let b0=null,b1=null,b2=null;
+    try{await R.states['moves-ply10'](b);await R.engineSet(b,false);await b.settle(800);b0=await bd();
+     await R.engineSet(b,true);await b.page.waitForSelector('[data-ct="rev-engline"]',{timeout:30000});await b.settle(1500);b1=await bd();
+     await R.engineSet(b,false);await b.settle(1000);b2=await bd();}catch(e){ok=false;L.note(geo+': TC-R116 driver threw: '+String(e).slice(0,160));}
+    const G=L.GEOS[geo];
+    L.say(ok&&!!b0&&!b0.eng&&!!b1&&b1.eng&&!!b2&&!b2.eng,geo+' ('+G.w+'x'+G.h+'): TC-R116 PRECONDITION the engine line was off, then on screen, then off again',{b0,b1,b2});
+    L.say(!!b0&&!!b1&&Math.abs(b0.top-b1.top)<=0.5&&Math.abs(b0.w-b1.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 switching the engine line ON moves nothing - board top and width '+JSON.stringify(b0&&[b0.top,b0.w])+' -> '+JSON.stringify(b1&&[b1.top,b1.w])+' (was 55.5 -> 45.5 at 568 tall)',{b0,b1});
+    L.say(!!b1&&!!b2&&Math.abs(b1.top-b2.top)<=0.5&&Math.abs(b1.w-b2.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 and switching it OFF again moves nothing ('+JSON.stringify(b2&&[b2.top,b2.w])+')',{b1,b2});
+    await b.close();}
+  }
 },'ENGLINE-RECOVERY');

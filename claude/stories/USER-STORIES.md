@@ -158,6 +158,10 @@ board, #350), and what the engine preferred (the best-move chip) when the played
   (depth 16), and until that search finishes it shows the stored evaluation with no move after it. At Opera ply 29 (after
   15.Bxd7+) it reads 15... Qxd7, never 15... Nxd7 (which loses to 16.Qb8+ Nxb8 17.Rd8#), on Review and on the drill's
   'Analyse this position' board (#549, from #548's antagonist B). (TC-R109)
+- Switching the engine line on or off from the ⋯ sheet moves nothing on the board: where the board leaves under 20px of the
+  screen's height spare (320x568, 375x568, 375x667) the row's 20px is reserved with the line off too, so the board does not rise 10px when it
+  appears (#549 item (95)). At 360x640 the reservation would cost the board 14px for good, so it is not made there and the board
+  still shrinks 334 to 320 on the toggle - a named remainder, not covered. (TC-R116)
 
 ### US-R06 A brilliancy explains what the sacrifice buys, and can be played out
 As a player who played (or suffered) a brilliancy, I read what was given up and the forcing line that makes it
