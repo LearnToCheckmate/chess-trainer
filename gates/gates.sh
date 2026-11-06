@@ -168,10 +168,17 @@ bundle_stamp(){ local n; n="$(grep -oE '"#[0-9]{3,4} - 20[0-9]{2}-[0-9]{2}-[0-9]
 # (#489, #490 twice). Every gate's read set is OBSERVED since #545/#546 (lib.js's fs recorder, preloaded with -r), so the
 # premise is now checked where it is measured: a section that READ a path fastgate calls records-only is RED here, whatever
 # grammar it reached it by. A gate that needs such a fixture therefore cannot go green until the path is FORCE in
-# classify(), and a fast green can never rest on a gate whose input a records commit could change. classify() is TAKEN
+# classify(), and no fast green can rest on a gate whose OBSERVED input a records commit could change. classify() is TAKEN
 # FROM fastgate.sh, not copied, so the two cannot drift; BNRATCHET and NOJEKYLL are set to yes, the setting under which
-# classify() calls the MOST paths records, so the refusal is the strict one. THE LIMIT: only reads the run actually made
-# are seen - a fixture read on a branch the run did not take is not in the line, which is the observer's limit, not this one.
+# classify() calls the MOST paths records, so the refusal is the strict one. THE LIMITS: only reads the run actually made
+# are seen - a fixture read on a branch the run did not take is not in the line, which is the observer's limit, not this one -
+# AND ONLY READS MADE THROUGH fs IN THE GATE'S OWN PROCESS. A read through a child process (`git show`, `git ls-tree`) is
+# invisible to the observer, so the claim "a fast green can never rest on a gate whose input a records commit could change",
+# which this comment made at 931de10, WAS FALSE FOR GATE 81 and is withdrawn [R18; #549 item (71), A5-R3, round-3 antagonist A].
+# Gate 81 reads gates/gatelog-exceptions.tsv and claude/agents/gatelogs/ through git. The register is now FORCE in classify()
+# and gate 81 DECLARES it with one fs call, so this check sees it (and reddens gate 81 if the FORCE arm is removed); the
+# gatelogs directory stays RECORDS and undeclared, because every close-out adds a log to it - so a records commit that ADDS a
+# log can still change gate 81's TC-SUITE-351/372 verdict under a fast green. That residual is named, not closed.
 obs_records(){
   local cls; cls="$(awk '/^classify\(\)\{/{p=1} p{print} p&&/^\}/{exit}' "$2" 2>/dev/null)"
   case "$cls" in *'echo "RECORDS"'*) ;; *) return 3 ;; esac

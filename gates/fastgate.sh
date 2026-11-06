@@ -1975,6 +1975,12 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
             else echo "FORCE the build-number register, and gates/records-gate.sh --entries no longer lists it as appendonly, so nothing would protect its row VALUES - run that command to see what left the door"
             fi ;;
     gates/held-trees.tsv)                           echo "FORCE a GUARD REGISTER whose protection lives in its row VALUES - #490 antagonists, re-upheld at #509, and held back ALONE at #521 on the consumer_row_count NF>=6 against match_rows NF>=2 gap at records-gate.sh:782-783" ;;
+    # #549 item (71), A5-R3 [round-3 antagonist A on 931de10]: gate 81 (81-gatelog-covers-shipped-bundle.js) reads this register at
+    # HEAD and its TC-SUITE-372 verdict turns on its ROWS (a stale or unsourced row is red), so a records commit editing it could flip
+    # that gate while this tier reported no gate can differ. It is edited rarely (one row per excused build), so FORCE costs little.
+    # Gate 81 also DECLARES the read to lib.js's observer (it reads through git, which the observer cannot see), so gates.sh's
+    # obs_records reddens gate 81 if this arm is ever taken out.
+    gates/gatelog-exceptions.tsv)                   echo "FORCE a register gate 81 reads as a VERDICT INPUT (TC-SUITE-372: a stale or unsourced row is red) - #549 item (71) A5-R3" ;;
     claude/*|gates/logs/*|gates/*.tsv)              echo "RECORDS" ;;
     # CLAUDE.md IS NOT A RECORD OF WHAT HAPPENED, IT IS THE PUSH BAR ITSELF, AND #509's CROSS-READ IS WHY THIS
     # ARM EXISTS. The root-.md arm below gave CLAUDE.md the NOSHRINK ratchet, which is a LINE COUNT - and

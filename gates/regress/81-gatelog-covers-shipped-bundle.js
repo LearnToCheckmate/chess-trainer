@@ -75,6 +75,13 @@ L.run(async()=>{
   }
   const logNums=new Set(g('ls-tree -r --name-only HEAD -- claude/agents/gatelogs').toString().split('\n')
     .map(f=>path.basename(f)).filter(b=>/^\d{3}[a-z]?-.*all.*\.log$/.test(b)).map(b=>b.slice(0,3)));
+  // DECLARED INPUT [#549 item (71), A5-R3 - round-3 antagonist A on 931de10]. The register is read through `git show`, a child process
+  // lib.js's fs observer cannot see, so gates.sh's obs_records could not ask fastgate.sh's classify() about it. This one fs call puts the
+  // path on the 'inputs observed' line; fastgate.sh classifies it FORCE, and obs_records reddens this gate if that arm is ever removed.
+  // NOT DECLARED, AND SAID SO: claude/agents/gatelogs/ (also read through git). classify() calls it RECORDS, every close-out adds a log
+  // to it, and declaring it would redden this gate in every suite; so a records commit that ADDS a log can still change TC-SUITE-351
+  // or 372 here while the fast tier reports green (fastgate.sh refuses only a commit that DELETES one). Residual, routed by the run.
+  require('fs').existsSync(path.join(ROOT,'gates','gatelog-exceptions.tsv'));
   const exc=new Map();
   try{for(const l of g('show HEAD:gates/gatelog-exceptions.tsv').toString().split('\n')){if(/^\s*(#|$)/.test(l))continue;const f=l.split('\t');exc.set(f[0],{cls:f[1]||'',src:f[2]||''});}}catch(e){}
   L.say(stamped.size>=100,'TC-SUITE-372 PRECONDITION at least 100 distinct build stamps were read from the app.js commits on HEAD\'s history, so the coverage check below is over the real set (non-vacuity)',{appJsCommits:appShas.length,stamps:stamped.size});
