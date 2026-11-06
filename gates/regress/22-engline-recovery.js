@@ -567,13 +567,20 @@ L.run(async()=>{
   // ITSELF, NOT A READOUT: an init script wraps window.Worker before the app loads and counts, per worker, every `go` posted while that
   // worker's previous `go` has no `bestmove` yet. DENOMINATORS, each its own assertion: the walk really ran the engine (gos were posted
   // on the review's worker, and more than one step's worth), so a page that never searched cannot pass the zero.
-  // SCOPE, said out loud: the protocol assertion is over the REVIEW's workers (the analysis worker and the pool). The app's MAIN worker
-  // (sfRef: the eval bar's `go depth 12` and the computer's moves in Play) still uses the bare readyok handshake, which is the same #356
-  // class, and on this walk it posts a go before its stopped search's bestmove in some runs (measured at #549: 1 of 3 runs on the fixed
-  // bundle, 2 of 2 on cedb498's). It is EXCLUDED BY ITS MECHANISM, not by position: exactly one worker may be excluded, it must be the one
-  // created before the review opened, and it must be the one posting `go depth 12`; its count is printed as a NOTE, never credited.
-  {const R=require('../drive/review');
-   const b=await L.launch({geo:'kunal761',store:{...R.SEED,ct_pool:'3'},name:'engline-handshake'});
+  // SCOPE [A2-R3, #549 round-3 antagonist A on e7287e7]: the protocol assertion is over EVERY Stockfish worker, the MAIN one included.
+  // Round 2 excluded the main worker (sfRef: the eval bar's `go depth 12` and the computer's moves in Play), which still used the bare
+  // readyok handshake and posted go into a running search 1-2 times per walk, trapping the WASM 1 walk in 5 - so the 0-PAGEERROR
+  // assertion was a coin flip. The main worker now goes through the same stopIdle/engMsg discipline, the exclusion is removed, and the
+  // walk runs FIVE times (five fresh browsers, concurrently) because a 1-in-5 trap needs that many walks to be seen. The main worker is
+  // still identified by MECHANISM (the one worker posting `go depth 12`, created before the review opened) so its own denominator is
+  // asserted: it must have searched, or a page whose eval bar never ran could pass the zero.
+  // AND THE POOL [measured at #549 while fixing A2-R3]: on a loaded machine (44 other Chromium processes) the review's POOL workers posted
+  // 12 `go depth 16`s into running searches over five walks and trapped 3 times, because sfEvalOn's 20 s stuck-worker guard abandoned a
+  // search without stopping it and the slot took the next position at once. The pool slots now use the same stopIdle/engMsg pair, and
+  // this block covers them with the rest.
+  {const R=require('../drive/review');const WALKS=5;
+   const walk=async(wn)=>{
+   const b=await L.launch({geo:'kunal761',store:{...R.SEED,ct_pool:'3'},name:'engline-handshake-'+wn});
    await b.ctx.addInitScript(()=>{if(window.__ctWk)return;const W=window.Worker;const log=window.__ctWk={workers:[],viol:[]};
      window.Worker=function(url,o){const w=new W(url,o);const rec={url:String(url),born:Math.round(performance.now()),gos:0,best:0,out:0,viol:0,d12:0,err:0};log.workers.push(rec);w.addEventListener('error',()=>{rec.err++;});
        w.addEventListener('message',(e)=>{const m=String(e.data||'');if(m.startsWith('bestmove')){rec.best++;if(rec.out>0)rec.out--;}});
@@ -586,15 +593,19 @@ L.run(async()=>{
      await b.settle(4000);}catch(e){ok=false;}
    const wk=await b.page.evaluate(()=>window.__ctWk||null);
    const all=wk?wk.workers.filter(w=>/stockfish/i.test(w.url)):[];const mainW=all.filter(w=>w.d12>0);
-   L.say(mainW.length===1&&mainW[0]===all[0]&&mainW[0].born<revAt,'TC-R109 handshake EXCLUSION PINNED the one worker left out is the main one: exactly one worker posts the eval bar\'s go depth 12, and it is the first, created before the review opened',{mainW:mainW.map(w=>({born:w.born,d12:w.d12})),revAt,n:all.length});
-   const sf=all.filter(w=>!mainW.includes(w));const gos=sf.reduce((a,w)=>a+w.gos,0),viol=sf.reduce((a,w)=>a+w.viol,0);
-   L.note('TC-R109 handshake NOT ASSERTED, the main worker (eval bar and Play): '+(mainW[0]?mainW[0].viol+' go(s) posted before the previous go answered, of '+mainW[0].gos+', worker errors '+mainW[0].err:'not found')+' - the same #356 class, outside this fix');
-   L.say(ok&&!!wk&&steps===21,'TC-R109 handshake PRECONDITION the Worker wrap was installed before the app loaded and the walk ran: engine on at ply 10, three double-steps (two ArrowRight 10 ms apart) each followed by five steps 300 ms apart ('+steps+' steps)',{ok,steps,workers:wk&&wk.workers.length});
-   L.say(gos>steps,'TC-R109 handshake DENOMINATOR the walk made the engine search: '+gos+' go(s) posted to the review\'s '+sf.length+' Stockfish worker(s), more than the '+steps+' steps',{gos,workers:sf.map(w=>({gos:w.gos,best:w.best}))});
-   L.say(!!wk&&viol===0,'TC-R109 handshake no go is posted to a review worker while its previous go has not answered bestmove ('+viol+' of '+gos+')',{viol,first:wk&&wk.viol.filter(v=>!mainW.includes(wk.workers[v.w]))});
    const pe=b.errs.filter(e=>/^PAGEERROR/.test(e));
-   L.say(pe.length===0,'TC-R109 handshake 0 PAGEERRORs on the walk - the WASM worker never traps (RuntimeError: unreachable) ('+pe.length+')',{pe:pe.slice(0,3),workerErrs:all.map(w=>w.err)});
-   await b.close();}
+   const rec={wn,ok:ok&&!!wk&&steps===21,steps,n:all.length,mainOk:mainW.length===1&&mainW[0]===all[0]&&mainW[0].born<revAt,mainGos:mainW[0]?mainW[0].gos:0,mainViol:mainW[0]?mainW[0].viol:null,
+     gos:all.reduce((a,w)=>a+w.gos,0),viol:all.reduce((a,w)=>a+w.viol,0),first:wk?wk.viol.slice(0,3):[],pe:pe.slice(0,2),pen:pe.length,errs:all.map(w=>w.err)};
+   L.note('TC-R109 handshake walk '+(wn+1)+'/'+WALKS+': '+rec.gos+' go(s) on '+rec.n+' worker(s), '+rec.viol+' posted into a running search (main worker '+rec.mainViol+' of '+rec.mainGos+'), '+rec.pen+' PAGEERROR(s)');
+   await b.close();return rec;};
+   const walks=await Promise.all(Array.from({length:WALKS},(_,i)=>walk(i)));   // CONCURRENT: five sequential walks pushed the gate past gates.sh's 900 s per-gate timeout; five browsers at once also load the machine, which is the condition the race needs
+   const gos=walks.reduce((a,w)=>a+w.gos,0),viol=walks.reduce((a,w)=>a+w.viol,0),pen=walks.reduce((a,w)=>a+w.pen,0),steps=walks.reduce((a,w)=>a+w.steps,0);
+   L.say(walks.length===WALKS&&walks.every(w=>w.mainOk&&w.mainGos>=2),'TC-R109 handshake MAIN WORKER IN SCOPE, each of the '+WALKS+' walks: exactly one worker posts the eval bar\'s go depth 12, it is the first, created before the review opened, and it searched at least twice (gos '+walks.map(w=>w.mainGos).join(',')+')',{walks:walks.map(w=>({mainOk:w.mainOk,mainGos:w.mainGos}))});
+   L.say(walks.length===WALKS&&walks.every(w=>w.ok),'TC-R109 handshake PRECONDITION the Worker wrap was installed before the app loaded and all '+WALKS+' walks ran: engine on at ply 10, three double-steps (two ArrowRight 10 ms apart) each followed by five steps 300 ms apart ('+steps+' steps)',{walks:walks.map(w=>({ok:w.ok,steps:w.steps,n:w.n}))});
+   L.say(walks.length===WALKS&&walks.every(w=>w.gos>w.steps),'TC-R109 handshake DENOMINATOR every walk made the engine search: more go(s) than steps on its Stockfish workers ('+walks.map(w=>w.gos).join(',')+' gos, '+gos+' in all)',{gos:walks.map(w=>w.gos)});
+   L.say(walks.length===WALKS&&viol===0,'TC-R109 handshake no go is posted to ANY Stockfish worker, main worker included, while its previous go has not answered bestmove, over '+WALKS+' walks ('+viol+' of '+gos+')',{viol,first:walks.filter(w=>w.viol).map(w=>({wn:w.wn,first:w.first}))});
+   L.say(walks.length===WALKS&&pen===0,'TC-R109 handshake 0 PAGEERRORs over '+WALKS+' walks - no WASM worker ever traps (RuntimeError: unreachable) ('+pen+')',{pe:walks.filter(w=>w.pen).map(w=>({wn:w.wn,pe:w.pe,errs:w.errs}))});
+  }
   // ── BLOCK S [#549, item (81); jobs/a-trapped-analysis-worker-leaves-the-brilliant-explanation-permanently-short-and-two-fast-taps-reach-it-2026-10-10, P1].
   // TC-R115. THE ANALYSIS WORKER DIES UNDER sacRun's SEARCH AND THE READER STAYS ON THE PLY. Measured on the pre-fix HEAD bundle (d335e71dffd4)
   // at 375x730, Kunal's game ply 38 (19...Bxh3!!): the sentence read "You give up a piece. Black is clearly better." for the whole 20 s, 2 of 2,

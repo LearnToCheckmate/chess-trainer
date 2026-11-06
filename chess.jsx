@@ -3018,6 +3018,9 @@ export default function App(){
   const sfAnaStopWaitRef=useRef(null);              // #549 item (26): anaIdle's waiter for that `bestmove`
   const sfAnaAbortRef=useRef(null);                 // #356 cancels whatever query currently owns the analysis worker
   const sfSyncRef=useRef(null);                     // #356 same idle hook for the play / eval-bar worker
+  const sfGoRef=useRef(0);                          // #549 item (26) A2-R3: the MAIN worker's count of `go`s posted and not yet answered (eval bar, Play) - same discipline as sfAnaGoRef
+  const sfOwedRef=useRef(0);                        // #549 item (26) A2-R3: the main worker's bestmoves owed by searches a waiter gave up on
+  const sfStopWaitRef=useRef(null);                 // #549 item (26) A2-R3: the main worker's waiter for a stopped search's bestmove
   const sfAnaCbRef=useRef(null);                    // {score,best} handlers for the in-flight analysis eval
   const sfAnaBusyRef=useRef(false);                 // #511: true while a query owns the analysis worker, so a low-priority caller can YIELD instead of aborting it
   const sfPoolRef=useRef([]);                       // #343: extra review workers. A review is N independent evals, so it parallelises cleanly.
@@ -4335,6 +4338,7 @@ export default function App(){
       const w=new Worker('./stockfish-18-lite-single.js');
       w.onmessage=(e)=>{
         const msg=String(e.data||'');
+        if(engMsg(S_MAIN,msg))return;   // #549 item (26) A2-R3: a stopped or abandoned search's output - nobody is reading it
         if(msg==='readyok'){sfReadyRef.current=true;setSfReady(true);const _s=sfSyncRef.current;if(_s){sfSyncRef.current=null;try{_s();}catch(_e){}}}
         // During a full-strength eval search, read the score and convert to White's POV.
         if(sfEvalingRef.current&&msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
@@ -4354,7 +4358,7 @@ export default function App(){
           if(cb)cb(bm&&bm!=='(none)'?bm:null);
         }
       };
-      w.onerror=()=>{sfRef.current=null;};
+      w.onerror=()=>{sfRef.current=null;sfGoRef.current=0;sfOwedRef.current=0;sfStopWaitRef.current=null;};
       w.postMessage('uci'); w.postMessage('isready');
       sfRef.current=w;
     }catch(e){/* no Stockfish — built-in engine fallback */}
@@ -4433,7 +4437,7 @@ export default function App(){
          protocol violation is never committed either way; the worst case is one move played by the
          weaker engine, which is invisible next to a hung game or a trapped worker. */
       const _mvTime=(cpuElo<1500?1100:cpuElo<2000?1900:2600);
-      const _cancelIdle=engIdle(sfRef.current,sfSyncRef,(idle)=>{
+      const _cancelIdle=stopIdle(sfRef.current,S_MAIN,(idle)=>{
         if(cancelled)return;
         if(!idle){
           /* the engine never answered readyok. Do NOT post into a search that is still unwinding. */
@@ -4447,7 +4451,7 @@ export default function App(){
           sfRef.current.postMessage('setoption name UCI_Elo value '+e);
           sfRef.current.postMessage('setoption name MultiPV value '+(_style==='balanced'?1:3));
           sfRef.current.postMessage('position fen '+toFEN(game));
-          sfRef.current.postMessage('go movetime '+_mvTime);
+          sfRef.current.postMessage('go movetime '+_mvTime);sfGoRef.current++;
         }catch(err){
           const {d:_d,r:_r}=eloParams(cpuElo);
           const _bs=(selBot&&botById(selBot)&&botById(selBot).style)||'balanced';
@@ -4694,7 +4698,7 @@ export default function App(){
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(msg.startsWith('bestmove')){if(sfAnaOwedRef.current>0){sfAnaOwedRef.current--;return;}/* #549 item (26) A2-R2: a search anaIdle gave up on - not this search's answer */if(sfAnaGoRef.current>0)sfAnaGoRef.current--;const _sw=sfAnaStopWaitRef.current;if(_sw&&!sfAnaGoRef.current){sfAnaStopWaitRef.current=null;try{_sw.wake();}catch(_e){}return;}}if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(engMsg(S_ANA,msg))return;/* #549 item (26) A2-R2/A2-R3: a search anaIdle stopped or gave up on - not this search's output */if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
         w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;sfAnaGoRef.current=0;sfAnaOwedRef.current=0;sfAnaStopWaitRef.current=null;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
@@ -4729,23 +4733,48 @@ export default function App(){
      as the aborted search's `info ... pv` and `bestmove` arriving AFTER this query's `go` (and read as its answer), and a
      `RuntimeError: unreachable` 50 ms after it. So when a `go` is outstanding on this worker, `stop` it and wait for ITS
      `bestmove` - which the worker always sends for a stopped search - before the readyok handshake. Same 2.5 s ceiling, same
-     abandon-never-proceed rule as engIdle; the flag is cleared on the ceiling so a wedged worker costs one wait, not every one. */
-  const anaIdle=(w,then)=>{
-    /* A2-R2 [#549 round-2 antagonist A on cedb498]: ONE WAITER AT A TIME, AND ONLY THE CURRENT ONE MAY GIVE UP ON THE SEARCH. A second
-       query arriving inside the wait used to REPLACE the waiter and leave the first one's 2.5 s timer armed, and that orphan timer then
-       cleared the running flag while a newer search ran, so the next query posted `go` into it and the WASM trapped. Now the replaced
-       waiter is cancelled at once (its timer cleared, its caller told `false` - it has been superseded), and the ceiling of the current
-       one moves the outstanding count into sfAnaOwedRef instead of forgetting it, so those late bestmoves are dropped on arrival rather
-       than read as a newer search's answer. */
-    const _old=sfAnaStopWaitRef.current;if(_old){sfAnaStopWaitRef.current=null;try{_old.cancel();}catch(_e){}}
-    if(!sfAnaGoRef.current)return engIdle(w,sfAnaSyncRef,then);
-    let fired=false;
+     abandon-never-proceed rule as engIdle. [A2-R3: the ceiling no longer FORGETS the search - it moves it to the owed count and the next
+     query waits on that too, because a search given up on can still be running; a worker that never answers costs a skipped query each
+     time, never a go posted into a live search.] */
+  const anaIdle=(w,then)=>stopIdle(w,S_ANA,then);
+  /* A2-R2 [#549 round-2 antagonist A on cedb498]: ONE WAITER AT A TIME, AND ONLY THE CURRENT ONE MAY GIVE UP ON THE SEARCH. A second
+     query arriving inside the wait used to REPLACE the waiter and leave the first one's 2.5 s timer armed, and that orphan timer then
+     cleared the running flag while a newer search ran, so the next query posted `go` into it and the WASM trapped. Now the replaced
+     waiter is cancelled at once (its timer cleared, its caller told `false` - it has been superseded), and the ceiling of the current
+     one moves the outstanding count into the owed count instead of forgetting it, so those late bestmoves are dropped on arrival rather
+     than read as a newer search's answer.
+     A2-R3 [#549 round-3 antagonist A on e7287e7]: (1) THE OWED COUNT IS OUTSTANDING TOO. After the ceiling the abandoned search may still
+     be running, and the next query used to see a zero go count and take the bare readyok path straight into it - so the wait now
+     starts whenever go+owed is above zero, and a waiter wakes only when BOTH reach zero. (2) THE MAIN WORKER (sfRef: the eval bar's
+     `go depth 12` and the computer's moves in Play) had none of this and still posted `go` into a running search 1-2 times per walk,
+     trapping the WASM 1 walk in 5; it now goes through the same stopIdle/engMsg pair with its own refs (S_MAIN). (3) While a waiter is
+     pending, or bestmoves are owed, every message but readyok belongs to a search nobody is reading and is dropped, so a stopped
+     search's bestmove can no longer reach a callback installed for the NEXT search (Play installs sfCbRef before its handshake). */
+  const S_ANA={go:sfAnaGoRef,owed:sfAnaOwedRef,wait:sfAnaStopWaitRef,sync:sfAnaSyncRef};
+  const S_MAIN={go:sfGoRef,owed:sfOwedRef,wait:sfStopWaitRef,sync:sfSyncRef};
+  const stopIdle=(w,S,then)=>{
+    const _old=S.wait.current;if(_old){S.wait.current=null;try{_old.cancel();}catch(_e){}}
+    if(!S.go.current&&!S.owed.current)return engIdle(w,S.sync,then);
+    let fired=false,inner=null;
     const me={};
-    const t=setTimeout(()=>{if(fired)return;fired=true;if(sfAnaStopWaitRef.current===me){sfAnaStopWaitRef.current=null;sfAnaOwedRef.current+=sfAnaGoRef.current;sfAnaGoRef.current=0;}then(false);},2500);
-    me.wake=()=>{if(fired)return;fired=true;clearTimeout(t);engIdle(w,sfAnaSyncRef,then);};
+    const t=setTimeout(()=>{if(fired)return;fired=true;if(S.wait.current===me){S.wait.current=null;S.owed.current+=S.go.current;S.go.current=0;}then(false);},2500);
+    me.wake=()=>{if(fired)return;fired=true;clearTimeout(t);inner=engIdle(w,S.sync,then);};
     me.cancel=()=>{if(fired)return;fired=true;clearTimeout(t);then(false);};
-    sfAnaStopWaitRef.current=me;
-    try{w.postMessage('stop');}catch(e){me.wake();}
+    S.wait.current=me;
+    try{w.postMessage('stop');}catch(e){if(S.wait.current===me)S.wait.current=null;me.wake();}
+    return()=>{if(S.wait.current===me)S.wait.current=null;if(!fired){fired=true;clearTimeout(t);}if(inner)inner();};   // cancel quietly (an effect cleanup), as engIdle's own cancel does
+  };
+  /* The worker's message filter: true means the message belongs to a search no caller is reading and must be dropped. A bestmove answers
+     an owed search first, else one outstanding go; a pending waiter is woken once nothing is outstanding. */
+  const engMsg=(S,msg)=>{
+    if(msg.startsWith('bestmove')){
+      const stale=S.owed.current>0;if(stale)S.owed.current--;else if(S.go.current>0)S.go.current--;
+      const sw=S.wait.current;
+      if(sw){if(!S.go.current&&!S.owed.current){S.wait.current=null;try{sw.wake();}catch(_e){}}return true;}
+      return stale;
+    }
+    if(msg==='readyok')return false;
+    return !!S.wait.current||S.owed.current>0;
   };
   /* #377: sfEval1 takes an optional DEPTH. With it, this path searches exactly like the pool path
      (sfEvalOn, 'go depth '+DCAP with DCAP=16, and a 20 s stuck-worker guard); without it, it is the old
@@ -4862,7 +4891,8 @@ export default function App(){
   }catch(e){return 2;}};
   const poolSlotMsg=(slot)=>(e)=>{
     const msg=String(e.data||'');
-    if(msg==='readyok'){slot.ready=true;return;}
+    if(engMsg(slot.S,msg))return;   // #549 item (26) A2-R3: a search this slot stopped or gave up on
+    if(msg==='readyok'){slot.ready=true;const _s=slot.S.sync.current;if(_s){slot.S.sync.current=null;try{_s();}catch(_e){}}return;}
     const cb=slot.cb;if(!cb)return;
     if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
       const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;
@@ -4876,10 +4906,10 @@ export default function App(){
   const ensurePool=(want)=>new Promise(resolve=>{
     try{
       while(sfPoolRef.current.length<want){
-        const slot={w:null,ready:false,cb:null};
+        const slot={w:null,ready:false,cb:null,S:{go:{current:0},owed:{current:0},wait:{current:null},sync:{current:null}}};   // S: #549 item (26) A2-R3, the slot's own stopIdle/engMsg counts
         const w=new Worker('./stockfish-18-lite-single.js');
         w.onmessage=poolSlotMsg(slot);
-        w.onerror=()=>{slot.ready=false;slot.dead=true;};
+        w.onerror=()=>{slot.ready=false;slot.dead=true;slot.S.go.current=0;slot.S.owed.current=0;slot.S.wait.current=null;};
         w.postMessage('uci');
         w.postMessage('setoption name MultiPV value 2');
         w.postMessage('setoption name Hash value 16');   // keep each worker small: four of these live at once
@@ -4902,7 +4932,12 @@ export default function App(){
     const finish=(bm)=>{if(done)return;done=true;slot.cb=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
     const to=setTimeout(()=>finish(null),Math.max(20000,movetime*8)); /* #375: the search is bounded by depth now, so this is only a stuck-worker guard. At 4 s it cut real searches short and stored a shallow opinion as the answer - which is how a move that walks into mate came to be called "Great". */
     const DCAP=16;  // the review's search depth: reproducible, and faster than the old 1.8 s-per-position budget
-    slot.cb={score:(sc)=>{const _m=sc.mpv||1;
+    /* #549 item (26) A2-R3: THE STUCK-WORKER GUARD ABANDONS A SEARCH WITHOUT STOPPING IT. Under load a depth-16 search outlives the
+       20 s guard, the slot is handed the next position, and its `go` lands in the still-running search - measured at #549 on a loaded
+       machine: 12 gos into running pool searches over five walks and 3 RuntimeError: unreachable. So a slot with a search outstanding
+       goes through stopIdle (stop, wait for that bestmove, 2.5 s ceiling, abandon never proceed) before this search starts; an idle slot
+       posts at once, exactly as before. The callback is installed only when this search is about to start (#511's F4 rule). */
+    const run=()=>{slot.cb={score:(sc)=>{const _m=sc.mpv||1;
         if(_m===1){if(sc.mate!=null){mate=mateW(sc.mate,sign);cp=null;}else{cp=sign*sc.cp;mate=null;}}
         else if(_m===2){if(sc.mate!=null){mate2=mateW(sc.mate,sign);cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
       best:(bm)=>finish(bm)};
@@ -4910,7 +4945,9 @@ export default function App(){
        scored differently - the same game reviewed twice gave Black 84.6% one run and 58.4% the next, with the
        verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
        and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
-    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);}catch(e){finish(null);}
+    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null);}};
+    if(!slot.S.go.current&&!slot.S.owed.current)run();
+    else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null);return;}run();});
   });
 
   const importGame=async(pgnArg,meta)=>{
@@ -6200,10 +6237,10 @@ export default function App(){
     if(!showEval)return;
     const w=sfRef.current; if(!w||!sfReady)return;
     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
-    const cancel=engIdle(w,sfSyncRef,(idle)=>{
+    const cancel=stopIdle(w,S_MAIN,(idle)=>{
       if(!idle)return;                       // the next ply change will ask again
       sfEvalFenRef.current=dispFen; sfEvalingRef.current=true;
-      try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); }catch(e){}
+      try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); sfGoRef.current++; }catch(e){}
     });
     return()=>{cancel();try{w.postMessage('stop');}catch(e){}};
   },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup,mistakeMode,puzSolved,puzReveal]);
