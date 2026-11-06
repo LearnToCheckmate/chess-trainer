@@ -1614,19 +1614,35 @@ PYFA
       echo "PASS selftest: FA2 a TRAILING TRUNCATION of the floor register is hard against its committed copy (exit 3 without git)"; pass=$((pass+1))
     else echo "FAIL selftest: FA2 a truncated register was not caught by the floor anchor (rc=$rc)"; fail=$((fail+1)); fi
     reset_gt
-    # FA3. ROW 1 REWRITTEN CONSISTENTLY [#468's named residual: "a file cannot anchor itself"]: the seed's floor
-    #      lowered by ten with its digest left valid - every in-file check passes, only the anchor can object.
+    # FA3. ROW 1 REWRITTEN CONSISTENTLY [#468's named residual: "a file cannot anchor itself"]: every floor is
+    #      lowered by ten and every chain field re-pointed with it, digests left valid - so the rewritten register
+    #      passes every in-file check and only the anchor can object. RE-ANCHORED at #549 fix round 5 (A4-R5): the
+    #      first version lowered ROW 1 ALONE, which was a consistent rewrite only while the register had one row;
+    #      once 3720349 appended the 65 -> 66 raise, row 2's prev ('65') no longer matched the rewritten row 1
+    #      ('55'), the in-file chain check fired BROKEN CHAIN, and FA3 went red without testing its residual. The
+    #      fixture is now built FROM WHATEVER REGISTER IT READS: subtracting one constant from every floor and
+    #      every prev keeps each raise a raise, each lower a lower-by-one, and each chain link intact, at any row
+    #      count. FA3b proves that claim rather than asserting it: the same rewrite on a copy with no repository,
+    #      where the anchor cannot run, must be accepted at exit 0 - so FA3's refusal is the anchor's alone.
     python3 - "$GT/gates/gate-required-floor.tsv" <<'PYFB2'
 import sys
 p=sys.argv[1]; ls=open(p).read().split("\n")
 rows=[i for i,l in enumerate(ls) if l.strip() and not l.lstrip().startswith("#")]
-f=ls[rows[0]].split("\t"); f[0]=str(int(f[0])-10); ls[rows[0]]="\t".join(f)
+for i in rows:
+    f=ls[i].split("\t"); f[0]=str(int(f[0])-10)
+    if f[1].strip() not in ("-",""): f[1]=str(int(f[1])-10)
+    ls[i]="\t".join(f)
 open(p,'w').write("\n".join(ls))
 PYFB2
     out="$("$GM" check 2>&1)"; rc=$?
-    if [ "$rc" = 1 ] && grep -q 'REWRITTEN' <<<"$out" && ! grep -q 'CORRUPT' <<<"$out" && ! grep -q 'FLOOR BREACHED' <<<"$out"; then
-      echo "PASS selftest: FA3 a consistent rewrite of ROW 1 passes every in-file check and is caught by the floor anchor alone"; pass=$((pass+1))
+    if [ "$rc" = 1 ] && grep -q 'REWRITTEN' <<<"$out" && ! grep -q 'CORRUPT' <<<"$out" && ! grep -q 'BROKEN CHAIN' <<<"$out" && ! grep -q 'FLOOR BREACHED' <<<"$out"; then
+      echo "PASS selftest: FA3 a consistent rewrite of ROW 1 (and every later row) passes every in-file check and is caught by the floor anchor alone"; pass=$((pass+1))
     else echo "FAIL selftest: FA3 a rewritten seed row was not caught by the anchor alone (rc=$rc)"; echo "$out" | grep -iE 'floor|corrupt' | sed 's/^/      /'; fail=$((fail+1)); fi
+    GT3="$(mktemp -d)"; mkdir -p "$GT3/gates"; cp -R "$GT/gates/." "$GT3/gates/"
+    out="$("$GT3/gates/gatemanifest.sh" check 2>&1)"; rc=$?; rm -rf "$GT3"
+    if [ "$rc" = 0 ] && grep -q '^floor anchor: NOT CHECKED' <<<"$out" && ! grep -qE 'CORRUPT|BROKEN CHAIN|FLOOR BREACHED' <<<"$out"; then
+      echo "PASS selftest: FA3b the same rewrite with NO repository (anchor NOT CHECKED) is accepted at exit 0 - every in-file check passes it, so FA3's refusal is the anchor's"; pass=$((pass+1))
+    else echo "FAIL selftest: FA3b the FA3 fixture is not a consistent rewrite - an in-file check objects with the anchor off (rc=$rc)"; echo "$out" | grep -iE 'floor|corrupt|chain' | sed 's/^/      /'; fail=$((fail+1)); fi
     reset_gt
     # 26b. THE DEFECT jobs/gatemanifest-derives-its-root-with-git-c-...-2026-10-22 WAS FILED FOR [#540, GMROOT
     #     part 1]. A SECOND throwaway repository is seeded and the environment is pointed at it, the way a git
