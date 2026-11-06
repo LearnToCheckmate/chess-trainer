@@ -336,6 +336,18 @@ L.run(async()=>{
      L.note(tag+': (fixture) the flash state is UNREACHABLE here - '+movesPlayed+' move tokens in the MOVES '+
        'panel, and copyMoves returns before flashing when the history is empty, so the chip cannot rename '+
        'itself at all. N2c is not run at this column and is not counted as a pass.');
+     // ── TC-LS-048 (US-R101), #549 item (47), folded jobs/copy-chip-is-a-live-control-that-does-nothing-with-no-moves-2026-09-29.
+     //    The same empty history that makes the flash unreachable made the chip a full-size LIVE control that did
+     //    nothing on a tap. It must now SAY so: the button is disabled and its label is drawn dimmed. Kept at
+     //    its width (the row must not reflow on the first move, US-R84), so the check is the state, not absence.
+     const dis=await b.page.evaluate(()=>{const cp=document.querySelector('[data-ct="moves-copy"]');if(!cp)return null;
+       const sp=cp.querySelector('span');const c=sp?getComputedStyle(sp).color:'';const m=c.match(/rgba?\(([^)]+)\)/);
+       const a=m?(m[1].split(',').length>3?parseFloat(m[1].split(',')[3]):1):null;
+       return {disabled:cp.disabled===true,label:(cp.innerText||'').trim(),alpha:a,cursor:getComputedStyle(cp).cursor};});
+     L.say(!!dis&&dis.disabled===true&&dis.alpha!=null&&dis.alpha<=0.4&&dis.label==='Copy',
+       tag+': TC-LS-048 with no move played the Copy chip is DISABLED and drawn dimmed (label alpha '+(dis&&dis.alpha)+
+       ' <= 0.4), keeping its "Copy" label and width - pre-#549 it was a live control at alpha 0.72 whose tap did nothing',
+       {disabled:dis&&dis.disabled,alpha:dis&&dis.alpha,label:dis&&dis.label,cursor:dis&&dis.cursor,movesPlayed});
    } else {
    // FORCE the failure branch of copyMoves: no async clipboard, and execCommand returns false. Both are what
    // the source's own catch/else path keys on, so the label that appears is the app's, not this gate's.

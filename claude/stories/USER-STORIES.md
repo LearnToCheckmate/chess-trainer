@@ -1581,6 +1581,11 @@ As a player who taps "Now I'll try it", the board, the MOVES heading and the Ana
 As a player who has just copied the moves, Analyze is still exactly where my finger expects it, so a second tap does what I meant.
 - While the copy acknowledgement shows, Analyze and the Copy chip keep their exact positions; the acknowledgement appears just above the chip. (TC-LS-040)
 
+### US-R101 With no moves to copy, the Copy chip says so before I tap it
+*Added #549, from jobs/copy-chip-flash-slides-analyze-under-the-finger-2026-09-29 (folded: jobs/copy-chip-is-a-live-control-that-does-nothing-with-no-moves-2026-09-29).*
+As a player at the start of a lesson's practice, I can see that Copy has nothing to copy yet, rather than tapping a live-looking chip that does nothing.
+- With no move played, the Copy chip is disabled and drawn dimmed, at its usual label and place, so the row does not move when the first move is played. (TC-LS-048)
+
 ### US-PL-17 In landscape, scrolling the side column never hides how the game ended
 *Added #547, from jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29.*
 As a player who finishes a game holding the phone sideways and scrolls the side column to read further down, the line stating the result stays in view.
