@@ -1620,6 +1620,7 @@ As a player, resigning takes two separate taps; an accidental double tap on Resi
 *Added #547, from the job on --pcfilter resolving to 'none' (item (160)).*
 As a player, black pieces carry the faint light outline the app gives them, so they separate from the dark squares.
 - Every black piece computes both white drop-shadows its style declares. (TC-PL-049)
+- That holds on every surface a black piece is drawn on (the board and the captured-pieces bar), in every image piece set, and in the Medieval board skin, whose own dark shadow combines with the two white ones rather than replacing them. (TC-PL-049b, TC-PL-049c)
 
 
 ### US-PL-22 On a phone, Home and the menu sit in a top row of their own above the game

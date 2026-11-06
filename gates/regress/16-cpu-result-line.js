@@ -665,4 +665,41 @@ L.run(async()=>{
     if(L.say(ok&&r.n>0,'kunal730 captured: TC-PL-049b PRECONDITION a captured black piece is painted in a player bar ('+r.n+')',r))
       L.say(r.ok===r.n,'kunal730 captured: TC-PL-049b and every captured black piece computes both drop-shadows',r);
     await b.close();}}
+  // TC-PL-049c [#549 item (2); same job, the remainder its #548 review left]: (1) the CAPTURED surface in the three image skins 049b's
+  // captured launch never set (merida, chessnut, spatial; classic re-read too), at kunal761; (2) the MEDIEVAL board skin, the one skin
+  // whose pcf is a real filter function, so its black pieces must compute THREE drop-shadows (its dark one plus the two white ones) and
+  // its white pieces exactly ONE, the dark one, and no white one. The skin is entered by ct_skin+ct_pro and PROVEN entered by reading
+  // the root's --head font (Cinzel is Medieval's alone), because a Pro skin without Pro silently falls back to classic. The proof is
+  // deliberately NOT --pcfilter itself: a bundle whose medieval pcf is broken must redden the shadow assertions, not this precondition.
+  {const P=require('../drive/play');
+   const cap=(b)=>b.page.evaluate(()=>{const imgs=[...document.querySelectorAll('[data-ct^="pbar-taken"] img')].filter(i=>/drop-shadow/.test(i.getAttribute('style')||''));
+     return {n:imgs.length,ok:imgs.filter(i=>(getComputedStyle(i).filter.match(/drop-shadow\(/g)||[]).length>=2).length,sample:imgs[0]?getComputedStyle(imgs[0]).filter:null};});
+   for(const skin of ['classic','merida','chessnut','spatial']){
+     const b=await L.launch({geo:'kunal761',name:'piece-shadow-captured-'+skin,store:{ct_pieceSet:skin}});await b.open();let ok=true;
+     try{await P.states['pp-captures'](b);await b.settle(700);}catch(e){ok=false;}
+     const r=await cap(b);const tag='kunal761 '+skin+' captured: TC-PL-049c ';
+     if(L.say(ok&&r.n>0,tag+'PRECONDITION a captured black piece is painted in a player bar ('+r.n+')',{n:r.n}))
+       L.say(r.ok===r.n,tag+'every captured black piece computes both drop-shadows',r);
+     await b.close();}
+   const MED=(f)=>/^drop-shadow\(rgba\(0, 0, 0, 0\.45\) 0px 2px 2px\)$/.test(f);
+   const wsh=(f)=>(f.match(/drop-shadow\(rgba\(255, 255, 255/g)||[]).length, nds=(f)=>(f.match(/drop-shadow\(/g)||[]).length;
+   for(const geo of ['kunal761','se']){
+     const b=await L.launch({geo,name:'piece-shadow-medieval-'+geo,store:{ct_skin:'2',ct_pro:'1'}});await b.open();let ok=true;
+     try{await P.states['pp-m0'](b);await b.settle(600);}catch(e){ok=false;}
+     const r=await b.page.evaluate(()=>{const root=[...document.querySelectorAll('div')].find(d=>(d.getAttribute('style')||'').includes('--pcfilter'));
+       const all=[...document.querySelectorAll('img')].filter(i=>{const q=i.getBoundingClientRect();return q.width>2&&q.height>2&&/var\(--pcfilter\)/.test(i.getAttribute('style')||'');});
+       const blk=all.filter(i=>/drop-shadow/.test(i.getAttribute('style')||'')),wht=all.filter(i=>!/drop-shadow/.test(i.getAttribute('style')||''));
+       return {head:root?getComputedStyle(root).getPropertyValue('--head').trim():null,pcf:root?getComputedStyle(root).getPropertyValue('--pcfilter').trim():null,bf:blk.map(i=>getComputedStyle(i).filter),wf:wht.map(i=>getComputedStyle(i).filter)};});
+     const tag=geo+' medieval: TC-PL-049c ';
+     if(L.say(ok&&/Cinzel/.test(r.head||'')&&r.bf.length===16&&r.wf.length===16,tag+'PRECONDITION the Medieval skin is ACTIVE (root --head is its Cinzel font, not the classic fallback) and the start paints 16 black and 16 white pieces',{head:r.head,pcf:r.pcf,nb:r.bf.length,nw:r.wf.length})){
+       L.say(r.bf.every(f=>nds(f)===3&&wsh(f)===2&&/^drop-shadow\(rgba\(0, 0, 0, 0\.45\)/.test(f)),tag+'every black piece computes THREE drop-shadows: the skin\'s dark one first, then both white separation shadows',{ok:r.bf.filter(f=>nds(f)===3&&wsh(f)===2).length,sample:r.bf[0]});
+       L.say(r.wf.every(MED),tag+'and every white piece computes exactly the skin\'s one dark drop-shadow and no white one',{ok:r.wf.filter(MED).length,sample:r.wf[0]});}
+     await b.close();}
+   {const b=await L.launch({geo:'kunal761',name:'piece-shadow-medieval-captured',store:{ct_skin:'2',ct_pro:'1'}});await b.open();let ok=true;
+    try{await P.states['pp-captures'](b);await b.settle(700);}catch(e){ok=false;}
+    const r=await b.page.evaluate(()=>{const root=[...document.querySelectorAll('div')].find(d=>(d.getAttribute('style')||'').includes('--pcfilter'));const head=root?getComputedStyle(root).getPropertyValue('--head').trim():null;const imgs=[...document.querySelectorAll('[data-ct^="pbar-taken"] img')].filter(i=>/drop-shadow/.test(i.getAttribute('style')||''));
+      return {head,n:imgs.length,ok:imgs.filter(i=>(getComputedStyle(i).filter.match(/drop-shadow\(/g)||[]).length===3).length,sample:imgs[0]?getComputedStyle(imgs[0]).filter:null};});
+    if(L.say(ok&&r.n>0&&/Cinzel/.test(r.head||''),'kunal761 medieval captured: TC-PL-049c PRECONDITION the Medieval skin is active (Cinzel) and a captured black piece is painted in a player bar ('+r.n+')',{head:r.head,n:r.n}))
+      L.say(r.ok===r.n,'kunal761 medieval captured: TC-PL-049c and every captured black piece computes all three drop-shadows',r);
+    await b.close();}}
 }, 'CPU-RESULT-LINE');
