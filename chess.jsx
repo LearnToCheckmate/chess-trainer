@@ -1868,6 +1868,26 @@ function nextBestW(bestW,secondW,playedIsBest){
   const v=playedIsBest?secondW:bestW;
   return (v==null||typeof v!=='number'||isNaN(v))?null:v;
 }
+/* #549 item (29), jobs/show-where-a-brilliant-move-was-available-and-the-player-did-not-play-it-2026-10-11: A MISSED BRILLIANT.
+   Kunal, 11 Oct 2026: "if there was an opportunity to play a brilliant move and they didn't, might be good to be able to call that
+   out too"; his answer on questions/B9-MISSED-BRILLIANTS (5 Nov): "A marker, and Show me plays it". The engine's best move is graded
+   AS IF IT HAD BEEN PLAYED, by the same brilliantGate and the same rule the app grades every played move by (BRIL_RULE unless a
+   caller names one): its loss is 0 by definition, the eval after it is the position's own eval (the engine's best line IS that
+   move), the eval before is the same number, and its next best is the engine's SECOND line - exactly the inputs the review would
+   have handed the gate had the player found it. So a move marked here is one the review would have called Brilliant, no more and no
+   less; there is no second definition to drift. `bestMv` is the engine's best move (a legal move object), `evAfterW`, `evBeforeW`,
+   `evNextW` are pawns in White's frame (at the Stockfish site after = before = the position's eval; the depth-2 fallback site hands
+   the static eval after the best move, as it does for a played move); evNextW null means there was no second line, so the move was
+   needed by definition, as in the gate. Returns the gate's answer when it is Brilliant, else null. Pure.
+   SHIPS SWITCHED OFF (MISSED_BRIL below), for the reason the one rule did: the job's close condition is that before it ships he sees
+   every missed brilliant it would mark across his reviewed games. `ct_missed_bril`='1' turns it on for one device. */
+function missedBrilliant(pos,bestMv,evAfterW,evBeforeW,evNextW,rule){
+  if(!pos||!bestMv||typeof evAfterW!=='number'||isNaN(evAfterW))return null;
+  const g=brilliantGate(pos,bestMv,0,evAfterW,evBeforeW,evNextW,rule);
+  return g.ok?g:null;
+}
+const MISSED_BRIL_DEFAULT=false;
+const MISSED_BRIL=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_missed_bril')==='1')?true:MISSED_BRIL_DEFAULT;}catch(e){return MISSED_BRIL_DEFAULT;}})();
 
 /* #503 THE GRADING-VERSION STAMP. work[3] of jobs/review-list-filter-and-search-2026-09-23, and its own
    twoThingsToGetRight[1] is the reason it exists: "any cached tally needs a grading-version stamp so a stale
@@ -1947,7 +1967,7 @@ const gradeCacheUsable=(st)=>!!st&&(gradeVerOf(st)===GRADE_VER||st.src==='review
    same code over a stored review's cached engine output (ct_evalcache: evW, ev2W, bU, aU) without a new engine pass. `before`/`after`
    are evW[i]/evW[i+1] (White-frame centipawns), `ev2` is ev2W[i], `buI`/`auI` are bU[i]/aU[i]. Returns the review row minus `pv`,
    which the caller fills in a second pass because it reads forward. Pure: no React, no storage. */
-function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule){
+function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss){
     const mover=pos.turn;
     let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
     let bestMv=null,bestSan='';const bu=buI;
@@ -1968,6 +1988,10 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule){
     // okOverride: the regrade preview asks what the SAME engine data graded under the previous rule (brilliantV1ok) would have
     // labelled this move, so the two runs differ in the brilliant decision and nothing else.
     const _ok=typeof okOverride==='function'?!!okOverride(_g):_g.ok;
+    // #549 item (29): the engine's best move graded as if played, when the player played something else and it was not itself Brilliant.
+    // Asked only when the caller wants it (the review passes MISSED_BRIL), so the shipped default spends nothing on it: measured
+    // 76ms of a 255ms grade over a 104-ply game in node.
+    const _mbG=(wantMiss&&!_wasBest&&!_ok&&bestMv)?missedBrilliant(pos,bestMv,evB,evB,ev2==null?null:Math.max(-99,Math.min(99,ev2/100)),rule):null;
     let cls=_ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
     /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
        always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
@@ -2005,7 +2029,7 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule){
     let altSan='',altDrop=null;
     try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
       if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-    return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl)});
+    return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl),mbril:_mbG?{san:bestSan,move:bestMv,gate:_mbG}:null});
 }
 /* #549 item (28): THE RULE THIS BUILD REPLACED, from the fields brilliantGate still returns - kept ONLY so the regrade preview can
    say which stored Brilliants go and which appear. The landing arm alone (sacLand) was the whole sacrifice measure, the cap read
@@ -2795,7 +2819,7 @@ function _SheetItem({icon,label,on,dis,warn,ct}){
 function Tab({label,active,onClick}){
   return <button onClick={onClick} style={{flex:1,padding:'8px 4px',border:'none',cursor:'pointer',background:active?'var(--ac)':'transparent',color:active?'#fff':'rgba(255,255,255,.55)',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:active?700:500,borderRadius:6,transition:'all .15s',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{label}</button>;
 }
-function EvalGraph({analysis,plies,ply,onJump,width,height}){
+function EvalGraph({analysis,plies,ply,onJump,width,height,missed}){
   const H=height||72,n=analysis.length;if(!n)return null;
   const pad=4;
   const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=(i/(n-1||1))*width;const y=H/2-(e/6)*(H/2-pad);return[x,y];};
@@ -2813,6 +2837,8 @@ function EvalGraph({analysis,plies,ply,onJump,width,height}){
       <path d={area} fill="rgba(var(--acr),.20)"/>
       <path d={line} fill="none" stroke="var(--ac)" strokeWidth="2"/>
       {analysis.map((a,i)=>{const L=a.cls&&a.cls.label;const m=L==='Brilliant'?['#22d3ee',4]:L==='Great'?['#5d93e8',3.4]:L==='Blunder'?['#ec5c4e',4]:L==='Miss'?['#f08a5d',3.6]:L==='Mistake'?['#f0a24e',3.4]:L==='Inaccuracy'?['#f0cf5e',2.6]:null;if(!m)return null;const p=pt(i);return(<circle key={'m'+i} cx={p[0]} cy={p[1]} r={m[1]} fill={m[0]} stroke="rgba(0,0,0,.5)" strokeWidth="1" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();onJump(i+1);}}/>);})}
+      {/* #549 item (29): a missed brilliant is a HOLLOW ring in the Brilliant colour (a played one is the filled dot above), so the chances can be found along the game */}
+      {missed&&missed.map(i=>{if(i<0||i>=n)return null;const p=pt(i);return(<circle key={'mb'+i} data-ct="eval-graph-missbril" cx={p[0]} cy={p[1]} r={4.6} fill="none" stroke="#22d3ee" strokeWidth="1.8" style={{cursor:'pointer'}} onClick={(e)=>{e.stopPropagation();onJump(i+1);}}/>);})}
       {ply>0&&<line x1={cx} y1="0" x2={cx} y2={H} stroke="#ffd84d" strokeWidth="1.5"/>}
       {ply>0&&<circle cx={cx} cy={pt(cur)[1]} r="4.5" fill="#ffd84d" stroke="rgba(0,0,0,.5)" strokeWidth="1"/>}
     </svg>
@@ -5583,7 +5609,7 @@ export default function App(){
       evalCacheSet(_ck,{evW,ev2W,bU,aU});
       }
       poolClose();
-      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i]));
+      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL));
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
       for(let i=0;i<out.length;i++){
@@ -5635,7 +5661,10 @@ export default function App(){
            was the mover" comes from the position's own eval, _evB, in pawns, hence x100. */
         let _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
         if(_cls.label!=='Brilliant'&&matesMover(actualVal,mover,bestVal))_cls=mateLadder(_evB*100,mover);
-        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g});
+        // #549 item (29): the missed brilliant on this engine too (the #375 rule: a path the device chooses is covered). The best move's
+        // eval after is read the way this site reads a played move's (the static eval of the position it leaves); its next best is scored[1].
+        let _mbF=null;if(MISSED_BRIL&&_bMv2&&!_g.ok){let _evAB=null;try{_evAB=evalPawns(makeMove(res.positions[i],_bMv2));}catch(e){}const _g2=_evAB==null?null:missedBrilliant(res.positions[i],_bMv2,_evAB,_evB,scored[1]?Math.max(-99,Math.min(99,scored[1].v/100)):null);if(_g2)_mbF={san:bestSan,move:_bMv2,gate:_g2};}
+        out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g,mbril:_mbF});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
@@ -7239,6 +7268,11 @@ export default function App(){
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
   /* #464: what the current ply is PRESENTED as, by the same rule the summary counts with. */
   const curCls=curAnno?effCls(curAnno.cls,ply-1,(review&&review.summary&&review.summary.book)||0):null;
+  /* #549 item (29): the plies of THIS PLAYER where a brilliant move was available and not played (sfGradePly's mbril: the engine's best
+     move graded by the same gate and rule). Book moves and the opponent's moves are left out; an unknown player colour (a pasted game)
+     marks both sides, as regradeGame counts both. One list, read by the move-line chip and by the eval graph's rings. Off unless MISSED_BRIL. */
+  const revMissed=(MISSED_BRIL&&inReview&&review&&review.analysis&&review.positions)?(()=>{const _bk=(review.summary&&review.summary.book)||0,_uc=review.summary&&review.summary.userColor;
+    return review.analysis.map((a,i)=>(a&&a.mbril&&i>=_bk&&review.positions[i]&&(!_uc||review.positions[i].turn===_uc))?i:-1).filter(i=>i>=0);})():null;
   /* #441 P0 FIX, carried in from the pile: THE SELECTION LABEL LIVES BESIDE curAnno, IN THE SCOPE BOTH
      REVIEW LAYOUTS CAN SEE. #440 introduced the sel/cls split (a grade LABEL is what the player is told; a
      grade SELECTION is what the app chooses on) and declared it as `_cSel` INSIDE the compact branch, then
@@ -7567,7 +7601,7 @@ export default function App(){
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:10}}>
           {[[review.counts.Brilliant,'#22d3ee','brilliant','Brilliant','brilliant'],[review.counts.Great,'#5d93e8','great','Great','great'],[review.counts.Blunder,'#ec5c4e','blunders','Blunder','blunder'],[review.counts.Mistake,'#f0a24e','mistakes','Mistake','mistake'],[review.counts.Inaccuracy,'#f0cf5e','inaccuracies','Inaccuracy','inaccuracy']].filter(x=>x[0]>0).map(([cn,c,lab,L,one])=>(<button key={lab} onClick={()=>{jumpToIssue(L);setRevMore(false);}} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13.5px,3vw,15px)',fontWeight:700,color:c,background:c+'1f',border:'1px solid '+c+'66',borderRadius:20,padding:'5px 12px',cursor:'pointer'}}><b>{cn}</b> {cn===1?one:lab} ›</button>))}{/* #548 item (160): '1 blunders ›' read as plural whatever the count */}
         </div>
-        <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>{setPly(Math.max(0,Math.min(review.plies.length,p)));setRevMore(false);}} width={Math.min(boardPx,400)} height={62}/></div>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setPly(Math.max(0,Math.min(review.plies.length,p)));setRevMore(false);}} width={Math.min(boardPx,400)} height={62}/></div>
         <_SheetItem icon="hint" label={showBest?'Hide best move':'Show best move'} on={()=>{setShowBest(b=>!b);setRevMore(false);}}/>
         <_SheetItem icon="draw" label={engOn?'Engine line: on':'Analyze with the engine'} on={()=>{setEngOn(o=>!o);setRevMore(false);}}/>
         {(()=>{/* #549 item (12), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02 and its folded jobs/play-from-here-captures-the-engines-hypothetical-board-during-a-best-line-preview-2026-10-02. TWO CHANGES, in the order #466's antagonist B required. (1) CAPTURE THE PLY HE IS LOOKING AT, not boardGame: during a best-line preview boardGame is bestLineBoard, the engine's hypothetical board, so this row used to start a real game from a position he never reached. In analysis mode it is the board he is analysing (game), as before. (2) REFUSE AT THE ROW: at a terminal ply the row is MOUNTED and DISABLED, the Takeback pattern, so he stays in his review where stepping back a move is one tap away. Computed from the same captured position, so a preview can no longer grey the row on a playable ply. The setup sheet's committer guard (#466) STAYS: it is the defence for the board-scan route. */const _pfG=anaMode?game:review.positions[ply];const _pfT=!!terminalFEN(toFEN(_pfG));return(<_SheetItem ct="rev-play-from-here" icon="forward" label="Play from here" dis={_pfT} on={()=>{setRevMore(false);setSetupSrc('review');setSetupFromFEN(toFEN(_pfG));setOpponent('computer');setPColor(_pfG.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}}/>);})()}
@@ -9734,6 +9768,16 @@ export default function App(){
         // reason `_hasBetter` does. Brilliant and Great stay on cls because both are overlays cls owns
         // (and Great now only fires when _selL is Best/Excellent, so the two agree by construction). */
         const _wasBest=!!(curAnno&&!_hasBetter&&(['Brilliant','Great'].indexOf(curAnno.cls.label)>=0||['Best','Excellent'].indexOf(_curSel)>=0)&&review.plies[ply-1]&&review.plies[ply-1].move);
+        /* #549 item (29), Kunal's answer on questions/B9-MISSED-BRILLIANTS ("A marker, and Show me plays it"): at a move of HIS where the
+           engine's best move would itself have been graded Brilliant (missedBrilliant, the same gate and rule as every played move) and he
+           played something else, the chip below marks it and a tap plays the brilliant line on the board, as rev-best plays the best line.
+           The same move is also marked '(!!)' on the move strip and with a hollow ring on the eval graph (revMissed), so the chances can be
+           found along the game.
+           It TAKES THE SLOT of rev-best and rev-playout at that ply rather than joining them: the brilliant move IS the best move rev-best
+           would offer, and a third pill in this nowrap row would be cut at 320 (the #404 defect). The verdict pill drops its word at
+           that ply (see the pill). Book moves and the opponent's moves carry
+           no mark. Off unless MISSED_BRIL (ct_missed_bril='1'). Amber: flags/amber-549-missed-brilliant-marker-ships-off. */
+        const _mbr=(revMissed&&curAnno&&!anaMode&&revMissed.indexOf(ply-1)>=0)?curAnno.mbril:null;
         /* #549 item (68), jobs/transport-row-icon-only: Kunal asked whether this row needs its outline or the icons can be the
            buttons. The border, the gradient and the four-layer shadow are gone; the flat tint stays (it carries the hot state of
            Auto-play and the star), and the phone target rises 42->44, the touch floor. Measured: the board keeps 349.03 at 375x761
@@ -9755,9 +9799,10 @@ export default function App(){
                   SIT run 5 measured it at 238px inside a 730px viewport in landscape, where a viewport-width
                   threshold does nothing at all. Kunal's Z-06 condition still holds - nothing changes on any
                   geometry where the row already fits. */}
-              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curCls.c,background:curCls.c+'22',border:'1px solid '+curCls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}} title={curCls.label} aria-label={curCls.label}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curCls.i}</span>{(_hasBetter&&rowNarrow)?null:curCls.label}{/* #547 item (103), Kunal's answer 'drop-word' (desk round 1): on a narrow BOARD the verdict word yields to the best move - the ?? and its colour stay, and the verdict is on screen twice more (the board badge and the coach sentence) */}</span>
-              {_wasBest&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curCls.c+'22',border:'1px solid '+curCls.c+'88',color:curCls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
-              {_hasBetter&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}>{/* #441 (amber-441-rev-best-drops-the-decorative-best-word-under-rownarrow): THE PREFIX GOES BEFORE
+              <span style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',gap:4,fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,color:curCls.c,background:curCls.c+'22',border:'1px solid '+curCls.c+'66',borderRadius:22,padding:(rowNarrow?'3px 5px':'3px 10px')}} title={curCls.label} aria-label={curCls.label}><span style={{fontSize:'clamp(13px,3.2vw,17px)',lineHeight:1}}>{curCls.i}</span>{(_mbr||(_hasBetter&&rowNarrow))?null:curCls.label}{/* #549 item (29): beside the missed-brilliant chip the verdict WORD always yields (its icon and colour stay, as under rowNarrow): measured at 375x761, '23. bxc6 \u2713 Excellent' plus '!! missed Reb1 \u203a' overran the row by 4px and cut the chip's own text */}{/* #547 item (103), Kunal's answer 'drop-word' (desk round 1): on a narrow BOARD the verdict word yields to the best move - the ?? and its colour stay, and the verdict is on screen twice more (the board badge and the coach sentence) */}</span>
+              {_mbr&&<button data-ct="rev-missbril" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine(_mbr.move);}} title={'A brilliant move was here: '+_mbr.san+'. Show me'} aria-label={'A brilliant move was here: '+_mbr.san+'. Show me'} style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(34,211,238,.10)',border:'1px dashed rgba(34,211,238,.85)',color:'#22d3ee',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}><span style={{fontWeight:900,letterSpacing:-0.5}}>!!</span>{!rowNarrow&&<span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>missed</span>}{_mbr.san}<span style={{opacity:.8}}>{showBest?'\u2713':'\u203a'}</span></button>}
+              {_wasBest&&!_mbr&&<button data-ct="rev-playout" onClick={()=>{setEngOn(true);playBestLine(review.plies[ply-1].move);}} title="Play this move out and see what it leads to" aria-label="Play this move out and see what it leads to" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 11px'),borderRadius:22,background:curCls.c+'22',border:'1px solid '+curCls.c+'88',color:curCls.c,cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden',whiteSpace:'nowrap'}}>{'\u25b6'} why</button>}
+              {_hasBetter&&!_mbr&&<button data-ct="rev-best" onClick={()=>{setShowBest(true);setEngOn(true);playBestLine();}} title="Show the best move on the board" style={{flex:'0 1 auto',minWidth:0,display:'inline-flex',alignItems:'center',gap:(rowNarrow?3:5),padding:(rowNarrow?'3px 5px':'3px 10px'),borderRadius:22,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.45)',color:'var(--ac2)',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(13px,2.9vw,15px)',fontWeight:800,overflow:'hidden'}}>{/* #441 (amber-441-rev-best-drops-the-decorative-best-word-under-rownarrow): THE PREFIX GOES BEFORE
                   THE MOVE DOES. This build's win-percentage grades can make a grade label a LONGER WORD
                   ('?? Blunder' -> '?! Inaccuracy'), the grade pill beside us is flex:'0 0 auto' and cannot
                   shrink, so the row's deficit lands here. `best` is a 0.85em label at 60% white carrying
@@ -10845,7 +10890,7 @@ export default function App(){
             the one ply the chips cannot cover, in the same idiom as the chip ref. */}
         <div data-mstrip="1" ref={ply===0?(el=>{if(el&&el.scrollLeft)el.scrollTo({left:0,behavior:'smooth'});}):undefined} className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:(revCompact&&!wide)?'6px 11px':'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.9vw,16px)',fontFamily:'monospace'}}>
-          {review.plies.map((p,i)=>{const a0=review.analysis[i];const a={...a0,cls:effCls(a0.cls,i,(review.summary&&review.summary.book)||0)};   /* #549 item (1), folded job: the strip paints the grade the badge shows (effCls), so a book ply no longer shows its raw grade here. Amber: flags/amber-549-strip-book-ply */const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{(revMover(review,i)==='w'||i===0)&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{revNo(review,i)}{revMover(review,i)==='w'?'.':'…'}</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(revMover(review,i)==='w'?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}</span></span>);})}
+          {review.plies.map((p,i)=>{const a0=review.analysis[i];const a={...a0,cls:effCls(a0.cls,i,(review.summary&&review.summary.book)||0)};   /* #549 item (1), folded job: the strip paints the grade the badge shows (effCls), so a book ply no longer shows its raw grade here. Amber: flags/amber-549-strip-book-ply */const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{(revMover(review,i)==='w'||i===0)&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{revNo(review,i)}{revMover(review,i)==='w'?'.':'…'}</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(revMover(review,i)==='w'?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}{revMissed&&revMissed.indexOf(i)>=0&&<span data-ct="strip-missbril" title="A brilliant move was available here" style={{color:'#22d3ee',fontSize:'.78em',fontWeight:800,marginLeft:2}}>(!!)</span>/* #549 item (29): the missed-brilliant mark on the move strip, in the annotator's bracket for a move not played */}</span></span>);})}
         </div>
         </div>
         {_arrows&&_abtn(<ChevIcon size={17} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},'Next move')}
@@ -11062,7 +11107,7 @@ export default function App(){
             the bars or the fit loop - three flex versions on the #547 trial each did one of those (a 62px basis trimmed the
             board at 375x679 and 320x568; grow 1 squeezed the bars; grow 0.001 got nothing). The graph shows only when
             the gap is >= 40px; otherwise the small graph stays in the bottom player bar. */}
-        {inReview&&revCompact&&!wide&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(<div ref={revBandRef} data-ct="rev-graph-band" style={{position:'relative',width:boardPx,marginLeft:evalW,height:0,flex:'0 0 0px'}}>{revBandH>=40&&(<div data-ct="eval-graph" style={{position:'absolute',left:0,top:0,width:'100%',height:revBandH,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} onJump={(p)=>{setRevAuto(false);setPly(Math.max(0,Math.min(review.plies.length,p)));}} width={Math.round(boardPx)} height={Math.min(84,revBandH-8)}/></div>)}</div>)}
+        {inReview&&revCompact&&!wide&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(<div ref={revBandRef} data-ct="rev-graph-band" style={{position:'relative',width:boardPx,marginLeft:evalW,height:0,flex:'0 0 0px'}}>{revBandH>=40&&(<div data-ct="eval-graph" style={{position:'absolute',left:0,top:0,width:'100%',height:revBandH,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={review.analysis} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setRevAuto(false);setPly(Math.max(0,Math.min(review.plies.length,p)));}} width={Math.round(boardPx)} height={Math.min(84,revBandH-8)}/></div>)}</div>)}
       </div>);})()}
         </>);
         return railed ? (

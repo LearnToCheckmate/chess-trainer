@@ -80,8 +80,60 @@ async function cacheOne(pgnFile,outFile){
   fs.writeFileSync(outFile,JSON.stringify({evW,ev2W,bU,aU}));
   console.log('# cache written',outFile,'plies',N,'| chess.jsx md5',E.SOURCE_MD5,'depth',DEPTH);
 }
+// --missed <pgn-dir> <out.json> [player]: #549 item (29), jobs/show-where-a-brilliant-move-was-available-and-the-player-did-not-play-it-2026-10-11.
+// The list its close condition asks for: every MISSED BRILLIANT the review would mark across a set of games - at a move of the player's
+// (header name, default Kunal2023, case-insensitive) where the engine's best move graded as if played (chess.jsx missedBrilliant, the
+// SHIPPED function, read through engine-extract) is Brilliant and the player played something else - under rule 1 (what the app grades
+// by today) and rule 2 (the one rule, behind ct_bril_rule). One search per position of the player's (the position's own eval, its second
+// line and best move: exactly ct_evalcache's evW[i], ev2W[i], bU[i]), CT_JOBS engines in parallel (default 2). NOT EXCLUDED, said
+// plainly: the opening-book plies the review leaves unmarked (the book is read from lessons.js, which this harness does not load), so
+// a chance inside the book would be listed here and not marked in the app.
+async function missedList(dir,out,player){
+  player=(player||'Kunal2023').toLowerCase();
+  const files=fs.readdirSync(dir).filter(f=>f.endsWith('.pgn')).sort();
+  const jobs=[];
+  for(const f of files){
+    const pgn=fs.readFileSync(path.join(dir,f),'utf8');const gid=f.replace(/\.pgn$/,'');
+    const hW=(/\[White "([^"]*)"/.exec(pgn)||[])[1]||'',hB=(/\[Black "([^"]*)"/.exec(pgn)||[])[1]||'';
+    const uc=hW.toLowerCase()===player?'w':hB.toLowerCase()===player?'b':null;if(!uc)continue;
+    const res=E.loadSANs(E.parsePGN(pgn));if(!res||!res.plies.length)continue;
+    for(let i=0;i<res.plies.length;i++){const pos=res.positions[i];if(pos.turn!==uc)continue;jobs.push({gid,hW,hB,i,pos,pl:res.plies[i].move,san:res.plies[i].san});}
+  }
+  const K=Math.max(1,+(process.env.CT_JOBS||2));
+  console.log('# MISSED BRILLIANT LIST - #549 item (29) | chess.jsx',E.SRC_PATH,'md5',E.SOURCE_MD5,'| depth',DEPTH,'engines',K,'| player',player,'| games',files.length,'positions',jobs.length);
+  const rows=[];let k=0,done=0;const t0=Date.now();
+  const worker=async()=>{const eng=engine();await eng.init();
+    while(k<jobs.length){const j=jobs[k++];
+      const st=E.getStatus(j.pos);if(st==='checkmate'||st==='stalemate'){done++;continue;}
+      const w=toW(j.pos,await eng.eval(E.toFEN(j.pos)));done++;
+      if(done%200===0)process.stderr.write(done+'/'+jobs.length+' '+Math.round((Date.now()-t0)/1000)+'s\n');
+      if(!w.bm||uciIs(j.pl,w.bm))continue;
+      const bm=E.uciToMove(j.pos,w.bm);if(!bm)continue;
+      const evB=Math.max(-99,Math.min(99,w.cpW/100)),evN=w.cp2W==null?null:Math.max(-99,Math.min(99,w.cp2W/100));
+      let m1=E.missedBrilliant(j.pos,bm,evB,evB,evN,1),m2=E.missedBrilliant(j.pos,bm,evB,evB,evN,2);
+      if(!m1&&!m2)continue;
+      // sfGradePly asks only when the move PLAYED was not itself Brilliant, so a flagged position's played move is graded too, the
+      // review's way (its eval after, loss against the position's eval, next best = the engine's best line) - one more search, flagged rows only.
+      {const nx=E.makeMove(j.pos,j.pl),s2=E.getStatus(nx);const a=toW(nx,(s2==='checkmate'||s2==='stalemate')?null:await eng.eval(E.toFEN(nx)));
+       const loss=Math.min(1500,Math.max(0,j.pos.turn==='w'?(w.cpW-a.cpW):(a.cpW-w.cpW))),evA=Math.max(-99,Math.min(99,a.cpW/100));
+       for(const rule of [1,2]){const g=E.brilliantGate(j.pos,j.pl,loss,evA,evB,evB,rule);if(g.ok){if(rule===1)m1=null;else m2=null;}}}
+      if(!m1&&!m2)continue;
+      const bestSan=E.toSAN(j.pos,bm,E.applyMove(j.pos.board,bm));
+      rows.push({game:j.gid,white:j.hW,black:j.hB,ply:j.i,no:Math.floor(j.i/2)+1,side:j.pos.turn,played:j.san,missed:bestSan,fen:E.toFEN(j.pos),rule1:!!m1,rule2:!!m2,evB,evN,g:m2||m1});
+    }
+    eng.quit();};
+  await Promise.all(Array.from({length:K},worker));
+  rows.sort((a,b)=>a.game<b.game?-1:a.game>b.game?1:a.ply-b.ply);
+  const fmt=r=>`${r.no}${r.side==='w'?'.':'...'}${r.played} (missed ${r.missed}, ${r.g.arm} ${r.g.gT}${r.g.gSq} sac ${r.g.sac}, eval ${r.side==='w'?r.evB:-r.evB}, next ${r.evN==null?'-':(r.side==='w'?r.evN:-r.evN)})`;
+  for(const rule of [1,2]){const L=rows.filter(r=>r['rule'+rule]);const gs=[...new Set(L.map(r=>r.game))];
+    console.log(`\n## RULE ${rule}: ${L.length} missed brilliants in ${gs.length} games`);
+    for(const g of gs){const R=L.filter(r=>r.game===g);console.log(`  ${g} ${R[0].white} v ${R[0].black}: `+R.map(fmt).join(', '));}}
+  console.log(`\n# positions ${jobs.length}, searched in ${Math.round((Date.now()-t0)/1000)}s`);
+  if(out)fs.writeFileSync(out,JSON.stringify({srcMd5:E.SOURCE_MD5,depth:DEPTH,player,positions:jobs.length,rows},null,1));
+}
 async function main(){
   if(process.argv[2]==='--cache')return cacheOne(process.argv[3],process.argv[4]);
+  if(process.argv[2]==='--missed')return missedList(process.argv[3],process.argv[4],process.argv[5]);
   const dir=process.argv[2],out=process.argv[3];
   if(!dir){console.error('usage: node gates/measure-brilliant-one-rule.js <pgn-dir> [out.json]');process.exit(2);}
   const files=fs.readdirSync(dir).filter(f=>f.endsWith('.pgn')).sort();

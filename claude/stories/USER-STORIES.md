@@ -1908,6 +1908,13 @@ As a player who also reviews on chess.com, a move of mine is Brilliant when it i
 - The thirteen Brilliants chess.com found in my games are Brilliant on the app's own engine. (TC-R127)
 - A stored review graded by an older rule is graded again from its own engine output, and every change is listed game by game and move by move in a "Grading changed" sheet; Update applies them and Not now keeps everything; a game with no stored engine output waits for its next review. (TC-R128, TC-R129, TC-R130)
 
+### US-R106 The review shows me where a brilliant move was there and I did not play it, and Show me plays it
+*Added #549 item (29), from jobs/show-where-a-brilliant-move-was-available-and-the-player-did-not-play-it-2026-10-11 (Kunal, 11 Oct 2026; his answer on questions/B9-MISSED-BRILLIANTS, 5 Nov 2026: "A marker, and Show me plays it"). Shipped switched OFF (MISSED_BRIL_DEFAULT false) until he has seen the list of every missed brilliant it would mark across his games (the job's missedBrilliantsList_549); flags/amber-549-missed-brilliant-marker-ships-off.*
+As a player reviewing my own game, at a move of mine where the engine's best move would itself have been Brilliant and I played something else, the review says so on that move and lets me watch the brilliant line, so I learn the sacrifice I walked past.
+- A missed brilliant is the engine's best move graded by the same Brilliant rule the app grades every played move by, as if I had played it (loss 0, the position's own eval, the second line as the next best); a move I found, or a different Brilliant I played instead, is not a miss; the needed test applies. (TC-R133, TC-R134, TC-R135)
+- On that move the move line carries "!! missed <move> >" in the place of the best-move button, and a tap plays the brilliant line on the board; the move strip marks the move (!!) and the eval graph rings it. (TC-R136)
+- My opponent's moves carry no mark, under rule 1 nothing that only rule 2 calls Brilliant is marked, and with the switch off nothing is marked. (TC-R137)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and
