@@ -5065,7 +5065,14 @@ export default function App(){
         /* #548 item (125): each new card carries the next two or three moves of the better line, from a short engine search on the
            card's own position (the line starts with the better move; bestLineTail formats what follows it). Bounded: 12 cards, 300ms
            each, only with the analysis engine up - a card without a line simply shows none. */
-        if(caps.length&&useSF&&sfAnaReadyRef.current){for(const c of caps.slice(0,12)){try{let t=bestLineTail(c.fen,await sfBestLine(c.fen,300),3,c.no,c.uci);if(!t)t=bestLineTail(c.fen,await sfBestLine(c.fen,900),3,c.no,c.uci);/* a 300ms pv can stop one ply after the better move; one longer try */if(t)c.line=t;}catch(e){}}}
+        /* #549 item (13): the search is run on the position AFTER the card's own better move, and the line is that move plus the
+           engine's reply. Searching the card's position instead (#548) let a fresh search prefer a DIFFERENT move - measured on gate 51's
+           fixture, 15...Qxd7 (e6d7) came back as f6d7 at 300ms and at 900ms, twice - and bestLineTail's own guard then dropped the card's
+           line, so 1 of 2 cards carried none. Every card whose better move leaves a legal reply now gets its continuation. */
+        if(caps.length&&useSF&&sfAnaReadyRef.current){for(const c of caps.slice(0,12)){try{
+          const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;const fa=toFEN(makeMove(g0,m0));
+          const tail=async(ms)=>{const pv=await sfBestLine(fa,ms);return pv&&pv.length?bestLineTail(c.fen,[c.uci,...pv],3,c.no,c.uci):'';};
+          let t=await tail(300);if(!t)t=await tail(900);/* a 300ms pv can stop after one reply; one longer try */if(t)c.line=t;}catch(e){}}}
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;

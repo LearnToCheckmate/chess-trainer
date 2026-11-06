@@ -190,10 +190,12 @@ L.run(async()=>{
   // CARRIES THE NEXT TWO OR THREE MOVES OF THE BETTER LINE, from the app's own engine search on the card's position - read out of the
   // store the review wrote, not seeded. Each `line` is 2 or 3 SAN plies, numbered, and never repeats the better move it follows.
   {const withLine=mis.filter(m=>typeof m.line==='string'&&m.line.trim());
-   // NOT 'every': a card whose engine line stops one ply after the better move carries NONE by design (the app's own rule - one ply is not
-   // 'the next two or three moves'), and the first trial measured exactly that on 1 of 2 cards. So A asks that at least half carry one (and
-   // at least one, which main's 0 of N fails), and A2 holds every line that IS shown to the shape.
-   L.say(mis.length>0&&withLine.length>=1&&withLine.length>=Math.ceil(mis.length/2),'TC-R103 A the captured mistakes carry the better line\'s continuation - at least half of them ('+withLine.length+' of '+mis.length+')',mis.map(m=>({uci:m.uci,line:m.line===undefined?'<ABSENT>':m.line})));
+   // EVERY CARD, SINCE #549 item (13). #548 asked for 'at least half', reading the 1-of-2 it measured as a one-ply pv carried by design.
+   // MEASURED at #549 it was not: the e6d7 card's search ran on the card's own position and returned f6d7 first at 300ms AND at 900ms (two
+   // runs, raw pv printed), so the app's first-move guard dropped it - a defect, not a short line. The app now searches AFTER the better
+   // move. The only card that may carry none is one whose better move leaves no legal reply (mate or stalemate); neither fixture card does
+   // (10...Qb4+ and 15...Qxd7 both leave White moves), so A asks for every captured card here.
+   L.say(mis.length>0&&withLine.length===mis.length,'TC-R103 A every captured mistake carries the better line\'s continuation ('+withLine.length+' of '+mis.length+')',mis.map(m=>({uci:m.uci,line:m.line===undefined?'<ABSENT>':m.line})));
    const bad=withLine.filter(m=>{const t=m.line.trim().split(/\s+/).map(x=>x.replace(/^\d+(\.|\u2026)/,''));return t.length<2||t.length>3||!/^\d+(\.|\u2026)/.test(m.line.trim());});
    L.say(withLine.length>0&&bad.length===0,'TC-R103 A2 each continuation is 2 or 3 plies of numbered SAN',{bad:bad.map(m=>m.line)});
    // A2 IS A SHAPE, AND A SHAPE IS NOT A VALUE [#548 round-1 antagonist A veto]: the first draft printed '2.Qxb4 Bxb4+ 3.c3' for a card
