@@ -8120,9 +8120,15 @@ export default function App(){
               putting a dedicated button INSIDE the overlay rather than trying to lift the buried row. Raising
               the row cannot work here anyway - a z-index of 5 on a sibling cannot beat a fixed z-500 panel -
               and it would cost board height on every screen that shares that row. */}
-          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:'calc(max('+safeTop+'px, env(safe-area-inset-top,0px)) + 10px)',right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
+          {/* #549 item (44) [Amber: flags/amber-549-review-summary-menu-row]: THE ☰ GETS ITS OWN ROW. It used to be position:absolute
+              over the scroller, inside the content column's width, so at 56 of 237 scroll positions it sat on summary text (the players
+              line, the coach's sentence, the grade table's 'Black' and '2/10') at every inset. This strip does not scroll and the
+              scroller starts below it, so nothing can pass under the button. The summary has no board, so the 46px costs no board. */}
+          <div data-ct="rev-summary-top" style={{flexShrink:0,height:46,position:'relative'}}>
+          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:10,right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
+          </div>
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
-          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'24px 18px 16px',WebkitOverflowScrolling:'touch'}}>
+          <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'4px 18px 16px',WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
               <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>

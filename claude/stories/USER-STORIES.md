@@ -122,6 +122,9 @@ As a player, I see one card with the categories down the side and one value colu
   and a number with moves behind it is a button that jumps into the review at that ply. (TC-R05)
 - The footer (Back to games, Start review; data-ct rev-summary-foot, #334) is pinned inside the viewport at
   both phone geometries and the body scrolls under it. (TC-R04)
+- No summary text is painted under the status bar, and the summary's own menu button (rev-summary-menu) is never
+  painted over summary text at any scroll position: it sits in a row of its own that does not scroll. (TC-R79,
+  TC-R111; #549, jobs/review-summary-runs-under-the-status-bar-2026-09-22)
 
 ### US-R04 The move screen fits the phone and the board never moves
 As a player stepping through a review on my phone, the board is as large as the screen allows and it stays

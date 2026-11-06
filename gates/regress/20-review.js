@@ -446,6 +446,31 @@ L.run(async()=>{
    L.say(!!r0&&r0.scTop>=50.5&&r0.menuTop>=50.5,'kunal761: TC-R79 the summary scroller and its menu button both start below the 51px status bar ('+(r0&&Math.round(r0.scTop))+', '+(r0&&Math.round(r0.menuTop))+')',r0);
    L.say(!!r1&&r1.visTop>=50.5,'kunal761: TC-R79 scrolled to the bottom, no visible text of the summary is under the status bar (top visible text at '+(r1&&Math.round(r1.visTop))+')',r1);
    await b.close();}
+  // TC-R111 [#549 item (44); jobs/review-summary-runs-under-the-status-bar-2026-09-22, the job's case (b) and (a) over every scroll
+  // position]: THE ☰ NEVER SITS ON SUMMARY TEXT. It used to be position:absolute over the scroller, so at 56 of 237 positions (4px
+  // steps) it covered the players line, the coach sentence, 'Black' and '2/10', at BOTH insets. Scanned at 375x761 with 51/31 and at
+  // 375x730 with no inset (the control the job names: the overlap never depended on the inset). Painted text = a text rect clipped to
+  // the scroller. DENOMINATOR, its own assertion: some text passes through the button's own column (x band) during the scan, so a
+  // summary that lost its text cannot pass.
+  for(const g of ['kunal761','kunal730']){const RV=require('../drive/review');const b=await L.launch({geo:g,name:'r111-menu-over-text-'+g,store:RV.SEED});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   const inset=g==='kunal761'?51:0;
+   const r=ok?await b.page.evaluate((inset)=>{const s=document.querySelector('[data-ct="rev-summary"]');const mb=document.querySelector('[data-ct="rev-summary-menu"]');if(!s||!mb)return null;
+     const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(!sc)return null;
+     const max=sc.scrollHeight-sc.clientHeight;const o={max,positions:0,hitPos:0,colPos:0,underInset:0,ex:[],minTop:1e9};
+     for(let st=0;st<=max+4;st+=4){sc.scrollTop=st;const scr=sc.getBoundingClientRect();const m=mb.getBoundingClientRect();let hit=0,col=0;
+       const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let n;
+       while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);
+         for(const q of rg.getClientRects()){const t=Math.max(q.top,scr.top),bt=Math.min(q.bottom,scr.bottom);if(bt<=t||q.width<=0)continue;
+           if(t<o.minTop)o.minTop=t;if(t<inset-0.5)o.underInset++;
+           if(q.left<m.right&&q.right>m.left){col=1;if(t<m.bottom&&bt>m.top){hit=1;if(o.ex.length<6)o.ex.push(st+':'+n.nodeValue.trim().slice(0,24));}}}}
+       o.positions++;if(hit)o.hitPos++;if(col)o.colPos++;}
+     sc.scrollTop=0;return o;},inset):null;
+   L.say(ok&&!!r&&r.positions>0,g+': TC-R111 PRECONDITION the summary, its scroller and its menu button are found and the scroll was scanned ('+(r&&r.positions)+' positions)',r&&{max:r.max,positions:r.positions});
+   L.say(!!r&&r.colPos>0,g+': TC-R111 DENOMINATOR summary text passes through the menu button\'s column during the scan ('+(r&&r.colPos)+' positions)',r&&{colPos:r.colPos});
+   L.say(!!r&&r.positions>0&&r.hitPos===0,g+': TC-R111 at no scroll position does the menu button cover painted summary text ('+(r&&r.hitPos)+' of '+(r&&r.positions)+')',r&&{hitPos:r.hitPos,ex:r.ex});
+   L.say(!!r&&r.positions>0&&r.underInset===0,g+': TC-R111 at every scroll position no painted summary text is above the '+inset+'px top inset (highest at '+(r&&Math.round(r.minTop))+')',r&&{underInset:r.underInset,minTop:r.minTop});
+   await b.close();}
   // TC-R03 stored accounts survive a reload and name both players
   const games=(u)=>[{src:'cc',acct:u,pgn:PGN.replace('Morphy',u).replace('Duke Karl / Count Isouard','DukeKarlCountIsouard99'),white:u,black:'DukeKarlCountIsouard99',wr:'win',tc:'rapid',date:1789000000000}];
   const b=await L.launch({geo:'kunal',name:'review-accounts',store:{ct_accts:['cc:jsmiller1112','cc:kunal2023'],ct_acctgames:{'cc:jsmiller1112':games('jsmiller1112'),'cc:kunal2023':games('kunal2023')}}});await b.open();await b.tile('Review');await b.settle(600);
