@@ -265,7 +265,7 @@ const LESSONS=[
   {group:'Openings',row:0, name:/^Italian Game$/,       note:'the control case: this card is SHORT and owns its centre even on the broken bundle'},
   {group:'Openings',row:4, name:/^Four Knights Game$/,  note:'measured 487.89..531.89 at 320x568 on #496, centre on the footer bar'},
   {group:'Openings',row:20,name:/^Queen.s Gambit$/,     note:'measured 495.56..539.56 at 320x568 on #496, centre on "Forward a move"'},
-  {group:'Openings',row:45,name:/^Petroff \(Russian\) Defense$/,
+  {group:'Openings',row:44,name:/^Petroff \(Russian\) Defense$/,
                             note:'THE WORST CARD ON THE RECORD and the one this build does NOT fully fix. Its panel is 634.55 tall in a 568 viewport (-33.27..601.28), so 16.28px of the CTA is below the screen and 6.73px of the close X is above it. Added because the first draft of this gate EXCLUDED it while the header claimed the set included the worst - both antagonists vetoed that independently.'},
   {group:'Gambits', row:0, name:/^King.s Gambit$/,      note:'measured 506.41..550.41 at 320x568 on #496, 25% already on "Forward a move"; and at 375x568 all three of its sample points hit the close X, so a tap there CLOSED the lesson'},
   {group:'Gambits', row:10,name:/^L.gal Trap$/,         note:'a second Gambits row, because 37 of 53 Gambits cards are affected and one row was not a sample of that'},
@@ -711,8 +711,8 @@ for(const geo of GEOS){
 // assertion would be a positive control. That is reported as a NOTE, never credited as a PASS.
 for(const geo of GEOS){
   const b=await L.launch({geo,name:'74D-'+geo});await b.open();
-  const o=await openPlain(b,'Openings',45);   // NOT openHeld: its click would hold the card and void D2
-  if(!o.ok){L.say(false,'74 D0 ['+geo+'] could not reach Openings row 45 for the hold-on-scroll check',o);await b.close();continue;}
+  const o=await openPlain(b,'Openings',44);   // #549 item (65): was 45 until the duplicate Petrov row above it was removed. NOT openHeld: its click would hold the card and void D2
+  if(!o.ok){L.say(false,'74 D0 ['+geo+'] could not reach Openings row 44 (Petroff) for the hold-on-scroll check',o);await b.close();continue;}
   const pi=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;
     let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
     const r=q.getBoundingClientRect();const s2=getComputedStyle(q);
@@ -984,6 +984,32 @@ L.say(VACUOUS.length<GEOS.length,
   L.say(ok&&!!m,tag+': PRECONDITION the lesson\'s intro card opened and its Got it was found by text',{m});
   if(m){L.say(m.got[0]>=m.panel[0]-0.5&&m.got[1]<=m.panel[1]+0.5&&m.own,tag+': Got it is wholly inside the card\'s visible panel on ARRIVAL and owns its centre ('+m.got.join('..')+' in '+m.panel.join('..')+')',m);
    L.say(m.chips>0&&m.reach===true,tag+': and the Related-lessons chips are still there ('+m.chips+') and the last one is reachable by scrolling the card',{chips:m.chips,reach:m.reach});}
+  await b.close();}}
+// TC-LS-049 / TC-LS-050 [#549 item (65); jobs/the-openings-list-carries-petrov-and-petroff-as-two-adjacent-lessons-2026-10-04, built to the
+// orchestrator's ruling of 4 Nov 2026]: Petrov and Petroff are ONE lesson. 049 reads the RENDERED Openings list by name (no row index); 050
+// seeds a store written by a build that still had both lessons and reads what the app made of it on load. The legacy index '150' is chosen
+// because on the pre-fix bundle it names Closed Sicilian and, without the index migration, would name the lesson after it on this one.
+{const DL=require('../drive/lesson');
+ {const b=await L.launch({geo:'kunal761',name:'ls049'});await b.open();let rs=[];
+  try{await DL.group(b,'Openings');rs=await DL.rows(b);}catch(e){}
+  L.say(rs.length>0,'TC-LS-049 PRECONDITION the Openings list rendered rows to compare ('+rs.length+')',{n:rs.length});
+  const pet=rs.filter(r=>/^petro(v|ff)\b/i.test(r.name));
+  L.say(pet.length===1&&pet[0].name==='Petroff (Russian) Defense','TC-LS-049 the Openings list offers the Petrov/Petroff opening exactly ONCE, as "Petroff (Russian) Defense" ('+pet.map(r=>r.name).join(' + ')+')',pet.map(r=>r.name));
+  const nz=t=>t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/petroff/g,'petrov').replace(/[^a-z0-9]/g,'');const seen={},dup=[];
+  rs.forEach(r=>{const k=nz(r.name);if(seen[k])dup.push(seen[k]+' = '+r.name);else seen[k]=r.name;});
+  L.note('TC-LS-049 RECORDED, NOT CREDITED: other Openings rows that normalise to one name: '+(dup.length?dup.join('; '):'none'));
+  await b.close();}
+ {const b=await L.launch({geo:'kunal761',name:'ls050',store:{
+    ct_learnprog:{'Petrov (Russian) Defense':{learned:true,days:['2026-11-01','2026-11-02']},'Petroff (Russian) Defense':{learned:true,days:['2026-11-02','2026-11-03']},'Italian Game':{learned:true,days:['2026-11-04']}},
+    ct_train:{'Petrov (Russian) Defense':{learned:true,reps:2,last:1,due:1}},ct_lastlesson:'150'}});
+  await b.open();await b.settle(800);
+  const st=await b.page.evaluate(()=>{const g=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};let lp=null,tr=null;try{lp=JSON.parse(g('ct_learnprog'));tr=JSON.parse(g('ct_train'));}catch(e){}
+    const cont=[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null;
+    return {lp,tr,ll:g('ct_lastlesson'),mig:g('ct_libmig549'),cont};});
+  const pf=st.lp&&st.lp['Petroff (Russian) Defense'];
+  L.say(!!st.lp&&!('Petrov (Russian) Defense' in st.lp)&&!!pf&&(pf.days||[]).join(',')==='2026-11-01,2026-11-02,2026-11-03'&&!!st.lp['Italian Game'],'TC-LS-050 a day banked under the removed name "Petrov (Russian) Defense" is kept: ct_learnprog re-keys it onto Petroff with the days UNIONED (2026-11-01,2026-11-02,2026-11-03) and leaves other lessons alone',st.lp);
+  L.say(!!st.tr&&!('Petrov (Russian) Defense' in st.tr)&&!!st.tr['Petroff (Russian) Defense']&&st.tr['Petroff (Russian) Defense'].reps===2,'TC-LS-050 and the drill record in ct_train moves with it (reps 2 on Petroff)',st.tr);
+  L.say(st.ll==='149'&&st.mig==='1'&&/^Continue: Closed Sicilian/.test(st.cont||''),'TC-LS-050 and a stored last-lesson INDEX past the removed copy moves down one, so Home still says "Continue: Closed Sicilian" ('+st.ll+', '+st.cont+')',{ll:st.ll,mig:st.mig,cont:st.cont});
   await b.close();}}
 L.done();
 })().catch(e=>{console.error('74 THREW',e);process.exit(1);});

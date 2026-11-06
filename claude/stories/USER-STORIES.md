@@ -1789,6 +1789,13 @@ As a player who reviews more games than I drill, my mistakes list holds at most 
 As Kunal settling a layout or strength question from a screenshot, every number the app prints about the device, the page or itself is the number the device or the app's own configuration holds at that moment, so a screenshot of a readout can be believed without re-measuring it.
 - The Layout readout's screen, vw, dpr, inner, visual-viewport and safe-inset figures each equal the page's own value read at the same moment, its board, square and gap agree with each other and with vw, and its build equals the stamp on the served bundle, at 375x761, 375x730 and 320x568. (TC-MN-042)
 - A figure with no independent truth on the screen that prints it (the tile-ink ratios, which measure an unpinned font; the mode and eval rows) is excluded by name and says why, rather than counted as checked. (TC-MN-042)
+### US-R103 Each opening is taught once, and what I studied under an old name stays mine
+*Added #549 item (65), from jobs/the-openings-list-carries-petrov-and-petroff-as-two-adjacent-lessons-2026-10-04, built to the orchestrator's ruling of 4 Nov 2026 (Petroff survives, progress migrates). A clause about the lesson REGISTRY, not the list's rendering, as the job asked.*
+As a learner browsing the openings, I see each opening as one lesson, and nothing I banked on a lesson that was merged into another is lost.
+- The Openings list offers the Petrov/Petroff opening once, as "Petroff (Russian) Defense". (TC-LS-049)
+- Days banked and drill records kept under the removed name move onto the survivor with no day lost, and the last lesson I opened still opens the same lesson. (TC-LS-050)
+- Not yet true of the whole class: "Sicilian Dragon" and "Sicilian: Dragon" are still two rows; gate 74 records it and credits nothing.
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

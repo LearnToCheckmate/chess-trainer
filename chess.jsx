@@ -1831,6 +1831,26 @@ function demoState(line,ply,startFEN){let g=startFEN?fromFEN(startFEN):initGame(
 // Batch 1 additions (2026-06-19): mainstream Sicilians, anti-Sicilians, Semi-Slav, KIA + 4 gambits. Lines engine-verified.
 const MORE=window.CTLESSONS.MORE; // #311 split
 const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
+/* #549 item (65), jobs/the-openings-list-carries-petrov-and-petroff-as-two-adjacent-lessons-2026-10-04, on the orchestrator's ruling of
+   4 Nov 2026: "Petroff (Russian) Defense" is the one lesson; "Petrov (Russian) Defense" is gone. Nothing a player banked under the old name
+   is lost: ct_learnprog (and its '§variation' keys) and ct_train are re-keyed to the survivor on load and on a cloud merge, days unioned.
+   ct_lastlesson is a LIB INDEX: the survivor took the removed lesson's OPENINGS slot (35, so a stored 35 still opens the Petroff), and the
+   old MORE copy at index 149 was deleted, so a stored 149 now means 35 and every stored index above 149 moves down one. That index move
+   runs once per device, behind ct_libmig549. */
+const LIB_RENAMED={'Petrov (Russian) Defense':'Petroff (Russian) Defense'};
+const LIB_IDX_MOVED={removedAt:149,survivorAt:35};
+const migLearnProg=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out={...o};
+  for(const k of Object.keys(o)){const base=k.split('§')[0];const to=LIB_RENAMED[base];if(!to)continue;ch=true;
+    const nk=to+k.slice(base.length);const a=out[nk]||{},b=o[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();
+    out[nk]={...a,learned:days.length>=1||!!a.learned||!!b.learned,days};delete out[k];}
+  return ch?out:o;};
+const migTrain=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out={...o};
+  for(const k of Object.keys(o)){const to=LIB_RENAMED[k];if(!to)continue;ch=true;const a=out[to],b=o[k];
+    if(!a||((b&&b.reps)||0)>((a&&a.reps)||0))out[to]=b;delete out[k];}
+  return ch?out:o;};
+const migLastLesson=(n)=>{try{if(localStorage.getItem('ct_libmig549')==='1')return n;localStorage.setItem('ct_libmig549','1');
+  if(n==null||isNaN(n))return n;const m=n===LIB_IDX_MOVED.removedAt?LIB_IDX_MOVED.survivorAt:n>LIB_IDX_MOVED.removedAt?n-1:n;
+  if(m!==n)localStorage.setItem('ct_lastlesson',String(m));return m;}catch(e){return n;}};
 const RELATED={"Evans Gambit":["Italian Game"],"Scotch Gambit":["Scotch Game"],"Vienna Gambit":["Vienna Game"],"Göring Gambit":["Scotch Game","Ponziani Opening"],"Fried Liver Attack":["Two Knights Defense"],"Max Lange Attack":["Two Knights Defense","Italian Game"],"Traxler Counterattack":["Two Knights Defense","Fried Liver Attack"],"Belgrade Gambit":["Four Knights Game"],"Halloween Gambit":["Four Knights Game"],"Urusov Gambit":["Bishop's Opening"],"Jerome Gambit":["Italian Game"],"Blackburne Shilling Gambit":["Italian Game"],"Rousseau Gambit":["Italian Game"],"Fishing Pole Trap":["Ruy López (Spanish)"],"Scholar's Mate":["Italian Game"],"Légal Trap":["Philidor Defense"],"King's Gambit":["Falkbeer Counter-Gambit","King's Gambit: Bishop's Gambit","King's Gambit: Cunningham"],"Falkbeer Counter-Gambit":["King's Gambit"],"King's Gambit: Bishop's Gambit":["King's Gambit"],"King's Gambit: Cunningham":["King's Gambit"],"Muzio Gambit":["King's Gambit"],"Kieseritzky Gambit":["King's Gambit"],"Queen's Gambit":["Albin Counter-Gambit","Queen's Gambit Declined","Queen's Gambit Accepted"],"Albin Counter-Gambit":["Queen's Gambit","Albin Counter-Gambit: Lasker Trap"],"Albin Counter-Gambit: Lasker Trap":["Albin Counter-Gambit"],"Budapest Gambit":["Budapest Gambit: Kieninger Trap"],"Budapest Gambit: Kieninger Trap":["Budapest Gambit"],"Englund Gambit":["Englund Gambit: Rosen Trap"],"Englund Gambit: Rosen Trap":["Englund Gambit"],"Stafford Gambit: Mating Trap":["Petroff (Russian) Defense"],"Smith-Morra Gambit":["Sicilian Defense"],"Wing Gambit (Sicilian)":["Sicilian Defense"],"Marshall Attack":["Ruy López (Spanish)"],"Schliemann Gambit":["Ruy López (Spanish)"],"Cochrane Gambit":["Petroff (Russian) Defense"],"Staunton Gambit":["Dutch Defense"],"From's Gambit":["Bird's Opening","King's Gambit"],"Danish Gambit":["Center Game"],"Tennison Gambit":["Scandinavian Defense"],"Benko Gambit":["Modern Benoni","Benoni Defense"],"Blumenfeld Gambit":["Modern Benoni"],"Scandinavian: Icelandic Gambit":["Scandinavian Defense","Scandinavian: Portuguese"],"Scandinavian: Portuguese":["Scandinavian Defense","Scandinavian: Icelandic Gambit"],"Latvian Gambit":["Elephant Gambit"],"Elephant Gambit":["Latvian Gambit"],"Italian Game":["Evans Gambit","Fried Liver Attack"],"Scotch Game":["Scotch Gambit","Göring Gambit"],"Vienna Game":["Vienna Gambit"],"Two Knights Defense":["Fried Liver Attack","Traxler Counterattack"],"Sicilian Defense":["Smith-Morra Gambit","Wing Gambit (Sicilian)"],"Ruy López (Spanish)":["Marshall Attack","Schliemann Gambit"],"Petroff (Russian) Defense":["Cochrane Gambit","Stafford Gambit: Mating Trap"],"Scandinavian Defense":["Scandinavian: Icelandic Gambit","Scandinavian: Portuguese"],"Dutch Defense":["Staunton Gambit"],"Four Knights Game":["Halloween Gambit","Belgrade Gambit"],"Bird's Opening":["From's Gambit"],"Philidor Defense":["Légal Trap"]};
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
 const _PZMEM={};
@@ -3240,7 +3260,7 @@ export default function App(){
   const [openMsg,setOpenMsg]=useState('');
   const [showHint,setShowHint]=useState(false);   // #547 item (90): Kunal's 'warn-first' - the lesson lightbulb starts OFF
   const [revealHint,setRevealHint]=useState(false);
-  const [learnProg,setLearnProg]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{};}catch(e){return {};}});
+  const [learnProg,setLearnProg]=useState(()=>{try{return migLearnProg(JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{});}catch(e){return {};}});
   const learnProgRef=useRef(learnProg); learnProgRef.current=learnProg;
   const learnRepRef=useRef({hints:false,miss:false});
   const learnKeyRef=useRef('');
@@ -3291,9 +3311,9 @@ export default function App(){
   const [learnPhase,setLearnPhase]=useState('demo');
   const [learnSheet,setLearnSheet]=useState(false);
   const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
-  const [trainMastery,setTrainMastery]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_train')||'{}');}catch{return {};}});
+  const [trainMastery,setTrainMastery]=useState(()=>{try{return migTrain(JSON.parse(localStorage.getItem('ct_train')||'{}'));}catch{return {};}});
   const [learnLine,setLearnLine]=useState([]);
-  const [lastLesson,setLastLesson]=useState(()=>{try{const v=localStorage.getItem('ct_lastlesson');return v!==null&&v!==''?parseInt(v):null;}catch{return null;}});
+  const [lastLesson,setLastLesson]=useState(()=>{try{const v=localStorage.getItem('ct_lastlesson');return migLastLesson(v!==null&&v!==''?parseInt(v):null);}catch{return null;}});
   const [learnLabel,setLearnLabel]=useState('');
   const [demoPly,setDemoPly]=useState(0);
   const [demoPlaying,setDemoPlaying]=useState(false);
@@ -4229,7 +4249,7 @@ export default function App(){
           if(typeof data.theme==='number'&&data.theme>=0&&data.theme<THEMES.length)setTheme(data.theme);if(typeof data.skin==='number'&&data.skin>=0&&data.skin<SKINS.length)setSkin(data.skin);
           if(typeof data.elo==='number')setCpuElo(Math.max(ELO_MIN,Math.min(ELO_MAX,data.elo)));
           if(data.hintprefs&&typeof data.hintprefs==='object'){hintPrefsRef.current={...data.hintprefs};try{localStorage.setItem('ct_hintprefs',JSON.stringify(hintPrefsRef.current));}catch{}}
-          if(data.learnprog&&typeof data.learnprog==='object'){const lp=data.learnprog;setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days};}return out;});}
+          if(data.learnprog&&typeof data.learnprog==='object'){const lp=migLearnProg(data.learnprog);setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days};}return out;});}
           if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(data.coachtargets.filter(x=>typeof x==='string'));
           if(data.coachtier&&typeof data.coachtier.cleared==='number'&&data.coachtier.cleared>(coachTierRef.current.cleared||0))setCoachTier({cleared:data.coachtier.cleared,swapsLeft:(typeof data.coachtier.swapsLeft==='number'?data.coachtier.swapsLeft:2),swapAt:(typeof data.coachtier.swapAt==='number'?data.coachtier.swapAt:Date.now())});
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
@@ -9768,7 +9788,7 @@ export default function App(){
             {(()=>{
               const fmKey=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
               const idxsBy=(pred)=>LIB.map((op,i)=>pred(op,i)?i:-1).filter(i=>i>=0);
-              const POP={"Italian Game":1,"Ruy López (Spanish)":2,"Scotch Game":3,"Vienna Game":4,"Four Knights Game":5,"Bishop's Opening":6,"Queen's Gambit":1,"London System":2,"Catalan Opening":3,"Trompowsky Attack":4,"Colle System":5,"English Opening":1,"Réti Opening":2,"King's Indian Attack":3,"Bird's Opening":4,"Nimzo-Larsen Attack":5,"Sicilian Defense":1,"French Defense":2,"Caro-Kann Defense":3,"Scandinavian Defense":4,"Najdorf Sicilian":5,"Sicilian Dragon":6,"Petroff (Russian) Defense":7,"Petrov (Russian) Defense":7,"Pirc Defense":8,"Modern Defense":9,"Alekhine Defense":10,"Two Knights Defense":11,"King's Indian Defense":1,"Nimzo-Indian Defense":2,"Queen's Gambit Declined":3,"Slav Defense":4,"Grünfeld Defense":5,"Semi-Slav Defense":6,"Queen's Gambit Accepted":7,"Dutch Defense":8,"Benoni Defense":9,"Queen's Indian Defense":10,"King's Gambit":1,"Evans Gambit":2,"Scotch Gambit":3,"Smith-Morra Gambit":4,"Danish Gambit":5,"Fried Liver Attack":6,"Vienna Gambit":7,"Göring Gambit":8,"Max Lange Attack":9,"Halloween Gambit":10,"Stafford Gambit: Mating Trap":1,"Latvian Gambit":2,"Traxler Counterattack":3,"Elephant Gambit":4,"Blackburne Shilling Gambit":5,"Schliemann Gambit":6,"Marshall Attack":7,"Fishing Pole Trap":8,"Blackmar-Diemer Gambit":1,"Staunton Gambit":2,"Benko Gambit":1,"Budapest Gambit":2,"Albin Counter-Gambit":3,"Englund Gambit":4,"Blumenfeld Gambit":5};
+              const POP={"Italian Game":1,"Ruy López (Spanish)":2,"Scotch Game":3,"Vienna Game":4,"Four Knights Game":5,"Bishop's Opening":6,"Queen's Gambit":1,"London System":2,"Catalan Opening":3,"Trompowsky Attack":4,"Colle System":5,"English Opening":1,"Réti Opening":2,"King's Indian Attack":3,"Bird's Opening":4,"Nimzo-Larsen Attack":5,"Sicilian Defense":1,"French Defense":2,"Caro-Kann Defense":3,"Scandinavian Defense":4,"Najdorf Sicilian":5,"Sicilian Dragon":6,"Petroff (Russian) Defense":7,"Pirc Defense":8,"Modern Defense":9,"Alekhine Defense":10,"Two Knights Defense":11,"King's Indian Defense":1,"Nimzo-Indian Defense":2,"Queen's Gambit Declined":3,"Slav Defense":4,"Grünfeld Defense":5,"Semi-Slav Defense":6,"Queen's Gambit Accepted":7,"Dutch Defense":8,"Benoni Defense":9,"Queen's Indian Defense":10,"King's Gambit":1,"Evans Gambit":2,"Scotch Gambit":3,"Smith-Morra Gambit":4,"Danish Gambit":5,"Fried Liver Attack":6,"Vienna Gambit":7,"Göring Gambit":8,"Max Lange Attack":9,"Halloween Gambit":10,"Stafford Gambit: Mating Trap":1,"Latvian Gambit":2,"Traxler Counterattack":3,"Elephant Gambit":4,"Blackburne Shilling Gambit":5,"Schliemann Gambit":6,"Marshall Attack":7,"Fishing Pole Trap":8,"Blackmar-Diemer Gambit":1,"Staunton Gambit":2,"Benko Gambit":1,"Budapest Gambit":2,"Albin Counter-Gambit":3,"Englund Gambit":4,"Blumenfeld Gambit":5};
               const byPop=(a,b)=>((POP[LIB[a].name]||999)-(POP[LIB[b].name]||999))||(a-b);
               let groups=[];
               if(learnGroup==='openings'){
