@@ -426,4 +426,27 @@ L.run(async()=>{
       'TC-R64e and the two resolutions are DIFFERENT buttons, so neither assertion above could have been satisfied by both locators finding the same thing',{unscoped:unscoped&&unscoped.title,scoped:scoped&&scoped.title});
     await b.close();
   }
+  // ── TC-LS-053 (US-LS-12) [#549 item (107); jobs/auditor-424-p2-findings-2026-09-27, p2_lessonLosesItsPlace; Amber:
+  // flags/amber-549-lesson-resume]. A LESSON LEFT MID-PRACTICE COMES BACK WHERE IT WAS LEFT. The auditor measured: Italian Game ->
+  // practice -> 1.e4 -> X -> the SAME row, and the note read '▶ Press Play to watch' with the transport back, i.e. the demo at ply 0
+  // and the practice gone; the same through Home and Discover. Driven the long way (gates/drive/lesson.js), at his phone's geometry.
+  {const b=await L.launch({geo:'kunal761',name:'lesson-resume'});await b.open();
+   const foot=()=>b.page.evaluate(()=>[...document.querySelectorAll('button[aria-label]')].filter(e=>{const r=e.getBoundingClientRect();return r.width>1&&r.bottom>innerHeight-80;}).map(e=>e.getAttribute('aria-label')).filter(a=>/^(Back a move|Forward a move|Play or pause|Close lesson|More for this lesson)$/.test(a)).sort().join('|'));
+   let ok=true;try{await D.states['practice-correct'](b);await b.settle(700);}catch(e){ok=false;}
+   const n0=(await D.noteText(b))||'';const f0=await foot();
+   if(L.say(ok&&/e4/.test(n0)&&/correct/.test(n0)&&f0==='Close lesson|More for this lesson','TC-LS-053 PRECONDITION practice reached and 1.e4 accepted: the note reads the correct-move line and the footer is the practice footer',{n0:n0.slice(0,80),f0})){
+    let r1=true;try{await D.tapBtn(b,/^Close lesson$/,600);await D.openRow(b,0);await b.settle(700);}catch(e){r1=String((e&&e.message)||e).slice(0,100);}
+    const n1=(await D.noteText(b))||'';const f1=await foot();
+    L.say(r1===true&&n1===n0&&!/Press Play/.test(n1),'TC-LS-053 closed with X and re-opened from the SAME row: the note is the one it was left on, not the demo at ply 0',{r1,n0:n0.slice(0,80),n1:n1.slice(0,80)});
+    L.say(f1==='Close lesson|More for this lesson','TC-LS-053 and it is still PRACTICE: the footer is Close and More only, the demo transport is not back',{f1});
+    // Home is reached the way a finger reaches it - X, then the tab bar's Home - and a page marker proves the route did not RELOAD
+    // (lib's b.home() falls back to b.open() when it finds no Home button, which would test a cold start, not this).
+    await b.page.evaluate(()=>{window.__ctResumeMark=1;});
+    let r2=true;try{if(await D.hasBtn(b,/^Got it/))await D.tapBtn(b,/^Got it/,300);/* a lesson that re-opened at its demo raises the intro card over X */await D.tapBtn(b,/^Close lesson$/,600);await D.openLesson(b,'Openings',0);await b.settle(700);}catch(e){r2=String((e&&e.message)||e).slice(0,100);}
+    const n2=(await D.noteText(b))||'';const f2=await foot();const mk=await b.page.evaluate(()=>window.__ctResumeMark===1);
+    L.say(r2===true&&mk,'TC-LS-053 PRECONDITION the Home route was driven without a page reload (the marker survived)',{r2,mk});
+    L.say(r2===true&&n2===n0&&f2==='Close lesson|More for this lesson','TC-LS-053 left to Home and re-reached through Discover -> Openings -> the same row: still practice, on the same note',{r2,n2:n2.slice(0,80),f2});
+    await b.shot('lesson-resume-kunal761');}
+   L.say(b.errs.length===0,'TC-LS-053 zero app errors through close and re-open',b.errs.slice(0,3));
+   await b.close();}
 },'LESSON');

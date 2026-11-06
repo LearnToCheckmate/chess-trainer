@@ -3720,6 +3720,12 @@ export default function App(){
   const preMvRef=useRef(null); preMvRef.current=preMv;
   const showHintRef=useRef(showHint); showHintRef.current=showHint;
   const openIdxRef=useRef(openIdx); openIdxRef.current=openIdx;
+  /* #549 item (107), jobs/auditor-424-p2-findings-2026-09-27 part p2_lessonLosesItsPlace (Amber: flags/amber-549-lesson-resume):
+     closing a lesson mid-practice and re-opening the SAME lesson - from its row, or Home and back through Discover - used to put
+     it back at the demo at ply 0 with the practice gone. While a lesson is open in practice its place is kept here (this sitting
+     only, no new stored key); leaving practice for the demo inside the lesson clears it, and selectOpening resumes from it. */
+  const lessonResumeRef=useRef(null);
+  if(mode==='learn'&&openIdx!==null){lessonResumeRef.current=(learnPhase==='practice'&&openStep<(learnLine||[]).length)?{idx:openIdx,line:learnLine,label:learnLabel,game,lastMv,step:openStep,msg:openMsg,flip,rep:{...(learnRepRef.current||{})},key:learnKeyRef.current}:null;}
   const gateDemoRef=useRef(null);
   const revDemoPlyRef=useRef(null); // #333: gallery cards that want the move view at a given ply after analysis, without the gate readout
   const openStepRef=useRef(openStep); openStepRef.current=openStep;
@@ -4665,6 +4671,11 @@ export default function App(){
     setLearnNotes(op.notes||[]);setLearnPlans(op.plans||'');setLearnIdea(op.idea||'');setLearnArrows(op.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setVideoOpen(false);
     setLearnFEN(op.fen||null);
     setFlip(op.side==='b');setGame(op.fen?fromFEN(op.fen):initGame());setLastMv(null);setInfoOpen(false);setIntroCard(true);
+    {const R=lessonResumeRef.current;/* #549 item (107): the same lesson left mid-practice comes back where it was left */
+     if(R&&R.idx===idx&&R.step>0&&R.step<R.line.length&&R.game){let g=R.game,lm=R.lastMv,st=R.step;
+      if(g.turn!==op.side){const omv=findMoveBySAN(g,R.line[st]);if(omv){g=makeMove(g,omv);lm=omv;st++;}}  // the book reply the close cut off
+      if(st<R.line.length){learnRepRef.current={...R.rep};learnKeyRef.current=R.key;
+       setLearnPhase('practice');setDemoPlaying(false);setLearnLine(R.line);setLearnLabel(R.label);setOpenMsg(R.msg||'');setOpenStep(st);setGame(g);setLastMv(lm);setFlip(R.flip);setIntroCard(false);}}}
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const startPractice=(line,label)=>{

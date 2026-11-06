@@ -311,6 +311,7 @@ US-LS-08  hints are on by default and paint EXACTLY the two squares of the book 
 US-LS-09  a wrong move changes nothing on the board and does not advance the progress bar; ↻ Try again puts the lesson back to move 0; a correct move advances it one step and moves the hint on. (48-lesson-flow.js)
 US-LS-10  the ⋯ sheet's prev/next row names the neighbouring lessons and disables the end it is at. (48-lesson-flow.js)
 US-LS-11  the footer controls are the same size and shape on every board screen: the lesson footer (demo and practice) and the Review transport row are one component - one glyph size, one radius, no outline, a 44px floor - so they cannot drift apart again (#549 item (80), jobs/lesson-footer-icons-consistent). (11-lesson.js)
+US-LS-12  a lesson left mid-practice - closed with X, or left for Home and re-reached through Discover - re-opens where it was left, in practice on the same move and note, for the rest of the sitting; a finished or never-started practice opens at the demo as before (#549 item (107), flags/amber-549-lesson-resume). (11-lesson.js)
 
 The Play header numbers its ten lines 1 to 10 under the heading "US-PL-01 … US-PL-10"; line n is US-PL-0n, which
 is how the gate's own comments use them (TC-PL-009 under US-PL-04, TC-PL-012 under US-PL-06). US-PL-02 and
