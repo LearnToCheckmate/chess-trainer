@@ -5714,8 +5714,15 @@ export default function App(){
     const _fb=String(bound||'all').split('+');let _base=_fb[0];const _gapF=_fb.length>1;
     const _newestHeld=held.reduce((m,g)=>Math.max(m,(g&&g.date)||0),0);
     const _oldestFresh=fresh.reduce((m,g)=>Math.min(m,(g&&g.date)||0),Infinity);
-    const _hole=held.length>0&&_base!=='all'&&fresh.length>0&&_oldestFresh>_newestHeld;
     const _prev=(acctCapRef.current||{})[id];
+    // #549 item (32) 'held': the walk STOPPED AT THE NEWEST HELD GAME (see fetchChessCom), so it says nothing about
+    // anything older than that - which is exactly what is held. The bound is therefore the one already recorded for
+    // the account, and an account with none recorded (an earlier build's store) is read the way the limit line reads
+    // it (_bound1): cut only when it sits at one of the two caps this app has shipped. The walk reached what is held,
+    // so it left no hole; a month it asked for and did not get still rides as '+gap'.
+    const _reached=_base==='held';
+    if(_reached)_base=_prev?String(_prev).split('+')[0]:((held.length>=ACCT_GMAX||held.length===ACCT_GMAX_LEGACY)?'games':'all');
+    const _hole=!_reached&&held.length>0&&_base!=='all'&&fresh.length>0&&_oldestFresh>_newestHeld;
     if(held.length&&!_hole&&_prev&&String(_prev).split('+')[0]==='all')_base='all';
     const merged=acctMergeRows(fresh,held,0);
     if(merged.length>cap)_base='games';   // the store cap cut the oldest games off
@@ -5790,8 +5797,27 @@ export default function App(){
       // hole in the middle of it. Antagonist B measured 50 of 60 rows and no statement at all on one 503.
       // A retry is NOT what this fixes and is deliberately not added here: the games are still missing,
       // and what US-R25 requires is that the app STATE its bound, not that it always reach it.
-      const games=[];let i=archives.length-1,missed=0,leftover=false;
+      // #549 item (32), jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29, direction (b):
+      // DO NOT RE-REQUEST MONTHS THAT ARE ALREADY HELD. Since #549 item (31) a refresh MERGES into what is held, so the
+      // months behind the newest held game add nothing - and every launch walked them anyway: the index plus up to
+      // ACCT_GMONTHS months, about 623KB, before a list the player already had could change (antagonist B, #431: 5
+      // requests and 2.2s to first content). The walk now stops at the newest held game: after the month that reaches
+      // back to it, or - without asking - at a month that ends before it can hold anything newer. A month is filed by
+      // its game's end time; the 36 hours of slack are so a game ending near a month boundary is never misfiled into a
+      // month we skip. Games older than the newest held one are not taken again (they are held), so the 200-game cap of
+      // one walk is spent only on new games.
+      // NOT WHILE A GAP IS RECORDED: a month the last walk asked for and did not get is somewhere behind the newest held
+      // game, and stopping there would leave "some games are missing" on screen for good. While the account's recorded
+      // bound carries '+gap' the walk reads the whole window as before, which is what lets a recovered month fill in.
+      await acctReady();
+      const _hid=acctId('cc',u), _pb=String((acctCapRef.current||{})[_hid]||'');
+      const _top=_pb.indexOf('+gap')>=0?0:((acctGamesRef.current||{})[_hid]||[]).reduce((m,g)=>Math.max(m,(g&&g.src==='cc'&&g.date)||0),0);
+      const _ym=(t)=>{const d=new Date(t);return d.getUTCFullYear()*12+d.getUTCMonth();};
+      const _stopYM=_top>0?_ym(_top-36*3600*1000):-1;
+      const games=[];let i=archives.length-1,missed=0,leftover=false,reached=false;
       for(;i>=0&&games.length<ACCT_GMAX&&(archives.length-i)<=ACCT_GMONTHS;i--){
+        const _am=String(archives[i]).match(/(\d{4})\/(\d{2})\/?$/);
+        if(_top>0&&_am&&(+_am[1])*12+(+_am[2]-1)<_stopYM){reached=true;break;}
         let mj=null;
         /* #547 item (166), jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29: the walk took ~2.2s over five
            requests with nothing on screen but a collapsed '…'. It now says which month it is reading and what it has so far. */
@@ -5807,8 +5833,13 @@ export default function App(){
         if(!mg.length){missed++;continue;}
         mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
         const took=games.length;
-        for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
-        if(mg.length>games.length-took)leftover=true;      // #433 this month had rows we did not take
+        // #549 item (32): from a month that reaches back to the newest held game, only that game and newer are taken
+        // (the held one itself, so the walk visibly overlaps what is held), and the walk ends with this month.
+        const _ov=_top>0&&mg.some(g=>(g.end_time||0)*1000<=_top);
+        const take=_top>0?mg.filter(g=>(g.end_time||0)*1000>=_top):mg;
+        for(let k=0;k<take.length&&games.length<ACCT_GMAX;k++)games.push(take[k]);
+        if(take.length>games.length-took)leftover=true;      // #433 this month had rows we did not take
+        else if(_ov){reached=true;break;}
       }
       // Order matters and is the honest order: the games cap is only the binding limit if it was
       // actually reached. i<0 means the index ran out, so nothing was cut at all.
@@ -5821,8 +5852,9 @@ export default function App(){
       // if something is actually behind it - rows we declined inside a month, or index entries we never
       // reached. Otherwise an exhausted index means nothing was cut and there is no limit to state.
       const cutByGames=games.length>=ACCT_GMAX&&(leftover||i>=0);
-      const bound=(cutByGames?'games':(i<0?'all':'months'))+(missed?'+gap':'');
-      if(!games.length)throw new Error('no recent games found');
+      // #549 item (32) 'held': the walk reached the newest held game, so acctStore keeps the bound already recorded
+      const bound=(reached?'held':(cutByGames?'games':(i<0?'all':'months')))+(missed?'+gap':'');
+      if(!games.length&&!reached)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
       ccRawRef.current=null; await acctStore('cc',u,rows,bound); mergeGames();
     }catch(e){

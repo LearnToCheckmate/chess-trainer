@@ -989,9 +989,15 @@ async function input(seed,n,geo,name,thin){
     const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'merge-outage'});
     await stub(b,state);
     const r0=await refresh(b,state,{});
-    const tag='TC-R119 MERGE, A BAD MORNING: 200 stored, then a walk where 5 of 6 months answer 503 and the newest holds 5';
+    // #549 item (32) THE BAD MORNING MOVED ONE MONTH NEWER, AND THE REASON IS THE FIX. The second walk used to put its 5 games in
+    // the NEWEST month and fail the 5 older ones; since (32) a walk stops at the newest held game, and those 5 games are all
+    // older than it (the 200 reach Sep 27), so the walk ends with that month and never asks for the failing ones - A19b's
+    // "the failed months are disclosed" then had nothing to disclose. The 5 games are now in a NEW month (Oct) and every other
+    // month answers 503, so the walk reaches Sep, is refused, and stops at Aug without asking (Aug ends before the newest
+    // held game). A merge reverted to a replace still reads 200 -> 5 here, so A19a stays able to fail.
+    const tag='TC-R119 MERGE, A BAD MORNING: 200 stored, then a walk where a newer month holds 5 and every other month answers 503';
     if(L.say(r0.rows===MIN_CAP&&r0.storeFrom==='idb'&&keysOf(r0).length===MIN_CAP,'A19-0 vacuity '+tag+': the first walk stored '+MIN_CAP+' games, in IndexedDB',{rows:r0.rows,store:r0.storeFrom,idbRows:keysOf(r0).length,settled:r0.settled.ok})){
-      const r1=await refresh(b,state,{seed:'b',failExcept:NEWEST.y+'/'+String(NEWEST.m).padStart(2,'0')});
+      const r1=await refresh(b,state,{extra:{y:2026,m:10,n:5},failExcept:'2026/10'});
       L.say(r1.newHits>=2&&r1.settled.ok,'A19a-0 vacuity '+tag+': the second walk really ran - the index and the months were asked again',{newRequests:r1.newHits,settled:r1.settled});
       L.say(r1.rows>=r0.rows&&keysOf(r1).length>=keysOf(r0).length,'A19a '+tag+': THE REFRESH REMOVES NOTHING - the list and the store still hold every game they held before the half-failed walk (antagonist A measured 200 -> 5)',{before:r0.rows,after:r1.rows,storedBefore:keysOf(r0).length,storedAfter:keysOf(r1).length});
       L.say(GAP_RE.test(r1.body||''),'A19b '+tag+': and the months that failed are still DISCLOSED, because the newest walk asked for them and did not get them',{line:r1.cap&&r1.cap.text});
@@ -1015,8 +1021,10 @@ async function input(seed,n,geo,name,thin){
       // (an index that suddenly listed ONE month would be a different account's history: chess.com lists every month
       // that has games, so an exhausted index is a statement that nothing older exists)
       const r2=await refresh(b,state,{thin:{months:24,per:1}});
-      // Three of those 6 are games the first walk never took (the day-1 games of Jun, May and Apr, which the 200 cut off),
-      // so the held list GROWS by exactly the games it did not have: the expected count is measured, not assumed.
+      // Three of those 6 are games the first walk never took (the day-1 games of Jun, May and Apr, which the 200 cut off).
+      // #549 item (32): the walk now stops at the newest held game (Sep 27), so it reads Sep's one game and ends, and those
+      // three older games are not asked for at all - the list holds 200 -> 200. What is asserted is unchanged and is the
+      // point of the input: nothing held is lost, and the count is measured off the store rather than assumed.
       const k2=keysOf(r2),s2=new Set(k2),lost2=k1.filter(k=>!s2.has(k));
       L.say(r2.newHits>=2&&lost2.length===0&&r2.rows===k2.length&&r2.rows>=MIN_CAP,'A20b '+tag+': a thin recent window (6 months of 1 game) leaves EVERY one of the '+MIN_CAP+' held games in place and adds only what was new (antagonist A measured 200 -> 4)',{rows:r2.rows,stored:k2.length,lostFromBefore:lost2.length,newRequests:r2.newHits});
       // a NEWER month with 30 games: the walk takes 200 again, newest first, and the union is LARGER than any walk
@@ -1074,6 +1082,42 @@ async function input(seed,n,geo,name,thin){
       L.say(/There wasn.t room on this device to keep/i.test(r1.body||'')&&new RegExp(ACCTS[0]).test((r1.cap&&r1.cap.text)||''),'A22b '+tag+': and the account that was dropped is NAMED on the line, instead of vanishing on the next launch',{line:r1.cap&&r1.cap.text});
       const r2=await refresh(b,state,{refuse:true});
       L.say(r2.rows===r1.rows,'A22c '+tag+': after a reload the list is what it was - nothing counted before the reload disappears with it',{before:r1.rows,afterReload:r2.rows});
+    }
+    await b.close();
+  }
+  {
+    // ── A23 TC-R131 / TC-R132 #549 item (32), jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29,
+    //    direction (b): A REFRESH ASKS ONLY FOR WHAT IT DOES NOT HOLD. Every launch with a connected account walked the index
+    //    plus up to six months (antagonist B, #431: 5 requests and ~623KB before the list could change), although since #549
+    //    item (31) everything behind the newest held game is merged into what is already held and adds nothing. Seed (c): the
+    //    first walk reads the index and Sep, Aug, Jul, Jun (200 games, cut by games, the newest held game Sep 27). Then:
+    //    (TC-R132) Home and back to Review in the SAME launch - the question the job left open, per launch or per visit;
+    //    (TC-R131) a relaunch with nothing new must ask the index and Sep only, and a relaunch with 10 games in a new month
+    //    (Oct) the index, Oct and Sep only - and the line must still say what is held (the bound recorded for the account is
+    //    kept, because the walk said nothing about anything older than what it held). Bytes are the stub's response bodies.
+    //    Nothing leaves the container: the same ctx.route stub as above answers every request.
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:'[]',ct_acctgames:'{}'},name:'refresh-cost'});
+    await stub(b,state);
+    let bytes=0;b.page.on('response',async(res)=>{if(!/api\.chess\.com/.test(res.url()))return;try{bytes+=(await res.body()).length;}catch(e){}});
+    const months=(hs)=>hs.filter(h=>/games\/\d{4}\/\d{2}$/.test(h)).map(h=>h.slice(-7));
+    const tag='TC-R131 REFRESH COST';
+    const r0=await refresh(b,state,{});const b0=bytes,m0=months(state.hits);
+    if(L.say(r0.rows===MIN_CAP&&r0.newHits===5&&r0.settled.ok,'A23-0 vacuity '+tag+': the first walk read the index and four months ('+m0.join(', ')+') and stored '+MIN_CAP+' games - the cost a refresh used to pay every launch',{rows:r0.rows,requests:r0.newHits,months:m0,bytes:b0})){
+      const line0=(r0.cap&&r0.cap.text)||'';
+      // TC-R132 PER VISIT: leaving Review and coming back within one launch
+      const h1=state.hits.length;await b.home();await b.settle(400);await b.tile('Review');await b.settle(1800);
+      const rv=await READ(b);
+      L.say(state.hits.length===h1&&rv.rows===r0.rows,'A23a TC-R132 PER LAUNCH, NOT PER VISIT: Home and back to Review in the same launch asks chess.com for nothing and shows the same '+r0.rows+' games',{newRequests:state.hits.length-h1,rows:rv.rows,before:r0.rows});
+      const hb=state.hits.length,bb=bytes;
+      const r1=await refresh(b,state,{});const m1=months(state.hits.slice(hb)),b1=bytes-bb;
+      L.say(r1.newHits===2&&m1.length===1&&m1[0]==='2026/09'&&r1.rows===r0.rows&&r1.settled.ok,'A23b '+tag+': a relaunch with nothing new asks for the index and the newest month only (2 requests, not '+r0.newHits+') and still holds all '+r0.rows,{requests:r1.newHits,months:m1,rows:r1.rows,bytes:b1,firstWalkBytes:b0});
+      L.say(b1>0&&b1*2<b0,'A23c '+tag+': and downloads less than half of what the first walk did',{bytes:b1,firstWalkBytes:b0});
+      const hc=state.hits.length,bc=bytes;
+      const r2=await refresh(b,state,{extra:{y:2026,m:10,n:10}});const m2=months(state.hits.slice(hc));
+      L.say(r2.newHits===3&&m2.join(',')==='2026/10,2026/09'&&r2.rows===r0.rows+10,'A23d '+tag+': a relaunch with 10 games in a new month asks for the index, that month and the month of the newest held game, nothing older, and adds the 10 ('+(r0.rows+10)+')',{requests:r2.newHits,months:m2,rows:r2.rows,expect:r0.rows+10,bytes:bytes-bc});
+      L.say(!!line0&&((r2.cap&&r2.cap.text)||'')===line0&&!GAP_RE.test(r2.body||''),'A23e US-R25 '+tag+': and the line still says what is held - the same oldest date as after the first walk, and no gap - because a walk that stopped at what it holds says nothing about anything older',{first:line0,now:r2.cap&&r2.cap.text});
+      L.say(b.errs.length===0,'A23f '+tag+': zero app errors',b.errs.slice(0,3));
     }
     await b.close();
   }
