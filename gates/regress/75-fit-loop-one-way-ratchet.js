@@ -680,4 +680,47 @@ L.run(async()=>{
       L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D16 '+c.n+' THE REVIEW BOARD COMES BACK: after the block is gone the board is within the loop\'s '+STEP+'px step of its fresh-launch width ('+R.after+' vs '+R.fresh+'), neither smaller nor larger. Pre-fix the board column and its bars swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
     }
   }
+  // TC-R64-D17 [#549 run fix fixr5a, antagonist A round 5 A1-R5, over 1029033]. A SMALL OVERFLOW AT THE WIDTH CAP IS CORRECTED
+  // WITHIN THE WAKE. D15 needs a block big enough to shrink the board at all; this cell is the other half - a phone game whose
+  // board already sits at its WIDTH cap meets an overflow of 20px or less, and the loop must take it out before its 36-pass wake
+  // ends. 1029033's absorbed-slack term made "over" read well under -24 at rest on those phones, so the growth branch parked the
+  // trim at -480, where no trim moves SQ; the next small overflow then spent the whole wake climbing back out of that dead zone and
+  // was never corrected. MEASURED (vs Computer at 4 plies, every frame for 90 frames after the Moves toggle): run head 46340d1
+  // trial 1f1d1d2b4acc, 375x761 130px 353/12 for all 90 frames, 375x730 100px 353/13 for all 90; fix cf754436d9be, 353/12 x14 then
+  // 337/0, and 353/13 x12 then 330/0 - what #548 does. PX is a property of the cell (it is what puts the overflow in the 1..20
+  // band at that cell's height); the band itself is asserted as the state-reached line, so a layout change that moves it says so.
+  {
+    const P=require('../drive/play.js');
+    const SCELLS=[
+      {n:'375x730', g:L.GEOS.kunal730, px:100},
+      {n:'375x761', g:L.GEOS.kunal761, px:130},
+    ];
+    const STEP=8,FRAMES=90,SMALL=20;
+    for(const c of SCELLS){
+      const R={};
+      const b=await L.launch({geo:c.g,name:'d17-'+c.n,store:{ct_pool:'3'}});
+      try{
+        await b.open();await P.states['cpu-4ply'](b);await b.settle(800);
+        R.fresh=await bw(b);
+        Object.assign(R,await b.page.evaluate(async(a)=>{const root=document.getElementById('root');
+          const tm=()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;};
+          const bwf=()=>{let m=0;for(const e of document.querySelectorAll('div'))if(/repeat\(8,/.test(e.style.gridTemplateColumns||''))m=Math.max(m,e.getBoundingClientRect().width);return Math.round(m*100)/100;};
+          const ovf=()=>{const de=document.documentElement;let bot=0;for(const k of root.children){const s=getComputedStyle(k);if(s.position==='fixed'||s.position==='absolute')continue;bot=Math.max(bot,k.getBoundingClientRect().bottom);}return Math.round((bot-de.clientHeight)*100)/100;};
+          const d=document.createElement('div');d.id='ct-d17-kick';d.style.cssText='height:'+a.px+'px;flex:0 0 '+a.px+'px';root.firstElementChild.prepend(d);
+          const q=d.getBoundingClientRect(),cs=getComputedStyle(d);const injRect={h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'&&cs.display!=='none'};
+          const tap1=tm();const fr=[];for(let i=0;i<a.frames;i++){await new Promise(r=>requestAnimationFrame(r));fr.push([bwf(),ovf()]);}
+          d.remove();const removed=!document.getElementById('ct-d17-kick');const tap2=tm();
+          for(let i=0;i<a.frames;i++)await new Promise(r=>requestAnimationFrame(r));
+          return {injRect,tap1,tap2,removed,first:fr[0],peak:Math.max(...fr.map(x=>x[1])),last:fr[fr.length-1],fixedAt:fr.findIndex(x=>x[1]<=0)};},{px:c.px,frames:FRAMES}));
+        await b.settle(600);R.after=await bw(b);
+      }catch(e){R.threw=String(e&&e.message||e).slice(0,200);}
+      await b.close();
+      L.say(!R.threw,'TC-R64-D17 '+c.n+' the play arm ran without throwing'+(R.threw?' - '+R.threw:''),R);
+      L.say(typeof R.fresh==='number'&&R.fresh>40,'TC-R64-D17 '+c.n+' DENOMINATOR a fresh vs-Computer board is painted at 4 plies ('+R.fresh+')',{fresh:R.fresh});
+      L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1&&R.tap1===true,'TC-R64-D17 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height while Moves was toggled',{injRect:R.injRect,tap1:R.tap1});
+      L.say(typeof R.peak==='number'&&R.peak>0&&R.peak<=SMALL&&!!R.first&&R.first[0]===R.fresh,'TC-R64-D17 '+c.n+' THE STATE WAS REACHED: a SMALL overflow ('+R.peak+'px, in 1..'+SMALL+') with the board still at its fresh width on the first frame ('+(R.first&&R.first[0])+' vs '+R.fresh+')',{first:R.first,peak:R.peak});
+      L.say(!!R.last&&R.last[1]<=0&&R.last[0]<R.fresh&&R.fixedAt>=0,'TC-R64-D17 '+c.n+' THE SMALL OVERFLOW IS CORRECTED WITHIN THE WAKE: by frame '+FRAMES+' the overflow is '+(R.last&&R.last[1])+' (first <= 0 at frame '+R.fixedAt+') and the board took it ('+R.fresh+' -> '+(R.last&&R.last[0])+'). On 46340d1 the trim sat parked at -480 and the overflow stood for all '+FRAMES+' frames',{last:R.last,fixedAt:R.fixedAt});
+      L.say(R.removed===true&&R.tap2===true&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D17 '+c.n+' and after the block is gone the board comes back to within '+STEP+'px of fresh ('+R.after+' vs '+R.fresh+')',{removed:R.removed,tap2:R.tap2,after:R.after});
+    }
+  }
 },'75-fit-loop-one-way-ratchet');
