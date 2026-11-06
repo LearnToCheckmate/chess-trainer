@@ -1724,6 +1724,11 @@ actually considering, see what the engine says, take it back, and come back to t
 As a player who reviews more games than I drill, my mistakes list holds at most 150 positions, and when it is full the ones the drill has already shown me go first, then the oldest, so a mistake is not lost before I have seen it while a practised one could go instead.
 - Every position the drill shows me counts as practised, the first card of a session included. (TC-R108)
 - The 150 limit holds however the list arrives - from a review, or already stored over the limit by an earlier build - by the same rule. (TC-R108)
+### US-R102 A figure the app prints about itself is the figure the device reports
+*Added #549 item (59), from jobs/bench-no-gate-asserts-any-figure-the-layout-readout-prints-2026-10-07: the general clause that job drafted as TC-MN-041. US-R89 (the screen row) and US-PL-23 (the opponent's strength) are instances of it.*
+As Kunal settling a layout or strength question from a screenshot, every number the app prints about the device, the page or itself is the number the device or the app's own configuration holds at that moment, so a screenshot of a readout can be believed without re-measuring it.
+- The Layout readout's screen, vw, dpr, inner, visual-viewport and safe-inset figures each equal the page's own value read at the same moment, its board, square and gap agree with each other and with vw, and its build equals the stamp on the served bundle, at 375x761, 375x730 and 320x568. (TC-MN-042)
+- A figure with no independent truth on the screen that prints it (the tile-ink ratios, which measure an unpinned font; the mode and eval rows) is excluded by name and says why, rather than counted as checked. (TC-MN-042)
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and
