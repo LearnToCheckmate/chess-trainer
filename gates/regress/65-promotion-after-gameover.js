@@ -175,6 +175,13 @@ async function ppClock(b){
   if(!(await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return p?getComputedStyle(p).visibility==='visible':false;})))
     await tapBtn(b,/^Moves$/,400);
 }
+// selDots: the board's selection overlay and legal-target dots, both counted BY STRUCTURE inside the widest repeat(8,...) grid
+// and never by a hook [#432]. dots = round absolutely placed divs of the two target-dot colours; sel = absolute inset-0 divs painted
+// HL_SEL (chess.jsx: HL_SEL='rgba(255,255,0,.5)'), which the last-move tint (.35) and the review grade tint do not match. -1 = no board.
+const selDots=(b)=>b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!gr)return {dots:-1,sel:-1};
+  const ds=[...gr.querySelectorAll('div')];
+  return {dots:ds.filter(d=>{const st=d.style;return st.position==='absolute'&&st.borderRadius==='50%'&&/rgba\(0, ?0, ?0, ?0?\.(18|22)\)/.test(st.background||'');}).length,
+    sel:ds.filter(d=>{const st=d.style;return st.position==='absolute'&&/rgba\(255, ?255, ?0, ?0?\.5\)/.test(st.background||'');}).length};});
 async function resignHere(b){await tapBtn(b,/^More$/,500);await tapBtn(b,/^Resign$/,600);await tapBtn(b,/^Tap again to resign$/,1100);}
 async function waitFlag(b,ms){const t0=Date.now();while(Date.now()-t0<(ms||140000)){if(await card(b))return Date.now()-t0;await b.page.waitForTimeout(250);}return null;}
 
@@ -733,6 +740,9 @@ async function blockH(){
 // this suite, this block included. It IS reachable - each square paints `isSel` and `tgt` as child divs at
 // chess.jsx:8517-8518 - so the assertion is possible, and it is filed as its own job rather than improvised
 // here, because a new assertion is worth nothing without its own single-revert control bundle.
+// [SUPERSEDED, #548 and #549 item (4)]: that job was built. Blocks K and KF below now read the target dots AND the HL_SEL
+// selection overlay after a resignation and after a real clock flag, and the single-revert control for (2) is recorded in
+// their CONTROL-RECORD lines - so (2) HAS a negative control now. The paragraph above is kept as the reason they exist.
 //
 // BOTH are required and that is the point of the pair: (2) alone stops the piece being lifted, so reverting only
 // (1) leaves the tap refused earlier and I1 stays green over a bundle whose committer is wide open. Run it as:
@@ -1189,24 +1199,53 @@ async function blockJS(){
 // the two dot colours inside the board), never by a hook. Arrival first (#385): on the live board, before the resignation, the same
 // tap DOES paint targets, so the counter can see them; then the tap after the resignation paints none and moves nothing.
 // Control: a trial with the guard line removed (chess.jsx, search "playEndRef.current)return false") reddens K2.
+// #549 item (4): K0s and K2s add the HL_SEL selection overlay (the folded case TC-PL-SEL-01, registered as TC-PL-058).
 async function blockK(){
   const b=await L.launch({geo:'kunal730',name:'65K'});await b.open();
   await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await tapBtn(b,/^▶ Start game$/,900);
   await b.move('e2','e4',400);await b.move('e7','e5',500);
-  const dots=()=>b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!gr)return -1;
-    return [...gr.querySelectorAll('div')].filter(d=>{const st=d.style;return st.position==='absolute'&&st.borderRadius==='50%'&&/rgba\(0, ?0, ?0, ?0?\.(18|22)\)/.test(st.background||'');}).length;});
-  await b.tapSq('d2');await b.settle(300);const live=await dots();
+  const dots=async()=>(await selDots(b)).dots;
+  await b.tapSq('d2');await b.settle(300);const liveSD=await selDots(b);const live=liveSD.dots;
   await b.tapSq('d2');await b.settle(300);   // deselect
+  L.say(liveSD.sel===1,'TC-PL-058 K0s ARRIVAL on the LIVE board the tapped d2 pawn paints the selection overlay (HL_SEL) on exactly one square ('+liveSD.sel+'), so the overlay counter below can see it',liveSD);
   L.say(live>=2,'K0 ARRIVAL on the LIVE board the d2 pawn, tapped, paints its legal targets ('+live+' dots), so the counter below can see them',{live});
   const p0=await plies(b);
   await resignHere(b);await b.settle(600);
   const cd=await card(b);
   L.say(/Resign/i.test(cd||''),'K1 ARRIVAL the game ended by resignation (an ending that is not on the board)',{card:cd});
-  await b.tapSq('d2');await b.settle(300);const after=await dots();
+  await b.tapSq('d2');await b.settle(300);const afterSD=await selDots(b);const after=afterSD.dots;
+  L.say(afterSD.sel===0,'TC-PL-058 K2s after the resignation, tapping the d2 pawn paints no selection overlay (HL_SEL) on any square ('+afterSD.sel+')',afterSD);
   L.say(after===0,'K2 after the resignation, tapping the d2 pawn lifts nothing: no legal-target dot is painted ('+after+')',{after,live});
   await b.tapSq('d4');await b.settle(500);const p1=await plies(b);
   L.say(p1===p0,'K3 and tapping a target square after it commits no move ('+p0+' -> '+p1+' plies)',{p0,p1});
   L.say(b.errs.length===0,'K4 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
+// ── KF: THE SAME GUARD, THE GAME ENDED BY A REAL CLOCK FLAG [#549, item (4); jobs/playendref-lags-playend-by-one-effect-flush-2026-09-30,
+// the folded case TC-PL-SEL-01, registered as TC-PL-059]. Block K ends the game by RESIGNATION; the folded case asks for the ending
+// the job is named for - a clock flag, the setPlayEnd site whose ref used to lag by one effect flush. vs Computer, 1 min, the human
+// White at move 0, at 375x761 (Kunal's phone, R19). Arrival first (#385): on the live board the d2 tap paints the HL_SEL overlay and
+// its target dots (after 1.e4 and the bot's reply, because the clock starts on White's first move); then White never moves again,
+// White's clock runs out, and the same tap paints neither and a tap on d4 commits nothing.
+// Control: the same trial as block K (the humanCanMove guard line removed) reddens KF2s and KF2; KF3 is held by doMove's own guard.
+// CONTROL-RECORD: 5fec51b 2026-11-06 total=14 red=4 scope=blocks:K,KF how=#549 item (4): the humanCanMove playEnd guard line removed (chess.jsx, search "playEndRef.current)return false"), trial md5 89a3e1cf3286, CT_B65=K,KF at 375x730 and 375x761: K2s, K2, KF2s and KF2 red; K0, K0s, K1, K3, KF0, KF1, KF3 and the rest stay green (K3 and KF3 are held by doMove's own guard, so neither is independently controlled); the shipped trial 0ec547e8eecc is 14 PASS 0 FAIL
+async function blockKF(){
+  const b=await L.launch({geo:'kunal761',name:'65KF'});await b.open();
+  await P.states['cpu-clock-m0'](b);await b.settle(500);
+  // The clock runs from White's first move (block I does the same), so 1.e4 and the bot's reply first; then White never moves again.
+  await b.move('e2','e4',0);for(let w=0;w<40&&(await plies(b))<2;w++)await b.page.waitForTimeout(150);
+  await b.tapSq('d2');await b.settle(300);const live=await selDots(b);
+  await b.tapSq('d2');await b.settle(300);   // deselect
+  L.say(live.sel===1&&live.dots>=2,'TC-PL-059 KF0 ARRIVAL on the LIVE clocked board the d2 pawn, tapped, paints the selection overlay on one square and its legal targets ('+live.sel+' sel, '+live.dots+' dots)',live);
+  const p0=await plies(b);
+  const ms=await waitFlag(b,140000);const cd=await card(b);
+  L.say(ms!==null&&/Time/i.test(cd||'')&&/You lose/.test(cd||''),'TC-PL-059 KF1 ARRIVAL the game ended by a real clock flag on the HUMAN\'s (White\'s) clock',{ms,card:cd});
+  await b.tapSq('d2');await b.settle(300);const after=await selDots(b);
+  L.say(after.sel===0,'TC-PL-059 KF2s after the flag, tapping the d2 pawn paints no selection overlay (HL_SEL) ('+after.sel+')',after);
+  L.say(after.dots===0,'TC-PL-059 KF2 after the flag, tapping the d2 pawn paints no legal-target dot ('+after.dots+')',after);
+  await b.tapSq('d4');await b.settle(500);const p1=await plies(b);
+  L.say(p1===p0,'TC-PL-059 KF3 and tapping a target square after it commits no move ('+p0+' -> '+p1+' plies)',{p0,p1});
+  L.say(b.errs.length===0,'TC-PL-059 KF4 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
 // #548 item (141), jobs/gate-65-never-drives-the-human-plays-black-clock-flag-cell-and-a-register-clause-says-it-was-filed-2026-10-09,
@@ -1321,5 +1360,6 @@ L.run(async()=>{
   if(want('J'))for(const g of GEOS)await blockJ(g);
   if(want('JS'))await blockJS();
   if(want('K'))await blockK();
+  if(want('KF'))await blockKF();
   if(want('L'))await blockL();
 },'65-promotion-after-gameover');
