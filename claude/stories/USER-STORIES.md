@@ -1569,6 +1569,7 @@ As a player reading why a puzzle's answer works, I can tell when the explanation
 As a player stuck on a puzzle, the hint I asked for stays on screen while I try moves, and a second wrong move tells me where to look next instead of repeating itself.
 - After 💡 Hint, a wrong move shows its ✗ line in the verdict box and the hint stays in the header; it is still there after a second wrong move. (TC-R86)
 - The second wrong move on the same puzzle points at 👁 Show rather than printing the first sentence again. (TC-R86)
+- The same holds with the phone turned sideways: in the landscape rail the hint takes the counter row, a wrong move does not replace it, and the board does not move. (TC-R86b, #549)
 
 ### US-R83 Starting to practise a lesson moves nothing on screen
 *Added #547, from jobs/lesson-moves-head-and-action-row-jump-12px-demo-to-practice-2026-09-29 (Kunal's N-lesson-3, 13 Sep 2026).*

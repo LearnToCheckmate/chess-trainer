@@ -183,11 +183,18 @@ L.run(async()=>{
   // jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28. Pre-fix the hint and the ✗ line shared one slot: after 💡 Hint then a
   // wrong move (Re7) the header lost the hint, and every wrong move printed the same sentence. Phones only (the header carries
   // the hint below the iPad width); 375x730 and 320x568.
-  for(const geo of ['kunal730','se']){
-    const b=await L.launch({geo,name:'pz-hint-keep-'+geo});await b.open();
+  // TC-R86b [#549, item (46); same job, amber flags/amber-549-pz-hint-rail]: AND IN LANDSCAPE. On HEAD before #549 the wide rail held
+  // the hint only in puzMsg, so at 730x375 and 844x390 the first wrong move replaced it (measured: the verdict box read the hint, then
+  // '✗ Re7 isn't it...', and no pz-hint-head existed). The hint now takes the rail's counter row. Same drive, same assertions, plus the
+  // board's rect read before the hint and after the second wrong move at every geometry.
+  for(const g0 of ['kunal730','se',{w:730,h:375,safe:''},{w:844,h:390,safe:''}]){
+    const geo=typeof g0==='object'?(g0.w+'x'+g0.h):g0;
+    const b=await L.launch({geo:g0,name:'pz-hint-keep-'+geo});await b.open();
     const rd=()=>b.page.evaluate(()=>{const h=document.querySelector('[data-ct="pz-hint-head"]');const t=document.querySelector('[data-ct="pz-top"]');
-      const x=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^✗/.test((e.innerText||'').trim())).map(e=>e.innerText.trim()):[];return {head:h?(h.innerText||'').trim():null,x};});
-    let ok=true;try{await Z.states['train-hint'](b);await b.settle(400);}catch(e){ok=false;}
+      const x=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^✗/.test((e.innerText||'').trim())).map(e=>e.innerText.trim()):[];const hl=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^\u{1F4A1}/u.test((e.innerText||'').trim())):[];
+      /* #549 (46): the hint is found by WHAT IT SAYS (a leaf in pz-top starting 💡), pz-hint-head first - not by the hook alone, which on the pre-#549 landscape rail does not exist, so the control would only have failed the precondition */
+      return {head:h?(h.innerText||'').trim():(hl.length?hl[0].innerText.trim():null),x};});
+    let ok=true,m0=null;try{await Z.states['train'](b);await b.settle(400);m0=await b.metrics();await Z.tapBtn(b,/^💡 Hint$/,600);await b.settle(400);}catch(e){ok=false;}
     const r0=await rd();
     if(!L.say(ok&&!!r0.head&&/^\u{1F4A1}/u.test(r0.head),geo+': TC-R86 PRECONDITION the hint was asked for and is in the header',r0)){await b.close();continue;}
     await b.move('e1','e7',0);try{await Z.waitMsg(b,/^✗/,3000);}catch(e){}await b.settle(500);const r1=await rd();
@@ -196,6 +203,8 @@ L.run(async()=>{
     await b.move('e1','e7',0);await b.settle(900);const r2=await rd();
     L.say(r2.head===r0.head,geo+': TC-R86 and still after a second wrong move',{after:r2.head});
     L.say(r2.x.length===1&&r2.x[0]!==r1.x[0]&&/\u{1F441}/u.test(r2.x[0]),geo+': TC-R86 the second wrong move says something new: it points at 👁 Show instead of repeating the first sentence',{first:r1.x[0],second:r2.x[0]});
+    const m2=await b.metrics();
+    L.say(!!m0&&!!m0.board&&!!m2&&!!m2.board&&Math.abs(m0.board.top-m2.board.top)<0.6&&Math.abs(m0.board.left-m2.board.left)<0.6&&Math.abs(m0.board.w-m2.board.w)<0.6,geo+': TC-R86b the board has the same rect (top, left, width) before the hint and after the second wrong move',{before:m0&&m0.board,after:m2&&m2.board});
     L.say(b.errs.length===0,geo+': TC-R86 no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
