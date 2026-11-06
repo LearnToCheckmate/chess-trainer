@@ -430,6 +430,7 @@ L.run(async()=>{
   // the reason must NOT appear and a real line must arrive. (NOT ply 10: measured on both the fixed and the pre-fix bundle, ply
   // 10 - after 5.Qxc7 - never gets a line, '+5.1 …' for 24s+ even when reached directly while 9 and 8 answer in 5s. That is
   // a separate dead-query finding, recorded in the #547 run report, and a control must not stand on a defect.)
+  // [#549 item (91): ply 10 measured with a line in 1.0 s on HEAD ('+5.2 6. Qxb8 f5 …'), fixed by the same cedb498; ply 8 stays the control.]
   {const GAMES=[{k:'stalemate',want:/^Stalemate — /,pgn:'[Result "1/2-1/2"]\n\n1. e3 a5 2. Qh5 Ra6 3. Qxa5 h5 4. h4 Rah6 5. Qxc7 f6 6. Qxd7+ Kf7 7. Qxb7 Qd3 8. Qxb8 Qh7 9. Qxc8 Kg6 10. Qe6 1/2-1/2',n:19},
                 {k:'checkmate',want:/^Checkmate — /,pgn:'[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1',n:4}];
    for(const G of GAMES){
@@ -457,6 +458,14 @@ L.run(async()=>{
          on this route, not part of item (116)'s claim, and it is filed as its own job rather than left as a red that names the wrong change.
          The control keeps its one assertion and asserts what (116) is about: the reason row is confined to the game-over plies. */
       L.say(c.ply==='8/'+G.n&&!/^(Stalemate|Checkmate) — /.test(c.txt||'')&&!!(c.txt||'').trim(),'TC-R83 control at ply 8 the game-over reason does NOT appear - the row shows the live position\'s evaluation, so the fix is confined to game-over plies',{txt:c.txt});
+      /* #549, item (91), jobs/review-engine-line-never-arrives-at-ply-8-of-the-stalemate-game-2026-11-03: THE LINE HALF, RESTORED.
+         The dead search above was a STALE bestmove: the previous search's answer to `stop` (here 'bestmove a6a5', a Black move with
+         White to move) arrived just after this query's `go` and finished it, so uciToMove rejected it and the line came out empty.
+         cedb498 (#549 item (26)) made sfBestLine ignore everything before its own search's depth-1 line. Measured with a worker-traffic
+         probe at 375x761, ct_pool 3: main 7340372 '+1.3 …' after 35.8 s; cedb498 '+1.4 5. d4 Rg6 …' in 2.1 s; HEAD '+1.4 5. d4 …' in
+         1.0 s direct, and in 1.0 s after the 19/19 walk and back. A separate assertion, not a conjunct, so the reason half above
+         still reports on its own (#493). */
+      L.say(c.ply==='8/'+G.n&&hasVar(c.txt),'TC-R83 control at ply 8 a real engine line arrives within 30s (a numbered move in real SAN after the evaluation), not the dead-query \'…\' shape',{txt:c.txt});
     }
     /* TC-R83b [#548, item (29); the stalemate Analyze prompt folded into jobs/terminal-ply-engine-line-bare-ellipsis-2026-09-27]:
        analysing FROM the game-over ply, before any move is played, the analysis line used to read 'your board · play any move' -
