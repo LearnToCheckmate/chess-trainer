@@ -63,11 +63,11 @@
 // uncovered branch and reporting it as the covered one. The route itself is jobs/no-harness-route-to-the-
 // drill-capture-producer-2026-09-30 and belongs to test-authoring, not here.
 //
-// A CONTRADICTION, RECORDED AND NOT RESOLVED [R45]. chess.jsx:3944, in the #426 P0-1 comment, states
-// "Gate 51 now runs a fallback column." It does not and, per the paragraph above, cannot: there is no
-// column and no reachable branch. Both sides are on record - the bundle comment claims coverage this file
-// does not provide - and the sweeper does not pick a side. Filed as a job; do not silently delete either
-// sentence.
+// A CONTRADICTION, NOW RESOLVED (#549, item 118; jobs/chessjsx-claims-gate-51-runs-a-fallback-column-and-
+// it-does-not-2026-10-03). The #426 P0-1 comment in chess.jsx (find it by the text "#426 antagonist B,
+// P0-1") stated "Gate 51 now runs a fallback column." It never did. That comment now says what is true -
+// the fallback branch is instrumented (A0e) but not driven, and has no gate until the route job lands -
+// and this file's paragraph above was already right, so only the bundle side changed.
 //
 // THE ALT-MATE SOLVE STATE, AND WHY THIS GATE DOES NOT REACH IT (jobs/veto-fixes-land-with-no-assertion-
 // because-the-gate-is-frozen-pre-veto-2026-09-28, fix part 1, third item, which allows "or a written
