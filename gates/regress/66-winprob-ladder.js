@@ -21,7 +21,7 @@
 // real and worth keeping), A6..A27 are labelled GATE-ARITHMETIC, and the four TC-R40 inputs with no constraint
 // (clause 'unconstrained') are now notes, not PASS lines. What executes the bundle's ladder is block B (rendered
 // counts and accuracy on PGN_OPERA) and block E (#545 item (56): the Mistake and Inaccuracy rungs, rendered). A
-// rendered test for every band boundary is the job's option (1) and is still open.
+// rendered test for every band boundary is the job's option (1) and is block F since #549 item (62).
 // WHY BLOCK A CANNOT PASS VACUOUSLY [as an EXTRACTION, which is all it now claims]. A0 asserts every extraction FOUND something before any assertion
 // uses it. That is the E1b discipline from gate 65: a regex that cannot match reports a defect that is
 // not there, and here it would instead report a ladder that is not there. Measured while writing this:
@@ -386,6 +386,72 @@ L.run(async()=>{
     L.say(!!line&&new RegExp('\\b'+g.want+'\\b').test(line)&&!others.some(x=>new RegExp('\\b'+x+'\\b').test(line)),
       g.id+' TC-R40-MATE-RUNGS-RENDERED the pill on g4 reads '+g.want+' - allowing mate from '+(g.want==='Mistake'?'-701..-999':'-1000 or worse')+' is graded by the ladder, not the old always-Blunder floor',{line});
     await e.close();
+  }
+
+  // ════════ BLOCK F - EVERY BAND BOUNDARY, GRADED BY THE BUNDLE'S OWN CLASSIFY AND READ OFF THE SCREEN ════════
+  // [#549, item (62); jobs/gate-66-block-a-is-27-assertions-that-cannot-fail-2026-09-30, the job's option (1)]. Block A
+  // runs this gate's arithmetic, not the bundle's; block B reads ONE game's counts; block E reads two mate rungs. Nothing
+  // drove a move to either side of each of the five cut-offs and read the pill. The obstacle the job's skip receipts
+  // named - an engine reply drifting a position across a line - is removed rather than fought: the review's Stockfish
+  // path reads ct_evalcache (raw white-POV evaluations keyed by the move list, chess.jsx evalCacheKey) BEFORE it searches,
+  // so a seeded entry fixes `before` and `after` exactly and the bundle's winDrop -> classify does the grading. bU, aU
+  // and ev2W are null, so no engine best move zeroes the loss and neither the Great nor the Miss overlay can fire (Miss
+  // needs the mover to stand at +200; White stands at 0 before every graded move). Each pair: White drops 0 -> -X, Black
+  // gives it back -X -> 0; only White's plies are asserted. Two filler pairs come first so no graded ply is in the book.
+  // F0 proves the seeded entry was READ (its `at` stamp moves on a cache hit), so a review that fell back to the depth-2
+  // engine, or a key that did not match, cannot pass as the ladder.
+  // THREE CONTROLS, MEASURED AT #549 on trial bundles built from this tree's chess.jsx with one edit each (blocks B and E
+  // skipped in a scratch copy, so only blocks A, C and F ran): (1) winDrop returning the RAW centipawn loss - the #441
+  // antagonist's sabotage, which kept block A green 27 of 27 - reddens F1..F9 and F11 (10 red; F10 and F12 read Blunder
+  // either way); (2) the Stockfish site grading by the pre-#440 linear classifyByLoss reddens F11 alone, the one input
+  // where the two ladders disagree; (3) the band table with Good's 8.2096 moved to 9.0 - theFix's "a DIFFERENT band
+  // table, not one with none" - reddens F6 (95cp now reads Good) and A0. Records: the CONTROL-RECORD lines at the foot.
+  {
+    // [whiteAfter, blackAfter, wantedWhiteGrade|null, cut-off or null], white-POV centipawns; every pair starts where the
+    // last one ended. Pairs 2..11 straddle the five cut-offs at eval 0. Pairs 12..14 are TC-R40's own shape, rendered:
+    // pair 12 puts White at -700 (not asserted), pair 13 is a 350cp slip from there (drop 5.01 -> Good, where the
+    // pre-#440 linear ladder said Blunder), pair 14 is the SAME 350cp slip from 0 (drop 28.39 -> Blunder). So F11 and
+    // F12 also go red on a bundle whose ladder is the old centipawn one, which F1..F10 alone cannot see: at eval 0 the
+    // two ladders agree by design (the CLS_BANDS amber record).
+    const F_P=[[0,0,null],[0,0,null],[-12,0,'Best',15],[-18,0,'Excellent',15],[-36,0,'Excellent',40],[-44,0,'Good',40],
+      [-85,0,'Good',90],[-95,0,'Inaccuracy',90],[-154,0,'Inaccuracy',160],[-166,0,'Mistake',160],[-312,0,'Mistake',320],
+      [-328,0,'Blunder',320],[-700,-700,null],[-1050,0,'Good',null],[-350,0,'Blunder',null]];
+    const F_SANS=['a3','a6','b3','b6','c3','c6','d3','d6','e3','e6','f3','f6','g3','g6','h3','h6','a4','a5','h4','h5','Na3','Na6','Nh3','Nh6','Nb1','Nb8','Ng1','Ng8','Nd2','Nd7'];
+    let pg='[Event "#549 band boundaries"]\n[White "W"]\n[Black "B"]\n[Result "*"]\n\n';
+    for(let k=0;k<F_SANS.length;k+=2)pg+=(k/2+1)+'. '+F_SANS[k]+' '+F_SANS[k+1]+' ';
+    pg+='*';
+    const N=F_SANS.length,evW=[0];
+    F_P.forEach(([wa,ba])=>{evW.push(wa);evW.push(ba);});
+    // the app's evalCacheKey, re-typed: djb2 over the SANs joined by spaces plus the engine token
+    let h=5381;const ks=F_SANS.join(' ')+'|sf18c';for(let i=0;i<ks.length;i++)h=((h<<5)+h+ks.charCodeAt(i))>>>0;
+    const key='g'+h.toString(36)+'-'+N;
+    const nul=n=>new Array(n).fill(null);
+    const f=await L.launch({geo:{w:375,h:730},name:'winprob-bands',store:{ct_pool:'3',ct_evalcache:JSON.stringify({[key]:{evW,ev2W:nul(N+1),bU:nul(N),aU:nul(N),at:1}})}});
+    await f.open(); await f.home(); await f.settle(2500); await f.tile('Review');
+    await f.page.locator('textarea').first().fill(pg);
+    await f.tapText(/^⚡ Analyze Game$/,{wait:300});
+    let fu=true;try{await f.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(x){fu=false;}
+    await f.settle(1200);
+    const hit=await f.page.evaluate((k)=>{try{const v=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')[k];return v?{at:v.at,evW:v.evW}:null;}catch(e){return null;}},key);
+    const hitOk=fu&&!!hit&&hit.at>1&&JSON.stringify(hit.evW)===JSON.stringify(evW);
+    L.say(hitOk,'F0 PRECONDITION the review graded the SEEDED evaluations: the summary rendered and the cache entry was read (at stamp moved, evW unchanged)',{summary:fu,key,at:hit&&hit.at,evWkept:!!hit&&JSON.stringify(hit.evW)===JSON.stringify(evW)});
+    if(!hitOk){L.note('F1..F12 NOT RUN: the seeded evaluations were not the ones graded');}
+    else{
+      await R.startReview(f);
+      let fn=0;
+      for(let p=0;p<F_P.length;p++){
+        const [wa,,want,cut]=F_P[p];if(!want)continue;fn++;
+        const ply=2*p+1, mv=F_SANS[2*p], from=evW[2*p], slip=from-wa;
+        await R.goPly(f,ply);
+        const line=await f.page.evaluate(()=>{const l=document.querySelector('[data-ct="rev-move-line"]');return l?l.innerText.replace(/\s+/g,' ').trim():null;});
+        const onPly=!!line&&new RegExp('^'+(p+1)+'\\. '+mv+'\\b').test(line);
+        const others=[...L.GRADES].filter(x=>x!==want);
+        const ok=onPly&&new RegExp('\\b'+want+'\\b').test(line)&&!others.some(x=>new RegExp('\\b'+x+'\\b').test(line));
+        // the ply is part of the assertion, so a walk that stood on the wrong move cannot pass (#385)
+        L.say(ok,'F'+fn+' TC-R40 at eval '+from+' a '+slip+'cp slip'+(cut?' ('+(slip<cut?'under':'over')+' the '+cut+'cp cut-off)':'')+' renders '+want+' on '+(p+1)+'. '+mv+' - graded by the bundle\'s winDrop and classify',{ply,line,onPly});
+      }
+    }
+    await f.close();
   }
 });
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
