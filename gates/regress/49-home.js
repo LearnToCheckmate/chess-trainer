@@ -685,6 +685,27 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     L.say(b.errs.length===0,geo+': zero app errors in the earned state',b.errs.slice(0,3));
     await b.close();
   }
+  // --- TC-HM-055 [#549 item (22), finding D and its folded drill-only job; Amber: flags/amber-549-new-here-retires]: 'new' is decided by
+  // what the player has DONE, not by a score. Each store has NO puzzle XP and NO ct_train mastery - the only two terms the card read
+  // before #549 - so on the base bundle (md5 a19136012900) the card painted in all three, measured at 375x761. Each store is its own
+  // assertion, and each first asserts the column rendered (Daily 3 is on it), so an absent Home cannot pass as an absent card.
+  for(const [nm,seed] of [['drill-only',{ct_mymistakes:[{fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',uci:'e7e5',played:'a7a6',label:'Mistake'}]}],
+                          ['banked-day',{ct_learnprog:{'Italian Game':{learned:true,days:['2026-11-05']}}}],
+                          ['opened-a-lesson',{ct_lastlesson:'0'}]]){
+    const b=await L.launch({geo,name:'home-e-used-'+nm+'-'+geo,store:seed});
+    await b.open();await SEEDED(b);
+    const cards=await CARDS(b);
+    L.say(!!cards&&cards.some(c=>c.id==='daily3')&&!cards.some(c=>c.id==='newhere'),
+      geo+': TC-HM-055 ['+nm+'] a player with no XP and no learned drill line who has '+nm.replace(/-/g,' ')+' is not new - the column renders and the NEW HERE card does not',cards&&cards.map(c=>c.id));
+    await b.close();
+  }
+  {
+    const b=await L.launch({geo,name:'home-e-promise-'+geo,store:{}});await b.open();await SEEDED(b);
+    const t=await b.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');const el=ov?[...ov.querySelectorAll('button')].find(x=>/^NEW HERE/i.test((x.innerText||'').trim())):null;return el?(el.innerText||'').replace(/\s+/g,' ').trim():null;});
+    L.say(!!t&&/bank your first day\.$/.test(t)&&!/\bwin\b/i.test(t),
+      geo+': TC-HM-055 [promise; finding C, Amber: flags/amber-549-new-here-promise] on a fresh store the NEW HERE card promises what a clean practice run banks - a DAY - and no longer a "win" the walkthrough never delivers',t);
+    await b.close();
+  }
   {
     const b=await L.launch({geo,name:'home-e-goal-'+geo,
       store:{ct_daily:{date:TODAY,streak:9,count:5},
@@ -813,6 +834,11 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     const h=await homeUp(b),disc=await b.page.evaluate(()=>/What do you want to learn\?/.test(document.body.innerText||''));
     L.say(cl,geo+': TC-HM-053 PRECONDITION the lesson\'s Close control was found and tapped',{cl});
     L.say(cl&&h===true,geo+': TC-HM-053 closing the lesson the NEW HERE card opened lands on HOME (the overlay is back), not on Discover',{homeUp:h,discoverText:disc});
+    // TC-HM-054 [#549 item (22), finding D; Amber: flags/amber-549-new-here-retires]: and the card it came from is GONE. Measured on the
+    // #549 base bundle (md5 a19136012900) at 375x761 it was byte-identical here, 'START HERE' beside Daily 3's 'Continue: Italian Game'.
+    if(cl&&h===true){await SEEDED(b);
+      const c2=await CARDS(b);
+      L.say(!!c2&&c2.some(c=>c.id==='daily3')&&!c2.some(c=>c.id==='newhere'),geo+': TC-HM-054 back on Home after the lesson the NEW HERE card opened, the NEW HERE card has RETIRED (Daily 3 is on the column and NEW HERE is not), so Home no longer says "Start here" beside "Continue" for the same lesson',c2&&c2.map(c=>c.id));}
   }
   await b.close();
 }

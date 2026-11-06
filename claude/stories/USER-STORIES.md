@@ -265,6 +265,20 @@ Kunal's answer on questions/B8B-OWL ('new', 4 Nov 2026): the owl coach drawing a
   and tapping Owl chooses it. (TC-MN-049)
 - Each of the five looks draws its own picture at one and the same size, and the look I pick is the one I find again after a reload.
   (TC-MN-050)
+
+### US-HM-14 Whether the app treats me as new is decided by what I have done in it, not by a score I have earned
+
+#549, item (22) of batch 9 (jobs/new-user-first-lesson-journey-2026-09-27, findings C and D and its folded job
+the-new-here-card-now-never-clears-for-a-drill-only-player-2026-10-02), taken on default and recorded as
+flags/amber-549-new-here-retires and flags/amber-549-new-here-promise. US-HM-11 covers the NEW HERE card landing on its
+lesson and leaves what the card says, and when it shows, out of scope. This clause covers those two.
+
+- Once I have opened a lesson, banked a lesson day, or have a saved mistakes or brilliancies drill, Home stops showing me the
+  NEW HERE card, even with no puzzle XP and no learned drill line, so it never says "Start here" beside Daily 3's
+  "Continue" for the same lesson. (TC-HM-054, TC-HM-055)
+- The card promises only what the journey delivers: a clean practice run banks a day, and the card says that, not "a win".
+  (TC-HM-055)
+
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).
