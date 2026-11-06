@@ -5189,7 +5189,17 @@ export default function App(){
            get none: what to show there is the Desk half, Kunal's, and is not decided here. */
         _wr=(og&&og.w&&og.w.rating!=null)?String(og.w.rating):'';_br=(og&&og.b&&og.b.rating!=null)?String(og.b.rating):'';}
       const _r=_gameOver?(_winSide==null?'1/2-1/2':(_winSide==='w'?'1-0':'0-1')):'*';
-      pgn='[White "'+_q(_w)+'"]\n[Black "'+_q(_b)+'"]\n'+(/^\d{3,4}$/.test(_wr)?('[WhiteElo "'+_wr+'"]\n'):'')+(/^\d{3,4}$/.test(_br)?('[BlackElo "'+_br+'"]\n'):'')+'[Result "'+_r+'"]\n\n'+pgn+(_r!=='*'?(' '+_r):'');}catch(e){}
+      /* #549 item (49) [Amber: flags/amber-549-review-says-how-it-ended], the half #547 left open on this job: the review never said HOW
+         the game ended. The ending rides in as an app-private tag, CTEnded, so the summary can print it on its own line under the
+         'You vs Pip · 0-1' header and the coach can tell a resignation from a clean game. Private rather than the standard Termination
+         tag so an imported game's summary is unchanged. Names are the header's own (You / the bot / the online names / the colours). */
+      let _end='';try{const _pe=playEndRef.current||playEnd;const _nm=sd=>sd==='w'?_w:_b;const _lo=sd=>sd==='w'?'b':'w';
+        if(_pe&&_pe.reason==='resign'&&_pe.winner)_end=_nm(_lo(_pe.winner))+' resigned';
+        else if(_pe&&_pe.reason==='time'&&_pe.winner)_end=_nm(_lo(_pe.winner))+' ran out of time';
+        else if(_pe&&_pe.reason==='draw')_end=_pe.by==='fifty'?'Draw by the fifty-move rule':_pe.by==='agreed'?'Draw agreed':_pe.by==='material'?'Draw by insufficient material':'Draw by threefold repetition';
+        else if(_gameOver&&_gameTermStatus==='checkmate')_end='Checkmate';
+        else if(_gameOver&&_gameTermStatus==='stalemate')_end='Draw by stalemate';}catch(e){_end='';}
+      pgn='[White "'+_q(_w)+'"]\n[Black "'+_q(_b)+'"]\n'+(/^\d{3,4}$/.test(_wr)?('[WhiteElo "'+_wr+'"]\n'):'')+(/^\d{3,4}$/.test(_br)?('[BlackElo "'+_br+'"]\n'):'')+'[Result "'+_r+'"]\n'+(_end?('[CTEnded "'+_q(_end)+'"]\n'):'')+'\n'+pgn+(_r!=='*'?(' '+_r):'');}catch(e){}
     setMode('analyze');setPlaySetup(false);setPgnText(pgn);importGame(pgn,{userColor:uc});};
   const jumpToIssue=(label)=>{setRevAuto(false);if(!review||!review.analysis)return;const idxs=[];review.analysis.forEach((o,i)=>{if(o.cls&&o.cls.label===label)idxs.push(i+1);});if(!idxs.length)return;const nxt=idxs.find(p=>p>ply);setPly(nxt!==undefined?nxt:idxs[0]);};
   const _liveOpening=useMemo(()=>{try{if(mode!=='play')return null;const h=(boardGame&&boardGame.history)||[];if(!h.length)return null;const sans=h.slice(0,24).map(x=>x.san);const o=nameOpening(sans);return (o&&o.name)?{name:String(o.name).split(' \u2014 ')[0].split(' - ')[0]}:null;}catch(e){return null;}},[mode,boardGame]); /* #370 n3; #371: the base name only - lesson titles carry commentary after an em dash (the antagonist found 49 of 114 do) */
@@ -8148,8 +8158,10 @@ export default function App(){
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
               <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
+              {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}
             </div>
             {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const an=review.analysis||[];if(!an.length)return null;const uc=S.userColor; // coach take (#310)
+              const _R=review.headers&&review.headers.Result,_ended=String((review.headers&&review.headers.CTEnded)||''),_youLost=!!uc&&((_R==='1-0'&&uc==='b')||(_R==='0-1'&&uc==='w'));   // #549 item (49)
               const mine=(i)=>{const mc=i%2===0?'w':'b';return uc?mc===uc:true;};
               let op=0,mid=0,end=0,worstI=-1,worstL=0,blun=0;
               an.forEach((a,i)=>{if(!mine(i))return;const L=a.cls&&a.cls.label;const bad=(L==='Blunder'||L==='Mistake');if(L==='Blunder')blun++;
@@ -8158,7 +8170,7 @@ export default function App(){
               const phases=[['the opening',op],['the middlegame',mid],['the endgame',end]].filter(p=>p[1]>0).sort((x,y)=>y[1]-x[1]);
               const psan=(i)=>{const p=review.plies&&review.plies[i];return (p&&(p.san||p))||('ply '+(i+1));};
               let msg;
-              if(!phases.length){msg=((uc?S[uc].moves:Math.min(S.w.moves,S.b.moves))===0)?'Nothing to score yet: the game never left the opening book.':(uc?'A clean game: no mistakes or blunders on your side. Keep testing yourself against stronger opposition.':'A clean game on both sides.');}   /* #547 item (108): 'clean' is a verdict on graded moves, and there were none */
+              if(!phases.length){msg=((uc?S[uc].moves:Math.min(S.w.moves,S.b.moves))===0)?'Nothing to score yet: the game never left the opening book.':(uc?(_youLost?(/ resigned$/.test(_ended)&&/^You /.test(_ended)?'You resigned, yet none of your moves was graded a mistake or a blunder: the position may still have held. Step through it below before resigning next time.':'No mistakes or blunders on your side, but the game was still lost. The key moments below show where it turned.'):'A clean game: no mistakes or blunders on your side. Keep testing yourself against stronger opposition.'):'A clean game on both sides.');}   /* #549 item (49): a game you lost - resigned above all - is not 'a clean game' */   /* #547 item (108): 'clean' is a verdict on graded moves, and there were none */
               else{const ph=phases[0][0];msg=(uc?'Most of your trouble came in ':'Most trouble came in ')+ph+'.';
                 if(worstI>=0&&worstL>=90){msg+=' The toughest moment was '+psan(worstI)+(worstL>=800?' (a game-deciding swing).':' (about '+(worstL/100).toFixed(1)+' pawns).');}
                 if(blun>=2){msg+=' Several outright blunders: a short daily puzzle habit is the fastest fix.';}}

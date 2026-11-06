@@ -618,6 +618,36 @@ L.run(async()=>{
      L.say(/· 0-1$/.test(hd),geo+': TC-PL-046 and states the result - you resigned as White, so 0-1 ("'+hd+'")',{hd});
    }
    await b.close();}
+  // TC-PL-063 (US-PL-18), #549 item (49): THE REVIEW OF A GAME YOU JUST PLAYED SAYS HOW IT ENDED, AND A RESIGNED GAME IS NOT 'A CLEAN
+  // GAME'. #547 gave the header the players and the result; the ending itself was still nowhere on the summary, and a game the player
+  // resigned at move 2 was summed up 'A clean game: no mistakes or blunders on your side.' (547b-all.log:736). Three arrivals, each from
+  // its own game-over screen: a resignation vs Pip (the human White, so 'You resigned'), Pass & Play's fool's mate (no playEnd: the
+  // getStatus half), and a Pass & Play threefold-repetition auto-draw (playEnd reason 'draw'). The line is located by its hook AND its
+  // text is pinned to a fact about the game, so a missing hook reads as a red precondition, not as a pass.
+  {const ends=[
+    {id:'resign',geos:['kunal761','se'],want:'You resigned',drive:async(b)=>{await P.states['cpu-resigned'](b);}},
+    {id:'mate',geos:['kunal761'],want:'Checkmate',drive:async(b)=>{await P.states['pp-mate'](b);}},
+    {id:'draw',geos:['kunal761'],want:'Draw by threefold repetition',drive:async(b)=>{await P.states['pp-m0'](b);
+      for(let i=0;i<5;i++){for(const [f,t] of [['g1','f3'],['g8','f6'],['f3','g1'],['f6','g8']])await b.move(f,t,380);
+        const r=await b.page.evaluate(()=>!!document.querySelector('[data-ct="result-card"]'));if(r)break;}}},
+  ];
+  for(const k of ends)for(const geo of k.geos){
+   const b=await L.launch({geo,name:'review-ended-'+k.id+'-'+geo});await b.open();
+   let ok=true;try{await k.drive(b);await b.settle(1500);await P.closeSheet(b).catch(()=>{});await b.settle(400);await P.tapBtn(b,/^(🔍 )?Review$/,1200);
+     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(800);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;const e=s.querySelector('[data-ct="rev-ended"]');
+     const q=e&&e.getBoundingClientRect();const c=[...s.querySelectorAll('div')].find(d=>(d.innerText||'').trim()==="Coach's take");
+     return {ended:e?(e.innerText||'').trim():null,rect:q?[Math.round(q.left),Math.round(q.top),Math.round(q.width),Math.round(q.height)]:null,vw:innerWidth,
+       coach:c&&c.nextElementSibling?(c.nextElementSibling.innerText||'').trim():null};});
+   if(L.say(ok&&!!r&&r.ended!==null,geo+': TC-PL-063 PRECONDITION ('+k.id+') the game-over Review reached the summary and it carries a rev-ended line',r)){
+     L.say(r.ended===k.want,geo+': TC-PL-063 ('+k.id+') the summary says how the game ended: "'+r.ended+'" (want "'+k.want+'")',r);
+     L.say(!!r.rect&&r.rect[2]>0&&r.rect[3]>0&&r.rect[0]>=0&&r.rect[0]+r.rect[2]<=r.vw+0.5,geo+': TC-PL-063 ('+k.id+') and that line is painted inside the viewport',{rect:r.rect,vw:r.vw});
+     // The grading of these few moves is not fixed across launches (measured over four launches: a move graded a mistake once, every move
+     // still in book once, no graded mistake twice), so the coach may take any of its three branches; none may call the game clean, and
+     // the no-mistake branch must name the resignation. The control's kunal761 launch landed on the 'A clean game' branch and went red.
+     if(k.id==='resign')L.say(!!r.coach&&!/^A clean game/.test(r.coach)&&(/^You resigned, yet none of your moves/.test(r.coach)||/^Most of your trouble came in /.test(r.coach)||/^Nothing to score yet/.test(r.coach)),geo+': TC-PL-063 (resign) the coach does not call the resigned game "a clean game" ("'+r.coach+'")',{coach:r.coach});
+   }
+   await b.close();}}
   // TC-PL-048 (US-PL-20), #547 item (150): A DOUBLE TAP CANNOT RESIGN. 'Tap again to resign' takes the same rect as 'Resign', so two
   // clicks 100ms apart on one pixel used to arm and confirm. A deliberate second tap (700ms) must still resign - both halves asserted.
   for(const gap of [100,700]){

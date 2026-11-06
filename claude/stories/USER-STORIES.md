@@ -1596,6 +1596,7 @@ As a player who finishes a game holding the phone sideways and scrolls the side 
 *Added #547, from jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29.*
 As a player who taps Review straight after a game, the summary names me and my opponent and states the result, as it does for a game I import.
 - After resigning against the computer, the header reads "You vs <bot> · 0-1", not "White vs Black". (TC-PL-046)
+- Under that header a line says how the game ended ("You resigned", "Checkmate", "Draw by threefold repetition"), and a game I resigned is not summed up as "a clean game". (TC-PL-063, #549)
 
 ### US-R85 The review never calls a position level when it simply has no evaluation for it
 *Added #547, from jobs/a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29.*
