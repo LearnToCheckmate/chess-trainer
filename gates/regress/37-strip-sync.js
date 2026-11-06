@@ -75,6 +75,18 @@
 // gates 34, 35, 36, 37, 51 and 66 somewhere to point a second column; five gate edits would not.
 'use strict';
 const L=require('../lib');
+// ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
+// assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
+// and body{position:fixed;inset:0}, so documentElement has no scrollable content whatever the app renders (gate 15's
+// #416 antagonist injected 3000px into #root and docScroll stayed 0). A pin that cannot move pins nothing. What it was
+// standing in for is the DESIGN - "#root scrolls, the page never does" - so the design's MECHANISM is asserted instead:
+// four computed styles, each of which a CSS change can flip on its own. docScroll is printed beside them, never credited.
+// Gate 15's PAGEFIX is the reference shape.
+const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  const h=getComputedStyle(document.documentElement),bd=getComputedStyle(document.body);
+  return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
+const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 
 // 16 plies of the Opera Game. Long enough that the strip overflows every geometry under test by a wide margin
 // (measured: scrollWidth-clientWidth is over 600px at 375), short enough that three analyses fit the gate budget.
@@ -190,7 +202,8 @@ L.run(async()=>{
     // fit. The CLASSIC screen is the pre-#337 long layout and measures over=393 at 375x730 on the #379 bundle, i.e.
     // before this change and unrelated to it - noted with its number rather than asserted, because a gate that
     // fails on a pre-existing condition it did not cause blocks every later build. Filed as a finding instead.
-    L.say(mEnd.over.docScroll===0,tag+': the document itself does not scroll - the strip scrolls inside its own box',mEnd.over);
+    const pl=await PAGELOCK(b);
+    L.say(PAGELOCK_OK(pl),tag+': the document itself cannot scroll - body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+' (docScroll '+(pl&&pl.docScroll)+', printed, 0 by construction) - so a strip scroll stays inside its own box [#549 item (7): was docScroll===0 alone, which could not fail]',pl);
     // #548 (103): every run is compact now (the Classic layout is retired), so the fit is asserted on all three.
     L.say(mEnd.over.over<=0,tag+': the compact review screen still fits its viewport after all of that',mEnd.over);
     await b.shot('strip-'+r.geo+'-c'+r.compact+'-ply0');

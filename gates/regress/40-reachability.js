@@ -53,6 +53,18 @@
 //   written to warn about a measurement error, making exactly that error, is the most useful thing in this file.
 'use strict';
 const L=require('../lib');
+// ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
+// assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
+// and body{position:fixed;inset:0}, so documentElement has no scrollable content whatever the app renders (gate 15's
+// #416 antagonist injected 3000px into #root and docScroll stayed 0). A pin that cannot move pins nothing. What it was
+// standing in for is the DESIGN - "#root scrolls, the page never does" - so the design's MECHANISM is asserted instead:
+// four computed styles, each of which a CSS change can flip on its own. docScroll is printed beside them, never credited.
+// Gate 15's PAGEFIX is the reference shape.
+const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  const h=getComputedStyle(document.documentElement),bd=getComputedStyle(document.body);
+  return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
+const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 const Z=require('../drive/puzzles');
 
 // The correct reachability measurement, and the reference implementation of the rule. Two things make it correct,
@@ -250,7 +262,8 @@ L.run(async()=>{
     L.note(geo+': help text at rest top '+help.restTop+' bottom '+help.restBottom+' of '+help.vh+' - onScreenAtRest '+help.onScreenAtRest+', so the reachability assertion below '+(help.onScreenAtRest?'exercises NO scrolling at this geometry':'does exercise scrolling at this geometry')+'.');
     L.say(help.found&&help.onScreen,geo+': and a finger can reach it (top '+help.top+', bottom '+help.bottom+', viewport '+help.vh+', via '+help.scrollers+' user-scrollable ancestor(s)). The report called it unreachable at 320x568; the 80.2px it cites is the scroller\'s own range.',help);
 
-    L.say(bf.docScroll===0,geo+': the DOCUMENT still does not scroll - which is the design here, not the defect. It is the signal that was misread into two false reports, so it is pinned rather than left to be rediscovered.',bf.docScroll);
+    const pl=await PAGELOCK(b);
+    L.say(PAGELOCK_OK(pl),geo+': the DOCUMENT still cannot scroll - which is the design here, not the defect - asserted by its MECHANISM: body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+'. docScroll ('+(pl&&pl.docScroll)+') is the signal that was misread into two false reports; it is 0 by construction, so it is printed and the mechanism is pinned [#549 item (7)].',pl);
 
     const hs=await hspill(b);
     L.say(hs.bad.length===0&&hs.docScrollW<=hs.vw+0.5,geo+': nothing hangs off the RIGHT - the spill that genuinely cannot be recovered on a phone, unlike vertical spill inside a scroller',hs);

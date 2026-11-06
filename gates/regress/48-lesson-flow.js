@@ -140,6 +140,18 @@
 
 'use strict';
 const L=require('../lib');
+// ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
+// assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
+// and body{position:fixed;inset:0}, so documentElement has no scrollable content whatever the app renders (gate 15's
+// #416 antagonist injected 3000px into #root and docScroll stayed 0). A pin that cannot move pins nothing. What it was
+// standing in for is the DESIGN - "#root scrolls, the page never does" - so the design's MECHANISM is asserted instead:
+// four computed styles, each of which a CSS change can flip on its own. docScroll is printed beside them, never credited.
+// Gate 15's PAGEFIX is the reference shape.
+const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  const h=getComputedStyle(document.documentElement),bd=getComputedStyle(document.body);
+  return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
+const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 const D=require('../drive/lesson');
 
 // ── local helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -1276,7 +1288,8 @@ L.run(async()=>{
    L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
    L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
    L.say(r0.length===4&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),geo+': and every box is still inside the viewport - true BEFORE the fix as well, which is why this column needed the ink assertions above rather than another containment check',r0.map(x=>x.a+':'+x.right).join(' '));
-   L.say(m.over.docScroll===0,geo+': nothing scrolls the page here',m.over);
+   const pl=await PAGELOCK(b);
+   L.say(PAGELOCK_OK(pl),geo+': nothing scrolls the page here - body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+' (docScroll '+(pl&&pl.docScroll)+', printed, 0 by construction) [#549 item (7): was docScroll===0 alone, which could not fail]',pl);
    await b.shot('lesson-practice-row-'+geo);
    await b.close();
  }

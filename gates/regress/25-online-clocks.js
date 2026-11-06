@@ -60,6 +60,18 @@
 // asserts that a player can CHOOSE a clock, not that the clock then behaves.
 'use strict';
 const L=require('../lib');
+// ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
+// assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
+// and body{position:fixed;inset:0}, so documentElement has no scrollable content whatever the app renders (gate 15's
+// #416 antagonist injected 3000px into #root and docScroll stayed 0). A pin that cannot move pins nothing. What it was
+// standing in for is the DESIGN - "#root scrolls, the page never does" - so the design's MECHANISM is asserted instead:
+// four computed styles, each of which a CSS change can flip on its own. docScroll is printed beside them, never credited.
+// Gate 15's PAGEFIX is the reference shape.
+const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  const h=getComputedStyle(document.documentElement),bd=getComputedStyle(document.body);
+  return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
+const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 const P=require('../drive/play');
 
 const PILL=/^(No clock|No limit|\d+ min|\d\+\d|\d+ days? \/ move)$/;
@@ -163,8 +175,9 @@ for(const g of geos){
   // document never scrolls BY DESIGN and a gate reading document.scrollingElement would call this sheet
   // unreachable - CLAUDE.md's two false P0s). The second is about WHICH element pays, which is what the
   // sentence always claimed and never tested, so it asserts the scroller's IDENTITY and not its size.
-  L.say(o.docScroll===0,
-    g.n+': TC-OC-006b the DOCUMENT does not scroll - docScroll '+o.docScroll+' by design, because #root is the app\'s own scroller and index.html says the page never scrolls. It CANNOT FAIL (html and body are overflow:hidden) and is kept as the record of that design, not as a reachability check - the scroll that used to be claimed here is TC-OC-006e below, which performs it [#545]',{docScroll:o.docScroll});
+  const pl=await PAGELOCK(b);
+  L.say(PAGELOCK_OK(pl),
+    g.n+': TC-OC-006b the DOCUMENT cannot scroll, asserted by its MECHANISM - body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+' (docScroll '+(pl&&pl.docScroll)+', printed and not credited: it is 0 by construction). It used to assert docScroll===0 alone, which could not fail [#549 item (7)]. This is the record of the design, not a reachability check - the scroll is TC-OC-006e below, which performs it [#545]',pl);
   // AND THE DENOMINATOR IS REPORTED, NEVER CREDITED: with the sheet short enough to fit there is no scroller to
   // identify, and that is a legitimate state (#400 measured it at 390x844 with nine fewer pills), so it is an
   // L.note and not a PASS. A PASS here would be the very thing this item removes.
