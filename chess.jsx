@@ -4179,6 +4179,26 @@ export default function App(){
         absorbed+=Math.max(0,r.height-content);
         for(const c of mp.children){const cc=getComputedStyle(c);if(parseFloat(cc.flexGrow)>0)absorbed+=Math.max(0,c.getBoundingClientRect().height-(parseFloat(cc.minHeight)||0));}}   /* the move list inside it grows too (flex 1, minHeight 34) */
     }
+    /* #549 run fix (fixr3e): AND IN THE COMPACT REVIEW, WHERE IT WAS WORSE - the loop could never grow that board at all. The
+       board column (pbar-top's parent: bar, board row, bar) is flex 1 1 auto with minHeight 0, so it fills whatever the rows
+       under it leave and "over" reads ~0 at ANY board size; the bars (flex 1 1 0 over minHeight 32/46) take part of the room and
+       the column keeps the rest under the bottom bar. A positive trim was therefore permanent. And the engine-row reservation
+       (37f44ea) keys on the TRIMMED board, so once trimmed the 20px reservation lapses too and that room joins the swallow.
+       MEASURED on run head 1b6b89e (bundle c5d747d1576f), short375, Opera ply 10, a 60px block held across one ply change:
+       board 264 -> 208 for good, bars 41.5 -> 52 each, column 351 -> 371 with 59px empty under the bottom bar, rev-why 71 -> 51.
+       Counted only while the trim is POSITIVE, and the loop clamps Review's growth at trim 0, so the board can only come back to
+       SQ's own analytic size (what a fresh launch gets) and never past it: fresh-launch sizes cannot change, because at trim 0
+       this returns exactly what it did before. */
+    if(boardTrimRef.current>0&&modeRef.current!=='play'&&rEl.querySelector('[data-ct="rev-compact"]')){
+      const pt=rEl.querySelector('[data-ct="pbar-top"]');const col=pt&&pt.parentElement;
+      if(col&&parseFloat(getComputedStyle(col).flexGrow)>0){
+        for(const k of ['pbar-top','pbar-bottom']){const e=col.querySelector('[data-ct="'+k+'"]');if(!e)continue;const cs=getComputedStyle(e);if(!(parseFloat(cs.flexGrow)>0))continue;
+          absorbed+=Math.max(0,e.getBoundingClientRect().height-(parseFloat(cs.minHeight)||0));}
+        const ccs=getComputedStyle(col);const cr=col.getBoundingClientRect();let ct=Infinity,cb=-Infinity;
+        for(const c of col.children){const s=getComputedStyle(c);if(s.position==='fixed'||s.position==='absolute')continue;const r=c.getBoundingClientRect();if(r.height<=0)continue;ct=Math.min(ct,r.top-(parseFloat(s.marginTop)||0));cb=Math.max(cb,r.bottom+(parseFloat(s.marginBottom)||0));}
+        if(cb>ct)absorbed+=Math.max(0,cr.height-(cb-ct)-(parseFloat(ccs.paddingTop)||0)-(parseFloat(ccs.paddingBottom)||0)-(parseFloat(ccs.borderTopWidth)||0)-(parseFloat(ccs.borderBottomWidth)||0));
+      }
+    }
     const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
     return bottom>0?(bottom-spacers-absorbed+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
   },[]);
@@ -4325,7 +4345,7 @@ export default function App(){
       // and by #522's pre-paint refit, so the two cannot drift apart.
       const over=_fitOver();
       if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
-      else if(over<-24){setBoardTrim(t=>Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8)));settle=true;} /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
+      else if(over<-24){const _revFit=inReview&&revCompact;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):n;});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);

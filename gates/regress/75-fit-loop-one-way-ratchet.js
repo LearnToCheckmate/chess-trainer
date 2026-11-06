@@ -637,4 +637,47 @@ L.run(async()=>{
       L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D15 '+c.n+' THE PHONE-GAME BOARD COMES BACK: after the block is gone the board is within the loop\'s '+STEP+'px step of its fresh-launch width ('+R.after+' vs '+R.fresh+'). Pre-fix the player bars and moves panel swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
     }
   }
+  // TC-R64-D16 [#549 run fix fixr3e]. THE COMPACT REVIEW'S BOARD COMES BACK AFTER A TRANSIENT - the Review cell D15 named as
+  // affected and uncovered. THE MECHANISM IS ONE LEVEL WIDER THAN PLAY'S: the board column (pbar-top's parent: bar, board row,
+  // bar) is itself flex 1 1 auto over minHeight 0, so it fills the room the rows under it leave and _fitOver reads ~0 at ANY
+  // board size - a positive trim was permanent. And the engine-row reservation (37f44ea) keys on the trimmed board, so once
+  // trimmed it lapses and its 20px joins the swallow. THE DRIVE: Opera Game at ply 10 (gates/drive/review.js moves-ply10), a
+  // PX-tall in-flow block prepended to #root's first child, one ply change (ply is a fit-loop dependency) to ply 11, the block
+  // removed, back to ply 10. The board must come back to its fresh width; since the fix clamps Review's growth at trim 0 it
+  // must also NOT come back LARGER, so the recovery line is an equality within the step on both sides. PX 60 where the board
+  // is height-bound; 200 at 375x761, where it is width-bound and 60 never moves it. MEASURED at #549, pre-fix trial
+  // c5d747d1576f (1b6b89e) vs fix trial da691d8d12e0: 375x568 264 -> 208 -> 208 vs 264 -> 240 -> 264; 320x568 the same;
+  // 375x667 349 -> 299 -> 299 pre-fix.
+  {
+    const RV=require('../drive/review.js');
+    const RCELLS=[
+      {n:'375x568', g:L.GEOS.short375,       px:60},
+      {n:'320x568', g:L.GEOS.se,             px:60},
+      {n:'375x667', g:L.GEOS.w375h667,       px:60},
+      {n:'375x761', g:L.GEOS.kunal761,       px:200},
+    ];
+    const STEP=8;
+    for(const c of RCELLS){
+      const R={};
+      const b=await L.launch({geo:c.g,name:'d16-'+c.n,store:{ct_pool:'3'}});
+      try{
+        await b.open();await RV.states['moves-ply10'](b);await b.settle(900);
+        R.fresh=await bw(b);
+        R.injRect=await b.page.evaluate((px)=>{const r=document.getElementById('root');const d=document.createElement('div');d.id='ct-d16-kick';d.style.cssText='height:'+px+'px;flex:0 0 '+px+'px';r.firstElementChild.prepend(d);
+          const q=d.getBoundingClientRect(),cs=getComputedStyle(d);return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'&&cs.display!=='none'};},c.px);
+        await RV.goPly(b,11);await b.settle(900);
+        R.during=await bw(b);
+        R.removed=await b.page.evaluate(()=>{const d=document.getElementById('ct-d16-kick');if(d)d.remove();return !document.getElementById('ct-d16-kick');});
+        await RV.goPly(b,10);await b.settle(1500);
+        R.after=await bw(b);
+      }catch(e){R.threw=String(e&&e.message||e).slice(0,200);}
+      await b.close();
+      L.say(!R.threw,'TC-R64-D16 '+c.n+' the review arm ran without throwing'+(R.threw?' - '+R.threw:''),R);
+      L.say(typeof R.fresh==='number'&&R.fresh>40,'TC-R64-D16 '+c.n+' DENOMINATOR a fresh compact-Review board is painted at ply 10 ('+R.fresh+')',{fresh:R.fresh});
+      L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1,'TC-R64-D16 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height across the ply change',{injRect:R.injRect});
+      L.say(typeof R.fresh==='number'&&typeof R.during==='number'&&R.during<R.fresh-STEP,'TC-R64-D16 '+c.n+' THE STATE WAS REACHED: with the '+c.px+'px block in the flow the fit loop shrank the Review board ('+R.fresh+' -> '+R.during+'), so the recovery below is asserted over a board that really lost width',{fresh:R.fresh,during:R.during});
+      L.say(R.removed===true,'TC-R64-D16 '+c.n+' the block was removed before the ply change back',{removed:R.removed});
+      L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D16 '+c.n+' THE REVIEW BOARD COMES BACK: after the block is gone the board is within the loop\'s '+STEP+'px step of its fresh-launch width ('+R.after+' vs '+R.fresh+'), neither smaller nor larger. Pre-fix the board column and its bars swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
+    }
+  }
 },'75-fit-loop-one-way-ratchet');

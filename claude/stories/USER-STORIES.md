@@ -1593,8 +1593,11 @@ font arrived a frame late.
   Moves toggle), returns to within the loop's 8px step of its fresh-launch width. The mechanism there was not the
   lesson's: the two player bars and the moves panel grow into the room a shrink leaves and swallowed it back, so the
   loop read no overflow and no slack. Measured pre-fix (5a6c918bebaf) at 375x568: 296 -> 232 and stayed 232; fixed
-  (8332d8e5c3a8): back to 296. COMPACT REVIEW HAS THE SAME DEFECT AND IS NOT COVERED: at 375x568, Opera Game ply 10, a
-  60px block across one ply change left the Review board at 208 against a fresh 264, on both bundles. (TC-R64-D15)
+  (8332d8e5c3a8): back to 296. COMPACT REVIEW HAD THE SAME DEFECT, ONE LEVEL WIDER, AND IS
+  COVERED SINCE the #549 run fix fixr3e: the Review board, after a transient block across one ply change, returns to
+  within the loop's 8px step of its fresh-launch width and never past it. There the whole board column is a flex filler,
+  so the loop read no slack at any board size and the engine-row reservation lapsed with the trim; measured at 375x568,
+  Opera Game ply 10, 264 -> 208 for good pre-fix, back to 264 fixed. (TC-R64-D15, TC-R64-D16)
 - THE MECHANISM IS ESTABLISHED AND THE TRIGGER IS NOT. The portrait fit loop (`chess.jsx`, search
   `boardTrim`) shrinks on a real overflow and can never grow back, for two independent reasons either of
   which alone is sufficient: the slack a single shrink leaves is `ceil(over/8)*8+8-over`, which lies in
