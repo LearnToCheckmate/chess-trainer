@@ -315,9 +315,25 @@ const ROWS = function(opt){
       w+=s('paddingLeft','paddingRight')+s('borderLeftWidth','borderRightWidth'); h+=s('paddingTop','paddingBottom')+s('borderTopWidth','borderBottomWidth');}
     return {w,h};
   };
+  // #549 run fix (fixr5a, antagonist A round 5, A6-R5): THE EXCUSE ABOVE IS FOR ROTATION, NOT FOR SCALE. Computed width and
+  // height ignore EVERY transform, so an icon shrunk by transform:scale(0.6) read its unscaled size and TC-INV-03/03b could not
+  // see it - #395's "the ink is too small" class, excused by a mechanism wider than the one it was written for (the intro
+  // pawn's ctTopL/ctTopR keyframes are rotate + translate, no scale). So the untransformed box is multiplied by the SCALE of the
+  // accumulated transform from the svg up to the root (the column norms of the composed 2D matrix, which a rotation or a
+  // translation leaves at 1): a toppling pawn still reads 28, and a scaled icon reads its painted size, as it did before 1b6b89e.
+  const txScale=(el)=>{
+    let M=new DOMMatrix();
+    for(let n=el;n&&n.nodeType===1;n=n.parentElement){const cs=getComputedStyle(n);
+      let m=new DOMMatrix();
+      if(cs.transform&&cs.transform!=='none'){try{m=new DOMMatrix(cs.transform);}catch(_){}}
+      if(cs.scale&&cs.scale!=='none'){const p=cs.scale.split(/\s+/).map(parseFloat);if(isFinite(p[0]))m=new DOMMatrix().scale(p[0],isFinite(p[1])?p[1]:p[0]).multiply(m);}
+      if(cs.rotate&&cs.rotate!=='none'){/* a rotation contributes no scale */}
+      M=m.multiply(M);}
+    return {sx:Math.hypot(M.a,M.b),sy:Math.hypot(M.c,M.d)};
+  };
   const glyph=(e)=>{
     const svg=e.querySelector('svg');
-    if(svg){const g=untx(svg);return {gh:+g.h.toFixed(1),gw:+g.w.toFixed(1),via:'svg',ink:inkH(e)};}
+    if(svg){const g0=untx(svg),k=txScale(svg),g={w:g0.w*k.sx,h:g0.h*k.sy};return {gh:+g.h.toFixed(1),gw:+g.w.toFixed(1),via:'svg',ink:inkH(e)};}
     const rg=document.createRange(); rg.selectNodeContents(e);
     const g=rg.getBoundingClientRect();
     if(g.height<0.5)return null;
