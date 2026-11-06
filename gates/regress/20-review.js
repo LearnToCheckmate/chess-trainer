@@ -378,26 +378,59 @@ L.run(async()=>{
     L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'kunal730: TC-R12b no app error beyond the allowed engine trap',b.errs.slice(0,3));
     await b.close();
   }
-  // TC-R66 (TC-R66 in the job, which is taken) A SET-UP GAME IS REFUSED, NOT ANALYSED FROM THE WRONG POSITION [#547, item (78); jobs/honour-fen-header].
-  // The review starts every game from the opening position, so a PGN whose [FEN] header names a set-up position used to be
-  // graded as a game nobody played (or broke at its first move). Until the review can start from the header, it is refused
-  // with a sentence naming the FEN. Inputs at 375x730: a legal K+R endgame whose moves fit only from its header, and the
-  // same game with a malformed FEN. Precondition: the paste box took the text. Assert the refusal names the FEN, and that
-  // NO summary, accuracy or grade count renders for it. The honoured half (board and numbering from the header) is not built.
+  // TC-R66 A SET-UP GAME IS REVIEWED FROM ITS [FEN] HEADER, AND A HEADER THAT CANNOT BE READ IS REFUSED [#547 item (78) built the
+  // refusal; #549 item (66), jobs/honour-fen-header, the honoured half]. Kunal: "honour it, and refuse a header we cannot parse
+  // rather than silently starting from move 1". The job's case (it named it TC-R44, which the register holds for US-R34), at
+  // Kunal's 375x761 only - every assertion is on state, not layout [R36]. (a) THREE LEGAL SET-UP GAMES whose moves fit only from
+  // the header - a study chapter with Black to move at 23, a K+R endgame at 40, an Italian middlegame with castling rights at 4:
+  // the review's first position equals the header's placement, side to move, castling and en-passant fields (the app keeps no
+  // clocks), the move strip's first entry carries the header's number and side ('23…', '40.', '4.'), and each side's move count
+  // is that side's own plies (the study game is 3 Black, 2 White - with i%2 parity it reads the other way round). (b) THREE
+  // MALFORMED HEADERS (a '9' in a rank, two white kings, the side not to move in check) with moves that fit only from the
+  // position they meant: refused with a sentence naming the [FEN] header, and no summary, accuracy or review object at all.
+  // Controls for this block: four negative-control bundles, recorded by the run (deferred from #549 item (66)).
   {
-    const FENG='[Event "Set-up endgame"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 42. Kd3 Kb5 *';
-    const BADF='[Event "Malformed set-up"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/9/4K3/R7 w - -"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 *';
-    for(const [tag,pgn] of [['legal FEN',FENG],['malformed FEN',BADF]]){
-      const b=await L.launch({geo:'kunal730',name:'review-fen-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
+    const OK=[
+      ['study chapter, Black to move','8/8/8/3k4/8/8/3PK3/8 b - - 0 23','[Event "Study: King and pawn"]\n[Site "https://lichess.org/study/abcdEFGH/ijklMNOP"]\n[ChapterName "Opposition"]\n[Result "*"]\n[Variant "Standard"]\n[SetUp "1"]\n[FEN "8/8/8/3k4/8/8/3PK3/8 b - - 0 23"]\n\n23... Ke4 24. d3+ Kd4 25. Kd2 Ke5 *','23…','Ke4',{w:2,b:3}],
+      ['endgame, White to move','8/8/8/4k3/8/8/4K3/R7 w - - 0 40','[Event "Set-up endgame"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 42. Kd3 Kb5 *','40.','Ra5',{w:3,b:3}],
+      ['middlegame with castling rights','r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4','[Event "Set-up middlegame"]\n[SetUp "1"]\n[FEN "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"]\n[Result "*"]\n\n4. O-O Nf6 5. d3 d6 6. c3 *','4.','O-O',{w:3,b:2}]];
+    for(const [tag,fen,pgn,no,san,per] of OK){
+      const b=await L.launch({geo:'kunal761',name:'review-fen-'+no.replace(/\W/g,''),store:{ct_pool:'3'}});await b.open();
       await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
       const took=await ta.inputValue().catch(()=>'');
-      L.say(/\[FEN /.test(took),'kunal730: TC-R66 '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
+      L.say(took.indexOf('[FEN "'+fen+'"]')>=0,'kunal761: TC-R66 '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
+      await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
+      const st=await b.page.evaluate(()=>{const rv=window.__ctReview;if(!rv||!rv.positions||!rv.positions[0])return null;const g=rv.positions[0];const F='abcdefgh';
+        const rows=g.board.map(row=>{let s='',e=0;for(const p of row){if(!p){e++;continue;}if(e){s+=e;e=0;}s+=p.c==='w'?p.t.toUpperCase():p.t;}return s+(e?e:'');});
+        const ca=g.castling||{};const cs=(ca.wK?'K':'')+(ca.wQ?'Q':'')+(ca.bK?'k':'')+(ca.bQ?'q':'')||'-';const ep=g.ep?F[g.ep[1]]+(8-g.ep[0]):'-';
+        const S=rv.summary||{};return {fen4:rows.join('/')+' '+g.turn+' '+cs+' '+ep,plies:rv.plies.length,w:S.w&&S.w.moves,b:S.b&&S.b.moves};});
+      const err=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/[^.\n]*\[FEN\][^.\n]*\./);return m?m[0]:null;});
+      L.say(sum&&!err,'kunal761: TC-R66 '+tag+': the game is ANALYSED and reaches the summary, with no refusal',{summary:sum,err});
+      const want4=fen.split(' ').slice(0,4).join(' ');
+      L.say(!!st&&st.fen4===want4,'kunal761: TC-R66 '+tag+': the review\'s first position IS the header\'s ('+want4+'), not the opening position',{got:st&&st.fen4,want:want4});
+      L.say(!!st&&st.w===per.w&&st.b===per.b,'kunal761: TC-R66 '+tag+': each side\'s move count is its own plies, White '+per.w+' and Black '+per.b,{st,want:per});
+      let first=null;if(sum){await b.tapText(/^Start review/,{wait:900});await b.settle(500);
+        first=await b.page.evaluate(()=>{const m=document.querySelector('[data-mstrip]');if(!m)return null;const row=m.firstElementChild;const e=row&&row.firstElementChild;return e?(e.innerText||'').replace(/\s+/g,''):null;});}
+      L.say(!!first&&first.indexOf(no)===0&&first.slice(no.length).indexOf(san)===0,'kunal761: TC-R66 '+tag+': the move strip\'s first entry carries the header\'s move number and side ('+no+' '+san+'), not 1. and White',{first,want:no+san});
+      L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'kunal761: TC-R66 '+tag+': no app error beyond the allowed engine trap',b.errs.slice(0,2));
+      await b.close();
+    }
+    const BAD=[
+      ['a 9 in a rank','[Event "Malformed set-up"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/9/4K3/R7 w - -"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 *'],
+      ['two white kings','[Event "Two kings"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R3K3 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 *'],
+      ['the side not to move in check','[Event "Impossible check"]\n[SetUp "1"]\n[FEN "8/8/8/R3k3/8/8/4K3/8 w - - 0 40"]\n[Result "*"]\n\n40. Ra4 Kd5 41. Kd3 Kc5 *']];
+    for(const [tag,pgn] of BAD){
+      const b=await L.launch({geo:'kunal761',name:'review-badfen-'+tag.replace(/\W/g,''),store:{ct_pool:'3'}});await b.open();
+      await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
+      const took=await ta.inputValue().catch(()=>'');
+      L.say(/\[FEN /.test(took),'kunal761: TC-R66 malformed FEN, '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
       await b.tapText(/^⚡ Analyze Game$/,{wait:2500});
       const r=await b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
-        return {summary:!!document.querySelector('[data-ct="rev-summary"]'),err:(t.match(/This game starts from a set-up position[^.]*\.[^.]*\./)||[null])[0],acc:/Accuracy/i.test(t)};});
-      L.say(!!r.err&&/FEN/.test(r.err),'kunal730: TC-R66 '+tag+': the import is REFUSED with a sentence that names the [FEN] header',r);
-      L.say(!r.summary&&!r.acc,'kunal730: TC-R66 '+tag+': and no summary, accuracy or grade count is rendered for a game the review could not start correctly',r);
-      L.say(b.errs.length===0,'kunal730: TC-R66 '+tag+': zero app errors',b.errs.slice(0,2));
+        return {summary:!!document.querySelector('[data-ct="rev-summary"]'),err:(t.match(/This game's \[FEN\] header could not be read[^.]*\./)||[null])[0],acc:/Accuracy/i.test(t),review:!!window.__ctReview};});
+      L.say(!!r.err&&/FEN/.test(r.err),'kunal761: TC-R66 malformed FEN, '+tag+': the import is REFUSED with a sentence that names the [FEN] header, not the first move',r);
+      L.say(!r.summary&&!r.acc&&!r.review,'kunal761: TC-R66 malformed FEN, '+tag+': and no summary, accuracy, grade count or review is produced for it',r);
+      L.say(b.errs.length===0,'kunal761: TC-R66 malformed FEN, '+tag+': zero app errors',b.errs.slice(0,2));
       await b.close();
     }
     // THE OTHER DIRECTION [#547 antagonist A on item (78)]: a refusal that fires on ORDINARY games would block reviews, and no
@@ -409,7 +442,7 @@ L.run(async()=>{
       const b=await L.launch({geo:'kunal730',name:'review-fen-ok-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
       await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
       let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
-      const refused=await b.page.evaluate(()=>/This game starts from a set-up position/.test(document.body.innerText||''));
+      const refused=await b.page.evaluate(()=>/\[FEN\] header could not be read|This game starts from a set-up position/.test(document.body.innerText||''));
       L.say(sum&&!refused,'kunal730: TC-R66 '+tag+': NOT refused - it reaches the summary, because it is not a set-up game',{summary:sum,refused});
       await b.close();
     }

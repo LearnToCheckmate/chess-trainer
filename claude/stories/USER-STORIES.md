@@ -111,6 +111,12 @@ As a player who just finished a game on chess.com, I paste its PGN and get a rev
   offline review cannot remove a player's flag for good. A country that IS known paints as its flag in that player's
   bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107; #548 item (41), #549 item (3),
   jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10)
+- A pasted PGN whose [FEN] header sets up a position is reviewed FROM THAT POSITION: the review's first board is the header's,
+  and the move numbers and the side each move belongs to follow it (a study chapter with Black to move at 23 opens on '23…').
+  A header that cannot be read is REFUSED with a sentence that names the [FEN] header, and no review, accuracy, grade count or
+  rating is produced for that game. SetUp "0", or a header equal to the standard start, is an ordinary game. Kunal's answer on
+  jobs/honour-fen-header: "honour it, and refuse a header we cannot parse rather than silently starting from move 1". (TC-R66;
+  #547 item (78) the refusal, #549 item (66) the honoured half)
 
 ### US-R02 Games fetched from an account are kept, per account, across reloads
 As a player with several chess.com or Lichess accounts (or friends' accounts), every account I have fetched

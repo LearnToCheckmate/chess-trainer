@@ -481,16 +481,8 @@ function hdrElo(h,col){const v=h&&(col==='w'?h.WhiteElo:h.BlackElo);return (v&&/
 
 /* #547 item (78), jobs/honour-fen-header: a PGN whose [FEN] header names a set-up position was analysed FROM THE
    STANDARD START, so its moves either failed to fit or - worse - fitted a different game, and the review graded a game
-   nobody played. Until the review can start from the header (board, move numbers and the side to move all follow it),
-   such a game is REFUSED with a sentence that names the FEN, rather than analysed wrongly. A [FEN] equal to the standard
-   start, or SetUp "0", is not a set-up position. Returns the FEN string, or '' when the game starts normally. */
+   nobody played. #547 REFUSED such a game; #549 item (66) starts the review from the header instead (pgnStart, below). */
 const START_FEN_PLACEMENT='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-function pgnSetupFen(pgn){
-  const m=/\[FEN\s+"([^"]*)"\]/.exec(String(pgn||''));if(!m)return '';
-  const su=/\[SetUp\s+"([^"]*)"\]/.exec(String(pgn||''));if(su&&su[1].trim()==='0')return '';
-  const f=m[1].trim();if(f.split(/\s+/)[0]===START_FEN_PLACEMENT)return '';
-  return f||'(empty)';
-}
 /* #549 (49) A4-R3 fix: CTEnded is this app's PRIVATE tag (how a just-played game ended, for its own summary line). It is kept on the
    review's own PGN and stripped from every PGN string a player sees or takes away - the paste box and Copy PGN - so no other tool is handed it. */
 function pgnPublic(pgn){return String(pgn||'').replace(/^[ \t]*\[CTEnded "[^"\n]*"\][ \t]*\r?\n?/gm,'');}
@@ -513,6 +505,60 @@ function parsePGNHeaders(pgn){
   return h;
 }
 
+/* #549 item (66), jobs/honour-fen-header, the half #547 could not build: a set-up game is now REVIEWED FROM ITS HEADER. pgnStart
+   reads the first game's [FEN] (SetUp "0" and a header equal to the standard start still mean an ordinary game) and returns the
+   position the review starts from, with plyBase = the plies before it (2*(fullmove-1), plus one when Black is to move), so the
+   move numbers and the side each ply belongs to follow the header. A header it cannot read is REFUSED with a sentence that names
+   the [FEN] header and why - Kunal: "honour it, and refuse a header we cannot parse rather than silently starting from move 1".
+   READ, NOT JUST SPLIT: 8 ranks of 8, one king a side, no pawn on the first or last rank, w or b to move, a castling field of
+   KQkq letters, an en-passant square on the right rank, numeric clocks, and the side NOT to move not in check. A castling right
+   or en-passant square the position cannot use (king or rook off its square, no pawn that just moved) is DROPPED rather than
+   refused, because it can change no legal move the PGN could contain [Amber: flags/amber-549-fen-unusable-rights-dropped]. */
+function readSetupFen(fen){
+  const f=String(fen||'').trim().split(/\s+/);
+  if(f.length<4||f.length>6)return {ok:false,why:'it has '+f.length+' field'+(f.length===1?'':'s')+', and a FEN has six'};
+  const rows=f[0].split('/');if(rows.length!==8)return {ok:false,why:'its board has '+rows.length+' ranks, not 8'};
+  const board=Array(8).fill(null).map(()=>Array(8).fill(null));let wk=0,bk=0;
+  for(let r=0;r<8;r++){let c=0;
+    if(!/^[pnbrqkPNBRQK1-8]+$/.test(rows[r]))return {ok:false,why:'rank '+(8-r)+' holds a character that is not a piece or a count'};
+    for(const ch of rows[r]){if(/[1-8]/.test(ch)){c+=+ch;continue;}if(c>7){c=9;break;}
+      const p={t:ch.toLowerCase(),c:ch===ch.toUpperCase()?'w':'b'};
+      if(p.t==='p'&&(r===0||r===7))return {ok:false,why:'it has a pawn on rank '+(8-r)};
+      if(ch==='K')wk++;if(ch==='k')bk++;board[r][c++]=p;}
+    if(c!==8)return {ok:false,why:'rank '+(8-r)+' is not 8 squares'};}
+  if(wk!==1||bk!==1)return {ok:false,why:'it needs one king for each side, and has '+wk+' white and '+bk+' black'};
+  const turn=f[1];if(turn!=='w'&&turn!=='b')return {ok:false,why:'its side to move is "'+turn+'", not w or b'};
+  if(!/^(-|K?Q?k?q?)$/.test(f[2])||f[2]==='')return {ok:false,why:'its castling field "'+f[2]+'" is not - or KQkq letters'};
+  if(f[3]!=='-'&&!new RegExp('^[a-h]'+(turn==='w'?'6':'3')+'$').test(f[3]))return {ok:false,why:'its en-passant square "'+f[3]+'" cannot follow '+(turn==='w'?'a Black':'a White')+' pawn move'};
+  if(f[4]!=null&&!/^\d+$/.test(f[4]))return {ok:false,why:'its half-move clock "'+f[4]+'" is not a number'};
+  if(f[5]!=null&&!/^[1-9]\d*$/.test(f[5]))return {ok:false,why:'its move number "'+f[5]+'" is not a move number'};
+  if(isInCheck(board,opp(turn)))return {ok:false,why:'the side that is not to move is in check'};
+  const at=(r,c,t,col)=>{const p=board[r][c];return !!p&&p.t===t&&p.c===col;};
+  const ca={wK:f[2].includes('K')&&at(7,4,'k','w')&&at(7,7,'r','w'),wQ:f[2].includes('Q')&&at(7,4,'k','w')&&at(7,0,'r','w'),bK:f[2].includes('k')&&at(0,4,'k','b')&&at(0,7,'r','b'),bQ:f[2].includes('q')&&at(0,4,'k','b')&&at(0,0,'r','b')};
+  let ep=null;if(f[3]!=='-'){const c=FILES.indexOf(f[3][0]),r=8-(+f[3][1]);const pr=turn==='w'?r+1:r-1,mover=turn==='w'?'b':'w';if(at(pr,c,'p',mover)&&!board[r][c])ep=[r,c];}
+  const full=f[5]!=null?+f[5]:1;
+  return {ok:true,game:{board,turn,castling:ca,ep,history:[]},plyBase:2*(full-1)+(turn==='b'?1:0)};
+}
+/* The start of the FIRST game in a paste: {fen:''} for an ordinary game, {fen,game,plyBase} for a set-up one, {fen,err} when
+   its header is refused. The error sentence is the one importGame shows, and it names the [FEN] header. */
+function pgnStart(pgn){
+  const s=String(pgn||'');const h=parsePGNHeaders(s);
+  if(h.FEN==null)return {fen:''};
+  if(h.SetUp!=null&&String(h.SetUp).trim()==='0')return {fen:''};
+  const f=String(h.FEN).trim();const r=readSetupFen(f);
+  if(!r.ok)return {fen:f||'(empty)',err:"This game's [FEN] header could not be read ("+(f?r.why:'it is empty')+"), so the game was not analysed. Fix or remove the header and try again."};
+  const g=r.game,fen4=toFEN(g).split(' ').slice(0,4).join(' ');
+  if(fen4===START_FEN_PLACEMENT+' w KQkq -'&&r.plyBase===0)return {fen:''};
+  return {fen:f,game:g,plyBase:r.plyBase};
+}
+/* The side that played ply i of a review, and its move number, from the review's own start (plyBase is 0 for a game from the
+   opening position). Every per-ply parity in the review reads these rather than i%2, which assumed White moved first. */
+const revBase=(rv)=>(rv&&rv.plyBase)||0;
+const revMover=(rv,i)=>{const p=rv&&rv.positions&&rv.positions[i];return (p&&(p.turn==='w'||p.turn==='b'))?p.turn:(((revBase(rv)+i)%2===0)?'w':'b');};
+const revNo=(rv,i)=>Math.floor((revBase(rv)+i)/2)+1;
+const revNoTxt=(rv,i)=>revNo(rv,i)+(revMover(rv,i)==='w'?'.':'…');
+/* The move strip and the key-moments rows render the number and its dot as TWO text nodes, as they did before revNo: one node
+   shapes about 0.1px narrower per number, and that drift moved gate 26's pinned occluded set under the review's sheet at 375x568. */
 // Tolerant SAN matcher: used when an exact text match fails. Parses the destination square, moving
 // piece, promotion and any disambiguation hints out of the raw token, then finds the unique legal move
 // that fits. This survives over/under-specified disambiguation (e.g. "Nbd7" vs "Nd7", "R1e2" vs "Re2"),
@@ -544,14 +590,14 @@ function matchSanLenient(game,raw){
   return null;
 }
 // Build positions + plies from SAN list
-function loadSANs(sans){
-  let game=initGame();
+function loadSANs(sans,start){   // start: a set-up position (pgnStart's game), or nothing for the opening position
+  let game=start||initGame();
   const positions=[game];const plies=[];
   for(let i=0;i<sans.length;i++){
     const want=cleanSAN(sans[i]);let found=null;
     for(const mv of getLegal(game)){const nb=applyMove(game.board,mv);if(cleanSAN(toSAN(game,mv,nb))===want){found=mv;break;}}
     if(!found)found=matchSanLenient(game,sans[i]); // tolerant fallback before giving up
-    if(!found)return{ok:false,positions,plies,error:`Move ${i+1} ("${sans[i]}") didn't fit the position.`,parsed:i};
+    if(!found)return{ok:false,positions,plies,error:`Move ${i+1} ("${sans[i]}") didn't fit the position${(start&&i===0)?' its [FEN] header sets up':''}.`,parsed:i};
     game=makeMove(game,found);positions.push(game);plies.push({san:sans[i],move:found});
   }
   return{ok:true,positions,plies};
@@ -1952,13 +1998,13 @@ function regradeGame(res,cache,userColor,rule){
     const ol=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1);
     rows.push(nw);
     const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
-    const mc=i%2===0?'w':'b',mine=!userColor||mc===userColor;
+    const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
     if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;}
     else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
     if(OL==='Brilliant'||NL==='Brilliant'){
       const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
       const lm=i>0&&res.plies[i-1]?res.plies[i-1].move:null;
-      changes.push({i,no:Math.floor(i/2)+1,side:mc,mine,san:res.plies[i].san,from:OL,to:NL,fen:toFEN(pos),uci:u,
+      changes.push({i,no:Math.floor(((res.plyBase||0)+i)/2)+1,side:mc,mine,san:res.plies[i].san,from:OL,to:NL,fen:toFEN(pos),uci:u,
         last:lm?{fr:lm.fr,fc:lm.fc,tr:lm.tr,tc:lm.tc}:null,why:NL==='Brilliant'?brilCardWhy(nw,mc):null});
     }
   }
@@ -1967,12 +2013,12 @@ function regradeGame(res,cache,userColor,rule){
 // Background tally of a game's move quality for the USER (or all moves if color unknown). Yields periodically so it can run without freezing the UI.
 async function analyzeGameCounts(pgn,userColor){
   try{
-    if(pgnSetupFen(pgn))return null;   // #547 item (78): never estimate a set-up game from the standard start
+    const _st=pgnStart(pgn);if(_st.err)return null;   // #547 item (78) / #549 item (66): a refused [FEN] header is never estimated; a set-up game is estimated from its header
     const sans=parsePGN(pgn);if(!sans||!sans.length)return null;
-    const res=loadSANs(sans);if(!res||!res.plies.length)return null;
+    const res=loadSANs(sans,_st.game);if(!res||!res.plies.length)return null;
     let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0;
     for(let i=0;i<res.plies.length;i++){
-      const mc=i%2===0?'w':'b';const _opp=!!userColor&&mc!==userColor;   // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
+      const mc=res.positions[i].turn;const _opp=!!userColor&&mc!==userColor;   /* #549 item (66): the mover is the position's side to move, not ply parity - a set-up game may start with Black */ // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
       const pos=res.positions[i],scored=rankMoves(pos,2);if(!scored||!scored.length)continue;
       const bestVal=scored[0].v,pl=res.plies[i].move;
       const actual=scored.find(s=>s.m.fr===pl.fr&&s.m.fc===pl.fc&&s.m.tr===pl.tr&&s.m.tc===pl.tc);
@@ -2032,7 +2078,7 @@ function openingBookPlies(playedSans){
      was a fork and the side lost >= 50cp playing something else. hanging: the side's move lost >= 100cp, was
      not a sacrifice the engine liked, and left a piece the opponent wins >= 2 pawns of material on (seeSq).
      rookFiles: rook moves sideways onto a file with none of the side's own pawns. */
-function gameSkills(positions,plies,out,bookN){
+function gameSkills(positions,plies,out,bookN,plyBase){
   const mk=()=>({develop:{n:0,of:0},castled:null,checksFaced:0,weakPawns:0,book:0,forks:[],forksMissed:[],hanging:[],rookFiles:[]});
   const S={w:mk(),b:mk()};
   try{
@@ -2043,7 +2089,7 @@ function gameSkills(positions,plies,out,bookN){
       const pos=positions[i];const mv=plies[i]&&plies[i].move;if(!pos||!mv)continue;
       const side=pos.turn,them=side==='w'?'b':'w',s=S[side];
       const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];if(!pc)continue;
-      const moveNo=Math.floor(i/2)+1;
+      const moveNo=Math.floor(((plyBase||0)+i)/2)+1;   // #549 item (66): from the game's own start
       const isCastle=pc.t==='k'&&Math.abs(mv.tc-mv.fc)===2;
       const key=mv.fr+','+mv.fc;
       if(moveNo<=10){s.develop.of++;const out1=(pc.t==='n'||pc.t==='b')&&home[side][key]&&!left[side][key];if(isCastle||out1)s.develop.n++;}
@@ -5357,10 +5403,14 @@ export default function App(){
   const importGame=async(pgnArg,meta)=>{
     const text=(typeof pgnArg==='string')?pgnArg:pgnText;
     setPgnErr('');
-    if(pgnSetupFen(text)){const _sfm="This game starts from a set-up position (its [FEN] header), and the review can only start from the opening position, so it was not analysed.";setPgnErr(_sfm);if(meta&&meta.key)setCcErr(_sfm);/* #547 antagonist A on (78): from the games list the paste-box error sits below the list, so the tap looked like it did nothing */;return;}   // #547 item (78)
+    /* #549 item (66): a set-up game starts from its [FEN] header (pgnStart); only a header that cannot be read is refused, with a
+       sentence that names it. #547 refused every set-up game here, because the review could only start from the opening position. */
+    const _st=pgnStart(text);
+    if(_st.err){setPgnErr(_st.err);if(meta&&meta.key)setCcErr(_st.err);/* #547 antagonist A on (78): from the games list the paste-box error sits below the list, so the tap looked like it did nothing */;return;}
+    const _pb=_st.game?_st.plyBase:0;   // the plies before the review's first position: move numbers and movers follow the header
     const sans=parsePGN(text);
     if(sans.length===0){setPgnErr('No moves found — paste a PGN or a list of moves like "1. e4 e5 2. Nf3".');return;}
-    const res=loadSANs(sans);
+    const res=loadSANs(sans,_st.game);
     if(res.plies.length===0){setPgnErr(res.error||'Could not read any moves.');return;}
     const headers=parsePGNHeaders(text);
     if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only — check that move in your PGN.`);
@@ -5374,7 +5424,7 @@ export default function App(){
       const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N),aU=new Array(N);
       // NOTE: never change this tag without a reason. Bumping it from sf18b to sf18c in #343 silently threw away
       // every review Kunal had cached, which is why a repeat review suddenly took a minute again.
-      const _ck=evalCacheKey(res.plies);const _hit=evalCacheGet(_ck);
+      const _ck=evalCacheKey(res.plies,_st.fen);const _hit=evalCacheGet(_ck);
       if(_hit&&_hit.evW&&_hit.evW.length===N+1){
         for(let i=0;i<=N;i++){evW[i]=_hit.evW[i];ev2W[i]=_hit.ev2W?_hit.ev2W[i]:null;if(i<N){bU[i]=_hit.bU?_hit.bU[i]:null;aU[i]=_hit.aU?_hit.aU[i]:null;}}
         /* #371: reviews cached before the mate-0 fix hold the mated side as the winner at a checkmate; the position itself says who is mated, so patch on read rather than throw the cache away (the #343 lesson) */
@@ -5531,7 +5581,7 @@ export default function App(){
     out.forEach(o=>{if(counts[o.cls.label]!==undefined)counts[o.cls.label]++;});
     if(meta&&meta.key){
       const uc=meta.userColor;let bril=0,great=0,inacc=0,mist=0,blun=0,obril=0;
-      out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(uc&&mc!==uc){if(o.cls.label==='Brilliant')obril++;return;}const L=o.cls.label;if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;});
+      out.forEach((o,i)=>{const mc=res.positions[i].turn;if(uc&&mc!==uc){if(o.cls.label==='Brilliant')obril++;return;}const L=o.cls.label;if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;});
       // #331: a full review STAMPS the game (src:'review'). If a background estimate had shown more brilliants than
       // the review found, keep the old number as `was` so the row can say "review found N (estimate said M)" instead of
       // silently erasing the pill. A later review that finds the brilliant again clears the note.
@@ -5541,7 +5591,7 @@ export default function App(){
       recordGameStats(meta.key,{bril,great,inacc,mist,blun,obril,src:'review',engine:useSF?'sf':'fallback',...(_was!=null?{was:_was}:{})});
     }
     const playedSans=res.positions.slice(0,res.plies.length).map((pos,i)=>toSAN(pos,res.plies[i].move,applyMove(pos.board,res.plies[i].move)));
-    const openingName=nameOpening(playedSans);
+    const openingName=_st.game?null:nameOpening(playedSans);   // #549 item (66): a set-up game has no opening and no book moves
     // Capture the user's Mistakes/Blunders (to practice) and Brilliant moves (to replay)
     try{
       const uc2=meta&&meta.userColor;
@@ -5550,7 +5600,7 @@ export default function App(){
         const caps=[],bril=[];
         const lastOf=(j)=>{if(j<=0||!res.plies[j-1])return null;const lm=res.plies[j-1].move;return {fr:lm.fr,fc:lm.fc,tr:lm.tr,tc:lm.tc};};
         for(let i=0;i<out.length;i++){
-          const mc=i%2===0?'w':'b'; if(mc!==uc2)continue;
+          const mc=res.positions[i].turn; if(mc!==uc2)continue;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
           const L=out[i].cls&&out[i].cls.label;
           // #440: SELECT on the old centipawn ladder. The second half of this line read "DISPLAY the honest
           // label (stored as `label:L` below)" and HAS BEEN FALSE SINCE #442, which is the build that fixed
@@ -5576,7 +5626,7 @@ export default function App(){
                very expression the `if` above filters on, so the card can only ever say "a mistake"
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,no:Math.floor(i/2)+1/* last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
+            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,no:Math.floor((_pb+i)/2)+1/* last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
@@ -5584,7 +5634,7 @@ export default function App(){
                and a fork's two targets with it. evalAfter is White's frame, so a Black brilliancy used to read as a minus number for the
                player who made it, and a mating line read "+99.0". */
             const _why=brilCardWhy(out[i],mc);
-            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor(i/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
+            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor((_pb+i)/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
           }
         }
         /* #426 antagonist B, P0-3, MEASURED: this merge is fen-keyed and used to DROP every position it
@@ -5615,10 +5665,10 @@ export default function App(){
         if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,80):prev;});
       }
     }catch(e){}
-    const bookN=openingBookPlies(playedSans);
+    const bookN=_st.game?0:openingBookPlies(playedSans);
     const _sideStats=(side)=>{const c={};GRADE_LADDER.forEach(g=>{c[g[0]]=0;});   /* #549 item (1): the buckets come from the one ladder, not a hand-typed list */let sl=0,n=0;const _accs=[],_idxs=[];/* #440: the game's Win% series from WHITE's point of view at every position, length plies+1. It is the
    input to the volatility weighting, and it spans the WHOLE game rather than one side's moves, because a
-   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=i%2===0?'w':'b';if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(Object.prototype.hasOwnProperty.call(c,L))c[L]++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
+   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=res.positions[i].turn;if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(Object.prototype.hasOwnProperty.call(c,L))c[L]++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
     /* #491 R45 RESOLUTION, and the two halves of this line were built four days apart by two runs that
        could not see each other. #440 (this pile) replaced the ACCURACY aggregation; #464 (already on main)
        replaced the BOOK REASSIGNMENT with effLabel, the one definition of "the grade this ply is presented
@@ -5643,8 +5693,8 @@ export default function App(){
     /* #547 item (186): the accuracy-derived `rating` this returned was rendered nowhere after #429 - dropped. */
     return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
-    let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN);}catch(e){skills=null;} /* #368 y17b */
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text};
+    let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN,_pb);}catch(e){skills=null;} /* #368 y17b */
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||''};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
@@ -5938,7 +5988,7 @@ export default function App(){
     const GS=gameStatsRef.current||{};const all=evalCacheAll();const games=[];let noCache=0;
     for(const g of ccGames){
       const k=gkey(g),st=GS[k];if(!st||st.src!=='review'||gradeVerOf(st)>=GRADE_VER)continue;
-      let r=null;try{const sans=parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans):null;if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies)]||null,gameInfo(g).userColor);}catch(e){r=null;}
+      let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies,_st.fen)]||null,gameInfo(g).userColor);}catch(e){r=null;}
       if(!r){noCache++;continue;}
       if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version
       const info=gameInfo(g);
@@ -6608,7 +6658,7 @@ export default function App(){
     setTimeout(step,1000);            // a beat first, so the solved message lands before the board moves
   };
   const playBestLine=async(firstOverride)=>{if(!inReview||ply===0||!review||!review.analysis[ply-1])return;const first=firstOverride||review.analysis[ply-1].bestMove;if(!first)return;const tok=++bestLineTokenRef.current;const basePos=review.positions[ply-1];setBestLineBoard(basePos);let g1;try{g1=makeMove(basePos,first);}catch(e){setBestLineBoard(null);return;}let moves=[first],states=[basePos,g1];try{const pv=await sfBestLine(toFEN(g1),1100);if(bestLineTokenRef.current!==tok)return;if(pv&&pv.length){let g=g1;for(let k=0;k<4;k++){if(k>=pv.length)break;const mv=uciToMove(g,pv[k]);if(!mv)break;let ng;try{ng=makeMove(g,mv);}catch(e){break;}moves.push(mv);g=ng;states.push(g);}}}catch(e){}if(moves.length<=1){let g=g1;for(let k=0;k<3;k++){let m;try{m=bestMove(g,3,0);}catch(e){break;}if(!m)break;let ng;try{ng=makeMove(g,m);}catch(e){break;}moves.push(m);g=ng;states.push(g);}}if(bestLineTokenRef.current!==tok)return;
-    try{let txt='',g=basePos,num=Math.floor((ply-1)/2)+1,first=true;
+    try{let txt='',g=basePos,num=revNo(review,ply-1),first=true;   // #549 item (66)
       for(let i=0;i<moves.length;i++){const nb=applyMove(g.board,moves[i]);const san=toSAN(g,moves[i],nb);const wt=g.turn==='w';
         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
@@ -6952,7 +7002,7 @@ export default function App(){
   const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily('puz');};
   // #341: a finished Stockfish pass is worth keeping. Key on the exact move list plus the movetime budget, store only the engine's own output
   // (white-POV centipawns, the second line, the best move per ply); everything else the review shows is derived from those in pure JS.
-  const evalCacheKey=(plies)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|sf18c';for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
+  const evalCacheKey=(plies,fen)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|sf18c'+(fen?'|'+fen:'');   /* #549 item (66): a set-up game's key carries its start, so the same SANs from two positions cannot share evaluations; an ordinary game's key is unchanged */for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
   const evalCacheAll=()=>{try{return JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};}catch(e){return {};}};
   const evalCacheGet=(k)=>{try{const all=evalCacheAll();const v=all[k];if(!v)return null;v.at=Date.now();try{localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}return v;}catch(e){return null;}};
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
@@ -7279,7 +7329,7 @@ export default function App(){
        not read off the pending marker, because that marker is written by the effect AFTER this first render. */
     const _L=curAnno.cls&&curAnno.cls.label;
     const refuteDue=!refute&&!(R&&(R.none||R.failed))&&(_L==='Brilliant'||_L==='Great')&&ai>=0&&(()=>{const pos=review.positions&&review.positions[ai],pl=review.plies[ai];return !!(pos&&pl&&pl.move&&sacTaker(pos,pl.move));})();
-    return explainAnno(curAnno,{mover:(ai%2===0)?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
+    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
   },[curAnno,inReview,review,ply,sacTick,wide]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was
@@ -7287,7 +7337,7 @@ export default function App(){
   const _cmpStrip=useMemo(()=>{
     if(!curAnno||!inReview||!review||ply<1)return null;
     const ai=ply-1, pl=review.plies[ai]; if(!pl)return null;
-    const mover=(ai%2===0)?'w':'b';
+    const mover=revMover(review,ai);   // #549 item (66)
     const played={san:String(pl.san||'').replace(/[!?]+$/,''),ev:curAnno.evalAfter};
     const rows=[played];
     if(curAnno.altSan&&curAnno.altDrop!=null&&typeof curAnno.evalBefore==='number'){
@@ -8837,7 +8887,7 @@ export default function App(){
             </div>
             {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const an=review.analysis||[];if(!an.length)return null;const uc=S.userColor; // coach take (#310)
               const _R=review.headers&&review.headers.Result,_ended=String((review.headers&&review.headers.CTEnded)||''),_youLost=!!uc&&((_R==='1-0'&&uc==='b')||(_R==='0-1'&&uc==='w'));   // #549 item (49)
-              const mine=(i)=>{const mc=i%2===0?'w':'b';return uc?mc===uc:true;};
+              const mine=(i)=>{const mc=revMover(review,i);return uc?mc===uc:true;};
               let op=0,mid=0,end=0,worstI=-1,worstL=0,blun=0;
               an.forEach((a,i)=>{if(!mine(i))return;const L=a.cls&&a.cls.label;const bad=(L==='Blunder'||L==='Mistake');if(L==='Blunder')blun++;
                 if(bad){if(i<16)op++;else if(i<50)mid++;else end++;}
@@ -8872,7 +8922,7 @@ export default function App(){
                 <div data-ct="grade-head" style={{display:'grid',gridTemplateColumns:'1fr 56px 56px' /* #547 item (139): was 1fr 48px 48px over rows of 1fr 56px 56px, so 'White' sat 12px right of its digits and ran into the Black column */,gap:8,fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.6)',fontWeight:800}}><span></span><span style={{textAlign:'center'}}>White</span><span style={{textAlign:'center'}}>Black</span></div>
                 {CATS.map(([lbl,col])=>(<div key={lbl} style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',alignItems:'center',fontSize:'clamp(15.5px,3.5vw,17px)',gap:8}}>
                   <span style={{display:'flex',alignItems:'center',gap:7,color:'rgba(255,255,255,.8)'}}><span data-ct="sum-dot" data-grade={lbl} style={{width:9,height:9,borderRadius:'50%',background:col,flexShrink:0}}/>{lbl}</span>
-                  {['w','b'].map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=i%2===0?'w':'b';if(mc===sd&&effLabel(an[i].cls,i,S.book||0)===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
+                  {['w','b'].map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=revMover(review,i);if(mc===sd&&effLabel(an[i].cls,i,S.book||0)===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
                   return(<button key={sd} onClick={jump} disabled={!n} style={{textAlign:'center',background:n?'rgba(255,255,255,.06)':'none',border:n?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'3px 0',color:n?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:'clamp(17px,4vw,19px)',cursor:n?'pointer':'default'}}>{n}</button>);})}
                 </div>))}
               </div>
@@ -8905,7 +8955,7 @@ export default function App(){
                     {['w','b'].map(sd=>{const [val,idx,on]=fn(K[sd]);const can=idx!=null;return(<button key={sd} onClick={()=>go(idx)} disabled={!can} style={{textAlign:'center',background:on?'rgba(255,255,255,.06)':'none',border:on?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'4px 0',color:on?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:val.length>4?'clamp(12px,2.8vw,13px)':'clamp(16px,3.8vw,18px)',cursor:can?'pointer':'default',lineHeight:1.2,whiteSpace:'nowrap'}}>{val}</button>);})}
                   </div>))}
               </div>);})()}
-            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=i%2===0?'w':'b';if(S.userColor&&mc!==S.userColor)return false;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool - this list was ALREADY sorted
+            {(()=>{const moments=review.analysis.map((o,i)=>({o,i})).filter(({o,i})=>{const mc=revMover(review,i);if(S.userColor&&mc!==S.userColor)return false;const _S=o.sel||classifyByLoss(o.loss||0);/* #440: selected on the old ladder for the same reason as the drill pool - this list was ALREADY sorted
    by o.loss and only its filter was label-keyed, which is the tell that loss is its natural key.
    THE MISS EXCLUSION IS REPRODUCED FROM THE OLD LADDER, NOT FROM THE NEW LABEL [antagonist, #440]. The
    first cut of this filter excluded `o.cls.label==='Miss'`, i.e. what the NEW ladder calls Miss - a
@@ -8913,13 +8963,13 @@ export default function App(){
    Blunder. So a move the OLD ladder called Miss but the new one softens to Inaccuracy was newly IN a
    list it used to be out of: 125 integer (evalBefore, evalAfter) grid points, mover-POV evalBefore
    +200..+310, a won position thrown back to roughly level. Miss's own operands are on the row, so the
-   old overlay is recomputed here and the set is identical to #439's by construction. */const _sgn=(i%2===0)?1:-1,_bm=_sgn*(o.evalBefore||0)*100,_pm=_sgn*(o.evalAfter||0)*100;const _oldMiss=(_S==='Mistake'||_S==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130;return (_S==='Blunder'||_S==='Mistake')&&!_oldMiss;}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
+   old overlay is recomputed here and the set is identical to #439's by construction. */const _sgn=revMover(review,i)==='w'?1:-1,_bm=_sgn*(o.evalBefore||0)*100,_pm=_sgn*(o.evalAfter||0)*100;const _oldMiss=(_S==='Mistake'||_S==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130;return (_S==='Blunder'||_S==='Mistake')&&!_oldMiss;}).sort((a,b)=>(b.o.loss||0)-(a.o.loss||0)).slice(0,3);if(!moments.length)return null;return(
               <div style={{display:'flex',flexDirection:'column',gap:7}}>
                 
                 {false&&moments.map(({o,i})=>{const L=o.cls.label;const col=L==='Blunder'?'#ec5c4e':'#f0a24e';return(
                   <button key={i} onClick={()=>{setReviewView('moves');setPly(i+1);}} style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:'10px 12px',cursor:'pointer',color:'#fff',boxShadow:SHADOW_BOX}}>
                     <span style={{fontSize:'clamp(16px,4.2vw,20px)',fontWeight:900,color:col,flexShrink:0,width:24,textAlign:'center'}}>{o.cls.i}</span>
-                    <span style={{flex:1,minWidth:0}}><b style={{fontSize:'clamp(14px,3.4vw,16px)',fontWeight:800}}>{Math.floor(i/2)+1}{i%2===0?'.':'…'} {review.plies[i].san}</b> <span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.55)'}}>· {L.toLowerCase()}{o.bestSan?(' · better: '+o.bestSan):''}</span></span>
+                    <span style={{flex:1,minWidth:0}}><b style={{fontSize:'clamp(14px,3.4vw,16px)',fontWeight:800}}>{revNo(review,i)}{revMover(review,i)==='w'?'.':'…'} {review.plies[i].san}</b> <span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.55)'}}>· {L.toLowerCase()}{o.bestSan?(' · better: '+o.bestSan):''}</span></span>
                     <span style={{color:'var(--ac)',fontWeight:800,flexShrink:0}}>›</span>
                   </button>);})}
               </div>);})()}
@@ -9534,7 +9584,7 @@ export default function App(){
         const _controls=(<>
       {/* ── Review controls, one-screen preview (#333) ── */}
       {inReview&&revCompact&&(()=>{
-        const _mvTxt=curAnno?((Math.floor((ply-1)/2)+1)+((ply-1)%2===0?'.':'…')+' '+review.plies[ply-1].san):null;
+        const _mvTxt=curAnno?(revNoTxt(review,ply-1)+' '+review.plies[ply-1].san):null;   // #549 item (66): numbered from the game's own start
         // #440: whether a materially better move EXISTED is not a question about how decided the position
         // was, so this offer is selected on the old ladder too. Without this a move softened out of
         // Inaccuracy loses its best-line button while bestSan is still sitting on the row.
@@ -10658,7 +10708,7 @@ export default function App(){
             the one ply the chips cannot cover, in the same idiom as the chip ref. */}
         <div data-mstrip="1" ref={ply===0?(el=>{if(el&&el.scrollLeft)el.scrollTo({left:0,behavior:'smooth'});}):undefined} className="scroll" style={{flex:'1 1 auto',minWidth:0,overflowX:'auto',overflowY:'hidden',whiteSpace:'nowrap',background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.08)',borderRadius:12,padding:(revCompact&&!wide)?'6px 11px':'9px 11px',position:'relative',WebkitOverflowScrolling:'touch'}}>
         <div style={{display:'inline-flex',alignItems:'center',fontSize:'clamp(14px,2.9vw,16px)',fontFamily:'monospace'}}>
-          {review.plies.map((p,i)=>{const a0=review.analysis[i];const a={...a0,cls:effCls(a0.cls,i,(review.summary&&review.summary.book)||0)};   /* #549 item (1), folded job: the strip paints the grade the badge shows (effCls), so a book ply no longer shows its raw grade here. Amber: flags/amber-549-strip-book-ply */const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{i%2===0&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{Math.floor(i/2)+1}.</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(i%2===0?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}</span></span>);})}
+          {review.plies.map((p,i)=>{const a0=review.analysis[i];const a={...a0,cls:effCls(a0.cls,i,(review.summary&&review.summary.book)||0)};   /* #549 item (1), folded job: the strip paints the grade the badge shows (effCls), so a book ply no longer shows its raw grade here. Amber: flags/amber-549-strip-book-ply */const isCur=ply===i+1;const notable=['Brilliant','Great','Miss','Inaccuracy','Mistake','Blunder'].indexOf(a.cls.label)>=0;return(<span key={i} style={{display:'inline-flex',alignItems:'center'}}>{(revMover(review,i)==='w'||i===0)&&<span style={{color:'rgba(255,255,255,.35)',margin:'0 3px 0 7px'}}>{revNo(review,i)}{revMover(review,i)==='w'?'.':'…'}</span>}<span ref={isCur?(el=>{if(!el)return;const c=el.closest('[data-mstrip]');if(c){const t=el.offsetLeft-(c.clientWidth-el.offsetWidth)/2;c.scrollTo({left:Math.max(0,t),behavior:'smooth'});}}):undefined} onClick={()=>setPly(i+1)} style={{cursor:'pointer',color:notable?a.cls.c:(revMover(review,i)==='w'?'#e0e0e0':'var(--ac2)'),padding:'3px 6px',borderRadius:5,background:isCur?(notable?a.cls.c+'3d':'rgba(255,216,77,.28)'):'transparent',boxShadow:isCur?('inset 0 0 0 1px '+(notable?a.cls.c+'aa':'rgba(255,216,77,.5)')):'none',fontWeight:isCur?'bold':'normal'}}>{p.san}{notable?a.cls.i:''}</span></span>);})}
         </div>
         </div>
         {_arrows&&_abtn(<ChevIcon size={17} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},'Next move')}
