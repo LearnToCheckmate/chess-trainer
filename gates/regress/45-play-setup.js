@@ -513,6 +513,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
 // PS-J  Leaving the screen - the only two ways out. TC-PS-041..043.
 // CONTROL-RECORD: b4d4792 2026-10-30 total=19 red=2 scope=blocks:J how=trial bundle 4348d577958a flips the board for every computer game whatever colour was chosen - both TC-PS-042 WHITE POSE lines red, the Black-only TC-PS-042 green [#546 item (62)]
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=190 red=2 scope=trial:b139fbd4a4f9 how=#548 control for item (84): setup-sheet marginBottom -400 plus a 130vh block in play - TC-PS-043b red at se and kunal730; TC-PS-004 itself did NOT go red on this bundle, so this record does not show the (84) assertion can fail
+// CONTROL-RECORD: 569e158 2026-11-06 total=79 red=10 scope=blocks:K how=trial nc 9457a7d0659c is HEAD before #549 item (39), the selected tile printing bt.elo - the ten TC-PS-044 (6) tile lines red at kunal761 and se, 69 green; a second trial 5f2fbf25893d with the bar reading bot.elo gave 59/20, the (4) and (6) bar lines red [#549 item (39)]
 // =========================================================================================================
 if(blk('J'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'ps-j-'+geo});await b.open();await openSetup(b);
