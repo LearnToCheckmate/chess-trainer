@@ -1,0 +1,27 @@
+# gates/gatelog-exceptions.tsv - BUILD NUMBERS STAMPED IN AN app.js ON MAIN'S HISTORY THAT HAVE NO COMMITTED -all LOG, EACH WITH ITS SOURCE.
+# #549, item (63); jobs/gatelogs-missing-for-401-and-418-2026-09-27 under orchestratorRuling_2026_11_04 (TC-R18's scope: every build RUN-LOG names
+# as shipped with app changes has its log; gates-only and held builds are out). The 'TC-R18' in the job's case text is already the id of a lesson
+# hit-area case (gates/regress/53), so this check is TC-SUITE-372. Read by gates/regress/81-gatelog-covers-shipped-bundle.js AT HEAD.
+#
+# WHAT THE GATE ASKS. For every app.js commit reachable from HEAD, the stamp '#NNN - <date> ET' it carries; for each distinct NNN, a committed
+# claude/agents/gatelogs/NNN*-all*.log, or a row here. A row whose number now has a log, or that no app.js on HEAD's history stamps, is STALE and
+# red, so this list can only shrink by being right. HEAD's own stamp (the build under test, whose log the suite is writing) is excused in the gate. Measured on 2026-11-06 on a complete clone at 7340372 + batch 9: 117 distinct stamps, 16 without a log.
+# 'No log on any ref' below is the reading of: git log --all -- 'claude/agents/gatelogs/NNN*' 'gates/logs/NNN*' (empty for every row but #441).
+#
+# number	class	source
+364	pre-practice	no log on any ref; RUN-LOG row #364 era predates committed gatelogs, which begin at 373-all.log
+365	pre-practice	no log on any ref; RUN-LOG row #365, gates named by script in the row, before committed gatelogs began at #373
+366	pre-practice	no log on any ref; RUN-LOG row #366 gates cell lists the scripts run, before committed gatelogs began at #373
+367	pre-practice	no log on any ref; RUN-LOG row #367 gates cell lists the scripts run, before committed gatelogs began at #373
+370	pre-practice	no log on any ref; RUN-LOG row #370 gates cell lists the scripts run, before committed gatelogs began at #373
+371	pre-practice	no log on any ref; RUN-LOG row #371 cites gates371c.log, never committed, before committed gatelogs began at #373
+372	pre-practice	no log on any ref; RUN-LOG row #372, before committed gatelogs began at #373
+375	never-committed	no log on any ref; 14f06ac is the GitHub upload-page commit CLAUDE.md names as untraceable, and it carried no log
+384	never-committed	no log on any ref; RUN-LOG row #384; the logs of the #384-#389 episode that do exist are the regates 388-regate-of-the-387-bundle.log and 388b, which CLAUDE.md names as thin
+385	never-committed	no log on any ref; RUN-LOG row #385 (the coach bubble), shipped 7241121 with no log
+386	never-committed	no log on any ref; RUN-LOG rows #386 and '#386 re-gated', shipped 06502c7 with no log
+387	never-committed	no log on any ref; RUN-LOG rows #387 and '#387 re-gated'; the #387 bundle was later re-gated by 388-regate-of-the-387-bundle.log (thin, per CLAUDE.md)
+418	never-committed	no log on any ref; RUN-LOG.md header paragraph from #546 item (63): 418-all, 418b-all and 418c-all were never committed; its work was gated on main by 422-all.log
+440	reverted	no log on any ref; c30b7a9 reached main with the #441 push and 364f700 'Revert main to #439' took it off (CLAUDE.md, the ancestry-is-not-a-content-test row); re-landed as later builds' work
+441	reverted	441-all.log was committed by e765135 and removed by 364f700 'Revert main to #439'; the #441 tree is on gates/held-trees.tsv
+448	burnt	RUN-LOG.md '#448 IS A BURNT NUMBER': fce4d96 is in main's history but the push carried #449, after both antagonists vetoed #448; its suite log was discarded (RUN-LOG '#448 SUITE WAS NEVER KILLED AND ITS LOG IS DISCARDED')

@@ -16,6 +16,9 @@
 // needs the rule: 459b-all.log gated fb009ca7734a (held, #459) and was committed by #459's close-out, which made no
 // application change. Every excused log is printed by name, so an excuse is a reading and never a silence.
 //
+// AND, SINCE #549 (item (63); jobs/gatelogs-missing-for-401-and-418-2026-09-27), TC-SUITE-372: every build number stamped in an app.js on
+// HEAD's history has a committed log, or a sourced row in gates/gatelog-exceptions.tsv; a stale row is red too. See the block at the end.
+//
 // NON-VACUITY. A separate line requires at least MIN_LOGS checked logs, so a rename, a moved directory or a changed
 // ref-line format turns the gate red rather than green over an empty set.
 'use strict';
@@ -56,4 +59,35 @@ L.run(async()=>{
   L.note('     skipped by name (authorised nothing): '+(skippedName.join(', ')||'none'));
   L.note('     skipped as a HELD tree (authorised nothing): '+(skippedHeld.join(', ')||'none'));
   L.say(checked.length>=MIN_LOGS,'TC-SUITE-351 the gate checked at least '+MIN_LOGS+' committed gate logs carrying a ref line (non-vacuity)',{checked:checked.length,min:MIN_LOGS});
+
+  // ── TC-SUITE-372: EVERY BUILD NUMBER STAMPED IN AN app.js ON HEAD'S HISTORY HAS A COMMITTED LOG, OR A SOURCED ROW SAYING WHY NOT.
+  // #549, item (63); jobs/gatelogs-missing-for-401-and-418-2026-09-27, scoped by orchestratorRuling_2026_11_04 (shipped with app changes;
+  // gates-only builds - #401 - change no app.js and so stamp nothing, which is what keeps them out mechanically). The exception list is
+  // gates/gatelog-exceptions.tsv AT HEAD; a row that is no longer needed is red, so the list cannot hide a log that later arrived.
+  const STAMP=/#(\d{3})[a-z]? - 20\d\d-\d\d-\d\d \d\d:\d\d ET/;
+  const appShas=g('log --format=%H HEAD -- app.js').toString().split('\n').filter(Boolean);
+  const stamped=new Map();                               // number -> newest app.js commit carrying it
+  for(let i=0;i<appShas.length;i+=64){
+    const batch=appShas.slice(i,i+64);
+    let out='';
+    try{out=cp.execSync('git -C "'+ROOT+'" grep -h -m1 -oE "#[0-9]{3}[a-z]? - 20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} ET" '+batch.join(' ')+' -- app.js',{maxBuffer:1<<28}).toString();}catch(e){out=(e.stdout||'').toString();}
+    for(const ln of out.split('\n')){const m=ln.match(STAMP);if(m&&!stamped.has(m[1]))stamped.set(m[1],true);}
+  }
+  const logNums=new Set(g('ls-tree -r --name-only HEAD -- claude/agents/gatelogs').toString().split('\n')
+    .map(f=>path.basename(f)).filter(b=>/^\d{3}[a-z]?-.*all.*\.log$/.test(b)).map(b=>b.slice(0,3)));
+  const exc=new Map();
+  try{for(const l of g('show HEAD:gates/gatelog-exceptions.tsv').toString().split('\n')){if(/^\s*(#|$)/.test(l))continue;const f=l.split('\t');exc.set(f[0],{cls:f[1]||'',src:f[2]||''});}}catch(e){}
+  L.say(stamped.size>=100,'TC-SUITE-372 PRECONDITION at least 100 distinct build stamps were read from the app.js commits on HEAD\'s history, so the coverage check below is over the real set (non-vacuity)',{appJsCommits:appShas.length,stamps:stamped.size});
+  L.say(exc.size>=1,'TC-SUITE-372 PRECONDITION gates/gatelog-exceptions.tsv was read at HEAD ('+exc.size+' rows), so an excused number is a lookup and not a silence',{rows:exc.size});
+  // THE BUILD UNDER TEST IS NOT YET OWED ITS LOG: the suite runs at a sha whose app.js already carries this build's stamp, and the log it
+  // writes is committed after it (548d-all.log gated 2ef1165, whose app.js reads #548). So HEAD's own stamp is excused, BY NAME, here only.
+  const headStamp=((()=>{try{return g('show HEAD:app.js').toString();}catch(e){return '';}})().match(STAMP)||[])[1]||null;
+  L.note('     the build under test (HEAD\'s own app.js stamp, its log is written by this suite): '+(headStamp?'#'+headStamp:'none read'));
+  const missing=[...stamped.keys()].filter(n=>n!==headStamp&&!logNums.has(n)&&!exc.has(n)).sort();
+  L.say(missing.length===0,'TC-SUITE-372 every build number stamped in an app.js on HEAD\'s history has a committed claude/agents/gatelogs/<n>*-all*.log or a sourced row in gates/gatelog-exceptions.tsv'+(missing.length?' - MISSING: #'+missing.join(', #'):''),{stamps:stamped.size,withLog:[...stamped.keys()].filter(n=>logNums.has(n)).length,excused:[...stamped.keys()].filter(n=>exc.has(n)).length,missing});
+  const stale=[...exc.keys()].filter(n=>logNums.has(n)||!stamped.has(n)).sort();
+  L.say(stale.length===0,'TC-SUITE-372 no row of gates/gatelog-exceptions.tsv is stale (its number now has a log, or no app.js on HEAD\'s history stamps it)'+(stale.length?' - STALE: #'+stale.join(', #'):''),{stale});
+  const unsourced=[...exc.entries()].filter(([n,r])=>!/^\d{3}$/.test(n)||!/^(pre-practice|never-committed|reverted|burnt)$/.test(r.cls)||r.src.trim().length<20).map(([n])=>n);
+  L.say(unsourced.length===0,'TC-SUITE-372 every exception row carries a known class (pre-practice, never-committed, reverted, burnt) and a source of at least 20 characters',{unsourced});
+  L.note('     excused (no log, sourced): '+[...exc.entries()].map(([n,r])=>'#'+n+' '+r.cls).join(', '));
 },'GATELOG-COVERS-SHIPPED-BUNDLE');
