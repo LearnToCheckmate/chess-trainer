@@ -65,7 +65,7 @@ selftest(){
   mk; printf '\n- A clause recording the old wording, "any supported geometry", in quotes.\n' >> "$T/r/claude/stories/USER-STORIES.md"; ck "S4 a QUOTED mention does not redden" 0
   mk; sed -i 's/\*\*THE DRILL SEVEN\*\*/**THE DRILL 7**/' "$T/r/claude/stories/USER-STORIES.md"; ck "S5 a renamed set heading is NOT credited (G0 reddens)" 1
   mk; sed -i "s/const TA7=\['se','w360'/const TA7=['se'/" "$T/r/gates/lib.js"; ck "S6 a TA7 that drops one geometry reddens G4" 1
-  mk; python3 -c "import sys,re;p=sys.argv[1];s=open(p).read();i=s.index('**375x730 IN BOTH SETS');j=s.index('and is not decided here.',i)+len('and is not decided here.');open(p,'w').write(s[:i]+s[j:])" "$T/r/claude/stories/USER-STORIES.md"; ck "S7 deleting the device paragraph reddens G5" 1
+  mk; python3 -c "import sys,re;p=sys.argv[1];s=open(p).read();i=s.index('**375x730 IN BOTH SETS');j=s.index('about what a set means.',i)+len('about what a set means.');open(p,'w').write(s[:i]+s[j:])" "$T/r/claude/stories/USER-STORIES.md"; ck "S7 deleting the device and ordering paragraphs reddens G5" 1
   echo "geometry-sets selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
 

@@ -34,16 +34,24 @@ from the gate sources at main f3ae36a, not read from prose [R18].*
 
 **Intersection: 3 members (320x568, 375x730, 390x844).** A clause that names neither set names nothing.
 
-**375x730 IN BOTH SETS IS THE GATES' COLUMN, NOT KUNAL'S PHONE, AND A CLAUSE ABOUT HIS PHONE NAMES 375x761 [#545, item
-(55); jobs/registers-canonise-375x730-after-r19-settled-761-2026-10-06].** prompts/common R19 settled the device
-on 2026-10-03: his layout viewport is **375x761** (his own 2026-09-14 diagnostics: vw 375, vh 761, boardPx 349.04),
-and the figure 730 is wrong as a statement about the device. The two sets above are GATE sets, held equal to gates
-51 and 48 by `gates/audit/geometry-sets.sh`, and those gates still visit `kunal730`, so their member is 375x730 and
-is left as measured. What that means for a clause: **naming a set means "what these gates drive", not "what he sees".**
-A clause whose subject is his phone - a height, a fold, a board size he will look at - names **375x761** (`GEOS.kunal761`)
-explicitly, beside whichever set it also names, until the gate sweep moves the sets. Which comes first, the sweep or
-the registers, is the open ordering question on contradictions/r19-height-settled-against-the-phone-card-still-asking-2026-10-04
-and is not decided here.
+**375x730 IN BOTH SETS IS THE GATES' COLUMN AND NOT THE DEVICE. R19 SETTLED THE DEVICE AT 375x761, AND A CLAUSE
+ABOUT HIM NAMES IT [#545, item (55); #549, item (110); jobs/registers-canonise-375x730-after-r19-settled-761-2026-10-06].**
+prompts/common R19 settled the device on 2026-10-03: his layout viewport is **375x761** (his own 2026-09-14
+diagnostics: vw 375, vh 761, boardPx 349.04), and the figure 730 is wrong as a statement about the device. The two
+sets above are GATE sets, held equal to gates 51 and 48 by `gates/audit/geometry-sets.sh`, and those gates still
+visit `kunal730`, so their member is 375x730 and is left as measured. What that means for a clause: **naming a set
+means "what these gates drive", not "what he sees".** A clause whose subject is the device - a height, a fold, a
+board size he will look at - names **375x761** (`GEOS.kunal761`) explicitly, beside whichever set it also names.
+
+**THE ORDERING IS DECIDED, AND THE REGISTERS FOLLOW IT [#549, item (110)].** The orchestrator ruled on 2026-11-04
+(decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04, on Kunal's word of that
+evening): the gates/lib.js sweep first, the registers second; canonise 375x761 as the device; a literal outside both
+sets that is a legitimate column stays, named as such. The sweep landed at #549 item (23): gates/lib.js labels
+`kunal730` "superseded by R19" and `kunal761` the device. The registers followed at #549 item (110): every line of
+USER-STORIES.md and TEST-CASES.md that called 375x730 the device now names it the gates' superseded column, which
+`gates/audit/r19-phone-geometry.sh` A1 reads. 375x730 is still a set member because gates 51 and 48
+still drive it; moving a set's member to 375x761 is a gate change, made gate by gate, and the set line here moves in
+the same commit as its gate, so the register and the suite never disagree about what a set means.
 
 **A NUMBER THE RAISING JOB CARRIED IS WITHDRAWN HERE [R18], in the clause that inherits it.** The job measured
 gate 48 as a SEVEN-member set at 2026-09-28 ("320x568, 375x568, 375x730, 390x844, 375x520, 320x520, 320x540",
@@ -479,7 +487,7 @@ On a screen that does not scroll, no empty vertical band is over 60px. This is c
 
 Kunal adopted this rule on 11 Oct 2026, on Decision Desk card empty-space-limit-per-screen-2026-10-10 ("Yes, adopt the 60px rule"). It was written at #545 for jobs/empty-band-cases-and-clause-at-375x761-report-only-first-2026-10-12.
 
-- THIS CLAUSE NAMES ITS OWN GEOMETRY. 375x761 is in neither THE DRILL SEVEN nor THE LESSON THREE; both list 375x730. The section that names those sets is owned by jobs/registers-canonise-375x730-after-r19-settled-761-2026-10-06, and this clause does not edit it.
+- THIS CLAUSE NAMES ITS OWN GEOMETRY. 375x761 is in neither THE DRILL SEVEN nor THE LESSON THREE; both list 375x730. The section that names those sets says 375x730 is the gates' column and 375x761 the device (#549, item (110)); this clause names 375x761 itself.
 - EVERY CASE IS REPORT-ONLY TODAY. TC-S04 covers nine states across Discover, Puzzles and the Review move screen. TC-S05 covers Discover, and since #549 is asserted at 375x761 with the real insets. TC-S06 covers the Review move screen, and the drill when it is driven. The measurement is gates/regress/77-empty-bands.js.
 - PROMOTION. A state becomes asserted in the same commit as the fix that brings it to 60px or under, or on a re-measure that finds it already there.
 - OWNERS. The Review move screen is owned by jobs/eval-graph-into-the-band. Puzzles right after a solve is owned by jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24. Discover goes to its own Desk card first and then its own build. The drill is owned by jobs/board-jumps-on-drill-verdict, then jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12. The Puzzles rankup state has no owner.
