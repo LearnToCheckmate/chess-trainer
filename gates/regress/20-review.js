@@ -660,6 +660,9 @@ L.run(async()=>{
       L.say(!!r.engLead&&/^M\d+$/.test(r.engLead)&&nOf(r.engLead)>=r.lo&&nOf(r.engLead)<=r.hi,id+': the engine line leads with mate in N, not a number ('+r.engLead+')',{eng:r.eng});
       L.say(r.why==='White has a forced mate',id+': the engine line\'s explanation says White has a forced mate ('+r.why+')',{why:r.why});
       if(r.cmp)L.say(!/[+-]?9\.9\b|[+-]?99\.0/.test(r.cmp),id+': the comparison strip prints no clamped 9.9 or 99.0 ('+r.cmp+')',{cmp:r.cmp});
+      // A7-R4 [antagonist A round 4]: a missing denominator is reported, never credited (#493) - rev-cmp has rendered on none of these
+      // plies in any run so far, so this site's clamp check has never executed, and that is now printed on every run, not inferred.
+      else L.note(id+': TC-R09d rev-cmp NOT RUN - rev-cmp did not render at this ply, so the 9.9/99.0 clamp check on the comparison strip had no input here (NOT A PASS)');
     }
     // THE DEPTH DISAGREEMENT, as its own input: Lasker ply 24 (12...Kh6) is M6 at depth 16 and +8.04 at depth 12, so the stored analysis
     // says mate and the live bar's own search NEVER finds it. Before #549 the label settled on that number; it must hold the mate.
