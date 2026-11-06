@@ -258,7 +258,7 @@ const PZ=require('../drive/puzzles');
 // bands overlap by more than half the shorter one AND their horizontal bands do not overlap. A vertical stack
 // of buttons is not a row; asserting one glyph size down a column is not what was commissioned, and a predicate
 // loose enough to call a column a row is loose enough to go red on a healthy screen.
-const ROWS = function(){
+const ROWS = function(opt){
   const vw=innerWidth, vh=innerHeight;
 
   let board=null, bw=-1;
@@ -331,7 +331,17 @@ const ROWS = function(){
     // ancestor hit means the centre fell on the control's own padding, which is still the control. Excluding
     // shrinks the population, so it can never manufacture a defect; it can only hide one, which is why the
     // count is PINNED per geometry and screen below rather than merely reported.
-    const hit=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2);
+    // #549 item (74), at kunal761 [the run's finding on dad9bed]: WHEN THE BOX CENTRE IS OFF SCREEN, TC-INV-03b PROBES THE
+    // VISIBLE PART. Here a control whose box centre lies OFF the viewport gets elementFromPoint === null, and `hit &&` then
+    // counts it as unoccluded. Measured on feedback-home at 375x761 (trial bb925b8d210d): a Home card's 34.85px svg control,
+    // box -64..28, sits BEHIND the feedback sheet's 0.62 backdrop with 28px of it on screen; its centre at y=-18 returned
+    // null, so it entered TC-INV-03b's set as an added 34. At 375x730 the same card is wholly above the top and vis() drops
+    // it, which is why only the inset geometry saw it. The re-probe is OPT-IN (opt.probeVisible, passed by TC-INV-03b only):
+    // applied to the main walk it was measured to move the pinned row and occlusion counts on rev-summary at se, kunal730 and
+    // short375, rev-more-sheet at se, and TC-INV-03's set at kunal761 - Review header and strip controls partly above the
+    // top - which is a population decision for that walk and not this fix.
+    let hit=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2);
+    if(!hit && opt && opt.probeVisible) hit=document.elementFromPoint((Math.max(0,r.left)+Math.min(vw,r.right))/2, (Math.max(0,r.top)+Math.min(vh,r.bottom))/2);
     if(hit && hit!==e && !e.contains(hit) && !hit.contains(e)){
       covered++;
       if(coveredList.length<12) coveredList.push({lab:label(e),box:+r.width.toFixed(1)+'x'+r.height.toFixed(1),hitWas:(hit.getAttribute('data-ct')||hit.tagName)});
@@ -615,7 +625,7 @@ const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
                 390:[17,18,19,20,21,22,25,27,28]};   // 23 dropped at #549 A3-R3: it was the lesson footer's pre-FootBtn glyph, measured gone at 390 on bb925b8d210d
 // TC-INV-03b's PINNED SETS [#549 item (74)]: the icon heights over the unswept states listed at TC-INV-03b, measured on this run's
 // trial bundle by this gate. Same width keying as ICON_PIN, and an unpinned width reports rather than asserts. MEASURED on
-// aac698bd851a (#549 trial), identical at se, kunal730 and short375: 17 the sheets' close x (home-newhere, feedback, menu, Look),
+// aac698bd851a (#549 trial), identical at se, kunal730 and short375, and at kunal761 and 390 on bb925b8d210d once ROWS re-probes an off-screen centre (below): 17 the sheets' close x (home-newhere, feedback, menu, Look),
 // 22 the roadmap's tab bar, 26 the Play setup opponent tiles (Online, Computer, Pass & Play), 30 'More opponents', 40 the bot
 // avatars and the menu's coach hair chips. Of antagonist B's five heights 26 and 40 remain; 26.8 (home-newhere) and 36.3
 // (feedback-home) no longer occur on this bundle, and 112 (the roadmap illustration) is out by the 48 x 48 svg cap.
@@ -1906,7 +1916,7 @@ L.run(async()=>{
       for(const [name,go] of EXTRA){
         const b=await L.launch({geo:g,store:R.SEED,name:'inv3b-'+name+'-'+g}); await b.open();
         try{ await go(b); await b.settle(450);
-          const iv=await b.page.evaluate(ROWS); reached.push(name);
+          const iv=await b.page.evaluate(ROWS,{probeVisible:true}); reached.push(name);
           for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); }
         }catch(e){ L.say(false,g+' TC-INV-03b '+name+': the state could not be reached, so its icons are UNRUN, not green',String(e.message||e).slice(0,140)); }
         await b.close();
