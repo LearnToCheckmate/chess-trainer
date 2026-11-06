@@ -431,21 +431,35 @@ L.run(async()=>{
   // practice -> 1.e4 -> X -> the SAME row, and the note read '▶ Press Play to watch' with the transport back, i.e. the demo at ply 0
   // and the practice gone; the same through Home and Discover. Driven the long way (gates/drive/lesson.js), at his phone's geometry.
   {const b=await L.launch({geo:'kunal761',name:'lesson-resume'});await b.open();
+   // A6-R4 [antagonist A round 4]: the note and the footer are not the POSITION. A build that restored them but not the game (or skipped
+   // the book reply) read green, so the painted board's placement is compared too - per square, a hash of each piece image's full source (data URIs share their tails) and the glyph text.
+   const place=()=>b.page.evaluate(()=>{const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+     let best=null,bw=0;for(const e of els){const w=e.getBoundingClientRect().width;if(w>bw){bw=w;best=e;}}if(!best)return null;
+     const sq=[...best.children].slice(0,64).map(c=>[...c.querySelectorAll('img')].map(i=>{const u=i.getAttribute('src')||'';let h=0;for(let k=0;k<u.length;k++)h=(h*31+u.charCodeAt(k))|0;return u.length+':'+h;}).join('+')+'/'+(c.innerText||'').replace(/[a-h1-8\s]/g,''));
+     return {sq:sq.join(','),n:sq.length,pieces:sq.filter(x=>x!=='/').length};});
    const foot=()=>b.page.evaluate(()=>[...document.querySelectorAll('button[aria-label]')].filter(e=>{const r=e.getBoundingClientRect();return r.width>1&&r.bottom>innerHeight-80;}).map(e=>e.getAttribute('aria-label')).filter(a=>/^(Back a move|Forward a move|Play or pause|Close lesson|More for this lesson)$/.test(a)).sort().join('|'));
    let ok=true;try{await D.states['practice-correct'](b);await b.settle(700);}catch(e){ok=false;}
-   const n0=(await D.noteText(b))||'';const f0=await foot();
+   const n0=(await D.noteText(b))||'';const f0=await foot();const p0=await place();
+   L.say(!!p0&&p0.n===64&&p0.pieces>=30,'TC-LS-053 PRECONDITION the placement read sees a board of 64 squares with the pieces on it ('+(p0?p0.pieces:'no board')+' occupied), so equality below compares a real position',p0&&{n:p0.n,pieces:p0.pieces});
    if(L.say(ok&&/e4/.test(n0)&&/correct/.test(n0)&&f0==='Close lesson|More for this lesson','TC-LS-053 PRECONDITION practice reached and 1.e4 accepted: the note reads the correct-move line and the footer is the practice footer',{n0:n0.slice(0,80),f0})){
     let r1=true;try{await D.tapBtn(b,/^Close lesson$/,600);await D.openRow(b,0);await b.settle(700);}catch(e){r1=String((e&&e.message)||e).slice(0,100);}
     const n1=(await D.noteText(b))||'';const f1=await foot();
     L.say(r1===true&&n1===n0&&!/Press Play/.test(n1),'TC-LS-053 closed with X and re-opened from the SAME row: the note is the one it was left on, not the demo at ply 0',{r1,n0:n0.slice(0,80),n1:n1.slice(0,80)});
     L.say(f1==='Close lesson|More for this lesson','TC-LS-053 and it is still PRACTICE: the footer is Close and More only, the demo transport is not back',{f1});
-    // Home is reached the way a finger reaches it - X, then the tab bar's Home - and a page marker proves the route did not RELOAD
-    // (lib's b.home() falls back to b.open() when it finds no Home button, which would test a cold start, not this).
+    const p1=await place();
+    L.say(!!p0&&!!p1&&p1.sq===p0.sq,'TC-LS-053 and the BOARD is the one it was left on: the placement after X and the same row equals the placement read before the close (1.e4 and the book reply on it)',{same:!!p0&&!!p1&&p1.sq===p0.sq,before:p0&&p0.pieces,after:p1&&p1.pieces});
+    // Home is reached through lib's b.home(), which taps the bottom bar's Home button when the screen behind the lesson shows one and
+    // FALLS BACK TO b.open() (a reload, a cold start) when it finds none [A6-R4: this comment used to say "the tab bar's Home" as if
+    // that were the route; it is the first route b.home() tries, not a promise]. So the two things that make this the warm Home route
+    // are ASSERTED, not assumed: Home is on screen after b.home() (b.onHome()), and a page marker proves no reload happened.
     await b.page.evaluate(()=>{window.__ctResumeMark=1;});
-    let r2=true;try{if(await D.hasBtn(b,/^Got it/))await D.tapBtn(b,/^Got it/,300);/* a lesson that re-opened at its demo raises the intro card over X */await D.tapBtn(b,/^Close lesson$/,600);await D.openLesson(b,'Openings',0);await b.settle(700);}catch(e){r2=String((e&&e.message)||e).slice(0,100);}
-    const n2=(await D.noteText(b))||'';const f2=await foot();const mk=await b.page.evaluate(()=>window.__ctResumeMark===1);
+    let r2=true,onH=false;try{if(await D.hasBtn(b,/^Got it/))await D.tapBtn(b,/^Got it/,300);/* a lesson that re-opened at its demo raises the intro card over X */await D.tapBtn(b,/^Close lesson$/,600);
+      await b.home();await b.settle(300);onH=await b.onHome();await D.openLesson(b,'Openings',0);await b.settle(700);}catch(e){r2=String((e&&e.message)||e).slice(0,100);}
+    const n2=(await D.noteText(b))||'';const f2=await foot();const p2=await place();const mk=await b.page.evaluate(()=>window.__ctResumeMark===1);
     L.say(r2===true&&mk,'TC-LS-053 PRECONDITION the Home route was driven without a page reload (the marker survived)',{r2,mk});
+    L.say(onH===true,'TC-LS-053 PRECONDITION Home was ON SCREEN between the close and the re-open (b.onHome() after b.home()), so the route is X -> Home -> Discover and not a jump from the lesson list',{onH});
     L.say(r2===true&&n2===n0&&f2==='Close lesson|More for this lesson','TC-LS-053 left to Home and re-reached through Discover -> Openings -> the same row: still practice, on the same note',{r2,n2:n2.slice(0,80),f2});
+    L.say(!!p0&&!!p2&&p2.sq===p0.sq,'TC-LS-053 and through Home the BOARD is still the one it was left on (placement equal to the one read before the first close)',{same:!!p0&&!!p2&&p2.sq===p0.sq,before:p0&&p0.pieces,after:p2&&p2.pieces});
     await b.shot('lesson-resume-kunal761');}
    L.say(b.errs.length===0,'TC-LS-053 zero app errors through close and re-open',b.errs.slice(0,3));
    await b.close();}
