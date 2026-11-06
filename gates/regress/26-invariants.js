@@ -299,9 +299,25 @@ const ROWS = function(opt){
     }
     return n? +(bot-top).toFixed(2) : null;
   };
+  // #549 run fix (fixr3d): AN SVG GLYPH IS MEASURED BY ITS UNTRANSFORMED LAYOUT BOX, NOT getBoundingClientRect. The rect
+  // includes every transform on the svg and its ancestors, so Home's intro PawnGlyph (viewBox 0 0 48 58, 28px tall in
+  // .ct-intro) read 33-35 when it was sampled mid-topple - its wrapper rotates from 1.95s on - and TC-INV-03 / TC-INV-03b went
+  // red on a slow machine at kunal730 (33.1) and kunal761 (34.9, 35.5) over a height no icon has. The used width and height
+  // from getComputedStyle are the layout box before transforms (plus padding and border when box-sizing is content-box), so
+  // the glyph STAYS IN the population and is measured at the size it is drawn at rest; a real size change still moves it.
+  // Chosen over excluding the decorative intro subtree because an exclusion would also hide a real resize of that pawn.
+  // Falls back to the rect where the computed size does not parse (never seen here).
+  const untx=(el)=>{
+    const r=el.getBoundingClientRect(), cs=getComputedStyle(el);
+    let w=parseFloat(cs.width), h=parseFloat(cs.height);
+    if(!isFinite(w)||!isFinite(h))return {w:r.width,h:r.height};
+    if(cs.boxSizing!=='border-box'){const s=(a,b)=>(parseFloat(cs[a])||0)+(parseFloat(cs[b])||0);
+      w+=s('paddingLeft','paddingRight')+s('borderLeftWidth','borderRightWidth'); h+=s('paddingTop','paddingBottom')+s('borderTopWidth','borderBottomWidth');}
+    return {w,h};
+  };
   const glyph=(e)=>{
     const svg=e.querySelector('svg');
-    if(svg){const g=svg.getBoundingClientRect();return {gh:+g.height.toFixed(1),gw:+g.width.toFixed(1),via:'svg',ink:inkH(e)};}
+    if(svg){const g=untx(svg);return {gh:+g.h.toFixed(1),gw:+g.w.toFixed(1),via:'svg',ink:inkH(e)};}
     const rg=document.createRange(); rg.selectNodeContents(e);
     const g=rg.getBoundingClientRect();
     if(g.height<0.5)return null;
