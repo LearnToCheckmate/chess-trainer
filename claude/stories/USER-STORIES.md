@@ -1796,6 +1796,10 @@ As a learner browsing the openings, I see each opening as one lesson, and nothin
 - Days banked and drill records kept under the removed name move onto the survivor with no day lost, and the last lesson I opened still opens the same lesson. (TC-LS-050)
 - Not yet true of the whole class: "Sicilian Dragon" and "Sicilian: Dragon" are still two rows; gate 74 records it and credits nothing.
 
+### US-R104 The review transport row's icons are the buttons, and every one is still a thumb-sized target
+*Added #549 item (68), from jobs/transport-row-icon-only. Kunal, 2026-09-19: "do we need the outline, or can we just make the icons look like buttons themselves to save space".*
+As a player stepping through a review on my phone, the first, play, last and key-moment controls under the board are bare icons on a flat tint, with no outline, gradient or shadow, and each is still at least 44 x 44 so my thumb lands on it; the board is not made smaller to pay for it.
+- At 375x761, 320x568, 375x730 and 390x844 every control is at least 44 x 44, carries no border, gradient or shadow, hit-tests to itself at its centre, and the board keeps its width. (TC-R114)
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

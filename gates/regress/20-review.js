@@ -562,4 +562,29 @@ L.run(async()=>{
    if(L.say(ok&&!!m,'TC-R94 PRECONDITION after 1.e4 e5 on the analysis board the engine row printed a numbered line',{line:t}))
      L.say(+m[1]===2&&m[2]==='.','TC-R94 the line starts at White\'s move 2 ("2. ..."), the move after 1.e4 e5 - not at the move analysis was entered on ("'+m[0].trim()+'")',{line:t});
    await b.close();}
+  // TC-R114 (US-R104), #549 item (68), jobs/transport-row-icon-only: THE TRANSPORT ROW'S ICONS ARE THE BUTTONS, AND THE TARGET
+  // DOES NOT SHRINK. Kunal: "do we need the outline, or can we just make the icons look like buttons themselves to save space".
+  // Pre-fix every control in rev-row1 was 42.00px tall (2px under the 44px floor) with a 1px border, a gradient and a box-shadow,
+  // at every geometry. The pairing is the point: chrome off AND 44x44 kept AND the centre still hits the control - neither half
+  // alone. The board-width floor is the shipped width at that size (keyed by dimensions, never by geometry name), so the 2px the
+  // row gained cannot be taken from the board unnoticed. Row width is NOT asserted: flex 1 1 0 makes it a constant here
+  // (jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29).
+  for(const geo of ['kunal761','se','kunal730','390']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo});await b.open();
+   const G=L.GEOS[geo],dim=G.w+'x'+G.h;const BOARD_FLOOR={'375x761':349,'320x568':264,'375x730':349,'390x844':364}[dim];
+   let ok=true;try{await RV.states['moves-ply10'](b);await b.settle(500);}catch(e){ok=false;}
+   const m=ok?await b.page.evaluate(()=>{const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;
+     return [...row.children].filter(c=>{const q=c.getBoundingClientRect();return q.width>1&&q.height>1;}).map(c=>{const q=c.getBoundingClientRect(),st=getComputedStyle(c);
+       const hit=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+       return {t:(c.getAttribute('aria-label')||c.innerText||'').trim().slice(0,24),w:+q.width.toFixed(2),h:+q.height.toFixed(2),bottom:+q.bottom.toFixed(2),
+         bw:parseFloat(st.borderTopWidth)||0,bs:st.borderTopStyle,img:st.backgroundImage,sh:st.boxShadow,hit:!!(hit&&(hit===c||c.contains(hit)))};});}):null;
+   const bd=ok?await b.board():null;
+   if(L.say(!!m&&m.length>=3,geo+': TC-R114 PRECONDITION the review transport row is on screen at ply 10 with its controls ('+(m?m.map(k=>k.t).join(' | '):'none')+')',m)){
+     const small=m.filter(k=>k.h<43.99||k.w<43.99);
+     L.say(small.length===0,geo+': TC-R114 every transport control is at least 44 x 44 ('+m.map(k=>k.w+'x'+k.h).join(' ')+')',small);
+     const chrome=m.filter(k=>k.bw>0.01||k.bs!=='none'||k.img!=='none'||k.sh!=='none');
+     L.say(chrome.length===0,geo+': TC-R114 no transport control carries a border, a gradient or a box-shadow ('+chrome.length+' of '+m.length+' do)',chrome);
+     const blind=m.filter(k=>!k.hit||k.bottom>G.h+0.5);
+     L.say(blind.length===0,geo+': TC-R114 the centre of every control hit-tests to it and the control is on screen',blind);
+     L.say(!!bd&&BOARD_FLOOR!=null&&bd.w>=BOARD_FLOOR,geo+': TC-R114 the board keeps its shipped width at '+dim+' ('+(bd&&bd.w.toFixed(2))+' >= '+BOARD_FLOOR+')',{board:bd&&bd.w});}
+   await b.close();}
 },'REVIEW');
