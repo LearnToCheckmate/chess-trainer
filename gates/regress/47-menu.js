@@ -622,6 +622,67 @@ if(blk('X'))for(const g of [{k:{w:730,h:375,safe:'',label:'730x375'},n:'730x375'
   L.say(c2,g.n+': TC-MN-047 Escape closes the menu sheet',{closed:c2});
   await b.close();
 }
+// BLOCK Y [#549 item (52); jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30, the two gaps #547's
+// verification left]: (TC-MN-051) at 730x375 WITH THE GAME OVER - the state the job measured both exits failing in, which block X
+// (Home only) never enters - a real tap outside the sheet closes it, and so does Escape; (TC-MN-052) at 730x375, where the 380x355
+// sheet shows a fraction of its content, EVERY button and link in it can be brought fully inside the sheet's visible box by REAL
+// finger drags (CDP touch events, gate 74's instrument - no scrollIntoView, no scrollTop assignment) and is then hit-testable at
+// its centre. The walk drags from rest until the scroller stops moving; each control counts once it was seen inside the sheet's
+// clip and hit at its centre at some step. Preconditions are separate lines: the sheet overflows, the first drag moved it, and the
+// control list is non-empty.
+async function fingerDragY(b,x,y0,y1){
+  const cdp=await b.page.context().newCDPSession(b.page);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y0}]});
+  for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y0+(y1-y0)*(i/12)}]});await b.page.waitForTimeout(16);}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await cdp.detach();
+}
+const LAND={w:730,h:375,safe:'',label:'730x375'};
+if(blk('Y')){
+  const b=await L.launch({geo:LAND,name:'mn-y-over'});await b.open();
+  const up=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
+  await b.card('k10',2600);await b.settle(10500);
+  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()==='Rematch'));
+  L.say(over,'730x375: TC-MN-051 PRECONDITION the game is over (Checkmate on screen, Rematch offered) before the menu is opened',{over});
+  const open=async()=>{const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
+    if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
+    if(m){await b.page.mouse.click(m[0],m[1]);await b.settle(600);}return !!m&&await up();};
+  const o1=await open();
+  L.say(o1,'730x375: TC-MN-051 PRECONDITION a real tap on the game-over screen\'s ☰ opens the menu sheet',{open:o1});
+  const sr=await b.rect('[data-ct="menu-sheet"]');const pt=sr&&sr.x>16?[8,Math.round(sr.y+sr.h/2)]:[8,8];
+  await b.page.mouse.click(pt[0],pt[1]);await b.settle(500);const c1=o1&&!(await up());
+  L.say(c1,'730x375: TC-MN-051 with the game over, a tap OUTSIDE the sheet, at ('+pt+'), closes it',{closed:c1,sheet:sr});
+  const o2=await open();
+  L.say(o2,'730x375: TC-MN-051 PRECONDITION the sheet is open again on the game-over screen before Escape',{open:o2});
+  await b.page.keyboard.press('Escape');await b.settle(400);const c2=o2&&!(await up());
+  L.say(c2,'730x375: TC-MN-051 with the game over, Escape closes the menu sheet',{closed:c2});
+  L.say(b.errs.length===0,'730x375: TC-MN-051 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
+if(blk('Y')){
+  const b=await L.launch({geo:LAND,name:'mn-y-reach'});await b.open();
+  await b.tapCt('home-menu',700);
+  const sh0=await SHEET(b);
+  const ids=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return 0;
+    const els=[...s.querySelectorAll('button,a')].filter(e=>{const q=e.getBoundingClientRect();return q.width>1&&q.height>1;});
+    els.forEach((e,i)=>e.setAttribute('data-gy',String(i)));return els.length;});
+  L.say(ids>0,'730x375: TC-MN-052 PRECONDITION the sheet holds controls to reach ('+ids+' buttons and links)',{ids});
+  L.say(!!sh0&&sh0.maxScroll>0,'730x375: TC-MN-052 PRECONDITION the sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
+  const look=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;const c=s.getBoundingClientRect();
+    const seen=[];for(const e of s.querySelectorAll('[data-gy]')){const q=e.getBoundingClientRect();
+      if(q.top<c.top-0.5||q.bottom>c.bottom+0.5||q.top<0||q.bottom>innerHeight)continue;
+      const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);if(h&&(h===e||e.contains(h)))seen.push(+e.getAttribute('data-gy'));}
+    return {top:s.scrollTop,max:s.scrollHeight-s.clientHeight,seen,cx:c.left+c.width/2,y0:c.top+c.height*0.6,y1:c.top+c.height*0.6-90};});
+  const got=new Set();let st=await look(),moved=null,steps=0,stuck=0;
+  (st&&st.seen||[]).forEach(i=>got.add(i));
+  while(st&&steps<80&&stuck<2){const t0=st.top;await fingerDragY(b,st.cx,st.y0,st.y1);await b.settle(450);st=await look();steps++;
+    if(!st)break;if(moved===null)moved=st.top-t0;st.seen.forEach(i=>got.add(i));stuck=Math.abs(st.top-t0)<1?stuck+1:0;}
+  L.say(moved!==null&&moved>20,'730x375: TC-MN-052 PRECONDITION the first finger drag scrolled the sheet ('+moved+'px)',{moved});
+  const missed=await b.page.evaluate((g)=>[...document.querySelectorAll('[data-ct="menu-sheet"] [data-gy]')].filter(e=>g.indexOf(+e.getAttribute('data-gy'))<0)
+    .map(e=>((e.innerText||'').trim().split('\n')[0]||e.getAttribute('aria-label')||e.getAttribute('title')||e.tagName).slice(0,30)),[...got]);
+  L.say(ids>0&&missed.length===0,'730x375: TC-MN-052 every one of the sheet\'s '+ids+' buttons and links is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags, scrollTop '+(st&&Math.round(st.top))+' of '+(st&&Math.round(st.max))+')',{missed});
+  await b.close();
+}
 // TC-MN-048 (US-R89), #547 item (135): THE READOUT'S 'screen' ROW PRINTS THE SCREEN, NOT THE INNER VIEWPORT. TC-MN-042 cannot
 // tell the two apart (headless screen = viewport, its own note says so). Here CDP emulates a 375x812 SCREEN over a 375x730 viewport, so a
 // row that printed innerWidth x innerHeight under 'screen' reads 375x730 and reds. Pre-fix it did exactly that.
