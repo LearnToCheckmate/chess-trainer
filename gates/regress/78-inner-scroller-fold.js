@@ -1,6 +1,6 @@
 'use strict';
 // gates/regress/78-inner-scroller-fold.js - THE PRIMARY ACTION'S DISTANCE FROM THE FOLD, MEASURED INSIDE THE SCROLLER WHERE
-// over() CANNOT SEE IT. TC-INV-08a..e, US-INV-07 (08d/08e: the Discover -> Tactics board clear of the tab bar, #549).
+// over() CANNOT SEE IT. TC-INV-08a..j, US-INV-07 (08d/08e: the Discover -> Tactics board clear of the tab bar; 08f..08j: Puzzles' and Review's primary actions, #549).
 //
 // WHY [#545, item (44); jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28]. gates/lib.js's over() measures
 // the bottom-most laid-out child of #root against the viewport. That is right about the page (#354) and blind to every inner
@@ -21,9 +21,62 @@
 const L=require('../lib');
 const P=require('../drive/play');
 const D=require('../drive/lesson');
+const Z=require('../drive/puzzles');
+const R=require('../drive/review');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
 const FOLD_PIN={"320x568":383,"360x640":280,"375x667":218,"375x730":191,"390x844":59.5,"414x896":7.5,"440x956":-51.5};
 L.run(async()=>{
+  // TC-INV-08f..08j [#549, item (90); jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28, Q2 as the orchestrator
+  // ruled it on 4 Nov 2026 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04): "on Puzzles (the
+  // list of packs) the control that opens the first pack; on Review (the import box) its import button; each named by selector".
+  // Puzzles: the roadmap on a fresh store, "▶ Start training" (it opens the first unsolved puzzle of the first tier). Review: the
+  // import box's "⚡ Analyze Game", on the list screen with no stored games AND with the drive's seeded games (the state a player
+  // with an account arrives in). Found BY TEXT, not by a hook. THE FOLD here is the top of the fixed tab bar when it is on
+  // screen (it covers whatever sits under it), else innerHeight - both are printed. Stored-games Review is a known below-the-fold
+  // defect, so it is PINNED as 08b is: a move either way is red, and the build that fixes it retires the pin.
+  // measured at #549 on trial 1d1679f9c883 (HEAD afc6977): px of "⚡ Analyze Game"'s bottom past the fold, stored games, SETTLED (identical on two runs)
+  const REV_PIN={"320x568":373.5,"360x640":320.3,"375x667":294.3,"375x730":231.3,"390x844":94.3,"414x896":28.5,"440x956":-26.5};
+  const pv={};
+  const find=(re)=>b=>b.page.evaluate((src)=>{const re=new RegExp(src);const btn=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
+    const bar=document.querySelector('[data-ct="tabbar"]');const t=bar?bar.getBoundingClientRect():null;const fold=t&&t.height>0&&t.top<innerHeight?t.top:innerHeight;
+    if(!btn)return {found:false,fold,vh:innerHeight};const q=btn.getBoundingClientRect();return {found:true,top:Math.round(q.top*10)/10,bottom:Math.round(q.bottom*10)/10,fold:Math.round(fold*10)/10,vh:innerHeight,bar:!!t};},re.source);
+  const reachOf=(re)=>b=>b.page.evaluate((src)=>{const re=new RegExp(src);const btn=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
+    const bar=document.querySelector('[data-ct="tabbar"]');const t=bar?bar.getBoundingClientRect():null;const fold=t&&t.height>0&&t.top<innerHeight?t.top:innerHeight;
+    let sc=null;for(let p=btn.parentElement;p;p=p.parentElement){const st=getComputedStyle(p);if(st.touchAction==='none')return {blocked:true};if(/auto|scroll/.test(st.overflowY)&&p.scrollHeight>p.clientHeight+1){sc=p;break;}}
+    const q0=btn.getBoundingClientRect();const need=Math.max(0,q0.bottom-fold+2);if(sc&&need>0)sc.scrollTop+=need;
+    const q=btn.getBoundingClientRect();const hit=document.elementFromPoint(q.left+q.width/2,Math.min(innerHeight-1,Math.max(0,q.top+q.height/2)));
+    return {top:Math.round(q.top),bottom:Math.round(q.bottom),fold:Math.round(fold),owns:!!hit&&(hit===btn||btn.contains(hit))};},re.source);
+  const SURF=[
+    {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
+    {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
+    {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:true}];
+  for(const g of L.TA7){
+    const geo=L.GEOS[g];const n=geo.w+'x'+geo.h;
+    const b=await L.launch({geo:g,name:'prim-'+n});await b.open();
+    for(const s of SURF){
+      let reached=true;try{await s.go(b);}catch(e){reached=false;}
+      // SETTLE PAST THE GRADING [CLAUDE.md, "text that arrives late"]: with stored games each row GROWS when its background grade
+      // lands (78px to 140 and 97 in this container, the last one seconds later), pushing the button down ~16-46px - so a single
+      // early read is a coin flip. Poll until the button's bottom holds for eight 500ms samples (cap 25s; three was too few at 440x956, where the last grade
+      // landed after a 1.5s lull and moved it 11.7px) and print the first read.
+      let r=reached?await find(s.re)(b):null;const first=r&&r.found?r.bottom:null;
+      if(r&&r.found){let same=0;for(let t=0;t<50&&same<8;t++){await b.page.waitForTimeout(500);const r2=await find(s.re)(b);if(!r2.found)break;same=(r2.bottom===r.bottom)?same+1:0;r=r2;}}
+      L.say(reached&&!!r&&r.found,n+' '+s.key+': TC-INV-08f the '+s.label+' was reached and carries '+s.name+' - the denominator, so a missing button reads red and not as on screen',{reached,button:r});
+      if(!r||!r.found)continue;
+      const past=Math.round((r.bottom-r.fold)*10)/10;pv[n+' '+s.key]=past;
+      const sc=await b.innerScrollers();
+      L.note('    '+n+' '+s.key+': '+s.name+' bottom '+r.bottom+' against the fold '+r.fold+' (tab bar top; innerHeight '+r.vh+'; first read '+first+') -> '+(past>0?past+'px BELOW the fold':'on screen')+';  inner scrollers: '+(sc.map(x=>x.id+' hides '+x.hiddenY+'px').join(', ')||'none'));
+      if(!s.pinned){
+        L.say(past<=0,n+' '+s.key+': TC-INV-'+(s.key==='puzzles'?'08g':'08h')+' on arrival, unscrolled, '+s.name+' sits above the fold ('+(past<=0?(-past)+'px clear':past+'px BELOW it')+')',{past,bottom:r.bottom,fold:r.fold,inner:sc});
+      } else if(REV_PIN&&Object.prototype.hasOwnProperty.call(REV_PIN,n)){
+        L.say(Math.abs(past-REV_PIN[n])<=0.5,n+' '+s.key+': TC-INV-08i with stored games '+s.name+' sits '+past+'px past the fold on arrival, as pinned ('+REV_PIN[n]+'). A known below-the-fold defect pinned, not passed; a move either way is red',{past,pin:REV_PIN[n],inner:sc});
+      } else L.note('    TC-INV-08i NOT ASSERTED at '+n+': no REV_PIN for it.');
+      const reach=await reachOf(s.re)(b);
+      L.say(!reach.blocked&&reach.top>=0&&reach.bottom<=reach.fold&&reach.owns,n+' '+s.key+': TC-INV-08j and '+s.name+' is REACHABLE - after its own scroller is scrolled it sits above the fold and owns its centre',reach);
+    }
+    await b.close();
+  }
+  L.note('    PRIMARY ACTIONS MEASURED (px past the fold on arrival): '+JSON.stringify(pv));
   const got={};
   for(const g of L.TA7){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h;

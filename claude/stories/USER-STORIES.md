@@ -501,8 +501,12 @@ gate 78.
   tab bar's top at 375x761 and every geometry of THE DRILL SEVEN, as on Lessons and Puzzles (Kunal's default (5) on
   questions/B8-SMALL-DEFAULTS, 4 Nov 2026). The board shrinks to the room above the bar, never below 176px. (TC-INV-08d,
   TC-INV-08e; #549, jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28)
-- NOT COVERED YET: the other screens' primary actions. What counts as the primary action on Puzzles and on Review is
-  this lane's open definition question (Q2 on the job).
+- On Puzzles (the roadmap, fresh store) "▶ Start training", and on Review's import box "⚡ Analyze Game", are above the
+  fold on arrival - the fold being the fixed tab bar's top - at every geometry of THE DRILL SEVEN (TC-INV-08f to 08h).
+  Q2 settled by the orchestrator's ruling of 4 Nov 2026 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04).
+  MET with no stored games. NOT MET with stored games at six of the seven: "⚡ Analyze Game" sits under the game list,
+  28.5 to 373.5px below the fold. Pinned (TC-INV-08i), not passed, and reachable by scroll (TC-INV-08j).
+- NOT COVERED YET: Home's primary action, which no ruling names.
 
 ### US-INV-08 A check that passes was able to fail on the build it was guarding against
 
