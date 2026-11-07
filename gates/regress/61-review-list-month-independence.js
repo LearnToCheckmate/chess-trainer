@@ -1377,6 +1377,18 @@ async function input(seed,n,geo,name,thin){
     await b.settle(400);await rowsSettled(b,1);
     for(let w=0;w<40;w++){const o=await olderBtn(b);if(!o.present||o.text==='Load older games')break;await b.settle(250);}
     return true;};
+  // TC-R145 (A1-R6): a SAMPLER in the page, every 40ms from before the tap until tapOlder has seen the walk end, recording the
+  // "Show N more" control and the Load-older control. A tap is answered by EITHER the busy control or the grown list, never by
+  // "Show N more" over the list the tap started from: acctStore publishes the merged rows before its store write is awaited and
+  // the page used to grow only when loadOlderGames returned, so for 100-475ms an enabled "Show 199 more games" stood over an
+  // unchanged list. tapOlder's own waits step over that window, which is why nothing saw it.
+  const sampStart=(b)=>b.page.evaluate(()=>{const W=window;W.__olderSamp=[];clearInterval(W.__olderSampT);
+    W.__olderSampT=setInterval(()=>{const bs=[...document.querySelectorAll('button')];
+      const m=bs.find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));
+      const o=bs.find(e=>/^(Load older games|Reading older Chess\.com games|Asking Chess\.com|Downloading up to \d+ older games|Loading older games)/.test((e.textContent||'').trim()));
+      W.__olderSamp.push({t:Math.round(performance.now()),more:m?(m.textContent||'').trim().slice(0,48)+(m.disabled?'[disabled]':''):null,
+        older:o?(o.textContent||'').trim().slice(0,32):null,busy:!!(o&&(o.disabled||o.getAttribute('aria-busy')==='true')),rows:document.querySelectorAll('[data-ct="game-row"]').length});},40);});
+  const sampStop=(b)=>b.page.evaluate(()=>{clearInterval(window.__olderSampT);const r=window.__olderSamp||[];window.__olderSamp=[];return r;});
   const spanMonths=(n)=>{const out=[];for(let i=n-1;i>=0;i--){const t=new Date(Date.UTC(NEWEST.y,NEWEST.m-1-i,1));out.push([t.getUTCFullYear(),t.getUTCMonth()+1]);}return out;};
   const oldestOf=(r)=>{let o=0;Object.keys(r.idbMap||{}).forEach(id=>(r.idbMap[id]||[]).forEach(g=>{const d=g.date||0;if(d>0&&(!o||d<o))o=d;}));return o;};
   {
@@ -1426,7 +1438,12 @@ async function input(seed,n,geo,name,thin){
     const r0=await refresh(b,state,{});
     if(L.say(r0.rows===MIN_CAP&&(await olderBtn(b)).present,'A27-0 vacuity '+tag+': first walk '+MIN_CAP+', control offered',{rows:r0.rows})){
       let taps=0,rN=r0;const tapMs=[];
-      while(taps<20){const o=await olderBtn(b);if(!o.present)break;const t=Date.now();if(!(await tapOlder(b)))break;tapMs.push(Date.now()-t);taps++;rN=await READ(b);}
+      const samp=[];   // TC-R145: every sample of every tap's walk, tagged with the tap
+      while(taps<20){const o=await olderBtn(b);if(!o.present)break;const t=Date.now();await sampStart(b);const ok=await tapOlder(b);await b.settle(700);const ss=await sampStop(b);   // 700ms past tapOlder's end: wider than the 475ms window measured
+        if(!ok)break;ss.forEach(x=>{x.tap=taps+1;samp.push(x);});tapMs.push(Date.now()-t);taps++;rN=await READ(b);}
+      const sMore=samp.filter(x=>x.more!==null),sBusy=samp.filter(x=>x.busy),sTaps=new Set(sBusy.map(x=>x.tap)).size;
+      L.say(samp.length>=taps*5&&taps>0&&sTaps===taps,'A27-0c vacuity TC-R145 '+tag+': the 40ms sampler ran through every walk - '+samp.length+' samples over '+taps+' taps, and it saw the busy control on every one of the '+taps+' taps, so the window after the busy state is inside what it read',{samples:samp.length,taps,tapsSeenBusy:sTaps,busySamples:sBusy.length});
+      L.say(sMore.length===0,'A27h TC-R145 '+tag+': no tap is answered by "Show N more" over the list the tap started from - sampled every 40ms from the tap until the walk ended, the busy control or the grown list is all that ever shows',{samplesOfferingShowMore:sMore.length,first:sMore.slice(0,3),tapsAffected:[...new Set(sMore.map(x=>x.tap))]});
       const capM=((rN.body||'').match(/This app keeps up to ([\d,]+) games per account/)||[])[1];const capN=capM?parseInt(capM.replace(/,/g,''),10):null;
       L.say(!!capN&&capN>MIN_CAP&&capN<TOTAL,'A27-0b vacuity '+tag+': the store cap is stated on the line and lies between one walk and the seeded total, so this input reaches it',{capStated:capN,line:rN.cap&&rN.cap.text});
       const kN=keysOf(rN);
