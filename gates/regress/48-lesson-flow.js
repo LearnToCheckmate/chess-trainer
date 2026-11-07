@@ -1497,8 +1497,12 @@ L.run(async()=>{
    L.say(!!pa,geo+': TC-LS-036 the ⋯ sheet offers "Practise this line again", so Next taking the slot does not remove the replay',pa&&{text:pa.text});
    await b.page.mouse.click(Math.round(b.geo.w/2),20);await b.settle(400);
    if(nx){await b.tapCt('lesson-next',900);}
-   const opened=await b.page.evaluate(()=>{const c=document.querySelector('[aria-label="Close lesson"]');const row=c&&c.parentElement;return row?(row.innerText||'').replace(/\s+/g,' '):'';});
-   L.say(!!want&&opened.indexOf(want)>=0,geo+': TC-LS-036 the tap opens that lesson - its name is in the lesson footer ('+want+')',{want,footer:opened.slice(0,80)});
+   // #549 item (100) [jobs/labels-truncate-in-shared-rows-2026-09-24]: on a phone the lesson name left the footer's control row for its
+   // own line at the top of the moves panel ([data-ct="lesson-name"]); in landscape it stays in the footer. So the open lesson's name is
+   // read from whichever of the two carries it - the assertion is still that the tap OPENED that lesson, which is what it always meant.
+   const opened=await b.page.evaluate(()=>{const ln=document.querySelector('[data-ct="lesson-name"]');const c=document.querySelector('[aria-label="Close lesson"]');const row=c&&c.parentElement;
+     return ((ln?(ln.innerText||'')+' | ':'')+(row?(row.innerText||''):'')).replace(/\s+/g,' ');});
+   L.say(!!want&&opened.indexOf(want)>=0,geo+': TC-LS-036 the tap opens that lesson - its name is on the lesson screen (its own line on a phone, the footer in landscape) ('+want+')',{want,footer:opened.slice(0,80)});
    await b.close();
  }
  // TC-LS-037 [#547 item (90); Kunal's Desk answer 'warn-first', 11 Oct]: THE LESSON LIGHTBULB STARTS OFF, A LINE BEFORE THE FIRST MOVE

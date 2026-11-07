@@ -431,6 +431,25 @@ L.run(async()=>{
       'TC-R64e and the two resolutions are DIFFERENT buttons, so neither assertion above could have been satisfied by both locators finding the same thing',{unscoped:unscoped&&unscoped.title,scoped:scoped&&scoped.title});
     await b.close();
   }
+  // ── TC-R152e [#549 item (100); Amber: flags/amber-549-home-continue-full-name]: HOME'S DAILY 3 CARD NAMES THE LESSON TO CONTINUE
+  // IN FULL. It printed 'Continue: ' + the first 18 characters (since #314), so the longest real name read 'Continue: Albin
+  // Counter-Gamb' - cut mid-word with no ellipsis, the silent half of this job's class. Seeded with the LONGEST real name (by
+  // characters, as the cut was by characters) as the last lesson; the label must carry every character and paint inside its box.
+  for(const geo of ['se','kunal761']){
+    const G=L.GEOS[geo],dim=G.w+'x'+G.h;
+    const b=await L.launch({geo,name:'r152e-'+geo,store:{}});await b.open();
+    const pick=await b.page.evaluate(()=>{const C=window.CTLESSONS||{};const all=[];for(const k of Object.keys(C))for(const o of (C[k]||[]))all.push(o.name);
+      const nm=all.slice().sort((a,c)=>c.length-a.length)[0];return {nm,i:all.indexOf(nm),n:all.length};});
+    await b.page.evaluate((i)=>{localStorage.setItem('ct_lastlesson',String(i));},pick.i);await b.open();await b.settle(900);
+    const r=await b.page.evaluate(()=>{const s=[...document.querySelectorAll('span')].find(x=>/^Continue: /.test(x.textContent)&&x.children.length===0);if(!s)return null;
+      const q=s.getBoundingClientRect();const rg=document.createRange();rg.selectNodeContents(s);const rs=[...rg.getClientRects()].filter(x=>x.width>0);
+      let clip=null;for(let a=s.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);if(cs.overflowX!=='visible'){clip=a.getBoundingClientRect();break;}}
+      const R0=Math.max(...rs.map(x=>x.right));return {t:s.textContent,sw:s.scrollWidth,cw:s.clientWidth,inkR:+(R0-q.right).toFixed(1),clipR:clip?+(R0-clip.right).toFixed(1):null,vw:innerWidth,right:+R0.toFixed(1)};});
+    L.say(pick.n>=100&&pick.i>=0,'TC-R152e '+dim+' DENOMINATOR the last lesson is the longest real name in the library ("'+pick.nm+'", '+pick.nm.length+' characters, of '+pick.n+')',pick);
+    L.say(!!r&&r.t==='Continue: '+pick.nm&&r.sw<=r.cw&&r.inkR<=0.5&&(r.clipR==null||r.clipR<=0.5)&&r.right<=r.vw,'TC-R152e '+dim+': Home\'s Daily 3 card names the lesson to continue IN FULL ("'+(r&&r.t)+'") and paints all of it on screen',r);
+    L.say(b.errs.length===0,'TC-R152e '+dim+': zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
   // ── TC-LS-053 (US-LS-12) [#549 item (107); jobs/auditor-424-p2-findings-2026-09-27, p2_lessonLosesItsPlace; Amber:
   // flags/amber-549-lesson-resume]. A LESSON LEFT MID-PRACTICE COMES BACK WHERE IT WAS LEFT. The auditor measured: Italian Game ->
   // practice -> 1.e4 -> X -> the SAME row, and the note read '▶ Press Play to watch' with the transport back, i.e. the demo at ply 0
@@ -468,4 +487,63 @@ L.run(async()=>{
     await b.shot('lesson-resume-kunal761');}
    L.say(b.errs.length===0,'TC-LS-053 zero app errors through close and re-open',b.errs.slice(0,3));
    await b.close();}
+  // ── TC-R152 (US-INV-04 clause 4c) [#549 item (100); jobs/labels-truncate-in-shared-rows-2026-09-24; Amber:
+  // flags/amber-549-lesson-name-own-line]. THE LESSON NAME IS READABLE IN FULL, AT THE WIDTH OF THE LONGEST NAME THERE IS.
+  // Before: the name sat in the lesson footer between Close and More, in a row of five fixed 44px controls, so it got the
+  // remainder - 18px at 320 and 73px at 375x761 for "King's Gambit" (87px), and the longest real name, "Albin Counter-Gambit:
+  // Lasker Trap", cut at every phone width (Kunal's "Two-Rook..." and "King & Pa...", 24 Sep). Now it has its own line at the
+  // top of the moves panel ([data-ct="lesson-name"]). THE CONTENT SET IS THE INPUT, NOT THE FIXTURE'S NAME (the job's
+  // theContentSetMatters): the width the line must offer is measured from EVERY name in window.CTLESSONS, set in the line's own
+  // computed font, and the widest wins - a check on "King's Gambit" alone is green on the broken bundle at 390 and up. Two
+  // states (the demo end and practice), because the footer carried the name in both. The pre-fix bundle is the control: it has
+  // no such line, so a/b go red, and the footer still carries the name, so c goes red.
+  for(const geo of ['se','short375','w360','kunal761','390']){
+    const G=L.GEOS[geo],dim=G.w+'x'+G.h;
+    for(const [st,card] of [['demo-end',3],['practice',4]]){
+      const b=await L.launch({geo,name:'r152-'+geo+'-'+st});await b.open();
+      await b.card(card,2500);await b.settle(600);
+      const r=await b.page.evaluate(()=>{
+        const names=[];const C=window.CTLESSONS||{};for(const k of Object.keys(C))for(const o of (C[k]||[]))if(o&&o.name)names.push(o.name);
+        const ln=document.querySelector('[data-ct="lesson-name"]');
+        const f=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='471');
+        const footTexts=f?[...f.querySelectorAll('*')].filter(e=>[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())).map(e=>e.textContent.trim()):null;
+        let need=null,widest=null,cw=null,sw=null,txt=null,vis=false;
+        if(ln){const cs=getComputedStyle(ln);const pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
+          const sp=document.createElement('span');Object.assign(sp.style,{position:'absolute',left:'-9999px',top:'0',whiteSpace:'nowrap',font:cs.font,letterSpacing:cs.letterSpacing,fontFeatureSettings:cs.fontFeatureSettings});document.body.appendChild(sp);
+          for(const n of names){sp.textContent=n;const w=sp.getBoundingClientRect().width;if(need==null||w>need){need=w;widest=n;}}sp.remove();
+          cw=ln.clientWidth-pad;sw=ln.scrollWidth;txt=ln.textContent;const rr=ln.getBoundingClientRect();vis=rr.width>0&&rr.height>0&&rr.top>=0&&rr.bottom<=innerHeight;}
+        return {n:names.length,has:!!ln,txt,vis,cw,sw,clientW:ln?ln.clientWidth:null,need:need&&+need.toFixed(2),widest,footTexts,named:!!txt&&names.indexOf(txt)>=0};});
+      L.say(r.n>=100,'TC-R152 '+dim+' '+st+' DENOMINATOR the content set is the real lesson library: window.CTLESSONS names '+r.n+' lessons, so the widest name below is drawn from all of them',{n:r.n});
+      L.say(r.has&&r.vis&&r.named&&r.sw<=r.clientW,'TC-R152a '+dim+' '+st+': the lesson name has its own line ([data-ct="lesson-name"]) on screen, it names the open lesson, and it paints all of itself (scrollWidth '+r.sw+' <= clientWidth '+r.clientW+')',{txt:r.txt,vis:r.vis,sw:r.sw,cw:r.clientW});
+      L.say(r.has&&r.cw!=null&&r.need!=null&&r.cw+0.5>=r.need,'TC-R152b '+dim+' '+st+': that line offers the width of the LONGEST real lesson name in its own font ("'+r.widest+'" needs '+r.need+'px, the line gives '+(r.cw!=null?r.cw.toFixed(2):'none')+'px), so no lesson in the library is cut',{need:r.need,widest:r.widest,cw:r.cw});
+      L.say(Array.isArray(r.footTexts)&&!r.footTexts.some(t=>r.txt?t===r.txt:/\w{3,}/.test(t)&&!/^[←-⯿✕⋯\s]+$/.test(t)),'TC-R152c '+dim+' '+st+': the footer row of controls carries no lesson name any more - a variable-length label does not share a row with fixed controls',{footTexts:r.footTexts});
+      if(st==='demo-end'){
+        // TC-R152d: THE MORE SHEET'S PREVIOUS/NEXT LESSON BUTTONS carry lesson names too (lesson-sheet-nav), and they were
+        // ellipsised at 140px (320) and 168px (375) against 209px for the longest name and its arrow. Each button is re-measured
+        // holding the WIDEST real name, the way the line above is: the label wraps inside the button rather than being cut.
+        await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap-done"]');if(d)d.click();const o=[...document.querySelectorAll('div')].find(d=>getComputedStyle(d).position==='fixed'&&getComputedStyle(d).zIndex==='472');if(o)o.click();});
+        await b.settle(300);
+        const opened=await b.page.evaluate(()=>{const m=document.querySelector('button[aria-label="More for this lesson"]');if(!m)return false;m.click();return true;});
+        await b.settle(500);
+        const nv=await b.page.evaluate(()=>{const nav=document.querySelector('[data-ct="lesson-sheet-nav"]');if(!nav)return null;
+          // the widest real name IN THE BUTTONS' OWN FONT, measured here and not borrowed from the lesson-name line above, so this
+          // reading does not depend on the line the build adds (#432) - a first draft borrowed it and read 'null' on the pre-fix bundle
+          const names=[];const C=window.CTLESSONS||{};for(const k of Object.keys(C))for(const o of (C[k]||[]))if(o&&o.name)names.push(o.name);
+          const b0=nav.querySelector('button');const cs0=b0?getComputedStyle(b0):null;let widest=null,ww=-1;
+          if(cs0){const sp=document.createElement('span');Object.assign(sp.style,{position:'absolute',left:'-9999px',whiteSpace:'nowrap',font:cs0.font,letterSpacing:cs0.letterSpacing});document.body.appendChild(sp);
+            for(const n of names){sp.textContent=n;const w=sp.getBoundingClientRect().width;if(w>ww){ww=w;widest=n;}}sp.remove();}
+          if(!widest)return {n:0,out:[],widest:null};
+          const full=(e)=>{const q=e.getBoundingClientRect();const rg=document.createRange();rg.selectNodeContents(e);const rs=[...rg.getClientRects()].filter(x=>x.width>0);
+            const R0=Math.max(...rs.map(x=>x.right)),L0=Math.min(...rs.map(x=>x.left)),B0=Math.max(...rs.map(x=>x.bottom));
+            return {t:e.textContent.slice(0,50),cw:e.clientWidth,sw:e.scrollWidth,sh:e.scrollHeight,ch:e.clientHeight,ok:e.scrollWidth<=e.clientWidth&&e.scrollHeight<=e.clientHeight+0.5&&R0<=q.right+0.5&&L0>=q.left-0.5&&B0<=q.bottom+0.5};};
+          const bs=[...nav.querySelectorAll('button')];const out=[];
+          bs.forEach((x,i)=>{const keep=x.textContent;x.textContent=i===0?('\u2039 '+widest):(widest+' \u203A');out.push(full(x));x.textContent=keep;});
+          return {n:bs.length,out,widest,needPx:+ww.toFixed(1)};});
+        L.say(opened&&!!nv&&nv.n===2&&typeof nv.widest==='string'&&nv.widest.length>0,'TC-R152d '+dim+' PRECONDITION the More sheet opened from the footer and shows its two lesson buttons, and the widest real name was measured in their font ("'+(nv&&nv.widest)+'", '+(nv&&nv.needPx)+'px)',{opened,n:nv&&nv.n,widest:nv&&nv.widest,needPx:nv&&nv.needPx});
+        L.say(!!nv&&nv.n===2&&nv.out.every(x=>x.ok),'TC-R152d '+dim+': each previous/next lesson button, holding the LONGEST real lesson name, paints all of it inside the button - the name wraps instead of being cut',nv&&nv.out);
+      }
+      L.say(b.errs.length===0,'TC-R152 '+dim+' '+st+': zero app errors',b.errs.slice(0,3));
+      await b.close();
+    }
+  }
 },'LESSON');

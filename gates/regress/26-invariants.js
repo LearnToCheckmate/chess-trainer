@@ -728,7 +728,10 @@ const READ_MIN=0.5;
 const READ_PIN_GEOS=['se','kunal730','short375'];
 const DUKE=['DukeKarlCountIsouard99',82,198];
 const READ_PIN={
-  'se/lesson-demo':[['Italian Game',18,80]],
+  /* 'se/lesson-demo':[['Italian Game',18,80]] RETIRED at #549 item (100) [jobs/labels-truncate-in-shared-rows-2026-09-24; Amber:
+     flags/amber-549-lesson-name-own-line]: the lesson name left the footer's control row for its own line at the top of the moves
+     panel, where it paints all of itself at every width (gate 11 TC-R152), so the 18-of-80px cut this pin froze no longer exists and
+     the pin went red as "missing" - a fix retiring its pin by hand, as the comment above says it must. */
   'se/rev-ply31':[DUKE],'se/rev-last-engine':[DUKE],'se/rev-why-open':[DUKE],'se/rev-more-sheet':[DUKE],'se/rev-best-ply30':[DUKE],
   'short375/rev-ply31':[DUKE],'short375/rev-last-engine':[DUKE],'short375/rev-why-open':[DUKE],'short375/rev-more-sheet':[DUKE],'short375/rev-best-ply30':[DUKE]};
 // ── INVARIANT 1, ASSERTED AT LAST [#545, item (41); jobs/invariant-1-tap-targets]. ─────────────────────────────────────
