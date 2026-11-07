@@ -4241,6 +4241,7 @@ export default function App(){
      epoch is far more than the one the measured case needs, and past that the screen keeps the trim it has, which is
      what main does today. A guard whose failure mode is "no better than before" is the only kind worth having here. */
   const boardTrimRef=useRef(0);boardTrimRef.current=boardTrim;
+  const playFreshTrimRef=useRef(null);   // #549 fixr6b: the smallest trim at which a phone game's board has sat fitted and still since the last geometry reset (the fit loop's growth waypoint)
   const sqTrimFloorRef=useRef(-480);   // #549 fixr5a: written by SQ (portrait), read by the fit loop's Play growth clamp
   const fitGeoRef=useRef('');                  // #346: the last GEOMETRY the trim was derived for
   // #338: the puzzle screen stacks text above the board and controls below it; measure both so the board is sized to what is actually left.
@@ -4855,11 +4856,11 @@ export default function App(){
     // review half is a no-change, kept for one predicate rather than two. It is a scope choice supported by a
     // measurement that it changes nothing, NOT a defect this build fixed, and it should not be written up as one.
     const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-    if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';return;}
+    if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';playFreshTrimRef.current=null;return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
     // every single move, which is exactly what Kunal saw.
-    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;setBoardTrim(0);}
+    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;playFreshTrimRef.current=null;setBoardTrim(0);}
     let raf=0,passes=0,stop=false,settle=false;
     const tick=()=>{
       if(stop)return;
@@ -4878,8 +4879,25 @@ export default function App(){
          corrected: MEASURED on run head 46340d1, vs Computer at 4 plies, a 130px block at 375x761 left a 12px overflow standing at
          frame 90 (#548 fixed it in ~15 frames), 100px at 375x730 likewise. So Play's growth is clamped at the trim where SQ meets
          its width cap (sqTrimFloorRef, written by SQ); a trim below it cannot move SQ, so no settled board size can change. */
+      /* #549 run fix (fixr6b, antagonist A round 6, A2-R6 and A3-R6): A PHONE GAME'S BOARD COMES BACK TO ITS FRESH SIZE, NOT NEAR IT.
+         One state had two board sizes depending on history. MEASURED on f462559 with _fitOver's own arithmetic, vs Computer: at
+         375x568 fresh 296 sits at over -10, and after a 16..160px block it came back at 304, over -2 (bars 34.5 -> 32.5, move list
+         39 -> 35); at 320x540 fresh 276 sits at over -2 and after a 60px block it stayed at 268, over -10; at 320x568 a 16px block
+         left 288 against a fresh 298. Both sizes fit in every case, so NO rule on the current layout alone can pick the fresh one:
+         the fresh trim is the output of the shrink path from trim 0. So the loop REMEMBERS it. playFreshTrimRef is the smallest trim
+         at which this game's board has sat fitted with nothing to do (over <= 0, no growth due) since the last geometry reset, and:
+         (1) growth stops AT that trim before going further, so a board coming back from below cannot overshoot fresh (the 304);
+         (2) a board above it SNAPS to it when the room is there (t - max(fresh, width-cap trim) <= -over), whatever the threshold,
+             so a board one step short is not stranded inside the dead band (the 268 and the 288);
+         (3) past it, growth is the ordinary kind, so a later state with real room still grows - the memory is a waypoint, not a cap.
+         The other three terms are the same idea without the memory: the growth step leaves the 8px margin the shrink step pays
+         (floor((-over-8)/8)*8), the width cap is taken in one step when it is reachable with that margin spare, and the play
+         threshold is -16 (both paths settle with under 16px of slack, so a 16-wide dead band cannot oscillate). Play only: Review
+         grows back to trim 0 (fixr3e), and the lesson uses the refit. Fresh sizes are unchanged at se, short375, w375h667, 375x730,
+         375x761 and 390 in four states; gate 75 D15/D17 assert the return to fresh to under 1px. */
       if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
-      else if(over<-24){const _revFit=inReview&&revCompact;const _playFit=mode==='play';const _fl=sqTrimFloorRef.current;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):(_playFit?Math.max(Math.min(t,_fl),n):n);});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
+      else if(mode==='play'){const _t=boardTrimRef.current,_fm=playFreshTrimRef.current,_fl=sqTrimFloorRef.current;const _snap=_fm!==null&&_t>Math.max(_fm,_fl)&&_t-Math.max(_fm,_fl)<=-over;if(_snap||over<-16){const _g=Math.floor((-over-8)/8)*8;setBoardTrim(t=>{if(_fm!==null&&t>_fm&&(_snap||t-Math.min(64,_g)<_fm))return Math.max(Math.min(t,_fl),_fm);const n=Math.max(-480,t-Math.min(64,_g));if(t>_fl&&t-_fl<=Math.min(64,-over-8))return _fl;return Math.max(Math.min(t,_fl),n);});settle=true;}else if(over<=0)playFreshTrimRef.current=_fm===null?_t:Math.min(_fm,_t);}
+      else if(over<-24){const _revFit=inReview&&revCompact;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):n;});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);

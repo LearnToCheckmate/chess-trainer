@@ -611,14 +611,18 @@ L.run(async()=>{
       {n:'320x568', g:L.GEOS.se,             px:60},
       {n:'375x730', g:L.GEOS.kunal730,       px:180},
       {n:'375x761', g:L.GEOS.kunal761,       px:180},
+      // A2-R6 [#549 run fix fixr6b]: the cell where a board fitted from BELOW came back one whole step LARGER than fresh. At move 0
+      // with a 60px block the shrink happens to land on fresh's residue; at 4 plies with a 40px block it does not. MEASURED on
+      // f462559's bundle 1e0c67e7dbd3: 296 -> 256 -> 304 (bars 34.5 -> 32.5, move list 39 -> 35); on the fix 296 -> 256 -> 296.
+      {n:'375x568-4ply', g:L.GEOS.short375, px:40, st:'cpu-4ply'},
     ];
-    const STEP=8;   // the fit loop grows in 8px steps (Math.floor(-over/8)*8), so recovery is to within one step of fresh
+    const STEP=8,SAME=1;   // the fit loop moves in 8px steps, and a tolerance of one step admitted A2-R6 (304 vs 296); since fixr6b the board comes back to its fresh size exactly, so the recovery is asserted to under 1px
     const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;});
     for(const c of PCELLS){
       const R={};
       const b=await L.launch({geo:c.g,name:'d15-'+c.n,store:{ct_pool:'3'}});
       try{
-        await b.open();await P.states['cpu-m0'](b);await b.settle(500);
+        await b.open();await P.states[c.st||'cpu-m0'](b);await b.settle(c.st?800:500);
         R.fresh=await bw(b);
         R.injRect=await b.page.evaluate((px)=>{const r=document.getElementById('root');const d=document.createElement('div');d.id='ct-d15-kick';d.style.cssText='height:'+px+'px;flex:0 0 '+px+'px';r.firstElementChild.prepend(d);
           const q=d.getBoundingClientRect(),cs=getComputedStyle(d);return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'&&cs.display!=='none'};},c.px);
@@ -630,11 +634,11 @@ L.run(async()=>{
       }catch(e){R.threw=String(e&&e.message||e).slice(0,200);}
       await b.close();
       L.say(!R.threw,'TC-R64-D15 '+c.n+' the play arm ran without throwing'+(R.threw?' - '+R.threw:''),R);
-      L.say(typeof R.fresh==='number'&&R.fresh>40,'TC-R64-D15 '+c.n+' DENOMINATOR a fresh vs-Computer board is painted at move 0 ('+R.fresh+')',{fresh:R.fresh});
+      L.say(typeof R.fresh==='number'&&R.fresh>40,'TC-R64-D15 '+c.n+' DENOMINATOR a fresh vs-Computer board is painted at '+(c.st==='cpu-4ply'?'4 plies':'move 0')+' ('+R.fresh+')',{fresh:R.fresh});
       L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1&&R.tap1===true,'TC-R64-D15 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height while Moves was toggled',{injRect:R.injRect,tap1:R.tap1});
       L.say(typeof R.fresh==='number'&&typeof R.during==='number'&&R.during<R.fresh-STEP,'TC-R64-D15 '+c.n+' THE STATE WAS REACHED: with the '+c.px+'px block in the flow the fit loop shrank the board ('+R.fresh+' -> '+R.during+'), so the recovery below is asserted over a board that really lost width',{fresh:R.fresh,during:R.during});
       L.say(R.removed===true&&R.tap2===true,'TC-R64-D15 '+c.n+' the block was removed and Moves toggled back (the dependency change the recovery needs)',{removed:R.removed,tap2:R.tap2});
-      L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D15 '+c.n+' THE PHONE-GAME BOARD COMES BACK: after the block is gone the board is within the loop\'s '+STEP+'px step of its fresh-launch width ('+R.after+' vs '+R.fresh+'). Pre-fix the player bars and moves panel swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
+      L.say(typeof R.fresh==='number'&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<SAME,'TC-R64-D15 '+c.n+' THE PHONE-GAME BOARD COMES BACK TO ITS FRESH SIZE: after the block is gone the board is within '+SAME+'px of its fresh-launch width ('+R.after+' vs '+R.fresh+'), so one state has one board size whatever its history. A tolerance of the loop\'s '+STEP+'px step admitted A2-R6 (f462559: 304 against a fresh 296 at 375x568, and 268 against 276 at 320x540). Pre-fix the player bars and moves panel swallowed the room and it stayed at the shrunk size for good',{fresh:R.fresh,during:R.during,after:R.after});
     }
   }
   // TC-R64-D16 [#549 run fix fixr3e]. THE COMPACT REVIEW'S BOARD COMES BACK AFTER A TRANSIENT - the Review cell D15 named as
@@ -695,7 +699,7 @@ L.run(async()=>{
       {n:'375x730', g:L.GEOS.kunal730, px:100},
       {n:'375x761', g:L.GEOS.kunal761, px:130},
     ];
-    const STEP=8,FRAMES=90,SMALL=20;
+    const STEP=8,SAME=1,FRAMES=90,SMALL=20;
     for(const c of SCELLS){
       const R={};
       const b=await L.launch({geo:c.g,name:'d17-'+c.n,store:{ct_pool:'3'}});
@@ -720,7 +724,7 @@ L.run(async()=>{
       L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1&&R.tap1===true,'TC-R64-D17 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height while Moves was toggled',{injRect:R.injRect,tap1:R.tap1});
       L.say(typeof R.peak==='number'&&R.peak>0&&R.peak<=SMALL&&!!R.first&&R.first[0]===R.fresh,'TC-R64-D17 '+c.n+' THE STATE WAS REACHED: a SMALL overflow ('+R.peak+'px, in 1..'+SMALL+') with the board still at its fresh width on the first frame ('+(R.first&&R.first[0])+' vs '+R.fresh+')',{first:R.first,peak:R.peak});
       L.say(!!R.last&&R.last[1]<=0&&R.last[0]<R.fresh&&R.fixedAt>=0,'TC-R64-D17 '+c.n+' THE SMALL OVERFLOW IS CORRECTED WITHIN THE WAKE: by frame '+FRAMES+' the overflow is '+(R.last&&R.last[1])+' (first <= 0 at frame '+R.fixedAt+') and the board took it ('+R.fresh+' -> '+(R.last&&R.last[0])+'). On 46340d1 the trim sat parked at -480 and the overflow stood for all '+FRAMES+' frames',{last:R.last,fixedAt:R.fixedAt});
-      L.say(R.removed===true&&R.tap2===true&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<=STEP,'TC-R64-D17 '+c.n+' and after the block is gone the board comes back to within '+STEP+'px of fresh ('+R.after+' vs '+R.fresh+')',{removed:R.removed,tap2:R.tap2,after:R.after});
+      L.say(R.removed===true&&R.tap2===true&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<SAME,'TC-R64-D17 '+c.n+' and after the block is gone the board comes back to its fresh size, within '+SAME+'px ('+R.after+' vs '+R.fresh+')',{removed:R.removed,tap2:R.tap2,after:R.after});
     }
   }
 },'75-fit-loop-one-way-ratchet');

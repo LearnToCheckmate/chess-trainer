@@ -1615,7 +1615,9 @@ font arrived a frame late.
   Opera Game ply 10, 264 -> 208 for good pre-fix, back to 264 fixed. AND WHERE THE PLAY BOARD IS ALREADY AT ITS WIDTH CAP
   (375x730, 375x761, 390x844) A SMALL OVERFLOW (20px or less) IS STILL TAKEN OUT WITHIN THE LOOP'S WAKE: the growth that
   brings the board back stops at the trim where the board meets its width cap, so the trim is never parked where no trim
-  moves the board (#549 run fix fixr5a). (TC-R64-D15, TC-R64-D16, TC-R64-D17)
+  moves the board (#549 run fix fixr5a). AND THE PLAY BOARD COMES BACK TO ITS FRESH SIZE EXACTLY, NOT TO WITHIN A STEP:
+  one state has one board size whatever its history. Measured on f462559 at 375x568 a transient left 304 against a fresh
+  296 and at 320x540 268 against 276; since the #549 run fix fixr6b both return to fresh. (TC-R64-D15, TC-R64-D16, TC-R64-D17)
 - THE MECHANISM IS ESTABLISHED AND THE TRIGGER IS NOT. The portrait fit loop (`chess.jsx`, search
   `boardTrim`) shrinks on a real overflow and can never grow back, for two independent reasons either of
   which alone is sufficient: the slack a single shrink leaves is `ceil(over/8)*8+8-over`, which lies in
