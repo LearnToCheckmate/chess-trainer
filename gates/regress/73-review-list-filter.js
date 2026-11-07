@@ -1667,5 +1667,46 @@ function mkTap(b,READ){
     L.say(!!(q.leaf&&q.cw>0&&q.sw<=q.cw),'se '+N+' games: TC-R110 the summary is NOT cut at 320x568 (scrollWidth '+q.sw+' <= clientWidth '+q.cw+': "'+q.t+'")',q);
     L.say(b.errs.length===0,'se '+N+' games: TC-R110 zero app errors',b.errs.slice(0,2));
     await b.close();}
+  // ── TC-R153 (US-INV-04 clause 4c) [#549 item (100); jobs/labels-truncate-in-shared-rows-2026-09-24, and the folded-in
+  // jobs/games-list-outcome-badge-word-spills-its-pill-2026-09-28]. A GAME ROW REFLOWS; IT DOES NOT CUT THE OPPONENT'S NAME.
+  // Before: the opponent line and the line under it shared a row with the fixed result badge and the fixed 'Review ›', got the
+  // remainder (184px at 375, 130 at 320) and were ellipsised - 'vs DukeKarlCountIs…' and 'jsmiller1112 · as Whit…' with this
+  // ordinary fixture - and the 44px badge painted DRAW 9.4px and GAME 7.1px past its own border. FOUND BY TEXT, NOT BY A HOOK
+  // THIS BUILD ADDS (#432): the row is [data-ct="game-row"] (old), the name line is its block span whose text starts 'vs', the
+  // next block span is the line under it, and the badge is the row's first child. THE CONTENT SET IS THE INPUT: after the
+  // fixture's own reading, each line is re-measured holding the LONGEST real value - a 25-character handle (chess.com's cap) and
+  // a 25-character account name in front of the longest tail the line prints - and the badge holding each of its four words.
+  {const RV=require('../drive/review');
+   const H25='Abcdefghijklmnopqrstuvwxy';
+   for(const geo of ['se','kunal761','w440']){
+    const G=L.GEOS[geo],dim=G.w+'x'+G.h;
+    const b=await L.launch({geo,name:'r153-'+geo,store:RV.SEED});await b.open();await b.tile('Review');await b.settle(1200);
+    const r=await b.page.evaluate((H25)=>{
+      const full=(e)=>{if(!e)return null;const q=e.getBoundingClientRect();const rg=document.createRange();rg.selectNodeContents(e);const rs=[...rg.getClientRects()].filter(x=>x.width>0);
+        const L0=Math.min(...rs.map(x=>x.left)),R0=Math.max(...rs.map(x=>x.right)),T0=Math.min(...rs.map(x=>x.top)),B0=Math.max(...rs.map(x=>x.bottom));
+        const ok=e.scrollWidth<=e.clientWidth&&L0>=q.left-0.5&&R0<=q.right+0.5&&T0>=q.top-0.5&&B0<=q.bottom+0.5;
+        return {t:e.textContent.slice(0,60),cw:e.clientWidth,sw:e.scrollWidth,inkR:+(R0-q.right).toFixed(1),inkL:+(q.left-L0).toFixed(1),lines:new Set(rs.map(x=>Math.round(x.top))).size,ok};};
+      const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
+      // the name line is the span whose OWN text (its direct text nodes, not a descendant's) reads 'vs <name>' or '<a> vs <b>':
+      // the cell around it is a flex item, so its computed display is block too and its textContent also starts 'vs' - a first
+      // draft matched that wrapper and measured the wrong box. The line under it is the name line's next sibling.
+      const own=(e)=>[...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').replace(/\u00a0/g,' ');
+      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=opp?opp.nextElementSibling:null;const badge=row.firstElementChild;
+        return {opp:full(opp),sub:full(sub),badge:badge&&{t:badge.textContent,...full(badge)},_o:opp,_s:sub,_b:badge};});
+      const seeded=[];const words=[];
+      for(const o of out){
+        if(o._o){const keep=o._o.textContent;o._o.textContent='vs\u00a0'+H25;seeded.push({what:'opponent',...full(o._o)});o._o.textContent=keep;}
+        if(o._s){const keep=o._s.innerHTML;o._s.textContent=H25+' · as White · Correspondence · Sep 30';seeded.push({what:'line under it',...full(o._s)});o._s.innerHTML=keep;}
+        if(o._b){const keep=o._b.textContent;for(const w of ['WON','LOST','DRAW','GAME']){o._b.textContent=w;words.push({w,...full(o._b)});}o._b.textContent=keep;}
+        delete o._o;delete o._s;delete o._b;}
+      return {n:rows.length,draw:out.some(o=>o.badge&&o.badge.t==='DRAW'),rows:out,seeded,words};},H25);
+    L.say(r.n>=3&&r.draw&&r.rows.every(o=>o.opp&&o.sub&&o.badge),'TC-R153 '+dim+' DENOMINATOR the Review list shows the seeded games ('+r.n+' rows, a DRAW among them), and in every row the name line, the line under it and the badge were found by their text',{n:r.n,draw:r.draw});
+    L.say(r.rows.length>0&&r.rows.every(o=>o.opp&&o.opp.ok),'TC-R153a '+dim+': every row paints the opponent line in full - no ellipsis, no ink past its box',r.rows.map(o=>o.opp));
+    L.say(r.rows.length>0&&r.rows.every(o=>o.sub&&o.sub.ok),'TC-R153b '+dim+': every row paints the line under it (account, colour, time control, date) in full',r.rows.map(o=>o.sub));
+    L.say(r.seeded.length>=2*r.n&&r.seeded.every(x=>x.ok),'TC-R153c '+dim+': holding the LONGEST real values (a 25-character handle; a 25-character account and the longest tail), both lines still paint in full - they reflow',r.seeded);
+    L.say(r.words.length===4*r.n&&r.words.every(x=>x.ok),'TC-R153d '+dim+': the result badge holds each of its four words (WON, LOST, DRAW, GAME) inside its own border',r.words.filter(x=>!x.ok).concat(r.words.slice(0,4)));
+    L.say(b.errs.length===0,'TC-R153 '+dim+': zero app errors',b.errs.slice(0,2));
+    await b.close();}
+  }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});

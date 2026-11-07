@@ -35,10 +35,18 @@ L.run(async()=>{
   // screen (it covers whatever sits under it), else innerHeight - both are printed. Stored-games Review is a known below-the-fold
   // defect, so it is PINNED as 08b is: a move either way is red, and the build that fixes it retires the pin.
   // measured at #549 on trial 1d1679f9c883 (HEAD afc6977): px of "⚡ Analyze Game"'s bottom past the fold, stored games, SETTLED (identical on two runs)
-  const REV_PIN={"320x568":373.5,"360x640":320.3,"375x667":294.3,"375x730":231.3,"390x844":94.3,"414x896":28.5,"440x956":-26.5,
+  // RE-PINNED at #549 item (100) [jobs/labels-truncate-in-shared-rows-2026-09-24], a pin moving WITH a fix and the reason stated: the
+  // stored-games rows now REFLOW their opponent name and the line under it instead of ellipsising them, so the seeded rows are taller
+  // (at 375x761 124/72/72px -> 156/104/88px), the games list reaches more of its min(46vh,340px) cap, and the import box below it sits
+  // lower: 375x761 200.3 -> 260.3, 360x640 320.3 -> 334.6, 375x667 294.3 -> 321.1, 375x730 231.3 -> 287, 390x844 94.3 -> 177.3,
+  // 414x896 28.5 -> 105.5, 440x956 -26.5 -> 47.5; 320x568 unchanged (the list was already at its cap there). Measured on trial
+  // 4d7c48fa1578 (gate 78 subset log, then re-run). NOT ONLY A MOVE AT ONE COLUMN, said plainly: at 440x956 the import button was 26.5px
+  // ABOVE the fold and is now 47.5px below it, so on that one geometry a player with stored games now scrolls to reach it; at every
+  // other column it was already below the fold (200.3px on Kunal's phone). Named in the job's outcome for him to weigh.
+  const REV_PIN={"320x568":373.5,"360x640":334.6,"375x667":321.1,"375x730":287,"390x844":177.3,"414x896":105.5,"440x956":47.5,
     // [#549 fix round 4, A8-R4] Kunal's phone joins this loop. Its key carries the insets (w x h + safe), read from the GEOS entry, so
     // it can never collide with a no-inset column of the same size. Measured at #549 on trial 27d9c9980e1b (settled, first read 870.5) and again on c738ab207551 (HEAD 376ccde): 200.3 both.
-    "375x761+51,31":200.3};
+    "375x761+51,31":260.3};
   const pv={};
   const find=(re)=>b=>b.page.evaluate((src)=>{const re=new RegExp(src);const btn=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
     const bar=document.querySelector('[data-ct="tabbar"]');const t=bar?bar.getBoundingClientRect():null;const fold=t&&t.height>0&&t.top<innerHeight?t.top:innerHeight;
