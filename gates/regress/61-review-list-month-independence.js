@@ -1560,5 +1560,60 @@ async function input(seed,n,geo,name,thin){
     }
     await b.close();
   }
+  {
+    // ── A33 TC-R154 / TC-R155 #549 item (104), jobs/finished-chesscom-daily-games-come-into-review-by-username-when-each-ends-2026-11-03:
+    //    A CHESS.COM DAILY GAME COMES INTO REVIEW ONCE IT HAS ENDED, AND NEVER WHILE IT IS BEING PLAYED. Chess.com's fair-play rules
+    //    count outside help in a game in progress as a breach whatever the reason, so the engine must never see one: no game in
+    //    progress may be stored, listed or analysed. The stub is this block's own (same ctx.route discipline, nothing leaves the
+    //    container). The box account gatedaily has an index of 2026/10 and 2026/11. Oct holds three finished live blitz games and
+    //    one finished DAILY game. Nov holds one daily game STILL IN PROGRESS, in the in-progress shape chess.com uses for a daily
+    //    game being played (players named by URL, no end_time, no result, move_by/turn, PGN Result "*"). Launch 1 must list the
+    //    four finished games and nothing of the game in progress, store nothing of it, and not call Nov a month that could not be
+    //    loaded (declining a game in progress is not a failed read). Launch 2 - the one check after it ends - the same game is
+    //    served ended (end_time, both results, Result "1-0"), and it must be in the list, once, labelled Daily, with no manual
+    //    import. Throughout, no request may go to the in-progress lists (/games, /games/to-move).
+    const DU='gatedaily', OPP='dailyopp', T=(y,mo,d,h)=>Math.floor(Date.UTC(y,mo-1,d,h||12,0,0)/1000);
+    const dstate={ended:false,hits:[]};
+    const pgnOf=(white,black,res,ev,tcs,date)=>['[Event "'+ev+'"]','[Site "Chess.com"]','[Date "'+date+'"]','[Round "-"]','[White "'+white+'"]','[Black "'+black+'"]','[Result "'+res+'"]','[TimeControl "'+tcs+'"]','[Termination "'+(res==='*'?'':white+' won by resignation')+'"]','',(res==='*'?'1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *':MOVES)].join('\n');
+    const b=await L.launch({geo:'kunal761',store:{ct_ccuser:DU,ct_accts:'[]',ct_acctgames:'{}'},name:'daily-ended'});
+    await b.ctx.route(/api\.chess\.com/,async(route)=>{const u=route.request().url();dstate.hits.push(u.replace('https://api.chess.com/pub/player/',''));
+      if(/\/games\/archives$/.test(u))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:['2026/10','2026/11'].map(m=>'https://api.chess.com/pub/player/'+DU+'/games/'+m)})});
+      const m=u.match(/games\/(\d{4})\/(\d{2})$/);
+      if(!m)return route.fulfill({status:404,contentType:'application/json',body:'{}'});
+      const games=[];
+      if(m[2]==='10'){
+        for(let i=0;i<3;i++)games.push({url:'https://www.chess.com/game/live/9'+i,pgn:pgnOf(DU,'liveopp'+i,'1-0','Live Chess','180','2026.10.'+(10+i)),time_control:'180',end_time:T(2026,10,10+i),rated:true,time_class:'blitz',rules:'chess',white:{username:DU,result:'win',rating:1400},black:{username:'liveopp'+i,result:'resigned',rating:1390}});
+        games.push({url:'https://www.chess.com/game/daily/8001',pgn:pgnOf(DU,'dailydone','1-0',"Let's Play!",'1/86400','2026.10.20'),time_control:'1/86400',end_time:T(2026,10,20),rated:true,time_class:'daily',rules:'chess',white:{username:DU,result:'win',rating:1400},black:{username:'dailydone',result:'resigned',rating:1390}});
+      }else if(m[2]==='11'){
+        if(dstate.ended)games.push({url:'https://www.chess.com/game/daily/8002',pgn:pgnOf(DU,OPP,'1-0',"Let's Play!",'1/86400','2026.11.05'),time_control:'1/86400',end_time:T(2026,11,5),rated:true,time_class:'daily',rules:'chess',white:{username:DU,result:'win',rating:1400},black:{username:OPP,result:'resigned',rating:1390}});
+        else games.push({url:'https://www.chess.com/game/daily/8002',move_by:T(2026,11,6),pgn:pgnOf(DU,OPP,'*',"Let's Play!",'1/86400','2026.11.01'),time_control:'1/86400',last_activity:T(2026,11,4),rated:true,turn:'white',fen:'r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4',start_time:T(2026,11,1),time_class:'daily',rules:'chess',white:'https://api.chess.com/pub/player/'+DU,black:'https://api.chess.com/pub/player/'+OPP});
+      }
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({games})});});
+    const tag='TC-R154 DAILY GAME IN PROGRESS';
+    // a held row of the game IN PROGRESS: its PGN Result is "*", or it carries no end date (the in-progress shape has no end_time);
+    // `named` also counts any held row whose PGN names its opponent, which before it ends must be none
+    const inProg=(r,named)=>{let n=0;Object.keys(r.idbMap||{}).forEach(id=>(r.idbMap[id]||[]).forEach(g=>{if(/\[Result\s+"\*"\]/.test(g.pgn||'')||!(g.date>0)||(named&&new RegExp('\\[Black "'+OPP+'"\\]').test(g.pgn||'')))n++;}));return n;};
+    const oppRows=(r)=>{let n=0;Object.keys(r.idbMap||{}).forEach(id=>(r.idbMap[id]||[]).forEach(g=>{if(g.black===OPP)n++;}));return n;};
+    const rowTexts=()=>b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="game-row"]')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
+    const nov=(hs)=>hs.filter(h=>/games\/2026\/11$/.test(h)).length;
+    const live=(hs)=>hs.filter(h=>/\/games(\/to-move)?\/?$/.test(h)).length;
+    await b.open();await b.tile('Review');await b.settle(1800);const st1=await rowsSettled(b,1);
+    const r1=await READ(b);const t1=await rowTexts();const hs1=dstate.hits.slice();
+    if(L.say(st1.ok&&nov(hs1)>=1&&r1.rows>=1,'A33-0 vacuity '+tag+': the walk ran and asked for Nov - the month holding the game in progress - and the Review list rendered',{settled:st1.ok,requests:hs1,rows:r1.rows})){
+      L.say(r1.rows===4&&!t1.some(x=>x.indexOf(OPP)>=0||/White vs Black/.test(x)),'A33a '+tag+': THE GAME IN PROGRESS IS NOT LISTED - the four finished games are, and no row names its opponent',{rows:r1.rows,expect:4,rowTexts:t1});
+      L.say(inProg(r1,true)===0&&r1.stored===4,'A33b '+tag+': and NOTHING of it is stored - no held game carries Result "*" or its opponent - so the background pass, which analyses held games only, can never put the engine on it',{inProgressHeld:inProg(r1,true),stored:r1.stored});
+      L.say(!GAP_RE.test(r1.body||''),'A33c '+tag+': and the month that held only the game in progress is NOT called a month that could not be loaded - declining a game being played is not a failed read',{gapSaid:((r1.body||'').match(GAP_RE)||['none'])[0],line:r1.cap&&r1.cap.text});
+      L.say(t1.some(x=>/vs dailydone/.test(x)&&/Daily/.test(x)),'A33d '+tag+': and the finished daily game IS listed, labelled Daily',{rowTexts:t1});
+      // launch 2: the one check after the game ends
+      dstate.ended=true;const h2=dstate.hits.length;
+      await b.open();await b.tile('Review');await b.settle(1800);const st2=await rowsSettled(b,1);
+      const r2=await READ(b);const t2=await rowTexts();const hs2=dstate.hits.slice(h2);
+      L.say(st2.ok&&nov(hs2)===1&&r2.rows===5&&oppRows(r2)===1&&t2.filter(x=>x.indexOf('vs '+OPP)>=0&&/Daily/.test(x)).length===1,'A33e TC-R155 DAILY GAME ENDED: on the first launch after it ended the same daily game IS in Review without a manual import - listed once, as vs '+OPP+', labelled Daily, beside the four it held (5)',{rows:r2.rows,heldOnce:oppRows(r2),requests:hs2,rowTexts:t2});
+      L.say(inProg(r2)===0,'A33f TC-R155: and what is held of it is the ENDED game - nothing with Result "*" was kept from the launch before',{inProgressHeld:inProg(r2)});
+    }
+    L.say(live(dstate.hits)===0,'A33g '+tag+': no request at any point went to chess.com\'s lists of games IN PROGRESS (/games, /games/to-move) - only the archive index and its months',{inProgressListRequests:live(dstate.hits),requests:dstate.hits});
+    L.say(b.errs.length===0,'A33h '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});

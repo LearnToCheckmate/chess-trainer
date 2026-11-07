@@ -321,6 +321,24 @@ function acctStalest(order,skip,now){
     if(now-t>ACCT_STALE_MS&&t<bestT){best=id;bestT=t;}});
   return best;
 }
+// #549 item (104), jobs/finished-chesscom-daily-games-come-into-review-by-username-when-each-ends-2026-11-03: A GAME IS TAKEN
+// FROM CHESS.COM ONLY ONCE IT HAS ENDED. A daily game lasts days, and Chess.com's fair-play rules count outside help in a game
+// still being played as a breach whatever the reason, so no game in progress may be stored, listed or analysed here. The walk
+// reads the monthly archives only (never /games or /games/to-move, the in-progress lists), and of what a month returns it takes
+// a game only when its result is set: an end time, a result for BOTH players, and a PGN whose Result is not "*". Anything else
+// is a game still being played (the in-progress shape has no end_time and names each player by URL, not by an object with a
+// result) and is passed over - and declining it is not a month "we asked for and did not get", so a month holding nothing but
+// games in progress is NOT a gap (#433): its finished games come in on the first check after each one ends, which is the job.
+function ccEnded(g){
+  if(!g||typeof g!=='object'||typeof g.pgn!=='string'||!g.pgn)return false;
+  if(!(+g.end_time>0))return false;
+  const w=g.white,b=g.black;if(!w||!b||typeof w!=='object'||typeof b!=='object'||!w.result||!b.result)return false;
+  const m=g.pgn.match(/\[Result\s+"([^"]*)"\]/);return !(m&&m[1].trim()==='*');
+}
+// a listed month's games, split: `done` the ended games the walk may take, `open` how many entries are games in progress
+function ccMonthGames(mj){const all=((mj&&mj.games)||[]).filter(g=>g&&typeof g==='object');const done=all.filter(ccEnded);
+  const open=all.filter(g=>!(+g.end_time>0)||!g.white||!g.black||typeof g.white!=='object'||typeof g.black!=='object'||!g.white.result||!g.black.result||/\[Result\s+"\*"\]/.test(String(g.pgn||''))).length;
+  return {done,open,all:all.length};}
 function acctCapLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_C)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 // #431 THE CAP RAISE MADE THIS FUNCTION LOAD-BEARING, AND IT USED TO SWALLOW THE ONE ERROR THAT
@@ -6269,14 +6287,15 @@ export default function App(){
            requests with nothing on screen but a collapsed '…'. It now says which month it is reading and what it has so far. */
         _P('Reading Chess.com, month '+(archives.length-i)+' of up to '+Math.min(ACCT_GMONTHS,archives.length)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
         try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
-        const mg=(mj.games||[]).filter(g=>g.pgn);
+        // #549 item (104): only ENDED games (ccEnded); a month whose every entry is a game in progress is not a gap, it is skipped
+        const _cm=ccMonthGames(mj),mg=_cm.done;
         // #433 AND A MONTH THAT ANSWERS 200 WITH NOTHING USABLE IS A GAP TOO. The first version of this
         // counted only !ok and a throw, which is two of the four ways a listed month can yield nothing:
         // antagonist A measured `{"games":[]}`, a body with no games key, and a month of in-progress daily
         // games that `filter(g=>g.pgn)` discards - all three walked on silently and let `bound` read 'all'.
         // The INDEX is the evidence: chess.com lists a month only when it has games, so a listed month
         // returning no usable row is information we asked for and did not get, whatever the status code.
-        if(!mg.length){missed++;continue;}
+        if(!mg.length){if(!(_cm.all>0&&_cm.open===_cm.all))missed++;continue;}
         mg.sort((x,y)=>(y.end_time||0)-(x.end_time||0));   // newest first WITHIN the month
         const took=games.length;
         // #549 item (32): from a month that reaches back to the newest held game, only that game and newer are taken
@@ -6379,8 +6398,8 @@ export default function App(){
           for(;i>=0&&games.length<ACCT_GMAX&&(start-i)<ACCT_GMONTHS;i--){
             setCcProg('Reading older Chess.com games, month '+(start-i+1)+' of up to '+Math.min(ACCT_GMONTHS,start+1)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
             let mj=null;try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
-            const all=(mj.games||[]).filter(g=>g.pgn);
-            if(!all.length){missed++;continue;}   // #433: a listed month with nothing usable is a gap
+            const _cm=ccMonthGames(mj),all=_cm.done;   // #549 item (104): ended games only, as the newest-first walk
+            if(!all.length){if(!(_cm.all>0&&_cm.open===_cm.all))missed++;continue;}   // #433: a listed month with nothing usable is a gap
             const mg=all.filter(g=>(g.end_time||0)*1000<=old).sort((x,y)=>(y.end_time||0)-(x.end_time||0));
             const took=games.length;
             for(let k=0;k<mg.length&&games.length<ACCT_GMAX;k++)games.push(mg[k]);
