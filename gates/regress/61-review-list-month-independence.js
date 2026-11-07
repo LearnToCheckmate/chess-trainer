@@ -1131,6 +1131,61 @@ async function input(seed,n,geo,name,thin){
     await b.close();
   }
 
+  // ── A31..A32 #549, antagonist A round 5 on 755c349 (job 31's IndexedDB store). FAILURES ARE INJECTED BY A SEAM IN THE
+  //    PAGE, NOT BY AN APP HOOK: an addInitScript wraps IDBDatabase.prototype.transaction and IDBFactory.prototype.open, armed
+  //    by localStorage['zz_idbseam'] = {rw:N, kind:'unknown'|'quota', openFail:bool}. Each armed readwrite transaction is the
+  //    REAL transaction, aborted one microtask after the app queued its requests, with tx.error set to a DOMException named
+  //    UnknownError (iOS Safari's transient failure) or QuotaExceededError - so the app's own handlers, not a mock of them, see
+  //    the failure. The count left is written back, so an armed failure fires once and survives no reload. openFail makes every
+  //    indexedDB.open in the page error; the gate turns it off on window before it reads the store itself (L.acctGames opens too).
+  const SEAM=()=>{try{
+    const cfg=JSON.parse(localStorage.getItem('zz_idbseam')||'null');if(!cfg)return;
+    const S=window.__idbSeam={rw:cfg.rw|0,kind:cfg.kind||'unknown',openFail:!!cfg.openFail,fired:0,opensRefused:0};
+    const save=()=>{try{localStorage.setItem('zz_idbseam',JSON.stringify({rw:S.rw,kind:S.kind,openFail:S.openFail}));}catch(e){}};
+    const tx0=IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction=function(os,mode,...r){const tx=tx0.call(this,os,mode,...r);
+      if(mode==='readwrite'&&S.rw>0){S.rw--;S.fired++;save();
+        const err=new DOMException('injected by gate 61',S.kind==='quota'?'QuotaExceededError':'UnknownError');
+        try{Object.defineProperty(tx,'error',{get:()=>err,configurable:true});}catch(e){}
+        queueMicrotask(()=>{try{tx.abort();}catch(e){}});}
+      return tx;};
+    const op0=IDBFactory.prototype.open;
+    IDBFactory.prototype.open=function(...a){if(!S.openFail)return op0.apply(this,a);S.opensRefused++;
+      const rq={result:null,error:new DOMException('injected by gate 61','UnknownError')};setTimeout(()=>{try{rq.onerror&&rq.onerror({target:rq});}catch(e){}},0);return rq;};
+  }catch(e){}};
+  const seamArm=(b,cfg)=>b.page.evaluate((c)=>{if(c)localStorage.setItem('zz_idbseam',JSON.stringify(c));else localStorage.removeItem('zz_idbseam');},cfg);
+  const seamRead=(b)=>b.page.evaluate(()=>{const S=window.__idbSeam;if(!S)return null;S.openFail=false;return {fired:S.fired,opensRefused:S.opensRefused,left:S.rw};});
+  const OLD='gateold', OLDID='cc:'+OLD, OLDN=50;
+  const oldRows=()=>{const P='[Event "Live Chess"]\n[Site "Chess.com"]\n[White "'+OLD+'"]\n[Black "opp"]\n[Result "1-0"]\n\n'+MOVES+'\n';const a=[];
+    for(let i=0;i<OLDN;i++)a.push({src:'cc',acct:OLD,pgn:P,white:OLD,black:'old'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,6,1+(i%28),12,i%60,0)});return a;};
+  const NOROOM=/There wasn.t room on this device to keep/i;
+  // TC-R143 (A2-R5): ONLY A QUOTA FAILURE EVICTS. Three inputs, one context each: one UnknownError, two in a row, one quota error.
+  for(const cfg of [{rw:1,kind:'unknown'},{rw:2,kind:'unknown'},{rw:1,kind:'quota'}]){
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:[OLDID],ct_acctgames:{[OLDID]:oldRows()}},name:'idb-fail-'+cfg.kind+cfg.rw});
+    await b.ctx.addInitScript(SEAM);await stub(b,state);
+    const tag='TC-R143 A2-R5, '+cfg.rw+' '+(cfg.kind==='quota'?'QuotaExceededError':'UnknownError')+' on the write after a refresh, with '+OLD+' ('+OLDN+' games) held as the OLDEST account';
+    const r0=await refresh(b,state,{});
+    const i0=r0.idbMap||{};
+    if(!L.say((i0[OLDID]||[]).length===OLDN&&(i0['cc:'+ACCTS[0]]||[]).length===MIN_CAP,'A31-0 vacuity '+tag+': before any failure IndexedDB holds both accounts ('+OLDN+' + '+MIN_CAP+')',{old:(i0[OLDID]||[]).length,fetched:(i0['cc:'+ACCTS[0]]||[]).length,store:r0.storeFrom})){await b.close();continue;}
+    await seamArm(b,cfg);
+    const r1=await refresh(b,state,{extra:{y:2026,m:10,n:5}});
+    const sm=await seamRead(b);
+    const r1b=await READ(b);const i1=r1b.idbMap||{};
+    const accts=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_accts')||'[]');}catch(e){return null;}});
+    L.say(!!sm&&sm.fired===cfg.rw&&r1.newHits>=2,'A31-0b vacuity '+tag+': the seam failed exactly '+cfg.rw+' readwrite transaction(s) and the refresh walk ran',{seam:sm,newRequests:r1.newHits});
+    const st={old:(i1[OLDID]||[]).length,fetched:(i1['cc:'+ACCTS[0]]||[]).length,rows:r1b.rows,accts,line:(r1b.cap&&r1b.cap.text)||null};
+    if(cfg.kind==='quota'){
+      L.say(st.old===0&&NOROOM.test(r1b.body||'')&&new RegExp(OLD).test(st.line||''),'A31c '+tag+': a GENUINE quota error still evicts the oldest account, as designed, and says so on the line',st);
+    }else{
+      L.say(st.old===OLDN&&Array.isArray(accts)&&accts.indexOf(OLDID)>=0,'A31a '+tag+': a failure that is not QuotaExceededError deletes NOTHING - '+OLD+' still holds all '+OLDN+' games in IndexedDB and is still listed (antagonist A measured it deleted for good)',st);
+      L.say(!NOROOM.test(r1b.body||''),'A31b '+tag+': and the screen does not claim there was no room - the failure was not about room',st);
+      if(cfg.rw===1)L.say(st.fetched===MIN_CAP+5,'A31d '+tag+': one transient failure is retried once and the refresh lands - '+(MIN_CAP+5)+' games held for the fetched account',st);
+      else L.say(st.fetched===MIN_CAP&&st.rows===OLDN+MIN_CAP+5,'A31e '+tag+': two in a row write nothing and delete nothing - the store keeps its '+MIN_CAP+', the session keeps the '+(OLDN+MIN_CAP+5)+' it has',st);
+    }
+    L.say(b.errs.length===0,'A31f '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
   const GEOS7=[{w:320,h:568},{w:360,h:640},{w:375,h:667},{w:375,h:730},{w:390,h:844},{w:414,h:896},{w:440,h:956}];
   // ── ALL SEVEN GEOMETRIES BY DEFAULT [#544, item (7); this job's remainder, "run the default sweep at all
   //    seven geometries rather than three"]. It was three unless CT_FULL=1, so four of the seven never ran in

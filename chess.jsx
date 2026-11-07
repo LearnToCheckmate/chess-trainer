@@ -310,15 +310,23 @@ function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{
 // pre-eviction map, so the screen counted 400 rows over a store holding 200 and the next launch showed an account
 // with 0 games). On the IndexedDB store only the accounts named in `changed` are written and those in `removed`
 // deleted, in one transaction; a quota failure aborts it whole, and the oldest account is dropped and the write
-// tried again, exactly as the localStorage branch below has always done.
+// tried again, exactly as the localStorage branch below has always done (which only ever failed on quota). Any
+// other failure evicts nothing (A2-R5, below).
 async function acctGamesSave(map,order,changed,removed){
   const m={...(map||{})};
   const queue=((order&&order.length)?order.slice():Object.keys(m)).filter(k=>k in m);
   if(ACCT_MODE==='idb'){
     const puts={};(changed||Object.keys(m)).forEach(k=>{if(k in m)puts[k]=m[k];});
     const dels=(removed||[]).slice();
-    for(;;){
-      if(await acctIdbWrite(puts,dels))return m;
+    // #549 antagonist A round 5 (A2-R5): ONLY A QUOTA FAILURE IS "TOO BIG". This loop used to evict on ANY failed
+    // transaction, and the oldest account is never the one just fetched, so one transient failure (iOS Safari's
+    // UnknownError, a lost connection) deleted ANOTHER account's games for good and said there wasn't room. Now a
+    // failure that is not QuotaExceededError is retried once, unchanged; if it fails again nothing is evicted and
+    // nothing is reported dropped - the session keeps what it has, the store keeps what it had.
+    for(let soft=0;;){
+      const why={};
+      if(await acctIdbWrite(puts,dels,why))return m;
+      if(!why.quota){if(++soft<2)continue;return {...(map||{})};}
       if(!queue.length||!Object.keys(puts).length)break;   // a write with nothing to put is never "too big": evicting would not help
       const k=queue.shift();delete m[k];delete puts[k];dels.push(k);
     }
@@ -387,14 +395,20 @@ async function acctIdbReadAll(){
     tx.oncomplete=()=>res(out); tx.onerror=()=>res(null); tx.onabort=()=>res(null);
   }catch(e){res(null);}});
 }
-// puts and deletes in ONE transaction; true only when it COMMITTED (a quota failure aborts it whole)
-async function acctIdbWrite(puts,dels){
-  const db=await acctIdbOpen(); if(!db)return false;
-  return new Promise(res=>{try{
+// puts and deletes in ONE transaction; true only when it COMMITTED (a quota failure aborts it whole).
+// `why`, when given, gets why.quota=true|false on a failure: the transaction's own error (set before the abort
+// fires) is read first, then the failing request's, then a throw's. Quota is QuotaExceededError by name, Firefox's
+// legacy NS_ERROR_DOM_QUOTA_REACHED, or the legacy codes 22 / 1014; everything else (UnknownError, AbortError,
+// InvalidStateError on a lost connection, a failed open) is not.
+const acctIsQuota=(e)=>!!e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014);
+async function acctIdbWrite(puts,dels,why){
+  const db=await acctIdbOpen(); if(!db){if(why)why.quota=false;return false;}
+  return new Promise(res=>{let done=false;const fin=(ok,e)=>{if(done)return;done=true;if(!ok&&why)why.quota=acctIsQuota(e);res(ok);};
+  try{
     const tx=db.transaction(ACCT_IDB_OS,'readwrite'),st=tx.objectStore(ACCT_IDB_OS);
     Object.keys(puts||{}).forEach(k=>st.put(puts[k],k)); (dels||[]).forEach(k=>st.delete(k));
-    tx.oncomplete=()=>res(true); tx.onerror=()=>res(false); tx.onabort=()=>res(false);
-  }catch(e){res(false);}});
+    tx.oncomplete=()=>fin(true); tx.onerror=(ev)=>fin(false,tx.error||(ev&&ev.target&&ev.target.error)); tx.onabort=()=>fin(false,tx.error);
+  }catch(e){fin(false,e);}});
 }
 const acctRowKey=(g)=>((g&&g.src)||'')+':'+((g&&g.date)||0)+':'+((g&&g.white)||'')+':'+((g&&g.black)||'');
 // fresh rows first, so a game present in both keeps the fresh copy; newest first; then the cap
