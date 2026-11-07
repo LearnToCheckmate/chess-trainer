@@ -389,6 +389,10 @@ L.run(async()=>{
   // MALFORMED HEADERS (a '9' in a rank, two white kings, the side not to move in check) with moves that fit only from the
   // position they meant: refused with a sentence naming the [FEN] header, and no summary, accuracy or review object at all.
   // Controls for this block: four negative-control bundles, recorded by the run (deferred from #549 item (66)).
+  // CONTROL-RECORD: e982dcb 2026-11-06 total=31 red=12 scope=blocks:TC-R66 how=importGame calls loadSANs(sans) without the header's start (startFen ignored), trial md5 0b4c001bac29; red: all four honoured-half assertions (summary, first position, per-side counts, strip entry) for each of the three legal set-up games. The good trial 144c84708965 reads 31 PASS 0 FAIL on the block and 298 PASS 0 FAIL on the whole gate.
+  // CONTROL-RECORD: e982dcb 2026-11-06 total=31 red=3 scope=blocks:TC-R66 how=revMover/revNo back to i%2 parity with no plyBase, trial md5 76cb387796a6; red: the strip's first-entry assertion for all three legal set-up games ('1…Ke4', '1.Ra5+', '1.O-O').
+  // CONTROL-RECORD: e982dcb 2026-11-06 total=31 red=1 scope=blocks:TC-R66 how=the summary's per-side tally back to i%2 parity, trial md5 5df7077ef37f; red: the study chapter's per-side count (read White 3, Black 2). NOT controlled by it: the endgame and middlegame, whose counts are parity-blind.
+  // CONTROL-RECORD: e982dcb 2026-11-06 total=31 red=3 scope=blocks:TC-R66 how=pgnStart never refuses (an unreadable header is treated as no header), trial md5 8cefc700806a; red: the refusal-names-FEN assertion for all three malformed headers. The no-review assertion stays green there because those moves do not fit the opening position either.
   {
     const OK=[
       ['study chapter, Black to move','8/8/8/3k4/8/8/3PK3/8 b - - 0 23','[Event "Study: King and pawn"]\n[Site "https://lichess.org/study/abcdEFGH/ijklMNOP"]\n[ChapterName "Opposition"]\n[Result "*"]\n[Variant "Standard"]\n[SetUp "1"]\n[FEN "8/8/8/3k4/8/8/3PK3/8 b - - 0 23"]\n\n23... Ke4 24. d3+ Kd4 25. Kd2 Ke5 *','23…','Ke4',{w:2,b:3}],
@@ -481,6 +485,7 @@ L.run(async()=>{
    L.say(!!r0&&r0.scTop>=50.5&&r0.menuTop>=50.5,'kunal761: TC-R79 the summary scroller and its menu button both start below the 51px status bar ('+(r0&&Math.round(r0.scTop))+', '+(r0&&Math.round(r0.menuTop))+')',r0);
    L.say(!!r1&&r1.visTop>=50.5,'kunal761: TC-R79 scrolled to the bottom, no visible text of the summary is under the status bar (top visible text at '+(r1&&Math.round(r1.visTop))+')',r1);
    await b.close();}
+  // CONTROL-RECORD: 18de6cc 2026-11-06 total=225 red=2 scope=full how=HEAD 7982ed8's own bundle (menu button position absolute over the scroller), trial md5 3a181ac1b381; red: both TC-R111 no-cover lines (kunal761 56 of 237, kunal730 56 of 232). The good trial 9a0f44fae251 reads 225 PASS 0 FAIL.
   // TC-R111 [#549 item (44); jobs/review-summary-runs-under-the-status-bar-2026-09-22, the job's case (b) and (a) over every scroll
   // position]: THE ☰ NEVER SITS ON SUMMARY TEXT. It used to be position:absolute over the scroller, so at 56 of 237 positions (4px
   // steps) it covered the players line, the coach sentence, 'Black' and '2/10', at BOTH insets. Scanned at 375x761 with 51/31 and at
@@ -598,6 +603,8 @@ L.run(async()=>{
      L.say(+m[1]===2&&m[2]==='.','TC-R94 the line starts at White\'s move 2 ("2. ..."), the move after 1.e4 e5 - not at the move analysis was entered on ("'+m[0].trim()+'")',{line:t});
    await b.close();}
   // TC-R114 (US-R104), #549 item (68), jobs/transport-row-icon-only: THE TRANSPORT ROW'S ICONS ARE THE BUTTONS, AND THE TARGET
+  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:7cce11ece74a how=cb() phone minHeight 36 with border, gradient and shadow off, trial md5 7cce11ece74a; red: TC-R114 44 x 44 at all four geometries, the chrome line stays green.
+  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:3c77598400b0 how=cb() phone minHeight 44 with border, gradient and shadow kept, trial md5 3c77598400b0; red: TC-R114 chrome at all four geometries, the 44 x 44 line stays green. The pre-fix HEAD bundle 780a57efc6f9 reds both lines (8). The good trial ec4bcdbf1098 reads gate 20 245 PASS 0 FAIL.
   // DOES NOT SHRINK. Kunal: "do we need the outline, or can we just make the icons look like buttons themselves to save space".
   // Pre-fix every control in rev-row1 was 42.00px tall (2px under the 44px floor) with a 1px border, a gradient and a box-shadow,
   // at every geometry. The pairing is the point: chrome off AND 44x44 kept AND the centre still hits the control - neither half
@@ -635,6 +642,7 @@ L.run(async()=>{
   // RENDER SITES, every one the review paints an evaluation in: eval-bar-num (first paint = stored analysis, via a MutationObserver, and
   // the settled value), rev-engline's leading evaluation with the engine line on, and rev-engwhy-eval (the words the engine line's
   // explanation opens with). rev-cmp is read wherever it renders and its count is printed. Sites x positions is the denominator.
+      // CONTROL-RECORD: da06472 2026-11-06 total=276 red=1 scope=full how=chess.jsx #549 item (79) hunk reverted (sfBar back to sfHit at evalNow and evalTxt), trial md5 951516fa818f; red: TC-R09d Lasker ply 21 every-value assertion (DETECTION IS PROBABILISTIC, A7-R4: the control races the live search, so one run of a broken build can read green by luck; dev runs of the block alone gave 1 and 3 red, never 0). The fixed trial 34cb657a90c3 reads 276 PASS 0 FAIL.
   {
     const LASKER='[Event "London"] [White "Edward Lasker"] [Black "George Thomas"] [Result "1-0"] 1. d4 e6 2. Nf3 f5 3. Nc3 Nf6 4. Bg5 Be7 5. Bxf6 Bxf6 6. e4 fxe4 7. Nxe4 b6 8. Ne5 O-O 9. Bd3 Bb7 10. Qh5 Qe7 11. Qxh7+ Kxh7 12. Nxf6+ Kh6 13. Neg4+ Kg5 14. h4+ Kf4 15. g3+ Kf3 16. Be2+ Kg2 17. Rh2+ Kg1 18. Kd2# 1-0';
     const BIG='[Event "Queen and two knights"] [White "W"] [Black "B"] [Result "*"] 1. e4 e5 2. Nf3 Qh4 3. Nxh4 Nf6 4. Qf3 Ng4 5. Qxg4 Nc6 6. Nf3 Nb4 7. a3 Nd5 8. exd5 a6 *';

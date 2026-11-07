@@ -336,6 +336,7 @@ L.run(async()=>{
      L.note(tag+': (fixture) the flash state is UNREACHABLE here - '+movesPlayed+' move tokens in the MOVES '+
        'panel, and copyMoves returns before flashing when the history is empty, so the chip cannot rename '+
        'itself at all. N2c is not run at this column and is not counted as a pass.');
+     // CONTROL-RECORD: 5b1e1bb 2026-11-06 total=98 red=2 scope=full how=#549 item (47) HEAD bundle 6a8ec1a5582d with Copy live at move 0: TC-LS-048 red at 320x568 and 375x568
      // ── TC-LS-048 (US-R101), #549 item (47), folded jobs/copy-chip-is-a-live-control-that-does-nothing-with-no-moves-2026-09-29.
      //    The same empty history that makes the flash unreachable made the chip a full-size LIVE control that did
      //    nothing on a tap. It must now SAY so: the button is disabled and its label is drawn dimmed. Kept at

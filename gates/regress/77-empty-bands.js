@@ -42,6 +42,7 @@
 // reads 51 and 31 rather than 0.
 // CONTROL-RECORD: 752b6d3 2026-10-29 total=61 red=6 scope=trial:dfd2bce100c5 how=the Home tile relabelled "Discovery" so home discover cannot be reached; the REACHED and MEASURED pair reddens at all three columns [#545 item (25)]
 // CONTROL-RECORD: 8f55589 2026-11-06 total=93 red=1 scope=trial:14ea26b79b33 how=the #549 base bundle (rows read against the viewport less 56, icons at 0.52 of the row); restricted to home discover, the PROMOTED line reds at 375x761 real reading 89 @379.2-468.2; a row-fix-reverted bundle 05984d62dcd7 reds it at 68 [#549 item (18)]
+// CONTROL-RECORD: 3620b52 2026-11-06 total=124 red=34 scope=trial:092470ec1943 how=mistake capture disabled (if(0)caps.push) and both pz-top marginTop 90: FAIL TC-S07 PHASE 1 mistakes x2, every drill-mistakes REACHED and MEASURED at all three columns (24), the four drill-brilliant PROMOTED lines (98.5/94.5 @51) and the four promoted puzzles states; the trial 96d043bdf18f reads 128 pass 0 fail [#549 item (21)]
 const L=require('../lib');
 const HM=require('../drive/home');
 const PZ=require('../drive/puzzles');

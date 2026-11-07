@@ -228,6 +228,7 @@ L.run(async()=>{
           const c0=await chip();
           if(prep.sh>prep.ch+1){
             L.say(c0.on&&c0.inView&&c0.self,label+' '+state+': TC-R85 the explanation overruns its box ('+prep.sh+' > '+prep.ch+') and a "more" chip is on screen and taps to itself',c0);
+            // CONTROL-RECORD: a982d7c 2026-11-06 total=235 red=10 scope=full how=HEAD 7340372-line pre-fix bundle (no whole-line snap on the solved box), trial md5 208ec0354fc6; red: TC-R112 whole-lines at all seven G7 geometries x both solved states that overflow (cut line 12.1px of 16 shown). The good trial e0088d496d14 (rebased over (46)) reads 235 PASS 0 FAIL.
             // TC-R112 (US-R81), #549 item (45): AT REST THE OVERRUNNING BOX SHOWS WHOLE LINES - no line of the explanation is painted
             // cut through its glyphs at the box's bottom edge. Read from the glyphs' own rects (a Range per code point, grouped by line)
             // against the box found as the nearest scrolling ancestor, so it does not depend on the hook or the style the fix uses. On the

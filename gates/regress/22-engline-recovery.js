@@ -36,6 +36,7 @@
 //   vs the shipped #390 (ecf733d, app.js md5 5fc71d38a468):  3 FAIL / 18 PASS   (RUN-LOG #392 recorded 2 of 14)
 // The red count rose with the assertion count in both cases, which is the result that matters: the assertions
 // added at #392 and #398 are covered by the same bundles, not riding free on a green earned by the originals.
+// CONTROL-RECORD: 23704eb 2026-11-06 total=95 red=12 scope=full how=shipped main 7340372 bundle (#548), TC-R83 ply-8 line red as '+1.3 …' plus 11 pre-existing TC-R109/TC-R115 reds that bundle predates, md5 of git show 7340372:app.js
 'use strict';
 const L=require('../lib');
 const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
@@ -528,6 +529,7 @@ L.run(async()=>{
   // ply 30 (a separate pooled search) on the Review door, and the card's own stored move on the drill door. At 0.5, 2 and 5 s after
   // landing the row either shows a variation that begins with that move or is still pending ('<eval> ...' with no move after it); and
   // within 25 s it must show the variation (a search that never finishes is a red, not a pass over nothing).
+  // CONTROL-RECORD: cedb498 2026-11-06 total=84 red=7 scope=full how=shipped #548 bundle app.js e07e3d4fb9ea (HEAD's app.js) - block P TC-R109 reds 7 (review door '+2.7 15... Nxd7 16. Qb7' at 0.5/2/5 s and final; drill door '+2.5 15... Nxd7 16. Qb7' at 2/5 s and final); fixed trial 9552b5a3a528 84 pass 0 fail
   {const R=require('../drive/review');
    const ELT=()=>b.page.evaluate(()=>((document.querySelector('[data-ct="rev-engline"]')||{}).innerText||'').replace(/\s+/g,' ').trim());
    let b=null;
@@ -558,6 +560,7 @@ L.run(async()=>{
    await marks('drill analyse',onAna?'Qxd7':null);
    await b.close();}
 
+  // CONTROL-RECORD: e7287e7 2026-11-06 total=5 red=2 scope=trial:b14a33ac6f42 how=block Q (TC-R109 handshake) run alone against the trial built from HEAD 2bea40d before the A2-R2 fix (cedb498's anaIdle): the review-worker go-before-bestmove line read 1 of 54 and the 0-PAGEERROR line read 1 (RuntimeError: unreachable, worker 1); 2 of 2 control runs red on both, 3 of 3 runs of the fixed trial 5be4259f3452 green [#549 item (26), antagonist A round 2]
   // ── BLOCK Q [#549, item (26), antagonist A round 2, A2-R2 P1 on cedb498]. TC-R109, THE HANDSHAKE HALF: NO `go` IS EVER POSTED TO A
   // STOCKFISH WORKER WHILE ANOTHER `go` ON THAT WORKER HAS NOT ANSWERED `bestmove`. cedb498's anaIdle waited for the stopped search's
   // bestmove, but (a) a SECOND query arriving inside that wait replaced the first waiter and left its 2.5 s timer armed, and the orphan
@@ -615,6 +618,7 @@ L.run(async()=>{
   // flip (#391); the injection makes it certain, and S1/S2 prove it was entered. Pool workers are told apart by their `Hash value 16`.
   // NOT COVERED, said out loud: a worker that dies SILENTLY (no `error`, still marked ready) stays short for ever on every bundle - measured
   // 3 visits of 20 s on HEAD - and is the worker-recovery half the job excludes.
+  // CONTROL-RECORD: bd8c4a7 2026-11-06 total=94 red=2 scope=full how=the pre-fix HEAD bundle (sacRun drops the entry on a dead-worker failure and never re-asks on the visit), trial md5 d335e71dffd4; red: TC-R115 the clause arrives without stepping off, and it was asked on a new worker. The fixed trial 9f4c2886c48c is 94 of 94.
   {const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
    const T=38, IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
    const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
@@ -663,6 +667,7 @@ L.run(async()=>{
     L.say(!!b1&&!!b2&&Math.abs(b1.top-b2.top)<=0.5&&Math.abs(b1.w-b2.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 and switching it OFF again moves nothing ('+JSON.stringify(b2&&[b2.top,b2.w])+')',{b1,b2});
     await b.close();}
   }
+  // CONTROL-RECORD: 37f44ea 2026-11-06 total=107 red=6 scope=full how=TC-R116 run against #549's pre-fix HEAD bundle (no engine-row reservation), trial md5 8c672822fc88; red are exactly the six TC-R116 board-unchanged lines at se, short375 and w375h667; kunal761 stays green
   /* ── TC-R117, BLOCK T: THE COACH SENTENCE ONLY GROWS WHILE THE REFUTATION ARRIVES (#549 item (102)) ──────────────────────────────
      jobs/the-coach-sentence-is-rewritten-two-seconds-in-and-portrait-headroom-is-now-0-3px-2026-10-10. The refutation clause
      ("If <capture>, <reply> ...") is answered by a search that lands after first paint, and pack() is a fixed greedy budget,
@@ -693,4 +698,5 @@ L.run(async()=>{
      L.say(ss.length>=50&&bad.length===0,'TC-R117 at ply '+T+' NOTHING SHOWN IS REMOVED: every one of '+ss.length+' samples (100 ms apart from the landing tap) is a prefix of the next - '+distinct.length+' distinct sentence(s), '+bad.length+' rewrite(s)',{bad:bad.slice(0,2),distinct});
    }
    await b.close();}
+// CONTROL-RECORD: 376ccde 2026-11-06 total=6 red=2 scope=blocks:T how=TC-R117 block T extracted alone (scratchpad jobs/102/only117.js) and run against #549's pre-fix HEAD bundle 82a3c168ad2d (no first-paint hold); red are exactly the two TC-R117 NOTHING SHOWN IS REMOVED lines, at ply 38 and ply 74; the fixed bundle 6b6a47809365 runs the same 6 green. The full-gate total is for the run to take from its suite log.
 },'ENGLINE-RECOVERY');

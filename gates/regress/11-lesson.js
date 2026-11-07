@@ -324,6 +324,11 @@ L.run(async()=>{
 // CONTROL-RECORD: 44bf4b3 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the edge-path board x0.9 again, re-run on the grown 84-assertion gate so the record covers items (24) and (24b) of #544 [#545 item (2)]
 // CONTROL-RECORD: 777aa06 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the same x0.9 trial re-run after #545 item (4) rewrote the kunal demo-end line, whose L.say sites moved the 44bf4b3 record to ASSERTIONS-MOVED
 // CONTROL-RECORD: a35524b 2026-10-30 total=102 red=7 scope=trial:dfb25d27c4b4 how=the same edge-path board x0.9, REBUILT at #546 because #545's trial bundle did not survive its container, and re-run on the 102-assertion gate whose L.say set moved the 777aa06 record: red at kunal demo-end and at all six bistable-pin cells [#546 item (89)]
+// CONTROL-RECORD: d13c07d 2026-11-06 total=146 red=4 scope=trial:35c22e00ca63 how=Close lesson fontSize 30px in PRACTICE only: the four PRACTICE glyph-band lines red at 320x568, 360x640, 375x667 and 375x730; the pre-change gate read 130/0 on the same bundle [#549 item (54)]
+// CONTROL-RECORD: e129a5c 2026-11-06 total=164 red=16 scope=trial:2c323ead88f0 how=the pre-fix #549 HEAD bundle (before item 80): all 8 TC-LS-051 glyph-size and shape lines red at 375x761 and 320x568, plus the 8 text-glyph band lines whose pin moved 22->24 with the fix
+// CONTROL-RECORD: e129a5c 2026-11-06 total=164 red=12 scope=trial:a76671da6f71 how=FootBtn's floor cut to 40px (minHeight/minWidth 40, height 40): all 4 TC-LS-051 tap-target lines red at 375x761 and 320x568
+// CONTROL-RECORD: c8308a4 2026-11-06 total=170 red=3 scope=trial:9b2d05899a1c how=the pre-fix chess.jsx (HEAD 92e8f51, no lesson resume) - TC-LS-053's three case lines red at kunal761, both re-opens read 'Press Play to watch' with the demo footer [#549 item (107)]
+// CONTROL-RECORD: da53b65 2026-11-06 total=174 red=2 scope=trial:7d815ea63d6b how=mutant: setGame dropped from the lesson resume (note, phase and footer restored, board not); red: exactly the two TC-LS-053 placement lines. The fix trial 64d46d055bd5 reads 174 PASS 0 FAIL.
 
   // ── TC-LS-051 (US-LS-11) [#549 item (80); jobs/lesson-footer-icons-consistent, Kunal 2026-09-14 "consistent with Review"]:
   // THE LESSON FOOTER (demo AND practice) AND THE REVIEW TRANSPORT ROW ARE ONE COMPONENT. Measured on the pre-fix bundle

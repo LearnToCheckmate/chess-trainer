@@ -949,3 +949,4 @@ L.run(async()=>{
 },'REVIEW-BRILLIANT');
 // CONTROL-RECORD: a35524b 2026-10-30 total=52 red=3 scope=trial:a9605ca30843 how=chess.jsx's played-move guard deleted from the runner-up clause, one change - TC-R10 on the Opera Game and TC-R10b at pool 3 and pool 1 on Kunal's game go red (3 self-named plies there: 41...Qh3+, 24.c4, 19...Bxh3) [#546 item (89), rebuild of #545's b37e93213529 on the 52-assertion gate]
 // CONTROL-RECORD: 5b1e1bb 2026-11-06 total=104 red=3 scope=trial:b38abbbb04fb how=CT_SRC pointed at HEAD 5b1e1bb chess.jsx (moveGist without the #549 item (50) give-up and unlike-trade branches), bundle unchanged - TC-R113 Bxg6, Rxe4 and Bxf6 go red, the Nxf6+ precondition stays green [#549 item (50)]
+// CONTROL-RECORD: 3720349 2026-11-06 total=104 red=2 scope=trial:81b832a03fc0 how=brilGiveTxt forced to the pre-#549 ladder (You give up a piece), one change - the two TC-R10 sentence pins go red [#549 item (28)]

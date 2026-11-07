@@ -59,6 +59,9 @@
 //    fix that ADDS A ROW. The evidence for the height claim is the 353.03/93.75 pair plus the fact that the
 //    diff adds no element.
 //  * FOUR INPUTS, NOT ONE (R18): two geometries, the eloMsg-empty branch at the Elo floor, and Pass & Play.
+// CONTROL-RECORD: 341b0b4 2026-11-06 total=192 red=14 scope=trial:37e784f6bfd4 how=#549 item (2): the default --pcfilter put back to the keyword 'none' (the original defect) - TC-PL-049 and TC-PL-049b's black-shadow lines red in all four image skins at both geometries, the 049b captured line, and TC-PL-049c's four captured lines (classic, merida, chessnut, spatial); Medieval stays green
+// CONTROL-RECORD: 341b0b4 2026-11-06 total=192 red=5 scope=trial:18d73ab430a0 how=#549 item (2): the Medieval skin's pcf set to 'none' - exactly TC-PL-049c's five Medieval shadow lines red (black and white at kunal761 and se, and the captured line)
+// CONTROL-RECORD: 519c499 2026-11-06 total=214 red=4 scope=trial:9c675c029fe8 how=#549 (49) A4-R3: HEAD a9e66ac's bundle, which puts the private CTEnded tag in Copy PGN and in pgnText: TC-PL-064 red at kunal761 and se (copied PGN and paste-box PGN both carry [CTEnded "You resigned"]), preconditions green. Trial 8c38127af12b green; subset total 214 on fda728bd1f56
 'use strict';
 const L=require('../lib');const P=require('../drive/play');
 const RES_RE=/won|win|lose|lost|Time!|Resigned|Checkmate|Stalemate|draw/i;

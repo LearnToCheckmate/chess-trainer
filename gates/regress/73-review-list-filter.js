@@ -1614,6 +1614,8 @@ function mkTap(b,READ){
     L.say(opened&&after.length===3,'TC-R104 and one tap on the Filter button paints the three grade chips',{opened,after});
     await b.close();
   }
+  // CONTROL-RECORD: 9da5cb8 2026-11-06 total=153 red=6 scope=full how=#549 item (27) pre-fix bundle, #549 HEAD 182eaa9 with YOUR PROGRESS uncollapsed (242.7px), trial md5 a4949b532459; red: the six TC-R110 lines (row above the tab bar, panel one line, tap opens it) at kunal761 and kunal. The fixed trial 9fa9c2d7ad52 reads 153 PASS 0 FAIL.
+  // CONTROL-RECORD: ca0eccd 2026-11-06 total=161 red=2 scope=full how=#549 item (27) A4-R2 pre-fix bundle, run-branch HEAD 2bea40d (label 'Your progress' at 320 wide), trial md5 f1f932adbd41; red: block I2 TC-R110 'the summary is NOT cut at 320x568' with 12 games (148 > 126) and 150 games (156 > 126). Fixed trial 80ae56967728: 161/0.
   // ── I, TC-R110 [#549 item (27); jobs/the-first-tallied-game-row-is-still-below-the-tab-bar-on-kunals-phone-2026-11-05, Kunal's
   // "collapse" on questions/B9-TALLIED-ROW]: A TALLIED FIRST ROW IS WHOLLY ABOVE THE TAB BAR AT BOTH 375 COLUMNS. TC-R104's fixture
   // row is 72px, which is why that case held while the real row did not: ten Opera games on one account, tallied by the app's own

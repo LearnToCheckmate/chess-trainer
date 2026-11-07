@@ -127,6 +127,11 @@
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=board display:none before the entry window
 // CONTROL-RECORD: 955501e 2026-09-18 total=25 red=1 scope=env:CT_G15_GEOS=kunal how=body forced out of position:fixed with 3000px appended, so the page really scrolls
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=143 red=4 scope=trial:c7f6a1228e43 how=#548 items (119)(129)(112)(162): main #547 - TC-GL-006, TC-GL-007 and TC-GL-008 red
+// CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=0 scope=trial:d4f570553154 how=#549 item (51), the fixed trial bundle, no injection - the baseline the two rows below are read against
+// CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=2 scope=trial:d5069383fa60 how=#549 item (51), a trial bundle with _steps' fallback hold removed (the #452 code): reds SF3 and SF4 (TC-GL-011) and no other line (151 PASS)
+// CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=1 scope=env:CT_G15_NC=landLow,trial:d4f570553154 how=#549 item (51), the held bar pushed to bottom:-30px at 730x375 only: reds M6b 730x375 (TC-GL-008) alone
+// CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:2d58713526fe how=#549 item (88): the home dev row's guard with `!recCap` removed (the hide dropped): TC-GL-012 M12 red alone at 375x730 (run nc1)
+// CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:4b74d46c0ea8 how=#549 item (88): the dev row also gated on a flag set by the manual card and never cleared (a hide that never lifts): TC-GL-012 M13 red alone at 375x730 (run nc2)
 //
 // THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
 // Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:

@@ -459,3 +459,6 @@ L.run(async()=>{
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
 // gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
 // CONTROL-RECORD: a35524b 2026-10-30 total=52 red=4 scope=trial:082e9b529698 how=mateLadder returns the old always-Blunder floor - E1 and E2 read Blunder on g4 instead of Mistake and Inaccuracy, and block C's instrument pins C0 and C0b go red on the changed helper shape [rebuild of #545's 60c7535e7880]
+// CONTROL-RECORD: 94d9a75 2026-11-06 total=49 red=10 scope=trial:4b8c7cd5f708 how=#549 item (62): winDrop returns the raw centipawn loss (chess.jsx, search "return Math.max(0,winPct(b)-winPct(a))"), blocks B and E skipped - F1..F9 and F11 red, block A green
+// CONTROL-RECORD: 94d9a75 2026-11-06 total=49 red=1 scope=trial:d51fa607a531 how=#549 item (62): the Stockfish site grades by clsByName(classifyByLoss(loss)) instead of classify(_wd), blocks B and E skipped - F11 red alone
+// CONTROL-RECORD: 94d9a75 2026-11-06 total=26 red=2 scope=trial:eda7c506ed32 how=#549 item (62): CLS_BANDS Good cut-off 8.2096 -> 9.0, blocks B and E skipped - A0 and F6 red (A1..A26 NOT RUN behind A0)

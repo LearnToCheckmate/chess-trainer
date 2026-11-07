@@ -154,6 +154,7 @@ const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root')
 const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 // CONTROL-RECORD: 3bb86e8 2026-11-06 total=420 red=5 scope=trial:541b28b94918 how=chess.jsx sets document.body.style.position=static at load, one change - the PAGELOCK pin red at short375, 390x568, 375x520, 320x520 and 320x540 while docScroll still reads 0, so the docScroll===0 it replaced stays green on this bundle [#549 item (7)]
 // CONTROL-RECORD: 73e599c 2026-11-06 total=462 red=76 scope=trial:a6430f9419d6 how=chess.jsx with the rail-more chip never rendered (false&&railMore) and the demo action row given marginTop 400 in portrait - TC-R78b red at 956x440 and 568x320 (silent step, every below-fold control missed), TC-R78c red at kunal761, kunal730, kunal and se [#549 item (43)]
+// CONTROL-RECORD: a539615 2026-11-06 total=441 red=20 scope=trial:7ae631c1fa7b how=chess.jsx demo row gap 6->16 plus +40 board trim in learn mode, one bundle - the DEMO_NEEDED and FLIP_NEEDED term pins red at all five wide-and-short geometries (TC-INV-05d) and both latch detectors (DEMO_SETTLED, _legalBoard) red at 320x520 where the board moved 231.19 to 223.19 (TC-INV-05h); green bundle c44ba782cebd 441 pass 0 red
 const D=require('../drive/lesson');
 
 // ── local helpers ────────────────────────────────────────────────────────────────────────────────────────

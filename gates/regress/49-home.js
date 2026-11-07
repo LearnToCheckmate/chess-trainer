@@ -199,6 +199,7 @@
 // CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=6 scope=blocks:E,F how=4471c98's tree (trial e824097dfb8e), where opening the lesson retired the NEW HERE card - TC-HM-055 opened-a-lesson and both TC-HM-056 card lines red at se and kunal730 [#549 item (22) A2-R1 fix]
 // CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=4 scope=blocks:E,F how=a trial whose walkthrough-end record never fires (md5 6bad0aa116d5) - both TC-HM-054 retired lines red at se and kunal730 [#549 item (22) A2-R1 fix]
 // CONTROL-RECORD: 848b723 2026-11-06 total=116 red=1 scope=blocks:G how=setHomeScreen(false) removed from the streak card's goPz (trial 3bd111b9c0c2, CT_HM_GEOS=kunal730) - only kunal730/earned [streak] TC-HM-051c red; good trial 51869799ba22 116/0 [#549 item (89)]
+// CONTROL-RECORD: 4471c98 2026-11-06 total=94 red=10 scope=blocks:E,F how=the #549 base bundle before item (22) (md5 a19136012900): NEW HERE isNew read only pzXP and ct_train, card copy promised a win; the ten FAILs are exactly TC-HM-054 x2 and TC-HM-055 x8
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');

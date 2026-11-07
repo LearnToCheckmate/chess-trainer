@@ -41,6 +41,10 @@
 // which grades by default.
 // Geometries: the content assertions run at kunal761 (Kunal's phone, R19); the C7/C7b/C9 sweep runs THE DRILL
 // SEVEN plus kunal761. CT_GEO52=<name,...> narrows the sweep and the run says so.
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=2 scope=env:CT_GEO52=kunal761 how=bundle 25c7ed8b7f68 (13e1513 chess.jsx, grades by default) - D2 D3 red
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=2 scope=env:CT_GEO52=kunal761 how=bundle 3e9304792cb5 (the fix with DRILL_GRADE_DEFAULT=true) - D2 D3 red
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=3 scope=env:CT_GEO52=kunal761 how=bundle 319b07f98fad (default on, graded accept disabled) - C2 D2 D3 red
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=5 scope=env:CT_GEO52=kunal761 how=bundle cf4454f2553f (2f4e07a^ chess.jsx, flat string match) - C2 C3 C4 C4b C5c red, every D green
 'use strict';
 const L=require('../lib');
 

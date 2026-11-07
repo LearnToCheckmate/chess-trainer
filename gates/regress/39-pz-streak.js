@@ -1,4 +1,5 @@
 // regress/39-pz-streak.js  Z-04 (Kunal, choice "Streak"). THE ONLY GUARD ON THIS CHANGE.
+// CONTROL-RECORD: 04419c4 2026-11-06 total=219 red=4 scope=trial:5f575748b380 how=the HEAD 4637b44 bundle, whose landscape rail held the hint only in puzMsg - TC-R86 'the hint is STILL in the header after the wrong move' and 'and still after a second wrong move' red at 730x375 and 844x390 [#549 item (46)]
 //
 // THE DEFECT. On a phone, a puzzle hint TAKES THE HEADER ROW - that was Y-03/Z-01, and it is the one row that
 // costs the board nothing - and while it is up the counters step aside. But the verdict box below the goal card
@@ -24,10 +25,15 @@
 //   6. The reserved height is unchanged by the fill: 30 at 375x730 and 320x568, 74 at 390x844. The 30-vs-74
 //      split is chosen by viewport height (vp.h<820), so it is a branch the DEVICE picks and both are run.
 //
+// CONTROL-RECORD: 9b89943 2026-11-06 total=131 red=6 scope=trial:31bbe1d9345a how=HEAD's chess.jsx, the chip '<icon> <tier> · ✓ N' - the TC-PZ-CHIP naming line red in all six states (3 states x 375x761, 320x568), every other line green [#549 item (16)]
 // NEGATIVE CONTROL: proved against a bundle with the pz-streak block deleted - the box goes back to empty and
 // assertion 1 goes red at every geometry. See claude/agents/REGRESSION-LOG.md.
+// CONTROL-RECORD: 5e332e7 2026-11-06 total=155 red=3 scope=trial:e824097dfb8e how=#549 item (37) control ncA: HEAD's chess.jsx (no data-ct on the rank-up layer) - TC-PZ-RANKUP hook line red at kunal761, kunal730 and se
+// CONTROL-RECORD: 5e332e7 2026-11-06 total=155 red=6 scope=trial:8a52b0ceaa57 how=#549 item (37) control ncB: the rank-up Continue does nothing - TC-PZ-RANKUP layer-gone and verdict-on-top lines red at all three
+// CONTROL-RECORD: 2e50b37 2026-11-06 total=221 red=2 scope=full how=#549 item (25) A3-R2 pre-fix bundle, run-branch HEAD 2bea40d (chip sticky inside the rail, over Show), trial md5 f1f932adbd41; red: TC-PZ-LAND2 'at rest the chip covers no control' at 730x375 (110/266) and 844x390 (289/418). Fixed trial 80ae56967728: 221/0.
 'use strict';
 const L=require('../lib');
+// CONTROL-RECORD: ef3feab 2026-11-06 total=185 red=10 scope=trial:e824097dfb8e how=the tree before the #549 (16) veto fix (chip minWidth 0, shrinkable) - TC-PZ-CHIP's not-cut lines red for rankup-continue and rank1-train at kunal761 and kunal730 and rankup-continue at 390 [#549 item (16) veto fix]
 const Z=require('../drive/puzzles');
 const PZKEY='chesstrainer.progress.v1';
 
@@ -351,6 +357,7 @@ L.run(async()=>{
         for(const [k,re] of [['prev',/^‹ Prev$/],['next',/^Next ›$/]]){const e=f(re);if(!e){out[k]=null;continue;}const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);out[k]={y:[r.top,r.bottom],self:!!h&&(h===e||e.contains(h))};}
         return out;});}catch(e){hitPair={err:String(e).slice(0,120)};}}
     L.say(!!(hitPair&&hitPair.prev&&hitPair.prev.self&&hitPair.next&&hitPair.next.self),g.w+'x'+g.h+': TC-PZ-LAND2 one tap on the chip brings ‹ Prev and Next › on screen, each hit-testing to itself at its centre',hitPair);
+    // CONTROL-RECORD: 9fb0aa5 2026-11-06 total=137 red=2 scope=full how=pre-fix bundle 9dca31cd3621 (rail-more wrapper without order:99, chip at the top of the puzzle rail); red: TC-PZ-LAND2 chip-position assertion at 730x375 and 844x390. Good trial b48b6d6b2582 reads 137 PASS 0 FAIL.
     await b.close();
   }
   // TC-PZ-RANKUP [#549, item (37); jobs/suite-never-asserts-after-a-success-2026-09-27 theFix (2) and (4)]: AFTER THE 10TH NOVICE

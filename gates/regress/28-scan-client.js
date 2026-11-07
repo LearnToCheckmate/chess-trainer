@@ -85,6 +85,9 @@
 // is 14, and TC-SC-010b now measures 14 + marginTop 3 against the 21px reserve instead. "One line to the
 // pixel" was 20.3px against a 21px reserve, so 0.7px of slack, not exact. Both corrections are in the code
 // below and in the build note, rather than quietly dropped.
+// CONTROL-RECORD: 94c0141 2026-11-06 total=51 red=7 scope=full how=#549 item (67) control A - the HEAD 94d9a75 bundle before the double read (one call, mirror taken silently), trial md5 238f7a362840: TC-SC-014 039 041 042 043 044 046 red
+// CONTROL-RECORD: 94c0141 2026-11-06 total=51 red=5 scope=full how=#549 item (67) control B - agreement test forced true so a disagreeing pair takes reading A, trial md5 ec501bc8ed43: TC-SC-041 042 043 044 046 red
+// CONTROL-RECORD: b629c3f 2026-11-06 total=54 red=2 scope=trial:9c675c029fe8 how=#549 (67) A6-R3: HEAD a9e66ac's bundle, which throws call A's rejection before reading B: TC-SC-049 red twice (the refusal 'Could not read the board right n...' with no question; reading B never set up), precondition green, 52/2. Trial fda728bd1f56 54/0
 'use strict';
 const L=require('../lib');
 const P=require('../drive/play');

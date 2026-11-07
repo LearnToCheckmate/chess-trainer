@@ -356,6 +356,7 @@ L.run(async()=>{
   // this walks it as one: rest, the wrong move, the hint button, the solve, in one browser, and asserts the board's top, left and
   // width SPREAD over all four readings is under the house 0.6px. Each state is asserted REACHED first in its own line (a sequence
   // whose hint never appeared proves nothing about the hint), and the four readings must all exist before the spread is read.
+  // CONTROL-RECORD: 7982ed8 2026-11-06 total=195 red=7 scope=trial:9c336e41077f how=pz-msg position relative (in-flow) only for a 💡 hint after a ✗ verdict in the same session - TC-DR-03 spread line red at 7 of 7 geometries, every fresh-launch pair green; good trial 4ef89c1d3467 195/0
   for(const g of GEOS){
     const tag=g.label+' TC-DR-03 sequence';
     const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'dv-seq-'+g.w+'x'+g.h,store:{ct_mymistakes:CARD('Mistake')}});

@@ -17,6 +17,8 @@
 //     "Best move. Nothing in the position beats it".
 // DETERMINISM (R36): positions come from deterministic self-play through rankMoves; no FEN can rot. A few seconds.
 // CONTROL-RECORD lines live at the foot of this header once the run lands them (deferred: see the job record).
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=30 red=1 scope=full how=CT_SRC=2f4e07a's chess.jsx (grades by default, no DRILL_GRADE_DEFAULT) - A0c red
+// CONTROL-RECORD: 5f16aab 2026-11-07 total=30 red=1 scope=full how=CT_SRC=chess.jsx with DRILL_GRADE_DEFAULT=true - A0c red
 'use strict';
 const L=require('../lib');
 const E=require('../engine-extract.js');
