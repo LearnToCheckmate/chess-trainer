@@ -1924,6 +1924,13 @@ As a player reviewing my own game, at a move of mine where the engine's best mov
 - On that move the move line carries "!! missed <move> >" in the place of the best-move button, and a tap plays the brilliant line on the board; the move strip marks the move (!!) and the eval graph rings it. (TC-R136)
 - My opponent's moves carry no mark, under rule 1 nothing that only rule 2 calls Brilliant is marked, and with the switch off nothing is marked. (TC-R137)
 
+### US-R108 My mistakes drill grades the move I play, and says which kind of move it was
+*Added #549 item (97), from jobs/drill-accepts-one-move-only (Kunal, 2026-09-20: "there can only be one best move"; his design the same day: "tell them what category it is in ... this is the absolute best move in the position, or this is better but there is an even better move, can you find it. And we should explain why"). Rebuilt from #459's held tree (67ca361), with the review's win-percentage ladder and the float-and-scroll verdict box.*
+As a player drilling my own mistakes, any legal move I play is graded by the review's own ladder against the best move of the same search: a move as good as the stored one solves the card, and the answer says which kind of move it was and why; a Good move is told there is more here and asked to find it without being shown the answer; a worse move is told its grade and where it leaves me, never the stored move; and a Lichess puzzle still has its one intended line.
+- An equal alternative is accepted with its grade and a reason, keeps the card in my list, and a real solve still removes it; three different wrong moves get three different sentences; a sub-Excellent move neither reveals nor solves. (TC-R147)
+- The grade is honest: both sides of the comparison come from one ranking, so no move is Best because of a clamp; a card whose stored move that search cannot recognise, and the move I played in the game, fall back to the plain answer; a forced-mate card names the mate. (TC-R146, TC-R147)
+- The verdict never moves the board and is always readable, scrolling inside its box when long, at Kunal's phone and THE DRILL SEVEN. (TC-R147)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

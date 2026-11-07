@@ -48,7 +48,10 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   // #545 item (91): the eleven grading helpers #440 and #491 added. classify reads CLS_BANDS, so without them E.classify()
   // threw "CLS_BANDS is not defined" on every call.
   'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',
-  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','regradeGame','moveHits','bestMove','styleBias'];
+  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','regradeGame','moveHits','bestMove','styleBias',
+  // #549 item (97): the mistakes-drill grader and its two sentences, so gate 17 and the disagreement measurement of job (106) run the
+  // shipped functions (whyShape is the generator the accept sentence reuses).
+  'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg'];
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,
 // so it throws HERE, at require time, naming it - instead of a ReferenceError on first call in whatever caller hits it.

@@ -1905,6 +1905,167 @@ function missedBrilliant(pos,bestMv,evAfterW,evBeforeW,evNextW,rule){
 const MISSED_BRIL_DEFAULT=false;
 const MISSED_BRIL=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_missed_bril')==='1')?true:MISSED_BRIL_DEFAULT;}catch(e){return MISSED_BRIL_DEFAULT;}})();
 
+/* ── #549 item (97), jobs/drill-accepts-one-move-only: GRADE THE MOVE THE PLAYER MADE, DO NOT STRING-MATCH IT ──
+   Kunal, 2026-09-20, with a screenshot: "This is the second time that I solve this position, but last time it told
+   me the solution that was correct was moving rook to d8 from f8. Now it's telling me to move the queen in the exact
+   same position. Why are there two different suggestions, there can only be one best move." And his design the same
+   day: "when somebody plays a better move ... tell them what category it is in ... a good move, an excellent move, a
+   brilliant move ... this is the absolute best move in the position, or this is better but there is an even better
+   move, can you find it. And we should explain why for all of those."
+   THIS IS #456's GRADING REBUILT BY HAND FROM #459's HELD TREE (67ca361), NOT MERGED, AND NOT 8dab924. What those three
+   trees were held for, and what this port does about each (gates/held-trees.tsv rows #456, #457, #459):
+   (1) ONE INSTRUMENT ON BOTH SIDES OF THE SUBTRACTION. #456 subtracted a depth-2 score of the played move from the
+       DEPTH-16 stored move and clamped, so a negative difference read Best ("26 of 33 legal moves accepted"). Here the
+       baseline and the played move are read off ONE rankMoves call, so a negative loss is impossible by construction.
+       rankMoves(g,d) searches each move at d-1, so DRILL_RANK_DEPTH=3 is minimax depth 2 per move (#457's finding: the
+       handover's rankMoves(pos,2) would have rebuilt the gap one ply shallower). Deepening it is job (106),
+       jobs/drill-grading-uses-a-shallow-local-search-2026-10-01, and this constant is the one place it would change.
+   (2) THE BANDS ARE THE REVIEW'S OWN, AND THAT LADDER HAS MOVED SINCE 67ca361. classify() now takes the WIN-PERCENTAGE
+       DROP (#440, Kunal's labels-and-accuracy, 2026-09-28), not centipawns - porting 67ca361's classify(loss) verbatim
+       would have handed it centipawns and graded almost every move Blunder. So the label is computed exactly as the
+       review's fallback column computes it (importGame's rankMoves path): brilliantGate on the centipawn loss, else
+       classify(winDrop(best,played)), with the #491 mate ladder when the move newly allows mate. No constant,
+       threshold or band is changed or added; "accept" is Kunal's own line - Excellent or better - read off that ladder.
+   (3) THE MATE BASELINE NAMES THE MATE (#457 ground 4). When the best move mates, a band and a consequence contradict
+       each other ("Blunder: leaves you completely winning"), so the reject sentence says there was a forced mate.
+   (4) A RANKING IS COMPUTED ONCE PER CARD, keyed on the FEN, and a failed one is NEVER cached [#389]: null in, null out,
+       and the caller then falls back to the flat string match it always had.
+   (5) NO CHARACTER BUDGET. #459 was held because DRILL_MSG_MAXW=48 sized a three-line verdict against a box that grew,
+       and the board paid 70px. That box is gone: since #547 the drill verdict FLOATS over the goal card at exactly the
+       card's size and scrolls (Kunal: float, questions/drill-verdict-float-or-slot-2026-10-10; "Don't change the size
+       just allow the player to scroll through the text", questions/q-drill-third-line), so nothing in the column can
+       change height whatever the sentence's length. The ladders therefore carry ONE sentence per branch - the lead
+       rung, which every budget before this one could not reach - and gate 52 measures the box at every geometry.
+   The pieces are module-level and pure so gates/regress/17 and job (106) can run them in node (gates/engine-extract.js
+   exports them). */
+const DRILL_RANK_DEPTH=3;     /* rankMoves searches each move at depth-1, so this is minimax depth 2 per move */
+const _drillRankMax=24;
+const _drillRank=new Map();   /* FEN -> {best, second, bySan} from ONE ranking */
+function _drillRankStore(pos,key,scored){
+  if(!scored||!scored.length)return null;
+  const bySan=new Map();
+  for(const s of scored){
+    if(typeof s.v!=='number'||isNaN(s.v))return null;   /* a partial ranking is not a ranking, and is not cached */
+    bySan.set(cleanSAN(toSAN(pos,s.m,applyMove(pos.board,s.m))),s.v);
+  }
+  const out={best:scored[0].v,second:scored[1]?scored[1].v:null,bySan:bySan};
+  if(_drillRank.size>=_drillRankMax)_drillRank.clear();     /* a drill session visits few cards; bound it */
+  _drillRank.set(key,out);
+  return out;
+}
+function drillRanking(pos){
+  try{
+    const key=toFEN(pos);
+    const hit=_drillRank.get(key);
+    if(hit)return hit;
+    let scored=null;const _q=QDEPTH;
+    try{QDEPTH=2;scored=rankMoves(pos,DRILL_RANK_DEPTH);}
+    catch(e){scored=null;}
+    finally{QDEPTH=_q;}       /* QDEPTH is module-level and the CPU opponent reads it; never leave it moved */
+    return _drillRankStore(pos,key,scored);
+  }catch(e){return null;}
+}
+/* THE RANKING IS WARMED WHILE THE PLAYER LOOKS AT THE CARD, one move per task, because measured in node on this
+   container it costs 0.35s to 1.2s for the whole position (gate 50's opening card, 41 legal moves, is the 1.2s) and on
+   a phone that is a visible freeze on the first wrong try. Each step is EXACTLY rankMoves' own term for one move -
+   minimax(makeFast(pos,m),DRILL_RANK_DEPTH-1,...) in getLegal order, sorted the same way - so the warmed ranking and
+   the synchronous one are the same instrument and agree to the centipawn (gate 17 A2d asserts it). If the player moves
+   before it finishes, drillRanking computes it in one go, as before. `cancel` stops a warm whose card has gone. */
+function drillRankWarm(pos,onDone){
+  let stop=false;
+  try{
+    const key=toFEN(pos);if(_drillRank.has(key)){if(onDone)onDone(_drillRank.get(key));return ()=>{};}
+    const moves=getLegal(pos),maxing=pos.turn==='w',scored=[];let i=0;
+    const step=()=>{
+      if(stop)return;
+      if(_drillRank.has(key)){if(onDone)onDone(_drillRank.get(key));return;}
+      if(i>=moves.length){scored.sort((a,b)=>maxing?b.v-a.v:a.v-b.v);const R=_drillRankStore(pos,key,scored);if(onDone)onDone(R);return;}
+      const m=moves[i++];const _q=QDEPTH;let v;
+      try{QDEPTH=2;v=minimax(makeFast(pos,m),DRILL_RANK_DEPTH-1,-Infinity,Infinity,!maxing);}catch(e){v=NaN;}finally{QDEPTH=_q;}
+      scored.push({m,v});setTimeout(step,0);
+    };
+    setTimeout(step,0);
+  }catch(e){}
+  return ()=>{stop=true;};
+}
+const DRILL_ACCEPT=['Brilliant','Best','Excellent'];   /* Kunal's design: accept and reveal at Excellent or better; Good does NOT reveal */
+function gradeDrillMove(pos,playedMv,bestSan,gameSan){
+  try{
+    if(!pos||!playedMv||!bestSan)return null;
+    const solMv=findMoveBySAN(pos,bestSan);
+    if(!solMv)return null;                        /* stale card: the stored move is not legal here, so no claim */
+    const mover=pos.turn,maxing=(mover==='w');
+    const R=drillRanking(pos);
+    if(!R)return null;                            /* the search failed; grade nothing rather than guess */
+    const san=cleanSAN(toSAN(pos,playedMv,applyMove(pos.board,playedMv)));
+    const vPlay=R.bySan.get(san);
+    if(typeof vPlay!=='number')return null;
+    const vBest=R.best;
+    const loss=Math.max(0,maxing?(vBest-vPlay):(vPlay-vBest));   /* >= 0 by construction: vBest is the max of the same ranking */
+    const ng=makeMove(pos,playedMv);
+    const evA=evalPawns(ng),evB=evalPawns(pos);
+    const isTop=(vPlay===vBest);
+    const _nb=nextBestW(vBest,R.second,isTop);
+    const _g=brilliantGate(pos,playedMv,Math.round(loss),evA,evB,_nb==null?null:Math.max(-99,Math.min(99,_nb/100)));
+    let cls=(_g&&_g.ok)?{label:'Brilliant'}:classify(winDrop(vBest,vPlay,mover));
+    if(cls.label!=='Brilliant'&&matesMover(vPlay,mover,vBest))cls=mateLadder(evB*100,mover);
+    /* THE BASELINE IS A FORCED MATE FOR THE PLAYER. winPct saturates there, so a slower route that also mates reads a
+       zero drop and would be told "Nothing in the position beats it" while a quicker mate stood on the board. Such a
+       move is accepted (it wins) and capped at Excellent, which names the stored mate as sharper. */
+    const mateBaseline=maxing?(vBest>=90000):(vBest<=-90000);
+    let label=cls.label;
+    if(mateBaseline&&!isTop&&(label==='Best'||label==='Brilliant'))label='Excellent';
+    /* the consequence clause comes from the SEARCHED value (the opponent's reply included), not the static eval of the
+       landing square, which reads a hung rook as "slightly better" before the recapture [#457] */
+    let takenBack=false;
+    try{takenBack=seeSq(ng,playedMv.tr,playedMv.tc,ng.turn)>0;}catch(e){takenBack=false;}
+    /* TRUST, AND IT IS THE ANSWER TO THE SHALLOW SEARCH RATHER THAN A HOPE ABOUT IT. The stored move is the review's
+       depth-16 choice. If THIS ranking does not grade that move Excellent or better, the shallow search disagrees with
+       the deep one about this very position and cannot be trusted to accept anything else in it. Measured before this
+       guard on the benchmark's own card (rn2kb1r/p3qppp/2p2n2/1N2p1B1/2B1P3/1Q6/PPP2PPP/R3K2R b, stored Qb4+): depth 2
+       ranks cxb5 - the move Kunal PLAYED there and the review graded a Mistake - top, and Qb4+ a Mistake, so the drill
+       told him his own mistake was "Best move. Nothing in the position beats it". The same guard refuses the move he
+       played in the game (gameSan): the review's depth-16 grade of that exact move already exists and a depth-2
+       search may not overrule it. An untrusted grade is RETURNED (job (106) measures how often the two searches
+       disagree) but the drill does not act on it: it falls back to the flat string match it always had. */
+    const vSol=R.bySan.get(cleanSAN(toSAN(pos,solMv,applyMove(pos.board,solMv))));
+    const solCls=(typeof vSol==='number')?classify(winDrop(vBest,vSol,mover)).label:null;
+    const gameMove=!!gameSan&&cleanSAN(String(gameSan))===san;
+    const trusted=solCls!=null&&DRILL_ACCEPT.indexOf(solCls)>=0&&!gameMove;
+    return {loss:Math.round(loss),label:label,
+            accept:DRILL_ACCEPT.indexOf(label)>=0,
+            trusted:trusted,solLabel:solCls,gameMove:gameMove,
+            takenBack:takenBack,
+            mateBaseline:mateBaseline,
+            bandAfter:whyBand((maxing?1:-1)*vPlay/100)};
+  }catch(e){return null;}
+}
+/* THE REJECT SENTENCE NAMES THE BAND AND WHERE THE MOVE LEAVES YOU, NEVER THE STORED MOVE: revealing it on a wrong try
+   ends the drill, and Kunal's Good band is explicitly "there is more here, can you find it?". Two different wrong moves
+   read differently because the consequence (or the take-back) is in the sentence, not only the band [R10 item 5;
+   #459 ground 2: the Good band reads bandAfter and takenBack too]. `again` is the second and later wrong try, which
+   keeps the pointer to Show that the flat string always gave then. */
+function drillGradeMsg(played,gr,again){
+  const head=played+' — '+gr.label;
+  const tail=again?' Tap 👁 to see the move.':'';
+  if(gr.mateBaseline)return '✗ '+played+' — there was a forced mate here, and this leaves you '+gr.bandAfter+'. Try again.'+tail;   /* no band label beside it [#457 ground 4], but the consequence, so 41 wrong moves are not one sentence */
+  if(gr.label==='Good')return '✓ '+head+(gr.takenBack?', but that piece comes straight back.':(': leaves you '+gr.bandAfter+'.'))+' There is more here. Can you find it?'+tail;
+  if(gr.takenBack)return '✗ '+head+': that piece is taken straight back. Try again.'+tail;
+  return '✗ '+head+': leaves you '+gr.bandAfter+'. Try again.'+tail;
+}
+/* THE ACCEPT SENTENCE (the caller prepends the celebration glyph). It says WHY with the generator the drill's own
+   solve already uses (whyShape, #426) and does not write a second one; and it never splices p.explain, which on a
+   mine: card was written about the stored move and the move the player originally played, not the one just found
+   [#457 grounds 3 and 5]. Excellent reveals the stored move, per Kunal's design ("Reveal both"). */
+function drillAcceptMsg(played,gr,pos,playedMv,sol){
+  let why='';try{why=whyShape(pos,playedMv,null)||'';}catch(e){why='';}
+  if(gr.label==='Brilliant')return played+' — Brilliant! A sacrifice that works'+(why?(': it'+why):'')+'.';
+  if(gr.label==='Best')return played+' — Best move. Nothing in the position beats it'+(why?(': it'+why):'')+'.';
+  let sw='';
+  if(sol){try{const sm=findMoveBySAN(pos,sol);sw=sm?(whyShape(pos,sm,playedMv)||''):'';}catch(e){sw='';}}
+  return played+' — Excellent, all but the best.'+(sol?(' '+sol+' is a shade sharper'+(sw?(': it'+sw):'')+'.'):'');
+}
+
 /* #503 THE GRADING-VERSION STAMP. work[3] of jobs/review-list-filter-and-search-2026-09-23, and its own
    twoThingsToGetRight[1] is the reason it exists: "any cached tally needs a grading-version stamp so a stale
    count is recomputed rather than served."
@@ -4163,6 +4324,13 @@ export default function App(){
      the exact defect gates/regress/18-drill-credit-provenance.js exists to hold. US-R27's second clause
      needs a record of 'solved' and nothing else, so this is the smallest thing that carries it. */
   const drillSolvedRef=useRef({});
+  /* #549 item (97), #457 ground 2, THE GROUND WITH THE WORST CONSEQUENCE: the effect that removes a solved card from
+     ct_mymistakes (the drill's only copy, irreversible from inside the app) must fire on a REAL solve - the stored move
+     or a found mate - and never on a graded accept, or a player who found a merely Excellent alternative destroys the
+     card without ever having played the move they missed. A ref, not state, because the effect reads it in the tick it
+     is set. */
+  const drillGradedAcceptRef=useRef(false);
+  const drillWarmRef=useRef(null);   /* #549 item (97): cancels the previous card's background ranking (drillRankWarm) */
   /* #475 THE PLAYABLE ROWS OF THE QUEUE, COMPUTED ONCE PER DRILL, AND THE PLAYER'S POSITION WITHIN THEM.
      THIS IS THE FIX FOR FOUR SEPARATE FINDINGS AND IT IS ONE MECHANISM, which is why it replaced the index
      arithmetic rather than patching it [R09: when findings share a cause, the cause is the finding].
@@ -6309,10 +6477,21 @@ export default function App(){
       const nb=applyMove(g.board,mv);const played=toSAN(g,mv,nb);
       const ng=makeMove(g,mv);const isMate=getStatus(ng)==='checkmate';
       const matchesLine=cleanSAN(played)===cleanSAN(p.sol[step]);
-      if(isMate||matchesLine){
+      /* #549 item (97), jobs/drill-accepts-one-move-only: a MISTAKES-drill card grades the move played instead of
+         string-matching it (gradeDrillMove, module level). THE SCOPE IS THE LEAK GUARD THE JOB ASKS FOR: p.mine cards
+         only (puzzleFromMistake is the one place that sets it; every lichess: puzzle and the local pack leave it
+         undefined, and there one intended line IS correct), the mistakes drill only (never the brilliant re-find,
+         where the stored move is the player's own brilliancy), single-move solutions, first step. The learn-practice
+         comparison further down is the other caller of this string match and is LEFT ALONE: an opening line has one
+         correct move by definition [classSwept: 2 found, 1 changed, 1 left]. A null grade (failed search, stale
+         card) falls back to the flat string match below, unchanged. */
+      const grade=(!matchesLine&&!isMate&&p.mine&&!p.brill&&drillKindRef.current==='mistake'&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0],p.gameSan):null;
+      const graded=!!(grade&&grade.trusted);
+      if(isMate||matchesLine||(graded&&grade.accept)){
         setGame(ng);setLastMv(mv);setPuzReveal(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         const s=step+1;
         if(isMate||s>=p.sol.length){
+          drillGradedAcceptRef.current=!!(graded&&grade.accept);   /* #549 item (97), #457 ground 2: set BEFORE setPuzSolved, because the delete effect keys on puzSolved */
           setPuzStep(p.sol.length);setPuzSolved(true);setPzBurst(Date.now());setTimeout(()=>setPzBurst(0),1200);
           const alt=isMate&&!matchesLine;
           /* #426 antagonist A, finding 2: when the stored solution is a mate and the player finds a
@@ -6339,7 +6518,7 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){const _mb=(alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||''));const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
+          if(p.ext){const _mb=(graded&&grade.accept)?drillAcceptMsg(played,grade,g,mv,p.sol[0]):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||'')));   /* #549 item (97): a graded accept names its band and why, and reveals the stored move at Excellent */const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
             /* #475 KEYED ON THE QUEUE INDEX, NOT ON THE CARD ID. The id is 'lichess:mine:<fen>', so two queue
                rows in the SAME position shared one key: antagonist B solved row A and row B then arrived
                already solved, with row A's move on the board and row A's sentence under it. A review batch does
@@ -6368,7 +6547,7 @@ export default function App(){
          rebuild it - which is strictly worse for that player than the defect being fixed. Same predicate,
          sibling site, one pass [R06]. Found by #460's antagonist A at the diff door (its F1). classSwept is
          therefore 2 found / 2 fixed / 0 left, and the earlier figure of 1/1/0 is WITHDRAWN. */
-      }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;setPuzMsg(pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;setPuzMsg(graded?drillGradeMsg(played,grade,pzWrongRef.current>=2):pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)
@@ -7233,7 +7412,7 @@ export default function App(){
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
     if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
     localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
-  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();return true;};
+  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
      away the work he went back to look at, which is the thing he actually asked for twice.
@@ -7277,7 +7456,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||'There was a better move than the one you chose. Look for the most forcing or solid option.');o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -7331,7 +7510,7 @@ export default function App(){
      visibly inert [TC-R37 (a)] instead of throwing him out of the drill he is working. */
   const prevMistake=()=>{drillStep(-1);};
   const exitMistakes=()=>{setDrillEnd(null);setMistakeMode(false);setCurPuz(null);setPzView('roadmap');setMode('analyze');};
-  useEffect(()=>{if(mistakeMode&&puzSolved&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
+  useEffect(()=>{if(mistakeMode&&puzSolved&&!drillGradedAcceptRef.current&&drillKindRef.current==='mistake'){const q=mistakeQueueRef.current||[];const cur=q[mistakeIdxRef.current];if(cur)setMyMistakes(prev=>prev.filter(x=>x.fen!==cur.fen));}},[puzSolved,mistakeMode]);
   const curAnno=inReview&&ply>0?review.analysis[ply-1]:null;
   /* #464: what the current ply is PRESENTED as, by the same rule the summary counts with. */
   const curCls=curAnno?effCls(curAnno.cls,ply-1,(review&&review.summary&&review.summary.book)||0):null;
