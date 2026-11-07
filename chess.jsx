@@ -301,6 +301,26 @@ const ACCT_K='ct_accts', ACCT_G='ct_acctgames', ACCT_C='ct_acctcap', ACCT_MAX=8,
 // 'games'  the games cap stopped the walk - more games exist in the months already read
 // 'months' the month window stopped it - older months hold games this list has not asked for
 // 'all'    the archive index ran out - nothing was cut, so there is no limit to state
+// #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23, work[3]: AN IMPORTED ACCOUNT IS FOLLOWED, NOT RE-IMPORTED.
+// The auto-fetch on entering Review only ever refreshed the account typed in the username box, so another stored account
+// (a player he watches, or his own second account) changed only when he typed it in and tapped Fetch again. Each launch now
+// also refreshes AT MOST ONE other stored account, the one fetched least recently, and only if its last fetch (or last try)
+// is more than ACCT_STALE_MS old. ct_acctfresh is {acctId:{ok:<last stored fetch ms>, at:<last attempt ms>}}; an account
+// with no entry (stored by an earlier build) counts as stale. The walk is fetchChessCom's own, which since #549 item (32)
+// stops at the newest held game, so a followed player with nothing new costs the index and one month; Lichess is one request.
+const ACCT_F='ct_acctfresh', ACCT_STALE_MS=24*3600*1000;
+function acctFreshLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_F)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
+function acctFreshMark(id,ok){try{const o=acctFreshLoad();const now=Date.now();o[id]=Object.assign({},o[id]||{},{at:now},ok?{ok:now}:{});localStorage.setItem(ACCT_F,JSON.stringify(o));}catch(e){}}
+function acctFreshForget(id){try{const o=acctFreshLoad();if(!(id in o))return;delete o[id];localStorage.setItem(ACCT_F,JSON.stringify(o));}catch(e){}}
+// An entry left behind by an account the store evicted is harmless: acctStalest is only ever handed ids the store holds.
+// the stored account to refresh this launch, or null: not one of `skip` (the accounts the box fetch is already asking for),
+// last touched more than ACCT_STALE_MS ago, and of those the least recently touched (ties: the earlier in `order`)
+function acctStalest(order,skip,now){
+  const F=acctFreshLoad();let best=null,bestT=Infinity;
+  (order||[]).forEach(id=>{if(!id||skip.indexOf(id)>=0||!/^(cc|li):./.test(id))return;const f=F[id]||{};const t=Math.max(+f.ok||0,+f.at||0);
+    if(now-t>ACCT_STALE_MS&&t<bestT){best=id;bestT=t;}});
+  return best;
+}
 function acctCapLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_C)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 // #431 THE CAP RAISE MADE THIS FUNCTION LOAD-BEARING, AND IT USED TO SWALLOW THE ONE ERROR THAT
@@ -6125,6 +6145,7 @@ export default function App(){
     await acctReady();
     const M={...(acctGamesRef.current||{})}; delete M[id];
     acctGamesRef.current=M; acctGamesSave(M,null,[],[id]);
+    acctFreshForget(id);
     const C={...(acctCapRef.current||{})}; delete C[id];   // #432
     acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
     const next=ccAccts.filter(x=>x!==id); setCcAccts(next);
@@ -6132,10 +6153,14 @@ export default function App(){
     setAcctDropped(d=>d.filter(x=>x!==id));
     mergeGames();
   };
-  const fetchChessCom=async()=>{
-    const u=chessUser.trim().toLowerCase().replace(/^@/,'');
-    if(!u){setCcErr('Enter your Chess.com username first.');return;}
-    setCcErr('');setCcLoading(true);setCcProg('Asking Chess.com for '+u+'’s game list…');
+  // #549 item (103): `userArg` and {quiet} are for the one-account follow refresh (acctRefreshStale). A quiet walk paints no
+  // progress, no error and no busy state: the player did not ask for it, and the games he holds stay on screen whatever it meets.
+  const fetchChessCom=async(userArg,opt)=>{
+    const quiet=!!(opt&&opt.quiet), _E=quiet?()=>{}:setCcErr, _L=quiet?()=>{}:setCcLoading, _P=quiet?()=>{}:setCcProg;
+    const u=String(userArg!=null?userArg:chessUser).trim().toLowerCase().replace(/^@/,'');
+    if(!u){_E('Enter your Chess.com username first.');return;}
+    _E('');_L(true);_P('Asking Chess.com for '+u+'’s game list…');
+    acctFreshMark(acctId('cc',u),false);   // #549 item (103): an attempt, so a failing account cannot take the slot every launch
     try{
       const ar=await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);
       if(!ar.ok)throw new Error(ar.status===404?'username not found':'server '+ar.status);
@@ -6179,7 +6204,7 @@ export default function App(){
         let mj=null;
         /* #547 item (166), jobs/review-entry-costs-seven-requests-and-623kb-with-no-progress-shown-2026-09-29: the walk took ~2.2s over five
            requests with nothing on screen but a collapsed '…'. It now says which month it is reading and what it has so far. */
-        setCcProg('Reading Chess.com, month '+(archives.length-i)+' of up to '+Math.min(ACCT_GMONTHS,archives.length)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
+        _P('Reading Chess.com, month '+(archives.length-i)+' of up to '+Math.min(ACCT_GMONTHS,archives.length)+' · '+games.length+' game'+(games.length===1?'':'s')+' so far…');
         try{const mr=await fetch(archives[i]);if(!mr.ok){missed++;continue;}mj=await mr.json();}catch(e){missed++;continue;}
         const mg=(mj.games||[]).filter(g=>g.pgn);
         // #433 AND A MONTH THAT ANSWERS 200 WITH NOTHING USABLE IS A GAP TOO. The first version of this
@@ -6214,17 +6239,17 @@ export default function App(){
       const bound=(reached?'held':(cutByGames?'games':(i<0?'all':'months')))+(missed?'+gap':'');
       if(!games.length&&!reached)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
-      ccRawRef.current=null; await acctStore('cc',u,rows,bound); mergeGames();
+      ccRawRef.current=null; await acctStore('cc',u,rows,bound); acctFreshMark(acctId('cc',u),true); mergeGames();
     }catch(e){
       /* #547 item (144), jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28: every failure here - including a fetch that
          SUCCEEDED and found no games - printed 'Couldn't reach Chess.com ... the preview sandbox blocks outside connections'. The cause
          is now told apart by the error this function itself threw, and the network sentence is kept for an actual network failure. */
       const _m=String((e&&e.message)||'');
-      if(/username not found/.test(_m))setCcErr('Chess.com has no account called “'+u+'”. Check the spelling, or paste a PGN below.');
-      else if(/no games on that account|no recent games found/.test(_m))setCcErr('Chess.com answered, but “'+u+'” has no games in the months searched. Paste a PGN below to review one now.');
-      else if(/^server \d+/.test(_m))setCcErr('Chess.com answered with an error ('+_m+'). Try again in a minute, or paste a PGN below.');
-      else setCcErr('Couldn’t reach Chess.com ('+(_m||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
-    setCcLoading(false);setCcProg('');
+      if(/username not found/.test(_m))_E('Chess.com has no account called “'+u+'”. Check the spelling, or paste a PGN below.');
+      else if(/no games on that account|no recent games found/.test(_m))_E('Chess.com answered, but “'+u+'” has no games in the months searched. Paste a PGN below to review one now.');
+      else if(/^server \d+/.test(_m))_E('Chess.com answered with an error ('+_m+'). Try again in a minute, or paste a PGN below.');
+      else _E('Couldn’t reach Chess.com ('+(_m||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
+    _L(false);_P('');
   };
   const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
   const gkey=(g)=>g.src+':'+(g.date||0)+':'+(g.white||'')+':'+(g.black||'');
@@ -6234,10 +6259,12 @@ export default function App(){
   const gameInfo=(g)=>{const mn=myName(g.src,g),wl=(g.white||'').toLowerCase(),bl=(g.black||'').toLowerCase();const userColor=mn&&wl===mn?'w':(mn&&bl===mn?'b':null);const opp=userColor==='w'?g.black:(userColor==='b'?g.white:null);const w=g.wr;const whiteRes=w==='win'?'w':(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w)?'b':'draw');const code=whiteRes==='draw'?'draw':(userColor?(whiteRes===userColor?'win':'loss'):null);return {userColor,opp,code};};
   const tcLabel=(tc)=>{if(!tc)return '';const t=String(tc);return t.charAt(0).toUpperCase()+t.slice(1);};
   const outcomeBadge=(code)=>code==='win'?{t:'WON',c:'#bff0c0',bg:'rgba(111,214,111,.18)',br:'rgba(111,214,111,.45)'}:code==='loss'?{t:'LOST',c:'#ffc2bc',bg:'rgba(236,92,78,.16)',br:'rgba(236,92,78,.45)'}:code==='draw'?{t:'DRAW',c:'#e2e6ee',bg:'rgba(255,255,255,.10)',br:'rgba(255,255,255,.24)'}:{t:'GAME',c:'rgba(255,255,255,.6)',bg:'rgba(255,255,255,.06)',br:'rgba(255,255,255,.16)'};
-  const fetchLichess=async()=>{
-    const u=lichessUser.trim().replace(/^@/,'');
-    if(!u){setCcErr('Enter your Lichess username first.');return;}
-    setCcErr('');setCcLoading(true);setCcProg('Downloading up to '+ACCT_GMAX+' games from Lichess…');
+  const fetchLichess=async(userArg,opt)=>{   // #549 item (103): userArg/{quiet} as fetchChessCom
+    const quiet=!!(opt&&opt.quiet), _E=quiet?()=>{}:setCcErr, _L=quiet?()=>{}:setCcLoading, _P=quiet?()=>{}:setCcProg;
+    const u=String(userArg!=null?userArg:lichessUser).trim().replace(/^@/,'');
+    if(!u){_E('Enter your Lichess username first.');return;}
+    _E('');_L(true);_P('Downloading up to '+ACCT_GMAX+' games from Lichess…');
+    acctFreshMark(acctId('li',u),false);
     try{
       const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=${ACCT_GMAX}&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
       if(!r.ok)throw new Error(r.status===404?'username not found':'server '+r.status);
@@ -6249,9 +6276,9 @@ export default function App(){
       // #432 Lichess is ONE request with max=ACCT_GMAX, so the month window cannot bind here and
       // 'months' is not reachable on this path. Fewer rows back than we asked for means the account
       // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
-      liRawRef.current=null; await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); mergeGames();
-    }catch(e){setCcErr('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
-    setCcLoading(false);setCcProg('');
+      liRawRef.current=null; await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); acctFreshMark(acctId('li',u),true); mergeGames();
+    }catch(e){_E('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
+    _L(false);_P('');
   };
   /* #549 item (78), jobs/review-list-caps-at-about-40-games-2026-09-23 work[3] [Amber: flags/amber-549-review-load-older-games].
      LOAD OLDER GAMES. Every walk above starts at the NEWEST month and stops at ACCT_GMAX games or ACCT_GMONTHS archive entries, so
@@ -6322,7 +6349,24 @@ export default function App(){
      search box (gameSearch) are PER VISIT. Leaving the Review screen used to keep them, so the next visit showed a silently
      narrowed list - the complaint the filter was built to cure. Both are reset together when the app leaves the screen. */
   useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);setGPage(GLIST_PAGE);},[mode,homeScreen]);
-  useEffect(()=>{if(mode!=='analyze'||gamesAutoRef.current)return;const cu=chessUser.trim(),lu=lichessUser.trim();if(cu||lu){gamesAutoRef.current=true;if(cu)fetchChessCom();if(lu)fetchLichess();}},[mode]);
+  // #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23 work[3]: ONCE PER LAUNCH, after the box account(s) above have
+  // been fetched, refresh at most ONE other stored account, the stalest one older than ACCT_STALE_MS (acctStalest). Quiet: no
+  // progress line, no busy Fetch button, no error card. The box accounts keep their every-launch fetch unchanged.
+  const followDoneRef=useRef(false);
+  const acctRefreshStale=async(skip)=>{
+    await acctReady();
+    let order=[];try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');if(Array.isArray(a))order=a;}catch(e){}
+    order=order.filter(x=>x in (acctGamesRef.current||{}));
+    const id=acctStalest(order,skip,Date.now());if(!id)return;
+    const user=id.slice(id.indexOf(':')+1);
+    if(id.startsWith('cc:'))await fetchChessCom(user,{quiet:true});else await fetchLichess(user,{quiet:true});
+  };
+  useEffect(()=>{if(mode!=='analyze')return;const cu=chessUser.trim(),lu=lichessUser.trim();const run=[];
+    if(!gamesAutoRef.current&&(cu||lu)){gamesAutoRef.current=true;if(cu)run.push(fetchChessCom());if(lu)run.push(fetchLichess());}
+    if(!followDoneRef.current){followDoneRef.current=true;
+      const skip=[cu?acctId('cc',cu):'',lu?acctId('li',lu):''].filter(Boolean);
+      Promise.all(run).catch(()=>{}).then(()=>acctRefreshStale(skip)).catch(()=>{});}
+  },[mode]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.
   useEffect(()=>{

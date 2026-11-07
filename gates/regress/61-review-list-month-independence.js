@@ -114,6 +114,8 @@ function stub(b,state){
   return b.ctx.route(/api\.chess\.com/,async(route)=>{
     const u=route.request().url();state.hits.push(u.replace('https://api.chess.com/pub/player/',''));
     if(state.refuse)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
+    // #549 item (103): ONE PLAYER's every request answers 503, the others are served (A24's quiet failed refresh)
+    if(state.failWho&&u.indexOf('/player/'+state.failWho+'/')>=0)return route.fulfill({status:503,contentType:'application/json',body:'{}'});
     const who=(u.match(/player\/([^/]+)\//)||[])[1]||'';
     if(/\/games\/archives$/.test(u)){
       // #432 THIN: `state.thin` replaces the concentrated distribution with `months` archives ending at
@@ -871,7 +873,9 @@ async function input(seed,n,geo,name,thin){
     const legacy=[];for(let i=0;i<40;i++)legacy.push({src:'cc',acct:'kunalold',pgn:PGN,white:'kunalold',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
     const state={seed:'b',hits:[],refuse:false,thin:{months:T1_MONTHS,per:THIN_PER}};
     const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-plus-months',
-      store:{ct_ccuser:ACCTS[0],ct_accts:['cc:kunalold'],ct_acctgames:{'cc:kunalold':legacy}}});
+      // #549 item (103): kunalold is stamped as fetched just now, so the once-a-day follow refresh (A24) leaves it alone and this
+      // block still reads a legacy store beside one fetched account - which is its subject - and not a refreshed legacy store.
+      store:{ct_ccuser:ACCTS[0],ct_accts:['cc:kunalold'],ct_acctgames:{'cc:kunalold':legacy},ct_acctfresh:{'cc:kunalold':{ok:Date.now(),at:Date.now()}}}});
     await stub(b,state); await b.open(); await b.tile('Review'); await b.settle(2400);
     const r=await READ(b); r.hitCount=state.hits.length;
     const tag='LEGACY 40 (no ct_acctcap) BESIDE a fetched account the MONTH window bound';
@@ -1162,7 +1166,9 @@ async function input(seed,n,geo,name,thin){
   // TC-R143 (A2-R5): ONLY A QUOTA FAILURE EVICTS. Three inputs, one context each: one UnknownError, two in a row, one quota error.
   for(const cfg of [{rw:1,kind:'unknown'},{rw:2,kind:'unknown'},{rw:1,kind:'quota'}]){
     const state={seed:'c',hits:[],refuse:false};
-    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:[OLDID],ct_acctgames:{[OLDID]:oldRows()}},name:'idb-fail-'+cfg.kind+cfg.rw});
+    // #549 item (103): gateold is stamped as fetched just now, so the once-a-day follow refresh (A24) leaves it alone and this block's
+    // OLDEST account still holds exactly its seeded games when the failure is injected (unstamped it is refreshed to 170 and A31-0 reds).
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:[OLDID],ct_acctgames:{[OLDID]:oldRows()},ct_acctfresh:{[OLDID]:{ok:Date.now(),at:Date.now()}}},name:'idb-fail-'+cfg.kind+cfg.rw});
     await b.ctx.addInitScript(SEAM);await stub(b,state);
     const tag='TC-R143 A2-R5, '+cfg.rw+' '+(cfg.kind==='quota'?'QuotaExceededError':'UnknownError')+' on the write after a refresh, with '+OLD+' ('+OLDN+' games) held as the OLDEST account';
     const r0=await refresh(b,state,{});
@@ -1221,6 +1227,64 @@ async function input(seed,n,geo,name,thin){
       }
     }
     L.say(b.errs.length===0,'A32d '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+
+  {
+    // ── A24 TC-R141 / TC-R142 #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23, work[3]: A FOLLOWED PLAYER IS
+    //    REFRESHED ON OPEN, ONE ACCOUNT PER OPEN, ONLY WHEN STALE. Before this the auto-fetch on entering Review asked only for
+    //    the account typed in the username box, so another stored account (peter-patzer in Kunal's own words) changed only
+    //    when he typed it in and fetched again. The seed: the box account gateacct1 with nothing held, and three followed
+    //    accounts holding 3 games each (Aug 28-30) whose last fetch (ct_acctfresh) is 2h, 30h and 50h old. Launch 1 must ask
+    //    for the box account and for the 50h one ONLY (the stalest; the 30h one waits, one per open; the 2h one is fresh).
+    //    Launch 2: the 30h one's every request answers 503 - it is asked, nothing is said on screen, nothing it holds is lost.
+    //    Launch 3: no followed account is asked (all touched inside a day). Launch 4: the 2h one's stamp is aged to 25h and it
+    //    is asked. Nothing leaves the container: the same ctx.route stub answers every request.
+    const NOW=Date.now(), HR=3600*1000, FA='gatefollowa', FB='gatefollowb', FC='gatefollowc';
+    const heldRow=(who,d)=>({src:'cc',acct:who,pgn:'[Event "Live Chess"]\n[Site "Chess.com"]\n[White "'+who+'"]\n[Black "'+who+'_held'+d+'"]\n[Result "1-0"]\n\n'+MOVES+'\n',white:who,black:who+'_held'+d,wr:'win',tc:'blitz',date:Date.UTC(2026,7,d,12,0,0)});
+    const seedG={};[FA,FB,FC].forEach(w=>{seedG['cc:'+w]=[30,29,28].map(d=>heldRow(w,d));});
+    const fresh={['cc:'+FA]:{ok:NOW-2*HR,at:NOW-2*HR},['cc:'+FB]:{ok:NOW-30*HR,at:NOW-30*HR},['cc:'+FC]:{ok:NOW-50*HR,at:NOW-50*HR}};
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:'kunal761',store:{ct_ccuser:ACCTS[0],ct_accts:JSON.stringify(['cc:'+FA,'cc:'+FB,'cc:'+FC]),ct_acctgames:JSON.stringify(seedG),ct_acctfresh:JSON.stringify(fresh)},name:'follow-refresh'});
+    await stub(b,state);
+    const asked=(hs,who)=>hs.filter(h=>h.indexOf(who+'/')===0).length;
+    const tag='TC-R141 FOLLOW';
+    // the follow refresh runs AFTER the box walk and paints no busy state, so rowsSettled cannot see it: wait on the STORE
+    const until=async(pred,ms)=>{let AG=null;for(let w=0;w<ms/250;w++){AG=await L.acctGames(b.page);if(pred(AG.map||{}))return {ok:true,AG};await b.settle(250);}return {ok:false,AG};};
+    const n=(M,w)=>((M||{})['cc:'+w]||[]).length;
+    const ERR_RE=/Couldn.t reach Chess\.com|Chess\.com has no account|Chess\.com answered/;
+    const h0=state.hits.length;
+    await b.open();await b.tile('Review');await b.settle(1800);await rowsSettled(b,1);
+    const w1=await until(M=>n(M,FC)===63,20000);await b.settle(2500);
+    const hs1=state.hits.slice(h0);const r1=await READ(b);
+    // AT LEAST 3, not exactly: a build that refreshes every stale account grows FB too, and that must reach A24b and go red THERE
+    if(L.say(asked(hs1,ACCTS[0])>=2&&n(r1.idbMap,FA)>=3&&n(r1.idbMap,FB)>=3&&n(r1.idbMap,FC)>=3,'A24-0 vacuity '+tag+': the box account was walked and the three seeded followed accounts are held (at least their 3 seeded games each) in the store',{boxRequests:asked(hs1,ACCTS[0]),held:{[FA]:n(r1.idbMap,FA),[FB]:n(r1.idbMap,FB),[FC]:n(r1.idbMap,FC)},store:r1.storeFrom})){
+      L.say(w1.ok&&asked(hs1,FC)===3&&n(r1.idbMap,FC)===63,'A24a '+tag+': the STALEST followed account (last fetched 50h ago) is refreshed on open without being typed in - its index, Sep and Aug asked (3 requests, the walk stops at its newest held game) and Sep\'s 60 games added to the 3 it held (63)',{requests:asked(hs1,FC),held:n(r1.idbMap,FC),expect:63,waited:w1.ok});
+      L.say(asked(hs1,FB)===0&&asked(hs1,FA)===0,'A24b '+tag+': ONE ACCOUNT PER OPEN - the other stale account (30h) is not asked this launch, and the fresh one (2h) is not asked',{[FB+' (30h)']:asked(hs1,FB),[FA+' (2h)']:asked(hs1,FA)});
+      const keep1=(r1.idbMap['cc:'+FC]||[]).filter(g=>/_held\d+$/.test(g.black||'')).length;
+      L.say(keep1===3,'A24c '+tag+': the refresh merged - the 3 games the followed account held are all still held',{heldKept:keep1});
+      // launch 2: the next-stalest is refreshed, and its every request fails
+      // what FB holds going in: A24e compares against THIS, so a build that already refreshed FB a launch early reds A24b and A24d and not A24e
+      const heldB=n(r1.idbMap,FB);
+      const h2=state.hits.length;state.failWho=FB;
+      await b.open();await b.tile('Review');await b.settle(1800);await rowsSettled(b,1);
+      await until(M=>false,4000);
+      const hs2=state.hits.slice(h2);const r2=await READ(b);
+      L.say(asked(hs2,FB)>=1&&asked(hs2,FC)===0&&asked(hs2,FA)===0,'A24d '+tag+': the next launch refreshes the NEXT stalest (30h) and not the one refreshed a launch ago',{[FB]:asked(hs2,FB),[FC]:asked(hs2,FC),[FA]:asked(hs2,FA)});
+      L.say(!ERR_RE.test(r2.body||'')&&heldB>=3&&n(r2.idbMap,FB)>=heldB,'TC-R142 A24e '+tag+': A REFRESH HE DID NOT ASK FOR FAILS QUIETLY - the followed account answering 503 puts no error sentence on the Review screen, and every game it held going in stays',{errorOnScreen:((r2.body||'').match(ERR_RE)||['none'])[0],heldBefore:heldB,held:n(r2.idbMap,FB)});
+      // launch 3: every followed account was touched inside a day (FB's failed try counts), so none is asked
+      const h3=state.hits.length;state.failWho=null;
+      await b.open();await b.tile('Review');await b.settle(1800);await rowsSettled(b,1);await until(M=>false,4000);
+      const hs3=state.hits.slice(h3);
+      L.say(asked(hs3,FA)+asked(hs3,FB)+asked(hs3,FC)===0&&asked(hs3,ACCTS[0])>=1,'A24f '+tag+': ONLY WHEN STALE - with every followed account touched inside a day (a failed try counts, so a failing account cannot take the slot every launch) no followed account is asked; the box account still is',{followed:{[FA]:asked(hs3,FA),[FB]:asked(hs3,FB),[FC]:asked(hs3,FC)},box:asked(hs3,ACCTS[0])});
+      // launch 4: the 2h account's stamp aged past a day
+      await b.page.evaluate(([id,t])=>{const o=JSON.parse(localStorage.getItem('ct_acctfresh')||'{}');o[id]={ok:t,at:t};localStorage.setItem('ct_acctfresh',JSON.stringify(o));},['cc:'+FA,Date.now()-25*HR]);
+      const h4=state.hits.length;
+      await b.open();await b.tile('Review');await b.settle(1800);await rowsSettled(b,1);await until(M=>false,4000);
+      const hs4=state.hits.slice(h4);const r4=await READ(b);
+      L.say(asked(hs4,FA)>=1&&n(r4.idbMap,FA)===63,'A24g '+tag+': and once that account\'s last fetch is more than a day old (25h) it is refreshed too, adding its 60 new games',{requests:asked(hs4,FA),held:n(r4.idbMap,FA)});
+      L.say(b.errs.length===0,'A24h '+tag+': zero app errors',b.errs.slice(0,3));
+    }
     await b.close();
   }
 
