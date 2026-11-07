@@ -435,6 +435,11 @@ let _acctIdbP=null, ACCT_MODE='ls';
 // carried out on the next launch that can read the store, before anything else is merged; a later successful write
 // of the same account takes it back off the queue, so re-adding an account is not undone by an old removal.
 let ACCT_UNREAD=false;
+// #549 antagonist A final read (A1-F): a REMOVAL GENERATION per account. acctForget bumps it; every walk reads it when it starts
+// and hands it to acctStore, which drops the write if the account was removed while the walk ran - the once-a-day quiet follow
+// refresh keeps the chip's x enabled, so a removal tapped mid-walk used to be undone when the walk ended.
+const ACCT_GONE={};
+const acctGen=(id)=>ACCT_GONE[id]|0;
 const ACCT_FQ='ct_acctforget';
 function acctFqLoad(){try{const a=JSON.parse(localStorage.getItem(ACCT_FQ)||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string'):[];}catch(e){return [];}}
 function acctFqSet(a){try{if(a.length)localStorage.setItem(ACCT_FQ,JSON.stringify(a));else localStorage.removeItem(ACCT_FQ);}catch(e){}}
@@ -6288,9 +6293,10 @@ export default function App(){
   // about what is HELD: an account whose whole history was once fetched ('all') stays 'all' while a later walk
   // overlaps what is stored, and a later walk that was cut and does NOT reach back to the newest stored game has
   // left games out between the two, which is recorded as a gap ('+gap') rather than hidden.
-  const acctStore=async(src,user,rows,bound)=>{
-    const id=acctId(src,user); if(!id.split(':')[1])return;
+  const acctStore=async(src,user,rows,bound,gen)=>{
+    const id=acctId(src,user); if(!id.split(':')[1])return false;
     await acctReady();
+    if(gen!==undefined&&acctGen(id)!==gen)return false;   // A1-F: removed since this walk began
     const M={...(acctGamesRef.current||{})};
     const held=M[id]||[], fresh=(rows||[]).slice(0,ACCT_GMAX), cap=acctStoreCap();
     const _fb=String(bound||'all').split('+');let _base=_fb[0];const _gapF=_fb.length>1;
@@ -6352,6 +6358,7 @@ export default function App(){
     }
   };
   const acctForget=async(id)=>{
+    ACCT_GONE[id]=acctGen(id)+1;   // A1-F: before the await, so a walk ending meanwhile already sees it
     await acctReady();
     const M={...(acctGamesRef.current||{})}; delete M[id];
     acctGamesRef.current=M; acctGamesSave(M,null,[],[id]);
@@ -6369,6 +6376,7 @@ export default function App(){
     const quiet=!!(opt&&opt.quiet), _E=quiet?()=>{}:setCcErr, _L=quiet?()=>{}:setCcLoading, _P=quiet?()=>{}:setCcProg;
     const u=String(userArg!=null?userArg:chessUser).trim().toLowerCase().replace(/^@/,'');
     if(!u){_E('Enter your Chess.com username first.');return;}
+    const _gen=acctGen(acctId('cc',u));   // A1-F
     _E('');_L(true);_P('Asking Chess.com for '+u+'’s game list…');
     acctFreshMark(acctId('cc',u),false);   // #549 item (103): an attempt, so a failing account cannot take the slot every launch
     try{
@@ -6450,7 +6458,7 @@ export default function App(){
       const bound=(reached?'held':(cutByGames?'games':(i<0?'all':'months')))+(missed?'+gap':'');
       if(!games.length&&!reached)throw new Error('no recent games found');
       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
-      ccRawRef.current=null; await acctStore('cc',u,rows,bound); acctFreshMark(acctId('cc',u),true); mergeGames();
+      ccRawRef.current=null; if(await acctStore('cc',u,rows,bound,_gen)!==false)acctFreshMark(acctId('cc',u),true); mergeGames();
     }catch(e){
       /* #547 item (144), jobs/review-fetch-blames-the-network-for-an-empty-month-2026-09-28: every failure here - including a fetch that
          SUCCEEDED and found no games - printed 'Couldn't reach Chess.com ... the preview sandbox blocks outside connections'. The cause
@@ -6474,6 +6482,7 @@ export default function App(){
     const quiet=!!(opt&&opt.quiet), _E=quiet?()=>{}:setCcErr, _L=quiet?()=>{}:setCcLoading, _P=quiet?()=>{}:setCcProg;
     const u=String(userArg!=null?userArg:lichessUser).trim().replace(/^@/,'');
     if(!u){_E('Enter your Lichess username first.');return;}
+    const _gen=acctGen(acctId('li',u));   // A1-F
     _E('');_L(true);_P('Downloading up to '+ACCT_GMAX+' games from Lichess…');
     acctFreshMark(acctId('li',u),false);
     try{
@@ -6487,7 +6496,7 @@ export default function App(){
       // #432 Lichess is ONE request with max=ACCT_GMAX, so the month window cannot bind here and
       // 'months' is not reachable on this path. Fewer rows back than we asked for means the account
       // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
-      liRawRef.current=null; await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all'); acctFreshMark(acctId('li',u),true); mergeGames();
+      liRawRef.current=null; if(await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all',_gen)!==false)acctFreshMark(acctId('li',u),true); mergeGames();
     }catch(e){_E('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
     _L(false);_P('');
   };
@@ -6512,6 +6521,7 @@ export default function App(){
     for(const id of ids){
       const src=id.slice(0,id.indexOf(':')),u=id.slice(id.indexOf(':')+1),old=acctOldest(id);if(!old)continue;
       const _pv=String((acctCapRef.current||{})[id]||'');const _pgap=_pv.split('+').length>1;   // a gap already held is not healed by walking older
+      const _gen=acctGen(id);   // A1-F
       try{
         if(src==='cc'){
           setCcProg('Asking Chess.com for '+u+'’s game list…');
@@ -6537,14 +6547,14 @@ export default function App(){
           const cutByGames=games.length>=ACCT_GMAX&&(leftover||i>=0);
           const bound=(cutByGames?'games':(i<0?'all':'months'))+((missed||_pgap)?'+gap':'');
           const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
-          await acctStore('cc',u,rows,bound);
+          await acctStore('cc',u,rows,bound,_gen);
         }else if(src==='li'){
           setCcProg('Downloading up to '+ACCT_GMAX+' older games from Lichess…');
           const r=await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?max=${ACCT_GMAX}&until=${old}&pgnInJson=true&clocks=false&evals=false&sort=dateDesc`,{headers:{Accept:'application/x-ndjson'}});
           if(!r.ok)throw new Error(r.status===404?'username not found':'server '+r.status);
           const games=(await r.text()).trim().split('\n').filter(Boolean).map(l=>{try{return JSON.parse(l);}catch{return null;}}).filter(g=>g&&g.pgn);
           const rows=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',acct:u,pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});
-          await acctStore('li',u,rows,(rows.length>=ACCT_GMAX?'games':'all')+(_pgap?'+gap':''));
+          await acctStore('li',u,rows,(rows.length>=ACCT_GMAX?'games':'all')+(_pgap?'+gap':''),_gen);
         }
       }catch(e){setCcErr('Couldn’t load older games for '+u+' ('+(((e&&e.message)||'network blocked'))+'). The games already listed are kept.');}
     }

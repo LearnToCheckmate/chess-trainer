@@ -1285,6 +1285,40 @@ async function input(seed,n,geo,name,thin){
     L.say(b.errs.length===0,'A34f '+tag+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
+  {
+    // TC-R175 (#549 antagonist A final read, A1-F): A FOLLOWED ACCOUNT REMOVED DURING ITS QUIET REFRESH STAYS REMOVED. The once-a-day
+    // follow refresh (A24) walks one stale account with no busy state, so the chip's x stays enabled; pre-fix, acctStore re-added the
+    // account when the walk ended (antagonist A: ct_accts [a] after the tap, [a,c] after the walk, 60 games back). Every month request
+    // is held DELAY ms by a route registered after the stub, so the tap lands inside the walk.
+    const FA='gatefollowa',FC='gatefollowc',FAID='cc:'+FA,FCID='cc:'+FC,HR=3600e3,NOW=Date.now(),DELAY=4000;
+    const held=(who)=>[30,29,28].map(d=>({src:'cc',acct:who,pgn:'[Event "Live Chess"]\n[Site "Chess.com"]\n[White "'+who+'"]\n[Black "'+who+'_held'+d+'"]\n[Result "1-0"]\n\n'+MOVES+'\n',white:who,black:who+'_held'+d,wr:'win',tc:'blitz',date:Date.UTC(2026,7,d,12,0,0)}));
+    const state={seed:'c',hits:[],refuse:false};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_accts:[FAID,FCID],ct_acctgames:{[FAID]:held(FA),[FCID]:held(FC)},ct_acctfresh:{[FCID]:{ok:NOW-50*HR,at:NOW-50*HR},[FAID]:{ok:NOW-2*HR,at:NOW-2*HR}}},name:'remove-mid-walk'});
+    await stub(b,state);
+    const asked=[];   // month requests as they ARRIVE (the stub records a hit only when the held request reaches it)
+    await b.ctx.route(/api\.chess\.com.*games\/\d{4}\/\d{2}$/,async(route)=>{asked.push(route.request().url().replace('https://api.chess.com/pub/player/',''));await new Promise(r=>setTimeout(r,DELAY));await route.fallback();});
+    const tag='TC-R175 A1-F, '+FC+' (50h stale, followed) removed with its chip\'s x while its quiet refresh walk is in flight';
+    const RD=()=>b.page.evaluate(()=>({accts:(()=>{try{return JSON.parse(localStorage.getItem('ct_accts')||'null');}catch(e){return null;}})(),chips:[...document.querySelectorAll('button')].map(e=>e.getAttribute('aria-label')||'').filter(x=>/^Remove /.test(x))}));
+    await b.open();await b.tile('Review');await b.settle(1200);
+    const r0=await RD();const monthAsked=asked.some(h=>new RegExp('^'+FC+'/games/\\d{4}/\\d{2}$').test(h));
+    const x=b.page.locator('[aria-label="Remove '+FC+'"]');const nx=await x.count();
+    if(L.say(nx===1&&monthAsked&&!state.hits.some(h=>h.indexOf(FA+'/')===0),'A35-0 vacuity '+tag+': the chip is there to tap and the walk for '+FC+' alone is under way (a month asked, held '+DELAY+'ms)',{chips:r0.chips,asked,hits:state.hits})){
+      await x.click();await b.settle(400);
+      const r1=await RD();
+      L.say(Array.isArray(r1.accts)&&r1.accts.indexOf(FCID)<0&&r1.chips.indexOf('Remove '+FC)<0,'A35-0b vacuity '+tag+': the removal took at once - '+FC+' is off ct_accts and its chip is gone',r1);
+      await b.settle(DELAY*3+2000);
+      const r2=await RD();const AG=await L.acctGames(b.page);const held2=((AG.map||{})[FCID]||[]).length;
+      const walked=state.hits.filter(h=>h.indexOf(FC+'/')===0).length;
+      L.say(walked>=2,'A35-0c vacuity '+tag+': the walk ran on after the tap ('+walked+' requests for '+FC+')',{hits:state.hits});
+      L.say(Array.isArray(r2.accts)&&r2.accts.indexOf(FCID)<0&&r2.chips.indexOf('Remove '+FC)<0,'A35a '+tag+': once the walk ends '+FC+' is still not listed and has no chip (pre-fix the walk put it back)',r2);
+      L.say(held2===0,'A35b '+tag+': and the store holds no game of '+FC+' (pre-fix the walk wrote its games back)',{held:held2,keys:Object.keys(AG.map||{})});
+      state.refuse=true;await b.open();await b.tile('Review');await b.settle(1500);
+      const r3=await RD();
+      L.say(Array.isArray(r3.accts)&&r3.accts.indexOf(FCID)<0&&r3.chips.indexOf('Remove '+FC)<0&&r3.accts.indexOf(FAID)>=0,'A35c '+tag+': and on the next launch it is still gone while '+FA+' is untouched',r3);
+    }
+    L.say(b.errs.length===0,'A35d '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
 
   {
     // ── A24 TC-R141 / TC-R142 #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23, work[3]: A FOLLOWED PLAYER IS
