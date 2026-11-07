@@ -1857,6 +1857,10 @@ classify(){   # classify <repo-relative-path>  ->  "FORCE <reason>"  or  "RECORD
     gates/fastgate.sh)                              echo "FORCE this script gates itself by the full suite" ;;
     functions/*|firebase.json|*.html)               echo "FORCE shipped surface outside the bundle" ;;
     claude/agents/bench/*)                          echo "FORCE gate 68 reads its PGN corpus here with fs.readFileSync - measured #490" ;;
+    # gates/opening-book/* [#549, job (98), 4798697]: gate 87 reads its five named-opening tables a.tsv..e.tsv here with
+    # fs.readFileSync, so a .tsv commit here can change gate 87's verdict; without this arm they fall into the gates/*.tsv
+    # RECORDS arm and gates.sh reds gate 87 as READ A RECORDS-ONLY PATH (R71, TC-FG-004). Found at the final read.
+    gates/opening-book/*)                           echo "FORCE gate 87 reads its opening tables here with fs.readFileSync - #549" ;;
     # #509 TRIED TO MOVE THESE TWO PATHS TO RECORDS AND WITHDREW IT ON BOTH ANTAGONISTS' VETO, AND #521 HAS NOW
     # MOVED EXACTLY ONE OF THEM. The move was part two of its job: minting a build number appends a row to
     # build-numbers.tsv, so a shared FORCE arm made the fast tier unreachable by every run that takes a number.
