@@ -1,7 +1,31 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#548: BATCH 8. ALL 164 ORDERED JOBS READ - 46 FIXED, 14 FIXED IN PART, 33 NOT YET, 71 CANNOT THIS PASS - GATES GREEN #548 AT 6829 PASS / 0 FAIL OVER 66 SECTIONS.**
+**#549: BATCH 9. ALL 120 ORDERED JOBS WORKED, FIRST PASS AND A SECOND PASS TO THE CUT LINE - AT THE PUSH 102 FIXED IN PART, 6 FIXED, 12 CANNOT - GATES GREEN #549 AT 8575 PASS / 0 FAIL OVER 74 SECTIONS.**
+Run `build__1793935200785`, 6-7 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_05_batch9`, base 7340372.
+**APPLICATION CODE CHANGED.** `app.js` md5 `3ab724514641`, from chess.jsx `12d8e7944da3` (chess.jsx +1931/-362 over 7340372..f31f924).
+The push-gate log is `claude/agents/gatelogs/549-all.log`, the SECOND final suite, gated sha e3e32fb, started 14:31:28Z (log header) and written 18:24:58Z.
+Every job's outcome is in its own `outcome`: fixed-in-part until R34, then moved to fixed where nothing but the push was left (RB20).
+
+## 00. WHAT THE NEXT RUN NEEDS FROM #549
+1. FOUR FEATURES SHIP OFF BEHIND A SWITCH AND WAIT ON KUNAL: one Brilliant rule (28, `BRIL_RULE_DEFAULT=1`, 124 added Brilliants listed on the job),
+   the missed-Brilliant marker (29, `MISSED_BRIL_DEFAULT=false`), played-move drill grading (97, `DRILL_GRADE_DEFAULT=false`, because (106) measured
+   the depth-3 local grade disagreeing with the review 84.8% of the time), and the opening-book table (98, `BOOK_TABLE_DEFAULT=0`). The Two Bishops
+   free-defender trial (85) ships ON for him to judge. The questions are in tracker `runreports/questions-549` for the orchestrator to route.
+2. (105) WAS BUILT AND THEN REVERTED AT THE CUT LINE, unchecked on the final bundle. Its patch is tracker `patches/job105-games-list-card-second-pass-549`.
+3. CONTROL-RECORDS NOT PLACED (their controls must be re-run): job 12 on gate 55 (x3), job 49 on gate 16, job 90 on gate 78, job 100 on gate 73.
+   The auditor's AU1 P1 is the gate 55 one. Control-audit at the push: uncovered 28, none 24, assertionsmoved 1 (base 49/43/2).
+4. RESIDUALS FROM THE FINAL PAIR READ, filed as jobs: B3 review waits up to 120s for Stockfish with no waiting state; B4 the moves-view engine line
+   searches to depth 16 (slower on a phone); B7 the free-defender slack is calibrated on node, not a phone; B8 the Tactics board cap has no rAF retry;
+   B9 `ct_mymistakes` is trimmed to 150 on load; A4-F (pre-existing on #548) a transient overflow with no re-render leaves the board shrunk on tall phones.
+5. LOAD, NOT CODE: gate 20 alone takes ~730s of its 900s cap, and `fastgate-drive` reads an honest tree as FAST GATE RED when browsers run beside it.
+   Run the final suite with nothing else on the machine. Every red this run saw under load was re-run alone twice and went green.
+6. The commit message of f31f924 says the archived suite ran "13:48:38Z -> 18:24Z". 13:48:38Z was the FIRST, stopped suite; the archived log
+   started 14:31:28Z by its own header [R18; the commit is on main and is not rewritten].
+7. Not reached in the second pass: the rest of (107) and (108), (114) and (120). gatemanifest selftest's sigpipe miscount (23 vs 15) is still
+   pre-existing on main. Gate 76 is now the only known-absent gate.
+
+**(previous) #548: BATCH 8. ALL 164 ORDERED JOBS READ - 46 FIXED, 14 FIXED IN PART, 33 NOT YET, 71 CANNOT THIS PASS - GATES GREEN #548 AT 6829 PASS / 0 FAIL OVER 66 SECTIONS.**
 Run `build__1793852110388`, 5 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_04_batch8c`, base d083b72.
 **APPLICATION CODE CHANGED.** `app.js` md5 `e07e3d4fb9ea`, stamp '#548 - 2026-11-05 11:26 ET', from chess.jsx `91d7fb10cadc`.
 The push-gate log is `claude/agents/gatelogs/548d-all.log`, gated sha 2ef1165. Every job's outcome is on the job itself as `outcome_548` and `receipt_548`.
