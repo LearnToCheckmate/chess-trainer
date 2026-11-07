@@ -135,6 +135,22 @@ const ONLINE_ACK_RE=/^(Code copied!|Invite link copied|Creating game…|Joining�
 function lessonMovePos(op,line,step){try{if(!op||!Array.isArray(line))return null;const first=op.fen?((String(op.fen).split(/\s+/)[1]||'w')):'w';const side=op.side||'w';
   const mine=[];for(let i=0;i<line.length;i++){const mover=(i%2===0)?first:(first==='w'?'b':'w');if(mover===side)mine.push(i);}
   if(mine.length<2)return null;const n=Math.min(mine.length,mine.filter(i=>i<step).length+1);return {n,m:mine.length};}catch(e){return null;}}
+/* #549 item (85), jobs/bench-lesson-one-format-two-content-types-2026-09-28, Kunal's 'one-first': THE FREE-DEFENDER LESSON (a lesson
+   with defender:'free' in lessons.js - Two Bishops Mate only, as his trial). In practice the defender's king chooses its own moves
+   from the engine, and the learner's move is judged by whether it KEEPS THE MATING NET rather than by whether it matches the
+   script. Measured before choosing the test (flags/amber-549-two-bishops-free-defender): a static 'the king's walkable region must
+   not grow' box is useless for two bishops - the script's own first move Be5 grows it from 25 to 37 squares - so the net is
+   judged on the search the defender already runs. freeSyncVerdict is what needs no engine: a stalemate, or a piece left where
+   the lone king takes it (the mate needs every piece). freeNetVerdict reads the engine's score AFTER the move, from the
+   defender's side: K is the learner's mate distance before the move (null until the engine first sees a mate). Stockfish's own
+   mating moves raise its reported distance by at most 1 at 300 ms in node, and the releases measured jump by 3 or more or lose
+   the mate, hence the slack of 2; below mate-in-6 a mate is always found, so losing sight of it there is a release. */
+function freeHangs(board,att){const def=opp(att);for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.c===att&&p.t!=='k'&&isAttacked(board,r,c,def)&&!isAttacked(board,r,c,att))return {sq:FILES[c]+(8-r),t:p.t};}return null;}
+function freeSyncVerdict(ng){const st=getStatus(ng);if(st==='checkmate')return {ok:true,mate:true};if(st==='stalemate')return {ok:false,why:'stalemate'};const h=freeHangs(ng.board,opp(ng.turn));if(h)return {ok:false,why:'hangs',sq:h.sq,t:h.t};return {ok:true};}
+function freeNetVerdict(K,sc){if(!sc)return {ok:true,M:K,why:'no-engine'};const M=(sc.mate!=null&&sc.mate<=0)?-sc.mate:null;const cp=(sc.cp!=null)?-sc.cp:null;
+  if(K!=null&&M!=null&&M>=K+3)return {ok:false,M,why:'looser'};if(K!=null&&K<=5&&M==null)return {ok:false,M,why:'lost-mate'};if(M==null&&cp!=null&&cp<150)return {ok:false,M,why:'not-winning'};return {ok:true,M};}
+/* the reply when no engine is available (no Worker): the lone king heads for the centre, the textbook defence. */
+function freeFallbackReply(g){const ms=getLegal(g);if(!ms.length)return null;let best=null,bv=-1e9;for(const m of ms){const v=-Math.max(Math.abs(3.5-m.tr),Math.abs(3.5-m.tc))-0.1*(Math.abs(3.5-m.tr)+Math.abs(3.5-m.tc));if(v>bv){bv=v;best=m;}}return best;}
 const mateLbl=(m)=>(Math.abs(m)<1?(m>0?'1-0':'0-1'):((m>0?'M':'-M')+Math.abs(m)));
 const PST={
   p:[0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
@@ -3771,6 +3787,14 @@ export default function App(){
      lesson, so by (115)'s rule it stays until 'Got it' or its X (or a backdrop tap); the timer is gone, and introHoldRef is inert. */
   useEffect(()=>{setLessonMore(false);},[openIdx,mode]);
   const [openStep,setOpenStep]=useState(0);
+  /* #549 item (85): the free-defender practice run. hist = the positions played (for the step-back row), moves = the learner's moves,
+     K = the engine's mate distance for the learner, hint = the engine's next move for the learner (uci), off = left the book line,
+     busy = the defender is thinking, over = the run ended without mate (the 50-move rule). */
+  const FREE0={on:false,hist:[],moves:0,K:null,hint:null,off:false,busy:false,over:false,last:null};
+  const [freeSt,setFreeSt]=useState(FREE0);
+  const freeRef=useRef(freeSt); freeRef.current=freeSt;
+  const freeTokRef=useRef(0);
+  const freeSet=(o)=>{const n={...freeRef.current,...o};freeRef.current=n;setFreeSt(n);};
   const [openMsg,setOpenMsg]=useState('');
   const [showHint,setShowHint]=useState(false);   // #547 item (90): Kunal's 'warn-first' - the lesson lightbulb starts OFF
   const [revealHint,setRevealHint]=useState(false);
@@ -4205,7 +4229,7 @@ export default function App(){
      it back at the demo at ply 0 with the practice gone. While a lesson is open in practice its place is kept here (this sitting
      only, no new stored key); leaving practice for the demo inside the lesson clears it, and selectOpening resumes from it. */
   const lessonResumeRef=useRef(null);
-  if(mode==='learn'&&openIdx!==null){lessonResumeRef.current=(learnPhase==='practice'&&openStep<(learnLine||[]).length)?{idx:openIdx,line:learnLine,label:learnLabel,game,lastMv,step:openStep,msg:openMsg,flip,rep:{...(learnRepRef.current||{})},key:learnKeyRef.current}:null;}
+  if(mode==='learn'&&openIdx!==null){lessonResumeRef.current=(learnPhase==='practice'&&openStep<(learnLine||[]).length&&!(freeSt.on&&freeSt.over)/* #549 item (85): a free run ended by the 50-move rule is not resumed */)?{idx:openIdx,line:learnLine,label:learnLabel,game,lastMv,step:openStep,msg:openMsg,flip,rep:{...(learnRepRef.current||{})},key:learnKeyRef.current,free:freeSt.on?freeSt:null}:null;}
   const gateDemoRef=useRef(null);
   const revDemoPlyRef=useRef(null); // #333: gallery cards that want the move view at a given ply after analysis, without the gate readout
   const openStepRef=useRef(openStep); openStepRef.current=openStep;
@@ -4260,11 +4284,12 @@ export default function App(){
   const lpHist=useMemo(()=>{
     if(mode!=='learn'||learnPhase!=='practice'||openIdx==null)return [];
     const op=LIB[openIdx]; if(!op)return [];
+    if(freeSt.on)return freeSt.hist.slice();   // #549 item (85): a free run's positions are the ones played, not the script's
     let g=op.fen?fromFEN(op.fen):initGame(); const out=[g];
     const lim=Math.min(openStep,learnLine.length);
     for(let i=0;i<lim;i++){const mv=findMoveBySAN(g,learnLine[i]); if(!mv)break; g=makeMove(g,mv); out.push(g);}
     return out;
-  },[mode,learnPhase,openIdx,openStep,learnLine]);
+  },[mode,learnPhase,openIdx,openStep,learnLine,freeSt]);
   const _lpLive=(mode==='learn'&&learnPhase==='practice'&&lpv!=null&&lpHist.length>0&&lpv<lpHist.length);
   const _pvLive=(mode==='play'&&!inReview&&!inDemo&&pvIdx!=null&&pvIdx<playHist.length);
   /* #547 item (149), jobs/promotion-picker-survives-navigation-and-replays-the-abandoned-ply-2026-09-29: the picker stayed up after
@@ -5199,9 +5224,12 @@ export default function App(){
     setLearnNotes(op.notes||[]);setLearnPlans(op.plans||'');setLearnIdea(op.idea||'');setLearnArrows(op.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setVideoOpen(false);
     setLearnFEN(op.fen||null);
     setFlip(op.side==='b');setGame(op.fen?fromFEN(op.fen):initGame());setLastMv(null);setInfoOpen(false);setIntroCard(true);
+    freeTokRef.current++;freeSet(FREE0);   // #549 item (85): a search still running for the lesson left is dropped
     {const R=lessonResumeRef.current;/* #549 item (107): the same lesson left mid-practice comes back where it was left */
      if(R&&R.idx===idx&&R.step>0&&R.step<R.line.length&&R.game){let g=R.game,lm=R.lastMv,st=R.step;
-      if(g.turn!==op.side){const omv=findMoveBySAN(g,R.line[st]);if(omv){g=makeMove(g,omv);lm=omv;st++;}}  // the book reply the close cut off
+      /* #549 item (85): a free run comes back at the learner's last turn - the defender's reply that the close cut off is not in the script to replay */
+      if(R.free&&R.free.on){const F=R.free;if(g.turn!==op.side&&F.hist.length>=2){g=F.hist[F.hist.length-2];lm=null;freeSet({...F,hist:F.hist.slice(0,-1),moves:Math.max(0,F.moves-1),busy:false,hint:null});}else freeSet({...F,busy:false});}
+      else if(g.turn!==op.side){const omv=findMoveBySAN(g,R.line[st]);if(omv){g=makeMove(g,omv);lm=omv;st++;}}  // the book reply the close cut off
       if(st<R.line.length){learnRepRef.current={...R.rep};learnKeyRef.current=R.key;
        setLearnPhase('practice');setDemoPlaying(false);setLearnLine(R.line);setLearnLabel(R.label);setOpenMsg(R.msg||'');setOpenStep(st);setGame(g);setLastMv(lm);setFlip(R.flip);setIntroCard(false);}}}
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
@@ -5219,6 +5247,8 @@ export default function App(){
     const op=LIB[openIdxRef.current];let g=op&&op.fen?fromFEN(op.fen):initGame();
     if(op&&!op.fen&&op.side==='b'){const mv=findMoveBySAN(g,line[0]);if(mv){g=makeMove(g,mv);setLastMv(mv);setOpenStep(1);}else setOpenStep(0);}
     else{setLastMv(null);setOpenStep(0);}
+    /* #549 item (85): a free-defender lesson's MAIN line practises against the engine; any other line keeps the script. */
+    freeTokRef.current++;freeSet({...FREE0,on:!!(op&&op.defender==='free'&&op.fen&&op.line&&Array.isArray(line)&&op.line.join('|')===line.join('|')),hist:[g]});
     setGame(g);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const pickVariation=(v)=>{const op=LIB[openIdxRef.current];const _tl=op.line||[];let _cp=0;while(_cp<v.line.length&&_cp<_tl.length&&v.line[_cp]===_tl[_cp])_cp++;setLearnPhase('demo');setDemoPly(_cp);setDemoPlaying(true);setLearnLine(v.line);setLearnLabel(op.name+' → '+v.name);setOpenMsg('');setOpenStep(0);setLearnNotes(v.notes||[]);setLearnPlans(v.plans||op.plans||'');setLearnIdea(v.idea||op.idea||'');setLearnArrows(v.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setVideoOpen(false);setFlip(op.side==='b');setGame(initGame());setLastMv(null);setInfoOpen(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
@@ -6223,6 +6253,39 @@ export default function App(){
     setCelebrate({kind:'bank',title:'Day '+stN.unionDays+' banked · flawless',sub:op.name+' · '+Math.max(0,LEARN_GOAL-stN.unionDays)+' to Mastered'});
     return ' Flawless \u00b7 day '+stN.unionDays+' of '+LEARN_GOAL+' toward Mastered.'+tail;
   };
+  /* #549 item (85): the learner's move in a free-defender lesson. One engine search per move does both jobs: its score after the
+     move is the net test (freeNetVerdict) and its best move is the defender's reply; the move after that is the hint. A refused
+     move is taken back and marks the run as not flawless, exactly like a wrong move in a scripted lesson; a mate completes the
+     run whatever its length and banks through finishRep unchanged. */
+  const FREE_MS=500, FREE_MAXMOVES=50, PCN={b:'bishop',n:'knight',r:'rook',q:'queen',p:'pawn'};
+  const freeMove=(g,mv)=>{
+    const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+    const F=freeRef.current,line=learnLineRef.current;
+    if(!F.on||F.busy||F.over||openStepRef.current>=line.length){clr();return;}
+    const nb=applyMove(g.board,mv);const san=toSAN(g,mv,nb);const ng=makeMove(g,mv);const sv=freeSyncVerdict(ng);
+    if(!sv.ok){learnRepRef.current.miss=true;
+      setOpenMsg('\u2717 '+san+(sv.why==='stalemate'?' is stalemate: the king has no move but is not in check, so it is a draw. Try again.':(' leaves your '+(PCN[sv.t]||'piece')+' on '+sv.sq+' for the king to take, and the mate needs it. Try again.')));clr();return;}
+    const hist=F.hist.concat([ng]),n=F.moves+1,iBook=F.hist.length-1,off=F.off||cleanSAN(san)!==cleanSAN(line[iBook]||'');
+    setGame(ng);setLastMv(mv);setRevealHint(false);clr();
+    if(sv.mate){freeSet({hist,moves:n,hint:null,off,busy:false});setOpenStep(line.length);setOpenMsg('\ud83c\udf89 '+san+' is checkmate! That\'s the '+learnLabel+'.'+finishRep());return;}
+    freeSet({hist,moves:n,hint:null,off,busy:true});setOpenStep(Math.min(line.length-1,hist.length-1));setOpenMsg('\u2713 '+san+' \u2014 the king is thinking\u2026');
+    const tok=++freeTokRef.current,fen=toFEN(ng);
+    (async()=>{let sc=null,pv=null;
+      try{if(sfReadyRef.current&&await ensureAna())pv=await sfBestLine(fen,FREE_MS,(x)=>{if(x&&(x.mpv||1)===1)sc=x;});}catch(e){pv=null;}
+      if(tok!==freeTokRef.current||modeRef.current!=='learn'||learnPhaseRef.current!=='practice')return;
+      const v=freeNetVerdict(F.K,pv?sc:null);
+      if(!v.ok){learnRepRef.current.miss=true;freeSet({...F,busy:false});setGame(g);setLastMv(F.last||null);setOpenStep(Math.min(line.length-1,F.hist.length-1));
+        setOpenMsg('\u2717 '+san+(v.why==='not-winning'?' throws the win away. Try again.':' lets the king out of the net: the mate is further away now. Try again.'));repaint();return;}
+      let rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;const fromEngine=!!rm;if(!rm)rm=freeFallbackReply(ng);
+      if(!rm){freeSet({busy:false,over:true});repaint();return;}
+      const rsan=toSAN(ng,rm,applyMove(ng.board,rm));const ng2=makeMove(ng,rm);const hist2=hist.concat([ng2]);
+      const off2=off||cleanSAN(rsan)!==cleanSAN(line[iBook+1]||'');
+      const hint=(fromEngine&&pv.length>1)?pv[1]:null;
+      setGame(ng2);setLastMv(rm);setOpenStep(Math.min(line.length-1,hist2.length-1));
+      if(n>=FREE_MAXMOVES){learnRepRef.current.miss=true;freeSet({hist:hist2,K:v.M,hint:null,off:off2,busy:false,over:true,last:rm});setOpenMsg('\u2717 '+FREE_MAXMOVES+' moves and no mate: by the 50-move rule that is a draw. Tap \u21bb Try again.');repaint();return;}
+      freeSet({hist:hist2,K:v.M,hint,off:off2,busy:false,last:rm});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.');repaint();
+    })();
+  };
   const sfxMove=(gB,mv)=>{try{if(!gB||!mv)return;const ng=makeMove(gB,mv);let k='move';if(ng&&ng.board&&isInCheck(ng.board,ng.turn))k='check';else if(mv.castle)k='castle';else if(mv.promo)k='promote';else if((gB.board&&gB.board[mv.tr]&&gB.board[mv.tr][mv.tc])||mv.epCap)k='capture';playSfx(k);}catch(e){}};
   const doMove=(g,mv)=>{
     /* #439, AND THIS IS THE GUARD THAT ACTUALLY CLOSES THE DEFECT - the one on humanCanMove below is the
@@ -6308,6 +6371,7 @@ export default function App(){
       }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;setPuzMsg(pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
+    if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'){
       const line=learnLineRef.current;const step=openStepRef.current;
       if(step>=line.length){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
@@ -6672,7 +6736,7 @@ export default function App(){
     if(modeRef.current==='play'&&playEndRef.current)return false;
     if(modeRef.current==='play'&&opponentRef.current==='online'){const og=onlineGameRef.current;return !!og&&og.status==='active'&&!og.result&&myColorRef.current===gameRef.current.turn;}
     if(modeRef.current==='play'&&opponent==='computer'&&gameRef.current.turn!==pColor)return false;
-    if(modeRef.current==='learn'){if(learnPhaseRef.current!=='practice')return false;const op=LIB[openIdxRef.current];const line=learnLineRef.current;if(!op||openStepRef.current>=line.length||gameRef.current.turn!==op.side)return false;}
+    if(modeRef.current==='learn'){if(learnPhaseRef.current!=='practice')return false;const op=LIB[openIdxRef.current];const line=learnLineRef.current;if(!op||openStepRef.current>=line.length||gameRef.current.turn!==op.side)return false;if(freeRef.current.on&&(freeRef.current.busy||freeRef.current.over))return false;}
     return true;
   };
 
@@ -6691,7 +6755,10 @@ export default function App(){
   const onPtrUp=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(!ui.drag)return;e.preventDefault();if(ui.dragging){const sq=getSquare(e.clientX,e.clientY);if(sq){const[r,c]=sq;if(commitOrPromote(gameRef.current,ui.tgts,r,c))return;const pmc=canPreMoveNow();const g=gameRef.current;const fp=g.board[ui.drag.from[0]][ui.drag.from[1]];if(pmc&&fp&&fp.c===pmc&&!(ui.drag.from[0]===r&&ui.drag.from[1]===c)){setPreMv({fr:ui.drag.from[0],fc:ui.drag.from[1],tr:r,tc:c});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}}}UI.current={...ui,drag:null,dragging:false};repaint();};
   const onPtrCancel=(e)=>{try{e.currentTarget.releasePointerCapture(e.pointerId);}catch(_){}const ui=UI.current;if(ui.drag||ui.dragging){UI.current={...ui,drag:null,dragging:false};repaint();}};
 
-  const hintMove=useMemo(()=>{if(mode==='play')return (opponent==='online'||pvIdx!=null)?null:playHintMv; /* #548 item (160): a hint is computed for the LIVE position, so stepping back (pvIdx) hides it - it stayed on d2/d4 at ply 2 for a ply-4 hint; returning to the live ply shows it again */if(mode==='puzzle'){if(!puzReveal||puzSolved)return null;const p=curPuz;if(!p||puzStep>=p.sol.length)return null;return findMoveBySAN(game,p.sol[puzStep]);}if(mode!=='learn'||learnPhase!=='practice'||openIdx===null||(!showHint&&!revealHint))return null;const op=LIB[openIdx];if(openStep>=learnLine.length||game.turn!==op.side)return null;return findMoveBySAN(game,learnLine[openStep]);},[mode,learnPhase,openIdx,openStep,game,showHint,revealHint,learnLine,puzReveal,puzSolved,curPuz,puzStep,playHintMv,opponent,pvIdx]);
+  const hintMove=useMemo(()=>{if(mode==='play')return (opponent==='online'||pvIdx!=null)?null:playHintMv; /* #548 item (160): a hint is computed for the LIVE position, so stepping back (pvIdx) hides it - it stayed on d2/d4 at ply 2 for a ply-4 hint; returning to the live ply shows it again */if(mode==='puzzle'){if(!puzReveal||puzSolved)return null;const p=curPuz;if(!p||puzStep>=p.sol.length)return null;return findMoveBySAN(game,p.sol[puzStep]);}if(mode!=='learn'||learnPhase!=='practice'||openIdx===null||(!showHint&&!revealHint))return null;const op=LIB[openIdx];if(openStep>=learnLine.length||game.turn!==op.side)return null;
+    /* #549 item (85): a free run hints the book move while the game is still on the book line, and the engine's move after that */
+    if(freeSt.on){if(freeSt.busy||freeSt.over)return null;if(!freeSt.off){const i=freeSt.hist.length-1;return i<learnLine.length?findMoveBySAN(game,learnLine[i]):null;}return freeSt.hint?uciToMove(game,freeSt.hint):null;}
+    return findMoveBySAN(game,learnLine[openStep]);},[mode,learnPhase,openIdx,openStep,game,showHint,revealHint,learnLine,puzReveal,puzSolved,curPuz,puzStep,playHintMv,opponent,pvIdx,freeSt]);
   // Best move arrow in review
   // #341: engine analysis of the position on screen. One Stockfish call per position, cached by FEN, so stepping back and forth is free.
   useEffect(()=>{setEngWhy(false);},[ply,anaMode,engOn,mode]);   // #548 item (114): the reading belongs to one position; a new one closes it
@@ -8986,7 +9053,7 @@ export default function App(){
                 ? <span style={{color:'var(--ac2)',fontWeight:600}}>▶ Press Play (or ›) to watch it move by move — you'll be {LIB[openIdx].side==='w'?'White':'Black'}</span>
                 : <span style={{color:'rgba(255,255,255,.92)'}}><span style={{fontWeight:800,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>
               ):(
-                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(' · '+p.n+' of '+p.m):'')(lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
+                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
               )}
             </div>
           </div>
@@ -9000,7 +9067,7 @@ export default function App(){
           <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'100%',overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
-              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(' · '+p.n+' of '+p.m):'')(lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
+              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
           </div>{noteOver&&<span data-ct="lesson-note-more" style={{position:'absolute',right:7,bottom:6,fontSize:11.5,fontWeight:800,letterSpacing:.3,color:'var(--ac2)',background:'rgba(20,24,32,.92)',border:'1px solid rgba(255,255,255,.18)',borderRadius:7,padding:'2px 7px',pointerEvents:'none'}}>more ▾</span>}</div>
         )}
         {noteOpen&&(<div data-ct="lesson-note-sheet" onClick={()=>setNoteOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:560,background:'#1c2130',borderRadius:'16px 16px 0 0',padding:'14px 16px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -8px 40px rgba(0,0,0,.6)',maxHeight:'70vh',overflowY:'auto',fontSize:16,lineHeight:1.45,color:'rgba(255,255,255,.92)',textAlign:'left'}}>
@@ -10757,7 +10824,7 @@ export default function App(){
                 MOVES head and Analyze 12px down (375x730), and at 568 tall the board shrank instead. The strip now sits ABSOLUTELY in the
                 gap above the row, so it takes no layout and the demo and practice stacks are the same height. */}
             <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8,position:'relative'}}>
-              <div data-ct="lesson-progress" style={{position:'absolute',left:0,right:0,top:-7,height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>
+              {!freeSt.on&&/* #549 item (85): a line-length bar means nothing when the defender sets the length */<div data-ct="lesson-progress" style={{position:'absolute',left:0,right:0,top:-7,height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>}
               {openStep>0&&lpHist.length>1&&wide&&(()=>{/* #372 (antagonist Y-01): on phones this 44px row joined the stack after the first practice move and took the lesson board from 375 to 320; wide only */const n=lpHist.length-1;const cur=lpv==null?n:lpv;const sb=(lbl,fn,dis)=>(<button key={lbl} disabled={dis} onClick={fn} style={{flex:1,minHeight:36,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(<div style={{display:'flex',gap:6,alignItems:'center'}}>{sb('⏮',()=>setLpv(0),cur===0)}{sb('‹',()=>setLpv(Math.max(0,cur-1)),cur===0)}<span style={{flex:'0 0 auto',minWidth:74,textAlign:'center',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:lpv==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{lpv==null?'● LIVE':('Move '+cur+'/'+n)}</span>{sb('›',()=>{const nv=Math.min(n,cur+1);setLpv(nv>=n?null:nv);},cur>=n)}{sb('⏭',()=>setLpv(null),lpv==null)}</div>);})()}
               <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
                 <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>

@@ -1710,6 +1710,15 @@ As a player learning a basic mate, I start where the method is still to be used,
 - Every line ends where the technique ends, in mate or the pawn queening, with a note for every move. Each new line was checked move by move: legal in chess.js, a forced mate by Stockfish depth 22 with the distance to mate falling by one each move, and 70 square claims in the notes checked against the board. That is not a tablebase, which this environment cannot reach. (TC-LS-038)
 - Rook vs Pawn keeps its position, with the rook in front of a pawn on the 7th, and its plan now says why that is right there. (no case: one clause of text)
 
+### US-R107 In the Two Bishops Mate trial, the defending king chooses its own moves
+*Added #549, from jobs/bench-lesson-one-format-two-content-types-2026-09-28 and Kunal's 'one-first' answer on questions/endgame-lessons-should-the-defender-choose-2026-10-10 (11 Oct 2026). One lesson only, for him to judge before anything spreads; the calls his answer did not settle are flags/amber-549-two-bishops-free-defender.*
+As a player practising the two-bishops mate, I play the method against a king that tries to escape, not a script, so any move that keeps the net counts and the king can run the other way.
+- The demo still plays the book line with its notes. In practice the defender's reply comes from the engine, not the script, and a first move off the book line is accepted. (TC-LS-055)
+- A move that keeps the mating net is accepted. A stalemate, a bishop left where the king can take it, or a move that lets the king out of the net is refused with the reason, and the board does not move. (TC-LS-054, TC-LS-056)
+- The run ends at checkmate, however many moves it took. A clean run banks a day as before; a run with a hint or a refused move does not. After 50 of my moves without mate it is a draw (the 50-move rule). (TC-LS-055, TC-LS-056)
+- The progress text counts my moves ("move 5") rather than out of a fixed total, and the line-length strip is not drawn. The lesson screen's sizes hold at 375x761, 320x568 and 390x844: board top 92, note box 75, footer 61, practice buttons 44, no page scroll. (TC-LS-055)
+- No other lesson changes. (TC-LS-054)
+
 ### US-R80 Stepping back from a tier's first puzzle keeps me in my tier
 *Added #547, from jobs/puzzles-previous-from-the-first-puzzle-wraps-to-the-hardest-2026-09-28.*
 As a beginner training in my tier, tapping Previous on its first puzzle takes me to that tier's last puzzle, not to the hardest puzzle in the whole collection under my tier's name.

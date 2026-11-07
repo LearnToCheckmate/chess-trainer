@@ -728,6 +728,10 @@ const ENDGAMES=[
     ] },
   { name:"Two Bishops Mate", eco:"2B", side:"w", cat:"♚ Endgames & Theory",
     fen:"8/8/4k3/8/3BK3/8/4B3/8 w - - 0 1",
+    /* #549 item (85), Kunal's 'one-first' (questions/endgame-lessons-should-the-defender-choose-2026-10-10): the TRIAL lesson.
+       In practice the defender chooses its own moves (the engine) and any move that keeps the mating net is accepted; the
+       line and notes below stay as the demo. Only this lesson carries it until he has judged it. flags/amber-549-two-bishops-free-defender */
+    defender:"free",
     idea:"Two bishops and a king can force mate — but only in a corner. Work the bishops side by side to build a wall, herd the lone king to the corner, and bring your own king up to finish.",
     plans:"Keep the bishops on adjacent diagonals so they fence the enemy king toward a corner; march your king up for support; then mate with both bishops raking the corner squares.",
     line:["Be5","Kd7","Kd5","Kc8","Kd6","Kb7","Kc5","Kc8","Bb5","Kb7","Bg3","Kc8","Kb6","Kd8","Bh4+","Kc8","Bf6","Kb8","Ba6","Ka8","Bb7+","Kb8","Be5#"],
