@@ -2456,7 +2456,9 @@ function lessonBookPlies(playedSans,openings){
   const played=playedSans.map(cleanSAN);
   let best=0;
   const consider=(line)=>{if(!line||!line.length)return;let k=0;const n=Math.min(line.length,played.length);while(k<n&&played[k]===cleanSAN(line[k]))k++;if(k>best)best=k;};
-  for(const op of (openings||[])){consider(op.line);if(op.vars)for(const v of op.vars)consider(v.line);}
+  // #549 antagonist B final read (B5-F): an opening may pin how much of its line counts as book (bookPlies), so folding a longer
+  // line into a lesson (job 65's Petroff) does not move the Book count of games that were reviewed before it.
+  for(const op of (openings||[])){consider(op.bookPlies>0?(op.line||[]).slice(0,op.bookPlies):op.line);if(op.vars)for(const v of op.vars)consider(v.line);}
   return best;
 }
 // How many leading plies of the game are Book: the larger of the two readings above, at most 24.

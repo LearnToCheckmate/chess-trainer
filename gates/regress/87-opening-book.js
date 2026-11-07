@@ -45,7 +45,7 @@ const NAMED=(()=>{const s=new Set();let lines=0;for(const f of 'abcde'){for(cons
 const OPENINGS=(()=>{const g={};const prev=global.window;global.window=g;const LJ=path.join(ROOT,'lessons.js');
   try{delete require.cache[require.resolve(LJ)];}catch(e){}try{require(LJ);}finally{global.window=prev;}return (g.CTLESSONS&&g.CTLESSONS.OPENINGS)||[];})();
 const lessonPrefix=(sans)=>{const cl=x=>E.cleanSAN(String(x));const p=sans.map(cl);let best=0;
-  for(const o of OPENINGS){for(const line of [o.line].concat((o.vars||[]).map(v=>v.line))){if(!line||!line.length)continue;let k=0;const n=Math.min(line.length,p.length);while(k<n&&p[k]===cl(line[k]))k++;if(k>best)best=k;}}
+  for(const o of OPENINGS){for(const line of [o.bookPlies>0?(o.line||[]).slice(0,o.bookPlies):o.line].concat((o.vars||[]).map(v=>v.line))){if(!line||!line.length)continue;let k=0;const n=Math.min(line.length,p.length);while(k<n&&p[k]===cl(line[k]))k++;if(k>best)best=k;}}
   return best;};
 const tablePrefix=(positions,cap)=>{let last=0;for(let i=1;i<=Math.min(cap,positions.length-1);i++)if(NAMED.set.has(fen3(positions[i])))last=i;return last;};
 const oracle=(sans,positions)=>Math.min(24,Math.max(lessonPrefix(sans),tablePrefix(positions,24)));
@@ -110,6 +110,15 @@ L.run(async()=>{
    L.say(E.BOOK_TABLE_DEFAULT===0,'TC-R160 E2 the table SHIPS OFF until Kunal has seen what it does to accuracy (the #549 cut-line ruling), BOOK_TABLE_DEFAULT='+E.BOOK_TABLE_DEFAULT);
    const dflt=GAMES.map(g=>E.openingBookPlies(g.sans,g.positions,OPENINGS)),old=GAMES.map(g=>Math.min(24,lessonPrefix(g.sans)));
    L.say(JSON.stringify(dflt)===JSON.stringify(old),'TC-R160 E4 with no switch set the Book count is today\'s, game for game: '+JSON.stringify(dflt)+' v the lesson lines alone '+JSON.stringify(old));
+   // #549 antagonist B final read (B5-F): E4 compares the app with THIS FILE's lesson prefix over the SAME lessons.js, so a lessons.js
+   // edit moves both sides and E4 cannot see it. Job 65 folded the 12-ply Petroff line into OPENINGS where the removed Petrov had 10,
+   // and a Petroff game following 6.Bd3 Nc6 went from 10 Book plies to 12 with the table off. E5 pins the count MEASURED on main
+   // 7340372 (`git show 7340372:lessons.js`, the OPENINGS lines matched as a prefix: 10), so a lessons.js change that moves it reds here.
+   {const pf=load('1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nf3 Nxe4 5. d4 d5 6. Bd3 Nc6 7. O-O Be7 8. c4 Nb4');
+    const pl=OPENINGS.find(o=>/Petro/.test(o.name||''));
+    L.say(pf.ok&&!!pl&&(pl.line||[]).length>=12&&pl.line.slice(0,12).join(' ')===pf.sans.slice(0,12).join(' '),'TC-R160 E5-0 PRECONDITION a Petroff game following 6.Bd3 Nc6 matches the Petroff lesson line for 12 plies ('+(pl?pl.name+', '+(pl.line||[]).length+' plies':'no Petroff in OPENINGS')+')');
+    const got=E.openingBookPlies(pf.sans,pf.positions,OPENINGS,0);
+    L.say(got===10,'TC-R160 E5 with the table off that Petroff game reads 10 Book plies, its count on main 7340372 before job 65 folded the 12-ply line in (got '+got+')');}
    L.say(tot===lp&&tot===19,'TC-R160 E3 with the table off (ct_book_table=0) the count is the lesson lines alone, the pre-#549 reading: '+tot+' over the seven (19 measured before)');}
 
   // ── F. THE BUNDLE: the 1.b3 game reviewed, Book read off the summary ────────────────────────────────
