@@ -1,0 +1,165 @@
+# #549 item (34), jobs/reconcile-kevitsch-review-vs-chesscom - REPORT-ONLY, not a gate log, authorises nothing.
+# tree: dbdbccc (run branch b9/job-34, chess.jsx md5 34c4c717251f) | trial bundle ff05e38bc5f9 built by CT_OUT=<scratch>/t.js gates/build.sh '#549' | 375x761 (kunal761), ct_pool 2, rule 1 (the bundle default)
+# run:    CT_APP=<bundle> node gates/measure-review-vs-chesscom.js run <out.jsonl>   (2026-11-07T03:48Z; every game reviewed twice in two fresh browsers on two trial bundles of the same chess.jsx md5 gave the same accuracy pair to the decimal)
+#   184024052818 ours W 69.6 B 76.7 | engine pool | 30s
+#   180000436342 ours W 79.6 B 70.3 | engine pool | 33s
+#   174540842570 ours W 86.8 B 84.7 | engine pool | 60s
+#   174433078044 ours W 88.5 B 83.9 | engine pool | 27s
+#   174431023868 ours W 74 B 88.3 | engine pool | 15s
+#   174386847848 ours W 91.1 B 84.4 | engine pool | 32s
+#   174331795882 ours W 85.4 B 80.3 | engine pool | 79s
+#   184179360928 ours W 71 B 66.2 | engine pool | 44s
+# report: node gates/measure-review-vs-chesscom.js report <out.jsonl>
+# REVIEW v CHESS.COM, the eight one-sitting answer-key games - #549 item (34) | source chess.jsx md5 34c4c717251f | run file run2.jsonl
+# chess.com side: gates/fixtures/chesscom-panels.json (panel counts and panel accuracy, read 2026-09-27; the page drifts between readings, flag bench-chesscom-review-page-drifts-across-time-2026-09-18)
+# node regrade under rule 1 against the browser review, plies whose label differs: 0 (0 means the rule-2 column is the rule's change alone)
+
+## 184024052818 Astojke v Kunal2023: 85 plies, our book 2 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+        Astojke chess.com     0     1     8     6     8     1    10     4     2     1   57.3
+             ours, rule 1     0     0    16     5    10     1     6     2     2     1   69.6  (chess.com Book left out: 69.6)
+             ours, rule 2     0     0    16     5    10     1     6     2     2     1
+   Astojke: Best +8 against chess.com = 0 on moves chess.com calls Book + 6 that are not the engine's move (the Best band let them in) + 2 left over; the Excellent fold is gone (split since #421)
+      Kunal2023 chess.com     1     2    12     8     5     1     4     7     2     0   62.7
+             ours, rule 1     1     5    16     5     6     1     3     3     2     0   76.7  (chess.com Book left out: 76.7)
+             ours, rule 2     1     5    16     5     6     1     3     3     2     0
+   Kunal2023: Best +4 against chess.com = 0 on moves chess.com calls Book + 3 that are not the engine's move (the Best band let them in) + 1 left over; the Excellent fold is gone (split since #421)
+
+## 180000436342 edsonsidney1 v Kunal2023: 59 plies, our book 6 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+   edsonsidney1 chess.com     0     2    10     2     5     4     3     2     2     0   70.8
+             ours, rule 1     0     3    16     3     2     3     1     1     1     0   79.6  (chess.com Book left out: 79.5)
+             ours, rule 2     0     3    16     3     2     3     1     1     1     0
+   edsonsidney1: Best +6 against chess.com = 0 on moves chess.com calls Book + 7 that are not the engine's move (the Best band let them in) - 1 left over; the Excellent fold is gone (split since #421)
+      Kunal2023 chess.com     0     2     5     3     4     4     3     6     2     0   62
+             ours, rule 1     0     2    12     6     1     3     3     0     2     0   70.3  (chess.com Book left out: 69.7)
+             ours, rule 2     0     2    12     6     1     3     3     0     2     0
+   Kunal2023: Best +7 against chess.com = 1 on moves chess.com calls Book + 7 that are not the engine's move (the Best band let them in) - 1 left over; the Excellent fold is gone (split since #421)
+
+## 174540842570 Eggy93 v Kunal2023: 147 plies, our book 0 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+         Eggy93 chess.com     0     4    25    17    13     2     7     3     3     0   72.3
+             ours, rule 1     0     2    37    13    13     0     7     1     1     0   86.8  (chess.com Book left out: 86.8)
+             ours, rule 2     0     2    37    13    13     0     7     1     1     0
+   Eggy93: Best +12 against chess.com = 1 on moves chess.com calls Book + 10 that are not the engine's move (the Best band let them in) + 1 left over; the Excellent fold is gone (split since #421)
+      Kunal2023 chess.com     0     1    26    12     8     2    13     8     2     0   69.4
+             ours, rule 1     0    12    29     9    10     0     9     3     0     1   84.7  (chess.com Book left out: 84.4)
+             ours, rule 2     0    12    29     9    10     0     9     3     0     1
+   Kunal2023: Best +3 against chess.com = 2 on moves chess.com calls Book + 7 that are not the engine's move (the Best band let them in) - 6 left over; the Excellent fold is gone (split since #421)
+
+## 174433078044 Kunal2023 v gentel1310: 65 plies, our book 3 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+      Kunal2023 chess.com     0     0     6     7    11     2     3     0     4     0   72.1
+             ours, rule 1     0     0    19     4     5     2     3     0     0     0   88.5  (chess.com Book left out: 88.5)
+             ours, rule 2     1     0    18     4     5     2     3     0     0     0
+   Kunal2023: Best +13 against chess.com = 0 on moves chess.com calls Book + 8 that are not the engine's move (the Best band let them in) + 5 left over; the Excellent fold is gone (split since #421)
+     gentel1310 chess.com     0     0     5     4     6     1    11     5     0     0   59.2
+             ours, rule 1     0     1    12     2     8     1     7     1     0     0   83.9  (chess.com Book left out: 83.9)
+             ours, rule 2     0     1    12     2     8     1     7     1     0     0
+   gentel1310: Best +7 against chess.com = 0 on moves chess.com calls Book + 5 that are not the engine's move (the Best band let them in) + 2 left over; the Excellent fold is gone (split since #421)
+   rule 2 changes ply 28 b5 (w): Best -> Brilliant
+
+## 174431023868 jpmarriott v Kunal2023: 44 plies, our book 3 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+     jpmarriott chess.com     0     0     3     6     3     4     3     0     2     1   69.3
+             ours, rule 1     0     0     9     4     4     2     2     0     0     1   74  (chess.com Book left out: 72.8)
+             ours, rule 2     0     0     9     4     4     2     2     0     0     1
+   jpmarriott: Best +6 against chess.com = 1 on moves chess.com calls Book + 5 that are not the engine's move (the Best band let them in) + 0 left over; the Excellent fold is gone (split since #421)
+      Kunal2023 chess.com     0     1     5     5     3     3     1     2     2     0   74.6
+             ours, rule 1     0     2     9     3     3     1     4     0     0     0   88.3  (chess.com Book left out: 87.5)
+             ours, rule 2     0     2     9     3     3     1     4     0     0     0
+   Kunal2023: Best +4 against chess.com = 2 on moves chess.com calls Book + 2 that are not the engine's move (the Best band let them in) + 0 left over; the Excellent fold is gone (split since #421)
+
+## 174386847848 Kunal2023 v madefrom_WAR: 73 plies, our book 1 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+      Kunal2023 chess.com     1     0    12     9     6     4     1     1     1     0   81.7
+             ours, rule 1     0     3    21     4     6     1     2     0     0     0   91.1  (chess.com Book left out: 91.5)
+             ours, rule 2     1     3    21     4     5     1     2     0     0     0
+   Kunal2023: Best +9 against chess.com = 1 on moves chess.com calls Book + 3 that are not the engine's move (the Best band let them in) + 5 left over; the Excellent fold is gone (split since #421)
+   madefrom_WAR chess.com     0     0     9     6     9     4     4     4     0     0   72.3
+             ours, rule 1     0     0    19     9     4     0     2     1     0     1   84.4  (chess.com Book left out: 83.9)
+             ours, rule 2     0     0    19     9     4     0     2     1     0     1
+   madefrom_WAR: Best +10 against chess.com = 1 on moves chess.com calls Book + 4 that are not the engine's move (the Best band let them in) + 5 left over; the Excellent fold is gone (split since #421)
+   rule 2 changes ply 32 Bxh7+ (w): Good -> Brilliant
+
+## 174331795882 Kunal2023 v KyokaSuigetsu_0: 97 plies, our book 4 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+      Kunal2023 chess.com     0     3    14    12     8     3     5     4     0     0   77.4
+             ours, rule 1     0     6    24     6     4     2     5     1     0     1   85.4  (chess.com Book left out: 85.3)
+             ours, rule 2     0     6    24     6     4     2     5     1     0     1
+   Kunal2023: Best +10 against chess.com = 0 on moves chess.com calls Book + 8 that are not the engine's move (the Best band let them in) + 2 left over; the Excellent fold is gone (split since #421)
+   KyokaSuigetsu_0 chess.com     0     3    11     9    11     2     6     2     1     1   70.6
+             ours, rule 1     0     4    22     4    11     2     2     0     1     2   80.3  (chess.com Book left out: 80.3)
+             ours, rule 2     0     4    22     4    11     2     2     0     1     2
+   KyokaSuigetsu_0: Best +11 against chess.com = 0 on moves chess.com calls Book + 5 that are not the engine's move (the Best band let them in) + 6 left over; the Excellent fold is gone (split since #421)
+
+## 184179360928 Kunal2023 v Kevitsch: 87 plies, our book 3 plies
+                          Brill Great  Best Excel  Good  Book Inacc Mista  Miss Blund   accuracy
+      Kunal2023 chess.com     0     3    10     4    10     2     6     5     4     0   58.7 (api 59.22)
+             ours, rule 1     0     7    14     6     4     2     4     4     2     1   71  (chess.com Book left out: 71)
+             ours, rule 2     0     7    14     6     4     2     4     4     2     1
+   Kunal2023: Best +4 against chess.com = 0 on moves chess.com calls Book + 4 that are not the engine's move (the Best band let them in) + 0 left over; the Excellent fold is gone (split since #421)
+       Kevitsch chess.com     0     1     7     7     7     1     9     6     4     1   47.5 (api 47.82)
+             ours, rule 1     0     1    13     3    12     1     4     5     3     1   66.2  (chess.com Book left out: 66.2)
+             ours, rule 2     0     1    13     3    12     1     4     5     3     1
+   Kevitsch: Best +6 against chess.com = 0 on moves chess.com calls Book + 4 that are not the engine's move (the Best band let them in) + 2 left over; the Excellent fold is gone (split since #421)
+
+# TC-R167 over 8 games, 16 side-readings (rule 1, the bundle default):
+#   ordering agrees on 8 of 8; Brilliant equal on 15 of 16 (rule 2: 15 of 16); Book within 1 on 10 of 16
+#   accuracy vs the panel: MAE 12.68, mean signed +12.68, ours higher on 16 of 16; chess.com Book left out: MAE 12.48, mean signed +12.48
+#   accuracy vs ApiAccuracy where the fixture has it (2): MAE 15.08
+#   Best: ours above chess.com on 16 of 16, by 120 in all = 9 on chess.com Book moves + 88 not the engine's move + 23 left over
+#   Great: ours 48, chess.com 23
+CASE TC-R167: RED - 8 failing: 174540842570 Eggy93 Book 0 v 2; 174540842570 Kunal2023 Book 0 v 2; 174431023868 jpmarriott Book 2 v 4; 174431023868 Kunal2023 Book 1 v 3; 174386847848 Kunal2023 Brilliant 0 v 1; 174386847848 Kunal2023 Book 1 v 4; 174386847848 madefrom_WAR Book 0 v 4; accuracy MAE 12.68 (<= 5.7) and mean signed +12.68 (within 3.0)
+
+# TC-R168, every move we label Great (rule 1), best line v second line in the mover's centipawns and Win%:
+#   184024052818 ply 19 bxc6 (b): best 97, second -154, Win% 58.8 v 36.2 [recapture]
+#   184024052818 ply 63 Qxf2+ (b): best 374, second -407, Win% 79.9 v 18.3 [recapture]
+#   184024052818 ply 71 Kg7 (b): best -232, second -650, Win% 29.9 v 8.4 [king move]
+#   184024052818 ply 73 Rf7 (b): best -51, second -218, Win% 45.3 v 30.9
+#   184024052818 ply 79 Qe3+ (b): best 166, second 0, Win% 64.8 v 50.0
+#   180000436342 ply 18 Kxf2 (w): best 84, second -499, Win% 57.7 v 13.7 [king move]
+#   180000436342 ply 22 Nf3 (w): best 118, second -320, Win% 60.7 v 23.5
+#   180000436342 ply 52 Kxg3 (w): best 546, second -99500, Win% 88.2 v 0.0 [recapture] [king move]
+#   180000436342 ply 19 Nxf1 (b): best -87, second -273, Win% 42.1 v 26.8
+#   180000436342 ply 51 Qxg3+ (b): best -520, second -970, Win% 12.8 v 2.7
+#   174540842570 ply 62 Qxd5 (w): best 328, second 135, Win% 77.0 v 62.2
+#   174540842570 ply 74 exf6+ (w): best 107, second -597, Win% 59.7 v 10.0 [recapture]
+#   174540842570 ply 9 bxc6 (b): best -29, second -454, Win% 47.3 v 15.8 [recapture]
+#   174540842570 ply 73 Qxf6 (b): best -118, second -370, Win% 39.3 v 20.4
+#   174540842570 ply 75 Kxf6 (b): best -114, second -302, Win% 39.7 v 24.8 [recapture] [king move]
+#   174540842570 ply 109 Kf4 (b): best -357, second -1179, Win% 21.2 v 1.3 [king move]
+#   174540842570 ply 119 Kf6 (b): best -346, second -1072, Win% 21.9 v 1.9 [king move]
+#   174540842570 ply 127 Kg5 (b): best -459, second -911, Win% 15.6 v 3.4 [king move]
+#   174540842570 ply 129 Kxf5 (b): best -421, second -99200, Win% 17.5 v 0.0 [recapture] [king move]
+#   174540842570 ply 135 Kc5 (b): best -98400, second -98700, Win% 0.0 v 0.0  DECIDED (both lines are mate scores) [king move]
+#   174540842570 ply 137 Kc6 (b): best -98800, second -99200, Win% 0.0 v 0.0  DECIDED (both lines are mate scores) [king move]
+#   174540842570 ply 139 Kc5 (b): best -98700, second -98900, Win% 0.0 v 0.0  DECIDED (both lines are mate scores) [king move]
+#   174540842570 ply 141 Kc6 (b): best -938, second -98400, Win% 3.1 v 0.0  DECIDED [king move]
+#   174540842570 ply 143 Kd6 (b): best -471, second -707, Win% 15.0 v 6.9 [king move]
+#   174433078044 ply 59 Qxa4 (b): best -99700, second -99900, Win% 0.0 v 0.0  DECIDED (both lines are mate scores)
+#   174431023868 ply 23 Qxf6 (b): best -149, second -497, Win% 36.6 v 13.8 [recapture]
+#   174431023868 ply 43 Qxc2 (b): best 548, second 23, Win% 88.3 v 52.1
+#   174386847848 ply 30 dxe5 (w): best 0, second -274, Win% 50.0 v 26.7 [recapture]
+#   174386847848 ply 46 Rxh1+ (w): best 99700, second -259, Win% 100.0 v 27.8 [recapture]
+#   174386847848 ply 66 cxd4 (w): best 717, second 279, Win% 93.3 v 73.6 [recapture]
+#   174331795882 ply 42 Bxb2 (w): best -548, second -710, Win% 11.7 v 6.8 [recapture]
+#   174331795882 ply 54 Rxe1 (w): best -810, second -1491, Win% 4.8 v 0.4  DECIDED [recapture]
+#   174331795882 ply 60 Kg2 (w): best -665, second -1017, Win% 8.0 v 2.3  DECIDED [king move]
+#   174331795882 ply 70 Bxc7 (w): best -692, second -1186, Win% 7.3 v 1.3  DECIDED [recapture]
+#   174331795882 ply 84 Bxf4 (w): best -103, second -575, Win% 40.6 v 10.7 [recapture]
+#   174331795882 ply 96 Ka1 (w): best 656, second -826, Win% 91.8 v 4.6 [king move]
+#   174331795882 ply 21 Ne7 (b): best -194, second -482, Win% 32.9 v 14.5
+#   174331795882 ply 25 c6 (b): best 89, second -457, Win% 58.1 v 15.7
+#   174331795882 ply 39 Nxg8 (b): best 608, second -98, Win% 90.4 v 41.1 [recapture]
+#   174331795882 ply 51 Bxd6 (b): best 628, second -172, Win% 91.0 v 34.7
+#   184179360928 ply 10 Qxd3 (w): best 61, second -411, Win% 55.6 v 18.0 [recapture]
+#   184179360928 ply 60 gxf4 (w): best 183, second -77, Win% 66.2 v 43.0 [recapture]
+#   184179360928 ply 62 Bd2 (w): best 252, second 30, Win% 71.7 v 52.8
+#   184179360928 ply 74 Bxf2 (w): best 0, second -612, Win% 50.0 v 9.5 [recapture]
+#   184179360928 ply 82 Qxg4 (w): best 603, second 437, Win% 90.2 v 83.3
+#   184179360928 ply 84 Qg3+ (w): best 834, second 630, Win% 95.6 v 91.0  DECIDED
+#   184179360928 ply 86 Bxg3+ (w): best 1255, second -548, Win% 99.0 v 11.7 [recapture]
+#   184179360928 ply 69 Qf3 (b): best 735, second 70, Win% 93.7 v 56.4
+#   48 Greats: 9 decided (4 of them between two mate scores), 20 recaptures, 15 king moves, 34 undecided with the second line at least 14 Win% worse
+CASE TC-R168: RED - 9 of 48 Greats sit where both lines are decided: 174540842570 Kc5, 174540842570 Kc6, 174540842570 Kc5, 174540842570 Kc6, 174433078044 Qxa4, 174331795882 Rxe1, 174331795882 Kg2, 174331795882 Bxc7, 184179360928 Qg3+

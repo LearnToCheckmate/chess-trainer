@@ -132,6 +132,12 @@ As a player, I see one card with the categories down the side and one value colu
 - The summary shows an accuracy figure per side and the verdict counts for the TEN grades (Brilliant, Great, Best,
   Excellent, Good, Book, Inaccuracy, Miss, Mistake, Blunder, in that order) for White and Black in two columns. (TC-R04)
   Amended 2026-10-27: this bullet read "Excellent is folded into Best" and named eight grades until today; #421 split Excellent out after Kunal raised it against chess.com.
+- On a game also reviewed on chess.com, each player's accuracy is within chess.com's own noise band and not systematically
+  higher, and each grade label means what chess.com's label of the same name means: over the eight one-sitting answer-key
+  games the accuracy ordering agrees, Brilliant is equal and Book within 1 per side, accuracy MAE is at most 5.7 with the mean
+  signed error within 3.0, and no move is Great where both the best and the second line are already decided (both above 90%
+  or both below 10% winning chances). NOT MET at #549 and measured, not asserted by the suite (#549 item (34),
+  jobs/reconcile-kevitsch-review-vs-chesscom). (TC-R167, TC-R168)
 - The Skills panel (data-ct rev-skills, #368) is present under the accuracy table with its nine counted rows,
   and a number with moves behind it is a button that jumps into the review at that ply. (TC-R05)
 - The footer (Back to games, Start review; data-ct rev-summary-foot, #334) is pinned inside the viewport at
