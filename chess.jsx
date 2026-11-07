@@ -1922,6 +1922,70 @@ function nextBestW(bestW,secondW,playedIsBest){
   const v=playedIsBest?secondW:bestW;
   return (v==null||typeof v!=='number'||isNaN(v))?null:v;
 }
+/* #549 item (35), jobs/brilliancy-library-and-motif-coverage-2026-09-23, work item 3: THE MOTIF TAGGER. Kunal, 23 and 30 Sep 2026:
+   his brilliant moves are "pretty much similar stuff ... create a battery with the bishop and then sac the bishop on the pawn", and he
+   wants to pick "two or three different kinds of brilliance" rather than walk seventeen near-identical bishop sacrifices. The unit is
+   the MOTIF, so this names the kind of sacrifice a Brilliant move is. Pure, rules over what the review already has (no engine work):
+   `pos` the position before, `pl` the move, `g` brilliantGate's answer for it (arm, gT, gSq, capT, given), and an optional `line`, the
+   engine's continuation after the move as SAN strings. A TAG IS A HYPOTHESIS: each carries a confidence, and when no specific rule
+   fires the answer is the plain 'sacrifice' rather than a loud guess. Returns {primary, tags:[{tag,conf}], piece}: `piece` is what was
+   given up (gT), `primary` the first specific tag in TAG ORDER below, else 'sacrifice'. NOTHING DISPLAYS THIS YET: it is read by
+   gates/measure-brilliancy-motifs.js and gate 89, and the shelf and chooser that would show it wait on Kunal's word on the spread
+   that measurement prints (the job's own work item 1: "if the answer moves a lot, tell Kunal before building anything else here").
+   RULES THAT NEED THE LINE (the job's attraction/king-hunt, deflection, interference, clearance, zwischenzug, desperado, positional)
+   are NOT tagged here: only the three mate shapes read `line`, and a move with no line is never called a mating attack. */
+const BRIL_MOTIF_ORDER=['greek-gift','queen-sac','exchange-sac','underpromotion','smothered-mate','back-rank','mating-attack','quiet-sac','fork','discovered-check'];
+function brilMotifs(pos,pl,g,line){
+  const tags=[],add=(tag,conf)=>{if(!tags.some(t=>t.tag===tag))tags.push({tag,conf});};
+  g=g||{};
+  try{
+    const me=pos.turn,them=opp(me);
+    const cap0=pos.board[pl.tr]&&pos.board[pl.tr][pl.tc];
+    const capT=cap0?cap0.t:(pl.epCap?'p':null);
+    const mover=pos.board[pl.fr]&&pos.board[pl.fr][pl.fc];
+    const piece=g.gT||(mover?mover.t:null);
+    const kq=findKing(pos.board,them);
+    // GREEK GIFT, and its family as he described it: a bishop taking a pawn on the king's shield. High when the pawn stood on
+    // h7/h2/g7/g2/f7/f2 next to the enemy king (the job's rule); medium when it stood within two squares of a king still on its
+    // own two back ranks (Bxh6, Bxg6, Bxh3 - the moves of his own that he calls the same one).
+    const sac=g.isSac!==false;   // the three material tags and quiet-sac name a SACRIFICE, so they need the gate to have found one
+    if(sac&&mover&&mover.t==='b'&&capT==='p'&&kq&&g.arm!=='hang'){
+      const d=Math.max(Math.abs(kq[0]-pl.tr),Math.abs(kq[1]-pl.tc));
+      const back=them==='b'?kq[0]<=1:kq[0]>=6;
+      const sq=rc2sq(pl.tr,pl.tc);
+      if(d<=1&&['h7','h2','g7','g2','f7','f2','a7','a2','b7','b2','c7','c2'].includes(sq))add('greek-gift','high');
+      else if(d<=2&&back)add('greek-gift','medium');
+    }
+    if(sac&&piece==='q'&&capT!=='q')add('queen-sac','medium');
+    if(sac&&piece==='r'&&(capT==='n'||capT==='b'))add('exchange-sac','high');
+    if(pl.promo&&pl.promo!=='q')add('underpromotion','high');
+    // THE MATE SHAPES, read off the line only. The mated king's square decides back-rank (first or eighth rank) and smothered (every
+    // square around it holds its own men or is off the board, and the mating piece is a knight).
+    if(Array.isArray(line)&&line.length){
+      let p2=makeMove(pos,pl),last=null;
+      for(const s of line){const want=cleanSAN(String(s));const m=getLegal(p2).find(x=>cleanSAN(toSAN(p2,x,applyMove(p2.board,x)))===want);if(!m)break;last={m,from:p2};p2=makeMove(p2,m);}
+      if(getStatus(p2)==='checkmate'){
+        const lost=p2.turn;
+        if(lost===them){
+          if(piece==='q')tags.forEach(t=>{if(t.tag==='queen-sac')t.conf='high';});
+          const k=findKing(p2.board,them);let boxed=!!k;
+          if(k)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const r=k[0]+dr,c=k[1]+dc;if(r<0||r>7||c<0||c>7)continue;const q=p2.board[r][c];if(!q||q.c!==them)boxed=false;}
+          const mp=last&&last.from.board[last.m.fr][last.m.fc];
+          if(boxed&&mp&&mp.t==='n')add('smothered-mate','high');
+          else if(k&&(k[0]===0||k[0]===7))add('back-rank','high');
+          add('mating-attack','high');
+        }
+      }
+    }
+    // QUIET: no capture AND no check - a move that gives material away while threatening nothing the opponent must answer at once.
+    const mo=moveMotifs(pos,pl);
+    if(sac&&!capT&&!mo.some(t=>t==='check'||t==='discovered check'||t==='mate'))add('quiet-sac',g.arm==='hang'?'medium':'high');
+    if(mo.includes('fork'))add('fork','medium');
+    if(mo.includes('discovered check'))add('discovered-check','high');
+    tags.sort((a,b)=>BRIL_MOTIF_ORDER.indexOf(a.tag)-BRIL_MOTIF_ORDER.indexOf(b.tag));
+    return {primary:tags.length?tags[0].tag:'sacrifice',tags,piece};
+  }catch(e){return {primary:'sacrifice',tags:[],piece:g.gT||null};}
+}
 /* #549 item (29), jobs/show-where-a-brilliant-move-was-available-and-the-player-did-not-play-it-2026-10-11: A MISSED BRILLIANT.
    Kunal, 11 Oct 2026: "if there was an opportunity to play a brilliant move and they didn't, might be good to be able to call that
    out too"; his answer on questions/B9-MISSED-BRILLIANTS (5 Nov): "A marker, and Show me plays it". The engine's best move is graded

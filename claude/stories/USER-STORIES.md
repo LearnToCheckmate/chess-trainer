@@ -1942,6 +1942,13 @@ As a player who reviews a game, perhaps on a slow or busy phone, the accuracy, e
 - With no review-pool worker, the review on the one remaining engine worker is the same review. (TC-R151)
 - A phone with no Stockfish at all is graded by the built-in engine; that is a different grader, and this story does not cover it.
 
+### US-R112 Each brilliant move is named by the kind of sacrifice it is, so I can learn a kind I have not played
+*Added #549 item (35), from jobs/brilliancy-library-and-motif-coverage-2026-09-23 (Kunal, 23 and 30 Sep 2026: his brilliant moves are "pretty much similar stuff ... create a battery with the bishop and then sac the bishop on the pawn", and he wants to pick "two or three different kinds of brilliance"). Work items 1, 3 and 4 only: the tagger and the measurement on his own recorded games. Nothing on screen shows a motif yet; the library, its store and its chooser wait on his word on the measurement.*
+As a player who keeps finding the same brilliant move, every Brilliant move is named by its kind - a greek gift (a bishop taken on a pawn next to my opponent's king), a queen or exchange sacrifice, a quiet sacrifice, an underpromotion, a fork, a discovered check, and a smothered, back-rank or other mating attack when the line ends in mate - each with how sure the name is, and a move no rule fits is called a plain sacrifice rather than a guess.
+- One fixture per kind, and a bishop on a pawn two squares from the king (his Bxh6, Bxg6, Bxh3) is the greek-gift family at medium. (TC-R169, TC-R170, TC-R171)
+- A plain good move earns no name, a bishop for a pawn far from the king is not a greek gift, a capture that gives nothing away is not one either, and a line that does not end in mate is never a mating attack. (TC-R172)
+- Over his 196 recorded chess.com games since 1 Sep 2026, under the rule the app grades by his 20 brilliants span 4 kinds and 9 are the greek gift; under the one rule (off) his 81 span 6 and 17% are. (TC-R173)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

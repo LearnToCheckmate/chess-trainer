@@ -1,0 +1,125 @@
+# BRILLIANCY MOTIF SPREAD - #549 item (35) | chess.jsx chess.jsx md5 c3ab3f86a8ad | fixture rows 164
+# sample: Brilliant under rule 1 or rule 2 at measurement, his 196 chess.com games since 1 Sep 2026 | gates/measure-brilliant-one-rule.js (#549 item 28), stockfish-18-lite-single depth 16, chess.jsx md5 35e111cb28e2
+
+## HIS OWN brilliants, RULE 1 (what the app grades by): 20 moves, 4 primary motifs (3 specific), top greek-gift 45%, greek-gift 45%
+   motifs: greek-gift 9, sacrifice 5, exchange-sac 4, quiet-sac 2
+   piece given: bishop 12, knight 4, rook 4
+   by arm: 0 on the hanging arm (a piece left en prise; rule 2 only), 20 on the landing arm - which span 4 primary motifs, greek-gift 45%
+     1035761290 15...Nf5  quiet-sac  [quiet-sac:high] arm=land gave=nf5
+     173821535086 17...Rxf4  exchange-sac  [exchange-sac:high] arm=land gave=rf4
+     173922815280 20.Bxb5  sacrifice  [] arm=land gave=bb5
+     173922815280 34.Rxe4  exchange-sac  [exchange-sac:high] arm=land gave=re4
+     174037540186 11...Nb3  quiet-sac  [quiet-sac:high fork:medium] arm=land gave=nb3
+     174037540186 15...Rxf7  exchange-sac  [exchange-sac:high] arm=land gave=rf7
+     174086914134 5...Bxf2+  greek-gift  [greek-gift:high] arm=land gave=bf2
+     174087094684 18.Bxg6  greek-gift  [greek-gift:medium] arm=land gave=bg6
+     174137371866 17...Bxh5  sacrifice  [] arm=land gave=bh5
+     174294340246 14.Bxg5  sacrifice  [] arm=land gave=bg5
+     184024052818 19...Bxh3  greek-gift  [greek-gift:medium] arm=land gave=bh3
+     184628225358 14...Rxf4  exchange-sac  [exchange-sac:high] arm=land gave=rf4
+     184924183572 18.Bxh6  greek-gift  [greek-gift:medium] arm=land gave=bh6
+     185267153616 25.Bxg6+  greek-gift  [greek-gift:medium fork:medium] arm=land gave=bg6
+     185328827408 25.Nxf7  sacrifice  [] arm=land gave=nf7
+     185762944264 7...Nxe4  sacrifice  [] arm=land gave=ne4
+     185819242610 13.Bxg6  greek-gift  [greek-gift:medium] arm=land gave=bg6
+     185887758904 6...Bxf2+  greek-gift  [greek-gift:high] arm=land gave=bf2
+     185951559686 16.Bxh6  greek-gift  [greek-gift:medium] arm=land gave=bh6
+     186474370120 20.Bxa6  greek-gift  [greek-gift:medium] arm=land gave=ba6
+
+## HIS OWN brilliants, RULE 2 (the one rule, off by default): 81 moves, 6 primary motifs (5 specific), top quiet-sac 44%, greek-gift 17%
+   motifs: quiet-sac 36, sacrifice 19, greek-gift 14, exchange-sac 6, queen-sac 3, fork 3
+   piece given: bishop 33, rook 26, knight 19, queen 3
+   by arm: 40 on the hanging arm (a piece left en prise; rule 2 only), 41 on the landing arm - which span 6 primary motifs, greek-gift 34%
+     1027261736 34.g3  quiet-sac  [quiet-sac:medium fork:medium] arm=hang gave=rd3
+     1032440818 19.Qf7  quiet-sac  [quiet-sac:medium] arm=hang gave=bh4
+     1035761290 15...Nf5  quiet-sac  [quiet-sac:high] arm=land gave=nf5
+     1040208702 17.Nxf5  sacrifice  [] arm=hang gave=nf4
+     1044406042 19...Bxf5  exchange-sac  [exchange-sac:high] arm=hang gave=rg2
+     1044713052 29.Rg3  quiet-sac  [quiet-sac:high] arm=land gave=rg3
+     1044713052 50.Rxh6+  sacrifice  [] arm=land gave=rh6
+     173821535086 17...Rxf4  exchange-sac  [exchange-sac:high] arm=land gave=rf4
+     173862905524 11.Qe4  quiet-sac  [quiet-sac:medium fork:medium] arm=hang gave=bh4
+     173897575624 22.f3  quiet-sac  [quiet-sac:medium] arm=hang gave=ng3
+     173897575624 30.Rae1  quiet-sac  [quiet-sac:medium] arm=hang gave=re4
+     173922815280 20.Bxb5  sacrifice  [] arm=land gave=bb5
+     173922815280 34.Rxe4  exchange-sac  [exchange-sac:high] arm=land gave=re4
+     173995307022 4...Nxd4  sacrifice  [] arm=land gave=nd4
+     174037540186 6...Qh4  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     174037540186 7...Nf6  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     174037540186 8...Nd4  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     174037540186 9...Ng4  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     174037540186 11...Nb3  quiet-sac  [quiet-sac:medium fork:medium] arm=hang gave=rh8
+     174037540186 15...Rxf7  exchange-sac  [exchange-sac:high] arm=land gave=rf7
+     174086914134 5...Bxf2+  greek-gift  [greek-gift:high] arm=land gave=bf2
+     174087094684 18.Bxg6  greek-gift  [greek-gift:medium] arm=land gave=bg6
+     174090763228 9...Bxf5  sacrifice  [] arm=hang gave=bc5
+     174090763228 42...Nxb5  sacrifice  [] arm=land gave=nb5
+     174137371866 17...Bxh5  sacrifice  [] arm=land gave=bh5
+     174247821522 7...Bxd4  sacrifice  [] arm=land gave=bd4
+     174247821522 8...c6  quiet-sac  [quiet-sac:medium] arm=hang gave=ne5
+     174294340246 14.Bxg5  sacrifice  [] arm=land gave=bg5
+     174386847848 17.Bxh7+  greek-gift  [greek-gift:high] arm=land gave=bh7
+     174433078044 15.b5  quiet-sac  [quiet-sac:medium] arm=hang gave=nf3
+     184024052818 19...Bxh3  greek-gift  [greek-gift:medium] arm=land gave=bh3
+     184033557874 3...Nxd4  sacrifice  [] arm=land gave=nd4
+     184222697658 22...Qxc3  queen-sac  [queen-sac:medium fork:medium] arm=land gave=qc3
+     184222697658 23...Qa5  quiet-sac  [quiet-sac:medium] arm=hang gave=rd8
+     184224203452 13.b4  quiet-sac  [quiet-sac:medium] arm=hang gave=nh8
+     184237810184 35.b6  quiet-sac  [quiet-sac:medium] arm=hang gave=nd2
+     184267782076 25.Bxg6  greek-gift  [greek-gift:medium] arm=land gave=bg6
+     184628225358 10...Nxe5  sacrifice  [] arm=land gave=ne5
+     184628225358 14...Rxf4  exchange-sac  [exchange-sac:high] arm=land gave=rf4
+     184628225358 22...Qh3  quiet-sac  [quiet-sac:medium] arm=hang gave=bc5
+     184766858946 19.Nf1  quiet-sac  [quiet-sac:medium] arm=hang gave=rh5
+     184869895938 24...Qxf1+  queen-sac  [queen-sac:medium fork:medium] arm=land gave=qf1
+     184879449382 25.Qb2  quiet-sac  [quiet-sac:medium] arm=hang gave=rb1
+     184924183572 18.Bxh6  greek-gift  [greek-gift:medium] arm=land gave=bh6
+     184924183572 19.Rg4  quiet-sac  [quiet-sac:medium] arm=hang gave=bh6
+     185163502752 18.Rxe4  exchange-sac  [exchange-sac:high] arm=land gave=re4
+     185182092988 10...Rg8  quiet-sac  [quiet-sac:high] arm=land gave=rg8
+     185182092988 12...Rg7  quiet-sac  [quiet-sac:medium] arm=hang gave=bg4
+     185182092988 13...Rg6  quiet-sac  [quiet-sac:medium] arm=hang gave=bg4
+     185267153616 25.Bxg6+  greek-gift  [greek-gift:medium fork:medium] arm=land gave=bg6
+     185289658538 8...Nxg4  sacrifice  [] arm=land gave=ng4
+     185289658538 11...Qd7  quiet-sac  [quiet-sac:medium] arm=hang gave=bh4
+     185289658538 12...O-O-O  quiet-sac  [quiet-sac:medium] arm=hang gave=bh4
+     185328827408 25.Nxf7  sacrifice  [] arm=land gave=nf7
+     185328827408 30.Qf6+  fork  [fork:medium] arm=hang gave=nh6
+     185329624248 25...Bxe5  sacrifice  [] arm=land gave=be5
+     185449886258 16.Nxe5  fork  [fork:medium] arm=land gave=ne5
+     185658881596 8.Nxe5  sacrifice  [] arm=land gave=ne5
+     185721181566 6...Qh4  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     185721181566 7...Nf6  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     185762944264 7...Nxe4  sacrifice  [] arm=land gave=ne4
+     185819242610 13.Bxg6  greek-gift  [greek-gift:medium] arm=land gave=bg6
+     185887758904 6...Bxf2+  greek-gift  [greek-gift:high] arm=land gave=bf2
+     185887758904 18...Bd5  quiet-sac  [quiet-sac:medium fork:medium] arm=hang gave=rf8
+     185887758904 20...Ra8  quiet-sac  [quiet-sac:medium] arm=hang gave=re8
+     185887758904 30...Qxf7  queen-sac  [queen-sac:medium] arm=land gave=qf7
+     185951559686 16.Bxh6  greek-gift  [greek-gift:medium] arm=land gave=bh6
+     185958880758 17...Bxh3  greek-gift  [greek-gift:medium] arm=land gave=bh3
+     185958880758 18...Bxg2  greek-gift  [greek-gift:high fork:medium] arm=land gave=bg2
+     186035936376 18.Bxg7+  greek-gift  [greek-gift:high] arm=land gave=bg7
+     186035936376 19.Qd3  quiet-sac  [quiet-sac:medium] arm=hang gave=rf1
+     186035936376 22.Qg3  quiet-sac  [quiet-sac:medium] arm=hang gave=be4
+     186178452646 22.Ne5+  fork  [fork:medium] arm=hang gave=bg5
+     186191387030 15.Qxc7  sacrifice  [] arm=hang gave=nf3
+     186232561236 15...Nxg4  sacrifice  [] arm=land gave=ng4
+     186296751210 6...Qh4  quiet-sac  [quiet-sac:medium] arm=hang gave=rh8
+     186296751210 7...fxg3  sacrifice  [] arm=hang gave=rh8
+     186474370120 20.Bxa6  greek-gift  [greek-gift:medium] arm=land gave=ba6
+     186474370120 21.g3  quiet-sac  [quiet-sac:medium] arm=hang gave=ba6
+     186474370120 22.b5  quiet-sac  [quiet-sac:medium] arm=hang gave=ba6
+     186474370120 29.c6  quiet-sac  [quiet-sac:medium] arm=hang gave=ba3
+
+## HIS OPPONENTS' brilliants, RULE 1 (what the app grades by): 20 moves, 5 primary motifs (4 specific), top sacrifice 35%, greek-gift 20%
+   motifs: sacrifice 7, exchange-sac 5, greek-gift 4, fork 3, quiet-sac 1
+   piece given: knight 9, bishop 6, rook 5
+   by arm: 0 on the hanging arm (a piece left en prise; rule 2 only), 20 on the landing arm - which span 5 primary motifs, greek-gift 20%
+
+## HIS OPPONENTS' brilliants, RULE 2 (the one rule, off by default): 83 moves, 6 primary motifs (5 specific), top quiet-sac 37%, greek-gift 7%
+   motifs: quiet-sac 31, sacrifice 19, queen-sac 10, fork 9, exchange-sac 8, greek-gift 6
+   piece given: knight 38, rook 18, bishop 17, queen 10
+   by arm: 37 on the hanging arm (a piece left en prise; rule 2 only), 46 on the landing arm - which span 6 primary motifs, greek-gift 13%
+
+# VERDICT ON WORK ITEM 1: his own brilliants 20 -> 81 moves, 4 -> 6 primary motifs, greek-gift share 45% -> 17%, top-motif share 45% -> 44%
