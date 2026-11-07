@@ -55,7 +55,9 @@
 //     endBy='stalemate' with result='1/2-1/2'). So online is NOT DONE rather than not ours, it needs the same
 //     check derived from `og.moves`, and it is filed as `draws-online-not-covered-2026-09-17`. This gate
 //     asserts nothing there and no longer pretends that is somebody else's boundary.
-//   * Insufficient material and dead positions: not implemented in the app, not asserted here, still open.
+//   * Insufficient material and dead positions: (G) since #547 and (H)-(J) since #549 item (92) - the dead-position predicate,
+//     both rules driven through the UI from a [FEN] set-up position, and the online insufficient-material draw against a CTCloud
+//     store. Online REPETITION and the FIFTY-MOVE rule are still not declared online (draws-online-not-covered-2026-09-17).
 //   * The fifty-move rule's interaction with a pawn move or capture resetting the clock mid-run: covered by
 //     (A) at the predicate level only.
 //
@@ -81,6 +83,7 @@
 'use strict';
 const L=require('../lib');
 const P=require('../drive/play');
+const R=require('../drive/review');
 
 // (A) the enumeration. [san, isCapture, isPawnMove] - what toSAN can emit, including what must be REJECTED.
 const SANS=[
@@ -319,4 +322,84 @@ const QUIET106=[
     }
     await b.close();
   }
+  // ── (H) DEAD POSITIONS, THE PREDICATE [#549 item (92); jobs/draws-insufficient-material-and-dead-positions]. Read out of chess.jsx by
+  // name, as (G) reads insufficientMaterial, and run over two dead positions (the locked chain the job names, and two interlocked walls)
+  // and the cases it must REJECT: the same chain one pawn move before it locks, facing walls where a capture is on, the dead chain plus a
+  // bishop, lone blocked e-pawns a king can walk round to, bare kings (that is (G)'s rule, not this one), and the dead chain with an
+  // en-passant square still set. Soundness beyond these cases was fuzzed when it was written (4000 K+P positions, 263 called dead,
+  // 20 random 200-ply walks from each: no legal capture, pawn move or check ever appeared) - that run is in the commit, not here.
+  const DEAD_CASES=[['D1 the locked chain (after 1.d4)','4k3/8/2p1p1p1/1pPpPpPp/pP1P1P1P/P7/8/4K3 b - - 0 1',true],
+    ['D2 two interlocked walls','4k3/8/1p1p1p1p/pPpPpPpP/P1P1P1P1/8/8/4K3 w - - 0 1',true],
+    ['R1 the chain one move before it locks (d3 still free)','4k3/8/2p1p1p1/1pPpPpPp/pP3P1P/P2P4/8/4K3 w - - 0 1',false],
+    ['R2 facing walls with captures on','4k3/8/8/pppppppp/PPPPPPPP/8/8/4K3 w - - 0 1',false],
+    ['R3 the dead chain plus a bishop','4k3/8/2p1p1p1/1pPpPpPp/pP1P1P1P/P7/8/2B1K3 b - - 0 1',false],
+    ['R4 lone blocked e-pawns','8/8/4k3/4p3/4P3/4K3/8/8 w - - 0 1',false],
+    ['R5 bare kings','8/8/4k3/8/8/4K3/8/8 w - - 0 1',false],
+    ['R6 the dead chain with an en-passant square set','4k3/8/2p1p1p1/1pPpPpPp/pP1P1P1P/P7/8/4K3 b - d3 0 1',false]];
+  {const src=require('fs').readFileSync(process.env.CT_SRC||require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
+   const m=/^function deadPosition\(game\)\{.*\}$/m.exec(src);const fromF=/^function fromFEN\(fen\)\{.*\}$/m.exec(src);const im=/^function insufficientMaterial\(board\)\{.*\}$/m.exec(src);
+   L.say(!!m&&!!fromF&&!!im,'TC-PL-065 (H) the dead-position predicate, fromFEN and insufficientMaterial are all found in chess.jsx',{dead:!!m,fromFEN:!!fromF,insufficient:!!im});
+   if(m&&fromF&&im){const fns=Function("const FILES='abcdefgh';\n"+fromF[0]+'\n'+im[0]+'\n'+m[0]+'\nreturn {fromFEN,insufficientMaterial,deadPosition};')();
+     const bad=DEAD_CASES.filter(([n,f,want])=>fns.deadPosition(fns.fromFEN(f))!==want).map(c=>c[0]);
+     L.say(DEAD_CASES.filter(c=>c[2]).length>=2&&DEAD_CASES.filter(c=>!c[2]).length>=5,'TC-PL-065 (H) the case set is balanced - '+DEAD_CASES.filter(c=>c[2]).length+' dead positions and '+DEAD_CASES.filter(c=>!c[2]).length+' it must reject',{});
+     L.say(bad.length===0,'TC-PL-065 (H) a dead position is called for the locked chain and the interlocked walls, and NOT for a chain that can still move, a capture that is on, a bishop on the board, pawns a king can walk to, bare kings or a live en-passant square',{bad});
+     L.say(DEAD_CASES.filter(c=>c[2]).every(([n,f])=>!fns.insufficientMaterial(fns.fromFEN(f).board)),'TC-PL-065 (H) and neither dead position is insufficient material, so the draw they end in can only come from the dead-position rule',{});}}
+
+  // ── (I) BOTH RULES THROUGH THE UI, in Pass & Play, entered the way a player enters a set-up position: a PGN with [SetUp "1"] [FEN]
+  // and one legal move, Analyze, ply 0, ⋯ > Play from here > Pass & Play > ▶ Play this position, then play that move on the board.
+  // Until #549 (66) the review ignored [FEN], so this route did not exist and (G) was a unit test only. PRESENCE FIRST (#385): the game
+  // is live on the set-up position before the move, so the draw after it is the move's doing.
+  const pgnOf=(fen,mv)=>'[Event "T"]\n[White "A"]\n[Black "B"]\n[Result "*"]\n[SetUp "1"]\n[FEN "'+fen+'"]\n\n1. '+mv+' *';
+  for(const [tag,fen,mv,fr,to,rule] of [['material','4k3/8/8/8/4p3/4K3/8/1N6 w - - 0 1','Kxe4','e3','e4',/Insufficient material/],
+                                     ['dead','4k3/8/2p1p1p1/1pPpPpPp/pP3P1P/P2P4/8/4K3 w - - 0 1','d4','d3','d4',/Dead position/]]){
+    const b=await L.launch({geo:'kunal761',store:{ct_pool:'3'},name:'draws-ui-'+tag});
+    await b.open();
+    let reached=false;
+    try{ await R.importPgn(b,pgnOf(fen,mv),180000); await R.startReview(b); await R.goPly(b,0);
+      await b.tapCt('rev-more',500); await b.tapText(/^Play from here$/,{wait:900});
+      await b.tapText(/^Pass & Play$/,{wait:600}); await b.tapText(/^▶ Play this position$/,{wait:1600}); reached=true; }
+    catch(e){ L.say(false,'TC-PL-066 (I) '+tag+': the set-up position could not be reached through the FEN route - the assertions below are UNRUN, not green',String(e&&e.message||e).slice(0,160)); }
+    if(reached){
+      const s0=await b.page.evaluate(S);
+      L.say(s0.live&&!s0.over&&s0.card===null,'TC-PL-066 (I) '+tag+': PRESENCE the Pass & Play game is live on the set-up position before the move',s0);
+      await b.move(fr,to,900); await b.settle(700);
+      const s1=await b.page.evaluate(S);
+      L.say(/Draw/.test(s1.card||'')&&rule.test(s1.card||''),'TC-PL-066 (I) '+tag+': '+fr+'-'+to+' ends the game as a draw and the card names the rule ('+rule.source+')',s1);
+      L.say(s1.over&&!s1.live,'TC-PL-066 (I) '+tag+': and the control row is the game-over row, so the game really is over',s1);
+    }
+    L.say(b.errs.length===0,'TC-PL-066 (I) '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+
+  // ── (J) ONLINE [the job's other half; flags/draws-online-not-covered-2026-09-17]. The real CTCloud lives in index.html and imports from
+  // gstatic.com, which the harness blocks, so window.CTCloud is replaced by a STORE: it keeps one game record, merges what the app
+  // pushes and hands the record back to the app's own watcher. It decides nothing - the result under test is what the APP pushes. The
+  // record is seeded with a legal 84-ply game (generated from chess.jsx's own move generator) that leaves White, the player, one capture
+  // from K+B v K. PRESENCE FIRST: the seeded game is on the board and live before the move.
+  {const SEED=["b4","Nh6","h4","c5","bxc5","e5","Nc3","Qxh4","Rxh4","Bxc5","Rxh6","Bxf2+","Kxf2","gxh6","Ke3","d5","Nxd5","Bh3","Nxh3","Kd7","Ne7","Kxe7","d4","exd4+","Kxd4","Rf8","Bxh6","Re8","Kc5","Rf8","Bxf8+","Kxf8","a4","h5","Nf2","Ke8","c3","Nd7+","Qxd7+","Kxd7","Kb4","h4","Kc4","f5","Kd3","Rb8","Ra2","Ra8","a5","Rh8","g3","hxg3","a6","bxa6","Rxa6","gxf2","Rxa7+","Kd8","Ra1","Kd7","Rc1","Kd6","e4","fxe4+","Kxe4","Rd8","Re1","fxe1=B","Be2","Bxc3","Bf1","Rd7","Bb5","Bd4","Kxd4","Rc7","Kd3","Ke5","Ke2","Rh7","Ba6","Rh2+","Kd3","Re2"];
+   const b=await L.launch({geo:'kunal761',name:'draws-online'});
+   await b.page.addInitScript((seed)=>{const st={ready:true,_g:null,_cb:null,pushes:[],
+     onAuth(cb){setTimeout(()=>cb({uid:'gate-uid',name:'Gate'}),60);},load(){return Promise.resolve(null);},save(){return Promise.resolve();},
+     signIn(){return Promise.resolve();},signOut(){},gameList(){return Promise.resolve([]);},gameLeave(){},mmCancel(){},
+     gameCreate(color,tc){st._g={status:'active',moves:seed.slice(),chat:[],tc:null,moveAt:Date.now(),result:null,w:{uid:'gate-uid',name:'Gate'},b:{uid:'opp-uid',name:'Opp'}};return Promise.resolve({id:'g-draw',code:'DRAW1'});},
+     gameWatch(id,cb){st._cb=cb;setTimeout(()=>cb(JSON.parse(JSON.stringify(st._g))),300);return ()=>{};},
+     gamePush(id,patch){st.pushes.push(JSON.parse(JSON.stringify(patch)));Object.assign(st._g,patch);const cb=st._cb;setTimeout(()=>cb&&cb(JSON.parse(JSON.stringify(st._g))),50);return Promise.resolve();}};
+     Object.defineProperty(window,'CTCloud',{get(){return st;},set(v){},configurable:false});},SEED);
+   await b.open();
+   let reached=false;
+   try{ await P.states['online-continue'](b); await b.tapText(/^♔ As White$/,{wait:1500}); reached=true; }
+   catch(e){ L.say(false,'TC-PL-067 (J) online: the seeded game could not be reached - the assertions below are UNRUN, not green',String(e&&e.message||e).slice(0,160)); }
+   if(reached){
+     const ON=()=>b.page.evaluate(()=>{const t=(document.getElementById('root').innerText||'');const st=window.CTCloud;
+       const pcs=[...document.querySelectorAll('img')].filter(i=>{const r=i.getBoundingClientRect();return r.width>20&&r.width<80&&/^data:image\/svg/.test(i.src||'');}).length;
+       return {pieces:pcs,pushes:st.pushes.length,last:st.pushes[st.pushes.length-1]||null,drawHead:/(^|\n)Draw\s*(\n|$)/.test(t),agreed:/Draw agreed/.test(t),insuff:/Insufficient material/.test(t),moves:(st._g&&st._g.moves||[]).length};});
+     const o0=await ON();
+     L.say(o0.moves===SEED.length&&o0.pushes===0&&!o0.insuff&&!o0.drawHead,'TC-PL-067 (J) online PRESENCE: the seeded '+SEED.length+'-ply game is the live record, nothing has been pushed and no result is shown',o0);
+     await b.move('d3','e2',1200); await b.settle(800);
+     const o1=await ON();
+     L.say(o1.pushes===1&&!!o1.last&&o1.last.result==='1/2-1/2'&&o1.last.status==='over'&&o1.last.endBy==='material'&&(o1.last.moves||[]).slice(-1)[0]==='Kxe2','TC-PL-067 (J) online: Kxe2, leaving K+B v K, is pushed WITH the draw - result 1/2-1/2, status over, endBy material - in the same write as the move, as stalemate already was',o1.last);
+     L.say(o1.drawHead&&o1.insuff&&!o1.agreed,'TC-PL-067 (J) online: the result card heads it "Draw" and names "Insufficient material" - not "Draw agreed", which nobody did',o1);
+   }
+   L.say(b.errs.length===0,'TC-PL-067 (J) online: zero app errors',b.errs.slice(0,3));
+   await b.close();}
 },'29-draws');

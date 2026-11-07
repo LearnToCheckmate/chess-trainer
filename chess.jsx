@@ -43,6 +43,12 @@ function materialDiff(board){const v={p:1,n:3,b:3,r:5,q:9,k:0};let s=0;for(let r
 // #547 item (106): a position neither side can mate in is a draw by INSUFFICIENT MATERIAL - K v K, K + one minor v K, and any
 // number of bishops (either side) all standing on squares of one colour. Kept to one line so a gate can read it from this file.
 function insufficientMaterial(board){const minors=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(!p||p.t==='k')continue;if(p.t==='p'||p.t==='r'||p.t==='q')return false;minors.push({t:p.t,sq:(r+c)%2});}if(minors.length<=1)return true;if(minors.every(m=>m.t==='b')){const s0=minors[0].sq;return minors.every(m=>m.sq===s0);}return false;}
+// #549 item (92): a DEAD POSITION - kings and pawns only, every pawn blocked head-on by a pawn, no pawn able to capture now, no
+// en-passant square, and neither king able ever to reach an enemy pawn no enemy pawn defends. Then no pawn can ever move, no king can
+// ever leave the squares it can walk to, no check can ever be given, so no mate is possible. SOUND, NOT COMPLETE: it only says 'dead'
+// when that argument holds (the walk ignores the other king, which can only shrink what a king reaches); a position it misses plays on.
+// Kept to one line so gate 29 can read it out and run it, as it does insufficientMaterial.
+function deadPosition(game){const b=game&&game.board;if(!b||game.ep)return false;const pw=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(!p||p.t==='k')continue;if(p.t!=='p')return false;pw.push([r,c,p.c]);}if(!pw.length)return false;const att={w:new Set(),b:new Set()};for(const [r,c,col] of pw){const d=col==='w'?-1:1,tr=r+d;if(tr<0||tr>7)return false;const f=b[tr][c];if(!f||f.t!=='p')return false;for(const dc of[-1,1]){const tc=c+dc;if(tc<0||tc>7)continue;const q=b[tr][tc];if(q&&q.c!==col)return false;att[col].add(tr*8+tc);}}for(const col of['w','b']){const en=col==='w'?'b':'w';let k=-1;for(let i=0;i<64;i++){const p=b[i>>3][i&7];if(p&&p.t==='k'&&p.c===col)k=i;}if(k<0)return false;const seen=new Set([k]),q=[k];while(q.length){const s=q.pop(),r=s>>3,c=s&7;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const nr=r+dr,nc=c+dc;if(nr<0||nr>7||nc<0||nc>7)continue;const n=nr*8+nc,p=b[nr][nc];if(p&&p.t==='p'){if(p.c===en&&!att[en].has(n))return false;continue;}if(att[en].has(n)||seen.has(n))continue;seen.add(n);q.push(n);}}}return true;}
 function capturedList(board){const full={p:8,n:2,b:2,r:2,q:1};const cnt={w:{p:0,n:0,b:0,r:0,q:0},b:{p:0,n:0,b:0,r:0,q:0}};for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.t!=='k'&&cnt[p.c])cnt[p.c][p.t]++;}const mk=(side)=>{const o=side==='w'?'b':'w';const a=[];['q','r','b','n','p'].forEach(t=>{const miss=full[t]-cnt[o][t];for(let i=0;i<miss;i++)a.push(t);});return a;};return {w:mk('w'),b:mk('b')};}
 // Player-facing material readout. tone: good/bad (vs computer), lead (vs human), neutral (even).
 function materialLabel(board,opponent,pColor){const md=materialDiff(board);if(opponent==='computer'){const pl=pColor==='w'?md:-md;return{text:pl>0?`You're up ${pl}`:pl<0?`You're down ${-pl}`:'Material even',tone:pl>0?'good':pl<0?'bad':'neutral',diff:md};}return{text:md>0?`White +${md}`:md<0?`Black +${-md}`:'Material even',tone:md!==0?'lead':'neutral',diff:md};}
@@ -4992,6 +4998,8 @@ export default function App(){
   // that online is NOT DONE rather than not ours: it needs the same check derived from `og.moves` and pushed
   // as `endBy='repetition'`, which is a different derivation and touches what the other player sees. Filed as
   // `draws-online-not-covered-2026-09-17`. Found by the antagonist pass at #414 by reading `functions/`.
+  // #549 item (92): insufficient material and dead positions ARE now declared online, by the mover's push in doMove beside
+  // stalemate (they need only the position, not the move history); online repetition and fifty-move are still not.
   // What this DOES cover is Pass & Play and vs Computer, where it was measured, and both push to `playHist`,
   // so one check serves both - the #375 rule, a fix must cover the configuration the user has.
   const drawBy=useMemo(()=>{
@@ -5001,6 +5009,7 @@ export default function App(){
     const cur=keys[keys.length-1];
     let seen=0; for(const k of keys) if(k===cur) seen++;
     if(insufficientMaterial(game.board))return 'material';   // #547 item (106)
+    if(deadPosition(game))return 'dead';   // #549 item (92): a frozen king-and-pawn position, see deadPosition
     if(seen>=3)return 'repetition';
     const h=game.history||[];
     let quiet=0;
@@ -5737,7 +5746,7 @@ export default function App(){
       let _end='';try{const _pe=playEndRef.current||playEnd;const _nm=sd=>sd==='w'?_w:_b;const _lo=sd=>sd==='w'?'b':'w';
         if(_pe&&_pe.reason==='resign'&&_pe.winner)_end=_nm(_lo(_pe.winner))+' resigned';
         else if(_pe&&_pe.reason==='time'&&_pe.winner)_end=_nm(_lo(_pe.winner))+' ran out of time';
-        else if(_pe&&_pe.reason==='draw')_end=_pe.by==='fifty'?'Draw by the fifty-move rule':_pe.by==='agreed'?'Draw agreed':_pe.by==='material'?'Draw by insufficient material':'Draw by threefold repetition';
+        else if(_pe&&_pe.reason==='draw')_end=_pe.by==='fifty'?'Draw by the fifty-move rule':_pe.by==='agreed'?'Draw agreed':_pe.by==='material'?'Draw by insufficient material':_pe.by==='dead'?'Draw: dead position':'Draw by threefold repetition';
         else if(_gameOver&&_gameTermStatus==='checkmate')_end='Checkmate';
         else if(_gameOver&&_gameTermStatus==='stalemate')_end='Draw by stalemate';}catch(e){_end='';}
       pgn='[White "'+_q(_w)+'"]\n[Black "'+_q(_b)+'"]\n'+(/^\d{3,4}$/.test(_wr)?('[WhiteElo "'+_wr+'"]\n'):'')+(/^\d{3,4}$/.test(_br)?('[BlackElo "'+_br+'"]\n'):'')+'[Result "'+_r+'"]\n'+(_end?('[CTEnded "'+_q(_end)+'"]\n'):'')+'\n'+pgn+(_r!=='*'?(' '+_r):'');}catch(e){}
@@ -6267,6 +6276,10 @@ export default function App(){
       if(og.tc&&og.tc.kind!=='corr'&&og.tc.init&&og.clk){const _mc=myColorRef.current,_oc=(_mc==='w'?'b':'w');const _used=_now-(og.moveAt||_now);const _rem=Math.max(0,(og.clk[_mc]||0)-_used)+((og.tc.inc||0)*1000);push.clk={};push.clk[_mc]=_rem;push.clk[_oc]=(og.clk[_oc]||0);if(_rem<=0){push.result=(_mc==='w'?'0-1':'1-0');push.status='over';push.endBy='time';}}
       if(st==='checkmate'){push.result=(auth.turn==='w'?'1-0':'0-1');push.status='over';push.endBy='mate';}
       else if(st==='stalemate'){push.result='1/2-1/2';push.status='over';push.endBy='stalemate';}
+      /* #549 item (92): the same rule draws a local game ends on, declared by the mover's client exactly as stalemate is one line up
+         (there is no server game logic). Both clients render the result from the pushed record, so they cannot disagree. */
+      else if(insufficientMaterial(ng.board)){push.result='1/2-1/2';push.status='over';push.endBy='material';}
+      else if(deadPosition(ng)){push.result='1/2-1/2';push.status='over';push.endBy='dead';}
       if(window.CTCloud)window.CTCloud.gamePush(og.id,push).catch(err=>{const c=(err&&(err.code||err.message))||'error';setOnlineInfo('Move not saved ('+c+'). Check your connection; if it mentions permissions, the database rules need a tweak.');});
       repaint();return;
     }
@@ -6767,7 +6780,7 @@ export default function App(){
   // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone
   // does not tell the player why a game they were still playing has just ended. `_winTxt` already reads
   // 'Draw' here, since `playEnd.winner` is undefined for a draw and `_winSide==null` is a loose comparison.
-  const gameResult=_gameOver?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(_gameTermStatus==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':playEnd.by==='agreed'?'Draw agreed':playEnd.by==='material'?'Insufficient material':'Threefold repetition'):_winTxt}:null;
+  const gameResult=_gameOver?{head:(playEnd?(playEnd.reason==='draw'?'Draw':playEnd.reason==='time'?'Time!':'Resigned'):(_gameTermStatus==='checkmate'?'Checkmate!':'Stalemate')),sub:(playEnd&&playEnd.reason==='draw')?(playEnd.by==='fifty'?'Fifty-move rule':playEnd.by==='agreed'?'Draw agreed':playEnd.by==='material'?'Insufficient material':playEnd.by==='dead'?'Dead position':'Threefold repetition'):_winTxt}:null;
   const evalFallback=inReview?(anaMode?((engLine&&engLine.cp!=null)?Math.max(-99,Math.min(99,engLine.cp)):evalPawns(boardGame)):(ply>0?review.analysis[ply-1].evalAfter:0)):((mode==='play'&&opponent==='computer')?evalPawns(game):0);
   const dispFen=toFEN(boardGame);
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
@@ -10975,8 +10988,10 @@ export default function App(){
                   </div></div>);
               }
               const meWon=(og.result==='1-0'&&myColor==='w')||(og.result==='0-1'&&myColor==='b');const isDraw=og.result==='1/2-1/2';
-              const head=isDraw?'Draw agreed':(meWon?'You won!':'You lost');
-              const sub=isDraw?'½–½':(og.endBy==='resign'?(og.resignedBy===myColor?'You resigned':oppName+' resigned'):(og.endBy==='mate'?'by checkmate':(og.endBy==='time'?'on time':'')));
+              /* #549 item (92) [Amber: flags/amber-549-draws-dead-position-and-online]: a RULE draw is not an agreed one - the head said 'Draw agreed' for a stalemate too */
+              const _rule=isDraw&&(og.endBy==='material'||og.endBy==='dead'||og.endBy==='stalemate');
+              const head=isDraw?(_rule?'Draw':'Draw agreed'):(meWon?'You won!':'You lost');
+              const sub=isDraw?(og.endBy==='material'?'Insufficient material':og.endBy==='dead'?'Dead position':og.endBy==='stalemate'?'Stalemate':'½–½'):(og.endBy==='resign'?(og.resignedBy===myColor?'You resigned':oppName+' resigned'):(og.endBy==='mate'?'by checkmate':(og.endBy==='time'?'on time':'')));
               let actions;
               if(rB&&rB!==myColor)actions=(<><button onClick={onlineDeclineRematch} style={gBtn}>Decline</button><button onClick={onlineAcceptRematch} style={oBtn}>Accept rematch</button></>);
               else if(rB===myColor)actions=(<><button disabled style={{...gBtn,opacity:.6,cursor:'default'}}>Rematch offered…</button><button onClick={onlineCancelRematch} style={gBtn}>Cancel</button></>);

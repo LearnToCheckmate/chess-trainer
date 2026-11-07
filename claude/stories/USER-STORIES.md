@@ -955,6 +955,15 @@ The clauses, each one measurable:
    independently, from different doors. The CLAUSE is unharmed by the correction, because what it asserts is
    that the fresh render must agree with the fitted one - not that either takes a particular value - and
    antagonist B measured #436's one-shot size equal to #435's post-nudge size at all twelve heights it swept.
+8. **A game nobody can win ends as a draw, and says why - offline and online.** *(Added #549 item (92), from
+   jobs/draws-insufficient-material-and-dead-positions: "the game ends in a draw when no mate is possible, offline and
+   online".)* Insufficient material (K v K, K and one minor v K, bishops all on one colour; #547) and a dead position -
+   kings and pawns only, every pawn blocked by a pawn, no capture on, no en-passant square, neither king able to reach an
+   undefended enemy pawn - end a Pass & Play or vs Computer game with a card reading Draw and naming the rule. In an online
+   game the player whose move makes it so pushes the draw with that move (endBy material or dead, as stalemate already
+   was), and the card heads it Draw and names the rule rather than "Draw agreed". The dead-position rule is SOUND, NOT
+   COMPLETE: a position it misses plays on (a dead position with pieces, or a fortress, is not called). Cases TC-PL-065,
+   TC-PL-066, TC-PL-067 in `gates/regress/29-draws.js` blocks (H), (I), (J).
 
 ### US-PL-12 A finished game stays finished, whatever ply I am looking at
 *Added #437, from jobs/the-control-row-is-keyed-to-the-ply-shown-not-to-whether-the-game-is-over-2026-09-29,
