@@ -6310,17 +6310,23 @@ export default function App(){
        mixed-source input: 230 rows from two accounts, ccAccts ['cc:...'] alone, and a limit line that never mentioned the
        Lichess account's 200-game cut. ACCT_K is written synchronously below, so it is always the newest list. */
     const _cur=(()=>{try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');return Array.isArray(a)?a:ccAccts;}catch(e){return ccAccts;}})();
-    const order=[..._cur.filter(x=>x!==id&&x in M),id];
-    const evicted=[];
-    while(ids.length>ACCT_MAX){const drop=order.shift()||ids[0];delete M[drop];evicted.push(drop);ids=Object.keys(M);}
+    /* #549 antagonist B final read (B1-F): ON A LAUNCH THAT COULD NOT READ THE STORE (ACCT_UNREAD) M holds only what this
+       session fetched, so "x in M" is false of every account still held in IndexedDB. Filtering by it wrote ct_accts as
+       [id] alone and _caps dropped every other account's bound - their games came back on the next good launch with no
+       chip to remove, follow or grow them. In such a session the list and the bounds are only ADDED to, never cut. */
+    const order=[..._cur.filter(x=>x!==id&&(ACCT_UNREAD||x in M)),id];
+    const evicted=[],_evq=order.filter(x=>x in M);
+    while(ids.length>ACCT_MAX){const drop=_evq.shift()||ids[0];delete M[drop];evicted.push(drop);ids=Object.keys(M);}
     acctGamesRef.current=M;
     // #432 the bound rides the SAME eviction as the games it describes, in this one place, so a
     // dropped account cannot leave a stale limit behind for the screen to state.
-    const _caps=(stored)=>{const C={};const _p={...(acctCapRef.current||{}),[id]:bound||'all'};
-      Object.keys(_p).forEach(k=>{if(k in stored)C[k]=_p[k];});
+    // B2-F: and a walk made while the store is unread records NO bound: it ran against an empty map, so its 'games' or
+    // 'months' would be written over a recorded 'all' and the next good launch would say older games aren't loaded.
+    const _caps=(stored,gone)=>{const C={};const _p={...(acctCapRef.current||{})};if(!ACCT_UNREAD)_p[id]=bound||'all';
+      Object.keys(_p).forEach(k=>{if(k in stored||(ACCT_UNREAD&&gone.indexOf(k)<0))C[k]=_p[k];});
       acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}};
-    _caps(M);
-    const next=order.filter(x=>M[x]);
+    _caps(M,evicted);
+    const next=order.filter(x=>M[x]||(ACCT_UNREAD&&evicted.indexOf(x)<0));
     setCcAccts(next);
     try{localStorage.setItem(ACCT_K,JSON.stringify(next));}catch(e){}
     mergeGames();
@@ -6331,7 +6337,7 @@ export default function App(){
     const lost=Object.keys(M).filter(k=>!(k in stored));
     if(lost.length){
       const M2={...(acctGamesRef.current||{})};lost.forEach(k=>delete M2[k]);acctGamesRef.current=M2;
-      _caps(M2);
+      _caps(M2,evicted.concat(lost));
       let _now=next;try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'null');if(Array.isArray(a))_now=a;}catch(e){}
       const n2=_now.filter(x=>lost.indexOf(x)<0);setCcAccts(n2);try{localStorage.setItem(ACCT_K,JSON.stringify(n2));}catch(e){}
       setAcctDropped(d=>[...new Set([...d,...lost])]);

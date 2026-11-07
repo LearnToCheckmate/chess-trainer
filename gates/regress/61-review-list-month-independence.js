@@ -1246,6 +1246,45 @@ async function input(seed,n,geo,name,thin){
     L.say(b.errs.length===0,'A32d '+tag+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
+  {
+    // TC-R174 (#549 antagonist B final read, B1-F and B2-F): AN UNREAD SESSION MUST NOT CUT THE LIST OR THE BOUNDS. Two accounts
+    // migrate into IndexedDB: gateold (50 games, bound 'months', stamped fresh so the follow refresh leaves it alone) and the box
+    // account gateacct1 (5 games, bound 'all'). Then a launch on which every indexedDB.open errors (the TC-R144 seam) and the
+    // network answers, so entering Review fetches the box account into an EMPTY map. Pre-fix, acctStore filtered the list by
+    // `x in M` and wrote ct_accts as the box account alone and dropped gateold's ct_acctcap entry (B1-F), and recorded the walk's
+    // 'games' over the box account's 'all' (B2-F).
+    const BOX='cc:'+ACCTS[0];
+    const boxRows=oldRows().slice(0,5).map(g=>({...g,acct:ACCTS[0],white:ACCTS[0]}));
+    const state={seed:'c',hits:[],refuse:true};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_ccuser:ACCTS[0],ct_accts:[OLDID,BOX],ct_acctgames:{[OLDID]:oldRows(),[BOX]:boxRows},ct_acctcap:{[OLDID]:'months',[BOX]:'all'},ct_acctfresh:{[OLDID]:{ok:Date.now(),at:Date.now()}}},name:'idb-unread-store'});
+    await b.ctx.addInitScript(SEAM);await stub(b,state);
+    const tag='TC-R174 B1-F/B2-F, a box-account fetch on a launch whose IndexedDB will not open, with '+OLD+' (bound months) and '+ACCTS[0]+' (bound all) held';
+    const LSR=()=>b.page.evaluate(()=>{const j=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return 'unparsable';}};return {accts:j('ct_accts'),cap:j('ct_acctcap'),g:localStorage.getItem('ct_acctgames'),m:localStorage.getItem('ct_acctgames_migrated')};});
+    await b.open();await b.tile('Review');await b.settle(1200);
+    const r0=await READ(b);const ls0=await LSR();
+    if(L.say(((r0.idbMap||{})[OLDID]||[]).length===OLDN&&((r0.idbMap||{})[BOX]||[]).length===5&&ls0.g===null&&!!ls0.m&&Array.isArray(ls0.accts)&&ls0.accts.indexOf(OLDID)>=0&&ls0.cap&&ls0.cap[OLDID]==='months'&&ls0.cap[BOX]==='all','A34-0 vacuity '+tag+': the first launch migrated both accounts into IndexedDB, both are listed and both bounds are recorded',{idb:Object.keys(r0.idbMap||{}).map(k=>k+'='+(r0.idbMap[k]||[]).length),ls:{accts:ls0.accts,cap:ls0.cap,g:ls0.g&&ls0.g.length,m:!!ls0.m}})){
+      await seamArm(b,{openFail:true});
+      const h0=state.hits.length;state.refuse=false;
+      await b.open();await b.tile('Review');await b.settle(1800);
+      const sm=await seamRead(b);
+      const r1=await READ(b);const ls1=await LSR();
+      const boxHits=state.hits.slice(h0).filter(h=>h.indexOf(ACCTS[0]+'/')===0).length;
+      if(L.say(!!sm&&sm.opensRefused>=1&&boxHits>=2&&/saved games couldn.t be read/i.test(r1.body||''),'A34-0b vacuity '+tag+': the app\'s open was refused, the screen says the saved games could not be read, and the box account WAS fetched in that session',{seam:sm,boxRequests:boxHits,rows:r1.rows})){
+        L.say(Array.isArray(ls1.accts)&&ls1.accts.indexOf(OLDID)>=0&&ls1.accts.indexOf(BOX)>=0,'A34a '+tag+': ct_accts still lists '+OLD+' after the fetch (pre-fix it was written as the box account alone)',{accts:ls1.accts});
+        L.say(!!ls1.cap&&ls1.cap[OLDID]==='months','A34b '+tag+': '+OLD+'\'s recorded bound survives in ct_acctcap (pre-fix _caps dropped it)',{cap:ls1.cap});
+        L.say(!!ls1.cap&&String(ls1.cap[BOX]||'')==='all','A34c '+tag+': and the box account keeps its recorded \'all\' - a walk made against an unread store records no bound (pre-fix it wrote the walk\'s own)',{cap:ls1.cap});
+        await seamArm(b,null);state.refuse=true;
+        await b.open();await b.tile('Review');await b.settle(1500);
+        const r2=await READ(b);const ls2=await LSR();
+        const nx=await b.page.locator('[aria-label="Remove '+OLD+'"]').count();
+        L.say(nx===1&&((r2.idbMap||{})[OLDID]||[]).length===OLDN,'A34d '+tag+': on the next good launch '+OLD+' is still a chip that can be removed, over its '+OLDN+' games',{chips:nx,idb:((r2.idbMap||{})[OLDID]||[]).length,accts:ls2.accts});
+        const c2=HELD_CLAIM((r2.cap&&r2.cap.text)||'')||[];
+        L.say(!!ls2.cap&&String(ls2.cap[BOX]||'').split('+')[0]==='all'&&!c2.some(e=>e.u===ACCTS[0]),'A34e '+tag+': and the next good launch still records '+ACCTS[0]+' as all held, and its line names no older '+ACCTS[0]+' games as not loaded',{bound:(ls2.cap||{})[BOX],line:(r2.cap&&r2.cap.text)||null});
+      }
+    }
+    L.say(b.errs.length===0,'A34f '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
 
   {
     // ── A24 TC-R141 / TC-R142 #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23, work[3]: A FOLLOWED PLAYER IS
