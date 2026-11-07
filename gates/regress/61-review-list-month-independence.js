@@ -1186,6 +1186,44 @@ async function input(seed,n,geo,name,thin){
     L.say(b.errs.length===0,'A31f '+tag+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
+  {
+    // TC-R144 (A3-R5): A STORE THAT CANNOT BE READ IS NOT AN EMPTY STORE. After the migration has removed ct_acctgames, a launch
+    // on which IndexedDB will not open used to load {} and present the held account with no games and no word about it; and
+    // removing the account in that session deleted it from localStorage only, so its IndexedDB record came back next launch.
+    const state={seed:'c',hits:[],refuse:true};
+    const b=await L.launch({geo:{w:375,h:730,safe:''},store:{ct_accts:[OLDID],ct_acctgames:{[OLDID]:oldRows()}},name:'idb-unreadable'});
+    await b.ctx.addInitScript(SEAM);await stub(b,state);
+    const tag='TC-R144 A3-R5, IndexedDB will not open on a launch after the migration, with '+OLD+' ('+OLDN+' games) held';
+    await b.open();await b.tile('Review');await b.settle(1200);
+    const r0=await READ(b);
+    const ls0=await b.page.evaluate(()=>({g:localStorage.getItem('ct_acctgames'),m:localStorage.getItem('ct_acctgames_migrated')}));
+    if(L.say(r0.rows===OLDN&&((r0.idbMap||{})[OLDID]||[]).length===OLDN&&ls0.g===null&&!!ls0.m,'A32-0 vacuity '+tag+': the first launch migrated the '+OLDN+' games into IndexedDB and removed the localStorage copy',{rows:r0.rows,idb:((r0.idbMap||{})[OLDID]||[]).length,ls:ls0})){
+      await seamArm(b,{openFail:true});
+      await b.open();await b.tile('Review');await b.settle(1200);
+      const sm=await seamRead(b);
+      const r1=await READ(b);
+      L.say(!!sm&&sm.opensRefused>=1&&((r1.idbMap||{})[OLDID]||[]).length===OLDN,'A32-0b vacuity '+tag+': the app\'s open was refused, and the '+OLDN+' games are still in IndexedDB',{seam:sm,idb:((r1.idbMap||{})[OLDID]||[]).length,rows:r1.rows});
+      const un1=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="acct-unread"]');return e?(e.innerText||'').trim():null;});
+      L.say(/saved games couldn.t be read/i.test(r1.body||''),'A32a '+tag+': the screen SAYS the saved games could not be read, instead of showing the account as if it held none',{rows:r1.rows,said:un1});
+      L.say(!/saved games couldn.t be read/i.test(r0.body||''),'A32a-0 '+tag+': and it is NOT said on the launch before, when the store read normally - the sentence is keyed to the failed read, not always on',{said:null});
+      // remove the account in THIS session, then a launch on which IndexedDB opens again
+      const x=b.page.locator('[aria-label="Remove '+OLD+'"]');
+      const nx=await x.count();
+      if(L.say(nx===1,'A32-0c vacuity '+tag+': the account chip\'s remove button is there to tap',{count:nx})){
+        await x.click();await b.settle(400);
+        await seamArm(b,null);
+        await b.open();await b.tile('Review');await b.settle(1200);
+        const r2=await READ(b);
+        const q=await b.page.evaluate(()=>localStorage.getItem('ct_acctforget'));
+        L.say(!((r2.idbMap||{})[OLDID])&&r2.rows===0,'A32b '+tag+': an account removed while the store could not be read STAYS removed - on the next launch IndexedDB no longer holds it and no game of it is listed (it used to come back)',{idb:r2.idbMap?((r2.idbMap[OLDID]||[]).length):null,rows:r2.rows,queue:q});
+        L.say(q===null,'A32c '+tag+': and the queued delete was carried out and cleared',{queue:q});
+        L.say(!/saved games couldn.t be read/i.test(r2.body||''),'A32e '+tag+': and once the store reads again the sentence is gone',{rows:r2.rows});
+      }
+    }
+    L.say(b.errs.length===0,'A32d '+tag+': zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+
   const GEOS7=[{w:320,h:568},{w:360,h:640},{w:375,h:667},{w:375,h:730},{w:390,h:844},{w:414,h:896},{w:440,h:956}];
   // ── ALL SEVEN GEOMETRIES BY DEFAULT [#544, item (7); this job's remainder, "run the default sweep at all
   //    seven geometries rather than three"]. It was three unless CT_FULL=1, so four of the seven never ran in

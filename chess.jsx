@@ -325,8 +325,8 @@ async function acctGamesSave(map,order,changed,removed){
     // nothing is reported dropped - the session keeps what it has, the store keeps what it had.
     for(let soft=0;;){
       const why={};
-      if(await acctIdbWrite(puts,dels,why))return m;
-      if(!why.quota){if(++soft<2)continue;return {...(map||{})};}
+      if(await acctIdbWrite(puts,dels,why)){acctFqDrop(Object.keys(puts).concat(dels));return m;}
+      if(!why.quota){if(++soft<2)continue;acctFqAdd(removed);return {...(map||{})};}   // A3-R5: a removal that did not land is queued
       if(!queue.length||!Object.keys(puts).length)break;   // a write with nothing to put is never "too big": evicting would not help
       const k=queue.shift();delete m[k];delete puts[k];dels.push(k);
     }
@@ -334,6 +334,9 @@ async function acctGamesSave(map,order,changed,removed){
     // unknown - so the map is returned as it was rather than reporting every account as dropped.
     const back=await acctIdbReadAll();return back||{...(map||{})};
   }
+  // A3-R5: on this store a removal cannot reach IndexedDB, which may still hold the account (a launch that could not
+  // read it, or a migration whose read-back fell short), so it is queued for the next launch that can.
+  if(removed&&removed.length&&typeof indexedDB!=='undefined'&&indexedDB)acctFqAdd(removed);
   for(;;){
     try{localStorage.setItem(ACCT_G,JSON.stringify(m));return m;}catch(e){}
     if(!queue.length)break;
@@ -361,11 +364,28 @@ async function acctGamesSave(map,order,changed,removed){
 // EVERY IndexedDB CALL RESOLVES AND NONE REJECTS, AND A FAILURE IS NEVER READ AS "EMPTY" (CLAUDE.md, "a failed
 // query is not an answer"): a read that fails returns null, and null puts the session on localStorage rather
 // than letting an empty map be written over a store that could not be read. An open that never answers (seen on
-// iOS Safari) times out to the same fallback. A device with no IndexedDB keeps the old store: localStorage,
+// iOS Safari) times out to the same fallback. [A3-R5, R18: "falls back to localStorage" is true only BEFORE the
+// migration; after it there is no localStorage copy to fall back to, and that launch is ACCT_UNREAD - see below.] A device with no IndexedDB keeps the old store: localStorage,
 // byte-bounded, ACCT_GMAX per account.
 const GLIST_PAGE=ACCT_GMAX;   // #549 item (78): rows rendered before the player asks for more
 const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
 let _acctIdbP=null, ACCT_MODE='ls';
+// #549 antagonist A round 5 (A3-R5): A STORE THAT COULD NOT BE READ IS NOT AN EMPTY STORE. The claim above held only
+// until the migration ran: it removes ct_acctgames, so a later launch on which IndexedDB will not open had nothing to
+// fall back to and loaded {} - the held accounts showed with no games and nothing said why, and removing one in that
+// session deleted it from localStorage only, so its IndexedDB record came back on the next launch. Now:
+// ACCT_UNREAD is true on such a launch (migration stamped, IndexedDB unreadable), and the games-cap line says the saved
+// games could not be read rather than presenting the list as all there is. The session still runs on the localStorage
+// store, which is safe because the next good launch UNIONS that copy into IndexedDB and never overwrites with it.
+// A removal that cannot reach IndexedDB (this launch, or a write that failed twice) is QUEUED in ct_acctforget and
+// carried out on the next launch that can read the store, before anything else is merged; a later successful write
+// of the same account takes it back off the queue, so re-adding an account is not undone by an old removal.
+let ACCT_UNREAD=false;
+const ACCT_FQ='ct_acctforget';
+function acctFqLoad(){try{const a=JSON.parse(localStorage.getItem(ACCT_FQ)||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string'):[];}catch(e){return [];}}
+function acctFqSet(a){try{if(a.length)localStorage.setItem(ACCT_FQ,JSON.stringify(a));else localStorage.removeItem(ACCT_FQ);}catch(e){}}
+const acctFqAdd=(ids)=>{if(ids&&ids.length)acctFqSet([...new Set([...acctFqLoad(),...ids])]);};
+const acctFqDrop=(ids)=>{const q=acctFqLoad();if(q.length&&ids&&ids.length)acctFqSet(q.filter(x=>ids.indexOf(x)<0));};
 function acctIdbOpen(){
   if(_acctIdbP)return _acctIdbP;
   _acctIdbP=new Promise(res=>{
@@ -422,7 +442,11 @@ const acctStoreCap=()=>ACCT_MODE==='idb'?ACCT_GMAX_STORE:ACCT_GMAX;
 async function acctGamesLoadAsync(){
   let ls=null;try{const v=localStorage.getItem(ACCT_G);if(v!=null){const o=JSON.parse(v);ls=(o&&typeof o==='object')?o:{};}}catch(e){ls=null;}
   const held=await acctIdbReadAll();
-  if(held==null){ACCT_MODE='ls';return ls||{};}
+  if(held==null){ACCT_MODE='ls';try{ACCT_UNREAD=!!localStorage.getItem(ACCT_MIG);}catch(e){ACCT_UNREAD=false;}return ls||{};}
+  // A3-R5: removals queued while the store could not be reached are carried out first. If the delete fails again the
+  // accounts stay queued and are still left out of this session's map, because the player removed them.
+  const fq=acctFqLoad().filter(id=>id in held);
+  if(fq.length){if(await acctIdbWrite({},fq))acctFqSet(acctFqLoad().filter(id=>fq.indexOf(id)<0));fq.forEach(id=>{delete held[id];});}
   if(ls==null){ACCT_MODE='idb';return held;}
   const merged={...held},puts={};
   Object.keys(ls).forEach(id=>{if(!Array.isArray(ls[id]))return;merged[id]=acctMergeRows(ls[id],held[id],ACCT_GMAX_STORE);puts[id]=merged[id];});
@@ -9160,6 +9184,10 @@ export default function App(){
                   <button onClick={()=>acctForget(id)} aria-label={'Remove '+_u} title={'Remove '+_u+' and its games'} style={{width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>{'\u00d7'}</button>
                 </span>);})}
             </div>)}
+            {/* #549 A3-R5 [Amber: flags/amber-549-unreadable-store-said]: the store could not be read this launch, so the chips'
+                counts are not what is held. Said under the chips (the games list does not render with no games), and it says
+                nothing was deleted because nothing was. */}
+            {ACCT_UNREAD&&ccAccts.length>0&&<div data-ct="acct-unread" role="status" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{'Your saved games couldn\u2019t be read on this device this time, so they aren\u2019t shown. Nothing has been deleted.'}</div>}
             {ccLoading&&ccProg&&<div data-ct="cc-progress" role="status" aria-live="polite" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{ccProg}</div>}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
