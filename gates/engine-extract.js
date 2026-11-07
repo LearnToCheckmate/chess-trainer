@@ -53,7 +53,11 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   // shipped functions (whyShape is the generator the accept sentence reuses).
   'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg','DRILL_GRADE_DEFAULT','DRILL_GRADE',
   // #549 item (35): the brilliancy motif tagger, read by gates/measure-brilliancy-motifs.js and gate 89.
-  'BRIL_MOTIF_ORDER','brilMotifs'];
+  'BRIL_MOTIF_ORDER','brilMotifs',
+  // #549 item (98): the opening book - the named-position table, its key, and the Book count the review reads, so gate 87 and
+  // gates/opening-book/build.js run the shipped functions (lessonBookPlies takes the lesson list as an argument; the stub window has none).
+  'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS'];
+
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,
 // so it throws HERE, at require time, naming it - instead of a ReferenceError on first call in whatever caller hits it.

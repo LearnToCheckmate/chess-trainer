@@ -1,0 +1,13 @@
+{
+ "what": "chess.com's Book count per side for the seven answer-key games (#549 item (98), jobs/opening-book-coverage-gap). Book is a Tier 1 quantity (decisions/desk-round-1-2026-09-19 d08 and its amendment: it never moved across five readings of chess.com's own review), so it is asserted on exactly. The PGNs are claude/agents/bench/pgn/<id>.pgn, the same movetext as the tracker's docs/benchmark-answerkey-7-pgn (checked move for move when this file was written).",
+ "source": "tracker artifact 5326ERvZCZ5tEYRkPavPTF, collection answerkey, fields bookWhite and bookBlack of each row; harvested in Kunal's own browser by the benchmark lane, never fetched from this sandbox",
+ "games": [
+  {"id": "184024052818", "bookWhite": 1, "bookBlack": 1},
+  {"id": "180000436342", "bookWhite": 4, "bookBlack": 4},
+  {"id": "174540842570", "bookWhite": 2, "bookBlack": 2},
+  {"id": "174433078044", "bookWhite": 2, "bookBlack": 1},
+  {"id": "174431023868", "bookWhite": 4, "bookBlack": 3},
+  {"id": "174386847848", "bookWhite": 4, "bookBlack": 4},
+  {"id": "174331795882", "bookWhite": 3, "bookBlack": 2}
+ ]
+}

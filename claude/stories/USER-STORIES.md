@@ -1959,6 +1959,13 @@ As a player who keeps finding the same brilliant move, every Brilliant move is n
 - A plain good move earns no name, a bishop for a pawn far from the king is not a greek gift, a capture that gives nothing away is not one either, and a line that does not end in mate is never a mating attack. (TC-R172)
 - Over his 196 recorded chess.com games since 1 Sep 2026, under the rule the app grades by his 20 brilliants span 4 kinds and 9 are the greek gift; under the one rule (off) his 81 span 6 and 17% are. (TC-R173)
 
+### US-R110 My review calls an opening move Book when it is a known opening, by position, however I got there
+*Added #549 item (98), from jobs/opening-book-coverage-gap (Kunal, decisions/desk-round-1-2026-09-19 d05: "Widen the opening table, KEYED BY POSITION rather than by move prefix, so it survives transpositions").*
+As a player reviewing a game (with the opening list switched on), the opening moves that reach a known, named opening position are marked Book and left out of my accuracy, whichever move order got me there, including openings the lessons do not teach such as 1.b3.
+- Book is the larger of the lesson lines' move prefix and the last of the first 24 positions that ends a named line of the vendored opening list (lichess-org/chess-openings, CC0), keyed by board, side to move and castling. (TC-R156, TC-R157, TC-R159)
+- On the seven answer-key games my Book count is within one ply of chess.com's on at least five, never more than one ply longer, and never shorter than the lessons alone gave. (TC-R158, TC-R161)
+- It ships OFF until Kunal has seen what it does to accuracy (the #549 cut-line ruling): with no switch set Book is the lesson lines alone, exactly as before, and ct_book_table='1' turns the list on. (TC-R160, TC-R161)
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and
