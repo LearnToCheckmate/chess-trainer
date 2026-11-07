@@ -329,6 +329,8 @@ L.run(async()=>{
 // CONTROL-RECORD: e129a5c 2026-11-06 total=164 red=12 scope=trial:a76671da6f71 how=FootBtn's floor cut to 40px (minHeight/minWidth 40, height 40): all 4 TC-LS-051 tap-target lines red at 375x761 and 320x568
 // CONTROL-RECORD: c8308a4 2026-11-06 total=170 red=3 scope=trial:9b2d05899a1c how=the pre-fix chess.jsx (HEAD 92e8f51, no lesson resume) - TC-LS-053's three case lines red at kunal761, both re-opens read 'Press Play to watch' with the demo footer [#549 item (107)]
 // CONTROL-RECORD: da53b65 2026-11-06 total=174 red=2 scope=trial:7d815ea63d6b how=mutant: setGame dropped from the lesson resume (note, phase and footer restored, board not); red: exactly the two TC-LS-053 placement lines. The fix trial 64d46d055bd5 reads 174 PASS 0 FAIL.
+// CONTROL-RECORD: f913b91 2026-11-07 total=240 red=10 scope=trial:51f45de88555 how=the lesson-name line capped at maxWidth 120 - TC-R152b red alone at all five geometries x two states (job 100)
+// CONTROL-RECORD: f913b91 2026-11-07 total=240 red=32 scope=trial:fd5fade99686 how=the pre-fix run-tree bundle (name in the footer, sheet buttons nowrap, Home 18-char cut) - TC-R152a/b/c red x30 and TC-R152e x2; TC-R152d measured red separately at 320 after its widest-name fix (job 100)
 
   // ── TC-LS-051 (US-LS-11) [#549 item (80); jobs/lesson-footer-icons-consistent, Kunal 2026-09-14 "consistent with Review"]:
   // THE LESSON FOOTER (demo AND practice) AND THE REVIEW TRANSPORT ROW ARE ONE COMPONENT. Measured on the pre-fix bundle
