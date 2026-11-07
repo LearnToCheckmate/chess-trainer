@@ -96,7 +96,10 @@ const TWO_OTHER={w:'2111',b:'2099'};
 const _opIns=(x)=>R.PGN_OPERA.replace(/(\[Site "[^"\n]*"\]\s*\n)/,'$1'+x+'\n');
 const PGN_ODD=[['an escaped quote in a value','[Annotator "Joe \\"JJ\\" Smith"]'],
                ['a ; comment line between tags','; annotated by hand'],
-               ['a % escape line between tags','% private data']].map(([k,x])=>({k,x,pgn:_opIns(x)}));
+               ['a % escape line between tags','% private data'],
+               // #549 antagonist B final read (B6-F): a MALFORMED tag (an unescaped quote) is skipped, not read as movetext -
+               // the reader used to stop at it and drop every later tag, [FEN] among them
+               ['a malformed tag with an unescaped quote','[Event "Rapid "Open""]']].map(([k,x])=>({k,x,pgn:_opIns(x)}));
 
 // THE NOTE IS FOUND BY WHAT IT SAYS, not by the data-ct #429 added in the same commit as these assertions [#549 item (19);
 // jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Opened against the pre-#429 bundle
@@ -297,7 +300,7 @@ L.run(async()=>{
   }
   await e.close();
 
-  // ---- fixture 5: the three PGN-legal odd lines between tags (A3-R4), at Kunal's phone only ------------------
+  // ---- fixture 5: the three PGN-legal odd lines, and one malformed tag (B6-F), between tags (A3-R4), at Kunal's phone only ------------------
   // the header reader does not depend on the viewport, so one geometry suffices; the import itself is the cost.
   for(const o of PGN_ODD){
     // the fixture really does put the odd line before the Elo tags - asserted, so a PGN_OPERA edit cannot hollow it

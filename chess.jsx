@@ -594,11 +594,16 @@ function pgnPublic(pgn){return String(pgn||'').replace(/^[ \t]*\[CTEnded "[^"\n]
 // ([Annotator "Joe \"JJ\" Smith"]) - and each one used to end the header block early, dropping every later tag, so the
 // names and ratings vanished. All three are now skipped, and \" and \\ in a value are read as the characters they escape.
 const pgnStripLineComments=(t)=>t.replace(/(^|\n)%[^\n]*/g,'$1').replace(/;[^\n]*/g,' ');
+// #549 antagonist B final read (B6-F): A MALFORMED TAG IS NOT MOVETEXT. A tag the reader cannot parse (an unescaped quote,
+// [Event "Rapid "Open""]) used to count as text between tags and end the block, dropping every later tag - [FEN] among them,
+// so a set-up game was reviewed from the standard start. A whole line that opens with '[' and closes with ']' is a tag, read
+// or not; it is skipped and the scan goes on. Movetext never starts a line with '[', so game 2 still ends the block.
+const PGN_BAD_TAG_LINE=/^[ \t]*\[[^\n]*\][ \t\r]*$/gm;
 function parsePGNHeaders(pgn){
   const h={};const s=String(pgn||'');
   const re=/\[(\w+)\s+"((?:[^"\\\n]|\\.)*)"\]/g;let m,last=-1;
   while((m=re.exec(s))){
-    if(last>=0&&/\S/.test(pgnStripLineComments(s.slice(last,m.index).replace(/\{[^}]*\}/g,''))))break;
+    if(last>=0&&/\S/.test(pgnStripLineComments(s.slice(last,m.index).replace(/\{[^}]*\}/g,'').replace(PGN_BAD_TAG_LINE,''))))break;
     h[m[1]]=m[2].replace(/\\(["\\])/g,'$1');last=re.lastIndex;
   }
   return h;
