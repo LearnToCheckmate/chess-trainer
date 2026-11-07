@@ -1132,7 +1132,7 @@ EOF9
   # CEILING CAN BE LOWERED, already so on 4aae4ed.
   # A5ZCEIL LOWERED 6 -> 2 AT #548 (item (5), jobs/citations-arm-5-lands-with-both-ceilings-at-zero-headroom-2026-10-06):
   # --citations on d083b72 measured 2 at-zero headings (US-R35, US-PL-14) and printed CEILING CAN BE LOWERED to 2.
-  A5ZCEIL=2
+  A5ZCEIL=0
   # A5WCEIL LOWERED 2 -> 0 AT #546 (item (45)): TC-R19's regex pipes are escaped, TC-R37's single cell is split
   # into its four columns, and TC-SUITE-321's quoted ref-line pipe is escaped - zero rows misalign today.
   A5WCEIL=0

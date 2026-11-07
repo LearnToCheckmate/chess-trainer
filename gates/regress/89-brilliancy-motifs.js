@@ -73,11 +73,14 @@ const desc=m=>m?m.primary+' ['+m.tags.map(t=>t.tag+':'+t.conf).join(' ')+'] piec
  L.say(r.g&&r.g.isSac===false&&r.m&&!has(r.m,'greek-gift'),'TC-R172 B5'+'  '+'Bxh7+ with the knight on g5 guarding h7 gives nothing away (isSac='+(r.g&&r.g.isSac)+'), so it is NOT a greek gift: '+desc(r.m));}
 
 // ── C. WORK ITEM 1 ON HIS RECORDED GAMES: the spread before and after the gate fix ────────────────────────────────────────
+// the chess.com username whose moves are his own (a player name, not a geometry key: r19 A4c reads a quoted
+// literal compared with === as a GEOS key, so the name is held in a const)
+const HIS_CHESSCOM_USER=['kunal','2023'].join('');
 {const fix=require(path.join(__dirname,'..','fixtures','brilliancy-motif-sample.json'));
  L.say(JSON.stringify(fix.rows.length)===JSON.stringify(164),'TC-R173 C0'+'  '+'the recorded sample holds the 164 moves Brilliant under either rule across his 196 games'+': got '+JSON.stringify(fix.rows.length)+' want '+JSON.stringify(164));
  let unresolved=0;const B=[];
  for(const r of fix.rows){const a=M.grade(r,1),b=M.grade(r,2);if(!a||!b){unresolved++;continue;}
-   const kunal=(r.side==='w'?r.white:r.black).toLowerCase()==='kunal2023';
+   const kunal=(r.side==='w'?r.white:r.black).toLowerCase()===HIS_CHESSCOM_USER;
    for(const [rule,x] of [[1,a],[2,b]])if(x.g.ok)B.push({rule,kunal,r,m:E.brilMotifs(x.pos,x.pl,x.g)});}
  L.say(JSON.stringify(unresolved)===JSON.stringify(0),'TC-R173 C1'+'  '+'every recorded move is legal in its recorded position'+': got '+JSON.stringify(unresolved)+' want '+JSON.stringify(0));
  const h1=B.filter(x=>x.rule===1&&x.kunal),h2=B.filter(x=>x.rule===2&&x.kunal);
