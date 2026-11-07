@@ -24,6 +24,8 @@
 //
 // CONTROLS: CT_APP trial bundles, one change each to chess.jsx; NC2 also runs its unit layer on the mutated source (CT_SRC). Baseline on
 // the shipped trial a943b81e0a47: 94 pass / 0 fail, twice.
+// CONTROL-RECORD: 8652829 2026-11-06 total=55 red=17 scope=trial:13835aeec175 how=startPractice sets the free run off (on:false&&...), so the lesson practises the script again - every TC-LS-055 move/strip/Bc4+/reply line red at all three sizes and TC-LS-056 red (Bf6 refused as "isn't the line", no mate, no loosening reached); the run stops early, hence total 55
+// CONTROL-RECORD: 8652829 2026-11-06 total=94 red=6 scope=trial:2457021b0763 how=freeNetVerdict's slack widened to K+30 and its lost-mate arm disabled (K<=-1), bundle and CT_SRC - TC-LS-054 looser x2 and lost-mate red, TC-LS-056 the loosening move (Kd7, mate 4 to none) ACCEPTED and the run's last three lines red
 'use strict';
 const L=require('../lib');
 const D=require('../drive/lesson');
