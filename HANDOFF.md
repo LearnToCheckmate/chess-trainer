@@ -1,7 +1,7 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#549: BATCH 9. ALL 120 ORDERED JOBS WORKED, FIRST PASS AND A SECOND PASS TO THE CUT LINE - AT THE PUSH 102 FIXED IN PART, 6 FIXED, 12 CANNOT - GATES GREEN #549 AT 8575 PASS / 0 FAIL OVER 74 SECTIONS.**
+**#549: BATCH 9. ALL 120 ORDERED JOBS WORKED, FIRST PASS AND A SECOND PASS TO THE CUT LINE - 31 FIXED, 77 FIXED IN PART, 12 CANNOT AFTER R34 - GATES GREEN #549 AT 8575 PASS / 0 FAIL OVER 74 SECTIONS.**
 Run `build__1793935200785`, 6-7 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_05_batch9`, base 7340372.
 **APPLICATION CODE CHANGED.** `app.js` md5 `3ab724514641`, from chess.jsx `12d8e7944da3` (chess.jsx +1931/-362 over 7340372..f31f924).
 The push-gate log is `claude/agents/gatelogs/549-all.log`, the SECOND final suite, gated sha e3e32fb, started 14:31:28Z (log header) and written 18:24:58Z.
