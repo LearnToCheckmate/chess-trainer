@@ -1933,6 +1933,14 @@ As a player drilling my own mistakes, any legal move I play is graded by the rev
 - The grade is honest: both sides of the comparison come from one ranking, so no move is Best because of a clamp; a card whose stored move that search cannot recognise, and the move I played in the game, fall back to the plain answer; a forced-mate card names the mate. (TC-R146, TC-R147)
 - The verdict never moves the board and is always readable, scrolling inside its box when long, at Kunal's phone and THE DRILL SEVEN. (TC-R147)
 
+### US-R109 The same game gets the same review on any phone, however busy it is
+*Added #549 item (30), from jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04 (the job's storyClause: "the review's accuracy, grade counts and any rating derived from them are determined by the game alone, and are identical for the same PGN on any device and under any load").*
+As a player who reviews a game, perhaps on a slow or busy phone, the accuracy, every grade and every count I am shown depend only on the game: the same PGN gives the same review whatever else the phone is doing, however many engine workers it has, and whether or not the engine was quick to load.
+- A review asked for while the engine is still loading waits for it and is graded by it, never by a different engine because it was slow. (TC-R148)
+- A search the engine has not finished is searched again, never graded from its partial answer, and a search that is slow but still working is waited for. (TC-R149, TC-R150)
+- With no review-pool worker, the review on the one remaining engine worker is the same review. (TC-R151)
+- A phone with no Stockfish at all is graded by the built-in engine; that is a different grader, and this story does not cover it.
+
 ### US-GL-02 The Preview gallery's controls are big enough to hit, its exit above all
 *Added #547, from jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01 (item (174)).*
 As the person asked to record from the Preview gallery on a real phone, I can hit every one of its controls with a thumb, and

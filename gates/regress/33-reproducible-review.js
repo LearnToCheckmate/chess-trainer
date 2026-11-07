@@ -122,7 +122,11 @@ L.run(async()=>{
   // pattern matches main's bundle at guard 2e4 / depth 16 AND #457's at guard 2e4 / depth 16, and the OLD
   // pattern still matches main while failing #457, which is what pins the cause to the identifier class and
   // not to the values.
-  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*[\w$]+\*8\)\)\s*,\s*[\w$]+\s*=\s*(\d+)\s*[,;]/);
+  // #549 item (30): THE GUARD IS A SILENCE CEILING NOW (jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04), so the
+  // pool site reads `<q>=Math.max(2e4,<mt>*8),<t>=setInterval(()=>{Date.now()-<last><q>&&<finish>(null,!1)},250),<D>=16` and the old
+  // `setTimeout(...,Math.max(2e4,<mt>*8)),<D>=16` shape is gone. The value assertions below are unchanged; that the ceiling is reset by the
+  // worker's output (silence, not wall clock) is gate 86's TC-R150, which is behavioural.
+  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*[\w$]+\*8\)\s*,\s*[\w$]+\s*=\s*setInterval\(\(\)=>\{Date\.now\(\)-[\w$]+>[\w$]+&&[\w$]+\(null,!1\)\},\d+\)\s*,\s*[\w$]+\s*=\s*(\d+)\s*[,;]/);
   const guard=m?Number(m[1]):null, depth=m?Number(m[2]):null;
   L.say(!!m,'the review pool\'s search is identifiable in the bundle under test (its guard followed by its depth)',m&&m[0]);
   L.say(guard!==null&&guard>=20000,'the pool\'s stuck-worker timeout is at least 20 s ('+guard+' ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);
@@ -143,7 +147,10 @@ L.run(async()=>{
   const wired=dv?new RegExp('\\('+esc(dv)+'\\?"go depth "\\+'+esc(dv)+':"go movetime "').test(src):false;
   L.say(!!g1,'the single-worker search takes a depth, and gets a 20 s guard when it does (was a flat 4 s)',g1&&g1[0]);
   L.say(wired,'the same depth argument chooses "go depth" over "go movetime", so the fixed depth and the 20 s guard are one change and not two',dv);
-  L.say(/\.positions\[\w+\]\),\w+,16\)/.test(src),'the review asks the single-worker path for depth 16, the same depth the pool uses',(src.match(/\.positions\[\w+\]\),\w+,16\)/)||[])[0]);
+  // #549 item (30): the single-worker calls are sfEval1(_fen(i),MT,16,<fresh>) now - the fourth argument is the table cadence - so the
+  // locator reads `f(g(i),mt,16,x)`; there are three (the no-pool loop and the two retry routes), and every one must ask for 16.
+  {const _c16=src.match(/[\w$]+\([\w$]+\([\w$]+\),[\w$]+,\d+,[\w$]+\)/g)||[];const _s1=_c16.filter(x=>/,(\d+),[\w$]+\)$/.test(x)&&x.split(',').length===4);
+   L.say(_s1.length>=1&&_s1.every(x=>/,16,[\w$]+\)$/.test(x)),'the review asks the single-worker path for depth 16, the same depth the pool uses',_s1.slice(0,4));}
   L.say(!/trimming to keep this under/.test(src),'the review no longer tells the user it is "trimming" to hit a time target. It was printing that on the pool path, where the budget it claimed to be trimming had been inert since #375 and nothing was trimmed.');
 
   const geo='kunal730';

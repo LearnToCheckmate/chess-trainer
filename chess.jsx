@@ -2151,6 +2151,10 @@ function drillAcceptMsg(played,gr,pos,playedMv,sol){
    and instead goes through the regrade preview (regradeGame, the 'Grading changed' sheet on the games list), which lists every
    Brilliant that goes and every one that appears, game by game, and changes nothing until the player confirms. Kunal, about
    5:18pm EST Wed 4 Nov 2026, questions/B8-BRILLIANT-RECOMPUTE: "recompute (Grade them again, show me the changes first)". */
+/* #549 item (30): how long a game review waits for Stockfish to load before it falls back to the built-in engine, in ensureAna's 100 ms
+   polls (120 s at rest; longer in wall time on a loaded phone, which is the point). It was 5 s, and on a busy phone that handed the game to
+   a different grader with different grades. A worker that cannot be built or dies ends the wait at once. */
+const REVIEW_ENGINE_WAIT=1200;
 const GRADE_VER=BRIL_RULE===2?2:1;   // 2 only with the one rule on (BRIL_RULE above)
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
@@ -5468,18 +5472,21 @@ export default function App(){
 
   // ── Import + analyze ──
   // Dedicated analysis worker, created lazily on first review and kept warm. Resolves true once Stockfish is ready, false if Workers aren't available (sandbox/preview).
-  const ensureAna=()=>new Promise(resolve=>{
+  /* #549 item (30): `ticks` (optional) is how many 100 ms polls to wait for readyok - 50 (5 s) for the callers that want a quick opinion, far longer
+     for a game review, which must not hand a game to a different grader because the engine was slow to load (see importGame). A worker that
+     has died (onerror clears sfAnaRef) answers false at once instead of after the ceiling. */
+  const ensureAna=(ticks)=>new Promise(resolve=>{
     if(sfAnaRef.current&&sfAnaReadyRef.current){resolve(true);return;}
     if(!sfAnaRef.current){
       try{
         const w=new Worker('./stockfish-18-lite-single.js');
-        w.onmessage=(e)=>{const msg=String(e.data||'');if(engMsg(S_ANA,msg))return;/* #549 item (26) A2-R2/A2-R3: a search anaIdle stopped or gave up on - not this search's output */if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
+        w.onmessage=(e)=>{const msg=String(e.data||'');if(engMsg(S_ANA,msg))return;/* #549 item (26) A2-R2/A2-R3: a search anaIdle stopped or gave up on - not this search's output */if(msg==='readyok'){sfAnaReadyRef.current=true;const _s=sfAnaSyncRef.current;if(_s){sfAnaSyncRef.current=null;try{_s();}catch(_e){}}return;}const cb=sfAnaCbRef.current;if(!cb)return;if(cb.tick)cb.tick();/* #549 item (30): any output from this search is progress */if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);const _p1=msg.match(/ pv (\S+)/);const _fm=_p1?_p1[1]:null;const _dm=msg.match(/ depth (\d+)/);const _dp=_dm?parseInt(_dm[1],10):null; /* #549 item (26): the depth rides along so sfBestLine can tell its own search's output from the previous one's */if(mm)cb.score({mate:parseInt(mm[1],10),cp:null,mpv:mpv,first:_fm,depth:_dp});else if(cm)cb.score({mate:null,cp:parseInt(cm[1],10),mpv:mpv,first:_fm,depth:_dp});if(cb.pv&&mpv===1){const pi=msg.indexOf(' pv ');if(pi!==-1)cb.pv(msg.slice(pi+4).trim().split(/\s+/));}}else if(msg.startsWith('bestmove')){cb.best(msg.split(' ')[1]);}};
         w.onerror=()=>{sfAnaRef.current=null;sfAnaReadyRef.current=false;sfAnaGoRef.current=0;sfAnaOwedRef.current=0;sfAnaStopWaitRef.current=null;};
         w.postMessage('uci');w.postMessage('setoption name MultiPV value 2');w.postMessage('isready');
         sfAnaRef.current=w;
       }catch(e){resolve(false);return;}
     }
-    let t=0;const iv=setInterval(()=>{if(sfAnaReadyRef.current||t++>50){clearInterval(iv);resolve(!!sfAnaReadyRef.current);}},100);
+    let t=0;const _lim=ticks||50;const iv=setInterval(()=>{if(sfAnaReadyRef.current||!sfAnaRef.current||t++>_lim){clearInterval(iv);resolve(!!sfAnaReadyRef.current);}},100);
   });
   // Evaluate one position on the dedicated worker (full strength). White-POV cp; mate as a large ±cp via the caller. Resolves {cp,mate,bestmove} or null.
   // #356 THE REAL FIX FOR THE ENGINE TRAP. `stop` is not synchronous: the engine acknowledges it
@@ -5560,7 +5567,13 @@ export default function App(){
      3, and for the ct_pool=1 override. So a smaller or older phone got the PRE-#375 review out of a post-#375
      build, with no indication which one it had: a time-based search (unreproducible) behind a 4 s guard (which
      is how a move that walks into mate came to be called Great). Found by reading the source, not reported. */
-  const sfEval1=(fen,movetime,depth)=>new Promise(resolve=>{
+  /* #549 item (30), jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04: `fresh` (optional) clears the table first
+     ('ucinewgame'), as sfEvalOn's does, so the review's table cadence is the same on this worker as on a pool worker. And with a depth the
+     guard is a SILENCE ceiling, not a wall clock: it fires only when the search has said nothing for that long. A depth-16 search on a
+     loaded phone is slow, not stuck, and a wall clock cut it short and handed back a shallower score - which is how the same game read
+     differently with eight analyses running (measured at #549: 28 abandoned searches, 19 of the Opera Game's 34 positions moved, Black
+     88.9 -> 86.4). Without a depth (a quick opinion inside a fixed budget) it stays a wall clock. */
+  const sfEval1=(fen,movetime,depth,fresh)=>new Promise(resolve=>{
     const w=sfAnaRef.current;
     if(!w||!sfAnaReadyRef.current){resolve(null);return;}
     try{const _p=sfAnaAbortRef.current;if(_p)_p();}catch(e){}
@@ -5577,9 +5590,10 @@ export default function App(){
        either (#392: a dead search's score is as untrustworthy as its missing line). Purely additive -
        no caller before this one reads it, and the review pass at sfEvalOn's fallback is untouched. */
     sfAnaBusyRef.current=true;
-    const finish=(bm,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null,ok:!!ok});};
+    const finish=(bm,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearInterval(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null,ok:!!ok});};
     const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
-    const to=setTimeout(()=>finish(null,false),depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8));
+    const _ceil=depth?Math.max(20000,movetime*8):Math.max(4000,movetime*8);let _last=Date.now();
+    const to=setInterval(()=>{if(Date.now()-_last>_ceil)finish(null,false);},250);
     /* #511, ANTAGONIST A's F4, UPHELD: INSTALL THE CALLBACK ONLY WHEN OUR OWN SEARCH IS ABOUT TO START.
        This assignment used to sit BEFORE anaIdle, and anaIdle posts `stop` and waits for `readyok` - so the
        PREVIOUS search's `bestmove` arrives in between and the message handler hands it to whatever callback is
@@ -5590,7 +5604,7 @@ export default function App(){
        close it, because the yield reads the same busy flag. Moving the assignment inside the idle callback
        means a stray message from a search we did not issue finds a null slot and is ignored (see the handler's
        own `if(!cb)return`). anaIdle's own `readyok` handling does not read this slot, so nothing else moves. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}if(depth)_last=Date.now();sfAnaCbRef.current={tick:depth?()=>{_last=Date.now();}:null,score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)w.postMessage('ucinewgame');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   /* #512, ANTAGONIST A's F1, VETO UPHELD: THIS FUNCTION NOW SAYS WHETHER THE ENGINE ACTUALLY ANSWERED.
@@ -5669,6 +5683,7 @@ export default function App(){
     if(engMsg(slot.S,msg))return;   // #549 item (26) A2-R3: a search this slot stopped or gave up on
     if(msg==='readyok'){slot.ready=true;const _s=slot.S.sync.current;if(_s){slot.S.sync.current=null;try{_s();}catch(_e){}}return;}
     const cb=slot.cb;if(!cb)return;
+    if(cb.tick)cb.tick();   // #549 item (30): any output from this search is progress (sfEvalOn's silence ceiling)
     if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
       const pvm=msg.match(/ multipv (\d+)/);const mpv=pvm?parseInt(pvm[1],10):1;
       const mm=msg.match(/score mate (-?\d+)/),cm=msg.match(/score cp (-?\d+)/);
@@ -5704,25 +5719,33 @@ export default function App(){
     if(!slot||!slot.w||!slot.ready||slot.dead){resolve(null);return;}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
-    const finish=(bm)=>{if(done)return;done=true;slot.cb=null;clearTimeout(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null});};
-    const to=setTimeout(()=>finish(null),Math.max(20000,movetime*8)); /* #375: the search is bounded by depth now, so this is only a stuck-worker guard. At 4 s it cut real searches short and stored a shallow opinion as the answer - which is how a move that walks into mate came to be called "Great". */
+    /* #549 item (30): `ok` says the search reached its bestmove (sfEval1's #511 contract). Every other settle - the guard, a slot that
+       could not be made idle, postMessage throwing - resolves ok:false with whatever PARTIAL score had arrived, and importGame now
+       searches that position's table group again instead of grading from it. */
+    const finish=(bm,ok)=>{if(done)return;done=true;slot.cb=null;clearInterval(to);resolve({cp,mate,cp2,mate2,alt,bestmove:bm&&bm!=='(none)'?bm:null,ok:!!ok});};
+    /* #375: the search is bounded by depth now, so this is only a stuck-worker guard. At 4 s it cut real searches short and stored a shallow opinion as the answer - which is how a move that walks into mate came to be called "Great".
+       #549 item (30): AND IT IS A SILENCE CEILING NOW, NOT A WALL CLOCK. At 20 s of wall clock it did the same thing on a loaded machine:
+       measured on the Opera Game with ten busy processes sharing the core, 28 searches abandoned, 19 of 34 positions stored at a shallower
+       depth, Black 88.9 -> 86.4 and Best 7 -> 6. A loaded search keeps talking (an info line per iteration, currmove lines after 3 s), so
+       the guard fires only on 20 s with no word from the worker at all - a stuck worker, which is what it was always meant to catch. */
+    let _last=Date.now();const _quiet=Math.max(20000,movetime*8),to=setInterval(()=>{if(Date.now()-_last>_quiet)finish(null,false);},250);
     const DCAP=16;  // the review's search depth: reproducible, and faster than the old 1.8 s-per-position budget
     /* #549 item (26) A2-R3: THE STUCK-WORKER GUARD ABANDONS A SEARCH WITHOUT STOPPING IT. Under load a depth-16 search outlives the
        20 s guard, the slot is handed the next position, and its `go` lands in the still-running search - measured at #549 on a loaded
        machine: 12 gos into running pool searches over five walks and 3 RuntimeError: unreachable. So a slot with a search outstanding
        goes through stopIdle (stop, wait for that bestmove, 2.5 s ceiling, abandon never proceed) before this search starts; an idle slot
        posts at once, exactly as before. The callback is installed only when this search is about to start (#511's F4 rule). */
-    const run=()=>{slot.cb={score:(sc)=>{const _m=sc.mpv||1;
+    const run=()=>{_last=Date.now();slot.cb={tick:()=>{_last=Date.now();},score:(sc)=>{const _m=sc.mpv||1;
         if(_m===1){if(sc.mate!=null){mate=mateW(sc.mate,sign);cp=null;}else{cp=sign*sc.cp;mate=null;}}
         else if(_m===2){if(sc.mate!=null){mate2=mateW(sc.mate,sign);cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
-      best:(bm)=>finish(bm)};
+      best:(bm)=>finish(bm,true)};
     /* #375 (SAT finding R-01): every position used to be searched by TIME, so a busy phone thought less and
        scored differently - the same game reviewed twice gave Black 84.6% one run and 58.4% the next, with the
        verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
        and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
-    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null);}};
+    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null,false);}};
     if(!slot.S.go.current&&!slot.S.owed.current)run();
-    else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null);return;}run();});
+    else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}run();});
   });
 
   const importGame=async(pgnArg,meta)=>{
@@ -5741,7 +5764,17 @@ export default function App(){
     if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only — check that move in your PGN.`);
     setAnalyzing(true);setProgress(0);
     await new Promise(r=>setTimeout(r,30));
-    const useSF=sfReadyRef.current?await ensureAna():false;
+    /* #549 item (30), jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04: WHICH GRADER REVIEWS THE GAME MUST NOT
+       DEPEND ON HOW BUSY THE PHONE IS. This read `sfReadyRef.current?await ensureAna():false`: if the play worker had not answered readyok
+       by the time of the tap, or the analysis worker took more than 5 s to load, the game went to the built-in depth-2 engine - a different
+       grader with different numbers. Measured at #549 on the Opera Game with six busy processes sharing the core: White 97.6 -> 75.1,
+       Great 6 -> 0, a Blunder from nowhere, and the same bundle at rest gives 97.6 every time. Now the review waits for Stockfish to load for
+       as long as it is loading (ensureAna returns false at once if the worker cannot be built or dies), and only a device with no Stockfish
+       at all gets the built-in engine. A game whose Stockfish output is already cached is graded from it without waiting. */
+    const _ckEarly=evalCacheKey(res.plies,_st.fen);
+    const _c0=evalCacheAll()[_ckEarly];
+    const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await ensureAna(REVIEW_ENGINE_WAIT);
+    const _eng={path:useSF?'pool':'builtin',workers:0,retried:0,abandoned:0,cached:false};   // #549 item (30): how this review was computed, for the harness (review.engine)
     let out=[];
     if(useSF){
       // Full-strength Stockfish: eval every position (White POV cp; mate as a large ±cp), then derive each move's loss and the engine's best move.
@@ -5749,11 +5782,12 @@ export default function App(){
       const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N),aU=new Array(N);
       // NOTE: never change this tag without a reason. Bumping it from sf18b to sf18c in #343 silently threw away
       // every review Kunal had cached, which is why a repeat review suddenly took a minute again.
-      const _ck=evalCacheKey(res.plies,_st.fen);const _hit=evalCacheGet(_ck);
+      const _ck=_ckEarly;const _hit=evalCacheGet(_ck);
       if(_hit&&_hit.evW&&_hit.evW.length===N+1){
         for(let i=0;i<=N;i++){evW[i]=_hit.evW[i];ev2W[i]=_hit.ev2W?_hit.ev2W[i]:null;if(i<N){bU[i]=_hit.bU?_hit.bU[i]:null;aU[i]=_hit.aU?_hit.aU[i]:null;}}
         /* #371: reviews cached before the mate-0 fix hold the mated side as the winner at a checkmate; the position itself says who is mated, so patch on read rather than throw the cache away (the #343 lesson) */
         for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}
+        _eng.path='cache';_eng.cached=true;
         setProgress(1);await new Promise(r=>setTimeout(r,10));
       }else{
       // #343: aim for a ~25s wall clock instead of ~60s AND give each position more thinking time than before,
@@ -5793,7 +5827,6 @@ export default function App(){
          its own - _chunk becomes N+1 and the one worker walks the whole game contiguously, which is exactly what
          the loop already does per worker. sfEval1 stays as the fallback for having NO pool worker at all, and it
          searches by depth too now, so no path is left searching by time. */
-      if(_slots.length>=1){
         /* #375: each worker takes a fixed CONTIGUOUS block of the game instead of racing for the next unclaimed
            position. The old queue made the assignment depend on timing, so a position met a different
            transposition table on every run and the review's numbers moved; a contiguous block is also what keeps
@@ -5813,19 +5846,36 @@ export default function App(){
            _TBLK is 4 rather than 8 because the blocks must be whole multiples of it: at 8 a 33-position game
            across three workers splits 16/16/1 and the wall clock is set by the 16. */
         const _TBLK=4;
-        let done=0;const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
-        await Promise.all(_slots.map(async(sl,_k)=>{
-          const _hi=Math.min(N,(_k+1)*_chunk-1);
-          for(let i=_k*_chunk;i<=_hi;i++){
-            const r=await sfEvalOn(sl,toFEN(res.positions[i]),MT,(i%_TBLK)===0);
-            _store(i,r);done++;setProgress(done/(N+1));
-          }
-        }));
+        /* #549 item (30): A SEARCH THAT DID NOT FINISH IS SEARCHED AGAIN, NEVER GRADED FROM. Every engine call here now says whether it
+           reached its bestmove (`ok`). A group of _TBLK positions shares one table, so a failure anywhere in it re-runs the GROUP from its
+           cleared start - the same table, the same answers - on the same worker, with a short backoff for a worker still unwinding the
+           search it gave up on; after two failed tries the group goes to the analysis worker (one group at a time - _onAna), which follows
+           the same discipline and so returns the same numbers. Only a group that fails everywhere is stored from what it got, and then the
+           review is not cached (`abandoned`), so the next review of the game tries again rather than serving it for ever (#389). */
+        let done=0;
+        const _okR=(r)=>!!(r&&r.ok);
+        let _anaQ=Promise.resolve();
+        const _onAna=(fn)=>{const p=_anaQ.then(fn,fn);_anaQ=p.catch(()=>{});return p;};
+        const _fen=(i)=>toFEN(res.positions[i]);
+        const _try=async(ev,g0,g1,last)=>{const rs=[];for(let i=g0;i<=g1;i++){const r=await ev(i,i===g0);if(!_okR(r)&&!last)return null;rs.push(r);}return rs;};
+        const _group=async(ev,g0,g1)=>{
+          for(let a=0;a<2;a++){if(a){_eng.retried++;await new Promise(r=>setTimeout(r,800));}const rs=await _try(ev,g0,g1,false);if(rs)return rs;}
+          for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
+          const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,true));_eng.abandoned+=rs.filter(r=>!_okR(r)).length;return rs;
+        };
+        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}setProgress(done/(N+1));}};
+      if(_slots.length>=1){
+        _eng.workers=_slots.length;
+        const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
+        await Promise.all(_slots.map(async(sl,_k)=>_block((i,f)=>sfEvalOn(sl,_fen(i),MT,f),_k*_chunk,Math.min(N,(_k+1)*_chunk-1))));
       }else{
-        for(let i=0;i<=N;i++){
-          const r=await sfEval1(toFEN(res.positions[i]),MT,16);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
-          _store(i,r);setProgress((i+1)/(N+1));
-        }
+        /* #549 item (30): THE SAME TABLE CADENCE ON THE ANALYSIS WORKER. This loop searched every position on one uncleared table, and
+           skipped the mate-boundary re-search below (it ran only on a pool slot), so the review a device got with no pool worker was a
+           different review: measured at #549 with the harness's engineFail:'pool' route, White 98.7 against the pool's 97.6, Black's
+           Blunder 1 -> 0 (15...Nxd7, the move that allows mate). Now the groups and the fresh start of each are the pool's, and so are the
+           numbers. */
+        _eng.path='one';
+        await _block((i,f)=>sfEval1(_fen(i),MT,16,f),0,N);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
       }
       /* #375: reusing a worker's table between neighbouring positions is what keeps a review fast, but a table
          carried in from the move before can hold a position's refutation out of view. The case that matters is
@@ -5837,12 +5887,14 @@ export default function App(){
         const _M=(v)=>Math.abs(v)>=90000;const _fix=[];
         for(let i=0;i<N;i++)if(_M(evW[i+1])&&!_M(evW[i]))_fix.push(i);
         const _sl2=sfPoolRef.current.filter(x=>x.ready&&!x.dead);
-        if(_sl2.length&&_fix.length)for(const i of _fix.slice(0,8)){
-          const r2=await sfEvalOn(_sl2[0],toFEN(res.positions[i]),MT,true);
-          if(r2&&(r2.mate!=null||r2.cp!=null))_store(i,r2);
+        /* #549 item (30): on whichever worker is there - a pool slot, else the analysis worker - and only a finished search replaces the
+           stored one (a fresh table on either gives the same answer). */
+        if(_fix.length)for(const i of _fix.slice(0,8)){
+          const r2=(await _group(_sl2.length?((j,f)=>sfEvalOn(_sl2[0],_fen(j),MT,true)):((j,f)=>_onAna(()=>sfEval1(_fen(j),MT,16,true))),i,i))[0];
+          if(_okR(r2)&&(r2.mate!=null||r2.cp!=null))_store(i,r2);
         }
       }catch(e){}
-      evalCacheSet(_ck,{evW,ev2W,bU,aU});
+      if(!_eng.abandoned)evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});   // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
       }
       poolClose();
       for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL));
@@ -6022,7 +6074,7 @@ export default function App(){
     return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN,_pb);}catch(e){skills=null;} /* #368 y17b */
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||''};
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng};
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
