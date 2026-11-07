@@ -1572,6 +1572,10 @@ async function input(seed,n,geo,name,thin){
     //    loaded (declining a game in progress is not a failed read). Launch 2 - the one check after it ends - the same game is
     //    served ended (end_time, both results, Result "1-0"), and it must be in the list, once, labelled Daily, with no manual
     //    import. Throughout, no request may go to the in-progress lists (/games, /games/to-move).
+    // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=4 scope=blocks:A33 how=pre-fix source (HEAD 7dbf76d) takes every archive entry with a pgn: A33a A33b A33e A33f red, trial md5 e1459b794abe
+    // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=1 scope=blocks:A33 how=a month of games in progress only counted as a gap again (missed++): A33c red alone, trial md5 2e7645fe91c4
+    // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=1 scope=blocks:A33 how=fetchChessCom also asks /player/<u>/games (the in-progress list): A33g red alone, trial md5 b7d04797106f
+    // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=4 scope=blocks:A33 how=time_class daily dropped from the walk: A33a A33b A33d A33e red, trial md5 927356604fce
     const DU='gatedaily', OPP='dailyopp', T=(y,mo,d,h)=>Math.floor(Date.UTC(y,mo-1,d,h||12,0,0)/1000);
     const dstate={ended:false,hits:[]};
     const pgnOf=(white,black,res,ev,tcs,date)=>['[Event "'+ev+'"]','[Site "Chess.com"]','[Date "'+date+'"]','[Round "-"]','[White "'+white+'"]','[Black "'+black+'"]','[Result "'+res+'"]','[TimeControl "'+tcs+'"]','[Termination "'+(res==='*'?'':white+' won by resignation')+'"]','',(res==='*'?'1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *':MOVES)].join('\n');
