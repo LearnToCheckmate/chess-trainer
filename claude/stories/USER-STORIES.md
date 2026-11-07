@@ -1623,7 +1623,11 @@ font arrived a frame late.
   brings the board back stops at the trim where the board meets its width cap, so the trim is never parked where no trim
   moves the board (#549 run fix fixr5a). AND THE PLAY BOARD COMES BACK TO ITS FRESH SIZE EXACTLY, NOT TO WITHIN A STEP:
   one state has one board size whatever its history. Measured on f462559 at 375x568 a transient left 304 against a fresh
-  296 and at 320x540 268 against 276; since the #549 run fix fixr6b both return to fresh. (TC-R64-D15, TC-R64-D16, TC-R64-D17)
+  296 and at 320x540 268 against 276; since the #549 run fix fixr6b both return to fresh. AND THE PUZZLE TRAINER'S
+  BOARD AT ITS WIDTH CAP (375x730, 375x761, 390x844) TAKES OUT AN OVERFLOW AFTER A PUZZLE MOVE AT ONCE: its growth stops
+  at the width-cap trim as Play's does, so a launch never parks the trim at -480 (#549 run fix fixpz; measured on aba4af0 a
+  100px block then Re8+ at 375x761 overflowed 17px for 10 to 13 frames, fixed 0). (TC-R64-D15, TC-R64-D16, TC-R64-D17,
+  TC-R64-D18)
 - THE MECHANISM IS ESTABLISHED AND THE TRIGGER IS NOT. The portrait fit loop (`chess.jsx`, search
   `boardTrim`) shrinks on a real overflow and can never grow back, for two independent reasons either of
   which alone is sufficient: the slack a single shrink leaves is `ceil(over/8)*8+8-over`, which lies in

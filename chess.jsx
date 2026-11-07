@@ -5024,8 +5024,13 @@ export default function App(){
          Play no longer reaches it (its own branch above). Every other fresh size measured (Play, Review, Lessons, Tactics at se,
          short375, w375h667, 375x730, 375x761, 390) is unchanged either way. Where the puzzle board is WIDTH-bound (375x730, 375x761,
          390) it fires 19 times per launch and walks the trim to -480 with no visible effect; a 40px and a 100px transient after that
-         were still corrected (at most 11 frames of a 17px overflow, 375x761), so it is recorded here and not changed. */
-      else if(over<-24){const _revFit=inReview&&revCompact;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):n;});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
+         were still corrected (at most 11 frames of a 17px overflow, 375x761), so it is recorded here and not changed.
+         #549 run fix fixpz: CHANGED after all - outside the compact Review the growth now stops at the width-cap trim
+         (sqTrimFloorRef) as Play's does (fixr5a), so a width-bound puzzle launch leaves the trim at 0 instead of -480 and the
+         next overflow is taken out on its first pass (aba4af0: 100px block then Re8+ at 375x761, 17px for 10-13 frames; fixed 0).
+         A trim at or above the floor still grows, so the height-bound fresh sizes (259.03 at 320x568 and 375x568) are
+         unchanged; Review's clamp at 0 is untouched. Gate 75 TC-R64-D18. */
+      else if(over<-24){const _revFit=inReview&&revCompact,_fl=sqTrimFloorRef.current;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):Math.max(Math.min(t,_fl),n);});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);

@@ -124,6 +124,7 @@
 
 // CONTROL-RECORD: 1888a7d 2026-10-29 total=121 red=20 scope=trial:745743860a42 how=the #522 refit's idle branch resets the trim and bumps the rAF loop (setFitBump) instead of converging before paint, so the full-size board is painted on entry and on removal; reddens D4 D6 D7 D9 at both short cells, A9 x2, C9 x2, and D6 D8 D9b D9 at both of Kunal's cells [#545 item (34)]
 // CONTROL-RECORD: bd4ecb7 2026-11-07 total=224 red=4 scope=trial:92b3a14f2064 how=the fit loop's non-Play growth branch (else if(over<-24), #364) deleted and nothing else - the compact Review board stays shrunk after the transient, TC-R64-D16 THE REVIEW BOARD COMES BACK red at all four cells (208 vs 264 at 375x568 and 320x568, 299.03 vs 349.03 at 375x667, 255.03 vs 349.03 at 375x761); D15 and D17 stay green [#549 item (96)]
+// CONTROL-RECORD: aba4af0 2026-11-07 total=236 red=2 scope=trial:358042b5d8c1 how=the aba4af0 bundle itself, whose fit-loop growth branch outside Play and the compact Review is not clamped at the width-cap trim, so a width-bound puzzle launch parks the trim at -480 - reddens TC-R64-D18 THE OVERFLOW AFTER A PUZZLE MOVE IS TAKEN OUT AT ONCE at both cells (10 of 90 frames at 375x730 peak 28px, 10 at 375x761 peak 17px) and nothing else [#549 run fix fixpz]
 const L=require('../lib.js');
 const D=require('../drive/lesson.js');
 
@@ -726,6 +727,48 @@ L.run(async()=>{
       L.say(typeof R.peak==='number'&&R.peak>0&&R.peak<=SMALL&&!!R.first&&R.first[0]===R.fresh,'TC-R64-D17 '+c.n+' THE STATE WAS REACHED: a SMALL overflow ('+R.peak+'px, in 1..'+SMALL+') with the board still at its fresh width on the first frame ('+(R.first&&R.first[0])+' vs '+R.fresh+')',{first:R.first,peak:R.peak});
       L.say(!!R.last&&R.last[1]<=0&&R.last[0]<R.fresh&&R.fixedAt>=0,'TC-R64-D17 '+c.n+' THE SMALL OVERFLOW IS CORRECTED WITHIN THE WAKE: by frame '+FRAMES+' the overflow is '+(R.last&&R.last[1])+' (first <= 0 at frame '+R.fixedAt+') and the board took it ('+R.fresh+' -> '+(R.last&&R.last[0])+'). On 46340d1 the trim sat parked at -480 and the overflow stood for all '+FRAMES+' frames',{last:R.last,fixedAt:R.fixedAt});
       L.say(R.removed===true&&R.tap2===true&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<SAME,'TC-R64-D17 '+c.n+' and after the block is gone the board comes back to its fresh size, within '+SAME+'px ('+R.after+' vs '+R.fresh+')',{removed:R.removed,tap2:R.tap2,after:R.after});
+    }
+  }
+  // TC-R64-D18 [#549 run fix fixpz, found by item (96) at aba4af0]. THE PUZZLE TRAINER'S GROWTH STOPS AT THE WIDTH CAP TOO, so a
+  // small overflow after a puzzle move is taken out at once. Where the training board is WIDTH-bound (375x730, 375x761, 390) the
+  // fit loop's non-Play growth branch (else if(over<-24), #364) fired 19 times per launch and walked the trim to -480 with no
+  // board change - the dead zone fixr5a (76b40e9) closed for Play. A later overflow then spent its first frames climbing out of
+  // it. MEASURED (PZ[0], a block prepended to the root's first child, then Re8+, every frame for 120 frames; trim read through a
+  // control-only bundle exposing window.__ctTrim, never the shipped code): aba4af0 trial a3a63f6328e1 launch trim -480 at both
+  // cells, 375x761 100px 375/17 x13 frames then 345/0, 375x730 80px 375/28 x7 and 349/2 x2 then 333/0; fix trial 0e2f9284ab7e
+  // launch trim 0 (floor 34 and 54), 345/0 and 333/0 from the first frame. The assertion is behavioural (frames with an
+  // overflow), so it needs no hook. PX is a property of the cell: it is the block that makes the board give up width there;
+  // the state-reached line asserts the board really shrank, so a layout change that moves that says so.
+  {
+    const Z=require('../drive/puzzles.js');
+    const PCELLS=[
+      {n:'375x730', g:L.GEOS.kunal730, px:80},
+      {n:'375x761', g:L.GEOS.kunal761, px:100},
+    ];
+    const FRAMES=90,MAXOVF=3,SAME=1;
+    for(const c of PCELLS){
+      const R={};
+      const b=await L.launch({geo:c.g,name:'d18-'+c.n,store:{ct_pool:'3'}});
+      try{
+        await b.open();await Z.states['train'](b);await b.settle(1200);
+        R.fresh=await bw(b);R.vw=c.g.w;
+        R.injRect=await b.page.evaluate((px)=>{const root=document.getElementById('root');const d=document.createElement('div');d.id='ct-d18-kick';d.style.cssText='height:'+px+'px;flex:0 0 '+px+'px';root.firstElementChild.prepend(d);
+          const q=d.getBoundingClientRect(),cs=getComputedStyle(d);return {h:Math.round(q.height*100)/100,inFlow:cs.position!=='fixed'&&cs.position!=='absolute'&&cs.display!=='none'};},c.px);
+        await b.move('e1','e8',0);
+        Object.assign(R,await b.page.evaluate(async(a)=>{const root=document.getElementById('root');
+          const bwf=()=>{let m=0;for(const e of document.querySelectorAll('div'))if(/repeat\(8,/.test(e.style.gridTemplateColumns||''))m=Math.max(m,e.getBoundingClientRect().width);return Math.round(m*100)/100;};
+          const fr=[];for(let i=0;i<a.frames;i++){await new Promise(r=>requestAnimationFrame(r));fr.push([bwf(),Math.round((root.scrollHeight-root.clientHeight)*100)/100]);}
+          return {ovfFrames:fr.filter(x=>x[1]>0).length,peak:Math.max(...fr.map(x=>x[1])),last:fr[fr.length-1],fixedAt:fr.findIndex(x=>x[1]<=0)};},{frames:FRAMES}));
+        R.removed=await b.page.evaluate(()=>{const d=document.getElementById('ct-d18-kick');if(d)d.remove();return !document.getElementById('ct-d18-kick');});
+        await b.settle(900);await b.move('e8','f8',0);await b.settle(1600);R.after=await bw(b);
+      }catch(e){R.threw=String(e&&e.message||e).slice(0,200);}
+      await b.close();
+      L.say(!R.threw,'TC-R64-D18 '+c.n+' the puzzle arm ran without throwing'+(R.threw?' - '+R.threw:''),R);
+      L.say(typeof R.fresh==='number'&&Math.abs(R.fresh-R.vw)<1,'TC-R64-D18 '+c.n+' DENOMINATOR the fresh training board (PZ[0]) sits at its WIDTH cap, the viewport width ('+R.fresh+' vs '+R.vw+') - the case this cell exists for',{fresh:R.fresh,vw:R.vw});
+      L.say(!!R.injRect&&R.injRect.inFlow===true&&Math.abs(R.injRect.h-c.px)<1,'TC-R64-D18 '+c.n+' THE CONTROL WAS APPLIED: the '+c.px+'px block sat in the flow at its full height before Re8+',{injRect:R.injRect});
+      L.say(!!R.last&&R.last[1]<=0&&typeof R.fresh==='number'&&R.last[0]<R.fresh-8,'TC-R64-D18 '+c.n+' THE STATE WAS REACHED: the block made the board give up width ('+R.fresh+' -> '+(R.last&&R.last[0])+') and by frame '+FRAMES+' nothing overflows ('+(R.last&&R.last[1])+')',{last:R.last,fixedAt:R.fixedAt});
+      L.say(typeof R.ovfFrames==='number'&&R.ovfFrames<=MAXOVF,'TC-R64-D18 '+c.n+' THE OVERFLOW AFTER A PUZZLE MOVE IS TAKEN OUT AT ONCE: '+R.ovfFrames+' of '+FRAMES+' frames overflow (at most '+MAXOVF+', peak '+R.peak+'px). On the aba4af0 bundle (358042b5d8c1) the launch had parked the trim at -480 and this cell read 10 frames at 375x761 (peak 17px) and 6 to 10 at 375x730 (peak 28px), two runs while the loop climbed back out',{ovfFrames:R.ovfFrames,peak:R.peak,fixedAt:R.fixedAt});
+      L.say(R.removed===true&&typeof R.after==='number'&&Math.abs(R.after-R.fresh)<SAME,'TC-R64-D18 '+c.n+' and after the block is gone and the next move is played the board comes back to its fresh width, within '+SAME+'px ('+R.after+' vs '+R.fresh+') - the clamp stops growth at the width cap, not short of it',{removed:R.removed,after:R.after});
     }
   }
 },'75-fit-loop-one-way-ratchet');
