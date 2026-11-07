@@ -23,6 +23,11 @@
 // KNOW ITS LIMIT: one game, one geometry; the build-run measurements under real load are in the job's outcome. A
 // device with no Stockfish at all (engineFail:'all') still gets the built-in engine - that is a capability, not load,
 // and it is not asserted equal here.
+// CONTROL-RECORD: 95094b0 2026-11-07 total=20 red=11 scope=trial:687f2e4ed455 how=the run tree before the fix (51f47e7): R3 and every TC-R148 TC-R149 TC-R150 TC-R151 arm but their preconditions red
+// CONTROL-RECORD: 95094b0 2026-11-07 total=20 red=2 scope=trial:849ddc2472ba how=the ok check removed (_okR accepts any result): TC-R149 retried and TC-R149 engine output red
+// CONTROL-RECORD: 95094b0 2026-11-07 total=20 red=1 scope=trial:77051399c0d1 how=sfEvalOn's guard back to a wall clock (tick does nothing): TC-R150 waited-for red (retried 6)
+// CONTROL-RECORD: 95094b0 2026-11-07 total=20 red=2 scope=trial:692b47b7c043 how=the no-pool loop without a fresh start per group: TC-R151 summary and engine output red (98.7/86.4)
+// CONTROL-RECORD: 95094b0 2026-11-07 total=20 red=4 scope=trial:9f950296ecf2 how=useSF back to sfReadyRef and ensureAna's 5 s: TC-R148 precondition and its three arms red (built-in engine, 75.1/87)
 'use strict';
 const L=require('../lib');
 const PGN='[Event "Opera Game"] [White "Morphy"] [Black "Duke"] [Result "1-0"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';

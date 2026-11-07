@@ -1,5 +1,7 @@
 // regress/33-reproducible-review.js  THE ONLY GUARD ON THE STUCK-WORKER TIMEOUT. Rebuilt from repro373.js, which
 // CONTROL-RECORD: f77b636 2026-11-03 total=24 red=1 scope=trial:3853c4cf2a59 how=#547 control run j102nc: a bundle carrying a double-escaped \\uXXXX string - TC-SUITE-366 red [#547 close-out, ratchet]
+// CONTROL-RECORD: 95094b0 2026-11-07 total=24 red=1 scope=trial:37813a0d7b03 how=#549 (30): the pool's silence ceiling at 4 s - the stuck-worker timeout assertion red (4000 ms); harness stopped after the source block
+// CONTROL-RECORD: 95094b0 2026-11-07 total=24 red=1 scope=trial:0dc15b092637 how=#549 (30): depth 14 in the no-pool loop - the single-worker depth-16 assertion red; harness stopped after the source block
 // lived in a sandbox that no longer exists and was never in git.
 //
 // What it protects, in the retiring build chat's own words: the review's stuck-worker timeout was
