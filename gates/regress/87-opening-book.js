@@ -29,6 +29,7 @@
 // CONTROL-RECORD: 4798697 2026-11-07 total=41 red=1 scope=env:CT_SRC=nc3-cap how=the 24-ply cap removed (table read to 40) - D1 red
 // CONTROL-RECORD: 4798697 2026-11-07 total=41 red=2 scope=env:CT_SRC=nc4-on how=BOOK_TABLE_DEFAULT 1 (the table on by default) - E2 E4 red
 // CONTROL-RECORD: 4798697 2026-11-07 total=45 red=1 scope=trial:80233fa4c4ec how=the run tree's bundle without this change (no table, no switch): F1 red, Book painted 0/0 on the 1.b3 game with ct_book_table=1
+// CONTROL-RECORD: d5ff37c 2026-11-07 total=47 red=1 scope=full how=#549 antagonist B final read B5-F: lessons.js and chess.jsx at 3ef9062 (no bookPlies; the 12-ply Petroff line counts whole): TC-R160 E5 red alone (got 12, want 10)
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

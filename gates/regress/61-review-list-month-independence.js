@@ -78,6 +78,8 @@
 // CONTROL-RECORD: 5220073 2026-11-07 total=267 red=5 scope=trial:cb76366f7859 how=ACCT_STALE_MS=0, every followed account always stale: A24f a followed account asked on launch 3, plus A14-0 and A31-0 x3 (their fresh-stamped old account refreshed)
 // CONTROL-RECORD: 5220073 2026-11-07 total=267 red=1 scope=trial:28f5d47b9ac1 how=a quiet walk keeps setCcErr (fetchChessCom and fetchLichess): A24e 'Chess.com answered' on screen after the unrequested 503 refresh
 // CONTROL-RECORD: 5220073 2026-11-07 total=267 red=1 scope=trial:a049649c94dc how=fetchChessCom does not stamp the attempt (acctFreshMark(...,false) removed): A24f the failed 30h account asked again on launch 3
+// CONTROL-RECORD: 1d31c7f 2026-11-07 total=284 red=5 scope=trial:79d42dba4352 how=#549 antagonist B final read B1-F/B2-F: the run-branch tree at 3ef9062 (acctStore filters the list by `x in M` and records the walk's bound in an unread session): A34a ct_accts written as the box account alone, A34b gateold's 'months' dropped from ct_acctcap, A34c the box account's 'all' overwritten with 'games', A34d no gateold chip on the next good launch, A34e red; every other assertion green; fix trial 78c3fc2bbaed
+// CONTROL-RECORD: b905512 2026-11-07 total=291 red=3 scope=trial:78c3fc2bbaed how=#549 antagonist A final read A1-F: the tree at the fixb B6-F commit (B fixes in, no removal generation - acctStore re-adds an account removed mid-walk): A35a gatefollowc back on ct_accts with a chip after its quiet walk, A35b its games back in the store, A35c still there next launch; every other assertion green; fix trial fe482e66d3e7 291/0
 'use strict';
 const L=require('../lib');
 
