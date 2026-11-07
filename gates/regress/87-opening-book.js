@@ -22,7 +22,13 @@
 // two games still short are named and their shortfall is PINNED as the known residual (C3), not credited: 174386847848 (1.d4 c5 2.Nf3
 // e6 3.c3 Nf6 4.e3 Nc6, 2 against 8) and 180000436342 (the Berlin with 4.Bxc6 dxc6, 6 against 8) - lines no named-opening list
 // carries; chess.com's book reads a games database, which this project has no CC0 copy of.
-// ── CONTROL-RECORD lines for gates/control-audit.js (written once the controls below have been run).
+// ── CONTROL-RECORD lines for gates/control-audit.js. Node controls are CT_SRC (a mutated chess.jsx; block F is skipped under CT_SRC);
+// the bundle control is a CT_APP trial bundle.
+// CONTROL-RECORD: 4798697 2026-11-07 total=41 red=13 scope=env:CT_SRC=nc1-ep how=bookKey hashes the en-passant field too - A2 A3 B1 B2 C1 (four games) C3 C4 C5 D0 D1 red
+// CONTROL-RECORD: 4798697 2026-11-07 total=41 red=3 scope=env:CT_SRC=nc2-nomax how=openingBookPlies returns the table reading alone (no max with the lesson lines) - C8 E3 E4 red
+// CONTROL-RECORD: 4798697 2026-11-07 total=41 red=1 scope=env:CT_SRC=nc3-cap how=the 24-ply cap removed (table read to 40) - D1 red
+// CONTROL-RECORD: 4798697 2026-11-07 total=41 red=2 scope=env:CT_SRC=nc4-on how=BOOK_TABLE_DEFAULT 1 (the table on by default) - E2 E4 red
+// CONTROL-RECORD: 4798697 2026-11-07 total=45 red=1 scope=trial:80233fa4c4ec how=the run tree's bundle without this change (no table, no switch): F1 red, Book painted 0/0 on the 1.b3 game with ct_book_table=1
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

@@ -466,3 +466,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 94d9a75 2026-11-06 total=49 red=10 scope=trial:4b8c7cd5f708 how=#549 item (62): winDrop returns the raw centipawn loss (chess.jsx, search "return Math.max(0,winPct(b)-winPct(a))"), blocks B and E skipped - F1..F9 and F11 red, block A green
 // CONTROL-RECORD: 94d9a75 2026-11-06 total=49 red=1 scope=trial:d51fa607a531 how=#549 item (62): the Stockfish site grades by clsByName(classifyByLoss(loss)) instead of classify(_wd), blocks B and E skipped - F11 red alone
 // CONTROL-RECORD: 94d9a75 2026-11-06 total=26 red=2 scope=trial:eda7c506ed32 how=#549 item (62): CLS_BANDS Good cut-off 8.2096 -> 9.0, blocks B and E skipped - A0 and F6 red (A1..A26 NOT RUN behind A0)
+// CONTROL-RECORD: a64d5cc 2026-11-07 total=74 red=1 scope=trial:acc4a47fdf83 how=#549 run fix: matesMover removed from gradeDrillMove only (the fourth grading site) - C7 red alone; head bundle cce851cd1571 74/0
