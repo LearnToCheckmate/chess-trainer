@@ -251,9 +251,13 @@ L.run(async()=>{
       // fallback a move allowing mate from -1500 graded ★Best where main graded it Blunder.
       const callsOf=(nm)=>{const r=new RegExp('(^|[^A-Za-z_$\\w])'+nm.replace('$','\\$')+'\\(','g');return (srcC.match(r)||[]).length;};
       const cM=callsOf(mmName), cL=callsOf(ldName);
-      L.say(cM===4&&cL===4,
-            'C7 both helpers appear 4 times in the bundle - one definition plus THREE call sites, which is every site that turns an engine reading into a grade (the Stockfish path, the depth-2 fallback, and the background summary pass that feeds the home tiles)',
-            {matesMoverOccurrences:cM,mateLadderOccurrences:cL,want:4,note:'1 definition + 3 call sites'});
+      // #549 (run, after job 97's 2f4e07a): the mistakes drill's played-move grader gradeDrillMove is a FOURTH site that
+      // turns an engine reading into a grade, and it is wired to both helpers, so the count is 1 definition + 4 sites = 5.
+      // It ships switched off (5f16aab, ct_drill_grade) but its code is in the bundle and must stay wired. Measured: the
+      // bundle at 4798697 reads 5 for each helper; a bundle that drops either helper from any one site reads 4 and reds.
+      L.say(cM===5&&cL===5,
+            'C7 both helpers appear 5 times in the bundle - one definition plus FOUR call sites, which is every site that turns an engine reading into a grade (the Stockfish path, the depth-2 fallback, the background summary pass that feeds the home tiles, and the mistakes drill\'s played-move grader)',
+            {matesMoverOccurrences:cM,mateLadderOccurrences:cL,want:5,note:'1 definition + 4 call sites (#549: + gradeDrillMove)'});
       // C8 THE OVERLAYS DO NOT OVERWRITE THE VERDICT. REJECTS: removing the guard, which antagonist A measured
       // relabelled EVERY mate allowed from +200 or better as '× Miss', over exactly the range the rule claims.
       const mGuard=srcC.match(new RegExp('('+ID+')='+mmName.replace('$','\\$')+'\\([^)]*\\);[\\s\\S]{0,120}?label!=="Brilliant"&&!\\1\\)'));
