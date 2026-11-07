@@ -15,6 +15,16 @@
 // extracted, as gates 68 and 82 say), so their control is CT_SRC=<a mutated chess.jsx>. Block W is a BROWSER block over the bundle under
 // test (CT_APP): the 3 Nov 2026 game of gate 82's regrade fixture (gates/brilliant-fixed-tests.json, its engine output as the app would
 // have cached it), where 23.bxc6 walks past 23.Reb1 - a rook move that leaves the a6 bishop en prise, Brilliant under the one rule only.
+// ── CONTROL-RECORD lines for gates/control-audit.js. Node controls are CT_SRC (a mutated copy of chess.jsx); bundle controls are CT_APP
+// trial bundles built from chess.jsx with one change.
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=5 scope=env:CT_SRC=nc1-rule1 how=missedBrilliant always grades by rule 1 - A1 A2 B3 C1 C5 red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=1 scope=env:CT_SRC=nc2-playedbril how=the mark made even when the played move is itself Brilliant - B2 red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=2 scope=env:CT_SRC=nc3-noneeded how=missedBrilliant drops the next best (needed test off) - A2 B4 red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=1 scope=env:CT_SRC=nc6-on how=MISSED_BRIL_DEFAULT true - D1 red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=1 scope=env:CT_SRC=nc7-alwaysask how=sfGradePly computes the mark whatever the caller asks - D2 red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=3 scope=trial:61e6d67052c0 how=both colours marked (userColor filter dropped) - W12 at kunal761, W16 at kunal761 and se red
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=4 scope=trial:e26d552cc1ff how=rev-best kept beside the chip - W14 W15 red at kunal761 and se
+// CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=2 scope=trial:ce0dae0e722d how=the switch on by default - W9 and W13 red at kunal761
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');
