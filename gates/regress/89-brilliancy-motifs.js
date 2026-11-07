@@ -10,6 +10,11 @@
 // NODE ONLY: everything is read out of chess.jsx through gates/engine-extract.js (the bundle is minified and cannot be extracted,
 // as gate 68 says), so a CT_APP trial bundle cannot redden it; its control is CT_SRC=<a mutated chess.jsx>.
 // NOTHING ON SCREEN READS brilMotifs YET, so there is no bundle block: the shelf and the chooser wait on Kunal's word on block C.
+// ── CONTROL-RECORD lines for gates/control-audit.js. Node controls only: CT_SRC=<a copy of chess.jsx with one change>.
+// CONTROL-RECORD: d52ba20 2026-11-07 total=30 red=6 scope=env:CT_SRC=nc1-nogreek how=the greek-gift rule disabled (if(false&&sac&&mover...)) - A1 A2 C4 C7 C8 C9 red
+// CONTROL-RECORD: d52ba20 2026-11-07 total=30 red=1 scope=env:CT_SRC=nc2-quietany how=quiet-sac on any non-capture (no sacrifice or check guard) - B1 red
+// CONTROL-RECORD: d52ba20 2026-11-07 total=30 red=3 scope=env:CT_SRC=nc3-noline how=the engine line never read (if(false&&Array.isArray(line)...)) - A4 A5 A6 red
+// CONTROL-RECORD: d52ba20 2026-11-07 total=30 red=2 scope=env:CT_SRC=nc4-nosacguard how=the material tags fire without the gate's isSac (const sac=true) - B1 B5 red
 'use strict';
 const path=require('path');
 const L=require('../lib');
