@@ -4921,6 +4921,17 @@ export default function App(){
          375x761 and 390 in four states; gate 75 D15/D17 assert the return to fresh to under 1px. */
       if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
       else if(mode==='play'){const _t=boardTrimRef.current,_fm=playFreshTrimRef.current,_fl=sqTrimFloorRef.current;const _snap=_fm!==null&&_t>Math.max(_fm,_fl)&&_t-Math.max(_fm,_fl)<=-over;if(_snap||over<-16){const _g=Math.floor((-over-8)/8)*8;setBoardTrim(t=>{if(_fm!==null&&t>_fm&&(_snap||t-Math.min(64,_g)<_fm))return Math.max(Math.min(t,_fl),_fm);const n=Math.max(-480,t-Math.min(64,_g));if(t>_fl&&t-_fl<=Math.min(64,-over-8))return _fl;return Math.max(Math.min(t,_fl),n);});settle=true;}else if(over<=0)playFreshTrimRef.current=_fm===null?_t:Math.min(_fm,_t);}
+      /* #549 item (96), jobs/364s-growth-branch-is-dead-code-on-every-portrait-screen-2026-10-10: THIS BRANCH IS LIVE, NOT DEAD CODE - do
+         not delete it. The job (filed 2026-10-10) measured `over` at exactly 0 on every portrait screen, and on a9e66ac deleting this
+         branch moved nothing in gates 75, 62 and 46. RE-MEASURED on bd4ecb7 with the branch deleted (trial 92b3a14f2064 against
+         563fbccc64bf, and a fire-counting trial f511f304cefc): (1) THE PUZZLE TRAINER's fresh board needs it wherever height binds -
+         259.03 with it against 203.03 without at 320x568 and 259.03 against 192 at 375x568, because the #364 spacer subtraction in
+         _fitOver reads `over` -62 and -73 there; (2) THE COMPACT REVIEW comes back from a transient through it since fixr3e (68020d0),
+         and gate 75 TC-R64-D16 goes red at all four of its cells without it (208 vs 264, 299.03 vs 349.03, 255.03 vs 349.03).
+         Play no longer reaches it (its own branch above). Every other fresh size measured (Play, Review, Lessons, Tactics at se,
+         short375, w375h667, 375x730, 375x761, 390) is unchanged either way. Where the puzzle board is WIDTH-bound (375x730, 375x761,
+         390) it fires 19 times per launch and walks the trim to -480 with no visible effect; a 40px and a 100px transient after that
+         were still corrected (at most 11 frames of a 17px overflow, 375x761), so it is recorded here and not changed. */
       else if(over<-24){const _revFit=inReview&&revCompact;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):n;});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);
     };

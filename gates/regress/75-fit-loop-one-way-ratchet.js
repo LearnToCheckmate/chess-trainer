@@ -123,6 +123,7 @@
 // 73 and this file's first draft reproduced it; both antagonists caught it.
 
 // CONTROL-RECORD: 1888a7d 2026-10-29 total=121 red=20 scope=trial:745743860a42 how=the #522 refit's idle branch resets the trim and bumps the rAF loop (setFitBump) instead of converging before paint, so the full-size board is painted on entry and on removal; reddens D4 D6 D7 D9 at both short cells, A9 x2, C9 x2, and D6 D8 D9b D9 at both of Kunal's cells [#545 item (34)]
+// CONTROL-RECORD: bd4ecb7 2026-11-07 total=224 red=4 scope=trial:92b3a14f2064 how=the fit loop's non-Play growth branch (else if(over<-24), #364) deleted and nothing else - the compact Review board stays shrunk after the transient, TC-R64-D16 THE REVIEW BOARD COMES BACK red at all four cells (208 vs 264 at 375x568 and 320x568, 299.03 vs 349.03 at 375x667, 255.03 vs 349.03 at 375x761); D15 and D17 stay green [#549 item (96)]
 const L=require('../lib.js');
 const D=require('../drive/lesson.js');
 
