@@ -51,7 +51,7 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','regradeGame','moveHits','bestMove','styleBias',
   // #549 item (97): the mistakes-drill grader and its two sentences, so gate 17 and the disagreement measurement of job (106) run the
   // shipped functions (whyShape is the generator the accept sentence reuses).
-  'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg'];
+  'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg','DRILL_GRADE_DEFAULT','DRILL_GRADE'];
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,
 // so it throws HERE, at require time, naming it - instead of a ReferenceError on first call in whatever caller hits it.

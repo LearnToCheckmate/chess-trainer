@@ -1932,6 +1932,7 @@ As a player drilling my own mistakes, any legal move I play is graded by the rev
 - An equal alternative is accepted with its grade and a reason, keeps the card in my list, and a real solve still removes it; three different wrong moves get three different sentences; a sub-Excellent move neither reveals nor solves. (TC-R147)
 - The grade is honest: both sides of the comparison come from one ranking, so no move is Best because of a clamp; a card whose stored move that search cannot recognise, and the move I played in the game, fall back to the plain answer; a forced-mate card names the mate. (TC-R146, TC-R147)
 - The verdict never moves the board and is always readable, scrolling inside its box when long, at Kunal's phone and THE DRILL SEVEN. (TC-R147)
+- Until Kunal turns it on, the grading is switched off (#549, after job (106) measured the shallow grade disagreeing with the review on 84.8% of 132 cards): by default the drill accepts only the stored move and answers any other move with the same "isn't it" sentence it always gave, on the first and the second try, and keeps the card; the local switch ct_drill_grade set to 1 turns the grading above on. (TC-R146, TC-R147)
 
 ### US-R109 The same game gets the same review on any phone, however busy it is
 *Added #549 item (30), from jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04 (the job's storyClause: "the review's accuracy, grade counts and any rating derived from them are determined by the game alone, and are identical for the same PGN on any device and under any load").*

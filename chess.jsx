@@ -2027,6 +2027,17 @@ function drillRankWarm(pos,onDone){
   return ()=>{stop=true;};
 }
 const DRILL_ACCEPT=['Brilliant','Best','Excellent'];   /* Kunal's design: accept and reveal at Excellent or better; Good does NOT reveal */
+/* #549 item (97) SHIPS SWITCHED OFF, AS job (28) SHIPPED ITS RULE (BRIL_RULE_DEFAULT). Job (106) measured the grader above
+   over 30 of Kunal's games, 132 drill cards (gates/measure-drill-grade-disagreement.js, 13e1513): the depth-3 grade
+   disagrees with the review's label on 112 of 132 (84.8%), and where the trust check passes 38 of 95 moves the deep
+   review called a Mistake or a Blunder grade Excellent or better - so a player trying an equally bad alternative could
+   be told it solves the card. Depth 4 (75.8%) and 5 (76.5%) barely help. That is below the bar to ship on by default
+   without Kunal's word, so DRILL_GRADE_DEFAULT is false: the drill accepts only the stored move and answers anything
+   else with the old "isn't it", card removal unchanged, and the background ranking (drillRankWarm) does not run.
+   ct_drill_grade='1' turns the grader on for one device, exactly as 2f4e07a built it.
+   Amber: flags/amber-549-drill-grade-trust-and-wording (field shipsOff_2026_11_07). */
+const DRILL_GRADE_DEFAULT=false;
+const DRILL_GRADE=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_drill_grade')==='1')?true:DRILL_GRADE_DEFAULT;}catch(e){return DRILL_GRADE_DEFAULT;}})();
 function gradeDrillMove(pos,playedMv,bestSan,gameSan){
   try{
     if(!pos||!playedMv||!bestSan)return null;
@@ -6629,7 +6640,7 @@ export default function App(){
          comparison further down is the other caller of this string match and is LEFT ALONE: an opening line has one
          correct move by definition [classSwept: 2 found, 1 changed, 1 left]. A null grade (failed search, stale
          card) falls back to the flat string match below, unchanged. */
-      const grade=(!matchesLine&&!isMate&&p.mine&&!p.brill&&drillKindRef.current==='mistake'&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0],p.gameSan):null;
+      const grade=(DRILL_GRADE&&!matchesLine&&!isMate&&p.mine&&!p.brill&&drillKindRef.current==='mistake'&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0],p.gameSan):null;
       const graded=!!(grade&&grade.trusted);
       if(isMate||matchesLine||(graded&&grade.accept)){
         setGame(ng);setLastMv(mv);setPuzReveal(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
@@ -7556,7 +7567,7 @@ export default function App(){
   const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
     if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
     localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
-  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
+  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(DRILL_GRADE&&obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
      away the work he went back to look at, which is the thing he actually asked for twice.

@@ -30,6 +30,10 @@ L.run(async()=>{
     +' DRILL_ACCEPT='+JSON.stringify(E.DRILL_ACCEPT));
   L.say(E.DRILL_RANK_DEPTH===3&&JSON.stringify(E.DRILL_ACCEPT)===JSON.stringify(ACC),'A0 the drill grades at rankMoves depth 3 (minimax 2 per move) and accepts at Excellent or better - the held tree\'s numbers, unchanged [Kunal\'s design; job (106) owns the depth]',{depth:E.DRILL_RANK_DEPTH,accept:E.DRILL_ACCEPT});
 
+  // A0c THE GRADER SHIPS SWITCHED OFF (#549, after job (106): the depth-3 grade disagrees with the review's label on 84.8% of
+  // 132 cards). Everything below measures the grader as the switch ct_drill_grade='1' runs it; this line pins the default.
+  L.say(E.DRILL_GRADE_DEFAULT===false&&E.DRILL_GRADE===false,'A0c the drill grader ships OFF: DRILL_GRADE_DEFAULT is false and, with no ct_drill_grade in storage, DRILL_GRADE is false',{DRILL_GRADE_DEFAULT:E.DRILL_GRADE_DEFAULT,DRILL_GRADE:E.DRILL_GRADE});
+
   // ── fixtures, derived not hardcoded ─────────────────────────────────────────────────────────────────
   let g=E.initGame();const POS=[];
   for(let ply=0;ply<26&&POS.length<8;ply++){
