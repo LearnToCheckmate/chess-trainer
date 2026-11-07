@@ -259,7 +259,7 @@ Written at #549 (item (73); jobs/tc-r09b-and-tc-rl-070-resolve-in-neither-regist
 
 | id | story | steps (harness) | expected, measured | executed by | last result |
 |---|---|---|---|---|---|
-| TC-INV-01a | US-INV-01 | Gate 26's invariant 1 sweep at se, kunal730 and short375: before population (a) is compared with SMALL_PIN (TC-INV-01b), count the controls under 44x44 the sweep measured and the pinned class it compares against | both counts are above zero, so TC-INV-01b's exact-set comparison is never a pass over an empty set (the denominator line TC-INV-01b's row names) | 26-invariants.js `TC-INV-01a` | RE-READ AT #549 from #548's full suite: 3 PASS lines, 0 FAIL, at se, kunal730 and short375 (claude/agents/gatelogs/548d-all.log). Row written at #549 item (73): the gate has printed this id since #545 and only TC-INV-01b's row named it, inline. |
+| TC-INV-01a | US-INV-01 | Gate 26's invariant 1 sweep at se, kunal730 and short375: before population (a) is compared with SMALL_PIN (TC-INV-01b), count the controls under 44x44 the sweep measured and the pinned class it compares against | both counts are above zero, so TC-INV-01b's exact-set comparison is never a pass over an empty set (the denominator line TC-INV-01b's row names) | 26-invariants.js `TC-INV-01a` | #548's full suite, re-read: 3 PASS lines, 0 FAIL, at se, kunal730 and short375 (claude/agents/gatelogs/548d-all.log). Row written at #549 item (73): the gate has printed this id since #545 and only TC-INV-01b's row named it, inline. |
 
 | id | story | steps (harness) | expected, measured | executed by | last result |
 |---|---|---|---|---|---|
