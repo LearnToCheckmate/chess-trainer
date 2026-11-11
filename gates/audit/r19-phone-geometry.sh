@@ -116,7 +116,7 @@ ANCHOR_TOKEN='kunal761'
 #           asserted only by its own skip - which is the vacuity this family keeps finding.
 # A3 IS A SEPARATE L.say-SHAPED CHECK AND NOT A CONJUNCT OF A1, deliberately: a compound whose halves
 # cannot fail independently reads as two checks while being one.
-A3_FLOOR="${CT_A3FLOOR:-35}"   # #550 item (16): raised 6 -> 35, the count measured on this tree, so the coverage is held
+A3_FLOOR="${CT_A3FLOOR:-36}"   # #550 item (16): raised 6 -> 35, the count measured on this tree, so the coverage is held; #550 item (61): 35 -> 36, gate 51 phase 1Q
 A3_MIN_SUITE="${CT_A3MIN:-20}"
 
 # ── A4. THE GEOMETRY TOKEN MAY NOT BE A CONTROL-FLOW DISCRIMINATOR OR A SOURCE OF DIMENSIONS.

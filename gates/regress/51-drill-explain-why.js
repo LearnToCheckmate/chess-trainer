@@ -421,6 +421,31 @@ L.run(async()=>{
     const bad=U.map(([f,u,want])=>{const k=forcingKind(f,u);const got=!k?'null':k.quiet?'quiet':k.check?'check':k.capture?'capture':'promotion';return got===want?null:{fen:f,uci:u,want,got};}).filter(Boolean);
     L.say(bad.length===0,'TC-R16 B5c-PREDICATE the quiet test classifies '+U.length+' known moves correctly - quiet, capture (en passant too), promotion (both colours), and check (direct, by a pawn and a knight, discovered, by the castling rook)',{cases:U.length,wrong:bad});
   }
+  // ===== PHASE 1Q: A CAPTURE WITH A QUIET BETTER MOVE, SO B5c HAS AN INPUT [#550 item (61)] ====================
+  // jobs/clauses-cite-assertions-that-do-not-assert-them-2026-09-28's one remainder: this file's reference game captures two mistakes and
+  // both better moves are forcing, so B5c printed DID NOT RUN on every geometry. A second REAL review supplies the input: the reference
+  // game of jobs/the-sel-cls-split-...-2026-09-30 (pgnForRepro), reviewed by the app as Black through a stored account. Measured on
+  // #550 trial t10: it captures 6 mistakes and the first, 3...Nd4 (c6d4 on r1bq1bnr/ppp2kpp/2n5/3Pp3/8/2N5/PPPP1PPP/R1B1KBNR b), is
+  // QUIET by forcingKind. Each quiet card is drilled the way a player reaches its hint (drillSolve), at Kunal's phone, and B5c runs on it.
+  // Its denominator is its own line, and the card set is read from the store the review wrote, never seeded.
+  {const QPGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.01"]\n[White "Jsmiller1112"]\n[Black "Crusher9000"]\n[Result "0-1"]\n[TimeControl "600"]\n\n1. e4 e5 2. Qh5 Nc6 3. Qxf7+ Kxf7 4. Nc3 d5 5. exd5 Qxd5 6. Be2 Qxg2 7. Nf3 Qxh1+ 8. Bf1 Nf6 9. d3 Bd6 10. Bg5 Qg2 11. Bxf6 gxf6 12. Ne4 Bb4+ 13. c3 Bxc3+ 14. bxc3 Qxf1+ 15. Kd2 Qxa1 0-1\n';
+   const QACCT={ct_accts:['cc:crusher9000'],ct_acctgames:{'cc:crusher9000':[{src:'cc',acct:'Crusher9000',pgn:QPGN,white:'Jsmiller1112',black:'Crusher9000',wr:'win',tc:'rapid',date:Date.now()-86400000}]},ct_pool:'3'};
+   const q=await L.launch({geo:'kunal761',name:'drill-quiet-capture',store:QACCT});await q.open();let qmis=[];
+   try{await q.tile('Review');await q.settle(700);await q.page.locator('button',{hasText:/Review ›/}).first().click();
+     await q.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await q.settle(1200);
+     qmis=await q.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));}catch(e){L.note('PHASE 1Q capture threw: '+String(e).slice(0,120));}
+   await q.close();
+   const QTAG=L.GEOS.kunal761.w+'x'+L.GEOS.kunal761.h;
+   const quiet=qmis.filter(m=>{const k=forcingKind(m.fen,m.uci);return k&&k.quiet;});
+   L.note('PHASE 1Q captured '+qmis.length+': '+JSON.stringify(qmis.map(m=>({uci:m.uci,played:m.played,kind:forcingKind(m.fen,m.uci)}))));
+   L.say(quiet.length>=1,'TC-R16 B5c DENOMINATOR a real review captured at least one mistake whose better move is QUIET ('+quiet.length+' of '+qmis.length+' from the second reference game) - without it B5c has no input, as on the first fixture',{quiet:quiet.map(m=>m.uci)});
+   for(let i=0;i<quiet.length;i++){
+     const c=await L.launch({geo:'kunal761',name:'drill-quiet-'+i,store:{ct_mymistakes:[quiet[i]],ct_pool:'3'}});await c.open();
+     let r=null;try{await c.tile('Review');await c.settle(700);r=await drillSolve(c,quiet[i]);}catch(e){r={hint:'<DRILL NOT REACHED: '+String(e).slice(0,60)+'>'};}
+     L.say(!!r&&r.hint.length>0&&r.hint.indexOf('<')!==0,'TC-R16 B5c['+(i+1)+'/'+quiet.length+'] '+QTAG+' PRECONDITION the hint button put a hint on screen on the quiet card '+quiet[i].uci,{hint:r&&r.hint});
+     L.say(!!r&&r.hint.length>0&&r.hint.indexOf('<')!==0&&!FORCING_HINT.test(r.hint),'TC-R16 B5c['+(i+1)+'/'+quiet.length+'] '+QTAG+' QUIET POSITION (the better move '+quiet[i].uci+' is not a check, a capture or a promotion): the hint on screen does not tell the player to look for a forcing move ("'+(r&&r.hint)+'")',{hint:r&&r.hint});
+     await c.close();}
+  }
   // ===== PHASE 2: THE RENDER. Content at one geometry, the FIT at all of them. ===========================
   for(const g of GEOS){
     const seen=[],hints=[];const isC=(g.content===true);let quietN=0;
