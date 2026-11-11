@@ -441,6 +441,18 @@ const PRAC={se:{w:270.9,left:24.6}/* #547 item (124): was 254.9 at 32.6 - the pr
 const BOARD_TOP=92, NOTE_H=75, FOOT_H=61;
 const LINE=['1. e4','1… e5','2. Nf3','2… Nc6','3. Bc4','3… Bc5','4. c3','4… Nf6','5. d3','5… d6']; // LIB 0, the Italian Game
 const ROW=['Flip board','Hints','Try again','More actions'];
+// #550 item (47): TC-INV-05c's sweep, one helper so every state the main loop visits runs it (US-INV-05 bullet 3 names no state, and the
+// first version read only demo-end: a control pushing the practice footer's ⋯ 60px past the edge left it green - measured on c47).
+async function ctlSweep(b,geo,state){
+  const _sw=await b.page.evaluate(()=>{const vw=innerWidth,out=[];let n=0;
+      for(const e of document.querySelectorAll('#root button,#root a,#root input,#root select,#root [role="button"]')){
+        const st=getComputedStyle(e);if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)===0)continue;
+        const r=e.getBoundingClientRect();if(r.width<=1||r.height<=1)continue;n++;
+        if(r.right>vw+0.6||r.left<-0.6)out.push({t:((e.innerText||e.getAttribute('aria-label')||e.tagName)+'').trim().slice(0,30),l:Math.round(r.left*100)/100,r:Math.round(r.right*100)/100});}
+      return {n,out,vw,sw:document.documentElement.scrollWidth};});
+  L.say(_sw.n>=5,geo+' '+state+': TC-INV-05c DENOMINATOR the control sweep found '+_sw.n+' painted controls on the lesson screen (at least 5)',{n:_sw.n});
+  L.say(_sw.n>=5&&_sw.out.length===0,geo+' '+state+': TC-INV-05c no painted control on the lesson screen has any part past the viewport (right <= '+_sw.vw+'), and scrollWidth '+_sw.sw+' says nothing scrolls one back',{over:_sw.out.slice(0,6),sw:_sw.sw});
+}
 const GEOS=['se','kunal730','390']; // THE LESSON THREE - claude/stories/USER-STORIES.md, section THE GEOMETRY SETS, NAMED ONCE; gates/audit/geometry-sets.sh G2 holds this list equal to that name [#545 item (13)]
 
 L.run(async()=>{
@@ -579,14 +591,7 @@ L.run(async()=>{
        width and height over 1px, visibility not hidden, opacity over 0), right edge at or inside innerWidth+0.6 and left edge
        at or after -0.6, with documentElement.scrollWidth read alongside. The denominator is its own line (a sweep over nothing
        passes loudest). Controls under a transform:scale are measured by their painted box, which is what a finger meets. */
-    const _sw=await b.page.evaluate(()=>{const vw=innerWidth,out=[];let n=0;
-      for(const e of document.querySelectorAll('#root button,#root a,#root input,#root select,#root [role="button"]')){
-        const st=getComputedStyle(e);if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)===0)continue;
-        const r=e.getBoundingClientRect();if(r.width<=1||r.height<=1)continue;n++;
-        if(r.right>vw+0.6||r.left<-0.6)out.push({t:((e.innerText||e.getAttribute('aria-label')||e.tagName)+'').trim().slice(0,30),l:Math.round(r.left*100)/100,r:Math.round(r.right*100)/100});}
-      return {n,out,vw,sw:document.documentElement.scrollWidth};});
-    L.say(_sw.n>=5,geo+': TC-INV-05c DENOMINATOR the control sweep found '+_sw.n+' painted controls on the lesson screen (at least 5: the demo row and the footer)',{n:_sw.n});
-    L.say(_sw.n>=5&&_sw.out.length===0,geo+': TC-INV-05c no painted control on the lesson screen has any part past the viewport (right <= '+_sw.vw+'), and scrollWidth '+_sw.sw+' says nothing scrolls one back',{over:_sw.out.slice(0,6),sw:_sw.sw});
+    await ctlSweep(b,geo,'demo-end');
     /* #424: THE TWO ASSERTIONS THE FIVE EARLIER PASSES AT THIS DEFECT DID NOT HAVE. See demoRow's header for why
        the row is the box that matters. Measured before and after on the #424 bundle, at 320x568 and 375x568
        alike (they are identical to the hundredth, because the row is the board and the board is fit to HEIGHT):
@@ -675,6 +680,7 @@ L.run(async()=>{
   {
     const b=await L.launch({geo,name:'lesson-flow-practice-'+geo});await b.open();
     await D.states['practice-m0'](b);
+    await ctlSweep(b,geo,'practice-m0');
 
     // --- TC-LS-018…021: the control row, measured BEFORE anything on it is tapped. Rule 3: a click would
     // scroll a control into view first and a row a thumb cannot reach would pass.
