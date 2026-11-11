@@ -333,6 +333,7 @@ L.run(async()=>{
 // CONTROL-RECORD: da53b65 2026-11-06 total=174 red=2 scope=trial:7d815ea63d6b how=mutant: setGame dropped from the lesson resume (note, phase and footer restored, board not); red: exactly the two TC-LS-053 placement lines. The fix trial 64d46d055bd5 reads 174 PASS 0 FAIL.
 // CONTROL-RECORD: f913b91 2026-11-07 total=240 red=10 scope=trial:51f45de88555 how=the lesson-name line capped at maxWidth 120 - TC-R152b red alone at all five geometries x two states (job 100)
 // CONTROL-RECORD: f913b91 2026-11-07 total=240 red=32 scope=trial:fd5fade99686 how=the pre-fix run-tree bundle (name in the footer, sheet buttons nowrap, Home 18-char cut) - TC-R152a/b/c red x30 and TC-R152e x2; TC-R152d measured red separately at 320 after its widest-name fix (job 100)
+// CONTROL-RECORD: b443dd8 2026-11-11 total=244 red=4 scope=trial:04ac78bee28c how=#550 round 3: FOOT_ICON_GLYPH back to the lesson's old clamp(20px,5.4vw,24px) - the four TC-LS-051 glyph-size lines red (demo-end and practice-m0 at 375x761 and 320x568), the shape and tap-target lines green
 
   // ── TC-LS-051 (US-LS-11) [#549 item (80); jobs/lesson-footer-icons-consistent, Kunal 2026-09-14 "consistent with Review"]:
   // THE LESSON FOOTER (demo AND practice) AND THE REVIEW TRANSPORT ROW ARE ONE COMPONENT. Measured on the pre-fix bundle
