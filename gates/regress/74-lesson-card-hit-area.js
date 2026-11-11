@@ -1,6 +1,7 @@
 'use strict';
 // CONTROL-RECORD: 3dc43e1 2026-11-03 total=229 red=16 scope=trial:2ccba37a424b how=#547 final antagonist A's ctl-wrap.js: the intro card's Got it wrapped in a 44px overflow:hidden box and pushed 20px down, so 20 of its 44px are cut by a box no finger can scroll - B1/B4 red across cards and geometries (run v74wrap); the pre-repair dda714e gate went 230/0 on it [#547 close-out, ratchet]
 // CONTROL-RECORD: 7ce928e 2026-11-05 total=309 red=3 scope=trial:47110115a275 how=#548 item (163) reverted on the #548 tree (Got it moved back below the Related chips, nothing else): TC-LS-047 red at Petroff and King's Gambit @320x568 and Italian @730x375. The run printed 308 pass / 3 fail = 311 lines; 309 is today's assertions, because 2 of the 311 are the [kunal] and [short375] B ANTI-VACUITY lines that print only while a card's button reaches the fixed bar, which today's layout never does (run ck-g74t163r, 19:4xZ; main #547's own bundle c7f6a1228e43 gives the same 308/3) [#548 close-out, control-audit ratchet]
+// CONTROL-RECORD: 40515d9 2026-11-11 total=133 red=22 scope=trial:105e9e214669 how=#550 answer a13, CT_74_GEOS=se, run from a worktree at HEAD so lessons.js is the old 169-lesson one: all four TC-LS-049 pair lines, the three TC-LS-050 lines (the both-epochs index, the two a13 re-keyings), the TC-LS-052 copy550 stamp lines and the 158 Continue line red, and the B0b/D0b/F0b row pins with their two anti-vacuity guards (the rows moved back); the a13 trial 1aaa8b5f2858 (full gate) reads 349 pass, 0 fail
 // CONTROL-RECORD: bc53b40 2026-11-06 total=104 red=3 scope=geo:se how=#549 item (65) fix with its three store migrations (migLearnProg, migTrain, migLastLesson) replaced by identity on the fix tree, trial md5 ad5f26868c53, CT_74_GEOS=se: exactly the three TC-LS-050 lines red (Petrov key kept, ct_train row kept, Continue names Ruy Lopez: Steinit). The pre-fix bundle 780a57efc6f9 with the pre-fix lessons.js also reds TC-LS-049 (both names listed) and B0b row 44 (Petrov). The good trial 4650e6eed8c5 reads 314 PASS 0 FAIL over all four default geometries.
 // CONTROL-RECORD: 29a289f 2026-11-06 total=326 red=7 scope=trial:9c675c029fe8 how=#549 (65) A1-R3: HEAD a9e66ac's bundle, which shifts a stored last-lesson index only on local load, run through TC-LS-052 (fresh store, cloud double, sign in, reload): 7 red - Continue reads Closed Sicilian / Ruy Lopez: Steinit / nothing for cloud 149 / 150 / 169, and no push carries ct_libmig549. A second control (bb7073f4a5ca, the pull shifting even a stamped copy) reddens only the stamped case's Continue. Trial e6335896687c 12/0; subset total 326 on fda728bd1f56
 // CONTROL-RECORD: 6f518c3 2026-11-06 total=329 red=6 scope=trial:c738ab207551 how=the tree before A4-R4 (pull trusts a bare ct_libmig549 '1'; no ct_lastlesson549 pushed); red: TC-LS-052 fifth payload's Continue (Ruy Lopez Steinitz) and the pushed-copy line of all five payloads. The fix trial 64d46d055bd5 reads 329 PASS 0 FAIL.
@@ -267,8 +268,9 @@ const belowFoldSeen=[];
 const LESSONS=[
   {group:'Openings',row:0, name:/^Italian Game$/,       note:'the control case: this card is SHORT and owns its centre even on the broken bundle'},
   {group:'Openings',row:4, name:/^Four Knights Game$/,  note:'measured 487.89..531.89 at 320x568 on #496, centre on the footer bar'},
-  {group:'Openings',row:20,name:/^Queen.s Gambit$/,     note:'measured 495.56..539.56 at 320x568 on #496, centre on "Forward a move"'},
-  {group:'Openings',row:44,name:/^Petroff \(Russian\) Defense$/,
+  {group:'Openings',row:19,name:/^Queen.s Gambit$/,     note:'measured 495.56..539.56 at 320x568 on #496, centre on "Forward a move". Row 20 until #550 a13 removed the duplicate "Sicilian: Closed" row above it (the B0b pin said so)'},
+  {group:'Openings',row:43,name:/^Petroff \(Russian\) Defense$/,   // row 44 until #550 a13 (one row above it removed)
+
                             note:'THE WORST CARD ON THE RECORD and the one this build does NOT fully fix. Its panel is 634.55 tall in a 568 viewport (-33.27..601.28), so 16.28px of the CTA is below the screen and 6.73px of the close X is above it. Added because the first draft of this gate EXCLUDED it while the header claimed the set included the worst - both antagonists vetoed that independently.'},
   {group:'Gambits', row:0, name:/^King.s Gambit$/,      note:'measured 506.41..550.41 at 320x568 on #496, 25% already on "Forward a move"; and at 375x568 all three of its sample points hit the close X, so a tap there CLOSED the lesson'},
   {group:'Gambits', row:10,name:/^L.gal Trap$/,         note:'a second Gambits row, because 37 of 53 Gambits cards are affected and one row was not a sample of that'},
@@ -714,8 +716,11 @@ for(const geo of GEOS){
 // assertion would be a positive control. That is reported as a NOTE, never credited as a PASS.
 for(const geo of GEOS){
   const b=await L.launch({geo,name:'74D-'+geo});await b.open();
-  const o=await openPlain(b,'Openings',44);   // #549 item (65): was 45 until the duplicate Petrov row above it was removed. NOT openHeld: its click would hold the card and void D2
-  if(!o.ok){L.say(false,'74 D0 ['+geo+'] could not reach Openings row 44 (Petroff) for the hold-on-scroll check',o);await b.close();continue;}
+  const o=await openPlain(b,'Openings',43);   // #549 item (65): was 45 until the duplicate Petrov row above it was removed; 43 since #550 a13 removed a row above it. NOT openHeld: its click would hold the card and void D2
+  if(!o.ok){L.say(false,'74 D0 ['+geo+'] could not reach Openings row 43 (Petroff) for the hold-on-scroll check',o);await b.close();continue;}
+  // #550 a13: block D had NO name check, so when a13 removed a row above it the block silently opened Pirc Defense (no scroll room) and only
+  // D2G's anti-vacuity guard noticed. It now says which card it measured, as B0b and F0b do.
+  L.say(/^Petroff \(Russian\) Defense$/.test(o.name||''),'74 D0b ['+geo+'] Openings row 43 is still Petroff (Russian) Defense ('+o.name+') - if the lesson list is reordered this block must say so rather than silently measure another card',{got:o.name});
   const pi=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(!g)return null;
     let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
     const r=q.getBoundingClientRect();const s2=getComputedStyle(q);
@@ -859,10 +864,10 @@ for(const geo of GEOS){
 // [#545 item (92)] IT IS NO LONGER OWED: F2 below drives the same child with a finger and reports which instrument scrolled.
 {
   const b=await L.launch({geo:'se',name:'74F-se'});await b.open();
-  const o=await openPlain(b,'Openings',20);   // NOT openHeld: a click would hold the card and void F1
-  if(!o.ok){L.say(false,'74 F0 [se] could not reach Openings row 20 for the incidental-scroll check',o);}
+  const o=await openPlain(b,'Openings',19);   // row 20 until #550 a13 removed a row above it. NOT openHeld: a click would hold the card and void F1
+  if(!o.ok){L.say(false,'74 F0 [se] could not reach Openings row 19 for the incidental-scroll check',o);}
   else{
-    L.say(/^Queen.s Gambit$/.test(o.name),'74 F0b [se] Openings row 20 is still /^Queen.s Gambit$/ ('+o.name+') - if the lesson list is reordered this block must say so rather than silently measure another card',{got:o.name});
+    L.say(/^Queen.s Gambit$/.test(o.name),'74 F0b [se] Openings row 19 is still /^Queen.s Gambit$/ ('+o.name+') - if the lesson list is reordered this block must say so rather than silently measure another card',{got:o.name});
     const pop=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
       if(!g)return null; let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
       const kids=[...q.children].filter(c=>{const s2=getComputedStyle(c);return /auto|scroll/.test(s2.overflowY)&&c.scrollHeight>c.clientHeight+1;});
@@ -909,8 +914,8 @@ for(const geo of GEOS){
 // not, that is reported and NOT credited, which is the gesture disagreement #505 recorded, now measured on every run.
 {
   const b=await L.launch({geo:'se',name:'74F2-se'});await b.open();
-  const o=await openPlain(b,'Openings',20);
-  if(!o.ok){L.note('74 F2 [se] NOT RUN: could not reach Openings row 20 ('+JSON.stringify(o).slice(0,120)+')');}
+  const o=await openPlain(b,'Openings',19);
+  if(!o.ok){L.note('74 F2 [se] NOT RUN: could not reach Openings row 19 ('+JSON.stringify(o).slice(0,120)+')');}
   else{
     const tgt=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));
       if(!g)return null; let q=g;while(q&&q.parentElement&&getComputedStyle(q.parentElement).position!=='fixed')q=q.parentElement;
@@ -1001,18 +1006,29 @@ L.say(VACUOUS.length<GEOS.length,
   const nz=t=>t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/petroff/g,'petrov').replace(/[^a-z0-9]/g,'');const seen={},dup=[];
   rs.forEach(r=>{const k=nz(r.name);if(seen[k])dup.push(seen[k]+' = '+r.name);else seen[k]=r.name;});
   L.note('TC-LS-049 RECORDED, NOT CREDITED: other Openings rows that normalise to one name: '+(dup.length?dup.join('; '):'none'));
+  // #550 answer a13 [same job; the orchestrator's ruling a13]: the four other pairs that taught one line twice are one lesson each, under the
+  // standard name. Read over the WHOLE library the Discover screen renders (every group), by name, so a pair in any group is seen.
+  let all=[];try{all=await b.page.evaluate(()=>(window.CTLESSONS?[].concat(window.CTLESSONS.OPENINGS,window.CTLESSONS.ENDGAMES,window.CTLESSONS.MORE).map(l=>l.name):[]));}catch(e){}
+  L.say(all.length>0,'TC-LS-049 PRECONDITION the lesson library the app serves was read ('+all.length+' lessons)',{n:all.length});
+  for(const [keep,gone] of [['Closed Sicilian','Sicilian: Closed'],['Sicilian Dragon','Sicilian: Dragon'],['Sveshnikov Sicilian','Sicilian: Sveshnikov'],['Marshall Attack','Ruy Lopez: Marshall Attack']]){
+    const nk=all.filter(n=>n===keep).length,ng=all.filter(n=>n===gone).length;
+    L.say(nk===1&&ng===0,'TC-LS-049 "'+keep+'" is taught ONCE and "'+gone+'" is gone ('+nk+' and '+ng+')',{keep,nk,gone,ng});}
   await b.close();}
  {const b=await L.launch({geo:'kunal761',name:'ls050',store:{
-    ct_learnprog:{'Petrov (Russian) Defense':{learned:true,days:['2026-11-01','2026-11-02']},'Petroff (Russian) Defense':{learned:true,days:['2026-11-02','2026-11-03']},'Italian Game':{learned:true,days:['2026-11-04']}},
-    ct_train:{'Petrov (Russian) Defense':{learned:true,reps:2,last:1,due:1}},ct_lastlesson:'150'}});
+    ct_learnprog:{'Petrov (Russian) Defense':{learned:true,days:['2026-11-01','2026-11-02']},'Petroff (Russian) Defense':{learned:true,days:['2026-11-02','2026-11-03']},'Italian Game':{learned:true,days:['2026-11-04']},'Sicilian: Dragon':{learned:true,days:['2026-11-05']},'Sicilian Dragon':{learned:true,days:['2026-11-06']},'Sicilian: Closed':{learned:true,days:['2026-11-07']}},
+    ct_train:{'Petrov (Russian) Defense':{learned:true,reps:2,last:1,due:1},'Ruy Lopez: Marshall Attack':{learned:true,reps:3,last:1,due:1}},ct_lastlesson:'150'}});
   await b.open();await b.settle(800);
   const st=await b.page.evaluate(()=>{const g=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};let lp=null,tr=null;try{lp=JSON.parse(g('ct_learnprog'));tr=JSON.parse(g('ct_train'));}catch(e){}
     const cont=[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null;
-    return {lp,tr,ll:g('ct_lastlesson'),mig:g('ct_libmig549'),cont};});
+    return {lp,tr,ll:g('ct_lastlesson'),mig:g('ct_libmig549'),mig550:g('ct_libmig550'),cont};});
   const pf=st.lp&&st.lp['Petroff (Russian) Defense'];
   L.say(!!st.lp&&!('Petrov (Russian) Defense' in st.lp)&&!!pf&&(pf.days||[]).join(',')==='2026-11-01,2026-11-02,2026-11-03'&&!!st.lp['Italian Game'],'TC-LS-050 a day banked under the removed name "Petrov (Russian) Defense" is kept: ct_learnprog re-keys it onto Petroff with the days UNIONED (2026-11-01,2026-11-02,2026-11-03) and leaves other lessons alone',st.lp);
   L.say(!!st.tr&&!('Petrov (Russian) Defense' in st.tr)&&!!st.tr['Petroff (Russian) Defense']&&st.tr['Petroff (Russian) Defense'].reps===2,'TC-LS-050 and the drill record in ct_train moves with it (reps 2 on Petroff)',st.tr);
-  L.say(st.ll==='149'&&st.mig==='1'&&/^Continue: Closed Sicilian/.test(st.cont||''),'TC-LS-050 and a stored last-lesson INDEX past the removed copy moves down one, so Home still says "Continue: Closed Sicilian" ('+st.ll+', '+st.cont+')',{ll:st.ll,mig:st.mig,cont:st.cont});
+  L.say(st.ll==='62'&&st.mig==='1'&&st.mig550==='1'&&/^Continue: Closed Sicilian/.test(st.cont||''),'TC-LS-050 and a stored last-lesson INDEX from before #549 takes both index epochs (150 -> 149 -> 62, the one Closed Sicilian), so Home still says "Continue: Closed Sicilian" ('+st.ll+', '+st.cont+')',{ll:st.ll,mig:st.mig,mig550:st.mig550,cont:st.cont});
+  // #550 a13: the four pairs' progress moves the same way
+  const dr=st.lp&&st.lp['Sicilian Dragon'],cs=st.lp&&st.lp['Closed Sicilian'];
+  L.say(!!st.lp&&!('Sicilian: Dragon' in st.lp)&&!('Sicilian: Closed' in st.lp)&&!!dr&&(dr.days||[]).join(',')==='2026-11-05,2026-11-06'&&!!cs&&(cs.days||[]).join(',')==='2026-11-07','TC-LS-050 a13: days banked under "Sicilian: Dragon" and "Sicilian: Closed" move onto "Sicilian Dragon" (unioned) and "Closed Sicilian"',{dr,cs});
+  L.say(!!st.tr&&!('Ruy Lopez: Marshall Attack' in st.tr)&&!!st.tr['Marshall Attack']&&st.tr['Marshall Attack'].reps===3,'TC-LS-050 a13: and the Marshall drill record moves onto "Marshall Attack" (reps 3)',st.tr&&st.tr['Marshall Attack']);
   await b.close();}
  // TC-LS-052 [#549 (65) A1-R3; same job]: THE SAME INDEX MOVE ON A FRESH DEVICE THAT PULLS AN OLD CLOUD COPY. ct_lastlesson syncs, and
  // ct_libmig549 is set on a fresh device's first load, BEFORE the sign-in pull - so a value written by a build that still had both lessons
@@ -1023,22 +1039,25 @@ L.say(VACUOUS.length<GEOS.length,
  // fifth payload is the two-device path the bare stamp could not see: this build pushed 149 (stamp '1' and copy '149', so the case means
  // the same to the bare-stamp reader and to the value-stamp reader), then a pre-#549 device's merge-save wrote ct_lastlesson '150' in the
  // OLD indexing (Closed Sicilian) and left both markers standing. 150 must be shifted to 149; the bare-stamp reader opens Ruy Lopez Steinitz.
- for(const [ll,stamp,want] of [['149',null,'Petroff (Russian) Defense'],['150',null,'Closed Sicilian'],['169',null,'Wing Gambit (French)'],['149','149','Closed Sicilian'],['150','149','Closed Sicilian']]){
-  const tag='TC-LS-052 cloud ct_lastlesson '+ll+(stamp?(stamp===ll?' (stamped, copy equal)':' (stamped for '+stamp+', overwritten by an old device)'):' (no stamp)');
-  const b=await L.launch({geo:'kunal761',name:'ls052-'+ll+(stamp?'s'+stamp:'')});await b.open();await b.settle(600);
+ /* #550 a13: every case now passes BOTH index epochs (#549's, then LIB_IDX_550), and a 4th field is the #550 stamp ct_lastlesson550. The
+    last three are the second epoch's own: a #550-stamped value is never shifted; a #549-stamped 158 (Sicilian: Sveshnikov, removed) opens
+    Sveshnikov Sicilian; a #549-stamped 154 (below the removed 158, above the removed 149) moves down one to Pirc: Austrian Attack. */
+ for(const [ll,stamp,want,stamp550] of [['149',null,'Petroff (Russian) Defense'],['150',null,'Closed Sicilian'],['169',null,'Wing Gambit (French)'],['149','149','Closed Sicilian'],['150','149','Closed Sicilian'],['83','149','Sveshnikov Sicilian','83'],['158','158','Sveshnikov Sicilian'],['155','155','Pirc: Austrian Attack']]){
+  const tag='TC-LS-052 cloud ct_lastlesson '+ll+(stamp?(stamp===ll?' (stamped, copy equal)':' (stamped for '+stamp+', overwritten by an old device)'):' (no stamp)')+(stamp550?' (#550 stamp '+stamp550+')':'');
+  const b=await L.launch({geo:'kunal761',name:'ls052-'+ll+(stamp?'s'+stamp:'')+(stamp550?'t'+stamp550:'')});await b.open();await b.settle(600);
   const pre=await b.page.evaluate(()=>({ll:localStorage.getItem('ct_lastlesson'),mig:localStorage.getItem('ct_libmig549')}));
-  const signed=await b.page.evaluate(([ll,stamp])=>{const C=window.CTCloud;if(!C||!C._emit)return false;const prog={ct_lastlesson:ll};if(stamp){prog.ct_libmig549='1';prog.ct_lastlesson549=stamp;}
+  const signed=await b.page.evaluate(([ll,stamp,stamp550])=>{const C=window.CTCloud;if(!C||!C._emit)return false;const prog={ct_lastlesson:ll};if(stamp){prog.ct_libmig549='1';prog.ct_lastlesson549=stamp;}if(stamp550)prog.ct_lastlesson550=stamp550;
     window.__ls052saved=[];C._load=async()=>({ctProgress:prog});C._save=async(d)=>{window.__ls052saved.push(JSON.parse(JSON.stringify(d)));};
-    C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});return true;},[ll,stamp]);
+    C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});return true;},[ll,stamp,stamp550||null]);
   await b.settle(3600);
   const mid=await b.page.evaluate(()=>{const s=(window.__ls052saved||[]).map(d=>d&&d.ctProgress).filter(Boolean);const last=s[s.length-1]||null;
-    return {ll:localStorage.getItem('ct_lastlesson'),pushed:last?{ll:last.ct_lastlesson,copy:last.ct_lastlesson549}:null};});
+    return {ll:localStorage.getItem('ct_lastlesson'),pushed:last?{ll:last.ct_lastlesson,copy:last.ct_lastlesson549,copy550:last.ct_lastlesson550}:null};});
   await b.open();await b.settle(900);
   const cont=await b.page.evaluate(()=>[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null);
   if(L.say(signed&&pre.ll===null&&pre.mig==='1'&&mid.ll!==null,tag+' PRECONDITION a fresh device (no last lesson, migration flag already set by its first load) signed in and the pull wrote a last lesson',{signed,pre,mid})){
    const w18=want.slice(0,18).trim();   // Daily 3 prints the name cut to 18 characters, and innerText drops a trailing space
    L.say(!!cont&&cont.indexOf('Continue: '+w18)===0,tag+': after the reload Home says "Continue: '+w18+'" ('+cont+')',{cont,ll:mid.ll});
-   L.say(!!mid.pushed&&mid.pushed.ll===mid.ll&&mid.pushed.copy===mid.ll,tag+': and the copy pushed back to the cloud carries a stamp NAMING the value it holds (ct_lastlesson549 = ct_lastlesson), so no device shifts it again and a later old-device write is told apart',mid.pushed);}
+   L.say(!!mid.pushed&&mid.pushed.ll===mid.ll&&mid.pushed.copy===mid.ll&&mid.pushed.copy550===mid.ll,tag+': and the copy pushed back to the cloud carries a stamp NAMING the value it holds (ct_lastlesson549 = ct_lastlesson), so no device shifts it again and a later old-device write is told apart',mid.pushed);}
   await b.close();}}
 L.done();
 })().catch(e=>{console.error('74 THREW',e);process.exit(1);});

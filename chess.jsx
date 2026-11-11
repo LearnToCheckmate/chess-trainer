@@ -2686,7 +2686,15 @@ const LIB=OPENINGS.concat(ENDGAMES).concat(MORE);
    ct_lastlesson is a LIB INDEX: the survivor took the removed lesson's OPENINGS slot (35, so a stored 35 still opens the Petroff), and the
    old MORE copy at index 149 was deleted, so a stored 149 now means 35 and every stored index above 149 moves down one. That index move
    runs once per device, behind ct_libmig549. */
-const LIB_RENAMED={'Petrov (Russian) Defense':'Petroff (Russian) Defense'};
+/* #550 answer a13, jobs/the-openings-list-carries-petrov-and-petroff-as-two-adjacent-lessons-2026-10-04, on the orchestrator's ruling a13 (11 Nov
+   2026): the same rule for the four other pairs that taught one line twice. Kept, under the standard name: Closed Sicilian (the OPENINGS slot 62,
+   renamed from "Sicilian: Closed", so no index below 149 moves), Sicilian Dragon (82), Sveshnikov Sicilian (83, which takes the removed copy's
+   video) and Marshall Attack (90, likewise). Removed from MORE: the old 149 "Closed Sicilian", 158 "Sicilian: Sveshnikov", 159 "Sicilian: Dragon" and
+   161 "Ruy Lopez: Marshall Attack" (post-#549 indices). What was banked under a removed or old name moves to the survivor through the same two
+   re-keyings, and ct_lastlesson through a SECOND index epoch chained after #549's (LIB_IDX_550, its own per-device flag ct_libmig550 and its own
+   cloud stamp ct_lastlesson550, read exactly as #549's ct_lastlesson549 is). */
+const LIB_RENAMED={'Petrov (Russian) Defense':'Petroff (Russian) Defense','Sicilian: Closed':'Closed Sicilian','Sicilian: Dragon':'Sicilian Dragon','Sicilian: Sveshnikov':'Sveshnikov Sicilian','Ruy Lopez: Marshall Attack':'Marshall Attack'};
+const LIB_IDX_550={149:62,158:83,159:82,161:90};   // a removed post-#549 index -> its survivor's index (all below 149, so unmoved)
 const LIB_IDX_MOVED={removedAt:149,survivorAt:35};
 const migLearnProg=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out={...o};
   for(const k of Object.keys(o)){const base=k.split('§')[0];const to=LIB_RENAMED[base];if(!to)continue;ch=true;
@@ -2698,8 +2706,11 @@ const migTrain=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out=
     if(!a||((b&&b.reps)||0)>((a&&a.reps)||0))out[to]=b;delete out[k];}
   return ch?out:o;};
 const shiftLastLesson=(n)=>(n==null||isNaN(n))?n:n===LIB_IDX_MOVED.removedAt?LIB_IDX_MOVED.survivorAt:n>LIB_IDX_MOVED.removedAt?n-1:n;
-const migLastLesson=(n)=>{try{if(localStorage.getItem('ct_libmig549')==='1')return n;localStorage.setItem('ct_libmig549','1');
-  const m=shiftLastLesson(n);if(m!==n)localStorage.setItem('ct_lastlesson',String(m));return m;}catch(e){return n;}};
+const shiftLastLesson550=(n)=>{if(n==null||isNaN(n))return n;if(LIB_IDX_550[n]!=null)return LIB_IDX_550[n];let d=0;for(const k in LIB_IDX_550)if(+k<n)d++;return n-d;};
+/* #550 a13: the two epochs run in order, each once per device behind its own flag, so a store from before #549 takes both shifts and a #549 store takes the second only */
+const migLastLesson=(n)=>{let m=n;try{if(localStorage.getItem('ct_libmig549')!=='1'){localStorage.setItem('ct_libmig549','1');m=shiftLastLesson(m);}
+  if(localStorage.getItem('ct_libmig550')!=='1'){localStorage.setItem('ct_libmig550','1');m=shiftLastLesson550(m);}
+  if(m!==n)localStorage.setItem('ct_lastlesson',String(m));return m;}catch(e){return n;}};
 /* #549 (65) A1-R3 fix: ct_lastlesson syncs, and the per-device flag above is set on a fresh device's FIRST load - before the sign-in pull - so a
    cloud copy written by a build that still had both lessons arrived unshifted and was never shifted (149 opened Closed Sicilian, 169 lost
    Continue). [SUPERSEDED at A4-R4, see below: ct_libmig549 no longer syncs.] ct_libmig549 synced with it, and a pulled ct_lastlesson is shifted exactly when the cloud copy carries no stamp: a stamped
@@ -2711,7 +2722,9 @@ const migLastLesson=(n)=>{try{if(localStorage.getItem('ct_libmig549')==='1')retu
    and is shifted. Old bundles ignore the extra key (it is not in their SYNC_KEYS) and the merge keeps it, so nothing changes for them.
    RESIDUAL, stated rather than hidden: an old-device write that happens to be the same NUMBER as the copy (it opened the lesson whose old
    index equals the copy's new one - the lesson one BEFORE, for an index past 149) is read as new-index and resumes one lesson later. */
-const migPulledLastLesson=(v,prog)=>{try{if(prog&&prog.ct_lastlesson549!=null&&String(prog.ct_lastlesson549)===String(v))return v;const n=parseInt(v);if(isNaN(n))return v;return String(shiftLastLesson(n));}catch(e){return v;}};
+const migPulledLastLesson=(v,prog)=>{try{if(prog&&prog.ct_lastlesson550!=null&&String(prog.ct_lastlesson550)===String(v))return v;const n=parseInt(v);if(isNaN(n))return v;
+  if(prog&&prog.ct_lastlesson549!=null&&String(prog.ct_lastlesson549)===String(v))return String(shiftLastLesson550(n));   /* #550 a13: written by a #549 build: the second epoch only */
+  return String(shiftLastLesson550(shiftLastLesson(n)));}catch(e){return v;}};
 const RELATED={"Evans Gambit":["Italian Game"],"Scotch Gambit":["Scotch Game"],"Vienna Gambit":["Vienna Game"],"Göring Gambit":["Scotch Game","Ponziani Opening"],"Fried Liver Attack":["Two Knights Defense"],"Max Lange Attack":["Two Knights Defense","Italian Game"],"Traxler Counterattack":["Two Knights Defense","Fried Liver Attack"],"Belgrade Gambit":["Four Knights Game"],"Halloween Gambit":["Four Knights Game"],"Urusov Gambit":["Bishop's Opening"],"Jerome Gambit":["Italian Game"],"Blackburne Shilling Gambit":["Italian Game"],"Rousseau Gambit":["Italian Game"],"Fishing Pole Trap":["Ruy López (Spanish)"],"Scholar's Mate":["Italian Game"],"Légal Trap":["Philidor Defense"],"King's Gambit":["Falkbeer Counter-Gambit","King's Gambit: Bishop's Gambit","King's Gambit: Cunningham"],"Falkbeer Counter-Gambit":["King's Gambit"],"King's Gambit: Bishop's Gambit":["King's Gambit"],"King's Gambit: Cunningham":["King's Gambit"],"Muzio Gambit":["King's Gambit"],"Kieseritzky Gambit":["King's Gambit"],"Queen's Gambit":["Albin Counter-Gambit","Queen's Gambit Declined","Queen's Gambit Accepted"],"Albin Counter-Gambit":["Queen's Gambit","Albin Counter-Gambit: Lasker Trap"],"Albin Counter-Gambit: Lasker Trap":["Albin Counter-Gambit"],"Budapest Gambit":["Budapest Gambit: Kieninger Trap"],"Budapest Gambit: Kieninger Trap":["Budapest Gambit"],"Englund Gambit":["Englund Gambit: Rosen Trap"],"Englund Gambit: Rosen Trap":["Englund Gambit"],"Stafford Gambit: Mating Trap":["Petroff (Russian) Defense"],"Smith-Morra Gambit":["Sicilian Defense"],"Wing Gambit (Sicilian)":["Sicilian Defense"],"Marshall Attack":["Ruy López (Spanish)"],"Schliemann Gambit":["Ruy López (Spanish)"],"Cochrane Gambit":["Petroff (Russian) Defense"],"Staunton Gambit":["Dutch Defense"],"From's Gambit":["Bird's Opening","King's Gambit"],"Danish Gambit":["Center Game"],"Tennison Gambit":["Scandinavian Defense"],"Benko Gambit":["Modern Benoni","Benoni Defense"],"Blumenfeld Gambit":["Modern Benoni"],"Scandinavian: Icelandic Gambit":["Scandinavian Defense","Scandinavian: Portuguese"],"Scandinavian: Portuguese":["Scandinavian Defense","Scandinavian: Icelandic Gambit"],"Latvian Gambit":["Elephant Gambit"],"Elephant Gambit":["Latvian Gambit"],"Italian Game":["Evans Gambit","Fried Liver Attack"],"Scotch Game":["Scotch Gambit","Göring Gambit"],"Vienna Game":["Vienna Gambit"],"Two Knights Defense":["Fried Liver Attack","Traxler Counterattack"],"Sicilian Defense":["Smith-Morra Gambit","Wing Gambit (Sicilian)"],"Ruy López (Spanish)":["Marshall Attack","Schliemann Gambit"],"Petroff (Russian) Defense":["Cochrane Gambit","Stafford Gambit: Mating Trap"],"Scandinavian Defense":["Scandinavian: Icelandic Gambit","Scandinavian: Portuguese"],"Dutch Defense":["Staunton Gambit"],"Four Knights Game":["Halloween Gambit","Belgrade Gambit"],"Bird's Opening":["From's Gambit"],"Philidor Defense":["Légal Trap"]};
 // ── Persistent progress: window.storage in Claude artifacts, localStorage on the web, else in-memory ──
 const _PZMEM={};
@@ -3845,7 +3858,7 @@ export default function App(){
   const syncTimer=useRef(null);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)prog[k]=v;}catch(e){}});if(prog.ct_lastlesson!=null)prog.ct_lastlesson549=prog.ct_lastlesson;C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
+    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)prog[k]=v;}catch(e){}});if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
   const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
   const [syncPulled,setSyncPulled]=useState(false);
   // ── Daily 3 (#310): one lesson + two puzzles per day, tied to the streak
