@@ -573,6 +573,20 @@ L.run(async()=>{
     L.say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^Other lines$/.test(lTxt)),
       geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, WITH the pawn glyph, because the row can hold them':'"Other lines" with NO glyph and NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
       {board:dmBoard&&dmBoard.w,wantCount,label:lTxt});
+    /* #550 item (47), jobs/class-clause-instance-case-2026-09-28 (the orchestrator's GAP of 10 Nov): US-INV-05 bullet 3 says NO
+       control's box passes the viewport's right edge at THE LESSON THREE, and TC-INV-05c checked one button. Widened to the
+       clause: every PAINTED control on the lesson screen in this same demo-end visit (button, a, input, select, [role=button];
+       width and height over 1px, visibility not hidden, opacity over 0), right edge at or inside innerWidth+0.6 and left edge
+       at or after -0.6, with documentElement.scrollWidth read alongside. The denominator is its own line (a sweep over nothing
+       passes loudest). Controls under a transform:scale are measured by their painted box, which is what a finger meets. */
+    const _sw=await b.page.evaluate(()=>{const vw=innerWidth,out=[];let n=0;
+      for(const e of document.querySelectorAll('#root button,#root a,#root input,#root select,#root [role="button"]')){
+        const st=getComputedStyle(e);if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)===0)continue;
+        const r=e.getBoundingClientRect();if(r.width<=1||r.height<=1)continue;n++;
+        if(r.right>vw+0.6||r.left<-0.6)out.push({t:((e.innerText||e.getAttribute('aria-label')||e.tagName)+'').trim().slice(0,30),l:Math.round(r.left*100)/100,r:Math.round(r.right*100)/100});}
+      return {n,out,vw,sw:document.documentElement.scrollWidth};});
+    L.say(_sw.n>=5,geo+': TC-INV-05c DENOMINATOR the control sweep found '+_sw.n+' painted controls on the lesson screen (at least 5: the demo row and the footer)',{n:_sw.n});
+    L.say(_sw.n>=5&&_sw.out.length===0,geo+': TC-INV-05c no painted control on the lesson screen has any part past the viewport (right <= '+_sw.vw+'), and scrollWidth '+_sw.sw+' says nothing scrolls one back',{over:_sw.out.slice(0,6),sw:_sw.sw});
     /* #424: THE TWO ASSERTIONS THE FIVE EARLIER PASSES AT THIS DEFECT DID NOT HAVE. See demoRow's header for why
        the row is the box that matters. Measured before and after on the #424 bundle, at 320x568 and 375x568
        alike (they are identical to the hundredth, because the row is the board and the board is fit to HEIGHT):
