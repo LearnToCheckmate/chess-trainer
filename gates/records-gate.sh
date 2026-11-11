@@ -73,6 +73,7 @@ usage(){
   echo "usage: gates/records-gate.sh <base-sha> <head-sha>"
   echo "       gates/records-gate.sh --entries     # print the ratcheted entry list, one 'MODE<tab>path' per line"
   echo "       gates/records-gate.sh --selftest    # the controls, as a command rather than a paragraph"
+  echo "       gates/records-gate.sh --harnesses [--write|--selftest]   # held/verify-log/buildnum selftests under a case-count ratchet (#550)"
   echo "exit 0 = every ratcheted record grew or was untouched; 1 = one was CHANGED; 2 = this door could not run."
 }
 
@@ -121,6 +122,7 @@ entries_ratchet(){
 }
 
 case "${1:-}" in
+  --harnesses) shift; exec bash "$HERE/harness-counts.sh" "$@" ;;   # #550 item (104): part (4)'s three push-check harnesses under a case-count ratchet
   --entries)  : ;;                       # handled after the lists are defined, below
   --selftest) : ;;
   -h|--help)  usage; exit 0 ;;
