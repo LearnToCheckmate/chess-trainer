@@ -18,6 +18,7 @@
 // 360x640 on arrival with the social tiles hidden; C: the other five on arrival, unscrolled).
 // THE REACH IS ASSERTED TOO, so a pinned "below the fold" can never hide "unreachable": the button's own scroller is
 // scrolled and the button must then sit on screen - below the fold is not unreachable (CLAUDE.md), and this checks both.
+// CONTROL-RECORD: 40515d9 2026-11-11 total=198 red=34 scope=trial:a6ef99c17548 how=#550 answer a26 (with a12's 08i): the tree before the Tactics page's own bar - the new TC-INV-08l and 08m lines red where its controls or back button sit under the tab bar or scrolled away, or #root scrolls; the a26 trial 455ff0ea4f3f reads 198 pass, 0 fail
 const L=require('../lib');
 const P=require('../drive/play');
 const D=require('../drive/lesson');
@@ -142,10 +143,18 @@ L.run(async()=>{
   const tgot={};
   const readCard=b=>b.page.evaluate(()=>{const root=document.getElementById('root');if(root)root.scrollTop=0;
     const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
-    const bar=document.querySelector('[data-ct="tabbar"]');const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy');
+    const bar=document.querySelector('[data-ct="tabbar"]');
+    // #550 answer a26 (AUD-L01, Option A): the page's heading went into ONE bar - back, the two tabs, the menu - so the denominator's
+    // "this is the Tactics page" reads the two tab buttons by their text (not the data-ct the same build added), and the old heading or
+    // the new bar's tabs both satisfy it, so the check reads the same page on a bundle from before a26.
+    const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy')||(['Tactics','Strategy'].every(t=>[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()===t)));
+    // #550 a26: the page's controls (Hint, Show answer, Next motif, Prev, Next) must end ABOVE the tab bar, and #root must not scroll
+    const ctls=[...document.querySelectorAll('button')].filter(x=>/^(💡 ?Hint|Hint|Show answer|Next motif|‹ Prev|Next ›)/.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2).map(x=>({t:(x.innerText||'').trim().slice(0,12),bottom:Math.round(x.getBoundingClientRect().bottom*10)/10}));
+    const rsc=root?Math.max(0,root.scrollHeight-root.clientHeight):null;
+    const back=[...document.querySelectorAll('button')].find(x=>/^(‹ Back)$/.test((x.innerText||'').trim())||x.getAttribute('aria-label')==='Back');const backTop=back?Math.round(back.getBoundingClientRect().top):null;
     const btn=re=>[...document.querySelectorAll('button')].some(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
     const ctr=[...document.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).map(t=>/(?:^|· )(\d+)\/(\d+)$/.exec(t)).find(Boolean);
-    const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^‹ Prev$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null};
+    const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^‹ Prev$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null,ctls,rsc,backTop};
     if(!gs.length||!bar)return o;const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
     return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10});});
   const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));if(x)x.click();return !!x;},re.source);
@@ -159,7 +168,7 @@ L.run(async()=>{
       const onTab=c=>!!c&&(tab==='Tactics'?c.tacticsCtl&&!c.strategyCtl:c.strategyCtl&&!c.tacticsCtl);
       if(m&&m.board&&m.bar&&onTab(m)&&m.of){
         for(let k=0;k<m.of;k++){
-          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
+          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);if(k===1){const sh=await readCard(b);const nm=sh.ctls.find(x=>/^Next motif/.test(x.t));L.say(!!nm&&nm.bottom<=sh.barTop&&sh.rsc!==null&&sh.rsc<=0.5,n+' Tactics: TC-INV-08l with the answer SHOWN "Next motif" ends above the tab bar and the page does not scroll ('+(nm&&nm.bottom)+' against '+sh.barTop+', #root overflow '+sh.rsc+')',{nm,barTop:sh.barTop,rsc:sh.rsc});}await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
           if(!m||!m.board||!m.bar||!onTab(m))break;cards.push(m);}
       }
       const seen=cards.map(c=>c.card);const all=!!first&&!!first.of&&cards.length===first.of&&seen.every((c,k)=>c===k+1);
@@ -168,6 +177,12 @@ L.run(async()=>{
       const unders=cards.map(c=>Math.round((c.bottom-c.barTop)*10)/10);const worst=Math.max(...unders);const wk=unders.indexOf(worst)+1;
       tgot[n+' '+tab]=worst;
       L.say(worst<=0,n+' '+tab+': TC-INV-08e at rest the board is clear of the tab bar on EVERY card ('+cards.length+'): the worst is card '+wk+' at '+(worst<=0?(-worst)+'px above it':worst+'px UNDER it'),{unders});
+      // TC-INV-08l [#550 answer a26, AUD-L01 Option A: "there should be no scrolling"]: at rest on EVERY card the page's own controls end at
+      // or above the tab bar's top and #root does not scroll; and (08m) the back control is in the first 80px of the screen, not scrolled away.
+      const ctlPast=cards.map(c=>c.ctls.length?Math.max(...c.ctls.map(x=>x.bottom))-c.barTop:null);
+      L.say(cards.every(c=>c.ctls.length>0)&&ctlPast.every(x=>x!==null&&x<=0),n+' '+tab+': TC-INV-08l at rest the page\'s own controls end above the tab bar on EVERY card ('+cards.length+'; worst '+Math.max(...ctlPast.map(x=>x===null?999:x))+'px past its top)',{ctlPast,first:cards[0].ctls});
+      L.say(cards.every(c=>c.rsc!==null&&c.rsc<=0.5),n+' '+tab+': TC-INV-08l and the page does not scroll on any card (#root overflow '+[...new Set(cards.map(c=>c.rsc))].join(', ')+'px)',{rsc:cards.map(c=>c.rsc)});
+      L.say(cards.every(c=>c.backTop!==null&&c.backTop>=0&&c.backTop<80),n+' '+tab+': TC-INV-08m the back control is in the first 80px of the screen on every card ('+[...new Set(cards.map(c=>c.backTop))].join(', ')+')',{backTops:cards.map(c=>c.backTop)});
       const ws=[...new Set(cards.map(c=>c.w))];
       L.say(ws.length===1,n+' '+tab+': TC-INV-08k the board is ONE width on every card ('+ws.join(', ')+'px'+(ws.length>1?', cards '+cards.map((c,k)=>(k+1)+':'+c.w).join(' '):'')+') - the board must never jump between cards',{widths:cards.map(c=>c.w),tops:cards.map(c=>c.top)});
     }

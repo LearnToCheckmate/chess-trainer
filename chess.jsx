@@ -3580,7 +3580,16 @@ const STRAT=[
  {title:"Connected passed pawns",fen:"4k3/8/8/1PP5/8/8/8/4K3 w - - 0 1",text:"Two passed pawns on neighbouring files protect each other as they advance, so the enemy king or rook cannot blockade both. A pair of connected passers, especially far from the enemy king, often wins the game on its own.",look:"The b- and c-pawns guard each other and roll forward together."},
  {title:"Activate your king in the endgame",fen:"6k1/5ppp/8/8/4K3/8/5PPP/8 w - - 0 1",text:"In the middlegame the king hides from attack, but once the queens are gone it becomes a strong piece. March it toward the centre and into the action. An active, centralized king is often worth an extra pawn in the endgame.",look:"White's king strides to the centre while Black's stays at home."},
 ];
-function TacticsTrainer({light,dark,demo}){
+/* #550 answer a26 / AUD-L01 (Option A, docs/mockup-l01-tactics-2026-11-11, the orchestrator's pick after Kunal said no preference; his words on
+   the card: "The back button on top with the whole row I think that needs to be fixed ... there should be no scrolling"). On a phone (onBack given)
+   the page has ONE bar: back, the Tactics and Strategy tabs, and the menu; the title and its blurb go, and the app header is not drawn over it.
+   Under the board sits a fixed area - the status line, the answer or the strategy text (scrolling inside its own box), and the buttons - and the
+   board is sized so that area ends above the tab bar, on every card and in every state, so the board never jumps when the answer appears. */
+const TT_BELOW={motifs:120,strategy:180};   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
+function TacticsTrainer({light,dark,demo,onBack,onMenu}){
+  const _bar=!!onBack;
+  const belowRef=useRef(null);const [belowH,setBelowH]=useState(0);
+  const ansRef=useRef(null);const [ansMore,setAnsMore]=useState(false);const ansCheck=()=>{const el=ansRef.current;setAnsMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 a26: the answer box fades at its foot while there is more to read, as the idea box does
   const [tab,setTab]=useState('motifs');
   const [mi,setMi]=useState(0);
   const [sel,setSel]=useState(null);
@@ -3616,7 +3625,12 @@ function TacticsTrainer({light,dark,demo}){
       if(ideaRef.current){ideaRef.current.scrollTop=0;ideaCheck();}
       const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
       const top=el.getBoundingClientRect().top+(root?root.scrollTop:0);const avail=Math.floor(bar.getBoundingClientRect().top-top-6);
-      setCap(Math.max(176,Math.min(400,avail)));};
+      if(!_bar){setCap(Math.max(176,Math.min(400,avail)));return;}
+      /* the app column carries 8px of bottom padding past the tab bar's spacer, so the area under the board ends 14px above the bar (6 + 8),
+         or #root scrolls by that 8px (measured on trial d17aafa01c24: #root scrollHeight 769 over 761 with the area ending 6px above) */
+      const av2=avail-8,wmax=Math.floor(el.parentNode?el.parentNode.getBoundingClientRect().width:400);
+      const c2=Math.max(176,Math.min(wmax,av2-TT_BELOW[tab==='strategy'?'strategy':'motifs']));setCap(c2);
+      setBelowH(av2-c2-10);};   // at the 176 floor the area gives way, never the tab bar: it keeps status and buttons, and the text box shrinks
     /* #550 item (99) [jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, #549 antagonist B's
        B8]: the cap was measured ONCE per card change, in the layout effect, so anything above the board that settles a frame later (a
        font arriving, the tab bar mounting, the idea box's own fade) left the cap measured against an unsettled layout until the next
@@ -3626,6 +3640,7 @@ function TacticsTrainer({light,dark,demo}){
     try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(_alive)fit();});}catch(e){}
     window.addEventListener('resize',fit);return()=>{_alive=false;cancelAnimationFrame(_r1);cancelAnimationFrame(_r2);window.removeEventListener('resize',fit);};
   },[tab,mi,si]);
+  useLayoutEffect(()=>{if(ansRef.current){ansRef.current.scrollTop=0;}ansCheck();},[solved,shown,mi,belowH,tab]);
   const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
     if(!demo)return;
@@ -3676,11 +3691,16 @@ function TacticsTrainer({light,dark,demo}){
   const cstr=STRAT[si%STRAT.length];const spos=fromFEN(cstr.fen);
   const scell=(r,c)=>{const lt=(r+c)%2===0;const p=spos.board[r][c];return(<div key={r+'-'+c} style={{aspectRatio:'1',background:lt?light:dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>{c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{8-r}</span>}{r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{FILES[c]}</span>}{p&&<Piece t={p.t} color={p.c} sz={psz}/>}</div>);};
   return(<div style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+    {_bar?(<div data-ct="tactics-bar" style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:10,position:'sticky',top:0,zIndex:5}}>
+      <button data-ct="tactics-back" onClick={onBack} aria-label="Back" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,display:'flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
+      {tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}
+      {onMenu&&<button data-ct="tactics-menu" onClick={onMenu} aria-label="Menu and settings" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,fontSize:18}}>☰</button>}
+    </div>):(<>
     <div style={{textAlign:'center',marginBottom:12}}>
       <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & Strategy</div>
       <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:3}}>The patterns that win games, and the ideas behind good moves.</div>
     </div>
-    <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}</div>
+    <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}</div></>)}
     {tab==='motifs'&&(<div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
         <span style={{fontSize:'clamp(15px,3.5vw,17px)',fontWeight:800,color:'#fff'}}>{cur.motif}</span>
@@ -3690,19 +3710,21 @@ function TacticsTrainer({light,dark,demo}){
       <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
-      <div style={{minHeight:24,textAlign:'center',margin:'10px 0 4px'}}>
+      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0}:undefined}>
+      {!(_bar&&(solved||shown))&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
         {solved?<span style={{color:'#6fce97',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>✓ {cur.san} — correct!</span>
          :shown?<span style={{color:'var(--ac2)',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>Answer: {cur.san}</span>
          :wrong?<span style={{color:'#f0a24e',fontWeight:700,fontSize:'clamp(13.5px,2.8vw,14px)'}}>Not the key move — try again.</span>
          :sel?<span style={{color:'rgba(255,255,255,.6)',fontSize:'clamp(14px,2.7vw,14px)'}}>Now tap where it goes.</span>
          :<span style={{color:'rgba(255,255,255,.6)',fontSize:'clamp(14px,2.7vw,14px)'}}>Tap the piece to move.</span>}
-      </div>
-      {(solved||shown)&&<div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:10}}>{cur.explain}</div>}
-      {showHint&&!solved&&!shown&&<div style={{textAlign:'center',color:'rgba(255,255,255,.7)',fontSize:'clamp(14px,2.7vw,14px)',marginBottom:10}}>💡 {cur.hint}</div>}
-      <div style={{display:'flex',gap:8}}>
+      </div>}
+      {(solved||shown)&&<div data-ct="tactics-answer" ref={ansRef} onScroll={ansCheck} style={{WebkitMaskImage:_bar&&ansMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:_bar&&ansMore?'linear-gradient(#000 70%,transparent)':undefined,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:10,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{_bar&&<div style={{fontWeight:800,marginBottom:3,color:solved?'#6fce97':'var(--ac2)'}}>{solved?('✓ '+cur.san+' — correct!'):('Answer: '+cur.san)}</div>}{cur.explain}</div>}
+      {showHint&&!solved&&!shown&&<div style={{textAlign:'center',color:'rgba(255,255,255,.7)',fontSize:'clamp(14px,2.7vw,14px)',marginBottom:10,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>💡 {cur.hint}</div>}
+      <div style={{display:'flex',gap:8,...(_bar?{marginTop:'auto',flexShrink:0}:null)}}>
         {!solved&&!shown&&<button onClick={()=>setShowHint(h=>!h)} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>Hint</button>}
         {!solved&&!shown&&<button onClick={()=>{setShown(true);setSel(null);}} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>Show answer</button>}
         {(solved||shown)&&<button onClick={nextM} style={{flex:1,padding:'10px',borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer'}}>Next motif →</button>}
+      </div>
       </div>
     </div>)}
     {tab==='strategy'&&(<div>
@@ -3710,14 +3732,16 @@ function TacticsTrainer({light,dark,demo}){
         <span style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#fff'}}>{cstr.title}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{(si%STRAT.length)+1}/{STRAT.length}</span>
       </div>
-      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto 11px',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:_bar?'0 auto 10px':'0 auto 11px',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c)))}
       </div>
-      <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'9px 12px',fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:700,textAlign:'center',marginBottom:9}}>👀 {cstr.look}</div>
-      <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:11}}>{cstr.text}</div>
-      <div style={{display:'flex',gap:8}}>
+      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',minHeight:0}:undefined}>
+      <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'9px 12px',fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:700,textAlign:'center',marginBottom:9,flexShrink:0}}>👀 {cstr.look}</div>
+      <div data-ct={_bar?'tactics-strat-text':undefined} style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:11,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{cstr.text}</div>
+      <div style={{display:'flex',gap:8,...(_bar?{marginTop:'auto',flexShrink:0}:null)}}>
         <button onClick={()=>setSi(i=>(i-1+STRAT.length)%STRAT.length)} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer'}}>‹ Prev</button>
         <button onClick={()=>setSi(i=>(i+1)%STRAT.length)} style={{flex:1,padding:'10px',borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer'}}>Next ›</button>
+      </div>
       </div>
     </div>)}
   </div>);
@@ -9103,7 +9127,7 @@ export default function App(){
         </div>
       </div>)}
 
-      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
+      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&!(mode==='learn'&&learnGroup==='tactics'&&openIdx===null)/* #550 a26: the Tactics page's own bar replaces the header */&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
         <div onClick={()=>setHomeScreen(true)} title="Home" style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,28px)',color:'var(--ac)',letterSpacing:2,textShadow:'0 2px 12px rgba(var(--acr),.4)',cursor:'pointer',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:'0.16em',maxWidth:'calc(100% - 92px)',overflow:'hidden'}}>{(()=>{const _hT=homeScreen?null:((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':null))));return _hT?(<span style={{fontSize:'clamp(15px,4.1vw,19px)',fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{_hT}</span>):(<><QueenGlyph idp="s" style={{width:'1.15em',height:'1.15em',flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.5))'}}/>CHESS TRAINER</>);})()}</div>
         {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!_gameOver)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
         {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
@@ -11317,8 +11341,8 @@ export default function App(){
           </div>
         ):learnGroup==='tactics'?(
           <div style={{width:'100%'}}>
-            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
-            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo}/>
+            {wide&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>}
+            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo} onBack={wide?undefined:()=>setLearnGroup(null)} onMenu={wide?undefined:()=>setMenuOpen(true)}/>{/* #550 a26: on a phone the trainer draws its own bar (back, tabs, menu) */}
           </div>
         ):learnGroup==='train'?((()=>{
           const trainable=LIB.map((o,i)=>i).filter(i=>{const g=groupOf(LIB[i].cat);return g==='openings'||g==='gambits';});

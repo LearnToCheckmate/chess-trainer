@@ -559,6 +559,9 @@ gate 78.
   EVERY card, not only the first, and the board is ONE size on every card of a tab: it never changes size or jumps as the
   player steps from card to card (a longer motif idea scrolls inside its two-line box). (TC-INV-08d, TC-INV-08e,
   TC-INV-08k; #549, jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28)
+- And (#550 answer a26, AUD-L01 Option A, docs/mockup-l01-tactics-2026-11-11) nothing on that page scrolls: one bar at the top holds
+  back, the two tabs and the menu, the page's own buttons (Hint, Show answer, Next motif; Prev and Next) end above the tab bar on every
+  card, with the answer showing too, and the answer text scrolls inside its own box under the board. (TC-INV-08l, TC-INV-08m)
 - On Puzzles (the roadmap, fresh store) "▶ Start training", and on Review's import box "⚡ Analyze Game", are above the
   fold on arrival - the fold being the fixed tab bar's top - at 375x761 (Kunal's phone) and every geometry of THE DRILL SEVEN (TC-INV-08f to 08h).
   Q2 settled by the orchestrator's ruling of 4 Nov 2026 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04).
