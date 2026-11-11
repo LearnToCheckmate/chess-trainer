@@ -441,7 +441,7 @@ function selftest() {
 }
 
 /* ---- main ---- */
-if (process.argv[2] === '--selftest') process.exit(selftest());
+if (process.argv[2] === '--selftest') { process.exitCode = selftest(); return; }   // #550: exitCode, not exit() - see the main path's last line
 
 // ── THE GIT REDIRECT VARIABLES ARE SCRUBBED HERE TOO [#544, item (11); the class sweep of
 // jobs/gatemanifest-derives-its-root-with-git-c-...-2026-10-22, which names this file's audit() `git -C ROOT`
@@ -467,4 +467,9 @@ if (LOG) {
   }
   if (!LOG) { console.error('control-audit: no log under ' + LOGDIR + ' passes verify-log.sh'); process.exit(2); }
 }
-process.exit(report(audit(ROOT, parseLog(fs.readFileSync(LOG, 'utf8'))), path.relative(ROOT, LOG) + ' (accepted by verify-log.sh)'));
+/* #550 (found by round 2's background suite: fastgate-drive H52/H57, and fastgate's control-audit ratchet read NOTHING on either side):
+   process.exit() right after console.log TRUNCATES stdout when stdout is a PIPE - Node writes to a pipe asynchronously - and the report's
+   last lines (SUMMARY, CONTROL-AUDIT RATCHET) are what every consumer greps. The report grew past the pipe buffer (419 lines, ~70KB, with
+   this run's records), so `node control-audit.js | grep` read an empty tail while `> file` read it all. Setting exitCode lets Node
+   drain stdout before it exits. */
+process.exitCode = report(audit(ROOT, parseLog(fs.readFileSync(LOG, 'utf8'))), path.relative(ROOT, LOG) + ' (accepted by verify-log.sh)');
