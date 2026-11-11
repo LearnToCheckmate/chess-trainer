@@ -56,7 +56,9 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   'BRIL_MOTIF_ORDER','brilMotifs',
   // #549 item (98): the opening book - the named-position table, its key, and the Book count the review reads, so gate 87 and
   // gates/opening-book/build.js run the shipped functions (lessonBookPlies takes the lesson list as an argument; the stub window has none).
-  'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS'];
+  'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS',
+  // #550 item (51): the review's second move on a drill card - its switch, so gate 52's E0 reads the shipped default.
+  'REVIEW_TWO_DEFAULT','REVIEW_TWO'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,

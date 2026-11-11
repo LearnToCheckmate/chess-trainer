@@ -2330,10 +2330,12 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss){
     if(cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2!=null,_s2=_h2?(mover==='w'?ev2:-ev2):null;
       if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
       else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
-    let altSan='',altDrop=null;
-    try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));}}
-      if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}}catch(e){}
-    return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl),mbril:_mbG?{san:bestSan,move:bestMv,gate:_mbG}:null});
+    let altSan='',altDrop=null,altUci='',altLabel=null;
+    try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));altUci=au;}}
+      if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}
+      /* #550 item (51): the review's OWN grade of its second line, on the same win-probability ladder the played move is graded on */
+      if(altSan&&ev2!=null)altLabel=classify(winDrop(before,ev2,mover)).label;}catch(e){}
+    return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,altUci,altLabel,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl),mbril:_mbG?{san:bestSan,move:bestMv,gate:_mbG}:null});
 }
 /* #549 item (28): THE RULE THIS BUILD REPLACED, from the fields brilliantGate still returns - kept ONLY so the regrade preview can
    say which stored Brilliants go and which appear. The landing arm alone (sacLand) was the whole sacrifice measure, the cap read
@@ -2458,8 +2460,17 @@ const BOOK_TABLE=(()=>{try{const v=typeof localStorage!=='undefined'?localStorag
 /* #550, THE NEW FEATURES SECTION (Kunal, questions/B10-SHIP-ON 'on': every new feature ships switched on, with its own switch on one New
    features page in Settings). One row per switch: its storage key, the value each way, and whether it is on now. The values are read once,
    when the app loads (module constants), so a tap writes the key and reloads. Later features add a row here. */
+/* #550 item (51), jobs/drill-accepts-one-move-only, Kunal's B9C-DRILL-GRADE answer 'review-two' ("Also accept the review's
+   second move when it is nearly as good") and B10-SHIP-ON (every new feature on, with its own switch): a mistakes-drill card also
+   accepts the move the REVIEW ranked second at that position, when the review's own grade of it is Excellent or better (Best or
+   Excellent on CLS_BANDS; the review never grades a second line Brilliant). Nothing is re-searched: the move and its grade are
+   the deep review's, stored on the card at capture (m.alt2). DRILL_GRADE, the quick depth-3 grade, stays OFF. Cards captured
+   before this build carry no alt2 and keep accepting the stored move alone. ct_review_two='0' turns it off for one device. */
+const REVIEW_TWO_DEFAULT=1;
+const REVIEW_TWO=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_review_two'):null;return v==='1'?1:v==='0'?0:REVIEW_TWO_DEFAULT;}catch(e){return REVIEW_TWO_DEFAULT;}})();
 const NEW_FEATURES=[
   {id:'book-table',label:'Opening book table',sub:'more of your opening counts as Book, as on chess.com',key:'ct_book_table',on:'1',off:'0',isOn:()=>BOOK_TABLE===1},
+  {id:'review-two',label:"Drill: the review's second move",sub:'a drill card also accepts the review\'s second choice when it rated it Excellent',key:'ct_review_two',on:'1',off:'0',isOn:()=>REVIEW_TWO===1},
 ];
 // The position's book key: FNV-1a 32 over 'board side castling' of its FEN, seven base-36 digits. gates/opening-book/build.js writes
 // BOOK_POS with this very function (read out of this file), so the table and the lookup cannot use two different keys.
@@ -6172,7 +6183,7 @@ export default function App(){
                very expression the `if` above filters on, so the card can only ever say "a mistake"
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,no:Math.floor((_pb+i)/2)+1/* last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
+            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
           } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
@@ -6784,11 +6795,17 @@ export default function App(){
          card) falls back to the flat string match below, unchanged. */
       const grade=(DRILL_GRADE&&!matchesLine&&!isMate&&p.mine&&!p.brill&&drillKindRef.current==='mistake'&&p.sol.length===1&&step===0)?gradeDrillMove(g,mv,p.sol[0],p.gameSan):null;
       const graded=!!(grade&&grade.trusted);
-      if(isMate||matchesLine||(graded&&grade.accept)){
+      /* #550 item (51): the review's second move, when the review rated it Excellent or better (REVIEW_TWO). Same scope as the grade:
+         own-game mistakes cards only, first step of a one-move solution; a Lichess puzzle carries no alt2, so it still rejects any
+         move it does not store (TC-R160's C6 sibling, gate 18). Accepted as the grade's accept is: the card is KEPT, so the review's
+         first choice can still be found, and the message names it. */
+      const matchesAlt2=!!(REVIEW_TWO&&!matchesLine&&!isMate&&p.mine&&!p.brill&&p.alt2&&p.alt2.san&&drillKindRef.current==='mistake'&&p.sol.length===1&&step===0&&cleanSAN(played)===cleanSAN(p.alt2.san));
+      const grade2=matchesAlt2?{label:p.alt2.label,accept:true,trusted:true,alt2:true}:grade;
+      if(isMate||matchesLine||matchesAlt2||(graded&&grade.accept)){
         setGame(ng);setLastMv(mv);setPuzReveal(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         const s=step+1;
         if(isMate||s>=p.sol.length){
-          drillGradedAcceptRef.current=!!(graded&&grade.accept);   /* #549 item (97), #457 ground 2: set BEFORE setPuzSolved, because the delete effect keys on puzSolved */
+          drillGradedAcceptRef.current=!!((graded&&grade.accept)||matchesAlt2);   /* #549 item (97), #457 ground 2: set BEFORE setPuzSolved, because the delete effect keys on puzSolved */
           setPuzStep(p.sol.length);setPuzSolved(true);setPzBurst(Date.now());setTimeout(()=>setPzBurst(0),1200);
           const alt=isMate&&!matchesLine;
           /* #426 antagonist A, finding 2: when the stored solution is a mate and the player finds a
@@ -6815,7 +6832,7 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){const _mb=(graded&&grade.accept)?drillAcceptMsg(played,grade,g,mv,p.sol[0]):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||'')));   /* #549 item (97): a graded accept names its band and why, and reveals the stored move at Excellent */const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
+          if(p.ext){const _mb=matchesAlt2?drillAcceptMsg(played,grade2,g,mv,p.sol[0]):(graded&&grade.accept)?drillAcceptMsg(played,grade,g,mv,p.sol[0]):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||'')));   /* #549 item (97): a graded accept names its band and why, and reveals the stored move at Excellent */const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
             /* #475 KEYED ON THE QUEUE INDEX, NOT ON THE CARD ID. The id is 'lichess:mine:<fen>', so two queue
                rows in the SAME position shared one key: antagonist B solved row A and row B then arrived
                already solved, with row A's move on the board and row A's sentence under it. A review batch does
@@ -7759,7 +7776,10 @@ export default function App(){
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
        verdict is the move's own explanation or nothing at all. The motif and level chips are dropped on EVERY own-game card:
        _themeLabel(['mix']) and _lvlR(null) print the same two words on all of them. '✓ solved before' still varies, so it stays. */
-    o.motif=null;o.level=null;return o;}catch(e){return null;}};
+    o.motif=null;o.level=null;
+    /* #550 item (51): the review's second move rides on the card only when it is a legal move here and not the stored one */
+    if(!isB&&m.alt2&&m.alt2.uci&&m.alt2.uci!==m.uci&&uciToMove(g,m.alt2.uci))o.alt2={san:m.alt2.san,label:m.alt2.label};
+    return o;}catch(e){return null;}};
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length){toast('None of your '+qs.length+' saved position'+(qs.length>1?'s':'')+' can be played: each needs a legal position and a legal better move. '+(qs.length>1?'They are':'It is')+' kept, not deleted.');return;}/* #550 item (13), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 (b): say why, never return silently */drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
     {const _f=qs[pl[0]]&&qs[pl[0]].fen;if(_f)setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}};   /* #549 item (15): the FIRST card is served here, not through drillGo, so it is stamped practised here too - else capMistakes keeps it over an older unseen one */
   const mkPlayN=useMemo(()=>(myMistakes||[]).filter(m=>!!puzzleFromMistake(m)).length,[myMistakes]);   /* #550 item (13) (a), Kunal's B8-SMALL-DEFAULTS 'Use your defaults': the card counts only the rows the drill can play; nothing is deleted */

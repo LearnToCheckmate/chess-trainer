@@ -236,6 +236,13 @@ L.run(async()=>{
   const cb=await c.board();
   L.say(!!cb,'TC-R42 C1 ARRIVAL: a real (non-drill) Lichess puzzle loaded and has a board',cb?{w:Math.round(cb.w*100)/100,flip:cb.flip}:null);
   if(cb){
+    /* #550 item (51), TC-R179 C6 (jobs/drill-accepts-one-move-only's C6, given to this route on 4 Nov): the review's second
+       move ships ON (REVIEW_TWO), and it must stay a mine: card's thing. A real Lichess puzzle still rejects any move it does
+       not store - here 3...Nf6, the Berlin, a perfectly good move that is not the puzzle's a6. Played FIRST, so the solve
+       below (C2-C6) also proves a rejected try does not cost the genuine credit. Streak is 0 here, so no streak is broken. */
+    await c.move('g8','f6',900);await c.settle(1200);
+    const wv=await verdict(c);
+    L.say(!!wv&&/^✗/.test(wv)&&!/^🎉/.test(wv),'TC-R179 C6 a real Lichess puzzle still REJECTS a good move it does not store (3...Nf6, not the stored a6), with the review\'s second move switched on by default',{verdict:wv});
     await c.move('a7','a6',900);await c.settle(1200);
     const cv=await verdict(c);
     L.say(!!cv&&/^🎉/.test(cv),'TC-R42 C2 THE SOLVE REGISTERED on a real Lichess puzzle',{verdict:cv});

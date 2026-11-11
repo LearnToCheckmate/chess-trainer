@@ -45,6 +45,7 @@
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=2 scope=env:CT_GEO52=kunal761 how=bundle 3e9304792cb5 (the fix with DRILL_GRADE_DEFAULT=true) - D2 D3 red
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=3 scope=env:CT_GEO52=kunal761 how=bundle 319b07f98fad (default on, graded accept disabled) - C2 D2 D3 red
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=5 scope=env:CT_GEO52=kunal761 how=bundle cf4454f2553f (2f4e07a^ chess.jsx, flat string match) - C2 C3 C4 C4b C5c red, every D green
+// CONTROL-RECORD: 76381cc 2026-11-11 total=34 red=4 scope=env:CT_GEO52=kunal761 how=#550 item (51): bundle 95cbf7c6f671 with CT_SRC = 76381cc's chess.jsx (no review-two: no altUci, no alt2, no REVIEW_TWO) - TC-R179 E0 E0b E0c E1 red; E2 E3 and every C and D line green
 'use strict';
 const L=require('../lib');
 
@@ -156,6 +157,37 @@ L.run(async()=>{
    const r2=await playMore(b,'h5h7');
    L.say(!!r2.v&&r2.v.text===OLD2('Rxh7'),'D3 switch OFF: a second wrong try (h5h7) gets the pre-(97) second-try sentence, to the character - no band, no consequence',{got:r2.v&&r2.v.text,want:OLD2('Rxh7')});
    L.say(r2.left===1,'D3b switch OFF: the card is still kept after two wrong tries (cards left '+r2.left+')');
+   await b.close();}
+
+  // ===== E: THE REVIEW'S SECOND MOVE [#550 item (51), TC-R179, US-R108 clause] ==========================================
+  // Kunal's B9C-DRILL-GRADE answer 'review-two' ("Also accept the review's second move when it is nearly as good") and
+  // B10-SHIP-ON (on, with its own switch). The quick grade stays OFF (ct_drill_grade is NOT seeded in any E launch), so every
+  // accept below comes from the card's alt2 - the deep review's own second line and its own grade, stored at capture.
+  // E0 is the capture half, on the shipped sfGradePly in plain node: the review hands back its second move WITH its grade, and
+  // the capture stores it only when that grade is in DRILL_ACCEPT (Excellent or better). E1-E3 are the drill half.
+  {const X=require('../engine-extract.js');L.note('E0 reads chess.jsx md5 '+X.SOURCE_MD5);
+   let ok=false,info={};try{const g=X.fromFEN(FEN),pl=X.uciToMove(g,'g1f1');
+     const hi=X.sfGradePly(g,pl,900,-400,700,'d1d5','h5d5'),lo=X.sfGradePly(g,pl,900,-400,100,'d1d5','h5d5');
+     info={hi:[hi.altUci,hi.altLabel],lo:[lo.altUci,lo.altLabel]};
+     ok=hi.altUci==='h5d5'&&X.DRILL_ACCEPT.includes(hi.altLabel)&&lo.altUci==='h5d5'&&!X.DRILL_ACCEPT.includes(lo.altLabel);}catch(e){info={err:String(e).slice(0,200)};}
+   L.say(ok,'TC-R179 E0 the review grades its own second move: Rhxd5 at 2 pawns under the best is Excellent or better, at 8 pawns under it is not (so only the first rides on a card)',info);
+   const src=require('fs').readFileSync(X.SRC_PATH,'utf8');
+   L.say(/alt2:\{uci:out\[i\]\.altUci/.test(src)&&/DRILL_ACCEPT\.includes\(out\[i\]\.altLabel\)/.test(src),'TC-R179 E0b the capture stores alt2 only under DRILL_ACCEPT.includes(altLabel) (source read; the review run that captures is gate 50\'s route)');
+   L.say(X.REVIEW_TWO_DEFAULT===1&&X.REVIEW_TWO===1,'TC-R179 E0c the switch SHIPS ON (B10-SHIP-ON): REVIEW_TWO_DEFAULT is 1 and, with nothing stored, REVIEW_TWO reads 1',{d:X.REVIEW_TWO_DEFAULT,v:X.REVIEW_TWO});}
+  const CARD2=Object.assign({},CARD,{alt2:{uci:'h5d5',san:'Rhxd5',label:'Excellent'}});
+  const STORE2={ct_mymistakes:[CARD2],ct_pool:'3'};
+  {const b=await L.launch({geo:'kunal761',name:'drill52-two-h5d5',store:STORE2});await b.open();
+   const r=await drillPlay(b,'h5d5');
+   L.say(/^🎉/.test(T(r))&&/Excellent/.test(T(r))&&/Rdxd5/.test(T(r))&&!GENERIC.test(T(r)),'TC-R179 E1 the review\'s second move Rhxd5 is ACCEPTED with the grade off: the verdict names its band (Excellent) and the review\'s first choice Rdxd5',T(r));
+   L.say(r.left===1,'TC-R179 E1b and the card is KEPT, as a graded accept is, so the first choice is still drilled (cards left '+r.left+')');
+   await b.close();}
+  {const b=await L.launch({geo:'kunal761',name:'drill52-two-g2g3',store:STORE2});await b.open();
+   const r=await drillPlay(b,'g2g3');
+   L.say(T(r)===OLD1('g3')&&r.left===1,'TC-R179 E2 a move that is neither stored nor the review\'s second (g3) still gets the pre-(97) sentence to the character, and the card is kept',{got:T(r),want:OLD1('g3'),left:r.left});
+   await b.close();}
+  {const b=await L.launch({geo:'kunal761',name:'drill52-two-off',store:Object.assign({},STORE2,{ct_review_two:'0'})});await b.open();
+   const r=await drillPlay(b,'h5d5');
+   L.say(T(r)===OLD1('Rhxd5')&&r.left===1,'TC-R179 E3 with its switch OFF (ct_review_two 0) the same card rejects Rhxd5 with the pre-(97) sentence: the accept is the switch\'s and nothing else\'s',{got:T(r),want:OLD1('Rhxd5')});
    await b.close();}
 
   // ===== C10 THE TRUST GUARD, on the benchmark's own card ================================================
