@@ -80,6 +80,7 @@
 // CONTROL-RECORD: 5220073 2026-11-07 total=267 red=1 scope=trial:a049649c94dc how=fetchChessCom does not stamp the attempt (acctFreshMark(...,false) removed): A24f the failed 30h account asked again on launch 3
 // CONTROL-RECORD: 1d31c7f 2026-11-07 total=284 red=5 scope=trial:79d42dba4352 how=#549 antagonist B final read B1-F/B2-F: the run-branch tree at 3ef9062 (acctStore filters the list by `x in M` and records the walk's bound in an unread session): A34a ct_accts written as the box account alone, A34b gateold's 'months' dropped from ct_acctcap, A34c the box account's 'all' overwritten with 'games', A34d no gateold chip on the next good launch, A34e red; every other assertion green; fix trial 78c3fc2bbaed
 // CONTROL-RECORD: b905512 2026-11-07 total=291 red=3 scope=trial:78c3fc2bbaed how=#549 antagonist A final read A1-F: the tree at the fixb B6-F commit (B fixes in, no removal generation - acctStore re-adds an account removed mid-walk): A35a gatefollowc back on ct_accts with a chip after its quiet walk, A35b its games back in the store, A35c still there next launch; every other assertion green; fix trial fe482e66d3e7 291/0
+// CONTROL-RECORD: HEADSHA 2026-11-11 total=290 red=3 scope=trial:84a3e7db3f28 how=#550 items (111)/(112): the bundle before the 40-row inference was dropped (_bound1 and acctStore still read a bound-less store at exactly ACCT_GMAX_LEGACY as cut) - A10b at 40 rows (a limit line where none is known), A14a (the legacy account named) and A14b red; every other line green. Good trial 762fd238c730 290/0
 'use strict';
 const L=require('../lib');
 
@@ -724,7 +725,12 @@ async function input(seed,n,geo,name,thin){
     // each verdict has to turn on the row count rather than on a constant policy. 41 arrived at #433; 39 is
     // the other side of the same boundary and is the cheapest input that discriminates a cap from a count.
     for(const t of [{n:39,expect:null,why:'ONE ROW BELOW the legacy cap of 40: a store that stopped before any cap could have cut it, so nothing is known to have been cut'},
-                    {n:40,expect:'games',why:'a full store at the LEGACY cap of 40 - the shape a pre-#432 account that was cut by the 40 cap has'},
+                    // #550 item (111) [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30, and
+                    // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30]: this row expected 'games', which asserted the
+                    // inference itself, so the suite was green on it by construction. 40 is not evidence of a cut (#431 writes
+                    // 40-row stores of accounts that have 40 games), and Kunal's B8-SMALL-DEFAULTS (4) says the line appears only
+                    // when the limit actually cut games, so 40 now expects what 39 and 41 do.
+                    {n:40,expect:null,why:'a store at the LEGACY cap of 40 with no recorded bound: #431 (cap 200) writes 40-row stores of accounts that simply HAVE 40 games, so 40 is not evidence that the cap cut it'},
                     {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
                     {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
                     {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
@@ -906,8 +912,11 @@ async function input(seed,n,geo,name,thin){
       const hAll=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},Object.keys(r.heldDates||{}));
       const ent=(u)=>((HELD_CLAIM(r.cap&&r.cap.text)||[]).find(e=>e.u===u)||null);
       const hL={entry:ent('kunalold'),want:(r.heldDates||{})['cc:kunalold']},hF={entry:ent(ACCTS[0]),want:(r.heldDates||{})['cc:'+ACCTS[0]]};
-      L.say(!!hL.entry&&hL.entry.d===hL.want&&hL.want!==hF.want,'A14a US-R25 '+tag+': the LEGACY account is named with the date ITS held games reach back to - not a cap, and not the other account\'s date',{held:hL,line:r.cap&&r.cap.text});
-      L.say(!!hF.entry&&hF.entry.d===hF.want&&hAll.ok,'A14b US-R25 '+tag+': and the FETCHED account is named with its own date too, so the sentence is true of both and names nothing else',{fetched:hF,all:hAll,line:r.cap&&r.cap.text});
+      // #550 item (111): the legacy 40 is no longer read as cut, so only the FETCHED account, which the month window did cut,
+      // is named - with its own date - and the legacy account is not (it was named before, which asserted the 40 inference).
+      const hF1=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},['cc:'+ACCTS[0]]);
+      L.say(!hL.entry&&hF.want!==hL.want,'A14a US-R25 '+tag+': the LEGACY account is NOT named - 40 rows with no recorded bound are not evidence of a cut, so no limit is stated for it',{held:hL,line:r.cap&&r.cap.text});
+      L.say(!!hF.entry&&hF.entry.d===hF.want&&hF1.ok,'A14b US-R25 '+tag+': and the FETCHED account, which the month window cut, is named with its own date, so the sentence is true of the one account it names',{fetched:hF,heldOk:hF1,line:r.cap&&r.cap.text});
       const pl2=(r.body||'').match(PLAY_RE);
       L.say(stated===null&&!pl2,'A14c US-R25 '+tag+': and neither the legacy cap of 40, nor the walk\'s 200, nor its month window is printed - none of them bounds what a merged list holds',{capNumberStated:stated,monthsOfPlay:pl2?+pl2[1]:null,line:r.cap&&r.cap.text});
     }

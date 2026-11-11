@@ -6375,10 +6375,10 @@ export default function App(){
     // #549 item (32) 'held': the walk STOPPED AT THE NEWEST HELD GAME (see fetchChessCom), so it says nothing about
     // anything older than that - which is exactly what is held. The bound is therefore the one already recorded for
     // the account, and an account with none recorded (an earlier build's store) is read the way the limit line reads
-    // it (_bound1): cut only when it sits at one of the two caps this app has shipped. The walk reached what is held,
+    // it (_bound1): cut only when it sits at the store cap (#550 item (111): no longer at the legacy 40). The walk reached what is held,
     // so it left no hole; a month it asked for and did not get still rides as '+gap'.
     const _reached=_base==='held';
-    if(_reached)_base=_prev?String(_prev).split('+')[0]:((held.length>=ACCT_GMAX||held.length===ACCT_GMAX_LEGACY)?'games':'all');
+    if(_reached)_base=_prev?String(_prev).split('+')[0]:(held.length>=ACCT_GMAX?'games':'all');   // #550 item (111): 40 is not evidence of a cut (see _bound1)
     const _hole=!_reached&&held.length>0&&_base!=='all'&&fresh.length>0&&_oldestFresh>_newestHeld;
     if(held.length&&!_hole&&_prev&&String(_prev).split('+')[0]==='all')_base='all';
     const merged=acctMergeRows(fresh,held,0);
@@ -10203,7 +10203,13 @@ export default function App(){
                   // (a limit stated that did not bind) with a worse number in it.
                   const _n=(_M[id]||[]).length;
                   if(_n>=ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
-                  if(_n===ACCT_GMAX_LEGACY)return {b:'games',cap:ACCT_GMAX_LEGACY,gap:false};
+                  // #550 item (111) [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30; Kunal, B8-SMALL-DEFAULTS
+                  // (4): the line appears only when that limit actually cut games]. A bound-less store of EXACTLY 40 rows used to read
+                  // as cut by ACCT_GMAX_LEGACY. It is not evidence of a cut: #431 (cap 200, no ct_acctcap) writes 40-row stores of
+                  // accounts that simply have 40 games, so the line stated a limit that did not bind. 40 now reads like 39 and 41.
+                  // What kept #548 from shipping this - one sentence over a legacy and a month-bound account - is gone since #549
+                  // item (31) names each cut account with its own date. acctCanGrow still OFFERS Load older games at 40: offering
+                  // to look is not a claim that anything was cut.
                   return {b:'all',cap:0,gap:false};};
                 // #549 item (31) [Amber: flags/amber-549-merged-list-limit-line] THE LINE NAMES WHAT IS HELD, NOT THE LAST
                 // WALK. Kunal, merge-big on questions/B8B-MERGED-GAMES: "the stated limit names what is held, not the last
