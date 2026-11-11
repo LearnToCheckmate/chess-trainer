@@ -636,6 +636,34 @@ case "${1:-}" in
     ST="$HERE/held-selftest.sh"
     [ -x "$ST" ] || [ -r "$ST" ] || { echo "held.sh selftest: no controls at $ST"; exit 2; }
     exec bash "$ST" ;;
+  sources)
+    # #550 item (135) [jobs/held-row-8-carries-a-source-md5-that-exists-in-no-commit-2026-10-02, theFIX (2)]: field 7 is the
+    # only key that survives a rebuild, and nothing checked it was ever TRUE - #463's control asked only that it was
+    # PRESENT, so a row naming a blob no commit holds (#459's fb009ca7734a row, f54e39ea571d) looked complete for a month.
+    # For every live row with a field 7: it must equal `git show <sha>:chess.jsx | md5sum` for one of the row's gated shas,
+    # or be listed with its reason in gates/held-source-exceptions.tsv (bundle md5, field 7, reason) - the register is
+    # append-only, so a row cannot be corrected in place and its explanation lives beside it. A sha not in this clone is
+    # NOT CHECKED, never a match. Exit 0 every field 7 checked is true or explained, 1 a mismatch, 2 nothing was checkable.
+    EXC="$HERE/held-source-exceptions.tsv"; NOK=0; NBAD=0; NEXC=0; NUNK=0
+    while IFS= read -r r; do
+      b="$(printf '%s' "$r" | cut -f1)"; f7="$(printf '%s' "$r" | cut -f7)"
+      { [ -z "$f7" ] || [ "$f7" = "-" ]; } && continue
+      hit=""; seen=""
+      for sha in $(printf '%s' "$r" | cut -f2 | tr ',' ' '); do
+        git -C "$ROOT" cat-file -e "$sha^{commit}" 2>/dev/null || continue
+        seen=1; m="$(git -C "$ROOT" show "$sha:chess.jsx" 2>/dev/null | md5sum | cut -c1-12)"
+        [ "$m" = "$f7" ] && { hit="$sha"; break; }
+      done
+      if [ -n "$hit" ]; then NOK=$((NOK+1))
+      elif [ -z "$seen" ]; then NUNK=$((NUNK+1)); echo "  NOT CHECKED: $b - none of its gated shas is in this clone (unshallow it)"
+      elif [ -f "$EXC" ] && awk -F'\t' -v b="$b" -v f="$f7" '$1==b && $2==f {x=1} END{exit !x}' "$EXC"; then
+        NEXC=$((NEXC+1)); echo "  EXPLAINED: $b field 7 $f7 is no commit's chess.jsx - $(awk -F'\t' -v b="$b" '$1==b {print $3; exit}' "$EXC" | cut -c1-140)"
+      else NBAD=$((NBAD+1)); echo "  MISMATCH: $b field 7 $f7 is not chess.jsx at any of its gated shas, and no row of $(basename "$EXC") explains it"; fi
+    done < <(live_rows | sort -u)   # live_rows reads HEAD's register AND the working copy, so a row appears twice
+    echo "held.sh sources: $NOK true, $NEXC explained, $NBAD mismatched, $NUNK not checked"
+    [ "$NBAD" -gt 0 ] && exit 1
+    [ $((NOK+NEXC)) -eq 0 ] && { echo "  NOTHING WAS CHECKED - never a clearance"; exit 2; }
+    exit 0 ;;
   list)
     # THE REASON IS PRINTED IN FULL, WRAPPED - IT IS NOT TRUNCATED. The first version cut it at
     # substr($6,1,140), which stopped #441's row mid-clause at "measured at this" and amputated every actionable

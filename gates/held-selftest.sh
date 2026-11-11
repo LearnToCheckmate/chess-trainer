@@ -760,5 +760,24 @@ ck "16c check a4df39 (6 hex, shorter than any key) is a usage error"     2 "$H" 
 "$H" check abcdef0123 >/dev/null 2>&1; S16=$?
 ne "16d a well-formed key is NOT refused as malformed - it gets an answer (0 or 1), never the usage exit 2" "2" "$S16"
 
+# 17. FIELD 7 MUST BE TRUE, NOT ONLY PRESENT [#550 item (135); jobs/held-row-8-carries-a-source-md5-that-exists-in-no-commit-
+#     2026-10-02 theFIX (2)]. `held.sh sources` reddens on a row whose sourceMd5 is no gated sha's chess.jsx, unless
+#     gates/held-source-exceptions.tsv explains it; a row it cannot check is never a pass.
+SRC17="$(git -C "$R" show "$SHA1:chess.jsx" | md5sum | cut -c1-12)"
+cp "$R/gates/held-trees.tsv" "$TD/reg17.bak"
+printf 'aaaa17aaaa17\t%s\t#917\t2026-11-11T00:00Z\tbuild__selftest\ta row whose field 7 is chess.jsx at its sha\t%s\n' "$SHA1" "$SRC17" >> "$R/gates/held-trees.tsv"
+ck "17a a row whose field 7 is chess.jsx at its gated sha reads true (sources exit 0)"   0 "$H" sources
+printf 'bbbb17bbbb17\t%s\t#918\t2026-11-11T00:00Z\tbuild__selftest\ta row whose field 7 is no commit\t%s\n' "$SHA1" "deadbeef0017" >> "$R/gates/held-trees.tsv"
+ck "17b a row whose field 7 is NO gated sha's chess.jsx is a MISMATCH (exit 1)"           1 "$H" sources
+printf 'bbbb17bbbb17\tdeadbeef0017\tselftest: built from an uncommitted tree\n' > "$R/gates/held-source-exceptions.tsv"
+ck "17c the same row explained in held-source-exceptions.tsv reads EXPLAINED (exit 0)"    0 "$H" sources
+printf 'bbbb17bbbb17\tdeadbeef0099\tselftest: an explanation for a different value\n' > "$R/gates/held-source-exceptions.tsv"
+ck "17d an exception naming a DIFFERENT field 7 does not excuse the row (exit 1)"          1 "$H" sources
+cp "$TD/reg17.bak" "$R/gates/held-trees.tsv"; rm -f "$R/gates/held-source-exceptions.tsv"
+printf 'cccc17cccc17\t%s\t#919\t2026-11-11T00:00Z\tbuild__selftest\ta row whose only sha is not in this clone\t%s\n' "0123456789abcdef0123456789abcdef01234567" "$SRC17" > "$TD/reg17.only"
+cp "$R/gates/held-trees.tsv" "$TD/reg17.bak2"; { grep '^#' "$TD/reg17.bak2"; cat "$TD/reg17.only"; } > "$R/gates/held-trees.tsv"
+ck "17e a register whose only field-7 row names a sha not in the clone is NOT CHECKED (exit 2), never a clearance" 2 "$H" sources
+cp "$TD/reg17.bak2" "$R/gates/held-trees.tsv"
+
 printf '\n%s PASS  %s FAIL  (%s assertions over %s inputs to `add`)\n' "$P" "$F" "$((P+F))" "22"
 [ "$F" = "0" ] || exit 1

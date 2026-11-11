@@ -1,0 +1,4 @@
+# gates/held-source-exceptions.tsv - held-trees.tsv rows whose field 7 (sourceMd5) is NOT chess.jsx at any of their gated
+# shas, each with why. Read by gates/held.sh sources. held-trees.tsv is append-only, so a row cannot be corrected in place.
+# bundle md5	field 7	reason
+fb009ca7734a	f54e39ea571d	#459 ROW BUILT FROM AN UNCOMMITTED TREE, established at #546 (skipReceipt_546 of jobs/held-row-8-carries-a-source-md5-that-exists-in-no-commit-2026-10-02): gates/build-numbers.tsv records #459 building fb009ca7734a from source f54e39ea571d and claude/agents/gatelogs/459b-all.log:386 prints the same md5 - the working tree before antagonist A post-suite fixes, never committed. The hold still fires through its sibling row 33efeb9709df (same sha, 4b634cf2c1ce). Kept, not changed: it names the tree that bundle was built from.

@@ -1,6 +1,6 @@
 # gates/harness-case-counts.tsv - the case count each push-check harness ran at its last committed rise, read by gates/harness-counts.sh
 # (gates/records-gate.sh --harnesses). A fall refuses; a rise is committed with --write. Never delete a row: retire it in a commit that says why.
 # name	path	pin	note
-held-selftest	gates/held-selftest.sh	164	measured #550 item (104) on 6239001+: 164 PASS 0 FAIL
+held-selftest	gates/held-selftest.sh	169	measured #550 item (104): 164; raised to 169 at item (135), which added section 17 (5 cases)
 verify-log-selftest	gates/verify-log-selftest.sh	137	measured #550 item (104): 137 pass 0 fail, 8 holes closed
 buildnum-selftest	gates/buildnum-selftest.sh	247	measured #550 item (104): 247 pass 0 fail
