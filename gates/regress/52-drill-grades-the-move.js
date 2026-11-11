@@ -46,6 +46,7 @@
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=3 scope=env:CT_GEO52=kunal761 how=bundle 319b07f98fad (default on, graded accept disabled) - C2 D2 D3 red
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=5 scope=env:CT_GEO52=kunal761 how=bundle cf4454f2553f (2f4e07a^ chess.jsx, flat string match) - C2 C3 C4 C4b C5c red, every D green
 // CONTROL-RECORD: 76381cc 2026-11-11 total=34 red=4 scope=env:CT_GEO52=kunal761 how=#550 item (51): bundle 95cbf7c6f671 with CT_SRC = 76381cc's chess.jsx (no review-two: no altUci, no alt2, no REVIEW_TWO) - TC-R179 E0 E0b E0c E1 red; E2 E3 and every C and D line green
+// CONTROL-RECORD: 7fbdfca 2026-11-11 total=34 red=3 scope=env:CT_GEO52=kunal761 how=#550: bundle 36531456ced7 with CT_SRC = 76381cc's chess.jsx (no review-two) after E0's fixture moved to one pawn under - TC-R179 E0 E0b E0c red, every other line green
 'use strict';
 const L=require('../lib');
 
