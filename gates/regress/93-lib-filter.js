@@ -18,7 +18,7 @@
 //  (c) the list header [data-ct=lib-group-n] reads the row count unfiltered and 'shown of total' filtered (Endgames is one
 //      section with no label, so this is its count); every section count [data-ct=lib-sec-n] equals the rows under it, unfiltered and filtered, and so does each group header's
 //      count where it has one; after Back and re-entry the box is empty and the full list is back.
-// CONTROL-RECORD: 09bc4bd 2026-11-11 total=97 red=16 scope=trial:3ab724514641 how=#550 item (77): origin/main's bundle (no filter box, no counts) - the box, every section-count and header-count line red, and the gate stops typing; the unfiltered DENOMINATORS green
+// CONTROL-RECORD: 09bc4bd 2026-11-11 total=23 red=16 scope=trial:3ab724514641 how=#550 item (77): origin/main's bundle (no filter box, no counts) - the box, every section-count and header-count line red, and the gate stops typing; the unfiltered DENOMINATORS green
 // CONTROL-RECORD: 09bc4bd 2026-11-11 total=97 red=6 scope=trial:e97b154ce4fa how=#550 item (77): libHit matching the NAME only (the idea line dropped) - 'sicilian' 16 of 18, 'gambit' 45 of 47 and 'king' 3 of 19 red at both geometries; the counts stay green because they agree with whatever is shown
 const L=require('../lib');const H=require('../drive/home');
 
