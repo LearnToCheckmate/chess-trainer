@@ -1,4 +1,5 @@
 // gates/regress/70-live-game-reset-guard.js
+// CONTROL-RECORD: 190a3f4 2026-11-11 total=121 red=4 scope=trial:f0477c0d12aa how=#550 item (75): trial t12, the tree before the shared wording (four different confirm sentences) - H4 red at kunal, 320x568 and 390x844, and TC-R45b X red (4 distinct texts); X0 and every other line green
 // #471, for jobs/at-least-eleven-fullreset-call-sites-destroy-a-live-game-on-one-silent-tap-2026-10-03.
 // Story US-R16 (extended, see claude/stories/USER-STORIES.md), case TC-R45.
 //
