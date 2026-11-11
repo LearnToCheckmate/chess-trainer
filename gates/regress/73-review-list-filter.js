@@ -1548,13 +1548,20 @@ function mkTap(b,READ){
   // top must hold across the transition; the row height change is REPORTED (a tally that wraps past one line still grows it).
   {const src=require('fs').readFileSync(require('path').join(__dirname,'20-review.js'),'utf8');const OPERA=eval(src.match(/^const PGN=(.*);$/m)[1]);
    const rows=[];for(let i=0;i<40;i++)rows.push({src:'cc',acct:'me',pgn:OPERA.replace('Morphy','me').replace('1858.11.02','2026.08.'+String(1+i%27).padStart(2,'0')).replace('Duke Karl / Count Isouard','opp'+i),white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:1789000000000+i*1e6});
-   const b=await L.launch({geo:'kunal730',name:'r76-jump',store:{ct_ccuser:'me',ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows},ct_pool:'3'}});await b.open();await b.tile('Review');
+   /* #550 item (72): the row HEIGHT half is an ASSERTION now (Kunal's B9C-LIST-TALLY: the brilliant pill below Won, so the counts keep to
+      one line), and the case runs at 375x761 and 320x568 as well as 375x730 - the shipped bundle measured 78 -> 124 and 78 -> 140 there. */
+   for(const geo of ['kunal730','kunal761','se']){
+   const b=await L.launch({geo,name:'r76-jump-'+geo,store:{ct_ccuser:'me',ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows},ct_pool:'3'}});await b.open();await b.tile('Review');
    const seen=[];for(let k=0;k<60;k++){const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');if(!e)return null;const q=e.getBoundingClientRect();
      const t=!!e.querySelector('[data-ct="gstat-est"],[data-ct="gstat-rev"]');return {top:Math.round(q.top),h:Math.round(q.height),tally:t};});if(r)seen.push(r);await b.page.waitForTimeout(150);}
    const pre=seen.filter(x=>!x.tally),post=seen.filter(x=>x.tally);
-   L.say(pre.length>0&&post.length>0,'kunal730: TC-R76 DENOMINATOR the first row was sampled both BEFORE its tally ('+pre.length+') and AFTER it ('+post.length+')',{pre:pre.length,post:post.length});
-   L.say(pre.length>0&&post.length>0&&pre[0].top===post[post.length-1].top,'kunal730: TC-R76 the first game row does not move when the tally lands ('+(pre[0]&&pre[0].top)+' -> '+(post.length&&post[post.length-1].top)+'); row height '+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+' (reported)',{first:pre[0],last:post[post.length-1]});
-   await b.close();}
+   L.say(pre.length>0&&post.length>0,geo+': TC-R76 DENOMINATOR the first row was sampled both BEFORE its tally ('+pre.length+') and AFTER it ('+post.length+')',{pre:pre.length,post:post.length});
+   L.say(pre.length>0&&post.length>0&&pre[0].top===post[post.length-1].top,geo+': TC-R76 the first game row does not move when the tally lands ('+(pre[0]&&pre[0].top)+' -> '+(post.length&&post[post.length-1].top)+')',{first:pre[0],last:post[post.length-1]});
+   L.say(pre.length>0&&post.length>0&&Math.abs(pre[0].h-post[post.length-1].h)<=1,geo+': TC-R76 and the first row\'s HEIGHT does not change when its tally lands ('+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+'): the brilliant pill sits under the result badge and the counts keep to one line',{first:pre[0],last:post[post.length-1]});
+   const bp=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');const p=e&&e.querySelector('[data-ct="bril-pill"],[data-ct="bril-pill-est"]');const bd=e&&e.querySelector('[data-ct="game-badge"]');
+     if(!p||!bd)return {pill:!!p,badge:!!bd};const q=p.getBoundingClientRect(),r=bd.getBoundingClientRect();return {pill:true,badge:true,below:q.top>=r.bottom-0.5,inCol:q.left>=r.left-1&&q.right<=r.right+1,text:(p.innerText||'').replace(/\s+/g,' ')};});
+   L.say(!!bp.pill&&!!bp.badge&&bp.below&&bp.inCol,geo+': TC-R76 the first row\'s brilliant pill sits BELOW its result badge, inside the badge\'s column ("'+(bp.text||'')+'")',bp);
+   await b.close();}}
   // TC-R90 (US-R90), #547 item (136): A CLOUD PULL MERGES THE GAME TALLIES, IT DOES NOT TRADE THEM FOR A LONGER STRING. The signed-in
   // path, which no gate drove before: window.CTCloud is stubbed (held against index.html's own assignment). This device holds three
   // stamped games; the cloud holds one of them padded long plus one other. Pre-fix the longer cloud string won and g2, g3 - games
@@ -1640,7 +1647,12 @@ function mkTap(b,READ){
     let r=null;for(let k=0;k<60;k++){r=await M();if(r.tally&&r.brilLine)break;await b.page.waitForTimeout(250);}
     await b.settle(600);r=await M();
     L.say(r.n===10&&r.tally&&r.brilLine&&r.tabTop!=null,geo+': TC-R110 PRECONDITION ten games on one account, the first row TALLIED (EST/grade badge and the brilliant line) and the tab bar found',r);
-    L.say(r.h>=124,geo+': TC-R110 DENOMINATOR the first row is the tall tallied row, at least 124px ('+r.h+'), not TC-R104\'s 72px fixture',r);
+    /* RE-PINNED at #550 item (72) [R18]: this read r.h>=124, the height the real tallied row had while its brilliant pill and counts
+       wrapped onto a second and third line. Kunal's B9C-LIST-TALLY layout puts the pill under the result badge and keeps the counts on one
+       line, so the REAL tallied row is now 88px at both 375 columns (measured on trial t13). What this denominator exists to prove is
+       unchanged: the row measured is the real tallied one (tally and brilliant pill present, the precondition above), not TC-R104's
+       72px fixture row - so it is pinned above 72, not to a height the fix removed. */
+    L.say(r.tally&&r.brilLine&&r.h>72,geo+': TC-R110 DENOMINATOR the first row is the real tallied row ('+r.h+'px, tally and brilliant pill present), taller than TC-R104\'s 72px fixture',r);
     L.say(r.bot!=null&&r.tabTop!=null&&r.bot<=r.tabTop,geo+': TC-R110 the WHOLE first tallied game row is above the tab bar on arrival (row '+r.top+'..'+r.bot+', tab bar '+r.tabTop+')',r);
     L.say(r.panH!=null&&r.panH<=60&&!r.panTiles,geo+': TC-R110 YOUR PROGRESS is ONE line at rest ('+r.panH+'px, tiles hidden) - the layout Kunal chose',r);
     const tap=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^your progress/i.test((x.innerText||'').trim()));if(!btn)return false;btn.click();return true;});
