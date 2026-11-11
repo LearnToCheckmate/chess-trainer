@@ -15,6 +15,7 @@
 //  (b) TC-R184b once the engine is served, the review still completes: its summary is reached, and the progress line no longer says
 //      it is loading (the wait ends when the engine answers).
 // DENOMINATOR: the route really held the worker (it was requested, and the hold was observed before it was served).
+// CONTROL-RECORD: a894f06 2026-11-11 total=6 red=2 scope=trial:3ab724514641 how=#550 item (90): origin/main's bundle with the worker held 6s - the panel reads '0% · checking every move' at both readings, so both TC-R184a lines are red; the DENOMINATOR, TC-R184b and zero-errors green
 const L=require('../lib');const R=require('../drive/review');
 const HOLD_MS=6000;
 L.run(async()=>{
