@@ -6102,10 +6102,14 @@ export default function App(){
            rule: the gate covers every branch or it is not a gate. CORRECTED at #549 (item 118): this
            comment said "Gate 51 now runs a fallback column", and it never did - gate 51 was not changed by
            that veto round and every launch in it passes ct_pool:'3'. This branch is INSTRUMENTED, not
-           driven: useSF is gated on sfReadyRef/ensureAna with no ct_* override, so no harness route reaches
-           it, and recordGameStats below writes engine:'sf'|'fallback' so gate 51's A0e goes red if a run
-           ever measured this branch by accident. The route is jobs/no-harness-route-to-the-drill-capture-
-           producer-2026-09-30; until it lands, this fallback branch has no gate. */
+           driven: recordGameStats below writes engine:'sf'|'fallback' so gate 51's A0e goes red if a run ever
+           measured this branch by accident. CORRECTED AGAIN at #550 (item 62) [R18]: the next sentence said
+           "useSF is gated on sfReadyRef/ensureAna with no ct_* override, so no harness route reaches it", and
+           both halves had stopped being true. useSF is a cache check or 'await ensureAna(REVIEW_ENGINE_WAIT)'
+           since 95094b0 (sfReadyRef is not read there), and a harness route DOES reach this branch: gates/lib.js
+           engineFail 'all' (ee54165) makes every Stockfish worker throw, so ensureAna returns false and the
+           review runs this built-in branch. What is true is narrower: the route exists and no gate drives a
+           REVIEW through it yet (gate 34 drives Play through it; gate 86 uses engineFail 'pool' only). */
         const _evB=evalPawns(res.positions[i]);
         // #440: same ladder on the fallback engine. This is the #375 rule - a code path the DEVICE
         // chooses is covered or the gate is not a gate - so the drop is computed here too, not only above.
