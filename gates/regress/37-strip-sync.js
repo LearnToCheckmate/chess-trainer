@@ -174,7 +174,7 @@ L.run(async()=>{
     // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
     // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
     // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
-    const WANTW={'kunal730/compact1':349,'kunal730/compact0':349/* #548 (103): was 336 on the retired Classic layout; a stored '0' now renders compact */,'se/compact1':264};
+    const WANTW={'kunal730/compact1':354,'kunal730/compact0':354/* #548 (103): was 336 on the retired Classic layout; a stored '0' now renders compact. #550 a21: 349 -> 354, the eval bar went above the board and 375x730 binds by height */,'se/compact1':264};
     if(WANTW[tag]!=null)L.say(!!mTop.board&&Math.abs(mTop.board.w-WANTW[tag])<0.6,tag+': the review board is '+WANTW[tag]+' wide - the measured size for this geometry AND this branch, so a board wrong from the start cannot pass here',{measured:mTop.board&&mTop.board.w,want:WANTW[tag]});
     L.say(!!m0.board&&!!mTop.board&&Math.abs(m0.board.w-mTop.board.w)<0.6&&Math.abs(m0.board.top-mTop.board.top)<0.6,
           tag+': the board did not move across the end-and-back trip (w '+(m0.board&&m0.board.w)+' -> '+(mTop.board&&mTop.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(mTop.board&&mTop.board.top)+')');
