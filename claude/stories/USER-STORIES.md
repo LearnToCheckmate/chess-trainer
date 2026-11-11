@@ -2082,3 +2082,8 @@ As a player starting a review on a busy phone, when the review waits for Stockfi
 *Added #550 item (93), jobs/played-game-review-shows-no-rating-though-the-app-holds-one-2026-09-28 (the clause spec-c reserved on 28 Sep 2026; it extends US-R18 and does not contradict Kunal's 'show nothing where it does not carry one').*
 As a player reviewing an online game I just played, the review summary shows the ratings the player bars showed for the same game; for a game against the computer or Pass & Play, which carry no rating that means anything, what to show is Kunal's call and is not part of this clause.
 - An online game's review summary shows the White and Black ratings the player bars printed, side for side. (TC-R57)
+
+### US-R118 On the review summary my side is always the left column
+*Added #550 item (94), jobs/the-review-summary-puts-kunal-on-the-left-whichever-colour-he-played-2026-11-11 (Kunal, 11 Nov 2026: "I should always be on the left respect of whether or not it's black or white"; AUD-R08).*
+As a player reviewing a game I played as Black, my accuracy card, my count column and my Skills column are on the left, as they are when I play White; a game with no side marked mine keeps White then Black.
+- Reviewed as White: White's card and columns first; reviewed as Black: Black's first. (TC-R185a, TC-R185b)
