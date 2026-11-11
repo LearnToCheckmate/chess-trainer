@@ -699,6 +699,7 @@ L.run(async()=>{
    }
    await b.close();}
 // CONTROL-RECORD: 376ccde 2026-11-06 total=6 red=2 scope=blocks:T how=TC-R117 block T extracted alone (scratchpad jobs/102/only117.js) and run against #549's pre-fix HEAD bundle 82a3c168ad2d (no first-paint hold); red are exactly the two TC-R117 NOTHING SHOWN IS REMOVED lines, at ply 38 and ply 74; the fixed bundle 6b6a47809365 runs the same 6 green. The full-gate total is for the run to take from its suite log.
+// CONTROL-RECORD: a30a884 2026-11-11 total=8 red=2 scope=blocks:U how=#550 item (55): rev-why-txt's lineHeight 1.3 -> 1.36 (trial 8c5526de2d0b) - TC-R118's fit line red at 375x761 and 375x730 (53.02 in 51 at ply 17); the 320x568 clamp line and every denominator green. Measured with block U extracted (scratchpad only118.js); the landscape arm in that run was the earlier full-fit version, which also went red, and is the clamp rule here
   /* ── TC-R118, BLOCK U: THE COACH SENTENCE FITS ITS BOX AT EVERY PLY, WITH NO CLAMP DOING THE FITTING (#550 item (55)) ─────────────
      jobs/the-coach-sentence-is-rewritten-two-seconds-in-and-portrait-headroom-is-now-0-3px-2026-10-10: the tallest sentence of
      Kunal's game measured 50.7px in a 51px box at 375x761, 0.3px of headroom, and no assertion held it. At every ply of his game
