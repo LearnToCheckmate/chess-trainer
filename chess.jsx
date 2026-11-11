@@ -6709,11 +6709,6 @@ export default function App(){
      move is the net test (freeNetVerdict) and its best move is the defender's reply; the move after that is the hint. A refused
      move is taken back and marks the run as not flawless, exactly like a wrong move in a scripted lesson; a mate completes the
      run whatever its length and banks through finishRep unchanged. */
-  /* #550 item (45), jobs/the-two-bishops-free-defender-trial-ships-on-with-a-slack-calibrated-on-a-fast-node-and-may-reject-a-correct-move-on-a-phone-2026-11-07:
-     the verdict's search runs to a FIXED DEPTH, not for 500 ms, so the mate distance it compares against the slack is the same on a slow
-     phone as on the machine the slack was calibrated on (a time-bound search reaches less depth on a slower device and can read a correct
-     move as one that let the king out). With a depth given, sfBestLine sends go depth and FREE_MS no longer bounds this search. */
-  const FREE_DEPTH=16;
   const FREE_MS=500, FREE_MAXMOVES=50, PCN={b:'bishop',n:'knight',r:'rook',q:'queen',p:'pawn'};
   const freeMove=(g,mv)=>{
     const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
@@ -6728,7 +6723,7 @@ export default function App(){
     freeSet({hist,moves:n,hint:null,off,busy:true});setOpenStep(Math.min(line.length-1,hist.length-1));setOpenMsg('\u2713 '+san+' \u2014 the king is thinking\u2026');
     const tok=++freeTokRef.current,fen=toFEN(ng);
     (async()=>{let sc=null,pv=null;
-      try{if(sfReadyRef.current&&await ensureAna())pv=await sfBestLine(fen,FREE_MS,(x)=>{if(x&&(x.mpv||1)===1)sc=x;},undefined,FREE_DEPTH);}catch(e){pv=null;}
+      try{if(sfReadyRef.current&&await ensureAna())pv=await sfBestLine(fen,FREE_MS,(x)=>{if(x&&(x.mpv||1)===1)sc=x;});}catch(e){pv=null;}
       if(tok!==freeTokRef.current||modeRef.current!=='learn'||learnPhaseRef.current!=='practice')return;
       const v=freeNetVerdict(F.K,pv?sc:null);
       if(!v.ok){learnRepRef.current.miss=true;freeSet({...F,busy:false});setGame(g);setLastMv(F.last||null);setOpenStep(Math.min(line.length-1,F.hist.length-1));

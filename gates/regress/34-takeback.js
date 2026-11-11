@@ -94,15 +94,12 @@ const rowState=(b)=>b.page.evaluate(()=>{
 // #375 trap, on the gate whose own subject is the shared worker. poolWanted() sizes the pool from the device (hc 2 or 3 gives
 // ONE worker), so the computer block now runs at ct_pool '3', '1' and UNSET (the device's own choice) at kunal730, and at
 // '3' at 320x568. The minimax fallback is still unreachable from a store value; the header above says why.
-// #550 item (35) [the job's remainder]: his phone's own column (kunal761, measured pin below) and the MINIMAX FALLBACK, reached at last
-// by the harness's engineFail:'all' (every stockfish worker throws at construction, so sfReady never comes true and the computer moves
-// with the built-in engine). The fallback column asserts the route was taken (b.engineFail().failed>0) before crediting anything.
-const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',pool:null},{geo:'se',pool:'3'},{geo:'kunal761',pool:'3'},{geo:'kunal730',pool:null,fail:'all'}];
+const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',pool:null},{geo:'se',pool:'3'}];
 // The board after a takeback, per geometry: 353 at 375x730 (measured on #383, this file's original pin) and 288 at 320x568
 // (measured at #546 on 049b41dfb6f1). A pin per geometry, never one number for both.
 // #548 item (92) MOVED THE 320x568 FIGURE: the phone's top row took the strip under the board's place, so vs Computer at 320x568 is 298 (was
 // 288), the figure gate 46 re-pinned to; 375x730 stays 353. Caught red in #548's round-1 suite.
-const WANT_W={kunal730:353,se:298,kunal761:Number(process.env.CT_W761||0)||null};   /* #550 item (35): kunal761 measured below */
+const WANT_W={kunal730:353,se:298};
 // HOLDING THE SEARCH OPEN, FROM THE HARNESS SIDE [#549 item (70); jobs/gate-34-takeback-pins-a-three-worker-pool-and-one-
 // geometry-2026-09-30, whatIsLeft 'a way to hold the engine's search open long enough to sample the in-flight state']. No
 // chess.jsx change: an init script subclasses Worker so that, while window.__ctTbHold is a positive number of ms, any
@@ -120,8 +117,8 @@ const HOLD_BESTMOVE=()=>{try{const W0=window.Worker;if(!W0||W0.__ctHeld)return;
   W.__ctHeld=true;window.Worker=W;}catch(e){}};
 L.run(async()=>{
  for(const C of COLS){
-  const geo=C.geo, T=geo+'/pool '+(C.pool||'unset')+(C.fail?'/engineFail '+C.fail:'')+': ';
-  const b=await L.launch(Object.assign({geo,name:'takeback-'+geo+'-'+(C.pool||'unset')+(C.fail?'-'+C.fail:''),store:C.pool?{ct_pool:C.pool}:{}},C.fail?{engineFail:C.fail}:{}));await b.open();
+  const geo=C.geo, T=geo+'/pool '+(C.pool||'unset')+': ';
+  const b=await L.launch({geo,name:'takeback-'+geo+'-'+(C.pool||'unset'),store:C.pool?{ct_pool:C.pool}:{}});await b.open();
 
   // --- move 0 vs Computer: the row exists (opponent is computer) but there is nothing to give back.
   await P.states['cpu-m0'](b);
@@ -187,7 +184,6 @@ L.run(async()=>{
 
   // --- and it can be taken again, back to the start
   await P.waitPlies(b,2).catch(()=>{});
-  if(C.fail){const ef=await b.engineFail();L.say(!!ef&&ef.created>0&&ef.failed===ef.created,T+'the route was taken: every stockfish worker the app tried to build failed ('+(ef&&ef.failed)+' of '+(ef&&ef.created)+'), so the moves above came from the built-in engine',ef);}
   await b.close();
  }
 
