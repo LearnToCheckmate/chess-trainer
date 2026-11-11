@@ -48,7 +48,7 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   // #545 item (91): the eleven grading helpers #440 and #491 added. classify reads CLS_BANDS, so without them E.classify()
   // threw "CLS_BANDS is not defined" on every call.
   'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',
-  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','regradeGame','moveHits','bestMove','styleBias',
+  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','_tallySplit','regradeGame','moveHits','bestMove','styleBias',
   // #549 item (97): the mistakes-drill grader and its two sentences, so gate 17 and the disagreement measurement of job (106) run the
   // shipped functions (whyShape is the generator the accept sentence reuses).
   'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg','DRILL_GRADE_DEFAULT','DRILL_GRADE',
@@ -57,7 +57,8 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   // #549 item (98): the opening book - the named-position table, its key, and the Book count the review reads, so gate 87 and
   // gates/opening-book/build.js run the shipped functions (lessonBookPlies takes the lesson list as an argument; the stub window has none).
   'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS',
-  // #550 item (51): the review's second move on a drill card - its switch, so gate 52's E0 reads the shipped default.
+  // #550 item (51): the second move a review rated, on a drill card - its switch, so the E0 line of gate 52 reads the shipped default.
+  // (No apostrophe in a comment inside this array: gate 79 X1 reads the names between quote marks, and one read a fragment of this line as a name.)
   'REVIEW_TWO_DEFAULT','REVIEW_TWO'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
