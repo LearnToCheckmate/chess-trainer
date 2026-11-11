@@ -1016,11 +1016,12 @@ L.say(VACUOUS.length<GEOS.length,
   await b.close();}
  {const b=await L.launch({geo:'kunal761',name:'ls050',store:{
     ct_learnprog:{'Petrov (Russian) Defense':{learned:true,days:['2026-11-01','2026-11-02']},'Petroff (Russian) Defense':{learned:true,days:['2026-11-02','2026-11-03']},'Italian Game':{learned:true,days:['2026-11-04']},'Sicilian: Dragon':{learned:true,days:['2026-11-05']},'Sicilian Dragon':{learned:true,days:['2026-11-06']},'Sicilian: Closed':{learned:true,days:['2026-11-07']}},
-    ct_train:{'Petrov (Russian) Defense':{learned:true,reps:2,last:1,due:1},'Ruy Lopez: Marshall Attack':{learned:true,reps:3,last:1,due:1}},ct_lastlesson:'150'}});
+    ct_train:{'Petrov (Russian) Defense':{learned:true,reps:2,last:1,due:1},'Ruy Lopez: Marshall Attack':{learned:true,reps:3,last:1,due:1}},ct_lastlesson:'150',ct_coachtargets:['Sicilian: Dragon','Italian Game','No Such Lesson (removed)','Sicilian Dragon']}});
   await b.open();await b.settle(800);
   const st=await b.page.evaluate(()=>{const g=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};let lp=null,tr=null;try{lp=JSON.parse(g('ct_learnprog'));tr=JSON.parse(g('ct_train'));}catch(e){}
     const cont=[...document.querySelectorAll('button,div,span')].map(x=>(x.innerText||'').trim()).filter(t=>/^Continue: /.test(t)).sort((a,c)=>a.length-c.length)[0]||null;
-    return {lp,tr,ll:g('ct_lastlesson'),mig:g('ct_libmig549'),mig550:g('ct_libmig550'),cont};});
+    let ct=null;try{ct=JSON.parse(g('ct_coachtargets'));}catch(e){}
+    return {lp,tr,ll:g('ct_lastlesson'),mig:g('ct_libmig549'),mig550:g('ct_libmig550'),cont,ct};});
   const pf=st.lp&&st.lp['Petroff (Russian) Defense'];
   L.say(!!st.lp&&!('Petrov (Russian) Defense' in st.lp)&&!!pf&&(pf.days||[]).join(',')==='2026-11-01,2026-11-02,2026-11-03'&&!!st.lp['Italian Game'],'TC-LS-050 a day banked under the removed name "Petrov (Russian) Defense" is kept: ct_learnprog re-keys it onto Petroff with the days UNIONED (2026-11-01,2026-11-02,2026-11-03) and leaves other lessons alone',st.lp);
   L.say(!!st.tr&&!('Petrov (Russian) Defense' in st.tr)&&!!st.tr['Petroff (Russian) Defense']&&st.tr['Petroff (Russian) Defense'].reps===2,'TC-LS-050 and the drill record in ct_train moves with it (reps 2 on Petroff)',st.tr);
@@ -1028,6 +1029,9 @@ L.say(VACUOUS.length<GEOS.length,
   // #550 a13: the four pairs' progress moves the same way
   const dr=st.lp&&st.lp['Sicilian Dragon'],cs=st.lp&&st.lp['Closed Sicilian'];
   L.say(!!st.lp&&!('Sicilian: Dragon' in st.lp)&&!('Sicilian: Closed' in st.lp)&&!!dr&&(dr.days||[]).join(',')==='2026-11-05,2026-11-06'&&!!cs&&(cs.days||[]).join(',')==='2026-11-07','TC-LS-050 a13: days banked under "Sicilian: Dragon" and "Sicilian: Closed" move onto "Sicilian Dragon" (unioned) and "Closed Sicilian"',{dr,cs});
+  // #550 antagonist A round 2 (P1): the coach's slate is re-keyed too, and a name the library no longer has is dropped, so no ghost entry can
+  // hold the Mastery plan at 4 of 5 for ever. Seeded ['Sicilian: Dragon','Italian Game','No Such Lesson (removed)','Sicilian Dragon'].
+  L.say(Array.isArray(st.ct)&&st.ct.join('|')==='Sicilian Dragon|Italian Game','TC-LS-050 a13: the coach slate (ct_coachtargets) is re-keyed onto the survivor, deduplicated, and a removed name is dropped ('+JSON.stringify(st.ct)+')',{ct:st.ct});
   L.say(!!st.tr&&!('Ruy Lopez: Marshall Attack' in st.tr)&&!!st.tr['Marshall Attack']&&st.tr['Marshall Attack'].reps===3,'TC-LS-050 a13: and the Marshall drill record moves onto "Marshall Attack" (reps 3)',st.tr&&st.tr['Marshall Attack']);
   await b.close();}
  // TC-LS-052 [#549 (65) A1-R3; same job]: THE SAME INDEX MOVE ON A FRESH DEVICE THAT PULLS AN OLD CLOUD COPY. ct_lastlesson syncs, and

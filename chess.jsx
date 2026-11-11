@@ -2371,7 +2371,7 @@ const EVAL_CACHE_MAX=400;
 // #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
 const _libFold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold((op.name||'')+' \u2002 '+(op.idea||'')).includes(f);};
-const _tallySplit=(L)=>L==='Best'?'best':L==='Great'?'grt':null;   // #550 a9: the split buckets (book plies are not re-derived here: a residual, see the job)
+const _tallySplit=(L)=>L==='Best'?'best':L==='Great'?'grt':null;   // #550 a9: the split buckets; regradeGame passes it the summary's label (book applied)
 const _tallyBucket=(L)=>L==='Brilliant'?'bril':(L==='Best'||L==='Great')?'great':L==='Inaccuracy'?'inacc':(L==='Mistake'||L==='Miss')?'mist':L==='Blunder'?'blun':null;
 /* #549 item (28), Kunal's answer on questions/B8-BRILLIANT-RECOMPUTE ("recompute: grade them again, show me the changes first").
    A stored REVIEW is graded again from its own cached engine output, twice over the same numbers: under the previous rule and
@@ -2386,6 +2386,9 @@ function regradeGame(res,cache,userColor,rule){
   const evW=cache.evW.slice();
   for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}   // the #371 read patch importGame applies
   const changes=[],delta={bril:0,great:0,inacc:0,mist:0,blun:0,obril:0,best:0,grt:0},rows=[];
+  /* #550 antagonist A round 2 (P2): the Best/Great split is the summary's (effLabel over the game's own book plies), so a book-range ply that a regrade moves
+     between Brilliant and Best/Great moves the split only where the summary would have counted it */
+  let _bk=0;try{_bk=(res.positions&&res.positions[0]&&toFEN(res.positions[0]).split(' ')[0]===START_PLACEMENT)?(openingBookPlies(res.plies.map(p=>p.san),res.positions)||0):0;}catch(e){_bk=0;}
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
     const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule);   // rule: the app's own (BRIL_RULE) unless a caller names one
@@ -2393,7 +2396,7 @@ function regradeGame(res,cache,userColor,rule){
     rows.push(nw);
     const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
-    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(OL),b2=_tallySplit(NL);if(a2)delta[a2]--;if(b2)delta[b2]++;}
+    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(effLabel(ol.cls,i,_bk)),b2=_tallySplit(effLabel(nw.cls,i,_bk));if(a2)delta[a2]--;if(b2)delta[b2]++;}
     else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
     if(OL==='Brilliant'||NL==='Brilliant'){
       const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -2701,6 +2704,11 @@ const migLearnProg=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const 
     const nk=to+k.slice(base.length);const a=out[nk]||{},b=o[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();
     out[nk]={...a,learned:days.length>=1||!!a.learned||!!b.learned,days};delete out[k];}
   return ch?out:o;};
+/* #550 antagonist A round 2 (P1, on ce729f6): the coach's slate (ct_coachtargets, synced) stores lesson NAMES and was never re-keyed, so a
+   slate holding a renamed or removed lesson kept a ghost: the plan read 4 of 5, every refill was capped by the raw array and the ghost could not
+   be swapped out, so the tier could never clear (true of "Petrov (Russian) Defense" since #549). Names are mapped through LIB_RENAMED, any name
+   the library no longer has is dropped, and duplicates go. */
+const migSlate=(a)=>{if(!Array.isArray(a))return [];const have=new Set(LIB.map(l=>l.name));const out=[];for(const x of a){if(typeof x!=='string')continue;const n=LIB_RENAMED[x]||x;if(have.has(n)&&out.indexOf(n)<0)out.push(n);}return out;};
 const migTrain=(o)=>{if(!o||typeof o!=='object')return o;let ch=false;const out={...o};
   for(const k of Object.keys(o)){const to=LIB_RENAMED[k];if(!to)continue;ch=true;const a=out[to],b=o[k];
     if(!a||((b&&b.reps)||0)>((a&&a.reps)||0))out[to]=b;delete out[k];}
@@ -3589,6 +3597,8 @@ const TT_BELOW={motifs:120,strategy:180};   // the least room the area under the
 function TacticsTrainer({light,dark,demo,onBack,onMenu}){
   const _bar=!!onBack;
   const belowRef=useRef(null);const [belowH,setBelowH]=useState(0);
+  const stratRef=useRef(null);const [stratMore,setStratMore]=useState(false);const stratCheck=()=>{const el=stratRef.current;setStratMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 A2-P2: the strategy text fades at its foot too
+  const hintRef=useRef(null);const [hintMore,setHintMore]=useState(false);const hintCheck=()=>{const el=hintRef.current;setHintMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 A2-P1: the hint fades at its foot while there is more
   const ansRef=useRef(null);const [ansMore,setAnsMore]=useState(false);const ansCheck=()=>{const el=ansRef.current;setAnsMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 a26: the answer box fades at its foot while there is more to read, as the idea box does
   const [tab,setTab]=useState('motifs');
   const [mi,setMi]=useState(0);
@@ -3639,8 +3649,8 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
     fit();let _r1=0,_r2=0,_alive=true;_r1=requestAnimationFrame(()=>{if(!_alive)return;fit();_r2=requestAnimationFrame(()=>{if(_alive)fit();});});
     try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(_alive)fit();});}catch(e){}
     window.addEventListener('resize',fit);return()=>{_alive=false;cancelAnimationFrame(_r1);cancelAnimationFrame(_r2);window.removeEventListener('resize',fit);};
-  },[tab,mi,si]);
-  useLayoutEffect(()=>{if(ansRef.current){ansRef.current.scrollTop=0;}ansCheck();},[solved,shown,mi,belowH,tab]);
+  },[tab,mi,si,_bar]);   // #550 A2-P2: _bar too, so crossing the wide threshold re-fits instead of keeping the other layout's cap
+  useLayoutEffect(()=>{if(ansRef.current){ansRef.current.scrollTop=0;}ansCheck();if(hintRef.current){hintRef.current.scrollTop=0;}hintCheck();if(stratRef.current){stratRef.current.scrollTop=0;}stratCheck();},[solved,shown,mi,si,belowH,tab,showHint,sel,wrong]);
   const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
     if(!demo)return;
@@ -3711,7 +3721,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
       <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0}:undefined}>
-      {!(_bar&&(solved||shown))&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
+      {!(_bar&&(solved||shown))&&!(_bar&&showHint&&!sel&&!wrong)/* #550 A2-P1: the hint takes the status line's room in the bar layout */&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
         {solved?<span style={{color:'#6fce97',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>✓ {cur.san} — correct!</span>
          :shown?<span style={{color:'var(--ac2)',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>Answer: {cur.san}</span>
          :wrong?<span style={{color:'#f0a24e',fontWeight:700,fontSize:'clamp(13.5px,2.8vw,14px)'}}>Not the key move — try again.</span>
@@ -3719,7 +3729,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
          :<span style={{color:'rgba(255,255,255,.6)',fontSize:'clamp(14px,2.7vw,14px)'}}>Tap the piece to move.</span>}
       </div>}
       {(solved||shown)&&<div data-ct="tactics-answer" ref={ansRef} onScroll={ansCheck} style={{WebkitMaskImage:_bar&&ansMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:_bar&&ansMore?'linear-gradient(#000 70%,transparent)':undefined,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:10,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{_bar&&<div style={{fontWeight:800,marginBottom:3,color:solved?'#6fce97':'var(--ac2)'}}>{solved?('✓ '+cur.san+' — correct!'):('Answer: '+cur.san)}</div>}{cur.explain}</div>}
-      {showHint&&!solved&&!shown&&<div style={{textAlign:'center',color:'rgba(255,255,255,.7)',fontSize:'clamp(14px,2.7vw,14px)',marginBottom:10,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>💡 {cur.hint}</div>}
+      {showHint&&!solved&&!shown&&<div data-ct={_bar?'tactics-hint':undefined} ref={hintRef} onScroll={hintCheck} style={{textAlign:'center',color:'rgba(255,255,255,.7)',fontSize:'clamp(14px,2.7vw,14px)',marginBottom:10,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto',WebkitMaskImage:hintMore?'linear-gradient(#000 65%,transparent)':undefined,maskImage:hintMore?'linear-gradient(#000 65%,transparent)':undefined}:null)}}>💡 {cur.hint}</div>}
       <div style={{display:'flex',gap:8,...(_bar?{marginTop:'auto',flexShrink:0}:null)}}>
         {!solved&&!shown&&<button onClick={()=>setShowHint(h=>!h)} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>Hint</button>}
         {!solved&&!shown&&<button onClick={()=>{setShown(true);setSel(null);}} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>Show answer</button>}
@@ -3737,7 +3747,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
       </div>
       <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',minHeight:0}:undefined}>
       <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'9px 12px',fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:700,textAlign:'center',marginBottom:9,flexShrink:0}}>👀 {cstr.look}</div>
-      <div data-ct={_bar?'tactics-strat-text':undefined} style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:11,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{cstr.text}</div>
+      <div data-ct={_bar?'tactics-strat-text':undefined} ref={stratRef} onScroll={stratCheck} style={{WebkitMaskImage:_bar&&stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:_bar&&stratMore?'linear-gradient(#000 70%,transparent)':undefined,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:11,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{cstr.text}</div>
       <div style={{display:'flex',gap:8,...(_bar?{marginTop:'auto',flexShrink:0}:null)}}>
         <button onClick={()=>setSi(i=>(i-1+STRAT.length)%STRAT.length)} style={{flex:1,padding:'10px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.85)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer'}}>‹ Prev</button>
         <button onClick={()=>setSi(i=>(i+1)%STRAT.length)} style={{flex:1,padding:'10px',borderRadius:10,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer'}}>Next ›</button>
@@ -3769,13 +3779,14 @@ const Arrows=memo(_Arrows),_PieceM=memo(_Piece),AppIcon=memo(_AppIcon),Coach=mem
 let _PIECE_EPOCH=0;
 function Piece(props){return <_PieceM {...props} epoch={_PIECE_EPOCH}/>;}
 /* #550 answer a5 (jobs/invariant-2-measures-the-box-not-the-ink, the orchestrator's ruling a5): the five tab icons PAINT one height. Each
-   drawing is scaled about the centre of its own shapes to 18 viewBox units (16.5px at 22px), Discover's circle, so the painted ink no longer
+   drawing is scaled about the centre of its own PAINTED shapes, stroke included (antagonist A round 2: the first cut sized Discover
+   and Review by their stroke-less outline, so they painted ~2px taller), to 18 viewBox units (16.5px at 22px), so the painted ink no longer
    spreads 13.93 (Review) to 18.15 (Puzzles). The shapes are unchanged; only their size is. */
 function _navIcon(n,c){
   if(n==='home')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 11.600) scale(1.0714) translate(-12.000 -11.600)"><path d="M12 3.2 2.6 11.2l1.4 1.7L5 12v8h5v-5h4v5h5v-8l1 .9 1.4-1.7z" fill={c}/></g></svg>);
-  if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 12.000) scale(1.0000) translate(-12.000 -12.000)"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></g></svg>);
+  if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 12.000) scale(0.9091) translate(-12.000 -12.000)"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></g></svg>);
   if(n==='puzzle')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(11.500 11.100) scale(0.9091) translate(-11.500 -11.100)"><path d="M10 3.2a2 2 0 0 1 4 0c0 .5-.3.9-.3 1.4 0 .3.2.5.5.5H17a1 1 0 0 1 1 1v2.7c0 .3.2.5.5.5.5 0 .9-.3 1.4-.3a2 2 0 0 1 0 4c-.5 0-.9-.3-1.4-.3-.3 0-.5.2-.5.5V20a1 1 0 0 1-1 1h-3.1c-.3 0-.5-.2-.5-.5 0-.5.3-.9.3-1.4a2 2 0 0 0-4 0c0 .5.3.9.3 1.4 0 .3-.2.5-.5.5H6a1 1 0 0 1-1-1v-3.1c0-.3-.2-.5-.5-.5-.5 0-.9.3-1.4.3a2 2 0 0 1 0-4c.5 0 .9.3 1.4.3.3 0 .5-.2.5-.5V6a1 1 0 0 1 1-1h2.6c.3 0 .5-.2.5-.5 0-.5-.3-.9-.3-1.4z" fill={c}/></g></svg>);
-  if(n==='analyze')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(11.900 11.900) scale(1.1842) translate(-11.900 -11.900)"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke={c} strokeWidth="1.9"/><path d="M15.2 15.2 19.5 19.5" stroke={c} strokeWidth="2.1" strokeLinecap="round"/></g></svg>);
+  if(n==='analyze')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(11.950 11.950) scale(1.0465) translate(-11.950 -11.950)"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke={c} strokeWidth="1.9"/><path d="M15.2 15.2 19.5 19.5" stroke={c} strokeWidth="2.1" strokeLinecap="round"/></g></svg>);
   return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 11.850) scale(1.0651) translate(-12.000 -11.850)"><path d="M12 3.4a2.7 2.7 0 0 1 1.7 4.8c1 .8 1.6 2 1.3 3.4L14.7 14H9.3L9 11.6c-.3-1.4.3-2.6 1.3-3.4A2.7 2.7 0 0 1 12 3.4zM7.6 15.3h8.8l1.1 4.1c.1.5-.2.9-.7.9H7.2c-.5 0-.8-.4-.7-.9z" fill={c}/></g></svg>);
 }
 function _TabBar({active,go}){
@@ -3898,7 +3909,7 @@ export default function App(){
   useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);return;}
     let dead=false;
     C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;
-      if(prog){SYNC_KEYS.forEach(k=>{try{let cloudV=prog[k];if(cloudV==null)return;if(k==='ct_lastlesson')cloudV=migPulledLastLesson(cloudV,prog);const localV=localStorage.getItem(k);
+      if(prog){SYNC_KEYS.forEach(k=>{try{let cloudV=prog[k];if(cloudV==null)return;if(k==='ct_lastlesson')cloudV=migPulledLastLesson(cloudV,prog);if(k==='ct_coachtargets'){try{cloudV=JSON.stringify(migSlate(JSON.parse(cloudV)));}catch(e){}}const localV=localStorage.getItem(k);
         if(localV==null){localStorage.setItem(k,cloudV);if(k==='ct_gamestats'){try{gameStatsRef.current=JSON.parse(cloudV)||{};}catch(_e){}}applied++;return;}
         // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
         /* #547 item (136), jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09: ct_gamestats is a MAP of per-game
@@ -4284,7 +4295,7 @@ export default function App(){
   useEffect(()=>{if(onlineInfo&&ONLINE_ACK_RE.test(onlineInfo)){const t=setTimeout(()=>setOnlineInfo(''),4500);return ()=>clearTimeout(t);}},[onlineInfo]);
   useEffect(()=>{setOnlineInfo(i=>(i&&!ONLINE_ACK_RE.test(i))?'':i);},[(game.history||[]).length]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!tourOpen||!C||!C.tourList)return;const un=C.tourList(a=>setTours(Array.isArray(a)?a:[]));return ()=>{try{un&&un();}catch(e){}};},[tourOpen]);
-  const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}});
+  const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return migSlate(a);}catch(e){return [];}});   // #550 A2-P1: re-keyed and cleaned on load
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
   const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
   const [coachPlanOpen,setCoachPlanOpen]=useState(false);
@@ -4364,11 +4375,15 @@ export default function App(){
      it is his." An account that was not on the list before its import finished is asked about ONCE, under the Import box: Yes keeps it his (the
      default, unchanged), No switches it off exactly as its chip's switch does. Answered accounts are kept in ct_acctasked, so a re-import or a
      follow refresh never asks again; accounts imported before this build are never asked (they are not new). */
-  const [acctAsk,setAcctAsk]=useState(null);
+  /* #550 antagonist A round 2 (P2): a QUEUE, kept in ct_acctask_pending, so importing two new accounts or reloading before answering never loses one */
+  const [acctAskQ,setAcctAskQ]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_acctask_pending')||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='string'):[];}catch(e){return [];}});
+  useEffect(()=>{try{localStorage.setItem('ct_acctask_pending',JSON.stringify(acctAskQ));}catch(e){}},[acctAskQ]);
+  const setAcctAsk=(id)=>{if(id)setAcctAskQ(q=>q.indexOf(id)>=0?q:[...q,id]);};
   const acctAskAnswer=(id,mine)=>{try{const a=JSON.parse(localStorage.getItem('ct_acctasked')||'{}')||{};a[id]=1;localStorage.setItem('ct_acctasked',JSON.stringify(a));}catch(e){}
-    if(!mine)setAcctMine(m=>({...m,[id]:false}));else setAcctMine(m=>{if(m[id]!==false)return m;const n={...m};delete n[id];return n;});setAcctAsk(null);};
+    if(!mine)setAcctMine(m=>({...m,[id]:false}));else setAcctMine(m=>{if(m[id]!==false)return m;const n={...m};delete n[id];return n;});setAcctAskQ(q=>q.filter(x=>x!==id));};
   useEffect(()=>{try{localStorage.setItem('ct_acctmine',JSON.stringify(acctMine));}catch(e){}},[acctMine]);
   const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
+  const acctAsk=acctAskQ.find(id=>ccAccts.indexOf(id)>=0)||null;
   const acctGamesRef=useRef(acctGamesLoad());   // #549 item (31): the localStorage copy paints first; the IndexedDB store replaces it below
   const acctLoadedRef=useRef(false);
   const [acctDropped,setAcctDropped]=useState([]);   // #549 item (31): accounts a full device could not keep, this session
@@ -5354,7 +5369,7 @@ export default function App(){
           if(typeof data.elo==='number')setCpuElo(Math.max(ELO_MIN,Math.min(ELO_MAX,data.elo)));
           if(data.hintprefs&&typeof data.hintprefs==='object'){hintPrefsRef.current={...data.hintprefs};try{localStorage.setItem('ct_hintprefs',JSON.stringify(hintPrefsRef.current));}catch{}}
           if(data.learnprog&&typeof data.learnprog==='object'){const lp=migLearnProg(data.learnprog);setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days};}return out;});}
-          if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(data.coachtargets.filter(x=>typeof x==='string'));
+          if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(migSlate(data.coachtargets));
           if(data.coachtier&&typeof data.coachtier.cleared==='number'&&data.coachtier.cleared>(coachTierRef.current.cleared||0))setCoachTier({cleared:data.coachtier.cleared,swapsLeft:(typeof data.coachtier.swapsLeft==='number'?data.coachtier.swapsLeft:2),swapAt:(typeof data.coachtier.swapAt==='number'?data.coachtier.swapAt:Date.now())});
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
             if(cp.solved&&typeof cp.solved==='object')setPzSolvedMap(m=>({...m,...cp.solved}));

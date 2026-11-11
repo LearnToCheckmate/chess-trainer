@@ -165,13 +165,22 @@ L.run(async()=>{
     let reached=true;try{await D.states['tactics'](b);await b.settle(400);}catch(e){reached=false;}
     for(const tab of ['Tactics','Strategy']){
       if(reached&&tab==='Strategy'){await press(b,/^Strategy$/);await b.settle(400);}
-      const cards=[];let m=reached?await readCard(b):null;const first=m;
+      const cards=[];let m=reached?await readCard(b):null;const first=m;const hintBad=[];let hintN=0;
       const onTab=c=>!!c&&(tab==='Tactics'?c.tacticsCtl&&!c.strategyCtl:c.strategyCtl&&!c.tacticsCtl);
       if(m&&m.board&&m.bar&&onTab(m)&&m.of){
         for(let k=0;k<m.of;k++){
-          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);if(k===1){const sh=await readCard(b);const nm=sh.ctls.find(x=>/^Next motif/.test(x.t));L.say(!!nm&&nm.bottom<=sh.barTop&&sh.rsc!==null&&sh.rsc<=0.5,n+' Tactics: TC-INV-08l with the answer SHOWN "Next motif" ends above the tab bar and the page does not scroll ('+(nm&&nm.bottom)+' against '+sh.barTop+', #root overflow '+sh.rsc+')',{nm,barTop:sh.barTop,rsc:sh.rsc});}await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
-          if(!m||!m.board||!m.bar||!onTab(m))break;cards.push(m);}
+          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);if(k===1){const sh=await readCard(b);const nm=sh.ctls.find(x=>/^Next motif/.test(x.t));L.say(!!sh.board&&sh.top===cards[0].top&&sh.w===cards[0].w,n+' Tactics: TC-INV-08l with the answer SHOWN the board does not move ('+cards[0].top+'/'+cards[0].w+' at rest, '+sh.top+'/'+sh.w+' shown) - the board never jumps when the answer appears (antagonist A round 2, P2)',{rest:{top:cards[0].top,w:cards[0].w},shown:{top:sh.top,w:sh.w}});L.say(!!nm&&nm.bottom<=sh.barTop&&sh.rsc!==null&&sh.rsc<=0.5,n+' Tactics: TC-INV-08l with the answer SHOWN "Next motif" ends above the tab bar and the page does not scroll ('+(nm&&nm.bottom)+' against '+sh.barTop+', #root overflow '+sh.rsc+')',{nm,barTop:sh.barTop,rsc:sh.rsc});}await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
+          if(!m||!m.board||!m.bar||!onTab(m))break;cards.push(m);
+          // #550 antagonist A round 2 (P1): WITH THE HINT ON (every motif card) the hint is not clipped silently - it fits its box or the box
+          // fades at its foot - and the page's controls still end above the tab bar. Hint is a toggle, so it is closed again after the read.
+          if(tab==='Tactics'&&await press(b,/Hint$/)){await b.settle(250);const hs=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>/^💡/.test((d.innerText||'').trim())&&!d.querySelector('div'));if(!e)return null;const cs=getComputedStyle(e);
+              return {ch:e.clientHeight,sh:e.scrollHeight,mask:(cs.webkitMaskImage||cs.maskImage||'none')!=='none'};});const hc=await readCard(b);
+            const hctl=hc.ctls.length?Math.max(...hc.ctls.map(x=>x.bottom)):null;
+            if(!hs||hs.sh>hs.ch+1&&!hs.mask||hctl===null||hctl>hc.barTop||hc.rsc>0.5)hintBad.push({card:k+1,hs,hctl,barTop:hc.barTop,rsc:hc.rsc});hintN++;
+            await press(b,/Hint$/);await b.settle(150);}
+        }
       }
+      if(tab==='Tactics')L.say(hintN>0&&hintBad.length===0,n+' Tactics: TC-INV-08l with the HINT on, on every card ('+hintN+'), the hint fits its box or fades at its foot, and the controls stay above the tab bar with the page unscrolled (antagonist A round 2, P1: it was clipped to 18px at 320x568 with no fade)',{hintN,hintBad:hintBad.slice(0,4)});
       const seen=cards.map(c=>c.card);const all=!!first&&!!first.of&&cards.length===first.of&&seen.every((c,k)=>c===k+1);
       L.say(!!first&&first.board&&first.bar&&first.head&&onTab(first)&&all,n+' '+tab+': TC-INV-08d Discover -> Tactics was reached, the '+tab+' tab is the one on screen (its own controls are, the other tab\'s are not) with its board and the tab bar found, and every card 1/'+(first&&first.of)+' to '+(first&&first.of)+'/'+(first&&first.of)+' was read - the denominator, so a missed tab or a missing card reads red and not as clear',{first,visited:seen});
       if(!cards.length)continue;

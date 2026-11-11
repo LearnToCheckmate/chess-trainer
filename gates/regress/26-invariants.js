@@ -295,8 +295,9 @@ const ROWS = function(opt){
     const svg=e.querySelector('svg');
     if(!svg)return null;
     let top=Infinity, bot=-Infinity, n=0;
-    for(const k of svg.querySelectorAll('path,line,circle,ellipse,rect,polyline,polygon,text')){
-      for(const r of k.getClientRects()){ if(r.height<0.01&&r.width<0.01)continue; top=Math.min(top,r.top); bot=Math.max(bot,r.bottom); n++; }
+    const _sw=(k)=>{try{const cs=getComputedStyle(k);if(!cs.stroke||cs.stroke==='none')return 0;const w=parseFloat(cs.strokeWidth)||0;if(!(w>0))return 0;const m=k.getScreenCTM();const sc=m?Math.hypot(m.a,m.b):1;return w*sc/2;}catch(e){return 0;}};   // #550 antagonist A round 2 (P1): the painted ink includes half the stroke; the outline alone read stroked icons ~2px short
+    for(const k of svg.querySelectorAll('path,line,circle,ellipse,rect,polyline,polygon,text')){const h=_sw(k);
+      for(const r of k.getClientRects()){ if(r.height<0.01&&r.width<0.01)continue; top=Math.min(top,r.top-h); bot=Math.max(bot,r.bottom+h); n++; }
     }
     return n? +(bot-top).toFixed(2) : null;
   };

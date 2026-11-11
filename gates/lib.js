@@ -628,7 +628,8 @@ const GRADES=Object.freeze(['Brilliant','Great','Best','Excellent','Good','Book'
 // Returns {l,t,r,b,w,h,n} in CSS px, or null when nothing is painted. n is the number of rects unioned, so a caller can refuse n=0.
 const INK_RECT=`function(el){let l=Infinity,t=Infinity,r=-Infinity,bt=-Infinity,n=0;const add=(q)=>{if(q.width<0.01&&q.height<0.01)return;l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);bt=Math.max(bt,q.bottom);n++;};
   const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){if(!tn.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(tn);for(const q of rg.getClientRects())add(q);}
-  for(const k of el.querySelectorAll('svg path,svg line,svg circle,svg ellipse,svg rect,svg polyline,svg polygon,svg text'))for(const q of k.getClientRects())add(q);
+  const _sw=(k)=>{try{const cs=getComputedStyle(k);if(!cs.stroke||cs.stroke==='none')return 0;const w=parseFloat(cs.strokeWidth)||0;if(!(w>0))return 0;const m=k.getScreenCTM();const sc=m?Math.hypot(m.a,m.b):1;return w*sc/2;}catch(e){return 0;}};   /* #550 antagonist A round 2 (P1): a STROKED shape paints half its stroke width past its outline, and getClientRects reads the outline only - so a stroked circle read 2px shorter than it paints and an icon sized to the stroke-less reading was the tallest on screen */
+  for(const k of el.querySelectorAll('svg path,svg line,svg circle,svg ellipse,svg rect,svg polyline,svg polygon,svg text')){const h=_sw(k);for(const q of k.getClientRects())add(h?{left:q.left-h,top:q.top-h,right:q.right+h,bottom:q.bottom+h,width:q.width+2*h,height:q.height+2*h}:q);}
   return n?{l,t,r,b:bt,w:r-l,h:bt-t,n}:null;}`;
 // #549 item (31): THE IMPORTED-ACCOUNT GAMES LIVE IN INDEXEDDB NOW (database 'ct', object store 'acctgames', one
 // record per account id), migrated out of localStorage['ct_acctgames'] on launch. A gate that reads the store reads
