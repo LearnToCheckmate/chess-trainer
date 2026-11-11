@@ -127,3 +127,4 @@
 112-review-streamlined.js	required	550	2026-11-11	build__1794388896663	gates/regress/112-review-streamlined.js - THE STREAMLINED REVIEW: BOARD EDGE TO EDGE, TH	#550 answer a21: gate 112, the streamlined review
 113-landscape-play-option-a.js	required	550	2026-11-11	build__1794388896663	gates/regress/113-landscape-play-option-a.js - SIDEWAYS PLAY: THE BOARD FILLS THE HEIGHT	#550 answer a23: gate 113, sideways play Option A
 114-landscape-puzzle-tab-rail.js	required	550	2026-11-11	build__1794388896663	gates/regress/114-landscape-puzzle-tab-rail.js - SIDEWAYS PUZZLES: THE TABS ARE A RAIL O	#550 answer a8: gate 114, sideways Puzzles tab rail
+115-drill-verdict-says-more.js	required	550	2026-11-11	build__1794388896663	gates/regress/115-drill-verdict-says-more.js - A DRILL EXPLANATION THAT RUNS PAST ITS BO	#550 AUD-R13 (docs/app-audit-2026-11-11, P1): gate 115, a drill explanation past its box says so and scrolls

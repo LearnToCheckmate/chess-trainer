@@ -277,7 +277,7 @@ L.run(async()=>{
     L.say(!!fab&&!!bd&&fab.y>=bd.y+bd.h-0.5,geo+': TC-R11 A-08 - the Analyze button is BELOW the board and no longer covers h1/g1 (fab top '+(fab&&fab.y)+' vs board bottom '+(bd&&(bd.y+bd.h))+')',{fab,boardBottom:bd&&(bd.y+bd.h)});
     L.say(!!fab&&!!tbar&&fab.y>=tbar.y-0.5&&fab.y+fab.h<=tbar.y+tbar.h+0.5,geo+': TC-R11 it sits in the bottom toolbar (rev-toolbar), the streamlined review Kunal picked (a21, Option B)',{fab,tbar});
     {const order=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="rev-toolbar"]');return t?[...t.querySelectorAll('button')].map(x=>x.getAttribute('aria-label')||''):[];});
-     L.say(order.length===4&&/^Previous move$/.test(order[0])&&/^Analyze/.test(order[1])&&/key moment/i.test(order[2])&&/^Next move$/.test(order[3]),geo+': TC-R11 the toolbar is Back, Analyze, Key move, Forward in that order ('+order.join(' | ')+')',order);}
+     L.say(order.length===4&&/^Previous move$/.test(order[0])&&/key moment/i.test(order[1])&&/^Analyze/.test(order[2])&&/^Next move$/.test(order[3]),geo+': TC-R11 the toolbar is Back, Key move, Analyze, Forward in that order (A3-1: the star is never beside Forward) ('+order.join(' | ')+')',order);}
     // TC-R71 (#547 item (188)): leaving analysis puts the engine-line switch back. Read BEFORE the round button.
     const eng71a=await b.rect('[data-ct="rev-engline"]');const cmp71a=await b.rect('[data-ct="rev-compact"]');
     L.say(!eng71a&&!!cmp71a,geo+': TC-R71 PRECONDITION at 10.Nxb5 before analysis there is NO engine-line row, and rev-compact is measured',{eng:eng71a,cmp:cmp71a&&cmp71a.h});

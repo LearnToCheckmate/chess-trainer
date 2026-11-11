@@ -41,7 +41,7 @@ const R=require('../drive/review');
         /* the gap: vertically stacked, at least 40pt (it was 6, AUD-R01); side by side in the streamlined toolbar of his picked mockup
            (Key move beside Forward), they must not touch and each is a full 44pt target, so a thumb on one is never on the other */
         const gap=m.stream?Math.round((m.next.left-(m.star.left+m.star.width))*10)/10:Math.round((m.next.top-m.star.bottom)*10)/10;
-        L.say(m.stream?(gap>=5.5&&m.star.height>=43.5&&m.next.height>=43.5&&m.next.width>=44&&m.star.width>=44):gap>=40,geo+': TC-R176b the star and the next control are apart - '+(m.stream?'side by side in the toolbar, '+gap+'pt between, each a 44pt target':'stacked, '+gap+'pt apart (they were 6pt, AUD-R01)'),{gap,star:m.star,next:m.next});
+        L.say(gap>=40&&(!m.stream||(m.star.height>=43.5&&m.next.height>=43.5)),geo+': TC-R176b the star and the next control are apart - '+(m.stream?'in the toolbar with Analyze between them, '+gap+'pt apart (antagonist A round 3, A3-1: side by side they were 6pt again)':'stacked, '+gap+'pt apart (they were 6pt, AUD-R01)'),{gap,star:m.star,next:m.next});
         const before=m.ply;
         const hit=await b.page.evaluate(([x,y])=>{const e=document.elementFromPoint(x,y);const btn=e&&e.closest('button');return btn?(btn.getAttribute('aria-label')||btn.title||btn.innerText):null;},[m.next.cx,m.next.cy]);
         await b.page.mouse.click(m.next.cx,m.next.cy);await b.settle(700);

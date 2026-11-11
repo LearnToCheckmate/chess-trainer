@@ -2155,15 +2155,22 @@ As a player whose review's engine stops answering partway, I am told the review 
 *Added #550 answer a33 (Kunal on build__1794388896663-q33, 11 Nov 2026: "build both. Finishing a different lesson can bank the day, and after a clean run with hints on a line suggests a hint-free run to bank it"; FEEDBACK-INBOX 12 Sep 2026).*
 As a player practising lessons, a lesson I banked today banks again once I have finished a different lesson since, instead of waiting for tomorrow; and after a run with no mistakes but the hint on, Complete! offers to bank it with the hint off.
 - With no other lesson finished since today's bank, the line does not bank again and the message says to finish a different lesson first. (TC-R191a)
-- With another lesson finished after today's bank, the line banks a second day today, which counts toward Mastered. (TC-R191b)
+- With another lesson finished after today's bank, the line banks another day today, which counts toward Mastered; each later bank needs another lesson finished in between. (TC-R191b)
 - A bank stored before this change waits for tomorrow, as it did. (TC-R191c)
 - A clean hints-on run offers "Bank it" in the lesson row; it restarts the line with the hint off, and a clean run then banks. (TC-R191d)
 
 ### US-R125 On my phone the review is the streamlined view: the board edge to edge and the move list right under it
 *Added #550 answer a21 (Kunal on the Desk, B10-Q21: "Option B: the move list under the board"; jobs/a-streamlined-board-view-like-chesscoms-2026-11-11).*
-As a player reviewing a game on my phone, the board is as wide as the screen with the eval bar above it, the move list sits right under the board, then the move's explanation, and Back, Analyze, Key move and Forward are at the bottom, like the chess.com view I asked for.
+As a player reviewing a game on my phone, the board is as wide as the screen with the eval bar above it, the move list sits right under the board, then the move's explanation, and Back, Key move, Analyze and Forward are at the bottom, like the chess.com view I asked for.
 - The eval bar is above the board and the board is the screen's full width on my phone. (TC-R192a)
 - The move strip is straight under the board's bottom player bar, and the explanation under the strip. (TC-R192b)
-- The bottom toolbar is Back, Analyze, Key move and Forward, each a thumb's size. (TC-R192c)
+- The bottom toolbar is Back, Key move, Analyze and Forward, each a thumb's size, with the star never beside Forward. (TC-R192c)
 - A header with back, Game Review and more is there when the screen is tall enough; on a short screen they stay in the top player bar. (TC-R192d)
 - The board does not move between moves or in and out of analysis; switching the engine line off puts it back exactly. (TC-R192e)
+
+### US-R126 When a drill's explanation is longer than its box, I can tell, and I can read the rest
+*Added #550, AUD-R13 of the app audit (P1); Kunal's ruling on this box: "Don't change the size just allow the player to scroll through the text".*
+As a player who solved a drill card, a long explanation keeps its box's size but shows that there is more, and one tap scrolls to it, so I never read a sentence cut off with no sign of the rest.
+- An explanation longer than its box shows a "more" chip inside the box, a thumb's height. (TC-R193a)
+- Tapping it scrolls the explanation. (TC-R193b)
+- Solving the card does not move the board. (TC-R193c)

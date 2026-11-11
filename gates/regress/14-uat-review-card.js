@@ -19,7 +19,10 @@ L.run(async()=>{
   await b.shot('uat-review-summary');
   await waitUntil(60500);const c4=await cap(b);const m4=await b.metrics();const ml4=await b.rect('[data-ct="rev-move-line"]');
   L.say(!!c4&&/US-R04/.test(c4.text),'58 s: caption names US-R04',c4&&c4.text);
-  L.say(!!m4.board&&Math.abs(m4.board.w-349)<0.6&&m4.over.over<=0,'58 s: move screen, board 349, no scroll',{board:m4.board,over:m4.over.over});
+  /* #550 round-3 suite (386d5b5, bundle 768be560e76b): 349 -> 343. Since a21 the phone review is the streamlined layout (header row, the
+     eval bar ABOVE the board, the toolbar at the foot), so at 375x730 with the card's caption strip the board is height-bound at 343,
+     measured, with the page still not scrolling (over 0). */
+  L.say(!!m4.board&&Math.abs(m4.board.w-343)<0.6&&m4.over.over<=0,'58 s: move screen, board 343, no scroll',{board:m4.board,over:m4.over.over});
   await waitUntil(66500);const c6=await cap(b);const ml6=await b.rect('[data-ct="rev-move-line"]');const why={text:(await b.text('[data-ct="rev-why"]'))||''};
   L.say(!!c6&&/US-R06/.test(c6.text)&&!!ml6&&/Nxb5/.test(ml6.text),'64 s: US-R06 at 10.Nxb5',ml6&&ml6.text);
   L.say(!!why&&/cxb5|Bxb5/.test(why.text),'64 s: the reason names the forcing line',why&&why.text.slice(0,80));

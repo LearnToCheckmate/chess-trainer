@@ -352,8 +352,15 @@ L.run(async()=>{
     let rv=null;{const b=await L.launch({geo,name:'ls051-review-'+geo,store:RV.SEED});await b.open();
       try{await RV.states['moves-ply10'](b);await b.settle(500);rv=await read('[data-ct="rev-row1"] > button')(b);}catch(e){rv=null;}
       await b.close();}
-    const rg=(rv||[]).filter(k=>k.glyph);
-    L.say(rg.length>=3,dim+': TC-LS-051 DENOMINATOR the Review transport row shows its glyph controls at ply 10 ('+rg.map(k=>k.a).join(' | ')+')',rv);
+    /* #550 round-3 suite (386d5b5): since a21 the phone Review row is the streamlined TOOLBAR - Previous, Key move, Analyze, Next
+       - drawn with SVG chevrons and a labelled star, so it carries NO text glyph any more and the old denominator (three text-glyph
+       buttons) read 0 on a healthy bundle. The row is still the one Kunal compared the lesson footer to, so its SHAPE stays the
+       reference (radius, outline, min-height, font family); the GLYPH SIZE is pinned to the size that row used to carry,
+       FOOT_ICON_GLYPH = clamp(21px,5.4vw,26px), evaluated at this viewport - the lesson's old clamp(20px,5.4vw,24px) reads 20.25
+       at 375 and still reddens. */
+    const rg=(rv||[]).filter(k=>k.h>0);
+    L.say(rg.length>=3,dim+': TC-LS-051 DENOMINATOR the Review transport row shows its controls at ply 10 ('+rg.map(k=>k.a).join(' | ')+')',rv);
+    const FIG=Math.min(26,Math.max(21,0.054*G.w));
     for(const st of ['demo-end','practice-m0']){
       const b=await L.launch({geo,name:'ls051-lesson-'+geo+'-'+st,store:{}});await b.open();
       let lf=null;try{await D.states[st](b);await b.settle(600);lf=await read('button[aria-label]')(b);}catch(e){lf=null;}
@@ -364,8 +371,8 @@ L.run(async()=>{
       if(!rg.length)continue;
       const R=rg[0];
       const lg=lf.filter(k=>k.glyph);
-      const offFs=lg.filter(k=>Math.abs(k.fs-R.fs)>0.01).map(k=>({a:k.a,fs:k.fs}));
-      L.say(lg.length>0&&offFs.length===0,dim+' '+st+': TC-LS-051 every lesson footer TEXT glyph carries the Review transport glyph size ('+R.fs+'px; lesson '+lg.map(k=>k.fs).join('/')+')',offFs);
+      const offFs=lg.filter(k=>Math.abs(k.fs-FIG)>0.01).map(k=>({a:k.a,fs:k.fs}));
+      L.say(lg.length>0&&offFs.length===0,dim+' '+st+': TC-LS-051 every lesson footer TEXT glyph carries the footer glyph size ('+FIG+'px; lesson '+lg.map(k=>k.fs).join('/')+')',offFs);
       const offShape=lf.filter(k=>k.rad!==R.rad||k.bw>0.01||k.mh!==R.mh||k.ff!==R.ff).map(k=>({a:k.a,rad:k.rad,bw:k.bw,mh:k.mh}));
       L.say(offShape.length===0,dim+' '+st+': TC-LS-051 every lesson footer button has the Review button SHAPE - radius '+R.rad+', no outline, min-height '+R.mh+', one font family',offShape);
       const small=lf.concat(rv).filter(k=>k.h<43.99||(k.w<43.99&&k.glyph));

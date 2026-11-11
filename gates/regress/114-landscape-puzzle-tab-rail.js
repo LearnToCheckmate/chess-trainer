@@ -15,6 +15,7 @@
 //      hit-tests to its own button, and the panel does not scroll.
 // DENOMINATOR per size: the puzzle screen is reached and the board is measured.
 // CONTROL-RECORD: 6180c2b 2026-11-11 total=21 red=12 scope=trial:2f17c3b52792 how=#550 answer a8: the tree before the tab rail (the bottom tab row, a 280 board, Prev and Next below the fold) - TC-PZ-LAND3a, b and c red at all four sizes; the denominators and the error lines green. On t58 21 of 21 green
+// CONTROL-RECORD: 386d5b5 2026-11-11 total=21 red=12 scope=trial:2f17c3b52792 how=the same pre-rail tree re-run on the gate whose tab-word regexes now accept the words with their emoji (antagonist A round 3, A3-10): TC-PZ-LAND3a, b and c red at all four sizes, as before; the denominators and error lines green
 const L=require('../lib');
 const SIZES=[[761,375],[730,375],[844,390],[667,375]];
 L.run(async()=>{
@@ -23,7 +24,7 @@ L.run(async()=>{
     let ok=true;try{await b.tile('Puzzles');await b.settle(900);try{await b.tapText(/^(▶ )?(Continue|Start|Solve|Next puzzle)/i,{wait:900});}catch(e){}await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
     const m=ok?await b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8/.test(d.style.gridTemplateColumns)).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
       const tb=document.querySelector('[data-ct="tabbar"]');const t=tb?tb.getBoundingClientRect():null;
-      const want=[['Roadmap',/Roadmap/],['Hint',/^Hint$/],['Show',/^Show move$/],['Reset',/^Reset$/],['Prev',/^Previous puzzle$/],['Next',/^Next puzzle$/]];
+      const want=[['Roadmap',/Roadmap/],['Hint',/^(💡 )?Hint$/],['Show',/^(👁 )?Show( move)?$/],['Reset',/^(↺ )?Reset$/],['Prev',/^Previous puzzle$/],['Next',/^Next puzzle$/]];   // A3-11: matched by what each SAYS (aria-label or text), so the tree before a8 is found too - its red is the fold, not a missing hook
       const btn=(re)=>[...document.querySelectorAll('button')].find(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&(re.test(x.getAttribute('aria-label')||'')||re.test((x.innerText||'').trim()));});
       const bs=want.map(([k,re])=>{const e=btn(re);if(!e)return {k,miss:true};const r=e.getBoundingClientRect();const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {k,h:r.height,y:r.top,b:r.bottom,r:r.right,hit:!!hit&&(hit===e||e.contains(hit))};});
       const rail=document.querySelector('.ctside');

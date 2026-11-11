@@ -69,3 +69,4 @@
 96	95	raise	2026-11-11	550	build__1794388896663	#550 answer a21: gate 112, the streamlined review	-	0b56fd74d5f2
 97	96	raise	2026-11-11	550	build__1794388896663	#550 answer a23: gate 113, sideways play Option A	-	837d8b7f1fd6
 98	97	raise	2026-11-11	550	build__1794388896663	#550 answer a8: gate 114, sideways Puzzles tab rail	-	62356fe2f725
+99	98	raise	2026-11-11	550	build__1794388896663	#550 AUD-R13 (docs/app-audit-2026-11-11, P1): gate 115, a drill explanation past its box says so and scrolls	-	ac41a254a3f1

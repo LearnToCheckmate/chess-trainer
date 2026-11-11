@@ -11,13 +11,14 @@
 //  (a) TC-R192a the board is as wide as the screen where the width binds (375 at kunal761, 390 at 390x844) and the eval bar is the
 //      horizontal one above it (eval-bar-h, no eval-bar-v).
 //  (b) TC-R192b the move strip is straight under the bottom player bar (within 12px), and the explanation (rev-compact) under the strip.
-//  (c) TC-R192c the toolbar is Back, Analyze, Key move, Forward, every button at least 44px tall, on screen and below rev-compact.
+//  (c) TC-R192c the toolbar is Back, Key move, Analyze, Forward (his mockup's two middle buttons swapped so the star is not beside Forward - A3-1), every button at least 44px tall, on screen and below rev-compact.
 //  (d) TC-R192d the header row (rev-head: back, Game Review, more) is there at 700px tall and over, and on a shorter screen back and more
 //      sit in the top player bar instead - either way exactly one back and one more are on screen.
 //  (e) TC-R192e the board does not move: its width and top are the same at plies 0, 19 and 33, after the engine line is switched on
 //      and off, and in and out of analysis.
 // DENOMINATOR per geometry: the review was reached at ply 19 and the board is measured.
-// CONTROL-RECORD: 6180c2b 2026-11-11 total=25 red=12 scope=trial:28378590a526 how=#550 answer a21: the tree before the streamlined review (eval bar beside a 349 board, the strip at the foot) - TC-R192a, b, c and d red at all three geometries; the denominators, TC-R192e and the error lines green. On t61 (the build that carries the engine-off regrowth) 25 of 25 green
+// CONTROL-RECORD: 6180c2b 2026-11-11 total=25 red=12 scope=trial:28378590a526 how=#550 answer a21: the tree before the streamlined review (eval bar beside a 349 board, the strip at the foot) - TC-R192a, b and c red at all three geometries, d at kunal761 and 390x844, and e at se (the old board moved in analysis there); d at se, the denominators and the error lines green (corrected from 'a-d at all three' on antagonist A round 3, A3-10, by the run's own FAIL lines). On t61 (the build that carries the engine-off regrowth) 25 of 25 green
+// CONTROL-RECORD: 386d5b5 2026-11-11 total=25 red=6 scope=trial:2f17c3b52792 how=#550 antagonist A round 3: the tree before its fixes (Analyze beside the star, the floor counting per-ply chips, the strip gap at 390) - TC-R192c red at all three geometries, TC-R192e at kunal761 and se, TC-R192b at 390x844
 const L=require('../lib');const R=require('../drive/review');
 const GEOS=[{g:'kunal761',w:375,head:true},{g:{w:390,h:844},w:390,head:true,label:'390x844'},{g:'se',w:null,head:false}];
 const read=(b)=>b.page.evaluate(()=>{const q=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return r.height>0?{x:r.left,y:r.top,w:r.width,h:r.height,b:r.bottom}:null;};
@@ -35,7 +36,7 @@ L.run(async()=>{
     L.say(!!m.evh&&!m.evv&&(G.w==null||Math.abs(m.board.w-G.w)<0.6),tag+': TC-R192a the eval bar is above the board and the board is '+(G.w==null?'as wide as the height allows':'the screen\'s full '+G.w)+' ('+m.board.w+')',{board:m.board,evh:m.evh,evv:m.evv});
     L.say(!!m.pb&&!!m.strip&&m.strip.y>=m.pb.b-0.5&&m.strip.y-m.pb.b<=12&&!!m.cmp&&m.cmp.y>=m.strip.b-0.5,tag+': TC-R192b the move strip is straight under the bottom player bar ('+(m.strip&&m.pb&&Math.round((m.strip.y-m.pb.b)*10)/10)+'px) and the explanation under the strip',{pb:m.pb,strip:m.strip,cmp:m.cmp});
     const order=m.btns.map(x=>x.l);
-    L.say(order.length===4&&/^Previous move$/.test(order[0])&&/^Analyze/.test(order[1])&&/key moment/i.test(order[2])&&/^Next move$/.test(order[3])&&m.btns.every(x=>x.h>=43.5&&x.y>=0&&x.b<=m.vh+0.5)&&!!m.cmp&&m.tb.y>=m.cmp.b-0.5,tag+': TC-R192c the toolbar is Back, Analyze, Key move, Forward, each 44px or taller, on screen and below the explanation ('+order.join(' | ')+')',{btns:m.btns,cmp:m.cmp,tb:m.tb});
+    L.say(order.length===4&&/^Previous move$/.test(order[0])&&/key moment/i.test(order[1])&&/^Analyze/.test(order[2])&&/^Next move$/.test(order[3])&&m.btns.every(x=>x.h>=43.5&&x.y>=0&&x.b<=m.vh+0.5)&&!!m.cmp&&m.tb.y>=m.cmp.b-0.5,tag+': TC-R192c the toolbar is Back, Key move, Analyze, Forward (Analyze between the star and Forward, A3-1), each 44px or taller, on screen and below the explanation ('+order.join(' | ')+')',{btns:m.btns,cmp:m.cmp,tb:m.tb});
     L.say((G.head?!!m.head:!m.head)&&m.backs===1&&m.mores===1,tag+': TC-R192d '+(G.head?'the header row is there':'no header row on a short screen')+' and exactly one back and one more are on screen ('+m.backs+', '+m.mores+')',{head:m.head,backs:m.backs,mores:m.mores});
     const seen=[];const pin=async(why)=>{const x=await read(b);seen.push({why,y:x.board&&Math.round(x.board.y*100)/100,w:x.board&&x.board.w});};
     await pin('ply 19');await R.goPly(b,0);await pin('ply 0');await R.goPly(b,33);await pin('ply 33');await R.goPly(b,19);
