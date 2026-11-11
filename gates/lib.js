@@ -397,7 +397,11 @@ async function launch(opts={}){
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;
   const browser=await P.chromium.launch(launchOpts);
   await sayToolchain(browser);
-  const ctx=await browser.newContext({viewport:{width:geo.w,height:geo.h},deviceScaleFactor:opts.dpr||1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 CTGATE'});
+  // #550 SCREEN, BESIDE THE VIEWPORT [jobs/a-51-point-strip-at-the-bottom-of-every-page-is-never-painted-on-kunals-phone-2026-11-11]: a geo or
+  // opts.screen {w,h} sets window.screen apart from the page, which is how an installed iOS app reports a 375x761 page on a
+  // 375x812 screen. Absent, Playwright's default applies and nothing changes for any existing gate.
+  const _scr=opts.screen||geo.screen||null;
+  const ctx=await browser.newContext({viewport:{width:geo.w,height:geo.h},..._scr?{screen:{width:_scr.w,height:_scr.h}}:{},deviceScaleFactor:opts.dpr||1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 CTGATE'});
   if(!opts.network)await ctx.route(u=>BLOCK.test(u.href),r=>r.abort());
   const store=Object.assign({},geo.safe?{ct_safe:geo.safe}:{},opts.store||{});
   // #353 harness hole: addInitScript re-runs on every navigation; seed once per origin, guarded by a marker.

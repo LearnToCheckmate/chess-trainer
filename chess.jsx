@@ -4430,7 +4430,7 @@ export default function App(){
   const bestLineTokenRef=useRef(0);
   const [slideFromHide,setSlideFromHide]=useState(false);
   const [vw,setVw]=useState(()=>Math.min(typeof window!=='undefined'?(window.innerWidth||360):360,760));
-  const [vp,setVp]=useState(()=>({w:typeof window!=='undefined'?(window.innerWidth||360):360,h:typeof window!=='undefined'?(window.innerHeight||800):800}));
+  const [vp,setVp]=useState(()=>({w:typeof window!=='undefined'?(window.innerWidth||360):360,h:typeof window!=='undefined'?(window.__ctFullH||window.innerHeight||800):800}));/* #550: h is the SHELL's height - index.html's full-screen shell sets __ctFullH to the screen height when iOS reports a layout viewport short by the status bar, and the app lays out in what is painted, not in the short page */
   const [anim,setAnim]=useState(null);      // {piece, from:[r,c], to:[r,c]} during a glide
   const [animTo,setAnimTo]=useState(false); // false=at source, true=transition to target
 
@@ -5103,7 +5103,7 @@ export default function App(){
      differently. Found by #430's antagonist A. */
   const copyMoves=()=>{const h=boardGame.history;if(!h||!h.length)return;let s='';for(let i=0;i<h.length;i++){if(i%2===0)s+=(i/2+1)+'. ';s+=h[i].san+' ';}s=s.trim();const flash=(m)=>{setCopyMsg(m);if(copyTimerRef.current)clearTimeout(copyTimerRef.current);copyTimerRef.current=setTimeout(()=>setCopyMsg(''),1800);};const viaExec=()=>{try{const ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,s.length);}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);flash(ok?'✓ Copied!':'Copy failed');}catch(e){flash('Copy failed');}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>flash('✓ Copied!')).catch(viaExec);}else viaExec();};
   useEffect(()=>{
-    const measure=()=>{const w=Math.min(window.innerWidth||9999,(document.documentElement&&document.documentElement.clientWidth)||9999,(rootRef.current&&rootRef.current.clientWidth)||9999);if(w&&w>0&&w<9999)setVw(w);setVp({w:window.innerWidth||360,h:window.innerHeight||800});};
+    const measure=()=>{const w=Math.min(window.innerWidth||9999,(document.documentElement&&document.documentElement.clientWidth)||9999,(rootRef.current&&rootRef.current.clientWidth)||9999);if(w&&w>0&&w<9999)setVw(w);setVp({w:window.innerWidth||360,h:window.__ctFullH||window.innerHeight||800});};
     measure();const t1=setTimeout(measure,120);const t2=setTimeout(measure,400);
     window.addEventListener('resize',measure);window.addEventListener('orientationchange',measure);
     let ro;if(window.ResizeObserver&&rootRef.current){ro=new ResizeObserver(measure);ro.observe(rootRef.current);}
@@ -8212,6 +8212,10 @@ export default function App(){
      is removed - Kunal's phone is settled at 375x761 - so KEV renumbers to 1. KEV stays until the fleet side confirms the
      Kevitsch file is held; gate 15's PINNED_IDS changes in the same commit. */
   {id:"KEV",c:"Review: the grade rows for Kunal2023 v Kevitsch",l:"1 \u00b7 KEV \u00b7 Our review of Kunal2023 v Kevitsch", n:"One screenshot, then upload it in the Claude chat. This card opens the Review tab for you; the game is in your own list, so these taps are yours: open Kunal2023 v Kevitsch, Analyze, open the summary, and screenshot the grade rows so Brilliant down to Blunder shows for BOTH players along with both accuracies (two screenshots if it does not fit). This is the one game chess.com's own review is already recorded for, so it is the only place we can compare our ten grades against theirs on a game you played.", r:()=>{setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('analyze');setReview(null);}, h:9000, m:true},
+  /* #550, item (1); jobs/a-51-point-strip-at-the-bottom-of-every-page-is-never-painted-on-kunals-phone-2026-11-11: his phone
+     check of the full-screen shell, which no rig here can render (gate 90 proves the sizing, not the paint). It plays by
+     itself: Home, then Discover with its tab bar, each held long enough to see the bottom edge. */
+  {id:"SCR",c:"The bottom of the screen: no blank strip",l:"2 \u00b7 SCR \u00b7 The bottom of every page reaches the bottom of your screen", n:"Press play and screen-record. The card shows Home, then Discover with the tab bar. Look at the very bottom of your screen each time: the page should be painted all the way down, the tab bar should rest on the home bar, and the plain strip about the height of the status bar should be gone. Open the app from your Home Screen icon for this, not from Safari, because the strip only happens in the installed app.", r:()=>{setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);setTimeout(()=>{setHomeScreen(false);setMode('learn');},4500);}, h:9000},
         ];
         /* THE ASK-QUEUE SEAM [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-
            success-condition-2026-10-01]. localStorage ct_scmax=<n> truncates SC to its first n cards at render, so a gate can
@@ -9195,7 +9199,8 @@ export default function App(){
                    exists only on iOS. */}
               <div>{(()=>{let vv='n/a',st='?';try{const q=(typeof window!=='undefined')&&window.visualViewport;if(q)vv=Math.round(q.width)+'x'+Math.round(q.height);}catch(e){}
                 try{const mm=(typeof window!=='undefined'&&window.matchMedia)?window.matchMedia('(display-mode: standalone)'):null;st=((mm&&mm.matches)||(typeof navigator!=='undefined'&&navigator.standalone===true))?'installed app':'browser tab';}catch(e){}
-                return 'inner '+vp.w+'x'+vp.h+'  vv '+vv+'  app '+st;})()}</div>
+                return 'inner '+window.innerWidth+'x'+window.innerHeight+'  vv '+vv+'  app '+st;})()}</div>
+              <div>{/* #550: whether index.html's full-screen shell took the screen height (the installed-app case) */'shell '+((typeof window!=='undefined'&&window.__ctFullH)?('full '+window.__ctFullH):'page')}</div>
               <div>{'safe top '+safeTop+'  bottom '+safeBot+'  trim '+boardTrim}</div>
               <div>{'board '+Math.round(boardPx)+'  square '+SQ+'  gap '+Math.round((vw-boardPx)/2)+' each side'+(gridRect?('  painted '+Math.round(gridRect.w)+'x'+Math.round(gridRect.h)):'') /* #374: the painted height beside the computed width - Kunal's #372 recording showed rank 1 at 60% height at game over, which no width can show */}</div>
               {plyLogRef.current.length>0&&<div style={{opacity:.85}}>{'ply log '+plyLogRef.current.slice(-3).map(x=>x.to+(x.sinceInput>=0?('@'+(x.sinceInput>1500?'NO-INPUT-':'')+Math.round(x.sinceInput/100)/10+'s'):'')).join('  ')}</div>}{/* #375: the last three ply changes and how long after the last touch each one happened - k12 */}

@@ -553,6 +553,21 @@ drill-setup invariant before the rows were written, so this story and its cases 
 - I can ask, mechanically and with no browser, how many assertions are in that position, and the tool's own controls prove it
   reports what it should and declines what it should. (TC-INV-11b)
 - A selector the app never emits as a literal is named rather than counted as coverage. (TC-INV-11c)
+### US-INV-09 The app paints my whole screen, down to the home bar
+As Kunal opening the app from its Home Screen icon, every page is painted to the bottom edge of my screen, with no plain strip
+under the last row or under the tab bar, and the tab bar rests on the home bar rather than above it.
+
+Written at #550 for jobs/a-51-point-strip-at-the-bottom-of-every-page-is-never-painted-on-kunals-phone-2026-11-11, from his report
+of 11 Nov 2026 ("a blank space that we are not using ... in almost every page of the app").
+
+- When the installed app is handed a page shorter than its screen by exactly the status bar (375x761 on his 375x812 phone), the
+  app's shell, every full-screen layer and the tab bar take the screen's height, not the page's. (TC-INV-14a, TC-INV-14b,
+  TC-INV-14c, TC-INV-14d)
+- The home-bar inset is counted once: the tab bar's own inset padding sits at the screen's bottom edge, with nothing under it.
+  (TC-INV-14d)
+- Nothing changes anywhere that signature does not hold: a Safari tab, a page short by something else, or a page that already
+  equals its screen. (TC-INV-14e)
+- Whether iOS then paints those 51pt is his phone's to say: gallery card SCR, after the landing.
 ### US-R12 The drill board stays still when the app answers me
 > **NOT TRUE ON main AS OF #500, AND THIS CLAUSE IS THE TARGET RATHER THAN THE RECORD.** The board still jumps:
 > measured at #500 on bundle c37f70f2e989, at 375x730 it goes 339 -> 291 when the red verdict lands and

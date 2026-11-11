@@ -63,8 +63,46 @@
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ac2,#9ec5ff);outline-offset:2px}
 *:focus:not(:focus-visible){outline:none}
 @media (prefers-reduced-motion: no-preference){@keyframes ctGlow{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.9;transform:scale(1.1)}}@keyframes ctDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}@keyframes ctPop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}}
+/* #550, jobs/a-51-point-strip-at-the-bottom-of-every-page-is-never-painted-on-kunals-phone-2026-11-11: THE SHELL TAKES
+   THE SCREEN, NOT THE PAGE. Installed from the Home Screen with a black-translucent status bar, iOS draws the page from the
+   top of the screen but reports a layout viewport the status bar's height SHORTER than the screen (375x761 on his 375x812
+   phone), so every position:fixed inset:0 layer, #root and the tab bar stopped 51pt above the bottom and the last 51pt were
+   never painted - while the tab bar still added the home-indicator inset on top. When the script below sees exactly that
+   signature it sizes html and body to the screen height and makes body the containing block of every fixed layer
+   (transform), so the bars reach the bottom edge and the inset is counted once. Anywhere else the class is absent and
+   nothing here applies. */
+html.ct-fullh,html.ct-fullh body{height:var(--ct-full-h)}
+html.ct-fullh body{bottom:auto;transform:translateZ(0)}
 </style>
 
+  <!-- #550: the full-screen shell (see the html.ct-fullh rule above). Runs before app.js so the app's first measure sees it. -->
+  <script>
+    (function(){
+      function topInset(){
+        try{var o=(localStorage.getItem('ct_safe')||'').split(',').map(Number);if(o.length===2&&o[0]>=0&&o[0]<120)return o[0];}catch(e){}
+        try{var p=document.createElement('div');p.style.cssText='position:absolute;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.documentElement.appendChild(p);var h=p.getBoundingClientRect().height;p.parentNode.removeChild(p);return Math.round(h);}catch(e){return 0;}
+      }
+      function standalone(){
+        try{if(localStorage.getItem('ct_fullh')==='1')return true;}catch(e){} /* dev and gate only: Chromium is never an installed iOS app */
+        try{if(navigator.standalone===true)return true;if(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)return true;}catch(e){}
+        return false;
+      }
+      function fit(){
+        var d=document.documentElement,on=false,full=0;
+        try{
+          var W=window.innerWidth,H=window.innerHeight,sw=screen.width||0,sh=screen.height||0;
+          full=W<H?Math.max(sw,sh):Math.min(sw,sh);
+          var gap=full-H,t=topInset();
+          /* the exact signature, and nothing looser: an installed app, upright, short by the top inset and by nothing else */
+          on=standalone()&&W<H&&gap>0&&gap<120&&Math.abs(gap-t)<=2;
+        }catch(e){on=false;}
+        if(on){d.style.setProperty('--ct-full-h',full+'px');d.classList.add('ct-fullh');window.__ctFullH=full;}
+        else{d.classList.remove('ct-fullh');d.style.removeProperty('--ct-full-h');window.__ctFullH=0;}
+      }
+      fit();
+      window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,60);});
+    })();
+  </script>
   <!-- Cloud bridge: defined before app.js so the app can always call it. -->
   <script>
     window.CTCloud = {

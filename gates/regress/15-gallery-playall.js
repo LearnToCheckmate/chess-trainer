@@ -201,8 +201,9 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
        invariant - that every card actually played, in order, with a coherent n/N token. Nothing here weakens it. */
 /* #547 item (53): PHONE removed from the ask queue (Kunal's phone is settled at 375x761), so KEV is card 1 and the
    queue holds one card. */
-const PINNED_IDS='1 KEV';
-const EXPECTED_N=1;
+/* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
+const PINNED_IDS='1 KEV|2 SCR';
+const EXPECTED_N=2;
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -839,7 +840,7 @@ L.run(async()=>{
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
   const MANUAL_CARD='1 · KEV';     // as PINNED_IDS spells it (it was '2 · KEV' until #547 removed PHONE)
-  const EXPECTED_MANUAL=1, EXPECTED_AUTO=0, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card
+  const EXPECTED_MANUAL=1, EXPECTED_AUTO=1, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
@@ -1110,7 +1111,8 @@ L.run(async()=>{
      one-card queue and asserts each. Two of the three lengths: the >=2 branch ('▶ Play all N') is the walk above whenever the
      queue holds two or more, and no seam can ADD cards. Each length asserts the gallery really opened first (the harness
      state cards are on screen), so an absent Play button cannot pass by the gallery never rendering [#385]. */
-  for(const [qlab,store,wantAsks] of [['empty',{ct_pool:'3',ct_scmax:'0'},0],['one',{ct_pool:'3'},1]]){
+  /* #550 item (1): the natural queue now holds two cards (KEV, SCR), so the one-card case takes ct_scmax=1 as the empty case takes 0. */
+  for(const [qlab,store,wantAsks] of [['empty',{ct_pool:'3',ct_scmax:'0'},0],['one',{ct_pool:'3',ct_scmax:'1'},1]]){
     const b=await L.launch({geo:'kunal730',name:'queue-'+qlab,store});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
