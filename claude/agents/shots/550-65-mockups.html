@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=375">
+<style>
+:root{--bg:#14161b;--panel:#1d2027;--line:rgba(255,255,255,.12);--ink:#fff;--dim:rgba(255,255,255,.62);--brill:#26c2c9;--ac:#5fa8ff}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif}
+.phone{width:375px;height:761px;position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.top{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid var(--line)}
+.ib{width:40px;height:34px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px}
+.title{font-weight:700;font-size:16px}
+.strip{height:40px;display:flex;align-items:center;gap:6px;padding:0 10px;overflow:hidden;white-space:nowrap;font-size:15px;color:var(--dim);border-bottom:1px solid var(--line)}
+.strip b{color:var(--ink);font-weight:600}.strip .cur{background:rgba(38,194,201,.2);color:var(--brill);border-radius:6px;padding:3px 7px;font-weight:800}
+.strip .bad{color:#f0cf5e}
+.pbar{height:46px;display:flex;align-items:center;gap:9px;padding:0 10px}
+.av{width:32px;height:32px;border-radius:7px;background:#3a3f4a;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nm{font-weight:700;font-size:15px}.rt{color:var(--dim);font-size:13px;margin-left:4px}.cap{color:var(--dim);font-size:13px}
+.eval{height:8px;margin:0;background:#2b2f37;position:relative}.eval i{position:absolute;left:0;top:0;bottom:0;width:72%;background:#eaeaea}
+.board{width:375px;height:375px;overflow:hidden;position:relative}
+.board img{position:absolute;transform-origin:0 0}
+.why{padding:6px 12px 0;font-size:14px;line-height:1.35;color:rgba(255,255,255,.8)}
+.why .hd{font-weight:800;font-size:15px;color:var(--ink);margin-bottom:2px}.why .hd span{color:var(--brill)}
+.tools{position:absolute;left:0;right:0;bottom:0;height:78px;display:flex;gap:8px;padding:8px 10px 18px;border-top:1px solid var(--line);background:var(--panel)}
+.tb{flex:1;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-direction:column;gap:2px}
+.tb.big{flex:1.6;font-size:28px}.tb small{font-size:11px;color:var(--dim);font-weight:600}
+.lab{position:absolute;top:13px;left:60px;background:#ff2020;color:#fff;font-size:11px;font-weight:800;padding:2px 6px;border-radius:5px;z-index:9}
+</style></head><body>
+<div id="A" class="phone">
+  <div class="lab">OPTION A</div>
+  <div class="top"><div class="ib">←</div><div class="title">Game Review</div><div class="ib">⋯</div></div>
+  <div class="strip"><span>9.</span><b>Bg5</b><b>b5</b><span>10.</span><span class="cur">Nxb5!!</span><b class="bad">cxb5?!</b><span>11.</span><b>Bxb5+</b><b>Nbd7</b><span>12.</span><b>O-O-O</b></div>
+  <div class="pbar"><div class="av">♚</div><div class="nm">DukeKarlCountIsouard99<span class="rt">1487</span></div></div>
+  <div class="eval"><i></i></div>
+  <div class="board"><img src="550-65-current-375x761.png"></div>
+  <div class="pbar"><div class="av">♔</div><div class="nm">Jsmiller1112<span class="rt">1523</span></div><div class="cap">♝♟♟ +1</div></div>
+  <div class="why"><div class="hd">10. Nxb5 <span>!! Brilliant</span></div>You give up the knight for a pawn. If cxb5, Bxb5+ and White is winning.</div>
+  <div class="tools"><div class="tb big">‹</div><div class="tb"><span>⌕</span><small>Analyze</small></div><div class="tb"><span>★</span><small>Key move</small></div><div class="tb big">›</div></div>
+</div>
+<div id="B" class="phone">
+  <div class="lab">OPTION B</div>
+  <div class="top"><div class="ib">←</div><div class="title">Game Review</div><div class="ib">⋯</div></div>
+  <div class="pbar"><div class="av">♚</div><div class="nm">DukeKarlCountIsouard99<span class="rt">1487</span></div></div>
+  <div class="eval"><i></i></div>
+  <div class="board"><img src="550-65-current-375x761.png"></div>
+  <div class="pbar"><div class="av">♔</div><div class="nm">Jsmiller1112<span class="rt">1523</span></div><div class="cap">♝♟♟ +1</div></div>
+  <div class="strip"><span>9.</span><b>Bg5</b><b>b5</b><span>10.</span><span class="cur">Nxb5!!</span><b class="bad">cxb5?!</b><span>11.</span><b>Bxb5+</b><b>Nbd7</b><span>12.</span><b>O-O-O</b></div>
+  <div class="why"><div class="hd">10. Nxb5 <span>!! Brilliant</span></div>You give up the knight for a pawn. If cxb5, Bxb5+ and White is winning.</div>
+  <div class="tools"><div class="tb big">‹</div><div class="tb"><span>⌕</span><small>Analyze</small></div><div class="tb"><span>★</span><small>Key move</small></div><div class="tb big">›</div></div>
+</div>
+<script>
+// crop today's board out of the real screenshot (board rect 23.98,56 349.03 square on it) and scale it to 375 wide
+const BX=23.984375,BY=56,BW=349.03125,S=375/BW;
+for(const im of document.querySelectorAll('.board img')){im.style.width=(375*S)+'px';im.style.left=(-BX*S)+'px';im.style.top=(-BY*S)+'px';}
+</script>
+</body></html>
