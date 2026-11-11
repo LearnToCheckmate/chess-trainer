@@ -183,8 +183,16 @@ L.run(async()=>{
       const hGone   = (g1===null);
       const hIntact = !!g1 && g1.cardVis!=='hidden' && g1.lineSW<=g1.lineCW+1 && g1.lineSH<=Math.ceil(g1.lineH)+1;
       const hHeld   = !!g1 && g1.cardVis==='hidden' && g1.cardH>0;
-      L.say(hGone||hIntact||hHeld, tag+' H: the goal card is gone, or shows its goal in full, or is hidden with its height still held open — never present and truncated, and never collapsed',
+      // #550 item (118) [jobs/two-of-us-r17s-clauses-are-decided-by-something-other-than-what-they-say-2026-09-29]: H WAS A
+      // DISJUNCTION EVERY FIX ROUTE SATISFIED, so it decided nothing about the route that shipped. The route is chosen - Kunal
+      // answered yes on 22 Sep 2026 (10:50am ET) to letting the explanation take the goal card's space, and the build that
+      // shipped HOLDS the card's height with visibility:hidden - so H now asserts that route alone, and H2 asserts its
+      // mechanism with two readings of the same card: its height before the solve equals its height after. A change to
+      // display:none passes hGone and fails both.
+      L.say(hHeld, tag+' H: once solved, the goal card is HIDDEN with its height still held open (the route that shipped) - not gone, not collapsed, not present and truncated',
         {branch:hGone?'gone':(hHeld?'hidden, holding '+g1.cardH+'px':(hIntact?'present and intact':'NEITHER')),before:g0,after:g1});
+      L.say(!!g0&&!!g1&&g0.cardH>0&&Math.abs(g0.cardH-g1.cardH)<0.6&&Math.abs(t0-t1)<0.6, tag+' H2: two readings of the goal card - its height before the solve ('+(g0&&g0.cardH)+') equals its height after ('+(g1&&g1.cardH)+'), and pz-top keeps its height ('+t0+' -> '+t1+')',
+        {before:g0&&g0.cardH,after:g1&&g1.cardH,t0,t1});
       L.note(tag+'  pz-top height '+t0+' -> '+t1+'  (the space the explanation is given has to come from inside this column)');
       const gv=await giveable(b);
       L.note(tag+'  GOAL CARD, what it has to give: '+JSON.stringify(gv));
@@ -229,6 +237,7 @@ L.run(async()=>{
           if(prep.sh>prep.ch+1){
             L.say(c0.on&&c0.inView&&c0.self,label+' '+state+': TC-R85 the explanation overruns its box ('+prep.sh+' > '+prep.ch+') and a "more" chip is on screen and taps to itself',c0);
             // CONTROL-RECORD: a982d7c 2026-11-06 total=235 red=10 scope=full how=HEAD 7340372-line pre-fix bundle (no whole-line snap on the solved box), trial md5 208ec0354fc6; red: TC-R112 whole-lines at all seven G7 geometries x both solved states that overflow (cut line 12.1px of 16 shown). The good trial e0088d496d14 (rebased over (46)) reads 235 PASS 0 FAIL.
+            // CONTROL-RECORD: HEADSHA 2026-11-11 total=249 red=64 scope=trial:983b2b885274 how=#550 item (118): c118, the solved goal card collapsed with display:none in place of visibility:hidden - H and H2 red at all 14 inputs (28 lines), and the board-jump and box lines that collapse moves (A, A2, D, E and kin); good trial 762fd238c730 249/0
             // TC-R112 (US-R81), #549 item (45): AT REST THE OVERRUNNING BOX SHOWS WHOLE LINES - no line of the explanation is painted
             // cut through its glyphs at the box's bottom edge. Read from the glyphs' own rects (a Range per code point, grouped by line)
             // against the box found as the nearest scrolling ancestor, so it does not depend on the hook or the style the fix uses. On the
