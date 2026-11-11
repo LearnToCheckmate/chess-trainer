@@ -9,7 +9,7 @@
 //  (a) TC-R193a the explanation runs past its box (DENOMINATOR) and the '▾ more' chip is on screen, inside the box, 28px or taller.
 //  (b) TC-R193b a tap on the chip scrolls the explanation (scrollTop rises).
 //  (c) TC-R193c solving did not move the board (same width and top as before the move).
-// CONTROL-RECORD: 386d5b5 2026-11-11 total=11 red=4 scope=trial:e2b242330e84 how=#550 AUD-R13: the tree before the more chip (the round-3 fixes without it) - TC-R193a and TC-R193b red at kunal761 and se; the denominator, TC-R193c and the error lines green
+// CONTROL-RECORD: b443dd8 2026-11-11 total=11 red=4 scope=trial:e2b242330e84 how=#550 AUD-R13: the tree before the more chip (the round-3 fixes without it) - TC-R193a and TC-R193b red at kunal761 and se; the denominator, TC-R193c and the error lines green
 const L=require('../lib');
 const WHY='You gave up the queen to open the long diagonal, and the bishop then mates on h7 because the king has no square left and nothing can block the check in time.';
 L.run(async()=>{

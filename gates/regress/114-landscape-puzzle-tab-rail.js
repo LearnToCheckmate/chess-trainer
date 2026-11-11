@@ -14,7 +14,7 @@
 //  (c) TC-PZ-LAND3c Roadmap, Hint, Show, Reset, Prev and Next are all on screen, 44px or taller, left of the tab rail, each centre
 //      hit-tests to its own button, and the panel does not scroll.
 // DENOMINATOR per size: the puzzle screen is reached and the board is measured.
-// CONTROL-RECORD: 6180c2b 2026-11-11 total=21 red=12 scope=trial:2f17c3b52792 how=#550 answer a8: the tree before the tab rail (the bottom tab row, a 280 board, Prev and Next below the fold) - TC-PZ-LAND3a, b and c red at all four sizes; the denominators and the error lines green. On t58 21 of 21 green
+// CONTROL-RECORD: dfdbe8a 2026-11-11 total=21 red=12 scope=trial:2f17c3b52792 how=#550 answer a8: the tree before the tab rail (the bottom tab row, a 280 board, Prev and Next below the fold) - TC-PZ-LAND3a, b and c red at all four sizes; the denominators and the error lines green. On t58 21 of 21 green
 // CONTROL-RECORD: 386d5b5 2026-11-11 total=21 red=12 scope=trial:2f17c3b52792 how=the same pre-rail tree re-run on the gate whose tab-word regexes now accept the words with their emoji (antagonist A round 3, A3-10): TC-PZ-LAND3a, b and c red at all four sizes, as before; the denominators and error lines green
 const L=require('../lib');
 const SIZES=[[761,375],[730,375],[844,390],[667,375]];

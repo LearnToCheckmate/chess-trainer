@@ -16,7 +16,7 @@
 //      own button, and the rail does not scroll; the bottom player bar is on screen too.
 //  (d) TC-PL-071d no result card is drawn over the board (the rail carries it).
 // DENOMINATOR per launch: the game reached the state (two plies live; checkmate) and the board is measured.
-// CONTROL-RECORD: 6180c2b 2026-11-11 total=17 red=8 scope=trial:bbdae501c49d how=#550 answer a23: the tree before Option A (bars round a 216 board, the result card on the board, the six-button row) - TC-PL-071a-d red at 761x375 and 730x375; the denominators and the error lines green. On t58 17 of 17 green
+// CONTROL-RECORD: 372f372 2026-11-11 total=17 red=8 scope=trial:bbdae501c49d how=#550 answer a23: the tree before Option A (bars round a 216 board, the result card on the board, the six-button row) - TC-PL-071a-d red at 761x375 and 730x375; the denominators and the error lines green. On t58 17 of 17 green
 const L=require('../lib');
 const SIZES=[{w:761,h:375},{w:730,h:375}];
 const read=(b)=>b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8/.test(d.style.gridTemplateColumns)).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
