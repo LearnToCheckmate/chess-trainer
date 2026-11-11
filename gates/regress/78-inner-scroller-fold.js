@@ -18,6 +18,7 @@
 // 360x640 on arrival with the social tiles hidden; C: the other five on arrival, unscrolled).
 // THE REACH IS ASSERTED TOO, so a pinned "below the fold" can never hide "unreachable": the button's own scroller is
 // scrolled and the button must then sit on screen - below the fold is not unreachable (CLAUDE.md), and this checks both.
+// CONTROL-RECORD: 831e068 2026-11-11 total=142 red=8 scope=trial:b19697cd53cb how=#550 answer a12: the a12-only version of this gate (REV_PIN retired, TC-INV-08i asserting on screen) on the tree before the paste row - TC-INV-08i red at all eight geometries, 47.5 to 373.5px below the fold (245.5 on his phone); everything else green
 // CONTROL-RECORD: 40515d9 2026-11-11 total=198 red=34 scope=trial:a6ef99c17548 how=#550 answer a26 (with a12's 08i): the tree before the Tactics page's own bar - the new TC-INV-08l and 08m lines red where its controls or back button sit under the tab bar or scrolled away, or #root scrolls; the a26 trial 455ff0ea4f3f reads 198 pass, 0 fail
 const L=require('../lib');
 const P=require('../drive/play');
