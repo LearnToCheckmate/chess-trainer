@@ -114,3 +114,4 @@
 99-review-engine-wait-shown.js	required	550	2026-11-11	build__1794388896663	gates/regress/99-review-engine-wait-shown.js - WHILE A REVIEW WAITS FOR STOCKFISH, THE S	#550 item (90): the review shows its wait for the engine, TC-R184
 100-online-review-rating.js	required	550	2026-11-11	build__1794388896663	gates/regress/100-online-review-rating.js - THE REVIEW OF AN ONLINE GAME SHOWS THE RATIN	#550 item (93): the online review rating, TC-R57
 101-review-summary-you-left.js	required	550	2026-11-11	build__1794388896663	gates/regress/101-review-summary-you-left.js - ON THE REVIEW SUMMARY HIS SIDE IS ALWAYS 	#550 item (94): his side left on the review summary, TC-R185
+102-engine-no-go-into-a-running-search.js	required	550	2026-11-11	build__1794388896663	gates/regress/102-engine-no-go-into-a-running-search.js - NO ENGINE WORKER IS SENT 'go' 	#550 item (97): no go into a running search, TC-R186

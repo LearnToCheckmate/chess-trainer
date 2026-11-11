@@ -2087,3 +2087,8 @@ As a player reviewing an online game I just played, the review summary shows the
 *Added #550 item (94), jobs/the-review-summary-puts-kunal-on-the-left-whichever-colour-he-played-2026-11-11 (Kunal, 11 Nov 2026: "I should always be on the left respect of whether or not it's black or white"; AUD-R08).*
 As a player reviewing a game I played as Black, my accuracy card, my count column and my Skills column are on the left, as they are when I play White; a game with no side marked mine keeps White then Black.
 - Reviewed as White: White's card and columns first; reviewed as Black: Black's first. (TC-R185a, TC-R185b)
+
+### US-R119 Stepping fast through a review never crashes the engine
+*Added #550 item (97), jobs/the-main-engine-worker-still-posts-go-before-the-stopped-search-answers-in-the-eval-bar-and-play-2026-11-07 (#549 antagonist A, A2-R3).*
+As a player tapping quickly through my moves, every engine waits for its last search to answer before it is asked again, so the engine never traps and the eval bar keeps working.
+- No worker is sent 'go' while its last search has not answered, on a fast Review walk and in Play, and no engine traps. (TC-R186)
