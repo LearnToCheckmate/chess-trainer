@@ -335,7 +335,12 @@ a4_dead(){
       | sed -e "s/^.*['\"]\\([A-Za-z0-9_]*\\)['\"]\$/\\1/" \
       | while IFS= read -r t; do
           case "$t" in
-            kunal*|short*|se) : ;;   # only tokens that LOOK like a geometry are asked about.
+            kunal|kunal[0-9][0-9][0-9]|short*|se) : ;;   # only tokens that LOOK like a geometry are asked about.
+            # #550 item (134) [jobs/gate-89s-literal-workaround-hides-from-the-r19-audit-instead-of-teaching-a4c-2026-11-07]:
+            # was kunal*, which read his chess.com username 'kunal2023' as a dead geometry key, and gate 89 hid the name
+            # behind ['kunal','2023'].join('') to get past it. Every kunal* key GEOS has ever had is 'kunal' or 'kunal'
+            # plus a THREE-digit height (kunal679, kunal730, kunal761), so that is the shape asked about; a four-digit
+            # suffix is a player name and is out of scope - C56 holds the line, C57 that a dead three-digit key still fires.
             # AND THE THREE-DIGIT KEYS ARE OUT OF A4c's REACH BY CONSTRUCTION, measured rather than assumed.
             # The first version of this list accepted [0-9][0-9][0-9] so that '390' and '430' were covered, and
             # running it printed 34 dead tokens over six gates: `==='500'` and `==='800'` and `==='400'` are
@@ -709,6 +714,15 @@ if(geo==='se'){b();}"
   mk4 "if(t==='500'){a();}
 if(geo==='kunal730'){b();}"
   chk C45-a4c-a-numeric-string-is-not-a-geometry 0 r19 CT_A4CEIL=9
+  # C56/C57 [#550 item (134)]: a player name that STARTS like a geometry key is not one, and the narrowing did not lose
+  # the key it exists for. 'kunal2023' (his chess.com name, gate 89) compared with === reads GREEN; a renamed-away
+  # three-digit key beside it still reads RED.
+  mk4 "if(user==='kunal2023'){a();}
+if(geo==='kunal730'){b();}"
+  chk C56-a4c-a-username-shaped-like-a-key-is-not-a-geometry 0 r19 CT_A4CEIL=9
+  mk4 "if(user==='kunal2023'){a();}
+if(geo==='kunal730'){b();}" "kunal761:{w:375,h:761,label:'375x761'},se:{w:320,h:568,label:'320x568'}"
+  chk C57-a4c-still-fires-on-a-dead-three-digit-key-beside-it 1 r19 CT_A4CEIL=9
 
   # THE EMPTY DENOMINATORS. Both must read NOT CHECKED and UNSOUND - never a pass - because all three A4
   # checks are asserted over these two sets [R51/the empty-denominator class].
