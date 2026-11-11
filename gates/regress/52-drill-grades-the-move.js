@@ -167,10 +167,12 @@ L.run(async()=>{
   // the capture stores it only when that grade is in DRILL_ACCEPT (Excellent or better). E1-E3 are the drill half.
   {const X=require('../engine-extract.js');L.note('E0 reads chess.jsx md5 '+X.SOURCE_MD5);
    let ok=false,info={};try{const g=X.fromFEN(FEN),pl=X.uciToMove(g,'g1f1');
-     const hi=X.sfGradePly(g,pl,900,-400,700,'d1d5','h5d5'),lo=X.sfGradePly(g,pl,900,-400,100,'d1d5','h5d5');
+     /* #550: item (20)'s bands grade on winning chances, so 900 against 700 is a 3.55 drop (Good) and no longer Excellent; one pawn under
+        (900 against 800, a 1.48 drop) is the 'nearly as good' side under both the old grades and the new */
+     const hi=X.sfGradePly(g,pl,900,-400,800,'d1d5','h5d5'),lo=X.sfGradePly(g,pl,900,-400,100,'d1d5','h5d5');
      info={hi:[hi.altUci,hi.altLabel],lo:[lo.altUci,lo.altLabel]};
      ok=hi.altUci==='h5d5'&&X.DRILL_ACCEPT.includes(hi.altLabel)&&lo.altUci==='h5d5'&&!X.DRILL_ACCEPT.includes(lo.altLabel);}catch(e){info={err:String(e).slice(0,200)};}
-   L.say(ok,'TC-R179 E0 the review grades its own second move: Rhxd5 at 2 pawns under the best is Excellent or better, at 8 pawns under it is not (so only the first rides on a card)',info);
+   L.say(ok,'TC-R179 E0 the review grades its own second move: Rhxd5 at 1 pawn under the best is Excellent or better, at 8 pawns under it is not (so only the first rides on a card)',info);
    const src=require('fs').readFileSync(X.SRC_PATH,'utf8');
    L.say(/alt2:\{uci:out\[i\]\.altUci/.test(src)&&/DRILL_ACCEPT\.includes\(out\[i\]\.altLabel\)/.test(src),'TC-R179 E0b the capture stores alt2 only under DRILL_ACCEPT.includes(altLabel) (source read; the review run that captures is gate 50\'s route)');
    L.say(X.REVIEW_TWO_DEFAULT===1&&X.REVIEW_TWO===1,'TC-R179 E0c the switch SHIPS ON (B10-SHIP-ON): REVIEW_TWO_DEFAULT is 1 and, with nothing stored, REVIEW_TWO reads 1',{d:X.REVIEW_TWO_DEFAULT,v:X.REVIEW_TWO});}
