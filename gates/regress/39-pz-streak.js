@@ -395,4 +395,22 @@ L.run(async()=>{
     L.say(bad.length===0,geo+': TC-PZ-RANKUP no app error beyond the allowed engine trap',bad.slice(0,2));
     await b.close();
   }
+  // TC-PZ-SOLVED39 [#550 item (23); jobs/suite-never-asserts-after-a-success-2026-09-27 theFix (2), the half batch 9's checker found left to
+  // gate 57]: THE ORDINARY SOLVE IN THIS GATE TOO. After the first training puzzle is solved (state 'train-solved'), the board keeps the
+  // unsolved card's rect and the verdict is on top at its first lines - the same two readings as TC-PZ-RANKUP, on the common success.
+  const pzSolvedHit=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
+    const leaf=[...t.querySelectorAll('div,span')].filter(d=>d.children.length===0&&/^\u{1F389}/u.test((d.innerText||'').trim())).pop();if(!leaf)return {found:false};
+    const rg=document.createRange();rg.selectNodeContents(leaf);const rs=[...rg.getClientRects()].filter(r=>r.width>0&&r.height>0);
+    const hits=rs.slice(0,2).map(r=>{const x=r.left+Math.min(8,r.width/2),y=r.top+r.height/2;const h=document.elementFromPoint(x,y);return {x:Math.round(x),y:Math.round(y),self:!!h&&(h===leaf||leaf.contains(h)),got:h?(h.getAttribute('data-ct')||h.tagName):null};});
+    return {found:true,hits};});
+  for(const geo of ['kunal761','se']){
+    const b=await L.launch({geo,name:'pz-solved39-'+geo,store:{}});await b.open();let ok=true,m0=null,m1=null,vh=null;
+    try{await Z.states['train-step1'](b);await b.settle(400);m0=await b.metrics();await b.move('e8','f8',0);await Z.waitMsg(b,/^🎉/,3000);await b.settle(1600);m1=await b.metrics();vh=await pzSolvedHit(b);}
+    catch(e){ok=false;L.note(geo+': TC-PZ-SOLVED39 drive threw: '+String(e.message).slice(0,120));}
+    L.say(ok&&!!m0&&!!m0.board&&!!vh&&vh.found,geo+': TC-PZ-SOLVED39 PRECONDITION the first training puzzle was measured before its last move and solved (a verdict starting with the party mark)',{board0:m0&&m0.board,vh});
+    const same=(a,c)=>!!a&&!!c&&!!a.board&&!!c.board&&Math.abs(a.board.top-c.board.top)<0.6&&Math.abs(a.board.left-c.board.left)<0.6&&Math.abs(a.board.w-c.board.w)<0.6;
+    L.say(same(m0,m1),geo+': TC-PZ-SOLVED39 the board after the solve keeps the rect it had before it (top, left, width)',{before:m0&&m0.board,after:m1&&m1.board});
+    L.say(!!vh&&vh.found&&vh.hits.length>0&&vh.hits.every(h=>h.self),geo+': TC-PZ-SOLVED39 the verdict is on top at its first lines - nothing celebrating is left over it',vh);
+    await b.close();
+  }
 },'PZ-STREAK');
