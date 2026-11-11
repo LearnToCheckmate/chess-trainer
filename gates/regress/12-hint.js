@@ -2,6 +2,7 @@
 // CONTROL-RECORD: ea49ec3 2026-11-03 total=28 red=3 scope=trial:ac743b970f97 how=#547 control run j12nc: a bundle whose hint header shows another puzzle's hint - 'hint header shows THIS puzzle's hint' red at 390, kunal and se [#547 close-out, ratchet]
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=28 red=3 scope=trial:9fd16ca819b5 how=#548 control for item (84): the same 110vh relative child under a zero-height box - 'no scroll with the hint' red
 // CONTROL-RECORD: 729b4d4 2026-11-06 total=28 red=3 scope=trial:617a56a8cb4f how=#549 control for item (76), the new Puzzles route: a bundle whose 💡 Hint button sets another puzzle's mate-in-3 hint - 'hint header shows THIS puzzle's hint' red at kunal, 390 and se; and a bundle with the A-06 gallery card deleted (trial:532619211a94) is 28/0 on this route where the old b.card route threw on the missing card (1 pass, 1 fail) [#549 item (76)]
+// CONTROL-RECORD: HEADSHA 2026-11-11 total=34 red=1 scope=trial:c025f21705d7 how=#550 item (139): c139, the hint header's font at 320 wide raised 11 -> 14px - TC-PZ-04's corpus line red at se (12 of 27 hints need 4 lines) while the old 'hint text not clipped' stays green; good trial 4fe71d55db29 34/0
 // the header row and never moves the board. The Puzzles route enters the first puzzle (PZ[0]) and the gate taps 💡 Hint (#549 item (76); it was gallery card 5, which set the hint after 700ms): the
 // board top before the hint must equal the board top with the hint showing; the hint header is on screen and its
 // text is not clipped (scrollHeight == clientHeight).
@@ -43,6 +44,21 @@ L.run(async()=>{
     L.say(!!head&&head.sh<=head.ch+1,geo+': hint text not clipped (scroll '+(head&&head.sh)+' vs '+(head&&head.ch)+')');
     L.say(!!head&&head.y>=0&&head.y+head.h<=(after.board?after.board.top:1e9)+0.5,geo+': hint header sits above the board, on screen');
     L.say(after.over.over<=0,geo+': no scroll with the hint',after.over);
+    // #550 item (139) [jobs/gate-12-clipping-assertion-cannot-fail-while-the-clamp-is-what-cuts-2026-09-30]: 'hint text not
+    // clipped' above reads scrollHeight<=clientHeight, which a -webkit-line-clamp makes TRUE BY CONSTRUCTION whenever the clamp is
+    // what cuts - so it cannot see a hint cut to three lines. This asks what the clamp hides: every hint in chess.jsx's corpus
+    // (read from the source, both quote styles) is set into THIS box, and the lines it NEEDS - measured in an unclamped probe
+    // of the same width, font, letter-spacing and line-height - must not exceed the 3 the clamp draws. Measured at #550 on
+    // trial 4fe71d55db29: 27 hints, 0 over 3 lines at all eight geometries (the three that clamped at #445 have been shortened).
+    {const src=require('fs').readFileSync(require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
+     const HINTS=[...new Set([...src.matchAll(/\bhint:\s*("((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g)].map(x=>x[2]||x[3]).filter(x=>x&&x.length>3))];
+     const fit=await b.page.evaluate((hints)=>{const h=document.querySelector('[data-ct="pz-hint-head"]');if(!h)return null;
+       const cs=getComputedStyle(h),lh=parseFloat(cs.lineHeight),clamp=parseInt(cs.webkitLineClamp||cs.WebkitLineClamp||'0',10),orig=h.textContent,over=[];
+       for(const t of hints){const pr=document.createElement('div');pr.style.cssText='position:absolute;visibility:hidden;width:'+h.clientWidth+'px;font:'+cs.font+';letter-spacing:'+cs.letterSpacing+';line-height:'+cs.lineHeight+';white-space:normal;';
+         pr.textContent='\u{1F4A1} '+t;document.body.appendChild(pr);const need=Math.round(pr.getBoundingClientRect().height/lh*100)/100;pr.remove();if(need>clamp+0.05)over.push({n:t.length,need,t:t.slice(0,50)});}
+       h.textContent=orig;return {n:hints.length,clamp,over,fs:cs.fontSize,w:h.clientWidth};},HINTS);
+     L.say(!!fit&&fit.n>=20&&fit.clamp===3,geo+': DENOMINATOR the hint corpus was read from chess.jsx ('+(fit&&fit.n)+' hints) and the hint box clamps at '+(fit&&fit.clamp)+' lines',fit&&{n:fit.n,clamp:fit.clamp,fs:fit.fs,w:fit.w});
+     L.say(!!fit&&fit.over.length===0,geo+': every hint in the corpus fits the lines the clamp draws - '+(fit?fit.over.length:'?')+' need more (the clamp would cut the instruction off with an ellipsis)',fit&&fit.over);}
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
