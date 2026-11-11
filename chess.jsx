@@ -1239,6 +1239,38 @@ function moveGist(pos,mv){
   // ranked, most interesting first, so a clipped line still leads with the thing worth reading
   return{did:D.sort((a,b)=>b.r-a.r).map(x=>x.s),left};
 }
+// #550 item (24), jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28 (its folded say-why half; Kunal's answer say-why, 13 Oct 2026):
+// ONE REASON IN WORDS FOR A WRONG MOVE ON PUZZLES AND IN THE DRILLS, from the two positions alone (the #350 rule: nothing inferred from an
+// evaluation). In order: the reply that mates ("allows mate (Qh7#)"); the moved piece left en prise ("hangs the rook (Rxe7)"); another
+// piece left en prise by it ("drops the queen (Bxd1)"), each with the capture that takes it, so the square needs no words and the line
+// stays short for the one-line row. No reason found returns null and the caller keeps the line it had. Pure and module-level, so a gate
+// can run it over every puzzle without a browser.
+function wrongWhy(pos,mv){
+  try{
+    const g2=makeMove(pos,mv);if(getStatus(g2)!=='playing'&&getStatus(g2)!=='check')return null;
+    const replies=getLegal(g2);
+    for(const r of replies){const g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return {kind:'mate',reply:toSAN(g2,r,g3.board),text:'allows mate ('+toSAN(g2,r,g3.board)+')'};}
+    const gi=moveGist(pos,mv);const L=gi&&gi.left&&gi.left[0];if(!L)return null;
+    const [tr,tc]=[8-parseInt(L.sq[1],10),FILES.indexOf(L.sq[0])];
+    const caps=replies.filter(r=>r.tr===tr&&r.tc===tc).sort((a,b)=>(SEEVAL[g2.board[a.fr][a.fc].t]||0)-(SEEVAL[g2.board[b.fr][b.fc].t]||0));
+    if(!caps.length)return null;const cs=toSAN(g2,caps[0],applyMove(g2.board,caps[0]));
+    return {kind:L.moved?'hangs':'drops',piece:L.t,sq:L.sq,reply:cs,text:(L.moved?'hangs the ':'drops the ')+PNAME[L.t]+' ('+cs+')'};
+  }catch(e){return null;}
+}
+// The same rule for the reply an ENGINE found (wrongWhy found nothing on the board alone): the reply is named, and described by what the
+// board after it proves (mate, a fork, a discovered check, a piece won: whyShape's tests, seeSq included) or, failing those, by the engine's
+// own score for the position, in the band words the drill's sentences already use (whyBand), and only when that band is clearly worse or
+// lower. sc is the engine's last score, from the side to move after the wrong move (the opponent), so it is turned round for the mover.
+// A pawn won is not named: after cxb5 Bxb5+ the capture is a pawn while the line is about five pawns, so "winning material" misled.
+function replyWhy(g2,r,sc){
+  try{const s=toSAN(g2,r,applyMove(g2.board,r)),g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return 'allows mate ('+s+')';
+    if(sc&&sc.mate!=null&&sc.mate>0)return 'allows mate in '+sc.mate+' ('+s+')';
+    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
+    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
+    if(sc&&typeof sc.cp==='number'){const v=-sc.cp/100;if(v<=-1.5)return 'allows '+s+' and leaves you '+whyBand(v);}
+    return null;
+  }catch(e){return null;}
+}
 // Does the piece standing on (fr,fc) attack (tr,tc) on this board? A single-piece version of
 // isAttacked, so a threat can be credited to the piece that just moved rather than to the side.
 function moveHits(board,fr,fc,tr,tc){
@@ -7244,7 +7276,13 @@ export default function App(){
          rebuild it - which is strictly worse for that player than the defect being fixed. Same predicate,
          sibling site, one pass [R06]. Found by #460's antagonist A at the diff door (its F1). classSwept is
          therefore 2 found / 2 fixed / 0 left, and the earlier figure of 1/1/0 is WITHDRAWN. */
-      }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;setPuzMsg(graded?drillGradeMsg(played,grade,pzWrongRef.current>=2):pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)"))); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */ UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{if(!p.mine)pzBreakStreak();pzWrongRef.current++;const _old=graded?drillGradeMsg(played,grade,pzWrongRef.current>=2):pzWrongRef.current>=2?('✗ '+played+(vp.h<820?" isn't it either. Tap 👁 to see the move.":" isn't it either — tap 👁 Show to see the move.")):('✗ '+played+(vp.h<820?" isn't it. Try again, or tap 💡.":" isn't it — try again. (Tap 💡 for a hint.)")); /* #373 (antagonist X-07): the one-line box on phones clipped the long form mid-sentence */
+        /* #550 item (24) say-why: the line names one reason in words where the board proves one (wrongWhy), else where the engine's reply
+           proves one (replyWhy: the analysis engine warmed if it is not (ensureAna, 5 s ceiling), asked once for 300ms, and written only if the line has not changed since); no reason leaves _old as it was.
+           On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
+        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=graded?null:wrongWhy(g,mv);
+        setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
+        if(!graded&&!_ww){let _sc=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);const t=r&&replyWhy(ng,r,_sc);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)

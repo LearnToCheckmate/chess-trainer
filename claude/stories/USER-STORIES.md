@@ -2225,3 +2225,12 @@ As a player practising my mistakes or my Brilliants on a small phone, I see the 
 - The five controls sit on one row in both drills, at 375x761 and 320x568. (TC-R199a)
 - Each is a 44pt tap target, on screen, takes a tap at its centre, and shows no cut label; under 430 wide Hint, Show move and Reset show their icon only, under the same accessible names. (TC-R199b)
 - The board is 375 wide at 375x761 in both drills; at 320x568 the brilliant drill's is 320 (edge to edge) and the mistakes drill's 288, fitted to height under its three-line goal, where it was 192. (TC-R199c)
+
+### US-R132 A wrong move on Puzzles or in the drill says why it was worse
+*Added #550, item (24), jobs/pz-one-message-slot-overwrites-the-hint-2026-09-28 and its folded lead jobs/wrong-move-line-says-why-instead-of-isnt-it-try-again-2026-10-13; Kunal's Desk answer say-why, 13 Oct 2026.*
+As a player who has just played a wrong move, I am told in one short line what the move allows, so the next try is better informed than the last.
+- From the board alone: the reply that mates, the moved piece left en prise, or another piece left en prise, each named with the capture that takes it ("Re7 hangs the rook (Rxe7)"). (TC-R200a)
+- Otherwise from the engine's reply, described by what the board proves after it or by the engine's own score in the drill's band words; the two benchmark positions read differently ("cxb5 allows Bxb5+ and leaves you losing", "Nxd7 allows mate in 2 (Qb8+)"). (TC-R200b, TC-R200d)
+- On Puzzles the line fits its one-line row. (TC-R200c)
+- Where no reason exists the line stays as it was; a miss is never blank. (TC-R200e)
+

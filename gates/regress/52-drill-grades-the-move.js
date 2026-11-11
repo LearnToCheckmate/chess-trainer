@@ -105,6 +105,12 @@ async function drillPlay(b,uci){
 // because kunal761's height is under 820
 const OLD1=(san)=>'✗ '+san+" isn't it. Try again, or tap 💡.";
 const OLD2=(san)=>'✗ '+san+" isn't it either. Tap 👁 to see the move.";
+/* #550 item (24) say-why: a rejected move may now carry ONE reason in words (chess.jsx wrongWhy / replyWhy: 'hangs the ...', 'drops the ...',
+   'allows ...'), ending as the drill's line does. These assertions are about the move being REJECTED and not graded (no quick-grade band
+   label, no consequence clause from drillGradeMsg), so they accept the pre-(97) sentence or a say-why line, to the end of the sentence. */
+const _esc=(x)=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const REJ1=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it\\. Try again, or tap 💡\\.| (hangs|drops|allows) [^.]+\\. Try again\\.)$");
+const REJ2=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it either\\. Tap 👁 to see the move\\.| (hangs|drops|allows) [^.]+\\. Tap 👁 to see the move\\.)$");
 const playMore=async(b,uci)=>{await b.move(uci.slice(0,2),uci.slice(2,4),900);await b.settle(1600);return {v:await verdict(b),left:await storeLen(b)};};
 
 L.run(async()=>{
@@ -153,10 +159,10 @@ L.run(async()=>{
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'drill52-off-h5d5',store:STORE_OFF});await b.open();
    const r=await drillPlay(b,'h5d5');
-   L.say(T(r)===OLD1('Rhxd5'),'D2 switch OFF: the equal alternative h5d5 gets the pre-(97) first-try sentence, to the character (not graded, not accepted)',{got:T(r),want:OLD1('Rhxd5')});
+   L.say(REJ1('Rhxd5').test(T(r)),'D2 switch OFF: the equal alternative h5d5 gets the pre-(97) first-try sentence, or the say-why line, to the end of the sentence (not graded, not accepted)',{got:T(r),want:OLD1('Rhxd5')});
    L.say(r.left===1,'D2b switch OFF: and the card is kept (cards left '+r.left+')');
    const r2=await playMore(b,'h5h7');
-   L.say(!!r2.v&&r2.v.text===OLD2('Rxh7'),'D3 switch OFF: a second wrong try (h5h7) gets the pre-(97) second-try sentence, to the character - no band, no consequence',{got:r2.v&&r2.v.text,want:OLD2('Rxh7')});
+   L.say(!!r2.v&&REJ2('Rxh7').test(r2.v.text),'D3 switch OFF: a second wrong try (h5h7) gets the pre-(97) second-try sentence or the say-why line - no quick-grade band, no consequence',{got:r2.v&&r2.v.text,want:OLD2('Rxh7')});
    L.say(r2.left===1,'D3b switch OFF: the card is still kept after two wrong tries (cards left '+r2.left+')');
    await b.close();}
 
@@ -186,17 +192,17 @@ L.run(async()=>{
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'drill52-two-g2g3',store:STORE2});await b.open();
    const r=await drillPlay(b,'g2g3');
-   L.say(T(r)===OLD1('g3')&&r.left===1,'TC-R179 E2 a move that is neither stored nor the review\'s second (g3) still gets the pre-(97) sentence to the character, and the card is kept',{got:T(r),want:OLD1('g3'),left:r.left});
+   L.say(REJ1('g3').test(T(r))&&r.left===1,'TC-R179 E2 a move that is neither stored nor the review\'s second (g3) still gets the pre-(97) sentence to the character, and the card is kept',{got:T(r),want:OLD1('g3'),left:r.left});
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'drill52-two-off',store:Object.assign({},STORE2,{ct_review_two:'0'})});await b.open();
    const r=await drillPlay(b,'h5d5');
-   L.say(T(r)===OLD1('Rhxd5')&&r.left===1,'TC-R179 E3 with its switch OFF (ct_review_two 0) the same card rejects Rhxd5 with the pre-(97) sentence: the accept is the switch\'s and nothing else\'s',{got:T(r),want:OLD1('Rhxd5')});
+   L.say(REJ1('Rhxd5').test(T(r))&&r.left===1,'TC-R179 E3 with its switch OFF (ct_review_two 0) the same card rejects Rhxd5 with the pre-(97) sentence: the accept is the switch\'s and nothing else\'s',{got:T(r),want:OLD1('Rhxd5')});
    await b.close();}
 
   // ===== C10 THE TRUST GUARD, on the benchmark's own card ================================================
   {const b=await L.launch({geo:'kunal761',name:'drill52-bench-cxb5',store:BEN});await b.open();
    const r=await drillPlay(b,'c6b5');
-   L.say(!!r.v&&GENERIC.test(T(r))&&!/^🎉/.test(T(r)),'C10 on a card the depth-2 search cannot grade honestly (it rates the stored Qb4+ a Mistake), Kunal\'s game Mistake cxb5 is NOT accepted: the flat string stands',T(r));
+   L.say(!!r.v&&REJ1('cxb5').test(T(r))&&!/^🎉/.test(T(r)),'C10 on a card the depth-2 search cannot grade honestly (it rates the stored Qb4+ a Mistake), Kunal\'s game Mistake cxb5 is NOT accepted: the flat string stands',T(r));
    L.say(r.left===1,'C10b and the card is kept (cards left '+r.left+')');
    await b.close();}
 
