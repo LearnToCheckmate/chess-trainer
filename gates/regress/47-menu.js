@@ -683,6 +683,41 @@ if(blk('Y')){
   L.say(ids>0&&missed.length===0,'730x375: TC-MN-052 every one of the sheet\'s '+ids+' buttons and links is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags, scrollTop '+(st&&Math.round(st.top))+' of '+(st&&Math.round(st.max))+')',{missed});
   await b.close();
 }
+// TC-MN-052b [#550 item (28); jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30, the gap batch 9's checker named]:
+// THE SAME REAL-SWIPE WALK ON THE SHEET THE JOB MEASURED - the k10 game-over screen at 730x375, whose sheet adds Play's Game setup:
+// the span pills (spans with a pointer cursor and no button above them) and the Strength range input. Every one of them must be brought
+// fully inside the sheet's visible box by finger drags and hit-test to itself at its centre.
+if(blk('Y')){
+  const b=await L.launch({geo:LAND,name:'mn-y-over-reach'});await b.open();
+  await b.card('k10',2600);await b.settle(10500);
+  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()==='Rematch'));
+  const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
+    if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
+  if(m){await b.page.mouse.click(m[0],m[1]);await b.settle(700);}
+  const sh0=await SHEET(b);
+  const ids=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return {n:0};
+    const vis=e=>{const q=e.getBoundingClientRect();return q.width>1&&q.height>1;};
+    const ctl=[...s.querySelectorAll('button,a,input[type="range"]')].filter(vis);
+    const pills=[...s.querySelectorAll('span')].filter(e=>vis(e)&&getComputedStyle(e).cursor==='pointer'&&!e.closest('button,a')&&!e.parentElement.closest('span[data-gy]'));
+    const els=[...ctl,...pills];els.forEach((e,i)=>e.setAttribute('data-gy',String(i)));
+    return {n:els.length,pills:pills.length,ranges:ctl.filter(e=>e.tagName==='INPUT').length};});
+  L.say(over&&ids.n>0&&ids.pills>0&&ids.ranges>0,'730x375: TC-MN-052b PRECONDITION the game is over and its menu sheet holds the Game setup span pills ('+ids.pills+') and the Strength slider ('+ids.ranges+') among '+ids.n+' controls',{over,ids});
+  L.say(!!sh0&&sh0.maxScroll>0,'730x375: TC-MN-052b PRECONDITION the game-over sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
+  const look=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;const c=s.getBoundingClientRect();
+    const seen=[];for(const e of s.querySelectorAll('[data-gy]')){const q=e.getBoundingClientRect();
+      if(q.top<c.top-0.5||q.bottom>c.bottom+0.5||q.top<0||q.bottom>innerHeight)continue;
+      const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);if(h&&(h===e||e.contains(h)))seen.push(+e.getAttribute('data-gy'));}
+    return {top:s.scrollTop,max:s.scrollHeight-s.clientHeight,seen,cx:c.left+c.width/2,y0:c.top+c.height*0.6,y1:c.top+c.height*0.6-90};});
+  const got=new Set();let st=await look(),steps=0,stuck=0;
+  (st&&st.seen||[]).forEach(i=>got.add(i));
+  while(st&&steps<80&&stuck<2){const t0=st.top;await fingerDragY(b,st.cx,st.y0,st.y1);await b.settle(450);st=await look();steps++;
+    if(!st)break;st.seen.forEach(i=>got.add(i));stuck=Math.abs(st.top-t0)<1?stuck+1:0;}
+  const missed=await b.page.evaluate((g)=>[...document.querySelectorAll('[data-ct="menu-sheet"] [data-gy]')].filter(e=>g.indexOf(+e.getAttribute('data-gy'))<0)
+    .map(e=>((e.innerText||'').trim().split('\n')[0]||e.getAttribute('aria-label')||e.getAttribute('title')||e.tagName).slice(0,30)),[...got]);
+  L.say(ids.n>0&&missed.length===0,'730x375: TC-MN-052b on the game-over sheet every one of its '+ids.n+' controls, pills and the slider included, is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags)',{missed});
+  L.say(b.errs.length===0,'730x375: TC-MN-052b zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
 // TC-MN-048 (US-R89), #547 item (135): THE READOUT'S 'screen' ROW PRINTS THE SCREEN, NOT THE INNER VIEWPORT. TC-MN-042 cannot
 // tell the two apart (headless screen = viewport, its own note says so). Here CDP emulates a 375x812 SCREEN over a 375x730 viewport, so a
 // row that printed innerWidth x innerHeight under 'screen' reads 375x730 and reds. Pre-fix it did exactly that.
