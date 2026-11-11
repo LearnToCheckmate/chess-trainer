@@ -1230,6 +1230,7 @@ async function blockK(){
 // Control: the same trial as block K (the humanCanMove guard line removed) reddens KF2s and KF2; KF3 is held by doMove's own guard.
 // CONTROL-RECORD: 5fec51b 2026-11-06 total=14 red=4 scope=blocks:K,KF how=#549 item (4): the humanCanMove playEnd guard line removed (chess.jsx, search "playEndRef.current)return false"), trial md5 89a3e1cf3286, CT_B65=K,KF at 375x730 and 375x761: K2s, K2, KF2s and KF2 red; K0, K0s, K1, K3, KF0, KF1, KF3 and the rest stay green (K3 and KF3 are held by doMove's own guard, so neither is independently controlled); the shipped trial 0ec547e8eecc is 14 PASS 0 FAIL
 // CONTROL-RECORD: 573d94a 2026-11-11 total=165 red=4 scope=trial:f35b7965fd8d how=#550 item (7) [jobs/playendref-lags-playend-by-one-effect-flush-2026-09-30]: the WHOLE gate (not blocks K,KF) over guard-only control c7 - the humanCanMove playEnd guard removed - TC-PL-058 K2s and K2, TC-PL-059 KF2s and KF2 red, the other 161 green; the same whole gate on trial t15 8998b82943c2 is 165/0
+// CONTROL-RECORD: 68dffa0 2026-11-11 total=14 red=2 scope=blocks:L how=#550 item (121): trial c121 (md5 35ca5e9ed670) in which the engine never replies after its first move when the human plays Black - L0c2 red (1 -> 2 plies, no reply) and L0e red (WHITE'S clock flagged, the card reads 'Time! You win!'), the job's own testCase; every other line green. Good trial 762fd238c730 14/0
 async function blockKF(){
   const b=await L.launch({geo:'kunal761',name:'65KF'});await b.open();
   await P.states['cpu-clock-m0'](b);await b.settle(500);
