@@ -835,6 +835,17 @@ came from subtracting the status bar twice. Keep 375x679 as a shorter-phone colu
   gate passed on a bundle built to fail it. Both times the fix was to assert the thing itself, in the
   BUNDLE UNDER TEST, rather than only its downstream symptom - a symptom that a fast machine may not
   be able to produce at all.
+- **A NEW CONTROL SET IS RUN AGAINST THE TREE WITH ITS OWN SUBJECT REMOVED, AND SEEN TO GO RED, BEFORE IT IS COUNTED [#550
+  item (126); jobs/a-control-set-can-score-full-marks-with-its-own-subject-deleted-2026-10-02].** A set of controls can score
+  full marks with the thing it controls deleted - each control reddens a mutant, and none of the mutants is "the fix is not
+  there". So when a build adds a control set (a selftest arm, a gate block, a register check), it also runs that set once over
+  the tree WITHOUT the fix or arm it exists for - the change reverted, the arm stubbed, the guard's condition defanged - and
+  records that the set went red there, by name. Examples in this batch: gates/audit/verify-patch-set.sh C103/C104 with
+  ps_undeclared_hunks stubbed; records-gate's C9d/C10/C11 mutation arms. And the counter-example, kept so it is not
+  repeated: gates/control-audit.js (7b) stays GREEN with its new total>0 refusal removed (the full-scope mismatch fires
+  first), so that refusal is NOT shown able to fail and its outcome says so. A set that has only ever been run over the
+  tree that contains its subject has not been shown able to fail. (The
+  prompts/common R36 fourth admission test that says the same is the orchestrator's edit.)
 - **THE IMPRESSIVE ARGUMENT IS NOT THE SOUND ONE, AND THE CONTROL THAT TELLS YOU WHICH IS CHEAPER THAN THE
   ARGUMENT.** #418 left three full-suite logs and the question was whether any authorised a push. I proved two of
   them came from overlapping runs by hashing all 36 gate sections in each and finding **26 byte-identical**,
