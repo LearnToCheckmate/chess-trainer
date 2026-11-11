@@ -439,8 +439,14 @@ L.run(async()=>{
   // match, so `painted` is null - and folding it into G_INPUTS would make G0's instrument RED on the
   // control and send G1..G3 down the NOT-RUN path with it. The control would lose five reds to gain one.
   // Keeping the denominators apart is what lets both halves fail independently.
+  // #550 item (124) [jobs/gate-67-has-no-assertion-over-the-stored-drill-label-2026-09-30; the parked
+  // patches/proc-lane2-art-gates-regress-67-sel-cls-consumers-js-2026-10-13, rebuilt by hand on this tree]: three more
+  // stored labels, so every one of the harness's grades the store can hold reaches the card under an assertion - Mistake
+  // and Miss are ADMISSIBLE (they must pass through unchanged, each its own control), Book is an inadmissible CONSONANT
+  // (it must fall back to "a mistake", G3b - the vowel case G3 cannot tell an article bug from a fallback bug).
   const G_INPUTS=[['Best','praise'],['Excellent','praise'],['Good','praise'],['Great','praise'],
-                  ['Inaccuracy','inadmissible-vowel'],['Blunder','control-admissible']];
+                  ['Inaccuracy','inadmissible-vowel'],['Blunder','control-admissible'],
+                  ['Mistake','control-admissible'],['Miss','control-admissible'],['Book','inadmissible-consonant']];
   const gRead=[];
   for(const gi of G_INPUTS){
     const lab=gi[0];
@@ -492,10 +498,14 @@ L.run(async()=>{
     }
     // G2 THE CONTROL. Without this, a guard that printed "a mistake" for every row in existence would be
     // indistinguishable from a correct one, and every G1 above would still be green.
-    const gCtl=gRead.find(r=>r.kind==='control-admissible');
-    L.say(String(gCtl.painted.word).toLowerCase()==='blunder',
-      'G2 CONTROL: an ADMISSIBLE stored label still reaches the card unchanged - a Blunder row says "a blunder", so the guard is selective and has not flattened every grade to "mistake"',
-      {seeded:gCtl.label,paintedWord:gCtl.painted.word,sentence:gCtl.painted.all});
+    // #550 item (124): one assertion per ADMISSIBLE label (Blunder, Mistake, Miss), each pinned to its own word - the
+    // first version checked Blunder alone with .find(), so a guard that flattened Miss to "mistake" was invisible.
+    for(const gCtl of gRead.filter(r=>r.kind==='control-admissible')){
+      const want=String(gCtl.label).toLowerCase();
+      L.say(String(gCtl.painted.word).toLowerCase()===want,
+        'G2 CONTROL '+gCtl.label+': an ADMISSIBLE stored label still reaches the card unchanged - a '+gCtl.label+' row says "a '+want+'", so the guard is selective and has not flattened every grade to "mistake"',
+        {seeded:gCtl.label,paintedWord:gCtl.painted.word,sentence:gCtl.painted.all});
+    }
     // G3 THE FALLBACK, ARTICLE AND ALL. `Inaccuracy` is the grade antagonist B and the auditor each read off
     // a real screen as "a inaccuracy" on the #441 bundles. It is inadmissible, so it must fall back - and the
     // article must then be chosen from the word that is actually printed, not from the word that was stored.
@@ -503,6 +513,13 @@ L.run(async()=>{
     L.say(String(gVow.painted.word).toLowerCase()==='mistake'&&gVow.painted.article==='a',
       'G3 FALLBACK: an inadmissible vowel-initial label falls back to the app\'s own default word AND is articled from what it prints - "a mistake", never "an inaccuracy" and never "a undefined"',
       {seeded:gVow.label,paintedArticle:gVow.painted.article,paintedWord:gVow.painted.word,sentence:gVow.painted.all});
+    // G3b #550 item (124): an inadmissible CONSONANT-initial label (Book) falls back too. G3's vowel case cannot tell a
+    // fallback that works from one that never runs and an article rule that happens to say "a"; here the stored word
+    // would take "a" anyway, so only the WORD can be wrong - and it must be "mistake", never "book".
+    const gCon=gRead.find(r=>r.kind==='inadmissible-consonant');
+    L.say(String(gCon.painted.word).toLowerCase()==='mistake'&&gCon.painted.article==='a',
+      'G3b FALLBACK: an inadmissible consonant-initial label (Book) falls back to "a mistake" - the card never says "a book"',
+      {seeded:gCon.label,paintedArticle:gCon.painted.article,paintedWord:gCon.painted.word,sentence:gCon.painted.all});
   }else{
     L.note('G1..G3 NOT RUN and NOT COUNTED AS PASSES: '+gMissing.length+' of '+G_INPUTS.length+' seeded stores '+
            'painted no goal sentence, so there is nothing to read. G0 is the red. This is the same guard D2 '+
