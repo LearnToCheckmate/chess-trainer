@@ -352,6 +352,19 @@ async function runFixture(geo,name,pgn,acc){
   const exempt=byPly.filter(x=>x.ply<=bookExpected&&(x.label==='Brilliant'||x.label==='Great')).length;
   L.say(bookPainted===bookExpected-exempt,tag+' A2b the painted Book total '+bookPainted+' equals the independently computed prefix '+bookExpected+' minus '+exempt+' Brilliant/Great plies inside it');
   L.say(colourBad.length===0,tag+' A6 every element painting this ply grade colour agrees - chip, board badge and play-it-out button'+(colourBad.length?' -- '+colourBad.slice(0,4).join(' | '):''));
+  // A7 [#550 item (5), jobs/grade-ladder-has-five-independent-copies, the folded job's eval-graph half]: the EVAL GRAPH's grade dots
+  // paint the grade the badge shows, so a BOOK ply carries no grade dot (Brilliant and Great exempt, as effCls has them). SCHOLAR only:
+  // its 3...Nf6 is a book ply whose raw grade is a Blunder, the one fixture that puts a raw grade inside the prefix. The dot's ply is
+  // read off its x (the graph spaces n points over its width), and the graph is asserted present first.
+  if(/SCHOLAR/.test(tag)){
+    const g=await b.page.evaluate(()=>{const band=document.querySelector('[data-ct="rev-graph-band"]');const sv=band&&band.querySelector('svg');if(!sv)return null;
+      const w=parseFloat(sv.getAttribute('width'))||sv.getBoundingClientRect().width;
+      const dots=[...sv.querySelectorAll('circle')].filter(c=>!/^none$/i.test(c.getAttribute('fill')||'')&&c.getAttribute('stroke')==='rgba(0,0,0,.5)').map(c=>({cx:parseFloat(c.getAttribute('cx')),fill:c.getAttribute('fill')}));
+      return {w,dots};});
+    L.say(!!g,tag+' A7 the eval graph is on the move screen (the denominator for the dot check)',g?{w:g.w,dots:g.dots.length}:null);
+    if(g){const EX=['#22d3ee','#5d93e8'];const inBook=g.dots.map(d=>({...d,i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&EX.indexOf(d.fill)<0);
+      L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});}
+  }
   const dis=[];
   for(const l of LBL)for(let sd=0;sd<2;sd++){
     if(rows[l][sd].n!==tally[l][sd])dis.push(l+'/'+(sd?'b':'w')+': summary says '+rows[l][sd].n+', the moves badge '+tally[l][sd]);
