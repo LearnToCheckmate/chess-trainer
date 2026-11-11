@@ -20,6 +20,8 @@
 // KNOW ITS LIMIT. It proves the shell sizes itself to the screen whenever the signature holds and only then. It cannot
 // prove iOS paints those 51pt - that is his phone check of gallery card 'full screen' after the landing (the job's
 // whatIsLeft), because no rig in this container renders an installed iOS app.
+// CONTROL-RECORD: 144231d 2026-11-11 total=11 red=5 scope=trial:1ac6407e996c how=#550 item (1): this tree's bundle served with origin/main's index.html (no full-screen shell) - TC-INV-14b, both TC-INV-14c and two TC-INV-14d lines red (the tab bar ends at 761 with 51px under it); 14a, the 14d reach line and all three 14e green
+// CONTROL-RECORD: 144231d 2026-11-11 total=11 red=2 scope=trial:1ac6407e996c how=#550 item (1): index.html's signature test loosened to W<H&&gap>0 (no standalone, no inset match) - the first two TC-INV-14e lines red (a Safari tab and a page short by 139 both resized); every other line green
 const L=require('../lib');
 
 const FULL={w:375,h:812};

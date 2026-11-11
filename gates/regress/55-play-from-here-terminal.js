@@ -1,4 +1,5 @@
 // gates/regress/55-play-from-here-terminal.js
+// CONTROL-RECORD: 6e56cfc 2026-11-11 total=77 red=6 scope=trial:16fa026d3593 how=#550 item (12), re-run of #549 job 12's deferred control on the committed 77-assertion gate: the review sheet's Play from here row's dis={_pfT} replaced by dis={false} - A14 and A15 red at mate@kunal730, mate@se and stale@kunal730; every other line green; the tree's trial d044eeb93e96 reads 77 pass 0 fail
 // jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27, whose `coverage` field read
 // "NO GATE COVERS THIS ROUTE AT ALL". Landed at #466.
 //
