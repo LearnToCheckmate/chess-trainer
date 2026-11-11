@@ -15,6 +15,7 @@
 //
 // WHAT IT DOES NOT ASSERT, named: moves written inside free text (notes, plans, idea, a hint's words) are not parsed; arrows are not checked;
 // and work item 4's first half - every technique lesson carries a method field - has no field to test, because the schema has none.
+// CONTROL-RECORD: f83b4e2 2026-11-11 total=3 red=1 scope=env:CT_LESSONS=c85-lessons.js how=#550 item (85): lessons.js with one SAN of Italian Game / Giuoco Pianissimo (quiet) changed from d6 to Qxh7 - the legality line red at ply 12; both DENOMINATORS green (2281 plies)
 const L=require('../lib');const E=require('../engine-extract');
 const path=require('path');
 const SRC=process.env.CT_LESSONS||path.join(__dirname,'..','..','lessons.js');
