@@ -12,6 +12,7 @@
 // WHAT IT ASSERTS, at kunal761 and se, joining a FINISHED stand-in online game (Rival 1512 as White beat Me 1437 by resignation, 6 plies)
 // through ?g=: the bars print 1512 and 1437 (DENOMINATOR: both read, and they differ, so a swapped side cannot pass); 'Review this game'
 // opens the review; its summary's rev-rating-w and rev-rating-b equal the White and Black bar ratings respectively.
+// CONTROL-RECORD: ef99d00 2026-11-11 total=9 red=2 scope=trial:4a34f48c886a how=#550 item (93): c93, reviewPlayedGame writing no WhiteElo/BlackElo for an online game - the summary's ratings are absent, so both 'summary shows the bars' ratings' lines are red (kunal761, se); the DENOMINATORS, review-opens and zero-errors lines green
 const L=require('../lib');
 const STUB=()=>{
   const me={uid:'u-me',name:'Me'},them={uid:'u-them',name:'Them'};
