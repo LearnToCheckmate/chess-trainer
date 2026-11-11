@@ -14,7 +14,7 @@
 //  (b) TC-R187b DISPLAY, kunal761 and se: a seeded split tally {bril 1, best 3, grt 2, mist 4, blun 1} reads '★ 3', '! 2', '?? 1', no
 //      Mistake count, the '!! 1 brilliant' pill inside the badge column; and the counts line stays ONE line (every count on one top).
 //  (c) TC-R187c a tally stored before the split (no best/grt) shows ONE combined '★! N' count, never a wrong split.
-// CONTROL-RECORD: df7946d 2026-11-11 total=19 red=8 scope=trial:dc61a6344ca6 how=#550 antagonist A round 2, A2-9: the tree before the split, rerun with TC-R187d added - the estimate stores no best/grt, so both TC-R187d lines are red beside the six the record below names; on t56 (9e3bebea43bd) 19 of 19 green
+// CONTROL-RECORD: df7946d 2026-11-11 total=19 red=8 scope=trial:dc61a6344ca6 how=#550 antagonist A round 2, A2-9: the tree before the split, rerun with TC-R187d added - the estimate stores no best/grt, so both TC-R187d lines are red beside the six the record below names; on t56 (2f17c3b52792) 19 of 19 green
 // CONTROL-RECORD: f4d2364 2026-11-11 total=17 red=6 scope=trial:dc61a6344ca6 how=#550 answer a9: the tree before the split, whose row reads '★ 5 ? 4 ?? 1' (Best and Great added, a Mistake count) - both TC-R187a tally/row lines, both TC-R187b split-row lines and both TC-R187c lines red; the DENOMINATORS, the pill, the one-line and zero-errors lines green; the a9 trial 105e9e214669 reads 17 pass, 0 fail
 const L=require('../lib');const R=require('../drive/review');
 const DAY=86400000;
