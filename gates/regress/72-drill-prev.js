@@ -668,4 +668,36 @@ L.run(async()=>{
     L.say(!!nb&&pv&&!!p2&&p2.i===N-1,tag+': TC-R178 Prev then steps back to card '+(N-1)+' (read '+(p2&&p2.i)+')',{pv,p2});
    }
    await b.close();}
+  /* ===== BLOCK M, TC-R181 [#550 item (54); jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04] =====
+     The job's case, which no gate wrote: at REST, with #root not scrolled, EVERY button in the drill's bottom area (the pz-bottom
+     container plus Prev and Next, wherever they sit: Hint, Show move, Reset, Prev, Next, and Analyse after a solve) hit-tests to
+     ITSELF at its centre, at all seven geometries (L.TA7, THE DRILL SEVEN), on both drills. reach() above scrolls #root to its end
+     whenever a centre misses, which is why A2e/A2f could pass with the row under the tab bar (the #549 checker's gap). This block
+     never scrolls; it asserts #root.scrollTop is 0 before it reads. Each state's denominator is its own line. */
+  const atRest=(b)=>b.page.evaluate(()=>{const root=document.getElementById('root');const vis=e=>{const r=e.getBoundingClientRect();const st=getComputedStyle(e);return r.width>1&&r.height>1&&st.visibility!=='hidden';};
+    const set=new Set();const pb=document.querySelector('[data-ct="pz-bottom"]');if(pb)for(const x of pb.querySelectorAll('button'))set.add(x);
+    for(const id of ['drill-prev','drill-next']){const x=document.querySelector('[data-ct="'+id+'"]');if(x)set.add(x);}
+    const out=[...set].filter(vis).map(e=>{const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+      return {t:((e.innerText||e.getAttribute('aria-label')||'')+'').replace(/\s+/g,' ').trim().slice(0,24),self:!!(h&&(h===e||e.contains(h))),
+        under:h&&!(h===e||e.contains(h))?((h.closest('[data-ct]')||h).getAttribute('data-ct')||h.tagName):null,cy:Math.round((r.top+r.height/2)*10)/10};});
+    return {scrollTop:root?root.scrollTop:null,vh:innerHeight,btns:out};});
+  for(const d of DRILLS){
+    for(const g of L.TA7){
+      const tag=d.k+' @ '+L.GEOS[g].label;
+      const b=await L.launch({geo:g,name:'drill-rest-'+d.k+'-'+g,store:d.store});await b.open();
+      let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(d.enter,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
+      if(L.say(ok,'TC-R181 '+tag+': PRECONDITION the drill opened')){
+        const r=await atRest(b);
+        L.say(r.scrollTop===0&&r.btns.length>=4,'TC-R181 '+tag+': DENOMINATOR asking, at rest (#root scrollTop '+r.scrollTop+'), the bottom area paints '+r.btns.length+' buttons (at least 4: Hint, Show move, Prev, Next)',r.btns.map(x=>x.t));
+        const bad=r.btns.filter(x=>!x.self);
+        L.say(r.scrollTop===0&&r.btns.length>=4&&bad.length===0,'TC-R181 '+tag+': asking, every bottom-area button hit-tests to ITSELF at rest with no scroll ('+r.btns.map(x=>x.t+(x.self?'':' UNDER '+x.under)).join(' | ')+')',bad);
+        // a solve, then the same read: Analyse joins the row
+        const u=UCIS[0];let r2=null;try{await b.move(u.slice(0,2),u.slice(2,4),900);await b.settle(1400);await b.page.evaluate(()=>{const root=document.getElementById('root');if(root)root.scrollTop=0;});await b.settle(200);r2=await atRest(b);}catch(e){}
+        const an=r2&&r2.btns.some(x=>/Analy/.test(x.t));
+        L.say(!!r2&&r2.scrollTop===0&&an,'TC-R181 '+tag+': DENOMINATOR solved, at rest, the bottom area paints '+(r2?r2.btns.length:0)+' buttons including Analyse',r2&&r2.btns.map(x=>x.t));
+        const bad2=r2?r2.btns.filter(x=>!x.self):[];
+        L.say(!!r2&&an&&r2.scrollTop===0&&bad2.length===0,'TC-R181 '+tag+': solved, every bottom-area button, Analyse included, hit-tests to ITSELF at rest ('+(r2?r2.btns.map(x=>x.t+(x.self?'':' UNDER '+x.under)).join(' | '):'none')+')',bad2);
+      }
+      await b.close();}
+  }
 },'72-drill-prev');

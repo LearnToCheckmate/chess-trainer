@@ -915,6 +915,9 @@ ALREADY TAKEN in this register when that was written - US-R27 and TC-R37 are the
 later run following the job verbatim would have created a second US-R27 and a second TC-R37, which is exactly
 the one-id-two-meanings shape R45 exists to catch. #475 allocated US-R35 and TC-R47 instead, both beyond the
 highest id in use, and filed the cause rather than only working around it.
+- *Added #550 item (54), jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04:* at rest, with nothing scrolled, every
+  button in the drill's bottom area (Hint, Show move, Reset, Prev, Next, and Analyse after a solve) is the thing under its own centre on
+  every phone in THE DRILL SEVEN, in both drills: none rests under the tab bar waiting for a scroll. (TC-R181)
 
 ### US-PL-11 When a game ends, the screen keeps saying how it ended
 *Added #434, from the #433 auditor's P1 (jobs/cpu-game-over-says-nothing-three-seconds-later-2026-09-29).*
