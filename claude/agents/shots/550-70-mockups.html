@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+:root{--bg:#14161b;--panel:#1d2027;--line:rgba(255,255,255,.12);--ink:#fff;--dim:rgba(255,255,255,.62);--ac:#5fa8ff;--lt:#dfe8f1;--dk:#5b86ab}
+*{box-sizing:border-box}html,body{margin:0;background:#000;color:var(--ink);font-family:"Segoe UI",system-ui,sans-serif}
+.phone{height:375px;position:relative;overflow:hidden;background:var(--bg);display:flex;margin-bottom:12px}
+.board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);flex:none;position:relative}
+.board div{display:flex;align-items:center;justify-content:center;line-height:1}
+.board .l{background:var(--lt)}.board .d{background:var(--dk)}.board .hl{box-shadow:inset 0 0 0 3px #e0453a}
+.pc{font-family:"DejaVu Sans",sans-serif}
+.w{color:#fff;text-shadow:0 0 1px #000,0 0 2px #000,0 1px 0 #000}.b{color:#111}
+.col{flex:1;display:flex;flex-direction:column;gap:8px;padding:10px 12px;min-width:0}
+.pl{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}.pl .av{width:28px;height:28px;border-radius:6px;background:#3a3f4a;display:flex;align-items:center;justify-content:center}
+.pl .t{margin-left:auto;font-size:12px;color:var(--dim);font-weight:600}
+.res{border-radius:12px;background:linear-gradient(180deg,#2a2f3a,#20242c);border:1px solid var(--line);padding:10px 12px}
+.res .h{font-size:22px;font-weight:800}.res .s{font-size:13px;color:var(--dim)}
+.mv{font-size:14px;color:var(--dim);white-space:nowrap;overflow:hidden}.mv b{color:var(--ink)}.mv .c{color:var(--ac);font-weight:700}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.bt{height:46px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:15px}
+.bt.p{background:#2f6f96;border-color:#4f8fb6}
+.rail{width:64px;flex:none;display:flex;flex-direction:column;gap:8px;padding:10px 8px;align-items:stretch}
+.rb{flex:1;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:19px;gap:2px}
+.rb small{font-size:10.5px;color:var(--dim);font-weight:700}.rb.p{background:#2f6f96;border-color:#4f8fb6}
+.banner{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);background:rgba(20,22,27,.88);padding:8px 0;text-align:center}
+.banner .h{font-size:24px;font-weight:800}.banner .s{font-size:12.5px;color:var(--dim)}
+.lab{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:#ff2020;color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:5px;z-index:9}
+.side{display:flex;flex-direction:column;justify-content:space-between;padding:10px 10px;flex:1;min-width:0}
+</style></head><body>
+<div id="A761" class="phone A" style="width:761px"></div>
+<div id="B761" class="phone B" style="width:761px"></div>
+<div id="A730" class="phone A" style="width:730px"></div>
+<div id="B730" class="phone B" style="width:730px"></div>
+<script>
+const FEN='rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR';
+const G={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+function board(px){const el=document.createElement('div');el.className='board';el.style.width=el.style.height=px+'px';
+  const rows=FEN.split('/');rows.forEach((r,ri)=>{let c=0;for(const ch of r){if(/\d/.test(ch)){for(let i=0;i<+ch;i++){sq(ri,c++,null);}}else sq(ri,c++,ch);}});
+  function sq(ri,ci,ch){const d=document.createElement('div');d.className=((ri+ci)%2?'d':'l')+((ri===7&&ci===4)?' hl':'');
+    if(ch){const s=document.createElement('span');s.className='pc '+(ch===ch.toUpperCase()?'w':'b');s.textContent=G[ch.toLowerCase()];s.style.fontSize=(px/8*0.8)+'px';d.appendChild(s);}el.appendChild(d);}
+  return el;}
+const MV='<span>1.</span> <b>f3</b> <b>e5</b> <span>2.</span> <b>g4</b> <span class="c">Qh4#</span>';
+for(const p of document.querySelectorAll('.phone')){
+  const W=parseInt(p.style.width),B=375-16;const lab=document.createElement('div');lab.className='lab';lab.textContent=(p.classList.contains('A')?'OPTION A':'OPTION B')+'  '+W+'x375';p.appendChild(lab);
+  if(p.classList.contains('A')){
+    const wrap=document.createElement('div');wrap.style.cssText='padding:8px 0 8px 8px';wrap.appendChild(board(B));p.appendChild(wrap);
+    const c=document.createElement('div');c.className='col';c.innerHTML='<div class="pl"><div class="av">♚</div>Black<span class="t">vs Human · no clock</span></div>'+
+     '<div class="res"><div class="h">Checkmate</div><div class="s">Black wins · 0-1</div></div><div class="mv">'+MV+'</div>'+
+     '<div class="pl"><div class="av">♔</div>White</div>'+
+     '<div class="btns"><div class="bt p">🔍 Review</div><div class="bt">⊕ Rematch</div><div class="bt">♟ New game</div><div class="bt">⋯ More</div></div>';p.appendChild(c);
+  }else{
+    const l=document.createElement('div');l.className='side';l.innerHTML='<div class="pl"><div class="av">♚</div>Black</div><div class="mv" style="white-space:normal;line-height:1.5">'+MV+'</div><div class="pl"><div class="av">♔</div>White</div>';p.appendChild(l);
+    const wrap=document.createElement('div');wrap.style.cssText='padding:8px 0;position:relative';const bd=board(B);wrap.appendChild(bd);
+    const bn=document.createElement('div');bn.className='banner';bn.innerHTML='<div class="h">Checkmate</div><div class="s">Black wins · 0-1 · tap the board to hide</div>';wrap.appendChild(bn);p.appendChild(wrap);
+    const r=document.createElement('div');r.className='side';r.style.flex='1';r.innerHTML='<div class="rail" style="width:auto;height:100%;padding:0"><div class="rb p">🔍<small>Review</small></div><div class="rb">⊕<small>Rematch</small></div><div class="rb">♟<small>New game</small></div><div class="rb">⋯<small>More</small></div></div>';p.appendChild(r);
+  }
+}
+</script></body></html>
