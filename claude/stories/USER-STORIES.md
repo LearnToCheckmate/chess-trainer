@@ -326,6 +326,7 @@ US-LS-01  the demo board is a PINNED size per geometry and its top is 92 at ever
 US-LS-02  nothing scrolls on either axis, in demo or practice. (48-lesson-flow.js)
 US-LS-03  the note box is EXACTLY 75 tall on every ply, whatever the note says (#366), and its width is min(98vw, board+44). (48-lesson-flow.js)
 US-LS-04  a note too long for three lines gets the "more ▾" badge, and only then; tapping it opens a sheet in which the whole note fits UNCLIPPED; closing it leaves the board where it was. (48-lesson-flow.js)
+US-LS-04b how many notes do not fit the box is MEASURED over the whole library (every lesson and variation note, in the painted box's own font and width) and pinned per geometry, so a content edit or a box change that clips more notes is seen; at #550 67 of 2262 at 375x761 and 119 at 320x568. (11-lesson.js TC-LS-058)
 US-LS-05  the demo transport: ▶ paused, ⏸ playing, ↻ at the end; Back at ply 0 is a no-op; ten Forwards walk the Italian Game line exactly. (48-lesson-flow.js)
 US-LS-06  the fixed footer is 61 tall, pinned to the bottom, and carries five buttons in demo and TWO in practice - and NO laid-out control is hidden underneath it. (48-lesson-flow.js)
 US-LS-07  the practice control row is ⟳ 💡 ↻Try-again ⋯, 44 tall, the board's own width, and fits inside a 320 screen with the short label (#384). (48-lesson-flow.js; US-R73 is the later clause on when the row says "Try again")

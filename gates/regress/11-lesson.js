@@ -5,6 +5,7 @@
 const L=require('../lib');
 const D=require('../drive/lesson');
 L.run(async()=>{
+  if(!process.env.CT_LS058_ONLY){
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'lesson-'+geo});await b.open();
     await b.card(3,2500);const demoEnd=await b.metrics();await b.shot('lesson-'+geo+'-demo-end');
@@ -546,6 +547,40 @@ L.run(async()=>{
         L.say(!!nv&&nv.n===2&&nv.out.every(x=>x.ok),'TC-R152d '+dim+': each previous/next lesson button, holding the LONGEST real lesson name, paints all of it inside the button - the name wraps instead of being cut',nv&&nv.out);
       }
       L.say(b.errs.length===0,'TC-R152 '+dim+' '+st+': zero app errors',b.errs.slice(0,3));
+      await b.close();
+    }
+  }
+  }   // end of !CT_LS058_ONLY
+  // TC-LS-058 THE NOTE BOX'S OVERFLOW COUNT, PRINTED AND PINNED OVER EVERY NOTE [#550 item (82); jobs/bench-lesson-the-method-sentence-is-
+  // the-clipped-one-2026-09-28, its folded bench-lesson-note-fit-count-in-source-is-stale-and-nothing-asserts-it-2026-10-09]. The note box
+  // (data-ct lesson-note) is a FIXED 75px with a 59px inner scroller, so the number of notes that do not fit is a property of the content and
+  // the box together - and the source comment above the box carried "734 notes, 18 scroll" for a library that now holds 2262 notes (lesson
+  // and variation, pickVariation renders both in the same box). Measured, not grepped: the box is PAINTED (drive/lesson demo-m1), its inner
+  // scroller's own computed font, line-height and clientWidth (paddingRight 0, the not-overflowing width) and clientHeight are read, and every
+  // non-empty note in window.CTLESSONS - lessons' notes and every vars[].notes - is laid out in a probe carrying those properties, with the
+  // "N. san — " prefix the demo prepends. A note overflows when the probe is taller than the scroller's clientHeight. The DENOMINATOR (the
+  // note count) is its own assertion; the count is PINNED per geometry at what this build measures, so a content edit or a box change that
+  // clips more notes goes red and has to move the pin on purpose. CT_LS058_ONLY=1 runs this block alone.
+  {
+    const PIN058={kunal761:{max:67},se:{max:119}};   // measured #550 on trial b195c3c10627: 67 and 119 of 2262
+    for(const geo of Object.keys(PIN058)){
+      const b=await L.launch({geo,name:'lesson-notefit-'+geo});await b.open();
+      let ok=true;try{await D.states['demo-m1'](b);await b.settle(500);}catch(e){ok=false;L.say(false,'TC-LS-058 '+geo+' the lesson demo was reached (drive/lesson demo-m1)',String(e).slice(0,160));}
+      if(ok){
+        const m=await b.page.evaluate(()=>{const box=document.querySelector('[data-ct="lesson-note"]');const sc=box&&box.firstElementChild;if(!sc)return null;
+          const cs=getComputedStyle(sc);const padR=parseFloat(cs.paddingRight)||0;const w=sc.clientWidth-padR;const h=sc.clientHeight;
+          const pr=document.createElement('div');pr.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;white-space:normal;word-wrap:break-word;overflow-wrap:break-word';
+          for(const k of ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing'])pr.style[k]=cs[k];pr.style.width=w+'px';document.body.appendChild(pr);
+          const C=window.CTLESSONS||{};let n=0,over=0,lessons=0;const worst=[];
+          const one=(name,line,notes)=>{(notes||[]).forEach((t,i)=>{if(!t)return;n++;const ply=i+1;const san=(line||[])[i]||'';
+            pr.textContent=Math.ceil(ply/2)+(ply%2===1?'.':'…')+' '+san+' — '+t;const ph=pr.getBoundingClientRect().height;
+            if(ph>h+0.5){over++;worst.push([Math.round(ph),name,ply]);}});};
+          for(const k of Object.keys(C))for(const o of (C[k]||[])){lessons++;one(o.name,o.line,o.notes);for(const v of (o.vars||[]))one(o.name+' / '+v.name,v.line,v.notes);}
+          pr.remove();worst.sort((a,c)=>c[0]-a[0]);
+          return {w:+w.toFixed(1),h,font:cs.fontSize+' '+cs.lineHeight,lessons,n,over,worst:worst.slice(0,3)};});
+        L.say(!!m&&m.lessons>=150&&m.n>=2000,'TC-LS-058 '+geo+' DENOMINATOR every note in the library was laid out: '+(m?m.n+' notes of '+m.lessons+' lessons':'none')+' in the painted box\'s own font and width',m&&{w:m.w,h:m.h,font:m.font});
+        if(m)L.say(m.over<=PIN058[geo].max,'TC-LS-058 '+geo+' notes that do not fit the '+m.h+'px note scroller: '+m.over+' of '+m.n+' (pin '+PIN058[geo].max+'); the longest need '+m.worst.map(x=>x[0]+'px ('+x[1]+' ply '+x[2]+')').join(', '),m);
+      }
       await b.close();
     }
   }

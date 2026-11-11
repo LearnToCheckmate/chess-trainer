@@ -9601,8 +9601,10 @@ export default function App(){
              consistent and doesn't make the board jump; even 3 or 4 lines is okay." Three lines at 15px (it was
              two at 14), and the height is FIXED at 75 whatever the note says, so the board sits in the same
              place on every ply. Three, not four, because on his phone (375x679 usable) four lines cost the
-             board 8px and three, paid for by the moves panel's hint line, let it reach the full 375. Of the 734
-             lesson notes, 716 fit in three lines; the other 18 scroll inside the box. */
+             board 8px and three, paid for by the moves panel's hint line, let it reach the full 375. How many notes fit is
+             MEASURED, not written here: gates/regress/11-lesson.js TC-LS-058 lays out every lesson and variation note in this box's own
+             font and width and pins the count (at #550: 67 of 2262 do not fit at 375x761, 119 at 320x568; the figure this comment used to
+             carry, 18 of 734, was #366's library). */
           <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'100%',overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
