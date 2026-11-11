@@ -96,13 +96,14 @@ S['home-style']=async(b)=>{await fresh(b);await tapBtn(b,/^A Style: /,600);};
 S['discover']=async(b)=>{await fresh(b);await b.tile('Discover');await b.settle(500);await scrollTo(b,'top');};
 S['discover-menu']=async(b)=>{await S['discover'](b);await tapBtn(b,/^☰$/,600);};
 const group=(re)=>async(b)=>{await S['discover'](b);await tapBtn(b,re,700);await scrollTo(b,'top');};
-S['discover-openings']=group(/^🚀 Openings /);
+/* #550 a22: the Classic and Medieval skins draw the Discover icons as SVG, so a tile's text may not start with its emoji */
+S['discover-openings']=group(/^(?:🚀 )?Openings \d/);
 S['discover-openings-end']=async(b)=>{await S['discover-openings'](b);await scrollTo(b,'end');};
-S['discover-gambits']=group(/^⚔️ Gambits /);
+S['discover-gambits']=group(/^(?:⚔️ )?Gambits \d/);
 S['discover-gambits-end']=async(b)=>{await S['discover-gambits'](b);await scrollTo(b,'end');};
-S['discover-endgames']=group(/^👑 Endgames /);
+S['discover-endgames']=group(/^(?:👑 )?Endgames \d/);
 S['discover-endgames-end']=async(b)=>{await S['discover-endgames'](b);await scrollTo(b,'end');};
-S['discover-tactics']=group(/^💡 Tactics /);
+S['discover-tactics']=group(/^(?:💡 )?Tactics (?:New|\d)/);
 S['discover-tactics-end']=async(b)=>{await S['discover-tactics'](b);await scrollTo(b,'end');};
 S['discover-back']=async(b)=>{await S['discover-openings'](b);await tapBtn(b,/^‹ Back$/,600);};
 

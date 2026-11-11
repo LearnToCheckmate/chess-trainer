@@ -24,9 +24,9 @@
 const L=require('../lib');const H=require('../drive/home');
 
 const LISTS=[
-  {state:'discover-openings',tile:/^🚀 Openings /,name:'Openings',one:'catalan',several:'sicilian',none:'zqxv',accent:'reti'},
-  {state:'discover-gambits',tile:/^⚔️ Gambits /,name:'Gambits',one:null,several:'gambit',none:'zqxv'},
-  {state:'discover-endgames',tile:/^👑 Endgames /,name:'Endgames',secs:false,one:null,several:'king',none:'zqxv'},
+  {state:'discover-openings',tile:/^(?:🚀 )?Openings \d/,name:'Openings',one:'catalan',several:'sicilian',none:'zqxv',accent:'reti'},
+  {state:'discover-gambits',tile:/^(?:⚔️ )?Gambits \d/,name:'Gambits',one:null,several:'gambit',none:'zqxv'},
+  {state:'discover-endgames',tile:/^(?:👑 )?Endgames \d/,name:'Endgames',secs:false,one:null,several:'king',none:'zqxv'},
 ];
 const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 
