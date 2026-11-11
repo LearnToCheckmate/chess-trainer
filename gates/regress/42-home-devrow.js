@@ -1,4 +1,5 @@
 // regress/42-home-devrow.js  THE TWO DEV BUTTONS MUST COVER NOTHING, AND MUST STILL BE REACHABLE.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it never opens a review or a game: the dev buttons on Home only.
 //
 // Kunal, A-05: "Keep them, just move them clear." Note empty, so the answer is unconditional - keep the
 // buttons, stop them covering things. The gate has to hold BOTH halves, because each is easy to satisfy by

@@ -1,4 +1,5 @@
 // regress/28-scan-client.js  BOARD SCANNING, THE CLIENT HALF: what a player sees when the read FAILS.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts what a failed board scan shows; no review or engine search is driven, so the pool setting is incidental.
 //
 // Built from jobs/build-spec-board-scan-server PART 4 (R-BS-1, R-BS-2) and PART 6.3, at #408. The pure FEN
 // validator is gate 27 and runs in Node; this one needs a browser, because every claim here is about what is

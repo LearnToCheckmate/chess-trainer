@@ -1,5 +1,6 @@
 'use strict';
 // gates/regress/91-review-next-not-star.js - A TAP ON NEXT REACHES NEXT, NOT THE STAR. TC-R176a..c, US-R113.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the order and spacing of the review controls and where a tap lands; no grade enters its assertions.
 //
 // WHY [#550, item (2) of directOpening_2026_11_11_batch10;
 // jobs/review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11]. Kunal, about 12:07am EST

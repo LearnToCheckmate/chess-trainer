@@ -1,4 +1,5 @@
 // regress/14-uat-review-card.js  The UAT card for the Review screen (gallery card 6, id US-R) plays the
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: the review it imports and grades is the engine's, so its grade and ply readings are the pooled path's.
 // journey by itself: import + analysis, summary, ply 0, 10.Nxb5!!, 17.Rd8#, analysis board, exit. This gate
 // runs the card and checks every checkpoint's caption (data-ct rec-cap carries the item id) and the state it
 // claims, at Kunal's geometry. The caption strip must sit inside the viewport at every checkpoint.

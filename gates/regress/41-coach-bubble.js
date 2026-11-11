@@ -1,4 +1,5 @@
 // regress/41-coach-bubble.js  THE COACH BUBBLE IS GONE, AND THE BOARD IS UNOBSTRUCTED.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the board is unobstructed on the review screen; no grade or eval value enters its assertions.
 //
 // #394 (kunal-review-floating-bubble-remove). This gate used to assert the bubble's geometry against the
 // mockup Kunal approved on 2026-09-13 ("Build it, over the board, dismiss on tap"). He has now reversed that

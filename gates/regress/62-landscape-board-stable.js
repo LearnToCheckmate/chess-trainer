@@ -1,4 +1,5 @@
 // gates/regress/62-landscape-board-stable.js
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the landscape board does not move; engine output enters only as the text that might move it.
 // US-PL-11 clause 7 / TC-PL-033. #436, from
 // jobs/landscape-board-shrinks-8px-on-a-rotation-round-trip-2026-09-29 (found by #435's antagonist A).
 //

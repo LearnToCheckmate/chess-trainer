@@ -1,4 +1,5 @@
 // regress/32-plylog.js  The ply log is TEMPORARY and DEV-GATED. This gate holds it to both of those.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the dev-gated ply log is recorded and hidden; the plies come from the game, not from grading, so the pool setting is incidental.
 // Kunal, 2026-09-13: keep the instrumentation, because his phone is the one place with no other visibility, but
 // gate it behind the same switch as the Layout readout so it never runs for an ordinary user, and give it a
 // retirement condition: it comes out when he certifies k12 closed on his own phone.

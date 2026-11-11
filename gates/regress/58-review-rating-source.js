@@ -1,4 +1,5 @@
 // regress/58-review-rating-source.js  THE SUMMARY PRINTS A RATING IT INVENTED AND HIDES THE ONE IT PARSED.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts which rating the summary prints (the parsed header, not an invented one); the rating's source does not depend on the engine branch, though the accuracy shown beside it does.
 // RENUMBERED BY THE BUILD THAT LANDED IT: the patch allocated US-R17 and TC-R20a..d at 21:24Z, and #428 landed
 // at 22:53Z taking BOTH (USER-STORIES.md US-R17 is now the puzzle explanation, TEST-CASES.md TC-R20 A..H is
 // gate 57's). Measured by grep on origin/main 890b8eb before writing, not read off the patch. This gate is

@@ -1,4 +1,5 @@
 // regress/38-rev-sheet-reach.js  TC-RL-070: every row of the review ⋯ sheet must be reachable AND tappable.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the review sheet's rows are reachable and tappable; the grades behind them do not enter its assertions.
 //
 // WHY THIS GATE EXISTS, AND WHAT IT FOUND. The test-lane queue carried this as a defect: "the ⋯ sheet's content is
 // below the fold at 5 of 6 geometries", with last-row bottoms of 847/833/842/848/863/909 against viewports of

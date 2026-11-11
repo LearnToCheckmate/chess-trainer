@@ -1,4 +1,5 @@
 // gates/regress/55-play-from-here-terminal.js
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: its reviews come from the pooled engine, and the terminal plies it reaches are found through them.
 // CONTROL-RECORD: 6e56cfc 2026-11-11 total=77 red=6 scope=trial:16fa026d3593 how=#550 item (12), re-run of #549 job 12's deferred control on the committed 77-assertion gate: the review sheet's Play from here row's dis={_pfT} replaced by dis={false} - A14 and A15 red at mate@kunal730, mate@se and stale@kunal730; every other line green; the tree's trial d044eeb93e96 reads 77 pass 0 fail
 // jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27, whose `coverage` field read
 // "NO GATE COVERS THIS ROUTE AT ALL". Landed at #466.

@@ -1,4 +1,5 @@
 // gates/regress/67-sel-cls-consumers.js - #442. TC-SELCLS-CONSUMERS / US-R13, US-R03 (the grading ladder; #442 wrote
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: its TC-R180 counts (#550) and the review-driven blocks read grades the pooled engine produced; its bundle-source blocks do not depend on the branch.
 // a Review story id USER-STORIES.md never defined, re-pointed at #549 item (69) as gate 66's was).
 //
 // WHAT THIS GUARDS. #440 split the grade in two: `sel` (the old centipawn ladder, which SELECTS which

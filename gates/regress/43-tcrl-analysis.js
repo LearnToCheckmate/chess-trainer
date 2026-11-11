@@ -1,4 +1,5 @@
 // regress/43-tcrl-analysis.js  TC-RL BATCH 1: US-R04, a pasted game is analysed with visible progress.
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: its progress and reproducibility readings are the pooled review's; the single worker's timing and its result are unmeasured here.
 //
 // The first batch of the 92-case Review lane suite (TEST-CASES-REVIEW.md, staged in the tracker artifact's
 // `docs` collection as `test-cases-review` after the build session flagged that it could not read it).

@@ -1,4 +1,5 @@
 // regress/31-antagonist373.js  What the antagonist broke on #373 and #374 fixes, kept as measurements:
+// THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: the labels it places (Brilliant, Blunder) are the review's, so which plies carry them is the pooled path's.
 //   the Brilliant/Blunder LABEL stays inside the board on the h-file (3.Qxh7?? in a short game) - it was 16.5px out
 //   a mate delivered by Black on the analysis board (fool's mate) reads 0-1, not M1
 //   the Analyze / Copy moves tap boxes are effective for their full height (elementFromPoint 6px below the chip)
