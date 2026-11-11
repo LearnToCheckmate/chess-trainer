@@ -107,3 +107,4 @@
 92-skin-icons.js	required	550	2026-11-11	build__1794388896663	gates/regress/92-skin-icons.js - EVERY SKIN HAS ITS OWN ICONS. TC-HM-057a..c, US-HM-15.	#550 item (68): every skin has its own icons (TC-HM-057, US-HM-15)
 93-lib-filter.js	required	550	2026-11-11	build__1794388896663	gates/regress/93-lib-filter.js - A LONG LESSON LIST HAS ONE FILTER BOX AND COUNTS ITS SE	#550 item (77): the lesson-list filter box and section counts, TC-S08
 94-review-cache-keeps-every-review.js	required	550	2026-11-11	build__1794388896663	gates/regress/94-review-cache-keeps-every-review.js - EVERY REVIEW HE RUNS IS KEPT, NOT 	#550 item (79): the review cache keeps every review, TC-R182
+95-lesson-lines-legal.js	required	550	2026-11-11	build__1794388896663	gates/regress/95-lesson-lines-legal.js - EVERY MOVE IN EVERY LESSON LINE IS LEGAL IN ITS	#550 item (85): every lesson line is legal, TC-LS-059

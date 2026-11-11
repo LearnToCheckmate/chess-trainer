@@ -49,3 +49,4 @@
 76	75	raise	2026-11-11	550	build__1794388896663	#550 item (68): every skin has its own icons (TC-HM-057, US-HM-15)	-	5555dcb50de6
 77	76	raise	2026-11-11	550	build__1794388896663	#550 item (77): the lesson-list filter box and section counts, TC-S08	-	607a5df6b288
 78	77	raise	2026-11-11	550	build__1794388896663	#550 item (79): the review cache keeps every review, TC-R182	-	e8d80f8f064e
+79	78	raise	2026-11-11	550	build__1794388896663	#550 item (85): every lesson line is legal, TC-LS-059	-	fb32640908ef
