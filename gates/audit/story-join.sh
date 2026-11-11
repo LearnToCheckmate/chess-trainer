@@ -213,7 +213,8 @@ EOF
   fi
   case " $GLIST " in *" $G_NAMED "*) echo "NAMED MEMBER    $G_NAMED is present in the genuine list, as this file records it should be" ;;
     *) if [ "$NG" -gt 0 ]; then echo "NAMED MEMBER    $G_NAMED is NOT in the genuine list but the ceiling is still $GCEIL and $NG orphan(s) are present - the committed member has CHANGED and the ceiling is now guarding a different story. Re-derive G_CEIL and G_NAMED together."; rc=2
-       else echo "NAMED MEMBER    $G_NAMED is no longer a genuine orphan and there are none. Lower G_CEIL to 0 in this file."; fi ;;
+       elif [ "$GCEIL" -gt 0 ]; then echo "NAMED MEMBER    $G_NAMED is no longer a genuine orphan and there are none. Lower G_CEIL to 0 in this file."
+       else echo "NAMED MEMBER    $G_NAMED is no longer a genuine orphan, there are none, and G_CEIL is already 0 (#550 item (105): this line used to ask for the lowering after #548 had made it)"; fi ;;
   esac
 
   # CROSS-CHECK AGAINST THE ARM ITSELF. The whole value of this tool is that its ARM5 column IS
