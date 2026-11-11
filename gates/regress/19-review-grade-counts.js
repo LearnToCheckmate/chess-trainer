@@ -286,7 +286,7 @@ async function runFixture(geo,name,pgn,acc){
   // ---- clause (a): walk every ply and tally the PAINTED badges ----
   await backToSummary(b);
   await b.tapText(/^Start review/,{wait:900}).catch(()=>{});
-  await b.page.locator('[aria-label="First move"]').first().click({timeout:6000}).catch(()=>{});
+  await require('../drive/review').navTap(b,'First move').catch(()=>{});   /* #550 a21: in the more sheet in the streamlined review */
   await b.settle(380);
   // THE WALK LENGTH IS MEASURED, NOT TAKEN FROM THE PGN, AND THE FIRST VERSION OF THIS GATE GOT THAT WRONG IN A
   // WAY THAT LOOKED EXACTLY LIKE THE DEFECT. It stepped Next the PGN's own ply count times. The review covers
@@ -363,11 +363,14 @@ async function runFixture(geo,name,pgn,acc){
   // its 3...Nf6 is a book ply whose raw grade is a Blunder, the one fixture that puts a raw grade inside the prefix. The dot's ply is
   // read off its x (the graph spaces n points over its width), and the graph is asserted present first.
   if(/SCHOLAR/.test(tag)){
-    const g=await b.page.evaluate(()=>{const band=document.querySelector('[data-ct="rev-graph-band"]');const sv=band&&band.querySelector('svg');if(!sv)return null;
+    /* #550 a21: on the streamlined review the graph is on screen only where the slack above the toolbar holds it (not at kunal761);
+       otherwise it is read from the more sheet, which draws the same EvalGraph - the dots are the component's, wherever it is drawn. */
+    const readG=()=>b.page.evaluate(()=>{const pick=(el)=>el&&[...el.querySelectorAll('svg')].find(x=>x.querySelector('circle')&&x.getBoundingClientRect().width>60);const sv=pick(document.querySelector('[data-ct="rev-graph-band"]'))||pick(document.querySelector('[data-ct="rev-sheet"]'));if(!sv)return null;   /* the band's marker is there even when it draws nothing */
       const w=parseFloat(sv.getAttribute('width'))||sv.getBoundingClientRect().width;
       const dots=[...sv.querySelectorAll('circle')].filter(c=>!/^none$/i.test(c.getAttribute('fill')||'')&&c.getAttribute('stroke')==='rgba(0,0,0,.5)').map(c=>({cx:parseFloat(c.getAttribute('cx')),fill:c.getAttribute('fill')}));
       return {w,dots};});
-    L.say(!!g,tag+' A7 the eval graph is on the move screen (the denominator for the dot check)',g?{w:g.w,dots:g.dots.length}:null);
+    let g=await readG();let viaSheet=false;if(!g){try{await b.tapCt('rev-more',500);g=await readG();viaSheet=true;await b.page.mouse.click(8,120);await b.settle(400);}catch(e){}}
+    L.say(!!g,tag+' A7 the eval graph is on the move screen or in its more sheet (the denominator for the dot check)'+(viaSheet?' - read from the sheet':''),g?{w:g.w,dots:g.dots.length,viaSheet}:null);
     if(g){const RAW=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];/* Blunder, Miss, Mistake, Inaccuracy: the grade dots a book ply must not carry; Brilliant and Great are exempt and the yellow current-ply marker is not a grade */const inBook=g.dots.map(d=>({...d,i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&RAW.indexOf(d.fill)>=0);
       L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});}
   }

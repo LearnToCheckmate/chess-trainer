@@ -74,7 +74,7 @@
 // the wider ask on this job's own soTheAskIsNowWiderThanFourGates. One piece of harness would give
 // gates 34, 35, 36, 37, 51 and 66 somewhere to point a second column; five gate edits would not.
 'use strict';
-const L=require('../lib');
+const L=require('../lib');const R=require('../drive/review');   // #550 a21: R.navTap reaches First/Last in the streamlined review's more sheet
 // ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
 // assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
 // and body{position:fixed;inset:0}, so documentElement has no scrollable content whatever the app renders (gate 15's
@@ -158,14 +158,14 @@ L.run(async()=>{
     const m0=await b.metrics();
 
     // --- to the end of the game. This is what leaves the strip scrolled away.
-    await b.tapText(/^⏭$/,{wait:900});
+    await R.navTap(b,'Last move');await b.settle(900);
     await b.settle(900);
     const sEnd=await strip(b),cEnd=await counter(b);
     L.say(!!sEnd&&sEnd.max>200,tag+': THE FIXTURE IS REAL - the strip overflows its box by '+(sEnd&&sEnd.max)+'px, so "scrolled to 0" is a claim that can fail',sEnd);
     L.say(!!sEnd&&sEnd.left>sEnd.max*0.5,tag+': at the last ply the strip really is scrolled away from the start (left '+(sEnd&&sEnd.left)+' of '+(sEnd&&sEnd.max)+')',{strip:sEnd,counter:cEnd});
 
     // --- 2. ⏮ : the reported path into ply 0
-    await b.tapText(/^⏮$/,{wait:900});
+    await R.navTap(b,'First move');await b.settle(900);
     await b.settle(1200);
     const sTop=await strip(b),cTop=await counter(b);
     L.say(!!cTop&&cTop.ply===0,tag+': ⏮ put the BOARD at the start position',cTop);
@@ -180,13 +180,13 @@ L.run(async()=>{
           tag+': the board did not move across the end-and-back trip (w '+(m0.board&&m0.board.w)+' -> '+(mTop.board&&mTop.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(mTop.board&&mTop.board.top)+')');
 
     // --- 4. the chip ref still works: forward again must scroll the strip back to the far end
-    await b.tapText(/^⏭$/,{wait:900});
+    await R.navTap(b,'Last move');await b.settle(900);
     await b.settle(1200);
     const sBack=await strip(b);
     L.say(!!sBack&&sBack.left>sBack.max*0.5,tag+': ⏭ scrolls the strip forward again - the container ref fires only at ply 0 and does not pin the strip there',sBack);
 
     // --- 3. the SECOND path into ply 0: step back one ply at a time. The re-sync must track the STATE.
-    await b.tapText(/^⏮$/,{wait:600});await b.settle(700);
+    await R.navTap(b,'First move');await b.settle(600);await b.settle(700);
     const via=await step(b,1);
     const c1=await counter(b);
     await b.settle(500);

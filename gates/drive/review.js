@@ -101,11 +101,15 @@ async function ensureReview(b,which){
   await importPgn(b,which==='corner'?PGN_CORNER:PGN_OPERA);
 }
 async function startReview(b){if(await inMoves(b))return;await b.tapText(/^Start review ›$/);await b.page.locator('[data-ct="strip-row"]').last().waitFor({state:'visible',timeout:8000});await b.settle(600);}
+// #550 a21: the streamlined review's toolbar is Back, Analyze, Key move, Forward - First move and Last move live in the more sheet
+// (data-ct rev-sheet-nav). A visible titled button is tapped where there is one; otherwise the sheet is opened and its button tapped.
+async function navTap(b,title){const v=b.page.locator('button[title="'+title+'"]:visible');if(await v.count()){await v.last().click();return;}
+  await b.tapCt('rev-more',400);await b.page.locator('[data-ct="rev-sheet-nav"] button[title="'+title+'"]').click();}
 // ply n of the current review: 0 = first, the strip's n-th move span otherwise (title buttons for first/last)
 async function goPly(b,n){
   const N=await b.page.evaluate(()=>document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]').length);
-  if(n<=0){await b.page.locator('button[title="First move"]').last().click();}
-  else if(n>=N){await b.page.locator('button[title="Last move"]').last().click();}
+  if(n<=0){await navTap(b,'First move');}
+  else if(n>=N){await navTap(b,'Last move');}
   else{await b.page.evaluate((i)=>{const s=document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]');s[i-1].click();},n);}
   await b.settle(700);return N;
 }
@@ -147,5 +151,5 @@ const states={
   'fab-corner-mid':async(b)=>{await exitAnalysis(b);await movesAt(b,6,'corner');},
   'stored-review':async(b)=>{await seed(b,SEED);await b.open();b._ctReview=null;await b.tile('Review');await b.settle(700);await b.page.locator('button',{hasText:/Review ›/}).first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(900);b._ctReview='stored';}
 };
-module.exports={states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
+module.exports={navTap,engineSet,states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
   notes:'Home tile Review -> the list (textarea + "⚡ Analyze Game"). The summary is a fixed overlay (rev-summary) with a pinned footer (rev-summary-foot: "‹ Back to games" / "Start review ›"). The move screen: top player bar holds rev-back and rev-more, the round rev-fab sits on the board, rev-compact holds the move line, the reason (rev-why/rev-why-txt), the control row (rev-row1: ⏮ ▶ ⏭ ★) and the strip (strip-row: 26px arrows + [data-mstrip] move spans). Plies are reached by clicking the strip spans (goPly). Stored games render as "Review ›" rows from ct_accts/ct_acctgames (SEED). The eval cache (ct_evalcache) makes a repeat import instant; a first analysis of the Opera Game takes ~20-60 s with ct_pool=3. b._ctReview remembers which PGN is loaded.'};

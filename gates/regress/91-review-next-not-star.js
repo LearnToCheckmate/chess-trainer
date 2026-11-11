@@ -27,14 +27,21 @@ const R=require('../drive/review');
       const m=await b.page.evaluate(()=>{const R=(el)=>{if(!el)return null;const r=el.getBoundingClientRect();return {top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,left:r.left,width:r.width,height:r.height,cx:r.left+r.width/2,cy:r.top+r.height/2};};
         const row=[...document.querySelectorAll('[data-ct="rev-row1"]')].pop(),line=[...document.querySelectorAll('[data-ct="rev-move-line"]')].pop(),strip=[...document.querySelectorAll('[data-ct="strip-row"]')].pop();
         const star=[...document.querySelectorAll('button')].find(x=>/^Next key moment/.test(x.getAttribute('aria-label')||x.title||''));
-        const next=strip?[...strip.querySelectorAll('button')].find(x=>x.getAttribute('aria-label')==='Next move'):null;
+        /* #550 a21 (his Option B): the strip carries no arrows in the streamlined review - Back and Forward are the bottom toolbar's
+           ends, with Key move beside Forward - so 'next' is the toolbar's Next move there, and the strip's elsewhere. */
+        const tbar=document.querySelector('[data-ct="rev-toolbar"]');
+        const next=(tbar?[...tbar.querySelectorAll('button')]:strip?[...strip.querySelectorAll('button')]:[]).find(x=>x.getAttribute('aria-label')==='Next move')||null;
+        const rowEl=tbar||row;
         const ply=(()=>{const t=line&&line.innerText||'';const k=t.match(/(\d+)\/\d+/);return k?+k[1]:null;})();
-        return {row:R(row),line:R(line),strip:R(strip),star:R(star),next:R(next),ply};});
+        return {row:R(rowEl),line:R(line),strip:R(strip),star:R(star),next:R(next),ply,stream:!!tbar};});
       L.say(!!(m.row&&m.line&&m.strip&&m.star&&m.next),geo+': TC-R176a the four things this case reads are on screen: the button row, the move line, the strip, the star and the strip\'s next arrow',{row:!!m.row,line:!!m.line,strip:!!m.strip,star:!!m.star,next:!!m.next});
       if(m.row&&m.line&&m.strip&&m.star&&m.next){
-        L.say(m.row.bottom<=m.line.top+0.5&&m.line.bottom<=m.strip.top+0.5,geo+': TC-R176a the order is his: the button row, then the move line (the explanation), then the move strip',{row:m.row,line:m.line,strip:m.strip});
-        const gap=Math.round((m.next.top-m.star.bottom)*10)/10;
-        L.say(gap>=40,geo+': TC-R176b the star and the strip\'s next arrow are at least 40pt apart (they were 6pt, AUD-R01)',{gap,star:m.star,next:m.next});
+        const between=m.stream?(m.strip.bottom<=m.line.top+0.5&&m.line.bottom<=m.row.top+0.5):(m.row.bottom<=m.line.top+0.5&&m.line.bottom<=m.strip.top+0.5);
+        L.say(between,geo+': TC-R176a the order is his: the move line (the explanation) sits BETWEEN the button row and the move strip'+(m.stream?' (streamlined: the strip under the board, the toolbar at the foot)':''),{row:m.row,line:m.line,strip:m.strip});
+        /* the gap: vertically stacked, at least 40pt (it was 6, AUD-R01); side by side in the streamlined toolbar of his picked mockup
+           (Key move beside Forward), they must not touch and each is a full 44pt target, so a thumb on one is never on the other */
+        const gap=m.stream?Math.round((m.next.left-(m.star.left+m.star.width))*10)/10:Math.round((m.next.top-m.star.bottom)*10)/10;
+        L.say(m.stream?(gap>=5.5&&m.star.height>=43.5&&m.next.height>=43.5&&m.next.width>=44&&m.star.width>=44):gap>=40,geo+': TC-R176b the star and the next control are apart - '+(m.stream?'side by side in the toolbar, '+gap+'pt between, each a 44pt target':'stacked, '+gap+'pt apart (they were 6pt, AUD-R01)'),{gap,star:m.star,next:m.next});
         const before=m.ply;
         const hit=await b.page.evaluate(([x,y])=>{const e=document.elementFromPoint(x,y);const btn=e&&e.closest('button');return btn?(btn.getAttribute('aria-label')||btn.title||btn.innerText):null;},[m.next.cx,m.next.cy]);
         await b.page.mouse.click(m.next.cx,m.next.cy);await b.settle(700);

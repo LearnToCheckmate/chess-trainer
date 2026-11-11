@@ -82,7 +82,7 @@ async function reviewOnce(geo,tag,pool){
   const present=[];for(let i=0;i+2<rows.length;i++){if(/^[A-Za-z]+$/.test(rows[i])&&/^\d+$/.test(rows[i+1])&&/^\d+$/.test(rows[i+2]))present.push(rows[i]);}
   // the verdict on 10.Nxb5!! (ply 19), the move the shallow-search bug mislabelled
   await b.tapText(/^Start review/,{wait:900});
-  await b.page.locator('[aria-label="First move"]').first().click().catch(()=>{});
+  await require('../drive/review').navTap(b,'First move').catch(()=>{});   /* #550 a21: in the more sheet in the streamlined review */
   await b.settle(400);
   for(let i=0;i<19;i++){await b.page.locator('[aria-label="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(130);}
   await b.settle(700);

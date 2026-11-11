@@ -2148,3 +2148,12 @@ As a player practising lessons, a lesson I banked today banks again once I have 
 - With another lesson finished after today's bank, the line banks a second day today, which counts toward Mastered. (TC-R191b)
 - A bank stored before this change waits for tomorrow, as it did. (TC-R191c)
 - A clean hints-on run offers "Bank it" in the lesson row; it restarts the line with the hint off, and a clean run then banks. (TC-R191d)
+
+### US-R125 On my phone the review is the streamlined view: the board edge to edge and the move list right under it
+*Added #550 answer a21 (Kunal on the Desk, B10-Q21: "Option B: the move list under the board"; jobs/a-streamlined-board-view-like-chesscoms-2026-11-11).*
+As a player reviewing a game on my phone, the board is as wide as the screen with the eval bar above it, the move list sits right under the board, then the move's explanation, and Back, Analyze, Key move and Forward are at the bottom, like the chess.com view I asked for.
+- The eval bar is above the board and the board is the screen's full width on my phone. (TC-R192a)
+- The move strip is straight under the board's bottom player bar, and the explanation under the strip. (TC-R192b)
+- The bottom toolbar is Back, Analyze, Key move and Forward, each a thumb's size. (TC-R192c)
+- A header with back, Game Review and more is there when the screen is tall enough; on a short screen they stay in the top player bar. (TC-R192d)
+- The board does not move between moves or in and out of analysis; switching the engine line off puts it back exactly. (TC-R192e)

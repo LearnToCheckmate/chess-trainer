@@ -13,14 +13,14 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'anta-'+geo,store:{ct_pool:'3'}});await b.open();
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN_BL);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(500);
-    await b.tapText(/^Start review/,{wait:800});await b.page.locator('[aria-label="First move"]').first().click();await b.settle(300);
+    await b.tapText(/^Start review/,{wait:800});await require('../drive/review').navTap(b,'First move');await b.settle(300);
     for(let i=0;i<5;i++){await b.page.locator('[aria-label="Next move"]').first().click();await b.page.waitForTimeout(120);}await b.settle(900);
     const ml=await b.rect('[data-ct="rev-move-line"]');const lab=await inside(b,'[data-ct="rev-badge-label"]');
     L.say(!!ml&&/Qxh7/.test(ml.text),geo+': at 3.Qxh7',ml&&ml.text);
     L.say(!!lab&&lab.outR<=0.5&&lab.outL<=0.5,geo+': the verdict label on h7 is inside the board (was 16.5px out on #373)',lab);
     await b.shot('anta373-'+geo+'-label-h7');
     // fool's mate on the analysis board from ply 0
-    await b.page.locator('[aria-label="First move"]').first().click();await b.settle(400);await b.tapCt('rev-fab',700);
+    await require('../drive/review').navTap(b,'First move');await b.settle(400);   /* #550 a21: First move is in the more sheet in the streamlined review */await b.tapCt('rev-fab',700);
     for(const [f,t] of [['f2','f3'],['e7','e5'],['g2','g4'],['d8','h4']])await b.move(f,t,500);await b.settle(2500);
     const num=await b.rect('[data-ct="eval-bar-num"]');L.say(!!num&&/0-1/.test(num.text),geo+': fool\'s mate on the analysis board reads 0-1 (was M1)',num&&num.text);
     await b.tapText(/Exit analysis/,{wait:500});

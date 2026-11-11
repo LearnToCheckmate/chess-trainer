@@ -74,7 +74,9 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 // pinned at 349 the same run reads 18 pass / 0 fail. That the two 375-wide columns agree is a RESULT, not an
 // assumption - it also falsifies gates/lib.js:24-26's 2026-09-12 prediction that ct_safe at 761 would make the
 // board 293, by 56px, which process lane 1 measured independently on 2026-10-04 at a different bundle.
-const WANT={kunal761:{board:349},kunal730:{board:349},se:{board:264}};
+// #550 a21 (the streamlined review, his Option B): the eval bar moved ABOVE an edge-to-edge board, so at kunal761 the board is the
+// screen's width, 375.03 (was 349), and at kunal730 the height binds it at 354 (was 349); se keeps 264. Measured on trial t55 by this gate (375.03125 and 354).
+const WANT={kunal761:{board:375.03},kunal730:{board:354},se:{board:264}};
 const WORKERS={};
 
 L.run(async()=>{

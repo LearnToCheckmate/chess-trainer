@@ -190,7 +190,7 @@ L.run(async()=>{
     L.say(has3&&fit3.kids.every(k=>k.squeeze<=0.5),'THREE-ROW: and NO row is rendered shorter than its own content - a gap regression does not clip the engine line here, it silently squeezes the best-line row instead, and that row cuts its text with no ellipsis',fit3&&fit3.kids);
   }
   for(const target of TRAP_PLIES){
-    await b.tapText(/^⏮$/,{wait:800}).catch(()=>{});await b.settle(500);
+    await require('../drive/review').navTap(b,'First move').catch(()=>{});await b.settle(1300);   // #550 a21: First move is in the more sheet in the streamlined review
     await fwd(b,target);await b.settle(5000);
     const at=await plyTxt(b);
     L.say(!!at&&at.indexOf(target+'/33')>=0,'reached ply '+target+' (state-reached check, not assumed)',at);

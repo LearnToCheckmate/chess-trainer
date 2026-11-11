@@ -283,13 +283,17 @@ L.run(async()=>{
   await b2.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b2.settle(400);
   await b2.tapText(/^Start review/,{wait:900}).catch(()=>{});
   await b2.settle(600);
+  /* #550 a21 (the streamlined review, his Option B): on a phone Review's bar is the HORIZONTAL one above an edge-to-edge board
+     (eval-bar-h), so it takes no width from the board. The four Review lines read that bar; the 18-wide vertical bar is Play's
+     neighbour no longer. */
   const sr=await barStyle(b2);
-  L.say(!!sr&&Math.abs(sr.w-18)<0.6,'the REVIEW bar is still 18 wide - the decision named the 10px Play bar, and widening Review was never asked for',sr&&sr.w);
-  const cr=sr&&rgb(sr.bg);
-  L.say(!!cr&&cr[0]===143,'the Review bar DOES get the lighter track, because both placements are one element - a consequence of the change, recorded rather than hidden',sr&&sr.bg);
+  const sh=await b2.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-h"]');if(!e)return null;const r=e.getBoundingClientRect(),s=getComputedStyle(e),n=(v)=>Math.round(v*100)/100;return {w:n(r.width),h:n(r.height),l:n(r.left),r:n(r.right),bg:s.backgroundColor};});
   const m=await b2.metrics();
-  L.say(!!m.board&&Math.abs(m.board.w-349)<0.6,'the review board is still 349 - Review\'s gutter did not change, so its pinned width must not either',m.board&&m.board.w);
-  L.say(!!sr&&sr.l>=-0.5&&sr.r<=375.5,'the whole REVIEW bar is on the screen as well',sr&&{left:sr.l,right:sr.r});
+  L.say(!sr&&!!sh&&!!m.board&&Math.abs(sh.w-m.board.w)<0.6,'the REVIEW bar is the horizontal one above the board, as wide as the board ('+(sh&&sh.w)+' against '+(m.board&&m.board.w)+'), with no bar beside it',{v:sr,h:sh});
+  const cr=sh&&rgb(sh.bg);
+  L.say(!!cr&&cr[0]===43&&cr[1]===41&&cr[2]===50,'the horizontal Review bar keeps its own dark track (#2b2932) - it is a different element from the beside bar, so Play\'s lighter track does not reach it',sh&&sh.bg);
+  L.say(!!m.board&&Math.abs(m.board.w-354)<0.6,'the review board is 354 at 375x730 - bound by the HEIGHT once the bar went above it (#550 a21; it was 349 beside an 18 bar)',m.board&&m.board.w);
+  L.say(!!sh&&sh.l>=-0.5&&sh.r<=375.5,'the whole REVIEW bar is on the screen as well',sh&&{left:sh.l,right:sh.r});
   await b2.close();
 
   // --- #407: THE TWO READINGS MUST AGREE. bar = evalW-4 and board = vw-reserved both carry the same
@@ -297,9 +301,11 @@ L.run(async()=>{
   // independently: moving one state's reading of it moves the sum in that state alone. Compared at 375x730,
   // where the board is fit to width in both states (both widths are pinned above, so a symmetric change - the
   // one this cannot see, NC-D - is caught there instead).
-  const revSum=(sr&&m.board)?n2(sr.w+m.board.w):null;
-  const ok=!!(play730&&revSum!==null&&Math.abs(play730.sum-revSum)<0.6);
-  L.say(ok,'BAR WIDTH + BOARD WIDTH IS THE SAME NUMBER IN PLAY AND IN REVIEW - the bar\'s width (evalW) and the width the board gives up for it (reserved) are ONE quantity, read from EVAL_BAR_W since #407, and this is the only assertion that compares them. It catches an ASYMMETRIC error: NC-B reads 363 against 367, NC-C and NC-E 379 against 367. A symmetric one (NC-D, 371 in both states) is invisible here and is caught by the board pins instead, and a legitimate widening through the constant moves both and leaves the sum alone.',
+  /* #550 a21: Review's bar no longer sits beside the board, so it gives up NO width for it (reserved 0, evalW 0): the comparison is now
+     that the review board plus its (zero) side bar is never wider than the screen and that Play's own sum still holds at 375. */
+  const revSum=(m.board)?n2((sr?sr.w:0)+m.board.w):null;
+  const ok=!!(play730&&revSum!==null&&!sr&&revSum<=375.5&&play730.sum<=375.5);
+  L.say(ok,'BAR WIDTH + BOARD WIDTH NEVER EXCEEDS THE SCREEN IN PLAY OR IN REVIEW (#550 a21: Review\'s bar went above the board, so its side width is 0; it read: the same number in Play and in Review) - the bar\'s width (evalW) and the width the board gives up for it (reserved) are ONE quantity, read from EVAL_BAR_W since #407, and this is the only assertion that compares them. It catches an ASYMMETRIC error: NC-B reads 363 against 367, NC-C and NC-E 379 against 367. A symmetric one (NC-D, 371 in both states) is invisible here and is caught by the board pins instead, and a legitimate widening through the constant moves both and leaves the sum alone.',
         {playBar:play730&&play730.barW,playBoard:play730&&play730.boardW,playSum:play730&&play730.sum,reviewBar:sr&&sr.w,reviewBoard:m.board&&m.board.w,reviewSum:revSum});
   if(playShort)L.note('375x568 for reference (board fit to height there, so the sum is a different number and is not compared): bar '+playShort.barW+' + board '+playShort.boardW+' = '+playShort.sum);
 },'EVALBAR');
