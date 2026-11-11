@@ -16,6 +16,7 @@
 //      then 512 bytes given back), the review just run IS in the cache afterwards, at least one old review was evicted to make room,
 //      and every evicted one is OLDER than every survivor (least recently touched first). Denominator: the fill really reached the
 //      quota (a write of 4KB more is refused before the review).
+// CONTROL-RECORD: a3254c5 2026-11-11 total=8 red=4 scope=trial:3ab724514641 how=#550 item (79): origin/main's bundle (evalCacheSet capped at 24, the quota refusal swallowed) - TC-R182a '23 of 30, 24 keys' red; TC-R182b all three red (the review just run lost, 0 evicted); both DENOMINATORS green
 const L=require('../lib');const R=require('../drive/review');
 
 async function cacheKeys(b){return b.page.evaluate(()=>{try{const a=JSON.parse(localStorage.getItem('ct_evalcache')||'{}');return Object.keys(a).map(k=>({k,at:a[k].at||0,n:(a[k].evW||[]).length}));}catch(e){return null;}});}
