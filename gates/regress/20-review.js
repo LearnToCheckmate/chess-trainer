@@ -723,4 +723,25 @@ L.run(async()=>{
       L.say(r.why==='White is winning',id+': the explanation says White is winning, not that White has a forced mate ('+r.why+')',{why:r.why});
     }
   }
+  /* #550 item (50), jobs/exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30 (the orchestrator's GAP
+     of 10 Nov): TC-R71 ran only in the main walk (kunal, kunal730, 390). This arm adds the case's 320x568 column and the kunal761 column,
+     and the title's second half, "for the rest of the review": after Exit analysis, go BACK to the summary and re-enter the move
+     screen; the engine line must still be off. Each step reads the row's presence first (the precondition is that analysis
+     turned it ON), so a green is not an engine line that never appeared. 360x640 is ruled out, not filed: it is in no named set
+     (USER-STORIES THE GEOMETRY SETS, NAMED ONCE) and the case names 320x568. */
+  for(const geo of ['se','kunal761']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r71-reenter-'+geo,store:{ct_pool:'3'}});await b.open();
+    const eng=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-engline"]'));
+    let ok=true;try{await RV.ensureReview(b,'opera');await RV.startReview(b);await RV.goPly(b,19);await b.settle(500);}catch(e){ok=false;}
+    if(L.say(ok,geo+': TC-R71 REENTER PRECONDITION the Opera Game move screen at 10.Nxb5 was reached')){
+      const e0=await eng();L.say(!e0,geo+': TC-R71 REENTER PRECONDITION before analysis there is no engine-line row',{e0});
+      let e1=null,e2=null,e3=null,onSum=false,back=false;
+      try{await b.tapCt('rev-fab',700);e1=await eng();}catch(e){}
+      L.say(e1===true,geo+': TC-R71 REENTER PRECONDITION analysis turned the engine line ON (the row is in the DOM)',{e1});
+      try{await b.tapText(/Exit analysis/,{wait:700});await b.settle(1500);e2=await eng();}catch(e){}
+      L.say(e2===false,geo+': TC-R71 after Exit analysis the engine-line row is gone (the case\'s 320x568 column and the kunal761 column)',{e2});
+      try{await b.tapCt('rev-back',800);onSum=!!(await RV.onSummary(b));await RV.startReview(b);await RV.goPly(b,19);await b.settle(1500);back=await RV.inMoves(b);e3=await eng();}catch(e){}
+      L.say(onSum&&back,geo+': TC-R71 REENTER PRECONDITION the back arrow reached the summary and Start review re-entered the move screen',{onSum,back});
+      L.say(onSum&&back&&e3===false,geo+': TC-R71 back to the summary and in again, the engine line is STILL off: leaving analysis restored it for the rest of the review, not one screen',{e3});
+    }
+    await b.close();}
 },'REVIEW');
