@@ -102,7 +102,7 @@ const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',
 // (measured at #546 on 049b41dfb6f1). A pin per geometry, never one number for both.
 // #548 item (92) MOVED THE 320x568 FIGURE: the phone's top row took the strip under the board's place, so vs Computer at 320x568 is 298 (was
 // 288), the figure gate 46 re-pinned to; 375x730 stays 353. Caught red in #548's round-1 suite.
-const WANT_W={kunal730:353,se:298,kunal761:Number(process.env.CT_W761||0)||null};   /* #550 item (35): kunal761 measured below */
+const WANT_W={kunal730:353,se:298,kunal761:353};   /* #550 item (35): kunal761 measured 353 after a takeback on trial 129ebbaa9770 (the same as 375x730: the board is width-bound there) */
 // HOLDING THE SEARCH OPEN, FROM THE HARNESS SIDE [#549 item (70); jobs/gate-34-takeback-pins-a-three-worker-pool-and-one-
 // geometry-2026-09-30, whatIsLeft 'a way to hold the engine's search open long enough to sample the in-flight state']. No
 // chess.jsx change: an init script subclasses Worker so that, while window.__ctTbHold is a positive number of ms, any
