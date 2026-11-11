@@ -1668,7 +1668,7 @@ L.run(async()=>{
    const b=await L.launch({geo,name:'lesson-actrow-'+geo});await b.open();
    let ok=true;try{await D.states['demo-end'](b);await b.settle(1200);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const RES=[/try it/i,/Other lines|Flip/i,/Analyze$/,/Copy/];const vis=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();return q.width>2&&q.height>2;});
-     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim())||re.test((y.getAttribute('aria-label')||'').trim().split(' ')[0]));   // #550 a6: Analyze and Copy are icon-only, named by aria-labelif(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim())||re.test((y.getAttribute('aria-label')||'').trim().split(' ')[0]));   /* #550 a6: Analyze and Copy are icon-only, named by aria-label */if(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
        return {re:String(re),found:true,top:Math.round(q.top),bot:Math.round(q.bottom),on:q.top>=-0.5&&q.bottom<=innerHeight+0.5&&!!e&&(e===x||x.contains(e))};})};});
    L.say(ok&&r.c.every(x=>x.found),geo+': TC-R78c PRECONDITION the demo reached its end and all four action-row controls are in the DOM',r);
    L.say(r.c.length===4&&r.c.every(x=>x.found&&x.on),geo+': TC-R78c every action-row control is on screen at rest and hit-tests to itself ('+r.c.map(x=>x.re+' '+(x.found?x.top+'..'+x.bot+(x.on?'':' OFF'):'absent')).join('; ')+' of '+r.vh+')',r);
