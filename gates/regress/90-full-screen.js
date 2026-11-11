@@ -54,6 +54,22 @@ async function open(c){
     L.say(reached&&Math.abs(s.tabPadB-37)<0.6&&Math.abs((812-s.tab.bottom))<0.6,'TC-INV-14d the home-indicator inset is counted once: 6 + 31 of padding at the screen edge, with no 51pt band under the bar',{padB:s.tabPadB,under:reached?812-s.tab.bottom:null});
     await b.browser.close();
   }
+  // ── C [#550 check gap cg1]: the screens with NO tab bar. #root reached 812 while the app's own root kept minHeight 100dvh (761), so on a
+  // Pass and Play game and on the review's move screen the column, and its bottom row, still ended 51pt short. Each state is reached first.
+  {
+    const P=require('../drive/play'),RV=require('../drive/review');
+    for(const [nm,go,probe] of [['Pass and Play',b=>P.states['pp-m0'](b),null],['the review move screen',b=>RV.states['moves-ply10'](b),'rev-toolbar']]){
+      const b=await open({name:'nobar-'+nm.replace(/\W+/g,'-'),screen:FULL,store:{ct_fullh:'1',ct_pool:'3'}});
+      let ok=true;try{await go(b);await b.settle(800);}catch(e){ok=false;}
+      const r=await b.page.evaluate((probe)=>{const root=document.getElementById('root'),app=root&&root.firstElementChild;const R=e=>e?Math.round(e.getBoundingClientRect().bottom*10)/10:null;
+        const home=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
+        return {full:window.__ctFullH||0,tab:!!document.querySelector('[data-ct="tabbar"]'),home:!!home,compact:!!document.querySelector('[data-ct="rev-compact"]'),app:R(app),row:probe?R(document.querySelector('[data-ct="'+probe+'"]')):null};},probe);
+      L.say(ok&&r.full===812&&!r.tab&&!r.home&&(probe?r.compact:true),'TC-INV-14f PRECONDITION '+nm+' was reached under the installed signature, with no tab bar and Home gone',r);
+      L.say(r.app===812,'TC-INV-14f on '+nm+' the app\'s own root runs to 812, the bottom of his screen, not to 761 ('+r.app+')',r);
+      if(probe)L.say(r.row!==null&&r.row>790&&r.row<=812,'TC-INV-14f and its bottom row ('+probe+') ends in the last 51pt, at '+r.row+', where it stopped at 753',r);
+      await b.browser.close();
+    }
+  }
   // ── B: the guard. Anything that is not exactly that signature keeps the page height, so no other device changes.
   {
     const b=await open({name:'tab',screen:FULL,store:{}});   // a Safari tab: not installed
