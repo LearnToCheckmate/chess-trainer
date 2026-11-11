@@ -3587,7 +3587,14 @@ function TacticsTrainer({light,dark,demo}){
       const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
       const top=el.getBoundingClientRect().top+(root?root.scrollTop:0);const avail=Math.floor(bar.getBoundingClientRect().top-top-6);
       setCap(Math.max(176,Math.min(400,avail)));};
-    fit();window.addEventListener('resize',fit);return()=>window.removeEventListener('resize',fit);
+    /* #550 item (99) [jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, #549 antagonist B's
+       B8]: the cap was measured ONCE per card change, in the layout effect, so anything above the board that settles a frame later (a
+       font arriving, the tab bar mounting, the idea box's own fade) left the cap measured against an unsettled layout until the next
+       resize. It is measured again on the next two animation frames and once when the fonts are ready; each pass only sets state, and
+       `cap` is not a dependency, so the retries cannot loop. */
+    fit();let _r1=0,_r2=0,_alive=true;_r1=requestAnimationFrame(()=>{if(!_alive)return;fit();_r2=requestAnimationFrame(()=>{if(_alive)fit();});});
+    try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(_alive)fit();});}catch(e){}
+    window.addEventListener('resize',fit);return()=>{_alive=false;cancelAnimationFrame(_r1);cancelAnimationFrame(_r2);window.removeEventListener('resize',fit);};
   },[tab,mi,si]);
   const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
