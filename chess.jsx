@@ -256,6 +256,9 @@ function parsePGN(pgn){
 // #348: ISO country code -> flag emoji, via regional indicator letters.
 function flagOf(cc){
   if(!cc||cc.length!==2||!/^[A-Za-z]{2}$/.test(cc))return '';
+  // #550 check gap cg2: ISO 3166's user-assigned pairs (AA, QM..QZ, XA..XZ, ZZ) have no flag - chess.com uses XX for International and XE,
+  // XS, XW for England, Scotland, Wales - and their regional-indicator letters paint as two empty boxes, so they read as no country.
+  if(/^(AA|Q[M-Z]|X[A-Z]|ZZ)$/i.test(cc))return '';
   try{return String.fromCodePoint(...[...cc.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));}catch(e){return '';}
 }
 // #353 Imported accounts and their games, kept for good and across reloads. Bounded so a long

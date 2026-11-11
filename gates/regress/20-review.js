@@ -43,6 +43,13 @@ const ladderRows=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data
 const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');return s?(s.innerText||'').replace(/\s+/g,' ').slice(0,8000):'';});
 
 L.run(async()=>{
+  // #550 check gap cg2: flagOf as a PREDICATE over the case's 17 inputs (7 valid codes, 1 lowercase, 2 unassigned pairs, 7 rejects),
+  // through engine-extract so the function measured is the shipped one. A valid code is two regional-indicator letters; the rest are ''.
+  {const E=require('../engine-extract.js');const RI=(c)=>String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65));
+   const cases=[['US',RI('US')],['DE',RI('DE')],['GB',RI('GB')],['IN',RI('IN')],['FR',RI('FR')],['BR',RI('BR')],['JP',RI('JP')],['gb',RI('GB')],
+     ['XX',''],['XE',''],['',''],[null,''],['USA',''],['1A',''],['U',''],['U$',''],[' US','']];
+   const bad=cases.filter(([i,w])=>E.flagOf(i)!==w).map(([i,w])=>JSON.stringify(i)+' -> '+JSON.stringify(E.flagOf(i))+' (want '+JSON.stringify(w)+')');
+   L.say(cases.length===17&&bad.length===0,'TC-R107b flagOf over 17 inputs: 7 valid codes paint their flag, a lowercase code is uppercased, the unassigned XX and XE and the 7 rejects paint nothing',bad);}
   // kunal730 ADDED 2026-10-03: this suite had never once run at Kunal's real 375x730. 679 stays as the
   // shorter-phone column [CLAUDE.md], and the one literal pin in this file (the 349 board width) stays bound to
   // 679 by its own geo check below rather than being moved - which reading changed has not been established.
@@ -351,6 +358,11 @@ L.run(async()=>{
       L.say(!Object.prototype.hasOwnProperty.call(ccache,'cc:morphy')&&!Object.prototype.hasOwnProperty.call(ccache,'cc:duke karl / count isouard'),'kunal730: TC-R68 a REFUSED country lookup is not cached - the review asked for both players and the harness refused both, and ct_country holds no entry for either, so the next review asks again',ccache);
       await b.page.evaluate(()=>{localStorage.setItem('ct_evalgraph','0');});await b.open();await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
       await b.tapText(/^⚡ Analyze Game$/,{wait:200});try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){}
+      // #550 check gap cg2: TC-R68 again AFTER the review was left and opened again (the case's open, leave, reopen) - the second visit
+      // asks again, is refused again, and still leaves no answer behind.
+      await b.settle(1500);
+      {const cc2=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_country')||'{}');}catch(e){return {bad:true};}});
+       L.say(!Object.prototype.hasOwnProperty.call(cc2,'cc:morphy')&&!Object.prototype.hasOwnProperty.call(cc2,'cc:duke karl / count isouard'),'kunal730: TC-R68b after leaving the review and opening it again, the refused lookups are still not cached as answers',cc2);}
       await b.tapText(/^Start review/,{wait:900});
       const gOff=await b.rect('[data-ct="eval-graph"]');const mOff=await b.metrics();
       L.say(!gOff,'kunal730: TC-R12b and switched off it is gone, so the reading above was the default and not a stale render',{gOff:!!gOff});
