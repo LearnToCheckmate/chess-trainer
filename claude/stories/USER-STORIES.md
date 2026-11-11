@@ -407,6 +407,11 @@ As a player who knows the opening I came for, I type part of its name or its ide
 - On the Openings, Gambits and Endgames lists, at 375x761 and 320x568, a filter box 44px tall sits under the group header; typing a part of a lesson's name or idea (accents ignored, so 'reti' finds Réti) leaves exactly the lessons whose name or idea contains it, and a text no lesson contains says so and offers to clear the filter. (TC-S08a, TC-S08b)
 - Every section of those lists shows its count, and the count equals the rows under it, filtered or not. (TC-S08c)
 
+### US-HM-17 A player is never offered a test switch that turns Pro on for free
+*Added #550, from docs/app-audit-2026-11-11 AUD-H14 (P1) and Kunal's answer a1 on questions/B10-Q1 (11 Nov 2026): "Hide it from players".*
+As a player opening the Account sheet, I see the real ways to get Pro and nothing that turns it on without paying; a developer can still opt in on their own device.
+- Signed out on a player's store, the Account sheet opened from Home shows its Pro plans and no "Unlock Pro (test mode)"; on a store opted in as a developer (ct_protest=1) the same sheet offers it. (TC-HM-058a, TC-HM-058b)
+
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).

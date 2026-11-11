@@ -116,3 +116,4 @@
 101-review-summary-you-left.js	required	550	2026-11-11	build__1794388896663	gates/regress/101-review-summary-you-left.js - ON THE REVIEW SUMMARY HIS SIDE IS ALWAYS 	#550 item (94): his side left on the review summary, TC-R185
 102-engine-no-go-into-a-running-search.js	required	550	2026-11-11	build__1794388896663	gates/regress/102-engine-no-go-into-a-running-search.js - NO ENGINE WORKER IS SENT 'go' 	#550 item (97): no go into a running search, TC-R186
 103-online-flag-auto-end.js	required	550	2026-11-11	build__1794388896663	gates/regress/103-online-flag-auto-end.js - AN ONLINE GAME WHOSE FLAG FELL ENDS BY ITSEL	#550 item (101): online flag auto-end, TC-PL-070
+104-no-test-pro-for-players.js	required	550	2026-11-11	build__1794388896663	gates/regress/104-no-test-pro-for-players.js - THE ACCOUNT SHEET OFFERS NO "Unlock Pro (	#550 a1 (AUD-H14): no test Pro for players, TC-HM-058
