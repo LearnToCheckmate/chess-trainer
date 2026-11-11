@@ -6,6 +6,7 @@
 // per geometry, put gate 22 past the suite's 900 s per-gate ceiling: it TIMED OUT in the round-3 and round-4 suites (115 PASS lines, then
 // killed), while run alone on t68 it read 121 of 121. The block is unchanged; it is split two geometries per gate so each fits the ceiling.
 // Its control record moved with it (the a30a884 control, scope blocks:U, narrowed by CT_U_GEOS to the geometries it reddened).
+// CONTROL-RECORD: f7a8f9e 2026-11-11 total=5 red=2 scope=trial:7f349f011094 how=#550: rev-why-txt with no line clamp (t82) - TC-R118's clamp-does-the-cutting line red at 320x568 (4 cut) and 761x375 (82 cut); the denominators green
 const L=require('../lib');
 L.run(async()=>{
   /* ── TC-R118, BLOCK U: THE COACH SENTENCE FITS ITS BOX AT EVERY PLY, WITH NO CLAMP DOING THE FITTING (#550 item (55)) ─────────────
