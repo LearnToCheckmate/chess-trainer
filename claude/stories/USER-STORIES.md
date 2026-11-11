@@ -2077,3 +2077,8 @@ As a player drilling mistakes saved before hints were stored, the Hint on such a
 *Added #550 item (90), jobs/a-review-can-wait-up-to-120s-for-stockfish-with-no-visible-waiting-state-2026-11-07 (#549 antagonist B's B3).*
 As a player starting a review on a busy phone, when the review waits for Stockfish to load (up to two minutes, so every move is graded by the same engine) the screen tells me it is loading the engine and counts the seconds, instead of a progress line frozen at 0%.
 - While the engine loads, the analysing panel reads "Loading the Stockfish engine… Ns" and the count rises; once the engine is served the review completes. (TC-R184a, TC-R184b)
+
+### US-R46 Where the app holds a rating for a game, its review shows it
+*Added #550 item (93), jobs/played-game-review-shows-no-rating-though-the-app-holds-one-2026-09-28 (the clause spec-c reserved on 28 Sep 2026; it extends US-R18 and does not contradict Kunal's 'show nothing where it does not carry one').*
+As a player reviewing an online game I just played, the review summary shows the ratings the player bars showed for the same game; for a game against the computer or Pass & Play, which carry no rating that means anything, what to show is Kunal's call and is not part of this clause.
+- An online game's review summary shows the White and Black ratings the player bars printed, side for side. (TC-R57)
