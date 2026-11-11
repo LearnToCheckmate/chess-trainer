@@ -1542,6 +1542,7 @@ function mkTap(b,READ){
      L.say(r.reviewed===2,'375x730 legacy: TC-R49 two full reviews stored before #331 (no src) still count as reviewed games - only the estimates (src est) are left out',r);
      await b.close();}
   }
+  // CONTROL-RECORD: 6a2ebd5 2026-11-11 total=189 red=6 scope=trial:3ab724514641 how=#550 item (72): main's shipped bundle (the brilliant pill on the counts line, the counts wrapping) - TC-R76 row height (94 -> 140, 94 -> 140, 110 -> 172) and pill-below-badge red at 375x730, 375x761 and 320x568; every other line green
   // TC-R76 [#547 item (99); jobs/the-games-list-badge-slot-reserves-no-space-so-the-list-jumps-252px-2026-10-09]: THE LIST DOES NOT
   // JUMP WHEN THE FIRST TALLY LANDS. 40 stored games with no cached stats, sampled every 150ms from first paint while the background
   // pass runs: the progress panel used to MOUNT above the list on the first tally (+253px) and every row grew. The first row's
