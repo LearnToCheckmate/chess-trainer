@@ -31,7 +31,7 @@
 // WHY THIS GATE EXISTS. Play setup gates 100% of Play's value: every single game in the app starts here, and a
 // broken setup sheet blocks the core loop outright. It had ZERO stories and ZERO cases before this file. It is
 // also the screen with the proven break history at short heights - A-13 on #372, where the Computer sheet scrolled
-// 312px on Kunal's phone and "Start game" sat at 931 in a 679-tall viewport.
+// 312px in the 375x679 column (then taken for Kunal's phone; R19 settled 375x761) and "Start game" sat at 931 in a 679-tall viewport.
 //
 // WHAT THE SUITE ALREADY COVERS, so this file does not duplicate it: gates/regress/30-p1-fixes.js asserts A-13 -
 // that the setup sheet does not scroll and the build line is on screen - but ONLY with PASS & PLAY selected, and

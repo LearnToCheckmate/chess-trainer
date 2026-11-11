@@ -758,7 +758,7 @@ if(blk('S')){
         const r=x.getBoundingClientRect();let cut=false;for(const el of [x,...x.querySelectorAll('*')]){if(el.children.length===0&&(el.textContent||'').trim()&&el.scrollWidth>el.clientWidth+0.5)cut=true;}
         let sh=x.parentElement;while(sh&&sh!==document.body){const st=getComputedStyle(sh);if(st.overflowY==='auto'||st.overflowY==='scroll')break;sh=sh.parentElement;}const q=sh?sh.getBoundingClientRect():{left:0,right:innerWidth};
         return {t,l:r.left,r:r.right,top:Math.round(r.top),w:r.width,h:r.height,cut,sl:q.left,sr:q.right};});return tiles;},NAMES);
-    const tag=geo==='se'?'320x568':geo==='kunal'?'375x679':'390x844';
+    const tag=L.GEOS[geo].w+'x'+L.GEOS[geo].h;
     const miss=m.filter(x=>x.miss).map(x=>x.t);
     L.say(ok&&miss.length===0,tag+': TC-MN-053 PRECONDITION the menu bottom was reached and all five look tiles are there',{miss});
     if(miss.length===0){
