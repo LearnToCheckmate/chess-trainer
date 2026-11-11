@@ -7655,6 +7655,14 @@ export default function App(){
   // THE OBVIOUS FIX WAS BUILT AND MEASURED AND THEN REVERTED: `minWidth:0` plus overflow and textOverflow -
   // the mechanism #384 used for the practice row - does stop the overflow, and it costs more than the
   // overflow does. Measured on that trial bundle (md5 4519cfcb8e84): the button becomes 26.83px wide at
+  /* #550 item (130) [jobs/desk-flip-branch-wrap-decision-2026-09-28; Kunal 27 Oct 2026,
+     decisions/flip-row-shrinks-to-fit-if-a-recheck-shows-it-still-overflows-2026-10-27]: re-measured on main first, as he asked
+     - #549's log reads the Flip branch 4.05px past its own row at 375x520 and contained elsewhere. The row's two min-content
+     tracks plus gap need FLIP_ROW_NEED (226.77px, gate 48's FLIP_NEEDED) at 14px under rowNarrow, so its text drops to 12px
+     (letter-spacing 0, Kunal's icon-font-ls rung) ONLY when the board is narrower than that - both buttons, so the row stays
+     one size. At every board that already fits, nothing changes. */
+  const FLIP_ROW_NEED=227.5;   // 226.77 on #426's toolchain, 227.23 measured on this one at #550; the half-pixel covers both
+  const _flipTight=rowNarrow&&!_demoLinesSlot&&boardPx<FLIP_ROW_NEED;
   // 320x520, which is the pawn glyph and an ellipsis and nothing else, and it also starts truncating at
   // 375x568 (122.56 -> 94.59) where nothing was wrong before. The button was always wider than its grid
   // cell; only the viewport edge made it visible. So letting it shrink destroys Kunal's own answer
@@ -11377,7 +11385,7 @@ export default function App(){
         {openIdx!==null&&(<>
           {learnPhase==='demo'&&(<>
             <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
-              <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('var(--ac)','none','#fff'),...(rowNarrow&&_demoLinesSlot?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: THE FONT FLOOR IS THE ROW'S, NOT ONE BUTTON'S, AND KUNAL'S OWN INVARIANT IS WHAT SAID SO.
+              <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('var(--ac)','none','#fff'),...((rowNarrow&&_demoLinesSlot)||_flipTight?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: THE FONT FLOOR IS THE ROW'S, NOT ONE BUTTON'S, AND KUNAL'S OWN INVARIANT IS WHAT SAID SO.
                   Dropping only the "Other lines" button to 12px left this one at 14px beside it, and
                   gates/regress/26-invariants.js went RED at se/lesson-demo with a 2px glyph spread on the
                   relationship he commissioned that gate for on 2026-09-15 ("the icons in a row are all one
@@ -11415,7 +11423,7 @@ export default function App(){
                   gates/regress/48-lesson-flow.js, with the arithmetic above recorded so any height can be checked.
                   NOTHING CHANGES AT boardPx>=340, measured and not promised: 375x730 and 390x844 both keep the
                   169.17px box ending at exactly 375.00 and 390.00, so Kunal's Z-06 condition holds by construction.
-                  #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px'}:null)}}>{/* #424 REVERTED THE FONT FLOOR HERE on antagonist B's veto. It shares the slot with "Other lines" - this is what renders when a lesson has no variations - but its min-content is 59.59px against the other's 122.56px, so this branch was ALREADY contained at 14px (measured 320x568: 0.02px of slack) and the floor bought nothing here while costing smaller text on 145 of 170 lessons. The row stays uniform because NEITHER button drops in this branch. See the _demoLinesSlot block for the 34.77px at h=520 this leaves, and its flag. */}⟳ Flip</button>)}
+                  #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px'}:null),...(_flipTight?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424 REVERTED THE FONT FLOOR HERE on antagonist B's veto. It shares the slot with "Other lines" - this is what renders when a lesson has no variations - but its min-content is 59.59px against the other's 122.56px, so this branch was ALREADY contained at 14px (measured 320x568: 0.02px of slack) and the floor bought nothing here while costing smaller text on 145 of 170 lessons. The row stays uniform because NEITHER button drops in this branch. See the _demoLinesSlot block for the 34.77px at h=520 this leaves, and its flag. */}⟳ Flip</button>)}
               {/* #404, AND THE HALF HIS ANSWER DID NOT REACH. Dropping the count took the overhang from 38.9px
                   to 10.3px and NOT to zero: measured at 320x568 after the label change, the button still ran
                   left 189.7 to right 330.3, w 140.6, 10.3px past a 320 screen with nothing able to scroll to

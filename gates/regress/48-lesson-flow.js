@@ -152,6 +152,7 @@ const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root')
   return {bodyPos:bd.position,htmlOvY:h.overflowY,bodyOvY:bd.overflowY,rootOvY:r?getComputedStyle(r).overflowY:null,
     docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
 const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
+// CONTROL-RECORD: ad06ff3 2026-11-11 total=480 red=3 scope=trial:762fd238c730 how=#550 item (130): the tree before the Flip row shrinks to 12px (the row at 14px under rowNarrow) - at 375x520 [endgame-demo-end] the Flip branch is 4.05px past its own row (the containment line), the row's tracks need 227.23px against the 196 pin, and the residual is the band - exactly those three red; the (130) trial 4fe71d55db29 reads 480 pass, 0 fail (the run's tail overlapped an edit to lessons.js at 15:58Z that removed four MORE lessons this gate does not open; its totals equal the earlier full run on the same bundle, 477 pass / 3 fail)
 // CONTROL-RECORD: 48d695d 2026-11-11 total=474 red=18 scope=trial:d3c0e83a78c9 how=#550 item (47): the lesson footer's More actions button given marginRight:-60 (pushed 60px past the edge) - TC-INV-05c's practice-m0 sweep red at 320x568, 375x730 and 390x844, plus the row-containment, row-width, hit-test, label-budget and viewport lines of the practice and wide-and-short loops that the same push moves; demo-end and every other line green
 // CONTROL-RECORD: 3bb86e8 2026-11-06 total=420 red=5 scope=trial:541b28b94918 how=chess.jsx sets document.body.style.position=static at load, one change - the PAGELOCK pin red at short375, 390x568, 375x520, 320x520 and 320x540 while docScroll still reads 0, so the docScroll===0 it replaced stays green on this bundle [#549 item (7)]
 // CONTROL-RECORD: 73e599c 2026-11-06 total=462 red=76 scope=trial:a6430f9419d6 how=chess.jsx with the rail-more chip never rendered (false&&railMore) and the demo action row given marginTop 400 in portrait - TC-R78b red at 956x440 and 568x320 (silent step, every below-fold control missed), TC-R78c red at kunal761, kunal730, kunal and se [#549 item (43)]
@@ -335,6 +336,10 @@ const actionRowHit=(b)=>b.page.evaluate(()=>{
 // padding is 9px/6px under rowNarrow and 9px/15px above it: 2 x 9 = 18.00 = 244.77 - 226.77, measured.
 // Module scope so both the narrow loop and the wide block below read the same numbers.
 const FLIP_NEEDED=226.77;
+// #550 item (130) [jobs/desk-flip-branch-wrap-decision-2026-09-28; Kunal 27 Oct 2026]: where the board is narrower than
+// FLIP_NEEDED the row's text drops to 12px (chess.jsx _flipTight), and the two tracks plus gap then need FLIP_NEEDED_TIGHT -
+// measured 196 at 375x520 on trial 2e78274c37e8. So the cause pin expects the tight value exactly where the app is tight.
+const FLIP_NEEDED_TIGHT=196.0;
 /* #468: the DEMO row's equivalent, stated as a constant rather than left in prose. This file says it in three
    places (:196, :791, :891) - the two children's resolved tracks plus the gap come to 231.55px at EVERY geometry
    under rowNarrow, so the demo residual is 231.55 minus the board width. It was a number in a comment and the two
@@ -1147,8 +1152,15 @@ L.run(async()=>{
      /* THE CAUSE, PINNED. An ellipsis or a minWidth:0 "fix" satisfies a box check by eating the label and
         DROPS this number - which is why the cause is pinned beside the box, exactly as it is for lesson-lines
         above. It is also the term that makes the band arithmetic checkable rather than remembered. */
-     L.say(_f.needed!==null&&Math.abs(_f.needed-FLIP_NEEDED)<=0.6,
-       _tag+': the row\'s two min-content tracks plus gap need '+_f.needed+'px (pinned at '+FLIP_NEEDED+', which is a ROWNARROW-ONLY constant). THE TERM IS THE FLIP BUTTON\'S HORIZONTAL PADDING, NOT ITS FONT - 9px/6px under rowNarrow against 9px/15px above it, and 2 x 9 = 18.00 = 244.77 - 226.77 to the hundredth. This build first printed "because both labels are fixed strings at 14px" and its OWN negative control disproved it: NC1 changes only that padding and moves needed to 244.77 at all six column-states, while at 375x730 the same strings at the same 14px and the same 0.3px letter-spacing give 244.77. Nothing was truncated to make a box fit either: an ellipsis would drop this number and leave the box one happy.',
+     const _tight=_f.rowW<FLIP_NEEDED-0.5, _needPin=_tight?FLIP_NEEDED_TIGHT:FLIP_NEEDED;
+     /* #550 item (130): AND THE BRANCH IS NOW CONTAINED IN ITS OWN ROW AT EVERY GEOMETRY. #549's log read 4.05px past the row
+        at 375x520 (board 223.2 against 226.77 needed); Kunal's answer was 12px text only when it does not fit. Measured on
+        trial 2e78274c37e8: -0.02 at 375x520, and the other four columns unchanged at 14px. */
+     L.say(_f.found&&_f.past<=0.5,
+       _tag+': the Flip branch is CONTAINED in its own row - '+_f.past+'px past it (#550 item (130): it was 4.05 at 375x520 before the row shrank to 12px where it does not fit)'+(_tight?' - the row is tight here and its text is '+_f.fs:''),
+       {past:_f.past,rowW:_f.rowW,needed:_f.needed,tight:_tight,fs:_f.fs});
+     L.say(_f.needed!==null&&Math.abs(_f.needed-_needPin)<=0.6,
+       _tag+': the row\'s two min-content tracks plus gap need '+_f.needed+'px (pinned at '+_needPin+(_tight?', the 12px value where the row is tight':'')+'; '+FLIP_NEEDED+' is a ROWNARROW-ONLY constant). THE TERM IS THE FLIP BUTTON\'S HORIZONTAL PADDING, NOT ITS FONT - 9px/6px under rowNarrow against 9px/15px above it, and 2 x 9 = 18.00 = 244.77 - 226.77 to the hundredth. This build first printed "because both labels are fixed strings at 14px" and its OWN negative control disproved it: NC1 changes only that padding and moves needed to 244.77 at all six column-states, while at 375x730 the same strings at the same 14px and the same 0.3px letter-spacing give 244.77. Nothing was truncated to make a box fit either: an ellipsis would drop this number and leave the box one happy.',
        {needed:_f.needed,pinned:FLIP_NEEDED,tracks:_f.mcTracks,gap:_f.gap,fs:_f.fs});
      /* #468 DELETED THE PER-GEOMETRY-NAME PIN AND REPLACED THE BOUND IT WAS SECRETLY CARRYING.
         WHAT WAS HERE: `const _fp={'375x520':3.58,'320x520':0,'320x540':0}[geo]`, three Flip-row residuals keyed
@@ -1339,10 +1351,12 @@ L.run(async()=>{
         226.77 - boardPx at every height, and the two quantities are measured from different rects - the board
         grid on one side, the row and button on the other. If the board stops sizing this row, this goes red
         while the per-column pins above stay green, and that difference is the diagnosis. */
-     const _pred=Math.round(Math.max(0,FLIP_NEEDED-_fm.board.w)*100)/100;
+     // #550 item (130): where the row is tight its text is 12px and the band's constant is FLIP_NEEDED_TIGHT, not FLIP_NEEDED
+     const _bandNeed=(_f.rowW<FLIP_NEEDED-0.5)?FLIP_NEEDED_TIGHT:FLIP_NEEDED;
+     const _pred=Math.round(Math.max(0,_bandNeed-_fm.board.w)*100)/100;
      const _seen=Math.max(0,_f.past);
      L.say(!!_fm.board&&Math.abs(_fm.board.w-_f.rowW)<=0.6&&Math.abs(_seen-_pred)<=0.6,
-       _tag+': and the residual is the BAND and not this column - the row is the board\'s own width ('+_f.rowW+' against a board of '+_fm.board.w+'), so it is '+FLIP_NEEDED+' minus the board at every height, predicting '+_pred+' against a measured '+_seen+'. This is what covers heights 521-555, which have no column of their own; the band runs to h=555 and is contained from 556.',
+       _tag+': and the residual is the BAND and not this column - the row is the board\'s own width ('+_f.rowW+' against a board of '+_fm.board.w+'), so it is '+_bandNeed+' minus the board at every height, predicting '+_pred+' against a measured '+_seen+'. This is what covers heights 521-555, which have no column of their own; the band runs to h=555 and is contained from 556.',
        {board:_fm.board&&_fm.board.w,rowW:_f.rowW,predicted:_pred,measured:_seen});
      /* WHICH KIND OF OVERFLOW IT IS. Asserted, because the severity is the whole difference between this and
         the defect #424 closed, and a reader of the log should not have to go and find out. */
