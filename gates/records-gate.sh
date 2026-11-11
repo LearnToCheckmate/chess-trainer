@@ -692,6 +692,34 @@ selftest(){
   done
   chk "C12 vacuity: 512 appends were tried (256 byte values, two registers)" 512 "$ntried"
 
+  # C13  THE CONSUMER CONTROL [#550 item (117): jobs/the-guard-registers-cannot-leave-force-until-the-ratchet-speaks-the-
+  #      consumers-language-2026-10-10, remainderAfter520 (1), "a permitted append leaves held.sh check <a held md5> and
+  #      buildnum.sh stampable <a used number> at exit 1 under another runId, which neither patch wrote"]. Every control above
+  #      asks the DOOR's verdict, or the door's own consumer_row_count. This one asks the two REAL consumers, copied beside
+  #      full-format rows, after an append the door ACCEPTS: the held tree must still read HELD and the used number must still
+  #      be unstampable by another run. And the two greens beside them, so the reds cannot be a consumer that refuses all.
+  local CD="$T/c13"; mkdir -p "$CD/gates"; git -C "$CD" init -q 2>/dev/null
+  git -C "$CD" config user.email selftest@local; git -C "$CD" config user.name selftest
+  cp "$HERE/held.sh" "$HERE/buildnum.sh" "$CD/gates/" 2>/dev/null; cp "$door" "$CD/gates/records-gate.sh"
+  printf '440\tbuilt\t-\taaaaaaaaaaaa\t-\t2026-11-01T00:00Z\tbuild__other\tbuild.sh\tn\n441\tbuilt\t-\tbbbbbbbbbbbb\t-\t2026-11-02T00:00Z\tbuild__other\tbuild.sh\tn\n' > "$CD/gates/build-numbers.tsv"
+  printf 'abcdef123456\t1111111111111111111111111111111111111111\t#441\t2026-11-02T00:00Z\tbuild__other\theld for a reason\n' > "$CD/gates/held-trees.tsv"
+  B="$(commitas "$CD" consumer-control-base)"
+  printf '442\tminted\t-\t-\t-\t2026-11-03T00:00Z\tbuild__third\tminted\tn\n' >> "$CD/gates/build-numbers.tsv"
+  printf 'fedcba654321\t2222222222222222222222222222222222222222\t#442\t2026-11-03T00:00Z\tbuild__third\tanother hold\n' >> "$CD/gates/held-trees.tsv"
+  H="$(commitas "$CD" consumer-control-a-permitted-append-to-both)"
+  out="$(bash "$CD/gates/records-gate.sh" "$B" "$H" 2>&1)"; rc=$?
+  chk "C13 setup: the door ACCEPTS the permitted append to both registers" 0 "$rc"
+  ( cd "$CD" && bash gates/held.sh check abcdef123456 ) >/dev/null 2>&1; rc=$?
+  chk "C13 after the permitted append, held.sh check <the held md5> still reads HELD" 1 "$rc"
+  ( cd "$CD" && CT_RUNID=build__another bash gates/buildnum.sh stampable '#440' ) >/dev/null 2>&1; rc=$?
+  chk "C13 and buildnum.sh stampable <a used number> under ANOTHER runId still refuses" 1 "$rc"
+  ( cd "$CD" && bash gates/held.sh check 999999999999 ) >/dev/null 2>&1; rc=$?
+  chk "C13 NON-VACUITY: held.sh check <an md5 no row carries> reads not held" 0 "$rc"
+  ( cd "$CD" && CT_RUNID=build__another bash gates/buildnum.sh stampable '#999' ) >/dev/null 2>&1; rc=$?
+  chk "C13 NON-VACUITY: buildnum.sh stampable <a number on no row> is stampable" 0 "$rc"
+  ( cd "$CD" && bash gates/held.sh check fedcba654321 ) >/dev/null 2>&1; rc=$?
+  chk "C13 and the APPENDED hold is itself read HELD, so the append reached the consumer" 1 "$rc"
+
   # TC-SUITE-RG-001  THIRTEEN HOSTILE INPUTS THROUGH THE SHIPPED DOOR AND THROUGH THE SAME DOOR WITH THE PARSE-STABILITY FALL
   #      COMPARISON PATCHED OUT. This is the differential the first version of the arm never had. Its headline control
   #      (C9) went green on the arm it was written to test because TEXT refused the NUL first, and nothing ever asked the
