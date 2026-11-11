@@ -1,4 +1,5 @@
 // regress/20-review.js  The Review screen's regression suite: TC-R01..TC-R09 and TC-R11..TC-R14 of
+// CONTROL-RECORD: 6a252cf 2026-11-11 total=310 red=10 scope=trial:6d861c33440b how=#550 item (50): chess.jsx's _engRestore made a no-op (leaving analysis keeps the engine line on) - every TC-R71 line red: after-exit and rev-compact at kunal, kunal730 and 390, after-exit and REENTER at se and kunal761; every other line green
 // claude/stories/TEST-CASES.md, executed on the bundle under test at THREE geometries: 375x730 (lib.js GEOS.kunal730,
 // the column R19 superseded - R19 settled 375x761, which this loop does not yet visit [#549 item (23)]); 375x679, which is NOT his phone and is kept only as a
 // shorter-phone column (the 679 came from subtracting the 51pt status bar twice - CLAUDE.md corrects it by name,
