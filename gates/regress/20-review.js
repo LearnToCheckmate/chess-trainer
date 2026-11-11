@@ -46,6 +46,7 @@ L.run(async()=>{
   // #550 check gap cg2: flagOf as a PREDICATE over the case's 17 inputs (7 valid codes, 1 lowercase, 2 unassigned pairs, 7 rejects),
   // through engine-extract so the function measured is the shipped one. A valid code is two regional-indicator letters; the rest are ''.
   {const E=require('../engine-extract.js');const RI=(c)=>String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65));
+   // CONTROL-RECORD: 2acf390 2026-11-11 total=310 red=3 scope=trial:5883dba75012 how=#550 check gap cg2: the refused lookup cached as an answer, with CT_SRC set to the tree without the user-assigned filter (cg2-nox) - TC-R107b, TC-R68 and TC-R68b red
    const cases=[['US',RI('US')],['DE',RI('DE')],['GB',RI('GB')],['IN',RI('IN')],['FR',RI('FR')],['BR',RI('BR')],['JP',RI('JP')],['gb',RI('GB')],
      ['XX',''],['XE',''],['',''],[null,''],['USA',''],['1A',''],['U',''],['U$',''],[' US','']];
    const bad=cases.filter(([i,w])=>E.flagOf(i)!==w).map(([i,w])=>JSON.stringify(i)+' -> '+JSON.stringify(E.flagOf(i))+' (want '+JSON.stringify(w)+')');
