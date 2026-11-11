@@ -11,6 +11,7 @@
 // grading helpers are absent from NAMES. This gate turns that from a silence into a red.
 'use strict';
 const fs=require('fs'), path=require('path');
+// CONTROL-RECORD: 763ff37 2026-11-11 total=3 red=1 scope=blocks:S4 how=#550 item (8): &&pl.docScrollY===0 planted into gate 37's page-lock L.say (37-strip-sync.js, the PAGELOCK_OK line): S4c red naming 37-strip-sync.js; S4a and S4b stay green
 const L=require('../lib.js');
 const ROOT=path.join(__dirname,'..','..');
 const EEPATH=path.join(ROOT,'gates','engine-extract.js');
