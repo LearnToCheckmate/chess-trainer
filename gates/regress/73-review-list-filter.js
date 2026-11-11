@@ -1667,6 +1667,7 @@ function mkTap(b,READ){
     L.say(!!(q.leaf&&q.cw>0&&q.sw<=q.cw),'se '+N+' games: TC-R110 the summary is NOT cut at 320x568 (scrollWidth '+q.sw+' <= clientWidth '+q.cw+': "'+q.t+'")',q);
     L.say(b.errs.length===0,'se '+N+' games: TC-R110 zero app errors',b.errs.slice(0,2));
     await b.close();}
+  // CONTROL-RECORD: 9039fd1 2026-11-11 total=179 red=13 scope=trial:2b920fe00278 how=#550 item (53): this run's trial source with 9039fd1's chess.jsx hunk reverted (the games-list rows ellipsise again, the badge back to per-word widths) - TC-R153a, b, c and d red at 320x568, 375x761 and 440x956 (12), and TC-R76 kunal730 (the row-height line, reported); every other line green. #549's three records for 9039fd1 were never committed (job (100)'s whatIsLeft: d2d4513 and 5dbc389 are not in this repository), so this measurement replaces them rather than restoring their figures
   // ── TC-R153 (US-INV-04 clause 4c) [#549 item (100); jobs/labels-truncate-in-shared-rows-2026-09-24, and the folded-in
   // jobs/games-list-outcome-badge-word-spills-its-pill-2026-09-28]. A GAME ROW REFLOWS; IT DOES NOT CUT THE OPPONENT'S NAME.
   // Before: the opponent line and the line under it shared a row with the fixed result badge and the fixed 'Review ›', got the
