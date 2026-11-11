@@ -4475,6 +4475,7 @@ export default function App(){
      #549 item (30) a review waits up to 120s for Stockfish rather than falling back in 5s (so a busy phone does not hand the game to a
      different grader), and the screen said '0% · checking every move' throughout. anaLoadAt is when that wait began (0 when not waiting);
      the analysing panel says so, with a seconds count, until the engine answers. */
+  const [anaFail,setAnaFail]=useState(null);   /* #550 a32 (Kunal 2026-11-11): a review whose analysis stops says so, with Try again and Back to games (mockup 550-136-k14-2) */
   const [anaLoadAt,setAnaLoadAt]=useState(0);const [anaLoadTick,setAnaLoadTick]=useState(0);
   useEffect(()=>{if(!anaLoadAt)return;const t=setInterval(()=>setAnaLoadTick(x=>x+1),1000);return ()=>clearInterval(t);},[anaLoadAt]);
   const [pgnErr,setPgnErr]=useState('');
@@ -6066,8 +6067,14 @@ export default function App(){
     if(res.plies.length===0){setPgnErr(res.error||'Could not read any moves.');return;}
     const headers=parsePGNHeaders(text);
     if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only — check that move in your PGN.`);
-    setAnalyzing(true);setProgress(0);
+    setAnaFail(null);setAnalyzing(true);setProgress(0);
     await new Promise(r=>setTimeout(r,30));
+    /* #550 a32: THE ANALYSIS RUNS INSIDE ONE try. Before this, anything that threw in here - or a table group that failed on every
+       engine after all its retries (it was stored from a partial or static score and the review shown as if it were whole) - left the
+       player on "Analyzing your game" for ever, or on a review graded by a different engine with nothing said. Now both end on the
+       failure panel: "The review stopped before it finished." with Try again (the same game, from the start) and Back to games. */
+    const _anaStop={on:false};
+    try{
     /* #549 item (30), jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04: WHICH GRADER REVIEWS THE GAME MUST NOT
        DEPEND ON HOW BUSY THE PHONE IS. This read `sfReadyRef.current?await ensureAna():false`: if the play worker had not answered readyok
        by the time of the tap, or the analysis worker took more than 5 s to load, the game went to the built-in depth-2 engine - a different
@@ -6165,9 +6172,12 @@ export default function App(){
         const _group=async(ev,g0,g1)=>{
           for(let a=0;a<2;a++){if(a){_eng.retried++;await new Promise(r=>setTimeout(r,800));}const rs=await _try(ev,g0,g1,false);if(rs)return rs;}
           for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
-          const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,true));_eng.abandoned+=rs.filter(r=>!_okR(r)).length;return rs;
+          const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,true));_eng.abandoned+=rs.filter(r=>!_okR(r)).length;
+          /* #550 a32: a group no engine could finish is not graded from a partial score - the review STOPS and says so */
+          if(rs.some(r=>!_okR(r))){const _e=new Error('engine-stopped');_e.ctEngine=true;throw _e;}
+          return rs;
         };
-        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}setProgress(done/(N+1));}};
+        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}setProgress(done/(N+1));}};
       if(_slots.length>=1){
         _eng.workers=_slots.length;
         const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
@@ -6390,6 +6400,11 @@ export default function App(){
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
+    }catch(e){
+      _anaStop.on=true;try{poolClose();}catch(_){}setAnaLoadAt(0);
+      if(typeof window!=='undefined')window.__ctAnaFail={why:(e&&e.ctEngine)?'engine':'error',msg:String((e&&e.message)||e).slice(0,160)};   // harness seam, read-only
+      setAnaFail({pgn:text,meta:meta||null,why:(e&&e.ctEngine)?'engine':'error'});
+    }
   };
   const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const reviewPlayedGame=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return;const _pm=pgnMovesFrom(mvs,opponent==='online'?null:playStartFenRef.current);let pgn=_pm.text;   /* #550 item (88): numbered from the set-up position, its FEN in the tags below */
@@ -10509,7 +10524,24 @@ export default function App(){
       )}
 
       {/* ── Analyze: analyzing progress ── */}
-      {mode==='analyze'&&analyzing&&(()=>{const pct=Math.round(progress*100);const R=46,CIRC=2*Math.PI*R;const TIPS=['A brilliant move (!!) gives up material for a winning blow.','Accuracy measures how close your moves were to the best ones.','Blunders are the moves that cost you the most.','Tap a key-moment chip to jump straight to it.','The eval bar shows who is winning, and by how much.'];const tip=TIPS[Math.min(TIPS.length-1,Math.floor(progress*TIPS.length))];return(
+      {mode==='analyze'&&analyzing&&anaFail&&(
+        <div data-ct="ana-fail" role="alert" style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
+          <div style={{position:'relative',width:124,height:124,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="124" height="124" style={{position:'absolute',top:0,left:0}}><circle cx="62" cy="62" r="46" fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="8"/></svg>
+            <div style={{opacity:.75}}><Piece t="n" color="w" sz={56}/></div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,maxWidth:330,textAlign:'center'}}>
+            <div data-ct="ana-fail-title" style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>The review stopped before it finished.</div>
+            <div data-ct="ana-fail-why" style={{fontSize:'clamp(14px,2.8vw,14px)',color:'rgba(255,255,255,.66)',fontWeight:600,lineHeight:1.4}}>{anaFail.why==='engine'?'The engine stopped answering. Nothing you did caused it.':'Something went wrong while checking the moves. Nothing you did caused it.'}</div>
+          </div>
+          <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+            <button data-ct="ana-fail-retry" onClick={()=>{const f=anaFail;setAnaFail(null);importGame(f.pgn,f.meta);}} style={{minHeight:44,padding:'0 20px',borderRadius:12,border:'none',background:'var(--ac)',color:'#10131a',fontWeight:800,fontSize:'clamp(15px,3.6vw,16px)'}}>Try again</button>
+            <button data-ct="ana-fail-back" onClick={()=>{setAnaFail(null);setAnalyzing(false);setProgress(0);}} style={{minHeight:44,padding:'0 20px',borderRadius:12,border:'1px solid rgba(255,255,255,.22)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:700,fontSize:'clamp(15px,3.6vw,16px)'}}>Back to games</button>
+          </div>
+          <div style={{maxWidth:344,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 Try again starts this game's review from the beginning. Moves already checked are not kept.</div>
+        </div>
+      )}
+      {mode==='analyze'&&analyzing&&!anaFail&&(()=>{const pct=Math.round(progress*100);const R=46,CIRC=2*Math.PI*R;const TIPS=['A brilliant move (!!) gives up material for a winning blow.','Accuracy measures how close your moves were to the best ones.','Blunders are the moves that cost you the most.','Tap a key-moment chip to jump straight to it.','The eval bar shows who is winning, and by how much.'];const tip=TIPS[Math.min(TIPS.length-1,Math.floor(progress*TIPS.length))];return(
         <div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
           <div style={{position:'relative',width:124,height:124,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <svg width="124" height="124" style={{position:'absolute',top:0,left:0,transform:'rotate(-90deg)'}}>

@@ -392,7 +392,7 @@ async function launch(opts={}){
   if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal761\'} is Kunal\'s phone, 375x761 with insets, per R19; see GEOS); an omitted geometry no longer defaults to 375x679');
   const geo=typeof opts.geo==='object'?opts.geo:GEOS[opts.geo];
   if(!geo)throw new Error('unknown geo '+opts.geo);
-  if(opts.engineFail!=null&&opts.engineFail!=='pool'&&opts.engineFail!=='all')throw new Error('L.launch: engineFail must be \'pool\' or \'all\', not '+JSON.stringify(opts.engineFail));
+  if(opts.engineFail!=null&&opts.engineFail!=='pool'&&opts.engineFail!=='all'&&opts.engineFail!=='review')throw new Error('L.launch: engineFail must be \'pool\', \'all\' or \'review\', not '+JSON.stringify(opts.engineFail));
   const srv=await serve(opts);
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;
   const browser=await P.chromium.launch(launchOpts);
@@ -419,6 +419,10 @@ async function launch(opts={}){
   //                       terminated and its onerror fired, which is exactly what a worker that dies does - the slot is
   //                       marked dead, ensurePool resolves with no live slot after its own ~9 s wait, and the review
   //                       falls back to sfEval1. The analysis worker and the mount worker stay alive.
+  //   engineFail:'review' - [#550 a32] a stockfish worker is real until it is sent `go depth 16`, the review's search (sfEvalOn's
+  //                       DCAP and sfEval1's depth) and nothing else's; that worker then dies the same way. Every review engine -
+  //                       each pool slot and the analysis worker - dies on its first review search, which is an engine that stops
+  //                       answering MID-REVIEW: the case the review's failure panel exists for. A Play game never sends it.
   // KNOW ITS LIMIT: 'pool' recognises the pool by the message the app sends it. If ensurePool stops setting Hash the
   // route silently fails nothing, so a gate that drives it must assert `(await b.engineFail()).failed>0` in its own
   // L.say - a fallback that was never taken is reported, never credited (CLAUDE.md, "assert the collection is
@@ -435,9 +439,9 @@ async function launch(opts={}){
         const w=new RW(url,o);const pm=w.postMessage.bind(w);let dead=false;
         w.postMessage=function(m){
           if(dead)return;
-          if(typeof m==='string'&&/^setoption name Hash value /.test(m)){
+          if(typeof m==='string'&&(mode==='pool'?/^setoption name Hash value /:/^go depth 16$/).test(m)){
             dead=true;S.failed++;try{w.terminate();}catch(e){}
-            setTimeout(()=>{let ev;try{ev=new ErrorEvent('error',{message:'ct engineFail:pool'});}catch(e){ev={type:'error',message:'ct engineFail:pool'};}try{if(typeof w.onerror==='function')w.onerror(ev);}catch(e){}},0);
+            setTimeout(()=>{let ev;try{ev=new ErrorEvent('error',{message:'ct engineFail:'+mode});}catch(e){ev={type:'error',message:'ct engineFail:'+mode};}try{if(typeof w.onerror==='function')w.onerror(ev);}catch(e){}},0);
             return;
           }
           return pm(m);

@@ -122,3 +122,4 @@
 107-ask-once-is-this-account-yours.js	required	550	2026-11-11	build__1794388896663	gates/regress/107-ask-once-is-this-account-yours.js - AN ACCOUNT IS ASKED ABOUT ONCE, WH	#550 answer a19: an imported account is asked about once - is it his
 108-medieval-discover-icons.js	required	550	2026-11-11	build__1794388896663	gates/regress/108-medieval-discover-icons.js - THE MEDIEVAL SKIN DRAWS ITS OWN DISCOVER 	#550 answer a22: the Medieval skin's Discover icons
 109-moves-chips-icon-only.js	required	550	2026-11-11	build__1794388896663	gates/regress/109-moves-chips-icon-only.js - THE MOVES ROW'S ANALYZE AND COPY ARE SMALL 	#550 answer a6: gate 109, Analyze and Copy are icon-only chips with a 44pt tap box
+110-review-fail-panel.js	required	550	2026-11-11	build__1794388896663	gates/regress/110-review-fail-panel.js - A REVIEW WHOSE ENGINE STOPS ANSWERING SAYS SO, 	#550 answer a32: gate 110, the review failure panel

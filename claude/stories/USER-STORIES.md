@@ -2131,3 +2131,10 @@ As a player at a lesson's moves row, Analyze and Copy are small icons rather tha
 - Each tap area is at least 44 by 44 while the visible chip is at most 32 wide. (TC-R189b)
 - The two tap areas do not overlap. (TC-R189c)
 
+### US-R123 When a review cannot finish, it says so and lets me try again
+*Added #550 answer a32 (Kunal on build__1794388896663, 11 Nov 2026: "a short message with Try again and Back to games when a review's analysis fails, as in your mockup (550-136-k14-2)").*
+As a player whose review's engine stops answering partway, I am told the review stopped and that it was not my doing, with Try again and Back to games, instead of a progress screen that never ends or a review graded from nothing.
+- The panel says "The review stopped before it finished." and "The engine stopped answering. Nothing you did caused it.", and no review summary is shown. (TC-R190a)
+- Try again and Back to games are on screen and a thumb's size, and the progress line is gone. (TC-R190b)
+- Try again reviews the same game again from the start. (TC-R190c)
+- Back to games returns to the Review screen. (TC-R190d)

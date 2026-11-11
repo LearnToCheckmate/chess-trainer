@@ -13,8 +13,9 @@
 //   TC-RL-008  K16 ANSWERED: decisions/k16-backgrounding, "It must finish, or pick up where it left off", and his
 //              note says the current behaviour is already right on his device - "PIN IT WITH A GATE". Headless
 //              Chromium still cannot stop the run, so the pin needs a route this sandbox does not have yet.
-//   TC-RL-009  K14 ANSWERED BUT ON HOLD: decisions/k14-analysis-failed-screen, "A short message with a Try again
-//              button", with the note "HOLD - show me mockups ... DO NOT BUILD". Still nothing to assert.
+//   TC-RL-009  K14 BUILT AT #550 (answer a32: the mockup 550-136-k14-2 approved): the failure panel with Try again and
+//              Back to games is asserted by gates/regress/110-review-fail-panel.js (TC-R190), which induces the failure
+//              with lib's engineFail:'review'. Nothing of it is asserted here.
 //
 // WHAT IS PINNED AND WHAT IS DELIBERATELY NOT. The doc measured the summary arriving in 15-27 s across six
 // geometries. That number is a property of the MACHINE, not of the app, so pinning it here would make this
