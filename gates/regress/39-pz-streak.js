@@ -1,4 +1,5 @@
 // regress/39-pz-streak.js  Z-04 (Kunal, choice "Streak"). THE ONLY GUARD ON THIS CHANGE.
+// CONTROL-RECORD: 24f4294 2026-11-11 total=227 red=13 scope=trial:851f1d7f8d6e how=#550 item (23): the training card's pz-top given marginTop 40 when solved (the board pushed down on the first solve) - TC-PZ-SOLVED39 red at kunal761 and 320x568 with the board-top lines it moves; every other line green
 // CONTROL-RECORD: 04419c4 2026-11-06 total=219 red=4 scope=trial:5f575748b380 how=the HEAD 4637b44 bundle, whose landscape rail held the hint only in puzMsg - TC-R86 'the hint is STILL in the header after the wrong move' and 'and still after a second wrong move' red at 730x375 and 844x390 [#549 item (46)]
 //
 // THE DEFECT. On a phone, a puzzle hint TAKES THE HEADER ROW - that was Y-03/Z-01, and it is the one row that

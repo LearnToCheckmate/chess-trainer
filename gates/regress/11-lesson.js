@@ -320,6 +320,7 @@ L.run(async()=>{
 // an UNPARSABLE record, taking that ratchet field from 0 to 1 against main. The tool's own comment says the
 // colon is what makes a line a claim; a prose mention of the form must therefore omit it.
 // Filed as its own finding on the job rather than left in this comment alone.
+// CONTROL-RECORD: e753b08 2026-11-11 total=240 red=4 scope=trial:1bcc54084c94 how=#550 item (9): the lesson footer's Copy label lengthened to 'Copy every move of this game' (a label that wraps the row, the job's proposed control for the post-#430 tree) - TC-LS-046's four lines red; six later lines of the same visit not reached (234 of 240 ran), every line that ran otherwise green
 // CONTROL-RECORD: 055192b 2026-10-28 total=64 red=7 scope=trial:8d809ba235f7 how=the edge-path board x0.9, so every lesson board is ~10% small
 // CONTROL-RECORD: 44bf4b3 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the edge-path board x0.9 again, re-run on the grown 84-assertion gate so the record covers items (24) and (24b) of #544 [#545 item (2)]
 // CONTROL-RECORD: 777aa06 2026-10-29 total=84 red=7 scope=trial:3fb73f240fd0 how=the same x0.9 trial re-run after #545 item (4) rewrote the kunal demo-end line, whose L.say sites moved the 44bf4b3 record to ASSERTIONS-MOVED
