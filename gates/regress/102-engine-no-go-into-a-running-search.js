@@ -16,6 +16,7 @@
 // "unreachable"/RuntimeError page error.
 // THE PLAY ARM IS NOT CONTROLLED, named: its walk did not overlap two searches on this machine even with the eval bar's stop-and-wait
 // removed (c97 left it green), so only the Review arm is shown able to fail.
+// CONTROL-RECORD: a94b3a2 2026-11-11 total=7 red=1 scope=trial:384422fdd7b6 how=#550 item (97): c97, the eval bar's query posted without stopIdle(S_MAIN) - the review walk's early-go line red (worker 0: 21 go, 10 early); the play arm, both DENOMINATORS and the trap lines green (the play walk does not overlap searches)
 const L=require('../lib');const R=require('../drive/review');const P=require('../drive/play');
 const WRAP=()=>{const W=window.Worker;let n=0;window.__wk=[];
   window.Worker=function(url,opt){const w=new W(url,opt);const rec={id:n++,gos:0,bms:0,open:0,early:0};window.__wk.push(rec);
