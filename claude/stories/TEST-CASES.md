@@ -23,6 +23,14 @@ section, but only over a ROW of the same id, and nothing else defines a case. Co
 line in any other way (a bare or bold definition included), and prints the total. A count from `grep '^| *TC-'` is
 now the same number, and that is the point.
 
+**A GAME-OVER CASE STATES WHICH ENDING REACHED IT, AND WHICH PLY IT ASSERTS AT** [#550 item (113);
+jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, theFix's last part]. The app's "is the game over" questions
+have a ply-keyed form (`isOver`, true only AT the terminal position) and a game-keyed one (`_gameOver`, true at every ply
+once the game has ended), and a BOARD ending (mate, stalemate) reaches them differently from a NON-BOARD ending (resign,
+time, agreement). So a case asserting play chrome after a game ends writes, in its steps, the ending it used (mate or a
+named non-board ending) and the ply it reads at (the terminal ply, or N plies back). TC-PL-037 is the model: two endings,
+read at the terminal ply and one ply back.
+
 ---
 
 ## Review - executed against #373 (gates/regress/20-review.js and 21-review-brilliant.js; log gates/logs/373-all.log, copied to claude/agents/gatelogs/373-all.log) - SAT copied 2026-09-12 23:4x ET from that log
