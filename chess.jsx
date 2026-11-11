@@ -7642,6 +7642,14 @@ export default function App(){
   // viewport-clean (59.97px inside the right edge), and shrinking 145 lessons' buttons at every narrow geometry
   // is not a proportionate price for 30px at one height band. Filed with its numbers instead.
   const _demoLinesSlot=(!wide&&demoPly>=learnLine.length&&LIB[openIdx]&&LIB[openIdx].vars&&LIB[openIdx].vars.length>0);
+  /* #550 item (130) [jobs/desk-flip-branch-wrap-decision-2026-09-28; Kunal 27 Oct 2026,
+     decisions/flip-row-shrinks-to-fit-if-a-recheck-shows-it-still-overflows-2026-10-27]: re-measured on main first, as he asked
+     - #549's log reads the Flip branch 4.05px past its own row at 375x520 and contained elsewhere. The row's two min-content
+     tracks plus gap need FLIP_ROW_NEED (226.77px, gate 48's FLIP_NEEDED) at 14px under rowNarrow, so its text drops to 12px
+     (letter-spacing 0, Kunal's icon-font-ls rung) ONLY when the board is narrower than that - both buttons, so the row stays
+     one size. At every board that already fits, nothing changes. */
+  const FLIP_ROW_NEED=227.5;   // 226.77 on #426's toolchain, 227.23 measured on this one at #550; the half-pixel covers both
+  const _flipTight=rowNarrow&&!_demoLinesSlot&&boardPx<FLIP_ROW_NEED;
   // #415 FOUND, MEASURED AND DID NOT FIX A SECOND DEFECT ON THE SAME ROW, and the reason is worth the space
   // because the obvious fix is worse than the defect. At a short viewport the demo row's "Other lines" button
   // runs OFF THE SCREEN: measured on the shipped #414 bundle at the demo end, 320x520 puts it at
@@ -7655,14 +7663,6 @@ export default function App(){
   // THE OBVIOUS FIX WAS BUILT AND MEASURED AND THEN REVERTED: `minWidth:0` plus overflow and textOverflow -
   // the mechanism #384 used for the practice row - does stop the overflow, and it costs more than the
   // overflow does. Measured on that trial bundle (md5 4519cfcb8e84): the button becomes 26.83px wide at
-  /* #550 item (130) [jobs/desk-flip-branch-wrap-decision-2026-09-28; Kunal 27 Oct 2026,
-     decisions/flip-row-shrinks-to-fit-if-a-recheck-shows-it-still-overflows-2026-10-27]: re-measured on main first, as he asked
-     - #549's log reads the Flip branch 4.05px past its own row at 375x520 and contained elsewhere. The row's two min-content
-     tracks plus gap need FLIP_ROW_NEED (226.77px, gate 48's FLIP_NEEDED) at 14px under rowNarrow, so its text drops to 12px
-     (letter-spacing 0, Kunal's icon-font-ls rung) ONLY when the board is narrower than that - both buttons, so the row stays
-     one size. At every board that already fits, nothing changes. */
-  const FLIP_ROW_NEED=227.5;   // 226.77 on #426's toolchain, 227.23 measured on this one at #550; the half-pixel covers both
-  const _flipTight=rowNarrow&&!_demoLinesSlot&&boardPx<FLIP_ROW_NEED;
   // 320x520, which is the pawn glyph and an ellipsis and nothing else, and it also starts truncating at
   // 375x568 (122.56 -> 94.59) where nothing was wrong before. The button was always wider than its grid
   // cell; only the viewport edge made it visible. So letting it shrink destroys Kunal's own answer
