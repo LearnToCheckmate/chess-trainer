@@ -9,6 +9,7 @@
 //  (a) TC-R189a DENOMINATOR both controls are on screen; each draws an svg and NO text, and carries an aria-label naming it (Analyze / Copy).
 //  (b) TC-R189b each tap box (the button's border box) is at least 44 wide and 44 tall, and the visible chip inside it is at most 32px wide.
 //  (c) TC-R189c the two tap boxes do not overlap (min of x- and y-overlap <= 0), so neither steals the other's tap.
+// CONTROL-RECORD: 139f155 2026-11-11 total=11 red=4 scope=trial:455ff0ea4f3f how=#550 answer a6: the tree before the icon chips (worded 'Analyze' / 'Copy' pills, 61.4 and 46 wide, no aria-label) - TC-R189a and TC-R189b red at kunal761 and se; the DENOMINATORS, TC-R189c and the font pin green. On t52 (28378590a526) 11 of 11 green
 const L=require('../lib');const D=require('../drive/lesson');
 L.run(async()=>{
   for(const geo of ['kunal761','se']){
