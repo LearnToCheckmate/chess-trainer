@@ -130,6 +130,7 @@
 // CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=0 scope=trial:d4f570553154 how=#549 item (51), the fixed trial bundle, no injection - the baseline the two rows below are read against
 // CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=2 scope=trial:d5069383fa60 how=#549 item (51), a trial bundle with _steps' fallback hold removed (the #452 code): reds SF3 and SF4 (TC-GL-011) and no other line (151 PASS)
 // CONTROL-RECORD: a8f0648 2026-11-06 total=153 red=1 scope=env:CT_G15_NC=landLow,trial:d4f570553154 how=#549 item (51), the held bar pushed to bottom:-30px at 730x375 only: reds M6b 730x375 (TC-GL-008) alone
+// CONTROL-RECORD: 7035d01 2026-11-11 total=132 red=9 scope=trial:d367ca5603b2 how=#550 answer a29: the tree before KEV was removed (the queue still '1 KEV|2 SCR|3 EXP', a manual card in it) - the pinned-queue lines at kunal and 375x812, the F1 count at three widths and M1 red; on t50 (87014810e439) 132 of 132 green, the three manual-card blocks NOT RUN, NAMED
 // CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:2d58713526fe how=#549 item (88): the home dev row's guard with `!recCap` removed (the hide dropped): TC-GL-012 M12 red alone at 375x730 (run nc1)
 // CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:4b74d46c0ea8 how=#549 item (88): the dev row also gated on a flag set by the manual card and never cleared (a hide that never lifts): TC-GL-012 M13 red alone at 375x730 (run nc2)
 //
@@ -202,8 +203,10 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
 /* #547 item (53): PHONE removed from the ask queue (Kunal's phone is settled at 375x761), so KEV is card 1 and the
    queue holds one card. */
 /* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
-const PINNED_IDS='1 KEV|2 SCR|3 EXP';   /* #550 item (11): EXP, the plain-words engine reading, joins as card 3 */
-const EXPECTED_N=3;
+/* #550 answer a29 (the orchestrator, 11:37am ET: the Kevitsch screenshot is held, 'remove the KEV card as provided'): KEV leaves, so SCR
+   is card 1 and EXP card 2. */
+const PINNED_IDS='1 SCR|2 EXP';   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
+const EXPECTED_N=2;
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -843,8 +846,8 @@ L.run(async()=>{
      CONTROL, RUN AND RECORDED: CT_APP=<the shipped #451 app.js, md5 aba551f896c7> - the ideal control, free, and
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
-  const MANUAL_CARD='1 · KEV';     // as PINNED_IDS spells it (it was '2 · KEV' until #547 removed PHONE)
-  const EXPECTED_MANUAL=1, EXPECTED_AUTO=2, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
+  const MANUAL_CARD=null;     // #550 a29: no manual card in the queue (it was '1 · KEV'); the manual-card blocks below report NOT RUN rather than pass
+  const EXPECTED_MANUAL=0, EXPECTED_AUTO=2, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
@@ -875,7 +878,8 @@ L.run(async()=>{
     // B8-SMALL-DEFAULTS (6)]: a manual card's badge says WHEN its instruction holds - tapped on its own - because inside Play all the
     // walk moves on and the old 'its instruction stays up until you hide it' was false there. Read off each manual card's badge.
     {const man=screen.cards.filter(c=>c.manual);
-     L.say(man.length>0&&man.every(c=>!!c.badge&&/on its own/.test(c.badge)&&/stays up until you hide it/.test(c.badge)),'M2b TC-GL-006 every manual card\'s badge qualifies the hold: it stays up only when the card is tapped on its own',man.map(c=>c.badge));}
+     if(EXPECTED_MANUAL===0)L.note('M2b NOT RUN, NAMED [#550 a29]: no manual card in the queue, so no manual badge to read (M2 asserts 0 manual).');
+     else L.say(man.length>0&&man.every(c=>!!c.badge&&/on its own/.test(c.badge)&&/stays up until you hide it/.test(c.badge)),'M2b TC-GL-006 every manual card\'s badge qualifies the hold: it stays up only when the card is tapped on its own',man.map(c=>c.badge));}
     // M3: the header states both modes and no longer asserts that every card drives itself (the measured falsehood)
     L.say(screen.headerNamesAuto&&screen.headerNamesManual,
       'M3: the header names BOTH modes in the same words the cards use',{auto:screen.headerNamesAuto,manual:screen.headerNamesManual});
@@ -900,7 +904,7 @@ L.run(async()=>{
     L.say(esc.length===0,'M9: no string painted on the gallery is a literal escape sequence rather than the character it names',esc);
     await b.close();
   }
-  {
+  if(MANUAL_CARD){
     /* M4, THE HEADLINE. Tap the card the pin marks manual and hold the clock on it. Assert the banner was UP
        first (#385: when an assertion says X is present in state S, prove S was reached and X was there to begin
        with), then that it is STILL up at 30 s. On the #451 bundle it is gone at ~9 s. */
@@ -1001,6 +1005,7 @@ L.run(async()=>{
     L.say(badM.length===0,'M: no app error while holding and hiding the instruction',{other:badM.slice(0,2)});
     await b.close();
   }
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
   {
     /* M8: THE FIX MUST NOT HAVE WIDENED. A self-driving card still expires on its own hold - card 1 carries
        h:10000, so it must be gone well before the 30 s the manual card now holds for. Without this, "make it
@@ -1037,7 +1042,7 @@ L.run(async()=>{
      2026-10-01]: the held bar is permanent until hidden, and landscape is the one orientation nobody had measured it in. Driven
      the way gates 62, 64 and 16 drive landscape, as a {w,h,safe} geo, so M6 and M6b (TC-GL-008) now read it there too, and
      M6c reads the bar against EVERY button on that 375-tall screen rather than only the bottom quarter, as a recorded measurement. */
-  for(const [glab,ggeo] of [['320x568','se'],['375x568','short375'],['730x375',{w:730,h:375,safe:''}]]){
+  if(MANUAL_CARD)for(const [glab,ggeo] of [['320x568','se'],['375x568','short375'],['730x375',{w:730,h:375,safe:''}]]){
     const b=await L.launch({geo:ggeo,name:'hide-'+glab,store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
     const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
@@ -1076,13 +1081,14 @@ L.run(async()=>{
     }
     await b.close();
   }
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
   /* SF TC-GL-011 [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-2026-10-01]:
      A STEP THAT ARRIVES AFTER HIDE. _steps' fallback branch (no bar up when a step fires) built a bar with no hold until #547, so it
      came back with neither a Hide control nor a timer - stuck for good. No ask card carries steps, so no gate could reach that
      branch; chess.jsx's ct_scsteps seam gives the manual card one step at STEP_MS. Each state is proven reached before its claim
      [#385]: the bar is up after the tap, gone after Hide, and BACK after the step (so the fallback really ran) before SF3 asks
      whether it came back hideable. CONTROL: a trial bundle with the fallback's hold removed (the #452 code) reddens SF3 and SF4. */
-  {const STEP_MS=4500;
+  if(MANUAL_CARD){const STEP_MS=4500;
    const b=await L.launch({geo:'kunal761',name:'steps-fallback',store:{ct_pool:'3',ct_scsteps:String(STEP_MS)}});await b.open();
    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
@@ -1108,6 +1114,7 @@ L.run(async()=>{
    }
    L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'SF TC-GL-011 zero app errors',b.errs.slice(0,2));
    await b.close();}
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
   /* Q: THE QUEUE'S OWN LENGTHS, POSITIVELY [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-
      which-is-its-success-condition-2026-10-01, TC-GL-003]. The empty queue is the queue's SUCCESS condition and until now no
      gate could reach it: the guard above only stopped the walk from throwing when it arrived. chess.jsx now honours
