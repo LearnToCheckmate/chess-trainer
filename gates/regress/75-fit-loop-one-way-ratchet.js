@@ -705,8 +705,10 @@ L.run(async()=>{
   {
     const P=require('../drive/play.js');
     const SCELLS=[
-      {n:'375x730', g:L.GEOS.kunal730, px:100},
-      {n:'375x761', g:L.GEOS.kunal761, px:130},
+      // #550 item (64) move 1 RE-CALIBRATED: the eval bar sits above the board now and the board is 375 wide, so each cell has 44px less
+      // slack (measured on trial 4beae0ee40d6: 100px gave a 57px overflow at 375x730, 130px gave 56 at 375x761). Was 100 and 130.
+      {n:'375x730', g:L.GEOS.kunal730, px:56},
+      {n:'375x761', g:L.GEOS.kunal761, px:86},
     ];
     const STEP=8,SAME=1,FRAMES=90,SMALL=20;
     for(const c of SCELLS){

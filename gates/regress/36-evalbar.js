@@ -206,10 +206,12 @@ const lum=(c)=>{const f=(v)=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055
 const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);};
 const n2=(v)=>Math.round(v*100)/100;
 
+// #550 item (64) move 1: the bar sits ABOVE the board by default now (ct_evalmig550); this gate is about the bar BESIDE it, which
+// the menu still offers, so both launches seed that placement with both migrations marked done (or they rewrite ct_evalunder).
 // The Play half. Returns the one pair the cross-state invariant needs, or null if the bar never appeared.
 async function playAt(geo){
   const vw=L.GEOS[geo].w, tag=geo;
-  const b=await L.launch({geo,name:'evalbar-'+geo,store:{ct_pool:'3'}});await b.open();
+  const b=await L.launch({geo,name:'evalbar-'+geo,store:{ct_evalmig361:'1',ct_evalmig550:'1',ct_evalunder:'0',ct_pool:'3'}});await b.open();
 
   // --- Play vs Computer, move 0
   await P.states['cpu-m0'](b);await b.settle(500);
@@ -276,7 +278,7 @@ L.run(async()=>{
   // --- Review keeps its 18. The decision named the 10px PLAY bar; Review's bar was already 18 and is not part
   // of it. The restyle DOES reach Review, because both placements are the same element - said out loud here
   // rather than left for someone to discover.
-  const b2=await L.launch({geo:'kunal730',name:'evalbar-review',store:{ct_pool:'3'}});await b2.open();
+  const b2=await L.launch({geo:'kunal730',name:'evalbar-review',store:{ct_evalmig361:'1',ct_evalmig550:'1',ct_evalunder:'0',ct_pool:'3'}});await b2.open();
   await b2.tile('Review');
   await b2.page.locator('textarea').first().fill('[White "A"] [Black "B"] 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *');
   await b2.tapText(/^⚡ Analyze Game$/,{wait:300});

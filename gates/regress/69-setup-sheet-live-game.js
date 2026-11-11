@@ -27,7 +27,7 @@
 // A6/A7 while A4 stays green, which is what proves A4 alone is not the finish line.
 //
 // ══ THE INSTRUMENT FOR "IS IT STILL MY GAME", AND WHY IT IS NOT A HOOK THIS BUILD ADDED ══════════════
-// A7 reads [data-ct="eval-bar-v"], which chess.jsx:7586 paints iff (inReview || (mode==='play' &&
+// A7 reads [data-ct="eval-bar-v"] (or, since #550 item (64), [data-ct="eval-bar-h"] above the board, the default), which chess.jsx:7586 paints iff (inReview || (mode==='play' &&
 // opponent==='computer')) && !hideEval && !evalUnder. It is the app's own pre-existing readout of `opponent`,
 // so a bundle that resumes with opponent='computer' paints it and a correctly resumed Pass & Play game does
 // not. #432's rule: a check that reads only what the fix added cannot see the defect the fix removes - so
@@ -86,7 +86,9 @@ const SETTLE_NOMOVE=3500;
 
 const moverow=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 const sheetUp=(b)=>b.page.evaluate(()=>!!document.querySelector('[data-ct="setup-sheet"]'));
-const evalBar=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-v"]');if(!e)return null;const r=e.getBoundingClientRect();return {w:Math.round(r.width*100)/100,h:Math.round(r.height*100)/100};});
+// #550 item (64) move 1: the bar sits ABOVE the board by default now (eval-bar-h), beside it only when the menu says so (eval-bar-v),
+// so the instrument reads whichever of the two is painted; A7p still proves it can be present.
+const evalBar=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-v"]')||document.querySelector('[data-ct="eval-bar-h"]');if(!e)return null;const r=e.getBoundingClientRect();return {w:Math.round(r.width*100)/100,h:Math.round(r.height*100)/100};});
 const elo=(b)=>b.page.evaluate(()=>{try{return localStorage.getItem('ct_elo');}catch(e){return 'ERR';}});
 const bars=(b)=>b.page.evaluate(()=>{const g=(k)=>{const e=document.querySelector('[data-ct="pbar-'+k+'"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;};return {top:g('top'),bottom:g('bottom')};});
 const hasBtn=(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);return [...document.querySelectorAll('button')].some(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1&&r.test((x.innerText||'').trim());});},[re.source,re.flags]);

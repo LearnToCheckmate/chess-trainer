@@ -2210,3 +2210,11 @@ As a player who keeps finding the same Brilliant, I see my Brilliants and my mis
 - I can choose up to three kinds, and tap one off again; the button says how many cards I will practise. (TC-R197d)
 - The drill then runs on the chosen kinds only. (TC-R197e)
 - With one kind on one shelf, or with the switch off, the drill starts at once as before. (TC-R197f)
+
+### US-R130 Against the computer my board is edge to edge, with the eval bar above it
+*Added #550, item (64) move 1, jobs/board-is-too-small-against-chesscom-2026-09-23; Kunal's answer B9C-BOARD-SIZE "all-three: also move the eval bar above the board". The job reserved US-R38 and TC-R48, both taken long before (#496, #476), so the ids are new.*
+As a player in a game against the computer, I see the board as wide as my phone, as chess.com shows it, because the eval bar sits above the board instead of taking a strip beside it.
+- On a fresh store the bar is above the board and the board is the full width, at 375x761, 375x730 and 430x932. (TC-R198a)
+- A store that kept the bar beside before #550 has it above once, and its board is edge to edge. (TC-R198b)
+- The menu's Eval bar row still puts it beside, and that choice stands. (TC-R198c)
+- Where the board is limited by height (320x568, 375x667) the bar above makes it smaller, and on every screen the board starts lower; that cost is his to judge (run question q35), and no case asserts it either way.

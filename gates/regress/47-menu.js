@@ -304,7 +304,7 @@ if(blk('C')){
     ['Sound',                        'ct_sound',     'ON','OFF',                       '1','0',  'TC-MN-011'],
     ['Evaluation bar',               'ct_hideEval',  'ON','OFF',                       '0','1',  'TC-MN-012'],
     ['Cell depth & texture',         'ct_depth',     'OFF','ON',                       '0','1',  'TC-MN-013'],
-    ['Eval bar sits',                'ct_evalunder', 'left of the board','above the board','0','1','TC-MN-014'],
+    ['Eval bar sits',                'ct_evalunder', 'above the board','left of the board','1','0','TC-MN-014'],   // #550 item (64) move 1: ABOVE by default now (ct_evalmig550), so its first tap puts it beside
     ['Eval graph in the player bars','ct_evalgraph', 'ON · try it in Review','OFF · option C','1','0','TC-MN-015'],   // #547 item (56): ON by default now, so its first tap turns it OFF
     ['Layout overlay',               'ct_layoutgrid','OFF','drawn on screen',          '0','1',  'TC-MN-016'],
   ];
@@ -374,7 +374,7 @@ if(blk('D'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
 // so that what is under test is the CONSUMER of the setting, and MN-C already owns the producer.
 // =========================================================================================================
 if(blk('E'))for(const [val,want] of [['0',true],['1',false]]){
-  const b=await L.launch({geo:'kunal730',name:'mn-e-'+val,store:{ct_hideEval:val},fresh:true});await b.open();
+  const b=await L.launch({geo:'kunal730',name:'mn-e-'+val,store:{ct_evalmig361:'1',ct_evalmig550:'1',ct_evalunder:'0',ct_hideEval:val},fresh:true});await b.open();   // #550 item (64): the beside placement is no longer the default, so it is seeded (both migrations marked done, or they rewrite ct_evalunder)
   await b.tile('Play');await b.settle(900);
   const ev=await b.page.evaluate(()=>({v:!!document.querySelector('[data-ct="eval-bar-v"]'),
     h:!!document.querySelector('[data-ct="eval-bar-h"]')}));
@@ -384,7 +384,7 @@ if(blk('E'))for(const [val,want] of [['0',true],['1',false]]){
   // assert-only-the-side-bar-2026-10-29]: `ev.h` was collected here and never read. In the default placement the bar ABOVE
   // the board must not paint whichever way ct_hideEval is set. TC-MN-041 and TC-MN-042 are drafted on
   // jobs/bench-no-gate-asserts-any-figure-the-layout-readout-prints-2026-10-07, so these take 043 to 045.
-  L.say(ev.h===false,'375x730: TC-MN-043 ct_hideEval='+val+' in the DEFAULT placement (beside the board) and the bar ABOVE the board [data-ct="eval-bar-h"] does not paint either',ev);
+  L.say(ev.h===false,'375x730: TC-MN-043 ct_hideEval='+val+' in the placement beside the board (ct_evalunder 0, seeded) and the bar ABOVE the board [data-ct="eval-bar-h"] does not paint either',ev);
   await b.close();
 }
 // #545 item (36): THE PLACEMENT ABOVE THE BOARD (ct_evalunder 1, the placement Kunal asked for at #340; the app paints it

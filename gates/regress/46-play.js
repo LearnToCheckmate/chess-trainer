@@ -171,7 +171,11 @@ const overhangLive=(b)=>b.page.evaluate(()=>{
 // #548 item (92) RE-PINNED, measured on the #548 trial with the same probe that reproduces the old pins on main c7f6a1228e43 to 0.1px:
 // Home and Menu have a 44px top row of their own and the move strip under the board is gone, so every board sits lower and at 320x568
 // the boards are WIDER (vs Computer 288 -> 298, Pass & Play 272 -> 280); at 375x730 and 390x844 the widths are unchanged.
-const CPU={se:{bw:298,bx:20,by:88,barW:298,barH:34},kunal730:{bw:353,bx:20,by:121.7,barW:353,barH:67.7},'390':{bw:368,bx:20,by:128,barW:368,barH:74}};
+// #550 item (64) move 1 RE-PINNED vs Computer, measured on trial 02206a0f900e: the eval bar moved ABOVE the board (Kunal's B9C-BOARD-SIZE
+// "all-three"), so where WIDTH binds the board is edge to edge (kunal730 353 -> 375, 390 368 -> 390) and where HEIGHT binds it is smaller
+// (se 298 -> 272, the bar's 22px of height); every vs-Computer board starts 22 to 23px lower. Was: se 298 at (20,88) bars 34, kunal730 353 at
+// (20,121.7) bars 67.7, 390 368 at (20,128) bars 74. The cost on short screens is run question q35. Pass & Play has no eval bar and is unchanged.
+const CPU={se:{bw:272,bx:24,by:111,barW:272,barH:35},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
 const PP ={se:{bw:280,bx:20,by:89,barW:280,barH:35},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
 const ROW_LIVE=['Moves','Back','Forward','Hint','Flip','More'];
 const ROW_OVER=['Moves','Back','Forward','Review','Rematch','More'];
@@ -244,8 +248,14 @@ L.run(async()=>{
     // THE GAP IS PINNED AT 2px, MEASURED AT #545 ON 049b41dfb6f1 AT ALL THREE GEOMETRIES (se 60.5 -> 62.5, kunal730 91.73 -> 93.7,
     // 390 101 -> 103): the column's own 2px gap, not a row. The first draft asserted <= 1px and went red on main at all three,
     // which is the measurement, so the pin moved to it. #351's row was 40px; anything that occupies vertical space is red.
-    const gapTB=(!!pt&&!!m.board)?m.board.top-(pt.y+pt.h):null;
-    L.say(gapTB!=null&&Math.abs(gapTB-2)<=0.6,geo+': NOTHING SITS BETWEEN THE TOP BAR AND THE BOARD - the only space is the 2px column gap measured at #545 (bar bottom '+(pt?(pt.y+pt.h).toFixed(1):'?')+', board top '+(m.board?m.board.top:'?')+', gap '+(gapTB==null?'?':gapTB.toFixed(2))+'), so a re-added #351 row is red whatever it contains',{barBottom:pt&&+(pt.y+pt.h).toFixed(2),boardTop:m.board&&m.board.top,gap:gapTB});
+    // #550 item (64) move 1: the eval bar now sits ABOVE the board by default (Kunal's B9C-BOARD-SIZE), so in a game against the computer
+    // that band holds exactly one thing, [data-ct="eval-bar-h"], 17px tall with a 5px bottom margin. Its outer height comes off the gap
+    // and the rest must still be the 2px column gap; the bar must also lie inside the band, so a row added beside it is still red.
+    const evh=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="eval-bar-h"]');if(!e)return null;const r=e.getBoundingClientRect(),cs=getComputedStyle(e);
+      return {top:r.top,bottom:r.bottom,outer:r.height+(parseFloat(cs.marginTop)||0)+(parseFloat(cs.marginBottom)||0)};});
+    const evIn=!evh||(!!pt&&!!m.board&&evh.top>=pt.y+pt.h-0.5&&evh.bottom<=m.board.top+0.5);
+    const gapTB=(!!pt&&!!m.board&&evIn)?m.board.top-(pt.y+pt.h)-(evh?evh.outer:0):null;
+    L.say(gapTB!=null&&Math.abs(gapTB-2)<=0.6,geo+': NOTHING SITS BETWEEN THE TOP BAR AND THE BOARD but the eval bar ('+(evh?'above the board, '+evh.outer.toFixed(1)+'px with its margin, taken off':'none here')+') - the only other space is the 2px column gap measured at #545 (bar bottom '+(pt?(pt.y+pt.h).toFixed(1):'?')+', board top '+(m.board?m.board.top:'?')+', gap '+(gapTB==null?'?':gapTB.toFixed(2))+'), so a re-added #351 row is red whatever it contains',{barBottom:pt&&+(pt.y+pt.h).toFixed(2),boardTop:m.board&&m.board.top,gap:gapTB});
 
     // --- TC-PL-003: the control row, measured BEFORE anything is clicked. locator.click() would scroll a
     // control into view and pass a row a thumb cannot reach; these rects are the pre-tap truth.
