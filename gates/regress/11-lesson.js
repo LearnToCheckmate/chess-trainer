@@ -561,6 +561,7 @@ L.run(async()=>{
   // "N. san — " prefix the demo prepends. A note overflows when the probe is taller than the scroller's clientHeight. The DENOMINATOR (the
   // note count) is its own assertion; the count is PINNED per geometry at what this build measures, so a content edit or a box change that
   // clips more notes goes red and has to move the pin on purpose. CT_LS058_ONLY=1 runs this block alone.
+  // CONTROL-RECORD: 8a852bd 2026-11-11 total=5 red=2 scope=env:CT_LS058_ONLY=1 how=#550 item (82): c82 (0ca1bcd2a0d3), the lesson-note box 60px tall instead of 75 (scroller 44) - both TC-LS-058 count lines red (195 and 315 notes against pins 67 and 119); the two DENOMINATORS and the font pin green
   {
     const PIN058={kunal761:{max:67},se:{max:119}};   // measured #550 on trial b195c3c10627: 67 and 119 of 2262
     for(const geo of Object.keys(PIN058)){
