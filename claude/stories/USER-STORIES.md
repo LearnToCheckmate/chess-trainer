@@ -2072,3 +2072,8 @@ As a player who reviews many games, every review I run is kept on this phone, so
 *Added #550 item (89), jobs/a-legacy-drill-card-with-no-stored-hint-shows-a-generic-look-for-the-most-forcing-line-that-misdirects-on-quiet-cards-2026-11-07.*
 As a player drilling mistakes saved before hints were stored, the Hint on such a card names the shape of its own position, as a newly saved card does, and never sends me looking for a tactic on a quiet card.
 - A legacy card with no stored hint: quiet - "No tactic to spot here"; forcing - the line "ends the game"; never "Look for the most forcing or solid option". (TC-R183a, TC-R183b)
+
+### US-R117 While a review waits for the engine, the screen says so
+*Added #550 item (90), jobs/a-review-can-wait-up-to-120s-for-stockfish-with-no-visible-waiting-state-2026-11-07 (#549 antagonist B's B3).*
+As a player starting a review on a busy phone, when the review waits for Stockfish to load (up to two minutes, so every move is graded by the same engine) the screen tells me it is loading the engine and counts the seconds, instead of a progress line frozen at 0%.
+- While the engine loads, the analysing panel reads "Loading the Stockfish engine… Ns" and the count rises; once the engine is served the review completes. (TC-R184a, TC-R184b)

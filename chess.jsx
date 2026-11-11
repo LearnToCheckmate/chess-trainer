@@ -4380,6 +4380,12 @@ export default function App(){
   const [revAuto,setRevAuto]=useState(false);
   const [analyzing,setAnalyzing]=useState(false);
   const [progress,setProgress]=useState(0);
+  /* #550 item (90) [jobs/a-review-can-wait-up-to-120s-for-stockfish-with-no-visible-waiting-state-2026-11-07; #549 antagonist B's B3]: since
+     #549 item (30) a review waits up to 120s for Stockfish rather than falling back in 5s (so a busy phone does not hand the game to a
+     different grader), and the screen said '0% · checking every move' throughout. anaLoadAt is when that wait began (0 when not waiting);
+     the analysing panel says so, with a seconds count, until the engine answers. */
+  const [anaLoadAt,setAnaLoadAt]=useState(0);const [anaLoadTick,setAnaLoadTick]=useState(0);
+  useEffect(()=>{if(!anaLoadAt)return;const t=setInterval(()=>setAnaLoadTick(x=>x+1),1000);return ()=>clearInterval(t);},[anaLoadAt]);
   const [pgnErr,setPgnErr]=useState('');
   const [showBest,setShowBest]=useState(false);
   const [showGates,setShowGates]=useState(false);
@@ -5980,7 +5986,7 @@ export default function App(){
        at all gets the built-in engine. A game whose Stockfish output is already cached is graded from it without waiting. */
     const _ckEarly=evalCacheKey(res.plies,_st.fen);
     const _c0=evalCacheAll()[_ckEarly];
-    const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await ensureAna(REVIEW_ENGINE_WAIT);
+    const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await (async()=>{/* #550 item (90): the wait for Stockfish (up to REVIEW_ENGINE_WAIT, 120s at rest) is SHOWN, not silent */const _ready=!!(sfAnaRef.current&&sfAnaReadyRef.current);if(!_ready)setAnaLoadAt(Date.now());try{return await ensureAna(REVIEW_ENGINE_WAIT);}finally{setAnaLoadAt(0);}})();
     const _eng={path:useSF?'pool':'builtin',workers:0,retried:0,abandoned:0,cached:false};   // #549 item (30): how this review was computed, for the harness (review.engine)
     let out=[];
     if(useSF){
@@ -10379,8 +10385,8 @@ export default function App(){
           </div>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
             <div style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
-            <div style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{pct}% · checking every move</div>
-            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{(poolN>1?('Running '+poolN+' Stockfish engines side by side, one position each, to catch the tactics and brilliancies.'):'Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.')}</div>
+            <div data-ct="ana-progress" style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{anaLoadAt?('Loading the Stockfish engine\u2026 '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):(pct+'% · checking every move')}</div>
+            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{anaLoadAt?'The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.':(poolN>1?('Running '+poolN+' Stockfish engines side by side, one position each, to catch the tactics and brilliancies.'):'Running a deep Stockfish pass to catch the tactics and brilliancies, so this takes a few seconds.')}</div>
           </div>
           <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
         </div>

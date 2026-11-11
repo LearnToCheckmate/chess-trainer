@@ -111,3 +111,4 @@
 96-video-call-timeout-and-optout.js	required	550	2026-11-11	build__1794388896663	gates/regress/96-video-call-timeout-and-optout.js - AN UNANSWERED CALL GIVES UP, AND A P	#550 item (87): video call timeout and opt-out, TC-PL-068
 97-setup-game-carries-its-fen.js	required	550	2026-11-11	build__1794388896663	gates/regress/97-setup-game-carries-its-fen.js - A GAME PLAYED FROM A SET-UP POSITION IS	#550 item (88): a set-up game carries its FEN, TC-PL-069
 98-legacy-drill-card-hint.js	required	550	2026-11-11	build__1794388896663	gates/regress/98-legacy-drill-card-hint.js - A DRILL CARD SAVED WITH NO HINT GETS ITS OW	#550 item (89): legacy drill card hint, TC-R183
+99-review-engine-wait-shown.js	required	550	2026-11-11	build__1794388896663	gates/regress/99-review-engine-wait-shown.js - WHILE A REVIEW WAITS FOR STOCKFISH, THE S	#550 item (90): the review shows its wait for the engine, TC-R184
