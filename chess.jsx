@@ -4304,6 +4304,7 @@ export default function App(){
   const [videoOpen,setVideoOpen]=useState(false);
 
   // Analyze / Review
+  const [pasteHelp,setPasteHelp]=useState(false);   // #550 a12: the paste row's '?' how-to
   const [pgnText,setPgnText]=useState('');
   const [chessUser,setChessUser]=useState(()=>{try{return localStorage.getItem('ct_ccuser')||'';}catch{return '';}});
   const [lichessUser,setLichessUser]=useState(()=>{try{return localStorage.getItem('ct_liuser')||'';}catch{return '';}});
@@ -9875,7 +9876,6 @@ export default function App(){
           {lastReview&&!review&&(<button onClick={()=>{setReview(lastReview);setReviewView('summary');}} style={{alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:7,padding:'8px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Back to your analysis</button>)}
           <div style={{textAlign:'center'}}>
             <div style={{fontSize:'clamp(15px,3.6vw,18px)',color:'#fff',fontWeight:800}}>Review any game, from anywhere</div>
-            <div style={{fontSize:'clamp(15px,3.4vw,17px)',color:'var(--ac2)',fontWeight:600,marginTop:3,lineHeight:1.45}}>Pull in your games from Chess.com or Lichess and review them all. Unlimited and free.</div>
           </div>
           {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReal=gk.filter(k=>GS[k]&&GS[k].src!=='est');const gReviewed=gReal.length;let tB=0;gReal.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gk.length>0||pTot>0||pzXP>0||(ccGames&&ccGames.length>0);   /* #547 item (99): shown from FIRST PAINT when the list has games, so the background pass's first tally cannot mount it above the list and push every row 253px down */ /* #547 item (67): the tiles count REAL reviews only; the panel still shows on ANY entry */if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliancies',tB,'#22d3ee']];return(
             <div data-ct="prog-panel" style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:14,padding:0,boxShadow:SHADOW_BOX}}>
@@ -9900,6 +9900,22 @@ export default function App(){
               </div>
               </div>)}
             </div>);})()}
+          {/* #550 answer a12 (item 95), jobs/review-analyze-game-sits-below-the-fold-with-stored-games-at-six-of-seven-geometries-2026-11-07: Option A,
+              docs/mockup-q12-paste-2026-11-11 (the orchestrator's pick after Kunal said no preference). The paste box was a 130px textarea with its
+              Analyze button UNDER the games list, so with stored games it sat below the fold at six of seven geometries. It is now ONE LINE above
+              Import - the box (still a textarea, so a pasted PGN keeps its line breaks), a '?' that shows the how-to, and Analyze - and the intro is
+              its one heading line. */}
+          <div data-ct="paste-row" style={{display:'flex',gap:6,alignItems:'stretch'}}>
+            <textarea data-ct="paste-box" rows={1} value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder="Paste a PGN here" aria-label="Paste a PGN here"
+              style={{flex:1,minWidth:0,height:44,minHeight:44,padding:'11px 10px',borderRadius:10,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(14px,3.4vw,16px)',resize:'none',lineHeight:1.3,fontFamily:'monospace',overflow:'hidden',whiteSpace:'nowrap'}}/>
+            <button data-ct="paste-help" onClick={()=>setPasteHelp(h=>!h)} aria-expanded={pasteHelp} aria-label="How to get a PGN" style={{flexShrink:0,width:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:17,cursor:'pointer',padding:0}}>?</button>
+            <button data-ct="paste-analyze" onClick={importGame} style={{...btn('var(--ac)','none','#fff'),flexShrink:0,minHeight:44,padding:'0 11px',fontSize:'clamp(14px,3.4vw,16px)',fontWeight:700,whiteSpace:'nowrap'}}>⚡ Analyze Game</button>
+          </div>
+          {pgnErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.4}}>{pgnErr}</div>}
+          {pasteHelp&&(<div data-ct="paste-howto" style={{fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.6}}>
+            <b style={{color:'rgba(255,255,255,.75)'}}>Getting your game from Chess.com:</b><br/>
+            Open the finished game → tap <b>Share</b> → <b>PGN</b> → copy, then paste it above. The review finds your mistakes, blunders, and the moves you should have played.
+          </div>)}
           {myMistakes.length>0&&(<button onClick={startMistakes} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(240,162,78,.2),rgba(240,162,78,.06))',border:'1px solid rgba(240,162,78,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
             <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>
             <span style={{flex:1,minWidth:0}}>
@@ -10448,15 +10464,6 @@ export default function App(){
                   shape of the report that opened this job. */}
               {_shown.length===0&&_anyF&&(<div data-ct="glist-empty" style={{padding:'10px 2px',fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.66)',lineHeight:1.5}}>{_emptyTxt} <button data-ct="glist-empty-clear" onClick={_clearAll} style={{minHeight:44,padding:'0 11px',marginLeft:2,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'clamp(13.5px,2.9vw,15px)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>Clear filters</button></div>)}
               </>);})()}
-          </div>
-          <div style={{textAlign:'center',fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.4)',fontWeight:600,letterSpacing:.5}}>— OR PASTE A PGN —</div>
-          <textarea value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder={'Paste your PGN here, e.g.\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...\n\nor the full Chess.com export with [Event ...] headers.'} 
-            style={{width:'100%',minHeight:130,padding:12,borderRadius:10,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',resize:'vertical',lineHeight:1.5,fontFamily:'monospace'}}/>
-          {pgnErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.4}}>{pgnErr}</div>}
-          <button onClick={importGame} style={{...btn('var(--ac)','none','#fff'),padding:'12px',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:700}}>⚡ Analyze Game</button>
-          <div style={{fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.5)',lineHeight:1.6}}>
-            <b style={{color:'rgba(255,255,255,.7)'}}>Getting your game from Chess.com:</b><br/>
-            Open the finished game → tap <b>Share</b> → <b>PGN</b> → copy, then paste it above. The review finds your mistakes, blunders, and the moves you should have played.
           </div>
         </div>
       )}

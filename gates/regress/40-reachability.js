@@ -52,6 +52,7 @@
 //   AND THIS GATE'S FIRST VERSION WENT GREEN ON THE REAL CONTROL TOO, 12 of 12, for both reasons above. A gate
 //   written to warn about a measurement error, making exactly that error, is the most useful thing in this file.
 'use strict';
+// CONTROL-RECORD: ce729f6 2026-11-11 total=42 red=5 scope=trial:b19697cd53cb how=#550 answer a12: the tree before the paste row (paste box under the games list, no '?') - both TC-R40-HELP-REST lines red at se and kunal730 (no '?' to find), and kunal730's declared-none denominator red because the old entry screen put 10 boxes below the fold there; the a12 trial a6ef99c17548 reads 42 pass, 0 fail
 const L=require('../lib');
 // ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
 // assert `docScroll===0` on its own, and that number is 0 BY CONSTRUCTION here: index.html sets html,body{overflow:hidden}
@@ -229,7 +230,13 @@ const HELP_REST={};       // geo -> was the named help text already on screen at
 
 L.run(async()=>{
   for(const geo of ['se','kunal730']){
-    const b=await L.launch({geo,name:'reach-'+geo,store:{}});await b.open();
+    /* #550 answer a12 (item 95): THE SWEEP NOW SEEDS STORED GAMES. With the paste box a one-line row above Import, the EMPTY Review entry screen
+       FITS at both geometries (measured on trial a6ef99c17548: 0 boxes below the fold at se and kunal730), so an empty store gave this gate's headline
+       a zero denominator everywhere - its own across-the-sweep floor went red, as it was written to. Three stored games put the list and its rows
+       below the fold again, which is the screen a player with an account actually reaches. */
+    const _R=require('../drive/review');
+    const SEEDED={ct_accts:['cc:jsmiller1112'],ct_acctgames:{'cc:jsmiller1112':[0,1,2].map(i=>({src:'cc',acct:'jsmiller1112',pgn:_R.PGN_OPERA,white:'Jsmiller1112',black:'Opp'+i,wr:'win',tc:'blitz',date:Date.now()-86400000*(i+1)}))}};
+    const b=await L.launch({geo,name:'reach-'+geo,store:SEEDED});await b.open();
     await b.tile('Review');await b.settle(700);
 
     const bf=await scan(b);
@@ -244,6 +251,11 @@ L.run(async()=>{
     L.say(kind===DENOM_KIND[geo],geo+': THE DENOMINATOR OF THE HEADLINE ASSERTION, asserted rather than noted - this geometry contributed '+bf.items.length+' box(es) below the fold ('+kind+'), and it is DECLARED to contribute '+DENOM_KIND[geo]+'. At kunal730 that number is ZERO, so the headline PASS below is an EMPTY-SET pass at Kunal\'s own geometry and proves nothing there; saying so is the point of this line [jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28].',DENOM[geo]);
     L.say(stranded.length===0,geo+': over '+bf.items.length+' input(s) - and that count is the assertion above, not decoration - every box below the fold on the Review entry screen can be SCROLLED onto the screen by a finger - measured by actually scrolling its user-scrollable ancestors and re-reading the rect, not by finding one and assuming. "Below the fold" is not "unreachable", and that is the measurement the test lane got wrong twice in one night.',stranded.slice(0,3));
 
+    // #550 answer a12 (item 95, Option A): the how-to sits behind the paste row's '?' (docs/mockup-q12-paste-2026-11-11), so the rest state
+    // TC-R40-HELP-REST pinned is now ONE TAP: the '?' is on screen at rest, and after that tap the help text is on screen with no scroll.
+    const qm=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="paste-help"]');if(!e)return null;const r=e.getBoundingClientRect();const bar=document.querySelector('[data-ct="tabbar"]');const fold=bar?bar.getBoundingClientRect().top:innerHeight;return {top:Math.round(r.top),bottom:Math.round(r.bottom),h:Math.round(r.height),fold:Math.round(fold)};});
+    L.say(!!qm&&qm.top>=0&&qm.bottom<=qm.fold&&qm.h>=44,geo+': TC-R40-HELP-REST the paste row\'s "?" (the how-to) is ON SCREEN AT REST, at least 44px ('+JSON.stringify(qm)+')',qm);
+    try{await b.page.locator('[data-ct="paste-help"]').click();await b.settle(400);}catch(e){L.note(geo+' ? tap: '+String(e).slice(0,100));}
     const help=await reach(b,/Getting your game from Chess\.com/i);
     HELP_REST[geo]=help.found?!!help.onScreenAtRest:null;
     L.say(help.found,geo+': the help text the report named is on this screen at all',help);
@@ -255,7 +267,7 @@ L.run(async()=>{
     // what is asserted here. WHY THE TAP ROUTE IS GONE: the help used to be reached by scrolling an overflowing entry screen (the
     // 80.2px the #382 report misread); the entry screen now fits it above the fold, so there is no route left to exercise, and
     // the line below stays as a guard should it ever fall below the fold again.
-    L.say(help.found&&help.onScreenAtRest===true&&(help.restBottom-help.restTop)>=8,geo+': TC-R40-HELP-REST the named help text is ON SCREEN AT REST AND PAINTED (at least 8px tall - the first control, which hid it, read a 0x0 box at top 0 and passed) - no scroll and no tap needed to find it (rest top '+help.restTop+', bottom '+help.restBottom+' of '+help.vh+')',{restTop:help.restTop,restBottom:help.restBottom,vh:help.vh});
+    L.say(help.found&&help.onScreenAtRest===true&&(help.restBottom-help.restTop)>=8,geo+': TC-R40-HELP-REST after that one tap the named help text is ON SCREEN, unscrolled, AND PAINTED (at least 8px tall - the first control, which hid it, read a 0x0 box at top 0 and passed) - no scroll and no tap needed to find it (rest top '+help.restTop+', bottom '+help.restBottom+' of '+help.vh+')',{restTop:help.restTop,restBottom:help.restBottom,vh:help.vh});
     // THE SECOND VACUITY IN THE SAME FILE, from the same audit's first alsoFromTheSameAudit item: at kunal730
     // this gate's own note read "scrollers:0, top 466, bottom 482, vh 730", i.e. the text is on screen AT REST,
     // so the next assertion certifies no scrolling there either. Recorded per geometry and asserted across the

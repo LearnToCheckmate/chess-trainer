@@ -65,7 +65,10 @@ L.run(async()=>{
   const SURF=[
     {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
     {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
-    {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:true}];
+    // #550 answer a12 (item 95): REV_PIN IS RETIRED. The paste row now sits above Import (Option A, docs/mockup-q12-paste-2026-11-11), so with
+    // stored games "⚡ Analyze Game" is on screen on arrival at every column (measured on trial a6ef99c17548: its row top 123..128 at every
+    // geometry, the tab bar at 512..900) and TC-INV-08i asserts that, as 08g and 08h do. REV_PIN above is kept as the record of what it was.
+    {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:false}];
   for(const g of ['kunal761',...L.TA7]){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
     const b=await L.launch({geo:g,name:'prim-'+n});await b.open();
@@ -83,7 +86,7 @@ L.run(async()=>{
       const sc=await b.innerScrollers();
       L.note('    '+n+' '+s.key+': '+s.name+' bottom '+r.bottom+' against the fold '+r.fold+' (tab bar top; innerHeight '+r.vh+'; first read '+first+') -> '+(past>0?past+'px BELOW the fold':'on screen')+';  inner scrollers: '+(sc.map(x=>x.id+' hides '+x.hiddenY+'px').join(', ')||'none'));
       if(!s.pinned){
-        L.say(past<=0,n+' '+s.key+': TC-INV-'+(s.key==='puzzles'?'08g':'08h')+' on arrival, unscrolled, '+s.name+' sits above the fold ('+(past<=0?(-past)+'px clear':past+'px BELOW it')+')',{past,bottom:r.bottom,fold:r.fold,inner:sc});
+        L.say(past<=0,n+' '+s.key+': TC-INV-'+(s.key==='puzzles'?'08g':s.key==='review-stored'?'08i':'08h')+' on arrival, unscrolled, '+s.name+' sits above the fold ('+(past<=0?(-past)+'px clear':past+'px BELOW it')+')',{past,bottom:r.bottom,fold:r.fold,inner:sc});
       } else if(REV_PIN&&Object.prototype.hasOwnProperty.call(REV_PIN,n)){
         L.say(Math.abs(past-REV_PIN[n])<=0.5,n+' '+s.key+': TC-INV-08i with stored games '+s.name+' sits '+past+'px past the fold on arrival, as pinned ('+REV_PIN[n]+'). A known below-the-fold defect pinned, not passed; a move either way is red',{past,pin:REV_PIN[n],inner:sc});
       } else L.note('    TC-INV-08i NOT ASSERTED at '+n+': no REV_PIN for it.');
