@@ -273,9 +273,37 @@ ps_del_lines_in() {
 # Every path the payload ADDS as a new file, one per line. git format-patch emits
 # "new file mode <mode>" on the line after the "diff --git" line of an addition.
 ps_new_paths() {
+  # #550 item (120) [jobs/a-truncated-payload-declares-paths-in-its-stat-summary-and-exposes-none-so-s0-s1-and-s2-are-
+  # all-blind-to-it-2026-10-13]: ALSO the stat summary's " create mode <mode> <path>" lines, so an addition a commit
+  # DECLARES is a new path to S1/S3 even where its diff never arrived. Each path printed once per payload (seen[]),
+  # because S3 counts rows and a path read from both places must not count as two files.
   awk '
     /^diff --git a\/.* b\// { path=$0; sub(/^diff --git a\/.* b\//,"",path); next }
-    /^new file mode / { if (path != "") { print path; path="" } }
+    /^new file mode / { if (path != "") { if (!(path in seen)) { seen[path]=1; print path }; path="" } }
+    /^ create mode [0-7]+ / { p=$0; sub(/^ create mode [0-7]+ /,"",p); if (p != "" && !(p in seen)) { seen[p]=1; print p } }
+  ' "$1"
+}
+
+# #550 item (120): per commit, the paths its stat summary DECLARES (" <path> | N +-", " create mode", " delete mode")
+# that no "diff --git" header in that same commit EXPOSES. A payload cut right after a commit's stat block is the
+# shape: git apply --stat reads the earlier commits' diffs whole and ignores the tail, so (b) of S0 passes it. Prints
+# "<sha> <declared> <exposed> <first-missing-path>" for each commit with a declared path it does not expose.
+ps_undeclared_hunks() {
+  awk '
+    function flush() { if (sha != "") { miss=""; nm=0; for (p in decl) { hit=0
+          for (q in diffp) { if (q == p || (substr(p,1,3) == "..." && length(q) >= length(p)-3 && substr(q, length(q)-length(p)+4) == substr(p,4))) { hit=1; break } }
+          if (!hit) { nm++; if (miss == "") miss=p } }
+        nd=0; for (p in decl) nd++; ne=0; for (q in diffp) ne++
+        if (nm > 0) print sha, nd, ne, miss }
+      delete decl; delete diffp; instat=0 }
+    $1 == "From" && $2 ~ /^[0-9a-f][0-9a-f]+$/ { flush(); sha=$2; next }
+    /^---$/ { instat=1; next }
+    instat && /^ [0-9]+ files? changed/ { next }
+    instat && /^ (create|delete) mode [0-7]+ / { p=$0; sub(/^ (create|delete) mode [0-7]+ /,"",p); decl[p]=1; next }
+    instat && /^ .* => .* \| / { next }   # a rename stat line names two paths in brace form, and its diff header names the new one
+    instat && /^ .* \| +([0-9]+|Bin)/ { p=$0; sub(/^ /,"",p); sub(/ +\| +([0-9]+|Bin).*$/,"",p); decl[p]=1; next }
+    /^diff --git a\/.* b\// { instat=0; q=$0; sub(/^diff --git a\/.* b\//,"",q); diffp[q]=1; next }
+    END { flush() }
   ' "$1"
 }
 
@@ -357,6 +385,12 @@ verify_set() {
     nd=$(grep -c '^diff --git ' "$f" || true); np=$(ps_paths "$f" | grep -c . || true)
     if [ "$nd" != "$np" ]; then
       fail S0-SET-READABLE "$(basename "$f") has $nd 'diff --git' header(s) and ps_paths reads $np: an unparsed path is invisible to every collision check"
+      continue
+    fi
+    local undecl; undecl="$(ps_undeclared_hunks "$f" | head -n 1)"
+    if [ -n "$undecl" ]; then
+      local u_sha u_nd u_ne u_p; read -r u_sha u_nd u_ne u_p <<< "$undecl"
+      fail S0-SET-READABLE "$(basename "$f") commit $u_sha declares $u_nd path(s) in its stat summary and its diff exposes $u_ne ($u_p has no 'diff --git' hunk): a truncated payload, and a path S1..S6 cannot see"
       continue
     fi
     if ! git apply --stat "$f" >/dev/null 2>&1; then
@@ -913,6 +947,26 @@ selftest() {
   { mk_commit_header 0a1b2c3 "lane1"; printf 'diff --git a/odd b/odd\nindex 1..2 100644\n--- a/odd\n+++ b/odd\n@@ -1 +1 @@\n-a\n+b\n'; printf 'diff --git "a/one" b/two\n'; } > "$T/X/lane1"
   out=$(verify_set "$T/X")
   expect_line  C101-S0-fires-on-an-unparsed-diff-header "$out" '^S0-SET-READABLE +FAIL .*2 .diff --git. header\(s\) and ps_paths reads 1'
+  # C102..C105 [#550 item (120); jobs/a-truncated-payload-declares-paths-in-its-stat-summary-and-exposes-none-so-s0-s1-
+  # and-s2-are-all-blind-to-it-2026-10-13; its 20-payload set of 13 Oct is not in this container, so these are CONSTRUCTED
+  # stand-ins, said so]. THREE INPUTS: (1) a whole two-commit payload WITH stat summaries passes S0; (2) the same payload
+  # cut right after its second commit's stat block - git apply --stat reads commit 1 whole and ignores the tail, so this
+  # passed S0 before - is a RED naming the commit and the declared path; (3) a stat block declaring a create the diff
+  # carries is harvested ONCE by ps_new_paths (both sources, one row), so S3 cannot count one file twice.
+  mkdir -p "$T/TS" "$T/TW"
+  stat1=$' gates/regress/97-x.js | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 gates/regress/97-x.js\n\n'
+  stat2=$' gates/verify-log.sh | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n\n'
+  { mk_commit_header 0a1b2c3 "lane1a"; printf '%s' "$stat1"; mk_new gates/regress/97-x.js
+    mk_commit_header 0a1b2c4 "lane1b"; printf '%s' "$stat2"; mk_mod gates/verify-log.sh; } > "$T/TW/lane1"
+  out=$(verify_set "$T/TW"); rc=$?
+  expect_line  C102-S0-passes-a-whole-payload-with-stat-summaries "$out" '^S0-SET-READABLE +PASS 1 well-formed'
+  { mk_commit_header 0a1b2c3 "lane1a"; printf '%s' "$stat1"; mk_new gates/regress/97-x.js
+    mk_commit_header 0a1b2c4 "lane1b"; printf '%s' "$stat2"; } > "$T/TS/lane1"
+  out=$(verify_set "$T/TS"); rc=$?
+  expect_line  C103-S0-fires-on-a-commit-that-declares-paths-and-exposes-none "$out" '^S0-SET-READABLE +FAIL .*commit 0a1b2c4 declares 1 path\(s\).*exposes 0 \(gates/verify-log\.sh'
+  expect_rc    C104-stat-truncated-set-exit-1 "$rc" 1
+  out=$(ps_new_paths "$T/TW/lane1")
+  expect_rc    C105-ps_new_paths-harvests-a-create-once "$(printf '%s\n' "$out" | grep -cx 'gates/regress/97-x.js')" 1
 
   # ---- fixture set F: one payload carrying another's commit (the 1-in-15 case).
   mkdir -p "$T/F"
