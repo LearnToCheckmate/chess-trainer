@@ -420,7 +420,10 @@ const T={
             analyze:{x:18,y:488.5,w:189,h:161.3},play:{x:223,y:488.5,w:189,h:161.3}}};
 const LABELS=['Discover','Puzzles','Review','Play'];
 const SUBS=['Openings, gambits & endgames','890+ tactical puzzles','Free unlimited game reviews','vs Computer or Human'];
-const INK={learn:'1',puzzle:'1',analyze:'0.99',play:'1.11'};   // #366 y3b, per glyph, identical at every width
+// #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
+// (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
+// at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
+const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
 // The coach line's middle span is nowrap with an ellipsis, so whether the recommendation survives is a question
 // about the WIDTH. Measured with the fresh-store recommendation, "New to chess? Lock in the endgame basics":
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
@@ -522,7 +525,7 @@ if(blk('B'))for(const geo of GEOS){
   L.say(t.every(x=>near(x.boxW,84)&&near(x.boxH,84)),
     geo+': TC-HM-014 every tile\'s icon box is 84x84 at every width - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
   L.say(t.every(x=>x.ink===INK[x.k]),
-    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 🔭 1, 🧩 1, 🔍 0.99, ♟️ 1.11, identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
+    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99 (Classic, #550 item (68)), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
   L.say(t.every(x=>near(x.x,W[x.k].x)&&near(x.y,W[x.k].y)&&near(x.w,W[x.k].w)&&near(x.h,W[x.k].h,1)),
     geo+': TC-HM-016 and each tile is the rect measured for THIS geometry, before any tap - '+JSON.stringify(W),{measured:t.map(x=>x.k+' '+x.x+','+x.y+' '+x.w+'x'+x.h),want:W});
   L.say(t.every(x=>x.x>=-0.5&&x.right<=vw+0.5),
@@ -1090,10 +1093,10 @@ const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
     if(/^\u{1F525}/u.test(t))return 'streak';
     if(/^Daily 3/.test(t))return 'daily3';
     if(/^NEW HERE/.test(t))return 'newhere';
-    if(/^\u{1F52D}\s*Discover/u.test(t))return 'tile-discover';
+    if(/^\S+\s*Discover\s+Openings/u.test(t))return 'tile-discover';   // #550 item (68): by LABEL, not glyph - a skin's icons are its own now
     if(/^\u{1F9E9}\s*Puzzles/u.test(t))return 'tile-puzzles';
-    if(/^\u{1F50D}\s*Review/u.test(t))return 'tile-review';
-    if(/^♟/u.test(t))return 'tile-play';
+    if(/^\S+\s*Review\s+Free unlimited/u.test(t))return 'tile-review';
+    if(/^\S+\s*Play\s+vs Computer/u.test(t))return 'tile-play';
     if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
     if(/^Colours & pieces/.test(t))return 'lookrow';
     if(/Style:/.test(t))return 'stylerow';
@@ -1186,8 +1189,8 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
         const t=(e.innerText||'').replace(/\s+/g,' ').trim();
         return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
           ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
-          ||(id==='tile-discover'&&/^\u{1F52D}\s*Discover/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
-          ||(id==='tile-review'&&/^\u{1F50D}\s*Review/u.test(t))||(id==='tile-play'&&/^♟/u.test(t))
+          ||(id==='tile-discover'&&/^\S+\s*Discover\s+Openings/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
+          ||(id==='tile-review'&&/^\S+\s*Review\s+Free unlimited/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+vs Computer/u.test(t))
           ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&/Style:/.test(t))
           ||(id==='wave'&&/^\u{1F44B}$/u.test(t))||(id==='intro'&&e.tagName==='DIV'&&!t);});
       if(!el)return {ok:false,why:'gone after scroll'};

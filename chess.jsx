@@ -2791,8 +2791,13 @@ const SKINS=[
     tints:{learn:['#5f8a9c','#3f6675'],puzzle:['#bf9a57','#8f6d33'],analyze:['#7f9a6a','#566f45'],play:['#5a9a63','#3c7a45']},
     /* #366 y3b: Classic used to draw Puzzles and Play as chess pieces and the other two as emoji, so the four
        tiles were never one set. Kunal chose "all four emoji, ink-matched" on the decisions page (round 2), looking
-       at exactly this set; the drawn-piece override is gone and every skin's tile glyph goes through inkScale. */
-    icons:{learn:'🔭',puzzle:'🧩',analyze:'🔍',play:'♟️'} },
+       at exactly this set; the drawn-piece override is gone and every skin's tile glyph goes through inkScale.
+       #550 item (68), jobs/playful-and-classic-skins-show-the-same-icon-2026-11-11 (Kunal, 11 Nov: "Why do playful and
+       classic have the same Icon ... We used to have different ones."): #366 carried out "all four emoji" by giving
+       Classic PLAYFUL's four (🔭 🧩 🔍 ♟️), so the two skins became identical in the menu's Skin rows and on Home. Classic
+       gets back its own pre-#366 emoji (6cd1449^): 📖 🧩 📈 👑 - still all four emoji, ink-matched through inkScale, as he
+       chose, and no longer Playful's. */
+    icons:{learn:'📖',puzzle:'🧩',analyze:'📈',play:'👑'} },
   { key:'medieval', name:'Medieval', blurb:'Aged stone, parchment & gold', pal:8, pro:true,
     font:"'Cinzel',serif",
     pcf:'drop-shadow(0 2px 2px rgba(0,0,0,.45))',
