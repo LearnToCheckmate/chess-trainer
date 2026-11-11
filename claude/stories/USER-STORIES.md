@@ -2047,3 +2047,9 @@ As a player stepping through a reviewed game, the move strip's next arrow and th
 *Added #550 item (22), from jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 (Kunal, 11 Nov 2026: "a way to jump to a specific number so we don't have to hit next next next 50 times"), the scope added on 30 Sep to jobs/drill-needs-a-previous-card-2026-09-23 and dropped when it closed.*
 As a player with dozens of cards in the brilliant moves drill or the mistakes drill, I tap the counter ('8 of 36'), choose a number, and the drill shows that card; Prev and Next work on from there.
 - In both drills, at 375x761 and 320x568, the counter opens a chooser with every number at least 44 by 44, choosing the last shows it, and Prev steps back one. (TC-R178)
+
+### US-R115 A game I have reviewed opens again without a second engine pass
+*Added #550 item (79), jobs/precompute-reviews-while-the-app-is-open-2026-09-23 part (2) (Kunal, 23 Sep 2026, on reviewing his pulled-in games: the job's step 1, "cache every review he actually runs").*
+As a player who reviews many games, every review I run is kept on this phone, so reopening an older one is instant instead of a fresh engine pass; only when the phone's storage is full do the reviews I have not touched for longest make room, and never the one I just ran.
+- With 30 older reviews cached, a new review leaves all 31 cached (it used to keep 24). (TC-R182a)
+- With storage full and fewer than 24 reviews cached, the review just run is kept and the least recently touched ones are evicted to make room. (TC-R182b)

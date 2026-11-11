@@ -48,3 +48,4 @@
 75	74	raise	2026-11-11	550	build__1794388896663	US-R113 / TC-R176a..c. #550 item (2), jobs/review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11: on Review the button row sits above the move line and the strip, the star at least 40pt from the strip next arrow, and a tap on next moves one ply	-	1f5541256d33
 76	75	raise	2026-11-11	550	build__1794388896663	#550 item (68): every skin has its own icons (TC-HM-057, US-HM-15)	-	5555dcb50de6
 77	76	raise	2026-11-11	550	build__1794388896663	#550 item (77): the lesson-list filter box and section counts, TC-S08	-	607a5df6b288
+78	77	raise	2026-11-11	550	build__1794388896663	#550 item (79): the review cache keeps every review, TC-R182	-	e8d80f8f064e

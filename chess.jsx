@@ -2353,11 +2353,16 @@ function brilCardWhy(o,mc){
   return brilGiveTxt(_g,true)+_stand+'. '+
     (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?forkTxt(o.forkT):_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
 }
+// #550 item (79): the review cache's soft cap - far above the 24 it replaces; storage quota is the real bound (evalCacheSet)
+const EVAL_CACHE_MAX=400;
+// #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
+const _libFold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold((op.name||'')+' \u2002 '+(op.idea||'')).includes(f);};
 const _tallyBucket=(L)=>L==='Brilliant'?'bril':(L==='Best'||L==='Great')?'great':L==='Inaccuracy'?'inacc':(L==='Mistake'||L==='Miss')?'mist':L==='Blunder'?'blun':null;
 /* #549 item (28), Kunal's answer on questions/B8-BRILLIANT-RECOMPUTE ("recompute: grade them again, show me the changes first").
    A stored REVIEW is graded again from its own cached engine output, twice over the same numbers: under the previous rule and
    under this one, so every difference is the brilliant rule's and nothing else's. Returns null when this phone holds no engine
-   output for the game (ct_evalcache keeps 24 games) - that game is graded again by its next review, never estimated. `changes`
+   output for the game (ct_evalcache keeps every review until storage is full, #550 item (79)) - that game is graded again by its next review, never estimated. `changes`
    lists every move whose Brilliant verdict differs, game order, with both labels; `delta` is the tally change (new minus old,
    the player's buckets, plus obril for the opponent's brilliants), applied to the stored tally rather than replacing it, so a
    count graded by an older build in some other respect is not silently rewritten here. Pure. */
@@ -7605,9 +7610,6 @@ export default function App(){
      that goes with it, not to the chip - see the reserved line under the Game setup header. */
   const armPill=(key,on)=>resetArm===key?{...pill(on),border:'1.5px solid #e0a83a',background:'rgba(224,168,58,.22)',color:'#ffd98a'}:pill(on);
   const cats=[...new Set(LIB.map(o=>o.cat))];
-// #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
-const _libFold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold((op.name||'')+' \u2002 '+(op.idea||'')).includes(f);};
   const groupOf=(cat)=>/gambit/i.test(cat)?'gambits':/endgame/i.test(cat)?'endgames':'openings';
   const GPAY={"Légal Trap":'mate',"Scholar's Mate":'mate',"Stafford Gambit: Mating Trap":'mate',"Budapest Gambit: Kieninger Trap":'mate',"Fishing Pole Trap":'mate',"Tennison Gambit":'win',"Blackburne Shilling Gambit":'win',"Albin Counter-Gambit: Lasker Trap":'win',"Englund Gambit: Rosen Trap":'win'};
   const payoffOf=(op)=>GPAY[op.name]||'edge';
@@ -7732,9 +7734,15 @@ const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold
   const evalCacheKey=(plies,fen)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|sf18c'+(fen?'|'+fen:'');   /* #549 item (66): a set-up game's key carries its start, so the same SANs from two positions cannot share evaluations; an ordinary game's key is unchanged */for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
   const evalCacheAll=()=>{try{return JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};}catch(e){return {};}};
   const evalCacheGet=(k)=>{try{const all=evalCacheAll();const v=all[k];if(!v)return null;v.at=Date.now();try{localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}return v;}catch(e){return null;}};
-  const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};const keys=Object.keys(all);
-    if(keys.length>24){keys.sort((a,b)=>(all[a].at||0)-(all[b].at||0));for(let i=0;i<keys.length-24;i++)delete all[keys[i]];}
-    localStorage.setItem('ct_evalcache',JSON.stringify(all));}catch(e){}};
+  /* #550 item (79) [jobs/precompute-reviews-while-the-app-is-open-2026-09-23, part (2)]: EVERY REVIEW HE RUNS IS KEPT, not the 24 most
+     recently touched. The bound is now the store itself: a soft cap of EVAL_CACHE_MAX entries, and when the browser refuses the write
+     (quota), the least recently touched reviews go one batch at a time until it fits - the review just run is never the one dropped
+     while an older one can go instead. A failed write never throws into the review (same as before). */
+  const evalCacheSet=(k,v)=>{try{const all=evalCacheAll();all[k]={...v,at:Date.now()};
+    const keys=Object.keys(all).filter(x=>x!==k).sort((a,b)=>(all[a].at||0)-(all[b].at||0));
+    while(keys.length+1>EVAL_CACHE_MAX)delete all[keys.shift()];
+    for(;;){try{localStorage.setItem('ct_evalcache',JSON.stringify(all));return;}catch(e){if(!keys.length)return;const n=Math.max(1,Math.ceil(keys.length/10));for(let i=0;i<n&&keys.length;i++)delete all[keys.shift()];}}
+  }catch(e){}};
   const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(DRILL_GRADE&&obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
