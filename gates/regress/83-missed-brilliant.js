@@ -27,6 +27,7 @@
 // CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=3 scope=trial:61e6d67052c0 how=both colours marked (userColor filter dropped) - W12 at kunal761, W16 at kunal761 and se red
 // CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=4 scope=trial:e26d552cc1ff how=rev-best kept beside the chip - W14 W15 red at kunal761 and se
 // CONTROL-RECORD: d8648e8 2026-11-06 total=52 red=2 scope=trial:ce0dae0e722d how=the switch on by default - W9 and W13 red at kunal761
+// CONTROL-RECORD: ad34c09 2026-11-11 total=53 red=2 scope=trial:09de6ae42b2c how=#550 item (18): CT_SRC with MISSED_BRIL_DEFAULT false and the rule-3 bundle without item (18) (t65) - D1 and TC-R195 W18 red; every other line green
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

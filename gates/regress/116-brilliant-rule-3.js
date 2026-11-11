@@ -1,3 +1,11 @@
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-A how=clause A removed (no lossWin test in rule 3's ok) - TC-R194b A1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-B how=clause B removed (originPre not subtracted on the hanging arm) - TC-R194c B1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=2 scope=env:CT_SRC=nc-C how=clause C removed (hangAge read, never applied) - TC-R194d C3 and TC-R194i G2 red
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-D how=clause D removed (the landing arm counts in check) - TC-R194e D1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-E how=clause E removed (a lost piece's landing arm always counts) - TC-R194f E1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-K how=clause K removed (no forking-check arm) - TC-R194g K1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=39 red=1 scope=env:CT_SRC=nc-def how=BRIL_RULE_DEFAULT back to 1 - TC-R194a H1 red alone
+// CONTROL-RECORD: ad34c09 2026-11-11 total=44 red=3 scope=trial:ae73915f78b8 how=the bundle before rule 3 (t64, no New features row for it) - TC-R194k Z1, Z2 and Z3 red; the node blocks green
 'use strict';
 // gates/regress/116-brilliant-rule-3.js - BRILLIANT RULE 3, ON BY DEFAULT WITH ITS SWITCH. US-R127 / TC-R194a..k.
 //

@@ -24,6 +24,7 @@
 // CONTROL-RECORD: 3720349 2026-11-06 total=79 red=25 scope=env:CT_SRC=nc5-oldfloor how=rule 2 keeps the old evAfter>=0.8 floor and evBefore window - C1 C3-C6 FT01 FT03-FT06 FT08 FT11-FT13 G1 H1 H2 H9 Z2 and more red
 // CONTROL-RECORD: 3720349 2026-11-06 total=79 red=2 scope=trial:20f9b6fd7e42 how=regradeAnswer applies the changes on Not now - H13 red at kunal761 and se
 // CONTROL-RECORD: 3720349 2026-11-06 total=79 red=16 scope=trial:ea84253b6902 how=no sheet, the regrade applied silently on arrival - H4-H7 H9 H10 H12 H13 red at both geometries
+// CONTROL-RECORD: ad34c09 2026-11-11 total=80 red=3 scope=trial:ae73915f78b8 how=#550 item (17): CT_SRC with BRIL_RULE_DEFAULT back to 1 and the bundle before rule 3 (t64) - Z1, Z2 and H0b red; every other line green
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

@@ -56,6 +56,7 @@
 // #448's antagonist A and corrected here [R18]. Blocks B1/B2 and C stay green on BOTH sources, which is the
 // shape that proves the gate is reading the measure and not its own wiring. Both md5s are printed below on every run so a reader can always tell what was
 // measured [CLAUDE.md: "if a run's output does not say what it measured, it is not evidence"].
+// CONTROL-RECORD: ad34c09 2026-11-11 total=78 red=21 scope=env:CT_SRC=68-oldsac how=#550 item (17) re-run: the landing arm's sac back to the pre-#448 movedVal-capVal - A1-A5, D7, A6d-f, B3c and B3f red (B3c being the corpus count that now asks rule 1 by name)
 'use strict';
 const path=require('path'), fs=require('fs'), crypto=require('crypto');
 const E=require('../engine-extract.js');
