@@ -373,6 +373,8 @@ Kunal's answer on questions/B8B-OWL ('new', 4 Nov 2026): the owl coach drawing a
   and tapping Owl chooses it. (TC-MN-049)
 - Each of the five looks draws its own picture at one and the same size, and the look I pick is the one I find again after a reload.
   (TC-MN-050)
+- On a small phone, his own and a wide one (320x568, 375x679, 390x844) the five looks all sit inside the sheet, none overlaps
+  another, no name is cut, each is at least 40 by 40 to tap, and none sits alone on a second row. (TC-MN-053)
 
 ### US-HM-14 Whether the app treats me as new is decided by what I have done in it, not by a score I have earned
 

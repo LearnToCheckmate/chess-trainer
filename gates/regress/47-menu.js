@@ -745,6 +745,35 @@ if(blk('S')){
    L.say(n===5,'375x761: TC-MN-050 the five looks paint five DIFFERENT drawings at that one size ('+n+' distinct of 5)',got.map(g=>g.t+':'+(g.svg?g.svg.length:0)));
    L.say(b.errs.length===0,'375x761: TC-MN-050 zero app errors',b.errs.slice(0,2));
    await b.close();}
+  // TC-MN-053 [#550, item (10); jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10, acceptance D, the gap the orchestrator's
+  // check of 10 Nov named]: THE COACH LOOK PICKER, MEASURED at 320x568, 375x679 and 390x844. Each of the five look tiles (found by its
+  // label) lies inside the menu sheet's own box horizontally, no two overlap, no label is cut (its scrollWidth fits its clientWidth),
+  // each tile is at least 40 by 40 CSS px (the floor gate 30 holds the piece chips to), and no tile sits alone on a later row.
+  if(blk('O2')){const MD=require('../drive/menu');
+   const NAMES=['Side part','Receding','Balding','Combed back','Owl'];
+   for(const geo of ['se','kunal','390']){
+    const b=await L.launch({geo,name:'menu-owl-'+geo});await b.open();let ok=true;
+    try{await MD.states['menu-bottom'](b);await b.settle(500);}catch(e){ok=false;}
+    const m=await b.page.evaluate((names)=>{const tiles=names.map(t=>{const x=[...document.querySelectorAll('button')].find(e=>(e.innerText||'').trim()===t);if(!x)return {t,miss:true};
+        const r=x.getBoundingClientRect();let cut=false;for(const el of [x,...x.querySelectorAll('*')]){if(el.children.length===0&&(el.textContent||'').trim()&&el.scrollWidth>el.clientWidth+0.5)cut=true;}
+        let sh=x.parentElement;while(sh&&sh!==document.body){const st=getComputedStyle(sh);if(st.overflowY==='auto'||st.overflowY==='scroll')break;sh=sh.parentElement;}const q=sh?sh.getBoundingClientRect():{left:0,right:innerWidth};
+        return {t,l:r.left,r:r.right,top:Math.round(r.top),w:r.width,h:r.height,cut,sl:q.left,sr:q.right};});return tiles;},NAMES);
+    const tag=geo==='se'?'320x568':geo==='kunal'?'375x679':'390x844';
+    const miss=m.filter(x=>x.miss).map(x=>x.t);
+    L.say(ok&&miss.length===0,tag+': TC-MN-053 PRECONDITION the menu bottom was reached and all five look tiles are there',{miss});
+    if(miss.length===0){
+     const out=m.filter(x=>x.l<x.sl-0.5||x.r>x.sr+0.5).map(x=>x.t);
+     L.say(out.length===0,tag+': TC-MN-053 every look tile lies inside the sheet\'s box, left to right',{out,sheet:[m[0].sl,m[0].sr]});
+     const ov=[];for(let i=0;i<m.length;i++)for(let j=i+1;j<m.length;j++){const A=m[i],B=m[j];const ix=Math.min(A.r,B.r)-Math.max(A.l,B.l),iy=Math.min(A.top+A.h,B.top+B.h)-Math.max(A.top,B.top);if(ix>0.5&&iy>0.5)ov.push(A.t+'/'+B.t);}
+     L.say(ov.length===0,tag+': TC-MN-053 no two look tiles overlap',{ov});
+     L.say(m.every(x=>!x.cut),tag+': TC-MN-053 no look label is cut',m.filter(x=>x.cut).map(x=>x.t));
+     const small=m.filter(x=>x.w<40||x.h<40).map(x=>x.t+' '+Math.round(x.w)+'x'+Math.round(x.h));
+     L.say(small.length===0,tag+': TC-MN-053 every look tile is at least 40 by 40',{small});
+     const rows={};m.forEach(x=>{rows[x.top]=(rows[x.top]||0)+1;});const tops=Object.keys(rows).map(Number).sort((a,b)=>a-b);
+     L.say(tops.length===1||tops.slice(1).every(t=>rows[t]>1),tag+': TC-MN-053 no look tile sits alone on a later row ('+tops.map(t=>rows[t]).join('+')+')',rows);
+    }
+    await b.close();}
+  }
 },'MENU');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
