@@ -202,8 +202,8 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
 /* #547 item (53): PHONE removed from the ask queue (Kunal's phone is settled at 375x761), so KEV is card 1 and the
    queue holds one card. */
 /* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
-const PINNED_IDS='1 KEV|2 SCR';
-const EXPECTED_N=2;
+const PINNED_IDS='1 KEV|2 SCR|3 EXP';   /* #550 item (11): EXP, the plain-words engine reading, joins as card 3 */
+const EXPECTED_N=3;
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -840,7 +840,7 @@ L.run(async()=>{
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
   const MANUAL_CARD='1 · KEV';     // as PINNED_IDS spells it (it was '2 · KEV' until #547 removed PHONE)
-  const EXPECTED_MANUAL=1, EXPECTED_AUTO=1, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
+  const EXPECTED_MANUAL=1, EXPECTED_AUTO=2, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);

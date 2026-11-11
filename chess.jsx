@@ -8216,6 +8216,16 @@ export default function App(){
      check of the full-screen shell, which no rig here can render (gate 90 proves the sizing, not the paint). It plays by
      itself: Home, then Discover with its tab bar, each held long enough to see the bottom edge. */
   {id:"SCR",c:"The bottom of the screen: no blank strip",l:"2 \u00b7 SCR \u00b7 The bottom of every page reaches the bottom of your screen", n:"Press play and screen-record. The card shows Home, then Discover with the tab bar. Look at the very bottom of your screen each time: the page should be painted all the way down, the tab bar should rest on the home bar, and the plain strip about the height of the status bar should be gone. Open the app from your Home Screen icon for this, not from Safari, because the strip only happens in the installed app.", r:()=>{setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);setTimeout(()=>{setHomeScreen(false);setMode('learn');},4500);}, h:9000},
+  /* #550, item (11); jobs/explain-engine-lines-in-plain-words: his phone check of the plain-words reading of the engine line, scored out
+     of 5. It plays by itself: the Opera Game is imported and analysed, the engine line is switched on, and at three positions the
+     reading opens as a tap on the line opens it (engWhy closes on every ply change, so each step opens it after the line has come in). */
+  {id:"EXP",c:"Review: the engine line explained in plain words",l:"3 \u00b7 EXP \u00b7 The engine line in plain words: score it out of 5", n:"Press play and screen-record. The card opens a game in Review and taps the engine line under the board on a few positions. It now says in plain words who is better, by about how much, and what each move is for. Are they right and easy to follow? Give it a score out of 5.",
+   r:()=>{setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});},
+   steps:[
+    {at:52000,id:'EXP-1',l:'Move 5: the engine line, then its plain-words reading',fn:()=>{setReviewView('moves');setPly(9);setEngOn(true);setTimeout(()=>setEngWhy(true),4500);}},
+    {at:64000,id:'EXP-2',l:'10.Nxb5!!: the reading on the sacrifice',fn:()=>{setPly(19);setTimeout(()=>setEngWhy(true),4500);}},
+    {at:76000,id:'EXP-3',l:'Move 13: the reading near the finish',fn:()=>{setPly(25);setTimeout(()=>setEngWhy(true),4500);}},
+   ], h:88000},
         ];
         /* THE ASK-QUEUE SEAM [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-
            success-condition-2026-10-01]. localStorage ct_scmax=<n> truncates SC to its first n cards at render, so a gate can
