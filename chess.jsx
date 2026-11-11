@@ -4247,6 +4247,7 @@ export default function App(){
   const freeTokRef=useRef(0);
   const freeSet=(o)=>{const n={...freeRef.current,...o};freeRef.current=n;setFreeSt(n);};
   const [openMsg,setOpenMsg]=useState('');
+  const [bankOffer,setBankOffer]=useState(false);   // #550 a33: a clean run with hints on offers 'Bank it' at Complete!
   const [showHint,setShowHint]=useState(false);   // #547 item (90): Kunal's 'warn-first' - the lesson lightbulb starts OFF
   const [revealHint,setRevealHint]=useState(false);
   const [learnProg,setLearnProg]=useState(()=>{try{return migLearnProg(JSON.parse(localStorage.getItem('ct_learnprog')||'{}')||{});}catch(e){return {};}});
@@ -5731,7 +5732,7 @@ export default function App(){
   const readHintPrefs=()=>{if(hintPrefsRef.current===null){try{hintPrefsRef.current=JSON.parse(localStorage.getItem('ct_hintprefs')||'{}');}catch{hintPrefsRef.current={};}}return hintPrefsRef.current;};
   const setHintFor=(key,val)=>{const p=readHintPrefs();if(key)p[key]=val;try{localStorage.setItem('ct_hintprefs',JSON.stringify(p));}catch{}const C=(typeof window!=='undefined')?window.CTCloud:null;if(C&&C.user){try{C.save({hintprefs:p});}catch(e){}}};
   // ── Learn: load opening ──
-  const selectOpening=(idx)=>{
+  const selectOpening=(idx)=>{setBankOffer(false);
     const op=LIB[idx];
     if(op&&op.fen){let _ok=true;try{const _g=fromFEN(op.fen);if(isInCheck(_g.board,opp(_g.turn)))_ok=false;}catch(e){_ok=false;}if(!_ok){setOnlineInfo('That position needs a fix and is unavailable right now.');return;}}
     setOpenIdx(idx);setLastLesson(idx);try{localStorage.setItem('ct_lastlesson',String(idx));}catch{}setLearnCat(op.cat);setLearnPhase('demo');setLearnLine(op.line);setLearnLabel(op.name);setOpenMsg('');setOpenStep(0);const _hp=readHintPrefs();setShowHint(_hp[op.name]!==undefined?_hp[op.name]:false);setRevealHint(false);
@@ -5750,6 +5751,7 @@ export default function App(){
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const startPractice=(line,label)=>{
+    setBankOffer(false);setRevealHint(false);   // #550 a33: a new run is a new offer; Bank it starts with the hint off and unrevealed
     /* #547 item (134), jobs/try-again-clears-the-wrong-try-so-a-flawless-day-banks-on-a-run-that-was-not-flawless-2026-10-06: this
        used to reset miss to false, and '↻ Try again' re-enters here - so a wrong move, Try again, finish banked a FLAWLESS day.
        A wrong move now stays on the record until that line is completed (finishRep resets it there) or a different line starts. */
@@ -6844,9 +6846,17 @@ export default function App(){
   const linesOf=(op)=>{const a=[{key:op.name,name:'Main line'}];(op.vars||[]).forEach(v=>a.push({key:op.name+'§'+v.name,name:v.name}));return a;};
   const lineDays=(k)=>{const c=learnProgRef.current[k];return (c&&Array.isArray(c.days))?c.days:[];};
   const lessonStats=(op)=>{const ls=linesOf(op);const u=new Set();let lr=0;ls.forEach(l=>{const d=lineDays(l.key);if(d.length>=1)lr++;d.forEach(x=>u.add(x));});return {lines:ls.length,linesLearned:lr,unionDays:u.size,coverage:lr>=ls.length,mastered:(u.size>=LEARN_GOAL&&lr>=ls.length)};};
+  /* #550 a33 (Kunal, 11 Nov 2026: "build both. Finishing a different lesson can bank the day, and after a clean run with hints on a line
+     suggests a hint-free run to bank it"; FEEDBACK-INBOX 12 Sep, "playing another lesson should also unlock banking a flawless day (then
+     drop the time limit)"). ct_lessonfin numbers every lesson finish: {n, by:{lesson name: n of its last finish}}. A line banked today
+     stores the number it banked at (bseq), and banks AGAIN today once some OTHER lesson has been finished after that number - the
+     other lesson is the spacing that "tomorrow" stood for. The extra bank is stored as 'YYYY-MM-DD#2', so it counts toward Mastered as its
+     own day while every reader that asks "banked today?" with indexOf(today) still finds the plain date. */
+  const lessonFin=(name)=>{let o={n:0,by:{}};try{const r=JSON.parse(localStorage.getItem('ct_lessonfin')||'null');if(r&&typeof r.n==='number'&&r.by&&typeof r.by==='object')o=r;}catch(e){}o.n++;o.by[name]=o.n;try{localStorage.setItem('ct_lessonfin',JSON.stringify(o));}catch(e){}return o;};
   const finishRep=()=>{
     const op=LIB[openIdxRef.current]; if(!op)return '';
     bumpDaily('lesson');
+    const _lf=lessonFin(op.name);setBankOffer(false);
     const rep=learnRepRef.current||{}; learnRepRef.current={hints:false,miss:false};
     const key=learnKeyRef.current||op.name;
     const st0=lessonStats(op);
@@ -6855,18 +6865,22 @@ export default function App(){
     /* #548 item (22), jobs/bench-lesson-hint-does-nothing-2026-09-28, the completion-message defect folded into its warn-first build:
        the sentence names the TRUE reason (the hint was on at some point in this run - the mark is a latch) and is no longer SILENT on a
        lesson that already has a banked day, where the old ternary returned '' and the player got a congratulation, no day and no reason. */
-    if(rep.hints)return ' Hints were on during this run, so it doesn\u2019t bank a day. Play it with \ud83d\udca1 off to bank one.';
+    if(rep.hints){if(!rep.miss)setBankOffer(true);return ' Hints were on during this run, so it doesn\u2019t bank a day. Play it with \ud83d\udca1 off to bank one.';}
     if(rep.miss)return days.length?' A wrong try slipped in, so no day banked. Flawless runs only.':' A wrong try slipped in. Learned needs one flawless run: no hints, no wrong tries. You are close.';
     const today=dstr(new Date());
     const wasM=days.length>=LEARN_GOAL;
     const first=days.length===0;
-    if(days.indexOf(today)>=0)return ' Flawless again. Today is already banked, tomorrow counts next.';
-    days.push(today);
-    setLearnProg(p=>({...p,[key]:{learned:true,days}}));
+    const _tN=days.filter(d=>d===today||String(d).indexOf(today+'#')===0).length;
+    if(_tN>0){const _bs=(typeof cur.bseq==='number')?cur.bseq:Infinity;   // a bank stored before #550 carries no bseq: it waits for tomorrow, as it did
+      const _other=Object.keys(_lf.by).some(k=>k!==op.name&&_lf.by[k]>_bs);
+      if(!_other)return ' Flawless again. Today is already banked: finish a different lesson, then come back to bank another day.';
+      days.push(today+'#'+(_tN+1));}
+    else days.push(today);
+    setLearnProg(p=>({...p,[key]:{learned:true,days,bseq:_lf.n}}));
     /* #548 item (37), jobs/try-again-clears-the-wrong-try-so-a-flawless-day-banks-on-a-run-that-was-not-flawless-2026-10-06 (its folded
        defect): lessonStats reads learnProgRef, which React only refreshes on the next render, so the counts printed here and on the
        celebration card were one bank behind - a first bank read 'Lines learned: 0/4. 0 of 10 days'. The ref carries the new bank now. */
-    learnProgRef.current={...learnProgRef.current,[key]:{learned:true,days}};
+    learnProgRef.current={...learnProgRef.current,[key]:{learned:true,days,bseq:_lf.n}};
     const stN=lessonStats(op);
     const tail=(stN.lines>1)?(' Lines learned: '+stN.linesLearned+'/'+stN.lines+'.'):'';
     if(stN.mastered){if(!st0.mastered)setCelebrate({kind:'mastered',title:op.name,sub:LEARN_GOAL+' flawless days · every line learned'});return st0.mastered?' Still mastered. \ud83c\udfc5':' \ud83c\udfc5 MASTERED \u00b7 '+LEARN_GOAL+' flawless days across the whole lesson. Seriously impressive.';}
@@ -11622,6 +11636,8 @@ export default function App(){
                     same group, the way Play re-labels its row at game over; with no next lesson it stays Try again. */}
                 {(()=>{const _done=openStep>=learnLine.length&&learnLine.length>0;const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;
                   let _nx=-1;if(_done&&_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}
+                  /* #550 a33: after a clean run with hints on, the slot offers to bank it - the same line again with the lightbulb off */
+                  if(_done&&bankOffer&&learnPhase==='practice')return(<button data-ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} aria-label="Bank it: play again with hints off" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{rowTiny?'\u2713':(boardPx-3*46-3*6)>=150?'\u2713 Bank it: hints off':'\u2713 Bank it'}</button>);
                   if(_nx>=0)return(<button data-ct="lesson-next" onClick={()=>selectOpening(_nx)} aria-label={'Next lesson: '+LIB[_nx].name} title={'Next lesson: '+LIB[_nx].name} style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{(()=>{if(rowTiny)return '›';const _bud=(boardPx-3*46-3*6)-(rowNarrow?8:30)-6;const _w=(t)=>{try{const c=window.__ctNextMC||(window.__ctNextMC=document.createElement('canvas').getContext('2d'));c.font="800 15px 'Segoe UI',system-ui,-apple-system,sans-serif";return c.measureText(t).width;}catch(e){return 1e9;}};const _full='Next: '+LIB[_nx].name+' ›';return _w(_full)<=_bud?_full:(_w('Next lesson ›')<=_bud?'Next lesson ›':'Next ›');})() /* the NAME only where the slot measures wide enough for it, so it is never cut by the ellipsis; the name is in aria-label and title either way */}</button>);
                   return(<button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':(boardPx-3*46-3*6)>=96?'↻ Try again':'↻ Again'}</button>);})()}
                 <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
@@ -11630,6 +11646,8 @@ export default function App(){
                 <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'#1c2027',borderRadius:'16px 16px 0 0',padding:'13px 14px calc(env(safe-area-inset-bottom,0px) + 14px)',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 -8px 30px rgba(0,0,0,.5)'}}>
                   <div style={{width:38,height:4,borderRadius:2,background:'rgba(255,255,255,.25)',margin:'0 auto 4px'}}/>
                   {/* #547 antagonist A on item (82): once Next takes the row's slot at Complete!, practising the same line again lives HERE */}
+                  {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
+                  {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLearnSheet(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
                   {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLearnSheet(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practise this line again</button>}
                   <button onClick={()=>{setLearnSheet(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
                   {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the

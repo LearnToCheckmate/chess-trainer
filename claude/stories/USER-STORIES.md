@@ -2138,3 +2138,11 @@ As a player whose review's engine stops answering partway, I am told the review 
 - Try again and Back to games are on screen and a thumb's size, and the progress line is gone. (TC-R190b)
 - Try again reviews the same game again from the start. (TC-R190c)
 - Back to games returns to the Review screen. (TC-R190d)
+
+### US-R124 Finishing another lesson lets me bank a lesson again today, and a clean hints-on run offers to bank it
+*Added #550 answer a33 (Kunal on build__1794388896663-q33, 11 Nov 2026: "build both. Finishing a different lesson can bank the day, and after a clean run with hints on a line suggests a hint-free run to bank it"; FEEDBACK-INBOX 12 Sep 2026).*
+As a player practising lessons, a lesson I banked today banks again once I have finished a different lesson since, instead of waiting for tomorrow; and after a run with no mistakes but the hint on, Complete! offers to bank it with the hint off.
+- With no other lesson finished since today's bank, the line does not bank again and the message says to finish a different lesson first. (TC-R191a)
+- With another lesson finished after today's bank, the line banks a second day today, which counts toward Mastered. (TC-R191b)
+- A bank stored before this change waits for tomorrow, as it did. (TC-R191c)
+- A clean hints-on run offers "Bank it" in the lesson row; it restarts the line with the hint off, and a clean run then banks. (TC-R191d)
