@@ -11,6 +11,7 @@
 // learn+play pair the Skin row paints in its badge. (b) RENDERED, at kunal761 with the menu open on its Skin rows: the rows are
 // found by their NAMES (not by a hook), every skin's row is on the sheet (the denominator), and the glyphs leading each row's text
 // differ between every pair of rows - which is what he saw from his phone.
+// CONTROL-RECORD: c7fe540 2026-11-11 total=6 red=3 scope=trial:fc372324eb77 how=#550 item (68): the bundle and source before the fix (Classic carrying Playful's four icons; CT_SRC = d5d803c's chess.jsx) - TC-HM-057a, b and the rendered c red (Playful = Classic, 🔭♟️); both denominators green
 const L=require('../lib');const MD=require('../drive/menu');
 const fs=require('fs'),path=require('path');
 const SRC=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');
