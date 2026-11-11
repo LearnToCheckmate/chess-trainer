@@ -529,6 +529,8 @@ instance.
   the landscape puzzle screen at 730x375: the chip painted at the TOP of the rail (30-55) while the Prev/Next pair sat
   clipped below it at 329.5. Whether the pair should fit at rest is a layout decision this clause does not take
   (jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03). (TC-PZ-LAND2)
+- With the phone sideways on Puzzles, the tabs are a slim rail on the right edge, the board fills the height, and Roadmap, Hint,
+  Show move, Reset, Prev and Next are all on screen with nothing to scroll (#550 answer a8, Option A). (TC-PZ-LAND3)
 
 ### US-INV-06 No screen that does not scroll leaves an empty band over 60px
 On a screen that does not scroll, no empty vertical band is over 60px. This is certified at 375x761 with the real insets (51 top, 31 bottom), and the top 51px status area does not count. Other heights are reported, not asserted. A screen meets it by growing the board or by moving something useful into the gap, not by adding padding.

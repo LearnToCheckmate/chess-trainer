@@ -342,26 +342,23 @@ L.run(async()=>{
     // BRINGS THE PAIR ON SCREEN. The pair starts below the rail's fold here (the rail clips at 296.5, the pair at 329.5 at 730x375),
     // so the chip is the only thing at rest saying the pane moves. On HEAD before #549 the chip's wrapper had flex order 0 against the
     // puzzle children's 1 and 3, so it painted at the TOP (30-55) pointing down at the board's top rank.
-    const rc=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rail-more"]');const prev=[...document.querySelectorAll('button')].find(x=>/^‹ Prev$/.test((x.innerText||'').trim()));
-      if(!m||!prev)return {chip:!!m,prev:!!prev};let sc=prev.parentElement;/* A3-R2: walk up from the PAIR, which is inside the rail's scroller on every bundle; the chip now hangs outside it */while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;
-      const R=sc.getBoundingClientRect(),c=m.getBoundingClientRect(),p=prev.getBoundingClientRect();const tb=document.querySelector('[data-ct="tabbar"]');const tbTop=tb?tb.getBoundingClientRect().top:innerHeight;
-      const ch=document.elementFromPoint(c.left+c.width/2,c.top+c.height/2);
-      // A3-R2: Show's own hit area at rest, sampled on a 4px grid over the part of it inside the rail's clip (the visible part).
-      const sh=[...document.querySelectorAll('button')].find(x=>/^👁 Show move$/.test((x.innerText||'').trim()));let show=null;
-      if(sh){const s=sh.getBoundingClientRect();const cx=s.left+s.width/2,cy=Math.min(s.top+s.height/2,(s.top+Math.min(s.bottom,R.bottom))/2);const hc=document.elementFromPoint(cx,cy);let n=0,ok=0;
-        for(let x=s.left+1;x<s.right-1;x+=4)for(let y=s.top+1;y<Math.min(s.bottom,R.bottom)-1;y+=4){n++;const h=document.elementFromPoint(x,y);if(h&&(h===sh||sh.contains(h)))ok++;}
-        show={rect:[s.left,s.right,s.top,s.bottom],centreSelf:!!hc&&(hc===sh||sh.contains(hc)),centreHit:hc&&(hc.getAttribute('data-ct')||hc.tagName),n,ok};}
-      return {chip:true,prev:true,rail:[R.top,R.bottom],chipR:[c.top,c.bottom],tbTop,chipSelf:!!ch&&(ch===m||m.contains(ch)),prevR:[p.top,p.bottom],pairBelowFold:p.bottom>R.bottom+1,show};});
-    L.say(!!(rc.chip&&rc.prev&&rc.pairBelowFold),g.w+'x'+g.h+': TC-PZ-LAND2 PRECONDITION the pair starts below the rail fold at rest and the More-below chip is shown',rc);
-    // A3-R2 [#549, antagonist A round 2]: the chip hangs just below the rail's clip, above the tab bar, so it covers no rail control.
-    L.say(!!(rc.rail&&rc.chipR[0]>=rc.rail[0]+(rc.rail[1]-rc.rail[0])/2&&rc.chipR[1]<=rc.tbTop+0.5&&rc.chipSelf),g.w+'x'+g.h+': TC-PZ-LAND2 the More-below chip sits at the BOTTOM of the rail, wholly above the tab bar, and hit-tests to itself (on HEAD before #549 it painted at the top)',rc);
-    L.say(!!(rc.show&&rc.show.n>=20&&rc.show.centreSelf&&rc.show.ok>=0.95*rc.show.n),g.w+'x'+g.h+': TC-PZ-LAND2 at rest the chip covers no control: Show move\'s centre and >= 95% of its visible sample points hit-test to Show (round 2 of #549 measured the chip over it: 289/418 at 844x390)',rc.show);
-    let hitPair=null;
-    if(rc.chip){try{await b.tapCt('rail-more',900);await b.settle(900);
-      hitPair=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));const out={};
-        for(const [k,re] of [['prev',/^‹ Prev$/],['next',/^Next ›$/]]){const e=f(re);if(!e){out[k]=null;continue;}const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);out[k]={y:[r.top,r.bottom],self:!!h&&(h===e||e.contains(h))};}
-        return out;});}catch(e){hitPair={err:String(e).slice(0,120)};}}
-    L.say(!!(hitPair&&hitPair.prev&&hitPair.prev.self&&hitPair.next&&hitPair.next.self),g.w+'x'+g.h+': TC-PZ-LAND2 one tap on the chip brings ‹ Prev and Next › on screen, each hit-testing to itself at its centre',hitPair);
+    /* #550 answer a8 (Kunal, Option A of docs/mockup-q8-sideways-2026-11-11): THE PROBLEM THE CHIP POINTED AT IS GONE. The tabs became a rail on
+       the right and the board took the height, so the puzzle panel FITS - nothing is below its fold, there is no 'More below' chip to show,
+       and Prev and Next are on screen at rest. The four TC-PZ-LAND2 lines now assert that, on the same states; the chip's own position
+       (its #549 subject) can no longer arise here and is not asserted. */
+    const rc=await b.page.evaluate(()=>{const m=document.querySelector('[data-ct="rail-more"]');const f=(re)=>[...document.querySelectorAll('button')].find(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&re.test((x.innerText||'').trim());});
+      const prev=f(/^‹ Prev$/),next=f(/^Next ›$/);let sc=prev&&prev.parentElement;while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;
+      const R=sc?sc.getBoundingClientRect():null;const self=(e)=>{if(!e)return null;const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {y:[r.top,r.bottom],self:!!h&&(h===e||e.contains(h)),inView:r.top>=0&&r.bottom<=innerHeight+0.5&&(!R||r.bottom<=R.bottom+0.5)};};
+      const sh=f(/^👁 Show( move)?$/);let show=null;
+      if(sh){const s=sh.getBoundingClientRect();const hc=document.elementFromPoint(s.left+s.width/2,s.top+s.height/2);let n=0,ok=0;
+        for(let x=s.left+1;x<s.right-1;x+=4)for(let y=s.top+1;y<s.bottom-1;y+=4){n++;const h=document.elementFromPoint(x,y);if(h&&(h===sh||sh.contains(h)))ok++;}
+        show={rect:[s.left,s.right,s.top,s.bottom],centreSelf:!!hc&&(hc===sh||sh.contains(hc)),n,ok};}
+      const chipVis=!!m&&m.getBoundingClientRect().height>0;
+      return {chip:chipVis,prev:self(prev),next:self(next),scroll:sc?sc.scrollHeight-sc.clientHeight:null,show};});
+    L.say(!!(rc.prev&&rc.next&&rc.scroll!=null),g.w+'x'+g.h+': TC-PZ-LAND2 PRECONDITION the puzzle panel and its ‹ Prev / Next › pair are found',rc);
+    L.say(!rc.chip&&rc.scroll!=null&&rc.scroll<=1,g.w+'x'+g.h+': TC-PZ-LAND2 nothing is below the panel\'s fold and no More-below chip is shown (#550 a8: the tabs went to a right rail, so the panel fits; scroll '+rc.scroll+')',rc);
+    L.say(!!(rc.show&&rc.show.n>=20&&rc.show.centreSelf&&rc.show.ok>=0.95*rc.show.n),g.w+'x'+g.h+': TC-PZ-LAND2 at rest nothing covers Show move: its centre and >= 95% of its sample points hit-test to it',rc.show);
+    L.say(!!(rc.prev&&rc.prev.self&&rc.prev.inView&&rc.next&&rc.next.self&&rc.next.inView),g.w+'x'+g.h+': TC-PZ-LAND2 ‹ Prev and Next › are on screen AT REST, each hit-testing to itself at its centre (it took a tap on the chip before #550 a8)',{prev:rc.prev,next:rc.next});
     // CONTROL-RECORD: 9fb0aa5 2026-11-06 total=137 red=2 scope=full how=pre-fix bundle 9dca31cd3621 (rail-more wrapper without order:99, chip at the top of the puzzle rail); red: TC-PZ-LAND2 chip-position assertion at 730x375 and 844x390. Good trial b48b6d6b2582 reads 137 PASS 0 FAIL.
     await b.close();
   }
