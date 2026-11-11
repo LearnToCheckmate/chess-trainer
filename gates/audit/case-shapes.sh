@@ -23,6 +23,9 @@
 #   S6 every ROW line defines a DISTINCT id, so the row count and the case count are one number [#546, item (88)]. The
 #      count is not written here: the tool prints it (`bash gates/audit/case-shapes.sh | tail -1`).
 #   S9 the row count equals the plain `^| *TC-` line count, so the one-shape claim is checked, not asserted [#549]
+#   S11 every ROW sits in a TABLE: its run of contiguous pipe lines opens with a header line and a |---| separator. A
+#      row outside a table is a row to this tool and not to a Markdown reader, which is how 6538420 read 640 here and
+#      617 to a strict reading [#550 check gap cg3, the checker's second point; the 23 rows before 2a873fd].
 # and it prints the total, the one number to quote: `bash gates/audit/case-shapes.sh | tail -1`.
 # USAGE  bash gates/audit/case-shapes.sh [repo-dir]   exit 0 holds | 1 a check fails | 2 the register is unreadable
 #        bash gates/audit/case-shapes.sh --selftest
@@ -49,6 +52,9 @@ check(){ ( cd "$1" && node -e '
   say(stray.length===0,"S2 every id opening a line outside a ROW is a declared reservation - a bare or bold definition is not ("+stray.length+(stray.length?": "+stray.map(id=>id+"@"+open.get(id).join("/")).join(" "):"")+")");
   const rowLines=[...row.values()].reduce((n,v)=>n+v.length,0);const dupRows=[...row.entries()].filter(([,v])=>v.length>1);
   say(row.size>0&&rowLines===row.size,"S6 every ROW line defines a distinct id - "+rowLines+" row lines, "+row.size+" distinct row ids"+(dupRows.length?": "+dupRows.map(([id,v])=>id+"@"+v.join("/")).join(" "):"")+" [#546, item (88)]");
+  const outside=[];for(const v of row.values())for(const ln of v){let k=ln-1;while(k>0&&/^\|/.test(L[k-1]))k--;
+    const ok=/^\|/.test(L[k]||"")&&/^\|\s*:?-{3,}/.test(L[k+1]||"")&&k+1<ln-1;if(!ok)outside.push(ln);}
+  say(outside.length===0,"S11 every ROW sits in a table, under a header line and its separator ("+outside.length+(outside.length?" outside: line "+outside.slice(0,8).join(", "):"")+") [#550, check gap cg3]");
   say(rowLines===plain,"S9 the case rows equal the plain ^| *TC- line count ("+rowLines+" of "+plain+") [#549, item (72)]");
   console.log("CASES "+row.size+" defined (one shape: row; "+head.size+" headed by a ### section title), "+res.size+" reserved");
 ' ); }
@@ -64,13 +70,15 @@ selftest(){
   mk; printf '\n**TC-ZZ-009 - a bold definition of a case.** US-X.\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S2b a BOLD definition is no longer a shape and reddens" 1
   mk; printf '\nTC-ZZ-002 is mentioned at the start of a line and defined nowhere\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S2c an undeclared line-opening id reddens" 1
   mk; sed -i -E 's/^\| *TC-/| XC-/' "$T/r/claude/stories/TEST-CASES.md"; ck "S3 a register with no ROW is NOT credited (S0 reddens)" 1
-  mk; printf '\n### TC-ZZ-005 (US-X) a heading over its own row\n| TC-ZZ-005 | US-X | a | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S5 a HEAD over one row is a section title and holds" 0
+  mk; printf '\n### TC-ZZ-005 (US-X) a heading over its own row\n\n| id | story | a | b | c | d |\n|---|---|---|---|---|---|\n| TC-ZZ-005 | US-X | a | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S5 a HEAD over one row is a section title and holds" 0
   mk; printf '\n### TC-ZZ-010 (US-X) a heading with no row under it\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S1 a heading-only case reddens" 1
   mk; printf '\n## TC-ZZ-003: a heading with no (story)\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S4 a case opened in an undeclared shape reddens via S2" 1
   mk; printf '\n| TC-ZZ-006 | US-X | a | b | c | d |\n| TC-ZZ-006 | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S6 one id given TWO rows reddens" 1
   mk; printf '\n| TC-ZZ-007 (a note in the first cell) | US-X | a | b | c | d |\n| TC-ZZ-007 | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S7 a parenthetical first cell is a ROW, so its duplicate reddens S6" 1
   mk; printf '\n| TC-ZZ-008: a pipe line opened some other way | a |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S8 a pipe line opening with an id in no declared shape reddens" 1
   mk; printf '\n| TC-ZZ-NAMED | US-X | a | b | c | d |\n| TC-ZZ-NAMED | US-X | e | f | g | h |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S10 a NAMED id is counted, so its duplicate row reddens S6" 1
+  mk; printf '\n| TC-ZZ-011 | US-X | a row under no header | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S11 a row in no table (no header, no separator) reddens" 1
+  mk; printf '\n| id | story | a | b | c | d |\n|---|---|---|---|---|---|\n| TC-ZZ-012 | US-X | a | b | c | d |\n' >> "$T/r/claude/stories/TEST-CASES.md"; ck "S11b the same row under a header and separator holds" 0
   echo "case-shapes selftest: $p pass / $f fail"; [ "$f" -eq 0 ]
 }
 
