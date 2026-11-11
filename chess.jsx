@@ -1790,6 +1790,7 @@ function explainAnno(a,ctx){
   if(L==='Best'||L==='Excellent')return pack([didTxt,pvTxt,motifTxt,standing,gapTxt]);
   if(L==='Good')return pack([didTxt,'Sound, if not the sharpest.',(a.bestSan?(a.bestSan+' was sharper.'):''),motifTxt,standing]);
   if(L==='Book')return pack([didTxt,'Still in the book.',standing,gapTxt]);
+  if(L==='Forced')return pack(['The only legal move.',didTxt,standing]);   // #550 item (20): a Forced move says why it is graded Forced (gate 41 found the box empty at 16...Nxb8)
   if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),('About '+lossP.toFixed(1)+' pawns gone.'),replyTxt]);
   if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
     const size=L==='Inaccuracy'?'A small slip.':(L==='Mistake'?'A mistake.':'A blunder.');
