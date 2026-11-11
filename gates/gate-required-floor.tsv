@@ -59,3 +59,4 @@
 86	85	raise	2026-11-11	550	build__1794388896663	#550 item (97): no go into a running search, TC-R186	-	4b5b9b870017
 87	86	raise	2026-11-11	550	build__1794388896663	#550 item (101): online flag auto-end, TC-PL-070	-	cf11e77a253f
 88	87	raise	2026-11-11	550	build__1794388896663	#550 a1 (AUD-H14): no test Pro for players, TC-HM-058	-	2bdf065e9839
+89	88	raise	2026-11-11	550	build__1794388896663	#550 answer a11: the Line-learned toast shows over the centre of the board and closes by itself	-	79f398784f79
