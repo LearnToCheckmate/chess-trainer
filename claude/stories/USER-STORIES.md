@@ -2111,3 +2111,10 @@ As a player looking down my games list, each reviewed game shows its Brilliant c
 - A reviewed game's four counts are the summary's own, book moves kept out as the summary keeps them, and the row prints them. (TC-R187a)
 - The counts are ★ Best, ! Great and ?? Blunder on one line, with no Mistake count, at 375x761 and 320x568. (TC-R187b)
 - A game counted before the split shows one combined ★! count until it is graded again, never a guessed split. (TC-R187c)
+
+### US-R121 When I import an account I am asked once whether it is mine
+*Added #550 answer a19, jobs/follow-a-player-not-reimport-2026-09-23 (Kunal on build__1794388896663-q19, 11 Nov 2026: "Ask once when an account is imported whether it is his").*
+As a player who imports a friend's account as well as my own, I am asked once, when it is imported, whether the account is mine, so a friend's games never feed my mistakes drill or my brilliant moves unless I say they are mine.
+- A newly imported account is asked about under the Import box, with Yes and No at a thumb's size, at 375x761 and 320x568. (TC-R188a)
+- No switches it off, as its chip's switch does, and Yes keeps it mine; either way the question goes and a re-import does not ask again. (TC-R188b, TC-R188c)
+- An account imported before this question existed is never asked. (TC-R188c)

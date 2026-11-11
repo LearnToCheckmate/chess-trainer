@@ -4308,6 +4308,13 @@ export default function App(){
      keeps today's behaviour until he flips one. */
   const [acctMine,setAcctMine]=useState(()=>{try{return JSON.parse(localStorage.getItem('ct_acctmine')||'{}')||{};}catch(e){return {};}});
   const acctMineRef=useRef(acctMine);acctMineRef.current=acctMine;
+  /* #550 answer a19, jobs/follow-a-player-not-reimport-2026-09-23, Kunal on build__1794388896663-q19: "Ask once when an account is imported whether
+     it is his." An account that was not on the list before its import finished is asked about ONCE, under the Import box: Yes keeps it his (the
+     default, unchanged), No switches it off exactly as its chip's switch does. Answered accounts are kept in ct_acctasked, so a re-import or a
+     follow refresh never asks again; accounts imported before this build are never asked (they are not new). */
+  const [acctAsk,setAcctAsk]=useState(null);
+  const acctAskAnswer=(id,mine)=>{try{const a=JSON.parse(localStorage.getItem('ct_acctasked')||'{}')||{};a[id]=1;localStorage.setItem('ct_acctasked',JSON.stringify(a));}catch(e){}
+    if(!mine)setAcctMine(m=>({...m,[id]:false}));else setAcctMine(m=>{if(m[id]!==false)return m;const n={...m};delete n[id];return n;});setAcctAsk(null);};
   useEffect(()=>{try{localStorage.setItem('ct_acctmine',JSON.stringify(acctMine));}catch(e){}},[acctMine]);
   const [ccAccts,setCcAccts]=useState(()=>{try{return JSON.parse(localStorage.getItem(ACCT_K)||'[]')||[];}catch(e){return [];}});
   const acctGamesRef=useRef(acctGamesLoad());   // #549 item (31): the localStorage copy paints first; the IndexedDB store replaces it below
@@ -6408,6 +6415,7 @@ export default function App(){
        [id] alone and _caps dropped every other account's bound - their games came back on the next good launch with no
        chip to remove, follow or grow them. In such a session the list and the bounds are only ADDED to, never cut. */
     const order=[..._cur.filter(x=>x!==id&&(ACCT_UNREAD||x in M)),id];
+    if(!ACCT_UNREAD&&_cur.indexOf(id)<0&&(rows||[]).length>0){let _asked=false;try{_asked=!!(JSON.parse(localStorage.getItem('ct_acctasked')||'{}')||{})[id];}catch(e){}if(!_asked)setAcctAsk(id);}   // #550 a19: a NEW account, asked once
     const evicted=[],_evq=order.filter(x=>x in M);
     while(ids.length>ACCT_MAX){const drop=_evq.shift()||ids[0];delete M[drop];evicted.push(drop);ids=Object.keys(M);}
     acctGamesRef.current=M;
@@ -9901,6 +9909,11 @@ export default function App(){
                   <button onClick={()=>acctForget(id)} aria-label={'Remove '+_u} title={'Remove '+_u+' and its games'} style={{width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',cursor:'pointer',fontSize:12,lineHeight:1,padding:0}}>{'\u00d7'}</button>
                 </span>);})}
             </div>)}
+            {acctAsk&&ccAccts.indexOf(acctAsk)>=0&&(()=>{const _u=acctAsk.slice(acctAsk.indexOf(':')+1);return(<div data-ct="acct-ask" role="group" aria-label={'Is '+_u+' your account?'} style={{display:'flex',flexDirection:'column',gap:8,padding:'10px 12px',borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)'}}>
+              <div style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,color:'#fff',lineHeight:1.35,overflowWrap:'anywhere'}}>{'Is '+_u+' your account?'}</div>
+              <div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.65)',lineHeight:1.4}}>Only your own games feed your mistakes drill and your brilliant moves.</div>
+              <div style={{display:'flex',gap:8}}><button data-ct="acct-ask-yes" onClick={()=>acctAskAnswer(acctAsk,true)} style={{...btn('var(--ac)','none','#fff'),flex:1,minHeight:44}}>Yes, it’s mine</button><button data-ct="acct-ask-no" onClick={()=>acctAskAnswer(acctAsk,false)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:1,minHeight:44}}>No</button></div>
+            </div>);})()}
             {/* #549 A3-R5 [Amber: flags/amber-549-unreadable-store-said]: the store could not be read this launch, so the chips'
                 counts are not what is held. Said under the chips (the games list does not render with no games), and it says
                 nothing was deleted because nothing was. */}
