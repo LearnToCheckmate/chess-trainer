@@ -8,6 +8,7 @@
 // only those. With a single kind on a single shelf there is nothing to choose and the drill starts at once, as before.
 // WHAT IT READS: the bundle under test (CT_APP) at kunal761, a store of real chess.com Brilliants from gates/brilliant-fixed-tests.json
 // (their kinds read by the shipped brilKind through gates/engine-extract.js, so the fixture's shelves are the app's own).
+// CONTROL-RECORD: c33e447 2026-11-11 total=13 red=10 scope=trial:e19888a745d8 how=#550 item (21): the tree before the library (t69: the tile starts the drill on every card, no sheet, no switch) - TC-R197a-f red, the kinds precondition and the one-kind start green
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const T=require('../brilliant-fixed-tests.json').tests;

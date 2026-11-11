@@ -25,6 +25,7 @@
 // CONTROL-RECORD: 3720349 2026-11-06 total=79 red=2 scope=trial:20f9b6fd7e42 how=regradeAnswer applies the changes on Not now - H13 red at kunal761 and se
 // CONTROL-RECORD: 3720349 2026-11-06 total=79 red=16 scope=trial:ea84253b6902 how=no sheet, the regrade applied silently on arrival - H4-H7 H9 H10 H12 H13 red at both geometries
 // CONTROL-RECORD: ad34c09 2026-11-11 total=80 red=3 scope=trial:ae73915f78b8 how=#550 item (17): CT_SRC with BRIL_RULE_DEFAULT back to 1 and the bundle before rule 3 (t64) - Z1, Z2 and H0b red; every other line green
+// CONTROL-RECORD: c33e447 2026-11-11 total=80 red=3 scope=trial:1ddf30c42dc4 how=#550 item (20): a mutant whose ct_grades2 switch is ignored (GRADES2 always true, t78) - H0 and both H9 lines red (GRADE_VER 11 and 12 where the rule's own 1 and 2 are expected)
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

@@ -9,6 +9,13 @@
 // WHAT IT READS. Blocks A-F are NODE blocks over chess.jsx through gates/engine-extract.js (sfGradePly and classifyMove, the shipped
 // functions), each rule asserted on both sides of its line and with the switch off (hist.grades2 false, the old grades). Block Z is a
 // BROWSER block over the bundle under test: the New features switch, found by its label.
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=6 scope=env:CT_SRC=g-def how=GRADES2_DEFAULT false (the old grades) - A1, A2, C1, D3, D4 and E1 red
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-bands how=the bands moved to 3 / 8 / 10 / 30 - TC-R196b B1 red alone
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-forced how=no Forced in classifyMove - TC-R196c C1 red alone
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-recap how=the recapture exclusion removed from Great - TC-R196d D4 red alone
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-miss how=Miss with no previous-drop condition - TC-R196e E2 red alone
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-prev how=gradeHist never reads the engine's own move as a zero drop - TC-R196f F2 red alone
+// CONTROL-RECORD: c33e447 2026-11-11 total=19 red=1 scope=env:CT_SRC=g-book how=Book overrides Forced - TC-R196c C3 red alone
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('117-grades-as-chesscom: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-F); bundle '+(process.env.CT_APP||'app.js')+' (block Z)');

@@ -36,6 +36,7 @@
 'use strict';
 const L=require('../lib');
 // CONTROL-RECORD: ef3feab 2026-11-06 total=185 red=10 scope=trial:e824097dfb8e how=the tree before the #549 (16) veto fix (chip minWidth 0, shrinkable) - TC-PZ-CHIP's not-cut lines red for rankup-continue and rank1-train at kunal761 and kunal730 and rankup-continue at 390 [#549 item (16) veto fix]
+// CONTROL-RECORD: c33e447 2026-11-11 total=232 red=3 scope=trial:a0832813a26e how=#550 AUD-L18: the tree before the header kept the tick alone (t74, '1 / 890 · ✓ solved') - the three AUD-L18 lines red at kunal761, kunal730 and 390
 const Z=require('../drive/puzzles');
 const PZKEY='chesstrainer.progress.v1';
 

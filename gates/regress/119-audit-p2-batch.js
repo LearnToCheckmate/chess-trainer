@@ -5,6 +5,8 @@
 //  AUD-H05 (P2): tapping the Style button (not Pro) or a locked skin opened the Account sheet with no sentence saying why, so it read as a
 //  wrong turn. The audit's fix: open it with a line such as "Playful and Medieval are Pro skins", the Coach lock's pattern, naming the skin.
 // WHAT IT READS: the bundle under test (CT_APP) at kunal761 on a fresh store (not Pro). The sentence is found by what it SAYS, not by a hook.
+// CONTROL-RECORD: c33e447 2026-11-11 total=13 red=2 scope=trial:a0832813a26e how=#550 AUD-H05: the tree before the sentence (t74) - TC-HM-059a and TC-HM-059b red, the precondition and the error line green
+// CONTROL-RECORD: c33e447 2026-11-11 total=13 red=2 scope=trial:2cc97627b2ab how=#550 AUD-L15: the tree before the road clip (t75) - both TC-HM-059c paint lines red (583 against 537 at kunal761, 390 against 344 at se); H05 and the node lines green
 const L=require('../lib');
 L.run(async()=>{
   const sheet=(b)=>b.page.evaluate(()=>{const o=[...document.querySelectorAll('div')].find(d=>getComputedStyle(d).position==='fixed'&&+getComputedStyle(d).zIndex===1100);

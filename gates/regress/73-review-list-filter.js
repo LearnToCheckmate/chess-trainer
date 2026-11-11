@@ -248,6 +248,7 @@
 //                and the prediction's "C4 RED ALONE" was already contradicted by NC-NOLINE reddening C4 for a
 //                different reason. It has now been built and run; see TC-R48 for its measured counts.
 'use strict';
+// CONTROL-RECORD: c33e447 2026-11-11 total=189 red=1 scope=trial:e19888a745d8 how=#550: the tree before the opponent marker moved beside the name (t69) - TC-R76 at se red (110 -> 124, the 'opp !!' pill wrapping the count line); the stamped fixture's B, D and E lines green there too
 const L=require('../lib');
 
 // ── the fixture, built once so every launch in this file sees byte-identical rows
