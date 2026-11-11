@@ -71,3 +71,4 @@
 98	97	raise	2026-11-11	550	build__1794388896663	#550 answer a8: gate 114, sideways Puzzles tab rail	-	62356fe2f725
 99	98	raise	2026-11-11	550	build__1794388896663	#550 AUD-R13 (docs/app-audit-2026-11-11, P1): gate 115, a drill explanation past its box says so and scrolls	-	ac41a254a3f1
 100	99	raise	2026-11-11	550	build__1794388896663	#550 item (17): gate 116, Brilliant rule 3 on by default with its switch	-	c2e8a8c411fc
+103	100	raise	2026-11-11	550	build__1794388896663	#550 items (20), (21) and AUD-H05/L15: gates 117 (grades as chess.com), 118 (Brilliant library), 119 (audit P2 batch)	-	0a157654b3fb

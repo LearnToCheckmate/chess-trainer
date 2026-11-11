@@ -287,11 +287,15 @@ L.run(async()=>{
         if(!k)return null;const q=k.getBoundingClientRect();
         // the fraction's ink: a Range over the 'n/need' characters of the chip's text node
         let fr=null;const w=document.createTreeWalker(k,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){const m=/\d+\/\d+$/.exec(tn.data);if(m){const rg=document.createRange();rg.setStart(tn,m.index);rg.setEnd(tn,tn.data.length);const rr=rg.getBoundingClientRect();fr={txt:m[0],left:Math.round(rr.left*100)/100,right:Math.round(rr.right*100)/100,w:Math.round(rr.width*100)/100};}}
-        return {t:(k.innerText||'').replace(/\s+/g,' ').trim(),sw:k.scrollWidth,cw:k.clientWidth,left:Math.round(q.left*100)/100,right:Math.round(q.right*100)/100,h:Math.round(r.getBoundingClientRect().height*100)/100,vw:innerWidth,fr};});
+        const cn=k.previousElementSibling;   // #550 AUD-L18: the counter, the chip's left neighbour
+        return {cnt:cn&&cn!==k?{t:(cn.innerText||'').replace(/\s+/g,' ').trim(),sw:cn.scrollWidth,cw:cn.clientWidth}:null,t:(k.innerText||'').replace(/\s+/g,' ').trim(),sw:k.scrollWidth,cw:k.clientWidth,left:Math.round(q.left*100)/100,right:Math.round(q.right*100)/100,h:Math.round(r.getBoundingClientRect().height*100)/100,vw:innerWidth,fr};});
       L.say(ok&&!!c&&!!c.t,'TC-PZ-CHIP '+geo+' '+st+' PRECONDITION the puzzle header row is on screen and its last chip was read',{c});
       L.say(!!c&&want.test(c.t)&&!/✓/.test(c.t),'TC-PZ-CHIP '+geo+' '+st+': the header chip names the TIER and the progress into it ("'+(c&&c.t)+'"), not the tier name beside the all-time solved count',{c});
       L.say(!!c&&c.sw<=c.cw+0.5,'TC-PZ-CHIP '+geo+' '+st+': chip not cut - scrollWidth '+(c&&c.sw)+' <= clientWidth '+(c&&c.cw),{c});
       L.say(!!c&&!!c.fr&&c.fr.w>0&&c.fr.right<=c.right+0.5&&c.right<=c.vw+0.5,'TC-PZ-CHIP '+geo+' '+st+': the fraction "'+(c&&c.fr&&c.fr.txt)+'" is painted inside the chip - ink right '+(c&&c.fr&&c.fr.right)+' <= chip right '+(c&&c.right)+' <= viewport '+(c&&c.vw)+' (header row '+(c&&c.h)+'px)',{c});
+      // #550 AUD-L18 (P2): the audit measured '1 / 890 · ✓ solv…' cut (139 in 121) after a solve; at this state on the pre-fix t74 it read
+      // '1 / 890 · ✓ solved' at 129 in 129, so the cut did not reproduce here - the word, which the green verdict already says, is what goes
+      if(st==='train-solved'&&geo!=='se')L.say(!!c&&!!c.cnt&&/✓$/.test(c.cnt.t)&&c.cnt.sw<=c.cnt.cw+0.5,'TC-PZ-CHIP '+geo+' train-solved: AUD-L18 after a solve the counter carries the tick alone - the word the green verdict already says is gone - and is not cut ("'+(c&&c.cnt&&c.cnt.t)+'", scrollWidth '+(c&&c.cnt&&c.cnt.sw)+' <= clientWidth '+(c&&c.cnt&&c.cnt.cw)+')',c&&c.cnt);
       await b.close();
     }
   }

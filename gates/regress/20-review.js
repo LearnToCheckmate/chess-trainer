@@ -19,6 +19,9 @@ const LADDER=[...L.GRADES];
 // ten counts must sum to its own ply count. That is a VALUE assertion over the counters and it is what tells a
 // broken counter from a correct one - the old assertion could not (it only looked for the words on the panel).
 const PLIES_W=17, PLIES_B=16;
+// #550 item (20): the summary leaves FORCED moves (one legal reply) out of its counts, as chess.com's ten totals do. The forced plies of the
+// game are counted here from the game itself (getLegal, through engine-extract), not pinned, so TC-R04 still accounts for every ply.
+const FORCED_WB=(()=>{try{const E=require('../engine-extract.js');const r=E.loadSANs(E.parsePGN(PGN));const n={w:0,b:0};for(let i=0;i<r.plies.length;i++){if(E.getLegal(r.positions[i]).length===1)n[r.positions[i].turn]++;}return n;}catch(e){return {w:0,b:0};}})();
 const step=async(b,n)=>{for(let i=0;i<n;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(140);}await b.settle(400);};
 const gridSig=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return '';return [...g.children].slice(0,64).map(c=>{const im=c.querySelector('img');return im?im.getAttribute('src').slice(-12):(c.innerText||'').trim().slice(0,2);}).join('|');});
 const badgesOutside=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return null;const R=g.getBoundingClientRect();const out=[];for(const e of g.querySelectorAll('div,span')){if(e.getAttribute('data-ct')==='rev-fab')continue;const st=getComputedStyle(e);if(st.borderRadius!=='50%'&&!/50%/.test(e.style.borderRadius||''))continue;const r=e.getBoundingClientRect();if(r.width<8||r.width>R.width/3)continue;const dx=Math.max(0,R.left-r.left,r.right-R.right),dy=Math.max(0,R.top-r.top,r.bottom-R.bottom);out.push({t:(e.innerText||'').trim().slice(0,3),dx:Math.round(dx*10)/10,dy:Math.round(dy*10)/10,top:Math.round(r.top*10)/10,left:Math.round(r.left*10)/10,w:Math.round(r.width)});}return {board:{top:R.top,left:R.left,w:R.width},badges:out};});
@@ -114,8 +117,8 @@ L.run(async()=>{
     // (c) a VALUE: every ply carries exactly one grade, so each side's row counts sum to its own ply count. The
     // old assertion was label containment and could not tell a correct counter from a broken one.
     const sumW=(rows||[]).reduce((a,r)=>a+(r.w||0),0),sumB=(rows||[]).reduce((a,r)=>a+(r.b||0),0);
-    L.say(!!rows&&rows.length>0&&sumW===PLIES_W&&sumB===PLIES_B,
-      geo+': TC-R04 the grade counts account for every ply of the Opera Game (white '+sumW+'/'+PLIES_W+', black '+sumB+'/'+PLIES_B+')',
+    L.say(!!rows&&rows.length>0&&sumW+FORCED_WB.w===PLIES_W&&sumB+FORCED_WB.b===PLIES_B,
+      geo+': TC-R04 the grade counts account for every ply of the Opera Game (white '+sumW+'+'+FORCED_WB.w+' forced/'+PLIES_W+', black '+sumB+'+'+FORCED_WB.b+' forced/'+PLIES_B+')',
       {rows:(rows||[]).map(r=>r.label+':'+r.w+'/'+r.b)});
     L.say(!!foot&&foot.y+foot.h<=b.geo.h+0.5&&foot.y>b.geo.h*0.5,geo+': TC-R04 summary footer pinned inside the viewport (bottom '+(foot&&Math.round(foot.y+foot.h))+' of '+b.geo.h+')');
     const skills=await b.rect('[data-ct="rev-skills"]');L.say(!!skills,geo+': TC-R05 Skills panel present');

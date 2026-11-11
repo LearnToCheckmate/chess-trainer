@@ -860,7 +860,41 @@ const CLS_BANDS=[[1.3804,'Best','#6fd66f','★'],[3.6754,'Excellent','#9fcf6f','
    three of its colours had drifted from what the classifier paints (Best #7bd88f vs #6fd66f, Excellent #8bd18f vs #9fcf6f,
    Good #9ccb8f vs #c9d06a), so the same grade wore two colours on two screens. */
 const _bandOf=(n)=>{const b=CLS_BANDS.find(x=>x[1]===n);return [n,b[2],b[3]];};
-const GRADE_LADDER=[['Brilliant','#22d3ee','!!'],['Great','#5d93e8','!'],_bandOf('Best'),_bandOf('Excellent'),_bandOf('Good'),['Book','#9aa6b2','≡'],_bandOf('Inaccuracy'),['Miss','#f08a5d','×'],_bandOf('Mistake'),['Blunder','#ec5c4e','??']];
+const GRADE_LADDER=[['Brilliant','#22d3ee','!!'],['Great','#5d93e8','!'],_bandOf('Best'),_bandOf('Excellent'),_bandOf('Good'),['Book','#9aa6b2','≡'],_bandOf('Inaccuracy'),['Miss','#f08a5d','×'],_bandOf('Mistake'),['Blunder','#ec5c4e','??']];   // #550 item (20): Forced (FORCED_CLS) is NOT a row here - chess.com leaves forced moves out of its ten totals, and so does the summary
+/* #550 item (20), jobs/reconcile-kevitsch-review-vs-chesscom: THE GRADES OF docs/grade-boundaries-design-2026-11-10, ON BY DEFAULT with
+   their switch on the menu's New features section ('grades-2'; ct_grades2='0' turns them off). Kunal's answers: B9C-GRADE-BEST ("what
+   does chess.com do? Align wiht them": Best is the engine's own move and nothing else), B9C-GRADE-GREAT "narrow" ("match to chess.com")
+   and B10-SHIP-ON "on". Measured by the design over his 42 saved reviews: 1697 of 2864 moves graded as chess.com graded them, against
+   1510 today. In order, first hit wins: FORCED (one legal move); Book (unchanged); Brilliant (its own rule); the engine's own move is
+   GREAT when the second line is 10 or more points of winning chances worse, the move is not a plain recapture and the best line
+   leaves the mover 30 or more, else BEST; any other move is a MISS when the opponent's previous move dropped 12 or more, this one
+   drops 8 or more and the mover still has 20 or more, else by its drop: under 3 Excellent, under 6 Good, under 10 Inaccuracy,
+   under 25 Mistake, else Blunder. CLS_BANDS itself is not changed: its Best/Excellent/Good rows still give every grade its colour
+   and glyph, and clsByName reads it. The accuracy formula is not part of this (its own question). */
+const GRADES2_DEFAULT=true;
+const GRADES2=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_grades2'):null;return v==='1'?true:v==='0'?false:GRADES2_DEFAULT;}catch(e){return GRADES2_DEFAULT;}})();
+const CLS_BANDS2=[[3,'Excellent'],[6,'Good'],[10,'Inaccuracy'],[25,'Mistake']].map(([d,n])=>{const b=CLS_BANDS.find(x=>x[1]===n);return [d,n,b[2],b[3]];});
+const FORCED_CLS={label:'Forced',c:'#8d99a6',i:'□'};
+const BEST_CLS=(()=>{const b=CLS_BANDS.find(x=>x[1]==='Best');return {label:'Best',c:b[2],i:b[3]};})();
+// THE GRADE OF A PLAYED MOVE from its drop, knowing whether it was the engine's own move (isTop) and how many legal moves there were.
+function classifyMove(drop,isTop,nLegal,g2){
+  if(!(typeof g2==='boolean'?g2:GRADES2))return classify(drop);
+  if(nLegal===1)return {...FORCED_CLS};
+  if(isTop)return {...BEST_CLS};
+  const d=Math.max(0,drop||0);
+  for(const b of CLS_BANDS2)if(d<b[0])return {label:b[1],c:b[2],i:b[3]};
+  return {label:'Blunder',c:'#ec5c4e',i:'??'};
+}
+// #550 item (20): the inputs Great and Miss read about the PREVIOUS ply - the opponent's move and what it cost them (0 when it was the
+// engine's own move, as the review grades it), from the same cached evaluations the review grades by. No second search.
+function gradeHist(res,evW,bU,i){
+  const h={positions:res&&res.positions,i};
+  if(!res||!res.plies||i<=0||!res.plies[i-1])return h;
+  const pm=res.plies[i-1].move,pp=res.positions[i-1];h.prevMove=pm;
+  try{const u=bU&&bU[i-1];const was=!!u&&uciToMove(pp,u)&&(()=>{const b=uciToMove(pp,u);return b.fr===pm.fr&&b.fc===pm.fc&&b.tr===pm.tr&&b.tc===pm.tc;})();
+    h.prevDrop=(was||evW[i-1]==null||evW[i]==null)?0:winDrop(evW[i-1],evW[i],pp.turn);}catch(e){h.prevDrop=0;}
+  return h;
+}
 function classify(drop){
   const d=Math.max(0,drop||0);
   for(let k=0;k<CLS_BANDS.length;k++){const b=CLS_BANDS[k];if(d<b[0])return{label:b[1],c:b[2],i:b[3]};}
@@ -959,7 +993,7 @@ function gameAcc(winsW,accs,idxs){
 const BOOK_CLS={label:'Book',c:'#9aa6b2',i:'≡'};
 function effCls(cls,i,bookN){
   const L=cls&&cls.label;
-  if(i<bookN&&L!=='Brilliant'&&L!=='Great')return BOOK_CLS;
+  if(i<bookN&&L!=='Brilliant'&&L!=='Great'&&L!=='Forced')return BOOK_CLS;   // #550 item (20): Forced is decided before Book
   return cls;
 }
 function effLabel(cls,i,bookN){const c=effCls(cls,i,bookN);return c&&c.label;}
@@ -1798,7 +1832,10 @@ const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their
 // still green. That was the negative control NC-C for gates/regress/36-evalbar.js, which is where this is
 // asserted: barW + boardW is the same number in Play and in Review by this construction.
 const EVAL_BAR_W = (inReview) => inReview ? 22 : 18;
-const TAB_RAIL_W = 62;   // #550 a8: the sideways Puzzles tab rail's width
+const TAB_RAIL_W = 62;
+// #550 AUD-H05 (P2): a locked skin opened the Account sheet with no sentence saying why, so it read as a wrong turn. The sheet now opens
+// with the reason, in the pattern the Coach lock already uses, naming the skin that was tapped.
+const SKIN_PRO_MSG=(s)=>{const pro=(typeof SKINS!=='undefined'?SKINS:[]).filter(x=>x.pro).map(x=>x.name);return s&&s.name?(s.name+' is a Pro skin. Upgrade to use '+pro.join(' and ')+'.'):(pro.join(' and ')+' are Pro skins. Upgrade to use them.');};   // #550 a8: the sideways Puzzles tab rail's width
 
 /* #549 item (28), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03: THE ONE BRILLIANT RULE. A move is
    Brilliant when all four hold, and this function is the one place every brilliant in the app is decided (the review label at both
@@ -2024,6 +2061,23 @@ function nextBestW(bestW,secondW,playedIsBest){
    that measurement prints (the job's own work item 1: "if the answer moves a lot, tell Kunal before building anything else here").
    RULES THAT NEED THE LINE (the job's attraction/king-hunt, deflection, interference, clearance, zwischenzug, desperado, positional)
    are NOT tagged here: only the three mate shapes read `line`, and a move with no line is never called a mating attack. */
+/* #550 item (21), jobs/brilliancy-library-and-motif-coverage-2026-09-23: THE BRILLIANT LIBRARY. His answer B9C-BRIL-LIBRARY "now" (the
+   orchestrator's ruling on his chat words: "figure out the styles of the brilliant that it identifies"; on practising them by kind with
+   the ones he missed, "Yes, I would like to see those") and B10-SHIP-ON "on". The brilliant-moves drill opens on two shelves - the
+   Brilliants he played and the ones he missed (item 18) - each grouped by kind (brilMotifs' primary tag, on the app's own rule), and he
+   picks up to BRIL_LIB_MAX kinds to practise together. ct_bril_lib='0' turns the library off (the drill starts on every card, as before). */
+const BRIL_LIB_DEFAULT=true;
+const BRIL_LIB=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_bril_lib'):null;return v==='1'?true:v==='0'?false:BRIL_LIB_DEFAULT;}catch(e){return BRIL_LIB_DEFAULT;}})();
+const BRIL_LIB_MAX=3;
+const BRIL_KIND_NAME={'greek-gift':'Greek gift','queen-sac':'Queen sacrifice','exchange-sac':'Exchange sacrifice','underpromotion':'Underpromotion','smothered-mate':'Smothered mate','back-rank':'Back-rank mate','mating-attack':'Mating attack','quiet-sac':'Quiet sacrifice','fork':'Fork','discovered-check':'Discovered check','sacrifice':'Sacrifice'};
+// The kind of one practice card (a stored brilliant or missed brilliant): brilMotifs over the card's own position and move, the gate read
+// on the board alone (no eval enters a motif). Memoised by fen and move, since the shelves are drawn every time the sheet opens.
+const _brilKindMemo=new Map();
+function brilKind(c){
+  if(!c||!c.fen||!c.uci)return 'sacrifice';const k=c.fen+'|'+c.uci;if(_brilKindMemo.has(k))return _brilKindMemo.get(k);
+  let r='sacrifice';try{const pos=fromFEN(c.fen),m=uciToMove(pos,c.uci);if(m){const g=brilliantGate(pos,m,0,0.5,0.5,null);r=(brilMotifs(pos,m,g)||{}).primary||'sacrifice';}}catch(e){r='sacrifice';}
+  _brilKindMemo.set(k,r);return r;
+}
 const BRIL_MOTIF_ORDER=['greek-gift','queen-sac','exchange-sac','underpromotion','smothered-mate','back-rank','mating-attack','quiet-sac','fork','discovered-check'];
 function brilMotifs(pos,pl,g,line){
   const tags=[],add=(tag,conf)=>{if(!tags.some(t=>t.tag===tag))tags.push({tag,conf});};
@@ -2215,7 +2269,7 @@ function gradeDrillMove(pos,playedMv,bestSan,gameSan){
     const isTop=(vPlay===vBest);
     const _nb=nextBestW(vBest,R.second,isTop);
     const _g=brilliantGate(pos,playedMv,Math.round(loss),evA,evB,_nb==null?null:Math.max(-99,Math.min(99,_nb/100)));
-    let cls=(_g&&_g.ok)?{label:'Brilliant'}:classify(winDrop(vBest,vPlay,mover));
+    let cls=(_g&&_g.ok)?{label:'Brilliant'}:classifyMove(winDrop(vBest,vPlay,mover),isTop);
     if(cls.label!=='Brilliant'&&matesMover(vPlay,mover,vBest))cls=mateLadder(evB*100,mover);
     /* THE BASELINE IS A FORCED MATE FOR THE PLAYER. winPct saturates there, so a slower route that also mates reads a
        zero drop and would be told "Nothing in the position beats it" while a quicker mate stood on the board. Such a
@@ -2344,7 +2398,7 @@ function drillAcceptMsg(played,gr,pos,playedMv,sol,alt){   /* alt: the move matc
    polls (120 s at rest; longer in wall time on a loaded phone, which is the point). It was 5 s, and on a busy phone that handed the game to
    a different grader with different grades. A worker that cannot be built or dies ends the wait at once. */
 const REVIEW_ENGINE_WAIT=1200;
-const GRADE_VER=BRIL_RULE===3?3:BRIL_RULE===2?2:1;   // #550 item (17): 3 with rule 3 (the default), 2 with the #549 rule, 1 with the old one
+const GRADE_VER=(BRIL_RULE===3?3:BRIL_RULE===2?2:1)+(GRADES2?10:0);   // #550 items (17) and (20): the ones digit is the brilliant rule (3 rule 3, the default; 2 the #549 rule; 1 the old one), plus 10 with item (20)'s grades on - so 13 by default
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
    alone when stale, and that is not an oversight: the background pass can only produce a depth-2 ESTIMATE, so
@@ -2382,12 +2436,14 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss,his
     // Asked only when the caller wants it (the review passes MISSED_BRIL), so the shipped default spends nothing on it: measured
     // 76ms of a 255ms grade over a 104-ply game in node.
     const _mbG=(wantMiss&&!_wasBest&&!_ok&&bestMv)?missedBrilliant(pos,bestMv,evB,evB,ev2==null?null:Math.max(-99,Math.min(99,ev2/100)),rule,hist):null;
-    let cls=_ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
+    let _nLeg=0;try{_nLeg=getLegal(pos).length;}catch(e){_nLeg=0;}
+    const _G2=(hist&&typeof hist.grades2==='boolean')?hist.grades2:GRADES2;   // the regrade's OLD run grades the way the stored review was graded
+    let cls=_ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classifyMove(_wd,_wasBest,_nLeg,_G2);
     /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
        always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
        evW[i] and evW[i+1], white-POV centipawns, which is why evB is before/100 two lines up. */
     const _newMate=matesMover(after,mover,before);
-    if(_newMate&&cls.label!=='Brilliant')cls=mateLadder(before,mover);
+    if(_newMate&&cls.label!=='Brilliant'&&cls.label!=='Forced')cls=mateLadder(before,mover);   // #550 item (20): a forced move stays Forced
     /* #442: THESE TWO OVERLAYS ARE DECISIONS, NOT LABELS, so they read the SELECTION ladder.
        They gated on `cls.label` and were calibrated when cls WAS classifyByLoss - Best/Excellent
        then meant the player had played at or within 40cp of the engine's move, which is the whole
@@ -2413,14 +2469,23 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss,his
        engine's own best move allows a mate straddling the search horizon - and it rendered
        "! Great - The only move that keeps it." on a move that gets mated next. The ladder is the last
        word on a move that forces mate against its own mover; these two overlays are not. */
-    if(cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2!=null,_s2=_h2?(mover==='w'?ev2:-ev2):null;
+    if(_G2&&cls.label!=='Brilliant'&&cls.label!=='Forced'&&!_newMate){
+      /* #550 item (20): Great and Miss on winning chances (docs/grade-boundaries-design-2026-11-10 section 3). hist carries the opponent's
+         previous move and its drop (prevMove, prevDrop); the first move of a game has neither: no previous error, not a recapture. */
+      const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2!=null,_s2=_h2?(mover==='w'?ev2:-ev2):null;
+      const _pv=hist&&hist.prevMove,_pp=hist&&hist.positions&&typeof hist.i==='number'&&hist.i>0?hist.positions[hist.i-1]:null;
+      const _recap=!!(_pv&&_pp&&(pos.board[pl.tr][pl.tc]||pl.epCap)&&(_pp.board[_pv.tr][_pv.tc]||_pv.epCap)&&pl.tr===_pv.tr&&pl.tc===_pv.tc);
+      if(_wasBest){if(_h2&&winPct(_bm)-winPct(_s2)>=10&&!_recap&&winPct(_bm)>=30)cls={label:'Great',c:'#5d93e8',i:'!'};}
+      else if(_wd>=8&&((hist&&hist.prevDrop)||0)>=12&&winPct(_pm)>=20)cls={label:'Miss',c:'#f08a5d',i:'×'};
+    }
+    else if(!_G2&&cls.label!=='Brilliant'&&!_newMate){const _bm=mover==='w'?before:-before,_pm=mover==='w'?after:-after,_h2=ev2!=null,_s2=_h2?(mover==='w'?ev2:-ev2):null;
       if((_selL==='Best'||_selL==='Excellent')&&_h2&&(_bm-_s2)>=160)cls={label:'Great',c:'#5d93e8',i:'!'};
       else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
     let altSan='',altDrop=null,altUci='',altLabel=null;
     try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));altUci=au;}}
       if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}
       /* #550 item (51): the review's OWN grade of its second line, on the same win-probability ladder the played move is graded on */
-      if(altSan&&ev2!=null)altLabel=classify(winDrop(before,ev2,mover)).label;}catch(e){}
+      if(altSan&&ev2!=null)altLabel=classifyMove(winDrop(before,ev2,mover),false,0,_G2).label;}catch(e){}
     return ({loss:Math.round(loss),wdrop:_wd,macc:_ma,sel:_selL,cls,bestSan,bestMove:bestMv,evalAfter:evA,evalBefore:evB,gate:_g,altSan,altDrop,altUci,altLabel,motifs:moveMotifs(pos,pl),gist:moveGist(pos,pl),pv:null,forkT:forkTargets(pos,pl),mbril:_mbG?{san:bestSan,move:bestMv,gate:_mbG}:null});
 }
 /* #549 item (28): THE RULE THIS BUILD REPLACED, from the fields brilliantGate still returns - kept ONLY so the regrade preview can
@@ -2476,9 +2541,9 @@ function regradeGame(res,cache,userColor,rule,oldVer){   // oldVer: the stored t
   let _bk=0;try{_bk=(res.positions&&res.positions[0]&&toFEN(res.positions[0]).split(' ')[0]===START_PLACEMENT)?(openingBookPlies(res.plies.map(p=>p.san),res.positions)||0):0;}catch(e){_bk=0;}
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
-    const _h={positions:res.positions,i};
+    const _h=gradeHist(res,evW,cache.bU,i),_oR=(oldVer||1)%10,_hO={..._h,grades2:(oldVer||1)>=10};   // the stored review's own rule and grades
     const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule,false,_h);   // rule: the app's own (BRIL_RULE) unless a caller names one
-    const ol=oldVer===2?sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,2,false,_h):sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1);
+    const ol=_oR===1?sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1,false,_hO):sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,_oR,false,_hO);
     rows.push(nw);
     const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
@@ -2520,7 +2585,7 @@ async function analyzeGameCounts(pgn,userColor){
       // #549 item (28): the NEEDED test's next best. rankMoves returns every legal move ranked, so the next best is scored[1]
       // when the move played was scored[0], and scored[0] otherwise (white-POV centipawns, to pawns as evalPawns gives them).
       const _nb3=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);
-      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)),undefined,{lossWin:winDrop(bestVal,actualVal,mc),playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i})?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
+      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)),undefined,{lossWin:winDrop(bestVal,actualVal,mc),playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i})?{label:'Brilliant'}:classifyMove(winDrop(bestVal,actualVal,mc),!!actual&&actual===scored[0],scored.length);
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
       const L=_c3.label;
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
@@ -2583,6 +2648,8 @@ const NEW_FEATURES=[
   {id:'book-table',label:'Opening book table',sub:'more of your opening counts as Book, as on chess.com',key:'ct_book_table',on:'1',off:'0',isOn:()=>BOOK_TABLE===1},
   {id:'bril-rule',label:'Brilliant moves: the new rule',sub:'finds the Brilliants chess.com finds in your games; off goes back to the old rule',key:'ct_bril_rule',on:'3',off:'1',isOn:()=>BRIL_RULE===3},
   {id:'missed-bril',label:'Missed Brilliants',sub:'marks where you had a Brilliant and played something half a pawn worse, and drills every one',key:'ct_missed_bril',on:'1',off:'0',isOn:()=>MISSED_BRIL===true},
+  {id:'grades-2',label:'Move grades as chess.com gives them',sub:'Best is only the engine\'s move; Great, Miss and Forced as chess.com marks them',key:'ct_grades2',on:'1',off:'0',isOn:()=>GRADES2===true},
+  {id:'bril-library',label:'Brilliant library',sub:'your Brilliants and the ones you missed, by kind; practise two or three kinds at a time',key:'ct_bril_lib',on:'1',off:'0',isOn:()=>BRIL_LIB===true},
   {id:'review-two',label:"Drill: the review's second move",sub:'a drill card also accepts the review\'s second choice when it rated it Excellent',key:'ct_review_two',on:'1',off:'0',isOn:()=>REVIEW_TWO===1},
 ];
 // The position's book key: FNV-1a 32 over 'board side castling' of its FEN, seven base-36 digits. gates/opening-book/build.js writes
@@ -3498,6 +3565,11 @@ function MagIcon({size=23}){
    a real phone, the single-angle quotes the move arrows use draw only 6x11 of ink at font-size 24,
    a 46% fill, while the neighbouring transport glyphs draw 21x12. That is the same defect Kunal
    caught on the analyze icon, and #359 made these arrows visible by default. Drawn, not typed. */
+// #550 round-3 suite (gate 26 TC-INV-02a): the review toolbar's star as a glyph of its own box, so every icon in that row is one height.
+function StarIcon({size=20,color='currentColor'}){
+  const c=size/2,R=size*0.48,r=R*0.42,pts=[];for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,q=k%2?r:R;pts.push((c+q*Math.cos(a)).toFixed(2)+','+(c+q*Math.sin(a)).toFixed(2));}
+  return(<svg width={size} height={size} viewBox={'0 0 '+size+' '+size} aria-hidden="true" style={{display:'block'}}><polygon points={pts.join(' ')} fill={color}/></svg>);
+}
 function ChevIcon({size=20,dir='right'}){
   const sw=Math.max(2,size*0.13), m=size*0.30, t=size*0.20, b=size-t;
   const x1=dir==='left'?(size-m):m, x2=dir==='left'?m:(size-m);
@@ -4705,6 +4777,7 @@ export default function App(){
   const _botMeasure=()=>{const e=botRowRef.current;setBotMore(!!e&&e.scrollLeft+e.clientWidth<e.scrollWidth-1);};
   useEffect(()=>{const t=setTimeout(_botMeasure,60);return()=>clearTimeout(t);},[playSetup,vp.w,vp.h,mode,opponent]);
   const [drillEnd,setDrillEnd]=useState(null);
+  const [brilLib,setBrilLib]=useState(null);   /* #550 item (21): the Brilliant library sheet: null closed, else {sel:[shelf|kind ...]} */
   const [drillPick,setDrillPick]=useState(false);   /* #550 item (22): the drill counter's number chooser is open */
   const pzVerdRef=useRef(null);const [pzVerdMore,setPzVerdMore]=useState(false);const [pzVerdCut,setPzVerdCut]=useState(0);
   /* #550, AUD-R13 (the app audit's P1): in the drills the solved explanation floats at the reserve and SCROLLS - Kunal's ruling on this
@@ -6339,7 +6412,7 @@ export default function App(){
       if(!_eng.abandoned)evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});   // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
       }
       poolClose();
-      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL,{positions:res.positions,i}));
+      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL,gradeHist(res,evW,bU,i)));
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
       for(let i=0;i<out.length;i++){
@@ -6393,7 +6466,7 @@ export default function App(){
            move's - not a before/after pair. So "did this move newly force mate" is asked of actualVal
            against bestVal (if even the best move loses to mate, this move did not cause it), and "how lost
            was the mover" comes from the position's own eval, _evB, in pawns, hence x100. */
-        let _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd2);
+        let _cls=_g.ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classifyMove(_wd2,!!actual&&actual===scored[0],scored.length);
         if(_cls.label!=='Brilliant'&&matesMover(actualVal,mover,bestVal))_cls=mateLadder(_evB*100,mover);
         // #549 item (29): the missed brilliant on this engine too (the #375 rule: a path the device chooses is covered). The best move's
         // eval after is read the way this site reads a played move's (the static eval of the position it leaves); its next best is scored[1].
@@ -8116,7 +8189,7 @@ export default function App(){
   const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length){toast('None of your '+qs.length+' saved position'+(qs.length>1?'s':'')+' can be played: each needs a legal position and a legal better move. '+(qs.length>1?'They are':'It is')+' kept, not deleted.');return;}/* #550 item (13), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 (b): say why, never return silently */drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
     {const _f=qs[pl[0]]&&qs[pl[0]].fen;if(_f)setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}};   /* #549 item (15): the FIRST card is served here, not through drillGo, so it is stamped practised here too - else capMistakes keeps it over an older unseen one */
   const mkPlayN=useMemo(()=>(myMistakes||[]).filter(m=>!!puzzleFromMistake(m)).length,[myMistakes]);   /* #550 item (13) (a), Kunal's B8-SMALL-DEFAULTS 'Use your defaults': the card counts only the rows the drill can play; nothing is deleted */
-  const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
+  const startBrilliant=(keep)=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if((typeof keep!=='function'||keep(qs[i]))&&puzzleFromMistake(qs[i]))pl.push(i);}   /* #550 item (21): keep, the library's chosen kinds */if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
      PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
   const drillGo=(pos)=>{setDrillEnd(null);const pl=drillPlayRef.current||[],q=mistakeQueueRef.current||[];
@@ -8823,7 +8896,7 @@ export default function App(){
             <div data-ct="home-footrow" style={{display:'flex',gap:8,alignItems:'center',justifyContent:'center',flexWrap:_hcF?'nowrap':'wrap'}}>
               {/* #367 y12c: this used to cycle to the next palette blind; it opens the drawn picker now */}
               <button data-ct="home-look" onClick={()=>setLookOpen(true)} title="Board colours and pieces, with a preview" aria-label={'Colours & pieces: '+TH.name} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',minHeight:_hcF?44:undefined,minWidth:0,borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',flexShrink:0}}><span style={{background:TH.light}}/><span style={{background:TH.dark}}/><span style={{background:TH.dark}}/><span style={{background:TH.light}}/></span>{_hcF?TH.name:<>Colours &amp; pieces: {TH.name}</>}</button>
-              <button onClick={()=>{if(!isPro){setUpgradeMsg('');setAcctOpen(true);}else setSkin((skin+1)%SKINS.length);}} title={isPro?"Tap to change style":"Playful & Medieval are Pro"} aria-label={'Style: '+SK.name+(isPro?'':' (Pro)')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',minHeight:_hcF?44:undefined,borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:headFont,fontSize:11,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.12)'}}>A</span>{_hcF?SK.name:<>Style: {SK.name}</>}{!isPro&&<span style={{marginLeft:4}}>🔒</span>}</button>
+              <button onClick={()=>{if(!isPro){setUpgradeMsg(SKIN_PRO_MSG());setAcctOpen(true);}else setSkin((skin+1)%SKINS.length);}} title={isPro?"Tap to change style":"Playful & Medieval are Pro"} aria-label={'Style: '+SK.name+(isPro?'':' (Pro)')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',minHeight:_hcF?44:undefined,borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:headFont,fontSize:11,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.12)'}}>A</span>{_hcF?SK.name:<>Style: {SK.name}</>}{!isPro&&<span style={{marginLeft:4}}>🔒</span>}</button>
               {_hcF&&!preview&&!fbOpen&&!recCap&&_devBtns(44)}
             </div>
           </div>
@@ -9406,7 +9479,7 @@ export default function App(){
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}><span style={{fontFamily:"var(--head)",fontSize:19,fontWeight:700,color:'var(--ac2)'}}>🎭 Style</span><button onClick={()=>setSkinOpen(false)} style={{width:30,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15}}>✕</button></div>
           <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.55)',marginBottom:11,lineHeight:1.45}}>Fonts, icons and piece finish. Your colors stay separate.</div>
           <div style={{display:'flex',flexDirection:'column',gap:9}}>
-            {SKINS.map((s,i)=>{const on=skin===i;const lock=s.pro&&!isPro;return(<button key={s.key} onClick={()=>{if(lock){setSkinOpen(false);setUpgradeMsg('');setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'11px 12px',borderRadius:13,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
+            {SKINS.map((s,i)=>{const on=skin===i;const lock=s.pro&&!isPro;return(<button key={s.key} onClick={()=>{if(lock){setSkinOpen(false);setUpgradeMsg(SKIN_PRO_MSG(s));setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'11px 12px',borderRadius:13,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
               <span style={{flexShrink:0,display:'flex',gap:4,fontSize:19,lineHeight:1}}><span>{s.icons.learn}</span><span>{s.icons.play}</span></span>
               <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontFamily:s.font,fontSize:'clamp(15px,3.8vw,18px)',fontWeight:700,color:'#fff'}}>{s.name}</span><span style={{display:'block',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.6)'}}>{s.blurb}</span></span>
               {lock&&<span style={{flexShrink:0,fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'2px 7px'}}>PRO</span>}
@@ -9543,7 +9616,7 @@ export default function App(){
             {SKINS.map((s,i)=>{
               const p=THEMES[s.pal]||THEMES[2];const lock=s.pro&&!isPro;
               return(
-              <button key={s.key} onClick={()=>{if(lock){setUpgradeMsg('');setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'9px 11px',borderRadius:12,background:skin===i?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:skin===i?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
+              <button key={s.key} onClick={()=>{if(lock){setUpgradeMsg(SKIN_PRO_MSG(s));setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'9px 11px',borderRadius:12,background:skin===i?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:skin===i?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
                 <span style={{flexShrink:0,width:40,height:40,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',gap:3,fontSize:17,background:'rgba(255,255,255,.07)',boxShadow:'0 1px 6px rgba(0,0,0,.35)',border:s.trim?`1.5px solid ${s.trim}`:'1px solid rgba(255,255,255,.12)'}}>{s.icons.learn}{s.icons.play}</span>
                 <span style={{flex:1,minWidth:0}}>
                   <span style={{display:'block',fontSize:'clamp(14px,3vw,15px)',fontWeight:800,color:'#fff'}}>{s.name}</span>
@@ -10139,14 +10212,31 @@ export default function App(){
             </span>
             <span style={{flexShrink:0,fontSize:20,color:'#f0b35e'}}>›</span>
           </button>)}
-          {myBrilliant.length>0&&(<button onClick={startBrilliant} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
+          {myBrilliant.length>0&&(<button data-ct="bril-tile" onClick={()=>{const _ks=new Set((myBrilliant||[]).filter(Boolean).map(c=>(c.missed?'m':'p')+brilKind(c)));if(BRIL_LIB&&_ks.size>1)setBrilLib({sel:[]});else startBrilliant();}}/* #550 item (21): the library opens when there is a choice to make - two or more kinds or shelves; with one, the drill starts as before */ style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
             <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#22d3ee,#0e7490)',boxShadow:'0 4px 12px rgba(14,116,144,.4)'}}>✨</span>
             <span style={{flex:1,minWidth:0}}>
               <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>Your brilliant moves</span>
-              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{myBrilliant.length} brilliant move{myBrilliant.length>1?'s':''} you found · can you spot them again?</span>
+              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{(()=>{const nm=myBrilliant.filter(x=>x&&x.missed).length,nf=myBrilliant.length-nm;return (nf>0?(nf+' brilliant move'+(nf>1?'s':'')+' you found'):'')+(nf>0&&nm>0?' · ':'')+(nm>0?(nm+' you missed'):'')+' · can you spot them again?';})()/* #550 items (18) and (21): the missed ones are counted apart */}</span>
             </span>
             <span style={{flexShrink:0,fontSize:20,color:'#22d3ee'}}>›</span>
           </button>)}
+          {brilLib&&(()=>{/* #550 item (21): THE BRILLIANT LIBRARY - two shelves by kind, up to BRIL_LIB_MAX kinds practised together */
+            const all=(myBrilliant||[]).filter(Boolean);const sel=brilLib.sel||[];
+            const keyOf=(c)=>(c.missed?'missed':'played')+'|'+brilKind(c);
+            const keep=(c)=>sel.length===0||sel.indexOf(keyOf(c))>=0;const n=all.filter(keep).length;
+            const tog=(k)=>setBrilLib(b=>{const cur=(b&&b.sel)||[];return {...b,sel:cur.indexOf(k)>=0?cur.filter(x=>x!==k):(cur.length>=BRIL_LIB_MAX?cur:[...cur,k])};});
+            const ORDK=[...BRIL_MOTIF_ORDER,'sacrifice'];
+            const shelves=[['played','You played them',all.filter(x=>!x.missed)],['missed','You missed them',all.filter(x=>x.missed)]];
+            return(<div data-ct="bril-lib" onClick={()=>setBrilLib(null)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'80vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'14px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxSizing:'border-box'}}>
+              <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>Brilliant moves by kind</div>
+              <div style={{fontSize:13.5,color:'rgba(255,255,255,.6)',margin:'3px 0 10px',lineHeight:1.35}}>{'Pick up to '+BRIL_LIB_MAX+' kinds to practise together, or practise them all.'}</div>
+              {shelves.map(([id,lab,cs])=>cs.length>0&&(<div key={id} data-ct={'bril-shelf-'+id} style={{marginBottom:12}}>
+                <div style={{fontSize:13,fontWeight:800,letterSpacing:.6,textTransform:'uppercase',color:id==='missed'?'#7dd3fc':'rgba(255,255,255,.7)',marginBottom:6}}>{lab+' · '+cs.length}</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{ORDK.map(kd=>{const m=cs.filter(c=>brilKind(c)===kd).length;if(!m)return null;const k=id+'|'+kd,on=sel.indexOf(k)>=0;
+                  return(<button key={k} data-ct="bril-kind" data-k={k} aria-pressed={on?'true':'false'} onClick={()=>tog(k)} style={{minHeight:44,padding:'6px 12px',borderRadius:22,border:'1px solid '+(on?'rgba(34,211,238,.9)':'rgba(255,255,255,.18)'),background:on?'rgba(34,211,238,.22)':'rgba(255,255,255,.05)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{(BRIL_KIND_NAME[kd]||kd)+' '}<span style={{opacity:.6}}>{m}</span></button>);})}</div>
+              </div>))}
+              <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practise these '+n):('Practise all '+n)}</button>
+            </div></div>);})()}
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:'12px 12px',display:'flex',flexDirection:'column',gap:9}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
             <div style={{display:'flex',gap:7,alignItems:'center'}}>
@@ -10650,7 +10740,7 @@ export default function App(){
                     ?<span data-ct="bril-pill-est" style={{display:'block',textAlign:'center',lineHeight:1.15,color:'#7be9f7',background:'transparent',border:'1px dashed rgba(34,211,238,.75)',borderRadius:8,padding:'2px 0',fontWeight:800,fontSize:'clamp(13px,2.8vw,14px)'}}>!! {st.bril}<span style={{display:'block',fontSize:'.72em'}}>brilliant?</span></span>
                     :<span data-ct="bril-pill" style={{display:'block',textAlign:'center',lineHeight:1.15,color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'2px 0',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)',fontSize:'clamp(13px,2.8vw,14px)'}}>!! {st.bril}<span style={{display:'block',fontSize:'.72em'}}>brilliant</span></span>)}</span>
                   <span style={{minWidth:0,flex:1}}>
-                    <span data-ct="game-opp" style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,overflowWrap:'anywhere'}}>{info.opp?('vs\u00a0'+info.opp):(g.white+' vs\u00a0'+g.black)}</span>
+                    <span data-ct="game-opp" style={{display:'block',fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,overflowWrap:'anywhere'}}>{info.opp?('vs\u00a0'+info.opp):(g.white+' vs\u00a0'+g.black)}{st&&st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{marginLeft:6,color:'rgba(123,233,247,.8)',border:'1px solid rgba(123,233,247,.45)',borderRadius:8,padding:'0 5px',fontWeight:800,fontSize:'.75em',verticalAlign:'2px',whiteSpace:'nowrap'}}>!!</span>}</span>
                     <span data-ct="game-sub" style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',overflowWrap:'anywhere'}}>{/* #549 item (100), jobs/labels-truncate-in-shared-rows-2026-09-24: THIS ROW REFLOWS INSTEAD OF TRUNCATING. The opponent's name and this line shared a row with the fixed result badge and the fixed 'Review ›' control, so they got the remainder (184px at 375, 130px at 320) and were ellipsised - 'vs DukeKarlCountIs…' and 'jsmiller1112 · as Whit…' on Kunal's own phone with ordinary data, and a 25-character handle (chess.com's cap) lost half of itself at 320. The list scrolls, so a second line costs a row height and never the board: both lines now wrap, a handle with no spaces breaking anywhere. 'vs' is joined to the name by a no-break space so it is never left alone on a line. The badge (folded in from jobs/games-list-outcome-badge-word-spills-its-pill-2026-09-28) was a fixed 44px box and DRAW (51px in the row's own font at 14.5px, 3.52em) and GAME painted outside it; it is now 3.8em, ONE width for all four words so the names still line up row to row, and every word fits it with room. */}<span data-ct="game-src" style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{(ccAccts.length>1&&g.acct)?g.acct:(g.src==='li'?'Lichess':'Chess.com')}</span>{/* #547 item (79): with more than one account the card names WHOSE game it is, in the slot the site name used - no extra space; the site stays as the colour */}{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
                     {!st&&<span data-ct="gstat-slot" aria-hidden="true" style={{display:'block',marginTop:4,height:'1.5em',fontSize:'clamp(14.5px,3.2vw,16.5px)'}}/>/* #547 item (99): the tally line's height is held before the tally arrives */}{st&&(()=>{const est=st.src!=='review';return(<span data-ct={est?'gstat-est':'gstat-rev'} style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'clamp(4px,1.4vw,9px)',minHeight:'1.5em',marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace',opacity:est?.78:1}}>
                       {est&&<span data-ct="gstat-esttag" title="estimate: review the game for exact counts" aria-label="estimate" style={{fontWeight:700,color:'rgba(255,255,255,.55)'}}>≈</span>/* #550 item (72): one character, not a 33px 'EST' tag, so the counts keep to one line at 320 (they needed 156px of 123 with it) */}
@@ -10660,7 +10750,7 @@ export default function App(){
                       {/* #548 item (128), jobs/opponent-brilliancies-on-the-games-list-2026-09-30, Kunal's 'marker': ONE small marker, no
                           number, when the OPPONENT played a brilliant move; the player's own count beside it is untouched. Outlined and
                           muted so it never reads as his own pill. */}
-                      {st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{color:'rgba(123,233,247,.8)',border:'1px solid rgba(123,233,247,.45)',borderRadius:8,padding:'0 6px',fontWeight:800,fontSize:'.85em'}}>opp !!</span>}
+                      {/* #550 (gate 73 TC-R76 at 320): the marker moved up beside the opponent's name - on the count line it wrapped the row 110 -> 124 the moment rule 3 found an opponent's Brilliant */}
                       {!est&&st.was!=null&&st.was>(st.bril||0)&&<span data-ct="bril-downgrade" style={{flexBasis:'100%',fontSize:'.8em',fontWeight:600,fontFamily:"'Segoe UI',system-ui,sans-serif",color:'rgba(123,233,247,.75)'}}>review found {st.bril||0} brilliant (estimate said {st.was})</span>}
                     </span>);})()}
                   </span>
@@ -10796,10 +10886,11 @@ export default function App(){
            pinned to the foot of the screen; First, Last and Auto-play move to the more sheet. In analysis it stays the analysis row. */
         const _tbLbl=(ic,t)=>(<span style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2,lineHeight:1}}>{ic}<span style={{fontSize:'clamp(12px,3vw,13px)',fontWeight:700}}>{t}</span></span>);
         const _tb=(anaMode?_row1:(<div data-ct="rev-row1" data-tb="1" style={{display:'flex',gap:8,alignItems:'stretch'}}>{/* #550 antagonist A round 3, A3-1: Key move is NOT beside Forward - item (2) was the star 6pt from next; Analyze sits between them */}
-            {cb(<ChevIcon size={22} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},0,false,'Previous move')}
-            {cb(_tbLbl(<span style={{fontSize:17}}>{'\u2605'}</span>,'Key move'),()=>jumpKey(1),88,keyPlies.length>0,keyPlies.length?('Next key moment ('+keyPlies.length+')'):'No key moments in this game')}
-            <FootBtn ct="rev-fab" onClick={()=>_goAnalyze()} label="Analyze this position" wide={wide} flex="0 0 88px" minW={0} text>{_tbLbl(<AppIcon name="analyze" size={17} sw={2.2}/>,'Analyze')}</FootBtn>
-            {cb(<ChevIcon size={22} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},0,false,'Next move')}
+            {/* #550 round-3 suite, gate 26 TC-INV-02a: ONE glyph height across the toolbar - chevrons, star and Analyze all 20px (they were 22, text and 17) */}
+            {cb(<ChevIcon size={20} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},0,false,'Previous move')}
+            {cb(_tbLbl(<StarIcon size={20}/>,'Key move'),()=>jumpKey(1),88,keyPlies.length>0,keyPlies.length?('Next key moment ('+keyPlies.length+')'):'No key moments in this game')}
+            <FootBtn ct="rev-fab" onClick={()=>_goAnalyze()} label="Analyze this position" wide={wide} flex="0 0 88px" minW={0} text>{_tbLbl(<AppIcon name="analyze" size={20} sw={2.2}/>,'Analyze')}</FootBtn>
+            {cb(<ChevIcon size={20} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},0,false,'Next move')}
           </div>));
         return(<><div data-ct="rev-compact" ref={revCmpRef} onScroll={_revCmpMeasure} style={{...(revStream?{flex:'1 1 0px',minHeight:(wide?38:32)+6+51+4 /* A3-8: the move line and the reason ONLY - the engine and best lines are switched on by per-ply chips too, so counting them moved the board on a tap; past the floor rev-compact scrolls, with a fade */,...(revCmpMore?{WebkitMaskImage:'linear-gradient(#000 calc(100% - 18px),transparent)',maskImage:'linear-gradient(#000 calc(100% - 18px),transparent)'}:null),overflowY:'auto',overflowX:'hidden',paddingBottom:4}:null),width:revStream?vp.w:(boardPx+((hideEval||evalUnder)?0:22)),...(revStream?{padding:(vp.w<=380?'0 3px':'0 10px') /* #550 a21: at 375 the move line needs the 371px it had (gate 20 TC-R36: the best move pill 103 in 88 at 10px) */,boxSizing:'border-box'}:null),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
           {/* #550 item (2), jobs/review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11: Kunal kept
@@ -11300,8 +11391,8 @@ export default function App(){
         {(()=>{const K=PZ_TIERS.length,GAP=168,NODE=96;const TC=['#7c8694','#22c55e','#14b8a6','#3b82f6','#6366f1','#a855f7','#f59e0b','#eab308'];const RW=Math.max(170,Math.min(railed?(sideW-6):Math.round(vp.w*0.92),460));const PH=(K-1)*GAP+NODE+44;const xpf=i=>i%2===0?20:80;const cxf=i=>RW*xpf(i)/100;const cyf=i=>NODE/2+i*GAP+12;
           const seg=i=>{const x1=cxf(i),y1=cyf(i),x2=cxf(i+1),y2=cyf(i+1),ym=(y1+y2)/2;return 'M '+x1+' '+y1+' C '+x1+' '+ym+' '+x2+' '+ym+' '+x2+' '+y2;};const road=(<svg width={RW} height={PH} viewBox={'0 0 '+RW+' '+PH} style={{position:'absolute',left:0,top:0,zIndex:1,pointerEvents:'none',overflow:'visible'}}>{PZ_TIERS.slice(0,K-1).map((_,i)=>(<path key={'b'+i} d={seg(i)} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="17" strokeLinecap="round"/>))}{PZ_TIERS.slice(0,K-1).map((_,i)=>{const lit=pzUnlock||(i+1)<=rank;return lit?(<path key={'l'+i} d={seg(i)} fill="none" strokeLinecap="round" pathLength="1" style={{stroke:'var(--ac)',strokeWidth:12,opacity:.9,strokeDasharray:1,strokeDashoffset:0,animation:'ctDraw .8s ease both',animationDelay:(i*.12)+'s'}}/>):null;})}{PZ_TIERS.slice(0,K-1).map((_,i)=>(<path key={'d'+i} d={seg(i)} fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="0.5 13"/>))}</svg>);
           const nodes=PZ_TIERS.map((t,ti)=>{const sv=pzSolvedInTier(pzSolvedMap,ti);const done=sv>=t.need;const unlocked=pzUnlock||ti<=rank;const isActive=ti===active&&!allDone;const x=cxf(ti),y=cyf(ti);const col=TC[ti%TC.length];const bg=done?'linear-gradient(145deg,#6fc47a,#3c8348)':isActive?`linear-gradient(145deg,${col},${col})`:unlocked?`linear-gradient(145deg,${col}cc,${col}77)`:'linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.04))';return(<button key={ti} disabled={!unlocked} onClick={()=>unlocked&&pzEnterBrowse(pzNextInTier(pzSolvedMap,ti),ti)} title={t.name} style={{position:'absolute',left:x-NODE/2,top:y-NODE/2,width:NODE,height:NODE,borderRadius:'50%',zIndex:2,overflow:'visible',display:'flex',alignItems:'center',justifyContent:'center',padding:0,cursor:unlocked?'pointer':'default',opacity:unlocked?1:.6,color:'#fff',fontSize:done?29:34,lineHeight:1,background:bg,border:isActive?'3px solid #fff':'3px solid rgba(255,255,255,.45)',boxShadow:isActive?`0 5px 0 rgba(0,0,0,.30),0 0 0 6px rgba(var(--acr),.28),0 12px 22px ${col}66,inset 0 3px 4px rgba(255,255,255,.5),inset 0 -4px 8px rgba(0,0,0,.28)`:unlocked?`0 5px 0 rgba(0,0,0,.28),0 10px 20px ${col}55,inset 0 3px 4px rgba(255,255,255,.45),inset 0 -4px 8px rgba(0,0,0,.3)`:'0 3px 0 rgba(0,0,0,.3),0 4px 10px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)'}}>{isActive&&(<span style={{position:'absolute',inset:-9,borderRadius:'50%',boxShadow:'0 0 26px 9px '+col,opacity:.5,animation:'ctGlow 2.2s ease-in-out infinite',pointerEvents:'none'}}/>)}{unlocked&&!done&&(()=>{const D=NODE+16;const fr=Math.min(1,sv/t.need);return(<svg width={D} height={D} viewBox={'0 0 '+D+' '+D} style={{position:'absolute',left:-8,top:-8,transform:'rotate(-90deg)',pointerEvents:'none'}}><circle cx={D/2} cy={D/2} r={(NODE+9)/2} pathLength="1" fill="none" stroke="rgba(255,255,255,.13)" strokeWidth="4"/>{fr>0&&(<circle cx={D/2} cy={D/2} r={(NODE+9)/2} pathLength="1" fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={fr+' '+(1-fr)} style={{transition:'stroke-dasharray .6s ease',filter:'drop-shadow(0 0 4px '+col+')'}}/>)}</svg>);})()}{done?'✓':t.icon}{!unlocked&&(<span style={{position:'absolute',top:-3,right:-3,fontSize:15,lineHeight:1,filter:'drop-shadow(0 1px 2px rgba(0,0,0,.6))'}}>🔒</span>)}<span style={{position:'absolute',top:NODE+5,left:'50%',transform:'translateX(-50%)',whiteSpace:'nowrap',fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:800,color:isActive?'var(--ac2)':done?'#86d99a':unlocked?'rgba(255,255,255,.78)':'rgba(255,255,255,.5)'}}>{t.name}</span>{unlocked&&!done&&(<span style={{position:'absolute',top:NODE+19,left:'50%',transform:'translateX(-50%)',whiteSpace:'nowrap',fontSize:'clamp(10px,1.5vw,10px)',fontWeight:600,color:'rgba(255,255,255,.5)'}}>{sv}/{t.need}</span>)}</button>);});
-          return(<div style={{position:'relative',width:RW,height:PH,margin:'2px auto 4px'}}><_RoadScenery theme={theme} RW={RW} PH={PH}/>{road}{nodes}</div>);})()}
-        <button onClick={()=>pzEnterBrowse(puzIdx,null)} style={{...btn('rgba(255,255,255,.07)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%'}}>🧩 Free play — browse any puzzle</button>
+          return(<div data-ct="pz-road" style={{position:'relative',width:RW,height:PH,margin:'2px auto 4px',overflow:'hidden'/* #550 AUD-L15 (P2): the scenery's paths ran 20 to 44px past the road's box and painted over Free play below it */}}><_RoadScenery theme={theme} RW={RW} PH={PH}/>{road}{nodes}</div>);})()}
+        <button data-ct="pz-freeplay" onClick={()=>pzEnterBrowse(puzIdx,null)} style={{...btn('rgba(255,255,255,.07)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%'}}>🧩 Free play — browse any puzzle</button>
         <button onClick={()=>{setMistakeMode(false);setPzOErr('');setPzOInfo('');setPzView('online');if(!pzPack&&!(curPuz&&curPuz.ext&&!curPuz.mine)||mistakeMode)loadDaily(); /* #547 item (156): a DRILL card is ext too, so `ext` alone reopened the player's own game position under the Lichess header; the provenance predicate (#460) asks whether a LICHESS puzzle is loaded */}} style={{...btn('rgba(110,168,254,.13)','1px solid rgba(110,168,254,.4)','#cfe0ff'),width:'100%'}}>🌐 Online puzzles (Lichess) — {pzOSolved} solved</button>
         {!pzUnlock?(
           <div style={{display:'flex',gap:8,alignItems:'center',marginTop:2}}>
@@ -11336,7 +11427,7 @@ export default function App(){
               chevron at 340 and below, which is what the HINT branch of this very row already does (#372 Y-03),
               and which is why the precedent is safe. Nothing changes at 360 and above: measured identical. */}
           <button onClick={()=>setPzView('roadmap')} aria-label="Roadmap" title="Roadmap" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'0 0 auto'}}>{vp.w<=340?'‹':'‹ Roadmap'}</button>
-          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓ solved':p.rating}</span></span>)}
+          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓':p.rating}</span></span>)}{/* #550 AUD-L18 (P2): the header read '1 / 890 · ✓ solv…' cut in a 121px box after a solve; the green verdict already says solved, so the header keeps the tick alone */}
           {/* #549 item (16), same job, amber flags/amber-549-pz-chip-tier-progress: in a tier the chip reads '<icon> <tier> <n>/<need>' - the
               TIER and the progress into it, the road node's own form - not '<tier> · ✓ <all-time total>', which read as the player's rank before
               the first RANK UP. Free play keeps its total. */}

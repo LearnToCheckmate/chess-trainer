@@ -715,7 +715,7 @@ L.run(async()=>{
   {const REF='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.01"]\n[White "Jsmiller1112"]\n[Black "Crusher9000"]\n[Result "0-1"]\n[TimeControl "600"]\n\n1. e4 e5 2. Qh5 Nc6 3. Qxf7+ Kxf7 4. Nc3 d5 5. exd5 Qxd5 6. Be2 Qxg2 7. Nf3 Qxh1+ 8. Bf1 Nf6 9. d3 Bd6 10. Bg5 Qg2 11. Bxf6 gxf6 12. Ne4 Bb4+ 13. c3 Bxc3+ 14. bxc3 Qxf1+ 15. Kd2 Qxa1 0-1\n';
    const SCH='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.02"]\n[White "Scholar"]\n[Black "Victim"]\n[Result "1-0"]\n[TimeControl "600"]\n\n1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7# 1-0\n';
    const coach=async(geo,acct,me,white,black,pgn)=>{const id='cc:'+acct.toLowerCase();
-     const b=await L.launch({geo,name:'r180-'+acct+'-'+geo,store:{ct_pool:'3',ct_ccuser:'',ct_liuser:'',ct_accts:[id],ct_acctgames:{[id]:[{src:'cc',acct,white,black,wr:'win',tc:'rapid',date:1757000001000,pgn}]}}});
+     const b=await L.launch({geo,name:'r180-'+acct+'-'+geo,store:{ct_pool:'3',ct_grades2:'0'/* #550 item (20): the fixture is a game whose LABELS show no mistake; the item (20) bands label its 5...Qxd5 a Mistake, so the case runs on the grades it was written against - the coach behaviour it checks does not depend on the bands */,ct_ccuser:'',ct_liuser:'',ct_accts:[id],ct_acctgames:{[id]:[{src:'cc',acct,white,black,wr:'win',tc:'rapid',date:1757000001000,pgn}]}}});
      await b.open();let r=null;
      try{await b.tile('Review');await b.settle(1200);await b.page.locator('button',{hasText:/Review ›/}).first().click();
        await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1500);

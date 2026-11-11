@@ -1,0 +1,32 @@
+# #550 item (20): the app's grades against chess.com's over the 42 saved reviews (docs/chesscom-saved-reviews-kunal2023-2026-11-10),
+# graded by the shipped sfGradePly with the item (20) grades on and off. Command:
+#   node gates/measure-brilliant-one-rule.js --grades <pgn-dir> <saved-reviews.json> [out.json]
+# GRADES MEASUREMENT - #550 item (20) | chess.jsx /tmp/claude-0/-home-user-chess-trainer/dc52dd58-9036-5ad0-bce9-bf1028037f30/scratchpad/chess.r20a.jsx md5 ef4aff09cb67 | depth 16 engines 2 | games 42
+
+## THE GRADES THEY REPLACE: 1516 of 2864 plies graded as chess.com graded them (52.9%)
+  Brilliant  chess.com   33  app   48  both   33
+  Great      chess.com  104  app  210  both   75
+  Best       chess.com  915  app 1172  both  695
+  Excellent  chess.com  603  app  431  both  203
+  Good       chess.com  375  app  377  both  163
+  Book       chess.com  186  app  177  both  146
+  Forced     chess.com   45  app    0  both    0
+  Inaccuracy chess.com  212  app  211  both   81
+  Mistake    chess.com  207  app  106  both   48
+  Miss       chess.com  119  app   59  both   31
+  Blunder    chess.com   65  app   73  both   41
+
+## ITEM (20) GRADES: 1724 of 2864 plies graded as chess.com graded them (60.2%)
+  Brilliant  chess.com   33  app   48  both   33
+  Great      chess.com  104  app  101  both   70
+  Best       chess.com  915  app  754  both  611
+  Excellent  chess.com  603  app  800  both  373
+  Good       chess.com  375  app  353  both  158
+  Book       chess.com  186  app  177  both  146
+  Forced     chess.com   45  app   45  both   45
+  Inaccuracy chess.com  212  app  222  both   79
+  Mistake    chess.com  207  app  172  both   91
+  Miss       chess.com  119  app   97  both   65
+  Blunder    chess.com   65  app   95  both   53
+
+# 42 games in 1114s

@@ -504,7 +504,7 @@ const REACH = async function(spec){
 // assertion pass over nothing). `want` is the measured verdict. A later build that buries one for good reddens the verdict.
 const REACH_PIN={
   'se/rev-summary':{spec:{within:'rev-summary',hitWithin:'rev-summary-foot'}, n:4, want:true},
-  'kunal730/rev-why-open':{spec:{lab:'Bxb5+!'}, n:1, want:true}};
+  /* #550 a21: 'kunal730/rev-why-open' retired - nothing on that screen is occluded any more (COVERED_PIN 0), so there is no excluded control to prove reachable */};
 
 // ── INVARIANTS 2 AND 3: THE NEGATIVE CONTROLS, WITH THEIR SCOPE, BECAUSE A COUNT WITH NO SCOPE CANNOT BE CHECKED
 // Command for every row: `CT_INV_GEOS=<geo> CT_APP=<bundle> node gates/regress/26-invariants.js`. One geometry
@@ -599,7 +599,7 @@ const REACH_PIN={
 // frozen-denominator failure (#395) in miniature. `at` is the exact set of (geometry, screen) pairs where the
 // class was measured; a new occurrence and a disappeared one both go red, and the log names which.
 const PIN_ROWS=[
-  {sig:'Back|More', h:{'*':[21,28]}, spread:7,
+  {sig:'Back|More', h:{'*':[21,28],kunal730:[23,27]}, spread:7/* #550 a21: on a phone 700 or more tall the streamlined review's header row carries Back and More at 23 and 27 (kunal730); below that the player bar's pair still reads 21 and 28 - keyed by GEOMETRY, since kunal730 and short375 are both 375 wide (t76) */,
    // rev-more-sheet IS NOT IN THIS LIST AND WAS, UNTIL THE OCCLUSION EXCLUSION LANDED. pbar-top sits BEHIND the
    // ⋯ sheet, so its two buttons are now excluded as unreachable and the class legitimately stops occurring
    // there - 15 of 15 (geo, screen) pairs became 12. The `missing` half of the pin-set assertion is what caught
@@ -657,7 +657,9 @@ const widthOf=(g)=>L.GEOS[g].w;
 // INVARIANT 3's PINNED SETS, one per geometry, measured on #422/8cd81ec by this gate's own first run. They
 // differ between geometries only in the wordmark, which is font-sized (21.6 at 375 wide, 20.7 at 320).
 const ICON_PIN={320:[16,17,18,19,20,21,22,24,25,27,28],
-                375:[16,17,18,19,20,21,22,24,25,27,28],   // 16 added at #550 H01: the compact Home's 44px dev buttons' glyphs, now on the first screen at 375x730 (they were below the fold)
+                375:[16,17,18,19,20,21,22,23,24,25,27,28],   // 23 added at #550 a21: the review header's Back glyph (t74), at 375x730
+                short375:[16,17,18,19,20,21,22,24,25,27,28],   // #550 a21: 375x568 is under the header row's 700px, so no 23 (t76)
+                  // 16 added at #550 H01: the compact Home's 44px dev buttons' glyphs, now on the first screen at 375x730 (they were below the fold)
                 390:[17,18,19,20,21,22,25,27,28]};   // 23 dropped at #549 A3-R3: it was the lesson footer's pre-FootBtn glyph, measured gone at 390 on bb925b8d210d
 // TC-INV-03b's PINNED SETS [#549 item (74)]: the icon heights over the unswept states listed at TC-INV-03b, measured on this run's
 // trial bundle by this gate. Same width keying as ICON_PIN, and an unpinned width reports rather than asserts. MEASURED on
@@ -690,16 +692,16 @@ const ICON_PIN_EXTRA={320:[17,22,26,30,40], 375:[17,22,26,30,40]};
    separated the wrapped lines. Both pins name their screens, so a screen going silent still goes red. */
 const ROW_PIN={
   'se/home':1,'se/play-captures':2,'se/play-gameover':2,'se/lesson-demo':3,'se/lesson-practice':3/* #430: was 2, see above */,
-  'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':3,'se/rev-last-engine':3,
-  'se/rev-why-open':3,'se/rev-more-sheet':1/* #548 item (160): was 0 - the count chip now reads '1 blunder' (97.3 wide, not 104.8), so at 320x568 the four chips fit one side-by-side row */,'se/rev-best-ply30':3,'se/lesson-complete':3,'se/pz-rankup':1/* #545 */,
+  'se/puzzles':2,'se/pz-solved':2,'se/rev-summary':2,'se/rev-ply31':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'se/rev-last-engine':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,
+  'se/rev-why-open':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'se/rev-more-sheet':2/* #550 a21: the more sheet's First / Play / Last row joins the count chips' row (t74) */,'se/rev-best-ply30':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'se/lesson-complete':3,'se/pz-rankup':1/* #545 */,
   'kunal730/home':3/* #550 H01: was 1. The compact Home brings its one footer row (Look + Style, and the two dev buttons) onto the first screen at 375x730: rows 'Colours & pieces|Style' and 'Preview gallery|Send feedback' join 'Menu and settings|👋' */,'kunal730/play-captures':2,'kunal730/play-gameover':2,'kunal730/lesson-demo':3,
   'kunal730/lesson-practice':3,'kunal730/puzzles':2,'kunal730/pz-solved':2,'kunal730/rev-summary':9,
-  'kunal730/rev-ply31':3,'kunal730/rev-last-engine':3,'kunal730/rev-why-open':3,'kunal730/rev-more-sheet':1/* #492: was 0, see MOVED PINS note B */,
-  'kunal730/rev-best-ply30':3,'kunal730/lesson-complete':3,'kunal730/pz-rankup':1/* #545 */,
+  'kunal730/rev-ply31':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'kunal730/rev-last-engine':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'kunal730/rev-why-open':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'kunal730/rev-more-sheet':2/* #550 a21: the more sheet's First / Play / Last row joins the count chips' row (t74) */,
+  'kunal730/rev-best-ply30':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'kunal730/lesson-complete':3,'kunal730/pz-rankup':1/* #545 */,
   'short375/home':1,'short375/play-captures':2,'short375/play-gameover':2,'short375/lesson-demo':3,
   'short375/lesson-practice':3/* #430: was 2, see the note on ROW_PIN */,'short375/puzzles':2,'short375/pz-solved':2,'short375/rev-summary':4,
-  'short375/rev-ply31':3,'short375/rev-last-engine':3,'short375/rev-why-open':3,'short375/rev-more-sheet':1/* #492: was 0, see MOVED PINS note B */,
-  'short375/rev-best-ply30':3,'short375/lesson-complete':3,'short375/pz-rankup':1/* #545 */};
+  'short375/rev-ply31':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'short375/rev-last-engine':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'short375/rev-why-open':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'short375/rev-more-sheet':2/* #550 a21: the more sheet's First / Play / Last row joins the count chips' row (t74) */,
+  'short375/rev-best-ply30':2/* #550 a21: the streamlined review - one header row (Back|More) and one toolbar (Previous, Key move, Analyze, Next) where #423 had three side-by-side rows; measured on t74 a0832813a26e */,'short375/lesson-complete':3,'short375/pz-rankup':1/* #545 */};
 // ── #492: THE IDENTITY PIN, AND IT IS THE ANSWER TO AN UPHELD VETO ────────────────────────────────────────────
 // COVERED_PIN pins a NUMBER. Antagonist A's veto at #492: a pin of 2 admits ANY second occluded control,
 // including a future one at 0% hittable, and stays green - so growing the number is a blank cheque, against an
@@ -766,21 +768,21 @@ const READ_PIN={
 // were 42px tall at se, kunal730 and short375; jobs/transport-row-icon-only raised them to 44x44 (and took the chrome off), so they leave
 // population (a). Measured on the #549 trial ec4bcdbf1098, where gate 26 named exactly these 12 keys as missing and nothing as extra.
 // #550 H01: 'home-look 199.9x30' left kunal730's pin - the compact Home's Look button is 44px tall (it was a 30px pill), so it is no longer an undersized control.
-const SMALL_PIN={"se": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 63.2x43", "Engine line - tap for what each mo 286x20", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 63.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Next move 26x36", "Play 63.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 63.2x43", "Review 40x51", "Review 63.2x43", "Roadmap 38.1x44", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"], "kunal730": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Back 34x30", "Discover 74.2x43", "Engine line - tap for what each mo 371x20", "Home 44x40", "Home 74.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 68.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 102.4x23", "🎓 New to chess? Lock in the endga 339x39"], "short375": ["1 blunder › 97.3x27", "1 brilliant › 96.5x27", "2 inaccuracies › 129.6x27", "6 great › 80.8x27", "Analyze this position 40x40", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 74.2x43", "Engine line - tap for what each mo 286x20", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 74.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Next move 26x36", "Play 74.2x43", "Play this move out and see what it 56.3x23", "Previous move 26x36", "Puzzles 74.2x43", "Review 40x51", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"]};
+const SMALL_PIN={"se": ["1 blunder › 97.3x27", "2 inaccuracies › 129.6x27", "3 brilliant › 96.5x27", "3 great › 80.8x27", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 63.2x43", "Engine line - tap for what each mo 314x20", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 63.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Play 63.2x43", "Play this move out and see what it 56.3x23", "Puzzles 63.2x43", "Review 40x51", "Review 63.2x43", "Roadmap 38.1x44", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"], "kunal730": ["1 blunder › 97.3x27", "2 inaccuracies › 129.6x27", "3 brilliant › 96.5x27", "3 great › 80.8x27", "Back 44x40", "Discover 74.2x43", "Engine line - tap for what each mo 369x20", "Home 44x40", "Home 74.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 44x40", "Play 74.2x43", "Play this move out and see what it 68.3x23", "Puzzles 74.2x43", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 96.4x23", "🎓 New to chess? Lock in the endga 339x39"], "short375": ["1 blunder › 97.3x27", "2 inaccuracies › 129.6x27", "3 brilliant › 96.5x27", "3 great › 80.8x27", "Back 34x30", "Back 39.2x51", "Back 41x51", "Discover 74.2x43", "Engine line - tap for what each mo 369x20", "Flip 41x51", "Hint 41x51", "Home 44x40", "Home 74.2x43", "Menu and settings 38x30", "Menu and settings 44x40", "More 34x30", "More 39.2x51", "More 41x51", "Moves 39.2x51", "Moves 41x51", "Play 74.2x43", "Play this move out and see what it 56.3x23", "Puzzles 74.2x43", "Review 40x51", "Review 74.2x43", "Sharpen with puzzles 138.1x28", "Train this opening 119x28", "rev-best 58.2x23"]};   // #550 a21 + items (17)/(20): re-pinned on t74 a0832813a26e - the toolbar's Analyze, Previous and Next are 44 tall now (gone from the set), the summary chips read 3 brilliant / 3 great, the engine line is wider in the streamlined row
 const smallExcluded=(k,p)=>/span>span$/.test(p)||/^\d+ \d/.test(k);
-const COVERED_LABELS={'kunal730/rev-why-open':['Bxb5+!','c6']};
+const COVERED_LABELS={/* #550 a21: was 'kunal730/rev-why-open':['Bxb5+!','c6'] - nothing there is occluded since the streamlined review */};
 const COVERED_PIN={
   'se/home':6,'se/play-captures':0,'se/play-gameover':0,'se/lesson-demo':0,'se/lesson-practice':0,
-  'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':23,'se/rev-ply31':1,'se/rev-last-engine':0,
-  'se/rev-why-open':0,'se/rev-more-sheet':16/* #548 item (114) */,'se/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */,'se/lesson-complete':0,'se/pz-rankup':3/* #545 */,
+  'se/puzzles':0,'se/pz-solved':0,'se/rev-summary':21/* #550: two fewer behind the summary (its coach chips now 44 tall above the sheet, t74) */,'se/rev-ply31':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'se/rev-last-engine':0,
+  'se/rev-why-open':0,'se/rev-more-sheet':13/* #550 a21: three fewer controls behind the more sheet (the old transport row is gone from the board's foot, t74) */,'se/rev-best-ply30':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'se/lesson-complete':0,'se/pz-rankup':3/* #545 */,
   'kunal730/home':6,'kunal730/play-captures':0,'kunal730/play-gameover':0,'kunal730/lesson-demo':0,
-  'kunal730/lesson-practice':0,'kunal730/puzzles':0,'kunal730/pz-solved':0,'kunal730/rev-summary':24,
-  'kunal730/rev-ply31':0,'kunal730/rev-last-engine':1,'kunal730/rev-why-open':2/* #492: was 1, see MOVED PINS note C - THE ONE THAT IS NOT BOOKKEEPING */,'kunal730/rev-more-sheet':18/* #548 item (114) */,
-  'kunal730/rev-best-ply30':1,'kunal730/lesson-complete':0,'kunal730/pz-rankup':3/* #545 */,
+  'kunal730/lesson-practice':0,'kunal730/puzzles':0,'kunal730/pz-solved':0,'kunal730/rev-summary':22/* #550: two fewer behind the summary (its coach chips now 44 tall above the sheet, t74) */,
+  'kunal730/rev-ply31':0,'kunal730/rev-last-engine':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'kunal730/rev-why-open':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'kunal730/rev-more-sheet':15/* #550 a21: three fewer controls behind the more sheet (the old transport row is gone from the board's foot, t74) */,
+  'kunal730/rev-best-ply30':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'kunal730/lesson-complete':0,'kunal730/pz-rankup':3/* #545 */,
   'short375/home':6,'short375/play-captures':0,'short375/play-gameover':0,'short375/lesson-demo':0,
-  'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':23,
-  'short375/rev-ply31':1,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':18/* #548 item (114) */,
-  'short375/rev-best-ply30':1/* #492: was 2, see MOVED PINS note A */,'short375/lesson-complete':0,'short375/pz-rankup':3/* #545 */};
+  'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':22/* #550: two fewer behind the summary (its coach chips now 44 tall above the sheet, t74) */,
+  'short375/rev-ply31':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':15/* #550 a21: three fewer controls behind the more sheet (the old transport row is gone from the board's foot, t74) */,
+  'short375/rev-best-ply30':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'short375/lesson-complete':0,'short375/pz-rankup':3/* #545 */};
 // TWO OF THESE NUMBERS ARE THE INTERESTING ONES AND BOTH ARE STATED RATHER THAN LEFT TO BE NOTICED.
 // `rev-more-sheet` pinned 0 ROWS at every geometry. THAT SENTENCE IS NO LONGER TRUE AND IS WITHDRAWN HERE
 // RATHER THAN QUIETLY EDITED [R18]: since #492 it is 0 at `se` only, and 1 at `kunal730` and `short375`. See
@@ -1538,7 +1540,7 @@ L.run(async()=>{
         const pin=pinRow(r.sig);
         if(!pin){ unpinned.push(r); continue; }
         ivSeenPins.add(pin.sig+'@'+g+'/'+name);
-        const want=pin.h[widthOf(g)]||pin.h['*'];
+        const want=pin.h[g]||pin.h[widthOf(g)]||pin.h['*'];   // #550 a21: a geometry key first (the header row depends on height)
         const got=r.heights;
         const same=want&&want.length===got.length&&want.every((v,i)=>Math.abs(v-got[i])<=0.6);
         if(!same) pinMoved.push({sig:r.sig,want,got});
@@ -1636,7 +1638,7 @@ L.run(async()=>{
           const W=sum('w'), B=sum('b');
           L.note('      grade ladder: '+LADDER.map(k=>k+' '+(grades[k]?grades[k].w+'/'+grades[k].b:'-')).join(', '));
           L.say(W===17,g+' rev-summary: WHITE grade counts sum to the 17 moves White played - every ply is in exactly one bucket, so no category is silently dropped (#421)',{sum:W,movesPlayed:17});
-          L.say(B===16,g+' rev-summary: BLACK grade counts sum to the 16 moves Black played (#421)',{sum:B,movesPlayed:16});
+          L.say(B+1===16,g+' rev-summary: BLACK grade counts sum to the 16 moves Black played, less its one FORCED move (16...Nxb8, the only legal reply), which the summary leaves out as chess.com does (#421; #550 item 20)',{sum:B,forced:1,movesPlayed:16});
         } else {
           // THE FIVE ARE NAMED, NOT DROPPED [#545, item (61);
           // jobs/26-invariants-drops-five-ladder-assertions-silently-on-main-when-rev-summary-does-not-resolve-2026-10-13].
@@ -1891,7 +1893,7 @@ L.run(async()=>{
     const respOnly=iconKeys.filter(k=>[...ivIcon[String(k)]].every(l=>RESPONSIVE_ICON_LABELS.includes(l)));
     if(respOnly.length) L.note('    invariant 3, '+g+': height(s) '+respOnly.join(', ')+' come ONLY from a responsive-label control ('+RESPONSIVE_ICON_LABELS.join(', ')+') and are printed, not compared [#545]');
     const iconKeysCmp=iconKeys.filter(k=>!respOnly.includes(k));
-    const wantIcons=ICON_PIN[widthOf(g)];
+    const wantIcons=ICON_PIN[g]||ICON_PIN[widthOf(g)];   // #550 a21: a geometry key first
     if(wantIcons){
       L.say(JSON.stringify(iconKeysCmp)===JSON.stringify(wantIcons), g+': TC-INV-03 the set of distinct ICON glyph heights is exactly what #423 measured at '+widthOf(g)+'px wide - a drift guard, not a target ('+wantIcons.length+' icon sizes where the commission\'s placeholder was four; the target set is Kunal\'s to choose, jobs/invariant-3-icon-size-target-set)',
         {width:widthOf(g), want:wantIcons, got:iconKeysCmp, added:iconKeysCmp.filter(x=>!wantIcons.includes(x)), gone:wantIcons.filter(x=>!iconKeysCmp.includes(x)), printedNotCompared:respOnly});

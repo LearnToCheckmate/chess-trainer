@@ -299,7 +299,7 @@ async function runFixture(geo,name,pgn,acc){
   const tally={};for(const l of LBL)tally[l]=[0,0];
   const missing=[],dup=[],byPly=[],colourBad=[];
   const seen=Object.create(null);
-  let visited=0,last=null;
+  let visited=0,last=null,forced=0;
   for(let i=1;i<=n+2;i++){
     const mvBefore=await b.page.evaluate(MOVENO);
     await b.page.locator('[aria-label="Next move"]').first().click({timeout:6000}).catch(()=>{});
@@ -309,9 +309,10 @@ async function runFixture(geo,name,pgn,acc){
     if(mv===null||mv===mvBefore)break;          // the review has no further ply: the walk is over
     if(seen[mv]){dup.push('the row showed '+mv+' twice');break;}
     seen[mv]=1;last=mv;visited++;
-    const bg=await b.page.evaluate(BADGE,LBL);
+    const bg=await b.page.evaluate(BADGE,[...LBL,'Forced']);   // #550 item (20): a forced move's badge reads Forced
     const sd=/w$/.test(mv)?0:1;                 // the side comes from the PAINTED move number, not from a counter
-    if(bg.label&&tally[bg.label])tally[bg.label][sd]++;
+    if(bg.label==='Forced'){forced++;}
+    else if(bg.label&&tally[bg.label])tally[bg.label][sd]++;
     else missing.push(mv+': '+(bg.err||'?')+' '+(bg.txt||''));
     byPly.push({ply:visited,label:bg.label});
     // GROUND 1 and GROUND 2 of #464's antagonist A, pinned here so they cannot come back: every element that
@@ -349,7 +350,9 @@ async function runFixture(geo,name,pgn,acc){
   // The summary must account for every reviewed ply exactly once. This is what makes A4 a real comparison
   // rather than two tallies over different populations - the trap the first version fell into.
   const sumAll=LBL.reduce((t,l)=>t+(rows[l][0].n||0)+(rows[l][1].n||0),0);
-  L.say(sumAll===visited,tag+' A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to '+sumAll+' against '+visited+' plies walked');
+  // #550 item (20): chess.com leaves FORCED moves out of its ten totals, and so does the summary, so the twenty counts account for every
+  // reviewed ply that is not Forced.
+  L.say(sumAll+forced===visited,tag+' A3c the summary accounts for every reviewed ply exactly once: its twenty counts sum to '+sumAll+', plus '+forced+' Forced, against '+visited+' plies walked');
   // A0: THE FIXTURE LOADED WHOLE. Without this the gate absorbs an illegal PGN - loadSANs truncates at the first
   // illegal move and the walk just ends early, which is how two illegal fixtures went green here.
   L.say(visited===n,tag+' A0 the PGN loaded WHOLE: the app reviewed '+visited+' plies and the PGN carries '+n+(visited===n?'':' -- TRUNCATED, so this fixture contains an illegal move and proves nothing'));

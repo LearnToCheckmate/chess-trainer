@@ -139,7 +139,7 @@ L.run(async()=>{
   const row={src:'cc',acct:'kunal2023',pgn:FXR.pgn,white:'Kunal2023',black:'WataGwaan76',wr:'win',tc:'blitz',date:1793640000000};
   const gk='cc:'+row.date+':Kunal2023:WataGwaan76';
   const stored={bril:1,great:20,inacc:3,mist:2,blun:1,obril:0,src:'review',engine:'sf',gv:1};
-  const store=(gv)=>({ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_gamestats:{[gk]:{...stored,gv}},ct_evalcache:{[ckey(sans)]:{...FXR.cache,at:Date.now()}},ct_mybrilliancies:[],ct_bril_rule:'2'});
+  const store=(gv)=>({ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_gamestats:{[gk]:{...stored,gv}},ct_evalcache:{[ckey(sans)]:{...FXR.cache,at:Date.now()}},ct_mybrilliancies:[],ct_bril_rule:'2',ct_grades2:'0'});   // #550 item (20): the grades switch off, so GRADE_VER is the rule's own (1, 2 or 3) and the H block reads the brilliant regrade alone
   const read=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="regrade-preview"]');let gs={},mb=[];try{gs=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}try{mb=JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){}
     return {shown:!!s,text:s?s.innerText.replace(/\s+/g,' '):'',adds:[...document.querySelectorAll('[data-ct="regrade-add"]')].map(e=>e.innerText),drops:[...document.querySelectorAll('[data-ct="regrade-drop"]')].map(e=>e.innerText),gs,mb};});
   {const st=store(1);st.ct_bril_rule='1';const b=await L.launch({geo:'kunal761',name:'r105-off',store:st});await b.open();await b.tile('Review');await b.settle(1500);

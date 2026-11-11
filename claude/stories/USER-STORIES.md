@@ -414,6 +414,12 @@ As a player who knows the opening I came for, I type part of its name or its ide
 As a player opening the Account sheet, I see the real ways to get Pro and nothing that turns it on without paying; a developer can still opt in on their own device.
 - Signed out on a player's store, the Account sheet opened from Home shows its Pro plans and no "Unlock Pro (test mode)"; on a store opted in as a developer (ct_protest=1) the same sheet offers it. (TC-HM-058a, TC-HM-058b)
 
+### US-HM-18 A locked skin tells me why it opened the Account sheet
+*Added #550, AUD-H05 of docs/app-audit-2026-11-11 (P2).*
+As a player who is not Pro, when I tap the Style button or a locked skin, the Account sheet that opens says that Playful and Medieval are Pro skins, naming the one I tapped, so it does not read as a wrong turn.
+- The Home Style button opens it with "Playful and Medieval are Pro skins. Upgrade to use them." (TC-HM-059a)
+- A locked skin in the menu opens it naming that skin, "Playful is a Pro skin." (TC-HM-059b)
+
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).
@@ -2187,3 +2193,20 @@ As a player reviewing my games, a sacrifice that is sound and leaves me not wors
 - A piece that was already lost counts only when the move is clearly the best. (TC-R194f)
 - The thirteen named chess.com Brilliants stay Brilliant. (TC-R194h)
 
+### US-R128 My moves are graded the way chess.com grades them
+*Added #550, item (20), jobs/reconcile-kevitsch-review-vs-chesscom; Kunal's answers B9C-GRADE-BEST ("what does chess.com do? Align wiht them"), B9C-GRADE-GREAT "narrow" ("match to chess.com"), B10-SHIP-ON "on"; the rules of docs/grade-boundaries-design-2026-11-10.*
+As a player comparing my review with chess.com's, Best means the engine's own move, Great means the only good move, Miss means I let my opponent's mistake go, Forced means I had no choice, and the other grades follow chess.com's bands, so the two reviews tell the same story.
+- The grades are on by default, with a switch on the menu's New features section, and stored reviews are graded again. (TC-R196a, TC-R196h)
+- A move that is not the engine's is Excellent at best, and the bands are 3, 6, 10 and 25 points of winning chances. (TC-R196b)
+- A move with no alternative is Forced, even in the opening book. (TC-R196c)
+- Great needs the second-best move to be clearly worse, and a plain recapture is never Great. (TC-R196d)
+- Miss needs the opponent's previous move to have been an error and mine to have let it go while I am not lost. (TC-R196e, TC-R196f)
+
+### US-R129 I practise my Brilliants by kind, the ones I played and the ones I missed
+*Added #550, item (21), jobs/brilliancy-library-and-motif-coverage-2026-09-23; Kunal's answer B9C-BRIL-LIBRARY "now" (his chat words: "figure out the styles of the brilliant that it identifies"; on practising them by kind with the ones he missed, "Yes, I would like to see those") and B10-SHIP-ON "on".*
+As a player who keeps finding the same Brilliant, I see my Brilliants and my missed Brilliants grouped by kind and practise two or three kinds at a time, so the drill stretches me instead of repeating the move I already know.
+- The tile counts the Brilliants I found and the ones I missed apart. (TC-R197a)
+- It opens a library of two shelves, each listing its kinds with their counts, every kind a 44px chip. (TC-R197b, TC-R197c)
+- I can choose up to three kinds, and tap one off again; the button says how many cards I will practise. (TC-R197d)
+- The drill then runs on the chosen kinds only. (TC-R197e)
+- With one kind on one shelf, or with the switch off, the drill starts at once as before. (TC-R197f)

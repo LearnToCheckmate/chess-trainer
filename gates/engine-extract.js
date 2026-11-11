@@ -47,13 +47,13 @@ const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN
   'pgnStripLineComments','matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','BRIL_FLOOR','BRIL_NEEDED','BRIL_RULE_DEFAULT','BRIL_RULE','BRIL_A','brilHangAge','brilCheckArm','sq2rc','brilliantGate','isBrilliant','nextBestW','missedBrilliant','MISSED_BRIL_DEFAULT','MISS_CLEAR','MISSED_BRIL',
   // #545 item (91): the eleven grading helpers #440 and #491 added. classify reads CLS_BANDS, so without them E.classify()
   // threw "CLS_BANDS is not defined" on every call.
-  'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',
-  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','_tallySplit','BOOK_CLS','effCls','effLabel','START_PLACEMENT','regradeGame','moveHits','bestMove','styleBias',
+  'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','GRADES2_DEFAULT','GRADES2','GRADE_VER','CLS_BANDS2','FORCED_CLS','BEST_CLS','classifyMove','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',
+  'PNAME','brilGiveTxt','forkTargets','forkTxt','brilCardWhy','uciToMove','moveMotifs','moveGist','sfGradePly','brilliantV1ok','_tallyBucket','_tallySplit','BOOK_CLS','effCls','effLabel','gradeHist','START_PLACEMENT','regradeGame','moveHits','bestMove','styleBias',
   // #549 item (97): the mistakes-drill grader and its two sentences, so gate 17 and the disagreement measurement of job (106) run the
   // shipped functions (whyShape is the generator the accept sentence reuses).
   'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg','DRILL_GRADE_DEFAULT','DRILL_GRADE',
   // #549 item (35): the brilliancy motif tagger, read by gates/measure-brilliancy-motifs.js and gate 89.
-  'BRIL_MOTIF_ORDER','brilMotifs',
+  'BRIL_MOTIF_ORDER','brilMotifs','BRIL_LIB_DEFAULT','BRIL_LIB','BRIL_LIB_MAX','BRIL_KIND_NAME','_brilKindMemo','brilKind',
   // #549 item (98): the opening book - the named-position table, its key, and the Book count the review reads, so gate 87 and
   // gates/opening-book/build.js run the shipped functions (lessonBookPlies takes the lesson list as an argument; the stub window has none).
   'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS',

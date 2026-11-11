@@ -281,6 +281,12 @@ TALLY[gk(G[2])]={bril:0,great:0,inacc:0,mist:1,blun:0,src:'est'};
 TALLY[gk(G[3])]={bril:2,great:0,inacc:0,mist:0,blun:3,src:'review'};
 TALLY[gk(G[4])]={bril:0,great:1,inacc:0,mist:0,blun:0,src:'est'};
 // g6 and g7 deliberately absent - see the header
+// #550 items (17) and (20): GRADE_VER is 13 now, so an UNSTAMPED tally reads as version 1 and is STALE - the background pass re-grades an
+// 'est' one, which is the bump doing its job. Blocks B and D read these five tallies as the store holds them, so they are stamped with the
+// SOURCE's own GRADE_VER (read through engine-extract, so the stamp moves with the next bump instead of going quiet). Block E keeps its own
+// unstamped and gv:999 cases below.
+const GV_NOW=require('../engine-extract.js').GRADE_VER;
+for(const k of Object.keys(TALLY))TALLY[k].gv=GV_NOW;
 // #503 BLOCK E's OWN STAMPS. Same seven games, different grading versions; 999 is an impossible version so
 // this fixture cannot go quiet when GRADE_VER is next bumped. See block E's header for the case per game.
 const TALLYSTALE=[
@@ -850,7 +856,7 @@ function mkTap(b,READ){
   //    narrowing's own side effect.
   {
     const A=[G[0],G[1]].map(row), Bv=G.slice(2).map(row);   // alpha 2, beta 5 -> 7 loaded, over the threshold
-    const T2={};[...A,...Bv].forEach(g=>{T2[g.src+':'+g.date+':'+g.white+':'+g.black]={bril:0,great:1,inacc:0,mist:0,blun:(g.black==='opp5'?2:0),src:'est'};});
+    const T2={};[...A,...Bv].forEach(g=>{T2[g.src+':'+g.date+':'+g.white+':'+g.black]={bril:0,great:1,inacc:0,mist:0,blun:(g.black==='opp5'?2:0),src:'est',gv:GV_NOW};/* #550: stamped current, as block B's */});
     const b=await L.launch({geo:GEO,name:'D-strand',store:{ct_ccuser:'',ct_liuser:'',
       ct_accts:['cc:alpha','cc:beta'],ct_acctgames:{'cc:alpha':A,'cc:beta':Bv},ct_gamestats:T2}});
     await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
@@ -1020,8 +1026,11 @@ function mkTap(b,READ){
       {injected:b5,final:f5});
 
     const same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
-    L.say(same(BASE[K3],fin[K3]),
-      'E2 THE CACHE STILL CACHES: an UNSTAMPED tally is grandfathered as version 1 and left byte-identical to what was injected, so no player re-grades their list for nothing',
+    // #550: an unstamped tally IS version 1. While GRADE_VER was 1 that meant "left alone"; since items (17) and (20) raised it to
+    // GV_NOW it means stale, and an 'est' one is re-graded and stamped - the cache still caches (E4 below), it just no longer
+    // treats a version-1 tally as current.
+    L.say(GV_NOW===1?same(BASE[K3],fin[K3]):(!!fin[K3]&&fin[K3].gv===GV_NOW),
+      'E2 AN UNSTAMPED TALLY IS VERSION 1: left byte-identical while GRADE_VER is 1, re-graded and stamped '+GV_NOW+' once the version has moved (GRADE_VER '+GV_NOW+', final gv '+(fin[K3]&&fin[K3].gv)+')',
       {injected:BASE[K3],final:fin[K3]});
     L.say(same(BASE[K4],fin[K4]),
       'E2b and the same holds for an unstamped REVIEWED tally',
@@ -1588,7 +1597,7 @@ function mkTap(b,READ){
     await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('button')].filter(x=>/Review ›/.test(x.innerText||''));
       return rows.map(x=>{const t=(x.innerText||'').replace(/\s+/g,' ');const m=[...x.querySelectorAll('[aria-label]')].filter(e=>/opponent played a brilliant/i.test(e.getAttribute('aria-label')));
-        return {opp:(t.match(/vs (\S+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
+        return {opp:(t.match(/vs ([^\s!]+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
     const g1=r.find(x=>x.opp==='opp1'),g2=r.find(x=>x.opp==='opp2');
     L.say(!!g1&&!!g2,'TC-R101 PRECONDITION the rows for g1 (obril 1) and g2 (obril 0) are on the list',{rows:r.length,g1,g2});
     L.say(!!g1&&g1.mark===1,'TC-R101 the row of a game where the opponent played a brilliant carries ONE marker that says so',g1);
