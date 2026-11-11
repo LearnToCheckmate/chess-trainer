@@ -1,4 +1,5 @@
 // regress/39-pz-streak.js  Z-04 (Kunal, choice "Streak"). THE ONLY GUARD ON THIS CHANGE.
+// CONTROL-RECORD: 75f9025 2026-11-11 total=229 red=2 scope=trial:ae0f65399b7d how=#550 answer a10: the tree before the revealed-finish wording, whose line still reads 'not counted as solved' - R4c red at kunal730 and kunal761, everything else green; the a10 bundle 2f43024ddf91 reads 229 pass, 0 fail
 // CONTROL-RECORD: 24f4294 2026-11-11 total=227 red=13 scope=trial:851f1d7f8d6e how=#550 item (23): the training card's pz-top given marginTop 40 when solved (the board pushed down on the first solve) - TC-PZ-SOLVED39 red at kunal761 and 320x568 with the board-top lines it moves; every other line green
 // CONTROL-RECORD: 04419c4 2026-11-06 total=219 red=4 scope=trial:5f575748b380 how=the HEAD 4637b44 bundle, whose landscape rail held the hint only in puzMsg - TC-R86 'the hint is STILL in the header after the wrong move' and 'and still after a second wrong move' red at 730x375 and 844x390 [#549 item (46)]
 //
@@ -165,6 +166,9 @@ L.run(async()=>{
         // breath - the line read '... not counted as solved. Mate in 2 — nicely done.' The streak and XP half of that job is Kunal's
         // 'show-no-rank' (R3 above) and is not changed.
         L.say(!!line&&/answer shown/i.test(line)&&!/nicely done/i.test(line),tag+': R4b TC-PZ-SHOWN the revealed finish does not say "nicely done" beside "not counted as solved"',{line});
+        // R4c [#550, the orchestrator's a10 on questions build__1794388896663-q10, from Kunal's show-no-rank of 11 Oct 2026]: the line
+        // says plainly what a revealed finish earns - no rank - and what it still counts for - XP and the streak - matching R2 and R3.
+        L.say(!!line&&/no rank/i.test(line)&&/XP/.test(line)&&/streak/i.test(line),tag+': R4c TC-PZ-SHOWN the revealed finish says it earns no rank and still counts for XP and the streak',{line});
       }
       L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,tag+': R5 no app error beyond the allowed engine trap',b.errs.slice(0,2));
       await b.close();
