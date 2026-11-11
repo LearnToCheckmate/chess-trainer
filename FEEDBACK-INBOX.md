@@ -2946,3 +2946,10 @@ re-measured 70 times and an adversary 200 times, and the sentence those figures 
 reached by any input, because two of the fixture's games have no moves.
 
 **Nothing here is certified.** As always, that is yours and not mine.
+
+## FROM THE APP - the feedback relay appends below (#550 item (122))
+
+Each entry is one message a player sent with the in-app feedback button (or one JS error report), appended by
+`functions/index.js` with its timestamp and `status: open`. The tracker's `feedback` collection is the home
+(prompts/common R37): moving an entry from here into it is the orchestrator's sweep. Until the relay is deployed
+with this change (Kunal's Firebase credentials), nothing arrives here.

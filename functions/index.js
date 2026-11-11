@@ -1,7 +1,17 @@
 // Chess Trainer feedback relay (Firebase Functions v2).
 // Receives feedback (and JS error) reports POSTed by the app's postReport()
-// and appends them to feedback-inbox.md in the GitHub repo, so Claude can read
+// and appends them to FEEDBACK-INBOX.md in the GitHub repo, so Claude can read
 // them at the start of every build run with no manual pasting.
+//
+// #550 item (122) [jobs/feedback-relay-to-a-dead-file]: this wrote to the LOWERCASE feedback-inbox.md, a 350-byte file
+// unchanged since 2026-06-20 that no process reads - every build run, CLAUDE.md's table and the orchestrator read
+// FEEDBACK-INBOX.md - so every message a player sent from inside the app was lost (186 rows in the tracker's feedback
+// collection, ZERO from the relay). It now appends to FEEDBACK-INBOX.md, which is append-only by this project's rule, so an
+// append is the only write it may make; entries land under its "FROM THE APP" heading, newest at the bottom, each with its
+// timestamp and status open. The lowercase file is retired (a note appended to it, nothing deleted: records-gate.sh holds
+// it NOSHRINK). THE TRACKER'S feedback COLLECTION IS STILL THE HOME (prompts/common R37); a Cloud Function cannot write to
+// it, so moving a relayed entry from this file into that collection is the orchestrator's sweep. NOT DEPLOYED: deploying
+// needs Kunal's Firebase credentials (firebase deploy --only functions), recorded as the job's whatIsLeft.
 //
 // Two secrets are required (set them before deploy, see deploy steps):
 //   GH_PAT        - a fine-grained GitHub PAT, Contents: Read and write, this repo only
@@ -14,7 +24,7 @@ const GH_PAT = defineSecret("GH_PAT");
 const RELAY_SECRET = defineSecret("RELAY_SECRET");
 
 const REPO = "LearnToCheckmate/chess-trainer";
-const FILE = "feedback-inbox.md";
+const FILE = "FEEDBACK-INBOX.md";   // #550 item (122): was "feedback-inbox.md", which nothing reads
 const BRANCH = "main";
 
 exports.feedbackRelay = onRequest(
@@ -38,10 +48,10 @@ exports.feedbackRelay = onRequest(
     let entry;
     if (kind === "feedback") {
       const note = String(body.note || "").slice(0, 2000);
-      entry = "\n### " + ts + "  |  " + build + "\n- ctx: " + ctx + "\n- note: " + note + "\n";
+      entry = "\n### " + ts + "  |  " + build + "  |  status: open\n- ctx: " + ctx + "\n- note: " + note + "\n";
     } else {
       const msg = String(body.msg || "").slice(0, 400);
-      entry = "\n### " + ts + "  |  ERROR  |  " + build + "\n- " + msg + "\n- ctx: " + ctx + "\n";
+      entry = "\n### " + ts + "  |  ERROR  |  " + build + "  |  status: open\n- " + msg + "\n- ctx: " + ctx + "\n";
     }
 
     try {
