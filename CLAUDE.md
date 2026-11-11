@@ -671,6 +671,16 @@ came from subtracting the status bar twice. Keep 375x679 as a shorter-phone colu
   only the second option, which made a half-right flag look simply wrong - the #416 antagonist read the flag
   live and caught it. **When a rule in this file quotes a source, the next reader will trust the quotation:
   quote all of it, and say which part you acted on.** #416.
+- **GUIDANCE THAT MUST SURVIVE A STAND-DOWN GOES ON MAIN OR IN THE TRACKER, NEVER ONLY IN A FILE ON YOUR OWN BRANCH [#550
+  item (129); jobs/handoff-guidance-written-on-an-unmerged-branch-is-invisible-to-every-later-run-2026-10-01].** A routine
+  run is cloned onto main, so anything a run writes into HANDOFF.md, CLAUDE.md or RUN-LOG.md on a per-run branch that never
+  lands is invisible to every later run BY CONSTRUCTION - and those are exactly the files a stood-down run is tempted to write
+  its handover into. Measured 2026-10-01: a paragraph a run charged itself for not reading ('DO NOT DROP THE FLOOR EITHER')
+  was at HANDOFF.md:218 on claude/cool-noether-gccllp and `grep -c` found it 0 times on main, so no run could have read it,
+  and the self-criticism built on it was a false lesson. So when you stand down without landing, put what the next run must
+  know in claims/repo-pen, the job's record or a flag - and say in your run report which one. (The prompts/build-run rule that
+  says the same is the orchestrator's edit; porting or dispositioning the branch-only lines already out there is its own run.)
+
 - **FETCH BEFORE YOU BUILD, NOT BEFORE YOU PUSH.** The rule above says fetch before any push, and that is correct
   and fires far too late. On 2026-09-18 a session resumed on a container pinned at `fdb8c0b` (#398), read the
   procedure fresh, read every flag, read the decisions and the Decision Desk, picked the top feature spec,
