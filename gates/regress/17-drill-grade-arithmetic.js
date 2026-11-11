@@ -19,6 +19,7 @@
 // CONTROL-RECORD lines live at the foot of this header once the run lands them (deferred: see the job record).
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=30 red=1 scope=full how=CT_SRC=2f4e07a's chess.jsx (grades by default, no DRILL_GRADE_DEFAULT) - A0c red
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=30 red=1 scope=full how=CT_SRC=chess.jsx with DRILL_GRADE_DEFAULT=true - A0c red
+// CONTROL-RECORD: 3a2bfcc 2026-11-11 total=30 red=1 scope=env:CT_SRC=g17-notop how=#550 item (20): the drill grader never passes isTop to classifyMove - A3 red alone (0 labelled Best against 7)
 'use strict';
 const L=require('../lib');
 const E=require('../engine-extract.js');
