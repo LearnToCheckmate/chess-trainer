@@ -7655,7 +7655,7 @@ export default function App(){
     const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
     const learnedN=Object.values(trainMastery).filter(m=>m&&m.learned).length;
     const dueN=Object.values(trainMastery).filter(m=>m&&m.learned&&Date.now()>(m.due||0)).length;
-    const mineN=(myMistakesRef.current||[]).length;
+    const mineN=(myMistakesRef.current||[]).filter(m=>!!puzzleFromMistake(m)).length;   /* #550 item (13): only the positions the drill can serve are offered */
     const plan=[];
     if(gReviewed===0)plan.push({ic:'📥',text:gAny>0?"Review one of your games in full so I can show you where it turned.":"Import one of your games so I can show you where it turned.",goLabel:'Review',go:goRev});
     if(dTd<DAILY_GOAL)plan.push({ic:'🧩',text:'Solve '+(DAILY_GOAL-dTd)+' more puzzle'+((DAILY_GOAL-dTd)>1?'s':'')+" to finish today's goal.",goLabel:'Solve',go:goPz});
@@ -7746,8 +7746,9 @@ export default function App(){
        verdict is the move's own explanation or nothing at all. The motif and level chips are dropped on EVERY own-game card:
        _themeLabel(['mix']) and _lvlR(null) print the same two words on all of them. '✓ solved before' still varies, so it stays. */
     o.motif=null;o.level=null;return o;}catch(e){return null;}};
-  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
+  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length){toast('None of your '+qs.length+' saved position'+(qs.length>1?'s':'')+' can be played: each needs a legal position and a legal better move. '+(qs.length>1?'They are':'It is')+' kept, not deleted.');return;}/* #550 item (13), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 (b): say why, never return silently */drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
     {const _f=qs[pl[0]]&&qs[pl[0]].fen;if(_f)setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}};   /* #549 item (15): the FIRST card is served here, not through drillGo, so it is stamped practised here too - else capMistakes keeps it over an older unseen one */
+  const mkPlayN=useMemo(()=>(myMistakes||[]).filter(m=>!!puzzleFromMistake(m)).length,[myMistakes]);   /* #550 item (13) (a), Kunal's B8-SMALL-DEFAULTS 'Use your defaults': the card counts only the rows the drill can play; nothing is deleted */
   const startBrilliant=()=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
      PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
@@ -9730,7 +9731,7 @@ export default function App(){
             <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>
             <span style={{flex:1,minWidth:0}}>
               <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>Practice your mistakes</span>
-              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{myMistakes.length} position{myMistakes.length>1?'s':''} from your reviewed games · find the move you missed</span>
+              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{mkPlayN>0?(mkPlayN+' position'+(mkPlayN>1?'s':'')+' from your reviewed games · find the move you missed'):('None of your '+myMistakes.length+' saved position'+(myMistakes.length>1?'s':'')+' can be played yet')}</span>
             </span>
             <span style={{flexShrink:0,fontSize:20,color:'#f0b35e'}}>›</span>
           </button>)}

@@ -624,4 +624,25 @@ L.run(async()=>{
    L.say(Array.isArray(st)&&st.length===150&&st.every(x=>!x.practisedAt),'TC-R108 A5 the ten it dropped are the ten PRACTISED rows',{practisedLeft:Array.isArray(st)?st.filter(x=>x.practisedAt).length:null});
    L.say(Array.isArray(st)&&st.some(x=>x.fen===seed[159].fen)&&st.some(x=>x.fen===seed[0].fen),'TC-R108 A6 the oldest unpractised row and the newest both survive',{oldest:seed[159].fen});
    await b.close();}
+  // ════════ BLOCK K - TC-R177 (US-R100), #550 item (13), the same job's folded (a) and (b) ════════
+  // Kunal's 'Use your defaults' (questions/B8-SMALL-DEFAULTS) as the batch 10 brief reads it: count only the rows the drill can play,
+  // delete nothing, and say why when none can. A row is unplayable when puzzleFromMistake refuses it (no king, an illegal move).
+  {const BADROW=(i)=>({fen:'8/8/8/8/8/8/8/'+(i?'7K':'K7')+' w - - 0 1',uci:'a1a2',label:'Blunder',played:'Kd1',ts:1790000000000-i,last:null,why:'x',hint:'x'});
+   const cardSub=async(b)=>b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Practice your mistakes/.test(e.innerText||''));return x?(x.innerText||'').replace(/\s+/g,' ').trim():null;});
+   {const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-pool-playable-count',store:{ct_mymistakes:[...rows('Blunder'),BADROW(0),BADROW(1)],ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(800);const t=await cardSub(b);
+    L.say(!!t,'TC-R177 A1 PRECONDITION the Practice your mistakes card is on the Review screen for a store of '+(N+2)+' rows, 2 of them unplayable',{t});
+    L.say(!!t&&new RegExp('\\b'+N+' positions? from your reviewed games').test(t),'TC-R177 A1 the card counts the '+N+' rows the drill can play, not the '+(N+2)+' stored',{t});
+    await b.close();}
+   {const b=await L.launch({geo:{w:375,h:761,safe:'51,31'},name:'drill-pool-none-playable',store:{ct_mymistakes:[BADROW(0),BADROW(1)],ct_pool:'3'}});
+    await b.open();await b.tile('Review');await b.settle(800);const t=await cardSub(b);
+    L.say(!!t&&/None of your 2 saved positions can be played yet/.test(t),'TC-R177 A2 with nothing playable the card says so, with the count it holds, instead of offering a drill it cannot serve',{t});
+    let tapped=true;try{await b.tapText(/^Practice your mistakes/,{wait:600});}catch(e){tapped=false;}
+    const toast=await b.page.evaluate(()=>[...document.querySelectorAll('div')].map(d=>(d.innerText||'').trim()).find(x=>/^None of your 2 saved positions can be played:/.test(x))||null);
+    const st=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mymistakes')||'null');}catch(e){return null;}});
+    const inDrill=await b.page.evaluate(()=>/Your mistakes/.test(document.body.innerText||''));
+    L.say(tapped&&!!toast&&/kept, not deleted/.test(toast),'TC-R177 A3 a tap says why nothing can be played (a legal position and a legal better move) and that the rows are kept',{tapped,toast});
+    L.say(Array.isArray(st)&&st.length===2&&!inDrill,'TC-R177 A4 and nothing is deleted or served: the store still holds both rows and no drill opened',{stored:st&&st.length,inDrill});
+    await b.close();}
+  }
 },'72-drill-prev');

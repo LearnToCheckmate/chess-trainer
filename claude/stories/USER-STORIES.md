@@ -1919,6 +1919,7 @@ actually considering, see what the engine says, take it back, and come back to t
 As a player who reviews more games than I drill, my mistakes list holds at most 150 positions, and when it is full the ones the drill has already shown me go first, then the oldest, so a mistake is not lost before I have seen it while a practised one could go instead.
 - Every position the drill shows me counts as practised, the first card of a session included. (TC-R108)
 - The 150 limit holds however the list arrives - from a review, or already stored over the limit by an earlier build - by the same rule. (TC-R108)
+- The count I am offered is the positions the drill can play; a saved position it cannot play is kept, not deleted, and when none can be played the card and a tap on it say so and why. (TC-R177)
 ### US-R102 A figure the app prints about itself is the figure the device reports
 *Added #549 item (59), from jobs/bench-no-gate-asserts-any-figure-the-layout-readout-prints-2026-10-07: the general clause that job drafted as TC-MN-041. US-R89 (the screen row) and US-PL-23 (the opponent's strength) are instances of it.*
 As Kunal settling a layout or strength question from a screenshot, every number the app prints about the device, the page or itself is the number the device or the app's own configuration holds at that moment, so a screenshot of a readout can be believed without re-measuring it.
