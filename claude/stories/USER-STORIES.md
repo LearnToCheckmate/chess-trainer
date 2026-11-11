@@ -2067,3 +2067,8 @@ As a player with dozens of cards in the brilliant moves drill or the mistakes dr
 As a player who reviews many games, every review I run is kept on this phone, so reopening an older one is instant instead of a fresh engine pass; only when the phone's storage is full do the reviews I have not touched for longest make room, and never the one I just ran.
 - With 30 older reviews cached, a new review leaves all 31 cached (it used to keep 24). (TC-R182a)
 - With storage full and fewer than 24 reviews cached, the review just run is kept and the least recently touched ones are evicted to make room. (TC-R182b)
+
+### US-R116 An old drill card gives a hint about its own position
+*Added #550 item (89), jobs/a-legacy-drill-card-with-no-stored-hint-shows-a-generic-look-for-the-most-forcing-line-that-misdirects-on-quiet-cards-2026-11-07.*
+As a player drilling mistakes saved before hints were stored, the Hint on such a card names the shape of its own position, as a newly saved card does, and never sends me looking for a tactic on a quiet card.
+- A legacy card with no stored hint: quiet - "No tactic to spot here"; forcing - the line "ends the game"; never "Look for the most forcing or solid option". (TC-R183a, TC-R183b)
