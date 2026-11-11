@@ -342,7 +342,7 @@ L.run(async()=>{
     const G=L.GEOS[geo],dim=G.w+'x'+G.h;
     const RV=require('../drive/review');
     const read=(sel)=>b=>b.page.evaluate((sel)=>{const vh=innerHeight;
-      return [...document.querySelectorAll(sel)].map(e=>{const r=e.getBoundingClientRect();if(r.width<1||r.bottom<vh-160||r.top>vh)return null;
+      return [...document.querySelectorAll(sel)].map(e=>{const r=e.getBoundingClientRect();if(r.width<1||r.bottom<=0||r.top>=vh)return null;/* #550 item (2): was r.bottom<vh-160 - the Review row moved above the move line, so it is read wherever it is on screen */
         const st=getComputedStyle(e);const lab=e.getAttribute('aria-label')||'';
         const txt=(e.innerText||'').trim();
         return {a:lab,glyph:!e.querySelector('svg')&&txt.length>0&&txt.length<=2,fs:parseFloat(st.fontSize),rad:st.borderTopLeftRadius,
