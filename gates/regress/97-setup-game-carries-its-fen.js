@@ -17,6 +17,7 @@
 //  (c) TC-PL-069c REVIEW (the play row's Review, offered once the game is over - the gate resigns it first): the review reaches its summary,
 //      and its move strip numbers the moves from the position ("3. Bc4"), which it can only do if the FEN rode in.
 // DENOMINATOR: the game really started from FEN0 (the board's own FEN before the first move) and two plies were played.
+// CONTROL-RECORD: 7bbec32 2026-11-11 total=8 red=5 scope=trial:3ab724514641 how=#550 item (88): origin/main's bundle - Copy gives '1. Bc4 Nf6' with no FEN (both TC-PL-069a lines red), Analyze and Review never reach the review (TC-PL-069b red, both TC-PL-069c lines red); the three DENOMINATORS green
 const L=require('../lib');const P=require('../drive/play');
 const zlib=require('zlib');
 function png8(){const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){raw[y*(1+w*3)]=0;for(let x=0;x<w*3;x++)raw[y*(1+w*3)+1+x]=((x+y)%2)?200:40;}
