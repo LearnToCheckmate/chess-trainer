@@ -215,7 +215,11 @@ async function backToSummary(b){
 async function runFixture(geo,name,pgn,acc){
   const tag=name+'-'+geo;
   const n=plyCount(pgn);
-  const b=await L.launch({geo,name:'rgc-'+tag,store:{ct_pool:'3'}});
+  /* #550 item (52): the opening book TABLE ships on (BOOK_TABLE_DEFAULT 1). This gate's Book oracle (bookExpected) is the LESSON-LINE
+     prefix, computed independently of the app, and the table names positions no lesson does (NOBOOK's 1.a3 d5 reads Book 1 with it:
+     measured red here on trial t10). So this gate seeds the table OFF and keeps its oracle honest; the table's own count is pinned
+     game for game against chess.com by gate 87 (TC-R158, TC-R160, TC-R161), which is where the shipped default is checked. */
+  const b=await L.launch({geo,name:'rgc-'+tag,store:{ct_pool:'3',ct_book_table:'0'}});
   await openReview(b,pgn);
 
   const rows=await b.page.evaluate(ROWS,LBL);
