@@ -15,6 +15,7 @@
 // DENOMINATOR per arm: the summary is reached and both accuracy cards are on screen.
 // NOT ASSERTED, named: the count CELLS' values against their header (the rows and the headers are driven by one ORD list in chess.jsx,
 // so they move together, but this gate reads the headers and the cards only).
+// CONTROL-RECORD: ced9bcb 2026-11-11 total=9 red=3 scope=trial:3ab724514641 how=#550 item (94): origin/main's bundle - for the game reviewed as Black the White card is left and both headers read White, Black, so all three TC-R185b lines are red; the White arm, both DENOMINATORS and the font pin green
 const L=require('../lib');const R=require('../drive/review');
 const ACCT=(u)=>({ct_accts:['cc:'+u],ct_acctgames:{['cc:'+u]:[{src:'cc',acct:u,pgn:R.PGN_OPERA,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr:u==='jsmiller1112'?'win':'loss',tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3',ct_bril_reset_v1:'1'});
 L.run(async()=>{
