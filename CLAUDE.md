@@ -870,18 +870,26 @@ came from subtracting the status bar twice. Keep 375x679 as a shorter-phone colu
   on a NUL and prints "binary file matches" instead of the match. **A wrong reason that reaches the right verdict
   is a trap, not a check.** (Self-consistency would have refused it too, had the footer been readable: its actual
   `^PASS` count is 1851, not 1855. Partial protection, by luck again, and naming neither cause.)
-- **LONG BACKGROUND WORK DOES NOT SURVIVE AN IDLE TURN IN THIS CONTAINER, so a 44-minute suite cannot be
-  launched and left.** #419 was killed TWICE mid-suite - at 11 of 36 gates and again at 7 of 36 - with no error
-  in either log, every node process gone, and the lock left behind un-trapped, so SIGKILL rather than an exit.
-  `nohup` did not help and neither did `setsid` with PPID 1. What the two gaps have in common is an IDLE session:
-  both kills landed while this session sat between turns waiting on a scheduled wake ~20 minutes out, and in both
-  cases the suite advanced normally while tool calls were being made. Launch detached AND arm a `Monitor` whose
-  events keep arriving - progress every couple of minutes plus every terminal state - or the run dies unwatched.
-  Cover death explicitly: a watch that greps only for `GATES GREEN` is silent on a kill, and silence is
-  indistinguishable from "still running". Two corollaries that each cost a run to learn: a stale-lock takeover is
-  not optional, because the FIRST accident after shipping the lock was a SIGKILL that left one behind and would
-  otherwise have jammed every later suite; and the per-run log stem is what preserved the two killed runs'
-  per-gate logs instead of letting the relaunch overwrite them.
+- **A LONG SUITE CAN BE KILLED MID-RUN IN THIS CONTAINER, AND NOT BECAUSE THE SESSION WENT IDLE - THAT PREMISE IS
+  WITHDRAWN [R18; #550 item (119), jobs/the-only-route-to-a-push-is-an-85-minute-suite-this-container-does-not-reliably-
+  survive-2026-10-06].** This bullet used to read "LONG BACKGROUND WORK DOES NOT SURVIVE AN IDLE TURN". #419 was killed
+  TWICE mid-suite - at 11 of 36 gates and again at 7 of 36 - with no error in either log, every node process gone, and the
+  lock left behind un-trapped, so SIGKILL rather than an exit; `nohup` did not help and neither did `setsid` with PPID 1;
+  and both kills landed while the session sat between turns, which is why this bullet blamed the idle turn. **#494 FALSIFIED
+  THAT:** its second suite (17:16:30Z, 7 Oct 2026, logs 494b-*.log) was killed 18 minutes in, at 11 of 58 green, WHILE a
+  two-minute Monitor was armed AND tool calls were being made continuously - the harness reported a container restart - and
+  #486 lost a suite at 46 of 56 the same way. So the cause is a container restart this lane cannot see under, the idle turn
+  was coincidence, and a busy session does NOT keep a suite alive (#522's 111-minute survival with a heartbeat armed is one
+  survival, not a mechanism). WHAT THE MITIGATIONS DO, said precisely: launch detached and arm a `Monitor` whose events keep
+  arriving (progress every couple of minutes plus every terminal state) - that does not prevent a kill, it REPORTS one
+  within minutes, and silence is indistinguishable from "still running" without it; cover death explicitly, because a
+  watch that greps only for `GATES GREEN` is silent on a kill; push the per-run branch early, which is what preserves the
+  WORK. Nothing preserves the MEASUREMENT: an interrupted suite is no verdict, there is no resume or partial credit, and a
+  partial log is named `NNN-all-INCOMPLETE-container-restart.log` (prompts/build-run's hand-off paragraph). The full suite
+  now takes about 95 to 190 minutes, not 44. Two corollaries that each cost a run to learn: a stale-lock takeover is not
+  optional, because the FIRST accident after shipping the lock was a SIGKILL that left one behind and would otherwise have
+  jammed every later suite; and the per-run log stem is what preserved the two killed runs' per-gate logs instead of letting
+  the relaunch overwrite them.
 
 ## Temporary code, with an expiry
 
