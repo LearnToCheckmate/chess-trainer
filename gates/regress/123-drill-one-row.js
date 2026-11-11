@@ -9,6 +9,7 @@
 // so the library does not open), at kunal761 and 320x568. The board is the widest repeat(8,...) grid; the controls as below.
 // KNOW ITS LIMIT: at 320x568 the mistakes drill's goal line runs to three lines, so its board is still fitted to height (288, not 320);
 // the brilliant drill's one-line goal leaves it edge to edge. The pins are those measurements, not a claim that every card fills the width.
+// CONTROL-RECORD: 2b55ba6 2026-11-11 total=21 red=6 scope=trial:36531456ced7 how=#550 item (66): the tree before the one row (the helpers wrap over Prev/Next) - TC-R199a at both geometries in both drills and TC-R199c at 320x568 red, the preconditions and TC-R199b green
 const L=require('../lib');
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
 const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file'}));
