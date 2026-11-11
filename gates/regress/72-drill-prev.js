@@ -8,6 +8,7 @@
 // BLOCK C, TC-R80 (US-R75, #547 item (110)): the brilliancy card's goal box is one line, chipless, and the verdict is the
 // move's own explanation or nothing.
 // BLOCK J, TC-R108 (US-R100, #549 item (15)): the first card served is stamped practised, and the 150 cap holds on load.
+// CONTROL-RECORD: 7223662 2026-11-11 total=357 red=5 scope=trial:7b8e4db40255 how=#550 item (54): pz-bottom's marginTop 8 -> 70 in both drill layouts (the bottom area pushed down under the tab bar) - TC-R181 asking and solved red at 320x568 on the mistakes drill (Prev and Next UNDER tabbar), plus TC-R47 A2d, TC-R80 C3 and TC-R102 at 320x568 that the same push moves; every other line green
 // CONTROL-RECORD: 914f15d 2026-11-06 total=262 red=3 scope=full how=the pre-fix #548 bundle (app.js e07e3d4fb9ea, no first-card stamp in startMistakes, no cap on load): TC-R108 A2 A4 A5 red
 // BLOCK D, TC-R81 (US-R76, #547 item (111)): the drill's evaluation bar - absent until solved or shown, in the header row,
 // from the player's side.
