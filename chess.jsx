@@ -11646,6 +11646,26 @@ export default function App(){
 
       {promo&&!(mode==='play'&&_gameOver)&&(()=>{const col=promo.g.turn;return(   /* #496 THE PICKER NOW DRAWS THE PIECES THE BOARD DRAWS, which closes BOTH halves of jobs/auditor-433-two-smaller-game-over-states-2026-09-29 finding 1 with one change. It used to pick a glyph SET by side - gl={w:{q:'♕',...},b:{q:'♛',...}}[col] - and then paint it with a hard-coded color:'#fff', so BOTH sets came out white: Black's solid glyphs rendered as filled WHITE silhouettes beside a board drawing Black in dark sprites, and a player promoting as Black was offered White's pieces. The #433 auditor measured it as bright(>170) 2.0% for White against 3.6% for Black on the identical 273x114 crop, which is the tell: the two differed in FILL and not in colour. The second half of that finding was that the picker used text glyphs at all, so it ignored whichever of the four piece skins the player chose. `Piece` fixes both at once - it takes `color` so it paints the right side, it reads _ACTIVE_PIECES so it honours the skin, and its own useFallback branch already colours by side ('#fff' against '#1a1a1a' with an inverted text-shadow) - BUT ONLY ON A SURFACE IT WAS CALIBRATED FOR, which is why this button's face is now the OPPOSITE square colour and not the accent tint. `fallback` and `onPieceFail` are the same two values the board passes at :8532; this is in the same component, so nothing new is threaded.
          #496 THE BUTTON'S FACE IS TH.dark BECAUSE OF AN UPHELD VETO AGAINST MY OWN FIRST VERSION, AND THE NUMBER IS THE WHOLE REASON.
+        {mistakeMode?(()=>{/* #550 item (66), jobs/the-mistakes-drill-board-is-not-full-size-2026-11-11 (the audit's AUD-R12): BOTH DRILLS put Hint,
+            Show, Reset, Prev and Next on ONE 44pt row. The three helpers wrapped onto a row of their own (two at 320 wide) over the Prev/Next
+            pair, so the bottom area took 104px at 375x761 and 155 at 320x568, and the board, fitted to height, was 192 wide at 320x568. Under
+            430 wide (every phone geometry this suite runs) the helpers show their icon only; their accessible names (Hint, Show move, Reset) are the same at every width. On a
+            solved card the three helpers keep their box (hidden, inert) and Analyse sits over it, so nothing in the row changes size. */
+          const _nw=vw<430,_hp=drillPosRef.current>0;   /* measured on trial 5b829b2db061: at 375 wide each helper is 62px and '💡 Hint' needs about 70, so it was cut with no ellipsis; icons below 430 */
+          const _hb={...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:0,...(_nw?{fontSize:19}:null)};
+          const _nb=(pr)=>({...navBtn(pr),flex:'1.25 1 0',minWidth:0,minHeight:44,padding:'9px 2px',whiteSpace:'nowrap',fontSize:'clamp(14px,3.4vw,15px)'});
+          return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
+            <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 0',minWidth:0}}>
+              <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
+                <button onClick={()=>setPuzMsg('💡 '+p.hint)} aria-label="Hint" style={_hb}>{_nw?'💡':'💡 Hint'}</button>
+                <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
+                <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
+              </div>
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyse this position'}</button></div>)}
+            </div>
+            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>
+            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}>Next ›</button>
+          </div>);})():(<>
          Both blind antagonists found it independently, from the diff door and from the shipped surface, and I measured it a third time
          before acting. The first version kept the button's `rgba(var(--acr),.14)` face over the #1f1f30 panel. With the SYMBOL piece set
          (`ct_pieceSet='symbol'`, one of five chips in the look sheet, so `fallback` is true) `_Piece` draws Black's glyph in #1a1a1a -

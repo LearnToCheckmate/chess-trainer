@@ -297,7 +297,7 @@ L.run(async()=>{
           // THE DISCRIMINATING STATE. No move is played: the hint button is pressed, which is the only way a
           // player reaches o.hint (gate 51 established that; pz-top's innerText is the goal line, not the hint).
           let reached=true;
-          try{await b.tapText(/^\u{1F4A1} Hint$/u,{wait:900});}catch(e){reached=false;L.note(tag+': hint button not reached - '+e.message.slice(0,80));}
+          try{await (async()=>{/* #550 item (66): the drill's helpers are one 44pt row and show their icon only under 430 wide, so they are tapped by their accessible name */const _l=b.page.locator('button[aria-label="Hint"]:visible').first();await _l.click({timeout:2000});await b.page.waitForTimeout(900);})()}catch(e){reached=false;L.note(tag+': hint button not reached - '+e.message.slice(0,80));}
           await b.settle(700);
           const after=await b.board();
           const hp=await hintPainted(b);
@@ -369,7 +369,7 @@ L.run(async()=>{
     await b.move('a2','a3',900);await b.settle(700);
     const vw=await verdictText(b,/^✗/);const wrong=await b.board();seq.push(['wrong',wrong]);
     L.say(!!vw,tag+': wrong - the ✗ verdict rendered after a2a3',{verdict:vw,board:fmt(wrong)});
-    let hr=true;try{await b.tapText(/^\u{1F4A1} Hint$/u,{wait:900});}catch(e){hr=false;L.note(tag+': hint button not reached - '+e.message.slice(0,80));}
+    let hr=true;try{await (async()=>{/* #550 item (66): the drill's helpers are one 44pt row and show their icon only under 430 wide, so they are tapped by their accessible name */const _l=b.page.locator('button[aria-label="Hint"]:visible').first();await _l.click({timeout:2000});await b.page.waitForTimeout(900);})()}catch(e){hr=false;L.note(tag+': hint button not reached - '+e.message.slice(0,80));}
     await b.settle(700);
     const hp=await hintPainted(b);const hint=await b.board();seq.push(['hint',hint]);
     L.say(hr&&hp.ok,tag+': hint - the hint button was reachable AFTER the wrong answer and put the hint on screen',hp.ok?{text:String(hp.text).slice(0,50),board:fmt(hint)}:hp);

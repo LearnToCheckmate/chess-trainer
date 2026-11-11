@@ -182,7 +182,7 @@ async function drillSolve(b,m){
   const bdOpen=await b.board();   // B11: on open, BEFORE the hint button - see the board pair below
   // o.hint at the render site, reached the only way a player reaches it
   let hint='';
-  try{await b.tapText(/^💡 Hint$/,{wait:900});
+  try{await (async()=>{/* #550 item (66): the drill's helpers are one 44pt row and show their icon only under 430 wide, so they are tapped by their accessible name */const _l=b.page.locator('button[aria-label="Hint"]:visible').first();await _l.click({timeout:2000});await b.page.waitForTimeout(900);})()
       hint=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return '';
         const c=[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^💡/.test((e.innerText||'').trim()));
         return c.length?(c[c.length-1].innerText||'').replace(/\s+/g,' ').trim():'';});

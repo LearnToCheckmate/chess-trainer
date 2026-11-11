@@ -2218,3 +2218,10 @@ As a player in a game against the computer, I see the board as wide as my phone,
 - A store that kept the bar beside before #550 has it above once, and its board is edge to edge. (TC-R198b)
 - The menu's Eval bar row still puts it beside, and that choice stands. (TC-R198c)
 - Where the board is limited by height (320x568, 375x667) the bar above makes it smaller, and on every screen the board starts lower; that cost is his to judge (run question q35), and no case asserts it either way.
+
+### US-R131 In both drills the five controls share one row, so the board takes the height
+*Added #550, item (66), jobs/the-mistakes-drill-board-is-not-full-size-2026-11-11 (the audit's AUD-R12); Kunal: the mistakes drill board edge to edge, as in the brilliant moves drill.*
+As a player practising my mistakes or my Brilliants on a small phone, I see the board as large as the screen allows, because Hint, Show move, Reset, Prev and Next sit on one row under it instead of stacking.
+- The five controls sit on one row in both drills, at 375x761 and 320x568. (TC-R199a)
+- Each is a 44pt tap target, on screen, takes a tap at its centre, and shows no cut label; under 430 wide Hint, Show move and Reset show their icon only, under the same accessible names. (TC-R199b)
+- The board is 375 wide at 375x761 in both drills; at 320x568 the brilliant drill's is 320 (edge to edge) and the mistakes drill's 288, fitted to height under its three-line goal, where it was 192. (TC-R199c)

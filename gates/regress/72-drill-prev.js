@@ -89,9 +89,11 @@ const N=FENS.length;
 const rows=(label)=>FENS.map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,
   why:'the queen gets behind the pawn (card '+(i+1)+')',hint:'look up the file (card '+(i+1)+')'}));
 
+// #550 item (21): every brilliant store here seeds ct_bril_lib '0', so the tile starts the drill on all its cards as these arms
+// expect; with the library on, a store of two kinds opens the chooser instead (gate 118 covers that).
 const DRILLS=[
   {k:'mistakes',   enter:/find the move you missed/,        store:{ct_mymistakes:rows('Blunder'),ct_pool:'3'},                                 counter:/Your mistakes/},
-  {k:'brilliant',  enter:/can you spot them again\?/,       store:{ct_mybrilliancies:rows('Brilliant'),ct_bril_reset_v1:'1',ct_pool:'3'},      counter:/Your brilliant moves/},
+  {k:'brilliant',  enter:/can you spot them again\?/,       store:{ct_mybrilliancies:rows('Brilliant'),ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'},      counter:/Your brilliant moves/},
 ];
 const GS=[{n:'kunal761',g:L.GEOS.kunal761},{n:'320x568',g:L.GEOS.se}];
 
@@ -117,7 +119,10 @@ async function state(b){return b.page.evaluate(()=>{const vis=e=>{const r=e.getB
   const verdict=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/\u{1F389}/u.test(e.innerText||'')).map(e=>(e.innerText||'').replace(/\s+/g,' ').trim()):[];
   const pv=document.querySelector('[data-ct="drill-prev"]');
   const pvr=pv?pv.getBoundingClientRect():null;
-  return {btns,asking:btns.some(x=>/Hint/.test(x)),verdict:verdict[0]||'',
+  /* #550 item (66): the drill's Hint is an icon under 430 wide, so 'asking' reads its accessible name too - and only while it is VISIBLE, which is
+     what innerText gave for free (a solved card keeps the row's box with visibility hidden, and innerText reads '' there) */
+  const _hint=[...document.querySelectorAll('button')].some(x=>vis(x)&&getComputedStyle(x).visibility==='visible'&&(/Hint/.test(x.innerText||'')||x.getAttribute('aria-label')==='Hint'));
+  return {btns,asking:_hint,verdict:verdict[0]||'',
           exits:btns.filter(x=>/^‹\s*Review$/.test(x)).length,
           prev:pv?{dis:pv.disabled===true,aria:pv.getAttribute('aria-disabled'),w:Math.round(pvr.width),h:Math.round(pvr.height),
                    op:+getComputedStyle(pv).opacity,text:(pv.innerText||'').trim(),bottom:Math.round(pvr.bottom*10)/10}:null,
@@ -316,7 +321,7 @@ L.run(async()=>{
     const tag='brilliancy card @ '+G.n;
     const CR=[{fen:FENS[0],uci:UCIS[0],label:'Brilliant',ts:1791000000000,last:null,why:'You gave up a piece and it still worked (card 1).'},
               {fen:FENS[1],uci:UCIS[1],label:'Brilliant',ts:1791000001000,last:null}];
-    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-bril-card-'+G.n,store:{ct_mybrilliancies:CR,ct_bril_reset_v1:'1',ct_pool:'3'}});
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-bril-card-'+G.n,store:{ct_mybrilliancies:CR,ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});
     await b.open();await b.tile('Review');await b.settle(700);
     let ok=true;try{await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-float"]').waitFor({state:'visible',timeout:15000});}catch(e){ok=false;}
     await b.settle(600);
@@ -355,7 +360,7 @@ L.run(async()=>{
     const DR=[{fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Brilliant',ts:1791000000000,last:null,why:'White card.'},
               {fen:'4k3/1q6/8/8/8/8/8/4K3 b - - 0 1',uci:'b7b2',label:'Brilliant',ts:1791000001000,last:null,why:'Black card.'},
               {fen:'4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1',uci:'c2c7',label:'Brilliant',ts:1791000002000,last:null,why:'Shown card.'}];
-    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-evalbar-'+G.n,store:{ct_mybrilliancies:DR,ct_bril_reset_v1:'1',ct_pool:'3'}});
+    const b=await L.launch({geo:{w:G.g.w,h:G.g.h,safe:G.g.safe},name:'drill-evalbar-'+G.n,store:{ct_mybrilliancies:DR,ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});
     await b.open();await b.tile('Review');await b.settle(700);
     let ok=true;try{await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});}catch(e){ok=false;}
     await b.settle(600);
@@ -381,7 +386,7 @@ L.run(async()=>{
     L.say(!!r3.bar&&/^\+\d/.test(r3.bar.num||''),'TC-R81 D6 '+tag+' BLACK a queen up ALSO reads positive: the number is the PLAYER\'s, not White\'s (White\'s view prints it negative)',r3.bar);
     try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){}await b.settle(1200);
     const r4=await rd();
-    let sh=true;try{await b.tapText(/Show move$/,{wait:700});}catch(e){sh=false;}await b.settle(1500);const r5=await settled();
+    let sh=true;try{await (async()=>{/* #550 item (66): the drill's helpers are one 44pt row and show their icon only under 430 wide, so they are tapped by their accessible name */const _l=b.page.locator('button[aria-label="Show move"]:visible').first();await _l.click({timeout:2000});await b.page.waitForTimeout(700);})()}catch(e){sh=false;}await b.settle(1500);const r5=await settled();
     L.say(r4.bar===null&&sh&&!!r5.bar,'TC-R81 D7 '+tag+' Show move on an unsolved card brings the bar up - "or he asks to see the line"',{before:r4.bar,shown:sh,after:r5.bar});
     L.say(b.errs.length===0,'TC-R81 D8 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
@@ -468,8 +473,8 @@ L.run(async()=>{
   // the board at all 16 points, the box is a real scroller whose last line is reachable, and the back-rank answer solves.
   {const BR=[{fen:'6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1',uci:'d1d8',label:'Brilliant',played:'Rd8#',ts:1791000000000,last:null}];
    for(const [w,h] of [[320,568],[375,568],[375,730]]){const tag=w+'x'+h;
-     const b=await L.launch({geo:{w,h,safe:''},name:'drill-hint-board-'+tag,store:{ct_mybrilliancies:BR,ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
-     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);await b.tapText(/Hint/,{wait:700});}catch(e){ok=false;}
+     const b=await L.launch({geo:{w,h,safe:''},name:'drill-hint-board-'+tag,store:{ct_mybrilliancies:BR,ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();
+     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);/* #550 item (66): the drill's Hint is an icon under 430 wide, so it is tapped by its accessible name */await b.page.locator('button[aria-label="Hint"]:visible').first().click({timeout:3000});await b.page.waitForTimeout(700);}catch(e){ok=false;}
      const r=ok?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('[data-ct="pz-top"] div')].find(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute');
        const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
        if(!m||!g)return null;const gr=g.getBoundingClientRect(),sq=gr.width/8,res=m.parentElement.getBoundingClientRect();
@@ -596,7 +601,7 @@ L.run(async()=>{
     L.say(okA,'TC-R106 A10 PRECONDITION from the drill analysis board, ⋯ -> New game -> a fresh import reached its move screen',{row1});
     L.say(okA&&!!row1&&row1.length>0&&!row1.some(t=>/Undo|Exit analysis|\u2039 Card|Back to the card/.test(t)),'TC-R106 A10 the next game opens on its ordinary review controls, NOT the analysis board left on from the drill',{row1});
     await b.close();}
-   {const {b,ok,r,row}=await openAna({ct_mybrilliancies:[Object.assign({label:'Brilliant',no:20},card)],ct_bril_reset_v1:'1'},/can you spot them again\?/);
+   {const {b,ok,r,row}=await openAna({ct_mybrilliancies:[Object.assign({label:'Brilliant',no:20},card)],ct_bril_reset_v1:'1',ct_bril_lib:'0'},/can you spot them again\?/);
     L.say(ok&&!!r.hit&&!!row,'TC-R106 A9d PRECONDITION a Black BRILLIANT card at move 20 was solved, opened on the analysis board, its line arrived',{row});
     const rn=(row.match(/(?:^|\s)(\d+)\.+\s*[KQRBNOa-h]/)||[])[1];
     L.say(rn==='20','TC-R106 A9d the brilliancies drill numbers its analysis line from the card\'s STORED move too - it pins the drill path; the capture now writing `no` for a brilliant is not asserted here ("'+row.slice(0,40)+'")',{first:rn});
