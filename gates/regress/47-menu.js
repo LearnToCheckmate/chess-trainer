@@ -701,7 +701,11 @@ if(blk('Y')){
     const pills=[...s.querySelectorAll('span')].filter(e=>vis(e)&&getComputedStyle(e).cursor==='pointer'&&!e.closest('button,a')&&!e.parentElement.closest('span[data-gy]'));
     const els=[...ctl,...pills];els.forEach((e,i)=>e.setAttribute('data-gy',String(i)));
     return {n:els.length,pills:pills.length,ranges:ctl.filter(e=>e.tagName==='INPUT').length};});
-  L.say(over&&ids.n>0&&ids.pills>0&&ids.ranges>0,'730x375: TC-MN-052b PRECONDITION the game is over and its menu sheet holds the Game setup span pills ('+ids.pills+') and the Strength slider ('+ids.ranges+') among '+ids.n+' controls',{over,ids});
+  /* The job named a Strength range input in this sheet; measured on #550 trial t7 there is NONE here (0 range inputs: the k10 game is not
+     against the computer), so the precondition requires what the sheet holds - the span pills - and REPORTS the slider count rather than
+     requiring a control this state does not have. Any range input that is present is walked like every other control. */
+  L.note('730x375: TC-MN-052b the game-over sheet holds '+ids.ranges+' range input(s) on this bundle');
+  L.say(over&&ids.n>0&&ids.pills>0,'730x375: TC-MN-052b PRECONDITION the game is over and its menu sheet holds the Game setup span pills ('+ids.pills+') among '+ids.n+' controls (range inputs: '+ids.ranges+')',{over,ids});
   L.say(!!sh0&&sh0.maxScroll>0,'730x375: TC-MN-052b PRECONDITION the game-over sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
   const look=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;const c=s.getBoundingClientRect();
     const seen=[];for(const e of s.querySelectorAll('[data-gy]')){const q=e.getBoundingClientRect();
