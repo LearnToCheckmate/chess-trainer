@@ -173,6 +173,7 @@ function audit(ROOT, { ranNow, redNow }) {
         faults.push(r); continue; }
       if (r.date > TODAY) { r.fault = 'dated ' + r.date + ', which is in the future'; faults.push(r); continue; }
       if (!SCOPE_OK(r.scope)) { r.fault = 'scope=' + r.scope + ' is not in the vocabulary (full | env:K=V | geo:X | blocks:X | trial:<md5>, and no spaces)'; faults.push(r); continue; }
+      if (!(r.total > 0)) { r.fault = 'total=' + r.total + ' - a record that ran nothing controls nothing [#550 item (107)]'; faults.push(r); continue; }
       if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
       let old;
       try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
@@ -415,6 +416,22 @@ function selftest() {
     r = run(3, 'selftest-6b');
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /is not a commit in this repo/.test(r.out) && r.rc === 1,
       '(6b) in a COMPLETE clone an invented sha reads BAD-RECORD at exit 1 - the exemption is for the clone, not for the sha');
+    // ── (7) THE LOOPING GATE AND THE TOTAL'S TWO BAD SHAPES [#550 item (107); jobs/control-audit-bounds-total-by-the-L-say-SITE-
+    //     count-so-no-looping-gate-can-be-covered-2026-10-01, the orchestrator's GAP of 10 Nov]. A gate whose ONE L.say site runs in
+    //     a loop prints more PASS lines than it has sites, so a record's total is bounded by the LOG's count for the gate, never by
+    //     the site count: total=5 over one site and a log of 5 must read COVERED. And the two totals that must NOT: total=0 (a
+    //     record that ran nothing) and a full-scope total that disagrees with the log.
+    const LOOP = "for (const k of [1,2,3,4,5]) L.say('k' + k, k > 0);";
+    write(['// fixture gate', LOOP]); const lseed = commit('a looping gate: one L.say site, five PASS lines');
+    write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=5 red=1 scope=full how=one iteration flipped', LOOP]); commit('looping record');
+    r = run(5, 'selftest-7');
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0, '(7) a looping gate (1 L.say site, total=5 equal to the log\'s 5) reads COVERED at exit 0');
+    write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=0 red=0 scope=full how=nothing ran', LOOP]); commit('total 0');
+    r = run(5, 'selftest-7b');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /total=0/.test(r.out) && r.rc === 1, '(7b) a record with total=0 reads BAD-RECORD at exit 1');
+    write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=4 red=1 scope=full how=one iteration flipped', LOOP]); commit('full-scope mismatch');
+    r = run(5, 'selftest-7c');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /full-scope total=4 but the log says this gate runs 5/.test(r.out) && r.rc === 1, '(7c) a full-scope total of 4 against a log of 5 reads BAD-RECORD at exit 1');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(root + '-shallow', { recursive: true, force: true });
