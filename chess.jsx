@@ -10321,6 +10321,28 @@ export default function App(){
            and 264 at 320x568 - the row moves up 2px into slack under it, so the 2px is not taken from the board. */
         const cb=(lab,on,w,hot,title)=>(<FootBtn onClick={on} label={title} hot={hot} wide={wide} flex={w?('0 0 '+w+'px'):'1 1 0'} minW={0} text={String(lab).length>2}>{lab}</FootBtn>);   /* #549 item (80): the shared footer component, same styles as before */
         return(<div data-ct="rev-compact" style={{width:boardPx+((hideEval||evalUnder)?0:22),maxWidth:_edge?'100vw':'98vw',marginTop:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>
+          {/* #550 item (2), jobs/review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11: Kunal kept
+              hitting the star (next key moment) when he meant the move strip's next arrow, which sat 6pt under it. His fix, in his
+              words: the move's explanation goes BETWEEN the button row and the move strip. So the row comes first, then the move
+              line, its why and the engine line, then the strip below this block. */}
+          {/* #344: ONE control row. Kunal: Prev/Next here duplicated the thin arrows either side of the move strip,
+              and spelling out "Next key moment" and "Analyze" cost a whole row of height the board needed. Icons, with
+              titles for anyone hovering, and in analysis the row becomes the two things that matter there. */}
+          <div data-ct="rev-row1" style={{display:'flex',gap:6,alignItems:'stretch'}}>
+            {anaMode?(<>
+              {cb('\u21b6 Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
+              {review&&review.fromDrill?(<>
+                {cb('\u21ba Reset',()=>{setAnaHist([]);setGame(review.positions[0]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Back to the card\'s position')}
+                {cb('\u2039 Card',leaveDrillAnalysis,0,true,'Back to the same drill card')/* final auditor P1: '‹ Back to the card' needed 132px in a 119.7px button at 375 and read 'Back to the car'; the words live in the title */}
+              </>):cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
+            </>):(<>
+              {cb('\u23ee',()=>{setRevAuto(false);setPly(0);},0,false,'First move')}
+              {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}
+              {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
+              {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
+              {/* #366 y15b: Analyze moved onto the board as the round button (rev-fab). */}
+            </>)}
+          </div>
           {/* #337: one line: move, verdict, best move (tap shows it on the board). No text box (Kunal). */}
           <div data-ct="rev-move-line" style={{display:'flex',alignItems:'center',gap:7,minHeight:(wide?38:32),whiteSpace:'nowrap'}}>
             {anaMode?(<>
@@ -10432,24 +10454,6 @@ export default function App(){
               {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}</>)}
             </div>)}
           </div>);})()}
-          {/* #344: ONE control row. Kunal: Prev/Next here duplicated the thin arrows either side of the move strip,
-              and spelling out "Next key moment" and "Analyze" cost a whole row of height the board needed. Icons, with
-              titles for anyone hovering, and in analysis the row becomes the two things that matter there. */}
-          <div data-ct="rev-row1" style={{display:'flex',gap:6,alignItems:'stretch'}}>
-            {anaMode?(<>
-              {cb('\u21b6 Undo',()=>{setAnaHist(h=>{if(!h.length)return h;setGame(h[h.length-1]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};return h.slice(0,-1);});},0,false,'Take back the last move')}
-              {review&&review.fromDrill?(<>
-                {cb('\u21ba Reset',()=>{setAnaHist([]);setGame(review.positions[0]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,false,'Back to the card\'s position')}
-                {cb('\u2039 Card',leaveDrillAnalysis,0,true,'Back to the same drill card')/* final auditor P1: '‹ Back to the card' needed 132px in a 119.7px button at 375 and read 'Back to the car'; the words live in the title */}
-              </>):cb('\u2715 Exit analysis',()=>{anaModeRef.current=false;setAnaMode(false);_engRestore();setAnaHist([]);setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();},0,true,'Back to the game')}
-            </>):(<>
-              {cb('\u23ee',()=>{setRevAuto(false);setPly(0);},0,false,'First move')}
-              {cb(revAuto?'\u23f8':'\u25b6',()=>{if(ply>=review.plies.length){setPly(0);setRevAuto(true);}else setRevAuto(a=>!a);},0,revAuto,revAuto?'Pause':'Auto-play')}
-              {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
-              {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
-              {/* #366 y15b: Analyze moved onto the board as the round button (rev-fab). */}
-            </>)}
-          </div>
           {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
         </div>);})()}
       {/* ── Review controls ── */}

@@ -2010,3 +2010,9 @@ legal and which nothing downstream can catch when the photo was taken from the o
   White's or Black's; my answer sets up that reading, and the question then goes. (TC-SC-041 to TC-SC-047)
 - When neither reads, I am told why, as before, and asked nothing. (TC-SC-048)
 - When the first read fails outright but the turned one reads, I am not told it failed: I am asked which side the camera was on, as when they disagree. (TC-SC-049)
+
+### US-R113 On Review, Next is never under my thumb when I reach for the star
+*Added #550 item (2), from jobs/review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11 (Kunal, 11 Nov 2026: "I keep trying to hit next move and end up hitting the star button").*
+As a player stepping through a reviewed game, the move strip's next arrow and the next key moment star are far apart, because the move's explanation sits between the button row and the move strip, so a tap on next moves one move.
+- The order is the button row, then the move line with its explanation, then the move strip, and the star and the next arrow are at least 40pt apart. (TC-R176a, TC-R176b)
+- A tap at the centre of the next arrow lands on it and moves the board exactly one move, at 375x761 and 320x568. (TC-R176c)
