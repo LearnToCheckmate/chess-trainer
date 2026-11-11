@@ -645,4 +645,27 @@ L.run(async()=>{
     L.say(Array.isArray(st)&&st.length===2&&!inDrill,'TC-R177 A4 and nothing is deleted or served: the store still holds both rows and no drill opened',{stored:st&&st.length,inDrill});
     await b.close();}
   }
+  // ════════ BLOCK L - TC-R178 (US-R114), #550 item (22), jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 ════════
+  // Kunal, 11 Nov: "a way to jump to a specific number so we don't have to hit next next next". Both drills, at his phone and the
+  // smallest: tap the counter (found by its TEXT 'i of N' inside pz-top, never by a hook this build adds), choose the last number in
+  // the chooser (found as a button whose whole text is that number), and the drill is on that card; Prev then steps back one.
+  for(const D of DRILLS)for(const geo of ['kunal761','se']){
+   const b=await L.launch({geo,name:'drill-jump-'+D.k+'-'+geo,store:D.store});await b.open();await b.tile('Review');await b.settle(700);
+   let ok=true;try{await b.tapText(D.enter,{wait:1800});}catch(e){ok=false;}await b.settle(800);
+   const p0=ok?await idx(b):null;const tag=L.GEOS[geo].w+'x'+L.GEOS[geo].h+' '+D.k;
+   L.say(ok&&!!p0&&p0.i===1&&p0.n===N,tag+': TC-R178 PRECONDITION the drill opened on card 1 of '+N,{p0});
+   if(ok&&p0){
+    const c=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;let best=null,ba=1e9;for(const e of t.querySelectorAll('*')){const x=(e.innerText||'').trim();if(!/\b\d+ of \d+\b/.test(x))continue;const r=e.getBoundingClientRect();const a=r.width*r.height;if(r.width>1&&a<ba){ba=a;best={x:r.left+r.width/2,y:r.top+r.height/2};}}return best;});
+    if(c){await b.page.mouse.click(c.x,c.y);await b.settle(600);}
+    const nb=await b.page.evaluate((n)=>{const x=[...document.querySelectorAll('button')].filter(e=>(e.innerText||'').trim()===String(n)&&e.getBoundingClientRect().width>1);return x.length?(()=>{const r=x[x.length-1].getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,h:r.height};})():null;},N);
+    L.say(!!c&&!!nb,tag+': TC-R178 a tap on the counter opens a chooser that offers card '+N,{counter:c,last:nb});
+    L.say(!!nb&&nb.w>=44&&nb.h>=44,tag+': TC-R178 each number in the chooser is at least 44 by 44 to tap',nb);
+    if(nb){await b.page.mouse.click(nb.x,nb.y);await b.settle(900);}
+    const p1=await idx(b);
+    L.say(!!nb&&!!p1&&p1.i===N&&p1.n===N,tag+': TC-R178 choosing '+N+' shows card '+N+' of '+N+' at once (it was '+(p1&&p1.i)+')',{p1});
+    let pv=true;try{await b.page.locator('[data-ct="drill-prev"]').click();}catch(e){pv=false;}await b.settle(1000);
+    const p2=await idx(b);
+    L.say(!!nb&&pv&&!!p2&&p2.i===N-1,tag+': TC-R178 Prev then steps back to card '+(N-1)+' (read '+(p2&&p2.i)+')',{pv,p2});
+   }
+   await b.close();}
 },'72-drill-prev');

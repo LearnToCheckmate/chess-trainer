@@ -2019,3 +2019,8 @@ legal and which nothing downstream can catch when the photo was taken from the o
 As a player stepping through a reviewed game, the move strip's next arrow and the next key moment star are far apart, because the move's explanation sits between the button row and the move strip, so a tap on next moves one move.
 - The order is the button row, then the move line with its explanation, then the move strip, and the star and the next arrow are at least 40pt apart. (TC-R176a, TC-R176b)
 - A tap at the centre of the next arrow lands on it and moves the board exactly one move, at 375x761 and 320x568. (TC-R176c)
+
+### US-R114 In a drill I can go straight to a card by its number
+*Added #550 item (22), from jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 (Kunal, 11 Nov 2026: "a way to jump to a specific number so we don't have to hit next next next 50 times"), the scope added on 30 Sep to jobs/drill-needs-a-previous-card-2026-09-23 and dropped when it closed.*
+As a player with dozens of cards in the brilliant moves drill or the mistakes drill, I tap the counter ('8 of 36'), choose a number, and the drill shows that card; Prev and Next work on from there.
+- In both drills, at 375x761 and 320x568, the counter opens a chooser with every number at least 44 by 44, choosing the last shows it, and Prev steps back one. (TC-R178)
