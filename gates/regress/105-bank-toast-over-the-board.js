@@ -10,7 +10,7 @@
 //  (a) TC-LS-060a DENOMINATOR the toast ([data-ct=celebrate][data-kind=bank]) appeared, read within its 2.8s.
 //  (b) TC-LS-060b its centre lies inside the board's rect, within 2px of the board's centre (over the board, not at the top).
 //  (c) TC-LS-060c it is gone 3.5s later without a tap (it may close by itself).
-// CONTROL-RECORD: 5bab9b7 2026-11-11 total=9 red=2 scope=trial:2f43024ddf91 how=#550 answer a11: the tree before the move, whose bank toast sits at the top of the screen (centre y 22.5) - both TC-LS-060b lines red, the DENOMINATORS, TC-LS-060c and zero-errors green; the a11 trial dc61a6344ca6 reads 9 pass, 0 fail
+// CONTROL-RECORD: f4d2364 2026-11-11 total=9 red=2 scope=trial:2f43024ddf91 how=#550 answer a11: the tree before the move, whose bank toast sits at the top of the screen (centre y 22.5) - both TC-LS-060b lines red, the DENOMINATORS, TC-LS-060c and zero-errors green; the a11 trial dc61a6344ca6 reads 9 pass, 0 fail
 const L=require('../lib');const D=require('../drive/lesson');
 L.run(async()=>{
   for(const geo of ['kunal761','se']){

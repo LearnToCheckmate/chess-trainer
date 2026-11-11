@@ -15,7 +15,7 @@
 //  (c) TC-R190c Try again starts the review again (more engine workers are built and fail) and ends on the panel again.
 //  (d) TC-R190d Back to games leaves the panel and returns to the Review entry screen (its paste box is visible).
 // DENOMINATOR: the harness really killed engines (engineFail().failed>0) and the review really started.
-// CONTROL-RECORD: 5921f43 2026-11-11 total=8 red=5 scope=trial:87014810e439 how=#550 answer a32: the tree before the failure panel, same engineFail:'review' route (4 workers killed) - the dead groups are graded from static scores and a review summary is shown, so both TC-R190a lines, TC-R190b, TC-R190c and TC-R190d are red; the DENOMINATOR, the font pin and zero-errors green. On t51 (a4e7036429a0) 8 of 8 green
+// CONTROL-RECORD: 1decf98 2026-11-11 total=8 red=5 scope=trial:87014810e439 how=#550 answer a32: the tree before the failure panel, same engineFail:'review' route (4 workers killed) - the dead groups are graded from static scores and a review summary is shown, so both TC-R190a lines, TC-R190b, TC-R190c and TC-R190d are red; the DENOMINATOR, the font pin and zero-errors green. On t51 (a4e7036429a0) 8 of 8 green
 const L=require('../lib');const R=require('../drive/review');
 L.run(async()=>{
   const b=await L.launch({geo:'kunal761',name:'review-fail',engineFail:'review',store:{ct_pool:'3'}});

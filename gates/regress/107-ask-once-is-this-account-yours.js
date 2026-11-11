@@ -13,7 +13,7 @@
 //  (b) TC-R188b No switches the account off (ct_acctmine[id] === false, the chip's switch reads not-pressed) and the question is gone; a second
 //      Fetch of the SAME account does not ask again.
 //  (c) TC-R188c Yes keeps it his (no ct_acctmine entry) and the question is gone; an account imported before (already on ct_accts) is never asked.
-// CONTROL-RECORD: 57ba9dc 2026-11-11 total=11 red=4 scope=trial:d38107f4bf72 how=#550 answer a19: the tree before the question (a13 only) - no question appears, so both TC-R188a question lines are red at kunal761 and se; the answer lines are not reached there (total 11, not 15), and the two never-asked lines cannot go red on a bundle that never asks (named, not credited as controlled); the a19 trial 1aaa8b5f2858 reads 15 pass, 0 fail
+// CONTROL-RECORD: ed44329 2026-11-11 total=11 red=4 scope=trial:d38107f4bf72 how=#550 answer a19: the tree before the question (a13 only) - no question appears, so both TC-R188a question lines are red at kunal761 and se; the answer lines are not reached there (total 11, not 15), and the two never-asked lines cannot go red on a bundle that never asks (named, not credited as controlled); the a19 trial 1aaa8b5f2858 reads 15 pass, 0 fail
 const L=require('../lib');
 const PGN=(w,b,d)=>'[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "'+d+'"]\n[White "'+w+'"]\n[Black "'+b+'"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
 async function stub(b){

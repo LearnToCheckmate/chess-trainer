@@ -16,7 +16,7 @@
 //      [data-ct=lesson-bank-it] on screen and at least 44px tall; tapping it restarts the line with the hint off, and playing it
 //      through banks today (days 1).
 // DENOMINATOR per launch: the run reached Complete!.
-// CONTROL-RECORD: 1decf98 2026-11-11 total=11 red=4 scope=trial:a4e7036429a0 how=#550 answer a33: the tree before it (a32 only) - 'Today is already banked, tomorrow counts next' with or without another lesson, so TC-R191a and TC-R191b are red; no Bank it, so both TC-R191d lines are red; the four DENOMINATORS, TC-R191c (the legacy bank still waits) and zero-errors green. On t52 (28378590a526) 11 of 11 green
+// CONTROL-RECORD: d11f418 2026-11-11 total=11 red=4 scope=trial:a4e7036429a0 how=#550 answer a33: the tree before it (a32 only) - 'Today is already banked, tomorrow counts next' with or without another lesson, so TC-R191a and TC-R191b are red; no Bank it, so both TC-R191d lines are red; the four DENOMINATORS, TC-R191c (the legacy bank still waits) and zero-errors green. On t52 (28378590a526) 11 of 11 green
 const L=require('../lib');const D=require('../drive/lesson');
 const KEY='Italian Game';
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
