@@ -54,7 +54,7 @@ const PORT={w:375,h:730,safe:''};
 // 730x375 and 667x375 share a height (availH 221) and 844x390 differs (236); 667 is here as an independent
 // ROUTE and width, not as an independent height. Stated because gate 62's first draft overclaimed exactly this.
 const LAND=[{w:730,h:375},{w:844,h:390},{w:667,h:375}];
-const ROW=['Moves','Back','Forward','Review','Rematch','Hint','Flip','More'];
+const ROW=['Moves','Back','Forward','Review','Rematch','New game','Hint','Flip','More'];   // 'New game': the sideways finished game's 2x2 block (#550 a23)
 
 const sigOf=(b)=>b.page.evaluate(()=>{
   const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
@@ -78,7 +78,9 @@ const rowOf=(b,want)=>b.page.evaluate((want)=>{
   if(!all.length)return {labels:[],items:[],bottom:null};
   const ys=all.map(a=>a.y).sort((p,q)=>p-q);let bandY=ys[0],bandN=0;
   for(const y of ys){const n=all.filter(a=>Math.abs(a.y-y)<=3).length;if(n>bandN){bandN=n;bandY=y;}}
-  const items=all.filter(a=>Math.abs(a.y-bandY)<=3).sort((p,q)=>p.x-q.x);
+  /* #550 a23 (his Option A): a finished sideways game's controls are not one row - Back and Forward sit in the result card and Review,
+     Rematch, New game and More are a 2x2 block (land-over-btns) - so there the "row" is every wanted control on screen, top to bottom. */
+  const items=(document.querySelector('[data-ct="land-over-btns"]')?all:all.filter(a=>Math.abs(a.y-bandY)<=3)).sort((p,q)=>(p.y-q.y)||(p.x-q.x));
   return {labels:items.map(i=>i.label),items,bottom:Math.max.apply(null,items.map(i=>i.bottom))};
 },want);
 
@@ -97,7 +99,7 @@ const hitMap=(b,want)=>b.page.evaluate((want)=>{
   for(const y of ys){const n=cand.filter(x=>Math.abs(x.getBoundingClientRect().top-y)<=3).length;if(n>bandN){bandN=n;bandY=y;}}
   for(const x of cand){
     const t=(x.title||'').trim();
-    const r=x.getBoundingClientRect();if(Math.abs(r.top-bandY)>3)continue;
+    const r=x.getBoundingClientRect();if(!document.querySelector('[data-ct="land-over-btns"]')&&Math.abs(r.top-bandY)>3)continue;   // #550 a23: every control of the sideways finished game, not one band
     const cx=r.left+r.width/2;const pts=[];
     for(let dy=3;dy<r.height;dy+=4){const el=document.elementFromPoint(cx,r.top+dy);pts.push(!!(el&&(el===x||x.contains(el))));}
     const c=document.elementFromPoint(cx,r.top+r.height/2);
@@ -241,12 +243,14 @@ L.run(async()=>{
       // ON 'M' ONLY: the 'R' drive taps (8,8) after resigning, which DISMISSES the result card by design, so there is no card to
       // measure there and B8 would be a red about the drive, not the app (the first #547 run did exactly that).
       if(k.id!=='M')L.note(G+'B8 NOT RUN on '+k.id+' and not counted: this drive dismisses the result card before the rotate, so there is no headline to measure');
-      else {const w=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="result-card"]');if(!c)return null;const h=[...c.querySelectorAll('div')].find(d=>d.children.length===0&&(d.textContent||'').trim());
+      /* #550 a23 (his Option A): sideways, the result is the rail's card (land-result) and no card is drawn on the board, so the word must
+         lie inside ITS card and inside the viewport; the board clause applies to the on-board card, which is now portrait's only. */
+      else {const w=await b.page.evaluate(()=>{const lr=document.querySelector('[data-ct="land-result"]');const c=lr||document.querySelector('[data-ct="result-card"]');if(!c)return null;const h=[...c.querySelectorAll('div')].find(d=>d.children.length===0&&(d.textContent||'').trim());
          const t=h&&[...h.childNodes].find(n=>n.nodeType===3&&n.nodeValue.trim());const rg=document.createRange();if(t)rg.selectNodeContents(t);const r=t?rg.getBoundingClientRect():null;
          const cr=c.getBoundingClientRect();const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,b)=>b.width-a.width)[0];
-         return {word:t?t.nodeValue.trim():null,ink:r&&[Math.round(r.left*10)/10,Math.round(r.right*10)/10],card:[Math.round(cr.left*10)/10,Math.round(cr.right*10)/10],board:g&&[Math.round(g.left*10)/10,Math.round(g.right*10)/10]};});
+         return {word:t?t.nodeValue.trim():null,ink:r&&[Math.round(r.left*10)/10,Math.round(r.right*10)/10],card:[Math.round(cr.left*10)/10,Math.round(cr.right*10)/10],board:lr?[0,innerWidth]:(g&&[Math.round(g.left*10)/10,Math.round(g.right*10)/10]),inRail:!!lr};});
        L.say(!!w&&!!w.word&&!!w.ink,G+'B8 PRECONDITION the result card is up and its headline word is found ('+(w&&w.word)+')',w);
-       L.say(!!w&&!!w.ink&&!!w.board&&w.ink[0]>=w.card[0]-0.5&&w.ink[1]<=w.card[1]+0.5&&w.ink[0]>=w.board[0]-0.5&&w.ink[1]<=w.board[1]+0.5,G+'B8 the headline "'+(w&&w.word)+'" is painted whole - inside its card and inside the board that clips it',w);}
+       L.say(!!w&&!!w.ink&&!!w.board&&w.ink[0]>=w.card[0]-0.5&&w.ink[1]<=w.card[1]+0.5&&w.ink[0]>=w.board[0]-0.5&&w.ink[1]<=w.board[1]+0.5,G+'B8 the headline "'+(w&&w.word)+'" is painted whole - inside its card and inside '+(w&&w.inRail?'the screen (the rail\'s card, #550 a23)':'the board that clips it'),w);}
       await b.shot('g64-'+g.w+'x'+g.h+'-'+k.id+'-terminal');
 
       // ===== B5: after Back x2. #437's trap - the clip must not become permanent, and the row must not be ply-keyed. =====

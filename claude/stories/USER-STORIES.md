@@ -1876,6 +1876,14 @@ As a player who starts a game from a scanned board or from a position in Review,
 *Added #550 item (101), jobs/online-clock-flag-fall-auto-end (Kunal's Desk answer 'it should be automatic', 22 Sep 2026; in scope on his word of 10 Nov 2026).*
 As a player in an online game with a clock, when one side's time runs out and nobody taps Claim win, the game is recorded as a loss on time 15 seconds later by whichever phone has it open, so my games list never shows a finished game as still in progress.
 - Opened by either player after the 15 seconds: the loss on time is written once; opened inside them: nothing is written until they pass. (TC-PL-070a, TC-PL-070b, TC-PL-070c)
+### US-PL-27 A game turned sideways keeps the board the height of the screen
+*Added #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right"; jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29).*
+As a player with the phone sideways, the board is the height of the screen and everything else - both players, the moves, the result and the buttons - sits on the right, so a finished game shows its result and its four buttons with nothing scrolled away.
+- In a live game the board is at least 340 tall, both player bars sit on the right, and the right side does not scroll. (TC-PL-071a)
+- At the end the board stays the same size and the right side shows the result (Checkmate, Black wins). (TC-PL-071b)
+- Review, Rematch, New game and More are on screen, a thumb's size, and the bottom player is still on screen. (TC-PL-071c)
+- No result card covers the board. (TC-PL-071d)
+
 ### US-R88 The grade table's White and Black headers sit over their own numbers
 *Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
 As a player reading the grade table, each column's header is directly above its numbers.
