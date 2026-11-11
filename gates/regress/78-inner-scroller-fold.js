@@ -199,6 +199,25 @@ L.run(async()=>{
     await b.close();
   }
   L.note('    TACTICS BOARD vs TAB BAR (px under the bar at rest; <= 0 is clear): '+JSON.stringify(tgot));
+  // TC-INV-08n [#550 answer a18 on jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28, the orchestrator's ruling a18: "no single
+  // control. Home's four tiles (Discover, Puzzles, Review and Play) are its primary actions, so TC-INV-08's Home arm in gate 78 asks that each be
+  // fully on screen at rest at 375x761 and at 320x568, with its control; a tile found below the fold is pinned, not passed ... until his answer on
+  // Home's layout (the audit's AUD-H01) lands"]. AUD-H01 has landed (the compact footer and tiles) and 320x568 still puts the second row below the
+  // fold, so those two are PINNED at the distance measured, and a move either way is red. The tiles are found by their icon hooks (tile-ic-<k>,
+  // #366's, not this build's) and their buttons' rects read unscrolled; the fold is the viewport's bottom (Home is drawn over the tab bar).
+  {const HOME_PIN={'320x568':{analyze:41,play:41}};   // px past the fold, measured on trial a7022891e79d (was 88 before AUD-H01)
+   for(const g of ['kunal761','se']){
+     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
+     const b=await L.launch({geo:g,name:'home-tiles-'+n});await b.open();await b.settle(1200);
+     const t=await b.page.evaluate(()=>{const o={};const ov=document.querySelector('[data-ct="tile-ic-learn"]');const sc=ov&&ov.closest('div[style*="overflow"]');
+       for(const k of ['learn','puzzle','analyze','play']){const ic=document.querySelector('[data-ct="tile-ic-'+k+'"]');const bt=ic&&ic.closest('button');if(!bt)continue;const r=bt.getBoundingClientRect();o[k]={top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10};}
+       return {tiles:o,fold:innerHeight};});
+     const ks=['learn','puzzle','analyze','play'];
+     L.say(ks.every(k=>t.tiles[k]),n+': TC-INV-08n DENOMINATOR Home\'s four tiles were found by their icon hooks ('+Object.keys(t.tiles).join(', ')+')',t);
+     for(const k of ks){if(!t.tiles[k])continue;const past=Math.round((t.tiles[k].bottom-t.fold)*10)/10;const pin=HOME_PIN[n]&&HOME_PIN[n][k];
+       if(pin==null)L.say(past<=0,n+' '+k+': TC-INV-08n at rest the tile is fully on screen ('+(past<=0?(-past)+'px clear':past+'px BELOW the fold')+')',{past,tile:t.tiles[k],fold:t.fold});
+       else L.say(Math.abs(past-pin)<=1,n+' '+k+': TC-INV-08n the tile sits '+past+'px past the fold at rest, as PINNED ('+pin+'): a known below-the-fold tile at this geometry after AUD-H01, pinned not passed; a move either way is red',{past,pin});}
+     await b.close();}}
 },'78-inner-scroller-fold');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
@@ -207,4 +226,5 @@ L.run(async()=>{
 // CONTROL-RECORD: a9e66ac 2026-11-06 total=54 red=6 scope=trial:7655d031c876 how=the #549 item (87) tree with chess.jsx at bd8c4a7 (no fit to the tab bar), one change - TC-INV-08e red at 320x568 Tactics and Strategy, 360x640 Tactics and Strategy, 375x667 Tactics and 375x730 Tactics
 // CONTROL-RECORD: bae7803 2026-11-06 total=142 red=7 scope=trial:c738ab207551 how=the run-head tree 376ccde (per-card fit, no idea-box or title-row reservation), one change against the fix - TC-INV-08k red at 375x761+51,31 Tactics, 320x568 Tactics and Strategy, 360x640, 375x667 and 375x730 Tactics; TC-INV-08e red at 320x568 Tactics (5.3px under on four motifs)
 // CONTROL-RECORD: bae7803 2026-11-06 total=126 red=8 scope=trial:7f72a195020d how=the fix with the Strategy tab button relabelled 'Plans' so the gate's click misses - TC-INV-08d red on Strategy at all eight geometries (the tab is proven reached, A2-R4); the run emits 126 lines because the missed tab's 08e and 08k do not run
+// CONTROL-RECORD: 6180c2b 2026-11-11 total=224 red=13 scope=trial:8f0c3906c86c how=#550 c_h18, a bundle built for this control: the tree before antagonist A round 2's Tactics hint fix (e856800) with Home's tiles pushed 400px down - TC-INV-08l (hint on every card) red at all five geometries and TC-INV-08n (Home, AUD-H01) red at 375x761 for all four tiles and at 320x568 for all four (two below the fold, two off their 41px pin); every other line green. On t52 (28378590a526) 224 of 224 green
 // CONTROL-RECORD: 6ff1c24 2026-11-11 total=142 red=8 scope=trial:e8bb320d6d6d how=#550 item (133): c133, the Puzzles roadmap's '▶ Start training' pushed 900px down (marginTop 12 -> 900) - TC-INV-08g red at all eight geometries (172..584px below the fold); 08f's denominator and 08j's reach-by-scrolling stay green, which is right; good trial 4fe71d55db29 142/0

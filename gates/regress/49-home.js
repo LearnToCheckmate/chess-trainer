@@ -242,7 +242,7 @@ const CARDS=(b)=>b.page.evaluate(()=>{
     if(/^NEW HERE/.test(t))return 'newhere';
     if(/Discover/.test(t)&&/Puzzles/.test(t)&&/Review/.test(t)&&/Play/.test(t))return 'tiles';
     if(/^(🎓|⚠️)/.test(t))return 'coachline';
-    if(/^Colours & pieces/.test(t))return 'lookrow';
+    if(/^Colours & pieces/.test(t)||k.querySelector('[data-ct="home-look"]'))return 'lookrow';   // #550 AUD-H01: the look button reads its theme name now; found by its hook
     return 'UNKNOWN:'+t.slice(0,28);};
   return [...col.children].map(k=>{const r=k.getBoundingClientRect();
     return {id:id(k),tag:k.tagName.toLowerCase(),y:r1(r.top),h:r1(r.height),w:r1(r.width)};});});
@@ -399,28 +399,35 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // wraps to a second 13px line in the 284, 339 and 354px columns and fits in the 394px one. So sh and travel rise by
 // exactly 13 at se, kunal730 and 390 (885/317, 885/155, 870/26 - measured on trial df679e0fb534) and 430 is unchanged;
 // every y above the stamp is unchanged because the stamp is the last line of the column.
+// #550 AUD-H01 (answer a18, 'Compact footer and tiles', Kunal on the Desk B10-AUD-H01) RE-PINNED, measured on trial a7022891e79d at all four
+// widths: one-line captions and 80pt icons take each tile row from 175 to 153.5 (154.5 at 390, 157.3 at 430), the rows are 12 apart (was 16),
+// the look, style, 🎬 and 💬 buttons are ONE 44pt row (the dev row is inside it, so it sits at the look row's y) and the build line is one line
+// under it. So the column shrinks 885 -> 745 at se and kunal730 (travel 317 -> 177 and 155 -> 15) and 870 -> 844 at 390, which now fits (travel
+// 0). Everything above the tiles is unchanged. The pre-AUD-H01 tables are in this file's history (git log -p).
 const M={
-  se      :{colW:284,sh:885,travel:317,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:366},coach:{y:656,h:39},look:{y:713,h:30},devrow:{y:795},build:{y:839}},
-  kunal730:{colW:339,sh:885,travel:155,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:366},coach:{y:656,h:39},look:{y:713,h:30},devrow:{y:795},build:{y:839}},
-  '390'   :{colW:354,sh:870,travel:26, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:350.5},coach:{y:640.5,h:39},look:{y:697.5,h:30},devrow:{y:779.5},build:{y:823.5}},
+  se      :{colW:284,sh:745,travel:177,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+            tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
+  kunal730:{colW:339,sh:745,travel:15, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+            tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
+  '390'   :{colW:354,sh:844,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+            tiles:{y:290,h:321},coach:{y:611,h:39},look:{y:662,h:44},devrow:{y:662},build:{y:714}},
   '430'   :{colW:394,sh:932,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:102},
-            tiles:{y:292,h:357.8},coach:{y:649.8,h:39},look:{y:706.8,h:30},devrow:{y:750.8},build:{y:794.8}}};
-// Per-tile rects, measured before any tap. The two columns and the two rows are the whole grid: gridTemplate
-// '1fr 1fr' with a 16px gap, so the right column's x is 18 + w + 16 at every width.
+            tiles:{y:292,h:326.5},coach:{y:618.5,h:39},look:{y:669.5,h:44},devrow:{y:669.5},build:{y:721.5}}};
+// Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
+// its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 18 + w + 16 at every width.
 const T={
-  se      :{learn:{x:18,y:290,w:134,h:175},  puzzle:{x:168,y:290,w:134,h:175},
-            analyze:{x:18,y:481,w:134,h:175},play:{x:168,y:481,w:134,h:175}},
-  kunal730:{learn:{x:18,y:290,w:161.5,h:175},puzzle:{x:195.5,y:290,w:161.5,h:175},
-            analyze:{x:18,y:481,w:161.5,h:175},play:{x:195.5,y:481,w:161.5,h:175}},
-  '390'   :{learn:{x:18,y:290,w:169,h:176},  puzzle:{x:203,y:290,w:169,h:176},
-            analyze:{x:18,y:482,w:169,h:158.5},play:{x:203,y:482,w:169,h:158.5}},
-  '430'   :{learn:{x:18,y:292,w:189,h:180.5},puzzle:{x:223,y:292,w:189,h:180.5},
-            analyze:{x:18,y:488.5,w:189,h:161.3},play:{x:223,y:488.5,w:189,h:161.3}}};
+  se      :{learn:{x:18,y:290,w:134,h:153.5},  puzzle:{x:168,y:290,w:134,h:153.5},
+            analyze:{x:18,y:455.5,w:134,h:153.5},play:{x:168,y:455.5,w:134,h:153.5}},
+  kunal730:{learn:{x:18,y:290,w:161.5,h:153.5},puzzle:{x:195.5,y:290,w:161.5,h:153.5},
+            analyze:{x:18,y:455.5,w:161.5,h:153.5},play:{x:195.5,y:455.5,w:161.5,h:153.5}},
+  '390'   :{learn:{x:18,y:290,w:169,h:154.5},  puzzle:{x:203,y:290,w:169,h:154.5},
+            analyze:{x:18,y:456.5,w:169,h:154.5},play:{x:203,y:456.5,w:169,h:154.5}},
+  '430'   :{learn:{x:18,y:292,w:189,h:157.3},puzzle:{x:223,y:292,w:189,h:157.3},
+            analyze:{x:18,y:461.3,w:189,h:157.3},play:{x:223,y:461.3,w:189,h:157.3}}};
 const LABELS=['Discover','Puzzles','Review','Play'];
-const SUBS=['Openings, gambits & endgames','890+ tactical puzzles','Free unlimited game reviews','vs Computer or Human'];
+// #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
+// captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
+const SUBS=['Openings & endgames','890+ tactical puzzles','Free game reviews','vs Computer or Human'];
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
@@ -429,8 +436,9 @@ const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
 // about the WIDTH. Measured with the fresh-store recommendation, "New to chess? Lock in the endgame basics":
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
 const CLIP={se:{clipped:true},kunal730:{clipped:false}};
-const FRESH_SIG=['intro','daily3','newhere','tiles','coachline','lookrow','home-devrow','home-build'];
-const EARNED_SIG=['intro','streak','daily3','tiles','coachline','lookrow','home-devrow','home-build'];
+// #550 AUD-H01: on a phone the 🎬/💬 pair sits INSIDE the look row (one 44pt row), so it is no longer a card of its own in the column
+const FRESH_SIG=['intro','daily3','newhere','tiles','coachline','lookrow','home-build'];
+const EARNED_SIG=['intro','streak','daily3','tiles','coachline','lookrow','home-build'];
 const GEOS=['se','kunal730','390','430'];
 
 // CT_HM_BLOCKS=A,B runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving six one-line
@@ -523,8 +531,8 @@ if(blk('B'))for(const geo of GEOS){
     geo+': TC-HM-012 the tiles are '+LABELS.join(' · ')+', in that DOM ORDER - which is the painted order, top-left to bottom-right. WALKED in document order rather than fetched key by key: the first version of this helper mapped over a hardcoded key list, so it imposed the order it claimed to be testing and NC5 walked straight past it. Order and not just arity',{ks:t.map(x=>x.k).join(','),labels:t.map(x=>x.label).join(',')});
   L.say(t.map(x=>x.sub).join('|')===SUBS.join('|'),
     geo+': TC-HM-013 and each carries its own subtitle - the only text on this screen that says what is behind a tile',t.map(x=>x.sub));
-  L.say(t.every(x=>near(x.boxW,84)&&near(x.boxH,84)),
-    geo+': TC-HM-014 every tile\'s icon box is 84x84 at every width - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
+  L.say(t.every(x=>near(x.boxW,80)&&near(x.boxH,80)),
+    geo+': TC-HM-014 every tile\'s icon box is 80x80 at every width (84 until #550 AUD-H01\'s 80pt icons) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
   L.say(t.every(x=>x.ink===INK[x.k]),
     geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99 (Classic, #550 item (68)), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
   L.say(t.every(x=>near(x.x,W[x.k].x)&&near(x.y,W[x.k].y)&&near(x.w,W[x.k].w)&&near(x.h,W[x.k].h,1)),
@@ -1096,11 +1104,11 @@ const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
     if(/^NEW HERE/.test(t))return 'newhere';
     if(/^\S+\s*Discover\s+Openings/u.test(t))return 'tile-discover';   // #550 item (68): by LABEL, not glyph - a skin's icons are its own now
     if(/^\u{1F9E9}\s*Puzzles/u.test(t))return 'tile-puzzles';
-    if(/^\S+\s*Review\s+Free unlimited/u.test(t))return 'tile-review';
+    if(/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))return 'tile-review';   // #550 AUD-H01: 'Free game reviews' on a phone
     if(/^\S+\s*Play\s+vs Computer/u.test(t))return 'tile-play';
     if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
     if(/^Colours & pieces/.test(t))return 'lookrow';
-    if(/Style:/.test(t))return 'stylerow';
+    if(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||''))return 'stylerow';   // #550 AUD-H01: on a phone it reads the style's name; its aria-label keeps 'Style: <name>'
     return 'UNKNOWN:'+t.slice(0,24);};
   const all=[...ov.querySelectorAll('button')]
     .concat([...ov.querySelectorAll('div')].filter(d=>typeof d.onclick==='function'));
@@ -1191,8 +1199,8 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
         return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
           ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
           ||(id==='tile-discover'&&/^\S+\s*Discover\s+Openings/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
-          ||(id==='tile-review'&&/^\S+\s*Review\s+Free unlimited/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+vs Computer/u.test(t))
-          ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&/Style:/.test(t))
+          ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+vs Computer/u.test(t))
+          ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||'')))   /* #550 AUD-H01: the same two re-keys as idOf above */
           ||(id==='wave'&&/^\u{1F44B}$/u.test(t))||(id==='intro'&&e.tagName==='DIV'&&!t);});
       if(!el)return {ok:false,why:'gone after scroll'};
       el.scrollIntoView({block:'center'});

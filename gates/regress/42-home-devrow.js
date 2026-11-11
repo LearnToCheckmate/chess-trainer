@@ -15,6 +15,7 @@
 // fold" is not "unreachable", `#root` never scrolls BY DESIGN, and the only honest test is to find an
 // ancestor that a FINGER can scroll and actually scroll it, then re-read the rect. `scrollIntoView` is not
 // that test - script can scroll an overflow:hidden box a finger cannot.
+// CONTROL-RECORD: 6180c2b 2026-11-11 total=46 red=6 scope=trial:455ff0ea4f3f how=#550 AUD-H01 (answer a18): the tree before the compact Home (dev buttons 34x34 below the fold) - the six '44x44' lines red at 375x730, 320x568 and 390x844; the in-flow, reach and covers-nothing lines green on both trees. On t52 (28378590a526) 46 of 46 green
 'use strict';
 const L=require('../lib');
 
@@ -24,8 +25,13 @@ const SELS=[['preview','[data-ct="home-preview"]'],['feedback','[data-ct="home-f
 const covers=(b,sel)=>b.page.evaluate((s)=>{
   const el=document.querySelector(s); if(!el)return null;
   const r=el.getBoundingClientRect(),out=[];
+  /* #550 H01: ONLY WHAT THE HOME LAYER PAINTS CAN BE COVERED. Home is a fixed full-viewport layer over the tab screens, which stay
+     mounted under it (CLAUDE.md, "the app keeps several screens mounted at once"); once the compact Home put the dev row on the first
+     screen at 390x844, the Learn screen's header and Tactics row UNDER the layer read as "covered" - text no finger can reach there. */
+  let H=null;for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){if(getComputedStyle(p).position==='fixed'){H=p;break;}}
   for(const o of document.body.querySelectorAll('*')){
     if(o===el||el.contains(o)||o.contains(el))continue;
+    if(H&&!H.contains(o))continue;
     if(o.ownerSVGElement)continue;
     const q=o.getBoundingClientRect();
     if(q.width<2||q.height<2)continue;
@@ -54,7 +60,8 @@ const geom=(b,sel)=>b.page.evaluate((s)=>{
     const ps=getComputedStyle(p).position;
     if(ps==='fixed'||ps==='sticky'){pinned={tag:p.tagName.toLowerCase(),ct:p.getAttribute('data-ct'),pos:ps};break;}
   }
-  return {pos:st.position,pinned,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,
+  let pinnedFull=false;if(pinned){for(let p=el;p&&p!==document.documentElement;p=p.parentElement){const ps=getComputedStyle(p).position;if(ps==='fixed'||ps==='sticky'){const q=p.getBoundingClientRect();pinnedFull=q.width>=innerWidth-1&&q.height>=innerHeight-1;break;}}}
+  return {pos:st.position,pinned,pinnedFull,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,
     top:Math.round(r.top*10)/10,left:Math.round(r.left*10)/10};
 },sel);
 
@@ -92,8 +99,11 @@ L.run(async()=>{
       L.say(!!gm,g.label+': the '+name+' button still exists - "Keep them" is half the answer and deleting them would satisfy the other half',gm);
       if(gm){
         const sc=await reachable(b,sel);
-        L.say(sc.found&&sc.moved,g.label+': the '+name+' button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON\'s own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does',sc);
-        L.say(Math.abs(gm.w-34)<0.6&&Math.abs(gm.h-34)<0.6,g.label+': the '+name+' button is still 34x34 - the same button, moved, not a redesign',gm);
+        /* #550 H01: where the compact Home FITS (390x844: nothing scrolls) "moves with the content" cannot be performed, so the
+           in-flow half is asserted from the chain instead: no scroller exists, and the nearest pinned ancestor is the full-viewport
+           Home layer itself, not a row or corner box - which is what a corner-pinned control would show. */
+        L.say(sc.found&&(sc.moved||(sc.scrollers===0&&gm.pinnedFull)),g.label+': the '+name+' button SCROLLS WITH THE CONTENT rather than floating over it - the test is behavioural because the static one is not available: the whole home screen is a legitimate fixed full-viewport layer, so "no fixed ancestor" is red on a correct build, and asking only for the BUTTON\'s own position lets a control that pins the ROW walk straight past. A corner-pinned control does not move when the column scrolls; an in-flow one does',sc);
+        L.say(Math.abs(gm.w-44)<0.6&&Math.abs(gm.h-44)<0.6,g.label+': the '+name+' button is 44x44 - the same button, moved into the compact Home\'s one footer row at full tap size [#550 H01; it was 34x34 from #386 to #549]',gm);
       }
       const cv=await covers(b,sel);
       L.say(Array.isArray(cv)&&cv.length===0,g.label+': the '+name+' button covers nothing - measured against every painted, text-bearing element on the screen. Before #386 this was the Review tile at 320 and the banner and Look picker at 375',cv);

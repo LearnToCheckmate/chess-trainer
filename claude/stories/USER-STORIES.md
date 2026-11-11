@@ -569,6 +569,8 @@ gate 78.
   "⚡ Analyze Game" is on screen at every geometry (TC-INV-08i, its REV_PIN retired). Before a12 it sat under the game list,
   28.5 to 373.5px below the fold. Reachable by scroll either way (TC-INV-08j).
 - NOT COVERED YET: Home's primary action, which no ruling names.
+- On Home, all four tiles are on screen without scrolling on his phone (375x761); at 320x568 two sit below the fold at a
+  pinned distance (#550 AUD-H01, answer a18, the compact Home). (TC-INV-08n)
 
 ### US-INV-08 A check that passes was able to fail on the build it was guarding against
 
