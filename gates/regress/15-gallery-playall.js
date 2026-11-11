@@ -264,7 +264,11 @@ const STATE_IDS=['k10','k8','k11','A-06','US-R','y3'];
    So block S drives the five cards that own a board: 44s per geometry, 88s for both. */
 const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{id:4,hold:9000},
   {id:'A-06',hold:7000}];
-const EXPECT_BOARD=[];   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
+/* #550 item (11): the gallery's EXP card ('explanations on the Review board', self-driving: the Opera import, then plies 9, 19 and 25 with the
+   engine line and its why) is a REVIEW card, so all four of its captions paint the review board. Measured on trial t6: the walk's only
+   board-painting captions are EXP, EXP-1, EXP-2 and EXP-3, at both geometries. Pinned, so the board-conditioned checks stop being inert
+   for this walk and a caption of EXP that LOSES its board reds rather than passing as 'boardless'. */
+const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3'];   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
