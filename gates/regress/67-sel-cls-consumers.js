@@ -62,6 +62,7 @@
 //   CT_APP=/tmp/441.js node gates/regress/67-sel-cls-consumers.js
 // Measured, and the numbers are in the run report rather than only here.
 'use strict';
+// CONTROL-RECORD: e80c285 2026-11-11 total=45 red=2 scope=trial:962efa8a5c77 how=#550 item (124): c124, chess.jsx's DRILL_GRADES with Miss removed and Book added (['Mistake','Blunder','Book']) - G2 CONTROL Miss red (a Miss row flattened to 'a mistake') and G3b red (a Book row says 'a book'); every other line green; good trial 762fd238c730 45/0
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
 const R=require('../drive/review');
