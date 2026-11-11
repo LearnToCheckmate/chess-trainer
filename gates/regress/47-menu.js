@@ -642,7 +642,7 @@ if(blk('Y')){
   const b=await L.launch({geo:LAND,name:'mn-y-over'});await b.open();
   const up=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
   await b.card('k10',2600);await b.settle(10500);
-  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()==='Rematch'));
+  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
   L.say(over,'730x375: TC-MN-051 PRECONDITION the game is over (Checkmate on screen, Rematch offered) before the menu is opened',{over});
   const open=async()=>{const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
     if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
@@ -690,7 +690,7 @@ if(blk('Y')){
 if(blk('Y')){
   const b=await L.launch({geo:LAND,name:'mn-y-over-reach'});await b.open();
   await b.card('k10',2600);await b.settle(10500);
-  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()==='Rematch'));
+  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
   const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
     if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
   if(m){await b.page.mouse.click(m[0],m[1]);await b.settle(700);}
