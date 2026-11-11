@@ -131,7 +131,105 @@ async function missedList(dir,out,player){
   console.log(`\n# positions ${jobs.length}, searched in ${Math.round((Date.now()-t0)/1000)}s`);
   if(out)fs.writeFileSync(out,JSON.stringify({srcMd5:E.SOURCE_MD5,depth:DEPTH,player,positions:jobs.length,rows},null,1));
 }
+// --rule3 <pgn-dir> <out.json> [saved-reviews.json]: #550 item (17), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03.
+// RULE 3 (docs/brilliant-rule-3-design-2026-11-10, the app's default from #550) beside rule 2 (#549's one rule) and rule 1 (the rule
+// the app graded by before), every verdict from the SHIPPED brilliantGate with the review's own inputs: lossWin is sfGradePly's _wd
+// (0 when the move is the engine's first line, else winDrop), playedIsBest its _wasBest, and the game's positions for clause C's
+// look-back. Searched: every ply whose rule-2 sacrifice term is 2 or more (rule 3's land and hang arms are never larger than rule 2's)
+// plus every in-check capture whose clause-K board arm reads 2 or more (the one arm rule 2 does not have). saved-reviews.json, when
+// given, is docs/chesscom-saved-reviews-kunal2023-2026-11-10 and each row then carries chess.com's own grade for that ply.
+async function rule3List(dir,out,ccFile){
+  const files=fs.readdirSync(dir).filter(f=>f.endsWith('.pgn')).sort();
+  let CC={};try{if(ccFile)CC=JSON.parse(fs.readFileSync(ccFile,'utf8')).games||{};}catch(e){CC={};}
+  const LET={'!':'Brilliant',B:'Best',G:'Great',b:'Blunder',e:'Excellent',f:'Forced',g:'Good',i:'Inaccuracy',k:'Book',m:'Mistake',x:'Miss'};
+  const jobs=[];let plies=0;
+  for(const f of files){
+    const pgn=fs.readFileSync(path.join(dir,f),'utf8');const gid=f.replace(/\.pgn$/,'');
+    const hW=(/\[White "([^"]*)"/.exec(pgn)||[])[1]||'',hB=(/\[Black "([^"]*)"/.exec(pgn)||[])[1]||'';
+    const res=E.loadSANs(E.parsePGN(pgn));if(!res||!res.plies.length)continue;
+    for(let i=0;i<res.plies.length;i++){plies++;
+      const pos=res.positions[i],pl=res.plies[i].move;
+      const g0=E.brilliantGate(pos,pl,0,0,0,null,2);let k=false;
+      if(!g0.isSac&&E.isInCheck(pos.board,pos.turn)&&pos.board[pl.tr]&&pos.board[pl.tr][pl.tc]){try{k=E.brilCheckArm(pos,pl,E.makeMove(pos,pl),pos.turn).v>=2;}catch(e){k=false;}}
+      if(!g0.isSac&&!k)continue;
+      jobs.push({gid,hW,hB,i,res,pos,pl,san:res.plies[i].san});
+    }
+  }
+  const K=Math.max(1,+(process.env.CT_JOBS||1));
+  console.log('# BRILLIANT RULE 3 MEASUREMENT - #550 item (17) | chess.jsx',E.SRC_PATH,'md5',E.SOURCE_MD5,'| engine',path.basename(SF),'depth',DEPTH,'MultiPV 2 Hash 16 | engines',K);
+  console.log('# games',files.length,'plies',plies,'searched',jobs.length,'| saved reviews',Object.keys(CC).length);
+  const rows=[];let k=0;const t0=Date.now();
+  const worker=async()=>{const eng=engine();await eng.init();
+    while(k<jobs.length){const j=jobs[k++];const N=j.res.positions[j.i+1];
+      const a=toW(j.pos,await eng.eval(E.toFEN(j.pos)));
+      const sN=E.getStatus(N);const b=toW(N,(sN==='checkmate'||sN==='stalemate')?null:await eng.eval(E.toFEN(N)));
+      const mover=j.pos.turn,before=a.cpW,after=b.cpW;
+      let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
+      const wasBest=uciIs(j.pl,a.bm);if(wasBest)loss=0;
+      const evA=Math.max(-99,Math.min(99,after/100)),evB=Math.max(-99,Math.min(99,before/100));
+      const nb=E.nextBestW(before,a.cp2W,wasBest),evN=nb==null?null:Math.max(-99,Math.min(99,nb/100));
+      const lossWin=wasBest?0:E.winDrop(before,after,mover);
+      const g2=E.brilliantGate(j.pos,j.pl,loss,evA,evB,evN,2);
+      const g3=E.brilliantGate(j.pos,j.pl,loss,evA,evB,evN,3,{lossWin,playedIsBest:wasBest,positions:j.res.positions,i:j.i});
+      const cg=CC[j.gid]&&CC[j.gid].grades?LET[CC[j.gid].grades[j.i]]||null:null;
+      rows.push({game:j.gid,white:j.hW,black:j.hB,ply:j.i,no:Math.floor(j.i/2)+1,side:mover,san:j.san,fen:E.toFEN(j.pos),r1:OLD(g2),r2:g2.ok,r3:g3.ok,cc:cg,saved:!!CC[j.gid],
+        g3:{arm:g3.arm,gT:g3.gT,gSq:g3.gSq,sac:g3.sac,loss:g3.loss,lossWin:g3.lossWin,gapWin:g3.gapWin,originPre:g3.originPre,hangAge:g3.hangAge,chk:g3.chk,evAfter:g3.evAfter,cap:g3.cap},
+        g2:{arm:g2.arm,sac:g2.sac,needed:g2.needed,evNext:g2.evNext}});
+      if(rows.length%50===0)process.stderr.write(rows.length+'/'+jobs.length+' '+Math.round((Date.now()-t0)/1000)+'s\n');
+    }
+    eng.quit();};
+  await Promise.all(Array.from({length:K},worker));
+  rows.sort((a,b)=>a.game<b.game?-1:a.game>b.game?1:a.ply-b.ply);
+  const nm=r=>`${r.game} ${r.white}-${r.black} ${r.no}${r.side==='w'?'.':'...'}${r.san}${r.cc?' [chess.com '+r.cc+']':''}`;
+  const c=(f)=>rows.filter(f).length;
+  console.log(`\n# fires: rule 1 ${c(r=>r.r1)}, rule 2 ${c(r=>r.r2)}, rule 3 ${c(r=>r.r3)}`);
+  for(const [h,f] of [['RULE 3 ADDS OVER RULE 2',r=>r.r3&&!r.r2],['RULE 3 REMOVES FROM RULE 2',r=>r.r2&&!r.r3],['RULE 3 ADDS OVER RULE 1',r=>r.r3&&!r.r1],['RULE 3 REMOVES FROM RULE 1',r=>r.r1&&!r.r3]]){
+    const L=rows.filter(f);console.log(`\n## ${h}: ${L.length}`);for(const r of L)console.log('  '+nm(r)+'  '+r.g3.arm+' '+r.g3.gT+r.g3.gSq+' sac '+r.g3.sac+' lossWin '+r.g3.lossWin);}
+  const sv=rows.filter(r=>r.saved);
+  if(sv.length){let cb=0;for(const g of Object.keys(CC)){cb+=(CC[g].grades||'').split('').filter(x=>x==='!').length;}
+    console.log(`\n## THE ${Object.keys(CC).length} SAVED REVIEWS: chess.com Brilliants ${cb}; rule 3 hits ${c(r=>r.saved&&r.r3&&r.cc==='Brilliant')}, extras ${c(r=>r.saved&&r.r3&&r.cc!=='Brilliant')}; rule 2 hits ${c(r=>r.saved&&r.r2&&r.cc==='Brilliant')}, extras ${c(r=>r.saved&&r.r2&&r.cc!=='Brilliant')}`);
+    for(const r of sv.filter(r=>r.cc==='Brilliant'&&!r.r3))console.log('  MISSED BY RULE 3: '+nm(r));
+    for(const r of sv.filter(r=>r.r3&&r.cc!=='Brilliant'))console.log('  RULE 3 EXTRA: '+nm(r)+' lossWin '+r.g3.lossWin);}
+  console.log(`\n# searched ${jobs.length} positions in ${Math.round((Date.now()-t0)/1000)}s`);
+  if(out)fs.writeFileSync(out,JSON.stringify({srcMd5:E.SOURCE_MD5,depth:DEPTH,plies,searched:jobs.length,rows},null,1));
+}
+// --grades <pgn-dir> <saved-reviews.json> [out.json]: #550 item (20), jobs/reconcile-kevitsch-review-vs-chesscom. Every position of every
+// saved-review game searched (the review's own evW/ev2W/bU/aU), every ply graded by the SHIPPED sfGradePly with gradeHist, once with the
+// item (20) grades (grades2 true) and once with the grades they replace (false), the summary's Book overlay (effLabel over
+// openingBookPlies, the named-position table; the lesson lines are not loaded here) applied to both, and each compared with chess.com's
+// letter for that ply. CT_JOBS engines (default 2), one game per engine at a time.
+async function gradesList(dir,ccFile,out){
+  const CC=JSON.parse(fs.readFileSync(ccFile,'utf8')).games||{};
+  const LET={'!':'Brilliant',B:'Best',G:'Great',b:'Blunder',e:'Excellent',f:'Forced',g:'Good',i:'Inaccuracy',k:'Book',m:'Mistake',x:'Miss'};
+  const ids=Object.keys(CC).filter(g=>fs.existsSync(path.join(dir,g+'.pgn'))).sort();
+  const K=Math.max(1,+(process.env.CT_JOBS||2));
+  console.log('# GRADES MEASUREMENT - #550 item (20) | chess.jsx',E.SRC_PATH,'md5',E.SOURCE_MD5,'| depth',DEPTH,'engines',K,'| games',ids.length);
+  const per={};const conf={};let k=0;const t0=Date.now();
+  const tally=(tag,app,cc)=>{const c=conf[tag]||(conf[tag]={n:0,same:0,byCc:{},byApp:{}});c.n++;if(app===cc)c.same++;
+    c.byCc[cc]=(c.byCc[cc]||{n:0,same:0});c.byCc[cc].n++;if(app===cc)c.byCc[cc].same++;c.byApp[app]=(c.byApp[app]||0)+1;};
+  const worker=async()=>{const eng=engine();await eng.init();
+    while(k<ids.length){const gid=ids[k++];const pgn=fs.readFileSync(path.join(dir,gid+'.pgn'),'utf8');
+      const res=E.loadSANs(E.parsePGN(pgn));const N=res.plies.length;const evW=new Array(N+1),ev2W=new Array(N+1),bU=new Array(N),aU=new Array(N);
+      for(let i=0;i<=N;i++){const p=res.positions[i];const st=E.getStatus(p);const r=(st==='checkmate'||st==='stalemate')?null:await eng.eval(E.toFEN(p));
+        const w=toW(p,r);evW[i]=w.cpW;ev2W[i]=w.cp2W;if(i<N){bU[i]=w.bm;aU[i]=r?r.alt:null;}}
+      const bk=(()=>{try{return E.openingBookPlies(res.plies.map(p=>p.san),res.positions,[],1)||0;}catch(e){return 0;}})();
+      const L=CC[gid].grades||'';const rows=[];
+      for(let i=0;i<N;i++){const cc=LET[L[i]]||null;if(!cc)continue;
+        const h=E.gradeHist(res,evW,bU,i);
+        const a2=E.sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,false,{...h,grades2:true});
+        const a1=E.sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,false,{...h,grades2:false});
+        const l2=E.effLabel(a2.cls,i,bk),l1=E.effLabel(a1.cls,i,bk);tally('new',l2,cc);tally('old',l1,cc);rows.push([i,cc,l1,l2]);}
+      per[gid]=rows;process.stderr.write(gid+' '+N+' plies, '+Math.round((Date.now()-t0)/1000)+'s\n');}
+    eng.quit();};
+  await Promise.all(Array.from({length:K},worker));
+  for(const tag of ['old','new']){const c=conf[tag];console.log(`\n## ${tag==='new'?'ITEM (20) GRADES':'THE GRADES THEY REPLACE'}: ${c.same} of ${c.n} plies graded as chess.com graded them (${(100*c.same/c.n).toFixed(1)}%)`);
+    for(const g of ['Brilliant','Great','Best','Excellent','Good','Book','Forced','Inaccuracy','Mistake','Miss','Blunder']){const b=c.byCc[g]||{n:0,same:0};console.log(`  ${g.padEnd(10)} chess.com ${String(b.n).padStart(4)}  app ${String(c.byApp[g]||0).padStart(4)}  both ${String(b.same).padStart(4)}`);}}
+  console.log(`\n# ${ids.length} games in ${Math.round((Date.now()-t0)/1000)}s`);
+  if(out)fs.writeFileSync(out,JSON.stringify({srcMd5:E.SOURCE_MD5,depth:DEPTH,conf,per},null,1));
+}
 async function main(){
+  if(process.argv[2]==='--grades')return gradesList(process.argv[3],process.argv[4],process.argv[5]);
+  if(process.argv[2]==='--rule3')return rule3List(process.argv[3],process.argv[4],process.argv[5]);
   if(process.argv[2]==='--cache')return cacheOne(process.argv[3],process.argv[4]);
   if(process.argv[2]==='--missed')return missedList(process.argv[3],process.argv[4],process.argv[5]);
   const dir=process.argv[2],out=process.argv[3];

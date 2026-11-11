@@ -44,7 +44,7 @@ function need(names){
 const NAMES=['FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN','cloneB','isAttacked','findKing','isInCheck','pseudoMoves',
   'applyMove','getLegal','getMovesFrom','disambig','toSAN','makeMove','getStatus','VAL','mateW','PST',
   'evaluate','makeFast','orderMoves','QDEPTH','quiesce','minimax','evalPawns','cleanSAN','parsePGN',
-  'pgnStripLineComments','matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','BRIL_FLOOR','BRIL_NEEDED','BRIL_RULE_DEFAULT','BRIL_RULE','brilliantGate','isBrilliant','nextBestW','missedBrilliant','MISSED_BRIL_DEFAULT','MISSED_BRIL',
+  'pgnStripLineComments','matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','BRIL_FLOOR','BRIL_NEEDED','BRIL_RULE_DEFAULT','BRIL_RULE','BRIL_A','brilHangAge','brilCheckArm','sq2rc','brilliantGate','isBrilliant','nextBestW','missedBrilliant','MISSED_BRIL_DEFAULT','MISS_CLEAR','MISSED_BRIL',
   // #545 item (91): the eleven grading helpers #440 and #491 added. classify reads CLS_BANDS, so without them E.classify()
   // threw "CLS_BANDS is not defined" on every call.
   'winPct','moveAcc','winDrop','classifyByLoss','CLS_BANDS','clsByName','matesMover','mateLadder','DRILL_GRADES','drillGrade','gameAcc',

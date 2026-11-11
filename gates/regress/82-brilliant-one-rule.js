@@ -116,12 +116,13 @@ L.run(async()=>{
 
   // ── Z. THE SWITCH: THIS BUILD SHIPS THE RULE OFF, UNTIL KUNAL HAS SEEN WHAT IT ADDS ──────────────────────────────────────────
   // The job's close condition: "before it ships he sees every new Brilliant it fires across his reviewed games". So the default
-  // is the rule it replaces, verdict for verdict. Turning it on is BRIL_RULE_DEFAULT=2, and that commit flips Z1-Z3 with it.
-  {const d=E.fromFEN(HANG),dp=mv(d,'g1','f1');const g1=E.brilliantGate(d,dp,0,0.5,0.5,0.5),g2=E.brilliantGate(d,dp,0,0.5,0.5,0.5,2);
-   L.say(E.BRIL_RULE_DEFAULT===1&&E.BRIL_RULE===1,'TC-R130 Z1 the app grades by the rule it replaces until his word (BRIL_RULE_DEFAULT '+E.BRIL_RULE_DEFAULT+')');
-   L.say(g1.rule===1&&g1.ok===false&&g1.arm==='land'&&g2.ok===true,'TC-R130 Z2 with no rule named the gate answers by rule 1 (Kf1 not Brilliant, the hanging arm unused) and by rule 2 only when asked (ok '+g1.ok+' / '+g2.ok+')');
-   let same=0,n=0;for(const t of JSON.parse(fs.readFileSync(path.join(__dirname,'..','brilliant-fixed-tests.json'),'utf8')).tests){const p=E.fromFEN(t.fen),m=E.getLegal(p).find(x=>E.toSAN(p,x,E.applyMove(p.board,x)).replace(/[+#]/g,'')===t.san.replace(/[+#]/g,''));if(!m)continue;n++;const g=E.brilliantGate(p,m,t.loss,t.evA,t.evB,t.evN);if(g.ok===E.brilliantV1ok(g))same++;}
-   L.say(n===13&&same===13,'TC-R130 Z3 rule 1 is the old verdict exactly: on all '+n+' fixed tests brilliantGate (default) agrees with brilliantV1ok ('+same+'/'+n+')');}
+  // is the rule it replaces, verdict for verdict. #550 item (17) turned rule 3 on (his B9C-BRIL-RULE2 "on"), so Z1-Z2 flip with it:
+  // the default is rule 3, rule 1 is what the switch's OFF reads, and Z3 asks rule 1 by name.
+  {const d=E.fromFEN(HANG),dp=mv(d,'g1','f1');const g0=E.brilliantGate(d,dp,0,0.5,0.5,0.5),g1=E.brilliantGate(d,dp,0,0.5,0.5,0.5,1),g2=E.brilliantGate(d,dp,0,0.5,0.5,0.5,2);
+   L.say(E.BRIL_RULE_DEFAULT===3&&E.BRIL_RULE===3,'TC-R130 Z1 the app grades by rule 3 since #550 (BRIL_RULE_DEFAULT '+E.BRIL_RULE_DEFAULT+')');
+   L.say(g0.rule===3&&g0.ok===true&&g0.arm==='hang'&&g1.rule===1&&g1.ok===false&&g1.arm==='land'&&g2.ok===true,'TC-R130 Z2 with no rule named the gate answers by rule 3 (Kf1 Brilliant on the hanging arm); rule 1, asked by name, does not use that arm, rule 2 does (ok '+g0.ok+' / '+g1.ok+' / '+g2.ok+')');
+   let same=0,n=0;for(const t of JSON.parse(fs.readFileSync(path.join(__dirname,'..','brilliant-fixed-tests.json'),'utf8')).tests){const p=E.fromFEN(t.fen),m=E.getLegal(p).find(x=>E.toSAN(p,x,E.applyMove(p.board,x)).replace(/[+#]/g,'')===t.san.replace(/[+#]/g,''));if(!m)continue;n++;const g=E.brilliantGate(p,m,t.loss,t.evA,t.evB,t.evN,1);if(g.ok===E.brilliantV1ok(g))same++;}
+   L.say(n===13&&same===13,'TC-R130 Z3 rule 1 is the old verdict exactly: on all '+n+' fixed tests brilliantGate (rule 1) agrees with brilliantV1ok ('+same+'/'+n+')');}
 
   // ── H. THE REGRADE PREVIEW, IN NODE AND THEN ON THE BUNDLE ─────────────────────────────────────────────────────────────────
   const FXR=JSON.parse(fs.readFileSync(path.join(__dirname,'..','brilliant-fixed-tests.json'),'utf8')).regrade;
@@ -140,8 +141,12 @@ L.run(async()=>{
   const store=(gv)=>({ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_gamestats:{[gk]:{...stored,gv}},ct_evalcache:{[ckey(sans)]:{...FXR.cache,at:Date.now()}},ct_mybrilliancies:[],ct_bril_rule:'2'});
   const read=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="regrade-preview"]');let gs={},mb=[];try{gs=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}try{mb=JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){}
     return {shown:!!s,text:s?s.innerText.replace(/\s+/g,' '):'',adds:[...document.querySelectorAll('[data-ct="regrade-add"]')].map(e=>e.innerText),drops:[...document.querySelectorAll('[data-ct="regrade-drop"]')].map(e=>e.innerText),gs,mb};});
-  {const st=store(1);delete st.ct_bril_rule;const b=await L.launch({geo:'kunal761',name:'r105-off',store:st});await b.open();await b.tile('Review');await b.settle(1500);
-   const r=await read(b);L.say(!r.shown&&r.gs[gk]&&r.gs[gk].gv===1&&r.gs[gk].bril===1,'kunal761: TC-R130 H0 with the rule OFF (the shipped default) a review graded under version 1 opens NO sheet and is not touched');
+  {const st=store(1);st.ct_bril_rule='1';const b=await L.launch({geo:'kunal761',name:'r105-off',store:st});await b.open();await b.tile('Review');await b.settle(1500);
+   const r=await read(b);L.say(!r.shown&&r.gs[gk]&&r.gs[gk].gv===1&&r.gs[gk].bril===1,'kunal761: TC-R130 H0 with the rule OFF (ct_bril_rule 1, the switch at off) a review graded under version 1 opens NO sheet and is not touched');
+   await b.close();}
+  // #550 item (17): with NO key stored the app grades by rule 3 (GRADE_VER 3), so the same version-1 review IS graded again: the sheet opens
+  {const st=store(1);delete st.ct_bril_rule;const b=await L.launch({geo:'kunal761',name:'r105-default3',store:st});await b.open();await b.tile('Review');await b.settle(1500);
+   const r=await read(b);L.say(r.shown&&r.gs[gk]&&r.gs[gk].gv===1,'kunal761: TC-R130 H0b with no rule key (rule 3, the default since #550) the version-1 review opens the Grading changed sheet and is not touched before he answers ("'+r.text.slice(0,70)+'")',{shown:r.shown,gv:r.gs[gk]&&r.gs[gk].gv});
    await b.close();}
   for(const geo of ['kunal761','se']){
     {const b=await L.launch({geo,name:'r105-confirm-'+geo,store:store(1)});await b.open();await b.tile('Review');await b.settle(1500);

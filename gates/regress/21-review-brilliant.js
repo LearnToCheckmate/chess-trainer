@@ -656,7 +656,11 @@ L.run(async()=>{
      three-ply line with no engine involved. The division is deliberate: block S proves the capability,
      block N proves the app never renders anything illegal. */
   const P25OK=['The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Chases the queen off e7 and takes the open d file.',
-               'The only move that keeps it. If Nxd7, Bxe7 and White is winning. Chases the queen off e7 and takes the open d file. It forks two pieces at once.'];
+               'The only move that keeps it. If Nxd7, Bxe7 and White is winning. Chases the queen off e7 and takes the open d file. It forks two pieces at once.',
+               /* #550 item (17): under rule 3 (the default) 13.Rxd7 is Brilliant - the rook given for the d7 knight - so the sentence is the
+                  brilliancy's, measured on trial 09de6ae42b2c; the 3-ply variant is the same budget's other legal reading. */
+               'You give up the rook for a knight. If Nxd7, Bxe7 and White is winning. Nothing else came close: Rd5 was 1.7 pawns worse.',
+               'You give up the rook for a knight. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Nothing else came close: Rd5 was 1.7 pawns worse.'];
   const P25hit=P25OK.filter(t=>P25.why===t).length;
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,

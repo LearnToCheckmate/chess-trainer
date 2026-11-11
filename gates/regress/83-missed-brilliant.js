@@ -8,8 +8,10 @@
 // he played something else, the review's move line carries the chip '!! missed <move> >' (data-ct rev-missbril) in the slot rev-best
 // would take, a tap plays that line on the board (rev-bestline), the move strip marks that move '(!!)' (strip-missbril), and the eval
 // graph carries a hollow ring at it (eval-graph-missbril).
-// SHIPS SWITCHED OFF: MISSED_BRIL_DEFAULT=false until he has seen the list on the job (missedBrilliantsList_549); ct_missed_bril='1' turns
-// it on for one device. Amber: flags/amber-549-missed-brilliant-marker-ships-off.
+// SHIPPED SWITCHED OFF at #549; ON SINCE #550 item (18), with its switch on the New features section: his answers B10-SHIP-ON "on" and
+// B9C-MISSED-BRIL "clear" - the review MARKS a miss only when the played move lost MISS_CLEAR (50 centipawns) or more against the
+// Brilliant, and the brilliant-moves drill takes EVERY such position (W18). ct_missed_bril '0' turns it off, '1' on; each browser case
+// below names both switches (ct_bril_rule '1' or '2' as the case was written for, since rule 3 is the app's default from #550).
 //
 // WHAT IT READS. Blocks A-D are NODE blocks over chess.jsx through gates/engine-extract.js (the bundle is minified and cannot be
 // extracted, as gates 68 and 82 say), so their control is CT_SRC=<a mutated chess.jsx>. Block W is a BROWSER block over the bundle under
@@ -77,7 +79,7 @@ L.run(async()=>{
   // ── D. THE SWITCH ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   {const pos=E.fromFEN(HANG),pl=mv(pos,'c4','b3'),r=E.sfGradePly(pos,pl,50,40,45,'g1f1','c4b3',null,2);
    L.say(!!r&&r.mbril===null,'TC-R137 D2 a grader not asked for the mark (wantMiss absent, which is what the review passes while MISSED_BRIL is off) spends nothing on it and returns none, on the position A1 marks (mbril '+(r&&r.mbril)+')');}
-  L.say(E.MISSED_BRIL_DEFAULT===false&&E.MISSED_BRIL===false,'TC-R137 D1 the marker ships OFF until his word on the list (MISSED_BRIL_DEFAULT '+E.MISSED_BRIL_DEFAULT+'); turning it on is this one constant, and this assertion flips with it');
+  L.say(E.MISSED_BRIL_DEFAULT===true&&E.MISSED_BRIL===true&&E.MISS_CLEAR===50,'TC-R137 D1 the marker ships ON (#550 item 18, B10-SHIP-ON) and marks clear misses only, 50 centipawns or more (MISSED_BRIL_DEFAULT '+E.MISSED_BRIL_DEFAULT+', MISS_CLEAR '+E.MISS_CLEAR+')');
 
   // ── W. ON THE BUNDLE: THE CHIP, SHOW ME, THE RING, AND WHO GETS NONE ──────────────────────────────────────────────────────────
   const FXR=JSON.parse(fs.readFileSync(path.join(__dirname,'..','brilliant-fixed-tests.json'),'utf8')).regrade;
@@ -87,7 +89,7 @@ L.run(async()=>{
     const me=o.meBlack?{white:opp,black:'Kunal2023',wr:'loss'}:{white:'Kunal2023',black:opp,wr:'win'};
     const row={src:'cc',acct:'kunal2023',pgn:F.pgn,...me,tc:'blitz',date:1793640000000};
     const st={ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_evalcache:{[ckey(fs2)]:{...F.cache,at:Date.now()}},ct_mybrilliancies:[]};
-    if(o.rule2)st.ct_bril_rule='2';if(o.on)st.ct_missed_bril='1';return st;};
+    st.ct_bril_rule=o.rule2?'2':'1';st.ct_missed_bril=o.on?'1':'0';return st;};
   const TARGET=45;   // 23.bxc6 is ply index 44, shown at ply 45
   const read=(b)=>b.page.evaluate(()=>{const q=s=>document.querySelector(s);const ch=q('[data-ct="rev-missbril"]'),ln=q('[data-ct="rev-move-line"]');
     const r=ch?ch.getBoundingClientRect():null,lr=ln?ln.getBoundingClientRect():null;
@@ -116,12 +118,16 @@ L.run(async()=>{
     // the moves round it carry nothing: ply 44 is the opponent's 22nd move, ply 47 his 24th (not a missed brilliant on the cached numbers)
     for(const p of [44,47]){await goPly(b,p);await b.settle(400);const q=await read(b);L.say(!q.chip,geo+': TC-R136 W6 ply '+p+' carries no missed-brilliant chip ('+q.line+')');}
     L.say(b.errs.length===0,geo+': TC-R136 W7 zero app errors',b.errs.slice(0,2));
+    // #550 item (18): the drill takes the missed Brilliant - the review wrote a card for 23.Reb1 (e1b1) marked missed, with what he played
+    if(geo==='kunal761'){const mb=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){return null;}});
+      const c=(mb||[]).find(x=>x&&x.uci==='e1b1');
+      L.say(!!c&&c.missed===true&&/bxc6/.test(c.played||'')&&typeof c.why==='string'&&c.why.length>10,geo+': TC-R195 W18 the brilliant-moves drill now holds the missed 23.Reb1 (missed '+(c&&c.missed)+', played '+(c&&c.played)+', why "'+(c&&String(c.why).slice(0,60))+'")',c);}
     await b.close();
   }
   {const b=await L.launch({geo:'kunal761',name:'r106-off',store:store({rule2:true,on:false})});
    const op=await open(b);const at=op&&await goPly(b,TARGET);await b.settle(700);const r=await read(b);
    L.say(op&&at&&/23\.\s*bxc6/.test(r.line),'kunal761: TC-R137 W8 PRECONDITION switch off: the review still reaches 23.bxc6 ("'+r.line+'")');
-   L.say(!r.chip&&r.rings===0&&r.strip.length===0,'kunal761: TC-R137 W9 with the switch OFF (the shipped default) nothing is marked: chip '+!!r.chip+', rings '+r.rings+', strip marks '+r.strip.length);
+   L.say(!r.chip&&r.rings===0&&r.strip.length===0,'kunal761: TC-R137 W9 with the switch OFF (ct_missed_bril 0) nothing is marked: chip '+!!r.chip+', rings '+r.rings+', strip marks '+r.strip.length);
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'r106-rule1',store:store({rule2:false,on:true})});
    const op=await open(b);const at=op&&await goPly(b,TARGET);await b.settle(700);const r=await read(b);

@@ -1823,10 +1823,59 @@ const BRIL_NEEDED=7.0;   // condition 4: a next best at or above this leaves the
    BRIL_RULE_DEFAULT is 1 (the rule it replaces, brilliantV1ok below, byte-identical in verdict) until his word on that list, and
    turning it on is this one number (it also raises GRADE_VER, which opens the regrade preview). `ct_bril_rule`='2' turns the one
    rule on for one device, so the list can be checked on his own phone first. Amber: flags/amber-549-one-brilliant-rule-ships-off. */
-const BRIL_RULE_DEFAULT=1;
-const BRIL_RULE=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_bril_rule')==='2')?2:BRIL_RULE_DEFAULT;}catch(e){return BRIL_RULE_DEFAULT;}})();
-function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule){
-  if(rule!==1&&rule!==2)rule=BRIL_RULE;
+/* #550 item (17), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03: RULE 3, ON BY DEFAULT. Kunal's answers:
+   questions/B9C-BRIL-RULE2 "on" (turn it on now, then trim: miss none, few extras), questions/B10-SHIP-ON "on" (a new feature ships on,
+   with its switch in Settings), and in chat about 11:40pm EST Tue 10 Nov 2026 on docs/brilliant-rule-3-design-2026-11-10: "at least
+   we're not missing anything that chess.com does". Rule 3 is that design at its recommended dial: rule 2's two arms with NO needed
+   test, and clauses A (never an Inaccuracy: lossWin < BRIL_A), B (a piece saved is not a piece offered: originPre), C (the third time
+   a piece is left is stale: hangAge), D (nothing given while answering a check), E (a piece already lost must be clearly the best
+   move: gapWin), and K (a counter-capture under a forking check). On the design's numbers it takes 33 of chess.com's 33 Brilliants in
+   his 42 saved reviews with 12 to 15 extras. Its switch is on the menu's New features section (NEW_FEATURES, 'bril-rule'):
+   ct_bril_rule='1' turns it off (the rule the app graded by before), '2' keeps the #549 rule for one device. */
+const BRIL_A=8.2096;     // clause A, E and K: the top of the Good band (CLS_BANDS[2][0]) in win percent
+const BRIL_RULE_DEFAULT=3;
+const BRIL_RULE=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_bril_rule'):null;return v==='1'?1:v==='2'?2:v==='3'?3:BRIL_RULE_DEFAULT;}catch(e){return BRIL_RULE_DEFAULT;}})();
+/* Rule 3, clause C: how many consecutive moves of the mover (this one included) have left the same piece on the same square where the
+   opponent could win it. positions[i] is the position before ply i, so positions[i+1-2k] is the position after the mover's k-th
+   earlier move. Only "more than 2" is read, so two look-backs are enough. No history (a drill card, a single position) reads 1. */
+function brilHangAge(positions,i,sq,t,mc){
+  if(!positions||typeof i!=='number'||!sq||!t)return 1;
+  const rc=sq2rc(sq),r=rc[0],c=rc[1];let age=1;
+  for(let k=1;k<=2;k++){
+    const p=positions[i+1-2*k];if(!p||!p.board)break;
+    const q=p.board[r]&&p.board[r][c];if(!q||q.t!==t||q.c!==mc)break;
+    let v=0;try{v=seeSq(p,r,c,p.turn);}catch(e){v=0;}
+    if(v>0)age++;else break;
+  }
+  return age;
+}
+/* Rule 3, clause K: the mover is in check, captures a piece that is NOT the checker, and leaves another piece the CHECKING piece can win.
+   Returns {v,t,sq}: the raw exchange count on the best such piece (no credit for the capture), or v 0. A checker is found by asking
+   whether the king is attacked with every OTHER enemy piece recoloured to the mover's side, so they still block lines but attack nothing. */
+function brilCheckArm(pos,pl,g2,mc){
+  const opp=mc==='w'?'b':'w',kp=findKing(pos.board,mc),none={v:0,t:null,sq:null};if(!kp||!g2)return none;
+  const chk=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=pos.board[r][c];if(!p||p.c!==opp)continue;
+    const b2=pos.board.map((row,rr)=>row.map((x,cc)=>(x&&x.c===opp&&!(rr===r&&cc===c))?{...x,c:mc}:x));
+    if(isAttacked(b2,kp[0],kp[1],opp))chk.push(r*8+c);}
+  if(!chk.length||chk.indexOf(pl.tr*8+pl.tc)>=0)return none;
+  let legal;try{legal=getLegal(g2);}catch(e){return none;}
+  let best=none;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if(r===pl.tr&&c===pl.tc)continue;const p=g2.board[r][c];if(!p||p.c!==mc||p.t==='k')continue;
+    const caps=legal.filter(m=>m&&m.tr===r&&m.tc===c);if(!caps.length)continue;
+    caps.sort((a,b)=>(SEEVAL[g2.board[a.fr][a.fc].t]||0)-(SEEVAL[g2.board[b.fr][b.fc].t]||0));
+    if(chk.indexOf(caps[0].fr*8+caps[0].fc)<0)continue;
+    let v=0;try{v=seeSq(g2,r,c,opp);}catch(e){v=0;}
+    if(v>best.v)best={v,t:p.t,sq:rc2sq(r,c)};
+  }
+  return best;
+}
+/* `ext` (rule 3 only, optional): {lossWin, playedIsBest, positions, i}. lossWin is the move's win-percent cost (sfGradePly's _wd);
+   without it the gate derives it from loss and the eval after. playedIsBest defaults to loss===0. positions/i feed clause C. */
+function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule,ext){
+  if(rule!==1&&rule!==2&&rule!==3)rule=BRIL_RULE;
+  let r3=null;
   const mc=pos.turn,sgn=mc==='w'?1:-1;
   let arm='land',gT=null,gSq=null,capT=null,hang=0,hangT=null,hangSq=null,sacLand=0;
   // Sacrifice size = (value of the piece we just placed) minus (value of what this move captured),
@@ -1909,21 +1958,51 @@ function brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,
         const hs=Math.max(0,hang-_capV-_pg);
         if(rule===2&&hs>sac){sac=hs;given=Math.max(0,(SEEVAL[hangT]||0)-_capV-_pg);arm='hang';gT=hangT;gSq=hangSq;capT=_cap0?_cap0.t:(pl.epCap?'p':null);}
       }
+      if(rule===3){
+        const _inChk=isInCheck(pos.board,mc),_opp=mc==='w'?'b':'w';
+        let _oPre=0;if(!_inChk){try{_oPre=seeSq({...pos,turn:_opp},pl.fr,pl.fc,_opp);}catch(e){_oPre=0;}}   // clause B/E: what the moved piece could already be won for where it stood
+        let _nLeg=0;if(_inChk&&_capV>0){try{_nLeg=getLegal(pos).length;}catch(e){_nLeg=0;}}
+        r3={inChk:_inChk,originPre:_oPre,capV:_capV,pg:_pg,g2,nLegal:_nLeg,capT:_cap0?_cap0.t:(pl.epCap?'p':null)};
+      }
     }
   }catch(e){}
   const isSac=sac>=2;
   const evAfter=sgn*evalAfterWhite,evBefore=sgn*(evalBeforeWhite!=null?evalBeforeWhite:evalPawns(pos));
   const evNext=(evalNextWhite==null||typeof evalNextWhite!=='number'||isNaN(evalNextWhite))?null:sgn*evalNextWhite;
   // A clearly-winning sacrifice may be up to ~2 pawns off the engine's top move; anything else must be essentially best.
-  const cap=(isSac&&evAfter>=1.2)?220:90;
-  const needed=evNext==null||evNext<BRIL_NEEDED;
-  const ok=rule===2?(loss<cap && isSac && evAfter>=BRIL_FLOOR && needed):(loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5);
-  return {ok, rule, hang:Math.round(hang*10)/10, hangT, hangSq, loss:Math.round(loss), sac:Math.round(sac*10)/10, given:Math.round(given*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac,
+  let lossWin=null,gapWin=null,hangAge=null,originPre=null,chkV=null;
+  if(rule===3&&r3){
+    const E=ext||{};
+    lossWin=(typeof E.lossWin==='number'&&!isNaN(E.lossWin))?E.lossWin:Math.max(0,winPct(evAfter*100+loss)-winPct(evAfter*100));
+    const playedIsBest=typeof E.playedIsBest==='boolean'?E.playedIsBest:loss===0;
+    gapWin=evNext==null?Infinity:winPct(100*evAfter)-winPct(100*evNext);
+    originPre=r3.originPre;
+    let land=sacLand;
+    if(r3.inChk)land=0;                                   // D
+    if(originPre>=3&&gapWin<BRIL_A)land=0;                // E
+    let h=0;
+    if(!r3.inChk&&hangSq){
+      h=Math.max(0,hang-r3.capV-r3.pg-originPre);         // B
+      if(h>=2){hangAge=brilHangAge(E.positions,E.i,hangSq,hangT,mc);if(hangAge>2)h=0;}   // C
+    }
+    let K={v:0,t:null,sq:null};
+    if(r3.inChk&&r3.capV>0&&r3.nLegal>=2&&playedIsBest&&gapWin>=BRIL_A)K=brilCheckArm(pos,pl,r3.g2,mc);
+    chkV=K.v;
+    sac=Math.max(land,h,K.v);
+    if(sac>0&&sac===land){arm='land';}   // gT, gSq, capT and given are the landing arm's, set above
+    else if(sac>0&&sac===h){arm='hang';gT=hangT;gSq=hangSq;capT=r3.capT;given=Math.max(0,(SEEVAL[hangT]||0)-r3.capV-r3.pg);}
+    else if(sac>0){arm='hang';gT=K.t;gSq=K.sq;capT=r3.capT;given=SEEVAL[K.t]||0;}
+  }
+  const isSac3=sac>=2;
+  const cap=(isSac3&&evAfter>=1.2)?220:90;
+  const needed=rule===3?true:(evNext==null||evNext<BRIL_NEEDED);
+  const ok=rule===3?(isSac3 && loss<cap && lossWin<BRIL_A && evAfter>=BRIL_FLOOR):rule===2?(loss<cap && isSac && evAfter>=BRIL_FLOOR && needed):(loss<cap && isSac && evAfter>=0.8 && evBefore>-1.0 && evBefore<4.5);
+  return {ok, rule, lossWin:lossWin==null?null:Math.round(lossWin*100)/100, gapWin:gapWin==null?null:(gapWin===Infinity?null:Math.round(gapWin*100)/100), hangAge, originPre, chk:chkV, hang:Math.round(hang*10)/10, hangT, hangSq, loss:Math.round(loss), sac:Math.round(sac*10)/10, given:Math.round(given*10)/10, evAfter:Math.round(evAfter*100)/100, evBefore:Math.round(evBefore*100)/100, cap, isSac:rule===3?isSac3:isSac,
     needed, evNext:evNext==null?null:Math.round(evNext*100)/100, arm, gT, gSq, capT, sacLand:Math.round(sacLand*10)/10};   // sacLand: the landing-square arm alone, which is the whole of the pre-#549 measure
 }
-function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule){
+function isBrilliant(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule,ext){
   if(loss>=250)return false;
-  return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule).ok;
+  return brilliantGate(pos,pl,loss,evalAfterWhite,evalBeforeWhite,evalNextWhite,rule,ext).ok;
 }
 /* #549 item (28): THE NEXT-BEST EVAL the NEEDED test reads, from the two lines an engine gives. `bestW` and `secondW` are the
    evals of the engine's first and second moves (any unit, White's frame), `playedIsBest` says whether the move played was the
@@ -2010,13 +2089,18 @@ function brilMotifs(pos,pl,g,line){
    needed by definition, as in the gate. Returns the gate's answer when it is Brilliant, else null. Pure.
    SHIPS SWITCHED OFF (MISSED_BRIL below), for the reason the one rule did: the job's close condition is that before it ships he sees
    every missed brilliant it would mark across his reviewed games. `ct_missed_bril`='1' turns it on for one device. */
-function missedBrilliant(pos,bestMv,evAfterW,evBeforeW,evNextW,rule){
+function missedBrilliant(pos,bestMv,evAfterW,evBeforeW,evNextW,rule,hist){
   if(!pos||!bestMv||typeof evAfterW!=='number'||isNaN(evAfterW))return null;
-  const g=brilliantGate(pos,bestMv,0,evAfterW,evBeforeW,evNextW,rule);
+  const g=brilliantGate(pos,bestMv,0,evAfterW,evBeforeW,evNextW,rule,{lossWin:0,playedIsBest:true,positions:hist&&hist.positions,i:hist?hist.i:undefined});
   return g.ok?g:null;
 }
-const MISSED_BRIL_DEFAULT=false;
-const MISSED_BRIL=(()=>{try{return (typeof localStorage!=='undefined'&&localStorage.getItem('ct_missed_bril')==='1')?true:MISSED_BRIL_DEFAULT;}catch(e){return MISSED_BRIL_DEFAULT;}})();
+/* #550 item (18): ON, with its switch on the menu's New features section ('missed-bril'). Kunal's answers: questions/B10-SHIP-ON "on", and
+   questions/B9C-MISSED-BRIL "clear" (the orchestrator's ruling on his chat words, Tue 10 Nov 2026): the review MARKS a miss only when the
+   Brilliant was about half a pawn or more better than the move he played (MISS_CLEAR, centipawns of the played move's loss), and the
+   brilliant-moves drill practises EVERY position where he had one, clear or not. ct_missed_bril='0' turns both off. */
+const MISSED_BRIL_DEFAULT=true;
+const MISS_CLEAR=50;
+const MISSED_BRIL=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_missed_bril'):null;return v==='1'?true:v==='0'?false:MISSED_BRIL_DEFAULT;}catch(e){return MISSED_BRIL_DEFAULT;}})();
 
 /* ── #549 item (97), jobs/drill-accepts-one-move-only: GRADE THE MOVE THE PLAYER MADE, DO NOT STRING-MATCH IT ──
    Kunal, 2026-09-20, with a screenshot: "This is the second time that I solve this position, but last time it told
@@ -2260,7 +2344,7 @@ function drillAcceptMsg(played,gr,pos,playedMv,sol,alt){   /* alt: the move matc
    polls (120 s at rest; longer in wall time on a loaded phone, which is the point). It was 5 s, and on a busy phone that handed the game to
    a different grader with different grades. A worker that cannot be built or dies ends the wait at once. */
 const REVIEW_ENGINE_WAIT=1200;
-const GRADE_VER=BRIL_RULE===2?2:1;   // 2 only with the one rule on (BRIL_RULE above)
+const GRADE_VER=BRIL_RULE===3?3:BRIL_RULE===2?2:1;   // #550 item (17): 3 with rule 3 (the default), 2 with the #549 rule, 1 with the old one
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
    alone when stale, and that is not an oversight: the background pass can only produce a depth-2 ESTIMATE, so
@@ -2273,7 +2357,7 @@ const gradeCacheUsable=(st)=>!!st&&(gradeVerOf(st)===GRADE_VER||st.src==='review
    same code over a stored review's cached engine output (ct_evalcache: evW, ev2W, bU, aU) without a new engine pass. `before`/`after`
    are evW[i]/evW[i+1] (White-frame centipawns), `ev2` is ev2W[i], `buI`/`auI` are bU[i]/aU[i]. Returns the review row minus `pv`,
    which the caller fills in a second pass because it reads forward. Pure: no React, no storage. */
-function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss){
+function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss,hist){   // hist: {positions,i} for rule 3's clause C
     const mover=pos.turn;
     let loss=Math.min(1500,Math.max(0,mover==='w'?(before-after):(after-before)));
     let bestMv=null,bestSan='';const bu=buI;
@@ -2290,14 +2374,14 @@ function sfGradePly(pos,pl,before,after,ev2,buI,auI,okOverride,rule,wantMiss){
     // #549 item (28): the NEEDED test reads the best move OTHER than the one played - the second line when the move was the
     // engine's first choice, the first line (evW[i] itself) when it was not. Clamped to pawns exactly as evA and evB are.
     const _nbW=nextBestW(before,ev2,_wasBest);
-    const _g=brilliantGate(pos,pl,loss,evA,evB,_nbW==null?null:Math.max(-99,Math.min(99,_nbW/100)),rule);
+    const _g=brilliantGate(pos,pl,loss,evA,evB,_nbW==null?null:Math.max(-99,Math.min(99,_nbW/100)),rule,{lossWin:_wd,playedIsBest:_wasBest,positions:hist&&hist.positions,i:hist?hist.i:undefined});
     // okOverride: the regrade preview asks what the SAME engine data graded under the previous rule (brilliantV1ok) would have
     // labelled this move, so the two runs differ in the brilliant decision and nothing else.
     const _ok=typeof okOverride==='function'?!!okOverride(_g):_g.ok;
     // #549 item (29): the engine's best move graded as if played, when the player played something else and it was not itself Brilliant.
     // Asked only when the caller wants it (the review passes MISSED_BRIL), so the shipped default spends nothing on it: measured
     // 76ms of a 255ms grade over a 104-ply game in node.
-    const _mbG=(wantMiss&&!_wasBest&&!_ok&&bestMv)?missedBrilliant(pos,bestMv,evB,evB,ev2==null?null:Math.max(-99,Math.min(99,ev2/100)),rule):null;
+    const _mbG=(wantMiss&&!_wasBest&&!_ok&&bestMv)?missedBrilliant(pos,bestMv,evB,evB,ev2==null?null:Math.max(-99,Math.min(99,ev2/100)),rule,hist):null;
     let cls=_ok?{label:'Brilliant',c:'#22d3ee',i:'!!'}:classify(_wd);
     /* #491 THE MATE RULE at the Stockfish site. The rule itself, and why it replaced the #441
        always-Blunder floor, is documented once on matesMover/mateLadder above. `before` and `after` are
@@ -2381,7 +2465,7 @@ const _tallyBucket=(L)=>L==='Brilliant'?'bril':(L==='Best'||L==='Great')?'great'
    lists every move whose Brilliant verdict differs, game order, with both labels; `delta` is the tally change (new minus old,
    the player's buckets, plus obril for the opponent's brilliants), applied to the stored tally rather than replacing it, so a
    count graded by an older build in some other respect is not silently rewritten here. Pure. */
-function regradeGame(res,cache,userColor,rule){
+function regradeGame(res,cache,userColor,rule,oldVer){   // oldVer: the stored tally's GRADE_VER (#550 item 17: a v2 review's old grade is rule 2's, not the v1 rule's)
   if(!res||!res.plies||!res.plies.length||!cache||!cache.evW)return null;
   const N=res.plies.length;if(cache.evW.length!==N+1)return null;
   const evW=cache.evW.slice();
@@ -2392,8 +2476,9 @@ function regradeGame(res,cache,userColor,rule){
   let _bk=0;try{_bk=(res.positions&&res.positions[0]&&toFEN(res.positions[0]).split(' ')[0]===START_PLACEMENT)?(openingBookPlies(res.plies.map(p=>p.san),res.positions)||0):0;}catch(e){_bk=0;}
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
-    const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule);   // rule: the app's own (BRIL_RULE) unless a caller names one
-    const ol=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1);
+    const _h={positions:res.positions,i};
+    const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule,false,_h);   // rule: the app's own (BRIL_RULE) unless a caller names one
+    const ol=oldVer===2?sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,2,false,_h):sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1);
     rows.push(nw);
     const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
@@ -2435,7 +2520,7 @@ async function analyzeGameCounts(pgn,userColor){
       // #549 item (28): the NEEDED test's next best. rankMoves returns every legal move ranked, so the next best is scored[1]
       // when the move played was scored[0], and scored[0] otherwise (white-POV centipawns, to pawns as evalPawns gives them).
       const _nb3=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);
-      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)))?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
+      let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)),undefined,{lossWin:winDrop(bestVal,actualVal,mc),playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i})?{label:'Brilliant'}:classify(winDrop(bestVal,actualVal,mc));
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
       const L=_c3.label;
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
@@ -2496,6 +2581,8 @@ const REVIEW_TWO_DEFAULT=1;
 const REVIEW_TWO=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_review_two'):null;return v==='1'?1:v==='0'?0:REVIEW_TWO_DEFAULT;}catch(e){return REVIEW_TWO_DEFAULT;}})();
 const NEW_FEATURES=[
   {id:'book-table',label:'Opening book table',sub:'more of your opening counts as Book, as on chess.com',key:'ct_book_table',on:'1',off:'0',isOn:()=>BOOK_TABLE===1},
+  {id:'bril-rule',label:'Brilliant moves: the new rule',sub:'finds the Brilliants chess.com finds in your games; off goes back to the old rule',key:'ct_bril_rule',on:'3',off:'1',isOn:()=>BRIL_RULE===3},
+  {id:'missed-bril',label:'Missed Brilliants',sub:'marks where you had a Brilliant and played something half a pawn worse, and drills every one',key:'ct_missed_bril',on:'1',off:'0',isOn:()=>MISSED_BRIL===true},
   {id:'review-two',label:"Drill: the review's second move",sub:'a drill card also accepts the review\'s second choice when it rated it Excellent',key:'ct_review_two',on:'1',off:'0',isOn:()=>REVIEW_TWO===1},
 ];
 // The position's book key: FNV-1a 32 over 'board side castling' of its FEN, seven base-36 digits. gates/opening-book/build.js writes
@@ -6252,7 +6339,7 @@ export default function App(){
       if(!_eng.abandoned)evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});   // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
       }
       poolClose();
-      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL));
+      for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL,{positions:res.positions,i}));
       // #357 done in a second pass because the line reads FORWARD from each move, so the whole
       // array has to exist first. Only the classes that are worth a demonstration carry one.
       for(let i=0;i<out.length;i++){
@@ -6294,7 +6381,7 @@ export default function App(){
         const _wd2=winDrop(bestVal,actualVal,mover);
         const _ma2=moveAcc(_wd2);
         const _nbF=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);   // #549 item (28): as in analyzeGameCounts
-        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB,_nbF==null?null:Math.max(-99,Math.min(99,_nbF/100)));
+        const _g=brilliantGate(res.positions[i],pl,Math.round(loss),_evA,_evB,_nbF==null?null:Math.max(-99,Math.min(99,_nbF/100)),undefined,{lossWin:_wd2,playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i});
         /* #491: THE MATE RULE REACHES THIS SITE TOO, and until antagonist A measured it, it did not.
            The comment two lines up invokes the #375 rule for the DROP and #491 then left the mate rule at
            the Stockfish site only, so on this engine a move allowing a forced mate graded, measured against
@@ -6310,7 +6397,7 @@ export default function App(){
         if(_cls.label!=='Brilliant'&&matesMover(actualVal,mover,bestVal))_cls=mateLadder(_evB*100,mover);
         // #549 item (29): the missed brilliant on this engine too (the #375 rule: a path the device chooses is covered). The best move's
         // eval after is read the way this site reads a played move's (the static eval of the position it leaves); its next best is scored[1].
-        let _mbF=null;if(MISSED_BRIL&&_bMv2&&!_g.ok){let _evAB=null;try{_evAB=evalPawns(makeMove(res.positions[i],_bMv2));}catch(e){}const _g2=_evAB==null?null:missedBrilliant(res.positions[i],_bMv2,_evAB,_evB,scored[1]?Math.max(-99,Math.min(99,scored[1].v/100)):null);if(_g2)_mbF={san:bestSan,move:_bMv2,gate:_g2};}
+        let _mbF=null;if(MISSED_BRIL&&_bMv2&&!_g.ok){let _evAB=null;try{_evAB=evalPawns(makeMove(res.positions[i],_bMv2));}catch(e){}const _g2=_evAB==null?null:missedBrilliant(res.positions[i],_bMv2,_evAB,_evB,scored[1]?Math.max(-99,Math.min(99,scored[1].v/100)):null,undefined,{positions:res.positions,i});if(_g2)_mbF={san:bestSan,move:_bMv2,gate:_g2};}
         out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g,mbril:_mbF});
         if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
@@ -6366,7 +6453,16 @@ export default function App(){
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
             caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
-          } else if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
+          }
+          /* #550 item (18): EVERY position where he had a Brilliant and played something else goes to the brilliant-moves drill (clear or
+             not: the marker's MISS_CLEAR is for the review only), the engine's best move as the answer, with the sentence the gate's own
+             fields give it, so the drill asks him to find the Brilliant he missed. */
+          if(MISSED_BRIL&&out[i].mbril&&out[i].mbril.move&&res.positions[i]&&L!=='Brilliant'){
+            const mm=out[i].mbril.move,mu=rc2sq(mm.fr,mm.fc)+rc2sq(mm.tr,mm.tc)+(mm.promo||'');let _pl='';try{_pl=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
+            let _mw='';try{_mw=brilCardWhy({gate:out[i].mbril.gate,motifs:moveMotifs(res.positions[i],mm),evalAfter:out[i].evalBefore,forkT:forkTargets(res.positions[i],mm)},mc);}catch(e){_mw='';}
+            bril.push({fen:toFEN(res.positions[i]),uci:mu,label:'Brilliant',missed:true,played:_pl,ts:Date.now(),last:lastOf(i),why:_mw,no:Math.floor((_pb+i)/2)+1});
+          }
+          if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             const _g=out[i].gate||{};const _mo=out[i].motifs||[];
             /* #549 item (28): the practice card's sentence (brilCardWhy): in the MOVER's frame, a mate in words, the piece given named
@@ -6835,7 +6931,7 @@ export default function App(){
     const GS=gameStatsRef.current||{};const all=evalCacheAll();const games=[];let noCache=0;
     for(const g of ccGames){
       const k=gkey(g),st=GS[k];if(!st||st.src!=='review'||gradeVerOf(st)>=GRADE_VER)continue;
-      let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies,_st.fen)]||null,gameInfo(g).userColor);}catch(e){r=null;}
+      let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies,_st.fen)]||null,gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
       if(!r){noCache++;continue;}
       if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version
       const info=gameInfo(g);
@@ -8007,7 +8103,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(side+' to move'):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?'You played something special here — a sacrifice or a precise blow.':(m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(m.missed?(side+' to move — you played '+(m.played||'another move')+' here, and a Brilliant was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?(m.missed?'There was something special here — a sacrifice or a precise blow.':'You played something special here — a sacrifice or a precise blow.'):(m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -8073,7 +8169,7 @@ export default function App(){
      move graded by the same gate and rule). Book moves and the opponent's moves are left out; an unknown player colour (a pasted game)
      marks both sides, as regradeGame counts both. One list, read by the move-line chip and by the eval graph's rings. Off unless MISSED_BRIL. */
   const revMissed=(MISSED_BRIL&&inReview&&review&&review.analysis&&review.positions)?(()=>{const _bk=(review.summary&&review.summary.book)||0,_uc=review.summary&&review.summary.userColor;
-    return review.analysis.map((a,i)=>(a&&a.mbril&&i>=_bk&&review.positions[i]&&(!_uc||review.positions[i].turn===_uc))?i:-1).filter(i=>i>=0);})():null;
+    return review.analysis.map((a,i)=>(a&&a.mbril&&(a.loss||0)>=MISS_CLEAR&&i>=_bk&&review.positions[i]&&(!_uc||review.positions[i].turn===_uc))?i:-1).filter(i=>i>=0);})():null;   // #550 item (18): clear misses only
   /* #441 P0 FIX, carried in from the pile: THE SELECTION LABEL LIVES BESIDE curAnno, IN THE SCOPE BOTH
      REVIEW LAYOUTS CAN SEE. #440 introduced the sel/cls split (a grade LABEL is what the player is told; a
      grade SELECTION is what the app chooses on) and declared it as `_cSel` INSIDE the compact branch, then

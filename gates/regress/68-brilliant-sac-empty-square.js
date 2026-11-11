@@ -286,7 +286,9 @@ console.log('\n-- B3. the corpus-wide count and identities');
       const loss=Math.round(Math.max(0,mc==='w'?scored[0].v-av:av-scored[0].v));
       // #549 item (28): the gate now takes the NEEDED test's next best; fed exactly as analyzeGameCounts feeds it.
       const nb=E.nextBestW(scored[0].v,scored[1]?scored[1].v:null,actual===scored[0]);
-      if(E.brilliantGate(pos,pl,loss,E.evalPawns(res.positions[i+1]),E.evalPawns(pos),nb==null?null:Math.max(-99,Math.min(99,nb/100))).ok)
+      // #550 item (17): the count was pinned under the app's default, rule 1 then; rule 3 is the default now, so this block - the #448
+      // landing-arm count - asks rule 1 BY NAME, which is the rule its two moves and its 37.Qf6+ exclusion were measured under.
+      if(E.brilliantGate(pos,pl,loss,E.evalPawns(res.positions[i+1]),E.evalPawns(pos),nb==null?null:Math.max(-99,Math.min(99,nb/100)),1).ok)
         hits.push(`${f.replace('.pgn','')} ${Math.floor(i/2)+1}${mc==='w'?'.':'...'}${res.plies[i].san}`);
     }
   }

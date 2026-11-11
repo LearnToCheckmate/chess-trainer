@@ -1,0 +1,192 @@
+# #550 item (17): Brilliant rule 3 over Kunal2023's 196 chess.com games since 1 Sep 2026 (docs/chesscom-reviewed-games-kunal2023-since-2026-09-01),
+# chess.com grades from the 42 saved reviews (docs/chesscom-saved-reviews-kunal2023-2026-11-10). Command:
+#   node gates/measure-brilliant-one-rule.js --rule3 <pgn-dir> <out.json> <saved-reviews.json>   (one PGN per game, named <game id>.pgn)
+# BRILLIANT RULE 3 MEASUREMENT - #550 item (17) | chess.jsx /home/user/chess-trainer/chess.jsx md5 585566510e9f | engine stockfish-18-lite-single.js depth 16 MultiPV 2 Hash 16 | engines 1
+# games 196 plies 13079 searched 594 | saved reviews 42
+
+# fires: rule 1 40, rule 2 164, rule 3 134
+
+## RULE 3 ADDS OVER RULE 2: 11
+  1036337548 Kunal2023-kvigchess 42...Bxb6  land bb6 sac 2 lossWin 0
+  1041959614 kvigchess-Kunal2023 43.Nxg4  land ng4 sac 2 lossWin 0.78
+  1044406042 kvigchess-Kunal2023 37...Qxd3  hang bc1 sac 2 lossWin 0
+  1044712724 kvigchess-Kunal2023 51.Rxd4+  land rd4 sac 4 lossWin 1.22
+  174087094684 Kunal2023-bono2 33.Reg6+ [chess.com Brilliant]  land rg6 sac 2 lossWin 2.91
+  174301490086 Kunal2023-Rice-Cracker123 27...Rxe4+  land re4 sac 2 lossWin 0
+  174331795882 Kunal2023-KyokaSuigetsu_0 38...Kb5 [chess.com Inaccuracy]  hang ne4 sac 3 lossWin 6.82
+  180000436342 edsonsidney1-Kunal2023 10.Kxf2 [chess.com Brilliant]  hang rf1 sac 2 lossWin 0
+  184224203452 Kunal2023-Arnav70070 35.Rff7  hang ba7 sac 3 lossWin 4.77
+  186296751210 ImoxZA-Kunal2023 18.Bh6  land bh6 sac 3 lossWin 1.91
+  186296751210 ImoxZA-Kunal2023 21.Nxe5+  land ne5 sac 2 lossWin 0
+
+## RULE 3 REMOVES FROM RULE 2: 41
+  1020762684 kvigchess-Kunal2023 25.Qc2  land qc2 sac 0 lossWin 2.14
+  1020762684 kvigchess-Kunal2023 27.dxc6  land pc6 sac 0 lossWin 0
+  1029753248 kvigchess-Kunal2023 19.Nxf7  land nf7 sac 0 lossWin 0
+  1032440818 Kunal2023-kvigchess 19.Qf7  land nullnull sac 0 lossWin 0
+  1035761290 kvigchess-Kunal2023 31.Re3 [chess.com Best]  land nullnull sac 0 lossWin 0
+  1039872112 Kunal2023-kvigchess 28...Rb3  land nullnull sac 0 lossWin 7.33
+  1040208702 Kunal2023-kvigchess 17.Nxf5  land nullnull sac 0 lossWin 0
+  1047559398 Kunal2023-kvigchess 21...Qa7  land nullnull sac 0 lossWin 0.73
+  173922815280 Kunal2023-therohitchamoli 20.Bxb5 [chess.com Good]  land bb5 sac 0 lossWin 4.85
+  174037540186 ooelon-Kunal2023 6...Qh4 [chess.com Great]  land nullnull sac 0 lossWin 0
+  174037540186 ooelon-Kunal2023 8...Nd4 [chess.com Great]  land nullnull sac 0 lossWin 0.92
+  174037540186 ooelon-Kunal2023 9...Ng4 [chess.com Best]  land nullnull sac 0 lossWin 0
+  174087094684 Kunal2023-bono2 18.Bxg6 [chess.com Best]  land bg6 sac 0 lossWin 2.86
+  174094002350 DeEjAYgonnatrashyou-Kunal2023 6.Nxf7  land nf7 sac 0 lossWin 0
+  174247821522 TimAyyy-Kunal2023 7...Bxd4  land bd4 sac 0 lossWin 6.16
+  174426536960 Kunal2023-Rysiek727 26...Bxh2+  land bh2 sac 2 lossWin 11.47
+  184222697658 tolleredgnget-Kunal2023 23...Qa5 [chess.com Excellent]  land nullnull sac 0 lossWin 0
+  184224203452 Kunal2023-Arnav70070 13.b4  hang nh8 sac 3 lossWin 8.84
+  184370950960 crabfather-Kunal2023 14.Bb4  hang qd1 sac 1 lossWin 0.51
+  184465973916 NihilisticSecret-Kunal2023 20.Qc3  land nullnull sac 0 lossWin 0
+  184475681788 aikoboo-Kunal2023 6.Nxf7  land nf7 sac 0 lossWin 0
+  184475681788 aikoboo-Kunal2023 13.Qxe6  land nullnull sac 0 lossWin 0
+  184677084648 Kunal2023-ChessWizardMichel 12...Qb6 [chess.com Inaccuracy]  hang ra8 sac 5 lossWin 14.6
+  184879449382 Kunal2023-skullcrusher69 25.Qb2  land nullnull sac 0 lossWin 4.68
+  184924183572 Kunal2023-plevalevente 19.Rg4 [chess.com Inaccuracy]  land nullnull sac 0 lossWin 10.8
+  185329624248 rk935-Kunal2023 27.Rxd4  land rd4 sac 0 lossWin 0
+  185484083306 Kunal2023-Devvrat-Yadav 24...Rd1  land rd1 sac 0 lossWin 0
+  185721181566 MMStar2207-Kunal2023 6...Qh4 [chess.com Great]  land nullnull sac 0 lossWin 0
+  185819242610 Kunal2023-ValeriyDyu123 19...Rxg3  land rg3 sac 2 lossWin 10.09
+  185887758904 koup09-Kunal2023 30...Qxf7 [chess.com Best]  land qf7 sac 0 lossWin 0
+  186010235498 Vincent-12-Kunal2023 10.Nf6+  land nf6 sac 0 lossWin 0
+  186010484494 Kunal2023-Brangbang 28...Qe4  land nullnull sac 0 lossWin 0
+  186035936376 Kunal2023-MKarthill 18.Bxg7+ [chess.com Excellent]  land bg7 sac 0 lossWin 0
+  186035936376 Kunal2023-MKarthill 19.Qd3 [chess.com Excellent]  land nullnull sac 0 lossWin 2.13
+  186035936376 Kunal2023-MKarthill 22.Qg3 [chess.com Excellent]  land nullnull sac 0 lossWin 0
+  186135431342 Felipefranco16c-Kunal2023 15.Rxf2  land rf2 sac 0 lossWin 0
+  186296751210 ImoxZA-Kunal2023 6...Qh4  land nullnull sac 0 lossWin 0
+  186298931940 Kunal2023-NoHope321 20...Ra4  land ra4 sac 5 lossWin 8.44
+  186298931940 Kunal2023-NoHope321 35...h6  land nullnull sac 0 lossWin 0
+  186298931940 Kunal2023-NoHope321 36...Qc6  land nullnull sac 0 lossWin 0
+  186474370120 Kunal2023-WataGwaan76 22.b5 [chess.com Excellent]  land nullnull sac 0 lossWin 2.16
+
+## RULE 3 ADDS OVER RULE 1: 100
+  1020762684 kvigchess-Kunal2023 26.h4  hang qc2 sac 4 lossWin 2.57
+  1027261736 Kunal2023-kvigchess 34.g3  hang rd3 sac 5 lossWin 1.43
+  1027261736 Kunal2023-kvigchess 63...Bxe7  land be7 sac 2 lossWin 0
+  1029753248 kvigchess-Kunal2023 47.Kb6  hang nc3 sac 3 lossWin 2.22
+  1035761290 kvigchess-Kunal2023 15.Qf6 [chess.com Excellent]  hang bd3 sac 2 lossWin 0
+  1035761290 kvigchess-Kunal2023 30.Nxe5 [chess.com Inaccuracy]  hang re4 sac 4 lossWin 0
+  1036337548 Kunal2023-kvigchess 42...Bxb6  land bb6 sac 2 lossWin 0
+  1039872112 Kunal2023-kvigchess 21...Rfc8  hang nf6 sac 3 lossWin 0
+  1041959614 kvigchess-Kunal2023 43.Nxg4  land ng4 sac 2 lossWin 0.78
+  1042813142 kvigchess-Kunal2023 15.Bf2  hang qc2 sac 6 lossWin 0
+  1044406042 kvigchess-Kunal2023 19...Bxf5  hang rg2 sac 2 lossWin 7.87
+  1044406042 kvigchess-Kunal2023 37...Qxd3  hang bc1 sac 2 lossWin 0
+  1044712724 kvigchess-Kunal2023 51.Rxd4+  land rd4 sac 4 lossWin 1.22
+  1044713052 Kunal2023-kvigchess 29.Rg3  land rg3 sac 2 lossWin 4.56
+  1044713052 Kunal2023-kvigchess 50.Rxh6+  land rh6 sac 4 lossWin 0
+  173862905524 Kunal2023-SacredGrain2179 11.Qe4 [chess.com Brilliant]  hang bh4 sac 3 lossWin 0
+  173897575624 Kunal2023-mahmoudkamel77 22.f3 [chess.com Inaccuracy]  hang ng3 sac 3 lossWin 5.31
+  173897575624 Kunal2023-mahmoudkamel77 30.Rae1 [chess.com Brilliant]  hang re4 sac 2 lossWin 3.39
+  173995307022 jthomas250-Kunal2023 4...Nxd4  land nd4 sac 2 lossWin 2.71
+  173995307022 jthomas250-Kunal2023 48.Rxc4+  land rc4 sac 4 lossWin 0
+  174007274980 moltaro74-Kunal2023 20.d7  hang ne4 sac 3 lossWin 0
+  174037540186 ooelon-Kunal2023 7...Nf6 [chess.com Brilliant]  hang rh8 sac 5 lossWin 0
+  174037540186 ooelon-Kunal2023 13.Qf3 [chess.com Good]  hang rf2 sac 2 lossWin 6.12
+  174037540186 ooelon-Kunal2023 20.Bxf4 [chess.com Brilliant]  land bf4 sac 2 lossWin 0
+  174047673532 Kunal2023-maxtrial74 10...Nxg4  land ng4 sac 2 lossWin 0
+  174087094684 Kunal2023-bono2 33.Reg6+ [chess.com Brilliant]  land rg6 sac 2 lossWin 2.91
+  174090763228 LOLMikmikkaos-Kunal2023 8.Nxe5  land ne5 sac 2 lossWin 4.86
+  174090763228 LOLMikmikkaos-Kunal2023 9...Bxf5  hang bc5 sac 2 lossWin 0
+  174090763228 LOLMikmikkaos-Kunal2023 42...Nxb5  land nb5 sac 2 lossWin 0
+  174247821522 TimAyyy-Kunal2023 8...c6  hang ne5 sac 3 lossWin 4.99
+  174252911428 Oldkingcoal98-Kunal2023 13.f3  hang nf7 sac 3 lossWin 0
+  174253849936 Kunal2023-AquiR3X 9...Nxe5  land ne5 sac 2 lossWin 0
+  174301490086 Kunal2023-Rice-Cracker123 27...Rxe4+  land re4 sac 2 lossWin 0
+  174331795882 Kunal2023-KyokaSuigetsu_0 38...Kb5 [chess.com Inaccuracy]  hang ne4 sac 3 lossWin 6.82
+  174386847848 Kunal2023-madefrom_WAR 17.Bxh7+ [chess.com Good]  land bh7 sac 2 lossWin 4.86
+  174426536960 Kunal2023-Rysiek727 42...Rcxc3  land rc3 sac 4 lossWin 1.09
+  174433078044 Kunal2023-gentel1310 15.b5 [chess.com Best]  hang nf3 sac 2 lossWin 0
+  174448699782 Count-Angry-Kunal2023 17.O-O  hang ng5 sac 3 lossWin 8.17
+  174537859974 russhenz-Kunal2023 18.Nd2  land nd2 sac 3 lossWin 0
+  180000436342 edsonsidney1-Kunal2023 10.Kxf2 [chess.com Brilliant]  hang rf1 sac 2 lossWin 0
+  180022403422 ramarinchen-Kunal2023 9.Bxf6  hang qd1 sac 3 lossWin 0
+  180023013300 daddybond-Kunal2023 55.f7  hang nh5 sac 3 lossWin 0
+  180023013300 daddybond-Kunal2023 56.Ke5  hang nh5 sac 3 lossWin 0.46
+  183991752734 Mayitoo81-Kunal2023 59.Nxh4  land nh4 sac 2 lossWin 0
+  184033557874 Fatihdigdjcjcjh-Kunal2023 3...Nxd4  land nd4 sac 2 lossWin 2.1
+  184222697658 tolleredgnget-Kunal2023 22...Qxc3 [chess.com Brilliant]  land qc3 sac 8 lossWin 0
+  184224203452 Kunal2023-Arnav70070 35.Rff7  hang ba7 sac 3 lossWin 4.77
+  184224203452 Kunal2023-Arnav70070 36...Qe3  hang bd7 sac 3 lossWin 0
+  184237810184 Kunal2023-McChess1678 23...Qf5  hang nc6 sac 3 lossWin 3.55
+  184237810184 Kunal2023-McChess1678 35.b6  hang nd2 sac 3 lossWin 1.08
+  184267782076 Kunal2023-Bloodyfloor 25.Bxg6 [chess.com Brilliant]  land bg6 sac 2 lossWin 0
+  184332428040 Kunal2023-Ramalila 11...Bxh2+  land bh2 sac 2 lossWin 0
+  184409689868 Kunal2023-bhannniee 6...Nxe5  land ne5 sac 2 lossWin 0
+  184465973916 NihilisticSecret-Kunal2023 15.h3  hang bb7 sac 3 lossWin 0
+  184475681788 aikoboo-Kunal2023 8.Qf3  hang bc4 sac 3 lossWin 1.05
+  184513631890 Kunal2023-feeble_littlehorse 28...Qe7  hang bf5 sac 3 lossWin 0.89
+  184616305182 JonathanHumphrey-Kunal2023 10.exf6  hang qf4 sac 5 lossWin 0.27
+  184628225358 abdallah050195-Kunal2023 10...Nxe5 [chess.com Good]  land ne5 sac 2 lossWin 4.22
+  184628225358 abdallah050195-Kunal2023 22...Qh3 [chess.com Brilliant]  hang bc5 sac 3 lossWin 0
+  184766858946 Kunal2023-homfran 19.Nf1 [chess.com Brilliant]  hang rh5 sac 4 lossWin 3.4
+  184869895938 Valdnei-CS-Kunal2023 24...Qxf1+ [chess.com Great]  land qf1 sac 4 lossWin 0
+  184906826026 kj786-Kunal2023 39.d7  hang nc6 sac 2 lossWin 0
+  184924183572 Kunal2023-plevalevente 14...a6 [chess.com Inaccuracy]  hang ne3 sac 3 lossWin 7.08
+  185006322628 Mepiwoti-Kunal2023 31.Rxc7+  land rc7 sac 4 lossWin 6.67
+  185163502752 Kunal2023-ZvhnHsJ 18.Rxe4 [chess.com Brilliant]  land re4 sac 2 lossWin 2.27
+  185163502752 Kunal2023-ZvhnHsJ 30...Qf1+ [chess.com Brilliant]  land qf1 sac 4 lossWin 0
+  185182092988 KnightOwl52-Kunal2023 10...Rg8  land rg8 sac 2 lossWin 0
+  185182092988 KnightOwl52-Kunal2023 12...Rg7  hang bg4 sac 2 lossWin 0
+  185182092988 KnightOwl52-Kunal2023 13...Rg6  hang bg4 sac 2 lossWin 0
+  185289658538 Originalname05-Kunal2023 8...Nxg4  land ng4 sac 2 lossWin 0
+  185289658538 Originalname05-Kunal2023 11...Qd7  hang bh4 sac 3 lossWin 8.11
+  185289658538 Originalname05-Kunal2023 12...O-O-O  hang bh4 sac 3 lossWin 4.69
+  185328827408 Kunal2023-korbanbann3d 30.Qf6+ [chess.com Excellent]  hang nh6 sac 3 lossWin 2
+  185329624248 rk935-Kunal2023 25...Bxe5  land be5 sac 2 lossWin 1.66
+  185449886258 Kunal2023-Ahmed-elsabahy1 16.Nxe5  land ne5 sac 2 lossWin 1.01
+  185449886258 Kunal2023-Ahmed-elsabahy1 25...f3  hang bg4 sac 3 lossWin 0
+  185594103652 Kunal2023-Marek_Mck 24...Rc2  hang qd2 sac 4 lossWin 0
+  185658881596 Kunal2023-mskzec 8.Nxe5  land ne5 sac 2 lossWin 0
+  185694936250 Kunal2023-A1danwood 8...Nxe5  land ne5 sac 2 lossWin 0
+  185721181566 MMStar2207-Kunal2023 7...Nf6 [chess.com Brilliant]  hang rh8 sac 5 lossWin 0
+  185887758904 koup09-Kunal2023 18...Bd5 [chess.com Best]  hang rf8 sac 2 lossWin 1.16
+  185887758904 koup09-Kunal2023 20...Ra8 [chess.com Excellent]  hang re8 sac 2 lossWin 1.05
+  185934088036 Kunal2023-ElWolfo23 31...Nxa7  land na7 sac 2 lossWin 0
+  185939901712 Kunal2023-S3van11 22...Nxd5  land nd5 sac 2 lossWin 0
+  185958880758 scowill-Kunal2023 17...Bxh3 [chess.com Best]  land bh3 sac 2 lossWin 0
+  185958880758 scowill-Kunal2023 18...Bxg2 [chess.com Brilliant]  land bg2 sac 2 lossWin 0
+  186010484494 Kunal2023-Brangbang 27...Nh3+  land nh3 sac 2 lossWin 0
+  186178452646 Kunal2023-Nevoye 22.Ne5+  hang bg5 sac 3 lossWin 0
+  186191387030 Kunal2023-matthewquinlan2 15.Qxc7  hang nf3 sac 2 lossWin 0
+  186232561236 gsharenkapov-Kunal2023 15...Nxg4 [chess.com Brilliant]  land ng4 sac 2 lossWin 0
+  186296751210 ImoxZA-Kunal2023 7...fxg3  hang rh8 sac 4 lossWin 7.85
+  186296751210 ImoxZA-Kunal2023 18.Bh6  land bh6 sac 3 lossWin 1.91
+  186296751210 ImoxZA-Kunal2023 21.Nxe5+  land ne5 sac 2 lossWin 0
+  186298931940 Kunal2023-NoHope321 24...Rxa3  land ra3 sac 4 lossWin 6.5
+  186298931940 Kunal2023-NoHope321 33...c3  hang na4 sac 3 lossWin 0
+  186298931940 Kunal2023-NoHope321 34...c2  hang na4 sac 3 lossWin 0
+  186317407176 Kunal2023-EmberinALantern 13...Bxd3  hang qf6 sac 3 lossWin 0
+  186317407176 Kunal2023-EmberinALantern 30...Nxg3  land ng3 sac 2 lossWin 5.34
+  186474370120 Kunal2023-WataGwaan76 21.g3 [chess.com Brilliant]  hang ba6 sac 2 lossWin 0
+  186474370120 Kunal2023-WataGwaan76 29.c6 [chess.com Brilliant]  hang ba3 sac 3 lossWin 0
+
+## RULE 3 REMOVES FROM RULE 1: 6
+  1029753248 kvigchess-Kunal2023 19.Nxf7  land nf7 sac 0 lossWin 0
+  173922815280 Kunal2023-therohitchamoli 20.Bxb5 [chess.com Good]  land bb5 sac 0 lossWin 4.85
+  174087094684 Kunal2023-bono2 18.Bxg6 [chess.com Best]  land bg6 sac 0 lossWin 2.86
+  174094002350 DeEjAYgonnatrashyou-Kunal2023 6.Nxf7  land nf7 sac 0 lossWin 0
+  184475681788 aikoboo-Kunal2023 6.Nxf7  land nf7 sac 0 lossWin 0
+  185819242610 Kunal2023-ValeriyDyu123 19...Rxg3  land rg3 sac 2 lossWin 10.09
+
+## THE 42 SAVED REVIEWS: chess.com Brilliants 33; rule 3 hits 33, extras 15; rule 2 hits 31, extras 29
+  RULE 3 EXTRA: 1035761290 kvigchess-Kunal2023 15.Qf6 [chess.com Excellent] lossWin 0
+  RULE 3 EXTRA: 1035761290 kvigchess-Kunal2023 30.Nxe5 [chess.com Inaccuracy] lossWin 0
+  RULE 3 EXTRA: 173897575624 Kunal2023-mahmoudkamel77 22.f3 [chess.com Inaccuracy] lossWin 5.31
+  RULE 3 EXTRA: 174037540186 ooelon-Kunal2023 11...Nb3 [chess.com Inaccuracy] lossWin 4.32
+  RULE 3 EXTRA: 174037540186 ooelon-Kunal2023 13.Qf3 [chess.com Good] lossWin 6.12
+  RULE 3 EXTRA: 174331795882 Kunal2023-KyokaSuigetsu_0 38...Kb5 [chess.com Inaccuracy] lossWin 6.82
+  RULE 3 EXTRA: 174386847848 Kunal2023-madefrom_WAR 17.Bxh7+ [chess.com Good] lossWin 4.86
+  RULE 3 EXTRA: 174433078044 Kunal2023-gentel1310 15.b5 [chess.com Best] lossWin 0
+  RULE 3 EXTRA: 184628225358 abdallah050195-Kunal2023 10...Nxe5 [chess.com Good] lossWin 4.22
+  RULE 3 EXTRA: 184869895938 Valdnei-CS-Kunal2023 24...Qxf1+ [chess.com Great] lossWin 0
+  RULE 3 EXTRA: 184924183572 Kunal2023-plevalevente 14...a6 [chess.com Inaccuracy] lossWin 7.08
+  RULE 3 EXTRA: 185328827408 Kunal2023-korbanbann3d 30.Qf6+ [chess.com Excellent] lossWin 2
+  RULE 3 EXTRA: 185887758904 koup09-Kunal2023 18...Bd5 [chess.com Best] lossWin 1.16
+  RULE 3 EXTRA: 185887758904 koup09-Kunal2023 20...Ra8 [chess.com Excellent] lossWin 1.05
+  RULE 3 EXTRA: 185958880758 scowill-Kunal2023 17...Bxh3 [chess.com Best] lossWin 0
+
+# searched 594 positions in 584s

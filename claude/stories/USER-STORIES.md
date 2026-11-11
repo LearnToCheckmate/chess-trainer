@@ -2018,6 +2018,7 @@ As a player reviewing my own game, at a move of mine where the engine's best mov
 - A missed brilliant is the engine's best move graded by the same Brilliant rule the app grades every played move by, as if I had played it (loss 0, the position's own eval, the second line as the next best); a move I found, or a different Brilliant I played instead, is not a miss; the needed test applies. (TC-R133, TC-R134, TC-R135)
 - On that move the move line carries "!! missed <move> >" in the place of the best-move button, and a tap plays the brilliant line on the board; the move strip marks the move (!!) and the eval graph rings it. (TC-R136)
 - My opponent's moves carry no mark, under rule 1 nothing that only rule 2 calls Brilliant is marked, and with the switch off nothing is marked. (TC-R137)
+- *#550 item (18):* the marker is on by default with its switch on the New features section, and marks only a clear miss, half a pawn or more; every position where I had a Brilliant and played something else goes into the brilliant-moves drill, asking me to find it. (TC-R137, TC-R195)
 
 ### US-R108 My mistakes drill grades the move I play, and says which kind of move it was
 *Added #549 item (97), from jobs/drill-accepts-one-move-only (Kunal, 2026-09-20: "there can only be one best move"; his design the same day: "tell them what category it is in ... this is the absolute best move in the position, or this is better but there is an even better move, can you find it. And we should explain why"). Rebuilt from #459's held tree (67ca361), with the review's win-percentage ladder and the float-and-scroll verdict box.*
@@ -2174,3 +2175,15 @@ As a player who solved a drill card, a long explanation keeps its box's size but
 - An explanation longer than its box shows a "more" chip inside the box, a thumb's height. (TC-R193a)
 - Tapping it scrolls the explanation. (TC-R193b)
 - Solving the card does not move the board. (TC-R193c)
+
+### US-R127 The app calls a move Brilliant when chess.com would, and misses none of chess.com's
+*Added #550, item (17), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03; Kunal's answers B9C-BRIL-RULE2 "on" (on now, then trim: miss none, few extras) and B10-SHIP-ON "on"; rule 3 of docs/brilliant-rule-3-design-2026-11-10 at its recommended dial.*
+As a player reviewing my games, a sacrifice that is sound and leaves me not worse is Brilliant, whether I gave the piece on the square I moved to or left one hanging elsewhere, so the app finds the Brilliants chess.com finds; and a move that only looks like one is not.
+- Rule 3 is the app's rule by default, and the menu's New features section has its switch. (TC-R194a, TC-R194k)
+- A move that costs an Inaccuracy's worth of win chance is never Brilliant. (TC-R194b)
+- A piece left hanging while I rescue another that was attacked is not a sacrifice. (TC-R194c)
+- The third move in a row that leaves the same piece is not a new sacrifice. (TC-R194d, TC-R194i)
+- Nothing given while answering a check counts, except a counter-capture under a forking check that is clearly the best move. (TC-R194e, TC-R194g)
+- A piece that was already lost counts only when the move is clearly the best. (TC-R194f)
+- The thirteen named chess.com Brilliants stay Brilliant. (TC-R194h)
+
