@@ -57,3 +57,4 @@
 84	83	raise	2026-11-11	550	build__1794388896663	#550 item (93): the online review rating, TC-R57	-	33b97f580c35
 85	84	raise	2026-11-11	550	build__1794388896663	#550 item (94): his side left on the review summary, TC-R185	-	bb962b910a25
 86	85	raise	2026-11-11	550	build__1794388896663	#550 item (97): no go into a running search, TC-R186	-	4b5b9b870017
+87	86	raise	2026-11-11	550	build__1794388896663	#550 item (101): online flag auto-end, TC-PL-070	-	cf11e77a253f

@@ -1857,6 +1857,11 @@ As a player in an online game, a call I place that does not connect gives up aft
 As a player who starts a game from a scanned board or from a position in Review, Copy gives me moves I can paste anywhere, and Analyze and Review open the game, because the start position travels with the moves.
 - The copied moves carry [SetUp "1"] [FEN "..."] and are numbered from the position's own move number. (TC-PL-069a)
 - Analyze and Review of that game reach the review instead of failing at move 1, and the review's PGN carries the FEN. (TC-PL-069b, TC-PL-069c)
+
+### US-PL-26 An online game whose clock ran out ends by itself
+*Added #550 item (101), jobs/online-clock-flag-fall-auto-end (Kunal's Desk answer 'it should be automatic', 22 Sep 2026; in scope on his word of 10 Nov 2026).*
+As a player in an online game with a clock, when one side's time runs out and nobody taps Claim win, the game is recorded as a loss on time 15 seconds later by whichever phone has it open, so my games list never shows a finished game as still in progress.
+- Opened by either player after the 15 seconds: the loss on time is written once; opened inside them: nothing is written until they pass. (TC-PL-070a, TC-PL-070b, TC-PL-070c)
 ### US-R88 The grade table's White and Black headers sit over their own numbers
 *Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
 As a player reading the grade table, each column's header is directly above its numbers.

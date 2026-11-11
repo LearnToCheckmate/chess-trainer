@@ -2362,6 +2362,8 @@ function pgnMovesFrom(sans,startFen){let n=1,side='w',tags='';
   if(startFen){const f=String(startFen).trim().split(/\s+/);side=f[1]==='b'?'b':'w';n=Math.max(1,parseInt(f[5],10)||1);tags='[SetUp "1"]\n[FEN "'+String(startFen).trim()+'"]\n';}
   let s='';for(let i=0;i<sans.length;i++){const white=(side==='w')===(i%2===0);if(white)s+=n+'. ';else if(i===0)s+=n+'... ';s+=sans[i]+' ';if(!white)n++;}
   return {tags,text:s.trim()};}
+// #550 item (101): how long after a flag falls an unclaimed online game is ended by whichever phone has it open (Kunal's Q1)
+const FLAG_GRACE_MS=15000;
 // #550 item (87): an unconnected video call gives up after this long (Kunal's Q-VC-2)
 const VC_TIMEOUT_MS=20000;
 // #550 item (79): the review cache's soft cap - far above the 24 it replaces; storage quota is the real bound (evalCacheSet)
@@ -7199,6 +7201,15 @@ export default function App(){
   const refreshMyGames=async()=>{const C=window.CTCloud;if(!C||!C.gameList||!cloudUser){setMyGames([]);return;}setMyGamesLoading(true);try{const list=await C.gameList();setMyGames(Array.isArray(list)?list:[]);}catch(e){setMyGames([]);}setMyGamesLoading(false);};
   const resumeGame=(code)=>{setOnlineErr('');setOnlineInfo('Opening your game…');onlineJoin(code);};
   const onlineClaimTime=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||og.result||!C||!og.tc||og.tc.kind!=='corr')return;const result=myColorRef.current==='w'?'1-0':'0-1';C.gamePush(og.id,{result,status:'over'});};
+  /* #550 item (101) [jobs/online-clock-flag-fall-auto-end; Kunal's Desk answer 'it should be automatic', 22 Sep 2026; in scope on his
+     word of 10 Nov]: a flag nobody claims still ends the game. While a live-clock online game with no result is open, each second the
+     side to move's clock is checked; FLAG_GRACE_MS after it reached zero, this phone - whichever of the two has the game open - records
+     the loss on time exactly as Claim win does (the same result fields, so two phones writing it write the same thing). */
+  useEffect(()=>{const og=onlineGame;if(!og||og.result||og.status!=='active'||!og.tc||og.tc.kind==='corr'||!og.clk)return;
+    const t=setInterval(()=>{const g=onlineGameRef.current,C=window.CTCloud;if(!g||g.result||!C||!g.clk)return;const side=gameRef.current.turn;
+      const over=(Date.now()-(g.moveAt||Date.now()))-(g.clk[side]||0);if(over<FLAG_GRACE_MS)return;
+      clearInterval(t);C.gamePush(g.id,{result:side==='w'?'0-1':'1-0',status:'over',endBy:'time',autoEnded:true}).catch(()=>{});},1000);
+    return ()=>clearInterval(t);},[onlineGame]);
   const onlineClaimFlag=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||og.result||!C||!og.tc||og.tc.kind==='corr'||!og.clk)return;const side=gameRef.current.turn;const rem=Math.max(0,(og.clk[side]||0)-(Date.now()-(og.moveAt||Date.now())));if(rem>0)return;const result=side==='w'?'0-1':'1-0';C.gamePush(og.id,{result,status:'over',endBy:'time'});};
   const onlineResign=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||og.result||!C)return;const result=myColorRef.current==='w'?'0-1':'1-0';C.gamePush(og.id,{result,status:'over',endBy:'resign',resignedBy:myColorRef.current,drawBy:null});};
   const onlineOfferRematch=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!og.result||!C)return;C.gamePush(og.id,{rematchBy:myColorRef.current,notice:null});setOnlineInfo('');};
