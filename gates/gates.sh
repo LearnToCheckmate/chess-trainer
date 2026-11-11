@@ -2536,6 +2536,15 @@ red=0
 # IT RUNS ON FULL RUNS ONLY. A subset run already states it cannot authorise a push, and the 40 extra PASS
 # lines would make a subset log's total incomparable with the gate it names. Stated rather than silent.
 UNITJS="$G/unit-drill-why.js"
+# #550 item (138) [jobs/three-unit-blocks-in-gates-sh-run-only-if-their-script-exists-so-deleting-one-still-ends-gates-green-
+# 2026-11-07]: unit-drill-why and unit-held-guard ran only `if [ -f ... ]`, so deleting either script printed NOTHING and the
+# suite still ended GATES GREEN - fastgate-drive got its absent-harness red at #525 and these two did not. Same shape now:
+# a full run with the script missing is RED and says so.
+if [ -z "$SUBSET" ] && [ ! -f "$UNITJS" ]; then
+  red=1
+  echo "--- unit-drill-why (unit layer) ---" | tee -a "$ALL"
+  echo "    unit-drill-why: RED - THE UNIT FILE IS ABSENT: $UNITJS (it source-slices whyBand, whyShape, mistakeWhy and mistakeHint out of chess.jsx; its absence used to print nothing)" | tee -a "$ALL"
+fi
 if [ -z "$SUBSET" ] && [ -f "$UNITJS" ]; then
   ulog="$G/logs/$STEM-unit-drill-why.log"
   echo "--- unit-drill-why (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
@@ -2566,6 +2575,11 @@ fi
 # marker (never `=== `, the roster arm), oks translated to ^PASS, 0 ok is as red as a FAIL, full runs only.
 # No pipes, because gatemanifest.sh and pipefail-grep ratchet the pipe sites in this file.
 HGSH="$G/unit-held-guard.sh"
+if [ -z "$SUBSET" ] && [ ! -f "$HGSH" ]; then
+  red=1
+  echo "--- unit-held-guard (unit layer) ---" | tee -a "$ALL"
+  echo "    unit-held-guard: RED - THE UNIT FILE IS ABSENT: $HGSH (the held-tree guard's regression test; its absence used to print nothing) [#550 item (138)]" | tee -a "$ALL"
+fi
 if [ -z "$SUBSET" ] && [ -f "$HGSH" ]; then
   hlog="$G/logs/$STEM-unit-held-guard.log"
   echo "--- unit-held-guard (unit layer, not a regress gate, not in the roster) ---" >> "$ALL"
