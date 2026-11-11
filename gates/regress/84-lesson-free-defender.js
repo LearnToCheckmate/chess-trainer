@@ -105,6 +105,13 @@ async function driveToMate(b,E,g0,startPly,opts){
 }
 
 L.run(async()=>{
+  // ════════ TC-LS-057 [#550 item (45)]: the verdict's search is depth-bound, no browser ════════
+  // The net verdict compares a mate distance against a slack calibrated at 300 ms in node; a time-bound search reaches less depth on a
+  // slower phone. Read out of the same source the helpers come from (CT_SRC for a control): the practice move's engine call passes a fixed
+  // depth of at least 12 to sfBestLine, so the distance does not depend on the device.
+  {const t=src.join('\n');const call=/sfBestLine\(fen,FREE_MS,\(x\)=>\{[^}]*\},undefined,FREE_DEPTH\)/.test(t);const m=t.match(/const FREE_DEPTH=(\d+);/);const d=m?+m[1]:null;
+   L.say(call,'TC-LS-057 the free defender verdict search passes FREE_DEPTH to sfBestLine (go depth), not a time budget alone',{call});
+   L.say(d!=null&&d>=12,'TC-LS-057 FREE_DEPTH is a fixed depth of at least 12 ('+d+')',{d});}
   // ════════ TC-LS-054: the net test, no browser ════════
   const X=freeHelpers();
   L.say(!!X.H,'TC-LS-054 PRECONDITION chess.jsx declares freeHangs, freeSyncVerdict, freeNetVerdict and freeFallbackReply'+(X.md5?' (source '+X.md5+')':''),X.missing||null);
