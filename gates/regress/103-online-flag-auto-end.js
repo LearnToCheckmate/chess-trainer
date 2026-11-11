@@ -17,6 +17,8 @@
 //  (c) TC-PL-070c opened 5s after the flag (Me = Black): NOTHING is written in the first 4s (the 15s grace is honoured - the opponent may
 //      still be about to claim or the clock to be read), and the result is written by 15s later, once.
 // DENOMINATOR per arm: the game was joined and is on screen (the clock panel's game, the Video call control is the stand-in's marker).
+// CONTROL-RECORD: ad54e8f 2026-11-11 total=9 red=3 scope=trial:3ab724514641 how=#550 item (101): origin/main's bundle - nothing ever writes the loss on time, so all three 'recorded once' lines are red; the grace line (070c, nothing in 4s) and the DENOMINATORS green
+// CONTROL-RECORD: ad54e8f 2026-11-11 total=9 red=1 scope=trial:a2a1a4d0bd3a how=#550 item (101): c101, FLAG_GRACE_MS 0 (gate run with CT_SRC = the real source) - TC-PL-070c's 'nothing inside the grace' line red (written 5s after the flag); every other line green
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const STUB=(cfg)=>{
