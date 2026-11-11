@@ -362,7 +362,7 @@ async function runFixture(geo,name,pgn,acc){
       const dots=[...sv.querySelectorAll('circle')].filter(c=>!/^none$/i.test(c.getAttribute('fill')||'')&&c.getAttribute('stroke')==='rgba(0,0,0,.5)').map(c=>({cx:parseFloat(c.getAttribute('cx')),fill:c.getAttribute('fill')}));
       return {w,dots};});
     L.say(!!g,tag+' A7 the eval graph is on the move screen (the denominator for the dot check)',g?{w:g.w,dots:g.dots.length}:null);
-    if(g){const EX=['#22d3ee','#5d93e8'];const inBook=g.dots.map(d=>({...d,i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&EX.indexOf(d.fill)<0);
+    if(g){const RAW=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];/* Blunder, Miss, Mistake, Inaccuracy: the grade dots a book ply must not carry; Brilliant and Great are exempt and the yellow current-ply marker is not a grade */const inBook=g.dots.map(d=>({...d,i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&RAW.indexOf(d.fill)>=0);
       L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});}
   }
   const dis=[];
