@@ -198,6 +198,7 @@
 // CONTROL-RECORD: 08d8cb0 2026-09-17 total=12 red=12 scope=blocks:B how=Review and Play swapped with CT_HM_BLOCKS=B - the published 12 that the full gate gives as 14
 // CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=6 scope=blocks:E,F how=4471c98's tree (trial e824097dfb8e), where opening the lesson retired the NEW HERE card - TC-HM-055 opened-a-lesson and both TC-HM-056 card lines red at se and kunal730 [#549 item (22) A2-R1 fix]
 // CONTROL-RECORD: ce18e3f 2026-11-06 total=106 red=4 scope=blocks:E,F how=a trial whose walkthrough-end record never fires (md5 6bad0aa116d5) - both TC-HM-054 retired lines red at se and kunal730 [#549 item (22) A2-R1 fix]
+// CONTROL-RECORD: ddb7ac8 2026-11-11 total=53 red=4 scope=blocks:E trial:d367ca5603b2 how=#550 answer a31: the tree before the Daily 3 header's new words ('keep the streak alive') - TC-HM-033 and TC-HM-042 red at se and kunal730; block E's other 49 green
 // CONTROL-RECORD: 848b723 2026-11-06 total=116 red=1 scope=blocks:G how=setHomeScreen(false) removed from the streak card's goPz (trial 3bd111b9c0c2, CT_HM_GEOS=kunal730) - only kunal730/earned [streak] TC-HM-051c red; good trial 51869799ba22 116/0 [#549 item (89)]
 // CONTROL-RECORD: 4471c98 2026-11-06 total=94 red=10 scope=blocks:E,F how=the #549 base bundle before item (22) (md5 a19136012900): NEW HERE isNew read only pzXP and ct_train, card copy promised a win; the ten FAILs are exactly TC-HM-054 x2 and TC-HM-055 x8
 'use strict';
@@ -657,8 +658,8 @@ if(blk('E'))for(const geo of ['se','kunal730']){
       geo+': TC-HM-031 on a fresh store there is NO streak card - it is not a card reading zero, it is absent (chess.jsx:4323 returns null when xp, streak and today\'s count are all 0), which is why the fresh signature has eight children and the earned one also has eight',s);
     L.say(!!d&&d.n===3&&d.marks.join('|')==='||'&&d.labels.join('|')==='1 lesson|puzzle|puzzle',
       geo+': TC-HM-032 and the Daily 3 card carries three empty dots labelled "1 lesson", "puzzle", "puzzle"',d);
-    L.say(!!d&&/keep the streak alive/.test(d.full),
-      geo+': TC-HM-033 headed "keep the streak alive" while anything is outstanding',d&&d.full.slice(0,44));
+    L.say(!!d&&/bonus · any one keeps your streak/.test(d.full),
+      geo+': TC-HM-033 headed "bonus · any one keeps your streak" while anything is outstanding (#550 a31: it read "keep the streak alive", but any one lesson or puzzle keeps the streak and the three are a bonus)',d&&d.full.slice(0,44));
     const c=await COACHLINE(b);
     L.say(!!c&&near(c.h,W.coach.h)&&c.spans.length===3&&c.spans[0]==='🎓'&&c.spans[2]==='open',
       geo+': TC-HM-034 the coach line is one '+W.coach.h+'px row of exactly three spans - the glyph, the message, and the word that says it is tappable. Asserted as a shape with a pinned affordance rather than as a pinned sentence: the message is the coach\'s recommendation and moves with the lesson library',c);
@@ -735,8 +736,8 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     const b=await L.launch({geo,name:'home-e-d3-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:1}}});
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
-    L.say(!!d&&d.marks.join('|')==='✓|✓|'&&/keep the streak alive/.test(d.full),
-      geo+': TC-HM-042 one lesson and one puzzle done ticks the first two dots and leaves the third, and the card still says "keep the streak alive"',d);
+    L.say(!!d&&d.marks.join('|')==='✓|✓|'&&/bonus · any one keeps your streak/.test(d.full),
+      geo+': TC-HM-042 one lesson and one puzzle done ticks the first two dots and leaves the third, and the card still says "bonus · any one keeps your streak"',d);
     await b.close();
   }
   {
