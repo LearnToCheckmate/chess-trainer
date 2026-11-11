@@ -24,7 +24,9 @@ const L=require('../lib');
 const E=require('../engine-extract.js');
 
 const sanOf=(g,mv)=>E.cleanSAN(E.toSAN(g,mv,E.applyMove(g.board,mv)));
-const lbl=(g,best,v)=>E.classify(E.winDrop(best,v,g.turn)).label;
+// #550 item (20): the drill grader labels through classifyMove - Best is the ranking's own top move only (isTop), the rest by the
+// item (20) bands - so the recompute uses the same shipped function with the same isTop, not the old band table.
+const lbl=(g,best,v)=>E.classifyMove(E.winDrop(best,v,g.turn),v===best).label;
 const ACC=['Brilliant','Best','Excellent'];
 
 L.run(async()=>{
