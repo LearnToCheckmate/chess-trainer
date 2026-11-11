@@ -2123,3 +2123,11 @@ As a player who imports a friend's account as well as my own, I am asked once, w
 - A newly imported account is asked about under the Import box, with Yes and No at a thumb's size, at 375x761 and 320x568. (TC-R188a)
 - No switches it off, as its chip's switch does, and Yes keeps it mine; either way the question goes and a re-import does not ask again. (TC-R188b, TC-R188c)
 - An account imported before this question existed is never asked. (TC-R188c)
+
+### US-R122 The lesson's Analyze and Copy are small icon buttons I can still tap easily
+*Added #550 answer a6, jobs/copy-chip-flash-slides-analyze-under-the-finger-2026-09-29 (Kunal in chat, 11 Nov 2026: "Analyze and Copy become small icon-only buttons that keep a full-size tap area (44 points)"; where they sit waits on run question q34).*
+As a player at a lesson's moves row, Analyze and Copy are small icons rather than worded pills, so the row stays quiet, and each still takes a full-size tap without stealing the other's.
+- Each draws an icon and no words, and says what it is to a screen reader, at 375x761 and 320x568. (TC-R189a)
+- Each tap area is at least 44 by 44 while the visible chip is at most 32 wide. (TC-R189b)
+- The two tap areas do not overlap. (TC-R189c)
+

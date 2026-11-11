@@ -344,8 +344,8 @@ L.run(async()=>{
      const dis=await b.page.evaluate(()=>{const cp=document.querySelector('[data-ct="moves-copy"]');if(!cp)return null;
        const sp=cp.querySelector('span');const c=sp?getComputedStyle(sp).color:'';const m=c.match(/rgba?\(([^)]+)\)/);
        const a=m?(m[1].split(',').length>3?parseFloat(m[1].split(',')[3]):1):null;
-       return {disabled:cp.disabled===true,label:(cp.innerText||'').trim(),alpha:a,cursor:getComputedStyle(cp).cursor};});
-     L.say(!!dis&&dis.disabled===true&&dis.alpha!=null&&dis.alpha<=0.4&&dis.label==='Copy',
+       return {disabled:cp.disabled===true,label:((cp.innerText||'').trim()||cp.getAttribute('aria-label')||''),alpha:a,cursor:getComputedStyle(cp).cursor};});   // #550 a6: the chip is icon-only, so its name is its aria-label
+     L.say(!!dis&&dis.disabled===true&&dis.alpha!=null&&dis.alpha<=0.4&&/^Copy/.test(dis.label),
        tag+': TC-LS-048 with no move played the Copy chip is DISABLED and drawn dimmed (label alpha '+(dis&&dis.alpha)+
        ' <= 0.4), keeping its "Copy" label and width - pre-#549 it was a live control at alpha 0.72 whose tap did nothing',
        {disabled:dis&&dis.disabled,alpha:dis&&dis.alpha,label:dis&&dis.label,cursor:dis&&dis.cursor,movesPlayed});

@@ -1668,7 +1668,7 @@ L.run(async()=>{
    const b=await L.launch({geo,name:'lesson-actrow-'+geo});await b.open();
    let ok=true;try{await D.states['demo-end'](b);await b.settle(1200);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const RES=[/try it/i,/Other lines|Flip/i,/Analyze$/,/Copy/];const vis=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();return q.width>2&&q.height>2;});
-     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim()));if(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim())||re.test((y.getAttribute('aria-label')||'').trim().split(' ')[0]));   // #550 a6: Analyze and Copy are icon-only, named by aria-labelif(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
        return {re:String(re),found:true,top:Math.round(q.top),bot:Math.round(q.bottom),on:q.top>=-0.5&&q.bottom<=innerHeight+0.5&&!!e&&(e===x||x.contains(e))};})};});
    L.say(ok&&r.c.every(x=>x.found),geo+': TC-R78c PRECONDITION the demo reached its end and all four action-row controls are in the DOM',r);
    L.say(r.c.length===4&&r.c.every(x=>x.found&&x.on),geo+': TC-R78c every action-row control is on screen at rest and hit-tests to itself ('+r.c.map(x=>x.re+' '+(x.found?x.top+'..'+x.bot+(x.on?'':' OFF'):'absent')).join('; ')+' of '+r.vh+')',r);
@@ -1679,7 +1679,7 @@ L.run(async()=>{
  for(const geo of ['kunal730','se']){
    const b=await L.launch({geo,name:'lesson-try-still-'+geo});await b.open();
    const rd=()=>b.page.evaluate(()=>{const gs=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);const g=gs[0]&&gs[0].getBoundingClientRect();
-     const head=[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&/^MOVES$/i.test((e.innerText||'').trim()));const an=[...document.querySelectorAll('button')].find(x=>/Analyze$/.test((x.innerText||'').trim()));
+     const head=[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&/^MOVES$/i.test((e.innerText||'').trim()));const an=[...document.querySelectorAll('button')].find(x=>/Analyze$/.test((x.innerText||'').trim())||/^Analyze/.test(x.getAttribute('aria-label')||''));   // #550 a6: icon-only, named by aria-label
      const r=n=>n?Math.round(n.getBoundingClientRect().top*10)/10:null;return {bw:g?Math.round(g.width*10)/10:null,bt:g?Math.round(g.top*10)/10:null,bb:g?g.bottom:null,head:r(head),an:r(an)};});
    let ok=true;try{await D.states['demo-end'](b);await b.settle(900);}catch(e){ok=false;}const a0=await rd();
    try{await D.tapBtn(b,/^✋ Now I'll try it$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
