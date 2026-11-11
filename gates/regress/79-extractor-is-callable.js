@@ -98,5 +98,26 @@ const SRCPATH=process.env.CT_SRC||path.join(ROOT,'chess.jsx');
   // S3 (item (186)): _sideStats no longer returns the accuracy-derived rating nothing renders.
   const ss=/const _sideStats=[\s\S]*?return \{counts:c[^}]*\}/.exec(src);
   L.say(!!ss&&!/rating/.test(ss[0].slice(ss[0].lastIndexOf('return {'))),'S3 TC-SUITE-369 _sideStats returns counts, moves, acpl and accuracy and no invented rating',{ret:ss?ss[0].slice(ss[0].lastIndexOf('return {')):null});
+  // S4 TC-SUITE-DOCSCROLL-001 [#550 item (8), jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28, its foldedIn_2026_10_27
+  //     case]: document scroll is 0 BY DESIGN here (index.html locks html and body; #root scrolls), so an assertion whose condition reads
+  //     docScroll === 0 can never fail and welds a vacuous half onto whatever it is ANDed with. No L.say in gates/regress may carry one.
+  //     The condition is the L.say's FIRST ARGUMENT, cut at its first top-level comma by a small scanner (strings, template literals,
+  //     brackets and parens tracked), so printed text and comments that MENTION docScroll do not count. Denominator first, and the
+  //     scanner proves it can see a weld on planted lines before its verdict on the real ones is believed.
+  const firstArgs=(code)=>{const out=[];let k=0;while((k=code.indexOf('L.say(',k))>=0){let i=k+6,d=0,q=null,arg='';for(;i<code.length;i++){const c=code[i];
+      if(q){arg+=c;if(c==='\\'){arg+=code[++i]||'';continue;}if(c===q)q=null;continue;}
+      if(c==='"'||c==="'"||c==='`'){q=c;arg+=c;continue;}
+      if(c==='('||c==='['||c==='{'){d++;arg+=c;continue;}
+      if(c===')'||c===']'||c==='}'){if(d===0)break;d--;arg+=c;continue;}
+      if(c===','&&d===0)break;arg+=c;}
+    out.push(arg);k=i;}return out;};
+  const WELD=/docScroll[A-Za-z]*\s*(===?|<=)\s*0(?![.\d])|\b0\s*===?\s*[\w.]*docScroll/;
+  const planted=firstArgs("L.say(r.docScrollY===0&&r.over<1,'x');L.say(ok&&s.docScroll==0,'y');L.say(fine,'docScrollY===0 printed only');L.say(a===b,'z',{docScrollY:0});");
+  const plantedHits=planted.filter(a=>WELD.test(a)).length;
+  L.say(planted.length===4&&plantedHits===2,'S4a TC-SUITE-DOCSCROLL-001 the scanner finds the two planted welds and passes the two lines that only print or carry docScroll as detail',{planted:planted.length,hits:plantedHits});
+  const RD=path.join(__dirname);let files=0,sites=0;const welds=[];
+  for(const f of fs.readdirSync(RD).filter(x=>/^\d+.*\.js$/.test(x))){files++;let code=fs.readFileSync(path.join(RD,f),'utf8');if(f===path.basename(__filename)){const i0=code.indexOf('// S4 TC-SUITE-DOCSCROLL-001'),i1=code.indexOf('S4c TC-SUITE-DOCSCROLL-001');if(i0>=0&&i1>i0)code=code.slice(0,i0)+code.slice(i1);}/* this block's own planted lines are not a gate's assertions */const args=firstArgs(code);sites+=args.length;args.forEach(a=>{if(WELD.test(a))welds.push(f+': '+a.slice(0,100));});}
+  L.say(files>=50&&sites>=500,'S4b TC-SUITE-DOCSCROLL-001 the population is real: '+files+' gate files, '+sites+' L.say sites scanned (the denominator for S4c)',{files,sites});
+  L.say(files>=50&&sites>=500&&welds.length===0,'S4c TC-SUITE-DOCSCROLL-001 no L.say in gates/regress conditions on docScroll === 0',{welds});
   L.done('79-extractor-is-callable');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('79-extractor-is-callable');});
