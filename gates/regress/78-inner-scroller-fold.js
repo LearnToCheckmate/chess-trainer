@@ -43,10 +43,15 @@ L.run(async()=>{
   // 4d7c48fa1578 (gate 78 subset log, then re-run). NOT ONLY A MOVE AT ONE COLUMN, said plainly: at 440x956 the import button was 26.5px
   // ABOVE the fold and is now 47.5px below it, so on that one geometry a player with stored games now scrolls to reach it; at every
   // other column it was already below the fold (200.3px on Kunal's phone). Named in the job's outcome for him to weigh.
-  const REV_PIN={"320x568":373.5,"360x640":334.6,"375x667":321.1,"375x730":287,"390x844":177.3,"414x896":105.5,"440x956":47.5,
+  // #550 item (72) RE-PIN, measured twice on trial a0cfb40ec1d4 and once on t12 f0477c0d12aa (before (72)) to attribute it: item (72) took the
+  // games row's brilliant pill under the WON badge and EST to the approximately sign (cf05c35), so the wider rows are shorter and the import
+  // box sits closer to the fold: 375x761 260.3 -> 245.5, 375x730 287 -> 276.5, 390x844 177.3 -> 162.5, 414x896 105.5 -> 100.8; 320x568,
+  // 360x640, 375x667 and 440x956 unchanged (identical on both runs; t12, the tree before (72), reads the old pins exactly). Still below the
+  // fold at every column but 440x956's 47.5 - item (95) owns where the box goes (q12).
+  const REV_PIN={"320x568":373.5,"360x640":334.6,"375x667":321.1,"375x730":276.5,"390x844":162.5,"414x896":100.8,"440x956":47.5,
     // [#549 fix round 4, A8-R4] Kunal's phone joins this loop. Its key carries the insets (w x h + safe), read from the GEOS entry, so
     // it can never collide with a no-inset column of the same size. Measured at #549 on trial 27d9c9980e1b (settled, first read 870.5) and again on c738ab207551 (HEAD 376ccde): 200.3 both.
-    "375x761+51,31":260.3};
+    "375x761+51,31":245.5};
   const pv={};
   const find=(re)=>b=>b.page.evaluate((src)=>{const re=new RegExp(src);const btn=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
     const bar=document.querySelector('[data-ct="tabbar"]');const t=bar?bar.getBoundingClientRect():null;const fold=t&&t.height>0&&t.top<innerHeight?t.top:innerHeight;
