@@ -194,6 +194,8 @@
 //            the label is centred, so the side it escapes on is an artefact of the budget, and an assertion
 //            that only looked right would have missed two of these three.
 'use strict';
+// CONTROL-RECORD: 5f06797 2026-11-11 total=121 red=3 scope=trial:4b875403fa5a how=#550 antagonist A round 2 P1 (e856800), CT_INV_GEOS=kunal761: the tree before the stroke-aware equalisation (Learn and Review scaled by their stroke-less outline) read through the STROKE-AWARE instrument - TC-INV-02e red on puzzles, pz-solved and pz-rankup, ink Discover 18.15 and Review 18.67 against 16.5; on t52 (28378590a526) all green
+// CONTROL-RECORD: 5f06797 2026-11-11 total=171 red=6 scope=trial:455ff0ea4f3f how=#550 AUD-H01 (df7946d), CT_INV_GEOS=kunal730: the tree before the compact Home and before both icon fixes - the re-pinned home row count (1, not 3), TC-INV-03's set (no 16), TC-INV-01b's set (home-look 199.9x30 present) and TC-INV-02e on the three puzzle screens red; on t52 514 of 514 green over the default sweep
 // CONTROL-RECORD: 107530f 2026-11-11 total=121 red=3 scope=trial:1aaa8b5f2858 how=#550 answer a5, CT_INV_GEOS=kunal761: the tree before the equalised tab icons (ink 13.93..18.15) - the promoted TC-INV-02e tab-bar line red on the three screens of that geometry the walk reads it on, everything else green; the full gate on the a5 trial b19697cd53cb reads 514 pass, 0 fail
 const L=require('../lib');
 const R=require('../drive/review');
