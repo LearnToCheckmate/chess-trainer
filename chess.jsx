@@ -2451,8 +2451,16 @@ function nameOpening(playedSans){
    seen it), so with BOOK_TABLE_DEFAULT 0 the Book count is reading (1) alone, exactly what it was before. ct_book_table='1' turns
    reading (2) on for a phone; measured over his 196 reviewed games since 1 Sep it moves Book 704 -> 901 plies and his accuracy by
    -0.06 on average (50 games change, 39 down, 11 up; -1.7 to +3.5), mean distance from chess.com's 10.40 -> 10.38. */
-const BOOK_TABLE_DEFAULT=0;
+/* #550 item (52), jobs/opening-book-coverage-gap, Kunal's answer on questions/B9C-BOOK-TABLE ('on') and questions/B10-SHIP-ON ('on'): the
+   table ships ON, with its own switch on the menu's New features section (NEW_FEATURES below); ct_book_table='0' turns it off. */
+const BOOK_TABLE_DEFAULT=1;
 const BOOK_TABLE=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_book_table'):null;return v==='1'?1:v==='0'?0:BOOK_TABLE_DEFAULT;}catch(e){return BOOK_TABLE_DEFAULT;}})();
+/* #550, THE NEW FEATURES SECTION (Kunal, questions/B10-SHIP-ON 'on': every new feature ships switched on, with its own switch on one New
+   features page in Settings). One row per switch: its storage key, the value each way, and whether it is on now. The values are read once,
+   when the app loads (module constants), so a tap writes the key and reloads. Later features add a row here. */
+const NEW_FEATURES=[
+  {id:'book-table',label:'Opening book table',sub:'more of your opening counts as Book, as on chess.com',key:'ct_book_table',on:'1',off:'0',isOn:()=>BOOK_TABLE===1},
+];
 // The position's book key: FNV-1a 32 over 'board side castling' of its FEN, seven base-36 digits. gates/opening-book/build.js writes
 // BOOK_POS with this very function (read out of this file), so the table and the lookup cannot use two different keys.
 function bookKey(game){const f=toFEN(game).split(' '),s=f[0]+' '+f[1]+' '+f[2];let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(36).padStart(7,'0');}
@@ -9233,6 +9241,12 @@ export default function App(){
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
             </button>
+            {/* #550: THE NEW FEATURES SECTION (NEW_FEATURES at module level): one switch per new feature, so each can be turned off. */}
+            <div data-ct="menu-newfeat" style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>New features</div>
+            {NEW_FEATURES.map(f=>{const on=f.isOn();return(<button key={f.id} data-ct={'newfeat-'+f.id} onClick={()=>{try{localStorage.setItem(f.key,on?f.off:f.on);}catch(e){}try{location.reload();}catch(e){}}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6,textAlign:'left'}}>
+              <span style={{display:'flex',flexDirection:'column',minWidth:0}}><span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>{f.label}</span><span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.5)'}}>{f.sub}</span></span>
+              <span style={{flexShrink:0,fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:on?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{on?'ON':'OFF'}</span>
+            </button>);})}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Piece style</span>
               <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>{[['classic','Classic'],['merida','Merida'],['chessnut','Chessnut'],['spatial','Spatial'],['symbol','Symbol']].map(([pv,plab])=>(<button key={pv} onClick={()=>setPieceSet(pv)} style={{fontSize:12,fontWeight:800,padding:'4px 12px',minHeight:40,display:'inline-flex',alignItems:'center',borderRadius:9,cursor:'pointer',background:pieceSet===pv?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:'1px solid '+(pieceSet===pv?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'),color:pieceSet===pv?'var(--ac2)':'rgba(255,255,255,.6)'}}>{plab}</button>))}</div>

@@ -108,9 +108,9 @@ L.run(async()=>{
 
   // ── E. THE SWITCH ───────────────────────────────────────────────────────────────────────────────────
   {const tot=GAMES.reduce((n,g)=>n+app(g,0),0),lp=GAMES.reduce((n,g)=>n+Math.min(24,lessonPrefix(g.sans)),0);
-   L.say(E.BOOK_TABLE_DEFAULT===0,'TC-R160 E2 the table SHIPS OFF until Kunal has seen what it does to accuracy (the #549 cut-line ruling), BOOK_TABLE_DEFAULT='+E.BOOK_TABLE_DEFAULT);
-   const dflt=GAMES.map(g=>E.openingBookPlies(g.sans,g.positions,OPENINGS)),old=GAMES.map(g=>Math.min(24,lessonPrefix(g.sans)));
-   L.say(JSON.stringify(dflt)===JSON.stringify(old),'TC-R160 E4 with no switch set the Book count is today\'s, game for game: '+JSON.stringify(dflt)+' v the lesson lines alone '+JSON.stringify(old));
+   L.say(E.BOOK_TABLE_DEFAULT===1,'TC-R160 E2 the table SHIPS ON (#550 item (52): Kunal\'s answers on questions/B9C-BOOK-TABLE and B10-SHIP-ON, both "on"), BOOK_TABLE_DEFAULT='+E.BOOK_TABLE_DEFAULT);
+   const dflt=GAMES.map(g=>E.openingBookPlies(g.sans,g.positions,OPENINGS)),tbl=GAMES.map(g=>app(g,1)),old=GAMES.map(g=>Math.min(24,lessonPrefix(g.sans)));
+   L.say(JSON.stringify(dflt)===JSON.stringify(tbl)&&JSON.stringify(tbl)!==JSON.stringify(old),'TC-R160 E4 with no switch set the Book count is the TABLE\'s, game for game (#550: the table ships on): '+JSON.stringify(dflt)+' v the table '+JSON.stringify(tbl)+' (the lesson lines alone read '+JSON.stringify(old)+')');
    // #549 antagonist B final read (B5-F): E4 compares the app with THIS FILE's lesson prefix over the SAME lessons.js, so a lessons.js
    // edit moves both sides and E4 cannot see it. Job 65 folded the 12-ply Petroff line into OPENINGS where the removed Petrov had 10,
    // and a Petroff game following 6.Bd3 Nc6 went from 10 Book plies to 12 with the table off. E5 pins the count MEASURED on main
@@ -136,5 +136,19 @@ L.run(async()=>{
        if(f==='Book')return [...bs].map(x=>parseInt((x.textContent||'').trim(),10));}return null;}):null;
    L.say(!!book&&book[0]===2&&book[1]===2,'TC-R161 F1 the summary paints Book 2 for White and 2 for Black on the 1.b3 game with ct_book_table=1, chess.com\'s own count (painted '+JSON.stringify(book)+'; 0 and 0 before)');
    L.say(b.errs.length===0,'TC-R161 F2 zero app errors',b.errs.slice(0,2));
+   await b.close();}
+  // ── G. THE SWITCH ON THE MENU [#550 item (52)]: Kunal's B10-SHIP-ON, every new feature on with its own switch in Settings. A fresh store
+  // (no ct_book_table) reads the table ON on the menu's New features section; a tap turns it OFF (the key written '0', the app reloaded and
+  // the row reading OFF); a second tap turns it back ON. The row is found by its label, not by the hook this build adds.
+  if(!process.env.CT_SRC){
+   const b=await L.launch({geo:'kunal761',name:'book-switch',store:{}});await b.open();
+   const MD=require('../drive/menu');
+   const row=async()=>{await MD.states['menu-bottom'](b);await b.settle(400);return b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Opening book table/.test((e.innerText||'').trim()));if(!x)return null;x.scrollIntoView({block:'center'});const r=x.getBoundingClientRect();return {t:(x.innerText||'').replace(/\s+/g,' ').trim(),x:r.left+r.width/2,y:r.top+r.height/2,key:localStorage.getItem('ct_book_table')};});};
+   let r0=null,r1=null,r2=null;try{r0=await row();}catch(e){}
+   L.say(!!r0&&/ON$/.test(r0.t)&&r0.key===null,'TC-R160 G1 on a fresh store the menu\'s New features section shows Opening book table ON (no key stored: the default)',r0);
+   if(r0){await b.page.mouse.click(r0.x,r0.y);await b.page.waitForLoadState('domcontentloaded').catch(()=>{});await b.settle(1500);try{r1=await row();}catch(e){}}
+   L.say(!!r1&&/OFF$/.test(r1.t)&&r1.key==='0','TC-R160 G2 a tap turns it OFF: ct_book_table is written 0 and, after the reload, the row reads OFF',r1);
+   if(r1){await b.page.mouse.click(r1.x,r1.y);await b.page.waitForLoadState('domcontentloaded').catch(()=>{});await b.settle(1500);try{r2=await row();}catch(e){}}
+   L.say(!!r2&&/ON$/.test(r2.t)&&r2.key==='1','TC-R160 G3 a second tap turns it back ON (written 1)',r2);
    await b.close();}
 },'87-opening-book');
