@@ -112,6 +112,6 @@ if (namedNoClose.length) {
   console.log('LEDGER-DIFF RED: ' + namedNoClose.length + ' flag(s) this repository talks about carry no close.');
   console.log('Write `handled` on each. "cited as a blocker, not fixed", "found already fixed at #NNN" and');
   console.log('"not a work item" are all correct closes; `stillOpenBecause` is how you leave one open on purpose.');
-  process.exit(1);
+  process.exitCode = 1;   // #550: exitCode, not exit() - exit() right after console.log truncates a piped stdout (control-audit, 90d0c90)
 }
 console.log('LEDGER-DIFF GREEN: every flag named in this repository carries a close.');

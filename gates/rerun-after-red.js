@@ -256,11 +256,11 @@ function selftest(){
 
 if(require.main===module){
   const [verb,...a]=process.argv.slice(2);const root=path.resolve(__dirname,'..');
-  if(verb==='plan'&&a[0])process.exit(printPlan(plan(root,a[0],{app:process.env.CT_APP})));
+  if(verb==='plan'&&a[0])process.exitCode=printPlan(plan(root,a[0],{app:process.env.CT_APP}));   // #550: exitCode, not exit() - a piped stdout is not truncated (90d0c90)
   else if(verb==='combine'&&a[1]){const r=combine(root,a[0],a[1],a[2],{app:process.env.CT_APP});
-    if(r.refused){console.log('REFUSED: '+r.refused);process.exit(1);}
-    console.log(a[2]?'wrote '+a[2]:r.text);console.log('RERUN-AFTER-RED: combined, '+r.plan.keep.length+' kept, '+r.plan.rerun.length+' rerun');process.exit(0);}
-  else if(verb==='selftest')process.exit(selftest());
-  else{console.log('usage: node gates/rerun-after-red.js plan <red-log> | combine <red-log> <subset-log> [out] | selftest');process.exit(2);}
+    if(r.refused){console.log('REFUSED: '+r.refused);process.exitCode=1;return;}
+    console.log(a[2]?'wrote '+a[2]:r.text);console.log('RERUN-AFTER-RED: combined, '+r.plan.keep.length+' kept, '+r.plan.rerun.length+' rerun');process.exitCode=0;}
+  else if(verb==='selftest')process.exitCode=selftest();
+  else{console.log('usage: node gates/rerun-after-red.js plan <red-log> | combine <red-log> <subset-log> [out] | selftest');process.exitCode=2;}
 }
 module.exports={plan,combine,parseLog,readSet,stripComments};
