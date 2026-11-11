@@ -229,7 +229,11 @@ if [ "$NOLIT" -gt 0 ]; then
 fi
 cp "$WORK/pairs" "${CT_SP_OUT:-/dev/null}" 2>/dev/null || true
 
-CEIL="${G_SPCEIL:-}"
+# #550, the orchestrator's ruling a4 on questions build__1794388896663-q4 (7:41am ET 11 Nov 2026), jobs/an-assertion-keyed-to-a-
+# selector-its-own-build-adds-cannot-control-2026-09-29: the ceiling is SET, at the same-build count this script reads on the run's
+# tree when it is set - 81 on the #550 branch (it was 35 on 9 Oct, 52 at #548, 59 at #549: left unset, it only rose). A new same-build
+# hook-and-assertion pair is now a RED; lower it as pairs are fixed. G_SPCEIL in the environment still overrides (the selftest uses it).
+CEIL="${G_SPCEIL:-81}"
 if [ -z "$CEIL" ]; then
   echo "NO CEILING SET (G_SPCEIL unset) - this run REPORTS and asserts nothing. Set G_SPCEIL to the"
   echo "measured count to make a new same-build pair a RED rather than a line in a log."
