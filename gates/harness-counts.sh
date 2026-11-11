@@ -27,7 +27,7 @@ count_of(){ # <name> <outfile>
     held-selftest)       m=$(grep -oE '^[0-9]+ PASS +[0-9]+ FAIL' "$o" | tail -1 | awk '{print $1, $3}') ;;
     verify-log-selftest) m=$(grep -oE 'verify-log self-test: [0-9]+ pass, [0-9]+ fail' "$o" | tail -1 | awk '{gsub(",","");print $3, $5}') ;;
     buildnum-selftest)   m=$(grep -oE 'buildnum self-test: [0-9]+ pass, [0-9]+ fail' "$o" | tail -1 | awk '{gsub(",","");print $3, $5}') ;;
-    *)                   m=$(grep -oE '(^|: )[0-9]+ (PASS|pass),? +[0-9]+ (FAIL|fail)' "$o" | tail -1 | grep -oE '[0-9]+' | head -2 | paste -sd' ') ;;
+    *)                   m=$(grep -oE '(^|: )[0-9]+ (PASS|pass),? +[0-9]+ (FAIL|fail)' "$o" | tail -1 | awk '{n=0;o="";for(i=1;i<=NF;i++){g=$i;gsub(/[^0-9]/,"",g);if(g!=""&&n<2){o=o(n?" ":"")g;n++}}print o}') ;;   # awk, not grep|head: no early-exit pipe under pipefail (gatemanifest.sh sigpipe)
   esac
   printf '%s' "$m"
 }
