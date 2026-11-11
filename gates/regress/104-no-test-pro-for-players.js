@@ -11,6 +11,7 @@
 //      "Unlock Pro (test mode)".
 //  (b) TC-HM-058b on a developer's store (ct_protest=1) the same sheet DOES offer it - so the absence in (a) is the switch,
 //      and not a renamed or moved button the selector would miss.
+// CONTROL-RECORD: f5a3432 2026-11-11 total=4 red=1 scope=trial:4fe71d55db29 how=#550 a1: the bundle before the change (the test unlock shown to every player) - TC-HM-058a's offer line red; the denominator and 058b green; good trial ae0f65399b7d 4/0
 const L=require('../lib');
 const read=(b)=>b.page.evaluate(()=>{const t=document.body.innerText||'';return {plans:/Monthly|Annual|Upgrade|Pro/.test(t),test:/Unlock Pro \(test mode\)/.test(t)};});
 async function sheet(store,name){const b=await L.launch({geo:'kunal761',name,store});await b.open();await b.settle(700);
