@@ -118,3 +118,4 @@
 103-online-flag-auto-end.js	required	550	2026-11-11	build__1794388896663	gates/regress/103-online-flag-auto-end.js - AN ONLINE GAME WHOSE FLAG FELL ENDS BY ITSEL	#550 item (101): online flag auto-end, TC-PL-070
 104-no-test-pro-for-players.js	required	550	2026-11-11	build__1794388896663	gates/regress/104-no-test-pro-for-players.js - THE ACCOUNT SHEET OFFERS NO "Unlock Pro (	#550 a1 (AUD-H14): no test Pro for players, TC-HM-058
 105-bank-toast-over-the-board.js	required	550	2026-11-11	build__1794388896663	gates/regress/105-bank-toast-over-the-board.js - THE "LINE LEARNED" TOAST SHOWS OVER THE	#550 answer a11: the Line-learned toast shows over the centre of the board and closes by itself
+106-games-list-four-counts.js	required	550	2026-11-11	build__1794388896663	gates/regress/106-games-list-four-counts.js - EACH GAMES-LIST ROW SHOWS BRILLIANT, BEST,	#550 answer a9: each games-list row shows Brilliant, Best, Great and Blunder, each the summary's

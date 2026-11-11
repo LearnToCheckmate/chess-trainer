@@ -2371,6 +2371,7 @@ const EVAL_CACHE_MAX=400;
 // #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
 const _libFold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold((op.name||'')+' \u2002 '+(op.idea||'')).includes(f);};
+const _tallySplit=(L)=>L==='Best'?'best':L==='Great'?'grt':null;   // #550 a9: the split buckets (book plies are not re-derived here: a residual, see the job)
 const _tallyBucket=(L)=>L==='Brilliant'?'bril':(L==='Best'||L==='Great')?'great':L==='Inaccuracy'?'inacc':(L==='Mistake'||L==='Miss')?'mist':L==='Blunder'?'blun':null;
 /* #549 item (28), Kunal's answer on questions/B8-BRILLIANT-RECOMPUTE ("recompute: grade them again, show me the changes first").
    A stored REVIEW is graded again from its own cached engine output, twice over the same numbers: under the previous rule and
@@ -2384,7 +2385,7 @@ function regradeGame(res,cache,userColor,rule){
   const N=res.plies.length;if(cache.evW.length!==N+1)return null;
   const evW=cache.evW.slice();
   for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}   // the #371 read patch importGame applies
-  const changes=[],delta={bril:0,great:0,inacc:0,mist:0,blun:0,obril:0},rows=[];
+  const changes=[],delta={bril:0,great:0,inacc:0,mist:0,blun:0,obril:0,best:0,grt:0},rows=[];
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
     const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule);   // rule: the app's own (BRIL_RULE) unless a caller names one
@@ -2392,7 +2393,7 @@ function regradeGame(res,cache,userColor,rule){
     rows.push(nw);
     const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
-    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;}
+    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(OL),b2=_tallySplit(NL);if(a2)delta[a2]--;if(b2)delta[b2]++;}
     else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
     if(OL==='Brilliant'||NL==='Brilliant'){
       const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -2409,7 +2410,9 @@ async function analyzeGameCounts(pgn,userColor){
     const _st=pgnStart(pgn);if(_st.err)return null;   // #547 item (78) / #549 item (66): a refused [FEN] header is never estimated; a set-up game is estimated from its header
     const sans=parsePGN(pgn);if(!sans||!sans.length)return null;
     const res=loadSANs(sans,_st.game);if(!res||!res.plies.length)return null;
-    let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0;
+    let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0,best=0,grt=0;
+    /* #550 answer a9 (item 73): Best and Great are counted apart, with the summary's book plies (effCls) kept out of Best, so the row's numbers are the summary's */
+    const _bk=_st.game?0:(()=>{try{return openingBookPlies(sans,res.positions)||0;}catch(e){return 0;}})();
     for(let i=0;i<res.plies.length;i++){
       const mc=res.positions[i].turn;const _opp=!!userColor&&mc!==userColor;   /* #549 item (66): the mover is the position's side to move, not ply parity - a set-up game may start with Black */ // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
       const pos=res.positions[i],scored=rankMoves(pos,2);if(!scored||!scored.length)continue;
@@ -2433,9 +2436,10 @@ async function analyzeGameCounts(pgn,userColor){
       const L=_c3.label;
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
+      {const E=effLabel(_c3,i,_bk);if(E==='Best')best++;else if(E==='Great')grt++;}
       if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));
     }
-    return {bril,great,inacc,mist,blun,obril};
+    return {bril,great,inacc,mist,blun,obril,best,grt};
   }catch(e){return null;}
 }
 
@@ -6275,6 +6279,10 @@ export default function App(){
       }
     }catch(e){}
     const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
+    if(meta&&meta.key&&gameStatsRef.current[meta.key]){   /* #550 answer a9 (item 73): the games list shows Best and Great apart, each the summary's own count for his side (effLabel, book applied) */
+      const uc=meta.userColor;let best=0,grt=0;out.forEach((o,i)=>{if(uc&&res.positions[i].turn!==uc)return;const E=effLabel(o.cls,i,bookN);if(E==='Best')best++;else if(E==='Great')grt++;});
+      recordGameStats(meta.key,{...gameStatsRef.current[meta.key],best,grt});
+    }
     const _sideStats=(side)=>{const c={};GRADE_LADDER.forEach(g=>{c[g[0]]=0;});   /* #549 item (1): the buckets come from the one ladder, not a hand-typed list */let sl=0,n=0;const _accs=[],_idxs=[];/* #440: the game's Win% series from WHITE's point of view at every position, length plies+1. It is the
    input to the volatility weighting, and it spans the WHOLE game rather than one side's moves, because a
    move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=res.positions[i].turn;if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(Object.prototype.hasOwnProperty.call(c,L))c[L]++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
@@ -6709,6 +6717,7 @@ export default function App(){
     for(const G of R.games){
       const st=GS[G.key];if(!st)continue;const d=G.delta,nt={...st};
       for(const f of ['bril','great','inacc','mist','blun','obril'])if(d[f])nt[f]=Math.max(0,(nt[f]||0)+d[f]);
+      for(const f of ['best','grt'])if(d[f]&&nt[f]!=null)nt[f]=Math.max(0,nt[f]+d[f]);   // #550 a9: only a tally that already carries the split
       recordGameStats(G.key,nt);
       const _notMine=!!(G.acct&&(acctMineRef.current||{})[G.acct]===false);   // #547 item (79): an account he marked not his feeds no pool
       if(_notMine)continue;
@@ -10366,7 +10375,9 @@ export default function App(){
                     <span data-ct="game-sub" style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',overflowWrap:'anywhere'}}>{/* #549 item (100), jobs/labels-truncate-in-shared-rows-2026-09-24: THIS ROW REFLOWS INSTEAD OF TRUNCATING. The opponent's name and this line shared a row with the fixed result badge and the fixed 'Review ›' control, so they got the remainder (184px at 375, 130px at 320) and were ellipsised - 'vs DukeKarlCountIs…' and 'jsmiller1112 · as Whit…' on Kunal's own phone with ordinary data, and a 25-character handle (chess.com's cap) lost half of itself at 320. The list scrolls, so a second line costs a row height and never the board: both lines now wrap, a handle with no spaces breaking anywhere. 'vs' is joined to the name by a no-break space so it is never left alone on a line. The badge (folded in from jobs/games-list-outcome-badge-word-spills-its-pill-2026-09-28) was a fixed 44px box and DRAW (51px in the row's own font at 14.5px, 3.52em) and GAME painted outside it; it is now 3.8em, ONE width for all four words so the names still line up row to row, and every word fits it with room. */}<span data-ct="game-src" style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{(ccAccts.length>1&&g.acct)?g.acct:(g.src==='li'?'Lichess':'Chess.com')}</span>{/* #547 item (79): with more than one account the card names WHOSE game it is, in the slot the site name used - no extra space; the site stays as the colour */}{info.userColor?(' · '+(info.userColor==='w'?'as White':'as Black')):''}{g.tc?(' · '+tcLabel(g.tc)):''}{g.date?(' · '+new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})):''}</span>
                     {!st&&<span data-ct="gstat-slot" aria-hidden="true" style={{display:'block',marginTop:4,height:'1.5em',fontSize:'clamp(14.5px,3.2vw,16.5px)'}}/>/* #547 item (99): the tally line's height is held before the tally arrives */}{st&&(()=>{const est=st.src!=='review';return(<span data-ct={est?'gstat-est':'gstat-rev'} style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'clamp(4px,1.4vw,9px)',minHeight:'1.5em',marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace',opacity:est?.78:1}}>
                       {est&&<span data-ct="gstat-esttag" title="estimate: review the game for exact counts" aria-label="estimate" style={{fontWeight:700,color:'rgba(255,255,255,.55)'}}>≈</span>/* #550 item (72): one character, not a 33px 'EST' tag, so the counts keep to one line at 320 (they needed 156px of 123 with it) */}
-                      <span style={{color:'#6fd66f'}}>★ {st.great}</span><span style={{color:'#f0a24e'}}>? {st.mist}</span><span style={{color:'#ec5c4e'}}>?? {st.blun}</span>
+                      {/* #550 answer a9 (item 73), Kunal on build__1794388896663-q9: "brilliant Best great and blunder" - four separate counts, each the summary's, Brilliant kept in its pill below Won. The summary's own glyphs and colours (GRADE_LADDER). A tally stored before the split carries Best and Great as one number, shown as one '★!' count until it is graded again (the backfill rides the GRADE_VER bump). */}{st.best!=null&&st.grt!=null
+                        ?<><span data-ct="gstat-best" title="Best moves" aria-label={st.best+' best'} style={{color:'#6fd66f'}}>★ {st.best}</span><span data-ct="gstat-great" title="Great moves" aria-label={st.grt+' great'} style={{color:'#5d93e8'}}>! {st.grt}</span></>
+                        :<span data-ct="gstat-bestgreat" title="Best and Great moves together - review the game to count them apart" aria-label={st.great+' best and great'} style={{color:'#6fd66f'}}>★! {st.great}</span>}<span data-ct="gstat-blun" title="Blunders" aria-label={st.blun+' blunders'} style={{color:'#ec5c4e'}}>?? {st.blun}</span>
                       {/* #548 item (128), jobs/opponent-brilliancies-on-the-games-list-2026-09-30, Kunal's 'marker': ONE small marker, no
                           number, when the OPPONENT played a brilliant move; the player's own count beside it is untouched. Outlined and
                           muted so it never reads as his own pill. */}

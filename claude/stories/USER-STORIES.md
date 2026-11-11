@@ -2104,3 +2104,10 @@ As a player reviewing a game I played as Black, my accuracy card, my count colum
 *Added #550 item (97), jobs/the-main-engine-worker-still-posts-go-before-the-stopped-search-answers-in-the-eval-bar-and-play-2026-11-07 (#549 antagonist A, A2-R3).*
 As a player tapping quickly through my moves, every engine waits for its last search to answer before it is asked again, so the engine never traps and the eval bar keeps working.
 - No worker is sent 'go' while its last search has not answered, on a fast Review walk and in Play, and no engine traps. (TC-R186)
+
+### US-R120 Each game on my games list shows Brilliant, Best, Great and Blunder
+*Added #550 item (73), jobs/opponent-brilliancies-on-the-games-list-2026-09-30 (Kunal's answer a9 on build__1794388896663-q9, 11 Nov 2026: "Four numbers. Each game row shows four separate counts, Brilliant, Best, Great and Blunder, each matching the game summary, with Brilliant kept below Won").*
+As a player looking down my games list, each reviewed game shows its Brilliant count in the pill below the result, then its Best, Great and Blunder counts, each the number the game's summary shows for my side.
+- A reviewed game's four counts are the summary's own, book moves kept out as the summary keeps them, and the row prints them. (TC-R187a)
+- The counts are ★ Best, ! Great and ?? Blunder on one line, with no Mistake count, at 375x761 and 320x568. (TC-R187b)
+- A game counted before the split shows one combined ★! count until it is graded again, never a guessed split. (TC-R187c)
