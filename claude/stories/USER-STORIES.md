@@ -690,7 +690,12 @@ playing, and nothing takes it away from me without asking.
 - **AND THE RULE IS ABOUT EVERY CONTROL THAT REPLACES THE GAME, NOT ABOUT ONE BUTTON. (TC-R45, added #471.)**
   Wherever I can reach it - the More sheet's 'New game', any Game-setup choice in the hamburger menu (who I am
   playing, the clock, my colour), or a lesson's 'Play this position vs Computer' - a control that would replace
-  the game I am in asks me first, in the same way, and the thing I must tap twice is the same thing both times.
+  the game I am in: (5a) asks me first (TC-R45a); (5b) asks in the SAME WORDS at every such control, "Tap again to
+  discard your game" (Kunal's B9C-CONFIRM-WORDS answer 'same-words', 10 Nov 2026), with a Game-setup choice I tapped
+  still turning amber so I can see which one the second tap must be (TC-R45b); and (5c) the thing I must tap twice
+  is the same thing both times (TC-R45c). SPLIT AT #550 item (75) [jobs/us-r16-clause-5-bundles-three-claims-under-one-
+  case-2026-10-06]: the clause used to carry all three under the one id TC-R45, so a fix satisfying (5a) with four
+  different wordings read as satisfying the clause.
   A game that has just FINISHED counts: it is still mine to review, and Review is only offered from the result
   screen, so discarding it discards the only route to it. AND A POSITION I HAVE LOADED BUT NOT YET MOVED IN
   COUNTS - one I sent over from a review, opened from a lesson, or PHOTOGRAPHED off a real board. It has no

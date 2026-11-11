@@ -83,7 +83,7 @@ async function tapStart(b,wait){
     const e=document.querySelector('[data-ct="setup-start"]');
     return !!e&&/tap again/i.test((e.innerText||'').trim());
   });
-  if(armed)await tapBtn(b,/^Tap again to discard your game and start$/,wait);
+  if(armed)await tapBtn(b,/^Tap again to discard your game( and start)?$/,wait);   // #550 item (75): the shared words; the old form kept so an older bundle still drives
   return box;
 }
 // plies on the board, read from the live move row ("1. e4 1… e5 2. Nf3" -> 3)

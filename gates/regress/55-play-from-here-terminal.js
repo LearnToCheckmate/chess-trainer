@@ -1,5 +1,6 @@
 // gates/regress/55-play-from-here-terminal.js
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: its reviews come from the pooled engine, and the terminal plies it reaches are found through them.
+// CONTROL-RECORD: 6e56cfc 2026-11-11 total=77 red=1 scope=trial:5450c9f91a7a how=#550 item (12): the Play-from-here position read from boardGame instead of anaMode?game:review.positions[ply] - the one line that pins which position the sheet row tests red; every other line green
 // CONTROL-RECORD: 6e56cfc 2026-11-11 total=77 red=6 scope=trial:16fa026d3593 how=#550 item (12), re-run of #549 job 12's deferred control on the committed 77-assertion gate: the review sheet's Play from here row's dis={_pfT} replaced by dis={false} - A14 and A15 red at mate@kunal730, mate@se and stale@kunal730; every other line green; the tree's trial d044eeb93e96 reads 77 pass 0 fail
 // jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27, whose `coverage` field read
 // "NO GATE COVERS THIS ROUTE AT ALL". Landed at #466.
@@ -64,7 +65,7 @@ const noteAndButton=async(b)=>{
 // data-ct #466 added with these assertions: on the pre-#466 bundle that hook is absent, so a hook-keyed tap clicked NOTHING
 // and A7-A9 ("tapping it starts nothing") PASSED on the one bundle where tapping it started a game. The hook is a FALLBACK
 // only, and the reading says which locator found it (`by`).
-const CONFIRM_RE=/^(\u25b6 Start game|\u25b6 Play this position|That position is already over|Continue \u2192|Tap again to discard your game and start)$/;
+const CONFIRM_RE=/^(\u25b6 Start game|\u25b6 Play this position|That position is already over|Continue \u2192|Tap again to discard your game and start|Tap again to discard your game)$/;
 const confirmBtn=(b)=>b.page.evaluate((src)=>{const re=new RegExp(src);const s=document.querySelector('[data-ct="setup-sheet"]');if(!s)return null;
   const xs=[...s.querySelectorAll('button')].filter(x=>re.test((x.innerText||'').trim()));let e=xs[xs.length-1],by='text';
   if(!e){e=s.querySelector('[data-ct="setup-start"]');by='hook';}

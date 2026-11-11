@@ -80,6 +80,8 @@
 // rather than sold as coverage [#411].
 'use strict';
 const L=require('../lib'), P=require('../drive/play'), R=require('../drive/review'), LE=require('../drive/lesson');
+// #550 item (75): every block that arms a game-replacing control records the confirm text it read, for block X's cross-control equality.
+const CONFIRMS=[];
 const ONLY=process.env.CT_B70||'';
 const GEOS=[{k:'kunal',w:375,h:730},{k:'320x568',w:320,h:568},{k:'390x844',w:390,h:844}];
 
@@ -126,7 +128,7 @@ async function tapPill(b,txt){
 // tap the More sheet's new-game row by its text, armed or not
 async function tapNewGame(b){
   const h=await b.page.evaluateHandle(()=>{const sh=document.querySelector('[data-ct="more-sheet"]');if(!sh)return null;
-    for(const e of sh.querySelectorAll('button,[role=button],div')){const t=(e.innerText||'').replace(/\s+/g,' ').trim();if(!/^(New game|Tap again to discard)$/.test(t))continue;const r=e.getBoundingClientRect();if(r.width<40||r.height<20||r.height>90)continue;return e;}return null;},null);
+    for(const e of sh.querySelectorAll('button,[role=button],div')){const t=(e.innerText||'').replace(/\s+/g,' ').trim();if(!/^(New game|Tap again to discard( your game)?)$/.test(t))continue;const r=e.getBoundingClientRect();if(r.width<40||r.height<20||r.height>90)continue;return e;}return null;},null);
   const el=h.asElement();if(!el)throw new Error('tapNewGame: no New game row');
   await b.page.waitForTimeout(140);const box=await el.boundingBox();
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(650);return box;
@@ -204,8 +206,9 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
       const p1=await P.plies(b), r1=await moverow(b);
       L.say(p1===3,G+' B1 ONE TAP ON "New game" DOES NOT DISCARD THE GAME: plies still 3',{plies:p1,row:r1});
       rows=await sheetRows(b);
-      const relabelled=!!(rows&&rows.some(r=>/^Tap again to discard$/.test(r.t)));
+      const relabelled=!!(rows&&rows.some(r=>/^Tap again to discard( your game)?$/.test(r.t)));
       L.say(relabelled,G+' B2 the row SAYS it is armed, so the first tap is not silently swallowed',{rows:(rows||[]).map(r=>r.t)});
+      {const r=(rows||[]).find(x=>/^Tap again/.test(x.t));CONFIRMS.push({g:G,control:'More sheet New game',text:r?r.t:null});}
       // 3. the rows BELOW must not move: a longer label that wrapped would push Resign/Analyze/Copy down
       const dR=yResign!=null&&rowY(rows,/^(Resign|Tap again to resign)$/)!=null?Math.abs(rowY(rows,/^(Resign|Tap again to resign)$/)-yResign):0;
       const dA=yAnalyze!=null&&rowY(rows,/^Analyze$/)!=null?Math.abs(rowY(rows,/^Analyze$/)-yAnalyze):0;
@@ -255,7 +258,10 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
          crash needed exactly the bundle built to redden this assertion. */
       L.say(!!wAr&&!!wUn&&Math.abs(wAr.h-wUn.h)<0.01,G+' H1 THE RESERVED ROW IS THE SAME HEIGHT ARMED AND UNARMED ('+(wUn&&wUn.h)+' -> '+(wAr&&wAr.h)+')',{un:wUn,ar:wAr});
       L.say(!!wAr&&wAr.sh<=wAr.ch,G+' H2 the armed sentence is not cut: scrollHeight '+(wAr&&wAr.sh)+' <= clientHeight '+(wAr&&wAr.ch)+'. A reserved box that clips its own warning is #394 again',wAr);
-      L.say(!!wAr&&/Tap the same choice again/i.test(wAr.t||''),G+' H4 the armed sentence names what the second tap must be - the SAME choice - because the arm is keyed',wAr&&wAr.t);
+      /* #550 item (75): Kunal's B9C-CONFIRM-WORDS 'same-words' replaced 'Tap the same choice again ...' with the shared wording, so H4 now
+         pins THAT; which choice the second tap must be is still on screen, as the amber pill (C3), so the keyed arm is not lost. */
+      CONFIRMS.push({g:G,control:'Game-setup pill (the warning row; the armed pill is amber)',text:wAr?(wAr.t||'').trim():null});
+      L.say(!!wAr&&(wAr.t||'').trim()==='Tap again to discard your game',G+' H4 the armed sentence is the SHARED confirm wording every replacing control uses ("Tap again to discard your game"), and the choice the second tap must be is the amber pill (C3)',wAr&&wAr.t);
 
       // D. THE KEY. Tap a DIFFERENT pill: it must not confirm the first one's arm.
       const okD=await tryTap(()=>tapPill(b,other));
@@ -414,6 +420,7 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
     if(p0===3&&at&&l0&&!l0.dis){
       await b.tapCt('learn-play-position',700).catch(()=>{});
       const l1=await label();
+      CONFIRMS.push({g:G,control:'lesson Play this position',text:l1?l1.t:null});
       L.say(!!l1&&/Tap again/.test(l1.t||''),G+' K1 ONE TAP ARMS INSTEAD OF STARTING: the lesson sheet is still up and its button now asks for a second tap',l1);
       await b.tapCt('learn-play-position',900).catch(()=>{});
       const s2=await placement(b), p2=await P.plies(b);
@@ -443,6 +450,30 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
     L.say(b.errs.length===0,G+' K3z zero app console errors',b.errs.slice(0,3));
     await b.close();
   }
+  // X0 [#550 item (75)]: the setup sheet's Start over a live game - the fourth replacing control, guarded since #469 and driven by no
+  // block here until now. Arm it, read its text, and tap the SAME element again: the confirm target is the control that was tapped.
+  {
+    const b=await L.launch({geo:{w:g.w,h:g.h},name:'b70-start-'+G}); await b.open();
+    const p0=await liveGame(b,3);
+    let t1=null,p2=null,ok=false;
+    try{await b.home();await b.tile('Play');await b.settle(600);
+      await b.tapCt('setup-start',700);
+      t1=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="setup-start"]');return e?(e.innerText||'').trim():null;});
+      await b.tapCt('setup-start',1100);p2=await P.plies(b);ok=true;}catch(e){L.note(G+' X0 drive threw: '+String(e).slice(0,120));}
+    L.say(p0===3&&ok&&/^Tap again/.test(t1||''),G+' X0 over a 3-ply live game ONE tap on the setup sheet\'s Start arms instead of starting ("'+t1+'")',{plies:p0,t1});
+    L.say(p0===3&&ok&&p2===0,G+' X0 and a second tap on the SAME control starts the new game (plies '+p2+'): the thing tapped twice is the same thing',{p2});
+    CONFIRMS.push({g:G,control:'setup Start',text:t1});
+    await b.close();
+  }
   } // end of the kunal-only J/K blocks
 }
+  /* X [#550 item (75); US-R16 clauses 5b and 5c, Kunal's B9C-CONFIRM-WORDS 'same-words']: OVER THE SET of game-replacing controls this gate
+     arms, the confirm text is ONE string, and it is the shared wording. The count prints every run; a control whose text was not read is a
+     red, never a skip. The set: the More sheet's New game, the Game-setup pills' warning row, the lesson's Play this position and the setup
+     Start (X0). */
+  {const W='Tap again to discard your game';
+   const kinds=[...new Set(CONFIRMS.map(c=>c.control))];
+   L.say(kinds.length>=4&&CONFIRMS.every(c=>c.text),'TC-R45b X DENOMINATOR the confirm text was read on '+CONFIRMS.length+' arming(s) over '+kinds.length+' controls ('+kinds.join('; ')+')',CONFIRMS);
+   const texts=[...new Set(CONFIRMS.map(c=>c.text))];
+   L.say(kinds.length>=4&&texts.length===1&&texts[0]===W,'TC-R45b X every game-replacing control asks with the SAME words, "'+W+'" ('+texts.length+' distinct: '+texts.map(t=>JSON.stringify(t)).join(', ')+')',CONFIRMS);}
 },'70-live-game-reset-guard');
