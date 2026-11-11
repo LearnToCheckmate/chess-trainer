@@ -1317,7 +1317,16 @@ async function blockL(){
   L.say(pLive>pStart,
     'TC-PL-054 L0c INSTRUMENT: a BLACK move from the human side is accepted while the game is LIVE and the clock runs',
     {before:pStart,after:pLive,row:await row(b)});
+  // #550 item (121) [jobs/gate-65-block-ks-k0d-and-k0e-do-not-read-which-side-flagged-so-they-pass-for-block-is-cell-2026-10-13,
+  // antagonist B's P1-3 of #517]: pBefore and rowBefore WERE captured here, straight after the human's move and BEFORE the
+  // engine's reply, so a reply landing inside the 140s flag wait made them stale and L1, L1b and L1c would go RED on a
+  // healthy bundle. Wait for the reply first (one more ply), then read; a reply that never comes is its own red.
+  // The target is pStart+2 (the human's move AND the engine's reply), not pLive+1: b.move waits 900ms and the reply
+  // often lands inside it (measured: pLive already 3 = 1.Nc3 Nf6 2.e4), so pLive may or may not include it.
+  const replied=await P.waitPlies(b,pStart+2,30000).then(()=>true,()=>false);
+  await b.settle(300);
   const rowBefore=await row(b),pBefore=await plies(b);
+  L.say(replied&&pBefore===pStart+2,'TC-PL-054 L0c2 INSTRUMENT: the engine replied (the human\'s move plus the reply, '+pStart+' -> '+pBefore+' plies) before the board is read for the flag comparison, so pBefore is not stale',{pStart,pLive,pBefore,replied});
   // Now simply wait. It is BLACK's move - the human's - and Black never moves again, so BLACK's clock runs out.
   const ms=await waitFlag(b,140000);
   L.say(ms!==null,'TC-PL-054 L0d BLACK'+"'"+'s clock - the HUMAN'+"'"+'s - flagged with the engine as opponent',{ms});
