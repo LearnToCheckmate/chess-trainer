@@ -684,4 +684,36 @@ L.run(async()=>{
   //       Antagonist A found it; antagonist B measured that NO producer can write a label-less row
   //       (`git log -S` shows every version of the capture carrying `label:`), so it is a gate blindness
   //       rather than a reachable defect, and it is recorded on job (1) rather than asserted here.
+
+  /* ── TC-R180 (US-R03 clause, #550 item (57); jobs/drill-grading-uses-a-shallow-local-search-2026-10-01 folding in
+     jobs/coachs-take-stop-calling-a-game-clean-when-its-own-moves-went-into-the-practice-list-2026-10-12) ─────────────────────────────
+     THE FOURTH LABEL CONSUMER this file's job names (newInstance4_P1_coachsTake): the Coach's take counted a.cls.label while the drill
+     capture saves by a.sel, so the summary called a game clean on the visit that put 6 of its positions in Practice your mistakes.
+     Kunal's reword-coach: keep both scales, reword the coach line. Rendered, through a stored chess.com account so the review knows
+     the player's side (the route this file's header said was missing): the reference game (pgnForRepro of this file's job) as Black,
+     and Scholar's Mate as White, whose player made no move the capture keeps, which must still read 'A clean game'. The number the
+     sentence prints is checked against the drill store the SAME review wrote, not against a constant. */
+  {const REF='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.01"]\n[White "Jsmiller1112"]\n[Black "Crusher9000"]\n[Result "0-1"]\n[TimeControl "600"]\n\n1. e4 e5 2. Qh5 Nc6 3. Qxf7+ Kxf7 4. Nc3 d5 5. exd5 Qxd5 6. Be2 Qxg2 7. Nf3 Qxh1+ 8. Bf1 Nf6 9. d3 Bd6 10. Bg5 Qg2 11. Bxf6 gxf6 12. Ne4 Bb4+ 13. c3 Bxc3+ 14. bxc3 Qxf1+ 15. Kd2 Qxa1 0-1\n';
+   const SCH='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.02"]\n[White "Scholar"]\n[Black "Victim"]\n[Result "1-0"]\n[TimeControl "600"]\n\n1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7# 1-0\n';
+   const coach=async(geo,acct,me,white,black,pgn)=>{const id='cc:'+acct.toLowerCase();
+     const b=await L.launch({geo,name:'r180-'+acct+'-'+geo,store:{ct_pool:'3',ct_ccuser:'',ct_liuser:'',ct_accts:[id],ct_acctgames:{[id]:[{src:'cc',acct,white,black,wr:'win',tc:'rapid',date:1757000001000,pgn}]}}});
+     await b.open();let r=null;
+     try{await b.tile('Review');await b.settle(1200);await b.page.locator('button',{hasText:/Review ›/}).first().click();
+       await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1500);
+       r=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const t=s.innerText||'';
+         let mm=[];try{mm=JSON.parse(localStorage.getItem('ct_mymistakes')||'[]');}catch(e){}
+         const you=(t.match(/\b(White|Black)\s+YOU\b/i)||[])[1]||null;
+         return {coach:(t.match(/Coach.s take\s*\n([^\n]+)/)||[])[1]||null,you,saved:mm.length};});}catch(e){r={err:String(e).slice(0,160)};}
+     await b.close();return r;};
+   for(const geo of ['kunal761','se']){
+     const r=await coach(geo,'Crusher9000','b','Jsmiller1112','Crusher9000',REF);
+     L.say(!!r&&!!r.coach&&r.saved>0,geo+': TC-R180 PRECONDITION the reference game reviewed as Black through a stored account: the coach line rendered and the review saved '+(r&&r.saved)+' position(s) to Practice your mistakes',r);
+     const m=r&&r.coach&&r.coach.match(/^No move of yours is labelled a mistake or a blunder, but (one|\d+) cost enough to go into Practice your mistakes\. Try (it|them) there\.$/);
+     const n=m?(m[1]==='one'?1:+m[1]):null;
+     L.say(!!m&&!/A clean game/.test(r.coach),geo+': TC-R180 a game whose labels show no mistake or blunder but whose moves went into the practice list is NOT called clean: the coach says both ("'+(r&&r.coach)+'")',r);
+     L.say(!!m&&n===r.saved,geo+': TC-R180 and the number it prints ('+n+') is the number of positions the same review saved ('+(r&&r.saved)+')',{n,saved:r&&r.saved});
+     const c=await coach(geo,'Scholar','w','Scholar','Victim',SCH);
+     L.say(!!c&&c.saved===0&&/^A clean game: no mistakes or blunders on your side\./.test(c.coach||''),geo+': TC-R180 a game with nothing saved to practice still reads \'A clean game\' (Scholar\'s Mate as White; saved '+(c&&c.saved)+')',c);
+   }
+  }
 });

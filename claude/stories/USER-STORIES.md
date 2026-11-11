@@ -145,6 +145,10 @@ As a player, I see one card with the categories down the side and one value colu
 - No summary text is painted under the status bar, and the summary's own menu button (rev-summary-menu) is never
   painted over summary text at any scroll position: it sits in a row of its own that does not scroll. (TC-R79,
   TC-R111; #549, jobs/review-summary-runs-under-the-status-bar-2026-09-22)
+- The Coach's take never calls a game of mine clean when moves of mine from it went into Practice your mistakes: where no move is
+  labelled a mistake or a blunder but some cost enough to be saved, it says both and gives that number, which is the number the drill
+  holds from that review; a game with nothing saved still reads 'A clean game'. The tiles below stay on the labels. (TC-R180; #550
+  item (57), Kunal's reword-coach of 11 Oct 2026; SHOW FIRST)
 
 ### US-R04 The move screen fits the phone and the board never moves
 As a player stepping through a review on my phone, the board is as large as the screen allows and it stays
