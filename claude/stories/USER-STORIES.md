@@ -1845,6 +1845,12 @@ As a player against a named computer character, every strength the app prints fo
 - Tapping a character's tile sets its starting number again, and a slider move off the ladder clears the character, so no tile claims a number. (TC-PS-044)
 - The character blurbs do not track strength (Kunal accepted Pip reading "just learning" at any number). Only a loss is driven; the ladder line is symmetric, so a win changes no reader.
 
+
+### US-PL-24 A video call that nobody answers gives up, and I can refuse calls once
+*Added #550 item (87), jobs/video-call-timeout-and-optout (Kunal's Desk answers of 19 Sep 2026: Q-VC-2 '20 seconds', Q-VC-3 'switch', Q-VC-1 'never' a relay server; moved into scope on his word of 10 Nov 2026).*
+As a player in an online game, a call I place that does not connect gives up after 20 seconds and tells me honestly that the other side may not have picked up or the call may not have reached them; I can switch off 'Let opponents video call me' so calls are declined without ringing; and a friend's invite link opens on the game itself.
+- A call not connected after 20 seconds is hung up and the words name both possibilities. (TC-PL-068a)
+- With the switch off an incoming call never rings and is declined; switched back on it rings, and the ring stops when the caller hangs up. (TC-PL-068b, TC-PL-068c)
 ### US-R88 The grade table's White and Black headers sit over their own numbers
 *Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
 As a player reading the grade table, each column's header is directly above its numbers.

@@ -2354,6 +2354,8 @@ function brilCardWhy(o,mc){
   return brilGiveTxt(_g,true)+_stand+'. '+
     (_mo.indexOf('mate')>=0?'It forces mate.':_mo.indexOf('fork')>=0?forkTxt(o.forkT):_mo.indexOf('discovered check')>=0?'A discovered check, which is why it lands so hard.':_mo.indexOf('promotion')>=0?'The pawn promotes.':'Hard to see, and it holds.');
 }
+// #550 item (87): an unconnected video call gives up after this long (Kunal's Q-VC-2)
+const VC_TIMEOUT_MS=20000;
 // #550 item (79): the review cache's soft cap - far above the 24 it replaces; storage quota is the real bound (evalCacheSet)
 const EVAL_CACHE_MAX=400;
 // #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
@@ -3777,6 +3779,12 @@ export default function App(){
   const [vcMuted,setVcMuted]=useState(false);
   const [vcCamOff,setVcCamOff]=useState(false);
   const [vcErr,setVcErr]=useState('');
+  /* #550 item (87) [jobs/video-call-timeout-and-optout; Kunal's Q-VC-3 'switch' on the Desk, 19 Sep 2026, over the orchestrator's
+     'Decline is enough']: a player can refuse video calls ONCE. With ct_vc_noring '1' an incoming call never rings: it is declined
+     at once (the caller's side ends instead of waiting out its timer) and the game carries on. */
+  const [vcNoRing,setVcNoRing]=useState(()=>{try{return localStorage.getItem('ct_vc_noring')==='1';}catch(e){return false;}});
+  useEffect(()=>{try{if(vcNoRing)localStorage.setItem('ct_vc_noring','1');else localStorage.removeItem('ct_vc_noring');}catch(e){}},[vcNoRing]);
+  const vcNoRingRef=useRef(vcNoRing);vcNoRingRef.current=vcNoRing;
   const vcPcRef=useRef(null); const vcStreamRef=useRef(null); const vcLocalRef=useRef(null); const vcRemoteRef=useRef(null);
   const vcCandsRef=useRef([]); const vcAppliedRef=useRef(0); const vcSessRef=useRef(null); const vcPushTimerRef=useRef(null); const vcStateRef=useRef('off');
   const [myGames,setMyGames]=useState(null);        // user's ongoing/recent online games (account-based)
@@ -7185,10 +7193,10 @@ export default function App(){
   const onlineDeclineDraw=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{drawBy:null,notice:{for:og.drawBy,msg:'Draw declined',t:Date.now()}});};
   const onlineDismissNotice=()=>{const og=onlineGameRef.current,C=window.CTCloud;if(!og||!C)return;C.gamePush(og.id,{notice:null});};
   // Shared invite link (?g=CODE): land on the Online tab with the code prefilled, then auto-join once signed in
-  useEffect(()=>{if(pendingJoin){setOpponent('online');setMode('play');setPlaySetup(false);setOnlineCodeInput(pendingJoin);}},[]);
+  useEffect(()=>{if(pendingJoin){setHomeScreen(false);setOpponent('online');setMode('play');setPlaySetup(false);setOnlineCodeInput(pendingJoin);}},[]);   /* #550 item (87): an invite link opens ON the game - Home starts up (useState(true)) and used to sit over the joined game, found by gate 96 driving this route */
   useEffect(()=>{
     if(!pendingJoin||!cloudUser||!window.CTCloud||onlineGame)return;
-    setOpponent('online');setMode('play');setPlaySetup(false);
+    setHomeScreen(false);setOpponent('online');setMode('play');setPlaySetup(false);
     onlineJoin(pendingJoin);
     setPendingJoin(null);
     try{window.history.replaceState(null,'',window.location.pathname);}catch(e){}
@@ -7215,14 +7223,23 @@ export default function App(){
   // signaling watcher: reacts to the game doc's rtc fields
   useEffect(()=>{const og=onlineGame;if(!og||!cloudUser){if(vcStateRef.current!=='off'){vcCleanup();vcSet('off');}return;}const rtc=og.rtc||null;const st=vcStateRef.current;const mc=myColorRef.current;const oc=mc==='w'?'b':'w';
     if(!rtc){if(st!=='off'&&st!=='error'){vcCleanup();vcSet('off');}return;}
-    if(rtc.hangup){if(st!=='off'&&st!=='error'&&vcSessRef.current===rtc.id){vcCleanup();vcSet('off');}return;}
-    if(rtc.from!==cloudUser.uid&&!rtc.answer&&st==='off'&&(Date.now()-(rtc.ts||0))<120000){vcSet('ringing');return;}
+    if(rtc.hangup){if((st==='ringing')||(st!=='off'&&st!=='error'&&vcSessRef.current===rtc.id)){vcCleanup();vcSet('off');}return;}   /* #550 item (87): a ring whose caller hung up (or timed out) stops ringing - before, only an answered session cleared, so the callee's ring outlived the call */
+    if(rtc.from!==cloudUser.uid&&!rtc.answer&&st==='off'&&(Date.now()-(rtc.ts||0))<120000){
+      if(vcNoRingRef.current){const C=window.CTCloud;if(C)C.gamePush(og.id,{rtc:Object.assign({},rtc,{hangup:cloudUser.uid,declined:'noring'})}).catch(()=>{});return;}   /* #550 item (87): the switch - declined without ringing */
+      vcSet('ringing');return;}
     const pc=vcPcRef.current;if(!pc||vcSessRef.current!==rtc.id)return;
     const remote=Array.isArray(og['rtcC_'+oc])?og['rtcC_'+oc]:[];
     const applyCands=()=>{if(vcPcRef.current!==pc||!pc.remoteDescription)return;for(let i=vcAppliedRef.current;i<remote.length;i++){try{pc.addIceCandidate(new RTCIceCandidate(JSON.parse(remote[i]))).catch(()=>{});}catch(e){}}if(remote.length>vcAppliedRef.current)vcAppliedRef.current=remote.length;};
     if(rtc.from===cloudUser.uid&&rtc.answer&&pc.signalingState==='have-local-offer'){pc.setRemoteDescription(new RTCSessionDescription(rtc.answer)).then(applyCands).catch(()=>{});return;}
     applyCands();
   },[onlineGame,cloudUser]);
+  /* #550 item (87) [Kunal's Q-VC-2 = 20 seconds]: a call that has not connected after VC_TIMEOUT_MS gives up. There was no timer at
+     all: an unanswered call said Connecting for ever and Hang up was the only way out. The words cannot know WHICH happened - a call
+     that never reached the other phone's network looks exactly like one nobody answered (no relay server, Q-VC-1 = never) - so they
+     say both. ct_vc_timeout_ms overrides the 20s for a gate only. */
+  useEffect(()=>{if(vcState!=='calling')return;let ms=VC_TIMEOUT_MS;try{const o=+localStorage.getItem('ct_vc_timeout_ms');if(o>0)ms=o;}catch(e){}
+    const t=setTimeout(()=>{if(vcStateRef.current!=='calling')return;vcHangup(false);setVcErr('No answer after '+Math.round(ms/1000)+' seconds. Your opponent may not have picked up, or the call could not reach their phone\u2019s network.');vcSet('error');},ms);
+    return ()=>clearTimeout(t);},[vcState]);
   useEffect(()=>()=>{vcCleanup();},[]);
 
   const humanCanMove=()=>{
@@ -10842,7 +10859,7 @@ export default function App(){
               </div>);
             })()}
             {(()=>{const og=onlineGame;if(!og||og.status!=='active'||!og.w||!og.b)return null;const rtc=og.rtc||null;const callerName=(rtc&&rtc.from!==cloudUser.uid)?'Your opponent':'';
-              if(vcState==='off'||vcState==='error')return(<div style={{display:'flex',flexDirection:'column',gap:6}}><button data-ct="vc-start" onClick={vcStart} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',fontWeight:700}}>Video call</button>{vcState==='error'&&vcErr?<div style={{fontSize:'clamp(12.5px,2.5vw,13px)',color:'#f0b8a8',lineHeight:1.4}}>{vcErr}</div>:null}</div>);
+              if(vcState==='off'||vcState==='error')return(<div style={{display:'flex',flexDirection:'column',gap:6}}><button data-ct="vc-start" onClick={vcStart} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',fontWeight:700}}>Video call</button>{vcState==='error'&&vcErr?<div data-ct="vc-err" style={{fontSize:'clamp(12.5px,2.5vw,13px)',color:'#f0b8a8',lineHeight:1.4}}>{vcErr}</div>:null}<button data-ct="vc-noring" role="switch" aria-checked={!vcNoRing} onClick={()=>setVcNoRing(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:44,padding:'0 4px',background:'none',border:'none',color:'rgba(255,255,255,.78)',cursor:'pointer',fontSize:'clamp(13px,2.6vw,14px)',textAlign:'left'}}><span>Let opponents video call me</span><span style={{fontWeight:800,color:vcNoRing?'rgba(255,255,255,.5)':'var(--ac2)'}}>{vcNoRing?'Off':'On'}</span></button></div>);
               if(vcState==='ringing')return(<div data-ct="vc-ring" style={{display:'flex',flexDirection:'column',gap:8,background:'rgba(110,168,254,.14)',border:'1px solid rgba(110,168,254,.45)',borderRadius:11,padding:'9px 12px'}}><span style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#cfe0ff'}}>{callerName||'Your opponent'} is calling</span><div style={{display:'flex',gap:8}}><button onClick={vcAccept} style={{...btn('var(--ac)','none','#191919'),fontWeight:800,flex:1}}>Answer</button><button onClick={()=>vcHangup(false)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:1}}>Decline</button></div></div>);
               return(<div data-ct="vc-live" style={{display:'flex',flexDirection:'column',gap:6}}>
                 <div style={{position:'relative',width:'100%',aspectRatio:'4 / 3',background:'#000',borderRadius:12,overflow:'hidden',border:'1px solid rgba(255,255,255,.16)'}}>
