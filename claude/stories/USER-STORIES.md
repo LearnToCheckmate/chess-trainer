@@ -399,6 +399,12 @@ lesson and leaves what the card says, and when it shows, out of scope. This clau
 *Added #550 item (68), jobs/playful-and-classic-skins-show-the-same-icon-2026-11-11 (Kunal, 11 Nov 2026: "Why do playful and classic have the same Icon ... We used to have different ones.").*
 As a player choosing a skin, each skin looks like itself: no two skins share their Home tile icons, and each skin's row in the menu leads with its own icons, so Playful and Classic can be told apart at a glance. Classic's are its own pre-#366 emoji (📖 🧩 📈 👑), still all four emoji as Kunal chose at #366. (TC-HM-057)
 
+### US-HM-16 I can find a lesson in a long list without scrolling through all of it
+*Added #550 item (77), jobs/bench-97-lesson-list-is-5934px-of-scroll-with-no-filter-and-no-position-marker-2026-10-06 (Kunal, 8 Oct 2026, on counts and a filter for these lists: "Yes, same rule everywhere"; orchestratorRuling_2026_11_07).*
+As a player who knows the opening I came for, I type part of its name or its idea into one filter box under the list's header and see only the lessons that match, on either side, and each section says how many it holds.
+- On the Openings, Gambits and Endgames lists, at 375x761 and 320x568, a filter box 44px tall sits under the group header; typing a part of a lesson's name or idea (accents ignored, so 'reti' finds Réti) leaves exactly the lessons whose name or idea contains it, and a text no lesson contains says so and offers to clear the filter. (TC-S08a, TC-S08b)
+- Every section of those lists shows its count, and the count equals the rows under it, filtered or not. (TC-S08c)
+
 ### US-OC-01 When I set up an online game I can choose any clock, and the sheet shows exactly one choice
 - All eight live time controls can be chosen for an Online game, not only the day-per-move limits (R-OC-1).
 - The correspondence row's three day limits can still be chosen (adding live clocks costs nothing that already worked).

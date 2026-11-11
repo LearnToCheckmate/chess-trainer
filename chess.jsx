@@ -3735,6 +3735,8 @@ export default function App(){
   const cyclingRef=useRef(false);
   const [learnCat,setLearnCat]=useState(null);
   const [learnGroup,setLearnGroup]=useState(null);
+  const [libQ,setLibQ]=useState('');   // #550 item (77): the Openings/Gambits/Endgames filter box (orchestratorRuling_2026_11_07); cleared whenever the group changes
+  useEffect(()=>{setLibQ('');},[learnGroup]);
   const [discRowH,setDiscRowH]=useState(0);const discGridRef=useRef(null);   // #548 item (135): the Discover tiles' row height, measured so the four tiles fill the screen
   const [trainerDemo,setTrainerDemo]=useState(false);
   useEffect(()=>{if(learnGroup!=='tactics')setTrainerDemo(false);},[learnGroup]);
@@ -7603,6 +7605,9 @@ export default function App(){
      that goes with it, not to the chip - see the reserved line under the Game setup header. */
   const armPill=(key,on)=>resetArm===key?{...pill(on),border:'1.5px solid #e0a83a',background:'rgba(224,168,58,.22)',color:'#ffd98a'}:pill(on);
   const cats=[...new Set(LIB.map(o=>o.cat))];
+// #550 item (77): the lesson-list filter's match - a lesson's name or idea line holds the typed text, lower-cased and with accents folded (so 'reti' finds Réti)
+const _libFold=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const libHit=(op,q)=>{const f=_libFold(String(q||'').trim());return !f||_libFold((op.name||'')+' \u2002 '+(op.idea||'')).includes(f);};
   const groupOf=(cat)=>/gambit/i.test(cat)?'gambits':/endgame/i.test(cat)?'endgames':'openings';
   const GPAY={"Légal Trap":'mate',"Scholar's Mate":'mate',"Stafford Gambit: Mating Trap":'mate',"Budapest Gambit: Kieninger Trap":'mate',"Fishing Pole Trap":'mate',"Tennison Gambit":'win',"Blackburne Shilling Gambit":'win',"Albin Counter-Gambit: Lasker Trap":'win',"Englund Gambit: Rosen Trap":'win'};
   const payoffOf=(op)=>GPAY[op.name]||'edge';
@@ -11231,11 +11236,12 @@ export default function App(){
           <div style={{width:'100%'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:13}}>
               <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
-              {(()=>{const g={openings:{t:'Openings',ic:'🚀'},gambits:{t:'Gambits & Traps',ic:'⚔️'},endgames:{t:'Endgames',ic:'👑'}}[learnGroup];const gn=LIB.filter(o=>groupOf(o.cat)===learnGroup).length;return(<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>{g.ic}</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>{g.t}</span><span style={{marginLeft:'auto',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}}>{gn}</span></>);})()}
+              {(()=>{const g={openings:{t:'Openings',ic:'🚀'},gambits:{t:'Gambits & Traps',ic:'⚔️'},endgames:{t:'Endgames',ic:'👑'}}[learnGroup];const gn=LIB.filter(o=>groupOf(o.cat)===learnGroup).length;return(<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>{g.ic}</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>{g.t}</span><span style={{marginLeft:'auto',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}} data-ct="lib-group-n">{libQ.trim()?(LIB.filter(o=>groupOf(o.cat)===learnGroup&&libHit(o,libQ)).length+' of '+gn):gn}</span></>);})()}
             </div>
+            <input data-ct="lib-filter" type="search" value={libQ} onChange={e=>setLibQ(e.target.value)} placeholder="Filter by name or idea" aria-label="Filter lessons by name or idea" autoComplete="off" autoCorrect="off" spellCheck={false} style={{display:'block',boxSizing:'border-box',width:'100%',height:44,margin:'0 0 12px',padding:'0 13px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,fontFamily:"'Segoe UI',system-ui,sans-serif",outline:'none'}}/>{/* #550 item (77) [jobs/bench-97-lesson-list-is-5934px-of-scroll-with-no-filter-and-no-position-marker-2026-10-06]: ONE 44px filter box under the group header, matching a lesson's name or its idea line on either side, and every section shows its count (orchestratorRuling_2026_11_07, on his 8 Oct answer 'Yes, same rule everywhere'). 16px so iOS does not zoom on focus. No sticky headers, no jump chips. */}
             {(()=>{
               const fmKey=op=>{const f=op.line&&op.line[0];return f==='e4'?'e4':f==='d4'?'d4':'other';};
-              const idxsBy=(pred)=>LIB.map((op,i)=>pred(op,i)?i:-1).filter(i=>i>=0);
+              const idxsBy=(pred)=>LIB.map((op,i)=>pred(op,i)&&libHit(op,libQ)?i:-1).filter(i=>i>=0);
               const POP={"Italian Game":1,"Ruy López (Spanish)":2,"Scotch Game":3,"Vienna Game":4,"Four Knights Game":5,"Bishop's Opening":6,"Queen's Gambit":1,"London System":2,"Catalan Opening":3,"Trompowsky Attack":4,"Colle System":5,"English Opening":1,"Réti Opening":2,"King's Indian Attack":3,"Bird's Opening":4,"Nimzo-Larsen Attack":5,"Sicilian Defense":1,"French Defense":2,"Caro-Kann Defense":3,"Scandinavian Defense":4,"Najdorf Sicilian":5,"Sicilian Dragon":6,"Petroff (Russian) Defense":7,"Pirc Defense":8,"Modern Defense":9,"Alekhine Defense":10,"Two Knights Defense":11,"King's Indian Defense":1,"Nimzo-Indian Defense":2,"Queen's Gambit Declined":3,"Slav Defense":4,"Grünfeld Defense":5,"Semi-Slav Defense":6,"Queen's Gambit Accepted":7,"Dutch Defense":8,"Benoni Defense":9,"Queen's Indian Defense":10,"King's Gambit":1,"Evans Gambit":2,"Scotch Gambit":3,"Smith-Morra Gambit":4,"Danish Gambit":5,"Fried Liver Attack":6,"Vienna Gambit":7,"Göring Gambit":8,"Max Lange Attack":9,"Halloween Gambit":10,"Stafford Gambit: Mating Trap":1,"Latvian Gambit":2,"Traxler Counterattack":3,"Elephant Gambit":4,"Blackburne Shilling Gambit":5,"Schliemann Gambit":6,"Marshall Attack":7,"Fishing Pole Trap":8,"Blackmar-Diemer Gambit":1,"Staunton Gambit":2,"Benko Gambit":1,"Budapest Gambit":2,"Albin Counter-Gambit":3,"Englund Gambit":4,"Blumenfeld Gambit":5};
               const byPop=(a,b)=>((POP[LIB[a].name]||999)-(POP[LIB[b].name]||999))||(a-b);
               let groups=[];
@@ -11244,7 +11250,7 @@ export default function App(){
                 const subB={e4:'Defences to 1.e4 (King\u2019s Pawn)',d4:'Defences to 1.d4 (Queen\u2019s Pawn)',other:'Other defences'};
                 [['w','\u2654  White\u2019s openings',true,subW],['b','\u265A  Black\u2019s openings',false,subB]].forEach(([side,htxt,w,subL])=>{
                   const subs=['e4','d4','other'].map(k=>({label:subL[k],idxs:idxsBy(op=>groupOf(op.cat)==='openings'&&op.side===side&&fmKey(op)===k).sort(byPop)})).filter(s=>s.idxs.length);
-                  if(subs.length)groups.push({head:{txt:htxt,w},subs});
+                  if(subs.length)groups.push({head:{txt:htxt,w,n:subs.reduce((t,x)=>t+x.idxs.length,0)},subs});
                 });
               }else if(learnGroup==='gambits'){
                 const subL={e4:'After King\u2019s Pawn (1.e4)',d4:'After Queen\u2019s Pawn (1.d4)',other:'Other first moves'};
@@ -11256,14 +11262,16 @@ export default function App(){
                 });
               }else{
                 const cs=cats.filter(c=>groupOf(c)===learnGroup);
-                groups=[{head:null,subs:cs.map(cat=>({label:cs.length>1?cat.replace(/^⚔️\s*/,'').replace(/^♚\s*/,''):null,idxs:idxsBy(op=>op.cat===cat)}))}];
+                groups=[{head:null,subs:cs.map(cat=>({label:cs.length>1?cat.replace(/^⚔️\s*/,'').replace(/^♚\s*/,''):null,idxs:idxsBy(op=>op.cat===cat)})).filter(x=>x.idxs.length)}];
+                if(!groups[0].subs.length)groups=[];
               }
+              if(!groups.length)return(<div data-ct="lib-filter-none" style={{padding:'18px 6px',color:'rgba(255,255,255,.7)',fontSize:'clamp(14px,3.6vw,15px)'}}>No lesson matches “{libQ.trim()}”. <button onClick={()=>setLibQ('')} style={{background:'none',border:'none',padding:0,color:'var(--ac2)',fontWeight:700,fontSize:'inherit',cursor:'pointer',textDecoration:'underline'}}>Clear the filter</button></div>);
               return groups.map((g,gi)=>(
               <div key={gi} style={{marginBottom:14}}>
                 {g.head&&(<div style={{margin:'4px 0 9px',padding:'9px 13px',borderRadius:12,display:'flex',alignItems:'center',gap:9,background:g.head.accent?'linear-gradient(135deg,rgba(var(--acr),.30),rgba(var(--acr),.10))':(g.head.w?'linear-gradient(135deg,#f4f6fb,#d9dee8)':'linear-gradient(135deg,#2a2f3a,#14171e)'),border:g.head.accent?'1px solid rgba(var(--acr),.4)':'1px solid transparent',boxShadow:SHADOW_BTN}}>{g.head.ic&&<span style={{fontSize:'clamp(17px,4.2vw,22px)',lineHeight:1,flexShrink:0}}>{g.head.ic}</span>}<span style={{fontSize:'clamp(15px,3.9vw,19px)',fontWeight:800,letterSpacing:.3,color:g.head.accent?'#fff':(g.head.w?'#1a1d24':'#fff')}}>{g.head.txt}</span>{typeof g.head.n==='number'&&<span style={{marginLeft:'auto',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:800,color:'#fff',background:'rgba(0,0,0,.22)',borderRadius:20,padding:'2px 10px',flexShrink:0}}>{g.head.n}</span>}</div>)}
                 {g.subs.map((sub,si)=>(
                 <div key={si} style={{marginBottom:9}}>
-                  {sub.label&&(<div style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',fontWeight:800,letterSpacing:.4,color:'var(--ac2)',margin:'2px 3px 6px',display:'flex',alignItems:'center',gap:7}}><span style={{width:16,height:3,background:'var(--ac)',borderRadius:2,display:'inline-block',flexShrink:0}}/>{sub.label}</div>)}
+                  {sub.label&&(<div style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',fontWeight:800,letterSpacing:.4,color:'var(--ac2)',margin:'2px 3px 6px',display:'flex',alignItems:'center',gap:7}}><span style={{width:16,height:3,background:'var(--ac)',borderRadius:2,display:'inline-block',flexShrink:0}}/>{sub.label}<span data-ct="lib-sec-n" style={{marginLeft:'auto',fontSize:'clamp(12.5px,2.3vw,13px)',fontWeight:800,color:'rgba(255,255,255,.62)',flexShrink:0}}>{sub.idxs.length}</span></div>)}
                   <div style={{display:'flex',flexDirection:'column',gap:7}}>
                     {sub.idxs.map(i=>{const op=LIB[i];return(
                       <button key={i} onClick={()=>selectOpening(i)} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'11px 12px',borderRadius:11,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',fontFamily:"'Segoe UI',system-ui,sans-serif",textAlign:'left',boxShadow:SHADOW_BTN}}>
