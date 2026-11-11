@@ -13,7 +13,10 @@
 //      and not a renamed or moved button the selector would miss.
 // CONTROL-RECORD: f5a3432 2026-11-11 total=4 red=1 scope=trial:4fe71d55db29 how=#550 a1: the bundle before the change (the test unlock shown to every player) - TC-HM-058a's offer line red; the denominator and 058b green; good trial ae0f65399b7d 4/0
 const L=require('../lib');
-const read=(b)=>b.page.evaluate(()=>{const t=document.body.innerText||'';return {plans:/Monthly|Annual|Upgrade|Pro/.test(t),test:/Unlock Pro \(test mode\)/.test(t)};});
+/* #550 antagonist A round 2, A2-10: the DENOMINATOR read /Monthly|Annual|Upgrade|Pro/ over the whole page, and a bare 'Pro' matches 'Progress'
+   anywhere, so it could not show the sheet opened. It now needs BOTH plan buttons, found as buttons whose own text starts with the plan. */
+// CONTROL-RECORD: df7946d 2026-11-11 total=4 red=0 scope=probe:9e3bebea43bd how=#550 antagonist A round 2, A2-10: the DENOMINATOR's own control - with NO Account sheet open, the new read() reports plans=false at Home and on Puzzles (gates/.probe/p104.js), so it can fail where the sheet did not open; with the sheet open the gate reads 4 of 4 green on t56. Its other lines keep the record above
+const read=(b)=>b.page.evaluate(()=>{const t=document.body.innerText||'';const btn=(re)=>[...document.querySelectorAll('button')].some(x=>{const r=x.getBoundingClientRect();return r.width>2&&r.height>2&&re.test((x.innerText||'').trim());});return {plans:btn(/^Monthly\b/)&&btn(/^Annual\b/),test:/Unlock Pro \(test mode\)/.test(t)};});
 async function sheet(store,name){const b=await L.launch({geo:'kunal761',name,store});await b.open();await b.settle(700);
   let ok=true;try{await b.page.locator('button[title="Sign in"],button[title="Account"]').first().click();await b.settle(900);}catch(e){ok=false;}
   const r=await read(b);await b.close();return {ok,...r};}

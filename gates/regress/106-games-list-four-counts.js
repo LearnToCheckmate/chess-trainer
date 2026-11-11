@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/106-games-list-four-counts.js - EACH GAMES-LIST ROW SHOWS BRILLIANT, BEST, GREAT AND BLUNDER, EACH THE SUMMARY'S OWN. TC-R187a..c, US-R120.
+// gates/regress/106-games-list-four-counts.js - EACH GAMES-LIST ROW SHOWS BRILLIANT, BEST, GREAT AND BLUNDER, EACH THE SUMMARY'S OWN. TC-R187a..d, US-R120.
 //
 // WHY [#550, batch 10 item (73); jobs/opponent-brilliancies-on-the-games-list-2026-09-30; Kunal's answer a9 on docs/run-questions
 // build__1794388896663-q9, 11 Nov 2026: "Four numbers. Each game row shows four separate counts, Brilliant, Best, Great and Blunder, each
@@ -14,6 +14,7 @@
 //  (b) TC-R187b DISPLAY, kunal761 and se: a seeded split tally {bril 1, best 3, grt 2, mist 4, blun 1} reads '★ 3', '! 2', '?? 1', no
 //      Mistake count, the '!! 1 brilliant' pill inside the badge column; and the counts line stays ONE line (every count on one top).
 //  (c) TC-R187c a tally stored before the split (no best/grt) shows ONE combined '★! N' count, never a wrong split.
+// CONTROL-RECORD: df7946d 2026-11-11 total=19 red=8 scope=trial:dc61a6344ca6 how=#550 antagonist A round 2, A2-9: the tree before the split, rerun with TC-R187d added - the estimate stores no best/grt, so both TC-R187d lines are red beside the six the record below names; on t56 (9e3bebea43bd) 19 of 19 green
 // CONTROL-RECORD: f4d2364 2026-11-11 total=17 red=6 scope=trial:dc61a6344ca6 how=#550 answer a9: the tree before the split, whose row reads '★ 5 ? 4 ?? 1' (Best and Great added, a Mistake count) - both TC-R187a tally/row lines, both TC-R187b split-row lines and both TC-R187c lines red; the DENOMINATORS, the pill, the one-line and zero-errors lines green; the a9 trial 105e9e214669 reads 17 pass, 0 fail
 const L=require('../lib');const R=require('../drive/review');
 const DAY=86400000;
@@ -26,7 +27,15 @@ L.run(async()=>{
   // (a) end to end
   {const store={ct_accts:['cc:jsmiller1112'],ct_acctgames:{'cc:jsmiller1112':[{...OPERA,date:Date.now()-DAY}]},ct_pool:'3',ct_bril_reset_v1:'1'};
    const b=await L.launch({geo:'kunal761',name:'four-counts-e2e',store});await b.open();
-   let ok=true;try{await b.tile('Review');await b.settle(700);await b.page.locator('[data-ct="game-row"]').first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(1500);}catch(e){ok=false;L.note('e2e: '+String(e).slice(0,120));}
+   /* TC-R187d [#550 antagonist A round 2, A2-9]: THE ESTIMATE PATH. Before any review, the background pass grades the listed game with
+      analyzeGameCounts (book plies kept out) and stores src 'est'; the row must print THAT tally's Best and Great, split. Read before the
+      review below overwrites it - TC-R187a sees only the review's tally and R187b/c seed theirs by hand, so nothing else reaches it. */
+   let est=null,estRow=null;try{await b.tile('Review');await b.settle(700);
+     for(let i=0;i<60&&!est;i++){est=await b.page.evaluate(()=>{try{const g=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');const k=Object.keys(g).find(x=>g[x]&&g[x].src==='est');return k?g[k]:null;}catch(e){return null;}});if(!est)await b.settle(500);}
+     await b.settle(400);estRow=await readRow(b,0);}catch(e){L.note('estimate: '+String(e).slice(0,120));}
+   L.say(!!est&&typeof est.best==='number'&&typeof est.grt==='number','TC-R187d DENOMINATOR the background estimate stored a SPLIT tally for the listed game (src est, best '+(est&&est.best)+', grt '+(est&&est.grt)+')',{est});
+   L.say(!!est&&!!estRow&&estRow.best==='\u2605 '+est.best&&estRow.great==='! '+est.grt&&estRow.blun==='?? '+est.blun,'TC-R187d and the row prints the estimate\'s own Best, Great and Blunder ("'+(estRow&&estRow.line)+'")',{est,estRow});
+   let ok=true;try{await b.page.locator('[data-ct="game-row"]').first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(1500);}catch(e){ok=false;L.note('e2e: '+String(e).slice(0,120));}
    const sum=ok?await b.page.evaluate(()=>{const o={};for(const d of document.querySelectorAll('[data-ct="sum-dot"]')){const row=d.parentElement&&d.parentElement.parentElement;if(!row)continue;const btn=row.querySelector('button');o[d.getAttribute('data-grade')]=btn?+btn.textContent.trim():null;}return o;}):{};
    const st=await b.page.evaluate(()=>{try{const g=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');const k=Object.keys(g)[0];return k?g[k]:null;}catch(e){return null;}});
    L.say(ok&&sum.Best!=null&&sum.Great!=null&&sum.Brilliant!=null&&sum.Blunder!=null,'TC-R187a DENOMINATOR the Opera review summary is reached and his column is read: '+JSON.stringify(sum),{sum});
