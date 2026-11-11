@@ -51,3 +51,4 @@
 78	77	raise	2026-11-11	550	build__1794388896663	#550 item (79): the review cache keeps every review, TC-R182	-	e8d80f8f064e
 79	78	raise	2026-11-11	550	build__1794388896663	#550 item (85): every lesson line is legal, TC-LS-059	-	fb32640908ef
 80	79	raise	2026-11-11	550	build__1794388896663	#550 item (87): video call timeout and opt-out, TC-PL-068	-	9305cba5d7f2
+81	80	raise	2026-11-11	550	build__1794388896663	#550 item (88): a set-up game carries its FEN, TC-PL-069	-	2abea5a51c4e

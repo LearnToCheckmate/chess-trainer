@@ -1851,6 +1851,12 @@ As a player against a named computer character, every strength the app prints fo
 As a player in an online game, a call I place that does not connect gives up after 20 seconds and tells me honestly that the other side may not have picked up or the call may not have reached them; I can switch off 'Let opponents video call me' so calls are declined without ringing; and a friend's invite link opens on the game itself.
 - A call not connected after 20 seconds is hung up and the words name both possibilities. (TC-PL-068a)
 - With the switch off an incoming call never rings and is declined; switched back on it rings, and the ring stops when the caller hangs up. (TC-PL-068b, TC-PL-068c)
+
+### US-PL-25 A game I play from a set-up position is copied and reviewed from that position
+*Added #550 item (88), jobs/a-game-played-from-a-set-up-position-is-reviewed-and-copied-without-a-fen-header-so-review-fails-at-move-1-2026-11-07 (found by #549's job 66, play lane).*
+As a player who starts a game from a scanned board or from a position in Review, Copy gives me moves I can paste anywhere, and Analyze and Review open the game, because the start position travels with the moves.
+- The copied moves carry [SetUp "1"] [FEN "..."] and are numbered from the position's own move number. (TC-PL-069a)
+- Analyze and Review of that game reach the review instead of failing at move 1, and the review's PGN carries the FEN. (TC-PL-069b, TC-PL-069c)
 ### US-R88 The grade table's White and Black headers sit over their own numbers
 *Added #547, from jobs/review-grade-table-header-and-colour (part 1; the Excellent colour, part 2, is an amber product change left for the Desk route).*
 As a player reading the grade table, each column's header is directly above its numbers.
