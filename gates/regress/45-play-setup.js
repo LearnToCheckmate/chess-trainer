@@ -113,6 +113,7 @@
 // same claim after a persona has been chosen, which pushes Start below the fold at 430 too - is what catches it.
 // A reachability assertion is only a test on a screen where something is genuinely out of reach.
 'use strict';
+// CONTROL-RECORD: 107530f 2026-11-11 total=271 red=3 scope=trial:1aaa8b5f2858 how=#550 answer a5: the tree before the equalised opponent-tile icons (Online 19.5, Computer 18.42, Pass & Play 16.25) - the promoted TC-INV-02e line red at se, kunal730 and 430, everything else green; the a5 trial b19697cd53cb reads 271 pass, 0 fail
 const L=require('../lib');
 
 // ---------------------------------------------------------------------------------------------------------
@@ -327,7 +328,8 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
     geo+': TC-INV-02f gates/lib.js INK_RECT reads the GLYPH, not its box: on each opponent tile icon it unions at least one painted rect and reads an ink height at least 0.5px under the svg box ('+modeInk.map(x=>x.t+' box '+x.box+' ink '+x.ink+' n'+x.n).join(' | ')+')',modeInk);
   {const ik=modeInk.map(x=>x.ink).filter(x=>typeof x==='number');const isp=ik.length>1?Math.max(...ik)-Math.min(...ik):0;
    const bx=modeInk.map(x=>x.box).filter(x=>typeof x==='number');const bsp=bx.length>1?Math.max(...bx)-Math.min(...bx):0;
-   L.note('    TC-INV-02e (report only, never fails) Play setup opponent tiles: INK spread '+isp.toFixed(2)+'px, box spread '+bsp.toFixed(2)+'px  '+modeInk.map(x=>x.t+' svg INK '+x.ink).join(' | '));}
+   /* #550 answer a5 [the orchestrator's ruling a5]: PROMOTED. The three icons now paint one height (AppIcon eq), so a spread past 1px is red */
+   L.say(ik.length===3&&isp<=1.0,geo+': TC-INV-02e the Play setup opponent tiles\' icons PAINT one height - ink spread '+isp.toFixed(2)+'px, ceiling 1px (box spread '+bsp.toFixed(2)+'px; '+modeInk.map(x=>x.t+' '+x.ink).join(', ')+')',modeInk);}
   await TAP(b,'Pass & Play',500);
   const noSlider=await SLIDER(b);
   const pp=await SHEET(b);

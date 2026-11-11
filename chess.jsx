@@ -3240,7 +3240,11 @@ function EvalGraph({analysis,plies,ply,onJump,width,height,missed,bookN}){
 }
 // Premium 3D ivory/gold pawn used in the wordmarks. idp makes the gradient ids unique per instance.
 // Unified line-icon set (monochrome, inherits the accent colour) so icons match every skin instead of clashing as full-colour emoji.
-function _AppIcon({name,size=24,color='currentColor',sw=2,style}){
+/* #550 answer a5 (jobs/invariant-2-measures-the-box-not-the-ink, the orchestrator's ruling a5): `eq` scales a drawing about the centre of its own
+   shapes so its painted height is 18 viewBox units - for a row whose icons must paint one size. Only the Play setup tiles pass it (online 18 units
+   as drawn, computer 17, human 15: 19.5 / 18.42 / 16.25px at 26px); every other use of these drawings is unchanged. */
+const _EQ_BOX={online:[3,21],computer:[3.5,20.5],human:[4,19]};
+function _AppIcon({name,size=24,color='currentColor',sw=2,style,eq}){
   const P={
     learn:<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
     puzzle:<path d="M9 3a2 2 0 0 1 4 0c0 .6-.2 1-.5 1.4H15a1 1 0 0 1 1 1v2.1c.4-.3.8-.5 1.4-.5a2 2 0 0 1 0 4c-.6 0-1-.2-1.4-.5V17a1 1 0 0 1-1 1h-2.6c.3-.4.5-.8.5-1.4a2 2 0 0 0-4 0c0 .6.2 1 .5 1.4H6a1 1 0 0 1-1-1v-2.6c-.4.3-.8.5-1.4.5a2 2 0 0 1 0-4c.6 0 1 .2 1.4.5V5.4A1 1 0 0 1 6 4.4h2.5C8.2 4 8 3.6 8 3"/>,
@@ -3250,7 +3254,8 @@ function _AppIcon({name,size=24,color='currentColor',sw=2,style}){
     human:<><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="7.5" r="3.5"/><path d="M19.5 19v-1.5a3.5 3.5 0 0 0-2.6-3.4"/><path d="M15 4.1a3.5 3.5 0 0 1 0 6.8"/></>,
     online:<><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 3.6 9 14 14 0 0 1-3.6 9 14 14 0 0 1-3.6-9A14 14 0 0 1 12 3z"/></>,
   };
-  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{P[name]||null}</svg>);
+  const _eb=eq&&_EQ_BOX[name];const _k=_eb?18/(_eb[1]-_eb[0]):1,_cy=_eb?(_eb[0]+_eb[1])/2:12;
+  return(<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={_eb?sw/_k:sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={style}>{_eb?<g transform={'translate(12 '+_cy+') scale('+_k.toFixed(4)+') translate(-12 '+(-_cy)+')'}>{P[name]||null}</g>:(P[name]||null)}</svg>);
 }
 function _Coach({size=46,accent='var(--ac)',style='comb'}){
   /* #548 item (113), jobs/ship-the-owl-coach-drawing-approved-14-sept-2026-10-10, Kunal's answer questions/B8B-OWL ('new'): A NEW OWL
@@ -3726,12 +3731,15 @@ const Arrows=memo(_Arrows),_PieceM=memo(_Piece),AppIcon=memo(_AppIcon),Coach=mem
    the live board). The epoch is bumped when the set changes and rides along as a prop, so memo sees it. */
 let _PIECE_EPOCH=0;
 function Piece(props){return <_PieceM {...props} epoch={_PIECE_EPOCH}/>;}
+/* #550 answer a5 (jobs/invariant-2-measures-the-box-not-the-ink, the orchestrator's ruling a5): the five tab icons PAINT one height. Each
+   drawing is scaled about the centre of its own shapes to 18 viewBox units (16.5px at 22px), Discover's circle, so the painted ink no longer
+   spreads 13.93 (Review) to 18.15 (Puzzles). The shapes are unchanged; only their size is. */
 function _navIcon(n,c){
-  if(n==='home')return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.2 2.6 11.2l1.4 1.7L5 12v8h5v-5h4v5h5v-8l1 .9 1.4-1.7z" fill={c}/></svg>);
-  if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></svg>);
-  if(n==='puzzle')return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M10 3.2a2 2 0 0 1 4 0c0 .5-.3.9-.3 1.4 0 .3.2.5.5.5H17a1 1 0 0 1 1 1v2.7c0 .3.2.5.5.5.5 0 .9-.3 1.4-.3a2 2 0 0 1 0 4c-.5 0-.9-.3-1.4-.3-.3 0-.5.2-.5.5V20a1 1 0 0 1-1 1h-3.1c-.3 0-.5-.2-.5-.5 0-.5.3-.9.3-1.4a2 2 0 0 0-4 0c0 .5.3.9.3 1.4 0 .3-.2.5-.5.5H6a1 1 0 0 1-1-1v-3.1c0-.3-.2-.5-.5-.5-.5 0-.9.3-1.4.3a2 2 0 0 1 0-4c.5 0 .9.3 1.4.3.3 0 .5-.2.5-.5V6a1 1 0 0 1 1-1h2.6c.3 0 .5-.2.5-.5 0-.5-.3-.9-.3-1.4z" fill={c}/></svg>);
-  if(n==='analyze')return(<svg width="22" height="22" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke={c} strokeWidth="1.9"/><path d="M15.2 15.2 19.5 19.5" stroke={c} strokeWidth="2.1" strokeLinecap="round"/></svg>);
-  return(<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3.4a2.7 2.7 0 0 1 1.7 4.8c1 .8 1.6 2 1.3 3.4L14.7 14H9.3L9 11.6c-.3-1.4.3-2.6 1.3-3.4A2.7 2.7 0 0 1 12 3.4zM7.6 15.3h8.8l1.1 4.1c.1.5-.2.9-.7.9H7.2c-.5 0-.8-.4-.7-.9z" fill={c}/></svg>);
+  if(n==='home')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 11.600) scale(1.0714) translate(-12.000 -11.600)"><path d="M12 3.2 2.6 11.2l1.4 1.7L5 12v8h5v-5h4v5h5v-8l1 .9 1.4-1.7z" fill={c}/></g></svg>);
+  if(n==='learn')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 12.000) scale(1.0000) translate(-12.000 -12.000)"><circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.8"/><path d="M12 6.2 14 12l-6 0z" fill={c}/><path d="M12 17.8 10 12l6 0z" fill={c} opacity=".5"/></g></svg>);
+  if(n==='puzzle')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(11.500 11.100) scale(0.9091) translate(-11.500 -11.100)"><path d="M10 3.2a2 2 0 0 1 4 0c0 .5-.3.9-.3 1.4 0 .3.2.5.5.5H17a1 1 0 0 1 1 1v2.7c0 .3.2.5.5.5.5 0 .9-.3 1.4-.3a2 2 0 0 1 0 4c-.5 0-.9-.3-1.4-.3-.3 0-.5.2-.5.5V20a1 1 0 0 1-1 1h-3.1c-.3 0-.5-.2-.5-.5 0-.5.3-.9.3-1.4a2 2 0 0 0-4 0c0 .5.3.9.3 1.4 0 .3-.2.5-.5.5H6a1 1 0 0 1-1-1v-3.1c0-.3-.2-.5-.5-.5-.5 0-.9.3-1.4.3a2 2 0 0 1 0-4c.5 0 .9.3 1.4.3.3 0 .5-.2.5-.5V6a1 1 0 0 1 1-1h2.6c.3 0 .5-.2.5-.5 0-.5-.3-.9-.3-1.4z" fill={c}/></g></svg>);
+  if(n==='analyze')return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(11.900 11.900) scale(1.1842) translate(-11.900 -11.900)"><circle cx="10.5" cy="10.5" r="6.2" fill="none" stroke={c} strokeWidth="1.9"/><path d="M15.2 15.2 19.5 19.5" stroke={c} strokeWidth="2.1" strokeLinecap="round"/></g></svg>);
+  return(<svg width="22" height="22" viewBox="0 0 24 24"><g transform="translate(12.000 11.850) scale(1.0651) translate(-12.000 -11.850)"><path d="M12 3.4a2.7 2.7 0 0 1 1.7 4.8c1 .8 1.6 2 1.3 3.4L14.7 14H9.3L9 11.6c-.3-1.4.3-2.6 1.3-3.4A2.7 2.7 0 0 1 12 3.4zM7.6 15.3h8.8l1.1 4.1c.1.5-.2.9-.7.9H7.2c-.5 0-.8-.4-.7-.9z" fill={c}/></g></svg>);
 }
 function _TabBar({active,go}){
   const tabs=[['home','Home'],['learn','Discover'],['puzzle','Puzzles'],['analyze','Review'],['play','Play']];
@@ -8971,7 +8979,7 @@ export default function App(){
                      CLAIM that it was fixed, with an assertion that could not see it. Found by the
                      antagonist pass. */
                   if(timeCtrlRef.current&&timeCtrlRef.current.kind==='corr'){timeCtrlRef.current=null;setTimeCtrl(null);}}}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 4px',borderRadius:12,cursor:'pointer',background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:on?'var(--ac2)':'rgba(255,255,255,.78)'}}>
-                  <span style={{width:46,height:46,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',background:`linear-gradient(150deg,${tint[0]},${tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 3px 0 rgba(0,0,0,.22),0 6px 12px ${tint[1]}55,inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 6px rgba(0,0,0,.22)`}}><AppIcon name={o.ic} size={26} sw={2.2} color="rgba(255,255,255,.96)"/></span>
+                  <span style={{width:46,height:46,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',background:`linear-gradient(150deg,${tint[0]},${tint[1]})`,border:SK.trim?`1.5px solid ${SK.trim}`:'none',boxShadow:`0 3px 0 rgba(0,0,0,.22),0 6px 12px ${tint[1]}55,inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 6px rgba(0,0,0,.22)`}}><AppIcon name={o.ic} size={26} sw={2.2} eq color="rgba(255,255,255,.96)"/></span>
                   <span style={{fontSize:'clamp(14px,2.6vw,14px)',fontWeight:700}}>{o.t}</span>
                 </button>);})}
             </div>

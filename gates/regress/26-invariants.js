@@ -194,6 +194,7 @@
 //            the label is centred, so the side it escapes on is an artefact of the budget, and an assertion
 //            that only looked right would have missed two of these three.
 'use strict';
+// CONTROL-RECORD: 107530f 2026-11-11 total=121 red=3 scope=trial:1aaa8b5f2858 how=#550 answer a5, CT_INV_GEOS=kunal761: the tree before the equalised tab icons (ink 13.93..18.15) - the promoted TC-INV-02e tab-bar line red on the three screens of that geometry the walk reads it on, everything else green; the full gate on the a5 trial b19697cd53cb reads 514 pass, 0 fail
 const L=require('../lib');
 const R=require('../drive/review');
 const P=require('../drive/play');
@@ -1456,6 +1457,7 @@ L.run(async()=>{
     await b.open();
     L.note(g+' ('+L.GEOS[g].label+')  stamp '+(await b.stamp()));
     let totalRows=0, totalSkipped=0, totalSr=0, srPaths=new Set(), seenAny=0, totalSpill=0, nowrapSeen=0, totalTransient=0, measuredScreens=0;
+    let ivTabInk=0;   // #550 a5: how many tab-bar rows the promoted TC-INV-02e assertion read at this geometry
     let ivSignalled=0, ivRows=0, ivCtls=0, ivNested=0, ivSvgKid=0, ivCovered=0, ivBoardExcluded=0, ivSeenPins=new Set(), ivIcon={}, ivAllH=new Set(), ivSmall=new Map();
     for(const [name,go] of WALK){
       let reached=true, res=null;
@@ -1557,6 +1559,10 @@ L.run(async()=>{
       for(const r of iv.rows){
         const ik=r.kids.map(k=>k.ink).filter(x=>typeof x==='number');if(ik.length<2)continue;
         const isp=Math.max(...ik)-Math.min(...ik);
+        /* #550 answer a5 [the orchestrator's ruling a5 on this job]: PROMOTED FOR THE TAB BAR, the row the testCase names: its five icons now
+           paint one height (chess.jsx _navIcon), so a spread past 1px is red. Every other row stays report-only: the ruling equalised the
+           two rows it named, and a row such as the result row's three-dot More (3.5px of ink by design) is not a defect this measure can see. */
+        if(/\[tabbar\]/.test(r.par)){ivTabInk++;L.say(isp<=1.0,g+' '+name+': TC-INV-02e the tab bar\'s five icons PAINT one height - ink spread '+isp.toFixed(2)+'px, ceiling 1px ('+r.kids.map(k=>k.lab+' '+k.ink).join(', ')+')',{isp,kids:r.kids.map(k=>({lab:k.lab,ink:k.ink}))});continue;}
         if(isp>1.0) L.note('    TC-INV-02e (report only, never fails) INK spread '+isp.toFixed(2)+'px, box spread '+r.spread+'px  '+r.par+'  '+r.kids.map(k=>k.lab+' '+k.via+' INK '+k.ink).join(' | '));
       }
       for(const r of iv.rows){
@@ -1820,6 +1826,7 @@ L.run(async()=>{
     const pinnedWidths=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const w=atWidth(at); if(w!==null)pinnedWidths.add(w);}
     const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(atWidth(at)===widthOf(g)) wantPins.push(p.sig+'@'+g+'/'+at.split('/').slice(1).join('/'));
     const wantPinSet=[...new Set(wantPins)];
+    L.say(ivTabInk>0,g+': TC-INV-02e DENOMINATOR the tab bar\'s ink was read on at least one screen at this geometry ('+ivTabInk+' readings), so its promoted line is not over an empty set',{ivTabInk});
     if(pinnedWidths.has(widthOf(g))){
       const missing=wantPinSet.filter(x=>!ivSeenPins.has(x));
       const extra=[...ivSeenPins].filter(x=>!wantPinSet.includes(x));
