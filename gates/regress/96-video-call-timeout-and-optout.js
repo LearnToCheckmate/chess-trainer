@@ -23,6 +23,9 @@
 //      offer from the opponent never shows the ring, and the game document carries a hangup by this player marked declined:'noring'.
 //  (c) TC-PL-068c: switched back On, an incoming offer rings (vc-ring present - the arrival is proven before its absence is asserted
 //      anywhere), and when the caller hangs up the ring is gone (before #550 only an answered session cleared, so the ring outlived it).
+// CONTROL-RECORD: f671638 2026-11-11 total=13 red=3 scope=trial:7821d85142ef how=#550 item (87): c87, the timeout effect removed and the ring-clear reverted - TC-PL-068a's give-up and words lines red (still live, no hangup), TC-PL-068c's ring-gone line red; 068b and both DENOMINATORS green
+// CONTROL-RECORD: f671638 2026-11-11 total=13 red=1 scope=trial:459f910ff381 how=#550 item (87): c87b, the no-ring branch removed - TC-PL-068b's decline line red (the call rang, no hangup); every other line green
+// CONTROL-RECORD: f671638 2026-11-11 total=6 red=3 scope=trial:3ab724514641 how=#550 item (87): origin/main's bundle - the invite link leaves Home over the joined game, so both DENOMINATORS (button on screen and taking the tap) and the switch line red; the gate stops there
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const SRC=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');
