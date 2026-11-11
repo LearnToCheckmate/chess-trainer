@@ -112,10 +112,13 @@ const SRCPATH=process.env.CT_SRC||path.join(ROOT,'chess.jsx');
       if(c===')'||c===']'||c==='}'){if(d===0)break;d--;arg+=c;continue;}
       if(c===','&&d===0)break;arg+=c;}
     out.push(arg);k=i;}return out;};
-  const WELD=/docScroll[A-Za-z]*\s*(===?|<=)\s*0(?![.\d])|\b0\s*===?\s*[\w.]*docScroll/;
-  const planted=firstArgs("L.say(r.docScrollY===0&&r.over<1,'x');L.say(ok&&s.docScroll==0,'y');L.say(fine,'docScrollY===0 printed only');L.say(a===b,'z',{docScrollY:0});");
+  // WIDENED at #550 on its own checker's finding: a ternary, a negation, a less-than, bracket access and Math.abs are the same weld.
+  // docScrollW (the HORIZONTAL width, compared with the viewport) is a different quantity and is not matched (\b after the Y).
+  const DS="(?:\\.docScroll(?:Y)?\\b|\\[['\"]docScroll(?:Y)?['\"]\\])";
+  const WELD=new RegExp(DS+"\\s*(?:===?|<=|<)\\s*[01](?![.\\d])|\\b0\\s*===?\\s*[\\w.]*docScroll(?:Y)?\\b|!\\s*[\\w.]*"+DS+"|"+DS+"\\s*\\?|Math\\.abs\\([^)]*"+DS);
+  const planted=firstArgs("L.say(r.docScrollY===0&&r.over<1,'x');L.say(ok&&s.docScroll==0,'y');L.say(pl.docScroll?false:PAGELOCK_OK(pl),'t');L.say(ok&&!pl.docScroll,'n');L.say(ok&&pl.docScroll<1,'l');L.say(ok&&pl['docScroll']===0,'k');L.say(Math.abs(pl.docScroll)<0.5,'m');L.say(fine,'docScrollY===0 printed only');L.say(a===b,'z',{docScrollY:0});L.say(hs.docScrollW<=hs.vw+0.5,'w');");
   const plantedHits=planted.filter(a=>WELD.test(a)).length;
-  L.say(planted.length===4&&plantedHits===2,'S4a TC-SUITE-DOCSCROLL-001 the scanner finds the two planted welds and passes the two lines that only print or carry docScroll as detail',{planted:planted.length,hits:plantedHits});
+  L.say(planted.length===10&&plantedHits===7,'S4a TC-SUITE-DOCSCROLL-001 the scanner finds the seven planted welds (===, ==, a ternary, a negation, a less-than, bracket access, Math.abs) and passes the three lines that print, carry docScroll as detail, or compare the horizontal docScrollW',{planted:planted.length,hits:plantedHits});
   const RD=path.join(__dirname);let files=0,sites=0;const welds=[];
   for(const f of fs.readdirSync(RD).filter(x=>/^\d+.*\.js$/.test(x))){files++;let code=fs.readFileSync(path.join(RD,f),'utf8');if(f===path.basename(__filename)){const i0=code.indexOf('// S4 TC-SUITE-DOCSCROLL-001'),i1=code.indexOf('S4c TC-SUITE-DOCSCROLL-001');if(i0>=0&&i1>i0)code=code.slice(0,i0)+code.slice(i1);}/* this block's own planted lines are not a gate's assertions */const args=firstArgs(code);sites+=args.length;args.forEach(a=>{if(WELD.test(a))welds.push(f+': '+a.slice(0,100));});}
   L.say(files>=50&&sites>=500,'S4b TC-SUITE-DOCSCROLL-001 the population is real: '+files+' gate files, '+sites+' L.say sites scanned (the denominator for S4c)',{files,sites});
