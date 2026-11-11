@@ -2180,9 +2180,10 @@ function drillGradeMsg(played,gr,again){
    solve already uses (whyShape, #426) and does not write a second one; and it never splices p.explain, which on a
    mine: card was written about the stored move and the move the player originally played, not the one just found
    [#457 grounds 3 and 5]. Excellent reveals the stored move, per Kunal's design ("Reveal both"). */
-function drillAcceptMsg(played,gr,pos,playedMv,sol){
+function drillAcceptMsg(played,gr,pos,playedMv,sol,alt){   /* alt: the move matched the REVIEW'S SECOND CHOICE (#550 item (51)), so 'nothing beats it' would be false - the first choice is named instead (antagonist A, round 1, A8) */
   let why='';try{why=whyShape(pos,playedMv,null)||'';}catch(e){why='';}
   if(gr.label==='Brilliant')return played+' — Brilliant! A sacrifice that works'+(why?(': it'+why):'')+'.';
+  if(gr.label==='Best'&&alt&&sol)return played+' — Best move, as good as '+sol+(why?(': it'+why):'')+'.';
   if(gr.label==='Best')return played+' — Best move. Nothing in the position beats it'+(why?(': it'+why):'')+'.';
   let sw='';
   if(sol){try{const sm=findMoveBySAN(pos,sol);sw=sm?(whyShape(pos,sm,playedMv)||''):'';}catch(e){sw='';}}
@@ -4174,7 +4175,7 @@ export default function App(){
   const errLogRef=useRef([]);
   const diagRef=useRef({});
   const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,key:RELAY_KEY,...payload})}).catch(()=>{});}catch(e){}};
-  const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>window.innerHeight+4;}catch(e){}d.errs=errLogRef.current.slice(-10);try{d.plyLog=plyLogOnRef.current?plyLogRef.current.slice(-16):'off (turn on Layout readout to record)';}catch(e){}return JSON.stringify(d,null,2);};
+  const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>(window.__ctFullH||window.innerHeight)+4;   /* #550 item (1) follow-up (antagonist A round 1, A9): with the full-screen shell on, the page is the screen's height by design, not an overflow */}catch(e){}d.errs=errLogRef.current.slice(-10);try{d.plyLog=plyLogOnRef.current?plyLogRef.current.slice(-16):'off (turn on Layout readout to record)';}catch(e){}return JSON.stringify(d,null,2);};
   useEffect(()=>{
     const push=(o)=>{const a=errLogRef.current;a.push(o);if(a.length>20)a.shift();return o;};
     const onErr=(e)=>{try{postReport('error',push({t:Date.now(),msg:String((e&&e.message)||'error').slice(0,200),src:String((e&&e.filename)||'').slice(-60),line:e&&e.lineno,col:e&&e.colno,stack:String((e&&e.error&&e.error.stack)||'').slice(0,500),screen:diagRef.current.screen||'',build:BUILD_INFO}));}catch(_){}};
@@ -6843,7 +6844,7 @@ export default function App(){
              flags/amber-460-drill-solves-stop-earning-puzzle-xp-and-the-daily-bump. Stores written before
              #460 keep their polluted onlineIds rows and their inflated count; deleting a player's recorded
              numbers is not a build default, so there is deliberately no migration here. */
-          if(p.ext){const _mb=matchesAlt2?drillAcceptMsg(played,grade2,g,mv,p.sol[0]):(graded&&grade.accept)?drillAcceptMsg(played,grade,g,mv,p.sol[0]):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||'')));   /* #549 item (97): a graded accept names its band and why, and reveals the stored move at Excellent */const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
+          if(p.ext){const _mb=matchesAlt2?drillAcceptMsg(played,grade2,g,mv,p.sol[0],true):(graded&&grade.accept)?drillAcceptMsg(played,grade,g,mv,p.sol[0]):((alt?'Checkmate — that works too! ':'')+((alt&&p.mine)?"That's the move you missed — well spotted.":(p.explain||'')));   /* #549 item (97): a graded accept names its band and why, and reveals the stored move at Excellent */const _m=_mb?('🎉 '+_mb):'';   // #547 item (110): a brilliancy with no explanation says nothing rather than a bare 🎉
             /* #475 KEYED ON THE QUEUE INDEX, NOT ON THE CARD ID. The id is 'lichess:mine:<fen>', so two queue
                rows in the SAME position shared one key: antagonist B solved row A and row B then arrived
                already solved, with row A's move on the board and row A's sentence under it. A review batch does

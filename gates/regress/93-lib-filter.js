@@ -16,7 +16,8 @@
 //      none (which must also show [data-ct=lib-filter-none]); the 1 / several / 0 shape is itself asserted on the unfiltered set, so
 //      a text that stops meaning what it was chosen for goes red instead of quietly testing something else.
 //  (c) the list header [data-ct=lib-group-n] reads the row count unfiltered and 'shown of total' filtered (Endgames is one
-//      section with no label, so this is its count); every section count [data-ct=lib-sec-n] equals the rows under it, unfiltered and filtered, and so does each group header's
+//      section with no label, so this is its count, and its section-count lines are not asserted at all rather than passed over
+//      an empty set - antagonist A round 1, A7); every section count [data-ct=lib-sec-n] equals the rows under it, unfiltered and filtered, and so does each group header's
 //      count where it has one; after Back and re-entry the box is empty and the full list is back.
 // CONTROL-RECORD: 09bc4bd 2026-11-11 total=23 red=16 scope=trial:3ab724514641 how=#550 item (77): origin/main's bundle (no filter box, no counts) - the box, every section-count and header-count line red, and the gate stops typing; the unfiltered DENOMINATORS green
 // CONTROL-RECORD: 09bc4bd 2026-11-11 total=97 red=6 scope=trial:e97b154ce4fa how=#550 item (77): libHit matching the NAME only (the idea line dropped) - 'sicilian' 16 of 18, 'gambit' 45 of 47 and 'king' 3 of 19 red at both geometries; the counts stay green because they agree with whatever is shown
@@ -66,7 +67,7 @@ L.run(async()=>{
             L.say(JSON.stringify(got)===JSON.stringify(w),tag+'TC-S08b "'+t+'" leaves exactly the '+w.length+' row(s) whose name or idea holds it ('+got.length+' shown)',{want:w,got});
             if(kind==='none')L.say(f.none&&f.rows.length===0,tag+'TC-S08b "'+t+'" shows no rows and says no lesson matches',{none:f.none,rows:f.rows.length});
             L.say(f.gnt===f.rows.length+' of '+u.rows.length,tag+'TC-S08c with "'+t+'" the list header reads shown of total ('+f.gnt+')',{gnt:f.gnt,rows:f.rows.length});
-            if(kind!=='none')L.say(f.secs.every(s=>s.n===s.rows)&&f.heads.every(h=>h.n===h.rows),tag+'TC-S08c with "'+t+'" every count equals its rows',{secs:f.secs,heads:f.heads});
+            if(kind!=='none'&&li.secs!==false)L.say(f.secs.length>0&&f.secs.every(s=>s.n===s.rows)&&f.heads.every(h=>h.n===h.rows),tag+'TC-S08c with "'+t+'" every count equals its rows',{secs:f.secs,heads:f.heads});
           }
           await H.tapBtn(b,/^‹ Back$/,500);await H.tapBtn(b,li.tile,700);await toTop(b);   // re-entered by its tile, NOT by the driver state, which reloads a fresh page and would empty the box by construction
 
