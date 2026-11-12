@@ -4713,6 +4713,7 @@ export default function App(){
   const [ratingMsg,setRatingMsg]=useState('');   // "+10" shown once when a game settles
   const [revFlags,setRevFlags]=useState({});      // #348: {w,b} country codes for the reviewed game, best-effort
   const [boardTrim,setBoardTrim]=useState(0);   // #344: px shaved off the board so the screen actually fits, MEASURED per device
+  const fitIdleRef=useRef(false);   /* #550 item (91): true once the Play/Review/Puzzles fit loop has run its passes and stopped */
   const [fitBump,setFitBump]=useState(0);        /* #364: re-arms the fit loop when the root's size changes after the loop has run its 36 passes - a lesson's text arriving late left an 11px overflow uncorrected on a 375x679 phone */
   useEffect(()=>{if(!window.ResizeObserver||!rootRef.current)return;let last=0;const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});ro.observe(rootRef.current);return()=>ro.disconnect();},[]);
   /* #522 PART A, THE REFIT. Kunal chose `refit-no-blink` on 2026-10-13 (questions/lesson-board-one-jump-or-stuck-small-2026-10-12)
@@ -5425,7 +5426,7 @@ export default function App(){
       // measuring the SAME overflow several times before the DOM had shrunk once, and each of those
       // frames trimmed again. A 6px overflow could take 128px off the board. One idle frame after
       // each correction lets layout catch up, so the next measurement is of the new size.
-      if(settle){settle=false;if(++passes<36)raf=requestAnimationFrame(tick);return;}
+      if(settle){settle=false;if(++passes<36)raf=requestAnimationFrame(tick);else fitIdleRef.current=true;return;}
       // #355's "measure the content, not the document" body now lives in _fitOver above, called by this loop
       // and by #522's pre-paint refit, so the two cannot drift apart.
       const over=_fitOver();
@@ -5471,11 +5472,27 @@ export default function App(){
          A trim at or above the floor still grows, so the height-bound fresh sizes (259.03 at 320x568 and 375x568) are
          unchanged; Review's clamp at 0 is untouched. Gate 75 TC-R64-D18. */
       else if(over<-24){const _revFit=inReview&&revCompact,_fl=sqTrimFloorRef.current;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):Math.max(Math.min(t,_fl),n);});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
-      if(++passes<36)raf=requestAnimationFrame(tick);
+      if(++passes<36)raf=requestAnimationFrame(tick);else fitIdleRef.current=true;
     };
-    raf=requestAnimationFrame(tick);
+    fitIdleRef.current=false;raf=requestAnimationFrame(tick);
     return()=>{stop=true;cancelAnimationFrame(raf);};
   },[_geoKey,inReview,revCompact,wide,ply,anaMode,engOn,reviewView,showBest,bestLineSan,mode,playSetup,pzView,openIdx,learnPhase,playHist.length,isOver,playEnd,movesOpen,fitBump]);
+  /* #550 item (91), jobs/a-transient-overflow-that-ends-without-a-re-render-leaves-the-board-shrunk-on-tall-phones-2026-11-07: THE IDLE WAKE.
+     The root observer above (fitBump, #364) re-arms the loop when #root's height changes. But once the loop has trimmed the board to fit,
+     #root sits at its minHeight, so when the content that overflowed goes away (a message that shrinks, a row that leaves) the CONTENT
+     shrinks inside a root that does not change, nothing re-arms the loop, and the board stays trimmed: measured by #549's antagonist A at
+     353 -> 337 (Play, kunal761) and 353 -> 235 (375x667). While a fit screen is idle this asks every 600ms whether the board is trimmed
+     AND has room to grow back (over < -24, the loop's own growth threshold), or overflows, and wakes the loop if so. It never wakes twice
+     on the same reading: a wake that changed neither the trim nor the overflow is not repeated until one of them moves, so a screen
+     whose growth is capped (Play at its width cap) costs one wake and then nothing. Off the fit screens, and in a lesson (which has
+     its own ResizeObserver wake, fitWake), it does nothing. */
+  useEffect(()=>{
+    const _fs=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online')));
+    if(!_fs)return;let last=null;
+    const id=setInterval(()=>{if(!fitIdleRef.current)return;const t=boardTrimRef.current,o=_fitOver();
+      const need=(t>0&&o<-24)||o>0;if(!need){last=null;return;}
+      if(last&&last.t===t&&Math.abs(last.o-o)<2)return;last={t,o};setFitBump(b=>b+1);},600);
+    return()=>clearInterval(id);},[wide,inReview,revCompact,mode,playSetup,pzView,_fitOver]);
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20-(pzRail?TAB_RAIL_W+14:0),520)):RAIL;   // #550 a8: the sideways Puzzles rail leaves room for the tab rail
   // outerRowStyle / sideColStyle are defined after showBoard (they need railed = wide && showBoard)
   const analyzeLine=()=>{const h=boardGame.history;if(!h||!h.length)return;const _pm=pgnMovesFrom(h.map(x=>x.san),mode==='play'?playStartFenRef.current:null);let s=_pm.tags+(_pm.tags?'\n':'')+_pm.text;   /* #550 item (88): a set-up game carries its FEN */setOpenIdx(null);setMenuOpen(false);setHomeScreen(false);setMode('analyze');importGame(s);};

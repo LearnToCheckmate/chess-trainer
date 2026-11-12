@@ -2234,3 +2234,10 @@ As a player who has just played a wrong move, I am told in one short line what t
 - On Puzzles the line fits its one-line row. (TC-R200c)
 - Where no reason exists the line stays as it was; a miss is never blank. (TC-R200e)
 
+### US-R133 After something passing overflows the screen, the board comes back to its size
+*Added #550, item (91), jobs/a-transient-overflow-that-ends-without-a-re-render-leaves-the-board-shrunk-on-tall-phones-2026-11-07 (#549's antagonist A residual A4-F).*
+As a player in a game, a review or a puzzle, I see the board shrink only while something actually needs the room, and grow back when it has gone, even if nothing else on the screen changed.
+- On Play, the review move screen and a library puzzle, at 375x761 and 375x667, a transient that shrank the board and then left with no re-render is followed by the board returning to at least its fresh width within 3.5 s. (TC-R201a)
+- Nothing overflows where it lands. (TC-R201b)
+- A board nothing disturbed does not move at rest. (TC-R201c)
+
