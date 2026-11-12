@@ -10,6 +10,7 @@
 // the app's root (the transient), the board is read once the loop has trimmed for it, the block is removed with NO re-render, and the board
 // is read again 3.5 s later. A separate launch per screen reads the board three times at rest (1.5, 3 and 6 s) to prove the wake does not
 // move a board nothing disturbed.
+// CONTROL-RECORD: 0865529 2026-11-12 total=28 red=6 scope=trial:d44218fc8379 how=#550 item (91): the tree before the idle wake - every TC-R201a recovery line red (the board stays trimmed), the preconditions, TC-R201b and TC-R201c green
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review'),Z=require('../drive/puzzles');
 const bw=(b)=>b.page.evaluate(()=>{let m=0,t=0;for(const e of document.querySelectorAll('div'))if(/repeat\(8,/.test(e.style.gridTemplateColumns||'')){const r=e.getBoundingClientRect();if(r.width>m){m=r.width;t=r.top;}}

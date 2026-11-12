@@ -9,6 +9,8 @@
 // the handler is called directly) and fetch replaced by a stand-in that returns a Gemini-shaped reply and records the request. No network,
 // no key, no emulator. KNOW ITS LIMIT: this proves the function's own logic and its request; whether the vision model reads a real board
 // is his phone check after the deploy.
+// CONTROL-RECORD: ee833ef 2026-11-12 total=9 red=1 scope=env:CT_FN_SRC=spec-prompt how=#550 item (32): functions/index.js with the spec's own prompt (refuses an unknown orientation) - TC-R202d red alone
+// CONTROL-RECORD: ee833ef 2026-11-12 total=1 red=1 scope=env:CT_FN_SRC=pre-scanboard how=#550 item (32): functions/index.js before scanBoard - the precondition red, nothing else runs
 const L=require('../lib');
 const path=require('path');
 const Module=require('module');
