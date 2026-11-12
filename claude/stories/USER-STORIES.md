@@ -2217,7 +2217,8 @@ As a player in a game against the computer, I see the board as wide as my phone,
 - On a fresh store the bar is above the board and the board is the full width, at 375x761, 375x730 and 430x932. (TC-R198a)
 - A store that kept the bar beside before #550 has it above once, and its board is edge to edge. (TC-R198b)
 - The menu's Eval bar row still puts it beside, and that choice stands. (TC-R198c)
-- Where the board is limited by height (320x568, 375x667) the bar above makes it smaller, and on every screen the board starts lower; that cost is his to judge (run question q35), and no case asserts it either way.
+- On a short portrait screen (320x568, 375x667), where above would make the board smaller, the bar stays beside and the board keeps its width: his final answer a35. (TC-R198d)
+- In landscape the bar is upright on the board's right, never above. (TC-R198e)
 
 ### US-R131 In both drills the five controls share one row, so the board takes the height
 *Added #550, item (66), jobs/the-mistakes-drill-board-is-not-full-size-2026-11-11 (the audit's AUD-R12); Kunal: the mistakes drill board edge to edge, as in the brilliant moves drill.*

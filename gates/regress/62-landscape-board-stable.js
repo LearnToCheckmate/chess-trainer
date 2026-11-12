@@ -113,7 +113,7 @@ L.run(async()=>{
   // by this gate in #548's round-1 suite. It is still the board HEIGHT binds, so the control's point stands.
   // #550 item (64) move 1 RE-PINNED, measured by this block on trial 02206a0f900e: the eval bar sits ABOVE the board in portrait now, so at
   // 375x730 the width-bound board is edge to edge (353.03 -> 375.03) and at 375x568 the height-bound one gives the bar's 22px (296 -> 272).
-  for(const [geo,want,label] of [['short375',272.00,'375x568, where HEIGHT binds and the trim can actually move the board'],
+  for(const [geo,want,label] of [['short375',296.00 /* #550 a35: short portrait keeps the bar beside, so its #548 pin again */,'375x568, where HEIGHT binds and the trim can actually move the board'],
                                  ['kunal730',375.03,"375x730, Kunal's own phone, where WIDTH binds"]]){
     const b=await L.launch({geo,name:'land-stable-portrait-'+geo,store:{ct_pool:'3'}});
     await b.open();await liveGame(b);

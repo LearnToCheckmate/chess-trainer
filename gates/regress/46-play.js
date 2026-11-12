@@ -175,7 +175,8 @@ const overhangLive=(b)=>b.page.evaluate(()=>{
 // "all-three"), so where WIDTH binds the board is edge to edge (kunal730 353 -> 375, 390 368 -> 390) and where HEIGHT binds it is smaller
 // (se 298 -> 272, the bar's 22px of height); every vs-Computer board starts 22 to 23px lower. Was: se 298 at (20,88) bars 34, kunal730 353 at
 // (20,121.7) bars 67.7, 390 368 at (20,128) bars 74. The cost on short screens is run question q35. Pass & Play has no eval bar and is unchanged.
-const CPU={se:{bw:272,bx:24,by:111,barW:272,barH:35},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
+/* #550 a35 (his final rule): on short portrait screens the bar stays BESIDE, so se is back to its #548 pins */
+const CPU={se:{bw:298,bx:20,by:88,barW:298,barH:34},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
 const PP ={se:{bw:280,bx:20,by:89,barW:280,barH:35},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
 const ROW_LIVE=['Moves','Back','Forward','Hint','Flip','More'];
 const ROW_OVER=['Moves','Back','Forward','Review','Rematch','More'];
