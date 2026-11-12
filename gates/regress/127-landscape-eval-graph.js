@@ -14,6 +14,7 @@
 // inside the rail that draws EvalGraph's dashed midline, so a tree without the graph reds for the graph being absent, not for a hook.
 // KNOW ITS LIMIT: whether the graph reads well on his phone in landscape is his look after the landing (the run question with the pictures).
 // CONTROL-RECORD: cea4753 2026-11-12 total=53 red=24 scope=trial:37182d5aca90 how=#550 a36: the tree before the graph - TC-R203a, TC-R203b, TC-R203c and Review's rail-scroll TC-R203d red at all three geometries; the preconditions, the kept-rows and board-size lines and TC-R203e green
+// CONTROL-RECORD: ef54d07 2026-11-12 total=57 red=2 scope=trial:10a6845dd946 how=#550 antagonist A F1: the graph before the fix (the player's-move points filled with the static material count) - B2's value lines red (largest gap 0.625, newest -0.69 against the bar's -0.9); on 764a0b1dc097 57/0
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review');
 const GEOS=[[761,375],[730,375],[667,375]];
