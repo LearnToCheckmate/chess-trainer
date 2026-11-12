@@ -3961,7 +3961,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const [sel,setSel]=useState(null);
   const [solved,setSolved]=useState(false);
   const [shown,setShown]=useState(false);
-  const [wrong,setWrong]=useState(false);
+  const [wrong,setWrong]=useState(false);const [wrongTxt,setWrongTxt]=useState('');   /* #550 HEX-T-09: the reason for a wrong try, when the board proves one */
   const [showHint,setShowHint]=useState(false);
   const [si,setSi]=useState(0);
   /* #549 item (87), jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28 (Kunal, 4 Nov 2026, B8-SMALL-DEFAULTS
@@ -4036,7 +4036,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       if(p&&p.c==='w'){setSel([r,c]);setWrong(false);return;}
       const f=alg(sel[0],sel[1]),t=alg(r,c);
       if(f===cur.from&&t===cur.to){setSolved(true);setWrong(false);}
-      else{setWrong(true);setSel(null);}
+      else{let _t='';try{const _m=getLegal(pos).find(m=>m.fr===sel[0]&&m.fc===sel[1]&&m.tr===r&&m.tc===c);if(_m){const _w=wrongWhy(pos,_m);if(_w){const _s=toSAN(pos,_m,applyMove(pos.board,_m));_t=_w.kind==='mate'?(_s+' allows mate ('+_w.reply+'). Try again.'):(_s+' '+_w.text+'. Try again.');}}}catch(e){_t='';}setWrongTxt(_t);setWrong(true);setSel(null);}   /* #550 HEX-T-09 (jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12): one fixed sentence on every wrong move of all 13 cards; wrongWhy names a mate allowed or a piece hung, as Puzzles does */
     } else if(p&&p.c==='w'){setSel([r,c]);setWrong(false);}
   };
   const hiFrom=(solved||shown)?fromRC:sel;
@@ -4083,7 +4083,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       {!(_bar&&(solved||shown))&&!(_bar&&showHint&&!sel&&!wrong)/* #550 A2-P1: the hint takes the status line's room in the bar layout */&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
         {solved?<span style={{color:'#6fce97',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>✓ {cur.san} — correct!</span>
          :shown?<span style={{color:'var(--ac2)',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>Answer: {cur.san}</span>
-         :wrong?<span style={{color:'#f0a24e',fontWeight:700,fontSize:'clamp(13.5px,2.8vw,14px)'}}>Not the key move — try again.</span>
+         :wrong?<span style={{color:'#f0a24e',fontWeight:700,fontSize:'clamp(13.5px,2.8vw,14px)'}}>{wrongTxt||'Not the key move — try again.'}</span>
          :sel?<span style={{color:'rgba(255,255,255,.6)',fontSize:'clamp(14px,2.7vw,14px)'}}>Now tap where it goes.</span>
          :<span style={{color:'rgba(255,255,255,.6)',fontSize:'clamp(14px,2.7vw,14px)'}}>Tap the piece to move.</span>}
       </div>}
