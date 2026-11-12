@@ -109,6 +109,13 @@ const ACCT77=(u,wr)=>({ct_accts:['cc:'+u],ct_acctgames:{['cc:'+u]:[{src:'cc',acc
 const DRSEED={mistakes:null,brilliant:null};   // filled by PHASE 1 with the app's own capture
 const DRCARD={mistakes:null,brilliant:null};
 const WRONG={w:'a2a3',b:'a7a6'};
+/* #550: the fixed a-pawn push is the wrong move only when it is LEGAL. With the drill taking Blunders and Mistakes only (item 20 / a37), the
+   first captured mistakes card is now 15...Nxd7's position, where Black is in CHECK (Bd7+) and a7a6 is illegal - so nothing was played and the
+   state was never entered (round 7, 77 red). The fixed push is kept when legal; otherwise the first legal move that is not the card's answer,
+   read from the app's own move generator (gates/engine-extract.js), so the wrong state is entered on whatever card the app captures. */
+const wrongFor=(card)=>{const fx=WRONG[card.fen.split(' ')[1]];try{const E=require('../engine-extract.js');const g=E.fromFEN(card.fen);
+  const uci=(m)=>'abcdefgh'[m.fc]+(8-m.fr)+'abcdefgh'[m.tc]+(8-m.tr);const all=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)all.push(...E.getMovesFrom(g,r,c).map(uci));
+  if(all.includes(fx)&&fx!==card.uci)return fx;const o=all.find(u=>u!==card.uci);return o||fx;}catch(e){return fx;}};
 // ASKED, WRONG (a legal non-solution move; the ✗ verdict must render), HINT (the 💡 button; the 💡 line must render), SOLVED (the
 // captured uci played). The wrong and hint states assert they were entered, not merely driven (CLAUDE.md, "a gate that enters a state
 // by the shortest route often enters the wrong one").
@@ -118,7 +125,7 @@ const DR=(k,path)=>async(b)=>{const card=DRCARD[k];if(!card)throw new Error('PHA
   await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
   const leaf=(re)=>b.page.evaluate((src)=>{const re=new RegExp(src,'u');const t=document.querySelector('[data-ct="pz-top"]');if(!t)return '';
     const c=[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&re.test((e.innerText||'').trim()));return c.length?(c[c.length-1].innerText||'').trim():'';},re.source);
-  if(path==='wrong'){const w=WRONG[card.fen.split(' ')[1]];await b.move(w.slice(0,2),w.slice(2,4),900);await b.settle(1100);
+  if(path==='wrong'){const w=wrongFor(card);await b.move(w.slice(0,2),w.slice(2,4),900);await b.settle(1100);
     if(!(await leaf(/^✗/)))throw new Error('wrong move '+w+' played and no ✗ verdict rendered - the wrong-move state was not entered');}
   if(path==='hint'){const _hb=b.page.locator('button[aria-label="Hint"]:visible');if(await _hb.count())await _hb.first().click({timeout:4000});else await b.tapText(/^\u{1F4A1} Hint$/u);await b.page.waitForTimeout(900);   /* #550 item (66): the drills' Hint is an icon named by aria-label on phones; the text form stays for any wider screen */
     if(!(await leaf(/^\u{1F4A1}/u)))throw new Error('hint tapped and no 💡 line rendered - the hint state was not entered');}

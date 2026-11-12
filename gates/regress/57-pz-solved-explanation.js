@@ -63,7 +63,7 @@ const G7=[['320x568',{w:320,h:568,safe:''}],['360x640',{w:360,h:640,safe:''}],['
 const solved=(b)=>b.page.evaluate(()=>{
   const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.innerText||'').trim())&&d.children.length===0)[0];
   if(!el)return null;
-  const box=el.parentElement;                       // the RESERVED box (fixed height / maxHeight, overflow-y auto)
+  const box=getComputedStyle(el).position==='fixed'?el:el.parentElement;   // the RESERVED box (fixed height / maxHeight, overflow-y auto); #550 a42: on a short upright phone the explanation is its OWN box, an overlay fixed over the board, found by its mechanism (position fixed), not by its hook
   const r=el.getBoundingClientRect(), br=box.getBoundingClientRect(), st=getComputedStyle(el), bst=getComputedStyle(box);
   const full=(el.innerText||'').replace(/\s+/g,' ').trim();
   // characters PAINTED INSIDE the reserved box: Range per code point, clipped to the box's own rect.
@@ -156,7 +156,7 @@ L.run(async()=>{
       // (342) on a CORRECT build, because the puzzle board is FIT TO HEIGHT at short heights and is
       // narrower than the screen by design. That was a defect in the gate and it is recorded here rather
       // than smoothed over; the wrong figures are withdrawn.
-      const WANTB={'320x568':277,'360x640':333,'375x667':375,   /* #550 short upright (BSA-L-16/22): the top card's padding and gaps on a short phone; measured on t139 edd93ac94af9 */
+      const WANTB={'320x568':320,'360x640':360,'375x667':375,   /* #550 a42 (run-answers build__1794388896663-a42): on a short upright phone the motif chips go behind the Hint and the notes are overlays, so the board is the full width; measured on t141 b35a3777 (was 277/333 on t139) */
         '375x730 KUNAL':375,'390x844':390,'414x896':414,'440x956':440};
       L.say(!!m1.board&&Math.abs(m1.board.w-WANTB[label])<0.6,
         tag+' A2: and it is the width this geometry measured on #427, not merely unchanged',{measured:m1.board&&m1.board.w,want:WANTB[label]});
@@ -190,7 +190,12 @@ L.run(async()=>{
       // shipped HOLDS the card's height with visibility:hidden - so H now asserts that route alone, and H2 asserts its
       // mechanism with two readings of the same card: its height before the solve equals its height after. A change to
       // display:none passes hGone and fails both.
-      L.say(hHeld, tag+' H: once solved, the goal card is HIDDEN with its height still held open (the route that shipped) - not gone, not collapsed, not present and truncated',
+      // #550 a42: on a SHORT upright phone (height under 700: 320x568, 360x640, 375x667) the route is different by his ruling - the explanation
+      // shows over the board, so the goal card stays PRESENT and intact; H asserts that route there, and H2's two readings hold for both.
+      const _short=/^(320x568|360x640|375x667)/.test(label);
+      if(_short)L.say(hIntact, tag+' H: once solved on a short phone, the goal card stays present and intact (the explanation is over the board, run-answers a42)',
+        {branch:hGone?'gone':(hHeld?'hidden, holding '+g1.cardH+'px':(hIntact?'present and intact':'NEITHER')),before:g0,after:g1});
+      else L.say(hHeld, tag+' H: once solved, the goal card is HIDDEN with its height still held open (the route that shipped) - not gone, not collapsed, not present and truncated',
         {branch:hGone?'gone':(hHeld?'hidden, holding '+g1.cardH+'px':(hIntact?'present and intact':'NEITHER')),before:g0,after:g1});
       L.say(!!g0&&!!g1&&g0.cardH>0&&Math.abs(g0.cardH-g1.cardH)<0.6&&Math.abs(t0-t1)<0.6, tag+' H2: two readings of the goal card - its height before the solve ('+(g0&&g0.cardH)+') equals its height after ('+(g1&&g1.cardH)+'), and pz-top keeps its height ('+t0+' -> '+t1+')',
         {before:g0&&g0.cardH,after:g1&&g1.cardH,t0,t1});
