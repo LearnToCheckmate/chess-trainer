@@ -277,7 +277,8 @@ L.run(async()=>{
  // 375x730): no Pro sheet, the '1 min' chip taps on the setup sheet after the scan, and the live game shows the eval pill 'M1', the
  // White clock ticking (rgba(110, 180, 90, 0.22)) and the 3px turn ring - so F1 is the PRESENCE each absence below is taken against.
  // Each site is asserted BY NAME, at the terminal ply and two plies back, so a re-mount on the step back is a named red.
- // CONTROL-RECORD: 0e3e55d 2026-11-06 total=159 red=18 scope=full how=#549 item (38) block F control: ticking, _myTurn, the play eval pill and the wide Elo pill keyed back to isOver&&!playEnd, trial md5 d155b8ff65b6 - F5 F6 F7 F9 red at kunal730 se land730 land730i and F8 at land730 land730i
+ // CONTROL-RECORD: cea4753 2026-11-12 total=143 red=4 scope=trial:c3792a12131c how=#550 a23 re-key: the land-result row's headline blanked (it reads 'Black wins' with no Checkmate) - E1 and F2 red at land730 and land730i; on the un-mutated trial 10a6845dd946 159/0
+// CONTROL-RECORD: 0e3e55d 2026-11-06 total=159 red=18 scope=full how=#549 item (38) block F control: ticking, _myTurn, the play eval pill and the wide Elo pill keyed back to isOver&&!playEnd, trial md5 d155b8ff65b6 - F5 F6 F7 F9 red at kunal730 se land730 land730i and F8 at land730 land730i
  const zlib=require('zlib');
  const png8=()=>{const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){raw[y*(1+w*3)]=0;for(let x=0;x<w*3;x++)raw[y*(1+w*3)+1+x]=((x+y)%2)?200:40;}
    const T=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);T[n]=c>>>0;}
