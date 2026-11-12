@@ -2281,3 +2281,10 @@ As a player asking the computer for help, the hint points at the best move - nev
 - The lit squares are a best move: the engine's, or a mate in one found exactly. (TC-R206a)
 - The status slot above the board says why in one line, naming the piece and square. (TC-R206b)
 - In Pass and Play the Hint button is disabled; online it is absent. (TC-R206c)
+
+### US-R139 The game accuracy reads near chess.com's
+*Added #550 item (44), run-answers build__1794388896663-a39; Kunal, 12 Nov: "Change the formula".*
+As a player comparing my review with chess.com's, one blunder does not drag a good game's accuracy far under theirs.
+- Over the 196 reviewed games of his account, the mean distance from chess.com's number is at most 5.5 points. (TC-R207a)
+- At least 330 of the 388 player-games are within 10 points. (TC-R207b)
+- No game is more than 25 points away. (TC-R207c)

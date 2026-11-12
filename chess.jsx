@@ -973,9 +973,15 @@ function gameAcc(winsW,accs,idxs){
     const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/w.length;
     const sd=Math.max(0.5,Math.min(12,Math.sqrt(v)));sw+=sd;return sd;});
   const weighted=sw>0?accs.reduce((a,v,k)=>a+v*wt[k],0)/sw:accs.reduce((a,b)=>a+b,0)/accs.length;
-  const harmonic=accs.length/accs.reduce((a,v)=>a+1/Math.max(0.01,v),0);
-  return (weighted+harmonic)/2;
+  /* #550 item (44), run-answers build__1794388896663-a39 (Kunal, 12 Nov: "Change the formula"): in the harsh half no single move counts as worse
+     than 25, and the result is lowered 10. Measured over all 196 of his games against chess.com's own numbers (gates/measure-accuracy-
+     alternatives.py, claude/agents/ACCURACY-MEASURE-550.md): mean error 10.09 shipped against 4.63 with this change, 4.72 on the held-out
+     half; the floor stops one blunder dragging a good game 38 points under (the job's own game read 16 against chess.com's 54). */
+  const harmonic=accs.length/accs.reduce((a,v)=>a+1/Math.max(ACC_HARM_FLOOR,v),0);
+  return (weighted+harmonic)/2-ACC_SHIFT;
 }
+const ACC_HARM_FLOOR=25;   /* #550 a39; was 0.01 */
+const ACC_SHIFT=10;   /* #550 a39; was 0 */
 
 /* #464, jobs/review-grade-counts-vs-the-moves-they-name. THE BOOK REASSIGNMENT LIVED IN ONE PLACE AND HAD THREE
    CONSUMERS, SO THE NUMBER ON THE SUMMARY AND THE MOVES IT NAMED WERE COMPUTED BY DIFFERENT RULES.
@@ -1756,9 +1762,30 @@ function concreteRead(pos,mv){
     return null;
   }catch(e){return null;}
 }
+/* #550 HEX-T-02: THE DRILL'S VERDICT SAYS WHAT THE BEST MOVE DOES, AND WHAT THE PLAYED MOVE ALLOWED, IN PLACE OF "was stronger" AND
+   THE BAND WORDS WHERE THE BOARD PROVES IT. Built at card time from the card's own position, so the cards he already has get it too.
+   oldWhy is the stored sentence; its clauses are kept wherever nothing concrete replaces them. Packed to WHY_DRILL_MAXW like mistakeWhy:
+   the reason for the best move is the last thing dropped. */
+function drillVerdict(pos,bestMv,playedMv,oldWhy){
+  try{
+    const parts=String(oldWhy||'').match(/[^.!?]+[.!?](\s|$)/g)||[];
+    const old1=(parts[0]||'').trim(),old2=(parts[1]||'').trim();
+    const cr=bestMv?concreteRead(pos,bestMv):null;
+    let two=null;
+    if(playedMv){const ww=wrongWhy(pos,playedMv);if(ww){const ps=toSAN(pos,playedMv,applyMove(pos.board,playedMv)).replace(/[+#]$/,'');
+      two=ww.kind==='mate'?(ps+' let '+String(ww.reply).replace(/[+#]$/,'')+' mate you.'):(ps+' '+ww.text+'.');}}
+    if(!cr&&!two)return oldWhy||'';
+    const A=cr?cr.say:old1,B=two||old2;
+    const full=(A+' '+B).trim();
+    if(full.length<=WHY_DRILL_MAXW)return full;
+    if(cr&&two&&(cr.say+' '+old2).length<=WHY_DRILL_MAXW)return cr.say+' '+old2;
+    return A||full;
+  }catch(e){return oldWhy||'';}
+}
 function mistakeHint(pos,bestMove,playedMv){
   try{
     if(!bestMove)return '';
+    if(typeof concreteRead==='function'){const cr=concreteRead(pos,bestMove);if(cr&&cr.hint)return cr.hint;}   /* #550 HEX-T-01: the concrete reading first (guarded: gates/unit-drill-why.js extracts this function alone to test the fallback lines) */
     /* the hint is held to the SAME refutation test as the sentence (#426 antagonist B, P0-2): on the
        reference game it said "One move can hit two things at once" and pointed at a queen give-away. */
     const shape=whyShape(pos,bestMove,playedMv);
@@ -6652,7 +6679,12 @@ export default function App(){
           // is used by the Brilliant branch further down, which is ladder-independent.
           // old {Mistake,Blunder,Miss} == old {loss>=160} == sel in {Mistake,Blunder}, because Miss is an
           // overlay drawn from those two - so this reproduces the pre-#440 pool EXACTLY, not approximately.
-          const _S=out[i].sel||classifyByLoss(out[i].loss||0);
+          /* #550 a37 (jobs/drill-cards-blunders-and-mistakes-only-2026-11-12), Kunal's pick "Blunders and mistakes": the drill takes the moves
+             the review GRADES Blunder or Mistake by the cut in the chance to win or draw (item (20)'s grades), so throwaway moves in a decided
+             game and completely-winning-to-winning drops leave the deck. Over his 194 games (gates/measure-accuracy-vs-chesscom.js data) that is
+             794 cards on the old centipawn ladder against 570: 432 in both, 362 dropped (165 Miss, 85 Excellent, 68 Inaccuracy, 43 Good),
+             138 added. With the grades switch off (ct_grades2 '0') the old ladder still selects. */
+          const _S=GRADES2?L:(out[i].sel||classifyByLoss(out[i].loss||0));
           if((_S==='Mistake'||_S==='Blunder')&&out[i].bestMove&&res.positions[i]){
             const m=out[i].bestMove,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
             let played='';try{played=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
@@ -8346,7 +8378,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(m.missed?(side+' to move — you played '+(m.played||'another move')+' here, and a Brilliant was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?(m.missed?'There was something special here — a sacrifice or a precise blow.':'You played something special here — a sacrifice or a precise blow.'):(m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((m.why||"That's the move you missed — well spotted.")+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(m.missed?(side+' to move — you played '+(m.played||'another move')+' here, and a Brilliant was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?(m.missed?'There was something special here — a sacrifice or a precise blow.':'You played something special here — a sacrifice or a precise blow.'):((()=>{try{const _bm=uciToMove(g,m.uci);const _cr=_bm&&concreteRead(g,_bm);return _cr&&_cr.hint;}catch(e){return null;}})()/* #550 HEX-T-01: every card, old ones too, reads its position */||m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((((m.why?drillVerdict(g,uciToMove(g,m.uci),m.played?findMoveBySAN(g,m.played):null,m.why):null)/* #550 HEX-T-02 */||(m.why||"That's the move you missed — well spotted.")))+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -11790,7 +11822,7 @@ export default function App(){
                 <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
                 <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyse this position'}</button></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyse':'\u2315 Analyse this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
             </div>
             <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>
             <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}>Next ›</button>

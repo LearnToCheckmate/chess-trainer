@@ -18,7 +18,7 @@ const L=require('../lib');
 const GENERIC=/Look for the most forcing or solid option/;
 const CARDS=[
   {id:'TC-R183a',kind:'quiet',fen:'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',uci:'g1f3',played:'a3',want:/No tactic to spot here/},
-  {id:'TC-R183b',kind:'forcing',fen:'6k1/5ppp/8/8/8/8/5PPP/4Q1K1 w - - 0 1',uci:'e1e8',played:'Kf1',want:/forcing line here, and it ends the game/},
+  {id:'TC-R183b',kind:'forcing',fen:'6k1/5ppp/8/8/8/8/5PPP/4Q1K1 w - - 0 1',uci:'e1e8',played:'Kf1',want:/forcing line here, and it ends the game|mate in one/i /* #550 HEX-T-01: the concrete reading names the mate - 'There is mate in one.' */},
 ];
 L.run(async()=>{
   for(const c of CARDS){
