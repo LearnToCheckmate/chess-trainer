@@ -2336,6 +2336,7 @@ As a player on a computer, Home looks like the single centred column I like at a
 - His phone is unchanged. (TC-R217d)
 - Discover takes the upright layout on a computer window, its tiles filling down to the tab bar (DSK-06). (TC-R217e)
 - The tab bar's five tabs sit in the centred 660 column on any window wider than that. (TC-R217f)
+- The lists without a board (Openings, the Puzzles roadmap) are the same centred 660 column on a computer window (DSK-08). (TC-R217g)
 
 ### US-R150 Play setup fits a laptop window with Start game on screen
 *Added #550, run-answers build__1794388896663-hold-landing (desktop check, DSK-09).*

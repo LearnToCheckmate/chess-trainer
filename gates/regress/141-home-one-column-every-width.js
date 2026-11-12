@@ -14,7 +14,9 @@
 // CONTROL-RECORD: 1603f06 2026-11-12 total=37 red=13 scope=trial:b35a3777 how=#550 the tree before DSK-01 (t141): at 1920x970, 1440x780, 1366x648 and 1280x600 the tiles sit in a right-hand column (TC-R217a), the column is 1000 wide (TC-R217b) and Home overflows by 57, 247, 379 and 427 px (TC-R217c, the audit's own figures), and 960x970 overflows by 133; on t142 4e6cd77c 37/0
 // AND DSK-06 (TC-R217e/f): Discover takes the upright layout at computer window sizes, and the tab bar's tabs sit in the centred 660 column.
 // CONTROL-RECORD: 33c1546 2026-11-12 total=52 red=6 scope=trial:4470ec9e how=#550 DSK-06 arm: t143, the tree before it - at 1920x970, 1440x780 and 1280x600 Discover's tiles stop at y 359 (TC-R217e) and the tabs span the window (TC-R217f); on t144 6694a8b0 52/0
-// KNOW ITS LIMIT: Home and Discover; the other no-board pages (DSK-08) and the sideways board group (DSK-03/04) are separate jobs.
+// AND DSK-08 (TC-R217g): the Openings list and the Puzzles roadmap are the same centred 660 column on a computer window.
+// CONTROL-RECORD: a5691bb 2026-11-12 total=59 red=2 scope=trial:6694a8b0 how=#550 DSK-08 arm: t144, the tree before it - at 1920x970 the Openings rows are 872 wide and the roadmap 838 (TC-R217g); on t145 315c163e 59/0
+// KNOW ITS LIMIT: Home, Discover and two lists; the other no-board pages (DSK-08) and the sideways board group (DSK-03/04) are separate jobs.
 const L=require('../lib');
 const SIZES=[[1920,970],[1440,780],[1366,648],[1280,600],[960,970],[820,1180],['kunal761']];
 L.run(async()=>{
@@ -50,4 +52,15 @@ L.run(async()=>{
       L.say(m.tabL!=null&&m.tabR!=null&&m.tabR-m.tabL<=662&&Math.abs((m.tabL+m.tabR)/2-m.vw/2)<=2,tag+': TC-R217f the five tabs sit in a centred column no wider than 660 ('+m.tabL+' to '+m.tabR+')',m);}
     else L.say(m.tabL!=null&&m.tabL<=4&&m.tabR>=m.vw-4,'kunal761: TC-R217f his phone\'s tab bar still spans the screen ('+m.tabL+' to '+m.tabR+')',m);
     L.say(b.errs.length===0,tag+': TC-R217 Discover zero app errors',b.errs.slice(0,3));await b.close();}
+  // DSK-08: the lists without a board (Openings, the Puzzles roadmap) are the same 660 column on a computer window, centred; read as the widest
+  // list button above the tab bar.
+  for(const sz of [[1920,970],['kunal761']]){
+    const geo=sz[0]==='kunal761'?'kunal761':{w:sz[0],h:sz[1],safe:'',label:sz[0]+'x'+sz[1]};const tag=geo.label||geo;
+    const b=await L.launch({geo,name:'lists141'});await b.open();
+    const widest=()=>b.page.evaluate(()=>{let w=0,l=0,r=0;for(const d of document.getElementById('root').querySelectorAll('button')){const q=d.getBoundingClientRect();if(q.top>innerHeight-80||q.height<=40)continue;if(q.width>w&&q.width<innerWidth-2){w=q.width;l=q.left;r=q.right;}}return {w:Math.round(w),c:Math.round((l+r)/2),vw:innerWidth};});
+    let ok=true,op=null,rm=null;try{await b.tile('Discover');await b.settle(800);await b.tapText(/^Openings$/,{wait:900});op=await widest();await b.tile('Puzzles');await b.settle(900);rm=await widest();}catch(e){ok=false;}
+    L.say(ok&&!!op&&!!rm&&op.w>0&&rm.w>0,tag+': TC-R217 PRECONDITION the Openings list and the Puzzles roadmap opened, their rows read',{op,rm});
+    if(tag!=='kunal761')for(const [n,x] of [['Openings',op],['Puzzles roadmap',rm]])L.say(!!x&&x.w<=662&&Math.abs(x.c-x.vw/2)<=12,tag+': TC-R217g the '+n+' rows sit in the centred 660 column ('+(x&&x.w)+' wide, centre '+(x&&x.c)+')',x);
+    else L.say(!!op&&op.w>=360,'kunal761: TC-R217g his phone\'s Openings rows keep the screen width ('+(op&&op.w)+')',op);
+    L.say(b.errs.length===0,tag+': TC-R217 lists zero app errors',b.errs.slice(0,3));await b.close();}
 },'141-home-one-column-every-width');
