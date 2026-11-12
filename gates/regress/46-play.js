@@ -177,7 +177,8 @@ const overhangLive=(b)=>b.page.evaluate(()=>{
 // (20,121.7) bars 67.7, 390 368 at (20,128) bars 74. The cost on short screens is run question q35. Pass & Play has no eval bar and is unchanged.
 /* #550 a35 (his final rule): on short portrait screens the bar stays BESIDE, so se is back to its #548 pins */
 const CPU={se:{bw:298,bx:20,by:88,barW:298,barH:34},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
-const PP ={se:{bw:280,bx:20,by:89,barW:280,barH:35},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
+// #550 short upright (BSA-P-27, q42): at 320x568 Pass & Play folds 'vs Human' into the top row and trims its gaps, so the board is the full 320 at x=0, y=82.8 (measured on the round-7 bundle c5269256d63e)
+const PP ={se:{bw:320,bx:0,by:82.8,barW:320,barH:33},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
 const ROW_LIVE=['Moves','Back','Forward','Hint','Flip','More'];
 const ROW_OVER=['Moves','Back','Forward','Review','Rematch','More'];
 
