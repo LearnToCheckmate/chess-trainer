@@ -102,3 +102,4 @@ L.run(async()=>{
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 a stale gates/gatelog-exceptions.tsv row for #400 -> STALE #400
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 #448's exception class changed to an unknown one -> unsourced
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 #448's exception row removed -> MISSING #448
+// CONTROL-RECORD: c32aa08 2026-11-12 total=102 red=1 scope=full how=#550 re-control at today's count (101 PASS before the 550 gatelog lands): claude/agents/gatelogs/400-all.log removed in a scratch worktree commit, never pushed -> MISSING #400
