@@ -75,6 +75,7 @@
 //        not NC3 alone. Stated this way because a control's claimed result is worth nothing if the next
 //        reader cannot reproduce it from the file.
 'use strict';
+// CONTROL-RECORD: 64afd33 2026-11-12 total=74 red=1 scope=trial:be2edc1e0683 how=#550 item (64): no eval bar against the computer (_evalOn reads inReview only) - A7p red, so the widened instrument (beside or above) can fail
 const L=require('../lib');
 const P=require('../drive/play');
 

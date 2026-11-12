@@ -48,6 +48,7 @@
 // A1-A3 deliberately assert EQUALITY BETWEEN TWO MEASUREMENTS OF THE SAME BUNDLE rather than against a
 // literal, for the same reason: they cannot be made green by moving a constant.
 'use strict';
+// CONTROL-RECORD: 64afd33 2026-11-12 total=27 red=2 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - both A5 portrait pins red (296 and 353.03)
 const L=require('../lib');const P=require('../drive/play');
 const PORT={w:375,h:730,safe:''};
 // vp.h - 24 - 130, floored to a multiple of 8, is SQ's own wide branch (chess.jsx:2752) with boardTrim 0.

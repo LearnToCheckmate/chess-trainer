@@ -132,6 +132,7 @@
 // CONTROL-RECORD: 76b40e9 2026-11-06 total=218 red=2 scope=trial:1f1d1d2b4acc how=#549 run fix fixr5a (A1-R5): the run-head 46340d1 bundle, where Play's growth branch parks the trim at -480 on a width-bound phone - TC-R64-D17 THE SMALL OVERFLOW IS CORRECTED WITHIN THE WAKE red at 375x730 (13.03) and 375x761 (12.03), the only reds
 // CONTROL-RECORD: 76b40e9 2026-11-06 total=218 red=7 scope=trial:125a75dde92f how=#549 run fix fixr5a, D15 re-control: the fix tree with 1029033's Play absorbed-slack term switched off - TC-R64-D15 THE PHONE-GAME BOARD COMES BACK red at all five cells and the two TC-R64-D17 recovery tails
 // CONTROL-RECORD: bd4ecb7 2026-11-07 total=224 red=3 scope=trial:1e0c67e7dbd3 how=f462559's own bundle (the fit loop before fixr6b: growth claims all slack and no fresh-trim memory); reddens TC-R64-D15's recovery line at 320x540 (268 vs 276), 320x568 (296 vs 298) and 375x568-4ply (304 vs 296), 221 pass 3 fail [#549 run fix fixr6b, antagonist A round 6 A2-R6]
+// CONTROL-RECORD: 64afd33 2026-11-12 total=236 red=4 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - D17's re-calibrated blocks (56, 86) reach no overflow there, so both state-reached and both corrected lines red
 const L=require('../lib.js');
 const D=require('../drive/lesson.js');
 

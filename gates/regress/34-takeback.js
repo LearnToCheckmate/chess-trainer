@@ -24,6 +24,7 @@
 // NEGATIVE CONTROL: proved against a bundle built with the `opponent==='computer'` guard removed, which makes
 // the row appear in Pass & Play. Assertion 5 goes red on it. See claude/agents/REGRESSION-LOG.md.
 // CONTROL-RECORD: 54be878 2026-11-06 total=58 red=2 scope=full how=canTakeback=_tbIdx>=0||thinking (Takeback enabled while the engine searches), trial md5 e36c2bbbe27c
+// CONTROL-RECORD: 64afd33 2026-11-12 total=81 red=6 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - the six re-pinned widths after a takeback red
 //
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [jobs/four-gates-force-a-three-worker-pool-and-never-
 // test-the-fallback-2026-09-27, doneWhen route 2 - the same route gates 51 and 66 took]. This paragraph read "Both

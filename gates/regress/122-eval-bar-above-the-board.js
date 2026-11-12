@@ -9,6 +9,8 @@
 // KNOW ITS LIMIT: on screens where the board is limited by height (320x568, 375x667) the bar above makes the board SMALLER (272 against
 // 298, 339 against 353), and on every screen the board starts 12 to 23px lower. That is his answer's cost, put to him as run question
 // q35 with pictures; this gate pins the geometries where the board is edge to edge and asserts nothing about the short ones.
+// CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=2 scope=trial:b8b9d170d5e9 how=#550 item (64): the migration run on every load - both TC-R198c lines red (a choice of beside does not stand)
+// CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=8 scope=trial:b06b4a724838 how=#550 item (64): the tree before the migration - TC-R198a and TC-R198b red, the preconditions and TC-R198c green
 const L=require('../lib');
 const P=require('../drive/play');
 const board=(b)=>b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
