@@ -2260,3 +2260,11 @@ As a player holding the phone sideways, I see how the game has gone at a glance:
 - Every row is kept and on screen (the move strip, the six toolbar buttons at 44 or more, the MOVES row, both player bars), nothing scrolls, and the board keeps its size. (TC-R203d)
 - Never in a game against a person, and not when the player has turned the eval bar off. (TC-R203e)
 
+### US-R136 The board is as big as the screen allows, sideways on every screen and on the online game upright
+*Added #550, run-answers build__1794388896663-a38 and docs/board-size-audit-2026-11-12; Kunal, 11 Nov: "The prime guidance on every screen is to maximize the chessboard size." (decisions/the-board-is-as-big-as-the-screen-allows-on-every-screen-2026-11-11).*
+As a player, whatever I am doing and however I hold the phone, the board is the biggest thing the screen can hold; everything else moves beside it, gets shorter or narrower, or goes behind a button first, and nothing I asked to keep is taken away.
+- Sideways, the board takes the screen's height on Review, Review analysis, Puzzles, Tactics & Strategy, lessons and the online game; a game against the computer or in Pass and Play does too where its six 44pt controls still fit beside it. (TC-R204a)
+- Upright on my phone the online game's board is the screen's width. (TC-R204b)
+- No page scrolls and no button sits off the screen outside a scroller. (TC-R204c)
+- The online game's four actions are one row and chat and video call open from one button. (TC-R204d)
+
