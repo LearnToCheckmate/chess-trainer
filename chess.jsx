@@ -1743,14 +1743,15 @@ function concreteRead(pos,mv){
       const gN={...pos,turn:them,ep:null};const thr=_mateInOne(gN);
       if(thr&&!_mateInOne(g2)){const ts=toSAN(gN,thr,applyMove(gN.board,thr)).replace(/[+#]$/,'');return {k:'threat',hint:'They threaten '+ts+' mate. Stop that first.',say:san+' stops '+ts+' mate.'};}
     }
-    if(pc.t!=='k'&&seeSq({...pos,turn:them,ep:null},mv.fr,mv.fc,them)>0){
-      const a=_cheapAttacker(pos.board,mv.fr,mv.fc,them);
-      if(a&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0)return {k:'save',hint:'Your '+nm(pc.t)+' on '+rc2sq(mv.fr,mv.fc)+' is under attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'. Move it out.',say:san+' moves the '+nm(pc.t)+' out of the attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'.'};
-    }
+    /* a capture that wins material is said first: 'take it' is the clearer word when the same move also saves a piece (gate 72 TC-R96, exd5 read as 'move it out'); en passant names the pawn's own square, not the empty one it lands on */
     const cap=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap?{t:'p',c:them}:null);
     if(cap&&cap.c===them){
       const back=seeSq({...g2,turn:them},mv.tr,mv.tc,them);const net=(SEEVAL[cap.t]||0)-Math.max(0,back);
-      if(net>0)return {k:'take',hint:'Their '+nm(cap.t)+' on '+rc2sq(mv.tr,mv.tc)+' can be taken. Take it with the '+nm(pc.t)+'.',say:san+' wins the '+nm(cap.t)+(back>0?' for the '+nm(pc.t):'')+'.'};
+      if(net>0)return {k:'take',hint:'Their '+nm(cap.t)+' on '+(mv.epCap?rc2sq(mv.fr,mv.tc):rc2sq(mv.tr,mv.tc))+' can be taken. Take it with the '+nm(pc.t)+'.',say:san+' wins the '+nm(cap.t)+(back>0?' for the '+nm(pc.t):'')+'.'};
+    }
+    if(pc.t!=='k'&&seeSq({...pos,turn:them,ep:null},mv.fr,mv.fc,them)>0){
+      const a=_cheapAttacker(pos.board,mv.fr,mv.fc,them);
+      if(a&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0)return {k:'save',hint:'Your '+nm(pc.t)+' on '+rc2sq(mv.fr,mv.fc)+' is under attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'. Move it out.',say:san+' moves the '+nm(pc.t)+' out of the attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'.'};
     }
     const safe=seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0;
     if(st2==='check'&&safe){

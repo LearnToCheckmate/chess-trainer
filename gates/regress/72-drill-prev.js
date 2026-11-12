@@ -458,8 +458,8 @@ L.run(async()=>{
      try{M=new Function('React','memo','useState',js+';return {fromFEN,getLegal,mistakeHint};')({createElement(){}},x=>x,()=>[]);}finally{global.window=W;}
    }catch(e){why=e.message.slice(0,160);}
    if(L.say(!!M,'TC-R96 PRECONDITION the tree\'s move functions load for the unit block',{why})){
-     const CASES=[['en passant','4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1',m=>m.epCap,/material to be taken/],
-                  ['ordinary capture','4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1',m=>m.fr===4&&m.fc===4&&m.tr===3&&m.tc===3,/material to be taken/],
+     const CASES=[['en passant','4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1',m=>m.epCap,/material to be taken|can be taken\. Take it with/ /* #550 HEX-T-01: the concrete reading names the piece and the taker */],
+                  ['ordinary capture','4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1',m=>m.fr===4&&m.fc===4&&m.tr===3&&m.tc===3,/material to be taken|can be taken\. Take it with/ /* #550 HEX-T-01: the concrete reading names the piece and the taker */],
                   ['promotion','8/4P3/8/8/8/8/8/k6K w - - 0 1',m=>m.promo==='q',/pawn is closer/],
                   ['castle','4k3/8/8/8/8/8/8/4K2R w K - 0 1',m=>m.castle==='K',/^No tactic/],
                   ['quiet move','4k3/8/8/8/8/8/8/4K2R w K - 0 1',m=>m.fr===7&&m.fc===4&&m.tr===7&&m.tc===3,/^No tactic/]];
