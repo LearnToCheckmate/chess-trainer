@@ -48,7 +48,9 @@ const STUB=()=>{
 
 // joined = the call button is not only in the DOM but ON SCREEN and hit-tests as itself: before #550 an invite link left Home (a fixed
 // overlay) over the joined game, so the button existed and nothing could tap it
-async function joined(b){const ok=await b.page.waitForSelector('[data-ct="vc-start"]',{timeout:20000}).then(()=>true).catch(()=>false);if(!ok)return false;
+async function joined(b){/* #550 BSA-P-01: video call and chat sit behind the 'Chat & video call' button; open it first where it exists */
+  const op=await b.page.waitForSelector('[data-ct="online-talk-open"]',{timeout:20000}).then(()=>true).catch(()=>false);if(op){await b.page.click('[data-ct="online-talk-open"]');await b.settle(400);}
+  const ok=await b.page.waitForSelector('[data-ct="vc-start"]',{timeout:20000}).then(()=>true).catch(()=>false);if(!ok)return false;
   await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="vc-start"]');if(e)e.scrollIntoView({block:'center'});});await b.settle(300);
   return b.page.evaluate(()=>{const e=document.querySelector('[data-ct="vc-start"]');if(!e)return false;const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !!h&&(h===e||e.contains(h));});}
 const has=(b,sel)=>b.page.evaluate(s=>!!document.querySelector(s),sel);

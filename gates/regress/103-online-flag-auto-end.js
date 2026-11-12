@@ -43,7 +43,7 @@ L.run(async()=>{
   L.say(!!mm&&+mm[1]===15000,'TC-PL-070 the grace is 15 seconds (FLAG_GRACE_MS: '+(mm?mm[1]:'absent')+')',{m:mm&&mm[1]});
   for(const [id,meWhite,sinceMs,who] of [['TC-PL-070a',true,80000,'loser'],['TC-PL-070b',false,80000,'winner'],['TC-PL-070c',false,65000,'winner, early']]){
     const b=await L.launch({geo:'kunal761',name:'flag-'+id,store:{}});await b.ctx.addInitScript(STUB,{meWhite,sinceMs});await b.open('index.html?g=ABCDE');
-    const ok=await b.page.waitForSelector('[data-ct="vc-start"]',{timeout:20000}).then(()=>true).catch(()=>false);
+    const ok=await b.page.waitForSelector('[data-ct="vc-start"]',{state:'attached',timeout:20000}).then(()=>true).catch(()=>false);   // #550 BSA-P-01: Video call now sits in the closed Chat & video call sheet - present in the page once the game is joined, not visible
     L.say(ok,id+' DENOMINATOR the stand-in game (1 min, White\'s flag fell '+(sinceMs-60000)/1000+'s before opening) was joined on the '+who+'\'s phone',{ok});
     if(ok){
       if(sinceMs<75000){await b.settle(4000);const r0=await results(b);L.say(r0.length===0,id+' nothing is written inside the 15s grace (read 4s after opening, '+(sinceMs-60000)/1000+'s after the flag)',r0);await b.settle(13000);}
