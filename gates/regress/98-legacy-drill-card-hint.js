@@ -13,6 +13,7 @@
 //  (b) TC-R183b a FORCING card (back-rank mate, best Qe8#, played Kf1): the hint says the line ends the game, and is NOT the generic sentence.
 // DENOMINATOR per card: the drill opened on that card (its goal names the move played) and the Hint tap produced a hint line.
 // CONTROL-RECORD: 719c41e 2026-11-11 total=7 red=2 scope=trial:3ab724514641 how=#550 item (89): origin/main's bundle - both legacy cards show 'Look for the most forcing or solid option', so TC-R183a and TC-R183b's hint lines are red; the four DENOMINATORS and the font pin green
+// CONTROL-RECORD: 3835b96 2026-11-12 total=7 red=4 scope=trial:9bceb4fee152 how=#550 round 5, Hint re-key: the drills' Hint button does nothing (onClick no-op) - both DENOMINATOR lines and both own-hint lines red; on 764a0b1dc097 7/0
 const L=require('../lib');
 const GENERIC=/Look for the most forcing or solid option/;
 const CARDS=[
