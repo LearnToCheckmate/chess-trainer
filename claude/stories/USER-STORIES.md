@@ -2351,3 +2351,11 @@ As the owner selling Pro, and as a player on a shared phone, Pro comes only from
 - Account has Delete account, behind a confirm; confirming deletes the account and clears the device. (TC-R213d)
 - The deletion removes every document keyed to the player, scrubs their seat and chat in played games, confirms identity first and deletes the sign-in account last. (TC-R213e)
 - Sign out offers to remove the player's data from the device, on by default; a different account signing in on a device that belonged to someone else starts clean. (TC-R213f, TC-R213g, TC-R213h)
+### US-R144 The lessons and puzzles teach chess the engine agrees with
+*Added #550, docs/chess-correctness-2026-11-12 CHS-01..CHS-23; Kunal, 12 Nov: "Batch 10, wrong first".*
+As a player learning from a lesson, a card or a puzzle, the move I am taught is a good move and the words about it are true of the position.
+- The Légal Trap lesson and its puzzle teach Nxe5 only where it works (Légal's own 4...g6?), and the line mates. (TC-R212a, TC-R212b)
+- "Passed pawns must be pushed" shows a pawn whose push wins. (TC-R212c)
+- The Vienna 3.Bc4 Nxe4 line ends level, and says so. (TC-R212d)
+- The Lasker Trap names the legal saving move, 6.fxe3. (TC-R212e)
+- Move numbers, check marks and the words "forced", "only legal move", "in front of the pawn" and "long diagonal" match the board; a weaker taught move is replaced or marked; a card's praised side is not a pawn down; a puzzle's goal is true, its equally good moves are accepted, and a draw is not labelled a win. (TC-R212f..w)
