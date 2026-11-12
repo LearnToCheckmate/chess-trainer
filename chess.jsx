@@ -8351,6 +8351,12 @@ export default function App(){
   diagRef.current={build:BUILD_INFO,mode,screen:homeScreen?'home':(playSetup?'play-setup':mode),openIdx,opp:opponent,phase:learnPhase,vw,vh:vp.h,dpr:(typeof window!=='undefined'?window.devicePixelRatio:1),wide,railed,boardPx,SQ};
   const [homeFit,setHomeFit]=useState({k:'',z:1,compact:false,done:false});   // #550 DSK-01/02: Home fitted to the window height
   const homeScrRef=useRef(null);
+  /* #550 desktop check DSK-09: Play setup on a window wider than tall is the 660 column with its sections in two halves (opponent and the
+     computer opponents left; colour, clock and strength right), fitted to the height like Home (zoom, floor 0.75), so Start game stays on screen. */
+  const _sw2=vp.w>vp.h&&vp.w>=720;
+  const _sg=(c)=>_sw2?{gridColumn:String(c)}:undefined;
+  const setupSheetRef=useRef(null);
+  const [setupFit,setSetupFit]=useState({k:'',z:1,done:false});
   const hb=vp.w>=720;             // tablet-sized screen: scale the Home screen up to use the real estate
   /* #550 desktop check DSK-01/DSK-02 (Kunal, 12 Nov, his computer: "when I expand the screen ... it looks messy and loses all alignment";
      he accepted the rule "pages without a board are one centred column at every window width, capped at 660, never two columns"): a real
@@ -8359,6 +8365,16 @@ export default function App(){
   const hLand=forcePreviewWide;
   const hbig=hb&&!hLand&&!homeFit.compact;
   const _hcF=!hbig&&!hLand;   // #550 AUD-H01: phone Home's compact footer (one 44pt row)
+  useLayoutEffect(()=>{   // #550 DSK-09: fit Play setup to the window height on a wide window
+    if(!(mode==='play'&&playSetup&&!homeScreen&&_sw2))return;
+    const k=vp.w+'x'+vp.h+':'+opponent;
+    if(setupFit.k!==k){setSetupFit({k,z:1,done:false});return;}
+    if(setupFit.done)return;
+    const sh=setupSheetRef.current;let el=sh;while(el&&getComputedStyle(el).position!=='fixed')el=el.parentElement;if(!el)return;
+    const need=el.scrollHeight,avail=el.clientHeight;
+    if(need<=avail+1){setSetupFit(f=>({...f,done:true}));return;}
+    const z=Math.max(0.75,Math.floor(setupFit.z*(avail/need)*0.99*1000)/1000);setSetupFit(f=>({...f,z,done:f.z<1}));
+  });
   /* #550 DSK-01/02: fit the single Home column to the window height on a large screen. Measured, not computed: render full size, read the
      scroller's overflow, scale by the ratio (zoom on the column, floor 0.85), and below the floor take the compact 420 column. It settles in at
      most three renders per window size and stops (done), so it cannot oscillate; a new window size starts it again. */
@@ -9514,7 +9530,8 @@ export default function App(){
         </div>
       </div>)}
       {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(20px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-        <div data-ct="setup-sheet" className="scroll" style={{width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:vp.h<720?10:16 /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
+        {_sw2&&<style>{`.setup2>*{grid-column:1/-1}`}</style>}
+        <div ref={setupSheetRef} data-ct="setup-sheet" className={'scroll'+(_sw2?' setup2':'')} style={{width:'100%',maxWidth:_sw2?660:420,...(_sw2?{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:22,rowGap:12,gridAutoFlow:'row dense',alignItems:'start',...(setupFit.z<1?{zoom:setupFit.z}:null)}:{display:'flex',flexDirection:'column'}),...(_sw2?null:{gap:(vp.h<720?10:16)}) /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
             {(()=>{const _fromRev=!!setupFromFEN&&setupSrc==='review'&&!!review;/* #548 item (122), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02: the sheet's ONE exit goes back to where he came from. Opened by Review's 'Play from here' it reads '\u2039 Back to review' and returns to the same review at the same ply - where the terminal note's remedy (step back a move) is one tap away - instead of dropping him on Home with three taps back. #466's committer guard stays: it is the defence for the scan route. Both #466 antagonists named this the cheaper complete remedy; the row-level refusal the title asks for would have made gate 55's A1-A13 unreachable. */return(
             <button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);if(_fromRev){setSetupFromFEN(null);setHomeScreen(false);setMode('analyze');return;}setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>{_fromRev?'\u2039 Back to review':'\u2039 Home'}</button>);})()}
@@ -9579,7 +9596,7 @@ export default function App(){
           {setupFromFEN&&(setupBlocked
             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over — {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. {setupSrc==='scan'?<>Scan or upload a board where it is still someone's turn.</>:<>Step back a move in your review and use <b>Play from here</b> there instead.</>}</div>)
             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move) — switch the color below if you'd rather take the other side.</div>))}
-          <div>
+          <div style={_sg(2)}>
             <div style={{display:'flex',gap:10}}>
               <button data-ct="scan-camera" onClick={()=>{ setScanMsg(''); setScanAsk(null); if(!cloudUser){ setUpgradeMsg('Sign in to scan a board.'); setAcctOpen(true); return; } if(scanInputRef.current) scanInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>📷 Scan with camera</button>
               <button data-ct="scan-upload" onClick={()=>{ setScanMsg(''); setScanAsk(null); if(!cloudUser){ setUpgradeMsg('Sign in to read a board.'); setAcctOpen(true); return; } if(uploadInputRef.current) uploadInputRef.current.click(); }} disabled={scanBusy} style={{flex:1,minWidth:0,padding:'13px 10px',borderRadius:13,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:scanBusy?'default':'pointer',opacity:scanBusy?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:7}}>🖼 Upload a photo</button>
@@ -9630,9 +9647,9 @@ export default function App(){
             <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',marginTop:7,lineHeight:1.4}}>Point at a board, or read a screenshot from your library.</div>
           </div>
 
-          <div>
+          <div style={_sg(1)}>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Opponent</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
               {[{k:'online',ic:'online',t:'Online'},{k:'computer',ic:'computer',t:'Computer'},{k:'human',ic:'human',t:'Pass & Play'}].map(o=>{const on=opponent===o.k;const OPPT={computer:['#5b8def','#2f6fd0'],human:['#22c55e','#15803d'],online:['#a855f7','#7c3aed']};const tint=(SK.tints&&(o.k==='computer'?SK.tints.analyze:o.k==='human'?SK.tints.learn:SK.tints.play))||OPPT[o.k];return(
                 <button key={o.k} onClick={()=>{setSoonMsg('');if(o.k==='online'){setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}else {setOpponent(o.k);
                   /* #400 R-OC-2, SECOND CALL SITE - and the one a player actually uses. My first version of
@@ -9662,7 +9679,7 @@ export default function App(){
             {soonMsg&&<div style={{marginTop:9,textAlign:'center',fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.28)',borderRadius:10,padding:'8px 11px',lineHeight:1.4}}>{soonMsg}</div>}
           </div>
 
-          {opponent==='computer'&&(<div>
+          {opponent==='computer'&&(<div style={_sg(1)}>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>Choose your opponent</div>
             <div style={{position:'relative',marginBottom:14}}>
             <div ref={botRowRef} onScroll={_botMeasure} data-ct="bot-row" className="scroll" style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,WebkitOverflowScrolling:'touch'}}>
@@ -9698,7 +9715,7 @@ export default function App(){
               No limit / 1 day / 3 days / 7 days. Both rows now show, under their own headings, because they
               mean different things to a player (spec Q3 option a). AMBER, recorded before the act in tracker
               flag amber-online-clock-pills-2026-09-15 and Decision Desk defaults/oc-clock-pills-2026-09-15. */}
-          {(<div>
+          {(<div style={_sg(2)}>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>⏱ Time control</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               <span style={pill(!timeCtrl)} onClick={()=>{timeCtrlRef.current=null;setTimeCtrl(null);}}>No clock</span>
@@ -9706,7 +9723,7 @@ export default function App(){
             </div>
             <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',marginTop:6}}>minutes + increment per move — e.g. 3+1 means 3 minutes, +1 second each move</div>
           </div>)}
-          {opponent==='computer'&&(<div style={{marginTop:14}}>
+          {opponent==='computer'&&(<div style={{marginTop:_sw2?0:14,..._sg(2)}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase'}}>Strength</span>
               <span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:800}}>≈ {cpuElo} Elo</span>
@@ -9715,7 +9732,7 @@ export default function App(){
             <div style={{display:'flex',justifyContent:'space-between',fontSize:8,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
           </div>)}
 
-          {opponent==='online'&&(<div>
+          {opponent==='online'&&(<div style={_sg(2)}>
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',marginBottom:8}}>⏳ Time per move</div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               {/* #400: THIS ROW'S OWN NULL PILL IS GONE, and it is the one thing my first version of R-OC-1 got

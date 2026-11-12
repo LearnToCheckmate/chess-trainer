@@ -2334,3 +2334,10 @@ As a player on a computer, Home looks like the single centred column I like at a
 - The column is at most 660 wide. (TC-R217b)
 - Home fits the window height: scaled down to 85 percent, then the compact column, which scales too. (TC-R217c)
 - His phone is unchanged. (TC-R217d)
+
+### US-R150 Play setup fits a laptop window with Start game on screen
+*Added #550, run-answers build__1794388896663-hold-landing (desktop check, DSK-09).*
+As a player on a computer, the new-game page fits my window: Start game is on screen without scrolling.
+- Start game is wholly on screen and nothing scrolls on a window wider than tall. (TC-R218a)
+- There the sections sit in two halves of one centred column at most 660 wide. (TC-R218b)
+- His phone keeps the one 420 column. (TC-R218c)
