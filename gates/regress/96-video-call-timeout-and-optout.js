@@ -26,6 +26,7 @@
 // CONTROL-RECORD: f671638 2026-11-11 total=13 red=3 scope=trial:7821d85142ef how=#550 item (87): c87, the timeout effect removed and the ring-clear reverted - TC-PL-068a's give-up and words lines red (still live, no hangup), TC-PL-068c's ring-gone line red; 068b and both DENOMINATORS green
 // CONTROL-RECORD: f671638 2026-11-11 total=13 red=1 scope=trial:459f910ff381 how=#550 item (87): c87b, the no-ring branch removed - TC-PL-068b's decline line red (the call rang, no hangup); every other line green
 // CONTROL-RECORD: f671638 2026-11-11 total=6 red=3 scope=trial:3ab724514641 how=#550 item (87): origin/main's bundle - the invite link leaves Home over the joined game, so both DENOMINATORS (button on screen and taking the tap) and the switch line red; the gate stops there
+// CONTROL-RECORD: b9d70fa 2026-11-12 total=6 red=3 scope=trial:7793a14bcdb8 how=#550 BSA-P-01: the Chat & video call button does nothing (onClick no-op), so Video call stays in the closed sheet - the DENOMINATOR and its dependants red; on the built trial 13/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const SRC=process.env.CT_SRC||path.join(__dirname,'..','..','chess.jsx');

@@ -50,6 +50,7 @@
 'use strict';
 // CONTROL-RECORD: 64afd33 2026-11-12 total=27 red=2 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - both A5 portrait pins red (296 and 353.03)
 // CONTROL-RECORD: 976131a 2026-11-12 total=27 red=1 scope=trial:fa0485d4646e how=#550 a35: the trial before his final rule - A5@short375 red (272 against 296)
+// CONTROL-RECORD: 858f54e 2026-11-12 total=27 red=3 scope=trial:075881d048e1 how=#550 a38: the tree before the full-height board (344 and 360 sideways) - the three 3: derivation lines red at 730x375, 844x390 and 667x375
 const L=require('../lib');const P=require('../drive/play');
 const PORT={w:375,h:730,safe:''};
 // vp.h - 24 - 130, floored to a multiple of 8, is SQ's own wide branch (chess.jsx:2752) with boardTrim 0.
