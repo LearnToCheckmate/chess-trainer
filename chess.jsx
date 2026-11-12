@@ -10993,6 +10993,7 @@ export default function App(){
               {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
               {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
               {/* #366 y15b: Analyze moved onto the board as the round button (rev-fab). */}
+              {landRev&&<span data-ct="rev-count" style={{flex:'0 0 auto',alignSelf:'center',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the move counter sits at the end of this row - in the move line it wrapped that line onto a second row at 667 */}
             </>)}
           </div>);
         /* #550 a21: in the streamlined view the row is the BOTTOM TOOLBAR of his picked mockup - Back, Analyze, Key move, Forward -
@@ -11049,7 +11050,7 @@ export default function App(){
                 {!rowNarrow&&<span style={{fontWeight:600,color:'rgba(255,255,255,.6)',fontSize:'.85em'}}>best</span>}{curAnno.bestSan}<span style={{opacity:.8}}>{showBest?'✓':'›'}</span></button>}
             </>):(<span style={{fontSize:'clamp(14px,3vw,16px)',fontWeight:700,color:'rgba(255,255,255,.6)'}}>Start position</span>)}
             {!anaMode&&<span style={{flex:'1 1 auto'}}/>}
-            {!anaMode&&!landRev&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the counter wrapped the move line onto a second row (47 tall); the strip and the graph already show where you are */}
+            {!anaMode&&!landRev&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the counter moves to rev-row1's end (rev-count), where it does not wrap the move line */}
           </div>
           {/* #341: chess.com-style one-liner on why the move got its verdict, plain text, no box (Kunal asked for the reason back, and for the box gone). */}
           {(()=>{const _tall=!wide;const _stripH=(wide&&_cmpStrip&&!anaMode)?20:0;/* #397 (uat394-rev-why-clips-fourth-line-320): THE BOX MUST BE NO TALLER THAN THE LINES ITS CLAMP ALLOWS.
