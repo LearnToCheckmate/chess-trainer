@@ -2326,3 +2326,11 @@ As a player on a short phone, the puzzle board fills the width, and a hint, a wr
 - Nothing scrolls in any of those states. (TC-R216b)
 - At 320x568 and 375x667 the Puzzles board is the full width. (TC-R216c)
 - The wrong-move note is an overlay that fades, and the motif and level live behind the Hint. (TC-R216d)
+
+### US-R149 Home is one centred column at every window size
+*Added #550, run-answers build__1794388896663-hold-landing (desktop check, DSK-01/02); Kunal, 12 Nov: "It should continue to look like that ... when I expand the screen ... it looks messy and loses all alignment."*
+As a player on a computer, Home looks like the single centred column I like at any window size, and fits the window without scrolling.
+- The four tiles are one 2x2 grid in one column centred on the window. (TC-R217a)
+- The column is at most 660 wide. (TC-R217b)
+- Home fits the window height: scaled down to 85 percent, then the compact column, which scales too. (TC-R217c)
+- His phone is unchanged. (TC-R217d)

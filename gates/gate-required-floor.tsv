@@ -83,3 +83,4 @@
 118	117	raise	2026-11-12	550	build__1794388896663	#550 a41: the stored drill cards are re-graded by win chance (US-R142)	-	32f6cd1fa17f
 119	118	raise	2026-11-12	550	build__1794388896663	#550 his report (a): usernames follow the account (US-R146)	-	e44b29de31b4
 120	119	raise	2026-11-12	550	build__1794388896663	#550 a42: messages move nothing; short phones' puzzle board full width (US-R148)	-	a363f459affd
+121	120	raise	2026-11-12	550	build__1794388896663	#550 DSK-01/02: Home one centred column at every window size, fitted to the height (US-R149)	-	35498073ade3

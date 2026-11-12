@@ -149,3 +149,4 @@
 134-drill-cards-regraded.js	required	550	2026-11-12	build__1794388896663	gates/regress/134-drill-cards-regraded.js - THE CARDS ALREADY IN THE DRILL ARE RE-GRADED	#550 a41: the stored drill cards are re-graded by win chance (US-R142)
 138-usernames-follow-the-account.js	required	550	2026-11-12	build__1794388896663	gates/regress/138-usernames-follow-the-account.js - HIS USERNAMES FOLLOW HIS ACCOUNT, AN	#550 his report (a): usernames follow the account (US-R146)
 140-messages-move-nothing.js	required	550	2026-11-12	build__1794388896663	gates/regress/140-messages-move-nothing.js - A MESSAGE APPEARING OR GOING MOVES NOTHING,	#550 a42: messages move nothing; short phones' puzzle board full width (US-R148)
+141-home-one-column-every-width.js	required	550	2026-11-12	build__1794388896663	gates/regress/141-home-one-column-every-width.js - HOME IS ONE CENTRED COLUMN AT EVERY W	#550 DSK-01/02: Home one centred column at every window size, fitted to the height (US-R149)
