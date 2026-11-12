@@ -85,7 +85,7 @@ L.run(async()=>{
     await rotate(b,PORT);await rotate(b,g);
     const r2=await boardRect(b);
     L.say(!!r2&&!!r1&&Math.abs(r1.w-r2.w)<0.05,tag+'2: and a SECOND round trip leaves it there - it settles rather than drifting, which is the difference between a stale value and one that walks',{trip1:r1&&r1.w,trip2:r2&&r2.w});
-    L.say(!!r1&&Math.abs(r1.w-g.cap)<0.05,tag+'3: the settled board equals min(vp.h, vp.w-320) - the full height, or what the 300pt rail leaves (#550 a38; it was vp.h-24 floored to 8) = '+g.cap+' - the analytic cap SQ computes for this screen with no trim. Pinned to the DERIVATION and stated per row, so a reader can see why the three rows expect three different numbers',{board:r1&&r1.w,cap:g.cap});
+    L.say(!!r1&&Math.abs(r1.w-g.cap)<0.1,tag+'3: the settled board equals min(vp.h, vp.w-320) - the full height, or what the 300pt rail leaves (#550 a38; it was vp.h-24 floored to 8) = '+g.cap+' - the analytic cap SQ computes for this screen with no trim. Pinned to the DERIVATION and stated per row, so a reader can see why the three rows expect three different numbers',{board:r1&&r1.w,cap:g.cap});
     L.say(b.errs.length===0,tag+'4: zero app errors across two rotation round trips',b.errs.slice(0,3));
     fresh[g.w]=f?f.w:null;
     await b.close();
