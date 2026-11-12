@@ -782,7 +782,7 @@ const COVERED_PIN={
   'short375/home':6,'short375/play-captures':0,'short375/play-gameover':0,'short375/lesson-demo':0,
   'short375/lesson-practice':0,'short375/puzzles':0,'short375/pz-solved':0,'short375/rev-summary':22/* #550: two fewer behind the summary (its coach chips now 44 tall above the sheet, t74) */,
   'short375/rev-ply31':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'short375/rev-last-engine':0,'short375/rev-why-open':0,'short375/rev-more-sheet':15/* #550 a21: three fewer controls behind the more sheet (the old transport row is gone from the board's foot, t74) */,
-  'short375/rev-best-ply30':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'short375/lesson-complete':0,'short375/pz-rankup':3/* #545 */};
+  'short375/rev-best-ply30':0/* #550 a21: the header row and toolbar sit clear of the board and the strip, so nothing on this screen is excluded as occluded (t74) */,'short375/lesson-complete':0,'short375/pz-rankup':4/* #550 a42: on a short upright phone (568 tall) the solve explanation is a tappable overlay over the board (pz-overlay), and the rank-up celebration covers it as it covers Previous and Next - the fourth exclusion is that overlay, read on t149 *//* #545 */};
 // TWO OF THESE NUMBERS ARE THE INTERESTING ONES AND BOTH ARE STATED RATHER THAN LEFT TO BE NOTICED.
 // `rev-more-sheet` pinned 0 ROWS at every geometry. THAT SENTENCE IS NO LONGER TRUE AND IS WITHDRAWN HERE
 // RATHER THAN QUIETLY EDITED [R18]: since #492 it is 0 at `se` only, and 1 at `kunal730` and `short375`. See

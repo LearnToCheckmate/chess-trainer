@@ -5189,7 +5189,7 @@ export default function App(){
   useEffect(()=>{
     if(!homeScreen||!GRADES2||regradeRunRef.current)return;
     const todo=(myMistakesRef.current||[]).filter(m=>m&&!m.wc&&m.fen&&m.uci);if(!todo.length)return;
-    regradeRunRef.current=true;let stop=false;const halt=()=>{stop=true;};const off=setTimeout(()=>{},0);
+    regradeRunRef.current=true;let stop=false;const halt=()=>{stop=true;try{const a=sfAnaAbortRef.current;if(a&&sfAnaBusyRef.current)a();}catch(e){}};   /* leaving Home also ends the search in flight, so the next screen's engine query never meets it (gate 22 TC-R109, a drill card opened straight from Home) */const off=setTimeout(()=>{},0);
     (async()=>{
       try{
         const ok=await ensureAna(60);if(!ok||stop)return;
