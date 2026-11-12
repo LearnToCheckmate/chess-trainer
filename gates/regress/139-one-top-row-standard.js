@@ -17,7 +17,8 @@
 // demo and practice, with one ⋯ on screen; on a short phone the lesson's row under the board folds into the bar (Now I'll try it is a bar
 // button, Other lines in the ⋯ sheet) and the board is the screen width at 320x568; the online game over keeps the board 375 on his phone
 // with no page scroll (gate 100's stand-in cloud, a finished game).
-// KNOW ITS LIMIT: Puzzle training and the two drills were not changed by this build (other lanes held those screens), so they are not
+// KNOW ITS LIMIT: on a short phone (375x667, 320x568) the Review board has no header row - back and ⋯ live in its top player bar, which
+// sits at the board's edge, and the title is not shown (#351, Kunal: 'relocate them') - so there only the 44x44 size is asserted. Puzzle training and the two drills were not changed by this build (other lanes held those screens), so they are not
 // asserted here. The vertical position of the top row differs by screen (it follows each screen's own safe-area handling); only the x
 // offsets are asserted, as the task asked.
 // CONTROL-RECORD: 9a6a5c6 2026-11-12 total=N red=M scope=trial:749a261311ba how=#550 the tree before this build (HEAD 9a6a5c6, built as t0): 38x30 menus, left titles, 38-high Tactics buttons, the board 78.5 lower on Tactics, X mid-bar in the demo, two ⋯ in practice, online board 192; on FIXED N/0
@@ -50,10 +51,11 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'top139',store:{ct_pool:'3'}});await b.open();let ok=true;try{await go(b);await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
     const c=await corners(b,title);
     L.say(ok,'TC-R215 '+tag+' PRECONDITION the screen is reached',{ok});
-    L.say(ok44(c.menu)&&at8(c.menu.r),'TC-R215a '+tag+' the menu is top-right, >=44x44, 8 from the right edge ('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
-    if(hasBack)L.say(ok44(c.back)&&at8(c.back.x),'TC-R215a '+tag+' the back is top-left, >=44x44, 8 from the left edge ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x:'none')+')',c.back);
+    const inBar=nm==='Review board'&&gn!=='kunal761';   // on a short phone Review keeps back and ⋯ inside its top player bar (#351, no header row); they are the standard size there, at the bar's edge
+    L.say(ok44(c.menu)&&(inBar||at8(c.menu.r)),'TC-R215a '+tag+' the menu is top-right, >=44x44, '+(inBar?'(in the player bar) ':'8 from the right edge ')+'('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
+    if(hasBack)L.say(ok44(c.back)&&(inBar||at8(c.back.x)),'TC-R215a '+tag+' the back is top-left, >=44x44, 8 from the left edge ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x:'none')+')',c.back);
     if(c.menu&&c.back)L.say(c.menu.br===c.back.br&&c.menu.br==='12px','TC-R215a '+tag+' back and menu share one corner radius, 12 ('+c.back.br+' / '+c.menu.br+')',{b:c.back.br,m:c.menu.br});
-    if(title){L.say(!!c.title&&Math.abs(c.title.cx)<=2,'TC-R215b '+tag+' the title is centred on the screen ('+(c.title?'off by '+c.title.cx:'not found')+')',c.title);
+    if(title&&!inBar){L.say(!!c.title&&Math.abs(c.title.cx)<=2,'TC-R215b '+tag+' the title is centred on the screen ('+(c.title?'off by '+c.title.cx:'not found')+')',c.title);
       L.say(!!c.title&&c.title.fs===18&&c.title.fw===800,'TC-R215b '+tag+' the title is 18px weight 800 ('+(c.title?c.title.fs+'/'+c.title.fw:'-')+')',c.title);if(c.title)fams.add(c.title.ff);}
     L.say(b.errs.length===0,'TC-R215 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
   L.say(fams.size===1,'TC-R215b one title typeface on every screen and geometry ('+[...fams].join(' | ')+')',[...fams]);
