@@ -11,6 +11,7 @@
 // hint and the "was stronger" verdict stored on them, exactly as a card captured before this build carries them - so the gate also proves
 // the cards he already has are re-read, not only new captures. Each is opened in the mistakes drill at kunal761, Hint tapped, the best
 // move played on the board, then Reset tapped on the solved card.
+// The #550 a41 fixture change (wc on the seeded cards) re-keys no assertion; the CONTROL-RECORD below still stands for what the gate asserts.
 // KNOW ITS LIMIT: three positions; concreteRead's coverage over real cards is a measurement on the job, not this gate.
 const L=require('../lib');
 const GENERIC=/No tactic to spot here|Look for the most forcing or solid option/;

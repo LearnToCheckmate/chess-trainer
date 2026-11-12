@@ -46,6 +46,7 @@ L.run(async()=>{
   // #550 check gap cg2: flagOf as a PREDICATE over the case's 17 inputs (7 valid codes, 1 lowercase, 2 unassigned pairs, 7 rejects),
   // through engine-extract so the function measured is the shipped one. A valid code is two regional-indicator letters; the rest are ''.
   {const E=require('../engine-extract.js');const RI=(c)=>String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65));
+   // CONTROL-RECORD: ebbe41b 2026-11-12 total=264 red=3 scope=trial:edd93ac94af9 how=#550 his report (b) re-key (flags are pictures): t139, the tree with emoji flags - no flag picture paints, so TC-R107 two-flags and both name shifts are red (TC-R107b reads the predicate from the current chess.jsx and stays green there - named, not credited); on t140 0b494f6c50db 312/0
    // CONTROL-RECORD: 2acf390 2026-11-11 total=310 red=3 scope=trial:5883dba75012 how=#550 check gap cg2: the refused lookup cached as an answer, with CT_SRC set to the tree without the user-assigned filter (cg2-nox) - TC-R107b, TC-R68 and TC-R68b red
    // #550 his report (b): flagOf now returns the PICTURE's file key (flags/<key>.png), not regional-indicator letters, which Windows
    // draws as pale letters; and chess.com's XE (England) now paints England's flag. RI is kept for the record of what it was.
