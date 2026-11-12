@@ -1683,7 +1683,7 @@ L.run(async()=>{
      const head=[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&/^MOVES$/i.test((e.innerText||'').trim()));const an=[...document.querySelectorAll('button')].find(x=>/Analyze$/.test((x.innerText||'').trim())||/^Analyze/.test(x.getAttribute('aria-label')||''));   // #550 a6: icon-only, named by aria-label
      const r=n=>n?Math.round(n.getBoundingClientRect().top*10)/10:null;return {bw:g?Math.round(g.width*10)/10:null,bt:g?Math.round(g.top*10)/10:null,bb:g?g.bottom:null,head:r(head),an:r(an)};});
    let ok=true;try{await D.states['demo-end'](b);await b.settle(900);}catch(e){ok=false;}const a0=await rd();
-   try{await D.tapBtn(b,/^✋ Now I'll try it$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
+   try{await D.tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
    if(!L.say(ok&&a0.bw&&a0.head!=null&&a0.an!=null&&a1.head!=null,geo+': TC-LS-039 PRECONDITION demo end and practice move 0 were both reached, with the board, MOVES head and Analyze found',{a0,a1})){await b.close();continue;}
    L.say(a1.bw===a0.bw&&a1.bt===a0.bt,geo+': TC-LS-039 the board keeps its size and place across "Now I\'ll try it" ('+a0.bw+' at '+a0.bt+' -> '+a1.bw+' at '+a1.bt+')',{a0,a1});
    L.say(a1.head===a0.head&&a1.an===a0.an,geo+': TC-LS-039 and the MOVES head and the Analyze row do not move ('+a0.head+'/'+a0.an+' -> '+a1.head+'/'+a1.an+')',{a0,a1});

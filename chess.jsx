@@ -3575,6 +3575,26 @@ function _SheetItem({icon,label,on,dis,warn,ct}){
   );
 }
 
+/* #550 formatting audit FMT-A-01/A-02/A-03/B-01/B-03 (Kunal's pick 12 Nov, "All in this batch, top first"; titles CENTRED, his
+   words "I prefer it being center aligned on the screen titles"): ONE top row. Back top-left, menu top-right, both 44x44 with one
+   fill, TOP_EDGE from the screen edge; the screen title centred on the screen between them, one size and weight. Every top row
+   uses these constants so the corners and the title cannot drift apart again (gate 139, US-R147). ACT_H is the action-button
+   height under a board (FMT-A-03). */
+const TOP_EDGE=8,TOP_SZ=44,ACT_H=44;
+const TOP_BTN={flex:'0 0 auto',width:TOP_SZ,height:TOP_SZ,minWidth:TOP_SZ,minHeight:TOP_SZ,boxSizing:'border-box',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.92)',cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontSize:18,fontWeight:700};
+const TOP_TITLE={position:'absolute',top:0,bottom:0,left:TOP_EDGE+TOP_SZ+6,right:TOP_EDGE+TOP_SZ+6,display:'block',textAlign:'center',lineHeight:TOP_SZ+'px',fontFamily:'var(--head)',fontSize:18,fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',pointerEvents:'none'};
+function TopBtn({ct,onClick,label,children,style}){return <button data-ct={ct} onClick={onClick} aria-label={label} title={label} style={{...TOP_BTN,...style}}>{children}</button>;}
+function TopBack({ct,onClick,label}){return <TopBtn ct={ct} onClick={onClick} label={label||'Back'}><ChevIcon size={20} dir="left"/></TopBtn>;}
+function TopMenu({ct,onClick}){return <TopBtn ct={ct} onClick={onClick} label="Menu and settings">{'☰'}</TopBtn>;}
+/* full: the row spans the whole screen width even inside a narrower centred column, so the title centre is the screen centre */
+function TopRow({ct,back,menu,title,mid,full,style}){
+  return(<div data-ct={ct} style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6,height:TOP_SZ,padding:'0 '+TOP_EDGE+'px',boxSizing:'border-box',flexShrink:0,...(full?{width:'100vw',marginLeft:'calc(50% - 50vw)',marginRight:'calc(50% - 50vw)'}:{width:'100%'}),...style}}>
+    {back||<span aria-hidden="true" style={{width:TOP_SZ,flexShrink:0}}/>}
+    {title!=null&&<div data-ct="top-title" style={TOP_TITLE}>{title}</div>}
+    {mid}
+    {menu||<span aria-hidden="true" style={{width:TOP_SZ,flexShrink:0}}/>}
+  </div>);
+}
 function Tab({label,active,onClick}){
   return <button onClick={onClick} style={{flex:1,padding:'8px 4px',border:'none',cursor:'pointer',background:active?'var(--ac)':'transparent',color:active?'#fff':'rgba(255,255,255,.55)',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:active?700:500,borderRadius:6,transition:'all .15s',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{label}</button>;
 }
@@ -3943,7 +3963,7 @@ const STRAT=[
    the page has ONE bar: back, the Tactics and Strategy tabs, and the menu; the title and its blurb go, and the app header is not drawn over it.
    Under the board sits a fixed area - the status line, the answer or the strategy text (scrolling inside its own box), and the buttons - and the
    board is sized so that area ends above the tab bar, on every card and in every state, so the board never jumps when the answer appears. */
-const TT_BELOW={motifs:120,strategy:180};   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
+const TT_BELOW={motifs:120,strategy:180,phone:114};   /* phone (#550 FMT-A-06, a42): the card box keeps two lines (62) + 8 + the 44 action row */   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
 function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const _bar=!!onBack;
   /* #550 board-size audit BSA-L-01..09 (job tactics-strategy-sideways-board-full-height-2026-11-12): SIDEWAYS the page is a two-column grid -
@@ -3963,6 +3983,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const [shown,setShown]=useState(false);
   const [wrong,setWrong]=useState(false);const [wrongTxt,setWrongTxt]=useState('');   /* #550 HEX-T-09: the reason for a wrong try, when the board proves one */
   const [showHint,setShowHint]=useState(false);
+  const [ansHide,setAnsHide]=useState(false);   /* #550 a42: the answer overlay on the board can be put away */
   const [si,setSi]=useState(0);
   /* #549 item (87), jobs/tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28 (Kunal, 4 Nov 2026, B8-SMALL-DEFAULTS
      (5): "Tactics keeps the board clear of the tab bar, as Lessons and Puzzles do"). The board here was width-sized (maxWidth 400)
@@ -3996,7 +4017,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       /* the app column carries 8px of bottom padding past the tab bar's spacer, so the area under the board ends 14px above the bar (6 + 8),
          or #root scrolls by that 8px (measured on trial d17aafa01c24: #root scrollHeight 769 over 761 with the area ending 6px above) */
       const av2=avail-8,wmax=Math.floor(window.innerWidth||(el.parentNode?el.parentNode.getBoundingClientRect().width:400));   /* #550 BSA-L-45: the board may take the screen's width; its rows keep a 4px inset */
-      const c2=Math.max(176,Math.min(wmax,av2-TT_BELOW[tab==='strategy'?'strategy':'motifs']));setCap(c2);
+      const c2=Math.max(176,Math.min(wmax,av2-TT_BELOW.phone));setCap(c2);   /* #550 FMT-A-06: one board for both tabs, everything else below it */
       setBelowH(av2-c2-10);};   // at the 176 floor the area gives way, never the tab bar: it keeps status and buttons, and the text box shrinks
     /* #550 item (99) [jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, #549 antagonist B's
        B8]: the cap was measured ONCE per card change, in the layout effect, so anything above the board that settles a frame later (a
@@ -4025,7 +4046,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
 
   const cur=TACTICS[mi%TACTICS.length];
   const pos=fromFEN(cur.fen);
-  const nextM=()=>{setMi(i=>(i+1)%TACTICS.length);setSel(null);setSolved(false);setShown(false);setWrong(false);setShowHint(false);};
+  const nextM=()=>{setMi(i=>(i+1)%TACTICS.length);setSel(null);setSolved(false);setShown(false);setWrong(false);setShowHint(false);setAnsHide(false);};
   const alg=(r,c)=>FILES[c]+(8-r);
   const fromRC=[8-(+cur.from[1]),FILES.indexOf(cur.from[0])];
   const toRC=[8-(+cur.to[1]),FILES.indexOf(cur.to[0])];
@@ -4054,9 +4075,50 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       {p&&<span style={isTo&&doneM?{animation:'iconpop .45s cubic-bezier(.34,1.56,.64,1) both'}:undefined}><Piece t={p.t} color={p.c} sz={psz}/></span>}
     </div>);
   };
-  const tabBtn=(k,lbl)=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',borderRadius:12,background:tab===k?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:tab===k?'1px solid var(--ac)':'1px solid rgba(255,255,255,.14)',color:tab===k?'var(--ac2)':'rgba(255,255,255,.8)',fontWeight:800,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>{lbl}</button>);
+  const tabBtn=(k,lbl)=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',...((_bar&&!land)?{height:TOP_SZ,padding:'0 4px',boxSizing:'border-box',minWidth:0}:null),borderRadius:12,background:tab===k?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:tab===k?'1px solid var(--ac)':'1px solid rgba(255,255,255,.14)',color:tab===k?'var(--ac2)':'rgba(255,255,255,.8)',fontWeight:800,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>{lbl}</button>);
   const cstr=STRAT[si%STRAT.length];const spos=fromFEN(cstr.fen);
   const scell=(r,c)=>{const lt=(r+c)%2===0;const p=spos.board[r][c];return(<div key={r+'-'+c} style={{aspectRatio:'1',background:lt?light:dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>{c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{8-r}</span>}{r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{FILES[c]}</span>}{p&&<Piece t={p.t} color={p.c} sz={psz}/>}</div>);};
+  /* #550 formatting audit FMT-A-03/A-06 and run-answers a42 (Kunal's pick 12 Nov): ON A PHONE UPRIGHT THE BOARD SITS DIRECTLY UNDER THE TOP
+     ROW ON BOTH TABS - same top, same size - and everything else is below it: one card box (the motif or idea, its line, the hint or the
+     reason for a miss) that scrolls inside itself, then one row of 44pt action buttons. The answer opens OVER the board, at its foot, and
+     goes again with its close button or Next motif, so nothing on the page moves when it appears. Spare height goes to the card box. */
+  if(_bar&&!land){
+    const _ab={flex:1,height:ACT_H,boxSizing:'border-box',padding:'0 10px',borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.88)',fontWeight:700,fontSize:14,cursor:'pointer'};
+    const _pri={..._ab,background:'var(--ac)',border:'none',color:'#191919',fontWeight:800};
+    const _chip={flexShrink:0,fontSize:13,color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'};
+    const _box={flex:'1 1 auto',minHeight:0,overflowY:'auto',background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.26)',borderRadius:12,padding:'8px 12px',fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.45,marginBottom:8};
+    const _hd=(t,c)=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:3}}><span style={{fontSize:16,fontWeight:800,color:'#fff',minWidth:0}}>{t}</span><span style={_chip}>{c}</span></div>);
+    const _st=wrong?<div style={{color:'#f0a24e',fontWeight:700,marginBottom:3}}>{wrongTxt||'Not the key move — try again.'}</div>
+      :(showHint&&!doneM)?<div data-ct="tactics-hint" style={{color:'rgba(255,255,255,.78)',marginBottom:3}}>💡 {cur.hint}</div>
+      :(sel&&!doneM)?<div style={{color:'rgba(255,255,255,.62)',marginBottom:3}}>Now tap where it goes.</div>
+      :solved?<div style={{color:'#6fce97',fontWeight:800,marginBottom:3}}>✓ {cur.san} — correct!</div>
+      :shown?<div style={{color:'var(--ac2)',fontWeight:800,marginBottom:3}}>Answer: {cur.san}</div>:null;
+    const _bd=(cells,extra)=>(<div style={{position:'relative',width:cap,marginLeft:'calc(50% - '+(cap/2)+'px)',marginTop:6}}>
+      <div ref={bRef} data-ct="tactics-board" style={{width:cap,maxWidth:cap,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>{cells}</div>{extra}</div>);
+    const _ans=(tab==='motifs'&&doneM&&!ansHide)?(<div data-ct="tactics-answer" role="dialog" aria-label="Answer" style={{position:'absolute',left:6,right:6,bottom:6,maxHeight:'58%',display:'flex',flexDirection:'column',background:'rgba(18,20,27,.94)',border:'1px solid '+(solved?'rgba(111,206,151,.55)':'rgba(var(--acr),.5)'),borderRadius:12,boxShadow:'0 10px 30px rgba(0,0,0,.55)',zIndex:3}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'4px 4px 0 12px',flexShrink:0}}><span style={{flex:1,minWidth:0,fontWeight:800,fontSize:15,color:solved?'#6fce97':'var(--ac2)'}}>{solved?('✓ '+cur.san+' — correct!'):('Answer: '+cur.san)}</span>
+        <button data-ct="tactics-answer-close" onClick={()=>setAnsHide(true)} aria-label="Close the answer" style={{...TOP_BTN,fontSize:15}}>✕</button></div>
+      <div ref={ansRef} onScroll={ansCheck} style={{overflowY:'auto',minHeight:0,padding:'2px 12px 10px',fontSize:'clamp(13.5px,2.8vw,14.5px)',lineHeight:1.45,color:'rgba(255,255,255,.9)',WebkitMaskImage:ansMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:ansMore?'linear-gradient(#000 70%,transparent)':undefined}}>{cur.explain}</div></div>):null;
+    return(<div style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <div data-ct="tactics-bar" style={{display:'flex',alignItems:'center',gap:6,height:TOP_SZ,padding:'0 '+TOP_EDGE+'px',boxSizing:'border-box',width:'100vw',marginLeft:'calc(50% - 50vw)',position:'sticky',top:0,zIndex:5}}>
+        <TopBack ct="tactics-back" onClick={onBack}/>
+        {tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}
+        {onMenu?<TopMenu ct="tactics-menu" onClick={onMenu}/>:<span style={{width:TOP_SZ,flexShrink:0}}/>}
+      </div>
+      {tab==='motifs'?_bd(Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c))),_ans)
+        :_bd(Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c))),null)}
+      <div ref={belowRef} data-ct="tactics-below" style={{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0,padding:'0 4px'}}>
+        {tab==='motifs'?(<div ref={ideaRef} data-ct="tactics-idea" onScroll={ideaCheck} style={{..._box,WebkitMaskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined}}>
+            {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length)}{_st}<div>{cur.idea}</div></div>)
+          :(<div ref={stratRef} data-ct="tactics-strat-text" onScroll={stratCheck} style={{..._box,WebkitMaskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined}}>
+            {_hd(cstr.title,((si%STRAT.length)+1)+'/'+STRAT.length)}<div style={{color:'var(--ac2)',fontWeight:700,marginBottom:4}}>👀 {cstr.look}</div><div style={{color:'rgba(255,255,255,.88)'}}>{cstr.text}</div></div>)}
+        <div style={{display:'flex',gap:8,flexShrink:0}}>
+          {tab==='motifs'?(doneM?<button onClick={nextM} style={_pri}>Next motif →</button>:<><button onClick={()=>setShowHint(h=>!h)} style={_ab}>Hint</button><button onClick={()=>{setShown(true);setSel(null);setAnsHide(false);}} style={_ab}>Show answer</button></>)
+            :<><button onClick={()=>setSi(i=>(i-1+STRAT.length)%STRAT.length)} style={_ab}>‹ Prev</button><button onClick={()=>setSi(i=>(i+1)%STRAT.length)} style={_pri}>Next ›</button></>}
+        </div>
+      </div>
+    </div>);
+  }
   const _lg=land?{display:'grid',gridTemplateColumns:LB+'px minmax(0,1fr)',gridTemplateRows:'auto auto auto minmax(0,1fr)',columnGap:12,height:LB,alignItems:'start'}:null;
   const _lb=land?{gridColumn:1,gridRow:'1 / -1',width:LB,maxWidth:LB,margin:0}:null;const _lr=land?{gridColumn:2}:null;
   return(<div data-ct={land?'tactics-land':undefined} style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif",...((_bar&&!land)?{paddingLeft:4,paddingRight:4,boxSizing:'border-box'}:null),..._lg}}>
@@ -8243,6 +8305,7 @@ export default function App(){
   // spent a whole pass on that. Measured after the change at eleven geometries, every one at or inside the
   // edge: 320/360/375/390/430 x 568 all drop the count and clear by 7.7 to 62.7px; 375x730, 375x667, 390x844
   // and 430x932 keep it and sit flush at 0.00; 360x640 keeps it with 8.81px to spare; 320x730 drops it.
+  const lessonShort=!wide&&vp.h<700&&lessonFocus;   /* #550 run-answers a42 (Kunal's board rule, short upright phones only; his 375x761 stays as it is) */
   const rowNarrow=boardPx<340||landRev;   /* #550 antagonist B F4: sideways the move line sits in the right-hand column (about 250 to 330 wide), not under the board, so it is always narrow there */
   // #415 A SECOND STEP ON THE SAME INSTRUMENT, and the arithmetic is here so nobody re-derives it. `rowNarrow`
   // drops the word "Try" from the practice row's flexible button; `rowTiny` drops the words altogether, because
@@ -9149,7 +9212,7 @@ export default function App(){
 
       {homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:`max(12px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {/* #373 (audit A-04): Home had no way into the menu - every ☰ sits under this overlay (zIndex 500). Same size and row as the account button. */}
-        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu & settings" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 14px)',right:'calc(env(safe-area-inset-right,0px) + 70px)',zIndex:6,width:46,height:46,borderRadius:'50%',padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'2px solid rgba(255,255,255,.22)',color:'rgba(255,255,255,.85)',fontSize:20,lineHeight:1,cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,.35)'}}>☰</button>
+        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu & settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 15px)',right:'calc(env(safe-area-inset-right,0px) + 71px)',zIndex:6,fontSize:20}}>☰{/* #550 FMT-A-02: the standard 44x44 corner button (fill, border, radius 12), beside the account button, which stays as it is */}</button>
         <button onClick={()=>{setUpgradeMsg('');setAcctOpen(true);}} title={cloudUser?'Account':'Sign in'} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 14px)',right:'calc(env(safe-area-inset-right,0px) + 16px)',zIndex:6,width:46,height:46,borderRadius:'50%',padding:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',background:cloudUser?'rgba(var(--acr),.18)':'rgba(255,255,255,.08)',border:'2px solid rgba(var(--acr),.55)',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,.4)'}}>{cloudUser&&cloudUser.photo?<img src={cloudUser.photo} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:22,lineHeight:1}}>{cloudUser?'👤':'👋'}</span>}</button>
         <div style={{width:'100%',maxWidth:hLand?Math.min(vp.w-40,1000):(hbig?660:420),display:'flex',flexDirection:'column',alignItems:'center'}}>
           {(!hbig&&!hLand)?(<div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={'p'+introN} big={false} compact={true} force={introN>0}/></div>):(<><div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={introN} big={hbig} compact={hLand} force={introN>0}/></div>
@@ -9476,13 +9539,13 @@ export default function App(){
           <button onClick={()=>setHomeScreen(true)} style={{marginTop:12,padding:'9px 18px',borderRadius:11,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.78)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>‹ Back to Home</button>
         </div>
       </div>)}
-      {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(20px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`max(14px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         <div data-ct="setup-sheet" className="scroll" style={{width:'100%',maxWidth:420,display:'flex',flexDirection:'column',gap:vp.h<720?10:16 /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div data-ct="setup-top" style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',height:TOP_SZ,margin:'0 -'+(16-TOP_EDGE)+'px',flexShrink:0}}>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - the exit 44 high at TOP_EDGE (its words stay: gates 45, 49, 54, 55 find it by them), 'New Game' centred at the one title size, the menu top-right */}
             {(()=>{const _fromRev=!!setupFromFEN&&setupSrc==='review'&&!!review;/* #548 item (122), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02: the sheet's ONE exit goes back to where he came from. Opened by Review's 'Play from here' it reads '\u2039 Back to review' and returns to the same review at the same ply - where the terminal note's remedy (step back a move) is one tap away - instead of dropping him on Home with three taps back. #466's committer guard stays: it is the defence for the scan route. Both #466 antagonists named this the cheaper complete remedy; the row-level refusal the title asks for would have made gate 55's A1-A13 unreachable. */return(
-            <button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);if(_fromRev){setSetupFromFEN(null);setHomeScreen(false);setMode('analyze');return;}setHomeScreen(true);}} style={{minWidth:36,height:32,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:15,padding:'0 11px'}}>{_fromRev?'\u2039 Back to review':'\u2039 Home'}</button>);})()}
-            <div style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,24px)',color:'var(--ac)',letterSpacing:1}}>New Game</div>
-            <div style={{minWidth:36}}/>
+            <button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);if(_fromRev){setSetupFromFEN(null);setHomeScreen(false);setMode('analyze');return;}setHomeScreen(true);}} style={{...TOP_BTN,width:'auto',padding:'0 10px',fontSize:14,whiteSpace:'nowrap',position:'relative',zIndex:1}}>{_fromRev?'\u2039 Back to review':'\u2039 Home'}</button>);})()}
+            <div data-ct="top-title" style={TOP_TITLE}>New Game</div>
+            <TopMenu ct="setup-menu" onClick={()=>setMenuOpen(true)}/>
           </div>
           {/* #466: the terminal branch is a DIFFERENT SENTENCE, not a suffix on this one. On #465 both arms of
               this banner read identically at a finished ply, which is the half of the defect a player could
@@ -9720,11 +9783,15 @@ export default function App(){
         </div>
       </div>)}
 
-      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&!(mode==='learn'&&learnGroup==='tactics'&&openIdx===null)/* #550 a26: the Tactics page's own bar replaces the header */&&(<div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',gap:9,marginBottom:8,width:'100%',maxWidth:boardPx+44,position:'relative',paddingLeft:2}}>
-        <div onClick={()=>setHomeScreen(true)} title="Home" style={{fontFamily:"var(--head)",fontSize:'clamp(18px,5vw,28px)',color:'var(--ac)',letterSpacing:2,textShadow:'0 2px 12px rgba(var(--acr),.4)',cursor:'pointer',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:'0.16em',maxWidth:'calc(100% - 92px)',overflow:'hidden'}}>{(()=>{const _hT=homeScreen?null:((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':null))));return _hT?(<span style={{fontSize:'clamp(15px,4.1vw,19px)',fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{_hT}</span>):(<><QueenGlyph idp="s" style={{width:'1.15em',height:'1.15em',flexShrink:0,filter:'drop-shadow(0 2px 4px rgba(0,0,0,.5))'}}/>CHESS TRAINER</>);})()}</div>
-        {!lessonFocus&&(mode==='play'&&!playSetup&&opponent&&!_gameOver)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'absolute',right:46,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:15,lineHeight:1,padding:'0 9px'}}>🏠</button>)}
-        {!lessonFocus&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',flexShrink:0,minWidth:38,height:30,borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 9px'}}>☰</button>)}
-      </div>)}
+      {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&!(mode==='learn'&&learnGroup==='tactics'&&openIdx===null)/* #550 a26: the Tactics page's own bar replaces the header */&&(()=>{/* #550 FMT-A-01/A-02/B-01/B-03 (Kunal's pick 12 Nov): this shared header is the standard TOP ROW - back top-left when the screen has
+          one, the screen title CENTRED on the screen, menu top-right, both 44x44 at TOP_EDGE. It replaces the brand row and the 38x30 menu, and
+          the lesson lists' second row (their Back pill and title) folds into it. */
+        const _grpT={openings:'Openings',gambits:'Gambits & Traps',endgames:'Endgames',train:'Train',notation:'Notation'};
+        const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game Review':'Chess Trainer')))));
+        const _bk=(mode==='learn'&&openIdx===null&&learnGroup&&learnGroup!=='tactics')?()=>setLearnGroup(null):null;
+        return(<TopRow ct="top-row" full title={_hT2} style={{marginBottom:8}}
+          back={_bk?<TopBack ct="top-back" onClick={_bk}/>:null}
+          menu={lessonFocus?null:<TopMenu ct="top-menu" onClick={()=>setMenuOpen(true)}/>}/>);})()}
       {/* #435: the play clause dropped !isOver&&!playEnd. Landscape used to SWAP this button for the tab bar at
           game over - not show both - so with the bar now hidden for the whole game (see _hideTabs) this button is
           the route off the screen and must stay. Measured on the shipped #434 at 730x375, +6.8s after a
@@ -9732,8 +9799,8 @@ export default function App(){
           with no title="Home" button at all; on #435 they are [HOME,menu,-,+,Moves,Back,Forward,Hint,Flip,More].
           Gate 16 E11/F11 assert this button is present; nothing asserts Review or Rematch here, and landscape
           does not offer them at game over anyway (:6226 gives them slots only when !wide). */}
-      {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 58px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1,padding:'0 10px'}}>🏠</button>)}
-      {!pzLow&&wide&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + 10px)',zIndex:60,minWidth:40,height:32,borderRadius:8,background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 10px'}}>☰</button>)}
+      {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" aria-label="Home" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + '+(TOP_EDGE+TOP_SZ+6)+'px)',zIndex:60,fontSize:16}}>🏠</button>)}
+      {!pzLow&&wide&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" aria-label="Menu and settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + '+TOP_EDGE+'px)',zIndex:60,fontSize:17}}>☰</button>)}
       {acctOpen&&(<div onClick={()=>setAcctOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.62)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
         <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:430,background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'18px 18px 20px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
@@ -10266,7 +10333,7 @@ export default function App(){
       </div>)}
       {/* Context bars */}
       {mode==='play'&&(()=>{const _done=_gameOver; /* #473: was (isOver||playEnd). THE SITE THE JOB WAS FILED ABOUT - see _gameTermStatus at :2969 for why this line alone was not the fix. */const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult&&!_pvLive /* #548 item (126), Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER (final-only): the result is stated only at the last move; every earlier position shows without it, however the game ended */)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(playHintTxt&&playHintMv&&opponent==='computer'?playHintTxt:(status==='check'?'Check!':_op))); /* #550 HEX-R-10: the hint's words take the slot while the hint is lit */ /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
-(!wide&&!playSetup&&!!opponent)?(<div data-ct="board-chrome" style={{display:'flex',alignItems:'center',gap:8,width:'100%',maxWidth:boardPx+44,height:44,flexShrink:0,marginBottom:(!wide&&vp.h<700&&mode==='play'&&opponent==='human')?2:6}}>
+(!wide&&!playSetup&&!!opponent)?(<div data-ct="board-chrome" style={{display:'flex',alignItems:'center',gap:8,width:'100vw',marginLeft:'calc(50% - 50vw)',marginRight:'calc(50% - 50vw)',padding:'0 '+TOP_EDGE+'px',boxSizing:'border-box' /* #550 FMT-B-03: the corners 44x44 at TOP_EDGE, as every top row */,height:44,flexShrink:0,marginBottom:(!wide&&vp.h<700&&mode==='play'&&opponent==='human')?2:6}}>
           {/* #548 item (92), jobs/chrome-row-still-unbuilt-2026-09-28, Kunal's 'everywhere' (questions/play-top-row-home-and-menu-2026-10-10)
               and 'ship' (questions/B8-CHROME-ROW): on every phone Home and Menu get a TOP ROW OF THEIR OWN, out of the player bar, and the
               duplicate move strip under the board is gone (the Moves box below the board stays). THE ROW IS THE STATUS LINE: its middle is
@@ -10274,12 +10341,12 @@ export default function App(){
               picture build showed the opening twice and left a 33px blank band where the old status line sat). The middle is a fixed 20px
               box with both strings position:absolute, so the swap from the app name to the opening changes OPACITY ONLY and the board does
               not move. 44px buttons, up from the 34x30 they were inside the player bar. Landscape keeps its rail and is unchanged. */}
-          <button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',width:44,height:40,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:19,lineHeight:1,padding:0}}>{'\u2302'}</button>
+          <button data-ct="play-home" onClick={()=>setHomeScreen(true)} aria-label="Home" title="Home" style={{...TOP_BTN,fontSize:19}}>{'\u2302'}</button>
           <div data-ct="play-context" aria-live="polite" style={{position:'relative',flex:'1 1 0',minWidth:0,height:20}}>
             <span data-ct="chrome-app" aria-hidden="true" style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"var(--head)",fontSize:'clamp(14px,3.6vw,17px)',letterSpacing:1.4,color:'var(--ac)',whiteSpace:'nowrap',overflow:'hidden',opacity:_txt?0:1,transition:'opacity .25s'}}>{(!wide&&vp.h<700&&mode==='play'&&opponent==='human')?`👤 vs Human${timeCtrl?(' · '+timeCtrl.label):' · no clock'}`:'Chess Trainer'}</span>{/* #550 short upright (BSA-P-27/36): on a short phone the game's kind takes the app name's place in the top row, so the line under the board goes and the board gets its 14px */}
             <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .25s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',position:'absolute',inset:0,display:'block',textAlign:'center',lineHeight:'20px'}}>{_txt||'\u00a0'}</span>
           </div>
-          <button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu and settings" style={{flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',width:44,height:40,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',cursor:'pointer',fontSize:18,lineHeight:1,padding:0}}>{'\u2630'}</button>
+          <button data-ct="play-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu and settings" style={{...TOP_BTN,fontSize:18}}>{'\u2630'}</button>
         </div>):(        <div data-ct="play-context" aria-live="polite" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:landGraph?0:7 /* #550 a36 */,height:18,flexShrink:0,...(railed?{position:'sticky',top:0,zIndex:4,background:baseBg}:null),...(landPlay&&_done?{display:'none'}:null) /* #547 item (126), jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29: in the landscape rail this row is the only statement of the result, and the rail scrolls (410 vs 224), so scrolling to the Analyze hint took the result off screen or cut it in half. It is pinned to the top of the rail instead. */}}>
           <span data-ct="play-opening" style={{fontSize:'clamp(13px,2.4vw,13px)',color:status==='check'?'#ff6b6b':(_op&&_txt===_op?'rgba(255,255,255,.62)':'rgba(255,255,255,.8)'),fontWeight:600,opacity:_txt?1:0,transition:'opacity .12s',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'96vw'}}>{_txt||'\u00a0'}</span>
         </div>));})()}
@@ -10370,10 +10437,9 @@ export default function App(){
           {/* #549 item (44), gate 26 at se: the title moved up into this row so the row costs no summary height. With the title
               left in the scroller the whole summary sat 26px lower and at 320x568 the Best row went under the footer (gate 26's
               se/rev-summary pin read 1 side-by-side row, not 2). The title stays centred and clear of the button. */}
-          <div data-ct="rev-summary-top" style={{flexShrink:0,height:46,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{fontFamily:headFont,fontSize:'clamp(22px,6vw,30px)',fontWeight:800,color:'#fff',letterSpacing:.5}}>Game Review</div>
-          <button data-ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu &amp; settings" style={{position:'absolute',top:10,right:'calc(env(safe-area-inset-right,0px) + 12px)',zIndex:3,width:38,height:30,borderRadius:8,padding:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,lineHeight:1,cursor:'pointer'}}>{'\u2630'}</button>
-          </div>
+          <TopRow ct="rev-summary-top" style={{height:46}} title={'Game Review'}
+            back={<TopBack ct="rev-summary-back" label="Back to games" onClick={resetReview}/>}
+            menu={<TopBtn ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} label="Menu and settings">{'\u2630'}</TopBtn>}/>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - Back top-left (the same as the footer's Back to games), the title centred at the one size, the menu 44x44 at TOP_EDGE (was 38x30 at 12) */}
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
           <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 18px 16px',WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
@@ -11526,7 +11592,7 @@ export default function App(){
       {/* ── Online multiplayer panel ── */}
       {mode==='play'&&opponent==='online'&&(()=>{
         const og=onlineGame;
-        const _ogLive=!!onlineGame&&onlineGame.status==='active';   /* #550 BSA-P-01: a live game's panel is tight, so the board gets the height */
+        const _ogLive=!!onlineGame&&(onlineGame.status==='active'||!!onlineGame.result);   /* #550 FMT-B-02: game over gets the live game's tight panel too */   /* #550 BSA-P-01: a live game's panel is tight, so the board gets the height */
          const card={width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:_ogLive?4:10,background:'rgba(110,168,254,.08)',border:'1px solid rgba(110,168,254,.28)',borderRadius:14,padding:_ogLive?'8px 10px':'14px 15px',display:'flex',flexDirection:'column',gap:_ogLive?6:10,alignItems:'stretch'};
         const lbl={fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.55)',fontWeight:700,letterSpacing:.5,textTransform:'uppercase'};
         if(!cloudUser)return(<div style={card}>
@@ -11611,7 +11677,7 @@ export default function App(){
             <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.58)',textAlign:'center',lineHeight:1.5}}>Your friend taps 🌐 Online → types this code → Join. You’re playing {myColor==='w'?'White':'Black'}.</div>
             
           </>):(<>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+            {!og.result&&<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
               <div style={{minWidth:0}}>
                 <div style={{fontSize:'clamp(15px,3.8vw,19px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>vs {oppName}</div>
               </div>
@@ -11619,7 +11685,7 @@ export default function App(){
                 {og.result?<div style={{fontSize:'clamp(15px,3.6vw,18px)',fontWeight:800,color:'var(--ac2)'}}>{resultLabel}</div>
                   :<div style={{fontSize:'clamp(14px,3.3vw,17px)',fontWeight:800,color:game.turn===myColor?'#86d99a':'rgba(255,255,255,.6)'}}>{turnLabel}</div>}
               </div>
-            </div>
+            </div>}
             {og.tc&&og.tc.kind==='corr'&&!og.result&&og.status==='active'&&(()=>{
               const left=corrDeadline(og)-corrNow;const myMove=game.turn===myColor;const expired=left<=0;
               return(<div style={{background:expired?'rgba(236,154,144,.12)':'rgba(0,0,0,.22)',border:'1px solid '+(expired?'rgba(236,154,144,.4)':'rgba(255,255,255,.1)'),borderRadius:11,padding:'9px 12px',display:'flex',flexDirection:'column',gap:7}}>
@@ -11643,12 +11709,12 @@ export default function App(){
               const myNotice=(og.notice&&og.notice.for===myColor)?og.notice:null;
               const cR='#d05a52',cB='#4a89dc',cV='#6d6ac4',cG='#586273';
               const cb=(color,txt)=>({...btn(color,'none',txt||'#fff'),width:'100%',minHeight:48,fontSize:'clamp(14.5px,3.2vw,16px)',fontWeight:800,letterSpacing:.3});
-              const acc=cb('var(--ac)','#15210a');const g2={display:'grid',gridTemplateColumns:'1fr 1fr',gap:8};
+              const acc=cb('var(--ac)','#15210a');const g2={display:'grid',gridTemplateColumns:'1fr 1fr',gap:8};const _ovIc=!wide&&vp.h<700;const c3=(color)=>({...cb(color),minHeight:ACT_H,height:ACT_H,padding:'0 4px',fontSize:'clamp(13px,3.4vw,14.5px)',letterSpacing:0,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'});
               const banner=(txt)=>(<div style={{background:'rgba(110,168,254,.16)',border:'1px solid rgba(110,168,254,.42)',borderRadius:11,padding:'10px 12px',textAlign:'center',fontSize:'clamp(14px,3vw,15.5px)',color:'#cfe0ff',fontWeight:800}}>{txt}</div>);
               let body;
               // #349: what the game did to your rating, shown once, right where the result is.
               const _ratingLine=(og.result&&ratingMsg)?(
-                <div data-ct="rating-change" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'7px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.13)',fontSize:'clamp(13px,2.6vw,14.5px)',fontWeight:700}}>
+                <div data-ct="rating-change" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,whiteSpace:'nowrap',overflow:'hidden',padding:'5px 10px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.13)',fontSize:'clamp(13px,2.6vw,14.5px)',fontWeight:700}}>
                   <span style={{color:'rgba(255,255,255,.62)'}}>Rating</span>
                   <b style={{fontFamily:'ui-monospace,Menlo,monospace',color:'#fff'}}>{Math.round(rating.r)}</b>
                   <b style={{fontFamily:'ui-monospace,Menlo,monospace',color:ratingMsg.charAt(0)==='-'?'#e8846e':'#7fd6a0'}}>{ratingMsg}</b>
@@ -11657,7 +11723,7 @@ export default function App(){
               if(og.result){
                 if(oppReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}{banner('🔄 '+oppName+' wants a rematch')}<div style={g2}><button onClick={onlineDeclineRematch} style={cb(cG)}>Decline</button><button onClick={onlineAcceptRematch} style={acc}>Accept</button></div></div>);
                 else if(iReq)body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}<button disabled style={{...cb(cG),opacity:.6,cursor:'default'}}>🔄 Rematch offered…</button><div style={g2}><button onClick={onlineCancelRematch} style={cb(cG)}>Cancel</button><button onClick={onlineLeave} style={cb(cV)}>← Leave</button></div></div>);
-                else body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{_ratingLine}{og.moves&&og.moves.length>=2&&<button onClick={reviewPlayedGame} style={{width:'100%',minHeight:48,borderRadius:11,border:'none',background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020',fontWeight:800,fontSize:'clamp(14.5px,3.2vw,16px)',letterSpacing:.3,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>🔍 Review this game</button>}<button onClick={onlineOfferRematch} style={acc}>🔄 Rematch</button><div style={g2}><button onClick={()=>setFlip(f=>!f)} style={cb(cV)}>⟳ Flip</button><button onClick={onlineLeave} style={cb(cG)}>← Leave</button></div>{cloudUser&&(()=>{const ou=(myColor==='w'?(og.b&&og.b.uid):(og.w&&og.w.uid));const on2=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'opponent';const isF=ou&&(friendsData.friends||[]).some(function(f){return f.uid===ou;});if(!ou||isF)return null;return(<button onClick={async()=>{try{await window.CTCloud.friendRequest(ou,on2);setOnlineInfo("Friend request sent to "+on2+".");}catch(e){const m=e&&e.message;setOnlineInfo(m==='pending'?("Request already sent to "+on2+"."):m==='already'?"Already friends.":"Could not send the request.");}}} style={cb(cG)}>➕ Add {on2} as friend</button>);})()}</div>);
+                else body=(<div style={{display:'flex',flexDirection:'column',gap:6}}>{_ratingLine}<div data-ct="online-over-actions" style={{display:'grid',gridTemplateColumns:'repeat('+(_ovIc?6:3)+',minmax(0,1fr))',gap:_ovIc?4:6}}>{/* on a short phone (under 700 tall) the six are ONE row of icons, so the board keeps more of the width; #550 FMT-B-02 (Kunal's pick 12 Nov): at game over the board stays full width - the result is the card on the board - and this panel folds into rows of 44pt buttons, three to a row, nothing removed (each keeps its full name as its accessible name) */}{og.moves&&og.moves.length>=2&&<button onClick={reviewPlayedGame} aria-label="Review this game" style={{...c3(cB),background:'linear-gradient(135deg,#6ea8fe,#3b76e8)',color:'#0a1020'}}>{_ovIc?'🔍':'🔍 Review'}</button>}<button onClick={onlineOfferRematch} aria-label="Rematch" style={{...c3(cB),background:'var(--ac)',color:'#15210a'}}>{_ovIc?'🔄':'🔄 Rematch'}</button><button onClick={()=>setFlip(f=>!f)} aria-label="Flip the board" style={c3(cV)}>{_ovIc?'⟳':'⟳ Flip'}</button><button onClick={onlineLeave} aria-label="Leave" style={c3(cG)}>{_ovIc?'←':'← Leave'}</button>{cloudUser&&(()=>{const ou=(myColor==='w'?(og.b&&og.b.uid):(og.w&&og.w.uid));const on2=(myColor==='w'?(og.b&&og.b.name):(og.w&&og.w.name))||'opponent';const isF=ou&&(friendsData.friends||[]).some(function(f){return f.uid===ou;});if(!ou||isF)return null;return(<button onClick={async()=>{try{await window.CTCloud.friendRequest(ou,on2);setOnlineInfo("Friend request sent to "+on2+".");}catch(e){const m=e&&e.message;setOnlineInfo(m==='pending'?("Request already sent to "+on2+"."):m==='already'?"Already friends.":"Could not send the request.");}}} aria-label={'Add '+on2+' as friend'} style={c3(cG)}>{_ovIc?'➕':'➕ Friend'}</button>);})()}<button data-ct="online-talk-open" onClick={()=>setOnTalkOpen(true)} aria-label="Chat" style={c3('rgba(255,255,255,.12)')}>{_ovIc?'💬':'💬 Chat'}{chat.length?' ('+chat.length+')':''}</button></div></div>);
               } else if(oppOffered){
                 body=(<div style={{display:'flex',flexDirection:'column',gap:8}}>{banner('🤝 '+oppName+' offers a draw')}<div style={g2}><button onClick={onlineDeclineDraw} style={cb(cG)}>Decline</button><button onClick={onlineAcceptDraw} style={acc}>Accept ½–½</button></div></div>);
               } else if(confirmResign){
@@ -11678,7 +11744,7 @@ export default function App(){
                 {body}
               </div>);
             })()}
-            <button data-ct="online-talk-open" onClick={()=>setOnTalkOpen(true)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',minHeight:44,fontWeight:700}}>{vcState==='live'?'📹 In a call · 💬 Chat':('💬 Chat & video call'+(chat.length?' ('+chat.length+')':''))}</button>{/* #550 BSA-P-01: behind this button, so the panel under the board is short enough for the board to take the width */}
+            {!og.result&&<button data-ct="online-talk-open" onClick={()=>setOnTalkOpen(true)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',minHeight:44,fontWeight:700}}>{vcState==='live'?'📹 In a call · 💬 Chat':('💬 Chat & video call'+(chat.length?' ('+chat.length+')':''))}</button>}{/* #550 BSA-P-01: behind this button, so the panel under the board is short enough for the board to take the width */}
             <div data-ct="online-talk" style={onTalkOpen?{position:'fixed',left:0,right:0,bottom:0,zIndex:520,maxHeight:'78vh',overflowY:'auto',background:'rgba(18,21,28,.98)',borderTop:'1px solid rgba(255,255,255,.18)',borderRadius:'16px 16px 0 0',padding:'12px 14px calc(env(safe-area-inset-bottom,0px) + 14px)',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 -10px 40px rgba(0,0,0,.6)'}:{display:'none'}}>{/* stays mounted while closed, so a live call keeps its video and sound */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><b style={{color:'#fff',fontSize:15}}>Chat & video call</b><button data-ct="online-talk-close" aria-label="Close" onClick={()=>setOnTalkOpen(false)} style={{minWidth:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:18,cursor:'pointer'}}>✕</button></div>
             {(()=>{const og=onlineGame;if(!og||og.status!=='active'||!og.w||!og.b)return null;const rtc=og.rtc||null;const callerName=(rtc&&rtc.from!==cloudUser.uid)?'Your opponent':'';
@@ -12034,7 +12100,7 @@ export default function App(){
         ):learnGroup===null?(
           <div style={{width:'100%'}}>
             <div style={{textAlign:'center',marginBottom:16}}>
-              <div style={{fontFamily:"var(--head)",fontSize:'clamp(20px,5.2vw,28px)',color:'#fff',fontWeight:700,letterSpacing:.3,lineHeight:1.12}}>What do you want to learn?</div>
+              {wide?<div style={{fontFamily:"var(--head)",fontSize:'clamp(20px,5.2vw,28px)',color:'#fff',fontWeight:700,letterSpacing:.3,lineHeight:1.12}}>What do you want to learn?</div>:<div style={{fontSize:'clamp(15px,4vw,16px)',color:'rgba(255,255,255,.88)',fontWeight:700,lineHeight:1.25}}>What do you want to learn?</div>}{/* #550 FMT-A-01: upright the title is the top row's 'Discover'; the question stays as the first line */}
               <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:4}}>{LIB.length} lessons, taught move by move</div>
             </div>
             <div ref={discGridRef} data-ct="discover-tiles" style={{display:'grid',gridTemplateColumns:'1fr 1fr',rowGap:6,columnGap:10,width:'100%',maxWidth:380,margin:'0 auto',...(discRowH?{gridAutoRows:discRowH+'px'}:null)}}>
@@ -12048,7 +12114,7 @@ export default function App(){
           </div>
         ):learnGroup==='notation'?(
           <div style={{width:'100%'}}>
-            <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>
+            {wide&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>}{/* #550 FMT-A-02: upright the top row carries Back */}
             <NotationTrainer light={TH.light} dark={TH.dark}/>
           </div>
         ):learnGroup==='tactics'?(
@@ -12079,8 +12145,8 @@ export default function App(){
           const playedOpenings=ros?ros.openings:[];
           return(<div style={{width:'100%'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:13}}>
-              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
-              <span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>🎯</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>Train</span>
+              {wide&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>}
+              {wide&&<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>🎯</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>Train</span></>}
               <span style={{marginLeft:'auto',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}}>{learnedCount}/{total}</span>
             </div>
             <div style={{width:'100%',height:9,borderRadius:6,background:'rgba(255,255,255,.08)',overflow:'hidden',marginBottom:5}}><div style={{width:`${total?Math.round(learnedCount/total*100):0}%`,height:'100%',background:'linear-gradient(90deg,var(--ac),var(--ac2))',borderRadius:6}}/></div>
@@ -12109,8 +12175,8 @@ export default function App(){
         })()):(
           <div style={{width:'100%'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:13}}>
-              <button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>
-              {(()=>{const g={openings:{t:'Openings',ic:'🚀'},gambits:{t:'Gambits & Traps',ic:'⚔️'},endgames:{t:'Endgames',ic:'👑'}}[learnGroup];const gn=LIB.filter(o=>groupOf(o.cat)===learnGroup).length;return(<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>{g.ic}</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>{g.t}</span><span style={{marginLeft:'auto',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}} data-ct="lib-group-n">{libQ.trim()?(LIB.filter(o=>groupOf(o.cat)===learnGroup&&libHit(o,libQ)).length+' of '+gn):gn}</span></>);})()}
+              {wide&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>‹ Back</button>}
+              {(()=>{const g={openings:{t:'Openings',ic:'🚀'},gambits:{t:'Gambits & Traps',ic:'⚔️'},endgames:{t:'Endgames',ic:'👑'}}[learnGroup];const gn=LIB.filter(o=>groupOf(o.cat)===learnGroup).length;return(<>{wide&&<><span style={{fontSize:'clamp(21px,5vw,27px)',lineHeight:1,flexShrink:0}}>{g.ic}</span><span style={{fontSize:'clamp(18px,4.4vw,23px)',fontWeight:800,color:'#fff',letterSpacing:.2,fontFamily:"var(--head)"}}>{g.t}</span></>}<span style={{marginLeft:'auto',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'3px 11px',flexShrink:0}} data-ct="lib-group-n">{libQ.trim()?(LIB.filter(o=>groupOf(o.cat)===learnGroup&&libHit(o,libQ)).length+' of '+gn):gn}</span></>);})()}
             </div>
             <input data-ct="lib-filter" type="search" value={libQ} onChange={e=>setLibQ(e.target.value)} placeholder="Filter by name or idea" aria-label="Filter lessons by name or idea" autoComplete="off" autoCorrect="off" spellCheck={false} style={{display:'block',boxSizing:'border-box',width:'100%',height:44,margin:'0 0 12px',padding:'0 13px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:16,fontFamily:"'Segoe UI',system-ui,sans-serif",outline:'none'}}/>{/* #550 item (77) [jobs/bench-97-lesson-list-is-5934px-of-scroll-with-no-filter-and-no-position-marker-2026-10-06]: ONE 44px filter box under the group header, matching a lesson's name or its idea line on either side, and every section shows its count (orchestratorRuling_2026_11_07, on his 8 Oct answer 'Yes, same rule everywhere'). 16px so iOS does not zoom on focus. No sticky headers, no jump chips. */}
             {(()=>{
@@ -12167,7 +12233,7 @@ export default function App(){
         )}
         {openIdx!==null&&(<>
           {learnPhase==='demo'&&(<>
-            <div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
+            {!lessonShort&&<div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
               <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('var(--ac)','none','#fff'),...((rowNarrow&&_demoLinesSlot)||_flipTight?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: THE FONT FLOOR IS THE ROW'S, NOT ONE BUTTON'S, AND KUNAL'S OWN INVARIANT IS WHAT SAID SO.
                   Dropping only the "Other lines" button to 12px left this one at 14px beside it, and
                   gates/regress/26-invariants.js went RED at se/lesson-demo with a 2px glyph spread on the
@@ -12222,7 +12288,7 @@ export default function App(){
                   precedent (chess.jsx:6091 already does exactly this for 'Try again' at #384), and nothing
                   changes at 375 or above. Asserted by gates/regress/35-width-containment.js, which was RED at
                   10.3 on the label fix alone - that is how this half was found rather than assumed. */}
-            </div>
+            </div>}
             {demoPly>=learnLine.length&&LIB[openIdx].vars&&wide&&(/* #371: on phones this 100px box took the board from 375 to 272 at the demo's end (A-01); the lines live in the ⋯ sheet there */
               <div style={{width:'100%',background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>
                 <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',fontWeight:700,marginBottom:6,textAlign:'center'}}>{learnLabel.includes(' → ')?"♟ See another of White's replies:":"♟ How does White reply? Tap a line to watch it through"}</div>
@@ -12290,25 +12356,9 @@ export default function App(){
                   if(_done&&bankOffer&&learnPhase==='practice')return(<button data-ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} aria-label="Bank it: play again with hints off" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{rowTiny?'\u2713':(boardPx-3*46-3*6)>=150?'\u2713 Bank it: hints off':'\u2713 Bank it'}</button>);
                   if(_nx>=0)return(<button data-ct="lesson-next" onClick={()=>selectOpening(_nx)} aria-label={'Next lesson: '+LIB[_nx].name} title={'Next lesson: '+LIB[_nx].name} style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{(()=>{if(rowTiny)return '›';const _bud=(boardPx-3*46-3*6)-(rowNarrow?8:30)-6;const _w=(t)=>{try{const c=window.__ctNextMC||(window.__ctNextMC=document.createElement('canvas').getContext('2d'));c.font="800 15px 'Segoe UI',system-ui,-apple-system,sans-serif";return c.measureText(t).width;}catch(e){return 1e9;}};const _full='Next: '+LIB[_nx].name+' ›';return _w(_full)<=_bud?_full:(_w('Next lesson ›')<=_bud?'Next lesson ›':'Next ›');})() /* the NAME only where the slot measures wide enough for it, so it is never cut by the ellipsis; the name is in aria-label and title either way */}</button>);
                   return(<button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':(boardPx-3*46-3*6)>=96?'↻ Try again':'↻ Again'}</button>);})()}
-                <button onClick={()=>setLearnSheet(true)} aria-label="More actions" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⋯</button>
+                {/* #550 FMT-A-05 (Kunal's pick 12 Nov): ONE ⋯ PER SCREEN. The practice row's own ⋯ ('More actions') is gone; its actions are at the top of the bottom bar's ⋯ sheet in practice */}
               </div>
-              {learnSheet&&(<div onClick={()=>setLearnSheet(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
-                <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:'#1c2027',borderRadius:'16px 16px 0 0',padding:'13px 14px calc(env(safe-area-inset-bottom,0px) + 14px)',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 -8px 30px rgba(0,0,0,.5)'}}>
-                  <div style={{width:38,height:4,borderRadius:2,background:'rgba(255,255,255,.25)',margin:'0 auto 4px'}}/>
-                  {/* #547 antagonist A on item (82): once Next takes the row's slot at Complete!, practising the same line again lives HERE */}
-                  {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
-                  {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLearnSheet(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
-                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLearnSheet(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practise this line again</button>}
-                  <button onClick={()=>{setLearnSheet(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
-                  {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
-                      setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame
-                      lessons end in checkmate by construction, so this branch is REACHABLE rather than inert.
-                      `isOver` is the right question here: it reads boardGame, which is the position this button
-                      would play from. */}
-                  <button data-ct="learn-play-position" disabled={isOver} onClick={()=>{if(isOver)return;guardReset('learn-play-position',()=>{setLearnSheet(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);});}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%',opacity:isOver?.5:1,cursor:isOver?'not-allowed':'pointer'}}>{isOver?'That position is already over':(resetArm==='learn-play-position'?'Tap again to discard your game':'▶ Play this position vs Computer')}</button>
-                  <button onClick={()=>setLearnSheet(false)} style={{...btn('transparent','1px solid rgba(255,255,255,.22)','rgba(255,255,255,.7)'),width:'100%'}}>Close</button>
-                </div>
-              </div>)}
+              
             </div>
           </>)}
           {null}
@@ -12495,10 +12545,10 @@ export default function App(){
         const _board=(<>
       {showBoard&&(()=>{const lab=Math.max(9,Math.round(SQ*0.26));const cc=(light)=>light?TH.dark:TH.light;return(
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:_edge?'flex-start':'center',order:wide?0:(pzLow?2:0),flex:revStream?'0 0 auto':((!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)))?'1 1 auto':undefined) /* #550 a21: in the streamlined review the slack goes to the explanation (rev-compact), so the strip stays straight under the board */,minHeight:0,marginTop:(pzLow&&!wide?10:0)}}>
-        {revHead&&reviewView!=='summary'&&(()=>{const _hs={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:44,height:40,borderRadius:10,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};return(
-          <div data-ct="rev-head" style={{width:vp.w,display:'flex',alignItems:'center',gap:10,padding:'2px 8px 4px',boxSizing:'border-box',flexShrink:0}}>
+        {revHead&&reviewView!=='summary'&&(()=>{const _hs={...TOP_BTN,fontWeight:800};   /* #550 FMT-B-03: the standard corner button (was 44x40 radius 10) */return(
+          <div data-ct="rev-head" style={{position:'relative',width:vp.w,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'0 '+TOP_EDGE+'px 2px',boxSizing:'border-box',flexShrink:0}}>{/* the row stays 46 tall: 44 buttons and 2 under, where it was 2 + 40 + 4 */}
             <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}>{'\u2190'}</button>
-            <div style={{flex:'1 1 auto',minWidth:0,fontSize:'clamp(17px,4.4vw,20px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{anaMode?'Analysis':'Game Review'}</div>
+            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game Review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
             <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:21}}>{'\u22ef'}</button>
           </div>);})()}
         {_showBars&&!landBars&&pBar(topColor,true)}
@@ -12656,15 +12706,29 @@ export default function App(){
           measured - the #389 recording covers it with the caption strip in every frame - so what "consistent"
           means numerically over there is still open. Guessing it would be inventing scope while he is asleep. */}
       {lessonFocus&&(<div data-ct="lesson-footer" style={{position:'fixed',left:lessonSide?Math.round(boardPx+(_edge?0:3)+12):0 /* #550 BSA-L-03: sideways the footer sits under the right-hand column, so the board takes the full height */,right:0,bottom:0,zIndex:471,display:'flex',gap:lessonSide?5:10,alignItems:'center',padding:lessonSide?'8px 6px calc(8px + env(safe-area-inset-bottom,0px))':'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',minWidth:0,background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
+        {/* #550 FMT-A-05 (Kunal's pick 12 Nov): the close X is ALWAYS far left of this bar and ⋯ always far right, in demo, practice and finish */}<FootBtn onClick={()=>{setLessonMore(false);setOpenIdx(null);}} label="Close lesson">{'\u2715'}</FootBtn>
         {learnPhase!=='practice'&&(<><FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} label="Back a move"><ChevIcon size={27} dir="left"/></FootBtn>
         <FootBtn onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} label="Play or pause" primary minW={52}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</FootBtn>
         <FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} label="Forward a move"><ChevIcon size={27} dir="right"/></FootBtn></>)}
-        <FootBtn onClick={()=>{setLessonMore(false);setOpenIdx(null);}} label="Close lesson">{'\u2715'}</FootBtn>
         {wide?(<div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>):(<div aria-hidden="true" style={{flex:1}}/>)}{/* #549 item (100): on a phone the lesson name left this row for its own line at the top of the moves panel (search data-ct="lesson-name"); the spacer keeps the More control at the right edge. */}
+        {lessonShort&&learnPhase!=='practice'&&<FootBtn onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} label="Now I'll try it" primary>{'\u270B'}</FootBtn>}{/* #550 run-answers a42: on a short upright phone the row under the board folds into this bar - Now I'll try it is this button, Other lines is in the ⋯ sheet - so the board grows */}
         <FootBtn onClick={()=>setLessonMore(v=>!v)} label="More for this lesson" hot={lessonMore}>{'\u22EF'}</FootBtn>
       </div>)}
       {lessonFocus&&lessonMore&&(<div onClick={()=>setLessonMore(false)} style={{position:'fixed',inset:0,zIndex:470,background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
         <div onClick={e=>e.stopPropagation()} style={{maxHeight:'72vh',overflowY:'auto',background:'#151922',borderTop:'1px solid rgba(212,175,55,.35)',borderRadius:'16px 16px 0 0',padding:'14px 14px calc(72px + env(safe-area-inset-bottom,0px))',display:'flex',flexDirection:'column',gap:10}}>
+          {learnPhase==='practice'&&(<div data-ct="lesson-sheet-practice" style={{display:'flex',flexDirection:'column',gap:8}}>{/* #550 FMT-A-05: what the practice row's ⋯ held */}
+                  {/* #547 antagonist A on item (82): once Next takes the row's slot at Complete!, practising the same line again lives HERE */}
+                  {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
+                  {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLessonMore(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
+                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practise this line again</button>}
+                  <button onClick={()=>{setLessonMore(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
+                  {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
+                      setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame
+                      lessons end in checkmate by construction, so this branch is REACHABLE rather than inert.
+                      `isOver` is the right question here: it reads boardGame, which is the position this button
+                      would play from. */}
+                  <button data-ct="learn-play-position" disabled={isOver} onClick={()=>{if(isOver)return;guardReset('learn-play-position',()=>{setLessonMore(false);const pos=fromFEN(toFEN(boardGame));setMode('play');setOpponent('computer');setPColor(LIB[openIdx].side);setOpenIdx(null);timeCtrlRef.current=null;setTimeCtrl(null);setPlaySetup(false);fullReset(pos);setMenuOpen(false);});}} style={{...btn('rgba(var(--acr),.2)','1px solid var(--ac)','var(--ac2)'),width:'100%',opacity:isOver?.5:1,cursor:isOver?'not-allowed':'pointer'}}>{isOver?'That position is already over':(resetArm==='learn-play-position'?'Tap again to discard your game':'▶ Play this position vs Computer')}</button>
+                  </div>)}
           {(()=>{const grp=groupOf(LIB[openIdx].cat);const noun=grp==='endgames'?'endgames':grp==='gambits'?'gambits':'openings';const idxs=LIB.map((o,i)=>groupOf(o.cat)===grp?i:-1).filter(i=>i>=0);const pos=idxs.indexOf(openIdx);const hasPrev=pos>0,hasNext=pos<idxs.length-1;const nb=(on)=>({flex:1,minHeight:44,padding:'0 10px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.2)',color:'#eee',fontSize:13,cursor:on?'pointer':'default',opacity:on?1:.35,lineHeight:1.3,paddingTop:6,paddingBottom:6,overflowWrap:'anywhere'});/* #549 item (100): the previous and next lesson NAMES wrap inside their buttons instead of ellipsising (the longest real name, 209px with its arrow, was cut to 140 at 320 and 168 at 375); this is a sheet, so a taller button costs no board */
             return(<div data-ct="lesson-sheet-nav" style={{display:'flex',gap:8}}><button onClick={()=>{if(hasPrev){setLessonMore(false);selectOpening(idxs[pos-1]);}}} disabled={!hasPrev} style={nb(hasPrev)}>{'\u2039'} {hasPrev?LIB[idxs[pos-1]].name:'First lesson'}</button><button onClick={()=>{if(hasNext){setLessonMore(false);selectOpening(idxs[pos+1]);}}} disabled={!hasNext} style={nb(hasNext)}>{hasNext?LIB[idxs[pos+1]].name:'Last lesson'} {'\u203A'}</button></div>);})()}
           {LIB[openIdx].vars&&LIB[openIdx].vars.length>0&&(<div data-ct="lesson-sheet-lines" style={{background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',borderRadius:12,padding:'9px 11px'}}>

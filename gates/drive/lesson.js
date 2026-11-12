@@ -36,7 +36,7 @@
 //   practice-wrong        practice from move 0, 1.d4 played (NOT the book move)
 //   practice-wrong-hintoff  💡 off, then 1.d4 (the other wording of the miss)
 //   practice-complete     the whole line played (learned from the demo): 'Complete!'
-//   practice-more         the practice row's ⋯ ("More actions") sheet
+//   practice-more         the bar's ⋯ sheet in practice (the practice row's own ⋯, 'More actions', went at #550 FMT-A-05)
 //   practice-bottom-more  the bottom bar's ⋯ ("More for this lesson") sheet in practice
 //   practice-tryagain     the Try-again button after a wrong move (practice back at move 0). Matched by its
 //                         ACCESSIBLE NAME: the visible label is '↻ Try again', '↻ Again' or '↻' depending on
@@ -173,7 +173,7 @@ S['demo-more']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^More for this 
    driver creates). Same class as the selector break antagonist A vetoed in gate 48. */
 S['demo-copy']=async(b)=>{await S['demo-end'](b);await b.page.click('[data-ct="moves-copy"]');await b.page.waitForTimeout(400);};
 S['demo-analyze']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/Analyze$/,900);};
-S['practice-m0']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^✋ Now I'll try it$/,500);};
+S['practice-m0']=async(b)=>{await S['demo-end'](b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);};
 S['practice-correct']=async(b)=>{await S['practice-m0'](b);await b.move('e2','e4',1200);};
 S['practice-wrong']=async(b)=>{await S['practice-m0'](b);await b.move('d2','d4',900);};
 S['practice-wrong-hintoff']=async(b)=>{await S['practice-m0'](b);await tapBtn(b,/^Hints$/,300);await b.move('d2','d4',900);};
@@ -203,17 +203,17 @@ S['practice-complete']=async(b)=>{await S['practice-m0'](b);for(const [f,t] of [
   // the next tap landed on its backdrop (TC-LS-036 opened nothing). Every consumer of this state wants the screen at rest, so wait
   // the toast out here (it clears itself; 5s cap) - the state the hints-on run used to arrive in.
   await b.page.waitForFunction(()=>!/Line learned \u00b7 flawless/.test(document.body.innerText||''),null,{timeout:5000}).catch(()=>{});await b.settle(200);};
-S['practice-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More actions$/,500);};
+S['practice-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More for this lesson$/,500);};   // #550 FMT-A-05 (Kunal's pick 12 Nov): one ⋯ per screen - the practice row's More actions moved into the bar's ⋯ sheet
 S['practice-bottom-more']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^More for this lesson$/,500);};
 S['close']=async(b)=>{await S['practice-correct'](b);await tapBtn(b,/^Close lesson$/,600);};
 S['gambits-list']=async(b)=>{await group(b,'Gambits');};
 S['gambit-demo-end']=async(b)=>{await openLesson(b,'Gambits',0);await startDemoPaused(b);await toEnd(b);};
-S['gambit-practice-m0']=async(b)=>{await S['gambit-demo-end'](b);await tapBtn(b,/^✋ Now I'll try it$/,500);};
+S['gambit-practice-m0']=async(b)=>{await S['gambit-demo-end'](b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);};
 S['gambit-practice-correct']=async(b)=>{await S['gambit-practice-m0'](b);await b.move('e2','e4',1200);};
 S['endgames-list']=async(b)=>{await group(b,'Endgames');};
 S['endgame-demo-end']=async(b)=>{await openLesson(b,'Endgames',0);await startDemoPaused(b);await toEnd(b);};
-S['endgame-practice-m0']=async(b)=>{await S['endgame-demo-end'](b);await tapBtn(b,/^✋ Now I'll try it$/,500);};
-S['endgame-practice-complete']=async(b)=>{await openLesson(b,'Endgames',0);const pairs=await lineSquares(b);await tapBtn(b,/^✋ Now I'll try it$/,500);const side=(await lessonSide(b))||'w';await playLine(b,pairs,side);};
+S['endgame-practice-m0']=async(b)=>{await S['endgame-demo-end'](b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);};
+S['endgame-practice-complete']=async(b)=>{await openLesson(b,'Endgames',0);const pairs=await lineSquares(b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);const side=(await lessonSide(b))||'w';await playLine(b,pairs,side);};
 S['tactics']=async(b)=>{await group(b,'Tactics');};
 S['longnote']=async(b)=>{await openLesson(b,'Endgames',/^Back-Rank Mate$/);await startDemoPaused(b);await fwd(b,1);};
 S['k11-demo-end']=async(b)=>{await b.card(3,2500);};
