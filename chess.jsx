@@ -12213,7 +12213,7 @@ export default function App(){
             {/* #548 item (92): Home moved OUT of the player bar into data-ct="board-chrome", the top row of its own. */}
             {isTop&&_evalOn&&!inReview&&!(mode==='play'?_gameOver:isOver)&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {av}
-            <div style={{minWidth:0,flex:1}}>
+            <div style={{minWidth:0,flex:(isTop&&landPlay&&opponent!=='computer')?'1 1 auto':1 /* #550 antagonist B F2: beside land-vs the name column sizes to its content, so the label (shrink 10) gives way before the captured pieces */}}>
               <div style={{display:'flex',alignItems:'baseline',gap:6,minWidth:0}}>
                 {flag&&<span data-ct={'pbar-flag-'+col} title="Country" style={{flexShrink:0,fontSize:'clamp(13px,2.8vw,15px)',lineHeight:1.15}}>{flag}</span>}
                 <span style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:_fg,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</span>
