@@ -45,6 +45,14 @@ L.run(async()=>{
    const s=await b.page.evaluate(()=>{const v=document.querySelector('[data-ct="vc-start"]');const q=v&&v.getBoundingClientRect();return {vc:!!q&&q.height>0&&q.bottom<=innerHeight};});
    L.say(s.vc,'TC-R204d online game 375x761: the button opens chat and video call, with Video call on screen',s);
    L.say(b.errs.length===0,'TC-R204 online game 375x761 zero app errors',b.errs.slice(0,3));await b.close();}
+  /* #550 short upright boards (BSA-P-27/36, BSA-L-22..24; q42): where the board is sized to the height, Pass and Play and Puzzles at 375x667
+     reach the width; what still falls short (Puzzles and lessons at 320x568, Tactics) is his call in q42 and is not asserted here. */
+  for(const [nm,go,geos] of [['Pass and Play',b=>P.states['pp-1'](b),[[320,568],[375,667]]],['Puzzles',b=>Z.states['train'](b),[[375,667]]]])for(const [w,h] of geos){const tag=nm+' upright '+w+'x'+h;
+    const {b,ok}=await open({w,h,safe:'',label:w+'x'+h},go);const r=await read(b);
+    L.say(ok&&!!r.board&&r.board.w>100,'TC-R204 '+tag+' PRECONDITION the screen is open with its board ('+(r.board&&r.board.w)+')',r.board);
+    L.say(!!r.board&&Math.abs(r.board.w-w)<=1,'TC-R204e '+tag+': upright on a short phone the board is the screen width ('+(r.board&&r.board.w)+' of '+w+')',r.board);
+    L.say(r.sh<=r.ch+1&&r.sw<=r.vw&&r.off.length===0,'TC-R204e '+tag+': the page does not scroll and no button is off the screen ('+r.sh+' of '+r.ch+(r.off.length?'; off: '+r.off.join(', '):'')+')',{sh:r.sh,ch:r.ch,off:r.off});
+    L.say(b.errs.length===0,'TC-R204 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
   for(const geo of ['se','kunal']){const {b,ok}=await open(geo,null);   /* antagonist A F3: at 320x568 the four words spilled their buttons by up to 17px */
    const q=await b.page.evaluate(()=>{const a=document.querySelector('[data-ct="online-actions"]')||[...document.querySelectorAll('div')].find(d=>/Resign/.test(d.innerText||'')&&d.querySelectorAll('button').length===4);if(!a)return null;return [...a.querySelectorAll('button')].map(x=>{const r=x.getBoundingClientRect();return {n:(x.getAttribute('aria-label')||x.innerText).trim(),w:Math.round(r.width),h:Math.round(r.height),sp:x.scrollWidth-x.clientWidth}});});
    L.say(ok&&!!q&&q.length===4,'TC-R204d online game '+geo+' PRECONDITION the four in-game actions are found by their words or names',q);
