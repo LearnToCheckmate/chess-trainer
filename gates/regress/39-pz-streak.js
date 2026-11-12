@@ -70,7 +70,7 @@ L.run(async()=>{
     // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
     // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
     // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
-    const WANTB={kunal730:375,se:259,'390':390};
+    const WANTB={kunal730:375,se:283,'390':390};   /* #550 short upright (BSA-L-16): 259 -> 283 at 320x568, the top card's padding and gaps; the same pin gate 12 carries */
     if(WANTB[geo]!=null)L.say(!!afterHint.board&&Math.abs(afterHint.board.w-WANTB[geo])<0.6,geo+': the puzzle board is '+WANTB[geo]+' wide with the hint up - the measured size, not merely unmoved',{measured:afterHint.board&&afterHint.board.w,want:WANTB[geo]});
     // A VALUE, NOT A SHAPE [#545, item (50); jobs/two-gate-39-streak-assertions-are-shapes-not-values-and-gate-41-forces-the-
     // worker-pool-2026-10-03]. This read /\/\s*\d+/, which '0 / 0' satisfies. chess.jsx prints the fill as
