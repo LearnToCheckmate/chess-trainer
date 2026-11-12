@@ -119,7 +119,7 @@ const DR=(k,path)=>async(b)=>{const card=DRCARD[k];if(!card)throw new Error('PHA
     const c=[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&re.test((e.innerText||'').trim()));return c.length?(c[c.length-1].innerText||'').trim():'';},re.source);
   if(path==='wrong'){const w=WRONG[card.fen.split(' ')[1]];await b.move(w.slice(0,2),w.slice(2,4),900);await b.settle(1100);
     if(!(await leaf(/^✗/)))throw new Error('wrong move '+w+' played and no ✗ verdict rendered - the wrong-move state was not entered');}
-  if(path==='hint'){await b.tapText(/^\u{1F4A1} Hint$/u,{wait:900});
+  if(path==='hint'){const _hb=b.page.locator('button[aria-label="Hint"]:visible');if(await _hb.count())await _hb.first().click({timeout:4000});else await b.tapText(/^\u{1F4A1} Hint$/u);await b.page.waitForTimeout(900);   /* #550 item (66): the drills' Hint is an icon named by aria-label on phones; the text form stays for any wider screen */
     if(!(await leaf(/^\u{1F4A1}/u)))throw new Error('hint tapped and no 💡 line rendered - the hint state was not entered');}
   if(path==='solved'){await b.move(card.uci.slice(0,2),card.uci.slice(2,4),900);await b.settle(1500);
     if(!(await leaf(/^🎉/u)))throw new Error('captured move '+card.uci+' played and no 🎉 verdict rendered - the solved state was not entered');}
