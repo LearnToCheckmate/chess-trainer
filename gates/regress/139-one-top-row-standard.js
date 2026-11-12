@@ -21,7 +21,7 @@
 // sits at the board's edge, and the title is not shown (#351, Kunal: 'relocate them') - so there only the 44x44 size is asserted. Puzzle training and the two drills were not changed by this build (other lanes held those screens), so they are not
 // asserted here. The vertical position of the top row differs by screen (it follows each screen's own safe-area handling); only the x
 // offsets are asserted, as the task asked.
-// CONTROL-RECORD: 9a6a5c6 2026-11-12 total=N red=M scope=trial:749a261311ba how=#550 the tree before this build (HEAD 9a6a5c6, built as t0): 38x30 menus, left titles, 38-high Tactics buttons, the board 78.5 lower on Tactics, X mid-bar in the demo, two ⋯ in practice, online board 192; on FIXED N/0
+// CONTROL-RECORD: 9a6a5c6 2026-11-12 total=227 red=123 scope=trial:749a261311ba how=#550 the tree before this build (HEAD 9a6a5c6, built as t0): 38x30 menus and left/off-centre titles in four sizes (TC-R215a 57 red, b 33), 38- and 36-high Tactics buttons (c 9), the Tactics board 78.5 lower than Strategy's and short of the width at 375x667/320x568 (d 5), the answer in a box under the board (e 3), X mid-bar in the demo and two ⋯ in practice (f 9), the 320x568 lesson board 270.9 with the row under it (g 5), the online game-over board 192 and the page scrolling 80 (h 2) - every case red; on a43f44594f3b 233/0
 const L=require('../lib');
 const H=require('../drive/home'),D=require('../drive/lesson'),Z=require('../drive/puzzles'),R=require('../drive/review'),P=require('../drive/play');
 const fs=require('fs'),path=require('path');
