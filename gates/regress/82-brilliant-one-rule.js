@@ -130,6 +130,12 @@ L.run(async()=>{
   const FXR=JSON.parse(fs.readFileSync(path.join(__dirname,'..','brilliant-fixed-tests.json'),'utf8')).regrade;
   const res=E.loadSANs(E.parsePGN(FXR.pgn));
   const rg=E.regradeGame(res,FXR.cache,'w',2);
+  /* #550 round 5: block H's browser runs are seeded ct_grades2='0' (so GRADE_VER is the rule's own), but E grades with the switch at its
+     default (on) - Node has no localStorage - so H9's 'great' expectation came from the other ladder (-7 against the browser's -2; red at
+     both geometries on 4ae72bc14b68). H9 now reads its expectation from a second copy of the shipped functions loaded with the switch off. */
+  const E0=(()=>{const k=require.resolve('../engine-extract.js');const keep=require.cache[k];delete require.cache[k];global.localStorage={getItem:(x)=>x==='ct_grades2'?'0':null};
+    try{return require('../engine-extract.js');}finally{delete global.localStorage;require.cache[k]=keep;}})();
+  const rg0=E0.regradeGame(E0.loadSANs(E0.parsePGN(FXR.pgn)),FXR.cache,'w',2);
   const want=FXR.expectChanges;
   L.say(!!rg&&rg.changes.length===want.length&&want.every(w=>rg.changes.some(c=>c.no===w.no&&c.side===w.side&&c.san===w.san&&c.to===w.to)),'TC-R128 H1 regradeGame lists exactly the changed Brilliants of the cached 3 Nov game: '+(rg?rg.changes.map(c=>c.no+(c.side==='w'?'.':'...')+c.san+' '+c.from+'->'+c.to).join(', '):'null'),want);
   L.say(!!rg&&rg.delta.bril===want.filter(w=>w.to==='Brilliant').length-want.filter(w=>w.from==='Brilliant').length,'TC-R128 H2 the tally delta moves bril by the changes alone ('+(rg&&JSON.stringify(rg.delta))+')');
@@ -161,7 +167,7 @@ L.run(async()=>{
      if(r.shown){await b.page.click('[data-ct="regrade-confirm"]');await b.settle(500);}   // guarded: a missing sheet goes red on H4 and the rest still runs
      const r2=await read(b);const nt=r2.gs[gk]||{};
      L.say(!r2.shown,geo+': TC-R129 H8 Update closes the sheet');
-     L.say(nt.gv===2&&nt.bril===1+rg.delta.bril&&nt.great===20+rg.delta.great&&nt.src==='review',geo+': TC-R129 H9 Update restamps the tally gv 2 and moves bril '+stored.bril+' -> '+nt.bril+' by the listed changes (src '+nt.src+')',nt);
+     L.say(nt.gv===2&&E0.GRADES2===false&&nt.bril===1+rg0.delta.bril&&nt.great===20+rg0.delta.great&&nt.src==='review',geo+': TC-R129 H9 Update restamps the tally gv 2 and moves bril '+stored.bril+' -> '+nt.bril+' by the listed changes (src '+nt.src+')',nt);
      L.say(want.filter(w=>w.to==='Brilliant').every(w=>r2.mb.some(x=>x.fen===w.fen)),geo+': TC-R129 H10 every new Brilliant joins the practice list with its sentence ('+r2.mb.length+' cards: '+r2.mb.map(x=>x.why).join(' / ').slice(0,200)+')');
      L.say(b.errs.length===0,geo+': TC-R129 H11 zero app errors',b.errs.slice(0,2));
      await b.close();}

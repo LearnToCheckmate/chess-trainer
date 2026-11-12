@@ -27,7 +27,7 @@ L.run(async()=>{
     const goal=ok?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-top"]');return e?e.innerText.replace(/\s+/g,' '):'';}):'';
     L.say(ok&&goal.includes('you played '+c.played),c.id+' DENOMINATOR the '+c.kind+' legacy card opened in the mistakes drill (its goal: "'+goal.slice(0,90)+'")',{ok,goal:goal.slice(0,160)});
     let hint='';
-    if(ok){try{await b.tapText(/Hint$/,{wait:700});}catch(e){L.note(c.id+' Hint tap: '+String(e).slice(0,100));}
+    if(ok){try{const _hb=b.page.locator('button[aria-label="Hint"]:visible');if(await _hb.count()){await _hb.first().click({timeout:4000});await b.page.waitForTimeout(700);}else await b.tapText(/Hint$/,{wait:700});}catch(e){   /* #550 item (66): the drills' Hint is an icon named by aria-label on phones */L.note(c.id+' Hint tap: '+String(e).slice(0,100));}
       hint=await b.page.evaluate(()=>{const t=document.getElementById('root').innerText;const m=t.match(/(No tactic[^\n]*|There is[^\n]*|One move[^\n]*|Moving one piece[^\n]*|A pawn is closer[^\n]*|There was a better move[^\n]*)/);return m?m[1]:'';});}
     L.say(!!hint,c.id+' DENOMINATOR the Hint tap shows a hint line: "'+hint+'"',{hint});
     L.say(!!hint&&c.want.test(hint)&&!GENERIC.test(hint),c.id+' the '+c.kind+' card\'s hint is its own ('+c.want.source+'), not the generic "most forcing or solid option"',{hint});
