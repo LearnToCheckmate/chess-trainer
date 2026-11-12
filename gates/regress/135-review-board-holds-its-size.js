@@ -20,7 +20,7 @@
 // chrome's exact pixel heights, so a font or row change can move it - which is why three heights around it are read and not one.
 // It reads the board's size, not every other row; a row that jitters while the board holds is not seen here.
 // CONTROL-RECORD: 9a6a5c6 2026-11-12 total=60 red=12 scope=trial:a54447410b45 how=the tree before the fix (engine-row reservation keyed on the trimmed board, bars' share slack+103 everywhere): 820/804(/788) with 18 to 35 changes per tap at 1063x1133..1135, TC-R211a/b/c red there, 1132, 1267 and kunal761 green; on t1 1a08ef13b16d 60/0
-// HALF-FIX RECORD: part (1) alone (the reservation keyed on the untrimmed board, slack+103 kept), trial 4ac0b45c43bb: no shaking, but the board holds 804 at 1133..1135 (TC-R211c red) - so each half of the fix is pinned by its own case.
+// HALF-FIX RECORD: part (1) alone (the reservation keyed on the untrimmed board, slack+103 kept), trial 4ac0b45c43bb: total=60 red=3 - no shaking (TC-R211a/b green), but the board holds 804 at 1133..1135 (the three TC-R211c lines red) - so each half of the fix is pinned by its own case.
 const L=require('../lib');
 const R=require('../drive/review');
 const sample=(b,ms)=>b.page.evaluate((ms)=>new Promise(res=>{const s=[];const t0=performance.now();
