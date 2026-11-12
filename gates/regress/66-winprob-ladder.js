@@ -260,10 +260,17 @@ L.run(async()=>{
             {matesMoverOccurrences:cM,mateLadderOccurrences:cL,want:5,note:'1 definition + 4 call sites (#549: + gradeDrillMove)'});
       // C8 THE OVERLAYS DO NOT OVERWRITE THE VERDICT. REJECTS: removing the guard, which antagonist A measured
       // relabelled EVERY mate allowed from +200 or better as '× Miss', over exactly the range the rule claims.
-      const mGuard=srcC.match(new RegExp('('+ID+')='+mmName.replace('$','\\$')+'\\([^)]*\\);[\\s\\S]{0,120}?label!=="Brilliant"&&!\\1\\)'));
+      /* #550 item (20): with the chess.com grades there are TWO overlay entries - the grades-2 one ('Brilliant' and 'Forced' excluded) and the
+         legacy one behind the switch - and BOTH must carry the guard. The window was 120 characters from the assignment; the grades-2 branch's
+         own mate-ladder line sits between them now, so the window is 1200 and the guard is counted, not found once. */
+      const g2On=/label:"Forced"/.test(srcC);let nGuard=0,mWin='';
+      for(const a of srcC.matchAll(new RegExp('('+ID+')='+mmName.replace('$','\\$')+'\\([^)]*\\);','g'))){   // every site that assigns the mate rule; the one that owns the overlays is the one whose window carries the guards
+        const w=srcC.slice(a.index,a.index+1200);const n=(w.match(new RegExp('label!=="Brilliant"(?:&&[\\w$]+\\.label!=="Forced")?&&!'+a[1].replace(/\$/g,'\\$')+'\\)','g'))||[]).length;
+        if(n>nGuard){nGuard=n;mWin=w;}}
+      const mGuard=nGuard>=(g2On?2:1)?[mWin.slice(0,160)]:null;
       L.say(!!mGuard,
             'C8 the Great and Miss overlays are gated on the mate rule NOT having fired, so the ladder is the last word on a move that forces mate against its own mover',
-            {shipped:mGuard?mGuard[0].slice(0,120):null});
+            {shipped:mGuard?mGuard[0].slice(0,120):null,guards:nGuard,want:g2On?2:1});
       // C9 THE BAND NAMES THE LADDER LOOKS UP ACTUALLY EXIST IN THE BAND TABLE. A1..A5 assert the five
       // NUMBERS and never the names, so renaming a band would have silently reverted the -701..-999 rung to
       // the #441 floor with nothing red. This is the assertion the clsByName comment wrongly claimed was
@@ -351,7 +358,12 @@ L.run(async()=>{
   // B6 LABELS REDISTRIBUTE, THEY DO NOT VANISH. A per-side total that drops would mean moves fell out of
   // the table altogether, which is how a softening change could hide a counting bug inside a good result.
   const sw=ROWS.reduce((a,r)=>a+grade[r].w,0), sb=ROWS.reduce((a,r)=>a+grade[r].b,0);
-  say(sw===17&&sb===16,'B6 every graded move is still counted: White 17 and Black 16 rows, as on #439',{whiteTotal:sw,blackTotal:sb});
+  /* #550 item (20): with the chess.com grades on (the default) a move with one legal reply is graded Forced and, as on chess.com, left out of the
+     ten totals. The Opera game has exactly one: 16...Nxb8, the only reply to 16.Qb8+ - counted here from the position, not assumed, so Black's
+     16 graded moves read 15 rows plus that one, and White's 17 are unchanged. */
+  const _E=require('../engine-extract.js');const _f16=_E.getLegal(_E.fromFEN('1Q2kb1r/p2n1ppp/4q3/4p1B1/4P3/8/PPP2PPP/2KR4 b k - 1 16')).length;
+  const _g2=/label:"Forced"/.test(fs.readFileSync(BUNDLE,'utf8'));const _wantB=16-((_g2&&_f16===1)?1:0);
+  say(sw===17&&sb===_wantB&&_f16===1,'B6 every graded move is still counted: White 17 and Black '+_wantB+' rows'+(_g2?' plus 16...Nxb8, the one forced move (one legal reply to Qb8+), which the chess.com grades leave out of the totals':', as on #439'),{whiteTotal:sw,blackTotal:sb,forcedReplies:_f16,grades2:_g2});
   // B7 THE SENTENCE THE CHANGE MADE FALSE. It described the formula #440 replaced, and nothing asserted it
   // before, which is how a wrong sentence survives builds.
   L.say(!/average centipawn loss/i.test(txt)&&/changed your chances of winning/i.test(txt),   // L.say, not the column's say(), so gates/audit/negated-regex-guards.sh still sees this site [#545 item (100) follow-up]
@@ -411,7 +423,8 @@ L.run(async()=>{
   // either way); (2) the Stockfish site grading by the pre-#440 linear classifyByLoss reddens F11 alone, the one input
   // where the two ladders disagree; (3) the band table with Good's 8.2096 moved to 9.0 - theFix's "a DIFFERENT band
   // table, not one with none" - reddens F6 (95cp now reads Good) and A0. Records: the CONTROL-RECORD lines at the foot.
-  {
+  for(const _g2pass of [true,false]){const F_G2=_g2pass&&/label:"Forced"/.test(fs.readFileSync(BUNDLE,'utf8')),FS=_g2pass?'':' [grades-2 off]';   // #550 item (20): once with the chess.com grades (the default), once with ct_grades2='0', the old ladder these pins were written for
+    if(!_g2pass&&!/label:"Forced"/.test(fs.readFileSync(BUNDLE,'utf8')))break;   // a bundle with no grades-2 switch has one ladder; one pass covers it
     // [whiteAfter, blackAfter, wantedWhiteGrade|null, cut-off or null], white-POV centipawns; every pair starts where the
     // last one ended. Pairs 2..11 straddle the five cut-offs at eval 0. Pairs 12..14 are TC-R40's own shape, rendered:
     // pair 12 puts White at -700 (not asserted), pair 13 is a 350cp slip from there (drop 5.01 -> Good, where the
@@ -431,7 +444,7 @@ L.run(async()=>{
     let h=5381;const ks=F_SANS.join(' ')+'|sf18c';for(let i=0;i<ks.length;i++)h=((h<<5)+h+ks.charCodeAt(i))>>>0;
     const key='g'+h.toString(36)+'-'+N;
     const nul=n=>new Array(n).fill(null);
-    const f=await L.launch({geo:{w:375,h:730},name:'winprob-bands',store:{ct_pool:'3',ct_evalcache:JSON.stringify({[key]:{evW,ev2W:nul(N+1),bU:nul(N),aU:nul(N),at:1}})}});
+    const f=await L.launch({geo:{w:375,h:730},name:'winprob-bands'+(_g2pass?'':'-g1'),store:{...(_g2pass?{}:{ct_grades2:'0'}),ct_pool:'3',ct_evalcache:JSON.stringify({[key]:{evW,ev2W:nul(N+1),bU:nul(N),aU:nul(N),at:1}})}});
     await f.open(); await f.home(); await f.settle(2500); await f.tile('Review');
     await f.page.locator('textarea').first().fill(pg);
     await f.tapText(/^⚡ Analyze Game$/,{wait:300});
@@ -439,21 +452,30 @@ L.run(async()=>{
     await f.settle(1200);
     const hit=await f.page.evaluate((k)=>{try{const v=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')[k];return v?{at:v.at,evW:v.evW}:null;}catch(e){return null;}},key);
     const hitOk=fu&&!!hit&&hit.at>1&&JSON.stringify(hit.evW)===JSON.stringify(evW);
-    L.say(hitOk,'F0 PRECONDITION the review graded the SEEDED evaluations: the summary rendered and the cache entry was read (at stamp moved, evW unchanged)',{summary:fu,key,at:hit&&hit.at,evWkept:!!hit&&JSON.stringify(hit.evW)===JSON.stringify(evW)});
-    if(!hitOk){L.note('F1..F12 NOT RUN: the seeded evaluations were not the ones graded');}
+    L.say(hitOk,'F0 PRECONDITION the review graded the SEEDED evaluations: the summary rendered and the cache entry was read (at stamp moved, evW unchanged)'+FS,{summary:fu,key,at:hit&&hit.at,evWkept:!!hit&&JSON.stringify(hit.evW)===JSON.stringify(evW)});
+    if(!hitOk){L.note('F1..F12 NOT RUN: the seeded evaluations were not the ones graded'+FS);}
     else{
       await R.startReview(f);
       let fn=0;
       for(let p=0;p<F_P.length;p++){
-        const [wa,,want,cut]=F_P[p];if(!want)continue;fn++;
+        const [wa,,want0,cut]=F_P[p];if(!want0)continue;fn++;
         const ply=2*p+1, mv=F_SANS[2*p], from=evW[2*p], slip=from-wa;
+        /* #550 item (20): with the chess.com grades on (the default, ct_grades2 unset) the band row is RE-DERIVED here from the design's own
+           rules (docs/grade-boundaries-design-2026-11-10, quoted at chess.jsx GRADES2) and the winning-chances curve, not read from the
+           bundle: no engine move is seeded (bU null), so no move is Best; a MISS when Black's previous move dropped 12 or more, this one 8 or
+           more and White still has 20 or more; else by the drop - under 3 Excellent, 6 Good, 10 Inaccuracy, 25 Mistake, else Blunder. The
+           mate rung row (-1050) keeps its pin: the mate ladder decides it before any band. The old ladder's pins still hold with the
+           switch off, which block F2 below runs. */
+        const wp=(cp)=>50+50*(2/(1+Math.exp(-0.00368208*cp))-1);
+        const want=(()=>{if(!F_G2||wa<=-1000)return want0;const d=wp(from)-wp(wa);const pd=p>0?(wp(-evW[2*p-1])-wp(-evW[2*p])):0;
+          if(d>=8&&pd>=12&&wp(wa)>=20)return 'Miss';return d<3?'Excellent':d<6?'Good':d<10?'Inaccuracy':d<25?'Mistake':'Blunder';})();
         await R.goPly(f,ply);
         const line=await f.page.evaluate(()=>{const l=document.querySelector('[data-ct="rev-move-line"]');return l?l.innerText.replace(/\s+/g,' ').trim():null;});
         const onPly=!!line&&new RegExp('^'+(p+1)+'\\. '+mv+'\\b').test(line);
         const others=[...L.GRADES].filter(x=>x!==want);
         const ok=onPly&&new RegExp('\\b'+want+'\\b').test(line)&&!others.some(x=>new RegExp('\\b'+x+'\\b').test(line));
         // the ply is part of the assertion, so a walk that stood on the wrong move cannot pass (#385)
-        L.say(ok,'F'+fn+' TC-R40 at eval '+from+' a '+slip+'cp slip'+(cut?' ('+(slip<cut?'under':'over')+' the '+cut+'cp cut-off)':'')+' renders '+want+' on '+(p+1)+'. '+mv+' - graded by the bundle\'s winDrop and classify',{ply,line,onPly});
+        L.say(ok,'F'+fn+' TC-R40 at eval '+from+' a '+slip+'cp slip'+(cut?' ('+(slip<cut?'under':'over')+' the '+cut+'cp cut-off)':'')+' renders '+want+' on '+(p+1)+'. '+mv+' - graded by the bundle\'s winDrop and '+(F_G2?'the chess.com grades':'classify')+FS,{ply,line,onPly,want0});
       }
     }
     await f.close();
