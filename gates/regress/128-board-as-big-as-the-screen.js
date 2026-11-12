@@ -11,6 +11,7 @@
 // upright at kunal761. LIMIT: sideways the viewport height; a sideways game keeps a 300pt rail from 600 wide (its six 44pt controls), so
 // there it is min(vp.h, vp.w-320); Tactics keeps a 240 column beside the 62 tab rail, min(vp.h, vp.w-318); upright the viewport width. Every screen must also not scroll the page and keep its buttons on screen.
 // KNOW ITS LIMIT: the short upright screens (320x568, 375x667) are not asserted - their job is open (short-upright-boards-sized-to-height).
+// CONTROL-RECORD: 53dd89b 2026-11-12 total=86 red=22 scope=trial:075881d048e1 how=#550 a38: the tree before the full-height boards - all sixteen TC-R204a lines red (Review 216, the game 344, Puzzles 360, Tactics 176, lessons 280, online 216), TC-R204b and TC-R204d (online 192, its 2x2 panel) and the overflow lines it caused; on t113 86/0
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review'),Z=require('../drive/puzzles'),D=require('../drive/lesson');
 const fs=require('fs'),path=require('path');

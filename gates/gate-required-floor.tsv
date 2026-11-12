@@ -75,3 +75,4 @@
 105	103	raise	2026-11-11	550	build__1794388896663	#550 round-4 suite: gates 120 and 121, TC-R118 moved out of gate 22 for the 900 s ceiling	-	cd871227a4cb
 110	105	raise	2026-11-12	550	build__1794388896663	#550 second pass: gates 122 (item 64 eval bar above), 123 (item 66 drill one row), 124 (item 24 say-why), 125 (item 91 idle wake), 126 (item 32 scanBoard server)	-	a75a8ea8815c
 111	110	raise	2026-11-12	550	build__1794388896663	#550 a36: gate 127 landscape eval graph (US-R135, TC-R203)	-	17bc7acb204b
+112	111	raise	2026-11-12	550	build__1794388896663	#550 a38: gate 128 board as big as the screen (US-R136, TC-R204)	-	59efd2e2062b
