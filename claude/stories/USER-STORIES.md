@@ -2288,3 +2288,18 @@ As a player comparing my review with chess.com's, one blunder does not drag a go
 - Over the 196 reviewed games of his account, the mean distance from chess.com's number is at most 5.5 points. (TC-R207a)
 - At least 330 of the 388 player-games are within 10 points. (TC-R207b)
 - No game is more than 25 points away. (TC-R207c)
+
+### US-R140 The mistakes drill's hint and verdict say what is in the position, and a solved card keeps Reset
+*Added #550, run-answers build__1794388896663-a37; docs/hint-audit-2026-11-12 HEX-T-01 and HEX-T-02; Kunal, 12 Nov: "they left the queen hanging take it with the bishop"; "give me the option to reset the board even after I get the answer right".*
+As a player working through my own mistakes, the hint tells me what is concretely there, the verdict says what the better move does, and after solving a card I can set it back and play it again.
+- The hint names the piece, the square and the attacker or the threat - on the cards I already have, not only new ones. (TC-R208a)
+- After the solve the verdict says what the move does, not "was stronger". (TC-R208b)
+- A solved card keeps a 44pt Reset on screen, and it puts the card back unsolved. (TC-R208c, TC-R208d)
+
+### US-R141 Hints and explanations read the position
+*Added #550, docs/hint-audit-2026-11-12 HEX-T-01, -04, -05, -07; Kunal, 12 Nov: "All of it in this batch".*
+As a player asking for help anywhere in training, the words describe this position - a hanging piece, a threat, a mate - and not a template.
+- The reading names what is there on the audit's own positions. (TC-R209a)
+- Most generated puzzles get a hint of their own, in hundreds of distinct sentences. (TC-R209b)
+- The line after a solve is read from the stored line. (TC-R209c)
+- The Brilliant drill's hint names what can be given or left. (TC-R209d)

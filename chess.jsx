@@ -1850,7 +1850,15 @@ function explainAnno(a,ctx){
     let tail='';
     try{
       const pn=ctx&&ctx.nextPos, pm=(nxt&&nxt.bestMove)||(nxtPly&&nxtPly.move);
-      if(pn&&pm){const m2=moveMotifs(pn,pm);
+      if(pn&&pm){
+        /* #550 HEX-R-01 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): the reply is DESCRIBED by what the board after it proves -
+           the concrete reading run for the opponent: mate, mate in two, a piece won, a check that forks - before the old motif tail. */
+        let cr=null;try{cr=(typeof concreteRead==='function')?concreteRead(pn,pm):null;}catch(e){cr=null;}
+        const rs=String(reply).replace(/[+#]$/,'');
+        if(cr&&cr.k==='mate1')return rs+' is mate.';
+        if(cr&&cr.k==='mate2')return 'It allows mate in two, starting '+reply+'.';
+        if(cr&&(cr.k==='take'||cr.k==='forkcheck'))return cr.say.replace(/^\S+/,reply)+'';
+        const m2=moveMotifs(pn,pm);
         tail=m2.indexOf('mate')>=0?'mate':m2.indexOf('fork')>=0?', forking two at once':m2.indexOf('discovered check')>=0?', a discovered check':'';}
     }catch(e){}
     return tail==='mate'?(reply+' is mate.'):(reply+' is the answer'+tail+'.');})();
@@ -1916,10 +1924,10 @@ function explainAnno(a,ctx){
   if(L==='Good')return pack([didTxt,'Sound, if not the sharpest.',(a.bestSan?(a.bestSan+' was sharper.'):''),motifTxt,standing]);
   if(L==='Book')return pack([didTxt,'Still in the book.',standing,gapTxt]);
   if(L==='Forced')return pack(['The only legal move.',didTxt,standing]);   // #550 item (20): a Forced move says why it is graded Forced (gate 41 found the box empty at 16...Nxb8)
-  if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),('About '+lossP.toFixed(1)+' pawns gone.'),replyTxt]);
+  if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),(lossP<14.95?('About '+lossP.toFixed(1)+' pawns gone.'):''),replyTxt]);
   if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
     const size=L==='Inaccuracy'?'A small slip.':(L==='Mistake'?'A mistake.':'A blunder.');
-    const cost=lossP>=0.15?('About '+lossP.toFixed(1)+' '+(lossP.toFixed(1)==='1.0'?'pawn':'pawns')+' of advantage gone.'):'';
+    const cost=(lossP>=0.15&&lossP<14.95/* #550 HEX-R-13: the loss is capped at 15.0 when a side of the swing is a mate, and '15.0 pawns' is not a number anyone can use - the reply clause says mate */)?('About '+lossP.toFixed(1)+' '+(lossP.toFixed(1)==='1.0'?'pawn':'pawns')+' of advantage gone.'):'';
     const better=a.bestSan?(a.bestSan+' held it.'):'';
     return pack([hangTxt,size,replyTxt,better,cost,standing]);}
   return null;
@@ -5098,6 +5106,7 @@ export default function App(){
   const learnPhaseRef=useRef(learnPhase); learnPhaseRef.current=learnPhase;
   const trainArmed=useRef(false);
   const learnLineRef=useRef(learnLine); learnLineRef.current=learnLine;
+  const learnNotesRef=useRef(learnNotes); learnNotesRef.current=learnNotes;   /* #550 HEX-T-12/13: practice reads the lesson's move notes */
   const puzIdxRef=useRef(puzIdx); puzIdxRef.current=puzIdx;
   const puzStepRef=useRef(puzStep); puzStepRef.current=puzStep;
   const puzSolvedRef=useRef(puzSolved); puzSolvedRef.current=puzSolved;
@@ -7488,13 +7497,16 @@ export default function App(){
       if(matches||isMate){
         setGame(ng);setLastMv(mv);setRevealHint(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};
         if(isMate&&!matches){setOpenStep(line.length);setOpenMsg('🎉 '+played+' is checkmate — that works too! Any legal mate ends the game.');repaint();return;}
-        let s=step+1;setOpenMsg('✓ '+played+' — correct!');
+        let s=step+1;{const _n=String((learnNotesRef.current||[])[step]||'').trim();setOpenMsg('✓ '+played+(_n?(', correct: '+_n.charAt(0).toLowerCase()+_n.slice(1).replace(/\.?$/,'.')):' — correct!'));}   /* #550 HEX-T-13: the lesson's own note for the move, shown in the demo only until now */
         if(s<line.length){setTimeout(()=>{const omv=findMoveBySAN(ng,line[s]);if(omv){setGame(g2=>makeMove(g2,omv));setLastMv(omv);setOpenStep(s+1);if(s+1>=line.length)setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());}},420);setOpenStep(s);}
         else{setOpenStep(s);setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'.'+finishRep());
           const _fl=finishLine(ng,4);
           if(_fl.length&&getStatus(_fl[_fl.length-1].g)==='checkmate'){setOpenMsg('🎉 Complete! That\'s the '+learnLabel+'. Watch how it finishes.'+finishRep());playFinish(_fl);}}
         repaint();
-      }else{learnRepRef.current.miss=true;setOpenMsg(showHintRef.current?('✗ Not the book move — it goes '+line[step]+' here. Try again.'):('✗ '+played+" isn't the line — try again. (Tap 💡 Hint to see it.)"));UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+      }else{learnRepRef.current.miss=true;/* #550 HEX-T-12 (jobs/lessons-practice-hints-and-wrong-move-reasons-2026-11-12): two fixed sentences for every wrong move in every lesson. wrongWhy first, as Puzzles does (it names a mate allowed or a piece hung); with hints on, the book move and the lesson's own note for it. */
+        let _ww=null;try{_ww=wrongWhy(g,mv);}catch(e){_ww=null;}const _why=_ww?(_ww.kind==='mate'?(played+' allows mate ('+_ww.reply+')'):(played+' '+_ww.text)):null;
+        const _bn=String((learnNotesRef.current||[])[step]||'').trim();
+        setOpenMsg(showHintRef.current?('✗ '+(_why?(_why+'. '):'')+'The book move is '+line[step]+(_bn?(': '+_bn.charAt(0).toLowerCase()+_bn.slice(1).replace(/\.?$/,'.')):'.')+' Try again.'):('✗ '+(_why?(_why+'. Try again.'):(played+" isn't the line — try again."))+' (Tap 💡 Hint to see it.)'));UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='play'&&opponentRef.current==='online'){

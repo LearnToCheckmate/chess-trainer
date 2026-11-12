@@ -265,7 +265,7 @@ L.run(async()=>{
       L.say(newHits===1,'TC-R64c T0a '+tg.n+' INSTRUMENT: exactly one button is reachable by the ACCESSIBLE NAME \'Try again\' - the one string that is identical at every geometry',{seen,newHits});
       L.say(oldHits===0,'TC-R64c T0b '+tg.n+' NEGATIVE CONTROL: the OLD selector /^↻ Try again$/ matches NO button here, which is why gates/drive/lesson.js\'s practice-tryagain threw at this geometry on every bundle',{seen,oldHits});
       const nw=await b.text('[data-ct="lesson-note"]');
-      L.say(/Not the book move|isn.t the line/.test(nw||''),'TC-R64c T1 '+tg.n+' the wrong-move line IS PRESENT before anything claims it was cleared [#385]',{note:nw});
+      L.say(/Not the book move|isn.t the line|The book move is|Try again\./ /* #550 HEX-T-12: the wrong-move line now gives a reason and ends "Try again." */.test(nw||''),'TC-R64c T1 '+tg.n+' the wrong-move line IS PRESENT before anything claims it was cleared [#385]',{note:nw});
       L.say(b.errs.length===0,'TC-R64c T1e '+tg.n+' zero app errors in the wrong state',b.errs.slice(0,3));
       await b.close();
     }
@@ -276,7 +276,7 @@ L.run(async()=>{
       try{ await D.states['practice-tryagain'](b); }catch(e){ threw=String((e&&e.message)||e).slice(0,120); }
       L.say(threw===null,'TC-R64c T2 '+tg.n+' D.states[\'practice-tryagain\'] REACHES ITS STATE instead of throwing - tapBtn throws when its target is absent, which is how this state failed silently rather than loudly',{threw});
       const n1=threw===null?await b.text('[data-ct="lesson-note"]'):null;
-      L.say(threw===null&&/Your move/.test(n1||'')&&!/Not the book move|isn.t the line/.test(n1||''),'TC-R64c T3 '+tg.n+' and the wrong-move line is CLEARED: the note is back to the move-0 prompt',{note:n1});
+      L.say(threw===null&&/Your move/.test(n1||'')&&!/Not the book move|isn.t the line|The book move is|Try again\./ /* #550 HEX-T-12: the wrong-move line now gives a reason and ends "Try again." */.test(n1||''),'TC-R64c T3 '+tg.n+' and the wrong-move line is CLEARED: the note is back to the move-0 prompt',{note:n1});
       L.say(b.errs.length===0,'TC-R64c T3e '+tg.n+' zero app errors through the Try-again tap',b.errs.slice(0,3));
       await b.shot('tryagain-'+tg.n);
       await b.close();

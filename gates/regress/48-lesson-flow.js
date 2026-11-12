@@ -1713,7 +1713,7 @@ L.run(async()=>{
    const b=await L.launch({geo,name:'lesson-tryagain-miss-'+geo});await b.open();
    let ok=true;try{await D.states['practice-wrong'](b);await b.settle(500);}catch(e){ok=false;}
    const w0=await D.noteText(b);
-   if(!L.say(ok&&/isn.t the line|Not the book move/.test(w0||''),geo+': TC-LS-041 PRECONDITION a wrong move was played and the note says so',{note:w0})){await b.close();continue;}
+   if(!L.say(ok&&/isn.t the line|Not the book move|The book move is|Try again\./ /* #550 HEX-T-12 */.test(w0||''),geo+': TC-LS-041 PRECONDITION a wrong move was played and the note says so',{note:w0})){await b.close();continue;}
    let t=true;try{await b.page.locator('button[aria-label="Try again"]').first().click();await b.settle(700);}catch(e){t=false;}
    for(const [f,tt] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,tt,1100);if(/Complete!/.test((await D.noteText(b))||''))break;}
    await b.settle(1200);const n1=await D.noteText(b);const lp=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_learnprog')||'{}');}catch(e){return null;}});
