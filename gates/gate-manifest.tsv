@@ -147,3 +147,4 @@
 132-drill-reads-the-position.js	required	550	2026-11-12	build__1794388896663	gates/regress/132-drill-reads-the-position.js - THE MISTAKES DRILL'S HINT AND VERDICT SA	#550 hint audit: the drill and the training texts read the position (US-R140, US-R141)
 133-hint-texts-read-the-position.js	required	550	2026-11-12	build__1794388896663	gates/regress/133-hint-texts-read-the-position.js - HINTS AND EXPLANATIONS SAY WHAT IS C	#550 hint audit: the drill and the training texts read the position (US-R140, US-R141)
 134-drill-cards-regraded.js	required	550	2026-11-12	build__1794388896663	gates/regress/134-drill-cards-regraded.js - THE CARDS ALREADY IN THE DRILL ARE RE-GRADED	#550 a41: the stored drill cards are re-graded by win chance (US-R142)
+138-usernames-follow-the-account.js	required	550	2026-11-12	build__1794388896663	gates/regress/138-usernames-follow-the-account.js - HIS USERNAMES FOLLOW HIS ACCOUNT, AN	#550 his report (a): usernames follow the account (US-R146)

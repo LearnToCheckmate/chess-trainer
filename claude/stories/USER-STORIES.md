@@ -2310,3 +2310,11 @@ As a player with a deck built before the drill took only Blunders and Mistakes, 
 - A card that still grades Blunder or Mistake by win chance stays, with its re-grade recorded. (TC-R210a)
 - A card that does not - his move was in fact the best, or the drop is small - leaves the deck. (TC-R210b)
 - The deck size before and after is recorded. (TC-R210c)
+
+### US-R146 His usernames follow his account, and his games arrive on a new device
+*Added #550, run-answers build__1794388896663-hold-landing, his report (a); Kunal, 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?"*
+As a signed-in player opening the app on another device, the chess.com and Lichess names I gave on my phone are already there and my games are pulled without asking.
+- The account's username fills an empty username box on this device. (TC-R214a)
+- His games are pulled at once, also when he is already on Review. (TC-R214b)
+- What a device saves back never carries an empty name over the account's. (TC-R214c)
+- A name already typed on this device is kept. (TC-R214d)

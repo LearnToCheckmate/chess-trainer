@@ -41,7 +41,7 @@ function need(names){
 // window.CTLESSONS and nothing below needs it.
 // #549 item (28): the last row (PNAME .. styleBias) is the one brilliant rule's sentence and its regrade, with what they read, so
 // gate 82 measures the shipped functions and not copies.
-const NAMES=['flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN','cloneB','isAttacked','findKing','isInCheck','pseudoMoves',
+const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','opp','initBoard','initGame','fromFEN','toFEN','cloneB','isAttacked','findKing','isInCheck','pseudoMoves',
   'applyMove','getLegal','getMovesFrom','disambig','toSAN','makeMove','getStatus','VAL','mateW','PST',
   'evaluate','makeFast','orderMoves','QDEPTH','quiesce','minimax','evalPawns','cleanSAN','parsePGN',
   'pgnStripLineComments','matchSanLenient','loadSANs','rankMoves','classify','SEEVAL','seeSq','BRIL_FLOOR','BRIL_NEEDED','BRIL_RULE_DEFAULT','BRIL_RULE','BRIL_A','brilHangAge','brilCheckArm','sq2rc','brilliantGate','isBrilliant','nextBestW','missedBrilliant','MISSED_BRIL_DEFAULT','MISS_CLEAR','MISSED_BRIL',

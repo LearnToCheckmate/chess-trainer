@@ -47,10 +47,12 @@ L.run(async()=>{
   // through engine-extract so the function measured is the shipped one. A valid code is two regional-indicator letters; the rest are ''.
   {const E=require('../engine-extract.js');const RI=(c)=>String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65));
    // CONTROL-RECORD: 2acf390 2026-11-11 total=310 red=3 scope=trial:5883dba75012 how=#550 check gap cg2: the refused lookup cached as an answer, with CT_SRC set to the tree without the user-assigned filter (cg2-nox) - TC-R107b, TC-R68 and TC-R68b red
-   const cases=[['US',RI('US')],['DE',RI('DE')],['GB',RI('GB')],['IN',RI('IN')],['FR',RI('FR')],['BR',RI('BR')],['JP',RI('JP')],['gb',RI('GB')],
-     ['XX',''],['XE',''],['',''],[null,''],['USA',''],['1A',''],['U',''],['U$',''],[' US','']];
+   // #550 his report (b): flagOf now returns the PICTURE's file key (flags/<key>.png), not regional-indicator letters, which Windows
+   // draws as pale letters; and chess.com's XE (England) now paints England's flag. RI is kept for the record of what it was.
+   const cases=[['US','us'],['DE','de'],['GB','gb'],['IN','in'],['FR','fr'],['BR','br'],['JP','jp'],['gb','gb'],
+     ['XX',''],['XE','gb-eng'],['',''],[null,''],['USA',''],['1A',''],['U',''],['U$',''],[' US','']];
    const bad=cases.filter(([i,w])=>E.flagOf(i)!==w).map(([i,w])=>JSON.stringify(i)+' -> '+JSON.stringify(E.flagOf(i))+' (want '+JSON.stringify(w)+')');
-   L.say(cases.length===17&&bad.length===0,'TC-R107b flagOf over 17 inputs: 7 valid codes paint their flag, a lowercase code is uppercased, the unassigned XX and XE and the 7 rejects paint nothing',bad);}
+   L.say(cases.length===17&&bad.length===0,'TC-R107b flagOf over 17 inputs: 7 valid codes name their flag picture, a lowercase code is read the same, XE names England\'s, and XX and the 7 rejects name none',bad);}
   // kunal730 ADDED 2026-10-03: this suite had never once run at Kunal's real 375x730. 679 stays as the
   // shorter-phone column [CLAUDE.md], and the one literal pin in this file (the 349 board width) stays bound to
   // 679 by its own geo check below rather than being moved - which reading changed has not been established.
@@ -383,8 +385,10 @@ L.run(async()=>{
          for(const sel of ['[data-ct="pbar-top"]','[data-ct="pbar-bottom"]']){const bar=document.querySelector(sel);if(!bar)continue;
            const tw=document.createTreeWalker(bar,NodeFilter.SHOW_TEXT);let n;
            while((n=tw.nextNode())){const t=(n.nodeValue||'').trim();if(!t)continue;const rg=document.createRange();rg.selectNodeContents(n);const r=rg.getBoundingClientRect();
-             if(/^(?:[\u{1F1E6}-\u{1F1FF}]{2})+$/u.test(t)){const row=n.parentElement&&n.parentElement.parentElement;const gap=row?parseFloat(getComputedStyle(row).columnGap):NaN;out.flags.push({t,x:r.x,w:r.width,h:r.height,bar:sel,gap});}
-             for(const k of Object.keys(NAMES))if(t===NAMES[k])out.names[k]={x:r.x,y:r.y,bar:sel};}}
+             for(const k of Object.keys(NAMES))if(t===NAMES[k])out.names[k]={x:r.x,y:r.y,bar:sel};}
+           /* #550 his report (b): a flag is now a PICTURE (img, alt = the code), counted only when it actually loaded (naturalWidth > 0) */
+           bar.querySelectorAll('img').forEach(im=>{if(!/^pbar-flag/.test(im.getAttribute('data-ct')||''))return;const r=im.getBoundingClientRect();if(!(r.width>0&&im.complete&&im.naturalWidth>0))return;
+             const row=im.parentElement;const gap=row?parseFloat(getComputedStyle(row).columnGap):NaN;out.flags.push({t:im.getAttribute('alt')||'',x:r.x,w:r.width,h:r.height,bar:sel,gap});});}
          return out;},NAMES);
        const reopen=async(cc)=>{await b.page.evaluate((cc)=>{localStorage.setItem('ct_country',JSON.stringify(cc));},cc);await b.open();await b.tile('Review');
          await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:200});
@@ -393,7 +397,7 @@ L.run(async()=>{
        const un=await readBars();
        L.say(!!un.names.w&&!!un.names.b&&un.flags.length===0,'kunal730: TC-R107 PRECONDITION unseeded arm: both names are found by their text in the player bars and no flag is painted',un);
        const okS=await reopen({'cc:morphy':'us','cc:duke karl / count isouard':'DE'});const se=await readBars();
-       const want={w:String.fromCodePoint(0x1F1FA,0x1F1F8),b:String.fromCodePoint(0x1F1E9,0x1F1EA)};
+       const want={w:'US',b:'DE'};   /* #550: the pictures' alt text; was the regional-indicator letters */
        L.say(okS&&se.flags.length===2&&se.flags.some(f=>f.t===want.w)&&se.flags.some(f=>f.t===want.b),'kunal730: TC-R107 seeded with us and DE: EXACTLY TWO flags paint in the player bars, US (from lowercase us) and DE',{flags:se.flags.map(f=>[f.t,Math.round(f.w*10)/10,f.bar])});
        for(const k of ['w','b']){const f=se.flags.find(x=>x.t===want[k]);const d=(se.names[k]&&un.names[k])?se.names[k].x-un.names[k].x:null;
          L.say(!!f&&d!=null&&d>=10&&isFinite(f.gap)&&Math.abs(d-(f.w+f.gap))<=1.5&&se.names[k].bar===f.bar,'kunal730: TC-R107 seeded: '+NAMES[k]+'\'s name moves right by its own flag\'s width plus its row\'s computed gap ('+(d==null?'?':Math.round(d*10)/10)+'px, flag '+(f?Math.round(f.w*10)/10:'?')+'px + gap '+(f?f.gap:'?')+'px), in the same bar',{d,flag:f,name:se.names[k],was:un.names[k]});}

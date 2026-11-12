@@ -253,13 +253,18 @@ function parsePGN(pgn){
 }
 
 // Also pull the player names / result for display
-// #348: ISO country code -> flag emoji, via regional indicator letters.
+// #348: ISO country code -> flag. #550 (Kunal, 12 Nov, his screenshot of the Review board in Chrome on Windows: "T on top on the white
+// background with white text is very hard to see"): the flag was a regional-indicator emoji, and Windows draws no flag emoji, so it showed as
+// pale letters (AT, US) on the white player's bar. It is now a small picture from the app's own files (flags/<key>.png, 60x45, rendered from
+// flag-icons 7.2.3, MIT, flags/LICENSE-flag-icons.txt), the same on every system. flagOf returns the file key, or '' for no flag.
+const FLAG_KEYS=new Set('ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm bn bo bq br bs bt bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cp cr cu cv cw cx cy cz de dg dj dk dm do dz ec ee eg eh er es et eu fi fj fk fm fo fr ga gb gd ge gf gg gh gi gl gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu ic id ie il im in io iq ir is it je jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np nr nu nz om pa pc pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd se sg sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to tr tt tv tw tz ua ug um un us uy uz va vc ve vg vi vn vu wf ws xk ye yt za zm zw'.split(' '));
 function flagOf(cc){
   if(!cc||cc.length!==2||!/^[A-Za-z]{2}$/.test(cc))return '';
-  // #550 check gap cg2: ISO 3166's user-assigned pairs (AA, QM..QZ, XA..XZ, ZZ) have no flag - chess.com uses XX for International and XE,
-  // XS, XW for England, Scotland, Wales - and their regional-indicator letters paint as two empty boxes, so they read as no country.
-  if(/^(AA|Q[M-Z]|X[A-Z]|ZZ)$/i.test(cc))return '';
-  try{return String.fromCodePoint(...[...cc.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));}catch(e){return '';}
+  const u=cc.toUpperCase();
+  // chess.com's user-assigned codes: XE England, XS Scotland, XW Wales have flags of their own; XX (International) and the other
+  // user-assigned pairs (AA, QM..QZ, XA..XZ, ZZ) have none, except XK, which chess.com and flag-icons both use for Kosovo.
+  if(u==='XE')return 'gb-eng';if(u==='XS')return 'gb-sct';if(u==='XW')return 'gb-wls';
+  const k=u.toLowerCase();return FLAG_KEYS.has(k)?k:'';
 }
 // #353 Imported accounts and their games, kept for good and across reloads. Bounded so a long
 // history cannot fill the origin's storage: 8 accounts, ACCT_GMAX games each, oldest account
@@ -4260,13 +4265,14 @@ export default function App(){
   const noteInnerRef=useRef(null);
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier'];   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser'];   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
   const syncTimer=useRef(null);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)prog[k]=v;}catch(e){}});if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
+    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
   const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
   const [syncPulled,setSyncPulled]=useState(false);
+  const cloudNamesRef=useRef(null);const [cloudNamesTick,setCloudNamesTick]=useState(0);   // #550 report (a): usernames that arrived from the account
   // ── Daily 3 (#310): one lesson + two puzzles per day, tied to the streak
   const [daily3,setDaily3]=useState(()=>{try{const d=JSON.parse(localStorage.getItem('ct_daily3')||'null');return (d&&d.date)?d:{date:'',lesson:0,puz:0};}catch(e){return {date:'',lesson:0,puz:0};}});
   const daily3Ref=useRef(daily3);daily3Ref.current=daily3;
@@ -4279,8 +4285,9 @@ export default function App(){
 
   useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);return;}
     let dead=false;
-    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;
+    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;const namesIn={};
       if(prog){SYNC_KEYS.forEach(k=>{try{let cloudV=prog[k];if(cloudV==null)return;if(k==='ct_lastlesson')cloudV=migPulledLastLesson(cloudV,prog);if(k==='ct_coachtargets'){try{cloudV=JSON.stringify(migSlate(JSON.parse(cloudV)));}catch(e){}}const localV=localStorage.getItem(k);
+        if((k==='ct_ccuser'||k==='ct_liuser')){const cv=String(cloudV).trim();if(cv&&!(localV||'').trim()){localStorage.setItem(k,cv);namesIn[k==='ct_ccuser'?'cc':'li']=cv;applied++;}return;}   /* #550 his report (a): the account's username fills an empty box; a name typed on this device is kept */
         if(localV==null){localStorage.setItem(k,cloudV);if(k==='ct_gamestats'){try{gameStatsRef.current=JSON.parse(cloudV)||{};}catch(_e){}}applied++;return;}
         // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
         /* #547 item (136), jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09: ct_gamestats is a MAP of per-game
@@ -4294,6 +4301,8 @@ export default function App(){
             return;}}
         if(localV!==cloudV&&String(cloudV).length>String(localV).length){localStorage.setItem(k,cloudV);applied++;}
       }catch(e){}});}
+      if(namesIn.cc)setChessUser(namesIn.cc);if(namesIn.li)setLichessUser(namesIn.li);
+      if(namesIn.cc||namesIn.li){cloudNamesRef.current=namesIn;setCloudNamesTick(t=>t+1);}
       setSyncPulled(true);
       if(applied>0){toastRef.current('Progress restored from your account','ok');}
       // push local state up so a fresh cloud doc gets seeded
@@ -7262,6 +7271,12 @@ export default function App(){
       const skip=[cu?acctId('cc',cu):'',lu?acctId('li',lu):''].filter(Boolean);
       Promise.all(run).catch(()=>{}).then(()=>acctRefreshStale(skip)).catch(()=>{});}
   },[mode]);
+  // #550 his report (a): usernames that arrive from the account pull his games at once if he is already on Review (the effect above ran
+  // with empty boxes and will not run again), and otherwise on his next visit to Review.
+  useEffect(()=>{if(!cloudNamesTick)return;const n=cloudNamesRef.current||{};
+    if(mode==='analyze'){gamesAutoRef.current=true;if(n.cc)fetchChessCom(n.cc,{quiet:true}).catch(()=>{});if(n.li)fetchLichess(n.li,{quiet:true}).catch(()=>{});}
+    else gamesAutoRef.current=false;
+  },[cloudNamesTick]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.
   useEffect(()=>{
@@ -12432,7 +12447,7 @@ export default function App(){
             {!(landBars&&vp.w<720)&&av}{/* #550 antagonist B F2/F8: under 720 wide a sideways bar is about 250, and the decorative avatar's 46 is what the captured pieces need (667 Review: 6 pieces cut by 83) */}
             <div style={{minWidth:0,flex:(isTop&&landPlay&&opponent!=='computer')?'1 1 auto':1 /* #550 antagonist B F2: beside land-vs the name column sizes to its content, so the label (shrink 10) gives way before the captured pieces */}}>
               <div style={{display:'flex',alignItems:'baseline',gap:6,minWidth:0}}>
-                {flag&&<span data-ct={'pbar-flag-'+col} title="Country" style={{flexShrink:0,fontSize:'clamp(13px,2.8vw,15px)',lineHeight:1.15}}>{flag}</span>}
+                {flag&&<img data-ct={'pbar-flag-'+col} src={'flags/'+flag+'.png'} alt={flag.toUpperCase()} title="Country" width={20} height={15} style={{flexShrink:0,width:20,height:15,borderRadius:2,objectFit:'cover',boxShadow:_lightBar?'0 0 0 1px rgba(0,0,0,.22)':'0 0 0 1px rgba(255,255,255,.18)',display:'block'}}/>}
                 <span style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:_fg,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</span>
                 {rating&&<span data-ct={'pbar-rating-'+col} style={{flexShrink:0,fontSize:'clamp(11.5px,2.2vw,12.5px)',fontWeight:800,color:_fg,opacity:.72,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1.15}}>{rating}</span>}
                 {/* #362: the WHITE / BLACK word is gone. He asked for it in #344 because his own
