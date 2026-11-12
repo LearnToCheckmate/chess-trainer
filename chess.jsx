@@ -4164,7 +4164,7 @@ function _TabBar({active,go,side}){
         <span style={{fontSize:10.5,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
       </button>);})}
   </div>);
-  return(<div data-ct="tabbar" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',minHeight:56,background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+  return(<div data-ct="tabbar" style={{position:'fixed',left:0,right:0,bottom:0,zIndex:470,display:'flex',justifyContent:'space-around',alignItems:'stretch',minHeight:56,background:'rgba(13,16,21,.97)',backdropFilter:'blur(10px)',WebkitBackdropFilter:'blur(10px)',borderTop:'1px solid rgba(255,255,255,.10)',padding:'6px 2px calc(6px + env(safe-area-inset-bottom,0px))',paddingLeft:'max(2px, calc((100vw - 660px) / 2))',paddingRight:'max(2px, calc((100vw - 660px) / 2))' /* #550 DSK-06: the five tabs sit in the 660 column on a wide window; the bar's background stays full width */,boxShadow:'0 -6px 20px rgba(0,0,0,.45)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
     {tabs.map(([k,lab])=>{const on=active===k;const c=on?'var(--ac2)':'rgba(255,255,255,.6)';return(
       <button key={k} onClick={()=>go(k)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0}}>
         <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
@@ -5424,7 +5424,7 @@ export default function App(){
      height is measured from where the grid starts to 14px above the tab bar and split between the two rows; it never goes below
      the tiles' natural height (about 147px), so a short phone keeps today's layout. Portrait only - landscape keeps its rail. */
   useLayoutEffect(()=>{
-    if(!(mode==='learn'&&openIdx===null&&learnGroup===null&&!wide)){if(discRowH)setDiscRowH(0);return;}
+    if(!(mode==='learn'&&openIdx===null&&learnGroup===null&&(!wide||(vp.w>=720&&vp.h>=600))))/* #550 DSK-06: a computer window takes the upright Discover layout too (rows filling to the tab bar); a phone on its side keeps its rail */{if(discRowH)setDiscRowH(0);return;}
     /* measured again on the next frame too: the tab bar mounts in the same commit as this screen, so the first read can find it
        absent - and a row sized against the viewport bottom then overlapped the bar by ~40px (measured on the first trial) */
     /* #549 item (18): AND AGAIN FOR UP TO 30 FRAMES, because one frame was not enough at Kunal's own geometry. Measured on the #549

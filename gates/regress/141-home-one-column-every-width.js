@@ -12,7 +12,9 @@
 // column; (b) the column is no wider than 660 (420 when compact); (c) nothing scrolls - the page fits the window; (d) his phone is unchanged:
 // no zoom on the column at kunal761.
 // CONTROL-RECORD: 1603f06 2026-11-12 total=37 red=13 scope=trial:b35a3777 how=#550 the tree before DSK-01 (t141): at 1920x970, 1440x780, 1366x648 and 1280x600 the tiles sit in a right-hand column (TC-R217a), the column is 1000 wide (TC-R217b) and Home overflows by 57, 247, 379 and 427 px (TC-R217c, the audit's own figures), and 960x970 overflows by 133; on t142 4e6cd77c 37/0
-// KNOW ITS LIMIT: Home only; the other no-board pages (DSK-08) and the sideways board group (DSK-03/04) are separate jobs.
+// AND DSK-06 (TC-R217e/f): Discover takes the upright layout at computer window sizes, and the tab bar's tabs sit in the centred 660 column.
+// CONTROL-RECORD: 33c1546 2026-11-12 total=52 red=6 scope=trial:4470ec9e how=#550 DSK-06 arm: t143, the tree before it - at 1920x970, 1440x780 and 1280x600 Discover's tiles stop at y 359 (TC-R217e) and the tabs span the window (TC-R217f); on t144 6694a8b0 52/0
+// KNOW ITS LIMIT: Home and Discover; the other no-board pages (DSK-08) and the sideways board group (DSK-03/04) are separate jobs.
 const L=require('../lib');
 const SIZES=[[1920,970],[1440,780],[1366,648],[1280,600],[960,970],[820,1180],['kunal761']];
 L.run(async()=>{
@@ -34,4 +36,18 @@ L.run(async()=>{
     L.say(m.over!=null&&m.over<=1,tag+': TC-R217c Home fits the window, nothing scrolls ('+m.over+'px over'+(m.zoom&&m.zoom<1?', column at '+m.zoom:'')+')',m);
     if(tag==='kunal761')L.say(m.zoom===1,'kunal761: TC-R217d his phone is unchanged - the column is not scaled ('+m.zoom+')',m.zoom);
     L.say(b.errs.length===0,tag+': TC-R217 zero app errors',b.errs.slice(0,3));await b.close();}
+  // DSK-06: Discover takes the upright layout at a computer window size (rows fill to the tab bar), and the tab bar's five tabs sit in the 660
+  // column, centred, on any window wider than 660. Found by words: the tile labels and the tab labels.
+  for(const sz of [[1920,970],[1440,780],[1280,600],['kunal761']]){
+    const geo=sz[0]==='kunal761'?'kunal761':{w:sz[0],h:sz[1],safe:'',label:sz[0]+'x'+sz[1]};const tag=geo.label||geo;
+    const b=await L.launch({geo,name:'disc141'});await b.open();let ok=true;try{await b.tile('Discover');}catch(e){ok=false;}await b.settle(1500);
+    const m=await b.page.evaluate(()=>{const lab=(w)=>[...document.querySelectorAll('div,span')].filter(d=>d.children.length===0&&(d.textContent||'').trim()===w&&d.getBoundingClientRect().width>0);
+      const tile=lab('Endgames')[0];const tabs=['Home','Discover','Puzzles','Review','Play'].map(w=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()===w&&x.getBoundingClientRect().width>0&&x.getBoundingClientRect().top>innerHeight-90);return e?e.getBoundingClientRect():null;});
+      return {vw:innerWidth,vh:innerHeight,endB:tile?Math.round(tile.getBoundingClientRect().bottom):null,tabT:tabs[0]?Math.round(tabs[0].top):null,tabL:tabs[0]?Math.round(tabs[0].left):null,tabR:tabs[4]?Math.round(tabs[4].right):null};});
+    L.say(ok&&m.endB!=null&&m.tabT!=null,tag+': TC-R217 PRECONDITION Discover is up, its tiles and the tab bar found by their words',m);
+    if(tag!=='kunal761'){
+      L.say(m.endB!=null&&m.tabT!=null&&m.tabT-m.endB<=160,tag+': TC-R217e Discover\'s tiles fill the page down to the tab bar, as upright (lowest tile label '+m.endB+', tab bar '+m.tabT+')',m);
+      L.say(m.tabL!=null&&m.tabR!=null&&m.tabR-m.tabL<=662&&Math.abs((m.tabL+m.tabR)/2-m.vw/2)<=2,tag+': TC-R217f the five tabs sit in a centred column no wider than 660 ('+m.tabL+' to '+m.tabR+')',m);}
+    else L.say(m.tabL!=null&&m.tabL<=4&&m.tabR>=m.vw-4,'kunal761: TC-R217f his phone\'s tab bar still spans the screen ('+m.tabL+' to '+m.tabR+')',m);
+    L.say(b.errs.length===0,tag+': TC-R217 Discover zero app errors',b.errs.slice(0,3));await b.close();}
 },'141-home-one-column-every-width');

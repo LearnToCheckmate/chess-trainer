@@ -2334,6 +2334,8 @@ As a player on a computer, Home looks like the single centred column I like at a
 - The column is at most 660 wide. (TC-R217b)
 - Home fits the window height: scaled down to 85 percent, then the compact column, which scales too. (TC-R217c)
 - His phone is unchanged. (TC-R217d)
+- Discover takes the upright layout on a computer window, its tiles filling down to the tab bar (DSK-06). (TC-R217e)
+- The tab bar's five tabs sit in the centred 660 column on any window wider than that. (TC-R217f)
 
 ### US-R150 Play setup fits a laptop window with Start game on screen
 *Added #550, run-answers build__1794388896663-hold-landing (desktop check, DSK-09).*
