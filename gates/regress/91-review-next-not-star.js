@@ -1,6 +1,7 @@
 'use strict';
 // gates/regress/91-review-next-not-star.js - A TAP ON NEXT REACHES NEXT, NOT THE STAR. TC-R176a..c, US-R113.
 // CONTROL-RECORD: 122ecb3 2026-11-11 total=11 red=4 scope=trial:dbb60cfb5c95 how=#550 item (2): trial t1 (item 1's tree, the button row still directly above the move strip) - TC-R176a (order) and TC-R176b (the star 6pt from the next arrow) red at kunal761 and 320x568; TC-R176c green (the tap reaches the arrow either way, which is why (a) and (b) are the controlled half)
+// CONTROL-RECORD: e4a169a 2026-11-12 total=11 red=4 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal761: TC-R176a the order is his: the move line (the explanation) s
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the order and spacing of the review controls and where a tap lands; no grade enters its assertions.
 //
 // WHY [#550, item (2) of directOpening_2026_11_11_batch10;

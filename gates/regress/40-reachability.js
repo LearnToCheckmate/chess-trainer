@@ -68,6 +68,7 @@ const PAGELOCK=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root')
 const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY==='hidden'&&/^(auto|scroll)$/.test(String(p.rootOvY));
 // CONTROL-RECORD: 3bb86e8 2026-11-06 total=40 red=2 scope=trial:541b28b94918 how=chess.jsx sets document.body.style.position=static at load, one change - the PAGELOCK pin red at se and kunal730 while docScroll still reads 0, so the docScroll===0 it replaced stays green on this bundle [#549 item (7)]
 // CONTROL-RECORD: 9b89943 2026-11-06 total=40 red=1 scope=trial:31bbe1d9345a how=HEAD's chess.jsx (the chip still '🌱 Novice · ✓ 0', 105@266) against the Z-06 pin re-pinned for the new chip text - the pin line red at kunal730, every other line green [#549 item (16)]
+// CONTROL-RECORD: e4a169a 2026-11-12 total=42 red=5 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se: TC-R40-HELP-REST the paste row's "?" (the how-to) is ON SCREEN AT
 const Z=require('../drive/puzzles');
 
 // The correct reachability measurement, and the reference implementation of the rule. Two things make it correct,

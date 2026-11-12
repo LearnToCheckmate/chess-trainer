@@ -201,6 +201,7 @@
 // CONTROL-RECORD: ddb7ac8 2026-11-11 total=53 red=4 scope=trial:d367ca5603b2 how=#550 answer a31 (block E): the tree before the Daily 3 header's new words ('keep the streak alive') - TC-HM-033 and TC-HM-042 red at se and kunal730; block E's other 49 green
 // CONTROL-RECORD: 848b723 2026-11-06 total=116 red=1 scope=blocks:G how=setHomeScreen(false) removed from the streak card's goPz (trial 3bd111b9c0c2, CT_HM_GEOS=kunal730) - only kunal730/earned [streak] TC-HM-051c red; good trial 51869799ba22 116/0 [#549 item (89)]
 // CONTROL-RECORD: 4471c98 2026-11-06 total=94 red=10 scope=blocks:E,F how=the #549 base bundle before item (22) (md5 a19136012900): NEW HERE isNew read only pzXP and ct_train, card copy promised a win; the ten FAILs are exactly TC-HM-054 x2 and TC-HM-055 x8
+// CONTROL-RECORD: e4a169a 2026-11-12 total=435 red=45 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se: TC-HM-004 the column is 745px of content in a 568px screen, so the
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');

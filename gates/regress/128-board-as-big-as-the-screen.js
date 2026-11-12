@@ -9,7 +9,7 @@
 // WHAT IT READS: the bundle under test (CT_APP). The board is the widest repeat(8,...) grid, or [data-ct=tactics-board] on Tactics. Each
 // screen is reached by its driver (the online game by gate 103's stand-in cloud, ?g=ABCDE) at 761x375 and 667x375, and the online game
 // upright at kunal761. LIMIT: sideways the viewport height; a sideways game keeps a 300pt rail from 600 wide (its six 44pt controls), so
-// there it is min(vp.h, vp.w-340); a sideways lesson keeps 290 for its footer, min(vp.h, vp.w-290); Tactics keeps a 240 column beside the 62 tab rail, min(vp.h, vp.w-318); upright the viewport width. Every screen must also not scroll the page and keep its buttons on screen.
+// there it is min(vp.h, vp.w-340); a sideways lesson keeps 290 for its footer, min(vp.h, vp.w-290); Puzzles keeps its 196 rail beside the 62 tab rail, min(vp.h, vp.w-278) at 568; Tactics keeps a 240 column beside the 62 tab rail, min(vp.h, vp.w-318); upright the viewport width. Every screen must also not scroll the page and keep its buttons on screen.
 // KNOW ITS LIMIT: the short upright screens (320x568, 375x667) are not asserted - their job is open (short-upright-boards-sized-to-height).
 // CONTROL-RECORD: 53dd89b 2026-11-12 total=86 red=22 scope=trial:075881d048e1 how=#550 a38: the tree before the full-height boards - all sixteen TC-R204a lines red (Review 216, the game 344, Puzzles 360, Tactics 176, lessons 280, online 216), TC-R204b and TC-R204d (online 192, its 2x2 panel) and the overflow lines it caused; on t113 86/0
 const L=require('../lib');
@@ -18,7 +18,7 @@ const fs=require('fs'),path=require('path');
 const src=fs.readFileSync(path.join(__dirname,'103-online-flag-auto-end.js'),'utf8');
 const STUB=new Function('return ('+src.slice(src.indexOf('const STUB=')+'const STUB='.length,src.indexOf('\nconst results=')).trim().replace(/;$/,'')+')')();
 const SCREENS=[['Review',b=>R.states['moves-ply10'](b),'side'],['Review analysis',b=>R.states['analysis'](b),'side'],['Play vs computer',b=>P.states['cpu-4ply'](b),'game'],
-  ['Pass and Play',b=>P.states['pp-1'](b),'game'],['Puzzles',b=>Z.states['train'](b),'side'],['Tactics',b=>D.states['tactics'](b),'tac'],['Lesson',b=>D.states['demo-end'](b),'les'],['Online game',null,'game']];
+  ['Pass and Play',b=>P.states['pp-1'](b),'game'],['Puzzles',b=>Z.states['train'](b),'pz'],['Tactics',b=>D.states['tactics'](b),'tac'],['Lesson',b=>D.states['demo-end'](b),'les'],['Online game',null,'game']];
 const read=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="tactics-board"]');const bd=t?t.getBoundingClientRect():[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
   const off=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();if(!(q.width>0&&q.height>0))return false;let e=x;while(e&&e!==document.body){const s=getComputedStyle(e);if(/(auto|scroll)/.test(s.overflowY)&&e.id!=='root'&&e.scrollHeight>e.clientHeight+1)return false;e=e.parentElement;}return q.bottom>innerHeight+0.5||q.right>innerWidth+0.5||q.top<-0.5;}).map(x=>(x.getAttribute('aria-label')||x.innerText||'').trim().slice(0,16));
   const root=document.getElementById('root');return {board:bd?{w:Math.round(bd.width*100)/100,h:Math.round(bd.height*100)/100,t:Math.round(bd.top),b:Math.round(bd.bottom)}:null,sh:root.scrollHeight,ch:root.clientHeight,sw:document.documentElement.scrollWidth,vw:innerWidth,vh:innerHeight,off};});
@@ -28,7 +28,7 @@ const open=async(geo,go)=>{const b=await L.launch({geo,name:'board-max',store:{c
 L.run(async()=>{
   for(const [nm,go,kind] of SCREENS)for(const [w,h] of [[761,375],[667,375],[568,320]]){   /* 568x320 added on antagonist A F1/F2: the SE sideways is where the rails ran out */const tag=nm+' '+w+'x'+h;
     const {b,ok}=await open({w,h,safe:'',label:w+'x'+h},go);const r=await read(b);
-    const lim=kind==='game'?Math.min(h,w-340):kind==='les'?Math.min(h,w-290):kind==='tac'?Math.min(h,Math.floor(w-62-16-240)):h;   // Tactics keeps a 240 column beside the 62 tab rail
+    const lim=kind==='game'?Math.min(h,w-340):kind==='les'?Math.min(h,w-290):kind==='pz'?Math.min(h,w-Math.max(196,Math.round(w*0.2))-20-62):kind==='tac'?Math.min(h,Math.floor(w-62-16-240)):h;   // Tactics keeps a 240 column beside the 62 tab rail
     L.say(ok&&!!r.board&&r.board.w>100,'TC-R204 '+tag+' PRECONDITION the screen is open with its board ('+(r.board&&r.board.w)+')',r.board);
     L.say(!!r.board&&Math.abs(r.board.w-lim)<=1,'TC-R204a '+tag+' sideways the board is as big as the screen allows: '+(r.board&&r.board.w)+' against '+lim+(lim<h?' (the screen height less what the right-hand column needs)':' (the screen height)'),r.board);
     L.say(r.sh<=r.ch+1&&r.sw<=r.vw,'TC-R204c '+tag+' the page does not scroll ('+r.sh+' of '+r.ch+')',{sh:r.sh,ch:r.ch,sw:r.sw});

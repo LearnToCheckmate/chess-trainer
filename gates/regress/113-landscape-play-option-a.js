@@ -17,6 +17,7 @@
 //  (d) TC-PL-071d no result card is drawn over the board (the rail carries it).
 // DENOMINATOR per launch: the game reached the state (two plies live; checkmate) and the board is measured.
 // CONTROL-RECORD: 372f372 2026-11-11 total=17 red=8 scope=trial:bbdae501c49d how=#550 answer a23: the tree before Option A (bars round a 216 board, the result card on the board, the six-button row) - TC-PL-071a-d red at 761x375 and 730x375; the denominators and the error lines green. On t58 17 of 17 green
+// CONTROL-RECORD: e4a169a 2026-11-12 total=17 red=8 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: 761x375 live: TC-PL-071a the board is 216 tall and on screen, both pla
 const L=require('../lib');
 const SIZES=[{w:761,h:375},{w:730,h:375}];
 const read=(b)=>b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8/.test(d.style.gridTemplateColumns)).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];

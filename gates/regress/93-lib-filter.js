@@ -21,6 +21,7 @@
 //      count where it has one; after Back and re-entry the box is empty and the full list is back.
 // CONTROL-RECORD: 09bc4bd 2026-11-11 total=23 red=16 scope=trial:3ab724514641 how=#550 item (77): origin/main's bundle (no filter box, no counts) - the box, every section-count and header-count line red, and the gate stops typing; the unfiltered DENOMINATORS green
 // CONTROL-RECORD: 09bc4bd 2026-11-11 total=97 red=6 scope=trial:e97b154ce4fa how=#550 item (77): libHit matching the NAME only (the idea line dropped) - 'sicilian' 16 of 18, 'gambit' 45 of 47 and 'king' 3 of 19 red at both geometries; the counts stay green because they agree with whatever is shown
+// CONTROL-RECORD: e4a169a 2026-11-12 total=23 red=16 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal761 Openings: TC-S08a one filter box, 44px tall, under the header
 const L=require('../lib');const H=require('../drive/home');
 
 const LISTS=[

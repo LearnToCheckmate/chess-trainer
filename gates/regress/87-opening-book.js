@@ -30,6 +30,7 @@
 // CONTROL-RECORD: 4798697 2026-11-07 total=41 red=2 scope=env:CT_SRC=nc4-on how=BOOK_TABLE_DEFAULT 1 (the table on by default) - E2 E4 red
 // CONTROL-RECORD: 4798697 2026-11-07 total=45 red=1 scope=trial:80233fa4c4ec how=the run tree's bundle without this change (no table, no switch): F1 red, Book painted 0/0 on the 1.b3 game with ct_book_table=1
 // CONTROL-RECORD: d5ff37c 2026-11-07 total=47 red=1 scope=full how=#549 antagonist B final read B5-F: lessons.js and chess.jsx at 3ef9062 (no bookPlies; the 12-ply Petroff line counts whole): TC-R160 E5 red alone (got 12, want 10)
+// CONTROL-RECORD: e4a169a 2026-11-12 total=50 red=3 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: TC-R160 G1 on a fresh store the menu's New features section shows Open
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');

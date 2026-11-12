@@ -133,6 +133,7 @@
 // CONTROL-RECORD: 7035d01 2026-11-11 total=132 red=9 scope=trial:d367ca5603b2 how=#550 answer a29: the tree before KEV was removed (the queue still '1 KEV|2 SCR|3 EXP', a manual card in it) - the pinned-queue lines at kunal and 375x812, the F1 count at three widths and M1 red; on t50 (87014810e439) 132 of 132 green, the three manual-card blocks NOT RUN, NAMED
 // CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:2d58713526fe how=#549 item (88): the home dev row's guard with `!recCap` removed (the hide dropped): TC-GL-012 M12 red alone at 375x730 (run nc1)
 // CONTROL-RECORD: afc6977 2026-11-06 total=155 red=1 scope=trial:4b74d46c0ea8 how=#549 item (88): the dev row also gated on a flag set by the manual card and never cleared (a hide that never lifts): TC-GL-012 M13 red alone at 375x730 (run nc2)
+// CONTROL-RECORD: e4a169a 2026-11-12 total=132 red=9 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal: the ask queue holds the 2 cards this commit pins, in order (1)
 //
 // THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
 // Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:

@@ -47,6 +47,7 @@
 // CONTROL-RECORD: 5f16aab 2026-11-07 total=27 red=5 scope=env:CT_GEO52=kunal761 how=bundle cf4454f2553f (2f4e07a^ chess.jsx, flat string match) - C2 C3 C4 C4b C5c red, every D green
 // CONTROL-RECORD: 76381cc 2026-11-11 total=34 red=4 scope=env:CT_GEO52=kunal761 how=#550 item (51): bundle 95cbf7c6f671 with CT_SRC = 76381cc's chess.jsx (no review-two: no altUci, no alt2, no REVIEW_TWO) - TC-R179 E0 E0b E0c E1 red; E2 E3 and every C and D line green
 // CONTROL-RECORD: 7fbdfca 2026-11-11 total=34 red=3 scope=env:CT_GEO52=kunal761 how=#550: bundle 36531456ced7 with CT_SRC = 76381cc's chess.jsx (no review-two) after E0's fixture moved to one pawn under - TC-R179 E0 E0b E0c red, every other line green
+// CONTROL-RECORD: e4a169a 2026-11-12 total=104 red=1 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: TC-R179 E1 the review's second move Rhxd5 is ACCEPTED with the grade o
 'use strict';
 const L=require('../lib');
 

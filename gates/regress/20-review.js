@@ -669,6 +669,7 @@ L.run(async()=>{
   // the settled value), rev-engline's leading evaluation with the engine line on, and rev-engwhy-eval (the words the engine line's
   // explanation opens with). rev-cmp is read wherever it renders and its count is printed. Sites x positions is the denominator.
       // CONTROL-RECORD: da06472 2026-11-06 total=276 red=1 scope=full how=chess.jsx #549 item (79) hunk reverted (sfBar back to sfHit at evalNow and evalTxt), trial md5 951516fa818f; red: TC-R09d Lasker ply 21 every-value assertion (DETECTION IS PROBABILISTIC, A7-R4: the control races the live search, so one run of a broken build can read green by luck; dev runs of the block alone gave 1 and 3 red, never 0). The fixed trial 34cb657a90c3 reads 276 PASS 0 FAIL.
+      // CONTROL-RECORD: e4a169a 2026-11-12 total=312 red=14 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal: TC-R04 the grade counts account for every ply of the Opera Game
   {
     const LASKER='[Event "London"] [White "Edward Lasker"] [Black "George Thomas"] [Result "1-0"] 1. d4 e6 2. Nf3 f5 3. Nc3 Nf6 4. Bg5 Be7 5. Bxf6 Bxf6 6. e4 fxe4 7. Nxe4 b6 8. Ne5 O-O 9. Bd3 Bb7 10. Qh5 Qe7 11. Qxh7+ Kxh7 12. Nxf6+ Kh6 13. Neg4+ Kg5 14. h4+ Kf4 15. g3+ Kf3 16. Be2+ Kg2 17. Rh2+ Kg1 18. Kd2# 1-0';
     const BIG='[Event "Queen and two knights"] [White "W"] [Black "B"] [Result "*"] 1. e4 e5 2. Nf3 Qh4 3. Nxh4 Nf6 4. Qf3 Ng4 5. Qxg4 Nc6 6. Nf3 Nb4 7. a3 Nd5 8. exd5 a6 *';

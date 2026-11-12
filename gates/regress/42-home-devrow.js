@@ -16,6 +16,7 @@
 // ancestor that a FINGER can scroll and actually scroll it, then re-read the rect. `scrollIntoView` is not
 // that test - script can scroll an overflow:hidden box a finger cannot.
 // CONTROL-RECORD: 6180c2b 2026-11-11 total=46 red=6 scope=trial:455ff0ea4f3f how=#550 AUD-H01 (answer a18): the tree before the compact Home (dev buttons 34x34 below the fold) - the six '44x44' lines red at 375x730, 320x568 and 390x844; the in-flow, reach and covers-nothing lines green on both trees. On t52 (28378590a526) 46 of 46 green
+// CONTROL-RECORD: e4a169a 2026-11-12 total=46 red=6 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: 375x730: the preview button is 44x44 - the same button, moved into the
 'use strict';
 const L=require('../lib');
 

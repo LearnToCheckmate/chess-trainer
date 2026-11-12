@@ -13,6 +13,7 @@
 // DENOMINATOR per skin: the four tiles were found by their labels.
 // CONTROL-RECORD: d11f418 2026-11-11 total=19 red=2 scope=trial:d367ca5603b2 how=#550 answer a22 FINAL: the tree before the Classic set (Classic still drew the emoji) - TC-LS-061b red at kunal761 and se; Medieval, Playful, the denominators and the font pin green. On t52 (28378590a526) 19 of 19 green
 // CONTROL-RECORD: 0f43541 2026-11-11 total=19 red=2 scope=trial:d36f303f3bef how=#550 answer a22: the tree before the Medieval set - in the Medieval skin every Discover tile still shows its emoji, so both TC-LS-061a lines are red at kunal761 and se; the Classic and Playful lines, the six DENOMINATORS and zero-errors green; the a22 trial 1c33f2431db8 reads 19 pass, 0 fail
+// CONTROL-RECORD: e4a169a 2026-11-12 total=19 red=4 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal761 Medieval: TC-LS-061a every tile draws the medieval-b SVG, pai
 const L=require('../lib');const D=require('../drive/lesson');
 const EMOJI=['🚀','⚔️','👑','💡'],LABELS=['Openings','Gambits','Endgames','Tactics'];
 const read=(b)=>b.page.evaluate((LABELS)=>{const out=[];for(const lab of LABELS){const btn=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').split('\n').map(t=>t.trim()).includes(lab));if(!btn){out.push(null);continue;}
