@@ -2251,3 +2251,12 @@ As a player who photographs a board, I get the position back, an honest reason w
 - An unknown orientation is read as White at the bottom, not refused, so the client's two readings can disagree and ask. (TC-R202d)
 - An honest refusal carries its reason; an impossible board is refused as invalid-position. (TC-R202e)
 
+### US-R135 In landscape the eval graph uses the right-hand space, on Review and against the computer
+*Added #550, jobs/landscape-eval-graph-in-the-right-hand-space-2026-11-12, Kunal's answer run-answers build__1794388896663-a36 (11 Nov: "I like option B, but I don't want you to remove everything ... You just make them fit better").*
+As a player holding the phone sideways, I see how the game has gone at a glance: in Review the graph sits under the move's explanation and a tap jumps to that move; against the computer it grows under the toolbar as we play, and nothing else is taken away to make room.
+- Review: the graph is in the right-hand column under the explanation, drawn at the column's width, with no scrolling. (TC-R203a)
+- A tap on the graph goes to that move: in Review it jumps there, against the computer it previews that move as Back does, and its last point is the live position. (TC-R203b)
+- Against the computer the graph sits under the toolbar and above the MOVES row, one point per move played, from the evaluations the bar showed. (TC-R203c)
+- Every row is kept and on screen (the move strip, the six toolbar buttons at 44 or more, the MOVES row, both player bars), nothing scrolls, and the board keeps its size. (TC-R203d)
+- Never in a game against a person, and not when the player has turned the eval bar off. (TC-R203e)
+

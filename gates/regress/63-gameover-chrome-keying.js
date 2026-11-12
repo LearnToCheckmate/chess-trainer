@@ -247,12 +247,12 @@ L.run(async()=>{
       [data-ct=play-opening] reads 'Checkmate! · Black wins' (measured on a1b7914 and c7f6a1228e43). E1 went red at land730/land730i on
       every bundle since block E was written at 5386af5, which was never a defect in the app. It now reads the card, or in landscape
       the rail head - and still requires the word Checkmate, so a game that did not end reds it. */
-   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);
+   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="land-result"]')||document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);   /* #550 a23: the sideways finished game states its result in land-result, with Back and Forward at its right end as icons named by aria-label */
    const arrived=!!res&&/Checkmate/i.test(res);
    L.say(arrived,glab+': E1 ARRIVAL the game ended by checkmate and the result card says so',{result:res});
    const endBoard=await b.board(), endChrome=await chromeOf(b), endSig=await sigOf(b);
-   await b.tapText(/^Back$/).catch(()=>{});await b.settle(350);
-   await b.tapText(/^Back$/).catch(()=>{});await b.settle(700);
+   await (land?b.page.locator('button[aria-label="Back"]:visible').first().click({timeout:4000}):b.tapText(/^Back$/)).catch(()=>{});await b.settle(350);
+   await (land?b.page.locator('button[aria-label="Back"]:visible').first().click({timeout:4000}):b.tapText(/^Back$/)).catch(()=>{});await b.settle(700);
    const backBoard=await b.board(), backChrome=await chromeOf(b), backSig=await sigOf(b);
    await b.shot('gk547-E-'+glab+'-backx2');
    const stepped=!!backSig&&!!endSig&&backSig!==endSig;
@@ -327,12 +327,12 @@ L.run(async()=>{
    L.say(!!lb&&lb.clocks.length===1&&lb.clocks[0].ticking,G+'F1b PRESENCE the live game with 1 min shows the player\'s clock TICKING (the instrument F6 reads)',lb&&lb.clocks);
    L.say(!!lb&&lb.ring,G+'F1c PRESENCE the live game rings the player\'s bar for his turn (the instrument F7 reads)',lb&&lb.ring);
    if(land){await b.page.setViewportSize({width:gv.w,height:gv.h});await b.settle(1500);}
-   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);
+   const res=(await resultText(b))||(land?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="land-result"]')||document.querySelector('[data-ct="play-opening"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}):null);   /* #550 a23: the sideways finished game states its result in land-result, with Back and Forward at its right end as icons named by aria-label */
    const arrived=!!res&&/Checkmate/i.test(res)&&/win/i.test(res);
    L.say(arrived,G+'F2 ARRIVAL the game vs the Computer ended by HIS checkmate and the screen says so',{result:res});
    const endBoard=await b.board(), endC=await cpuChromeOf(b), endSig=await sigOf(b);
-   await b.tapText(/^Back$/).catch(()=>{});await b.settle(350);
-   await b.tapText(/^Back$/).catch(()=>{});await b.settle(700);
+   await (land?b.page.locator('button[aria-label="Back"]:visible').first().click({timeout:4000}):b.tapText(/^Back$/)).catch(()=>{});await b.settle(350);
+   await (land?b.page.locator('button[aria-label="Back"]:visible').first().click({timeout:4000}):b.tapText(/^Back$/)).catch(()=>{});await b.settle(700);
    const backBoard=await b.board(), backC=await cpuChromeOf(b), backSig=await sigOf(b);
    await b.shot('gk549-F-'+glab+'-backx2');
    const stepped=!!backSig&&!!endSig&&backSig!==endSig;
