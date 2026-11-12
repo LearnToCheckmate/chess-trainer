@@ -8332,6 +8332,51 @@ export default function App(){
   // 568, which is genuinely clean, so I was varying the one axis that does not matter
   // (`uat413-practice-row-spill-is-a-height-threshold-not-375x568`).
   const rowTiny=boardPx<229;
+  /* #550 run-answers a42 + FMT-A-05: the lesson PRACTICE row (Flip, Hints, Try again / Next / Bank it). Under the board on a tall phone; on a
+     short upright phone (lessonShort) it sits IN the lesson bar between the close X and ⋯, glyphs only, so the board keeps the width it had in
+     the demo and nothing jumps between demo, practice and finish. */
+  const _rowTiny0=rowTiny;
+  const _prRow=(inBar)=>{const rowTiny=inBar||_rowTiny0;return(
+              <div data-ct={inBar?'lesson-bar-practice':undefined} style={{display:'flex',gap:6,alignItems:'stretch',...(inBar?{flex:1,minWidth:0}:null)}}>
+                <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>
+                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);/* #548 item (22): switching the hint OFF before the first practice move clears the run's hinted mark - no move has been made with it on, so the run is still clean; after a move the mark stays */if(!nv&&learnPhase==='practice'&&openStep===0&&!revealHint&&learnRepRef.current)learnRepRef.current.hints=false;}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>💡</button>
+                {/* #384 (Z-06 "Support 320 properly"): this row is three fixed 46px buttons and one flexible one, and the
+                    flexible one defaulted to min-width:auto - so it refused to shrink below its own min-content width and
+                    pushed the trailing (...) button 3.1px off a 320 screen, with no page scroll to recover it. minWidth:0
+                    lets it shrink; the budget left for it at 320 is then 74.88px, and the full label needs 92.52px at any
+                    padding, so the label shortens at <=340 exactly as the puzzle header's Roadmap chevron has since #382.
+                    At 375 and 390 the row has room to spare and neither branch is reachable: all four children measured
+                    identical before and after, which is his condition on Z-06. */}
+                {/* #409: THE LAST SITE ON THE OLD INSTRUMENT, and it was broken on the WIDER phone. This
+                    button chose its label and its padding from `vp.w<=340` while the row it sits in is sized to
+                    the BOARD, and the lesson board is fit to HEIGHT - so at 375x568 and 390x568 the viewport is
+                    wide, the board is 230.88, and the row's budget for this flexible button is 74.88px after
+                    three 46px buttons and three 6px gaps. The long label's ink is 92.52px wide, so it painted
+                    167.25..259.77 inside a box of 176.06..250.94: 8.83px past its own right edge, 8.81px past
+                    its left, and 2.83px over the ⋯ button's left edge at 256.94. At 320x568 the same row is
+                    230.88 and the label was already short, so the narrow phone was right and the wide-and-short
+                    one was wrong - which is exactly what #406 found for the six other sites and why no viewport
+                    threshold can reach it. `rowNarrow` is boardPx<340: true at 230.88, false at the 375.03 of
+                    375x730 where the ink clears by 63px. Raised by the external supervisor
+                    (kunal-q-narrow-threshold-everywhere-2026-09-17) and re-measured here before it was
+                    believed; recorded as an amber default in amber-409-try-again-keyed-to-the-row, and the RULE
+                    is a question open with Kunal rather than settled by this build. */}
+                {/* #547 item (187): the WORDS follow the row's own budget - its width (the board's) less the three 46px
+                    buttons and their three 6px gaps - and not boardPx<340. Gate 48 measures the long label at 92.52px
+                    min-content at the default padding; 96 keeps a margin, and below 340 the padding is already the
+                    tight 9px 4px, so the label has more room than that figure assumes. rowNarrow still sets the
+                    padding and rowTiny (the glyph alone) is untouched, per orchestrator direction 2026-10-11. */}
+                {/* #547 item (82), jobs/build-lesson-next-button (the benchmark proposal of 16 Sep): at Complete! the finished lesson had
+                    nowhere to go - this row was byte-identical to the row at move 0. The same slot now offers the NEXT lesson of the
+                    same group, the way Play re-labels its row at game over; with no next lesson it stays Try again. */}
+                {(()=>{const _done=openStep>=learnLine.length&&learnLine.length>0;const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;
+                  let _nx=-1;if(_done&&_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}
+                  /* #550 a33: after a clean run with hints on, the slot offers to bank it - the same line again with the lightbulb off */
+                  if(_done&&bankOffer&&learnPhase==='practice')return(<button data-ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} aria-label="Bank it: play again with hints off" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{rowTiny?'\u2713':(boardPx-3*46-3*6)>=150?'\u2713 Bank it: hints off':'\u2713 Bank it'}</button>);
+                  if(_nx>=0)return(<button data-ct="lesson-next" onClick={()=>selectOpening(_nx)} aria-label={'Next lesson: '+LIB[_nx].name} title={'Next lesson: '+LIB[_nx].name} style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{(()=>{if(rowTiny)return '›';const _bud=(boardPx-3*46-3*6)-(rowNarrow?8:30)-6;const _w=(t)=>{try{const c=window.__ctNextMC||(window.__ctNextMC=document.createElement('canvas').getContext('2d'));c.font="800 15px 'Segoe UI',system-ui,-apple-system,sans-serif";return c.measureText(t).width;}catch(e){return 1e9;}};const _full='Next: '+LIB[_nx].name+' ›';return _w(_full)<=_bud?_full:(_w('Next lesson ›')<=_bud?'Next lesson ›':'Next ›');})() /* the NAME only where the slot measures wide enough for it, so it is never cut by the ellipsis; the name is in aria-label and title either way */}</button>);
+                  return(<button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':(boardPx-3*46-3*6)>=96?'↻ Try again':'↻ Again'}</button>);})()}
+                {/* #550 FMT-A-05 (Kunal's pick 12 Nov): ONE ⋯ PER SCREEN. The practice row's own ⋯ ('More actions') is gone; its actions are at the top of the bottom bar's ⋯ sheet in practice */}
+              </div>);};
   // #424, ANTAGONIST B'S VETO, AND IT IS THE DIFFERENCE BETWEEN A FIX AND A BROAD UNASKED-FOR CHANGE.
   // The demo row's second cell holds EITHER the "Other lines" button (when the demo has ended and this lesson
   // has variations) OR "⟳ Flip". Only the first of those overflows: its min-content is 122.56px against a 1fr
@@ -12315,49 +12360,10 @@ export default function App(){
                 progress strip (4px) plus the column's 8px gap existed only in practice, so 'Now I'll try it' pushed the control row, the
                 MOVES head and Analyze 12px down (375x730), and at 568 tall the board shrank instead. The strip now sits ABSOLUTELY in the
                 gap above the row, so it takes no layout and the demo and practice stacks are the same height. */}
-            <div style={{alignSelf:'stretch',display:'flex',flexDirection:'column',gap:8,position:'relative'}}>
+            <div style={{alignSelf:'stretch',display:lessonShort?'none':'flex',flexDirection:'column',gap:8,position:'relative'}}>
               {!freeSt.on&&/* #549 item (85): a line-length bar means nothing when the defender sets the length */<div data-ct="lesson-progress" style={{position:'absolute',left:0,right:0,top:-7,height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>}
               {openStep>0&&lpHist.length>1&&wide&&(()=>{/* #372 (antagonist Y-01): on phones this 44px row joined the stack after the first practice move and took the lesson board from 375 to 320; wide only */const n=lpHist.length-1;const cur=lpv==null?n:lpv;const sb=(lbl,fn,dis)=>(<button key={lbl} disabled={dis} onClick={fn} style={{flex:1,minHeight:36,borderRadius:8,background:dis?'rgba(255,255,255,.04)':'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.18)',color:dis?'rgba(255,255,255,.28)':'#fff',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:800,cursor:dis?'default':'pointer'}}>{lbl}</button>);return(<div style={{display:'flex',gap:6,alignItems:'center'}}>{sb('⏮',()=>setLpv(0),cur===0)}{sb('‹',()=>setLpv(Math.max(0,cur-1)),cur===0)}<span style={{flex:'0 0 auto',minWidth:74,textAlign:'center',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:lpv==null?'#86d99a':'var(--ac2)',fontFamily:'monospace',letterSpacing:.5}}>{lpv==null?'● LIVE':('Move '+cur+'/'+n)}</span>{sb('›',()=>{const nv=Math.min(n,cur+1);setLpv(nv>=n?null:nv);},cur>=n)}{sb('⏭',()=>setLpv(null),lpv==null)}</div>);})()}
-              <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
-                <button onClick={()=>setFlip(f=>!f)} aria-label="Flip board" style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>⟳</button>
-                <button onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);/* #548 item (22): switching the hint OFF before the first practice move clears the run's hinted mark - no move has been made with it on, so the run is still clean; after a move the mark stays */if(!nv&&learnPhase==='practice'&&openStep===0&&!revealHint&&learnRepRef.current)learnRepRef.current.hints=false;}} aria-label="Hints" style={{...btn(showHint?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',showHint?'1px solid var(--ac)':'1px solid rgba(255,255,255,.2)',showHint?'var(--ac2)':'rgba(255,255,255,.6)'),width:46,minWidth:46,padding:'8px 0',fontSize:'clamp(15px,3.6vw,19px)'}}>💡</button>
-                {/* #384 (Z-06 "Support 320 properly"): this row is three fixed 46px buttons and one flexible one, and the
-                    flexible one defaulted to min-width:auto - so it refused to shrink below its own min-content width and
-                    pushed the trailing (...) button 3.1px off a 320 screen, with no page scroll to recover it. minWidth:0
-                    lets it shrink; the budget left for it at 320 is then 74.88px, and the full label needs 92.52px at any
-                    padding, so the label shortens at <=340 exactly as the puzzle header's Roadmap chevron has since #382.
-                    At 375 and 390 the row has room to spare and neither branch is reachable: all four children measured
-                    identical before and after, which is his condition on Z-06. */}
-                {/* #409: THE LAST SITE ON THE OLD INSTRUMENT, and it was broken on the WIDER phone. This
-                    button chose its label and its padding from `vp.w<=340` while the row it sits in is sized to
-                    the BOARD, and the lesson board is fit to HEIGHT - so at 375x568 and 390x568 the viewport is
-                    wide, the board is 230.88, and the row's budget for this flexible button is 74.88px after
-                    three 46px buttons and three 6px gaps. The long label's ink is 92.52px wide, so it painted
-                    167.25..259.77 inside a box of 176.06..250.94: 8.83px past its own right edge, 8.81px past
-                    its left, and 2.83px over the ⋯ button's left edge at 256.94. At 320x568 the same row is
-                    230.88 and the label was already short, so the narrow phone was right and the wide-and-short
-                    one was wrong - which is exactly what #406 found for the six other sites and why no viewport
-                    threshold can reach it. `rowNarrow` is boardPx<340: true at 230.88, false at the 375.03 of
-                    375x730 where the ink clears by 63px. Raised by the external supervisor
-                    (kunal-q-narrow-threshold-everywhere-2026-09-17) and re-measured here before it was
-                    believed; recorded as an amber default in amber-409-try-again-keyed-to-the-row, and the RULE
-                    is a question open with Kunal rather than settled by this build. */}
-                {/* #547 item (187): the WORDS follow the row's own budget - its width (the board's) less the three 46px
-                    buttons and their three 6px gaps - and not boardPx<340. Gate 48 measures the long label at 92.52px
-                    min-content at the default padding; 96 keeps a margin, and below 340 the padding is already the
-                    tight 9px 4px, so the label has more room than that figure assumes. rowNarrow still sets the
-                    padding and rowTiny (the glyph alone) is untouched, per orchestrator direction 2026-10-11. */}
-                {/* #547 item (82), jobs/build-lesson-next-button (the benchmark proposal of 16 Sep): at Complete! the finished lesson had
-                    nowhere to go - this row was byte-identical to the row at move 0. The same slot now offers the NEXT lesson of the
-                    same group, the way Play re-labels its row at game over; with no next lesson it stays Try again. */}
-                {(()=>{const _done=openStep>=learnLine.length&&learnLine.length>0;const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;
-                  let _nx=-1;if(_done&&_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}
-                  /* #550 a33: after a clean run with hints on, the slot offers to bank it - the same line again with the lightbulb off */
-                  if(_done&&bankOffer&&learnPhase==='practice')return(<button data-ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} aria-label="Bank it: play again with hints off" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{rowTiny?'\u2713':(boardPx-3*46-3*6)>=150?'\u2713 Bank it: hints off':'\u2713 Bank it'}</button>);
-                  if(_nx>=0)return(<button data-ct="lesson-next" onClick={()=>selectOpening(_nx)} aria-label={'Next lesson: '+LIB[_nx].name} title={'Next lesson: '+LIB[_nx].name} style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{(()=>{if(rowTiny)return '›';const _bud=(boardPx-3*46-3*6)-(rowNarrow?8:30)-6;const _w=(t)=>{try{const c=window.__ctNextMC||(window.__ctNextMC=document.createElement('canvas').getContext('2d'));c.font="800 15px 'Segoe UI',system-ui,-apple-system,sans-serif";return c.measureText(t).width;}catch(e){return 1e9;}};const _full='Next: '+LIB[_nx].name+' ›';return _w(_full)<=_bud?_full:(_w('Next lesson ›')<=_bud?'Next lesson ›':'Next ›');})() /* the NAME only where the slot measures wide enough for it, so it is never cut by the ellipsis; the name is in aria-label and title either way */}</button>);
-                  return(<button onClick={()=>startPractice(learnLine,learnLabel)} aria-label="Try again" style={{...btn('#4a6741','none','#fff'),flex:1,minWidth:0,...(rowNarrow?{padding:'9px 4px'}:null),fontWeight:800}}>{rowTiny?'↻':(boardPx-3*46-3*6)>=96?'↻ Try again':'↻ Again'}</button>);})()}
-                {/* #550 FMT-A-05 (Kunal's pick 12 Nov): ONE ⋯ PER SCREEN. The practice row's own ⋯ ('More actions') is gone; its actions are at the top of the bottom bar's ⋯ sheet in practice */}
-              </div>
+              {!lessonShort&&_prRow(false)}{/* #550 a42: on a short phone this row is in the lesson bar (_prRow(true)) */}
               
             </div>
           </>)}
@@ -12475,8 +12481,8 @@ export default function App(){
           /* #548 item (92): _livePlay and _hbPlay are gone with their only consumers - the player bar's Home and Menu, which moved to
              data-ct="board-chrome". The #435 class-sweep note that sat here said the predicate was inert at its one consumer; it now has none. */
           const _hb=isTop&&inReview&&revCompact&&!revHead;   // #550 a21: in the streamlined view back and more sit in the header row (rev-head)
-          const _hbSty={flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:34,height:30,borderRadius:9,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,cursor:'pointer',fontWeight:800,lineHeight:1,padding:0};
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:landBars?'auto':boardPx,marginLeft:landBars?0:evalW,...(landBars?{flexShrink:0}:null),...((landBars&&isTop)?{marginRight:landRev?52:100}:null) /* #550 a38: the sideways top bar sits beside the corner buttons (Review: the menu; a game: Home and the menu) */,display:'flex',alignItems:'center',gap:8,padding:'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:landBars?44:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:landBars?12:(isTop?'12px 12px 0 0':'0 0 12px 12px'),boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
+          const _hbSty={...TOP_BTN,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,fontWeight:800};   /* #550 FMT-B-03 (Kunal's pick 12 Nov): the standard 44x44 corner button, radius 12 (was 34x30 radius 9); the bar's padding gives 1px top and bottom so the bar stays 52 and the board does not move */
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:landBars?'auto':boardPx,marginLeft:landBars?0:evalW,...(landBars?{flexShrink:0}:null),...((landBars&&isTop)?{marginRight:landRev?52:100}:null) /* #550 a38: the sideways top bar sits beside the corner buttons (Review: the menu; a game: Home and the menu) */,display:'flex',alignItems:'center',gap:8,padding:_hb?'4px 9px':'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:landBars?44:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:landBars?12:(isTop?'12px 12px 0 0':'0 0 12px 12px'),boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
             {/* #548 item (92): Home moved OUT of the player bar into data-ct="board-chrome", the top row of its own. */}
             {isTop&&_evalOn&&!inReview&&!(mode==='play'?_gameOver:isOver)&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {!(landBars&&vp.w<720)&&av}{/* #550 antagonist B F2/F8: under 720 wide a sideways bar is about 250, and the decorative avatar's 46 is what the captured pieces need (667 Review: 6 pieces cut by 83) */}
@@ -12705,12 +12711,12 @@ export default function App(){
           NOT TOUCHED: the Review tab's footer. His note asks for those to match and its target could not be
           measured - the #389 recording covers it with the caption strip in every frame - so what "consistent"
           means numerically over there is still open. Guessing it would be inventing scope while he is asleep. */}
-      {lessonFocus&&(<div data-ct="lesson-footer" style={{position:'fixed',left:lessonSide?Math.round(boardPx+(_edge?0:3)+12):0 /* #550 BSA-L-03: sideways the footer sits under the right-hand column, so the board takes the full height */,right:0,bottom:0,zIndex:471,display:'flex',gap:lessonSide?5:10,alignItems:'center',padding:lessonSide?'8px 6px calc(8px + env(safe-area-inset-bottom,0px))':'8px 12px calc(8px + env(safe-area-inset-bottom,0px))',minWidth:0,background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
+      {lessonFocus&&(<div data-ct="lesson-footer" style={{position:'fixed',left:lessonSide?Math.round(boardPx+(_edge?0:3)+12):0 /* #550 BSA-L-03: sideways the footer sits under the right-hand column, so the board takes the full height */,right:0,bottom:0,zIndex:471,display:'flex',gap:lessonSide?5:(lessonShort?6:10),alignItems:'center',padding:lessonSide?'8px 6px calc(8px + env(safe-area-inset-bottom,0px))':(lessonShort?'8px 8px calc(8px + env(safe-area-inset-bottom,0px))':'8px 12px calc(8px + env(safe-area-inset-bottom,0px))') /* #550 a42: a short phone's bar carries six buttons in the demo (Now I'll try it joins it), so its gaps close to 6 and its sides to 8 - at 320 it would otherwise run 24 past the edge */,minWidth:0,background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
         {/* #550 FMT-A-05 (Kunal's pick 12 Nov): the close X is ALWAYS far left of this bar and ⋯ always far right, in demo, practice and finish */}<FootBtn onClick={()=>{setLessonMore(false);setOpenIdx(null);}} label="Close lesson">{'\u2715'}</FootBtn>
         {learnPhase!=='practice'&&(<><FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} label="Back a move"><ChevIcon size={27} dir="left"/></FootBtn>
         <FootBtn onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} label="Play or pause" primary minW={52}>{demoPlaying?'\u23F8':(demoPly>=learnLine.length?'\u21BB':'\u25B6')}</FootBtn>
         <FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} label="Forward a move"><ChevIcon size={27} dir="right"/></FootBtn></>)}
-        {wide?(<div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>):(<div aria-hidden="true" style={{flex:1}}/>)}{/* #549 item (100): on a phone the lesson name left this row for its own line at the top of the moves panel (search data-ct="lesson-name"); the spacer keeps the More control at the right edge. */}
+        {lessonShort&&learnPhase==='practice'?_prRow(true):wide?(<div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>):(<div aria-hidden="true" style={{flex:1,marginRight:lessonShort?-6:0 /* its own gap cancelled, so ⋯ sits at the same x in demo and practice */}}/>)}{/* #549 item (100): on a phone the lesson name left this row for its own line at the top of the moves panel (search data-ct="lesson-name"); the spacer keeps the More control at the right edge. */}
         {lessonShort&&learnPhase!=='practice'&&<FootBtn onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} label="Now I'll try it" primary>{'\u270B'}</FootBtn>}{/* #550 run-answers a42: on a short upright phone the row under the board folds into this bar - Now I'll try it is this button, Other lines is in the ⋯ sheet - so the board grows */}
         <FootBtn onClick={()=>setLessonMore(v=>!v)} label="More for this lesson" hot={lessonMore}>{'\u22EF'}</FootBtn>
       </div>)}
