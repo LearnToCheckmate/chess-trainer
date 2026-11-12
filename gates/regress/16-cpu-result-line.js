@@ -734,7 +734,7 @@ L.run(async()=>{
   // TC-PL-049c [#549 item (2); same job, the remainder its #548 review left]: (1) the CAPTURED surface in the three image skins 049b's
   // captured launch never set (merida, chessnut, spatial; classic re-read too), at kunal761; (2) the MEDIEVAL board skin, the one skin
   // whose pcf is a real filter function, so its black pieces must compute THREE drop-shadows (its dark one plus the two white ones) and
-  // its white pieces exactly ONE, the dark one, and no white one. The skin is entered by ct_skin+ct_pro and PROVEN entered by reading
+  // its white pieces exactly ONE, the dark one, and no white one. The skin is entered by ct_skin plus Pro (since #550 SEC-01 the lib's pro:true subscription stand-in; ct_pro is gone) and PROVEN entered by reading
   // the root's --head font (Cinzel is Medieval's alone), because a Pro skin without Pro silently falls back to classic. The proof is
   // deliberately NOT --pcfilter itself: a bundle whose medieval pcf is broken must redden the shadow assertions, not this precondition.
   {const P=require('../drive/play');
@@ -750,7 +750,7 @@ L.run(async()=>{
    const MED=(f)=>/^drop-shadow\(rgba\(0, 0, 0, 0\.45\) 0px 2px 2px\)$/.test(f);
    const wsh=(f)=>(f.match(/drop-shadow\(rgba\(255, 255, 255/g)||[]).length, nds=(f)=>(f.match(/drop-shadow\(/g)||[]).length;
    for(const geo of ['kunal761','se']){
-     const b=await L.launch({geo,name:'piece-shadow-medieval-'+geo,store:{ct_skin:'2',ct_pro:'1'}});await b.open();let ok=true;
+     const b=await L.launch({geo,name:'piece-shadow-medieval-'+geo,pro:true,store:{ct_skin:'2'}});await b.open();let ok=true;
      try{await P.states['pp-m0'](b);await b.settle(600);}catch(e){ok=false;}
      const r=await b.page.evaluate(()=>{const root=[...document.querySelectorAll('div')].find(d=>(d.getAttribute('style')||'').includes('--pcfilter'));
        const all=[...document.querySelectorAll('img')].filter(i=>{const q=i.getBoundingClientRect();return q.width>2&&q.height>2&&/var\(--pcfilter\)/.test(i.getAttribute('style')||'');});
@@ -761,7 +761,7 @@ L.run(async()=>{
        L.say(r.bf.every(f=>nds(f)===3&&wsh(f)===2&&/^drop-shadow\(rgba\(0, 0, 0, 0\.45\)/.test(f)),tag+'every black piece computes THREE drop-shadows: the skin\'s dark one first, then both white separation shadows',{ok:r.bf.filter(f=>nds(f)===3&&wsh(f)===2).length,sample:r.bf[0]});
        L.say(r.wf.every(MED),tag+'and every white piece computes exactly the skin\'s one dark drop-shadow and no white one',{ok:r.wf.filter(MED).length,sample:r.wf[0]});}
      await b.close();}
-   {const b=await L.launch({geo:'kunal761',name:'piece-shadow-medieval-captured',store:{ct_skin:'2',ct_pro:'1'}});await b.open();let ok=true;
+   {const b=await L.launch({geo:'kunal761',name:'piece-shadow-medieval-captured',pro:true,store:{ct_skin:'2'}});await b.open();let ok=true;
     try{await P.states['pp-captures'](b);await b.settle(700);}catch(e){ok=false;}
     const r=await b.page.evaluate(()=>{const root=[...document.querySelectorAll('div')].find(d=>(d.getAttribute('style')||'').includes('--pcfilter'));const head=root?getComputedStyle(root).getPropertyValue('--head').trim():null;const imgs=[...document.querySelectorAll('[data-ct^="pbar-taken"] img')].filter(i=>/drop-shadow/.test(i.getAttribute('style')||''));
       return {head,n:imgs.length,ok:imgs.filter(i=>(getComputedStyle(i).filter.match(/drop-shadow\(/g)||[]).length===3).length,sample:imgs[0]?getComputedStyle(imgs[0]).filter:null};});

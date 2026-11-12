@@ -1,0 +1,223 @@
+rules_version = '2';
+// Chess Trainer - Cloud Firestore security rules.
+//
+// #550 SEC-03 [docs/security-privacy-2026-11-12; Kunal "All 20, serious first", 12 Nov 2026]: until this file there were no rules in
+// the repository at all - the live rules existed only in the Firebase console, unreviewable, unversioned and untested. This file is
+// written from every collection the client uses (index.html's CTCloud bridge is the ONLY code that touches Firestore; chess.jsx calls
+// the bridge), one block per collection, and denies everything else.
+//
+// NOT DEPLOYED BY ANY BUILD RUN. Kunal publishes it himself (Desk item firebase-deploys):
+//   firebase deploy --only firestore:rules
+// Before that, compare it with the live rules in the console (Firestore > Rules). The emulator tests that exercise it are
+// rules-test/firestore.rules.test.js (README at the top of that file); they were NOT run in the build sandbox (no emulator there).
+//
+// Where a rule cannot be expressed without a server (results, ratings, the pairing in Quick match) it says so beside the rule.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    // a seat ('w' or 'b') of a game document: its uid, or '' when the seat is empty
+    function seatUid(d, s) { return (d.get(s, null) is map) ? d.get(s, {}).get('uid', '') : ''; }
+    function isPlayerOf(d) { return signedIn() && (seatUid(d, 'w') == me() || seatUid(d, 'b') == me()); }
+    function shortStr(v, n) { return v is string && v.size() <= n; }
+
+    // ── users/{uid}: progress sync (ctProgress, theme, skin, elo, hintprefs, pz, learnprog, coach*), the list of game codes, and
+    // the free Coach previews used (coachfree), which may only grow (SEC-02: a cleared phone does not hand three more back).
+    match /users/{uid} {
+      allow get: if signedIn() && me() == uid;
+      allow create: if signedIn() && me() == uid;
+      allow update: if signedIn() && me() == uid
+        && (!('coachfree' in request.resource.data) || request.resource.data.coachfree is number)
+        && request.resource.data.get('coachfree', 0) >= resource.data.get('coachfree', 0);
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    // ── games/{code}: an online game (SEC-04). Readable and writable only by its two seated players, with ONE exception that makes
+    // invites work: while a game is WAITING for its second player, a signed-in player who knows the code may read it (that is what
+    // the invite link shares: the host's name, photo, rating and clock) and may fill the one empty seat with THEMSELVES. Nobody can
+    // list the collection. A started game you are not in cannot be read at all.
+    match /games/{code} {
+      function waitingForSeat(s) { return resource.data.status == 'waiting' && seatUid(resource.data, s) == ''; }
+      // the join: the free seat gets the caller and nothing else changes except the fields a join resets
+      function isJoin() {
+        return signedIn() && !isPlayerOf(resource.data)
+          && ((waitingForSeat('b') && seatUid(resource.data, 'w') != '' && seatUid(request.resource.data, 'b') == me()
+                && changed().hasOnly(['b', 'status', 'updatedAt', 'moveAt', 'clk']))
+           || (waitingForSeat('w') && seatUid(resource.data, 'b') != '' && seatUid(request.resource.data, 'w') == me()
+                && changed().hasOnly(['w', 'status', 'updatedAt', 'moveAt', 'clk'])))
+          && request.resource.data.status == 'active';
+      }
+      // chat: append-only, one message at a time, written under the writer's own uid; a player may also REMOVE lines (account deletion
+      // scrubs its own chat). The writer's uid is checked; the name beside it is the writer's own client's word, length-limited.
+      function chatOk() {
+        let o = resource.data.get('chat', []);
+        let n = request.resource.data.get('chat', []);
+        let added = n.removeAll(o);
+        return !('chat' in changed())
+          || (n is list && n.size() <= 500
+              && ((added.size() == 1 && o.removeAll(n).size() == 0 && added[0].uid == me()
+                   && shortStr(added[0].get('text', ''), 240) && shortStr(added[0].get('name', ''), 80))
+               || (added.size() == 0 && n.size() < o.size())));
+      }
+      // a player's update: seats keep their players (a player may rewrite only their OWN seat's name and photo), the code and the
+      // creation time never change, a started game never goes back to waiting, and chat follows chatOk.
+      function isPlayerUpdate() {
+        return isPlayerOf(resource.data)
+          && seatUid(request.resource.data, 'w') == seatUid(resource.data, 'w')
+          && seatUid(request.resource.data, 'b') == seatUid(resource.data, 'b')
+          && (!('w' in changed()) || seatUid(resource.data, 'w') == me())
+          && (!('b' in changed()) || seatUid(resource.data, 'b') == me())
+          && !('code' in changed()) && !('createdAt' in changed())
+          && (request.resource.data.status != 'waiting' || resource.data.status == 'waiting')
+          && chatOk();
+      }
+      // (a code that does not exist reads as 'not found', which tells a stranger nothing about anyone's game)
+      allow get: if signedIn() && (resource == null || isPlayerOf(resource.data) || resource.data.status == 'waiting');
+      allow list: if false;
+      // create: only a code that does not exist yet (a write to an existing code is an UPDATE, so it cannot overwrite someone's game),
+      // with the creator in a seat. Quick match creates the game with BOTH seats filled (the matched opponent in the other).
+      allow create: if signedIn() && isPlayerOf(request.resource.data)
+        && request.resource.data.code == code
+        && request.resource.data.status in ['waiting', 'active']
+        && request.resource.data.get('chat', []).size() == 0;
+      allow update: if isJoin() || isPlayerUpdate();
+      // delete: a player may delete a game nobody has moved in (an unanswered invite; a Quick match pairing that lost its race)
+      allow delete: if isPlayerOf(resource.data)
+        && (resource.data.status == 'waiting' || resource.data.get('moves', []).size() == 0);
+      // RESIDUAL (SEC-17, P3): results, clocks and moves are written by either player's client and are not validated here - a
+      // player can still write any result into their OWN game. Validating moves needs a Cloud Function; left until ratings rank.
+
+      // ── games/{code}/call/{doc}: video call signalling (SEC-05). The SDP offer and answer and the ICE candidates carry both players'
+      // IP addresses, so only the two players may read or write them, and an offer must be written under one of the two players' uids.
+      match /call/{docId} {
+        function game() { return get(/databases/$(database)/documents/games/$(code)).data; }
+        allow read, delete: if isPlayerOf(game());
+        allow create, update: if isPlayerOf(game())
+          && (!('rtc' in request.resource.data) || request.resource.data.rtc == null
+              || request.resource.data.rtc.get('from', '') in [seatUid(game(), 'w'), seatUid(game(), 'b')]);
+      }
+    }
+
+    // ── mm/{uid}: the Quick match queue (SEC-06). Each player writes only their own entry. A signed-in player may see the WAITING
+    // entries (the client queries status == 'waiting'; that is how a match is found), and may mark another player's waiting entry
+    // matched ONLY with the id of a game that already exists and seats exactly those two players.
+    // RESIDUAL: the waiting list (uid, name, photo, clock) is visible to every signed-in player while they wait; moving the pairing
+    // into a Cloud Function would hide it, and is the audit's longer-term fix.
+    match /mm/{uid} {
+      function pairs(gid) {
+        let g = get(/databases/$(database)/documents/games/$(gid)).data;
+        return (seatUid(g, 'w') == uid && seatUid(g, 'b') == me()) || (seatUid(g, 'w') == me() && seatUid(g, 'b') == uid);
+      }
+      function ownEntry() {
+        return request.resource.data.uid == uid && request.resource.data.status == 'waiting'
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'photo', 'tc', 'status', 't'])
+          && shortStr(request.resource.data.get('name', ''), 80) && shortStr(request.resource.data.get('photo', ''), 1000);
+      }
+      allow get: if signedIn() && (me() == uid || resource.data.status == 'waiting');
+      allow list: if signedIn() && resource.data.status == 'waiting';
+      allow create: if signedIn() && me() == uid && ownEntry();
+      allow update: if signedIn() && ((me() == uid && ownEntry())
+        || (me() != uid && resource.data.status == 'waiting' && request.resource.data.status == 'matched'
+            && changed().hasOnly(['status', 'gameId', 'matchedAt'])
+            && request.resource.data.gameId is string && exists(/databases/$(database)/documents/games/$(request.resource.data.gameId))
+            && pairs(request.resource.data.gameId)));
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    // ── tournaments/{id} (SEC-07). The list is public to signed-in players (that is the feature). Only the host creates (as host),
+    // starts, edits or deletes a tournament; anyone else may only add ONE entry for THEMSELVES, or remove their own.
+    match /tournaments/{id} {
+      function players(d) { return d.get('players', []); }
+      function isHost() { return signedIn() && resource.data.host == me(); }
+      function selfEntryChange() {
+        let o = players(resource.data);
+        let n = players(request.resource.data);
+        let added = n.removeAll(o);
+        let gone = o.removeAll(n);
+        return signedIn() && changed().hasOnly(['players', 'updatedAt']) && n is list && n.size() <= 256
+          && ((added.size() == 1 && gone.size() == 0 && added[0].uid == me() && shortStr(added[0].get('name', ''), 80))
+           || (added.size() == 0 && gone.size() == 1 && gone[0].uid == me()));
+      }
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.host == me()
+        && players(request.resource.data).size() <= 1
+        && (players(request.resource.data).size() == 0 || players(request.resource.data)[0].uid == me())
+        && shortStr(request.resource.data.get('name', ''), 120);
+      allow update: if (isHost() && request.resource.data.host == resource.data.host && !('createdAt' in changed()))
+        || (!isHost() && selfEntryChange());
+      allow delete: if isHost();
+    }
+
+    // ── friendReqs/{id} and friends/{id} (SEC-08). A request is sent only under your own uid and read or withdrawn only by its two
+    // ends. A friendship can only be made by the person a pending request was addressed to, naming that request (field req), and
+    // only between those two people. Only its members can read or end it. Nothing is ever edited in place.
+    // RESIDUAL: the friend ID a player shares is still their uid, and there is no block or rate limit on requests.
+    match /friendReqs/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      allow create: if signedIn() && request.resource.data.from == me() && request.resource.data.to is string
+        && request.resource.data.to != me() && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['from', 'fromName', 'to', 'status', 'at'])
+        && shortStr(request.resource.data.get('fromName', ''), 80);
+      allow update: if false;
+      allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+    }
+    match /friends/{id} {
+      function reqDoc() { return get(/databases/$(database)/documents/friendReqs/$(request.resource.data.req)).data; }
+      allow read, delete: if signedIn() && me() in resource.data.users;
+      allow create: if signedIn() && request.resource.data.req is string && request.resource.data.req.size() > 0
+        && exists(/databases/$(database)/documents/friendReqs/$(request.resource.data.req))
+        && reqDoc().to == me() && reqDoc().status == 'pending'
+        && request.resource.data.users == [reqDoc().from, me()]
+        && request.resource.data.names.get(reqDoc().from, '') == reqDoc().get('fromName', 'Player')
+        && shortStr(request.resource.data.names.get(me(), ''), 80)
+        && request.resource.data.keys().hasOnly(['users', 'names', 'at', 'req']);
+      allow update: if false;
+    }
+
+    // ── nearby/{uid}: Play nearby (SEC-16). Your own entry only, under your own uid. Signed-in players can read entries (the client
+    // asks for its own cell); the stored cell is coarse (0.1 degree, or the AREA part of a postcode only - chess.jsx nearbyArea), and
+    // the entry is removed on sign-out and account deletion. RESIDUAL: rules cannot force a reader to filter by cell; a time limit
+    // needs a Firestore TTL policy on the 'at' field, set in the console.
+    match /nearby/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && me() == uid && request.resource.data.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'geo', 'at'])
+        && shortStr(request.resource.data.get('name', ''), 80) && shortStr(request.resource.data.get('geo', ''), 40);
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    // ── customers/{uid}, products: the Stripe payments extension's own documented rules (SEC-09). Pro comes ONLY from
+    // customers/{uid}/subscriptions, which the extension writes with admin rights; no client may ever write a subscription or a
+    // payment. A player may create (and remove) their own checkout sessions, which is how checkout starts.
+    match /customers/{uid} {
+      allow read: if signedIn() && me() == uid;
+      match /checkout_sessions/{id} {
+        allow read, write: if signedIn() && me() == uid;
+      }
+      match /subscriptions/{id} {
+        allow read: if signedIn() && me() == uid;
+      }
+      match /payments/{id} {
+        allow read: if signedIn() && me() == uid;
+      }
+    }
+    match /products/{id} {
+      allow read: if true;
+      match /prices/{id} { allow read: if true; }
+      match /tax_rates/{id} { allow read: if true; }
+    }
+
+    // ── _warm/ping: index.html reads it once on load to open the connection early. Nothing is stored there.
+    match /_warm/{id} {
+      allow get: if true;
+    }
+
+    // Everything else: denied (rules deny by default; written out so nobody wonders).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

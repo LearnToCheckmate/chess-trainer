@@ -22,7 +22,7 @@ const read=(b)=>b.page.evaluate((LABELS)=>{const out=[];for(const lab of LABELS)
 L.run(async()=>{
   for(const geo of ['kunal761','se']){
     for(const [id,skin,name] of [['TC-LS-061a','2','Medieval'],['TC-LS-061b','1','Classic'],['TC-LS-061c','0','Playful']]){
-      const b=await L.launch({geo,name:'disc-'+name+'-'+geo,store:{ct_pro:'1',ct_skin:skin}});await b.open();
+      const b=await L.launch({geo,name:'disc-'+name+'-'+geo,pro:true,store:{ct_skin:skin}});   /* #550 SEC-01: Pro through the subscription stand-in, ct_pro is gone */await b.open();
       let ok=true;try{await D.states['discover'](b);await b.settle(1200);}catch(e){ok=false;}
       const t=ok?await read(b):[];
       L.say(t.length===4&&t.every(Boolean),geo+' '+name+': '+id+' DENOMINATOR the four Discover tiles were found by their labels',t);
