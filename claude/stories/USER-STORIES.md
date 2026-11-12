@@ -2268,3 +2268,9 @@ As a player, whatever I am doing and however I hold the phone, the board is the 
 - No page scrolls and no button sits off the screen outside a scroller. (TC-R204c)
 - The online game's four actions are one row and chat and video call open from one button. (TC-R204d)
 
+### US-R137 The Tactics and Strategy cards show chess that is true
+*Added #550, run-answers build__1794388896663-a37 and -hold-landing; docs/hint-audit-2026-11-12 HEX-T-10 and HEX-T-11; Kunal, 12 Nov: "All of it in this batch", the wrong chess first.*
+As a player learning a pattern, the position on the card does what the card says, so I learn the idea and not a mistake.
+- Every Tactics card's answer is the engine's best move, or within half a pawn of it, and does not leave me worse. (TC-R205a)
+- No Strategy position about a slow plan hides a mate in one for the side to move. (TC-R205b)
+- "The opposition" is a win for White, as its text says. (TC-R205c)
