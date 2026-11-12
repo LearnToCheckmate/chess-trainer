@@ -140,7 +140,8 @@ L.run(async()=>{
     await c.open();
     const fresh=await freshSheet(c);
     L.say(fresh.present===true,g.k+': E3 the control sheet is reached with Pass & Play selected',{h:fresh.h});
-    L.say(JSON.stringify(fresh.btns)===JSON.stringify(['‹ Home','📷 Scan with camera','🖼 Upload a photo','Online','Computer','Pass & Play','👥 Friends','📍 Play nearby','🏆 Tournaments','▶ Start game']),
+    /* #550 re-keyed (formatting audit FMT-B-03, Kunal's pick 12 Nov): the setup sheet's top row carries the standard ☰ top-right */
+    L.say(JSON.stringify(fresh.btns)===JSON.stringify(['‹ Home','☰','📷 Scan with camera','🖼 Upload a photo','Online','Computer','Pass & Play','👥 Friends','📍 Play nearby','🏆 Tournaments','▶ Start game']),
       g.k+': E4 the control is the Pass & Play variant and nothing else - the confounder is removed, not merely hoped away',
       {btns:fresh.btns});
 
