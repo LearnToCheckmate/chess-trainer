@@ -9,6 +9,7 @@
 // at all - the shape of a card the old ladder could carry). The app opens on Home at kunal761 and the gate waits there, as he would, for the
 // re-grade pass (the app's Stockfish, about 600ms a card).
 // KNOW ITS LIMIT: two cards; the pass stops when Home is left, which this gate does not exercise.
+// CONTROL-RECORD: d3d0769 2026-11-12 total=6 red=4 scope=trial:3ab724514641 how=#550 origin/main's own #549 bundle, which has no re-grade pass: no ct_regrade550 record, the Qd2 card carries no wc, the Qxd5 card stays; on t138 d6432be90478 6/0
 const L=require('../lib');
 const FEN='4k3/8/8/3q4/8/8/8/3QK3 w - - 0 1';
 const CARDS=[{fen:FEN,uci:'d1d5',label:'Blunder',played:'Qd2',ts:1791000000001,last:null,why:'Qxd5 was stronger.'},
