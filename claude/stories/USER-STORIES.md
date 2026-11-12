@@ -2366,3 +2366,14 @@ As a player stepping through a reviewed game, the board stays the size it is whe
 - It is the size it was before the tap. (TC-R211b)
 - A taller window never gets a smaller board than a shorter one. (TC-R211c)
 - The same on his phone (375x761). (TC-R211d)
+### US-R147 One top row, one title, one button height, and the board where it was
+*Added #550, docs/formatting-audit-2026-11-12 P1 findings FMT-A-01, A-02, A-03, A-05, A-06, B-01, B-02, B-03; Kunal, 12 Nov: "All in this batch, top first", and "I prefer it being center aligned on the screen titles"; run-answers a42 (his board rule).*
+As a player moving between screens, the back and menu buttons are always in the same corners at the same size, the title always reads the same way in the middle of the top row, and the board never jumps or shrinks for a button or a box.
+- Back is top-left and the menu top-right, both at least 44x44, 8 from the screen edge, one fill and one corner radius (12); Home's menu is the same square button beside the account button; sideways the fixed menu is 44x44 at 8 from the right. (TC-R215a)
+- The screen title is centred on the screen (within 2pt), 18pt weight 800, in one typeface on every screen. (TC-R215b)
+- Tactics and Strategy action buttons (Hint, Show answer, Next motif, Prev, Next) are 44 high. (TC-R215c)
+- The Tactics and Strategy boards sit at one top and one size, the screen width at 375x761, 375x667 and 320x568, with no page scroll. (TC-R215d)
+- The Tactics answer opens over the board; showing it moves and shrinks nothing. (TC-R215e)
+- In a lesson the close X is the bar's first button and ⋯ its last, in the demo and in practice, with one ⋯ on screen. (TC-R215f)
+- On a short upright phone (under 700 tall) the lesson's rows under the board fold into the bar - Now I'll try it is a bar button, the practice row sits in the bar, Other lines is in the ⋯ sheet - and the board is the screen width at 320x568. (TC-R215g)
+- At an online game's end the board stays the screen width on his phone and the page does not scroll; the panel is rows of 44pt buttons. (TC-R215h)

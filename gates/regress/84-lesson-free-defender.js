@@ -76,7 +76,7 @@ async function pins(b,geo,when,demoW){
   L.say(!!n&&near(n.h,75),'TC-LS-055 '+geo+' '+when+': the note box is 75 tall',n);
   L.say(!!f&&near(f.h,61),'TC-LS-055 '+geo+' '+when+': the footer is 61 tall',f);
   // At the mate "Try again" gives way to the finished-lesson button (as in every lesson), so three of the four remain.
-  const want=/mate/.test(when)?['Flip board','Hints','More actions']:['Flip board','Hints','Try again','More actions'];
+  const want=/mate/.test(when)?['Flip board','Hints']:['Flip board','Hints','Try again'];   // #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov): one ⋯ per screen - the row's More actions went into the bar's ⋯ sheet
   L.say(r.map(x=>x.a).join()===want.join()&&r.every(x=>near(x.h,44)),'TC-LS-055 '+geo+' '+when+': the practice buttons ('+want.length+') are 44 tall',r);
   L.say(m.over.over<=0&&sw===m.vw,'TC-LS-055 '+geo+' '+when+': no page scroll (over '+m.over.over+', scrollWidth '+sw+' of '+m.vw+')');
 }
@@ -87,7 +87,7 @@ async function sfGo(b,fen,ms){await b.page.evaluate((a)=>{window.__g84o=[];windo
   for(let i=0;i<(ms/100+60);i++){await b.page.waitForTimeout(100);const r=await b.page.evaluate(()=>{const bl=window.__g84o.find(x=>x.startsWith('bestmove'));if(!bl)return null;const inf=window.__g84o.filter(x=>/^info .* score /.test(x)&&!/ multipv [2-9]/.test(x));const l=inf[inf.length-1]||'';const mm=l.match(/score mate (-?\d+)/),cm=l.match(/score cp (-?\d+)/);return {best:bl.split(' ')[1],mate:mm?+mm[1]:null,cp:cm?+cm[1]:null};});if(r)return r;}return null;}
 // Play one white move by tapping, then wait for the app's answer (the note stops saying the king is thinking).
 async function tapMove(b,E,g,m){const [f,t]=sqs(E,m);await b.move(f,t,150);let n='';for(let i=0;i<60;i++){n=(await D.noteText(b))||'';if(!/thinking/.test(n))break;await b.page.waitForTimeout(150);}await b.settle(150);return n;}
-async function openPractice(b){await D.openLesson(b,'Endgames',/^Two Bishops Mate$/);await D.startDemoPaused(b);const dm=await b.metrics();await D.toEnd(b);await D.tapBtn(b,/^✋ Now I'll try it$/,700);return dm.board?dm.board.w:null;}
+async function openPractice(b){await D.openLesson(b,'Endgames',/^Two Bishops Mate$/);await D.startDemoPaused(b);const dm=await b.metrics();await D.toEnd(b);await D.tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,700);return dm.board?dm.board.w:null;}
 // Drive the rest of the game with the gate's engine; returns {mated, moves, replies:[{ply,san}], refused}
 async function driveToMate(b,E,g0,startPly,opts){
   let g=g0,ply=startPly,refused=0,last='';const replies=[];const o=opts||{};

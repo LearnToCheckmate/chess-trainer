@@ -159,6 +159,11 @@ const PAGELOCK_OK=(p)=>!!p&&p.bodyPos==='fixed'&&p.htmlOvY==='hidden'&&p.bodyOvY
 // CONTROL-RECORD: a539615 2026-11-06 total=441 red=20 scope=trial:7ae631c1fa7b how=chess.jsx demo row gap 6->16 plus +40 board trim in learn mode, one bundle - the DEMO_NEEDED and FLIP_NEEDED term pins red at all five wide-and-short geometries (TC-INV-05d) and both latch detectors (DEMO_SETTLED, _legalBoard) red at 320x520 where the board moved 231.19 to 223.19 (TC-INV-05h); green bundle c44ba782cebd 441 pass 0 red
 // CONTROL-RECORD: e4a169a 2026-11-12 total=480 red=3 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: 375x520 [endgame-demo-end]: the Flip branch is CONTAINED in its own ro
 const D=require('../drive/lesson');
+/* #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov; run-answers a42): on a SHORT upright phone (vh<700) the lesson's rows under the board fold into the lesson bar - Now I'll try it
+   is a bar button, Other lines is in the ⋯ sheet, the practice row (Flip, Hints, Try again) sits in the bar - so the assertions about those
+   rows UNDER the board have no subject there. They are NOTED as not run, never credited; gate 139 (TC-R215f/g) asserts the bar. */
+let SKIP=null;const say=(ok,msg,d)=>SKIP?L.note('NOT RUN ('+SKIP+'): '+msg):L.say(ok,msg,d);
+const SHORT=(vh)=>vh<700;
 
 // ── local helpers ────────────────────────────────────────────────────────────────────────────────────────
 // The fixed lesson footer. It has no data-ct (chess.jsx:6311); zIndex 471 is its only unique mark, so that is
@@ -436,7 +441,7 @@ const near=(a,c,tol)=>a!=null&&c!=null&&Math.abs(a-c)<(tol==null?0.6:tol);
 // MEASURED, #397 and #900 alike. Demo and practice differ because practice carries the progress bar and the
 // control row and demo carries the "✋ Now I'll try it" pair, so the square the height allows is not the same
 // one. left is the centring the leftover width buys. top is 92 in EVERY column - that is the invariant.
-const DEMO={se:{w:270.9,left:24.6},kunal730:{w:375,left:0},'390':{w:390,left:0}};
+const DEMO={se:{w:320,left:0}/* #550 a42: was 270.9 at 24.6 - the rows under the board folded into the bar */,kunal730:{w:375,left:0},'390':{w:390,left:0}};
 /* #430 RE-PINNED se, AND THE IDENTITY WAS RE-DERIVED RATHER THAN THE NUMBER SWAPPED - same change as gate
    11's WANT table, same cause. The practice board at 320x568 was 230.9 at left 44.6 because the MOVES row
    WRAPPED there onto two lines. #430 stops it wrapping (the two chips shrink), so the MOVES panel falls from
@@ -444,10 +449,10 @@ const DEMO={se:{w:270.9,left:24.6},kunal730:{w:375,left:0},'390':{w:390,left:0}}
    320x568, and the DEMO end is unchanged to the hundredth on each (board 270.9, panel 70.13), which is the
    check that this moved because the chrome shrank rather than because something started stealing width.
    kunal730 and 390 are width-bound at 375 and 390 and do not move. */
-const PRAC={se:{w:270.9,left:24.6}/* #547 item (124): was 254.9 at 32.6 - the practice-only progress strip (4px + an 8px gap) no longer takes layout, so practice is the demo's own square */,kunal730:{w:375,left:0},'390':{w:390,left:0}};
+const PRAC={se:{w:320,left:0}/* #550 a42: was 270.9 at 24.6 *//* #547 item (124): was 254.9 at 32.6 - the practice-only progress strip (4px + an 8px gap) no longer takes layout, so practice is the demo's own square */,kunal730:{w:375,left:0},'390':{w:390,left:0}};
 const BOARD_TOP=92, NOTE_H=75, FOOT_H=61;
 const LINE=['1. e4','1… e5','2. Nf3','2… Nc6','3. Bc4','3… Bc5','4. c3','4… Nf6','5. d3','5… d6']; // LIB 0, the Italian Game
-const ROW=['Flip board','Hints','Try again','More actions'];
+const ROW=['Flip board','Hints','Try again'];   // #550 FMT-A-05: one ⋯ per screen - the row's own ⋯ (More actions) went into the bar's ⋯ sheet
 // #550 item (47): TC-INV-05c's sweep, one helper so every state the main loop visits runs it (US-INV-05 bullet 3 names no state, and the
 // first version read only demo-end: a control pushing the practice footer's ⋯ 60px past the edge left it green - measured on c47).
 async function ctlSweep(b,geo,state){
@@ -520,8 +525,8 @@ L.run(async()=>{
     const f0=await footer(b);
     L.say(!!f0&&near(f0.h,FOOT_H),geo+': the lesson footer is '+FOOT_H+' tall',f0&&f0.h);
     L.say(!!f0&&near(f0.bottom,vh)&&near(f0.top,vh-FOOT_H),geo+': and is pinned to the bottom of the viewport (top '+(f0&&f0.top)+' = '+vh+' - '+FOOT_H+')',f0);
-    L.say(!!f0&&f0.btns.join(',')==='Back a move,Play or pause,Forward a move,Close lesson,More for this lesson',
-      geo+': in the demo the footer carries all five - the transport, the ✕ and the ⋯',f0&&f0.btns.join(','));
+    L.say(!!f0&&f0.btns.join(',')==='Close lesson,Back a move,Play or pause,Forward a move,'+(SHORT(vh)?"Now I'll try it,":'')+'More for this lesson',
+      geo+': in the demo the footer carries the ✕ FIRST, the transport, '+(SHORT(vh)?"Now I'll try it (a42), ":'')+'and the ⋯ LAST (#550 FMT-A-05)',f0&&f0.btns.join(','));
 
     // --- TC-LS-008: THE ASSERTION L.over() CANNOT MAKE. over() <= 0 above says the column ends at the
     // viewport; it says nothing about the 61px of it the fixed footer covers. Every laid-out control must end
@@ -579,6 +584,7 @@ L.run(async()=>{
        (chess.jsx, boardPx<340). Found by sweeping the whole suite for expectations derived from a geometry name
        or the viewport - see the run report for what the sweep actually found, because the list it started from
        was wrong about two of the three gates it named. */
+    SKIP=SHORT(vh)?'short phone: the demo row is in the bar, #550 a42':null;
     const lines=await b.rect('[data-ct="lesson-lines"]');
     const lTxt=((lines&&lines.text)||'').trim();
     const dmBoard=(await b.metrics()).board;
@@ -589,7 +595,7 @@ L.run(async()=>{
        BOTH BRANCHES ARE STILL ASSERTED, which is the point: "it no longer hangs off" would also be satisfied by
        the button disappearing, or by the glyph and the count dropping at EVERY width - and the second of those
        breaks his Z-06 condition rather than meeting it. The wide branch pins the glyph AND the count. */
-    L.say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^Other lines$/.test(lTxt)),
+    say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^Other lines$/.test(lTxt)),
       geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, WITH the pawn glyph, because the row can hold them':'"Other lines" with NO glyph and NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
       {board:dmBoard&&dmBoard.w,wantCount,label:lTxt});
     /* #550 item (47), jobs/class-clause-instance-case-2026-09-28 (the orchestrator's GAP of 10 Nov): US-INV-05 bullet 3 says NO
@@ -614,29 +620,30 @@ L.run(async()=>{
        costumes of (clip-intersection, "the covering element is big", grid.contains(), flex-shrink absorbing the
        overrun, a footer's own total). The row is the two-track 1.8fr/1fr grid the whole analysis is about, so
        that is what gets named. */
-    L.say(!!dr&&dr.restored===true,
+    say(!!dr&&dr.restored===true,
       geo+': the min-content probe put the row\'s grid back exactly as it found it, so nothing measured after this line is reading a row this gate mutated',
       dr&&{restored:dr.restored,gtc:dr.gtc});
-    L.say(!!dr&&dr.isFrGrid&&dr.tracks.length===2,
+    say(!!dr&&dr.isFrGrid&&dr.tracks.length===2,
       geo+': the element being called "its own row" IS the demo row - the inline two-track 1.8fr/1fr grid ('+(dr&&dr.gtc)+'), not whatever happens to be this button\'s parent. Without this, wrapping the button in a span would make the next assertion unable to fail.',
       dr&&{inlineGtc:dr.isFrGrid,resolved:dr.gtc,tracks:dr.tracks});
     /* #424, ANTAGONIST A: and print the clone-vs-tracks disagreement every run rather than letting it hide
        inside `needed`. It is 2.00px at every rowNarrow geometry today; if it ever moves, the helper is measuring
        something new and this line says so before any pass/fail does. */
-    L.say(!!dr&&dr.cloneShortfall!==null&&Math.abs(dr.cloneShortfall)<=2.5,
+    say(!!dr&&dr.cloneShortfall!==null&&Math.abs(dr.cloneShortfall)<=2.5,
       geo+': the detached-clone min-content and the browser\'s resolved tracks disagree by '+(dr&&dr.cloneShortfall)+'px (tracks '+(dr&&dr.needed)+', clone '+(dr&&dr.neededClone)+'). Printed, not buried: the clone was what the first version of this gate believed, and it is the low one.',
       dr&&{tracks:dr.needed,clone:dr.neededClone,shortfall:dr.cloneShortfall});
-    L.say(!!dr&&dr.btnR<=dr.rowR+0.5,
+    say(!!dr&&dr.btnR<=dr.rowR+0.5,
       geo+': the "Other lines" button is inside ITS OWN ROW, not merely inside the viewport - the row ends at '+(dr&&dr.rowR)+' and the button at '+(dr&&dr.btnR)+'. This is the box that #404, #405 and #406 all left overflowing while every viewport-keyed check stayed green.',
       dr&&{rowR:dr.rowR,btnR:dr.btnR,past:Math.round((dr.btnR-dr.rowR)*100)/100,text:dr.text});
     /* AND THE CAUSE, not only the symptom, so a future change that makes the box fit by truncating the label
        rather than by shrinking it cannot satisfy this: the two children's min-content plus the gap must fit the
        row. #415 built exactly that wrong fix (minWidth:0 plus an ellipsis), measured it squeezing the button to
        26.83px at 320x520, and reverted it. A box-only assertion would have called that a pass. */
-    L.say(!!dr&&dr.needed<=dr.rowW+0.5,
+    say(!!dr&&dr.needed<=dr.rowW+0.5,
       geo+': and it fits because the row can HOLD it - its two children\'s MIN-CONTENT plus gap comes to '+(dr&&dr.needed)+'px against a row of '+(dr&&dr.rowW)+'px - rather than because anything was truncated to make it fit. Measured by asking the browser for min-content tracks and restoring, because a detached clone reads 2.00px low and the RESOLVED fr tracks are tautological (they expand to the row whenever it fits).',
       dr&&{neededFromTracks:dr.needed,neededFromClone:dr.neededClone,rowW:dr.rowW,tracks:dr.tracks,kids:dr.kids,fs:dr.fs,ls:dr.ls});
 
+    SKIP=null;
     // --- TC-LS-014: the ⋯ sheet's prev/next row. The Italian Game is the FIRST opening, so prev is the
     // boundary: disabled and saying so rather than silently dead.
     await D.tapBtn(b,/^More for this lesson$/,600);
@@ -691,13 +698,14 @@ L.run(async()=>{
 
     // --- TC-LS-018…021: the control row, measured BEFORE anything on it is tapped. Rule 3: a click would
     // scroll a control into view first and a row a thumb cannot reach would pass.
+    SKIP=SHORT(vh)?'short phone: the practice row is in the bar, #550 a42':null;
     const r0=await row(b);
-    L.say(r0.length===4&&r0.map(x=>x.a).join(',')===ROW.join(','),geo+': the practice row is exactly ⟳ · 💡 · ↻ Try again · ⋯',r0.map(x=>x.a).join(','));
-    L.say(r0.length===4&&r0.every(x=>near(x.h,44)),geo+': every button on it is 44 tall',r0.map(x=>x.a+':'+x.h).join(' '));
-    L.say(r0.length===4&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),
-      geo+': and the whole row is inside the viewport BEFORE any tap. #384: the flexible ↻ button defaulted to min-width:auto, refused to shrink, and pushed the ⋯ 3.1px off a 320 screen with no page scroll to recover it',{left:r0[0]&&r0[0].x,right:r0[3]&&r0[3].right,vw});
-    L.say(r0.length===4&&near(r0[0].x,Pr.left)&&near(r0[3].right,Pr.left+Pr.w),
-      geo+': the row is the board\'s own width ('+Pr.left+' to '+(Pr.left+Pr.w)+')',{rowLeft:r0[0]&&r0[0].x,rowRight:r0[3]&&r0[3].right});
+    say(r0.length===3&&r0.map(x=>x.a).join(',')===ROW.join(','),geo+': the practice row is exactly ⟳ · 💡 · ↻ Try again (#550 FMT-A-05: its ⋯ went into the bar)',r0.map(x=>x.a).join(','));
+    say(r0.length===3&&r0.every(x=>near(x.h,44)),geo+': every button on it is 44 tall',r0.map(x=>x.a+':'+x.h).join(' '));
+    say(r0.length===3&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),
+      geo+': and the whole row is inside the viewport BEFORE any tap. #384: the flexible ↻ button defaulted to min-width:auto, refused to shrink, and pushed the ⋯ 3.1px off a 320 screen with no page scroll to recover it',{left:r0[0]&&r0[0].x,right:r0[3]&&r0[2].right,vw});
+    say(r0.length===3&&near(r0[0].x,Pr.left)&&near(r0[2].right,Pr.left+Pr.w),
+      geo+': the row is the board\'s own width ('+Pr.left+' to '+(Pr.left+Pr.w)+')',{rowLeft:r0[0]&&r0[0].x,rowRight:r0[2]&&r0[2].right});
     /* #384's other half: the label shortens when it does not fit and ONLY then. THIS EXPECTATION USED TO READ
        `vw<=340`, WHICH IS THE VIEWPORT, AND THE VIEWPORT NEVER DECIDED IT - the same fault #406 fixed in the
        app for six sites and in gate 35's own label assertion, sitting here unfixed in the expectation. The row
@@ -722,7 +730,7 @@ L.run(async()=>{
        from. An assertion that can only be satisfied by touching a barred decision is not a gate, it is a block
        - so the mismatch is filed and routed rather than silently satisfied either way. [R18, R33] */
     const mustBeShort=budget<92.52;
-    L.say(r0.length===4&&!(mustBeShort&&r0[2].t==='↻ Try again'),
+    say(r0.length===3&&!(mustBeShort&&r0[2].t==='↻ Try again'),
       geo+': the ↻ button is never the LONG label when the budget cannot hold it - budget '+Math.round(budget*100)/100+
       'px against the long label\'s 92.52px min-content, so short is '+(mustBeShort?'REQUIRED':'not required')+
       ' and it reads "'+(r0[2]&&r0[2].t)+'" (#384: the long label painted 8.83px outside its own button and 2.83px '+
@@ -731,7 +739,7 @@ L.run(async()=>{
     // TC-LS-035 [#547 item (187)]: THE OTHER DIRECTION, now that the app keys the words to the budget. Where the
     // budget clears the long label with a margin (>= 96px, against its measured 92.52) the label is the LONG one.
     // The window between 92.52 and 96 is left to a note, so the margin is the app's choice and not a pin.
-    if(budget>=96)L.say(r0.length===4&&r0[2].t==='↻ Try again',
+    if(budget>=96)say(r0.length===3&&r0[2].t==='↻ Try again',
       geo+': TC-LS-035 the budget ('+Math.round(budget*100)/100+'px) holds the long label with a margin, so it reads "↻ Try again" - not shortened by a board threshold (#430 measured se at 98.9 reading "↻ Again")',
       {label:r0[2]&&r0[2].t,budget:Math.round(budget*100)/100});
     else if(!mustBeShort&&r0[2]&&r0[2].t!=='↻ Try again')
@@ -745,16 +753,17 @@ L.run(async()=>{
        clip against). Measured with a Range over each button's own contents. */
     const ri=await rowInk(b);
     const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
-    L.say(bad.length===0,geo+': every label on the practice row paints INSIDE its own button - measured as a Range over the button\'s contents, not as its box',bad.map(x=>x.a+' overR '+x.overR+' overL '+x.overL).join(' | ')||'none');
-    L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button\'s box (worst pair '+(ri.worstOverlap&&ri.worstOverlap.pair)+')',ri.worstOverlap);
+    say(bad.length===0,geo+': every label on the practice row paints INSIDE its own button - measured as a Range over the button\'s contents, not as its box',bad.map(x=>x.a+' overR '+x.overR+' overL '+x.overL).join(' | ')||'none');
+    say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button\'s box (worst pair '+(ri.worstOverlap&&ri.worstOverlap.pair)+')',ri.worstOverlap);
+    SKIP=null;
     // --- TC-LS-022/023: the practice board, pinned; and the footer loses the transport.
     const p0=await b.metrics();
     L.say(!!p0.board&&near(p0.board.w,Pr.w)&&near(p0.board.left,Pr.left)&&near(p0.board.top,BOARD_TOP,1),
       geo+': the practice board is '+Pr.w+' wide at left '+Pr.left+', top '+BOARD_TOP+(Pr.w===Dm.w?' - the SAME square as the demo\'s '+Dm.w+' (#547 (124): the progress strip no longer takes layout)':' - a different square from the demo\'s '+Dm.w),{measured:p0.board,want:Pr});
     L.say(p0.over.over<=0,geo+': nothing scrolls in practice either',p0.over);
     const fp=await footer(b);
-    L.say(!!fp&&fp.btns.join(',')==='Close lesson,More for this lesson',
-      geo+': in practice the footer drops the transport and carries only ✕ and ⋯ - there is no demo to step through',fp&&fp.btns.join(','));
+    L.say(!!fp&&fp.btns.join(',')===(SHORT(vh)?'Close lesson,Flip board,Hints,Try again,More for this lesson':'Close lesson,More for this lesson'),
+      geo+': in practice the footer drops the transport and carries ✕ and ⋯'+(SHORT(vh)?' with the practice row between them (a42)':' only')+' - there is no demo to step through',fp&&fp.btns.join(','));
     L.say(!!fp&&near(fp.h,FOOT_H)&&near(fp.bottom,vh),geo+': and it is the same '+FOOT_H+'px bar pinned to the same place, so the screen does not jump when the phase changes',fp);
     const lo=await laidOut(b);
     L.say(lo.length>0&&lo.every(x=>!x.underFoot),geo+': no practice control is hidden under the fixed footer',lo.filter(x=>x.underFoot).map(x=>x.t+'@'+x.bottom).join(' ')||'none of '+lo.length);
@@ -871,6 +880,7 @@ L.run(async()=>{
     remembered: the two children's resolved tracks plus the gap come to 231.55px at every geometry under rowNarrow
     (both labels are fixed strings there), so the residual at any height is simply 231.55 minus the board width. */
  for(const geo of ['short375','390x568','375x520','320x520','320x540']){
+  SKIP='every geometry here is a short phone: the demo row this block measures is in the lesson bar, #550 a42';
    const g = geo==='390x568' ? {w:390,h:568,safe:'',label:'390x568 = the wide-and-short corner, one step up'}
            : geo==='375x520' ? {w:375,h:520,safe:'',label:'375x520 = short enough that the practice row starves'}
            : geo==='320x520' ? {w:320,h:520,safe:'',label:'320x520 = narrow AND short: the worst case of both rows'}
@@ -913,7 +923,7 @@ L.run(async()=>{
    const dm0=await b.metrics();
    await b.page.waitForTimeout(500);
    const dm=await b.metrics(), dl=await b.rect('[data-ct="lesson-lines"]');
-   L.say(!!dm0.board&&!!dm.board&&Math.abs((dm0.board.w||0)-(dm.board.w||0))<=0.2,
+   say(!!dm0.board&&!!dm.board&&Math.abs((dm0.board.w||0)-(dm.board.w||0))<=0.2,
      geo+': two samples 500ms apart agree on the DEMO board width ('+(dm0.board&&dm0.board.w)+' then '+
      (dm.board&&dm.board.w)+') - AND THIS LINE DISPROVED ITS OWN REASON FOR EXISTING, WHICH IS WHY IT STAYS. '+
      'It was added at #430 believing this block read the board before it settled; the guard then reported 192 '+
@@ -924,8 +934,8 @@ L.run(async()=>{
      'flaky" into a measured fact about WHICH quantity moves, and it prints the number every run',
      {first:dm0.board&&dm0.board.w,settled:dm.board&&dm.board.w,tol:0.2});
    const dTxt=((dl&&dl.text)||'').trim();
-   L.say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
-   L.say(!!dl&&/^Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
+   say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
+   say(!!dl&&/^Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
    /* #415 PINS THIS AT 375x520 INSTEAD OF ASSERTING IT, because at that height the button really is off the
       screen and the fix is not this build's to make. MEASURED on the shipped #414 bundle at the demo end:
       320x520 puts it at 229.17..351.73, 31.73px past the right edge of a 320 viewport; 375x520 at
@@ -974,7 +984,7 @@ L.run(async()=>{
       is pinned per geometry at its OWN measured value - #415's antagonist lesson, that a pin at one point is a
       frozen denominator - and reported every run rather than excused. */
    const _lnOff = dl ? Math.round((dl.x+dl.w-vw)*100)/100 : null;
-   L.say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': the "Other lines" button is inside the viewport - '+_lnOff+'px past its right edge, so at or inside it. This was +4.23 at 375x520 and +31.73 at 320x520 before #424 and was PINNED as a live unrecoverable defect at both; his icon-font-ls ladder closed it.',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw,was:{'375x520':4.23,'320x520':31.73}[geo]});
+   say(!!dl&&dl.x>=-0.6&&dl.x+dl.w<=vw+0.6,geo+': the "Other lines" button is inside the viewport - '+_lnOff+'px past its right edge, so at or inside it. This was +4.23 at 375x520 and +31.73 at 320x520 before #424 and was PINNED as a live unrecoverable defect at both; his icon-font-ls ladder closed it.',{l:dl&&dl.x,r:dl&&dl.w!=null?Math.round((dl.x+dl.w)*100)/100:null,vw,was:{'375x520':4.23,'320x520':31.73}[geo]});
    const _dr=await demoRow(b);
    /* #430 RE-PINNED, AND EVERY ONE MOVED IN THE GOOD DIRECTION. These are pins, red in EITHER direction by
       design, so they move with the measurement. #430 stopped the MOVES row wrapping, which shortened the MOVES
@@ -1024,7 +1034,7 @@ L.run(async()=>{
      const _fits = _dr.needed!==null && _dr.needed <= _dr.rowW + 0.5;
      const _over = Math.round((_dr.btnR-_dr.rowR)*100)/100;
      const _pred = _dr.needed!==null ? Math.round(Math.max(0,_dr.needed-_dr.rowW)*100)/100 : null;
-     L.say(_dr.needed!==null && Math.abs(_over-_pred)<=0.6,
+     say(_dr.needed!==null && Math.abs(_over-_pred)<=0.6,
        geo+': the demo row overflows its own row by exactly what the arithmetic predicts and by nothing else - '+
        'the button runs '+_over+'px past a row ending at '+_dr.rowR+', and the row\'s two min-content tracks plus '+
        'gap need '+_dr.needed+'px against a row of '+_dr.rowW+'px (the board\'s own width), so the prediction is '+
@@ -1038,7 +1048,7 @@ L.run(async()=>{
         assertion (1) cannot make, because `rowW` appears on both sides of (1). Truncate a label or change the
         Flip/Other-lines padding and THIS goes red while (1) stays green. It replaces `_causePin`, which asserted
         `needed - rowW == DEMO_NEEDED - rowW` - algebraically this same claim, reached the long way round. */
-     L.say(_dr.needed!==null && Math.abs(_dr.needed-DEMO_NEEDED)<=0.6,
+     say(_dr.needed!==null && Math.abs(_dr.needed-DEMO_NEEDED)<=0.6,
        geo+': and the TERM is pinned to a constant - the row\'s two resolved tracks plus gap need '+_dr.needed+
        'px against DEMO_NEEDED '+DEMO_NEEDED+'px, geometry-independent under rowNarrow. Nothing was truncated to '+
        'make the box fit: an ellipsis would DROP this number, which is why the term and not its consequence is '+
@@ -1052,7 +1062,7 @@ L.run(async()=>{
         there is no finite set to enumerate. Mechanism and app fix:
         jobs/lesson-demo-board-is-bistable-at-375x568-2026-09-29. */
      if(DEMO_SETTLED!==undefined){
-       L.say(Math.abs(_dr.rowW-DEMO_SETTLED)<=0.6,
+       say(Math.abs(_dr.rowW-DEMO_SETTLED)<=0.6,
          geo+': and the demo BOARD is at its settled width - '+_dr.rowW+'px against '+DEMO_SETTLED+
          '. This is the DEMO block\'s own latch detector, measured in its own visit: the two pins #468 replaced '+
          'here were carrying this bound in disguise, exactly as `_fp` was in the flip block, and repairing them '+
@@ -1063,12 +1073,12 @@ L.run(async()=>{
         to a finger. A row overflow inside the viewport is recoverable; past the viewport it is not, and CLAUDE.md
         names horizontal spill past the viewport as the one unrecoverable bug. THIS IS THE ASSERTION #468's FIRST
         VERSION ORPHANED at short375 and 390x568; it now runs at all five. */
-     L.say(_dr.btnR<=vw+0.6,
+     say(_dr.btnR<=vw+0.6,
        geo+': and it stays inside the VIEWPORT whichever board width this run got - the button ends at '+
        _dr.btnR+' against a viewport of '+vw+', so nothing is stranded off-screen',
        {btnR:_dr.btnR,vw:vw});
    } else {
-     L.say(false, geo+': the DEMO ROW WAS NOT FOUND, which is a failure and not a quiet skip (#385/#393: guard '+
+     say(false, geo+': the DEMO ROW WAS NOT FOUND, which is a failure and not a quiet skip (#385/#393: guard '+
        'anything that measures a thing that might not be there, go red on its own assertion, and carry on)', {});
    }
    /* ══ #427: THE FLIP BRANCH, WHICH NO GATE HAD EVER ENTERED. jobs/flip-branch-overflows-its-row-and-no-gate-
@@ -1140,14 +1150,14 @@ L.run(async()=>{
         somewhere else, or the label changes, `found:false` must be a FAILURE and not a quiet skip - which is
         exactly the failure mode this whole block exists to remove. `hasLines` false is the other half: it
         proves this is the branch demoRow() cannot see, rather than a second reading of the one it can. */
-     L.say(_f.found===true&&_f.hasLines===false,
+     say(_f.found===true&&_f.hasLines===false,
        _tag+': the demo row is in its ⟳ Flip branch - the button is there AND [data-ct="lesson-lines"] is NOT in the DOM, which is why demoRow() cannot be reused here. The suite never measured THIS BRANCH\'S CONTAINMENT against its own row - the button is visited and hit-tested by the main loop, but the box it sits in was never compared with the row holding it - and not because that selector fails quietly: it does not, the pre-#427 gate goes 36 RED when forced into this branch. On the branch 145 of 170 lessons show',
        {found:_f.found,seen:_f.seen,hasLines:_f.hasLines,kids:_f.kids});
-     L.say(_f.restored===true,_tag+': and the row\'s gridTemplateColumns was put back after the min-content probe (snapshotted as a string first - a live getComputedStyle compares with itself and passes whatever happened)',{restored:_f.restored});
+     say(_f.restored===true,_tag+': and the row\'s gridTemplateColumns was put back after the min-content probe (snapshotted as a string first - a live getComputedStyle compares with itself and passes whatever happened)',{restored:_f.restored});
      /* A FLAKY PIN IS WORSE THAN NO PIN (#387). My own bisect read the board 15px small at 320x551 once and
         monotonic on both re-runs, so the board CAN be read before it settles. Two samples 500ms apart must
         agree, and the SETTLED one is what every assertion below uses. */
-     L.say(_f1.found&&_f.found&&Math.abs(_f1.past-_f.past)<=0.2,
+     say(_f1.found&&_f.found&&Math.abs(_f1.past-_f.past)<=0.2,
        _tag+': two samples 500ms apart agree on the residual ('+_f1.past+' then '+_f.past+') - the board can be read before it settles, so this is measured twice and the settled sample is what is pinned below',
        {first:_f1.past,settled:_f.past});
      /* THE CAUSE, PINNED. An ellipsis or a minWidth:0 "fix" satisfies a box check by eating the label and
@@ -1157,10 +1167,10 @@ L.run(async()=>{
      /* #550 item (130): AND THE BRANCH IS NOW CONTAINED IN ITS OWN ROW AT EVERY GEOMETRY. #549's log read 4.05px past the row
         at 375x520 (board 223.2 against 226.77 needed); Kunal's answer was 12px text only when it does not fit. Measured on
         trial 2e78274c37e8: -0.02 at 375x520, and the other four columns unchanged at 14px. */
-     L.say(_f.found&&_f.past<=0.5,
+     say(_f.found&&_f.past<=0.5,
        _tag+': the Flip branch is CONTAINED in its own row - '+_f.past+'px past it (#550 item (130): it was 4.05 at 375x520 before the row shrank to 12px where it does not fit)'+(_tight?' - the row is tight here and its text is '+_f.fs:''),
        {past:_f.past,rowW:_f.rowW,needed:_f.needed,tight:_tight,fs:_f.fs});
-     L.say(_f.needed!==null&&Math.abs(_f.needed-_needPin)<=0.6,
+     say(_f.needed!==null&&Math.abs(_f.needed-_needPin)<=0.6,
        _tag+': the row\'s two min-content tracks plus gap need '+_f.needed+'px (pinned at '+_needPin+(_tight?', the 12px value where the row is tight':'')+'; '+FLIP_NEEDED+' is a ROWNARROW-ONLY constant). THE TERM IS THE FLIP BUTTON\'S HORIZONTAL PADDING, NOT ITS FONT - 9px/6px under rowNarrow against 9px/15px above it, and 2 x 9 = 18.00 = 244.77 - 226.77 to the hundredth. This build first printed "because both labels are fixed strings at 14px" and its OWN negative control disproved it: NC1 changes only that padding and moves needed to 244.77 at all six column-states, while at 375x730 the same strings at the same 14px and the same 0.3px letter-spacing give 244.77. Nothing was truncated to make a box fit either: an ellipsis would drop this number and leave the box one happy.',
        {needed:_f.needed,pinned:FLIP_NEEDED,tracks:_f.mcTracks,gap:_f.gap,fs:_f.fs});
      /* #468 DELETED THE PER-GEOMETRY-NAME PIN AND REPLACED THE BOUND IT WAS SECRETLY CARRYING.
@@ -1283,7 +1293,7 @@ L.run(async()=>{
           If a LEGITIMATE board change reddens this, re-measure and move the number - do not delete the line. */
        const _bw=_fm.board.w, _settled=Math.abs(_bw-_legalBoard)<=0.6;
        const _latched=Math.abs(_bw-192.0)<=0.6;
-       L.say(_settled,
+       say(_settled,
          _tag+': the demo BOARD is at its settled width - '+_bw+'px against '+_legalBoard+
          (_settled?'':_latched?'. THIS IS THE KNOWN 192.00 LATCH, which is a 19% smaller board and is the state this assertion exists to catch'
                   :(_bw<_legalBoard?'. The board is SMALLER than its settled width and this is not the known 192.00 latch, so it is a new state'
@@ -1328,7 +1338,7 @@ L.run(async()=>{
           its own job. */
        const _fits=_f.needed!==null&&_f.needed<=_f.rowW+0.5;
        const _fpred=_f.needed!==null?Math.round(Math.max(0,_f.needed-_f.rowW)*100)/100:null;
-       L.say(_f.needed!==null&&Math.abs(_f.past-_fpred)<=0.6,
+       say(_f.needed!==null&&Math.abs(_f.past-_fpred)<=0.6,
          _tag+': ⟳ Flip overflows its own row by exactly what the arithmetic predicts and by nothing else - '+
          'the button runs '+_f.past+'px past a row ending at '+_f.rowR+', and the row\'s two min-content tracks '+
          'plus gap need '+_f.needed+'px against a row of '+_f.rowW+'px (the board\'s own width), so the '+
@@ -1341,7 +1351,7 @@ L.run(async()=>{
        /* AND STILL INSIDE THE VIEWPORT, which is the half a finger cares about: a row overflow inside the
           viewport is recoverable, past it is not, and CLAUDE.md names horizontal spill past the viewport as the
           one unrecoverable bug. The sibling row assertion pairs the same two claims. */
-       L.say(_f.btnR<=vw+0.6,
+       say(_f.btnR<=vw+0.6,
          _tag+': and ⟳ Flip stays inside the VIEWPORT whichever board width this run drew - the button ends at '+
          _f.btnR+' against a viewport of '+vw+', so nothing is stranded off-screen',
          {btnR:_f.btnR,vw:vw});
@@ -1356,12 +1366,12 @@ L.run(async()=>{
      const _bandNeed=(_f.rowW<FLIP_NEEDED-0.5)?FLIP_NEEDED_TIGHT:FLIP_NEEDED;
      const _pred=Math.round(Math.max(0,_bandNeed-_fm.board.w)*100)/100;
      const _seen=Math.max(0,_f.past);
-     L.say(!!_fm.board&&Math.abs(_fm.board.w-_f.rowW)<=0.6&&Math.abs(_seen-_pred)<=0.6,
+     say(!!_fm.board&&Math.abs(_fm.board.w-_f.rowW)<=0.6&&Math.abs(_seen-_pred)<=0.6,
        _tag+': and the residual is the BAND and not this column - the row is the board\'s own width ('+_f.rowW+' against a board of '+_fm.board.w+'), so it is '+_bandNeed+' minus the board at every height, predicting '+_pred+' against a measured '+_seen+'. This is what covers heights 521-555, which have no column of their own; the band runs to h=555 and is contained from 556.',
        {board:_fm.board&&_fm.board.w,rowW:_f.rowW,predicted:_pred,measured:_seen});
      /* WHICH KIND OF OVERFLOW IT IS. Asserted, because the severity is the whole difference between this and
         the defect #424 closed, and a reader of the log should not have to go and find out. */
-     L.say(_f.btnX>=-0.6&&_f.btnR<=_f.vw+0.6&&_f.docSW<=_f.vw+0.6,
+     say(_f.btnX>=-0.6&&_f.btnR<=_f.vw+0.6&&_f.docSW<=_f.vw+0.6,
        _tag+': and it is a ROW overflow and NOT the unrecoverable kind - the button ends at '+_f.btnR+' inside a '+_f.vw+' viewport ('+Math.round((_f.vw-_f.btnR)*100)/100+'px of clearance) with nothing scrolling. "Other lines" in this same cell was the other kind at #415: 31.73px PAST a 320 edge with documentElement.scrollWidth equal to the viewport.',
        {btnX:_f.btnX,btnR:_f.btnR,vw:_f.vw,docSW:_f.docSW});
      /* ══ #427, ANTAGONIST B'S VETO, AND IT IS A WRONG ACTION RATHER THAN A COSMETIC ONE. Seven pixels below
@@ -1400,7 +1410,7 @@ L.run(async()=>{
         AREA. */
      if(_fst==='endgame-demo-end'){
        const _ar=await actionRowHit(b);
-       L.say(_ar.found===true,
+       say(_ar.found===true,
          geo+': the lesson\'s secondary action row is there with both 🔍 Analyze and 📋 Copy moves, so the hit assertions below are not vacuous',
          {found:_ar.found,analyze:_ar.hasAnalyze,copy:_ar.hasCopy,wrapped:_ar.wrapped,board:_fm.board&&_fm.board.w});
        /* #430 RESTRUCTURED THIS BRANCH, AND THE REASON IS THE SAME ONE AMENDMENT B GAVE FOR GATE 53's W1.
@@ -1435,15 +1445,15 @@ L.run(async()=>{
             on any bundle. The patch names the better form itself - assert the relation, not the absolute -
             and the fixed state's relation is simply that there is no flip inside the box at all. [R18] */
          L.note(geo+': DIAGNOSTIC overlap='+_ar.overlap+'px (was PINNED at 14px through #427; DEMOTED at #428 - it is a SYMPTOM, and -8px margins take it to 10.00 with the defect still live)  lineAdvance='+_ar.lineAdvance+'  boxes '+_ar.anH+'px  whole-box rows lost '+_ar.hitC+' of '+_ar.total);
-         L.say(_ar.found&&_ar.inkLost===0,
+         say(_ar.found&&_ar.inkLost===0,
            geo+': FIXED AT #428 - '+_ar.inkLost+' of '+_ar.inkRows+' pixel rows of the PAINTED PILL of "Analyze" (the chip; #428 measured the letters at 354..367 against Copy at 368, so they are ~1px clear and it is the chip\'s bottom band that was lost) hit another control (TARGET 0, reached; it was 4 through #427). Sampled at integer y over the half-open interval [ceil(inkTop), floor(inkBot)) down the button\'s own centre line - an integer scan and a half-pixel-centre scan disagree by one row at this boundary, which is why #427 published 4 and antagonist B published 5, and why the convention travels with the number',
            {inkLost:_ar.inkLost,inkRows:_ar.inkRows,target:0,interval:'[ceil(inkTop), floor(inkBot))',hitC:_ar.hitC,total:_ar.total});
-         L.say(_ar.found&&_ar.flipY===null,
+         say(_ar.found&&_ar.flipY===null,
            geo+': and there is NO y inside "Analyze"\'s own box at which it stops answering for itself (stepped at 0.125px from its top; flipY='+_ar.flipY+', target null, box '+_ar.anTop+'..'+_ar.anBot+', Copy\'s top '+_ar.cpTop+'). THIS IS THE ASSERTION THAT CATCHES A PARTIAL FIX: at -8px margins the ink count above reaches 0 and this one stays red, because 10 of 43 box rows still fire the wrong button (NC2, md5 8ec730fd8697) - and at rowGap:20, which clears the ink, it stayed red too because the hit rect snaps 0.875px above the touching edge. That measurement is why the shipped gap is 22 and not 20',
            {flipY:_ar.flipY,target:null,anTop:_ar.anTop,anBot:_ar.anBot,cpTop:_ar.cpTop,step:0.125});
        }
        {
-         L.say(_ar.found&&_ar.inkLost===0,
+         say(_ar.found&&_ar.inkLost===0,
            geo+': the action row does NOT wrap at board '+(_fm.board&&_fm.board.w)+', so every pixel row of "Analyze" hits Analyze ('+_ar.hitA+' of '+_ar.total+') and none of its ink is lost. This is the healthy side of the boundary, and it is asserted so the pinned columns above are a contrast and not a lone number',
            {wrapped:_ar.wrapped,inkLost:_ar.inkLost,hitA:_ar.hitA,total:_ar.total});
        }
@@ -1452,8 +1462,8 @@ L.run(async()=>{
    await b.shot('lesson-flip-branch-'+geo);
    await D.states['practice-m0'](b);
    const r0=await row(b), ri=await rowInk(b), m=await b.metrics();
-   L.say(r0.length===4,geo+': the practice row is there at all (four controls)',r0.map(x=>x.a).join(','));
-   L.say(!!m.board&&m.board.w<340,geo+': and the board really is under 340 wide here ('+(m.board&&m.board.w)+') while the viewport is '+vw+' - which is why a viewport threshold cannot decide this row',{board:m.board&&m.board.w,vw});
+   say(r0.length===4,geo+': the practice row is there at all (four controls)',r0.map(x=>x.a).join(','));
+   say(!!m.board&&m.board.w<340,geo+': and the board really is under 340 wide here ('+(m.board&&m.board.w)+') while the viewport is '+vw+' - which is why a viewport threshold cannot decide this row',{board:m.board&&m.board.w,vw});
    const budget=r0.length===4?Math.round((r0[3].right-r0[0].x-(3*46)-(3*6))*100)/100:null;
    /* #415 RE-KEYS THIS TO THE RULE THE APP NOW IMPLEMENTS, WHICH IS THREE-WAY RATHER THAN TWO-WAY, and the
       expectation is computed from the same arithmetic the app uses rather than from this geometry list -
@@ -1466,13 +1476,13 @@ L.run(async()=>{
       budget < 96, not the old board threshold's budget < 184. The glyph-only step (rowTiny, boardPx < 229 = budget < 73)
       is unchanged. */
    const wantLabel = budget===null?null : budget<73 ? '↻' : budget<96 ? '↻ Again' : '↻ Try again';
-   L.say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row.',{budget,label:r0.length===4?r0[2].t:null});
+   say(budget!==null&&r0[2].t===wantLabel,geo+': the ↻ button reads "'+wantLabel+'", computed from the budget the row actually leaves it ('+budget+'px) and the rule the app implements, not from this geometry list. Under 73px there is no room for a word at all - the short label needs 63.78px of ink plus its 4px of padding each side - so it falls back to the bare glyph, which is what chess.jsx:5221 already does for this action in the demo row.',{budget,label:r0.length===4?r0[2].t:null});
    const bad=(ri.btns||[]).filter(x=>x.inkR!==null&&(x.overR>0.5||x.overL>0.5));
-   L.say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
-   L.say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
-   L.say(r0.length===4&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),geo+': and every box is still inside the viewport - true BEFORE the fix as well, which is why this column needed the ink assertions above rather than another containment check',r0.map(x=>x.a+':'+x.right).join(' '));
+   say(bad.length===0,geo+': every label paints INSIDE its own button (this is the assertion the defect crossed: 8.83px past the right edge, 8.81px past the left)',bad.map(x=>x.a+' overR '+x.overR).join(' | ')||'none');
+   say(!!ri.worstOverlap&&ri.worstOverlap.inkBleed!==null&&ri.worstOverlap.inkBleed<=0,geo+': and no label\'s ink reaches the next button (it bled 2.83px onto the ⋯ before the fix)',ri.worstOverlap);
+   say(r0.length===4&&r0.every(x=>x.x>=-0.6&&x.right<=vw+0.6),geo+': and every box is still inside the viewport - true BEFORE the fix as well, which is why this column needed the ink assertions above rather than another containment check',r0.map(x=>x.a+':'+x.right).join(' '));
    const pl=await PAGELOCK(b);
-   L.say(PAGELOCK_OK(pl),geo+': nothing scrolls the page here - body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+' (docScroll '+(pl&&pl.docScroll)+', printed, 0 by construction) [#549 item (7): was docScroll===0 alone, which could not fail]',pl);
+   say(PAGELOCK_OK(pl),geo+': nothing scrolls the page here - body position '+(pl&&pl.bodyPos)+', html/body overflow-y '+(pl&&pl.htmlOvY)+'/'+(pl&&pl.bodyOvY)+', #root overflow-y '+(pl&&pl.rootOvY)+' (docScroll '+(pl&&pl.docScroll)+', printed, 0 by construction) [#549 item (7): was docScroll===0 alone, which could not fail]',pl);
    await b.shot('lesson-practice-row-'+geo);
    await b.close();
  }
@@ -1491,6 +1501,7 @@ L.run(async()=>{
     because at the demo end the Italian Game shows the OTHER branch - which is the whole reason this state was
     never covered. */
  const FLIP_NEEDED_WIDE=244.77;   // the same row above rowNarrow: +18.00 of horizontal padding, measured
+ SKIP=null;
  for(const geo of ['kunal730','390']){
    const b=await L.launch({geo,name:'lesson-flip-wide-'+geo});await b.open();
    L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
@@ -1528,7 +1539,7 @@ L.run(async()=>{
    L.say(!!nx&&nx.sw<=nx.cw+0.5,geo+': TC-LS-036 and its label is not cut - the name is shown only where the slot measures wide enough for it',nx);
    const want=nx?nx.a.replace(/^Next lesson: /,''):null;
    // [#547 antagonist A] with Next in the slot, practising the same line again must still have a route: the lesson's ⋯ sheet
-   await b.page.locator('button[aria-label="More actions"]').first().click().catch(()=>{});await b.settle(400);
+   await b.page.locator('button[aria-label="More for this lesson"]').first().click().catch(()=>{});   /* #550 FMT-A-05: one ⋯ */await b.settle(400);
    const pa=await b.rect('[data-ct="learn-practice-again"]');
    L.say(!!pa,geo+': TC-LS-036 the ⋯ sheet offers "Practise this line again", so Next taking the slot does not remove the replay',pa&&{text:pa.text});
    await b.page.mouse.click(Math.round(b.geo.w/2),20);await b.settle(400);
@@ -1668,8 +1679,8 @@ L.run(async()=>{
  for(const geo of ['kunal761','kunal730','kunal','se','390','430']){
    const b=await L.launch({geo,name:'lesson-actrow-'+geo});await b.open();
    let ok=true;try{await D.states['demo-end'](b);await b.settle(1200);}catch(e){ok=false;}
-   const r=await b.page.evaluate(()=>{const RES=[/try it/i,/Other lines|Flip/i,/Analyze$/,/Copy/];const vis=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();return q.width>2&&q.height>2;});
-     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim())||re.test((y.getAttribute('aria-label')||'').trim().split(' ')[0]));   /* #550 a6: Analyze and Copy are icon-only, named by aria-label */if(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+   const r=await b.page.evaluate(()=>{const RES=[/try it/i,innerHeight<700?/^More for this lesson$/:/Other lines|Flip/i,/Analyze$/,/Copy/];   /* #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov; a42): on a short phone Now I'll try it is a bar button and Other lines is behind the bar's ⋯ */const vis=[...document.querySelectorAll('button')].filter(x=>{const q=x.getBoundingClientRect();return q.width>2&&q.height>2;});
+     return {vh:innerHeight,c:RES.map(re=>{const x=vis.find(y=>re.test((y.innerText||'').trim())||re.test((y.getAttribute('aria-label')||'').trim().split(' ')[0])||re.test((y.getAttribute('aria-label')||'').trim()));   /* #550 a6: Analyze and Copy are icon-only, named by aria-label */if(!x)return {re:String(re),found:false};const q=x.getBoundingClientRect();const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
        return {re:String(re),found:true,top:Math.round(q.top),bot:Math.round(q.bottom),on:q.top>=-0.5&&q.bottom<=innerHeight+0.5&&!!e&&(e===x||x.contains(e))};})};});
    L.say(ok&&r.c.every(x=>x.found),geo+': TC-R78c PRECONDITION the demo reached its end and all four action-row controls are in the DOM',r);
    L.say(r.c.length===4&&r.c.every(x=>x.found&&x.on),geo+': TC-R78c every action-row control is on screen at rest and hit-tests to itself ('+r.c.map(x=>x.re+' '+(x.found?x.top+'..'+x.bot+(x.on?'':' OFF'):'absent')).join('; ')+' of '+r.vh+')',r);
@@ -1683,7 +1694,7 @@ L.run(async()=>{
      const head=[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&/^MOVES$/i.test((e.innerText||'').trim()));const an=[...document.querySelectorAll('button')].find(x=>/Analyze$/.test((x.innerText||'').trim())||/^Analyze/.test(x.getAttribute('aria-label')||''));   // #550 a6: icon-only, named by aria-label
      const r=n=>n?Math.round(n.getBoundingClientRect().top*10)/10:null;return {bw:g?Math.round(g.width*10)/10:null,bt:g?Math.round(g.top*10)/10:null,bb:g?g.bottom:null,head:r(head),an:r(an)};});
    let ok=true;try{await D.states['demo-end'](b);await b.settle(900);}catch(e){ok=false;}const a0=await rd();
-   try{await D.tapBtn(b,/^✋ Now I'll try it$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
+   try{await D.tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);await b.settle(900);}catch(e){ok=false;}const a1=await rd();
    if(!L.say(ok&&a0.bw&&a0.head!=null&&a0.an!=null&&a1.head!=null,geo+': TC-LS-039 PRECONDITION demo end and practice move 0 were both reached, with the board, MOVES head and Analyze found',{a0,a1})){await b.close();continue;}
    L.say(a1.bw===a0.bw&&a1.bt===a0.bt,geo+': TC-LS-039 the board keeps its size and place across "Now I\'ll try it" ('+a0.bw+' at '+a0.bt+' -> '+a1.bw+' at '+a1.bt+')',{a0,a1});
    L.say(a1.head===a0.head&&a1.an===a0.an,geo+': TC-LS-039 and the MOVES head and the Analyze row do not move ('+a0.head+'/'+a0.an+' -> '+a1.head+'/'+a1.an+')',{a0,a1});
