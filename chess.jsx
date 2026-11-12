@@ -1713,6 +1713,49 @@ function mistakeWhy(pos,bestMove,bestSan,playedSan,evalBeforeW,evalAfterW,userCo
    sending the player hunting for a tactic that is not there. The string it replaces fired on all 148
    captured mistakes ("look for the most forcing or solid option"), which is escapes/generic-hint-on-every-
    mistake-2026-09-20 (-8); Kunal promoted this half from secondary to equal first on 2026-09-20. */
+/* #550 docs/hint-audit-2026-11-12 (HEX-T-01, HEX-T-02, HEX-R-10; jobs/drill-hints-name-the-positions-point-2026-11-12): THE CONCRETE READING.
+   Kunal, 12 Nov: the hints "are again very generic ... you could've said something like they left the queen hanging take it with the
+   bishop". The audit's checklist, in its order, with the readers this file already has; the first that is true is said, and null means
+   nothing concrete fits, so the caller keeps its general line. Returns {k, hint, say}: hint is a nudge that does not name the move, say
+   names it. Pure and synchronous - no engine. */
+function _cheapAttacker(board,r,c,by){let b=null;for(let i=0;i<8;i++)for(let j=0;j<8;j++){const p=board[i]&&board[i][j];if(p&&p.c===by&&moveHits(board,i,j,r,c)&&(!b||(SEEVAL[p.t]||0)<(SEEVAL[b.t]||0)))b={t:p.t,r:i,c:j};}return b;}
+function _mateInOne(g){try{for(const m of getLegal(g)){const g3=makeMove(g,m);if(g3&&getStatus(g3)==='checkmate')return m;}}catch(e){}return null;}
+function concreteRead(pos,mv){
+  try{
+    if(!pos||!mv)return null;
+    const me=pos.turn,them=opp(me);const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];if(!pc)return null;
+    const g2=makeMove(pos,mv);if(!g2)return null;
+    const san=toSAN(pos,mv,g2.board).replace(/[+#]$/,'');
+    const st2=getStatus(g2);const nm=(t)=>PNAME[t]||'piece';
+    if(st2==='checkmate')return {k:'mate1',hint:'There is mate in one.',say:san+' is mate.'};
+    let _m2=false;try{const rs=getLegal(g2);_m2=rs.length>0&&rs.length<=40&&rs.every(r=>{const g3=makeMove(g2,r);return g3&&!!_mateInOne(g3);});}catch(e){_m2=false;}
+    if(_m2)return {k:'mate2',hint:'There is mate in two'+(st2==='check'?', and it starts with a check.':'.'),say:san+' forces mate in two.'};
+    const _ft=(()=>{if(st2!=='check')return null;let ft=[];try{ft=forkTargets(pos,mv)||[];}catch(e){ft=[];}const a=ft.filter(t=>t!=='k'&&t!=='king')[0];if(!a)return null;const t=PNAME[a]?a:(Object.keys(PNAME).find(k=>PNAME[k]===a)||null);if(!t)return null;
+      if(seeSq({...g2,turn:them},mv.tr,mv.tc,them)>0)return null;let sq='';for(let r=0;r<8&&!sq;r++)for(let c=0;c<8;c++){const x=g2.board[r][c];if(x&&x.c===them&&x.t===t&&moveHits(g2.board,mv.tr,mv.tc,r,c)){sq=rc2sq(r,c);break;}}return {t,sq};})();
+    if(_ft)return {k:'forkcheck',hint:'Your '+nm(pc.t)+' has a check that also hits the '+nm(_ft.t)+(_ft.sq?' on '+_ft.sq:'')+'.',say:san+' checks the king and attacks the '+nm(_ft.t)+(_ft.sq?' on '+_ft.sq:'')+'.'};
+    if(!isInCheck(pos.board,me)){
+      const gN={...pos,turn:them,ep:null};const thr=_mateInOne(gN);
+      if(thr&&!_mateInOne(g2)){const ts=toSAN(gN,thr,applyMove(gN.board,thr)).replace(/[+#]$/,'');return {k:'threat',hint:'They threaten '+ts+' mate. Stop that first.',say:san+' stops '+ts+' mate.'};}
+    }
+    if(pc.t!=='k'&&seeSq({...pos,turn:them,ep:null},mv.fr,mv.fc,them)>0){
+      const a=_cheapAttacker(pos.board,mv.fr,mv.fc,them);
+      if(a&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0)return {k:'save',hint:'Your '+nm(pc.t)+' on '+rc2sq(mv.fr,mv.fc)+' is under attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'. Move it out.',say:san+' moves the '+nm(pc.t)+' out of the attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'.'};
+    }
+    const cap=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap?{t:'p',c:them}:null);
+    if(cap&&cap.c===them){
+      const back=seeSq({...g2,turn:them},mv.tr,mv.tc,them);const net=(SEEVAL[cap.t]||0)-Math.max(0,back);
+      if(net>0)return {k:'take',hint:'Their '+nm(cap.t)+' on '+rc2sq(mv.tr,mv.tc)+' can be taken. Take it with the '+nm(pc.t)+'.',say:san+' wins the '+nm(cap.t)+(back>0?' for the '+nm(pc.t):'')+'.'};
+    }
+    const safe=seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0;
+    if(st2==='check'&&safe){
+      return {k:'check',hint:'There is a safe check with your '+nm(pc.t)+'.',say:san+' is a safe check.'};
+    }
+    if(safe){for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=g2.board[r][c];if(!t||t.c!==them||t.t==='k'||t.t==='p')continue;
+      if(moveHits(g2.board,mv.tr,mv.tc,r,c)&&!moveHits(pos.board,mv.fr,mv.fc,r,c)&&seeSq({...g2,turn:me,ep:null},r,c,me)>0)
+        return {k:'attack',hint:'Their '+nm(t.t)+' on '+rc2sq(r,c)+' is short of defenders. Attack it.',say:san+' attacks the '+nm(t.t)+' on '+rc2sq(r,c)+', which is short of defenders.'};}}
+    return null;
+  }catch(e){return null;}
+}
 function mistakeHint(pos,bestMove,playedMv){
   try{
     if(!bestMove)return '';
@@ -4396,7 +4439,8 @@ export default function App(){
   const [lpv,setLpv]=useState(null);
   const [sqShow,setSqShow]=useState(false);
   const lpvRef=useRef(null);
-  const [playHintMv,setPlayHintMv]=useState(null);
+  const [playHintMv,setPlayHintMv]=useState(null);const [playHintTxt,setPlayHintTxt]=useState('');   /* #550 HEX-R-10: the hint's one line of words */
+  useEffect(()=>{if(!playHintMv&&playHintTxt)setPlayHintTxt('');},[playHintMv]);
   const [pColor,setPColor]=useState('w');
   /* #470: WHAT THE GAME BEHIND THE SHEET WAS BEING PLAYED WITH, so that Resume gives the player back the game
      they left rather than a game with a new opponent in it.
@@ -7433,12 +7477,25 @@ export default function App(){
     setGame(playHist[_tbIdx]);setLastMv(null);setPlayHintMv(null);setPlayHist(playHist.slice(0,_tbIdx));setPreMv(null);
     UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
-  const requestHint=()=>{
+  /* #550 docs/hint-audit-2026-11-12 HEX-R-10 (jobs/play-hint-best-move-and-words-2026-11-12): THE HINT IS THE BEST MOVE AND SAYS WHY.
+     It came from the 3-ply built-in search, not the engine the eval bar uses, so it lit Rd5 against a mate in 2 (1 case in 58), and it
+     had no words at all. Now: a mate in one first (exact, instant), else the app's Stockfish (the same worker the review uses, 700ms),
+     else the old search; and one line from concreteRead in the status slot above the board. Against a PERSON - online or Pass and
+     Play - there is no hint at all: the audit's rule, no hint or engine text in a live game against a person. */
+  const requestHint=async()=>{
     if(mode!=='play')return;
-    if(opponent==='online')return;
+    if(opponent!=='computer')return;
     if(getStatus(game)==='checkmate'||getStatus(game)==='stalemate')return;
-    if(opponent==='computer'&&game.turn!==pColor)return;
-    QDEPTH=2;const mv=bestMove(game,3,0);if(mv)setPlayHintMv(mv);
+    if(game.turn!==pColor)return;
+    const g0=game,f0=toFEN(g0);let mv=null;
+    try{mv=_mateInOne(g0);}catch(e){mv=null;}
+    if(!mv){try{if(sfReadyRef.current&&await ensureAna()){const pv=await sfBestLine(f0,700);const u=pv&&pv[0];if(u)mv=uciToMove(g0,u);}}catch(e){mv=null;}}
+    if(!mv){QDEPTH=2;mv=bestMove(g0,3,0);}
+    if(!mv)return;
+    if(toFEN(gameRef.current)!==f0)return;   /* the position moved on while the engine thought */
+    setPlayHintMv(mv);
+    let r=null;try{r=concreteRead(g0,mv);}catch(e){r=null;}
+    setPlayHintTxt(r&&r.hint?r.hint:'');
   };
   /* #547 item (189): a draw BY AGREEMENT had no route anywhere in local play. Pass & Play only - both players hold the
      phone, so one double tap is the agreement. A draw OFFER to the computer needs a rule for when the bot accepts, which is
@@ -10049,7 +10106,7 @@ export default function App(){
         </div>
       </div>)}
       {/* Context bars */}
-      {mode==='play'&&(()=>{const _done=_gameOver; /* #473: was (isOver||playEnd). THE SITE THE JOB WAS FILED ABOUT - see _gameTermStatus at :2969 for why this line alone was not the fix. */const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult&&!_pvLive /* #548 item (126), Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER (final-only): the result is stated only at the last move; every earlier position shows without it, however the game ended */)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(status==='check'?'Check!':_op)); /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
+      {mode==='play'&&(()=>{const _done=_gameOver; /* #473: was (isOver||playEnd). THE SITE THE JOB WAS FILED ABOUT - see _gameTermStatus at :2969 for why this line alone was not the fix. */const _op=(!thinking&&status!=='check'&&_liveOpening)?_liveOpening.name:'';const _opAny=(_liveOpening&&_liveOpening.name)||'';const _res=(_done&&gameResult&&!_pvLive /* #548 item (126), Kunal's choice questions/B8B-BACK-AFTER-GAME-OVER (final-only): the result is stated only at the last move; every earlier position shows without it, however the game ended */)?(gameResult.head+(gameResult.sub?(' \u00b7 '+gameResult.sub):'')):'';const _fin=(opponent==='computer'&&eloMsg)?eloMsg:_op;const _txt=_done?(resultCardGone?(_res||_fin):_fin):(thinking&&!playEnd?(_opAny?(_opAny+' \u00b7 thinking\u2026'):'Computer thinking\u2026'):(playHintTxt&&playHintMv&&opponent==='computer'?playHintTxt:(status==='check'?'Check!':_op))); /* #550 HEX-R-10: the hint's words take the slot while the hint is lit */ /* #371 (X-10): the name stays put while the computer thinks */ /* #370 n3: the opening both sides are playing, named live in the status line that already exists above the board, so it costs no height; thinking and check still take precedence */ /* #434 (auditor P1): the result OWNS this slot once the result card has gone. It used to be pre-empted for ever by the adaptive-strength note, so a game lost to the computer stated its result for ~3s and then nothing: MEASURED at 375x730, vs Pip, resign at move 0 - at +6.8s a scan of every painted element under 44 chars matching the result vocabulary returned ZERO hits, while Pass & Play in the same slot read 'Resigned \u00b7 Black wins'. The two messages now split by TIME rather than one winning: the card carries the result for the 3s it is up, so the strength note is free to use the slot then, and the result takes it back afterwards. Concatenating them is NOT ruled out by fit at 375 and this comment said it was [R18, corrected before the push on antagonist A's veto]: measured in this span, the result is 142.6px, the strength note 183.4px and the two joined 340px, against a slot of 96vw - 360px at 375, so it FITS on his phone, and 307.2px at 320, where it is cut by 33px. It is ruled out by the 320 phone and by judgement: 340px of two messages at 13px buries the one fact the player needs. (159.2px was the Pass & Play string.) Amber record: flags/amber-434-result-takes-the-slot-back-from-the-strength-message */ /* #435: the guard on this row used to be (!(isOver||playEnd)||!wide), so in LANDSCAPE the row was not rendered AT ALL once the game was over and NO result was stated for any opponent - #434 fixed the portrait half and named this one as deliberately not swept. It is now rendered in every play state, which also means it RESERVES ITS OWN SPACE across the live->over transition instead of vanishing and paying 25px towards a board jump. The wide-only duplicate strength chip that used to sit below was removed in the same pass: it stated the adaptive strength a second time while the result was stated zero times, measured by antagonist B on #434 at x=373.3 y=42.5 w=207.4. Amber record: flags/amber-435-landscape-game-over-matches-portrait */ return(
 (!wide&&!playSetup&&!!opponent)?(<div data-ct="board-chrome" style={{display:'flex',alignItems:'center',gap:8,width:'100%',maxWidth:boardPx+44,height:44,flexShrink:0,marginBottom:6}}>
           {/* #548 item (92), jobs/chrome-row-still-unbuilt-2026-09-28, Kunal's 'everywhere' (questions/play-top-row-home-and-menu-2026-10-10)
               and 'ship' (questions/B8-CHROME-ROW): on every phone Home and Menu get a TOP ROW OF THEIR OWN, out of the player bar, and the
@@ -11288,7 +11345,7 @@ export default function App(){
               <_CBtn cmp={landGraph} icon="analyze" label="Review" accent dis={!(game.history&&game.history.length>=2)} on={reviewPlayedGame}/>
               <_CBtn cmp={landGraph} icon="newgame" label="Rematch" on={()=>{fullReset();}}/>
             </>):(<>
-              <_CBtn cmp={landGraph} icon="hint" label="Hint" accent on={requestHint}/>
+              <_CBtn cmp={landGraph} icon="hint" label="Hint" accent dis={opponent!=='computer' /* #550 HEX-R-10: no hint against a person (Pass and Play) - shown dimmed, never a live control that does nothing */} on={requestHint}/>
               <_CBtn cmp={landGraph} icon="flip" label="Flip" on={()=>setFlip(f=>!f)}/>
             </>)}
             <_CBtn cmp={landGraph} icon="more" label="More" on={()=>setMoreOpen(true)}/>

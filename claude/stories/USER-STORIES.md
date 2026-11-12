@@ -2274,3 +2274,10 @@ As a player learning a pattern, the position on the card does what the card says
 - Every Tactics card's answer is the engine's best move, or within half a pawn of it, and does not leave me worse. (TC-R205a)
 - No Strategy position about a slow plan hides a mate in one for the side to move. (TC-R205b)
 - "The opposition" is a win for White, as its text says. (TC-R205c)
+
+### US-R138 The Play hint is the best move, says why, and is not offered against a person
+*Added #550, docs/hint-audit-2026-11-12 HEX-R-10; jobs/play-hint-best-move-and-words-2026-11-12; Kunal, 12 Nov: "All of it in this batch".*
+As a player asking the computer for help, the hint points at the best move - never away from a mate the eval bar already shows - and one line above the board says what is there; in a game against a person there is no hint at all.
+- The lit squares are a best move: the engine's, or a mate in one found exactly. (TC-R206a)
+- The status slot above the board says why in one line, naming the piece and square. (TC-R206b)
+- In Pass and Play the Hint button is disabled; online it is absent. (TC-R206c)

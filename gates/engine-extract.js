@@ -59,7 +59,9 @@ const NAMES=['flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','opp','initBoa
   'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS',
   // #550 item (51): the second move a review rated, on a drill card - its switch, so the E0 line of gate 52 reads the shipped default.
   // (No apostrophe in a comment inside this array: gate 79 X1 reads the names between quote marks, and one read a fragment of this line as a name.)
-  'REVIEW_TWO_DEFAULT','REVIEW_TWO'];
+  'REVIEW_TWO_DEFAULT','REVIEW_TWO',
+  // #550 hint audit: the concrete reading and the two drill texts it feeds
+  'concreteRead','_cheapAttacker','_mateInOne'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,

@@ -77,3 +77,4 @@
 111	110	raise	2026-11-12	550	build__1794388896663	#550 a36: gate 127 landscape eval graph (US-R135, TC-R203)	-	17bc7acb204b
 112	111	raise	2026-11-12	550	build__1794388896663	#550 a38: gate 128 board as big as the screen (US-R136, TC-R204)	-	59efd2e2062b
 113	112	raise	2026-11-12	550	build__1794388896663	#550 hint audit HEX-T-10/11: the Tactics and Strategy positions hold (US-R137)	-	91133ca754d2
+114	113	raise	2026-11-12	550	build__1794388896663	#550 hint audit HEX-R-10: the Play hint is the best move and says why (US-R138)	-	d03deb9b89b3
