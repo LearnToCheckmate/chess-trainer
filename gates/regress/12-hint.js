@@ -32,7 +32,7 @@ L.run(async()=>{
     L.say(!hintAtBefore,geo+': PRECONDITION the hint was NOT yet showing at the before sample, so the next line compares a hintless board with a hinted one',{hintAtBefore:hintAtBefore&&hintAtBefore.slice(0,60)});
     if(before.board&&after.board){L.say(Math.abs(before.board.top-after.board.top)<0.6&&Math.abs(before.board.w-after.board.w)<0.6,geo+': board unmoved by the hint (top '+before.board.top+' -> '+after.board.top+', w '+after.board.w+')');}
       // #384 (derived test-lane item 6): the board-movement assertion above compares two MEASURED values and nothing else, so it is true of a board that has been the wrong size since before the first sample. That is exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. The width is pinned here for the same reason. Measured on #383.
-      const WANT={kunal:375,'390':390,se:283};   /* #550 short upright (BSA-L-16): the top card's padding and gaps tightened on a short phone, 259 -> 283 */
+      const WANT={kunal:375,'390':390,se:277};   /* #550 short upright (BSA-L-16): the top card's padding and gaps tightened on a short phone, 259 -> 277 (9px padding, so a long solved verdict still fits its reserve - gate 57 D) */
       if(WANT[geo]!=null)L.say(!!after.board&&Math.abs(after.board.w-WANT[geo])<0.6,geo+': the puzzle board is '+WANT[geo]+' wide with the hint up - the measured size, not merely the same as a moment ago',{measured:after.board&&after.board.w,want:WANT[geo]});
     // THE HINT IS THIS PUZZLE'S HINT, NOT ANY STRING OVER TEN CHARACTERS [#547, item (21)]. _pzHint prints one of two templates:
     // 'It's mate in N - start with the most forcing check.' for a mate puzzle and 'Find the forcing move - ... (<motif>)' otherwise.

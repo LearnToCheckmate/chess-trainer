@@ -156,7 +156,8 @@ L.run(async()=>{
       // (342) on a CORRECT build, because the puzzle board is FIT TO HEIGHT at short heights and is
       // narrower than the screen by design. That was a defect in the gate and it is recorded here rather
       // than smoothed over; the wrong figures are withdrawn.
-      const WANTB={'320x568':259,'360x640':331,'375x667':342,'375x730 KUNAL':375,'390x844':390,'414x896':414,'440x956':440};
+      const WANTB={'320x568':277,'360x640':333,'375x667':375,   /* #550 short upright (BSA-L-16/22): the top card's padding and gaps on a short phone; measured on t139 edd93ac94af9 */
+        '375x730 KUNAL':375,'390x844':390,'414x896':414,'440x956':440};
       L.say(!!m1.board&&Math.abs(m1.board.w-WANTB[label])<0.6,
         tag+' A2: and it is the width this geometry measured on #427, not merely unchanged',{measured:m1.board&&m1.board.w,want:WANTB[label]});
 
