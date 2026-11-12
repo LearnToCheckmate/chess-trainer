@@ -4,8 +4,8 @@ Goal: the app sends diagnostics + crash reports to a Cloud Function, which write
 
 You do this once. After it is live, you do nothing: reports flow to Claude automatically (and the in-app "Send Claude a diagnostics report" button also copies to your clipboard as a manual fallback right now, before any of this).
 
-## 1. Make a telemetry repo (public)
-Create a new GitHub repo named `chess-trainer-telemetry` under the LearnToCheckmate account. Public is fine (reports are technical only: viewport sizes, build number, error messages, no passwords or game content). Add one file `reports/log.json` containing exactly:
+## 1. Make a telemetry repo (PRIVATE)
+Create a new GitHub repo named `chess-trainer-telemetry` under the LearnToCheckmate account, and make it **private** (#550 SEC-11: reports carry screen sizes and error text from players' phones, and a public repo publishes them). The function keeps only named diagnostic fields, needs the player to be signed in, and limits each player to 30 reports a day. Add one file `reports/log.json` containing exactly:
 
 ```
 []

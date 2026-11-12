@@ -2310,3 +2310,11 @@ As a player with a deck built before the drill took only Blunders and Mistakes, 
 - A card that still grades Blunder or Mistake by win chance stays, with its re-grade recorded. (TC-R210a)
 - A card that does not - his move was in fact the best, or the drop is small - leaves the deck. (TC-R210b)
 - The deck size before and after is recorded. (TC-R210c)
+
+### US-R145 Pro is paid for, an account can be deleted, and signing out leaves nothing behind
+*Added #550, docs/security-privacy-2026-11-12 SEC-01, SEC-13, SEC-15; Kunal, 12 Nov: "All 20, serious first".*
+As the owner selling Pro, and as a player on a shared phone, Pro comes only from a real subscription, a player can delete their account from inside the app, and the next person to sign in on the phone never inherits the last one's data.
+- Nothing typed into the browser's storage (ct_pro, ct_protest) turns Pro on, and the test unlock buttons are gone. (TC-R213a, TC-R213b, TC-R213c)
+- Account has Delete account, behind a confirm; confirming deletes the account and clears the device. (TC-R213d)
+- The deletion removes every document keyed to the player, scrubs their seat and chat in played games, confirms identity first and deletes the sign-in account last. (TC-R213e)
+- Sign out offers to remove the player's data from the device, on by default; a different account signing in on a device that belonged to someone else starts clean. (TC-R213f, TC-R213g, TC-R213h)

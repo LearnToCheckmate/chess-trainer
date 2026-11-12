@@ -4,7 +4,8 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect, memo, useCallbac
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
 // Telemetry relay URL (a Cloud Function that forwards reports to a GitHub repo Claude can read). Empty = autonomous send off; the in-app copy-to-clipboard still works.
 const LOG_ENDPOINT = "";
-const RELAY_KEY = "";  // shared secret; set to match the function RELAY_SECRET when the relay is deployed
+// #550 SEC-10: there is no shared relay key any more - a key shipped in a public bundle is not a secret. The relay accepts a report
+// only with the SIGNED-IN player's Firebase ID token (CTCloud.idToken), so a signed-out device cannot send one at all.
 
 // Embedded piece graphics (cburnett set)
 const PIECE_IMG = {
@@ -492,6 +493,35 @@ async function acctIdbWrite(puts,dels,why){
     tx.oncomplete=()=>fin(true); tx.onerror=(ev)=>fin(false,tx.error||(ev&&ev.target&&ev.target.error)); tx.onabort=()=>fin(false,tx.error);
   }catch(e){fin(false,e);}});
 }
+// ── #550 SEC-16: A POSTCODE IS STORED AS ITS AREA ONLY. nearby/{uid} is readable by every signed-in player, and a full postcode
+// (a UK one names a few dozen houses) under a display name says where a person lives. A US ZIP keeps its first three digits (the
+// sectional centre), a code written with a space keeps the part before it (a UK or Canadian outward code), a code of five or more
+// characters without one loses its last three (the UK inward code), and anything shorter keeps at most four characters.
+// ── #550 SEC-07: AN AVATAR URL WRITTEN BY ANOTHER PLAYER'S CLIENT IS ONLY LOADED WHEN IT IS A GOOGLE PROFILE PHOTO. Seats in online
+// games and tournament entries carry a client-written photo URL, and every viewer's phone fetched whatever it said - which shows the
+// viewer's IP address to any server a stranger names. Anything that is not https on googleusercontent.com renders the fallback.
+const safePhoto=(u)=>(typeof u==='string'&&/^https:\/\/[a-z0-9-]+\.googleusercontent\.com\//i.test(u)&&u.length<1000)?u:'';
+function nearbyArea(z){const t=String(z||'').trim().toLowerCase();if(!t)return '';if(/^\d{5}(-?\d{4})?$/.test(t))return t.slice(0,3);
+  const sp=t.split(/\s+/);if(sp.length>1)return sp[0].slice(0,4);const c=t.replace(/[^a-z0-9]/g,'');return c.length>=5?c.slice(0,c.length-3).slice(0,4):c.slice(0,4);}
+// ── #550 SEC-15 and SEC-13: WHAT A DEVICE FORGETS WHEN ITS PLAYER LEAVES. Signing out used to clear nothing, and the next account to
+// sign in on the same phone inherited the last player's ratings, streaks, mistakes, brilliancies, linked chess.com and Lichess
+// usernames and imported games - and the sync pull then pushed them up into the NEW account. ctDeviceWipe removes every ct_ key except
+// the device's own settings (look, sound, board options) and the one-shot migration markers (removing a marker would re-run a migration
+// over data pulled from the cloud), plus the puzzle progress and the imported-games IndexedDB store. ct_owner records which uid this
+// device's progress belongs to, so a DIFFERENT account signing in later starts clean instead of absorbing it (see the onAuth handler).
+const CT_WIPE_KEEP=new Set(['ct_theme','ct_sound','ct_skin','ct_pieceSet','ct_hideEval','ct_depth','ct_evalgraph','ct_layoutgrid','ct_safe','ct_pool','ct_vc_timeout_ms','ct_vc_noring','ct_scsteps','ct_scmax','ct_coachfree','ct_book_table','ct_demodone','ct_hintprefs','ct_bot','ct_hintlock']);
+const ctWipeKeep=(k)=>CT_WIPE_KEEP.has(k)||/mig\d|^ct_regrade\d|_reset_v\d|_migrated$/.test(k);
+function ctDeviceWipeKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;if((k.indexOf('ct_')===0&&!ctWipeKeep(k))||k==='chesstrainer.progress.v1')out.push(k);}}catch(e){}return out;}
+// opts.set: keys to write once the wipe is done; opts.freeze: the caller reloads next, so every later localStorage write is dropped -
+// the running app still holds the old player's state in memory, and its persistence effects would otherwise write it straight back
+// in the moment before the reload (measured: the puzzle mirror did exactly that 400ms after a wipe).
+async function ctDeviceWipe(opts){opts=opts||{};
+  let idb=false;try{const db=await acctIdbOpen();if(db)idb=await new Promise(res=>{try{const tx=db.transaction(ACCT_IDB_OS,'readwrite');tx.objectStore(ACCT_IDB_OS).clear();tx.oncomplete=()=>res(true);tx.onerror=()=>res(false);tx.onabort=()=>res(false);}catch(e){res(false);}});}catch(e){}
+  const ks=ctDeviceWipeKeys();ks.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  Object.keys(opts.set||{}).forEach(k=>{try{localStorage.setItem(k,opts.set[k]);}catch(e){}});
+  if(opts.freeze){try{localStorage.setItem=function(){};}catch(e){}}
+  try{window.__ctLastWipe={keys:ks,idb,at:Date.now()};}catch(e){}
+  return {keys:ks,idb};}
 const acctRowKey=(g)=>((g&&g.src)||'')+':'+((g&&g.date)||0)+':'+((g&&g.white)||'')+':'+((g&&g.black)||'');
 // fresh rows first, so a game present in both keeps the fresh copy; newest first; then the cap
 function acctMergeRows(fresh,held,cap){
@@ -4174,11 +4204,16 @@ export default function App(){
   const [introCard,setIntroCard]=useState(false);
   const [copyMsg,setCopyMsg]=useState('');
   const [theme,setTheme]=useState(()=>{try{const v=localStorage.getItem('ct_theme');return v!==null?parseInt(v):2;}catch{return 2;}});
-  const [testPro,setTestPro]=useState(()=>{try{return localStorage.getItem('ct_pro')==='1';}catch{return false;}});  // dev/test Pro override
+  /* #550 SEC-01 [docs/security-privacy-2026-11-12, Kunal "All 20, serious first"]: there is NO browser switch for Pro any more. The old
+     test override (localStorage ct_pro, and ct_protest bringing back an "Unlock Pro (test mode)" button) let anyone type one line in the
+     console and get every Pro feature. Pro now comes ONLY from customers/{uid}/subscriptions via CTCloud.proWatch (subPro below). Gates
+     reach Pro screens the same way a subscriber does: a stand-in CTCloud whose proWatch answers true (gates/lib.js, launch opt `pro`).
+     The two stale keys are removed from the store so nothing reads them again. */
+  useState(()=>{try{localStorage.removeItem('ct_pro');localStorage.removeItem('ct_protest');}catch(e){}return 0;});
   const COACH_FREE_LOOKS=3;
   const [coachFree,setCoachFree]=useState(()=>{try{return parseInt(localStorage.getItem('ct_coachfree')||'0',10)||0;}catch{return COACH_FREE_LOOKS;}});
   const [subPro,setSubPro]=useState(false);   // real Pro entitlement from Stripe (firestore-stripe-payments extension)
-  const isPro = subPro || testPro;             // effective Pro = a live subscription OR the test override
+  const isPro = subPro;                        // #550 SEC-01: Pro is a live subscription and nothing else
   const [skin,setSkin]=useState(()=>{try{const v=localStorage.getItem('ct_skin');const i=v!==null?parseInt(v):CLASSIC_IDX;return (i>=0&&i<SKINS.length)?i:CLASSIC_IDX;}catch{return CLASSIC_IDX;}});
   const [introN,setIntroN]=useState(0);  // bump to replay the Home intro animation
   const [homeScreen,setHomeScreen]=useState(true);const homeScreenRef=useRef(true);homeScreenRef.current=homeScreen;   /* #550 a41: the card re-grade pass stops when he leaves Home */
@@ -4309,6 +4344,10 @@ export default function App(){
   const [upgradeMsg,setUpgradeMsg]=useState('');   // upgrade-flow feedback (payments not wired yet)
   const [cloudAvail,setCloudAvail]=useState(false);// true when the Firebase bridge is present
   const [cloudErr,setCloudErr]=useState('');
+  /* #550 SEC-15 / SEC-13: the sign-out confirm (with its 'remove my data from this device' choice, on by default) and the Delete account confirm */
+  const [outAsk,setOutAsk]=useState(false);const [outWipe,setOutWipe]=useState(true);
+  const [delAsk,setDelAsk]=useState(false);const [delBusy,setDelBusy]=useState(false);const [delMsg,setDelMsg]=useState('');
+  useEffect(()=>{if(!acctOpen){setOutAsk(false);setDelAsk(false);}},[acctOpen]);
   const syncRef=useRef({theme:2,elo:800,skin:0});         // latest values for first-sign-in push
   const [eloMsg,setEloMsg]=useState('');            // "▲ Strength now ~840 Elo" feedback
   const eloDoneRef=useRef(false);                   // ensure one Elo update per game
@@ -4657,7 +4696,7 @@ export default function App(){
   const [shareMsg,setShareMsg]=useState("");
   const errLogRef=useRef([]);
   const diagRef=useRef({});
-  const postReport=(kind,payload)=>{if(!LOG_ENDPOINT)return;try{fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,key:RELAY_KEY,...payload})}).catch(()=>{});}catch(e){}};
+  const postReport=async(kind,payload)=>{if(!LOG_ENDPOINT)return;try{const C=window.CTCloud;const tok=(C&&C.idToken)?await C.idToken():null;if(!tok)return;fetch(LOG_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({kind,t:Date.now(),build:BUILD_INFO,...payload})}).catch(()=>{});}catch(e){}};
   const collectDiagnostics=()=>{let d={...diagRef.current};try{d.ua=navigator.userAgent;d.innerW=window.innerWidth;d.innerH=window.innerHeight;d.scrollH=document.documentElement.scrollHeight;d.overflow=document.documentElement.scrollHeight>(window.__ctFullH||window.innerHeight)+4;   /* #550 item (1) follow-up (antagonist A round 1, A9): with the full-screen shell on, the page is the screen's height by design, not an overflow */}catch(e){}d.errs=errLogRef.current.slice(-10);try{d.plyLog=plyLogOnRef.current?plyLogRef.current.slice(-16):'off (turn on Layout readout to record)';}catch(e){}return JSON.stringify(d,null,2);};
   useEffect(()=>{
     const push=(o)=>{const a=errLogRef.current;a.push(o);if(a.length>20)a.shift();return o;};
@@ -5837,8 +5876,8 @@ export default function App(){
   useEffect(()=>{try{localStorage.setItem('ct_depth',boardDepth?'1':'0');}catch{}},[boardDepth]);
   useEffect(()=>{try{localStorage.setItem('ct_hideEval',hideEval?'1':'0');}catch{}},[hideEval]);
   useEffect(()=>{try{localStorage.setItem('ct_pieceSet',pieceSet);}catch{}},[pieceSet]);
-  useEffect(()=>{try{localStorage.setItem('ct_pro',testPro?'1':'0');}catch{}},[testPro]);
   useEffect(()=>{try{localStorage.setItem('ct_coachfree',String(coachFree));}catch{}},[coachFree]);
+  useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.save||!cloudUser||!coachFree)return;const t=setTimeout(()=>{try{const p=C.save({coachfree:Math.min(COACH_FREE_LOOKS,coachFree)});if(p&&p.catch)p.catch(()=>{});}catch(e){}},1500);return ()=>clearTimeout(t);},[coachFree,cloudUser]);   // #550 SEC-02
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.proWatch||!cloudUser){setSubPro(false);return;}let unsub=null;try{unsub=C.proWatch(a=>setSubPro(!!a));}catch(e){setSubPro(false);}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.friendsWatch||!cloudUser){setFriendsData({incoming:[],friends:[]});return;}let unsub=null;try{unsub=C.friendsWatch(d=>setFriendsData(d||{incoming:[],friends:[]}));}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!C.nearbyList||!cloudUser||!nearbyGeo){return;}let unsub=null;try{unsub=C.nearbyList(nearbyGeo,list=>{const me=cloudUser&&cloudUser.uid;const cutoff=Date.now()-14*24*3600*1000;setNearbyData((list||[]).filter(x=>x&&x.uid!==me&&(!x.at||x.at>cutoff)));});}catch(e){}return()=>{try{unsub&&unsub();}catch(e){}};},[cloudUser,nearbyGeo]);
@@ -5850,6 +5889,12 @@ export default function App(){
     const C=(typeof window!=='undefined')?window.CTCloud:null;
     if(!C)return; setCloudAvail(true);
     C.onAuth(async(u)=>{
+      /* #550 SEC-15: THIS DEVICE'S PROGRESS BELONGS TO ONE ACCOUNT. ct_owner is stamped with the first uid that signs in here (a guest's
+         progress is adopted by that first sign-in, as before). A DIFFERENT uid signing in later finds the stamp, and the device is wiped
+         and reloaded BEFORE the sync pull and push run, so the last player's data is never merged into, or uploaded to, the new account. */
+      if(u&&u.uid){let own=null;try{own=localStorage.getItem('ct_owner');}catch(e){}
+        if(own&&own!==u.uid){await ctDeviceWipe({set:{ct_owner:u.uid},freeze:true});try{window.location.reload();}catch(e){}return;}
+        if(!own){try{localStorage.setItem('ct_owner',u.uid);}catch(e){}}}
       setCloudUser(u);
       if(!u)return;
       try{
@@ -5861,6 +5906,9 @@ export default function App(){
           if(data.learnprog&&typeof data.learnprog==='object'){const lp=migLearnProg(data.learnprog);setLearnProg(loc=>{const out={...loc};for(const k in lp){const a=out[k]||{},b=lp[k]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();out[k]={learned:days.length>=1,days,...((typeof a.bseq==='number'||typeof b.bseq==='number')?{bseq:Math.max(a.bseq||0,b.bseq||0)}:null)};}return out;});}
           if(Array.isArray(data.coachtargets)&&data.coachtargets.length&&!(coachTargetsRef.current||[]).length)setCoachTargets(migSlate(data.coachtargets));
           if(data.coachtier&&typeof data.coachtier.cleared==='number'&&data.coachtier.cleared>(coachTierRef.current.cleared||0))setCoachTier({cleared:data.coachtier.cleared,swapsLeft:(typeof data.coachtier.swapsLeft==='number'?data.coachtier.swapsLeft:2),swapAt:(typeof data.coachtier.swapAt==='number'?data.coachtier.swapAt:Date.now())});
+          /* #550 SEC-02: the free Coach previews used are kept on the account too (firestore.rules lets users/{uid}.coachfree only grow), so
+             clearing site data or a new device does not hand a signed-in player three more. A signed-out player's count is still local only. */
+          if(typeof data.coachfree==='number'&&isFinite(data.coachfree))setCoachFree(c=>Math.max(c,Math.min(COACH_FREE_LOOKS,Math.max(0,Math.round(data.coachfree)))));
           if(data.pz&&typeof data.pz==='object'){const cp=data.pz;
             if(cp.solved&&typeof cp.solved==='object')setPzSolvedMap(m=>({...m,...cp.solved}));
             if(cp.onlineIds&&typeof cp.onlineIds==='object')setPzOSolvedIds(m=>({...m,...cp.onlineIds}));
@@ -5885,13 +5933,37 @@ export default function App(){
     const o={solved:pzSolvedMap,streak:pzStreak,best:pzBest,xp:pzXP,online:pzOSolved,onlineIds:pzOSolvedIds};
     const t1=setTimeout(()=>{try{PZSTORE.set(PZKEY,JSON.stringify(o));}catch(e){}},400);
     const C=(typeof window!=='undefined')?window.CTCloud:null;
-    let t2=null; if(C&&C.user){t2=setTimeout(()=>{try{C.save({pz:o});}catch(e){}},1000);}
+    let t2=null; if(C&&cloudUser){   /* #550 SEC-15: the account the APP accepted (after the ct_owner check), not the bridge's raw user - a save here used to be able to carry the last player's puzzles into a new account in the moment before the wipe */t2=setTimeout(()=>{try{C.save({pz:o});}catch(e){}},1000);}
     return ()=>{clearTimeout(t1);if(t2)clearTimeout(t2);};
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[coachTargets,coachTier,cloudUser]);
   const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');C.signIn().catch(e=>{const code=e&&e.code;setCloudErr(code==='auth/unauthorized-domain'?'This site isn’t authorized in Firebase yet — add the domain in Auth settings.':(code==='auth/popup-blocked'?'Popup blocked — allow popups and retry.':'Sign-in failed, please retry.'));});};
-  const cloudSignOut=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(C)C.signOut();setCloudUser(null);};
+  /* #550 SEC-15 and SEC-16: signing out takes this player off Play nearby and Quick match while still signed in (the rules need the uid),
+     and by default removes their data from the device (ctDeviceWipe) and reloads, so nothing of theirs is left in memory either. With the
+     choice switched off the data stays, and so does the ct_owner stamp, so a different account signing in later still starts clean. */
+  const cloudSignOut=async(opts)=>{const C=(typeof window!=='undefined')?window.CTCloud:null;const wipe=!(opts&&opts.wipe===false);
+    try{if(C&&C.nearbyLeave&&cloudUser)await C.nearbyLeave();}catch(e){}
+    try{if(C&&C.mmCancel)C.mmCancel();}catch(e){}
+    try{if(C)await C.signOut();}catch(e){}
+    setCloudUser(null);
+    if(wipe){await ctDeviceWipe({freeze:true});try{window.location.reload();}catch(e){}}};
+  /* #550 SEC-13: DELETE ACCOUNT. CTCloud.deleteAccount (index.html) asks Google to confirm it is this player FIRST, then deletes every
+     document keyed to the uid (users, mm, nearby, friend requests and friendships, hosted tournaments and entries in others, the call
+     documents and the name, photo and chat in their online games, checkout sessions), then the Firebase Auth account. The device is then
+     wiped and reloaded. The Stripe customer and subscription records are the payments extension's to remove (its delete-on-user-deleted
+     setting); the confirm tells a Pro player to cancel first. */
+  const doDeleteAccount=async()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;
+    if(!C||!C.deleteAccount||!cloudUser){setDelMsg('Open the published app and sign in to delete your account.');return;}
+    setDelBusy(true);setDelMsg('Deleting your account…');
+    try{try{if(C.gameLeave)C.gameLeave();}catch(e){}
+      await C.deleteAccount();
+      setDelMsg('Your account and its data are deleted.');setCloudUser(null);
+      setTimeout(async()=>{await ctDeviceWipe({freeze:true});try{window.location.reload();}catch(e){}},1200);
+    }catch(e){setDelBusy(false);const c=(e&&(e.code||e.message))||'error';
+      setDelMsg((c==='auth/requires-recent-login'||c==='reauth')?'Your data was removed, but Google needs you to confirm it is you before the sign-in account itself can go. Tap Delete my account again and choose your account.'
+        :((c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'||c==='auth/user-mismatch')?'Nothing was deleted: the Google confirmation was closed or a different account was chosen.'
+        :'Could not finish deleting ('+c+'). Check your connection and tap Delete my account again; anything already removed stays removed.'));}};
   useEffect(()=>{
     try{
       const w=new Worker('./stockfish-18-lite-single.js');
@@ -6217,7 +6289,7 @@ export default function App(){
   },[inReview,review]);
 
   const readHintPrefs=()=>{if(hintPrefsRef.current===null){try{hintPrefsRef.current=JSON.parse(localStorage.getItem('ct_hintprefs')||'{}');}catch{hintPrefsRef.current={};}}return hintPrefsRef.current;};
-  const setHintFor=(key,val)=>{const p=readHintPrefs();if(key)p[key]=val;try{localStorage.setItem('ct_hintprefs',JSON.stringify(p));}catch{}const C=(typeof window!=='undefined')?window.CTCloud:null;if(C&&C.user){try{C.save({hintprefs:p});}catch(e){}}};
+  const setHintFor=(key,val)=>{const p=readHintPrefs();if(key)p[key]=val;try{localStorage.setItem('ct_hintprefs',JSON.stringify(p));}catch{}const C=(typeof window!=='undefined')?window.CTCloud:null;if(C&&cloudUser){try{C.save({hintprefs:p});}catch(e){}}};
   // ── Learn: load opening ──
   const selectOpening=(idx)=>{setBankOffer(false);
     const op=LIB[idx];
@@ -7803,7 +7875,7 @@ export default function App(){
     if(!z){ setNearbyMsg('Enter your ZIP or postcode first.'); return; }
     setNearbyBusy(true); setNearbyMsg('Turning on nearby…');
     try{
-      const cell='zip:'+z.toLowerCase().replace(/\s+/g,'');
+      const cell='zip:'+nearbyArea(z);   // #550 SEC-16: only the AREA part of a postcode is stored (see nearbyArea), never the full code
       await window.CTCloud.nearbyJoin(cell,(cloudUser&&cloudUser.name)||'Player');
       setNearbyGeo(cell); setNearbyBusy(false); setNearbyMsg('');
     }catch(e){ setNearbyBusy(false); setNearbyMsg('Could not turn on nearby right now. Please try again.'); }
@@ -7899,7 +7971,10 @@ export default function App(){
   useEffect(()=>{const og=onlineGame;if(!og||!cloudUser){if(vcStateRef.current!=='off'){vcCleanup();vcSet('off');}return;}const rtc=og.rtc||null;const st=vcStateRef.current;const mc=myColorRef.current;const oc=mc==='w'?'b':'w';
     if(!rtc){if(st!=='off'&&st!=='error'){vcCleanup();vcSet('off');}return;}
     if(rtc.hangup){if((st==='ringing')||(st!=='off'&&st!=='error'&&vcSessRef.current===rtc.id)){vcCleanup();vcSet('off');}return;}   /* #550 item (87): a ring whose caller hung up (or timed out) stops ringing - before, only an answered session cleared, so the callee's ring outlived the call */
-    if(rtc.from!==cloudUser.uid&&!rtc.answer&&st==='off'&&(Date.now()-(rtc.ts||0))<120000){
+    /* #550 SEC-05: ring only for an offer written by the OPPONENT seated in this game - rtc.from is a client-written field, and an offer from
+       any other uid (a stranger, or a stale seat) is ignored rather than trusted. firestore.rules also limits the call document to the two players. */
+    const oppUid=(og[oc]&&og[oc].uid)||null;
+    if(rtc.from!==cloudUser.uid&&oppUid&&rtc.from===oppUid&&!rtc.answer&&st==='off'&&(Date.now()-(rtc.ts||0))<120000){
       if(vcNoRingRef.current){const C=window.CTCloud;if(C)C.gamePush(og.id,{rtc:Object.assign({},rtc,{hangup:cloudUser.uid,declined:'noring'})}).catch(()=>{});return;}   /* #550 item (87): the switch - declined without ringing */
       vcSet('ringing');return;}
     const pc=vcPcRef.current;if(!pc||vcSessRef.current!==rtc.id)return;
@@ -8479,7 +8554,7 @@ export default function App(){
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
   const showPackIdx=(rows,i)=>{if(!rows||!rows.length){setPzOErr('That pack is empty.');return;}const solved=pzOSolvedIdsRef.current;for(let k=0;k<rows.length;k++){const idx=(((i+k)%rows.length)+rows.length)%rows.length;const row=rows[idx];if(!_packBand(row))continue;const rid='lichess:'+(row.id||row.i||'');if(row.id&&solved[rid])continue;const o=lichessFromPack(row);if(o){setPzPackIdx(idx);setPzOErr('');setPzOInfo('📦 '+(idx+1)+'/'+rows.length+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);return;}}const d=pzDiffRef.current,lbl=d==='easy'?'easier ':d==='med'?'medium ':d==='hard'?'harder ':'';setPzOErr('No unsolved '+lbl+'puzzles left in this pack — switch difficulty or load another pack.');};
-  const loadPack=async(url)=>{const u=String(url||'').trim();if(!u){setPzOErr('Paste a URL to a puzzle pack (.json).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch(u);const arr=await r.json();const rows=Array.isArray(arr)?arr:(arr.puzzles||[]);if(!rows.length)throw 0;setPzPack(rows);showPackIdx(rows,0);}catch(e){setPzOErr("Couldn't load that pack. The URL must return a JSON array of puzzles.");}setPzOLoading(false);};
+  const loadPack=async(url)=>{const u=String(url||'').trim();if(!u){setPzOErr('Paste a URL to a puzzle pack (.json).');return;}if(!/^https:\/\//i.test(u)){setPzOErr('A puzzle pack URL must start with https://');return;}   /* #550 SEC-19 */setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch(u);const arr=await r.json();const rows=Array.isArray(arr)?arr:(arr.puzzles||[]);if(!rows.length)throw 0;setPzPack(rows);showPackIdx(rows,0);}catch(e){setPzOErr("Couldn't load that pack. The URL must return a JSON array of puzzles.");}setPzOLoading(false);};
   const nextOnline=()=>{if(mistakeMode)return nextMistake();if(pzPack&&pzPack.length)showPackIdx(pzPack,pzPackIdx+1);else loadDaily();};
   /* #494, BOTH BLIND ANTAGONISTS VETOED THE FIRST VERSION OF THE #494 GUARD ON THIS LINE AND BOTH VETOES
      WERE UPHELD. `isB` is evaluated BEFORE the goal sentence exists and gates all three player-visible
@@ -8862,7 +8937,7 @@ export default function App(){
             <div><div style={{fontSize:20,fontWeight:800,color:'#fff'}}>{sel.name}</div>
               <div style={{fontSize:13,color:'rgba(255,255,255,.6)',marginTop:4}}>{(FMT[sel.format]||{}).label||sel.format} · clock {clk(sel.tc)} · starts {whenTxt(sel.startAt)}</div></div>
             <div style={card}><div style={{fontSize:12,fontWeight:800,letterSpacing:.5,color:'var(--ac2)',marginBottom:8}}>PLAYERS · {(sel.players||[]).length}</div>
-              {(sel.players||[]).map((p,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'5px 0'}}>{p.photo?<img src={p.photo} width={26} height={26} style={{borderRadius:'50%'}} alt=""/>:<span style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>👤</span>}<span style={{fontSize:13.5,color:'#fff'}}>{p.name||'Player'}</span>{sel.host===p.uid&&<span style={{fontSize:10,fontWeight:800,color:'var(--ac)'}}>HOST</span>}</div>))}
+              {(sel.players||[]).map((p,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:9,padding:'5px 0'}}>{safePhoto(p.photo)?<img src={safePhoto(p.photo)} referrerPolicy="no-referrer" width={26} height={26} style={{borderRadius:'50%'}} alt=""/>:<span style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>👤</span>}<span style={{fontSize:13.5,color:'#fff'}}>{p.name||'Player'}</span>{sel.host===p.uid&&<span style={{fontSize:10,fontWeight:800,color:'var(--ac)'}}>HOST</span>}</div>))}
               {(sel.players||[]).length===0&&<div style={{fontSize:12.5,color:'rgba(255,255,255,.5)'}}>No players yet.</div>}</div>
             {sel.schedule&&sel.schedule.length>0&&<div style={card}><div style={{fontSize:12,fontWeight:800,letterSpacing:.5,color:'var(--ac2)',marginBottom:6}}>{sel.format==='roundrobin'?'SCHEDULE':sel.format==='knockout'?'BRACKET \u00b7 ROUND 1':'ROUND 1'}</div>
               {sel.schedule.map((rd,ri)=>(<div key={ri} style={{marginTop:ri?9:2}}>{sel.format==='roundrobin'&&<div style={{fontSize:10.5,fontWeight:700,color:'rgba(255,255,255,.4)',marginBottom:2}}>ROUND {ri+1}</div>}{rd.map((pr,pi)=>(<div key={pi} style={{fontSize:13,color:'#fff',padding:'3px 0'}}>{nameOf(pr[0])} <span style={{color:'rgba(255,255,255,.4)',fontSize:11}}>vs</span> {nameOf(pr[1])}</div>))}</div>))}</div>}
@@ -9756,7 +9831,7 @@ export default function App(){
               {(cloudErr||!cloudAvail)&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.4}}>{cloudErr||'Open the published app to sign in.'}</div>}
             </div>
           )}
-          <div style={{borderRadius:14,padding:'14px 14px 15px',background:'linear-gradient(150deg,rgba(201,162,76,.16),rgba(201,162,76,.05))',border:'1px solid rgba(201,162,76,.4)',boxShadow:SHADOW_BOX}}>
+          <div style={{display:(outAsk||delAsk)?'none':'block',borderRadius:14,padding:'14px 14px 15px',background:'linear-gradient(150deg,rgba(201,162,76,.16),rgba(201,162,76,.05))',border:'1px solid rgba(201,162,76,.4)',boxShadow:SHADOW_BOX}}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}><span style={{fontSize:20}}>⚜️</span><span style={{fontFamily:"var(--head)",fontSize:'clamp(16px,3.8vw,19px)',fontWeight:700,color:'#f0d48a'}}>Chess Trainer Pro</span>{isPro&&<span style={{marginLeft:'auto',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:20,padding:'2px 10px'}}>ACTIVE</span>}</div>
             <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
               {[['Your Coach and full mastery plan','🧠'],['Every board theme, including Medieval','⚜️'],['Priority access to new features','✨']].map(([f,ic],i)=>(
@@ -9764,20 +9839,38 @@ export default function App(){
               ))}
             </div>
             {isPro?(
-              <><button onClick={async()=>{setUpgradeMsg('Opening your subscription…');try{await window.CTCloud.proPortal();}catch(e){setUpgradeMsg('Could not open the subscription portal. Please try again.');}}} style={{width:'100%',padding:'10px 8px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(240,212,138,.4)',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>⚙ Manage subscription</button>
-              {testPro&&<button onClick={()=>{setTestPro(false);setUpgradeMsg('Test Pro turned off.');}} style={{marginTop:8,width:'100%',padding:'8px',borderRadius:11,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontWeight:600,fontSize:'clamp(14px,2.5vw,14px)'}}>Turn off Pro (test)</button>}</>
+              <><button onClick={async()=>{setUpgradeMsg('Opening your subscription…');try{await window.CTCloud.proPortal();}catch(e){setUpgradeMsg('Could not open the subscription portal. Please try again.');}}} style={{width:'100%',padding:'10px 8px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(240,212,138,.4)',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>⚙ Manage subscription</button></>
             ):(<>
               <div style={{display:'flex',gap:8}}>
                 <button onClick={async()=>{if(!cloudUser){setUpgradeMsg('Sign in first to upgrade.');return;}setUpgradeMsg('Opening secure checkout…');try{await window.CTCloud.proCheckout(STRIPE_PRICE_MONTHLY);}catch(e){setUpgradeMsg(e&&e.message==='timeout'?'Checkout is taking a moment. Tap the plan again in a few seconds.':'Could not start checkout. Please try again.');}}} style={{flex:1,padding:'10px 8px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(240,212,138,.4)',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>Monthly<span style={{fontSize:'.8em',color:'rgba(255,255,255,.5)',fontWeight:600}}>billed monthly</span></button>
                 <button onClick={async()=>{if(!cloudUser){setUpgradeMsg('Sign in first to upgrade.');return;}setUpgradeMsg('Opening secure checkout…');try{await window.CTCloud.proCheckout(STRIPE_PRICE_YEARLY);}catch(e){setUpgradeMsg(e&&e.message==='timeout'?'Checkout is taking a moment. Tap the plan again in a few seconds.':'Could not start checkout. Please try again.');}}} style={{flex:1,padding:'10px 8px',borderRadius:11,background:'linear-gradient(150deg,#f0d48a,#caa24c)',border:'1px solid #f0d48a',color:'#2a2010',cursor:'pointer',fontWeight:800,fontSize:'clamp(14px,2.7vw,14px)',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}>Annual<span style={{fontSize:'.8em',color:'rgba(40,30,10,.7)',fontWeight:700}}>best value</span></button>
               </div>
-              {/* #550 (AUD-H14, Kunal's answer a1 on questions/B10-Q1, 11 Nov 2026: "Hide it from players"): the test unlock is shown
-                  only to a developer who has opted in on that device (localStorage ct_protest=1); players never see it. */}
-              {(()=>{try{return localStorage.getItem('ct_protest')==='1';}catch(e){return false;}})()&&<button onClick={()=>{setTestPro(true);setUpgradeMsg('Pro unlocked (test mode). Puzzles are now open.');}} style={{marginTop:8,width:'100%',padding:'9px 8px',borderRadius:11,background:'rgba(110,200,120,.14)',border:'1px dashed rgba(110,200,120,.5)',color:'#9fe0a8',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.5vw,14px)'}}>🔓 Unlock Pro (test mode)</button>}
+              {/* #550 SEC-01: the test unlock (AUD-H14 hid it behind ct_protest) is gone from the bundle entirely - hiding the button had not removed the switch. */}
             </>)}
             {upgradeMsg&&<div style={{marginTop:10,fontSize:'clamp(14px,2.5vw,14px)',color:'#f0d48a',lineHeight:1.45,textAlign:'center'}}>{upgradeMsg}</div>}
           </div>
-          {cloudUser&&<button onClick={()=>{cloudSignOut();setAcctOpen(false);}} style={{marginTop:14,width:'100%',padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>Sign out</button>}
+          {cloudUser&&!outAsk&&!delAsk&&<div style={{display:'flex',gap:8,marginTop:14}}>
+            <button data-ct="acct-signout" onClick={()=>{setOutWipe(true);setOutAsk(true);}} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1}}>Sign out</button>
+            <button data-ct="acct-delete" onClick={()=>{setDelMsg('');setDelBusy(false);setDelAsk(true);}} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1,color:'#ec9a90',border:'1px solid rgba(236,154,144,.4)'}}>Delete account</button>
+          </div>}
+          {cloudUser&&outAsk&&<div data-ct="acct-signout-confirm" style={{marginTop:6,borderRadius:14,padding:'14px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.14)'}}>
+            <div style={{fontWeight:800,fontSize:'clamp(15px,3.4vw,16px)',color:'#fff',marginBottom:8}}>Sign out?</div>
+            <label style={{display:'flex',gap:10,alignItems:'flex-start',cursor:'pointer',...{fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.82)',lineHeight:1.45}}}><input data-ct="acct-signout-wipe" type="checkbox" checked={outWipe} onChange={e=>setOutWipe(e.target.checked)} style={{width:22,height:22,flexShrink:0,marginTop:1}}/><span>Remove my data from this device. Recommended on a shared phone. Your synced progress stays in your account; linked usernames and imported games are kept only on this device, so you would add them again.</span></label>
+            <div style={{display:'flex',gap:8,marginTop:12}}>
+              <button data-ct="acct-signout-go" onClick={()=>{const w=outWipe;setOutAsk(false);setAcctOpen(false);cloudSignOut({wipe:w});}} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1,color:'#fff'}}>Sign out</button>
+              <button onClick={()=>setOutAsk(false)} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1}}>Cancel</button>
+            </div>
+          </div>}
+          {cloudUser&&delAsk&&<div data-ct="acct-delete-confirm" style={{marginTop:6,borderRadius:14,padding:'14px',background:'rgba(236,154,144,.07)',border:'1px solid rgba(236,154,144,.4)'}}>
+            <div style={{fontWeight:800,fontSize:'clamp(15px,3.4vw,16px)',color:'#fff',marginBottom:8}}>Delete your account?</div>
+            <div style={{fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.82)',lineHeight:1.45}}>This permanently removes your synced progress and settings, your place in Quick match and Play nearby, your friend requests and friends, the tournaments you host and your entries in others, your name, photo and chat in your online games, and then your sign-in account. It also clears this device. It cannot be undone. Google will ask you to confirm it is you.</div>
+            {isPro&&<div data-ct="acct-delete-pro" style={{...{fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.82)',lineHeight:1.45},marginTop:8,color:'#f0d48a'}}>You have Pro. Open Manage subscription and cancel it first so you are not charged again.</div>}
+            <div style={{display:'flex',gap:8,marginTop:12}}>
+              <button data-ct="acct-delete-go" disabled={delBusy} onClick={doDeleteAccount} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1,color:'#fff',background:'rgba(200,70,60,.55)',border:'1px solid rgba(236,154,144,.6)',opacity:delBusy?.6:1}}>Delete my account</button>
+              <button data-ct="acct-delete-cancel" disabled={delBusy} onClick={()=>{setDelAsk(false);setDelMsg('');}} style={{...{padding:'10px 12px',borderRadius:11,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'},flex:1}}>Cancel</button>
+            </div>
+            {delMsg&&<div data-ct="acct-delete-msg" style={{...{fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.82)',lineHeight:1.45},marginTop:10,color:'#f0d48a'}}>{delMsg}</div>}
+          </div>}
         </div>
       </div>)}
       {fbOpen&&(<div onClick={()=>setFbOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.62)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -9877,7 +9970,7 @@ export default function App(){
                 <div style={{fontWeight:700,fontSize:'clamp(14px,2.8vw,14px)',color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cloudUser.name||'Signed in'}</div>
                 <div style={{fontSize:'clamp(12px,2.1vw,12px)',color:'rgba(255,255,255,.58)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cloudUser.email} · ☁ synced</div>
               </div>
-              <button onClick={cloudSignOut} style={{flexShrink:0,padding:'6px 11px',borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600}}>Sign out</button>
+              <button onClick={()=>{setMenuOpen(false);setOutWipe(true);setOutAsk(true);setAcctOpen(true);}} style={{flexShrink:0,padding:'6px 11px',borderRadius:8,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600}}>Sign out</button>
             </div>
           ):(<>
             <button onClick={cloudSignIn} disabled={!cloudAvail} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,width:'100%',padding:'11px 13px',borderRadius:11,background:cloudAvail?'#fff':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:cloudAvail?'#222':'rgba(255,255,255,.4)',cursor:cloudAvail?'pointer':'default',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)'}}><span style={{fontWeight:800,color:cloudAvail?'#4285F4':'inherit'}}>G</span>{cloudAvail?'Sign in with Google':'Sign-in unavailable here'}</button>
@@ -12391,7 +12484,7 @@ export default function App(){
         const pBar=(col,isTop)=>{
           const enemy=col==='w'?'b':'w'; let name, av;
           if(inReview){ const _H=(review&&review.headers)||{}; const _n=col==='w'?_H.White:_H.Black; name=_n||(col==='w'?'White':'Black'); const _meRev=!!(review&&review.summary&&review.summary.userColor===col&&cloudUser&&cloudUser.photo); /* #370 n9: my own photo when the game is mine (imported from my account or played here) and I am signed in */ av=_avBox(_meRev?_img(cloudUser.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
-          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&pd.photo)?_img(pd.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
+          else if(_isOnlineG){ const pd=col==='w'?_og.w:_og.b; name=(pd&&pd.name)?pd.name:(col==='w'?'White':'Black'); av=_avBox((pd&&safePhoto(pd.photo))?_img(safePhoto(pd.photo)):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); }
           else if(opponent==='computer'){ if(col===pColor){ name=(cloudUser&&cloudUser.name)?cloudUser.name:'You'; av=_avBox((cloudUser&&cloudUser.photo)?_img(cloudUser.photo):(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>)); } else { name=botById(selBot)?botById(selBot).name:'Computer'; /* #360: BotFace returns null for an unnamed opponent, which is the DEFAULT - press Start game without picking a bot and the bar showed an empty grey square. */ av=_avBox(botById(selBot)?<BotFace id={selBot} size={36}/>:<span style={{fontSize:27,lineHeight:1}}>{'\u{1F916}'}</span>); } }
           else { name=col==='w'?'White':'Black'; av=_avBox(<span style={{fontSize:35,lineHeight:1,color:col==='w'?'#2b2c31':'#ececed'}}>{col==='w'?'♔':'♚'}</span>); }
           const taken=_cap[col]||[]; const lead=col==='w'?(_md>0?_md:0):(_md<0?-_md:0);

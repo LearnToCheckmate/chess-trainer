@@ -427,6 +427,27 @@ async function launch(opts={}){
   // route silently fails nothing, so a gate that drives it must assert `(await b.engineFail()).failed>0` in its own
   // L.say - a fallback that was never taken is reported, never credited (CLAUDE.md, "assert the collection is
   // non-empty"). An unknown mode is an error, not a quiet normal launch (checked at the top of launch, before a browser starts).
+  // ── PRO THE WAY A SUBSCRIBER GETS IT [#550 SEC-01; docs/security-privacy-2026-11-12]. The app has no browser switch for Pro any more
+  // (ct_pro and ct_protest are gone), so a gate that needs a Pro screen (the Medieval skin, the Coach) cannot seed one. opts.pro installs
+  // a stand-in window.CTCloud before the page's scripts run - the shape gates 96/100/103 use, pinned with a setter that ignores
+  // index.html's own bridge assignment - that signs in a fake player and whose proWatch answers TRUE: the same path as a live
+  // customers/{uid}/subscriptions entry, and nothing the production page can be talked into from localStorage. Every other bridge
+  // method is a quiet no-op (subscriptions return an unsubscribe). KNOW ITS LIMIT: the launch is SIGNED IN, which a ct_pro launch was
+  // not; a gate that measures something sign-in changes must say so. window.__ctProStub is the readout.
+  if(opts.pro){
+    console.log('     pro: a stand-in CTCloud signs in a fake subscriber (proWatch answers true) - Pro the way a subscriber gets it');
+    await ctx.addInitScript(()=>{try{
+      if(window.__ctProStub)return;const me={uid:'u-gate-pro',name:'Gate Pro',email:'',photo:''};const S=window.__ctProStub={proWatchCalls:0};
+      const unsub=()=>()=>{};
+      const base={ready:true,user:me,onAuth(cb){setTimeout(()=>{try{cb(me);}catch(e){}},30);},
+        proWatch(cb){S.proWatchCalls++;setTimeout(()=>{try{cb(true);}catch(e){}},40);return ()=>{};},
+        load:async()=>null,save:async()=>{},signOut:async()=>{},gameList:async()=>[],friendId(){return me.uid;},
+        friendsWatch(cb){setTimeout(()=>{try{cb({incoming:[],friends:[]});}catch(e){}},0);return ()=>{};},
+        gameWatch:unsub(),nearbyList:unsub(),tourList:unsub(),tourWatch:unsub(),gameLeave(){},mmCancel(){}};
+      const stub=new Proxy(base,{get(t,k){if(k in t)return t[k];if(k==='then')return undefined;return async()=>null;}});
+      Object.defineProperty(window,'CTCloud',{configurable:false,get(){return stub;},set(v){}});
+    }catch(e){}});
+  }
   if(opts.engineFail){
     console.log('     engineFail: '+opts.engineFail+' (stockfish workers are made to fail by the harness; read b.engineFail() for the count)');
     await ctx.addInitScript((mode)=>{try{

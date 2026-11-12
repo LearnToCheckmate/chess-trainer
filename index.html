@@ -139,13 +139,15 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       tourList:function(cb){ return this._tourList ? this._tourList(cb) : function(){}; },
       tourWatch:function(id,cb){ return this._tourWatch ? this._tourWatch(id,cb) : function(){}; },
       tourJoin:function(id,p){ return this._tourJoin ? this._tourJoin(id,p) : Promise.reject(new Error('cloud-not-ready')); },
-      tourUpdate:function(id,patch){ return this._tourUpdate ? this._tourUpdate(id,patch) : Promise.resolve(); }
+      tourUpdate:function(id,patch){ return this._tourUpdate ? this._tourUpdate(id,patch) : Promise.resolve(); },
+      deleteAccount:function(){ return this._deleteAccount ? this._deleteAccount() : Promise.reject(new Error('cloud-not-ready')); },
+      idToken:function(){ return this._idToken ? this._idToken() : Promise.resolve(null); }
     };
   </script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, collection, addDoc, getDocs, deleteDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, reauthenticateWithPopup, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, arrayRemove, collection, addDoc, getDocs, deleteDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
     const cfg = {
       apiKey:"AIzaSyA_Z2O3L7I1QAHZmTdCwpUUpIG2z5Ck_QM",
@@ -178,21 +180,30 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
         });
       };
       C._signOut = function(){ return signOut(auth); };
+      C._idToken = function(){ const u=auth.currentUser; return u ? u.getIdToken() : Promise.resolve(null); };   // #550 SEC-10: the feedback relay's only credential
       C._load    = async function(){ const u=auth.currentUser; if(!u) return null; const snap=await getDoc(doc(db,'users',u.uid)); return snap.exists()?snap.data():null; };
       C._save    = async function(d){ const u=auth.currentUser; if(!u) return; await setDoc(doc(db,'users',u.uid), Object.assign({}, d, {updatedAt:Date.now()}), {merge:true}); };
       let _gu=null;
+      /* #550 SEC-04: game codes come from crypto.getRandomValues, not Math.random, and creating a game can never overwrite one -
+         firestore.rules treats a write to an existing code as an UPDATE, which only that game's players may make - so a clash is
+         refused and the next code is tried. */
+      function _newCode(){ const A='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'; let out=''; try{ const r=new Uint8Array(5); crypto.getRandomValues(r); for(let i=0;i<5;i++) out+=A[r[i]%36]; }catch(e){ out=Math.random().toString(36).slice(2,7).toUpperCase(); } return out; }
+      async function _createFresh(build){ let last=null; for(let i=0;i<4;i++){ const code=_newCode(); try{ await setDoc(doc(db,'games',code), build(code)); return code; }catch(e){ last=e; if(!(e&&e.code==='permission-denied')) throw e; } } throw last||new Error('create-failed'); }
       C._gameCreate = async function(color, tc, meta){ const u=auth.currentUser; if(!u) throw new Error('signin');
-        const code=Math.random().toString(36).slice(2,7).toUpperCase();
+        let code=null;
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
         if(meta&&typeof meta.rating==='number'){me.rating=Math.round(meta.rating);me.rgames=Math.max(0,Math.round(meta.rgames||0));}
         const now=Date.now();
-        const _live = tc && tc.kind!=='corr' && tc.init; const data={code:code,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,clk:_live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now};
-        data[color==='b'?'b':'w']=me;
-        await setDoc(doc(db,'games',code), data);
+        const _live = tc && tc.kind!=='corr' && tc.init;
+        code=await _createFresh(function(cd){ const data={code:cd,status:'waiting',moves:[],result:null,chat:[],tc:tc||null,clk:_live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now};
+          data[color==='b'?'b':'w']=me; return data; });
         try{ await setDoc(doc(db,'users',u.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
         return {id:code,code:code}; };
       C._gameJoin = async function(code, meta){ const u=auth.currentUser; if(!u) throw new Error('signin');
-        code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); const snap=await getDoc(ref);
+        code=String(code||'').trim().toUpperCase(); const ref=doc(db,'games',code); let snap;
+        /* #550 SEC-04: a stranger may read a game only while it is WAITING for its second player; a started game you are not in is
+           refused by firestore.rules, which for a join is the same answer as a full table. */
+        try{ snap=await getDoc(ref); }catch(e){ if(e&&e.code==='permission-denied') throw new Error('full'); throw e; }
         if(!snap.exists()) throw new Error('notfound'); const g=snap.data();
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
         if(meta&&typeof meta.rating==='number'){me.rating=Math.round(meta.rating);me.rgames=Math.max(0,Math.round(meta.rgames||0));}
@@ -218,8 +229,20 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
         let codes=[]; try{ const snap=await getDoc(doc(db,'users',u.uid)); const d=snap.exists()?snap.data():null; codes=(d&&Array.isArray(d.games))?d.games.slice(-40):[]; }catch(e){ return []; }
         const out=[]; for(let i=0;i<codes.length;i++){ try{ const s=await getDoc(doc(db,'games',codes[i])); if(s.exists()){ const g=s.data(); g.id=codes[i]; out.push(g); } }catch(e){} }
         out.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); }); return out; };
-      C._gameWatch = function(id,cb){ if(_gu)_gu(); _gu=onSnapshot(doc(db,'games',id), function(s){ cb(s.exists()?s.data():null); }, function(){ cb(null); }); return _gu; };
-      C._gamePush  = function(id,d){ return updateDoc(doc(db,'games',id), Object.assign({}, d, {updatedAt:Date.now()})); };
+      /* #550 SEC-05: VIDEO CALL SIGNALLING IS NOT IN THE GAME DOCUMENT ANY MORE. The offer, the answer and both sides' ICE candidates carry
+         the players' IP addresses; they now live in games/{code}/call/signal, which firestore.rules lets only the two seated players read
+         or write. The app is unchanged: gamePush routes rtc / rtcC_w / rtcC_b there, and gameWatch merges that document back into the
+         game it delivers, so chess.jsx still reads og.rtc and og.rtcC_*. */
+      const _RTCK=['rtc','rtcC_w','rtcC_b'];
+      C._gameWatch = function(id,cb){ if(_gu)_gu(); let g=null,c=null,seen=false;
+        const emit=function(){ if(!seen) return; if(!g){ cb(null); return; } const out=Object.assign({}, g); if(c){ _RTCK.forEach(function(k){ if(k in c) out[k]=c[k]; }); } cb(out); };
+        const u1=onSnapshot(doc(db,'games',id), function(s){ seen=true; g=s.exists()?s.data():null; emit(); }, function(){ cb(null); });
+        const u2=onSnapshot(doc(db,'games',id,'call','signal'), function(s){ c=s.exists()?s.data():null; emit(); }, function(){ c=null; });
+        _gu=function(){ try{u1();}catch(e){} try{u2();}catch(e){} }; return _gu; };
+      C._gamePush  = function(id,d){ const g={},c={}; let nc=0,ng=0; Object.keys(d||{}).forEach(function(k){ if(_RTCK.indexOf(k)>=0){ c[k]=d[k]; nc++; } else { g[k]=d[k]; ng++; } });
+        const ps=[]; if(nc) ps.push(setDoc(doc(db,'games',id,'call','signal'), c, {mergeFields:Object.keys(c)}));
+        if(ng||!nc) ps.push(updateDoc(doc(db,'games',id), Object.assign({}, g, {updatedAt:Date.now()})));
+        return Promise.all(ps); };
       C._gameChat  = function(id,m){ return updateDoc(doc(db,'games',id), {chat:arrayUnion(m)}); };
       // ---- Tournaments (collection "tournaments") ----
       C._tourCreate = async function(d){ const u=auth.currentUser; if(!u) throw new Error('signin');
@@ -233,11 +256,10 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       let _mmu=null;
       function _sameTc(a,b){ const k=function(t){ return t?(t.kind==='corr'?('corr'+t.days):(t.label||'live')):'none'; }; return k(a)===k(b); }
       async function _newPairedGame(meU, otherU, tc){
-        const code=Math.random().toString(36).slice(2,7).toUpperCase(); const now=Date.now();
+        const now=Date.now();
         const iAmWhite=Math.random()<0.5; const w=iAmWhite?meU:otherU; const b=iAmWhite?otherU:meU;
         const live=tc&&tc.kind!=='corr'&&tc.init;
-        const data={code:code,status:'active',moves:[],result:null,chat:[],tc:tc||null,clk:live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now,w:w,b:b};
-        await setDoc(doc(db,'games',code), data);
+        const code=await _createFresh(function(cd){ return {code:cd,status:'active',moves:[],result:null,chat:[],tc:tc||null,clk:live?{w:tc.init*1000,b:tc.init*1000}:null,createdAt:now,updatedAt:now,moveAt:now,w:w,b:b}; });
         try{ await setDoc(doc(db,'users',meU.uid), {games:arrayUnion(code), updatedAt:now}, {merge:true}); }catch(e){}
         return {code:code, color:iAmWhite?'w':'b'};
       }
@@ -245,7 +267,7 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       C._mmFind = async function(tc, cb){
         const u=auth.currentUser; if(!u) throw new Error('signin');
         const me={uid:u.uid,name:u.displayName||'Player',photo:u.photoURL||''};
-        let snap; try{ snap=await getDocs(collection(db,'mm')); }catch(e){ throw new Error('mm-read'); }
+        let snap; try{ snap=await getDocs(query(collection(db,'mm'), where('status','==','waiting'))); }catch(e){ throw new Error('mm-read'); }   /* #550 SEC-06: rules list only waiting entries */
         let cand=null; snap.forEach(function(d){ const e=d.data()||{}; if(!cand && e.uid && e.uid!==u.uid && e.status==='waiting' && _sameTc(e.tc, tc||null)) cand=e; });
         if(cand){
           const g=await _newPairedGame(me, {uid:cand.uid,name:cand.name||'Player',photo:cand.photo||''}, tc||null);
@@ -258,7 +280,9 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
         if(_mmu){ try{_mmu();}catch(e){} _mmu=null; }
         _mmu=onSnapshot(doc(db,'mm',u.uid), function(s){ const e=s.exists()?s.data():null;
           if(e&&e.status==='matched'&&e.gameId){ const gid=e.gameId; if(_mmu){ try{_mmu();}catch(e2){} _mmu=null; } deleteDoc(doc(db,'mm',u.uid)).catch(function(){});
-            getDoc(doc(db,'games',gid)).then(function(gs){ const gd=gs.exists()?gs.data():null; let color='b'; if(gd){ if(gd.w&&gd.w.uid===u.uid)color='w'; else if(gd.b&&gd.b.uid===u.uid)color='b'; } try{ setDoc(doc(db,'users',u.uid), {games:arrayUnion(gid), updatedAt:Date.now()}, {merge:true}); }catch(e3){} if(typeof cb==='function') cb({id:gid,color:color}); }).catch(function(){ if(typeof cb==='function') cb({id:gid,color:'b'}); });
+            getDoc(doc(db,'games',gid)).then(function(gs){ const gd=gs.exists()?gs.data():null; let color='b'; if(gd){ if(gd.w&&gd.w.uid===u.uid)color='w'; else if(gd.b&&gd.b.uid===u.uid)color='b'; }
+              /* #550 SEC-06: a gameId handed over in the queue is followed only when that game seats this player (rules also check it) */
+              if(!gd||!((gd.w&&gd.w.uid===u.uid)||(gd.b&&gd.b.uid===u.uid))) return; try{ setDoc(doc(db,'users',u.uid), {games:arrayUnion(gid), updatedAt:Date.now()}, {merge:true}); }catch(e3){} if(typeof cb==='function') cb({id:gid,color:color}); }).catch(function(){ if(typeof cb==='function') cb({id:gid,color:'b'}); });
           }
         }, function(){});
         return {waiting:true};
@@ -323,7 +347,9 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       C._friendAccept=async function(req){
         const u=auth.currentUser; if(!u) throw new Error('signin'); if(!req||!req.from) throw new Error('bad');
         const names={}; names[req.from]=req.fromName||'Player'; names[u.uid]=(u.displayName||'Player');
-        await addDoc(collection(db,'friends'),{ users:[req.from,u.uid], names:names, at:Date.now() });
+        /* #550 SEC-08: the friendship names the pending request it answers (req), and firestore.rules checks that request exists, was
+           sent BY req.from TO this user, and that the sender's name is the one the request carried. */
+        await addDoc(collection(db,'friends'),{ users:[req.from,u.uid], names:names, at:Date.now(), req:String(req.id||'') });
         if(req.id){ try{ await deleteDoc(doc(db,'friendReqs',req.id)); }catch(e){} }
       };
       C._friendDecline=async function(reqId){ const u=auth.currentUser; if(!u) throw new Error('signin'); await deleteDoc(doc(db,'friendReqs',reqId)); };
@@ -334,6 +360,40 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       C._nearbyJoin=async function(geo,name){ const u=auth.currentUser; if(!u) throw new Error('signin'); await setDoc(doc(db,'nearby',u.uid),{ uid:u.uid, name:(name||u.displayName||'Player'), geo:geo, at:Date.now() }); };
       C._nearbyLeave=async function(){ const u=auth.currentUser; if(!u) return; try{ await deleteDoc(doc(db,'nearby',u.uid)); }catch(e){} };
       C._nearbyList=function(geo,cb){ try{ const qy=query(collection(db,'nearby'), where('geo','==',geo)); return onSnapshot(qy, function(snap){ const out=[]; snap.forEach(function(d){ out.push(d.data()); }); cb(out); }, function(e){ cb([]); }); }catch(e){ cb([]); return function(){}; } };
+      /* #550 SEC-13: DELETE ACCOUNT. Google confirms it is this player FIRST, so a closed confirmation deletes nothing. Then every document
+         keyed to the uid is removed or scrubbed, and only when all of that succeeded is the Firebase Auth account deleted (a partial
+         failure throws, the account stays, and tapping again finishes the job - every step is safe to repeat). Not removable from the
+         browser and left to the Stripe payments extension: customers/{uid}, its subscriptions and payments, and the Stripe customer. */
+      C._deleteAccount = async function(){
+        const u=auth.currentUser; if(!u) throw new Error('signin'); const uid=u.uid;
+        try{ await reauthenticateWithPopup(u, provider); }
+        catch(e){ const c=e&&e.code; if(c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'||c==='auth/user-mismatch') throw e; /* popup blocked or unsupported: deleteUser below says if a fresh sign-in is needed */ }
+        const fails=[]; const step=async function(label,fn){ try{ await fn(); }catch(e){ fails.push(label+': '+((e&&e.code)||(e&&e.message)||e)); } };
+        let codes=[]; await step('users read', async function(){ const s=await getDoc(doc(db,'users',uid)); const d=s.exists()?s.data():null; codes=(d&&Array.isArray(d.games))?d.games.slice():[]; });
+        for(let i=0;i<codes.length;i++){ const code=String(codes[i]); await step('game '+code, async function(){
+          const ref=doc(db,'games',code); let s; try{ s=await getDoc(ref); }catch(e){ if(e&&e.code==='permission-denied') return; throw e; } if(!s.exists()) return;
+          const g=s.data()||{}; const seat=(g.w&&g.w.uid===uid)?'w':((g.b&&g.b.uid===uid)?'b':null); if(!seat) return;
+          try{ await deleteDoc(doc(db,'games',code,'call','signal')); }catch(e){}
+          if(g.status==='waiting'){ await deleteDoc(ref); return; }
+          const upd={updatedAt:Date.now()}; upd[seat]={uid:uid,name:'Deleted player',photo:''};
+          upd.chat=(Array.isArray(g.chat)?g.chat:[]).filter(function(m){ return !(m&&m.uid===uid); }); await updateDoc(ref, upd); }); }
+        await step('mm', function(){ return deleteDoc(doc(db,'mm',uid)); });
+        await step('nearby', function(){ return deleteDoc(doc(db,'nearby',uid)); });
+        const delAll=async function(qy){ const sn=await getDocs(qy); const ps=[]; sn.forEach(function(d){ ps.push(deleteDoc(d.ref)); }); await Promise.all(ps); };
+        await step('friendReqs from', function(){ return delAll(query(collection(db,'friendReqs'),where('from','==',uid))); });
+        await step('friendReqs to', function(){ return delAll(query(collection(db,'friendReqs'),where('to','==',uid))); });
+        await step('friends', function(){ return delAll(query(collection(db,'friends'),where('users','array-contains',uid))); });
+        await step('tournaments', async function(){ const sn=await getDocs(collection(db,'tournaments')); const ps=[];
+          sn.forEach(function(d){ const t=d.data()||{}; if(t.host===uid){ ps.push(deleteDoc(d.ref)); return; }
+            const mine=(Array.isArray(t.players)?t.players:[]).filter(function(p){ return p&&p.uid===uid; });
+            mine.forEach(function(p){ ps.push(updateDoc(d.ref,{players:arrayRemove(p), updatedAt:Date.now()})); }); });
+          await Promise.all(ps); });
+        await step('checkout_sessions', function(){ return delAll(collection(db,'customers',uid,'checkout_sessions')); });
+        if(!fails.length) await step('users', function(){ return deleteDoc(doc(db,'users',uid)); });
+        if(fails.length){ const e=new Error('partial ('+fails.slice(0,3).join('; ')+')'); e.code='partial'; e.fails=fails; throw e; }
+        try{ await deleteUser(u); }catch(e){ if(e&&e.code==='auth/requires-recent-login'){ const e2=new Error('reauth'); e2.code='auth/requires-recent-login'; throw e2; } throw e; }
+        return {ok:true};
+      };
       onAuthStateChanged(auth, function(u){ C._emit(u ? {uid:u.uid, name:u.displayName, email:u.email, photo:u.photoURL} : null); });
     } catch(e) {
       console.error('Firebase init failed', e);

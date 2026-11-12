@@ -9,9 +9,13 @@
 // WHAT IT ASSERTS, at kunal761, Home -> the sign-in button (top right) -> the Account sheet, signed out:
 //  (a) TC-HM-058a on a player's store the sheet is open (DENOMINATOR: its plan buttons are on screen) and NO element reads
 //      "Unlock Pro (test mode)".
-//  (b) TC-HM-058b on a developer's store (ct_protest=1) the same sheet DOES offer it - so the absence in (a) is the switch,
-//      and not a renamed or moved button the selector would miss.
+//  (b) TC-HM-058b RE-KEYED AT #550 SEC-01 [docs/security-privacy-2026-11-12, Kunal "All 20, serious first"]: hiding the button had not
+//      removed the switch (ct_pro=1 still granted Pro, ct_protest=1 brought the button back), so the switch itself is gone. On a store
+//      holding BOTH ct_protest=1 and ct_pro=1 the sheet still shows the paid plans (Pro not granted) and offers no test unlock. This line
+//      used to assert the OPPOSITE (the developer's store DID offer it), as the proof that (a)'s absence was the switch; that proof now
+//      lives in gate 137's TC-R213b, which shows the same kind of read DOES see Pro when a subscription is real.
 // CONTROL-RECORD: f5a3432 2026-11-11 total=4 red=1 scope=trial:4fe71d55db29 how=#550 a1: the bundle before the change (the test unlock shown to every player) - TC-HM-058a's offer line red; the denominator and 058b green; good trial ae0f65399b7d 4/0
+// CONTROL-RECORD: 9a6a5c6 2026-11-12 total=4 red=1 scope=trial:79d0124fe952 how=#550 SEC-01 re-key of TC-HM-058b: the bundle before the change (ct_pro=1 grants Pro, ct_protest=1 shows the unlock) - 058b red, 058a and its DENOMINATOR green; on e617c6bd93cb 4/0
 const L=require('../lib');
 /* #550 antagonist A round 2, A2-10: the DENOMINATOR read /Monthly|Annual|Upgrade|Pro/ over the whole page, and a bare 'Pro' matches 'Progress'
    anywhere, so it could not show the sheet opened. It now needs BOTH plan buttons, found as buttons whose own text starts with the plan. */
@@ -24,6 +28,6 @@ L.run(async()=>{
   const p=await sheet({},'acct-player');
   L.say(p.ok&&p.plans,'TC-HM-058a DENOMINATOR the Account sheet opened from Home on a player\'s store and shows its Pro plans',p);
   L.say(p.ok&&p.plans&&!p.test,'TC-HM-058a a player is NOT offered "Unlock Pro (test mode)" (Kunal, a1: hide it from players)',p);
-  const d=await sheet({ct_protest:'1'},'acct-dev');
-  L.say(d.ok&&d.test,'TC-HM-058b on a developer\'s store (ct_protest=1) the same sheet DOES offer it, so the absence above is the switch and not a missed selector',d);
+  const d=await sheet({ct_protest:'1',ct_pro:'1'},'acct-dev');
+  L.say(d.ok&&d.plans&&!d.test,'TC-HM-058b (re-keyed at #550 SEC-01) even on a store holding ct_protest=1 and ct_pro=1 the sheet shows the paid plans and offers no test unlock - there is no browser switch for Pro',d);
 },'104-no-test-pro-for-players');

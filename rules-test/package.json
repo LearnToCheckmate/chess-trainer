@@ -1,0 +1,10 @@
+{
+  "name": "chess-trainer-rules-test",
+  "private": true,
+  "description": "Emulator tests for ../firestore.rules (#550 SEC-03..09, 16). Run: npm install && npx firebase emulators:exec --only firestore --project demo-ct 'node --test firestore.rules.test.js'",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.12.2",
+    "firebase-tools": "^13.0.0"
+  }
+}
