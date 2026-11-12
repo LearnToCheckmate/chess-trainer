@@ -2303,3 +2303,10 @@ As a player asking for help anywhere in training, the words describe this positi
 - Most generated puzzles get a hint of their own, in hundreds of distinct sentences. (TC-R209b)
 - The line after a solve is read from the stored line. (TC-R209c)
 - The Brilliant drill's hint names what can be given or left. (TC-R209d)
+
+### US-R142 The cards already in the drill are re-checked by win chance
+*Added #550, run-answers build__1794388896663-a41; Kunal, 12 Nov: "Ship, re-check my cards".*
+As a player with a deck built before the drill took only Blunders and Mistakes, the throwaway cards leave now, not only when their game is reviewed again.
+- A card that still grades Blunder or Mistake by win chance stays, with its re-grade recorded. (TC-R210a)
+- A card that does not - his move was in fact the best, or the drop is small - leaves the deck. (TC-R210b)
+- The deck size before and after is recorded. (TC-R210c)

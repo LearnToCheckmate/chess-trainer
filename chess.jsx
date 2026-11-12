@@ -4181,7 +4181,7 @@ export default function App(){
   const isPro = subPro || testPro;             // effective Pro = a live subscription OR the test override
   const [skin,setSkin]=useState(()=>{try{const v=localStorage.getItem('ct_skin');const i=v!==null?parseInt(v):CLASSIC_IDX;return (i>=0&&i<SKINS.length)?i:CLASSIC_IDX;}catch{return CLASSIC_IDX;}});
   const [introN,setIntroN]=useState(0);  // bump to replay the Home intro animation
-  const [homeScreen,setHomeScreen]=useState(true);
+  const [homeScreen,setHomeScreen]=useState(true);const homeScreenRef=useRef(true);homeScreenRef.current=homeScreen;   /* #550 a41: the card re-grade pass stops when he leaves Home */
   const [forcePreviewWide,setForcePreviewWide]=useState(false);
   const [themeOpen,setThemeOpen]=useState(false);
   const [skinOpen,setSkinOpen]=useState(false);
@@ -5130,6 +5130,45 @@ export default function App(){
   const myBrilliantRef=useRef([]); myBrilliantRef.current=myBrilliant;
   const drillKindRef=useRef('mistake');
   useEffect(()=>{try{localStorage.setItem('ct_mymistakes',JSON.stringify(myMistakes));}catch{}},[myMistakes]);
+  /* #550 run-answers a41 (Kunal, 12 Nov: "Ship, re-check my cards"; jobs/drill-cards-blunders-and-mistakes-only-2026-11-12): the cards ALREADY in
+     the deck were chosen on the old centipawn ladder, and a stored card holds only that label. So each is re-graded by win chance from its
+     own position - the app's Stockfish on the position before the move and after the move he played, about 300ms each, the item (20) bands -
+     and a card that no longer grades Blunder or Mistake leaves the deck. THE LIGHTER OF THE TWO ROUTES HE OFFERED: one pass while he is on
+     Home, so it never takes the engine from a drill or a review; it stops the moment he leaves Home and resumes next time, and each card
+     keeps its re-grade (wc) so it is checked once. The deck size before and after is kept in ct_regrade550. */
+  const regradeRunRef=useRef(false);
+  useEffect(()=>{
+    if(!homeScreen||!GRADES2||regradeRunRef.current)return;
+    const todo=(myMistakesRef.current||[]).filter(m=>m&&!m.wc&&m.fen&&m.uci);if(!todo.length)return;
+    regradeRunRef.current=true;let stop=false;const halt=()=>{stop=true;};const off=setTimeout(()=>{},0);
+    (async()=>{
+      try{
+        const ok=await ensureAna(60);if(!ok||stop)return;
+        let rec=null;try{rec=JSON.parse(localStorage.getItem('ct_regrade550')||'null');}catch(e){rec=null;}
+        if(!rec)rec={before:(myMistakesRef.current||[]).length,after:null,dropped:0,checked:0,at:null};
+        const toW=(r)=>{if(!r||!r.ok)return null;if(r.mate!=null)return r.mate>0?(100000-r.mate*100):(-100000-r.mate*100);return typeof r.cp==='number'?r.cp:null;};
+        const startN=(myMistakesRef.current||[]).length;let droppedHere=0;
+        for(const m of todo){
+          if(stop||!homeScreenRef.current)break;
+          let verdict=null;
+          try{const g=fromFEN(m.fen);const pm=m.played?findMoveBySAN(g,m.played):null;const bm=uciToMove(g,m.uci);
+            if(pm&&bm){const same=pm.fr===bm.fr&&pm.fc===bm.fc&&pm.tr===bm.tr&&pm.tc===bm.tc;
+              const rb=await sfEval1(m.fen,300,12,true);if(stop||!homeScreenRef.current)break;
+              const ra=await sfEval1(toFEN(makeMove(g,pm)),300,12,true);if(stop||!homeScreenRef.current)break;
+              const b=toW(rb),a=toW(ra);
+              if(b!=null&&a!=null){const drop=winDrop(b,a,g.turn);const cls=classifyMove(drop,same,getLegal(g).length,true);verdict={g:cls.label,drop:Math.round(drop*10)/10,v:1};}}}catch(e){verdict=null;}
+          if(!verdict)continue;   /* nothing honest to say (no played move stored, or the engine gave no score): the card stays as it was */
+          rec.checked++;
+          const keep=verdict.g==='Mistake'||verdict.g==='Blunder';if(!keep){rec.dropped++;droppedHere++;}
+          setMyMistakes(arr=>keep?arr.map(x=>x===m?{...x,wc:verdict}:x):arr.filter(x=>x!==m));
+        }
+        rec.after=Math.max(0,startN-droppedHere);rec.at=new Date().toISOString();   /* the deck the removals leave - read from the pass's own count, because the ref still holds the deck from before React applies them */
+        try{localStorage.setItem('ct_regrade550',JSON.stringify(rec));}catch(e){}
+      }catch(e){}
+      finally{regradeRunRef.current=false;}
+    })();
+    return()=>{halt();clearTimeout(off);};
+  },[homeScreen]);
   useEffect(()=>{try{localStorage.setItem('ct_mybrilliancies',JSON.stringify(myBrilliant));}catch{}},[myBrilliant]);
   // One-time reset (per Kunal): drop pre-#59 saved brilliancies so they rebuild with the stricter detector as games are reviewed.
   useEffect(()=>{try{if(!localStorage.getItem('ct_bril_reset_v1')){localStorage.setItem('ct_bril_reset_v1','1');setMyBrilliant([]);}}catch(e){}},[]);
