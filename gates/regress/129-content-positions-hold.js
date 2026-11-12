@@ -14,6 +14,7 @@
 // alone with searchmoves) and is within 0.5 of the engine's best; (b) no Strategy position has mate in one for the side to move (a card
 // about a slow plan must not hide a mate); (c) "The opposition" is a win for White, as its look line says.
 // KNOW ITS LIMIT: it checks that the chess is true, not that the words describe it well (that is the hint audit's other findings).
+// CONTROL-RECORD: ce025ff 2026-11-12 total=47 red=5 scope=trial:3ab724514641 how=#550 origin/main's own #549 bundle, the cards as the audit found them: Pawn fork -190 (TC-R205a), mate in one on Put rooks on open files, Rooks love the 7th rank and Trade pieces when you are ahead (TC-R205b), The opposition 0 cp (TC-R205c); on t124 47/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path'),cp=require('child_process'),crypto=require('crypto');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
