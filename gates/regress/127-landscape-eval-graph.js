@@ -17,6 +17,7 @@
 // CONTROL-RECORD: ef54d07 2026-11-12 total=57 red=2 scope=trial:10a6845dd946 how=#550 antagonist A F1: the graph before the fix (the player's-move points filled with the static material count) - B2's value lines red (largest gap 0.625, newest -0.69 against the bar's -0.9); on 764a0b1dc097 57/0
 // CONTROL-RECORD: 9afd7ec 2026-11-12 total=57 red=8 scope=trial:075881d048e1 how=#550 a38: the tree before the full-height board (Review 216, the game 344) - the six TC-R203d board lines red, and B2's precondition and value line (that tree's game at 344 lays the rail out differently)
 // CONTROL-RECORD: e49a6f7 2026-11-12 total=57 red=7 scope=trial:10a6845dd946 how=#550 round 6 B2 re-key: the sawtooth graph (the player's-move points from the static count) - B2's value line red (with the tree's 344 board lines); on t113 57/0
+// CONTROL-RECORD: 45e1ddb 2026-11-12 total=57 red=36 scope=trial:3ab724514641 how=#550 re-control after the antagonist pair's re-pin (the 340 game rail; 127's toolbar width check): origin/main's own #549 bundle, with no graph and no full-height board - first red: TC-R203a review 761x375 the eval graph is in the rail UNDER the move's
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review');
 const GEOS=[[761,375],[730,375],[667,375]];
