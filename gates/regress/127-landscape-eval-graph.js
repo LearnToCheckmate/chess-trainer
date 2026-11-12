@@ -20,7 +20,7 @@
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review');
 const GEOS=[[761,375],[730,375],[667,375]];
-const BOARD=(k,w,h)=>k==='review'?h:Math.min(h,w-320);   // #550 a38 (his rule, the board as big as the screen allows): the full height; a sideways game's rail keeps 300, so at 667 it is 347. Before a38: 344 and 216
+const BOARD=(k,w,h)=>k==='review'?h:Math.min(h,w-340);   /* antagonist A F1: the game's rail keeps 340 so six 44pt buttons fit */   // #550 a38 (his rule, the board as big as the screen allows): the full height; a sideways game's rail keeps 300, so at 667 it is 347. Before a38: 344 and 216
 const read=(b)=>b.page.evaluate(()=>{const rail=document.querySelector('.ctside');if(!rail)return null;const rr=rail.getBoundingClientRect();
   const svgs=[...rail.querySelectorAll('svg')].filter(s=>s.querySelector('line[stroke-dasharray="4 3"]')&&s.getBoundingClientRect().width>0);
   const g=svgs[0]||null;const gq=g&&g.getBoundingClientRect();const line=g&&[...g.querySelectorAll('path')].find(p=>p.getAttribute('fill')==='none');
@@ -58,7 +58,7 @@ L.run(async()=>{
      const tbb=r&&Math.max(...r.tb.filter(Boolean).map(x=>x.b));
      L.say(!!r&&!!r.graph&&!!r.live&&r.graph.t>=tbb-1&&r.graph.b<=r.live.t+1,'TC-R203c '+tag+' the eval graph sits under the toolbar and above the MOVES row (toolbar bottom '+tbb+', graph '+(r&&r.graph&&(r.graph.t+'-'+r.graph.b))+', MOVES row top '+(r&&r.live&&r.live.t)+')',r&&{graph:r.graph,live:r.live});
      L.say(!!r&&!!r.graph&&r.graph.h>=36&&r.graph.w>=r.vw*0.3&&r.graph.pts===4,'TC-R203c '+tag+' it grows move by move: '+(r&&r.graph&&r.graph.pts)+' points for 4 plies, '+(r&&r.graph&&(r.graph.w+'x'+r.graph.h)),r&&r.graph);
-     L.say(!!r&&!!r.strip&&r.tb.every(x=>!!x&&x.h>=43.5)&&!!r.live&&r.live.b<=r.vh&&!!r.pbb&&r.pbb.b<=r.vh&&!!r.pbt,'TC-R203d '+tag+' every row is kept and on screen: the move strip, the six toolbar buttons at 44 or more ('+(r&&r.tb.map(x=>x&&x.h).join(','))+'), the MOVES row, both player bars',r&&{tb:r.tb,live:r.live,pbb:r.pbb,strip:r.strip});
+     L.say(!!r&&!!r.strip&&r.tb.every(x=>!!x&&x.h>=43.5&&(x.r-x.l)>=43.5&&x.r<=r.vw)&&!!r.live&&r.live.b<=r.vh&&!!r.pbb&&r.pbb.b<=r.vh&&!!r.pbt,'TC-R203d '+tag+' every row is kept and on screen: the move strip, the six toolbar buttons 44 or more tall AND wide and on screen ('+(r&&r.tb.map(x=>x&&(x.h+'x'+(x.r-x.l))).join(','))+'), the MOVES row, both player bars',r&&{tb:r.tb,live:r.live,pbb:r.pbb,strip:r.strip});
      L.say(!!r&&r.rail.sh<=r.rail.ch+1&&r.docw<=r.vw,'TC-R203d '+tag+' the rail does not scroll ('+(r&&r.rail.sh)+' of '+(r&&r.rail.ch)+') and nothing spills sideways',r&&r.rail);
      L.say(!!r&&Math.abs(r.board-BOARD('play',w,h))<=1,'TC-R203d '+tag+' the board is as big as the screen allows ('+(r&&r.board)+' against '+BOARD('play',w,h)+')');
      const t1=await tapGraph(b,0.01);const r1=await read(b);
