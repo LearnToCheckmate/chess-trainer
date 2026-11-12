@@ -347,14 +347,18 @@ L.run(async()=>{
   say(grade.Blunder.b===1,'B1 Black is charged with exactly ONE blunder - 15...Nxd7, which allows mate from -649cp, on the >=-700 Blunder rung of the decided ladder (#439 also charged 1, for the wrong reason)',{blackBlunder:grade.Blunder.b,rung:'>=-700',decidedBy:'q-mate-floor-is-allowing-mate-a-blunder / lichess-ladder'});
   say(grade.Mistake.b===0,'B2 Black, who is being mated, is charged with NO mistake (#439 charged 1)',{blackMistake:grade.Mistake.b});
   // B3 and the number he actually reads.
-  say(accB>=80,'B3 Black accuracy is at least 80% on a game he never had chances in (#439 read 62.4%)',{blackAccuracy:accB});
+  // RE-KEYED AT #550 [run-answers build__1794388896663-a39, Kunal 12 Nov: change the accuracy formula]: the harsh half is floored
+  // at 25 and the result takes 10 off (ACC_HARM_FLOOR, ACC_SHIFT), so every accuracy here reads about 10 lower BY DESIGN - measured
+  // on t139 edd93ac94af9: Black 78.9, White 87.6, against the old 80 and 90 floors. The claim is unchanged: Black stays far above
+  // #439's 62.4 (the softening this block guards) and White stays high; both floors move by the formula's own 10.
+  say(accB>=70,'B3 Black accuracy is at least 70% on a game he never had chances in (#439 read 62.4%; 80 before #550\'s a39 minus-10 formula)',{blackAccuracy:accB});
 
   // B4, B5 THE OTHER HALF OF THE CLAIM: the side that was WINNING must not be softened by this change.
   // Green on #439 as well as on #440 - it is a regression guard, not a discriminator, and it is what stops
   // a later "simplification" of the ladder from quietly excusing the winner's real errors too.
   const wBad=grade.Inaccuracy.w+grade.Miss.w+grade.Mistake.w+grade.Blunder.w;
   say(wBad===0,'B4 White, who won, still has no inaccuracy, miss, mistake or blunder',{whiteBadRows:wBad});
-  say(accW>=90,'B5 White accuracy is still at least 90% (#439 read 98%)',{whiteAccuracy:accW});
+  say(accW>=80,'B5 White accuracy is still at least 80% (#439 read 98%; 90 before #550\'s a39 minus-10 formula)',{whiteAccuracy:accW});
   // B6 LABELS REDISTRIBUTE, THEY DO NOT VANISH. A per-side total that drops would mean moves fell out of
   // the table altogether, which is how a softening change could hide a counting bug inside a good result.
   const sw=ROWS.reduce((a,r)=>a+grade[r].w,0), sb=ROWS.reduce((a,r)=>a+grade[r].b,0);
@@ -490,3 +494,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 94d9a75 2026-11-06 total=26 red=2 scope=trial:eda7c506ed32 how=#549 item (62): CLS_BANDS Good cut-off 8.2096 -> 9.0, blocks B and E skipped - A0 and F6 red (A1..A26 NOT RUN behind A0)
 // CONTROL-RECORD: a64d5cc 2026-11-07 total=74 red=1 scope=trial:acc4a47fdf83 how=#549 run fix: matesMover removed from gradeDrillMove only (the fourth grading site) - C7 red alone; head bundle cce851cd1571 74/0
 // CONTROL-RECORD: 00ecd5b 2026-11-12 total=87 red=2 scope=trial:a7b7167ba9bf how=#550 item (20) re-key: CLS_BANDS2's Excellent cut-off 3 -> 4 and the mate guard removed from the grades-2 overlay entry (chess.jsx, search "if(_G2&&cls.label") - F3 (36cp now reads Excellent) and C8 (one guard of two) red; on 10a6845dd946 87/0
+// CONTROL-RECORD: f1739c2 2026-11-12 total=87 red=4 scope=trial:c09b5c0136bc how=#550 a39 re-key of B3/B5 (70 and 80): ACC_SHIFT 10 -> 25 (chess.jsx, search "const ACC_SHIFT=") - B3 (63.9) and B5 (72.6) red at both pool sizes; on t139 edd93ac94af9 87/0; main's #549 bundle 3ab724514641 74/0 (a regression guard, green before as after)
