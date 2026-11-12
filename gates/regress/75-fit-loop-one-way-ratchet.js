@@ -167,10 +167,10 @@ const overOf=(b)=>b.page.evaluate(()=>{
 // P0 at exactly these short geometries. Antagonist B's finding: without this, a click swallowed in BOTH
 // arms leaves both measuring the DEMO board, and every other assertion in the block still passes on it.
 const inPractice=(b)=>b.page.evaluate(()=>
-  ![...document.querySelectorAll('button')].some(x=>/Now I'll try it/.test(x.innerText||'')));
+  ![...document.querySelectorAll('button')].some(x=>/Now I'll try it/.test((x.innerText||'')+' '+(x.getAttribute('aria-label')||''))));   /* #550 re-keyed (formatting audit FMT-A-02/A-05, Kunal's pick 12 Nov; a42): on a short phone it is the bar's ✋, named by aria-label */
 
 const toPractice=(b)=>b.page.evaluate(()=>{
-  const t=[...document.querySelectorAll('button')].find(x=>/Now I'll try it/.test(x.innerText||''));
+  const t=[...document.querySelectorAll('button')].find(x=>/Now I'll try it/.test((x.innerText||'')+' '+(x.getAttribute('aria-label')||'')));
   if(!t)return false; t.click(); return true;});
 
 const armInner=async(geo,px)=>{

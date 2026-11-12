@@ -38,7 +38,7 @@ async function read(b){return b.page.evaluate(()=>{
   const secs=[...document.querySelectorAll('[data-ct="lib-sec-n"]')].filter(vis).map(n=>{const box=n.parentElement.parentElement;return {label:n.parentElement.textContent.replace(n.textContent,'').trim(),n:+n.textContent,rows:[...box.querySelectorAll('button')].filter(x=>/^[♔♚]/.test((x.textContent||'').trim())).length};});
   const heads=[];for(const n of document.querySelectorAll('[data-ct="lib-sec-n"]')){const grp=n.parentElement.parentElement.parentElement;const hd=grp&&grp.firstElementChild;if(!hd||hd.querySelector('[data-ct="lib-sec-n"]'))continue;const num=[...hd.querySelectorAll('span')].map(s=>s.textContent.trim()).filter(t=>/^\d+$/.test(t)).pop();if(num==null)continue;const k=hd.textContent.trim();if(heads.find(h=>h.k===k))continue;heads.push({k,n:+num,rows:[...grp.querySelectorAll('button')].filter(x=>/^[♔♚]/.test((x.textContent||'').trim())).length});}
   const gn=document.querySelector('[data-ct="lib-group-n"]');const gnt=gn?gn.textContent.trim():null;
-  const box=document.querySelector('[data-ct="lib-filter"]');const back=[...document.querySelectorAll('button')].find(x=>vis(x)&&/^‹ Back$/.test((x.textContent||'').trim()));
+  const box=document.querySelector('[data-ct="lib-filter"]');const back=[...document.querySelectorAll('button')].find(x=>vis(x)&&(/^‹ Back$/.test((x.textContent||'').trim())||/^Back$/.test(x.getAttribute('aria-label')||'')));   /* #550 re-keyed (formatting audit FMT-A-02/A-05, Kunal's pick 12 Nov; a42): upright, Back is the top row's 44x44 corner button, named by aria-label */
   const R=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {top:+r.top.toFixed(1),bottom:+r.bottom.toFixed(1),h:+r.height.toFixed(1)};};
   return {rows:out,secs,heads,gnt,box:R(box),boxVal:box?box.value:null,back:R(back),none:!!document.querySelector('[data-ct="lib-filter-none"]')};});}
 async function type(b,t){await b.page.fill('[data-ct="lib-filter"]',t);await b.settle(350);}
@@ -70,7 +70,7 @@ L.run(async()=>{
             L.say(f.gnt===f.rows.length+' of '+u.rows.length,tag+'TC-S08c with "'+t+'" the list header reads shown of total ('+f.gnt+')',{gnt:f.gnt,rows:f.rows.length});
             if(kind!=='none'&&li.secs!==false)L.say(f.secs.length>0&&f.secs.every(s=>s.n===s.rows)&&f.heads.every(h=>h.n===h.rows),tag+'TC-S08c with "'+t+'" every count equals its rows',{secs:f.secs,heads:f.heads});
           }
-          await H.tapBtn(b,/^‹ Back$/,500);await H.tapBtn(b,li.tile,700);await toTop(b);   // re-entered by its tile, NOT by the driver state, which reloads a fresh page and would empty the box by construction
+          await H.tapBtn(b,/^(‹ Back|Back)$/,500);await H.tapBtn(b,li.tile,700);await toTop(b);   // re-entered by its tile, NOT by the driver state, which reloads a fresh page and would empty the box by construction
 
           const r2=await read(b);
           L.say(r2.boxVal===''&&r2.rows.length===u.rows.length,tag+'TC-S08a after Back and re-entry the box is empty and all '+u.rows.length+' rows are back',{val:r2.boxVal,rows:r2.rows.length});

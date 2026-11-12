@@ -300,6 +300,7 @@ L.run(async()=>{
     // MEASURED: in LANDSCAPE (844x390) the lesson end screen does not paint "lesson-lines" at all, so there is nothing
     // to call contained. That is REPORTED as unmeasured and not credited as a PASS; in portrait an absent label is red.
     const present=!!fRow&&!fRow.err&&fRow.lines!==null&&fRow.lines!==undefined;
+    if(!present&&L.GEOS[geo]&&L.GEOS[geo].h<700){L.note(geo+': "'+FIXED.ct+'" is NOT painted on a short phone since #550 (formatting audit FMT-A-05, Kunal\'s pick 12 Nov; a42): the demo row folded into the lesson bar and Other lines is in its ⋯ sheet (gate 139 TC-R215g), so its containment is UNMEASURED here - reported, not credited');continue;}
     if(geo==='land844'&&!present){L.note(geo+': "'+FIXED.ct+'" is NOT painted on '+FIXED.state+' in landscape, so its containment is UNMEASURED here - reported, not credited');continue;}
     L.say(present,geo+': "'+FIXED.ct+'" is ON the screen it is checked on, so "contained" below is not satisfied by its absence',{label:fRow&&fRow.lines});
     L.say(!!fRow&&!fRow.err&&!hit,

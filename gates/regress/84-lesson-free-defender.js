@@ -87,7 +87,7 @@ async function sfGo(b,fen,ms){await b.page.evaluate((a)=>{window.__g84o=[];windo
   for(let i=0;i<(ms/100+60);i++){await b.page.waitForTimeout(100);const r=await b.page.evaluate(()=>{const bl=window.__g84o.find(x=>x.startsWith('bestmove'));if(!bl)return null;const inf=window.__g84o.filter(x=>/^info .* score /.test(x)&&!/ multipv [2-9]/.test(x));const l=inf[inf.length-1]||'';const mm=l.match(/score mate (-?\d+)/),cm=l.match(/score cp (-?\d+)/);return {best:bl.split(' ')[1],mate:mm?+mm[1]:null,cp:cm?+cm[1]:null};});if(r)return r;}return null;}
 // Play one white move by tapping, then wait for the app's answer (the note stops saying the king is thinking).
 async function tapMove(b,E,g,m){const [f,t]=sqs(E,m);await b.move(f,t,150);let n='';for(let i=0;i<60;i++){n=(await D.noteText(b))||'';if(!/thinking/.test(n))break;await b.page.waitForTimeout(150);}await b.settle(150);return n;}
-async function openPractice(b){await D.openLesson(b,'Endgames',/^Two Bishops Mate$/);await D.startDemoPaused(b);const dm=await b.metrics();await D.toEnd(b);await D.tapBtn(b,/^✋ Now I'll try it$/,700);return dm.board?dm.board.w:null;}
+async function openPractice(b){await D.openLesson(b,'Endgames',/^Two Bishops Mate$/);await D.startDemoPaused(b);const dm=await b.metrics();await D.toEnd(b);await D.tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,700);return dm.board?dm.board.w:null;}
 // Drive the rest of the game with the gate's engine; returns {mated, moves, replies:[{ply,san}], refused}
 async function driveToMate(b,E,g0,startPly,opts){
   let g=g0,ply=startPly,refused=0,last='';const replies=[];const o=opts||{};
