@@ -1766,6 +1766,26 @@ function concreteRead(pos,mv){
    THE BAND WORDS WHERE THE BOARD PROVES IT. Built at card time from the card's own position, so the cards he already has get it too.
    oldWhy is the stored sentence; its clauses are kept wherever nothing concrete replaces them. Packed to WHY_DRILL_MAXW like mistakeWhy:
    the reason for the best move is the last thing dropped. */
+/* #550 HEX-T-07 (jobs/brilliant-drill-hint-and-explanation-concrete-2026-11-12): the Brilliant drill's hint was one fixed sentence on every card
+   ("You played something special here - a sacrifice or a precise blow."). It now says WHAT can be given or left, from the card's own
+   position: a piece offered with check, a piece offered, or one of his pieces left attacked while something better is played; otherwise
+   the concrete reading; null keeps the old line. It names the piece, never the move. missed: the wording for a Brilliant he did not play. */
+function brilHint(pos,mv,missed){
+  try{
+    if(!pos||!mv)return null;const me=pos.turn,them=opp(me);const pc=pos.board[mv.fr][mv.fc];if(!pc)return null;
+    const g2=makeMove(pos,mv);if(!g2)return null;const st=getStatus(g2);const nm=(t)=>PNAME[t]||'piece';
+    const cap=pos.board[mv.tr][mv.tc];
+    const offered=pc.t!=='k'&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)>0&&(SEEVAL[pc.t]||0)>(cap?(SEEVAL[cap.t]||0):0);
+    const lead=missed?'There was ':'';
+    if(offered&&st==='check')return (missed?'A ':'A ')+nm(pc.t)+(missed?' could be given up with check here.':' can be given up with check here.');
+    if(offered)return 'Your '+nm(pc.t)+(missed?' could be given up here, and it held.':' can be given up here, and it holds.');
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=pos.board[r][c];if(!t||t.c!==me||t.t==='k'||t.t==='p'||(r===mv.fr&&c===mv.fc))continue;
+      if(seeSq({...pos,turn:them,ep:null},r,c,them)>0&&seeSq({...g2,turn:them},r,c,them)>0)
+        return 'Your '+nm(t.t)+' on '+rc2sq(r,c)+' is attacked. '+(missed?'There was something better than saving it.':'You found something better than saving it.');}
+    const cr=concreteRead(pos,mv);if(cr&&cr.hint)return cr.hint;
+    void lead;return null;
+  }catch(e){return null;}
+}
 function drillVerdict(pos,bestMv,playedMv,oldWhy){
   try{
     const parts=String(oldWhy||'').match(/[^.!?]+[.!?](\s|$)/g)||[];
@@ -2915,6 +2935,48 @@ const PZ_GEN=PZGEN_RAW.map((p,i)=>({id:'g'+i,fen:p.f,sol:p.s,reply:p.y,rating:p.
 // Hand-built curated puzzles (famous traps + teaching tactics) get ids + ratings.
 const PZ_CUR=PUZZLES.map((p,i)=>{const base=p.level==='Easy'?760:p.level==='Medium'?1240:1660;const bump=/trap|smother/i.test(p.motif)?150:0;return {...p,id:'c'+i,rating:Math.min(2050,base+bump+(i%5)*13)};});
 const PZ=PZ_CUR.concat(PZ_GEN).sort((a,b)=>a.rating-b.rating);
+/* #550 docs/hint-audit-2026-11-12 HEX-T-04 and HEX-T-05 (jobs/puzzles-hints-and-explanations-concrete-2026-11-12): two templates covered all
+   876 generated puzzles ("It's mate in N - start with the most forcing check." and "Find the forcing move ... (<motif>)"), and the line after
+   a solve was the motif plus "nicely done". Each is now read from the puzzle's own position and stored line, LAZILY (one puzzle at a time,
+   cached by id: reading 876 at load would cost seconds). Hand-written puzzles (their texts are authored) and drill cards pass through. */
+const _pzTxtC={};
+function _sanDesc(g,san){try{const m=findMoveBySAN(g,san);if(!m)return null;const pc=g.board[m.fr][m.fc],cap=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);const g2=makeMove(g,m);const st=getStatus(g2);
+  const them=opp(g.turn);const sac=pc&&pc.t!=='k'&&seeSq({...g2,turn:them},m.tr,m.tc,them)>=(SEEVAL[pc.t]||0)-(cap?(SEEVAL[cap.t]||0):0)&&(SEEVAL[pc.t]||0)>(cap?(SEEVAL[cap.t]||0):0);
+  return {m,g2,pc,cap,st,sac,nLegal:getLegal(g2).length};}catch(e){return null;}}
+function pzText(p){
+  if(!p)return {hint:'',explain:''};
+  if(!(typeof p.id==='string'&&p.id[0]==='g'))return {hint:p.hint,explain:p.explain};
+  if(_pzTxtC[p.id])return _pzTxtC[p.id];
+  let hint=p.hint,explain=p.explain;
+  try{
+    const g0=fromFEN(p.fen),d0=_sanDesc(g0,p.sol[0]);
+    if(d0){
+      const nm=(t)=>PNAME[t]||'piece',clean=(x)=>String(x).replace(/[+#]$/,'');
+      const mn=(()=>{const x=/mate in (\d+)/i.exec(p.goal||'');return x?+x[1]:0;})();
+      const cr=concreteRead(g0,d0.m);
+      if(cr&&cr.hint)hint=(mn>=3&&!/mate/i.test(cr.hint))?('It is mate in '+mn+'. '+cr.hint):cr.hint;
+      else if(d0.st==='check')hint=(mn?('It is mate in '+mn+'. '):'')+(d0.sac?('A check works here, even though it gives up your '+nm(d0.pc.t)+'.'):'Start with a check.');
+      else if(d0.cap)hint='Start by taking the '+nm(d0.cap.t)+'.';
+      const s0=clean(p.sol[0]);
+      const attrs=[];if(d0.cap)attrs.push('takes the '+nm(d0.cap.t));if(d0.st==='check')attrs.push(d0.cap?'with check':'checks');
+      let one=s0+(attrs.length?(' '+attrs.join(' ')):'')+(d0.sac?(', giving up the '+nm(d0.pc.t)):'');
+      if(d0.st==='checkmate')explain=s0+' is mate.';
+      else if(p.sol.length>=2&&p.reply&&p.reply.length){
+        // walk the whole stored line: mine, reply, mine, ...
+        let g=d0.g2,lastD=null,lastSan=p.sol[0];const firstReply=clean(p.reply[0]);const forced=d0.nLegal===1;
+        for(let k=1;k<p.sol.length;k++){const r=p.reply[k-1];if(r){const dr=_sanDesc(g,r);if(!dr)break;g=dr.g2;}const dm=_sanDesc(g,p.sol[k]);if(!dm)break;lastD=dm;lastSan=p.sol[k];g=dm.g2;}
+        let tail='';
+        if(lastD){const ls=clean(lastSan);const pre=p.sol.length>2?', and in the end ':', and ';
+          tail=lastD.st==='checkmate'?(pre+ls+' is mate.'):(lastD.cap?(pre+ls+' wins the '+nm(lastD.cap.t)+'.'):(pre+ls+' follows.'));}
+        else tail='.';
+        explain=one+', '+firstReply+(forced?' is forced':' is the reply')+tail;
+      }else explain=one+'.';
+      if(!attrs.length&&!d0.sac&&explain.indexOf(s0+',')===0)explain=s0+' first'+explain.slice(s0.length);
+    }
+  }catch(e){hint=p.hint;explain=p.explain;}
+  return (_pzTxtC[p.id]={hint,explain});
+}
+
 // 8 ranks as contiguous difficulty slices → always populated, always ramping.
 const _RANKS=[['Novice','🌱'],['Apprentice','♟️'],['Student','♞'],['Adept','♝'],['Skilled','♜'],['Expert','♛'],['Master','👑'],['Grandmaster','🏆']];
 const PZ_TIERS=(()=>{const N=PZ.length,K=_RANKS.length,out=[];for(let k=0;k<K;k++){const a=Math.round(N*k/K),b=Math.round(N*(k+1)/K);const sl=PZ.slice(a,b);out.push({name:_RANKS[k][0],icon:_RANKS[k][1],start:a,end:b,count:sl.length,need:Math.max(1,Math.min(sl.length,10)),lo:sl.length?sl[0].rating:0,hi:sl.length?sl[sl.length-1].rating:0,ids:sl.map(p=>p.id)});}return out;})();
@@ -7388,7 +7450,7 @@ export default function App(){
                instead of yours, under a sentence you had never seen. */
             if(!p.mine){if(!pzShownRef.current)onlineSolved(p);}else drillSolvedRef.current[mistakeIdxRef.current]={uci:_mvUci(mv),msg:_m};   // #547 item (66): Show leaves onlineSolved unchanged (Lichess puzzles have no rank)
             setPuzMsg(_m);}
-          else{const _shown=pzShownRef.current;if(!_shown)setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p,_shown);if(ru)setPzCelebrate(ru);setPuzMsg(_shown?('👁 Finished with the answer shown — this one earns no rank, but it still counts for your XP and your streak. '+   /* #550, Kunal's show-no-rank (a10, 11 Nov 2026): say plainly what a revealed finish earns and what it does not */String(p.explain||'').replace(/\s*—\s*nicely done\.?\s*$/,'.')) /* #548 item (153): the praise in _pzExp's 'Mate in 2 — nicely done.' contradicted 'not counted as solved' in the same breath; the streak and XP stay, which is Kunal's 'show-no-rank' (#547 item (66)) */:('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!   ':'')+p.explain));} /* #547 item (58), the orchestrator's recorded default (remedy one, 10 Oct): the rank-up news goes FIRST, right after the lead, same words, same box - it used to be appended after the explanation and was the part the box cut */
+          else{const _shown=pzShownRef.current;if(!_shown)setPuzDone(d=>({...d,[puzIdxRef.current]:true}));const ru=recordSolve(p,_shown);if(ru)setPzCelebrate(ru);setPuzMsg(_shown?('👁 Finished with the answer shown — this one earns no rank, but it still counts for your XP and your streak. '+   /* #550, Kunal's show-no-rank (a10, 11 Nov 2026): say plainly what a revealed finish earns and what it does not */String(pzText(p).explain||'').replace(/\s*—\s*nicely done\.?\s*$/,'.')) /* #548 item (153): the praise in _pzExp's 'Mate in 2 — nicely done.' contradicted 'not counted as solved' in the same breath; the streak and XP stay, which is Kunal's 'show-no-rank' (#547 item (66)) */:('🎉 '+(alt?'Checkmate — that works too! ':'Solved! ')+(ru?'   ⬆ Rank up — you reached '+ru.icon+' '+ru.name+'!   ':'')+pzText(p).explain));} /* #547 item (58), the orchestrator's recorded default (remedy one, 10 Oct): the rank-up news goes FIRST, right after the lead, same words, same box - it used to be appended after the explanation and was the part the box cut */
           // #358 ONLY when the finish is a forced mate. The obvious-looking version, "play on after
           // any solve", is wrong: most tactics already carry their payoff in the solution itself -
           // the royal-fork puzzle's own moves are Ne2+ then Nxc3, the king step and the capture -
@@ -8378,7 +8440,7 @@ export default function App(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(m.missed?(side+' to move — you played '+(m.played||'another move')+' here, and a Brilliant was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?(m.missed?'There was something special here — a sacrifice or a precise blow.':'You played something special here — a sacrifice or a precise blow.'):((()=>{try{const _bm=uciToMove(g,m.uci);const _cr=_bm&&concreteRead(g,_bm);return _cr&&_cr.hint;}catch(e){return null;}})()/* #550 HEX-T-01: every card, old ones too, reads its position */||m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((((m.why?drillVerdict(g,uciToMove(g,m.uci),m.played?findMoveBySAN(g,m.played):null,m.why):null)/* #550 HEX-T-02 */||(m.why||"That's the move you missed — well spotted.")))+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.goal=isB?(m.missed?(side+' to move — you played '+(m.played||'another move')+' here, and a Brilliant was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move — '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?((()=>{try{return brilHint(g,uciToMove(g,m.uci),!!m.missed);}catch(e){return null;}})()/* #550 HEX-T-07 */||(m.missed?'There was something special here — a sacrifice or a precise blow.':'You played something special here — a sacrifice or a precise blow.')):((()=>{if(m.hint&&!/^(No tactic to spot here|There is a forcing line here|One move can hit two things|Moving one piece can uncover|A pawn is closer to the end|There is material to be taken|Look for the most forcing or solid option)/.test(m.hint))return null;try{const _bm=uciToMove(g,m.uci);const _cr=_bm&&concreteRead(g,_bm);return _cr&&_cr.hint;}catch(e){return null;}})()/* #550 HEX-T-01: every card, old ones too, reads its position - unless its stored hint is not one of mistakeHint's general lines (an authored hint is kept) */||m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?(m.why||''):((((m.why?drillVerdict(g,uciToMove(g,m.uci),m.played?findMoveBySAN(g,m.played):null,m.why):null)/* #550 HEX-T-02 */||(m.why||"That's the move you missed — well spotted.")))+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -11702,14 +11764,14 @@ export default function App(){
         {!wide?(<div style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
           <button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
           {!puzSolved&&(<>
-            <button onClick={()=>{setPzHintMsg('💡 '+p.hint);setPuzMsg('💡 '+p.hint);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
+            <button onClick={()=>{const _h=pzText(p).hint;setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
             <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
             <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
           </>)}
           <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
         </div>):(<>
         {!puzSolved&&(()=>{/* #550 a8: in the sideways rail the three sit on ONE row (flex, no wrap), with shorter words where the column is narrow */const _rb=pzRail?{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff');const _nar=pzRail&&sideW<330;return(<div style={{display:'flex',gap:pzRail?6:7,flexWrap:pzRail?'nowrap':'wrap',justifyContent:'center',...(pzRail?{width:'100%'}:null)}}>
-          <button onClick={()=>{setPzHintMsg('💡 '+p.hint);setPuzMsg('💡 '+p.hint);}} aria-label="Hint" style={_rb}>💡 Hint</button>
+          <button onClick={()=>{const _h=pzText(p).hint;setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} aria-label="Hint" style={_rb}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_rb}>{_nar?'👁 Show':'👁 Show move'}</button>
           <button onClick={()=>loadPuzzle(puzIdx)} aria-label="Reset" style={_rb}>↺ Reset</button>
         </div>);})()}
@@ -11818,7 +11880,7 @@ export default function App(){
           return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
             <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 0',minWidth:0}}>
               <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
-                <button onClick={()=>setPuzMsg('💡 '+p.hint)} aria-label="Hint" style={_hb}>{_nw?'💡':'💡 Hint'}</button>
+                <button onClick={()=>setPuzMsg('💡 '+pzText(p).hint)} aria-label="Hint" style={_hb}>{_nw?'💡':'💡 Hint'}</button>
                 <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
                 <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
               </div>
@@ -11829,7 +11891,7 @@ export default function App(){
           </div>);})():(<>
         <div style={{position:'relative'}}>
         {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
-          <button onClick={()=>setPuzMsg('💡 '+p.hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
+          <button onClick={()=>setPuzMsg('💡 '+pzText(p).hint)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>💡 Hint</button>
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}

@@ -116,7 +116,10 @@ const PGN=`[Event "Live Chess"]
 [ECO "C41"]
 
 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
-const ACCT={ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcountisouard99':[{src:'cc',acct:'dukekarlcountisouard99',pgn:PGN,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr:'win',tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3'};
+/* #550 a37: the drill now takes Blunders and Mistakes BY WIN CHANCE (item (20)'s grades), and on this game that is one card of the user's, so the
+   A-block's input count (>= 2) could not be met. This gate's subject is the drill's EXPLANATION, not the selection - so it reviews with the
+   grades switch off (ct_grades2 '0', the old ladder), which keeps its two inputs; the selection has its own case on the job. */
+const ACCT={ct_grades2:'0',ct_accts:['cc:dukekarlcountisouard99'],ct_acctgames:{'cc:dukekarlcountisouard99':[{src:'cc',acct:'dukekarlcountisouard99',pgn:PGN,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr:'win',tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3'};
 // THE CANONICAL GEOMETRY SET, AND IT HAS A NAMED HOME (jobs/supported-geometry-names-two-different-sets-
 // 2026-09-28, whose fix asks for the set to be "named once, in one place, with its members listed" and for
 // every gate header to cite that one name - this paragraph is gate 51's half of that, and it is the half
