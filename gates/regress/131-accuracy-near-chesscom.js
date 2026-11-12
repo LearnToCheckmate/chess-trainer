@@ -14,6 +14,7 @@
 // White-POV win% series, clamped to 15..99.5 as review() clamps it.
 // KNOW ITS LIMIT: the per-move accuracies were computed when the fixture was recorded (build #550, the shipped moveAcc); a change to moveAcc
 // is not seen here.
+// CONTROL-RECORD: 0bc794c 2026-11-12 total=4 red=3 scope=trial:12d8e7944da3 how=#550 CT_SRC=origin/main's own chess.jsx (#549, source md5 12d8e7944da3): mean 10.09, 220 within 10, worst 39.8 - TC-R207a, b and c red; the precondition green
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const E=require('../engine-extract');
