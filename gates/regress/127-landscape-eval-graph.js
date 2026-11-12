@@ -63,6 +63,20 @@ L.run(async()=>{
      const t2=await tapGraph(b,0.985);/* inside the drawing: its last pixel column is the svg's edge */const r2=await read(b);
      L.say(t2&&!!r2&&!!r2.live&&/LIVE/.test(r2.live.t2),'TC-R203b '+tag+' a tap at its last point is the live position again ("'+(r2&&r2.live&&r2.live.t2)+'")',r2&&r2.live);
      L.say(b.errs.length===0,'TC-R203 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}}
+  // ── B2. THE VALUES, NOT JUST THE COUNT (#550 antagonist A, F1: the first build filled the position after each of the player's moves,
+  // which the bar never reads, with the static material count, so every other point was a different instrument - a 1.6-pawn sawtooth on
+  // a quiet game that pts===4 could not see). A 16-ply quiet game at 761x375; the plotted values are read back out of the svg path. ───────
+  {const b=await L.launch({geo:{w:761,h:375,safe:'',label:'761x375'},name:'land-graph-values',store:{ct_pool:'3'}});await b.open();let ok=true;
+   try{await P.states['cpu-m0'](b);let n=0;for(const [f,t] of [['e2','e4'],['g1','f3'],['b1','c3'],['d2','d3'],['a2','a3'],['h2','h3'],['c1','e3'],['f1','e2']]){n+=2;await b.move(f,t,0);await P.waitPlies(b,n);await b.settle(1600);}await b.settle(2500);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const rail=document.querySelector('.ctside');const s=rail&&[...rail.querySelectorAll('svg')].find(x=>x.querySelector('line[stroke-dasharray="4 3"]'));if(!s)return null;
+     const H=+s.getAttribute('height');const d=([...s.querySelectorAll('path')].find(p=>p.getAttribute('fill')==='none')||{getAttribute:()=>''}).getAttribute('d')||'';
+     const ys=[...d.matchAll(/[ML][\d.]+,([\d.-]+)/g)].map(m=>+m[1]);const v=ys.map(y=>Math.round((H/2-y)/(H/2-4)*6*100)/100);
+     const pill=[...document.querySelectorAll('[data-ct="pbar-top"] span')].map(e=>(e.innerText||'').trim()).find(t=>/^[+-]?\d+\.\d$/.test(t));return {v,pill:pill==null?null:+pill};});
+   L.say(ok&&!!r&&r.v.length===16,'TC-R203c 761x375 PRECONDITION a 16-ply quiet game against the computer, its graph read back as values ('+(r&&r.v.length)+' points)',r);
+   const dev=r?r.v.map((x,i)=>(i%2===0&&i>0&&i<r.v.length-1)?Math.abs(x-(r.v[i-1]+r.v[i+1])/2):0):[];const mx=dev.length?Math.max(...dev):null;
+   L.say(!!r&&r.v.length===16&&mx!=null&&mx<=0.5,'TC-R203c 761x375 each point after the player\'s own move sits on the line between the bar\'s readings either side, not on another instrument (largest gap '+mx+' pawns, at most 0.5): '+(r&&r.v.join(' ')),{v:r&&r.v,dev});
+   L.say(!!r&&r.pill!=null&&r.v.length>0&&Math.abs(r.v[r.v.length-1]-Math.max(-6,Math.min(6,r.pill)))<=0.15,'TC-R203c 761x375 the newest point is the bar\'s own reading ('+(r&&r.v[r.v.length-1])+' against the bar\'s '+(r&&r.pill)+')',r&&{last:r.v[r.v.length-1],pill:r.pill});
+   L.say(b.errs.length===0,'TC-R203 761x375 values: zero app errors',b.errs.slice(0,3));await b.close();}
   // ── C. NEVER IN A GAME AGAINST A PERSON, AND NOT WHEN THE PLAYER HAS TURNED THE BAR OFF ───────────────────────────────────────────
   for(const [nm,go,store] of [['Pass & Play',b=>P.states['pp-1'](b),{ct_pool:'3'}],['vs computer with the eval bar turned off',b=>P.states['cpu-4ply'](b),{ct_pool:'3',ct_hideEval:'1'}]]){
     const b=await L.launch({geo:{w:761,h:375,safe:'',label:'761x375'},name:'land-graph-none',store});await b.open();let ok=true;try{await go(b);await b.settle(1500);}catch(e){ok=false;}
