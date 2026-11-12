@@ -88,3 +88,4 @@
 123	122	raise	2026-11-12	550	build__1794388896663	#550 security batch: no browser Pro switch, Delete account, sign-out wipe (US-R145)	-	08c24cabb85d
 124	123	raise	2026-11-12	550	build__1794388896663	#550 chess correctness: the content holds at depth 16 (US-R144)	-	19e422981925
 125	124	raise	2026-11-12	550	build__1794388896663	#550 his report (c): the Review board holds its size after a move (US-R143)	-	c09764ffe2ec
+126	125	raise	2026-11-12	550	build__1794388896663	#550 formatting P1: one top-row standard (US-R147)	-	3f4e3dedbd37
