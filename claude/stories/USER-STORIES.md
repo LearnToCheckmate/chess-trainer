@@ -2359,3 +2359,10 @@ As a player learning from a lesson, a card or a puzzle, the move I am taught is 
 - The Vienna 3.Bc4 Nxe4 line ends level, and says so. (TC-R212d)
 - The Lasker Trap names the legal saving move, 6.fxe3. (TC-R212e)
 - Move numbers, check marks and the words "forced", "only legal move", "in front of the pawn" and "long diagonal" match the board; a weaker taught move is replaced or marked; a card's praised side is not a pawn down; a puzzle's goal is true, its equally good moves are accepted, and a draw is not labelled a win. (TC-R212f..w)
+### US-R143 The Review board keeps one size when he steps through the moves
+*Added #550; Kunal, 12 Nov, Review on his computer: "Every time I click on the next move button at the bottom right, the board keeps shaking for a few seconds".*
+As a player stepping through a reviewed game, the board stays the size it is when I press Next move - on a computer window as on the phone.
+- After each Next move the board holds one size for the next 3 seconds, the eval graph on. (TC-R211a)
+- It is the size it was before the tap. (TC-R211b)
+- A taller window never gets a smaller board than a shorter one. (TC-R211c)
+- The same on his phone (375x761). (TC-R211d)
