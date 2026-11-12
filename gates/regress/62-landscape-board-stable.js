@@ -56,7 +56,7 @@ const PORT={w:375,h:730,safe:''};
 // Recorded per row so a reader can see WHY the three expected sizes differ rather than taking them on trust.
 // #550 a23 (his Option A): a sideways game's player bars moved INTO the rail, so SQ no longer charges their 130px: the cap is vp.h-24
 // floored to a multiple of 8 (375 -> 344, 390 -> 360). They read 216, 232 and 216 until then.
-const LAND=[{w:730,h:375,cap:344},{w:844,h:390,cap:360},{w:667,h:375,cap:344}];
+const LAND=[{w:730,h:375,cap:375},{w:844,h:390,cap:390},{w:667,h:375,cap:347}];   // #550 a38 (his rule, the board as big as the screen allows): min(vp.h, vp.w-300-20) - the full height, or what the 300pt rail leaves at 667
 
 async function boardW(b){const bd=await b.board();return bd?+bd.w.toFixed(2):null;}
 async function boardRect(b){const bd=await b.board();return bd?{w:+bd.w.toFixed(2),y:+bd.y.toFixed(2)}:null;}
@@ -76,7 +76,7 @@ L.run(async()=>{
     L.say(!!f&&f.w>0,tag+'1a: a board is painted on a fresh landscape launch - the precondition, so a green below cannot come from there being no board to measure (#385)',{board:f});
     await rotate(b,PORT);
     const p=await boardRect(b);
-    L.say(!!p&&!!f&&Math.abs(p.w-f.w)>1,tag+'1b: and rotating to portrait really did change the board (#550 a23: sideways is now the LARGER board at 844x390, so the control is a change, not a growth), so the round trip is a round trip and not a no-op - the control that makes the return leg mean something',{landscape:f&&f.w,portrait:p&&p.w});
+    L.say(!!p&&!!f&&(Math.abs(p.w-f.w)>1||Math.abs((p.y||p.top||0)-(f.y||f.top||0))>1||Math.abs((p.x||p.left||0)-(f.x||f.left||0))>1),tag+'1b: and rotating to portrait really did change the board, in size or place (#550 a38: sideways the board is the screen height, 375, the same as upright at 375 wide, so the control reads the rect, not only the width), so the round trip is a round trip and not a no-op - the control that makes the return leg mean something',{landscape:f&&f.w,portrait:p&&p.w});
     await rotate(b,g);
     const r1=await boardRect(b);
     L.say(!!f&&!!r1&&Math.abs(f.w-r1.w)<0.05&&Math.abs(f.y-r1.y)<0.05,
@@ -85,7 +85,7 @@ L.run(async()=>{
     await rotate(b,PORT);await rotate(b,g);
     const r2=await boardRect(b);
     L.say(!!r2&&!!r1&&Math.abs(r1.w-r2.w)<0.05,tag+'2: and a SECOND round trip leaves it there - it settles rather than drifting, which is the difference between a stale value and one that walks',{trip1:r1&&r1.w,trip2:r2&&r2.w});
-    L.say(!!r1&&Math.abs(r1.w-g.cap)<0.05,tag+'3: the settled board equals vp.h-24 floored to a multiple of 8 (the bars are in the rail since #550 a23) = '+g.cap+' - the analytic cap SQ computes for this screen with no trim. Pinned to the DERIVATION and stated per row, so a reader can see why the three rows expect three different numbers',{board:r1&&r1.w,cap:g.cap});
+    L.say(!!r1&&Math.abs(r1.w-g.cap)<0.05,tag+'3: the settled board equals min(vp.h, vp.w-320) - the full height, or what the 300pt rail leaves (#550 a38; it was vp.h-24 floored to 8) = '+g.cap+' - the analytic cap SQ computes for this screen with no trim. Pinned to the DERIVATION and stated per row, so a reader can see why the three rows expect three different numbers',{board:r1&&r1.w,cap:g.cap});
     L.say(b.errs.length===0,tag+'4: zero app errors across two rotation round trips',b.errs.slice(0,3));
     fresh[g.w]=f?f.w:null;
     await b.close();

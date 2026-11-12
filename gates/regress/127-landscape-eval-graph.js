@@ -18,7 +18,7 @@
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review');
 const GEOS=[[761,375],[730,375],[667,375]];
-const BOARD={play:344,review:216};   // the board at 375 tall before this build (trial 37182d5aca90), the same at all three widths
+const BOARD=(k,w,h)=>k==='review'?h:Math.min(h,w-320);   // #550 a38 (his rule, the board as big as the screen allows): the full height; a sideways game's rail keeps 300, so at 667 it is 347. Before a38: 344 and 216
 const read=(b)=>b.page.evaluate(()=>{const rail=document.querySelector('.ctside');if(!rail)return null;const rr=rail.getBoundingClientRect();
   const svgs=[...rail.querySelectorAll('svg')].filter(s=>s.querySelector('line[stroke-dasharray="4 3"]')&&s.getBoundingClientRect().width>0);
   const g=svgs[0]||null;const gq=g&&g.getBoundingClientRect();const line=g&&[...g.querySelectorAll('path')].find(p=>p.getAttribute('fill')==='none');
@@ -42,9 +42,9 @@ L.run(async()=>{
      const r=await read(b);
      L.say(ok&&!!r&&r.cnt===10,'TC-R203 '+tag+' PRECONDITION the review is open at move 10 with its sideways rail',r&&{cnt:r.cnt,rail:r.rail});
      L.say(!!r&&!!r.graph&&!!r.expl&&r.graph.t>=r.expl.b-1,'TC-R203a '+tag+' the eval graph is in the rail UNDER the move\'s explanation (graph top '+(r&&r.graph&&r.graph.t)+', explanation bottom '+(r&&r.expl&&r.expl.b)+')',r&&{graph:r.graph,expl:r.expl});
-     L.say(!!r&&!!r.graph&&r.graph.w>=r.vw*0.45&&r.graph.h>=40&&r.graph.b<=r.vh&&r.graph.pts>=20,'TC-R203a '+tag+' it is drawn full size: '+(r&&r.graph&&(r.graph.w+'x'+r.graph.h))+' with '+(r&&r.graph&&r.graph.pts)+' points, on screen',r&&r.graph);
+     L.say(!!r&&!!r.graph&&r.graph.w>=Math.min(240,r.vw*0.3)&&r.graph.h>=34&&r.graph.b<=r.vh&&r.graph.pts>=20,'TC-R203a '+tag+' it is drawn across the right-hand column (the board takes the height since a38, so the column is narrower and the graph at least 34 tall): '+(r&&r.graph&&(r.graph.w+'x'+r.graph.h))+' with '+(r&&r.graph&&r.graph.pts)+' points, on screen',r&&r.graph);
      L.say(!!r&&r.rail.sh<=r.rail.ch+1&&r.docw<=r.vw,'TC-R203d '+tag+' the rail does not scroll to show it ('+(r&&r.rail.sh)+' of '+(r&&r.rail.ch)+') and nothing spills sideways',r&&r.rail);
-     L.say(!!r&&Math.abs(r.board-BOARD.review)<=1,'TC-R203d '+tag+' the board keeps its size ('+(r&&r.board)+' against '+BOARD.review+')');
+     L.say(!!r&&Math.abs(r.board-BOARD('review',w,h))<=1,'TC-R203d '+tag+' the board is as big as the screen allows: the full height ('+(r&&r.board)+' against '+BOARD('review',w,h)+')');
      const t1=await tapGraph(b,0.02);const r1=await read(b);const t2=await tapGraph(b,0.98);const r2=await read(b);
      L.say(t1&&t2&&!!r1&&!!r2&&r1.cnt!=null&&r1.cnt<=2&&r2.cnt!=null&&r2.cnt>=30,'TC-R203b '+tag+' a tap on the graph jumps to that move: near its left end '+(r1&&r1.cnt)+', near its right end '+(r2&&r2.cnt),{a:r1&&r1.cnt,b:r2&&r2.cnt});
      L.say(b.errs.length===0,'TC-R203 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
@@ -58,7 +58,7 @@ L.run(async()=>{
      L.say(!!r&&!!r.graph&&r.graph.h>=36&&r.graph.w>=r.vw*0.3&&r.graph.pts===4,'TC-R203c '+tag+' it grows move by move: '+(r&&r.graph&&r.graph.pts)+' points for 4 plies, '+(r&&r.graph&&(r.graph.w+'x'+r.graph.h)),r&&r.graph);
      L.say(!!r&&!!r.strip&&r.tb.every(x=>!!x&&x.h>=43.5)&&!!r.live&&r.live.b<=r.vh&&!!r.pbb&&r.pbb.b<=r.vh&&!!r.pbt,'TC-R203d '+tag+' every row is kept and on screen: the move strip, the six toolbar buttons at 44 or more ('+(r&&r.tb.map(x=>x&&x.h).join(','))+'), the MOVES row, both player bars',r&&{tb:r.tb,live:r.live,pbb:r.pbb,strip:r.strip});
      L.say(!!r&&r.rail.sh<=r.rail.ch+1&&r.docw<=r.vw,'TC-R203d '+tag+' the rail does not scroll ('+(r&&r.rail.sh)+' of '+(r&&r.rail.ch)+') and nothing spills sideways',r&&r.rail);
-     L.say(!!r&&Math.abs(r.board-BOARD.play)<=1,'TC-R203d '+tag+' the board keeps its size ('+(r&&r.board)+' against '+BOARD.play+')');
+     L.say(!!r&&Math.abs(r.board-BOARD('play',w,h))<=1,'TC-R203d '+tag+' the board is as big as the screen allows ('+(r&&r.board)+' against '+BOARD('play',w,h)+')');
      const t1=await tapGraph(b,0.01);const r1=await read(b);
      L.say(t1&&!!r1&&!!r1.live&&r1.live.t2==='Move 1/4','TC-R203b '+tag+' a tap at the graph\'s first point previews that move, as Back does ("'+(r1&&r1.live&&r1.live.t2)+'")',r1&&r1.live);
      const t2=await tapGraph(b,0.985);/* inside the drawing: its last pixel column is the svg's edge */const r2=await read(b);

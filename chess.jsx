@@ -3796,8 +3796,14 @@ const STRAT=[
    Under the board sits a fixed area - the status line, the answer or the strategy text (scrolling inside its own box), and the buttons - and the
    board is sized so that area ends above the tab bar, on every card and in every state, so the board never jumps when the answer appears. */
 const TT_BELOW={motifs:120,strategy:180};   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
-function TacticsTrainer({light,dark,demo,onBack,onMenu}){
+function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const _bar=!!onBack;
+  /* #550 board-size audit BSA-L-01..09 (job tactics-strategy-sideways-board-full-height-2026-11-12): SIDEWAYS the page is a two-column grid -
+     the board in the left column at the full height, the bar, the idea, the status and the buttons stacked on the right - instead of a
+     280 column with the board at 176. LB is the board's side: the screen height, or what is left after the tab rail and a 240 column. */
+  const [lvp,setLvp]=useState(()=>({w:typeof window!=='undefined'?window.innerWidth:800,h:typeof window!=='undefined'?window.innerHeight:400}));
+  useEffect(()=>{if(!land)return;const f=()=>setLvp(v=>(v.w===window.innerWidth&&v.h===window.innerHeight)?v:{w:window.innerWidth,h:window.innerHeight});f();window.addEventListener('resize',f);return()=>window.removeEventListener('resize',f);},[land]);
+  const LB=land?Math.max(176,Math.floor(Math.min(lvp.h,lvp.w-TAB_RAIL_W-16-240))):0;
   const belowRef=useRef(null);const [belowH,setBelowH]=useState(0);
   const stratRef=useRef(null);const [stratMore,setStratMore]=useState(false);const stratCheck=()=>{const el=stratRef.current;setStratMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 A2-P2: the strategy text fades at its foot too
   const hintRef=useRef(null);const [hintMore,setHintMore]=useState(false);const hintCheck=()=>{const el=hintRef.current;setHintMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};   // #550 A2-P1: the hint fades at its foot while there is more
@@ -3835,6 +3841,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
         row.parentNode.appendChild(k);let mx=0;STRAT.forEach((s,i)=>{k.firstChild.textContent=s.title;k.lastChild.textContent=(i+1)+'/'+STRAT.length;mx=Math.max(mx,k.offsetHeight);});
         k.remove();row.style.minHeight=mx+'px';setRowH(mx);}
       if(ideaRef.current){ideaRef.current.scrollTop=0;ideaCheck();}
+      if(land){setCap(LB);setBelowH(0);return;}   /* #550: sideways the board is LB and the area beside it is a grid row */
       const el=bRef.current,bar=document.querySelector('[data-ct="tabbar"]');if(!el||!bar)return;const root=document.getElementById('root');
       const top=el.getBoundingClientRect().top+(root?root.scrollTop:0);const avail=Math.floor(bar.getBoundingClientRect().top-top-6);
       if(!_bar){setCap(Math.max(176,Math.min(400,avail)));return;}
@@ -3851,7 +3858,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
     fit();let _r1=0,_r2=0,_alive=true;_r1=requestAnimationFrame(()=>{if(!_alive)return;fit();_r2=requestAnimationFrame(()=>{if(_alive)fit();});});
     try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(_alive)fit();});}catch(e){}
     window.addEventListener('resize',fit);return()=>{_alive=false;cancelAnimationFrame(_r1);cancelAnimationFrame(_r2);window.removeEventListener('resize',fit);};
-  },[tab,mi,si,_bar]);   // #550 A2-P2: _bar too, so crossing the wide threshold re-fits instead of keeping the other layout's cap
+  },[tab,mi,si,_bar,land,LB]);   // #550 A2-P2: _bar too, so crossing the wide threshold re-fits instead of keeping the other layout's cap
   useLayoutEffect(()=>{if(ansRef.current){ansRef.current.scrollTop=0;}ansCheck();if(hintRef.current){hintRef.current.scrollTop=0;}hintCheck();if(stratRef.current){stratRef.current.scrollTop=0;}stratCheck();},[solved,shown,mi,si,belowH,tab,showHint,sel,wrong]);
   const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
@@ -3902,8 +3909,10 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
   const tabBtn=(k,lbl)=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',borderRadius:12,background:tab===k?'rgba(var(--acr),.22)':'rgba(255,255,255,.06)',border:tab===k?'1px solid var(--ac)':'1px solid rgba(255,255,255,.14)',color:tab===k?'var(--ac2)':'rgba(255,255,255,.8)',fontWeight:800,fontSize:'clamp(14px,2.7vw,14px)',cursor:'pointer'}}>{lbl}</button>);
   const cstr=STRAT[si%STRAT.length];const spos=fromFEN(cstr.fen);
   const scell=(r,c)=>{const lt=(r+c)%2===0;const p=spos.board[r][c];return(<div key={r+'-'+c} style={{aspectRatio:'1',background:lt?light:dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>{c===0&&<span style={{position:'absolute',top:1,left:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{8-r}</span>}{r===7&&<span style={{position:'absolute',bottom:0,right:2,fontSize:9,fontWeight:700,color:lt?'#6b8460':'#d4dccd'}}>{FILES[c]}</span>}{p&&<Piece t={p.t} color={p.c} sz={psz}/>}</div>);};
-  return(<div style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-    {_bar?(<div data-ct="tactics-bar" style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:10,position:'sticky',top:0,zIndex:5}}>
+  const _lg=land?{display:'grid',gridTemplateColumns:LB+'px minmax(0,1fr)',gridTemplateRows:'auto auto auto minmax(0,1fr)',columnGap:12,height:LB,alignItems:'start'}:null;
+  const _lb=land?{gridColumn:1,gridRow:'1 / -1',width:LB,maxWidth:LB,margin:0}:null;const _lr=land?{gridColumn:2}:null;
+  return(<div data-ct={land?'tactics-land':undefined} style={{width:'100%',fontFamily:"'Segoe UI',system-ui,sans-serif",..._lg}}>
+    {_bar?(<div data-ct="tactics-bar" style={{display:'flex',alignItems:'stretch',gap:6,marginBottom:land?6:10,position:'sticky',top:0,zIndex:5,..._lr}}>
       <button data-ct="tactics-back" onClick={onBack} aria-label="Back" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,display:'flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
       {tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}
       {onMenu&&<button data-ct="tactics-menu" onClick={onMenu} aria-label="Menu and settings" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,fontSize:18}}>☰</button>}
@@ -3913,16 +3922,16 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
       <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:3}}>The patterns that win games, and the ideas behind good moves.</div>
     </div>
     <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}</div></>)}
-    {tab==='motifs'&&(<div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+    {tab==='motifs'&&(<div style={land?{display:'contents'}:undefined}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:land?6:8,..._lr}}>
         <span style={{fontSize:'clamp(15px,3.5vw,17px)',fontWeight:800,color:'#fff'}}>{cur.motif}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{cur.level} · {(mi%TACTICS.length)+1}/{TACTICS.length}</span>
       </div>
-      <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(14.5px,3.1vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.5,marginBottom:11}}><div ref={ideaRef} data-ct="tactics-idea" onScroll={ideaCheck} style={{height:'3em',overflowY:'auto',WebkitMaskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined}}>{cur.idea}</div></div>
-      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+      <div style={{..._lr,background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(14.5px,3.1vw,16px)',color:'rgba(255,255,255,.9)',lineHeight:1.5,marginBottom:11}}><div ref={ideaRef} data-ct="tactics-idea" onScroll={ideaCheck} style={{height:'3em',overflowY:'auto',WebkitMaskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 60%,transparent)':undefined}}>{cur.idea}</div></div>
+      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:'0 auto',..._lb,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
-      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0}:undefined}>
+      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={land?{gridColumn:2,gridRow:4,alignSelf:'stretch',display:'flex',flexDirection:'column',marginTop:6,minHeight:0}:(_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0}:undefined)}>
       {!(_bar&&(solved||shown))&&!(_bar&&showHint&&!sel&&!wrong)/* #550 A2-P1: the hint takes the status line's room in the bar layout */&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
         {solved?<span style={{color:'#6fce97',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>✓ {cur.san} — correct!</span>
          :shown?<span style={{color:'var(--ac2)',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>Answer: {cur.san}</span>
@@ -3939,15 +3948,15 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu}){
       </div>
       </div>
     </div>)}
-    {tab==='strategy'&&(<div>
-      <div ref={rowRef} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,minHeight:rowH||undefined}}>
+    {tab==='strategy'&&(<div style={land?{display:'contents'}:undefined}>
+      <div ref={rowRef} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:land?6:8,minHeight:rowH||undefined,..._lr}}>
         <span style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#fff'}}>{cstr.title}</span>
         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{(si%STRAT.length)+1}/{STRAT.length}</span>
       </div>
-      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:_bar?'0 auto 10px':'0 auto 11px',display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:_bar?'0 auto 10px':'0 auto 11px',..._lb,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c)))}
       </div>
-      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',minHeight:0}:undefined}>
+      <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={land?{gridColumn:2,gridRow:'3 / -1',alignSelf:'stretch',display:'flex',flexDirection:'column',minHeight:0}:(_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',minHeight:0}:undefined)}>
       <div style={{background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'9px 12px',fontSize:'clamp(14px,2.7vw,14px)',color:'var(--ac2)',fontWeight:700,textAlign:'center',marginBottom:9,flexShrink:0}}>👀 {cstr.look}</div>
       <div data-ct={_bar?'tactics-strat-text':undefined} ref={stratRef} onScroll={stratCheck} style={{WebkitMaskImage:_bar&&stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:_bar&&stratMore?'linear-gradient(#000 70%,transparent)':undefined,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:11,padding:'11px 13px',fontSize:'clamp(13.5px,2.8vw,14.5px)',color:'rgba(255,255,255,.88)',lineHeight:1.5,marginBottom:11,...(_bar?{flex:'1 1 auto',minHeight:0,overflowY:'auto'}:null)}}>{cstr.text}</div>
       <div style={{display:'flex',gap:8,...(_bar?{marginTop:'auto',flexShrink:0}:null)}}>
@@ -5196,8 +5205,10 @@ export default function App(){
   const EVAL_ABOVE_MIN_RATIO=1.87;
   const evalAbove=evalUnder&&!wide&&(vp.h/Math.max(1,vp.w))>=EVAL_ABOVE_MIN_RATIO;
   const evalTop=!wide&&(evalAbove||revStream);   /* the horizontal bar above the board: portrait only */
-  const pzRail=wide&&mode==='puzzle'&&(pzView==='browse'||pzView==='online');   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
-  const sideFull=landPlay||pzRail||landRev||landOn;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */
+  const pzRail=wide&&mode==='puzzle'&&(pzView==='browse'||pzView==='online');
+  const tacRail=wide&&mode==='learn'&&learnGroup==='tactics'&&openIdx===null;   /* #550 BSA-L-01: sideways Tactics & Strategy - the tab bar is the right rail, the board the full height */
+  const sideRail=pzRail||tacRail;   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
+  const sideFull=landPlay||pzRail||landRev||landOn||tacRail;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */
   // #351 Kunal: "the whole page is too small, there are visible borders on the top and the sides".
   // On a board screen the root's 3px side padding and the 98vw caps are exactly those borders, and
   // they cost the board twice over: once in width, and again in height because it is square. Board
@@ -5205,7 +5216,7 @@ export default function App(){
   // MUST stay below `wide`: an earlier placement above it was a TDZ ReferenceError and a white
   // screen, which is the #315 failure mode verbatim.
   const _edge=!wide&&((mode==='analyze'&&review!==null&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-  const SQ=useMemo(()=>{if(wide){const _bars=pzRail?-14:(landPlay?0:(((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70)); /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const _full=landPlay||pzRail||landRev||landOn; /* #550 a38 and docs/board-size-audit-2026-11-12 (BSA-P-06/07, BSA-L-25..44): his rule, the board as big as the screen allows - a sideways game, Puzzles and the drills take the whole height, with no fixed 24pt allowance and no rounding down to a multiple of 8 (344 -> 375 at 761x375, 360 -> 375) */const availH=_full?(vp.h-safeTop-safeBot):(vp.h-24-_bars);const minRail=Math.max(196,Math.round(vp.w*0.20));const wcap=vp.w-minRail-20-(pzRail?TAB_RAIL_W:0);if(_full){const bpf=Math.min(availH,wcap,1000);return Math.max(24,Math.floor((bpf-boardTrim)/8*100)/100);}const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalTop;const reserved=(_evOn?4:0)+(_evOn?EVAL_BAR_W(inReview):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 18 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;sqTrimFloorRef.current=Math.min(heightCap,hardCap)-widthCap; /* #549 fixr5a: the trim at which the board meets its width cap; any lower trim cannot move SQ (read by the fit loop's growth clamp) */const _cap=Math.min(widthCap,Math.min(heightCap,hardCap)-_trim);if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,evalAbove,evalTop,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
+  const SQ=useMemo(()=>{if(wide){const _bars=pzRail?-14:(landPlay?0:(((mode==='play'&&!playSetup)||(inReview&&revCompact))?130:70)); /* two 52px bars plus margins, measured on an iPad in landscape; SQ is one long line, so NEVER use // in here. #360: the 0 was wrong for puzzle and lesson screens, which keep the 62px bottom nav in flow under the board: the iPad measured a 744px board in a 768 viewport and overflowed by 50 on EVERY stored profile, which is the half of Kunal's iPad scrolling report that #355 did not reach. 70 = the nav plus its margin. */const _full=landPlay||pzRail||landRev||landOn; /* #550 a38 and docs/board-size-audit-2026-11-12 (BSA-P-06/07, BSA-L-25..44): his rule, the board as big as the screen allows - a sideways game, Puzzles and the drills take the whole height, with no fixed 24pt allowance and no rounding down to a multiple of 8 (344 -> 375 at 761x375, 360 -> 375) */const availH=_full?vp.h:(vp.h-24-_bars);const minRail=(landPlay||landOn)?300:Math.max(196,Math.round(vp.w*0.20)); /* #550: sideways the system insets are left and right, never top and bottom, as before; a sideways game's rail keeps 300 so its six 44pt controls fit (gate 64 B6w at 667x375) */const wcap=vp.w-minRail-20-(pzRail?TAB_RAIL_W:0);if(_full){const bpf=Math.min(availH,wcap,1000);return Math.max(24,Math.floor((bpf-boardTrim)/8*100)/100);}const bp=Math.floor(Math.min(availH,wcap,1000)/8)*8;return Math.max(24,Math.round((bp-boardTrim)/8*100)/100);}const _evOn=(inReview||(mode==='play'&&opponent==='computer'))&&!hideEval&&!evalTop;const reserved=(_evOn?4:0)+(_evOn?EVAL_BAR_W(inReview):0)+(_edge?0:6); /* #362: that leading 4 used to be charged on EVERY screen that was not review-compact, including lesson and puzzle screens that have no eval bar at all - a 4px gutter each side with nothing in it, which is part of what Kunal keeps reporting as empty space on the sides. It is padding for the bar, so it is only owed when the bar is actually beside the board. */const widthCap=vw-reserved;const _pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online'); /* #333: the eval bar sits beside the board, so its width (22 in review, 18 in play) plus the root's side padding must come out of the board, or the row overflows and gets clipped on both sides (Kunal's iPhone screenshot: eval number and h-file cut off) */const wh=vp.h;const heightCap=mode==='play'?(wh-232):(_pzLow?Math.max(232,wh-safeTop-8-pzStackH-62-26):((inReview&&revCompact)?Math.max(184,wh-safeTop-safeBot-REV_CHROME):(wh*0.66-16)));const hardCap=mode==='play'?900:820;const _trim=boardTrim;sqTrimFloorRef.current=Math.min(heightCap,hardCap)-widthCap; /* #549 fixr5a: the trim at which the board meets its width cap; any lower trim cannot move SQ (read by the fit loop's growth clamp) */const _cap=Math.min(widthCap,Math.min(heightCap,hardCap)-_trim);if(_edge)return Math.max(24,Math.round(_cap/8*100)/100);const bp=Math.floor(_cap/8)*8;return Math.max(24,bp/8);},[vw,vp,mode,wide,RAIL,inReview,opponent,hideEval,evalUnder,evalAbove,evalTop,revCompact,safeTop,safeBot,pzView,pzStackH,boardTrim,_edge]);
   const boardPx=SQ*8;
   /* #548 item (135), jobs/bench-discover-is-57-per-cent-empty-2026-09-30, Kunal's answer questions/B8-DISCOVER ('tiles'): THE FOUR
      TILES GROW TO FILL THE SCREEN, AND EXTRA PHONE HEIGHT GOES INTO THEM rather than into the band under them (measured on main
@@ -11820,9 +11831,9 @@ export default function App(){
             <NotationTrainer light={TH.light} dark={TH.dark}/>
           </div>
         ):learnGroup==='tactics'?(
-          <div style={{width:'100%'}}>
-            {wide&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>}
-            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo} onBack={wide?undefined:()=>setLearnGroup(null)} onMenu={wide?undefined:()=>setMenuOpen(true)}/>{/* #550 a26: on a phone the trainer draws its own bar (back, tabs, menu) */}
+          <div style={tacRail?{position:'fixed',left:'env(safe-area-inset-left,0px)',top:0,bottom:0,right:TAB_RAIL_W+8,zIndex:3,overflow:'hidden'}:{width:'100%'}}>{/* #550 BSA-L-01: sideways the page takes the space between the edge and the tab rail, free of the 280 learn column */}
+            {wide&&!tacRail&&<button onClick={()=>setLearnGroup(null)} style={{padding:'7px 12px',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.85)',cursor:'pointer',fontSize:'clamp(14px,2.5vw,14px)',fontWeight:600,marginBottom:12}}>‹ Back</button>}
+            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo} land={tacRail} onBack={(wide&&!tacRail)?undefined:()=>setLearnGroup(null)} onMenu={(wide&&!tacRail)?undefined:()=>setMenuOpen(true)}/>{/* #550 a26: on a phone the trainer draws its own bar (back, tabs, menu) */}
           </div>
         ):learnGroup==='train'?((()=>{
           const trainable=LIB.map((o,i)=>i).filter(i=>{const g=groupOf(LIB[i].cat);return g==='openings'||g==='gambits';});
@@ -12406,8 +12417,8 @@ export default function App(){
           {/* the strip: what a screenshot needs to carry */}
           <div style={{position:'absolute',left:8,right:8,bottom:safeBot+6,display:'flex',justifyContent:'center'}}><div style={{padding:'4px 9px',borderRadius:6,background:'rgba(0,0,0,.78)',border:'1px solid '+C,color:'#fff',..._mono,fontSize:11.5,textAlign:'center',whiteSpace:'normal',maxWidth:'100%'}}>{(R?('board '+Math.round(R.w)+'x'+Math.round(R.h)+' · sq '+(Math.round(R.w/8*10)/10)+' · gap '+gl+'|'+gr):'no board on screen')+' · vw '+W+' · vh '+H+' · safe '+safeTop+'/'+safeBot+' · '+(typeof __BUILD__!=='undefined'?String(__BUILD__).split(' ')[0]:'?')}</div></div>
         </div>);})()}
-      {!homeScreen&&!_hideTabs&&!pzRail&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
-      {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go} side={pzRail}/>;})()}
+      {!homeScreen&&!_hideTabs&&!sideRail&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
+      {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go} side={sideRail}/>;})()}
       {/* #394 (kunal-lesson-footer-icons-small): THE BOXES WERE NEVER THE PROBLEM, THE GLYPHS WERE.
           Measured off his screenshot (1125x2436, 2.616 px/pt, so pt == CSS px): the five buttons are 50.5pt
           square, ABOVE the 44pt minimum and the same height as the pills above them - but the ink inside them
