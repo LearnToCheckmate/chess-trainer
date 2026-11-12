@@ -1709,13 +1709,14 @@ function mkTap(b,READ){
       const full=(e)=>{if(!e)return null;const q=e.getBoundingClientRect();const rg=document.createRange();rg.selectNodeContents(e);const rs=[...rg.getClientRects()].filter(x=>x.width>0);
         const L0=Math.min(...rs.map(x=>x.left)),R0=Math.max(...rs.map(x=>x.right)),T0=Math.min(...rs.map(x=>x.top)),B0=Math.max(...rs.map(x=>x.bottom));
         const ok=e.scrollWidth<=e.clientWidth&&L0>=q.left-0.5&&R0<=q.right+0.5&&T0>=q.top-0.5&&B0<=q.bottom+0.5;
-        return {t:e.textContent.slice(0,60),cw:e.clientWidth,sw:e.scrollWidth,inkR:+(R0-q.right).toFixed(1),inkL:+(q.left-L0).toFixed(1),lines:new Set(rs.map(x=>Math.round(x.top))).size,ok};};
+        const lines=(()=>{const c=rs.map(x=>(x.top+x.bottom)/2).sort((a,b)=>a-b);let n=0,last=-1e9;for(const y of c){if(y-last>6){n++;last=y;}}return n;})();   /* lines by vertical CENTRE, 6px apart: a smaller inline mark (the '!!') sits a few px off the text's top and is the same line */const st=getComputedStyle(e);const one=lines===1&&(e.scrollWidth<=e.clientWidth||(st.textOverflow==='ellipsis'&&st.overflow==='hidden'))&&T0>=q.top-0.5&&B0<=q.bottom+0.5;
+        return {t:e.textContent.slice(0,60),cw:e.clientWidth,sw:e.scrollWidth,inkR:+(R0-q.right).toFixed(1),inkL:+(q.left-L0).toFixed(1),lines,ok,one};};
       const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
       // the name line is the span whose OWN text (its direct text nodes, not a descendant's) reads 'vs <name>' or '<a> vs <b>':
       // the cell around it is a flex item, so its computed display is block too and its textContent also starts 'vs' - a first
       // draft matched that wrapper and measured the wrong box. The line under it is the name line's next sibling.
       const own=(e)=>[...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').replace(/\u00a0/g,' ');
-      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=opp?opp.nextElementSibling:null;const badge=row.firstElementChild;
+      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=opp?opp.nextElementSibling:null;const badge=(row.firstElementChild&&row.firstElementChild.firstElementChild)||row.firstElementChild;   /* the badge is the first child OF the row's badge column (#549 put it in a column with the tally under it; #550 holds the tally's slot on every card, so the column's own text is no longer the badge's) */
         return {opp:full(opp),sub:full(sub),badge:badge&&{t:badge.textContent,...full(badge)},_o:opp,_s:sub,_b:badge};});
       const seeded=[];const words=[];
       for(const o of out){
@@ -1725,9 +1726,14 @@ function mkTap(b,READ){
         delete o._o;delete o._s;delete o._b;}
       return {n:rows.length,draw:out.some(o=>o.badge&&o.badge.t==='DRAW'),rows:out,seeded,words};},H25);
     L.say(r.n>=3&&r.draw&&r.rows.every(o=>o.opp&&o.sub&&o.badge),'TC-R153 '+dim+' DENOMINATOR the Review list shows the seeded games ('+r.n+' rows, a DRAW among them), and in every row the name line, the line under it and the badge were found by their text',{n:r.n,draw:r.draw});
-    L.say(r.rows.length>0&&r.rows.every(o=>o.opp&&o.opp.ok),'TC-R153a '+dim+': every row paints the opponent line in full - no ellipsis, no ink past its box',r.rows.map(o=>o.opp));
-    L.say(r.rows.length>0&&r.rows.every(o=>o.sub&&o.sub.ok),'TC-R153b '+dim+': every row paints the line under it (account, colour, time control, date) in full',r.rows.map(o=>o.sub));
-    L.say(r.seeded.length>=2*r.n&&r.seeded.every(x=>x.ok),'TC-R153c '+dim+': holding the LONGEST real values (a 25-character handle; a 25-character account and the longest tail), both lines still paint in full - they reflow',r.seeded);
+    // CONTROL-RECORD: c9819db 2026-11-12 total=189 red=9 scope=block:TC-R153 trial:315c163e how=#550 a7 re-key (one line, a drawn ellipsis): t145, the tree where the card lines reflow - TC-R153a/b/c red at 320x568, 375x761 and 440x956 (the 25-character handle wraps to 2 lines); on t146 49b5f01b 189/0, TC-R76 included (the tally's slot is held on every card)
+    /* RE-KEYED AT #550 [run-answers build__1794388896663-a7, Kunal 11 Nov: "keep it as the three dots towards the end of the name"; formatting
+       audit FMT-B-09: "Names stay on one line and are cut with an ellipsis; the detail line is one line; every game card is the same height"].
+       #549 item (100) made these lines REFLOW; his answer reverses that. So a/b/c now assert ONE line, cut (if at all) by a drawn ellipsis
+       and never by a silent clip - CLAUDE.md "when something is cut off, assert WHICH THING DID THE CUTTING". d (the badge) is unchanged. */
+    L.say(r.rows.length>0&&r.rows.every(o=>o.opp&&o.opp.one),'TC-R153a '+dim+': every row keeps the opponent line to ONE line, ending in an ellipsis if it does not fit (run-answers a7)',r.rows.map(o=>o.opp));
+    L.say(r.rows.length>0&&r.rows.every(o=>o.sub&&o.sub.one),'TC-R153b '+dim+': every row keeps the line under it (account, colour, time control, date) to ONE line, ending in an ellipsis if it does not fit',r.rows.map(o=>o.sub));
+    L.say(r.seeded.length>=2*r.n&&r.seeded.every(x=>x.one),'TC-R153c '+dim+': holding the LONGEST real values (a 25-character handle; a 25-character account and the longest tail), both lines stay ONE line, cut by a drawn ellipsis - every card the same height',r.seeded);
     L.say(r.words.length===4*r.n&&r.words.every(x=>x.ok),'TC-R153d '+dim+': the result badge holds each of its four words (WON, LOST, DRAW, GAME) inside its own border',r.words.filter(x=>!x.ok).concat(r.words.slice(0,4)));
     L.say(b.errs.length===0,'TC-R153 '+dim+': zero app errors',b.errs.slice(0,2));
     await b.close();}
