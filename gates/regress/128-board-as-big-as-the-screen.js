@@ -12,6 +12,7 @@
 // there it is min(vp.h, vp.w-340); sideways Review keeps 292 for its column, min(vp.h, vp.w-292); a sideways lesson keeps 290 for its footer, min(vp.h, vp.w-290); Puzzles keeps its 196 rail beside the 62 tab rail, min(vp.h, vp.w-278) at 568; Tactics keeps a 240 column beside the 62 tab rail, min(vp.h, vp.w-318); upright the viewport width. Every screen must also not scroll the page and keep its buttons on screen.
 // KNOW ITS LIMIT: the short upright screens (320x568, 375x667) are not asserted - their job is open (short-upright-boards-sized-to-height).
 // CONTROL-RECORD: 53dd89b 2026-11-12 total=86 red=22 scope=trial:075881d048e1 how=#550 a38: the tree before the full-height boards - all sixteen TC-R204a lines red (Review 216, the game 344, Puzzles 360, Tactics 176, lessons 280, online 216), TC-R204b and TC-R204d (online 192, its 2x2 panel) and the overflow lines it caused; on t113 86/0
+// CONTROL-RECORD: 98d67ef 2026-11-12 total=172 red=9 scope=trial:68f5d4c48fd9 how=#550 the antagonist pair's tree before their fixes (t118): the TC-R204c player-bar lines red - Review's bottom bar under the engine line, the top bar cutting captured pieces at 667 and 568 - and TC-R204a Review at 568x320 (320 against 276); on t123 cad11bccef38 the gate is green
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review'),Z=require('../drive/puzzles'),D=require('../drive/lesson');
 const fs=require('fs'),path=require('path');
