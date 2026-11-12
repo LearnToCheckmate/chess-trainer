@@ -337,6 +337,7 @@ L.run(async()=>{
        'panel, and copyMoves returns before flashing when the history is empty, so the chip cannot rename '+
        'itself at all. N2c is not run at this column and is not counted as a pass.');
      // CONTROL-RECORD: 5b1e1bb 2026-11-06 total=98 red=2 scope=full how=#549 item (47) HEAD bundle 6a8ec1a5582d with Copy live at move 0: TC-LS-048 red at 320x568 and 375x568
+     // CONTROL-RECORD: ae81691 2026-11-12 total=98 red=2 scope=trial:be4912afac1e how=#550 re-control of the gate as it stands today (ASSERTIONS-MOVED; main's own bundle leaves it green): the Copy chip left live with no moves (_cpDis forced false, the #549 item (47) defect) on today's tree - first red: 320x568 [practice-m0]: TC-LS-048 with no move played the Copy chip is
      // ── TC-LS-048 (US-R101), #549 item (47), folded jobs/copy-chip-is-a-live-control-that-does-nothing-with-no-moves-2026-09-29.
      //    The same empty history that makes the flash unreachable made the chip a full-size LIVE control that did
      //    nothing on a tap. It must now SAY so: the button is disabled and its label is drawn dimmed. Kept at
