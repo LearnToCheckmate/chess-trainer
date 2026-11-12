@@ -25,7 +25,7 @@
 // audit quoted and to the domain facts behind them (legal-move counts, pawn counts, squares), so a new wrong sentence elsewhere in a note is
 // not read; the audit's 87.5 percent of unread opening prose is still unread. It checks content, not how the screen shows it (gates 11, 12,
 // 48 and 57 drive the screens).
-// CONTROL-RECORD: 9a6a5c6 2026-11-12 total=47 red=34 scope=trial:12e0074a77f8 how=#550 the tree as the audit found it, read as source - CT_SRC its chess.jsx 717f5d4c7a90 (the trial bundle 12e0074a77f8 is built from it) and CT_LESSONS its lessons.js 40f99bd4425d (lessons.js is in no bundle): every one of CHS-01..23 red, Nxe5 -258 against h3 +66 in the lesson and in c11 (TC-R212a,b), d6 -3 (TC-R212c), 'Nxe4?' (TC-R212d), no numbered saving move (TC-R212e), 6.Qe2 and 3...Nf3 (TC-R212f), 243 mates written with + (TC-R212q), Qf3 (TC-R212r); on 4f4e988b5259 (chess.jsx 4471fa7076a5, lessons.js b6914e9587bb) 51/0
+// CONTROL-RECORD: 9a6a5c6 2026-11-12 total=47 red=34 scope=trial:12e0074a77f8 how=#550 the tree as the audit found it, read as source - CT_SRC its chess.jsx 717f5d4c7a90 (the trial bundle 12e0074a77f8 is built from it) and CT_LESSONS its lessons.js 40f99bd4425d (lessons.js is in no bundle): every one of CHS-01..23 red, Nxe5 -258 against h3 +66 in the lesson and in c11 (TC-R212a,b), d6 -3 (TC-R212c), 'Nxe4?' (TC-R212d), no numbered saving move (TC-R212e), 6.Qe2 and 3...Nf3 (TC-R212f), 243 mates written with + (TC-R212q), Qf3 (TC-R212r); on 1943eccd1609 (chess.jsx 86cdc01a5655, lessons.js 3f7bf7777e0d) 51/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path'),cp=require('child_process'),crypto=require('crypto');
 const E=require('../engine-extract');

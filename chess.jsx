@@ -2932,7 +2932,7 @@ const PUZZLES=[
     explain:"Nxe4!! ignores the 'pin'. After Bxd8 (grabbing the queen), Bxf2+ Ke2 Bg4# is a picture mate — a whole queen down! The g4-bishop checks; the f2-bishop and e4-knight take every escape. The famous Stafford Gambit trap." },
   { fen:"rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 0 1", goal:"Black to play — find the brilliant promotion.", motif:"Opening trap: Lasker Trap (underpromotion!)", level:"Hard",
     sol:["fxg1=N+","Bg4+","Bxd1"], reply:["Rxg1","Kf2"], also:{2:["Qxd1"]},
-    hint:"The f2-pawn can promote, but a new queen is simply swapped off. Promote to the piece that gives check and can't be ignored.",
+    hint:"The f2-pawn can promote, but a new queen is just swapped off. Promote to the piece that gives check.",
     explain:"fxg1=N+!! — the famous underpromotion. A new queen would be swapped off (Qxd8+ Kxd8 Rxg1); the knight checks, forcing Rxg1. Then Bg4+ skewers king and queen, and Bxd1 or Qxd1 wins it. The Lasker Trap from the Albin Counter-Gambit." },
 ];
 // ─────────────────────────────────────────────────────────────
