@@ -76,7 +76,7 @@ async function pins(b,geo,when,demoW){
   L.say(!!n&&near(n.h,75),'TC-LS-055 '+geo+' '+when+': the note box is 75 tall',n);
   L.say(!!f&&near(f.h,61),'TC-LS-055 '+geo+' '+when+': the footer is 61 tall',f);
   // At the mate "Try again" gives way to the finished-lesson button (as in every lesson), so three of the four remain.
-  const want=/mate/.test(when)?['Flip board','Hints','More actions']:['Flip board','Hints','Try again','More actions'];
+  const want=/mate/.test(when)?['Flip board','Hints']:['Flip board','Hints','Try again'];   // #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov): one ⋯ per screen - the row's More actions went into the bar's ⋯ sheet
   L.say(r.map(x=>x.a).join()===want.join()&&r.every(x=>near(x.h,44)),'TC-LS-055 '+geo+' '+when+': the practice buttons ('+want.length+') are 44 tall',r);
   L.say(m.over.over<=0&&sw===m.vw,'TC-LS-055 '+geo+' '+when+': no page scroll (over '+m.over.over+', scrollWidth '+sw+' of '+m.vw+')');
 }
