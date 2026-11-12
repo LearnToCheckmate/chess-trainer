@@ -1760,6 +1760,13 @@ function concreteRead(pos,mv){
     if(safe){for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=g2.board[r][c];if(!t||t.c!==them||t.t==='k'||t.t==='p')continue;
       if(moveHits(g2.board,mv.tr,mv.tc,r,c)&&!moveHits(pos.board,mv.fr,mv.fc,r,c)&&seeSq({...g2,turn:me,ep:null},r,c,me)>0)
         return {k:'attack',hint:'Their '+nm(t.t)+' on '+rc2sq(r,c)+' is short of defenders. Attack it.',say:san+' attacks the '+nm(t.t)+' on '+rc2sq(r,c)+', which is short of defenders.'};}}
+    /* #550 measured on ten of his own cards (his games, the review's Mistake and Blunder grades): 6 of 10 fell to the general line, and four of
+       those six were an even trade the best move takes or a guard it puts on an attacked piece. Both are said now, last. */
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=pos.board[r][c];if(!t||t.c!==me||t.t==='k'||(r===mv.fr&&c===mv.fc))continue;
+      if(seeSq({...pos,turn:them,ep:null},r,c,them)>0&&seeSq({...g2,turn:them},r,c,them)<=0){const a=_cheapAttacker(pos.board,r,c,them);
+        return {k:'defend',hint:'Your '+nm(t.t)+' on '+rc2sq(r,c)+' is attacked'+(a?(' by the '+nm(a.t)+' on '+rc2sq(a.r,a.c)):'')+'. Look after it.',say:san+' looks after the '+nm(t.t)+' on '+rc2sq(r,c)+'.'};}}
+    if(cap&&cap.c===them){const sqC=mv.epCap?rc2sq(mv.fr,mv.tc):rc2sq(mv.tr,mv.tc);
+      return {k:'trade',hint:'Their '+nm(cap.t)+' on '+sqC+' can be taken, and taking it is right even though it can be taken back.',say:san+' takes the '+nm(cap.t)+' on '+sqC+'.'};}
     return null;
   }catch(e){return null;}
 }
@@ -4943,7 +4950,7 @@ export default function App(){
   useEffect(()=>{try{/* #364 dev-only: ct_safe='51,31' fakes the insets so a phone's Layout readout can be reproduced in the build sandbox, where env() is always 0. Kunal's phone reports 51/31 and no test rig here can emulate that natively. */const _ov=(localStorage.getItem('ct_safe')||'').split(',').map(Number);if(_ov.length===2&&_ov.every(n=>n>=0&&n<120)){setSafeTop(_ov[0]);setSafeBot(_ov[1]);return;}const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const h=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);if(h>=0&&h<120)setSafeTop(h);}catch(e){}
     try{const pb=document.createElement('div');pb.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pb);const h2=Math.round(pb.getBoundingClientRect().height);document.body.removeChild(pb);if(h2>=0&&h2<80)setSafeBot(h2);}catch(e){}},[]);
   const [bestLineBoard,setBestLineBoard]=useState(null);
-  const [bestLineSan,setBestLineSan]=useState('');   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
+  const [bestLineSan,setBestLineSan]=useState('');const [playWhy,setPlayWhy]=useState('');   /* #550 HEX-R-04: the why pill answers in words */   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
   const [engOn,setEngOn]=useState(false);
   /* #547 item (188): what the engine-line switch read before analysis turned it on, so leaving analysis puts it
      back. null = not inside an analysis entry. Exiting analysis used to leave the row on for the rest of the session. */
@@ -8038,8 +8045,14 @@ export default function App(){
       for(let i=0;i<moves.length;i++){const nb=applyMove(g.board,moves[i]);const san=toSAN(g,moves[i],nb);const wt=g.turn==='w';
         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
+    /* #550 HEX-R-04 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): "A button called why should answer in words." When the why pill
+       (firstOverride: the move he played) runs the line, the first two moves of it are put through explainLine - the engine line in words the
+       ? sheet already uses - and shown in the line row in place of the bare moves. */
+    if(firstOverride){try{const _u=moves.map(m=>rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||''));const _rows=explainLine(toFEN(basePos),_u,3,revNo(review,ply-1))||[];
+      const _w=_rows.filter(r=>r&&r.why).slice(0,2).map(r=>String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')+' '+r.why).join('; ');setPlayWhy(_w?(_w.charAt(0).toUpperCase()+_w.slice(1)+'.'):'');}catch(e){setPlayWhy('');}}
+    else setPlayWhy('');
     let plays=0;const step=(i)=>{if(bestLineTokenRef.current!==tok)return;if(i>=moves.length){setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setAnim(null);setSlideFromHide(false);plays++;if(plays<2){setBestLineBoard(states[0]);setTimeout(()=>step(0),650);}else{setBestLineBoard(null);}},950);return;}const pc=states[i].board[moves[i].fr][moves[i].fc];setBestLineBoard(states[i]);setSlideFromHide(true);setAnim({piece:pc,from:[moves[i].fr,moves[i].fc],to:[moves[i].tr,moves[i].tc]});setAnimTo(false);requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setBestLineBoard(states[i+1]);setSlideFromHide(false);setAnim(null);setTimeout(()=>step(i+1),430);},470);};step(0);};
-  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
+  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setPlayWhy('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
   /* #548 item (109): ENTER the analysis board once the one-position review is on screen. Declared AFTER the [ply] effect above on
      purpose: that one turns analysis off on every ply change, and setPly(0) is one, so this must run later in the same flush. */
   useEffect(()=>{const d=drillAnaRef.current;if(!d||!d.pending||!review||!review.fromDrill||mode!=='analyze')return;d.pending=false;
@@ -11265,9 +11278,9 @@ export default function App(){
                 That is why gate 22's three-row assertion checks scrollHeight against clientHeight on every row and
                 not just whether anything overflows the parent. If you change this row's height, its overflow or its
                 shrink, run gate 22 - the three-row block is the only thing watching it. */}
-            {showBest&&bestLineSan&&!anaMode&&(<div data-ct="rev-bestline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
-              <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>best line</b>
-              <span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{bestLineSan}</span>
+            {(showBest||playWhy)&&bestLineSan&&!anaMode&&(<div data-ct="rev-bestline" style={{display:'flex',alignItems:'baseline',gap:7,fontSize:'clamp(13px,2.8vw,14.5px)',whiteSpace:'nowrap',overflowX:'auto',overflowY:'hidden'}} className="scroll">
+              <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>{(!showBest&&playWhy)?'why':'best line'}</b>
+              {(!showBest&&playWhy)?(<span data-ct="rev-playwhy" style={{flex:'0 0 auto',color:'#fff'}}>{playWhy}</span>):(<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{bestLineSan}</span>)}
             </div>)}
             {_stripH>0&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
