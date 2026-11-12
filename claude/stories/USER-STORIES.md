@@ -2310,3 +2310,11 @@ As a player with a deck built before the drill took only Blunders and Mistakes, 
 - A card that still grades Blunder or Mistake by win chance stays, with its re-grade recorded. (TC-R210a)
 - A card that does not - his move was in fact the best, or the drop is small - leaves the deck. (TC-R210b)
 - The deck size before and after is recorded. (TC-R210c)
+
+### US-R143 The Review board keeps one size when he steps through the moves
+*Added #550; Kunal, 12 Nov, Review on his computer: "Every time I click on the next move button at the bottom right, the board keeps shaking for a few seconds".*
+As a player stepping through a reviewed game, the board stays the size it is when I press Next move - on a computer window as on the phone.
+- After each Next move the board holds one size for the next 3 seconds, the eval graph on. (TC-R211a)
+- It is the size it was before the tap. (TC-R211b)
+- A taller window never gets a smaller board than a shorter one. (TC-R211c)
+- The same on his phone (375x761). (TC-R211d)
