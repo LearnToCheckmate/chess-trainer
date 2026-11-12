@@ -80,6 +80,11 @@
 // A2e then ASSERTS the result instead of quietly relying on it, so if a future build makes this row genuinely
 // unreachable the gate goes red rather than scrolling around the defect.
 const L=require('../lib.js');
+/* #550 a41: the Home pass re-grades every stored card that carries no win-chance grade and drops those that are no longer a Blunder or
+   Mistake - so this gate's fixture cards (each a real position whose 'played' move may still leave the side winning) were thinned out
+   before the drill opened ("1 of 3" where 5 were seeded). The re-grade is gate 134's subject; here every seeded card is marked as already
+   re-graded (wc), so the drill this gate measures holds exactly the cards it seeded. Applied in one place, to every launch. */
+{const _lz=L.launch;L.launch=(o)=>{if(o&&o.store&&Array.isArray(o.store.ct_mymistakes))o={...o,store:{...o.store,ct_mymistakes:o.store.ct_mymistakes.map(c=>c&&!c.wc?{...c,wc:{g:c.label==='Mistake'?'Mistake':'Blunder',drop:25}}:c)}};return _lz(o);};}
 
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1',
             '4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1','4k3/8/8/8/8/8/5Q2/4K3 w - - 0 1',

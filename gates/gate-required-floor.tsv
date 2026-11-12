@@ -85,3 +85,5 @@
 120	119	raise	2026-11-12	550	build__1794388896663	#550 a42: messages move nothing; short phones' puzzle board full width (US-R148)	-	a363f459affd
 121	120	raise	2026-11-12	550	build__1794388896663	#550 DSK-01/02: Home one centred column at every window size, fitted to the height (US-R149)	-	35498073ade3
 122	121	raise	2026-11-12	550	build__1794388896663	#550 DSK-09: Play setup fits a laptop window (US-R150)	-	ea51470dd597
+123	122	raise	2026-11-12	550	build__1794388896663	#550 security batch: no browser Pro switch, Delete account, sign-out wipe (US-R145)	-	08c24cabb85d
+124	123	raise	2026-11-12	550	build__1794388896663	#550 chess correctness: the content holds at depth 16 (US-R144)	-	19e422981925
