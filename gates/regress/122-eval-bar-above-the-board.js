@@ -11,6 +11,7 @@
 // on the board's RIGHT. chess.jsx draws the line at a height/width ratio of 1.87 (EVAL_ABOVE_MIN_RATIO). Block D asserts both halves.
 // CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=2 scope=trial:b8b9d170d5e9 how=#550 item (64): the migration run on every load - both TC-R198c lines red (a choice of beside does not stand)
 // CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=8 scope=trial:b06b4a724838 how=#550 item (64): the tree before the migration - TC-R198a and TC-R198b red, the preconditions and TC-R198c green
+// CONTROL-RECORD: 976131a 2026-11-12 total=21 red=4 scope=trial:fa0485d4646e how=#550 a35: the trial before his final rule (portrait above everywhere, landscape bar on the left) - both TC-R198d and both TC-R198e lines red
 const L=require('../lib');
 const P=require('../drive/play');
 const board=(b)=>b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
