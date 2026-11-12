@@ -44,6 +44,7 @@
 // CONTROL-RECORD: 8f55589 2026-11-06 total=93 red=1 scope=trial:14ea26b79b33 how=the #549 base bundle (rows read against the viewport less 56, icons at 0.52 of the row); restricted to home discover, the PROMOTED line reds at 375x761 real reading 89 @379.2-468.2; a row-fix-reverted bundle 05984d62dcd7 reds it at 68 [#549 item (18)]
 // CONTROL-RECORD: 3620b52 2026-11-06 total=124 red=34 scope=trial:092470ec1943 how=mistake capture disabled (if(0)caps.push) and both pz-top marginTop 90: FAIL TC-S07 PHASE 1 mistakes x2, every drill-mistakes REACHED and MEASURED at all three columns (24), the four drill-brilliant PROMOTED lines (98.5/94.5 @51) and the four promoted puzzles states; the trial 96d043bdf18f reads 128 pass 0 fail [#549 item (21)]
 // CONTROL-RECORD: b40b9d3 2026-11-12 total=127 red=13 scope=trial:9bceb4fee152 how=#550 round 5, Hint re-key: the drills' Hint button does nothing - the twelve TC-S07 drill-hint lines red (hint tapped and no hint line), plus TC-S04 moves-last 63px; on 764a0b1dc097 128/1 (TC-S04 alone)
+// CONTROL-RECORD: 160af61 2026-11-12 total=135 red=6 scope=full:c5269256d63e how=#550 the wrong move is now chosen LEGAL (wrongFor): the round-7 suite's run of the old fixed a7a6 on this same card (Black in check after Bd7+) - the drill mistakes wrong state not entered at 375x761, 375x730 and 375x812 (6 red, gates/logs 550-77-empty-bands.log of the bg-r7 clone); on t142 4e6cd77c 129/0 with e8d8 played
 const L=require('../lib');
 const HM=require('../drive/home');
 const PZ=require('../drive/puzzles');
