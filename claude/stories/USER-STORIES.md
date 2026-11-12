@@ -2318,3 +2318,11 @@ As a signed-in player opening the app on another device, the chess.com and Liche
 - His games are pulled at once, also when he is already on Review. (TC-R214b)
 - What a device saves back never carries an empty name over the account's. (TC-R214c)
 - A name already typed on this device is kept. (TC-R214d)
+
+### US-R148 A message appearing or going moves nothing, and the short phones' puzzle board is full width
+*Added #550, run-answers build__1794388896663-a42; Kunal, 12 Nov: "We can do the overlays ... make sure the board is maximized and there are no jumps on the page."*
+As a player on a short phone, the puzzle board fills the width, and a hint, a wrong-move note or the explanation after a solve never moves anything on the page.
+- The board and every button stay where they were through hint, wrong move, step, solve and the note fading, on Puzzles and in the mistakes drill. (TC-R216a)
+- Nothing scrolls in any of those states. (TC-R216b)
+- At 320x568 and 375x667 the Puzzles board is the full width. (TC-R216c)
+- The wrong-move note is an overlay that fades, and the motif and level live behind the Hint. (TC-R216d)
