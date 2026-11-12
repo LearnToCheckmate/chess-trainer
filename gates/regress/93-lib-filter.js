@@ -70,7 +70,7 @@ L.run(async()=>{
             L.say(f.gnt===f.rows.length+' of '+u.rows.length,tag+'TC-S08c with "'+t+'" the list header reads shown of total ('+f.gnt+')',{gnt:f.gnt,rows:f.rows.length});
             if(kind!=='none'&&li.secs!==false)L.say(f.secs.length>0&&f.secs.every(s=>s.n===s.rows)&&f.heads.every(h=>h.n===h.rows),tag+'TC-S08c with "'+t+'" every count equals its rows',{secs:f.secs,heads:f.heads});
           }
-          await H.tapBtn(b,/^(‹ Back|Back)$/,500);await H.tapBtn(b,li.tile,700);await toTop(b);   // re-entered by its tile, NOT by the driver state, which reloads a fresh page and would empty the box by construction
+          await (await b.page.$('button[aria-label="Back"]')?b.page.click('button[aria-label="Back"]').then(()=>b.settle(500)):H.tapBtn(b,/^‹ Back$/,500));   // #550 re-keyed (FMT-A-02): upright Back is the top row's 44x44 button, named by aria-label; sideways the ‹ Back pillawait H.tapBtn(b,li.tile,700);await toTop(b);   // re-entered by its tile, NOT by the driver state, which reloads a fresh page and would empty the box by construction
 
           const r2=await read(b);
           L.say(r2.boxVal===''&&r2.rows.length===u.rows.length,tag+'TC-S08a after Back and re-entry the box is empty and all '+u.rows.length+' rows are back',{val:r2.boxVal,rows:r2.rows.length});

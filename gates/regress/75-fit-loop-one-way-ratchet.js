@@ -473,7 +473,7 @@ const framesArmInner=async(geo,px)=>{
     await b.settle(700);
   }
   const clicked=await b.page.evaluate(()=>{   // the label and the click in one task [#528]
-    const t=[...document.querySelectorAll('button')].find(x=>/Now I'll try it/.test(x.innerText||''));
+    const t=[...document.querySelectorAll('button')].find(x=>/Now I'll try it/.test((x.innerText||'')+' '+(x.getAttribute('aria-label')||'')));   // #550 re-keyed (FMT-A-05, a42): the bar's ✋ on a short phone
     window.__ct522phase='practice'; if(!t)return false; t.click(); return true;});
   await b.settle(1600);
   const practiceSettled=await bw(b);
