@@ -10,6 +10,7 @@
 // scan stubbed to return the FEN - then "Play this position" against the computer, White to move. The hint's squares are the board
 // squares carrying the HL_HINT overlay (rgba(255,200,30,.75)); the words are the play-context status slot.
 // KNOW ITS LIMIT: two positions. The words are concreteRead's; their coverage is a measurement on the jobs, not this gate.
+// CONTROL-RECORD: 0131b3c 2026-11-12 total=14 red=4 scope=trial:3ab724514641 how=#550 origin/main's own #549 bundle: the mate-in-2 hint lights d4-d5 (Rd5, the audit's case), the status slot is blank on both positions, and Pass and Play's Hint is live; on t125 fbb12a951537 14/0
 const L=require('../lib');
 const P=require('../drive/play');
 const zlib=require('zlib');
