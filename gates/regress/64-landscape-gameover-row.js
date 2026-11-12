@@ -208,10 +208,12 @@ L.run(async()=>{
       await assertWide(b,live,G+'B6w LIVE');
       const before=await sigOf(b);
       L.say(!!before&&before.split(';').length===64,G+'B0a the 64-square signature reads 64 squares',before?before.split(';').length:null);
-      const tapped=await tapTitle(b,'Hint',1200);
+      /* #550 HEX-R-10: Pass & Play's Hint is disabled (no hint against a person), so the instrument is validated with Flip - it moves every
+         square of the 64-square signature, which is what B2 and B5b need to know the instrument can see; their Hint-does-nothing claims stand. */
+      const tapped=await tapTitle(b,'Flip',1200);
       const after=await sigOf(b);
       L.say(tapped&&after!==before,
-        G+'B0 INSTRUMENT VALIDATION: tapping Hint in a LIVE landscape game MOVES the 64-square signature. B2 and B5b below are vacuous unless this passes',
+        G+'B0 INSTRUMENT VALIDATION: tapping Flip in a LIVE landscape game MOVES the 64-square signature. B2 and B5b below are vacuous unless this passes',
         {tapped,moved:after!==before});
       L.say(live.labels.indexOf('Hint')>=0&&live.labels.indexOf('Flip')>=0,
         G+'B6a OVER-APPLICATION CONTROL: a LIVE landscape game still offers Hint and Flip',{labels:live.labels.join(',')});
