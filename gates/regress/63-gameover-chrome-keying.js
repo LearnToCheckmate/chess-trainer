@@ -71,8 +71,9 @@ L.run(async()=>{
   // ================= A. THE INSTRUMENT, PROVED ON A LIVE GAME BEFORE IT IS TRUSTED =================
   {
     const b=await L.launch({geo,name:'gk-live-'+geo});await b.open();
-    await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
-    await b.move('e2','e4',500);await b.move('e7','e5',500);await b.settle(400);
+    /* #550 HEX-R-10: there is no Hint against a person any more (Pass & Play's is disabled), so the instrument is validated where a Hint
+       works - a live game against the computer, four plies in - and the Hint is now the engine's move, so it is read up to 4s after the tap. */
+    await require('../drive/play').states['cpu-4ply'](b);await b.settle(400);
     const row0=await rowOf(b);
     L.say(row0.labels.indexOf('Hint')>=0&&row0.labels.indexOf('Flip')>=0,
       G+'A1 live game: the row is the LIVE row (Hint and Flip present) - the control state this gate compares against',row0.labels.join(' · '));
@@ -80,8 +81,7 @@ L.run(async()=>{
     L.say(!!before&&before.split(';').length===64,G+'A1b the 64-square signature reads 64 squares',before?before.split(';').length:null);
     const hint=row0.items.filter(i=>i.label==='Hint')[0];
     if(hint&&before){
-      await b.page.mouse.click(hint.x+hint.w/2,hint.y+hint.h/2);await b.settle(900);
-      const after=await sigOf(b);
+      await b.page.mouse.click(hint.x+hint.w/2,hint.y+hint.h/2);let after=before;for(let k=0;k<16&&after===before;k++){await b.settle(250);after=await sigOf(b);}
       L.say(after!==before,G+'A2 INSTRUMENT VALIDATION: tapping Hint in a LIVE game MOVES the 64-square signature. Every "the Hint does nothing" assertion below is vacuous unless this one passes',{moved:after!==before});
     } else L.say(false,G+'A2 could not reach a live Hint button to validate the instrument',{hint:!!hint,sig:!!before});
     await b.close();
