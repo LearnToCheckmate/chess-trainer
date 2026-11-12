@@ -7304,9 +7304,9 @@ export default function App(){
         /* #550 item (24) say-why: the line names one reason in words where the board proves one (wrongWhy), else where the engine's reply
            proves one (replyWhy: the analysis engine warmed if it is not (ensureAna, 5 s ceiling), asked once for 300ms, and written only if the line has not changed since); no reason leaves _old as it was.
            On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
-        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=graded?null:wrongWhy(g,mv);
+        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:wrongWhy(g,mv);   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
         setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
-        if(!graded&&!_ww){let _sc=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);const t=r&&replyWhy(ng,r,_sc);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+        if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);const t=r&&replyWhy(ng,r,_sc);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)
