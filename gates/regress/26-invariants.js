@@ -609,10 +609,10 @@ const PIN_ROWS=[
        'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-best-ply30'],
    why:'Review pbar-top: the Back chevron is 28px of ink and the More dots are 21. Named by hand in flag build-the-invariant-gate a fortnight before any test could see it; job lesson-footer-icons-consistent owns the fix.'},
   {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{320:[24,24,24,27,27],375:[24,24,24,27,27],390:[25,25,25,27,27]}, spread:null, /* PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn (Review's 21px, Segoe/system-ui), so 22 -> 24 measured at se, kunal730 and short375 on trial 0a7612ca7dc3. The 390 entry moved 23 -> 25 at #549's A3-R3 (antagonist A, round 3): measured CT_INV_GEOS=390 on trial bb925b8d210d, got [25,25,25,27,27] - it had been left at the pre-FootBtn value and read RED there */
-   at:['kunal730/lesson-demo'],   // #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov; a42): on a short phone the bar carries Now I'll try it too - the pin below
+   vh:'tall', at:['kunal730/lesson-demo'],   // #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov; a42): on a short phone the bar carries Now I'll try it too - the pin below
    why:'Lesson footer. THE BOX SAYS 27 AND THE INK SAYS 16.2, AND THE FIRST VERSION OF THIS LINE HAD IT BACKWARDS: it read "two 27px SVG arrows beside three 22px glyphs", which would send a fixer to shrink the arrows. The 27 is the chevrons viewBox; the polyline inside each paints 10.8 x 16.2, so the arrows are the SMALLEST ink in the bar and the three text glyphs at 22 are the largest. The flag names this row ("27 / 22 / 22 against one shared 20.25px font") from the same box method. 11-lesson.js asserts all five are >=20 and share a font size - which they do, fontSize 20.25 to the decimal - so it is green over exactly this spread, which is the finding gate11-is-green-over-the-very-glyph-spread-kunal-reported-2026-09-27. Heights are per WIDTH because the three text glyphs track fontSize (20 at 320, 20.25 at 375, 21.06 at 390) while the two SVG boxes do not scale at all.'},
   {sig:"Back a move|Close lesson|Forward a move|More for this lesson|Now I'll try it|Play or pause", h:{320:[24,24,24,24,27,27],375:[24,24,24,24,27,27]}, spread:null,
-   at:['se/lesson-demo','short375/lesson-demo'],
+   vh:'short', at:['se/lesson-demo','short375/lesson-demo'],
    why:"Lesson footer on a short phone (#550 a42): the same known spread as the pin above - the two chevrons' 27px svg box beside 24px text glyphs - with the ✋ Now I'll try it button (24) folded into the bar."},
   // THE `CHESS TRAINER|☰` PIN WAS HERE AND IT WAS NOT A DEFECT. Removed at #423 after both antagonists
   // measured it independently. It is the header of the TAB SCREEN mounted underneath Home's position:fixed
@@ -743,8 +743,10 @@ const READ_PIN={
      flags/amber-549-lesson-name-own-line]: the lesson name left the footer's control row for its own line at the top of the moves
      panel, where it paints all of itself at every width (gate 11 TC-R152), so the 18-of-80px cut this pin froze no longer exists and
      the pin went red as "missing" - a fix retiring its pin by hand, as the comment above says it must. */
-  'se/rev-ply31':[DUKE],'se/rev-last-engine':[DUKE],'se/rev-why-open':[DUKE],'se/rev-more-sheet':[DUKE],'se/rev-best-ply30':[DUKE],
-  'short375/rev-ply31':[DUKE],'short375/rev-last-engine':[DUKE],'short375/rev-why-open':[DUKE],'short375/rev-more-sheet':[DUKE],'short375/rev-best-ply30':[DUKE]};
+  /* the ten DUKE pins RETIRED at #550 (formatting audit FMT-B-03, Kunal's pick 12 Nov): on a short phone the Review player bar's back and ⋯
+     became the standard 44x44 corners and the decorative avatar left that bar, so the name paints 0.55 of itself (82 of 198 visible, was 62) -
+     readable by this file's own READ_MIN, and the pins went red as 'missing', a fix retiring its pins by hand. DUKE stays defined for history. */
+};
 // ── INVARIANT 1, ASSERTED AT LAST [#545, item (41); jobs/invariant-1-tap-targets]. ─────────────────────────────────────
 // The commission (flags/build-the-invariant-gate, Kunal, 2026-09-15) asked for four invariants; #423 landed 2 and 3 and left
 // 1 REPORTED, because the 90 undersized controls it found were a mixed POPULATION and pinning them blind would freeze the
@@ -1835,7 +1837,10 @@ L.run(async()=>{
        downgrade on an opt-in narrowed or ad-hoc run. */
     const atWidth=(at)=>{const n=at.split('/')[0];return L.GEOS[n]?L.GEOS[n].w:null;};
     const pinnedWidths=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const w=atWidth(at); if(w!==null)pinnedWidths.add(w);}
-    const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(atWidth(at)===widthOf(g)) wantPins.push(p.sig+'@'+g+'/'+at.split('/').slice(1).join('/'));
+    /* #550 (formatting audit FMT-A-05 + a42): a pin may carry vh:'short'|'tall' - the lesson bar on a short phone (under 700) holds a sixth
+       button, so at one WIDTH (375) the tall and the short column present different rows; width alone cannot tell them apart */
+    const vhOk=(p)=>!p.vh||((p.vh==='short')===(L.GEOS[g].h<700));
+    const wantPins=[]; for(const p of PIN_ROWS) for(const at of p.at) if(atWidth(at)===widthOf(g)&&vhOk(p)) wantPins.push(p.sig+'@'+g+'/'+at.split('/').slice(1).join('/'));
     const wantPinSet=[...new Set(wantPins)];
     L.say(ivTabInk>0,g+': TC-INV-02e DENOMINATOR the tab bar\'s ink was read on at least one screen at this geometry ('+ivTabInk+' readings), so its promoted line is not over an empty set',{ivTabInk});
     if(pinnedWidths.has(widthOf(g))){
