@@ -13,6 +13,7 @@
 // sideways rail (.ctside), the player bars (pbar-top/-bottom), the play toolbar by its six titles, the ● LIVE readout; the graph by the svg
 // inside the rail that draws EvalGraph's dashed midline, so a tree without the graph reds for the graph being absent, not for a hook.
 // KNOW ITS LIMIT: whether the graph reads well on his phone in landscape is his look after the landing (the run question with the pictures).
+// CONTROL-RECORD: cea4753 2026-11-12 total=53 red=24 scope=trial:37182d5aca90 how=#550 a36: the tree before the graph - TC-R203a, TC-R203b, TC-R203c and Review's rail-scroll TC-R203d red at all three geometries; the preconditions, the kept-rows and board-size lines and TC-R203e green
 const L=require('../lib');
 const P=require('../drive/play'),R=require('../drive/review');
 const GEOS=[[761,375],[730,375],[667,375]];
