@@ -2310,3 +2310,12 @@ As a player with a deck built before the drill took only Blunders and Mistakes, 
 - A card that still grades Blunder or Mistake by win chance stays, with its re-grade recorded. (TC-R210a)
 - A card that does not - his move was in fact the best, or the drop is small - leaves the deck. (TC-R210b)
 - The deck size before and after is recorded. (TC-R210c)
+
+### US-R144 The lessons and puzzles teach chess the engine agrees with
+*Added #550, docs/chess-correctness-2026-11-12 CHS-01..CHS-23; Kunal, 12 Nov: "Batch 10, wrong first".*
+As a player learning from a lesson, a card or a puzzle, the move I am taught is a good move and the words about it are true of the position.
+- The Légal Trap lesson and its puzzle teach Nxe5 only where it works (Légal's own 4...g6?), and the line mates. (TC-R212a, TC-R212b)
+- "Passed pawns must be pushed" shows a pawn whose push wins. (TC-R212c)
+- The Vienna 3.Bc4 Nxe4 line ends level, and says so. (TC-R212d)
+- The Lasker Trap names the legal saving move, 6.fxe3. (TC-R212e)
+- Move numbers, check marks and the words "forced", "only legal move", "in front of the pawn" and "long diagonal" match the board; a weaker taught move is replaced or marked; a card's praised side is not a pawn down; a puzzle's goal is true, its equally good moves are accepted, and a draw is not labelled a win. (TC-R212f..w)
