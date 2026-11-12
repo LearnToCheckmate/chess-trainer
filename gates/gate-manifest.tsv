@@ -153,3 +153,4 @@
 142-play-setup-fits-wide-windows.js	required	550	2026-11-12	build__1794388896663	gates/regress/142-play-setup-fits-wide-windows.js - PLAY SETUP FITS A LAPTOP WINDOW WITH	#550 DSK-09: Play setup fits a laptop window (US-R150)
 137-no-browser-pro-switch.js	required	550	2026-11-12	build__1794388896663	gates/regress/137-no-browser-pro-switch.js - PRO COMES ONLY FROM THE SUBSCRIPTION; AN AC	#550 security batch: no browser Pro switch, Delete account, sign-out wipe (US-R145)
 136-chess-content-holds.js	required	550	2026-11-12	build__1794388896663	gates/regress/136-chess-content-holds.js - THE LESSONS AND PUZZLES TEACH CHESS THE ENGIN	#550 chess correctness: the content holds at depth 16 (US-R144)
+135-review-board-holds-its-size.js	required	550	2026-11-12	build__1794388896663	gates/regress/135-review-board-holds-its-size.js - THE REVIEW BOARD KEEPS ONE SIZE AFTER	#550 his report (c): the Review board holds its size after a move (US-R143)
