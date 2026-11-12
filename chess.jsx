@@ -8308,7 +8308,7 @@ export default function App(){
   const railRef=useRef(null);const [railMore,setRailMore]=useState(false);
   const railCheck=useCallback(()=>{const e=railRef.current;const m=!!e&&(e.scrollHeight-e.clientHeight-e.scrollTop>4);setRailMore(v=>v===m?v:m);},[]);
   useEffect(()=>{if(!railed){setRailMore(false);return;}railCheck();const e=railRef.current;if(!e||typeof ResizeObserver==='undefined')return;const ro=new ResizeObserver(railCheck);ro.observe(e);[...e.children].forEach(c=>ro.observe(c));const t=setTimeout(railCheck,600);return()=>{ro.disconnect();clearTimeout(t);};},[railed,mode,openIdx,learnPhase,demoPly,inReview,railCheck]);
-  const sideColStyle=railed?{display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:landBars?5:8,width:sideW,height:sideFull?(vp.h-(lessonSide?86:0)):(boardPx+((inReview&&revCompact&&!pzRail&&!landRev)?108:0)) /* #550 a36: the sideways review's rail runs to the foot of the bottom player bar (two 52px bars and their 2px margins), so the graph under the explanation has room */,paddingTop:pzRail?6:(landBars?6:42) /* #550 a23: the corner Home and Menu end at y38; the sideways game's top bar starts just under them */,overflowY:'auto',overflowX:'hidden'}:{display:'contents'};
+  const sideColStyle=railed?{display:'flex',flexDirection:'column',alignItems:'stretch',justifyContent:'flex-start',gap:landBars?5:8,width:sideW,height:sideFull?(vp.h-(lessonSide?110:0) /* #550 gate 48 TC-R78 at 568x320: 86 left the 20px 'More below' chip, which hangs below the rail, over the lesson footer (chip 256..276, footer from 259) - 110 keeps it clear */):(boardPx+((inReview&&revCompact&&!pzRail&&!landRev)?108:0)) /* #550 a36: the sideways review's rail runs to the foot of the bottom player bar (two 52px bars and their 2px margins), so the graph under the explanation has room */,paddingTop:pzRail?6:(landBars?6:42) /* #550 a23: the corner Home and Menu end at y38; the sideways game's top bar starts just under them */,overflowY:'auto',overflowX:'hidden'}:{display:'contents'};
   const learnPlansBox=(mode==='learn'&&openIdx!==null&&learnPlans)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(var(--acr),.18),rgba(var(--acr),.06))',border:'1px solid rgba(var(--acr),.42)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}>
 <div style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'var(--ac2)',marginBottom:4}}>🎯 What we're trying to do</div><div style={{fontSize:'clamp(14px,2.7vw,14.5px)',color:'rgba(255,255,255,.9)',lineHeight:1.55}}>{learnPlans}</div></div>):null;
   const learnBranchesBox=(()=>{if(mode!=='learn'||openIdx===null)return null;const cur=LIB[openIdx];if(!cur||!cur.line||cur.line.length<5)return null; // branches (#310)
@@ -11709,7 +11709,7 @@ export default function App(){
 
       {/* ── Puzzle: BROWSE / solving view ── */}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:(!wide&&vp.h<700)?3:8,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:(!wide&&vp.h<700)?4:8}}>
         {/* #548 item (21), jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24: THE SOLVE BURST FALLS INSIDE THE BOARD.
             It was a viewport-wide layer whose confetti started at 16% of the screen height, which on a phone is the puzzle's top box,
             so it drew over the prompt text (measured on #428). It is now a fixed layer the size of the board, read from boardRef at the
@@ -11769,7 +11769,7 @@ export default function App(){
             8/30/74 this file already had. That is what keeps the board still: SQ's puzzle heightCap is
             `wh - safeTop - 8 - pzStackH - 62 - 26` (chess.jsx:2677), so pzStackH feeds the board size. */}
         <div style={{width:'100%',position:'relative',boxSizing:'border-box',...(puzSolved?{paddingBottom:8+(vp.h<820?30:74)}:null)}}>
-        <div style={{width:'100%',visibility:puzSolved?'hidden':'visible',background:puzSolved?'rgba(123,216,143,.12)':'rgba(var(--acr),.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(var(--acr),.3)'}`,borderRadius:12,padding:'12px 14px'}}>
+        <div style={{width:'100%',visibility:puzSolved?'hidden':'visible',background:puzSolved?'rgba(123,216,143,.12)':'rgba(var(--acr),.1)',border:`1px solid ${puzSolved?'rgba(123,216,143,.4)':'rgba(var(--acr),.3)'}`,borderRadius:12,padding:(!wide&&vp.h<700)?'6px 12px':'12px 14px' /* #550 short upright (jobs/short-upright-boards-sized-to-height): the board is sized to the height there, so every pixel the card gives back goes to the board */}}>
           <div style={{fontSize:'clamp(15px,3.8vw,17px)',fontWeight:800,color:'#fff',marginBottom:6}}>🎯 {p.goal}</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
             <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:700,color:'var(--ac2)',background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 9px'}}>{p.motif}</span>
