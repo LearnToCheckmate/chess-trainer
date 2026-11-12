@@ -5189,10 +5189,24 @@ export default function App(){
   useEffect(()=>{
     if(!homeScreen||!GRADES2||regradeRunRef.current)return;
     const todo=(myMistakesRef.current||[]).filter(m=>m&&!m.wc&&m.fen&&m.uci);if(!todo.length)return;
-    regradeRunRef.current=true;let stop=false;const halt=()=>{stop=true;try{const a=sfAnaAbortRef.current;if(a&&sfAnaBusyRef.current)a();}catch(e){}};   /* leaving Home also ends the search in flight, so the next screen's engine query never meets it (gate 22 TC-R109, a drill card opened straight from Home) */const off=setTimeout(()=>{},0);
+    regradeRunRef.current=true;let stop=false,rgW=null;const halt=()=>{stop=true;try{if(rgW)rgW.terminate();}catch(e){}rgW=null;};   /* leaving Home ends the pass and its own worker */const off=setTimeout(()=>{},0);
     (async()=>{
       try{
-        const ok=await ensureAna(60);if(!ok||stop)return;
+        /* ITS OWN WORKER [#550, gate 22 TC-R109]: on the shared analysis worker this pass's short, often-aborted searches ran straight into the
+           next screen's engine query - a drill card opened from Home then showed the weak fallback line ('15... Nxd7 16. Qb7') for the whole
+           visit. So the pass starts a Stockfish of its own, scores with it, and terminates it when Home is left or the pass ends; the shared
+           worker is never touched. */
+        let rw=null;try{rw=new Worker('./stockfish-18-lite-single.js');}catch(e){rw=null;}if(!rw||stop)return;
+        rgW=rw;
+        const rgSend=(c)=>{try{rw.postMessage(c);}catch(e){}};
+        let rgOn=null;rw.onmessage=(e)=>{const l=String(e&&e.data!=null?e.data:'');if(rgOn)rgOn(l);};
+        const rgWait=(pred,ms)=>new Promise(res=>{const t=setTimeout(()=>{rgOn=null;res(false);},ms);rgOn=(l)=>{if(pred(l)){clearTimeout(t);rgOn=null;res(true);}};});
+        rgSend('uci');if(!(await rgWait(l=>l==='uciok',20000))||stop)return;rgSend('isready');if(!(await rgWait(l=>l==='readyok',20000))||stop)return;
+        const sfEval1=(fen)=>new Promise(res=>{const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;let cp=null,mate=null;
+          const t=setTimeout(()=>{rgOn=null;res({ok:false});},20000);
+          rgOn=(l)=>{if(l.startsWith('info ')&&/ score /.test(l)){const m=/ score (cp|mate) (-?\d+)/.exec(l);if(m){if(m[1]==='mate'){mate=sign*(+m[2]);cp=null;}else{cp=sign*(+m[2]);mate=null;}}}
+            else if(l.startsWith('bestmove')){clearTimeout(t);rgOn=null;res({ok:true,cp,mate});}};
+          rgSend('ucinewgame');rgSend('position fen '+fen);rgSend('go depth 12 movetime 400');});
         let rec=null;try{rec=JSON.parse(localStorage.getItem('ct_regrade550')||'null');}catch(e){rec=null;}
         if(!rec)rec={before:(myMistakesRef.current||[]).length,after:null,dropped:0,checked:0,at:null};
         const toW=(r)=>{if(!r||!r.ok)return null;if(r.mate!=null)return r.mate>0?(100000-r.mate*100):(-100000-r.mate*100);return typeof r.cp==='number'?r.cp:null;};
@@ -5202,8 +5216,8 @@ export default function App(){
           let verdict=null;
           try{const g=fromFEN(m.fen);const pm=m.played?findMoveBySAN(g,m.played):null;const bm=uciToMove(g,m.uci);
             if(pm&&bm){const same=pm.fr===bm.fr&&pm.fc===bm.fc&&pm.tr===bm.tr&&pm.tc===bm.tc;
-              const rb=await sfEval1(m.fen,300,12,true);if(stop||!homeScreenRef.current)break;
-              const ra=await sfEval1(toFEN(makeMove(g,pm)),300,12,true);if(stop||!homeScreenRef.current)break;
+              const rb=await sfEval1(m.fen);if(stop||!homeScreenRef.current)break;
+              const ra=await sfEval1(toFEN(makeMove(g,pm)));if(stop||!homeScreenRef.current)break;
               const b=toW(rb),a=toW(ra);
               if(b!=null&&a!=null){const drop=winDrop(b,a,g.turn);const cls=classifyMove(drop,same,getLegal(g).length,true);verdict={g:cls.label,drop:Math.round(drop*10)/10,v:1};}}}catch(e){verdict=null;}
           if(!verdict)continue;   /* nothing honest to say (no played move stored, or the engine gave no score): the card stays as it was */
@@ -5214,7 +5228,7 @@ export default function App(){
         rec.after=Math.max(0,startN-droppedHere);rec.at=new Date().toISOString();   /* the deck the removals leave - read from the pass's own count, because the ref still holds the deck from before React applies them */
         try{localStorage.setItem('ct_regrade550',JSON.stringify(rec));}catch(e){}
       }catch(e){}
-      finally{regradeRunRef.current=false;}
+      finally{regradeRunRef.current=false;try{if(rgW)rgW.terminate();}catch(e){}rgW=null;}
     })();
     return()=>{halt();clearTimeout(off);};
   },[homeScreen]);
