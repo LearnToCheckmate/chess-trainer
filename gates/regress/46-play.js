@@ -940,3 +940,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=218 red=33 scope=trial:c7f6a1228e43 how=#548: main #547 (no phone top row) - TC-PL-057 (Home and Menu in the player bar, the strip still painted) and the re-pinned board sizes red
 // CONTROL-RECORD: 46fa96e 2026-11-06 total=222 red=1 scope=trial:8a5218f597fe how=#549 item (24): the #549 base bundle before the MOVES-row gutter (Pass & Play panel at x=0) - TC-PL-060's gutter line red at kunal730 (it read 0) and nothing else
 // CONTROL-RECORD: 64afd33 2026-11-12 total=222 red=19 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - the re-pinned vs-Computer widths, bars and gap at se, kunal730 and 390 red
+// CONTROL-RECORD: 976131a 2026-11-12 total=222 red=5 scope=trial:fa0485d4646e how=#550 a35: the trial before his final rule (bar above on short portrait) - the five se lines red (board 272, bars 272/35), every other geometry green
