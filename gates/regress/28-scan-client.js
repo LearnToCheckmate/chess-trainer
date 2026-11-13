@@ -240,7 +240,11 @@ L.run(async()=>{
   // ── The three rejection paths. TC-SC-024 is the standing control for #392 and must be kept. ──
   const b3=await L.launch({geo:'kunal730',name:'scan-rejects',store:{ct_pool:'3'}});await b3.open();
   const r3=await caseMsg(b3,'reject',{code:'functions/not-found',message:'not-found'});
-  L.say(!!r3.m&&/not set up yet/.test(r3.m),'TC-SC-024 a not-found rejection STILL gets the #392 deploy message - the standing control for #392: if the /not-found|unimplemented/ test in the catch is ever broken, this goes red (PART 6.3 row 7)',r3.m);
+  // #550: 09497fd (TXT-13, "no message tells a player about the server setup") reworded the deploy message from "... not set up
+  // yet ..." to "Board scanning is not available right now. Set the position up by hand." and left this pin on the old words, so
+  // TC-SC-024 was red on the branch tip. Re-pinned to the new sentence; it still separates the not-found path from the generic
+  // "Could not read the board right now" retry text, which is what makes it #392's control.
+  L.say(!!r3.m&&/not available right now\. Set the position up by hand/.test(r3.m),'TC-SC-024 a not-found rejection STILL gets the #392 deploy message - the standing control for #392: if the /not-found|unimplemented/ test in the catch is ever broken, this goes red (PART 6.3 row 7)',r3.m);
   const r4=await caseMsg(b3,'reject',{code:'functions/unauthenticated',message:'Sign in to read a board.'});
   L.say(!!r4.m&&/[Ss]ign in/.test(r4.m),'TC-SC-025 an unauthenticated rejection keyed on the CODE gets the sign-in message, not the generic retry text (R-BS-4, shipped #405 - this is its only guard, and the spec\'s own row quotes neither string, which is flag spec-gate-d6-tracker-R-BS-4)',r4.m);
   const r5=await caseMsg(b3,'reject',{code:'functions/internal',message:'The board reader is not answering right now. Try again in a moment.'});
