@@ -392,7 +392,7 @@ const TODAY=dstr(new Date());
 const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})();
 
 // ── MEASURED, #398 and #921 alike, on a FRESH store ───────────────────────────────────────────────────────
-// colW is min(vw-36, 420): the overlay's own 18px side padding, uncapped at every phone width in this set.
+// colW is min(vw-24, 420): the overlay's own 12px side padding (18 until formatting audit FMT-A-08, Kunal's pick 12 Nov), uncapped at every phone width in this set.
 // sh is the overlay's scrollHeight. It is the same 872 at 320 and 375 because the tile subtitles wrap at both,
 // 857 at 390 where they fit on one line, and equal to the viewport at 430 where the content is shorter than the
 // screen and there is nothing to scroll.
@@ -406,25 +406,27 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // under it. So the column shrinks 885 -> 745 at se and kunal730 (travel 317 -> 177 and 155 -> 15) and 870 -> 844 at 390, which now fits (travel
 // 0). Everything above the tiles is unchanged. The pre-AUD-H01 tables are in this file's history (git log -p).
 const M={
-  se      :{colW:284,sh:745,travel:177,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  se      :{colW:296,sh:745,travel:177,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
-  kunal730:{colW:339,sh:745,travel:15, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  kunal730:{colW:351,sh:745,travel:15, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
-  '390'   :{colW:354,sh:844,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
+  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
             tiles:{y:290,h:321},coach:{y:611,h:39},look:{y:662,h:44},devrow:{y:662},build:{y:714}},
-  '430'   :{colW:394,sh:932,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:102},
+  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:102},
             tiles:{y:292,h:326.5},coach:{y:618.5,h:39},look:{y:669.5,h:44},devrow:{y:669.5},build:{y:721.5}}};
 // Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
-// its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 18 + w + 16 at every width.
+// its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 12 + w + 16 at every width (18 + w + 16 before FMT-A-08).
+// RE-KEYED by formatting audit FMT-A-08 (Kunal's pick 12 Nov): the 12 gutter on a page with no board (was the overlay's 18), so each tile is 6
+// wider and the left column starts at 12; the right column's x and every y and height are unchanged (measured on trial d2b943f841ec).
 const T={
-  se      :{learn:{x:18,y:290,w:134,h:153.5},  puzzle:{x:168,y:290,w:134,h:153.5},
-            analyze:{x:18,y:455.5,w:134,h:153.5},play:{x:168,y:455.5,w:134,h:153.5}},
-  kunal730:{learn:{x:18,y:290,w:161.5,h:153.5},puzzle:{x:195.5,y:290,w:161.5,h:153.5},
-            analyze:{x:18,y:455.5,w:161.5,h:153.5},play:{x:195.5,y:455.5,w:161.5,h:153.5}},
-  '390'   :{learn:{x:18,y:290,w:169,h:154.5},  puzzle:{x:203,y:290,w:169,h:154.5},
-            analyze:{x:18,y:456.5,w:169,h:154.5},play:{x:203,y:456.5,w:169,h:154.5}},
-  '430'   :{learn:{x:18,y:292,w:189,h:157.3},puzzle:{x:223,y:292,w:189,h:157.3},
-            analyze:{x:18,y:461.3,w:189,h:157.3},play:{x:223,y:461.3,w:189,h:157.3}}};
+  se      :{learn:{x:12,y:290,w:140,h:153.5},  puzzle:{x:168,y:290,w:140,h:153.5},
+            analyze:{x:12,y:455.5,w:140,h:153.5},play:{x:168,y:455.5,w:140,h:153.5}},
+  kunal730:{learn:{x:12,y:290,w:167.5,h:153.5},puzzle:{x:195.5,y:290,w:167.5,h:153.5},
+            analyze:{x:12,y:455.5,w:167.5,h:153.5},play:{x:195.5,y:455.5,w:167.5,h:153.5}},
+  '390'   :{learn:{x:12,y:290,w:175,h:154.5},  puzzle:{x:203,y:290,w:175,h:154.5},
+            analyze:{x:12,y:456.5,w:175,h:154.5},play:{x:203,y:456.5,w:175,h:154.5}},
+  '430'   :{learn:{x:12,y:292,w:195,h:157.3},puzzle:{x:223,y:292,w:195,h:157.3},
+            analyze:{x:12,y:461.3,w:195,h:157.3},play:{x:223,y:461.3,w:195,h:157.3}}};
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
@@ -469,7 +471,7 @@ if(blk('A'))for(const geo of GEOS){
   L.say(!!h&&near(h.x,0)&&near(h.y,0)&&near(h.w,vw)&&near(h.h,vh),
     geo+': TC-HM-002 and it covers the whole viewport ('+(h&&h.w)+'x'+(h&&h.h)+' at 0,0), so nothing behind it is on screen even though it is all still in the DOM',h);
   L.say(!!h&&near(h.colW,W.colW),
-    geo+': TC-HM-003 the content column is '+W.colW+' wide - min(viewport - 36, 420), the overlay\'s own 18px side padding, uncapped at every phone width in this set',{measured:h&&h.colW,want:W.colW});
+    geo+': TC-HM-003 the content column is '+W.colW+' wide - min(viewport - 24, 420), the overlay\'s own 12px side padding (18 before FMT-A-08), uncapped at every phone width in this set',{measured:h&&h.colW,want:W.colW});
   L.say(!!h&&h.sh===W.sh&&h.travel===W.travel,
     geo+': TC-HM-004 the column is '+W.sh+'px of content in a '+vh+'px screen, so the overlay has '+W.travel+'px of travel. PINNED: a screen compared only against itself is true of a screen that has been wrong since before its first sample (#381)',{sh:h&&h.sh,travel:h&&h.travel,want:W});
 

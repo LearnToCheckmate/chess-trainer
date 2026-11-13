@@ -233,8 +233,11 @@ const GEOS=['se','kunal','kunal730','kunal761','390','430'];
    and R-BS-6 is AMBER with a recommendation to change nothing), and dropping the helper line's own 7px margin
    (+22px). Flag scan-row-collapses-on-second-tap carries all three with their numbers, because the row's final
    shape is one decision and not three separate nudges. */
-const START_REST={se:903,kunal:837,kunal730:873,kunal761:873,'390':856,'430':856};
-const SHEET_W   ={se:288,kunal:343,kunal730:343,kunal761:343,'390':358,'430':398};
+// RE-KEYED by formatting audit FMT-A-06/B-05/B-07 (Kunal's pick 12 Nov), measured on trial d2b943f841ec: the overlay's gutters are 12 (were 16), so the
+// sheet is 8 wider; its top row starts at TOP_Y 2 (was 8) and Start game is 44 high (was 48), so Start game rests 22 or 23 higher (6 at 390 and
+// 430). Was START_REST {se:903,kunal:837,kunal730:873,kunal761:873,'390':856,'430':856}, SHEET_W {se:288,kunal:343,kunal730:343,kunal761:343,'390':358,'430':398}.
+const START_REST={se:881,kunal:814,kunal730:850,kunal761:850,'390':850,'430':850};
+const SHEET_W   ={se:296,kunal:351,kunal730:351,kunal761:351,'390':366,'430':406};
 
 // CT_PS_BLOCKS=A,B  runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving eight one-line
 // breakages red means eight gate runs, and the "Play from here" block costs a full Stockfish analysis each time.
@@ -254,7 +257,7 @@ if(blk('A'))for(const geo of GEOS){
   await openSetup(b);
   const sh=await SHEET(b);
   L.say(!!sh,geo+': TC-PS-001 the Play tile on Home opens [data-ct="setup-sheet"] - the only data-ct this whole screen carries',sh);
-  L.say(!!sh&&Math.abs(sh.w-SHEET_W[geo])<0.6,geo+': TC-PS-002 the sheet is '+SHEET_W[geo]+' wide - the measured number, not "the same as last time". It is the viewport less the overlay\'s 16px gutters, capped at maxWidth 420',{measured:sh&&sh.w,want:SHEET_W[geo]});
+  L.say(!!sh&&Math.abs(sh.w-SHEET_W[geo])<0.6,geo+': TC-PS-002 the sheet is '+SHEET_W[geo]+' wide - the measured number, not "the same as last time". It is the viewport less the overlay\'s 12px gutters (16 before FMT-B-05), capped at maxWidth 420',{measured:sh&&sh.w,want:SHEET_W[geo]});
   L.say(!!sh&&sh.pos==='fixed'&&/auto|scroll/.test(sh.overflowY),
     geo+': TC-PS-003 the setup screen is a position:fixed overlay that scrolls ITSELF (overflowY '+(sh&&sh.overflowY)+'). This is what makes a sheet taller than the phone recoverable at all, and it is why L.over() - which skips fixed children of #root - cannot see this screen. Any Play-setup assertion built on L.over() is measuring the screen behind the overlay.',sh);
   // #548 item (84), jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28: TC-PS-004 USED TO ASSERT docScroll===0 AND
