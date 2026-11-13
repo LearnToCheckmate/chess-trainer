@@ -504,7 +504,8 @@ SP_A_CEIL=1      # gates/verify-log.sh:128. Target 0. Needs that file's own arte
                  # rather than taken here under a suite deadline. Found by running the controls, not by
                  # reading them [self-caught, #513].
 SP_B_CEIL=0      # the shape that shipped a wrong push-gate verdict. There is no legitimate instance of it.
-SP_TOTAL_CEIL=15   # #527: 17 -> 15 in the commit that removed gates/records-gate.sh:94 and gates/buildnum-selftest.sh:419.
+SP_TOTAL_CEIL=12   # #550 (jobs/gatemanifest-selftest-is-red-on-main-23-sigpipe-sites-against-a-ceiling-of-15-2026-11-11): 15 -> 12 in the commit that made eleven `grep | head -1` sites in verify-log.sh (10) and verify-log-selftest.sh (1) end in `| sed -n 1p`, which reads all its input and so cannot orphan its writer. The tree read 23 against 15; it reads 12.
+                   # WAS: #527: 17 -> 15 in the commit that removed gates/records-gate.sh:94 and gates/buildnum-selftest.sh:419.
                    # RE-RATCHETED 9 -> 17 BY THE INTEGRATION RUN (#513), WITH THE REASON, which is what this
                    # audit's own refusal message demands ("Fix the new site, or raise SP_TOTAL_CEIL in this
                    # file WITH the reason"). READ WHY BEFORE READING IT AS A WEAKENING, because the number

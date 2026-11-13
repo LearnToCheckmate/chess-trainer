@@ -166,7 +166,7 @@ if [ "${1:-}" = "--citations-selftest" ]; then
     printf '%s\n' "$T"
   }
   st_arm4() { # st_arm4 <root> -> the one-line (4) summary
-    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(4\) ' | head -1 )
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(4\) ' | sed -n 1p )
   }
   st_verdict() { # st_verdict <root> -> CITATIONS verdict line plus exit code
     # THE PATTERN NAMES THE TWO PROSE VERDICTS AND NOT THE RATCHET LINE [#544, item (5)]. It was `^CITATIONS `,
@@ -365,10 +365,10 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # recorded against this file ("the selftest still has no case that reads the REAL register, so the ceiling
   # can go stale again invisibly"). It asserts only NON-VACUITY, never a live figure, so it cannot go stale.
   st_arm5() { # st_arm5 <root> -> the one-line (5) summary
-    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(5\) ' | head -1 )
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E '^  \(5\) ' | sed -n 1p )
   }
   st_arm5line() { # st_arm5line <root> <ERE> -> the first matching arm-5 detail line
-    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E "$2" | head -1 )
+    ( cd "$1" && bash gates/verify-log.sh --citations 2>&1 | grep -E "$2" | sed -n 1p )
   }
   st_reg() { # st_reg <root> -> a MINIMAL VALID register: one table with a story column, one row, one story
     printf '### US-X-01 a story\n\ntext\n' > "$1/claude/stories/USER-STORIES.md"
@@ -470,7 +470,7 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   # C16 THE REAL REGISTER, and the ONLY control here that touches it. It asserts NON-VACUITY and nothing else
   # - no row count, no story count, no ceiling - so it can never go stale, while still failing on the one
   # thing a fabricated tree can never show: that this arm actually reads the register it was written for.
-  A5REAL="$(bash "$SELF" --citations 2>&1 | grep -E '^  \(5\) [0-9]' | head -1)"
+  A5REAL="$(bash "$SELF" --citations 2>&1 | grep -E '^  \(5\) [0-9]' | sed -n 1p)"
   A5RR="$(printf '%s' "$A5REAL" | sed -n 's/^  (5) \([0-9]*\) case row(s).*/\1/p')"
   A5RS="$(printf '%s' "$A5REAL" | sed -n 's/.*table(s), \([0-9]*\) story heading(s).*/\1/p')"
   st_ck "C16 the real register is read: case rows > 0" "yes" "$( [ "${A5RR:-0}" -gt 0 ] 2>/dev/null && echo yes || echo "no [$A5REAL]" )"
@@ -721,7 +721,7 @@ EOF
     while IFS= read -r line; do
       case "$line" in
         '## '*)
-          SECLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | head -1 || true)"
+          SECLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | sed -n 1p || true)"
           [ -n "$SECLOG" ] && SECLOG="claude/agents/gatelogs/${SECLOG#gates/logs/}"
           continue;;
         '| TC-'*) ;;
@@ -733,7 +733,7 @@ EOF
       # "publishes a result" = the last cell carries a PASS/FAIL figure, not a plan or a dash.
       case "$RESULT" in *PASS*|*FAIL*|*pass*|*fail*) ;; *) continue;; esac
       # a row may cite its own log, which wins over the section's
-      ROWLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | head -1 || true)"
+      ROWLOG="$(printf '%s' "$line" | grep -oE 'gates/logs/[A-Za-z0-9_.-]+\.log' | sed -n 1p || true)"
       [ -n "$ROWLOG" ] && ROWLOG="claude/agents/gatelogs/${ROWLOG#gates/logs/}"
       # THE ROW'S OWN BUILD NUMBER OUTRANKS ITS SECTION HEADING, and that is not a nicety: MEASURED on main
       # today, 14 rows between TC-R20 and TC-R44 sit physically under the "Cross-app invariants - executed
@@ -742,7 +742,7 @@ EOF
       # about the wrong log and would have sent a reader to repair rows that are merely MISFILED. So: if the
       # published cell names #NNN and claude/agents/gatelogs/NNN-all.log exists, that log is the one the row is
       # checked against, and the disagreement with the section is counted and reported in its own right.
-      ROWB="$(printf '%s' "$RESULT" | grep -oE '#[0-9]{3,4}' | head -1 | tr -d '#' || true)"
+      ROWB="$(printf '%s' "$RESULT" | grep -oE '#[0-9]{3,4}' | sed -n 1p | tr -d '#' || true)"
       ROWBLOG=""
       if [ -n "$ROWB" ] && [ -f "claude/agents/gatelogs/$ROWB-all.log" ]; then
         ROWBLOG="claude/agents/gatelogs/$ROWB-all.log"
@@ -1426,7 +1426,7 @@ if ! [[ "$LAST" =~ ^GATES\ GREEN\ (#[0-9]{3,4})$ ]]; then
   echo "REFUSED: $LOG does not end with a clean 'GATES GREEN #NNN'"; echo "  last line: $LAST"; exit 1
 fi
 FOOT="${BASH_REMATCH[1]}"
-HEAD_B="$(head -1 "$LOG" | grep -o '#[0-9]\{3,4\}' | head -1 || true)"
+HEAD_B="$(head -1 "$LOG" | grep -o '#[0-9]\{3,4\}' | sed -n 1p || true)"
 if [ -n "$HEAD_B" ] && [ "$HEAD_B" != "$FOOT" ]; then
   echo "REFUSED: $LOG is headed $HEAD_B but footed $FOOT - it gated a different build from the one it is named for"; exit 1
 fi
@@ -1760,7 +1760,7 @@ if [ "${HELD_HAVE:-0}" != "1" ]; then
 fi
 if [ "${HELD_HAVE:-0}" = "1" ]; then
   HELDCHECK="ran"
-  LOGMD5H="$(head -1 "$LOG" | grep -oi 'md5 [0-9a-f]\{12,32\}' | head -1 | awk '{print $2}' | tr 'A-F' 'a-f' || true)"
+  LOGMD5H="$(head -1 "$LOG" | grep -oi 'md5 [0-9a-f]\{12,32\}' | sed -n 1p | awk '{print $2}' | tr 'A-F' 'a-f' || true)"
   LOGSHAH="$(grep -oi '^ref: HEAD [0-9a-f]\{7,40\}' "$LOG" | tail -1 | awk '{print $3}' | tr 'A-F' 'a-f' || true)"
   HELDROW=""; MALFORMED=0
   # TWO GUARDS FOUND BY RE-READING THIS LOOP ADVERSARIALLY BEFORE PUSHING, and they fail in opposite directions.
@@ -2352,7 +2352,7 @@ if [ "$ONMAIN" -eq 1 ]; then
 fi
 # (8) --this-bundle: does this green describe the bundle that is on disk RIGHT NOW? The push-time half.
 if [ "$THISBUNDLE" -eq 1 ]; then
-  LOGMD5="$(head -1 "$LOG" | grep -o 'md5 [0-9a-f]\{12,32\}' | head -1 | awk '{print $2}' || true)"
+  LOGMD5="$(head -1 "$LOG" | grep -o 'md5 [0-9a-f]\{12,32\}' | sed -n 1p | awk '{print $2}' || true)"
   if [ -z "$LOGMD5" ]; then
     echo "REFUSED (--this-bundle): $LOG has no 'md5 <hex>' on its header line, so the bundle it gated is unknown."; exit 1
   fi

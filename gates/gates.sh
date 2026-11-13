@@ -154,6 +154,30 @@ assert_falls(){ # <register.tsv> <log>
        END{ for(k in pin){ if(!(k in seen)) printf "ABSENT %s %d\n",k,pin[k]; else if(got[k]+0<pin[k]) printf "FELL %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
 }
 
+# records_door <records-gate.sh> <base-sha> <head-sha> <detail-file>: THE ONE DOOR, CALLED FROM THE FULL-SUITE PATH [#550;
+# jobs/build-one-door-for-every-non-gate-check-2026-10-10, theFIX part (2b), "the full-suite path calling this door after
+# gates/gates.sh finishes"]. Until this, gates/records-gate.sh ran only inside gates/fastgate.sh, so a commit that paid the full
+# suite was checked by neither its records ratchet nor its --harnesses case-count ratchet (held-selftest, verify-log-selftest,
+# buildnum-selftest): a case deleted from one of those harnesses in a full-suite commit was caught by nothing
+# (jobs/a-deleted-assertion-inside-a-gate-is-invisible-in-a-green-run-2026-10-10, instanceFromThePushChecksTier). Prints ONE
+# line, which the caller tees into the log, and returns 0 only when BOTH calls exit 0. Every other exit - 1 a refusal, 2 the
+# door could not run, anything else - is a refusal here too, because a door that could not run is not a clearance (the rule
+# held.sh's exit 2 states). The door's own output goes to <detail-file>, NOT into the log: a line of it beginning 'PASS' would
+# break verify-log.sh's footer-equals-^PASS self-consistency check. An empty base (origin/main unreadable) is NOT CHECKED and
+# refuses. Defined above --selftest so the selftest drives this function and not a copy.
+# NOT DONE HERE, and said: part (3), the door's ratchets turned into binaries, and part (4)'s first population
+# (verify-log --citations-selftest, gates/audit/cited-not-run.sh, gates/audit/verify-patch-set.sh).
+records_door(){
+  local rg="$1" base="$2" head="$3" out="$4" r1 r2
+  if [ -z "$base" ] || [ -z "$head" ]; then echo "RECORDS DOOR NOT CHECKED - no base or head sha (origin/main unreadable?), so this run is not a push gate"; return 2; fi
+  if [ ! -f "$rg" ]; then echo "RECORDS DOOR NOT CHECKED - $rg is absent, so this run is not a push gate"; return 2; fi
+  { echo "=== records door: $rg $base $head ==="; bash "$rg" "$base" "$head"; } > "$out" 2>&1; r1=$?
+  { echo "=== records door: $rg --harnesses ==="; bash "$rg" --harnesses; } >> "$out" 2>&1; r2=$?
+  if [ "$r1" = 0 ] && [ "$r2" = 0 ]; then
+    echo "records door: OK - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit 0, --harnesses exit 0 (detail: $out)"; return 0; fi
+  echo "RECORDS DOOR REFUSED - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit $r1, --harnesses exit $r2, so this run is not a push gate (detail: $out)"; return 1
+}
+
 # bundle_stamp <bundle.js>: the ONE "#NNN - YYYY-MM-DD HH:MM ET" build stamp a bundle carries, or nothing if it carries
 # none or more than one. Defined above --selftest so the selftest drives this function and not a copy [#545 item (98)].
 # #547 item (1): a stamp may end ' (src <12 hex>)' before its closing quote, since gates/build.sh emits the source md5.
@@ -1575,7 +1599,23 @@ M16PY
   st A5-pass-plus-fail-is-what-is-counted "$(assert_falls "$ST_T/ac.tsv" "$ST_T/ac5.log")" "FELL BETA 3 2"
   : > "$ST_T/ac-empty.tsv"
   st A7-an-EMPTY-register-pins-nothing-and-does-not-read-the-log-as-pins "$(assert_falls "$ST_T/ac-empty.tsv" "$ST_T/ac2.log" | wc -l | tr -d ' ')" 0
-  st A6-the-full-suite-refuses-the-green-line-on-a-fall "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] && \[ -z "\${ACFALL:-}" \]; then echo "GATES GREEN' "$SF")" 1
+  st A6-the-full-suite-refuses-the-green-line-on-a-fall "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] && \[ -z "\${ACFALL:-}" \] && .*then echo "GATES GREEN' "$SF")" 1
+  # RD1-RD9 DRIVE records_door [#550; jobs/build-one-door-for-every-non-gate-check-2026-10-10 part (2b)] over stub doors in a
+  # scratch dir: the stub's two calls (base head, then --harnesses) take their exits from RD_E1 / RD_E2, and it prints a PASS
+  # line so RD8 can show the door's output never reaches the line the caller tees into the log.
+  printf '%s\n' '#!/usr/bin/env bash' 'echo "PASS stub line $*"' 'if [ "${1:-}" = --harnesses ]; then exit "${RD_E2:-0}"; fi; exit "${RD_E1:-0}"' > "$ST_T/rg.sh"
+  rd(){ RD_E1="$1" RD_E2="$2" records_door "$ST_T/rg.sh" "${3-aaaa}" "${4-bbbb}" "$ST_T/rd.out" >/dev/null; echo $?; }
+  st RD1-both-calls-exit-0-is-OK "$(rd 0 0)" 0
+  st RD2-a-records-refusal-refuses "$(rd 1 0)" 1
+  st RD3-a-harness-fall-refuses "$(rd 0 1)" 1
+  st RD4-a-door-that-could-not-run-exit-2-is-not-a-clearance "$(rd 2 0)" 1
+  st RD5-nor-an-unreadable-harness-count-exit-2 "$(rd 0 2)" 1
+  st RD6-an-empty-base-is-NOT-CHECKED-and-refuses "$(rd 0 0 '')" 2
+  st RD7-an-absent-door-is-NOT-CHECKED-and-refuses "$(RD_E1=0 RD_E2=0 records_door "$ST_T/no-such-rg.sh" aaaa bbbb "$ST_T/rd.out" >/dev/null; echo $?)" 2
+  st RD8-the-line-for-the-log-carries-no-PASS-line-of-the-door "$(RD_E1=0 RD_E2=0 records_door "$ST_T/rg.sh" aaaa bbbb "$ST_T/rd.out" | grep -c '^PASS')" 0
+  st RD8b-and-the-door-output-is-kept-in-the-detail-file "$(grep -c '^PASS stub line' "$ST_T/rd.out")" 2
+  st RD9-the-full-suite-withholds-the-green-line-on-a-refusal "$(grep -c '^if \[ \$red -eq 0 \] && .*\[ -z "\${RDFAIL:-}" \]; then echo "GATES GREEN' "$SF")" 1
+  st RD9b-and-a-non-zero-door-sets-RDFAIL "$(grep -c '^RDFAIL=""; RDLINE="\$(records_door "\$G/records-gate.sh" .*|| RDFAIL=1$' "$SF")" 1
   # #545 item (98): the preamble's stamp reader, both ways, plus the ambiguous case.
   printf 'x="#530 - 2026-10-21 20:50 ET";y=1\n' > "$ST_T/bs1.js"; printf 'no stamp here\n' > "$ST_T/bs2.js"
   printf 'a="#530 - 2026-10-21 20:50 ET";b="#531 - 2026-10-22 09:00 ET"\n' > "$ST_T/bs3.js"
@@ -3214,4 +3254,10 @@ if [ -f "$ACREG" ]; then
 else
   echo "assertion counts: NOT CHECKED - gates/assertion-counts.tsv is absent" | tee -a "$ALL"
 fi
-if [ $red -eq 0 ] && [ "${HR_V:-}" != orphaned ] && [ -z "${ACFALL:-}" ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi
+# #550, jobs/build-one-door-for-every-non-gate-check-2026-10-10 part (2b): the one door, on the full-suite path. See records_door
+# at the top of this file. Base is the merge-base with origin/main as read above, so the door judges exactly the commits this run
+# would push; RDFAIL withholds the verdict below exactly as ACFALL does.
+RDBASE=""; [ -n "$MAINSHA" ] && RDBASE="$($GIT merge-base "$MAINSHA" "$HEADSHA" 2>/dev/null || true)"
+RDFAIL=""; RDLINE="$(records_door "$G/records-gate.sh" "$RDBASE" "$HEADSHA" "$G/logs/$STEM-records-door.log")" || RDFAIL=1
+echo "$RDLINE" | tee -a "$ALL"
+if [ $red -eq 0 ] && [ "${HR_V:-}" != orphaned ] && [ -z "${ACFALL:-}" ] && [ -z "${RDFAIL:-}" ]; then echo "GATES GREEN $N" | tee -a "$ALL"; exit 0; else echo "GATES RED $N" | tee -a "$ALL"; exit 1; fi

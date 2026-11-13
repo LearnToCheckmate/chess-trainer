@@ -16,6 +16,8 @@
 # WHAT THIS CHANGE IS, AND MORE IMPORTANTLY WHAT IT IS NOT. It is part (1) of four, and NOTHING ELSE.
 #   DONE HERE:     the block has a file, a name, an exit code, a usage line, its own --selftest, and one caller.
 #   NOT DONE HERE: part (2)'s second half - the FULL-SUITE path calling this after gates/gates.sh finishes.
+#                  [DONE SINCE, #550: gates/gates.sh's records_door calls this door, both `<merge-base> <HEAD>` and
+#                  `--harnesses`, after the assertion-count ratchet, and withholds the green verdict on any exit but 0.]
 #   NOT DONE HERE: part (3) - "CONVERT ITS RATCHETS TO BINARIES so a standing breach blocks instead of being
 #                  grandfathered". That changes what the push bar REFUSES. It is the riskiest clause in that job,
 #                  this lane holds no pen and cannot run the 83-minute suite to see what it breaks, and the job's
