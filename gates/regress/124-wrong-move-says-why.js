@@ -15,7 +15,7 @@
 // job's two benchmark positions, each card's stored move set to another legal move so cxb5 and Nxd7 are wrong there.
 // CONTROL-RECORD: c539ae4 2026-11-11 total=21 red=5 scope=trial:8b141ccb9067 how=#550 item (24): the tree before say-why - TC-R200c at both geometries and the three TC-R200d lines red; A, B and E green
 // CONTROL-RECORD: c539ae4 2026-11-11 total=8 red=5 scope=env:CT_SRC=c124-null how=wrongWhy and replyWhy both returning null - TC-R200a A1 A3 and TC-R200b B1 B2 B3 red
-// CONTROL-RECORD: HEAD 2026-11-13 total=12 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-03: the branch tip's chess.jsx (before the gist and the baseline) - TC-R209e B5 and B7 red; B6, B8 and every A/B line green
+// CONTROL-RECORD: 66bcd7f 2026-11-13 total=12 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-03: the branch tip's chess.jsx (before the gist and the baseline) - TC-R209e B5 and B7 red; B6, B8 and every A/B line green
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('124-wrong-move-says-why: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-B); bundle '+(process.env.CT_APP||'app.js')+' (blocks C-E)');
