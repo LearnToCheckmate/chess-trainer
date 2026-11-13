@@ -125,3 +125,7 @@ L.run(async()=>{
 // SELECTOR-OPENED: gstat-blun control=f4d2364 same pre-split control: the row's Blunder count read through this hook went red
 // SELECTOR-OPENED: gstat-bestgreat control=f4d2364 same pre-split control: TC-R187c's combined count, read through this hook, went red
 // SELECTOR-OPENED: game-badge-col reading=presence round 4: pillInCol needs the column, and TC-R187a and b require the pill in it
+// SELECTOR-OPENED: game-color reading=presence #550 lead, opened by reading: TC-R187f requires sq===g.col and sqW>4 on every card, so a missing hook reads sq null and reds
+// SELECTOR-OPENED: game-date reading=presence #550 lead, opened by reading: TC-R187h requires each card's date to equal its own and dateIn, so a missing hook reads null and reds
+// SELECTOR-OPENED: game-go reading=presence #550 lead, opened by reading: TC-R187j requires c.go true on every card, so a missing chevron hook reds
+// SELECTOR-OPENED: game-notmine reading=presence #550 lead, opened by reading: TC-R187i requires nm true on the two not-mine cards, so a missing hook reds on them

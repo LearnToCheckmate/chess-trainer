@@ -1220,3 +1220,4 @@ L.run(async()=>{
 // SELECTOR-OPENED: gallery-blurb-more reading=presence round 4: TC-GL-007 needs the fold reachable
 // SELECTOR-OPENED: rec-cap-back reading=presence round 4: M11 needs the 44px control
 // SELECTOR-OPENED: state-card reading=precondition round 4: Q needs four state cards
+// SELECTOR-OPENED: menu-foot reading=nav #550 lead, opened by reading: the click opens the fold and the next tapText(/^Layout readout$/) targets a row behind it, so a missing hook leaves it unreachable and the tap fails red

@@ -119,3 +119,4 @@ L.run(async()=>{
     L.say(b.errs.length===0,tc+' zero app errors',b.errs.slice(0,3));
     await b.close();}
 },'148-player-words');
+// SELECTOR-OPENED: menu-foot reading=precondition #550 lead, opened by reading: the fold opens only through this hook, and TC-R224c's 'Evaluation graph' line sits behind it, so a missing hook leaves the fold shut and that line reds

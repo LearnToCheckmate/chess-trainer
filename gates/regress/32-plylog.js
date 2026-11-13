@@ -104,3 +104,4 @@ L.run(async()=>{
     await b.close();
   }
 },'PLYLOG');
+// SELECTOR-OPENED: menu-foot reading=nav #550 lead, opened by reading: toggle() opens the fold then taps /^Layout readout$/ behind it, so a missing hook leaves the row unreachable and the toggle reds

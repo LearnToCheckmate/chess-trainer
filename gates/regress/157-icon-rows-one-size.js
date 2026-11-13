@@ -126,3 +126,5 @@ L.run(async()=>{
   }
   L.done();
 });
+// SELECTOR-OPENED: drill-row reading=presence #550 lead, opened by reading: enter() waits for it and TC-IR-01/02/04 require all members found, so a missing hook reds the row
+// SELECTOR-OPENED: drill-next reading=presence #550 lead, opened by reading: TC-IR-01 requires every member found by its selector, so a missing Next hook reds
