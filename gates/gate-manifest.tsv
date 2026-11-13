@@ -158,3 +158,4 @@
 147-speed-with-his-data.js	required	550	2026-11-13	build__1794388896663	gates/regress/147-speed-with-his-data.js - REVIEW, THE DRILL AND HOME STAY FAST WITH HIS	#550 speed: Review, the drill and Home fast with his data (US-R155)
 145-accounts-follow-across-devices.js	required	550	2026-11-13	build__1794388896663	gates/regress/145-accounts-follow-across-devices.js - TWO DEVICES ON ONE ACCOUNT AGREE, 	#550 accounts across devices (US-R153) and errors that say what happened (US-R154)
 146-errors-say-what-happened.js	required	550	2026-11-13	build__1794388896663	gates/regress/146-errors-say-what-happened.js - WHEN SOMETHING FAILS OR THE NETWORK IS G	#550 accounts across devices (US-R153) and errors that say what happened (US-R154)
+143-no-movement.js	required	550	2026-11-13	build__1794388896663	gates/regress/143-no-movement.js - NOTHING MOVES THAT THE USER DID NOT MOVE. US-R151 / T	#550 movement: nothing moves on its own (US-R151)
