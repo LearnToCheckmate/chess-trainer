@@ -127,7 +127,7 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OB
 # prove nothing. The archived copy under claude/agents/gatelogs/ is the artefact a later reader can actually
 # open, so a gates/logs/<N>-all.log citation is resolved to claude/agents/gatelogs/<N>-all.log. A row citing
 # a log that exists in NEITHER place is a dead citation, which is the thing the job is about.
-# IT IS NOT WIRED INTO gates/gates.sh, AND THE OMISSION IS DELIBERATE AND RECORDED [R18, R45]. The job asks
+# IT IS NOT WIRED INTO gates/gates.sh, AND THE OMISSION IS DELIBERATE AND RECORDED [R18, R45]. [#550 round 5: HISTORY NOW - it is run by the door, gates/door-checks.sh's fifth check, reached from gates.sh's records_door, once the register was repaired to exit 0; this paragraph is kept as written.] The job asks
 # for it to run inside gates.sh on every build. Two reasons it does not yet: this burst agent holds the
 # artefact lock on THIS FILE ONLY [R44] and may not write gates.sh; and measured on main today this mode is
 # RED, so wiring it in unchanged would refuse every build until the register is repaired. Wire it in only
@@ -672,6 +672,15 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
     "$( ( cd "$R23" && bash gates/verify-log.sh --citations >"$R23/c23.txt" 2>&1 ); [ $? -eq 1 ] && grep -q '^CITATIONS RATCHET: RED' "$R23/c23.txt" && echo -n yes || echo -n no; echo -n ' '; grep -qF "SYMBOL ABSENT: 'goneSym' does not occur in gates/regress/11-sym.js (cited at ${S23}:4)" "$R23/c23.txt" && echo yes || echo no)"
   rm -rf "$R23"
 
+  # ── C24: THE DOOR LINE [#550]. gates/door-checks.sh reads `citations door: <n> pass / <n> fail` and refuses on fail > 0 or a
+  #     non-zero exit, so the line must agree with the verdict in both directions. A tree whose one story file names itself (resolves)
+  #     and one file that was never written (dead): exit 1 and fail 1. The dead name removed: exit 0 and fail 0, the pass count kept.
+  st_door() { ( cd "$1" && bash gates/verify-log.sh --citations >"$1/c24.txt" 2>&1; echo "exit=$? $(grep -oE '^citations door: [0-9]+ pass / [0-9]+ fail' "$1/c24.txt" | tail -1)" ); }
+  R24="$(st_tree)"; printf 'see claude/stories/A.md and claude/stories/NEVER-WRITTEN.md\n' > "$R24/claude/stories/A.md"
+  st_ck "C24 a dead path: exit 1 and the door line counts it as the one fail" "exit=1 citations door: 1 pass / 1 fail" "$(st_door "$R24")"
+  printf 'see claude/stories/A.md\n' > "$R24/claude/stories/A.md"
+  st_ck "C24b the dead path removed: exit 0 and 0 fail, the resolved one still counted" "exit=0 citations door: 1 pass / 0 fail" "$(st_door "$R24")"
+  rm -rf "$R24"
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -1347,6 +1356,13 @@ EOF
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
   echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0} prefixunregistered=${A7UNREG:-0} symbolabsent=${A9BAD:-0}"
+  # THE DOOR LINE [#550]: gates/door-checks.sh reads one fixed "<n> pass / <n> fail" line from every check it runs, and the three
+  # prose verdicts below carry none. PASS is the paths that resolved (1) plus the published case ids their log carries (2), i.e. a
+  # count of CITATIONS, which may fall legitimately when a citation is removed - so door-checks.sh does NOT pin it, as it does not
+  # pin cited-not-run.sh's report. FAIL is the sum of exactly the counters the verdict below refuses on, so it is 0 iff this mode
+  # exits 0. NOT CHECKED rows are in neither: they are not a pass, and they do not refuse (the OK-with-NOT-CHECKED line says so).
+  A0FAIL=$(( A1BAD + A2BAD + A4DEAD + A4EOF + A4RISE + A5BAD + ${A6BADN:-0} + ${A3MBAD:-0} + ${A7DUP:-0} + ${A7MISS:-0} + ${A7UNREG:-0} + ${A5DANG:-0} + ${A9BAD:-0} ))
+  echo "citations door: $(( A1OK + A2OK )) pass / $A0FAIL fail ($A2NC row(s) NOT CHECKED, counted in neither)"
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"

@@ -18,21 +18,28 @@
 #        fixed door line, "cited-not-run report: <cited> pass / <unaccounted+weak-over+stale> fail" (its selftest C36-C39).
 #        Measured then: exit 0, ACCOUNTED-GREEN 48 of 48, "cited-not-run report: 203 pass / 0 fail", 31s alone. Its pass
 #        figure is a count of CITED FILES, not of cases, so it is deliberately NOT pinned - it may fall legitimately.
-#   OUT  gates/verify-log.sh --citations (the register check; jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30)
-#        exit 1 on this tree: CITATIONS RATCHET RED. Round 4 (#550) took widthrise 22 -> 0 (the 22 rows were SHORT, 4 or 5
-#        cells of 6, not unescaped pipes) and it is still red on deadpath=17 badcaseid=16 danglingstory=1, all historic and none
-#        mechanical (cited files absent from all history, results whose id is absent from the cited log, US-R40 undefined).
+#   IN   gates/verify-log.sh --citations (the register check; jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30)
+#        IN SINCE #550 ROUND 5. It was exit 1 through round 4 (widthrise 22 -> 0 there) on deadpath=17 badcaseid=16 misfiled=11
+#        notchecked=2 danglingstory=1 gatestoryundefined=2. Round 5 decided each item rather than editing mechanically: two log
+#        citations repointed to the log that holds the figure (434b, 449), eight never-in-repo paths named in its ALLOW with a
+#        reason and printed every run; one unsupported id cited at the log that carries it (TC-R09c, 489-all.log), fifteen whose
+#        id no archived log carries marked NOT SUPPORTED with the figure moved verbatim to the measured cell; US-R40 re-pointed to
+#        US-R03; arm (8) taught the US-RF register. Measured then: exit 0, "CITATIONS OK with 1 row(s) NOT CHECKED" (TC-SUITE-013,
+#        kept: its result is a selftest exit code), "citations door: 310 pass / 0 fail", ~14s alone. It gained that fixed door line
+#        for this file (its --citations-selftest C24/C24b). Its pass figure counts CITATIONS, not cases, so it is NOT pinned -
+#        the same reason as the report row.
 #   OUT  gates/audit/verify-patch-set.sh <payload-dir> (the live mode): its input is a set of parked tracker payloads, which a
 #        tree does not carry, so the door has nothing to give it. Only its --selftest can run here.
-# The IN checks run in parallel (three when this was measured; the report joined at round 4). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
+# The IN checks run in parallel (three when this was measured; the report joined at round 4, --citations at round 5). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
 # run one after another (34 + 17 + 6), each check slowing to 55s/33s/17s - because the checks are CPU-bound already.
 #
 # THE CASE COUNTS ARE PINNED [#550 round 4, closing the gap this paragraph used to name]. Beyond a non-zero exit, a FAIL and a
 # missing or zero pass count, a check that LOSES some of its cases and still passes the rest is now refused: each selftest's pass
 # count is a `door:<name>` row in gates/harness-case-counts.tsv, the register --harnesses already ratchets, and a run reading FEWER
 # than the pin refuses. A rise is reported and is committed by editing that row's pin. gates/harness-counts.sh skips `door:` rows
-# (this file runs them) but still holds them to its never-delete rule against HEAD. The REPORT row is not pinned: its pass figure
-# counts cited files, which may fall legitimately; DC16 holds every --selftest row in the live list to having a pin.
+# (this file runs them) but still holds them to its never-delete rule against HEAD. The REPORT row and the CITATIONS row are not
+# pinned: their pass figures count cited files and citations, which may fall legitimately; DC16 holds every --selftest row in the
+# live list to having a pin, and DC16c holds the citations row to having none.
 # CT_DOOR_PINS overrides the register (the selftest uses it); a register that cannot be read is exit 2, never a clearance.
 #
 # EXIT: 0 every check exited 0 with a readable count line, pass > 0 and fail 0; 1 any check refused; 2 a check could not run
@@ -44,7 +51,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(dirname "$HERE")"
 CHECKS='citations-selftest|gates/verify-log.sh|--citations-selftest|citations-selftest: [0-9]+ pass, [0-9]+ fail
 cited-not-run-selftest|gates/audit/cited-not-run.sh|--selftest|cited-not-run selftest: [0-9]+ pass / [0-9]+ fail
 verify-patch-set-selftest|gates/audit/verify-patch-set.sh|--selftest|SELFTEST [0-9]+ pass / [0-9]+ fail
-cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ pass / [0-9]+ fail'
+cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ pass / [0-9]+ fail
+citations|gates/verify-log.sh|--citations|citations door: [0-9]+ pass / [0-9]+ fail'
 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
@@ -106,12 +114,12 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail")"
   printf '#!/usr/bin/env bash\nsleep 2; echo "s: 1 pass, 0 fail"\n' > "$T/gates/s1.sh"; cp "$T/gates/s1.sh" "$T/gates/s2.sh"
   local s0; s0=$(date +%s); rr 's1|gates/s1.sh|x|s: [0-9]+ pass, [0-9]+ fail
 s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks run in parallel (2 x 2s in under 4s)" yes "$( [ $(( $(date +%s)-s0 )) -lt 4 ] && echo yes || echo no)"
-  # DC10: the live list names exactly the four measured-green checks, and not verify-log --citations, still red at #550 round 4
-  chk "DC10 the live list has four rows" 4 "$(printf '%s\n' "$CHECKS" | grep -c .)"
-  chk "DC10b and not verify-log --citations, red on deadpath/badcaseid/danglingstory" 0 "$(printf '%s\n' "$CHECKS" | grep -cE '\|--citations\|')"
+  # DC10: the live list names exactly the five measured-green checks; verify-log --citations joined at #550 round 5, once green
+  chk "DC10 the live list has five rows" 5 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  chk "DC10b and verify-log --citations is one of them, by that argument (round 5: CITATIONS OK, 0 fail)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^citations\|gates/verify-log.sh\|--citations\|')"
   chk "DC10c the cited-not-run REPORT is in, with no argument (round 4: accounted-green 48 of 48)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^cited-not-run-report\|gates/audit/cited-not-run.sh\|\|')"
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
-  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"
+  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
   # DC12-DC15: the case-count pin (#550 round 4). One check, pinned at 5.
   mk a "a: 5 pass, 0 fail"; printf 'door:a\tgates/a.sh\t5\tn\n' > "$T/pins"
@@ -126,6 +134,7 @@ s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks ru
   local miss=0 nm sc ar pt; while IFS='|' read -r nm sc ar pt; do [ "$ar" = --selftest ] || continue; [ -n "$(pin_of "$HERE/harness-case-counts.tsv" "$nm")" ] || miss=$((miss+1)); done <<< "$CHECKS"
   chk "DC16 every live --selftest check is pinned in gates/harness-case-counts.tsv" 0 "$miss"
   chk "DC16b and the report row is not (its count is cited files, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" cited-not-run-report)"
+  chk "DC16c nor the citations row (its count is citations, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" citations)"
   rm -rf "$T"; echo "door-checks self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 
