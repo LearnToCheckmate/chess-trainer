@@ -51,11 +51,17 @@
 set -uo pipefail
 
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$(dirname "$G")")"
-[ -d "$ROOT/.git" ] || { echo "selector-provenance: no .git at $ROOT - this tool reads committed history and cannot run on an export"; exit 3; }
+# -e, not -d (#550): in a git WORKTREE .git is a FILE (a "gitdir:" pointer), so the -d test refused every worktree run - the
+# job's own outcome.sweepOnHead recorded the refusal. What this line exists to refuse is an EXPORT with no history, so after
+# the cheap path test it asks git itself.
+[ -e "$ROOT/.git" ] || { echo "selector-provenance: no .git at $ROOT - this tool reads committed history and cannot run on an export"; exit 3; }
 cd "$ROOT" || exit 3
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "selector-provenance: $ROOT/.git is not a usable repository - this tool reads committed history"; exit 3; }
 
 # A SHALLOW CLONE CANNOT ANSWER THIS QUESTION AND MUST SAY SO RATHER THAN RETURN A SMALL NUMBER.
-if [ -f .git/shallow ]; then
+# Asked of git, not of the path .git/shallow (#550): in a worktree that path does not exist - the shallow file lives in the
+# common git dir - so the path test would ANSWER a shallow worktree instead of refusing it. Anything but "false" refuses.
+if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" != "false" ]; then
   echo "selector-provenance: REFUSING - this is a SHALLOW clone. Every selector would read as"
   echo "  'introduced' in the oldest commit present, so every pair would read SAME-BUILD or UNKNOWN."
   echo "  Re-run in a full clone. (prompts/test-authoring step 4 prescribes --depth 1; that is the"
@@ -141,6 +147,13 @@ if [ "${1:-}" = "--selftest" ]; then
   mkdir -p "$SH/gates/audit"; cp "$SELF" "$SH/gates/audit/"
   ( cd "$SH" && bash gates/audit/selector-provenance.sh >/dev/null 2>&1 )
   ck "C5 a shallow clone is REFUSED, not answered" "$?" "3"
+
+  # C6, A GIT WORKTREE IS ANSWERED, NOT REFUSED (#550). Its .git is a FILE (a gitdir: pointer), and the first version's
+  # `[ -d .git ]` refused every worktree run with exit 3 - recorded on this tool's own job as "run from the main clone".
+  WT="$WORK/wt"; git worktree add -q --detach "$WT" HEAD >/dev/null 2>&1
+  mkdir -p "$WT/gates/audit"; cp "$SELF" "$WT/gates/audit/"
+  ( cd "$WT" && bash gates/audit/selector-provenance.sh >/dev/null 2>&1 ); r6=$?
+  ck "C6 a git worktree (.git is a file) is ANSWERED with a count, not refused" "$([ -f "$WT/.git" ] && { [ "$r6" = 0 ] || [ "$r6" = 1 ]; } && echo answered || echo "refused-or-not-a-worktree:$r6")" "answered"
 
   echo "  ---- $P pass / $F fail"
   [ "$F" = 0 ] || exit 1
