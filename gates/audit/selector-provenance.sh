@@ -46,7 +46,24 @@
 # USAGE
 #   gates/audit/selector-provenance.sh                 report + exit status against G_SPCEIL
 #   gates/audit/selector-provenance.sh --selftest      both-direction controls, no repo state touched
-#   G_SPCEIL=<n>                                       ratchet: fail if same-build pairs exceed n
+#   G_SPCEIL=<n>                                       ratchet: fail if UNOPENED same-build pairs exceed n
+#
+# MARKING A PAIR OPENED (#550, test-system round 4). A same-build pair stays in the SAME-BUILD count for ever - the
+# history does not change when a gate is repaired - so before this the count could only RISE, and the work of opening a
+# pair (re-keying its absence line onto words, or reading it and finding no line that can pass on a missing hook) left no
+# trace the census could read. A gate now records it beside the code, one line per hook:
+#
+#     // SELECTOR-OPENED: <hook> control=<sha> <what the control did>
+#     // SELECTOR-OPENED: <hook> reading=<class> <why no line can pass when the hook is missing>
+#
+#   control=<sha>  CREDITED ONLY IF the same file carries a `CONTROL-RECORD: <sha>` line for that sha (either may be the
+#                  shorter prefix), so the mark points at a recorded control run and cannot cite one that never happened.
+#   reading=<class> a lowercase word (presence, fallback, comment, precondition, detail, nav ...) and a non-empty reason.
+#   Never credited: no reason text, an unknown kind, a control sha the file records no control for, or a hook the file
+#   does not name (a STRAY mark). Uncredited marks are LISTED, with the reason, never silently dropped. A mark on a pair
+#   that is not same-build is reported as UNUSED and changes nothing.
+#   The mark's own text must not contain a data-ct="..." or tapCt('...') literal: the sweep reads those as selectors.
+#   The ceiling (G_SPCEIL) is on the UNOPENED count, which is the one that can now fall.
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
@@ -83,6 +100,25 @@ app_names_at(){ # $1 = sha ; prints the literal data-ct names present in chess.j
     | sed 's/.*"\(.*\)"$/\1/;s/data-ct="//;s/"$//' | sort -u
 }
 buildof(){ git log -1 --format=%s "$1" 2>/dev/null | grep -o '#[0-9]\{1,4\}' | head -1; }
+# opened_marks FILE: one row per SELECTOR-OPENED mark, "hook<TAB>verdict<TAB>detail", where verdict is control, reading,
+# or NOCREDIT:<reason>. The selftest's C11 stubs THIS function out to show the arms that credit a mark go red without it.
+opened_marks(){ # $1 = gate file at HEAD
+  sed -n 's#^[[:space:]]*//[[:space:]]*SELECTOR-OPENED:[[:space:]]*##p' "$1" 2>/dev/null | while read -r hk kd rest; do
+    [ -n "$hk" ] || continue
+    if [ -z "$rest" ]; then printf '%s\tNOCREDIT:no-reason\t%s\n' "$hk" "$kd"; continue; fi
+    case "$kd" in
+      control=*) cs="${kd#control=}"
+        if ! printf '%s' "$cs" | grep -qx '[0-9a-f]\{7,40\}'; then printf '%s\tNOCREDIT:bad-sha\t%s\n' "$hk" "$kd"; continue; fi
+        ok=0
+        while read -r rs; do case "$rs" in "$cs"*) ok=1;; esac; case "$cs" in "$rs"*) ok=1;; esac
+        done < <(sed -n 's#^[[:space:]]*//[[:space:]]*CONTROL-RECORD:[[:space:]]*\([0-9a-f]\{7,40\}\).*#\1#p' "$1")
+        if [ "$ok" = 1 ]; then printf '%s\tcontrol\t%s\n' "$hk" "$cs"; else printf '%s\tNOCREDIT:no-control-record-for-%s\t%s\n' "$hk" "$cs" "$kd"; fi;;
+      reading=*) rc="${kd#reading=}"
+        if printf '%s' "$rc" | grep -qx '[a-z][a-z-]*'; then printf '%s\treading\t%s\n' "$hk" "$rc"; else printf '%s\tNOCREDIT:bad-class\t%s\n' "$hk" "$kd"; fi;;
+      *) printf '%s\tNOCREDIT:unknown-kind\t%s\n' "$hk" "$kd";;
+    esac
+  done
+}
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 
@@ -99,6 +135,9 @@ if [ "${1:-}" = "--selftest" ]; then
   mkdir -p gates/audit; cp "$SELF" gates/audit/
   BASE="$(git rev-parse HEAD)"
   same_count(){ bash gates/audit/selector-provenance.sh | awk '/^  SAME-BUILD/{print $2}'; }
+  # one sweep, two readings (same-build, unopened) and the whole report in $WORK/rep - each sweep costs about 90s
+  sweep3(){ bash "${1:-gates/audit/selector-provenance.sh}" > "$WORK/rep" 2>&1; awk '/^  SAME-BUILD/{s=$2} /^    UNOPENED/{u=$2} END{print s, u}' "$WORK/rep"; }
+  plant_mark(){ awk -v l="$1" 'NR==1{print; print l; next}{print}' gates/regress/30-p1-fixes.js > .t && mv .t gates/regress/30-p1-fixes.js; }
   plant_attr(){ awk -v n="$1" 'BEGIN{d=0}{if(!d && index($0,"data-ct=\"pz-bottom\"")>0){sub(/data-ct="pz-bottom"/,"data-ct=\"" n "\"");d=1}print}' chess.jsx > .t && mv .t chess.jsx; }
   plant_assert(){ awk -v n="$1" 'BEGIN{d=0}{print; if(!d && index($0,"const hm=await b.rect")>0){print "    const _c=await b.rect(\x27[data-ct=\"" n "\"]\x27);L.say(!!_c,\x27selftest control\x27);";d=1}}' gates/regress/30-p1-fixes.js > .t && mv .t gates/regress/30-p1-fixes.js; }
   reset_tree(){ git reset -q --hard "$BASE"; git clean -qfd; mkdir -p gates/audit; cp "$SELF" gates/audit/; }
@@ -106,8 +145,8 @@ if [ "${1:-}" = "--selftest" ]; then
   ck(){ if [ "$2" = "$3" ]; then P=$((P+1)); echo "  PASS  $1  ($2)"; else F=$((F+1)); echo "  FAIL  $1  got [$2] want [$3]"; fi; }
 
   echo "selector-provenance --selftest  over $ROOT at $(echo "$BASE" | cut -c1-8)"
-  B0="$(same_count)"; echo "  TC-INV-08 baseline same-build count: $B0"
-  [ -n "$B0" ] || { echo "  FAIL  the baseline run produced no count at all - every control below would compare two blanks and PASS"; exit 1; }
+  read -r B0 U0 < <(sweep3); echo "  TC-INV-08 baseline same-build count: $B0, unopened: $U0"
+  [ -n "$B0" ] && [ -n "$U0" ] || { echo "  FAIL  the baseline run produced no count at all - every control below would compare two blanks and PASS"; exit 1; }
 
   # C1, MUST BE REPORTED: the hook and the assertion that reads it, in one commit. The #432 shape.
   reset_tree; plant_attr sp-ctl-one; plant_assert sp-ctl-one
@@ -133,10 +172,10 @@ if [ "${1:-}" = "--selftest" ]; then
   # wearing a tool's clothes.
   reset_tree; plant_attr sp-ctl-four; plant_assert sp-ctl-four
   git commit -qam "#9995: control four - the ratchet"
-  G_SPCEIL="$B0" bash gates/audit/selector-provenance.sh >/dev/null 2>&1
-  ck "C4 a ceiling at the baseline REFUSES a new same-build pair" "$?" "1"
+  G_SPCEIL="$U0" bash gates/audit/selector-provenance.sh >/dev/null 2>&1
+  ck "C4 a ceiling at the baseline REFUSES a new (unopened) same-build pair" "$?" "1"
   reset_tree
-  G_SPCEIL="$B0" bash gates/audit/selector-provenance.sh >/dev/null 2>&1
+  G_SPCEIL="$U0" bash gates/audit/selector-provenance.sh >/dev/null 2>&1
   ck "C4 the same ceiling ACCEPTS the unmodified tree" "$?" "0"
 
   # C5, AND IT IS THE ONE THAT MATTERS MOST, because it is the failure this lane's OWN PROCEDURE would
@@ -154,6 +193,38 @@ if [ "${1:-}" = "--selftest" ]; then
   mkdir -p "$WT/gates/audit"; cp "$SELF" "$WT/gates/audit/"
   ( cd "$WT" && bash gates/audit/selector-provenance.sh >/dev/null 2>&1 ); r6=$?
   ck "C6 a git worktree (.git is a file) is ANSWERED with a count, not refused" "$([ -f "$WT/.git" ] && { [ "$r6" = 0 ] || [ "$r6" = 1 ]; } && echo answered || echo "refused-or-not-a-worktree:$r6")" "answered"
+
+  # C7-C11, THE SELECTOR-OPENED MARK (#550 round 4). One planted tree, five same-build pairs and one stray mark, read by
+  # one sweep: a mark is credited ONLY in its two lawful forms (reading=<class> <reason>; control=<sha> with a
+  # CONTROL-RECORD line for that sha in the same file), and every other mark is listed and not credited.
+  reset_tree
+  for h in sp-ctl-seven sp-ctl-eight sp-ctl-eightb sp-ctl-nine sp-ctl-nineb; do plant_attr "$h"; plant_assert "$h"; done
+  plant_mark "// SELECTOR-OPENED: sp-ctl-seven reading=presence the selftest's own planted read is a presence line"
+  plant_mark "// SELECTOR-OPENED: sp-ctl-eight control=deadbee a control nobody recorded"
+  plant_mark "// CONTROL-RECORD: 5e1f7e5 2026-11-13 total=1 red=1 scope=selftest how=a planted record for C8b"
+  plant_mark "// SELECTOR-OPENED: sp-ctl-eightb control=5e1f7e5a the record above, cited by a longer prefix"
+  plant_mark "// SELECTOR-OPENED: sp-ctl-nine reading=presence"
+  plant_mark "// SELECTOR-OPENED: sp-ctl-nineb verdict=fine a kind the reader does not know"
+  plant_mark "// SELECTOR-OPENED: sp-ctl-ten reading=presence a hook this file never names"
+  git commit -qam "#9996: controls seven to eleven - SELECTOR-OPENED marks, lawful and not"
+  read -r B7 U7 < <(sweep3); cp "$WORK/rep" "$WORK/rep7"
+  ck "C7 a reading= mark with a reason OPENS its pair" "$(grep -c 'sp-ctl-seven .*SAME-BUILD:ASSERTED  OPENED:reading=presence' "$WORK/rep7")" "1"
+  ck "C7 the five planted pairs all count as same-build" "$B7" "$((B0+5))"
+  ck "C8 a control= mark with no CONTROL-RECORD for its sha is NOT credited, and is listed" "$(grep -c 'sp-ctl-eight .*UNOPENED' "$WORK/rep7")/$(grep -c 'sp-ctl-eight .*no-control-record-for-deadbee' "$WORK/rep7")" "1/1"
+  ck "C8b a control= mark whose sha the file records (prefix either way) OPENS its pair" "$(grep -c 'sp-ctl-eightb .*OPENED:control=5e1f7e5a' "$WORK/rep7")" "1"
+  ck "C9 a mark with no reason is NOT credited, and is listed" "$(grep -c 'sp-ctl-nine .*UNOPENED' "$WORK/rep7")/$(grep -c 'sp-ctl-nine .*no-reason' "$WORK/rep7")" "1/1"
+  ck "C9b a mark of an unknown kind is NOT credited, and is listed" "$(grep -c 'sp-ctl-nineb .*UNOPENED' "$WORK/rep7")/$(grep -c 'sp-ctl-nineb .*unknown-kind' "$WORK/rep7")" "1/1"
+  ck "C10 a mark naming a hook the file does not name is listed STRAY" "$(grep -c 'sp-ctl-ten .*STRAY' "$WORK/rep7")" "1"
+  ck "C7-C10 the unopened count rises by exactly the three uncredited pairs" "$U7" "$((U0+3))"
+  # C11, THE CONTROL WITH THE READING REMOVED (CLAUDE.md: a control set is run once over the tree without its subject). The
+  # same planted tree, swept by a copy of this script whose opened_marks() reads nothing: C7 and C8b must read UNOPENED.
+  sed 's/^opened_marks(){ # \$1 = gate file at HEAD$/opened_marks(){ return 0; # STUBBED by selftest C11/' gates/audit/selector-provenance.sh > gates/audit/.sp-nomarks.sh
+  ck "C11 the stub took (the mutant's opened_marks returns before reading)" "$(grep -c 'STUBBED by selftest C11' gates/audit/.sp-nomarks.sh)" "1"
+  read -r B11 U11 < <(sweep3 gates/audit/.sp-nomarks.sh)
+  ck "C11 with the reading stubbed, the C7 pair reads UNOPENED (C7 would go red)" "$(grep -c 'sp-ctl-seven .*UNOPENED' "$WORK/rep")" "1"
+  ck "C11 with the reading stubbed, the C8b pair reads UNOPENED (C8b would go red)" "$(grep -c 'sp-ctl-eightb .*UNOPENED' "$WORK/rep")" "1"
+  ck "C11 with the reading stubbed, the unopened count is the baseline's same-build count plus all five" "$U11" "$((B0+5))"
+  rm -f gates/audit/.sp-nomarks.sh
 
   echo "  ---- $P pass / $F fail"
   [ "$F" = 0 ] || exit 1
@@ -180,7 +251,7 @@ sort -u "$WORK/app-first" -o "$WORK/app-first"
 # ── 2. FIRST APPEARANCE OF EVERY SELECTOR IN EACH GATE FILE, same single-pass shape, with --follow
 #       so a renumbered gate keeps its history (this project renumbers gates: 55 -> 56 -> 57 on
 #       2026-09-28 alone). ────────────────────────────────────────────────────────────────────────
-: > "$WORK/pairs"
+: > "$WORK/pairs"; : > "$WORK/badmarks"
 DYN=0
 for f in gates/regress/*.js; do
   [ -e "$f" ] || continue
@@ -194,13 +265,20 @@ for f in gates/regress/*.js; do
     sort -u "$WORK/gnow" "$WORK/gseen" -o "$WORK/gseen"
   done
   sort -u "$WORK/gfirst" -o "$WORK/gfirst"
+  opened_marks "$f" > "$WORK/marks"
+  gate_names "$f" > "$WORK/gnames"
+  # a mark naming a hook the file does not name is STRAY: reported, never credited
+  awk -F'\t' 'NR==FNR{n[$1]=1;next} !($1 in n){print}' "$WORK/gnames" "$WORK/marks" | while IFS=$'\t' read -r hk vd dt; do
+    printf '%s\t%s\tSTRAY (the file names no such selector)\n' "$f" "$hk" >> "$WORK/badmarks"; done
+  awk -F'\t' '$2 ~ /^NOCREDIT/' "$WORK/marks" | while IFS=$'\t' read -r hk vd dt; do
+    printf '%s\t%s\t%s (%s)\n' "$f" "$hk" "${vd#NOCREDIT:}" "$dt" >> "$WORK/badmarks"; done
   # classify + join, for the selectors the file uses AT HEAD (a selector it no longer uses is not
   # a live assertion and is not this job's class)
   while read -r n; do
     [ -n "$n" ] || continue
     gsha="$(awk -F'\t' -v k="$n" '$1==k{print $2; exit}' "$WORK/gfirst")"
     asha="$(awk -F'\t' -v k="$n" '$1==k{print $2; exit}' "$WORK/app-first")"
-    if [ -z "$asha" ]; then DYN=$((DYN+1)); printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$f" "$n" "-" "-" "${gsha:--}" "$(buildof "${gsha:-HEAD}")" "NO-APP-LITERAL" >> "$WORK/pairs"; continue; fi
+    if [ -z "$asha" ]; then DYN=$((DYN+1)); printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t-\n' "$f" "$n" "-" "-" "${gsha:--}" "$(buildof "${gsha:-HEAD}")" "NO-APP-LITERAL" >> "$WORK/pairs"; continue; fi
     ab="$(buildof "$asha")"; gb="$(buildof "$gsha")"
     kind=ASSERTED
     if ! grep -q "data-ct=\"$n\"" "$f" && grep -q "tapCt('$n'" "$f"; then kind=NAV-ONLY; fi
@@ -211,13 +289,21 @@ for f in gates/regress/*.js; do
     if [ -z "$ab" ] || [ -z "$gb" ]; then v=UNKNOWN
     elif [ "$ab" = "$gb" ];            then v=SAME-BUILD
     else                                    v=DIFFERENT; fi
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$f" "$n" "$asha" "${ab:--}" "$gsha" "${gb:--}" "$v:$kind" >> "$WORK/pairs"
+    op="$(awk -F'\t' -v k="$n" '$1==k && $2!~/^NOCREDIT/{print $2"="$3; exit}' "$WORK/marks")"
+    if [ "$v" = SAME-BUILD ]; then op="${op:+OPENED:$op}"; op="${op:-UNOPENED}"
+    else [ -n "$op" ] && printf '%s\t%s\tUNUSED (the pair is %s, not same-build)\n' "$f" "$n" "$v" >> "$WORK/badmarks"; op="-"; fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$f" "$n" "$asha" "${ab:--}" "$gsha" "${gb:--}" "$v:$kind" "$op" >> "$WORK/pairs"
   done < <(gate_names "$f")
 done
 
 SAME=$(awk -F'\t' '$7 ~ /^SAME-BUILD/' "$WORK/pairs" | wc -l | tr -d ' ')
 SAME_A=$(awk -F'\t' '$7=="SAME-BUILD:ASSERTED"' "$WORK/pairs" | wc -l | tr -d ' ')
 SAME_N=$(awk -F'\t' '$7=="SAME-BUILD:NAV-ONLY"' "$WORK/pairs" | wc -l | tr -d ' ')
+OPN=$(awk -F'\t' '$7 ~ /^SAME-BUILD/ && $8 ~ /^OPENED/' "$WORK/pairs" | wc -l | tr -d ' ')
+OPN_C=$(awk -F'\t' '$7 ~ /^SAME-BUILD/ && $8 ~ /^OPENED:control/' "$WORK/pairs" | wc -l | tr -d ' ')
+OPN_R=$(awk -F'\t' '$7 ~ /^SAME-BUILD/ && $8 ~ /^OPENED:reading/' "$WORK/pairs" | wc -l | tr -d ' ')
+UNO=$(awk -F'\t' '$7 ~ /^SAME-BUILD/ && $8=="UNOPENED"' "$WORK/pairs" | wc -l | tr -d ' ')
+BADM=$(wc -l < "$WORK/badmarks" | tr -d ' ')
 DIFF=$(awk -F'\t' '$7 ~ /^DIFFERENT/' "$WORK/pairs" | wc -l | tr -d ' ')
 UNK=$(awk -F'\t' '$7 ~ /^UNKNOWN/' "$WORK/pairs" | wc -l | tr -d ' ')
 NOLIT=$(awk -F'\t' '$7=="NO-APP-LITERAL"' "$WORK/pairs" | wc -l | tr -d ' ')
@@ -226,13 +312,20 @@ TOT=$(wc -l < "$WORK/pairs" | tr -d ' ')
 echo "selector-provenance  sweep over $(ls gates/regress/*.js | wc -l | tr -d ' ') gate files at $(git rev-parse --short HEAD) ($(buildof HEAD))"
 echo "POPULATION  $TOT (gate file, selector) pairs live at HEAD"
 echo "  SAME-BUILD  $SAME   ($SAME_A asserted / read, $SAME_N navigation-only)"
+echo "    OPENED    $OPN   ($OPN_C by a recorded control, $OPN_R by reading; a SELECTOR-OPENED mark in the gate)"
+echo "    UNOPENED  $UNO"
 echo "  DIFFERENT   $DIFF"
 echo "  UNKNOWN     $UNK    (a commit on one side carries no #NNN; never counted as same-build)"
 echo "  NO-APP-LITERAL $NOLIT (the gate names a selector chess.jsx never emits as a literal: dynamic, or dead)"
 echo
 if [ "$SAME" -gt 0 ]; then
   echo "THE SAME-BUILD PAIRS - each one an assertion that could not have gone red on the bundle it was written against:"
-  awk -F'\t' '$7 ~ /^SAME-BUILD/{printf "  %-44s %-26s build %-6s app %.8s  gate %.8s  %s\n",$1,$2,$4,$3,$5,$7}' "$WORK/pairs" | sort
+  awk -F'\t' '$7 ~ /^SAME-BUILD/{printf "  %-44s %-26s build %-6s app %.8s  gate %.8s  %s  %s\n",$1,$2,$4,$3,$5,$7,$8}' "$WORK/pairs" | sort
+  echo
+fi
+if [ "$BADM" -gt 0 ]; then
+  echo "SELECTOR-OPENED MARKS NOT CREDITED ($BADM) - listed so a mark that does not count is never silent:"
+  awk -F'\t' '{printf "  %-44s %-26s %s\n",$1,$2,$3}' "$WORK/badmarks" | sort
   echo
 fi
 if [ "$NOLIT" -gt 0 ]; then
@@ -252,14 +345,14 @@ if [ -z "$CEIL" ]; then
   echo "measured count to make a new same-build pair a RED rather than a line in a log."
   exit 0
 fi
-if [ "$SAME" -gt "$CEIL" ]; then
-  echo "FAIL  same-build pairs $SAME EXCEED the ceiling $CEIL - a build has added an assertion keyed to a"
+if [ "$UNO" -gt "$CEIL" ]; then
+  echo "FAIL  unopened same-build pairs $UNO EXCEED the ceiling $CEIL - a build has added an assertion keyed to a"
   echo "      selector it introduced in the same commit range. Name it above, or lower the assertion onto"
   echo "      what the element SAYS rather than onto the hook the fix drilled (CLAUDE.md, #432)."
   exit 1
 fi
-if [ "$SAME" -lt "$CEIL" ]; then
-  echo "CEILING CAN BE LOWERED: $SAME of $CEIL. Set G_SPCEIL=$SAME."
+if [ "$UNO" -lt "$CEIL" ]; then
+  echo "CEILING CAN BE LOWERED: $UNO of $CEIL. Set G_SPCEIL=$UNO."
 fi
-echo "PASS  same-build pairs $SAME within ceiling $CEIL"
+echo "PASS  unopened same-build pairs $UNO within ceiling $CEIL (same-build $SAME, opened $OPN)"
 exit 0
