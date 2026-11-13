@@ -19,8 +19,8 @@
 // it back. Both controls disturbed a real input and left the measured number where it was, because at this geometry the board is set by the
 // room the rows under it leave, and the loop reconciles every non-binding change to the pixel. The pin was never unable to fail; the controls
 // did not cross its line. The two that do, and the rows now printed beside the pin so a red names what took the room:
-// CONTROL-RECORD: (this commit) 2026-11-13 total=9 red=1 scope=trial:6d68f3ae4ef2 how=REV_CHROME 304 -> 344, so heightCap 335 binds below 343: 'move screen, board 343, no scroll' red at board 335 (rev-compact 106 -> 114 takes the slack), every other line green; tip trial:489840ab49bb 9/0 at 343
-// CONTROL-RECORD: (this commit) 2026-11-13 total=9 red=1 scope=trial:ae1f4d7f12c3 how=the streamlined rev-compact floor 93 -> 109 (a row under the board takes 16px more): 'move screen, board 343, no scroll' red at board 327, rows printed {rev-compact 122, min 109px}, every other line green
+// CONTROL-RECORD: 15d0723 2026-11-13 total=9 red=1 scope=trial:6d68f3ae4ef2 how=REV_CHROME 304 -> 344, so heightCap 335 binds below 343: 'move screen, board 343, no scroll' red at board 335 (rev-compact 106 -> 114 takes the slack), every other line green; tip trial:489840ab49bb 9/0 at 343
+// CONTROL-RECORD: 15d0723 2026-11-13 total=9 red=1 scope=trial:ae1f4d7f12c3 how=the streamlined rev-compact floor 93 -> 109 (a row under the board takes 16px more): 'move screen, board 343, no scroll' red at board 327, rows printed {rev-compact 122, min 109px}, every other line green
 'use strict';
 const L=require('../lib');const R=require('../drive/review');
 const WANT_W=343;   // measured on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
