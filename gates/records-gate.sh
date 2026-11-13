@@ -29,8 +29,8 @@
 #                  [DONE IN PART SINCE, #550: `--harnesses` runs verify-log-selftest.sh (and held/buildnum) under a count
 #                  ratchet, and `--checks` (gates/door-checks.sh) runs the --selftest of verify-log --citations, of
 #                  cited-not-run.sh and of verify-patch-set.sh, and since b73a170 cited-not-run.sh's REPORT too (its roster
-#                  accounts for all 48 cited files). verify-log --citations is still RED on this tree and stays out until
-#                  cleared; door-checks.sh's header has the figures. Updated at #550 after the round-4 merge.]
+#                  accounts for all 48 cited files), and since #550 round 5 verify-log --citations itself, the fifth check,
+#                  once the register was repaired to exit 0; door-checks.sh's header has the figures and the decisions.]
 #
 # SO THE WHOLE DISCIPLINE OF THIS COMMIT IS THAT IT CHANGES NO BEHAVIOUR, AND THAT IS A MEASUREMENT RATHER THAN
 # AN INTENTION. The body below is the block from gates/fastgate.sh lines 302-493 at origin/main b3767c4, moved

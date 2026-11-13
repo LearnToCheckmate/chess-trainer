@@ -433,7 +433,7 @@ story set. They must be renamed apart before either number can be quoted safely.
 | `claude/RUN-LOG.md:42` | *"**1 of 6** (Review, by both sessions independently…)"* |
 | `claude/agents/SUPERVISOR-373.md:26` | *"coverage \| **1 of 6 (Review).**"* |
 | `claude/FEEDBACK-INBOX.md:222` | *"Coverage **1 of 6**."* |
-| `claude/stories/SAT-REVIEW-373.md` coverage line | *"Screens fully specced AND tested: **1 of 6** (Review)."* |
+| `claude/stories/SAT-REVIEW-373.md` coverage line (a claude.ai project document, never in this repository; R18 #550, see gates/verify-log.sh --citations ALLOW) | *"Screens fully specced AND tested: **1 of 6** (Review)."* |
 
 **Which is correct: 1 of 6 is the sourced number; 1 of 10 is not.** The 6 has a named list behind it in three
 places (`BUILD-CONTEXT.md:62-63`, and SAT's *"Play, Lesson, Puzzles, Home/Discover and Menu still have no
@@ -445,7 +445,7 @@ stories"*). **No document anywhere in the repo or the project enumerates ten scr
 
 | where | figure |
 |---|---|
-| `claude/stories/REGRESSION-CANDIDATES.md` | *"138 … + 30 (review373) + 3 (repro373) + k373 (10), mate373 (5), gallery373 (23) and playall373 (5) = **214**"* |
+| `claude/stories/REGRESSION-CANDIDATES.md` (a claude.ai project document, never in this repository; R18 #550, see gates/verify-log.sh --citations ALLOW) | *"138 … + 30 (review373) + 3 (repro373) + k373 (10), mate373 (5), gallery373 (23) and playall373 (5) = **214**"* |
 | `claude/RUN-LOG.md:42` | *"**194** in this sandbox's suite (gatelogs/373-all.log) + 30 review373 + 3 repro373"* = **227** |
 | `claude/agents/SUPERVISOR-373.md:26` | *"**203** (gates/logs/373-all.log:263 … sum of the nine gate lines :28-262 = 203)"* |
 

@@ -170,8 +170,8 @@ assert_falls(){ # <register.tsv> <log>
 # verify-log --citations, of gates/audit/cited-not-run.sh and of gates/audit/verify-patch-set.sh, plus cited-not-run.sh's REPORT
 # (added at b73a170 once its roster accounted for all 48 cited files), and must exit 0 like the other two; the three selftests'
 # case counts are pinned in gates/harness-case-counts.tsv (door:* rows, cea4fc0). About 48s on top of the ~2 minutes the first two
-# cost. verify-log --citations is still NOT in it: it is red on this tree (17 dead paths, 16 unsupported case ids, one dangling
-# story), and a red check in the door reddens every suite. Updated at #550 after the round-4 merge; it read 'three selftests' before.
+# cost. verify-log --citations JOINED AS THE FIFTH CHECK AT #550 ROUND 5 (~20s, unpinned) once repaired to exit 0 - a red check in the
+# door reddens every suite, so it waited; door-checks.sh's header has each decision. Updated at #550 round 5 (it read 'three selftests' before round 4 and 'still NOT in it' before round 5).
 records_door(){
   local rg="$1" base="$2" head="$3" out="$4" r1 r2 r3
   if [ -z "$base" ] || [ -z "$head" ]; then echo "RECORDS DOOR NOT CHECKED - no base or head sha (origin/main unreadable?), so this run is not a push gate"; return 2; fi

@@ -127,7 +127,7 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OB
 # prove nothing. The archived copy under claude/agents/gatelogs/ is the artefact a later reader can actually
 # open, so a gates/logs/<N>-all.log citation is resolved to claude/agents/gatelogs/<N>-all.log. A row citing
 # a log that exists in NEITHER place is a dead citation, which is the thing the job is about.
-# IT IS NOT WIRED INTO gates/gates.sh, AND THE OMISSION IS DELIBERATE AND RECORDED [R18, R45]. The job asks
+# IT IS NOT WIRED INTO gates/gates.sh, AND THE OMISSION IS DELIBERATE AND RECORDED [R18, R45]. [#550 round 5: HISTORY NOW - it is run by the door, gates/door-checks.sh's fifth check, reached from gates.sh's records_door, once the register was repaired to exit 0; this paragraph is kept as written.] The job asks
 # for it to run inside gates.sh on every build. Two reasons it does not yet: this burst agent holds the
 # artefact lock on THIS FILE ONLY [R44] and may not write gates.sh; and measured on main today this mode is
 # RED, so wiring it in unchanged would refuse every build until the register is repaired. Wire it in only
@@ -570,6 +570,15 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C22 a gate quoting one written and one unwritten story reads 1 of 2 and counts it" "gate story quotes: 1 of 2 gatestoryundefined=1 " "$(st_8 "$R22")"
   printf 'US-Z-02  **a story written as a bare line**\n' >> "$R22/claude/stories/USER-STORIES.md"
   st_ck "C22b once the register writes it (as a bare line), 0 of 2" "gate story quotes: 0 of 2 gatestoryundefined=0 " "$(st_8 "$R22")"
+  # C22c/C22d [#550]: a US-RF story is written by REVIEW-SUITE-FULL.md as a line opening **US-RFnn. The gate quotes two RF ids;
+  # that file writes US-RF97 in that form and only MENTIONS US-RF96 mid-line. Before the arm read that file both were undefined
+  # (2 of 4, measured with the A8DEF addition removed: C22c red, 64 pass / 1 fail); now only the mention is. C22d stays GREEN with
+  # that addition removed - it guards the OTHER direction: with the grammar loosened to read any US-RF mention in the file, C22c
+  # AND C22d both go red (63 pass / 2 fail, measured at #550).
+  printf "L.say(true,'US-RF97 and US-RF96 hold')\n" >> "$R22/gates/regress/10-real.js"
+  printf '**US-RF97 - a frozen story.** Criteria: none\n\nsee US-RF96 in passing\n' > "$R22/claude/stories/REVIEW-SUITE-FULL.md"
+  st_ck "C22c an RF story written by REVIEW-SUITE-FULL.md as **US-RFnn is defined, and one it only mentions is not: 1 of 4" "gate story quotes: 1 of 4 gatestoryundefined=1 " "$(st_8 "$R22")"
+  st_ck "C22d and the one still undefined is the mention, US-RF96" "1" "$( ( cd "$R22" && bash gates/verify-log.sh --citations 2>&1 | grep -c 'GATE QUOTES AN UNWRITTEN STORY: US-RF96 ' ) )"
   rm -rf "$R22"
 
   # ── C19: ARM (3m), THE MARKED md5 [#546, item (4)]. One fabricated register with a section citing a log that
@@ -663,6 +672,15 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
     "$( ( cd "$R23" && bash gates/verify-log.sh --citations >"$R23/c23.txt" 2>&1 ); [ $? -eq 1 ] && grep -q '^CITATIONS RATCHET: RED' "$R23/c23.txt" && echo -n yes || echo -n no; echo -n ' '; grep -qF "SYMBOL ABSENT: 'goneSym' does not occur in gates/regress/11-sym.js (cited at ${S23}:4)" "$R23/c23.txt" && echo yes || echo no)"
   rm -rf "$R23"
 
+  # ── C24: THE DOOR LINE [#550]. gates/door-checks.sh reads `citations door: <n> pass / <n> fail` and refuses on fail > 0 or a
+  #     non-zero exit, so the line must agree with the verdict in both directions. A tree whose one story file names itself (resolves)
+  #     and one file that was never written (dead): exit 1 and fail 1. The dead name removed: exit 0 and fail 0, the pass count kept.
+  st_door() { ( cd "$1" && bash gates/verify-log.sh --citations >"$1/c24.txt" 2>&1; echo "exit=$? $(grep -oE '^citations door: [0-9]+ pass / [0-9]+ fail' "$1/c24.txt" | tail -1)" ); }
+  R24="$(st_tree)"; printf 'see claude/stories/A.md and claude/stories/NEVER-WRITTEN.md\n' > "$R24/claude/stories/A.md"
+  st_ck "C24 a dead path: exit 1 and the door line counts it as the one fail" "exit=1 citations door: 1 pass / 1 fail" "$(st_door "$R24")"
+  printf 'see claude/stories/A.md\n' > "$R24/claude/stories/A.md"
+  st_ck "C24b the dead path removed: exit 0 and 0 fail, the resolved one still counted" "exit=0 citations door: 1 pass / 0 fail" "$(st_door "$R24")"
+  rm -rf "$R24"
   echo "  citations-selftest: $SPASS pass, $SFAIL fail"
   [ "$SFAIL" -eq 0 ] || exit 1
   exit 0
@@ -672,7 +690,20 @@ if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
   cd "$ROOT" || { echo "REFUSED (--citations): cannot cd to $ROOT"; exit 1; }
   # THE ALLOWLIST IS THE POINT, NOT A LOOPHOLE (the job's words). A reserved name belongs here WITH ITS
   # REASON; a name that is merely broken does not. One entry per line: <path><TAB><reason>.
-  ALLOW="claude/stories/REVIEW-SUITE-FULL.md	reserved, not written: claude/stories/README.md says the full review suite keeps this name"
+  # THE SECOND CLASS, ADDED AT #550 [R18]: a path that was NEVER IN THIS REPOSITORY. Each was searched by path over all history
+  # (git log --all -- '*<name>', unshallowed clone) and none was ever committed, so it cannot be restored and there is no file that
+  # holds its content now. Each citation is kept, because the claim it supports is the record, and its row here says what the path
+  # was. Unlike a merely broken name these are PRINTED (ALLOWLISTED line, with the reason), so the gap stays visible in every run.
+  # A path that DID exist and was lost is not this class: it is a dead citation and is repaired at the citing site.
+  ALLOW="claude/stories/REVIEW-SUITE-FULL.md	reserved, not written: claude/stories/README.md says the full review suite keeps this name
+claude/stories/SAT-REVIEW-373.md	never in this repository: a claude.ai project document of the #373 era quoted by SUITE-AUDIT-2026-09-14.md 4.3; git log --all -- '*SAT-REVIEW-373.md' is empty on an unshallowed clone at #550
+claude/stories/REGRESSION-CANDIDATES.md	never in this repository: a claude.ai project document quoted by SUITE-AUDIT-2026-09-14.md 4.4; git log --all -- '*REGRESSION-CANDIDATES.md' is empty on an unshallowed clone at #550
+claude/stories/HOME-LANE-2026-09-15.md	never in this repository: the Home lane's own document (US-HM-01..10, TC-HM-001..046); TEST-CASES.md and USER-STORIES.md already say it is not here; git log --all -- '*HOME-LANE-2026-09-15.md' is empty on an unshallowed clone at #550
+claude/stories/PLAY-LANE-2026-09-14.md	never in this repository: the Play lane's own document (US-PL-01..10, TC-PL-001..030); USER-STORIES.md already says it is not here; git log --all -- '*PLAY-LANE-2026-09-14.md' is empty on an unshallowed clone at #550
+claude/stories/PLAY-SETUP-LANE-2026-09-14.md	never in this repository: the Play-setup lane's own document, cited by gates/regress/45-play-setup.js for the cases it implements; git log --all -- '*PLAY-SETUP-LANE-2026-09-14.md' is empty on an unshallowed clone at #550
+claude/stories/LESSON-LANE-2026-09-15.md	never in this repository: the Lesson lane's own document (US-LS-01..10, TC-LS-001..034), staged in the tracker's docs collection, per gates/regress/48-lesson-flow.js; git log --all -- '*LESSON-LANE-2026-09-15.md' is empty on an unshallowed clone at #550
+claude/stories/TEST-CASES-REVIEW.md	never in this repository: the TC-RL review case list; the TC-RL ids it defined are carried by the archived gatelogs from 390-all.log on, not by any story file; git log --all -- '*TEST-CASES-REVIEW.md' is empty on an unshallowed clone at #550
+gates/logs/434-subset-16-cpu-result-line.log	never in this repository: a per-gate subset log of #435's control run over the #434 bundle; subset logs were never archived to claude/agents/gatelogs; git log --all -- '*434-subset-16-cpu-result-line.log' is empty on an unshallowed clone at #550"
   SRC=""
   for f in claude/stories/*.md gates/*.js gates/*/*.js HANDOFF.md CLAUDE.md; do
     [ -f "$f" ] && SRC="$SRC $f"
@@ -701,7 +732,9 @@ if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
     # added here, and a flaky push gate is worse than a failing one. The herestring has no pipe and
     # therefore no SIGPIPE: rc 0 at every n measured above. Controls C17/C17b/C17c pin both halves.
     if grep -qxF "$P" <<<"$(cut -f1 <<<"$ALLOW")"; then
-      A1ALLOW=$((A1ALLOW+1)); continue
+      A1ALLOW=$((A1ALLOW+1))
+      echo "  ALLOWLISTED: $P (named at $WHERE): $(awk -F'\t' -v p="$P" '$1==p{print $2; exit}' <<<"$ALLOW")"
+      continue
     fi
     A1BAD=$((A1BAD+1))
     echo "  DEAD CITATION: $P (named at $WHERE; looked for $TEST)"
@@ -1036,6 +1069,15 @@ EOF6
   A8N=0; A8U=0
   if [ -f claude/stories/USER-STORIES.md ]; then
     A8DEF="$(grep -oE '^(#+[[:space:]]+)?US-[A-Za-z0-9-]+' claude/stories/USER-STORIES.md | sed -E 's/^#+[[:space:]]+//' | sort -u)"
+    # THE FROZEN FULL REVIEW SUITE WRITES THE US-RF STORIES, AND IT IS THE ONLY REGISTER THAT DOES [#550, R18]. claude/stories/README.md
+    # reserves the US-RFnn prefix for claude/stories/REVIEW-SUITE-FULL.md, which writes each one as a line opening `**US-RFnn`.
+    # #549 item (69) re-pointed 45-play-setup.js's old "R28" quote to US-RF28 under the orchestrator's ruling (USER-STORIES.md
+    # says so), and this arm then reported that correct quote as UNWRITTEN because it read USER-STORIES.md alone. Scoped to the
+    # RF prefix and to the line-opening bold form: a US-RF id that file only MENTIONS is still undefined (C22c/C22d below).
+    if [ -f claude/stories/REVIEW-SUITE-FULL.md ]; then
+      A8DEF="$A8DEF
+$(grep -oE '^\*\*US-RF[0-9]+[a-z]?' claude/stories/REVIEW-SUITE-FULL.md | sed -E 's/^\*\*//' | sort -u || true)"
+    fi
     A8Q="$(git grep -ohE '\bUS-[A-Z]+(-[A-Z]+)?-?[0-9]+[a-z]?\b' -- 'gates/regress/*.js' 2>/dev/null | sort -u || true)"
     while IFS= read -r u; do
       [ -n "$u" ] || continue
@@ -1044,7 +1086,7 @@ EOF6
       A8U=$((A8U+1))
       echo "  GATE QUOTES AN UNWRITTEN STORY: $u is quoted in $(git grep -lE "\b$u\b" -- 'gates/regress/*.js' | sed -n 1p) and USER-STORIES.md defines no $u"
     done <<<"$A8Q"
-    echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md (REPORTED, not refused)"
+    echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md, nor US-RF ids in REVIEW-SUITE-FULL.md (REPORTED, not refused)"
   else echo "  (8) NOT CHECKED: claude/stories/USER-STORIES.md is absent"; fi
   # === (9) A SYMBOL CITATION MUST NAME TEXT ITS FILE CONTAINS [#549, item (56); TC-SUITE-371; part (a) of
   #     jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03, on orchestratorRuling_2026_11_04: "Cite by
@@ -1314,6 +1356,13 @@ EOF
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]
   then RATV=RED; else RATV=OK; fi
   echo "CITATIONS RATCHET: $RATV deadpath=$A1BAD badcaseid=$A2BAD misfiled=$A2MIS deadline=$A4DEAD staleline=$A4EOF overceiling=$A4RISE notchecked=$A2NC storyless=$A5TBAD orphan=$A5ORPH zerorise=$A5ZRISE widthrise=$A5WRISE exemptrise=$A5EXRISE vacuous=$A5VAC noregister=$A5NC scriptdead=${A6DEAD:-0} scriptstale=${A6EOF:-0} measuredabsent=${A3MBAD:-0} idtwospaces=${A7DUP:-0} registerpathabsent=${A7MISS:-0} danglingstory=${A5DANG:-0} gatestoryundefined=${A8U:-0} prefixunregistered=${A7UNREG:-0} symbolabsent=${A9BAD:-0}"
+  # THE DOOR LINE [#550]: gates/door-checks.sh reads one fixed "<n> pass / <n> fail" line from every check it runs, and the three
+  # prose verdicts below carry none. PASS is the paths that resolved (1) plus the published case ids their log carries (2), i.e. a
+  # count of CITATIONS, which may fall legitimately when a citation is removed - so door-checks.sh does NOT pin it, as it does not
+  # pin cited-not-run.sh's report. FAIL is the sum of exactly the counters the verdict below refuses on, so it is 0 iff this mode
+  # exits 0. NOT CHECKED rows are in neither: they are not a pass, and they do not refuse (the OK-with-NOT-CHECKED line says so).
+  A0FAIL=$(( A1BAD + A2BAD + A4DEAD + A4EOF + A4RISE + A5BAD + ${A6BADN:-0} + ${A3MBAD:-0} + ${A7DUP:-0} + ${A7MISS:-0} + ${A7UNREG:-0} + ${A5DANG:-0} + ${A9BAD:-0} ))
+  echo "citations door: $(( A1OK + A2OK )) pass / $A0FAIL fail ($A2NC row(s) NOT CHECKED, counted in neither)"
   if [ "$A1BAD" -gt 0 ] || [ "$A2BAD" -gt 0 ] || [ "$A4DEAD" -gt 0 ] || [ "$A4EOF" -gt 0 ] || [ "$A4RISE" -gt 0 ] || [ "$A5BAD" -gt 0 ] || [ "${A6BADN:-0}" -gt 0 ] || [ "${A3MBAD:-0}" -gt 0 ] || [ "${A7DUP:-0}" -gt 0 ] || [ "${A7MISS:-0}" -gt 0 ] || [ "${A7UNREG:-0}" -gt 0 ] || [ "${A5DANG:-0}" -gt 0 ] || [ "${A9BAD:-0}" -gt 0 ]; then
     [ "${A6BADN:-0}" -gt 0 ] && echo "  (6) the script citations that do not resolve:$A6BAD"
     [ "${A3MBAD:-0}" -gt 0 ] && echo "  (3m) $A3MBAD row(s) publish a result MEASURED ON a bundle their log never gated"

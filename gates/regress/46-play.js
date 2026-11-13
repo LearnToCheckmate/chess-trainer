@@ -16,7 +16,7 @@
 // across a mate, 34-takeback guards one sheet row. Nothing guarded the control row, the preview, the hint, the
 // flip, the clock, the status line or what the screen becomes when the game ends. This gate is that guard.
 //
-// WHAT IT GUARDS (US-PL-01 … US-PL-10 / TC-PL-001 … TC-PL-030, claude/stories/PLAY-LANE-2026-09-14.md)
+// WHAT IT GUARDS (US-PL-01 … US-PL-10 / TC-PL-001 … TC-PL-030, claude/stories/PLAY-LANE-2026-09-14.md) [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 //   1  the board is a PINNED size per geometry in a live game, and nothing scrolls on either axis
 //   2  the two player bars are the board's width and carry the ⌂ and ☰ chrome
 //   3  the control row is exactly Moves Back Forward Hint Flip More, 51 tall, fully inside the viewport
@@ -63,7 +63,7 @@
 //           else does.
 //   NC4  requestHint  if(mv)setPlayHintMv(mv) -> setPlayHintMv(null)
 //        -> "Hint paints exactly TWO squares" reads 0. One assertion, only that one.
-// The remaining controls are named per property in claude/stories/PLAY-LANE-2026-09-14.md; they were not run.
+// The remaining controls are named per property in claude/stories/PLAY-LANE-2026-09-14.md; they were not run. [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 'use strict';
 const L=require('../lib');
 const P=require('../drive/play');

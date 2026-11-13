@@ -1,6 +1,6 @@
 // regress/48-lesson-flow.js   THE LESSON SCREEN AS A FLOW: the note box, the demo transport, the practice
 // control row, the hint, and the fixed footer that sits over all of them. Authored 2026-09-15 by the test
-// authoring lane (claude/stories/LESSON-LANE-2026-09-15.md, US-LS-01 … US-LS-10 / TC-LS-001 … TC-LS-034).
+// authoring lane (claude/stories/LESSON-LANE-2026-09-15.md, US-LS-01 … US-LS-10 / TC-LS-001 … TC-LS-034). [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 //
 // Every number below was MEASURED on the running build - the committed bundle #397 - 2026-09-14 22:56 ET,
 // served by gates/lib.js's default path, and then re-measured identical on a local build of chess.jsx at
@@ -103,7 +103,7 @@
 //           3.1px off, reproduced exactly. This is the control that disproves 'the whole row is inside the
 //           viewport'; NC3 and NC7 each alone do not, and that is a property of the app, not of the gate.
 // ── PASTED AND CONTROLLED BY THE BUILD SESSION, 2026-09-16 at #403. ─────────────────────────────────────────
-// Recovered from claude/stories/LESSON-LANE-2026-09-15.md (staged in the tracker's docs collection as
+// Recovered from claude/stories/LESSON-LANE-2026-09-15.md (staged in the tracker's docs collection as [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 // `lesson-lane`), which had been published as run since 2026-09-15 and executed nowhere -
 // standing-a-c2-gates-claimed-not-in-git. The paste is faithful: it returned the lane document's own baseline
 // of 189 PASS / 0 fail on first run, against the #400 bundle rather than the #397 one it was measured on.

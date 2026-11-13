@@ -660,7 +660,7 @@ L.run(async()=>{
      L.say(small.length===0,geo+': TC-R114 every transport control is at least 44 x 44 ('+m.map(k=>k.w+'x'+k.h).join(' ')+')',small);
      const chrome=m.filter(k=>k.bw>0.01||k.bs!=='none'||k.img!=='none'||k.sh!=='none');
      L.say(chrome.length===0,geo+': TC-R114 no transport control carries a border, a gradient or a box-shadow ('+chrome.length+' of '+m.length+' do)',chrome);
-     // TC-R39 [#550; jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, US-R28's second criterion]: THE ROW FITS, MEASURED ON
+     // TC-R39 [#550; jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, the second criterion of the story that job calls 'R28'; R18 #550: this comment wrote it with the US- prefix, which reads as an id of claude/stories/USER-STORIES.md, and that register has no such story - the job's id is from a story list this repo does not carry, so the prefix is dropped rather than a story imported. In this register the transport row's story is US-R104, which TC-R114 - the case TC-R39 sits inside - files under]: THE ROW FITS, MEASURED ON
      // THE INK. Each control is flex 1 1 0 (or a fixed basis) with overflow visible, so the row's width is the sum of its children
      // and scrollWidth equals clientWidth whatever the padding - both obvious instruments are constants here (the job measured
      // NC3, 40px of horizontal padding on every control, at 13 pass / 0 fail against both). So the glyph's own rect
