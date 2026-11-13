@@ -570,6 +570,15 @@ CITATIONS OK with 1 row(s) NOT CHECKED - which is not a pass for those rows." "$
   st_ck "C22 a gate quoting one written and one unwritten story reads 1 of 2 and counts it" "gate story quotes: 1 of 2 gatestoryundefined=1 " "$(st_8 "$R22")"
   printf 'US-Z-02  **a story written as a bare line**\n' >> "$R22/claude/stories/USER-STORIES.md"
   st_ck "C22b once the register writes it (as a bare line), 0 of 2" "gate story quotes: 0 of 2 gatestoryundefined=0 " "$(st_8 "$R22")"
+  # C22c/C22d [#550]: a US-RF story is written by REVIEW-SUITE-FULL.md as a line opening **US-RFnn. The gate quotes two RF ids;
+  # that file writes US-RF97 in that form and only MENTIONS US-RF96 mid-line. Before the arm read that file both were undefined
+  # (2 of 4, measured with the A8DEF addition removed: C22c red, 64 pass / 1 fail); now only the mention is. C22d stays GREEN with
+  # that addition removed - it guards the OTHER direction: with the grammar loosened to read any US-RF mention in the file, C22c
+  # AND C22d both go red (63 pass / 2 fail, measured at #550).
+  printf "L.say(true,'US-RF97 and US-RF96 hold')\n" >> "$R22/gates/regress/10-real.js"
+  printf '**US-RF97 - a frozen story.** Criteria: none\n\nsee US-RF96 in passing\n' > "$R22/claude/stories/REVIEW-SUITE-FULL.md"
+  st_ck "C22c an RF story written by REVIEW-SUITE-FULL.md as **US-RFnn is defined, and one it only mentions is not: 1 of 4" "gate story quotes: 1 of 4 gatestoryundefined=1 " "$(st_8 "$R22")"
+  st_ck "C22d and the one still undefined is the mention, US-RF96" "1" "$( ( cd "$R22" && bash gates/verify-log.sh --citations 2>&1 | grep -c 'GATE QUOTES AN UNWRITTEN STORY: US-RF96 ' ) )"
   rm -rf "$R22"
 
   # ── C19: ARM (3m), THE MARKED md5 [#546, item (4)]. One fabricated register with a section citing a log that
@@ -1051,6 +1060,15 @@ EOF6
   A8N=0; A8U=0
   if [ -f claude/stories/USER-STORIES.md ]; then
     A8DEF="$(grep -oE '^(#+[[:space:]]+)?US-[A-Za-z0-9-]+' claude/stories/USER-STORIES.md | sed -E 's/^#+[[:space:]]+//' | sort -u)"
+    # THE FROZEN FULL REVIEW SUITE WRITES THE US-RF STORIES, AND IT IS THE ONLY REGISTER THAT DOES [#550, R18]. claude/stories/README.md
+    # reserves the US-RFnn prefix for claude/stories/REVIEW-SUITE-FULL.md, which writes each one as a line opening `**US-RFnn`.
+    # #549 item (69) re-pointed 45-play-setup.js's old "R28" quote to US-RF28 under the orchestrator's ruling (USER-STORIES.md
+    # says so), and this arm then reported that correct quote as UNWRITTEN because it read USER-STORIES.md alone. Scoped to the
+    # RF prefix and to the line-opening bold form: a US-RF id that file only MENTIONS is still undefined (C22c/C22d below).
+    if [ -f claude/stories/REVIEW-SUITE-FULL.md ]; then
+      A8DEF="$A8DEF
+$(grep -oE '^\*\*US-RF[0-9]+[a-z]?' claude/stories/REVIEW-SUITE-FULL.md | sed -E 's/^\*\*//' | sort -u || true)"
+    fi
     A8Q="$(git grep -ohE '\bUS-[A-Z]+(-[A-Z]+)?-?[0-9]+[a-z]?\b' -- 'gates/regress/*.js' 2>/dev/null | sort -u || true)"
     while IFS= read -r u; do
       [ -n "$u" ] || continue
@@ -1059,7 +1077,7 @@ EOF6
       A8U=$((A8U+1))
       echo "  GATE QUOTES AN UNWRITTEN STORY: $u is quoted in $(git grep -lE "\b$u\b" -- 'gates/regress/*.js' | sed -n 1p) and USER-STORIES.md defines no $u"
     done <<<"$A8Q"
-    echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md (REPORTED, not refused)"
+    echo "  (8) gate story quotes: $A8U of $A8N US- id(s) quoted under gates/regress/ are defined nowhere in USER-STORIES.md, nor US-RF ids in REVIEW-SUITE-FULL.md (REPORTED, not refused)"
   else echo "  (8) NOT CHECKED: claude/stories/USER-STORIES.md is absent"; fi
   # === (9) A SYMBOL CITATION MUST NAME TEXT ITS FILE CONTAINS [#549, item (56); TC-SUITE-371; part (a) of
   #     jobs/citations-resolves-paths-but-never-line-numbers-2026-10-03, on orchestratorRuling_2026_11_04: "Cite by
