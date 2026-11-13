@@ -122,6 +122,18 @@ async function playRail(w,h){const tag=w+'x'+h+' sideways Play';
   L.say(seq.length===5&&seq.every(x=>x[1]!=null&&Math.abs(x[1]-t0)<0.5),tag+': TC-R219h the bottom player bar holds its place from move 0, after the first move, through a Moves toggle and at checkmate ('+seq.map(x=>x[0]+' '+x[1]).join(', ')+')',seq);
   L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();}
 // (E) MOV-07: sideways Puzzles - Hint does not grow the top panel
+// (F) lesson-practice-small-defects (4) [#550 lead]: on a wide desktop window the sideways Puzzles panels fill their side column (at 1920 and 2560 wide
+// both stopped at 440 of the 520 column, an 80px empty band before the rail). Read: pz-top and pz-bottom against their own parent column.
+async function pzWide(w,h){const tag=w+'x'+h+' sideways Puzzles';
+  const b=await L.launch({geo:{w,h,safe:'',label:w+'x'+h},name:'mov143-pzw-'+w});await b.open();let ok=true;
+  try{await PZ.startTraining(b);await b.settle(900);}catch(e){ok=false;}
+  const r=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]'),bt=document.querySelector('[data-ct="pz-bottom"]');if(!t||!bt)return null;
+    const c=t.parentElement.getBoundingClientRect(),q=t.getBoundingClientRect(),z=bt.getBoundingClientRect();const f=x=>Math.round(x*10)/10;
+    return {col:[f(c.left),f(c.right)],top:[f(q.left),f(q.right)],bot:[f(z.left),f(z.right)]};});
+  L.say(ok&&!!r&&r.col[1]-r.col[0]>=440,tag+': TC-R219j PRECONDITION a puzzle is up sideways in a side column at least 440 wide ('+JSON.stringify(r)+')',r);
+  L.say(!!r&&Math.abs(r.top[0]-r.col[0])<=1&&Math.abs(r.top[1]-r.col[1])<=1&&Math.abs(r.bot[0]-r.col[0])<=1&&Math.abs(r.bot[1]-r.col[1])<=1,
+    tag+': TC-R219j the top and bottom panels fill the side column, no empty band before the rail (column '+(r&&r.col)+', top '+(r&&r.top)+', bottom '+(r&&r.bot)+')',r);
+  L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();}
 async function pzSide(w,h){const tag=w+'x'+h+' sideways Puzzles';
   const b=await L.launch({geo:{w,h,safe:'',label:w+'x'+h},name:'mov143-pz-'+w});await b.open();let ok=true;
   try{await PZ.startTraining(b);await b.settle(900);}catch(e){ok=false;}
@@ -143,5 +155,6 @@ L.run(async()=>{
   for(const [w,h] of [[1440,780],[1920,970]])await lessonSide(w,h);
   for(const [w,h] of [[761,375],[1440,780]])await playRail(w,h);
   await pzSide(761,375);
+  for(const [w,h] of [[1920,1080],[2560,1440]])await pzWide(w,h);
 },'143-no-movement');
 // SELECTOR-OPENED: rev-count reading=precondition round 4: the sideways PRECONDITION requires it

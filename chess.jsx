@@ -12826,7 +12826,7 @@ function AppMain(){
 
       {/* ── Puzzle: BROWSE / solving view ── */}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];const _pzS=!wide&&vp.h<700;/* #550 run-answers a42: short upright phones */return(
-      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:wide?8:TOP_Y-2 /* #550 FMT-A-06: upright the top row starts at TOP_Y, as on every screen (was 3 or 8 under a centring spacer) */,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:(!wide&&vp.h<700)?4:8}}>
+      <div ref={pzTopRef} data-ct="pz-top" style={{order:1,marginTop:wide?8:TOP_Y-2 /* #550 FMT-A-06: upright the top row starts at TOP_Y, as on every screen (was 3 or 8 under a centring spacer) */,width:wide?'100%':Math.min(vw-8,440) /* #550 lesson-practice-small-defects (4): sideways the panel fills its side column (it stopped at 440 of 520 at 1920 and 2560 wide) */,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:(!wide&&vp.h<700)?4:8}}>
         {/* #548 item (21), jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24: THE SOLVE BURST FALLS INSIDE THE BOARD.
             It was a viewport-wide layer whose confetti started at 16% of the screen height, which on a phone is the puzzle's top box,
             so it drew over the prompt text (measured on #428). It is now a fixed layer the size of the board, read from boardRef at the
@@ -12903,7 +12903,7 @@ function AppMain(){
         </div>
       </div>);})()}
       {mode==='puzzle'&&pzView==='browse'&&(()=>{const p=curPuz||PZ[puzIdx];return(
-      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:pzRail?'auto':8 /* #550 a8: in the sideways rail the buttons sit at its foot */,width:Math.min(vw-8,440),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
+      <div ref={pzBotRef} data-ct="pz-bottom" style={{order:3,marginTop:pzRail?'auto':8 /* #550 a8: in the sideways rail the buttons sit at its foot */,width:wide?'100%':Math.min(vw-8,440) /* #550 lesson-practice-small-defects (4): sideways the panel fills its side column (it stopped at 440 of 520 at 1920 and 2560 wide) */,maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',alignItems:'center',gap:9}}>
         {/* #364: ONE control row on phones. Kunal's phone (375 wide, 679 of usable height) had the puzzle board
             squeezed to 198px with 89px of black each side, because two stacked button rows (44 + 52 + gap) plus a
             74px verdict box and the roadmap header left it nowhere to go. The height cap was doing exactly what
