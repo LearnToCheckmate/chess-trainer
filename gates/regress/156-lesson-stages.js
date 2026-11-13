@@ -20,6 +20,13 @@
 //   TC-LS-073 (browser, 375x761) the refusals, with their reasons as the board shows them: 2.Qe2 "its box grows from 12 squares to 20",
 //             stage 2's Qd5 "it can reach b2", Qc5 stalemate; the board does not move on any of them, and the run banks nothing. Off the
 //             book the hint paints the stage's own move (Kd3 after 2.Ke2 Kd6).
+//   TC-LS-075 THE FAILURE LINE IS PART OF THE LESSON (the job's theFailureLineIsPartOfTheLesson: "a technique lesson should show what
+//             goes WRONG, not only the line that works"). (node) stageEscape gives, for every stage refusal from the two refusal positions
+//             (after 1.Qe4 Kc5 and after 6.Kc4 Ka4), a LEGAL king move in the refused position, and its claim holds against the gate's own
+//             flood: a king that "stands on" a square stands on one the old box did not hold (or off the rim, for an edge refusal), and a
+//             square it is "heading for" is in the new box and was won by the refused move; 2.Qe2 -> Kd5 and stage 2's Qd5 -> Ka3 heading
+//             for b2 are pinned. (browser, 375x761) the refusal's note names that line, the board PLAYS it - the refused move, then the king's
+//             step, two distinct positions - and goes back to the position before the refusal, where the next move is taken as before.
 //   TC-LS-074 (browser, 375x761) THE OLD LESSONS PLAY AS BEFORE: King & Queen Mate (scripted, no stages) opens practice with no stage text,
 //             refuses the safe non-book Qd3 (guarded by the king) with the board unmoved, and accepts its book Qd8.
 //
@@ -40,6 +47,8 @@
 // CONTROL-RECORD: 68b829c 2026-11-13 total=32 red=1 scope=env:CT_SRC=nc10.jsx how=NC10 freeSyncVerdict's stalemate arm removed - TC-LS-071 "Qc5 is refused as stalemate" red
 // CONTROL-RECORD: 68b829c 2026-11-13 total=32 red=1 scope=env:CT_SRC=nc12.jsx how=NC12 stageEdge always false - TC-LS-071 "stage 1 closes at 6.Kc4" red (closedAt null)
 // CONTROL-RECORD: 68b829c 2026-11-13 total=32 red=3 scope=env:CT_SRC=nc13.jsx how=NC13 the box keep refuses an equal box (>= for >) - TC-LS-071 book line passes (ply 3 relaxed), Ke2 passes and Qe2 refused red
+// CONTROL-RECORD: d1db502 2026-11-13 total=26 red=5 scope=trial:8c042255bfce+env:CT_SRC=chess.jsx@d1db502 how=TC-LS-075 THE SUBJECT REMOVED: the tree before the failure line (no stageEscape, no replay) - TC-LS-071 PRECONDITION red (stageEscape missing, so the node lines do not run, hence total 26) and all four browser TC-LS-075 lines red (no way out in the note, the board never moves); on ca983e6d2945 39 pass, 0 fail
+// CONTROL-RECORD: d1db502 2026-11-13 total=39 red=2 scope=trial:ca983e6d2945+env:CT_SRC=nc-esc2.jsx how=stageEscape counts EVERY square of the new box as won and prefers the step AWAY from the centre - TC-LS-075's 43-refusal claim check red (Qb7 -> Kd6 'stands on' a square the old box held) and the 2.Qe2 -> Kd5 pin red (Kb6). Counted with it: the won-set mutation ALONE stays green (39/0) - in these two positions the centre-most step always lands on a won square anyway, so that half is not shown able to fail by itself
 'use strict';
 const L=require('../lib');
 const D=require('../drive/lesson');
@@ -53,7 +62,7 @@ const BOX_QE4=['a5','a6','a7','b5','b6','b8','c5','c7','c8','d6','d7','d8'];
 function stageHelpers(){
   const E=require('../engine-extract.js');
   const src=fs.readFileSync(process.env.CT_SRC||path.join(ROOT,'chess.jsx'),'utf8').split('\n');
-  const want=['freeHangs','freeSyncVerdict','freeFallbackReply','stageBox','stageRim','stageEdge','stageKeepFail','stageVerdict','stageHint','stageIntro','stageKey'];const out={};
+  const want=['freeHangs','freeSyncVerdict','freeFallbackReply','stageBox','stageRim','stageEdge','stageKeepFail','stageVerdict','stageEscape','stageHint','stageIntro','stageKey'];const out={};
   const starts=[];for(let i=0;i<src.length;i++)if(/^(async\s+function|function|const|let|var)\s/.test(src[i]))starts.push(i);
   for(let s=0;s<starts.length;s++){const m=/^(?:function|const)\s+([A-Za-z_$][\w$]*)/.exec(src[starts[s]]);if(m&&want.includes(m[1]))out[m[1]]=src.slice(starts[s],s+1<starts.length?starts[s+1]:src.length).join('\n');}
   if(want.some(n=>!out[n]))return {missing:want.filter(n=>!out[n]),E};
@@ -129,6 +138,18 @@ L.run(async()=>{
     for(const m of E.getLegal(dl)){const n2=E.makeMove(dl,m);if(!H.freeSyncVerdict(n2).ok)continue;safe++;if(ownBox(E,n2.board).length>b0)grow++;}
     const anyM=E.getLegal(dl).find(m=>H.freeSyncVerdict(E.makeMove(dl,m)).ok);const vR=anyM&&H.stageVerdict(ST[0],dl,E.makeMove(dl,anyM));
     L.say(safe>0&&grow===safe&&!!vR&&vR.ok===true&&vR.relaxed===true,'TC-LS-071 where every one of the '+safe+' safe moves grows the box ('+grow+' grow, by the gate\'s flood) the rule is relaxed, not a dead end',vR);
+    // ── TC-LS-075 (node): the way out, checked move by move with the app's own move code and against the gate's own flood ──
+    const rim=(q)=>/^[ah]|[18]$/.test(q);let nRef=0,bad=[];
+    for(const [pos,si] of [[p2,0],[s2,1]])for(const m of E.getLegal(pos)){const ng=E.makeMove(pos,m);if(!H.freeSyncVerdict(ng).ok)continue;const v=H.stageVerdict(ST[si],pos,ng);if(v.ok)continue;nRef++;
+      const e=H.stageEscape(pos,ng,v);const o=ownBox(E,pos.board),n=ownBox(E,ng.board);const won=n.filter(q=>v.why==='edge'?!rim(q):!o.includes(q));
+      const legal=!!e&&E.getLegal(ng).some(x=>x.fr===e.mv.fr&&x.fc===e.mv.fc&&x.tr===e.mv.tr&&x.tc===e.mv.tc);
+      const to=e&&('abcdefgh'[e.mv.tc]+(8-e.mv.tr));
+      const ok=legal&&to===e.to&&won.includes(e.target)&&(e.out?(e.to===e.target):(!won.includes(e.to)&&n.includes(e.to)));
+      if(!ok)bad.push(sanOf(E,pos,m)+' -> '+(e?sanOf(E,ng,e.mv)+' '+JSON.stringify({to:e.to,target:e.target,out:e.out}):'null')+' won '+won.join(' '));}
+    L.say(nRef>=20&&bad.length===0,'TC-LS-075 for all '+nRef+' stage refusals from the two refusal positions, the way out is a legal king move and its square claim holds against the gate\'s own flood',bad.slice(0,6));
+    const eQ=H.stageEscape(p2,qe2,vQ),qd5e=H.stageEscape(s2,qd5,vE);
+    L.say(!!eQ&&sanOf(E,qe2,eQ.mv)==='Kd5'&&eQ.out===true&&!ownBox(E,p2.board).includes('d5')&&ownBox(E,qe2.board).includes('d5'),'TC-LS-075 2.Qe2: the way out is Kd5, a square the 12-square box did not hold (gate\'s flood)',eQ&&{k:sanOf(E,qe2,eQ.mv),to:eQ.to,out:eQ.out});
+    L.say(!!qd5e&&sanOf(E,qd5,qd5e.mv)==='Ka3'&&qd5e.out===false&&qd5e.target==='b2','TC-LS-075 stage 2\'s Qd5: the way out is Ka3, heading for b2, off the edge',qd5e&&{k:sanOf(E,qd5,qd5e.mv),target:qd5e.target,out:qd5e.out});
   }
 
   // ════════ browser ════════ each block runs in its own launch and a throw is its own red, so one missing control cannot hide the rest
@@ -137,7 +158,11 @@ L.run(async()=>{
   // play a white move by SAN and take the lone king's answer from the note; a move that is not legal here is reported, never tapped
   const mkPlayer=(b)=>{const P={g:E.fromFEN(START)};
     P.play=async(san)=>{const m=bySan(E,P.g,san);if(!m)return '(not legal here: '+san+')';const n=await tapMove(b,E,P.g,m);if(/^✗/.test(n))return n;P.g=E.makeMove(P.g,m);const rs=(n.match(/answers (\S+?)\./)||[])[1];const rm=rs&&bySan(E,P.g,rs);if(rm)P.g=E.makeMove(P.g,rm);return n;};
-    P.refuse=async(san)=>{const m=bySan(E,P.g,san);if(!m)return {n:'(not legal here: '+san+')',same:false};const p0=await position(b);const n=await tapMove(b,E,P.g,m);const p1=await position(b);return {n,same:p0===p1&&p0!=null};};
+    // a refusal: tap it, then watch the board for 3.5s (the failure line plays the refused move and the king's step, then goes back) and
+    // return the distinct positions it showed in order; `same` is the board back where it was before the tap
+    P.refuse=async(san)=>{const m=bySan(E,P.g,san);if(!m)return {n:'(not legal here: '+san+')',same:false,seq:[]};const p0=await position(b);const [f,t]=sqs(E,m);await b.move(f,t,0);
+      const seq=[p0];const t0=Date.now();while(Date.now()-t0<3500){const p=await position(b);if(p!==seq[seq.length-1])seq.push(p);await b.page.waitForTimeout(60);}
+      await b.settle(200);const n=(await D.noteText(b))||'';const p1=await position(b);return {n,same:p0===p1&&p0!=null,seq,p0,m};};
     return P;};
   // TC-LS-072: a flawless off-book run to mate
   await block('TC-LS-072','g156-run',async(b)=>{L.note(geo+': bundle stamp '+(await b.stamp()));
@@ -158,17 +183,29 @@ L.run(async()=>{
    L.say(/Flawless/.test(last)&&(await learnDays(b,NAME))===1,'TC-LS-072 the flawless run banks the day (ct_learnprog: '+(await learnDays(b,NAME))+')',last);
    await b.shot('g156-mate');});
 
+  // TC-LS-075 (browser): the refusal's note names the way out, every claim in it is re-derived here from the board with the app's own move
+  // code (engine-extract) and the gate's own flood, and the board played it - two distinct positions - and went back
+  const wayOut=(tag,g,r,why)=>{const mm=/ The way out: (\S+) (\S+?), (?:and the king stands on ([a-h][1-8])|heading for ([a-h][1-8]))/.exec(r.n||'');
+    let ok=false,det={note:r.n};if(mm&&r.m){const ng=E.makeMove(g,r.m);const km=bySan(E,ng,mm[2]);const sq=mm[3]||mm[4];const o=ownBox(E,g.board),n=ownBox(E,ng.board);
+      const won=(q)=>why==='edge'?!/^[ah]|[18]$/.test(q)&&n.includes(q):(!o.includes(q)&&n.includes(q));
+      const kto=km&&('abcdefgh'[km.tc]+(8-km.tr));det={refused:mm[1],king:mm[2],sq,kto,won:won(sq)};
+      ok=E.cleanSAN(mm[1])===E.cleanSAN(sanOf(E,g,r.m))&&!!km&&won(sq)&&(mm[3]?kto===sq:true)&&(why==='box'?new RegExp('a square its box of '+o.length+' did not reach').test(r.n):/off the edge\./.test(r.n));}
+    L.say(ok,'TC-LS-075 '+tag+': the note names the way out ('+(mm?mm[1]+' '+mm[2]+', '+(mm[3]?'stands on '+mm[3]:'heading for '+mm[4]):'none')+') and the board bears it out: a legal king move, onto or toward a square the refused move won',det);
+    const mid=(r.seq||[]).slice(1,-1);
+    L.say((r.seq||[]).length>=4&&r.seq[r.seq.length-1]===r.p0&&mid.length>=2&&mid.every(p=>p!==r.p0)&&mid[0]!==mid[1],'TC-LS-075 '+tag+': the board played the line - the refused move, then the king\'s step ('+mid.length+' positions between) - and went back',{n:(r.seq||[]).length});};
   // TC-LS-073: the refusals, and the hint off the book
   await block('TC-LS-073','g156-refuse',async(b)=>{
    await openPractice(b,/^Queen Mate: the Box Method$/);const P=mkPlayer(b);
    await P.play('Qe4');
-   const r1=await P.refuse('Qe2');
-   L.say(/^✗ Qe2 lets the king out: its box grows from 12 squares to 20\./.test(r1.n)&&r1.same,'TC-LS-073 2.Qe2 is refused with the box it opens (12 squares to 20) and the board does not move',r1.n);
+   const g1=P.g;const r1=await P.refuse('Qe2');
+   L.say(/^✗ Qe2 lets the king out: its box grows from 12 squares to 20\./.test(r1.n)&&r1.same,'TC-LS-073 2.Qe2 is refused with the box it opens (12 squares to 20) and the board ends where it was',r1.n);
+   wayOut('2.Qe2',g1,r1,'box');
    for(const s of ['Kd2','Kc3','Qe6','Qd6'])await P.play(s);
    const n6=await P.play('Kc4');
    L.say(/Stage 1 done\. Stage 2 of 2/.test(n6),'TC-LS-073 PRECONDITION the book reaches stage 2 at 6.Kc4 Ka4',n6);
-   const r2=await P.refuse('Qd5');
-   L.say(/^✗ Qd5 lets the king off the edge: it can reach b2\./.test(r2.n)&&r2.same,'TC-LS-073 stage 2: Qd5 is refused because the king can reach b2, and the board does not move',r2.n);
+   const g6=P.g;const r2=await P.refuse('Qd5');
+   L.say(/^✗ Qd5 lets the king off the edge: it can reach b2\./.test(r2.n)&&r2.same,'TC-LS-073 stage 2: Qd5 is refused because the king can reach b2, and the board ends where it was',r2.n);
+   wayOut('stage 2 Qd5',g6,r2,'edge');
    const n7=await P.play('Qb4#');
    L.say(/ is checkmate!/.test(n7)&&(await learnDays(b,NAME))===0,'TC-LS-073 the run still mates, and with the two stage refusals in it (and nothing else refused) it banks nothing (ct_learnprog: '+(await learnDays(b,NAME))+')',n7);});
   await block('TC-LS-073 stalemate','g156-stalemate',async(b)=>{

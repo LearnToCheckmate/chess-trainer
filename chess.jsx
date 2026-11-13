@@ -186,6 +186,20 @@ function stageKeepFail(st,g,ng){const keep=(st&&Array.isArray(st.keep))?st.keep:
 function stageVerdict(st,g,ng){const f=stageKeepFail(st,g,ng);let relaxed=false;
   if(f){if(getLegal(g).some(m=>{const n2=makeMove(g,m);return freeSyncVerdict(n2).ok&&!stageKeepFail(st,g,n2);}))return {ok:false,...f};relaxed=true;}
   const after=stageBox(ng.board,ng.turn),edge=stageEdge(after);return {ok:true,done:!!(st&&st.done==='edge'&&edge),size:after.length,edge,relaxed};}
+/* #550 jobs/lessons-teach-the-finish-not-the-method-2026-09-24, theFailureLineIsPartOfTheLesson: "a technique lesson should show what goes
+   WRONG, not only the line that works". The failure line of a refused stage move: the lone king's way out, as a real move on the board.
+   g is the position before the refused move, ng the one after it, v its refusal (why 'box' or 'edge'). The squares the king has won are
+   the new box's squares the old box did not hold (why 'box'), or the new box's squares off the rim (why 'edge'). Of the king's legal moves
+   in ng, the one that lands nearest such a square (walking through the new box, 8 ways), then nearest the centre, is the way out: {mv, to (where it lands), target
+   (the won square it is nearest, = to when it lands on one), out (it lands on one)}. null when the king has no move or nothing was won. */
+function stageEscape(g,ng,v){if(!v||v.ok)return null;const def=ng.turn;const before=new Set(stageBox(g.board,def)),after=stageBox(ng.board,def);
+  const won=new Set(after.filter(s=>v.why==='edge'?!stageRim(s):!before.has(s)));if(!won.size)return null;const inBox=new Set(after);
+  const sq=(r,c)=>FILES[c]+(8-r),dist={};const q=[];for(const s of won){dist[s]=0;q.push(s);}
+  while(q.length){const s=q.shift();const c=FILES.indexOf(s[0]),r=8-(+s[1]);for(const dr of [-1,0,1])for(const dc of [-1,0,1]){const nr=r+dr,nc=c+dc;if((!dr&&!dc)||nr<0||nr>7||nc<0||nc>7)continue;const n=sq(nr,nc);if(!inBox.has(n)||dist[n]!=null)continue;dist[n]=dist[s]+1;q.push(n);}}
+  const ctr=(r,c)=>Math.max(Math.abs(r-3.5),Math.abs(c-3.5));   // of two equally near, the step toward the centre: the way a king gets out
+  let best=null;for(const m of getLegal(ng)){const to=sq(m.tr,m.tc);const d=dist[to];if(d==null)continue;const cd=ctr(m.tr,m.tc);if(!best||d<best.d||(d===best.d&&cd<best.cd))best={mv:m,to,d,cd};}
+  if(!best)return null;let target=best.to;if(best.d>0){const c=FILES.indexOf(best.to[0]),r=8-(+best.to[1]);let bd=99;for(const s of won){const sc=FILES.indexOf(s[0]),sr=8-(+s[1]);const k=Math.max(Math.abs(sc-c),Math.abs(sr-r));if(k<bd){bd=k;target=s;}}}
+  return {mv:best.mv,to:best.to,target,out:best.d===0};}
 /* the hint once the run is off the book line: a mate if there is one, else the move that passes the stage and leaves the smallest box, then
    the one that brings the two kings closest after the king's answer (the method in one sort: shrink the box, and when it cannot shrink,
    bring the king), never back into a position the run has already reached while another move passes. */
@@ -8146,13 +8160,22 @@ function AppMain(){
      board shows: how far the box grew, or the square off the edge the king can now reach. The lone king answers at once (freeFallbackReply,
      after STAGE_MS so the move is seen first); a stage whose done test passes opens the next one. The rest is the free run's: a mate
      completes the run whatever its length and banks through finishRep, a refusal marks it not flawless, 50 moves is a draw. */
-  const STAGE_MS=350;
+  const STAGE_MS=350, STAGE_REPLAY_MS=900;   // the failure line: the refused move, then the king's step, each held 900ms, then the board goes back
   const stageMove=(g,mv,ng,san,sv,op)=>{
     const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
     const F=freeRef.current,line=learnLineRef.current,K=Math.min(F.stage||0,op.stages.length-1),st=op.stages[K];
     let v=null;if(!sv.mate){v=stageVerdict(st,g,ng);
       if(!v.ok){learnRepRef.current.miss=true;
-        setOpenMsg('\u2717 '+san+(v.why==='box'?(' lets the king out: its box grows from '+v.from+' squares to '+v.to):(' lets the king off the edge: it can reach '+v.sq))+'.'+(st.rule?(' '+st.rule):'')+' Try again.');clr();return;}}
+        /* theFailureLineIsPartOfTheLesson: the refusal shows the king's way out ON THE BOARD - the refused move, the king's step (stageEscape,
+           a legal move the app's own move code made), then the board goes back - so the learner sees the box open rather than reads it. */
+        let esc=null,ng2=null,ksan='';try{esc=stageEscape(g,ng,v);if(esc){ng2=makeMove(ng,esc.mv);ksan=toSAN(ng,esc.mv,applyMove(ng.board,esc.mv));}}catch(e){esc=null;}
+        const way=esc?(' The way out: '+san+' '+ksan+(esc.out?(v.why==='box'?(', and the king stands on '+esc.to+', a square its box of '+v.from+' did not reach.'):(', and the king stands on '+esc.to+', off the edge.')):(', heading for '+esc.target+(v.why==='box'?(', a square its box of '+v.from+' did not reach.'):', off the edge.')))):'';
+        setOpenMsg('\u2717 '+san+(v.why==='box'?(' lets the king out: its box grows from '+v.from+' squares to '+v.to):(' lets the king off the edge: it can reach '+v.sq))+'.'+way+(st.rule?(' '+st.rule):'')+' Try again.');clr();
+        if(esc&&ng2){const tok=++freeTokRef.current,last=F.last||null;freeSet({busy:true});setGame(ng);setLastMv(mv);repaint();
+          const live=()=>tok===freeTokRef.current&&modeRef.current==='learn'&&learnPhaseRef.current==='practice';
+          setTimeout(()=>{if(!live())return;setGame(ng2);setLastMv(esc.mv);repaint();
+            setTimeout(()=>{if(!live())return;setGame(g);setLastMv(last);freeSet({busy:false});repaint();},STAGE_REPLAY_MS);},STAGE_REPLAY_MS);}
+        return;}}
     const hist=F.hist.concat([ng]),n=F.moves+1,iBook=F.hist.length-1,off=F.off||cleanSAN(san)!==cleanSAN(line[iBook]||'');
     setGame(ng);setLastMv(mv);setRevealHint(false);clr();
     if(sv.mate){freeSet({hist,moves:n,hint:null,off,busy:false});setOpenStep(line.length);setOpenMsg('\ud83c\udf89 '+san+' is checkmate! That\'s the '+learnLabel+'.'+finishRep());return;}
