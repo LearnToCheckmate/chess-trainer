@@ -1,6 +1,6 @@
 // regress/49-home.js  THE HOME SCREEN - the overlay every session starts on, the four tiles that are the whole
 // navigation of the app, the Daily 3 / streak cards, the coach line and the foot of the column. Authored
-// 2026-09-15 by the test authoring lane (claude/stories/HOME-LANE-2026-09-15.md, US-HM-01 … US-HM-10 /
+// 2026-09-15 by the test authoring lane (claude/stories/HOME-LANE-2026-09-15.md, US-HM-01 … US-HM-10 / [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 // TC-HM-001 … TC-HM-046).
 //
 // Every number below was MEASURED on the running build: the committed bundle #398 - 2026-09-15 03:18 ET, and

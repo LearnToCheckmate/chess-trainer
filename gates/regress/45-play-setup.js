@@ -77,11 +77,11 @@
 // in this file is invented; each string was harvested from chess.jsx and confirmed in the live DOM.
 // NOTE for whoever hooks this screen later: [data-ct="play-context"] is NOT the setup banner. It is the live
 // game's opening/status row (chess.jsx:7349), it renders UNDER the overlay while setup is open, and its text
-// there is a single non-breaking space. claude/stories/TEST-CASES-REVIEW.md TC-RL-086 names it as the carrier of
+// there is a single non-breaking space. claude/stories/TEST-CASES-REVIEW.md TC-RL-086 names it as the carrier of [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 // the "Continuing from your reviewed position" string; it is not, and a gate written from that case would be
 // asserting on the wrong element. The banner has no data-ct at all - see PS-I.
 //
-// CASES IMPLEMENTED (claude/stories/PLAY-SETUP-LANE-2026-09-14.md):
+// CASES IMPLEMENTED (claude/stories/PLAY-SETUP-LANE-2026-09-14.md): [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
 //   PS-A  TC-PS-001 002 003 004 005 006 007      PS-F  TC-PS-026 027 028
 //   PS-B  TC-PS-008 009 010                      PS-G  TC-PS-029 030 031 032 033
 //   PS-C  TC-PS-011 012 013 014                  PS-H  TC-PS-034 035 036

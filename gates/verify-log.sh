@@ -672,7 +672,20 @@ if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
   cd "$ROOT" || { echo "REFUSED (--citations): cannot cd to $ROOT"; exit 1; }
   # THE ALLOWLIST IS THE POINT, NOT A LOOPHOLE (the job's words). A reserved name belongs here WITH ITS
   # REASON; a name that is merely broken does not. One entry per line: <path><TAB><reason>.
-  ALLOW="claude/stories/REVIEW-SUITE-FULL.md	reserved, not written: claude/stories/README.md says the full review suite keeps this name"
+  # THE SECOND CLASS, ADDED AT #550 [R18]: a path that was NEVER IN THIS REPOSITORY. Each was searched by path over all history
+  # (git log --all -- '*<name>', unshallowed clone) and none was ever committed, so it cannot be restored and there is no file that
+  # holds its content now. Each citation is kept, because the claim it supports is the record, and its row here says what the path
+  # was. Unlike a merely broken name these are PRINTED (ALLOWLISTED line, with the reason), so the gap stays visible in every run.
+  # A path that DID exist and was lost is not this class: it is a dead citation and is repaired at the citing site.
+  ALLOW="claude/stories/REVIEW-SUITE-FULL.md	reserved, not written: claude/stories/README.md says the full review suite keeps this name
+claude/stories/SAT-REVIEW-373.md	never in this repository: a claude.ai project document of the #373 era quoted by SUITE-AUDIT-2026-09-14.md 4.3; git log --all -- '*SAT-REVIEW-373.md' is empty on an unshallowed clone at #550
+claude/stories/REGRESSION-CANDIDATES.md	never in this repository: a claude.ai project document quoted by SUITE-AUDIT-2026-09-14.md 4.4; git log --all -- '*REGRESSION-CANDIDATES.md' is empty on an unshallowed clone at #550
+claude/stories/HOME-LANE-2026-09-15.md	never in this repository: the Home lane's own document (US-HM-01..10, TC-HM-001..046); TEST-CASES.md and USER-STORIES.md already say it is not here; git log --all -- '*HOME-LANE-2026-09-15.md' is empty on an unshallowed clone at #550
+claude/stories/PLAY-LANE-2026-09-14.md	never in this repository: the Play lane's own document (US-PL-01..10, TC-PL-001..030); USER-STORIES.md already says it is not here; git log --all -- '*PLAY-LANE-2026-09-14.md' is empty on an unshallowed clone at #550
+claude/stories/PLAY-SETUP-LANE-2026-09-14.md	never in this repository: the Play-setup lane's own document, cited by gates/regress/45-play-setup.js for the cases it implements; git log --all -- '*PLAY-SETUP-LANE-2026-09-14.md' is empty on an unshallowed clone at #550
+claude/stories/LESSON-LANE-2026-09-15.md	never in this repository: the Lesson lane's own document (US-LS-01..10, TC-LS-001..034), staged in the tracker's docs collection, per gates/regress/48-lesson-flow.js; git log --all -- '*LESSON-LANE-2026-09-15.md' is empty on an unshallowed clone at #550
+claude/stories/TEST-CASES-REVIEW.md	never in this repository: the TC-RL review case list; the TC-RL ids it defined are carried by the archived gatelogs from 390-all.log on, not by any story file; git log --all -- '*TEST-CASES-REVIEW.md' is empty on an unshallowed clone at #550
+gates/logs/434-subset-16-cpu-result-line.log	never in this repository: a per-gate subset log of #435's control run over the #434 bundle; subset logs were never archived to claude/agents/gatelogs; git log --all -- '*434-subset-16-cpu-result-line.log' is empty on an unshallowed clone at #550"
   SRC=""
   for f in claude/stories/*.md gates/*.js gates/*/*.js HANDOFF.md CLAUDE.md; do
     [ -f "$f" ] && SRC="$SRC $f"
@@ -701,7 +714,9 @@ if [ "${1:-}" = "--citations" ] || [ "${1:-}" = "citations" ]; then
     # added here, and a flaky push gate is worse than a failing one. The herestring has no pipe and
     # therefore no SIGPIPE: rc 0 at every n measured above. Controls C17/C17b/C17c pin both halves.
     if grep -qxF "$P" <<<"$(cut -f1 <<<"$ALLOW")"; then
-      A1ALLOW=$((A1ALLOW+1)); continue
+      A1ALLOW=$((A1ALLOW+1))
+      echo "  ALLOWLISTED: $P (named at $WHERE): $(awk -F'\t' -v p="$P" '$1==p{print $2; exit}' <<<"$ALLOW")"
+      continue
     fi
     A1BAD=$((A1BAD+1))
     echo "  DEAD CITATION: $P (named at $WHERE; looked for $TEST)"

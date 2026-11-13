@@ -450,7 +450,7 @@ L.run(async()=>{
   //   CT_APP=<the shipped #434 bundle, md5 f301b19b9727> gates/gates.sh '#434' '16-cpu-result-line'
   // [data-ct="play-opening"] is #370's and predates every change here, so a red is a missing ROW or wrong TEXT,
   // never a missing selector.
-  // MEASURED, AND THE SCOPE IS THE GATE'S OWN LOG (gates/logs/434-subset-16-cpu-result-line.log), NOT the
+  // MEASURED, AND THE SCOPE IS THE GATE'S OWN LOG (gates/logs/434-subset-16-cpu-result-line.log), NOT the [R18 #550: that path was never in this repository - no commit in any history holds it - so the citation is kept and listed with its reason in gates/verify-log.sh --citations ALLOW]
   // -all.log, because the -all.log adds mountcheck's 16 and an earlier draft of this build quoted 56/14 from it
   // - a count with no scope cannot be checked, which is this repo's own rule and was broken here first [R18]:
   //   #434 control: 39 PASS / 15 FAIL of 54. The fifteen are E2,E3,E5,E6,E7,E9,E10,E11 and F2,F5,F6,F7,F9,F10,F11.
