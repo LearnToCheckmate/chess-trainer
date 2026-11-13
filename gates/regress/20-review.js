@@ -1,6 +1,7 @@
 // regress/20-review.js  The Review screen's regression suite: TC-R01..TC-R09 and TC-R11..TC-R14 of
 // CONTROL-RECORD: 6a252cf 2026-11-11 total=310 red=10 scope=trial:6d861c33440b how=#550 item (50): chess.jsx's _engRestore made a no-op (leaving analysis keeps the engine line on) - every TC-R71 line red: after-exit and rev-compact at kunal, kunal730 and 390, after-exit and REENTER at se and kunal761; every other line green
 // CONTROL-RECORD: 19d032b 2026-11-11 total=308 red=9 scope=trial:57fa4bf4c0a1 how=#550 item (20): a mutant whose summary prints Forced as an eleventh row (t77) - the three TC-R04 lines red at kunal, kunal730 and 390
+// CONTROL-RECORD: 0b5342d 2026-11-13 total=320 red=5 scope=trial:e4e3cd74f811 how=#550 jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, TC-R39 (inside TC-R114): FootBtn's padding '0 6px' -> '0 40px' (the job's NC3, which both scrollWidth instruments pass) - TC-R39's ink-inside-content-box line red at kunal761, se, kunal730 and 390 (Next move's content box collapses to 330..330 against ink 334.7..345.3), its INK_RECT precondition green, and TC-R114's hit test red at se as a by-product; on 342f7329901b 320/0
 // claude/stories/TEST-CASES.md, executed on the bundle under test at THREE geometries: 375x730 (lib.js GEOS.kunal730,
 // the column R19 superseded - R19 settled 375x761, which this loop does not yet visit [#549 item (23)]); 375x679, which is NOT his phone and is kept only as a
 // shorter-phone column (the 679 came from subtracting the 51pt status bar twice - CLAUDE.md corrects it by name,
@@ -645,17 +646,29 @@ L.run(async()=>{
   for(const geo of ['kunal761','se','kunal730','390']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo});await b.open();
    const G=L.GEOS[geo],dim=G.w+'x'+G.h;const BOARD_FLOOR={'375x761':349,'320x568':264,'375x730':349,'390x844':364}[dim];
    let ok=true;try{await RV.states['moves-ply10'](b);await b.settle(500);}catch(e){ok=false;}
-   const m=ok?await b.page.evaluate(()=>{const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;
+   const m=ok?await b.page.evaluate((INKSRC)=>{const INK=new Function('return ('+INKSRC+')')();const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;
      return [...row.children].filter(c=>{const q=c.getBoundingClientRect();return q.width>1&&q.height>1;}).map(c=>{const q=c.getBoundingClientRect(),st=getComputedStyle(c);
        const hit=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+       const pl=parseFloat(st.paddingLeft)||0,pr=parseFloat(st.paddingRight)||0,bl=parseFloat(st.borderLeftWidth)||0,br=parseFloat(st.borderRightWidth)||0,k=INK(c);
        return {t:(c.getAttribute('aria-label')||c.innerText||'').trim().slice(0,24),w:+q.width.toFixed(2),h:+q.height.toFixed(2),bottom:+q.bottom.toFixed(2),
-         bw:parseFloat(st.borderTopWidth)||0,bs:st.borderTopStyle,img:st.backgroundImage,sh:st.boxShadow,hit:!!(hit&&(hit===c||c.contains(hit)))};});}):null;
+         bw:parseFloat(st.borderTopWidth)||0,bs:st.borderTopStyle,img:st.backgroundImage,sh:st.boxShadow,hit:!!(hit&&(hit===c||c.contains(hit))),
+         cl:+(q.left+bl+pl).toFixed(2),cr:+(q.right-br-pr).toFixed(2),ink:k?{l:+k.l.toFixed(2),r:+k.r.toFixed(2),w:+k.w.toFixed(2),n:k.n}:null};});},L.INK_RECT):null;
    const bd=ok?await b.board():null;
    if(L.say(!!m&&m.length>=3,geo+': TC-R114 PRECONDITION the review transport row is on screen at ply 10 with its controls ('+(m?m.map(k=>k.t).join(' | '):'none')+')',m)){
      const small=m.filter(k=>k.h<43.99||k.w<43.99);
      L.say(small.length===0,geo+': TC-R114 every transport control is at least 44 x 44 ('+m.map(k=>k.w+'x'+k.h).join(' ')+')',small);
      const chrome=m.filter(k=>k.bw>0.01||k.bs!=='none'||k.img!=='none'||k.sh!=='none');
      L.say(chrome.length===0,geo+': TC-R114 no transport control carries a border, a gradient or a box-shadow ('+chrome.length+' of '+m.length+' do)',chrome);
+     // TC-R39 [#550; jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, US-R28's second criterion]: THE ROW FITS, MEASURED ON
+     // THE INK. Each control is flex 1 1 0 (or a fixed basis) with overflow visible, so the row's width is the sum of its children
+     // and scrollWidth equals clientWidth whatever the padding - both obvious instruments are constants here (the job measured
+     // NC3, 40px of horizontal padding on every control, at 13 pass / 0 fail against both). So the glyph's own rect
+     // (gates/lib.js INK_RECT) is held inside the control's CONTENT box (its rect less border and padding): a control too
+     // narrow for what it carries paints past its content box even when no box overflows anything. Non-empty first, own line.
+     const inkless=m.filter(k=>!k.ink||!(k.ink.n>0));
+     if(L.say(inkless.length===0,geo+': TC-R39 PRECONDITION gates/lib.js INK_RECT read painted ink in every transport control ('+m.map(k=>k.t+' n'+(k.ink?k.ink.n:0)).join(' | ')+')',inkless)){
+       const spill=m.filter(k=>k.ink.l<k.cl-0.5||k.ink.r>k.cr+0.5);
+       L.say(spill.length===0,geo+': TC-R39 every transport control\'s painted ink sits inside its own content box, within 0.5px ('+m.map(k=>k.t+' ink '+k.ink.l+'..'+k.ink.r+' in '+k.cl+'..'+k.cr).join(' | ')+')',spill);}
      const blind=m.filter(k=>!k.hit||k.bottom>G.h+0.5);
      L.say(blind.length===0,geo+': TC-R114 the centre of every control hit-tests to it and the control is on screen',blind);
      L.say(!!bd&&BOARD_FLOOR!=null&&bd.w>=BOARD_FLOOR,geo+': TC-R114 the board keeps its shipped width at '+dim+' ('+(bd&&bd.w.toFixed(2))+' >= '+BOARD_FLOOR+')',{board:bd&&bd.w});}
