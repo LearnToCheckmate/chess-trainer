@@ -601,7 +601,7 @@ L.run(async()=>{
   // and a wrong-index bug (the note of the reply or of the move already played) does. ORDER, so the absence half is evidence [#385]: hints OFF,
   // the words are absent; hints ON, they are present for move 1 and the board did not move; one correct move later, the words are those of
   // the NEXT own move and the previous move's note is gone from the hint. CT_LS061_ONLY=1 runs this block alone.
-  // CONTROL-RECORD: HEAD 2026-11-13 total=13 red=4 scope=env:CT_LS061_ONLY=1 how=#550 HEX-T-13: the branch tip's bundle t0 (37af39a67536, before the words) - the two words-present lines red at kunal761 and se; the order preconditions, no-jump and error lines green
+  // CONTROL-RECORD: f8fb292 2026-11-13 total=13 red=4 scope=env:CT_LS061_ONLY=1 how=#550 HEX-T-13: the branch tip's bundle t0 (37af39a67536, before the words) - the two words-present lines red at kunal761 and se; the order preconditions, no-jump and error lines green
   if(!process.env.CT_LS058_ONLY){
     for(const geo of ['kunal761','se']){
       const b=await L.launch({geo,name:'lesson-hintwords-'+geo,store:{}});await b.open();

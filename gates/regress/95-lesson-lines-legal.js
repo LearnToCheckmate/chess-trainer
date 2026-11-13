@@ -16,7 +16,7 @@
 // WHAT IT DOES NOT ASSERT, named: moves written inside free text (notes, plans, idea, a hint's words) are not parsed; arrows are not checked;
 // and work item 4's first half - every technique lesson carries a method field - has no field to test, because the schema has none.
 // CONTROL-RECORD: f83b4e2 2026-11-11 total=3 red=1 scope=env:CT_LESSONS=c85-lessons.js how=#550 item (85): lessons.js with one SAN of Italian Game / Giuoco Pianissimo (quiet) changed from d6 to Qxh7 - the legality line red at ply 12; both DENOMINATORS green (2281 plies)
-// CONTROL-RECORD: HEAD 2026-11-13 total=5 red=1 scope=env:CT_LESSONS=tip-lessons.js how=#550 HEX-T-14: the branch tip's lessons.js (git show HEAD:lessons.js, before the fill) - TC-LS-062's no-empty-note line red at 20 (the four Rousseau Gambit variations, plies 1 to 5); both denominators and TC-LS-059 green
+// CONTROL-RECORD: f8fb292 2026-11-13 total=5 red=1 scope=env:CT_LESSONS=tip-lessons.js how=#550 HEX-T-14: the branch tip's lessons.js (git show HEAD:lessons.js, before the fill) - TC-LS-062's no-empty-note line red at 20 (the four Rousseau Gambit variations, plies 1 to 5); both denominators and TC-LS-059 green
 const L=require('../lib');const E=require('../engine-extract');
 const path=require('path');
 const SRC=process.env.CT_LESSONS||path.join(__dirname,'..','..','lessons.js');
