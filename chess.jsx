@@ -4751,12 +4751,23 @@ function AppMain(){
      effect at start-up, a lesson finished in the first seconds) sent this device's defaults over the account's progress. syncPulledRef is
      false from sign-in until the pull has been merged; a pull that fails is retried, and pushes stay held until it succeeds. */
   const syncPulledRef=useRef(false);
+  /* #550 cg5 SYN-07 (accounts-devices check, the independent checker at 6494893): A PUSH PULLS AND MERGES FIRST. Every push sent every synced
+     key with no pull before it, so a device left open and focused (no refocus pull) pushed its older copy - 17 keys, the old ct_elo 1250
+     among them - over a newer change another device had just made, and the account stayed rolled back until that device next pulled. Of the
+     two remedies (send only the keys changed here, or pull and merge first) this takes the second: a changed-keys push would still send this
+     device's whole ct_syncmeta and drop the other device's newer stamps from it, while the pull path already merges values AND stamps by the
+     SYN-03/04 rules. So the debounced push now re-runs that pull (quietly, as a refocus pull does) and the pull ends by saving the merge
+     (syncSave). A pull that fails holds the push as before and is retried on reconnect or after 20 s. */
+  const syncViaPushRef=useRef(false);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser||!syncPulledRef.current)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(()=>{syncTimer.current=null;if(!syncPulledRef.current)return;try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */
+    syncTimer.current=setTimeout(()=>{syncTimer.current=null;if(!syncPulledRef.current)return;syncPulledRef.current=false;syncRefocusRef.current=true;syncViaPushRef.current=true;setSyncTry(n=>n+1);},2500);};
+  const syncSave=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser||!syncPulledRef.current)return;
+    if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}
+    {try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */
       prog[SYNC_META]=JSON.stringify(syncMetaLoad());   /* #550 SYN-03/04: the per-key change times and the per-item tombstones ride with the values */
-      C.save({ctProgress:prog}).catch(()=>{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');syncDirtyRef.current=true;});}catch(e){}},2500);};
-  const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
+      C.save({ctProgress:prog}).catch(()=>{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');syncDirtyRef.current=true;});}catch(e){}}};
+  const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;const syncSaveRef=useRef(syncSave);syncSaveRef.current=syncSave;
   const syncDirtyRef=useRef(false);   // #550 SYN-08: a failed backup is tried again when the connection comes back
   useEffect(()=>{const on=()=>{if(syncDirtyRef.current){syncDirtyRef.current=false;syncPushRef.current();}};try{window.addEventListener('online',on);}catch(e){}return ()=>{try{window.removeEventListener('online',on);}catch(e){}};},[]);
   const [syncPulled,setSyncPulled]=useState(false);
@@ -4842,6 +4853,12 @@ function AppMain(){
           add.forEach(id=>{const S=mm.s.ct_accts||(mm.s.ct_accts={});const p=S[id]||[0,0];if(!(+p[0]>0))S[id]=[1,+p[1]||0];});   // kept alive in the meta until its games arrive, so a push before the fetch does not lose it
           if(add.length||del.length){cloudAcctsRef.current={add,del};setCloudAcctsTick(t=>t+1);applied++;}}catch(e){}}
       try{const S=Object.assign({},mm);raw(SYNC_META,JSON.stringify(syncMetaPrune(S)));}catch(e){}
+      /* #550 cg5 SYN-11 (accounts-devices check): THE PUZZLE STREAK FOLLOWS THE ACCOUNT. It was never pulled, so a fresh device showed 0 and
+         its backup then wrote 0 over the account's 5. The newer real change wins (streakAt: when a device last solved or missed - a fresh
+         device has none, so its 0 never does); two copies that were never stamped keep the longer streak; best is the max of both. */
+      try{const cp=d&&d.pz;if(cp&&typeof cp==='object'){const cs=Math.max(0,+cp.streak||0),cat=+cp.streakAt||0,lat=+pzStreakAtRef.current||0;
+        if((cat>lat||(!cat&&!lat&&cs>(+pzStreakRef.current||0)))&&cs!==pzStreakRef.current){pzStreakAtRef.current=cat;pzStreakRef.current=cs;setPzStreak(cs);applied++;}else if(cat>lat)pzStreakAtRef.current=cat;
+        const cb=Math.max(+cp.best||0,cs);if(cb>(+pzBestRef.current||0)){pzBestRef.current=cb;setPzBest(b=>Math.max(b,cb));}}}catch(e){}
       syncQuietRef.current=false;
       changed.forEach(([k,v])=>{try{syncApplyState(k,v);}catch(e){}});
       if(namesIn.cc)setChessUser(namesIn.cc);if(namesIn.li)setLichessUser(namesIn.li);
@@ -4849,9 +4866,10 @@ function AppMain(){
       syncPulledRef.current=true;setSyncPulled(true);
       try{window.__ctSyncPulled={at:Date.now(),applied,keys:changed.map(x=>x[0])};}catch(e){}
       if(applied>0&&!syncRefocusRef.current){toastRef.current('Progress restored from your account','ok');}syncRefocusRef.current=false;
-      // push local state up so a fresh cloud doc gets seeded
-      syncPushRef.current();
-    }).catch(()=>{if(dead)return;syncQuietRef.current=false;   /* #550 SYN-02: a pull that failed is NOT a pull - pushes stay held and it is tried again */
+      // push local state up so a fresh cloud doc gets seeded - the merge just made, saved at once (cg5 SYN-07: never a push without this pull)
+      syncViaPushRef.current=false;syncSaveRef.current();
+    }).catch(()=>{if(dead)return;syncQuietRef.current=false;
+      if(syncViaPushRef.current){syncViaPushRef.current=false;syncRefocusRef.current=false;try{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');}catch(e){}}   /* cg5: the backup's pull failed - said as a failed backup was */   /* #550 SYN-02: a pull that failed is NOT a pull - pushes stay held and it is tried again */
       const again=()=>{if(!dead)setSyncTry(n=>n+1);};retry=setTimeout(again,20000);try{window.addEventListener('online',again,{once:true});}catch(e){}});
     return ()=>{dead=true;if(retry)clearTimeout(retry);};
   },[cloudUser,syncTry]);
@@ -4859,6 +4877,7 @@ function AppMain(){
   useEffect(()=>{try{const orig=localStorage.setItem.bind(localStorage);if(localStorage.__ctPatched)return;Object.defineProperty(localStorage,'__ctPatched',{value:true});
     localStorage.setItem=(k,v)=>{const sk=SYNC_KEYS.indexOf(k)>=0;let old=null;if(sk){try{old=localStorage.getItem(k);}catch(e){}}try{orig(k,v);}catch(e){try{if(e&&(e.name==='QuotaExceededError'||e.code===22))storageWarnRef.current('full');}catch(_e){}throw e;}
       if(!sk)return;try{if(!syncQuietRef.current&&old!==String(v)&&k!=='ct_accts')syncStamp(k,old,String(v),orig);}catch(e){}   /* #550 SYN-03: the time of this device's change */
+      if(old===String(v))return;   /* cg5 SYN-07: a write that changed nothing is not a reason to push (every push now pulls first) */
       try{syncPushRef.current();}catch(e){}};}catch(e){}},[]);
   /* #550 ERR-07 (errors-offline check): NOTHING CAN BE SAVED, AND IT SAYS SO. With storage blocked (every call throws, or the property
      itself throws) or full (a quota error), the app ran normally and lost every lesson, review and game in progress on the next reload,
@@ -5709,6 +5728,7 @@ function AppMain(){
   const puzSideRef=useRef(puzSide); puzSideRef.current=puzSide;
   const pzSolvedRef=useRef(pzSolvedMap); pzSolvedRef.current=pzSolvedMap;
   const pzStreakRef=useRef(pzStreak); pzStreakRef.current=pzStreak;
+  const pzStreakAtRef=useRef(0);   /* #550 cg5 SYN-11: when this device last CHANGED the puzzle streak (a solve or a miss) - 0 on a device that never has, so its 0 never outranks the account's streak */
   const pzBestRef=useRef(pzBest); pzBestRef.current=pzBest;
   const pzXPRef=useRef(pzXP); pzXPRef.current=pzXP;
   const pzTrainTierRef=useRef(pzTrainTier); pzTrainTierRef.current=pzTrainTier;
@@ -5779,7 +5799,7 @@ function AppMain(){
   const pzSeenRef=useRef({id:null,was:false});   // #547 item (164)(1)
   const pzDiffRef=useRef(pzDiff); pzDiffRef.current=pzDiff;
   // Load saved progress once on mount
-  useEffect(()=>{(async()=>{try{const raw=await PZSTORE.get(PZKEY);if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'){setPzSolvedMap(o.solved||{});setPzStreak(o.streak||0);setPzBest(o.best||0);setPzXP(o.xp||0);setPzOSolved(o.online||0);setPzOSolvedIds(o.onlineIds||{});}}}catch(e){}try{const u=await PZSTORE.get(PZUKEY);if(u==='1')setPzUnlock(true);}catch(e){}})();},[]);
+  useEffect(()=>{(async()=>{try{const raw=await PZSTORE.get(PZKEY);if(raw){const o=JSON.parse(raw);if(o&&typeof o==='object'){setPzSolvedMap(o.solved||{});setPzStreak(o.streak||0);pzStreakAtRef.current=+o.streakAt||0;setPzBest(o.best||0);setPzXP(o.xp||0);setPzOSolved(o.online||0);setPzOSolvedIds(o.onlineIds||{});}}}catch(e){}try{const u=await PZSTORE.get(PZUKEY);if(u==='1')setPzUnlock(true);}catch(e){}})();},[]);
   // PIN box → unlock all tiers (or re-lock)
   const pzTryPin=()=>{const code=String(pzPin||'').trim();if(code.toLowerCase()===PZ_PIN.toLowerCase()){setPzUnlock(true);setPzPin('');setPzPinErr('');PZSTORE.set(PZUKEY,'1');}else{setPzPinErr('Wrong code.');setTimeout(()=>setPzPinErr(''),2000);}};
   const pzRelock=()=>{setPzUnlock(false);PZSTORE.set(PZUKEY,'0');};
@@ -6517,7 +6537,7 @@ function AppMain(){
             if(typeof cp.online==='number')setPzOSolved(o=>Math.max(o,cp.online));
           }
         }else{
-          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current,coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});
+          C.save({theme:syncRef.current.theme,skin:syncRef.current.skin,elo:syncRef.current.elo,hintprefs:readHintPrefs(),pz:{solved:pzSolvedRef.current,streak:pzStreakRef.current,streakAt:pzStreakAtRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current},learnprog:learnProgRef.current,coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});
         }
       }catch(e){}
     });
@@ -6530,10 +6550,12 @@ function AppMain(){
   },[theme,cpuElo,skin,cloudUser]);
   // Mirror puzzle progress to local store (covers cloud-merged data) + push to cloud
   useEffect(()=>{
-    const o={solved:pzSolvedMap,streak:pzStreak,best:pzBest,xp:pzXP,online:pzOSolved,onlineIds:pzOSolvedIds};
+    const o={solved:pzSolvedMap,streak:pzStreak,streakAt:pzStreakAtRef.current,best:pzBest,xp:pzXP,online:pzOSolved,onlineIds:pzOSolvedIds};
     const t1=setTimeout(()=>{try{PZSTORE.set(PZKEY,JSON.stringify(o));}catch(e){}},400);
     const C=(typeof window!=='undefined')?window.CTCloud:null;
-    let t2=null; if(C&&cloudUser){   /* #550 SEC-15: the account the APP accepted (after the ct_owner check), not the bridge's raw user - a save here used to be able to carry the last player's puzzles into a new account in the moment before the wipe */t2=setTimeout(()=>{try{C.save({pz:o});}catch(e){}},1000);}
+    /* #550 cg5 SYN-11: the puzzle backup waits for the account's copy to come down (syncPulledRef, as the progress push does), so a fresh
+       device's streak 0 is never written over the account's streak before the pull has merged it */
+    let t2=null; if(C&&cloudUser){   /* #550 SEC-15: the account the APP accepted (after the ct_owner check), not the bridge's raw user - a save here used to be able to carry the last player's puzzles into a new account in the moment before the wipe */const go=()=>{t2=setTimeout(()=>{if(!syncPulledRef.current){go();return;}try{C.save({pz:{...o,streakAt:pzStreakAtRef.current}});}catch(e){}},1000);};go();}
     return ()=>{clearTimeout(t1);if(t2)clearTimeout(t2);};
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
@@ -8065,13 +8087,13 @@ function AppMain(){
     const rankBefore=pzRank(map);
     const nstreak=pzStreakRef.current+1, nbest=Math.max(pzBestRef.current,nstreak);
     const nxp=pzXPRef.current+(already?2:Math.max(5,Math.round((p.rating||800)/10)));
-    setPzSolvedMap(nmap);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);
-    PZSTORE.set(PZKEY,JSON.stringify({solved:nmap,streak:nstreak,best:nbest,xp:nxp,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));
+    pzStreakAtRef.current=Date.now();setPzSolvedMap(nmap);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);
+    PZSTORE.set(PZKEY,JSON.stringify({solved:nmap,streak:nstreak,streakAt:pzStreakAtRef.current,best:nbest,xp:nxp,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));
     const rankAfter=pzRank(nmap);
     bumpDaily('puz');
     return rankAfter>rankBefore?PZ_TIERS[rankAfter-1]:null;
   };
-  const pzBreakStreak=()=>{if(pzStreakRef.current>0){setPzStreak(0);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:0,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));}};
+  const pzBreakStreak=()=>{if(pzStreakRef.current>0){pzStreakAtRef.current=Date.now();setPzStreak(0);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:0,streakAt:pzStreakAtRef.current,best:pzBestRef.current,xp:pzXPRef.current,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));}};
   const LEARN_GOAL=10;
   const linesOf=(op)=>{const a=[{key:op.name,name:'Main line'}];(op.vars||[]).forEach(v=>a.push({key:op.name+'§'+v.name,name:v.name}));return a;};
   const lineDays=(k)=>{const c=learnProgRef.current[k];return (c&&Array.isArray(c.days))?c.days:[];};
@@ -9333,7 +9355,7 @@ function AppMain(){
   // Enter the solving board for a given puzzle index, optionally tagged to a roadmap tier
   const pzEnterBrowse=(idx,tier)=>{setPzTrainTier(tier);loadPuzzle(idx);setPzView('browse');};
   // ── Lichess online puzzles ──
-  const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily('puz');};
+  const onlineSolved=(p)=>{const ids=pzOSolvedIdsRef.current,already=!!ids[p.id];const nids=already?ids:{...ids,[p.id]:1};const nstreak=pzStreakRef.current+1,nbest=Math.max(pzBestRef.current,nstreak),nxp=pzXPRef.current+(already?3:Math.max(8,Math.round((p.rating||1200)/10))),nc=already?pzOSolvedRef.current:pzOSolvedRef.current+1;pzStreakAtRef.current=Date.now();setPzOSolvedIds(nids);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);setPzOSolved(nc);PZSTORE.set(PZKEY,JSON.stringify({solved:pzSolvedRef.current,streak:nstreak,streakAt:pzStreakAtRef.current,best:nbest,xp:nxp,online:nc,onlineIds:nids}));bumpDaily('puz');};
   // #341: a finished Stockfish pass is worth keeping. Key on the exact move list plus the movetime budget, store only the engine's own output
   // (white-POV centipawns, the second line, the best move per ply); everything else the review shows is derived from those in pure JS.
   const evalCacheKey=(plies,fen)=>{let h=5381;const str=plies.map(p=>p.san).join(' ')+'|sf18c'+(fen?'|'+fen:'');   /* #549 item (66): a set-up game's key carries its start, so the same SANs from two positions cannot share evaluations; an ordinary game's key is unchanged */for(let i=0;i<str.length;i++){h=((h<<5)+h+str.charCodeAt(i))>>>0;}return 'g'+h.toString(36)+'-'+plies.length;};
