@@ -19,6 +19,7 @@
 // CONTROL-RECORD: 359de94 2026-11-13 total=15 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: the branch tip's chess.jsx (fbd9ff8) - TC-R209e B9 and B10 red, reading 'allows Qxh6, which hits the bishop on d2: you go from winning to clearly better'; B9 PRECONDITION and every other A/B line green; with the fix 15/0, and the full gate (C-E browser blocks) 28/0 on t3 18c1452bf0b3
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=69 red=12 scope=trial:f04242ef6603 how=#550 cg7: the branch tip's bundle (before missWhy) - TC-R210c red on K2 K5 K6 at kunal761 and 320x568 (two lines each); every other line green, K7 K8 K10 included
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=23 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip's chess.jsx d04a8ed0b851 (no missWhy) - TC-R210a K2 K5 K6 red; the null cards and every TC-R210b must-not line green
+// CONTROL-RECORD: e14a1d6 2026-11-13 total=83 red=16 scope=trial:aee112168086 how=#550 jobs/drill-engine-reason-overflows-its-box-2026-11-13: the bundle before 8b5bfe7's drill-box fix (and before cg7) - TC-R211 x4 red (kunal761: 3 of 4 lines shown, the chip over 2, one tap shows 3; se: a line cut at the 74px box's edge, the chip over 2, one tap leaves 1 hidden); the other 12 red are cg7's block F, which that bundle predates (K5 at se there reads the job's own case, '...chases the knight off f3: you go from slightly better to level. Try again.', cut true); on t5 bade581b40e6 83/0
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('124-wrong-move-says-why: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-B); bundle '+(process.env.CT_APP||'app.js')+' (blocks C-E)');
@@ -145,4 +146,35 @@ L.run(async()=>{
     else L.say(!!first&&/^✗ \S+ isn't it/.test(first.t),'TC-R210c '+geo+' '+id+' no board reason: the first line is the honest one ("'+(first&&first.t)+'")',{first});
     L.say(b.errs.length===0,'TC-R210c '+geo+' '+id+' zero app errors',b.errs.slice(0,3));
     await b.close();}
+  // ── H. THE LONGEST ENGINE REASON IN THE DRILL'S BOX [#550 jobs/drill-engine-reason-overflows-its-box-2026-11-13]: '✗ Nf3 allows e4, which chases
+  // the knight off f3: you go from slightly better to slightly worse. Try again.' was 111px of content in a 72px box at 320x568. The longest line
+  // replyWhy's grammar can write (a promotion SAN, the longest gist - 'pins the knight to the queen' - the widest band drop the ':' clause allows,
+  // and the second-try ending) is put into the drill's message box on the E card and the box is asked to measure again (a scroll event). Asserted
+  // at kunal761 and 320x568: folded, every line that shows is whole and the 'more' chip covers none of them; one tap shows every line inside the
+  // message and the screen; the board does not move. The string is computed below, not observed, because which reply the 300ms engine picks
+  // is not under the gate's control (CLAUDE.md: a predicate on which answer an engine returns is a coin flip).
+  {const LONG='\u2717 exd8=Q+ allows Qxe7+, which pins the knight to the queen: you go from completely winning to slightly worse. Tap \u{1F441} to see the move.';
+   const p0=E.fromFEN('4k3/8/2n5/8/8/8/8/4KB2 b - - 0 1');
+   L.say(LONG.length>=String(E.replyWhy(E.makeMove(p0,mvOf(p0,'e8','d8')),mvOf(E.makeMove(p0,mvOf(p0,'e8','d8')),'f1','b5'),{cp:300,mate:null})||'').length+40,'TC-R211 PRECONDITION the planted line ('+LONG.length+' characters) is longer than a real engine reason (gate B5) by 40 or more');
+   for(const geo of ['kunal761','se']){
+    const row={fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Blunder',played:'Kd1',ts:1791000000000,last:null,why:'w',hint:'h',wc:{g:'Blunder',drop:30,v:1}};
+    const b=await L.launch({geo,name:'say-why-long-'+geo,store:{ct_mymistakes:[row,{...row,ts:1791000001000,fen:'4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1',uci:'c2c7'}],ct_pool:'3'}});await b.open();let ok=true;
+    try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(2500);await b.move('e1','d1',0);await b.settle(1500);}catch(e){ok=false;}
+    const bd0=await b.board();
+    const planted=ok&&await b.page.evaluate((LONG)=>{const e=document.querySelector('[data-ct="pz-msg"]');if(!e)return false;const t=e.querySelector('[data-ct="pz-msg-text"]')||e;const tn=[...t.childNodes].find(n=>n.nodeType===3);if(!tn)return false;tn.textContent=LONG;e.dispatchEvent(new Event('scroll'));return true;},LONG);
+    await b.settle(500);
+    const rd=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-msg"]');if(!e)return null;const t=e.querySelector('[data-ct="pz-msg-text"]')||e;const tn=[...t.childNodes].find(n=>n.nodeType===3);
+      const g=document.createRange();g.selectNodeContents(tn||t);const Ls=[...g.getClientRects()].filter(x=>x.width>0.5);const cs=getComputedStyle(e),er=e.getBoundingClientRect(),tr=t.getBoundingClientRect();
+      const bot=Math.min(t===e?er.bottom-parseFloat(cs.borderBottomWidth):tr.bottom,er.bottom-parseFloat(cs.borderBottomWidth)),top=Math.max(tr.top,er.top+parseFloat(cs.borderTopWidth));
+      const vis=Ls.filter(x=>x.bottom>top+0.5&&x.top<bot-0.5);const mo=document.querySelector('[data-ct="pz-msg-more"]');const m=mo&&mo.getBoundingClientRect();
+      return {n:Ls.length,vis:vis.length,whole:vis.every(x=>x.top>=top-0.5&&x.bottom<=bot+0.5),chip:mo?(mo.innerText||'').trim():null,cover:m?vis.filter(x=>x.left<m.right&&x.right>m.left&&x.top<m.bottom&&x.bottom>m.top).length:0,
+        all:Ls.every(x=>x.top>=er.top-0.5&&x.bottom<=er.bottom+0.5&&x.bottom<=innerHeight&&x.right<=innerWidth),box:Math.round(er.height)};});
+    const f=await rd();
+    L.say(ok&&planted&&!!f&&f.n>=3,'TC-R211 '+geo+' PRECONDITION the drill showed its ✗ line and the longest engine reason was planted in its box ('+(f&&f.n)+' lines in a '+(f&&f.box)+'px box)',f);
+    L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),'TC-R211 '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them and says there is more ('+JSON.stringify(f)+')',f);
+    let o=null;if(f&&f.chip){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);o=await rd();}
+    L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,'TC-R211 '+geo+' one tap shows the whole reason: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
+    const bd1=await b.board();
+    L.say(!!bd0&&!!bd1&&Math.abs(bd0.y-bd1.y)<0.5&&Math.abs(bd0.w-bd1.w)<0.5,'TC-R211 '+geo+' the board did not move',{bd0,bd1});
+    L.say(b.errs.length===0,'TC-R211 '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}}
 },'124-wrong-move-says-why');
