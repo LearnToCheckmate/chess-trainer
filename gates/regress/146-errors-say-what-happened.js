@@ -32,6 +32,8 @@
 // holds the engine file and times the wait line); the service worker is checked by its cache, not by a cold start with the network off.
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=20 red=10 scope=trial:ee1e228e0899 how=#550 the branch tip before ERR-01..07, served with HEAD's sw.js (v4, shell only): TC-R222a,b,d,e(x3),f,g,h,i red; TC-R222c (no notice with Stockfish working) stays green by design - it is the control that (a) is not shown every time; on t2 f9918762b587 with this sw.js 20/0
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=36 red=5 scope=trial:9f4f6f823150 how=#550 ERR-06/08/11/13 arms on t0, the branch tip before them (faa82a9): TC-R222j (no line), TC-R222k x2 (no notice), TC-R222l (2 requests, gatepariswhite and gateparisblack, sent to Chess.com for a Paris game), TC-R222m (blank page, root text 0 chars) red; the older arms stay green; on t3 450fed03791b 36/0
+// CONTROL-RECORD: fbd9ff8 2026-11-13 total=90 red=28 scope=trial:aee112168086 how=#550 jobs/notices-cut-their-own-key-words-on-kunals-phone-2026-11-13: the branch tip (fbd9ff8) - TC-R222j x4 (the ERR-06 line 413px in a 255/200 slot, old words) and TC-R222k x24 (the offline pill cut to one line, over the play status, the lesson prompt and the Puzzles top row at kunal761 and se; no edge line) red; every other arm green; on t1 c6f678df4c68 (this fix) 90/0
+// KNOW ITS LIMIT (ERR-08 words): for their first 5 s the offline words sit in the app's toast place over the bottom controls (printed as a note, not asserted); what STAYS while offline is the 2px edge line, and that is what TC-R222k asserts covers nothing.
 const L=require('../lib');const R=require('../drive/review');const fs=require('fs'),path=require('path');
 const txt=(b)=>b.page.evaluate(()=>document.body.innerText||'');
 async function review(b){await b.tile('Review');await b.page.locator('textarea').first().fill(R.PGN_OPERA);await b.tapText(/^⚡ Analyze Game$/,{wait:1200});
@@ -108,33 +110,58 @@ L.run(async()=>{
     const hit=BAD.filter(r=>r.test(src)).map(r=>r.source);
     L.say(src.length>100000&&hit.length===0,'TC-R222i no player-facing sentence asks him to set up Firebase or blames a preview sandbox ('+(hit.length?hit.join(' | '):'none of '+BAD.length+' found')+')',hit);
   }
+  // WHOLE: a text element is readable whole when its own box is not cut (scrollWidth/scrollHeight within the client box) and every line box of
+  // its text lies inside the element and the viewport. #550 jobs/notices-cut-their-own-key-words-on-kunals-phone-2026-11-13.
+  const whole=(b,sel)=>b.page.evaluate((sel)=>{const e=document.querySelector(sel);if(!e)return null;const q=e.getBoundingClientRect();const g=document.createRange();g.selectNodeContents(e);
+    const lines=[...g.getClientRects()].filter(x=>x.width>0.5);const ys=[...new Set(lines.map(x=>Math.round(x.top)))];
+    const inside=lines.every(x=>x.left>=q.left-1&&x.right<=q.right+1&&x.top>=q.top-1&&x.bottom<=q.bottom+1&&x.left>=-1&&x.right<=innerWidth+1&&x.bottom<=innerHeight+1);
+    return {t:(e.innerText||'').trim(),w:Math.round(q.width),h:Math.round(q.height),sw:e.scrollWidth,cw:e.clientWidth,sh:e.scrollHeight,ch:e.clientHeight,lines:ys.length,inside,
+      ok:lines.length>0&&inside&&e.scrollWidth<=e.clientWidth+1&&e.scrollHeight<=e.clientHeight+1};},sel);
   { // (h) ERR-06: Astrid (1900) is meant to be Stockfish; with the engine blocked the status line says the built-in engine is playing
     const P=require('../drive/play');
-    for(const [fail,id] of [['all','TC-R222j'],[null,'TC-R222j control']]){
-      const b=await L.launch({geo:'kunal761',name:'err146-astrid-'+(fail||'ok'),...(fail?{engineFail:fail}:{})});await b.open();let ok=true;
+    for(const [fail,id,geo] of [['all','TC-R222j','kunal761'],['all','TC-R222j','se'],[null,'TC-R222j control','kunal761']]){
+      const b=await L.launch({geo,name:'err146-astrid-'+(fail||'ok')+'-'+geo,...(fail?{engineFail:fail}:{})});await b.open();let ok=true;
       try{await P.states['setup-bot-astrid'](b);await P.tapStart(b,1500);}catch(e){ok=false;L.note('astrid: '+String(e).slice(0,140));}
       let t='';for(let i=0;i<10;i++){await b.settle(500);t=await txt(b);if(/Engine not loaded/.test(t))break;}
       const named=/Astrid/.test(t);const m=(t.match(/[^\n]*Engine not loaded[^\n]*/)||[''])[0];
-      if(fail){const ef=await b.engineFail();L.say(ok&&named&&ef.failed>0,'TC-R222 PRECONDITION a game against Astrid has started with every Stockfish worker failing ('+JSON.stringify(ef)+')',{ok,named,ef});
-        L.say(/Engine not loaded: Astrid is playing at reduced strength/.test(t),id+' an opponent rated for Stockfish says when the built-in engine plays in its place ("'+m.slice(0,140)+'")',m);}
+      if(fail){const ef=await b.engineFail();L.say(ok&&named&&ef.failed>0,'TC-R222 PRECONDITION a game against Astrid has started with every Stockfish worker failing at '+geo+' ('+JSON.stringify(ef)+')',{ok,named,ef});
+        L.say(/Engine not loaded, so Astrid plays weaker/.test(t),id+' an opponent rated for Stockfish says when the built-in engine plays in its place, at '+geo+' ("'+m.slice(0,140)+'")',m);
+        const w=await whole(b,'[data-ct="play-opening"]');
+        L.say(!!w&&w.ok&&/^Engine not loaded, so Astrid plays weaker$/.test(w.t),id+' the line is readable whole at '+geo+': every line box inside its box and the screen, nothing cut ('+JSON.stringify(w)+')',w);}
       else{L.say(ok&&named,'TC-R222 PRECONDITION a game against Astrid has started with Stockfish working',{ok,named});
         L.say(!/Engine not loaded/.test(t),id+': with Stockfish working there is no such line (so the line is the engine, not shown every time)',m);}
-      L.say(b.errs.length===0,'TC-R222 zero app errors (Astrid '+(fail||'engine')+')',b.errs.slice(0,3));await b.close();}
+      L.say(b.errs.length===0,'TC-R222 zero app errors (Astrid '+(fail||'engine')+' '+geo+')',b.errs.slice(0,3));await b.close();}
   }
-  { // (i) ERR-08: going offline shows an overlay that moves nothing, and it goes when the network is back
-    const P=require('../drive/play');
-    const b=await L.launch({geo:'kunal761',name:'err146-offline'});await b.open();let ok=true;try{await P.states['pp-m0'](b);await b.settle(800);}catch(e){ok=false;}
+  { // (i) ERR-08: going offline shows the words whole for a few seconds and a line along the top edge that covers nothing; nothing moves; both go when
+    // the network is back. On a Pass and Play board, in lesson practice and in puzzle training (the three screens the checker found covered), at kunal761 and 320x568.
+    const P=require('../drive/play'),D=require('../drive/lesson'),Z=require('../drive/puzzles');
+    for(const geo of ['kunal761','se'])for(const [nm,go] of [['pass and play',b=>P.states['pp-m0'](b)],['lesson practice',b=>D.states['practice-correct'](b)],['puzzle training',b=>Z.states['train'](b)]]){
+    const b=await L.launch({geo,name:'err146-offline-'+geo+'-'+nm.split(' ')[0]});await b.open();let ok=true;try{await go(b);await b.settle(800);}catch(e){ok=false;L.note('offline '+nm+': '+String(e).slice(0,140));}
     const snap=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];
       const r=g?g.getBoundingClientRect():null;const bt=[...document.querySelectorAll('button')].filter(x=>x.getBoundingClientRect().width>0).map(x=>{const q=x.getBoundingClientRect();return Math.round(q.left)+','+Math.round(q.top);});
-      const ban=[...document.querySelectorAll('div')].find(d=>/^You are offline/.test((d.innerText||'').trim())&&getComputedStyle(d).position==='fixed');
-      return {board:r?[Math.round(r.left*100)/100,Math.round(r.top*100)/100,Math.round(r.width*100)/100]:null,btns:bt.join(' '),banner:ban?{t:(ban.innerText||'').trim(),pe:getComputedStyle(ban).pointerEvents}:null,scrollY:document.scrollingElement.scrollTop};});
-    const a=await snap();L.say(ok&&!!a.board&&!a.banner,'TC-R222 PRECONDITION a Pass and Play board is up online, with no offline notice',a);
-    await b.ctx.setOffline(true);await b.settle(600);const c=await snap();
-    L.say(!!c.banner&&/lessons, puzzles and saved games still work/.test(c.banner.t),'TC-R222k going offline shows a notice saying what still works ("'+(c.banner&&c.banner.t)+'")',c.banner);
-    L.say(!!c.board&&JSON.stringify(c.board)===JSON.stringify(a.board)&&c.btns===a.btns&&c.scrollY===a.scrollY&&c.banner&&c.banner.pe==='none','TC-R222k it is an overlay: the board and every button stay where they were and it takes no tap (board '+JSON.stringify(a.board)+' -> '+JSON.stringify(c.board)+')',{a:a.board,c:c.board,same:c.btns===a.btns});
+      const ban=document.querySelector('[data-ct="offline-banner"]'),edge=document.querySelector('[data-ct="offline-edge"]');
+      // what the offline UI covers: every painted text line box and every control that any offline element intersects. The set is found by its
+      // WORDS as well as by the hooks (any fixed element whose text starts 'You are offline'), so the bundle before the fix, which has no edge
+      // line, is measured on the same terms [CLAUDE.md: an assertion keyed to a hook its own build adds cannot be controlled]
+      const offEls=[...new Set([edge,ban,...[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/^You are offline/.test((d.innerText||'').trim()))].filter(Boolean))];
+      let cov=[];for(const oe of offEls){const q=oe.getBoundingClientRect();for(const el of document.querySelectorAll('body *')){if(oe.contains(el)||el.contains(oe)||offEls.indexOf(el)>=0)continue;const cs=getComputedStyle(el);if(cs.visibility==='hidden'||+cs.opacity===0)continue;
+        const ctl=/^(BUTTON|INPUT|SELECT|TEXTAREA|A)$/.test(el.tagName);let rr=[];if(ctl)rr=[el.getBoundingClientRect()];else for(const n of el.childNodes)if(n.nodeType===3&&n.textContent.trim()){const k=document.createRange();k.selectNodeContents(n);rr.push(...k.getClientRects());}
+        for(const x of rr)if(x.width>=1&&x.height>=1&&x.left<q.right&&x.right>q.left&&x.top<q.bottom&&x.bottom>q.top){cov.push((oe.getAttribute('data-ct')||'pill')+' over '+el.tagName+':'+((el.innerText||el.getAttribute('aria-label')||'').trim().slice(0,24))+'@'+Math.round(x.top));break;}}}
+      return {board:r?[Math.round(r.left*100)/100,Math.round(r.top*100)/100,Math.round(r.width*100)/100]:null,btns:bt.join(' '),scroll:[...document.querySelectorAll('*')].filter(e=>e.scrollTop>0).map(e=>(e.getAttribute('data-ct')||e.tagName)+':'+e.scrollTop).join(','),
+        banner:ban?{t:(ban.innerText||'').trim(),pe:getComputedStyle(ban).pointerEvents}:null,edge:edge?{r:[edge.getBoundingClientRect().top,edge.getBoundingClientRect().height],pe:getComputedStyle(edge).pointerEvents,label:edge.getAttribute('aria-label')}:null,cov,offN:offEls.length};});
+    const a=await snap();L.say(ok&&!!a.board&&!a.banner&&!a.edge,'TC-R222 PRECONDITION '+nm+' at '+geo+': a board is up online, with no offline notice',{board:a.board,banner:a.banner,edge:a.edge});
+    await b.ctx.setOffline(true);await b.settle(600);const c=await snap();const w=await whole(b,'[data-ct="offline-banner"]');
+    L.say(!!c.banner&&/^You are offline\. Lessons, puzzles and saved games still work\.$/.test(c.banner.t),'TC-R222k '+nm+' at '+geo+': going offline says so and names what still works ("'+(c.banner&&c.banner.t)+'")',c.banner);
+    L.say(!!w&&w.ok,'TC-R222k '+nm+' at '+geo+': the words are readable whole, every line inside the notice and the screen ('+JSON.stringify(w)+')',w);
+    L.note('TC-R222k '+nm+' at '+geo+': for its first 5 s the words notice sits in the app\'s toast place, over: '+(c.cov.join(' | ')||'nothing')+' (a transient notice, like every toast; not asserted)');
+    L.say(!!c.board&&JSON.stringify(c.board)===JSON.stringify(a.board)&&c.btns===a.btns&&c.scroll===a.scroll&&c.banner&&c.banner.pe==='none','TC-R222k '+nm+' at '+geo+': nothing moves: the board, every button and every scroller stay where they were, and it takes no tap (board '+JSON.stringify(a.board)+' -> '+JSON.stringify(c.board)+')',{a:a.board,c:c.board,same:c.btns===a.btns});
+    await b.settle(5200);const e=await snap();
+    L.say(e.offN>0,'TC-R222k '+nm+' at '+geo+' DENOMINATOR after 5 s offline the app still shows it is offline ('+e.offN+' element(s))',e.offN);
+    L.say(e.offN>0&&e.cov.length===0,'TC-R222k '+nm+' at '+geo+': what stays while offline covers no text and no control ('+(e.cov.join(' | ')||'nothing')+')',e.cov);
+    L.say(!e.banner&&!!e.edge&&e.edge.pe==='none'&&/You are offline\. Lessons, puzzles and saved games still work/.test(e.edge.label||''),'TC-R222k '+nm+' at '+geo+': after 5 s the words go and the line along the top edge stays (takes no tap, and carries the words for a screen reader)',{banner:e.banner,edge:e.edge});
     await b.ctx.setOffline(false);await b.settle(600);const d=await snap();
-    L.say(!d.banner,'TC-R222k the notice goes when the network is back',d.banner);
-    L.say(b.errs.length===0,'TC-R222 zero app errors (offline notice)',b.errs.slice(0,3));await b.close();
+    L.say(!d.banner&&!d.edge,'TC-R222k '+nm+' at '+geo+': the notice goes when the network is back',{banner:d.banner,edge:d.edge});
+    L.say(b.errs.length===0,'TC-R222 zero app errors (offline notice, '+nm+', '+geo+')',b.errs.slice(0,3));await b.close();}
   }
   { // (j) ERR-11: a pasted game looks names up only on the site its PGN names
     const b=await L.launch({geo:'kunal761',name:'err146-site',store:{ct_pool:'3'}});const hits=[];
