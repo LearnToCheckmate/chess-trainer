@@ -16,6 +16,7 @@
 //      it is loading (the wait ends when the engine answers).
 // DENOMINATOR: the route really held the worker (it was requested, and the hold was observed before it was served).
 // CONTROL-RECORD: a894f06 2026-11-11 total=6 red=2 scope=trial:3ab724514641 how=#550 item (90): origin/main's bundle with the worker held 6s - the panel reads '0% · checking every move' at both readings, so both TC-R184a lines are red; the DENOMINATOR, TC-R184b and zero-errors green
+// CONTROL-RECORD: aaec56b 2026-11-13 total=6 red=1 scope=trial:9c7713635681 how=#550 #432 sweep round 2 (ana-progress re-keyed by its words): c1, the hook renamed AND 'Loading the Stockfish engine… 3s' painted on the review summary - TC-R184b red; the hook-keyed version (a7f55b2) on the same bundle is 4/2 with TC-R184b GREEN (its fallback read only the percentage wording); on t0 fb3bb7b31754 6/0
 const L=require('../lib');const R=require('../drive/review');
 const HOLD_MS=6000;
 L.run(async()=>{
@@ -24,7 +25,14 @@ L.run(async()=>{
   await b.ctx.route('**/stockfish-18-lite-single.js*',async(route)=>{held++;await new Promise(r=>setTimeout(r,HOLD_MS));served++;await route.continue();});
   await b.open();
   let started=true;try{await b.tile('Review');await b.page.locator('textarea').first().fill(R.PGN_OPERA);await b.tapText(/^⚡ Analyze Game$/,{wait:1200});}catch(e){started=false;L.note('import: '+String(e).slice(0,120));}
-  const read=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="ana-progress"]');return e?e.textContent:(document.body.innerText.match(/\d+% · checking every move/)||[''])[0];});
+  /* #550 #432 sweep, round 2 (jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29): the progress line is
+     found BY WHAT IT SAYS - any painted leaf reading "Loading the Stockfish engine… Ns" or "N% · checking every move" - and the ana-progress
+     hook this gate's own build added is a FALLBACK only. Keyed to the hook first, TC-R184b ("the loading line is gone") PASSED on a control
+     that renamed the hook and left "Loading the Stockfish engine… 3s" painted on the summary, because the old fallback looked only for the
+     percentage wording. The words are what the player reads, so they are what this reads. */
+  const read=()=>b.page.evaluate(()=>{const RE=/^(Loading the Stockfish engine\u2026 \d+s|\d+% \u00b7 checking every move)$/;
+    const leaf=[...document.querySelectorAll('div,span,p')].find(x=>x.children.length===0&&RE.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);
+    if(leaf)return leaf.textContent.trim();const e=document.querySelector('[data-ct="ana-progress"]');return e?e.textContent:'';});
   const r1=started?await read():'';await b.settle(2000);const r2=started?await read():'';
   L.say(started&&held>=1&&served===0,'TC-R184a DENOMINATOR the review started and the engine worker was requested and is still being HELD ('+held+' held, '+served+' served)',{started,held,served});
   const n=(t)=>{const m=String(t||'').match(/engine… (\d+)s/);return m?+m[1]:null;};
