@@ -136,10 +136,9 @@ entries_ratchet(){
 # head is WORSE, so a breach already on main passes every fast commit for ever. `--binaries` runs the same check on
 # the tree as a BINARY - any breach refuses - through gates/door-checks.sh --only, so the command line has ONE home
 # (door-checks' CHECKS) and this file names only WHICH rows the binary set holds.
-# STATE OF THIS PIECE, said rather than implied: this mode EXISTS and is controlled; gates/fastgate.sh does NOT yet
-# call it in place of its ratchet. That swap changes fastgate-drive.sh cases H28, H55 and the probe at its
-# "this commit made it WORSE" line, which assert ratchet strings and the grandfathering itself (H55a), and it is
-# the next piece. control-audit.js is NOT in the binary set: on 2f1d50e it reads RED with uncovered=97, so as a
+# STATE OF THIS PIECE: gates/fastgate.sh calls this mode in place of its records ratchet since #550 helper A's next
+# piece (`binary "records" ... --binaries`), and fastgate-drive.sh H28 and H55 assert the binary verdicts - H55a,
+# which asserted the grandfathering itself, now asserts that a standing breach refuses. control-audit.js is NOT in the binary set: on 2f1d50e it reads RED with uncovered=97, so as a
 # binary it would refuse every fast commit, and turning that green is entry two (the coverage ratchet), not this.
 RECORDS_BINARIES="citations"
 BINARIES_BASELINE="citations"   # never-delete, control (e): a name leaves only in a commit that edits this line too
