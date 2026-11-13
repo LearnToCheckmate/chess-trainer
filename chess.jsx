@@ -2,6 +2,10 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect, memo, useCallbac
 
 // Build stamp — __BUILD__ is replaced at deploy time (esbuild --define); falls back to 'dev build' in the artifact preview.
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
+/* #550 wording check TXT-01..04 (Kunal "Batch 10"; run-answers a43): the four legal pages still carry marked placeholders (contact email,
+   operator, governing law, numbers of days, minimum age) because those facts are not given yet. While this is true the Menu says the
+   pages are drafts rather than linking them as finished. Set it false once every [to be added: ...] in the pages is filled in. */
+const LEGAL_DRAFT = true;
 // Telemetry relay URL (a Cloud Function that forwards reports to a GitHub repo Claude can read). Empty = autonomous send off; the in-app copy-to-clipboard still works.
 const LOG_ENDPOINT = "";
 // #550 SEC-10: there is no shared relay key any more - a key shipped in a public bundle is not a secret. The relay accepts a report
@@ -2993,61 +2997,61 @@ function pgnSans(pgn,max){
 }
 // Tactics puzzles. Each: fen, goal, motif, level, sol[] (solver's moves), reply[] (opponent's forced replies, played after each sol move), hint, explain.
 const PUZZLES=[
-  { fen:"6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Back-rank mate", level:"Easy",
+  { fen:"6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Back-rank mate", level:"Easy",
     sol:["Qd8#"], reply:[],
     hint:"The back rank is wide open, and Black's king is boxed in by its own pawns. Bring the heavy piece to the 8th rank.",
     explain:"Qd8# — the classic back-rank mate. The f7/g7/h7 pawns that shelter the king also trap it: there's no escape and nothing to block the check." },
-  { fen:"6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Back-rank mate", level:"Easy",
+  { fen:"6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Back-rank mate", level:"Easy",
     sol:["Re8#"], reply:[],
     hint:"A rook is just as deadly on an open back rank. Where can it deliver check with no escape?",
     explain:"Re8# — same back-rank idea with the rook. Always check whether your opponent has made 'luft' (a pawn move for the king); here Black hasn't, and it's fatal." },
-  { fen:"7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Two-rook ladder", level:"Easy",
+  { fen:"7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Two-rook ladder", level:"Easy",
     sol:["Rb8#"], reply:[],
     hint:"Two rooks mate a lone king with a 'ladder'. One rook already cuts off the 7th rank — use the other.",
     explain:"Rb8# — the two-rook ladder. The a7-rook fences off the 7th rank, so when the second rook checks on the 8th, the king has nowhere to go." },
-  { fen:"7k/8/5K2/8/8/8/6Q1/8 w - - 0 1", goal:"White to play — mate in 1", motif:"King & queen mate", level:"Easy",
+  { fen:"7k/8/5K2/8/8/8/6Q1/8 w - - 0 1", goal:"White to move — mate in 1", motif:"King & queen mate", level:"Easy",
     sol:["Qg7#"], reply:[],
     hint:"Your king on f6 is the key: it guards g7. Put the queen right next to the enemy king.",
     explain:"Qg7# — the basic king-and-queen mate. The queen delivers check from g7 and the king on f6 defends her, so she can't be captured and the king is trapped on the edge." },
-  { fen:"5rk1/5ppp/8/7Q/8/3B4/8/6K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Queen + bishop mate", level:"Medium",
+  { fen:"5rk1/5ppp/8/7Q/8/3B4/8/6K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Queen + bishop mate", level:"Medium",
     sol:["Qxh7#"], reply:[],
     hint:"The bishop on d3 is aiming straight at h7. What if the queen joined it there?",
     explain:"Qxh7# — queen and bishop, the deadliest attacking duo. The bishop guards h7, so the queen is immune, and the king is smothered by its own pieces. This is the engine behind the famous 'Greek gift' sacrifice." },
-  { fen:"q3k3/8/8/1N6/8/8/8/4K3 w - - 0 1", goal:"White to play — win the queen", motif:"Knight fork", level:"Medium",
+  { fen:"q3k3/8/8/1N6/8/8/8/4K3 w - - 0 1", goal:"White to move — win the queen", motif:"Knight fork", level:"Medium",
     sol:["Nc7+"], reply:[],
     hint:"Look for a knight move that attacks the king and something valuable at the same time.",
     explain:"Nc7+ — a royal fork. The knight checks the king and attacks the queen on a8 at once; the king must move, and then Nxa8 scoops the queen. Knights are the masters of the fork." },
-  { fen:"8/8/8/r3k3/8/8/8/4K2R w - - 0 1", goal:"White to play — win a rook", motif:"Skewer", level:"Medium",
+  { fen:"8/8/8/r3k3/8/8/8/4K2R w - - 0 1", goal:"White to move — win a rook", motif:"Skewer", level:"Medium",
     sol:["Rh5+","Rxa5"], reply:["Kd4"],
     hint:"Line your rook up with the king and a piece stuck behind it on the same line. Check first — the king must step aside.",
     explain:"Rh5+! is a skewer. The king is checked along the 5th rank and must move off it, but it can't shield the rook sitting behind it on a5. Once the king steps away, Rxa5 wins the rook clean." },
-  { fen:"5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1", goal:"White to play — mate in 2", motif:"Smothered mate", level:"Hard",
+  { fen:"5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1", goal:"White to move — mate in 2", motif:"Smothered mate", level:"Hard",
     sol:["Qg8+","Nf7#"], reply:["Rxg8"],
     hint:"Sacrifice the queen to force the rook onto g8 — then a knight delivers the famous smothered mate.",
     explain:"Qg8+!! is a stunning sacrifice. The knight on h6 guards g8, so the king can't take — the rook must (…Rxg8). Now Nf7# is smothered mate: the king is buried by its own rook and pawns. One of chess's most beautiful patterns." },
 
   // ─────────── Famous opening traps (≤10 moves) ───────────
-  { fen:"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1", goal:"White to play — mate in 1", motif:"Opening trap: Scholar's Mate", level:"Easy",
+  { fen:"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1", goal:"White to move — mate in 1", motif:"Opening trap: Scholar's Mate", level:"Easy",
     sol:["Qxf7#"], reply:[],
     hint:"The c4-bishop already guards f7 — the one square only the king defends. Bring the queen to it.",
     explain:"Qxf7# — Scholar's Mate, the most famous beginner trap. The queen lands on f7 protected by the c4-bishop, and the king has no escape. Black went wrong with …Nf6; the fixes are …g6 or …Qe7. Know it from both sides!" },
-  { fen:"r1b1k2r/ppppqppp/2n5/4n3/1PP2B2/5N2/1P1NPPPP/R2QKB1R b KQkq - 0 1", goal:"Black to play — White just grabbed your bishop with axb4. Punish it! (mate in 1)", motif:"Opening trap: Kieninger Trap (Budapest)", level:"Medium",
+  { fen:"r1b1k2r/ppppqppp/2n5/4n3/1PP2B2/5N2/1P1NPPPP/R2QKB1R b KQkq - 0 1", goal:"Black to move — White just grabbed your bishop with axb4. Punish it! (mate in 1)", motif:"Opening trap: Kieninger Trap (Budapest)", level:"Medium",
     sol:["Nd3#"], reply:[],
     hint:"Your e5-knight has one jump that checks the king. Can anything take it, or can the king step aside?",
     explain:"Nd3# is a smothered mate: the e2-pawn is pinned by your queen, so it can't take, and the king is boxed in by its own pieces. …Ngxe5! set it up by ignoring the bishop, and the greedy axb4?? walked in. The Kieninger Trap (Budapest)." },
-  { fen:"r1bqkbnr/pppp1ppp/8/4N3/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq - 0 1", goal:"Black to play — White grabbed the e5-pawn. Make them pay.", motif:"Opening trap: Blackburne Shilling", level:"Hard",
+  { fen:"r1bqkbnr/pppp1ppp/8/4N3/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq - 0 1", goal:"Black to move — White grabbed the e5-pawn. Make them pay.", motif:"Opening trap: Blackburne Shilling", level:"Hard",
     sol:["Qg5","Qxg2","Qxe4+","Nf3#"], reply:["Nxf7","Rf1","Be2"],
     hint:"Hit two things at once with your queen, ignore White's counterplay and storm in. It ends in a smothered mate on f3.",
     explain:"Qg5! double-attacks the e5-knight and the g2-pawn. After Nxf7 Qxg2 Rf1 Qxe4+ Be2, the little d4-knight lands Nf3# — a smothered mate. The Blackburne Shilling Gambit trap." },
-  { fen:"rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1", goal:"White to play — …Bg4 pins your knight, and …g6 left e5 with no knight to guard it. Spring the Légal's Mate trap! (Black will grab the queen.)", motif:"Opening trap: Légal's Mate", level:"Hard",
+  { fen:"rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1", goal:"White to move — …Bg4 pins your knight, and …g6 left e5 with no knight to guard it. Spring the Légal's Mate trap! (Black will grab the queen.)", motif:"Opening trap: Légal's Mate", level:"Hard",
     sol:["Nxe5","Bxf7+","Nd5#"], reply:["Bxd1","Ke7"],
     hint:"The pin on the f3-knight is an illusion — ignore your queen. Hit the centre, then hunt the king with bishop and knight.",
     explain:"Nxe5! ignores the pin. After …Bxd1??, Bxf7+ Ke7 Nd5# is Légal's Mate: three minor pieces mate while the queen sits on d1. (…dxe5 Qxg4 wins a pawn.) It works only because of …g6: with a knight on c6, …Nxe5! wins a piece." },
-  { fen:"r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 0 1", goal:"Black to play — White pinned your knight with Bg5. Strike!", motif:"Opening trap: Stafford Gambit", level:"Hard",
+  { fen:"r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 0 1", goal:"Black to move — White pinned your knight with Bg5. Strike!", motif:"Opening trap: Stafford Gambit", level:"Hard",
     sol:["Nxe4","Bxf2+","Bg4#"], reply:["Bxd8","Ke2"],
     hint:"Your knight looks pinned to your queen — move it anyway! Crash into e4 and aim everything at f2.",
     explain:"Nxe4!! ignores the 'pin'. After Bxd8 (grabbing the queen), Bxf2+ Ke2 Bg4# is a picture mate — a whole queen down! The g4-bishop checks; the f2-bishop and e4-knight take every escape. The famous Stafford Gambit trap." },
-  { fen:"rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 0 1", goal:"Black to play — find the brilliant promotion.", motif:"Opening trap: Lasker Trap (underpromotion!)", level:"Hard",
+  { fen:"rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 0 1", goal:"Black to move — find the brilliant promotion.", motif:"Opening trap: Lasker Trap (underpromotion!)", level:"Hard",
     sol:["fxg1=N+","Bg4+","Bxd1"], reply:["Rxg1","Kf2"], also:{2:["Qxd1"]},
     hint:"The f2-pawn can promote, but a new queen is just swapped off. Promote to the piece that gives check.",
     explain:"fxg1=N+!! — the famous underpromotion. A new queen would be swapped off (Qxd8+ Kxd8 Rxg1); the knight checks, forcing Rxg1. Then Bg4+ skewers king and queen, and Bxd1 or Qxd1 wins it. The Lasker Trap from the Albin Counter-Gambit." },
@@ -4278,7 +4282,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       {onMenu&&<button data-ct="tactics-menu" onClick={onMenu} aria-label="Menu and settings" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,fontSize:18}}>☰</button>}
     </div>):(<>
     <div style={{textAlign:'center',marginBottom:12}}>
-      <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & Strategy</div>
+      <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & strategy</div>
       <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:3}}>The patterns that win games, and the ideas behind good moves.</div>
     </div>
     <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}</div></>)}
@@ -4396,6 +4400,19 @@ export default function App(){
   const [coachFree,setCoachFree]=useState(()=>{try{return parseInt(localStorage.getItem('ct_coachfree')||'0',10)||0;}catch{return COACH_FREE_LOOKS;}});
   const [subPro,setSubPro]=useState(false);   // real Pro entitlement from Stripe (firestore-stripe-payments extension)
   const isPro = subPro;                        // #550 SEC-01: Pro is a live subscription and nothing else
+  /* #550 wording check TXT-05..11 (Kunal "Only you", 12 Nov 2026): THE DEV TOOLS ARE HIS ALONE. The preview gallery, the Home dev row
+     (gallery and feedback-to-Claude), the Layout readout and overlay, the New features switches, the brilliant-gate numbers, the build
+     stamp (Home, Play setup, Menu foot, feedback sheet), the Puzzles unlock code and dev loaders all render only while devOn is true.
+     devOn has exactly two sources and neither is a browser switch:
+       cloudDev   - users/{uid}.dev === true on the SIGNED-IN account's own document, which Kunal sets by hand in the Firebase console.
+                    firestore.rules refuses any client write that creates or changes `dev`, so a player cannot grant it to themself.
+       harnessDev - window.__ctDevHarness === true, defined by gates/lib.js before the page's scripts run (launch opt `dev`, on by
+                    default for gates). Read once at mount; nothing in the app or the store sets it.
+     No email, name or uid is named anywhere in the repository. A player without the flag sees none of these tools; the Menu foot
+     shows one quiet "Version NNN" line instead of the stamp. */
+  const [cloudDev,setCloudDev]=useState(false);
+  const [harnessDev]=useState(()=>{try{return typeof window!=='undefined'&&window.__ctDevHarness===true;}catch(e){return false;}});
+  const devOn=cloudDev||harnessDev;
   const [skin,setSkin]=useState(()=>{try{const v=localStorage.getItem('ct_skin');const i=v!==null?parseInt(v):CLASSIC_IDX;return (i>=0&&i<SKINS.length)?i:CLASSIC_IDX;}catch{return CLASSIC_IDX;}});
   const [introN,setIntroN]=useState(0);  // bump to replay the Home intro animation
   const [homeScreen,setHomeScreen]=useState(true);const homeScreenRef=useRef(true);homeScreenRef.current=homeScreen;   /* #550 a41: the card re-grade pass stops when he leaves Home */
@@ -4528,9 +4545,9 @@ export default function App(){
       case 'ct_coachtier':if(o&&typeof o.cleared==='number'&&typeof o.swapsLeft==='number')setCoachTier({swapAt:Date.now(),...o});break;
       case 'ct_acctmine':if(o&&typeof o==='object')setAcctMine(o);break;
       default:break;}};
-  useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);syncPulledRef.current=false;return;}
+  useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);syncPulledRef.current=false;setCloudDev(false);return;}
     let dead=false,retry=null;
-    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;const namesIn={};const changed=[];
+    C.load().then(d=>{if(dead)return;setCloudDev(!!(d&&d.dev===true));const prog=d&&d.ctProgress;let applied=0;const namesIn={};const changed=[];
       const raw=(()=>{try{return Storage.prototype.setItem.bind(localStorage);}catch(e){return (k,v)=>localStorage.setItem(k,v);}})();
       const lm=syncMetaLoad(),cm=syncMetaRead(prog&&prog[SYNC_META]),mm=syncMetaMerge(lm,cm);
       let acctsBefore=[];try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'[]');if(Array.isArray(a))acctsBefore=a;}catch(e){}
@@ -6235,7 +6252,7 @@ export default function App(){
      wiped and reloaded. The Stripe customer and subscription records are the payments extension's to remove (its delete-on-user-deleted
      setting); the confirm tells a Pro player to cancel first. */
   const doDeleteAccount=async()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;
-    if(!C||!C.deleteAccount||!cloudUser){setDelMsg('Open the published app and sign in to delete your account.');return;}
+    if(!C||!C.deleteAccount||!cloudUser){setDelMsg(C&&C.deleteAccount?'Sign in first to delete your account.':'Sign-in is not available here right now.');return;}
     setDelBusy(true);setDelMsg('Deleting your account…');
     try{try{if(C.gameLeave)C.gameLeave();}catch(e){}
       await C.deleteAccount();
@@ -8169,7 +8186,7 @@ export default function App(){
            first person to write a friendlier message would break silently. Reading e.code too means the
            coupling stops mattering and the server is free to say something a human would want to read. */
         const _unauth=/unauthenticated/i.test(_code)||m==='unauthenticated';
-        setScanMsg(_unauth?'Sign in first to scan a board.':(m==='cloud-not-ready'||_undeployed)?'Board scanning is not set up yet — the cloud function still needs to be deployed. Nothing you do here will help; set the position up by hand for now.':'Could not read the board right now. Please try again.');
+        setScanMsg(_unauth?'Sign in first to scan a board.':(m==='cloud-not-ready'||_undeployed)?'Board scanning is not available right now. Set the position up by hand.'   /* #550 TXT-13: no message tells a player about the server setup */:'Could not read the board right now. Please try again.');
       }
     };
     img.onerror=()=>{ try{URL.revokeObjectURL(url);}catch(_){} setScanBusy(false); setScanMsg('Could not open that image.'); };
@@ -8280,7 +8297,7 @@ export default function App(){
   const vcSupported=()=>!!(typeof navigator!=='undefined'&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&typeof RTCPeerConnection!=='undefined');
   const vcCleanup=()=>{try{if(vcPushTimerRef.current){clearTimeout(vcPushTimerRef.current);vcPushTimerRef.current=null;}}catch(e){}try{if(vcPcRef.current){vcPcRef.current.ontrack=null;vcPcRef.current.onicecandidate=null;vcPcRef.current.close();}}catch(e){}vcPcRef.current=null;try{if(vcStreamRef.current)vcStreamRef.current.getTracks().forEach(t=>t.stop());}catch(e){}vcStreamRef.current=null;vcCandsRef.current=[];vcAppliedRef.current=0;vcSessRef.current=null;try{if(vcRemoteRef.current)vcRemoteRef.current.srcObject=null;if(vcLocalRef.current)vcLocalRef.current.srcObject=null;}catch(e){}setVcMuted(false);setVcCamOff(false);};
   const vcPushCands=()=>{const og=onlineGameRef.current,C=window.CTCloud,mc=myColorRef.current;if(!og||!C||!mc)return;if(vcPushTimerRef.current)clearTimeout(vcPushTimerRef.current);vcPushTimerRef.current=setTimeout(()=>{vcPushTimerRef.current=null;const d={};d['rtcC_'+mc]=vcCandsRef.current.slice(0,120);C.gamePush(og.id,d).catch(()=>{});},350);};
-  const vcMakePc=async()=>{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:true});vcStreamRef.current=stream;const pc=new RTCPeerConnection({iceServers:VC_ICE});vcPcRef.current=pc;stream.getTracks().forEach(t=>pc.addTrack(t,stream));pc.ontrack=(ev)=>{try{const rs=ev.streams&&ev.streams[0];if(rs&&vcRemoteRef.current&&vcRemoteRef.current.srcObject!==rs){vcRemoteRef.current.srcObject=rs;vcRemoteRef.current.play&&vcRemoteRef.current.play().catch(()=>{});}}catch(e){}};pc.onicecandidate=(ev)=>{if(ev.candidate){vcCandsRef.current.push(JSON.stringify(ev.candidate.toJSON()));vcPushCands();}};pc.onconnectionstatechange=()=>{const st=pc.connectionState;if(st==='connected')vcSet('live');else if(st==='failed'){setVcErr('Could not connect. Most home networks work; some office or mobile networks need a relay server, which is not set up yet.');vcSet('error');}};setTimeout(()=>{try{if(vcLocalRef.current){vcLocalRef.current.srcObject=stream;vcLocalRef.current.play&&vcLocalRef.current.play().catch(()=>{});}}catch(e){}},50);return pc;};
+  const vcMakePc=async()=>{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:true});vcStreamRef.current=stream;const pc=new RTCPeerConnection({iceServers:VC_ICE});vcPcRef.current=pc;stream.getTracks().forEach(t=>pc.addTrack(t,stream));pc.ontrack=(ev)=>{try{const rs=ev.streams&&ev.streams[0];if(rs&&vcRemoteRef.current&&vcRemoteRef.current.srcObject!==rs){vcRemoteRef.current.srcObject=rs;vcRemoteRef.current.play&&vcRemoteRef.current.play().catch(()=>{});}}catch(e){}};pc.onicecandidate=(ev)=>{if(ev.candidate){vcCandsRef.current.push(JSON.stringify(ev.candidate.toJSON()));vcPushCands();}};pc.onconnectionstatechange=()=>{const st=pc.connectionState;if(st==='connected')vcSet('live');else if(st==='failed'){setVcErr('Could not connect the call on this network. Most home networks work; some office or mobile networks do not.');vcSet('error');}};setTimeout(()=>{try{if(vcLocalRef.current){vcLocalRef.current.srcObject=stream;vcLocalRef.current.play&&vcLocalRef.current.play().catch(()=>{});}}catch(e){}},50);return pc;};
   const vcStart=async()=>{const og=onlineGameRef.current,C=window.CTCloud,mc=myColorRef.current;if(!og||!C||!cloudUser||!mc)return;if(!vcSupported()){setVcErr('Video calls need camera access over https on this device.');vcSet('error');return;}setVcErr('');try{vcCleanup();vcSet('calling');const pc=await vcMakePc();const sess=String(Date.now());vcSessRef.current=sess;const offer=await pc.createOffer();await pc.setLocalDescription(offer);const d={rtc:{from:cloudUser.uid,id:sess,offer:{type:offer.type,sdp:offer.sdp},answer:null,hangup:null,ts:Date.now()}};d['rtcC_'+mc]=[];d['rtcC_'+(mc==='w'?'b':'w')]=[];await C.gamePush(og.id,d);}catch(e){vcCleanup();setVcErr(e&&e.name==='NotAllowedError'?'Camera or microphone permission was denied.':'Could not start the call: '+((e&&e.message)||'unknown error'));vcSet('error');}};
   const vcAccept=async()=>{const og=onlineGameRef.current,C=window.CTCloud,mc=myColorRef.current;const rtc=og&&og.rtc;if(!og||!C||!rtc||!rtc.offer||!mc)return;if(!vcSupported()){setVcErr('Video calls need camera access over https on this device.');vcSet('error');return;}setVcErr('');try{vcCleanup();vcSet('calling');const pc=await vcMakePc();vcSessRef.current=rtc.id;await pc.setRemoteDescription(new RTCSessionDescription(rtc.offer));const ans=await pc.createAnswer();await pc.setLocalDescription(ans);const d={rtc:Object.assign({},rtc,{answer:{type:ans.type,sdp:ans.sdp}})};d['rtcC_'+mc]=[];await C.gamePush(og.id,d);}catch(e){vcCleanup();setVcErr(e&&e.name==='NotAllowedError'?'Camera or microphone permission was denied.':'Could not answer the call: '+((e&&e.message)||'unknown error'));vcSet('error');}};
   const vcHangup=(silent)=>{const og=onlineGameRef.current,C=window.CTCloud;const rtc=og&&og.rtc;vcCleanup();vcSet('off');if(!silent&&og&&C&&rtc&&!rtc.hangup&&cloudUser){C.gamePush(og.id,{rtc:Object.assign({},rtc,{hangup:cloudUser.uid})}).catch(()=>{});}};
@@ -8816,7 +8833,7 @@ export default function App(){
     if(homeFit.z<1||z<0.85){setHomeFit(f=>(f.z<1&&z>=0.85)?{...f,z,done:true}:{...f,z:1,compact:true,done:false});return;}
     setHomeFit(f=>({...f,z}));
   });
-  const SUB_SHORT={learn:'Openings & endgames',puzzle:'890+ tactical puzzles',analyze:'Free game reviews',play:'vs Computer or Human'};   // #550 AUD-H01: Home's tile captions on ONE line on a phone (the long Discover and Review captions wrapped to two)
+  const SUB_SHORT={learn:'Openings & endgames',puzzle:'890 tactical puzzles',analyze:'Free game reviews',play:'Computer or a friend'};   // #550 AUD-H01: Home's tile captions on ONE line on a phone (the long Discover and Review captions wrapped to two)
   const _devBtns=(_dz)=>(_dz===34?<><button data-ct="home-preview" onClick={()=>setPreview(true)} title="Preview gallery (dev)" aria-label="Preview gallery" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button><button data-ct="home-feedback" onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" aria-label="Send feedback" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button></>:<span data-ct="home-devrow" style={{display:'flex',gap:8,flexShrink:0}}><button data-ct="home-preview" onClick={()=>setPreview(true)} title="Preview gallery (dev)" aria-label="Preview gallery" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button><button data-ct="home-feedback" onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" aria-label="Send feedback" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button></span>);   // the 🎬 and 💬 buttons: their own row (34pt) on a tablet, inside the footer row (44pt) on a phone              // tablet PORTRAIT Home: scale up (landscape stays compact to fit the short height)
   /* #550 desktop check DSK-03/04 (Kunal accepted the rule: board pages wider than tall keep the sideways layout, centred in the window as one group; no pixel cap on the board): the row is centred, so a wide window splits its spare width evenly instead of leaving it all on the right, and SQ no longer caps the board at 1000 px. */
   const _grpPad=(railed&&!homeScreen)?Math.max(0,Math.floor((vp.w-(boardPx+14+sideW+(pzRail?TAB_RAIL_W:0)))/2)):0;   // #550 DSK-03: the corner buttons belong to the centred group, not the window's edge
@@ -8840,7 +8857,7 @@ export default function App(){
           <div style={{fontSize:12,fontWeight:700,color:'var(--ac2)',marginBottom:7}}>Branches from this opening</div>
           <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{sibs.slice(0,12).map(i=>{const gb=w(i)===0;return(<button key={i} onClick={()=>selectOpening(i)} style={{background:gb?'rgba(212,175,55,.14)':'rgba(255,255,255,.05)',border:'1px solid '+(gb?'rgba(212,175,55,.45)':'rgba(255,255,255,.2)'),borderRadius:9,color:gb?'#f0e6cf':'#ccc',fontSize:12,padding:'6px 10px',cursor:'pointer'}}>{LIB[i].name}</button>);})}</div>
         </div>);})();
-      const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div onClick={()=>setVideoOpen(o=>!o)} style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:700,color:'#e0b34d',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>📺 Watch it explained<span style={{fontSize:13,opacity:.85}}>{videoOpen?'▾':'▸'}</span></div>{videoOpen&&(<>{learnVideo&&(<><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','var(--acInk,#0b0d10)')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube-nocookie.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the player stays blank in this preview, tap “open on YouTube” — the embedded player works once the app is deployed to a real site.</div>}</>)}<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></>)}</div>):null;
+      const learnVideoBox=(mode==='learn'&&openIdx!==null)?(<div style={{width:'100%',background:'linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.03))',border:'1px solid rgba(255,255,255,.16)',borderRadius:12,padding:'11px 13px',boxShadow:SHADOW_BOX}}><div onClick={()=>setVideoOpen(o=>!o)} style={{fontSize:'clamp(14px,2.7vw,14px)',fontWeight:700,color:'#e0b34d',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>📺 Watch it explained<span style={{fontSize:13,opacity:.85}}>{videoOpen?'▾':'▸'}</span></div>{videoOpen&&(<>{learnVideo&&(<><div style={{fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.7)',margin:'2px 0 8px',lineHeight:1.45}}>{learnVideo.title} · {learnVideo.author} ({learnVideo.length})</div><div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}><button onClick={()=>setShowVideo(s=>!s)} style={btn('var(--ac)','none','var(--acInk,#0b0d10)')}>{showVideo?'Hide player':'▶ Watch in app'}</button><a href={`https://youtu.be/${learnVideo.id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(13px,2.3vw,13px)',color:'var(--ac2)',textDecoration:'underline'}}>open on YouTube ↗</a></div>{showVideo&&(<div style={{marginTop:8,position:'relative',width:'100%',paddingTop:'56.25%',borderRadius:8,overflow:'hidden',background:'#000'}}><iframe src={`https://www.youtube-nocookie.com/embed/${learnVideo.id}`} title={learnVideo.title} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:0}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>)}{showVideo&&<div style={{fontSize:'clamp(12px,2.2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:5,lineHeight:1.4}}>If the video does not load, tap “open on YouTube”.</div>}</>)}<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.6)',margin:`${learnVideo?9:4}px 0 6px`,lineHeight:1.4}}>{learnVideo?'More on this opening from top coaches:':'Find this opening explained by top coaches:'}</div><div style={{display:'flex',gap:7,flexWrap:'wrap'}}>{['Remote Chess Academy','GothamChess','Chess Vibes'].map(ch=>(<a key={ch} href={`https://www.youtube.com/results?search_query=${encodeURIComponent(LIB[openIdx].name+' '+ch)}`} target="_blank" rel="noopener noreferrer" style={{padding:'5px 10px',borderRadius:7,background:'rgba(var(--acr),.14)',border:'1px solid rgba(var(--acr),.32)',color:'var(--ac2)',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>▶ {ch}</a>))}</div></>)}</div>):null;
   const pzLow=mode==='puzzle'&&(pzView==='browse'||pzView==='online');  // board sits below the goal/message text
   // #341: screens that own the whole phone - a live game, and the review move screen - hide the tab bar so the board gets that 62px.
   /* #371: on phones a FINISHED game keeps the live screen's chrome (tabs hidden, home and menu in the top bar). The audit and the antagonist both measured the board collapsing 357 -> 192 at game over because the title row, the tab bar, the Elo stepper, the slider and a full-width Review button all came back at once. */
@@ -8879,7 +8896,7 @@ export default function App(){
     if(gReviewed===0)return{tip:gAny>0?"Review one of your games in full and I'll show you where it turned.":"Import one of your games and I'll show you exactly where it turned.",goLabel:'Review',go:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}};
     if(pTot===0)return{tip:"Warm up with a quick tactics puzzle. They sharpen your eye fast.",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     if(dTd<DAILY_GOAL)return{tip:"You're "+dTd+" of "+DAILY_GOAL+" on today's puzzle goal. A few more?",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
-    const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Daily goal done, nice. Try the next puzzle tier.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
+    const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Puzzle goal done, nice. Try the next puzzle rank.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
   };
   const coachRun=(idx)=>{const op=LIB[idx];if(!op)return;setCoachOpen(false);setHomeScreen(false);selectOpening(idx);
     let line=op.line,label=op.name;
@@ -8956,7 +8973,7 @@ export default function App(){
     setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);
     setPuzMsg(rec.msg!=null?rec.msg:(obj.explain?('🎉 '+obj.explain):''));repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr(ctOffline()?"You are offline. Online puzzles need a connection; the puzzles in the app work offline.":"Couldn't reach Lichess. Check your connection and try again.");}setPzOLoading(false);};
-  const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
+  const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID and try again.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
   const showPackIdx=(rows,i)=>{if(!rows||!rows.length){setPzOErr('That pack is empty.');return;}const solved=pzOSolvedIdsRef.current;for(let k=0;k<rows.length;k++){const idx=(((i+k)%rows.length)+rows.length)%rows.length;const row=rows[idx];if(!_packBand(row))continue;const rid='lichess:'+(row.id||row.i||'');if(row.id&&solved[rid])continue;const o=lichessFromPack(row);if(o){setPzPackIdx(idx);setPzOErr('');setPzOInfo('📦 '+(idx+1)+'/'+rows.length+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);return;}}const d=pzDiffRef.current,lbl=d==='easy'?'easier ':d==='med'?'medium ':d==='hard'?'harder ':'';setPzOErr('No unsolved '+lbl+'puzzles left in this pack — switch difficulty or load another pack.');};
   const loadPack=async(url)=>{const u=String(url||'').trim();if(!u){setPzOErr('Paste a URL to a puzzle pack (.json).');return;}if(!/^https:\/\//i.test(u)){setPzOErr('A puzzle pack URL must start with https://');return;}   /* #550 SEC-19 */setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch(u);const arr=await r.json();const rows=Array.isArray(arr)?arr:(arr.puzzles||[]);if(!rows.length)throw 0;setPzPack(rows);showPackIdx(rows,0);}catch(e){setPzOErr("Couldn't load that pack. The URL must return a JSON array of puzzles.");}setPzOLoading(false);};
@@ -9338,7 +9355,7 @@ export default function App(){
                 <div style={{fontSize:11.5,color:'rgba(255,255,255,.55)',marginTop:1}}>{FMT[k].blurb}</div></button>))}</div></div>
             <div><div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.7)',marginBottom:6}}>Starts</div>
               <input type="datetime-local" value={tourWhen} onChange={e=>setTourWhen(e.target.value)} style={{width:'100%',boxSizing:'border-box',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:15}}/>
-              <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:4}}>Leave blank for one hour from now. I pick a sensible clock for each format.</div></div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:4}}>Leave blank for one hour from now. A sensible clock is picked for each format.</div></div>
             <div style={{display:'flex',gap:8,marginTop:2}}>
               <button onClick={()=>{setTourMsg('');setTourView('list');}} style={{flex:1,padding:'12px',borderRadius:12,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>Cancel</button>
               <button onClick={doCreate} disabled={tourBusy} style={{flex:1.4,padding:'12px',borderRadius:12,border:'none',background:'var(--ac)',color:'var(--acInk,#0b0d10)',fontWeight:800,fontSize:13,cursor:'pointer',opacity:tourBusy?.6:1}}>{tourBusy?'Creating…':'Create'}</button></div>
@@ -9399,11 +9416,11 @@ export default function App(){
         <_SheetItem icon="flip" label="Flip board" on={()=>{setFlip(f=>!f);setRevMore(false);}}/>
         <_SheetItem icon="moves" label={pgnCopied?'Copied':'Copy PGN'} on={()=>{let _p=(review.pgn&&review.pgn.trim())?pgnPublic(review.pgn).trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}}/>
         <_SheetItem icon="more" label={hideEval?'Eval bar: off':(evalTop?'Eval bar: above the board':(evalUnder?'Eval bar: above on tall screens':'Eval bar: beside the board'))} on={()=>{if(hideEval){setHideEval(false);if(!revStream)setEvalUnder(true);/* A3-7: the streamlined review's on/off leaves the beside/above setting alone */}else if(evalUnder&&!revStream){setEvalUnder(false);}else{setHideEval(true);}setRevMore(false);}}/>
-        <_SheetItem icon="draw" label={showGates?'Hide brilliant-gate numbers':'Show brilliant-gate numbers'} on={()=>{setShowGates(g=>!g);setRevMore(false);}}/>
+        {devOn&&<_SheetItem icon="draw" label={showGates?'Hide brilliant-gate numbers':'Show brilliant-gate numbers'} on={()=>{setShowGates(g=>!g);setRevMore(false);}}/>}
         <_SheetItem icon="more" label="Menu and settings" on={()=>{setRevMore(false);setMenuOpen(true);}}/>
         <_SheetItem icon="newgame" label="New game" on={()=>{setRevMore(false);resetReview();}}/>
       </div></div>)}
-      {preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
+      {devOn&&preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>setIntroCard(false),60);};
         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};
         /* #547 item (190): the `_play(fen,col)` helper that stood here was called nowhere (#466's class sweep) - deleted. */
@@ -9635,7 +9652,7 @@ export default function App(){
 
       {homeScreen&&(<div ref={homeScrRef} data-ct="home-scroller" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:`max(12px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {/* #373 (audit A-04): Home had no way into the menu - every ☰ sits under this overlay (zIndex 500). Same size and row as the account button. */}
-        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu & settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 15px)',right:'calc(env(safe-area-inset-right,0px) + 71px)',zIndex:6,fontSize:20}}>☰{/* #550 FMT-A-02: the standard 44x44 corner button (fill, border, radius 12), beside the account button, which stays as it is */}</button>
+        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu and settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 15px)',right:'calc(env(safe-area-inset-right,0px) + 71px)',zIndex:6,fontSize:20}}>☰{/* #550 FMT-A-02: the standard 44x44 corner button (fill, border, radius 12), beside the account button, which stays as it is */}</button>
         <button onClick={()=>{setUpgradeMsg('');setAcctOpen(true);}} title={cloudUser?'Account':'Sign in'} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 14px)',right:'calc(env(safe-area-inset-right,0px) + 16px)',zIndex:6,width:46,height:46,borderRadius:'50%',padding:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',background:cloudUser?'rgba(var(--acr),.18)':'rgba(255,255,255,.08)',border:'2px solid rgba(var(--acr),.55)',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,.4)'}}>{cloudUser&&cloudUser.photo?<img src={cloudUser.photo} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:22,lineHeight:1}}>{cloudUser?'👤':'👋'}</span>}</button>
         <div data-ct="home-col" style={{width:'100%',maxWidth:hLand?Math.min(vp.w-40,1000):(hbig?660:420),display:'flex',flexDirection:'column',alignItems:'center',...(((hbig||homeFit.compact)&&!hLand&&hb&&homeFit.z<1)?{zoom:homeFit.z}:null)}}>
           {(!hbig&&!hLand)?(<div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={'p'+introN} big={false} compact={true} force={introN>0}/></div>):(<><div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={introN} big={hbig} compact={hLand} force={introN>0}/></div>
@@ -9677,9 +9694,9 @@ export default function App(){
             const _tiles=(<div style={{display:'grid',gridTemplateColumns:_hc?'minmax(0,1fr) minmax(0,1fr)':'1fr 1fr',columnGap:hbig?22:(hLand?30:16),rowGap:hbig?22:(hLand?30:12),width:'100%'}}>
             {[
               {icon:'🔭',label:'Discover',sub:'Openings, gambits & endgames',tint:['#3b82f6','#1d4ed8'],k:'learn',fn:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}},
-              {icon:'🧩',label:'Puzzles',sub:'890+ tactical puzzles',tint:['#f59e0b','#b45309'],pro:false,k:'puzzle',fn:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+              {icon:'🧩',label:'Puzzles',sub:'890 tactical puzzles',tint:['#f59e0b','#b45309'],pro:false,k:'puzzle',fn:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
               {icon:'🔍',label:'Review',sub:'Free unlimited game reviews',tint:['#a855f7','#7c3aed'],k:'analyze',fn:()=>{setHomeScreen(false);setMode('analyze');}},
-              {icon:'♟️',label:'Play',sub:'vs Computer or Human',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+              {icon:'♟️',label:'Play',sub:'Computer or a friend',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
             ].map(({icon,label,sub,fn,big,tint,pro,k})=>{
               const ic=(SK.icons&&SK.icons[k])||icon; const tn=(SK.tints&&SK.tints[k])||tint;
               const _tf=42*(hbig?1.3:(hLand?1.64:1)); const _ts=inkScale(ic,"'Segoe UI',system-ui,sans-serif",1.1); /* #366 y3b: ink-matched on this device */
@@ -9712,7 +9729,7 @@ export default function App(){
               {/* #367 y12c: this used to cycle to the next palette blind; it opens the drawn picker now */}
               <button data-ct="home-look" onClick={()=>setLookOpen(true)} title="Board colours and pieces, with a preview" aria-label={'Colours & pieces: '+TH.name} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',minHeight:_hcF?44:undefined,minWidth:0,borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',flexShrink:0}}><span style={{background:TH.light}}/><span style={{background:TH.dark}}/><span style={{background:TH.dark}}/><span style={{background:TH.light}}/></span>{_hcF?TH.name:<>Colours &amp; pieces: {TH.name}</>}</button>
               <button onClick={()=>{if(!isPro){setUpgradeMsg(SKIN_PRO_MSG());setAcctOpen(true);}else setSkin((skin+1)%SKINS.length);}} title={isPro?"Tap to change style":"Playful & Medieval are Pro"} aria-label={'Style: '+SK.name+(isPro?'':' (Pro)')} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 11px',minHeight:_hcF?44:undefined,borderRadius:10,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.82)',cursor:'pointer',fontSize:'clamp(13px,2.3vw,13px)',fontWeight:600,boxShadow:SHADOW_BTN}}><span style={{width:16,height:16,borderRadius:4,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:headFont,fontSize:11,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.12)'}}>A</span>{_hcF?SK.name:<>Style: {SK.name}</>}{!isPro&&<span style={{marginLeft:4}}>🔒</span>}</button>
-              {_hcF&&!preview&&!fbOpen&&!recCap&&_devBtns(44)}
+              {devOn&&_hcF&&!preview&&!fbOpen&&!recCap&&_devBtns(44)}
             </div>
           </div>
           {/* #386 (A-05, "Keep them, just move them clear"): these two were position:fixed at the bottom-left
@@ -9727,8 +9744,8 @@ export default function App(){
           {/* #549 item (88), orchestrator's ruling of 4 Nov 2026: THE HIDE IS KEPT, ON PURPOSE. While any instruction is up the dev row (Preview and feedback) stays off
               Home, because build-run 6d forbids that chrome in a recording. It is bounded by the instruction's own timer (armCapTimer above, one handle at a time)
               and, for a held card, by the bar's own Hide and Back controls - the bar is the route back while the row is gone. Gate 15 M12/M13. */}
-          {!_hcF&&!preview&&!fbOpen&&!recCap&&(<div data-ct="home-devrow" style={{marginTop:14,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>{_devBtns(34)}</div>)}
-          {BUILD_INFO&&<div data-ct="home-build" style={{marginTop:_hcF?8:10,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,textAlign:'center',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}>Build {BUILD_INFO}</div>}
+          {devOn&&!_hcF&&!preview&&!fbOpen&&!recCap&&(<div data-ct="home-devrow" style={{marginTop:14,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>{_devBtns(34)}</div>)}
+          {devOn&&BUILD_INFO&&<div data-ct="home-build" style={{marginTop:_hcF?8:10,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',fontSize:11,color:'rgba(255,255,255,.3)',letterSpacing:.5,textAlign:'center',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}>Build {BUILD_INFO}</div>}
         </div>
       </div>)}
 
@@ -9794,12 +9811,12 @@ export default function App(){
                   <span style={{flexShrink:0,fontSize:20,lineHeight:1}}>📋</span>
                   <span style={{flex:1,minWidth:0}}>
                     <span style={{display:'block',fontSize:'clamp(14px,3vw,15px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.4,textTransform:'uppercase'}}>Mastery plan · Tier {(coachTier.cleared||0)+1}</span>
-                    <span style={{display:'block',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and pick the '+SLATE+' lessons YOU want to learn.':(learnedInSlate+'/'+SLATE+' learned this tier · '+bankedToday+' banked today · '+mastTot+' mastered overall')}</span>
+                    <span style={{display:'block',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and pick '+SLATE+' lessons you want to learn.':(learnedInSlate+'/'+SLATE+' learned this tier · '+bankedToday+' done today · '+mastTot+' mastered overall')}</span>
                   </span>
                   <span style={{flexShrink:0,fontSize:17,color:'var(--ac2)',transform:coachPlanOpen?'rotate(90deg)':'none',transition:'transform .15s'}}>›</span>
                 </button>
                 {coachPlanOpen&&<div style={{padding:'0 13px 13px'}}>
-                <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (refill to 2 every 5 days)</div>
+                <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (swaps come back every 5 days)</div>
                 {tierReady&&<div style={{background:'linear-gradient(135deg,rgba(240,180,41,.2),rgba(240,180,41,.06))',border:'1px solid rgba(240,180,41,.5)',borderRadius:11,padding:'12px',marginBottom:11,textAlign:'center'}}>
                   <div style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#f0c24d'}}>🎉 Tier {(coachTier.cleared||0)+1} cleared!</div>
                   <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.7)',margin:'4px 0 9px'}}>All {SLATE} learned. They stay on your report card; keep banking days toward ★ Mastered any time.</div>
@@ -9808,11 +9825,11 @@ export default function App(){
                 {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const _ls=lnOf(op.name);const n=_ls.unionDays;const m=_ls.mastered;const learned=_ls.coverage;const done=linesOf(op).some(l=>lineDays(l.key).indexOf(_today)>=0);return(
                   <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
                     <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
-                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(12.5px,2.1vw,12.5px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · banked today':'')):'Not learned yet')}</span></span>
+                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(12.5px,2.1vw,12.5px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · done today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · done today':'')):'Not learned yet')}</span></span>
                     {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--ac)',border:'none',color:'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(14px,2.4vw,14px)',cursor:'pointer'}}>▶ Run</button>}
-                    {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap this out (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
+                    {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
                   </div>);})}</div>}
-                {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(14px,2.5vw,14px)'}}><span style={{fontSize:14}}>＋</span>Empty slot · answer the questions or browse below</div>))}
+                {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(14px,2.5vw,14px)'}}><span style={{fontSize:14}}>＋</span>Empty: pick a lesson below, or answer the questions</div>))}
                 {!slateFull&&(tIdx.length===0||coachChooserOpen)&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',margin:'4px 0 11px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{flex:1,fontSize:'clamp(14px,2.5vw,14px)',fontWeight:800,color:'var(--ac2)'}}>Quick questions, then I suggest lessons for your empty slots:</span>{tIdx.length>0&&<button aria-label="Close" className="ct-hit44" /* readability check A11Y-15 and A11Y-17 (Kunal's pick 12 Nov) */ onClick={()=>setCoachChooserOpen(false)} style={{flexShrink:0,width:30,height:30,borderRadius:7,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:11,lineHeight:1,padding:0}}>✕</button>}</div>
                   <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'2px 0 5px'}}>I want to learn</div>
@@ -9833,7 +9850,7 @@ export default function App(){
                     <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:12,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
                       <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
                       <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(10.5px,1.7vw,10.5px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
-                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ in slate</span>}
+                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ chosen</span>}
                     </button>);})}
                 </div>}
                 </div>}
@@ -9884,7 +9901,7 @@ export default function App(){
                   </div>
                 )}
               </div>
-              <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.4}}>Challenging creates an online game and gives you an invite code to send. Direct nearby invites are coming next.</div>
+              <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.4}}>Challenge creates an online game and gives you a code to send.</div>
             </>)}
           </div>
         </div>)}
@@ -9957,7 +9974,7 @@ export default function App(){
         <div style={{width:'100%',maxWidth:420,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center'}}>
           <div style={{position:'relative',width:96,height:96,borderRadius:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:52,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 6px 0 rgba(0,0,0,.28),0 14px 26px rgba(180,83,9,.5),inset 0 2px 0 rgba(255,255,255,.45)'}}>🧩<span style={{position:'absolute',right:-6,bottom:-6,width:34,height:34,borderRadius:'50%',background:'#191622',border:'2px solid #f0d48a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>🔒</span></div>
           <div style={{fontFamily:"var(--head)",fontSize:'clamp(24px,6vw,32px)',fontWeight:700,color:'#fff',marginTop:18}}>Puzzles is a Pro feature</div>
-          <div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.6)',lineHeight:1.5,marginTop:8,maxWidth:340}}>Unlock 890+ tactical puzzles and the full training roadmap with Chess Trainer Pro.</div>
+          <div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.6)',lineHeight:1.5,marginTop:8,maxWidth:340}}>Unlock 890 tactical puzzles and the full training roadmap with Chess Trainer Pro.</div>
           <button onClick={()=>{setUpgradeMsg('');setAcctOpen(true);}} style={{marginTop:22,padding:'13px 24px',borderRadius:13,background:'linear-gradient(150deg,#f0d48a,#caa24c)',border:'1px solid #f0d48a',color:'#2a2010',cursor:'pointer',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',boxShadow:'0 4px 0 rgba(0,0,0,.25),0 9px 18px rgba(201,162,76,.45)'}}>⚜️ Upgrade to Pro</button>
           <button onClick={()=>setHomeScreen(true)} style={{marginTop:12,padding:'9px 18px',borderRadius:11,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.78)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>‹ Back to Home</button>
         </div>
@@ -10179,7 +10196,7 @@ export default function App(){
               {CORR_CONTROLS.map(c=>{const o={label:c.label,kind:'corr',days:c.days};const on=!!timeCtrl&&timeCtrl.kind==='corr'&&timeCtrl.days===c.days;return(<span key={c.label} style={pill(on)} onClick={()=>{timeCtrlRef.current=o;setTimeCtrl(o);}}>{c.label}</span>);})}
             </div>
             <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like — the game waits for you and shows up under “Your games” when you sign in on any device.</div>
-            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required.</div>
+            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. You need to sign in with Google first.</div>
           </div>)}
 
           {/* #466: THE COMMITTER. `setupFromFEN` becomes a game here and nowhere else, so this is the one place
@@ -10203,7 +10220,7 @@ export default function App(){
               certify my choice of the two - see the amber record. */}
           <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}/* #474: _livePlies, not playHist.length - after a lesson replaced the board this armed over a game that no longer existed and printed "Tap again to discard your game and start" about it */setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;setPlaySetup(false);if(opponent!=='online'){fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);if(setupFromFEN&&playStartFenRef.current)playStartFenRef.current=String(setupFromFEN).trim();}/* #550 item (88): keep the position's own move counters (toFEN of the board writes 0 1) */;setSetupFromFEN(null);}} style={{marginTop:4,padding:'15px',borderRadius:14,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:startArm?'#191919':'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game':'▶ Start game')))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
-          {BUILD_INFO&&<div data-ct="setup-build" style={{textAlign:'center',fontSize:Math.max(8,Math.min(11,(Math.min(420,vp.w)-40)/((BUILD_INFO.length+6)*0.6+0.04))),color:'rgba(255,255,255,.3)',letterSpacing:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12 /* #547: item (1) put ' (src <12 hex>)' in the stamp, which wrapped this line to two at 375 and pushed the Pass & Play sheet 12px past a 640px screen (gate 30 A-13). One line, the font fitted to the width (monospace is 0.6em a glyph), the ellipsis only a backstop */}}>Build {BUILD_INFO}</div>}
+          {devOn&&BUILD_INFO&&<div data-ct="setup-build" style={{textAlign:'center',fontSize:Math.max(8,Math.min(11,(Math.min(420,vp.w)-40)/((BUILD_INFO.length+6)*0.6+0.04))),color:'rgba(255,255,255,.3)',letterSpacing:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12 /* #547: item (1) put ' (src <12 hex>)' in the stamp, which wrapped this line to two at 375 and pushed the Pass & Play sheet 12px past a 640px screen (gate 30 A-13). One line, the font fitted to the width (monospace is 0.6em a glyph), the ellipsis only a backstop */}}>Build {BUILD_INFO}</div>}
         </div>
       </div>)}
 
@@ -10211,7 +10228,7 @@ export default function App(){
           one, the screen title CENTRED on the screen, menu top-right, both 44x44 at TOP_EDGE. It replaces the brand row and the 38x30 menu, and
           the lesson lists' second row (their Back pill and title) folds into it. */
         const _grpT={openings:'Openings',gambits:'Gambits & Traps',endgames:'Endgames',train:'Train',notation:'Notation'};
-        const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game Review':'Chess Trainer')))));
+        const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':'Chess Trainer')))));
         const _bk=(mode==='learn'&&openIdx===null&&learnGroup&&learnGroup!=='tactics')?()=>setLearnGroup(null):null;
         return(<TopRow ct="top-row" full title={_hT2} style={{marginBottom:8}}
           back={_bk?<TopBack ct="top-back" onClick={_bk}/>:null}
@@ -10244,13 +10261,13 @@ export default function App(){
             <div style={{padding:'2px 2px 14px'}}>
               <div style={{fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.8)',lineHeight:1.5,marginBottom:12}}>Sign in to sync your progress, Elo, themes and lessons across devices, and to unlock Pro.</div>
               <button onClick={cloudSignIn} disabled={!cloudAvail} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,width:'100%',padding:'12px 14px',borderRadius:12,background:cloudAvail?'#fff':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:cloudAvail?'#222':'rgba(255,255,255,.4)',cursor:cloudAvail?'pointer':'default',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)'}}><span style={{fontWeight:800,color:cloudAvail?'#4285F4':'inherit'}}>G</span>{cloudAvail?'Sign in with Google':'Sign-in unavailable here'}</button>
-              {(cloudErr||!cloudAvail)&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.4}}>{cloudErr||'Open the published app to sign in.'}</div>}
+              {(cloudErr||!cloudAvail)&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.4}}>{cloudErr||'Sign-in is not available here right now.'}</div>}
             </div>
           )}
           <div style={{display:(outAsk||delAsk)?'none':'block',borderRadius:14,padding:'14px 14px 15px',background:'linear-gradient(150deg,rgba(201,162,76,.16),rgba(201,162,76,.05))',border:'1px solid rgba(201,162,76,.4)',boxShadow:SHADOW_BOX}}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}><span style={{fontSize:20}}>⚜️</span><span style={{fontFamily:"var(--head)",fontSize:'clamp(16px,3.8vw,19px)',fontWeight:700,color:'#f0d48a'}}>Chess Trainer Pro</span>{isPro&&<span style={{marginLeft:'auto',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:20,padding:'2px 10px'}}>ACTIVE</span>}</div>
             <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
-              {[['Your Coach and full mastery plan','🧠'],['Every board theme, including Medieval','⚜️'],['Priority access to new features','✨']].map(([f,ic],i)=>(
+              {[['Your Coach and the full mastery plan','🧠'],['Playful and Medieval styles','⚜️'],['New features first','✨']].map(([f,ic],i)=>(
                 <div key={i} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:'clamp(14px,2.7vw,14px)',color:'rgba(255,255,255,.86)'}}><span>{ic}</span><span>{f}</span></div>
               ))}
             </div>
@@ -10390,7 +10407,7 @@ export default function App(){
             </div>
           ):(<>
             <button onClick={cloudSignIn} disabled={!cloudAvail} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:9,width:'100%',padding:'11px 13px',borderRadius:11,background:cloudAvail?'#fff':'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:cloudAvail?'#222':'rgba(255,255,255,.4)',cursor:cloudAvail?'pointer':'default',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)'}}><span style={{fontWeight:800,color:cloudAvail?'#4285F4':'inherit'}}>G</span>{cloudAvail?'Sign in with Google':'Sign-in unavailable here'}</button>
-            <div style={{fontSize:'clamp(12px,2.05vw,12px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.42)',marginTop:5,lineHeight:1.4}}>{cloudErr||(cloudAvail?'Sync your Elo, theme & lesson settings across all your devices.':'Open the published app to sign in and sync across devices.')}</div>
+            <div style={{fontSize:'clamp(12px,2.05vw,12px)',color:cloudErr?'#ec9a90':'rgba(255,255,255,.42)',marginTop:5,lineHeight:1.4}}>{cloudErr||(cloudAvail?'Sync your Elo, theme & lesson settings across all your devices.':'Sign-in is not available here right now.')}</div>
           </>)}
           {mode==='play'&&(<>
             <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>Game setup</div>
@@ -10417,13 +10434,7 @@ export default function App(){
                 {TIME_CONTROLS.map(tc=>(<span key={tc.label} data-ct={'setup-clock-'+tc.label} style={armPill('clock-'+tc.label,!!timeCtrl&&timeCtrl.label===tc.label)} onClick={()=>guardReset('clock-'+tc.label,()=>{timeCtrlRef.current=tc;setTimeCtrl(tc);fullReset();})}>{tc.label}</span>))}
               </div>
               <div style={{fontSize:'clamp(10.5px,1.7vw,10.5px)',color:'rgba(255,255,255,.4)',textAlign:'center'}}>minutes + increment in seconds — e.g. 3+1 = 3 min, +1s per move</div>
-              {opponent==='human'&&(<>
-              <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:700,letterSpacing:.6,textTransform:'uppercase',marginTop:2}}>📅 Correspondence <span style={{fontSize:'.82em',color:'rgba(255,255,255,.35)',textTransform:'none',letterSpacing:0,fontWeight:600}}>· online soon</span></div>
-              <div style={{display:'flex',gap:5,flexWrap:'wrap',justifyContent:'center'}}>
-                {CORRESPONDENCE.map(c=>(<span key={c.label} title="Coming with online play" style={{...pill(false),opacity:.4,cursor:'not-allowed'}}>🔒 {c.label}</span>))}
-              </div>
-              <div style={{fontSize:'clamp(10.5px,1.7vw,10.5px)',color:'rgba(255,255,255,.4)',textAlign:'center',maxWidth:300}}>A move every 1–30 days, played from anywhere — unlocks when we put games online.</div>
-              </>)}
+              {opponent==='human'&&(<div data-ct="setup-multiday" style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.5)',textAlign:'center',marginTop:2}}>{/* #550 TXT-15: was a locked "Correspondence · online soon" row (1-30 days, "unlocks when we put games online"); Online already has 1, 3 and 7 days a move */}📅 Multi-day games: choose 🌐 Online above.</div>)}
             </div>)}
             {opponent==='computer'&&(<>
               <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:8}}>
@@ -10478,9 +10489,10 @@ export default function App(){
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'var(--ac2)',padding:'2px 10px',borderRadius:20,background:'rgba(var(--acr),.2)',border:'1px solid rgba(var(--acr),.45)'}}>{evalUnder?(evalAbove?'above the board':'above on tall screens'):(wide?'right of the board':'left of the board')}</span>{/* #550 antagonist A F2: the setting means above only where that gives a bigger board (a35), so on a short or sideways screen the label says so instead of naming a place the bar is not */}
             </button>
             <button data-ct="menu-evalgraph" onClick={()=>setEvalGraph(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
-              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Eval graph in the player bars</span>
-              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:evalGraph?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:evalGraph?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{evalGraph?'ON · try it in Review':'OFF · option C'}</span>
+              <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Evaluation graph</span>
+              <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:evalGraph?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:evalGraph?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{evalGraph?'ON':'OFF'}</span>
             </button>
+            {devOn&&<>{/* #550 TXT-08/09: the Layout readout, the Layout overlay and the New features switches are dev tools (devOn) */}
             <button onClick={()=>setLayoutInfo(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Layout readout</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:layoutInfo?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:layoutInfo?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{layoutInfo?'shown':'screenshot this'}</span>
@@ -10511,17 +10523,17 @@ export default function App(){
             <button onClick={()=>setLayoutGrid(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Layout overlay</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:layoutGrid?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:layoutGrid?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{layoutGrid?'drawn on screen':'OFF'}</span>
-            </button>
+            </button></>}
             <button onClick={()=>setSoundOn(v=>!v)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
             </button>
             {/* #550: THE NEW FEATURES SECTION (NEW_FEATURES at module level): one switch per new feature, so each can be turned off. */}
-            <div data-ct="menu-newfeat" style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>New features</div>
+            {devOn&&<><div data-ct="menu-newfeat" style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'16px 2px 8px'}}>New features</div>
             {NEW_FEATURES.map(f=>{const on=f.isOn();return(<button key={f.id} data-ct={'newfeat-'+f.id} onClick={()=>{try{localStorage.setItem(f.key,on?f.off:f.on);}catch(e){}try{location.reload();}catch(e){}}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6,textAlign:'left'}}>
               <span style={{display:'flex',flexDirection:'column',minWidth:0}}><span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>{f.label}</span><span style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.5)'}}>{f.sub}</span></span>
               <span style={{flexShrink:0,fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:on?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:on?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.18)'}}>{on?'ON':'OFF'}</span>
-            </button>);})}
+            </button>);})}</>}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',padding:'7px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',marginTop:6}}>
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Piece style</span>
               <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>{[['classic','Classic'],['merida','Merida'],['chessnut','Chessnut'],['spatial','Spatial'],['symbol','Symbol']].map(([pv,plab])=>(<button key={pv} onClick={()=>setPieceSet(pv)} style={{fontSize:12,fontWeight:800,padding:'4px 12px',minHeight:40,display:'inline-flex',alignItems:'center',borderRadius:9,cursor:'pointer',background:pieceSet===pv?'rgba(var(--acr),.2)':'rgba(255,255,255,.06)',border:'1px solid '+(pieceSet===pv?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'),color:pieceSet===pv?'var(--ac2)':'rgba(255,255,255,.6)'}}>{plab}</button>))}</div>
@@ -10538,10 +10550,12 @@ export default function App(){
               </div>
             </div>
           </div>
-          <button onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play vs the computer.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>📣 Share Chess Trainer</button>
-          <button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);setMenuOpen(false);}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>💬 Send feedback</button>
-          <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',justifyContent:'center',marginTop:12}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.52)',textDecoration:'none',display:'inline-flex',alignItems:'center',minHeight:40,padding:'8px 6px' /* #373 (audit A-11): a bare 16px line box; 40px tap box now */}}>{lab}</a>))}</div>
-          {BUILD_INFO&&<div style={{textAlign:'center',fontSize:10,color:'rgba(255,255,255,.32)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:14}}>Build {BUILD_INFO}</div>}
+          <button onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play the computer or a friend.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>📣 Share Chess Trainer</button>
+          {/* #550 TXT-05/07: feedback goes to Claude in his chat (it copies a block for him to paste; LOG_ENDPOINT is empty, so nothing is sent), so it is a dev tool (devOn) until there is a support address */}{devOn&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);setMenuOpen(false);}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>💬 Send feedback</button>}
+          {LEGAL_DRAFT&&<div data-ct="menu-legal-draft" style={{textAlign:'center',fontSize:'clamp(12px,2.1vw,12px)',color:'rgba(255,255,255,.45)',marginTop:12}}>Legal pages: drafts, some details still to be added</div>}
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',justifyContent:'center',marginTop:LEGAL_DRAFT?2:12}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.52)',textDecoration:'none',display:'inline-flex',alignItems:'center',minHeight:40,padding:'8px 6px' /* #373 (audit A-11): a bare 16px line box; 40px tap box now */}}>{lab}</a>))}</div>
+          {BUILD_INFO&&(devOn?<div style={{textAlign:'center',fontSize:10,color:'rgba(255,255,255,.32)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:14}}>Build {BUILD_INFO}</div>
+            :(/#(\d+)/.test(BUILD_INFO)&&<div data-ct="menu-version" style={{textAlign:'center',fontSize:12,color:'rgba(255,255,255,.42)',marginTop:14}}>{'Version '+BUILD_INFO.match(/#(\d+)/)[1]}</div>))}{/* #550 TXT-05: a player sees one quiet version line; the stamp with its time and source hash is his (devOn) */}
         </div>
       </div>)}
 
@@ -10879,7 +10893,7 @@ export default function App(){
           {/* #549 item (44), gate 26 at se: the title moved up into this row so the row costs no summary height. With the title
               left in the scroller the whole summary sat 26px lower and at 320x568 the Best row went under the footer (gate 26's
               se/rev-summary pin read 1 side-by-side row, not 2). The title stays centred and clear of the button. */}
-          <TopRow ct="rev-summary-top" style={{height:46}} title={'Game Review'}
+          <TopRow ct="rev-summary-top" style={{height:46}} title={'Game review'}
             back={<TopBack ct="rev-summary-back" label="Back to games" onClick={resetReview}/>}
             menu={<TopBtn ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} label="Menu and settings">{'\u2630'}</TopBtn>}/>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - Back top-left (the same as the footer's Back to games), the title centred at the one size, the menu 44x44 at TOP_EDGE (was 38x30 at 12) */}
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
@@ -11080,7 +11094,7 @@ export default function App(){
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{ORDK.map(kd=>{const m=cs.filter(c=>brilKind(c)===kd).length;if(!m)return null;const k=id+'|'+kd,on=sel.indexOf(k)>=0;
                   return(<button key={k} data-ct="bril-kind" data-k={k} aria-pressed={on?'true':'false'} onClick={()=>tog(k)} style={{minHeight:44,padding:'6px 12px',borderRadius:22,border:'1px solid '+(on?'rgba(34,211,238,.9)':'rgba(255,255,255,.18)'),background:on?'rgba(34,211,238,.22)':'rgba(255,255,255,.05)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{(BRIL_KIND_NAME[kd]||kd)+' '}<span style={{opacity:.6}}>{m}</span></button>);})}</div>
               </div>))}
-              <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practise these '+n):('Practise all '+n)}</button>
+              <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practice these '+n):('Practice all '+n)}</button>
             </div></div>);})()}
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:'12px 12px',display:'flex',flexDirection:'column',gap:9}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
@@ -11871,7 +11885,7 @@ export default function App(){
               {engLine&&<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{engLine.line||'…'}</span>}</>)}
             </div>)}
           </div>);})()}
-          {showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
+          {devOn&&showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
           {revStream&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(<div key={'band'+(anaMode?1:0)+':'+ply+':'+(engOn?1:0)+(showBest?1:0)} ref={revBandRef} data-to='[data-ct="rev-toolbar"]' /* #550 round 6 (gate 20 TC-R72): measured to the toolbar's own top, so the graph never reaches 4px into it */ data-ink={anaMode?undefined:'1'} /* #550 a21: in analysis too - its row hides the reason, and the room it leaves (81px at 375x761, gate 77) is the graph's, not an empty band */ data-ct="rev-graph-band" style={{position:'relative',width:'100%',height:0,flex:'0 0 0px'}}>{(revBandH-revBandOff)>=40&&(<div data-ct="eval-graph" style={{position:'absolute',left:0,top:revBandOff,width:'100%',height:revBandH-revBandOff,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={review.analysis} bookN={(review&&review.summary&&review.summary.book)||0} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setRevAuto(false);setPly(Math.max(0,Math.min(review.plies.length,p)));}} width={Math.round(boardPx)} height={Math.min(84,revBandH-revBandOff-8)}/></div>)}</div>)}
         </div>
         {/* #550 a21: THE BOARD IS A FUNCTION OF THE SCREEN, NOT OF THE PLY. rev-compact takes the room between the strip and this
@@ -12249,7 +12263,7 @@ export default function App(){
             <div style={{textAlign:'right'}}><div style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'var(--ac2)'}}>🔥 {pzStreak}</div><div style={{fontSize:'clamp(12px,1.7vw,12px)',color:'rgba(255,255,255,.58)'}}>best {pzBest}</div></div>
           </div>
           <div style={{marginTop:10}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:'clamp(12.5px,2vw,12.5px)',color:'rgba(255,255,255,.55)',marginBottom:3}}><span>📅 {dTd>=DAILY_GOAL?'Daily goal done!':'Daily goal'}{(daily&&daily.streak>0)?<span style={{color:'var(--ac2)',fontWeight:700}}> · {daily.streak}-day streak</span>:null}</span><span>{Math.min(dTd,DAILY_GOAL)} / {DAILY_GOAL}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:'clamp(12.5px,2vw,12.5px)',color:'rgba(255,255,255,.55)',marginBottom:3}}><span>📅 {dTd>=DAILY_GOAL?'Puzzle goal done!':'Puzzle goal'}{(daily&&daily.streak>0)?<span style={{color:'var(--ac2)',fontWeight:700}}> · {daily.streak}-day streak</span>:null}</span><span>{Math.min(dTd,DAILY_GOAL)} / {DAILY_GOAL}</span></div>
             <div style={{width:'100%',height:8,background:'rgba(255,255,255,.1)',borderRadius:5,overflow:'hidden'}}><div style={{width:(Math.min(1,dTd/DAILY_GOAL)*100)+'%',height:'100%',background:dTd>=DAILY_GOAL?'#6fc47a':'#f0a24e',borderRadius:5,transition:'width .3s'}}/></div>
           </div>
           <button onClick={()=>pzEnterBrowse(pzNextInTier(pzSolvedMap,active),active)} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),width:'100%',marginTop:12,fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)'}}>▶ {total===0?'Start training':'Train next puzzle'}</button>
@@ -12261,7 +12275,7 @@ export default function App(){
           return(<div data-ct="pz-road" style={{position:'relative',width:RW,height:PH,margin:'2px auto 4px',overflow:'hidden'/* #550 AUD-L15 (P2): the scenery's paths ran 20 to 44px past the road's box and painted over Free play below it */}}><_RoadScenery theme={theme} RW={RW} PH={PH}/>{road}{nodes}</div>);})()}
         <button data-ct="pz-freeplay" onClick={()=>pzEnterBrowse(puzIdx,null)} style={{...btn('rgba(255,255,255,.07)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%'}}>🧩 Free play — browse any puzzle</button>
         <button onClick={()=>{setMistakeMode(false);setPzOErr('');setPzOInfo('');setPzView('online');if(!pzPack&&!(curPuz&&curPuz.ext&&!curPuz.mine)||mistakeMode)loadDaily(); /* #547 item (156): a DRILL card is ext too, so `ext` alone reopened the player's own game position under the Lichess header; the provenance predicate (#460) asks whether a LICHESS puzzle is loaded */}} style={{...btn('rgba(110,168,254,.13)','1px solid rgba(110,168,254,.4)','#cfe0ff'),width:'100%'}}>🌐 Online puzzles (Lichess) — {pzOSolved} solved</button>
-        {!pzUnlock?(
+        {/* #550 TXT-11: the unlock code and its banner are dev tools (devOn) */}{devOn&&(!pzUnlock?(
           <div style={{display:'flex',gap:8,alignItems:'center',marginTop:2}}>
             <input value={pzPin} onChange={e=>setPzPin(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')pzTryPin();}} placeholder="🔑 Unlock code" inputMode="numeric" style={{flex:1,minWidth:0,background:'rgba(255,255,255,.06)',border:'1px solid '+(pzPinErr?'rgba(245,120,120,.6)':'rgba(255,255,255,.15)'),borderRadius:12,padding:'9px 11px',color:'#fff',fontSize:'clamp(14px,2.7vw,14px)',outline:'none'}}/>
             <button onClick={pzTryPin} style={{...btn('rgba(255,255,255,.1)','1px solid rgba(255,255,255,.22)','#fff'),flexShrink:0,padding:'9px 15px'}}>Unlock</button>
@@ -12271,8 +12285,8 @@ export default function App(){
             <span style={{fontSize:'clamp(14px,2.5vw,14px)',color:'#a7e8b5',fontWeight:700}}>🔓 All levels unlocked — tap any tier to train</span>
             <button onClick={pzRelock} style={{background:'none',border:'none',color:'rgba(255,255,255,.55)',fontSize:'clamp(13px,2.2vw,13px)',cursor:'pointer',textDecoration:'underline',padding:0,flexShrink:0}}>Lock</button>
           </div>
-        )}
-        {pzPinErr&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'#f5a3a3',fontWeight:600,marginTop:-2,pointerEvents:'none'/* #430 class sweep [R06]: same decision again - 2px pulled up over the row that ends in the Lock button, whenever pzPinErr is set. Same reasoning as the caption at the play-setup screen. */}}>{pzPinErr}</div>}
+        ))}
+        {devOn&&pzPinErr&&<div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'#f5a3a3',fontWeight:600,marginTop:-2,pointerEvents:'none'/* #430 class sweep [R06]: same decision again - 2px pulled up over the row that ends in the Lock button, whenever pzPinErr is set. Same reasoning as the caption at the play-setup screen. */}}>{pzPinErr}</div>}
       </div>);})()}
 
       {/* ── Puzzle: BROWSE / solving view ── */}
@@ -12412,8 +12426,8 @@ export default function App(){
         </div>
         {!_drill&&(<div style={{width:'100%',background:'rgba(110,168,254,.09)',border:'1px solid rgba(110,168,254,.28)',borderRadius:12,padding:'11px 12px',display:'flex',flexDirection:'column',gap:8}}>
           <button disabled={pzOLoading} onClick={loadDaily} style={{...btn('rgba(110,168,254,.9)','none','#0c1a33'),width:'100%',fontWeight:800}}>📅 Lichess Daily Puzzle</button>
-          {pzUnlock&&(<button onClick={()=>setPzDevOpen(o=>!o)} style={{background:'none',border:'none',cursor:'pointer',padding:'1px 2px',alignSelf:'flex-start',fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.45)',textDecoration:'underline',textUnderlineOffset:2}}>{pzDevOpen?'hide dev loaders':'dev loaders'}</button>)}
-          {pzUnlock&&pzDevOpen&&(<>
+          {devOn&&pzUnlock&&(<button onClick={()=>setPzDevOpen(o=>!o)} style={{background:'none',border:'none',cursor:'pointer',padding:'1px 2px',alignSelf:'flex-start',fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.45)',textDecoration:'underline',textUnderlineOffset:2}}>{pzDevOpen?'hide dev loaders':'dev loaders'}</button>)}
+          {devOn&&pzUnlock&&pzDevOpen&&(<>
           <div style={{display:'flex',gap:6}}>
             <input value={pzIdInput} onChange={e=>setPzIdInput(e.target.value)} placeholder="puzzle ID (e.g. tHj5w)" style={{flex:1,minWidth:0,background:'rgba(0,0,0,.3)',border:'1px solid rgba(255,255,255,.15)',borderRadius:8,padding:'8px 10px',color:'#fff',fontSize:'clamp(14px,2.6vw,14px)'}}/>
             <button disabled={pzOLoading} onClick={()=>loadById(pzIdInput)} style={btn('rgba(255,255,255,.1)','1px solid rgba(255,255,255,.2)','#fff')}>Open</button>
@@ -12481,7 +12495,7 @@ export default function App(){
                 <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
                 <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyse':'\u2315 Analyse this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
             </div>
             <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>
             <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}>Next ›</button>
@@ -12492,7 +12506,7 @@ export default function App(){
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
-        {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyse this position'}</button></div>)}
+        {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyze this position'}</button></div>)}
         </div>
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
           {/* #475 jobs/drill-needs-a-previous-card-2026-09-23. This slot used to be a SECOND '‹ Review',
@@ -12975,7 +12989,7 @@ export default function App(){
         {revHead&&reviewView!=='summary'&&(()=>{const _hs={...TOP_BTN,fontWeight:800};   /* #550 FMT-B-03: the standard corner button (was 44x40 radius 10) */return(
           <div data-ct="rev-head" style={{position:'relative',width:vp.w,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'0 '+TOP_EDGE+'px 2px',boxSizing:'border-box',flexShrink:0}}>{/* the row stays 46 tall: 44 buttons and 2 under, where it was 2 + 40 + 4 */}
             <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}>{'\u2190'}</button>
-            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game Review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
+            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
             <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:21}}>{'\u22ef'}</button>
           </div>);})()}
         {_showBars&&!landBars&&pBar(topColor,true)}
@@ -13097,7 +13111,7 @@ export default function App(){
 
       {drag&&dragging&&(<div style={{position:'fixed',left:drag.x-SQ*.55,top:drag.y-SQ*.55,width:SQ*1.1,height:SQ*1.1,pointerEvents:'none',zIndex:9999,filter:'drop-shadow(0 8px 16px rgba(0,0,0,.6))',transform:'scale(1.12)'}}><Piece t={drag.piece.t} color={drag.piece.c} sz={SQ*1.1} useFallback={fallback} onFail={onPieceFail}/></div>)}
       {/* #366 lay-B: the layout overlay. Everything here is measured off the painted board (gridRect), never off SQ. */}
-      {layoutGrid&&(()=>{const R=gridRect;const W=vw,H=vp.h;const _mono={fontFamily:'ui-monospace,Menlo,Consolas,monospace',fontWeight:800,fontSize:12,lineHeight:1.2};const C='#ff7a59',S='#4fd1e8';
+      {devOn&&layoutGrid&&(()=>{const R=gridRect;const W=vw,H=vp.h;const _mono={fontFamily:'ui-monospace,Menlo,Consolas,monospace',fontWeight:800,fontSize:12,lineHeight:1.2};const C='#ff7a59',S='#4fd1e8';
         const gl=R?Math.round(R.l):null,gr=R?Math.round(W-(R.l+R.w)):null;
         return(<div data-ct="layout-grid" aria-hidden="true" style={{position:'fixed',inset:0,zIndex:9990,pointerEvents:'none'}}>
           {/* safe area: the usable rectangle, dashed cyan */}
@@ -13147,7 +13161,7 @@ export default function App(){
                   {/* #547 antagonist A on item (82): once Next takes the row's slot at Complete!, practising the same line again lives HERE */}
                   {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
                   {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLessonMore(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
-                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practise this line again</button>}
+                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practice this line again</button>}
                   <button onClick={()=>{setLessonMore(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
                   {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
                       setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame

@@ -33,12 +33,12 @@ L.run(async()=>{
    L.say(!!s0&&s0.shelves.join(',')==='bril-shelf-played,bril-shelf-missed','TC-R197b a tap opens the library with two shelves, played then missed',s0&&s0.shelves);
    const want=['played|greek-gift','played|queen-sac','played|exchange-sac','missed|quiet-sac'];
    L.say(!!s0&&want.every(k=>s0.chips.some(c=>c.k===k))&&s0.chips.length===4&&/Greek gift 2/.test((s0.chips.find(c=>c.k==='played|greek-gift')||{}).t||''),'TC-R197b each shelf lists its kinds with their counts ('+(s0&&s0.chips.map(c=>c.t).join(' | '))+')',s0&&s0.chips);
-   L.say(!!s0&&s0.chips.every(c=>c.h>=43.5&&c.y>=0&&c.b<=s0.vh+0.5)&&/Practise all 5/.test(s0.go||''),'TC-R197c every kind is a 44px chip on screen, and with none chosen the button offers all five ("'+(s0&&s0.go)+'")');
+   L.say(!!s0&&s0.chips.every(c=>c.h>=43.5&&c.y>=0&&c.b<=s0.vh+0.5)&&/Practi[cs]e all 5/.test(s0.go||''),'TC-R197c every kind is a 44px chip on screen, and with none chosen the button offers all five ("'+(s0&&s0.go)+'")');
    for(const k of ['played|greek-gift','played|queen-sac','missed|quiet-sac','played|exchange-sac'])await chip(b,k);
    const s1=await sheet(b);const on=s1?s1.chips.filter(c=>c.on).map(c=>c.k):[];
-   L.say(on.length===3&&on.indexOf('played|exchange-sac')<0&&/Practise these 4/.test(s1.go||''),'TC-R197d at most three kinds: the fourth tap is refused, and the button counts the chosen cards ('+on.join(', ')+'; "'+(s1&&s1.go)+'")',s1&&{on,go:s1.go});
+   L.say(on.length===3&&on.indexOf('played|exchange-sac')<0&&/Practi[cs]e these 4/.test(s1.go||''),'TC-R197d at most three kinds: the fourth tap is refused, and the button counts the chosen cards ('+on.join(', ')+'; "'+(s1&&s1.go)+'")',s1&&{on,go:s1.go});
    await chip(b,'played|queen-sac');const s2=await sheet(b);
-   L.say(!!s2&&/Practise these 3/.test(s2.go||''),'TC-R197d a chosen kind taps off again ("'+(s2&&s2.go)+'")');
+   L.say(!!s2&&/Practi[cs]e these 3/.test(s2.go||''),'TC-R197d a chosen kind taps off again ("'+(s2&&s2.go)+'")');
    await b.page.locator('[data-ct="bril-lib-go"]').click({timeout:3000}).catch(()=>{});await b.settle(1500);
    const d=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="drill-counter"]');return {lib:!!document.querySelector('[data-ct="bril-lib"]'),counter:c?(c.innerText||'').trim():null,fen:(window.__ctPuzzle&&window.__ctPuzzle.fen)||null};});
    L.say(!d.lib&&!!d.counter&&/\b1 of 3\b/.test(d.counter),'TC-R197e the drill opens on the chosen kinds only: three cards, the two Greek gifts and the missed quiet sacrifice ("'+d.counter+'")',d);

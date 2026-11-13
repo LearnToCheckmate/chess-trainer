@@ -428,7 +428,7 @@ const T={
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
-const SUBS=['Openings & endgames','890+ tactical puzzles','Free game reviews','vs Computer or Human'];
+const SUBS=['Openings & endgames','890 tactical puzzles','Free game reviews','Computer or a friend'];   // #550 wording check TXT-17/25: was '890+ tactical puzzles' and 'vs Computer or Human'
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
@@ -1106,7 +1106,7 @@ const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
     if(/^\S+\s*Discover\s+Openings/u.test(t))return 'tile-discover';   // #550 item (68): by LABEL, not glyph - a skin's icons are its own now
     if(/^\u{1F9E9}\s*Puzzles/u.test(t))return 'tile-puzzles';
     if(/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))return 'tile-review';   // #550 AUD-H01: 'Free game reviews' on a phone
-    if(/^\S+\s*Play\s+vs Computer/u.test(t))return 'tile-play';
+    if(/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))return 'tile-play';
     if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
     if(/^Colours & pieces/.test(t))return 'lookrow';
     if(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||''))return 'stylerow';   // #550 AUD-H01: on a phone it reads the style's name; its aria-label keeps 'Style: <name>'
@@ -1126,7 +1126,7 @@ const WHERE=(b)=>b.page.evaluate(()=>{
   return {home:!!ov,homeCoversMiddle:!!(ov&&mid&&ov.contains(mid)),
     lesson:q('[data-ct="lesson-note"]'),
     learn:/What do you want to learn\?/.test(t),
-    puzzle:/Daily goal/.test(t)&&/Rank/.test(t),
+    puzzle:/Puzzle goal|Daily goal/.test(t)&&/Rank/.test(t),   /* #550 TXT-26: 'Daily goal' on Puzzles reads 'Puzzle goal' */
     review:/Review any game, from anywhere/.test(t)||q('[data-ct="rev-row1"]'),
     play:q('[data-ct="setup-sheet"]')||q('[data-ct="play-home"]'),
     look:q('[data-ct="look"]'),
@@ -1200,7 +1200,7 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
         return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
           ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
           ||(id==='tile-discover'&&/^\S+\s*Discover\s+Openings/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
-          ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+vs Computer/u.test(t))
+          ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))
           ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||'')))   /* #550 AUD-H01: the same two re-keys as idOf above */
           ||(id==='wave'&&/^\u{1F44B}$/u.test(t))||(id==='intro'&&e.tagName==='DIV'&&!t);});
       if(!el)return {ok:false,why:'gone after scroll'};

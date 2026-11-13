@@ -2420,3 +2420,12 @@ As a player on any colour theme or skin, the words on the accent buttons, the cl
 - Each grade mark on the eval graph has its own shape, is a named button the keyboard can reach and Enter, and has a 24px hit area; every move on the strip is keyboard-reachable. (TC-R220e)
 - On his phone and at 320x568 the tab bar buttons, the scan buttons, the menu sheet's close (now named "Close") and Review's back and more have 44px tap areas, without any box moving; a strip move's tap area is the strip's full height. (TC-R220f)
 - No app errors on any of it. (TC-R220g)
+
+### US-R156 A player sees no developer tools and no developer words; the owner keeps them on his own account
+*Added #550, docs/wording-check-2026-11-12 TXT-05 to TXT-13 and TXT-15; Kunal, 12 Nov: "Only you" for the developer tools, "Batch 10" for the rest.*
+As a player, I never see the preview gallery, the layout readouts, the internal feature switches, the brilliant-gate numbers, the build stamp or the Puzzles unlock code, and no message tells me about server setup or a preview. As the owner, I still have every one of those tools on my own signed-in account, switched on by a field on my account document that the app cannot set.
+- With no developer flag, Home, the Menu, the Account sheet, Play setup, Puzzles, Review and its More sheet carry none of the developer tools or words. (TC-R224b to TC-R224h)
+- The Menu foot shows one quiet "Version NNN" line instead of the build stamp. (TC-R224d)
+- The setup-error, preview and deploy sentences and the stale Correspondence line are gone from the app. (TC-R224a)
+- With the developer flag the tools are all reachable, whether it comes from the gate harness or from the account document. (TC-R224i, TC-R224j)
+- An account document whose flag is false shows none of them. (TC-R224k)

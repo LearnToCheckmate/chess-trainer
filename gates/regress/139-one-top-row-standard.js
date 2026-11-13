@@ -31,8 +31,8 @@ const GEOS=[['kunal761','kunal761'],['375x667',{w:375,h:667,safe:'',label:'375x6
 const LAND={w:761,h:375,safe:'',label:'761x375'};
 // screen -> [driver, title words or null, has a back]
 const SCREENS=[['Discover',b=>H.states.discover(b),/^Discover$/,false],['Openings list',b=>D.states['openings-list'](b),/^Openings$/,true],
-  ['Puzzles roadmap',b=>Z.states.roadmap(b),/^Puzzles$/,false],['Review list',b=>R.states['list-stored'](b),/^Game Review$/,false],
-  ['Review summary',b=>R.states.summary(b),/^Game Review$/,true],['Review board',b=>R.states['moves-ply10'](b),/^Game Review$/,true],
+  ['Puzzles roadmap',b=>Z.states.roadmap(b),/^Puzzles$/,false],['Review list',b=>R.states['list-stored'](b),/^Game review$/i,false],
+  ['Review summary',b=>R.states.summary(b),/^Game review$/i,true],['Review board',b=>R.states['moves-ply10'](b),/^Game review$/i,true],
   ['Play setup',b=>P.states.setup(b),/^New Game$/,true],['Game vs computer',b=>P.states['cpu-4ply'](b),null,true],['Tactics',b=>D.states.tactics(b),null,true]];
 const corners=(b,title)=>b.page.evaluate((tsrc)=>{const vw=innerWidth,vh=innerHeight;
   const vis=e=>{const r=e.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;const c=document.elementFromPoint(Math.min(vw-1,Math.max(0,r.left+r.width/2)),Math.min(vh-1,Math.max(0,r.top+r.height/2)));return !!c&&(e.contains(c)||c.contains(e));};

@@ -26,10 +26,14 @@ service cloud.firestore {
 
     // ── users/{uid}: progress sync (ctProgress, theme, skin, elo, hintprefs, pz, learnprog, coach*), the list of game codes, and
     // the free Coach previews used (coachfree), which may only grow (SEC-02: a cleared phone does not hand three more back).
+    // `dev` (#550 wording check, Kunal "Only you"): true turns on the developer tools in the app for that one account. It is set ONLY by
+    // hand in the Firebase console (which bypasses these rules); a client may never create a document carrying it or change it, so a
+    // player cannot switch the tools on for themself. A merge write that leaves it untouched is allowed.
     match /users/{uid} {
       allow get: if signedIn() && me() == uid;
-      allow create: if signedIn() && me() == uid;
+      allow create: if signedIn() && me() == uid && !('dev' in request.resource.data);
       allow update: if signedIn() && me() == uid
+        && !('dev' in changed())
         && (!('coachfree' in request.resource.data) || request.resource.data.coachfree is number)
         && request.resource.data.get('coachfree', 0) >= resource.data.get('coachfree', 0);
       allow delete: if signedIn() && me() == uid;
