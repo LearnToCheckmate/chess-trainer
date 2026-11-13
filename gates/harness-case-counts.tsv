@@ -4,3 +4,6 @@
 held-selftest	gates/held-selftest.sh	169	measured #550 item (104): 164; raised to 169 at item (135), which added section 17 (5 cases)
 verify-log-selftest	gates/verify-log-selftest.sh	137	measured #550 item (104): 137 pass 0 fail, 8 holes closed
 buildnum-selftest	gates/buildnum-selftest.sh	247	measured #550 item (104): 247 pass 0 fail
+door:citations-selftest	gates/verify-log.sh	63	gates/door-checks.sh pin, run as `gates/verify-log.sh --citations-selftest` by the door, not by --harnesses; measured #550 round 4: 63 pass 0 fail
+door:cited-not-run-selftest	gates/audit/cited-not-run.sh	51	gates/door-checks.sh pin, run as `--selftest` by the door; measured #550 round 4: 51 pass 0 fail (47 + C36-C39)
+door:verify-patch-set-selftest	gates/audit/verify-patch-set.sh	105	gates/door-checks.sh pin, run as `--selftest` by the door; measured #550 round 4: 105 pass 0 fail

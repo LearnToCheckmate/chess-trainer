@@ -27,11 +27,13 @@
 # The IN checks run in parallel (three when this was measured; the report joined at round 4). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
 # run one after another (34 + 17 + 6), each check slowing to 55s/33s/17s - because the checks are CPU-bound already.
 #
-# NO COUNT IS PINNED HERE, AND THAT IS A GAP, NAMED: this file refuses a non-zero exit, a FAIL, and a missing or zero pass count
-# (so a check that printed nothing, or whose loop emptied to nothing, is never a clearance), but a check that LOSES some of its
-# cases and still passes the rest is not caught. That is what gates/harness-case-counts.tsv does for the three harnesses
-# --harnesses runs; giving these three rows there is the follow-up, left undone because #550 helper A was told not to edit the
-# pin registers.
+# THE CASE COUNTS ARE PINNED [#550 round 4, closing the gap this paragraph used to name]. Beyond a non-zero exit, a FAIL and a
+# missing or zero pass count, a check that LOSES some of its cases and still passes the rest is now refused: each selftest's pass
+# count is a `door:<name>` row in gates/harness-case-counts.tsv, the register --harnesses already ratchets, and a run reading FEWER
+# than the pin refuses. A rise is reported and is committed by editing that row's pin. gates/harness-counts.sh skips `door:` rows
+# (this file runs them) but still holds them to its never-delete rule against HEAD. The REPORT row is not pinned: its pass figure
+# counts cited files, which may fall legitimately; DC16 holds every --selftest row in the live list to having a pin.
+# CT_DOOR_PINS overrides the register (the selftest uses it); a register that cannot be read is exit 2, never a clearance.
 #
 # EXIT: 0 every check exited 0 with a readable count line, pass > 0 and fail 0; 1 any check refused; 2 a check could not run
 # (its script is missing). A missing script is 2 and never 0: a door that could not run is not a clearance.
@@ -47,8 +49,12 @@ cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
 
+# the pin of door check <name>: field 3 of the `door:<name>` row of <register>, or nothing
+pin_of(){ awk -F'\t' -v k="door:$2" '$1==k{print $3; exit}' "$1" 2>/dev/null; }
+
 run(){
-  local list="${CT_DOOR_CHECKS:-$CHECKS}" root="${CT_DOOR_ROOT:-$ROOT}" tmp rc=0 n=0
+  local list="${CT_DOOR_CHECKS:-$CHECKS}" root="${CT_DOOR_ROOT:-$ROOT}" pins="${CT_DOOR_PINS:-$HERE/harness-case-counts.tsv}" tmp rc=0 n=0
+  [ -r "$pins" ] || { echo "DOOR CHECKS COULD NOT RUN - the pin register $pins cannot be read"; return 2; }
   tmp="$(mktemp -d)" || { echo "DOOR CHECKS COULD NOT RUN - mktemp failed"; return 2; }
   local -a names=() pids=() pats=() t0s=()
   while IFS='|' read -r name script arg pat; do
@@ -66,7 +72,13 @@ run(){
     if ! [[ "$p" =~ ^[0-9]+$ && "$fl" =~ ^[0-9]+$ ]]; then echo "DOOR CHECKS REFUSED - $nm: exit $hrc, no readable count line (${secs}s); last lines:"; tail -3 "$tmp/$nm.out" | sed 's/^/    /'; rc=1
     elif [ "$hrc" -ne 0 ] || [ "$fl" -gt 0 ]; then echo "DOOR CHECKS REFUSED - $nm: exit $hrc, $fl fail ($p pass, ${secs}s)"; tail -3 "$tmp/$nm.out" | sed 's/^/    /'; rc=1
     elif [ "$p" -eq 0 ]; then echo "DOOR CHECKS REFUSED - $nm: exit 0 over ZERO cases (${secs}s), which is a vacuous pass and not a clearance"; rc=1
-    else echo "door checks: $nm exit 0, $p pass 0 fail (${secs}s)"; fi
+    else
+      local pin; pin="$(pin_of "$pins" "$nm")"
+      if [ -n "$pin" ] && [ "$p" -lt "$pin" ]; then echo "DOOR CHECKS REFUSED - $nm ran $p case(s), BELOW its pin $pin in $(basename "$pins"): a case was deleted or a loop emptied (${secs}s)"; rc=1
+      elif [ -n "$pin" ] && [ "$p" -gt "$pin" ]; then echo "door checks: $nm exit 0, $p pass 0 fail (${secs}s), ABOVE its pin $pin - commit the rise in the door:$nm row"
+      elif [ -n "$pin" ]; then echo "door checks: $nm exit 0, $p pass 0 fail (${secs}s), = its pin"
+      else echo "door checks: $nm exit 0, $p pass 0 fail (${secs}s), unpinned"; fi
+    fi
   done
   rm -rf "$tmp"; [ "$rc" -eq 0 ] && echo "DOOR CHECKS OK - $n of $n"; return $rc
 }
@@ -75,7 +87,8 @@ selftest(){
   local T; T="$(mktemp -d)"; local ok=0 bad=0
   chk(){ if [ "$2" = "$3" ]; then ok=$((ok+1)); echo "  ok  $1"; else bad=$((bad+1)); echo "  FAIL $1 (want $2, got $3)"; fi; }
   mk(){ mkdir -p "$T/gates"; printf '#!/usr/bin/env bash\necho "%s"\nexit %s\n' "$2" "${3:-0}" > "$T/gates/$1.sh"; }
-  rr(){ ( CT_DOOR_ROOT="$T" CT_DOOR_CHECKS="$1" run ) > "$T/last" 2>&1; echo $?; }
+  : > "$T/pins"
+  rr(){ ( CT_DOOR_ROOT="$T" CT_DOOR_PINS="$T/pins" CT_DOOR_CHECKS="$1" run ) > "$T/last" 2>&1; echo $?; }
   L1='a|gates/a.sh|--selftest|a: [0-9]+ pass, [0-9]+ fail'
   mk a "a: 5 pass, 0 fail"; chk "DC1 one clean check: 0" 0 "$(rr "$L1")"
   chk "DC1b and it says so" 1 "$(grep -c '^DOOR CHECKS OK - 1 of 1$' "$T/last")"
@@ -100,6 +113,19 @@ s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks ru
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
   printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
+  # DC12-DC15: the case-count pin (#550 round 4). One check, pinned at 5.
+  mk a "a: 5 pass, 0 fail"; printf 'door:a\tgates/a.sh\t5\tn\n' > "$T/pins"
+  chk "DC12 at its pin: 0" 0 "$(rr "$L1")"
+  mk a "a: 4 pass, 0 fail"; chk "DC13 one case lost (4 under a pin of 5) refuses: 1" 1 "$(rr "$L1")"
+  chk "DC13b and says it fell below its pin" 1 "$(grep -c 'REFUSED - a ran 4 case(s), BELOW its pin 5' "$T/last")"
+  mk a "a: 6 pass, 0 fail"; chk "DC14 a rise passes: 0" 0 "$(rr "$L1")"
+  chk "DC14b and is reported as above its pin" 1 "$(grep -c 'ABOVE its pin 5' "$T/last")"
+  : > "$T/pins"; mk a "a: 4 pass, 0 fail"; chk "DC14c no row for the check: unpinned, passes, says so" "0 1" "$(rr "$L1") $(grep -c 'unpinned' "$T/last")"
+  chk "DC15 an unreadable pin register: 2, not a clearance" 2 "$( ( CT_DOOR_ROOT="$T" CT_DOOR_PINS="$T/no-such-pins" CT_DOOR_CHECKS="$L1" run ) >/dev/null 2>&1; echo $?)"
+  # DC16: every --selftest row of the LIVE list has a door: pin in the real register, and the report row has none
+  local miss=0 nm sc ar pt; while IFS='|' read -r nm sc ar pt; do [ "$ar" = --selftest ] || continue; [ -n "$(pin_of "$HERE/harness-case-counts.tsv" "$nm")" ] || miss=$((miss+1)); done <<< "$CHECKS"
+  chk "DC16 every live --selftest check is pinned in gates/harness-case-counts.tsv" 0 "$miss"
+  chk "DC16b and the report row is not (its count is cited files, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" cited-not-run-report)"
   rm -rf "$T"; echo "door-checks self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 
