@@ -1,41 +1,43 @@
-// regress/14-uat-review-card.js  The UAT card for the Review screen (gallery card 6, id US-R) plays the
+// regress/14-uat-review-card.js  THE REVIEW JOURNEY, END TO END, BY THE PLAYER'S ROUTE: import + analysis, summary, ply 0,
+// 10.Nxb5!!, 17.Rd8#, analysis board, exit, back to the summary - at 375x679.
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: the review it imports and grades is the engine's, so its grade and ply readings are the pooled path's.
-// journey by itself: import + analysis, summary, ply 0, 10.Nxb5!!, 17.Rd8#, analysis board, exit. This gate
-// runs the card and checks every checkpoint's caption (data-ct rec-cap carries the item id) and the state it
-// claims, at Kunal's geometry. The caption strip must sit inside the viewport at every checkpoint.
+//
+// THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01].
+// Until #550 this gate RAN gallery card 6 (US-R, "The Review journey"): the card imported the Opera Game, then a timer stepped the
+// screen to each checkpoint and a caption strip (data-ct rec-cap) named the story id, and the gate read the caption and the state at
+// fixed seconds. It now drives the same journey the way a player does, through gates/drive/review.js: Home -> Review -> paste the
+// PGN -> Analyze Game (summary), Start review (ply 0), the move strip (10.Nxb5 at ply 19, 17.Rd8# at the last ply), the round
+// Analyze button, Exit analysis, the back arrow (summary). WHAT WENT WITH THE CARD, said rather than left to be noticed: the caption
+// lines (the card's own strip, its story ids and its clear-after-hold) and the 'card is in the gallery' line - those are facts about
+// the gallery, which gate 15 covers, not about the Review screen. Every state line is kept with its words, less the card's timestamp.
+// The move-screen board pin is unchanged: 343 by both routes.
+// CONTROL-RECORD: 41b53b4 2026-11-13 total=9 red=2 scope=trial:844bba6021d6 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 14 moved off gallery card 6, US-R, onto drive/review.js): the analysis board's '\u2715 Exit analysis' relabelled '\u2715 Leave' - 'US-R07 analysis board with Undo and Exit' and 'US-R09 back on the summary' red, the guarded exit carrying on; with EVERY state card the job names DELETED (k10, k8, k11 x2, A-06, US-R01, y3 x2; trial:6c107ff5381c) 9/0 on the new route where the old card route read 1/2 and threw; on 77ffccc15668 9/0 here against 15/0 on the old route - the 7 state lines agree verdict for verdict (the board 343 by both), and the 7 caption and gallery lines went with the card. Two board-size controls did NOT red the 343 pin (boardPx-8 in analyze, trial:dd2002730d30; REV_CHROME 304 -> 320, trial:c00ad8a905cd): the streamlined review's board is sized by neither, so that line is not yet shown able to fail by this route
 'use strict';
-const L=require('../lib');
-const cap=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(!e)return null;const r=e.getBoundingClientRect();return {text:(e.innerText||'').replace(/\s+/g,' ').trim(),bottom:Math.round(r.bottom),top:Math.round(r.top)};});
+const L=require('../lib');const R=require('../drive/review');
+const WANT_W=343;   // measured on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
 L.run(async()=>{
   const b=await L.launch({geo:'kunal',name:'uat-review',store:{ct_pool:'3'}});await b.open();
-  const titles=await b.cardTitles();L.say(titles.some(t=>/US-R/.test(t)),'the Review journey card is in the gallery',titles);
-  const t0=Date.now();await b.card(/US-R · The Review journey/,1000);
-  const c0=await cap(b);L.say(!!c0&&/US-R01/.test(c0.text),'caption at start names US-R01',c0&&c0.text);
-  const waitUntil=async(ms)=>{const d=ms-(Date.now()-t0);if(d>0)await b.settle(d);};
-  await waitUntil(54500);const c3=await cap(b);const sum=await b.rect('[data-ct="rev-summary"]');const foot=await b.rect('[data-ct="rev-summary-foot"]');
-  L.say(!!c3&&/US-R03/.test(c3.text),'52 s: caption names US-R03',c3&&c3.text);
-  L.say(!!sum&&!!foot&&foot.y+foot.h<=b.geo.h+0.5,'52 s: the summary is up with its footer pinned',foot&&Math.round(foot.y+foot.h));
-  L.say(!!c3&&c3.bottom<=b.geo.h,'52 s: the caption strip is inside the viewport',c3&&c3.bottom);
+  let ok=true;try{await R.states['summary'](b);}catch(e){ok=false;L.note('summary drive: '+String(e).slice(0,140));}
+  const sum=await b.rect('[data-ct="rev-summary"]');const foot=await b.rect('[data-ct="rev-summary-foot"]');
+  L.say(ok&&!!sum&&!!foot&&foot.y+foot.h<=b.geo.h+0.5,'the summary is up with its footer pinned',foot&&Math.round(foot.y+foot.h));
   await b.shot('uat-review-summary');
-  await waitUntil(60500);const c4=await cap(b);const m4=await b.metrics();const ml4=await b.rect('[data-ct="rev-move-line"]');
-  L.say(!!c4&&/US-R04/.test(c4.text),'58 s: caption names US-R04',c4&&c4.text);
-  /* #550 round-3 suite (386d5b5, bundle 768be560e76b): 349 -> 343. Since a21 the phone review is the streamlined layout (header row, the
-     eval bar ABOVE the board, the toolbar at the foot), so at 375x730 with the card's caption strip the board is height-bound at 343,
-     measured, with the page still not scrolling (over 0). */
-  L.say(!!m4.board&&Math.abs(m4.board.w-343)<0.6&&m4.over.over<=0,'58 s: move screen, board 343, no scroll',{board:m4.board,over:m4.over.over});
-  await waitUntil(66500);const c6=await cap(b);const ml6=await b.rect('[data-ct="rev-move-line"]');const why={text:(await b.text('[data-ct="rev-why"]'))||''};
-  L.say(!!c6&&/US-R06/.test(c6.text)&&!!ml6&&/Nxb5/.test(ml6.text),'64 s: US-R06 at 10.Nxb5',ml6&&ml6.text);
-  L.say(!!why&&/cxb5|Bxb5/.test(why.text),'64 s: the reason names the forcing line',why&&why.text.slice(0,80));
+  await R.states['moves-ply0'](b);const m4=await b.metrics();
+  const ply0=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="rev-move-line"]');return t?(t.innerText||'').replace(/\s+/g,' ').trim():null;});
+  L.say(!!m4.board&&Math.abs(m4.board.w-WANT_W)<0.6&&m4.over.over<=0,'move screen, board '+WANT_W+', no scroll',{board:m4.board,over:m4.over.over,line:ply0});
+  await R.goPly(b,19);const ml6=await b.rect('[data-ct="rev-move-line"]');await b.settle(1500);const why={text:(await b.text('[data-ct="rev-why"]'))||''};
+  L.say(!!ml6&&/Nxb5/.test(ml6.text),'US-R06 at 10.Nxb5',ml6&&ml6.text);
+  L.say(!!why&&/cxb5|Bxb5/.test(why.text),'the reason names the forcing line',why&&why.text.slice(0,80));
   await b.shot('uat-review-brilliant');
-  await waitUntil(72500);const c12=await cap(b);const num=await b.rect('[data-ct="eval-bar-num"]');
-  L.say(!!c12&&/k12/.test(c12.text)&&!!num&&/1-0/.test(num.text),'70 s: k12 at 17.Rd8# with the label 1-0',{cap:c12&&c12.text,num:num&&num.text});
+  await R.goPly(b,R.OPERA_PLIES);await b.settle(800);const num=await b.rect('[data-ct="eval-bar-num"]');
+  L.say(!!num&&/1-0/.test(num.text),'k12 at 17.Rd8# with the label 1-0',{num:num&&num.text});
   await b.shot('uat-review-mate');
-  await waitUntil(79000);const c7=await cap(b);const tx=await b.texts();
-  L.say(!!c7&&/US-R07/.test(c7.text)&&tx.some(t=>/Undo/.test(t))&&tx.some(t=>/Exit analysis/.test(t)),'76 s: US-R07 analysis board with Undo and Exit',{cap:c7&&c7.text,btns:tx.filter(t=>/Undo|Exit/.test(t))});
+  await R.goPly(b,19);await b.tapCt('rev-fab',900);const tx=await b.texts();
+  L.say(tx.some(t=>/Undo/.test(t))&&tx.some(t=>/Exit analysis/.test(t)),'US-R07 analysis board with Undo and Exit',{btns:tx.filter(t=>/Undo|Exit/.test(t))});
   await b.shot('uat-review-analysis');
-  await waitUntil(85500);const c9=await cap(b);const sum9=await b.rect('[data-ct="rev-summary"]');
-  L.say(!!c9&&/US-R09/.test(c9.text)&&!!sum9,'82 s: US-R09 back on the summary',c9&&c9.text);
-  await waitUntil(90500);const cEnd=await cap(b);L.say(!cEnd,'88 s: the caption clears after the card\'s hold');
+  // GUARDED, per the #393 rule: a missing Exit goes red on its own line below rather than throwing and hiding the rest.
+  let exited=true;try{await b.tapText(/Exit analysis$/);await b.settle(600);await R.closeSheet(b).catch(()=>{});await b.tapCt('rev-back',600);}catch(e){exited=false;L.note('exit/back: '+String(e).slice(0,100));}
+  await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:5000}).catch(()=>{});const sum9=await b.rect('[data-ct="rev-summary"]');
+  L.say(exited&&!!sum9,'US-R09 back on the summary',{exited,summary:!!sum9});
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,'zero app errors beyond the allowed engine trap',bad.slice(0,2));
   await b.close();
 },'UAT-REVIEW-CARD');
