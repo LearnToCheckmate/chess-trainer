@@ -37,6 +37,7 @@
 const L=require('../lib');
 // CONTROL-RECORD: ef3feab 2026-11-06 total=185 red=10 scope=trial:e824097dfb8e how=the tree before the #549 (16) veto fix (chip minWidth 0, shrinkable) - TC-PZ-CHIP's not-cut lines red for rankup-continue and rank1-train at kunal761 and kunal730 and rankup-continue at 390 [#549 item (16) veto fix]
 // CONTROL-RECORD: c33e447 2026-11-11 total=232 red=3 scope=trial:a0832813a26e how=#550 AUD-L18: the tree before the header kept the tick alone (t74, '1 / 890 · ✓ solved') - the three AUD-L18 lines red at kunal761, kunal730 and 390
+// CONTROL-RECORD: faa82a9 2026-11-13 total=232 red=6 scope=trial:480bcca1adc1 how=#550 job suite-never-asserts-after-a-success (whatIsLeft: TC-PZ-RANKUP's board-rect lines): the training card's pz-top pushed 40px further down from the moment the rank-up layer first shows, and kept there after Continue (a page-global latch) - the two TC-PZ-RANKUP board-rect lines red at kunal761, kunal730 and se (board top 222.5 -> 242.5 at kunal761; at se 116.5 -> 159 and 320 -> 280 wide), the layer-gone half and every other TC-PZ-RANKUP line green; the tip trial 342f7329901b reads 223/9 and the control 217/15, and the six added reds are exactly these (the tip's nine se reds are the a42 re-key's, not this control's)
 const Z=require('../drive/puzzles');
 const PZKEY='chesstrainer.progress.v1';
 
