@@ -1924,6 +1924,42 @@ function concreteRead(pos,mv){
       const a=_cheapAttacker(pos.board,mv.fr,mv.fc,them);
       if(a&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0)return {k:'save',hint:'Your '+nm(pc.t)+' on '+rc2sq(mv.fr,mv.fc)+' is under attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'. Move it out.',say:san+' moves the '+nm(pc.t)+' out of the attack from the '+nm(a.t)+' on '+rc2sq(a.r,a.c)+'.'};
     }
+    /* #550 cg7 (jobs/drill-hints-name-the-positions-point-2026-11-12, the independent checker's gap): three readings it had no words for.
+       Each is said only where the board after the move proves it, and only from a square they cannot win the piece on (seeSq <= 0).
+       (1) A MATE THREAT: a quiet move after which, were it the mover's turn again, there is mate in one that was not there before
+           (on 5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w, Qe4 threatens Qxh7 mate; it read "No tactic to spot here").
+       (2) A FORK WITHOUT CHECK: the moved piece hits two of their pieces (no king, no pawn), each worth more than it or left unguarded
+           (Nc6 on Qd8 and Rb8 used to name only the rook, through the attack reading below).
+       (3) A PIN: a bishop, rook or queen lands in line with one of their pieces (a knight or bigger) with the king, or a piece worth more
+           than both, behind it on the same line. */
+    const _safeL=seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0;
+    if(st2!=='check'&&_safeL){
+      const gT={...g2,turn:me,ep:null};const mt=(isInCheck(pos.board,me)||!_mateInOne(pos))?_mateInOne(gT):null;   /* a mate the mover already had is not a threat this move sets up */
+      if(mt){const ms=toSAN(gT,mt,applyMove(gT.board,mt)).replace(/[+#]$/,'');return {k:'matethreat',hint:'One move sets up a mate threat on '+rc2sq(mt.tr,mt.tc)+'.',say:san+' threatens '+ms+' mate.'};}
+    }
+    if(st2!=='check'&&_safeL&&pc.t!=='k'){
+      const fk=[];let fresh=false;
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++){const t=g2.board[r][c];if(!t||t.c!==them||t.t==='k'||t.t==='p')continue;
+        if(!moveHits(g2.board,mv.tr,mv.tc,r,c))continue;
+        if((SEEVAL[t.t]||0)>(SEEVAL[pc.t]||0)||seeSq({...g2,turn:me,ep:null},r,c,me)>0){fk.push({t:t.t,sq:rc2sq(r,c)});if(!moveHits(pos.board,mv.fr,mv.fc,r,c))fresh=true;}}
+      if(fk.length>=2&&fresh){fk.sort((a,b)=>(SEEVAL[b.t]||0)-(SEEVAL[a.t]||0));const two=fk.slice(0,2).map(x=>'the '+nm(x.t)+' on '+x.sq).join(' and ');
+        return {k:'fork',hint:'Your '+nm(pc.t)+' can attack '+two+' at once.',say:san+' forks '+two+'.'};}
+    }
+    if(_safeL&&(pc.t==='b'||pc.t==='r'||pc.t==='q')){
+      const rays=pc.t==='b'?[[-1,-1],[-1,1],[1,-1],[1,1]]:pc.t==='r'?[[-1,0],[1,0],[0,-1],[0,1]]:[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
+      for(const [dr,dc] of rays){let r=mv.tr+dr,c=mv.tc+dc,first=null;
+        while(r>=0&&r<8&&c>=0&&c<8){const x=g2.board[r][c];
+          if(x){if(x.c===me)break;if(!first){first={t:x.t,r,c};}
+            else{const fv=SEEVAL[first.t]||0,sv=SEEVAL[x.t]||0;
+              if(first.t!=='k'&&fv>=3&&(x.t==='k'||(sv>fv&&sv>(SEEVAL[pc.t]||0)))){
+                /* a new pin: the same piece did not already lie on this line before the move */
+                let was=false;try{was=!!(pos.board[mv.fr][mv.fc]&&moveHits(pos.board,mv.fr,mv.fc,first.r,first.c)&&Math.sign(first.r-mv.fr)===Math.sign(r-first.r)&&Math.sign(first.c-mv.fc)===Math.sign(c-first.c)&&((first.r-mv.fr)*(c-first.c)===(first.c-mv.fc)*(r-first.r)));}catch(e){was=false;}
+                if(!was){const P=nm(first.t)+' on '+rc2sq(first.r,first.c),Q=x.t==='k'?'king':nm(x.t);
+                  return {k:'pin',hint:'Your '+nm(pc.t)+' can pin their '+P+' to the '+Q+'.',say:san+' pins the '+P+' to the '+Q+'.'};}
+              }
+              break;}}
+          r+=dr;c+=dc;}}
+    }
     const safe=seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0;
     if(st2==='check'&&safe){
       return {k:'check',hint:'There is a safe check with your '+nm(pc.t)+'.',say:san+' is a safe check.'};
