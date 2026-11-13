@@ -61,7 +61,12 @@ L.run(async()=>{
     L.say(!!c&&c.act,'TC-R222 PRECONDITION the service worker installed and activated on this first visit ('+JSON.stringify(c)+')',c);
     L.say(!!c&&c.act&&c.js&&c.wasm&&c.keys.indexOf('chess-trainer-v4')<0,'TC-R222d after one visit the service worker cache already holds both engine files, under a new cache name ('+JSON.stringify(c&&{keys:c.keys,js:c.js,wasm:c.wasm})+')',c);
     let ok=true;try{await review(b);}catch(e){ok=false;L.note('review: '+String(e).slice(0,160));}
-    const r=await b.page.evaluate(()=>({p:window.__ctReview&&window.__ctReview.engine&&window.__ctReview.engine.path,n:!!document.querySelector('[data-ct="rev-noengine"]')}));
+    // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: the notice is found by WHAT IT SAYS on the
+    // painted page, the hook rev-noengine (added in this gate's own build) as a fallback only. Keyed on the hook alone this absence line read
+    // "absent" on any bundle that showed the notice under another name - the #432 costume.
+    const r=await b.page.evaluate(()=>{const re=/Stockfish engine (could not load|did not load in time)|quick review without it/;
+      const byText=[...document.querySelectorAll('body *')].some(x=>x.children.length===0&&re.test(x.textContent||'')&&x.getBoundingClientRect().height>0);
+      return {p:window.__ctReview&&window.__ctReview.engine&&window.__ctReview.engine.path,n:byText||!!document.querySelector('[data-ct="rev-noengine"]'),byText};});
     L.say(ok&&r.p&&r.p!=='builtin'&&!r.n,'TC-R222c with Stockfish working the summary carries no "without Stockfish" notice (engine path "'+r.p+'", notice '+(r.n?'shown':'absent')+')',r);
     L.say(b.errs.length===0,'TC-R222 zero app errors (engine)',b.errs.slice(0,3));await b.close();
   }
