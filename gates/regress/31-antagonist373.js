@@ -4,6 +4,7 @@
 //   a mate delivered by Black on the analysis board (fool's mate) reads 0-1, not M1
 //   the Analyze / Copy moves tap boxes are effective for their full height (elementFromPoint 6px below the chip)
 //   the Online lobby without sign-in has a way back (audit N-play-1, P0)
+// CONTROL-RECORD: 39ef1e3 2026-11-13 total=15 red=2 scope=trial:bf3e611a11a8 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 31 moved off the k8 card onto drive/play.js cpu-more): the More sheet's Analyze row given marginBottom -20 so Copy covers its bottom band - 'Analyze and Copy are effective across their full height' red at kunal and se (moves-analyze bot3 false); with the k8 gallery card DELETED (trial:5d0fdc266f6d) the gate is 15/0 on the new route; on 342f7329901b 15/0, PASS/FAIL lines byte-identical to the old b.card('k8') route
 'use strict';
 const L=require('../lib');
 const PGN_BL='[Event "Bl"] [White "A"] [Black "B"] [Result "*"] 1. e4 e5 2. Qh5 Nf6 3. Qxh7 Rxh7 4. d4 exd4 5. Bd3 Nc6 6. Ba6 bxa6 *';
@@ -31,8 +32,12 @@ L.run(async()=>{
        height does something - so it is measured the same way, by elementFromPoint, against the row's own box.
        A sheet row IS the button, so the probe is taken INSIDE its top and bottom edges rather than 6px outside
        them, and a row that reports a hit at both ends has no dead band. */
-    await b.home();await b.card('k8',6500);
-    await b.tapText(/^More$/,{wait:600});
+    // THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-
+    // card-2026-10-01]. This used to be b.home(); b.card('k8',6500) (a scripted two-move game) then More. It now plays the game
+    // the way a player does - Home -> Play -> Computer (Pip) -> Start, 1.e4, the reply, 2.Nf3, the reply - and opens More:
+    // gates/drive/play.js states['cpu-more']. Equivalence on one bundle (342f7329901b): the PASS line reads the same rows at the
+    // same heights at kunal and se (moves-analyze and moves-copy h 45, top3/mid/bot3 all true) by both routes.
+    await require('../drive/play').states['cpu-more'](b);
     const hit=await b.page.evaluate(()=>{const out={};for(const k of ['moves-analyze','moves-copy']){const e=document.querySelector('[data-ct="'+k+'"]');if(!e){out[k]=null;continue;}const r=e.getBoundingClientRect();const x=r.left+r.width/2;const probe=(y)=>{const t=document.elementFromPoint(x,y);return !!(t&&(t===e||e.contains(t)));};out[k]={h:Math.round(r.height*10)/10,top3:probe(r.top+3),mid:probe(r.top+r.height/2),bot3:probe(r.bottom-3)};}return out;});
     const eff=(k)=>!!hit[k]&&hit[k].h>=40&&hit[k].top3&&hit[k].mid&&hit[k].bot3;
     L.say(eff('moves-analyze')&&eff('moves-copy'),geo+': Analyze and Copy are effective across their full height as More-sheet rows (#378 moved them there)',hit);
