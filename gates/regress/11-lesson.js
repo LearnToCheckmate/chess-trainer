@@ -610,6 +610,7 @@ L.run(async()=>{
   // (no tap, scrollTop 0) at move 1, after e4 and after Nf3, and no line of the box is painted as a strip at its edge; the board does not move.
   // CONTROL-RECORD: d12ea0b 2026-11-13 total=21 red=4 scope=env:CT_LS061_ONLY=1 how=trial:aee112168086, the branch tip before the fix - TC-LS-061b red at kunal761 move 1 (a fourth line, 'Hints are on...', painted as a strip at 71-87 under a box ending at 72) and at se on all three (words at 71-87 and 91-107, below the edge); kunal761 after e4 and Nf3 green in this container (its fonts set the words a line higher than on his phone, CLAUDE.md #480); on t3 18c1452bf0b3 21/0
   // CONTROL-RECORD: f8fb292 2026-11-13 total=13 red=4 scope=env:CT_LS061_ONLY=1 how=#550 HEX-T-13: the branch tip's bundle t0 (37af39a67536, before the words) - the two words-present lines red at kunal761 and se; the order preconditions, no-jump and error lines green
+  // CONTROL-RECORD: helper-lessons 2026-11-13 total=29 red=5 scope=env:CT_LS061_ONLY=1 how=trial:9bf7a640ec2a, the tip 2f1d50e before jobs/lesson-practice-small-defects-2026-11-13 (1)(2) - TC-LS-061c red at kunal761 after Nf3 (confirm cut at the edge, clamp none) and at se on all three plus the count (1 of 5 at 71-87 under a box ending at 70); on trial 2c29e1ce70e9 29/0
   if(!process.env.CT_LS058_ONLY){
     for(const geo of ['kunal761','se']){
       const b=await L.launch({geo,name:'lesson-hintwords-'+geo,store:{}});await b.open();
@@ -627,6 +628,18 @@ L.run(async()=>{
           const hw=n.querySelector('[data-ct="lesson-hint-words"]');const W=hw?rects(hw):[];const tn=[];const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let x;while((x=tw.nextNode()))if(x.textContent.trim()){const g=document.createRange();g.selectNodeContents(x);tn.push(...[...g.getClientRects()].filter(r=>r.width>0.5&&r.height>2));}
           const strip=tn.filter(r=>r.top<bot-0.5&&r.bottom>bot+0.5).map(r=>Math.round(r.top)+'-'+Math.round(r.bottom));
           return {box:[Math.round(top),Math.round(bot)],words:W.map(r=>Math.round(r.top)+'-'+Math.round(r.bottom)).join(','),wordsIn:W.length>0&&W.every(r=>r.top>=top-0.5&&r.bottom<=bot+0.5),strip,st:sc.scrollTop};});
+        // TC-LS-061c [#550 jobs/lesson-practice-small-defects-2026-11-13 (1)(2)]: the prompt or confirm line is found by WHAT IT SAYS (a text node
+        // starting 'Your move' or the tick), not by the data-ct hook this fix adds [#432]. (1) if any of its text lies past the box's bottom edge,
+        // or its element is taller than it shows, it is clamped (an ellipsis) and its element ends inside the box; (2) at move 1 with hints on,
+        // the count 'N of M' lies wholly inside the box as it shows.
+        const pv=()=>b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');const sc=n&&n.querySelector('.scroll');if(!sc)return null;const q=sc.getBoundingClientRect();
+          const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let x,t=null;while((x=tw.nextNode()))if(/^\s*(Your move|✓)/.test(x.textContent)){t=x;break;}if(!t)return {found:false};
+          const el=t.parentElement;const g=document.createRange();g.selectNodeContents(t);const rs=[...g.getClientRects()].filter(r=>r.width>0.5&&r.height>2);
+          const past=rs.some(r=>r.bottom>q.bottom+0.5);const er=el.getBoundingClientRect();const cut=past||el.scrollHeight>el.clientHeight+1;const clamp=getComputedStyle(el).webkitLineClamp;
+          const i=t.textContent.search(/\d+ of \d+/);let cnt=null;if(i>=0){const h=document.createRange();h.setStart(t,i);h.setEnd(t,i+t.textContent.slice(i).match(/\d+ of \d+/)[0].length);const cr=[...h.getClientRects()].filter(r=>r.width>0.5);cnt={in:cr.length>0&&cr.every(r=>r.top>=q.top-0.5&&r.bottom<=q.bottom+0.5),at:cr.map(r=>Math.round(r.top)+'-'+Math.round(r.bottom)).join(',')};}
+          return {found:true,text:t.textContent.slice(0,60),box:[Math.round(q.top),Math.round(q.bottom)],cut,clamp,elBot:Math.round(er.bottom),endsIn:er.bottom<=q.bottom+0.5,lines:rs.map(r=>Math.round(r.top)+'-'+Math.round(r.bottom)).join(','),cnt};});
+        const say061c=(p,tag,needCount)=>{L.say(!!p&&p.found&&(!p.cut||(p.clamp!=='none'&&p.endsIn)),'TC-LS-061c '+geo+' '+tag+': the line "'+(p&&p.text)+'" is either whole inside the box '+JSON.stringify(p&&p.box)+' or clamped with an ellipsis ending inside it (cut '+(p&&p.cut)+', clamp '+(p&&p.clamp)+', element ends '+(p&&p.elBot)+', lines '+(p&&p.lines)+')',p);
+          if(needCount)L.say(!!p&&!!p.cnt&&p.cnt.in,'TC-LS-061c '+geo+' '+tag+': the count "N of M" stays inside the box as it shows (at '+(p&&p.cnt&&p.cnt.at)+', box '+JSON.stringify(p&&p.box)+')',p);};
         const s0=await read();const bd0=await b.board();
         L.say(!!s0.notes&&s0.line&&s0.line[0]==='e4'&&/Your move/.test(s0.note||'')&&/won.t bank a day/.test(s0.warn||'')&&!/Hints are on/.test(s0.warn||''),'TC-LS-061 '+geo+' PRECONDITION practice is at move 1 of the Italian Game with hints OFF',{note:s0.note,warn:s0.warn});
         L.say(!s0.words&&!!s0.notes&&(s0.note||'').indexOf(String(s0.notes[0]).trim().replace(/\.?$/,''))<0,'TC-LS-061 '+geo+' with hints OFF the prompt carries no hint words (neither the hook nor the note\'s text)',{note:s0.note});
@@ -636,13 +649,16 @@ L.run(async()=>{
         L.say(/Hints are on/.test(s1.warn||'')&&!!s1.words&&s1.words.indexOf(want1)>=0&&!/\be4\b/.test(s1.words),'TC-LS-061 '+geo+' with hints ON the prompt says the lesson\'s note for move 1 in words, without naming the move ("'+s1.words+'", want "'+want1+'")',{note:s1.note,words:s1.words});
         L.say(!!bd0&&!!bd1&&Math.abs(bd0.y-bd1.y)<0.5&&Math.abs(bd0.w-bd1.w)<0.5,'TC-LS-061 '+geo+' turning hints on to show the words does not move the board',{before:bd0,after:bd1});
         const v1=await vis();
+        say061c(await pv(),'move 1, hints on',true);
         L.say(!!v1&&v1.wordsIn&&v1.strip.length===0,'TC-LS-061b '+geo+' at move 1 the hint words lie inside the note box as it shows, without a tap (words '+(v1&&v1.words)+' in box '+JSON.stringify(v1&&v1.box)+'), and no line is cut at its edge ('+(v1&&v1.strip.join(' '))+')',v1);
         await b.move('e2','e4',1400);await b.settle(500);
         const s2=await read();const v2=await vis();const bd2=await b.board();
+        say061c(await pv(),'after e4, hints on',false);
         L.say(!!v2&&v2.wordsIn&&v2.strip.length===0,'TC-LS-061b '+geo+' after a correct move the next hint\'s words lie inside the note box as it shows (words '+(v2&&v2.words)+' in box '+JSON.stringify(v2&&v2.box)+'), and no line is cut at its edge ('+(v2&&v2.strip.join(' '))+')',v2);
         L.say(!!bd0&&!!bd2&&Math.abs(bd0.y-bd2.y)<0.5&&Math.abs(bd0.w-bd2.w)<0.5,'TC-LS-061b '+geo+' the board has not moved after the correct move',{before:bd0,after:bd2});
         // and after the next correct move (Nf3: the checker found it after every one, '\u00b7 4 of 5 \ud83d\udca1' showing and the words below the edge)
         try{await b.move('g1','f3',1400);await b.settle(500);}catch(e){}const v3=await vis();const bd3=await b.board();
+        say061c(await pv(),'after Nf3, hints on',false);
         L.say(!!v3&&v3.wordsIn&&v3.strip.length===0&&!!bd3&&Math.abs(bd0.y-bd3.y)<0.5,'TC-LS-061b '+geo+' after Nf3 too the hint words lie inside the note box (words '+(v3&&v3.words)+' in box '+JSON.stringify(v3&&v3.box)+'), no line cut at its edge ('+(v3&&v3.strip.join(' '))+'), board still',v3);
         const want2=s2.notes?String(s2.notes[2]).trim().replace(/\.?$/,''):'?';
         L.say(/e4, correct/.test(s2.note||'')&&!!s2.words&&s2.words.indexOf(want2)>=0&&s2.words.indexOf(want1)<0&&!/Nf3/.test(s2.words),'TC-LS-061 '+geo+' after a correct e4 and the reply, the hint words are the note of the NEXT own move ("'+s2.words+'", want "'+want2+'"), not of e4',{note:s2.note,words:s2.words});
