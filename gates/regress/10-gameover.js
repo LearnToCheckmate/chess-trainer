@@ -3,6 +3,7 @@
 // its width and top after the mate; nothing scrolls; the row reads Review · Rematch; zero app errors.
 // CONTROL-RECORD: ccbe925 2026-10-30 total=17 red=4 scope=full how=gate mutant pads #root's top by 10px after open - the WANT_TOP pin is red at both geometries while the width pin and 'top unchanged' stay green; 'nothing scrolls' also reddens because the pad overflows [#546 item (72)]
 // CONTROL-RECORD: 02c92a8 2026-11-05 total=17 red=2 scope=trial:9fd16ca819b5 how=#548 control for item (84): a zero-height in-flow box whose 1px relative child sits at 110vh, so #root's content runs past the viewport with nothing moved - 'nothing scrolls at game over' red at kunal and 390 (the conjunct-free assertion (84) left)
+// CONTROL-RECORD: b2aa9ef 2026-11-13 total=17 red=3 scope=trial:5d648bc20064 how=#550 re-key of card k10 at 375x679 (367@102 -> 375@100): the Play board 8px narrower (boardPx=SQ*8-8 in play) - it reads exactly the old 367@102 at kunal and 382 at 390, and the kunal width and top pins and the 390 width pin go red; on the tip trial 77ffccc15668 17/0, where the gate before this re-key read 15/2 (measured 375@100 against 367@102)
 'use strict';
 const L=require('../lib');
 L.run(async()=>{
@@ -27,14 +28,17 @@ L.run(async()=>{
       // #548 item (92) MOVED THEM, deliberately: the phone's top row (Home and the menu) took the strip under the board's place, and this
       // gate's own report on the #548 trial measured 367 at 375x679 (was 351) and 390 at 390x844. Missed in (92)'s checks; caught re-running
       // this gate as a control. Same numbers as gate 13's (92) re-pin.
-      const WANT={kunal:367,'390':390};
+      // #550 RE-KEYED, as gates 13 and 30 were at cfe4543: card k10 at 375x679 measured 375 wide at top 100 on the tip trial 77ffccc15668
+      // (mid-game and at mate, both), against the 367 at 102 pinned here - the board is full width there now, like every other board on his
+      // phone, 8px wider and 2px higher. Same numbers as gate 13's card k8 re-key.
+      const WANT={kunal:375,'390':390};
       if(WANT[geo]!=null)L.say(Math.abs(end.board.w-WANT[geo])<0.6,geo+': the board at game over is '+WANT[geo]+' wide, the measured size for this geometry - not merely the same as it was a moment ago',{measured:end.board.w,want:WANT[geo]});
       // THE TOP IS PINNED TOO [#546, item (72); jobs/gate-10-compares-board-top-only-against-itself-while-pinning-width-2026-10-02].
       // #381's lesson was applied to the width in this file and not to the top beside it: 'top unchanged' compares two samples
       // that can both be wrong, so a board sitting at the wrong height for the whole card passed. MEASURED, not chosen: 78 at
       // 375x679 and 103 at 390x844 in every archived full-suite log from #520 to #545. Same rule as WANT: move it with a
       // deliberate change, never re-pin it to whatever a build produces.
-      const WANT_TOP={kunal:102,'390':128};   // #548 item (92): 78 -> 102 and 103 -> 128, measured (see WANT)
+      const WANT_TOP={kunal:100,'390':128};   // #548 item (92): 78 -> 102 and 103 -> 128, measured (see WANT); #550: 102 -> 100 at 375x679, measured (see WANT)
       if(WANT_TOP[geo]!=null)L.say(Math.abs(end.board.top-WANT_TOP[geo])<0.6,geo+': the board at game over sits at top '+WANT_TOP[geo]+', the measured position for this geometry - not merely where it was a moment ago',{measured:end.board.top,want:WANT_TOP[geo]});
     }
     L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
