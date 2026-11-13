@@ -1475,6 +1475,12 @@ function missWhy(pos,mv,bestMv){
               if(moved){for(let a=0;a<8&&!hit;a++)for(let b=0;b<8;b++){const x=g3.board[a][b];if(x&&x.c===me&&x.t!=='p'&&x.t!=='k'&&moveHits(g3.board,r.tr,r.tc,a,b)){hit=true;break;}}}
               cands.push({r,moved,hit,cap:!!(g2.board[r.tr]&&g2.board[r.tr][r.tc])});}
             if(cands.length){cands.sort((a,b)=>(b.moved-a.moved)||(b.hit-a.hit)||(a.cap-b.cap));const c=cands[0];const rs=sanOf(g2,c.r);const what=nm(tgt.t)+' on '+rc2sq(trr,tc);
+              /* #550 helper B, jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13: a saving reply that captures or gives
+                 check is described by THAT first - on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w (best Nxf8) Bg5 read "lets them guard the
+                 rook on f8 (Qxf2+)", a queen taking a pawn with check named by its side effect. It reads "lets them take the pawn with check
+                 (Qxf2+)"; a capture alone "lets them take the knight (Nxc3)", a check alone "lets them give check (Qe7+)". */
+              const g3c=makeMove(g2,c.r),rcap=(g2.board[c.r.tr]&&g2.board[c.r.tr][c.r.tc])||(c.r.epCap?{t:'p'}:null),rchk=!!g3c&&getStatus(g3c)==='check';
+              if(rcap||rchk)return {kind:'letsgo',reply:rs,text:(rcap?('lets them take the '+nm(rcap.t)+(rchk?' with check':'')):'lets them give check')+' ('+rs+')'};
               return c.moved?{kind:'letsgo',reply:rs,text:'lets the '+what+' get away ('+rs+')'}:{kind:'letsgo',reply:rs,text:'lets them guard the '+what+' ('+rs+')'};}
           }
         }
@@ -1488,7 +1494,7 @@ function missWhy(pos,mv,bestMv){
         for(const r of getLegal(g2)){const q=g2.board[r.fr][r.fc];if(!q||q.t!=='p'||g2.board[r.tr][r.tc]||!between.has(r.tr*8+r.tc))continue;
           const g3=makeMove(g2,r);if(!g3)continue;if(!moveHits(g3.board,r.tr,r.tc,mv.tr,mv.tc))continue;
           if(seeSq({...g3,turn:me,ep:null},r.tr,r.tc,me)>0)continue;
-          const rs=sanOf(g2,r);return {kind:'blockhit',reply:rs,text:'is met by '+rs+', which blocks and hits the '+nm(pc.t)};}
+          const rs=sanOf(g2,r);return {kind:'blockhit',reply:rs,text:'is met by '+rs+(getStatus(g3)==='check'?', a check that blocks and hits the ':', which blocks and hits the ')+nm(pc.t)};}   /* helper B: a block that also checks says so first */
       }
     }
     // (3) onlypawn
@@ -1503,7 +1509,7 @@ function missWhy(pos,mv,bestMv){
         const pre=getLegal({...pos,turn:them,ep:null}).find(m=>m.fr===A.fr&&m.fc===A.fc&&m.tr===r&&m.tc===c);if(!pre)continue;
         const g0=makeMove({...pos,turn:them,ep:null},pre);if(!recap(g0,r,c).some(m=>g0.board[m.fr][m.fc].t!=='p'))continue;
         const as=sanOf(g2,A),ps=sanOf(g3,after[0]).replace(/[+#]$/,'');
-        return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as.replace(/[+#]$/,''),piece:x.t};}   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
+        return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as,piece:x.t};}   /* helper B: the reply keeps its + (a capture with check is said as one) */   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
     }
     return null;
   }catch(e){return null;}
@@ -1523,8 +1529,11 @@ function missWhy(pos,mv,bestMv){
 function replyWhy(g2,r,sc,base){
   try{const s=toSAN(g2,r,applyMove(g2.board,r)),g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return 'allows mate ('+s+')';
     if(sc&&sc.mate!=null&&sc.mate>0)return 'allows mate in '+sc.mate+' ('+s+')';
-    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
-    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
+    /* #550 helper B, jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13: a reply that gives check is described by
+       the check first - "a forking check", "winning the knight with check", "a check" - and never by what it hits behind the check. */
+    const chk=getStatus(g3)==='check';
+    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+(chk?', a forking check':', a fork');if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
+    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');
     let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
     /* #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w
        after 1.h3 the line read "allows Qxh6, which hits the bishop on d2" - Qxh6 TAKES WHITE'S QUEEN and Bxh6 takes back, so the side effect was
@@ -1534,6 +1543,7 @@ function replyWhy(g2,r,sc,base){
     let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
       if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
       else if(cv>=3)capW='taking your '+PNAME[cap.t];gist='';}
+    if(chk){if(capW)capW+=' with check';else if(!cap&&gist)capW='a check that '+gist;gist='';}   /* a pawn taken with check keeps no phrase (B1, B7): its SAN already says both */
     let band='';
     if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;
       if(v<=-1.5)band=' and leaves you '+whyBand(v);

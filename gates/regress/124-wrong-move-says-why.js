@@ -20,6 +20,7 @@
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=69 red=12 scope=trial:f04242ef6603 how=#550 cg7: the branch tip's bundle (before missWhy) - TC-R210c red on K2 K5 K6 at kunal761 and 320x568 (two lines each); every other line green, K7 K8 K10 included
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=23 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip's chess.jsx d04a8ed0b851 (no missWhy) - TC-R210a K2 K5 K6 red; the null cards and every TC-R210b must-not line green
 // CONTROL-RECORD: e14a1d6 2026-11-13 total=83 red=16 scope=trial:aee112168086 how=#550 jobs/drill-engine-reason-overflows-its-box-2026-11-13: the bundle before 8b5bfe7's drill-box fix (and before cg7) - TC-R211 x4 red (kunal761: 3 of 4 lines shown, the chip over 2, one tap shows 3; se: a line cut at the 74px box's edge, the chip over 2, one tap leaves 1 hidden); the other 12 red are cg7's block F, which that bundle predates (K5 at se there reads the job's own case, '...chases the knight off f3: you go from slightly better to level. Try again.', cut true); on t5 bade581b40e6 83/0
+// CONTROL-RECORD: 2878e1b 2026-11-13 total=31 red=4 scope=env:CT_SRC=tip-chess.jsx how=#550 helper B (jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13): the branch tip's chess.jsx (f901598, md5 9089e1e7b7ee) - TC-R212a H1 and H2 red ('lets them guard the rook on f8 (Qxf2+)'), TC-R212b H3 red ('allows Ne3+, which chases the queen off c2, ...') and H4 red ('allows Qxe6+, trading queens, ...'); H5 (a pawn taken with check keeps no phrase) and every older A/B/G line green. With the fix 31/0, and the full gate (C-F browser blocks) 88/0 on t3 ba391150e6f8
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('124-wrong-move-says-why: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-B); bundle '+(process.env.CT_APP||'app.js')+' (blocks C-E)');
@@ -90,6 +91,20 @@ L.run(async()=>{
      ['N5','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 1','Nf6','exd4','Nf6 takes nothing, and exd4 was an even trade (not a win of material), so there is nothing it lets go'],
    ];
    for(const [id,f,ps,bs,why] of NOT){const t=mw(f,ps,bs);L.say(t===null,'TC-R210b '+id+' '+ps+' (best '+bs+'): '+why+' - no board reason ('+t+')',{t});}}
+  // ── H. A REPLY THAT CAPTURES OR GIVES CHECK IS DESCRIBED BY THAT FIRST [#550 helper B, jobs/drill-reply-capture-with-check-described-by-its-
+  // side-effect-2026-11-13]: on B9's position (best Nxf8) Bg5 read "lets them guard the rook on f8 (Qxf2+)" - a queen taking a pawn WITH CHECK,
+  // named by its side effect. missWhy's letsgo and replyWhy each name a capture or a check first; the gist (hits, chases, pins) comes after it.
+  {const pb=E.fromFEN('r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w - - 0 1');let h1=null;try{const w=E.wrongWhy(pb,E.findMoveBySAN(pb,'Bg5'));h1=w?w.text:((typeof E.missWhy==='function'&&E.missWhy(pb,E.findMoveBySAN(pb,'Bg5'),E.findMoveBySAN(pb,'Nxf8')))||{}).text||null;}catch(e){h1='THREW '+e.message;}
+   L.say(h1==='lets them take the pawn with check (Qxf2+)','TC-R212a H1 Bg5 (best Nxf8): the saving reply Qxf2+ is described as what it is, a capture with check - "lets them take the pawn with check (Qxf2+)" ("'+h1+'")',{h1});
+   L.say(!!h1&&!/\bguard\b/.test(h1),'TC-R212a H2 the line does not describe Qxf2+ by its side effect (no "guard") ("'+h1+'")',{h1});
+   const pk=E.fromFEN('rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1'),gk=E.makeMove(pk,mvOf(pk,'g1','f1')),rk=mvOf(gk,'g4','e3');
+   const h3=E.replyWhy(gk,rk,{cp:300,mate:null});
+   L.say(h3==='allows Ne3+, a check that chases the queen off c2, and leaves you losing','TC-R212b H3 K7\'s position, Kf1: the engine\'s reply Ne3+ is a check first and a chase after ("'+h3+'")',{h3});
+   const pq=E.fromFEN('4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 1'),gq2=E.makeMove(pq,mvOf(pq,'e8','e7')),rq2=mvOf(gq2,'b3','e6');
+   const h4=E.replyWhy(gq2,rq2,{cp:300,mate:null});
+   L.say(h4==='allows Qxe6+, trading queens with check, and leaves you losing','TC-R212b H4 B2\'s position, Ke7: Qxe6+ is a queen trade WITH CHECK, said as one ("'+h4+'")',{h4});
+   const h5=E.replyWhy(E.makeMove(E.fromFEN(B1),mvOf(E.fromFEN(B1),'c6','b5')),mvOf(E.makeMove(E.fromFEN(B1),mvOf(E.fromFEN(B1),'c6','b5')),'c4','b5'),{cp:509,mate:null});
+   L.say(h5==='allows Bxb5+ and leaves you losing','TC-R212b H5 a PAWN taken with check keeps no phrase (B1, B4: its SAN says both) ("'+h5+'")',{h5});}
   if(process.env.CT_SRC){L.note('CT_SRC set: browser blocks C-F skipped');return;}
   // ── C. PUZZLES: Re7 on the first library puzzle, the one-line row ──────────────────────────────────────────────────────────────
   {const Z=require('../drive/puzzles');
