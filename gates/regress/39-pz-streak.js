@@ -444,3 +444,5 @@ L.run(async()=>{
   }
 },'PZ-STREAK');
 // SELECTOR-OPENED: pz-celebrate reading=presence round 4: the layer is found by structure and this hook must be its name
+// CONTROL-RECORD: e34f295 2026-11-13 total=229 red=20 scope=trial:fd8ef12dfdf0 how=#550 #432 sweep (lead): c39, pz-streak renamed AND the fill shown with any message (so it stays beside the wrong-move verdict) - the old gate passed 'the streak fill steps back out of the box for it' at kunal730 and 390 (211/16); the re-keyed line, which also counts the fill by its words and width, red at both (209/20), with the new PRECONDITION red where the hook is gone. NOT SHOWN ABLE TO FAIL BY THIS CONTROL: the no-hint line and the se a42 line, which use the same count but whose states this control leaves without a fill; on t183 d3fde42f0182 229/0
+// SELECTOR-OPENED: pz-streak control=e34f295 the three absence lines also count the fill by its words and width; c39 renamed the hook and kept the fill beside the verdict, the wrong-move line red (the other two lines not reached by that control, see its record)
