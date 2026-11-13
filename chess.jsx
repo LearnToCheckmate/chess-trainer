@@ -1489,6 +1489,12 @@ function missWhy(pos,mv,bestMv){
               if(moved){for(let a=0;a<8&&!hit;a++)for(let b=0;b<8;b++){const x=g3.board[a][b];if(x&&x.c===me&&x.t!=='p'&&x.t!=='k'&&moveHits(g3.board,r.tr,r.tc,a,b)){hit=true;break;}}}
               cands.push({r,moved,hit,cap:!!(g2.board[r.tr]&&g2.board[r.tr][r.tc])});}
             if(cands.length){cands.sort((a,b)=>(b.moved-a.moved)||(b.hit-a.hit)||(a.cap-b.cap));const c=cands[0];const rs=sanOf(g2,c.r);const what=nm(tgt.t)+' on '+rc2sq(trr,tc);
+              /* #550 helper B, jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13: a saving reply that captures or gives
+                 check is described by THAT first - on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w (best Nxf8) Bg5 read "lets them guard the
+                 rook on f8 (Qxf2+)", a queen taking a pawn with check named by its side effect. It reads "lets them take the pawn with check
+                 (Qxf2+)"; a capture alone "lets them take the knight (Nxc3)", a check alone "lets them give check (Qe7+)". */
+              const g3c=makeMove(g2,c.r),rcap=(g2.board[c.r.tr]&&g2.board[c.r.tr][c.r.tc])||(c.r.epCap?{t:'p'}:null),rchk=!!g3c&&getStatus(g3c)==='check';
+              if(rcap||rchk)return {kind:'letsgo',reply:rs,text:(rcap?('lets them take the '+nm(rcap.t)+(rchk?' with check':'')):'lets them give check')+' ('+rs+')'};
               return c.moved?{kind:'letsgo',reply:rs,text:'lets the '+what+' get away ('+rs+')'}:{kind:'letsgo',reply:rs,text:'lets them guard the '+what+' ('+rs+')'};}
           }
         }
@@ -1502,7 +1508,7 @@ function missWhy(pos,mv,bestMv){
         for(const r of getLegal(g2)){const q=g2.board[r.fr][r.fc];if(!q||q.t!=='p'||g2.board[r.tr][r.tc]||!between.has(r.tr*8+r.tc))continue;
           const g3=makeMove(g2,r);if(!g3)continue;if(!moveHits(g3.board,r.tr,r.tc,mv.tr,mv.tc))continue;
           if(seeSq({...g3,turn:me,ep:null},r.tr,r.tc,me)>0)continue;
-          const rs=sanOf(g2,r);return {kind:'blockhit',reply:rs,text:'is met by '+rs+', which blocks and hits the '+nm(pc.t)};}
+          const rs=sanOf(g2,r);return {kind:'blockhit',reply:rs,text:'is met by '+rs+(getStatus(g3)==='check'?', a check that blocks and hits the ':', which blocks and hits the ')+nm(pc.t)};}   /* helper B: a block that also checks says so first */
       }
     }
     // (3) onlypawn
@@ -1517,7 +1523,7 @@ function missWhy(pos,mv,bestMv){
         const pre=getLegal({...pos,turn:them,ep:null}).find(m=>m.fr===A.fr&&m.fc===A.fc&&m.tr===r&&m.tc===c);if(!pre)continue;
         const g0=makeMove({...pos,turn:them,ep:null},pre);if(!recap(g0,r,c).some(m=>g0.board[m.fr][m.fc].t!=='p'))continue;
         const as=sanOf(g2,A),ps=sanOf(g3,after[0]).replace(/[+#]$/,'');
-        return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as.replace(/[+#]$/,''),piece:x.t};}   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
+        return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as,piece:x.t};}   /* helper B: the reply keeps its + (a capture with check is said as one) */   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
     }
     return null;
   }catch(e){return null;}
@@ -1537,8 +1543,11 @@ function missWhy(pos,mv,bestMv){
 function replyWhy(g2,r,sc,base){
   try{const s=toSAN(g2,r,applyMove(g2.board,r)),g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return 'allows mate ('+s+')';
     if(sc&&sc.mate!=null&&sc.mate>0)return 'allows mate in '+sc.mate+' ('+s+')';
-    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
-    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
+    /* #550 helper B, jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13: a reply that gives check is described by
+       the check first - "a forking check", "winning the knight with check", "a check" - and never by what it hits behind the check. */
+    const chk=getStatus(g3)==='check';
+    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+(chk?', a forking check':', a fork');if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
+    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');
     let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
     /* #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w
        after 1.h3 the line read "allows Qxh6, which hits the bishop on d2" - Qxh6 TAKES WHITE'S QUEEN and Bxh6 takes back, so the side effect was
@@ -1548,6 +1557,7 @@ function replyWhy(g2,r,sc,base){
     let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
       if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
       else if(cv>=3)capW='taking your '+PNAME[cap.t];gist='';}
+    if(chk){if(capW)capW+=' with check';else if(!cap&&gist)capW='a check that '+gist;gist='';}   /* a pawn taken with check keeps no phrase (B1, B7): its SAN already says both */
     let band='';
     if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;
       if(v<=-1.5)band=' and leaves you '+whyBand(v);
@@ -5842,6 +5852,13 @@ function AppMain(){
      claude/agents/547-timer-classification.md. The rank-up card explains, and it already has Continue and a backdrop tap,
      so it simply loses its 5000ms timer. */
   const boardRef=useRef(null);
+  /* #550 helper B, jobs/offline-notice-words-cover-bottom-controls-for-five-seconds-2026-11-13: the offline words sat in the toast place for their
+     5 s, over Moves/Back/Forward/Hint/Flip/More in Pass and Play, the lesson's moves panel and Puzzles' Previous..Next at 320x568. Like the bank
+     toast (a11, "show it over the board"), they now sit over the CENTRE OF THE BOARD, six squares wide, so no rank or file label and no control
+     is under them; with no board on screen they keep the old place. Measured once when they open; nothing moves (gate 146 TC-R222k). */
+  const [offAt,setOffAt]=useState(null);
+  useLayoutEffect(()=>{if(!offNote){if(offAt)setOffAt(null);return;}let r=null;try{r=boardRef.current&&boardRef.current.getBoundingClientRect();}catch(e){}
+    setOffAt((r&&r.width>0&&r.bottom>0&&r.top<window.innerHeight)?{top:Math.round(r.top+r.height/2),left:Math.round(r.left+r.width/2),w:Math.floor(r.width*0.75)}:null);},[offNote]);
   const pvJumpRef=useRef(null); /* #372: a Preview gallery card can ask the next finished review to open on its last move */
   useEffect(()=>{if(review&&pvJumpRef.current==='last'){pvJumpRef.current=null;setReviewView('moves');setPly(review.plies.length);}},[review]);
   useEffect(()=>{ /* #366 lay-B: measure the painted board while the overlay is on */
@@ -10748,8 +10765,8 @@ function AppMain(){
           Gate 16 E11/F11 assert this button is present; nothing asserts Review or Rematch here, and landscape
           does not offer them at game over anyway (:6226 gives them slots only when !wide). */}
       {!pzLow&&wide&&(homeScreen||(mode==='play'&&!playSetup&&opponent)||lessonFocus)&&(<button onClick={()=>setHomeScreen(true)} title="Home" aria-label="Home" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + '+(_grpPad+TOP_EDGE+TOP_SZ+6)+'px)',zIndex:60,fontSize:16}}>🏠</button>)}
-      {!pzLow&&wide&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" aria-label="Menu and settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + '+(_grpPad+TOP_EDGE)+'px)',zIndex:60,fontSize:17}}>☰</button>)}
-      {!netOn&&(<div data-ct="offline-edge" role="status" aria-label="You are offline. Lessons, puzzles and saved games still work." style={{position:'fixed',top:'env(safe-area-inset-top,0px)',left:0,right:0,height:2,zIndex:9995,pointerEvents:'none',background:'#f0b429'}}/>)}{!netOn&&offNote&&(<div data-ct="offline-banner" aria-hidden="true" style={{position:'fixed',left:'50%',transform:'translateX(-50%)',bottom:'calc(72px + env(safe-area-inset-bottom,0px))',zIndex:9999,pointerEvents:'none',width:'max-content',maxWidth:'82vw',boxSizing:'border-box',padding:'8px 14px',borderRadius:10,background:'rgba(52,40,16,.97)',border:'1px solid rgba(240,180,41,.6)',color:'#ffe7a8',fontSize:13,fontWeight:700,lineHeight:'18px',textAlign:'center',boxShadow:'0 4px 14px rgba(0,0,0,.5)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{'You are offline. Lessons, puzzles and saved games still work.'}</div>)}{/* #550 errors check ERR-08 (US-R154): an overlay, out of the flow - it moves nothing on the page and takes no tap. jobs/notices-cut-their-own-key-words-on-kunals-phone-2026-11-13: it was ONE nowrap pill over the top row, cut to 'You are offline \u00b7 lessons, puzzle...' at kunal761 and painted over the lesson prompt, the Puzzles title and Home's corner buttons, because no screen has a free band at the top. Now the words show WHOLE (they wrap) for 5 s in the app's toast place, like every other notice, and what STAYS is a 2px amber line along the top edge (above every top row: the corner buttons start 2px down), which covers no text and no control */}
+      {!pzLow&&wide&&!tacRail/* #550 jobs/tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13: sideways Tactics & strategy draws its own menu in its bar (TacticsTrainer onMenu), so this one was a second button - beside the group at 1920x1080, under the rail's Home tab on laptops (gate 149 TC-R225k) */&&(<button onClick={()=>setMenuOpen(true)} title="Menu &amp; settings" aria-label="Menu and settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 6px)',right:'calc(env(safe-area-inset-right,0px) + '+(_grpPad+TOP_EDGE)+'px)',zIndex:60,fontSize:17}}>☰</button>)}
+      {!netOn&&(<div data-ct="offline-edge" role="status" aria-label="You are offline. Lessons, puzzles and saved games still work." style={{position:'fixed',top:'env(safe-area-inset-top,0px)',left:0,right:0,height:2,zIndex:9995,pointerEvents:'none',background:'#f0b429'}}/>)}{!netOn&&offNote&&(<div data-ct="offline-banner" aria-hidden="true" style={{position:'fixed',...(offAt?{top:offAt.top,left:offAt.left,transform:'translate(-50%,-50%)',maxWidth:offAt.w}:{left:'50%',transform:'translateX(-50%)',bottom:'calc(72px + env(safe-area-inset-bottom,0px))',maxWidth:'82vw'}),zIndex:9999,pointerEvents:'none',width:'max-content',boxSizing:'border-box',padding:'8px 14px',borderRadius:10,background:'rgba(52,40,16,.97)',border:'1px solid rgba(240,180,41,.6)',color:'#ffe7a8',fontSize:13,fontWeight:700,lineHeight:'18px',textAlign:'center',boxShadow:'0 4px 14px rgba(0,0,0,.5)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{'You are offline. Lessons, puzzles and saved games still work.'}</div>)}{/* #550 errors check ERR-08 (US-R154): an overlay, out of the flow - it moves nothing on the page and takes no tap. jobs/notices-cut-their-own-key-words-on-kunals-phone-2026-11-13: it was ONE nowrap pill over the top row, cut to 'You are offline \u00b7 lessons, puzzle...' at kunal761 and painted over the lesson prompt, the Puzzles title and Home's corner buttons, because no screen has a free band at the top. Now the words show WHOLE (they wrap) for 5 s in the app's toast place, like every other notice, and what STAYS is a 2px amber line along the top edge (above every top row: the corner buttons start 2px down), which covers no text and no control */}
       {acctOpen&&(<div onClick={()=>setAcctOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.62)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
         <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:430,background:'#191622',borderRadius:12 /* #550 cg6 FMT-A-09 */,border:'1px solid rgba(255,255,255,.12)',padding:'18px 18px 20px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
@@ -11443,8 +11460,8 @@ function AppMain(){
                 <div style={{fontSize:12,fontWeight:700,color:'var(--ac2)',marginBottom:4}}>Coach's take</div>
                 <div style={{fontSize:13,color:'rgba(255,255,255,.85)',lineHeight:1.45}}>{msg}</div>
                 <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
-                  {trainIdx>=0&&<button onClick={()=>{setMode('learn');selectOpening(trainIdx);}} style={{background:'rgba(212,175,55,.18)',border:'1px solid rgba(212,175,55,.5)',borderRadius:9,color:'#f0e6cf',fontSize:12,padding:'6px 11px',cursor:'pointer'}}>Train this opening</button>}
-                  <button onClick={()=>{setMode('puzzle');}} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,color:'#ddd',fontSize:12,padding:'6px 11px',cursor:'pointer'}}>Sharpen with puzzles</button>
+                  {trainIdx>=0&&<button onClick={()=>{setMode('learn');selectOpening(trainIdx);}} style={{background:'rgba(212,175,55,.18)',border:'1px solid rgba(212,175,55,.5)',borderRadius:9,color:'#f0e6cf',fontSize:12,padding:'6px 11px',cursor:'pointer',position:'relative'}}>Train this opening<span aria-hidden="true" style={{position:'absolute',left:-1,right:-1,top:-9,bottom:-9}}/></button>}
+                  <button onClick={()=>{setMode('puzzle');}} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,color:'#ddd',fontSize:12,padding:'6px 11px',cursor:'pointer',position:'relative'}}>Sharpen with puzzles<span aria-hidden="true" style={{position:'absolute',left:-1,right:-1,top:-9,bottom:-9}}/></button>{/* #550 helper B, FMT-B-06 (jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-under-44-2026-11-13): the two coach chips keep their 28 box and get a 44 tap area from an invisible 8px reach above and below the border box (-9 from the padding box; the 8 gap over them and the card's 10 padding under), so nothing on the summary moves; gate 139 TC-R215z */}
                 </div>
               </div>);})()}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;let m;if(br>0)m='Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+' below.'):'Strong play.');else if(won&&bl===0&&me.moves>0&&acc>=85)m='Clean game. You stayed accurate and converted without slipping.';else if(won&&bl>0)m='You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. See them below.';else if(lost&&bl>0)m=(bl>1?('Those '+bl+' blunders cost you. Step through them below'):'That blunder cost you. Step through it below')+' to see the better line.'; /* #548 item (160): it read 'Those 1 blunder cost you.' */else if(lost)m='A tough one. The key moments below show where it turned.';else m=(bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';return(<div style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
             {(()=>{const W=S.w,B=S.b,uc=S.userColor;/* #550 item (94) [jobs/the-review-summary-puts-kunal-on-the-left-whichever-colour-he-played-2026-11-11, AUD-R08]: HIS side is the left column of the accuracy cards, the count columns and the Skills columns, whichever colour he played; a game with no side marked his keeps White then Black */const ORD=uc==='b'?['b','w']:['w','b'];const SN={w:'White',b:'Black'};const colHead=(sk,sl,d)=>{const me=uc===sk;const _hr=hdrElo((review&&review.headers)||{},sk);return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
@@ -12831,7 +12848,7 @@ function AppMain(){
               chevron at 340 and below, which is what the HINT branch of this very row already does (#372 Y-03),
               and which is why the precedent is safe. Nothing changes at 360 and above: measured identical. */}
           <TopBack ct="pz-back" label="Back to Roadmap" onClick={()=>setPzView('roadmap')}/>
-          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1} / {PZ.length} · <span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓':p.rating}</span></span>)}{/* #550 AUD-L18 (P2): the header read '1 / 890 · ✓ solv…' cut in a 121px box after a solve; the green verdict already says solved, so the header keeps the tick alone */}
+          {!wide&&(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,letterSpacing:vp.w<=340?0:.4,whiteSpace:'nowrap',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{puzIdx+1}{vp.w<=340?'/':' / '}{PZ.length} · {/* #550 helper B (the offline-notice job's aside): at 320 the counter read '1 / 890 · 6…', 3px short of its 90px box - no letter spacing and no spaces round the slash there (gate 146 TC-R222n) */}<span style={{color:'var(--ac2)',fontWeight:700}}>{pzStreak>=2?('🔥 '+pzStreak+' · '):''}{pzSolvedMap[p.id]?'✓':p.rating}</span></span>)}{/* #550 AUD-L18 (P2): the header read '1 / 890 · ✓ solv…' cut in a 121px box after a solve; the green verdict already says solved, so the header keeps the tick alone */}
           {/* #549 item (16), same job, amber flags/amber-549-pz-chip-tier-progress: in a tier the chip reads '<icon> <tier> <n>/<need>' - the
               TIER and the progress into it, the road node's own form - not '<tier> · ✓ <all-time total>', which read as the player's rank before
               the first RANK UP. Free play keeps its total. */}

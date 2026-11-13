@@ -38,6 +38,7 @@
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=116 red=47 scope=trial:9f4f6f823150 how=#550 t0, the branch tip before these fixes (faa82a9): TC-R225a x5 (panel 598 to 1158 wide), b x11 (278/85, 230/37, 98px over at the three laptop heights; no fold button), d x8 (footer from 615 against the column at 687 at 1280x600, 985 against 1192 at 1920x970), e x6 (sheet 194/155/46 over, one column), f x16 (Review bar 11px over the menu; Home 2px into the bar in Pass and Play, 11 against the computer, at every size), g x1 (990x1000 went upright, 1010x1000 sideways) red; TC-R225c's tall-window arm and h stay green there (unchanged by design), the fold-opens arm does not run (no button: named, not credited); on t3 450fed03791b 119/0 (three more lines: the fold opens at the three laptop heights)
 // CONTROL-RECORD: 50bc8e6 2026-11-13 total=147 red=8 scope=trial:2abbad95b07e how=#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: the merged tip's bundle (before the 56px lesson column top) - TC-R225j (written TC-R225i then; renamed at the merge with cg4, which took that id) gap -5 at 1280x620, 1366x700, 1100x800 and 1440x900, demo end and practice (buttons end at 50, note box from 45); the stray-glyph lines and every older line green; on t5 bade581b40e6 147/0
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=147 red=12 scope=trial:85be94e89bc2 how=#550 cg4, the branch tip (claude/exciting-noether-v1swj8 55ca2c7) with the rail at right:0: TC-R225i red at all six sizes on Puzzles (band 41/60/31/176/321/121px, right margin 0) and on Tactics (46/65/36/181/326/126px); every other line green. On t1 93ac17e053d5 147/0
+// CONTROL-RECORD: f901598 2026-11-13 total=64 red=13 scope=env:CT_149_TAC_ONLY=1 how=#550 helper B (jobs/tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13): the branch tip (claude/exciting-noether-v1swj8 f901598, trial 1b47cb7113e5) - TC-R225k 'ONE menu button' red at all nine sizes (two: the page-level one at x 1868 at 1920x1080, 1228 at 1280x720, 709 at 761x375) and 'nothing under or over the rail' red at 1280x600, 1440x780, 1280x720, 1440x900 and 761x375 (the page-level menu inside the rail's box); every older Tactics line green. On t1 2ffe57b0de6d 64/0
 const L=require('../lib');const LS=require('../drive/lesson');const P=require('../drive/play');const R=require('../drive/review');
 const G=(w,h)=>({w,h,safe:'',label:w+'x'+h});
 const LAP=[[1280,600],[1366,648],[1440,780]];
@@ -50,10 +51,24 @@ const rail=(b)=>b.page.evaluate(()=>{const r=document.querySelector('.ctside');i
   return {over:r.scrollHeight-r.clientHeight,l:Math.round(q.left),r:Math.round(q.right),fold:fold?(fold.innerText||'').trim():null,branches:!!br,foot:fr?{l:Math.round(fr.left),r:Math.round(fr.right)}:null};});
 const tabRail=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="tabbar"]');if(!t)return null;const r=t.getBoundingClientRect();return r.height>=innerHeight-1&&r.width<120?{l:Math.round(r.left),r:Math.round(r.right)}:null;});
 const BAND=[...ALL,[1920,1080]];
+// (a3) TC-R225k [#550 helper B, jobs/tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13]: ONE menu button on Tactics &
+//      strategy sideways, and no glyph under or over the tab rail. Every painted button named 'Menu and settings' (or reading ☰) is counted,
+//      wherever it sits; and each tab of the rail is hit-tested at its centre and must answer with itself, with no menu button's box crossing
+//      the rail. It was two buttons at 1920x1080 (the page-level one at x 1868) and, at 1280x720, 1440x900 and 761x375, one hidden under
+//      the rail's Home tab with a faint ☰ above it.
+const oneMenu=async(b,tag)=>{const m=await b.page.evaluate(()=>{const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight&&getComputedStyle(e).visibility!=='hidden'&&getComputedStyle(e).display!=='none';};
+    const menus=[...document.querySelectorAll('button')].filter(x=>(/^menu and settings$/i.test(x.getAttribute('aria-label')||'')||/^☰$/.test((x.innerText||'').trim()))&&vis(x)).map(x=>{const r=x.getBoundingClientRect();return {l:Math.round(r.left),t:Math.round(r.top),r:Math.round(r.right),b:Math.round(r.bottom)};});
+    const t=document.querySelector('[data-ct="tabbar"]');if(!t)return {menus,rail:null,tabs:[]};const rr=t.getBoundingClientRect();
+    const tabs=[...t.querySelectorAll('button')].filter(vis).map(x=>{const r=x.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {name:(x.getAttribute('aria-label')||x.innerText||'').trim().replace(/\s+/g,' '),self:!!h&&(x===h||x.contains(h))};});
+    return {menus,rail:{l:Math.round(rr.left),t:Math.round(rr.top),r:Math.round(rr.right),b:Math.round(rr.bottom)},tabs};});
+  L.say(!!m.rail&&m.tabs.length>=3,tag+': TC-R225k PRECONDITION Tactics & strategy: the tab rail and its tabs are found ('+m.tabs.length+')',m.rail);
+  L.say(m.menus.length===1,tag+': TC-R225k Tactics & strategy paints ONE menu button ('+m.menus.length+': '+JSON.stringify(m.menus)+')',m.menus);
+  if(m.rail){const over=m.menus.filter(q=>q.r>m.rail.l&&q.l<m.rail.r&&q.b>m.rail.t&&q.t<m.rail.b);const lost=m.tabs.filter(x=>!x.self).map(x=>x.name);
+    L.say(m.tabs.length>0&&lost.length===0&&over.length===0,tag+': TC-R225k every rail tab answers its own tap and no menu button sits under or over the rail (tabs hit elsewhere: '+(lost.join(', ')||'none')+'; menus crossing the rail: '+over.length+')',{lost,over});}};
 L.run(async()=>{
   // (a2) TC-R225i Puzzles sideways on a computer window: the tab rail is part of the centred group (rule.md item 3), so there is no empty band
   //      between the column and the rail (121px at 1920x1080 with the rail at right:0), and the window's left and right margins match.
-  for(const [w,h] of BAND){const tag=w+'x'+h;
+  for(const [w,h] of (process.env.CT_149_TAC_ONLY?[]:BAND)){const tag=w+'x'+h;   // CT_149_TAC_ONLY=1 runs the Tactics blocks (a, a3) alone
     const b=await L.launch({geo:G(w,h),name:'dsk149-pz'});await b.open();let ok=true;try{await b.tile('Puzzles');await b.settle(900);try{await b.tapText(/^(▶ )?(Continue|Start|Solve|Next puzzle)/i,{wait:900});}catch(e){}await b.settle(900);}catch(e){ok=false;}
     const m=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((x,y)=>y.width-x.width)[0];
       const c=document.querySelector('.ctside');const cr=c&&getComputedStyle(c).display!=='none'?c.getBoundingClientRect():null;if(!g||!cr)return null;return {vw:innerWidth,board:{l:Math.round(g.left),r:Math.round(g.right)},col:{l:Math.round(cr.left),r:Math.round(cr.right)}};});
@@ -73,7 +88,13 @@ L.run(async()=>{
     if(m){L.say(m.panel.w<=520,tag+': TC-R225a the panel beside the board is at most 520 wide ('+m.panel.w+')',m.panel);
       const cx=(m.board.l+m.panel.r)/2,want=(m.vw-62-8)/2;L.say(Math.abs(cx-want)<=4||m.panel.r>=m.vw-62-8-14,tag+': TC-R225a board and panel are centred left of the tab rail (centre '+cx+', space centre '+want+')',{cx,want});
       const tr=await tabRail(b);L.say(!!tr&&tr.l-m.panel.r>=0&&tr.l-m.panel.r<=16&&Math.abs(m.board.l-(m.vw-tr.r))<=4,tag+': TC-R225i the tab rail is in the centred group - no band between the panel and the rail ('+(tr?Math.round(tr.l-m.panel.r):'?')+'px, at most 16) and the window margins match (left '+m.board.l+', right '+(tr?Math.round(m.vw-tr.r):'?')+')',{tr,panel:m.panel,board:m.board});}
+    if(ok)await oneMenu(b,tag);
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (Tactics)',b.errs.slice(0,3));await b.close();}
+  for(const [w,h] of [[1280,720],[1440,900],[761,375]]){const tag=w+'x'+h;
+    const b=await L.launch({geo:G(w,h),name:'dsk149-tac1'});await b.open();let ok=true;try{await LS.states['tactics'](b);await b.settle(1200);}catch(e){ok=false;}
+    L.say(ok,tag+': TC-R225k PRECONDITION Tactics & strategy is up sideways',null);if(ok)await oneMenu(b,tag);
+    L.say(b.errs.length===0,tag+': TC-R225k zero app errors (Tactics)',b.errs.slice(0,3));await b.close();}
+  if(process.env.CT_149_TAC_ONLY)return;
   // (b)(c) the lesson column
   for(const [w,h] of [...LAP,[1920,970]]){const tag=w+'x'+h;
     const b=await L.launch({geo:G(w,h),name:'dsk149-les'});await b.open();
