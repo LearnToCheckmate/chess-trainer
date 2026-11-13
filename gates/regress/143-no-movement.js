@@ -158,3 +158,4 @@ L.run(async()=>{
   for(const [w,h] of [[1920,1080],[2560,1440]])await pzWide(w,h);
 },'143-no-movement');
 // SELECTOR-OPENED: rev-count reading=precondition round 4: the sideways PRECONDITION requires it
+// CONTROL-RECORD: a0ab321 2026-11-13 total=100 red=2 scope=trial:02da5bec2b30 how=TC-R219j THE SUBJECT REMOVED: t178, the tree before the sideways Puzzles panels fill their column - both TC-R219j lines red (top and bottom 1216..1656 in a 1216..1736 column at 1920x1080, 1716..2156 in 1716..2236 at 2560x1440); with the fix (t179 68181e018d4e) 100/0
