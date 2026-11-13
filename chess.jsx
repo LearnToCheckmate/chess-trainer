@@ -2026,6 +2026,11 @@ function concreteRead(pos,mv){
     const san=toSAN(pos,mv,g2.board).replace(/[+#]$/,'');
     const st2=getStatus(g2);const nm=(t)=>PNAME[t]||'piece';
     if(st2==='checkmate')return {k:'mate1',hint:'There is mate in one.',say:san+' is mate.'};
+    /* #550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13: a fresh checker found Nc6 on 1r1q2k1/5ppp/8/4N3/8/8/5PPP/6K1 w read as
+       a fork of the queen and the rook while Rb1 mates. A move that lets them mate in one sets up nothing, so NO reading is said for it - not
+       the fork, mate-threat and pin readings the job names, and not the older ones either: with the fork silenced the same Nc6 fell through
+       to 'Their rook on b8 is short of defenders. Attack it.', the same advice on the same mated move. null keeps the caller's general line. */
+    if(_mateInOne(g2))return null;
     let _m2=false;try{const rs=getLegal(g2);_m2=rs.length>0&&rs.length<=40&&rs.every(r=>{const g3=makeMove(g2,r);return g3&&!!_mateInOne(g3);});}catch(e){_m2=false;}
     if(_m2)return {k:'mate2',hint:'There is mate in two'+(st2==='check'?', and it starts with a check.':'.'),say:san+' forces mate in two.'};
     const _ft=(()=>{if(st2!=='check')return null;let ft=[];try{ft=forkTargets(pos,mv)||[];}catch(e){ft=[];}const a=ft.filter(t=>t!=='k'&&t!=='king')[0];if(!a)return null;const t=PNAME[a]?a:(Object.keys(PNAME).find(k=>PNAME[k]===a)||null);if(!t)return null;
