@@ -137,6 +137,9 @@ if [ "${1:-}" = "--selftest" ]; then
   same_count(){ bash gates/audit/selector-provenance.sh | awk '/^  SAME-BUILD/{print $2}'; }
   # one sweep, two readings (same-build, unopened) and the whole report in $WORK/rep - each sweep costs about 90s
   sweep3(){ bash "${1:-gates/audit/selector-provenance.sh}" > "$WORK/rep" 2>&1; awk '/^  SAME-BUILD/{s=$2} /^    UNOPENED/{u=$2} END{print s, u}' "$WORK/rep"; }
+  # plant_lit adds a data-ct literal as a comment line at the end of chess.jsx: app_names_at reads literals, so it is an app hook to
+  # this sweep. (plant_attr renames the first pz-bottom, and chess.jsx carries only two, so it cannot plant five hooks in one tree.)
+  plant_lit(){ printf '// selftest hook data-ct="%s"\n' "$1" >> chess.jsx; }
   plant_mark(){ awk -v l="$1" 'NR==1{print; print l; next}{print}' gates/regress/30-p1-fixes.js > .t && mv .t gates/regress/30-p1-fixes.js; }
   plant_attr(){ awk -v n="$1" 'BEGIN{d=0}{if(!d && index($0,"data-ct=\"pz-bottom\"")>0){sub(/data-ct="pz-bottom"/,"data-ct=\"" n "\"");d=1}print}' chess.jsx > .t && mv .t chess.jsx; }
   plant_assert(){ awk -v n="$1" 'BEGIN{d=0}{print; if(!d && index($0,"const hm=await b.rect")>0){print "    const _c=await b.rect(\x27[data-ct=\"" n "\"]\x27);L.say(!!_c,\x27selftest control\x27);";d=1}}' gates/regress/30-p1-fixes.js > .t && mv .t gates/regress/30-p1-fixes.js; }
@@ -198,7 +201,7 @@ if [ "${1:-}" = "--selftest" ]; then
   # one sweep: a mark is credited ONLY in its two lawful forms (reading=<class> <reason>; control=<sha> with a
   # CONTROL-RECORD line for that sha in the same file), and every other mark is listed and not credited.
   reset_tree
-  for h in sp-ctl-seven sp-ctl-eight sp-ctl-eightb sp-ctl-nine sp-ctl-nineb; do plant_attr "$h"; plant_assert "$h"; done
+  for h in sp-ctl-seven sp-ctl-eight sp-ctl-eightb sp-ctl-nine sp-ctl-nineb; do plant_lit "$h"; plant_assert "$h"; done
   plant_mark "// SELECTOR-OPENED: sp-ctl-seven reading=presence the selftest's own planted read is a presence line"
   plant_mark "// SELECTOR-OPENED: sp-ctl-eight control=deadbee a control nobody recorded"
   plant_mark "// CONTROL-RECORD: 5e1f7e5 2026-11-13 total=1 red=1 scope=selftest how=a planted record for C8b"
@@ -219,7 +222,7 @@ if [ "${1:-}" = "--selftest" ]; then
   # C11, THE CONTROL WITH THE READING REMOVED (CLAUDE.md: a control set is run once over the tree without its subject). The
   # same planted tree, swept by a copy of this script whose opened_marks() reads nothing: C7 and C8b must read UNOPENED.
   sed 's/^opened_marks(){ # \$1 = gate file at HEAD$/opened_marks(){ return 0; # STUBBED by selftest C11/' gates/audit/selector-provenance.sh > gates/audit/.sp-nomarks.sh
-  ck "C11 the stub took (the mutant's opened_marks returns before reading)" "$(grep -c 'STUBBED by selftest C11' gates/audit/.sp-nomarks.sh)" "1"
+  ck "C11 the stub took (the mutant's opened_marks returns before reading)" "$(grep -c '^opened_marks(){ return 0;' gates/audit/.sp-nomarks.sh)" "1"
   read -r B11 U11 < <(sweep3 gates/audit/.sp-nomarks.sh)
   ck "C11 with the reading stubbed, the C7 pair reads UNOPENED (C7 would go red)" "$(grep -c 'sp-ctl-seven .*UNOPENED' "$WORK/rep")" "1"
   ck "C11 with the reading stubbed, the C8b pair reads UNOPENED (C8b would go red)" "$(grep -c 'sp-ctl-eightb .*UNOPENED' "$WORK/rep")" "1"
