@@ -92,11 +92,18 @@ L.run(async()=>{
     const st={ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_evalcache:{[ckey(fs2)]:{...F.cache,at:Date.now()}},ct_mybrilliancies:[]};
     st.ct_bril_rule=o.rule2?'2':'1';st.ct_missed_bril=o.on?'1':'0';return st;};
   const TARGET=45;   // 23.bxc6 is ply index 44, shown at ply 45
-  const read=(b)=>b.page.evaluate(()=>{const q=s=>document.querySelector(s);const ch=q('[data-ct="rev-missbril"]'),ln=q('[data-ct="rev-move-line"]');
+  // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: the three marks are found by WHAT THEY ARE,
+  // the hooks rev-missbril / eval-graph-missbril / strip-missbril (added in #549 with this gate) as a fallback only - the chip by its
+  // label "A brilliant move was here: ...", the ring as the graph's hollow cyan circle, the strip mark by its painted "(!!)". Keyed on
+  // the hooks alone, W9/W10/W12 ("nothing is marked") read PASS on any bundle that marked the move under another name - the #432 costume.
+  const read=(b)=>b.page.evaluate(()=>{const q=s=>document.querySelector(s);
+    const ch=[...document.querySelectorAll('button')].find(x=>/^A brilliant move was here: /.test(x.getAttribute('aria-label')||'')&&x.getBoundingClientRect().width>0)||q('[data-ct="rev-missbril"]'),ln=q('[data-ct="rev-move-line"]');
+    const ringEls=new Set([...document.querySelectorAll('[data-ct="eval-graph-missbril"]'),...[...document.querySelectorAll('svg circle')].filter(c=>{const st=getComputedStyle(c);return /none|rgba\(0, 0, 0, 0\)/.test(st.fill)&&/rgb\(34, 211, 238\)/.test(st.stroke);})]);
+    const stripEls=new Set([...document.querySelectorAll('[data-ct="strip-missbril"]'),...[...document.querySelectorAll('span')].filter(x=>x.children.length===0&&(x.textContent||'').trim()==='(!!)'&&x.getBoundingClientRect().width>0)]);
     const r=ch?ch.getBoundingClientRect():null,lr=ln?ln.getBoundingClientRect():null;
     return {line:ln?ln.innerText.replace(/\s+/g,' ').trim():'',chip:ch?{text:ch.innerText.replace(/\s+/g,' ').trim(),l:r.left,r:r.right,w:r.width,h:r.height,sw:ch.scrollWidth,cw:ch.clientWidth}:null,
       lineR:lr?lr.right:null,vw:innerWidth,best:!!q('[data-ct="rev-best"]'),playout:!!q('[data-ct="rev-playout"]'),graph:!!q('[data-ct="eval-graph"]'),
-      rings:document.querySelectorAll('[data-ct="eval-graph-missbril"]').length,strip:[...document.querySelectorAll('[data-ct="strip-missbril"]')].map(e=>(e.parentElement.innerText||'').replace(/\s+/g,' ').trim()),bestline:q('[data-ct="rev-bestline"]')?q('[data-ct="rev-bestline"]').innerText.replace(/\s+/g,' ').trim():null};});
+      rings:ringEls.size,strip:[...stripEls].map(e=>(e.parentElement.innerText||'').replace(/\s+/g,' ').trim()),bestline:q('[data-ct="rev-bestline"]')?q('[data-ct="rev-bestline"]').innerText.replace(/\s+/g,' ').trim():null};});
   const open=async(b)=>{await b.open();await b.tile('Review');await b.settle(1200);
     const row=b.page.locator('[data-ct="game-row"]').first();if(!(await row.count().catch(()=>0)))return false;
     await row.click({timeout:6000}).catch(()=>{});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000}).catch(()=>{});await b.settle(500);
@@ -113,7 +120,7 @@ L.run(async()=>{
     L.say(!!r.chip&&r.chip.r<=Math.min(r.lineR,r.vw)+0.5&&r.chip.l>=0&&r.chip.sw<=r.chip.cw+1&&r.chip.h>=20,geo+': TC-R136 W3 the chip sits inside the move line and the screen, its text not cut (right '+(r.chip&&r.chip.r.toFixed(1))+' line '+(r.lineR&&r.lineR.toFixed(1))+' vw '+r.vw+', scroll '+(r.chip&&r.chip.sw)+' client '+(r.chip&&r.chip.cw)+')',r.chip);
     L.say(r.strip.length===1&&/^bxc6.*\(!!\)$/.test(r.strip[0]),geo+': TC-R136 W4a the move strip marks the one missed brilliant on 23.bxc6 with (!!): '+JSON.stringify(r.strip));
     L.say(r.graph?r.rings===1:true,geo+': TC-R136 W4 the eval graph carries exactly one hollow ring for the one missed brilliant (graph '+r.graph+', rings '+r.rings+')');
-    if(r.chip){await b.page.click('[data-ct="rev-missbril"]').catch(()=>{});await b.settle(2500);}
+    if(r.chip){await b.page.locator('button[aria-label^="A brilliant move was here: "],[data-ct="rev-missbril"]').first().click().catch(()=>{});await b.settle(2500);}
     const r2=await read(b);
     L.say(!!r2.bestline&&/^(best line )?23\.\s*Reb1\b/.test(r2.bestline),geo+': TC-R136 W5 Show me: a tap plays the brilliant line on the board and names it, starting with the brilliant move ("'+r2.bestline+'")');
     // the moves round it carry nothing: ply 44 is the opponent's 22nd move, ply 47 his 24th (not a missed brilliant on the cached numbers)
