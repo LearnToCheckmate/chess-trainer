@@ -4697,12 +4697,23 @@ function AppMain(){
      effect at start-up, a lesson finished in the first seconds) sent this device's defaults over the account's progress. syncPulledRef is
      false from sign-in until the pull has been merged; a pull that fails is retried, and pushes stay held until it succeeds. */
   const syncPulledRef=useRef(false);
+  /* #550 cg5 SYN-07 (accounts-devices check, the independent checker at 6494893): A PUSH PULLS AND MERGES FIRST. Every push sent every synced
+     key with no pull before it, so a device left open and focused (no refocus pull) pushed its older copy - 17 keys, the old ct_elo 1250
+     among them - over a newer change another device had just made, and the account stayed rolled back until that device next pulled. Of the
+     two remedies (send only the keys changed here, or pull and merge first) this takes the second: a changed-keys push would still send this
+     device's whole ct_syncmeta and drop the other device's newer stamps from it, while the pull path already merges values AND stamps by the
+     SYN-03/04 rules. So the debounced push now re-runs that pull (quietly, as a refocus pull does) and the pull ends by saving the merge
+     (syncSave). A pull that fails holds the push as before and is retried on reconnect or after 20 s. */
+  const syncViaPushRef=useRef(false);
   const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser||!syncPulledRef.current)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(()=>{syncTimer.current=null;if(!syncPulledRef.current)return;try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */
+    syncTimer.current=setTimeout(()=>{syncTimer.current=null;if(!syncPulledRef.current)return;syncPulledRef.current=false;syncRefocusRef.current=true;syncViaPushRef.current=true;setSyncTry(n=>n+1);},2500);};
+  const syncSave=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser||!syncPulledRef.current)return;
+    if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}
+    {try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */
       prog[SYNC_META]=JSON.stringify(syncMetaLoad());   /* #550 SYN-03/04: the per-key change times and the per-item tombstones ride with the values */
-      C.save({ctProgress:prog}).catch(()=>{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');syncDirtyRef.current=true;});}catch(e){}},2500);};
-  const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
+      C.save({ctProgress:prog}).catch(()=>{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');syncDirtyRef.current=true;});}catch(e){}}};
+  const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;const syncSaveRef=useRef(syncSave);syncSaveRef.current=syncSave;
   const syncDirtyRef=useRef(false);   // #550 SYN-08: a failed backup is tried again when the connection comes back
   useEffect(()=>{const on=()=>{if(syncDirtyRef.current){syncDirtyRef.current=false;syncPushRef.current();}};try{window.addEventListener('online',on);}catch(e){}return ()=>{try{window.removeEventListener('online',on);}catch(e){}};},[]);
   const [syncPulled,setSyncPulled]=useState(false);
@@ -4801,9 +4812,10 @@ function AppMain(){
       syncPulledRef.current=true;setSyncPulled(true);
       try{window.__ctSyncPulled={at:Date.now(),applied,keys:changed.map(x=>x[0])};}catch(e){}
       if(applied>0&&!syncRefocusRef.current){toastRef.current('Progress restored from your account','ok');}syncRefocusRef.current=false;
-      // push local state up so a fresh cloud doc gets seeded
-      syncPushRef.current();
-    }).catch(()=>{if(dead)return;syncQuietRef.current=false;   /* #550 SYN-02: a pull that failed is NOT a pull - pushes stay held and it is tried again */
+      // push local state up so a fresh cloud doc gets seeded - the merge just made, saved at once (cg5 SYN-07: never a push without this pull)
+      syncViaPushRef.current=false;syncSaveRef.current();
+    }).catch(()=>{if(dead)return;syncQuietRef.current=false;
+      if(syncViaPushRef.current){syncViaPushRef.current=false;syncRefocusRef.current=false;try{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');}catch(e){}}   /* cg5: the backup's pull failed - said as a failed backup was */   /* #550 SYN-02: a pull that failed is NOT a pull - pushes stay held and it is tried again */
       const again=()=>{if(!dead)setSyncTry(n=>n+1);};retry=setTimeout(again,20000);try{window.addEventListener('online',again,{once:true});}catch(e){}});
     return ()=>{dead=true;if(retry)clearTimeout(retry);};
   },[cloudUser,syncTry]);
@@ -4811,6 +4823,7 @@ function AppMain(){
   useEffect(()=>{try{const orig=localStorage.setItem.bind(localStorage);if(localStorage.__ctPatched)return;Object.defineProperty(localStorage,'__ctPatched',{value:true});
     localStorage.setItem=(k,v)=>{const sk=SYNC_KEYS.indexOf(k)>=0;let old=null;if(sk){try{old=localStorage.getItem(k);}catch(e){}}try{orig(k,v);}catch(e){try{if(e&&(e.name==='QuotaExceededError'||e.code===22))storageWarnRef.current('full');}catch(_e){}throw e;}
       if(!sk)return;try{if(!syncQuietRef.current&&old!==String(v)&&k!=='ct_accts')syncStamp(k,old,String(v),orig);}catch(e){}   /* #550 SYN-03: the time of this device's change */
+      if(old===String(v))return;   /* cg5 SYN-07: a write that changed nothing is not a reason to push (every push now pulls first) */
       try{syncPushRef.current();}catch(e){}};}catch(e){}},[]);
   /* #550 ERR-07 (errors-offline check): NOTHING CAN BE SAVED, AND IT SAYS SO. With storage blocked (every call throws, or the property
      itself throws) or full (a quota error), the app ran normally and lost every lesson, review and game in progress on the next reload,

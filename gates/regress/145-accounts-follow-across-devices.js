@@ -31,11 +31,15 @@
 //  (i) #550 cg5 SYN-11 (the puzzle streak): TC-R221r a fresh device takes the account's streak 5 (best 7) into the running app (its puzzle store)
 //      and TC-R221s no puzzle backup from it carries its own 0; TC-R221t an older device streak (2, three days ago) gives way to the account's
 //      (5, yesterday); TC-R221u a streak broken HERE after the account's was set (0, a minute ago) is the newer change and wins, best the max.
+//  (j) #550 cg5 SYN-07: TWO devices open at once (two browser contexts, one account document in this process): B sets ct_elo 900; A, left
+//      open and focused (no refocus pull, its change inside the 20 s guard), turns sound off - TC-R221v the account keeps B's 900 (and gets A's
+//      sound off), TC-R221w A now holds 900 too. The fix taken is PULL-AND-MERGE BEFORE EVERY PUSH, not a changed-keys push.
 // KNOW ITS LIMIT: the real Firestore round trip is not exercised (the pull on return is a load, not a live listener); chess.com only. Where the
 // eval bar sits (ct_evalunder) is deliberately left per device until he says otherwise, so it is not asserted.
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=30 red=6 scope=trial:9f4f6f823150 how=#550 SYN-06/07/11 arms on t0, the branch tip before them (faa82a9): TC-R221m (device classic/0/none), n (32 piece pictures), o x2 (one side only), p (2 -> 2 loads, ct_elo 1250), q (saved 1250, card lost) red; the older arms stay green; on t3 450fed03791b 30/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=20 red=10 scope=trial:ee1e228e0899 how=#550 the branch tip before SYN-01..05 (accounts not synced, longer-string rule, whole-list replace, pull not applied to state): TC-R221a,b,c,d,f,g,h,i,j,k red; e and l stay green there (l is SEC-15's wipe, already on the tip: named, not credited; e reads the pushed cards and streak, which the tip also pushes in this input because it is a fresh device: named, not credited); on t2 f9918762b587 20/0
 // CONTROL-RECORD: f41cd92 2026-11-13 total=8 red=3 scope=trial:03e9426693ab how=#550 cg5 SYN-11 block (i) alone (CT_145_BLOCKS=i) on t0, the branch tip f41cd92 (streak never pulled): TC-R221r (device streak 0), TC-R221s (saved [0]), TC-R221t (device 2, saved 2) red; TC-R221u stays green there by design (named, not credited); on t1 f44399342fff 8/0
+// CONTROL-RECORD: 335c439 2026-11-13 total=6 red=2 scope=trial:03e9426693ab how=#550 cg5 SYN-07 block (j) alone (CT_145_BLOCKS=j) on t0, the branch tip f41cd92 (every push sends all 17 keys with no pull): TC-R221v (account ct_elo 1250 after A's push - the checker's reading, now driven) and TC-R221w (A still 1250) red; the three preconditions and zero-errors green; on t2 c26d319f30ba 6/0, whole gate 44/0
 const L=require('../lib');
 const PGN=(w,b,d)=>'[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "'+d+'"]\n[White "'+w+'"]\n[Black "'+b+'"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
 async function stub(b){const hits=[];
@@ -199,5 +203,43 @@ L.run(async()=>{
       const last=r.ps[r.ps.length-1]||{};
       L.say(r.st.streak===0&&r.st.best===7&&last.streak===0&&last.best===7,'TC-R221u a streak broken on this device after the account\'s was set (0, a minute ago) is the newer change and wins; best is the max of both, 7 (device '+r.st.streak+'/'+r.st.best+', saved '+last.streak+'/'+last.best+') [named, not credited: the tip also keeps it, since it never pulled the streak]',{st:r.st,last});
       L.say(r.errs.length===0,'TC-R221 zero app errors (streak, newer device)',r.errs); }
+  }
+  if(on('j')){ // (j) #550 cg5 SYN-07: two devices open at once on one account; B changes the engine strength; A, still focused, changes something else
+    // ONE browser, two contexts = two devices with their own storage; the ACCOUNT is one document in this Node process that both reach through
+    // exposeFunction, merged as Firestore merges {merge:true} (ctProgress field by field). Nothing reaches Firebase.
+    const T0=Date.now()-7200*1000;const acct={ctProgress:{ct_elo:'1250',ct_syncmeta:JSON.stringify({t:{ct_elo:T0},s:{}})}};
+    const devStore=Object.assign({},SEED,{ct_elo:'1250',ct_syncmeta:{t:{ct_elo:T0},s:{}}});
+    const wire=async(page,tag)=>{await page.exposeFunction('__acctLoad',()=>JSON.stringify(acct));
+      await page.exposeFunction('__acctSave',(j)=>{const d=JSON.parse(j);mergeInto(acct,[d]);if(d.ctProgress)acctLog.push([tag,Date.now(),d.ctProgress.ct_elo||null,Object.keys(d.ctProgress).length]);return true;});};
+    const signInLive=(page)=>page.evaluate(()=>{const C=window.CTCloud;window.__loads=0;window.__refocus=0;window.addEventListener('focus',()=>window.__refocus++);document.addEventListener('visibilitychange',()=>window.__refocus++);
+      C._load=()=>{window.__loads++;return window.__acctLoad().then(j=>JSON.parse(j));};C._save=(d)=>window.__acctSave(JSON.stringify(d)).then(()=>{});
+      C.signOut=()=>{C._emit(null);return Promise.resolve();};C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
+    const acctLog=[];
+    const A=await L.launch({geo:'kunal761',name:'acct145d11',store:devStore});await stub(A);await wire(A.page,'A');await A.open();
+    // device B: a second context in the same browser, seeded the same way
+    const ctxB=await A.browser.newContext({viewport:{width:375,height:761},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 CTGATE'});
+    await ctxB.route(u=>/gstatic\.com|googleapis\.com|firebaseio|firebase\.com|api\.chess\.com|lichess\.org|fonts\.g|google-analytics|googletagmanager|cloudfunctions/.test(u.href),r=>r.abort());
+    await ctxB.addInitScript((st)=>{try{if(!sessionStorage.getItem('ct_seeded')){for(const k in st)localStorage.setItem(k,typeof st[k]==='string'?st[k]:JSON.stringify(st[k]));sessionStorage.setItem('ct_seeded','1');}}catch(e){}},Object.assign({ct_safe:'51,31'},devStore));
+    const pB=await ctxB.newPage();const errsB=[];pB.on('pageerror',e=>errsB.push(String(e).slice(0,200)));await wire(pB,'B');
+    await pB.goto(A.url+'index.html',{waitUntil:'domcontentloaded'});await pB.waitForFunction(()=>{const r=document.getElementById('root');return r&&r.children.length&&!document.getElementById('boot');},null,{timeout:30000});await pB.waitForTimeout(900);
+    await signInLive(A.page);await signInLive(pB);
+    let ok=false;for(let i=0;i<20;i++){await A.settle(500);ok=await A.page.evaluate(()=>!!window.__ctSyncPulled)&&await pB.evaluate(()=>!!window.__ctSyncPulled);if(ok)break;}
+    await A.settle(4000);const tPullA=await A.page.evaluate(()=>window.__ctSyncPulled&&window.__ctSyncPulled.at);
+    L.say(ok&&acct.ctProgress.ct_elo==='1250','TC-R221 PRECONDITION both devices signed in and pulled; the account reads ct_elo 1250 ('+acct.ctProgress.ct_elo+')',{ok,elo:acct.ctProgress.ct_elo});
+    // device B changes the engine strength through the app's own storage path (stamped and pushed by the app)
+    await pB.evaluate(()=>localStorage.setItem('ct_elo','900'));
+    for(let i=0;i<24;i++){await A.settle(500);if(acct.ctProgress.ct_elo==='900')break;}
+    const aElo0=await A.page.evaluate(()=>localStorage.getItem('ct_elo'));
+    L.say(acct.ctProgress.ct_elo==='900'&&aElo0==='1250','TC-R221 PRECONDITION device B\'s 900 reached the account, and device A, left open, still holds its old 1250 (account '+acct.ctProgress.ct_elo+', A '+aElo0+')',{acct:acct.ctProgress.ct_elo,aElo0});
+    // device A, focused the whole time (no refocus pull), makes an unrelated change
+    const tChange=Date.now();await A.page.evaluate(()=>localStorage.setItem('ct_sound','0'));
+    for(let i=0;i<24;i++){await A.settle(500);if(acct.ctProgress.ct_sound==='0')break;}await A.settle(1500);
+    const aSt=await A.page.evaluate(()=>({elo:localStorage.getItem('ct_elo'),refocus:window.__refocus,loads:window.__loads}));
+    L.note('device A: '+aSt.refocus+' focus/visibility events, '+aSt.loads+' loads; its change came '+Math.round((tChange-tPullA)/1000)+' s after its last pull (the refocus pull waits 20 s); account saves '+JSON.stringify(acctLog));
+    L.say(acct.ctProgress.ct_sound==='0','TC-R221v PRECONDITION device A\'s own change (sound off) reached the account ('+acct.ctProgress.ct_sound+')',acct.ctProgress.ct_sound);
+    L.say(acct.ctProgress.ct_elo==='900','TC-R221v device A\'s unrelated change does not roll the account back: it keeps device B\'s 900 (account ct_elo '+acct.ctProgress.ct_elo+')',{acct:acct.ctProgress.ct_elo,log:acctLog});
+    L.say(aSt.elo==='900','TC-R221w and device A now holds device B\'s 900 too (its push merged the account first; A ct_elo '+aSt.elo+')',aSt);
+    L.say(A.errs.length===0&&errsB.length===0,'TC-R221 zero app errors (two devices open)',[...A.errs,...errsB].slice(0,3));
+    await ctxB.close();await A.close();
   }
 },'145-accounts-follow-across-devices');
