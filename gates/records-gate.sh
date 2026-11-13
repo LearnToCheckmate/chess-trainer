@@ -82,6 +82,7 @@ usage(){
   echo "       gates/records-gate.sh --selftest    # the controls, as a command rather than a paragraph"
   echo "       gates/records-gate.sh --harnesses [--write|--selftest]   # held/verify-log/buildnum selftests under a case-count ratchet (#550)"
   echo "       gates/records-gate.sh --checks [--selftest|--list]   # part (4)'s first population: citations/cited-not-run/verify-patch-set selftests and the cited-not-run report (#550)"
+  echo "       gates/records-gate.sh --binaries   # part (3): the formerly-ratcheted checks as binaries - any standing breach refuses (#550)"
   echo "exit 0 = every ratcheted record grew or was untouched; 1 = one was CHANGED; 2 = this door could not run."
 }
 
@@ -129,9 +130,37 @@ entries_ratchet(){
   return 0
 }
 
+# -- PART (3): THE RATCHETS AS BINARIES [#550 helper A round 6; jobs/build-one-door-for-every-non-gate-check-2026-10-10
+# theFIX part (3), "CONVERT ITS RATCHETS TO BINARIES so a standing breach blocks instead of being grandfathered"].
+# gates/fastgate.sh's `ratchet "records"` runs gates/verify-log.sh --citations at base AND head and refuses only when
+# head is WORSE, so a breach already on main passes every fast commit for ever. `--binaries` runs the same check on
+# the tree as a BINARY - any breach refuses - through gates/door-checks.sh --only, so the command line has ONE home
+# (door-checks' CHECKS) and this file names only WHICH rows the binary set holds.
+# STATE OF THIS PIECE, said rather than implied: this mode EXISTS and is controlled; gates/fastgate.sh does NOT yet
+# call it in place of its ratchet. That swap changes fastgate-drive.sh cases H28, H55 and the probe at its
+# "this commit made it WORSE" line, which assert ratchet strings and the grandfathering itself (H55a), and it is
+# the next piece. control-audit.js is NOT in the binary set: on 2f1d50e it reads RED with uncovered=97, so as a
+# binary it would refuse every fast commit, and turning that green is entry two (the coverage ratchet), not this.
+RECORDS_BINARIES="citations"
+BINARIES_BASELINE="citations"   # never-delete, control (e): a name leaves only in a commit that edits this line too
+binaries(){
+  local want live; live="$(bash "$HERE/door-checks.sh" --list 2>/dev/null | cut -d'|' -f1)"
+  [ -n "$RECORDS_BINARIES" ] || { say "RECORDS BINARIES COULD NOT RUN - the binary set is empty, which is not a clearance"; return 2; }
+  for want in $BINARIES_BASELINE; do
+    case " $RECORDS_BINARIES " in *" $want "*) : ;;
+      *) say "RECORDS BINARIES REFUSED - '$want' is required by BINARIES_BASELINE and is not in RECORDS_BINARIES: the door was emptied"; return 1 ;; esac
+  done
+  for want in $RECORDS_BINARIES; do
+    case $'\n'"$live"$'\n' in *$'\n'"$want"$'\n'*) : ;;
+      *) say "RECORDS BINARIES COULD NOT RUN - '$want' is not a row of gates/door-checks.sh --list"; return 2 ;; esac
+  done
+  bash "$HERE/door-checks.sh" --only "${RECORDS_BINARIES// /,}"
+}
+
 case "${1:-}" in
   --harnesses) shift; exec bash "$HERE/harness-counts.sh" "$@" ;;   # #550 item (104): part (4)'s three push-check harnesses under a case-count ratchet
-  --checks)    shift; exec bash "$HERE/door-checks.sh" "$@" ;;      # #550: part (4)'s first population - checks that must exit clean
+  --checks)    shift; exec bash "$HERE/door-checks.sh" "$@" ;;
+  --binaries)  binaries; exit $? ;;                                  # #550 helper A round 6: part (3), ratchets as binaries      # #550: part (4)'s first population - checks that must exit clean
   --entries)  : ;;                       # handled after the lists are defined, below
   --selftest) : ;;
   -h|--help)  usage; exit 0 ;;
@@ -842,6 +871,30 @@ SHIM
     fi
   done
 
+
+  # B1-B5 PART (3), --binaries [#550 helper A round 6]. The door is copied beside a STUB gates/door-checks.sh that
+  # carries one `citations` row whose script exits as told, so each arm is a real exit code over a known answer.
+  # B1 IS CONTROL (a): a breach that is STANDING (present on both sides of any pair) refuses, which the ratchet passed.
+  local bd="$T/bin/gates"; mkdir -p "$bd"; cp "$door" "$bd/records-gate.sh"
+  cp "$HERE/door-checks.sh" "$bd/door-checks.sh"
+  bin_case(){ # bin_case <citations-exit> <citations-fail-count> [door file]
+    printf '#!/usr/bin/env bash\necho "citations door: 9 pass / %s fail"\nexit %s\n' "$2" "$1" > "$bd/cit.sh"
+    sed -i "s#^citations|gates/verify-log.sh|--citations|#citations|gates/cit.sh|--citations|#" "$bd/door-checks.sh"
+    printf 'door:none\tx\t1\tn\n' > "$T/bin/pins"
+    ( cd "$T/bin" && CT_DOOR_PINS="$T/bin/pins" bash "${3:-$bd/records-gate.sh}" --binaries ) > "$T/bin/last" 2>&1; echo $?; }
+  chk "B1 a STANDING citation breach refuses (control (a): the ratchet passed it as no worse than base)" 1 "$(bin_case 1 2)"
+  case "$(cat "$T/bin/last")" in *"REFUSED - citations: exit 1, 2 fail"*) ok "B1 the refusal names the citations row and its fail count" ;;
+    *) no "B1 the refusal does not name the citations row" ;; esac
+  chk "B2 a clean citations check passes" 0 "$(bin_case 0 0)"
+  case "$(cat "$T/bin/last")" in *"DOOR CHECKS OK - 1 of 1"*) ok "B2 and exactly one row ran (the --only filter, not the whole door)" ;;
+    *) no "B2 the binary set did not run exactly one row" ;; esac
+  sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES="other"/' "$bd/records-gate.sh" > "$bd/emptied-b.sh"
+  chk "B3 control (e): a binary set that lost a BINARIES_BASELINE name refuses itself" 1 "$(bin_case 0 0 "$bd/emptied-b.sh")"
+  sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES="citations nosuchrow"/' "$bd/records-gate.sh" > "$bd/unk-b.sh"
+  chk "B4 a binary name that is not a door-checks row is could-not-run (2)" 2 "$(bin_case 0 0 "$bd/unk-b.sh")"
+  sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES=""/' "$bd/records-gate.sh" > "$bd/none-b.sh"
+  chk "B5 an empty binary set is could-not-run (2), never a clearance" 2 "$(bin_case 0 0 "$bd/none-b.sh")"
+  chk "B6 the LIVE binary set holds citations" 1 "$(printf ' %s \n' "$RECORDS_BINARIES" | grep -c ' citations ')"
 
   # THE NOT-RUN COUNT IS ITSELF PINNED. notrun() is a counter and not a comment, and the defect it replaces (C9c as an
   # unconditional `ok`) was a declaration scored as a pass. If notrun() ever counted as a pass this footer would still print
