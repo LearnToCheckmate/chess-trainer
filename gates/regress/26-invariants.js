@@ -1970,11 +1970,12 @@ L.run(async()=>{
                  ['menu-discover',M.states['menu-discover']],['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
                  ['pz-roadmap',PZ.states['roadmap']]];
     for(const g of GEOS){
-      const set={}; const reached=[];
+      const set={}; const reached=[]; const menuRows=[];
       for(const [name,go] of EXTRA){
         const b=await L.launch({geo:g,store:R.SEED,name:'inv3b-'+name+'-'+g}); await b.open();
         try{ await go(b); await b.settle(450);
           const iv=await b.page.evaluate(ROWS,{probeVisible:true}); reached.push(name);
+          if(/^menu-/.test(name)) for(const r of iv.rows) menuRows.push({state:name,r});
           for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); }
         }catch(e){ L.say(false,g+' TC-INV-03b '+name+': the state could not be reached, so its icons are UNRUN, not green',String(e.message||e).slice(0,140)); }
         await b.close();
@@ -1988,6 +1989,33 @@ L.run(async()=>{
         L.say(JSON.stringify(keys)===JSON.stringify(want), g+': TC-INV-03b the set of distinct ICON glyph heights over the unswept sheets and states (Play setup, home-newhere, feedback, the menu sheet top, bottom and Look picker, the puzzle roadmap) is exactly what #549 measured at '+widthOf(g)+'px wide - a drift guard over the states TC-INV-03 does not walk, not a target',
           {width:widthOf(g), want, got:keys, added:keys.filter(x=>!want.includes(x)), gone:want.filter(x=>!keys.includes(x))});
       } else L.note('    TC-INV-03b, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');
+      // TC-INV-02g [#550; jobs/invariant-2-and-3-sheets-and-unswept-screens, part (1), after the orchestrator's answer a5 (11 Nov)
+      // made INK the measure invariant 2 is promoted on]. THE MENU SHEET'S ROWS UNDER INVARIANT 2, read from the same menu-discover,
+      // menu-bottom and menu-look launches as TC-INV-03b above (not added to SCREENS: those states would then come under every
+      // per-screen occlusion and pin assertion, and the sheets are mounted-but-hidden layers with their own occlusion question).
+      // MEASURED on trial 45cf62b1a07a at se and kunal761 before this was written: menu-bottom carries the piece-style chips
+      // (5 x 14, not a side-by-side row at 320 where they wrap), the coach-hair chips (5 svgs, box 40) and the footer links
+      // (4 x 16); menu-look carries the five 52px piece previews at 375; box spread 0 on every row, ink spread 0 on every row
+      // but the HAIR chips, whose painted ink is 35 / 33.75 / 31.56 / 34.38 / 37.5 - portraits of a coach, not icons in a row of
+      // controls, so that row is PINNED to those readings (a pin that moves either way is red, as TC-INV-02b) rather than held
+      // to the 1px ceiling; whether pictures count as icons is jobs/invariant-3-icon-size-target-set's call, not taken here.
+      // Part (2) of the job (the Review more-sheet contributing no rows) no longer holds on this tree: rev-more-sheet is in
+      // SCREENS and carries 2 rows at every geometry (ROW_PIN, a21), both under TC-INV-02a/02e already.
+      const HAIR_SIG='Balding|Combed back|Owl|Receding|Side part', HAIR_INK={'Side part':35,'Receding':33.75,'Balding':31.56,'Combed back':34.38,'Owl':37.5};
+      if(L.say(menuRows.length>=2, g+': TC-INV-02g PRECONDITION the menu sheet\'s states gave invariant 2 at least two control rows to measure ('+menuRows.length+': '+menuRows.map(x=>x.state+' '+x.r.sig).join(' ; ')+')',{rows:menuRows.map(x=>({state:x.state,sig:x.r.sig}))})){
+        const boxBad=menuRows.filter(x=>x.r.rawSpread>1.0);
+        L.say(boxBad.length===0, g+': TC-INV-02g every menu-sheet control row has ONE glyph box height within 1px (the box method TC-INV-02a asserts on the walked screens)',
+          boxBad.map(x=>({state:x.state,sig:x.r.sig,spread:x.r.rawSpread,kids:x.r.kids.map(k=>k.lab+' '+k.gh)})));
+        const inkBad=[], hairMoved=[]; let hairSeen=0;
+        for(const {state,r} of menuRows){
+          const ik=r.kids.map(k=>k.ink).filter(x=>typeof x==='number'); if(ik.length<2)continue;
+          if(r.sig===HAIR_SIG){ hairSeen++; for(const k of r.kids){ const want=HAIR_INK[k.lab]; if(typeof want!=='number'||typeof k.ink!=='number'||Math.abs(k.ink-want)>0.6) hairMoved.push({state,lab:k.lab,want,got:k.ink}); } continue; }
+          const isp=Math.max(...ik)-Math.min(...ik);
+          if(isp>1.0) inkBad.push({state,sig:r.sig,isp:+isp.toFixed(2),kids:r.kids.map(k=>k.lab+' '+k.via+' '+k.ink)});
+        }
+        L.say(inkBad.length===0, g+': TC-INV-02g every menu-sheet control row (the coach-hair portraits excepted, pinned on the next line) PAINTS one height - INK spread within 1px',inkBad);
+        L.say(hairSeen>=1&&hairMoved.length===0, g+': TC-INV-02g the coach-hair portrait row was measured ('+hairSeen+'x) and its painted ink still reads exactly the pinned 35 / 33.75 / 31.56 / 34.38 / 37.5 within 0.6px - a pin that moves either way is red',{hairSeen,hairMoved});
+      }
     }
   }
   // TC-INV-09 [#548 item (82); jobs/gate-26-rev-best-ply30-pin-covers-one-ply-of-a-class-that-cuts-at-plies-12-20-and-30-2026-10-12].
@@ -2089,3 +2117,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 1b6b89e 2026-11-06 total=117 red=1 scope=trial:935afa874fbb how=#549 run fix fixr3d, CT_INV_GEOS=kunal761: Home's intro pawn really resized 28 to 34 (HomeIntro pH compact 28->34) - TC-INV-03 red with added [34] gone [], the only red; the frozen-topple control 767b8fba1083 (rotate(30deg)) reds the pre-fix rule (added [35.8]) and is 117 PASS 0 FAIL on this one
 // CONTROL-RECORD: 614536d 2026-11-06 total=167 red=1 scope=trial:0bf1f05f86e5 how=#549 run fix fixr5a (A6-R5), CT_INV_GEOS=kunal730: the Play setup opponent-tile AppIcon given transform:scale(0.6), nothing else - TC-INV-03b red with added [15.6] gone [26], the only red; the 1b6b89e rule passed this bundle 167 of 167
 // CONTROL-RECORD: e4a169a 2026-11-12 total=511 red=50 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se puzzles: TC-INV-02e the tab bar's five icons PAINT one height - ink
+// CONTROL-RECORD: 39ef1e3 2026-11-13 total=346 red=4 scope=CT_INV_GEOS=se,kunal730;trial:9e5a544c2ced how=#550 jobs/invariant-2-and-3-sheets-and-unswept-screens part (1), TC-INV-02g: the menu sheet's 'Terms' footer link at fontSize 19px (the other three at 14) - the 02g box-spread and ink-spread lines red at se and kunal730 (spread 6px on menu-bottom's Delete account|Privacy|Refunds|Terms row), the 02g precondition and the coach-hair pin green; on 342f7329901b 346/0 (the harness helper's own run: 45cf62b1a07a 346/0, f8cf8f755343 2 red at se)
