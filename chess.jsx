@@ -6095,7 +6095,7 @@ function AppMain(){
     // both bundles at three geometries, fresh and rotated, and got 216/232/216 with over 0 every time - so the
     // review half is a no-change, kept for one predicate rather than two. It is a scope choice supported by a
     // measurement that it changes nothing, NOT a defect this build fixed, and it should not be written up as one.
-    const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
+    const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup&&!(opponent==='online'&&!onlineGame)/* #550 cg8 FMT-B-02: the online LOBBY (no game yet) keeps the board the screen width, as the game it opens - the fit loop took it to 337 at 375x761 to fit the lobby card, which then scrolls under the board instead */)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
     if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';playFreshTrimRef.current=null;fitLeftRef.current=null;return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on

@@ -28,6 +28,7 @@
 // the height of an Openings row (o); one section label (p); 44pt tap targets (q); the main buttons 44 high radius 12 (r).
 // CONTROL-RECORD: 9a6a5c6 2026-11-12 total=227 red=123 scope=trial:749a261311ba how=#550 the tree before this build (HEAD 9a6a5c6, built as t0): 38x30 menus and left/off-centre titles in four sizes (TC-R215a 57 red, b 33), 38- and 36-high Tactics buttons (c 9), the Tactics board 78.5 lower than Strategy's and short of the width at 375x667/320x568 (d 5), the answer in a box under the board (e 3), X mid-bar in the demo and two ⋯ in practice (f 9), the 320x568 lesson board 270.9 with the row under it (g 5), the online game-over board 192 and the page scrolling 80 (h 2) - every case red; on a43f44594f3b 233/0
 // CONTROL-RECORD: faa82a9 2026-11-12 total=385 red=82 scope=trial:9f4f6f823150 how=#550 formatting audit, the rest (TC-R215i..r): the branch tip before it (HEAD faa82a9, built as t0) - no menu and a 119x44 / 102x44 back at 4 on the puzzle pages and drills (i 28 red), the top row at 13, 8, 51.5, 66 and 84 (j 30), 30x30 and 32x32 sheet X and titles 15 to 21 in two fonts (l 6), four solid-coloured online actions (m 1), gutters 18 and 3.8 (n 8), radius 11 and a 59.6 Gambits row (o 2), five section-label styles (p 1), tabs 43, code box 38 and counter 39 (q 5), footer 50/52 and Start game 48 (r 1) - every new case red, a..h and every precondition green; on 8034b0e23279 and on the final d2b943f841ec 401/0
+// CONTROL-RECORD: 3bcb406 2026-11-13 total=9 red=2 scope=env:CT_139_CG_ONLY=1 how=#550 cg8 (jobs/formatting-audit-p1s-2026-11-12 FMT-B-02): the branch tip's tree (trial 85be94e89bc2, the fit loop on the lobby) - TC-R215s 'the lobby board is the screen width' red at kunal761 (337 at x 19) and 320x568 (192 at x 64); the PRECONDITIONS, Join-reachable and error lines green. On t2 ece1e34c6e1c 9/0
 const L=require('../lib');
 const H=require('../drive/home'),D=require('../drive/lesson'),Z=require('../drive/puzzles'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu');
 const fs=require('fs'),path=require('path');
@@ -53,6 +54,22 @@ const ok44=c=>!!c&&c.w>=43.5&&c.h>=43.5;
 const TOP_Y=2;const atY=(y,gn)=>y!=null&&(Math.abs(y-TOP_Y)<=1||(gn==='kunal761'&&Math.abs(y-(51+TOP_Y))<=1));   // see the header: 53 only where the app pads by its own safeTop at kunal761
 const at8=(v)=>v!=null&&Math.abs(v-8)<=1;
 L.run(async()=>{
+  // ── TC-R215s [cg8, jobs/formatting-audit-p1s-2026-11-12, FMT-B-02's unbuilt half]: THE ONLINE LOBBY BOARD IS THE SCREEN WIDTH. Signed in
+  //    through gate 100's stand-in cloud (no game), Play -> Online -> Continue: at kunal761 the lobby board was 337 at x 19 (the fit loop took
+  //    38px off it to fit the lobby card) and at 320x568 192 at x 64, where the game it opens is edge to edge. Asserted: the board is the
+  //    screen width at x 0, and the lobby's last control (Join) is reachable by scrolling the app's scroller (below the fold is not
+  //    unreachable) and ends on screen (the lobby shows no tab bar; above it if one is shown). Found by its words ('Play online', 'Join'), not by a hook.
+  for(const [gn,geo] of [['kunal761','kunal761'],['320x568','se']]){const tag='online lobby '+gn;
+   const b=await L.launch({geo,name:'top139-lobby',store:{ct_pool:'3'}});await b.ctx.addInitScript(STUB);await b.open();let ok=true;
+   try{await P.states['online-continue'](b);await b.page.waitForFunction(()=>/Play online/.test(document.body.innerText||''),{timeout:15000});await b.settle(1500);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
+   const r=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
+     const root=document.getElementById('root');root.scrollTop=root.scrollHeight;const j=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Join'&&x.getBoundingClientRect().width>0);
+     const tb=document.querySelector('[data-ct="tabbar"]');const jr=j&&j.getBoundingClientRect();const out={w:g?+g.width.toFixed(1):null,x:g?+g.left.toFixed(1):null,vw:innerWidth,join:jr?+jr.bottom.toFixed(1):null,tab:tb&&tb.getBoundingClientRect().height>0?+tb.getBoundingClientRect().top.toFixed(1):innerHeight};root.scrollTop=0;return out;});
+   L.say(ok&&r.w!=null&&r.join!=null,'TC-R215s '+tag+' PRECONDITION the signed-in lobby (Play online, Join) is on screen with its board',r);
+   L.say(r.w!=null&&Math.abs(r.w-r.vw)<=1&&Math.abs(r.x)<=1,'TC-R215s '+tag+' the lobby board is the screen width ('+r.w+' of '+r.vw+' at x '+r.x+')',r);
+   L.say(r.join!=null&&r.tab!=null&&r.join<=r.tab+0.5,'TC-R215s '+tag+' Join is reachable by scrolling and ends on screen, above the tab bar if one is shown (bottom '+r.join+', limit '+r.tab+')',r);
+   L.say(b.errs.length===0,'TC-R215s '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
+  if(process.env.CT_139_CG_ONLY)return;   // CT_139_CG_ONLY=1 runs the #550 cg blocks (TC-R215s..) alone
   const fams=new Set();
   for(const [gn,geo] of GEOS)for(const [nm,go,title,hasBack] of SCREENS){const tag=nm+' '+gn;
     const b=await L.launch({geo,name:'top139',store:{ct_pool:'3'}});await b.open();let ok=true;try{await go(b);await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
