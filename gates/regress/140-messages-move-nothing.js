@@ -15,6 +15,7 @@
 // (b) nothing scrolls; (c) at 320x568 and 375x667 the Puzzles board is the full width (>= viewport - 1); (d) the short-screen note is an
 // overlay that is gone 3.5s after a wrong move, and the motif is in the hint text.
 // CONTROL-RECORD: c5e038e 2026-11-12 total=81 red=5 scope=trial:0b494f6c50db how=#550 the tree before a42's overlays (t140): the 320x568 board is 277 (TC-R216c) and at both short sizes the wrong-move note is in its reserved box, not an overlay, and the hint carries no motif (TC-R216d x2 each); TC-R216a/b stay green there because the reserved box never moved either - they guard the overlays from bringing a jump, and are named, not credited, as controlled by this record; on t141 b35a3777 81/0
+// CONTROL-RECORD: 3e082a9 2026-11-13 total=83 red=7 scope=trial:0b494f6c50db how=#550 jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control part (b), the pz-overlay pair opened: the same pre-a42 tree t140 - 'the note is gone 3.5s later' now RED at 375x667 and 320x568 (the '✗ Re7 hangs the rook' note still painted in its reserved box) where the hook-only version PASSED there because no overlay existed; the new by-text precondition green; on 08ba147127fb 83/0
 // KNOW ITS LIMIT: Puzzles and the mistakes drill; Tactics and lessons are gate 139's (the formatting standard) and Play's hint is gate 130's.
 const L=require('../lib');const Z=require('../drive/puzzles');
 const GEOS=[['kunal761','kunal761'],[{w:375,h:667,safe:'',label:'375x667'},'375x667'],['se','320x568']];
@@ -23,7 +24,11 @@ const snap=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div'
   const btn={};[...document.querySelectorAll('button')].forEach(x=>{const r=x.getBoundingClientRect();if(r.width<2||r.height<2||r.bottom<0||r.top>innerHeight)return;if(getComputedStyle(x).visibility==='hidden')return;
     const k=(x.getAttribute('aria-label')||x.innerText||'').replace(/\s+/g,' ').trim().slice(0,24);if(k&&!(k in btn))btn[k]=R(x);});
   const root=document.getElementById('root');const ov=document.querySelector('[data-ct="pz-overlay"]');
-  return {board:g?R(g):null,btn,scroll:root?root.scrollHeight-root.clientHeight:null,vw:innerWidth,ov:ov&&getComputedStyle(ov).display!=='none'?{txt:ov.innerText,op:+getComputedStyle(ov).opacity}:null,hintHead:(document.querySelector('[data-ct="pz-hint-head"]')||{}).innerText||''};});
+  return {board:g?R(g):null,btn,scroll:root?root.scrollHeight-root.clientHeight:null,vw:innerWidth,ov:ov&&getComputedStyle(ov).display!=='none'?{txt:ov.innerText,op:+getComputedStyle(ov).opacity}:null,hintHead:(document.querySelector('[data-ct="pz-hint-head"]')||{}).innerText||'',
+    /* the wrong-move note FOUND BY ITS TEXT, not by the pz-overlay hook a42 added: every painted leaf whose text starts with the cross, with its
+       effective opacity (the product up its ancestor chain, since the overlay fades by opacity) above 0.05 */
+    xs:[...document.querySelectorAll('div,span,p')].filter(e=>e.children.length===0&&/^\u2717/.test((e.textContent||'').trim())).filter(e=>{const r=e.getBoundingClientRect();if(r.width<1||r.height<1||r.bottom<0||r.top>innerHeight)return false;
+      let o=1;for(let p=e;p&&p.nodeType===1;p=p.parentElement){const cs=getComputedStyle(p);if(cs.display==='none'||cs.visibility==='hidden')return false;o*=+cs.opacity;}return o>0.05;}).map(e=>(e.textContent||'').trim().slice(0,40))};});
 function same(a,b){const out=[];if(!a.board||!b.board)return ['no board'];for(let i=0;i<4;i++)if(Math.abs(a.board[i]-b.board[i])>0.5)out.push('board '+JSON.stringify(a.board)+' -> '+JSON.stringify(b.board));
   for(const k of Object.keys(a.btn))if(k in b.btn){if(Math.abs(a.btn[k][1]-b.btn[k][1])>0.5||Math.abs(a.btn[k][3]-b.btn[k][3])>0.5)out.push('"'+k+'" '+JSON.stringify(a.btn[k])+' -> '+JSON.stringify(b.btn[k]));}return [...new Set(out)];}
 /* buttons are compared on their TOP and HEIGHT: a jump is a vertical move. After a solve Next widens across its own row (the chevron becomes the
@@ -45,7 +50,12 @@ L.run(async()=>{
       L.say(!!base&&base.board[2]>=base.vw-1,tag+': TC-R216c the Puzzles board is the full width ('+(base&&base.board[2])+' of '+(base&&base.vw)+'; it was 277 at 320x568 and 375 at 375x667)',base&&base.board);
       const f=shot['train-fail'],fl=shot['train-fail-later'];
       L.say(!!f&&!!f.ov&&/^✗/.test(f.ov.txt),tag+': TC-R216d PRECONDITION the wrong-move note shows as an overlay ("'+(f&&f.ov?f.ov.txt:'none')+'")',f&&f.ov);
-      L.say(!!fl&&(!fl.ov||fl.ov.op<0.05),tag+': TC-R216d the note is gone 3.5s later (opacity '+(fl&&fl.ov?fl.ov.op:'no overlay')+')',fl&&fl.ov);
+      // THE 'GONE' LINE READS THE NOTE BY ITS TEXT TOO [#550; jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29,
+      // part (b), this pair opened]: keyed only to [data-ct="pz-overlay"], which a42 added, it PASSED on the pre-a42 tree t140 (0b494f6c50db)
+      // because no overlay existed to still be showing - while the note sat in its reserved box. It now also requires that no painted '✗' note is
+      // left on screen, and the note's presence by text right after the wrong move is its own denominator line.
+      L.say(!!f&&f.xs.length>0,tag+': TC-R216d PRECONDITION the wrong-move note was on screen by its TEXT right after the wrong move ('+(f?JSON.stringify(f.xs):'not measured')+'), so the next line has something to see go',f&&f.xs);
+      L.say(!!fl&&(!fl.ov||fl.ov.op<0.05)&&fl.xs.length===0,tag+': TC-R216d the note is gone 3.5s later (overlay opacity '+(fl&&fl.ov?fl.ov.op:'no overlay')+'; painted \u2717 notes by text: '+(fl?JSON.stringify(fl.xs):'?')+')',fl&&{ov:fl.ov,xs:fl.xs});
       const h=shot['train-hint'];L.say(!!h&&/Back-rank mate/.test(h.hintHead),tag+': TC-R216d the motif lives behind the Hint ("'+(h?h.hintHead.slice(0,80):'')+'")',h&&h.hintHead);}
   }
   // the mistakes drill: the same rule, on a seeded card (marked already re-graded, so the a41 pass leaves it)
