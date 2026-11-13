@@ -604,7 +604,8 @@ const RD_K=(b)=>b.page.evaluate(()=>{let elo=null;try{elo=localStorage.getItem('
   const sh=document.querySelector('[data-ct="setup-sheet"]');let tiles=[];
   if(sh)tiles=[...sh.querySelectorAll('button')].map(x=>(x.innerText||'').trim()).filter(t=>/^(Pip|Rosa|Milo|Astrid|Viktor)\n≈ \d+ Elo/.test(t))
     .map(t=>{const ln=t.split('\n');return {name:ln[0],elo:(ln[1].match(/\d+/)||[''])[0],on:ln.length>=3};});
-  return {elo,bar,bars,tiles,sel:tiles.filter(t=>t.on)};});
+  const sl=sh&&sh.querySelector('input[type="range"]');
+  return {elo,bar,bars,tiles,sel:tiles.filter(t=>t.on),slider:sl?sl.value:null};});
 if(blk('K')){
   const P=require('../drive/play');
   // Each run is DATA: its geometry and which bot (if any) also gets the re-tap and slider sub-block (ACCEPTANCE C and D).
@@ -616,7 +617,10 @@ if(blk('K')){
     const r1s=await RD_K(b);
     ok=ok&&(await TAP(b,'▶ Start game',1500));
     const r2=await RD_K(b);
-    L.say(ok&&r1s.elo===String(nom)&&r2.bars.some(t=>new RegExp('\\b'+bot+'\\b').test(t)),tag+': TC-PS-044 PRECONDITION tapping '+bot+' set ct_elo to its starting '+nom+' and the game against '+bot+' is running',{ok,r1s:{elo:r1s.elo,sel:r1s.sel},bars:r2.bars});
+    /* RE-KEYED AT #550 item (58) [jobs/auditor-424-p2-findings-2026-09-27 second pass]: the New Game sheet's choices are PENDING until Start,
+       so the tile tap no longer writes ct_elo while the sheet is up - the sheet's own tile and slider carry the pending strength, and ct_elo
+       takes it at Start. Measured on 558424b's bundle 08869263d133 (before) the tap wrote ct_elo at once; on 8030065fed0f it reads 800 until Start. */
+    L.say(ok&&r1s.sel.length===1&&r1s.sel[0].name===bot&&r1s.sel[0].elo===String(nom)&&r1s.slider===String(nom)&&r2.elo===String(nom)&&r2.bars.some(t=>new RegExp('\\b'+bot+'\\b').test(t)),tag+': TC-PS-044 PRECONDITION tapping '+bot+' set the sheet\'s strength to its starting '+nom+', Start set ct_elo to it, and the game against '+bot+' is running',{ok,r1s:{elo:r1s.elo,sel:r1s.sel,slider:r1s.slider},elo2:r2.elo,bars:r2.bars});
     L.say(r2.bar.length===1&&r2.bar[0]===r2.elo,tag+': TC-PS-044 (2) at the start the computer\'s bar prints exactly ct_elo',{bar:r2.bar,elo:r2.elo});
     let okR=true;try{await P.tapBtn(b,/^More$/,500);await P.tapBtn(b,/^Resign$/,600);await P.tapBtn(b,/^Tap again to resign$/,1100);await b.settle(3000);}catch(e){okR=false;}
     const r4=await RD_K(b);
@@ -632,9 +636,9 @@ if(blk('K')){
       // ACCEPTANCE C and D of the job's START_HERE card: tapping the tile again resets to the starting number, and a slider
       // drag off the ladder clears the character (the path that already called setSelBot).
       await openSetup(b);await TAP(b,'Pip',400);const rc=await RD_K(b);
-      L.say(rc.elo==='500'&&rc.sel.length===1&&rc.sel[0].elo==='500',tag+': TC-PS-044 tapping Pip\'s tile again resets the strength to its starting 500, and the tile says so',{elo:rc.elo,sel:rc.sel});
+      L.say(rc.slider==='500'&&rc.sel.length===1&&rc.sel[0].elo==='500',tag+': TC-PS-044 tapping Pip\'s tile again resets the strength to its starting 500, and the tile says so',{elo:rc.elo,sel:rc.sel});
       await SET_SLIDER(b,625);await b.settle(400);const rd=await RD_K(b);
-      L.say(rd.elo==='625'&&rd.sel.length===0&&rd.tiles.length===5,tag+': TC-PS-044 a slider move off the ladder (625) clears the character: no tile is selected, so none can claim a number',{elo:rd.elo,sel:rd.sel,n:rd.tiles.length});
+      L.say(rd.slider==='625'&&rd.sel.length===0&&rd.tiles.length===5,tag+': TC-PS-044 a slider move off the ladder (625) clears the character: no tile is selected, so none can claim a number',{elo:rd.elo,sel:rd.sel,n:rd.tiles.length});
     }
     L.say(b.errs.filter(e=>!ERR_ALLOWED.test(e)).length===0,tag+': TC-PS-044 zero app errors outside the engine-trap allowance',b.errs.slice(0,3));
     await b.close();

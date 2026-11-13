@@ -5906,6 +5906,36 @@ function AppMain(){
      it from there. Withdrawn here. The exemption survives on its real reason - the online arm does not play the
      FEN - and it is now in one place where the note cannot disagree with the button. */
   const setupBlocked=!!setupTerminal&&opponent!=='online';
+  /* #550 item (58) second pass, jobs/auditor-424-p2-findings-2026-09-27 (folding in the-live-board-is-resized-behind-the-open-setup-sheet,
+     the-screen-behind-the-setup-sheet-describes-the-sheets-pending-choices-not-the-live-game and the-play-screen-under-the-open-setup-sheet-
+     overflows-by-87px, all 2026-10-03): THE NEW GAME SHEET HOLDS ITS CHOICES AS PENDING STATE AND APPLIES THEM ONLY AT START. Its opponent
+     tiles, bot row, colour buttons, clock pills and strength slider used to write the LIVE opponent, pColor, timeCtrl, cpuElo and selBot,
+     so everything behind the open sheet re-read them at once: the board resized 375 -> 344 for the eval bar of a 'computer' game that did
+     not exist, the player bars read 'Computer 800' over a Pass & Play game, and #470 had to snapshot and restore the live settings on every
+     door that closes the sheet. Now the sheet reads and writes `setupDraft` (the sheet's JSX shadows the five names, so every row of it
+     reads the pending copy and nothing outside it can), Start applies it in its own handler, and Resume or Home simply drop it.
+     The draft is taken from the live values when the sheet opens, and a LIVE value that changes while it is open (a scan landing its side
+     to move, a cloud pull, the Menu's own Game setup pills) is carried into it field by field, so the sheet never shows a stale choice
+     and a pending choice the player made is kept unless that same field moved underneath it. #470's snapshot and restore stay as the
+     backstop: with nothing on the sheet writing the live state they restore the values already there. */
+  const [setupDraft,setSetupDraft]=useState(null);
+  const _setupLiveRef=useRef(null);
+  useEffect(()=>{
+    const live={opponent,pColor,timeCtrl,cpuElo,selBot};
+    if(!playSetup){_setupLiveRef.current=null;setSetupDraft(d=>d?null:d);return;}
+    const prev=_setupLiveRef.current;_setupLiveRef.current=live;
+    if(!prev){setSetupDraft({...live,onlineReset:false});return;}
+    const ch={};for(const k of Object.keys(live))if(live[k]!==prev[k])ch[k]=live[k];
+    if(Object.keys(ch).length)setSetupDraft(d=>({...(d||live),...ch}));
+  },[playSetup,opponent,pColor,timeCtrl,cpuElo,selBot]);
+  const _sDraft=(playSetup&&setupDraft)||{opponent,pColor,timeCtrl,cpuElo,selBot,onlineReset:false};
+  const _setDraft=(patch)=>setSetupDraft(d=>({...(d||{opponent,pColor,timeCtrl,cpuElo,selBot,onlineReset:false}),...patch}));
+  useEffect(()=>{setStartArm(false);},[_sDraft.opponent]);   /* the Start arm drops when the sheet's opponent changes, as it did when the tiles wrote the live one */
+  useEffect(()=>{const t=setTimeout(_botMeasure,60);return()=>clearTimeout(t);},[_sDraft.opponent]);   /* the bot row appears with the PENDING Computer */
+  /* START: the pending choices become the game's, in the same handler (one render), before the game is reset. */
+  const _applySetupDraft=()=>{const d=_sDraft;
+    if(d.onlineReset&&d.opponent==='online'){setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}
+    setOpponent(d.opponent);setPColor(d.pColor);timeCtrlRef.current=d.timeCtrl;setTimeCtrl(d.timeCtrl);setCpuElo(d.cpuElo);setSelBot(d.selBot);};
   const status=useMemo(()=>getStatus(boardGame),[boardGame]);
   const isOver=status==='checkmate'||status==='stalemate';
   /* #437: `isOver` answers "is the position ON THE BOARD a terminal one", because `status` reads boardGame,
@@ -9200,7 +9230,7 @@ function AppMain(){
   const _hcF=!hbig&&!hLand;   // #550 AUD-H01: phone Home's compact footer (one 44pt row)
   useLayoutEffect(()=>{   // #550 DSK-09: fit Play setup to the window height on a wide window
     if(!(mode==='play'&&playSetup&&!homeScreen&&_sw2))return;
-    const k=vp.w+'x'+vp.h+':'+opponent;
+    const k=vp.w+'x'+vp.h+':'+_sDraft.opponent;   /* #550 item (58): the sheet's content follows its PENDING opponent */
     if(setupFit.k!==k){setSetupFit({k,z:1,done:false});return;}
     if(setupFit.done)return;
     const sh=setupSheetRef.current;let el=sh;while(el&&getComputedStyle(el).position!=='fixed')el=el.parentElement;if(!el)return;
@@ -10405,7 +10435,13 @@ function AppMain(){
           <button onClick={()=>setHomeScreen(true)} style={{marginTop:12,padding:'9px 18px',borderRadius:11,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.78)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>‹ Back to Home</button>
         </div>
       </div>)}
-      {mode==='play'&&playSetup&&!homeScreen&&(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`calc(env(safe-area-inset-top,0px) + ${TOP_Y}px) 12px max(16px,env(safe-area-inset-bottom,0px))` /* FMT-B-05: the 12 gutter (was 16) */ /* #550 FMT-A-06: the top row at TOP_Y under the safe area, as on every screen (was max(8, inset), so 8 on a phone without an inset and 0 under one). FMT-B-03: 8 + the 44 top row = the 20 + 32 it replaced, so the sheet is exactly as tall as before (gate 30 A-13 read 5px over at 375x640 with 14) */,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      {mode==='play'&&playSetup&&!homeScreen&&(()=>{/* #550 item (58): the sheet reads and writes the PENDING copy - these five names, and the setters
+         and the clock ref the sheet uses, are shadowed for its JSX only, so no row of it can reach the live game behind it */
+        const {opponent,pColor,timeCtrl,cpuElo,selBot}=_sDraft;const setupBlocked=!!setupTerminal&&opponent!=='online';
+        const setOpponent=(v)=>_setDraft({opponent:v}),setPColor=(v)=>_setDraft({pColor:v}),setTimeCtrl=(v)=>_setDraft({timeCtrl:v}),setCpuElo=(v)=>_setDraft({cpuElo:v}),setSelBot=(v)=>_setDraft({selBot:v});
+        const timeCtrlRef={get current(){return timeCtrl;},set current(v){}};   /* writes go through setTimeCtrl above, which every write here pairs with */
+        const setOnlineGame=()=>_setDraft({onlineReset:true}),setMyColor=()=>{},setOnlineErr=()=>{},setOnlineInfo=()=>{};   /* the Online tile's clean-up runs at Start (_applySetupDraft) */
+        return(<div style={{position:'fixed',inset:0,zIndex:520,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',padding:`calc(env(safe-area-inset-top,0px) + ${TOP_Y}px) 12px max(16px,env(safe-area-inset-bottom,0px))` /* FMT-B-05: the 12 gutter (was 16) */ /* #550 FMT-A-06: the top row at TOP_Y under the safe area, as on every screen (was max(8, inset), so 8 on a phone without an inset and 0 under one). FMT-B-03: 8 + the 44 top row = the 20 + 32 it replaced, so the sheet is exactly as tall as before (gate 30 A-13 read 5px over at 375x640 with 14) */,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {_sw2&&<style>{`.setup2>*{grid-column:1/-1}`}</style>}
         <div ref={setupSheetRef} data-ct="setup-sheet" className={'scroll'+(_sw2?' setup2':'')} style={{width:'100%',maxWidth:_sw2?660:420,...(_sw2?{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:22,rowGap:12,gridAutoFlow:'row dense',alignItems:'start',...(setupFit.z<1?{zoom:setupFit.z}:null)}:{display:'flex',flexDirection:'column'}),...(_sw2?null:{gap:(vp.h<720?10:16)}) /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
           <div data-ct="setup-top" style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',height:TOP_SZ,margin:'0 -'+(12-TOP_EDGE)+'px',flexShrink:0}}>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - the exit 44 high at TOP_EDGE (its words stay: gates 45, 49, 54, 55 find it by them), 'New Game' centred at the one title size, the menu top-right */}
@@ -10644,11 +10680,11 @@ function AppMain(){
               over a sheet over a mounted game, and this screen already has the resume row saying what is at
               stake. Gate 54's assertion D accepts EITHER this arm OR the game surviving, so it does not
               certify my choice of the two - see the amber record. */}
-          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}/* #474: _livePlies, not playHist.length - after a lesson replaced the board this armed over a game that no longer existed and printed "Tap again to discard your game and start" about it */setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;setPlaySetup(false);if(opponent!=='online'){fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);if(setupFromFEN&&playStartFenRef.current)playStartFenRef.current=String(setupFromFEN).trim();}/* #550 item (88): keep the position's own move counters (toFEN of the board writes 0 1) */;setSetupFromFEN(null);}} style={{marginTop:4,padding:'0 15px',minHeight:ACT_H,borderRadius:12 /* #550 FMT-B-07: the one main button, 44 high radius 12 (was 48, radius 14) */,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:startArm?'#191919':'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game':'▶ Start game')))}</button>
+          <button data-ct="setup-start" disabled={setupBlocked} onClick={()=>{if(setupBlocked)return;if(_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!startArm){setStartArm(true);return;}/* #474: _livePlies, not playHist.length - after a lesson replaced the board this armed over a game that no longer existed and printed "Tap again to discard your game and start" about it */setStartArm(false);/* #470: a game is actually starting, so the live game's old settings die with it - this is what keeps the close-effect's restore off the Start path */liveSettingsRef.current=null;_applySetupDraft();/* #550 item (58): the pending choices become the game's here and nowhere else */setPlaySetup(false);if(opponent!=='online'){fullReset(setupFromFEN?fromFEN(setupFromFEN):undefined);if(setupFromFEN&&playStartFenRef.current)playStartFenRef.current=String(setupFromFEN).trim();}/* #550 item (88): keep the position's own move counters (toFEN of the board writes 0 1) */;setSetupFromFEN(null);}} style={{marginTop:4,padding:'0 15px',minHeight:ACT_H,borderRadius:12 /* #550 FMT-B-07: the one main button, 44 high radius 12 (was 48, radius 14) */,border:'none',background:startArm?'#e0a83a':'var(--ac)',color:startArm?'#191919':'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(15px,3.6vw,17px)',cursor:setupBlocked?'not-allowed':'pointer',opacity:setupBlocked?.5:1,boxShadow:startArm?'0 8px 24px rgba(224,168,58,.35)':`0 8px 24px rgba(${TH.rgb},.35)`}}>{opponent==='online'?'Continue →':(setupBlocked?'That position is already over':(setupFromFEN?'▶ Play this position':(startArm?'Tap again to discard your game':'▶ Start game')))}</button>
           <div style={{textAlign:'center',fontSize:'clamp(13px,2.3vw,13px)',color:'rgba(255,255,255,.4)',marginTop:-6,pointerEvents:'none'/* #430 class sweep [R06], same decision as the MOVES chips below: this caption is pulled 6px up over the bottom edge of the primary Continue button above it, at EVERY width and height, and is later in the DOM - so those 6px of the button answered for a div. pointerEvents:'none' rather than dropping the margin, because the caption is not interactive and this costs no vertical space, where removing the margin would take 6px off the board. */}}>{opponent==='computer'?`vs ${selBot&&botById(selBot)?botById(selBot).name:'Computer'} · ${pColor==='w'?'White':'Black'} · ${timeCtrl?timeCtrl.label:'No clock'}`:opponent==='human'?`Pass & play on one device · ${timeCtrl?timeCtrl.label:'No clock'}`:'Online · play a friend by invite code'}</div>
           {devOn&&BUILD_INFO&&<div data-ct="setup-build" style={{textAlign:'center',fontSize:Math.max(8,Math.min(11,(Math.min(420,vp.w)-40)/((BUILD_INFO.length+6)*0.6+0.04))),color:'rgba(255,255,255,.3)',letterSpacing:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:vp.h<720?2:12 /* #547: item (1) put ' (src <12 hex>)' in the stamp, which wrapped this line to two at 375 and pushed the Pass & Play sheet 12px past a 640px screen (gate 30 A-13). One line, the font fitted to the width (monospace is 0.6em a glyph), the ellipsis only a backstop */}}>Build {BUILD_INFO}</div>}
         </div>
-      </div>)}
+      </div>);})()}
 
       {!pzLow&&!wide&&!lessonFocus&&!(inReview&&revCompact&&reviewView!=='summary')&&!(mode==='play'&&!playSetup&&opponent)&&!(mode==='learn'&&learnGroup==='tactics'&&openIdx===null)/* #550 a26: the Tactics page's own bar replaces the header */&&(()=>{/* #550 FMT-A-01/A-02/B-01/B-03 (Kunal's pick 12 Nov): this shared header is the standard TOP ROW - back top-left when the screen has
           one, the screen title CENTRED on the screen, menu top-right, both 44x44 at TOP_EDGE. It replaces the brand row and the 38x30 menu, and
