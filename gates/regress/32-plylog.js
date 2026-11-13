@@ -46,7 +46,7 @@ const closeMenu=async(b)=>{await b.page.mouse.click(4,4);await b.settle(400);};
 // #545 item (80) [jobs/taptext-clicks-outside-the-viewport-...-2026-09-30, twoSecondaryFindingsInGate32Itself]:
 // (b) toggle was UNGUARDED, so a throw escaped L.run and the second geometry never ran (15 of 16 assertions lost on
 // #440, CLAUDE.md's #393 rule). It now reports whether the tap landed and the caller asserts it, and the gate goes on.
-const toggle=async(b)=>{try{await b.tapText(/^Layout readout$/,{wait:500});return true;}catch(e){L.note('      toggle: '+String(e.message||e).slice(0,160));return false;}};
+const toggle=async(b)=>{try{await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);await b.tapText(/^Layout readout$/,{wait:500});return true;}   /* #550 jobs/build-menu-one-screen: the row sits behind the menu's foot line */catch(e){L.note('      toggle: '+String(e.message||e).slice(0,160));return false;}};
 // (a) "with the switch off there is no readout block" was SATISFIED BY THE MENU FAILING TO OPEN. menuUp() is the
 // precondition, asserted first, so a shut menu is a red of its own and not a green for the absence below it.
 const menuUp=(b)=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));

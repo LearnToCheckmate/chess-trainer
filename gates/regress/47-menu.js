@@ -112,6 +112,7 @@
 // since #390: before tapping anything in a new gate, ask whether an existing gate already had to fight it.
 // CONTROL-RECORD: 02a91e7 2026-11-13 total=23 red=1 scope=env:CT_BLK=Y how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (block Y's two game-over states, TC-MN-051 and TC-MN-052b, moved off card k10 onto drive/play.js pp-scholar-mate, Scholar's mate in Pass & Play at 730x375): trial:32051b122b3c, Escape ignored by the menu sheet while a game screen is up - 'with the game over, Escape closes the menu sheet' red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 23/0 on the new route; on 77ffccc15668 23/0 by both routes (CT_BLK=Y), lines identical except two measured figures in their text (052b's game-over sheet overflow 1806 -> 1828px, and 052's home-sheet drag 85 -> 84px in a block the move does not touch)
 'use strict';
+// CONTROL-RECORD: 48e5e12 2026-11-13 total=39 red=18 scope=env:CT_BLK=N,trial:632940b1da50 how=#550 jobs/build-menu-one-screen: the branch tip's own bundle (the menu before the row moves) - TC-MN-054 (scrollHeight 1971/1301 against 739 at 375x761, 2133/1375 against 546 at 320x568, 1971/1301 against 546 at 375x568, developer/player), TC-MN-054b (no More settings foot) and TC-MN-054c (Board colors, SKIN, Cell depth, Piece style still on the sheet) red at all six; the fix's bundle reads 39 pass 0 fail on CT_BLK=N and the whole gate 227 pass 0 fail
 // CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
 const L=require('../lib');
 
@@ -210,6 +211,12 @@ const CTTAP=async(b,ct,wait)=>{const ok=await b.page.evaluate((c)=>{const el=doc
     if(!el)return false;el.click();return true;},ct);
   await b.settle(wait==null?400:wait);return ok;};
 
+// #550 jobs/build-menu-one-screen: the rows behind the foot line and the Coach look portraits behind their row. Open by a
+// programmatic click only when closed (aria-expanded false), so a call is idempotent.
+const FOLD=async(b,ct)=>{const did=await b.page.evaluate((c)=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="'+c+'"]');if(!e||e.getAttribute('aria-expanded')!=='false')return false;e.click();return true;},ct);if(did)await b.settle(350);return did;};
+const MORE=(b)=>FOLD(b,'menu-foot');
+// the Evaluation bar's one row: which of Above / Beside / Off is pressed
+const EVSEG=(b)=>b.page.evaluate(()=>{const r=document.querySelector('[data-ct="menu-evalbar"]');if(!r)return null;const on=[...r.querySelectorAll('button[aria-pressed="true"]')].map(x=>x.getAttribute('data-ct').replace('menu-evalbar-',''));return on.length===1?on[0]:on.join('+')||'none';});
 const LS=(b,k)=>b.page.evaluate((k)=>{try{return localStorage.getItem(k);}catch(e){return 'THREW';}},k);
 const HEADS=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;
   return [...s.querySelectorAll('div')].filter(x=>x.children.length===0&&/^[A-Z][A-Z ]{3,}$/.test((x.innerText||'').trim()))
@@ -239,17 +246,51 @@ if(blk('A'))for(const g of geos){
   const sh=await SHEET(b);
   L.say(!!sh,g.n+': TC-MN-002 [data-ct="home-menu"] opens [data-ct="menu-sheet"]',sh);
   if(sh){
-    L.say(Math.abs(sh.h-(sh.vh-20))<0.6&&Math.abs(sh.top-10)<0.6,
-      g.n+': TC-MN-003 the sheet takes the padded viewport - height '+sh.h+' = '+sh.vh+' minus the overlay\'s own 10px top and bottom padding, and nothing else. This is #373 (audit A-16): it was 5vh + 88vh + 12px, which left 36px of dead backdrop under it on a 679-tall screen',sh);
+    // #550 jobs/build-menu-one-screen RE-PIN: the sheet's content now FITS, so a sheet capped at the padded viewport is as tall as its
+    // content and no taller. What #373 forbade - a cap SHORTER than the padded viewport while content waits below it - is what is asserted:
+    // the sheet starts at the overlay's 10px padding, never exceeds vh - 20, and is exactly vh - 20 whenever its content overflows.
+    L.say(Math.abs(sh.top-10)<0.6&&sh.h<=sh.vh-20+0.6&&(sh.maxScroll<=0||Math.abs(sh.h-(sh.vh-20))<0.6),
+      g.n+': TC-MN-003 the sheet starts at the overlay\'s 10px padding and is capped at the padded viewport ('+sh.h+' <= '+(sh.vh-20)+'), reaching it whenever it overflows (maxScroll '+sh.maxScroll+'). This is #373 (audit A-16): it was 5vh + 88vh + 12px, which left 36px of dead backdrop under a sheet whose content still scrolled',sh);
     L.say(Math.abs(sh.w-Math.min(sh.vw-24,380))<0.6,
       g.n+': TC-MN-004 the sheet is min(viewport - 24, 380) wide = '+Math.min(sh.vw-24,380)+' - the overlay\'s 12px side padding, capped at maxWidth 380 so it does not sprawl on the wide phone',sh);
-    L.say(sh.overflowY==='auto'&&sh.maxScroll>0&&sh.ovMaxScroll===0,
-      g.n+': TC-MN-005 the SHEET is the scroller ('+sh.maxScroll+'px of travel) and the fixed overlay around it is not (0). Recorded because the document is not the scroller either: docScrollY '+sh.docScrollY+', document maxScroll '+sh.docScroll+' - #root carries overflow-y:auto by design, and a check that read those numbers would call this whole sheet unreachable',sh);
+    L.say(sh.overflowY==='auto'&&sh.ovMaxScroll===0,   // #550: maxScroll>0 dropped - the sheet fits one screen now (TC-MN-054); it stays the scroller for an opened fold
+      g.n+': TC-MN-005 the SHEET is the scroller ('+sh.maxScroll+'px of travel at rest) and the fixed overlay around it is not (0). Recorded because the document is not the scroller either: docScrollY '+sh.docScrollY+', document maxScroll '+sh.docScroll+' - #root carries overflow-y:auto by design, and a check that read those numbers would call this whole sheet unreachable',sh);
   }
   const sp=await HSPILL(b);
   L.say(!!sp&&sp.bad.length===0&&sp.docScrollW===sp.vw,
     g.n+': TC-MN-006 nothing in the sheet escapes the viewport sideways and the document gains no horizontal scroll - measured over every painted element in it, with no scroller exemption because nothing here scrolls sideways on purpose',sp);
   L.say(b.errs.length===0,g.n+': zero app errors opening the menu',b.errs.slice(0,3));
+  await b.close();
+}
+
+// =========================================================================================================
+// MN-N  THE MENU FITS ONE SCREEN.  TC-MN-054 [#550; jobs/build-menu-one-screen, Kunal's B9C-MENU-ONE-SCREEN 'mockup' (artifact
+// CeQZjDt9dqSsMCT9FRCAsT): "Move the rows as the mockup shows"]. Opened from Home, the menu sheet needs NO scroll: its
+// scrollHeight <= clientHeight, at his phone (375x761), at 320x568 and at 375x568 (the wide-and-short corner), for a developer (the
+// gates' default) and for a player (dev:false). 054b: it fits by MOVING rows, not by losing them - the rows a player sets are on the
+// sheet, on screen at rest and hit-testable. 054c: the four the mockup moves to Look and feel (board colours, skin cards, cell depth,
+// piece style) are not on the sheet. Measured on the branch tip 48e5e12 (trial bundle 632940b1da50): scrollHeight 1971 against
+// clientHeight 739 at 375x761 for a developer (2.7 screens) and 1301 for a player; 2133 and 1375 against 546 at 320x568.
+// =========================================================================================================
+if(blk('N'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568'],['short375','375x568']])for(const dev of [true,false]){
+  const tag=gn+(dev?'':' player');
+  const b=await L.launch({geo:gk,name:'mn-n-'+gn+(dev?'':'-player'),dev});await b.open();
+  await b.tapCt('home-menu',700);
+  const f=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;
+    return {sh:s.scrollHeight,ch:s.clientHeight,h:Math.round(s.getBoundingClientRect().height),vh:innerHeight};});
+  L.say(!!f,tag+': TC-MN-054 PRECONDITION ☰ opened the menu sheet',f);
+  if(f)L.say(f.sh<=f.ch,tag+': TC-MN-054 the menu sheet needs NO scroll - scrollHeight '+f.sh+' <= clientHeight '+f.ch+' (sheet '+f.h+' in a '+f.vh+'-tall viewport)',f);
+  const want=['Sign in with Google|Sign-in unavailable here','Look and feel','Coach look','Evaluation bar|Eval bar','Sound','📣 Share','Privacy','Delete account','More settings'];
+  const miss=[],off=[];
+  for(const w of want){const r=await b.page.evaluate((src)=>{const sh=document.querySelector('[data-ct="menu-sheet"]');if(!sh)return null;const re=new RegExp('^('+src+')');
+      const el=[...sh.querySelectorAll('button,a,div,span')].filter(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;}).find(x=>re.test(((x.innerText||'').trim().split('\n')[0]))||(x.tagName==='BUTTON'&&re.test((x.innerText||'').replace(/^\s*G\s*/,'').trim())));   // the sign-in button's first line is its G mark
+      if(!el)return {found:false};const q=el.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+      return {found:true,on:q.top>=-0.5&&q.bottom<=innerHeight+0.5,hit:!!h&&(h===el||el.contains(h)||h.contains(el))};},w);
+    if(!r||!r.found)miss.push(w);else if(!r.on||!r.hit)off.push(w);}
+  L.say(miss.length===0&&off.length===0,tag+': TC-MN-054b it fits by MOVING rows, not by losing them: sign-in, Look and feel, Coach look, Evaluation bar, Sound, Share, the legal links and the More settings foot are all on the sheet, on screen at rest and hit-testable',{miss,off});
+  const gone=await b.page.evaluate(()=>{const t=(document.querySelector('[data-ct="menu-sheet"]')||{}).innerText||'';return ['Board colors','SKIN','Cell depth','Piece style'].filter(w=>t.indexOf(w)>=0);});
+  L.say(gone.length===0,tag+': TC-MN-054c the four rows the mockup moves to Look and feel - board colours, the skin cards, cell depth and piece style - are not on the menu sheet (one home for each)',{gone});
+  L.say(b.errs.length===0,tag+': TC-MN-054 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
 
@@ -262,8 +303,11 @@ if(blk('B'))for(const g of geos){
   const b=await L.launch({geo:g.k,name:'mn-b-'+g.n});await b.open();
   await b.tapCt('home-menu',700);
   const stamp=await REACH(b,'Build ');
-  L.say(stamp.found&&!stamp.restOn&&stamp.onScreen&&stamp.hit,
-    g.n+': TC-MN-007 the build stamp at the very foot of the sheet can be brought on screen by a finger and is then HIT-TESTABLE - at rest it is at '+stamp.restTop+' in a '+stamp.vh+'-tall viewport, so the claim is not vacuous at any of the three geometries; after scrolling the one user-scrollable ancestor it sits at '+stamp.top+' and document.elementFromPoint at the centre of its visible area returns the element itself',stamp);
+  // #550 jobs/build-menu-one-screen RE-PIN of TC-MN-007/008/009: the menu fits one screen, so the foot is ON SCREEN AT REST at all
+  // three geometries and these are presence-and-hit assertions now (restOn, where they were !restOn). The reachability case moved to
+  // TC-MN-055 below: the rows behind the foot line, once opened, are brought on screen by a finger.
+  L.say(stamp.found&&stamp.restOn&&stamp.hit,
+    g.n+': TC-MN-007 the build stamp at the very foot of the sheet is ON SCREEN AT REST (top '+stamp.restTop+' of '+stamp.vh+') and HIT-TESTABLE where it sits - no scroll is needed to reach the foot of the menu',stamp);
   // #399: !restOn ADDED TO 008 AND 009. TC-MN-007 already had it and 008/009 did not, which is a difference with
   // no reason behind it - and the antagonist pass showed what it costs: without it, a bundle whose sheet gets
   // SHORTER brings these rows on screen at rest, the assertion degrades silently into a presence check, and its
@@ -272,11 +316,11 @@ if(blk('B'))for(const g of geos){
   // 1418/1373/1322), with exactly one finger-scrollable ancestor. The guard pins the precondition the sentence
   // already asserts.
   const snd=await REACH(b,'Sound');
-  L.say(snd.found&&!snd.restOn&&snd.onScreen&&snd.hit,
-    g.n+': TC-MN-008 the Sound row - the last toggle before the piece and coach pickers - is genuinely off screen at rest ('+snd.restTop+' in a '+snd.vh+'-tall viewport) and a finger brings it to '+snd.top+', where it is hit-testable',snd);
+  L.say(snd.found&&snd.restOn&&snd.hit,
+    g.n+': TC-MN-008 the Sound row is on screen at rest ('+snd.restTop+' of '+snd.vh+') and hit-testable',snd);
   const del=await REACH(b,'Delete account');
-  L.say(del.found&&!del.restOn&&del.onScreen&&del.hit&&del.h>=40,
-    g.n+': TC-MN-009 the "Delete account" link is genuinely off screen at rest ('+del.restTop+'), reachable, hit-testable, and still carries the 40px tap box #373 (audit A-11) gave it - it was a bare 16px line box',del);
+  L.say(del.found&&del.restOn&&del.hit&&del.h>=40,
+    g.n+': TC-MN-009 the "Delete account" link is on screen at rest ('+del.restTop+'), hit-testable, and still carries the 40px tap box #373 (audit A-11) gave it - it was a bare 16px line box',del);
   // #399: TC-MN-010 WAS A VACUOUS REACHABILITY ASSERTION AND IS NOW AN HONEST PRESENCE ONE.
   // Its text said "is reachable and hit-testable"; its predicate was found && onScreen && hit, with no !restOn.
   // On the shipped bundle "Look and feel" sits at restTop 203 with restOn TRUE at 320x568, 375x730 AND 430x932 -
@@ -293,6 +337,14 @@ if(blk('B'))for(const g of geos){
   const look=await REACH(b,'Look and feel');
   L.say(look.found&&look.restOn&&look.hit,
     g.n+': TC-MN-010 [data-ct="menu-look"], the row that opens the Look screen, is ABOVE THE FOLD at rest (top '+look.restTop+' of '+look.vh+') and hit-testable where it sits - a PRESENCE assertion, deliberately not a reachability one, because from Home this row needs no scroll at any geometry',look);
+  // TC-MN-055 [#550 jobs/build-menu-one-screen]: THE FOLD BEHIND THE FOOT LINE. One tap on [data-ct="menu-foot"] opens the rows the
+  // mockup moved behind it, and the last of them (Layout overlay, a developer row; gates run as a developer) can be brought on screen
+  // by a finger and hit-tested. It is the reachability case TC-MN-007/008 used to be. It must be absent before the tap.
+  const lo0=await REACH(b,'Layout overlay');
+  L.say(!lo0.found,g.n+': TC-MN-055 PRECONDITION the Layout overlay row is NOT on the sheet until the foot line is tapped',{found:lo0.found});
+  await MORE(b);
+  const lo=await REACH(b,'Layout overlay');
+  L.say(lo.found&&lo.onScreen&&lo.hit,g.n+': TC-MN-055 after one tap on the foot line the Layout overlay row is on the sheet, a finger brings it on screen (rest '+lo.restTop+' -> '+lo.top+') and it is hit-testable',lo);
   await b.close();
 }
 
@@ -303,14 +355,15 @@ if(blk('B'))for(const g of geos){
 if(blk('C')){
   const TOGGLES=[
     ['Sound',                        'ct_sound',     'ON','OFF',                       '1','0',  'TC-MN-011'],
-    ['Evaluation bar',               'ct_hideEval',  'ON','OFF',                       '0','1',  'TC-MN-012'],
-    ['Cell depth & texture',         'ct_depth',     'OFF','ON',                       '0','1',  'TC-MN-013'],
-    ['Eval bar sits',                'ct_evalunder', 'above the board','left of the board','1','0','TC-MN-014'],   // #550 item (64) move 1: ABOVE by default now (ct_evalmig550), so its first tap puts it beside
+    // #550 jobs/build-menu-one-screen: 'Evaluation bar' and 'Eval bar sits' are ONE row now (TC-MN-012/014 below, by segment), and
+    // 'Cell depth & texture' lives on the Look screen only (TC-MN-013 below). The Evaluation graph and Layout overlay rows sit behind
+    // the foot line, which MORE() opens before the sweep.
     ['Evaluation graph',             'ct_evalgraph', 'ON','OFF',                       '1','0',  'TC-MN-015'],   // #547 item (56): ON by default now, so its first tap turns it OFF. #550 wording check TXT-08: renamed from 'Eval graph in the player bars' ('ON · try it in Review' / 'OFF · option C')
     ['Layout overlay',               'ct_layoutgrid','OFF','drawn on screen',          '0','1',  'TC-MN-016'],
   ];
   const b=await L.launch({geo:'kunal730',name:'mn-c'});await b.open();
   await b.tapCt('home-menu',700);
+  await MORE(b);
   for(const [label,key,offTxt,onTxt,offLS,onLS,tc] of TOGGLES){
     const r0=await ROW(b,label),ls0=await LS(b,key);
     await TAP(b,label,300);
@@ -344,7 +397,29 @@ if(blk('C')){
   L.say(!!readout&&/screen 375x730/.test(readout)&&/build #/i.test(readout),
     '375x730: TC-MN-018 turning the readout on paints the live layout block, and it names the viewport it is actually running in and the bundle it was built from',readout&&readout.slice(0,240));
   await TAP(b,'Layout readout',250);
+  // TC-MN-012 / TC-MN-014 [#550 re-pin]: THE EVALUATION BAR'S ONE ROW, Above / Beside / Off. Default is Above (#550 item (64)).
+  const SEG=async(k)=>{const ok=await b.page.evaluate((c)=>{const e=document.querySelector('[data-ct="menu-evalbar-'+c+'"]');if(!e)return false;e.click();return true;},k);await b.settle(300);return ok;};
+  const e0=await EVSEG(b),h0=await LS(b,'ct_hideEval');
+  await SEG('off');const e1=await EVSEG(b),h1=await LS(b,'ct_hideEval');
+  await SEG('beside');const e2=await EVSEG(b),h2=await LS(b,'ct_hideEval'),u2=await LS(b,'ct_evalunder');
+  await SEG('above');const e3=await EVSEG(b),h3=await LS(b,'ct_hideEval'),u3=await LS(b,'ct_evalunder');
+  L.say(e0==='above'&&e1==='off'&&h1==='1'&&e3==='above'&&h3==='0',
+    '375x730: TC-MN-012 the Evaluation bar row reads Above at its default, "Off" writes ct_hideEval=1 and is the one pressed segment, and Above puts ct_hideEval back to 0',{seg:[e0,e1,e3],ls:[h0,h1,h3]});
+  L.say(e2==='beside'&&h2==='0'&&u2==='0'&&u3==='1',
+    '375x730: TC-MN-014 "Beside" (Left on a phone) writes ct_evalunder=0 with the bar on (ct_hideEval 0), and Above writes ct_evalunder=1 - the two settings the old two rows held, in one row',{seg:[e2,e3],ls:{h2,u2,u3}});
   L.say(b.errs.length===0,'375x730: zero app errors across the toggle sweep',b.errs.slice(0,3));
+  await b.close();
+}
+
+// TC-MN-013 [#550 re-pin, jobs/build-menu-one-screen]: CELL DEPTH & TEXTURE, NOW SET ON THE LOOK SCREEN ONLY. The menu no longer
+// carries the row (TC-MN-054c), so the toggle and its key are asserted where it lives.
+if(blk('C')){
+  const b=await L.launch({geo:'kunal730',name:'mn-c-depth'});await b.open();
+  await b.tapCt('home-menu',700);await CTTAP(b,'menu-look',700);
+  const row=()=>b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');const x=r&&[...r.querySelectorAll('button')].find(e=>/^Cell depth/.test((e.innerText||'').trim()));if(!x)return null;const l=(x.innerText||'').trim().split('\n').map(y=>y.trim()).filter(Boolean);return l[l.length-1];});
+  const tapD=()=>b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');const x=r&&[...r.querySelectorAll('button')].find(e=>/^Cell depth/.test((e.innerText||'').trim()));if(x)x.click();return !!x;});
+  const r0=await row();await tapD();await b.settle(300);const r1=await row(),l1=await LS(b,'ct_depth');await tapD();await b.settle(300);const r2=await row(),l2=await LS(b,'ct_depth');
+  L.say(r0==='OFF'&&r1==='ON'&&l1==='1'&&r2==='OFF'&&l2==='0','375x730: TC-MN-013 "Cell depth & texture" on the Look screen reads OFF at its default, one tap makes it ON and writes ct_depth=1, a second tap puts both back',{row:[r0,r1,r2],ls:[l1,l2]});
   await b.close();
 }
 
@@ -356,16 +431,16 @@ if(blk('D'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
   const b=await L.launch({geo:g.k,name:'mn-d-'+g.n});await b.open();
   await b.tapCt('home-menu',700);
   await TAP(b,'Sound',300);
-  await TAP(b,'Cell depth & texture',300);
-  const wrote=await b.page.evaluate(()=>({s:localStorage.getItem('ct_sound'),d:localStorage.getItem('ct_depth')}));
-  L.say(wrote.s==='0'&&wrote.d==='1',g.n+': TC-MN-019 the two taps wrote ct_sound=0 and ct_depth=1 before the reload',wrote);
+  await CTTAP(b,'menu-evalbar-off',300);   // #550: was 'Cell depth & texture', which moved to the Look screen
+  const wrote=await b.page.evaluate(()=>({s:localStorage.getItem('ct_sound'),d:localStorage.getItem('ct_hideEval')}));
+  L.say(wrote.s==='0'&&wrote.d==='1',g.n+': TC-MN-019 the two taps wrote ct_sound=0 and ct_hideEval=1 before the reload',wrote);
   await b.open();                                        // a real page load, same origin, same localStorage
   await b.tapCt('home-menu',700);
-  const back=await b.page.evaluate(()=>({s:localStorage.getItem('ct_sound'),d:localStorage.getItem('ct_depth')}));
-  const rs=await ROW(b,'Sound'),rd=await ROW(b,'Cell depth & texture');
+  const back=await b.page.evaluate(()=>({s:localStorage.getItem('ct_sound'),d:localStorage.getItem('ct_hideEval')}));
+  const rs=await ROW(b,'Sound'),rd=await EVSEG(b);
   L.say(back.s==='0'&&back.d==='1',g.n+': TC-MN-020 the keys survive a full reload',back);
-  L.say(!!rs&&rs.value==='OFF'&&!!rd&&rd.value==='ON',
-    g.n+': TC-MN-021 and the SHEET READS THEM BACK - the rows come up "Sound OFF" and "Cell depth & texture ON" on the fresh load rather than at their defaults, which is the half a storage-only assertion would miss',{sound:rs&&rs.value,depth:rd&&rd.value});
+  L.say(!!rs&&rs.value==='OFF'&&rd==='off',
+    g.n+': TC-MN-021 and the SHEET READS THEM BACK - the rows come up "Sound OFF" and the Evaluation bar on "Off" on the fresh load rather than at their defaults, which is the half a storage-only assertion would miss',{sound:rs&&rs.value,evalbar:rd});
   await b.close();
 }
 
@@ -408,9 +483,11 @@ if(blk('E'))for(const [val,want] of [['0',true],['1',false]]){
 if(blk('E')){
   const b=await L.launch({geo:'kunal730',name:'mn-e-theme',store:{ct_theme:'5'},fresh:true});await b.open();
   await b.tapCt('home-menu',700);
-  const nm=await SWATCH_NAME(b,'[data-ct="menu-sheet"]');
-  L.say(!!nm&&/· Graphite$/.test(nm),
-    '375x730: TC-MN-024 a stored ct_theme=5 is named in the menu\'s own heading - "'+nm+'" - so the sheet states the setting it is holding rather than only the default. Matched case-insensitively on the word colour/color on purpose: this heading and the Look screen\'s spell it differently (NEEDS-KUNAL, MENU-LANE Q3)',nm);
+  // #550 jobs/build-menu-one-screen RE-PIN: the menu's 'Board colors · <name>' heading left with its chips; the Look and feel row now
+  // names what is set ([data-ct="menu-look-now"]: colours · pieces · style), which is where the sheet states the setting it holds.
+  const nm=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-look-now"]');return e?e.innerText.trim():null;});
+  L.say(!!nm&&/^Graphite · /.test(nm),
+    '375x730: TC-MN-024 a stored ct_theme=5 is named on the menu\'s Look and feel row - "'+nm+'" - so the sheet states the setting it is holding rather than only the default',nm);
   await b.close();
 }
 
@@ -540,9 +617,17 @@ if(blk('H'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
       signedIn:!!s.querySelector('img[referrerpolicy="no-referrer"]')};});
   L.say(!!acct&&!acct.signedIn&&acct.h>=40,
     g.n+': TC-MN-036 signed out, the ACCOUNT block is a single 40px-or-taller sign-in row and no profile card - "'+(acct&&acct.t)+'"',acct);
-  const skins=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');
-    const hdr=[...s.querySelectorAll('div')].find(x=>(x.innerText||'').trim()==='SKIN');
-    const row=hdr?hdr.parentElement:null;if(!row)return null;
+  // #550 jobs/build-menu-one-screen RE-PIN: the sheet's own SKIN cards are gone; the skins are chosen on the Style screen the Look
+  // screen opens ('Style · fonts, icons, finish'), so TC-MN-037/038 read them there. The legal links (039/040) are read on the menu
+  // FIRST, before it closes.
+  const legal=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');
+    return [...s.querySelectorAll('a')].map(a=>({t:a.innerText.trim(),href:(a.getAttribute('href')||''),
+      tgt:a.getAttribute('target'),rel:a.getAttribute('rel'),h:Math.round(a.getBoundingClientRect().height)}));});
+  await CTTAP(b,'menu-look',700);
+  await b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');const x=r&&[...r.querySelectorAll('button')].find(e=>/^Style/.test((e.innerText||'').trim()));if(x)x.click();});await b.settle(500);
+  const skins=await b.page.evaluate(()=>{const hdr=[...document.querySelectorAll('span')].find(x=>(x.innerText||'').trim()==='🎭 Style');
+    let box=hdr;while(box&&box.parentElement&&!(box.parentElement.getAttribute&&box.parentElement.getAttribute('style')||'').includes('position: fixed'))box=box.parentElement;
+    const row=box?[...box.querySelectorAll('div')].find(d=>[...d.children].filter(c=>c.tagName==='BUTTON').length>=3):null;if(!row)return null;
     // DIRECT children only, and only the three-or-more-span cards. The SKIN label shares its flex container
     // with every toggle row, the piece-style chips and the coach pickers, so `row.querySelectorAll('button')`
     // returns nineteen buttons - which is how the first run of this gate reported "three skins" as red on a
@@ -550,14 +635,11 @@ if(blk('H'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
     // a tick; a toggle row is exactly two spans and a coach or piece chip fewer.
     return [...row.children].filter(x=>x.tagName==='BUTTON'&&x.children.length>=3)
       .map(x=>{const l=(x.innerText||'').trim().split('\n').map(y=>y.trim()).filter(Boolean);
-      return {name:l[1]||l[0],pro:l.indexOf('PRO')>=0,on:l.indexOf('✓')>=0};});});
+      const nmEl=x.children[1]&&x.children[1].children[0];return {name:nmEl?nmEl.innerText.trim():(l[1]||l[0]),pro:l.indexOf('PRO')>=0,on:l.indexOf('✓')>=0};});});   // #550: the name is the card's second child's first line (the Style card's icons are two lines)
   L.say(Array.isArray(skins)&&skins.length===3&&skins.filter(x=>x.on).length===1&&skins.find(x=>x.on).name==='Classic',
     g.n+': TC-MN-037 three skins, exactly one selected, and with nothing stored the selected one is Classic',skins);
   L.say(Array.isArray(skins)&&skins.filter(x=>x.pro).length===2,
     g.n+': TC-MN-038 the other two are marked PRO for a free account - the badge is the only thing telling a user why a tap will not select them',skins);
-  const legal=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');
-    return [...s.querySelectorAll('a')].map(a=>({t:a.innerText.trim(),href:(a.getAttribute('href')||''),
-      tgt:a.getAttribute('target'),rel:a.getAttribute('rel'),h:Math.round(a.getBoundingClientRect().height)}));});
   L.say(legal.length===4&&legal.map(x=>x.t).join('|')==='Privacy|Terms|Refunds|Delete account',
     g.n+': TC-MN-039 all four legal links are present in order',legal.map(x=>x.t));
   L.say(legal.every(x=>x.h>=40&&x.tgt==='_blank'&&/noopener/.test(x.rel||'')&&/^\.\//.test(x.href)),

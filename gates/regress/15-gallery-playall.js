@@ -837,6 +837,7 @@ L.run(async()=>{
     await (await b.galleryClose()).click().catch(()=>{});
     await b.settle(300);await b.home();
     await b.page.locator('button[data-ct="home-menu"]').click();await b.settle(500);
+    await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);   // #550 jobs/build-menu-one-screen: the Layout readout row sits behind the menu's foot line
     const tog=b.page.locator('button',{hasText:/^Layout readout/}).first();
     const togSeen=await tog.count();
     L.say(togSeen>0,'F2 '+glab+': the menu offers the Layout readout toggle card 1 drives');
