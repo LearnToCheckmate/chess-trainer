@@ -26,7 +26,7 @@
 //   menu-colour-forest   the Forest colour chip tapped in the sheet ('Board colors · Forest')
 //   menu-skin-pro        the Playful (PRO) skin row tapped: the account/upgrade sheet opens on top
 //   menu-celldepth-on    'Cell depth & texture' toggled ON
-//   menu-evalgraph-on    'Eval graph in the player bars' (menu-evalgraph) toggled ON ('ON · try it in Review')
+//   menu-evalgraph-on    'Evaluation graph' (menu-evalgraph; was 'Eval graph in the player bars') toggled ON ('ON · try it in Review')
 //   menu-readout         'Layout readout' toggled: the monospace box (screen / safe / board / mode / eval / tile ink)
 //   menu-overlay-on      'Layout overlay' toggled ON ('drawn on screen') - the overlay strip (data-ct layout-grid)
 //   overlay-play-live    ... then ✕ and a Pass & Play game: the overlay strip over the live board (board/sq/gap numbers)
@@ -91,7 +91,7 @@ S['menu-look']=async(b)=>{await S['menu-discover'](b);await b.tapCt('menu-look',
 S['menu-colour-forest']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Forest$/,400);};
 S['menu-skin-pro']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^🔭♟️ Playful/,600);};
 S['menu-celldepth-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Cell depth & texture/,/ON$/);};
-S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Eval graph in the player bars/,/ON ·/);};
+S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^(Evaluation graph|Eval graph in the player bars)/,/ON ·/);};
 S['menu-readout']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout readout/,/shown$/);await b.page.evaluate((F)=>{const o=eval(F);const cands=[...o.s.querySelectorAll('div')].filter(d=>/what THIS device computes/.test(d.innerText||'')&&d.children.length>3);cands.sort((a,c)=>a.getBoundingClientRect().height-c.getBoundingClientRect().height);if(cands[0])cands[0].scrollIntoView({block:'center'});},FIND);await b.settle(200);};
 S['menu-overlay-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout overlay/,/drawn on screen$/);};
 S['overlay-play-live']=async(b)=>{await S['menu-overlay-on'](b);await tapRow(b,/^✕$/,400);const P=require('./play');await P.states['pp-m0'](b);await b.settle(400);};
