@@ -234,3 +234,6 @@ L.run(async()=>{
     await b.close();
   }
 },'COACH-BUBBLE-REMOVED');
+// SELECTOR-OPENED: coach-bubble control=6fef595 round 2: the analysis-mode line got the nine-point square hit test; c1 painted an overlay only in analysis mode, red; the name lines are labelled tripwires
+// SELECTOR-OPENED: coach-say reading=tripwire round 4: a labelled NAME TRIPWIRE; the coverage is the nine-point square hit test beside it
+// SELECTOR-OPENED: coach-eval reading=tripwire round 4: a labelled NAME TRIPWIRE; the coverage is the nine-point square hit test beside it

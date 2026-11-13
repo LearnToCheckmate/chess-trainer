@@ -100,3 +100,6 @@ L.run(async()=>{
     await b.close();
   }
 },'96-video-call-timeout-and-optout');
+// SELECTOR-OPENED: online-talk-open reading=nav round 4: waited for and tapped before the presence lines
+// SELECTOR-OPENED: vc-err reading=presence round 4: TC-PL-068a reads its words
+// SELECTOR-OPENED: vc-noring reading=presence round 4: TC-PL-068b needs the switch

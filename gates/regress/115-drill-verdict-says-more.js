@@ -33,3 +33,5 @@ L.run(async()=>{
     await b.close();
   }
 },'115-drill-verdict-says-more');
+// SELECTOR-OPENED: pz-msg-more reading=presence round 2: the chip must be there and say more; a missing hook is red
+// SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself

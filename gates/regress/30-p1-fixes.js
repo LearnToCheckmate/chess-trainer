@@ -103,3 +103,8 @@ L.run(async()=>{
    L.say(!!sbl&&sbl.h<=sbl.lh&&sbl.sw<=sbl.cw,'375x640: TC-PL-044 the build line is ONE line and nothing of it is cut (height '+(sbl&&sbl.h)+' within one line of '+(sbl&&Math.round(sbl.lh*10)/10)+', scrollWidth '+(sbl&&sbl.sw)+' <= '+(sbl&&sbl.cw)+')',sbl);
    await b.close();}
 },'P1-FIXES');
+// SELECTOR-OPENED: home-menu reading=presence round 4: A-04 needs the button at least 40px
+// SELECTOR-OPENED: moves-analyze reading=presence round 4: A-11 needs both rows at least 40 tall
+// SELECTOR-OPENED: moves-copy reading=presence round 4: A-11 needs both rows at least 40 tall
+// SELECTOR-OPENED: moves-panel reading=presence round 4: A-12 needs one of two visibilities to be hidden; null against null is red
+// SELECTOR-OPENED: setup-sheet reading=presence round 4: A-13 requires an overflow reading, which needs the sheet

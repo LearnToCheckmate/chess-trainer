@@ -51,3 +51,4 @@ L.run(async()=>{
     await b.close();
   }
 },'112-review-streamlined');
+// SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R192c needs its four buttons in order

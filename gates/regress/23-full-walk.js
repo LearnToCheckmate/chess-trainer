@@ -97,3 +97,4 @@ L.run(async()=>{
     await b.close();
   }
 },'FULL-WALK');
+// SELECTOR-OPENED: preview-walk reading=presence round 4: the walk button must exist and state its count

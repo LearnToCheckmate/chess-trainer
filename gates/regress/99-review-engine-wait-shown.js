@@ -44,3 +44,4 @@ L.run(async()=>{
   L.say(b.errs.length===0,'TC-R184 zero app errors',b.errs.slice(0,3));
   await b.close();
 },'99-review-engine-wait-shown');
+// SELECTOR-OPENED: ana-progress control=aaec56b round 2: the loading line found by its words; c1 renamed the hook and painted it on the summary, TC-R184b red

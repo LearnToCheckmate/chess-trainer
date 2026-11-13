@@ -178,3 +178,5 @@ L.run(async()=>{
    L.say(mo&&mc.length>=1&&mc.every(x=>x.name==='Close'&&x.h.w>=44&&x.h.h>=44),'TC-R220f '+geo+' the menu sheet\'s close button is named and has a 44px tap area: '+mc.map(x=>'"'+x.name+'" '+x.h.w+'x'+x.h.h+' (drawn '+x.h.drawn.join('x')+')').join(', '));
    L.say(b.errs.length===0,'TC-R220g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'144-readable-everywhere');
+// SELECTOR-OPENED: eval-graph-dot reading=precondition round 2: PRECONDITION dots at least 3
+// SELECTOR-OPENED: eval-graph-hit reading=precondition round 2: read inside the dots the precondition requires

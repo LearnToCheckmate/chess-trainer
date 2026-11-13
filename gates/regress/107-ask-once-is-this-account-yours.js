@@ -78,3 +78,6 @@ L.run(async()=>{
    await b.close();}
 },'107-ask-once-is-this-account-yours');
 // CONTROL-RECORD: 4a79a54 2026-11-13 total=15 red=3 scope=trial:0100b5a554d7 how=#550 #432 sweep (acct-ask re-keyed by its words): c1, acct-ask/-yes/-no renamed AND the question asked on every fetch (the ct_acctasked and already-listed checks removed) - TC-R188b/c 'a second Fetch does not ask again' x2 and TC-R188c 'already on the list is not asked' red; the hook-keyed version (55ca2c7) on the same bundle is 7/4 with those three GREEN; on t0 6c4245e05ecc 15/0
+// SELECTOR-OPENED: acct-ask control=4a79a54 round 1: the question found by its words, the hook a fallback; c1 renamed the hooks and asked on every fetch, the hook-keyed lines passed and the re-keyed ones went red
+// SELECTOR-OPENED: acct-ask-yes control=4a79a54 round 1: the answers tapped by their words, the hook a fallback; same c1 control
+// SELECTOR-OPENED: acct-ask-no control=4a79a54 round 1: the answers tapped by their words, the hook a fallback; same c1 control

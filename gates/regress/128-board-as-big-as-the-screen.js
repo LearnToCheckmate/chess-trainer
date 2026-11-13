@@ -59,3 +59,5 @@ L.run(async()=>{
    L.say(!!q&&q.every(x=>x.w>=43.5&&x.h>=43.5&&x.sp<=0),'TC-R204d online game '+geo+': each action is 44pt or more and its label fits inside it ('+(q&&q.map(x=>x.n+' '+x.w+'x'+x.h+(x.sp>0?' spills '+x.sp:'')).join(', '))+')',q);
    await b.close();}
 },'128-board-as-big-as-the-screen');
+// SELECTOR-OPENED: online-actions reading=fallback round 2: the row is also found by its Resign button and four buttons
+// SELECTOR-OPENED: online-talk-open reading=presence round 2: the talk button must be at least 43.5 tall; missing is red

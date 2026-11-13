@@ -1217,3 +1217,6 @@ L.run(async()=>{
     await b.close();}
   await blockHM();
 },'GALLERY-PLAYALL');
+// SELECTOR-OPENED: gallery-blurb-more reading=presence round 4: TC-GL-007 needs the fold reachable
+// SELECTOR-OPENED: rec-cap-back reading=presence round 4: M11 needs the 44px control
+// SELECTOR-OPENED: state-card reading=precondition round 4: Q needs four state cards

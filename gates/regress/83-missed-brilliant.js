@@ -164,3 +164,6 @@ L.run(async()=>{
      await b.close();}}
 },'83-missed-brilliant');
 // CONTROL-RECORD: 509485f 2026-11-13 total=53 red=2 scope=trial:7ce8591c2f6c how=#550 #432 sweep (chip, ring and strip mark found by label, shape and '(!!)'): c3, the three missbril hooks renamed AND ct_missed_bril '0' ignored - TC-R137 W9 (switch off, nothing marked) and the W13 precondition red; the hook-keyed version (55ca2c7) is 36/17 with W9 GREEN; on t0 6c4245e05ecc 53/0
+// SELECTOR-OPENED: rev-missbril control=509485f round 1: the chip found by its accessible name; c3 renamed the three hooks and ignored the switch, W9 red
+// SELECTOR-OPENED: eval-graph-missbril control=509485f round 1: the ring found as the graph's hollow cyan circle; same c3 control
+// SELECTOR-OPENED: strip-missbril control=509485f round 1: the strip mark found by its painted (!!); same c3 control

@@ -1377,3 +1377,4 @@ L.run(async()=>{
   if(want('KF'))await blockKF();
   if(want('L'))await blockL();
 },'65-promotion-after-gameover');
+// SELECTOR-OPENED: land-result reading=fallback round 4: result-card first

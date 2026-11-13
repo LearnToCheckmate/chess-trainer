@@ -646,3 +646,5 @@ if(blk('K')){
   L.note('TC-PS-044: a WIN is not driven - no input in this suite makes the computer lose; the ladder line is symmetric (+50/-50), so only a loss is measured here');
 }
 },'PLAY-SETUP');
+// SELECTOR-OPENED: bot-row-more reading=conjoined round 4: the chip-goes line also needs the last bot in the row, which only the chip's taps achieve
+// SELECTOR-OPENED: pbar-top reading=presence round 4: the bar must name the bot

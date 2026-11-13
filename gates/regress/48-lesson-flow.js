@@ -1768,3 +1768,9 @@ L.run(async()=>{
    L.say(ok2&&!!g0&&+g0[1]===1&&+g0[2]===M2,'TC-LS-043 and a lesson that starts from a position counts from it too: King & Queen Mate reads 1 of '+M2+' at its first move',{note:(n0||'').slice(0,60),M2});
    await b2.close();}}
 },'LESSON-FLOW');
+// SELECTOR-OPENED: learn-practice-again reading=presence round 4: TC-LS-036 needs the row
+// SELECTOR-OPENED: lesson-hint-warn reading=presence round 4: TC-LS-037 reads its words
+// SELECTOR-OPENED: lesson-name reading=presence round 4: TC-LS-036 needs the opened lesson's name in it
+// SELECTOR-OPENED: lesson-next reading=presence round 4: TC-LS-036 reads its label and words
+// SELECTOR-OPENED: lesson-progress reading=fallback round 4: also found as the 4px strip by structure
+// SELECTOR-OPENED: rail-more reading=presence round 4: TC-R78 needs the chip on screen and hit-testing to itself

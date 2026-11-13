@@ -451,3 +451,5 @@ L.run(async()=>{
   L.say(acc.checked.length===4,'Z3 all four fixture runs completed and were asserted over (got '+acc.checked.length+')');
   L.done();
 });
+// SELECTOR-OPENED: eval-graph-dot control=aaec56b round 2: the marks read by accessible name and by ink; c1 renamed both hooks and kept a raw grade on a book ply, A7 red
+// SELECTOR-OPENED: eval-graph-hit control=aaec56b round 2: same c1 control as the dot

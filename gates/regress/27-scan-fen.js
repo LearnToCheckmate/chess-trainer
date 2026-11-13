@@ -286,3 +286,4 @@ L.run(async () => {
   L.note('network - the prompt has never been run against a photograph), that the callable protocol matches, and');
   L.note('that the secret is named GEMINI_API_KEY. Those need Kunal to deploy and to photograph a real board.');
 }, '27-scan-fen');
+// SELECTOR-OPENED: scan-row reading=presence round 2: a source-text presence check

@@ -144,3 +144,4 @@ L.run(async()=>{
   for(const [w,h] of [[761,375],[1440,780]])await playRail(w,h);
   await pzSide(761,375);
 },'143-no-movement');
+// SELECTOR-OPENED: rev-count reading=precondition round 4: the sideways PRECONDITION requires it

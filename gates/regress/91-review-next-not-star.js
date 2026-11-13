@@ -55,3 +55,4 @@ const R=require('../drive/review');
   }
   L.done('91-review-next-not-star');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('91-review-next-not-star');});
+// SELECTOR-OPENED: rev-toolbar reading=fallback round 4: the strip's buttons when the toolbar is not there

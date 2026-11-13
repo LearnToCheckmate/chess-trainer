@@ -769,3 +769,5 @@ L.run(async()=>{
       L.say(r.ok===r.n,'kunal761 medieval captured: TC-PL-049c and every captured black piece computes all three drop-shadows',r);
     await b.close();}}
 }, 'CPU-RESULT-LINE');
+// SELECTOR-OPENED: land-result reading=fallback round 4: one route among painted-text alternatives, and play-context beside it
+// SELECTOR-OPENED: rev-ended reading=precondition round 4: TC-PL-063's PRECONDITION needs the line

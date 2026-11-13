@@ -80,3 +80,7 @@ L.run(async()=>{
     }
   }
 },'93-lib-filter');
+// SELECTOR-OPENED: lib-filter reading=presence round 4: TC-S08a needs the box 44 tall
+// SELECTOR-OPENED: lib-filter-none reading=presence round 4: TC-S08b needs the no-match line
+// SELECTOR-OPENED: lib-group-n reading=presence round 4: TC-S08c compares its count
+// SELECTOR-OPENED: lib-sec-n reading=presence round 4: TC-S08c needs sections

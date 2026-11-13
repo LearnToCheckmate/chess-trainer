@@ -249,3 +249,4 @@ L.run(async()=>{
   await b2.close();
 },'TAKEBACK');
 // CONTROL-RECORD: 342b80e 2026-11-13 total=81 red=7 scope=trial:851ae98b9f35 how=#550 #432 sweep (More sheet found by structure and its Takeback row): c2, more-sheet renamed AND a takeback leaves the sheet up - 'the More sheet closes behind a takeback' red at all six runs, plus se's disabled-again line; the hook-keyed version (55ca2c7) is 80/1 with all six GREEN; on t0 6c4245e05ecc 81/0
+// SELECTOR-OPENED: more-sheet control=342b80e round 1: the sheet found as a fixed layer carrying the Takeback row; c2 renamed the hook and left the sheet up, the closes lines red

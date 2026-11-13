@@ -1740,3 +1740,8 @@ function mkTap(b,READ){
   }
   L.done('73-review-list-filter');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('73-review-list-filter');});
+// SELECTOR-OPENED: glist-count reading=fallback round 4: the N loaded wording beside the hook
+// SELECTOR-OPENED: glist-empty reading=fallback round 4: the empty sentence's words beside the hook
+// SELECTOR-OPENED: glist-ungraded reading=fallback round 4: the coverage line's words beside the hook
+// SELECTOR-OPENED: gf-toggle reading=nav round 4: openF returns false and the filter blocks read nothing
+// SELECTOR-OPENED: gstat-rev reading=presence round 4: E3b needs the reviewed badge

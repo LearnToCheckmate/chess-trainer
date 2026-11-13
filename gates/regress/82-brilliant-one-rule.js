@@ -223,3 +223,5 @@ L.run(async()=>{
    await b.close();}
 },'82-brilliant-one-rule');
 // CONTROL-RECORD: a564f4d 2026-11-13 total=91 red=6 scope=trial:e87644680e52 how=#550 #432 sweep (the Grading changed sheet found by its heading): c6, regrade-preview/-confirm/-later renamed AND the sheet opened even when no game needs regrading - TC-R130 H0 and H14 x2 ('opens NO sheet') red, E15-E17 red as a side effect of the always-open sheet; the hook-keyed version (55ca2c7) is 77/14 with H0 and H14 GREEN; on t0 6c4245e05ecc 91/0
+// SELECTOR-OPENED: regrade-preview control=a564f4d round 1: the sheet found under its Grading changed heading; c6 renamed the hooks and always opened the sheet, H0 and H14 red
+// SELECTOR-OPENED: regrade-confirm control=a564f4d round 1: Update and Not now tapped by their words; same c6 control

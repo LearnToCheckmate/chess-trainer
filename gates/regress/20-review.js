@@ -791,3 +791,6 @@ L.run(async()=>{
     }
     await b.close();}
 },'REVIEW');
+// SELECTOR-OPENED: pbar-top reading=presence round 4: the names and flags are read inside the bars and must be found
+// SELECTOR-OPENED: rev-summary-menu reading=presence round 4: the summary must carry its menu button, measured
+// SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R11 needs the toolbar and its four buttons in order

@@ -49,3 +49,4 @@ L.run(async()=>{
     }
   }
 },'113-landscape-play-option-a');
+// SELECTOR-OPENED: land-result reading=presence round 4: TC-PL-071b needs the card to read Checkmate and Black wins; the over-board check is by words

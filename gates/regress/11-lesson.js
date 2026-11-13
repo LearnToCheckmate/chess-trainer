@@ -668,3 +668,5 @@ L.run(async()=>{
     }
   }
 },'LESSON');
+// SELECTOR-OPENED: lesson-name reading=presence round 4: TC-R152a needs the line on screen naming the lesson
+// SELECTOR-OPENED: lesson-hint-words reading=fallback round 4: the hints-off line also reads the note's words for the hint, not only the hook
