@@ -22,7 +22,10 @@ L.run(async()=>{
   await state(b,'home',async()=>{});
   await state(b,'discover',async()=>{await b.tile('Discover');});
   await state(b,'puzzles-roadmap',async()=>{await b.home();await b.tile('Puzzles');});
-  await state(b,'puzzles-browse',async()=>{await b.tapText(/^Free play/);});
+  // #550 round 4: was b.tapText(/^Free play/), which matched nothing - the button reads '🧩 Free play' (the emoji leads its text) and
+  // it sits at the END of the roadmap, below the fold at kunal (pz-freeplay@4,1563 under a 623 tab bar). Now the driver's own
+  // route, drive/puzzles.js 'free-play': roadmap, then tapBtn(/^🧩 Free play/), which scrolls the button into view before tapping.
+  await state(b,'puzzles-browse',async()=>{await require('./drive/puzzles').states['free-play'](b);});
   await state(b,'review-list',async()=>{await b.home();await b.tile('Review');});
   await state(b,'play-setup',async()=>{await b.home();await b.tile('Play');});
   await state(b,'play-setup-passplay',async()=>{await b.tapText(/^Pass & Play$/);});
