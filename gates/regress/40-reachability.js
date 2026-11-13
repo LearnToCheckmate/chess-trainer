@@ -199,7 +199,7 @@ const spillPast=(boxes,vw)=>(boxes||[]).filter(k=>k.right>vw+0.5);
 // layout. A legitimate header restructure will redden the two lines that read them. When that happens, first check the
 // right-edge spill assertion beside each one: if it is green at the new depth, update this declaration in the same
 // commit and say why. Do not file it as an app defect.
-const HDR_DEPTH_KIND={browse:'deep',online:'flat'};
+const HDR_DEPTH_KIND={browse:'deep',online:'deep'};   // online re-keyed 'flat' -> 'deep' by formatting audit FMT-A-02 (Kunal's pick 12 Nov): the header's back and menu are the 44x44 corner buttons, the back drawn as an SVG chevron, so the row now has painted boxes below depth 1 (measured 5 painted, max depth 3, on trial 8034b0e23279)
 const hdrKind=(all)=>((all||[]).some(k=>k.depth>=2)?'deep':'flat');
 
 // THE CONTROL SET. No browser, no bundle: fabricated readings driven through the SAME function the live
@@ -355,10 +355,13 @@ L.run(async()=>{
       // RE-PINNED at #549 item (16) (amber flags/amber-549-pz-chip-tier-progress): the tier chip's TEXT changed from '🌱 Novice · ✓ 0'
       // (105@266) to '🌱 Novice 0/10' (102@269), so the space-between row moved the counter 148 -> 150. Measured on the trial bundle
       // f275508b8f5e at 375x730; the Roadmap button and both widths of the 320 fix are untouched, which is what Z-06 protects.
-      const want=[{w:119,x:4},{w:93,x:150},{w:102,x:269}];
+      // RE-KEYED by formatting audit FMT-A-02/A-06 (Kunal's pick 12 Nov): the row is the standard top row now - back 44@8 (was '‹ Roadmap'
+      // 119@4) and the menu 44@323 at its right end - so the counter and chip sit at 77 and 195. Their WIDTHS are unchanged (93, 102), which
+      // is what Z-06 protects: the 320 fix did not move or squeeze them. Measured on trial 8034b0e23279 at 375x730.
+      const want=[{w:44,x:8},{w:93,x:77},{w:102,x:195},{w:44,x:323}];
       const got=(row&&row.kids)||[];
       const same=got.length===want.length&&want.every((wv,i)=>Math.abs(got[i].w-wv.w)<1.5&&Math.abs(got[i].x-wv.x)<1.5);
-      L.say(same,'kunal730: the header is UNCHANGED at 375 by the 320 fix - Roadmap 119@4, counter 93@150, tier badge 102@269 (re-pinned at #549 for the new chip text). His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.',got);
+      L.say(same,'kunal730: the header is UNCHANGED at 375 by the 320 fix - back 44@8, counter 93@77, tier badge 102@195, menu 44@323 (re-pinned at #549 for the new chip text, and at #550 for the standard top row). His Z-06 condition was that fixing the small screen must not move the large one, so it is measured here rather than asserted in a commit message.',got);
     }
     // NOT asserted here, and said out loud so nobody reads its absence as coverage: at 375x730 a board-square box
     // inside the grid measures 49.69 wide ending at 376.39, 1.39px past the viewport, clipped by an ancestor at

@@ -30,7 +30,7 @@
 //   train-hint-show    … then 👁 Show (the header goes back to ‹ Roadmap, the 👁 line in the verdict box)
 //   train-next-before  the Next chevron BEFORE solving (A-10)
 //   train-prev         the Previous chevron from the tier's first puzzle
-//   train-back         ‹ Roadmap from the training puzzle
+//   train-back         back to the roadmap from the training puzzle (the corner button 'Back to Roadmap'; '‹ Roadmap' before #550 FMT-A-02)
 //   free-play          🧩 Free play — browse any puzzle (from the roadmap; header 'Free play · ✓ 0')
 //   free-play-next     … then the Next chevron (PZ[1], Black to move: the board flips)
 //   long-hint          PZ[95] (c0) with 💡 Hint: the 113-char curated hint in the header
@@ -89,7 +89,7 @@ S['train-hint']=async(b)=>{await S['train'](b);await tapBtn(b,/^💡 Hint$/,600)
 S['train-hint-show']=async(b)=>{await S['train-hint'](b);await tapBtn(b,/^👁 Show$/,600);};
 S['train-next-before']=async(b)=>{await S['train'](b);await tapAria(b,'Next puzzle',600);};
 S['train-prev']=async(b)=>{await S['train'](b);await tapAria(b,'Previous puzzle',600);};
-S['train-back']=async(b)=>{await S['train'](b);await tapBtn(b,/^‹ Roadmap$/,600);await scrollTo(b,'top');};
+S['train-back']=async(b)=>{await S['train'](b);await tapAria(b,'Back to Roadmap',600).catch(()=>tapBtn(b,/^‹ Roadmap$/,600));await scrollTo(b,'top');};   // #550 FMT-A-02: the back is the 44x44 corner button, its words in its accessible name (the old '‹ Roadmap' text kept as the fallback for an older bundle)
 S['free-play']=async(b)=>{await S['roadmap'](b);await tapBtn(b,/^🧩 Free play/,800);};
 S['free-play-next']=async(b)=>{await S['free-play'](b);await tapAria(b,'Next puzzle',600);};
 // PZ[95] = c0 through the Novice node with 95 solved

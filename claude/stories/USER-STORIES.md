@@ -2377,6 +2377,15 @@ As a player moving between screens, the back and menu buttons are always in the 
 - In a lesson the close X is the bar's first button and ⋯ its last, in the demo and in practice, with one ⋯ on screen. (TC-R215f)
 - On a short upright phone (under 700 tall) the lesson's rows under the board fold into the bar - Now I'll try it is a bar button, the practice row sits in the bar, Other lines is in the ⋯ sheet - and the board is the screen width at 320x568. (TC-R215g)
 - At an online game's end the board stays the screen width on his phone and the page does not scroll; the panel is rows of 44pt buttons. (TC-R215h)
+- *The rest of the audit, same build (FMT-A-02, A-04, A-06 to A-14, B-04 to B-08; Kunal's pick 12 Nov, "All in this batch, top first").* Puzzle training, free play and both drills carry the same corners - back 44x44 at 8 with its words ("Back to Roadmap", "Back to Review") in its accessible name, and the menu - and no board is smaller than before; while a hint shows on a phone it takes the menu's place, as it takes the counters', so every hint still fits its three lines. (TC-R215i)
+- The top row starts at one height (2 under the safe area) on every upright screen, so it never moves between screens or with a prompt's length; the puzzle pages' spare height goes below the controls. (TC-R215j)
+- Every sheet (Menu, Look and feel, Account, the lesson intro card, the gallery) has one header: an 18 point title in the heading font and light blue, and a 44x44 close X top-right. (TC-R215l)
+- The online game's actions use the one secondary button style (Resign in red text) with at most one filled button, 44 high, radius 12. (TC-R215m)
+- Pages with no board keep their content 12 from each screen edge. (TC-R215n)
+- Lesson list rows have the one card radius (12), and a Gambits row is the same height as an Openings row. (TC-R215o)
+- Section labels (Play setup, Puzzles, a lesson's MOVES) share one style. (TC-R215p)
+- The tabs, the drill's card counter and the unlock code box are 44pt targets. (TC-R215q)
+- The main buttons (Start review, Back to games, Start game) are 44 high with radius 12. (TC-R215r)
 
 ### US-R155 Review, the drill and Home stay fast with his data on a slow phone
 *Added #550, run-answers build__1794388896663-hold-landing (THE SPEED CHECK, SPD-01..03: three regressions of this batch, fixed before landing).*
