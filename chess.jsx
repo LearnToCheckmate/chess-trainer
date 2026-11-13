@@ -6371,8 +6371,11 @@ function AppMain(){
     if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}
     setResetArm(null);apply();
   };
-  /* Leaving either sheet disarms, so an arm can never be confirmed by a tap taken in a later visit. */
-  useEffect(()=>{if(!menuOpen&&!moreOpen&&!learnSheet&&resetArm!==null){if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}setResetArm(null);}},[menuOpen,moreOpen,learnSheet,resetArm]);
+  /* Leaving either sheet disarms, so an arm can never be confirmed by a tap taken in a later visit.
+     #550 (gate 70 K1/K2/TC-R45b X): 931d495 (FMT-A-05) moved 'Play this position vs Computer' from the learnSheet into the
+     lessonMore sheet and this list did not follow, so every arm was cleared on the render it was set in - one tap showed
+     nothing, the next re-armed, and the button could never start the position over a live game. lessonMore is a sheet too. */
+  useEffect(()=>{if(!menuOpen&&!moreOpen&&!learnSheet&&!lessonMore&&resetArm!==null){if(resetArmT.current){clearTimeout(resetArmT.current);resetArmT.current=null;}setResetArm(null);}},[menuOpen,moreOpen,learnSheet,lessonMore,resetArm]);
   useEffect(()=>()=>{if(resetArmT.current)clearTimeout(resetArmT.current);},[]);
   useEffect(()=>{timeCtrlRef.current=timeCtrl;},[timeCtrl]);
   useEffect(()=>{pvIdxRef.current=pvIdx;},[pvIdx]);
