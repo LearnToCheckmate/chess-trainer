@@ -4995,6 +4995,7 @@ export default function App(){
   const [ratingMsg,setRatingMsg]=useState('');   // "+10" shown once when a game settles
   const [revFlags,setRevFlags]=useState({});      // #348: {w,b} country codes for the reviewed game, best-effort
   const [boardTrim,setBoardTrim]=useState(0);   // #344: px shaved off the board so the screen actually fits, MEASURED per device
+  const fitLeftRef=useRef(null);   /* #550 US-R151 MOV-01: the fit loop's last shrink {from,to,o} - o is the first reading taken at `to`; the loop never grows straight back to `from` on that same reading */
   const fitIdleRef=useRef(false);   /* #550 item (91): true once the Play/Review/Puzzles fit loop has run its passes and stopped */
   const [fitBump,setFitBump]=useState(0);        /* #364: re-arms the fit loop when the root's size changes after the loop has run its 36 passes - a lesson's text arriving late left an 11px overflow uncorrected on a 375x679 phone */
   useEffect(()=>{if(!window.ResizeObserver||!rootRef.current)return;let last=0;const ro=new ResizeObserver(es=>{const h=Math.round(es[0].contentRect.height);if(Math.abs(h-last)>2){last=h;setFitBump(b=>b+1);}});ro.observe(rootRef.current);return()=>ro.disconnect();},[]);
@@ -5639,7 +5640,13 @@ export default function App(){
       {const rc=rEl.querySelector('[data-ct="rev-compact"]');const rcs=rc&&getComputedStyle(rc);if(rc&&parseFloat(rcs.flexGrow)>0)absorbed+=Math.max(0,rc.getBoundingClientRect().height-(parseFloat(rcs.minHeight)||0));}
     }
     const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
-    return bottom>0?(bottom-spacers-absorbed+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+    const _o=bottom>0?(bottom-spacers-absorbed+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+    /* #550 US-R151 MOV-01 (docs/movement-check-2026-11-12, Kunal: "fix the cause"): LESS THAN ONE PIXEL IS NOT AN OVERFLOW. At a display
+       scale other than 100% the root's 100dvh is fractional (1267.33 in a 1063x1267 window at 150%, 1510.4 in 1230x1510 at 125%) while
+       clientHeight is the same viewport rounded (1267), so content that exactly fills the root read +0.33 over. The loop trimmed 16, fixr3e
+       then counted the eval graph band as slack, the board grew back to trim 0, and it flipped 820 <-> 804 18 to 36 times after every move.
+       Nothing can scroll by a third of a pixel. One place, so the loop, the #522 refit and the idle wake all agree. Gate 143. */
+    return (_o>0&&_o<1)?0:_o;
   },[]);
   /* MOVED HERE FROM BESIDE ITS STATE, AND THE REASON IS A MEASURED CRASH, NOT TIDINESS. Declared next to `fitWake`
      above, this effect's dependency list named `wide`, which is a const declared ~300 lines further down, so the
@@ -5767,11 +5774,11 @@ export default function App(){
     // review half is a no-change, kept for one predicate rather than two. It is a scope choice supported by a
     // measurement that it changes nothing, NOT a defect this build fixed, and it should not be written up as one.
     const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
-    if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';playFreshTrimRef.current=null;return;}
+    if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';playFreshTrimRef.current=null;fitLeftRef.current=null;return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
     // every single move, which is exactly what Kunal saw.
-    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;playFreshTrimRef.current=null;setBoardTrim(0);}
+    if(fitGeoRef.current!==_geoKey){fitGeoRef.current=_geoKey;playFreshTrimRef.current=null;fitLeftRef.current=null;setBoardTrim(0);}
     let raf=0,passes=0,stop=false,settle=false;
     const tick=()=>{
       if(stop)return;
@@ -5783,6 +5790,16 @@ export default function App(){
       // #355's "measure the content, not the document" body now lives in _fitOver above, called by this loop
       // and by #522's pre-paint refit, so the two cannot drift apart.
       const over=_fitOver();
+      /* #550 US-R151 MOV-01, THE SECOND HALF (Kunal: "keep the loop from flipping between two trims whatever the cause"): THE LOOP NEVER
+         GROWS STRAIGHT BACK TO A TRIM IT JUST LEFT ON THE SAME READING. The shake was two states each sending the loop to the other: trim 0
+         read over (+0.33), trim 16 read room (fixr3e counts the graph band as slack). Any such pair is bistable by construction, so after a
+         shrink from `from` to `to` the loop keeps the first reading it takes at `to`; while the trim is still `to` and the reading is still
+         that one (within 2px), a growth that would land at or past `from` is refused and the board stays at the smaller size. A real change
+         - a row leaving, a block removed, a different screen - moves the reading and the growth goes ahead; a geometry change clears the
+         memory. The memory outlives the wake (a ref), so a ply change on an unchanged layout cannot restart the pair, and the idle wake below
+         does not re-arm on the held reading. So a future phantom costs at most one step once, not a shake on every move. */
+      const _t0=boardTrimRef.current;{const _L=fitLeftRef.current;if(_L&&_L.to===_t0&&_L.o===null&&over<=0)_L.o=over;}
+      const _held=(nt)=>{const _L=fitLeftRef.current;return !!_L&&_L.to===_t0&&_L.o!==null&&nt<=_L.from&&Math.abs(over-_L.o)<2;};
       /* #549 run fix (fixr5a, antagonist A round 5, A1-R5): PLAY'S GROWTH STOPS AT THE WIDTH CAP. 1029033 made _fitOver count the
          slack the player bars and moves panel swallow, so on a phone where the board is already WIDTH-bound (375x761, 375x730,
          390x844) "over" now reads well under -24 at rest and the growth branch walked the trim down to -480, where no trim moves
@@ -5806,8 +5823,8 @@ export default function App(){
          threshold is -16 (both paths settle with under 16px of slack, so a 16-wide dead band cannot oscillate). Play only: Review
          grows back to trim 0 (fixr3e), and the lesson uses the refit. Fresh sizes are unchanged at se, short375, w375h667, 375x730,
          375x761 and 390 in four states; gate 75 D15/D17 assert the return to fresh to under 1px. */
-      if(over>0){setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
-      else if(mode==='play'){const _t=boardTrimRef.current,_fm=playFreshTrimRef.current,_fl=sqTrimFloorRef.current;const _snap=_fm!==null&&_t>Math.max(_fm,_fl)&&_t-Math.max(_fm,_fl)<=-over;if(_snap||over<-16){const _g=Math.floor((-over-8)/8)*8;setBoardTrim(t=>{if(_fm!==null&&t>_fm&&(_snap||t-Math.min(64,_g)<_fm))return Math.max(Math.min(t,_fl),_fm);const n=Math.max(-480,t-Math.min(64,_g));if(t>_fl&&t-_fl<=Math.min(64,-over-8))return _fl;return Math.max(Math.min(t,_fl),n);});settle=true;}else if(over<=0)playFreshTrimRef.current=_fm===null?_t:Math.min(_fm,_t);}
+      if(over>0){const _nt=Math.min(600,_t0+Math.ceil(over/8)*8+8);fitLeftRef.current=_nt>_t0?{from:_t0,to:_nt,o:null}:null;setBoardTrim(t=>Math.min(600,t+Math.ceil(over/8)*8+8));settle=true;}
+      else if(mode==='play'){const _t=boardTrimRef.current,_fm=playFreshTrimRef.current,_fl=sqTrimFloorRef.current;const _snap=_fm!==null&&_t>Math.max(_fm,_fl)&&_t-Math.max(_fm,_fl)<=-over;if(_snap||over<-16){const _g=Math.floor((-over-8)/8)*8;const _grow=(t)=>{if(_fm!==null&&t>_fm&&(_snap||t-Math.min(64,_g)<_fm))return Math.max(Math.min(t,_fl),_fm);const n=Math.max(-480,t-Math.min(64,_g));if(t>_fl&&t-_fl<=Math.min(64,-over-8))return _fl;return Math.max(Math.min(t,_fl),n);};if(!_held(_grow(_t))){fitLeftRef.current=null;setBoardTrim(_grow);settle=true;}}else if(over<=0)playFreshTrimRef.current=_fm===null?_t:Math.min(_fm,_t);}
       /* #549 item (96), jobs/364s-growth-branch-is-dead-code-on-every-portrait-screen-2026-10-10: THIS BRANCH IS LIVE, NOT DEAD CODE - do
          not delete it. The job (filed 2026-10-10) measured `over` at exactly 0 on every portrait screen, and on a9e66ac deleting this
          branch moved nothing in gates 75, 62 and 46. RE-MEASURED on bd4ecb7 with the branch deleted (trial 92b3a14f2064 against
@@ -5824,7 +5841,7 @@ export default function App(){
          next overflow is taken out on its first pass (aba4af0: 100px block then Re8+ at 375x761, 17px for 10-13 frames; fixed 0).
          A trim at or above the floor still grows, so the height-bound fresh sizes (259.03 at 320x568 and 375x568) are
          unchanged; Review's clamp at 0 is untouched. Gate 75 TC-R64-D18. */
-      else if(over<-24){const _revFit=inReview&&revCompact,_fl=sqTrimFloorRef.current;setBoardTrim(t=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):Math.max(Math.min(t,_fl),n);});settle=true;} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
+      else if(over<-24){const _revFit=inReview&&revCompact,_fl=sqTrimFloorRef.current;const _grow=(t)=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):Math.max(Math.min(t,_fl),n);};if(!_held(_grow(_t0))){fitLeftRef.current=null;setBoardTrim(_grow);settle=true;}} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);else fitIdleRef.current=true;
     };
     fitIdleRef.current=false;raf=requestAnimationFrame(tick);
@@ -5844,6 +5861,7 @@ export default function App(){
     if(!_fs)return;let last=null;
     const id=setInterval(()=>{if(!fitIdleRef.current)return;const t=boardTrimRef.current,o=_fitOver();
       const need=(t>0&&o<-24)||o>0;if(!need){last=null;return;}
+      {const _L=fitLeftRef.current;if(!(o>0)&&_L&&_L.to===t&&_L.o!==null&&Math.abs(o-_L.o)<2)return;}   /* #550 US-R151: the loop is holding this trim on this reading on purpose (see _held); waking it would change nothing */
       if(last&&last.t===t&&Math.abs(last.o-o)<2)return;last={t,o};setFitBump(b=>b+1);},600);
     return()=>clearInterval(id);},[wide,inReview,revCompact,mode,playSetup,pzView,_fitOver]);
   const sideW=wide?Math.max(200,Math.min(vp.w-boardPx-20-(pzRail?TAB_RAIL_W+14:0),520)):RAIL;   // #550 a8: the sideways Puzzles rail leaves room for the tab rail
@@ -11487,7 +11505,7 @@ export default function App(){
               {cb('\u23ed',()=>{setRevAuto(false);setPly(review.plies.length);},0,false,'Last move')}
               {keyPlies.length>0&&cb('\u2605',()=>jumpKey(1),0,true,'Next key moment ('+keyPlies.length+')')}
               {/* #366 y15b: Analyze moved onto the board as the round button (rev-fab). */}
-              {landRev&&<span data-ct="rev-count" style={{flex:'0 0 auto',alignSelf:'center',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the move counter sits at the end of this row - in the move line it wrapped that line onto a second row at 667 */}
+              {landRev&&<span data-ct="rev-count" style={{flex:'0 0 auto',alignSelf:'center',width:(2*String(review.plies.length).length+1)+'ch',textAlign:'right',whiteSpace:'nowrap',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the move counter sits at the end of this row - in the move line it wrapped that line onto a second row at 667 */}{/* #550 US-R151 MOV-03: ONE WIDTH FOR THE WHOLE GAME - the widest "N/N" this game can print, right-aligned, so the four buttons sharing this row do not resize and shift 2 to 6px when the ply gains or loses a digit (9/33 -> 10/33). Gate 143 TC-R219d */}
             </>)}
           </div>);
         /* #550 a21: in the streamlined view the row is the BOTTOM TOOLBAR of his picked mockup - Back, Analyze, Key move, Forward -
@@ -11547,7 +11565,7 @@ export default function App(){
             {!anaMode&&!landRev&&<span style={{flex:'0 0 auto',fontSize:'clamp(12.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.55)',fontFamily:'monospace',fontWeight:700}}>{ply}/{review.plies.length}</span>}{/* #550: sideways the counter moves to rev-row1's end (rev-count), where it does not wrap the move line */}
           </div>
           {/* #341: chess.com-style one-liner on why the move got its verdict, plain text, no box (Kunal asked for the reason back, and for the box gone). */}
-          {(()=>{const _tall=!wide;const _stripH=(wide&&_cmpStrip&&!anaMode)?20:0;/* #397 (uat394-rev-why-clips-fourth-line-320): THE BOX MUST BE NO TALLER THAN THE LINES ITS CLAMP ALLOWS.
+          {(()=>{const _tall=!wide;const _stripH=(wide&&!anaMode)?20:0;/* #550 US-R151 MOV-04: sideways the comparison strip's 20px is reserved at EVERY ply - it was charged only while _cmpStrip existed (not at ply 0, not where the best move was played), so the box grew and shrank 20px and the graph and move strip under it jumped. An empty spacer holds the row where there is no strip (gate 143 TC-R219e) *//* #397 (uat394-rev-why-clips-fourth-line-320): THE BOX MUST BE NO TALLER THAN THE LINES ITS CLAMP ALLOWS.
                  It was 58 for a 3-line clamp at line-height 16.9, so 3 x 16.9 = 50.7 fitted with 7.3px of SLACK left over -
                  and overflow:hidden cut the FOURTH line at the box edge instead of never drawing it. At 320 on ply 19 that
                  painted a row of decapitated glyphs UNDERNEATH an ellipsis that had already ended the sentence. Measured by
@@ -11611,7 +11629,8 @@ export default function App(){
               <b style={{flex:'0 0 auto',fontWeight:800,color:'rgba(255,255,255,.55)'}}>{(!showBest&&playWhy)?'why':'best line'}</b>
               {(!showBest&&playWhy)?(<span data-ct="rev-playwhy" style={{flex:'0 0 auto',color:'#fff'}}>{playWhy}</span>):(<span style={{flex:'0 0 auto',color:'var(--ac2)',fontWeight:700,fontFamily:'ui-monospace,Menlo,monospace'}}>{bestLineSan}</span>)}
             </div>)}
-            {_stripH>0&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
+            {_stripH>0&&!_cmpStrip&&<div data-ct="rev-cmp-space" aria-hidden="true" style={{height:20,flexShrink:0}}/>}
+            {_stripH>0&&_cmpStrip&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical'}}>{_annoWhy||'\u00a0'}</div>}

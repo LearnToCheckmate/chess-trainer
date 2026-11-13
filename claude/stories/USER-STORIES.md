@@ -2377,3 +2377,11 @@ As a player moving between screens, the back and menu buttons are always in the 
 - In a lesson the close X is the bar's first button and ⋯ its last, in the demo and in practice, with one ⋯ on screen. (TC-R215f)
 - On a short upright phone (under 700 tall) the lesson's rows under the board fold into the bar - Now I'll try it is a bar button, the practice row sits in the bar, Other lines is in the ⋯ sheet - and the board is the screen width at 320x568. (TC-R215g)
 - At an online game's end the board stays the screen width on his phone and the page does not scroll; the panel is rows of 44pt buttons. (TC-R215h)
+### US-R151 Nothing on the Review screen moves unless he moves it
+*Added #550, docs/movement-check-2026-11-12 MOV-01..MOV-04; Kunal, 12 Nov: "Fix the cause, keep the loop from flipping between two trims whatever the cause, and gate it in a real scaled window at his size".*
+As a player stepping through a reviewed game on a computer at 125% or 150% display scale, the board stays one size after every move, and sideways the buttons and rows beside it stay where they are.
+- In a real scaled window (1063x1267 and 1025x1261 at 150%, 1230x1510, 1511 and 1512 at 125%) the board holds one size for 3 seconds after each Next move. (TC-R219a)
+- It is the size the window allows (820 there): a reading under one pixel is never an overflow, and the fit loop never grows straight back to a trim it has just left on the same reading. (TC-R219b)
+- Sideways, the toolbar buttons keep their place and width when the move counter gains a digit, and the counter keeps its box. (TC-R219c, TC-R219d)
+- Sideways, the explanation box keeps one height from the start position on, so the eval graph and move strip under it do not move. (TC-R219e)
+- At 960x971 at 150% the board is not trimmed 16px for a third of a pixel (667, not 651). (TC-R219f)
