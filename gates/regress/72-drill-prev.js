@@ -726,3 +726,7 @@ L.run(async()=>{
 // SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself
 // SELECTOR-OPENED: rev-engwhy reading=presence round 4: A9b reads the reading's first move
 // SELECTOR-OPENED: rev-engwhy-move reading=presence round 4: A9b and A9c read the move's words
+// CONTROL-RECORD: 10a6b21 2026-11-13 total=357 red=22 scope=trial:3b6cb74b9e91 how=#550 #432 sweep (lead): c72, drill-eval, drill-eval-fill and drill-eval-num renamed AND the bar drawn on every drill card, solved or not - the old gate passed TC-R81 D1 and D5 at 375x730 and 320x568 (339/18); the re-keyed lines, which also count the bar by its painted evaluation or its 'Evaluation for you' name, red at both (335/22); on t180 9aa49ab2df6f 357/0
+// SELECTOR-OPENED: drill-eval control=10a6b21 D1/D5/D7 also count the bar by its painted evaluation or its accessible name; c72 renamed the hooks and drew the bar on unsolved cards, D1 and D5 red
+// SELECTOR-OPENED: drill-eval-fill control=10a6b21 read only inside the bar's own record (fill width), and the bar's absence lines no longer rest on the hooks; same c72 control
+// SELECTOR-OPENED: drill-eval-num control=10a6b21 the number is also read by its painted text (evw), so a renamed hook cannot pass D1/D5; same c72 control
