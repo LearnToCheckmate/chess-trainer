@@ -1106,7 +1106,7 @@ const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
     if(/^\S+\s*Discover\s+Openings/u.test(t))return 'tile-discover';   // #550 item (68): by LABEL, not glyph - a skin's icons are its own now
     if(/^\u{1F9E9}\s*Puzzles/u.test(t))return 'tile-puzzles';
     if(/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))return 'tile-review';   // #550 AUD-H01: 'Free game reviews' on a phone
-    if(/^\S+\s*Play\s+vs Computer/u.test(t))return 'tile-play';
+    if(/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))return 'tile-play';
     if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
     if(/^Colours & pieces/.test(t))return 'lookrow';
     if(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||''))return 'stylerow';   // #550 AUD-H01: on a phone it reads the style's name; its aria-label keeps 'Style: <name>'
@@ -1200,7 +1200,7 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
         return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
           ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
           ||(id==='tile-discover'&&/^\S+\s*Discover\s+Openings/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
-          ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+vs Computer/u.test(t))
+          ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))
           ||(id==='coachline'&&/^(\u{1F393}|⚠️)/u.test(t))||(id==='stylerow'&&(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||'')))   /* #550 AUD-H01: the same two re-keys as idOf above */
           ||(id==='wave'&&/^\u{1F44B}$/u.test(t))||(id==='intro'&&e.tagName==='DIV'&&!t);});
       if(!el)return {ok:false,why:'gone after scroll'};
