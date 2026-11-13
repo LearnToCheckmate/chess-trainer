@@ -63,6 +63,19 @@ pin_of(){ awk -F'\t' -v k="door:$2" '$1==k{print $3; exit}' "$1" 2>/dev/null; }
 run(){
   local list="${CT_DOOR_CHECKS:-$CHECKS}" root="${CT_DOOR_ROOT:-$ROOT}" pins="${CT_DOOR_PINS:-$HERE/harness-case-counts.tsv}" tmp rc=0 n=0
   [ -r "$pins" ] || { echo "DOOR CHECKS COULD NOT RUN - the pin register $pins cannot be read"; return 2; }
+  # --only <name[,name]> [#550 helper A round 6, part (3)]: run the NAMED rows of this one list and no others, so
+  # records-gate.sh --binaries can run a formerly-ratcheted check as a binary WITHOUT a second copy of its command
+  # line. An unknown name is exit 2 (a filter that matched nothing is not a clearance), and so is an empty filter.
+  if [ -n "${DOOR_ONLY+x}" ]; then
+    [ -n "$DOOR_ONLY" ] || { echo "DOOR CHECKS COULD NOT RUN - --only was given no name"; return 2; }
+    local want kept="" ln
+    for want in ${DOOR_ONLY//,/ }; do
+      ln="$(printf '%s\n' "$list" | awk -F'|' -v n="$want" '$1==n')"
+      [ -n "$ln" ] || { echo "DOOR CHECKS COULD NOT RUN - --only names '$want', which is not a row of the check list"; return 2; }
+      kept="$kept${kept:+$'\n'}$ln"
+    done
+    list="$kept"
+  fi
   tmp="$(mktemp -d)" || { echo "DOOR CHECKS COULD NOT RUN - mktemp failed"; return 2; }
   local -a names=() pids=() pats=() t0s=()
   while IFS='|' read -r name script arg pat; do
@@ -135,6 +148,17 @@ s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks ru
   chk "DC16 every live --selftest check is pinned in gates/harness-case-counts.tsv" 0 "$miss"
   chk "DC16b and the report row is not (its count is cited files, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" cited-not-run-report)"
   chk "DC16c nor the citations row (its count is citations, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" citations)"
+  # DC17 (#550 helper A round 6): --only runs the named rows and no others; an unknown or empty name is 2, never 0
+  : > "$T/pins"; mk a "a: 5 pass, 0 fail"; mk b "b: 3 pass / 0 fail" 1
+  L2="$L1
+b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail"
+  ro(){ ( CT_DOOR_ROOT="$T" CT_DOOR_PINS="$T/pins" CT_DOOR_CHECKS="$L2" DOOR_ONLY="$1" run ) > "$T/last" 2>&1; echo $?; }
+  chk "DC17 --only a runs a alone and passes although b would refuse: 0" 0 "$(ro a)"
+  chk "DC17b and it ran exactly one check" 1 "$(grep -c '^DOOR CHECKS OK - 1 of 1$' "$T/last")"
+  chk "DC17c --only b runs the refusing row: 1" 1 "$(ro b)"
+  chk "DC17d --only a,b runs both and refuses on b: 1" 1 "$(ro a,b)"
+  chk "DC17e --only a name not in the list: 2" 2 "$(ro nosuch)"
+  chk "DC17f --only with an empty name: 2" 2 "$(ro '')"
   rm -rf "$T"; echo "door-checks self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 
@@ -142,5 +166,6 @@ case "${1:-}" in
   --selftest) selftest; exit $? ;;
   --list)     printf '%s\n' "$CHECKS"; exit 0 ;;
   ""|--run)   run; exit $? ;;
-  *)          echo "usage: gates/door-checks.sh [--selftest|--list]"; exit 2 ;;
+  --only)     DOOR_ONLY="${2:-}"; run; exit $? ;;
+  *)          echo "usage: gates/door-checks.sh [--selftest|--list|--only <name[,name]>]"; exit 2 ;;
 esac
