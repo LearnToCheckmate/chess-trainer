@@ -1319,6 +1319,37 @@ const MORE=[
     line:["e4","e6","Nf3","d5","e5","c5","b4","cxb4","a3","bxa3","Nxa3"],
     idea:"The French Wing Gambit: White tosses the b-pawn to deflect Black's ...c5 break and open the queenside, dodging heavy French theory. Objectively dubious, but it leads to unbalanced attacking play where a prepared White scores well.",
     notes:["A king-pawn opening.","The French Defence.","Flexible development, delaying d4.","Challenge the centre.","Grab space and lock the centre.","The thematic French break.","The gambit: deflect the c5 pawn from its break.","Black accepts the wing pawn.","Chip at the b4 pawn to blast open the a- and b-files.","Black grabs again.","Recapture and develop; White has open queenside files and easy play for the pawn."] },
+  /* #550, jobs/lessons-teach-the-finish-not-the-method-2026-09-24: THE STAGE LESSON, one worked example of a technique taught as stages.
+     Practice is played against a king that chooses its own moves, and a move is accepted when it passes the open stage's test on the
+     board (stageVerdict in chess.jsx), not when it matches the line; the line and notes are the demo, and are exactly what the lone king
+     answers if you play them. Placed LAST in the library so no stored lesson index moves (ct_lastlesson). Every note is checked against
+     the board: the box sizes, "only move" and "no safe queen move shrinks it" were measured with the app's own move code. */
+  { name:"Queen Mate: the Box Method", eco:"K+Q", side:"w", cat:"♚ Endgames & Theory",
+    fen:"8/8/3k4/8/8/8/8/4K2Q w - - 0 1",
+    stages:[
+      { name:"Box it in", goal:"drive the king to the edge, until every square it can reach is on the edge of the board.",
+        rule:"Its box is every square it can walk to. Never let the box grow.", keep:["box"], done:"edge" },
+      { name:"Mate on the edge", goal:"checkmate it there.",
+        rule:"Keep it on the edge: every square it can reach must stay on the edge.", keep:["edge"], done:"mate" }
+    ],
+    idea:"The method behind the queen mate, practised against a king that picks its own moves. The king's box is every square it can walk to. Shrink the box with the queen, bring your king up when the queen cannot shrink it alone, and mate on the edge.",
+    plans:"Stage 1: never let the box grow. A queen a knight's move from the king often shrinks it without being taken; when no safe queen move makes it smaller, walk your king up. Stage 2: with the king on the edge, keep it there and mate it. Any move that keeps to the stage's rule is accepted, not only the moves shown.",
+    line:["Qe4","Kc5","Kd2","Kd6","Kc3","Kc5","Qe6","Kb5","Qd6","Ka5","Kc4","Ka4","Qb4#"],
+    notes:[
+      "Stage 1, box it in. The queen goes a knight's move from the king and takes the e-file and the 4th rank. The king's box is now 12 squares, above and to the left of them.",
+      "The king stays in its box: it cannot cross the 4th rank or the e-file.",
+      "No safe queen move makes the box smaller here, so your king walks up. The box stays at 12 squares.",
+      "The king walks about inside its box.",
+      "Your king keeps coming. Still 12 squares.",
+      "Back to c5.",
+      "Now the queen can shrink it. From e6, a knight's move from the king, it takes the 6th rank, and your king takes b4, c4 and d4. The box is down to 5 squares: a3, a4, a5, b5 and c5.",
+      "Its only move.",
+      "Another knight's move away. The box is 3 squares: a4, a5 and b5.",
+      "The king steps onto the edge.",
+      "Your king takes b4 and b5. The king can reach only a4 and a5, both on the edge: stage 1 is done. It still has a move, so this is not stalemate.",
+      "Its only move.",
+      "Stage 2, mate on the edge. The queen lands beside the king, guarded by your king: checkmate."
+    ] },
 ];
 window.CTLESSONS={OPENINGS:OPENINGS,ENDGAMES:ENDGAMES,MORE:MORE};
 })();
