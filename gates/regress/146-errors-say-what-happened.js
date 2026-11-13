@@ -167,3 +167,4 @@ L.run(async()=>{
     L.note('TC-R222m: the planted error is counted in the page errors by design; the zero-errors line is not asserted for this launch');await b.close();
   }
 },'146-errors-say-what-happened');
+// CONTROL-RECORD: 4a79a54 2026-11-13 total=36 red=2 scope=trial:0100b5a554d7 how=#550 #432 sweep (rev-noengine re-keyed by its words): c1, rev-noengine renamed AND the without-Stockfish notice drawn on EVERY review - TC-R222c red (notice shown, found by text) and TC-R222a red on the renamed hook; the hook-keyed version (55ca2c7) is 35/1 with TC-R222c GREEN; on t0 6c4245e05ecc 36/0

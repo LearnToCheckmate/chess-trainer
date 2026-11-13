@@ -77,3 +77,4 @@ L.run(async()=>{
    L.say(!(await ask(b)),'kunal761: TC-R188c an account imported before (already on the list) is not asked about');
    await b.close();}
 },'107-ask-once-is-this-account-yours');
+// CONTROL-RECORD: 4a79a54 2026-11-13 total=15 red=3 scope=trial:0100b5a554d7 how=#550 #432 sweep (acct-ask re-keyed by its words): c1, acct-ask/-yes/-no renamed AND the question asked on every fetch (the ct_acctasked and already-listed checks removed) - TC-R188b/c 'a second Fetch does not ask again' x2 and TC-R188c 'already on the list is not asked' red; the hook-keyed version (55ca2c7) on the same bundle is 7/4 with those three GREEN; on t0 6c4245e05ecc 15/0

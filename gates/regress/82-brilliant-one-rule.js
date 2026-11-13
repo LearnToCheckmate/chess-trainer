@@ -222,3 +222,4 @@ L.run(async()=>{
    L.say(b.errs.length===0,'TC-R209f E19 zero app errors',b.errs.slice(0,3));
    await b.close();}
 },'82-brilliant-one-rule');
+// CONTROL-RECORD: a564f4d 2026-11-13 total=91 red=6 scope=trial:e87644680e52 how=#550 #432 sweep (the Grading changed sheet found by its heading): c6, regrade-preview/-confirm/-later renamed AND the sheet opened even when no game needs regrading - TC-R130 H0 and H14 x2 ('opens NO sheet') red, E15-E17 red as a side effect of the always-open sheet; the hook-keyed version (55ca2c7) is 77/14 with H0 and H14 GREEN; on t0 6c4245e05ecc 91/0

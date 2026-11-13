@@ -248,3 +248,4 @@ L.run(async()=>{
   L.say(bad2.length===0,'no app error beyond the allowed engine trap in Pass & Play',bad2.slice(0,2));
   await b2.close();
 },'TAKEBACK');
+// CONTROL-RECORD: 342b80e 2026-11-13 total=81 red=7 scope=trial:851ae98b9f35 how=#550 #432 sweep (More sheet found by structure and its Takeback row): c2, more-sheet renamed AND a takeback leaves the sheet up - 'the More sheet closes behind a takeback' red at all six runs, plus se's disabled-again line; the hook-keyed version (55ca2c7) is 80/1 with all six GREEN; on t0 6c4245e05ecc 81/0

@@ -163,3 +163,4 @@ L.run(async()=>{
      L.say(b.errs.length===0,geo+': TC-R136 W17 zero app errors',b.errs.slice(0,2));
      await b.close();}}
 },'83-missed-brilliant');
+// CONTROL-RECORD: 509485f 2026-11-13 total=53 red=2 scope=trial:7ce8591c2f6c how=#550 #432 sweep (chip, ring and strip mark found by label, shape and '(!!)'): c3, the three missbril hooks renamed AND ct_missed_bril '0' ignored - TC-R137 W9 (switch off, nothing marked) and the W13 precondition red; the hook-keyed version (55ca2c7) is 36/17 with W9 GREEN; on t0 6c4245e05ecc 53/0
