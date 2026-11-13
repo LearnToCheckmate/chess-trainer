@@ -392,7 +392,9 @@ L.run(async()=>{
   // 'Checkmate — that works too! ...' verdict was cut 17px at 320x568 by a 74px container with no ellipsis. Since item (48) the
   // verdict floats; this pins that it is not cut - its own box holds its text, and that box is inside the viewport.
   for(const geo of ['se','kunal730']){
-    const MIST1=[{fen:'6k1/5ppp/8/8/8/8/5PPP/R6K w - - 0 1',uci:'h1g1',label:'Mistake',played:'Ra2',why:'The king needed air.'}];
+    // #550: wc marks the card as already graded. Without it the a41 Home re-grade finds Ra2 (mate in one missed, still a rook up) is a Miss,
+    // not a Mistake or Blunder, and removes the card before the drill opens - measured on t164: TC-DR-02's precondition red at se and kunal730.
+    const MIST1=[{fen:'6k1/5ppp/8/8/8/8/5PPP/R6K w - - 0 1',uci:'h1g1',label:'Mistake',played:'Ra2',why:'The king needed air.',wc:{g:'Mistake',drop:15,v:1}}];
     const b=await L.launch({geo,name:'drill-altmate-'+geo,store:{ct_mymistakes:MIST1,ct_pool:'3'}});await b.open();
     await b.tile('Review');await b.settle(900);
     let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});await b.settle(800);await b.move('a1','a8',900);await b.settle(1200);}catch(e){ok=false;}
