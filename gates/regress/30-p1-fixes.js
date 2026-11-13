@@ -28,7 +28,11 @@ L.run(async()=>{
     // A-11 in the menu: piece chips and footer links
     const links=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="menu-sheet"] a')].filter(x=>/^(Privacy|Terms|Refunds|Delete account)$/.test((x.innerText||'').trim())).map(x=>Math.round(x.getBoundingClientRect().height)));
     L.say(links.length===4&&links.every(h=>h>=40),geo+': A-11 the four footer links are at least 40px tall',links);
-    await b.page.mouse.click(4,4);await b.settle(300);L.say(!(await b.rect('[data-ct="menu-sheet"]')),geo+': the menu closes on a backdrop tap');
+    // #550 #432 sweep (lead): the sheet is also counted by its WORDS - a painted 'Look and feel' row, which only the menu sheet carries - so the
+    // absence line below does not read only the hook (a build that renamed menu-sheet and left the sheet up would pass a hook-only read)
+    const mWords=()=>b.page.evaluate(()=>[...document.querySelectorAll('button,div')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Look and feel/.test((x.innerText||'').trim())&&!x.querySelector('button,div');}).length);
+    const w0=await mWords();L.say(w0>0,geo+': PRECONDITION the open menu shows its Look and feel row ('+w0+')',w0);
+    await b.page.mouse.click(4,4);await b.settle(300);const w1=await mWords();L.say(!(await b.rect('[data-ct="menu-sheet"]'))&&w1===0,geo+': the menu closes on a backdrop tap (by hook, and by its words: '+w0+' -> '+w1+')',{w0,w1});
     // #550 jobs/build-menu-one-screen: the five piece chips live on the Look and feel screen only (one home), so A-11 reads them there
     await b.tapCt('home-menu',500);await b.tapCt('menu-look',700);
     const chips=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="look"] button[data-ct^="look-pc-"]')].map(x=>Math.round(x.getBoundingClientRect().height)));
@@ -108,3 +112,5 @@ L.run(async()=>{
 // SELECTOR-OPENED: moves-copy reading=presence round 4: A-11 needs both rows at least 40 tall
 // SELECTOR-OPENED: moves-panel reading=presence round 4: A-12 needs one of two visibilities to be hidden; null against null is red
 // SELECTOR-OPENED: setup-sheet reading=presence round 4: A-13 requires an overflow reading, which needs the sheet
+// CONTROL-RECORD: e3aec88 2026-11-13 total=41 red=10 scope=trial:b7e6bd6c651f how=#550 #432 sweep (lead): c30, menu-sheet renamed AND the backdrop tap made a no-op (the sheet stays up) - the old gate passed 'the menu closes on a backdrop tap' at kunal and 390 (31/8, its 8 reds the sheet-rect reads); the re-keyed line, which also counts the Look and feel row by its words, red at both (31/10); on t180 9aa49ab2df6f 41/0
+// SELECTOR-OPENED: menu-sheet control=e3aec88 the backdrop absence line also counts the sheet by its Look and feel row; c30 renamed the hook and kept the sheet up, red
