@@ -428,7 +428,14 @@ function selftest() {
     ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0, '(7) a looping gate (1 L.say site, total=5 equal to the log\'s 5) reads COVERED at exit 0');
     write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=0 red=0 scope=full how=nothing ran', LOOP]); commit('total 0');
     r = run(5, 'selftest-7b');
-    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /total=0/.test(r.out) && r.rc === 1, '(7b) a record with total=0 reads BAD-RECORD at exit 1');
+    // (7b) PINS THE GUARD'S OWN FAULT TEXT, NOT /total=0/ [#550; the whatIsLeft of jobs/control-audit-bounds-total-by-the-L-say-SITE-
+    //     count-so-no-looping-gate-can-be-covered-2026-10-01]: with the total>0 refusal deleted, the full-scope mismatch printed
+    //     'full-scope total=0 but the log says this gate runs 5', which ALSO matches /total=0/, so (7b) stayed green over the guard's
+    //     absence. Matching the guard's own words reddens it there. (7d) poses the one input only that guard can refuse: a total=0
+    //     record for a gate the log does not carry, which without the guard reads NO-LOG - a different verdict, not a refusal.
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /total=0 - a record that ran nothing controls nothing/.test(r.out) && r.rc === 1, '(7b) a record with total=0 reads BAD-RECORD at exit 1, refused by the total>0 guard itself (its own fault text)');
+    r = capture(() => report(audit(root, parseLog('=== 99-other ===\n  99-other: green (5 PASS)\n')), 'selftest-7d'));
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /a record that ran nothing controls nothing/.test(r.out) && /^--- NO-LOG \(0\) ---$/m.test(r.out), '(7d) a total=0 record on a gate the log does not carry is BAD-RECORD (the total>0 guard), not NO-LOG');
     write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=4 red=1 scope=full how=one iteration flipped', LOOP]); commit('full-scope mismatch');
     r = run(5, 'selftest-7c');
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /full-scope total=4 but the log says this gate runs 5/.test(r.out) && r.rc === 1, '(7c) a full-scope total of 4 against a log of 5 reads BAD-RECORD at exit 1');
