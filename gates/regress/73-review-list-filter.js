@@ -1596,7 +1596,7 @@ function mkTap(b,READ){
     const T=JSON.parse(JSON.stringify(TALLY));T[gk(G[0])].obril=1;T[gk(G[1])].obril=0;
     const b=await L.launch({geo:GEO,name:'G-oppbril',store:Object.assign({},STORE,{ct_gamestats:T})});
     await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
-    const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('button')].filter(x=>/Review ›/.test(x.innerText||''));
+    const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
       return rows.map(x=>{const t=(x.innerText||'').replace(/\s+/g,' ');const m=[...x.querySelectorAll('[aria-label]')].filter(e=>/opponent played a brilliant/i.test(e.getAttribute('aria-label')));
         return {opp:(t.match(/vs ([^\s!]+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
     const g1=r.find(x=>x.opp==='opp1'),g2=r.find(x=>x.opp==='opp2');
@@ -1716,7 +1716,7 @@ function mkTap(b,READ){
       // the cell around it is a flex item, so its computed display is block too and its textContent also starts 'vs' - a first
       // draft matched that wrapper and measured the wrong box. The line under it is the name line's next sibling.
       const own=(e)=>[...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').replace(/\u00a0/g,' ');
-      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=opp?opp.nextElementSibling:null;const badge=(row.firstElementChild&&row.firstElementChild.firstElementChild)||row.firstElementChild;   /* the badge is the first child OF the row's badge column (#549 put it in a column with the tally under it; #550 holds the tally's slot on every card, so the column's own text is no longer the badge's) */
+      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=row.querySelector('[data-ct="game-sub"]')||(opp?opp.nextElementSibling:null);   /* #550 item (74): the name line now shares its row with the date and the chevron, so the line under it is no longer the name's next sibling; game-sub is the hook #549 already carried (not one this build adds), with the old route kept as the fallback */const badge=(row.firstElementChild&&row.firstElementChild.firstElementChild)||row.firstElementChild;   /* the badge is the first child OF the row's badge column (#549 put it in a column with the tally under it; #550 holds the tally's slot on every card, so the column's own text is no longer the badge's) */
         return {opp:full(opp),sub:full(sub),badge:badge&&{t:badge.textContent,...full(badge)},_o:opp,_s:sub,_b:badge};});
       const seeded=[];const words=[];
       for(const o of out){

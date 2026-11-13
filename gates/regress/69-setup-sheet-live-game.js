@@ -346,6 +346,46 @@ L.run(async()=>{
     await b.close();
   }catch(e){L.say(false,'F-THREW the colour-chip scenario threw: '+(e&&e.message||e));}
 
+  // ── K: THE SHEET'S CHOICES ARE PENDING UNTIL START [#550 item (58) second pass; jobs/auditor-424-p2-findings-2026-09-27, folding in
+  // the-live-board-is-resized-behind-the-open-setup-sheet, the-screen-behind-the-setup-sheet-describes-the-sheets-pending-choices-not-the-
+  // live-game and the-play-screen-under-the-open-setup-sheet-overflows-by-87px, all 2026-10-03]. TC-PL-K1..K4.
+  // A live 1-ply Pass & Play game, the house, the Play tile: the New Game sheet is up over the game. Read what is BEHIND it - the board's
+  // width, lib's over() reading, the two player bars and the eval bar - then choose Computer, Black, '5 min' and strength 1500 on the
+  // sheet, and read them again: nothing behind the sheet may have moved, because nothing has started. Then Start (the #469 confirm, two
+  // taps) and the choices must be the game's: the bars name the computer opponent, the board is flipped for Black, the 5:00 clock shows,
+  // and ct_elo reads 1500. DENOMINATOR: the taps landed - the bot row (shown only for a pending Computer) is on the sheet.
+  // Measured on the branch tip c2a816f (trial aa9cbca2cf01) at kunal761: the Computer tile alone took the board 375.0 -> 344 behind the
+  // sheet (the eval bar of a computer game that did not exist) and the bars from the two humans to the computer's name.
+  // CONTROL-RECORD: 558424b 2026-11-13 total=17 red=5 scope=block:K trial:08869263d133 how=#550 item (58): the tree before the pending sheet state (the sheet's tiles write the live opponent) - K3 red at kunal761 and se (bars '-0.2 🤖 Computer 1500 0:00' / '♚ You', the eval bar painted), K2 over() red at both (73.6 -> 81.6, 155.6 -> 144.6), K2 board red at se (312 -> 288; at kunal761 the bar sits above the board and the width held at 368); K1 and K4 green; on trial 8030065fed0f 17 of 17 green
+  for(const geo of ['kunal761','se']){
+   try{
+    const b=await L.launch({geo,name:'setupsheet-pending-'+geo});
+    await b.open();
+    const live=await liveGameThenSheet(b,1);
+    const behind=async()=>{const m=await b.metrics();const ev=await evalBar(b);const br=await bars(b);return {w:m.board?m.board.w:null,flip:m.board?m.board.flip:null,over:m.over!=null?(typeof m.over==='object'?m.over.over:m.over):null,ev,top:br.top,bottom:br.bottom};};
+    const pre=await behind();
+    L.say(live.plies===1&&await sheetUp(b)&&pre.w>0&&!!pre.top&&!!pre.bottom,geo+': TC-PL-K1 PREMISE a live 1-ply Pass & Play game with the New Game sheet open over it; behind it board '+pre.w+', over '+pre.over+', bars '+JSON.stringify([pre.top,pre.bottom])+', eval bar '+JSON.stringify(pre.ev),{live,pre});
+    let tapped=true;
+    try{await P.tapBtn(b,/^Computer$/,600);await P.tapBtn(b,/^Black$/,600);
+      await b.page.locator('[data-ct="setup-sheet"] span',{hasText:/^5 min$/}).first().click();await b.settle(400);
+      await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="setup-sheet"] input[type="range"]');if(!s)return;const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(s,'1500');s.dispatchEvent(new Event('input',{bubbles:true}));});
+      await b.settle(SETTLE_NOMOVE);}catch(e){tapped=false;L.note(geo+' K taps: '+String(e).slice(0,140));}
+    const den=await b.page.evaluate(()=>({botRow:!!document.querySelector('[data-ct="setup-sheet"] [data-ct="bot-row"]'),slider:(document.querySelector('[data-ct="setup-sheet"] input[type="range"]')||{}).value||null}));
+    L.say(tapped&&den.botRow&&den.slider==='1500'&&await sheetUp(b),geo+': TC-PL-K1 DENOMINATOR the taps landed: the sheet shows the pending Computer (its bot row) and strength '+den.slider+', and it is still up',den);
+    const post=await behind();
+    L.say(pre.w!=null&&post.w!=null&&Math.abs(post.w-pre.w)<=0.5&&post.flip===pre.flip,geo+': TC-PL-K2 the live board BEHIND the open sheet keeps its size and orientation while the sheet\'s choices change ('+pre.w+' -> '+post.w+', flip '+pre.flip+' -> '+post.flip+')',{pre,post});
+    L.say(pre.over!=null&&post.over!=null&&Math.abs(post.over-pre.over)<=0.5,geo+': TC-PL-K2 and lib\'s over() reading behind the sheet does not move ('+pre.over+' -> '+post.over+')',{pre:pre.over,post:post.over});
+    L.say(post.top===pre.top&&post.bottom===pre.bottom&&!/Computer/.test(String(post.top)+String(post.bottom))&&!post.ev,geo+': TC-PL-K3 the player bars behind the sheet still describe the LIVE two-human game, not the pending choices, and no eval bar appears ('+JSON.stringify([post.top,post.bottom])+', eval '+JSON.stringify(post.ev)+')',{pre,post});
+    let started=true;try{await P.tapStart(b,1200);await b.settle(1500);}catch(e){started=false;L.note(geo+' K start: '+String(e).slice(0,140));}
+    const fin=await behind();const el=await elo(b);
+    const clk=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].map(e=>e.innerText).join(' ').match(/\b5:00\b/g));
+    L.say(started&&!(await sheetUp(b)),geo+': TC-PL-K4 PREMISE Start (with its confirm) closed the sheet',{started});
+    L.say(fin.flip===true&&fin.top!==pre.top&&el==='1500'&&!!clk&&clk.length>=1,geo+': TC-PL-K4 AT START the choices become the game\'s: board flipped for Black ('+fin.flip+'), the opponent\'s bar changed from the human ('+JSON.stringify(fin.top)+'), the 5:00 clock shows ('+JSON.stringify(clk)+'), ct_elo '+el,{fin,el,clk});
+    L.say(b.errs.length===0,geo+': TC-PL-K zero app errors',b.errs.slice(0,3));
+    await b.close();
+   }catch(e){L.say(false,geo+': K-THREW '+(e&&e.message||e));}
+  }
+
   // ── C: POSITIVE CONTROL. The guard must not stop the engine on the legitimate path. ──────────────
   try{
     const b=await L.launch({geo:{w:375,h:730,safe:'',label:KUNAL},name:'setupsheet-start-still-works'});

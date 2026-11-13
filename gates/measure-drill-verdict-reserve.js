@@ -94,7 +94,7 @@ L.run(async()=>{
   L.note('bundle on the page: '+await h.stamp());
   L.note('GEOMETRIES THIS RUN: '+GEOS.map(g=>g.n).join(', ')+(process.env.CT_GEOMDV?('   *** NARROWED by CT_GEOMDV ***'):'   (full seven)'));
   await h.tile('Review');await h.settle(700);
-  await h.page.locator('button',{hasText:/Review ›/}).first().click();
+  await h.page.locator('[data-ct="game-row"]').first().click();
   await h.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await h.settle(1200);
   const mis=await h.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));
   L.note('ct_mymistakes captured by the app: '+mis.length);
