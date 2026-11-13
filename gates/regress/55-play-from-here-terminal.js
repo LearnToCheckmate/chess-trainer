@@ -54,12 +54,25 @@ const ordinaryNote=(b)=>b.page.evaluate(()=>{
   const s=document.querySelector('[data-ct="setup-sheet"]'); if(!s)return null;
   const d=[...s.querySelectorAll('div')].find(x=>/Continuing from your reviewed position/.test(x.innerText||'')&&x.children.length<=2);
   return d?(d.innerText||'').trim():null;});
+// THE TERMINAL NOTE IS FOUND BY WHAT IT SAYS TOO [#550 #432 sweep, round 2; jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-
+// cannot-control-2026-09-29]. The note carries a data-ct #466 added in the same build as C2 and A12, both of which assert its ABSENCE -
+// so on a control that renamed the hook and painted "⚠ That position is already over" above an enabled button (at a playable ply, and
+// at Online) the hook-keyed C2 and A12 PASSED, reading a hole the fix had drilled. This finds the innermost painted div inside the setup
+// sheet whose text begins with the warning; the hook is a fallback only.
+const termNote=(b)=>b.page.evaluate(()=>{
+  const s=document.querySelector('[data-ct="setup-sheet"]'); if(!s)return null;
+  const RE=/^\u26a0\s*That position is already over/;
+  const on=(x)=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0;};
+  const hits=[...s.querySelectorAll('div')].filter(x=>RE.test((x.innerText||'').trim())&&on(x));
+  let d=hits.find(x=>!hits.some(y=>y!==x&&x.contains(y)));
+  if(!d){const h=s.querySelector('[data-ct="setup-terminal-note"]');if(h&&on(h))d=h;}
+  return d?(d.innerText||'').replace(/\s+/g,' ').trim():null;});
 // THE STATE ANTAGONIST A NAMED AS UNCOVERED: `opponent` is a user-tappable pill eight rows above the confirm
 // button, and the refusal is deliberately OFF for 'online'. The note and the button must agree at EVERY value,
 // which is the defect B found - they used to read two different expressions, so switching to Online left the
 // amber "there is no move to play from it" above an ENABLED "Continue -> ".
 const noteAndButton=async(b)=>{
-  const note=await vis(b,'[data-ct="setup-terminal-note"]');
+  const note=!!(await termNote(b));
   const btn=await confirmBtn(b);
   return {note,btn};};
 // [#549 item (19), folded in by item (12)] THE CONFIRM BUTTON IS FOUND BY WHAT IT SAYS inside the setup sheet, not by the
@@ -139,7 +152,7 @@ async function terminal(b,pgn,kind,tag){
   await scanInto(b,FEN[kind]);
   L.say(await vis(b,'[data-ct="setup-sheet"]'), tag+': PRECONDITION the setup sheet opened, from a scan of the finished position');
 
-  const note=await b.text('[data-ct="setup-terminal-note"]');
+  const note=await termNote(b);
   L.say(!!note, tag+': A1 the setup sheet carries the TERMINAL note', note&&note.slice(0,90));
   L.say(!!note&&new RegExp(kind==='mate'?'checkmate':'stalemate','i').test(note), tag+': A2 the note names the terminal KIND', note&&note.slice(0,70));
   L.say(!!note&&/Scan or upload a board where it is still someone/.test(note), tag+': A3 the note names the REMEDY for its route (a scan: scan another board), so the refusal is not a dead end', note&&note.slice(-70));
@@ -189,7 +202,7 @@ async function nonTerminal(b,tag){
   L.say(exitB.includes('\u2039 Back to review')&&!exitB.includes('\u2039 Home'), tag+': C9 the setup sheet\'s exit reads "Back to review", not "Home"', JSON.stringify(exitB));
   const on=await ordinaryNote(b);
   L.say(!!on&&/Continuing from your reviewed position/.test(on), tag+': C1 the ordinary "Continuing from your reviewed position" note IS shown (found by TEXT)', on&&on.slice(0,60));
-  L.say(!(await vis(b,'[data-ct="setup-terminal-note"]')), tag+': C2 the TERMINAL note is absent at a playable ply');
+  L.say((await termNote(b))===null, tag+': C2 the TERMINAL note is absent at a playable ply');
   const btn=await confirmBtn(b);
   L.say(!!btn&&btn.dis===false, tag+': C3 the confirm button is ENABLED', btn&&JSON.stringify(btn));
   L.say(!!btn&&/Play this position/.test(btn.txt), tag+': C4 and still reads "▶ Play this position"', btn&&btn.txt);

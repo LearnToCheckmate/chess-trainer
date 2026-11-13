@@ -373,13 +373,23 @@ async function runFixture(geo,name,pgn,acc){
       const w=parseFloat(sv.getAttribute('width'))||sv.getBoundingClientRect().width;
       /* readability check A11Y-10, Kunal's pick 12 Nov: a grade mark is now a shape per grade inside <g data-ct="eval-graph-dot" data-grade>, so the
          dot is read by its GRADE and its hit circle's cx; a bundle from before that (filled circles with the .5 stroke) is still read the old way. */
+      /* #550 #432 sweep, round 2 (jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29): A7 is an ABSENCE
+         line ("no dot paints a raw grade on a book ply") and it read the marks ONLY through eval-graph-dot / eval-graph-hit, hooks its own
+         build added - so on a control that renamed them and let 3...Nf6 carry its raw Blunder ring, `marks` came back empty, the old-circle
+         fallback (stroke .5) matched nothing, and A7 PASSED over the defect. The marks are now ALSO read by what they are, independently
+         of any hook: (1) every button in the graph NAMED "<Grade>, move N (White|Black)" - the ply comes from the name, not from x; and
+         (2) every shape painted in one of the four raw-grade colours, its ply read off its own bounding box. The hook route and the
+         pre-A11Y circle route stay as fallbacks, so an older bundle is still read. */
+      const RAWC=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];
+      const byName=[...sv.querySelectorAll('[role="button"][aria-label]')].map(g=>{const m=(g.getAttribute('aria-label')||'').match(/^(\w+), move (\d+) \((White|Black)\)$/);return m?{grade:m[1],i:(+m[2]-1)*2+(m[3]==='Black'?1:0),by:'name'}:null;}).filter(Boolean);
+      const byInk=[...sv.querySelectorAll('circle,path,rect,g')].map(e=>{const f=(e.getAttribute('fill')||'').toLowerCase(),k=(e.getAttribute('stroke')||'').toLowerCase();const c=RAWC.indexOf(f)>=0?f:(RAWC.indexOf(k)>=0?k:null);if(!c)return null;let bb=null;try{bb=e.getBBox();}catch(x){}return bb?{cx:bb.x+bb.width/2,fill:c,by:'ink'}:null;}).filter(Boolean);
       const marks=[...sv.querySelectorAll('[data-ct="eval-graph-dot"]')];
-      const dots=marks.length?marks.map(g=>{const h=g.querySelector('[data-ct="eval-graph-hit"]');return {cx:parseFloat(h.getAttribute('cx')),grade:g.getAttribute('data-grade')};})
-        :[...sv.querySelectorAll('circle')].filter(c=>!/^none$/i.test(c.getAttribute('fill')||'')&&c.getAttribute('stroke')==='rgba(0,0,0,.5)').map(c=>({cx:parseFloat(c.getAttribute('cx')),fill:c.getAttribute('fill')}));
-      return {w,dots};});
+      const hooked=marks.length?marks.map(g=>{const h=g.querySelector('[data-ct="eval-graph-hit"]');return {cx:parseFloat(h.getAttribute('cx')),grade:g.getAttribute('data-grade'),by:'hook'};})
+        :[...sv.querySelectorAll('circle')].filter(c=>!/^none$/i.test(c.getAttribute('fill')||'')&&c.getAttribute('stroke')==='rgba(0,0,0,.5)').map(c=>({cx:parseFloat(c.getAttribute('cx')),fill:c.getAttribute('fill'),by:'circle'}));
+      return {w,dots:[...byName,...byInk,...hooked]};});
     let g=await readG();let viaSheet=false;if(!g){try{await b.tapCt('rev-more',500);g=await readG();viaSheet=true;await b.page.mouse.click(8,120);await b.settle(400);}catch(e){}}
     L.say(!!g,tag+' A7 the eval graph is on the move screen or in its more sheet (the denominator for the dot check)'+(viaSheet?' - read from the sheet':''),g?{w:g.w,dots:g.dots.length,viaSheet}:null);
-    if(g){const RAW=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];/* Blunder, Miss, Mistake, Inaccuracy: the grade dots a book ply must not carry; Brilliant and Great are exempt and the yellow current-ply marker is not a grade */const inBook=g.dots.map(d=>({...d,i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&(RAW.indexOf(d.fill)>=0||['Blunder','Miss','Mistake','Inaccuracy'].indexOf(d.grade)>=0));
+    if(g){const RAW=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];/* Blunder, Miss, Mistake, Inaccuracy: the grade dots a book ply must not carry; Brilliant and Great are exempt and the yellow current-ply marker is not a grade */const inBook=g.dots.map(d=>({...d,i:d.i!=null?d.i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&(RAW.indexOf(d.fill)>=0||['Blunder','Miss','Mistake','Inaccuracy'].indexOf(d.grade)>=0));
       L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});}
   }
   const dis=[];

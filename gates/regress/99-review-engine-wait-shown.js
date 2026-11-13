@@ -24,7 +24,14 @@ L.run(async()=>{
   await b.ctx.route('**/stockfish-18-lite-single.js*',async(route)=>{held++;await new Promise(r=>setTimeout(r,HOLD_MS));served++;await route.continue();});
   await b.open();
   let started=true;try{await b.tile('Review');await b.page.locator('textarea').first().fill(R.PGN_OPERA);await b.tapText(/^⚡ Analyze Game$/,{wait:1200});}catch(e){started=false;L.note('import: '+String(e).slice(0,120));}
-  const read=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="ana-progress"]');return e?e.textContent:(document.body.innerText.match(/\d+% · checking every move/)||[''])[0];});
+  /* #550 #432 sweep, round 2 (jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29): the progress line is
+     found BY WHAT IT SAYS - any painted leaf reading "Loading the Stockfish engine… Ns" or "N% · checking every move" - and the ana-progress
+     hook this gate's own build added is a FALLBACK only. Keyed to the hook first, TC-R184b ("the loading line is gone") PASSED on a control
+     that renamed the hook and left "Loading the Stockfish engine… 3s" painted on the summary, because the old fallback looked only for the
+     percentage wording. The words are what the player reads, so they are what this reads. */
+  const read=()=>b.page.evaluate(()=>{const RE=/^(Loading the Stockfish engine\u2026 \d+s|\d+% \u00b7 checking every move)$/;
+    const leaf=[...document.querySelectorAll('div,span,p')].find(x=>x.children.length===0&&RE.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);
+    if(leaf)return leaf.textContent.trim();const e=document.querySelector('[data-ct="ana-progress"]');return e?e.textContent:'';});
   const r1=started?await read():'';await b.settle(2000);const r2=started?await read():'';
   L.say(started&&held>=1&&served===0,'TC-R184a DENOMINATOR the review started and the engine worker was requested and is still being HELD ('+held+' held, '+served+' served)',{started,held,served});
   const n=(t)=>{const m=String(t||'').match(/engine… (\d+)s/);return m?+m[1]:null;};

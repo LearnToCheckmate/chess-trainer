@@ -87,7 +87,14 @@ const ONLY=process.env.CT_B70||'';
 const GEOS=[{k:'kunal',w:375,h:730},{k:'320x568',w:320,h:568},{k:'390x844',w:390,h:844}];
 
 const moverow=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-const warnRow=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="setup-reset-warn"]');if(!e)return null;const r=e.getBoundingClientRect();return {t:(e.innerText||'').replace(/\s+/g,' ').trim(),h:Math.round(r.height*100)/100,ch:e.clientHeight,sh:e.scrollHeight};});
+/* #550 #432 sweep, round 2 (jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29): the warning row is found
+   BY WHAT IT SAYS - a painted leaf div reading "Changing any of these starts a new game." or "Tap again to discard your game" (the
+   setup sheet's confirm BUTTON also says "discard your game", which is why this asks for a div) - and the setup-reset-warn hook #471
+   added with this gate is a FALLBACK only. Keyed to the hook alone, E2 ("with nothing to lose the row is not there at all") PASSED on
+   a control that renamed the hook and painted the warning over a 0-ply game. A blank reserved band has no words, so the hook stays
+   as the fallback that still sees one. */
+const warnRow=(b)=>b.page.evaluate(()=>{const RE=/^(Changing any of these starts a new game\.|Tap again to discard your game)$/;
+  const e=[...document.querySelectorAll('div')].find(x=>x.children.length===0&&RE.test((x.textContent||'').replace(/\s+/g,' ').trim())&&x.getBoundingClientRect().height>0)||document.querySelector('[data-ct="setup-reset-warn"]');if(!e)return null;const r=e.getBoundingClientRect();return {t:(e.innerText||'').replace(/\s+/g,' ').trim(),h:Math.round(r.height*100)/100,ch:e.clientHeight,sh:e.scrollHeight};});
 /* EVERY GAME-SETUP PILL, LOCATED BY WHAT IT SAYS, INSIDE THE PRE-EXISTING [data-ct="menu-sheet"].
    THIS IS THE #432 REPAIR AND MY OWN CONTROL IS WHAT FORCED IT. The first version of this gate keyed every tap
    and every reading on data-ct attributes #471 ITSELF ADDED (setup-opp-*, setup-clock-*, more-newgame). Run
