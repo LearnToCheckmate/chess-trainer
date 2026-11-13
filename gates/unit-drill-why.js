@@ -119,7 +119,7 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
 {const os=require('os'),path=require('path'),cp=require('child_process');
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'ct-ew-'));
  fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN,bestLineTail};\n');
- fs.writeFileSync(path.join(d,'react.js'),'module.exports={useState:()=>[null,()=>{}],useMemo:f=>f(),useRef:()=>({}),useEffect:()=>{},useLayoutEffect:()=>{},memo:x=>x,useCallback:f=>f};');
+ fs.writeFileSync(path.join(d,'react.js'),'module.exports={useState:()=>[null,()=>{}],useMemo:f=>f(),useRef:()=>({}),useEffect:()=>{},useLayoutEffect:()=>{},memo:x=>x,useCallback:f=>f,Component:class{},PureComponent:class{}};'   /* #550: Component added - chess.jsx's top-level error boundary (ERR-13, bcc4eff) is a class extending React.Component, and the bundle threw 'Class extends value undefined' without it */);
  let M=null;
  try{cp.execFileSync(path.join(__dirname,'node_modules','.bin','esbuild'),[path.join(d,'c.jsx'),'--bundle','--platform=node','--format=cjs','--alias:react='+path.join(d,'react.js'),'--outfile='+path.join(d,'c.cjs'),'--log-level=error']);
    global.window={location:{search:'',hostname:'x',href:'x'},addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}}),navigator:{},CTLESSONS:new Proxy({},{get:()=>[]})};
