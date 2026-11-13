@@ -12,14 +12,19 @@
 #   IN   gates/verify-log.sh --citations-selftest     exit 0, "citations-selftest: 63 pass, 0 fail", 34s
 #   IN   gates/audit/cited-not-run.sh --selftest      exit 0, "cited-not-run selftest: 47 pass / 0 fail", 17s
 #   IN   gates/audit/verify-patch-set.sh --selftest   exit 0, "SELFTEST 105 pass / 0 fail", 6s
-#   OUT  gates/audit/cited-not-run.sh (the report)    exit 1 on this tree: 5 UNACCOUNTED (gates/feature-ledger-diff.js,
-#        gates/measure-accuracy-vs-chesscom.js, gates/measure-brilliant-one-rule.js, gates/measure-review-vs-chesscom.js,
-#        gates/opening-book/build.js). Wiring a red check into the door would redden every suite, so it waits on those five.
+#   IN   gates/audit/cited-not-run.sh (the report)    IN SINCE #550 ROUND 4. It was exit 1 on 503946c with 5 UNACCOUNTED
+#        (gates/feature-ledger-diff.js, gates/measure-accuracy-vs-chesscom.js, gates/measure-brilliant-one-rule.js,
+#        gates/measure-review-vs-chesscom.js, gates/opening-book/build.js); round 4 gave each a roster row and the report a
+#        fixed door line, "cited-not-run report: <cited> pass / <unaccounted+weak-over+stale> fail" (its selftest C36-C39).
+#        Measured then: exit 0, ACCOUNTED-GREEN 48 of 48, "cited-not-run report: 203 pass / 0 fail", 31s alone. Its pass
+#        figure is a count of CITED FILES, not of cases, so it is deliberately NOT pinned - it may fall legitimately.
 #   OUT  gates/verify-log.sh --citations (the register check; jobs/nothing-checks-that-the-registers-citations-resolve-2026-09-30)
-#        exit 1 on this tree: CITATIONS RATCHET RED, widthrise=22 (22 TEST-CASES.md rows wider or narrower than their header).
+#        exit 1 on this tree: CITATIONS RATCHET RED. Round 4 (#550) took widthrise 22 -> 0 (the 22 rows were SHORT, 4 or 5
+#        cells of 6, not unescaped pipes) and it is still red on deadpath=17 badcaseid=16 danglingstory=1, all historic and none
+#        mechanical (cited files absent from all history, results whose id is absent from the cited log, US-R40 undefined).
 #   OUT  gates/audit/verify-patch-set.sh <payload-dir> (the live mode): its input is a set of parked tracker payloads, which a
 #        tree does not carry, so the door has nothing to give it. Only its --selftest can run here.
-# The three IN checks run in parallel. MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
+# The IN checks run in parallel (three when this was measured; the report joined at round 4). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
 # run one after another (34 + 17 + 6), each check slowing to 55s/33s/17s - because the checks are CPU-bound already.
 #
 # NO COUNT IS PINNED HERE, AND THAT IS A GAP, NAMED: this file refuses a non-zero exit, a FAIL, and a missing or zero pass count
@@ -36,7 +41,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(dirname "$HERE")"
 # name | script (relative to the repository root) | argument | ERE matching its own count line, pass first and fail second
 CHECKS='citations-selftest|gates/verify-log.sh|--citations-selftest|citations-selftest: [0-9]+ pass, [0-9]+ fail
 cited-not-run-selftest|gates/audit/cited-not-run.sh|--selftest|cited-not-run selftest: [0-9]+ pass / [0-9]+ fail
-verify-patch-set-selftest|gates/audit/verify-patch-set.sh|--selftest|SELFTEST [0-9]+ pass / [0-9]+ fail'
+verify-patch-set-selftest|gates/audit/verify-patch-set.sh|--selftest|SELFTEST [0-9]+ pass / [0-9]+ fail
+cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ pass / [0-9]+ fail'
 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
@@ -87,11 +93,12 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail")"
   printf '#!/usr/bin/env bash\nsleep 2; echo "s: 1 pass, 0 fail"\n' > "$T/gates/s1.sh"; cp "$T/gates/s1.sh" "$T/gates/s2.sh"
   local s0; s0=$(date +%s); rr 's1|gates/s1.sh|x|s: [0-9]+ pass, [0-9]+ fail
 s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks run in parallel (2 x 2s in under 4s)" yes "$( [ $(( $(date +%s)-s0 )) -lt 4 ] && echo yes || echo no)"
-  # DC10: the live list names exactly the three measured-green checks, and none of the two measured-red ones
-  chk "DC10 the live list has three rows" 3 "$(printf '%s\n' "$CHECKS" | grep -c .)"
-  chk "DC10b and not the cited-not-run REPORT or verify-log --citations, both red on 503946c" 0 "$(printf '%s\n' "$CHECKS" | grep -cE '\|(--citations|)\|')"
+  # DC10: the live list names exactly the four measured-green checks, and not verify-log --citations, still red at #550 round 4
+  chk "DC10 the live list has four rows" 4 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  chk "DC10b and not verify-log --citations, red on deadpath/badcaseid/danglingstory" 0 "$(printf '%s\n' "$CHECKS" | grep -cE '\|--citations\|')"
+  chk "DC10c the cited-not-run REPORT is in, with no argument (round 4: accounted-green 48 of 48)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^cited-not-run-report\|gates/audit/cited-not-run.sh\|\|')"
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
-  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"
+  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
   rm -rf "$T"; echo "door-checks self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
