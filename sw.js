@@ -4,8 +4,10 @@
 // IMPORTANT: only same-origin GETs are handled. Cross-origin requests (Firestore realtime,
 // Firebase SDK on gstatic, Lichess/Chess.com APIs) pass straight to the network untouched —
 // intercepting them breaks Firestore's live connection and forces slow polling.
-const CACHE = 'chess-trainer-v4';
-const ASSETS = ['./','./index.html','./app.js','./lessons.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
+const CACHE = 'chess-trainer-v5';   // #550 ERR-03: v5 precaches the engine
+// #550 ERR-02/ERR-03 (errors-offline check, 12 Nov): the Stockfish engine is in the first install, not only cached on a later visit
+// the worker already controls - after one visit offline, Review was graded without Stockfish and said nothing.
+const ASSETS = ['./','./index.html','./app.js','./lessons.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./stockfish-18-lite-single.js','./stockfish-18-lite-single.wasm'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
