@@ -29,6 +29,7 @@
 // CONTROL-RECORD: 9a6a5c6 2026-11-12 total=227 red=123 scope=trial:749a261311ba how=#550 the tree before this build (HEAD 9a6a5c6, built as t0): 38x30 menus and left/off-centre titles in four sizes (TC-R215a 57 red, b 33), 38- and 36-high Tactics buttons (c 9), the Tactics board 78.5 lower than Strategy's and short of the width at 375x667/320x568 (d 5), the answer in a box under the board (e 3), X mid-bar in the demo and two ⋯ in practice (f 9), the 320x568 lesson board 270.9 with the row under it (g 5), the online game-over board 192 and the page scrolling 80 (h 2) - every case red; on a43f44594f3b 233/0
 // CONTROL-RECORD: faa82a9 2026-11-12 total=385 red=82 scope=trial:9f4f6f823150 how=#550 formatting audit, the rest (TC-R215i..r): the branch tip before it (HEAD faa82a9, built as t0) - no menu and a 119x44 / 102x44 back at 4 on the puzzle pages and drills (i 28 red), the top row at 13, 8, 51.5, 66 and 84 (j 30), 30x30 and 32x32 sheet X and titles 15 to 21 in two fonts (l 6), four solid-coloured online actions (m 1), gutters 18 and 3.8 (n 8), radius 11 and a 59.6 Gambits row (o 2), five section-label styles (p 1), tabs 43, code box 38 and counter 39 (q 5), footer 50/52 and Start game 48 (r 1) - every new case red, a..h and every precondition green; on 8034b0e23279 and on the final d2b943f841ec 401/0
 // CONTROL-RECORD: 3bcb406 2026-11-13 total=9 red=2 scope=env:CT_139_CG_ONLY=1 how=#550 cg8 (jobs/formatting-audit-p1s-2026-11-12 FMT-B-02): the branch tip's tree (trial 85be94e89bc2, the fit loop on the lobby) - TC-R215s 'the lobby board is the screen width' red at kunal761 (337 at x 19) and 320x568 (192 at x 64); the PRECONDITIONS, Join-reachable and error lines green. On t2 ece1e34c6e1c 9/0
+// CONTROL-RECORD: a4772ec 2026-11-13 total=26 red=10 scope=env:CT_139_CG_ONLY=1 how=#550 cg6 (jobs/formatting-audit-p2-p3-2026-11-12 A-07/A-08/A-09/A-11/B-06/B-08): the branch tip's tree (trial 85be94e89bc2) - TC-R215t x3 (note box and moves panel 8, Account sheet 18 and Pro card 14, Solved box 10), u (note 3.8..371.3 against 0..375), v (Try again rgb(74,103,65) against Flip's white 8%), w (lobby labels 14px/700/0.5px against 12.5px/700/1px), x (Sign in 42), y (chips 27) red, with cg8's two TC-R215s board lines; the PRECONDITIONS and error lines green. On t3 e5f06132dab0 26/0
 const L=require('../lib');
 const H=require('../drive/home'),D=require('../drive/lesson'),Z=require('../drive/puzzles'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu');
 const fs=require('fs'),path=require('path');
@@ -69,6 +70,53 @@ L.run(async()=>{
    L.say(r.w!=null&&Math.abs(r.w-r.vw)<=1&&Math.abs(r.x)<=1,'TC-R215s '+tag+' the lobby board is the screen width ('+r.w+' of '+r.vw+' at x '+r.x+')',r);
    L.say(r.join!=null&&r.tab!=null&&r.join<=r.tab+0.5,'TC-R215s '+tag+' Join is reachable by scrolling and ends on screen, above the tab bar if one is shown (bottom '+r.join+', limit '+r.tab+')',r);
    L.say(b.errs.length===0,'TC-R215s '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
+  // ── TC-R215t..y [cg6, jobs/formatting-audit-p2-p3-2026-11-12, the parts not built], at kunal761, every element found by its words or role:
+  //    t (A-09) one card radius, 12: the lesson note box and moves panel (8 on the tip), the puzzle Solved box (10), the Account sheet (18) and
+  //      its Pro card (14); u (A-08) the lesson note box takes the same left and right edges as the row and the moves panel under the board
+  //      (3.8 against 0); v (A-07) the practice Try again is the secondary style, Flip's background (it was green); w (B-08) the online lobby's
+  //      labels are the one section label - the Play setup 'Opponent' label's size, weight, spacing and case (14/700/0.5 against 12.5/700/1);
+  //      x (A-11) the Account sheet's Sign in button is 44 tall (42); y (B-06) the Review More sheet's count chips are 44 tall (27).
+  //    NOT BUILT, measured instead (A-12): at 320x568 the mistakes drill board is 302 because its goal box keeps three lines (54px of text in
+  //    a 74 box) over the board; 320 needs 18px that only cutting that text to two lines would give, so it stays (gate 123 pins 302).
+  {const b=await L.launch({geo:'kunal761',name:'top139-cg6-les',store:{ct_pool:'3'}});await b.open();let ok=true;try{await D.states['demo-m1'](b);await b.settle(1200);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const R=e=>{const q=e.getBoundingClientRect();return {l:+q.left.toFixed(1),r:+q.right.toFixed(1),br:getComputedStyle(e).borderTopLeftRadius};};
+     const note=[...document.querySelectorAll('div')].find(d=>/^1\. e4 — /.test((d.innerText||'').trim())&&getComputedStyle(d).borderTopWidth!=='0px'&&d.getBoundingClientRect().height>40);
+     const mv=[...document.querySelectorAll('div.scroll')].filter(d=>/^1\.\s*e4/.test((d.innerText||'').trim())&&d.getBoundingClientRect().width>200).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];   // the outermost scroller holding the moves
+     const bs=[...document.querySelectorAll('button')].filter(x=>/Now I'll try it|^⟳ Flip$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0).map(R);
+     return {note:note?R(note):null,mv:mv?R(mv):null,row:bs.length?{l:Math.min(...bs.map(x=>x.l)),r:Math.max(...bs.map(x=>x.r))}:null};});
+   L.say(ok&&!!r.note&&!!r.mv&&!!r.row,'TC-R215t lesson demo kunal761 PRECONDITION the note box, the moves panel and the row under the board are found by their words',r);
+   L.say(!!r.note&&!!r.mv&&r.note.br==='12px'&&r.mv.br==='12px','TC-R215t lesson demo kunal761 the note box and the moves panel are radius 12 ('+(r.note&&r.note.br)+' / '+(r.mv&&r.mv.br)+')',r);
+   L.say(!!r.note&&!!r.mv&&!!r.row&&Math.abs(r.note.l-r.row.l)<=0.5&&Math.abs(r.note.r-r.row.r)<=0.5&&Math.abs(r.mv.l-r.row.l)<=0.5&&Math.abs(r.mv.r-r.row.r)<=0.5,'TC-R215u lesson demo kunal761 the note box, the row and the moves panel share one left and right edge (note '+(r.note&&r.note.l+'..'+r.note.r)+', row '+(r.row&&r.row.l+'..'+r.row.r)+', moves '+(r.mv&&r.mv.l+'..'+r.mv.r)+')',r);
+   try{await D.states['practice-m0'](b);await b.settle(1200);}catch(e){}
+   const t=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);const a=f(/^↻( Try again| Again)?$/),fl=[...document.querySelectorAll('button[aria-label="Flip board"]')].find(x=>x.getBoundingClientRect().width>0);
+     return {again:a?getComputedStyle(a).backgroundColor:null,flip:fl?getComputedStyle(fl).backgroundColor:null};});
+   L.say(!!t.again&&!!t.flip,'TC-R215v lesson practice kunal761 PRECONDITION Try again and Flip are on screen',t);
+   L.say(!!t.again&&t.again===t.flip,'TC-R215v lesson practice kunal761 Try again is the secondary style, Flip\'s background ('+t.again+' / '+t.flip+')',t);
+   L.say(b.errs.length===0,'TC-R215t lesson kunal761 zero app errors',b.errs.slice(0,3));await b.close();}
+  {const b=await L.launch({geo:'kunal761',name:'top139-cg6-acct'});await b.open();let ok=true;try{await M.states['menu-skin-pro'](b);await b.settle(800);}catch(e){ok=false;}
+   const a=await b.page.evaluate(()=>{const t=[...document.querySelectorAll('span')].find(x=>(x.innerText||'').trim()==='Account'&&x.getBoundingClientRect().width>0);if(!t)return null;const sh=t.parentElement.parentElement;
+     const g=[...sh.querySelectorAll('button')].find(x=>/Sign in with Google|Sign-in unavailable/.test(x.innerText||'')&&x.getBoundingClientRect().width>0);const pro=[...sh.querySelectorAll('div')].find(d=>/Chess Trainer Pro/.test(d.innerText||'')&&getComputedStyle(d).borderTopWidth!=='0px'&&d.getBoundingClientRect().height>0);
+     return {sheet:getComputedStyle(sh).borderTopLeftRadius,pro:pro?getComputedStyle(pro).borderTopLeftRadius:null,signin:g?+g.getBoundingClientRect().height.toFixed(1):null};});
+   L.say(ok&&!!a&&a.pro!=null&&a.signin!=null,'TC-R215t Account sheet kunal761 PRECONDITION the sheet, its Pro card and its Sign in button are found by their words',a);
+   L.say(!!a&&a.sheet==='12px'&&a.pro==='12px','TC-R215t Account sheet kunal761 the sheet and the Pro card are radius 12 ('+(a&&a.sheet)+' / '+(a&&a.pro)+')',a);
+   L.say(!!a&&a.signin!=null&&a.signin>=43.5,'TC-R215x Account sheet kunal761 Sign in with Google is a 44 tap area ('+(a&&a.signin)+')',a);
+   L.say(b.errs.length===0,'TC-R215t Account sheet zero app errors',b.errs.slice(0,3));await b.close();}
+  {const b=await L.launch({geo:'kunal761',name:'top139-cg6-pz'});await b.open();let ok=true;try{await Z.states['train-solved'](b);}catch(e){ok=false;}
+   const v=await b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^🎉/.test((d.innerText||'').trim())&&d.getBoundingClientRect().width>0).map(d=>getComputedStyle(d).borderTopLeftRadius));
+   L.say(ok&&v.length>0,'TC-R215t puzzle solved kunal761 PRECONDITION the Solved box is on screen ('+v.length+')',v);
+   L.say(v.length>0&&v.every(x=>x==='12px'),'TC-R215t puzzle solved kunal761 the Solved box is radius 12 ('+v.join(', ')+')',v);await b.close();}
+  {let lab=null,sec=null;
+   {const b=await L.launch({geo:'kunal761',name:'top139-cg6-lab'});await b.open();try{await P.states.setup(b);await b.settle(800);}catch(e){}
+    sec=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div,span')].find(x=>x.children.length===0&&/^Opponent$/i.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);if(!e)return null;const s=getComputedStyle(e);return [s.fontSize,s.fontWeight,s.letterSpacing,s.textTransform].join('/');});await b.close();}
+   {const b=await L.launch({geo:'kunal761',name:'top139-cg6-lob',store:{ct_pool:'3'}});await b.ctx.addInitScript(STUB);await b.open();try{await P.states['online-continue'](b);await b.page.waitForFunction(()=>/Play online/.test(document.body.innerText||''),{timeout:15000});await b.settle(1000);}catch(e){}
+    lab=await b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^or (start a private game|join with a code)$/i.test((d.innerText||'').trim())).map(d=>{const s=getComputedStyle(d);return [s.fontSize,s.fontWeight,s.letterSpacing,s.textTransform].join('/');}));await b.close();}
+   L.say(!!sec&&lab.length===2,'TC-R215w online lobby kunal761 PRECONDITION the Play setup label and the two lobby labels are found by their words ('+sec+'; '+lab.join(', ')+')',{sec,lab});
+   L.say(!!sec&&lab.length===2&&lab.every(x=>x===sec),'TC-R215w online lobby kunal761 the lobby labels are the section label ('+lab.join(', ')+' against '+sec+')',{sec,lab});}
+  {const b=await L.launch({geo:'kunal761',name:'top139-cg6-more',store:{ct_pool:'3'}});await b.open();let ok=true;try{await R.states['more-sheet'](b);await b.settle(600);}catch(e){ok=false;}
+   const c=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="rev-sheet"] button')].filter(x=>/^\d+\s*\S.*›$/.test((x.innerText||'').trim().replace(/\n/g,' '))&&x.getBoundingClientRect().width>0).map(x=>+x.getBoundingClientRect().height.toFixed(1)));
+   L.say(ok&&c.length>0,'TC-R215y Review More sheet kunal761 PRECONDITION the count chips are found by their words ('+c.length+')',c);
+   L.say(c.length>0&&c.every(h=>h>=43.5),'TC-R215y Review More sheet kunal761 the count chips are 44 tap areas ('+c.join(', ')+')',c);
+   L.say(b.errs.length===0,'TC-R215y Review More sheet zero app errors',b.errs.slice(0,3));await b.close();}
   if(process.env.CT_139_CG_ONLY)return;   // CT_139_CG_ONLY=1 runs the #550 cg blocks (TC-R215s..) alone
   const fams=new Set();
   for(const [gn,geo] of GEOS)for(const [nm,go,title,hasBack] of SCREENS){const tag=nm+' '+gn;
