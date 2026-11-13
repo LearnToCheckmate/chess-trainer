@@ -179,6 +179,9 @@ const verdictBox=(b)=>b.page.evaluate(()=>{const top=document.querySelector('[da
 //   (b) walking with 'Next >' threw "no board on screen" at 360x640 item 2. The queue is now driven by SEEDING
 //       ONE ENTRY per launch, which is deterministic at every geometry and cannot inherit a 'solved before'
 //       state from the previous item either.
+// #550: a seeded card is marked as already graded (wc), so the a41 Home re-grade does not remove it before the drill opens; the card the
+// app captured is otherwise passed through unchanged. Measured on t164: 'find the move you missed' absent, the harness threw.
+const _graded=(m)=>m&&!m.wc?Object.assign({},m,{wc:{g:m.label||'Mistake',drop:15,v:1}}):m;
 async function drillSolve(b,m){
   await b.tapText(/find the move you missed/,{wait:1500});
   await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
@@ -444,7 +447,7 @@ L.run(async()=>{
    L.note('PHASE 1Q captured '+qmis.length+': '+JSON.stringify(qmis.map(m=>({uci:m.uci,played:m.played,kind:forcingKind(m.fen,m.uci)}))));
    L.say(quiet.length>=1,'TC-R16 B5c DENOMINATOR a real review captured at least one mistake whose better move is QUIET ('+quiet.length+' of '+qmis.length+' from the second reference game) - without it B5c has no input, as on the first fixture',{quiet:quiet.map(m=>m.uci)});
    for(let i=0;i<quiet.length;i++){
-     const c=await L.launch({geo:'kunal761',name:'drill-quiet-'+i,store:{ct_mymistakes:[quiet[i]],ct_pool:'3'}});await c.open();
+     const c=await L.launch({geo:'kunal761',name:'drill-quiet-'+i,store:{ct_mymistakes:[_graded(quiet[i])],ct_pool:'3'}});await c.open();
      let r=null;try{await c.tile('Review');await c.settle(700);r=await drillSolve(c,quiet[i]);}catch(e){r={hint:'<DRILL NOT REACHED: '+String(e).slice(0,60)+'>'};}
      L.say(!!r&&r.hint.length>0&&r.hint.indexOf('<')!==0,'TC-R16 B5c['+(i+1)+'/'+quiet.length+'] '+QTAG+' PRECONDITION the hint button put a hint on screen on the quiet card '+quiet[i].uci,{hint:r&&r.hint});
      L.say(!!r&&r.hint.length>0&&r.hint.indexOf('<')!==0&&!FORCING_HINT.test(r.hint),'TC-R16 B5c['+(i+1)+'/'+quiet.length+'] '+QTAG+' QUIET POSITION (the better move '+quiet[i].uci+' is not a check, a capture or a promotion): the hint on screen does not tell the player to look for a forcing move ("'+(r&&r.hint)+'")',{hint:r&&r.hint});
@@ -455,7 +458,7 @@ L.run(async()=>{
     const seen=[],hints=[];const isC=(g.content===true);let quietN=0;
     for(let i=0;i<N;i++){
       // ONE entry seeded, so the drill opens on it: deterministic, and no 'solved before' carry-over.
-      const c=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill-'+g.n.replace(/\s+/g,'_')+'-'+i,store:{ct_mymistakes:[mis[i]],ct_pool:'3'}});await c.open();
+      const c=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'drill-'+g.n.replace(/\s+/g,'_')+'-'+i,store:{ct_mymistakes:[_graded(mis[i])],ct_pool:'3'}});await c.open();
       await c.tile('Review');await c.settle(700);
       const r=await drillSolve(c,mis[i]);
       if(!r.box){L.say(false,'TC-R16 B0['+(i+1)+'] '+g.n+' the verdict box was not on screen after solving - nothing to measure');await c.close();continue;}
