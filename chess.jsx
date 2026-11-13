@@ -242,6 +242,12 @@ const OPENINGS=window.CTLESSONS.OPENINGS; // #311 split
 // ═══════════════════════════════════════════════════════════════
 //  PGN IMPORT + GAME ANALYSIS
 // ═══════════════════════════════════════════════════════════════
+/* #550 HEX-T-13: a lesson note as a hint in words - the move's own name left out, since the hint asks the player to find it. Removes the SAN
+   (with any move number and !?+# marks) wherever it stands as a word, then tidies the leftover punctuation. '' when nothing is left. */
+function lessonHintWords(note,san){let t=String(note||'').trim();const m=cleanSAN(String(san||''));if(!t||!m)return '';
+  const esc=m.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');t=t.replace(new RegExp('(^|[\\s(\u2014\u2013-])(?:\\d+\\.+\\s*)?'+esc+'[+#!?]*(?=$|[\\s,.;:)!?\u2014\u2013-])','g'),'$1');
+  t=t.replace(/\(\s*\)/g,'').replace(/\s{2,}/g,' ').replace(/^[\s,.;:!?\u2014\u2013-]+/,'').trim();if(!/[A-Za-z]{3}/.test(t))return '';
+  return '\u{1F4A1} '+t.charAt(0).toUpperCase()+t.slice(1)+(/[.!?]$/.test(t)?'':'.');}
 function cleanSAN(s){return s.replace(/[+#!?]/g,'').replace(/0-0-0/gi,'O-O-O').replace(/0-0/gi,'O-O').replace(/e\.p\.?/gi,'').trim();}
 
 function parsePGN(pgn){
@@ -5597,7 +5603,12 @@ function AppMain(){
     return out;
   },[inDemo,boardLast,learnArrows,demoPly]);
   const curNote=inDemo&&demoPly>0?(learnNotes[demoPly-1]||''):'';
-  useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
+  /* #550 HEX-T-13 (jobs/lessons-practice-hints-and-wrong-move-reasons-2026-11-12): with hints on, practice showed an arrow and no words. The
+     hint now also says in words what the book move is for: the lesson's own note for that move (the demo's text), with the move's name left
+     out (lessonHintWords), on the prompt line beside the arrow. Not on a wrong-move line (that already names the book move and its note),
+     not at the finish, not in a free-defender run (its notes describe the scripted line, not the engine's). An empty note adds nothing. */
+  const lessonHintTxt=(mode==='learn'&&learnPhase==='practice'&&openIdx!==null&&showHint&&!freeSt.on&&openStep<learnLine.length&&LIB[openIdx]&&game.turn===LIB[openIdx].side&&!/^(\u2717|\u{1F389})/u.test(openMsg||''))?lessonHintWords(learnNotes[openStep],learnLine[openStep]):'';
+  useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw,lessonHintTxt]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
   useEffect(()=>{setNoteOpen(false);},[openIdx,learnPhase]);
 
   /* #466 (jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27): A GAME MUST NEVER START IN A
@@ -5946,7 +5957,7 @@ function AppMain(){
     if(fitRefitRef.current===0){
       // IDLE. Start a refit only when the content this trim was derived for has actually changed. `fitWake` is in the
       // signature so a flow change React cannot see (the absorber's height moving) starts one too.
-      const base=_geoKey+'|'+learnPhase+'|'+openStep+'|'+demoPly+'|'+(curNote||'').length+'|'+(openMsg||'').length+'|'+(noteOpen?1:0)+'|'+(sqShow?1:0);
+      const base=_geoKey+'|'+learnPhase+'|'+openStep+'|'+demoPly+'|'+(curNote||'').length+'|'+(openMsg||'').length+'|'+lessonHintTxt.length/* #550 HEX-T-13 */+'|'+(noteOpen?1:0)+'|'+(sqShow?1:0);
       if(fitBaseSigRef.current!==base){fitBaseSigRef.current=base;fitWakeNRef.current=0;}   // a NEW content epoch refills the budget; a wake never does
       const sig=base+'|'+fitWake;
       if(fitSigRef.current===sig)return;
@@ -5984,7 +5995,7 @@ function AppMain(){
     // SETTLED. Record where this refit left the absorber, so its own excursion can never wake it again.
     fitRefitRef.current=0;
     if(movesPanelRef.current)fitPanelHRef.current=Math.round(movesPanelRef.current.getBoundingClientRect().height);
-  },[fitPass,fitWake,wide,mode,openIdx,_geoKey,learnPhase,openStep,demoPly,curNote,openMsg,noteOpen,sqShow,_fitOver]);
+  },[fitPass,fitWake,wide,mode,openIdx,_geoKey,learnPhase,openStep,demoPly,curNote,openMsg,lessonHintTxt,noteOpen,sqShow,_fitOver]);
   useLayoutEffect(()=>{
     // #436 THE LOOP DOES NOT RUN IN LANDSCAPE, because there it can only do harm. MEASURED on the shipped
     // #435 bundle, live game vs Pip, at three landscape widths, comparing a fresh landscape launch against a
@@ -7876,7 +7887,10 @@ function AppMain(){
       if(tok!==freeTokRef.current||modeRef.current!=='learn'||learnPhaseRef.current!=='practice')return;
       const v=freeNetVerdict(F.K,pv?sc:null);
       if(!v.ok){learnRepRef.current.miss=true;freeSet({...F,busy:false});setGame(g);setLastMv(F.last||null);setOpenStep(Math.min(line.length-1,F.hist.length-1));
-        setOpenMsg('\u2717 '+san+(v.why==='not-winning'?' throws the win away. Try again.':' lets the king out of the net: the mate is further away now. Try again.'));repaint();return;}
+        /* #550 HEX-T-15 (docs/hint-audit-2026-11-12): the two engine verdicts now name the king's answer - the reply the SAME search returned
+           (pv[0], the move the mate distance was measured after) - so the line says where the king gets out rather than only that it did. */
+        let _rs='';try{const _rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;if(_rm)_rs=toSAN(ng,_rm,applyMove(ng.board,_rm));}catch(e){_rs='';}
+        setOpenMsg('\u2717 '+san+(v.why==='not-winning'?(' throws the win away'+(_rs?(': the king answers '+_rs):'')+'. Try again.'):(' lets the king out of the net'+(_rs?(': after '+_rs+' the mate is further away now'):': the mate is further away now')+'. Try again.')));repaint();return;}
       let rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;const fromEngine=!!rm;if(!rm)rm=freeFallbackReply(ng);
       if(!rm){freeSet({busy:false,over:true});repaint();return;}
       const rsan=toSAN(ng,rm,applyMove(ng.board,rm));const ng2=makeMove(ng,rm);const hist2=hist.concat([ng2]);
@@ -7884,7 +7898,10 @@ function AppMain(){
       const hint=(fromEngine&&pv.length>1)?pv[1]:null;
       setGame(ng2);setLastMv(rm);setOpenStep(Math.min(line.length-1,hist2.length-1));
       if(n>=FREE_MAXMOVES){learnRepRef.current.miss=true;freeSet({hist:hist2,K:v.M,hint:null,off:off2,busy:false,over:true,last:rm});setOpenMsg('\u2717 '+FREE_MAXMOVES+' moves and no mate: by the 50-move rule that is a draw. Tap \u21bb Try again.');repaint();return;}
-      freeSet({hist:hist2,K:v.M,hint,off:off2,busy:false,last:rm});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.');repaint();
+      /* #550 HEX-T-15: a kept move on the book line gets the lesson's own note for it (the demo's reason), after the king's answer. Only while
+         the move AND the reply are both the book's (off2 false), because a note describes the scripted position and may name the reply. */
+      const _fn=off2?'':String((learnNotesRef.current||[])[iBook]||'').trim();
+      freeSet({hist:hist2,K:v.M,hint,off:off2,busy:false,last:rm});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.'+(_fn?(' '+_fn):''));repaint();
     })();
   };
   const sfxMove=(gB,mv)=>{try{if(!gB||!mv)return;const ng=makeMove(gB,mv);let k='move';if(ng&&ng.board&&isInCheck(ng.board,ng.turn))k='check';else if(mv.castle)k='castle';else if(mv.promo)k='promote';else if((gB.board&&gB.board[mv.tr]&&gB.board[mv.tr][mv.tc])||mv.epCap)k='capture';playSfx(k);}catch(e){}};
@@ -10925,7 +10942,7 @@ function AppMain(){
                 ? <span style={{color:'var(--ac2)',fontWeight:600}}>▶ Press Play (or ›) to watch it move by move — you'll be {LIB[openIdx].side==='w'?'White':'Black'}</span>
                 : <span style={{color:'rgba(255,255,255,.92)'}}><span style={{fontWeight:800,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>
               ):(
-                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
+                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{lessonHintTxt?<span data-ct="lesson-hint-words" style={{color:'rgba(255,255,255,.9)'}}>{' '+lessonHintTxt}</span>:null/* #550 HEX-T-13: the hint in words */}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
               )}
             </div>
           </div>
@@ -10941,12 +10958,12 @@ function AppMain(){
           <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'100%',overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
-              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
+              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{lessonHintTxt?<span data-ct="lesson-hint-words" style={{color:'rgba(255,255,255,.9)'}}>{' '+lessonHintTxt}</span>:null/* #550 HEX-T-13: the hint in words */}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
           </div>{noteOver&&<span data-ct="lesson-note-more" style={{position:'absolute',right:7,bottom:6,fontSize:11.5,fontWeight:800,letterSpacing:.3,color:'var(--ac2)',background:'rgba(20,24,32,.92)',border:'1px solid rgba(255,255,255,.18)',borderRadius:7,padding:'2px 7px',pointerEvents:'none'}}>more ▾</span>}</div>
         )}
         {noteOpen&&(<div data-ct="lesson-note-sheet" onClick={()=>setNoteOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:560,background:'#1c2130',borderRadius:'16px 16px 0 0',padding:'14px 16px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -8px 40px rgba(0,0,0,.6)',maxHeight:'70vh',overflowY:'auto',fontSize:16,lineHeight:1.45,color:'rgba(255,255,255,.92)',textAlign:'left'}}>
           {learnPhase==='demo'&&demoPly>0&&<div style={{fontWeight:800,color:'#f0b429',marginBottom:6}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</div>}
-          <div>{learnPhase==='demo'?(curNote||''):(openMsg||'')}</div>
+          <div>{learnPhase==='demo'?(curNote||''):((openMsg||'')+(lessonHintTxt?(' '+lessonHintTxt):''))}</div>
           <button onClick={()=>setNoteOpen(false)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',marginTop:14,minHeight:44}}>Close</button>
         </div></div>)}
         {learnPhase==='demo'&&!lessonFocus&&((<><div style={{margin:'9px auto 0',maxWidth:340,display:'flex',gap:6,alignItems:'stretch'}}>
