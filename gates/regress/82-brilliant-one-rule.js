@@ -27,6 +27,8 @@
 // CONTROL-RECORD: ad34c09 2026-11-11 total=80 red=3 scope=trial:ae73915f78b8 how=#550 item (17): CT_SRC with BRIL_RULE_DEFAULT back to 1 and the bundle before rule 3 (t64) - Z1, Z2 and H0b red; every other line green
 // CONTROL-RECORD: c33e447 2026-11-11 total=80 red=3 scope=trial:1ddf30c42dc4 how=#550 item (20): a mutant whose ct_grades2 switch is ignored (GRADES2 always true, t78) - H0 and both H9 lines red (GRADE_VER 11 and 12 where the rule's own 1 and 2 are expected)
 // CONTROL-RECORD: 3835b96 2026-11-12 total=80 red=3 scope=trial:1ddf30c42dc4 how=#550 round 5, H9 re-key: the mutant whose ct_grades2 switch is ignored (t78) - H0 and both H9 lines red (great 13, the grades-on ladder, where the switch-off copy expects 18); on 764a0b1dc097 80/0
+// CONTROL-RECORD: b1861b0 2026-11-13 total=91 red=1 scope=trial:37af39a67536 how=#550 HEX-T-08: the branch tip bundle t0 - TC-R209f E16 red (10.Nxb5 reads "... still read +3.0 for you. Hard to see, and it holds.", 16.Qb8+ "... it leads to mate. Hard to see, and it holds."); E15, E17-E19 and block H green
+// CONTROL-RECORD: b1861b0 2026-11-13 total=6 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-08: the branch tip's chess.jsx (no brilTaker, no brilRefuteTxt, brilCardWhy without the line) - TC-R209f E9, E10 and E12 red; E11, E13 and E14 green (counted over the E2 block alone)
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');
@@ -95,6 +97,22 @@ L.run(async()=>{
    L.say(/\+2\.5 for you/.test(wb)&&!/-2\.5/.test(wb),'TC-R126 E6 a Black brilliancy at White-frame -2.5 reads "+2.5 for you" on the card: "'+wb+'"');
    L.say(/-2\.5 for you/.test(ww),'TC-R126 E7 the same number for a White mover reads -2.5 (the frame turns, it is not an absolute value): "'+ww+'"');
    L.say(/leads to mate/.test(wm)&&!/99/.test(wm),'TC-R126 E8 a mating line says mate in words, never "+99.0": "'+wm+'"');}
+  // ── E2. THE LINE AFTER THE CAPTURE, IN PLACE OF THE NUMBER [#550 HEX-T-08; jobs/brilliant-drill-hint-and-explanation-concrete-2026-11-12] ──
+  // The audit's own card: 6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w, h4 with the queen LEFT on c2 (the hanging arm). The capture is
+  // of the queen on c2 (brilTaker), not of the pawn that moved (sacTaker finds none on h4); the engine's answer after it is FIXED here as a
+  // pv every ply of which is checked legal by the app's own uciToMove inside sacLine: Bxc2 Rxc2+ Kxc2, all captures.
+  {const p=E.fromFEN('6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w - - 0 1'),m=mv(p,'h2','h4');const hg={arm:'hang',gSq:'c2',gT:'q',given:9};
+   const t=typeof E.brilTaker==='function'?E.brilTaker(p,m,hg):null;
+   L.say(!!t&&/^Rxc2\+$/.test(t.san||''),'TC-R209f E9 the hanging arm\'s capture is of the piece left on c2 ('+(t&&t.san)+'), where the landing-square taker finds '+(E.sacTaker(p,m)?'one':'none'));
+   const rt=(t&&typeof E.brilRefuteTxt==='function')?E.brilRefuteTxt(t,['d3c2','a2c2','d2c2'],true,450,null):'';
+   L.say(rt==='If Rxc2+, Bxc2 Rxc2+ Kxc2 and you are winning.','TC-R209f E10 the refutation reads the forcing line after the capture with the verdict in the player\'s frame ("'+rt+'")');
+   const rt0=(t&&typeof E.brilRefuteTxt==='function')?E.brilRefuteTxt(t,['d3c2','a2c2','d2c2'],false,450,null):'';
+   L.say(rt0==='','TC-R209f E11 a search that did not deliver its best move (ok false) gives NO line, so the card keeps its sentence ("'+rt0+'")');
+   const wq=E.brilCardWhy({gate:hg,motifs:[],evalAfter:4.4},'w',rt),w0=E.brilCardWhy({gate:hg,motifs:[],evalAfter:4.4},'w');
+   L.say(!!rt&&wq==='You left the queen on c2 to be taken. '+rt&&!/Hard to see|\+4\.4/.test(wq),'TC-R209f E12 the card prints the line in place of the number and "Hard to see, and it holds." ("'+wq+'")');
+   L.say(/Hard to see, and it holds\.$/.test(w0),'TC-R209f E13 with no line the card reads as before ("'+w0+'")');
+   const wf=E.brilCardWhy({gate:hg,motifs:['fork'],forkT:['queen','rook'],evalAfter:4.4},'w',rt);
+   L.say(/It forks the queen and the rook\.$/.test(wf),'TC-R209f E14 a fork card keeps its own closing, which already names the pieces ("'+wf+'")');}
 
   // ── F. THE FORK, NAMED ──────────────────────────────────────────────────────────────────────────────────────────────────────
   {const p=E.fromFEN('6k1/3q1p1p/8/8/4N3/8/6K1/8 w - - 0 1'),m=mv(p,'e4','f6');const ft=E.forkTargets(p,m),tx=E.forkTxt(ft);
@@ -150,6 +168,7 @@ L.run(async()=>{
   const store=(gv)=>({ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_gamestats:{[gk]:{...stored,gv}},ct_evalcache:{[ckey(sans)]:{...FXR.cache,at:Date.now()}},ct_mybrilliancies:[],ct_bril_rule:'2',ct_grades2:'0'});   // #550 item (20): the grades switch off, so GRADE_VER is the rule's own (1, 2 or 3) and the H block reads the brilliant regrade alone
   const read=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="regrade-preview"]');let gs={},mb=[];try{gs=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}try{mb=JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){}
     return {shown:!!s,text:s?s.innerText.replace(/\s+/g,' '):'',adds:[...document.querySelectorAll('[data-ct="regrade-add"]')].map(e=>e.innerText),drops:[...document.querySelectorAll('[data-ct="regrade-drop"]')].map(e=>e.innerText),gs,mb};});
+  if(process.env.CT_G82_NODE_ONLY){L.note('CT_G82_NODE_ONLY set: the browser half of block H is skipped');return;}   // #550 HEX-T-08: node blocks alone, no browser
   {const st=store(1);st.ct_bril_rule='1';const b=await L.launch({geo:'kunal761',name:'r105-off',store:st});await b.open();await b.tile('Review');await b.settle(1500);
    const r=await read(b);L.say(!r.shown&&r.gs[gk]&&r.gs[gk].gv===1&&r.gs[gk].bril===1,'kunal761: TC-R130 H0 with the rule OFF (ct_bril_rule 1, the switch at off) a review graded under version 1 opens NO sheet and is not touched');
    await b.close();}
@@ -182,4 +201,19 @@ L.run(async()=>{
      const r=await read(b);L.say(!r.shown&&r.gs[gk]&&r.gs[gk].bril===1,geo+': TC-R130 H14 a review already graded under this version opens NO sheet and is not touched');
      await b.close();}
   }
+  // ── E3. THE CARD THE REVIEW STORES, ON THE BUNDLE [#550 HEX-T-08] ─────────────────────────────────────────────────────────────
+  // The Opera Game from the seeded account's own games list (drive/review SEED: Jsmiller1112 as White), reviewed by the app's engine; the
+  // Brilliant cards it writes to ct_mybrilliancies are read back. Measured on trial 983bc1598719: 10.Nxb5 reads "If cxb5, Bxb5+ ..." and
+  // 16.Qb8+ "If Nxb8, Rd8#." - both the game's own continuation; the fork card (13.Rxd7) keeps its fork sentence.
+  {const R=require('../drive/review');const st=Object.assign({},R.SEED,{ct_ccuser:'jsmiller1112',ct_pool:'3'});
+   const b=await L.launch({geo:'kunal761',name:'r209f-cards',store:st});await b.open();let ok=true;
+   try{await b.tile('Review');await b.settle(1200);await b.tapText(/DukeKarlCountIsouard99/,{wait:1500});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(10000);}catch(e){ok=false;}
+   const cards=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){return [];}});
+   const by=u=>(cards.find(c=>c.uci===u)||{}).why||'';
+   L.say(ok&&cards.length>=3&&!!by('c3b5')&&!!by('b3b8'),'TC-R209f E15 PRECONDITION the Opera Game was reviewed and its Brilliant cards stored ('+cards.length+': '+cards.map(c=>c.uci).join(', ')+')');
+   L.say(/^You gave up the knight for a pawn\. If cxb5, Bxb5\+/.test(by('c3b5'))&&/^You gave up the queen on b8\. If Nxb8, Rd8#\.$/.test(by('b3b8')),'TC-R209f E16 the two sacrifice cards give the line after the capture, not the number and "Hard to see" ("'+by('c3b5')+'" / "'+by('b3b8')+'")');
+   L.say(/It forks the queen and the rook\.$/.test(by('d1d7')),'TC-R209f E17 the fork card keeps its own sentence ("'+by('d1d7')+'")');
+   L.say(!cards.some(c=>'_o' in c||'_mc' in c),'TC-R209f E18 the stored cards carry no working fields (_o, _mc)');
+   L.say(b.errs.length===0,'TC-R209f E19 zero app errors',b.errs.slice(0,3));
+   await b.close();}
 },'82-brilliant-one-rule');

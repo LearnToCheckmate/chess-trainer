@@ -26,6 +26,7 @@
 // the shipped trial a943b81e0a47: 94 pass / 0 fail, twice.
 // CONTROL-RECORD: 8652829 2026-11-06 total=55 red=17 scope=trial:13835aeec175 how=startPractice sets the free run off (on:false&&...), so the lesson practises the script again - every TC-LS-055 move/strip/Bc4+/reply line red at all three sizes and TC-LS-056 red (Bf6 refused as "isn't the line", no mate, no loosening reached); the run stops early, hence total 55
 // CONTROL-RECORD: 8652829 2026-11-06 total=94 red=6 scope=trial:2457021b0763 how=freeNetVerdict's slack widened to K+30 and its lost-mate arm disabled (K<=-1), bundle and CT_SRC - TC-LS-054 looser x2 and lost-mate red, TC-LS-056 the loosening move (Kd7, mate 4 to none) ACCEPTED and the run's last three lines red
+// CONTROL-RECORD: f8fb292 2026-11-13 total=97 red=2 scope=trial:37af39a67536 how=#550 HEX-T-15: the branch tip bundle t0 (before the kept-move note and the named reply) - both TC-LS-063 lines red at kunal761 (no note after Be5 Kd7; the refusal names no reply); every TC-LS-054..056 line green
 'use strict';
 const L=require('../lib');
 const D=require('../drive/lesson');
@@ -181,7 +182,16 @@ L.run(async()=>{
     let g=E.fromFEN('8/8/4k3/8/3BK3/8/4B3/8 w - - 0 1');
     const p0=await position(b);const nh=await tapMove(b,E,g,bySan(E,g,'Bf6'));const ph=await position(b);
     L.say(/^✗ Bf6 leaves your bishop on f6/.test(nh)&&ph===p0,'TC-LS-056 '+geo+': Bf6, where the king takes the bishop, is refused and the board does not move',nh);
-    let tested=null;
+    // TC-LS-063 [#550 HEX-T-15]: a kept move on the book line reads the lesson's own note for it, after the king's answer, and only while the
+    // move and the reply are both the book's. Be5 is the book's first move; the note expected is READ from window.CTLESSONS, not typed here.
+    {const bn=await b.page.evaluate(()=>{const C=window.CTLESSONS||{};for(const k of Object.keys(C))for(const o of (C[k]||[]))if(o.name==='Two Bishops Mate')return o.notes[0];return null;});
+     const be5=bySan(E,g,'Be5');const nb=await tapMove(b,E,g,be5);const rs=(nb.match(/answers (\S+?)\./)||[])[1];const ng=E.makeMove(g,be5);const rm=rs&&bySan(E,ng,rs);
+     L.say(/^✓ Be5/.test(nb)&&!!rm&&!!bn,'TC-LS-063 '+geo+' PRECONDITION the book move Be5 is kept and the king answers with a legal move ('+(rs||'none')+')',nb);
+     const onBook=!!rm&&E.cleanSAN(rs)==='Kd7';
+     L.say(onBook?(nb.indexOf(String(bn).trim())>0&&nb.indexOf('answers '+rs+'.')<nb.indexOf(String(bn).trim())):(nb.indexOf(String(bn).trim())<0),'TC-LS-063 '+geo+': '+(onBook?'move and reply on the book (Be5 Kd7): the line gives the lesson\'s note for Be5 after the king\'s answer':'the reply left the book ('+rs+'): the book\'s note is NOT shown'),{note:nb,bookNote:bn});
+     L.note('TC-LS-063 '+geo+': arm run = '+(onBook?'on-book (note present)':'off-book (note absent)'));
+     if(rm){g=E.makeMove(ng,rm);}}
+    let tested=null,testedAt=null;
     const before=async(gg)=>{if(tested)return null;const r=await sfGo(b,E.toFEN(gg),300);if(!r||r.mate==null||r.mate<=0||r.mate>4)return null;
       const K=r.mate;let worst=null;
       for(const m of E.getLegal(gg)){const ng=E.makeMove(gg,m);if(E.getStatus(ng)!=='playing'&&E.getStatus(ng)!=='check')continue;
@@ -189,9 +199,14 @@ L.run(async()=>{
         const s=await sfGo(b,E.toFEN(ng),250);const M=(s&&s.mate!=null&&s.mate<0)?-s.mate:99;if(!worst||M>worst.M)worst={m,M};}
       tested={K,worst:worst&&{san:sanOf(E,gg,worst.m),M:worst.M}};
       if(!worst||worst.M<K+3){tested.skip=true;return null;}
-      const pa=await position(b);const n=await tapMove(b,E,gg,worst.m);const pb=await position(b);tested.note=n;tested.same=pa===pb;return null;};
-    const R=await driveToMate(b,E,g,0,{beforeMove:before});
+      const pa=await position(b);const n=await tapMove(b,E,gg,worst.m);const pb=await position(b);tested.note=n;tested.same=pa===pb;testedAt={gg,m:worst.m};return null;};
+    const R=await driveToMate(b,E,g,2,{beforeMove:before});
     L.say(!!tested&&!tested.skip,'TC-LS-056 '+geo+' PRECONDITION the run reached mate in 4 or fewer and found a move that loosens it by 3 or more',tested);
+    // TC-LS-063 [#550 HEX-T-15]: the refusal names the king's answer from the app's own search, and that answer is a legal king move in the
+    // position after the refused move (checked here with the app's own move code, so the line cannot name a move that is not on the board).
+    {const mm=(tested&&tested.note||'').match(/out of the net: after (\S+) the mate is further away/);let legal=false;
+     if(mm&&testedAt){const ng=E.makeMove(testedAt.gg,testedAt.m);const rm=bySan(E,ng,mm[1]);legal=!!rm&&ng.board[rm.fr][rm.fc]&&ng.board[rm.fr][rm.fc].t==='k';}
+     L.say(!!mm&&legal,'TC-LS-063 '+geo+': the loosening move\'s refusal names where the king goes ("'+(mm?mm[1]:'no reply named')+'"), a legal king move after it',tested&&tested.note);}
     L.say(!!tested&&!tested.skip&&/^✗ .* lets the king out of the net/.test(tested.note||'')&&tested.same,'TC-LS-056 '+geo+': that loosening move ('+(tested&&tested.worst&&tested.worst.san)+', mate in '+(tested&&tested.K)+' -> '+(tested&&tested.worst&&(tested.worst.M===99?'none seen':tested.worst.M))+') is refused and the board does not move',tested&&tested.note);
     L.say(R.mated,'TC-LS-056 '+geo+': after the refusals the run still ends in checkmate ('+(R.mated?'ply '+R.ply:R.why)+')',R.last);
     L.say(/wrong try/i.test(R.last||'')&&(await learnDays(b))===0,'TC-LS-056 '+geo+': a run with a refused move banks nothing (ct_learnprog: '+(await learnDays(b))+' days)',R.last);

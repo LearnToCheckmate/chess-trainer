@@ -15,6 +15,7 @@
 // job's two benchmark positions, each card's stored move set to another legal move so cxb5 and Nxd7 are wrong there.
 // CONTROL-RECORD: c539ae4 2026-11-11 total=21 red=5 scope=trial:8b141ccb9067 how=#550 item (24): the tree before say-why - TC-R200c at both geometries and the three TC-R200d lines red; A, B and E green
 // CONTROL-RECORD: c539ae4 2026-11-11 total=8 red=5 scope=env:CT_SRC=c124-null how=wrongWhy and replyWhy both returning null - TC-R200a A1 A3 and TC-R200b B1 B2 B3 red
+// CONTROL-RECORD: 66bcd7f 2026-11-13 total=12 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-03: the branch tip's chess.jsx (before the gist and the baseline) - TC-R209e B5 and B7 red; B6, B8 and every A/B line green
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('124-wrong-move-says-why: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-B); bundle '+(process.env.CT_APP||'app.js')+' (blocks C-E)');
@@ -39,7 +40,18 @@ L.run(async()=>{
    L.say(t2==='allows mate in 2 (Qb8+)','TC-R200b B2 Nxd7: the engine\'s mate in 2 reads "allows mate in 2 (Qb8+)" ('+t2+')');
    L.say(!!t1&&!!t2&&t1!==t2,'TC-R200b B3 the two benchmark positions get DIFFERENT reasons');
    const t3=E.replyWhy(g1,r1,{cp:40,mate:null});
-   L.say(t3===null,'TC-R200b B4 the same reply at +0.40 (not clearly worse) and only a pawn captured gives NO reason: a pawn won is not named, a level band is not a reason ('+t3+')');}
+   L.say(t3===null,'TC-R200b B4 the same reply at +0.40 (not clearly worse) and only a pawn captured gives NO reason: a pawn won is not named, a level band is not a reason ('+t3+')');
+   // #550 HEX-T-03 (docs/hint-audit-2026-11-12; jobs/drill-hints-name-the-positions-point-2026-11-12): the reply described by what it does
+   // (moveGist's threat, board-proven) and the drill's baseline (base: the engine's score BEFORE the wrong move, mover's side). B5-B8.
+   const q=E.fromFEN('4k3/8/2n5/8/8/8/8/4KB2 b - - 0 1'),gq=E.makeMove(q,mvOf(q,'e8','d8')),rq=mvOf(gq,'f1','b5');   // after Kd8 the c6 knight has no guard; Bb5 is a new attack on it
+   const t5=E.replyWhy(gq,rq,{cp:300,mate:null});
+   L.say(t5==='allows Bb5, which hits the knight on c6, and leaves you losing','TC-R209e B5 a reply that hits an unguarded piece is described by what it does, beside the band ('+t5+')');
+   const t6=E.replyWhy(gq,rq,{cp:20,mate:null});
+   L.say(t6===null,'TC-R209e B6 the same reply with the position level (no band, no baseline) gives NO reason: a threat that costs nothing is not one ('+t6+')');
+   const t7=E.replyWhy(g1,r1,{cp:40,mate:null},3.0);
+   L.say(t7==='allows Bxb5+: you go from winning to level','TC-R209e B7 cxb5 with the drill\'s baseline (+3.0 before, -0.4 after, for Black): the slide from winning to level is named ('+t7+')');
+   const t8=E.replyWhy(g1,r1,{cp:40,mate:null},0.6);
+   L.say(t8===null,'TC-R209e B8 the same reply from a baseline of +0.6 (a drop of 1.0, one band) gives no reason, as B4 ('+t8+')');}
   if(process.env.CT_SRC){L.note('CT_SRC set: browser blocks C-E skipped');return;}
   // ── C. PUZZLES: Re7 on the first library puzzle, the one-line row ──────────────────────────────────────────────────────────────
   {const Z=require('../drive/puzzles');

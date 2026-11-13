@@ -242,6 +242,12 @@ const OPENINGS=window.CTLESSONS.OPENINGS; // #311 split
 // ═══════════════════════════════════════════════════════════════
 //  PGN IMPORT + GAME ANALYSIS
 // ═══════════════════════════════════════════════════════════════
+/* #550 HEX-T-13: a lesson note as a hint in words - the move's own name left out, since the hint asks the player to find it. Removes the SAN
+   (with any move number and !?+# marks) wherever it stands as a word, then tidies the leftover punctuation. '' when nothing is left. */
+function lessonHintWords(note,san){let t=String(note||'').trim();const m=cleanSAN(String(san||''));if(!t||!m)return '';
+  const esc=m.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');t=t.replace(new RegExp('(^|[\\s(\u2014\u2013-])(?:\\d+\\.+\\s*)?'+esc+'[+#!?]*(?=$|[\\s,.;:)!?\u2014\u2013-])','g'),'$1');
+  t=t.replace(/\(\s*\)/g,'').replace(/\s{2,}/g,' ').replace(/^[\s,.;:!?\u2014\u2013-]+/,'').trim();if(!/[A-Za-z]{3}/.test(t))return '';
+  return '\u{1F4A1} '+t.charAt(0).toUpperCase()+t.slice(1)+(/[.!?]$/.test(t)?'':'.');}
 function cleanSAN(s){return s.replace(/[+#!?]/g,'').replace(/0-0-0/gi,'O-O-O').replace(/0-0/gi,'O-O').replace(/e\.p\.?/gi,'').trim();}
 
 function parsePGN(pgn){
@@ -1395,12 +1401,28 @@ function wrongWhy(pos,mv){
 // own score for the position, in the band words the drill's sentences already use (whyBand), and only when that band is clearly worse or
 // lower. sc is the engine's last score, from the side to move after the wrong move (the opponent), so it is turned round for the mover.
 // A pawn won is not named: after cxb5 Bxb5+ the capture is a pawn while the line is about five pawns, so "winning material" misled.
-function replyWhy(g2,r,sc){
+/* #550 HEX-T-03 (docs/hint-audit-2026-11-12; jobs/drill-hints-name-the-positions-point-2026-11-12): the engine-line half said only the band,
+   and only when the band after the reply was clearly worse - so a reply that won nothing outright but hit a piece read "allows Qa5 and leaves
+   you clearly worse" or nothing at all, and a slide from winning to level said nothing. Two additions, both from facts the caller has:
+   (1) the reply is described by moveGist when it makes a threat the board proves (a piece of the mover's it newly hits, chases or pins, SEE
+   included) - on 4k3/8/2n5/8/8/8/8/4KB2 b after Kd8, "allows Bb5, which hits the knight on c6" (gate 124 B5); (2) `base` is the engine's score for the position BEFORE the wrong move, from the
+   mover's side (the caller's second search; null when it has none), so a drop of 1.5 pawns or more that crosses a band reads
+   "... : you go from winning to level" even when the band after is not below -1.5. Where both hold they are joined. */
+function replyWhy(g2,r,sc,base){
   try{const s=toSAN(g2,r,applyMove(g2.board,r)),g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return 'allows mate ('+s+')';
     if(sc&&sc.mate!=null&&sc.mate>0)return 'allows mate in '+sc.mate+' ('+s+')';
     const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
     const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
-    if(sc&&typeof sc.cp==='number'){const v=-sc.cp/100;if(v<=-1.5)return 'allows '+s+' and leaves you '+whyBand(v);}
+    let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
+    let band='';
+    if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;
+      if(v<=-1.5)band=' and leaves you '+whyBand(v);
+      else if(typeof base==='number'&&isFinite(base)&&base-v>=1.5&&whyBand(base)!==whyBand(v))band=': you go from '+whyBand(base)+' to '+whyBand(v);}
+    /* the threat is named only where the engine says it cost something (a band above, or a drop of a pawn or more from base): a reply that
+       hits a piece in a position that stays level is not a reason, and TC-R200b B4 keeps "a level band is not a reason" */
+    const _cost=!!band||(sc&&typeof sc.cp==='number'&&sc.mate==null&&typeof base==='number'&&isFinite(base)&&base-(-sc.cp/100)>=1.0);
+    if(gist&&_cost)return 'allows '+s+', which '+gist+(band?(band.charAt(0)===':'?band:(','+band)):'');
+    if(band)return 'allows '+s+band;
     return null;
   }catch(e){return null;}
 }
@@ -1714,6 +1736,28 @@ function refuteTxt(R){
   const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
   if(!line.length)return '';
   return 'If '+R.capSan+', '+line.join(' ')+(R.verdict?(' '+R.verdict):'')+'.';
+}
+/* #550 HEX-T-08: the capture a Brilliant card's sacrifice invites, for the card's explanation. The landing arm is sacTaker's capture of the
+   piece that moved; the HANGING arm (gate.arm 'hang') is the capture of the piece LEFT on gate.gSq, which sacTaker cannot see - the audit's
+   own card, h4 with the queen left on c2, is that arm. Cheapest capturer first, as sacTaker. null when nothing can take it. */
+function brilTaker(pos,mv,gate){
+  try{if(!(gate&&gate.arm==='hang'&&gate.gSq))return sacTaker(pos,mv);
+    const g1=makeMove(pos,mv);const [r,c]=sq2rc(gate.gSq);const caps=getLegal(g1).filter(m=>m.tr===r&&m.tc===c);if(!caps.length)return null;
+    caps.sort((a,b)=>(VAL[(g1.board[a.fr][a.fc]||{}).t]||0)-(VAL[(g1.board[b.fr][b.fc]||{}).t]||0));
+    const cap=caps[0];return {game:g1,move:cap,san:toSAN(g1,cap,applyMove(g1.board,cap)),after:makeMove(g1,cap)};
+  }catch(e){return null;}
+}
+/* #550 HEX-T-08: the card's refutation sentence from one engine answer on the position after that capture - the review's own pieces
+   (sacLine's forcing rule, sacKeep's real-answer test, refuteTxt's shape) and the review's verdict thresholds, in the player's "you".
+   cpW / mtW are the engine's score after the capture in White's frame (mtW as mateW gives it). '' when the answer is not a real one. */
+function brilRefuteTxt(t,pv,ok,cpW,mtW){
+  try{if(!t||!t.after||!t.game)return '';const line=sacLine(t.after,pv);if(!sacKeep(ok,line))return '';
+    const mover=opp(t.game.turn);let verdict='';
+    if(!/#/.test(line[line.length-1])){
+      if(mtW!=null){const forMover=(mtW>0)===(mover==='w');verdict=forMover?(Math.abs(mtW)<1?'and it is mate':('and it is mate in '+Math.abs(mtW))):'';}
+      else if(cpW!=null){const c=mover==='w'?cpW:-cpW;verdict=c>=300?'and you are winning':c>=100?'and you keep a clear edge':c>=-30?'and you hold':'';}}
+    return refuteTxt({capSan:t.san,replyLine:line,verdict});
+  }catch(e){return '';}
 }
 /* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
    that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
@@ -2769,8 +2813,13 @@ function brilliantV1ok(g){
   return g.loss<cap&&s&&g.evAfter>=0.8&&g.evBefore>-1.0&&g.evBefore<4.5;
 }
 /* The practice card's sentence for a Brilliant, from a review row (one builder, used by the review's capture and by the regrade). */
-function brilCardWhy(o,mc){
+/* #550 HEX-T-08 (docs/hint-audit-2026-11-12; jobs/brilliant-drill-hint-and-explanation-concrete-2026-11-12): 107 of 129 cards ended "Hard to
+   see, and it holds." with the engine's number in the middle. `ref` is the line that follows the capture ("If Rxc2+, Bxc2 Rxc2+ Kxc2 and you
+   are winning.", brilRefuteTxt below, searched when the card is captured); where the card would otherwise close on that generic phrase, the
+   line replaces the number and the phrase. A mate, a fork, a discovered check or a promotion keeps its own closing, as before. */
+function brilCardWhy(o,mc,ref){
   const _g=(o&&o.gate)||{};const _mo=(o&&o.motifs)||[];
+  if(ref&&!(_mo.indexOf('mate')>=0||_mo.indexOf('fork')>=0||_mo.indexOf('discovered check')>=0||_mo.indexOf('promotion')>=0))return brilGiveTxt(_g,true)+'. '+ref;
   const _evM=(o&&typeof o.evalAfter==='number')?(mc==='w'?1:-1)*o.evalAfter:null;
   const _stand=(_evM==null||_mo.indexOf('mate')>=0)?'':(Math.abs(_evM)>=99?(_evM>0?', and it leads to mate':', and the engine still finds a mate against you'):(' and the position still read '+(_evM>0?'+':'')+_evM.toFixed(1)+' for you'));
   return brilGiveTxt(_g,true)+_stand+'. '+
@@ -5612,7 +5661,12 @@ function AppMain(){
     return out;
   },[inDemo,boardLast,learnArrows,demoPly]);
   const curNote=inDemo&&demoPly>0?(learnNotes[demoPly-1]||''):'';
-  useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
+  /* #550 HEX-T-13 (jobs/lessons-practice-hints-and-wrong-move-reasons-2026-11-12): with hints on, practice showed an arrow and no words. The
+     hint now also says in words what the book move is for: the lesson's own note for that move (the demo's text), with the move's name left
+     out (lessonHintWords), on the prompt line beside the arrow. Not on a wrong-move line (that already names the book move and its note),
+     not at the finish, not in a free-defender run (its notes describe the scripted line, not the engine's). An empty note adds nothing. */
+  const lessonHintTxt=(mode==='learn'&&learnPhase==='practice'&&openIdx!==null&&showHint&&!freeSt.on&&openStep<learnLine.length&&LIB[openIdx]&&game.turn===LIB[openIdx].side&&!/^(\u2717|\u{1F389})/u.test(openMsg||''))?lessonHintWords(learnNotes[openStep],learnLine[openStep]):'';
+  useEffect(()=>{const el=noteInnerRef.current;if(!el){setNoteOver(false);return;}try{el.scrollTop=0;}catch(e){}const over=el.scrollHeight>el.clientHeight+1;setNoteOver(over);if(!over)setNoteOpen(false);},[demoPly,openMsg,curNote,learnPhase,openIdx,mode,vw,lessonHintTxt]); /* #375: the note box scrolls, and a tap opens the whole note - it used to drop its last line for good */
   useEffect(()=>{setNoteOpen(false);},[openIdx,learnPhase]);
 
   /* #466 (jobs/play-from-here-at-a-terminal-ply-starts-a-lost-game-2026-09-27): A GAME MUST NEVER START IN A
@@ -5969,7 +6023,7 @@ function AppMain(){
     if(fitRefitRef.current===0){
       // IDLE. Start a refit only when the content this trim was derived for has actually changed. `fitWake` is in the
       // signature so a flow change React cannot see (the absorber's height moving) starts one too.
-      const base=_geoKey+'|'+learnPhase+'|'+openStep+'|'+demoPly+'|'+(curNote||'').length+'|'+(openMsg||'').length+'|'+(noteOpen?1:0)+'|'+(sqShow?1:0);
+      const base=_geoKey+'|'+learnPhase+'|'+openStep+'|'+demoPly+'|'+(curNote||'').length+'|'+(openMsg||'').length+'|'+lessonHintTxt.length/* #550 HEX-T-13 */+'|'+(noteOpen?1:0)+'|'+(sqShow?1:0);
       if(fitBaseSigRef.current!==base){fitBaseSigRef.current=base;fitWakeNRef.current=0;}   // a NEW content epoch refills the budget; a wake never does
       const sig=base+'|'+fitWake;
       if(fitSigRef.current===sig)return;
@@ -6007,7 +6061,7 @@ function AppMain(){
     // SETTLED. Record where this refit left the absorber, so its own excursion can never wake it again.
     fitRefitRef.current=0;
     if(movesPanelRef.current)fitPanelHRef.current=Math.round(movesPanelRef.current.getBoundingClientRect().height);
-  },[fitPass,fitWake,wide,mode,openIdx,_geoKey,learnPhase,openStep,demoPly,curNote,openMsg,noteOpen,sqShow,_fitOver]);
+  },[fitPass,fitWake,wide,mode,openIdx,_geoKey,learnPhase,openStep,demoPly,curNote,openMsg,lessonHintTxt,noteOpen,sqShow,_fitOver]);
   useLayoutEffect(()=>{
     // #436 THE LOOP DOES NOT RUN IN LANDSCAPE, because there it can only do harm. MEASURED on the shipped
     // #435 bundle, live game vs Pip, at three landscape widths, comparing a fresh landscape launch against a
@@ -7276,7 +7330,7 @@ function AppMain(){
           if(MISSED_BRIL&&out[i].mbril&&out[i].mbril.move&&res.positions[i]&&L!=='Brilliant'){
             const mm=out[i].mbril.move,mu=rc2sq(mm.fr,mm.fc)+rc2sq(mm.tr,mm.tc)+(mm.promo||'');let _pl='';try{_pl=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
             let _mw='';try{_mw=brilCardWhy({gate:out[i].mbril.gate,motifs:moveMotifs(res.positions[i],mm),evalAfter:out[i].evalBefore,forkT:forkTargets(res.positions[i],mm)},mc);}catch(e){_mw='';}
-            bril.push({fen:toFEN(res.positions[i]),uci:mu,label:'Brilliant',missed:true,played:_pl,ts:Date.now(),last:lastOf(i),why:_mw,no:Math.floor((_pb+i)/2)+1});
+            bril.push({fen:toFEN(res.positions[i]),uci:mu,label:'Brilliant',missed:true,played:_pl,ts:Date.now(),last:lastOf(i),why:_mw,no:Math.floor((_pb+i)/2)+1,_o:{gate:out[i].mbril.gate,motifs:moveMotifs(res.positions[i],mm),evalAfter:out[i].evalBefore,forkT:forkTargets(res.positions[i],mm)},_mc:mc/* #550 HEX-T-08: dropped before the card is stored */});
           }
           if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -7285,7 +7339,7 @@ function AppMain(){
                and a fork's two targets with it. evalAfter is White's frame, so a Black brilliancy used to read as a minus number for the
                player who made it, and a mating line read "+99.0". */
             const _why=brilCardWhy(out[i],mc);
-            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor((_pb+i)/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
+            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor((_pb+i)/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */,_o:out[i],_mc:mc/* #550 HEX-T-08: dropped before the card is stored */});
           }
         }
         /* #426 antagonist B, P0-3, MEASURED: this merge is fen-keyed and used to DROP every position it
@@ -7305,6 +7359,15 @@ function AppMain(){
           const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;const fa=toFEN(makeMove(g0,m0));
           const tail=async(ms)=>{const pv=await sfBestLine(fa,ms);return pv&&pv.length?bestLineTail(c.fen,[c.uci,...pv],3,c.no,c.uci):'';};
           let t=await tail(300);if(!t)t=await tail(900);/* a 300ms pv can stop after one reply; one longer try */if(t)c.line=t;}catch(e){}}}
+        /* #550 HEX-T-08: a Brilliant card whose sentence would close on "Hard to see, and it holds." gets the line that follows the capture
+           instead, from one 700ms search (the review's own sacRun budget) on the position after the capture brilTaker names. Bounded like the
+           mistake cards above: 12 cards, the analysis engine up; a card whose search gives no real answer keeps the sentence it had. */
+        if(bril.length&&useSF&&sfAnaReadyRef.current){for(const c of bril.slice(0,12)){try{
+          if(!c._o||!/Hard to see, and it holds\.$/.test(c.why||''))continue;const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;
+          const t=brilTaker(g0,m0,c._o.gate);if(!t)continue;const fa=toFEN(t.after);const sgn=((fa.split(' ')[1]||'w')==='w')?1:-1;let cpW=null,mtW=null,ok=false;
+          const pv=await sfBestLine(fa,700,(sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){mtW=mateW(sc.mate,sgn);cpW=null;}else if(sc.cp!=null){cpW=sgn*sc.cp;mtW=null;}},(o)=>{ok=o;});
+          const rt=brilRefuteTxt(t,pv,ok,cpW,mtW);if(rt)c.why=brilCardWhy(c._o,c._mc,rt);}catch(e){}}}
+        for(const c of bril){delete c._o;delete c._mc;}
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
@@ -7313,7 +7376,12 @@ function AppMain(){
           const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
           const changed=add.length||up.some((x,i)=>x!==prev[i]);
           return changed?capMistakes([...add,...up],150):prev;});   /* #548 item (132): practised first, then oldest */
-        if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,80):prev;});
+        if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));
+          /* #550 HEX-T-08: a card already in the deck that still closes on the generic phrase takes the fresh capture's line when the same position
+             is reviewed again (the mistakes merge above does the same for a missing why); nothing else about it changes */
+          const fresh=new Map(bril.map(c=>[c.fen+'|'+c.uci,c]));let up=false;
+          const prev2=prev.map(x=>{const f=fresh.get(x.fen+'|'+x.uci);if(f&&/Hard to see, and it holds\.$/.test(x.why||'')&&f.why&&!/Hard to see, and it holds\.$/.test(f.why)){up=true;return {...x,why:f.why};}return x;});
+          return (add.length||up)?[...add,...prev2].slice(0,80):prev;});
       }
     }catch(e){}
     const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
@@ -7899,7 +7967,10 @@ function AppMain(){
       if(tok!==freeTokRef.current||modeRef.current!=='learn'||learnPhaseRef.current!=='practice')return;
       const v=freeNetVerdict(F.K,pv?sc:null);
       if(!v.ok){learnRepRef.current.miss=true;freeSet({...F,busy:false});setGame(g);setLastMv(F.last||null);setOpenStep(Math.min(line.length-1,F.hist.length-1));
-        setOpenMsg('\u2717 '+san+(v.why==='not-winning'?' throws the win away. Try again.':' lets the king out of the net: the mate is further away now. Try again.'));repaint();return;}
+        /* #550 HEX-T-15 (docs/hint-audit-2026-11-12): the two engine verdicts now name the king's answer - the reply the SAME search returned
+           (pv[0], the move the mate distance was measured after) - so the line says where the king gets out rather than only that it did. */
+        let _rs='';try{const _rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;if(_rm)_rs=toSAN(ng,_rm,applyMove(ng.board,_rm));}catch(e){_rs='';}
+        setOpenMsg('\u2717 '+san+(v.why==='not-winning'?(' throws the win away'+(_rs?(': the king answers '+_rs):'')+'. Try again.'):(' lets the king out of the net'+(_rs?(': after '+_rs+' the mate is further away now'):': the mate is further away now')+'. Try again.')));repaint();return;}
       let rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;const fromEngine=!!rm;if(!rm)rm=freeFallbackReply(ng);
       if(!rm){freeSet({busy:false,over:true});repaint();return;}
       const rsan=toSAN(ng,rm,applyMove(ng.board,rm));const ng2=makeMove(ng,rm);const hist2=hist.concat([ng2]);
@@ -7907,7 +7978,10 @@ function AppMain(){
       const hint=(fromEngine&&pv.length>1)?pv[1]:null;
       setGame(ng2);setLastMv(rm);setOpenStep(Math.min(line.length-1,hist2.length-1));
       if(n>=FREE_MAXMOVES){learnRepRef.current.miss=true;freeSet({hist:hist2,K:v.M,hint:null,off:off2,busy:false,over:true,last:rm});setOpenMsg('\u2717 '+FREE_MAXMOVES+' moves and no mate: by the 50-move rule that is a draw. Tap \u21bb Try again.');repaint();return;}
-      freeSet({hist:hist2,K:v.M,hint,off:off2,busy:false,last:rm});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.');repaint();
+      /* #550 HEX-T-15: a kept move on the book line gets the lesson's own note for it (the demo's reason), after the king's answer. Only while
+         the move AND the reply are both the book's (off2 false), because a note describes the scripted position and may name the reply. */
+      const _fn=off2?'':String((learnNotesRef.current||[])[iBook]||'').trim();
+      freeSet({hist:hist2,K:v.M,hint,off:off2,busy:false,last:rm});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.'+(_fn?(' '+_fn):''));repaint();
     })();
   };
   const sfxMove=(gB,mv)=>{try{if(!gB||!mv)return;const ng=makeMove(gB,mv);let k='move';if(ng&&ng.board&&isInCheck(ng.board,ng.turn))k='check';else if(mv.castle)k='castle';else if(mv.promo)k='promote';else if((gB.board&&gB.board[mv.tr]&&gB.board[mv.tr][mv.tc])||mv.epCap)k='capture';playSfx(k);}catch(e){}};
@@ -8019,7 +8093,11 @@ function AppMain(){
            On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
         const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:wrongWhy(g,mv);   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
         setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
-        if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);const t=r&&replyWhy(ng,r,_sc);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+        if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null,_sb=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(async pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);if(!r)return;
+          /* #550 HEX-T-03: in the drill, a second 300ms search on the card's own position (before the wrong move) gives replyWhy the mover's
+             baseline, so a slide from winning to level is named; its score is from the mover's side (the side to move there). */
+          let _base=null;if(p.mine){try{await sfBestLine(toFEN(g),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sb=x;});}catch(e){_sb=null;}if(_sb)_base=(_sb.mate!=null)?(_sb.mate>0?99:-99):(typeof _sb.cp==='number'?_sb.cp/100:null);}
+          const t=replyWhy(ng,r,_sc,_base);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)
@@ -10954,7 +11032,7 @@ function AppMain(){
                 ? <span style={{color:'var(--ac2)',fontWeight:600}}>▶ Press Play (or ›) to watch it move by move — you'll be {LIB[openIdx].side==='w'?'White':'Black'}</span>
                 : <span style={{color:'rgba(255,255,255,.92)'}}><span style={{fontWeight:800,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>
               ):(
-                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
+                <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move — you play ${LIB[openIdx].side==='w'?'White':'Black'}`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{lessonHintTxt?<span data-ct="lesson-hint-words" style={{color:'rgba(255,255,255,.9)'}}>{' '+lessonHintTxt}</span>:null/* #550 HEX-T-13: the hint in words */}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{display:'block',marginTop:3,fontWeight:600,fontSize:'.9em',color:'rgba(255,255,255,.62)'}}>{showHint?'Hints are on, so this run won\u2019t bank a day.':'Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>/* #547 item (90), Kunal's 'warn-first' (11 Oct): before the first move, one line saying what a hint costs */}</span>
               )}
             </div>
           </div>
@@ -10970,12 +11048,12 @@ function AppMain(){
           <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'100%',overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
             {learnPhase==='demo'
               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span> — {curNote}</span>:null}</span>)
-              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
+              : <span style={{fontWeight:600,color:openMsg.startsWith('✗')?'#ffb86b':(openMsg.startsWith('🎉')?'var(--ac)':'var(--ac2)')}}>{(openMsg||`Your move (${LIB[openIdx].side==='w'?'White':'Black'})`)+((p=>(p&&!/^\u{1F389}/u.test(openMsg||''))?(p.m?(' · '+p.n+' of '+p.m):(' · move '+p.n)):'')(freeSt.on?{n:freeSt.moves+1,m:0}/* #549 item (85): a free run has no fixed length to count against */:lessonMovePos(LIB[openIdx],learnLine,openStep)))}{lessonHintTxt?<span data-ct="lesson-hint-words" style={{color:'rgba(255,255,255,.9)'}}>{' '+lessonHintTxt}</span>:null/* #550 HEX-T-13: the hint in words */}{(!openMsg&&openStep===0)&&<span data-ct="lesson-hint-warn" style={{fontWeight:600,color:'rgba(255,255,255,.62)'}}>{showHint?' Hints are on, so this run won\u2019t bank a day.':' Using \u{1F4A1} means this run won\u2019t bank a day.'}</span>}</span>}
           </div>{noteOver&&<span data-ct="lesson-note-more" style={{position:'absolute',right:7,bottom:6,fontSize:11.5,fontWeight:800,letterSpacing:.3,color:'var(--ac2)',background:'rgba(20,24,32,.92)',border:'1px solid rgba(255,255,255,.18)',borderRadius:7,padding:'2px 7px',pointerEvents:'none'}}>more ▾</span>}</div>
         )}
         {noteOpen&&(<div data-ct="lesson-note-sheet" onClick={()=>setNoteOpen(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:560,background:'#1c2130',borderRadius:'16px 16px 0 0',padding:'14px 16px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -8px 40px rgba(0,0,0,.6)',maxHeight:'70vh',overflowY:'auto',fontSize:16,lineHeight:1.45,color:'rgba(255,255,255,.92)',textAlign:'left'}}>
           {learnPhase==='demo'&&demoPly>0&&<div style={{fontWeight:800,color:'#f0b429',marginBottom:6}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</div>}
-          <div>{learnPhase==='demo'?(curNote||''):(openMsg||'')}</div>
+          <div>{learnPhase==='demo'?(curNote||''):((openMsg||'')+(lessonHintTxt?(' '+lessonHintTxt):''))}</div>
           <button onClick={()=>setNoteOpen(false)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%',marginTop:14,minHeight:44}}>Close</button>
         </div></div>)}
         {learnPhase==='demo'&&!lessonFocus&&((<><div style={{margin:'9px auto 0',maxWidth:340,display:'flex',gap:6,alignItems:'stretch'}}>

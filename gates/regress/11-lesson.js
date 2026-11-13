@@ -5,7 +5,7 @@
 const L=require('../lib');
 const D=require('../drive/lesson');
 L.run(async()=>{
-  if(!process.env.CT_LS058_ONLY){
+  if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY){
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'lesson-'+geo});await b.open();
     await b.card(3,2500);const demoEnd=await b.metrics();await b.shot('lesson-'+geo+'-demo-end');
@@ -571,7 +571,7 @@ L.run(async()=>{
   // note count) is its own assertion; the count is PINNED per geometry at what this build measures, so a content edit or a box change that
   // clips more notes goes red and has to move the pin on purpose. CT_LS058_ONLY=1 runs this block alone.
   // CONTROL-RECORD: 8a852bd 2026-11-11 total=5 red=2 scope=env:CT_LS058_ONLY=1 how=#550 item (82): c82 (0ca1bcd2a0d3), the lesson-note box 60px tall instead of 75 (scroller 44) - both TC-LS-058 count lines red (195 and 315 notes against pins 67 and 119); the two DENOMINATORS and the font pin green
-  {
+  if(!process.env.CT_LS061_ONLY){
     const PIN058={kunal761:{max:67},se:{max:119}};   // measured #550 on trial b195c3c10627: 67 and 119 of 2262
     for(const geo of Object.keys(PIN058)){
       const b=await L.launch({geo,name:'lesson-notefit-'+geo});await b.open();
@@ -591,6 +591,39 @@ L.run(async()=>{
         L.say(!!m&&m.lessons>=150&&m.n>=2000,'TC-LS-058 '+geo+' DENOMINATOR every note in the library was laid out: '+(m?m.n+' notes of '+m.lessons+' lessons':'none')+' in the painted box\'s own font and width',m&&{w:m.w,h:m.h,font:m.font});
         if(m)L.say(m.over<=PIN058[geo].max,'TC-LS-058 '+geo+' notes that do not fit the '+m.h+'px note scroller: '+m.over+' of '+m.n+' (pin '+PIN058[geo].max+'); the longest need '+m.worst.map(x=>x[0]+'px ('+x[1]+' ply '+x[2]+')').join(', '),m);
       }
+      await b.close();
+    }
+  }
+  // TC-LS-061 THE PRACTICE HINT SAYS IN WORDS WHAT THE BOOK MOVE IS FOR [#550 docs/hint-audit-2026-11-12 HEX-T-13; jobs/lessons-practice-
+  // hints-and-wrong-move-reasons-2026-11-12]. With 💡 on, practice showed an arrow and no words. The lesson's own note for the move (the demo's
+  // text) now stands on the prompt line beside the arrow, with the move's name left out. Driven on drive/lesson practice-m0 (Openings row 0,
+  // the Italian Game: e4 e5 Nf3 Nc6 Bc4 ...). EXPECTED TEXT IS READ FROM window.CTLESSONS, NOT TYPED HERE, so a note edit does not redden this
+  // and a wrong-index bug (the note of the reply or of the move already played) does. ORDER, so the absence half is evidence [#385]: hints OFF,
+  // the words are absent; hints ON, they are present for move 1 and the board did not move; one correct move later, the words are those of
+  // the NEXT own move and the previous move's note is gone from the hint. CT_LS061_ONLY=1 runs this block alone.
+  // CONTROL-RECORD: f8fb292 2026-11-13 total=13 red=4 scope=env:CT_LS061_ONLY=1 how=#550 HEX-T-13: the branch tip's bundle t0 (37af39a67536, before the words) - the two words-present lines red at kunal761 and se; the order preconditions, no-jump and error lines green
+  if(!process.env.CT_LS058_ONLY){
+    for(const geo of ['kunal761','se']){
+      const b=await L.launch({geo,name:'lesson-hintwords-'+geo,store:{}});await b.open();
+      let ok=true;try{await D.states['practice-m0'](b);await b.settle(600);}catch(e){ok=false;L.say(false,'TC-LS-061 '+geo+' practice-m0 was reached',String(e).slice(0,160));}
+      if(ok){
+        const read=()=>b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');const w=document.querySelector('[data-ct="lesson-hint-warn"]');const hw=document.querySelector('[data-ct="lesson-hint-words"]');
+          const C=window.CTLESSONS||{};let op=null;for(const k of Object.keys(C))for(const o of (C[k]||[]))if(!op&&o.name==='Italian Game')op=o;
+          return {note:n?(n.innerText||'').replace(/\s+/g,' ').trim():null,warn:w?(w.innerText||'').trim():null,words:hw?(hw.innerText||'').trim():null,notes:op?op.notes:null,line:op?op.line:null};});
+        const s0=await read();const bd0=await b.board();
+        L.say(!!s0.notes&&s0.line&&s0.line[0]==='e4'&&/Your move/.test(s0.note||'')&&/won.t bank a day/.test(s0.warn||'')&&!/Hints are on/.test(s0.warn||''),'TC-LS-061 '+geo+' PRECONDITION practice is at move 1 of the Italian Game with hints OFF',{note:s0.note,warn:s0.warn});
+        L.say(!s0.words&&!!s0.notes&&(s0.note||'').indexOf(String(s0.notes[0]).trim().replace(/\.?$/,''))<0,'TC-LS-061 '+geo+' with hints OFF the prompt carries no hint words (neither the hook nor the note\'s text)',{note:s0.note});
+        await D.tapBtn(b,/^Hints$/,400);await b.settle(400);
+        const s1=await read();const bd1=await b.board();
+        const want1=s1.notes?String(s1.notes[0]).trim().replace(/\.?$/,''):'?';
+        L.say(/Hints are on/.test(s1.warn||'')&&!!s1.words&&s1.words.indexOf(want1)>=0&&!/\be4\b/.test(s1.words),'TC-LS-061 '+geo+' with hints ON the prompt says the lesson\'s note for move 1 in words, without naming the move ("'+s1.words+'", want "'+want1+'")',{note:s1.note,words:s1.words});
+        L.say(!!bd0&&!!bd1&&Math.abs(bd0.y-bd1.y)<0.5&&Math.abs(bd0.w-bd1.w)<0.5,'TC-LS-061 '+geo+' turning hints on to show the words does not move the board',{before:bd0,after:bd1});
+        await b.move('e2','e4',1400);await b.settle(500);
+        const s2=await read();
+        const want2=s2.notes?String(s2.notes[2]).trim().replace(/\.?$/,''):'?';
+        L.say(/e4, correct/.test(s2.note||'')&&!!s2.words&&s2.words.indexOf(want2)>=0&&s2.words.indexOf(want1)<0&&!/Nf3/.test(s2.words),'TC-LS-061 '+geo+' after a correct e4 and the reply, the hint words are the note of the NEXT own move ("'+s2.words+'", want "'+want2+'"), not of e4',{note:s2.note,words:s2.words});
+      }
+      L.say(b.errs.length===0,'TC-LS-061 '+geo+': zero app errors',b.errs.slice(0,3));
       await b.close();
     }
   }
