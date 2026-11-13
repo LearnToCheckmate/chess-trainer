@@ -1396,6 +1396,77 @@ function wrongWhy(pos,mv){
     return {kind:L.moved?'hangs':'drops',piece:L.t,sq:L.sq,reply:cs,text:(L.moved?'hangs the ':'drops the ')+PNAME[L.t]+' ('+cs+')'};
   }catch(e){return null;}
 }
+// #550 cg7 (jobs/drill-hints-name-the-positions-point-2026-11-12, the independent checker's gap): IN THE MISTAKES DRILL THE CARD KNOWS THE
+// BEST MOVE, so a wrong move that leaves nothing en prise can still be read against it, from the board alone. Measured on his ten cards at
+// 375x761: playing his own move gave a reason on 4 (Bxh3, Nxc4, O-O, h5); the other 6 read "isn't it. Try again" whenever the 300ms engine
+// reply named nothing. Three readings, each true of the board after the move and one reply, and named with that reply:
+// (1) 'letsgo': the best move wins material outright (concreteRead 'take'); the wrong move takes nothing and gives no check, and they have a
+//     reply after which no capture wins that much - "lets the pawn on e5 get away (e4)" (Nf3 on 1.d4 e5; a reply moving the target is
+//     preferred, and among those one that hits a piece); "lets them guard the pawn on e5 (d6)" when the saving reply stays put; and
+//     "lets the pawn on e5 off the hook" when the wrong move itself gave the capture up (d5), so no reply needs naming.
+// (2) 'blockhit': the wrong move is a check that a pawn blocks while attacking the checking piece, from a square they cannot win
+//     (Bb4+ on 1.d4 e5 2.e4, met by c3) - "is met by c3, which blocks and hits the bishop".
+// (3) 'onlypawn': the moved piece was guarding one of the mover's pieces that is attacked by a piece worth no more than it, and after the
+//     move only one pawn can take back there where a piece could before (Qc2 with Bg4 on Nf3: "unguards f3: only gxf3 meets Bxf3").
+// Null where none holds, and the caller keeps what it had (Be4, Ba6 and Re7 on his cards: nothing on the board alone proves a point).
+function _bestCapNet(g,side){let best=0;try{for(const m of getLegal({...g,turn:side,ep:null})){const t=g.board[m.tr]&&g.board[m.tr][m.tc];if(!t||t.c===side||t.t==='k')continue;
+  const g4=makeMove({...g,turn:side,ep:null},m);if(!g4)continue;const n=(SEEVAL[t.t]||0)-seeSq(g4,m.tr,m.tc,opp(side));if(n>best)best=n;}}catch(e){}return best;}
+function missWhy(pos,mv,bestMv){
+  try{
+    if(!pos||!mv)return null;const me=pos.turn,them=opp(me);const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];if(!pc)return null;
+    const g2=makeMove(pos,mv);if(!g2)return null;const st2=getStatus(g2);if(st2!=='playing'&&st2!=='check')return null;
+    const nm=(t)=>PNAME[t]||'piece';const sanOf=(g,m)=>toSAN(g,m,applyMove(g.board,m));
+    const capd=(pos.board[mv.tr]&&pos.board[mv.tr][mv.tc])||(mv.epCap?{t:'p',c:them}:null);
+    // (1) letsgo
+    if(bestMv&&!(bestMv.fr===mv.fr&&bestMv.fc===mv.fc&&bestMv.tr===mv.tr&&bestMv.tc===mv.tc)&&!capd&&st2!=='check'){
+      let cr=null;try{cr=concreteRead(pos,bestMv);}catch(e){cr=null;}
+      if(cr&&cr.k==='take'){
+        const tc=bestMv.tc,trr=bestMv.epCap?bestMv.fr:bestMv.tr;const tgt=pos.board[trr]&&pos.board[trr][tc];   /* en passant: the pawn stands beside the landing square */
+        if(tgt&&tgt.c===them){
+          const g1=makeMove(pos,bestMv);const net=(SEEVAL[tgt.t]||0)-seeSq(g1,bestMv.tr,bestMv.tc,them);
+          const what0=nm(tgt.t)+' on '+rc2sq(trr,tc);
+          if(net>0&&_bestCapNet({...g2,turn:me,ep:null},me)<net)return {kind:'letsgo',reply:null,text:'lets the '+what0+' off the hook'};   /* the move itself gave the chance up (d5 on 1.d4 e5): no reply is needed to say so */
+          if(net>0){
+            const cands=[];
+            for(const r of getLegal(g2)){const g3=makeMove(g2,r);if(!g3||getStatus(g3)!=='playing'&&getStatus(g3)!=='check')continue;
+              if(_bestCapNet(g3,me)>=net)continue;
+              const moved=(r.fr===trr&&r.fc===tc);let hit=false;
+              if(moved){for(let a=0;a<8&&!hit;a++)for(let b=0;b<8;b++){const x=g3.board[a][b];if(x&&x.c===me&&x.t!=='p'&&x.t!=='k'&&moveHits(g3.board,r.tr,r.tc,a,b)){hit=true;break;}}}
+              cands.push({r,moved,hit,cap:!!(g2.board[r.tr]&&g2.board[r.tr][r.tc])});}
+            if(cands.length){cands.sort((a,b)=>(b.moved-a.moved)||(b.hit-a.hit)||(a.cap-b.cap));const c=cands[0];const rs=sanOf(g2,c.r);const what=nm(tgt.t)+' on '+rc2sq(trr,tc);
+              return c.moved?{kind:'letsgo',reply:rs,text:'lets the '+what+' get away ('+rs+')'}:{kind:'letsgo',reply:rs,text:'lets them guard the '+what+' ('+rs+')'};}
+          }
+        }
+      }
+    }
+    // (2) blockhit
+    if(st2==='check'&&pc.t!=='p'&&pc.t!=='k'){
+      const kg=findKing(g2.board,them);
+      if(kg&&moveHits(g2.board,mv.tr,mv.tc,kg[0],kg[1])){
+        const dr=Math.sign(kg[0]-mv.tr),dc=Math.sign(kg[1]-mv.tc);const between=new Set();{let r=mv.tr+dr,c=mv.tc+dc;while(r!==kg[0]||c!==kg[1]){between.add(r*8+c);r+=dr;c+=dc;}}
+        for(const r of getLegal(g2)){const q=g2.board[r.fr][r.fc];if(!q||q.t!=='p'||g2.board[r.tr][r.tc]||!between.has(r.tr*8+r.tc))continue;
+          const g3=makeMove(g2,r);if(!g3)continue;if(!moveHits(g3.board,r.tr,r.tc,mv.tr,mv.tc))continue;
+          if(seeSq({...g3,turn:me,ep:null},r.tr,r.tc,me)>0)continue;
+          const rs=sanOf(g2,r);return {kind:'blockhit',reply:rs,text:'is met by '+rs+', which blocks and hits the '+nm(pc.t)};}
+      }
+    }
+    // (3) onlypawn
+    if(pc.t!=='p'&&pc.t!=='k'&&!capd&&st2!=='check'){
+      const recap=(g,r,c)=>{const out=[];try{for(const m of getLegal({...g,turn:me,ep:null}))if(m.tr===r&&m.tc===c)out.push(m);}catch(e){}return out;};
+      for(let r=0;r<8;r++)for(let c=0;c<8;c++){const x=pos.board[r][c];if(!x||x.c!==me||x.t==='p'||x.t==='k'||(r===mv.fr&&c===mv.fc))continue;
+        if(!moveHits(pos.board,mv.fr,mv.fc,r,c)||moveHits(g2.board,mv.tr,mv.tc,r,c))continue;
+        const caps=getLegal(g2).filter(m=>m.tr===r&&m.tc===c&&(SEEVAL[g2.board[m.fr][m.fc].t]||0)<=(SEEVAL[x.t]||0)).sort((a,b)=>(SEEVAL[g2.board[a.fr][a.fc].t]||0)-(SEEVAL[g2.board[b.fr][b.fc].t]||0));
+        if(!caps.length)continue;const A=caps[0];
+        const g3=makeMove(g2,A);const after=recap(g3,r,c);
+        if(after.length!==1||g3.board[after[0].fr][after[0].fc].t!=='p')continue;
+        const pre=getLegal({...pos,turn:them,ep:null}).find(m=>m.fr===A.fr&&m.fc===A.fc&&m.tr===r&&m.tc===c);if(!pre)continue;
+        const g0=makeMove({...pos,turn:them,ep:null},pre);if(!recap(g0,r,c).some(m=>g0.board[m.fr][m.fc].t!=='p'))continue;
+        const as=sanOf(g2,A),ps=sanOf(g3,after[0]).replace(/[+#]$/,'');
+        return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as.replace(/[+#]$/,''),piece:x.t};}   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
+    }
+    return null;
+  }catch(e){return null;}
+}
 // The same rule for the reply an ENGINE found (wrongWhy found nothing on the board alone): the reply is named, and described by what the
 // board after it proves (mate, a fork, a discovered check, a piece won: whyShape's tests, seeSq included) or, failing those, by the engine's
 // own score for the position, in the band words the drill's sentences already use (whyBand), and only when that band is clearly worse or
@@ -8127,7 +8198,7 @@ function AppMain(){
         /* #550 item (24) say-why: the line names one reason in words where the board proves one (wrongWhy), else where the engine's reply
            proves one (replyWhy: the analysis engine warmed if it is not (ensureAna, 5 s ceiling), asked once for 300ms, and written only if the line has not changed since); no reason leaves _old as it was.
            On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
-        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:wrongWhy(g,mv);   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
+        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:(wrongWhy(g,mv)||((p.mine&&!p.brill)?(()=>{try{return missWhy(g,mv,findMoveBySAN(g,p.sol[0]));}catch(e){return null;}})():null));   /* #550 cg7: in the mistakes drill the card's best move gives missWhy a board reading where wrongWhy has none */   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
         setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
         if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null,_sb=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(async pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);if(!r)return;
           /* #550 HEX-T-03: in the drill, a second 300ms search on the card's own position (before the wrong move) gives replyWhy the mover's

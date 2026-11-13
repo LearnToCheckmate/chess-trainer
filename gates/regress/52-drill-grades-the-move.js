@@ -109,11 +109,11 @@ async function drillPlay(b,uci){
 const OLD1=(san)=>'✗ '+san+" isn't it. Try again, or tap 💡.";
 const OLD2=(san)=>'✗ '+san+" isn't it either. Tap 👁 to see the move.";
 /* #550 item (24) say-why: a rejected move may now carry ONE reason in words (chess.jsx wrongWhy / replyWhy: 'hangs the ...', 'drops the ...',
-   'allows ...'), ending as the drill's line does. These assertions are about the move being REJECTED and not graded (no quick-grade band
+   'allows ...'; #550 cg7 adds missWhy's 'lets ...', 'is met by ...', 'unguards ...'), ending as the drill's line does. These assertions are about the move being REJECTED and not graded (no quick-grade band
    label, no consequence clause from drillGradeMsg), so they accept the pre-(97) sentence or a say-why line, to the end of the sentence. */
 const _esc=(x)=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const REJ1=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it\\. Try again, or tap 💡\\.| (hangs|drops|allows) [^.]+\\. Try again\\.)$");
-const REJ2=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it either\\. Tap 👁 to see the move\\.| (hangs|drops|allows) [^.]+\\. Tap 👁 to see the move\\.)$");
+const REJ1=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it\\. Try again, or tap 💡\\.| (hangs|drops|allows|lets|is met by|unguards) [^.]+\\. Try again\\.)$");
+const REJ2=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it either\\. Tap 👁 to see the move\\.| (hangs|drops|allows|lets|is met by|unguards) [^.]+\\. Tap 👁 to see the move\\.)$");
 const playMore=async(b,uci)=>{await b.move(uci.slice(0,2),uci.slice(2,4),900);await b.settle(1600);return {v:await verdict(b),left:await storeLen(b)};};
 
 L.run(async()=>{
