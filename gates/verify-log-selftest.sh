@@ -61,7 +61,7 @@ VL="$TD/gates/verify-log.sh"
 # possible, so instead the sandbox records the md5 its own app.js really has and the cases are built around the
 # two values - which is stronger, because it means --this-bundle has a genuine match case AND a genuine
 # mismatch case rather than a reasoned one.
-LOGMD5="$(head -1 "$REALLOG" | grep -o 'md5 [0-9a-f]\{12,32\}' | head -1 | awk '{print $2}')"
+LOGMD5="$(head -1 "$REALLOG" | grep -o 'md5 [0-9a-f]\{12,32\}' | sed -n 1p | awk '{print $2}')"
 [ -n "$LOGMD5" ] || { echo "REFUSED: fixture log carries no 'md5 <hex>' on its header line"; exit 1; }
 printf 'fabricated selftest bundle, never served\n' > "$TD/app.js"
 DISKMD5="$(md5sum "$TD/app.js" | cut -c1-12)"
