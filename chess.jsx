@@ -8270,11 +8270,16 @@ function AppMain(){
       const off2=off||cleanSAN(rsan)!==cleanSAN(line[iBook+1]||'');
       setGame(ng2);setLastMv(rm);setOpenStep(Math.min(line.length-1,hist2.length-1));
       if(n>=FREE_MAXMOVES){learnRepRef.current.miss=true;freeSet({hist:hist2,hint:null,off:off2,busy:false,over:true,last:rm,stage:K2});setOpenMsg('\u2717 '+FREE_MAXMOVES+' moves and no mate: by the 50-move rule that is a draw. Tap \u21bb Try again.');repaint();return;}
+      /* #550 jobs/lesson-practice-small-defects-2026-11-13 (3): a repeated position is called out, and the third time is a draw by repetition
+         that ends the run honestly (it accepted 30+ repetitions of a king shuffle in stage 2). Same position = same pieces and same side to move. */
+      const _rk=stageKey(ng2.board),_rep=hist2.filter(x=>x.turn===ng2.turn&&stageKey(x.board)===_rk).length;
+      if(_rep>=3){learnRepRef.current.miss=true;freeSet({hist:hist2,hint:null,off:off2,busy:false,over:true,last:rm,stage:K2});setOpenMsg('\u2717 '+san+' \u2014 the king answers '+rsan+', and this position has now come up three times: a draw by repetition. Squeeze the box instead of repeating. Tap \u21bb Try again.');repaint();return;}
+      const _repTail=_rep===2?' This position has come up before: a third time is a draw by repetition.':'';
       const seen=new Set(hist2.filter(x=>x.turn===op.side).map(x=>stageKey(x.board)));
       let hint=null;if(off2){try{hint=_mvUci(stageHint(op.stages[K2],ng2,seen));}catch(e){hint=null;}}
       const _fn=off2?'':String((learnNotesRef.current||[])[iBook]||'').trim();
       const tail=(K2!==K)?(' Stage '+(K+1)+' done. '+stageIntro(op.stages,K2)):(v.relaxed?(' No move here could keep to the stage rule, so any safe move was allowed; the box is '+v.size+' square'+(v.size===1?'':'s')+'.'):(_fn?(' '+_fn):(' Its box: '+v.size+' square'+(v.size===1?'':'s')+'.')));
-      freeSet({hist:hist2,hint,off:off2,busy:false,last:rm,stage:K2});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.'+tail);repaint();
+      freeSet({hist:hist2,hint,off:off2,busy:false,last:rm,stage:K2});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.'+tail+_repTail);repaint();
     },STAGE_MS);
   };
   const freeMove=(g,mv)=>{

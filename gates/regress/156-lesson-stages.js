@@ -193,6 +193,24 @@ L.run(async()=>{
     L.say(ok,'TC-LS-075 '+tag+': the note names the way out ('+(mm?mm[1]+' '+mm[2]+', '+(mm[3]?'stands on '+mm[3]:'heading for '+mm[4]):'none')+') and the board bears it out: a legal king move, onto or toward a square the refused move won',det);
     const mid=(r.seq||[]).slice(1,-1);
     L.say((r.seq||[]).length>=4&&r.seq[r.seq.length-1]===r.p0&&mid.length>=2&&mid.every(p=>p!==r.p0)&&mid[0]!==mid[1],'TC-LS-075 '+tag+': the board played the line - the refused move, then the king\'s step ('+mid.length+' positions between) - and went back',{n:(r.seq||[]).length});};
+  // TC-LS-076 [#550 lead, jobs/lesson-practice-small-defects-2026-11-13 (3)]: A REPEATED POSITION IS CALLED OUT AND THE THIRD TIME IS A DRAW.
+  // It accepted 30+ repetitions of a king shuffle. Node finds, with the app's own stage test and the lone king's own reply, a pair of
+  // white moves after 1.Qe4 Kc5 that the stage accepts and that bring the position straight back; the browser then plays the pair twice.
+  {const g0=E.makeMove(E.makeMove(E.fromFEN(START),bySan(E,E.fromFEN(START),'Qe4')),bySan(E,E.makeMove(E.fromFEN(START),bySan(E,E.fromFEN(START),'Qe4')),'Kc5'));
+   const key=g=>H.stageKey(g.board)+g.turn;let cyc=null;
+   for(const m1 of E.getLegal(g0)){if(cyc)break;const n1=E.makeMove(g0,m1);if(/mate$/.test(E.getStatus(n1)))continue;
+     let v1;try{v1=H.stageVerdict(ST[0],g0,n1);}catch(e){continue;}if(!v1||!v1.ok||v1.done)continue;const r1=H.freeFallbackReply(n1);if(!r1)continue;const g1=E.makeMove(n1,r1);
+     for(const m2 of E.getLegal(g1)){const n2=E.makeMove(g1,m2);let v2;try{v2=H.stageVerdict(ST[0],g1,n2);}catch(e){continue;}if(!v2||!v2.ok||v2.done)continue;const r2=H.freeFallbackReply(n2);if(!r2)continue;
+       if(key(E.makeMove(n2,r2))===key(g0)){cyc=[sanOf(E,g0,m1),sanOf(E,g1,m2)];break;}}}
+   L.say(!!cyc,'TC-LS-076 PRECONDITION a two-move shuffle after 1.Qe4 Kc5 that stage 1 accepts and that brings the same position back ('+(cyc?cyc.join(' '):'none')+')',cyc);
+   if(cyc)await block('TC-LS-076','g156-repeat',async(b)=>{
+     await openPractice(b,/^Queen Mate: the Box Method$/);const P=mkPlayer(b);
+     const n0=await P.play('Qe4');const nA=await P.play(cyc[0]);const nB=await P.play(cyc[1]);const nC=await P.play(cyc[0]);const nD=await P.play(cyc[1]);
+     L.say(/^✓ Qe4/.test(n0)&&/^✓ /.test(nA)&&!/come up before|repetition/.test(n0+nA),'TC-LS-076 PRECONDITION 1.Qe4 and '+cyc[0]+' are accepted, with no repetition word yet',[n0,nA]);
+     L.say(/^✓ /.test(nB)&&/This position has come up before: a third time is a draw by repetition\./.test(nB),'TC-LS-076 the second time the position comes up the note says so ("'+nB.slice(-90)+'")',nB);
+     L.say(/^✓ /.test(nC)&&!/come up before/.test(nC),'TC-LS-076 a position seen once is not called a repetition ("'+nC.slice(-60)+'")',nC);
+     L.say(/^✗ /.test(nD)&&/this position has now come up three times: a draw by repetition/.test(nD)&&/Try again/.test(nD),'TC-LS-076 the third time is a draw by repetition and the run ends honestly ("'+nD.slice(0,150)+'")',nD);
+     const n5=await P.play(cyc[0]);L.say(/^\(not legal|^✗|draw by repetition/.test(n5)||n5===nD,'TC-LS-076 the run is over: a further move is not accepted ("'+String(n5).slice(0,80)+'")',n5);});}
   // TC-LS-073: the refusals, and the hint off the book
   await block('TC-LS-073','g156-refuse',async(b)=>{
    await openPractice(b,/^Queen Mate: the Box Method$/);const P=mkPlayer(b);
