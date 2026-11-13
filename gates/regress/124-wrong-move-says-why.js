@@ -76,7 +76,9 @@ L.run(async()=>{
     await b.close();}
    L.say(!!lines.cxb5&&!!lines.Nxd7&&lines.cxb5.replace('cxb5','')!==lines.Nxd7.replace('Nxd7',''),'TC-R200d the two benchmark positions read DIFFERENT reasons',lines);}
   // ── E. NO REASON: the line stays as it was ─────────────────────────────────────────────────────────────────────────────────────
-  {const row={fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Blunder',played:'Kd1',ts:1791000000000,last:null,why:'w',hint:'h'};
+  // #550: the fixture carries wc (already graded), as gate 123's does. Without it the a41 Home re-grade correctly finds Kd1 is no Mistake or
+  // Blunder (K+Q v K, still completely winning) and removes the card before the drill can open - measured on t164: no practice card on Review.
+  {const row={fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Blunder',played:'Kd1',ts:1791000000000,last:null,why:'w',hint:'h',wc:{g:'Blunder',drop:30,v:1}};
    const b=await L.launch({geo:'kunal761',name:'say-why-none',store:{ct_mymistakes:[row,{...row,ts:1791000001000,fen:'4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1',uci:'c2c7'}],ct_pool:'3'}});await b.open();let ok=true;
    try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(2500);await b.move('e1','d1',0);}catch(e){ok=false;}
    await b.page.waitForTimeout(6000);

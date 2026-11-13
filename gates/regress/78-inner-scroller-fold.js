@@ -26,7 +26,9 @@ const D=require('../drive/lesson');
 const Z=require('../drive/puzzles');
 const R=require('../drive/review');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
-const FOLD_PIN={"320x568":383,"360x640":280,"375x667":218,"375x730":191,"390x844":59.5,"414x896":7.5,"440x956":-51.5};
+// #550 RE-PINNED for the formatting audit (A-07/B-07: Start game 48 -> 44 and the setup sheet's rows, Kunal's pick 12 Nov), measured on t164 dc4dce763f87 -
+// every geometry moved UP (by 10..28px); at 414x896 the button is now on screen (-2.5). Still below the fold at five of seven: the options-row build retires it.
+const FOLD_PIN={"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5};
 L.run(async()=>{
   // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
   // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].
