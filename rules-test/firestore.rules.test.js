@@ -13,7 +13,7 @@ const {test, before, after, beforeEach} = require('node:test');
 const fs = require('fs');
 const path = require('path');
 const {initializeTestEnvironment, assertSucceeds, assertFails} = require('@firebase/rules-unit-testing');
-const {doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, getDocs, query, where, arrayUnion, arrayRemove} = require('firebase/firestore');
+const {doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collection, getDocs, query, where, arrayUnion, arrayRemove, deleteField} = require('firebase/firestore');
 
 let env;
 const as = (uid) => (uid ? env.authenticatedContext(uid, {name: uid}) : env.unauthenticatedContext()).firestore();
@@ -38,6 +38,17 @@ test('users: owner only; coachfree only grows', async () => {
   await assertSucceeds(setDoc(doc(as('u-a'), 'users/u-a'), {coachfree: 3}, {merge: true}));
   await assertFails(setDoc(doc(as('u-a'), 'users/u-a'), {coachfree: 0}, {merge: true}));
   await assertFails(getDocs(collection(as('u-a'), 'users')));
+});
+
+// ── users.dev (#550 wording check, "Only you"): set only in the console; no client write may create or change it
+test('users: a client can never set or change dev', async () => {
+  await assertFails(setDoc(doc(as('u-n'), 'users/u-n'), {dev: true}));
+  await assertSucceeds(setDoc(doc(as('u-n'), 'users/u-n'), {ctProgress: {}}, {merge: true}));
+  await assertFails(setDoc(doc(as('u-n'), 'users/u-n'), {dev: true}, {merge: true}));
+  await seed((db) => setDoc(doc(db, 'users/u-d'), {dev: true, coachfree: 1}));
+  await assertSucceeds(setDoc(doc(as('u-d'), 'users/u-d'), {ctProgress: {a: '1'}}, {merge: true}));
+  await assertFails(setDoc(doc(as('u-d'), 'users/u-d'), {dev: false}, {merge: true}));
+  await assertFails(updateDoc(doc(as('u-d'), 'users/u-d'), {dev: deleteField()}));
 });
 
 // ── games (SEC-04)

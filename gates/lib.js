@@ -9,6 +9,7 @@
 //   L.launch({geo,engineFail:'pool'})           // make the engine's review-pool workers FAIL, so the review takes sfEval1 on the analysis
 //   L.launch({geo,engineFail:'all'})            // worker; 'all' = every Stockfish worker fails, so the app uses its built-in engine.
 //   await b.engineFail()                        // {mode,created,failed}: a gate driving it MUST assert failed>0 (see ENGINE FAILURE below)
+//   L.launch({geo,dev:false})                  // the PLAYER view: the developer tools are off (default ON for gates; #550 wording check)
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
 //                                               // are not supported - the second launch closes the first one's server.
@@ -434,6 +435,15 @@ async function launch(opts={}){
   // customers/{uid}/subscriptions entry, and nothing the production page can be talked into from localStorage. Every other bridge
   // method is a quiet no-op (subscriptions return an unsubscribe). KNOW ITS LIMIT: the launch is SIGNED IN, which a ct_pro launch was
   // not; a gate that measures something sign-in changes must say so. window.__ctProStub is the readout.
+  // ── THE DEV TOOLS [#550 wording check TXT-05..11; Kunal "Only you", 12 Nov 2026]. The preview gallery, the Home dev row, the Layout
+  // readout and overlay, the New features switches, the brilliant-gate numbers, the build stamp, the feedback sheet and the Puzzles unlock
+  // code render only while the app's devOn is true: users/{uid}.dev on his own signed-in account, or window.__ctDevHarness, which only
+  // this harness defines (before the page's scripts run; the app reads it once at mount and nothing in the app or its store sets it).
+  // ON BY DEFAULT, so every gate written before #550 keeps reaching the tools it drives (b.card, the readout, the dev row). dev:false
+  // is the PLAYER's view, which gate 148 asserts. KNOW ITS LIMIT: a default-on hook means no other gate sees the player view.
+  if(opts.dev!==false){
+    await ctx.addInitScript(()=>{try{Object.defineProperty(window,'__ctDevHarness',{value:true,configurable:false,writable:false});}catch(e){}});
+  }else console.log('     dev: off - the player view (no developer tools)');
   if(opts.pro){
     console.log('     pro: a stand-in CTCloud signs in a fake subscriber (proWatch answers true) - Pro the way a subscriber gets it');
     await ctx.addInitScript(()=>{try{

@@ -305,7 +305,7 @@ if(blk('C')){
     ['Evaluation bar',               'ct_hideEval',  'ON','OFF',                       '0','1',  'TC-MN-012'],
     ['Cell depth & texture',         'ct_depth',     'OFF','ON',                       '0','1',  'TC-MN-013'],
     ['Eval bar sits',                'ct_evalunder', 'above the board','left of the board','1','0','TC-MN-014'],   // #550 item (64) move 1: ABOVE by default now (ct_evalmig550), so its first tap puts it beside
-    ['Eval graph in the player bars','ct_evalgraph', 'ON · try it in Review','OFF · option C','1','0','TC-MN-015'],   // #547 item (56): ON by default now, so its first tap turns it OFF
+    ['Evaluation graph',             'ct_evalgraph', 'ON','OFF',                       '1','0',  'TC-MN-015'],   // #547 item (56): ON by default now, so its first tap turns it OFF. #550 wording check TXT-08: renamed from 'Eval graph in the player bars' ('ON · try it in Review' / 'OFF · option C')
     ['Layout overlay',               'ct_layoutgrid','OFF','drawn on screen',          '0','1',  'TC-MN-016'],
   ];
   const b=await L.launch({geo:'kunal730',name:'mn-c'});await b.open();
