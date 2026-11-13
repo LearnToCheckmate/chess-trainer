@@ -24,7 +24,7 @@
 //   US-LS-01  the demo board is a PINNED size per geometry and its top is 92 at every geometry
 //   US-LS-02  nothing scrolls on either axis, in demo or practice
 //   US-LS-03  the note box is EXACTLY 75 tall on every ply, whatever the note says (#366), and its width is
-//             min(98vw, board+44)
+//             min(100vw, board+44) on an upright phone (98vw until #550 cg6 FMT-A-08)
 //   US-LS-04  a note too long for three lines gets the "more ▾" badge, and only then; tapping it opens a sheet
 //             in which the whole note fits UNCLIPPED; closing it leaves the board where it was
 //   US-LS-05  the demo transport: ▶ paused, ⏸ playing, ↻ at the end; Back at ply 0 is a no-op; ten Forwards
@@ -517,8 +517,10 @@ L.run(async()=>{
     // --- TC-LS-005/006: the note box, #366's contract. Fixed at 75 so the board cannot move under it.
     const n0=await note(b);
     L.say(!!n0&&near(n0.h,NOTE_H),geo+': the note box is exactly '+NOTE_H+' tall at ply 0 (#366: fixed height whatever the note says, so the board sits in the same place on every ply)',n0&&n0.h);
-    L.say(!!n0&&near(n0.w,Math.min(0.98*vw,Dm.w+44),1),
-      geo+': the note box is min(98vw, board+44) = '+(+Math.min(0.98*vw,Dm.w+44).toFixed(1))+' wide',{measured:n0&&n0.w,vw98:+(0.98*vw).toFixed(1),board44:Dm.w+44});
+    // #550 cg6 FMT-A-08 re-keyed 98vw -> 100vw: on an upright phone (every geometry here) the note box takes the board's edges, as the row and
+    // the moves panel under it do; it sat 3.8 in at 375 while they sat at 0. Sideways (not driven here) it keeps 98vw.
+    L.say(!!n0&&near(n0.w,Math.min(vw,Dm.w+44),1),
+      geo+': the note box is min(100vw, board+44) = '+(+Math.min(vw,Dm.w+44).toFixed(1))+' wide',{measured:n0&&n0.w,vw:vw,board44:Dm.w+44});
     L.say(!!n0&&n0.more===false&&n0.sh===n0.ch,geo+': a note that fits in its three lines carries NO "more ▾" badge and its inner scroller has nothing to scroll',{more:n0&&n0.more,sh:n0&&n0.sh,ch:n0&&n0.ch});
 
     // --- TC-LS-007: the footer. Rule 4 - L.over() cannot see it, so it is measured on its own.
