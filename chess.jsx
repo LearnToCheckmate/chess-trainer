@@ -9506,6 +9506,18 @@ export default function App(){
     {at:64000,id:'EXP-2',l:'10.Nxb5!!: the reading on the sacrifice',fn:()=>{setPly(19);setTimeout(()=>setEngWhy(true),4500);}},
     {at:76000,id:'EXP-3',l:'Move 13: the reading near the finish',fn:()=>{setPly(25);setTimeout(()=>setEngWhy(true),4500);}},
    ], h:88000},
+  /* #550 run-answers hold-landing (6), HIS iPAD - "put them in the preview gallery, and then I'll open it on the iPad ... on Safari, right? Not
+     as an app": one card that walks every screen the desktop and tablet rule touches, each held long enough to capture, for him to record in
+     Safari on his iPad upright and then sideways. */
+  {id:"IPAD",c:"iPad: every board and page screen, upright and sideways",l:"3 \u00b7 IPAD \u00b7 Your iPad in Safari: record it upright, then turn it sideways and record it again", n:"Open this page in Safari on your iPad (not the app), press play and screen-record. It shows Home, Discover, Tactics, a lesson, Puzzles, a game against the computer, then a reviewed game (that one takes about 45 seconds to analyse). Then turn the iPad sideways and play it again. Look for: everything centred, the board as big as the screen allows, nothing cut off and nothing scrolling.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);
+    const _t=(ms,fn)=>setTimeout(()=>{try{fn();}catch(e){}},ms);
+    _t(5000,()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);});
+    _t(10000,()=>{setLearnGroup('tactics');});
+    _t(17000,()=>{setLearnGroup(null);_picker(0);});
+    _t(26000,()=>{setOpenIdx(null);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');pzEnterBrowse(0,0);});
+    _t(33000,()=>{_autogame(['e4','e5','Nf3','Nc6']);});
+    _t(45000,()=>{setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});});
+    _t(100000,()=>{setReviewView('moves');setPly(19);});}, h:108000},
         ];
         /* THE ASK-QUEUE SEAM [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-
            success-condition-2026-10-01]. localStorage ct_scmax=<n> truncates SC to its first n cards at render, so a gate can

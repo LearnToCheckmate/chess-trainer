@@ -206,7 +206,7 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
 /* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
 /* #550 answer a29 (the orchestrator, 11:37am ET: the Kevitsch screenshot is held, 'remove the KEV card as provided'): KEV leaves, so SCR
    is card 1 and EXP card 2. */
-const PINNED_IDS='1 SCR|2 EXP';   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
+const PINNED_IDS='1 SCR|2 EXP|3 IPAD';   /* #550 hold-landing (6): his iPad card, every screen the desktop and tablet rule touches */ //   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
 const EXPECTED_N=2;
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
