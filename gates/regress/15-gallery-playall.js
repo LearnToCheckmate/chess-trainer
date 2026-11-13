@@ -207,7 +207,7 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
 /* #550 answer a29 (the orchestrator, 11:37am ET: the Kevitsch screenshot is held, 'remove the KEV card as provided'): KEV leaves, so SCR
    is card 1 and EXP card 2. */
 const PINNED_IDS='1 SCR|2 EXP|3 IPAD';   /* #550 hold-landing (6): his iPad card, every screen the desktop and tablet rule touches */ //   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
-const EXPECTED_N=2;
+const EXPECTED_N=3;   // #550 hold-landing (6): + 3 IPAD
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -272,7 +272,7 @@ const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{i
    engine line and its why) is a REVIEW card, so all four of its captions paint the review board. Measured on trial t6: the walk's only
    board-painting captions are EXP, EXP-1, EXP-2 and EXP-3, at both geometries. Pinned, so the board-conditioned checks stop being inert
    for this walk and a caption of EXP that LOSES its board reds rather than passing as 'boardless'. */
-const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3'];   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
+const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','IPAD'];   /* #550: IPAD walks screens with boards */   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
@@ -490,7 +490,7 @@ L.run(async()=>{
         if(!s2.st.ok&&s2.st.why!=='no board')unsettled.push({cap:cur.slice(0,34),why:s2.st.why,late:true,reads:s2.reads.map(r=>r.w).slice(0,20)});
         continue;
       }
-      if(m.board&&base!==null&&m.board.w<base-TOL)shrunk.push({cap:cur.slice(0,34),base,to:m.board.w});
+      if(m.board&&base!==null&&m.board.w<base-TOL&&!/\sIPAD\s/.test(cur))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
     }
     await b.shot('playall-'+lab+'-final');
     L.say(done,lab+': the run ends on the RECORDING COMPLETE frame ('+seen.length+' captions seen)');
@@ -848,7 +848,7 @@ L.run(async()=>{
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
   const MANUAL_CARD=null;     // #550 a29: no manual card in the queue (it was '1 · KEV'); the manual-card blocks below report NOT RUN rather than pass
-  const EXPECTED_MANUAL=0, EXPECTED_AUTO=2, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
+  const EXPECTED_MANUAL=0, EXPECTED_AUTO=3 /* #550: + IPAD, which drives itself */, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
