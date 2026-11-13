@@ -9,7 +9,8 @@
 // fixture; its PGN carries WhiteElo/BlackElo so the rating pills render (#348). Every line is a measured claim.
 'use strict';
 const L=require('../lib');
-const PGN='[Event "Opera Game"] [Site "Paris"] [Date "1858.11.02"] [White "Morphy"] [Black "Duke Karl / Count Isouard"] [WhiteElo "2600"] [BlackElo "1800"] [Result "1-0"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
+// #550 ERR-11: the PGN says Chess.com (it was "Paris") because the app now looks a name up only on the site the PGN names; TC-R68 (refused lookups not cached) and TC-R107 (seeded cc: flags paint) both need the Chess.com lookup to be asked for.
+const PGN='[Event "Opera Game"] [Site "Chess.com"] [Date "1858.11.02"] [White "Morphy"] [Black "Duke Karl / Count Isouard"] [WhiteElo "2600"] [BlackElo "1800"] [Result "1-0"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 // THE TEN-GRADE LADDER, in the order the summary prints it. #421 un-folded Excellent; Book has always been a
 // row of its own. This file carried EIGHT names and a comment saying Excellent was folded into Best, which went
 // false at #421 and stayed in the file until 2026-10-03 (jobs/20-review-cats-frozen-at-eight).

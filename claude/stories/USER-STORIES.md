@@ -2429,3 +2429,19 @@ As a player, I never see the preview gallery, the layout readouts, the internal 
 - The setup-error, preview and deploy sentences and the stale Correspondence line are gone from the app. (TC-R224a)
 - With the developer flag the tools are all reachable, whether it comes from the gate harness or from the account document. (TC-R224i, TC-R224j)
 - An account document whose flag is false shows none of them. (TC-R224k)
+
+### US-R157 On my computer the board pages are one tidy group that fits the window
+*Added #550, docs/desktop-check-2026-11-12 DSK-05, DSK-10, DSK-11, DSK-12 and the corner-button slot; Kunal, 12 Nov: "when I expand the screen, it looks like this and it looks messy and loses all alignment", and he accepted the rule (board pages wider than tall: the board the window's height, one column beside it capped at 520, the group centred).*
+As a player on a laptop or a monitor, a board page fits my window without scrolling the column beside the board, its panels are the same width as on every other board page, nothing overlaps, and dragging the window's edge past square does not make the page jump between its two layouts.
+- Tactics & strategy's panel is at most 520 wide and sits with the board in the middle of the window. (TC-R225a)
+- A lesson's column does not scroll on a laptop height; its branch chips fold behind one button, which opens them. (TC-R225b, TC-R225c)
+- The lesson footer sits under the column, not under the board. (TC-R225d)
+- The Review More sheet fits the window and is two columns wide. (TC-R225e)
+- The anchored Home and menu buttons never sit on the top player bar. (TC-R225f)
+- Within a few percent of square the layout keeps whichever it had. (TC-R225g)
+- His phone is unchanged. (TC-R225h)
+
+*Additions at #550 to earlier stories (their sections above are not reworded):*
+- US-R151, docs/movement-check-2026-11-12 MOV-05/06/07: sideways, a lesson's practice buttons, the Play rail's bottom player bar and the puzzle top panel hold their place after a move, a Moves toggle, a checkmate and a hint. (TC-R219g, TC-R219h, TC-R219i)
+- US-R153, docs/accounts-devices-check-2026-11-12 SYN-06/07/11: the piece set, board depth, eval on/off, eval graph, sound and chosen opponent follow the account (a fresh device's defaults never win); coming back to an open app pulls the account first; rated online games, puzzles shown and lessons finished are unions. (TC-R221m to TC-R221q)
+- US-R154, docs/errors-offline-check-2026-11-12 ERR-06/08/11/13 (and ERR-09 in sw.js): an opponent meant for Stockfish says when the built-in engine plays instead; offline shows a notice that moves nothing; a pasted game looks names up only on its own site; a render error shows a page with Reload. (TC-R222j to TC-R222m)

@@ -171,8 +171,15 @@ records_door(){
   local rg="$1" base="$2" head="$3" out="$4" r1 r2
   if [ -z "$base" ] || [ -z "$head" ]; then echo "RECORDS DOOR NOT CHECKED - no base or head sha (origin/main unreadable?), so this run is not a push gate"; return 2; fi
   if [ ! -f "$rg" ]; then echo "RECORDS DOOR NOT CHECKED - $rg is absent, so this run is not a push gate"; return 2; fi
-  { echo "=== records door: $rg $base $head ==="; bash "$rg" "$base" "$head"; } > "$out" 2>&1; r1=$?
+  # base == head (HEAD is main's own commit, or an ancestor of it): the range holds no commit, so there is nothing for the
+  # records ratchet to judge, and records-gate.sh rightly refuses an empty range at exit 2. Without this branch a full suite
+  # run on main itself - re-gating the shipped tree - went RED whatever the gates said (found by #550's fresh checker of 6dc4fa0,
+  # measured: records_door rg H H -> exit 2 -> RECORDS DOOR REFUSED). The --harnesses half still runs and still refuses.
+  if [ "$base" = "$head" ]; then echo "=== records door: range $base..$head is empty, no commit to judge ===" > "$out"; r1=0; RD_EMPTY=1
+  else { echo "=== records door: $rg $base $head ==="; bash "$rg" "$base" "$head"; } > "$out" 2>&1; r1=$?; RD_EMPTY=""; fi
   { echo "=== records door: $rg --harnesses ==="; bash "$rg" --harnesses; } >> "$out" 2>&1; r2=$?
+  if [ "$r1" = 0 ] && [ "$r2" = 0 ] && [ -n "$RD_EMPTY" ]; then
+    echo "records door: OK - range $(printf '%.12s' "$base")..$(printf '%.12s' "$head") is empty (HEAD is on main), nothing for the records ratchet to judge; --harnesses exit 0 (detail: $out)"; return 0; fi
   if [ "$r1" = 0 ] && [ "$r2" = 0 ]; then
     echo "records door: OK - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit 0, --harnesses exit 0 (detail: $out)"; return 0; fi
   echo "RECORDS DOOR REFUSED - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit $r1, --harnesses exit $r2, so this run is not a push gate (detail: $out)"; return 1
@@ -1612,6 +1619,8 @@ M16PY
   st RD5-nor-an-unreadable-harness-count-exit-2 "$(rd 0 2)" 1
   st RD6-an-empty-base-is-NOT-CHECKED-and-refuses "$(rd 0 0 '')" 2
   st RD7-an-absent-door-is-NOT-CHECKED-and-refuses "$(RD_E1=0 RD_E2=0 records_door "$ST_T/no-such-rg.sh" aaaa bbbb "$ST_T/rd.out" >/dev/null; echo $?)" 2
+  st RD10-an-empty-range-base-equals-head-is-not-a-refusal "$(rd 2 0 cccc cccc)" 0
+  st RD10b-but-the-harnesses-half-still-refuses-on-an-empty-range "$(rd 0 1 cccc cccc)" 1
   st RD8-the-line-for-the-log-carries-no-PASS-line-of-the-door "$(RD_E1=0 RD_E2=0 records_door "$ST_T/rg.sh" aaaa bbbb "$ST_T/rd.out" | grep -c '^PASS')" 0
   st RD8b-and-the-door-output-is-kept-in-the-detail-file "$(grep -c '^PASS stub line' "$ST_T/rd.out")" 2
   st RD9-the-full-suite-withholds-the-green-line-on-a-refusal "$(grep -c '^if \[ \$red -eq 0 \] && .*\[ -z "\${RDFAIL:-}" \]; then echo "GATES GREEN' "$SF")" 1
