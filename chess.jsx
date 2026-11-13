@@ -1401,12 +1401,28 @@ function wrongWhy(pos,mv){
 // own score for the position, in the band words the drill's sentences already use (whyBand), and only when that band is clearly worse or
 // lower. sc is the engine's last score, from the side to move after the wrong move (the opponent), so it is turned round for the mover.
 // A pawn won is not named: after cxb5 Bxb5+ the capture is a pawn while the line is about five pawns, so "winning material" misled.
-function replyWhy(g2,r,sc){
+/* #550 HEX-T-03 (docs/hint-audit-2026-11-12; jobs/drill-hints-name-the-positions-point-2026-11-12): the engine-line half said only the band,
+   and only when the band after the reply was clearly worse - so a reply that won nothing outright but hit a piece read "allows Qa5 and leaves
+   you clearly worse" or nothing at all, and a slide from winning to level said nothing. Two additions, both from facts the caller has:
+   (1) the reply is described by moveGist when it makes a threat the board proves (a piece of the mover's it newly hits, chases or pins, SEE
+   included) - on 4k3/8/2n5/8/8/8/8/4KB2 b after Kd8, "allows Bb5, which hits the knight on c6" (gate 124 B5); (2) `base` is the engine's score for the position BEFORE the wrong move, from the
+   mover's side (the caller's second search; null when it has none), so a drop of 1.5 pawns or more that crosses a band reads
+   "... : you go from winning to level" even when the band after is not below -1.5. Where both hold they are joined. */
+function replyWhy(g2,r,sc,base){
   try{const s=toSAN(g2,r,applyMove(g2.board,r)),g3=makeMove(g2,r);if(getStatus(g3)==='checkmate')return 'allows mate ('+s+')';
     if(sc&&sc.mate!=null&&sc.mate>0)return 'allows mate in '+sc.mate+' ('+s+')';
     const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
     const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
-    if(sc&&typeof sc.cp==='number'){const v=-sc.cp/100;if(v<=-1.5)return 'allows '+s+' and leaves you '+whyBand(v);}
+    let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
+    let band='';
+    if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;
+      if(v<=-1.5)band=' and leaves you '+whyBand(v);
+      else if(typeof base==='number'&&isFinite(base)&&base-v>=1.5&&whyBand(base)!==whyBand(v))band=': you go from '+whyBand(base)+' to '+whyBand(v);}
+    /* the threat is named only where the engine says it cost something (a band above, or a drop of a pawn or more from base): a reply that
+       hits a piece in a position that stays level is not a reason, and TC-R200b B4 keeps "a level band is not a reason" */
+    const _cost=!!band||(sc&&typeof sc.cp==='number'&&sc.mate==null&&typeof base==='number'&&isFinite(base)&&base-(-sc.cp/100)>=1.0);
+    if(gist&&_cost)return 'allows '+s+', which '+gist+(band?(band.charAt(0)===':'?band:(','+band)):'');
+    if(band)return 'allows '+s+band;
     return null;
   }catch(e){return null;}
 }
@@ -8013,7 +8029,11 @@ function AppMain(){
            On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
         const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:wrongWhy(g,mv);   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
         setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
-        if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);const t=r&&replyWhy(ng,r,_sc);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
+        if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null,_sb=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(async pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);if(!r)return;
+          /* #550 HEX-T-03: in the drill, a second 300ms search on the card's own position (before the wrong move) gives replyWhy the mover's
+             baseline, so a slide from winning to level is named; its score is from the mover's side (the side to move there). */
+          let _base=null;if(p.mine){try{await sfBestLine(toFEN(g),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sb=x;});}catch(e){_sb=null;}if(_sb)_base=(_sb.mate!=null)?(_sb.mate>0?99:-99):(typeof _sb.cp==='number'?_sb.cp/100:null);}
+          const t=replyWhy(ng,r,_sc,_base);if(t)setPuzMsg(cur=>cur===_old?('✗ '+played+' '+t+'.'+_tail):cur);}).catch(()=>{});} UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}
       return;
     }
     if(modeRef.current==='learn'&&learnPhaseRef.current==='practice'&&freeRef.current.on){freeMove(g,mv);return;}   // #549 item (85)
