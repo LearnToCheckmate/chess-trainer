@@ -177,7 +177,7 @@ L.run(async()=>{
   for(const [k,u,wr,key] of [['mistakes','dukekarlcountisouard99','loss','ct_mymistakes'],['brilliant','jsmiller1112','win','ct_mybrilliancies']]){
     let got=[],err=null;const b=await L.launch({geo:{w:375,h:730,safe:''},name:'eb-capture-'+k,store:ACCT77(u,wr)});
     try{await b.open();await b.tile('Review');await b.settle(700);
-      await b.page.locator('button',{hasText:/Review ›/}).first().click();
+      await b.page.locator('[data-ct="game-row"]').first().click();
       await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1200);
       got=await b.page.evaluate((key)=>JSON.parse(localStorage.getItem(key)||'[]'),key);}catch(e){err=String(e&&e.message||e).slice(0,160);}
     await b.close();

@@ -247,7 +247,7 @@ L.run(async()=>{
   L.note('GEOMETRIES THIS RUN: '+GEOS.map(g=>g.n).join(', ')+(process.env.CT_GEO51?('   *** NARROWED by CT_GEO51='+process.env.CT_GEO51+' - this run does NOT cover the full sweep ***'):'   (full sweep)'));
   L.note('SPLIT: content assertions run at '+CONTENT_GEO+' only (no viewport term in the sentence); B6/B7/B8 (the FIT) run at every geometry above.');
   await b.tile('Review');await b.settle(700);
-  await b.page.locator('button',{hasText:/Review ›/}).first().click();
+  await b.page.locator('[data-ct="game-row"]').first().click();
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1200);
   const mis=await b.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));
   L.note('ct_mymistakes captured by the app: '+mis.length+'  '+JSON.stringify(mis.map(m=>({uci:m.uci,played:m.played,label:m.label,why:m.why===undefined?'<ABSENT>':String(m.why),hint:m.hint===undefined?'<ABSENT>':String(m.hint)}))));
@@ -403,7 +403,7 @@ L.run(async()=>{
     const b2=await L.launch({geo:{w:375,h:730,safe:''},name:'drill-explain-merge',store:{...ACCT,ct_mymistakes:[legacy]}});await b2.open();
     L.note('PHASE 1B seeded a legacy row: fen='+String(legacy.fen).slice(0,40)+'...  why=<STRIPPED>  hint=<STRIPPED>  ts='+legacy.ts);
     await b2.tile('Review');await b2.settle(700);
-    await b2.page.locator('button',{hasText:/Review ›/}).first().click();
+    await b2.page.locator('[data-ct="game-row"]').first().click();
     await b2.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b2.settle(1200);
     const after=await b2.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));
     const row=after.filter(x=>x&&x.fen===legacy.fen);
@@ -438,7 +438,7 @@ L.run(async()=>{
   {const QPGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.09.01"]\n[White "Jsmiller1112"]\n[Black "Crusher9000"]\n[Result "0-1"]\n[TimeControl "600"]\n\n1. e4 e5 2. Qh5 Nc6 3. Qxf7+ Kxf7 4. Nc3 d5 5. exd5 Qxd5 6. Be2 Qxg2 7. Nf3 Qxh1+ 8. Bf1 Nf6 9. d3 Bd6 10. Bg5 Qg2 11. Bxf6 gxf6 12. Ne4 Bb4+ 13. c3 Bxc3+ 14. bxc3 Qxf1+ 15. Kd2 Qxa1 0-1\n';
    const QACCT={ct_accts:['cc:crusher9000'],ct_acctgames:{'cc:crusher9000':[{src:'cc',acct:'Crusher9000',pgn:QPGN,white:'Jsmiller1112',black:'Crusher9000',wr:'win',tc:'rapid',date:Date.now()-86400000}]},ct_pool:'3'};
    const q=await L.launch({geo:'kunal761',name:'drill-quiet-capture',store:QACCT});await q.open();let qmis=[];
-   try{await q.tile('Review');await q.settle(700);await q.page.locator('button',{hasText:/Review ›/}).first().click();
+   try{await q.tile('Review');await q.settle(700);await q.page.locator('[data-ct="game-row"]').first().click();
      await q.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await q.settle(1200);
      qmis=await q.page.evaluate(()=>JSON.parse(localStorage.getItem('ct_mymistakes')||'[]'));}catch(e){L.note('PHASE 1Q capture threw: '+String(e).slice(0,120));}
    await q.close();
@@ -526,7 +526,7 @@ L.run(async()=>{
     await c.tile('Review');await c.settle(700);
     const chip=await c.page.evaluate(()=>{const e=document.querySelector('[data-ct="acct-mine"]');return e?{t:(e.innerText||'').trim(),p:e.getAttribute('aria-pressed')}:null;});
     L.say(!!chip&&chip.t==='not mine'&&chip.p==='false','TC-R74 PRECONDITION the account chip reads "not mine" - the switch the player sets is on screen, and set',chip);
-    let done=true;try{await c.page.locator('button',{hasText:/Review ›/}).first().click();await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await c.settle(1200);}catch(e){done=false;}
+    let done=true;try{await c.page.locator('[data-ct="game-row"]').first().click();await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await c.settle(1200);}catch(e){done=false;}
     L.say(done,'TC-R74 PRECONDITION the review of that account\'s game reached its summary, so a capture had every chance to run',{done});
     const pools=await c.page.evaluate(()=>({mis:JSON.parse(localStorage.getItem('ct_mymistakes')||'[]').length,bril:JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]').length}));
     L.say(done&&pools.mis===0&&pools.bril===0,'TC-R74 a game from an account marked NOT his adds nothing to his mistakes drill or his brilliant moves (phase 1 captured '+mis.length+' mistakes from the same game when the account was his)',{...pools,phase1:mis.length});

@@ -718,7 +718,7 @@ L.run(async()=>{
    const coach=async(geo,acct,me,white,black,pgn)=>{const id='cc:'+acct.toLowerCase();
      const b=await L.launch({geo,name:'r180-'+acct+'-'+geo,store:{ct_pool:'3',ct_grades2:'0'/* #550 item (20): the fixture is a game whose LABELS show no mistake; the item (20) bands label its 5...Qxd5 a Mistake, so the case runs on the grades it was written against - the coach behaviour it checks does not depend on the bands */,ct_ccuser:'',ct_liuser:'',ct_accts:[id],ct_acctgames:{[id]:[{src:'cc',acct,white,black,wr:'win',tc:'rapid',date:1757000001000,pgn}]}}});
      await b.open();let r=null;
-     try{await b.tile('Review');await b.settle(1200);await b.page.locator('button',{hasText:/Review ›/}).first().click();
+     try{await b.tile('Review');await b.settle(1200);await b.page.locator('[data-ct="game-row"]').first().click();
        await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1500);
        r=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const t=s.innerText||'';
          let mm=[];try{mm=JSON.parse(localStorage.getItem('ct_mymistakes')||'[]');}catch(e){}
