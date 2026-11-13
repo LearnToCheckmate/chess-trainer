@@ -1,6 +1,7 @@
 // regress/11-lesson.js  (port of lesson371.js)  k11 / A-01 / Y-01 / Y-02: the lesson board is edge to edge at
-// the same top in every phase. Card 3 = the King's Gambit demo at its END, card 4 = practice before the first
-// move; then one correct practice move (1.e4) and the board must not change size or move.
+// the same top in every phase. The King's Gambit demo at its END, then practice before the first move (were
+// gallery cards 3 and 4 until #550; now drive/lesson.js kg-demo-end and kg-practice-m0); then one correct practice move (1.e4) and the board must not change size or move.
+// CONTROL-RECORD: 8d9e7ca 2026-11-13 total=256 red=2 scope=trial:fa73bba9f798 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 11's demo-end and practice states, and TC-R152's, moved off cards 3 and 4 onto drive/lesson.js kg-demo-end and kg-practice-m0): the lesson board 8px narrower - 'demo end board is 375 wide' (367) and '390 wide, edge to edge' (382) red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 253/3 on the new route, the three reds all TC-R64e, which tests the gallery's own card numbering (it needs state card 3 to exist) and not a state this gate enters; on 77ffccc15668 256/0 by both routes, PASS/FAIL lines byte-identical
 'use strict';
 const L=require('../lib');
 const D=require('../drive/lesson');
@@ -8,7 +9,11 @@ L.run(async()=>{
   if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY){
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'lesson-'+geo});await b.open();
-    await b.card(3,2500);const demoEnd=await b.metrics();await b.shot('lesson-'+geo+'-demo-end');
+    // THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-
+    // 2026-10-01]. Cards 3 and 4 (k11) opened the King's Gambit lesson by LIB index; drive/lesson.js kg-demo-end and kg-practice-m0
+    // reach the same two screens the way a player does: Discover -> Gambits -> King's Gambit -> Got it, the demo stepped to its end,
+    // then 'Now I'll try it'.
+    await D.states['kg-demo-end'](b);await b.settle(600);const demoEnd=await b.metrics();await b.shot('lesson-'+geo+'-demo-end');
     const note=await b.rect('[data-ct="lesson-note"]');
     L.say(!!demoEnd.board,geo+': demo end shows a board',demoEnd.board);
     if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679&&demoEnd.board){ /* keyed on the geometry's DIMENSIONS, not its name [#545 item (4)]: a renamed key now throws here instead of silently skipping these pins */L.say(Math.abs(demoEnd.board.w-375)<0.6,'kunal: demo end board is 375 wide ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'kunal: demo end board top is 92 ('+demoEnd.board.top+')');}
@@ -19,7 +24,7 @@ L.run(async()=>{
     if(L.GEOS[geo].w===390&&L.GEOS[geo].h===844&&demoEnd.board){L.say(Math.abs(demoEnd.board.w-390)<0.6,'390: demo end board is 390 wide, edge to edge ('+demoEnd.board.w+')');L.say(Math.abs(demoEnd.board.top-92)<1,'390: demo end board top is 92 ('+demoEnd.board.top+')');}
     L.say(!!note&&Math.abs(note.h-75)<1,geo+': note box is 75px',note&&note.h);
     L.say(demoEnd.over.over<=0,geo+': no scroll at the demo end',demoEnd.over);
-    await b.card(4,2500);const prac=await b.metrics();await b.shot('lesson-'+geo+'-practice');
+    await D.states['kg-practice-m0'](b);await b.settle(600);const prac=await b.metrics();await b.shot('lesson-'+geo+'-practice');
     L.say(!!prac.board&&!!demoEnd.board&&Math.abs(prac.board.w-demoEnd.board.w)<0.6&&Math.abs(prac.board.top-demoEnd.board.top)<0.6,geo+': practice board = demo board (w '+(prac.board&&prac.board.w)+' top '+(prac.board&&prac.board.top)+')');
     await b.move('e2','e4',1800);const after=await b.metrics();await b.shot('lesson-'+geo+'-practice-e4');
     L.say(!!after.board&&Math.abs(after.board.w-prac.board.w)<0.6&&Math.abs(after.board.top-prac.board.top)<0.6,geo+': board unchanged after one practice move (w '+(after.board&&after.board.w)+' top '+(after.board&&after.board.top)+')');
@@ -512,9 +517,9 @@ L.run(async()=>{
   // no such line, so a/b go red, and the footer still carries the name, so c goes red.
   for(const geo of ['se','short375','w360','kunal761','390']){
     const G=L.GEOS[geo],dim=G.w+'x'+G.h;
-    for(const [st,card] of [['demo-end',3],['practice',4]]){
+    for(const [st,card] of [['demo-end','kg-demo-end'],['practice','kg-practice-m0']]){   // #550: the player's route, was cards 3 and 4
       const b=await L.launch({geo,name:'r152-'+geo+'-'+st});await b.open();
-      await b.card(card,2500);await b.settle(600);
+      await D.states[card](b);await b.settle(600);
       const r=await b.page.evaluate(()=>{
         const names=[];const C=window.CTLESSONS||{};for(const k of Object.keys(C))for(const o of (C[k]||[]))if(o&&o.name)names.push(o.name);
         const ln=document.querySelector('[data-ct="lesson-name"]');
