@@ -374,25 +374,28 @@ L.run(async()=>{
       const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
       const gr=g&&g.getBoundingClientRect(),er=e&&e.getBoundingClientRect();
       return {hdr:hr?Math.round(hr.getBoundingClientRect().height*10)/10:null,bar:e?{w:Math.round(er.width),h:Math.round(er.height),right:Math.round(er.right),fill:f?Math.round(f.getBoundingClientRect().width):null,num:n?n.innerText.trim():null}:null,
-              board:gr?{w:Math.round(gr.width),top:Math.round(gr.top)}:null,vw:innerWidth};});
+              board:gr?{w:Math.round(gr.width),top:Math.round(gr.top)}:null,vw:innerWidth,
+              /* #550 #432 sweep (lead): the bar also counted by its WORDS - a painted evaluation ('+9.0', '-1.2', 'M3', or the waiting '\u2026') or an element named 'Evaluation for you' inside the drill's top panel -
+                 so D1/D5/D7's absence lines do not read only the hooks this build added */
+              evw:t?[...t.querySelectorAll('*')].filter(x=>x.getBoundingClientRect().width>0&&((!x.children.length&&/^([+\-\u2212]\d+(\.\d+)?|[+\-\u2212]?M\d+|\u2026)$/.test((x.innerText||'').trim()))||/^Evaluation for you/.test(x.getAttribute('aria-label')||''))).length:-1};});
     const settled=async()=>{let r=await rd();for(let k=0;k<20&&r.bar&&(r.bar.num==='…'||r.bar.num==null);k++){await b.page.waitForTimeout(500);r=await rd();}return r;};
     const r0=await rd();
     if(!L.say(ok&&!!r0.board&&r0.hdr>0,'TC-R81 D0 '+tag+' PRECONDITION the brilliancies drill opened with its header row and a board',r0)){await b.close();continue;}
-    L.say(r0.bar===null,'TC-R81 D1 '+tag+' on an UNSOLVED card there is no evaluation bar at all - it would say who is winning (Kunal\'s spoiler rule)',r0.bar);
+    L.say(r0.bar===null&&r0.evw===0,'TC-R81 D1 '+tag+' on an UNSOLVED card there is no evaluation bar at all (by hook, and no painted evaluation: '+r0.evw+') - it would say who is winning (Kunal\'s spoiler rule)',r0.bar);
     await b.move('b2','b7',900);await b.settle(1500);const r1=await settled();
-    L.say(!!r1.bar,'TC-R81 D2a PRECONDITION '+tag+' once the White card is solved the bar is on screen',r1.bar);
+    L.say(!!r1.bar&&r1.evw>=1,'TC-R81 D2a PRECONDITION '+tag+' once the White card is solved the bar is on screen, and its number is painted where the word count looks ('+r1.evw+')',r1.bar);
     L.say(!!r1.bar&&/^\+\d/.test(r1.bar.num||'')&&r1.bar.fill>r1.bar.w/2,'TC-R81 D2 '+tag+' White a queen up reads POSITIVE and fills past half: '+(r1.bar&&r1.bar.num),r1.bar);
     L.say(!!r1.bar&&r1.bar.right<=r1.vw&&r1.bar.w>=56&&r1.bar.h>=15,'TC-R81 D3 '+tag+' the bar is on screen and readable (at least 56 wide, 15 tall)',r1.bar);
     L.say(r1.hdr===r0.hdr&&!!r1.board&&r1.board.top===r0.board.top&&r1.board.w===r0.board.w,'TC-R81 D4 '+tag+' it SHARES the header row: that row\'s height, and the board\'s width and top, are unchanged',{before:{hdr:r0.hdr,board:r0.board},after:{hdr:r1.hdr,board:r1.board}});
     let nx=true;try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){nx=false;}await b.settle(1200);
     const r2=await rd();
-    L.say(nx&&r2.bar===null,'TC-R81 D5 '+tag+' the next (unsolved) card hides the bar again',{nx,bar:r2.bar});
+    L.say(nx&&r2.bar===null&&r2.evw===0,'TC-R81 D5 '+tag+' the next (unsolved) card hides the bar again (by hook, and no painted evaluation: '+r2.evw+')',{nx,bar:r2.bar,evw:r2.evw});
     await b.move('b7','b2',900);await b.settle(1500);const r3=await settled();
     L.say(!!r3.bar&&/^\+\d/.test(r3.bar.num||''),'TC-R81 D6 '+tag+' BLACK a queen up ALSO reads positive: the number is the PLAYER\'s, not White\'s (White\'s view prints it negative)',r3.bar);
     try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){}await b.settle(1200);
     const r4=await rd();
     let sh=true;try{await (async()=>{/* #550 item (66): the drill's helpers are one 44pt row and show their icon only under 430 wide, so they are tapped by their accessible name */const _l=b.page.locator('button[aria-label="Show move"]:visible').first();await _l.click({timeout:2000});await b.page.waitForTimeout(700);})()}catch(e){sh=false;}await b.settle(1500);const r5=await settled();
-    L.say(r4.bar===null&&sh&&!!r5.bar,'TC-R81 D7 '+tag+' Show move on an unsolved card brings the bar up - "or he asks to see the line"',{before:r4.bar,shown:sh,after:r5.bar});
+    L.say(r4.bar===null&&r4.evw===0&&sh&&!!r5.bar,'TC-R81 D7 '+tag+' Show move on an unsolved card brings the bar up (before it, no painted evaluation: '+r4.evw+') - "or he asks to see the line"',{before:r4.bar,shown:sh,after:r5.bar});
     L.say(b.errs.length===0,'TC-R81 D8 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
   }
