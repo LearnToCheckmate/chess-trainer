@@ -17,6 +17,8 @@
 // and drill 516 ms on this container - the checker's 0.3-0.8 s / 0.5 s / 0.42 s on its profile. Each bar sits above main's reading here and
 // far below the regression's.
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=7 red=4 scope=trial:fb5726af how=#550 the tree before the SPD fixes (t152): Home 3422 ms (TC-R223d), a 60307 ms task after entering Review (TC-R223a), the drill 2566 ms (TC-R223b), Next 1165 ms median (TC-R223c); on t153 7f6c50f2: Home 1864, Review 764 (longest task 443), drill 598, Next 53 - 7/0
+// LOAD SENSITIVITY, MEASURED: with two other gate runs on the machine (load average 6) the same two bundles read Home at 2090-2330 ms in
+// alternation, so TC-R223d reads honestly only on a quiet machine - which is how the suite runs it (one suite, nothing else).
 // KNOW ITS LIMIT: a headless Chromium on this container, throttled - not his phone; network not throttled (SPD-04/05 are download findings).
 const L=require('../lib');const fs=require('fs'),path=require('path');
 const src=fs.readFileSync(path.join(__dirname,'..','..','chess.jsx'),'utf8');const _i=src.indexOf('const PZGEN_RAW=');
