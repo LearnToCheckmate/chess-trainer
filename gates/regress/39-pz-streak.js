@@ -284,7 +284,7 @@ L.run(async()=>{
     for(const [st,want] of chipStates){
       const b=await L.launch({geo,name:'pz-chip-'+geo+'-'+st});await b.open();let ok=true;
       try{if(st==='rank1-train'){await Z.states['roadmap-rank1'](b);await Z.tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);}else await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
-      const c=await b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');const k=r&&r.lastElementChild;
+      const c=await b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');const k=r&&[...r.children].filter(x=>(x.getAttribute('aria-label')||'')!=='Menu and settings').pop();   /* re-keyed by formatting audit FMT-A-02, Kunal's pick 12 Nov: the row now ends in the 44x44 menu, so the chip is the last child that is not the menu (was lastElementChild) */
         if(!k)return null;const q=k.getBoundingClientRect();
         // the fraction's ink: a Range over the 'n/need' characters of the chip's text node
         let fr=null;const w=document.createTreeWalker(k,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){const m=/\d+\/\d+$/.exec(tn.data);if(m){const rg=document.createRange();rg.setStart(tn,m.index);rg.setEnd(tn,tn.data.length);const rr=rg.getBoundingClientRect();fr={txt:m[0],left:Math.round(rr.left*100)/100,right:Math.round(rr.right*100)/100,w:Math.round(rr.width*100)/100};}}

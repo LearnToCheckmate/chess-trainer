@@ -7,15 +7,17 @@
 // 375x761 and 155 at 320x568, where the board is fitted to height: 192 wide in the mistakes drill and 216 in the brilliant one.
 // WHAT IT READS: the bundle under test (CT_APP), each drill entered from the Review screen with three cards (mistakes) or one (brilliant,
 // so the library does not open), at kunal761 and 320x568. The board is the widest repeat(8,...) grid; the controls as below.
-// KNOW ITS LIMIT: at 320x568 the mistakes drill's goal line runs to three lines, so its board is still fitted to height (288, not 320);
+// KNOW ITS LIMIT: at 320x568 the mistakes drill's goal line runs to three lines, so its board is still fitted to height (302 since the formatting audit, 288 before; not 320);
 // the brilliant drill's one-line goal leaves it edge to edge. The pins are those measurements, not a claim that every card fills the width.
 // CONTROL-RECORD: 2b55ba6 2026-11-11 total=21 red=6 scope=trial:36531456ced7 how=#550 item (66): the tree before the one row (the helpers wrap over Prev/Next) - TC-R199a at both geometries in both drills and TC-R199c at 320x568 red, the preconditions and TC-R199b green
 const L=require('../lib');
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
-const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file'}));
+// the mistakes rows carry the grade the review stored (wc), as gate 72's fixture does since the drill counts only re-graded rows: without it the
+// Review screen shows no mistakes card and the drill cannot be entered (found red on the branch tip at #550, formatting audit FMT-A-12).
+const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',...(label==='Brilliant'?{}:{wc:{g:label,drop:25}})}));
 const DRILLS=[{k:'mistakes',enter:/find the move you missed/,store:{ct_mymistakes:rows('Blunder',3),ct_pool:'3'}},
               {k:'brilliant',enter:/can you spot them again\?/,store:{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1',ct_pool:'3'}}];
-const WANT={kunal761:{mistakes:375,brilliant:375},se:{mistakes:288,brilliant:320}};   // measured on trial 8b141ccb9067
+const WANT={kunal761:{mistakes:375,brilliant:375},se:{mistakes:302,brilliant:320}};   // measured on trial 8b141ccb9067; se mistakes 288 -> 302 re-keyed by formatting audit FMT-A-06/A-12, Kunal's pick 12 Nov: the top row at TOP_Y, the fit loop's stale hold cleared when the stack is measured, and the short-phone card padding (measured on trial 8034b0e23279)
 // FOUND BY WHAT EXISTED BEFORE THIS BUILD, NOT BY WHAT IT ADDED (#432): Prev and Next by their data-ct hooks (#475), the helpers by their
 // accessible name OR their glyph, because the old row carried only the text ('💡 Hint', '👁 Show move', '↺ Reset'). A finder keyed on the
 // names this build added would go red on the old tree for a missing hook rather than for the two rows.

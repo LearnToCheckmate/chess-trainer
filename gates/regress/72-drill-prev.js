@@ -128,7 +128,7 @@ async function state(b){return b.page.evaluate(()=>{const vis=e=>{const r=e.getB
      what innerText gave for free (a solved card keeps the row's box with visibility hidden, and innerText reads '' there) */
   const _hint=[...document.querySelectorAll('button')].some(x=>vis(x)&&getComputedStyle(x).visibility==='visible'&&(/Hint/.test(x.innerText||'')||x.getAttribute('aria-label')==='Hint'));
   return {btns,asking:_hint,verdict:verdict[0]||'',
-          exits:btns.filter(x=>/^‹\s*Review$/.test(x)).length,
+          exits:[...document.querySelectorAll('button')].filter(x=>vis(x)&&(/^‹\s*Review$/.test((x.innerText||'').replace(/\s+/g,' ').trim())||x.getAttribute('aria-label')==='Back to Review')).length,   /* re-keyed by formatting audit FMT-A-02, Kunal's pick 12 Nov: the exit is the 44x44 corner button, its words 'Back to Review' in its accessible name (was the text '‹ Review'); either form counts, so two exits still read 2 */
           prev:pv?{dis:pv.disabled===true,aria:pv.getAttribute('aria-disabled'),w:Math.round(pvr.width),h:Math.round(pvr.height),
                    op:+getComputedStyle(pv).opacity,text:(pv.innerText||'').trim(),bottom:Math.round(pvr.bottom*10)/10}:null,
           hasNext:!!document.querySelector('[data-ct="drill-next"]'),vh:innerHeight,
