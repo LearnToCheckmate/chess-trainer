@@ -28,6 +28,36 @@ const R=require('../drive/review');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
 const FOLD_PIN={"320x568":383,"360x640":280,"375x667":218,"375x730":191,"390x844":59.5,"414x896":7.5,"440x956":-51.5};
 L.run(async()=>{
+  // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
+  // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].
+  // fit() (chess.jsx TacticsTrainer) measures the board's top once in the card-change layout effect, then again on the next two animation
+  // frames and on document.fonts.ready. Nothing in the app settles late on its own in headless Chromium, so the late layout is PROVOKED:
+  // on Discover -> Tactics at Kunal's phone, a hook armed just before "Next motif" waits for the card change's commit (a MutationObserver,
+  // so after the layout effect), then in the NEXT animation frame - after the app's own first-frame re-measure, which was registered
+  // earlier - pushes the board down by the room below it plus 40px (padding-top on the board's parent: a layout change above the board, as a late font or a row
+  // settling would make). Only a re-measure in a LATER frame can see it. PRECONDITION, so the control is known to move the measured
+  // quantity [#416]: the board's top moved by about 40 against the card before. Then the board must still end above the tab bar.
+  // CT_G78_08P_ONLY=1 runs this block alone.
+  // CONTROL-RECORD: HEAD 2026-11-13 total=4 red=1 scope=trial:41836edc5c77 how=#550 item (99), CT_G78_08P_ONLY=1: t5c, chess.jsx with fit()'s retries removed (the pre-6239001 one-measure effect) - the clear-of-the-tab-bar line red (the board 40px under it); the precondition, error and font-pin lines green
+  // CONTROL-RECORD: HEAD 2026-11-13 total=4 red=1 scope=trial:10ff5e69dc21 how=#550 item (99), CT_G78_08P_ONLY=1: t5b, fit() re-measured on the FIRST frame only (no second frame, no fonts.ready) - the same line red, 40px under, so the block needs the second-frame re-measure itself; on the fix 983bc1598719 4/0 (128px above)
+  {const g='kunal761';const b=await L.launch({geo:g,name:'tactics-late-settle'});await b.open();let ok=true;
+   const rd=()=>b.page.evaluate(()=>{const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
+     const bar=document.querySelector('[data-ct="tabbar"]');if(!gs.length||!bar)return null;const r=gs[0].getBoundingClientRect();return {top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(bar.getBoundingClientRect().top*10)/10};});
+   try{await D.states['tactics'](b);await b.settle(600);
+     await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(x=>/^Show answer$/.test((x.innerText||'').trim()));if(x)x.click();});await b.settle(600);}catch(e){ok=false;}
+   const m0=ok?await rd():null;   // card 1 with its answer shown, so the next tap is "Next motif" - a CARD CHANGE, which is what re-runs fit()
+   const push=m0?Math.round(Math.max(40,m0.barTop-m0.bottom+40)):0;   // far enough that a board NOT re-measured ends 40px under the tab bar: at kunal761 the board is width-bound with room below it
+   if(m0){await b.page.evaluate((push)=>{const tgt=()=>{const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);return gs[0]?gs[0].parentElement:null;};
+       const mo=new MutationObserver(()=>{mo.disconnect();requestAnimationFrame(()=>{const p=tgt();if(p){p.style.paddingTop=push+'px';window.__late08p=true;}});});
+       mo.observe(document.getElementById('root'),{subtree:true,childList:true,characterData:true,attributes:true});
+       const x=[...document.querySelectorAll('button')].find(x=>/^Next motif/.test((x.innerText||'').trim()));window.__next08p=!!x;if(x)x.click();},push);
+     await b.settle(900);}
+   const m1=m0?await rd():null;const late=await b.page.evaluate(()=>!!window.__late08p&&!!window.__next08p);
+   L.say(!!m0&&!!m1&&late&&Math.abs((m1.top-m0.top)-push)<=2,'TC-INV-08p '+g+' PRECONDITION the late layout was provoked: the board\'s top moved '+(m0&&m1?Math.round((m1.top-m0.top)*10)/10:'?')+'px after the first frame of the card change (pushed '+push+'px, enough that an unre-measured board ends 40px under the tab bar)',{m0,m1,late,push});
+   L.say(!!m1&&m1.bottom<=m1.barTop,'TC-INV-08p '+g+' after a layout that settles AFTER the first frame, the board was re-measured: it ends '+(m1?(m1.barTop-m1.bottom>=0?(Math.round((m1.barTop-m1.bottom)*10)/10+'px above'):(Math.round((m1.bottom-m1.barTop)*10)/10+'px UNDER')):'?')+' the tab bar',{m0,m1});
+   L.say(b.errs.length===0,'TC-INV-08p '+g+' zero app errors',b.errs.slice(0,3));
+   await b.close();}
+  if(process.env.CT_G78_08P_ONLY)return;
   // TC-INV-08f..08j [#549, item (90); jobs/bench-inner-scrollers-invisible-to-the-overflow-rule-2026-09-28, Q2 as the orchestrator
   // ruled it on 4 Nov 2026 (decisions/the-orchestrators-calls-on-the-jobs-batch-8-left-out-for-them-2026-11-04): "on Puzzles (the
   // list of packs) the control that opens the first pack; on Review (the import box) its import button; each named by selector".
