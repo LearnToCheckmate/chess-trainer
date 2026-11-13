@@ -599,15 +599,9 @@ const REACH_PIN={
 // frozen-denominator failure (#395) in miniature. `at` is the exact set of (geometry, screen) pairs where the
 // class was measured; a new occurrence and a disappeared one both go red, and the log names which.
 const PIN_ROWS=[
-  {sig:'Back|More', h:{'*':[21,28],kunal730:[23,27]}, spread:7/* #550 a21: on a phone 700 or more tall the streamlined review's header row carries Back and More at 23 and 27 (kunal730); below that the player bar's pair still reads 21 and 28 - keyed by GEOMETRY, since kunal730 and short375 are both 375 wide (t76) */,
-   // rev-more-sheet IS NOT IN THIS LIST AND WAS, UNTIL THE OCCLUSION EXCLUSION LANDED. pbar-top sits BEHIND the
-   // ⋯ sheet, so its two buttons are now excluded as unreachable and the class legitimately stops occurring
-   // there - 15 of 15 (geo, screen) pairs became 12. The `missing` half of the pin-set assertion is what caught
-   // that, on my own change, which is the first evidence that half can fail at all.
-   at:['kunal730/rev-ply31','kunal730/rev-last-engine','kunal730/rev-why-open','kunal730/rev-best-ply30',
-       'se/rev-ply31','se/rev-last-engine','se/rev-why-open','se/rev-best-ply30',
-       'short375/rev-ply31','short375/rev-last-engine','short375/rev-why-open','short375/rev-best-ply30'],
-   why:'Review pbar-top: the Back chevron is 28px of ink and the More dots are 21. Named by hand in flag build-the-invariant-gate a fortnight before any test could see it; job lesson-footer-icons-consistent owns the fix.'},
+  // THE `Back|More` PIN WAS HERE AND ITS FIX RETIRED IT [#550, jobs/lesson-footer-icons-consistent]: Back is now the standard corner chevron
+  // (ChevIcon 20, TopBack's) and More the dots at 17, so both paint 14px of ink (gate 157 TC-IR-02) and the row is no longer a spread of
+  // this invariant at se, kunal730 or short375 - TC-INV-02c read the class `missing` from all twelve pairs on trial 46024d19944f.
   {sig:'Back a move|Close lesson|Forward a move|More for this lesson|Play or pause', h:{320:[24,24,24,27,27],375:[24,24,24,27,27],390:[25,25,25,27,27]}, spread:null, /* PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn (Review's 21px, Segoe/system-ui), so 22 -> 24 measured at se, kunal730 and short375 on trial 0a7612ca7dc3. The 390 entry moved 23 -> 25 at #549's A3-R3 (antagonist A, round 3): measured CT_INV_GEOS=390 on trial bb925b8d210d, got [25,25,25,27,27] - it had been left at the pre-FootBtn value and read RED there */
    vh:'tall', at:['kunal730/lesson-demo'],   // #550 re-keyed (formatting audit FMT-A-05, Kunal's pick 12 Nov; a42): on a short phone the bar carries Now I'll try it too - the pin below
    why:'Lesson footer. THE BOX SAYS 27 AND THE INK SAYS 16.2, AND THE FIRST VERSION OF THIS LINE HAD IT BACKWARDS: it read "two 27px SVG arrows beside three 22px glyphs", which would send a fixer to shrink the arrows. The 27 is the chevrons viewBox; the polyline inside each paints 10.8 x 16.2, so the arrows are the SMALLEST ink in the bar and the three text glyphs at 22 are the largest. The flag names this row ("27 / 22 / 22 against one shared 20.25px font") from the same box method. 11-lesson.js asserts all five are >=20 and share a font size - which they do, fontSize 20.25 to the decimal - so it is green over exactly this spread, which is the finding gate11-is-green-over-the-very-glyph-spread-kunal-reported-2026-09-27. Heights are per WIDTH because the three text glyphs track fontSize (20 at 320, 20.25 at 375, 21.06 at 390) while the two SVG boxes do not scale at all.'},
@@ -623,7 +617,7 @@ const PIN_ROWS=[
   // it was three. The occlusion exclusion in ROWS() now removes both members from the population, so the row
   // does not appear at all and needs no pin. This is #393's rule - "in the DOM, laid out, on screen is NOT the
   // user can use it" - which this file's header cites for invariant 4a and which invariant 2 shipped without.
-  {sig:'Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint', h:{'*':[16,16,16,20,20]}, spread:4,
+  {sig:'Next puzzle|Previous puzzle|↺ Reset|👁 Show|💡 Hint', h:{'*':[16,16,20,20,23]}, spread:7, /* PIN MOVED WITH A FIX [#550, jobs/lesson-footer-icons-consistent]: ↺ is scaled to 1.4em (gate 157), so its LINE BOX reads 23 while its INK is 14, the row's (chevrons 10x14, 💡 10x14, 👁 14x9, ↺ 14x13). The box got worse by this method and the ink got consistent - the inversion this pin's why already names. Measured on trial 46024d19944f. */
    at:['kunal730/puzzles','se/puzzles','short375/puzzles'],
    why:'Puzzle bottom row, and the same inversion as the lesson footer: the two arrows are a 20px BOX carrying 8 x 12 of ink, so they are the smallest thing in the row, not the largest, and the 16 is the line box of the whole string "💡 Hint" rather than of the emoji. Both numbers are reported in the log now (box and INK) so a fix is driven off the one a player sees.'},
   {sig:'Menu and settings|👋', h:{'*':[22,25]}, spread:3,
@@ -632,7 +626,7 @@ const PIN_ROWS=[
   // #423, FOUND BY THE ANTAGONIST ON A SCREEN THE GATE COULD NOT REACH, which makes it the single most useful
   // entry in this table: it is the proof that "six rows, zero unpinned" was a statement about twelve screens and
   // not about the app. Solve the puzzle and pz-bottom re-renders from five controls to two.
-  {sig:'Next puzzle|Previous puzzle', h:{'*':[16,20]}, spread:4,
+  {sig:'Next puzzle|Previous puzzle', h:{'*':[20,38]}, spread:18, /* PIN MOVED WITH A FIX [#550, jobs/lesson-footer-icons-consistent]: Next's › is scaled to 2.3em at lineHeight 0 (gate 157), so the label's box reads 38 while the arrow's INK is 8x14 beside the Previous chevron's 10x14. Measured on trial 46024d19944f. */
    at:['kunal730/pz-solved','se/pz-solved','short375/pz-solved'],
    why:'Solved-puzzle bottom row: the back chevron is a 20px box painting 12px of ink, beside a full-width "Next >" whose line box is 16 and whose ink is 16 - so here the arrow really is the smaller of the two on BOTH measures, unlike its unsolved sibling. Reached only through PZ.states["train-solved"], which the twelve original screens did not include, so this row had a red the gate was structurally unable to produce on the commonest outcome in the Puzzles tab.'},
   {sig:'Flip board|Hints|Try again', h:{'*':[16,18,18]}, spread:2, /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; the row's ⋯ (More actions) went into the bar's ⋯ */
@@ -661,7 +655,7 @@ const widthOf=(g)=>L.GEOS[g].w;
 // differ between geometries only in the wordmark, which is font-sized (21.6 at 375 wide, 20.7 at 320).
 const ICON_PIN={320:[16,18,19,20,21,22,24,25,27,28],   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 17 was the 38x30 header ☰ */
                
-                375:[16,17,18,19,20,21,22,23,24,25,27,28],   // 23 added at #550 a21: the review header's Back glyph (t74), at 375x730
+                375:[16,17,18,19,20,21,22,24,25,27,28],   // 23 added at #550 a21 (the review header's Back glyph, t74) and gone again with jobs/lesson-footer-icons-consistent: that Back is the 20px chevron now (trial 46024d19944f)
                 short375:[16,18,19,20,21,22,24,25,27,28],   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 17 was the 38x30 header ☰ */
                   // #550 a21: 375x568 is under the header row's 700px, so no 23 (t76)
                   // 16 added at #550 H01: the compact Home's 44px dev buttons' glyphs, now on the first screen at 375x730 (they were below the fold)

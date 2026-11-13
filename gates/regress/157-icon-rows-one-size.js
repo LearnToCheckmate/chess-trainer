@@ -1,0 +1,128 @@
+'use strict';
+// regress/157-icon-rows-one-size.js   ONE ICON SIZE WITHIN A ROW, JUDGED BY THE PAINTED INK. TC-IR-01..05.
+// #550, jobs/lesson-footer-icons-consistent - the remainder its #549 pass left: "the icon sweep of three other rows (Review pbar-top, the
+// Puzzles bottom row and its solved row) onto FootBtn glyph sizing, each re-measured with its gate", with the folded-in
+// icons-within-one-row-match-the-six-pinned-rows-2026-10-12 ("each get one icon height", drawn size reported) and pz-solved-row-arrow-ink.
+// The drill's one row (both drills, gate 123) sits in the same bottom slot and is swept with them.
+//
+// WHY INK AND NOT THE BOX. Gate 26 pins these rows by the BOX each glyph sits in, and its own notes say the box inverts the finding: the
+// puzzle row's chevrons are a 20px box carrying 8x12 of ink. A pixel scan is the measurement a player sees: each button's inside (clear of
+// its outline) is screenshotted, each pixel row's background is read from the button's own padding (the buttons carry a vertical gradient
+// and an inset shadow), the threshold is derived from the crop's own range (CLAUDE.md, #397: check the polarity, never hard-code it), and
+// the ink is split into glyph groups by empty columns. A glyph's SIZE is its larger ink dimension: an arrow is tall, the More dots and the
+// eye are wide, and comparing heights alone would call three dots "3px" beside a 14px chevron.
+//
+// MEASURED ON THE TIP BEFORE THE CHANGE (trial 8e19cb261a48), kunal761 and 320x568 alike:
+//   Review Back|More      ← 14x6 beside ⋯ 18x3                     -> Back is the standard corner chevron (10x14), ⋯ at 17 (14.5 wide)
+//   puzzle row            chevrons 10x14, 💡 10x14.5, 👁 14x9, ↺ 9x9 -> ↺ at 1.4em (about 14x13)
+//   solved puzzle row     chevron 10x14 beside the 4x6 › of Next ›    -> › at 2.3em
+//   drill row             💡 14x20.5, 👁 19x12, ↺ 14.6x12.5, ‹ › 4x6    -> ↺ at 1.5em and ‹ › at 3.2em (19px emoji in icon-only buttons)
+//
+// WHAT IT ASSERTS, per geometry (kunal761, se) and per row:
+//   TC-IR-01 PRECONDITION the row is on screen with every member found and every member carries ink (a missing button is red, never a pass)
+//   TC-IR-02 the icon glyphs' sizes (larger ink dimension) agree within 2px
+//   TC-IR-03 inside a button that carries a glyph AND a word, the glyph's ink centre sits within 2px of the word's (a scaled glyph at
+//            lineHeight 0 otherwise drops below the word)
+//   TC-IR-04 no member grew: every button is at most 44.5 tall and every glyph's ink stays inside its own button
+//   TC-IR-05 the words a finder reads are unchanged: '↺ Reset', 'Next ›', '‹ Prev' (the glyph is scaled, never replaced)
+// THE GLYPH SIZE IS NOT THE BOX: gate 26 reads these rows by line box, and the scaled glyphs' boxes grew (Reset 23, Next 38) while their ink
+// came into line - its pins moved with this fix and say so. KNOW ITS LIMITS: Review's Back|More at 320x568 was ALREADY within 2px by this
+// measure before the change (← 15x6 beside ⋯ 16x4), so that line is green on the control and its fix there is the standard chevron, not a
+// size correction; and at 320x568 the Review header's buttons start at y -4 (the 44px buttons overhang a bar squeezed under 44 by the short
+// screen) - the ink is on screen (top 11), which is all TC-IR-04 asks, and the overhang is the formatting audit's, recorded, not fixed here.
+// CONTROL: CT_APP=<the tip before the change>.
+// CONTROL-RECORD: 01431d7 2026-11-13 total=45 red=7 scope=trial:8e19cb261a48 how=THE SUBJECT REMOVED: the branch tip before the change (Back ←, More at 21/19, ↺ and the arrows unscaled) - TC-IR-02 red on Review at kunal761 (← 14x6 vs ⋯ 18x3), the puzzle row (↺ 9x9), the solved row (› 4x6) and the drill row (‹ › 4x6, ↺ 14x12) at both geometries; se Review green (15 vs 16, see above)
+const L=require('../lib');
+const R=require('../drive/review');
+const PZ=require('../drive/puzzles');
+const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
+const DSTORE={ct_mymistakes:FENS.map((f,i)=>({fen:f,uci:UCIS[i],label:'Blunder',played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',wc:{g:'Blunder',drop:25}})),ct_pool:'3'};
+
+// the ink of one button, split into its ICON and its WORD by their own x-ranges in the layout (a Range per token, an svg's box): the
+// horizontal extent of a token is reliable where its vertical one is not (a glyph scaled at lineHeight 0 has a line box unrelated to
+// its ink), and splitting by empty columns is not (the three More dots are three groups; "💡 Hint" can merge into one).
+async function inkOf(b,handle){
+  const lay=await handle.evaluate(e=>{const q=e.getBoundingClientRect();const toks=[];
+    const svg=e.querySelector('svg');if(svg){const r=svg.getBoundingClientRect();toks.push({kind:'icon',t:'svg',l:r.left,r:r.right});}
+    const tw=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let tn;
+    while((tn=tw.nextNode())){const s=tn.nodeValue;const re=/\S+/g;let m;
+      while((m=re.exec(s))){const rg=document.createRange();rg.setStart(tn,m.index);rg.setEnd(tn,m.index+m[0].length);const r=rg.getBoundingClientRect();
+        toks.push({kind:/[A-Za-z]/.test(m[0])?'word':'icon',t:m[0],l:r.left,r:r.right});}}
+    return {box:{x:q.left,y:q.top,w:q.width,h:q.height},toks};});
+  const br=lay.box,vp=b.page.viewportSize();
+  const clip={x:br.x+2,y:Math.max(0,br.y+6),width:br.w-4,height:Math.min(vp.height,br.y+br.h-6)-Math.max(0,br.y+6)};   // inside the outline, clear of the inset shadows; columns 0-1 and the last two are the button's own padding
+  if(clip.width<4||clip.height<4||!lay.toks.length)return {box:br,toks:lay.toks.map(t=>t.kind+':'+t.t),icon:null,word:null};
+  // A STABLE CAPTURE: two captures 250ms apart must be byte-identical, up to six tries, so a scan never reads a frame mid-transition (the
+  // drill's board fit and the solved row's confetti both repaint after the state is reached). Not the cause of any reading here - the
+  // 👁 5-wide reading the first version gave was its median background (below), and it was deterministic.
+  let buf=await b.page.screenshot({clip}),stable=false;
+  for(let i=0;i<6&&!stable;i++){await b.page.waitForTimeout(250);const nb=await b.page.screenshot({clip});stable=nb.equals(buf);buf=nb;}
+  const spans={icon:lay.toks.filter(t=>t.kind==='icon'),word:lay.toks.filter(t=>t.kind==='word')};
+  const r=await b.page.evaluate(async({src,clip,spans})=>{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=src;});
+    const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);
+    const W=c.width,H=c.height,d=x.getImageData(0,0,W,H).data,k=W/clip.width;const dist=new Float32Array(W*H);let mx=0;
+    // EACH PIXEL ROW'S BACKGROUND IS READ FROM THE BUTTON'S OWN PADDING (its first and last two columns), because the buttons carry a vertical
+    // gradient and an inset shadow. The first version took each row's MEDIAN and it was wrong on exactly these rows: a bold word fills
+    // most of a 65px button, so through the text the median IS the text, and 👁 read 5 wide where it paints 14.
+    for(let y=0;y<H;y++){const ch=[[],[],[]];for(const xx of [0,1,W-2,W-1]){const i=(y*W+xx)*4;ch[0].push(d[i]);ch[1].push(d[i+1]);ch[2].push(d[i+2]);}
+      const med=ch.map(a=>a.sort((p,q)=>p-q)[a.length>>1]);
+      for(let xx=0;xx<W;xx++){const i=(y*W+xx)*4;const v=Math.max(Math.abs(d[i]-med[0]),Math.abs(d[i+1]-med[1]),Math.abs(d[i+2]-med[2]));dist[y*W+xx]=v;if(v>mx)mx=v;}}
+    const T=Math.max(24,mx*0.35);   // from the crop's own range (#397): never a hard-coded polarity
+    // a row that is ink across most of the crop is not a glyph (a background estimate gone wrong reads that way: the first, median-based
+    // version produced exactly such bands through the word 'Hint'). Such a row is dropped, and counted (dropped), so it cannot widen a glyph.
+    let dropped=0;for(let y=0;y<H;y++){let n=0;for(let xx=0;xx<W;xx++)if(dist[y*W+xx]>T)n++;if(n>0.6*W){dropped++;for(let xx=0;xx<W;xx++)dist[y*W+xx]=0;}}
+    // THE THRESHOLD IS THE GLYPH'S OWN, not the crop's: the crop's maximum is the white word beside it, and 0.35 of that cut the grey
+    // half of 👁 away (it read 5 to 10 wide where it paints 14). So each span's threshold is 0.35 of the brightest ink in its own columns.
+    const bbox=(list)=>{if(!list.length)return null;let l=1e9,t=1e9,rr=-1,bt=-1;
+      const cols=list.map(s=>[Math.max(0,Math.floor((s.l-clip.x)*k)),Math.min(W-1,Math.ceil((s.r-clip.x)*k)-1)]);   // the token's own columns: a 1px margin took the S of 'Show' into 👁 at 320 wide
+      let smx=0;for(const [a,z] of cols)for(let y=0;y<H;y++)for(let xx=a;xx<=z;xx++)if(dist[y*W+xx]>smx)smx=dist[y*W+xx];
+      const TS=Math.max(24,smx*0.35);
+      for(const [a,z] of cols){
+        for(let y=0;y<H;y++)for(let xx=a;xx<=z;xx++)if(dist[y*W+xx]>TS){if(xx<l)l=xx;if(xx>rr)rr=xx;if(y<t)t=y;if(y>bt)bt=y;}}
+      if(rr<0)return {w:0,h:0,ext:0,empty:true};const w=+((rr-l+1)/k).toFixed(1),h=+((bt-t+1)/k).toFixed(1);
+      return {w,h,ext:Math.max(w,h),cy:+(clip.y+(t+bt+1)/2/k).toFixed(1),top:+(clip.y+t/k).toFixed(1),bot:+(clip.y+(bt+1)/k).toFixed(1)};};
+    return {T:Math.round(T),dropped,icon:bbox(spans.icon),word:bbox(spans.word)};
+  },{src:'data:image/png;base64,'+buf.toString('base64'),clip,spans});
+  return {box:br,stable,toks:lay.toks.map(t=>t.kind+':'+t.t),T:r.T,dropped:r.dropped,icon:r.icon,word:r.word};
+}
+// each member: how it is found, 'only' (an icon alone) or 'first'/'last' (the icon's side of its word), and the words a finder reads
+const ROWS={
+  rev:{enter:b=>R.states['moves-ply31'](b),members:[['Back','[data-ct="rev-back"]','only'],['More','[data-ct="rev-more"]','only']]},
+  puzzle:{enter:b=>PZ.states['train'](b),members:[['Previous puzzle','[data-ct="pz-bottom"] button[aria-label="Previous puzzle"]','only'],
+    ['Hint','[data-ct="pz-bottom"] button:has-text("Hint")','first',/^💡 Hint$/],['Show','[data-ct="pz-bottom"] button:has-text("Show")','first',/^👁 Show$/],
+    ['Reset','[data-ct="pz-bottom"] button:has-text("Reset")','first',/^↺ Reset$/],['Next puzzle','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','only']]},
+  solved:{enter:b=>PZ.states['train-solved'](b),members:[['Previous puzzle','[data-ct="pz-bottom"] button[aria-label="Previous puzzle"]','only'],
+    ['Next','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','last',/^Next ›$/]]},
+  drill:{store:DSTORE,enter:async b=>{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="drill-row"]').waitFor({state:'visible',timeout:15000});await b.settle(900);},
+    members:[['Hint','[data-ct="drill-row"] button[aria-label="Hint"]','only'],['Show move','[data-ct="drill-row"] button[aria-label="Show move"]','only'],
+      ['Reset','[data-ct="drill-row"] button[aria-label="Reset"]','only'],['Prev','[data-ct="drill-prev"]','first',/^‹ Prev$/],['Next','[data-ct="drill-next"]','last',/^Next ›$/]]},
+};
+const TOL=2;
+L.run(async()=>{
+  const geos=(process.env.CT_IR_GEOS||'kunal761,se').split(',');const only=process.env.CT_IR_ROWS?process.env.CT_IR_ROWS.split(','):null;
+  for(const geo of geos)for(const [rk,row] of Object.entries(ROWS)){
+    if(only&&!only.includes(rk))continue;const tag=geo+' '+rk;
+    const b=await L.launch({geo,name:'icon-rows-'+rk+'-'+geo,store:row.store});await b.open();let entered=true;
+    try{await row.enter(b);}catch(e){entered=false;L.note&&L.note('enter failed: '+e.message);}
+    const got=[];
+    for(const [lab,sel,which,word] of row.members){const loc=b.page.locator(sel).filter({visible:true});
+      if(!(await loc.count())){got.push({lab,missing:true});continue;}
+      const h=await loc.first().elementHandle();const g=await inkOf(b,h);const txt=(await h.evaluate(e=>(e.innerText||'').replace(/\s+/g,' ').trim()));
+      const icon=g.icon&&!g.icon.empty?g.icon:null;
+      got.push({lab,which,box:{y:+g.box.y.toFixed(1),h:+g.box.h.toFixed(1),w:+g.box.w.toFixed(1)},toks:g.toks,txt,word,icon,wordCy:g.word&&!g.word.empty?g.word.cy:null,
+        ok1:!!icon&&(which==='only'?!g.word:!!(g.word&&!g.word.empty))});}
+    const found=got.filter(x=>!x.missing&&x.icon);
+    L.say(entered&&found.length===row.members.length&&got.every(x=>x.ok1),'TC-IR-01 '+tag+' PRECONDITION the row is open, all '+row.members.length+' members found, each carries its glyph'+(row.members.some(m=>m[2]!=='only')?' and its word':'')+' ('+got.map(x=>x.lab+(x.missing?' MISSING':' ['+x.toks.join(' ')+']')).join(', ')+')',got);
+    const ext=found.map(x=>x.icon.ext);const spread=ext.length?+(Math.max(...ext)-Math.min(...ext)).toFixed(1):null;
+    L.say(found.length===row.members.length&&spread!==null&&spread<=TOL,'TC-IR-02 '+tag+' the icon glyphs are one size: '+found.map(x=>x.lab+' '+x.icon.w+'x'+x.icon.h).join(', ')+' - spread '+spread+'px against '+TOL,found.map(x=>({lab:x.lab,icon:x.icon})));
+    const mixed=found.filter(x=>x.which!=='only');
+    if(mixed.length){const off=mixed.map(x=>({lab:x.lab,d:x.wordCy==null?null:+Math.abs(x.icon.cy-x.wordCy).toFixed(1)}));
+      L.say(off.every(o=>o.d!==null&&o.d<=TOL),'TC-IR-03 '+tag+' each glyph sits level with its word: '+off.map(o=>o.lab+' '+o.d+'px').join(', '),off);}
+    L.say(found.length===row.members.length&&found.every(x=>x.box.h<=44.5&&x.icon.top>=x.box.y-0.5&&x.icon.bot<=x.box.y+x.box.h+0.5),'TC-IR-04 '+tag+' no button grew past 44 and every glyph is painted inside its own button ('+found.map(x=>x.lab+' '+x.box.w+'x'+x.box.h).join(', ')+')',found.map(x=>({lab:x.lab,box:x.box,top:x.icon.top,bot:x.icon.bot})));
+    const worded=got.filter(x=>x.word);
+    if(worded.length)L.say(worded.every(x=>x.word.test(x.txt||'')),'TC-IR-05 '+tag+' the words a finder reads are unchanged: '+worded.map(x=>JSON.stringify(x.txt)).join(', '),worded.map(x=>({lab:x.lab,txt:x.txt})));
+    L.say(b.errs.length===0,'TC-IR '+tag+' zero app errors',b.errs.slice(0,3));
+    await b.close();
+  }
+  L.done();
+});
