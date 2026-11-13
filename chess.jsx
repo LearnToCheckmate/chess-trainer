@@ -5649,7 +5649,7 @@ function AppMain(){
      padding is set so the box shows WHOLE lines only (never a cut one), the text keeps 80px clear on the right for the chip, and the chip
      OPENS the message whole - over the board, opaque, until tapped again (pzMsgOpen) - instead of scrolling it by part of a line. */
   const [pzMsgOpen,setPzMsgOpen]=useState(false);useEffect(()=>{setPzMsgOpen(false);},[puzMsg]);
-  const _pzMsgFit=(e)=>{try{const t=e&&e.firstElementChild;if(!e||!t||pzMsgOpen)return false;e.style.paddingTop='';e.style.paddingBottom='';e.style.paddingRight='';t.style.maxHeight='';if(e.scrollHeight<=e.clientHeight+1)return false;
+  const _pzMsgFit=(e)=>{try{const t=e&&e.firstElementChild;if(!e||!t||pzMsgOpen)return false;e.style.paddingTop='';e.style.paddingBottom='';e.style.paddingRight='';t.style.maxHeight='';if(e.scrollHeight<=e.clientHeight)return false;   /* #550 gate 51 TC-R16 B7 at 440x956: a 1px tolerance here let a 105-char explanation overflow by 1.3px (scrollHeight 65, clientHeight 64) with no fit and no more chip, cut at pz-msg's bottom */
     const cs=getComputedStyle(e);const pitch=parseFloat(cs.lineHeight)||21.75;const inner=e.offsetHeight-(parseFloat(cs.borderTopWidth)||0)-(parseFloat(cs.borderBottomWidth)||0);
     const n=Math.max(1,Math.floor((inner-6)/pitch));const pv=Math.max(0,(inner-n*pitch)/2);e.style.paddingTop=pv+'px';e.style.paddingBottom=pv+'px';e.style.paddingRight='80px';t.style.maxHeight=(n*pitch)+'px';return t.scrollHeight>t.clientHeight+1;}catch(err){return false;}};
   const _pzMsgMeasure=()=>{const e=pzMsgRef.current;if(pzMsgOpen){if(e&&e.firstElementChild)e.firstElementChild.style.maxHeight='';setPzMsgMore(v=>v?v:true);return;}const m=_pzMsgFit(e);setPzMsgMore(v=>v===m?v:m);};
