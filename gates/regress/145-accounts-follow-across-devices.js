@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/145-accounts-follow-across-devices.js - TWO DEVICES ON ONE ACCOUNT AGREE, AND THE NEWER CHANGE WINS. US-R153 / TC-R221a..l.
+// gates/regress/145-accounts-follow-across-devices.js - TWO DEVICES ON ONE ACCOUNT AGREE, AND THE NEWER CHANGE WINS. US-R153 / TC-R221a..q.
 //
 // WHY [#550, docs/accounts-devices-check-2026-11-12, Kunal's pick "Batch 10, serious first", Thu 12 Nov 2026]: SYN-01 (P1) the accounts he
 // follows (ct_accts) and which of them are his (ct_acctmine) stayed on the phone, so a second device had nothing to fetch; SYN-02 (P1) the
@@ -24,7 +24,13 @@
 //      likewise keep both sides.
 //  (f) TC-R221l sign-out on device 1 with a different account then signing in leaves none of the first player's followed accounts, switches,
 //      sync record or cards in what the new account saves.
-// KNOW ITS LIMIT: the real Firestore round trip and two devices open AT ONCE (SYN-07, no live listener) are not exercised; chess.com only.
+//  (g) SYN-06/SYN-11 (#550): TC-R221m a fresh device takes the account's piece set, eval-off and chosen opponent, and keeps them in its backup;
+//      TC-R221n the running board is drawn in that piece set at once; TC-R221o rated online games, puzzles shown and lessons finished are unions.
+//  (h) SYN-07: TC-R221p a device left open pulls the account again when it is come back to (focus / visibilitychange, 20 s after the last
+//      pull), and TC-R221q its next backup carries the other device's newer engine strength and card instead of rolling them back.
+// KNOW ITS LIMIT: the real Firestore round trip is not exercised (the pull on return is a load, not a live listener); chess.com only. Where the
+// eval bar sits (ct_evalunder) is deliberately left per device until he says otherwise, so it is not asserted.
+// CONTROL-RECORD: bcc4eff 2026-11-13 total=30 red=6 scope=trial:9f4f6f823150 how=#550 SYN-06/07/11 arms on t0, the branch tip before them (faa82a9): TC-R221m (device classic/0/none), n (32 piece pictures), o x2 (one side only), p (2 -> 2 loads, ct_elo 1250), q (saved 1250, card lost) red; the older arms stay green; on t3 450fed03791b 30/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=20 red=10 scope=trial:ee1e228e0899 how=#550 the branch tip before SYN-01..05 (accounts not synced, longer-string rule, whole-list replace, pull not applied to state): TC-R221a,b,c,d,f,g,h,i,j,k red; e and l stay green there (l is SEC-15's wipe, already on the tip: named, not credited; e reads the pushed cards and streak, which the tip also pushes in this input because it is a fresh device: named, not credited); on t2 f9918762b587 20/0
 const L=require('../lib');
 const PGN=(w,b,d)=>'[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "'+d+'"]\n[White "'+w+'"]\n[Black "'+b+'"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
@@ -122,5 +128,45 @@ L.run(async()=>{
     const p=lastProg(await saves(b))||{};const carried=['ct_accts','ct_acctmine','ct_acctasked','ct_mymistakes'].filter(k=>p[k]&&/kunal2023|u1/.test(p[k]));
     L.say(left.length===0&&carried.length===0,'TC-R221l a different account signing in on device 1 gets a clean device: nothing of the first player\'s accounts, switches or cards stays or is saved (left '+JSON.stringify(left)+', saved '+JSON.stringify(carried)+')',{left,carried});
     L.say(b.errs.length===0,'TC-R221 zero app errors (second account)',b.errs.slice(0,3));await b.close();
+  }
+  { // (g) SYN-06: the board look and eval settings follow the account; SYN-11: rated games, lessons finished and puzzles shown are unions
+    const t1=Date.now()-3600*1000;
+    const acct={ctProgress:{ct_pieceSet:'symbol',ct_hideEval:'1',ct_bot:'astrid',ct_rated:JSON.stringify(['og-acct-1']),ct_pzshown:JSON.stringify({pzA:1}),ct_lessonfin:JSON.stringify({n:1,at:t1,by:{'Italian Game':t1}}),
+      ct_syncmeta:JSON.stringify({t:{ct_pieceSet:t1,ct_hideEval:t1,ct_bot:t1,ct_rated:t1,ct_pzshown:t1,ct_lessonfin:t1},s:{}})}};
+    const b=await L.launch({geo:'kunal761',name:'acct145d6',store:Object.assign({},SEED,{ct_rated:['og-dev-1'],ct_pzshown:{pzB:1},ct_lessonfin:{n:1,at:t1-1000,by:{'London System':t1-1000}}})});
+    await stub(b);await b.open();await b.settle(1200);
+    const pre=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval')}));
+    L.say(pre.p!=='symbol'&&pre.h!=='1','TC-R221 PRECONDITION before sign-in this fresh device has its own defaults ('+JSON.stringify(pre)+')',pre);
+    await signIn(b,acct,'gate-uid');
+    let st=null;for(let i=0;i<12;i++){await b.settle(500);st=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval'),bot:localStorage.getItem('ct_bot'),r:localStorage.getItem('ct_rated'),z:localStorage.getItem('ct_pzshown'),f:localStorage.getItem('ct_lessonfin')}));if(st.p==='symbol')break;}
+    await b.settle(3000);const p=lastProg(await saves(b))||{};
+    L.say(st.p==='symbol'&&st.h==='1'&&st.bot==='astrid'&&p.ct_pieceSet==='symbol'&&p.ct_hideEval==='1','TC-R221m the account\'s piece set, eval bar off and chosen opponent come down to a fresh device and stay in its backup (device '+JSON.stringify({p:st.p,h:st.h,bot:st.bot})+', saved '+JSON.stringify({p:p.ct_pieceSet,h:p.ct_hideEval})+')',{st,p:{p:p.ct_pieceSet,h:p.ct_hideEval,bot:p.ct_bot}});
+    // the running app took them, not only the store: the board is drawn in the symbol set (no piece pictures) with no reload
+    let imgs=-1,glyphs=-1;try{const P=require('../drive/play');await P.states['pp-m0'](b);await b.settle(800);
+      ({imgs,glyphs}=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];if(!g)return {imgs:-1,glyphs:-1};
+        return {imgs:g.querySelectorAll('img').length,glyphs:(g.innerText.match(/[♔♕♖♗♘♙♚♛♜♝♞♟]/g)||[]).length};}));}catch(e){L.note('pp-m0: '+String(e).slice(0,120));}
+    L.say(imgs===0&&glyphs>=30,'TC-R221n the running app draws the board in the account\'s piece set at once, with no reload ('+imgs+' piece pictures, '+glyphs+' symbol pieces)',{imgs,glyphs});
+    const R=J(st.r)||[],Z=J(st.z)||{},F=J(st.f)||{};const pr=J(p.ct_rated)||[];
+    L.say(R.indexOf('og-acct-1')>=0&&R.indexOf('og-dev-1')>=0&&pr.indexOf('og-acct-1')>=0&&pr.indexOf('og-dev-1')>=0,'TC-R221o the online games already rated are a union of both devices ('+st.r+', saved '+p.ct_rated+')',{R,pr});
+    L.say(Z.pzA&&Z.pzB&&F.by&&F.by['Italian Game']&&F.by['London System'],'TC-R221o puzzles shown and lessons finished keep both devices\' entries ('+st.z+', '+st.f+')',{Z,F});
+    L.say(b.errs.length===0,'TC-R221 zero app errors (settings)',b.errs.slice(0,3));await b.close();
+  }
+  { // (h) SYN-07: two devices open - coming back to the app pulls the account first, so the copy left open does not roll the cloud back
+    const now=Date.now();
+    const b=await L.launch({geo:'kunal761',name:'acct145d7',store:Object.assign({},SEED,{ct_elo:'1250',ct_syncmeta:{t:{ct_elo:now-7200*1000},s:{}}})});
+    await stub(b);await b.open();await b.settle(800);
+    await b.page.evaluate(()=>{const C=window.CTCloud;window.__saved=[];window.__doc={ctProgress:{}};window.__loads=0;C._load=()=>{window.__loads++;return Promise.resolve(JSON.parse(JSON.stringify(window.__doc)));};
+      C._save=(d)=>{window.__saved.push(JSON.parse(JSON.stringify(d)));return Promise.resolve();};C.signOut=()=>{C._emit(null);return Promise.resolve();};C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
+    let l0=0;for(let i=0;i<12;i++){await b.settle(500);l0=await b.page.evaluate(()=>window.__loads);if(l0>=1)break;}await b.settle(2500);l0=await b.page.evaluate(()=>window.__loads);
+    L.say(l0>=1,'TC-R221 PRECONDITION device A pulled the account at sign-in ('+l0+' loads; the app reads the document more than once there)',l0);
+    // meanwhile device B changed the engine strength and made a card; device A is still open on its old copy
+    await b.page.evaluate(([now,c])=>{window.__doc={ctProgress:{ct_elo:'900',ct_mymistakes:JSON.stringify([c]),ct_syncmeta:JSON.stringify({t:{ct_elo:now,ct_mymistakes:now},s:{ct_mymistakes:{[c.fen]:[now,0]}}})}};},[now,card(5,'c')]);
+    await b.settle(21000);   // past the 20 s guard on a fresh pull
+    await b.page.evaluate(()=>{window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'));});
+    let st=null;for(let i=0;i<12;i++){await b.settle(500);st=await b.page.evaluate(()=>({loads:window.__loads,e:localStorage.getItem('ct_elo'),m:localStorage.getItem('ct_mymistakes')}));if(st.e==='900')break;}
+    await b.settle(3500);const p=lastProg(await saves(b))||{};const pm=(J(p.ct_mymistakes)||[]).map(x=>x.fen);
+    L.say(st.loads>l0&&st.e==='900','TC-R221p coming back to the app pulls the account again: the other device\'s newer engine strength (900) is on this one ('+l0+' -> '+st.loads+' loads, ct_elo '+st.e+')',st);
+    L.say(p.ct_elo==='900'&&pm.indexOf(card(5,'c').fen)>=0,'TC-R221q and this device\'s next backup carries the other device\'s changes instead of rolling them back (saved ct_elo '+p.ct_elo+', the other device\'s card '+(pm.indexOf(card(5,'c').fen)>=0?'kept':'lost')+')',{elo:p.ct_elo,cards:pm.length});
+    L.say(b.errs.length===0,'TC-R221 zero app errors (live pull)',b.errs.slice(0,3));await b.close();
   }
 },'145-accounts-follow-across-devices');

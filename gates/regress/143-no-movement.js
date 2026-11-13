@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/143-no-movement.js - NOTHING MOVES THAT THE USER DID NOT MOVE. US-R151 / TC-R219a..f.
+// gates/regress/143-no-movement.js - NOTHING MOVES THAT THE USER DID NOT MOVE. US-R151 / TC-R219a..i.
 //
 // WHY [#550, docs/movement-check-2026-11-12, Kunal 12 Nov: "Every time I click on the next move button at the bottom right, for some
 // reason the board keeps shaking for a few seconds"; his ruling on MOV-01: "Fix the cause, keep the loop from flipping between two trims
@@ -20,9 +20,16 @@
 // the explanation box, the eval graph and the move strip read at plies 0..6.
 // KNOW ITS LIMIT: headless Chromium on Linux with the gates' pinned fonts, not his Windows Chrome with Segoe UI; row heights differ a
 // little from his, the mechanism does not depend on them. 1230x1512 has a whole-number viewport and shook anyway (fractional rows) on the
-// checker's run; it is read here as a size, not as a fractional-viewport case. MOV-05..09 (lesson note, Play rail, puzzle hint line,
-// puzzle header, tab padding) are not covered here.
+// checker's run; it is read here as a size, not as a fractional-viewport case. MOV-08 (puzzle header, the formatting
+// lane's) and MOV-09 (tab padding, not built: measured, Home's menu button sits at y 15 against 8 on the tab screens at kunal761 and 320x568,
+// which is the top-row standard the formatting lane is changing) are not covered here.
+// AND MOV-05/06/07 (#550, docs/movement-check-2026-11-12; US-R151 / TC-R219g..i): (C) a sideways lesson in practice at 1440x780 and 1920x970 -
+// Flip, Hints and Try again kept dropping 44px after the first correct move, because the step-through row (|< < LIVE > >|) joined the column
+// then; (D) the sideways Play rail at 761x375 and 1440x780 - the bottom player bar sat under the controls until the move list appeared, then
+// at the rail's foot (191 -> 327 at 761x375, 191 -> 732 at 1440x780), and rode up again on Moves closed and at checkmate; (E) sideways
+// Puzzles at 761x375 - the hint replaced the 17px counter row with three lines and the top panel grew 206 -> 223.5.
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=76 red=25 scope=trial:9812f33cea74 how=the branch tip before the change (no sub-pixel rule in _fitOver, no shrink memory in the fit loop, the sideways counter content-sized, the comparison strip reserved only where it renders): 820/804 with 18 changes per tap at all five windows and 651.03/667.03 at 960x971 (TC-R219a/b/f red), buttons 6.09px and counter 8px at 1440x780 and 761x375 (c/d red), rev-why 34/54 and the graph 20px (e red); on t2 366455f018b8 76/0
+// CONTROL-RECORD: bcc4eff 2026-11-13 total=94 red=5 scope=trial:9f4f6f823150 how=#550 MOV-05/06/07 arms on t0, the branch tip before them (claude/exciting-noether-v1swj8 faa82a9): TC-R219g red at 1440x780 and 1920x970 (44px), TC-R219h red at 761x375 (191/327/191/327/269.8) and 1440x780 (191/732/191/732/273.6), TC-R219i red (206 -> 223.5); the older arms stay green there (MOV-01..04 are on that tip); on t3 450fed03791b 94/0
 // HALF-FIX RECORD: the fit loop's shrink memory alone (no sub-pixel rule, MOV-03/04 not applied), trial 9dc62b591b92: total=76 red=14 - every TC-R219a green (0 changes: the loop stops at the smaller trim and does not flip), every TC-R219b/f red (the board holds 804, 651.03), c/d/e red - so the cause fix and the anti-flip memory are each pinned by their own case.
 const L=require('../lib');
 const R=require('../drive/review');
@@ -87,6 +94,43 @@ async function sideways(geo){
   L.say(rows.every(r=>r.strip)&&st.length===1&&(gt.length===1),tag+': TC-R219e and the eval graph and the move strip under it do not move (graph tops '+gt.join('/')+', strip tops '+st.join('/')+')',rows);
   L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();
 }
+// (C) MOV-05: the sideways lesson in practice - Flip, Hints and Try again keep their place after the first correct move
+const LS=require('../drive/lesson');const P=require('../drive/play');const PZ=require('../drive/puzzles');
+async function lessonSide(w,h){const tag=w+'x'+h+' sideways lesson';
+  const b=await L.launch({geo:{w,h,safe:'',label:w+'x'+h},name:'mov143-les-'+w});await b.open();let ok=true;
+  try{await LS.states['practice-m0'](b);await b.settle(900);}catch(e){ok=false;}
+  const rd=()=>b.page.evaluate(()=>{const r=document.querySelector('.ctside');if(!r||getComputedStyle(r).display!=='flex')return null;const o={};
+    for(const x of r.querySelectorAll('button')){const k=(x.getAttribute('aria-label')||x.innerText||'').trim();if(/^(Flip board|Hints|↻ Try again|Try again)$/.test(k)){const q=x.getBoundingClientRect();o[k]=Math.round(q.top*10)/10;}}return o;});
+  const a=await rd();L.say(ok&&!!a&&Object.keys(a).length>=3,tag+': TC-R219 PRECONDITION practice is up sideways and Flip, Hints and Try again are found by their names ('+JSON.stringify(a)+')',a);
+  let moved=true;try{await b.move('e2','e4',1500);await b.settle(900);}catch(e){moved=false;}
+  const note=await b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');return n?(n.innerText||'').trim().slice(0,40):'';});
+  L.say(moved&&/correct|✓/.test(note),tag+': TC-R219 PRECONDITION 1.e4 was played and taken as correct ("'+note+'")',note);
+  const c=await rd();const d=a&&c?Math.max(0,...Object.keys(a).map(k=>c[k]==null?99:Math.abs(c[k]-a[k]))):99;
+  L.say(!!a&&!!c&&d<0.5,tag+': TC-R219g Flip, Hints and Try again keep their place after the first move (largest move '+d+'px; '+JSON.stringify(a)+' -> '+JSON.stringify(c)+')',{a,c});
+  L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();}
+// (D) MOV-06: the sideways Play rail - the bottom player bar sits at the rail's foot from move 0, through a Moves toggle and the end of the game
+async function playRail(w,h){const tag=w+'x'+h+' sideways Play';
+  const b=await L.launch({geo:{w,h,safe:'',label:w+'x'+h},name:'mov143-play-'+w});await b.open();
+  const bb=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pbar-bottom"]');const q=e&&e.getBoundingClientRect();return q?Math.round(q.top*10)/10:null;});
+  let ok=true;try{await P.states['pp-m0'](b);await b.settle(800);}catch(e){ok=false;}
+  const side=await b.page.evaluate(()=>{const r=document.querySelector('.ctside');return !!r&&getComputedStyle(r).display==='flex';});
+  const t0=await bb();L.say(ok&&side&&t0!=null,tag+': TC-R219 PRECONDITION Pass and Play is up sideways, the bottom player bar found (top '+t0+')',{side,t0});
+  const seq=[['move 0',t0]];
+  try{await b.move('e2','e4',900);await b.settle(800);seq.push(['after 1.e4',await bb()]);
+    await P.tapBtn(b,/^Moves$/,600);seq.push(['Moves closed',await bb()]);await P.tapBtn(b,/^Moves$/,600);seq.push(['Moves open',await bb()]);}catch(e){L.note(tag+': '+String(e).slice(0,120));}
+  try{await P.states['pp-mate'](b);await b.settle(4500);seq.push(['checkmate',await bb()]);}catch(e){L.note(tag+' mate: '+String(e).slice(0,120));}
+  L.say(seq.length===5&&seq.every(x=>x[1]!=null&&Math.abs(x[1]-t0)<0.5),tag+': TC-R219h the bottom player bar holds its place from move 0, after the first move, through a Moves toggle and at checkmate ('+seq.map(x=>x[0]+' '+x[1]).join(', ')+')',seq);
+  L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();}
+// (E) MOV-07: sideways Puzzles - Hint does not grow the top panel
+async function pzSide(w,h){const tag=w+'x'+h+' sideways Puzzles';
+  const b=await L.launch({geo:{w,h,safe:'',label:w+'x'+h},name:'mov143-pz-'+w});await b.open();let ok=true;
+  try{await PZ.startTraining(b);await b.settle(900);}catch(e){ok=false;}
+  const rd=()=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');const q=t&&t.getBoundingClientRect();const hint=[...document.querySelectorAll('span')].some(s=>/^💡/.test((s.innerText||'').trim())&&s.getBoundingClientRect().width>0);return q?{h:Math.round(q.height*10)/10,top:Math.round(q.top),hint}:null;});
+  const a=await rd();L.say(ok&&!!a&&!a.hint,tag+': TC-R219 PRECONDITION a puzzle is up sideways, no hint showing ('+JSON.stringify(a)+')',a);
+  try{await PZ.tapBtn(b,/Hint$/,700);}catch(e){}const c=await rd();
+  L.say(!!c&&c.hint,tag+': TC-R219 PRECONDITION Hint was tapped and the hint shows',c);
+  L.say(!!a&&!!c&&Math.abs(c.h-a.h)<0.5&&c.top===a.top,tag+': TC-R219i the top panel keeps its height when the hint appears ('+(a&&a.h)+' -> '+(c&&c.h)+')',{a,c});
+  L.say(b.errs.length===0,tag+': TC-R219 zero app errors',b.errs.slice(0,3));await b.close();}
 L.run(async()=>{
   await scaled(1063,1267,1.5,{frac:true,cap:820});
   await scaled(1025,1261,1.5,{frac:true,cap:820});
@@ -96,4 +140,7 @@ L.run(async()=>{
   await scaled(960,971,1.5,{frac:true,cap:664,capId:'f',taps:1});   // MOV-02: 667.03 is what the window allows (666 at 960x970); the defect left 651.03
   await sideways({w:1440,h:780,safe:'',label:'1440x780'});
   await sideways({w:761,h:375,safe:'',label:'761x375'});
+  for(const [w,h] of [[1440,780],[1920,970]])await lessonSide(w,h);
+  for(const [w,h] of [[761,375],[1440,780]])await playRail(w,h);
+  await pzSide(761,375);
 },'143-no-movement');
