@@ -153,8 +153,11 @@ L.run(async()=>{
         const ctl=/^(BUTTON|INPUT|SELECT|TEXTAREA|A)$/.test(el.tagName);let rr=[];if(ctl)rr=[el.getBoundingClientRect()];else for(const n of el.childNodes)if(n.nodeType===3&&n.textContent.trim()){const k=document.createRange();k.selectNodeContents(n);rr.push(...k.getClientRects());}
         for(const x of rr)if(x.width>=1&&x.height>=1&&x.left<q.right&&x.right>q.left&&x.top<q.bottom&&x.bottom>q.top){cov.push((oe.getAttribute('data-ct')||'pill')+' over '+el.tagName+':'+((el.innerText||el.getAttribute('aria-label')||'').trim().slice(0,24))+'@'+Math.round(x.top));break;}}}
       return {board:r?[Math.round(r.left*100)/100,Math.round(r.top*100)/100,Math.round(r.width*100)/100]:null,btns:bt.join(' '),scroll:[...document.querySelectorAll('*')].filter(e=>e.scrollTop>0).map(e=>(e.getAttribute('data-ct')||e.tagName)+':'+e.scrollTop).join(','),
-        banner:ban?{t:(ban.innerText||'').trim(),pe:getComputedStyle(ban).pointerEvents}:null,edge:edge?{r:[edge.getBoundingClientRect().top,edge.getBoundingClientRect().height],pe:getComputedStyle(edge).pointerEvents,label:edge.getAttribute('aria-label')}:null,cov,offN:offEls.length};});
-    const a=await snap();L.say(ok&&!!a.board&&!a.banner&&!a.edge,'TC-R222 PRECONDITION '+nm+' at '+geo+': a board is up online, with no offline notice',{board:a.board,banner:a.banner,edge:a.edge});
+        banner:ban?{t:(ban.innerText||'').trim(),pe:getComputedStyle(ban).pointerEvents}:null,edge:edge?{r:[edge.getBoundingClientRect().top,edge.getBoundingClientRect().height],pe:getComputedStyle(edge).pointerEvents,label:edge.getAttribute('aria-label')}:null,cov,offN:offEls.length,
+        /* #550 #432 sweep round 4: the notice counted by its WORDS - painted text or an accessible name starting 'You are offline' - so the two
+           absence lines below (no notice while online, the notice goes when the network is back) do not read only the hooks this build added */
+        words:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&(/^You are offline/.test((x.innerText||'').trim())||/^You are offline/.test(x.getAttribute('aria-label')||''));}).length};});
+    const a=await snap();L.say(ok&&!!a.board&&!a.banner&&!a.edge&&a.words===0,'TC-R222 PRECONDITION '+nm+' at '+geo+': a board is up online, with no offline notice (by hook, and by its words: '+a.words+')',{board:a.board,banner:a.banner,edge:a.edge,words:a.words});
     await b.ctx.setOffline(true);await b.settle(600);const c=await snap();const w=await whole(b,'[data-ct="offline-banner"]');
     L.say(!!c.banner&&/^You are offline\. Lessons, puzzles and saved games still work\.$/.test(c.banner.t),'TC-R222k '+nm+' at '+geo+': going offline says so and names what still works ("'+(c.banner&&c.banner.t)+'")',c.banner);
     L.say(!!w&&w.ok,'TC-R222k '+nm+' at '+geo+': the words are readable whole, every line inside the notice and the screen ('+JSON.stringify(w)+')',w);
@@ -165,7 +168,7 @@ L.run(async()=>{
     L.say(e.offN>0&&e.cov.length===0,'TC-R222k '+nm+' at '+geo+': what stays while offline covers no text and no control ('+(e.cov.join(' | ')||'nothing')+')',e.cov);
     L.say(!e.banner&&!!e.edge&&e.edge.pe==='none'&&/You are offline\. Lessons, puzzles and saved games still work/.test(e.edge.label||''),'TC-R222k '+nm+' at '+geo+': after 5 s the words go and the line along the top edge stays (takes no tap, and carries the words for a screen reader)',{banner:e.banner,edge:e.edge});
     await b.ctx.setOffline(false);await b.settle(600);const d=await snap();
-    L.say(!d.banner&&!d.edge,'TC-R222k '+nm+' at '+geo+': the notice goes when the network is back',{banner:d.banner,edge:d.edge});
+    L.say(e.words>0&&!d.banner&&!d.edge&&d.words===0,'TC-R222k '+nm+' at '+geo+': the notice goes when the network is back (by hook, and by its words: '+e.words+' offline -> '+d.words+' online)',{banner:d.banner,edge:d.edge,words:[e.words,d.words]});
     L.say(b.errs.length===0,'TC-R222 zero app errors (offline notice, '+nm+', '+geo+')',b.errs.slice(0,3));await b.close();}
   }
   { // (j) ERR-11: a pasted game looks names up only on the site its PGN names
@@ -195,3 +198,5 @@ L.run(async()=>{
   }
 },'146-errors-say-what-happened');
 // CONTROL-RECORD: 4a79a54 2026-11-13 total=36 red=2 scope=trial:0100b5a554d7 how=#550 #432 sweep (rev-noengine re-keyed by its words): c1, rev-noengine renamed AND the without-Stockfish notice drawn on EVERY review - TC-R222c red (notice shown, found by text) and TC-R222a red on the renamed hook; the hook-keyed version (55ca2c7) is 35/1 with TC-R222c GREEN; on t0 6c4245e05ecc 36/0
+// SELECTOR-OPENED: rev-noengine control=4a79a54 round 1: the notice found by its words; c1 renamed the hook and drew the notice on every review, TC-R222c red
+// SELECTOR-OPENED: rev-noengine-retry reading=presence round 4: TC-R222a requires exactly one retry button
