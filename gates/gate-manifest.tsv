@@ -160,3 +160,4 @@
 146-errors-say-what-happened.js	required	550	2026-11-13	build__1794388896663	gates/regress/146-errors-say-what-happened.js - WHEN SOMETHING FAILS OR THE NETWORK IS G	#550 accounts across devices (US-R153) and errors that say what happened (US-R154)
 143-no-movement.js	required	550	2026-11-13	build__1794388896663	gates/regress/143-no-movement.js - NOTHING MOVES THAT THE USER DID NOT MOVE. US-R151 / T	#550 movement: nothing moves on its own (US-R151)
 144-readable-everywhere.js	required	550	2026-11-13	build__1794388896663	gates/regress/144-readable-everywhere.js - THE ACCENT BUTTONS, THE CLOCKS AND THE PLAYER	#550 readable everywhere (US-R152)
+148-player-words.js	required	550	2026-11-13	build__1794388896663	gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WO	#550 player words: dev tools for him only (US-R156)

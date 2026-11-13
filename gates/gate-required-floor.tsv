@@ -93,3 +93,4 @@
 129	127	raise	2026-11-13	550	build__1794388896663	#550 accounts across devices (US-R153) and errors that say what happened (US-R154)	-	ee7816ceb41e
 130	129	raise	2026-11-13	550	build__1794388896663	#550 movement: nothing moves on its own (US-R151)	-	cddb8c9fb489
 131	130	raise	2026-11-13	550	build__1794388896663	#550 readable everywhere (US-R152)	-	09612bd66471
+132	131	raise	2026-11-13	550	build__1794388896663	#550 player words: dev tools for him only (US-R156)	-	7764dbb26142
