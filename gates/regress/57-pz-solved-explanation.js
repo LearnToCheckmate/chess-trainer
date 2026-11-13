@@ -125,6 +125,13 @@ const giveable=(b)=>b.page.evaluate(()=>{
 // capacity note below measures the real worst case rather than the fixture's 149.
 const LONGEST_CURATED="Nxe5!! ignores the pin. If Black grabs the queen with \u2026Bxd1??, then Bxf7+ Ke7 Nd5# \u2014 L\u00e9gal's Mate: three minor pieces deliver mate while the queen sits useless on d1. (If Black instead plays \u2026dxe5, then Bxf7+ and Qxg4 simply win a pawn.)";
 const ONLY=(process.env.CT_G57||'').split(',').map(x=>x.trim()).filter(Boolean);
+// #550 TEST-SYSTEM helper B round 3: TC-R85's "fits, so no chip" branch ran 0 times in 549-all.log, because its ONLY input was
+// LONGEST_CURATED, which overruns the box at all seven geometries (sh 137..178 against ch 109..153), so the absence line could
+// never execute. SHORT_FIT is a second input chosen to fit: one short line (an explanation of the kind a mate-in-one puzzle
+// carries). Its fit is a PRECONDITION asserted on its own line, so if a layout change ever makes it overrun, that is a red and
+// not a silent hop to the other branch. R85N counts each branch, printed at the end and asserted non-zero for the fit branch.
+const SHORT_FIT="Qh7# — mate in one.";
+const R85N={overrun:0,fit:0};
 
 L.run(async()=>{
   if(ONLY.length)L.note('SCOPED RUN: CT_G57='+ONLY.join(',')+' — this is NOT the full seven-geometry sweep.');
@@ -233,24 +240,30 @@ L.run(async()=>{
       // and at the end it goes. Not overflowing: no chip. THE BOX IS FOUND BY WHAT IT IS - the nearest scrolling ancestor of the 🎉
       // line - and NOT by the data-ct this build added: the first draft keyed on it, so the pre-fix control went red on a missing hook
       // rather than on the missing chip (CLAUDE.md, #432).
+      // #550 helper B round 3: the walk starts AT the 🎉 leaf, not at its parent. Since a42 (1603f06) a short upright phone shows the
+      // solved explanation as the fixed pz-overlay, which IS the leaf and IS the scroller, so a walk from the parent climbed past it to
+      // #root and measured the page (568 <= 568 at 320x568: a 'fits' that read the viewport). The precondition now refuses a page-sized box.
+      for(const [r85in,r85txt] of [['longest',LONGEST_CURATED],['short-fit',SHORT_FIT]]){
       try{
         const prep=await b.page.evaluate((txt)=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];
-          const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!el||!box)return null;window.__r85keep=el.textContent;el.textContent='🎉 Solved! '+txt;box.scrollTop=0;box.dispatchEvent(new Event('scroll'));return {sh:box.scrollHeight,ch:box.clientHeight};},LONGEST_CURATED);
+          const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!el||!box)return null;window.__r85keep=el.textContent;el.textContent='🎉 Solved! '+txt;box.scrollTop=0;box.dispatchEvent(new Event('scroll'));return {sh:box.scrollHeight,ch:box.clientHeight,ct:box.getAttribute('data-ct'),page:box.id==='root'||box===document.body||box===document.scrollingElement||box.clientHeight>=innerHeight-1};},r85txt);
         await b.page.waitForTimeout(250);
-        const chip=()=>b.page.evaluate(()=>{const c=document.querySelector('[data-ct="pz-verdict-more"]');const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!c)return {on:false,st:box&&box.scrollTop};const r=c.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {on:true,inView:r.top>=0&&r.bottom<=innerHeight,self:!!h&&(h===c||c.contains(h)),cx:r.left+r.width/2,cy:r.top+r.height/2,st:box&&box.scrollTop};});
-        if(L.say(!!prep,label+' '+state+': TC-R85 PRECONDITION the verdict box and its text node are found',prep)){
+        const chip=()=>b.page.evaluate(()=>{const c=document.querySelector('[data-ct="pz-verdict-more"]');const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(!c)return {on:false,st:box&&box.scrollTop};const r=c.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {on:true,inView:r.top>=0&&r.bottom<=innerHeight,self:!!h&&(h===c||c.contains(h)),cx:r.left+r.width/2,cy:r.top+r.height/2,st:box&&box.scrollTop};});
+        if(L.say(!!prep&&!prep.page,label+' '+state+': TC-R85 PRECONDITION ['+r85in+'] the verdict box and its text node are found, and the box is the verdict\'s own scroller ('+(prep&&prep.ct)+'), not the page',prep)
+           &&(r85in!=='short-fit'||L.say(prep.sh<=prep.ch+1,label+' '+state+': TC-R85 PRECONDITION [short-fit] the short input ('+SHORT_FIT.length+' chars) fits its box ('+prep.sh+' <= '+prep.ch+'), so the no-chip branch below is the one exercised',prep))){
           const c0=await chip();
-          if(prep.sh>prep.ch+1){
+          if(prep.sh>prep.ch+1){R85N.overrun++;
             L.say(c0.on&&c0.inView&&c0.self,label+' '+state+': TC-R85 the explanation overruns its box ('+prep.sh+' > '+prep.ch+') and a "more" chip is on screen and taps to itself',c0);
             // CONTROL-RECORD: a982d7c 2026-11-06 total=235 red=10 scope=full how=HEAD 7340372-line pre-fix bundle (no whole-line snap on the solved box), trial md5 208ec0354fc6; red: TC-R112 whole-lines at all seven G7 geometries x both solved states that overflow (cut line 12.1px of 16 shown). The good trial e0088d496d14 (rebased over (46)) reads 235 PASS 0 FAIL.
             // CONTROL-RECORD: 13cd5e9 2026-11-11 total=249 red=64 scope=trial:983b2b885274 how=#550 item (118): c118, the solved goal card collapsed with display:none in place of visibility:hidden - H and H2 red at all 14 inputs (28 lines), and the board-jump and box lines that collapse moves (A, A2, D, E and kin); good trial 762fd238c730 249/0
+            // CONTROL-RECORD: HEAD 2026-11-13 total=274 red=8 scope=trial:75d0691efcd8 how=#550 helper B round 3 (TC-R85 short-fit input; box walk starts at the leaf): c57, _pzVerdMeasure sets the chip ALSO when the box fits (scrollHeight<=clientHeight+1) - the [short-fit] no-chip line red at 375x730, 390x844, 414x896 and 440x956 on both verdicts (8); at 320x568/360x640/375x667 the pz-overlay carries no chip at all, so it stays green there; good trial 04156dc9b029 274/0, branch count overrun 8 / fit 20 (549-all.log: fit 0)
             // CONTROL-RECORD: ebbe41b 2026-11-12 total=31 red=4 scope=geo:320x568 trial:0b494f6c50db how=#550 a42 re-key (WANTB 320x568 320, 360x640 360; the short-phone H branch; box = the fixed overlay): t140 with CT_G57=320x568,360x640 - A2 reads 277 and the short-phone H finds the goal card hidden, on both verdicts at 320x568; on t142 4e6cd77c 231/0 (all geometries)
             // TC-R112 (US-R81), #549 item (45): AT REST THE OVERRUNNING BOX SHOWS WHOLE LINES - no line of the explanation is painted
             // cut through its glyphs at the box's bottom edge. Read from the glyphs' own rects (a Range per code point, grouped by line)
             // against the box found as the nearest scrolling ancestor, so it does not depend on the hook or the style the fix uses. On the
             // pre-fix HEAD bundle (208ec0354fc6) the sixth line straddled the edge with 12.1px of a 16px glyph row shown at 375x761.
             const cutL=await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];
-              let box=el&&el.parentElement;while(box&&!/auto|scroll/.test(getComputedStyle(box).overflowY))box=box.parentElement;if(!el||!box||box.scrollTop>0.5)return null;
+              let box=el;while(box&&!/auto|scroll/.test(getComputedStyle(box).overflowY))box=box.parentElement;if(!el||!box||box.scrollTop>0.5)return null;
               const br=box.getBoundingClientRect(),lines={},rg=document.createRange(),n=el.firstChild;let off=0;
               for(const cp of Array.from(n.nodeValue)){rg.setStart(n,off);rg.setEnd(n,off+cp.length);off+=cp.length;if(/\s/.test(cp))continue;const c=rg.getBoundingClientRect();if(!c.width)continue;const k=Math.round(c.top);lines[k]=lines[k]||{t:+c.top.toFixed(1),b:+c.bottom.toFixed(1)};}
               const ls=Object.values(lines);return {boxBottom:+br.bottom.toFixed(1),lines:ls.length,whole:ls.filter(l=>l.b<=br.bottom+0.5).length,straddling:ls.filter(l=>l.t<br.bottom-0.5&&l.b>br.bottom+0.5)};});
@@ -258,10 +271,11 @@ L.run(async()=>{
               L.say(cutL.straddling.length===0,label+' '+state+': TC-R112 at rest the overrunning box shows whole lines only - no line is painted cut through its glyphs at the bottom edge ('+cutL.whole+' whole, '+cutL.straddling.length+' cut)',cutL);
             let last=c0,moved=false,k=0;for(;k<8&&last.on;k++){await b.page.mouse.click(last.cx,last.cy);await b.page.waitForTimeout(250);const nx=await chip();if(nx.st>last.st)moved=true;last=nx;}
             L.say(moved&&!last.on,label+' '+state+': TC-R85 each tap scrolls the box, and once the end is reached the chip is gone ('+k+' taps)',{moved,end:last});
-          }else L.say(!c0.on,label+' '+state+': TC-R85 the explanation fits here ('+prep.sh+' <= '+prep.ch+'), so there is no "more" chip',c0);
+          }else{R85N.fit++;L.say(!c0.on,label+' '+state+': TC-R85 ['+r85in+'] the explanation fits here ('+prep.sh+' <= '+prep.ch+'), so there is no "more" chip',c0);}
         }
-        await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];if(el&&window.__r85keep!=null)el.textContent=window.__r85keep;const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l&&l.parentElement;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(box){box.scrollTop=0;box.dispatchEvent(new Event('scroll'));}});await b.page.waitForTimeout(200);
-      }catch(e){L.say(false,label+' '+state+': TC-R85 block threw',String(e.message).slice(0,90));}
+        await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];if(el&&window.__r85keep!=null)el.textContent=window.__r85keep;const box=(()=>{const l=[...document.querySelectorAll('div')].filter(d=>/^\u{1F389}/u.test((d.textContent||'').trim())&&d.children.length===0)[0];let x=l;while(x&&!/auto|scroll/.test(getComputedStyle(x).overflowY))x=x.parentElement;return x;})();if(box){box.scrollTop=0;box.dispatchEvent(new Event('scroll'));}});await b.page.waitForTimeout(200);
+      }catch(e){L.say(false,label+' '+state+': TC-R85 ['+r85in+'] block threw',String(e.message).slice(0,90));}
+      }
       if(/KUNAL/.test(label)&&state==='long-solved'){
         await b.shot('57-pz-solved-long-kunal730');
         // MEASURED, NOT ASSERTED: the rank-up concatenation, filed separately. See the header.
@@ -276,6 +290,8 @@ L.run(async()=>{
       await b.close();
     }
   }
+  L.note('TC-R85 BRANCH COUNT: overrun (chip) branch ran '+R85N.overrun+' times, fit (no chip) branch ran '+R85N.fit+' times');
+  L.say(R85N.fit>0,'TC-R85 DENOMINATOR the "fits, so no more chip" branch executed '+R85N.fit+' time(s) - an absence line that never runs is reported, not credited',R85N);
   // ===== TC-R58 / US-R47 [#547 item (58); jobs/rank-up-verdict-line-is-cut-mid-word-2026-09-28]. THE RANK-UP NEWS IS PAINTED
   // IN FULL. The orchestrator's recorded default (remedy one, 10 Oct) puts the news FIRST in the verdict, right after the lead,
   // so a long explanation scrolls under it instead of hiding it. The input is the job's own: curated c7 (Smothered mate, absolute
