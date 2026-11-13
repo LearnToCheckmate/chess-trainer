@@ -29,6 +29,15 @@
 // 34-takeback hit at #383. The header used to claim the vs-Computer board is 357. Measured, it is 351.
 // CONTROL-RECORD: a22f527 2026-11-13 total=25 red=6 scope=trial:5d648bc20064 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 13's 'card' configuration moved off card k8 onto a computer game played by hand, drive/play.js cpu-m0 + moves): the Play board 8px narrower - the four card/PP width and top pins at kunal and both width pins at 390 red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 25/0 on the new route; on 77ffccc15668 25/0 by both routes, PASS/FAIL lines identical except the card configuration's numbers (375@100 / 390@128 on the dev-only 'demo' opponent, 353@109 / 390@150 against the computer), re-pinned
 // CONTROL-RECORD: a22f527 2026-11-13 total=25 red=2 scope=trial:4d7c8dd016f1 how=#550 same move, control (B) of the header re-run on the new route (_pLive=false): the card top pin (128 vs 109) and the Pass & Play top pin (124 vs 103.7) red at kunal; the 'unchanged from move 0' lines stay green on the computer game too (the board sits at 353@128 from move 0), so as on the dev card the pins, not the unchanged lines, are what see it
+// WHY _pLive=false IS NOT A CONTROL FOR THE 'unchanged' LINES ANY MORE, AND THE ONE THAT IS [#550 round 2]. In portrait movesOpen starts
+// true, and the moves panel renders when history>0 OR _pFill OR movesOpen - so with _pLive false the panel is still laid out from move 0, it
+// merely stops filling (no flex), and the board sits at 353@128 (computer) and 375@124 (Pass & Play) for the WHOLE game. Nothing appears
+// after the first move, so the 'unchanged' lines are RIGHT to stay green on it: it is a constant-layout control, which is the pins' job
+// (control A above). The k8 defect is a row that is absent at move 0 and appears after it, and that control is the panel's own condition
+// cut to history>0 alone (`(boardGame.history.length>0||_pFill||_pLand)` -> `(boardGame.history.length>0)`): at 375x679 the computer
+// board goes 353@128 at move 0 -> 353@109 after e4, and the two 'unchanged' lines and Pass & Play's ONE-top line go red ON THEIR OWN while
+// all four kunal pins stay GREEN (the after-move state is the tip's). 390x844 does not move on it (390@150 and 390@128 throughout).
+// CONTROL-RECORD: e2692c0 2026-11-13 total=25 red=3 scope=trial:eb30ab8b8b18 how=#550 round 2: the moves panel rendered only once history>0 (the #370 k8 shape: a row that appears after the first move): 'kunal: card k8 board unchanged from MOVE 0 to the first ply' (top 128 -> 109), 'kunal: card k8 board unchanged over four plies' (128 -> 109) and 'kunal: Pass & Play board has ONE width and ONE top' (tops 124, 103.7) red; every pin green; tip trial:489840ab49bb 25/0
 'use strict';
 const L=require('../lib');
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e). Board width and top, per geometry, for BOTH configurations.
