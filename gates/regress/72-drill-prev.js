@@ -480,11 +480,13 @@ L.run(async()=>{
    for(const [w,h] of [[320,568],[375,568],[375,730]]){const tag=w+'x'+h;
      const b=await L.launch({geo:{w,h,safe:''},name:'drill-hint-board-'+tag,store:{ct_mybrilliancies:BR,ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();
      let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/can you spot them again\?/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);/* #550 item (66): the drill's Hint is an icon under 430 wide, so it is tapped by its accessible name */await b.page.locator('button[aria-label="Hint"]:visible').first().click({timeout:3000});await b.page.waitForTimeout(700);}catch(e){ok=false;}
-     const r=ok?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('[data-ct="pz-top"] div')].find(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute');
+     // #550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the message's text now scrolls in an inner box
+     // (pz-msg-text) whose window is whole lines; the scroller asserted below is that box where it exists, the message itself before it
+     const r=ok?await b.page.evaluate(()=>{const m0=[...document.querySelectorAll('[data-ct="pz-top"] div')].find(d=>/^\u{1F4A1}/u.test((d.innerText||'').trim())&&getComputedStyle(d).position==='absolute');const m=(m0&&m0.querySelector('[data-ct="pz-msg-text"]'))||m0;
        const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
-       if(!m||!g)return null;const gr=g.getBoundingClientRect(),sq=gr.width/8,res=m.parentElement.getBoundingClientRect();
+       if(!m||!g)return null;const gr=g.getBoundingClientRect(),sq=gr.width/8,res=m0.parentElement.getBoundingClientRect();
        let lost=0;for(let c=0;c<8;c++)for(const fy of [0.15,0.5]){const e=document.elementFromPoint(gr.left+sq*(c+.5),gr.top+sq*fy);if(!e||!g.contains(e))lost++;}
-       const longer=m.scrollHeight>res.height+1;const ovf=getComputedStyle(m).overflowY;let pan=true;for(let p=m;p&&p!==document.documentElement;p=p.parentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();if(/\bnone\b/.test(ta)||(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta)))pan=false;}/* cross-read A(2): script scrolls what a finger may not - require a vertical pan to be allowed */
+       const longer=m0.scrollHeight>res.height+1||m.scrollHeight>m.clientHeight+1;const ovf=getComputedStyle(m).overflowY;let pan=true;for(let p=m;p&&p!==document.documentElement;p=p.parentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();if(/\bnone\b/.test(ta)||(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta)))pan=false;}/* cross-read A(2): script scrolls what a finger may not - require a vertical pan to be allowed */
        m.scrollTop=m.scrollHeight;const rg=document.createRange();rg.selectNodeContents(m);const rs=[...rg.getClientRects()];const lr=rs[rs.length-1],vr=m.getBoundingClientRect();
        const lastIn=!!lr&&lr.bottom<=vr.bottom+1&&lr.top>=vr.top-1;m.scrollTop=0;
        return {lost,longer,ovf,pan,sh:m.scrollHeight,ch:m.clientHeight,reserve:+res.height.toFixed(1),lastIn};}):null;

@@ -9,6 +9,7 @@
 // WHAT IT READS: the bundle under test (CT_APP) at kunal761, a store of real chess.com Brilliants from gates/brilliant-fixed-tests.json
 // (their kinds read by the shipped brilKind through gates/engine-extract.js, so the fixture's shelves are the app's own).
 // CONTROL-RECORD: c33e447 2026-11-11 total=13 red=10 scope=trial:e19888a745d8 how=#550 item (21): the tree before the library (t69: the tile starts the drill on every card, no sheet, no switch) - TC-R197a-f red, the kinds precondition and the one-kind start green
+// CONTROL-RECORD: 359de94 2026-11-13 total=25 red=6 scope=trial:aee112168086 how=#550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the branch tip's bundle (before the fix) - TC-R197g folded/one-tap/fold-again red at kunal761 and se (a line cut at the 44px box's edge, the chip over line 1, one tap scrolling 20px); the precondition, board and error lines and TC-R197a-f green; on t4 28bf2e8d6190 25/0
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const T=require('../brilliant-fixed-tests.json').tests;
@@ -57,4 +58,36 @@ L.run(async()=>{
    let row=null;try{await MD.states['menu-bottom'](b);await b.settle(400);row=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Brilliant library/.test((e.innerText||'').trim()));return x?(x.innerText||'').replace(/\s+/g,' ').trim():null;});}catch(e){}
    L.say(!!row&&/OFF$/.test(row),'TC-R197f the menu\'s New features section carries the Brilliant library switch, reading OFF here ("'+row+'")');
    await b.close();}
+  // TC-R197g [#550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13]: the Opera Game's 16.Qb8+ as a one-card
+  // drill (a one-line goal, so the message float is the 44px of that card at kunal761 and 38 at 320x568). Solved, the explanation (three lines
+  // at 375) showed one and a half lines, the 'more' chip sat over the end of line 1, and 'more' scrolled 20px against a 21.75 pitch. Asserted:
+  // folded, every painted line is WHOLE (a line box is inside the visible text box or wholly outside it) and the chip covers no line; one tap
+  // shows every line inside the message and the screen; tapping again folds it; the board never moves.
+  for(const geo of ['kunal761','se']){
+    const OP={fen:'1n2kb1r/p2r1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16',uci:'b3b8',why:"Qb8+ gives up the queen to drag the knight off d7's guard, and Rd8 is mate next move.",label:'Brilliant',ts:1791000000000,last:null,no:20};
+    const b=await L.launch({geo,name:'bril-opera-'+geo,store:{ct_mybrilliancies:[OP],ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
+    let ok=true;try{await b.tile('Review');await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click();await b.settle(1500);}catch(e){ok=false;}
+    const bd0=await b.board();if(ok){try{await b.move('b3','b8',0);await b.settle(2500);}catch(e){ok=false;}}
+    // the text's own line boxes: the text node inside the message (the inner box where the fix adds one, the message itself before it)
+    const rd=()=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-msg"]');if(!e)return null;const t=e.querySelector('[data-ct="pz-msg-text"]')||e;const tn=[...t.childNodes].find(n=>n.nodeType===3);
+      const g=document.createRange();g.selectNodeContents(tn||t);const L=[...g.getClientRects()].filter(x=>x.width>0.5).map(x=>({t:x.top,b:x.bottom,l:x.left,r:x.right}));
+      const cs=getComputedStyle(e);const er=e.getBoundingClientRect();const tr=t.getBoundingClientRect();
+      // the visible text area: the inner box, clipped to the message's padding box (overflow clips there)
+      const vr={top:Math.max(tr.top,er.top+parseFloat(cs.borderTopWidth)),bottom:Math.min(t===e?er.bottom-parseFloat(cs.borderBottomWidth):tr.bottom,er.bottom-parseFloat(cs.borderBottomWidth))};
+      const mo=document.querySelector('[data-ct="pz-msg-more"]');const m=mo&&mo.getBoundingClientRect();
+      const vis=L.filter(x=>x.b>vr.top+0.5&&x.t<vr.bottom-0.5);
+      return {txt:(e.innerText||'').trim(),n:L.length,vis:vis.length,whole:vis.every(x=>x.t>=vr.top-0.5&&x.b<=vr.bottom+0.5),
+        all:L.every(x=>x.t>=er.top-0.5&&x.b<=er.bottom+0.5&&x.b<=innerHeight&&x.r<=innerWidth),chip:mo?(mo.innerText||'').trim():null,
+        cover:m?vis.filter(x=>x.l<m.right&&x.r>m.left&&x.t<m.bottom&&x.b>m.top).length:0,box:Math.round(er.height),lines:L.map(x=>Math.round(x.t)+'-'+Math.round(x.b)).join(',')};});
+    const f=await rd();
+    L.say(ok&&!!f&&/Rd8 is mate/.test(f.txt)&&f.n>=2&&!!bd0,'TC-R197g '+geo+' PRECONDITION the Opera Game\'s Qb8+ was solved and its explanation runs to '+(f&&f.n)+' lines in a '+(f&&f.box)+'px box',f);
+    L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),'TC-R197g '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them, and it says there is more ('+JSON.stringify(f)+')',f);
+    let o=null;if(f&&f.chip){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);o=await rd();}
+    L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,'TC-R197g '+geo+' one tap on it shows the whole explanation: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
+    const bd1=await b.board();
+    if(o){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);}const c=await rd();
+    L.say(!!c&&c.whole&&c.vis<c.n&&/more/.test(c.chip||''),'TC-R197g '+geo+' a second tap folds it again to whole lines',c);
+    const bd2=await b.board();
+    L.say(!!bd0&&!!bd1&&!!bd2&&[bd1,bd2].every(x=>Math.abs(x.y-bd0.y)<0.5&&Math.abs(x.w-bd0.w)<0.5),'TC-R197g '+geo+' the board did not move (solve, open, fold)',{bd0,bd1,bd2});
+    L.say(b.errs.length===0,'TC-R197g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'118-brilliant-library');
