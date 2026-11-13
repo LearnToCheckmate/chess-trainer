@@ -9,7 +9,7 @@
 // these functions does not declare them and every line below goes red on the missing function, which is the point of the control.
 // The puzzle rows are read from the same source's PZGEN_RAW literal.
 // KNOW ITS LIMIT: the browser surfaces are gates 130 (Play) and 132 (the drill); this gate pins the readings themselves.
-// CONTROL-RECORD: 55ca2c7 2026-11-13 total=20 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line and every older line green
+// CONTROL-RECORD: 55ca2c7 2026-11-13 total=26 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line, every older line and the six TC-R209g pins green (total 20 before TC-R209g was added)
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');
@@ -62,6 +62,18 @@ L.run(async()=>{
   for(const [id,f,san,kind,fire,want,why] of MOT){const r=rd(f,san);
     if(fire)L.say(r.k===kind&&want.test(r.hint||''),'TC-R209f '+id+' '+kind+' MUST fire: '+san+' ('+why+') reads "'+r.hint+'" ['+r.k+']',r);
     else L.say(r.k!==kind&&!/^THREW|^NOMOVE/.test(String(r.k)),'TC-R209f '+id+' '+kind+' must NOT fire: '+san+' ('+why+') reads "'+r.hint+'" ['+r.k+']',r);}
+  // His six cards that read "isn't it" for his own move (claude/agents/HINT-TEXTS-550.md cards 2, 5, 6, 7, 8, 10): the Hint each now shows,
+  // pinned as it stands (a regression pin with no control of its own: the three new readings change none of them, measured at #550 cg7).
+  const SIXH=[
+    ['K2','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 1','exd4','Bb4+','Their pawn on d4 can be taken, and taking it is right even though it can be taken back.'],
+    ['K5','rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1','dxe5','Nf3','Their pawn on e5 can be taken. Take it with the pawn.'],
+    ['K6','r2qk2r/ppp2ppp/2nbpn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 1','h3','Qc2','Their bishop on g4 is short of defenders. Attack it.'],
+    ['K7','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Re4','Be4','Their knight on g4 is short of defenders. Attack it.'],
+    ['K8','5rk1/pBqb1pbp/4p1p1/1p1nN3/2pP4/2P3B1/PP3PPP/R2QR1K1 w - - 0 1','Bxd5','Ba6','Their knight on d5 can be taken, and taking it is right even though it can be taken back.'],
+    ['K10','r3r1k1/p2q1p1p/1p1p2pB/1Pp5/3bPP2/1Q6/1PP3PP/3RR2K b - - 0 1','Qb7','Re7','No tactic to spot here — look for the move that improves your worst piece.'],
+  ];
+  for(const [id,f,bs,ps,want] of SIXH){let t='';try{const g=E.fromFEN(f);t=E.mistakeHint(g,E.findMoveBySAN(g,bs),E.findMoveBySAN(g,ps));}catch(e){t='THREW '+e.message;}
+    L.say(t===want,'TC-R209g '+id+' his card ('+ps+', best '+bs+'): the Hint reads "'+t+'"',{t,want});}
   // and the drill's verdict names the same thing (say), so the solve sentence does not fall back to "was stronger" on them
   {const g=E.fromFEN(MOT[4][1]);const v=E.drillVerdict(g,E.findMoveBySAN(g,'Nc6'),null,'Nc6 was stronger. Kh1 went from level to losing.');
    L.say(/^Nc6 forks the queen on d8 and the rook on b8\./.test(v),'TC-R209f F13 the drill verdict on the fork says it ("'+v+'")',v);}
