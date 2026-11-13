@@ -61,6 +61,8 @@ L.run(async()=>{
     let ok=true,op=null,rm=null;try{await b.tile('Discover');await b.settle(800);await b.tapText(/^Openings$/,{wait:900});op=await widest();await b.tile('Puzzles');await b.settle(900);rm=await widest();}catch(e){ok=false;}
     L.say(ok&&!!op&&!!rm&&op.w>0&&rm.w>0,tag+': TC-R217 PRECONDITION the Openings list and the Puzzles roadmap opened, their rows read',{op,rm});
     if(tag!=='kunal761')for(const [n,x] of [['Openings',op],['Puzzles roadmap',rm]])L.say(!!x&&x.w<=662&&Math.abs(x.c-x.vw/2)<=12,tag+': TC-R217g the '+n+' rows sit in the centred 660 column ('+(x&&x.w)+' wide, centre '+(x&&x.c)+')',x);
-    else L.say(!!op&&op.w>=360,'kunal761: TC-R217g his phone\'s Openings rows keep the screen width ('+(op&&op.w)+')',op);
+    // #550 re-keyed for the formatting audit A-08/B-05 (Kunal's pick 12 Nov): pages with no board take a 12px gutter, so the rows are
+    // 375-24 = 351 on his phone (were 367 at the old 3.8 gutter); measured 351, centre 188 on t163 7719e5a7fd39. Still the full column, centred.
+    else L.say(!!op&&op.w>=349&&Math.abs(op.c-op.vw/2)<=2,'kunal761: TC-R217g his phone\'s Openings rows keep the screen width less the 12px gutters ('+(op&&op.w)+', centre '+(op&&op.c)+')',op);
     L.say(b.errs.length===0,tag+': TC-R217 lists zero app errors',b.errs.slice(0,3));await b.close();}
 },'141-home-one-column-every-width');
