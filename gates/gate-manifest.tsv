@@ -163,3 +163,4 @@
 148-player-words.js	required	550	2026-11-13	build__1794388896663	gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WO	#550 player words: dev tools for him only (US-R156)
 149-desktop-board-pages.js	required	550	2026-11-13	build__1794388896663	gates/regress/149-desktop-board-pages.js - BOARD PAGES ON A COMPUTER WINDOW: ONE CENTRED	#550: gate 149 (desktop board pages, US-R157) from the app helper's merge
 156-lesson-stages.js	required	550	2026-11-13	build__1794388896663	#550, jobs/lessons-teach-the-finish-not-the-method-2026-09-24 (its remainder: "the lesso	#550: gate 156 (stage lessons) from the lessons-and-drills helper's merge
+157-icon-rows-one-size.js	required	550	2026-11-13	build__1794388896663	regress/157-icon-rows-one-size.js   ONE ICON SIZE WITHIN A ROW, JUDGED BY THE PAINTED IN	#550: gate 157 (icon rows one size) from the lessons-and-drills helper's merge
