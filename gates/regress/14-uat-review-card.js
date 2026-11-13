@@ -12,6 +12,15 @@
 // the gallery, which gate 15 covers, not about the Review screen. Every state line is kept with its words, less the card's timestamp.
 // The move-screen board pin is unchanged: 343 by both routes.
 // CONTROL-RECORD: 41b53b4 2026-11-13 total=9 red=2 scope=trial:844bba6021d6 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 14 moved off gallery card 6, US-R, onto drive/review.js): the analysis board's '\u2715 Exit analysis' relabelled '\u2715 Leave' - 'US-R07 analysis board with Undo and Exit' and 'US-R09 back on the summary' red, the guarded exit carrying on; with EVERY state card the job names DELETED (k10, k8, k11 x2, A-06, US-R01, y3 x2; trial:6c107ff5381c) 9/0 on the new route where the old card route read 1/2 and threw; on 77ffccc15668 9/0 here against 15/0 on the old route - the 7 state lines agree verdict for verdict (the board 343 by both), and the 7 caption and gallery lines went with the card. Two board-size controls did NOT red the 343 pin (boardPx-8 in analyze, trial:dd2002730d30; REV_CHROME 304 -> 320, trial:c00ad8a905cd): the streamlined review's board is sized by neither, so that line is not yet shown able to fail by this route
+// WHY THOSE TWO DID NOT MOVE IT, MEASURED [#550 round 2, CLAUDE.md #416 rule: the MEASURED value before and after]: SQ's inputs printed from an
+// instrumented trial at 375x679, ply 0. Tip (c218f97093d9): widthCap 375, heightCap 375, fit-loop trim 32, cap 343, board 343. REV_CHROME 320
+// (3ea938a1f043): heightCap 375 -> 359, trim 32 -> 16, cap 343, board 343 - the cap moved and stayed ABOVE the board, and the fit loop took 16
+// less off. boardPx-8 in analyze (ff5b6e3bc0b9): trim 32 -> 24, cap 351, boardPx 351-8 = 343, board 343 - the loop saw 8px of room and gave
+// it back. Both controls disturbed a real input and left the measured number where it was, because at this geometry the board is set by the
+// room the rows under it leave, and the loop reconciles every non-binding change to the pixel. The pin was never unable to fail; the controls
+// did not cross its line. The two that do, and the rows now printed beside the pin so a red names what took the room:
+// CONTROL-RECORD: (this commit) 2026-11-13 total=9 red=1 scope=trial:6d68f3ae4ef2 how=REV_CHROME 304 -> 344, so heightCap 335 binds below 343: 'move screen, board 343, no scroll' red at board 335 (rev-compact 106 -> 114 takes the slack), every other line green; tip trial:489840ab49bb 9/0 at 343
+// CONTROL-RECORD: (this commit) 2026-11-13 total=9 red=1 scope=trial:ae1f4d7f12c3 how=the streamlined rev-compact floor 93 -> 109 (a row under the board takes 16px more): 'move screen, board 343, no scroll' red at board 327, rows printed {rev-compact 122, min 109px}, every other line green
 'use strict';
 const L=require('../lib');const R=require('../drive/review');
 const WANT_W=343;   // measured on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
@@ -23,7 +32,12 @@ L.run(async()=>{
   await b.shot('uat-review-summary');
   await R.states['moves-ply0'](b);const m4=await b.metrics();
   const ply0=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="rev-move-line"]');return t?(t.innerText||'').replace(/\s+/g,' ').trim():null;});
-  L.say(!!m4.board&&Math.abs(m4.board.w-WANT_W)<0.6&&m4.over.over<=0,'move screen, board '+WANT_W+', no scroll',{board:m4.board,over:m4.over.over,line:ply0});
+  // WHAT SETS THE 343, measured rather than read [#550 round 2]: at 375x679 the board is placed by the FIT LOOP, not by a cap - SQ's
+  // caps are 375 wide and 375 tall (heightCap = vh-REV_CHROME) and the loop trims 32 so the rows under the board fit. So the pin moves
+  // only when the room those rows leave moves, or when a cap binds below 343; a cap change that stays above 343 is reconciled by the loop
+  // to the pixel. The rows are printed beside the pin so a red says which one took the room.
+  const rows=await b.page.evaluate(()=>{const o={};for(const k of ['pbar-top','pbar-bottom','strip-row','rev-compact','rev-row1']){const e=[...document.querySelectorAll('[data-ct="'+k+'"]')].pop();if(!e){o[k]=null;continue;}const r=e.getBoundingClientRect();o[k]={h:Math.round(r.height*10)/10,min:getComputedStyle(e).minHeight};}return o;});
+  L.say(!!m4.board&&Math.abs(m4.board.w-WANT_W)<0.6&&m4.over.over<=0,'move screen, board '+WANT_W+', no scroll',{board:m4.board,over:m4.over.over,line:ply0,rows});
   await R.goPly(b,19);const ml6=await b.rect('[data-ct="rev-move-line"]');await b.settle(1500);const why={text:(await b.text('[data-ct="rev-why"]'))||''};
   L.say(!!ml6&&/Nxb5/.test(ml6.text),'US-R06 at 10.Nxb5',ml6&&ml6.text);
   L.say(!!why&&/cxb5|Bxb5/.test(why.text),'the reason names the forcing line',why&&why.text.slice(0,80));
