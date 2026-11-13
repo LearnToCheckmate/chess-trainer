@@ -59,8 +59,8 @@ L.run(async()=>{
     const cl=await clapper(b);
     L.say(cl===0,'TC-R224b Home: no film-clapper (preview gallery) button ('+cl+' found)');
     L.say(hits(home).length===0,'TC-R224b Home: no developer words ('+hits(home).join(', ')+')',hits(home));
-    let menu=null;try{await b.tapCt('home-menu',800);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){L.note('menu: '+e);}
-    L.say(!!menu&&/Sound/.test(menu)&&/Piece style/.test(menu),'TC-R224 PRECONDITION the Menu sheet is open (it reads Sound and Piece style)');
+    let menu=null;try{await b.tapCt('home-menu',800);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){L.note('menu: '+e);}   // #550 jobs/build-menu-one-screen: read WITH the fold behind the foot line open, so a dev word moved behind it is still seen
+    L.say(!!menu&&/Sound/.test(menu)&&/Look and feel/.test(menu),'TC-R224 PRECONDITION the Menu sheet is open (it reads Sound and Look and feel; #550: Piece style moved to the Look screen)');
     L.say(!!menu&&hits(menu).length===0,'TC-R224c Menu: no Layout readout or overlay, no New features switches, no build stamp, no feedback-to-Claude ('+hits(menu).join(', ')+')',hits(menu||''));
     L.say(!!menu&&/Evaluation graph/.test(menu),'TC-R224c Menu: the graph switch reads "Evaluation graph"');
     const ver=(menu||'').match(/Version (\d+)/);
@@ -100,7 +100,7 @@ L.run(async()=>{
     let gal=null;try{await b.page.locator('button[title="Preview gallery (dev)"]').first().click();await b.settle(600);gal=await textOf(b);}catch(e){}
     L.say(!!gal&&/Preview gallery/.test(gal),'TC-R224i dev on: the clapper opens the Preview gallery');
     try{await b.page.reload();await b.settle(1200);}catch(e){}
-    let menu=null;try{await b.tapCt('home-menu',800);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){}
+    let menu=null;try{await b.tapCt('home-menu',800);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){}
     L.say(!!menu&&/Layout readout/.test(menu)&&/Layout overlay/.test(menu)&&/^New features$/im.test(menu)&&/Build #\d+/.test(menu)&&/Send feedback/.test(menu),'TC-R224i dev on: the Menu carries Layout readout, Layout overlay, New features, Send feedback and the full build stamp');
     try{await b.page.reload();await b.settle(1200);}catch(e){}
     let pin=0;try{await b.tile('Puzzles');await b.settle(900);pin=await b.page.evaluate(()=>[...document.querySelectorAll('input')].filter(i=>/Unlock code/.test(i.placeholder||'')).length);}catch(e){}
@@ -113,7 +113,7 @@ L.run(async()=>{
     const b=await L.launch({geo:'kunal761',name:'pw148-cloud-'+dev,dev:false});const s=stub(dev);await b.ctx.addInitScript(s.fn,{dev:s.dev});await b.open();await b.settle(1500);
     const st=await b.page.evaluate(()=>({loads:window.__ct148Stub?window.__ct148Stub.loads:-1,h:window.__ctDevHarness}));
     L.say(st.loads>=1&&st.h===undefined,tc+' PRECONDITION the stand-in account was loaded ('+st.loads+' loads) and no harness flag is set');
-    const cl=await clapper(b);let menu=null;try{await b.tapCt('home-menu',800);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){}
+    const cl=await clapper(b);let menu=null;try{await b.tapCt('home-menu',800);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);menu=await textOf(b,'[data-ct="menu-sheet"]');}catch(e){}
     const on=cl>=1&&!!menu&&/Layout readout/.test(menu);const off=cl===0&&!!menu&&!/Layout readout/.test(menu)&&hits(menu).length===0;
     L.say(dev?on:off,tc+' users/{uid}.dev = '+dev+': the developer tools are '+(dev?'shown':'hidden')+' ('+cl+' clapper; readout '+(!!menu&&/Layout readout/.test(menu))+')');
     L.say(b.errs.length===0,tc+' zero app errors',b.errs.slice(0,3));

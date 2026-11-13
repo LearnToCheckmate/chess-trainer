@@ -23,9 +23,9 @@ L.run(async()=>{
   // B. a locked skin in the menu's skin sheet
   {const b=await L.launch({geo:'kunal761',name:'aud-h05-skin',store:{}});await b.open();
    const MD=require('../drive/menu');let ok=true;
-   try{await MD.states['menu-bottom'](b);await b.settle(400);
-}catch(e){ok=false;}
-   const row=b.page.locator('button',{hasText:'Bright, rounded and friendly'}).first();   // the menu's SKIN list: Playful's row, by its blurb
+   try{await MD.states['menu-look'](b);await b.settle(400);await MD.lookTap(b,'^Style',600);
+}catch(e){ok=false;}   // #550 jobs/build-menu-one-screen: the menu's own SKIN cards moved; the skins are on the Style screen Look and feel opens
+   const row=b.page.locator('button',{hasText:'Bright, rounded and friendly'}).first();   // the Style screen's skin list: Playful's row, by its blurb
    const has=ok&&await row.count().catch(()=>0);
    if(has){await row.click().catch(()=>{});await b.settle(600);}
    const t=has?await sheet(b):null;

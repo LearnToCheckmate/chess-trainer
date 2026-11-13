@@ -20,15 +20,23 @@ L.run(async()=>{
     await b.tapCt('home-menu',500);const sheet=await b.rect('[data-ct="menu-sheet"]');
     L.say(!!sheet,geo+': A-04 the ☰ on Home opens the menu sheet');
     // A-16 (the sheet from Home is the same sheet; measure it here and again from Discover)
-    L.say(!!sheet&&sheet.y+sheet.h>=b.geo.h-11&&sheet.y+sheet.h<=b.geo.h+0.5,geo+': A-16 menu sheet reaches the bottom (bottom '+(sheet&&Math.round(sheet.y+sheet.h))+' of '+b.geo.h+')');
+    // #550 jobs/build-menu-one-screen RE-PIN of A-16: the sheet's content FITS now (gate 47 TC-MN-054), so the sheet is as tall as its
+    // content. A-16's defect was a cap short of the screen while content still scrolled: the sheet stays inside the screen, and it reaches
+    // the bottom whenever its content overflows.
+    const fit=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');return s?{sh:s.scrollHeight,ch:s.clientHeight}:null;});
+    L.say(!!sheet&&!!fit&&sheet.y+sheet.h<=b.geo.h+0.5&&(fit.sh<=fit.ch||sheet.y+sheet.h>=b.geo.h-11),geo+': A-16 menu sheet stays inside the screen and reaches the bottom whenever it overflows (bottom '+(sheet&&Math.round(sheet.y+sheet.h))+' of '+b.geo.h+', content '+(fit&&fit.sh)+' in '+(fit&&fit.ch)+')');
     // A-11 in the menu: piece chips and footer links
-    const chips=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="menu-sheet"] button')].filter(x=>/^(Classic|Merida|Chessnut|Spatial|Symbol)$/.test((x.innerText||'').trim())).map(x=>Math.round(x.getBoundingClientRect().height)));
     const links=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="menu-sheet"] a')].filter(x=>/^(Privacy|Terms|Refunds|Delete account)$/.test((x.innerText||'').trim())).map(x=>Math.round(x.getBoundingClientRect().height)));
-    L.say(chips.length===5&&chips.every(h=>h>=40),geo+': A-11 the five piece chips are at least 40px tall',chips);
     L.say(links.length===4&&links.every(h=>h>=40),geo+': A-11 the four footer links are at least 40px tall',links);
     await b.page.mouse.click(4,4);await b.settle(300);L.say(!(await b.rect('[data-ct="menu-sheet"]')),geo+': the menu closes on a backdrop tap');
+    // #550 jobs/build-menu-one-screen: the five piece chips live on the Look and feel screen only (one home), so A-11 reads them there
+    await b.tapCt('home-menu',500);await b.tapCt('menu-look',700);
+    const chips=await b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="look"] button[data-ct^="look-pc-"]')].map(x=>Math.round(x.getBoundingClientRect().height)));
+    L.say(chips.length===5&&chips.every(h=>h>=40),geo+': A-11 the five piece chips (on the Look and feel screen) are at least 40px tall',chips);
+    await b.page.mouse.click(4,4);await b.settle(300);
     await b.tile('Discover');await b.tapText(/^☰$/,{wait:500});const sheet2=await b.rect('[data-ct="menu-sheet"]');
-    L.say(!!sheet2&&sheet2.y+sheet2.h>=b.geo.h-11,geo+': A-16 from Discover the sheet reaches the bottom too (bottom '+(sheet2&&Math.round(sheet2.y+sheet2.h))+')');
+    const fit2=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');return s?{sh:s.scrollHeight,ch:s.clientHeight}:null;});
+    L.say(!!sheet2&&!!fit2&&sheet2.y+sheet2.h<=b.geo.h+0.5&&(fit2.sh<=fit2.ch||sheet2.y+sheet2.h>=b.geo.h-11),geo+': A-16 from Discover the sheet stays inside the screen and reaches the bottom whenever it overflows (bottom '+(sheet2&&Math.round(sheet2.y+sheet2.h))+', content '+(fit2&&fit2.sh)+' in '+(fit2&&fit2.ch)+')');
     await b.page.mouse.click(4,4);await b.settle(300);
     // A-13
     await b.home();await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.settle(400);

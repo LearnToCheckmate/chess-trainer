@@ -75,7 +75,18 @@ async function setStore(b,obj){await b.page.evaluate((o)=>{for(const k in o){if(
 // a toggle row: tap it only when its pill does not already read `want` (the settings persist across reloads, so a
 // plain tap would flip a value the previous state left behind). Returns the row text after.
 async function setToggle(b,rowRe,want){const txt=async()=>b.page.evaluate(([F,src])=>{const o=eval(F);if(!o)return null;const re=new RegExp(src);const el=[...o.s.querySelectorAll('button')].find(x=>re.test((x.innerText||'').replace(/\s+/g,' ').trim()));return el?(el.innerText||'').replace(/\s+/g,' ').trim():null;},[FIND,rowRe.source]);
-  let t=await txt();if(t==null)throw new Error('setToggle: no row '+rowRe);if(!want.test(t)){await tapRow(b,rowRe,500);t=await txt();}return t;}
+  let t=await txt();if(t==null&&await openMore(b))t=await txt();if(t==null)throw new Error('setToggle: no row '+rowRe);if(!want.test(t)){await tapRow(b,rowRe,500);t=await txt();}return t;}
+// #550 jobs/build-menu-one-screen: the Evaluation graph and the developer rows (Layout readout, Layout overlay, New features) sit
+// behind the sheet's foot line ([data-ct="menu-foot"]), and the Coach look portraits behind their row ([data-ct="menu-coach"]).
+// Each opener taps only when its fold is closed, and returns whether it changed anything.
+async function openFold(b,ct){const st=await b.page.evaluate((c)=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="'+c+'"]');return e?e.getAttribute('aria-expanded'):null;},ct);
+  if(st!=='false')return false;await b.page.evaluate((c)=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="'+c+'"]');if(e)e.click();},ct);await b.page.waitForTimeout(350);return true;}
+async function openMore(b){return openFold(b,'menu-foot');}
+async function openCoach(b){return openFold(b,'menu-coach');}
+// the Look and feel picker's own controls, by data-ct or by text, inside [data-ct="look"]
+async function lookTap(b,sel,wait){const ok=await b.page.evaluate((q)=>{const r=document.querySelector('[data-ct="look"]');if(!r)return false;let el=null;
+  if(q[0]==='@')el=r.querySelector(q.slice(1));else el=[...r.querySelectorAll('button')].find(x=>new RegExp(q).test((x.innerText||'').replace(/\s+/g,' ').trim()));if(!el)return false;el.click();return true;},sel);
+  if(!ok)throw new Error('lookTap: nothing on the Look screen matches '+sel);await b.page.waitForTimeout(wait==null?500:wait);}
 const S={};
 S['home']=async(b)=>{await b.home();};
 S['menu-discover']=async(b)=>{await fromTile(b,'Discover');};
@@ -84,14 +95,14 @@ S['menu-review']=async(b)=>{await fromTile(b,'Review');};
 S['menu-play-live']=async(b)=>{const P=require('./play');await P.states['pp-m0'](b);await b.tapCt('play-menu',600);};
 S['menu-lesson']=async(b)=>{const D=require('./lesson');await D.states['demo-more'](b);await b.tapText(/^Menu and settings$/,{wait:600});};
 S['menu-review-more']=async(b)=>{const R=require('./review');await R.states['more-sheet'](b);await b.tapText(/^Menu and settings$/,{wait:600});};
-S['menu-bottom']=async(b)=>{await S['menu-discover'](b);await scrollSheet(b,'end');};
+S['menu-bottom']=async(b)=>{await S['menu-discover'](b);await openCoach(b);await openMore(b);await scrollSheet(b,'end');};   // #550: with the Coach look portraits and the rows behind the foot line OPEN, so every row the sheet holds is on it
 S['menu-close']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^✕$/,500);};
 S['menu-backdrop-close']=async(b)=>{await S['menu-discover'](b);await b.page.mouse.click(4,4);await b.settle(400);};
 S['menu-look']=async(b)=>{await S['menu-discover'](b);await b.tapCt('menu-look',700);};
-S['menu-colour-forest']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^Forest$/,400);};
-S['menu-skin-pro']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^🔭♟️ Playful/,600);};
-S['menu-celldepth-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Cell depth & texture/,/ON$/);};
-S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^(Evaluation graph|Eval graph in the player bars)/,/ON ·/);};
+S['menu-colour-forest']=async(b)=>{await S['menu-look'](b);await lookTap(b,'@button[title="Forest"]',400);};   // #550: the colour chips live on the Look screen only
+S['menu-skin-pro']=async(b)=>{await S['menu-look'](b);await lookTap(b,'^Style',600);await b.page.locator('button',{hasText:'Bright, rounded and friendly'}).first().click();await b.page.waitForTimeout(600);};   // #550: Look -> Style -> the Playful card (PRO), since the sheet's own skin cards are gone
+S['menu-celldepth-on']=async(b)=>{await S['menu-look'](b);const on=await b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');const x=r&&[...r.querySelectorAll('button')].find(e=>/^Cell depth/.test((e.innerText||'').trim()));return x?/ON$/.test((x.innerText||'').trim()):null;});if(on===false)await lookTap(b,'^Cell depth',400);};   // #550: on the Look screen
+S['menu-evalgraph-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^(Evaluation graph|Eval graph in the player bars)/,/ON( ·|$)/);};   // #550: renamed at TXT-08, behind the foot line since build-menu-one-screen
 S['menu-readout']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout readout/,/shown$/);await b.page.evaluate((F)=>{const o=eval(F);const cands=[...o.s.querySelectorAll('div')].filter(d=>/what THIS device computes/.test(d.innerText||'')&&d.children.length>3);cands.sort((a,c)=>a.getBoundingClientRect().height-c.getBoundingClientRect().height);if(cands[0])cands[0].scrollIntoView({block:'center'});},FIND);await b.settle(200);};
 S['menu-overlay-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Layout overlay/,/drawn on screen$/);};
 S['overlay-play-live']=async(b)=>{await S['menu-overlay-on'](b);await tapRow(b,/^✕$/,400);const P=require('./play');await P.states['pp-m0'](b);await b.settle(400);};
@@ -103,5 +114,5 @@ S['feedback-menu']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/Send f
 S['feedback-typed']=async(b)=>{await S['feedback-home'](b);await b.page.locator('textarea[placeholder="Your feedback..."]').fill('audit note');await b.tapText(/^Copy for Claude$/,{wait:700});};
 S['card7']=async(b)=>{await closeOverlays(b);await closeSheet(b);await b.home();await b.tapCt('home-menu',700);await setToggle(b,/^Layout readout/,/shown$/);await b.settle(300);};   // #550 jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card: was b.card(7,2500) (y3: Home with the menu open and Layout readout shown) - now Home -> ☰ -> the Layout readout toggle, the way a player gets there
 
-module.exports={states:S,sheetText,toast,setToggle,closeOverlays,sheet,hasSheet,rows,leaves,scrollSheet,tapRow,closeSheet,tapHeaderMenu,menuBtnRects,fromTile,overlay1100,overlayText,readoutText,setStore,FIND,
+module.exports={states:S,openMore,openCoach,lookTap,sheetText,toast,setToggle,closeOverlays,sheet,hasSheet,rows,leaves,scrollSheet,tapRow,closeSheet,tapHeaderMenu,menuBtnRects,fromTile,overlay1100,overlayText,readoutText,setStore,FIND,
   notes:'The menu is a fixed backdrop (zIndex 1000, padding max(10px,safe) 12px) with a scrolling sheet inside (on #372: margin-top 5vh, max-height 88vh, margin-bottom 24px; on #373 the sheet takes the padded viewport). Entries: the header ☰ of Discover/Puzzles/Review (title "Menu & settings"), data-ct play-menu in a live game, "Menu and settings" in the lesson ⋯ sheet and the review ⋯ sheet. Home has no ☰ on #372. The sheet: Account (Sign in with Google), Appearance (menu-look, 12 colour chips, SKIN x3, Cell depth, Evaluation bar, Eval bar sits, menu-evalgraph, Layout readout, Layout overlay, Sound, Piece style x5, Coach look x4), Share, Send feedback, Privacy/Terms/Refunds/Delete account, Build line. The Look and feel picker (data-ct look), the feedback sheet and the account sheet are fixed zIndex-1100 overlays. The layout overlay is data-ct layout-grid (fixed, pointer-events none) and persists in ct_layoutgrid.'};
