@@ -5,6 +5,7 @@
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=76 red=3 scope=trial:c7f6a1228e43 how=#548 item (103): main #547 still serves the classic review to ct_revCompact=0 - TC-R100 C1, C2 and C3 red
 // CONTROL-RECORD: e8d0e93 2026-11-06 total=93 red=1 scope=trial:6a908bd16135 how=#549 item (1): this tree with only the move strip effCls fix reverted - SCHOLAR-kunal761 A6 red (3b Book: move strip painted rgb(236, 92, 78) Nf6?? for a non-notable grade)
 // CONTROL-RECORD: c33e447 2026-11-11 total=95 red=2 scope=trial:041e6a7ddaf7 how=#550 item (20): a mutant whose summary counts a Forced move as Best (t79) - A3c (34 against 33 plies) and A4 (Best/b 4 against the badges' 3) red
+// CONTROL-RECORD: aaec56b 2026-11-13 total=95 red=1 scope=trial:9c7713635681 how=#550 #432 sweep round 2 (eval-graph-dot/-hit re-keyed by name and ink): c1, both hooks renamed AND effLabel's book prefix ignored in EvalGraph so 3...Nf6 keeps its raw Blunder mark - SCHOLAR-kunal761 A7 red (found by name, i 5 < 7); the hook-keyed version (a7f55b2) on the same bundle is 95/0 with A7 GREEN; on t0 fb3bb7b31754 95/0
 // story US-R20. THE NUMBER ON THE SUMMARY AND THE MOVES IT NAMES MUST BE COMPUTED BY ONE RULE.
 //
 // WHAT IT GUARDS. The grade counter reassigns every ply below the opening-book prefix to Book. Two other
