@@ -386,7 +386,52 @@ async function inject(b,kind){
   },kind);
 }
 
+/* HM TC-GL-012 [#550; jobs/the-gallery-held-bars-hide-control-covers-the-review-tabs-menu-button-at-three-geometries-2026-11-07]:
+   WHILE A CARD'S INSTRUCTION IS HELD, THE SCREEN UNDER IT STAYS USABLE - its header ☰ above all. #548 item (112) moved the held bar
+   to the top, and its ‹ and ✕ (44px rounds) hung 16px above the bar's corners, so the ✕ landed on the Review screen's top-right ☰
+   ([data-ct="top-menu"], 323..367 x 2..46 at 375x761) and its centre hit-tested to rec-cap-done: the menu could not be opened
+   while a card was held. M6c printed it at 730x375 as notChecked; this block asserts it at 375x761, 320x568 and 730x375.
+   THE ROUTE: since #550 a29 no ☞ YOUR TAPS card is in the queue, so chess.jsx's ct_schold=1 seam marks every ask card held, and
+   the EXP card (it opens a game in Review) is tapped. Each state is proven reached first [#385]: the held bar with its ✕ is up,
+   and the ☰ is on screen. HM1 asks the hit test at the ☰'s centre, HM2 asks it of EVERY on-screen button (so moving the ✕ onto
+   another control cannot pass), HM3 asks that the controls lie inside the bar's own box, and HM4 is a real mouse tap at the ☰'s
+   centre that must open the menu sheet with the bar still held. CT_G15_ONLY=HM runs this block alone. */
+// CONTROL-RECORD: ab3a1e7 2026-11-13 total=25 red=12 scope=env:CT_G15_ONLY=HM,trial:7b8a182c4820 how=#550 jobs/the-gallery-held-bars-hide-control-covers-the-review-tabs-menu-button-at-three-geometries-2026-11-07: the branch tip ab3a1e7 plus ONLY the ct_schold seam (so the held bar is reachable; layout unchanged) - HM1, HM2, HM3 and HM4 red at 375x761, 320x568 and 730x375 (the ✕ at 323..367 x 3..47 takes the ☰ at 323..367 x 2..46 at 375x761; a real tap on the ☰ hides the bar and opens no menu); every precondition green. The fix 3c75db8f1307 reads 25 pass 0 fail. On the unmodified tip the preconditions themselves red (no seam, no held bar), which is the wrong reason and is why the control carries the seam
+async function blockHM(){
+  for(const [glab,ggeo] of [['375x761','kunal761'],['320x568','se'],['730x375',{w:730,h:375,safe:''}]]){
+    const b=await L.launch({geo:ggeo,name:'held-menu-'+glab,store:{ct_pool:'3',ct_schold:'1'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:'EXP'}).first();
+    const found=await card.count();
+    L.say(found>0,'HM '+glab+': TC-GL-012 PRECONDITION the EXP card (it opens a game in Review) is on the gallery to tap',{found});
+    if(!found){await b.close();continue;}
+    await card.click();await b.settle(3000);
+    const st=await b.page.evaluate(()=>{const R=e=>{const q=e.getBoundingClientRect();return {l:+q.left.toFixed(1),t:+q.top.toFixed(1),r:+q.right.toFixed(1),b:+q.bottom.toFixed(1)};};
+      const bar=document.querySelector('[data-ct="rec-cap"]'),d=document.querySelector('[data-ct="rec-cap-done"]'),bk=document.querySelector('[data-ct="rec-cap-back"]'),m=document.querySelector('[data-ct="top-menu"]')||[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').trim()==='☰'&&!(bar&&bar.contains(x))).map(x=>({x,q:x.getBoundingClientRect()})).filter(o=>o.q.width>1&&o.q.top<innerHeight/3).sort((u,v)=>v.q.right-u.q.right).map(o=>o.x)[0]||null;   // 730x375 draws the Review ☰ in the side rail, with no data-ct: the top-most-right painted ☰
+      const mine=(h)=>!!h&&((d&&d.contains(h))||(bk&&bk.contains(h)));
+      let menuHit=null;if(m){const q=m.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);menuHit=h?((h===m||m.contains(h))?'top-menu':(h.getAttribute('data-ct')||h.tagName)):null;}
+      const taken=[...document.querySelectorAll('button')].filter(x=>!(bar&&bar.contains(x))).map(x=>({x,q:x.getBoundingClientRect()}))
+        .filter(o=>o.q.width>1&&o.q.height>1&&o.q.left+o.q.width/2>=0&&o.q.left+o.q.width/2<=innerWidth&&o.q.top+o.q.height/2>=0&&o.q.top+o.q.height/2<=innerHeight)
+        .filter(o=>mine(document.elementFromPoint(o.q.left+o.q.width/2,o.q.top+o.q.height/2))).map(o=>(o.x.getAttribute('data-ct')||(o.x.innerText||o.x.getAttribute('aria-label')||'').trim().slice(0,20)));
+      return {up:!!bar,done:!!d,back:!!bk,bar:bar&&R(bar),doneR:d&&R(d),backR:bk&&R(bk),menu:m&&R(m),menuHit,taken,vw:innerWidth,vh:innerHeight};});
+    L.say(st.up&&st.done&&st.back,'HM '+glab+': TC-GL-012 PRECONDITION the held instruction bar is up with its ‹ and ✕ controls',st);
+    L.say(!!st.menu&&st.menu.t>=0&&st.menu.r<=st.vw,'HM '+glab+': TC-GL-012 PRECONDITION the Review screen\'s header ☰ ([data-ct="top-menu"], or the side rail\'s ☰ in landscape) is on screen under the held bar',st.menu);
+    if(st.up&&st.done&&st.menu){
+      L.say(st.menuHit==='top-menu','HM1 '+glab+': TC-GL-012 the header ☰\'s centre hit-tests to the ☰ itself while a card is held (read '+st.menuHit+')',{menu:st.menu,done:st.doneR});
+      L.say(st.taken.length===0,'HM2 '+glab+': TC-GL-012 the bar\'s ‹ and ✕ take the centre of NO other on-screen button ('+st.taken.length+' taken)',{taken:st.taken,done:st.doneR,back:st.backR});
+      const inside=(c)=>!!c&&c.l>=st.bar.l-0.5&&c.r<=st.bar.r+0.5&&c.t>=st.bar.t-0.5&&c.b<=st.bar.b+0.5;
+      L.say(inside(st.doneR)&&inside(st.backR),'HM3 '+glab+': TC-GL-012 the ‹ and ✕ lie inside the bar\'s own box - nothing protrudes past its edges',{bar:st.bar,done:st.doneR,back:st.backR});
+      await b.page.mouse.click((st.menu.l+st.menu.r)/2,(st.menu.t+st.menu.b)/2);await b.settle(600);
+      const after=await b.page.evaluate(()=>({sheet:!!document.querySelector('[data-ct="menu-sheet"]'),bar:!!document.querySelector('[data-ct="rec-cap"]')}));
+      L.say(after.sheet&&after.bar,'HM4 '+glab+': TC-GL-012 a real tap at the ☰\'s centre opens the menu sheet, and the held bar is still up (the tap did not land on Hide)',after);
+    }
+    L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'HM '+glab+': TC-GL-012 zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
+}
+
 L.run(async()=>{
+  if(process.env.CT_G15_ONLY==='HM'){await blockHM();return;}   // #550: the HM block alone (a subset; never a push gate)
   for(const f of FIXTURE){
     const got=tailStable(f[1],HOLD,TOL),want=f[2];
     const ok=got.ok===want.ok&&(!want.ok||(Math.abs(got.w-want.w)<1e-9&&got.fromMs===want.fromMs));
@@ -1071,7 +1116,7 @@ L.run(async()=>{
            quarter: at 730x375 the bar (top 18..70, 14% of the height) overlaps the Review tab's menu button, and the button's centre
            hit-tests to the bar's Hide control - the Hide control takes the menu's tap. A probe found the same at 375x761 and 320x568,
            so it is not a landscape fault but item (112)'s move of the bar to the top. Where the controls should sit instead is a layout
-           call no answer on this job settles, so it is printed here as notChecked and routed, never asserted green or left red. */
+           call no answer on this job settles, so it is printed here as notChecked and routed, never asserted green or left red. #550: NOW ASSERTED by block HM (TC-GL-012), through the ct_schold seam, and fixed - the controls sit inside the bar, under the header row. */
         const all=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="rec-cap"]');if(!bar)return null;const br=bar.getBoundingClientRect();
           const hit=(a,c)=>a.left<c.right-0.5&&a.right>c.left+0.5&&a.top<c.bottom-0.5&&a.bottom>c.top+0.5;
           return {bar:[Math.round(br.left),Math.round(br.top),Math.round(br.right),Math.round(br.bottom)],vh:innerHeight,barShare:+((br.bottom-Math.max(0,br.top))/innerHeight).toFixed(3),
@@ -1169,4 +1214,5 @@ L.run(async()=>{
     L.say(ok1,geo+': TC-GL-009 PRECONDITION state card 1 was reached');
     L.say(ok2,geo+': TC-GL-009 b.card(2) straight after b.card(1) reaches its card ('+(Date.now()-t0)+'ms) - the harness waits out the instruction bar that hides the gallery button');
     await b.close();}
+  await blockHM();
 },'GALLERY-PLAYALL');
