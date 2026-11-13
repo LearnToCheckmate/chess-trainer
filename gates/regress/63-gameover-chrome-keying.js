@@ -353,3 +353,4 @@ L.run(async()=>{
    await b.close();
  }
 },'GAMEOVER-CHROME-KEYING');
+// SELECTOR-OPENED: land-result reading=fallback round 4: the result card's text first, this hook and play-opening behind it

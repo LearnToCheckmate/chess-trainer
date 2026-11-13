@@ -155,3 +155,6 @@ L.run(async()=>{
   }
 },'HOME-DEVROW');
 // CONTROL-RECORD: 342b80e 2026-11-13 total=46 red=3 scope=trial:851ae98b9f35 how=#550 #432 sweep (the gallery read from its numbered cards): c2, the Preview button leaves Home (setHomeScreen(false)) instead of opening the gallery - 'tapping preview still opens the gallery' red at 375x730, 320x568, 390x844; the hook-absence version (55ca2c7) is GREEN 46/0 on it; on t0 6c4245e05ecc 46/0
+// SELECTOR-OPENED: home-preview control=342b80e round 1: the gallery read from its numbered cards; c2 made Preview leave Home without the gallery, red
+// SELECTOR-OPENED: home-build reading=presence round 4: the stamp is measured against the dev row
+// SELECTOR-OPENED: home-feedback reading=presence round 4: the two buttons must be side by side

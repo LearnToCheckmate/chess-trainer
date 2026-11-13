@@ -348,3 +348,5 @@ L.run(async()=>{
  }
  L.done();
 });
+// SELECTOR-OPENED: land-result reading=fallback round 4: result-card beside it
+// SELECTOR-OPENED: land-over-btns reading=mode round 4: a missing hook selects the one-row reading, whose labels then fail on the 2x2 block

@@ -418,3 +418,4 @@ L.run(async()=>{
   }
   L.note('ONLINE VIEW, WHAT IS STILL OWED AND IT IS NOT IN THIS FILE: the LOADED online puzzle (curPuz.ext set, board showing, chess.jsx:5037) is unreachable from this harness because lichess.org is refused by the egress proxy, so a fixture would have to come from a CT_* override in chess.jsx - which this lane may not write. Until then the connected state of pzView===\'online\' has NO coverage and this note is the record of that, not a claim about it [R18, R21].');
 },'REACHABILITY');
+// SELECTOR-OPENED: paste-help reading=presence round 2: the help mark must be found and reached

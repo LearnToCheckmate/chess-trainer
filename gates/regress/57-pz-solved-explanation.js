@@ -383,3 +383,4 @@ L.run(async()=>{
     }
   }
 },'PZ57-SOLVED-EXPLANATION');
+// SELECTOR-OPENED: pz-verdict-more reading=presence round 2: the overrun branch's absence line is conjoined with moved, which needs the chip

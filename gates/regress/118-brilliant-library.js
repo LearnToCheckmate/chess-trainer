@@ -91,3 +91,9 @@ L.run(async()=>{
     L.say(!!bd0&&!!bd1&&!!bd2&&[bd1,bd2].every(x=>Math.abs(x.y-bd0.y)<0.5&&Math.abs(x.w-bd0.w)<0.5),'TC-R197g '+geo+' the board did not move (solve, open, fold)',{bd0,bd1,bd2});
     L.say(b.errs.length===0,'TC-R197g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'118-brilliant-library');
+// SELECTOR-OPENED: bril-kind reading=presence round 4: TC-R197b counts four chips by kind
+// SELECTOR-OPENED: bril-lib-go reading=presence round 4: TC-R197c to d read the button's words
+// SELECTOR-OPENED: bril-tile reading=presence round 4: TC-R197a reads the tile's words
+// SELECTOR-OPENED: drill-counter reading=presence round 4: TC-R197e and f need the counter to read 1 of N
+// SELECTOR-OPENED: pz-msg-more reading=presence round 4: the cover count is conjoined with the chip saying more in the same line
+// SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself

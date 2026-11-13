@@ -397,3 +397,5 @@ L.run(async()=>{
 },'SCAN-CLIENT');
 // CONTROL-RECORD: 0a74e53 2026-11-13 total=54 red=1 scope=trial:6a4c33fb4e86 how=#550 TC-SC-024 re-pin: c5, the catch's not-found test defanged (_undeployed=false) so a not-found rejection gets the generic retry text - TC-SC-024 red; on t0 6c4245e05ecc 54/0 (the unmodified gate was 53/1 there: TC-SC-024 still pinned to the pre-09497fd words)
 // CONTROL-RECORD: 0a74e53 2026-11-13 total=54 red=1 scope=trial:0100b5a554d7 how=#550 #432 sweep (scan-ask re-keyed by its words): c1, scan-ask renamed AND the question also asked when NEITHER reading reads - TC-SC-048 red; the hook-keyed version (55ca2c7) on the same bundle passes TC-SC-048 (49/5, its other reds the renamed hook and the old TC-SC-024 pin); on t0 6c4245e05ecc 54/0
+// SELECTOR-OPENED: scan-ask control=0a74e53 round 1: the question found by its words; c1 renamed the hook and asked when neither reading reads, TC-SC-048 red
+// SELECTOR-OPENED: scan-row reading=presence round 4: TC-SC-004 needs the reserved row painted

@@ -63,3 +63,8 @@ L.run(async()=>{
     await b.close();
   }
 },'106-games-list-four-counts');
+// SELECTOR-OPENED: gstat-best control=f4d2364 the tree before the split carries none of the four gstat hooks and TC-R187a, b and c went red there (6 red)
+// SELECTOR-OPENED: gstat-great control=f4d2364 same pre-split control: the row's Great count read through this hook went red
+// SELECTOR-OPENED: gstat-blun control=f4d2364 same pre-split control: the row's Blunder count read through this hook went red
+// SELECTOR-OPENED: gstat-bestgreat control=f4d2364 same pre-split control: TC-R187c's combined count, read through this hook, went red
+// SELECTOR-OPENED: game-badge-col reading=presence round 4: pillInCol needs the column, and TC-R187a and b require the pill in it

@@ -256,3 +256,5 @@ L.run(async()=>{
    L.say(mb.length===3,'TC-R215r PRECONDITION the summary footer and Start game are measured ('+mb.map(x=>x.t).join(', ')+')',mb);
    L.say(mb.length>0&&mb.every(x=>Math.abs(x.h-44)<=0.5&&x.br==='12px'),'TC-R215r the main buttons are 44 high, radius 12 ('+mb.map(x=>x.t+' '+x.h+'/'+x.br).join('; ')+')',mb);await b.close();}
 },'139-one-top-row-standard');
+// SELECTOR-OPENED: drill-counter reading=presence round 2: the counter height is read and pinned; missing is red
+// SELECTOR-OPENED: online-over-actions reading=precondition round 2: the PRECONDITION reads red on absence

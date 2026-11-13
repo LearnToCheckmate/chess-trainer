@@ -1170,3 +1170,6 @@ L.run(async()=>{
     L.say(ok2,geo+': TC-GL-009 b.card(2) straight after b.card(1) reaches its card ('+(Date.now()-t0)+'ms) - the harness waits out the instruction bar that hides the gallery button');
     await b.close();}
 },'GALLERY-PLAYALL');
+// SELECTOR-OPENED: gallery-blurb-more reading=presence round 4: TC-GL-007 needs the fold reachable
+// SELECTOR-OPENED: rec-cap-back reading=presence round 4: M11 needs the 44px control
+// SELECTOR-OPENED: state-card reading=precondition round 4: Q needs four state cards

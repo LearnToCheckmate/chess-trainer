@@ -48,3 +48,4 @@ L.run(async()=>{
     L.say(b.errs.length===0,'TC-R208 '+c.id+' zero app errors',b.errs.slice(0,3));await b.close();
   }
 },'132-drill-reads-the-position');
+// SELECTOR-OPENED: drill-reset-solved reading=presence round 2: the reset control must be found and measured; missing is red

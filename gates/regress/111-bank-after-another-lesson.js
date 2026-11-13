@@ -55,3 +55,4 @@ L.run(async()=>{
   L.say(b.errs.length===0,'TC-R191 zero app errors',b.errs.slice(0,3));
   await b.close();
 },'111-bank-after-another-lesson');
+// SELECTOR-OPENED: lesson-bank-it reading=presence round 2: TC-R191d needs the row on screen and reading Bank it, so a missing hook is red

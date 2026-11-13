@@ -187,3 +187,9 @@ L.run(async()=>{
     L.say(leaked.length===0,'TC-R213h and none of the '+saves.length+' saves to the new account carries the old player\'s data',leaked.slice(0,2));
     L.say(b.errs.length===0,'TC-R213 zero app errors across sign-in, sign-out and deletion',b.errs.slice(0,3));await b.close();}
 },'137-no-browser-pro-switch');
+// SELECTOR-OPENED: acct-delete reading=presence round 4: TC-R213d needs Delete account in the sheet
+// SELECTOR-OPENED: acct-delete-confirm reading=presence round 4: the DENOMINATOR needs the confirm and its button
+// SELECTOR-OPENED: acct-delete-go reading=presence round 4: the DENOMINATOR needs the button on screen and the tap to land
+// SELECTOR-OPENED: acct-signout reading=presence round 4: TC-R213f's DENOMINATOR needs the tap to land
+// SELECTOR-OPENED: acct-signout-go reading=presence round 4: TC-R213f and g need the confirm tap to land
+// SELECTOR-OPENED: acct-signout-wipe reading=presence round 4: the DENOMINATOR needs the box ticked

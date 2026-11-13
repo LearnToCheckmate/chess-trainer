@@ -716,3 +716,10 @@ L.run(async()=>{
       await b.close();}
   }
 },'72-drill-prev');
+// SELECTOR-OPENED: drill-end reading=presence round 4: B11 and TC-R92 read its words
+// SELECTOR-OPENED: drill-end-again reading=nav round 4: a failed tap leaves the counter, and Go again's line is red
+// SELECTOR-OPENED: drill-prev reading=presence round 4: A1 needs a Prev control and B3 is red without one
+// SELECTOR-OPENED: pz-float reading=precondition round 4: C0 needs its lines
+// SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself
+// SELECTOR-OPENED: rev-engwhy reading=presence round 4: A9b reads the reading's first move
+// SELECTOR-OPENED: rev-engwhy-move reading=presence round 4: A9b and A9c read the move's words

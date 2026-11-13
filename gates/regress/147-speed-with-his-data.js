@@ -65,3 +65,4 @@ L.run(async()=>{
   L.say(nx.length===5&&nx.every(x=>x>0)&&med<=100,'TC-R223c Next card answers in under 100 ms (median of 5 at 4x: '+med+' ms; '+nx.join(', ')+'; it was 2.0 s, main 0.06 s)',nx);
   L.say(b.errs.length===0,'TC-R223 zero app errors',b.errs.slice(0,3));await b.close();
 },'147-speed-with-his-data');
+// SELECTOR-OPENED: drill-counter reading=presence round 2: a renamed hook never changes, so the time is 0 and TC-R223c is red

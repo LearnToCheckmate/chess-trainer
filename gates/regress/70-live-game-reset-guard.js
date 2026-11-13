@@ -487,3 +487,4 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
    const texts=[...new Set(CONFIRMS.map(c=>c.text))];
    L.say(kinds.length>=4&&texts.length===1&&texts[0]===W,'TC-R45b X every game-replacing control asks with the SAME words, "'+W+'" ('+texts.length+' distinct: '+texts.map(t=>JSON.stringify(t)).join(', ')+')',CONFIRMS);}
 },'70-live-game-reset-guard');
+// SELECTOR-OPENED: setup-reset-warn control=aaec56b round 2: the warning found by its words; c1 renamed the hook and showed it with nothing to lose, E2 red

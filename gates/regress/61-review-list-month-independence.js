@@ -1722,3 +1722,5 @@ async function input(seed,n,geo,name,thin){
   }
   L.done('61-review-list-month-independence');
 })().catch(e=>{L.say(false,'harness threw: '+((e&&e.stack)||e).toString().split('\n').slice(0,3).join(' | '));L.done('61-review-list-month-independence');});
+// SELECTOR-OPENED: acct-unread reading=detail round 2: detail only, the assertion reads the body
+// SELECTOR-OPENED: games-cap reading=fallback round 2: #432's own repair, words beside the hook

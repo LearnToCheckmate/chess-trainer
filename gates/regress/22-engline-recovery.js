@@ -701,3 +701,6 @@ L.run(async()=>{
 // CONTROL-RECORD: 376ccde 2026-11-06 total=6 red=2 scope=blocks:T how=TC-R117 block T extracted alone (scratchpad jobs/102/only117.js) and run against #549's pre-fix HEAD bundle 82a3c168ad2d (no first-paint hold); red are exactly the two TC-R117 NOTHING SHOWN IS REMOVED lines, at ply 38 and ply 74; the fixed bundle 6b6a47809365 runs the same 6 green. The full-gate total is for the run to take from its suite log.
   // #550 round-4 suite: TC-R118 (block U) moved to gates 120 and 121 - with it this gate ran past the suite's 900 s per-gate ceiling.
 },'ENGLINE-RECOVERY');
+// SELECTOR-OPENED: rev-engwhy reading=precondition round 4: the closes line runs only inside the branch where the PRECONDITION found the reading open
+// SELECTOR-OPENED: rev-engwhy-eval reading=presence round 4: TC-R105 matches the words of the evaluation
+// SELECTOR-OPENED: rev-engwhy-move reading=presence round 4: TC-R105 needs two moves with phrases and numbers them

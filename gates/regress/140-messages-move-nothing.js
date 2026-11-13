@@ -72,3 +72,4 @@ L.run(async()=>{
       L.say(s.scroll!=null&&s.scroll<=0,tag+': TC-R216b mistakes drill after '+nm+': nothing scrolls ('+s.scroll+')',s.scroll);}
     L.say(b.errs.length===0,tag+': TC-R216 mistakes drill zero app errors',b.errs.slice(0,3));await b.close();}
 },'140-messages-move-nothing');
+// SELECTOR-OPENED: pz-overlay control=3e082a9 the note found without the hook; the pre-a42 tree went red on the note-is-gone line

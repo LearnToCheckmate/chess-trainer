@@ -44,3 +44,9 @@ L.run(async()=>{
   await b.close();
 },'110-review-fail-panel');
 // CONTROL-RECORD: c36dd41 2026-11-13 total=8 red=1 scope=trial:9abc30eb5d9f how=#550 #432 sweep (the progress line read by its words): c4, ana-progress renamed AND a '0% · checking every move' line drawn in the failure panel - TC-R190b red; the hook-keyed version (55ca2c7) is GREEN 8/0 on it; on t0 6c4245e05ecc 8/0
+// SELECTOR-OPENED: ana-progress control=c36dd41 round 1: the progress line read by its words; c4 renamed the hook and drew the line in the panel, TC-R190b red
+// SELECTOR-OPENED: ana-fail reading=nav round 4: waited for; on absence shown is false and TC-R190a, which needs shown, is red
+// SELECTOR-OPENED: ana-fail-back reading=presence round 4: TC-R190b needs Back on screen and 44 tall
+// SELECTOR-OPENED: ana-fail-retry reading=presence round 4: TC-R190b needs Try again on screen and 44 tall
+// SELECTOR-OPENED: ana-fail-title reading=presence round 4: TC-R190a compares the title's exact words
+// SELECTOR-OPENED: ana-fail-why reading=presence round 4: TC-R190a compares the reason's exact words

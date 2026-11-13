@@ -534,3 +534,4 @@ L.run(async()=>{
     await c.close();
   }
 },'51-drill-explain-why');
+// SELECTOR-OPENED: acct-mine reading=presence round 2: the chip text and pressed state must be read

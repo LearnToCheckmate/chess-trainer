@@ -178,3 +178,5 @@ L.run(async()=>{
     L.say(!!bd0&&!!bd1&&Math.abs(bd0.y-bd1.y)<0.5&&Math.abs(bd0.w-bd1.w)<0.5,'TC-R211 '+geo+' the board did not move',{bd0,bd1});
     L.say(b.errs.length===0,'TC-R211 '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}}
 },'124-wrong-move-says-why');
+// SELECTOR-OPENED: pz-msg-more reading=presence round 4: the cover count is conjoined with the chip saying more in the same line
+// SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself

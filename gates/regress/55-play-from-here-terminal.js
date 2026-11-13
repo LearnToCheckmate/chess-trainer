@@ -282,3 +282,6 @@ L.run(async()=>{
   L.say(b.errs.length===0,'stale@kunal730: 0 console errors',b.errs.slice(0,2));
   await b.close();
 },'55-play-from-here-terminal');
+// SELECTOR-OPENED: setup-terminal-note control=aaec56b round 2: the note found by its words; c1 renamed the hook and painted the warning at a playable ply, C2 and A12 red
+// SELECTOR-OPENED: setup-start reading=fallback round 2: words first since #549, the hook a fallback
+// SELECTOR-OPENED: setup-fen-note reading=comment round 2: named only in a comment, the hook is gone
