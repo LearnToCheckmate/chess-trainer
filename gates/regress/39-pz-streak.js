@@ -47,6 +47,10 @@ const box=(b)=>b.page.evaluate(()=>{
   const r=e.getBoundingClientRect();
   return {y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,t:(e.innerText||'').replace(/\s+/g,' ').trim()};
 });
+// #550 #432 sweep (lead): the fill also counted by its WORDS and shape - a box at least 60% of the screen wide whose own text is the
+// counter it carries ('N / D · ' and then the streak, a solved tick or the rating) - so the three absence lines below do not read only
+// the hook. The header's own puzzle counter carries the same 'N / D ·' but sits in a narrow span, so the width bound keeps it out.
+const fillWords=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(x=>{const q=x.getBoundingClientRect();return q.width>=innerWidth*0.6&&q.height>0&&q.height<=80&&/^\d+ \/ \d+ \u00b7 .*(in a row|solved|rating)/.test((x.innerText||'').replace(/\s+/g,' ').trim());}).length);
 const hintHead=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 const tapBtn=async(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);const el=[...document.querySelectorAll('button')].filter(x=>r.test((x.innerText||'').trim()))[0];if(el){el.scrollIntoView({block:'center'});el.click();return true;}return false;},[re.source,re.flags]);
 
@@ -56,19 +60,20 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'pzstreak-'+geo,store:{}});await b.open();
     await Z.states['train'](b);await b.settle(400);
     const before=await b.metrics();
-    const empty=await box(b);
-    L.say(empty===null,geo+': with no hint up the streak fill is absent - it exists only in the branch where the box would otherwise be empty, so it never competes with a verdict',empty);
+    const empty=await box(b);const emptyW=await fillWords(b);
+    L.say(empty===null&&emptyW===0,geo+': with no hint up the streak fill is absent (by hook, and by its words: '+emptyW+') - it exists only in the branch where the box would otherwise be empty, so it never competes with a verdict',empty);
 
     await Z.states['train-hint'](b);await b.settle(500);
     const hh=await hintHead(b);
     L.say(!!hh&&/^\u{1F4A1}/u.test(hh),geo+': the hint really did take the header row, which is the state this whole item is about',hh&&hh.slice(0,50));
     const filled=await box(b);const afterHint=await b.metrics();
+    const filledW=await fillWords(b);if(geo!=='se')L.say(!!filled&&filledW>=1,geo+': PRECONDITION with the hint up the fill is found by its words as well as its hook ('+filledW+') - so the word count can see it',filledW);
     // #550 a42 (1603f06): on a short upright phone (320x568 here) Puzzles keeps NO reserved verdict box - the notes are overlays over
     // the board - so there is no box for the streak to fill, BY DESIGN. That arm is therefore asserted the other way round: the box
     // and the fill are both ABSENT there (found by structure as well as by hook), and the fill lines below run at the other two only.
     const SHORT=geo==='se';
     if(SHORT){const resv=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-verdict-box"]'));
-      L.say(filled===null&&!resv,geo+': a42 - no reserved verdict box and so no streak fill on a short upright phone, the board takes the room',{filled,resv});
+      L.say(filled===null&&filledW===0&&!resv,geo+': a42 - no reserved verdict box and so no streak fill on a short upright phone, the board takes the room (fill by its words: '+filledW+')',{filled,filledW,resv});
       L.note(geo+': the reserved-box fill lines (filled, exact height, no hint repeat) do not apply here by a42 and are NOT credited');}
     else{
       L.say(!!filled&&filled.h>0,geo+': the reserved box is FILLED while the hint is up (it used to be empty bordered space)',filled);
@@ -102,10 +107,10 @@ L.run(async()=>{
     // ---- the verdict takes the same box back, instantly, and the board still does not move
     await b.move('e1','e7',900);await b.settle(600);
     const afterWrong=await b.metrics();
-    const gone=await box(b);
+    const gone=await box(b);const goneW=await fillWords(b);
     const verdict=await b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^✗/.test(t));return d[0]?d[0].slice(0,44):null;});
     L.say(!!verdict,geo+': a wrong move produces the verdict',verdict);
-    if(geo!=='se')L.say(gone===null,geo+': and the streak fill steps back out of the box for it - one box, never two',gone);
+    if(geo!=='se')L.say(gone===null&&goneW===0,geo+': and the streak fill steps back out of the box for it - one box, never two (by hook, and by its words: '+goneW+')',{gone,goneW});
     L.say(!!afterHint.board&&!!afterWrong.board&&Math.abs(afterHint.board.w-afterWrong.board.w)<0.6&&Math.abs(afterHint.board.top-afterWrong.board.top)<0.6,
           geo+': the board does not move when the verdict replaces the streak - the transition is the half that would break silently');
     await b.shot('pzstreak-'+geo);
