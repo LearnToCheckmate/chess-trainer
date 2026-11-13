@@ -63,15 +63,24 @@ L.run(async()=>{
     const hh=await hintHead(b);
     L.say(!!hh&&/^\u{1F4A1}/u.test(hh),geo+': the hint really did take the header row, which is the state this whole item is about',hh&&hh.slice(0,50));
     const filled=await box(b);const afterHint=await b.metrics();
-    L.say(!!filled&&filled.h>0,geo+': the reserved box is FILLED while the hint is up (it used to be empty bordered space)',filled);
-    L.say(!!filled&&Math.abs(filled.h-wantH)<0.6,geo+': the fill is exactly the reserved height, '+wantH+'px - it borrows the space, it does not ask for more',filled&&filled.h);
-    L.say(!!filled&&!/\u{1F4A1}/u.test(filled.t||''),geo+': the box does NOT repeat the hint text',filled&&filled.t);
+    // #550 a42 (1603f06): on a short upright phone (320x568 here) Puzzles keeps NO reserved verdict box - the notes are overlays over
+    // the board - so there is no box for the streak to fill, BY DESIGN. That arm is therefore asserted the other way round: the box
+    // and the fill are both ABSENT there (found by structure as well as by hook), and the fill lines below run at the other two only.
+    const SHORT=geo==='se';
+    if(SHORT){const resv=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-verdict-box"]'));
+      L.say(filled===null&&!resv,geo+': a42 - no reserved verdict box and so no streak fill on a short upright phone, the board takes the room',{filled,resv});
+      L.note(geo+': the reserved-box fill lines (filled, exact height, no hint repeat) do not apply here by a42 and are NOT credited');}
+    else{
+      L.say(!!filled&&filled.h>0,geo+': the reserved box is FILLED while the hint is up (it used to be empty bordered space)',filled);
+      L.say(!!filled&&Math.abs(filled.h-wantH)<0.6,geo+': the fill is exactly the reserved height, '+wantH+'px - it borrows the space, it does not ask for more',filled&&filled.h);
+      L.say(!!filled&&!/\u{1F4A1}/u.test(filled.t||''),geo+': the box does NOT repeat the hint text',filled&&filled.t);
+    }
     L.say(!!before.board&&!!afterHint.board&&Math.abs(before.board.w-afterHint.board.w)<0.6&&Math.abs(before.board.top-afterHint.board.top)<0.6,
           geo+': the board does not move when the hint appears (w '+(before.board&&before.board.w)+' -> '+(afterHint.board&&afterHint.board.w)+', top '+(before.board&&before.board.top)+' -> '+(afterHint.board&&afterHint.board.top)+')');
     // #384 (derived test-lane item 6): the board-movement assertion nearby compares two MEASURED values and
     // nothing else, so it is true of a board that has been the wrong size since before the first sample. That is
     // exactly what left 10-gameover passing 12 of 12 on a board 16px wrong. Pinned for the same reason; measured on #383.
-    const WANTB={kunal730:375,se:277,'390':390};   /* #550 short upright (BSA-L-16): 259 -> 277 at 320x568, the top card's padding and gaps; the same pin gate 12 carries */
+    const WANTB={kunal730:375,se:320,'390':390};   /* #550 short upright (BSA-L-16): 259 -> 277 at 320x568; then a42 (1603f06) took the reserved box away on short upright phones, so the board is full width there: 277 -> 320, measured on 342f7329901b */
     if(WANTB[geo]!=null)L.say(!!afterHint.board&&Math.abs(afterHint.board.w-WANTB[geo])<0.6,geo+': the puzzle board is '+WANTB[geo]+' wide with the hint up - the measured size, not merely unmoved',{measured:afterHint.board&&afterHint.board.w,want:WANTB[geo]});
     // A VALUE, NOT A SHAPE [#545, item (50); jobs/two-gate-39-streak-assertions-are-shapes-not-values-and-gate-41-forces-the-
     // worker-pool-2026-10-03]. This read /\/\s*\d+/, which '0 / 0' satisfies. chess.jsx prints the fill as
@@ -88,7 +97,7 @@ L.run(async()=>{
     const cm=/^(\d+) \/ (\d+) \u00b7 rating (\d{3,4})$/.exec(cTxt);
     if(/\\u[0-9a-fA-F]{4}/.test(cTxt))L.note(geo+': KNOWN DEFECT, REPORTED NOT ASSERTED - the fill prints a literal escape where the app meant a middle dot: '+JSON.stringify(cTxt)+' (jobs/the-puzzle-hint-fill-prints-a-literal-unicode-escape-2026-10-29)');
     const cN=cm?+cm[1]:null,cD=cm?+cm[2]:null,cR=cm?+cm[3]:null;
-    L.say(!!cm&&cN>=1&&cN<=cD&&cD>=2&&cR>=400&&cR<=3200&&!/in a row/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up - a real position N of D (1 <= N <= D, D >= 2) and the puzzle rating, never a streak of zero',{text:filled&&filled.t,N:cN,D:cD,rating:cR});
+    if(!SHORT)L.say(!!cm&&cN>=1&&cN<=cD&&cD>=2&&cR>=400&&cR<=3200&&!/in a row/.test(filled.t||''),geo+': with no streak yet it falls back to the counter the header gave up - a real position N of D (1 <= N <= D, D >= 2) and the puzzle rating, never a streak of zero',{text:filled&&filled.t,N:cN,D:cD,rating:cR});
 
     // ---- the verdict takes the same box back, instantly, and the board still does not move
     await b.move('e1','e7',900);await b.settle(600);
@@ -96,7 +105,7 @@ L.run(async()=>{
     const gone=await box(b);
     const verdict=await b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^✗/.test(t));return d[0]?d[0].slice(0,44):null;});
     L.say(!!verdict,geo+': a wrong move produces the verdict',verdict);
-    L.say(gone===null,geo+': and the streak fill steps back out of the box for it - one box, never two',gone);
+    if(geo!=='se')L.say(gone===null,geo+': and the streak fill steps back out of the box for it - one box, never two',gone);
     L.say(!!afterHint.board&&!!afterWrong.board&&Math.abs(afterHint.board.w-afterWrong.board.w)<0.6&&Math.abs(afterHint.board.top-afterWrong.board.top)<0.6,
           geo+': the board does not move when the verdict replaces the streak - the transition is the half that would break silently');
     await b.shot('pzstreak-'+geo);
@@ -113,12 +122,13 @@ L.run(async()=>{
     const pre=await b2.metrics();
     await tapBtn(b2,/^\u{1F4A1} Hint$/u);await b2.settle(700);
     const live=await box(b2);const post=await b2.metrics();
-    L.say(!!live&&/in a row/.test(live.t||''),geo+': with a live streak the box reads the STREAK, which is the one word of his answer',live&&live.t);
+    if(geo!=='se')L.say(!!live&&/in a row/.test(live.t||''),geo+': with a live streak the box reads the STREAK, which is the one word of his answer',live&&live.t);
     // THE STREAK, NOT ANY 4 [#545, item (50)]. This read /\b4\b/ over the whole fill, which a box printing 'best 4' or
     // '4 / 40' satisfies. The seed carries streak 4 and best 6, so the pin is the streak's own phrase, and best's must
     // be absent; the branches the one seed never reaches (1, and two digits) are driven once, after this loop.
-    L.say(!!live&&/(^|\s)4 in a row/.test(live.t||'')&&!/\b6 in a row/.test(live.t||''),geo+': and it is the STREAK the store carries ("4 in a row"), not best (6) and not a placeholder',live&&live.t);
-    L.say(!!live&&Math.abs(live.h-wantH)<0.6,geo+': the streak text does not change the reserved height either',live&&live.h);
+    if(geo!=='se')L.say(!!live&&/(^|\s)4 in a row/.test(live.t||'')&&!/\b6 in a row/.test(live.t||''),geo+': and it is the STREAK the store carries ("4 in a row"), not best (6) and not a placeholder',live&&live.t);
+    if(geo!=='se')L.say(!!live&&Math.abs(live.h-wantH)<0.6,geo+': the streak text does not change the reserved height either',live&&live.h);
+    if(geo==='se')L.note(geo+': a42 - with the hint up on a short upright phone there is no box to carry the streak, so the three live-streak fill lines are NOT run here (where the streak shows instead is not asserted by this gate)');
     L.say(!!pre.board&&!!post.board&&Math.abs(pre.board.w-post.board.w)<0.6&&Math.abs(pre.board.top-post.board.top)<0.6,geo+': the board does not move on the streak branch either');
     await b2.close();
   }
@@ -316,7 +326,7 @@ L.run(async()=>{
       const b=await L.launch({geo,name:'pz-lbl-'+geo+'-'+st});await b.open();let ok=true;
       try{await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
       const labs=ok?await b.page.evaluate(()=>{const gr=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,b)=>b.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!gr)return [];
-        return [...gr.querySelectorAll('span')].filter(x=>getComputedStyle(x).position==='absolute'&&/^[a-h1-8]$/.test((x.textContent||'').trim())).map(x=>{const r=x.getBoundingClientRect();const sqd=x.parentElement;const _sw=sqd.getBoundingClientRect().width;const hl=[...sqd.children].some(c=>{if(c===x||c.tagName!=='DIV')return false;const cs=getComputedStyle(c);return cs.position==='absolute'&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&c.getBoundingClientRect().width>=_sw*0.9;});return {t:(x.textContent||'').trim(),x:r.left,y:r.top,w:r.width,h:r.height,hl};});}):[];
+        return [...gr.querySelectorAll('span')].filter(x=>getComputedStyle(x).position==='absolute'&&/^[a-h1-8]$/.test((x.textContent||'').trim())).map(x=>{const r=x.getBoundingClientRect();const sqd=x.parentElement;const _sw=sqd.getBoundingClientRect().width;const hl=[...sqd.children].some(c=>{if(c===x||c.tagName!=='DIV')return false;const cs=getComputedStyle(c);return cs.position==='absolute'&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&c.getBoundingClientRect().width>=_sw*0.9;});const _hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);const cov=!(_hit&&gr.contains(_hit));return {t:(x.textContent||'').trim(),x:r.left,y:r.top,w:r.width,h:r.height,hl,cov};});}):[];
       const out=[];
       for(const l of labs){const buf=await b.page.screenshot({clip:{x:Math.max(0,l.x),y:Math.max(0,l.y),width:Math.max(1,l.w),height:Math.max(1,l.h)}});
         const cr=await b.page.evaluate(async(b64)=>{const im=new Image();im.src='data:image/png;base64,'+b64;await im.decode();const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,c.width,c.height).data;
@@ -325,10 +335,14 @@ L.run(async()=>{
           const bg=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0][0].split(',').map(Number);const Lb=lum(...bg);let Lt=Lb;
           for(let i=0;i<d.length;i+=4){const L2=lum(d[i],d[i+1],d[i+2]);if(Math.abs(L2-Lb)>Math.abs(Lt-Lb))Lt=L2;}
           return Math.round(((Math.max(Lb,Lt)+0.05)/(Math.min(Lb,Lt)+0.05))*100)/100;},buf.toString('base64'));
-        out.push({t:l.t,hl:l.hl,cr});}
+        out.push({t:l.t,hl:l.hl,cr,cov:l.cov});}
       const tag=geo+' '+st;
       L.say(ok&&out.length>=15&&out.some(o=>o.hl),tag+': TC-PZ-LBL DENOMINATOR the puzzle state was reached, '+out.length+' board labels were read off the screen, and '+out.filter(o=>o.hl).length+' of them sit on a highlighted square',{n:out.length,onHighlight:out.filter(o=>o.hl)});
-      const low=out.filter(o=>o.cr<3.0);
+      // #550 a42 (1603f06): on a short upright phone Show's note is an overlay over the top of the board, so a label UNDER it is not
+      // painted at all - its screenshot reads the overlay, not the board. A covered label is found by hit test (its centre lands on
+      // something that is not inside the board grid - structure, not a42's hook), counted, and kept out of the contrast floor.
+      const covered=out.filter(o=>o.cov);if(covered.length)L.note(tag+': TC-PZ-LBL '+covered.length+' label(s) sit under something drawn over the board and are not read for contrast: '+covered.map(o=>o.t+'@'+o.cr).join(' '));
+      const low=out.filter(o=>o.cr<3.0&&!o.cov);
       L.say(out.length>0&&low.length===0,tag+': TC-PZ-LBL no board label is painted under 3.0:1 against what is behind it - a highlight cannot take a letter down to the 1.58:1 the job measured (lowest '+Math.min(...out.map(o=>o.cr))+')',{low,onHighlight:out.filter(o=>o.hl)});
       L.say(b.errs.length===0,tag+': TC-PZ-LBL no console errors',{errs:b.errs.slice(0,2)});
       await b.close();
