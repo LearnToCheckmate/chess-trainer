@@ -339,7 +339,9 @@ cp "$WORK/pairs" "${CT_SP_OUT:-/dev/null}" 2>/dev/null || true
 # selector-its-own-build-adds-cannot-control-2026-09-29: the ceiling is SET, at the same-build count this script reads on the run's
 # tree when it is set - 81 on the #550 branch (it was 35 on 9 Oct, 52 at #548, 59 at #549: left unset, it only rose). A new same-build
 # hook-and-assertion pair is now a RED; lower it as pairs are fixed. G_SPCEIL in the environment still overrides (the selftest uses it).
-CEIL="${G_SPCEIL:-81}"
+# #550 round 4: the ceiling now bounds the UNOPENED count (SELECTOR-OPENED marks above), and is set to 13, measured at this commit
+# (same-build 142, opened 129, unopened 13). The 81 it replaces bounded the raw same-build count, which read 142 on the branch tip.
+CEIL="${G_SPCEIL:-13}"
 if [ -z "$CEIL" ]; then
   echo "NO CEILING SET (G_SPCEIL unset) - this run REPORTS and asserts nothing. Set G_SPCEIL to the"
   echo "measured count to make a new same-build pair a RED rather than a line in a log."
