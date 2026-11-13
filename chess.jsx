@@ -7457,18 +7457,33 @@ export default function App(){
      by its next review. The sheet is asked once per app session; "Not now" keeps everything and asks again the next time the app opens. */
   const [regrade,setRegrade]=useState(null);
   const regradeDoneRef=useRef(false);
+  /* #550 speed check SPD-01 (Review froze ~83 s on a 4x phone, 17 s unthrottled, on EVERY entry, for his 465 stored reviews of an older grade
+     version): this pass replayed every such game (loadSANs, ~37 ms each) BEFORE looking in the eval cache, and re-ran on every change of
+     ccGames/mode/homeScreen because only the sheet's answer set regradeDoneRef. Now: an empty cache means nothing can be regraded, so nothing
+     is replayed; each game key is checked once per app session (regradeSeenRef); and the replays run in slices that yield to the browser
+     between games, so the list paints at once and stays responsive. Same sheet, same answers. */
+  const regradeSeenRef=useRef(new Set());
   useEffect(()=>{
     if(mode!=='analyze'||homeScreen||regradeDoneRef.current||!ccGames||!ccGames.length)return;
+    let dead=false;
+    (async()=>{
     const GS=gameStatsRef.current||{};const all=evalCacheAll();const games=[];let noCache=0;
+    const _cacheEmpty=!all||Object.keys(all).length===0;let _t0=performance.now();
     for(const g of ccGames){
+      if(dead)return;
       const k=gkey(g),st=GS[k];if(!st||st.src!=='review'||gradeVerOf(st)>=GRADE_VER)continue;
+      if(regradeSeenRef.current.has(k))continue;regradeSeenRef.current.add(k);
+      if(_cacheEmpty){noCache++;continue;}
+      if(performance.now()-_t0>12){await new Promise(r=>setTimeout(r,0));if(dead){regradeSeenRef.current.delete(k);return;}_t0=performance.now();}
       let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies,_st.fen)]||null,gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
       if(!r){noCache++;continue;}
       if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version
       const info=gameInfo(g);
       games.push({key:k,opp:info.opp||(g.white+' v '+g.black),date:g.date||0,acct:g.acct?acctId(g.src,g.acct):null,...r});
     }
-    if(games.length)setRegrade({games,noCache});
+    if(!dead&&games.length)setRegrade(prev=>prev?{games:[...prev.games,...games],noCache:prev.noCache+noCache}:{games,noCache});
+    })();
+    return()=>{dead=true;};
   },[ccGames,mode,homeScreen]);
   const regradeAnswer=(yes)=>{
     regradeDoneRef.current=true;const R=regrade;setRegrade(null);if(!yes||!R)return;
@@ -8671,7 +8686,7 @@ export default function App(){
     const dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
     const learnedN=Object.values(trainMastery).filter(m=>m&&m.learned).length;
     const dueN=Object.values(trainMastery).filter(m=>m&&m.learned&&Date.now()>(m.due||0)).length;
-    const mineN=(myMistakesRef.current||[]).filter(m=>!!puzzleFromMistake(m)).length;   /* #550 item (13): only the positions the drill can serve are offered */
+    const mineN=(myMistakesRef.current||[]).filter(mistakePlayable).length;   /* #550 item (13): only the positions the drill can serve are offered */
     const plan=[];
     if(gReviewed===0)plan.push({ic:'📥',text:gAny>0?"Review one of your games in full so I can show you where it turned.":"Import one of your games so I can show you where it turned.",goLabel:'Review',go:goRev});
     if(dTd<DAILY_GOAL)plan.push({ic:'🧩',text:'Solve '+(DAILY_GOAL-dTd)+' more puzzle'+((DAILY_GOAL-dTd)>1?'s':'')+" to finish today's goal.",goLabel:'Solve',go:goPz});
@@ -8758,6 +8773,11 @@ export default function App(){
      startMistakes sets drillKindRef to 'mistake' and startBrilliant to 'brilliant', each BEFORE its own
      puzzleFromMistake loop, and the ref is already set on the mid-drill path. Testing for 'brilliant'
      rather than against 'mistake' makes the mistake sentence the default, which is the safe direction. */
+  /* #550 speed check SPD-02/03 (the drill took 4.8 s to open and 2.0 s per Next card, Home 2.9 s to start, with his 60 cards): counting
+     the playable cards built EVERY card in full - its goal, hint and verdict sentence with a mate search, ~33 ms each at 4x - and the count
+     re-ran on every practisedAt stamp. The count and the playable list need only the guard below (a legal position and a legal stored
+     move); the full card is built only for the card being shown. */
+  const mistakePlayable=(m)=>{if(!m||!m.fen||!m.uci)return false;try{const g=fromFEN(m.fen);return !!(g&&g.board&&findKing(g.board,'w')&&findKing(g.board,'b')&&!isInCheck(g.board,opp(g.turn))&&uciToMove(g,m.uci));}catch(e){return false;}};
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
@@ -8771,10 +8791,11 @@ export default function App(){
     /* #550 item (51): the review's second move rides on the card only when it is a legal move here and not the stored one */
     if(!isB&&m.alt2&&m.alt2.uci&&m.alt2.uci!==m.uci&&uciToMove(g,m.alt2.uci))o.alt2={san:m.alt2.san,label:m.alt2.label};
     return o;}catch(e){return null;}};
-  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(puzzleFromMistake(qs[i]))pl.push(i);}if(!pl.length){toast('None of your '+qs.length+' saved position'+(qs.length>1?'s':'')+' can be played: each needs a legal position and a legal better move. '+(qs.length>1?'They are':'It is')+' kept, not deleted.');return;}/* #550 item (13), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 (b): say why, never return silently */drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
+  const startMistakes=()=>{const qs=(myMistakesRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='mistake';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if(mistakePlayable(qs[i]))pl.push(i);}if(!pl.length){toast('None of your '+qs.length+' saved position'+(qs.length>1?'s':'')+' can be played: each needs a legal position and a legal better move. '+(qs.length>1?'They are':'It is')+' kept, not deleted.');return;}/* #550 item (13), jobs/mistakes-pool-evicts-the-tail-the-drill-starts-at-the-head-2026-09-28 (b): say why, never return silently */drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));
     {const _f=qs[pl[0]]&&qs[pl[0]].fen;if(_f)setMyMistakes(prev=>prev.some(x=>x.fen===_f&&!x.practisedAt)?prev.map(x=>x.fen===_f&&!x.practisedAt?{...x,practisedAt:Date.now()}:x):prev);}};   /* #549 item (15): the FIRST card is served here, not through drillGo, so it is stamped practised here too - else capMistakes keeps it over an older unseen one */
-  const mkPlayN=useMemo(()=>(myMistakes||[]).filter(m=>!!puzzleFromMistake(m)).length,[myMistakes]);   /* #550 item (13) (a), Kunal's B8-SMALL-DEFAULTS 'Use your defaults': the card counts only the rows the drill can play; nothing is deleted */
-  const startBrilliant=(keep)=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if((typeof keep!=='function'||keep(qs[i]))&&puzzleFromMistake(qs[i]))pl.push(i);}   /* #550 item (21): keep, the library's chosen kinds */if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
+  const _mkKey=(myMistakes||[]).map(m=>m?(m.fen+' '+m.uci):'').join('|');   /* the deck's identity without its practisedAt stamps */
+  const mkPlayN=useMemo(()=>(myMistakes||[]).filter(mistakePlayable).length,[_mkKey]);   /* #550 item (13) (a), Kunal's B8-SMALL-DEFAULTS 'Use your defaults': the card counts only the rows the drill can play; nothing is deleted */
+  const startBrilliant=(keep)=>{const qs=(myBrilliantRef.current||[]).slice();if(!qs.length)return;drillKindRef.current='brilliant';drillSolvedRef.current={};mistakeQueueRef.current=qs;const pl=[];for(let i=0;i<qs.length;i++){if((typeof keep!=='function'||keep(qs[i]))&&mistakePlayable(qs[i]))pl.push(i);}   /* #550 item (21): keep, the library's chosen kinds */if(!pl.length)return;drillPlayRef.current=pl;drillPosRef.current=0;mistakeIdxRef.current=pl[0];setMistakeMode(true);setHomeScreen(false);setMode('puzzle');loadExternal(puzzleFromMistake(qs[pl[0]]));};
   /* #475 ONE walker serves both directions so Prev cannot drift away from Next. It steps through the
      PLAYABLE list, so it can no longer walk into a row that cannot be rendered. */
   const drillGo=(pos)=>{setDrillEnd(null);const pl=drillPlayRef.current||[],q=mistakeQueueRef.current||[];

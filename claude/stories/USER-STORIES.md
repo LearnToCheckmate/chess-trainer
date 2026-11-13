@@ -2377,3 +2377,11 @@ As a player moving between screens, the back and menu buttons are always in the 
 - In a lesson the close X is the bar's first button and ⋯ its last, in the demo and in practice, with one ⋯ on screen. (TC-R215f)
 - On a short upright phone (under 700 tall) the lesson's rows under the board fold into the bar - Now I'll try it is a bar button, the practice row sits in the bar, Other lines is in the ⋯ sheet - and the board is the screen width at 320x568. (TC-R215g)
 - At an online game's end the board stays the screen width on his phone and the page does not scroll; the panel is rows of 44pt buttons. (TC-R215h)
+
+### US-R155 Review, the drill and Home stay fast with his data on a slow phone
+*Added #550, run-answers build__1794388896663-hold-landing (THE SPEED CHECK, SPD-01..03: three regressions of this batch, fixed before landing).*
+As a player with hundreds of reviewed games and a full drill deck, opening Review, the drill and the app itself is as quick as before this batch.
+- The Review list is on screen at once and nothing blocks the page after it. (TC-R223a)
+- The drill opens within a second. (TC-R223b)
+- Next card answers in under 100 ms. (TC-R223c)
+- Home starts within two seconds on a 4x-throttled phone. (TC-R223d)

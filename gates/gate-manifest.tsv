@@ -155,3 +155,4 @@
 136-chess-content-holds.js	required	550	2026-11-12	build__1794388896663	gates/regress/136-chess-content-holds.js - THE LESSONS AND PUZZLES TEACH CHESS THE ENGIN	#550 chess correctness: the content holds at depth 16 (US-R144)
 135-review-board-holds-its-size.js	required	550	2026-11-12	build__1794388896663	gates/regress/135-review-board-holds-its-size.js - THE REVIEW BOARD KEEPS ONE SIZE AFTER	#550 his report (c): the Review board holds its size after a move (US-R143)
 139-one-top-row-standard.js	required	550	2026-11-12	build__1794388896663	gates/regress/139-one-top-row-standard.js - ONE TOP ROW, ONE TITLE, ONE BUTTON HEIGHT, O	#550 formatting P1: one top-row standard (US-R147)
+147-speed-with-his-data.js	required	550	2026-11-13	build__1794388896663	gates/regress/147-speed-with-his-data.js - REVIEW, THE DRILL AND HOME STAY FAST WITH HIS	#550 speed: Review, the drill and Home fast with his data (US-R155)
