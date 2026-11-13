@@ -23,7 +23,7 @@ const CARDS=[
 L.run(async()=>{
   for(const c of CARDS){
     const card={fen:c.fen,uci:c.uci,label:'Mistake',played:c.played,ts:1791000000000,last:null,why:'(legacy card, no hint field)'};
-    const b=await L.launch({geo:'kunal761',name:'legacy-hint-'+c.kind,store:{ct_mymistakes:[card],ct_pool:'3'}});await b.open();
+    const b=await L.launch({geo:'kunal761',name:'legacy-hint-'+c.kind,store:{ct_mymistakes:[card.wc?card:Object.assign({},card,{wc:{g:card.label||'Mistake',drop:15,v:1}})],ct_pool:'3'}   /* #550: wc marks the legacy card as already graded, so the a41 Home re-grade does not remove it before the drill opens (on the tip both cards were removed: 1/6) */});await b.open();
     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
     const goal=ok?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-top"]');return e?e.innerText.replace(/\s+/g,' '):'';}):'';
     L.say(ok&&goal.includes('you played '+c.played),c.id+' DENOMINATOR the '+c.kind+' legacy card opened in the mistakes drill (its goal: "'+goal.slice(0,90)+'")',{ok,goal:goal.slice(0,160)});

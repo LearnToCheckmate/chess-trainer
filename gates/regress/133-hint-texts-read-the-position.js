@@ -10,6 +10,7 @@
 // The puzzle rows are read from the same source's PZGEN_RAW literal.
 // KNOW ITS LIMIT: the browser surfaces are gates 130 (Play) and 132 (the drill); this gate pins the readings themselves.
 // CONTROL-RECORD: 359de94 2026-11-13 total=8 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the branch tip's chess.jsx (fbd9ff8) - TC-R209d (Rxh6+ read 'A rook can be given up with check here.') and TC-R209d2 (Qb8+ read 'There is mate in two, and it starts with a check.') red; with this fix 8/0
+// CONTROL-RECORD: 55ca2c7 2026-11-13 total=26 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line, every older line and the six TC-R209g pins green (total 20 before TC-R209g was added)
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');
@@ -47,4 +48,39 @@ L.run(async()=>{
   // ("There is mate in two ...") named no square at all
   {let t='';try{const g=E.fromFEN('1n2kb1r/p2r1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16');t=E.brilHint(g,E.getLegal(g).find(m=>E.rc2sq(m.fr,m.fc)==='b3'&&E.rc2sq(m.tr,m.tc)==='b8'),false)||'';}catch(e){t='';}
    L.say(/queen on b3/.test(t)&&!/b8/.test(t),'TC-R209d2 the Brilliant drill hint for the Opera Game\'s Qb8+ names the piece and the square it stands on, not where it goes ("'+t+'")',t);}
+  // ── TC-R209f [#550 cg7; jobs/drill-hints-name-the-positions-point-2026-11-12, the independent checker's gap]: the three readings it had no
+  // words for - a mate threat, a fork without check, a pin - each on positions where it must fire AND positions where it must not.
+  const rd=(f,san)=>{try{const g=E.fromFEN(f);const m=E.findMoveBySAN(g,san);if(!m)return {k:'NOMOVE'};return E.concreteRead(g,m)||{k:null,hint:null};}catch(e){return {k:'THREW '+e.message};}};
+  const MOT=[ // [id, fen, move, kind, must fire?, the hint must match (fire) / why it must not]
+    ['F1','5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe4','matethreat',true,/^One move sets up a mate threat on h7\.$/,'Qxh7 mate is threatened (the knight on g5 guards h7)'],
+    ['F2','5rk1/5ppp/5n2/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe4','matethreat',false,null,'the knight on f6 takes the queen on e4'],
+    ['F3','5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe3','matethreat',false,null,'Qe3 sees nothing near the king'],
+    ['F4','5rk1/5p1p/6p1/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe4','matethreat',false,null,'the pawn on g6 shuts the diagonal to h7'],
+    ['F5','1r1q2k1/5ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',true,/^Your knight can attack the queen on d8 and the rook on b8 at once\.$/,'the checker\'s case: it used to name only the rook'],
+    ['F6','1r1q2k1/1p3ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',false,null,'the pawn on b7 takes the knight'],
+    ['F7','1r4kq/5ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',false,null,'only the rook is hit'],
+    ['F8','r1b1bk2/6pp/8/8/4N3/8/5PPP/6K1 w - - 0 1','Nd6','fork',false,null,'two guarded bishops, each worth no more than the knight'],
+    ['F9','r1bqkbnr/ppp2ppp/2np4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1','Bb5','pin',true,/^Your bishop can pin their knight on c6 to the king\.$/,'d7 is empty, so the knight is pinned to the king'],
+    ['F10','rnbqkb1r/ppp2ppp/4pn2/3p4/3P4/2N5/PPP1PPPP/R1BQKBNR w KQkq - 0 1','Bg5','pin',true,/^Your bishop can pin their knight on f6 to the queen\.$/,'e7 is empty, so the knight is pinned to the queen'],
+    ['F11','rnbqkb1r/ppp1pppp/5n2/3p4/3P4/2N5/PPP1PPPP/R1BQKBNR w KQkq - 0 1','Bg5','pin',false,null,'the pawn on e7 stands between the knight and the queen'],
+    ['F12','r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1','Bb5','pin',false,null,'the Ruy Lopez: the pawn on d7 stands between the knight and the king'],
+  ];
+  for(const [id,f,san,kind,fire,want,why] of MOT){const r=rd(f,san);
+    if(fire)L.say(r.k===kind&&want.test(r.hint||''),'TC-R209f '+id+' '+kind+' MUST fire: '+san+' ('+why+') reads "'+r.hint+'" ['+r.k+']',r);
+    else L.say(r.k!==kind&&!/^THREW|^NOMOVE/.test(String(r.k)),'TC-R209f '+id+' '+kind+' must NOT fire: '+san+' ('+why+') reads "'+r.hint+'" ['+r.k+']',r);}
+  // His six cards that read "isn't it" for his own move (claude/agents/HINT-TEXTS-550.md cards 2, 5, 6, 7, 8, 10): the Hint each now shows,
+  // pinned as it stands (a regression pin with no control of its own: the three new readings change none of them, measured at #550 cg7).
+  const SIXH=[
+    ['K2','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 1','exd4','Bb4+','Their pawn on d4 can be taken, and taking it is right even though it can be taken back.'],
+    ['K5','rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1','dxe5','Nf3','Their pawn on e5 can be taken. Take it with the pawn.'],
+    ['K6','r2qk2r/ppp2ppp/2nbpn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 1','h3','Qc2','Their bishop on g4 is short of defenders. Attack it.'],
+    ['K7','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Re4','Be4','Their knight on g4 is short of defenders. Attack it.'],
+    ['K8','5rk1/pBqb1pbp/4p1p1/1p1nN3/2pP4/2P3B1/PP3PPP/R2QR1K1 w - - 0 1','Bxd5','Ba6','Their knight on d5 can be taken, and taking it is right even though it can be taken back.'],
+    ['K10','r3r1k1/p2q1p1p/1p1p2pB/1Pp5/3bPP2/1Q6/1PP3PP/3RR2K b - - 0 1','Qb7','Re7','No tactic to spot here — look for the move that improves your worst piece.'],
+  ];
+  for(const [id,f,bs,ps,want] of SIXH){let t='';try{const g=E.fromFEN(f);t=E.mistakeHint(g,E.findMoveBySAN(g,bs),E.findMoveBySAN(g,ps));}catch(e){t='THREW '+e.message;}
+    L.say(t===want,'TC-R209g '+id+' his card ('+ps+', best '+bs+'): the Hint reads "'+t+'"',{t,want});}
+  // and the drill's verdict names the same thing (say), so the solve sentence does not fall back to "was stronger" on them
+  {const g=E.fromFEN(MOT[4][1]);const v=E.drillVerdict(g,E.findMoveBySAN(g,'Nc6'),null,'Nc6 was stronger. Kh1 went from level to losing.');
+   L.say(/^Nc6 forks the queen on d8 and the rook on b8\./.test(v),'TC-R209f F13 the drill verdict on the fork says it ("'+v+'")',v);}
 },'133-hint-texts-read-the-position');

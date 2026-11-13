@@ -61,7 +61,7 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   // (No apostrophe in a comment inside this array: gate 79 X1 reads the names between quote marks, and one read a fragment of this line as a name.)
   'REVIEW_TWO_DEFAULT','REVIEW_TWO',
   // #550 hint audit: the concrete reading and the two drill texts it feeds
-  'concreteRead','_cheapAttacker','_mateInOne','drillVerdict','mistakeHint','WHY_DRILL_MAXW','ACC_HARM_FLOOR','ACC_SHIFT','pzText','_sanDesc','_pzTxtC','brilHint','mistakeWhy',
+  'concreteRead','_cheapAttacker','_mateInOne','missWhy','_bestCapNet','drillVerdict','mistakeHint','WHY_DRILL_MAXW','ACC_HARM_FLOOR','ACC_SHIFT','pzText','_sanDesc','_pzTxtC','brilHint','mistakeWhy',
   // #550 HEX-T-08: the Brilliant card's refutation line (the review's sacrifice pieces and the card's own taker and sentence)
   'SAC_LINE_MAX','sacTaker','sacLine','sacKeep','refuteTxt','brilTaker','brilRefuteTxt'];
 

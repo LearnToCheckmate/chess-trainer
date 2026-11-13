@@ -52,12 +52,14 @@
 const L=require('../lib');
 
 const FEN='6k1/5ppp/8/3q3R/8/8/5PPP/3R2K1 w - - 0 1';
-const CARD={fen:FEN,uci:'d1d5',label:'Mistake',played:'Kf1',ts:1,last:null,
+// #550: wc marks each seeded card as already graded, so the a41 Home re-grade (which drops any card whose stored move is not a Mistake or
+// Blunder under his defaults) leaves the fixture alone - measured on t164: 'Practice your mistakes' absent, the harness threw.
+const CARD={fen:FEN,uci:'d1d5',label:'Mistake',played:'Kf1',ts:1,last:null,wc:{g:'Mistake',drop:15,v:1},
   hint:'There was a better move than the one you chose. Look for the most forcing or solid option.'};
 const STORE_OFF={ct_mymistakes:[CARD],ct_pool:'3'};
 const STORE=Object.assign({},STORE_OFF,{ct_drill_grade:'1'});   // the switch ON: 2f4e07a's grading
 const BENFEN='rn2kb1r/p3qppp/2p2n2/1N2p1B1/2B1P3/1Q6/PPP2PPP/R3K2R b KQkq - 0 1';
-const BEN={ct_mymistakes:[{fen:BENFEN,uci:'e7b4',label:'Mistake',played:'cxb5',ts:1,last:null}],ct_pool:'3',ct_drill_grade:'1'};
+const BEN={ct_mymistakes:[{fen:BENFEN,uci:'e7b4',label:'Mistake',played:'cxb5',ts:1,last:null,wc:{g:'Mistake',drop:15,v:1}}],ct_pool:'3',ct_drill_grade:'1'};
 
 const BANDS=['brilliant','best','excellent','good','inaccuracy','mistake','blunder'];
 const bandsIn=(s)=>{const t=' '+String(s||'').toLowerCase()+' ';return BANDS.filter(b=>t.indexOf(b)>=0);};
@@ -107,11 +109,11 @@ async function drillPlay(b,uci){
 const OLD1=(san)=>'✗ '+san+" isn't it. Try again, or tap 💡.";
 const OLD2=(san)=>'✗ '+san+" isn't it either. Tap 👁 to see the move.";
 /* #550 item (24) say-why: a rejected move may now carry ONE reason in words (chess.jsx wrongWhy / replyWhy: 'hangs the ...', 'drops the ...',
-   'allows ...'), ending as the drill's line does. These assertions are about the move being REJECTED and not graded (no quick-grade band
+   'allows ...'; #550 cg7 adds missWhy's 'lets ...', 'is met by ...', 'unguards ...'), ending as the drill's line does. These assertions are about the move being REJECTED and not graded (no quick-grade band
    label, no consequence clause from drillGradeMsg), so they accept the pre-(97) sentence or a say-why line, to the end of the sentence. */
 const _esc=(x)=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const REJ1=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it\\. Try again, or tap 💡\\.| (hangs|drops|allows) [^.]+\\. Try again\\.)$");
-const REJ2=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it either\\. Tap 👁 to see the move\\.| (hangs|drops|allows) [^.]+\\. Tap 👁 to see the move\\.)$");
+const REJ1=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it\\. Try again, or tap 💡\\.| (hangs|drops|allows|lets|is met by|unguards) [^.]+\\. Try again\\.)$");
+const REJ2=(san)=>new RegExp('^✗ '+_esc(san)+"( isn't it either\\. Tap 👁 to see the move\\.| (hangs|drops|allows|lets|is met by|unguards) [^.]+\\. Tap 👁 to see the move\\.)$");
 const playMore=async(b,uci)=>{await b.move(uci.slice(0,2),uci.slice(2,4),900);await b.settle(1600);return {v:await verdict(b),left:await storeLen(b)};};
 
 L.run(async()=>{
