@@ -2134,6 +2134,9 @@ const BRIL_NEEDED=7.0;   // condition 4: a next best at or above this leaves the
    ct_bril_rule='1' turns it off (the rule the app graded by before), '2' keeps the #549 rule for one device. */
 const BRIL_A=8.2096;     // clause A, E and K: the top of the Good band (CLS_BANDS[2][0]) in win percent
 const BRIL_RULE_DEFAULT=3;
+// #550 jobs/suite-never-asserts-after-a-success-2026-09-27 theFix (4): the lesson bank celebration's auto-clear delay, as a test seam.
+// ct_celebrate_ms unset -> 2800 (shipped behaviour); '0' -> never auto-clear, so a gate can assert on the state after the success; any other positive number -> that delay.
+const CELEB_MS=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_celebrate_ms'):null;if(v==null)return 2800;const n=parseInt(v,10);return isFinite(n)&&n>=0?n:2800;}catch(e){return 2800;}})();
 const BRIL_RULE=(()=>{try{const v=typeof localStorage!=='undefined'?localStorage.getItem('ct_bril_rule'):null;return v==='1'?1:v==='2'?2:v==='3'?3:BRIL_RULE_DEFAULT;}catch(e){return BRIL_RULE_DEFAULT;}})();
 /* Rule 3, clause C: how many consecutive moves of the mover (this one included) have left the same piece on the same square where the
    opponent could win it. positions[i] is the position before ply i, so positions[i+1-2k] is the position after the mover's k-th
@@ -4977,7 +4980,7 @@ export default function App(){
   const [tourWhen,setTourWhen]=useState('');
   const [tourBusy,setTourBusy]=useState(false);
   const [tourMsg,setTourMsg]=useState('');
-  useEffect(()=>{if(celebrate&&celebrate.kind==='bank'){const t=setTimeout(()=>setCelebrate(null),2800);return ()=>clearTimeout(t);}},[celebrate]);
+  useEffect(()=>{if(celebrate&&celebrate.kind==='bank'&&CELEB_MS>0){const t=setTimeout(()=>setCelebrate(null),CELEB_MS);return ()=>clearTimeout(t);}},[celebrate]);
   // #547 item (115): only the ACKNOWLEDGEMENTS and transient statuses time out; an explanation ('Move not saved (...)',
   // 'Game created. Send ... your invite code', 'That position needs a fix', 'Could not copy the link') stays, gains a close
   // control, and the next move on the board clears it.
