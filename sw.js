@@ -5,6 +5,7 @@
 // Firebase SDK on gstatic, Lichess/Chess.com APIs) pass straight to the network untouched —
 // intercepting them breaks Firestore's live connection and forces slow polling.
 const CACHE = 'chess-trainer-v5';   // #550 ERR-03: v5 precaches the engine
+const FRESH_WAIT_MS = 3000;   // #550 ERR-09: how long app code waits for the network before a cached copy is served
 // #550 ERR-02/ERR-03 (errors-offline check, 12 Nov): the Stockfish engine is in the first install, not only cached on a later visit
 // the worker already controls - after one visit offline, Review was graded without Stockfish and said nothing.
 const ASSETS = ['./','./index.html','./app.js','./lessons.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./stockfish-18-lite-single.js','./stockfish-18-lite-single.wasm'];
@@ -32,15 +33,24 @@ self.addEventListener('fetch', (e) => {
     || url.pathname.endsWith('/index.html')
     || url.pathname.endsWith('/');
   if (fresh) {
-    e.respondWith(
-      // cache:'no-cache' bypasses the browser HTTP cache (Pages sends max-age=600) and revalidates by ETag,
-      // so a new build shows on the very next open instead of up to 10 minutes later. (#323)
-      fetch(e.request, { cache: 'no-cache' }).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
-        return res;
-      }).catch(() => caches.match(e.request).then((hit) => hit || caches.match('./index.html')))
-    );
+    // cache:'no-cache' bypasses the browser HTTP cache (Pages sends max-age=600) and revalidates by ETag,
+    // so a new build shows on the very next open instead of up to 10 minutes later. (#323)
+    // #550 ERR-09 (errors-offline check, 12 Nov): on a slow line a returning player waited the whole 9 s download of app.js even with a
+    // copy in the cache. The network still goes first, but if it has not answered in FRESH_WAIT_MS and a cached copy exists, the cached
+    // copy is served; the network fetch carries on and refreshes the cache, so the new build shows on the next open. A normal line answers
+    // well inside the wait and nothing changes for it.
+    const net = fetch(e.request, { cache: 'no-cache' }).then((res) => {
+      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+      return res;
+    });
+    e.waitUntil(net.catch(() => {}));
+    e.respondWith(new Promise((resolve) => {
+      let done = false;
+      const fallback = () => caches.match(e.request).then((hit) => hit || caches.match('./index.html'));
+      const timer = setTimeout(() => { caches.match(e.request).then((hit) => { if (hit && !done) { done = true; resolve(hit); } }); }, FRESH_WAIT_MS);
+      net.then((res) => { clearTimeout(timer); if (!done) { done = true; resolve(res); } })
+        .catch(() => { clearTimeout(timer); if (!done) { done = true; resolve(fallback()); } });
+    }));
   } else {
     e.respondWith(
       caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
