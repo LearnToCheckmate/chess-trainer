@@ -27,8 +27,8 @@
 // CONTROL-RECORD: ad34c09 2026-11-11 total=80 red=3 scope=trial:ae73915f78b8 how=#550 item (17): CT_SRC with BRIL_RULE_DEFAULT back to 1 and the bundle before rule 3 (t64) - Z1, Z2 and H0b red; every other line green
 // CONTROL-RECORD: c33e447 2026-11-11 total=80 red=3 scope=trial:1ddf30c42dc4 how=#550 item (20): a mutant whose ct_grades2 switch is ignored (GRADES2 always true, t78) - H0 and both H9 lines red (GRADE_VER 11 and 12 where the rule's own 1 and 2 are expected)
 // CONTROL-RECORD: 3835b96 2026-11-12 total=80 red=3 scope=trial:1ddf30c42dc4 how=#550 round 5, H9 re-key: the mutant whose ct_grades2 switch is ignored (t78) - H0 and both H9 lines red (great 13, the grades-on ladder, where the switch-off copy expects 18); on 764a0b1dc097 80/0
-// CONTROL-RECORD: HEAD 2026-11-13 total=91 red=1 scope=trial:37af39a67536 how=#550 HEX-T-08: the branch tip bundle t0 - TC-R209f E16 red (10.Nxb5 reads "... still read +3.0 for you. Hard to see, and it holds.", 16.Qb8+ "... it leads to mate. Hard to see, and it holds."); E15, E17-E19 and block H green
-// CONTROL-RECORD: HEAD 2026-11-13 total=6 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-08: the branch tip's chess.jsx (no brilTaker, no brilRefuteTxt, brilCardWhy without the line) - TC-R209f E9, E10 and E12 red; E11, E13 and E14 green (counted over the E2 block alone)
+// CONTROL-RECORD: b1861b0 2026-11-13 total=91 red=1 scope=trial:37af39a67536 how=#550 HEX-T-08: the branch tip bundle t0 - TC-R209f E16 red (10.Nxb5 reads "... still read +3.0 for you. Hard to see, and it holds.", 16.Qb8+ "... it leads to mate. Hard to see, and it holds."); E15, E17-E19 and block H green
+// CONTROL-RECORD: b1861b0 2026-11-13 total=6 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-08: the branch tip's chess.jsx (no brilTaker, no brilRefuteTxt, brilCardWhy without the line) - TC-R209f E9, E10 and E12 red; E11, E13 and E14 green (counted over the E2 block alone)
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');
