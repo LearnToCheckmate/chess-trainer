@@ -110,6 +110,7 @@
 // MN-G's ad-hoc taps: those cannot reach a live game at 320x568 at all (they time out waiting for play-menu,
 // still on the setup screen), and MN-G only escapes that because it runs at one geometry. CLAUDE.md, unchanged
 // since #390: before tapping anything in a new gate, ask whether an existing gate already had to fight it.
+// CONTROL-RECORD: 02a91e7 2026-11-13 total=23 red=1 scope=env:CT_BLK=Y how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (block Y's two game-over states, TC-MN-051 and TC-MN-052b, moved off card k10 onto drive/play.js pp-scholar-mate, Scholar's mate in Pass & Play at 730x375): trial:32051b122b3c, Escape ignored by the menu sheet while a game screen is up - 'with the game over, Escape closes the menu sheet' red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 23/0 on the new route; on 77ffccc15668 23/0 by both routes (CT_BLK=Y), lines identical except two measured figures in their text (052b's game-over sheet overflow 1806 -> 1828px, and 052's home-sheet drag 85 -> 84px in a block the move does not touch)
 'use strict';
 // CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
 const L=require('../lib');
@@ -641,7 +642,9 @@ const LAND={w:730,h:375,safe:'',label:'730x375'};
 if(blk('Y')){
   const b=await L.launch({geo:LAND,name:'mn-y-over'});await b.open();
   const up=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
-  await b.card('k10',2600);await b.settle(10500);
+  // #550 [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the game-over screen by the PLAYER'S route - Scholar's
+  // mate in Pass & Play (drive/play.js pp-scholar-mate) - not b.card('k10',2600) + settle(10500), the gallery's scripted game.
+  await require('../drive/play').states['pp-scholar-mate'](b);
   const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
   L.say(over,'730x375: TC-MN-051 PRECONDITION the game is over (Checkmate on screen, Rematch offered) before the menu is opened',{over});
   const open=async()=>{const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
@@ -689,7 +692,9 @@ if(blk('Y')){
 // fully inside the sheet's visible box by finger drags and hit-test to itself at its centre.
 if(blk('Y')){
   const b=await L.launch({geo:LAND,name:'mn-y-over-reach'});await b.open();
-  await b.card('k10',2600);await b.settle(10500);
+  // #550 [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the game-over screen by the PLAYER'S route - Scholar's
+  // mate in Pass & Play (drive/play.js pp-scholar-mate) - not b.card('k10',2600) + settle(10500), the gallery's scripted game.
+  await require('../drive/play').states['pp-scholar-mate'](b);
   const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
   const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
     if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
