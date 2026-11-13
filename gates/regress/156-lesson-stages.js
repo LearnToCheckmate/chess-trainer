@@ -196,21 +196,31 @@ L.run(async()=>{
   // TC-LS-076 [#550 lead, jobs/lesson-practice-small-defects-2026-11-13 (3)]: A REPEATED POSITION IS CALLED OUT AND THE THIRD TIME IS A DRAW.
   // It accepted 30+ repetitions of a king shuffle. Node finds, with the app's own stage test and the lone king's own reply, a pair of
   // white moves after 1.Qe4 Kc5 that the stage accepts and that bring the position straight back; the browser then plays the pair twice.
-  {const g0=E.makeMove(E.makeMove(E.fromFEN(START),bySan(E,E.fromFEN(START),'Qe4')),bySan(E,E.makeMove(E.fromFEN(START),bySan(E,E.fromFEN(START),'Qe4')),'Kc5'));
-   const key=g=>H.stageKey(g.board)+g.turn;let cyc=null;
-   for(const m1 of E.getLegal(g0)){if(cyc)break;const n1=E.makeMove(g0,m1);if(/mate$/.test(E.getStatus(n1)))continue;
-     let v1;try{v1=H.stageVerdict(ST[0],g0,n1);}catch(e){continue;}if(!v1||!v1.ok||v1.done)continue;const r1=H.freeFallbackReply(n1);if(!r1)continue;const g1=E.makeMove(n1,r1);
-     for(const m2 of E.getLegal(g1)){const n2=E.makeMove(g1,m2);let v2;try{v2=H.stageVerdict(ST[0],g1,n2);}catch(e){continue;}if(!v2||!v2.ok||v2.done)continue;const r2=H.freeFallbackReply(n2);if(!r2)continue;
-       if(key(E.makeMove(n2,r2))===key(g0)){cyc=[sanOf(E,g0,m1),sanOf(E,g1,m2)];break;}}}
-   L.say(!!cyc,'TC-LS-076 PRECONDITION a two-move shuffle after 1.Qe4 Kc5 that stage 1 accepts and that brings the same position back ('+(cyc?cyc.join(' '):'none')+')',cyc);
+  if(X.H){const key=g=>X.H.stageKey(g.board)+g.turn;let cyc=null,pre=null,stAt=null;
+   // walk the book; at each position with White to move (and the stage that applies there) look for a shuffle that comes straight back
+   let gb=E.fromFEN(START),K=0;const played=[];
+   for(let i=0;i+1<BOOK.length&&!cyc;i+=2){const g0=gb;
+     for(const m1 of E.getLegal(g0)){if(cyc)break;const n1=E.makeMove(g0,m1);if(/mate$/.test(E.getStatus(n1)))continue;
+       let v1;try{v1=X.H.stageVerdict(ST[K],g0,n1);}catch(e){continue;}if(!v1||!v1.ok||v1.done)continue;const r1=X.H.freeFallbackReply(n1);if(!r1)continue;const g1=E.makeMove(n1,r1);
+       for(const m2 of E.getLegal(g1)){const n2=E.makeMove(g1,m2);if(/mate$/.test(E.getStatus(n2)))continue;let v2;try{v2=X.H.stageVerdict(ST[K],g1,n2);}catch(e){continue;}if(!v2||!v2.ok||v2.done)continue;const r2=X.H.freeFallbackReply(n2);if(!r2)continue;
+         if(key(E.makeMove(n2,r2))===key(g0)){cyc=[sanOf(E,g0,m1),sanOf(E,g1,m2)];pre=played.slice();stAt=K+1;break;}}}
+     if(cyc)break;
+     const wm=bySan(E,gb,BOOK[i]);const ng=E.makeMove(gb,wm);let v;try{v=X.H.stageVerdict(ST[K],gb,ng);}catch(e){v=null;}played.push(BOOK[i]);
+     const rp=X.H.freeFallbackReply(ng);if(!rp)break;gb=E.makeMove(ng,rp);played.push(sanOf(E,ng,rp));if(v&&v.done&&K+1<ST.length)K++;}
+   const cycTxt=cyc?('after '+(pre.join(' ')||'the start')+', stage '+stAt+': '+cyc.join(' ')):'none';
+   L.say(!!cyc,'TC-LS-076 PRECONDITION a two-move shuffle the stage accepts that brings the same position straight back ('+cycTxt+')',cyc);
    if(cyc)await block('TC-LS-076','g156-repeat',async(b)=>{
      await openPractice(b,/^Queen Mate: the Box Method$/);const P=mkPlayer(b);
-     const n0=await P.play('Qe4');const nA=await P.play(cyc[0]);const nB=await P.play(cyc[1]);const nC=await P.play(cyc[0]);const nD=await P.play(cyc[1]);
-     L.say(/^✓ Qe4/.test(n0)&&/^✓ /.test(nA)&&!/come up before|repetition/.test(n0+nA),'TC-LS-076 PRECONDITION 1.Qe4 and '+cyc[0]+' are accepted, with no repetition word yet',[n0,nA]);
+     let n0='';for(const w of pre.filter((x,j)=>j%2===0))n0=await P.play(w);const nA=await P.play(cyc[0]);const nB=await P.play(cyc[1]);const nC=await P.play(cyc[0]);const nD=await P.play(cyc[1]);
+     L.say((pre.length===0||/^✓ /.test(n0))&&/^✓ /.test(nA)&&!/come up before|repetition/.test(n0+nA),'TC-LS-076 PRECONDITION the book moves and '+cyc[0]+' are accepted, with no repetition word yet',[n0,nA]);
      L.say(/^✓ /.test(nB)&&/This position has come up before: a third time is a draw by repetition\./.test(nB),'TC-LS-076 the second time the position comes up the note says so ("'+nB.slice(-90)+'")',nB);
-     L.say(/^✓ /.test(nC)&&!/come up before/.test(nC),'TC-LS-076 a position seen once is not called a repetition ("'+nC.slice(-60)+'")',nC);
+     L.say(/^✓ /.test(nC)&&/This position has come up before/.test(nC),'TC-LS-076 the shuffle\'s other position, seen a second time, is called out too ("'+nC.slice(-90)+'")',nC);
      L.say(/^✗ /.test(nD)&&/this position has now come up three times: a draw by repetition/.test(nD)&&/Try again/.test(nD),'TC-LS-076 the third time is a draw by repetition and the run ends honestly ("'+nD.slice(0,150)+'")',nD);
-     const n5=await P.play(cyc[0]);L.say(/^\(not legal|^✗|draw by repetition/.test(n5)||n5===nD,'TC-LS-076 the run is over: a further move is not accepted ("'+String(n5).slice(0,80)+'")',n5);});}
+     // the run is over: put the gate's own board where the app's is (after the refused-for-draw move and the king's answer), tap a move that is
+     // legal there, and the board and the note do not change
+     {const gD=E.makeMove(P.g,bySan(E,P.g,cyc[1]));const rsD=(nD.match(/answers (\S+?),/)||[])[1];const rmD=rsD&&bySan(E,gD,rsD);if(rmD)P.g=E.makeMove(gD,rmD);}
+     const p0=await position(b);const m5=bySan(E,P.g,cyc[0]);if(m5){const [f5,t5]=sqs(E,m5);await b.move(f5,t5,150);await b.settle(900);}const p1=await position(b);const n5=(await D.noteText(b))||'';
+     L.say(!!m5&&p0===p1&&n5===nD,'TC-LS-076 the run is over: '+cyc[0]+' (legal on the board) is not played and the note stays ("'+n5.slice(0,60)+'")',{legal:!!m5,same:p0===p1});});}
   // TC-LS-073: the refusals, and the hint off the book
   await block('TC-LS-073','g156-refuse',async(b)=>{
    await openPractice(b,/^Queen Mate: the Box Method$/);const P=mkPlayer(b);
@@ -249,3 +259,4 @@ L.run(async()=>{
    L.say(/^✓ Qd8/.test(n2),'TC-LS-074 and accepts its book move Qd8',n2);});
   L.done();
 },'156-lesson-stages');
+// CONTROL-RECORD: 8eb78e0 2026-11-13 total=45 red=4 scope=trial:68181e018d4e how=TC-LS-076 THE SUBJECT REMOVED: t179, the tree before the repetition rule - the second and third occurrence lines and the draw line red, and the over-check throws (no draw to read); with the rule (t180 9aa49ab2df6f) 45/0
