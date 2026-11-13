@@ -16,7 +16,7 @@
 // Static half: the bundle text no longer carries the six setup-error sentences, the preview/deploy lines or the stale Correspondence line.
 // KNOW ITS LIMIT: the signed-in player screens (online play, video call, board scan) are not rendered; their messages are checked as
 // bundle strings only. The More sheet is reached after one review of an 8-move game.
-// CONTROL-RECORD: c2e0d87 2026-11-13 total=0 red=0 scope=trial:000000000000 how=pending; on 000000000000 0/0
+// CONTROL-RECORD: c2e0d87 2026-11-13 total=33 red=12 scope=trial:b96f96352c90 how=#550 the branch tip before this change (claude/exciting-noether-v1swj8 c2e0d87), built as a trial: every tool shown to every player, so A (b..h), D (k) and the static half (7 of 9 sentences) go red, B and C stay green; on 3de557ab1c5e 33/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');

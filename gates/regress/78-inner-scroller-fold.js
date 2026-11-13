@@ -148,7 +148,7 @@ L.run(async()=>{
     // #550 answer a26 (AUD-L01, Option A): the page's heading went into ONE bar - back, the two tabs, the menu - so the denominator's
     // "this is the Tactics page" reads the two tab buttons by their text (not the data-ct the same build added), and the old heading or
     // the new bar's tabs both satisfy it, so the check reads the same page on a bundle from before a26.
-    const head=[...document.querySelectorAll('div')].some(d=>(d.innerText||'').trim()==='Tactics & Strategy')||(['Tactics','Strategy'].every(t=>[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()===t)));
+    const head=[...document.querySelectorAll('div')].some(d=>/^Tactics & strategy$/i.test((d.innerText||'').trim()))||(['Tactics','Strategy'].every(t=>[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()===t)));
     // #550 a26: the page's controls (Hint, Show answer, Next motif, Prev, Next) must end ABOVE the tab bar, and #root must not scroll
     const ctls=[...document.querySelectorAll('button')].filter(x=>/^(💡 ?Hint|Hint|Show answer|Next motif|‹ Prev|Next ›)/.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2).map(x=>({t:(x.innerText||'').trim().slice(0,12),bottom:Math.round(x.getBoundingClientRect().bottom*10)/10}));
     const rsc=root?Math.max(0,root.scrollHeight-root.clientHeight):null;

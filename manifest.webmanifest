@@ -1,7 +1,7 @@
 {
   "name": "Chess Trainer",
   "short_name": "Chess",
-  "description": "Learn openings, solve puzzles, review your games move-by-move, and play vs the computer.",
+  "description": "Learn openings, solve puzzles, review your games move-by-move, and play the computer or a friend.",
   "lang": "en",
   "dir": "ltr",
   "categories": [

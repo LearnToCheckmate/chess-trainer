@@ -2,6 +2,10 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect, memo, useCallbac
 
 // Build stamp — __BUILD__ is replaced at deploy time (esbuild --define); falls back to 'dev build' in the artifact preview.
 const BUILD_INFO = (typeof __BUILD__ !== "undefined") ? __BUILD__ : null;
+/* #550 wording check TXT-01..04 (Kunal "Batch 10"; run-answers a43): the four legal pages still carry marked placeholders (contact email,
+   operator, governing law, numbers of days, minimum age) because those facts are not given yet. While this is true the Menu says the
+   pages are drafts rather than linking them as finished. Set it false once every [to be added: ...] in the pages is filled in. */
+const LEGAL_DRAFT = true;
 // Telemetry relay URL (a Cloud Function that forwards reports to a GitHub repo Claude can read). Empty = autonomous send off; the in-app copy-to-clipboard still works.
 const LOG_ENDPOINT = "";
 // #550 SEC-10: there is no shared relay key any more - a key shipped in a public bundle is not a secret. The relay accepts a report
@@ -2993,61 +2997,61 @@ function pgnSans(pgn,max){
 }
 // Tactics puzzles. Each: fen, goal, motif, level, sol[] (solver's moves), reply[] (opponent's forced replies, played after each sol move), hint, explain.
 const PUZZLES=[
-  { fen:"6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Back-rank mate", level:"Easy",
+  { fen:"6k1/5ppp/8/8/8/8/8/3Q2K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Back-rank mate", level:"Easy",
     sol:["Qd8#"], reply:[],
     hint:"The back rank is wide open, and Black's king is boxed in by its own pawns. Bring the heavy piece to the 8th rank.",
     explain:"Qd8# — the classic back-rank mate. The f7/g7/h7 pawns that shelter the king also trap it: there's no escape and nothing to block the check." },
-  { fen:"6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Back-rank mate", level:"Easy",
+  { fen:"6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Back-rank mate", level:"Easy",
     sol:["Re8#"], reply:[],
     hint:"A rook is just as deadly on an open back rank. Where can it deliver check with no escape?",
     explain:"Re8# — same back-rank idea with the rook. Always check whether your opponent has made 'luft' (a pawn move for the king); here Black hasn't, and it's fatal." },
-  { fen:"7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Two-rook ladder", level:"Easy",
+  { fen:"7k/R7/1R6/8/8/8/8/6K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Two-rook ladder", level:"Easy",
     sol:["Rb8#"], reply:[],
     hint:"Two rooks mate a lone king with a 'ladder'. One rook already cuts off the 7th rank — use the other.",
     explain:"Rb8# — the two-rook ladder. The a7-rook fences off the 7th rank, so when the second rook checks on the 8th, the king has nowhere to go." },
-  { fen:"7k/8/5K2/8/8/8/6Q1/8 w - - 0 1", goal:"White to play — mate in 1", motif:"King & queen mate", level:"Easy",
+  { fen:"7k/8/5K2/8/8/8/6Q1/8 w - - 0 1", goal:"White to move — mate in 1", motif:"King & queen mate", level:"Easy",
     sol:["Qg7#"], reply:[],
     hint:"Your king on f6 is the key: it guards g7. Put the queen right next to the enemy king.",
     explain:"Qg7# — the basic king-and-queen mate. The queen delivers check from g7 and the king on f6 defends her, so she can't be captured and the king is trapped on the edge." },
-  { fen:"5rk1/5ppp/8/7Q/8/3B4/8/6K1 w - - 0 1", goal:"White to play — mate in 1", motif:"Queen + bishop mate", level:"Medium",
+  { fen:"5rk1/5ppp/8/7Q/8/3B4/8/6K1 w - - 0 1", goal:"White to move — mate in 1", motif:"Queen + bishop mate", level:"Medium",
     sol:["Qxh7#"], reply:[],
     hint:"The bishop on d3 is aiming straight at h7. What if the queen joined it there?",
     explain:"Qxh7# — queen and bishop, the deadliest attacking duo. The bishop guards h7, so the queen is immune, and the king is smothered by its own pieces. This is the engine behind the famous 'Greek gift' sacrifice." },
-  { fen:"q3k3/8/8/1N6/8/8/8/4K3 w - - 0 1", goal:"White to play — win the queen", motif:"Knight fork", level:"Medium",
+  { fen:"q3k3/8/8/1N6/8/8/8/4K3 w - - 0 1", goal:"White to move — win the queen", motif:"Knight fork", level:"Medium",
     sol:["Nc7+"], reply:[],
     hint:"Look for a knight move that attacks the king and something valuable at the same time.",
     explain:"Nc7+ — a royal fork. The knight checks the king and attacks the queen on a8 at once; the king must move, and then Nxa8 scoops the queen. Knights are the masters of the fork." },
-  { fen:"8/8/8/r3k3/8/8/8/4K2R w - - 0 1", goal:"White to play — win a rook", motif:"Skewer", level:"Medium",
+  { fen:"8/8/8/r3k3/8/8/8/4K2R w - - 0 1", goal:"White to move — win a rook", motif:"Skewer", level:"Medium",
     sol:["Rh5+","Rxa5"], reply:["Kd4"],
     hint:"Line your rook up with the king and a piece stuck behind it on the same line. Check first — the king must step aside.",
     explain:"Rh5+! is a skewer. The king is checked along the 5th rank and must move off it, but it can't shield the rook sitting behind it on a5. Once the king steps away, Rxa5 wins the rook clean." },
-  { fen:"5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1", goal:"White to play — mate in 2", motif:"Smothered mate", level:"Hard",
+  { fen:"5r1k/6pp/7N/3Q4/8/8/8/6K1 w - - 0 1", goal:"White to move — mate in 2", motif:"Smothered mate", level:"Hard",
     sol:["Qg8+","Nf7#"], reply:["Rxg8"],
     hint:"Sacrifice the queen to force the rook onto g8 — then a knight delivers the famous smothered mate.",
     explain:"Qg8+!! is a stunning sacrifice. The knight on h6 guards g8, so the king can't take — the rook must (…Rxg8). Now Nf7# is smothered mate: the king is buried by its own rook and pawns. One of chess's most beautiful patterns." },
 
   // ─────────── Famous opening traps (≤10 moves) ───────────
-  { fen:"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1", goal:"White to play — mate in 1", motif:"Opening trap: Scholar's Mate", level:"Easy",
+  { fen:"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1", goal:"White to move — mate in 1", motif:"Opening trap: Scholar's Mate", level:"Easy",
     sol:["Qxf7#"], reply:[],
     hint:"The c4-bishop already guards f7 — the one square only the king defends. Bring the queen to it.",
     explain:"Qxf7# — Scholar's Mate, the most famous beginner trap. The queen lands on f7 protected by the c4-bishop, and the king has no escape. Black went wrong with …Nf6; the fixes are …g6 or …Qe7. Know it from both sides!" },
-  { fen:"r1b1k2r/ppppqppp/2n5/4n3/1PP2B2/5N2/1P1NPPPP/R2QKB1R b KQkq - 0 1", goal:"Black to play — White just grabbed your bishop with axb4. Punish it! (mate in 1)", motif:"Opening trap: Kieninger Trap (Budapest)", level:"Medium",
+  { fen:"r1b1k2r/ppppqppp/2n5/4n3/1PP2B2/5N2/1P1NPPPP/R2QKB1R b KQkq - 0 1", goal:"Black to move — White just grabbed your bishop with axb4. Punish it! (mate in 1)", motif:"Opening trap: Kieninger Trap (Budapest)", level:"Medium",
     sol:["Nd3#"], reply:[],
     hint:"Your e5-knight has one jump that checks the king. Can anything take it, or can the king step aside?",
     explain:"Nd3# is a smothered mate: the e2-pawn is pinned by your queen, so it can't take, and the king is boxed in by its own pieces. …Ngxe5! set it up by ignoring the bishop, and the greedy axb4?? walked in. The Kieninger Trap (Budapest)." },
-  { fen:"r1bqkbnr/pppp1ppp/8/4N3/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq - 0 1", goal:"Black to play — White grabbed the e5-pawn. Make them pay.", motif:"Opening trap: Blackburne Shilling", level:"Hard",
+  { fen:"r1bqkbnr/pppp1ppp/8/4N3/2BnP3/8/PPPP1PPP/RNBQK2R b KQkq - 0 1", goal:"Black to move — White grabbed the e5-pawn. Make them pay.", motif:"Opening trap: Blackburne Shilling", level:"Hard",
     sol:["Qg5","Qxg2","Qxe4+","Nf3#"], reply:["Nxf7","Rf1","Be2"],
     hint:"Hit two things at once with your queen, ignore White's counterplay and storm in. It ends in a smothered mate on f3.",
     explain:"Qg5! double-attacks the e5-knight and the g2-pawn. After Nxf7 Qxg2 Rf1 Qxe4+ Be2, the little d4-knight lands Nf3# — a smothered mate. The Blackburne Shilling Gambit trap." },
-  { fen:"rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1", goal:"White to play — …Bg4 pins your knight, and …g6 left e5 with no knight to guard it. Spring the Légal's Mate trap! (Black will grab the queen.)", motif:"Opening trap: Légal's Mate", level:"Hard",
+  { fen:"rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1", goal:"White to move — …Bg4 pins your knight, and …g6 left e5 with no knight to guard it. Spring the Légal's Mate trap! (Black will grab the queen.)", motif:"Opening trap: Légal's Mate", level:"Hard",
     sol:["Nxe5","Bxf7+","Nd5#"], reply:["Bxd1","Ke7"],
     hint:"The pin on the f3-knight is an illusion — ignore your queen. Hit the centre, then hunt the king with bishop and knight.",
     explain:"Nxe5! ignores the pin. After …Bxd1??, Bxf7+ Ke7 Nd5# is Légal's Mate: three minor pieces mate while the queen sits on d1. (…dxe5 Qxg4 wins a pawn.) It works only because of …g6: with a knight on c6, …Nxe5! wins a piece." },
-  { fen:"r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 0 1", goal:"Black to play — White pinned your knight with Bg5. Strike!", motif:"Opening trap: Stafford Gambit", level:"Hard",
+  { fen:"r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 0 1", goal:"Black to move — White pinned your knight with Bg5. Strike!", motif:"Opening trap: Stafford Gambit", level:"Hard",
     sol:["Nxe4","Bxf2+","Bg4#"], reply:["Bxd8","Ke2"],
     hint:"Your knight looks pinned to your queen — move it anyway! Crash into e4 and aim everything at f2.",
     explain:"Nxe4!! ignores the 'pin'. After Bxd8 (grabbing the queen), Bxf2+ Ke2 Bg4# is a picture mate — a whole queen down! The g4-bishop checks; the f2-bishop and e4-knight take every escape. The famous Stafford Gambit trap." },
-  { fen:"rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 0 1", goal:"Black to play — find the brilliant promotion.", motif:"Opening trap: Lasker Trap (underpromotion!)", level:"Hard",
+  { fen:"rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 0 1", goal:"Black to move — find the brilliant promotion.", motif:"Opening trap: Lasker Trap (underpromotion!)", level:"Hard",
     sol:["fxg1=N+","Bg4+","Bxd1"], reply:["Rxg1","Kf2"], also:{2:["Qxd1"]},
     hint:"The f2-pawn can promote, but a new queen is just swapped off. Promote to the piece that gives check.",
     explain:"fxg1=N+!! — the famous underpromotion. A new queen would be swapped off (Qxd8+ Kxd8 Rxg1); the knight checks, forcing Rxg1. Then Bg4+ skewers king and queen, and Bxd1 or Qxd1 wins it. The Lasker Trap from the Albin Counter-Gambit." },
@@ -4245,7 +4249,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       {onMenu&&<button data-ct="tactics-menu" onClick={onMenu} aria-label="Menu and settings" style={{flexShrink:0,width:44,minHeight:44,borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.9)',cursor:'pointer',padding:0,fontSize:18}}>☰</button>}
     </div>):(<>
     <div style={{textAlign:'center',marginBottom:12}}>
-      <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & Strategy</div>
+      <div style={{fontFamily:'var(--head)',fontSize:'clamp(19px,4.8vw,26px)',color:'#fff',fontWeight:700}}>Tactics & strategy</div>
       <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.5)',marginTop:3}}>The patterns that win games, and the ideas behind good moves.</div>
     </div>
     <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('motifs','Tactics')}{tabBtn('strategy','Strategy')}</div></>)}
@@ -8778,7 +8782,7 @@ export default function App(){
     if(homeFit.z<1||z<0.85){setHomeFit(f=>(f.z<1&&z>=0.85)?{...f,z,done:true}:{...f,z:1,compact:true,done:false});return;}
     setHomeFit(f=>({...f,z}));
   });
-  const SUB_SHORT={learn:'Openings & endgames',puzzle:'890+ tactical puzzles',analyze:'Free game reviews',play:'vs Computer or Human'};   // #550 AUD-H01: Home's tile captions on ONE line on a phone (the long Discover and Review captions wrapped to two)
+  const SUB_SHORT={learn:'Openings & endgames',puzzle:'890 tactical puzzles',analyze:'Free game reviews',play:'Computer or a friend'};   // #550 AUD-H01: Home's tile captions on ONE line on a phone (the long Discover and Review captions wrapped to two)
   const _devBtns=(_dz)=>(_dz===34?<><button data-ct="home-preview" onClick={()=>setPreview(true)} title="Preview gallery (dev)" aria-label="Preview gallery" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button><button data-ct="home-feedback" onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" aria-label="Send feedback" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button></>:<span data-ct="home-devrow" style={{display:'flex',gap:8,flexShrink:0}}><button data-ct="home-preview" onClick={()=>setPreview(true)} title="Preview gallery (dev)" aria-label="Preview gallery" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>🎬</button><button data-ct="home-feedback" onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);}} title="Send feedback to Claude" aria-label="Send feedback" style={{width:_dz,height:_dz,borderRadius:10,border:'1px solid rgba(110,168,254,.45)',background:'rgba(20,24,32,.7)',color:'rgba(255,255,255,.85)',fontSize:15,cursor:'pointer',padding:0}}>{'\uD83D\uDCAC'}</button></span>);   // the 🎬 and 💬 buttons: their own row (34pt) on a tablet, inside the footer row (44pt) on a phone              // tablet PORTRAIT Home: scale up (landscape stays compact to fit the short height)
   const outerRowStyle=railed?{display:'flex',flexDirection:'row',alignItems:'flex-start',justifyContent:'flex-start',gap:14,width:pzRail?('calc(100% - '+TAB_RAIL_W+'px)'):'100%',...(pzRail?{alignSelf:'flex-start'}:null)}:{display:'contents'};
   /* #547 item (100): the landscape rail SCROLLS (overflowY auto, height = the board), and at 956x440 the lesson demo's whole action
@@ -8839,7 +8843,7 @@ export default function App(){
     if(gReviewed===0)return{tip:gAny>0?"Review one of your games in full and I'll show you where it turned.":"Import one of your games and I'll show you exactly where it turned.",goLabel:'Review',go:()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}};
     if(pTot===0)return{tip:"Warm up with a quick tactics puzzle. They sharpen your eye fast.",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
     if(dTd<DAILY_GOAL)return{tip:"You're "+dTd+" of "+DAILY_GOAL+" on today's puzzle goal. A few more?",goLabel:'Solve puzzles',go:()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}};
-    const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Daily goal done, nice. Try the next puzzle tier.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
+    const tips=[["Explore a new opening over in Discover.",'Discover',()=>{setCoachOpen(false);setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}],["Review your latest game and hunt the turning point.",'Review',()=>{setCoachOpen(false);setHomeScreen(false);setMode('analyze');}],["Puzzle goal done, nice. Try the next puzzle rank.",'Solve puzzles',()=>{setCoachOpen(false);setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}]];const pk=tips[new Date().getDate()%tips.length];return{tip:pk[0],goLabel:pk[1],go:pk[2]};
   };
   const coachRun=(idx)=>{const op=LIB[idx];if(!op)return;setCoachOpen(false);setHomeScreen(false);selectOpening(idx);
     let line=op.line,label=op.name;
@@ -9298,7 +9302,7 @@ export default function App(){
                 <div style={{fontSize:11.5,color:'rgba(255,255,255,.55)',marginTop:1}}>{FMT[k].blurb}</div></button>))}</div></div>
             <div><div style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.7)',marginBottom:6}}>Starts</div>
               <input type="datetime-local" value={tourWhen} onChange={e=>setTourWhen(e.target.value)} style={{width:'100%',boxSizing:'border-box',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:15}}/>
-              <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:4}}>Leave blank for one hour from now. I pick a sensible clock for each format.</div></div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,.4)',marginTop:4}}>Leave blank for one hour from now. A sensible clock is picked for each format.</div></div>
             <div style={{display:'flex',gap:8,marginTop:2}}>
               <button onClick={()=>{setTourMsg('');setTourView('list');}} style={{flex:1,padding:'12px',borderRadius:12,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>Cancel</button>
               <button onClick={doCreate} disabled={tourBusy} style={{flex:1.4,padding:'12px',borderRadius:12,border:'none',background:'var(--ac)',color:'#101010',fontWeight:800,fontSize:13,cursor:'pointer',opacity:tourBusy?.6:1}}>{tourBusy?'Creating…':'Create'}</button></div>
@@ -9595,7 +9599,7 @@ export default function App(){
 
       {homeScreen&&(<div ref={homeScrRef} data-ct="home-scroller" style={{position:'fixed',inset:0,zIndex:500,background:baseBg,backgroundImage:appBgImg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:`max(12px,env(safe-area-inset-top,0px)) 18px max(20px,env(safe-area-inset-bottom,0px))`,overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
         {/* #373 (audit A-04): Home had no way into the menu - every ☰ sits under this overlay (zIndex 500). Same size and row as the account button. */}
-        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu & settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 15px)',right:'calc(env(safe-area-inset-right,0px) + 71px)',zIndex:6,fontSize:20}}>☰{/* #550 FMT-A-02: the standard 44x44 corner button (fill, border, radius 12), beside the account button, which stays as it is */}</button>
+        <button data-ct="home-menu" onClick={()=>setMenuOpen(true)} aria-label="Menu and settings" title="Menu and settings" style={{...TOP_BTN,position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 15px)',right:'calc(env(safe-area-inset-right,0px) + 71px)',zIndex:6,fontSize:20}}>☰{/* #550 FMT-A-02: the standard 44x44 corner button (fill, border, radius 12), beside the account button, which stays as it is */}</button>
         <button onClick={()=>{setUpgradeMsg('');setAcctOpen(true);}} title={cloudUser?'Account':'Sign in'} style={{position:'fixed',top:'calc(env(safe-area-inset-top,0px) + 14px)',right:'calc(env(safe-area-inset-right,0px) + 16px)',zIndex:6,width:46,height:46,borderRadius:'50%',padding:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',background:cloudUser?'rgba(var(--acr),.18)':'rgba(255,255,255,.08)',border:'2px solid rgba(var(--acr),.55)',cursor:'pointer',boxShadow:'0 3px 10px rgba(0,0,0,.4)'}}>{cloudUser&&cloudUser.photo?<img src={cloudUser.photo} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:22,lineHeight:1}}>{cloudUser?'👤':'👋'}</span>}</button>
         <div data-ct="home-col" style={{width:'100%',maxWidth:hLand?Math.min(vp.w-40,1000):(hbig?660:420),display:'flex',flexDirection:'column',alignItems:'center',...(((hbig||homeFit.compact)&&!hLand&&hb&&homeFit.z<1)?{zoom:homeFit.z}:null)}}>
           {(!hbig&&!hLand)?(<div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={'p'+introN} big={false} compact={true} force={introN>0}/></div>):(<><div onClick={()=>setIntroN(n=>n+1)} title="Tap to replay" style={{cursor:'pointer',width:'100%'}}><HomeIntro key={introN} big={hbig} compact={hLand} force={introN>0}/></div>
@@ -9637,9 +9641,9 @@ export default function App(){
             const _tiles=(<div style={{display:'grid',gridTemplateColumns:_hc?'minmax(0,1fr) minmax(0,1fr)':'1fr 1fr',columnGap:hbig?22:(hLand?30:16),rowGap:hbig?22:(hLand?30:12),width:'100%'}}>
             {[
               {icon:'🔭',label:'Discover',sub:'Openings, gambits & endgames',tint:['#3b82f6','#1d4ed8'],k:'learn',fn:()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);}},
-              {icon:'🧩',label:'Puzzles',sub:'890+ tactical puzzles',tint:['#f59e0b','#b45309'],pro:false,k:'puzzle',fn:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
+              {icon:'🧩',label:'Puzzles',sub:'890 tactical puzzles',tint:['#f59e0b','#b45309'],pro:false,k:'puzzle',fn:()=>{setMistakeMode(false);setHomeScreen(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}},
               {icon:'🔍',label:'Review',sub:'Free unlimited game reviews',tint:['#a855f7','#7c3aed'],k:'analyze',fn:()=>{setHomeScreen(false);setMode('analyze');}},
-              {icon:'♟️',label:'Play',sub:'vs Computer or Human',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+              {icon:'♟️',label:'Play',sub:'Computer or a friend',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
             ].map(({icon,label,sub,fn,big,tint,pro,k})=>{
               const ic=(SK.icons&&SK.icons[k])||icon; const tn=(SK.tints&&SK.tints[k])||tint;
               const _tf=42*(hbig?1.3:(hLand?1.64:1)); const _ts=inkScale(ic,"'Segoe UI',system-ui,sans-serif",1.1); /* #366 y3b: ink-matched on this device */
@@ -9754,12 +9758,12 @@ export default function App(){
                   <span style={{flexShrink:0,fontSize:20,lineHeight:1}}>📋</span>
                   <span style={{flex:1,minWidth:0}}>
                     <span style={{display:'block',fontSize:'clamp(14px,3vw,15px)',fontWeight:800,color:'var(--ac2)',letterSpacing:.4,textTransform:'uppercase'}}>Mastery plan · Tier {(coachTier.cleared||0)+1}</span>
-                    <span style={{display:'block',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and pick the '+SLATE+' lessons YOU want to learn.':(learnedInSlate+'/'+SLATE+' learned this tier · '+bankedToday+' banked today · '+mastTot+' mastered overall')}</span>
+                    <span style={{display:'block',fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'rgba(255,255,255,.55)',marginTop:1}}>{tIdx.length===0?'Your report card. Open it and pick '+SLATE+' lessons you want to learn.':(learnedInSlate+'/'+SLATE+' learned this tier · '+bankedToday+' done today · '+mastTot+' mastered overall')}</span>
                   </span>
                   <span style={{flexShrink:0,fontSize:17,color:'var(--ac2)',transform:coachPlanOpen?'rotate(90deg)':'none',transition:'transform .15s'}}>›</span>
                 </button>
                 {coachPlanOpen&&<div style={{padding:'0 13px 13px'}}>
-                <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (refill to 2 every 5 days)</div>
+                <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',marginBottom:9}}>Pick any {SLATE} lessons you actually want · learn all {SLATE} (one flawless run each) to clear the tier · {coachTier.swapsLeft||0} swap{(coachTier.swapsLeft||0)===1?'':'s'} left (swaps come back every 5 days)</div>
                 {tierReady&&<div style={{background:'linear-gradient(135deg,rgba(240,180,41,.2),rgba(240,180,41,.06))',border:'1px solid rgba(240,180,41,.5)',borderRadius:11,padding:'12px',marginBottom:11,textAlign:'center'}}>
                   <div style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#f0c24d'}}>🎉 Tier {(coachTier.cleared||0)+1} cleared!</div>
                   <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'rgba(255,255,255,.7)',margin:'4px 0 9px'}}>All {SLATE} learned. They stay on your report card; keep banking days toward ★ Mastered any time.</div>
@@ -9768,11 +9772,11 @@ export default function App(){
                 {tIdx.length>0&&<div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:10}}>{tIdx.map(i=>{const op=LIB[i];const _ls=lnOf(op.name);const n=_ls.unionDays;const m=_ls.mastered;const learned=_ls.coverage;const done=linesOf(op).some(l=>lineDays(l.key).indexOf(_today)>=0);return(
                   <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
                     <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
-                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(12.5px,2.1vw,12.5px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · banked today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · banked today':'')):'Not learned yet')}</span></span>
+                    <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(12.5px,2.1vw,12.5px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · done today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · done today':'')):'Not learned yet')}</span></span>
                     {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--ac)',border:'none',color:'#1a1a1a',fontWeight:800,fontSize:'clamp(14px,2.4vw,14px)',cursor:'pointer'}}>▶ Run</button>}
-                    {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap this out (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
+                    {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
                   </div>);})}</div>}
-                {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(14px,2.5vw,14px)'}}><span style={{fontSize:14}}>＋</span>Empty slot · answer the questions or browse below</div>))}
+                {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(14px,2.5vw,14px)'}}><span style={{fontSize:14}}>＋</span>Empty: pick a lesson below, or answer the questions</div>))}
                 {!slateFull&&(tIdx.length===0||coachChooserOpen)&&<div style={{background:'rgba(var(--acr),.10)',border:'1px solid rgba(var(--acr),.3)',borderRadius:11,padding:'10px 11px',margin:'4px 0 11px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><span style={{flex:1,fontSize:'clamp(14px,2.5vw,14px)',fontWeight:800,color:'var(--ac2)'}}>Quick questions, then I suggest lessons for your empty slots:</span>{tIdx.length>0&&<button onClick={()=>setCoachChooserOpen(false)} style={{flexShrink:0,width:30,height:30,borderRadius:7,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:'rgba(255,255,255,.6)',cursor:'pointer',fontSize:11,lineHeight:1,padding:0}}>✕</button>}</div>
                   <div style={{fontSize:'clamp(13px,2.2vw,13px)',color:'rgba(255,255,255,.55)',fontWeight:700,margin:'2px 0 5px'}}>I want to learn</div>
@@ -9793,7 +9797,7 @@ export default function App(){
                     <button key={i} onClick={()=>{if(can)addToSlate(o.name);}} style={{position:'relative',minHeight:48,padding:'6px 7px 14px',borderRadius:12,border:'1px solid '+(sel?'var(--ac)':(m?'#f0c24d':n>0?'rgba(16,185,129,.55)':'rgba(236,90,90,.4)')),background:m?'linear-gradient(150deg,#caa24c,#8a6a26)':n>0?('rgba(16,185,129,'+(0.16+0.06*Math.min(9,n)).toFixed(2)+')'):'rgba(236,90,90,.13)',color:'#fff',cursor:can?'pointer':'default',opacity:(can||sel||n>0)?1:.55,textAlign:'left',boxShadow:sel?'0 0 0 1.5px var(--ac)':'none'}}>
                       <span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',fontWeight:800,lineHeight:1.25,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{o.name}</span>
                       <span style={{position:'absolute',right:4,bottom:3,fontSize:'clamp(10.5px,1.7vw,10.5px)',fontWeight:800,color:m?'#ffe9a8':n>0?'#a7f3d0':'rgba(255,255,255,.55)'}}>{m?'★':n+'/'+LEARN_GOAL}</span>
-                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ in slate</span>}
+                      {sel&&<span style={{position:'absolute',left:4,bottom:3,fontSize:9,color:'var(--ac2)',fontWeight:800}}>✓ chosen</span>}
                     </button>);})}
                 </div>}
                 </div>}
@@ -9844,7 +9848,7 @@ export default function App(){
                   </div>
                 )}
               </div>
-              <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.4}}>Challenging creates an online game and gives you an invite code to send. Direct nearby invites are coming next.</div>
+              <div style={{fontSize:'clamp(12.5px,2.2vw,12.5px)',color:'rgba(255,255,255,.4)',lineHeight:1.4}}>Challenge creates an online game and gives you a code to send.</div>
             </>)}
           </div>
         </div>)}
@@ -9917,7 +9921,7 @@ export default function App(){
         <div style={{width:'100%',maxWidth:420,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center'}}>
           <div style={{position:'relative',width:96,height:96,borderRadius:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:52,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 6px 0 rgba(0,0,0,.28),0 14px 26px rgba(180,83,9,.5),inset 0 2px 0 rgba(255,255,255,.45)'}}>🧩<span style={{position:'absolute',right:-6,bottom:-6,width:34,height:34,borderRadius:'50%',background:'#191622',border:'2px solid #f0d48a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>🔒</span></div>
           <div style={{fontFamily:"var(--head)",fontSize:'clamp(24px,6vw,32px)',fontWeight:700,color:'#fff',marginTop:18}}>Puzzles is a Pro feature</div>
-          <div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.6)',lineHeight:1.5,marginTop:8,maxWidth:340}}>Unlock 890+ tactical puzzles and the full training roadmap with Chess Trainer Pro.</div>
+          <div style={{fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.6)',lineHeight:1.5,marginTop:8,maxWidth:340}}>Unlock 890 tactical puzzles and the full training roadmap with Chess Trainer Pro.</div>
           <button onClick={()=>{setUpgradeMsg('');setAcctOpen(true);}} style={{marginTop:22,padding:'13px 24px',borderRadius:13,background:'linear-gradient(150deg,#f0d48a,#caa24c)',border:'1px solid #f0d48a',color:'#2a2010',cursor:'pointer',fontWeight:800,fontSize:'clamp(14px,3.2vw,16px)',boxShadow:'0 4px 0 rgba(0,0,0,.25),0 9px 18px rgba(201,162,76,.45)'}}>⚜️ Upgrade to Pro</button>
           <button onClick={()=>setHomeScreen(true)} style={{marginTop:12,padding:'9px 18px',borderRadius:11,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'rgba(255,255,255,.78)',cursor:'pointer',fontWeight:700,fontSize:'clamp(14px,2.7vw,14px)'}}>‹ Back to Home</button>
         </div>
@@ -10139,7 +10143,7 @@ export default function App(){
               {CORR_CONTROLS.map(c=>{const o={label:c.label,kind:'corr',days:c.days};const on=!!timeCtrl&&timeCtrl.kind==='corr'&&timeCtrl.days===c.days;return(<span key={c.label} style={pill(on)} onClick={()=>{timeCtrlRef.current=o;setTimeCtrl(o);}}>{c.label}</span>);})}
             </div>
             <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like — the game waits for you and shows up under “Your games” when you sign in on any device.</div>
-            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. Sign in with Google is required.</div>
+            <div style={{marginTop:9,padding:'12px 14px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. You need to sign in with Google first.</div>
           </div>)}
 
           {/* #466: THE COMMITTER. `setupFromFEN` becomes a game here and nowhere else, so this is the one place
@@ -10171,7 +10175,7 @@ export default function App(){
           one, the screen title CENTRED on the screen, menu top-right, both 44x44 at TOP_EDGE. It replaces the brand row and the 38x30 menu, and
           the lesson lists' second row (their Back pill and title) folds into it. */
         const _grpT={openings:'Openings',gambits:'Gambits & Traps',endgames:'Endgames',train:'Train',notation:'Notation'};
-        const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game Review':'Chess Trainer')))));
+        const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':'Chess Trainer')))));
         const _bk=(mode==='learn'&&openIdx===null&&learnGroup&&learnGroup!=='tactics')?()=>setLearnGroup(null):null;
         return(<TopRow ct="top-row" full title={_hT2} style={{marginBottom:8}}
           back={_bk?<TopBack ct="top-back" onClick={_bk}/>:null}
@@ -10210,7 +10214,7 @@ export default function App(){
           <div style={{display:(outAsk||delAsk)?'none':'block',borderRadius:14,padding:'14px 14px 15px',background:'linear-gradient(150deg,rgba(201,162,76,.16),rgba(201,162,76,.05))',border:'1px solid rgba(201,162,76,.4)',boxShadow:SHADOW_BOX}}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:9}}><span style={{fontSize:20}}>⚜️</span><span style={{fontFamily:"var(--head)",fontSize:'clamp(16px,3.8vw,19px)',fontWeight:700,color:'#f0d48a'}}>Chess Trainer Pro</span>{isPro&&<span style={{marginLeft:'auto',fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:20,padding:'2px 10px'}}>ACTIVE</span>}</div>
             <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:12}}>
-              {[['Your Coach and full mastery plan','🧠'],['Every board theme, including Medieval','⚜️'],['Priority access to new features','✨']].map(([f,ic],i)=>(
+              {[['Your Coach and the full mastery plan','🧠'],['Playful and Medieval styles','⚜️'],['New features first','✨']].map(([f,ic],i)=>(
                 <div key={i} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:'clamp(14px,2.7vw,14px)',color:'rgba(255,255,255,.86)'}}><span>{ic}</span><span>{f}</span></div>
               ))}
             </div>
@@ -10493,9 +10497,10 @@ export default function App(){
               </div>
             </div>
           </div>
-          <button onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play vs the computer.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>📣 Share Chess Trainer</button>
+          <button onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play the computer or a friend.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>📣 Share Chess Trainer</button>
           {/* #550 TXT-05/07: feedback goes to Claude in his chat (it copies a block for him to paste; LOG_ENDPOINT is empty, so nothing is sent), so it is a dev tool (devOn) until there is a support address */}{devOn&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);setMenuOpen(false);}} style={{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'10px 12px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',marginTop:10}}>💬 Send feedback</button>}
-          <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',justifyContent:'center',marginTop:12}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.52)',textDecoration:'none',display:'inline-flex',alignItems:'center',minHeight:40,padding:'8px 6px' /* #373 (audit A-11): a bare 16px line box; 40px tap box now */}}>{lab}</a>))}</div>
+          {LEGAL_DRAFT&&<div data-ct="menu-legal-draft" style={{textAlign:'center',fontSize:'clamp(12px,2.1vw,12px)',color:'rgba(255,255,255,.45)',marginTop:12}}>Legal pages: drafts, some details still to be added</div>}
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',justifyContent:'center',marginTop:LEGAL_DRAFT?2:12}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.52)',textDecoration:'none',display:'inline-flex',alignItems:'center',minHeight:40,padding:'8px 6px' /* #373 (audit A-11): a bare 16px line box; 40px tap box now */}}>{lab}</a>))}</div>
           {BUILD_INFO&&(devOn?<div style={{textAlign:'center',fontSize:10,color:'rgba(255,255,255,.32)',letterSpacing:.5,fontFamily:'ui-monospace,Menlo,Consolas,monospace',marginTop:14}}>Build {BUILD_INFO}</div>
             :(/#(\d+)/.test(BUILD_INFO)&&<div data-ct="menu-version" style={{textAlign:'center',fontSize:12,color:'rgba(255,255,255,.42)',marginTop:14}}>{'Version '+BUILD_INFO.match(/#(\d+)/)[1]}</div>))}{/* #550 TXT-05: a player sees one quiet version line; the stamp with its time and source hash is his (devOn) */}
         </div>
@@ -10835,7 +10840,7 @@ export default function App(){
           {/* #549 item (44), gate 26 at se: the title moved up into this row so the row costs no summary height. With the title
               left in the scroller the whole summary sat 26px lower and at 320x568 the Best row went under the footer (gate 26's
               se/rev-summary pin read 1 side-by-side row, not 2). The title stays centred and clear of the button. */}
-          <TopRow ct="rev-summary-top" style={{height:46}} title={'Game Review'}
+          <TopRow ct="rev-summary-top" style={{height:46}} title={'Game review'}
             back={<TopBack ct="rev-summary-back" label="Back to games" onClick={resetReview}/>}
             menu={<TopBtn ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} label="Menu and settings">{'\u2630'}</TopBtn>}/>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - Back top-left (the same as the footer's Back to games), the title centred at the one size, the menu 44x44 at TOP_EDGE (was 38x30 at 12) */}
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
@@ -11036,7 +11041,7 @@ export default function App(){
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{ORDK.map(kd=>{const m=cs.filter(c=>brilKind(c)===kd).length;if(!m)return null;const k=id+'|'+kd,on=sel.indexOf(k)>=0;
                   return(<button key={k} data-ct="bril-kind" data-k={k} aria-pressed={on?'true':'false'} onClick={()=>tog(k)} style={{minHeight:44,padding:'6px 12px',borderRadius:22,border:'1px solid '+(on?'rgba(34,211,238,.9)':'rgba(255,255,255,.18)'),background:on?'rgba(34,211,238,.22)':'rgba(255,255,255,.05)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{(BRIL_KIND_NAME[kd]||kd)+' '}<span style={{opacity:.6}}>{m}</span></button>);})}</div>
               </div>))}
-              <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practise these '+n):('Practise all '+n)}</button>
+              <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practice these '+n):('Practice all '+n)}</button>
             </div></div>);})()}
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:'12px 12px',display:'flex',flexDirection:'column',gap:9}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
@@ -12204,7 +12209,7 @@ export default function App(){
             <div style={{textAlign:'right'}}><div style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'var(--ac2)'}}>🔥 {pzStreak}</div><div style={{fontSize:'clamp(12px,1.7vw,12px)',color:'rgba(255,255,255,.58)'}}>best {pzBest}</div></div>
           </div>
           <div style={{marginTop:10}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:'clamp(12.5px,2vw,12.5px)',color:'rgba(255,255,255,.55)',marginBottom:3}}><span>📅 {dTd>=DAILY_GOAL?'Daily goal done!':'Daily goal'}{(daily&&daily.streak>0)?<span style={{color:'var(--ac2)',fontWeight:700}}> · {daily.streak}-day streak</span>:null}</span><span>{Math.min(dTd,DAILY_GOAL)} / {DAILY_GOAL}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:'clamp(12.5px,2vw,12.5px)',color:'rgba(255,255,255,.55)',marginBottom:3}}><span>📅 {dTd>=DAILY_GOAL?'Puzzle goal done!':'Puzzle goal'}{(daily&&daily.streak>0)?<span style={{color:'var(--ac2)',fontWeight:700}}> · {daily.streak}-day streak</span>:null}</span><span>{Math.min(dTd,DAILY_GOAL)} / {DAILY_GOAL}</span></div>
             <div style={{width:'100%',height:8,background:'rgba(255,255,255,.1)',borderRadius:5,overflow:'hidden'}}><div style={{width:(Math.min(1,dTd/DAILY_GOAL)*100)+'%',height:'100%',background:dTd>=DAILY_GOAL?'#6fc47a':'#f0a24e',borderRadius:5,transition:'width .3s'}}/></div>
           </div>
           <button onClick={()=>pzEnterBrowse(pzNextInTier(pzSolvedMap,active),active)} style={{...btn('var(--ac)','none','#1a1a1a'),width:'100%',marginTop:12,fontWeight:800,fontSize:'clamp(14px,2.9vw,15px)'}}>▶ {total===0?'Start training':'Train next puzzle'}</button>
@@ -12436,7 +12441,7 @@ export default function App(){
                 <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
                 <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyse':'\u2315 Analyse this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
             </div>
             <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>
             <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}>Next ›</button>
@@ -12447,7 +12452,7 @@ export default function App(){
           <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>👁 Show move</button>
           <button onClick={()=>loadExternal(curPuz)} style={btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff')}>↺ Reset</button>
         </div>)}
-        {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyse this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyse this position'}</button></div>)}
+        {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',justifyContent:'center',alignItems:'center'}}><button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff')}>{'\u2315 Analyze this position'}</button></div>)}
         </div>
         <div style={{display:'flex',gap:7,width:'100%',alignItems:'center'}}>
           {/* #475 jobs/drill-needs-a-previous-card-2026-09-23. This slot used to be a SECOND '‹ Review',
@@ -12930,7 +12935,7 @@ export default function App(){
         {revHead&&reviewView!=='summary'&&(()=>{const _hs={...TOP_BTN,fontWeight:800};   /* #550 FMT-B-03: the standard corner button (was 44x40 radius 10) */return(
           <div data-ct="rev-head" style={{position:'relative',width:vp.w,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'0 '+TOP_EDGE+'px 2px',boxSizing:'border-box',flexShrink:0}}>{/* the row stays 46 tall: 44 buttons and 2 under, where it was 2 + 40 + 4 */}
             <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}>{'\u2190'}</button>
-            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game Review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
+            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
             <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:21}}>{'\u22ef'}</button>
           </div>);})()}
         {_showBars&&!landBars&&pBar(topColor,true)}
@@ -13102,7 +13107,7 @@ export default function App(){
                   {/* #547 antagonist A on item (82): once Next takes the row's slot at Complete!, practising the same line again lives HERE */}
                   {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
                   {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLessonMore(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
-                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practise this line again</button>}
+                  {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practice this line again</button>}
                   <button onClick={()=>{setLessonMore(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
                   {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
                       setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame

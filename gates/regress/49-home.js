@@ -428,7 +428,7 @@ const T={
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
-const SUBS=['Openings & endgames','890+ tactical puzzles','Free game reviews','vs Computer or Human'];
+const SUBS=['Openings & endgames','890 tactical puzzles','Free game reviews','Computer or a friend'];   // #550 wording check TXT-17/25: was '890+ tactical puzzles' and 'vs Computer or Human'
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
@@ -1126,7 +1126,7 @@ const WHERE=(b)=>b.page.evaluate(()=>{
   return {home:!!ov,homeCoversMiddle:!!(ov&&mid&&ov.contains(mid)),
     lesson:q('[data-ct="lesson-note"]'),
     learn:/What do you want to learn\?/.test(t),
-    puzzle:/Daily goal/.test(t)&&/Rank/.test(t),
+    puzzle:/Puzzle goal|Daily goal/.test(t)&&/Rank/.test(t),   /* #550 TXT-26: 'Daily goal' on Puzzles reads 'Puzzle goal' */
     review:/Review any game, from anywhere/.test(t)||q('[data-ct="rev-row1"]'),
     play:q('[data-ct="setup-sheet"]')||q('[data-ct="play-home"]'),
     look:q('[data-ct="look"]'),

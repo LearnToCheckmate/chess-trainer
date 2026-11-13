@@ -2403,3 +2403,12 @@ As a player on a slow or missing connection, I am told when a review was graded 
 - Signing in while offline says it needs a connection. (TC-R222f)
 - When this browser cannot save (storage blocked or full) the app says so. (TC-R222g, TC-R222h)
 - No message mentions Firebase setup, database rules or a preview sandbox. (TC-R222i)
+
+### US-R156 A player sees no developer tools and no developer words; the owner keeps them on his own account
+*Added #550, docs/wording-check-2026-11-12 TXT-05 to TXT-13 and TXT-15; Kunal, 12 Nov: "Only you" for the developer tools, "Batch 10" for the rest.*
+As a player, I never see the preview gallery, the layout readouts, the internal feature switches, the brilliant-gate numbers, the build stamp or the Puzzles unlock code, and no message tells me about server setup or a preview. As the owner, I still have every one of those tools on my own signed-in account, switched on by a field on my account document that the app cannot set.
+- With no developer flag, Home, the Menu, the Account sheet, Play setup, Puzzles, Review and its More sheet carry none of the developer tools or words. (TC-R224b to TC-R224h)
+- The Menu foot shows one quiet "Version NNN" line instead of the build stamp. (TC-R224d)
+- The setup-error, preview and deploy sentences and the stale Correspondence line are gone from the app. (TC-R224a)
+- With the developer flag the tools are all reachable, whether it comes from the gate harness or from the account document. (TC-R224i, TC-R224j)
+- An account document whose flag is false shows none of them. (TC-R224k)
