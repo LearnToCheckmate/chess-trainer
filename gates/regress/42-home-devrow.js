@@ -142,7 +142,10 @@ L.run(async()=>{
     await b.settle(350);
     L.say(onScreen,g.label+': after scrolling the column to the bottom the preview button is fully on screen, so the tap below lands on a real target rather than into empty space');
     await b.tapCt('home-preview',900);
-    const inPreview=await b.page.evaluate(()=>!document.querySelector('[data-ct="home-preview"]'));
+    // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: "the gallery opened" is read from the
+    // GALLERY - its numbered cards ("N · title", the shape lib.cardTitles reads) painted on screen - not from the home-preview hook (#386,
+    // this assertion's own build) having gone. Keyed on the hook's absence, any tap that merely left Home read as "opens the gallery".
+    const inPreview=await b.page.evaluate(()=>[...document.querySelectorAll('button')].some(x=>/^\d+ · /.test((x.innerText||'').split('\n')[0])&&x.getBoundingClientRect().height>0));
     L.say(inPreview,g.label+': tapping preview still opens the gallery - a button that covers nothing because it does nothing is not the fix he asked for');
 
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
