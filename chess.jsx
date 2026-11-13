@@ -527,6 +527,88 @@ async function ctDeviceWipe(opts){opts=opts||{};
   if(opts.freeze){try{localStorage.setItem=function(){};}catch(e){}}
   try{window.__ctLastWipe={keys:ks,idb,at:Date.now()};}catch(e){}
   return {keys:ks,idb};}
+// ── #550 SYN-03 and SYN-04 (accounts-devices check, 12 Nov, "Batch 10, serious first"): WHICH COPY WINS WHEN TWO DEVICES DISAGREE. The pull
+// used to keep "the longer string" for 12 of 14 keys, so a fresh device's default rating {r:400,n:0} beat the cloud's {r:845,n:9} (equal
+// length, local kept, then pushed) and a stale streak beat a newer one; drill cards and brilliant moves were replaced as whole lists, so one
+// device's cards wiped the other's. ct_syncmeta now carries, per synced key, the time this device last CHANGED it (t) - a default written at
+// start-up is not a change - and, for the two lists and the followed accounts, a per-item [addedAt, removedAt] pair (s), so a card solved on
+// one device stays gone on the other and a card made on either survives. It rides up inside ctProgress as one JSON string.
+const SYNC_META='ct_syncmeta';
+const SYNC_SETS={ct_mymistakes:1,ct_mybrilliancies:1};   // lists merged item by item (id = the position), removals kept as tombstones
+const syncItemId=(x)=>typeof x==='string'?x:(x&&typeof x==='object'&&x.fen)?String(x.fen):'';
+function syncMetaRead(s){try{const o=typeof s==='string'?JSON.parse(s):s;if(o&&typeof o==='object')return {t:(o.t&&typeof o.t==='object')?o.t:{},s:(o.s&&typeof o.s==='object')?o.s:{}};}catch(e){}return {t:{},s:{}};}
+function syncMetaLoad(){let v=null;try{v=localStorage.getItem(SYNC_META);}catch(e){}return syncMetaRead(v);}
+function syncMetaPrune(m){const old=Date.now()-120*24*3600*1000;Object.keys(m.s).forEach(k=>{const S=m.s[k]||{};
+  Object.keys(S).forEach(id=>{const p=S[id];if(!Array.isArray(p)||((+p[1]||0)>(+p[0]||0)&&(+p[1]||0)<old))delete S[id];});   // a tombstone older than 120 days has reached every device that matters
+  const left=Object.keys(S);if(left.length>600)left.sort((a,b)=>Math.max(+S[a][0]||0,+S[a][1]||0)-Math.max(+S[b][0]||0,+S[b][1]||0)).slice(0,left.length-600).forEach(id=>delete S[id]);});return m;}
+function syncMetaSave(m,raw){try{const s=JSON.stringify(syncMetaPrune(m));if(raw)raw(SYNC_META,s);else localStorage.setItem(SYNC_META,s);}catch(e){}}
+// a value nobody chose: what a fresh device writes at start-up. It never outranks the account's copy.
+function syncIsDefault(k,v){if(v==null||v==='')return true;if(k==='ct_coachstyle')return v==='comb';let o;try{o=JSON.parse(v);}catch(e){return false;}
+  if(k==='ct_rating')return !!o&&o.r===RATING_START&&!o.n;if(k==='ct_daily')return !!o&&!o.date&&!o.streak&&!o.count;if(k==='ct_daily3')return !!o&&!o.date;
+  if(k==='ct_coachtier')return !!o&&!o.cleared&&o.swapsLeft===2;if(k==='ct_elo')return o===800;
+  if(Array.isArray(o))return o.length===0;if(o&&typeof o==='object')return Object.keys(o).length===0;return false;}
+// record a change this device made (called from the patched setItem; raw = the unpatched setItem)
+function syncStamp(k,oldV,newV,raw){const m=syncMetaLoad();const now=Date.now();
+  if(!(oldV==null&&syncIsDefault(k,newV)))m.t[k]=now;
+  if(SYNC_SETS[k]){let a=[],b=[];try{a=JSON.parse(oldV||'[]');}catch(e){}try{b=JSON.parse(newV||'[]');}catch(e){}if(!Array.isArray(a))a=[];if(!Array.isArray(b))b=[];
+    const A=new Set(a.map(syncItemId)),B=new Set(b.map(syncItemId));const S=m.s[k]||(m.s[k]={});
+    B.forEach(id=>{if(id&&!A.has(id)){const p=S[id]||[0,0];S[id]=[now,+p[1]||0];}});A.forEach(id=>{if(id&&!B.has(id)){const p=S[id]||[0,0];S[id]=[+p[0]||0,now];}});}
+  syncMetaSave(m,raw);}
+// an explicit add or removal of one item (the followed accounts: an account leaves the list only when he removes it, not when a store
+// filters out one whose games have not arrived yet)
+function syncMark(k,id,what){if(!id)return;const m=syncMetaLoad();const S=m.s[k]||(m.s[k]={});const p=S[id]||[0,0];const now=Date.now();S[id]=what==='del'?[+p[0]||0,now]:[now,+p[1]||0];m.t[k]=now;syncMetaSave(m);}
+function syncMetaMerge(a,b){const out={t:{...a.t},s:{}};Object.keys(b.t).forEach(k=>{out.t[k]=Math.max(+out.t[k]||0,+b.t[k]||0);});
+  new Set([...Object.keys(a.s),...Object.keys(b.s)]).forEach(k=>{const A=a.s[k]||{},B=b.s[k]||{};const S={};
+    new Set([...Object.keys(A),...Object.keys(B)]).forEach(id=>{const p=A[id]||[0,0],q=B[id]||[0,0];S[id]=[Math.max(+p[0]||0,+q[0]||0),Math.max(+p[1]||0,+q[1]||0)];});out.s[k]=S;});return out;}
+const syncAlive=(S,id)=>{const p=S&&S[id];return !p||(+p[0]||0)>=(+p[1]||0);};
+// the merged value to store for key k, or null to keep this device's own. lm/cm: this device's and the account's meta; mm: both merged.
+function syncMerge(k,lv,cv,lm,cm,mm){
+  const lt=+(lm.t[k]||0),ct=+(cm.t[k]||0);const P=(s)=>{try{return JSON.parse(s);}catch(e){return undefined;}};
+  const lo=P(lv),co=P(cv);
+  if(SYNC_SETS[k]||k==='ct_accts'){const L=Array.isArray(lo)?lo:[],C=Array.isArray(co)?co:[];const S=(mm.s[k])||{};
+    const byId=new Map();L.forEach(x=>{const id=syncItemId(x);if(id&&!byId.has(id))byId.set(id,x);});
+    C.forEach(x=>{const id=syncItemId(x);if(!id)return;const l=byId.get(id);
+      if(l===undefined){byId.set(id,x);return;}
+      if(l&&typeof l==='object'&&x&&typeof x==='object'){const pa=Math.max(+l.practisedAt||0,+x.practisedAt||0);const mg=ct>lt?{...l,...x}:{...x,...l};if(pa)mg.practisedAt=pa;byId.set(id,mg);}});
+    if(k==='ct_accts')Object.keys(S).forEach(id=>{if(!byId.has(id)&&(+S[id][0]||0)>(+S[id][1]||0)&&/^(cc|li):./.test(id))byId.set(id,id);});
+    let out=[...byId.entries()].filter(([id])=>syncAlive(S,id));
+    if(SYNC_SETS[k]){const at=(id)=>(S[id]&&+S[id][0])||0;out=out.map((e,i)=>[e,i]).sort((x,y)=>(at(y[0][0])-at(x[0][0]))||(x[1]-y[1])).map(z=>z[0]);}
+    let arr=out.map(e=>e[1]);if(k==='ct_mymistakes')arr=capMistakes(arr,150);if(k==='ct_mybrilliancies')arr=arr.slice(0,80);
+    const s=JSON.stringify(arr);return (s===lv||(lv==null&&s==='[]'))?null:s;}
+  const lEmpty=lv==null||(!lt&&syncIsDefault(k,lv));
+  if(lEmpty)return lv===cv?null:cv;
+  if(lv===cv)return null;
+  if(!ct&&syncIsDefault(k,cv))return null;
+  if(k==='ct_rating'&&lo&&co){const ln=+lo.n||0,cn=+co.n||0;if(cn!==ln)return cn>ln?cv:null;return ct>lt?cv:null;}   // more rated games is the newer rating
+  if(k==='ct_daily'&&lo&&co){if((co.date||'')!==(lo.date||''))return String(co.date||'')>String(lo.date||'')?cv:null;   // the later day's streak
+    const s=JSON.stringify({...lo,count:Math.max(+lo.count||0,+co.count||0),streak:Math.max(+lo.streak||0,+co.streak||0)});return s===lv?null:s;}
+  if(k==='ct_daily3'&&lo&&co){if((co.date||'')!==(lo.date||''))return String(co.date||'')>String(lo.date||'')?cv:null;
+    const s=JSON.stringify({...lo,lesson:Math.max(+lo.lesson||0,+co.lesson||0),puz:Math.max(+lo.puz||0,+co.puz||0)});return s===lv?null:s;}
+  if(k==='ct_achv'&&Array.isArray(lo)&&Array.isArray(co)){const s=JSON.stringify([...new Set([...lo,...co])]);return s===lv?null:s;}
+  if(k==='ct_learnprog'&&lo&&co&&typeof lo==='object'&&typeof co==='object'){const out={...co,...lo};
+    Object.keys(co).forEach(x=>{if(!lo[x])return;const a=lo[x]||{},b=co[x]||{};const days=[...new Set([...(a.days||[]),...(b.days||[])])].sort();
+      out[x]={...b,...a,learned:days.length>=1||!!a.learned||!!b.learned,days,...((typeof a.bseq==='number'||typeof b.bseq==='number')?{bseq:Math.max(a.bseq||0,b.bseq||0)}:null)};});
+    const s=JSON.stringify(out);return s===lv?null:s;}
+  if((k==='ct_acctasked'||k==='ct_train')&&lo&&co&&typeof lo==='object'&&typeof co==='object'&&!Array.isArray(lo)){const s=JSON.stringify(ct>lt?{...lo,...co}:{...co,...lo});return s===lv?null:s;}
+  if(lt||ct)return ct>lt?cv:null;   // the newer change wins, whatever its length
+  return String(cv).length>String(lv).length?cv:null;   // neither side has ever been stamped (two pre-#550 copies): the old rule
+}
+// ── #550 ERR-04, ERR-05, ERR-08 (errors-offline check, 12 Nov, "Batch 10, serious first"): A FAILED REQUEST SAYS WHAT HAPPENED. A network
+// failure on chess.com or Lichess printed "Fetching works once this app is on a real website - the preview sandbox blocks outside
+// connections", which is false on the live site and gave him nothing to do. Offline is told apart from a server that answered with an
+// error and from a site that could not be reached; nothing a player reads asks him to set anything up.
+const ctOffline=()=>{try{return typeof navigator!=='undefined'&&navigator.onLine===false;}catch(e){return false;}};
+function fetchFailMsg(site,e){const m=String((e&&e.message)||'');
+  if(ctOffline())return 'You are offline. Your saved games are below; fetching new ones from '+site+' needs a connection.';
+  if(/^server \d+/.test(m))return site+' answered with an error ('+m+'). Try again in a minute, or paste a PGN below.';
+  return 'Couldn’t reach '+site+'. Check your connection and try again, or paste a PGN below.';}
+function signInFailMsg(e){const code=String((e&&(e.code||e.message))||'');
+  if(ctOffline()||/network-request-failed/.test(code))return 'You are offline. Signing in needs a connection; everything else works offline.';
+  if(/popup-closed-by-user|cancelled-popup-request/.test(code))return '';
+  if(/popup-blocked/.test(code))return 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.';
+  if(/unauthorized-domain/.test(code))return 'Sign-in does not work at this web address. Open the app at its usual address to sign in.';
+  if(/cloud-not-ready/.test(code))return 'Sign-in could not start: the sign-in service did not load. Check your connection and try again.';
+  return 'Sign-in did not finish. Check your connection and try again.';}
 const acctRowKey=(g)=>((g&&g.src)||'')+':'+((g&&g.date)||0)+':'+((g&&g.white)||'')+':'+((g&&g.black)||'');
 // fresh rows first, so a game present in both keeps the fresh copy; newest first; then the cap
 function acctMergeRows(fresh,held,cap){
@@ -4362,14 +4444,25 @@ export default function App(){
   const noteInnerRef=useRef(null);
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser'];   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser','ct_accts','ct_acctmine','ct_acctasked'];   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now. SYN-01: and so do the accounts he follows (ct_accts), which of them are his (ct_acctmine) and which he was already asked about (ct_acctasked) - the games themselves are fetched again, never stored in the account */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
   const syncTimer=useRef(null);
-  const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser)return;
+  /* #550 SYN-02: NOTHING GOES UP UNTIL THE ACCOUNT'S COPY HAS COME DOWN. A push sends every synced key, so one fired before the pull (a state
+     effect at start-up, a lesson finished in the first seconds) sent this device's defaults over the account's progress. syncPulledRef is
+     false from sign-in until the pull has been merged; a pull that fails is retried, and pushes stay held until it succeeds. */
+  const syncPulledRef=useRef(false);
+  const syncPush=()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.save||!cloudUser||!syncPulledRef.current)return;
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(()=>{try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */C.save({ctProgress:prog}).catch(()=>{toastRef.current('Could not back up progress (offline?)','err');});}catch(e){}},2500);};
+    syncTimer.current=setTimeout(()=>{syncTimer.current=null;if(!syncPulledRef.current)return;try{const prog={};SYNC_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null&&!(v===''&&(k==='ct_ccuser'||k==='ct_liuser')))prog[k]=v;}catch(e){}});   /* #550: an empty username box never overwrites the account's name - a new device writes '' at start-up, before the pull */if(prog.ct_lastlesson!=null){prog.ct_lastlesson549=prog.ct_lastlesson;prog.ct_lastlesson550=prog.ct_lastlesson;}   /* #550 a13: both stamps name the value this build sends (residual: a #549 build pulling it reads it as its own indexing, off by up to four lessons past 149, until it loads this build) */
+      prog[SYNC_META]=JSON.stringify(syncMetaLoad());   /* #550 SYN-03/04: the per-key change times and the per-item tombstones ride with the values */
+      C.save({ctProgress:prog}).catch(()=>{toastRef.current(navigator.onLine===false?'You are offline. Your progress is saved on this device and backs up when you reconnect.':'Could not back up your progress just now. It is saved on this device and will try again.','err');syncDirtyRef.current=true;});}catch(e){}},2500);};
   const syncPushRef=useRef(syncPush);syncPushRef.current=syncPush;
+  const syncDirtyRef=useRef(false);   // #550 SYN-08: a failed backup is tried again when the connection comes back
+  useEffect(()=>{const on=()=>{if(syncDirtyRef.current){syncDirtyRef.current=false;syncPushRef.current();}};try{window.addEventListener('online',on);}catch(e){}return ()=>{try{window.removeEventListener('online',on);}catch(e){}};},[]);
   const [syncPulled,setSyncPulled]=useState(false);
   const cloudNamesRef=useRef(null);const [cloudNamesTick,setCloudNamesTick]=useState(0);   // #550 report (a): usernames that arrived from the account
+  const cloudAcctsRef=useRef(null);const [cloudAcctsTick,setCloudAcctsTick]=useState(0);   // #550 SYN-01: followed accounts that arrived from (or were removed on) another device
+  const syncQuietRef=useRef(false);   // true while the pull itself writes: its writes are not changes this device made
+  const [syncTry,setSyncTry]=useState(0);
   // ── Daily 3 (#310): one lesson + two puzzles per day, tied to the streak
   const [daily3,setDaily3]=useState(()=>{try{const d=JSON.parse(localStorage.getItem('ct_daily3')||'null');return (d&&d.date)?d:{date:'',lesson:0,puz:0};}catch(e){return {date:'',lesson:0,puz:0};}});
   const daily3Ref=useRef(daily3);daily3Ref.current=daily3;
@@ -4380,36 +4473,84 @@ export default function App(){
     setDaily3(nx);try{localStorage.setItem('ct_daily3',JSON.stringify(nx));}catch(e){}
     if(nx.lesson>=1&&nx.puz>=2&&!(cur.lesson>=1&&cur.puz>=2)){toastRef.current('Daily 3 complete! Streak safe.','ok');}};
 
-  useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);return;}
-    let dead=false;
-    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;const namesIn={};
+  /* #550 SYN-02: WHAT THE PULL BRINGS IS ON SCREEN AT ONCE. The pull used to write localStorage only, so the running app kept its pre-pull
+     state - no streak, no cards, no Continue - until a reload, and the next change wrote that stale state back over the pulled copy and
+     pushed it. Every key the pull changes now sets its state too (their persistence effects then write the same value back, which is not
+     a change). */
+  const syncApplyState=(k,v)=>{const J=()=>{try{return JSON.parse(v);}catch(e){return null;}};const o=J();
+    switch(k){
+      case 'ct_learnprog':if(o&&typeof o==='object')setLearnProg(migLearnProg(o));break;
+      case 'ct_daily':if(o&&typeof o==='object'){dailyRef.current=o;setDaily(o);}break;
+      case 'ct_gamestats':if(o&&typeof o==='object')gameStatsRef.current=o;break;
+      case 'ct_achv':if(Array.isArray(o))setAchv(o);break;
+      case 'ct_mybrilliancies':if(Array.isArray(o))setMyBrilliant(o);break;
+      case 'ct_mymistakes':if(Array.isArray(o))setMyMistakes(capMistakes(o,150));break;
+      case 'ct_train':if(o&&typeof o==='object')setTrainMastery(migTrain(o));break;
+      case 'ct_lastlesson':{const n=parseInt(v);if(!isNaN(n))setLastLesson(n);break;}
+      case 'ct_daily3':if(o&&o.date)setDaily3(o);break;
+      case 'ct_elo':{const n=parseInt(v);if(!isNaN(n))setCpuElo(Math.max(ELO_MIN,Math.min(ELO_MAX,n)));break;}
+      case 'ct_rating':if(o&&typeof o.r==='number')setRating(o);break;
+      case 'ct_coachstyle':if(v)setCoachStyle(v);break;
+      case 'ct_coachtargets':if(Array.isArray(o))setCoachTargets(migSlate(o));break;
+      case 'ct_coachtier':if(o&&typeof o.cleared==='number'&&typeof o.swapsLeft==='number')setCoachTier({swapAt:Date.now(),...o});break;
+      case 'ct_acctmine':if(o&&typeof o==='object')setAcctMine(o);break;
+      default:break;}};
+  useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);syncPulledRef.current=false;return;}
+    let dead=false,retry=null;
+    C.load().then(d=>{if(dead)return;const prog=d&&d.ctProgress;let applied=0;const namesIn={};const changed=[];
+      const raw=(()=>{try{return Storage.prototype.setItem.bind(localStorage);}catch(e){return (k,v)=>localStorage.setItem(k,v);}})();
+      const lm=syncMetaLoad(),cm=syncMetaRead(prog&&prog[SYNC_META]),mm=syncMetaMerge(lm,cm);
+      let acctsBefore=[];try{const a=JSON.parse(localStorage.getItem(ACCT_K)||'[]');if(Array.isArray(a))acctsBefore=a;}catch(e){}
+      syncQuietRef.current=true;
       if(prog){SYNC_KEYS.forEach(k=>{try{let cloudV=prog[k];if(cloudV==null)return;if(k==='ct_lastlesson')cloudV=migPulledLastLesson(cloudV,prog);if(k==='ct_coachtargets'){try{cloudV=JSON.stringify(migSlate(JSON.parse(cloudV)));}catch(e){}}const localV=localStorage.getItem(k);
-        if((k==='ct_ccuser'||k==='ct_liuser')){const cv=String(cloudV).trim();if(cv&&!(localV||'').trim()){localStorage.setItem(k,cv);namesIn[k==='ct_ccuser'?'cc':'li']=cv;applied++;}return;}   /* #550 his report (a): the account's username fills an empty box; a name typed on this device is kept */
-        if(localV==null){localStorage.setItem(k,cloudV);if(k==='ct_gamestats'){try{gameStatsRef.current=JSON.parse(cloudV)||{};}catch(_e){}}applied++;return;}
-        // never lose progress: for JSON objects keep whichever stamp/state is richer; simple rule = keep LONGER payload
+        if((k==='ct_ccuser'||k==='ct_liuser')){const cv=String(cloudV).trim();if(cv&&!(localV||'').trim()){raw(k,cv);namesIn[k==='ct_ccuser'?'cc':'li']=cv;applied++;}return;}   /* #550 his report (a): the account's username fills an empty box; a name typed on this device is kept */
         /* #547 item (136), jobs/the-cloud-sync-pull-writes-ct-gamestats-past-the-stamp-2026-10-09: ct_gamestats is a MAP of per-game
-           tallies, and 'keep the longer string' is the wrong test for it - #503's 7-byte grading stamp alone could tip it, so a
-           device with MORE games could take a shorter remote map, and the write went past gameStatsRef so memory and store disagreed
-           until reload. For this key: keep the union of games, this device's entry winning where both have one (it carries the
-           stamp this build writes), and refresh the in-memory map in the same step. Every other key keeps the old rule. */
-        if(k==='ct_gamestats'){let lo=null,co=null;try{lo=JSON.parse(localV);co=JSON.parse(cloudV);}catch(_e){}
+           tallies: keep the union of games, this device's entry winning where both have one (it carries the stamp this build writes),
+           and refresh the in-memory map in the same step. */
+        if(k==='ct_gamestats'&&localV!=null){let lo=null,co=null;try{lo=JSON.parse(localV);co=JSON.parse(cloudV);}catch(_e){}
           if(lo&&co&&typeof lo==='object'&&typeof co==='object'&&!Array.isArray(lo)&&!Array.isArray(co)){const mg={...co,...lo};
-            if(Object.keys(mg).length>Object.keys(lo).length){const sv=JSON.stringify(mg);localStorage.setItem(k,sv);try{gameStatsRef.current=mg;}catch(_e){}applied++;}
+            if(Object.keys(mg).length>Object.keys(lo).length){const sv=JSON.stringify(mg);raw(k,sv);try{gameStatsRef.current=mg;}catch(_e){}applied++;}
             return;}}
-        if(localV!==cloudV&&String(cloudV).length>String(localV).length){localStorage.setItem(k,cloudV);applied++;}
-      }catch(e){}});}
+        if(k==='ct_accts')return;   // handled below: an arriving account is FETCHED, which is what puts it on the list here
+        /* #550 SYN-03/SYN-04: the per-key rules (syncMerge): lists by item with tombstones, rating by games played, streak by day, the
+           rest by the newer change - never by string length, and never a fresh device's untouched default over the account's value. */
+        const mv=syncMerge(k,localV,String(cloudV),lm,cm,mm);
+        if(mv!=null&&mv!==localV){raw(k,mv);changed.push([k,mv]);applied++;}
+      }catch(e){}});
+        /* #550 SYN-01: the followed accounts. The merged list (both devices' accounts, less the ones removed on either) is compared with
+           this device's: an account that arrived is fetched (quietly, one at a time) and one removed elsewhere is forgotten here. */
+        try{const mv=syncMerge('ct_accts',JSON.stringify(acctsBefore),String(prog.ct_accts||'[]'),lm,cm,mm);const merged=mv!=null?JSON.parse(mv):acctsBefore;
+          const add=merged.filter(x=>acctsBefore.indexOf(x)<0&&/^(cc|li):./.test(x)),del=acctsBefore.filter(x=>merged.indexOf(x)<0);
+          add.forEach(id=>{const S=mm.s.ct_accts||(mm.s.ct_accts={});const p=S[id]||[0,0];if(!(+p[0]>0))S[id]=[1,+p[1]||0];});   // kept alive in the meta until its games arrive, so a push before the fetch does not lose it
+          if(add.length||del.length){cloudAcctsRef.current={add,del};setCloudAcctsTick(t=>t+1);applied++;}}catch(e){}}
+      try{const S=Object.assign({},mm);raw(SYNC_META,JSON.stringify(syncMetaPrune(S)));}catch(e){}
+      syncQuietRef.current=false;
+      changed.forEach(([k,v])=>{try{syncApplyState(k,v);}catch(e){}});
       if(namesIn.cc)setChessUser(namesIn.cc);if(namesIn.li)setLichessUser(namesIn.li);
       if(namesIn.cc||namesIn.li){cloudNamesRef.current=namesIn;setCloudNamesTick(t=>t+1);}
-      setSyncPulled(true);
+      syncPulledRef.current=true;setSyncPulled(true);
+      try{window.__ctSyncPulled={at:Date.now(),applied,keys:changed.map(x=>x[0])};}catch(e){}
       if(applied>0){toastRef.current('Progress restored from your account','ok');}
       // push local state up so a fresh cloud doc gets seeded
       syncPushRef.current();
-    }).catch(()=>{setSyncPulled(true);});
-    return ()=>{dead=true;};
-  },[cloudUser]);
+    }).catch(()=>{if(dead)return;syncQuietRef.current=false;   /* #550 SYN-02: a pull that failed is NOT a pull - pushes stay held and it is tried again */
+      const again=()=>{if(!dead)setSyncTry(n=>n+1);};retry=setTimeout(again,20000);try{window.addEventListener('online',again,{once:true});}catch(e){}});
+    return ()=>{dead=true;if(retry)clearTimeout(retry);};
+  },[cloudUser,syncTry]);
   // push on any progress-shaped localStorage write: patch setItem once
   useEffect(()=>{try{const orig=localStorage.setItem.bind(localStorage);if(localStorage.__ctPatched)return;Object.defineProperty(localStorage,'__ctPatched',{value:true});
-    localStorage.setItem=(k,v)=>{orig(k,v);try{if(SYNC_KEYS.indexOf(k)>=0)syncPushRef.current();}catch(e){}};}catch(e){}},[]);
+    localStorage.setItem=(k,v)=>{const sk=SYNC_KEYS.indexOf(k)>=0;let old=null;if(sk){try{old=localStorage.getItem(k);}catch(e){}}try{orig(k,v);}catch(e){try{if(e&&(e.name==='QuotaExceededError'||e.code===22))storageWarnRef.current('full');}catch(_e){}throw e;}
+      if(!sk)return;try{if(!syncQuietRef.current&&old!==String(v)&&k!=='ct_accts')syncStamp(k,old,String(v),orig);}catch(e){}   /* #550 SYN-03: the time of this device's change */
+      try{syncPushRef.current();}catch(e){}};}catch(e){}},[]);
+  /* #550 ERR-07 (errors-offline check): NOTHING CAN BE SAVED, AND IT SAYS SO. With storage blocked (every call throws, or the property
+     itself throws) or full (a quota error), the app ran normally and lost every lesson, review and game in progress on the next reload,
+     silently. A probe at start - write, read back, remove - and any quota error after it show one warning a session. */
+  const storageWarnedRef=useRef(false);
+  const storageWarn=(why)=>{if(storageWarnedRef.current)return;storageWarnedRef.current=true;try{window.__ctStorageWarn=why;}catch(e){}
+    setTimeout(()=>{try{toastRef.current(why==='full'?'This device is out of storage space, so new progress is not being saved. Free some space, or sign in to keep a copy in your account.':'This browser is not saving your progress (storage is blocked, for example in a private window). It will be gone when the app is closed.','err');}catch(e){}},why==='full'?0:1500);};
+  const storageWarnRef=useRef(storageWarn);storageWarnRef.current=storageWarn;
+  useEffect(()=>{let ok=false;try{const ls=window.localStorage;const k='ct_probe_'+Date.now();ls.setItem(k,'1');ok=ls.getItem(k)==='1';ls.removeItem(k);}catch(e){ok=false;try{if(e&&(e.name==='QuotaExceededError'||e.code===22)){storageWarn('full');return;}}catch(_e){}}
+    if(!ok)storageWarn('blocked');},[]);
    // {uid,name,email,photo} when signed in (deployed app only)
   const [acctOpen,setAcctOpen]=useState(false);    // account panel (opened from the Home avatar)
   const [upgradeMsg,setUpgradeMsg]=useState('');   // upgrade-flow feedback (payments not wired yet)
@@ -5980,7 +6121,7 @@ export default function App(){
          progress is adopted by that first sign-in, as before). A DIFFERENT uid signing in later finds the stamp, and the device is wiped
          and reloaded BEFORE the sync pull and push run, so the last player's data is never merged into, or uploaded to, the new account. */
       if(u&&u.uid){let own=null;try{own=localStorage.getItem('ct_owner');}catch(e){}
-        if(own&&own!==u.uid){await ctDeviceWipe({set:{ct_owner:u.uid},freeze:true});try{window.location.reload();}catch(e){}return;}
+        if(own&&own!==u.uid){syncPulledRef.current=false;if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}await ctDeviceWipe({set:{ct_owner:u.uid},freeze:true});try{window.location.reload();}catch(e){}return;}
         if(!own){try{localStorage.setItem('ct_owner',u.uid);}catch(e){}}}
       setCloudUser(u);
       if(!u)return;
@@ -6025,12 +6166,14 @@ export default function App(){
   },[pzSolvedMap,pzStreak,pzBest,pzXP,pzOSolved,pzOSolvedIds,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({learnprog:learnProgRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[learnProg,cloudUser]);
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C||!cloudUser)return;const t=setTimeout(()=>{try{C.save({coachtargets:coachTargetsRef.current,coachtier:coachTierRef.current});}catch(e){}},900);return ()=>clearTimeout(t);},[coachTargets,coachTier,cloudUser]);
-  const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');C.signIn().catch(e=>{const code=e&&e.code;setCloudErr(code==='auth/unauthorized-domain'?'This site isn’t authorized in Firebase yet — add the domain in Auth settings.':(code==='auth/popup-blocked'?'Popup blocked — allow popups and retry.':'Sign-in failed, please retry.'));});};
+  const cloudSignIn=()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!C)return;setCloudErr('');if(ctOffline()){setCloudErr(signInFailMsg(null));return;}   /* #550 ERR-05: offline, said at once instead of a tap that does nothing */
+    try{const p=C.signIn();if(p&&p.catch)p.catch(e=>{setCloudErr(signInFailMsg(e));});}catch(e){setCloudErr(signInFailMsg(e));}};   /* #550: no message asks a player to set anything up */
   /* #550 SEC-15 and SEC-16: signing out takes this player off Play nearby and Quick match while still signed in (the rules need the uid),
      and by default removes their data from the device (ctDeviceWipe) and reloads, so nothing of theirs is left in memory either. With the
      choice switched off the data stays, and so does the ct_owner stamp, so a different account signing in later still starts clean. */
   const cloudSignOut=async(opts)=>{const C=(typeof window!=='undefined')?window.CTCloud:null;const wipe=!(opts&&opts.wipe===false);
     try{if(C&&C.nearbyLeave&&cloudUser)await C.nearbyLeave();}catch(e){}
+    syncPulledRef.current=false;if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}   /* #550 SYN-05: a backup queued before sign-out never fires after it */
     try{if(C&&C.mmCancel)C.mmCancel();}catch(e){}
     try{if(C)await C.signOut();}catch(e){}
     setCloudUser(null);
@@ -7058,7 +7201,7 @@ export default function App(){
     return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN,_pb);}catch(e){skills=null;} /* #368 y17b */
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng};
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng,meta:meta||null};   /* #550 ERR-01: meta kept so 'Grade it again' re-runs the same game as the same player */
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
@@ -7160,6 +7303,7 @@ export default function App(){
        [id] alone and _caps dropped every other account's bound - their games came back on the next good launch with no
        chip to remove, follow or grow them. In such a session the list and the bounds are only ADDED to, never cut. */
     const order=[..._cur.filter(x=>x!==id&&(ACCT_UNREAD||x in M)),id];
+    if(!ACCT_UNREAD&&_cur.indexOf(id)<0&&(rows||[]).length>0)syncMark(ACCT_K,id,'add');   // #550 SYN-01: a followed account joins the account's list
     if(!ACCT_UNREAD&&_cur.indexOf(id)<0&&(rows||[]).length>0){let _asked=false;try{_asked=!!(JSON.parse(localStorage.getItem('ct_acctasked')||'{}')||{})[id];}catch(e){}if(!_asked)setAcctAsk(id);}   // #550 a19: a NEW account, asked once
     const evicted=[],_evq=order.filter(x=>x in M);
     while(ids.length>ACCT_MAX){const drop=_evq.shift()||ids[0];delete M[drop];evicted.push(drop);ids=Object.keys(M);}
@@ -7190,12 +7334,13 @@ export default function App(){
       mergeGames();
     }
   };
-  const acctForget=async(id)=>{
+  const acctForget=async(id,opt)=>{
     ACCT_GONE[id]=acctGen(id)+1;   // A1-F: before the await, so a walk ending meanwhile already sees it
     await acctReady();
     const M={...(acctGamesRef.current||{})}; delete M[id];
     acctGamesRef.current=M; acctGamesSave(M,null,[],[id]);
     acctFreshForget(id);
+    if(!(opt&&opt.fromSync))syncMark(ACCT_K,id,'del');   // #550 SYN-04: his removal travels to his other devices (a tombstone), instead of the other device's list bringing it back
     const C={...(acctCapRef.current||{})}; delete C[id];   // #432
     acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}
     const next=ccAccts.filter(x=>x!==id); setCcAccts(next);
@@ -7300,7 +7445,7 @@ export default function App(){
       if(/username not found/.test(_m))_E('Chess.com has no account called “'+u+'”. Check the spelling, or paste a PGN below.');
       else if(/no games on that account|no recent games found/.test(_m))_E('Chess.com answered, but “'+u+'” has no games in the months searched. Paste a PGN below to review one now.');
       else if(/^server \d+/.test(_m))_E('Chess.com answered with an error ('+_m+'). Try again in a minute, or paste a PGN below.');
-      else _E('Couldn’t reach Chess.com ('+(_m||'network blocked')+'). Fetching works once this app is on a real website — the preview sandbox blocks outside connections. You can still paste a PGN below.');}
+      else _E(fetchFailMsg('Chess.com',e));}   /* #550 ERR-04 */
     _L(false);_P('');
   };
   const ccResult=(g)=>{const w=g.wr;if(w==='win')return g.white+' won';if(['checkmated','resigned','timeout','abandoned','lose','loss','kingofthehill','threecheck','bughousepartnerlose'].includes(w))return g.black+' won';return 'draw';};
@@ -7330,7 +7475,10 @@ export default function App(){
       // 'months' is not reachable on this path. Fewer rows back than we asked for means the account
       // had no more to give, so nothing was cut. Swept with chess.com rather than left [R06].
       liRawRef.current=null; if(await acctStore('li',u,_rows,_rows.length>=ACCT_GMAX?'games':'all',_gen)!==false)acctFreshMark(acctId('li',u),true); mergeGames();
-    }catch(e){_E('Couldn’t reach Lichess ('+((e&&e.message)||'network blocked')+'). Fetching works once this app is on a real website; the preview sandbox blocks outside connections. You can still paste a PGN below.');}
+    }catch(e){const _m=String((e&&e.message)||'');   /* #550 ERR-04: told apart as chess.com's are */
+      if(/username not found/.test(_m))_E('Lichess has no account called “'+u+'”. Check the spelling, or paste a PGN below.');
+      else if(/no games on that account|no recent games found/.test(_m))_E('Lichess answered, but “'+u+'” has no games to fetch. Paste a PGN below to review one now.');
+      else _E(fetchFailMsg('Lichess',e));}
     _L(false);_P('');
   };
   /* #549 item (78), jobs/review-list-caps-at-about-40-games-2026-09-23 work[3] [Amber: flags/amber-549-review-load-older-games].
@@ -7389,7 +7537,7 @@ export default function App(){
           const rows=games.map(g=>{const wn=(g.players&&g.players.white&&g.players.white.user&&g.players.white.user.name)||'White';const bn=(g.players&&g.players.black&&g.players.black.user&&g.players.black.user.name)||'Black';return {src:'li',acct:u,pgn:g.pgn,white:wn,black:bn,wr:g.winner==='white'?'win':(g.winner==='black'?'resigned':'draw'),tc:g.speed||'game',date:g.lastMoveAt||g.createdAt||0};});
           await acctStore('li',u,rows,(rows.length>=ACCT_GMAX?'games':'all')+(_pgap?'+gap':''),_gen);
         }
-      }catch(e){setCcErr('Couldn’t load older games for '+u+' ('+(((e&&e.message)||'network blocked'))+'). The games already listed are kept.');}
+      }catch(e){setCcErr((ctOffline()?'You are offline, so older games for '+u+' cannot load now.':'Could not load older games for '+u+(/^server \d+/.test(String((e&&e.message)||''))?' (the site answered '+String(e.message)+')':'')+'.')+' The games already listed are kept.');}   /* #550 ERR-04 */
     }
     // the games this tap brought in are SHOWN: the page grows by what was added, so the tap is never answered by a list that
     // looks unchanged. The next visit starts again at one page (the per-visit reset beside item (133)).
@@ -7427,6 +7575,14 @@ export default function App(){
     if(mode==='analyze'){gamesAutoRef.current=true;if(n.cc)fetchChessCom(n.cc,{quiet:true}).catch(()=>{});if(n.li)fetchLichess(n.li,{quiet:true}).catch(()=>{});}
     else gamesAutoRef.current=false;
   },[cloudNamesTick]);
+  /* #550 SYN-01: FOLLOWED ACCOUNTS FOLLOW THE ACCOUNT. An account another device follows is fetched here as soon as the pull names it (quietly,
+     one at a time; the fetch is what files it on this device's list), whatever screen he is on; one he removed on another device is
+     forgotten here. It was asked about on the device that imported it, so it is not asked about again. */
+  useEffect(()=>{if(!cloudAcctsTick)return;const q=cloudAcctsRef.current||{add:[],del:[]};cloudAcctsRef.current=null;
+    (async()=>{for(const id of (q.del||[])){try{await acctForget(id,{fromSync:true});}catch(e){}}
+      try{const a=JSON.parse(localStorage.getItem('ct_acctasked')||'{}')||{};(q.add||[]).forEach(id=>{a[id]=1;});if((q.add||[]).length)localStorage.setItem('ct_acctasked',JSON.stringify(a));}catch(e){}
+      for(const id of (q.add||[])){const user=id.slice(id.indexOf(':')+1);try{if(id.startsWith('cc:'))await fetchChessCom(user,{quiet:true});else await fetchLichess(user,{quiet:true});}catch(e){}}})();
+  },[cloudAcctsTick]);
   useEffect(()=>{analyzingRef.current=analyzing;},[analyzing]);
   // Background pass: fill in move-quality counts for every fetched game, one at a time, only while on the Review screen, pausing while a manual review is computing.
   useEffect(()=>{
@@ -7761,7 +7917,7 @@ export default function App(){
          (there is no server game logic). Both clients render the result from the pushed record, so they cannot disagree. */
       else if(insufficientMaterial(ng.board)){push.result='1/2-1/2';push.status='over';push.endBy='material';}
       else if(deadPosition(ng)){push.result='1/2-1/2';push.status='over';push.endBy='dead';}
-      if(window.CTCloud)window.CTCloud.gamePush(og.id,push).catch(err=>{const c=(err&&(err.code||err.message))||'error';setOnlineInfo('Move not saved ('+c+'). Check your connection; if it mentions permissions, the database rules need a tweak.');});
+      if(window.CTCloud)window.CTCloud.gamePush(og.id,push).catch(err=>{const c=(err&&(err.code||err.message))||'error';void c;setOnlineInfo('Move not saved ('+(ctOffline()?'you are offline':'the connection dropped')+'). Play the move again once you are connected.');   /* #550: no message asks a player to change the database rules */});
       repaint();return;
     }
     if(modeRef.current==='analyze'&&anaModeRef.current){setAnaHist(h=>[...h,g]);sfxMove(g,mv);setGame(makeMove(g,mv));setLastMv(mv);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
@@ -8163,7 +8319,7 @@ export default function App(){
     (async()=>{
       const ok=sfReadyRef.current?await ensureAna():false;
       if(dead)return;
-      if(!ok){setEngLine({txt,cp:ev,line:'engine not loaded'});return;}
+      if(!ok){setEngLine({txt,cp:ev,line:ctOffline()?'Stockfish is not loaded (offline)':'Stockfish is not loaded yet'});return;}   /* #550 ERR-02 */
       let _lcp=null,_lmate=null;
       const _sgn=((fen.split(' ')[1]||'w')==='w')?1:-1;
       let _lok=false;
@@ -8746,7 +8902,7 @@ export default function App(){
     if(!loadExternal(obj))return false;
     setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);
     setPuzMsg(rec.msg!=null?rec.msg:(obj.explain?('🎉 '+obj.explain):''));repaint();return true;};
-  const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't reach Lichess. This works on the deployed site with internet — it may be blocked in this in-app preview.");}setPzOLoading(false);};
+  const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr(ctOffline()?"You are offline. Online puzzles need a connection; the puzzles in the app work offline.":"Couldn't reach Lichess. Check your connection and try again.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID — or it may be blocked in this preview.");}setPzOLoading(false);};
   const _packBand=row=>{const r=row.rating||row.r||0;const d=pzDiffRef.current;if(d==='easy')return r<1300;if(d==='med')return r>=1300&&r<1700;if(d==='hard')return r>=1700;return true;};
   const showPackIdx=(rows,i)=>{if(!rows||!rows.length){setPzOErr('That pack is empty.');return;}const solved=pzOSolvedIdsRef.current;for(let k=0;k<rows.length;k++){const idx=(((i+k)%rows.length)+rows.length)%rows.length;const row=rows[idx];if(!_packBand(row))continue;const rid='lichess:'+(row.id||row.i||'');if(row.id&&solved[rid])continue;const o=lichessFromPack(row);if(o){setPzPackIdx(idx);setPzOErr('');setPzOInfo('📦 '+(idx+1)+'/'+rows.length+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);return;}}const d=pzDiffRef.current,lbl=d==='easy'?'easier ':d==='med'?'medium ':d==='hard'?'harder ':'';setPzOErr('No unsolved '+lbl+'puzzles left in this pack — switch difficulty or load another pack.');};
@@ -9096,7 +9252,7 @@ export default function App(){
         const whenTxt=(ms)=>{if(!ms)return '';const d=new Date(ms);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});};
         const joined=(t)=>!!(me&&t.players&&t.players.some(p=>p&&p.uid===me.uid));
         const card={background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:14,padding:'13px 15px'};
-        const doCreate=async()=>{const C=window.CTCloud;if(!C||!me)return;const nm=tourName.trim();if(!nm){setTourMsg('Give it a name.');return;}const startAt=tourWhen?new Date(tourWhen).getTime():(Date.now()+3600000);if(isNaN(startAt)||startAt<Date.now()-60000){setTourMsg('Pick a future start time.');return;}setTourBusy(true);setTourMsg('');try{const f=FMT[tourFmt];await C.tourCreate({name:nm,format:tourFmt,tc:f.tc,startAt:startAt,players:[me]});setTourName('');setTourWhen('');setTourView('list');}catch(e){const m=String((e&&e.message)||e);setTourMsg(m.indexOf('permission')>=0||m.indexOf('insufficient')>=0?'Cloud rule not published yet — publish the /tournaments rule.':'Could not create. Try again.');}setTourBusy(false);};
+        const doCreate=async()=>{const C=window.CTCloud;if(!C||!me)return;const nm=tourName.trim();if(!nm){setTourMsg('Give it a name.');return;}const startAt=tourWhen?new Date(tourWhen).getTime():(Date.now()+3600000);if(isNaN(startAt)||startAt<Date.now()-60000){setTourMsg('Pick a future start time.');return;}setTourBusy(true);setTourMsg('');try{const f=FMT[tourFmt];await C.tourCreate({name:nm,format:tourFmt,tc:f.tc,startAt:startAt,players:[me]});setTourName('');setTourWhen('');setTourView('list');}catch(e){const m=String((e&&e.message)||e);setTourMsg(ctOffline()?'You are offline. Creating a tournament needs a connection.':(m.indexOf('permission')>=0||m.indexOf('insufficient')>=0?'Tournaments are not available right now. Try again later.':'Could not create. Try again.'));}setTourBusy(false);};
         const doJoin=async(t)=>{const C=window.CTCloud;if(!C||!me)return;setTourMsg('');try{await C.tourJoin(t.id,me);}catch(e){setTourMsg('Could not join.');}};
         const sel=tourSel?tours.find(x=>x.id===tourSel):null;
         const _rr=(ids)=>{let a=ids.slice();if(a.length%2)a.push(null);const n=a.length;const rounds=[];let arr=a.slice();for(let r=0;r<n-1;r++){const pairs=[];for(let i=0;i<n/2;i++){const p1=arr[i],p2=arr[n-1-i];if(p1!=null&&p2!=null)pairs.push([p1,p2]);}rounds.push(pairs);const rest=arr.slice(1);rest.unshift(rest.pop());arr=[arr[0]].concat(rest);}return rounds;};
@@ -10680,6 +10836,14 @@ export default function App(){
               <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
               {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}
             </div>
+            {/* #550 ERR-01 and ERR-02 (errors-offline check, P1): A REVIEW GRADED WITHOUT STOCKFISH SAYS SO. On a slow line the 7MB engine was
+                still downloading when the 120s wait ran out, and offline after a first visit it never loaded: the review then finished on the
+                built-in engine and read as a normal one (Great 0/0, both sides 'Not scored', a different toughest moment). It is now named
+                as a quick review and offers to grade the game again, which waits for Stockfish once more. */}
+            {review.engine&&review.engine.path==='builtin'&&(<div data-ct="rev-noengine" role="status" style={{background:'rgba(245,158,11,.12)',border:'1px solid rgba(245,158,11,.45)',borderRadius:12,padding:'10px 12px',display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{fontSize:'clamp(14px,3vw,14px)',color:'#f5d08a',lineHeight:1.45}}>{ctOffline()?'You are offline, so the Stockfish engine could not load.':'The Stockfish engine did not load in time.'} This is a quick review without it, so the grades are rough and can change.</div>
+              <button data-ct="rev-noengine-retry" onClick={()=>{const pg=review.pgn,mt=review.meta||{userColor:(review.summary&&review.summary.userColor)||null};if(!pg)return;importGame(pg,mt);}} style={{alignSelf:'flex-start',minHeight:44,padding:'0 16px',borderRadius:12,border:'none',background:'var(--ac)',color:'#10131a',fontWeight:800,fontSize:'clamp(14px,3vw,15px)',cursor:'pointer'}}>Grade it again with Stockfish</button>
+            </div>)}
             {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(14px,3vw,15px)',color:'rgba(255,255,255,.8)'}}>📖 <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}{(()=>{const an=review.analysis||[];if(!an.length)return null;const uc=S.userColor; // coach take (#310)
               const _R=review.headers&&review.headers.Result,_ended=String((review.headers&&review.headers.CTEnded)||''),_youLost=!!uc&&((_R==='1-0'&&uc==='b')||(_R==='0-1'&&uc==='w'));   // #549 item (49)
               const mine=(i)=>{const mc=revMover(review,i);return uc?mc===uc:true;};

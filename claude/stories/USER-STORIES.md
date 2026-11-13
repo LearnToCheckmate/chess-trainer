@@ -2385,3 +2385,21 @@ As a player with hundreds of reviewed games and a full drill deck, opening Revie
 - The drill opens within a second. (TC-R223b)
 - Next card answers in under 100 ms. (TC-R223c)
 - Home starts within two seconds on a 4x-throttled phone. (TC-R223d)
+### US-R153 My accounts, cards and streak follow me to every device, and the newer change wins
+*Added #550, docs/accounts-devices-check-2026-11-12 SYN-01..SYN-05; Kunal, 12 Nov: "Batch 10, serious first".*
+As a player signed in on my phone and my computer, the accounts I follow, my drill cards, brilliant moves, streak and rating are the same on both, the newer change wins, and nothing I removed comes back.
+- The accounts I follow and which of them are mine go up with my progress, and a new device fetches each one as soon as it signs in, on whatever screen. (TC-R221a, TC-R221b, TC-R221c)
+- What the account brings is on screen at once, with no reload, and the next backup carries it rather than the device's empty start. (TC-R221d, TC-R221e)
+- A fresh device's untouched defaults never replace the account's values; a newer streak or setting beats an older one, whatever its length. (TC-R221f, TC-R221g, TC-R221h)
+- Drill cards and brilliant moves merge as a union; a card or followed account removed on one device leaves the other too. (TC-R221i, TC-R221j, TC-R221k)
+- A different account signing in on the same device starts clean. (TC-R221l)
+
+### US-R154 When something fails or I am offline, the app says what happened and what to do
+*Added #550, docs/errors-offline-check-2026-11-12 ERR-01..ERR-05, ERR-07; Kunal, 12 Nov: "Batch 10, serious first".*
+As a player on a slow or missing connection, I am told when a review was graded without Stockfish and can grade it again, the engine works offline after one visit, and every failure message is true where I use the app and never asks me to set anything up.
+- A review graded without Stockfish says so on its summary and offers to grade it again; with Stockfish working there is no such notice. (TC-R222a, TC-R222b, TC-R222c)
+- After one visit the engine is already in the offline cache. (TC-R222d)
+- A failed fetch from chess.com or Lichess says whether I am offline, the site answered with an error, or it could not be reached. (TC-R222e)
+- Signing in while offline says it needs a connection. (TC-R222f)
+- When this browser cannot save (storage blocked or full) the app says so. (TC-R222g, TC-R222h)
+- No message mentions Firebase setup, database rules or a preview sandbox. (TC-R222i)
