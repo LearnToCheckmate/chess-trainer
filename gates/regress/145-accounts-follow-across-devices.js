@@ -28,10 +28,14 @@
 //      TC-R221n the running board is drawn in that piece set at once; TC-R221o rated online games, puzzles shown and lessons finished are unions.
 //  (h) SYN-07: TC-R221p a device left open pulls the account again when it is come back to (focus / visibilitychange, 20 s after the last
 //      pull), and TC-R221q its next backup carries the other device's newer engine strength and card instead of rolling them back.
+//  (i) #550 cg5 SYN-11 (the puzzle streak): TC-R221r a fresh device takes the account's streak 5 (best 7) into the running app (its puzzle store)
+//      and TC-R221s no puzzle backup from it carries its own 0; TC-R221t an older device streak (2, three days ago) gives way to the account's
+//      (5, yesterday); TC-R221u a streak broken HERE after the account's was set (0, a minute ago) is the newer change and wins, best the max.
 // KNOW ITS LIMIT: the real Firestore round trip is not exercised (the pull on return is a load, not a live listener); chess.com only. Where the
 // eval bar sits (ct_evalunder) is deliberately left per device until he says otherwise, so it is not asserted.
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=30 red=6 scope=trial:9f4f6f823150 how=#550 SYN-06/07/11 arms on t0, the branch tip before them (faa82a9): TC-R221m (device classic/0/none), n (32 piece pictures), o x2 (one side only), p (2 -> 2 loads, ct_elo 1250), q (saved 1250, card lost) red; the older arms stay green; on t3 450fed03791b 30/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=20 red=10 scope=trial:ee1e228e0899 how=#550 the branch tip before SYN-01..05 (accounts not synced, longer-string rule, whole-list replace, pull not applied to state): TC-R221a,b,c,d,f,g,h,i,j,k red; e and l stay green there (l is SEC-15's wipe, already on the tip: named, not credited; e reads the pushed cards and streak, which the tip also pushes in this input because it is a fresh device: named, not credited); on t2 f9918762b587 20/0
+// CONTROL-RECORD: f41cd92 2026-11-13 total=8 red=3 scope=trial:03e9426693ab how=#550 cg5 SYN-11 block (i) alone (CT_145_BLOCKS=i) on t0, the branch tip f41cd92 (streak never pulled): TC-R221r (device streak 0), TC-R221s (saved [0]), TC-R221t (device 2, saved 2) red; TC-R221u stays green there by design (named, not credited); on t1 f44399342fff 8/0
 const L=require('../lib');
 const PGN=(w,b,d)=>'[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "'+d+'"]\n[White "'+w+'"]\n[Black "'+b+'"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
 async function stub(b){const hits=[];
@@ -54,9 +58,12 @@ const fenN=(i,tag)=>{const [row,off]=ROWS[tag]||[0,0];const r=['8','8','8'];r[ro
 const card=(i,tag)=>({fen:fenN(i,tag),uci:'d1d5',label:'Blunder',played:'Qd2',ts:1791000000000+i,last:null,why:'Qxd5 was stronger.'});
 const SEED={ct_regrade550:{at:1,before:0,after:0,dropped:0},ct_bril_reset_v1:'1',ct_pool:'3'};
 const ymd=(off)=>{const d=new Date();d.setDate(d.getDate()+off);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+// CT_145_BLOCKS=a,i runs only those blocks (a subset is a diagnosis aid; the suite runs every block). Unset: all.
+const ONLY=(process.env.CT_145_BLOCKS||'').split(',').filter(Boolean);const on=(x)=>!ONLY.length||ONLY.indexOf(x)>=0;
 L.run(async()=>{
+  if(ONLY.length)L.note('CT_145_BLOCKS='+ONLY.join(',')+': a SUBSET of this gate ran');
   const doc={};
-  { // (a) device 1 follows two accounts and switched one off; it signs in to an empty account and saves
+  if(on('a')){ // (a) device 1 follows two accounts and switched one off; it signs in to an empty account and saves
     const b=await L.launch({geo:'kunal761',name:'acct145d1',store:Object.assign({},SEED,{ct_accts:['cc:kunal2023','cc:friendx'],ct_acctmine:{'cc:friendx':false},ct_acctasked:{'cc:kunal2023':1,'cc:friendx':1}})});
     await stub(b);await b.open();await signIn(b,null,'gate-uid');
     let p=null;for(let i=0;i<20;i++){await b.settle(500);p=lastProg(await saves(b));if(p&&p.ct_accts)break;}
@@ -64,7 +71,7 @@ L.run(async()=>{
     L.say(ac.indexOf('cc:kunal2023')>=0&&ac.indexOf('cc:friendx')>=0&&am['cc:friendx']===false,'TC-R221a device 1 saves its followed accounts and the "not mine" switch to the account (ct_accts '+JSON.stringify(ac)+', ct_acctmine '+JSON.stringify(am)+')',p&&Object.keys(p));
     mergeInto(doc,await saves(b));L.say(b.errs.length===0,'TC-R221 zero app errors (device 1)',b.errs.slice(0,3));await b.close();
   }
-  { // (b)(c) a fresh device 2 signs in on Home; the account also carries a streak, cards and brilliant moves from device 1
+  if(on('b')){ // (b)(c) a fresh device 2 signs in on Home; the account also carries a streak, cards and brilliant moves from device 1
     doc.ctProgress=Object.assign({},doc.ctProgress||{},{ct_daily:JSON.stringify({date:ymd(-1),count:2,streak:7}),ct_mymistakes:JSON.stringify([card(1,'c'),card(2,'c'),card(3,'c')])});
     const b=await L.launch({geo:'kunal761',name:'acct145d2',store:SEED});const hits=await stub(b);await b.open();await b.settle(800);
     const h0=hits.length;const risk0=await b.page.evaluate(()=>/(^|\D)7\s*DAYS\b/i.test(document.body.innerText));
@@ -81,7 +88,7 @@ L.run(async()=>{
     L.say(pm.length===3&&pd.streak===7,'TC-R221e device 2\'s backup carries the account\'s 3 cards and 7-day streak, not its own pre-pull empties ('+pm.length+' cards, streak '+pd.streak+')',{cards:pm.length,daily:pd});
     L.say(b.errs.length===0,'TC-R221 zero app errors (device 2)',b.errs.slice(0,3));await b.close();
   }
-  { // (d) the newer value wins, not the longer string
+  if(on('d')){ // (d) the newer value wins, not the longer string
     const t0=Date.now()-3*24*3600*1000,t1=Date.now()-3600*1000;
     const acct={ctProgress:{ct_rating:JSON.stringify({r:845,n:9}),ct_daily:JSON.stringify({date:ymd(-1),count:1,streak:7}),ct_elo:'900',
       ct_syncmeta:JSON.stringify({t:{ct_rating:t1,ct_daily:t1,ct_elo:t1},s:{}})}};
@@ -95,7 +102,7 @@ L.run(async()=>{
     L.say(st.e==='900'&&p.ct_elo==='900','TC-R221h the newer engine-strength change (900) wins over this device\'s older 1250 (device '+st.e+', saved '+p.ct_elo+')',{st:st.e,saved:p.ct_elo});
     L.say(b.errs.length===0,'TC-R221 zero app errors (newer wins)',b.errs.slice(0,3));await b.close();
   }
-  { // (e) lists merge as unions that keep removals
+  if(on('e')){ // (e) lists merge as unions that keep removals
     const now=Date.now();const X=card(7,'x');
     const mine=[card(1,'m'),card(2,'m'),card(3,'m'),card(4,'m'),card(5,'m'),X];
     const theirs=[card(1,'t'),card(2,'t'),card(3,'t')];
@@ -118,7 +125,7 @@ L.run(async()=>{
     L.say([...brMine,...brTheirs].every(x=>bb.indexOf(x.fen)>=0),'TC-R221k brilliant moves keep both sides ('+bb.length+' of 3)',bb.length);
     L.say(b.errs.length===0,'TC-R221 zero app errors (unions)',b.errs.slice(0,3));await b.close();
   }
-  { // (f) a different account on the same device starts clean
+  if(on('f')){ // (f) a different account on the same device starts clean
     const b=await L.launch({geo:'kunal761',name:'acct145d5',store:Object.assign({},SEED,{ct_owner:'gate-uid',ct_accts:['cc:kunal2023'],ct_acctmine:{'cc:kunal2023':false},ct_acctasked:{'cc:kunal2023':1},ct_syncmeta:{t:{ct_elo:1},s:{}},ct_mymistakes:[card(1,'u1')]})});
     await stub(b);await b.open();
     await signIn(b,null,'other-uid');await b.settle(2500);   // the ct_owner check wipes and reloads
@@ -129,7 +136,7 @@ L.run(async()=>{
     L.say(left.length===0&&carried.length===0,'TC-R221l a different account signing in on device 1 gets a clean device: nothing of the first player\'s accounts, switches or cards stays or is saved (left '+JSON.stringify(left)+', saved '+JSON.stringify(carried)+')',{left,carried});
     L.say(b.errs.length===0,'TC-R221 zero app errors (second account)',b.errs.slice(0,3));await b.close();
   }
-  { // (g) SYN-06: the board look and eval settings follow the account; SYN-11: rated games, lessons finished and puzzles shown are unions
+  if(on('g')){ // (g) SYN-06: the board look and eval settings follow the account; SYN-11: rated games, lessons finished and puzzles shown are unions
     const t1=Date.now()-3600*1000;
     const acct={ctProgress:{ct_pieceSet:'symbol',ct_hideEval:'1',ct_bot:'astrid',ct_rated:JSON.stringify(['og-acct-1']),ct_pzshown:JSON.stringify({pzA:1}),ct_lessonfin:JSON.stringify({n:1,at:t1,by:{'Italian Game':t1}}),
       ct_syncmeta:JSON.stringify({t:{ct_pieceSet:t1,ct_hideEval:t1,ct_bot:t1,ct_rated:t1,ct_pzshown:t1,ct_lessonfin:t1},s:{}})}};
@@ -151,7 +158,7 @@ L.run(async()=>{
     L.say(Z.pzA&&Z.pzB&&F.by&&F.by['Italian Game']&&F.by['London System'],'TC-R221o puzzles shown and lessons finished keep both devices\' entries ('+st.z+', '+st.f+')',{Z,F});
     L.say(b.errs.length===0,'TC-R221 zero app errors (settings)',b.errs.slice(0,3));await b.close();
   }
-  { // (h) SYN-07: two devices open - coming back to the app pulls the account first, so the copy left open does not roll the cloud back
+  if(on('h')){ // (h) SYN-07: two devices open - coming back to the app pulls the account first, so the copy left open does not roll the cloud back
     const now=Date.now();
     const b=await L.launch({geo:'kunal761',name:'acct145d7',store:Object.assign({},SEED,{ct_elo:'1250',ct_syncmeta:{t:{ct_elo:now-7200*1000},s:{}}})});
     await stub(b);await b.open();await b.settle(800);
@@ -168,5 +175,29 @@ L.run(async()=>{
     L.say(st.loads>l0&&st.e==='900','TC-R221p coming back to the app pulls the account again: the other device\'s newer engine strength (900) is on this one ('+l0+' -> '+st.loads+' loads, ct_elo '+st.e+')',st);
     L.say(p.ct_elo==='900'&&pm.indexOf(card(5,'c').fen)>=0,'TC-R221q and this device\'s next backup carries the other device\'s changes instead of rolling them back (saved ct_elo '+p.ct_elo+', the other device\'s card '+(pm.indexOf(card(5,'c').fen)>=0?'kept':'lost')+')',{elo:p.ct_elo,cards:pm.length});
     L.say(b.errs.length===0,'TC-R221 zero app errors (live pull)',b.errs.slice(0,3));await b.close();
+  }
+  if(on('i')){ // (i) #550 cg5 SYN-11: the puzzle streak follows the account - the newer real change wins, a fresh device's 0 never does, best is the max
+    const PZK='chesstrainer.progress.v1';const yday=Date.now()-24*3600*1000,old=Date.now()-3*24*3600*1000;
+    const pzOf=(sv)=>sv.filter(x=>x&&x.pz).map(x=>x.pz);
+    const run=async(name,dev,acctPz)=>{const b=await L.launch({geo:'kunal761',name,store:Object.assign({},SEED,dev?{[PZK]:dev}:{})});await stub(b);await b.open();await b.settle(1200);
+      const pre=await b.page.evaluate((k)=>localStorage.getItem(k),PZK);
+      await signIn(b,{ctProgress:{},pz:acctPz},'gate-uid');let st=null;
+      for(let i=0;i<12;i++){await b.settle(500);st=J(await b.page.evaluate((k)=>localStorage.getItem(k),PZK))||{};if(st.streak===acctPz.streak)break;}
+      await b.settle(2500);st=J(await b.page.evaluate((k)=>localStorage.getItem(k),PZK))||{};const ps=pzOf(await saves(b));const errs=b.errs.slice(0,3);await b.close();return {pre,st,ps,errs};};
+    { const r=await run('acct145d8',null,{solved:{},streak:5,streakAt:yday,best:7,xp:60,online:0,onlineIds:{}});
+      L.say(r.pre==null||(J(r.pre)||{}).streak===0||(J(r.pre)||{}).streak==null,'TC-R221r PRECONDITION the fresh device starts with no streak of its own ('+r.pre+')',r.pre);
+      L.say(r.st.streak===5&&r.st.best===7,'TC-R221r a fresh device signing in takes the account\'s puzzle streak 5 (best 7) into the running app (device store streak '+r.st.streak+', best '+r.st.best+')',r.st);
+      const zero=r.ps.filter(x=>x.streak!==5);
+      L.say(r.ps.length>0&&zero.length===0,'TC-R221s and its puzzle backup never writes its own 0 over the account\'s 5 ('+r.ps.length+' puzzle saves, streaks '+JSON.stringify(r.ps.map(x=>x.streak))+')',r.ps.map(x=>({s:x.streak,at:x.streakAt})));
+      L.say(r.errs.length===0,'TC-R221 zero app errors (streak, fresh device)',r.errs); }
+    { const r=await run('acct145d9',{solved:{},streak:2,streakAt:old,best:2,xp:10,online:0,onlineIds:{}},{solved:{},streak:5,streakAt:yday,best:7,xp:60,online:0,onlineIds:{}});
+      const last=r.ps[r.ps.length-1]||{};
+      L.say(r.st.streak===5&&r.st.best===7&&last.streak===5,'TC-R221t a device whose streak (2, three days ago) is older than the account\'s (5, yesterday) takes the account\'s, and backs it up (device '+r.st.streak+', best '+r.st.best+', last saved '+last.streak+')',{st:r.st,last});
+      L.say(r.errs.length===0,'TC-R221 zero app errors (streak, older device)',r.errs); }
+    { // the other direction: this device missed a puzzle a minute ago, which is newer than the account's streak of 5 - its 0 is a real change and wins; best stays the max
+      const r=await run('acct145d10',{solved:{},streak:0,streakAt:Date.now()-60000,best:3,xp:10,online:0,onlineIds:{}},{solved:{},streak:5,streakAt:yday,best:7,xp:60,online:0,onlineIds:{}});
+      const last=r.ps[r.ps.length-1]||{};
+      L.say(r.st.streak===0&&r.st.best===7&&last.streak===0&&last.best===7,'TC-R221u a streak broken on this device after the account\'s was set (0, a minute ago) is the newer change and wins; best is the max of both, 7 (device '+r.st.streak+'/'+r.st.best+', saved '+last.streak+'/'+last.best+') [named, not credited: the tip also keeps it, since it never pulled the streak]',{st:r.st,last});
+      L.say(r.errs.length===0,'TC-R221 zero app errors (streak, newer device)',r.errs); }
   }
 },'145-accounts-follow-across-devices');
