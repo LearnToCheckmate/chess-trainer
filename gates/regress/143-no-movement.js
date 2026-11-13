@@ -22,8 +22,8 @@
 // little from his, the mechanism does not depend on them. 1230x1512 has a whole-number viewport and shook anyway (fractional rows) on the
 // checker's run; it is read here as a size, not as a fractional-viewport case. MOV-05..09 (lesson note, Play rail, puzzle hint line,
 // puzzle header, tab padding) are not covered here.
-// CONTROL-RECORD: 34a4a6d 2026-11-13 total=TOTAL red=RED scope=trial:9812f33cea74 how=the branch tip before the change (no sub-pixel rule in _fitOver, no shrink memory in the fit loop, the sideways counter content-sized, the comparison strip reserved only where it renders); on FIXED N/0
-// HALF-FIX RECORD: HALF
+// CONTROL-RECORD: 34a4a6d 2026-11-13 total=76 red=25 scope=trial:9812f33cea74 how=the branch tip before the change (no sub-pixel rule in _fitOver, no shrink memory in the fit loop, the sideways counter content-sized, the comparison strip reserved only where it renders): 820/804 with 18 changes per tap at all five windows and 651.03/667.03 at 960x971 (TC-R219a/b/f red), buttons 6.09px and counter 8px at 1440x780 and 761x375 (c/d red), rev-why 34/54 and the graph 20px (e red); on t2 366455f018b8 76/0
+// HALF-FIX RECORD: the fit loop's shrink memory alone (no sub-pixel rule, MOV-03/04 not applied), trial 9dc62b591b92: total=76 red=14 - every TC-R219a green (0 changes: the loop stops at the smaller trim and does not flip), every TC-R219b/f red (the board holds 804, 651.03), c/d/e red - so the cause fix and the anti-flip memory are each pinned by their own case.
 const L=require('../lib');
 const R=require('../drive/review');
 const sample=(b,ms)=>b.page.evaluate((ms)=>new Promise(res=>{const s=[];const t0=performance.now();
