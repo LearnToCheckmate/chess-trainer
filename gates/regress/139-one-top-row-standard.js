@@ -30,6 +30,7 @@
 // CONTROL-RECORD: faa82a9 2026-11-12 total=385 red=82 scope=trial:9f4f6f823150 how=#550 formatting audit, the rest (TC-R215i..r): the branch tip before it (HEAD faa82a9, built as t0) - no menu and a 119x44 / 102x44 back at 4 on the puzzle pages and drills (i 28 red), the top row at 13, 8, 51.5, 66 and 84 (j 30), 30x30 and 32x32 sheet X and titles 15 to 21 in two fonts (l 6), four solid-coloured online actions (m 1), gutters 18 and 3.8 (n 8), radius 11 and a 59.6 Gambits row (o 2), five section-label styles (p 1), tabs 43, code box 38 and counter 39 (q 5), footer 50/52 and Start game 48 (r 1) - every new case red, a..h and every precondition green; on 8034b0e23279 and on the final d2b943f841ec 401/0
 // CONTROL-RECORD: 3bcb406 2026-11-13 total=9 red=2 scope=env:CT_139_CG_ONLY=1 how=#550 cg8 (jobs/formatting-audit-p1s-2026-11-12 FMT-B-02): the branch tip's tree (trial 85be94e89bc2, the fit loop on the lobby) - TC-R215s 'the lobby board is the screen width' red at kunal761 (337 at x 19) and 320x568 (192 at x 64); the PRECONDITIONS, Join-reachable and error lines green. On t2 ece1e34c6e1c 9/0
 // CONTROL-RECORD: a4772ec 2026-11-13 total=26 red=10 scope=env:CT_139_CG_ONLY=1 how=#550 cg6 (jobs/formatting-audit-p2-p3-2026-11-12 A-07/A-08/A-09/A-11/B-06/B-08): the branch tip's tree (trial 85be94e89bc2) - TC-R215t x3 (note box and moves panel 8, Account sheet 18 and Pro card 14, Solved box 10), u (note 3.8..371.3 against 0..375), v (Try again rgb(74,103,65) against Flip's white 8%), w (lobby labels 14px/700/0.5px against 12.5px/700/1px), x (Sign in 42), y (chips 27) red, with cg8's two TC-R215s board lines; the PRECONDITIONS and error lines green. On t3 e5f06132dab0 26/0
+// CONTROL-RECORD: fa4ab50 2026-11-13 total=29 red=1 scope=env:CT_139_CG_ONLY=1 how=#550 helper B (jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-under-44-2026-11-13, FMT-B-06's summary chips): the branch tip's tree (f901598, trial 1b47cb7113e5) - TC-R215z red (Train this opening and Sharpen with puzzles, box 28, both missed 21.5 above and below the centre); its PRECONDITION, the error line and every older cg line green. On t2 369fa0924e37 29/0, the summary's card (193..325.5), chips (286.5..314.5) and the block under it (341.5) at the same place on both bundles
 const L=require('../lib');
 const H=require('../drive/home'),D=require('../drive/lesson'),Z=require('../drive/puzzles'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu');
 const fs=require('fs'),path=require('path');
@@ -117,6 +118,20 @@ L.run(async()=>{
    L.say(ok&&c.length>0,'TC-R215y Review More sheet kunal761 PRECONDITION the count chips are found by their words ('+c.length+')',c);
    L.say(c.length>0&&c.every(h=>h>=43.5),'TC-R215y Review More sheet kunal761 the count chips are 44 tap areas ('+c.join(', ')+')',c);
    L.say(b.errs.length===0,'TC-R215y Review More sheet zero app errors',b.errs.slice(0,3));await b.close();}
+  // ── TC-R215z [#550 helper B, jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-under-44-2026-11-13, FMT-B-06's other half]: the Review
+  //    summary's coach chips 'Train this opening' and 'Sharpen with puzzles' were 28 tall at kunal761. Each is found by its words, scrolled to
+  //    the middle of the summary's scroller, and hit-tested 21.5 above and below its centre: both points must answer with the chip (a 44 tap
+  //    area). The chip's own box may stay 28 - the fix is a tap area, so nothing on the summary moves; the box heights are printed.
+  {const b=await L.launch({geo:'kunal761',name:'top139-cgB-chips',store:{ct_pool:'3'}});await b.open();let ok=true;try{await R.states.summary(b);await b.settle(800);}catch(e){ok=false;}
+   const c=[];for(const re of ['^Train this opening$','^Sharpen with puzzles$']){
+     const r=await b.page.evaluate((src)=>{const x=[...document.querySelectorAll('button')].find(e=>new RegExp(src).test((e.innerText||'').trim())&&e.getBoundingClientRect().width>0);if(!x)return null;
+       x.scrollIntoView({block:'center'});const q=x.getBoundingClientRect();const cx=q.left+q.width/2,cy=q.top+q.height/2;
+       const hit=(y)=>{const h=document.elementFromPoint(cx,y);return !!h&&(h===x||x.contains(h));};
+       return {name:src.replace(/[\^$]/g,''),h:+q.height.toFixed(1),up:hit(cy-21.5),dn:hit(cy+21.5)};},re);
+     if(r)c.push(r);}
+   L.say(ok&&c.length>=1&&c.some(x=>x.name==='Sharpen with puzzles'),'TC-R215z Review summary kunal761 PRECONDITION the coach chips are found by their words ('+c.map(x=>x.name).join(', ')+')',c);
+   L.say(c.length>0&&c.every(x=>x.up&&x.dn),'TC-R215z Review summary kunal761 the coach chips are 44 tap areas - a tap 21.5 above and below the centre lands on the chip ('+c.map(x=>x.name+' box '+x.h+(x.up&&x.dn?' ok':' MISSED'+(x.up?'':' above')+(x.dn?'':' below'))).join('; ')+')',c);
+   L.say(b.errs.length===0,'TC-R215z Review summary zero app errors',b.errs.slice(0,3));await b.close();}
   if(process.env.CT_139_CG_ONLY)return;   // CT_139_CG_ONLY=1 runs the #550 cg blocks (TC-R215s..) alone
   const fams=new Set();
   for(const [gn,geo] of GEOS)for(const [nm,go,title,hasBack] of SCREENS){const tag=nm+' '+gn;
