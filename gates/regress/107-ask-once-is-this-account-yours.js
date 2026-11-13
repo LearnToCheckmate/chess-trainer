@@ -31,8 +31,22 @@ async function fetchAcct(b,name){
   try{await b.page.locator('[data-ct="acct-chips"]').waitFor({state:'visible',timeout:20000});}catch(e){}
   await b.settle(1500);
 }
-const ask=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="acct-ask"]');if(!e)return null;const r=x=>{const q=x.getBoundingClientRect();return {l:Math.round(q.left),r:Math.round(q.right),h:Math.round(q.height)};};
-  const y=e.querySelector('[data-ct="acct-ask-yes"]'),n=e.querySelector('[data-ct="acct-ask-no"]');return {txt:e.innerText.replace(/\s+/g,' '),yes:y?r(y):null,no:n?r(n):null,vw:innerWidth};});
+// #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: the question is located by WHAT IT SAYS
+// ("Is <name> your account?", painted) and its answers by their wording; the hooks acct-ask / acct-ask-yes / -no, added in the same
+// build as this gate, are a fallback only. Keyed on the hook alone, every "the question is gone" / "does not ask again" line read
+// PASS on any bundle where the question still showed under another name - the #432 costume (an absence check through the fix's hole).
+const ask=(b)=>b.page.evaluate(()=>{const vis=x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0;};
+  const leaf=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Is \S+ your account\?$/.test((x.textContent||'').trim())&&vis(x));
+  let e=null;if(leaf){e=leaf.parentElement;while(e&&e.querySelectorAll('button').length<2)e=e.parentElement;}
+  if(!e)e=document.querySelector('[data-ct="acct-ask"]');if(!e)return null;
+  const r=x=>{const q=x.getBoundingClientRect();return {l:Math.round(q.left),r:Math.round(q.right),h:Math.round(q.height)};};
+  const bt=[...e.querySelectorAll('button')];
+  const y=bt.find(x=>/^Yes, it.s mine$/.test((x.innerText||'').trim()))||e.querySelector('[data-ct="acct-ask-yes"]'),n=bt.find(x=>/^No$/.test((x.innerText||'').trim()))||e.querySelector('[data-ct="acct-ask-no"]');
+  return {txt:e.innerText.replace(/\s+/g,' '),yes:y?r(y):null,no:n?r(n):null,vw:innerWidth,byText:!!leaf};});
+const tapAnswer=(b,answer)=>b.page.evaluate((a)=>{const re=a==='yes'?/^Yes, it.s mine$/:/^No$/;
+  const leaf=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Is \S+ your account\?$/.test((x.textContent||'').trim()));
+  let e=leaf&&leaf.parentElement;while(e&&e.querySelectorAll('button').length<2)e=e.parentElement;
+  const t=(e?[...e.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())):null)||document.querySelector('[data-ct="acct-ask-'+a+'"]');if(!t)return false;t.click();return true;},answer);
 const store=(b,k)=>b.page.evaluate((k)=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(e){return null;}},k);
 L.run(async()=>{
   for(const [geo,answer] of [['kunal761','no'],['se','yes']]){
@@ -44,7 +58,7 @@ L.run(async()=>{
     L.say(!!q&&/Is friendacct your account\?/.test(q.txt)&&!!q.yes&&!!q.no,geo+': TC-R188a the question "Is friendacct your account?" is on screen with Yes and No ("'+(q&&q.txt.slice(0,90))+'")',{q});
     L.say(!!q&&!!q.yes&&!!q.no&&q.yes.h>=44&&q.no.h>=44&&q.yes.l>=0&&q.no.r<=q.vw,geo+': TC-R188a both answers are at least 44px tall and inside the '+(q&&q.vw)+'px width',{q});
     if(q&&q.yes&&q.no){
-      await b.page.locator('[data-ct="acct-ask-'+answer+'"]').click();await b.settle(500);
+      await tapAnswer(b,answer);await b.settle(500);
       const mine=await store(b,'ct_acctmine'),gone=!(await ask(b));
       const pressed=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="acct-mine"]');return e?e.getAttribute('aria-pressed'):null;});
       if(answer==='no')L.say(gone&&!!mine&&mine['cc:friendacct']===false&&pressed==='false',geo+': TC-R188b No switches the account off (ct_acctmine '+JSON.stringify(mine)+', the chip\'s switch aria-pressed '+pressed+') and the question is gone',{mine,pressed,gone});
@@ -63,3 +77,4 @@ L.run(async()=>{
    L.say(!(await ask(b)),'kunal761: TC-R188c an account imported before (already on the list) is not asked about');
    await b.close();}
 },'107-ask-once-is-this-account-yours');
+// CONTROL-RECORD: 4a79a54 2026-11-13 total=15 red=3 scope=trial:0100b5a554d7 how=#550 #432 sweep (acct-ask re-keyed by its words): c1, acct-ask/-yes/-no renamed AND the question asked on every fetch (the ct_acctasked and already-listed checks removed) - TC-R188b/c 'a second Fetch does not ask again' x2 and TC-R188c 'already on the list is not asked' red; the hook-keyed version (55ca2c7) on the same bundle is 7/4 with those three GREEN; on t0 6c4245e05ecc 15/0

@@ -179,8 +179,13 @@ L.run(async()=>{
   await b.shot('takeback-'+geo+'-'+(C.pool||'unset')+'-after');
 
   // the sheet closed behind it, so the board is reachable again
-  const sheetGone=await b.rect('[data-ct="more-sheet"]');
-  L.say(!sheetGone,T+'the More sheet closes behind a takeback (it is zIndex 9990 and would cover the board)');
+  // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: the sheet is found by its STRUCTURE and
+  // WORDING - a fixed full-screen layer carrying the Takeback row - with the hook more-sheet (added in #378, this assertion's own build)
+  // as a fallback only. Keyed on the hook alone this absence line read "closed" on any bundle whose sheet stayed up under another name.
+  const sheetUp=await b.page.evaluate(()=>{const h=document.querySelector('[data-ct="more-sheet"]');if(h&&h.getBoundingClientRect().height>0)return true;
+    return [...document.querySelectorAll('body *')].some(d=>{if(getComputedStyle(d).position!=='fixed')return false;const r=d.getBoundingClientRect();
+      return r.width>=innerWidth-1&&r.height>=innerHeight-1&&/(^|\n)\s*Takeback\s*(\n|$)/.test(d.innerText||'');});});
+  L.say(!sheetUp,T+'the More sheet closes behind a takeback (it is zIndex 9990 and would cover the board)');
 
   // Back at move 0 by way of a takeback: the row must go disabled again. This is the DETERMINISTIC proof that
   // the enabled state tracks the position rather than being latched on when the game starts.
@@ -243,3 +248,4 @@ L.run(async()=>{
   L.say(bad2.length===0,'no app error beyond the allowed engine trap in Pass & Play',bad2.slice(0,2));
   await b2.close();
 },'TAKEBACK');
+// CONTROL-RECORD: 342b80e 2026-11-13 total=81 red=7 scope=trial:851ae98b9f35 how=#550 #432 sweep (More sheet found by structure and its Takeback row): c2, more-sheet renamed AND a takeback leaves the sheet up - 'the More sheet closes behind a takeback' red at all six runs, plus se's disabled-again line; the hook-keyed version (55ca2c7) is 80/1 with all six GREEN; on t0 6c4245e05ecc 81/0
