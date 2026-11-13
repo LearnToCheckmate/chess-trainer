@@ -7,6 +7,7 @@
 //   A-12 toggling Moves in a live game leaves the board's width and top unchanged (panel reserves its space)
 //   TC-PL-044 (#547) at 375x640 the setup sheet's build line is one line, uncut, and ends with the stamp's (src <12 hex>)
 // A-09 (rank-8 badge) is asserted by 20-review.js TC-R07; X-07 (wrong-move text) by the puzzles drive when it lands.
+// CONTROL-RECORD: 62be827 2026-11-13 total=39 red=2 scope=trial:5d648bc20064 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 30's A-11/A-12 live game moved off card k8 onto drive/play.js cpu-4ply): the Play board 8px narrower - A-12's width pin red at kunal (345 vs 353) and 390 (382 vs 390); with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 39/0 on the new route; on 77ffccc15668 39/0 by both routes, PASS/FAIL lines identical except the kunal A-12 pin, 375 on the card's dev-only 'demo' opponent and 353 against the computer, re-pinned
 'use strict';
 const L=require('../lib');
 const gridSig=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return '';return [...g.children].slice(0,64).map(c=>{const im=c.querySelector('img');return im?im.getAttribute('src').slice(-12):'';}).join('|');});
@@ -38,7 +39,10 @@ L.run(async()=>{
     L.say(!!bl&&bl.y+bl.h<=b.geo.h+0.5,geo+': A-13 the build line is on screen (bottom '+(bl&&Math.round(bl.y+bl.h))+')',bl);
     await b.shot('p1-'+geo+'-setup-passplay');
     // A-12 + A-11 in a live game (card k8: four plies, then toggle Moves twice)
-    await b.card('k8',6500);const m0=await b.metrics();
+    // THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-
+    // 2026-10-01]. This was b.card('k8',6500) (a scripted four-ply game); it is now gates/drive/play.js states['cpu-4ply']: Home ->
+    // Play -> Computer (Pip) -> Start, 1.e4, the reply, 2.Nf3, the reply - the same four-ply live game, played the way a player plays it.
+    await require('../drive/play').states['cpu-4ply'](b);const m0=await b.metrics();
     /* fb-controls (#378): Analyze and Copy moves are rows in the More sheet now, not chips in the MOVES row.
        A-11 MOVES WITH THEM rather than being deleted - the rule it guards (a tap target is at least 40px) did
        not stop applying because the control moved. Measured with the sheet OPEN, since that is the only state
@@ -63,7 +67,10 @@ L.run(async()=>{
     // still has nothing proving it can fail.
     // #548 item (92) MOVED IT: the phone's top row took the strip under the board's place, so at 375x679 the board is 367 (was 351) - the same
     // figure gates 10 and 13 were re-pinned to; 390x844 stays 390. Caught red in #548's round-1 suite.
-    const A12={kunal:375,   /* #550 re-keyed: 367 -> 375 at 375x679, measured on t163 7719e5a7fd39 (the board is full width, as gate 13's card k8) */ '390':390};
+    // #550 THE PLAYER'S ROUTE RE-KEYS IT [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the live game is now
+    // a game against the computer (drive/play.js cpu-4ply), whose top bar names the bot, so at 375x679 the board is 353 - measured on
+    // 77ffccc15668 after the toggle - where the dev card's 'demo' opponent, a configuration no player can choose, read 375. 390x844 stays 390.
+    const A12={kunal:353,   /* was 375 on card k8:    /* #550 re-keyed: 367 -> 375 at 375x679, measured on t163 7719e5a7fd39 (the board is full width, as gate 13's card k8) */ '390':390};
     if(A12[geo]!=null)L.say(!!m2.board&&Math.abs(m2.board.w-A12[geo])<0.6,geo+': A-12 the board is '+A12[geo]+' wide after the toggle, the measured size - not merely the same as before it',{measured:m2.board&&m2.board.w,want:A12[geo]});
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
     L.say(m2.over.over<=0,geo+': A-12 no scroll after toggling',m2.over);
