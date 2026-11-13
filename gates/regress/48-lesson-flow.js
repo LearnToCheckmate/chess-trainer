@@ -820,7 +820,7 @@ L.run(async()=>{
     try{ await D.tapBtn(b,/^Try again$/,800); }catch(e){ againTappable=false; }
     L.say(againTappable,geo+': the ↻ Try again control is present and tappable at all - asserted separately, because the two below cannot mean anything if it is not',{tappable:againTappable});
     if(againTappable){
-      L.say(await bar(b)==='0%'&&/^Your move/.test((await D.noteText(b))||''),
+      L.say(await bar(b)==='0%'&&/^(\u{1F4A1}.*?[.!?]\s*)?Your move/u.test((await D.noteText(b))||'') /* #550 jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: with hints on, the hint's words lead the note on their own line */,
         geo+': ↻ Try again puts the lesson back to move 0 - bar at 0% and the note back to the prompt',{bar:await bar(b),note:((await D.noteText(b))||'').slice(0,30)});
       L.say(JSON.stringify(await hintSquares(b))==='["e2","e4"]',geo+': with the hint back on the first move',await hintSquares(b));
     } else {
@@ -832,7 +832,7 @@ L.run(async()=>{
     await b.move('e2','e4',1500);
     L.say((await position(b))!==pos0,geo+': 1.e4 IS the book move, so the position changes',{changed:(await position(b))!==pos0});
     L.say(await bar(b)==='20%',geo+': the progress bar advances to 20% - one of the five moves Kunal plays in this ten-ply line',await bar(b));
-    L.say(/^✓ e4/.test((await D.noteText(b))||''),geo+': and the note confirms it',((await D.noteText(b))||'').slice(0,40));
+    L.say(/^(\u{1F4A1}.*?[.!?]\s*)?✓ e4/u.test((await D.noteText(b))||''),geo+': and the note confirms it',((await D.noteText(b))||'').slice(0,40));
     L.say(JSON.stringify(await hintSquares(b))==='["f3","g1"]',geo+': and the hint has MOVED ON to the next book move, Nf3 (g1-f3) - a hint that stayed on e2/e4 would still count two squares and be wrong',await hintSquares(b));
     const pAfter=await b.metrics();
     L.say(!!pAfter.board&&near(pAfter.board.w,Pr.w)&&near(pAfter.board.top,BOARD_TOP,1),
