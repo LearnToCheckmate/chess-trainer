@@ -223,3 +223,4 @@ L.run(async()=>{
   const over=table.filter(r=>r['375x761 real']&&r['375x761 real'].largest>60).map(r=>r.label);
   L.note('    OVER 60px at 375x761 real (REPORTED, not asserted): '+over.length+' of '+table.length+(over.length?' - '+over.join(', '):''));
 },'77-empty-bands');
+// CONTROL-RECORD: 2eda297 2026-11-13 total=129 red=4 scope=trial:bccde4af4e6d how=#550 lead: t181, the tree before the brilliant drill took the goal reserve - TC-S07 drill brilliant asked/wrong/hint/solved red at 375x761 real (86.2px band at 587.8-674); with the reserve on phones >=740 tall (t183 d3fde42f0182) 129/0, gate 72 357/0, gate 123 21/0
