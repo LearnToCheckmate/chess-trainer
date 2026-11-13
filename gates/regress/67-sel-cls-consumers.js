@@ -412,7 +412,8 @@ L.run(async()=>{
   const G_GOAL_RE=/you played\s+(\S+)\s+here,\s+(an?)\s+([A-Za-z]+)\.\s*Find the stronger move\./;
   const G_FEN='4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1';
   const gRows=(label)=>[{fen:G_FEN,uci:'b2b7',label,played:'Kd1',ts:1791000000000,last:null,
-    why:'the queen gets behind the pawn',hint:'look up the file'}];
+    why:'the queen gets behind the pawn',hint:'look up the file',
+    wc:{g:'Mistake',drop:15,v:1} /* #550 a41: a drill card with no re-grade is re-graded on load and dropped unless it is a Mistake or Blunder; the goal sentence reads the stored LABEL (drillGrade(m.label)), so this keeps the card on the deck without changing what is under test */}];
   //
   // SIX INPUTS, AND EACH ONE ASKS A DIFFERENT QUESTION. FOUR praise grades are the defect itself: every one is
   // a label a #440/#441-era bundle could and did store, because it filtered the pool on `sel` and stored
@@ -534,7 +535,7 @@ L.run(async()=>{
   // (flags/testlane-assert-absence-needs-two-checks) is that "X is absent" must be preceded by proof that
   // the screen was there to read at all - otherwise a card that never opened reports the defect cured.
   const gbRows=[{fen:G_FEN,uci:'b2b7',label:'Brilliant',played:'Kd1',ts:1791000000000,last:null,
-                 why:'the queen gets behind the pawn',hint:'look up the file'}];
+                 why:'the queen gets behind the pawn',hint:'look up the file',wc:{g:'Mistake',drop:15,v:1} /* #550 a41, as gRows */}];
   const bgB=await L.launch({geo:L.GEOS.kunal761,name:'selcls-legacy-Brilliant',store:{ct_mymistakes:gbRows,ct_pool:'3'}});
   let gbTxt='',gbErr=null;
   try{
