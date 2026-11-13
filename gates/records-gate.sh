@@ -26,6 +26,10 @@
 #   NOT DONE HERE: part (4)'s population with gates/verify-log.sh --citations-selftest, gates/verify-log-selftest.sh,
 #                  gates/audit/cited-not-run.sh, gates/audit/verify-patch-set.sh and a gates/held.sh --selftest
 #                  that does not yet exist. Four of those five are other lanes' artefacts under R44.
+#                  [DONE IN PART SINCE, #550: `--harnesses` runs verify-log-selftest.sh (and held/buildnum) under a count
+#                  ratchet, and `--checks` (gates/door-checks.sh) runs the --selftest of verify-log --citations, of
+#                  cited-not-run.sh and of verify-patch-set.sh. cited-not-run.sh's REPORT and verify-log --citations are
+#                  RED on the tree that wired this and are out until cleared; door-checks.sh's header has the figures.]
 #
 # SO THE WHOLE DISCIPLINE OF THIS COMMIT IS THAT IT CHANGES NO BEHAVIOUR, AND THAT IS A MEASUREMENT RATHER THAN
 # AN INTENTION. The body below is the block from gates/fastgate.sh lines 302-493 at origin/main b3767c4, moved
@@ -76,6 +80,7 @@ usage(){
   echo "       gates/records-gate.sh --entries     # print the ratcheted entry list, one 'MODE<tab>path' per line"
   echo "       gates/records-gate.sh --selftest    # the controls, as a command rather than a paragraph"
   echo "       gates/records-gate.sh --harnesses [--write|--selftest]   # held/verify-log/buildnum selftests under a case-count ratchet (#550)"
+  echo "       gates/records-gate.sh --checks [--selftest|--list]   # part (4)'s first population: citations/cited-not-run/verify-patch-set selftests (#550)"
   echo "exit 0 = every ratcheted record grew or was untouched; 1 = one was CHANGED; 2 = this door could not run."
 }
 
@@ -125,6 +130,7 @@ entries_ratchet(){
 
 case "${1:-}" in
   --harnesses) shift; exec bash "$HERE/harness-counts.sh" "$@" ;;   # #550 item (104): part (4)'s three push-check harnesses under a case-count ratchet
+  --checks)    shift; exec bash "$HERE/door-checks.sh" "$@" ;;      # #550: part (4)'s first population - checks that must exit clean
   --entries)  : ;;                       # handled after the lists are defined, below
   --selftest) : ;;
   -h|--help)  usage; exit 0 ;;

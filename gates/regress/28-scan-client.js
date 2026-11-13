@@ -240,7 +240,11 @@ L.run(async()=>{
   // ── The three rejection paths. TC-SC-024 is the standing control for #392 and must be kept. ──
   const b3=await L.launch({geo:'kunal730',name:'scan-rejects',store:{ct_pool:'3'}});await b3.open();
   const r3=await caseMsg(b3,'reject',{code:'functions/not-found',message:'not-found'});
-  L.say(!!r3.m&&/not set up yet/.test(r3.m),'TC-SC-024 a not-found rejection STILL gets the #392 deploy message - the standing control for #392: if the /not-found|unimplemented/ test in the catch is ever broken, this goes red (PART 6.3 row 7)',r3.m);
+  // #550: 09497fd (TXT-13, "no message tells a player about the server setup") reworded the deploy message from "... not set up
+  // yet ..." to "Board scanning is not available right now. Set the position up by hand." and left this pin on the old words, so
+  // TC-SC-024 was red on the branch tip. Re-pinned to the new sentence; it still separates the not-found path from the generic
+  // "Could not read the board right now" retry text, which is what makes it #392's control.
+  L.say(!!r3.m&&/not available right now\. Set the position up by hand/.test(r3.m),'TC-SC-024 a not-found rejection STILL gets the #392 deploy message - the standing control for #392: if the /not-found|unimplemented/ test in the catch is ever broken, this goes red (PART 6.3 row 7)',r3.m);
   const r4=await caseMsg(b3,'reject',{code:'functions/unauthenticated',message:'Sign in to read a board.'});
   L.say(!!r4.m&&/[Ss]ign in/.test(r4.m),'TC-SC-025 an unauthenticated rejection keyed on the CODE gets the sign-in message, not the generic retry text (R-BS-4, shipped #405 - this is its only guard, and the spec\'s own row quotes neither string, which is flag spec-gate-d6-tracker-R-BS-4)',r4.m);
   const r5=await caseMsg(b3,'reject',{code:'functions/internal',message:'The board reader is not answering right now. Try again in a moment.'});
@@ -299,6 +303,10 @@ L.run(async()=>{
   // the app reads the photo as shot (A: camera on White's side) and turned 180 degrees (B: camera on Black's side).
   // Same placement both ways: taken. Different: the player is asked which side the camera was on
   // (flags/amber-549-scan-ask-which-side). The double answers call 0 with A and call 1 with B.
+  // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: every read of the question below finds it
+  // by WHAT IT SAYS ("Which side of the board was the camera on?", painted) and takes its box; the hook scan-ask, added in the same build
+  // (#549) as these assertions, is a fallback only. Keyed on the hook alone, TC-SC-040/045/048 ("no question", "the question is gone")
+  // read PASS on any bundle that still asked under another name - the #432 costume.
   // CONTROLLED (the two CONTROL-RECORD lines at the top): the HEAD 94d9a75 bundle reddens 014 039 041 042 043 044
   // 046; a bundle whose agreement test is forced true reddens 041 042 043 044 046. SAID OUT LOUD rather than counted:
   // 040, 045, 047 and 048 stay green on BOTH controls - 040 and 048 are the unchanged paths, 045 is "the question is
@@ -308,7 +316,7 @@ L.run(async()=>{
   const FB='rnbqk2r/pppp1ppp/5n2/2b1p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 0 4';
   const b6=await L.launch({geo:'kunal761',name:'scan-orient',store:{ct_pool:'3'}});await b6.open();
   const orient=async(payloads)=>{ await P.states['setup'](b6); await b6.settle(200); await signIn(b6); await b6.settle(250); await stub(b6,'seq',payloads); await feed(b6,FILE2); await b6.settle(1200);
-    return {calls:await b6.page.evaluate(()=>window.__scan.calls.slice()),ask:await b6.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-ask"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}),txt:await screenText(b6),m:await msg(b6)}; };
+    return {calls:await b6.page.evaluate(()=>window.__scan.calls.slice()),ask:await b6.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}),txt:await screenText(b6),m:await msg(b6)}; };
   const landed=(t)=>/Continuing from your reviewed position/.test(t);
   // (1) the two readings AGREE
   const o1=await orient([{fen:FA,ok:true},{fen:FA,ok:true}]);
@@ -319,13 +327,13 @@ L.run(async()=>{
   const b7=await L.launch({geo:'kunal761',name:'scan-orient2',store:{ct_pool:'3'}});await b7.open();
   await P.states['setup'](b7); await b7.settle(200); await signIn(b7); await b7.settle(250);
   await stub(b7,'seq',[{fen:FA,ok:true},{fen:FB,ok:true}]); await feed(b7,FILE2); await b7.settle(1200);
-  const ask2=await b7.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-ask"]');if(!e)return null;const bt=[...e.querySelectorAll('button')].map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),h:Math.round(r.height*100)/100,r:Math.round(r.right*100)/100};});return {t:(e.innerText||'').replace(/\s+/g,' ').trim(),bt,vw:innerWidth};});
+  const ask2=await b7.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();if(!e)return null;const bt=[...e.querySelectorAll('button')].map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),h:Math.round(r.height*100)/100,r:Math.round(r.right*100)/100};});return {t:(e.innerText||'').replace(/\s+/g,' ').trim(),bt,vw:innerWidth};});
   const t2=await screenText(b7);
   L.say(!!ask2&&/Which side of the board was the camera on\?/.test(ask2.t),'TC-SC-041 when the two readings DISAGREE the player is ASKED which side of the board the camera was on',ask2&&ask2.t);
   L.say(!landed(t2),'TC-SC-042 ... and NEITHER reading has been set up behind the question - the mirror is not taken silently, which is the defect the job exists for',{landed:landed(t2)});
   L.say(!!ask2&&ask2.bt.length===2&&ask2.bt[0].t==="White's side"&&ask2.bt[1].t==="Black's side"&&ask2.bt.every(x=>x.h>=44&&x.r<=ask2.vw+0.5),'TC-SC-043 ... with exactly two answers, White\'s side and Black\'s side, each at least 44px tall and inside the viewport',ask2&&ask2.bt);
   await b7.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b7.settle(900);
-  const t3=await screenText(b7); const ask3=await b7.page.evaluate(()=>!!document.querySelector('[data-ct="scan-ask"]'));
+  const t3=await screenText(b7); const ask3=await b7.page.evaluate(()=>!!(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})());
   L.say(landed(t3)&&/You'll play\s*Black\s*\(the side to move\)/.test(t3),'TC-SC-044 answering Black\'s side sets up reading B - the one taken from the turned photo (its FEN has Black to move, reading A\'s has White)',{landed:landed(t3),black:/You'll play\s*Black/.test(t3)});
   L.say(ask3===false,'TC-SC-045 ... and the question is gone once it is answered',ask3);
   await b7.close();
@@ -333,7 +341,7 @@ L.run(async()=>{
   const b8=await L.launch({geo:'kunal761',name:'scan-orient3',store:{ct_pool:'3'}});await b8.open();
   await P.states['setup'](b8); await b8.settle(200); await signIn(b8); await b8.settle(250);
   await stub(b8,'seq',[{fen:FA,ok:true},{fen:null,ok:false,reason:'glare on the far ranks'}]); await feed(b8,FILE2); await b8.settle(1200);
-  const ask4=await b8.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-ask"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+  const ask4=await b8.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
   L.say(!!ask4&&!landed(await screenText(b8)),'TC-SC-046 when only ONE of the two readings reads, the orientation is still unchecked, so the player is still asked rather than given that reading',ask4);
   await b8.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b8.settle(900);
   const t5=await screenText(b8);
@@ -342,7 +350,7 @@ L.run(async()=>{
   const b9=await L.launch({geo:'kunal761',name:'scan-orient4',store:{ct_pool:'3'}});await b9.open();
   await P.states['setup'](b9); await b9.settle(200); await signIn(b9); await b9.settle(250);
   await stub(b9,'seq',[{fen:null,ok:false,reason:'a hand is covering the bottom two ranks'},{fen:null,ok:false,reason:'glare'}]); await feed(b9,FILE2); await b9.settle(1200);
-  const m9=await msg(b9), a9=await b9.page.evaluate(()=>!!document.querySelector('[data-ct="scan-ask"]'));
+  const m9=await msg(b9), a9=await b9.page.evaluate(()=>!!(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})());
   L.say(!!m9&&m9.indexOf('a hand is covering')>=0&&a9===false,'TC-SC-048 when NEITHER reading reads, the refusal shown is reading A\'s reason and no question is asked',{m:m9,ask:a9});
   await b9.shot('scan-client-orient-refused');
   await b9.close();
@@ -353,7 +361,7 @@ L.run(async()=>{
   await P.states['setup'](b10); await b10.settle(200); await signIn(b10); await b10.settle(250);
   await stub(b10,'seq',[{reject:{code:'functions/internal',message:'INTERNAL'}},{fen:FB,ok:true}]); await feed(b10,FILE2); await b10.settle(1200);
   const c10=await b10.page.evaluate(()=>window.__scan.calls.length);
-  const m10=await msg(b10), a10=await b10.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-ask"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+  const m10=await msg(b10), a10=await b10.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
   if(L.say(c10===2,'TC-SC-049 PRECONDITION the photo made both calls, so call A\'s rejection and call B\'s reading both came back ('+c10+')',c10)){
     L.say(!!a10&&/Which side of the board was the camera on\?/.test(a10)&&!m10,'TC-SC-049 when call A REJECTS but call B reads, the scan is not refused: no error message, and the player is asked which side the camera was on',{ask:a10,m:m10});
     await b10.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b10.settle(900);
@@ -387,3 +395,5 @@ L.run(async()=>{
   await b4.shot('scan-client-success');
   await b4.close();
 },'SCAN-CLIENT');
+// CONTROL-RECORD: 0a74e53 2026-11-13 total=54 red=1 scope=trial:6a4c33fb4e86 how=#550 TC-SC-024 re-pin: c5, the catch's not-found test defanged (_undeployed=false) so a not-found rejection gets the generic retry text - TC-SC-024 red; on t0 6c4245e05ecc 54/0 (the unmodified gate was 53/1 there: TC-SC-024 still pinned to the pre-09497fd words)
+// CONTROL-RECORD: 0a74e53 2026-11-13 total=54 red=1 scope=trial:0100b5a554d7 how=#550 #432 sweep (scan-ask re-keyed by its words): c1, scan-ask renamed AND the question also asked when NEITHER reading reads - TC-SC-048 red; the hook-keyed version (55ca2c7) on the same bundle passes TC-SC-048 (49/5, its other reds the renamed hook and the old TC-SC-024 pin); on t0 6c4245e05ecc 54/0

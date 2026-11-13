@@ -216,8 +216,14 @@ S['endgame-practice-m0']=async(b)=>{await S['endgame-demo-end'](b);await tapBtn(
 S['endgame-practice-complete']=async(b)=>{await openLesson(b,'Endgames',0);const pairs=await lineSquares(b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);const side=(await lessonSide(b))||'w';await playLine(b,pairs,side);};
 S['tactics']=async(b)=>{await group(b,'Tactics');};
 S['longnote']=async(b)=>{await openLesson(b,'Endgames',/^Back-Rank Mate$/);await startDemoPaused(b);await fwd(b,1);};
-S['k11-demo-end']=async(b)=>{await b.card(3,2500);};
-S['k11-practice']=async(b)=>{await b.card(4,2500);};
+// kg-demo-end / kg-practice-m0 [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the King's Gambit lesson
+// (the one gallery cards 3 and 4, k11, opened by LIB index) reached the way a player reaches it - Discover -> Gambits -> King's Gambit,
+// Got it, the demo stepped to its last move; then 'Now I'll try it' for practice before the first move. k11-demo-end and k11-practice were
+// b.card(3,2500) and b.card(4,2500); they are now these states, so nothing in this file taps a gallery card.
+S['kg-demo-end']=async(b)=>{await openLesson(b,'Gambits',/King's Gambit(?!:)/);await startDemoPaused(b);await toEnd(b);};
+S['kg-practice-m0']=async(b)=>{await S['kg-demo-end'](b);await tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,500);};
+S['k11-demo-end']=async(b)=>{await S['kg-demo-end'](b);};
+S['k11-practice']=async(b)=>{await S['kg-practice-m0'](b);};
 
 module.exports={states:S,tapBtn,hasBtn,btnRects,textRect,scrollers,rows,noteText,demoPly,playBtnLabel,inLesson,closeSheet,openLesson,openRow,group,startDemoPaused,fwd,toEnd,lineSquares,playLine,lessonSide,NOTE,
   notes:'Discover -> group tile -> lesson row (intro card held by touching it) -> Got it -> pause at once -> Back/Forward a move by aria-label; ply read from the note box; practice moves are piece-tap then target-tap, the app replies after 420 ms; the line squares of any lesson come from the demo highlights (lineSquares).'};

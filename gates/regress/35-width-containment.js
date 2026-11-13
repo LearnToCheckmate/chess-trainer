@@ -98,6 +98,7 @@
 // the wider ask on this job's own soTheAskIsNowWiderThanFourGates. One piece of harness would give
 // gates 34, 35, 36, 37, 51 and 66 somewhere to point a second column; five gate edits would not.
 
+// CONTROL-RECORD: 1a2a8b3 2026-11-13 total=98 red=17 scope=trial:f6a1afcfb8ab how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (play-live, play-gameover, lesson-demo-end and lesson-practice moved off cards k8, k10, 3 and 4 onto drive/play.js cpu-4ply and pp-scholar-mate and drive/lesson.js kg-demo-end and kg-practice-m0): a fixed 120vw strip at top 200 on every play and lesson screen - 'nothing runs off the right edge' red on exactly those four states at all four columns, plus the 375-and-320-together line; home, setup, puzzles, review, menu and look stay green. (A first try, trial:9c437c0af3b3, appended the strip in flow below the fold and reddened nothing: the walk skips what is off screen vertically, by design.) With the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 98/0 on the new route; on 77ffccc15668 98/0 by both routes, lines identical except the excused-piece counts in three lines (se 16 -> 24, kunal730 34 -> 32), which follow the computer game's board
 'use strict';
 const L=require('../lib');
 
@@ -199,18 +200,22 @@ const pageScroll=(b)=>b.page.evaluate(()=>({sw:document.documentElement.scrollWi
 const STATES=[
   ['home',            async(b)=>{await b.open();}],
   ['play-setup',      async(b)=>{await b.home();await b.tile('Play');await b.settle(500);}],
-  ['play-live',       async(b)=>{await b.home();await b.card('k8',6500);}],
-  ['play-gameover',   async(b)=>{await b.home();await b.card('k10',6500);}],
+  // #550 [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: every state below is reached by the PLAYER'S route
+  // (gates/drive/*.js), not a dev gallery card. play-live was card k8 (a scripted four-ply game against the dev-only 'demo' opponent) and
+  // is now a four-ply game against the computer (Pip); play-gameover was card k10 and is now Scholar's mate in Pass & Play; the two
+  // lesson states were cards 3 and 4 (k11) and are now the King's Gambit lesson opened from Discover -> Gambits.
+  ['play-live',       async(b)=>{await require('../drive/play').states['cpu-4ply'](b);}],
+  ['play-gameover',   async(b)=>{await require('../drive/play').states['pp-scholar-mate'](b);}],
   ['puzzles',         async(b)=>{await b.home();await b.tile('Puzzles');await b.settle(800);}],
   ['review-paste',    async(b)=>{await b.home();await b.tile('Review');await b.settle(600);}],
   ['menu',            async(b)=>{await b.home();await b.tapText(/^☰$/,{wait:700}).catch(()=>{});}],
-  // The lesson states are reached by GALLERY CARD, not by a tile: card 3 is the King's Gambit demo AT ITS END,
+  // The lesson states WERE reached by GALLERY CARD (until #550; see above), not by a tile: card 3 is the King's Gambit demo AT ITS END,
   // which is the state that holds "Other lines (2)" - the button flag sweep372-other-lines-320 measured at 55px
   // off the right edge at 320. Card 4 is practice, where Z-06's 239px board lives. Reaching them by tile failed
   // outright on the first run of this gate, and an unreached state is recorded as UNMEASURED below rather than
   // counted as green, which is the only reason that failure was visible at all.
-  ['lesson-demo-end', async(b)=>{await b.open();await b.card(3,2500);}],
-  ['lesson-practice', async(b)=>{await b.open();await b.card(4,2500);}],
+  ['lesson-demo-end', async(b)=>{await b.open();await require('../drive/lesson').states['kg-demo-end'](b);await b.settle(600);}],
+  ['lesson-practice', async(b)=>{await b.open();await require('../drive/lesson').states['kg-practice-m0'](b);await b.settle(600);}],
   ['look-picker',     async(b)=>{await b.home();await b.tapCt('home-look',700);}],
 ];
 

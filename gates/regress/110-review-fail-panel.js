@@ -24,8 +24,11 @@ L.run(async()=>{
   let shown=false;try{await b.page.locator('[data-ct="ana-fail"]').waitFor({state:'visible',timeout:120000});shown=true;}catch(e){}
   const ef1=await b.engineFail();
   L.say(started&&!!ef1&&ef1.failed>0,'TC-R190 DENOMINATOR the review started and the harness killed '+(ef1&&ef1.failed)+' engine worker(s) on their review search',{started,ef1});
+  // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: "the progress line is gone" (TC-R190b) reads
+  // the line by WHAT IT SAYS ("N% · checking every move" / "Loading the Stockfish engine..."), the hook ana-progress (added in this
+  // gate's build) as a fallback only - keyed on the hook alone it read "gone" on any bundle that kept the line up under another name.
   const st=await b.page.evaluate(()=>{const q=(s)=>document.querySelector(s);const t=(s)=>{const e=q(s);return e?e.textContent:'';};const r=(s)=>{const e=q(s);if(!e)return null;const x=e.getBoundingClientRect();return {t:x.top,b:x.bottom,l:x.left,r:x.right,h:x.height};};
-    return {title:t('[data-ct="ana-fail-title"]'),why:t('[data-ct="ana-fail-why"]'),retry:r('[data-ct="ana-fail-retry"]'),back:r('[data-ct="ana-fail-back"]'),prog:!!q('[data-ct="ana-progress"]'),summ:!!q('[data-ct="rev-summary"]'),vw:innerWidth,vh:innerHeight,seam:window.__ctAnaFail||null};});
+    return {title:t('[data-ct="ana-fail-title"]'),why:t('[data-ct="ana-fail-why"]'),retry:r('[data-ct="ana-fail-retry"]'),back:r('[data-ct="ana-fail-back"]'),prog:!!q('[data-ct="ana-progress"]')||[...document.querySelectorAll('body *')].some(x=>x.children.length===0&&/% · checking every move|Loading the Stockfish engine/.test(x.textContent||'')&&x.getBoundingClientRect().height>0),summ:!!q('[data-ct="rev-summary"]'),vw:innerWidth,vh:innerHeight,seam:window.__ctAnaFail||null};});
   L.say(shown&&st.title==='The review stopped before it finished.'&&st.why==='The engine stopped answering. Nothing you did caused it.','TC-R190a the failure panel says the review stopped and that the engine stopped answering ("'+st.title+'" / "'+st.why+'")',st);
   L.say(shown&&!st.summ,'TC-R190a no review summary is shown for a review no engine finished',{summ:st.summ,seam:st.seam});
   const inV=(x)=>!!x&&x.t>=0&&x.b<=st.vh&&x.l>=0&&x.r<=st.vw&&x.h>=44;
@@ -40,3 +43,4 @@ L.run(async()=>{
   L.say(b.errs.length===0,'TC-R190 zero app errors',b.errs.slice(0,3));
   await b.close();
 },'110-review-fail-panel');
+// CONTROL-RECORD: c36dd41 2026-11-13 total=8 red=1 scope=trial:9abc30eb5d9f how=#550 #432 sweep (the progress line read by its words): c4, ana-progress renamed AND a '0% · checking every move' line drawn in the failure panel - TC-R190b red; the hook-keyed version (55ca2c7) is GREEN 8/0 on it; on t0 6c4245e05ecc 8/0

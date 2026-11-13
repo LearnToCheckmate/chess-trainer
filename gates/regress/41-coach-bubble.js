@@ -1,4 +1,5 @@
 // regress/41-coach-bubble.js  THE COACH BUBBLE IS GONE, AND THE BOARD IS UNOBSTRUCTED.
+// CONTROL-RECORD: 6fef595 2026-11-13 total=82 red=4 scope=trial:9c7713635681 how=#550 gate-41 analysis-mode line given a hit test: c1 paints an overlay over the board's top third only while anaMode is on - the analysis-mode nine-point square hit test red at kunal761, kunal730, se, kunal730 pool1, the ply-31 test green; the name-only version (a7f55b2) on the same bundle is 74/0; on t0 fb3bb7b31754 82/0
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions do NOT depend on that branch: it asserts the board is unobstructed on the review screen; no grade or eval value enters its assertions.
 //
 // #394 (kunal-review-floating-bubble-remove). This gate used to assert the bubble's geometry against the
@@ -78,6 +79,30 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 // screen's width, 375.03 (was 349), and at kunal730 the height binds it at 354 (was 349); se keeps 264. Measured on trial t55 by this gate (375.03125 and 354).
 const WANT={kunal761:{board:375.03},kunal730:{board:354},se:{board:264}};
 const WORKERS={};
+// THE NINE-POINT HIT TEST, as a function so the analysis-mode check below runs the SAME test [#550, the gate-41 item of
+// jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Returns the points that did NOT land on a square.
+const coverTop=(b,bd)=>b.page.evaluate((bd)=>{
+      const grids=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+      let grid=null; for(const e of grids){const r=e.getBoundingClientRect(); if(r.width<40)continue; if(!grid||r.width>grid.getBoundingClientRect().width)grid=e;}
+      if(!grid)return [{err:'no board grid found'}];
+      /* AND IT MUST BE A SQUARE, NOT MERELY "INSIDE THE BOARD". The first version of this asked whether the
+         hit element was contained by the grid - and it PASSED against the #393 control with the bubble fully
+         up, because the bubble was rendered as a child of the grid itself, a sibling of the 64 squares. An
+         assertion that the element under your finger is somewhere inside the board is satisfied by the very
+         overlay it was written to detect. The squares are the grid's first 64 children (gates/lib.js reads
+         kids[56] and kids[63] for the coordinate labels), so the test is: the hit element must BE one of
+         those 64, or sit inside one - a piece, a badge, a rank label all count. Anything else covering the
+         square, bubble included, fails. */
+      const squares=[...grid.children].slice(0,64);
+      const onSquare=(el)=>squares.some(sq=>sq===el||sq.contains(el));
+      const out=[];
+      for(let i=0;i<3;i++)for(let j=0;j<3;j++){
+        const x=Math.round(bd.x+bd.w*(0.17+0.33*j)), y=Math.round(bd.y+bd.w*(0.06+0.13*i));
+        const el=document.elementFromPoint(x,y); if(!el){out.push({x,y,tag:'(nothing)'});continue;}
+        if(!onSquare(el))out.push({x,y,tag:el.tagName,ct:el.getAttribute&&el.getAttribute('data-ct'),txt:(el.innerText||'').replace(/\s+/g,' ').trim().slice(0,40)});
+      }
+      return out;
+},bd);
 
 L.run(async()=>{
   // kunal761 FIRST: R19 says "Test at 375 first, then the six width bands in the UAT pipeline", and of the
@@ -140,28 +165,7 @@ L.run(async()=>{
        there, which CLAUDE.md lists as one of the two readings that produced false P0s in a single day.
        Identified the same way lib.js does, and asserted with contains() so a square, a piece, a badge or a
        coordinate label all count as the board. */
-    const cover=await b.page.evaluate((bd)=>{
-      const grids=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
-      let grid=null; for(const e of grids){const r=e.getBoundingClientRect(); if(r.width<40)continue; if(!grid||r.width>grid.getBoundingClientRect().width)grid=e;}
-      if(!grid)return [{err:'no board grid found'}];
-      /* AND IT MUST BE A SQUARE, NOT MERELY "INSIDE THE BOARD". The first version of this asked whether the
-         hit element was contained by the grid - and it PASSED against the #393 control with the bubble fully
-         up, because the bubble was rendered as a child of the grid itself, a sibling of the 64 squares. An
-         assertion that the element under your finger is somewhere inside the board is satisfied by the very
-         overlay it was written to detect. The squares are the grid's first 64 children (gates/lib.js reads
-         kids[56] and kids[63] for the coordinate labels), so the test is: the hit element must BE one of
-         those 64, or sit inside one - a piece, a badge, a rank label all count. Anything else covering the
-         square, bubble included, fails. */
-      const squares=[...grid.children].slice(0,64);
-      const onSquare=(el)=>squares.some(sq=>sq===el||sq.contains(el));
-      const out=[];
-      for(let i=0;i<3;i++)for(let j=0;j<3;j++){
-        const x=Math.round(bd.x+bd.w*(0.17+0.33*j)), y=Math.round(bd.y+bd.w*(0.06+0.13*i));
-        const el=document.elementFromPoint(x,y); if(!el){out.push({x,y,tag:'(nothing)'});continue;}
-        if(!onSquare(el))out.push({x,y,tag:el.tagName,ct:el.getAttribute&&el.getAttribute('data-ct'),txt:(el.innerText||'').replace(/\s+/g,' ').trim().slice(0,40)});
-      }
-      return out;
-    },bd0);
+    const cover=await coverTop(b,bd0);
     L.say(cover.length===0,G+': every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE of the board - the ranks the bubble covered are the user\'s again. Asserted by hit test against the 64 squares rather than by element name, so anything else that lands there fails this too',cover);
 
     // ── THE SENTENCE SURVIVED, AND IS STILL READABLE SOMEWHERE ─────────────────────────────────────
@@ -212,7 +216,17 @@ L.run(async()=>{
     await b.settle(400);
     const inAna=(await b.texts()).some(x=>/Exit analysis/.test(x));
     L.say(inAna,G+': PRECONDITION - analysis mode was actually entered from ply 32. An assertion about a state never reached is not an assertion (#385)');
-    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': still no bubble in analysis mode');
+    // NOT A NAME TRIPWIRE ANY MORE [#550; jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. This line
+    // read only `[data-ct="coach-bubble"]`, a name that occurs 0 times in app.js, so it could not fail - and unlike the five tripwires
+    // above it carried no label saying so and had no hit test behind it in this state. Analysis mode is the one transition named as able to
+    // resurrect an overlay, so it now gets the SAME nine-point square hit test as ply 31, on the board as it stands in analysis mode;
+    // the name check is kept as a labelled tripwire beside it. Control: an overlay painted over the board's top third only while
+    // anaMode is on reddens this line and nothing at ply 31.
+    const bdA=await b.board();
+    L.say(!!bdA&&bdA.w>100,G+': PRECONDITION - the board is on screen in analysis mode, so the hit test below has a board to test',bdA&&bdA.w);
+    const coverA=bdA?await coverTop(b,bdA):[{err:'no board in analysis mode'}];
+    L.say(coverA.length===0,G+': in analysis mode too, every one of nine points across the TOP THIRD of the board hit-tests to a SQUARE - nothing covers it under any name',coverA);
+    L.say(!(await seen(b,'[data-ct="coach-bubble"]')),G+': NAME TRIPWIRE - still no bubble in analysis mode');
     await R.states['analysis-exit'](b);
 
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));

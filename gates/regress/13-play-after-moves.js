@@ -27,6 +27,17 @@
 // even now-a shrunken-but-constant board there is caught only by the new pins; and its red on "the five plies
 // registered" is an ARTEFACT, not an isolation - the smaller board made b.move miss its squares, the same thing
 // 34-takeback hit at #383. The header used to claim the vs-Computer board is 357. Measured, it is 351.
+// CONTROL-RECORD: a22f527 2026-11-13 total=25 red=6 scope=trial:5d648bc20064 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 13's 'card' configuration moved off card k8 onto a computer game played by hand, drive/play.js cpu-m0 + moves): the Play board 8px narrower - the four card/PP width and top pins at kunal and both width pins at 390 red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 25/0 on the new route; on 77ffccc15668 25/0 by both routes, PASS/FAIL lines identical except the card configuration's numbers (375@100 / 390@128 on the dev-only 'demo' opponent, 353@109 / 390@150 against the computer), re-pinned
+// CONTROL-RECORD: a22f527 2026-11-13 total=25 red=2 scope=trial:4d7c8dd016f1 how=#550 same move, control (B) of the header re-run on the new route (_pLive=false): the card top pin (128 vs 109) and the Pass & Play top pin (124 vs 103.7) red at kunal; the 'unchanged from move 0' lines stay green on the computer game too (the board sits at 353@128 from move 0), so as on the dev card the pins, not the unchanged lines, are what see it
+// WHY _pLive=false IS NOT A CONTROL FOR THE 'unchanged' LINES ANY MORE, AND THE ONE THAT IS [#550 round 2]. In portrait movesOpen starts
+// true, and the moves panel renders when history>0 OR _pFill OR movesOpen - so with _pLive false the panel is still laid out from move 0, it
+// merely stops filling (no flex), and the board sits at 353@128 (computer) and 375@124 (Pass & Play) for the WHOLE game. Nothing appears
+// after the first move, so the 'unchanged' lines are RIGHT to stay green on it: it is a constant-layout control, which is the pins' job
+// (control A above). The k8 defect is a row that is absent at move 0 and appears after it, and that control is the panel's own condition
+// cut to history>0 alone (`(boardGame.history.length>0||_pFill||_pLand)` -> `(boardGame.history.length>0)`): at 375x679 the computer
+// board goes 353@128 at move 0 -> 353@109 after e4, and the two 'unchanged' lines and Pass & Play's ONE-top line go red ON THEIR OWN while
+// all four kunal pins stay GREEN (the after-move state is the tip's). 390x844 does not move on it (390@150 and 390@128 throughout).
+// CONTROL-RECORD: e2692c0 2026-11-13 total=25 red=3 scope=trial:eb30ab8b8b18 how=#550 round 2: the moves panel rendered only once history>0 (the #370 k8 shape: a row that appears after the first move): 'kunal: card k8 board unchanged from MOVE 0 to the first ply' (top 128 -> 109), 'kunal: card k8 board unchanged over four plies' (128 -> 109) and 'kunal: Pass & Play board has ONE width and ONE top' (tops 124, 103.7) red; every pin green; tip trial:489840ab49bb 25/0
 'use strict';
 const L=require('../lib');
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e). Board width and top, per geometry, for BOTH configurations.
@@ -36,7 +47,11 @@ const L=require('../lib');
 // #550 short upright (BSA-P-36, q42): at 375x679 Pass & Play folds 'vs Human' into the top row and trims its gaps, so its board is the full 375 at 103.7 (measured on the round-7 bundle c5269256d63e); the card k8 board is unchanged.
 // #550 RE-KEYED: card k8 at 375x679 measured 375@100 on the batch-10 tree (t163 7719e5a7fd39; already 375@100 on the tip 342f7329901b before the
 // formatting merge, per two helpers) - the board is now full width there like every other board on his phone, 8px wider and 2px higher.
-const PIN={kunal:{card:{w:375,top:100},pp:{w:375,top:103.7}},'390':{card:{w:390,top:128},pp:{w:390,top:128}}};
+// #550 THE PLAYER'S ROUTE RE-KEYS 'card' [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the 'card' configuration
+// is now a game against the computer (Pip) played by hand, not the gallery's dev-only 'demo' opponent. Its top bar names the bot, so the board
+// is 353 at 109 at 375x679 and 390 at 150 at 390x844 - measured on 77ffccc15668 at move 0 and after four plies, both - where card k8 read
+// 375@100 and 390@128. Pass & Play is unchanged.
+const PIN={kunal:{card:{w:353,top:109},pp:{w:375,top:103.7}},'390':{card:{w:390,top:150},pp:{w:390,top:128}}};
 L.run(async()=>{
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'k8-'+geo});await b.open();
@@ -45,15 +60,21 @@ L.run(async()=>{
     // one ply in, and the move-0 -> ply-1 transition, the ONLY one #370 ever broke, was never compared. m0 is now taken at
     // 200ms and is PROVED to be move 0 (no e4 on screen yet); m1 is taken after the first ply and PROVED to be after it.
     const plyText=()=>b.page.evaluate(()=>/\be4\b/.test(document.body.innerText||''));
-    await b.card('k8',200);const m0=await b.metrics();const e4at0=await plyText();
-    await b.settle(900);const m1=await b.metrics();const e4at1=await plyText();
-    await b.settle(5600);const m4=await b.metrics();
+    // THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-
+    // 2026-10-01]. This was b.card('k8',200) - the gallery's scripted four-ply game, sampled at 200ms, +900ms and +5600ms. It is now a
+    // computer game played by hand (gates/drive/play.js): cpu-m0 (Home -> Play -> Computer, Pip, Start) is the move-0 sample, 1.e4 is
+    // the ply-1 sample, and the reply, 2.Nf3 and the reply make the four plies. The 'card k8' wording in the lines below names the
+    // configuration (a live game against an opponent), kept so the PASS lines read the same by both routes.
+    const PD=require('../drive/play');
+    await PD.states['cpu-m0'](b);const m0=await b.metrics();const e4at0=await plyText();
+    await b.move('e2','e4',0);await b.settle(900);const m1=await b.metrics();const e4at1=await plyText();
+    await PD.waitPlies(b,2);await b.settle(500);await b.move('g1','f3',0);await PD.waitPlies(b,4);await b.settle(500);const m4=await b.metrics();
     L.say(!!m0.board&&!e4at0,geo+': PRECONDITION the move-0 sample is really move 0 - a board is painted and e4 has not been played yet',{board:!!m0.board,e4Shown:e4at0});
     L.say(e4at1,geo+': PRECONDITION the ply-1 sample is really after the first move - e4 is on screen',{e4Shown:e4at1});
     L.say(!!m0.board&&!!m1.board&&Math.abs(m0.board.w-m1.board.w)<0.6&&Math.abs(m0.board.top-m1.board.top)<0.6,geo+': card k8 board unchanged from MOVE 0 to the first ply - the transition #370 broke (w '+(m0.board&&m0.board.w)+' -> '+(m1.board&&m1.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(m1.board&&m1.board.top)+')');
     L.say(!!m0.board&&!!m4.board&&Math.abs(m0.board.w-m4.board.w)<0.6&&Math.abs(m0.board.top-m4.board.top)<0.6,geo+': card k8 board unchanged over four plies (w '+(m0.board&&m0.board.w)+' -> '+(m4.board&&m4.board.w)+', top '+(m0.board&&m0.board.top)+' -> '+(m4.board&&m4.board.top)+')');
     // real Pass & Play from New Game
-    await b.home();await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});
+    await b.home();await b.tile('Play');await b.tapText(/^Pass & Play$/);await PD.tapStart(b,900);   // tapStart: a live computer game is on the board now, so Start arms first (#469)
     const p0=await b.metrics();const tops=new Set([p0.board&&p0.board.top]),ws=new Set([p0.board&&p0.board.w]);
     for(const [f,t] of [['e2','e4'],['e7','e5'],['g1','f3'],['b8','c6'],['f1','b5']]){await b.move(f,t,500);const m=await b.metrics();tops.add(m.board&&m.board.top);ws.add(m.board&&m.board.w);}
     const p5=await b.metrics();await b.shot('k8-'+geo+'-passplay-5plies');

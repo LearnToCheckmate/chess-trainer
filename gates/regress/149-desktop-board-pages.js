@@ -28,10 +28,16 @@
 //      upright, back to 1010x1000 stays upright, to 1100x1000 sideways again.
 //  (g) TC-R225h his phone is unchanged: at kunal761 a game against the computer is upright (no sideways column) with the board 375 wide, and
 //      the More sheet is one column.
+//  (h) TC-R225i [cg4, jobs/desktop-check-remaining-2026-11-12 DSK-03/DSK-05; rule.md item 3 puts the tab rail in the centred group]: on
+//      Puzzles and on Tactics & strategy sideways, at the five sizes and 1920x1080, the full-height tab rail starts within 0..16px of the
+//      column's right edge (no empty band; it was 121px on Puzzles and 126px on Tactics at 1920x1080, 182/327 at 1920x970/2560x1320) and
+//      the window's left margin (to the board) equals its right margin (from the rail) within 4. The rail is found as the full-height tab
+//      bar narrower than 120, which predates this build. Phones are not in this block: there the tab bar is the bottom row (TC-R225h).
 // KNOW ITS LIMIT: Linux Chromium with the gates' pinned fonts, not his Windows Chrome with Segoe UI (heights run a little taller here, so a fit
 // here is pessimistic for his machine); one lesson (the Italian Game); DSK-07 (the Review bottom bar) needs his say and is not built.
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=116 red=47 scope=trial:9f4f6f823150 how=#550 t0, the branch tip before these fixes (faa82a9): TC-R225a x5 (panel 598 to 1158 wide), b x11 (278/85, 230/37, 98px over at the three laptop heights; no fold button), d x8 (footer from 615 against the column at 687 at 1280x600, 985 against 1192 at 1920x970), e x6 (sheet 194/155/46 over, one column), f x16 (Review bar 11px over the menu; Home 2px into the bar in Pass and Play, 11 against the computer, at every size), g x1 (990x1000 went upright, 1010x1000 sideways) red; TC-R225c's tall-window arm and h stay green there (unchanged by design), the fold-opens arm does not run (no button: named, not credited); on t3 450fed03791b 119/0 (three more lines: the fold opens at the three laptop heights)
-// CONTROL-RECORD: 50bc8e6 2026-11-13 total=147 red=8 scope=trial:2abbad95b07e how=#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: the merged tip's bundle (before the 56px lesson column top) - TC-R225i gap -5 at 1280x620, 1366x700, 1100x800 and 1440x900, demo end and practice (buttons end at 50, note box from 45); the stray-glyph lines and every older line green; on t5 bade581b40e6 147/0
+// CONTROL-RECORD: 50bc8e6 2026-11-13 total=147 red=8 scope=trial:2abbad95b07e how=#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: the merged tip's bundle (before the 56px lesson column top) - TC-R225j (written TC-R225i then; renamed at the merge with cg4, which took that id) gap -5 at 1280x620, 1366x700, 1100x800 and 1440x900, demo end and practice (buttons end at 50, note box from 45); the stray-glyph lines and every older line green; on t5 bade581b40e6 147/0
+// CONTROL-RECORD: 55ca2c7 2026-11-13 total=147 red=12 scope=trial:85be94e89bc2 how=#550 cg4, the branch tip (claude/exciting-noether-v1swj8 55ca2c7) with the rail at right:0: TC-R225i red at all six sizes on Puzzles (band 41/60/31/176/321/121px, right margin 0) and on Tactics (46/65/36/181/326/126px); every other line green. On t1 93ac17e053d5 147/0
 const L=require('../lib');const LS=require('../drive/lesson');const P=require('../drive/play');const R=require('../drive/review');
 const G=(w,h)=>({w,h,safe:'',label:w+'x'+h});
 const LAP=[[1280,600],[1366,648],[1440,780]];
@@ -42,9 +48,21 @@ const rail=(b)=>b.page.evaluate(()=>{const r=document.querySelector('.ctside');i
   const f=[...document.querySelectorAll('div')].find(d=>getComputedStyle(d).position==='fixed'&&d.getBoundingClientRect().bottom>=innerHeight-1&&[...d.querySelectorAll('button')].some(x=>/Play or pause|More for this lesson/.test(x.getAttribute('aria-label')||'')));
   const fr=f?f.getBoundingClientRect():null;
   return {over:r.scrollHeight-r.clientHeight,l:Math.round(q.left),r:Math.round(q.right),fold:fold?(fold.innerText||'').trim():null,branches:!!br,foot:fr?{l:Math.round(fr.left),r:Math.round(fr.right)}:null};});
+const tabRail=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="tabbar"]');if(!t)return null;const r=t.getBoundingClientRect();return r.height>=innerHeight-1&&r.width<120?{l:Math.round(r.left),r:Math.round(r.right)}:null;});
+const BAND=[...ALL,[1920,1080]];
 L.run(async()=>{
+  // (a2) TC-R225i Puzzles sideways on a computer window: the tab rail is part of the centred group (rule.md item 3), so there is no empty band
+  //      between the column and the rail (121px at 1920x1080 with the rail at right:0), and the window's left and right margins match.
+  for(const [w,h] of BAND){const tag=w+'x'+h;
+    const b=await L.launch({geo:G(w,h),name:'dsk149-pz'});await b.open();let ok=true;try{await b.tile('Puzzles');await b.settle(900);try{await b.tapText(/^(▶ )?(Continue|Start|Solve|Next puzzle)/i,{wait:900});}catch(e){}await b.settle(900);}catch(e){ok=false;}
+    const m=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((x,y)=>y.width-x.width)[0];
+      const c=document.querySelector('.ctside');const cr=c&&getComputedStyle(c).display!=='none'?c.getBoundingClientRect():null;if(!g||!cr)return null;return {vw:innerWidth,board:{l:Math.round(g.left),r:Math.round(g.right)},col:{l:Math.round(cr.left),r:Math.round(cr.right)}};});
+    const tr=m?await tabRail(b):null;
+    L.say(ok&&!!m&&!!tr,tag+': TC-R225 PRECONDITION Puzzles is up sideways, its board, its column and the full-height tab rail found',{m,tr});
+    if(m&&tr){const right=Math.max(m.board.r,m.col.r);L.say(tr.l-right>=0&&tr.l-right<=16&&Math.abs(m.board.l-(m.vw-tr.r))<=4,tag+': TC-R225i Puzzles: the tab rail is in the centred group - no band between the column and the rail ('+(tr.l-right)+'px, at most 16) and the window margins match (left '+m.board.l+', right '+(m.vw-tr.r)+')',{m,tr});}
+    L.say(b.errs.length===0,tag+': TC-R225 zero app errors (Puzzles)',b.errs.slice(0,3));await b.close();}
   // (a) Tactics & strategy
-  for(const [w,h] of ALL){const tag=w+'x'+h;
+  for(const [w,h] of BAND){const tag=w+'x'+h;
     const b=await L.launch({geo:G(w,h),name:'dsk149-tac'});await b.open();let ok=true;try{await LS.states['tactics'](b);await b.settle(1200);}catch(e){ok=false;}
     const m=await b.page.evaluate(()=>{const tb=(t)=>[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()===t&&x.getBoundingClientRect().width>0);
       const a=tb('Tactics')||tb('🎯 Tactics'),s=tb('Strategy')||tb('♟ Strategy');const bars=[...document.querySelectorAll('button')].filter(x=>/^(🎯 )?Tactics$|^(♟ )?Strategy$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0).map(x=>x.getBoundingClientRect());
@@ -53,7 +71,8 @@ L.run(async()=>{
       return {vw:innerWidth,board:{l:Math.round(g.left),r:Math.round(g.right),w:Math.round(g.width)},panel:{l:Math.round(pl),r:Math.round(pr),w:Math.round(pr-pl)}};});
     L.say(ok&&!!m&&m.board.w>=h*0.9,tag+': TC-R225 PRECONDITION Tactics & strategy is up sideways, its board the window height and its two tabs found by their words',m);
     if(m){L.say(m.panel.w<=520,tag+': TC-R225a the panel beside the board is at most 520 wide ('+m.panel.w+')',m.panel);
-      const cx=(m.board.l+m.panel.r)/2,want=(m.vw-62-8)/2;L.say(Math.abs(cx-want)<=4||m.panel.r>=m.vw-62-8-14,tag+': TC-R225a board and panel are centred left of the tab rail (centre '+cx+', space centre '+want+')',{cx,want});}
+      const cx=(m.board.l+m.panel.r)/2,want=(m.vw-62-8)/2;L.say(Math.abs(cx-want)<=4||m.panel.r>=m.vw-62-8-14,tag+': TC-R225a board and panel are centred left of the tab rail (centre '+cx+', space centre '+want+')',{cx,want});
+      const tr=await tabRail(b);L.say(!!tr&&tr.l-m.panel.r>=0&&tr.l-m.panel.r<=16&&Math.abs(m.board.l-(m.vw-tr.r))<=4,tag+': TC-R225i the tab rail is in the centred group - no band between the panel and the rail ('+(tr?Math.round(tr.l-m.panel.r):'?')+'px, at most 16) and the window margins match (left '+m.board.l+', right '+(tr?Math.round(m.vw-tr.r):'?')+')',{tr,panel:m.panel,board:m.board});}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (Tactics)',b.errs.slice(0,3));await b.close();}
   // (b)(c) the lesson column
   for(const [w,h] of [...LAP,[1920,970]]){const tag=w+'x'+h;
@@ -68,7 +87,7 @@ L.run(async()=>{
       else L.say(!m.fold&&m.branches,tag+' '+st+': TC-R225c on a tall window the chips are shown as before (no fold button, branches box shown)',m);
       L.say(!!m.foot&&Math.abs(m.foot.l-m.l)<=30&&Math.abs(m.foot.r-m.r)<=30,tag+' '+st+': TC-R225d the lesson footer sits under the column ('+JSON.stringify(m.foot)+' against the column '+m.l+'..'+m.r+')',m);}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (lesson)',b.errs.slice(0,3));await b.close();}
-  // (h) TC-R225i [#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13]: in a sideways lesson on a computer the anchored Home
+  // (h2) TC-R225j [#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13]: in a sideways lesson on a computer the anchored Home
   // and menu buttons (found by their aria-labels) end at least 6px above the first bordered box of the lesson column (the note box), wherever
   // the two overlap across; and no '☰' glyph is painted anywhere but inside a menu button (the checker saw a faint one above Home).
   for(const [w,h] of [[1280,620],[1366,700],[1100,800],[1440,900]]){const tag=w+'x'+h;
@@ -83,8 +102,8 @@ L.run(async()=>{
           if(q.width>0&&q.height>0&&cs.visibility!=='hidden'&&+cs.opacity>0)stray.push(el.tagName+'@'+Math.round(q.left)+','+Math.round(q.top));}
         return {btnBottom:Math.round(Math.max(...bt.map(q=>q.bottom))),boxTop:Math.round(box.top),across:over.length,gap:gap==null?null:Math.round(gap*10)/10,stray};});
       L.say(ok&&!!m&&m.across>0,tag+' '+st+': TC-R225 PRECONDITION the sideways lesson is up, its corner buttons sit across its note box ('+JSON.stringify(m)+')',m);
-      if(m&&m.across)L.say(m.gap>=6,tag+' '+st+': TC-R225i the corner buttons end at least 6px above the note box (gap '+m.gap+')',m);
-      if(m)L.say(m.stray.length===0,tag+' '+st+': TC-R225i no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
+      if(m&&m.across)L.say(m.gap>=6,tag+' '+st+': TC-R225j the corner buttons end at least 6px above the note box (gap '+m.gap+')',m);
+      if(m)L.say(m.stray.length===0,tag+' '+st+': TC-R225j no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (corner)',b.errs.slice(0,3));await b.close();}
   // (d) the Review More sheet, (e) the Review corner slot
   for(const [w,h] of [...LAP,[1920,970],['kunal761']]){const tag=w==='kunal761'?w:w+'x'+h;
