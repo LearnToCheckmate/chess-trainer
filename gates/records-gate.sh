@@ -28,8 +28,9 @@
 #                  that does not yet exist. Four of those five are other lanes' artefacts under R44.
 #                  [DONE IN PART SINCE, #550: `--harnesses` runs verify-log-selftest.sh (and held/buildnum) under a count
 #                  ratchet, and `--checks` (gates/door-checks.sh) runs the --selftest of verify-log --citations, of
-#                  cited-not-run.sh and of verify-patch-set.sh. cited-not-run.sh's REPORT and verify-log --citations are
-#                  RED on the tree that wired this and are out until cleared; door-checks.sh's header has the figures.]
+#                  cited-not-run.sh and of verify-patch-set.sh, and since b73a170 cited-not-run.sh's REPORT too (its roster
+#                  accounts for all 48 cited files). verify-log --citations is still RED on this tree and stays out until
+#                  cleared; door-checks.sh's header has the figures. Updated at #550 after the round-4 merge.]
 #
 # SO THE WHOLE DISCIPLINE OF THIS COMMIT IS THAT IT CHANGES NO BEHAVIOUR, AND THAT IS A MEASUREMENT RATHER THAN
 # AN INTENTION. The body below is the block from gates/fastgate.sh lines 302-493 at origin/main b3767c4, moved
@@ -80,7 +81,7 @@ usage(){
   echo "       gates/records-gate.sh --entries     # print the ratcheted entry list, one 'MODE<tab>path' per line"
   echo "       gates/records-gate.sh --selftest    # the controls, as a command rather than a paragraph"
   echo "       gates/records-gate.sh --harnesses [--write|--selftest]   # held/verify-log/buildnum selftests under a case-count ratchet (#550)"
-  echo "       gates/records-gate.sh --checks [--selftest|--list]   # part (4)'s first population: citations/cited-not-run/verify-patch-set selftests (#550)"
+  echo "       gates/records-gate.sh --checks [--selftest|--list]   # part (4)'s first population: citations/cited-not-run/verify-patch-set selftests and the cited-not-run report (#550)"
   echo "exit 0 = every ratcheted record grew or was untouched; 1 = one was CHANGED; 2 = this door could not run."
 }
 

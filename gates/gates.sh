@@ -167,9 +167,11 @@ assert_falls(){ # <register.tsv> <log>
 # refuses. Defined above --selftest so the selftest drives this function and not a copy.
 # NOT DONE HERE, and said: part (3), the door's ratchets turned into binaries.
 # PART (4)'s FIRST POPULATION IS THE THIRD CALL [#550]: `records-gate.sh --checks` (gates/door-checks.sh) runs the --selftest of
-# verify-log --citations, of gates/audit/cited-not-run.sh and of gates/audit/verify-patch-set.sh, and must exit 0 like the other
-# two. About 55s on top of the 96s the first two cost. cited-not-run.sh's report and verify-log --citations are NOT in it: both
-# are red on the tree that wired it (door-checks.sh's header has the figures), and a red check in the door reddens every suite.
+# verify-log --citations, of gates/audit/cited-not-run.sh and of gates/audit/verify-patch-set.sh, plus cited-not-run.sh's REPORT
+# (added at b73a170 once its roster accounted for all 48 cited files), and must exit 0 like the other two; the three selftests'
+# case counts are pinned in gates/harness-case-counts.tsv (door:* rows, cea4fc0). About 48s on top of the ~2 minutes the first two
+# cost. verify-log --citations is still NOT in it: it is red on this tree (17 dead paths, 16 unsupported case ids, one dangling
+# story), and a red check in the door reddens every suite. Updated at #550 after the round-4 merge; it read 'three selftests' before.
 records_door(){
   local rg="$1" base="$2" head="$3" out="$4" r1 r2 r3
   if [ -z "$base" ] || [ -z "$head" ]; then echo "RECORDS DOOR NOT CHECKED - no base or head sha (origin/main unreadable?), so this run is not a push gate"; return 2; fi
