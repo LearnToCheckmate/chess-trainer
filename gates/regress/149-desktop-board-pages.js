@@ -31,6 +31,7 @@
 // KNOW ITS LIMIT: Linux Chromium with the gates' pinned fonts, not his Windows Chrome with Segoe UI (heights run a little taller here, so a fit
 // here is pessimistic for his machine); one lesson (the Italian Game); DSK-07 (the Review bottom bar) needs his say and is not built.
 // CONTROL-RECORD: bcc4eff 2026-11-13 total=116 red=47 scope=trial:9f4f6f823150 how=#550 t0, the branch tip before these fixes (faa82a9): TC-R225a x5 (panel 598 to 1158 wide), b x11 (278/85, 230/37, 98px over at the three laptop heights; no fold button), d x8 (footer from 615 against the column at 687 at 1280x600, 985 against 1192 at 1920x970), e x6 (sheet 194/155/46 over, one column), f x16 (Review bar 11px over the menu; Home 2px into the bar in Pass and Play, 11 against the computer, at every size), g x1 (990x1000 went upright, 1010x1000 sideways) red; TC-R225c's tall-window arm and h stay green there (unchanged by design), the fold-opens arm does not run (no button: named, not credited); on t3 450fed03791b 119/0 (three more lines: the fold opens at the three laptop heights)
+// CONTROL-RECORD: 50bc8e6 2026-11-13 total=147 red=8 scope=trial:2abbad95b07e how=#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: the merged tip's bundle (before the 56px lesson column top) - TC-R225i gap -5 at 1280x620, 1366x700, 1100x800 and 1440x900, demo end and practice (buttons end at 50, note box from 45); the stray-glyph lines and every older line green; on t5 bade581b40e6 147/0
 const L=require('../lib');const LS=require('../drive/lesson');const P=require('../drive/play');const R=require('../drive/review');
 const G=(w,h)=>({w,h,safe:'',label:w+'x'+h});
 const LAP=[[1280,600],[1366,648],[1440,780]];
@@ -67,6 +68,24 @@ L.run(async()=>{
       else L.say(!m.fold&&m.branches,tag+' '+st+': TC-R225c on a tall window the chips are shown as before (no fold button, branches box shown)',m);
       L.say(!!m.foot&&Math.abs(m.foot.l-m.l)<=30&&Math.abs(m.foot.r-m.r)<=30,tag+' '+st+': TC-R225d the lesson footer sits under the column ('+JSON.stringify(m.foot)+' against the column '+m.l+'..'+m.r+')',m);}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (lesson)',b.errs.slice(0,3));await b.close();}
+  // (h) TC-R225i [#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13]: in a sideways lesson on a computer the anchored Home
+  // and menu buttons (found by their aria-labels) end at least 6px above the first bordered box of the lesson column (the note box), wherever
+  // the two overlap across; and no '☰' glyph is painted anywhere but inside a menu button (the checker saw a faint one above Home).
+  for(const [w,h] of [[1280,620],[1366,700],[1100,800],[1440,900]]){const tag=w+'x'+h;
+    const b=await L.launch({geo:G(w,h),name:'dsk149-corner'});await b.open();
+    for(const st of ['demo-end','practice-m0']){let ok=true;try{await LS.states[st](b);await b.settle(1000);}catch(e){ok=false;}
+      const m=await b.page.evaluate(()=>{const bt=[...document.querySelectorAll('button')].filter(x=>/^(Home|Menu and settings)$/.test(x.getAttribute('aria-label')||'')&&x.getBoundingClientRect().width>0).map(x=>x.getBoundingClientRect());
+        const col=document.querySelector('.ctside');if(!col||!bt.length)return null;
+        const box=[...col.querySelectorAll('div')].filter(d=>{const q=d.getBoundingClientRect();return q.width>40&&q.height>10&&parseFloat(getComputedStyle(d).borderTopWidth)>0;}).map(d=>d.getBoundingClientRect()).sort((a,c)=>a.top-c.top)[0];
+        if(!box)return null;const over=bt.filter(q=>q.left<box.right&&q.right>box.left);const gap=over.length?Math.min(...over.map(q=>box.top-q.bottom)):null;
+        const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;const stray=[];while((n=tw.nextNode())){if(!/\u2630/.test(n.textContent))continue;const el=n.parentElement;const bb=el.closest('button');
+          if(bb&&/Menu/.test(bb.getAttribute('aria-label')||''))continue;const g=document.createRange();g.selectNodeContents(n);const q=g.getBoundingClientRect();const cs=getComputedStyle(el);
+          if(q.width>0&&q.height>0&&cs.visibility!=='hidden'&&+cs.opacity>0)stray.push(el.tagName+'@'+Math.round(q.left)+','+Math.round(q.top));}
+        return {btnBottom:Math.round(Math.max(...bt.map(q=>q.bottom))),boxTop:Math.round(box.top),across:over.length,gap:gap==null?null:Math.round(gap*10)/10,stray};});
+      L.say(ok&&!!m&&m.across>0,tag+' '+st+': TC-R225 PRECONDITION the sideways lesson is up, its corner buttons sit across its note box ('+JSON.stringify(m)+')',m);
+      if(m&&m.across)L.say(m.gap>=6,tag+' '+st+': TC-R225i the corner buttons end at least 6px above the note box (gap '+m.gap+')',m);
+      if(m)L.say(m.stray.length===0,tag+' '+st+': TC-R225i no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
+    L.say(b.errs.length===0,tag+': TC-R225 zero app errors (corner)',b.errs.slice(0,3));await b.close();}
   // (d) the Review More sheet, (e) the Review corner slot
   for(const [w,h] of [...LAP,[1920,970],['kunal761']]){const tag=w==='kunal761'?w:w+'x'+h;
     const b=await L.launch({geo:w==='kunal761'?w:G(w,h),name:'dsk149-rev',store:{ct_pool:'3'}});await b.open();let ok=true;
