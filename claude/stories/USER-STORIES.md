@@ -2377,3 +2377,12 @@ As a player moving between screens, the back and menu buttons are always in the 
 - In a lesson the close X is the bar's first button and ⋯ its last, in the demo and in practice, with one ⋯ on screen. (TC-R215f)
 - On a short upright phone (under 700 tall) the lesson's rows under the board fold into the bar - Now I'll try it is a bar button, the practice row sits in the bar, Other lines is in the ⋯ sheet - and the board is the screen width at 320x568. (TC-R215g)
 - At an online game's end the board stays the screen width on his phone and the page does not scroll; the panel is rows of 44pt buttons. (TC-R215h)
+### US-R152 Everything I read on the board screens reads in every theme, and the small controls can be hit
+*Added #550, docs/readability-check-2026-11-12 A11Y-01, -02, -03, -05, -06, -07, -10, -11, -15, -16, -17; Kunal's pick 12 Nov, "Batch 10, serious first" (his screenshot: "T on top on the white background with white text is very hard to see").*
+As a player on any colour theme or skin, the words on the accent buttons, the clocks and the player bars are readable, a graph mark says what it is without relying on colour, and the small controls can be tapped and reached by keyboard.
+- The text on every accent-filled button reads at least 4.5 to 1 against the button as painted, in all twelve colour themes and in the Playful and Medieval skins. (TC-R220a, TC-R220b)
+- The clocks read at least 4.5 to 1 on both player bars: the running clock on the cream bar, and its amber and red low-time bands there. (TC-R220c)
+- A flag's two-letter code, if the picture cannot load, is drawn in the bar's own ink, and the rating on the cream bar is not faded. (TC-R220d)
+- Each grade mark on the eval graph has its own shape, is a named button the keyboard can reach and Enter, and has a 24px hit area; every move on the strip is keyboard-reachable. (TC-R220e)
+- On his phone and at 320x568 the tab bar buttons, the scan buttons, the menu sheet's close (now named "Close") and Review's back and more have 44px tap areas, without any box moving; a strip move's tap area is the strip's full height. (TC-R220f)
+- No app errors on any of it. (TC-R220g)
