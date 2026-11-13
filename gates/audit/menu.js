@@ -14,7 +14,7 @@ const L=require('../lib');const M=require('../drive/menu');
 const ALL=Object.keys(M.states);
 // menu-play-live is not in the width list: gates/drive/play.js's Pass & Play setup is written for 375/390 only
 const WIDTH_STATES=['home','menu-discover','menu-bottom','menu-look','menu-readout','feedback-home'];
-const PLAN=[['kunal',ALL],['390',ALL],['se',WIDTH_STATES],['430',WIDTH_STATES]];
+const PLAN=(process.env.CT_AUD_MENU_STATES?[['kunal',['home',...process.env.CT_AUD_MENU_STATES.split(',')]]]:[['kunal',ALL],['390',ALL],['se',WIDTH_STATES],['430',WIDTH_STATES]]);   // CT_AUD_MENU_STATES=a,b runs home plus those states at kunal only (home feeds the A-04 line)
 const BOARD_UNDER=/^(menu-play-live|menu-lesson|menu-review-more)$/;
 const R={};
 const M_=(geo,st,k,v)=>{R[geo]=R[geo]||{};R[geo][st]=R[geo][st]||{};R[geo][st][k]=v;console.log('MEASURE '+geo+' '+st+' '+k+'='+(typeof v==='object'?JSON.stringify(v):v));};
@@ -77,7 +77,10 @@ async function measure(b,geo,st){
   if(st==='menu-skin-pro'){const ac=await sheet1100(b,/^Account/);M_(geo,st,'account',ac?{y:ac.y,bottom:ac.bottom,h:ac.h,gapBelow:ac.gapBelow,inner:ac.inner,ovf:ac.ovf}:'none');if(ac)M_(geo,st,'account.buttons',ac.btns.join('; '));}
   if(st==='menu-signin'){M_(geo,st,'signin.msg',await msgLeaf(b,/Sign-in|Sync your|sign in|retry|unavailable/i));}
   if(st==='menu-share'){const t=await M.toast(b);M_(geo,st,'share.toast',t?t.text+' @y'+t.y+' h'+t.h:'none');}
-  if(st==='menu-colour-forest'){M_(geo,st,'colours.after',await M.sheetText(b,/^Board colors/));}
+  // #550 jobs/build-menu-one-screen: the colour chips live on the Look screen only, so read the chosen colour there (the sheet no longer
+  // carries a Board colors section and the old read reported 'none'). The chosen chip is the one whose title the Look and feel row names.
+  if(st==='menu-colour-forest'){M_(geo,st,'colours.after',await b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');if(!r)return 'no Look screen';
+    const t=(r.innerText||'').replace(/\s+/g,' ');const i=t.search(/Board colou?rs/i);return i<0?"no Board colors heading; Look reads: "+t.slice(0,200):t.slice(i,i+120);}));}
   // a board under the sheet: close the sheet and re-measure (the board must keep its top and width)
   if(BOARD_UNDER.test(st)&&s&&m.board){await b.shot(geo+'-'+st+'-open');await M.tapRow(b,/^✕$/,500);const m2=await b.metrics();M_(geo,st,'afterClose.board',m2.board);M_(geo,st,'afterClose.moved',!m2.board||m2.board.w!==m.board.w||m2.board.top!==m.board.top);M_(geo,st,'afterClose.over',m2.over.over);M_(geo,st,'afterClose.sheet',!!(await M.sheet(b)));}
 }
