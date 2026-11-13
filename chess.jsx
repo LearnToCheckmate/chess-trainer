@@ -1737,6 +1737,28 @@ function refuteTxt(R){
   if(!line.length)return '';
   return 'If '+R.capSan+', '+line.join(' ')+(R.verdict?(' '+R.verdict):'')+'.';
 }
+/* #550 HEX-T-08: the capture a Brilliant card's sacrifice invites, for the card's explanation. The landing arm is sacTaker's capture of the
+   piece that moved; the HANGING arm (gate.arm 'hang') is the capture of the piece LEFT on gate.gSq, which sacTaker cannot see - the audit's
+   own card, h4 with the queen left on c2, is that arm. Cheapest capturer first, as sacTaker. null when nothing can take it. */
+function brilTaker(pos,mv,gate){
+  try{if(!(gate&&gate.arm==='hang'&&gate.gSq))return sacTaker(pos,mv);
+    const g1=makeMove(pos,mv);const [r,c]=sq2rc(gate.gSq);const caps=getLegal(g1).filter(m=>m.tr===r&&m.tc===c);if(!caps.length)return null;
+    caps.sort((a,b)=>(VAL[(g1.board[a.fr][a.fc]||{}).t]||0)-(VAL[(g1.board[b.fr][b.fc]||{}).t]||0));
+    const cap=caps[0];return {game:g1,move:cap,san:toSAN(g1,cap,applyMove(g1.board,cap)),after:makeMove(g1,cap)};
+  }catch(e){return null;}
+}
+/* #550 HEX-T-08: the card's refutation sentence from one engine answer on the position after that capture - the review's own pieces
+   (sacLine's forcing rule, sacKeep's real-answer test, refuteTxt's shape) and the review's verdict thresholds, in the player's "you".
+   cpW / mtW are the engine's score after the capture in White's frame (mtW as mateW gives it). '' when the answer is not a real one. */
+function brilRefuteTxt(t,pv,ok,cpW,mtW){
+  try{if(!t||!t.after||!t.game)return '';const line=sacLine(t.after,pv);if(!sacKeep(ok,line))return '';
+    const mover=opp(t.game.turn);let verdict='';
+    if(!/#/.test(line[line.length-1])){
+      if(mtW!=null){const forMover=(mtW>0)===(mover==='w');verdict=forMover?(Math.abs(mtW)<1?'and it is mate':('and it is mate in '+Math.abs(mtW))):'';}
+      else if(cpW!=null){const c=mover==='w'?cpW:-cpW;verdict=c>=300?'and you are winning':c>=100?'and you keep a clear edge':c>=-30?'and you hold':'';}}
+    return refuteTxt({capSan:t.san,replyLine:line,verdict});
+  }catch(e){return '';}
+}
 /* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
    that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
    doing." The mistake drill stored NO `why` at all: out[i] is in scope at the capture site carrying loss,
@@ -2791,8 +2813,13 @@ function brilliantV1ok(g){
   return g.loss<cap&&s&&g.evAfter>=0.8&&g.evBefore>-1.0&&g.evBefore<4.5;
 }
 /* The practice card's sentence for a Brilliant, from a review row (one builder, used by the review's capture and by the regrade). */
-function brilCardWhy(o,mc){
+/* #550 HEX-T-08 (docs/hint-audit-2026-11-12; jobs/brilliant-drill-hint-and-explanation-concrete-2026-11-12): 107 of 129 cards ended "Hard to
+   see, and it holds." with the engine's number in the middle. `ref` is the line that follows the capture ("If Rxc2+, Bxc2 Rxc2+ Kxc2 and you
+   are winning.", brilRefuteTxt below, searched when the card is captured); where the card would otherwise close on that generic phrase, the
+   line replaces the number and the phrase. A mate, a fork, a discovered check or a promotion keeps its own closing, as before. */
+function brilCardWhy(o,mc,ref){
   const _g=(o&&o.gate)||{};const _mo=(o&&o.motifs)||[];
+  if(ref&&!(_mo.indexOf('mate')>=0||_mo.indexOf('fork')>=0||_mo.indexOf('discovered check')>=0||_mo.indexOf('promotion')>=0))return brilGiveTxt(_g,true)+'. '+ref;
   const _evM=(o&&typeof o.evalAfter==='number')?(mc==='w'?1:-1)*o.evalAfter:null;
   const _stand=(_evM==null||_mo.indexOf('mate')>=0)?'':(Math.abs(_evM)>=99?(_evM>0?', and it leads to mate':', and the engine still finds a mate against you'):(' and the position still read '+(_evM>0?'+':'')+_evM.toFixed(1)+' for you'));
   return brilGiveTxt(_g,true)+_stand+'. '+
@@ -7280,7 +7307,7 @@ function AppMain(){
           if(MISSED_BRIL&&out[i].mbril&&out[i].mbril.move&&res.positions[i]&&L!=='Brilliant'){
             const mm=out[i].mbril.move,mu=rc2sq(mm.fr,mm.fc)+rc2sq(mm.tr,mm.tc)+(mm.promo||'');let _pl='';try{_pl=toSAN(res.positions[i],res.plies[i].move,applyMove(res.positions[i].board,res.plies[i].move));}catch(e){}
             let _mw='';try{_mw=brilCardWhy({gate:out[i].mbril.gate,motifs:moveMotifs(res.positions[i],mm),evalAfter:out[i].evalBefore,forkT:forkTargets(res.positions[i],mm)},mc);}catch(e){_mw='';}
-            bril.push({fen:toFEN(res.positions[i]),uci:mu,label:'Brilliant',missed:true,played:_pl,ts:Date.now(),last:lastOf(i),why:_mw,no:Math.floor((_pb+i)/2)+1});
+            bril.push({fen:toFEN(res.positions[i]),uci:mu,label:'Brilliant',missed:true,played:_pl,ts:Date.now(),last:lastOf(i),why:_mw,no:Math.floor((_pb+i)/2)+1,_o:{gate:out[i].mbril.gate,motifs:moveMotifs(res.positions[i],mm),evalAfter:out[i].evalBefore,forkT:forkTargets(res.positions[i],mm)},_mc:mc/* #550 HEX-T-08: dropped before the card is stored */});
           }
           if(L==='Brilliant'&&res.plies[i]&&res.positions[i]){
             const m=res.plies[i].move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -7289,7 +7316,7 @@ function AppMain(){
                and a fork's two targets with it. evalAfter is White's frame, so a Black brilliancy used to read as a minus number for the
                player who made it, and a mating line read "+99.0". */
             const _why=brilCardWhy(out[i],mc);
-            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor((_pb+i)/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */});
+            bril.push({fen:toFEN(res.positions[i]),uci:u,label:'Brilliant',ts:Date.now(),last:lastOf(i),why:_why,no:Math.floor((_pb+i)/2)+1/* final-read antagonist A veto: brilliant cards carry their move number too */,_o:out[i],_mc:mc/* #550 HEX-T-08: dropped before the card is stored */});
           }
         }
         /* #426 antagonist B, P0-3, MEASURED: this merge is fen-keyed and used to DROP every position it
@@ -7309,6 +7336,15 @@ function AppMain(){
           const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;const fa=toFEN(makeMove(g0,m0));
           const tail=async(ms)=>{const pv=await sfBestLine(fa,ms);return pv&&pv.length?bestLineTail(c.fen,[c.uci,...pv],3,c.no,c.uci):'';};
           let t=await tail(300);if(!t)t=await tail(900);/* a 300ms pv can stop after one reply; one longer try */if(t)c.line=t;}catch(e){}}}
+        /* #550 HEX-T-08: a Brilliant card whose sentence would close on "Hard to see, and it holds." gets the line that follows the capture
+           instead, from one 700ms search (the review's own sacRun budget) on the position after the capture brilTaker names. Bounded like the
+           mistake cards above: 12 cards, the analysis engine up; a card whose search gives no real answer keeps the sentence it had. */
+        if(bril.length&&useSF&&sfAnaReadyRef.current){for(const c of bril.slice(0,12)){try{
+          if(!c._o||!/Hard to see, and it holds\.$/.test(c.why||''))continue;const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;
+          const t=brilTaker(g0,m0,c._o.gate);if(!t)continue;const fa=toFEN(t.after);const sgn=((fa.split(' ')[1]||'w')==='w')?1:-1;let cpW=null,mtW=null,ok=false;
+          const pv=await sfBestLine(fa,700,(sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){mtW=mateW(sc.mate,sgn);cpW=null;}else if(sc.cp!=null){cpW=sgn*sc.cp;mtW=null;}},(o)=>{ok=o;});
+          const rt=brilRefuteTxt(t,pv,ok,cpW,mtW);if(rt)c.why=brilCardWhy(c._o,c._mc,rt);}catch(e){}}}
+        for(const c of bril){delete c._o;delete c._mc;}
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
@@ -7317,7 +7353,12 @@ function AppMain(){
           const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
           const changed=add.length||up.some((x,i)=>x!==prev[i]);
           return changed?capMistakes([...add,...up],150):prev;});   /* #548 item (132): practised first, then oldest */
-        if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));return add.length?[...add,...prev].slice(0,80):prev;});
+        if(bril.length)setMyBrilliant(prev=>{const seen=new Set(prev.map(x=>x.fen));const add=bril.filter(c=>!seen.has(c.fen));
+          /* #550 HEX-T-08: a card already in the deck that still closes on the generic phrase takes the fresh capture's line when the same position
+             is reviewed again (the mistakes merge above does the same for a missing why); nothing else about it changes */
+          const fresh=new Map(bril.map(c=>[c.fen+'|'+c.uci,c]));let up=false;
+          const prev2=prev.map(x=>{const f=fresh.get(x.fen+'|'+x.uci);if(f&&/Hard to see, and it holds\.$/.test(x.why||'')&&f.why&&!/Hard to see, and it holds\.$/.test(f.why)){up=true;return {...x,why:f.why};}return x;});
+          return (add.length||up)?[...add,...prev2].slice(0,80):prev;});
       }
     }catch(e){}
     const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
