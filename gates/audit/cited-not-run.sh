@@ -259,6 +259,11 @@ gates/pending/probe466-pfh.js|ONEOFF|strong|In gates/pending/, which IS the decl
 gates/audit/play.js|OPERATOR|strong|An operator probe over the play driver's own state table - it is the only caller of Object.keys(P.states) anywhere in this project - so its input is gates/drive/play.js and not the working app, and a suite has nothing for it to assert on. IT BECAME A MEMBER OF THIS SET AT #506 AND BY A WEAKER ROUTE THAN ANY ROW ABOVE, which is said here rather than smoothed: it is cited at claude/PROCESS-LOG.md:858, inside a QUOTED `grep -rn cpu-black gates/` RESULT in lane 4's run record - a grep hit used to show that no regress gate drives the human-plays-Black state, not evidence behind a published number. THE RECRUITING CITATION IS THE RECORD, NOT THE GATE, AND THE FIRST VERSION OF THIS ROW NAMED THE GATE [R18]. Both of #506's blind antagonists found the gap independently from opposite doors and BOTH SAID ONE ROSTER ROW CLOSES IT, but antagonist B located the citation at gates/regress/65-promotion-after-gameover.js:282 and antagonist A falsified that on the cross-read: default_records() above scans RUN-LOG.md, HANDOFF.md, DECISIONS-LOG.md, FEEDBACK-INBOX.md, claude/PROCESS-LOG.md and claude/stories/*.md and NEVER gates/regress/, so a line in a gate file cannot recruit anything into this set. Verified by this script's own output, which names one citation and one only: 'cited at claude/PROCESS-LOG.md:858'. The gate file does carry the same grep line at :282 and it is irrelevant here. THE DIFFERENCE IS NOT COSMETIC: a run that acted on B's line would edit the gate, re-run the audit and find the member still present. Recorded as OPERATOR because that is what the file is; the citation's weakness is a fact about the citation, not a reason to leave the member unaccounted against a ceiling of 0.
 gates/audit/story-join.sh|OPERATOR|strong|An R47 COMPARATOR over the record documents: it re-implements gates/verify-log.sh --citations arm (5)'s STORY AT ZERO CASES predicate line for line, derives a wider one beside it, and reports the difference, so a story whose case is written in a shape arm (5) cannot join is separated from a story with no case at all. Its input is claude/stories/ and the case register, not the working app, so a build has nothing for it to read; and its verdict is about what we WROTE, which no regression gate may assert on. Run by whoever edits a story table or arm (5), and by the process lane that owns that join. Its own controls are a command: bash gates/audit/story-join.sh --selftest.
 gates/audit/selector-provenance.sh|OPERATOR|strong|A history sweep, not a gate: it joins the commit that introduced each data-ct attribute in chess.jsx against the commit that introduced the selector in each regress gate and names every pair that landed in one build (the #432 trap, counted). It needs a FULL clone and refuses a shallow one, takes tens of seconds over committed history, and its ceiling G_SPCEIL is deliberately unset pending the orchestrator's Q1, so it reports and asserts nothing in the suite. Landed at #548 from the parked patch of jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29; cited by TC-INV-11a..c.
+gates/feature-ledger-diff.js|OPERATOR|strong|Names the builds on main that changed application code and have no row in the tracker's feature ledger (TC-SUITE-381, #549 item (116)). Its input is a dump of tracker jobs/feature-inventory-2026-09-15 passed as a file, which no gates.sh invocation makes - the same reason gates/ledger-diff.js above is OPERATOR - and it REFUSES a shallow clone at exit 2 by design, which is what every routine container arrives as, so a suite running it could only read NOT CHECKED. Its verdict is about the ledger, not the bundle. CLASSIFIED AT #550 round 4 (test-system helper A), from the file's own header.
+gates/measure-accuracy-vs-chesscom.js|ONEOFF|strong|REPORT-ONLY by its own header (#549 item (82)): drives the bundle's Review over the 196 chess.com-reviewed games of the tracker's docs/chesscom-reviewed-games-kunal2023-since-2026-09-01 and records our accuracy beside chess.com's. Its input is a PGN key exported from the tracker, and a run is hours of real reviews. Its published output is FROZEN as gates/fixtures/accuracy-vs-chesscom-196.json, and the recurring assertion over those numbers is gates/regress/131-accuracy-near-chesscom.js (TC-R207), which the suite runs. Re-measuring on every build would re-derive the fixture, not test the bundle. CLASSIFIED AT #550 round 4.
+gates/measure-brilliant-one-rule.js|ONEOFF|strong|The one-time measurement behind the one Brilliant rule (#549 item (28)): grades every ply of a PGN directory under the old and new rule with the app's own Stockfish run in node. The numbers it produced are FROZEN in gates/brilliant-fixed-tests.json, and the suite asserts over them every run in gates/regress/82-brilliant-one-rule.js block G (TC-R127) and gates/regress/129-content-positions-hold.js. Its input is a directory of tracker-exported PGNs and its output is a list for Kunal's decision, not a verdict on the bundle. CLASSIFIED AT #550 round 4.
+gates/measure-review-vs-chesscom.js|OPERATOR|strong|The runnable form of TC-R167 and TC-R168, which are RED BY DESIGN until Kunal rules on the accuracy, book and Great constants; its own header says it 'must never be wired into gates.sh as a gate', prints a verdict per case and exits 0. A suite running it would either redden every build on a decision that is not the build's, or - read for its exit code - pass while both cases are red. Run by whoever reconciles the review against chess.com (jobs/reconcile-kevitsch-review-vs-chesscom). CLASSIFIED AT #550 round 4.
+gates/opening-book/build.js|OPERATOR|strong|The BOOK_POS generator: `--write` rewrites chess.jsx's BOOK_POS line from the five vendored lichess-org/chess-openings files, which no suite may do. ITS CHECK IS ALREADY IN THE SUITE, AND THIS SCRIPT CANNOT SEE THAT: gates/regress/87-opening-book.js (required in the manifest) runs require(path.join(BOOKDIR,'build.js')).build() and asserts TC-R156 A3, BOOK_POS is current, every run. closure() reads only literal require() strings, so a path.join require is not an edge and the file reads unreachable here - a detector limit, named rather than fixed in this row. Measured #550 round 4: `node gates/opening-book/build.js` prints OK, BOOK_POS is the table the five files make, in 31s.
 EOF
 }
 roster(){ if [ -n "${CT_ROSTER:-}" ] && [ -r "$CT_ROSTER" ]; then grep -v '^[[:space:]]*#' "$CT_ROSTER"; else roster_default; fi; }
@@ -329,7 +334,11 @@ main_report(){
   local leak; leak="$(comm -23 <(printf '%s\n' "$citfiles") <(printf '%s\n' "$REACH" | sort -u))"
   local nleak; nleak="$(printf '%s\n' "$leak" | grep -c . || true)"
   echo "CITED-NOT-RUN   $nleak"
-  if [ "$nleak" -eq 0 ]; then echo "GREEN: every cited file under gates/ is reachable by a suite run."; return 0; fi
+  # THE DOOR LINE [#550 round 4]: gates/door-checks.sh reads this report through ONE fixed-shape line, printed on every verdict
+  # path past the UNSOUND guards above and on none of those two, so an unsound derivation reaches the door with no count line and
+  # is refused there (2 is never a clearance). pass = cited files examined, which the guard above holds at >= 1; fail = members
+  # accounted for by nobody + weak reasons over their ceiling + stale roster entries, i.e. exactly what decides exit 1 below.
+  if [ "$nleak" -eq 0 ]; then echo "GREEN: every cited file under gates/ is reachable by a suite run."; echo "cited-not-run report: $ncit pass / 0 fail"; return 0; fi
   local f
   while IFS= read -r f; do
     [ -n "$f" ] || continue
@@ -405,6 +414,8 @@ main_report(){
   echo "ADMIT-WORKLIST  $cAD (does not affect the exit code; see the roster header)"
   for x in "${ADMITL[@]}"; do echo "  ADMIT $x"; done
 
+  local wover=$(( weak > A_WEAK_CEIL ? weak - A_WEAK_CEIL : 0 ))
+  echo "cited-not-run report: $ncit pass / $(( unacc + wover + retired )) fail"
   local bad=0
   [ "$unacc" -gt "$A_UNACC_CEIL" ] && bad=1
   [ "$weak"  -gt "$A_WEAK_CEIL"  ] && bad=1
@@ -548,10 +559,14 @@ EOF
   ck "C20 the headline size is still printed when green"   "3" "$(sed -n 's/^CITED-NOT-RUN *//p' <<<"$out")"
   ck "C21 the per-class tally sums to the set"             "3" "$(sed -n 's/^ACCOUNTED  *\([0-9]*\) of.*/\1/p' <<<"$out")"
 
+  # THE DOOR LINE, accounted-green arm: pass is the cited count the report itself printed, fail 0 (#550 round 4).
+  ck "C36 the door line reads N pass / 0 fail when accounted-green" "$(sed -n 's/^cited  *\([0-9]*\) distinct.*/\1/p' <<<"$out") pass / 0 fail" "$(sed -n 's/^cited-not-run report: //p' <<<"$out")"
+
   # UNACCOUNTED, firing: drop one row and the same tree must refuse.
   grep -v '^gates/bare-named.js|' "$R" > "$R.tmp" && mv "$R.tmp" "$R"
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C22 one unexplained member refuses"                  "1" "$rc"
+  ck "C37 and the door line carries that one as a fail"    "1" "$(sed -n 's/^cited-not-run report: [0-9]* pass \/ \([0-9]*\) fail$/\1/p' <<<"$out")"
   ck "C23 and names that file, not another"                "1" "$(grep -c '^  UNACCOUNTED gates/bare-named.js' <<<"$out")"
   ck "C24 the unaccounted count is 1, not 3"               "1" "$(sed -n 's/^UNACCOUNTED  *\([0-9]*\) of.*/\1/p' <<<"$out")"
 
@@ -617,6 +632,7 @@ EOF
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C10 exit 0 once nothing is cited-and-unreachable" "0" "$rc"
   ck "C11 and it says so"                               "1" "$(grep -c '^GREEN' <<<"$out")"
+  ck "C38 the empty-set green prints the door line with 0 fail" "1" "$(grep -cE '^cited-not-run report: [1-9][0-9]* pass / 0 fail$' <<<"$out")"
 
   # the UNSOUND arm. Both guards must fire: this is the control my own sibling script lacked on its
   # first real run, and a green printed over an empty derivation is the worst output this file could have.
@@ -624,6 +640,7 @@ EOF
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C12 exit 2 when the suite cannot be derived"     "2" "$rc"
   ck "C13 and it is not reported as green"             "0" "$(grep -c '^GREEN' <<<"$out")"
+  ck "C39 and prints NO door line, so the door refuses it" "0" "$(grep -c '^cited-not-run report:' <<<"$out")"
   mv "$T/gates/gates.sh.off" "$T/gates/gates.sh"
   echo "no file names here" > "$T/EMPTY-REC.md"
   out="$(CT_ROOT="$T" CT_RECORDS="EMPTY-REC.md" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?

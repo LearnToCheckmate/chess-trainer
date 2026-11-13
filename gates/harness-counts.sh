@@ -44,7 +44,7 @@ run(){
   fi
   local new="$tmp/reg"; : > "$new"
   while IFS=$'\t' read -r name path pin note; do
-    case "$name" in ''|\#*) printf '%s\t%s\t%s\t%s\n' "$name" "$path" "$pin" "$note" >> "$new"; continue;; esac
+    case "$name" in ''|\#*|door:*) printf '%s\t%s\t%s\t%s\n' "$name" "$path" "$pin" "$note" >> "$new"; continue;; esac   # door: rows are gates/door-checks.sh's pins, run there (#550 round 4)
     local f="$path" out="$tmp/$name.out"; case "$f" in /*) : ;; *) f="$ROOT/$path" ;; esac
     [ -f "$f" ] || { echo "HARNESS COUNTS COULD NOT RUN - $name: $path is missing"; rm -rf "$tmp"; return 2; }
     ( cd "$ROOT" && timeout 900 bash "$f" ) > "$out" 2>&1; local hrc=$?
@@ -91,6 +91,11 @@ selftest(){
   printf 'held-selftest\tgates/a.sh\t1\tn\n' > "$R/gates/harness-case-counts.tsv"
   ( bash "$R/gates/harness-counts.sh" ) >/dev/null 2>&1; chk "HC12 a row deleted from the committed register refuses: 1" 1 "$?"
   ( cd "$R" && git checkout -q -- gates/harness-case-counts.tsv ); ( bash "$R/gates/harness-counts.sh" ) >/dev/null 2>&1; chk "HC13 the same repository with the row restored: 0" 0 "$?"
+  # HC14 a door: row is gates/door-checks.sh's pin: not run here (its path is a script that takes an argument), not refused,
+  # and kept through --write (#550 round 4)
+  mkh held "164 PASS  0 FAIL  (x)"; : > "$T/reg"; reg held-selftest "$T/held.sh" 164 n; reg door:x "$T/never-run.sh" 9 n
+  chk "HC14 a door: row is skipped, not run and not refused: 0" 0 "$(rr)"
+  ( CT_HARNESS_REG="$T/reg" run --write ) >/dev/null 2>&1; chk "HC14b and survives --write unchanged" "door:x 9" "$(awk -F'\t' '$1=="door:x"{print $1, $3}' "$T/reg")"
   rm -rf "$T"; echo "harness-counts self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 
