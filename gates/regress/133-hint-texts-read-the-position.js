@@ -11,6 +11,7 @@
 // KNOW ITS LIMIT: the browser surfaces are gates 130 (Play) and 132 (the drill); this gate pins the readings themselves.
 // CONTROL-RECORD: 359de94 2026-11-13 total=8 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the branch tip's chess.jsx (fbd9ff8) - TC-R209d (Rxh6+ read 'A rook can be given up with check here.') and TC-R209d2 (Qb8+ read 'There is mate in two, and it starts with a check.') red; with this fix 8/0
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=26 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line, every older line and the six TC-R209g pins green (total 20 before TC-R209g was added)
+// CONTROL-RECORD: c9213e6 2026-11-13 total=32 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13: the branch tip's chess.jsx (17e366d62462, no mate-in-one guard) - TC-R209f F5b (Nc6 read as a fork of Qd8 and Rb8 while Rb1 mates) and two TC-R209h lines red (the reading, and the drill verdict 'Nc6 forks ...'); a fork-only guard (81b1b1c1e55a) left TC-R209h 2 red on the 'attack' fall-through; with the fix 32/0
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');
@@ -56,7 +57,11 @@ L.run(async()=>{
     ['F2','5rk1/5ppp/5n2/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe4','matethreat',false,null,'the knight on f6 takes the queen on e4'],
     ['F3','5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe3','matethreat',false,null,'Qe3 sees nothing near the king'],
     ['F4','5rk1/5p1p/6p1/6N1/8/8/5PPP/4Q1K1 w - - 0 1','Qe4','matethreat',false,null,'the pawn on g6 shuts the diagonal to h7'],
-    ['F5','1r1q2k1/5ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',true,/^Your knight can attack the queen on d8 and the rook on b8 at once\.$/,'the checker\'s case: it used to name only the rook'],
+    // F5 REPLACED [#550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13]: it pinned the fork on Nc6 in 1r1q2k1/5ppp/8/4N3/8/8/5PPP/6K1 w,
+    // which Rb1 mates (stockfish-18-lite-single, depth 20, Nc6 searched alone: mate in 1 for Black; the best move h3 is itself mated in 9).
+    // The fork now pinned is one the engine plays: Nc7 below is its first choice at depth 20 (+3.97, the next move f1d1 +0.15), material level.
+    ['F5','r2nr1k1/pp3ppp/8/3N4/8/8/PP3PPP/R4RK1 w - - 0 1','Nc7','fork',true,/^Your knight can attack the rook on a8 and the rook on e8 at once\.$/,'the engine\'s best move: the knight on d8 parts the rooks, so one of them falls'],
+    ['F5b','1r1q2k1/5ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',false,null,'the old F5: Rb1 mates, and a move that is mated next sets up nothing'],
     ['F6','1r1q2k1/1p3ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',false,null,'the pawn on b7 takes the knight'],
     ['F7','1r4kq/5ppp/8/4N3/8/8/5PPP/6K1 w - - 0 1','Nc6','fork',false,null,'only the rook is hit'],
     ['F8','r1b1bk2/6pp/8/8/4N3/8/5PPP/6K1 w - - 0 1','Nd6','fork',false,null,'two guarded bishops, each worth no more than the knight'],
@@ -81,6 +86,16 @@ L.run(async()=>{
   for(const [id,f,bs,ps,want] of SIXH){let t='';try{const g=E.fromFEN(f);t=E.mistakeHint(g,E.findMoveBySAN(g,bs),E.findMoveBySAN(g,ps));}catch(e){t='THREW '+e.message;}
     L.say(t===want,'TC-R209g '+id+' his card ('+ps+', best '+bs+'): the Hint reads "'+t+'"',{t,want});}
   // and the drill's verdict names the same thing (say), so the solve sentence does not fall back to "was stronger" on them
-  {const g=E.fromFEN(MOT[4][1]);const v=E.drillVerdict(g,E.findMoveBySAN(g,'Nc6'),null,'Nc6 was stronger. Kh1 went from level to losing.');
-   L.say(/^Nc6 forks the queen on d8 and the rook on b8\./.test(v),'TC-R209f F13 the drill verdict on the fork says it ("'+v+'")',v);}
+  {const g=E.fromFEN(MOT[4][1]);const v=E.drillVerdict(g,E.findMoveBySAN(g,'Nc7'),null,'Nc7 was stronger. Kh1 went from level to losing.');
+   L.say(/^Nc7 forks the rook on a8 and the rook on e8\./.test(v),'TC-R209f F13 the drill verdict on the fork says it ("'+v+'")',v);}
+  // TC-R209h [#550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13]: a move after which they have mate in one gets NO reading - not
+  // the fork, and not the older 'attack' reading it fell through to ("Their rook on b8 is short of defenders. Attack it.") - and the drill
+  // verdict for a card that stored it as best keeps the stored sentence rather than calling it a fork. The checker's card, Nc6 then Rb1#.
+  {const g=E.fromFEN(MOT[5][1]);const m=E.findMoveBySAN(g,'Nc6');let r=null,v='',mated=false;
+   try{r=E.concreteRead(g,m);const g2=E.makeMove(g,m);mated=E.getLegal(g2).some(x=>E.getStatus(E.makeMove(g2,x))==='checkmate');v=E.drillVerdict(g,m,null,'Nc6 was stronger. Kh1 went from level to losing.');}catch(e){r={k:'THREW '+e.message};}
+   L.say(mated,'TC-R209h PRECONDITION after Nc6 Black has a mate in one (Rb1#) on the checker\'s position',mated);
+   L.say(r===null,'TC-R209h Nc6, which Rb1 mates, gets no reading at all ('+(r?('['+r.k+'] "'+r.hint+'"'):'null')+')',r);
+   L.say(!/forks|attacks/.test(v),'TC-R209h and the drill verdict on a card storing Nc6 does not call it a fork or an attack ("'+v+'")',v);
+   const g0=E.fromFEN(MOT[5][1]);let t=null;try{t=E.concreteRead(g0,E.findMoveBySAN(g0,'h3'));}catch(e){t=null;}
+   L.say(!!t&&t.k==='threat'&&/They threaten Rb1 mate/.test(t.hint),'TC-R209h the move that does stop it (h3) still reads the threat ("'+(t&&t.hint)+'")',t);}
 },'133-hint-texts-read-the-position');
