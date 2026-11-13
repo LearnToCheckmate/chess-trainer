@@ -156,6 +156,47 @@ function freeNetVerdict(K,sc){if(!sc)return {ok:true,M:K,why:'no-engine'};const 
   if(K!=null&&M!=null&&M>=K+3)return {ok:false,M,why:'looser'};if(K!=null&&K<=5&&M==null)return {ok:false,M,why:'lost-mate'};if(M==null&&cp!=null&&cp<150)return {ok:false,M,why:'not-winning'};return {ok:true,M};}
 /* the reply when no engine is available (no Worker): the lone king heads for the centre, the textbook defence. */
 function freeFallbackReply(g){const ms=getLegal(g);if(!ms.length)return null;let best=null,bv=-1e9;for(const m of ms){const v=-Math.max(Math.abs(3.5-m.tr),Math.abs(3.5-m.tc))-0.1*(Math.abs(3.5-m.tr)+Math.abs(3.5-m.tc));if(v>bv){bv=v;best=m;}}return best;}
+/* #550, jobs/lessons-teach-the-finish-not-the-method-2026-09-24 (the remainder: "the schema cannot express a technique"), in its smallest
+   checkable form: A STAGE LESSON. A lesson with a `stages` array in lessons.js is practised against a lone king that chooses its own moves
+   (freeFallbackReply: it heads for the centre, the textbook defence; no engine, so a run is the same on every device), and each learner
+   move is judged ON THE BOARD by the open stage's progress test instead of by matching the script - any move that passes is accepted.
+   A stage is {name, goal, keep:[tests every move must pass while it is open], done:test that closes it}. Tests: 'box' - the lone king's box
+   must not grow; 'edge' - every square of the box must be on the edge of the board (as a keep) / is (as a done); 'mate'. In every stage a stalemate,
+   or a piece left where the lone king takes it, is refused (freeSyncVerdict). stageBox is the box: the squares the lone king (colour def)
+   can walk to - a flood from its square over squares no attacking piece covers, with the king lifted off the board so a line through it
+   still counts, and never onto an attacking piece. The two-bishop lesson keeps its own engine test (defender:'free'); stages do not use it. */
+function stageBox(board,def){const att=opp(def);const b=board.map(row=>row.slice());let kr=-1,kc=-1;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(p&&p.c===def&&p.t==='k'){kr=r;kc=c;b[r][c]=null;}}
+  if(kr<0)return [];const free=(r,c)=>r>=0&&r<8&&c>=0&&c<8&&!b[r][c]&&!isAttacked(b,r,c,att);
+  const seen=new Set([kr*8+kc]),q=[[kr,kc]],out=[];if(free(kr,kc))out.push(FILES[kc]+(8-kr));
+  while(q.length){const [r,c]=q.shift();for(const dr of [-1,0,1])for(const dc of [-1,0,1]){const nr=r+dr,nc=c+dc,k=nr*8+nc;if((!dr&&!dc)||nr<0||nr>7||nc<0||nc>7||seen.has(k))continue;seen.add(k);if(free(nr,nc)){out.push(FILES[nc]+(8-nr));q.push([nr,nc]);}}}
+  return out.sort();}
+/* a square on the rim of the board (rank 1 or 8, file a or h); a box is ON THE EDGE when every square of it is on the rim, which takes in a
+   box that runs round a corner (h8, g8 and h7, say) as well as one along a single rank or file */
+const stageRim=(s)=>/^[ah]|[18]$/.test(s);
+function stageEdge(box){return !!(box&&box.length&&box.every(stageRim));}
+/* the keep tests alone on g -> ng: null when they pass, else {why:'box',from,to} | {why:'edge',sq} */
+function stageKeepFail(st,g,ng){const keep=(st&&Array.isArray(st.keep))?st.keep:[];const def=ng.turn;const before=stageBox(g.board,def),after=stageBox(ng.board,def);
+  if(keep.includes('box')&&after.length>before.length)return {why:'box',from:before.length,to:after.length};
+  if(keep.includes('edge')&&after.length&&!stageEdge(after))return {why:'edge',sq:after.find(s=>!stageRim(s))};
+  return null;}
+/* the verdict on the learner's move g -> ng under stage st: {ok:false,why,...} | {ok:true,done,size,edge,relaxed}. A keep test that NO legal
+   safe move in g can pass is not enforced on that move (relaxed:true) - the rule is there to be followed, not to leave the learner with no
+   move at all; the move is still refused for a stalemate or a piece left hanging, which the caller checks first (freeSyncVerdict). */
+function stageVerdict(st,g,ng){const f=stageKeepFail(st,g,ng);let relaxed=false;
+  if(f){if(getLegal(g).some(m=>{const n2=makeMove(g,m);return freeSyncVerdict(n2).ok&&!stageKeepFail(st,g,n2);}))return {ok:false,...f};relaxed=true;}
+  const after=stageBox(ng.board,ng.turn),edge=stageEdge(after);return {ok:true,done:!!(st&&st.done==='edge'&&edge),size:after.length,edge,relaxed};}
+/* the hint once the run is off the book line: a mate if there is one, else the move that passes the stage and leaves the smallest box, then
+   the one that brings the two kings closest after the king's answer (the method in one sort: shrink the box, and when it cannot shrink,
+   bring the king), never back into a position the run has already reached while another move passes. */
+function stageHint(st,g,seen){let best=null,bv=null;const kd=(b)=>{const w=findKing(b,g.turn),k=findKing(b,opp(g.turn));return (w&&k)?Math.max(Math.abs(w[0]-k[0]),Math.abs(w[1]-k[1])):9;};
+  for(const m of getLegal(g)){const ng=makeMove(g,m);const sv=freeSyncVerdict(ng);if(!sv.ok)continue;if(sv.mate)return m;const v=stageVerdict(st,g,ng);if(!v.ok)continue;
+    const rp=freeFallbackReply(ng);const nb=rp?makeMove(ng,rp).board:ng.board;const s=[v.done?0:1,(seen&&seen.has(stageKey(nb)))?1:0,v.size,kd(nb)];let lt=!bv;for(let i=0;!lt&&i<s.length;i++){if(s[i]<bv[i])lt=true;else if(s[i]>bv[i])break;}if(lt){bv=s;best=m;}}
+  return best;}
+/* a position's key for the hint's repetition check (seen: the keys of the positions the run has reached with the learner to move) */
+/* the line that opens stage k: 'Stage 1 of 2 · Box it in: <goal>' */
+function stageIntro(stages,k){const st=(stages||[])[k];if(!st)return '';return 'Stage '+(k+1)+' of '+stages.length+' \u00b7 '+st.name+': '+st.goal;}
+function stageKey(board){let k='';for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];k+=p?(p.c==='w'?p.t.toUpperCase():p.t):'.';}return k;}
 const mateLbl=(m)=>(Math.abs(m)<1?(m>0?'1-0':'0-1'):((m>0?'M':'-M')+Math.abs(m)));
 const PST={
   p:[0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
@@ -5145,7 +5186,7 @@ function AppMain(){
   /* #549 item (85): the free-defender practice run. hist = the positions played (for the step-back row), moves = the learner's moves,
      K = the engine's mate distance for the learner, hint = the engine's next move for the learner (uci), off = left the book line,
      busy = the defender is thinking, over = the run ended without mate (the 50-move rule). */
-  const FREE0={on:false,hist:[],moves:0,K:null,hint:null,off:false,busy:false,over:false,last:null};
+  const FREE0={on:false,hist:[],moves:0,K:null,hint:null,off:false,busy:false,over:false,last:null,stage:0};   /* #550: stage = the open stage of a stage lesson */
   const [freeSt,setFreeSt]=useState(FREE0);
   const freeRef=useRef(freeSt); freeRef.current=freeSt;
   const freeTokRef=useRef(0);
@@ -6863,7 +6904,11 @@ function AppMain(){
     if(op&&!op.fen&&op.side==='b'){const mv=findMoveBySAN(g,line[0]);if(mv){g=makeMove(g,mv);setLastMv(mv);setOpenStep(1);}else setOpenStep(0);}
     else{setLastMv(null);setOpenStep(0);}
     /* #549 item (85): a free-defender lesson's MAIN line practises against the engine; any other line keeps the script. */
-    freeTokRef.current++;freeSet({...FREE0,on:!!(op&&op.defender==='free'&&op.fen&&op.line&&Array.isArray(line)&&op.line.join('|')===line.join('|')),hist:[g]});
+    /* #550 (jobs/lessons-teach-the-finish-not-the-method-2026-09-24): so does a STAGE lesson's (op.stages), judged by stageVerdict, and the
+       run opens on stage 1's goal so the learner knows what the first stretch is for. */
+    const _stg=!!(op&&Array.isArray(op.stages)&&op.stages.length);
+    freeTokRef.current++;freeSet({...FREE0,on:!!(op&&(op.defender==='free'||_stg)&&op.fen&&op.line&&Array.isArray(line)&&op.line.join('|')===line.join('|')),hist:[g]});
+    if(_stg&&op.line.join('|')===line.join('|'))setOpenMsg(stageIntro(op.stages,0));
     setGame(g);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();
   };
   const pickVariation=(v)=>{const op=LIB[openIdxRef.current];const _tl=op.line||[];let _cp=0;while(_cp<v.line.length&&_cp<_tl.length&&v.line[_cp]===_tl[_cp])_cp++;setLearnPhase('demo');setDemoPly(_cp);setDemoPlaying(true);setLearnLine(v.line);setLearnLabel(op.name+' → '+v.name);setOpenMsg('');setOpenStep(0);setLearnNotes(v.notes||[]);setLearnPlans(v.plans||op.plans||'');setLearnIdea(v.idea||op.idea||'');setLearnArrows(v.arrows||null);setLearnVideo(op.video||null);setShowVideo(false);setVideoOpen(false);setFlip(op.side==='b');setGame(initGame());setLastMv(null);setInfoOpen(false);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
@@ -8057,6 +8102,37 @@ function AppMain(){
      move is taken back and marks the run as not flawless, exactly like a wrong move in a scripted lesson; a mate completes the
      run whatever its length and banks through finishRep unchanged. */
   const FREE_MS=500, FREE_MAXMOVES=50, PCN={b:'bishop',n:'knight',r:'rook',q:'queen',p:'pawn'};
+  /* #550, jobs/lessons-teach-the-finish-not-the-method-2026-09-24: the learner's move in a STAGE lesson (op.stages). The open stage's keep
+     tests judge it on the board (stageVerdict) - any move that passes is accepted, the book move or not - and a refusal names what the
+     board shows: how far the box grew, or the square off the edge the king can now reach. The lone king answers at once (freeFallbackReply,
+     after STAGE_MS so the move is seen first); a stage whose done test passes opens the next one. The rest is the free run's: a mate
+     completes the run whatever its length and banks through finishRep, a refusal marks it not flawless, 50 moves is a draw. */
+  const STAGE_MS=350;
+  const stageMove=(g,mv,ng,san,sv,op)=>{
+    const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+    const F=freeRef.current,line=learnLineRef.current,K=Math.min(F.stage||0,op.stages.length-1),st=op.stages[K];
+    let v=null;if(!sv.mate){v=stageVerdict(st,g,ng);
+      if(!v.ok){learnRepRef.current.miss=true;
+        setOpenMsg('\u2717 '+san+(v.why==='box'?(' lets the king out: its box grows from '+v.from+' squares to '+v.to):(' lets the king off the edge: it can reach '+v.sq))+'.'+(st.rule?(' '+st.rule):'')+' Try again.');clr();return;}}
+    const hist=F.hist.concat([ng]),n=F.moves+1,iBook=F.hist.length-1,off=F.off||cleanSAN(san)!==cleanSAN(line[iBook]||'');
+    setGame(ng);setLastMv(mv);setRevealHint(false);clr();
+    if(sv.mate){freeSet({hist,moves:n,hint:null,off,busy:false});setOpenStep(line.length);setOpenMsg('\ud83c\udf89 '+san+' is checkmate! That\'s the '+learnLabel+'.'+finishRep());return;}
+    const K2=(v.done&&K+1<op.stages.length)?K+1:K;
+    freeSet({hist,moves:n,hint:null,off,busy:true});setOpenStep(Math.min(line.length-1,hist.length-1));setOpenMsg('\u2713 '+san+' \u2014 the king is moving\u2026');
+    const tok=++freeTokRef.current;
+    setTimeout(()=>{if(tok!==freeTokRef.current||modeRef.current!=='learn'||learnPhaseRef.current!=='practice')return;
+      const rm=freeFallbackReply(ng);if(!rm){freeSet({busy:false,over:true});repaint();return;}
+      const rsan=toSAN(ng,rm,applyMove(ng.board,rm));const ng2=makeMove(ng,rm);const hist2=hist.concat([ng2]);
+      const off2=off||cleanSAN(rsan)!==cleanSAN(line[iBook+1]||'');
+      setGame(ng2);setLastMv(rm);setOpenStep(Math.min(line.length-1,hist2.length-1));
+      if(n>=FREE_MAXMOVES){learnRepRef.current.miss=true;freeSet({hist:hist2,hint:null,off:off2,busy:false,over:true,last:rm,stage:K2});setOpenMsg('\u2717 '+FREE_MAXMOVES+' moves and no mate: by the 50-move rule that is a draw. Tap \u21bb Try again.');repaint();return;}
+      const seen=new Set(hist2.filter(x=>x.turn===op.side).map(x=>stageKey(x.board)));
+      let hint=null;if(off2){try{hint=_mvUci(stageHint(op.stages[K2],ng2,seen));}catch(e){hint=null;}}
+      const _fn=off2?'':String((learnNotesRef.current||[])[iBook]||'').trim();
+      const tail=(K2!==K)?(' Stage '+(K+1)+' done. '+stageIntro(op.stages,K2)):(v.relaxed?(' No move here could keep to the stage rule, so any safe move was allowed; the box is '+v.size+' square'+(v.size===1?'':'s')+'.'):(_fn?(' '+_fn):(' Its box: '+v.size+' square'+(v.size===1?'':'s')+'.')));
+      freeSet({hist:hist2,hint,off:off2,busy:false,last:rm,stage:K2});setOpenMsg('\u2713 '+san+' \u2014 the king answers '+rsan+'.'+tail);repaint();
+    },STAGE_MS);
+  };
   const freeMove=(g,mv)=>{
     const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
     const F=freeRef.current,line=learnLineRef.current;
@@ -8064,6 +8140,8 @@ function AppMain(){
     const nb=applyMove(g.board,mv);const san=toSAN(g,mv,nb);const ng=makeMove(g,mv);const sv=freeSyncVerdict(ng);
     if(!sv.ok){learnRepRef.current.miss=true;
       setOpenMsg('\u2717 '+san+(sv.why==='stalemate'?' is stalemate: the king has no move but is not in check, so it is a draw. Try again.':(' leaves your '+(PCN[sv.t]||'piece')+' on '+sv.sq+' for the king to take, and the mate needs it. Try again.')));clr();return;}
+    const _op=LIB[openIdxRef.current];
+    if(_op&&Array.isArray(_op.stages)&&_op.stages.length){stageMove(g,mv,ng,san,sv,_op);return;}   // #550: a stage lesson, judged on the board
     const hist=F.hist.concat([ng]),n=F.moves+1,iBook=F.hist.length-1,off=F.off||cleanSAN(san)!==cleanSAN(line[iBook]||'');
     setGame(ng);setLastMv(mv);setRevealHint(false);clr();
     if(sv.mate){freeSet({hist,moves:n,hint:null,off,busy:false});setOpenStep(line.length);setOpenMsg('\ud83c\udf89 '+san+' is checkmate! That\'s the '+learnLabel+'.'+finishRep());return;}
