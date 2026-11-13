@@ -186,6 +186,20 @@ function stageKeepFail(st,g,ng){const keep=(st&&Array.isArray(st.keep))?st.keep:
 function stageVerdict(st,g,ng){const f=stageKeepFail(st,g,ng);let relaxed=false;
   if(f){if(getLegal(g).some(m=>{const n2=makeMove(g,m);return freeSyncVerdict(n2).ok&&!stageKeepFail(st,g,n2);}))return {ok:false,...f};relaxed=true;}
   const after=stageBox(ng.board,ng.turn),edge=stageEdge(after);return {ok:true,done:!!(st&&st.done==='edge'&&edge),size:after.length,edge,relaxed};}
+/* #550 jobs/lessons-teach-the-finish-not-the-method-2026-09-24, theFailureLineIsPartOfTheLesson: "a technique lesson should show what goes
+   WRONG, not only the line that works". The failure line of a refused stage move: the lone king's way out, as a real move on the board.
+   g is the position before the refused move, ng the one after it, v its refusal (why 'box' or 'edge'). The squares the king has won are
+   the new box's squares the old box did not hold (why 'box'), or the new box's squares off the rim (why 'edge'). Of the king's legal moves
+   in ng, the one that lands nearest such a square (walking through the new box, 8 ways), then nearest the centre, is the way out: {mv, to (where it lands), target
+   (the won square it is nearest, = to when it lands on one), out (it lands on one)}. null when the king has no move or nothing was won. */
+function stageEscape(g,ng,v){if(!v||v.ok)return null;const def=ng.turn;const before=new Set(stageBox(g.board,def)),after=stageBox(ng.board,def);
+  const won=new Set(after.filter(s=>v.why==='edge'?!stageRim(s):!before.has(s)));if(!won.size)return null;const inBox=new Set(after);
+  const sq=(r,c)=>FILES[c]+(8-r),dist={};const q=[];for(const s of won){dist[s]=0;q.push(s);}
+  while(q.length){const s=q.shift();const c=FILES.indexOf(s[0]),r=8-(+s[1]);for(const dr of [-1,0,1])for(const dc of [-1,0,1]){const nr=r+dr,nc=c+dc;if((!dr&&!dc)||nr<0||nr>7||nc<0||nc>7)continue;const n=sq(nr,nc);if(!inBox.has(n)||dist[n]!=null)continue;dist[n]=dist[s]+1;q.push(n);}}
+  const ctr=(r,c)=>Math.max(Math.abs(r-3.5),Math.abs(c-3.5));   // of two equally near, the step toward the centre: the way a king gets out
+  let best=null;for(const m of getLegal(ng)){const to=sq(m.tr,m.tc);const d=dist[to];if(d==null)continue;const cd=ctr(m.tr,m.tc);if(!best||d<best.d||(d===best.d&&cd<best.cd))best={mv:m,to,d,cd};}
+  if(!best)return null;let target=best.to;if(best.d>0){const c=FILES.indexOf(best.to[0]),r=8-(+best.to[1]);let bd=99;for(const s of won){const sc=FILES.indexOf(s[0]),sr=8-(+s[1]);const k=Math.max(Math.abs(sc-c),Math.abs(sr-r));if(k<bd){bd=k;target=s;}}}
+  return {mv:best.mv,to:best.to,target,out:best.d===0};}
 /* the hint once the run is off the book line: a mate if there is one, else the move that passes the stage and leaves the smallest box, then
    the one that brings the two kings closest after the king's answer (the method in one sort: shrink the box, and when it cannot shrink,
    bring the king), never back into a position the run has already reached while another move passes. */
@@ -4167,6 +4181,20 @@ function StarIcon({size=20,color='currentColor'}){
   const c=size/2,R=size*0.48,r=R*0.42,pts=[];for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,q=k%2?r:R;pts.push((c+q*Math.cos(a)).toFixed(2)+','+(c+q*Math.sin(a)).toFixed(2));}
   return(<svg width={size} height={size} viewBox={'0 0 '+size+' '+size} aria-hidden="true" style={{display:'block'}}><polygon points={pts.join(' ')} fill={color}/></svg>);
 }
+/* #550 jobs/lesson-footer-icons-consistent, the sweep's last three rows (Review's Back|More, the puzzle row, the solved puzzle row) and
+   the drill row beside them: ONE ICON SIZE WITHIN A ROW, judged by the PAINTED INK (the glyph's larger dimension), not by its box. Measured
+   on the tip at kunal761 and 320x568 (trial 8e19cb261a48, a pixel scan): Review Back ← 14x6 beside More ⋯ 18x3; the puzzle row's chevrons
+   10x14, 💡 10x14.5 and 👁 14x9 beside ↺ 9x9; the solved row's chevron 10x14 beside the 4x6 › of 'Next ›'; the drill's 💡 14x20.5 and 👁 19x12
+   beside ↺ 14.6x12.5 and two 4x6 arrows. The words stay text, so every finder that reads '‹ Prev', 'Next ›' or '↺ Reset' still matches;
+   only the glyph is scaled, at lineHeight 0 so no row grows (gate 157). */
+const ICON_ROW_CHEV=20;      // Review's Back is the standard corner chevron (TopBack's), 10x14 of ink
+const ICON_ROW_DOTS=17;      // the More dots at 17 paint about 14.5 wide, the chevron's 14 (21 painted 18)
+const RESET_EM=1.4;          // ↺ paints 9 at the row's 15px; 1.4em brings it to the chevrons' and 💡's 14 (1.5em read 15.1 at 375 wide)
+const DRILL_RESET_EM=1.5;     // the drill's icon-only ↺ beside 19px emoji: 1.5em paints about 20, its 💡's 20 (1.4em read 18.1, 2.1 short)
+const NEXT_ARROW_EM=2.3;     // › paints 4x6 at the label's size; 2.3em brings it to the Previous chevron's 14
+const DRILL_ARROW_EM=3.2;    // the drill's ‹ › beside 19px emoji (💡 20.5, 👁 19): 3.2em brings them to about 19.5 (3em read 18.1 at 320 wide)
+/* a large arrow at lineHeight 0 paints about 0.075em of its own size below its word's centre (2.5 to 3px, gate 157 TC-IR-03), so it is lifted; the 1.5em ↺ already sits level */
+function IconGlyph({g,em}){return <span style={{fontSize:em+'em',lineHeight:0,display:'inline-block',verticalAlign:'middle',position:'relative',top:(em>2?'-0.075em':0),fontWeight:700}}>{g}</span>;}
 function ChevIcon({size=20,dir='right'}){
   const sw=Math.max(2,size*0.13), m=size*0.30, t=size*0.20, b=size-t;
   const x1=dir==='left'?(size-m):m, x2=dir==='left'?m:(size-m);
@@ -8192,13 +8220,22 @@ function AppMain(){
      board shows: how far the box grew, or the square off the edge the king can now reach. The lone king answers at once (freeFallbackReply,
      after STAGE_MS so the move is seen first); a stage whose done test passes opens the next one. The rest is the free run's: a mate
      completes the run whatever its length and banks through finishRep, a refusal marks it not flawless, 50 moves is a draw. */
-  const STAGE_MS=350;
+  const STAGE_MS=350, STAGE_REPLAY_MS=900;   // the failure line: the refused move, then the king's step, each held 900ms, then the board goes back
   const stageMove=(g,mv,ng,san,sv,op)=>{
     const clr=()=>{UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
     const F=freeRef.current,line=learnLineRef.current,K=Math.min(F.stage||0,op.stages.length-1),st=op.stages[K];
     let v=null;if(!sv.mate){v=stageVerdict(st,g,ng);
       if(!v.ok){learnRepRef.current.miss=true;
-        setOpenMsg('\u2717 '+san+(v.why==='box'?(' lets the king out: its box grows from '+v.from+' squares to '+v.to):(' lets the king off the edge: it can reach '+v.sq))+'.'+(st.rule?(' '+st.rule):'')+' Try again.');clr();return;}}
+        /* theFailureLineIsPartOfTheLesson: the refusal shows the king's way out ON THE BOARD - the refused move, the king's step (stageEscape,
+           a legal move the app's own move code made), then the board goes back - so the learner sees the box open rather than reads it. */
+        let esc=null,ng2=null,ksan='';try{esc=stageEscape(g,ng,v);if(esc){ng2=makeMove(ng,esc.mv);ksan=toSAN(ng,esc.mv,applyMove(ng.board,esc.mv));}}catch(e){esc=null;}
+        const way=esc?(' The way out: '+san+' '+ksan+(esc.out?(v.why==='box'?(', and the king stands on '+esc.to+', a square its box of '+v.from+' did not reach.'):(', and the king stands on '+esc.to+', off the edge.')):(', heading for '+esc.target+(v.why==='box'?(', a square its box of '+v.from+' did not reach.'):', off the edge.')))):'';
+        setOpenMsg('\u2717 '+san+(v.why==='box'?(' lets the king out: its box grows from '+v.from+' squares to '+v.to):(' lets the king off the edge: it can reach '+v.sq))+'.'+way+(st.rule?(' '+st.rule):'')+' Try again.');clr();
+        if(esc&&ng2){const tok=++freeTokRef.current,last=F.last||null;freeSet({busy:true});setGame(ng);setLastMv(mv);repaint();
+          const live=()=>tok===freeTokRef.current&&modeRef.current==='learn'&&learnPhaseRef.current==='practice';
+          setTimeout(()=>{if(!live())return;setGame(ng2);setLastMv(esc.mv);repaint();
+            setTimeout(()=>{if(!live())return;setGame(g);setLastMv(last);freeSet({busy:false});repaint();},STAGE_REPLAY_MS);},STAGE_REPLAY_MS);}
+        return;}}
     const hist=F.hist.concat([ng]),n=F.moves+1,iBook=F.hist.length-1,off=F.off||cleanSAN(san)!==cleanSAN(line[iBook]||'');
     setGame(ng);setLastMv(mv);setRevealHint(false);clr();
     if(sv.mate){freeSet({hist,moves:n,hint:null,off,busy:false});setOpenStep(line.length);setOpenMsg('\ud83c\udf89 '+san+' is checkmate! That\'s the '+learnLabel+'.'+finishRep());return;}
@@ -12865,9 +12902,9 @@ function AppMain(){
           {!puzSolved&&(<>
             <button onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
             <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
-            <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>↺ Reset</button>
+            <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}><span><IconGlyph g="↺" em={RESET_EM}/>{' '}Reset</span></button>
           </>)}
-          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?'Next ›':<ChevIcon size={20} dir="right"/>}</button>
+          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?<span>Next{' '}<IconGlyph g="›" em={NEXT_ARROW_EM}/></span>:<ChevIcon size={20} dir="right"/>}</button>
         </div>):(<>
         {!puzSolved&&(()=>{/* #550 a8: in the sideways rail the three sit on ONE row (flex, no wrap), with shorter words where the column is narrow */const _rb=pzRail?{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff');const _nar=pzRail&&sideW<330;return(<div style={{display:'flex',gap:pzRail?6:7,flexWrap:pzRail?'nowrap':'wrap',justifyContent:'center',...(pzRail?{width:'100%'}:null)}}>
           <button onClick={()=>{const _h=pzText(p).hint;setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} aria-label="Hint" style={_rb}>💡 Hint</button>
@@ -12984,12 +13021,12 @@ function AppMain(){
               <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
                 <button onClick={()=>setPuzMsg('💡 '+pzText(p).hint)} aria-label="Hint" style={_hb}>{_nw?'💡':'💡 Hint'}</button>
                 <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+' — squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
-                <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?'↺':'↺ Reset'}</button>
+                <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?<IconGlyph g="↺" em={DRILL_RESET_EM}/>:'↺ Reset'}</button>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}>{'\u21ba'}</button></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}><IconGlyph g={'\u21ba'} em={_nw?DRILL_RESET_EM:1}/></button></div>)}
             </div>
-            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}>‹ Prev</button>
-            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}>Next ›</button>
+            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}><span><IconGlyph g="‹" em={DRILL_ARROW_EM}/>{' '}Prev</span></button>
+            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}><span>Next{' '}<IconGlyph g="›" em={DRILL_ARROW_EM}/></span></button>
           </div>);})():(<>
         <div style={{position:'relative'}}>
         {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
@@ -13408,7 +13445,7 @@ function AppMain(){
              data-ct="board-chrome". The #435 class-sweep note that sat here said the predicate was inert at its one consumer; it now has none. */
           const _hb=isTop&&inReview&&revCompact&&!revHead;   // #550 a21: in the streamlined view back and more sit in the header row (rev-head)
           const _hbSty={...TOP_BTN,background:_pillBg,border:'1px solid '+_pillBd,color:_fg,fontWeight:800};   /* #550 FMT-B-03 (Kunal's pick 12 Nov): the standard 44x44 corner button, radius 12 (was 34x30 radius 9); the bar's padding gives 1px top and bottom so the bar stays 52 and the board does not move */
-          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:landBars?'auto':boardPx,marginLeft:landBars?0:evalW,...(landBars?{flexShrink:0}:null),...((landBars&&isTop)?{marginRight:landRev?(TOP_EDGE+TOP_SZ+6):(TOP_EDGE+2*TOP_SZ+6+6)}:null) /* #550 a38: the sideways top bar sits beside the corner buttons (Review: the menu; a game: Home and the menu). #550 desktop check: the slot is the buttons' own width plus a 6px gap (58 and 108) - 52 and 100 left the bar touching the menu and 2px under Home */,display:'flex',alignItems:'center',gap:8,padding:_hb?'4px 9px':'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:landBars?44:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:landBars?12:(isTop?'12px 12px 0 0':'0 0 12px 12px'),boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}>{'\u2190'}</button>}
+          return(<div data-ct={'pbar-'+(isTop?'top':'bottom')} style={{width:landBars?'auto':boardPx,marginLeft:landBars?0:evalW,...(landBars?{flexShrink:0}:null),...((landBars&&isTop)?{marginRight:landRev?(TOP_EDGE+TOP_SZ+6):(TOP_EDGE+2*TOP_SZ+6+6)}:null) /* #550 a38: the sideways top bar sits beside the corner buttons (Review: the menu; a game: Home and the menu). #550 desktop check: the slot is the buttons' own width plus a 6px gap (58 and 108) - 52 and 100 left the bar touching the menu and 2px under Home */,display:'flex',alignItems:'center',gap:8,padding:_hb?'4px 9px':'5px 9px',...((inReview||mode==='play')?(wide?{flex:'0 0 auto',minHeight:landBars?44:52}:{flex:'1 1 0',minHeight:(vp.h<640?32:46),maxHeight:(inReview?52:(vp.h>900?86:74))}):null),background:_barBg,boxShadow:_myTurn?(_lightBar?'inset 0 0 0 3px rgba(var(--acr),1), inset 0 0 0 5px rgba(0,0,0,.22)':'inset 0 0 0 3px rgba(var(--acr),.95)'):(_lightBar?'inset 0 0 0 1px rgba(0,0,0,.10)':'inset 0 0 0 1px rgba(255,255,255,.05)'),borderRadius:landBars?12:(isTop?'12px 12px 0 0':'0 0 12px 12px'),boxSizing:'border-box',[isTop?'marginBottom':'marginTop']:2}}>{_hb&&<button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hbSty,fontSize:25}}><ChevIcon size={ICON_ROW_CHEV} dir="left"/></button>}
             {/* #548 item (92): Home moved OUT of the player bar into data-ct="board-chrome", the top row of its own. */}
             {isTop&&_evalOn&&!inReview&&!(mode==='play'?_gameOver:isOver)&&<span style={{fontFamily:'monospace',fontSize:'clamp(14px,2.6vw,14px)',fontWeight:800,padding:'3px 8px',borderRadius:8,flexShrink:0,background:_pillBg,border:'1px solid '+_pillBd,color:_fg}}>{evalTxt}</span>}
             {!(landBars&&vp.w<720)&&!_hb&&av}{/* #550 FMT-B-03: where back and ⋯ sit in this bar (a short phone's Review) they are 44 wide now, so the decorative avatar gives up its 46 and the player's name keeps its room */}{/* #550 antagonist B F2/F8: under 720 wide a sideways bar is about 250, and the decorative avatar's 46 is what the captured pieces need (667 Review: 6 pieces cut by 83) */}
@@ -13458,7 +13495,7 @@ function AppMain(){
                 {marks.map((m,i)=>(<line key={i} x1={m.x} y1="1" x2={m.x} y2={gh-1} stroke={m.c} strokeWidth="1.5"/>))}
                 {cur>=0&&<line x1={xs(cur)} y1="0" x2={xs(cur)} y2={gh} stroke="var(--ac)" strokeWidth="2"/>}
               </svg>);})()}
-            {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:19}}>{'\u22ef'}</button>}
+            {_hb&&<button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hbSty,fontSize:ICON_ROW_DOTS}}>{'\u22ef'}</button>}
             {/* #381 A-08: Analyze, moved off the board into the right edge of the bottom player bar ("Morphy's
                 box"). Kept ROUND and kept at 40px rather than taking the 34x30 of its siblings: A-11, the
                 under-40px tap targets, is still UNANSWERED - he replied asking about the render, not choosing an
@@ -13479,9 +13516,9 @@ function AppMain(){
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',justifyContent:_edge?'flex-start':'center',order:wide?0:(pzLow?2:0),flex:revStream?'0 0 auto':((!wide&&((inReview&&revCompact)||(mode==='play'&&!playSetup)))?'1 1 auto':undefined) /* #550 a21: in the streamlined review the slack goes to the explanation (rev-compact), so the strip stays straight under the board */,minHeight:0,marginTop:(pzLow&&!wide?10:0)}}>
         {revHead&&reviewView!=='summary'&&(()=>{const _hs={...TOP_BTN,fontWeight:800};   /* #550 FMT-B-03: the standard corner button (was 44x40 radius 10) */return(
           <div data-ct="rev-head" style={{position:'relative',width:vp.w,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'0 '+TOP_EDGE+'px 2px',boxSizing:'border-box',flexShrink:0}}>{/* the row stays 46 tall: 44 buttons and 2 under, where it was 2 + 40 + 4 */}
-            <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}>{'\u2190'}</button>
+            <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}><ChevIcon size={ICON_ROW_CHEV} dir="left"/></button>
             <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
-            <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:21}}>{'\u22ef'}</button>
+            <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:ICON_ROW_DOTS}}>{'\u22ef'}</button>
           </div>);})()}
         {_showBars&&!landBars&&pBar(topColor,true)}
         {/* #340: eval bar ABOVE the board (Kunal), full width, so the board itself keeps every pixel of screen width. The number sits at the leading end, horizontal and readable. */}
