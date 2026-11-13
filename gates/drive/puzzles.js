@@ -106,7 +106,7 @@ S['rankup']=async(b)=>{await seedSolved(b,FIRST9);await startTraining(b);
   if(!/mate in 2/.test(goal))throw new Error('rankup: expected PZ[9] (White to move — mate in 2), got: '+goal.replace(/\s+/g,' ').slice(0,120));
   await b.move('d5','d8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('d1','d8',0);await b.settle(1600);};
 S['rankup-continue']=async(b)=>{await S['rankup'](b);await tapBtn(b,/^Continue ▶$/,700);};
-S['a06']=async(b)=>{await fresh(b);await b.card('A-06',7000);};
+S['a06']=async(b)=>{await S['train-hint'](b);await b.settle(1200);};   // #550 jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card: was b.card('A-06',7000) - the first puzzle with its hint up, now by the player's route (Puzzles -> Start training -> 💡 Hint), as gate 12 has entered it since #549
 
 module.exports={states:S,fresh,seedSolved,setStore,tapBtn,tapAria,msg,waitMsg,sig,scrollBox,scrollTo,btnRects,startTraining,FIRST95,FIRST9,PZKEY,PZUKEY,
   notes:'Home -> Puzzles tile opens the roadmap (pzView roadmap): the Novice card with ▶ Start training, the road with one 96px node per tier (only unlocked nodes are enabled), then 🧩 Free play, 🌐 Online puzzles and the Unlock code row below the fold. Start training / a node / Free play open the browse view (data-ct pz-top: the header row "‹ Roadmap | n / 890 · rating | tier · ✓ solved", the goal card, a one-line verdict box on phones; the board; pz-bottom: ‹ | 💡 Hint | 👁 Show | ↺ Reset | › on one row, ‹ | Next › once solved). A hint replaces the header row (pz-hint-head, 3-line clamp) instead of the verdict box. Moves are piece-tap then target-tap. Progress persists in localStorage chesstrainer.progress.v1 ({solved:{id:1},streak,best,xp,...}) - every state clears or seeds it and reloads first.'};

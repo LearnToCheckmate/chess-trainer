@@ -36,7 +36,7 @@
 //   feedback-home        Home 💬 -> the 'Send feedback' sheet
 //   feedback-menu        menu -> '💬 Send feedback' -> the same sheet from the menu
 //   feedback-typed       ... a note typed and 'Copy for Claude' pressed
-//   card7                gallery card 7 (y3: the menu with Layout readout showing, the tile ink line)
+//   card7                Home -> ☰ with Layout readout shown (was gallery card 7, y3: the tile ink line)
 'use strict';
 // the menu backdrop (fixed, zIndex 1000, text starts with "Menu") and its sheet (first child). Runs in the page.
 const FIND='(()=>{const bd=[...document.querySelectorAll("div")].find(d=>{const st=getComputedStyle(d);return st.position==="fixed"&&st.zIndex==="1000"&&/^Menu\\n/.test(d.innerText||"");});return bd?{bd,s:bd.firstElementChild}:null;})()';
@@ -101,7 +101,7 @@ S['menu-share']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^📣 Sha
 S['feedback-home']=async(b)=>{await b.home();await b.tapText(/^💬$/,{wait:600});};
 S['feedback-menu']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/Send feedback$/,600);};
 S['feedback-typed']=async(b)=>{await S['feedback-home'](b);await b.page.locator('textarea[placeholder="Your feedback..."]').fill('audit note');await b.tapText(/^Copy for Claude$/,{wait:700});};
-S['card7']=async(b)=>{await closeOverlays(b);await closeSheet(b);await b.card(7,2500);};
+S['card7']=async(b)=>{await closeOverlays(b);await closeSheet(b);await b.home();await b.tapCt('home-menu',700);await setToggle(b,/^Layout readout/,/shown$/);await b.settle(300);};   // #550 jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card: was b.card(7,2500) (y3: Home with the menu open and Layout readout shown) - now Home -> ☰ -> the Layout readout toggle, the way a player gets there
 
 module.exports={states:S,sheetText,toast,setToggle,closeOverlays,sheet,hasSheet,rows,leaves,scrollSheet,tapRow,closeSheet,tapHeaderMenu,menuBtnRects,fromTile,overlay1100,overlayText,readoutText,setStore,FIND,
   notes:'The menu is a fixed backdrop (zIndex 1000, padding max(10px,safe) 12px) with a scrolling sheet inside (on #372: margin-top 5vh, max-height 88vh, margin-bottom 24px; on #373 the sheet takes the padded viewport). Entries: the header ☰ of Discover/Puzzles/Review (title "Menu & settings"), data-ct play-menu in a live game, "Menu and settings" in the lesson ⋯ sheet and the review ⋯ sheet. Home has no ☰ on #372. The sheet: Account (Sign in with Google), Appearance (menu-look, 12 colour chips, SKIN x3, Cell depth, Evaluation bar, Eval bar sits, menu-evalgraph, Layout readout, Layout overlay, Sound, Piece style x5, Coach look x4), Share, Send feedback, Privacy/Terms/Refunds/Delete account, Build line. The Look and feel picker (data-ct look), the feedback sheet and the account sheet are fixed zIndex-1100 overlays. The layout overlay is data-ct layout-grid (fixed, pointer-events none) and persists in ct_layoutgrid.'};
