@@ -1964,7 +1964,7 @@ L.run(async()=>{
   {
     const H=require('../drive/home'), M=require('../drive/menu');
     const EXTRA=[['play-setup',P.states['setup']],['home-newhere',H.states['home-newhere']],['feedback-home',M.states['feedback-home']],
-                 ['menu-discover',M.states['menu-discover']],['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
+                 ['menu-discover',M.states['menu-discover']],['menu-coach',async(b)=>{await M.states['menu-discover'](b);await M.openCoach(b);}] /* #550 build-menu-one-screen: the Coach look portraits open in place under their row near the TOP of the sheet, so menu-bottom (scrolled to the end) no longer has them on screen */,['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
                  ['pz-roadmap',PZ.states['roadmap']]];
     for(const g of GEOS){
       const set={}; const reached=[]; const menuRows=[];
