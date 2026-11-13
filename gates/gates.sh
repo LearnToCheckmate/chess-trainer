@@ -165,10 +165,13 @@ assert_falls(){ # <register.tsv> <log>
 # held.sh's exit 2 states). The door's own output goes to <detail-file>, NOT into the log: a line of it beginning 'PASS' would
 # break verify-log.sh's footer-equals-^PASS self-consistency check. An empty base (origin/main unreadable) is NOT CHECKED and
 # refuses. Defined above --selftest so the selftest drives this function and not a copy.
-# NOT DONE HERE, and said: part (3), the door's ratchets turned into binaries, and part (4)'s first population
-# (verify-log --citations-selftest, gates/audit/cited-not-run.sh, gates/audit/verify-patch-set.sh).
+# NOT DONE HERE, and said: part (3), the door's ratchets turned into binaries.
+# PART (4)'s FIRST POPULATION IS THE THIRD CALL [#550]: `records-gate.sh --checks` (gates/door-checks.sh) runs the --selftest of
+# verify-log --citations, of gates/audit/cited-not-run.sh and of gates/audit/verify-patch-set.sh, and must exit 0 like the other
+# two. About 55s on top of the 96s the first two cost. cited-not-run.sh's report and verify-log --citations are NOT in it: both
+# are red on the tree that wired it (door-checks.sh's header has the figures), and a red check in the door reddens every suite.
 records_door(){
-  local rg="$1" base="$2" head="$3" out="$4" r1 r2
+  local rg="$1" base="$2" head="$3" out="$4" r1 r2 r3
   if [ -z "$base" ] || [ -z "$head" ]; then echo "RECORDS DOOR NOT CHECKED - no base or head sha (origin/main unreadable?), so this run is not a push gate"; return 2; fi
   if [ ! -f "$rg" ]; then echo "RECORDS DOOR NOT CHECKED - $rg is absent, so this run is not a push gate"; return 2; fi
   # base == head (HEAD is main's own commit, or an ancestor of it): the range holds no commit, so there is nothing for the
@@ -178,11 +181,12 @@ records_door(){
   if [ "$base" = "$head" ]; then echo "=== records door: range $base..$head is empty, no commit to judge ===" > "$out"; r1=0; RD_EMPTY=1
   else { echo "=== records door: $rg $base $head ==="; bash "$rg" "$base" "$head"; } > "$out" 2>&1; r1=$?; RD_EMPTY=""; fi
   { echo "=== records door: $rg --harnesses ==="; bash "$rg" --harnesses; } >> "$out" 2>&1; r2=$?
-  if [ "$r1" = 0 ] && [ "$r2" = 0 ] && [ -n "$RD_EMPTY" ]; then
-    echo "records door: OK - range $(printf '%.12s' "$base")..$(printf '%.12s' "$head") is empty (HEAD is on main), nothing for the records ratchet to judge; --harnesses exit 0 (detail: $out)"; return 0; fi
-  if [ "$r1" = 0 ] && [ "$r2" = 0 ]; then
-    echo "records door: OK - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit 0, --harnesses exit 0 (detail: $out)"; return 0; fi
-  echo "RECORDS DOOR REFUSED - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit $r1, --harnesses exit $r2, so this run is not a push gate (detail: $out)"; return 1
+  { echo "=== records door: $rg --checks ==="; bash "$rg" --checks; } >> "$out" 2>&1; r3=$?
+  if [ "$r1" = 0 ] && [ "$r2" = 0 ] && [ "$r3" = 0 ] && [ -n "$RD_EMPTY" ]; then
+    echo "records door: OK - range $(printf '%.12s' "$base")..$(printf '%.12s' "$head") is empty (HEAD is on main), nothing for the records ratchet to judge; --harnesses exit 0, --checks exit 0 (detail: $out)"; return 0; fi
+  if [ "$r1" = 0 ] && [ "$r2" = 0 ] && [ "$r3" = 0 ]; then
+    echo "records door: OK - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit 0, --harnesses exit 0, --checks exit 0 (detail: $out)"; return 0; fi
+  echo "RECORDS DOOR REFUSED - records-gate.sh $(printf '%.12s' "$base")..$(printf '%.12s' "$head") exit $r1, --harnesses exit $r2, --checks exit $r3, so this run is not a push gate (detail: $out)"; return 1
 }
 
 # bundle_stamp <bundle.js>: the ONE "#NNN - YYYY-MM-DD HH:MM ET" build stamp a bundle carries, or nothing if it carries
@@ -1610,8 +1614,14 @@ M16PY
   # RD1-RD9 DRIVE records_door [#550; jobs/build-one-door-for-every-non-gate-check-2026-10-10 part (2b)] over stub doors in a
   # scratch dir: the stub's two calls (base head, then --harnesses) take their exits from RD_E1 / RD_E2, and it prints a PASS
   # line so RD8 can show the door's output never reaches the line the caller tees into the log.
-  printf '%s\n' '#!/usr/bin/env bash' 'echo "PASS stub line $*"' 'if [ "${1:-}" = --harnesses ]; then exit "${RD_E2:-0}"; fi; exit "${RD_E1:-0}"' > "$ST_T/rg.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo "PASS stub line $*"' 'if [ "${1:-}" = --harnesses ]; then exit "${RD_E2:-0}"; fi; if [ "${1:-}" = --checks ]; then exit "${RD_E3:-0}"; fi; exit "${RD_E1:-0}"' > "$ST_T/rg.sh"
   rd(){ RD_E1="$1" RD_E2="$2" records_door "$ST_T/rg.sh" "${3-aaaa}" "${4-bbbb}" "$ST_T/rd.out" >/dev/null; echo $?; }
+  # RD11-RD13: the third call, part (4)'s first population (`--checks`), refuses on its own, on 1 and on 2 alike.
+  st RD11-a-door-check-refusal-refuses "$(RD_E3=1 rd 0 0)" 1
+  st RD11b-a-door-check-that-could-not-run-exit-2-refuses "$(RD_E3=2 rd 0 0)" 1
+  st RD11c-and-on-an-empty-range-too "$(RD_E3=1 rd 0 0 cccc cccc)" 1
+  st RD12-the-door-really-makes-the-checks-call "$(RD_E1=0 RD_E2=0 records_door "$ST_T/rg.sh" aaaa bbbb "$ST_T/rd.out" >/dev/null; grep -c '^PASS stub line --checks$' "$ST_T/rd.out")" 1
+  st RD13-the-real-door-dispatches---checks-to-door-checks.sh "$(grep -cF -- '--checks)    shift; exec bash "$HERE/door-checks.sh" "$@" ;;' "$SG/records-gate.sh")" 1
   st RD1-both-calls-exit-0-is-OK "$(rd 0 0)" 0
   st RD2-a-records-refusal-refuses "$(rd 1 0)" 1
   st RD3-a-harness-fall-refuses "$(rd 0 1)" 1
@@ -1622,7 +1632,7 @@ M16PY
   st RD10-an-empty-range-base-equals-head-is-not-a-refusal "$(rd 2 0 cccc cccc)" 0
   st RD10b-but-the-harnesses-half-still-refuses-on-an-empty-range "$(rd 0 1 cccc cccc)" 1
   st RD8-the-line-for-the-log-carries-no-PASS-line-of-the-door "$(RD_E1=0 RD_E2=0 records_door "$ST_T/rg.sh" aaaa bbbb "$ST_T/rd.out" | grep -c '^PASS')" 0
-  st RD8b-and-the-door-output-is-kept-in-the-detail-file "$(grep -c '^PASS stub line' "$ST_T/rd.out")" 2
+  st RD8b-and-the-door-output-is-kept-in-the-detail-file "$(grep -c '^PASS stub line' "$ST_T/rd.out")" 3
   st RD9-the-full-suite-withholds-the-green-line-on-a-refusal "$(grep -c '^if \[ \$red -eq 0 \] && .*\[ -z "\${RDFAIL:-}" \]; then echo "GATES GREEN' "$SF")" 1
   st RD9b-and-a-non-zero-door-sets-RDFAIL "$(grep -c '^RDFAIL=""; RDLINE="\$(records_door "\$G/records-gate.sh" .*|| RDFAIL=1$' "$SF")" 1
   # #545 item (98): the preamble's stamp reader, both ways, plus the ambiguous case.
