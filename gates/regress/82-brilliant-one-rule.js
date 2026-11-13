@@ -166,7 +166,12 @@ L.run(async()=>{
   const gk='cc:'+row.date+':Kunal2023:WataGwaan76';
   const stored={bril:1,great:20,inacc:3,mist:2,blun:1,obril:0,src:'review',engine:'sf',gv:1};
   const store=(gv)=>({ct_ccuser:'kunal2023',ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':[row]},ct_pool:'3',ct_gamestats:{[gk]:{...stored,gv}},ct_evalcache:{[ckey(sans)]:{...FXR.cache,at:Date.now()}},ct_mybrilliancies:[],ct_bril_rule:'2',ct_grades2:'0'});   // #550 item (20): the grades switch off, so GRADE_VER is the rule's own (1, 2 or 3) and the H block reads the brilliant regrade alone
-  const read=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="regrade-preview"]');let gs={},mb=[];try{gs=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}try{mb=JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){}
+  // #550 [jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]: the sheet is found by WHAT IT SAYS - its
+  // "Grading changed" heading, up to the box that carries its Update button - and its answers by their words; the hooks regrade-preview /
+  // -confirm / -later (added in #549 with this gate) are a fallback only. Keyed on the hook alone, H0 and H14 ("opens NO sheet") and
+  // H8/H13 ("closes the sheet") read PASS on any bundle that showed the sheet under another name - the #432 costume.
+  const tapAns=(b,re,ct)=>b.page.evaluate(([src,ct])=>{const re=new RegExp(src);const t=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>0)||document.querySelector('[data-ct="'+ct+'"]');if(!t)return false;t.click();return true;},[re,ct]);
+  const read=(b)=>b.page.evaluate(()=>{const s=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&(x.textContent||'').trim()==='Grading changed'&&x.getBoundingClientRect().height>0);let e=l&&l.parentElement;while(e&&![...e.querySelectorAll('button')].some(x=>/^Update$/.test((x.innerText||'').trim())))e=e.parentElement;return e||document.querySelector('[data-ct="regrade-preview"]');})();let gs={},mb=[];try{gs=JSON.parse(localStorage.getItem('ct_gamestats')||'{}');}catch(e){}try{mb=JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){}
     return {shown:!!s,text:s?s.innerText.replace(/\s+/g,' '):'',adds:[...document.querySelectorAll('[data-ct="regrade-add"]')].map(e=>e.innerText),drops:[...document.querySelectorAll('[data-ct="regrade-drop"]')].map(e=>e.innerText),gs,mb};});
   if(process.env.CT_G82_NODE_ONLY){L.note('CT_G82_NODE_ONLY set: the browser half of block H is skipped');return;}   // #550 HEX-T-08: node blocks alone, no browser
   {const st=store(1);st.ct_bril_rule='1';const b=await L.launch({geo:'kunal761',name:'r105-off',store:st});await b.open();await b.tile('Review');await b.settle(1500);
@@ -182,9 +187,9 @@ L.run(async()=>{
      L.say(r.shown,geo+': TC-R129 H4 a review graded by an older build opens the "Grading changed" sheet on the games list before anything changes',r.text.slice(0,160));
      L.say(r.gs[gk]&&r.gs[gk].gv===1&&r.gs[gk].bril===1,geo+': TC-R129 H5 while the sheet is up the stored tally is UNCHANGED (gv '+(r.gs[gk]&&r.gs[gk].gv)+', bril '+(r.gs[gk]&&r.gs[gk].bril)+')');
      L.say(r.adds.length===want.filter(w=>w.to==='Brilliant').length&&want.filter(w=>w.to==='Brilliant').every(w=>r.adds.some(a=>a.includes(w.no+(w.side==='w'?'. ':'... ')+w.san))),geo+': TC-R129 H6 the sheet lists every Brilliant that appears, by move: '+r.adds.join(' | '));
-     const box=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="regrade-preview"]');if(!s)return null;const q=s.getBoundingClientRect();const c=document.querySelector('[data-ct="regrade-confirm"]').getBoundingClientRect();return {l:q.left,r:q.right,b:q.bottom,vw:innerWidth,vh:innerHeight,cb:c.bottom,ch:c.height};});
+     const box=await b.page.evaluate(()=>{const s=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&(x.textContent||'').trim()==='Grading changed'&&x.getBoundingClientRect().height>0);let e=l&&l.parentElement;while(e&&![...e.querySelectorAll('button')].some(x=>/^Update$/.test((x.innerText||'').trim())))e=e.parentElement;return e||document.querySelector('[data-ct="regrade-preview"]');})();if(!s)return null;const q=s.getBoundingClientRect();const c0=[...s.querySelectorAll('button')].find(x=>/^Update$/.test((x.innerText||'').trim()))||document.querySelector('[data-ct="regrade-confirm"]');if(!c0)return null;const c=c0.getBoundingClientRect();return {l:q.left,r:q.right,b:q.bottom,vw:innerWidth,vh:innerHeight,cb:c.bottom,ch:c.height};});
      L.say(!!box&&box.l>=0&&box.r<=box.vw+0.5&&box.cb<=box.vh+0.5&&box.ch>=44,geo+': TC-R129 H7 the sheet fits the screen and Update is on it at 44px or more',box);
-     if(r.shown){await b.page.click('[data-ct="regrade-confirm"]');await b.settle(500);}   // guarded: a missing sheet goes red on H4 and the rest still runs
+     if(r.shown){await tapAns(b,'^Update$','regrade-confirm');await b.settle(500);}   // guarded: a missing sheet goes red on H4 and the rest still runs
      const r2=await read(b);const nt=r2.gs[gk]||{};
      L.say(!r2.shown,geo+': TC-R129 H8 Update closes the sheet');
      L.say(nt.gv===2&&E0.GRADES2===false&&nt.bril===1+rg0.delta.bril&&nt.great===20+rg0.delta.great&&nt.src==='review',geo+': TC-R129 H9 Update restamps the tally gv 2 and moves bril '+stored.bril+' -> '+nt.bril+' by the listed changes (src '+nt.src+')',nt);
@@ -193,7 +198,7 @@ L.run(async()=>{
      await b.close();}
     {const b=await L.launch({geo,name:'r105-later-'+geo,store:store(1)});await b.open();await b.tile('Review');await b.settle(1500);
      const r=await read(b);L.say(r.shown,geo+': TC-R130 H12 PRECONDITION the sheet is up');
-     if(r.shown){await b.page.click('[data-ct="regrade-later"]');await b.settle(500);}
+     if(r.shown){await tapAns(b,'^Not now$','regrade-later');await b.settle(500);}
      const r2=await read(b);
      L.say(!r2.shown&&r2.gs[gk]&&r2.gs[gk].gv===1&&r2.gs[gk].bril===1&&r2.mb.length===0,geo+': TC-R130 H13 Not now keeps every stored verdict as it was (gv '+(r2.gs[gk]&&r2.gs[gk].gv)+', bril '+(r2.gs[gk]&&r2.gs[gk].bril)+', cards '+r2.mb.length+')');
      await b.close();}
