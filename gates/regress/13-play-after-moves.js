@@ -34,7 +34,9 @@ const L=require('../lib');
 // player bar for a 44px row of their own and the move strip under the board went (Kunal's 'everywhere'). Measured on the #548 trial:
 // 375x679 card k8 and Pass & Play 351@78 -> 367@102 (WIDER by 16 and 24px lower), 390x844 390@103 -> 390@128 (same width, 25px lower).
 // #550 short upright (BSA-P-36, q42): at 375x679 Pass & Play folds 'vs Human' into the top row and trims its gaps, so its board is the full 375 at 103.7 (measured on the round-7 bundle c5269256d63e); the card k8 board is unchanged.
-const PIN={kunal:{card:{w:367,top:102},pp:{w:375,top:103.7}},'390':{card:{w:390,top:128},pp:{w:390,top:128}}};
+// #550 RE-KEYED: card k8 at 375x679 measured 375@100 on the batch-10 tree (t163 7719e5a7fd39; already 375@100 on the tip 342f7329901b before the
+// formatting merge, per two helpers) - the board is now full width there like every other board on his phone, 8px wider and 2px higher.
+const PIN={kunal:{card:{w:375,top:100},pp:{w:375,top:103.7}},'390':{card:{w:390,top:128},pp:{w:390,top:128}}};
 L.run(async()=>{
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'k8-'+geo});await b.open();

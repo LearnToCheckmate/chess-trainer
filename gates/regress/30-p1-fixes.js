@@ -63,7 +63,7 @@ L.run(async()=>{
     // still has nothing proving it can fail.
     // #548 item (92) MOVED IT: the phone's top row took the strip under the board's place, so at 375x679 the board is 367 (was 351) - the same
     // figure gates 10 and 13 were re-pinned to; 390x844 stays 390. Caught red in #548's round-1 suite.
-    const A12={kunal:367,'390':390};
+    const A12={kunal:375,   /* #550 re-keyed: 367 -> 375 at 375x679, measured on t163 7719e5a7fd39 (the board is full width, as gate 13's card k8) */ '390':390};
     if(A12[geo]!=null)L.say(!!m2.board&&Math.abs(m2.board.w-A12[geo])<0.6,geo+': A-12 the board is '+A12[geo]+' wide after the toggle, the measured size - not merely the same as before it',{measured:m2.board&&m2.board.w,want:A12[geo]});
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
     L.say(m2.over.over<=0,geo+': A-12 no scroll after toggling',m2.over);
