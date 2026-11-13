@@ -1414,6 +1414,14 @@ function replyWhy(g2,r,sc,base){
     const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', a fork';if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
     const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t];
     let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
+    /* #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w
+       after 1.h3 the line read "allows Qxh6, which hits the bishop on d2" - Qxh6 TAKES WHITE'S QUEEN and Bxh6 takes back, so the side effect was
+       named and the capture was not. A reply that captures is now described by its capture: an even trade (same value, and the mover can take
+       back on that square) reads "trading queens" and is never called a threat; a capture of a minor piece or more reads "taking your knight".
+       A pawn capture keeps no phrase (a pawn won is not named, as B4). The threat gist is used only for a reply that captures nothing. */
+    let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
+      if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
+      else if(cv>=3)capW='taking your '+PNAME[cap.t];gist='';}
     let band='';
     if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;
       if(v<=-1.5)band=' and leaves you '+whyBand(v);
@@ -1421,6 +1429,7 @@ function replyWhy(g2,r,sc,base){
     /* the threat is named only where the engine says it cost something (a band above, or a drop of a pawn or more from base): a reply that
        hits a piece in a position that stays level is not a reason, and TC-R200b B4 keeps "a level band is not a reason" */
     const _cost=!!band||(sc&&typeof sc.cp==='number'&&sc.mate==null&&typeof base==='number'&&isFinite(base)&&base-(-sc.cp/100)>=1.0);
+    if(capW&&_cost)return 'allows '+s+', '+capW+(band?(band.charAt(0)===':'?band:(','+band)):'');
     if(gist&&_cost)return 'allows '+s+', which '+gist+(band?(band.charAt(0)===':'?band:(','+band)):'');
     if(band)return 'allows '+s+band;
     return null;

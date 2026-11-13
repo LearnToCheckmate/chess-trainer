@@ -16,6 +16,7 @@
 // CONTROL-RECORD: c539ae4 2026-11-11 total=21 red=5 scope=trial:8b141ccb9067 how=#550 item (24): the tree before say-why - TC-R200c at both geometries and the three TC-R200d lines red; A, B and E green
 // CONTROL-RECORD: c539ae4 2026-11-11 total=8 red=5 scope=env:CT_SRC=c124-null how=wrongWhy and replyWhy both returning null - TC-R200a A1 A3 and TC-R200b B1 B2 B3 red
 // CONTROL-RECORD: 66bcd7f 2026-11-13 total=12 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 HEX-T-03: the branch tip's chess.jsx (before the gist and the baseline) - TC-R209e B5 and B7 red; B6, B8 and every A/B line green
+// CONTROL-RECORD: 359de94 2026-11-13 total=15 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: the branch tip's chess.jsx (fbd9ff8) - TC-R209e B9 and B10 red, reading 'allows Qxh6, which hits the bishop on d2: you go from winning to clearly better'; B9 PRECONDITION and every other A/B line green; with the fix 15/0, and the full gate (C-E browser blocks) 28/0 on t3 18c1452bf0b3
 const L=require('../lib');
 const E=require('../engine-extract.js');
 console.log('124-wrong-move-says-why: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-B); bundle '+(process.env.CT_APP||'app.js')+' (blocks C-E)');
@@ -51,7 +52,14 @@ L.run(async()=>{
    const t7=E.replyWhy(g1,r1,{cp:40,mate:null},3.0);
    L.say(t7==='allows Bxb5+: you go from winning to level','TC-R209e B7 cxb5 with the drill\'s baseline (+3.0 before, -0.4 after, for Black): the slide from winning to level is named ('+t7+')');
    const t8=E.replyWhy(g1,r1,{cp:40,mate:null},0.6);
-   L.say(t8===null,'TC-R209e B8 the same reply from a baseline of +0.6 (a drop of 1.0, one band) gives no reason, as B4 ('+t8+')');}
+   L.say(t8===null,'TC-R209e B8 the same reply from a baseline of +0.6 (a drop of 1.0, one band) gives no reason, as B4 ('+t8+')');
+   // #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: after 1.h3 here Black's Qxh6 TAKES White's queen
+   // and Bxh6 takes back; the line read "allows Qxh6, which hits the bishop on d2". A capture is named first, and an even trade is not a threat.
+   const pc=E.fromFEN('r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w - - 0 1'),gc=E.makeMove(pc,mvOf(pc,'h2','h3')),rc=mvOf(gc,'f6','h6');
+   const t9=E.replyWhy(gc,rc,{cp:-200,mate:null},3.5);
+   L.say(!!rc&&!!E.getLegal(E.makeMove(gc,rc)).find(m=>E.rc2sq(m.tr,m.tc)==='h6'),'TC-R209e B9 PRECONDITION after 1.h3 Qxh6 White can take back on h6 (Bxh6), so it is an even trade',!!rc);
+   L.say(t9==='allows Qxh6, trading queens: you go from winning to clearly better','TC-R209e B9 a reply that captures is described by its capture first, and an even queen trade is called a trade ('+t9+')');
+   L.say(!!t9&&!/\b(hits|chases|pins)\b/.test(t9),'TC-R209e B10 an even trade is not called a threat: no "hits", "chases" or "pins" in the line ('+t9+')');}
   if(process.env.CT_SRC){L.note('CT_SRC set: browser blocks C-E skipped');return;}
   // ── C. PUZZLES: Re7 on the first library puzzle, the one-line row ──────────────────────────────────────────────────────────────
   {const Z=require('../drive/puzzles');
