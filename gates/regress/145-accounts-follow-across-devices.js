@@ -25,7 +25,8 @@
 //  (f) TC-R221l sign-out on device 1 with a different account then signing in leaves none of the first player's followed accounts, switches,
 //      sync record or cards in what the new account saves.
 //  (g) SYN-06/SYN-11 (#550): TC-R221m a fresh device takes the account's piece set, eval-off and chosen opponent, and keeps them in its backup;
-//      TC-R221n the running board is drawn in that piece set at once; TC-R221o rated online games, puzzles shown and lessons finished are unions.
+//      TC-R221n the running board is drawn in that piece set at once; (#550 cg5) TC-R221m2 the other three of SYN-06's six - board depth on, eval
+//      graph off, sound off - come down and stay in the backup, and TC-R221n2 the running app's menu reads them with no reload; TC-R221o rated online games, puzzles shown and lessons finished are unions.
 //  (h) SYN-07: TC-R221p a device left open pulls the account again when it is come back to (focus / visibilitychange, 20 s after the last
 //      pull), and TC-R221q its next backup carries the other device's newer engine strength and card instead of rolling them back.
 //  (i) #550 cg5 SYN-11 (the puzzle streak): TC-R221r a fresh device takes the account's streak 5 (best 7) into the running app (its puzzle store)
@@ -44,6 +45,7 @@
 // CONTROL-RECORD: f41cd92 2026-11-13 total=8 red=3 scope=trial:03e9426693ab how=#550 cg5 SYN-11 block (i) alone (CT_145_BLOCKS=i) on t0, the branch tip f41cd92 (streak never pulled): TC-R221r (device streak 0), TC-R221s (saved [0]), TC-R221t (device 2, saved 2) red; TC-R221u stays green there by design (named, not credited); on t1 f44399342fff 8/0
 // CONTROL-RECORD: 335c439 2026-11-13 total=6 red=2 scope=trial:03e9426693ab how=#550 cg5 SYN-07 block (j) alone (CT_145_BLOCKS=j) on t0, the branch tip f41cd92 (every push sends all 17 keys with no pull): TC-R221v (account ct_elo 1250 after A's push - the checker's reading, now driven) and TC-R221w (A still 1250) red; the three preconditions and zero-errors green; on t2 c26d319f30ba 6/0, whole gate 44/0
 // CONTROL-RECORD: d4a0d44 2026-11-13 total=5 red=1 scope=trial:4e2f9e5cd0df how=#550 cg5 SYN-08 block (k) alone (CT_145_BLOCKS=k) on t3m, d4a0d44 with BOTH reconnect retries removed (the pull's 'online' once-listener and the syncDirty 'online' handler; the 20 s timer left in): TC-R221y red (account 1250 after reconnect, no save); TC-R221x x2 green there by design. The retry already existed, so the branch tip t0 03e9426693ab is green 5/0 (it retries through the failed save, 2.5 s after reconnect) - named, not credited; on t2 c26d319f30ba 5/0 (through the failed pull, 0 s after reconnect)
+// CONTROL-RECORD: 624072a 2026-11-13 total=9 red=2 scope=trial:50c8268f10ad how=#550 cg5 SYN-06 six-of-six, block (g) alone (CT_145_BLOCKS=g) on t4k, 624072a with ct_depth, ct_evalgraph and ct_sound taken out of SYNC_KEYS: TC-R221m2 (device 0/1/1, saved {}) and TC-R221n2 (menu depth OFF, graph ON, sound ON) red; and on t4s 287da044ee1f (the three syncApplyState cases removed, store still synced) 9 total, 1 red: TC-R221n2 alone, so n2 reads the running app and not the store. The tip t0 03e9426693ab already syncs all six: 9/0, named, not credited; on t2 c26d319f30ba 9/0
 const L=require('../lib');
 const PGN=(w,b,d)=>'[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "'+d+'"]\n[White "'+w+'"]\n[Black "'+b+'"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
 async function stub(b){const hits=[];
@@ -146,14 +148,14 @@ L.run(async()=>{
   }
   if(on('g')){ // (g) SYN-06: the board look and eval settings follow the account; SYN-11: rated games, lessons finished and puzzles shown are unions
     const t1=Date.now()-3600*1000;
-    const acct={ctProgress:{ct_pieceSet:'symbol',ct_hideEval:'1',ct_bot:'astrid',ct_rated:JSON.stringify(['og-acct-1']),ct_pzshown:JSON.stringify({pzA:1}),ct_lessonfin:JSON.stringify({n:1,at:t1,by:{'Italian Game':t1}}),
-      ct_syncmeta:JSON.stringify({t:{ct_pieceSet:t1,ct_hideEval:t1,ct_bot:t1,ct_rated:t1,ct_pzshown:t1,ct_lessonfin:t1},s:{}})}};
+    const acct={ctProgress:{ct_pieceSet:'symbol',ct_hideEval:'1',ct_bot:'astrid',ct_depth:'1',ct_evalgraph:'0',ct_sound:'0',ct_rated:JSON.stringify(['og-acct-1']),ct_pzshown:JSON.stringify({pzA:1}),ct_lessonfin:JSON.stringify({n:1,at:t1,by:{'Italian Game':t1}}),
+      ct_syncmeta:JSON.stringify({t:{ct_pieceSet:t1,ct_hideEval:t1,ct_bot:t1,ct_depth:t1,ct_evalgraph:t1,ct_sound:t1,ct_rated:t1,ct_pzshown:t1,ct_lessonfin:t1},s:{}})}};
     const b=await L.launch({geo:'kunal761',name:'acct145d6',store:Object.assign({},SEED,{ct_rated:['og-dev-1'],ct_pzshown:{pzB:1},ct_lessonfin:{n:1,at:t1-1000,by:{'London System':t1-1000}}})});
     await stub(b);await b.open();await b.settle(1200);
-    const pre=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval')}));
-    L.say(pre.p!=='symbol'&&pre.h!=='1','TC-R221 PRECONDITION before sign-in this fresh device has its own defaults ('+JSON.stringify(pre)+')',pre);
+    const pre=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval'),d:localStorage.getItem('ct_depth'),g:localStorage.getItem('ct_evalgraph'),s:localStorage.getItem('ct_sound')}));
+    L.say(pre.p!=='symbol'&&pre.h!=='1'&&pre.d!=='1'&&pre.g!=='0'&&pre.s!=='0','TC-R221 PRECONDITION before sign-in this fresh device has its own defaults ('+JSON.stringify(pre)+')',pre);
     await signIn(b,acct,'gate-uid');
-    let st=null;for(let i=0;i<12;i++){await b.settle(500);st=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval'),bot:localStorage.getItem('ct_bot'),r:localStorage.getItem('ct_rated'),z:localStorage.getItem('ct_pzshown'),f:localStorage.getItem('ct_lessonfin')}));if(st.p==='symbol')break;}
+    let st=null;for(let i=0;i<12;i++){await b.settle(500);st=await b.page.evaluate(()=>({p:localStorage.getItem('ct_pieceSet'),h:localStorage.getItem('ct_hideEval'),d:localStorage.getItem('ct_depth'),g:localStorage.getItem('ct_evalgraph'),s:localStorage.getItem('ct_sound'),bot:localStorage.getItem('ct_bot'),r:localStorage.getItem('ct_rated'),z:localStorage.getItem('ct_pzshown'),f:localStorage.getItem('ct_lessonfin')}));if(st.p==='symbol')break;}
     await b.settle(3000);const p=lastProg(await saves(b))||{};
     L.say(st.p==='symbol'&&st.h==='1'&&st.bot==='astrid'&&p.ct_pieceSet==='symbol'&&p.ct_hideEval==='1','TC-R221m the account\'s piece set, eval bar off and chosen opponent come down to a fresh device and stay in its backup (device '+JSON.stringify({p:st.p,h:st.h,bot:st.bot})+', saved '+JSON.stringify({p:p.ct_pieceSet,h:p.ct_hideEval})+')',{st,p:{p:p.ct_pieceSet,h:p.ct_hideEval,bot:p.ct_bot}});
     // the running app took them, not only the store: the board is drawn in the symbol set (no piece pictures) with no reload
@@ -161,6 +163,12 @@ L.run(async()=>{
       ({imgs,glyphs}=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];if(!g)return {imgs:-1,glyphs:-1};
         return {imgs:g.querySelectorAll('img').length,glyphs:(g.innerText.match(/[♔♕♖♗♘♙♚♛♜♝♞♟]/g)||[]).length};}));}catch(e){L.note('pp-m0: '+String(e).slice(0,120));}
     L.say(imgs===0&&glyphs>=30,'TC-R221n the running app draws the board in the account\'s piece set at once, with no reload ('+imgs+' piece pictures, '+glyphs+' symbol pieces)',{imgs,glyphs});
+    // #550 cg5: the other three of SYN-06's six (board depth, eval graph, sound) - this block asserted only piece set, eval on/off and opponent
+    L.say(st.d==='1'&&st.g==='0'&&st.s==='0'&&p.ct_depth==='1'&&p.ct_evalgraph==='0'&&p.ct_sound==='0','TC-R221m2 the account\'s board depth (on), eval graph (off) and sound (off) come down to a fresh device and stay in its backup (device '+JSON.stringify({d:st.d,g:st.g,s:st.s})+', saved '+JSON.stringify({d:p.ct_depth,g:p.ct_evalgraph,s:p.ct_sound})+')',{st:{d:st.d,g:st.g,s:st.s},p:{d:p.ct_depth,g:p.ct_evalgraph,s:p.ct_sound}});
+    let tg={};try{const M=require('../drive/menu');await M.states['menu-discover'](b);await b.settle(500);
+      tg=await b.page.evaluate((F)=>{const o=eval(F);if(!o)return {};const T=[...o.s.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim());const f=(re)=>T.find(t=>re.test(t))||null;
+        return {depth:f(/^Cell depth & texture/),graph:(()=>{const g=o.s.querySelector('[data-ct="menu-evalgraph"]');return g?(g.innerText||'').replace(/\s+/g,' ').trim():null;})(),sound:f(/^Sound/)};},M.FIND);await M.closeSheet(b);}catch(e){L.note('menu: '+String(e).slice(0,160));}
+    L.say(/ON$/.test(tg.depth||'')&&/^Evaluation graph OFF$/.test(tg.graph||'')&&/OFF$/.test(tg.sound||''),'TC-R221n2 and the running app took them with no reload: the menu reads Cell depth ON, Eval graph OFF, Sound OFF ('+JSON.stringify(tg)+')',tg);
     const R=J(st.r)||[],Z=J(st.z)||{},F=J(st.f)||{};const pr=J(p.ct_rated)||[];
     L.say(R.indexOf('og-acct-1')>=0&&R.indexOf('og-dev-1')>=0&&pr.indexOf('og-acct-1')>=0&&pr.indexOf('og-dev-1')>=0,'TC-R221o the online games already rated are a union of both devices ('+st.r+', saved '+p.ct_rated+')',{R,pr});
     L.say(Z.pzA&&Z.pzB&&F.by&&F.by['Italian Game']&&F.by['London System'],'TC-R221o puzzles shown and lessons finished keep both devices\' entries ('+st.z+', '+st.f+')',{Z,F});
