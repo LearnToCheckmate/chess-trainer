@@ -208,12 +208,17 @@ async function READ(b){
   const held={};Object.keys(AG.map).forEach(id=>{const rs=AG.map[id]||[];let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});held[id]={n:rs.length,old};});
   const r=await b.page.evaluate(([NEW_LABEL,AGM,held])=>{
     const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
-    const labels=rows.map(r=>{const m=(r.innerText||'').replace(/\s+/g,' ').match(/·\s([A-Z][a-z]{2})\s(\d{1,2})/);return m?m[1]:null;});
+    // #550 helper B [the final suite's landing red on ad820f8bdd63]: a row's date is read by WHAT IT SAYS - a month name and a day ('Aug 1')
+    // anywhere in the row's text - and no longer by the '· ' it used to follow: 558424b (#550 item (74)) moved the date to the right end of the
+    // name line ('vs X  Aug 1  ›'), so the old '·\s' anchor matched nothing and every reading here came back empty (outsideNewest 0, inNewest 0,
+    // months [], oldestRowOnScreen null) while the rows were all there (A15-0 counted 200).
+    const MD_RE=/(?:^|[\s·])((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{1,2})(?!\d)/;
+    const labels=rows.map(r=>{const m=(r.innerText||'').replace(/\s+/g,' ').match(MD_RE);return m?m[1].slice(0,3):null;});
     let bytes=0,keys={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const v=localStorage.getItem(k)||'';bytes+=k.length+v.length;keys[k]=v.length;}
     let stored=0,storedMonths={};try{const M=AGM||{};Object.keys(M).forEach(id=>{(M[id]||[]).forEach(g=>{stored++;const d=new Date(g.date||0);storedMonths[d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')]=1;});});}catch(e){}
     const heldDates={};Object.keys(held||{}).forEach(id=>{if(held[id].old>0)heldDates[id]=new Date(held[id].old).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});});
     // the OLDEST ROW ON SCREEN, as the row prints it ("Aug 1"): the readout A11h checks the line's date against
-    const lastMD=(()=>{const rr=[...document.querySelectorAll('[data-ct="game-row"]')];if(!rr.length)return null;const m=(rr[rr.length-1].innerText||'').replace(/\s+/g,' ').match(/·\s([A-Z][a-z]{2}\s\d{1,2})/);return m?m[1]:null;})();
+    const lastMD=(()=>{const rr=[...document.querySelectorAll('[data-ct="game-row"]')];if(!rr.length)return null;const m=(rr[rr.length-1].innerText||'').replace(/\s+/g,' ').match(MD_RE);return m?m[1]:null;})();
     const body=(document.body.innerText||'').replace(/\s+/g,' ');
     const sc=document.querySelector('[data-ct="game-row"]')?document.querySelector('[data-ct="game-row"]').parentElement:null;
     return {rows:rows.length, outside:labels.filter(x=>x&&x!==NEW_LABEL).length, inNewest:labels.filter(x=>x===NEW_LABEL).length,
