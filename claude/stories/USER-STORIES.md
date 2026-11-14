@@ -2185,6 +2185,7 @@ As a player reviewing a game on my phone, the board is as wide as the screen wit
 - The bottom toolbar is Back, Key move, Analyze and Forward, each a thumb's size, with the star never beside Forward. (TC-R192c)
 - A header with back, Game Review and more is there when the screen is tall enough; on a short screen they stay in the top player bar. (TC-R192d)
 - The board does not move between moves or in and out of analysis; switching the engine line off puts it back exactly. (TC-R192e)
+- On the game screens too (against the computer and Pass & Play, upright on a phone) the move list sits straight under the board's bottom bar and the button row at the foot of the screen; the board keeps its size and place. (TC-R227; Kunal's answer q48, Option B)
 
 ### US-R126 When a drill's explanation is longer than its box, I can tell, and I can read the rest
 *Added #550, AUD-R13 of the app audit (P1); Kunal's ruling on this box: "Don't change the size just allow the player to scroll through the text".*
