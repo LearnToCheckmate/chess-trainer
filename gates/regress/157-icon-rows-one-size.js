@@ -137,8 +137,25 @@ const ROWS={
       ['Bank it','[data-ct="lesson-bank-it"]','first',/^✓ Bank it(: hints off)?$/,'kunal761'],['Bank it','[data-ct="lesson-bank-it"]','only',null,'se']]},
 };
 const TOL=2;
+// TC-IR-06 ONE COMPONENT [#550 helper B; jobs/lesson-footer-icons-consistent, checkVerdict_550_recheck stillUnmet (2): "the lesson footer
+// shares only a glyph component (IconGlyph + LF_EM); its buttons are still inline-styled <button>s, separate from the Review row's"].
+// Read by WHAT THE BUTTONS ARE, not by any hook: the computed style set a button component fixes - radius, border, background image, shadow,
+// the 44 floor (min-height), horizontal padding, font family, weight and letter spacing - read off the Review transport row's own buttons
+// ([data-ct="rev-row1"], one signature among them all), and every member of every lesson row must carry exactly that set. Colour is left
+// out on purpose (primary, hot and go are tones of the one button). On the tree before this change the practice row's inline buttons carry
+// a 1px border, a gradient and a drop shadow, so every lesson row that holds one is red here.
+const SIG=e=>{const c=getComputedStyle(e);return [c.borderTopLeftRadius,c.borderTopWidth+' '+c.borderTopStyle,c.backgroundImage,c.boxShadow,c.minHeight,c.paddingLeft+' '+c.paddingRight,c.fontFamily,c.fontWeight,c.letterSpacing].join(' | ');};
+const REFSIG={};
+async function refSig(geo){if(REFSIG[geo]!==undefined)return REFSIG[geo];
+  const b=await L.launch({geo,name:'icon-rows-ref-'+geo});await b.open();let r=null;
+  try{await R.states['moves-ply31'](b);await b.settle(600);
+    r=await b.page.evaluate((sig)=>{const f=new Function('return '+sig)();const bs=[...document.querySelectorAll('[data-ct="rev-row1"] button')].filter(e=>e.getBoundingClientRect().width>0);
+      const sigs=[...new Set(bs.map(f))];return {n:bs.length,sigs};},SIG.toString());}catch(e){L.note&&L.note('ref enter failed: '+e.message);}
+  L.say(!!r&&r.n>=3&&r.sigs.length===1,'TC-IR-06 '+geo+' PRECONDITION the Review transport row is read: '+(r?r.n:0)+' buttons carrying '+(r?r.sigs.length:0)+' style signature(s)',r);
+  await b.close();REFSIG[geo]=r&&r.sigs.length===1?r.sigs[0]:null;return REFSIG[geo];}
 L.run(async()=>{
   const geos=(process.env.CT_IR_GEOS||'kunal761,se').split(',');const only=process.env.CT_IR_ROWS?process.env.CT_IR_ROWS.split(','):null;
+  for(const geo of geos)if(Object.keys(ROWS).some(rk=>/^lesson/.test(rk)&&(!only||only.includes(rk))&&(!ROWS[rk].geo||ROWS[rk].geo===geo)))await refSig(geo);   // read first, so only one browser is ever open
   for(const geo of geos)for(const [rk,row] of Object.entries(ROWS)){
     if(only&&!only.includes(rk))continue;if(row.geo&&row.geo!==geo)continue;const tag=geo+' '+rk;
     const members=row.members.filter(m=>!m[4]||m[4]===geo);   // a member's 5th field: the only geometry it exists at
@@ -161,6 +178,11 @@ L.run(async()=>{
     L.say(found.length===members.length&&found.every(x=>x.box.h<=44.5&&x.icon.top>=x.box.y-0.5&&x.icon.bot<=x.box.y+x.box.h+0.5),'TC-IR-04 '+tag+' no button grew past 44 and every glyph is painted inside its own button ('+found.map(x=>x.lab+' '+x.box.w+'x'+x.box.h).join(', ')+')',found.map(x=>({lab:x.lab,box:x.box,top:x.icon.top,bot:x.icon.bot})));
     const worded=got.filter(x=>x.word);
     if(worded.length)L.say(worded.every(x=>x.word.test(x.txt||'')),'TC-IR-05 '+tag+' the words a finder reads are unchanged: '+worded.map(x=>JSON.stringify(x.txt)).join(', '),worded.map(x=>({lab:x.lab,txt:x.txt})));
+    if(/^lesson/.test(rk)){const ref=REFSIG[geo];const mine=[];
+      for(const [lab,sel] of members){const loc=b.page.locator(sel).filter({visible:true});if(!(await loc.count())){mine.push({lab,sig:null});continue;}
+        mine.push({lab,sig:await loc.first().evaluate((e,sig)=>new Function('return '+sig)()(e),SIG.toString())});}
+      const odd=mine.filter(x=>x.sig!==ref);
+      L.say(!!ref&&mine.length===members.length&&odd.length===0,'TC-IR-06 '+tag+' every member is the ONE footer button the Review transport row is: '+(odd.length?odd.map(x=>x.lab).join(', ')+' differ':'all '+mine.length+' match'),{ref,odd});}
     L.say(b.errs.length===0,'TC-IR '+tag+' zero app errors',b.errs.slice(0,3));
     await b.close();
   }
