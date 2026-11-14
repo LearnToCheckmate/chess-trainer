@@ -82,7 +82,12 @@ const BRIL=[bcard(),bcard(),bcard()];
 
 // Mistake: White Qa2 takes a free rook on a5. A DIFFERENT position, so a different card id.
 const MFEN='7k/8/8/r7/8/8/Q7/6K1 w - - 0 1';
-const MIST=[{fen:MFEN,uci:'a2a5',label:'Mistake',played:'Qb2',why:'Qxa5 just wins the rook; Qb2 left it alone.',hint:'Count the defenders.',last:null,ts:Date.now()}];
+// #550 helper B (jobs/gate-18-drill-credit-provenance-reads-12-of-15-on-the-branch-2026-11-14): the card carries the re-grade the app stores
+// (wc), as gates 72, 123 and 160 seed theirs. Since run-answers a41 every card without wc is re-graded on Home by win chance and kept only as
+// a Blunder or Mistake; this one (missing a free rook) does not grade Mistake there, so the pass removed it before D1b read the store (len 0)
+// and the Review screen offered no mistakes drill (D2). The fixture predates a41; the assertions' intent (one mistakes card, a second door)
+// is unchanged.
+const MIST=[{fen:MFEN,uci:'a2a5',label:'Mistake',played:'Qb2',why:'Qxa5 just wins the rook; Qb2 left it alone.',hint:'Count the defenders.',last:null,ts:Date.now(),wc:{g:'Mistake',drop:25,v:1}}];
 
 // The Lichess daily, as lichessFromApi parses it. 1.e4 e5 2.Nf3 Nc6 3.Bb5 then ...a6 is the solution's
 // first (and only solving) move: _walkUci puts index 0 in sol and index 1 in reply, so one move solves it.
@@ -136,7 +141,7 @@ L.run(async()=>{
 
   const seen=[];
   for(let i=1;i<=3;i++){
-    if(i>1){ await b.tapText(/^Next ›$/,{wait:1400});
+    if(i>1){ await b.page.locator('[data-ct="drill-next"]').click();await b.settle(1400);   // #550 helper B: Next is the chevron since cfbae1a (aria-label 'Next card'); found by its #475 hook, not its old words
              await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000}); }
     const bd=await b.board();
     L.say(!!bd,'TC-R42 A1['+i+'/3] ARRIVAL: solve '+i+' has a board to play on',bd?{w:Math.round(bd.w*100)/100,flip:bd.flip}:null);
