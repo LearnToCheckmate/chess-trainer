@@ -9426,6 +9426,11 @@ function AppMain(){
   const _sg=(c)=>_sw2?{gridColumn:String(c)}:undefined;
   const setupSheetRef=useRef(null);
   const [setupFit,setSetupFit]=useState({k:'',z:1,done:false});
+  /* #550 helper B, Kunal's q44 answer (run-answers q44-answer, jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11): the computer's
+     opponent cards and the Strength slider live on their own 'Choose your opponent' screen inside the New Game sheet, opened by picking
+     Computer, with its own Start game; the time control is ONE dropdown row. So Play setup fits 320x568 with nothing else hidden. */
+  const [botPick,setBotPick]=useState(false);
+  useEffect(()=>{if(!playSetup&&botPick)setBotPick(false);},[playSetup,botPick]);
   const hb=vp.w>=720;             // tablet-sized screen: scale the Home screen up to use the real estate
   /* #550 desktop check DSK-01/DSK-02 (Kunal, 12 Nov, his computer: "when I expand the screen ... it looks messy and loses all alignment";
      he accepted the rule "pages without a board are one centred column at every window width, capped at 660, never two columns"): a real
@@ -10674,11 +10679,12 @@ function AppMain(){
         {_sw2&&<style>{`.setup2>*{grid-column:1/-1}`}</style>}
         <div ref={setupSheetRef} data-ct="setup-sheet" className={'scroll'+(_sw2?' setup2':'')} style={{width:'100%',maxWidth:_sw2?660:420,...(_sw2?{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:22,rowGap:12,gridAutoFlow:'row dense',alignItems:'start',...(setupFit.z<1?{zoom:setupFit.z}:null)}:{display:'flex',flexDirection:'column'}),...(_sw2?null:{gap:8 /* #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-R17: Play setup 1003 in 761 vs the computer, 961 online): one 8 rhythm on every phone (was 16 at 720 and taller), with the caption moved into the scan row, compact opponent tiles and a one-line clock note, so the sheet fits his phone without scrolling */}) /* #373 (audit A-13): at 375x679 the Pass & Play variant overran the screen by 32px; a tighter rhythm on short screens keeps Start game and the build line on screen */}}>
           <div data-ct="setup-top" style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',height:TOP_SZ,margin:'0 -'+(12-TOP_EDGE)+'px',flexShrink:0}}>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - the exit 44 high at TOP_EDGE (its words stay: gates 45, 49, 54, 55 find it by them), 'New Game' centred at the one title size, the menu top-right */}
-            {(()=>{const _fromRev=!!setupFromFEN&&setupSrc==='review'&&!!review;/* #548 item (122), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02: the sheet's ONE exit goes back to where he came from. Opened by Review's 'Play from here' it reads '\u2039 Back to review' and returns to the same review at the same ply - where the terminal note's remedy (step back a move) is one tap away - instead of dropping him on Home with three taps back. #466's committer guard stays: it is the defence for the scan route. Both #466 antagonists named this the cheaper complete remedy; the row-level refusal the title asks for would have made gate 55's A1-A13 unreachable. */return(
-            <button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);if(_fromRev){setSetupFromFEN(null);setHomeScreen(false);setMode('analyze');return;}setHomeScreen(true);}} style={{...TOP_BTN,width:'auto',padding:'0 10px',fontSize:14,whiteSpace:'nowrap',position:'relative',zIndex:1}}>{_fromRev?'\u2039 Back to review':'\u2039 Home'}</button>);})()}
-            <div data-ct="top-title" style={TOP_TITLE}>New game</div>
+            {(()=>{const _fromRev=!!setupFromFEN&&setupSrc==='review'&&!!review;/* #548 item (122), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02: the sheet's ONE exit goes back to where he came from. Opened by Review's 'Play from here' it reads '\u2039 Back to review' and returns to the same review at the same ply - where the terminal note's remedy (step back a move) is one tap away - instead of dropping him on Home with three taps back. #466's committer guard stays: it is the defence for the scan route. Both #466 antagonists named this the cheaper complete remedy; the row-level refusal the title asks for would have made gate 55's A1-A13 unreachable. */return(<>
+            {botPick?<button data-ct="bot-back" onClick={()=>setBotPick(false)} aria-label="Back to New game" style={{...TOP_BTN,width:'auto',padding:'0 10px',fontSize:14,whiteSpace:'nowrap',position:'relative',zIndex:1}}>{'\u2039 Back'}</button>:<button onClick={()=>{/* #470: the sheet's SECOND door, and antagonist A's veto. Restore synchronously here, in the same batch as setPlaySetup(false), or the adaptive-Elo effect fires in that commit with the stale opponent - measured at ct_elo 750. */_restoreLiveSettings();setPlaySetup(false);if(_fromRev){setSetupFromFEN(null);setHomeScreen(false);setMode('analyze');return;}setHomeScreen(true);}} style={{...TOP_BTN,width:'auto',padding:'0 10px',fontSize:14,whiteSpace:'nowrap',position:'relative',zIndex:1}}>{_fromRev?'\u2039 Back to review':'\u2039 Home'}</button>}</>);})()}
+            <div data-ct="top-title" style={(botPick&&vp.w<400)?{...TOP_TITLE,fontSize:Math.max(14,Math.min(18,Math.floor((vp.w-2*(TOP_EDGE+80))/10.5)))}:TOP_TITLE}>{botPick?'Choose your opponent':'New game'}</div>{/* the long title steps down to fit between '‹ Back' and the menu on a narrow phone (14 at 320) */}
             <TopMenu ct="setup-menu" onClick={()=>setMenuOpen(true)}/>
           </div>
+          {!botPick&&(<>
           {/* #466: the terminal branch is a DIFFERENT SENTENCE, not a suffix on this one. On #465 both arms of
               this banner read identically at a finished ply, which is the half of the defect a player could
               actually have caught. It names the remedy (step back a move) because a refusal with no way forward
@@ -10792,7 +10798,7 @@ function AppMain(){
             <div style={{...SEC_LABEL,marginBottom:8}}>Opponent</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
               {[{k:'online',ic:'online',t:'Online'},{k:'computer',ic:'computer',t:'Computer'},{k:'human',ic:'human',t:'Pass & Play'}].map(o=>{const on=opponent===o.k;const OPPT={computer:['#5b8def','#2f6fd0'],human:['#22c55e','#15803d'],online:['#a855f7','#7c3aed']};const tint=(SK.tints&&(o.k==='computer'?SK.tints.analyze:o.k==='human'?SK.tints.learn:SK.tints.play))||OPPT[o.k];return(
-                <button key={o.k} onClick={()=>{setSoonMsg('');if(o.k==='online'){setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}else {setOpponent(o.k);
+                <button key={o.k} onClick={()=>{setSoonMsg('');if(o.k==='online'){setOpponent('online');setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}else {setOpponent(o.k);if(o.k==='computer')setBotPick(true);
                   /* #400 R-OC-2, SECOND CALL SITE - and the one a player actually uses. My first version of
                      this requirement put the corr-clear only on the MENU's opponent spans (chess.jsx:4898),
                      because the spec pointed at that line; the NEW GAME SHEET's opponent buttons are these,
@@ -10820,10 +10826,10 @@ function AppMain(){
             {soonMsg&&<div style={{marginTop:9,textAlign:'center',fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.28)',borderRadius:10,padding:'8px 11px',lineHeight:1.4}}>{soonMsg}</div>}
           </div>
 
-          {opponent==='computer'&&(<div style={_sg(1)}>
-            <div style={{...SEC_LABEL,marginBottom:8}}>Choose your opponent</div>
-            <div style={{position:'relative',marginBottom:_sw2?14:6}}>
-            <div ref={botRowRef} onScroll={_botMeasure} data-ct="bot-row" className="scroll" style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,WebkitOverflowScrolling:'touch'}}>
+          </>)}
+          {opponent==='computer'&&botPick&&(<div style={_sg(1)}>
+            <div style={{position:'relative'}}>
+            <div ref={botRowRef} onScroll={_botMeasure} data-ct="bot-row" style={{display:'flex',flexWrap:'wrap',justifyContent:'center',gap:10,paddingBottom:6}}>
               {BOTS.map(bt=>{const on=selBot===bt.id;return(
                 <button key={bt.id} onClick={()=>{setSelBot(bt.id);setCpuElo(bt.elo);}} style={{flex:'0 0 auto',width:96,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'8px 6px',borderRadius:14,cursor:'pointer',textAlign:'center',background:on?'rgba(var(--acr),.18)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:'#fff',boxShadow:on?SHADOW_BOX:'none'}}>
                   <BotFace id={bt.id} size={40}/>
@@ -10838,8 +10844,10 @@ function AppMain(){
             </div>
             {botMore&&(<button data-ct="bot-row-more" aria-label="More opponents" onClick={()=>{const e=botRowRef.current;if(e){e.scrollLeft=Math.min(e.scrollWidth,e.scrollLeft+Math.round(e.clientWidth*0.8));_botMeasure();}}} style={{position:'absolute',right:0,top:0,bottom:6,width:44,display:'flex',alignItems:'center',justifyContent:'flex-end',paddingRight:4,border:'none',cursor:'pointer',background:'linear-gradient(90deg,rgba(0,0,0,0),'+baseBg+' 65%)',color:'var(--ac2)',fontSize:26,fontWeight:900,lineHeight:1}}>›</button>)}
             </div>
+          </div>)}
+          {opponent==='computer'&&!botPick&&(<div style={_sg(1)}>
             <div style={{...SEC_LABEL,marginBottom:_sw2?8:6}}>Play as</div>
-            <div style={{display:'flex',gap:8,marginBottom:_sw2?14:0}}>
+            <div style={{display:'flex',gap:8}}>
               {[{k:'w',t:'White'},{k:'b',t:'Black'}].map(c=>{const on=pColor===c.k;return(
                 <button key={c.k} onClick={()=>setPColor(c.k)} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px',borderRadius:12,cursor:'pointer',background:on?'rgba(var(--acr),.22)':'rgba(255,255,255,.05)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.14)',color:on?'var(--ac2)':'rgba(255,255,255,.7)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)'}}><Piece t="k" color={c.k} sz={24}/>{c.t}</button>);})}
             </div>
@@ -10856,15 +10864,21 @@ function AppMain(){
               No limit / 1 day / 3 days / 7 days. Both rows now show, under their own headings, because they
               mean different things to a player (spec Q3 option a). AMBER, recorded before the act in tracker
               flag amber-online-clock-pills-2026-09-15 and Decision Desk defaults/oc-clock-pills-2026-09-15. */}
-          {(<div style={_sg(2)}>
-            <div style={{...SEC_LABEL,marginBottom:8}}>⏱ Time control</div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              <span style={pill(!timeCtrl)} onClick={()=>{timeCtrlRef.current=null;setTimeCtrl(null);}}>No clock</span>
-              {TIME_CONTROLS.map(tc=>(<span key={tc.label} style={pill(!!timeCtrl&&timeCtrl.label===tc.label)} onClick={()=>{timeCtrlRef.current=tc;setTimeCtrl(tc);}}>{tc.label}</span>))}
-            </div>
+          {!botPick&&(()=>{/* #550 helper B, q44: ONE dropdown row replaces the nine pills (and, online, the three day-limit pills, so a day limit is one
+              more option of the same control and there is still exactly one selection - the #400 rule). The native select sits invisibly over
+              the row, so the phone's own picker opens. */
+            const opts=[{v:'',l:'No clock',o:null},...TIME_CONTROLS.map(tc=>({v:'t:'+tc.label,l:tc.label,o:tc})),...(opponent==='online'?CORR_CONTROLS.map(c=>({v:'c:'+c.days,l:c.label,o:{label:c.label,kind:'corr',days:c.days}})):[])];
+            const cur=!timeCtrl?'':(timeCtrl.kind==='corr'?'c:'+timeCtrl.days:'t:'+timeCtrl.label);const curO=opts.find(o=>o.v===cur)||opts[0];
+            return(<div style={_sg(2)}>
+            <label data-ct="setup-time" style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:44,padding:'0 14px',borderRadius:12,background:'rgba(255,255,255,.05)',border:'1.5px solid rgba(255,255,255,.14)',color:'#fff',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',boxSizing:'border-box'}}>
+              <span>{'\u23f1 Time: '}<span data-ct="setup-time-value" style={{color:'var(--ac2)'}}>{curO.l}</span></span><span aria-hidden="true" style={{opacity:.8}}>{'\u25be'}</span>
+              <select aria-label="Time control" value={curO.v} onChange={e=>{const o=opts.find(x=>x.v===e.target.value);const tc=o?o.o:null;timeCtrlRef.current=tc;setTimeCtrl(tc);}} style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'pointer',fontSize:16}}>
+                {opponent==='online'?(<><optgroup label="Time control">{opts.filter(o=>!/^c:/.test(o.v)).map(o=>(<option key={o.v} value={o.v}>{o.l}</option>))}</optgroup><optgroup label="Time per move">{opts.filter(o=>/^c:/.test(o.v)).map(o=>(<option key={o.v} value={o.v}>{o.l}</option>))}</optgroup></>):opts.map(o=>(<option key={o.v} value={o.v}>{o.l}</option>))}{/* online: the live clocks and the day limits stay under their own two headings (#400 R-OC-1, gate 25 TC-OC-003), inside the one control */}
+              </select>
+            </label>
             <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.4)',marginTop:6}}>3+1 means 3 minutes, plus 1 second a move</div>
-          </div>)}
-          {opponent==='computer'&&(<div style={{marginTop:0,..._sg(2)}}>
+          </div>);})()}
+          {opponent==='computer'&&botPick&&(<div style={{marginTop:0,..._sg(2)}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
               <span style={{...SEC_LABEL}}>Strength</span>
               <span style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:800}}>≈ {cpuElo} Elo</span>
@@ -10873,21 +10887,8 @@ function AppMain(){
             <div style={{display:'flex',justifyContent:'space-between',fontSize:8,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
           </div>)}
 
-          {opponent==='online'&&(<div style={_sg(2)}>
-            <div style={{...SEC_LABEL,marginBottom:8}}>⏳ Time per move</div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              {/* #400: THIS ROW'S OWN NULL PILL IS GONE, and it is the one thing my first version of R-OC-1 got
-                  wrong. Both rows now render for an online game, and both null pills key off the SAME state
-                  (!timeCtrl), so 'No clock' and 'No limit' both lit up at once - measured ["No clock","No limit"]
-                  at 375x730 and 320x568. Two pills reading as selected on one screen is exactly the kind of
-                  cross-element inconsistency this app has no assertions for, and R-OC-1 is explicit: ONE
-                  exclusive selection, with 'No clock' as the null option. So the null option lives once, in the
-                  row above; tapping it clears a day limit just as it clears a minute clock, because there is
-                  only one timeCtrl. Found by measuring my own change rather than by reading it. */}
-              {CORR_CONTROLS.map(c=>{const o={label:c.label,kind:'corr',days:c.days};const on=!!timeCtrl&&timeCtrl.kind==='corr'&&timeCtrl.days===c.days;return(<span key={c.label} style={pill(on)} onClick={()=>{timeCtrlRef.current=o;setTimeCtrl(o);}}>{c.label}</span>);})}
-            </div>
-            <div style={{fontSize:'clamp(12px,2vw,12px)',color:'rgba(255,255,255,.58)',marginTop:6,lineHeight:1.5}}>Multi-day game: you and your friend each have this long to reply to every move. Play whenever you like: the game waits for you and shows up under “Your games” when you sign in on any device.</div>
-            <div style={{marginTop:_sw2?9:6,padding:_sw2?'12px 14px':'9px 12px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>You'll create a game or join a friend's code on the next screen. You need to sign in with Google first.</div>
+          {opponent==='online'&&!botPick&&(<div style={_sg(2)}>
+            <div style={{padding:_sw2?'12px 14px':'9px 12px',borderRadius:12,background:'rgba(110,168,254,.1)',border:'1px solid rgba(110,168,254,.3)',fontSize:'clamp(13.5px,2.6vw,13.5px)',color:'#cfe0ff',lineHeight:1.5}}>{(timeCtrl&&timeCtrl.kind==='corr')?'Multi-day game: each of you has '+timeCtrl.label.replace(' / move','')+' to reply to every move, and it waits under \u201cYour games\u201d. ':''}You'll create a game or join a friend's code on the next screen. You need to sign in with Google first.</div>
           </div>)}
 
           {/* #466: THE COMMITTER. `setupFromFEN` becomes a game here and nowhere else, so this is the one place

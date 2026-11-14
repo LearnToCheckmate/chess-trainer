@@ -84,6 +84,21 @@ const READ=(b)=>b.page.evaluate((src)=>{
   const vis=[...document.querySelectorAll('span,button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1;});
   const pills=vis.filter(x=>re.test((x.innerText||'').trim()));
   const rect=(x)=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),l:Math.round(r.left*10)/10,r:Math.round(r.right*10)/10};};
+  // #550 helper B, Kunal's q44: the time control is ONE dropdown ([data-ct="setup-time"] select) - its options are the choosable clocks, its
+  // selected option is the one selection, its optgroups are the two headings, and its row is what is painted. A build with pills is read as before.
+  const sel=document.querySelector('[data-ct="setup-time"] select');
+  if(sel){const row=document.querySelector('[data-ct="setup-time"]');const opts=[...sel.options];
+    const rr=row.getBoundingClientRect();
+    return {labels:opts.map(o=>o.textContent.trim()),selected:opts.filter(o=>o.selected).map(o=>o.textContent.trim()),
+      heads:[...new Set([...sel.querySelectorAll('optgroup')].map(g=>g.label))],stillComing:document.body.innerText.includes('still coming'),
+      spill:rr.right>innerWidth+0.5?[{t:'setup-time',l:rr.left,r:rr.right}]:[],
+      summary:[...new Set([...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/·/.test(t)&&t.length<90&&/Computer|Human|Pass|Online/i.test(t)))].slice(0,3),
+      sheetScroll:(()=>{const sc=[...document.querySelectorAll('*')].filter(x=>{const st=getComputedStyle(x);return /auto|scroll/.test(st.overflowY)&&x.scrollHeight>x.clientHeight+1;});
+        const m=sc.map(x=>({sh:x.scrollHeight,ch:x.clientHeight,isDoc:(x===document.documentElement||x===document.body),
+          id:(x.getAttribute('data-ct')||x.id||'')+'/'+x.tagName.toLowerCase()+(x.className&&typeof x.className==='string'?'.'+x.className.trim().split(/\s+/)[0]:''),
+          top:Math.round(x.getBoundingClientRect().top),h:Math.round(x.getBoundingClientRect().height)})).sort((a,b)=>b.sh-a.sh)[0];return m||null;})(),
+      onlineSelected:(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Online$/.test((x.innerText||'').trim()));if(!btn)return null;const st=getComputedStyle(btn);return {border:st.borderColor,bg:st.backgroundColor};})(),
+      docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight),vw:innerWidth,vh:innerHeight};}
   return {
     labels:pills.map(x=>(x.innerText||'').trim()),
     selected:pills.filter(x=>getComputedStyle(x).backgroundColor!=='rgba(0, 0, 0, 0)').map(x=>(x.innerText||'').trim()),
@@ -228,10 +243,12 @@ for(const g of geos){
 // ── R-OC-2, both directions, at Kunal's geometry ───────────────────────────────────────────────────────────
 {
   const b=await L.launch({geo:'kunal730',name:'oc-r2'});await b.open();
-  const pick=(t)=>b.page.evaluate((s)=>{const e=[...document.querySelectorAll('span')].find(x=>(x.innerText||'').trim()===s);if(e){e.click();return true;}return false;},t);
+  const pick=async(t)=>{const sel=await b.page.$('[data-ct="setup-time"] select');   // #550 q44: the dropdown, chosen by its option's words
+    if(sel){const v=await b.page.evaluate((s)=>{const o=[...document.querySelectorAll('[data-ct="setup-time"] option')].find(x=>x.textContent.trim()===s);return o?o.value:null;},t);if(v==null)return false;await sel.selectOption(v);return true;}
+    return b.page.evaluate((s)=>{const e=[...document.querySelectorAll('span')].find(x=>(x.innerText||'').trim()===s);if(e){e.click();return true;}return false;},t);};
 
   let ok=true;
-  try{ await b.home(); await b.tile('Play'); await b.settle(500); await P.tapBtn(b,/^Computer$/,400); }catch(e){ ok=false; }
+  try{ await b.home(); await b.tile('Play'); await b.settle(500); await P.tapBtn(b,/^Computer$/,400); if(P.botBack)await P.botBack(b); }catch(e){ ok=false; }   // #550 q44: the Computer tile opens 'Choose your opponent'; back to the sheet
   const got31=ok?await pick('3+1'):false;
   await b.settle(300);
   const underCpu=got31?await READ(b):null;
@@ -259,7 +276,7 @@ for(const g of geos){
   L.say(!!corrOn&&corrOn.selected.length===1&&corrOn.selected[0]==='3 days / move',
     'TC-OC-009 precondition: 3 days / move is the single selection while still on Online',corrOn&&corrOn.selected);
   let back=true;
-  try{ await P.tapBtn(b,/^Computer$/,700); }catch(e){ back=false; }
+  try{ await P.tapBtn(b,/^Computer$/,700); if(P.botBack)await P.botBack(b); }catch(e){ back=false; }
   const afterBack=back?await READ(b):null;
   // ── #545 item (8): THE TWO DENOMINATOR SITES DRIVEN WITH THE CONSTRUCTED INPUTS THE JOB ASKED FOR
   // [jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07]. Each control is a

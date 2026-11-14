@@ -169,7 +169,7 @@ async function tapBtn(b,re,wait){
 async function ppClock(b){
   await b.home();await b.tile('Play');await b.settle(500);
   await tapBtn(b,/^Pass & Play$/,400);
-  await b.tapText(/^1 min$/,{wait:300});
+  await require('../drive/play').selectTime(b,'1 min');   // #550 q44: the time control is one dropdown
   await b.page.evaluate(()=>{for(const el of document.querySelectorAll('div')){const st=getComputedStyle(el);if((st.overflowY==='auto'||st.overflowY==='scroll')&&el.scrollHeight>el.clientHeight+1)el.scrollTop=0;}});
   await tapBtn(b,/^▶ Start game$/,900);
   if(!(await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return p?getComputedStyle(p).visibility==='visible':false;})))

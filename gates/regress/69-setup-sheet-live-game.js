@@ -154,7 +154,7 @@ L.run(async()=>{
      L.say(ov===0,'TC-PL-A3c ['+g.k+'] and the Play column behind the sheet does not run past the fold (over '+ov+')',{over:m.over});}
 
     // ── THE DEFECT: one tap on the opponent tile, and nothing else ────────────────────────────────
-    await P.tapBtn(b,/^Computer$/,900);
+    await P.tapBtn(b,/^Computer$/,900);await P.botBack(b);   // #550 q44: the Computer tile opens Choose your opponent
     await b.settle(SETTLE_NOMOVE);
     const pTap=await P.plies(b), rTap=await moverow(b);
     L.say(pTap===1,'A4a ['+g.k+'] tapping Computer on the sheet plays NO move in the game behind it (plies '+pTap+', expected 1)');
@@ -226,7 +226,7 @@ L.run(async()=>{
     await b.tapCt('play-home',650);
     await b.tile('Play'); await b.settle(700);
     L.say(await sheetUp(b)===true,'B4p the setup sheet is open over the finished game, which is the state B5 tests');
-    await P.tapBtn(b,/^Computer$/,900);
+    await P.tapBtn(b,/^Computer$/,900);await P.botBack(b);
     await b.settle(2500);
     const eTap=await elo(b);
     L.say(eTap==='800','B5 tapping Computer does NOT score a game the computer never played against its strength (ct_elo '+eTap+', expected 800)');
@@ -255,7 +255,7 @@ L.run(async()=>{
     const live=await liveGameThenSheet(b,1);
     L.say(live.plies===1,'D1p ['+g.k+'] premise: a live 1-ply game with the sheet open (got '+live.plies+')');
     L.say(await hasBtn(b,/^‹ Home$/)===true,'D1q ['+g.k+'] premise: the sheet carries its own ‹ Home button, which is the door D tests');
-    await P.tapBtn(b,/^Computer$/,900);
+    await P.tapBtn(b,/^Computer$/,900);await P.botBack(b);
     await b.settle(SETTLE_NOMOVE);
     L.say(await P.plies(b)===1,'D2 ['+g.k+'] still 1 ply with the sheet up (the A4 state, re-established inside D)');
     await P.tapBtn(b,/^‹ Home$/,900);
@@ -334,7 +334,7 @@ L.run(async()=>{
     L.say(live.plies===2,'F1p premise: a live 2-ply Pass & Play game with the sheet open (got '+live.plies+')');
     const barsBefore=await bars(b);
     L.say(/White/.test(String(barsBefore.top)+String(barsBefore.bottom))&&/Black/.test(String(barsBefore.top)+String(barsBefore.bottom)),'F1q premise: the live game\'s player bars name the two humans (top '+JSON.stringify(barsBefore.top)+', bottom '+JSON.stringify(barsBefore.bottom)+')');
-    await P.tapBtn(b,/^Computer$/,700);
+    await P.tapBtn(b,/^Computer$/,700);await P.botBack(b);
     await P.tapBtn(b,/^Black$/,700);
     await b.settle(SETTLE_NOMOVE);
     const pChip=await P.plies(b);
@@ -374,9 +374,11 @@ L.run(async()=>{
     const pre=await behind();
     L.say(live.plies===1&&await sheetUp(b)&&pre.w>0&&!!pre.top&&!!pre.bottom,geo+': TC-PL-K1 PREMISE a live 1-ply Pass & Play game with the New Game sheet open over it; behind it board '+pre.w+', over '+pre.over+', bars '+JSON.stringify([pre.top,pre.bottom])+', eval bar '+JSON.stringify(pre.ev),{live,pre});
     let tapped=true;
-    try{await P.tapBtn(b,/^Computer$/,600);await P.tapBtn(b,/^Black$/,600);
-      await b.page.locator('[data-ct="setup-sheet"] span',{hasText:/^5 min$/}).first().click();await b.settle(400);
+    // #550 q44: the strength slider is on 'Choose your opponent' (the Computer tile opens it), Black and the clock (one dropdown) on the
+    // sheet; the Computer tile is tapped once more at the end so the denominator reads the pending bot row and slider where they live.
+    try{await P.tapBtn(b,/^Computer$/,600);
       await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="setup-sheet"] input[type="range"]');if(!s)return;const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(s,'1500');s.dispatchEvent(new Event('input',{bubbles:true}));});
+      await b.settle(300);await P.botBack(b);await P.tapBtn(b,/^Black$/,600);await P.selectTime(b,'5 min');await P.tapBtn(b,/^Computer$/,600);
       await b.settle(SETTLE_NOMOVE);}catch(e){tapped=false;L.note(geo+' K taps: '+String(e).slice(0,140));}
     const den=await b.page.evaluate(()=>({botRow:!!document.querySelector('[data-ct="setup-sheet"] [data-ct="bot-row"]'),slider:(document.querySelector('[data-ct="setup-sheet"] input[type="range"]')||{}).value||null}));
     L.say(tapped&&den.botRow&&den.slider==='1500'&&await sheetUp(b),geo+': TC-PL-K1 DENOMINATOR the taps landed: the sheet shows the pending Computer (its bot row) and strength '+den.slider+', and it is still up',den);
