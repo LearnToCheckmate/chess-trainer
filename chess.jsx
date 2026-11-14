@@ -3423,7 +3423,7 @@ function pzMissNote(p,g,mv){
     let gg=g;const sq=(m)=>'abcdefgh'[m.tc]+(8-m.tr);
     for(let k=0;k<p.sol.length;k++){const dm=_sanDesc(gg,p.sol[k]);if(!dm)break;
       if(dm.cap&&dm.cap.t!=='p'){const here=g.board[dm.m.tr][dm.m.tc];
-        if(here&&here.t===dm.cap.t&&here.c!==g.turn)return 'leaves the '+(PNAME[dm.cap.t]||'piece')+' on '+sq(dm.m)+' to be won';break;}
+        if(here&&here.t===dm.cap.t&&here.c!==g.turn&&!(mv.tr===dm.m.tr&&mv.tc===dm.m.tc))return 'leaves the '+(PNAME[dm.cap.t]||'piece')+' on '+sq(dm.m)+' to be won';break;}   /* not when the wrong move itself lands there: it took that piece (jobs/pzmissnote-says-a-piece-is-left-to-be-won-that-the-wrong-move-just-captured-2026-11-14) */
       gg=dm.g2;const r=p.reply&&p.reply[k];if(r){const dr=_sanDesc(gg,r);if(!dr)break;gg=dr.g2;}}
   }catch(e){}
   return null;
