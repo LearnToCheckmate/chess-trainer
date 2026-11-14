@@ -125,6 +125,10 @@ async function pickBot(b,name){const open=await b.page.evaluate(()=>!!document.q
 const S={};
 S['setup']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Computer$/,300);await botBack(b);await tapBtn(b,/^White$/,200);await noClock(b);await scrollSheetTop(b);};
 for(const bot of ['Pip','Rosa','Milo','Astrid','Viktor'])S['setup-bot-'+bot.toLowerCase()]=async(b)=>{await S['setup'](b);await pickBot(b,bot);await scrollSheetTop(b);};
+// #550 test-system helper A (jobs/tc-inv-03b-does-not-visit-choose-your-opponent-2026-11-14): the 'Choose your opponent' screen
+// itself, where the bot row lives since q44 - the Computer tile tapped and NOT backed out of (S['setup'] taps Back).
+S['setup-bots']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Computer$/,300);
+  await b.page.locator('[data-ct="bot-row"]').waitFor({state:'visible',timeout:8000});await b.settle(300);};
 S['setup-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Black$/,300);await scrollSheetTop(b);};
 S['setup-clock']=async(b)=>{await S['setup'](b);await selectTime(b,'1 min');await scrollSheetTop(b);};
 S['setup-passplay']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await noClock(b);await scrollSheetTop(b);};
