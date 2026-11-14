@@ -112,7 +112,14 @@ Your pick, "Blunders and mistakes": by the review's win-chance grades. Over your
 
 ## 6. The Brilliant moves drill: Hint
 - 6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w (h4). Old: "You played something special here — a sacrifice or a precise blow." New: "Your queen on c2 is attacked. You found something better than saving it."
-- 8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w (Rxh6+). Old: the same sentence. New: "A rook can be given up with check here."
+- 8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w (Rxh6+). Old: the same sentence. New at the time: "A rook can be given up with check here." CORRECTED [#550, fresh checker seat 1, 14 Nov]: that wording was superseded - gate 133 now uses it as its CONTROL - and the hint names the piece AND the square it stands on, never the destination. Measured on the Opera Game's three Brilliant cards (bundle 7a5e5472ca55, kunal761): "Your knight on c3 can be given up here, and it holds." (10.Nxb5), "Your rook on d1 can be given up here, and it holds." (13.Rxd7), "Your queen on b3 can be given up with check here." (16.Qb8+).
+
+## 6b. The Brilliant moves drill: the explanation after the move (HEX-T-08, b1861b0)
+Old (107 of 129 Brilliant cards): the engine's number in the middle and the closing "Hard to see, and it holds." New: the line after the capture the sacrifice invites, from the review's own search - mate, fork, discovered-check and promotion cards keep their own closing. Measured on the Opera Game (bundle 7a5e5472ca55, kunal761):
+- 10.Nxb5. Old: "...Hard to see, and it holds." New: "You gave up the knight for a pawn. If cxb5, Bxb5+ and you are winning."
+- 16.Qb8+. Old: "...Hard to see, and it holds." New: "You gave up the queen on b8. If Nxb8, Rd8#."
+- 13.Rxd7 (a fork card, its own closing kept): "...the position still read +5.4 for you. It forks the queen and the rook." - Rxd7 hits Qe7 and Rd8.
+At 320x568 the explanation is clamped to one line with "▾ more" (the readability job, not this one).
 
 ## 7. Review
 - Under a Blunder, Mistake or Miss, the opponent's reply is now described by what the board after it proves - "<reply> is mate.", "It allows mate in two, starting <reply>.", or "<reply> wins the <piece>" - where it used to read "<reply> is the answer". When the swing is a mate, the "About 15.0 pawns of advantage gone" clause (the loss is capped at 15.0 there) is dropped. Not yet shown on your own games here: these are the rules as built, and the Review gates were run over them.
