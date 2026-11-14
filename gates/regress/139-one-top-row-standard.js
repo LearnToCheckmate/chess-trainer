@@ -32,6 +32,7 @@
 // CONTROL-RECORD: a4772ec 2026-11-13 total=26 red=10 scope=env:CT_139_CG_ONLY=1 how=#550 cg6 (jobs/formatting-audit-p2-p3-2026-11-12 A-07/A-08/A-09/A-11/B-06/B-08): the branch tip's tree (trial 85be94e89bc2) - TC-R215t x3 (note box and moves panel 8, Account sheet 18 and Pro card 14, Solved box 10), u (note 3.8..371.3 against 0..375), v (Try again rgb(74,103,65) against Flip's white 8%), w (lobby labels 14px/700/0.5px against 12.5px/700/1px), x (Sign in 42), y (chips 27) red, with cg8's two TC-R215s board lines; the PRECONDITIONS and error lines green. On t3 e5f06132dab0 26/0
 // CONTROL-RECORD: fa4ab50 2026-11-13 total=29 red=1 scope=env:CT_139_CG_ONLY=1 how=#550 helper B (jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-under-44-2026-11-13, FMT-B-06's summary chips): the branch tip's tree (f901598, trial 1b47cb7113e5) - TC-R215z red (Train this opening and Sharpen with puzzles, box 28, both missed 21.5 above and below the centre); its PRECONDITION, the error line and every older cg line green. On t2 369fa0924e37 29/0, the summary's card (193..325.5), chips (286.5..314.5) and the block under it (341.5) at the same place on both bundles
 // CONTROL-RECORD: 73f6b8a 2026-11-14 total=429 red=2 scope=trial:692a88d140da how=#550 helper B (jobs/review-board-back-and-menu-are-44x30-at-320x568-gate-139-red-on-the-branch-2026-11-14): the tap-area re-key of TC-R215a's player-bar case, run on the tree before b99cd85 (b99cd85^, built as r9) - the Review board corners at 320x568 drawn 44x44 from y -4 with the eval bar over their foot, so the 5x5 grid misses its bottom row at y 40 for the menu and the back (2 red); every other line green. On the tip e2c5a60 (trial 1a6d12ac1fec) 429 of 429 green
+// CONTROL-RECORD: 3e5b8a9 2026-11-14 total=35 red=2 scope=env:CT_139_CG_ONLY=1,trial:77d96f6b90d6 how=#550 helper app A, TC-R215zz (the Review summary's grade counts, jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14 second half): the tree before it - every enabled count's tap 28.5, both TC-R215zz lines red (kunal761, se); the fix's bundle 8aae2a70c1a1 35/0
 const L=require('../lib');
 const H=require('../drive/home'),D=require('../drive/lesson'),Z=require('../drive/puzzles'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu');
 const fs=require('fs'),path=require('path');
@@ -138,6 +139,19 @@ L.run(async()=>{
    L.say(ok&&c.length>=1&&c.some(x=>x.name==='Sharpen with puzzles'),'TC-R215z Review summary kunal761 PRECONDITION the coach chips are found by their words ('+c.map(x=>x.name).join(', ')+')',c);
    L.say(c.length>0&&c.every(x=>x.up&&x.dn),'TC-R215z Review summary kunal761 the coach chips are 44 tap areas - a tap 21.5 above and below the centre lands on the chip ('+c.map(x=>x.name+' box '+x.h+(x.up&&x.dn?' ok':' MISSED'+(x.up?'':' above')+(x.dn?'':' below'))).join('; ')+')',c);
    L.say(b.errs.length===0,'TC-R215z Review summary zero app errors',b.errs.slice(0,3));await b.close();}
+  // ── TC-R215zz [#550 helper app A, jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14, its second half]: the Review summary's
+  //    grade counts are buttons (a tap jumps to that grade's first move). They were 28 tall at a 34 pitch, so no 44 tap fitted. Every enabled
+  //    count is scrolled to the middle of the summary's own scroller (so the pinned footer is not over it) and hit-tested down its centre
+  //    line: the span that answers with THAT count must be 44, at kunal761 and 320x568. The count's own box stays 28.
+  for(const gk of ['kunal761','se']){const b=await L.launch({geo:gk,name:'top139-gradecount-'+gk,store:{ct_pool:'3'}});await b.open();let ok=true;try{await R.states.summary(b);await b.settle(900);}catch(e){ok=false;}
+   const r=await b.page.evaluate(()=>{const head=document.querySelector('[data-ct="grade-head"]');if(!head)return null;const list=head.parentElement;
+     let sc=list;while(sc&&!(sc.scrollHeight>sc.clientHeight+1&&/auto|scroll/.test(getComputedStyle(sc).overflowY)))sc=sc.parentElement;if(!sc)return null;
+     const out=[];for(const bt of [...list.querySelectorAll('button')].filter(x=>!x.disabled)){let q=bt.getBoundingClientRect();const sq=sc.getBoundingClientRect();sc.scrollTop+=(q.top+q.height/2)-(sq.top+sq.height/2);q=bt.getBoundingClientRect();
+       const cx=q.left+q.width/2;let n=0;for(let y=q.top-14;y<=q.bottom+14;y+=0.5){const h=document.elementFromPoint(cx,y);if(h&&(h===bt||bt.contains(h)))n+=0.5;}out.push({t:bt.textContent,h:+q.height.toFixed(1),tap:n});}
+     return out;});
+   L.say(ok&&!!r&&r.length>=4,'TC-R215zz Review summary '+gk+' PRECONDITION the enabled grade counts are found under the grade header ('+(r?r.length:0)+')',r);
+   L.say(!!r&&r.length>0&&r.every(x=>x.tap>=44),'TC-R215zz Review summary '+gk+' every grade count is a 44 tap area down its centre line ('+(r?r.map(x=>x.t+':'+x.tap).join(' '):'none')+'; boxes '+(r?[...new Set(r.map(x=>x.h))].join('/'):'-')+')',r);
+   L.say(b.errs.length===0,'TC-R215zz Review summary '+gk+' zero app errors',b.errs.slice(0,3));await b.close();}
   if(process.env.CT_139_CG_ONLY)return;   // CT_139_CG_ONLY=1 runs the #550 cg blocks (TC-R215s..) alone
   const fams=new Set();
   for(const [gn,geo] of GEOS)for(const [nm,go,title,hasBack] of SCREENS){const tag=nm+' '+gn;
