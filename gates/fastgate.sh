@@ -200,7 +200,9 @@ TAMPER=""
 # added at #523: Part 2 EXECUTES it from the working tree.
 # gates/door-checks.sh joined at #550 (helper A): the records check below runs `records-gate.sh --binaries`, which
 # EXECUTES door-checks.sh --only from the working tree, so it is pinned and FORCE-before-execution like the rest.
-FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh gates/door-checks.sh"
+# gates/audit/control-floor.sh joined at #550 (test-system helper A): records-gate.sh --binaries runs its control-floor row,
+# which executes it (and it executes control-audit.js, already here) from the working tree. fastgate-drive.sh H70 is its pin.
+FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh gates/door-checks.sh gates/audit/control-floor.sh"
 for f in $FG_EXECUTES; do
   hb="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$("${GIT[@]}" hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
@@ -2415,7 +2417,10 @@ binary  "gate manifest" bash "$G/gatemanifest.sh" check
 # one door (door-checks.sh --only citations): any breach on HEAD refuses, whatever the base had. The label is kept
 # as `records` so its line still begins "records: " - fastgate-drive.sh's info-exclude cases (H49 and its siblings)
 # read the absence of that prefix as proof that no records verdict was computed. The control-audit ratchet below
-# stays a ratchet: as a binary it would refuse every fast commit today (entry two, the coverage ratchet).
+# stays a ratchet: as a binary it would refuse every fast commit today (entry two, the coverage ratchet). ITS COVERED SET IS
+# A BINARY THROUGH THIS LINE SINCE #550 test-system helper A: --binaries also runs door-checks' control-floor row, so a gate
+# named in gates/control-covered-floor.tsv that the audit no longer reads COVERED or PARTIAL refuses here as `records: RED`
+# (fastgate-drive.sh H71), and a swap the ratchet below reads as "no worse" no longer passes.
 binary  "records" bash "$G/records-gate.sh" --binaries
 if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   # #490, antagonist A: the key here was '(uncontrolled|CONTROL AUDIT|controlled)', which matches ONLY

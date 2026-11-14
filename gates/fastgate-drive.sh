@@ -319,6 +319,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H67) printf 'TC-SUITE-276' ;;
     H68) printf 'TC-SUITE-306' ;;
     H69) printf 'TC-SUITE-386' ;;
+    H70) printf 'TC-SUITE-388' ;;  H71) printf 'TC-SUITE-389' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2598,6 +2599,65 @@ else
   fi
 fi
 rm -f "$H69M"
+
+# H70 NEGATIVE [#550 test-system helper A]. gates/audit/control-floor.sh IS EXECUTED, SO IT IS PINNED BEFORE IT RUNS. The
+#     records check's binary set gained door-checks' control-floor row, which executes gates/audit/control-floor.sh from the
+#     working tree, so it joined FG_EXECUTES. H69's shape exactly: an honest register-only commit (green, the premise), then
+#     a marker-writing line in the working-tree copy, hidden with assume-unchanged. Expected: exit 1, "this tier EXECUTES
+#     these files" naming gates/audit/control-floor.sh, and NO MARKER (without the pin the doctored copy runs first).
+reset_clone
+H70F=gates/audit/control-floor.sh; H70M="$W/h70-marker"; rm -f "$H70M"
+H70N="$(mint_in_clone)"
+if badnum "$H70N"; then
+  note "  FAIL H70 [$(tc H70)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H70"
+else
+  commit_case "H70 register only: one minted row for #$H70N, then control-floor.sh doctored on disk"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H70 [$(tc H70)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the doctored tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H70"
+  else
+    sed -i "2i : > $H70M  # fastgate-drive.sh H70 fixture, never pushed" "$C/$H70F"
+    git -C "$C" update-index --assume-unchanged "$H70F" >/dev/null 2>&1 || true
+    if ! hidden; then
+      note "  SKIPPED H70 [$(tc H70)]  assume-unchanged did not hide the doctored file here"; SKIP=$((SKIP+1))
+    elif probe 1 "this tier EXECUTES these files" "$H70F: commit "; then
+      if [ -e "$H70M" ]; then
+        note "  FAIL H70 [$(tc H70)]  refused and named, but the doctored control-floor.sh RAN first (marker written)"
+        show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H70"
+      else
+        note "  ok  H70 [$(tc H70)]  (exit 1, this tier EXECUTES these files naming $H70F, and the doctored copy never ran: no marker)"
+        OK=$((OK+1))
+      fi
+    else
+      note "  FAIL H70 [$(tc H70)]  exit $PROBE_RC, expected 1 naming $H70F as a file this tier EXECUTES (marker $( [ -e "$H70M" ] && echo written || echo absent))"
+      show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H70"
+    fi
+    git -C "$C" update-index --no-assume-unchanged "$H70F" >/dev/null 2>&1 || true
+    restore_raw "$H70F" || true
+  fi
+fi
+rm -f "$H70M"
+
+# H71 NEGATIVE [#550 test-system helper A]. THE COVERED SET IS A BINARY ON THE FAST TIER. A records-only commit adds a row to
+#     gates/control-covered-floor.tsv for 23-full-walk, a gate the audit reads NONE (it declares no CONTROL-RECORD). Every
+#     fault count of the control-audit ratchet is unchanged by that commit, so the ratchet alone reads "no worse than base";
+#     the binary must refuse it. Expected: exit 1, "records: RED", and control-floor's own words naming the gate. The control,
+#     run by hand when this case was added: the same commit under a records-gate.sh whose RECORDS_BINARIES is "citations"
+#     alone takes exit 0 FAST GATE GREEN (#550 test-system helper A's report).
+reset_clone
+H71F=gates/control-covered-floor.tsv
+printf '23-full-walk\tfastgate-drive.sh H71 fixture, never pushed: a gate with no CONTROL-RECORD\n' >> "$C/$H71F"
+commit_case "H71 a floor row for 23-full-walk, which the control audit reads NONE"
+if probe 1 "records: RED" "FELL 23-full-walk now reads NONE"; then
+  note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, control-floor names 23-full-walk as fallen to NONE)"
+  OK=$((OK+1))
+else
+  note "  FAIL H71 [$(tc H71)]  exit $PROBE_RC, expected 1 records: RED with FELL 23-full-walk now reads NONE"
+  show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H71"
+fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -

@@ -144,9 +144,11 @@ entries_ratchet(){
 # named in gates/control-covered-floor.tsv and gates/audit/control-floor.sh refuses any of them that falls, whatever the base
 # had - so neither a SWAP (one gate loses cover while another gains it, every count unchanged) nor a loss landed outside the
 # fast tier is grandfathered. It is a row of gates/door-checks.sh (`control-floor`, and its selftest), so it runs in --checks
-# on the full-suite path; it is NOT in RECORDS_BINARIES yet, so the fast tier still judges coverage by the ratchet alone.
-RECORDS_BINARIES="citations"
-BINARIES_BASELINE="citations"   # never-delete, control (e): a name leaves only in a commit that edits this line too
+# on the full-suite path, and SINCE #550 test-system helper A's next piece it is in RECORDS_BINARIES too, so the fast tier
+# runs it as a binary beside the ratchet (gates/audit/control-floor.sh joined fastgate.sh's FG_EXECUTES with it; fastgate-drive
+# H70 is the pin, H71 a records-only floor row for an uncovered gate refused as `records: RED`). The ratchet stays for the rest.
+RECORDS_BINARIES="citations control-floor"
+BINARIES_BASELINE="citations control-floor"   # never-delete, control (e): a name leaves only in a commit that edits this line too
 binaries(){
   local want live; live="$(bash "$HERE/door-checks.sh" --list 2>/dev/null | cut -d'|' -f1)"
   [ -n "$RECORDS_BINARIES" ] || { say "RECORDS BINARIES COULD NOT RUN - the binary set is empty, which is not a clearance"; return 2; }
@@ -884,21 +886,24 @@ SHIM
   bin_case(){ # bin_case <citations-exit> <citations-fail-count> [door file]
     printf '#!/usr/bin/env bash\necho "citations door: 9 pass / %s fail"\nexit %s\n' "$2" "$1" > "$bd/cit.sh"
     sed -i "s#^citations|gates/verify-log.sh|--citations|#citations|gates/cit.sh|--citations|#" "$bd/door-checks.sh"
+    printf '#!/usr/bin/env bash\necho "control-floor: 4 pass / 0 fail"\n' > "$bd/cf.sh"
+    sed -i "s#^control-floor|gates/audit/control-floor.sh||#control-floor|gates/cf.sh||#" "$bd/door-checks.sh"
     printf 'door:none\tx\t1\tn\n' > "$T/bin/pins"
     ( cd "$T/bin" && CT_DOOR_PINS="$T/bin/pins" bash "${3:-$bd/records-gate.sh}" --binaries ) > "$T/bin/last" 2>&1; echo $?; }
   chk "B1 a STANDING citation breach refuses (control (a): the ratchet passed it as no worse than base)" 1 "$(bin_case 1 2)"
   case "$(cat "$T/bin/last")" in *"REFUSED - citations: exit 1, 2 fail"*) ok "B1 the refusal names the citations row and its fail count" ;;
     *) no "B1 the refusal does not name the citations row" ;; esac
   chk "B2 a clean citations check passes" 0 "$(bin_case 0 0)"
-  case "$(cat "$T/bin/last")" in *"DOOR CHECKS OK - 1 of 1"*) ok "B2 and exactly one row ran (the --only filter, not the whole door)" ;;
-    *) no "B2 the binary set did not run exactly one row" ;; esac
+  case "$(cat "$T/bin/last")" in *"DOOR CHECKS OK - 2 of 2"*) ok "B2 and exactly the two binary rows ran, citations and control-floor (the --only filter, not the whole door)" ;;
+    *) no "B2 the binary set did not run exactly its two rows" ;; esac
   sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES="other"/' "$bd/records-gate.sh" > "$bd/emptied-b.sh"
   chk "B3 control (e): a binary set that lost a BINARIES_BASELINE name refuses itself" 1 "$(bin_case 0 0 "$bd/emptied-b.sh")"
-  sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES="citations nosuchrow"/' "$bd/records-gate.sh" > "$bd/unk-b.sh"
+  sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES="citations control-floor nosuchrow"/' "$bd/records-gate.sh" > "$bd/unk-b.sh"
   chk "B4 a binary name that is not a door-checks row is could-not-run (2)" 2 "$(bin_case 0 0 "$bd/unk-b.sh")"
   sed -e 's/^RECORDS_BINARIES=.*/RECORDS_BINARIES=""/' "$bd/records-gate.sh" > "$bd/none-b.sh"
   chk "B5 an empty binary set is could-not-run (2), never a clearance" 2 "$(bin_case 0 0 "$bd/none-b.sh")"
   chk "B6 the LIVE binary set holds citations" 1 "$(printf ' %s \n' "$RECORDS_BINARIES" | grep -c ' citations ')"
+  chk "B6b and control-floor (#550 test-system helper A: the covered set as a binary on the fast tier)" 1 "$(printf ' %s \n' "$RECORDS_BINARIES" | grep -c ' control-floor ')"
 
   # THE NOT-RUN COUNT IS ITSELF PINNED. notrun() is a counter and not a comment, and the defect it replaces (C9c as an
   # unconditional `ok`) was a declaration scored as a pass. If notrun() ever counted as a pass this footer would still print
