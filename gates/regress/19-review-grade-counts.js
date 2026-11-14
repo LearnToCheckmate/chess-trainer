@@ -1,5 +1,6 @@
 // regress/19-review-grade-counts.js  #464, jobs/review-grade-counts-vs-the-moves-they-name, case TC-R30,
 // THE ENGINE BRANCH, STATED RATHER THAN DEFAULTED [#550 item (59); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-route-reaches-the-single-worker-fallback-2026-10-21]: every launch in this file passes ct_pool, so the app runs its POOLED Stockfish path and the single-worker and built-in fallbacks (the harness route is the launch option engineFail 'pool' or 'all', driven by gate 34) are NOT exercised here. Its assertions DEPEND on that branch: every count it compares is a grade the engine produced, so a fallback review could paint different counts this gate never sees.
+// CONTROL-RECORD: a680056 2026-11-14 total=4 red=1 scope=env:CT_19_BAR_ONLY=1,trial:b848ab6ff06c how=#550 helper app A, jobs/grade-ladder-has-five-independent-copies (its last raw painter): the tree before the bar graph read effLabel - A7c red at 700x1000 (a Blunder mark at x 107.7, index 5 = 3...Nf6, a Book ply); the fix's bundle ca47b297f2cd reads 4/0 on CT_19_BAR_ONLY=1 and the whole gate 98/0
 // CONTROL-RECORD: ec575a0 2026-11-11 total=95 red=1 scope=trial:dbb60cfb5c95 how=#550 item (5): trial t1 (the eval graph's dots coloured by raw grade, no bookN) - SCHOLAR-kunal761 A7 red (a raw-grade dot on a Book ply); every other line green
 // CONTROL-RECORD: a0ebc70 2026-11-03 total=78 red=4 scope=trial:e950c3422e02 how=#547 item (108)'s pre-fix bundle, where a side with no graded move prints 99.5%: TC-R34 red for White and Black at kunal730 and se (run nc108) [#547 close-out, ratchet]
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=76 red=3 scope=trial:c7f6a1228e43 how=#548 item (103): main #547 still serves the classic review to ct_revCompact=0 - TC-R100 C1, C2 and C3 red
@@ -429,8 +430,31 @@ async function classicRun(acc){
   await b.close();
 }
 
+// A7c [#550 helper app A, jobs/grade-ladder-has-five-independent-copies - its last raw-grade painter]: the BOTTOM PLAYER BAR's own small eval
+// graph (svg[data-ct="eval-graph"] inside pbar-bottom; drawn where the review is upright but not the phone streamlined view - a window
+// 600+ wide and taller than wide, here 700x1000) marked Blunder and Brilliant by the RAW grade, so on SCHOLAR its book ply 3...Nf6 (index
+// 5, raw grade Blunder, badge Book) carried a red Blunder line. It reads effLabel now. The ply of a mark comes off its x (n points over
+// the graph's width, the app's own xs()); a mark is found by its ink (#ec5c4e), not by any hook.
+async function barGraphRun(){
+  const tag='SCHOLAR-700x1000';
+  const b=await L.launch({geo:{w:700,h:1000,safe:'',label:'700x1000'},name:'rgc-bar-graph',store:{ct_pool:'3'}});
+  await openReview(b,FIX.SCHOLAR);
+  await b.tapText(/^Start review/,{wait:900}).catch(()=>{});await b.settle(900);
+  const g=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="pbar-bottom"]');const sv=bar&&bar.querySelector('svg[data-ct="eval-graph"]');if(!sv)return null;
+    const w=parseFloat(sv.getAttribute('width'));const lines=[...sv.querySelectorAll('line')].map(l=>({x:parseFloat(l.getAttribute('x1')),k:(l.getAttribute('stroke')||'').toLowerCase()}));
+    return {w,lines,path:!!sv.querySelector('path')};});
+  const n=7;   // 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
+  L.say(!!g&&g.path&&g.w>=90,tag+' A7c PRECONDITION the bottom player bar draws its own eval graph ('+(g?g.w+' wide':'absent')+')',g&&{w:g.w,lines:g.lines.length});
+  if(g){const red=g.lines.filter(l=>l.k==='#ec5c4e').map(l=>({...l,i:Math.round((l.x-1)/((g.w-2)||1)*(n-1))}));const inBook=red.filter(l=>l.i<=5);
+    L.say(inBook.length===0,tag+' A7c the bar graph marks no Blunder on a book ply - 3...Nf6 (index 5) is Book on its badge ('+red.length+' Blunder mark(s): '+JSON.stringify(red)+')',{red});}
+  const errs=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+  L.say(errs.length===0,tag+' A7c no page errors'+(errs.length?' -- '+errs.slice(0,2).join(' | '):''));
+  await b.close();
+}
+
 L.run(async()=>{
   const acc={prefixes:[],checked:[]};
+  if(process.env.CT_19_BAR_ONLY){await barGraphRun();return;}   // CT_19_BAR_ONLY=1 runs A7c alone (a control run, not the gate)
   // 375x730 is the column (superseded by R19's 375x761) where the defect was measured; 320x568 is the narrow column, run on the
   // long-book fixture because that is the one whose Book row is largest and whose rows are most crowded.
   await runFixture('kunal730','NOBOOK', FIX.NOBOOK, acc);
@@ -442,6 +466,7 @@ L.run(async()=>{
   // walk), which keeps this gate's earlier control records judgeable. SCHOLAR's own A0..A6 are its completion evidence.
   await runFixture('kunal761','SCHOLAR',FIX.SCHOLAR,{prefixes:[],checked:[]});
   await classicRun(acc);
+  await barGraphRun();
 
   // THE ANTI-VACUITY GUARD. A green here must mean the book path was entered AND the no-book path was entered.
   const zero=acc.prefixes.filter(p=>p.bookExpected===0);
