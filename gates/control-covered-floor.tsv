@@ -53,3 +53,5 @@ mountcheck	COVERED on records citing 016ccda (#550 test-system helper B, trial 8
 71-resume-row-agrees-with-the-board	COVERED on records citing 016ccda (#550 test-system helper B, trial 6cd89b7420c6 53/8)
 64-landscape-gameover-row	COVERED on a record citing de85c2d (#550 test-system helper B, trial a220f726ee22 150/24)
 87-opening-book	COVERED on a record citing 407251e (#550 test-system helper B, CT_SRC mutant ec047d71c5bd 43/1)
+69-setup-sheet-live-game	PARTIAL after 15512f4 repaired its unparsable record (blocks:K; #550 lead added the row)
+70-live-game-reset-guard	COVERED on a record citing 6b9f7cb (CT_B70=kunal 50/3; repaired at 15512f4, checker seat 2 reproduced 50/3 with its own mutant 55e77eb826a7; #550 lead added the row)
