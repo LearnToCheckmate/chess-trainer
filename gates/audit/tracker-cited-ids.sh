@@ -70,9 +70,16 @@ extract(){ # <jobs-dir>: prints "<job-id>\t<id>" for every id cited by a not-clo
         // are NOT citations and were read as unresolved ids. (1) A RANGE ENDPOINT - "block TC-R50..TC-R59", "block US-R30..US-R39" -
         // names an id space, not a case; measured, 6 of the 22 unresolved on the 14 Nov ready export were only that. (2) An id that
         // CONTINUES past a hyphen - "TC-INV-2-OCCL-441" was cut to TC-INV-2 - is read whole now, so it is named as written.
-        const re=/(?:^|[^A-Za-z0-9-])((?:TC|US)-[A-Z]+-?[0-9]+[a-z]?(?:-[A-Z0-9]+)*)(?![A-Za-z0-9])/g;let m;
+        // NARROWED [#550 test-system helper A, the GAP checker seat 2 found on 68e5646]: the first version skipped ANY id beside "..", so a prose
+        // ellipsis ("the case is TC-ZZ-905..."), a trailing "TC-ZZ-906.." and an unlabelled pair ("cases TC-ZZ-909..TC-ZZ-910 are both
+        // new") all hid a cited id. A range is now exactly the shape the jobs write - the word "block", an id, EXACTLY two dots, an id -
+        // and only its two endpoints are skipped; "..." is punctuation. A hyphen continuation also stops before a new TC-/US- id, and that next id is read too (TC-ZZ-922-TC-ZZ-923 is two).
+        const ID="(?:TC|US)-[A-Z]+-?[0-9]+[a-z]?",skip=new Set();
+        const rr=new RegExp("\\bblock\\s+("+ID+")\\.\\.("+ID+")(?![.A-Za-z0-9])","g");let q;
+        while((q=rr.exec(s))){const a=q.index+q[0].indexOf(q[1]);skip.add(a);skip.add(a+q[1].length+2);}
+        const re=/(?:^|[^A-Za-z0-9-]|(?<=[A-Za-z0-9])-(?=(?:TC|US)-))((?:TC|US)-[A-Z]+-?[0-9]+[a-z]?(?:-(?!(?:TC|US)-)[A-Z0-9]+)*)(?![A-Za-z0-9])/g;let m;
         while((m=re.exec(s))){const st=re.lastIndex-m[1].length;
-          if(s.slice(st-2,st)===".."||s.slice(re.lastIndex,re.lastIndex+2)==="..")continue;   // a range endpoint
+          if(skip.has(st))continue;   // an endpoint of "block <id>..<id>"
           out.push(id+"\t"+m[1]);}
       }
     }
@@ -170,6 +177,20 @@ selftest(){
   rm -f "$J/h.json"; printf '{"status":"ready","case":"TC-R50..TC-R59 aside, TC-R77 is the case"}' > "$J/i.json"
   CEIL=0 ck "C9 an id beside a range is still cited (only the endpoints are skipped)" 1 "UNRESOLVED TC-R77 "
   rm -f "$J/i.json"
+  # C10-C12 (#550 test-system helper A, checker seat 2's GAP): an ellipsis, a trailing "..", and a pair with no "block" are all CITED
+  printf '{"status":"ready","case":"the case is TC-ZZ-905..."}' > "$J/k.json"
+  CEIL=0 ck "C10 an id before a prose ellipsis ('TC-ZZ-905...') is cited" 1 "UNRESOLVED TC-ZZ-905 "
+  rm -f "$J/k.json"; printf '{"status":"ready","case":"TC-ZZ-906.."}' > "$J/l.json"
+  CEIL=0 ck "C11 an id before a trailing '..' with no second id is cited" 1 "UNRESOLVED TC-ZZ-906 "
+  rm -f "$J/l.json"; printf '{"status":"ready","case":"cases TC-ZZ-909..TC-ZZ-910 are both new"}' > "$J/n.json"
+  out="$(CEIL=0 audit "$J" "$R" 2>&1)"
+  if printf '%s' "$out" | grep -q 'UNRESOLVED TC-ZZ-909 ' && printf '%s' "$out" | grep -q 'UNRESOLVED TC-ZZ-910 '; then echo "  ok   C12 both ends of an unlabelled 'TC-ZZ-909..TC-ZZ-910' are cited (only 'block <id>..<id>' is a range)"; pass=$((pass+1))
+  else echo "  FAIL C12 both ends of an unlabelled pair are cited"; fail=$((fail+1)); fi
+  rm -f "$J/n.json"; printf '{"status":"ready","case":"TC-ZZ-922-TC-ZZ-923 joined"}' > "$J/o.json"
+  out="$(CEIL=0 audit "$J" "$R" 2>&1)"
+  if printf '%s' "$out" | grep -q 'UNRESOLVED TC-ZZ-922 ' && printf '%s' "$out" | grep -q 'UNRESOLVED TC-ZZ-923 '; then echo "  ok   C13 two ids joined by a hyphen ('TC-ZZ-922-TC-ZZ-923') are both cited"; pass=$((pass+1))
+  else echo "  FAIL C13 two ids joined by a hyphen are both cited"; fail=$((fail+1)); fi
+  rm -f "$J/o.json"
   ( cd "$R" && git update-ref -d refs/remotes/origin/main ) >/dev/null 2>&1
   CEIL=0 ck "C6 no origin/main register is NOT CHECKED at exit 2" 2 "unreadable at origin/main"
   echo "tracker-cited-ids selftest: $pass pass / $fail fail"
