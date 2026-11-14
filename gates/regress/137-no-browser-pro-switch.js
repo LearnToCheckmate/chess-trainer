@@ -1,6 +1,6 @@
 'use strict';
 // gates/regress/137-no-browser-pro-switch.js - PRO COMES ONLY FROM THE SUBSCRIPTION; AN ACCOUNT CAN BE DELETED; SIGNING OUT LEAVES NOTHING
-// BEHIND. US-R145 / TC-R213a..h.
+// BEHIND. US-R145 / TC-R213a..i. (i) SEC-19: the page declares and enforces a content security policy that breaks nothing reachable here.
 //
 // WHY [#550; docs/security-privacy-2026-11-12, Kunal's pick "All 20, serious first", Thu 12 Nov 2026]: SEC-01 (P1) - Pro was decided in the
 // browser: localStorage ct_pro=1 gave every Pro feature with no sign-in and no payment, and ct_protest=1 brought back an "Unlock Pro (test
@@ -35,6 +35,7 @@
 //  (h) TC-R213h a DIFFERENT account signing in on a device stamped with another uid (ct_owner) starts clean: the old progress is gone
 //      before any save, and no save carries it.
 // CONTROL-RECORD: 9a6a5c6 2026-11-12 total=22 red=16 scope=trial:79d0124fe952 how=#550 SEC batch: the bundle built from 9a6a5c6 before the change, with CT_INDEX=9a6a5c6's index.html (no _deleteAccount) - ct_pro/ct_protest grant Pro and the test buttons show (TC-R213a 4 red, TC-R213c red), no Delete account (TC-R213d 4 red, TC-R213e's DENOMINATOR red and the gate stops there), no sign-out confirm (TC-R213f 3 red, TC-R213g red), and a different account inherits and SAVES the old player's puzzles (TC-R213h 2 red); TC-R213b, the theme-kept line and both zero-error lines green; on e617c6bd93cb 28/0
+// CONTROL-RECORD: 690d199 2026-11-14 total=33 red=2 scope=trial:f65d734958ef how=#550 helper app A, SEC-19 arm (block i): index.html with its Content-Security-Policy meta removed - no policy declared (TC-R213i) and the data: probe script runs (ran=1); with the meta 33/0, engine worker answers uci and zero policy violations
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const IDX=process.env.CT_INDEX||path.join(__dirname,'..','..','index.html');
@@ -186,6 +187,23 @@ L.run(async()=>{
     L.say(s.ct_owner==='u-me'&&gone(s).length===0,'TC-R213h a different account signing in on a device stamped for another uid starts clean (ct_owner '+s.ct_owner+')',s);
     L.say(leaked.length===0,'TC-R213h and none of the '+saves.length+' saves to the new account carries the old player\'s data',leaked.slice(0,2));
     L.say(b.errs.length===0,'TC-R213 zero app errors across sign-in, sign-out and deletion',b.errs.slice(0,3));await b.close();}
+  // (i) SEC-19: a content security policy. #550 helper app A (jobs/security-p2-p3-2026-11-12, what was left: "CSP not added").
+  {const b=await L.launch({geo:'kunal761',name:'csp137',store:{ct_pool:'3'}});const viol=[];
+    b.page.on('console',m=>{const t=m.text();if(/Content Security Policy/i.test(t))viol.push(t.slice(0,200));});
+    await b.open();await b.settle(1500);
+    const pol=await b.page.evaluate(()=>{const m=document.querySelector('meta[http-equiv="Content-Security-Policy"]');return m?m.getAttribute('content'):null;});
+    const has=(d)=>!!pol&&pol.split(';').map(x=>x.trim()).some(x=>x.split(/\s+/)[0]===d);
+    L.say(has('script-src')&&has('object-src')&&has('base-uri')&&/object-src 'none'/.test(pol)&&!/script-src[^;]*(\*|data:|https:(?!\/\/))/.test(pol),'TC-R213i the page declares a content security policy: script-src (no wildcard, no data:, no bare https:), object-src none, base-uri ('+pol+')',pol);
+    /* the policy BLOCKS a script it does not list: a data: URL script is the one foreign source this sandbox can serve, so it is what
+       proves enforcement (external hosts are already blocked by gates/lib.js, which would make a foreign-host probe pass with no policy) */
+    const ran=await b.page.evaluate(()=>new Promise(res=>{window.__cspProbe=0;const s=document.createElement('script');s.src='data:text/javascript,window.__cspProbe=1';s.onload=()=>res(window.__cspProbe);s.onerror=()=>res(window.__cspProbe);document.head.appendChild(s);setTimeout(()=>res(window.__cspProbe),1500);}));
+    L.say(ran===0,'TC-R213i and the browser enforces it: a script from a source it does not list does not run (data: probe ran='+ran+')',{ran});
+    /* and it breaks nothing this sandbox can reach: the engine still answers (the worker is this site's own file) and nothing the app loads is refused */
+    const eng=await b.page.evaluate(()=>new Promise(res=>{try{const w=new Worker('./stockfish-18-lite-single.js');let ok=false;w.onmessage=(e)=>{if(/uciok/.test(String(e.data))){ok=true;w.terminate();res(true);}};w.onerror=()=>res(false);w.postMessage('uci');setTimeout(()=>res(ok),15000);}catch(e){res(false);}}));
+    L.say(eng===true,'TC-R213i under the policy the engine worker still loads and answers uci',{eng});
+    const own=viol.filter(t=>!/__cspProbe|data:text\/javascript/.test(t));
+    L.say(own.length===0,'TC-R213i and nothing the app itself loads is refused by the policy ('+own.length+' violations)',own.slice(0,3));
+    L.say(b.errs.filter(t=>!/Content Security Policy/i.test(t)||!/data:/.test(t)).length===0,'TC-R213i zero app errors under the policy',b.errs.slice(0,3));await b.close();}
 },'137-no-browser-pro-switch');
 // SELECTOR-OPENED: acct-delete reading=presence round 4: TC-R213d needs Delete account in the sheet
 // SELECTOR-OPENED: acct-delete-confirm reading=presence round 4: the DENOMINATOR needs the confirm and its button

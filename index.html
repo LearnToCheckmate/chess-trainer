@@ -2,6 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <!-- #550 docs/security-privacy-2026-11-12 SEC-19 (jobs/security-p2-p3-2026-11-12): a content security policy, scoped to what limits
+       an injection bug's damage without being able to break a feature: scripts only from this site (the engine worker and sw.js
+       included - worker-src falls back to script-src), Google's Firebase SDK host and the sign-in helper host; no plugins; no <base>
+       hijack. 'unsafe-inline' stays because index.html carries three inline scripts (hashes would break on every edit of them).
+       connect, img, frame and font are deliberately NOT restricted here: sign-in, Firestore, functions, avatars, YouTube and the
+       chess.com / Lichess imports reach hosts this sandbox cannot load, so a tighter list could not be proved before it shipped. -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com; object-src 'none'; base-uri 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Chess Trainer</title>
   <meta name="description" content="Learn openings, solve puzzles, review your games move-by-move, and play the computer or a friend." />
