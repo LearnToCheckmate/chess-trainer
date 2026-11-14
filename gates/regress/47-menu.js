@@ -119,6 +119,7 @@
 // CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
 // CONTROL-RECORD: c004673 2026-11-14 total=25 red=8 scope=env:CT_BLK=L,trial:7a1ff10f131c how=#550 helper app A, jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14 (TC-MN-057): 54e83e1's own bundle - every legal link's tap 40 to 41 at both geometries, so all eight tap lines red; the fix's bundle 18fc831bbbac 25/0
 // CONTROL-RECORD: c004673 2026-11-14 total=25 red=1 scope=env:CT_BLK=L,trial:24be0eba06c0 how=#550 helper app A, TC-MN-057's second control: ct-hit44 on the links but no 4px between the two rows at 320x568 - Terms (row one, over Delete account) keeps a 40 tap, red; everything else green
+// CONTROL-RECORD: 0a115a8 2026-11-14 total=17 red=3 scope=env:CT_BLK=S,trial:9529ef70b3c6 how=#550 helper app A, jobs/build-menu-one-screen's leftovers (TC-MN-058): 0a115a8's own bundle - ct_traintap written '1' on boot (058a), both keys read by the bundle (058a), and the Review sheet's 'Eval bar: beside the board' (058b) red; the fix's bundle 6aa9f8411d24 17/0
 const L=require('../lib');
 
 // ---------------------------------------------------------------------------------------------------------
@@ -979,6 +980,26 @@ if(blk('L'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568']]){
   if(r)for(const x of r.links)L.say(x.tap>=44,gn+': TC-MN-057 the "'+x.t+'" link\'s TAP, hit-tested down its centre line, is '+x.tap+' tall (>= 44; its box is '+x.h+')',x);
   L.say(!!r&&!!r.foot&&r.foot.tap>=43.5,gn+': TC-MN-057 and the foot button under the links keeps its own 44 ('+(r&&r.foot&&r.foot.tap)+')',r&&r.foot);
   L.say(b.errs.length===0,gn+': TC-MN-057 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
+// =========================================================================================================
+// MN-S  The menu's leftovers (jobs/build-menu-one-screen, its folded-in jobs).  TC-MN-058.
+// (a) bench-two-stored-preferences-have-no-control-and-no-consumer: ct_traintap and ct_hintlock had no control and no reader; the app no
+//     longer writes ct_traintap (it wrote '1' on every boot) and no longer reads either. A store that still holds them is left alone.
+// (b) bench-appearance-settings-have-two-homes, part (2): the menu's Evaluation bar row calls the beside-the-board place Left (Right on a
+//     wide window); the Review sheet's cycle said 'beside the board' for the same state, and now says left/right of the board. Read from
+//     the bundle, because that state needs a stored placement no driver reaches on a streamlined Review.
+// =========================================================================================================
+if(blk('S')){
+  const fs=require('fs'),path=require('path');const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');const src=fs.readFileSync(APP,'utf8');
+  const b=await L.launch({geo:'kunal761',name:'mn-s'});await b.open();await b.settle(1500);
+  const ls=await b.page.evaluate(()=>{const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);o[k]=localStorage.getItem(k);}return o;});
+  const nKeys=Object.keys(ls).filter(k=>/^ct_/.test(k)).length;
+  L.say(nKeys>=3,'TC-MN-058 PRECONDITION the app booted and wrote its own ct_ keys ('+nKeys+')',Object.keys(ls).slice(0,12));
+  L.say(!('ct_traintap' in ls)&&!('ct_hintlock' in ls),'TC-MN-058a no ct_traintap or ct_hintlock is written on boot (ct_traintap '+JSON.stringify(ls.ct_traintap)+')',{traintap:ls.ct_traintap,hintlock:ls.ct_hintlock});
+  L.say(src.indexOf('ct_traintap')<0&&src.indexOf('ct_hintlock')<0,'TC-MN-058a and the bundle reads neither key ('+(src.split('ct_traintap').length-1)+' / '+(src.split('ct_hintlock').length-1)+')');
+  L.say(src.indexOf('Eval bar: beside the board')<0&&src.indexOf('Eval bar: left of the board')>=0&&src.indexOf('Eval bar: right of the board')>=0,'TC-MN-058b the Review sheet names the beside-the-board place as the menu does: left (right on a wide window) of the board');
+  L.say(b.errs.length===0,'TC-MN-058 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
 },'MENU');

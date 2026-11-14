@@ -579,7 +579,7 @@ function nearbyArea(z){const t=String(z||'').trim().toLowerCase();if(!t)return '
 // the device's own settings (look, sound, board options) and the one-shot migration markers (removing a marker would re-run a migration
 // over data pulled from the cloud), plus the puzzle progress and the imported-games IndexedDB store. ct_owner records which uid this
 // device's progress belongs to, so a DIFFERENT account signing in later starts clean instead of absorbing it (see the onAuth handler).
-const CT_WIPE_KEEP=new Set(['ct_theme','ct_sound','ct_skin','ct_pieceSet','ct_hideEval','ct_depth','ct_evalgraph','ct_layoutgrid','ct_safe','ct_pool','ct_vc_timeout_ms','ct_vc_noring','ct_scsteps','ct_schold','ct_scmax','ct_coachfree','ct_book_table','ct_demodone','ct_hintprefs','ct_bot','ct_hintlock']);
+const CT_WIPE_KEEP=new Set(['ct_theme','ct_sound','ct_skin','ct_pieceSet','ct_hideEval','ct_depth','ct_evalgraph','ct_layoutgrid','ct_safe','ct_pool','ct_vc_timeout_ms','ct_vc_noring','ct_scsteps','ct_schold','ct_scmax','ct_coachfree','ct_book_table','ct_demodone','ct_hintprefs','ct_bot']);
 const ctWipeKeep=(k)=>CT_WIPE_KEEP.has(k)||/mig\d|^ct_regrade\d|_reset_v\d|_migrated$/.test(k);
 function ctDeviceWipeKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;if((k.indexOf('ct_')===0&&!ctWipeKeep(k))||k==='chesstrainer.progress.v1')out.push(k);}}catch(e){}return out;}
 // opts.set: keys to write once the wipe is done; opts.freeze: the caller reloads next, so every later localStorage write is dropped -
@@ -5429,7 +5429,7 @@ function AppMain(){
   useEffect(()=>{const C=(typeof window!=='undefined')?window.CTCloud:null;if(!tourOpen||!C||!C.tourList)return;const un=C.tourList(a=>setTours(Array.isArray(a)?a:[]));return ()=>{try{un&&un();}catch(e){}};},[tourOpen]);
   const [coachTargets,setCoachTargets]=useState(()=>{try{const a=JSON.parse(localStorage.getItem('ct_coachtargets')||'[]');return migSlate(a);}catch(e){return [];}});   // #550 A2-P1: re-keyed and cleaned on load
   const coachTargetsRef=useRef(coachTargets); coachTargetsRef.current=coachTargets;
-  const hintLockRef=useRef((()=>{try{return JSON.parse(localStorage.getItem('ct_hintlock')||'{}')||{};}catch(e){return {};}})());
+  /* #550 jobs/build-menu-one-screen, folded-in bench-two-stored-preferences-have-no-control-and-no-consumer-2026-09-29: ct_traintap (a useState no control set and nothing read) and ct_hintlock (a ref parsed at boot and never read) are gone; neither carried a feature, and a store that still holds them is simply not read. */
   const [coachPlanOpen,setCoachPlanOpen]=useState(false);
   const [coachPick,setCoachPick]=useState({side:'any',fm:'any',style:'any',kind:'any'});
   const [coachChooserOpen,setCoachChooserOpen]=useState(false);
@@ -5439,7 +5439,7 @@ function AppMain(){
   const hintPrefsRef=useRef(null);
   const [learnPhase,setLearnPhase]=useState('demo');
   const [learnSheet,setLearnSheet]=useState(false);
-  const [trainTap,setTrainTap]=useState(()=>{try{return localStorage.getItem('ct_traintap')!=='0';}catch{return true;}});
+
   const [trainMastery,setTrainMastery]=useState(()=>{try{return migTrain(JSON.parse(localStorage.getItem('ct_train')||'{}'));}catch{return {};}});
   const [learnLine,setLearnLine]=useState([]);
   const [lastLesson,setLastLesson]=useState(()=>{try{const v=localStorage.getItem('ct_lastlesson');return migLastLesson(v!==null&&v!==''?parseInt(v):null);}catch{return null;}});
@@ -6693,7 +6693,7 @@ function AppMain(){
   useEffect(()=>{SFX_ON=soundOn;try{localStorage.setItem('ct_sound',soundOn?'1':'0');}catch{}},[soundOn]);
   useEffect(()=>{try{if(selBot)localStorage.setItem('ct_bot',selBot);else localStorage.removeItem('ct_bot');}catch{}},[selBot]);
   useEffect(()=>{try{localStorage.setItem('ct_coachstyle',coachStyle);}catch{}},[coachStyle]);
-  useEffect(()=>{try{localStorage.setItem('ct_traintap',trainTap?'1':'0');}catch{}},[trainTap]);
+
   useEffect(()=>{try{localStorage.setItem('ct_train',JSON.stringify(trainMastery));}catch{}},[trainMastery]);
   useEffect(()=>{try{localStorage.setItem('ct_learnprog',JSON.stringify(learnProg));}catch{}},[learnProg]);
   /* #549 item (22) A2-R1 fix: the NEW HERE card retires on recorded USE, and merely OPENING a lesson is not use - selectOpening writes
@@ -10090,7 +10090,7 @@ function AppMain(){
         {(()=>{/* #549 item (12), jobs/the-terminal-ply-refusal-should-happen-at-the-sheet-row-not-behind-a-modal-with-one-exit-2026-10-02 and its folded jobs/play-from-here-captures-the-engines-hypothetical-board-during-a-best-line-preview-2026-10-02. TWO CHANGES, in the order #466's antagonist B required. (1) CAPTURE THE PLY HE IS LOOKING AT, not boardGame: during a best-line preview boardGame is bestLineBoard, the engine's hypothetical board, so this row used to start a real game from a position he never reached. In analysis mode it is the board he is analysing (game), as before. (2) REFUSE AT THE ROW: at a terminal ply the row is MOUNTED and DISABLED, the Takeback pattern, so he stays in his review where stepping back a move is one tap away. Computed from the same captured position, so a preview can no longer grey the row on a playable ply. The setup sheet's committer guard (#466) STAYS: it is the defence for the board-scan route. */const _pfG=anaMode?game:review.positions[ply];const _pfT=!!terminalFEN(toFEN(_pfG));return(<_SheetItem ct="rev-play-from-here" icon="forward" label="Play from here" dis={_pfT} on={()=>{setRevMore(false);setSetupSrc('review');setSetupFromFEN(toFEN(_pfG));setOpponent('computer');setPColor(_pfG.turn);setTimeCtrl(null);timeCtrlRef.current=null;setOpenIdx(null);setMode('play');setPlaySetup(true);}}/>);})()}
         <_SheetItem icon="flip" label="Flip board" on={()=>{setFlip(f=>!f);setRevMore(false);}}/>
         <_SheetItem icon="moves" label={pgnCopied?'Copied':'Copy PGN'} on={()=>{let _p=(review.pgn&&review.pgn.trim())?pgnPublic(review.pgn).trim():'';if(!_p){const _h=review.headers||{};const _t=['Event','Site','Date','White','Black','Result'].map(k=>'['+k+' "'+(_h[k]||(k==='Result'?'*':'?'))+'"]').join('\n');let _m='';for(let i=0;i<review.plies.length;i++){if(i%2===0)_m+=(i/2+1)+'. ';_m+=review.plies[i].san+' ';}_p=_t+'\n\n'+_m.trim()+' '+(_h.Result||'*');}try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(_p);}catch(e){}try{const _ta=document.createElement('textarea');_ta.value=_p;_ta.style.position='fixed';_ta.style.opacity='0';document.body.appendChild(_ta);_ta.focus();_ta.select();document.execCommand('copy');document.body.removeChild(_ta);}catch(e){}setPgnCopied(true);setTimeout(()=>setPgnCopied(false),1800);}}/>
-        <_SheetItem icon="more" label={hideEval?'Eval bar: off':(evalTop?'Eval bar: above the board':(evalUnder?'Eval bar: above on tall screens':'Eval bar: beside the board'))} on={()=>{if(hideEval){setHideEval(false);if(!revStream)setEvalUnder(true);/* A3-7: the streamlined review's on/off leaves the beside/above setting alone */}else if(evalUnder&&!revStream){setEvalUnder(false);}else{setHideEval(true);}setRevMore(false);}}/>
+        <_SheetItem icon="more" label={hideEval?'Eval bar: off':(evalTop?'Eval bar: above the board':(evalUnder?'Eval bar: above on tall screens':(wide?'Eval bar: right of the board':'Eval bar: left of the board')) /* #550 jobs/build-menu-one-screen, folded-in bench-appearance-settings-have-two-homes (2): the menu's Evaluation bar row names this state Left (Right on a wide window), so this sheet says the same */)} on={()=>{if(hideEval){setHideEval(false);if(!revStream)setEvalUnder(true);/* A3-7: the streamlined review's on/off leaves the beside/above setting alone */}else if(evalUnder&&!revStream){setEvalUnder(false);}else{setHideEval(true);}setRevMore(false);}}/>
         {/* #550 lead (checker seat 2 on pages-that-scroll): the dev-only 'brilliant-gate numbers' switch moved from this sheet to the menu's dev rows beside Layout readout - in HIS (dev) view it made the More sheet scroll 83px at 320x568 and 51px at 375x761, pushing New game off screen */}
         <_SheetItem icon="more" label="Menu and settings" on={()=>{setRevMore(false);setMenuOpen(true);}}/>
         <_SheetItem icon="newgame" label="New game" on={()=>{setRevMore(false);resetReview();}}/>
@@ -11652,7 +11652,7 @@ function AppMain(){
                 {CATS.map(([lbl,col])=>(<div key={lbl} data-ct="grade-row" style={{display:'grid',gridTemplateColumns:'1fr 56px 56px',alignItems:'center',fontSize:'clamp(15.5px,3.5vw,17px)',gap:8,minHeight:38 /* #550 jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14, its second half: the grade counts are buttons (a tap jumps to that grade's first move), 28 tall at a 34 pitch, so a 44 tap could not fit; the row is 38 and with the list's 6 gap the pitch is 44, and ct-hit44 gives each count the whole 44 without the cell growing */}}>
                   <span style={{display:'flex',alignItems:'center',gap:7,color:'rgba(255,255,255,.8)'}}><span data-ct="sum-dot" data-grade={lbl} style={{width:9,height:9,borderRadius:'50%',background:col,flexShrink:0}}/>{lbl}</span>
                   {ORD.map(sd=>{const C=sd==='w'?W:B;const n=C.counts[lbl];const jump=()=>{if(!n)return;const an=review.analysis||[];for(let i=0;i<an.length;i++){const mc=revMover(review,i);if(mc===sd&&effLabel(an[i].cls,i,S.book||0)===lbl){setRevAuto(false);setReviewView('moves');setPly(i+1);return;}}};
-                  return(<button key={sd} onClick={jump} disabled={!n} data-ct="grade-count" className="ct-hit44" style={{textAlign:'center',background:n?'rgba(255,255,255,.06)':'none',border:n?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'3px 0',color:n?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:'clamp(17px,4vw,19px)',cursor:n?'pointer':'default'}}>{n}</button>);})}
+                  return(<button key={sd} onClick={jump} disabled={!n} className="ct-hit44" style={{textAlign:'center',background:n?'rgba(255,255,255,.06)':'none',border:n?'1px solid rgba(255,255,255,.18)':'none',borderRadius:9,padding:'3px 0',color:n?'#fff':'rgba(255,255,255,.3)',fontWeight:800,fontSize:'clamp(17px,4vw,19px)',cursor:n?'pointer':'default'}}>{n}</button>);})}
                 </div>))}
               </div>
             </div>);})()}
