@@ -113,18 +113,25 @@ async function btnRects(b){return b.page.evaluate(()=>[...document.querySelector
    More sheet OR the Menu sheet). The first version tapped only when the More sheet was up, so gate 70's I block left the Menu sheet open and
    read its own still-armed pill as the arm surviving a close. With nothing open, (8,8) is the phone's Home button, which must not be tapped. */
 async function closeSheet(b){const up=await b.page.evaluate(()=>{const h=document.elementFromPoint(8,8);if(!h)return false;const home=document.querySelector('[data-ct="play-home"]');return !(home&&(h===home||home.contains(h)));});if(up){await b.page.mouse.click(8,8);await b.page.waitForTimeout(300);}}
-async function noClock(b){try{await b.tapText(/^No clock$/,{wait:200});}catch(e){}}
+// #550 helper B, Kunal's q44: the time control is ONE dropdown ([data-ct="setup-time"] select, values '' / 't:<label>' / 'c:<days>'), and the
+// computer's opponent cards live on their own 'Choose your opponent' screen, opened by the Computer tile, left by '‹ Back' (data-ct bot-back).
+async function selectTime(b,label){const v=label==null||label==='No clock'?'':(/day/.test(label)?'c:'+parseInt(label,10):'t:'+label);
+  await b.page.locator('[data-ct="setup-time"] select').selectOption(v);await b.page.waitForTimeout(250);}
+async function noClock(b){try{await selectTime(b,null);}catch(e){}}
+async function botBack(b){const up=await b.page.evaluate(()=>!!document.querySelector('[data-ct="bot-back"]'));if(up){await tapBtn(b,/^‹ Back$/,300);}}
+async function pickBot(b,name){const open=await b.page.evaluate(()=>!!document.querySelector('[data-ct="bot-row"]'));if(!open)await tapBtn(b,/^Computer$/,400);
+  await tapBtn(b,new RegExp('^'+name+'\n'),300);await botBack(b);}
 
 const S={};
-S['setup']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Computer$/,300);await tapBtn(b,/^White$/,200);await noClock(b);await scrollSheetTop(b);};
-for(const bot of ['Pip','Rosa','Milo','Astrid','Viktor'])S['setup-bot-'+bot.toLowerCase()]=async(b)=>{await S['setup'](b);await tapBtn(b,new RegExp('^'+bot+'\\n'),300);await scrollSheetTop(b);};
+S['setup']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Computer$/,300);await botBack(b);await tapBtn(b,/^White$/,200);await noClock(b);await scrollSheetTop(b);};
+for(const bot of ['Pip','Rosa','Milo','Astrid','Viktor'])S['setup-bot-'+bot.toLowerCase()]=async(b)=>{await S['setup'](b);await pickBot(b,bot);await scrollSheetTop(b);};
 S['setup-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Black$/,300);await scrollSheetTop(b);};
-S['setup-clock']=async(b)=>{await S['setup'](b);await b.tapText(/^1 min$/,{wait:300});await scrollSheetTop(b);}; // the time chips are spans, not buttons
+S['setup-clock']=async(b)=>{await S['setup'](b);await selectTime(b,'1 min');await scrollSheetTop(b);};
 S['setup-passplay']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await noClock(b);await scrollSheetTop(b);};
 S['setup-online']=async(b)=>{await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Online$/,500);await scrollSheetTop(b);};
 S['online-continue']=async(b)=>{await S['setup-online'](b);await tapBtn(b,/^Continue/,1200);};
 // vs Computer (Pip, White)
-S['cpu-m0']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
+S['cpu-m0']=async(b)=>{await S['setup'](b);await pickBot(b,'Pip');await tapStart(b,900);await ensureMovesShown(b);};
 S['cpu-1e4']=async(b)=>{await S['cpu-m0'](b);await b.move('e2','e4',0);await b.settle(120);};
 S['cpu-reply']=async(b)=>{await S['cpu-1e4'](b);await waitPlies(b,2);await b.settle(500);};
 S['cpu-4ply']=async(b)=>{await S['cpu-reply'](b);await b.move('g1','f3',0);await waitPlies(b,4);await b.settle(500);};
@@ -168,13 +175,13 @@ S['cpu-rematch']=async(b)=>{await S['cpu-resigned'](b);await tapBtn(b,/^Rematch$
 // WHAT IS STILL MISSING, named rather than left to be rediscovered: there is no state for the MOVE-0
 // ending (resign with nothing played). Block 11 drives it by hand and says it does so on purpose.
 S['cpu-resigned-with-moves']=async(b)=>{await S['cpu-resigned'](b);};
-S['cpu-black']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
-S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapStart(b,900);await ensureMovesShown(b);};
+S['cpu-black']=async(b)=>{await S['setup'](b);await pickBot(b,'Pip');await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
+S['cpu-clock-m0']=async(b)=>{await S['setup-clock'](b);await pickBot(b,'Pip');await tapStart(b,900);await ensureMovesShown(b);};
 // cpu-black-clock [#548 item (141), from the parked lane-4 patch]: cpu-black AND the 1-minute clock, which cpu-black and
 // cpu-clock-m0 each give only half of. setup-clock (which taps the '1 min' chip) in place of setup, then cpu-black byte for byte -
 // the Black chip, Start, and a wait for the engine's first move. THE CLOCK THAT RUNS OUT HERE IS BLACK'S, i.e. the HUMAN'S.
-S['cpu-black-clock']=async(b)=>{await S['setup-clock'](b);await tapBtn(b,/^Pip\n/,200);await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
-S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await tapBtn(b,/^Viktor\n/,200);await tapStart(b,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
+S['cpu-black-clock']=async(b)=>{await S['setup-clock'](b);await pickBot(b,'Pip');await tapBtn(b,/^Black$/,200);await tapStart(b,600);await ensureMovesShown(b);await waitPlies(b,1);await b.settle(500);};
+S['cpu-viktor-1e4']=async(b)=>{await S['setup'](b);await pickBot(b,'Viktor');await tapStart(b,900);await ensureMovesShown(b);await b.move('e2','e4',0);};
 // Pass & Play
 S['pp-m0']=async(b)=>{await S['setup-passplay'](b);await tapStart(b,900);await ensureMovesShown(b);};
 S['pp-1']=async(b)=>{await S['pp-m0'](b);await b.move('f2','f3');await b.settle(300);};
@@ -195,5 +202,5 @@ S['pp-scholar-2ply']=async(b)=>{await S['pp-m0'](b);await b.move('e2','e4',350);
 S['pp-scholar-mate']=async(b)=>{await S['pp-scholar-2ply'](b);await scholarFinish(b);};
 S['k10']=async(b)=>{await S['pp-scholar-mate'](b);await ensureMovesShown(b);};   // #550: was b.card('k10',12000) - the same game over, by the player's route
 
-module.exports={states:S,scholarFinish,SCHOLAR_REST,tapBtn,tapStart,plies,waitPlies,status,movesShown,ensureMovesShown,scrollers,scrollSheetTop,textRect,btnRects,closeSheet,CAPTURES,
+module.exports={states:S,selectTime,pickBot,botBack,scholarFinish,SCHOLAR_REST,tapBtn,tapStart,plies,waitPlies,status,movesShown,ensureMovesShown,scrollers,scrollSheetTop,textRect,btnRects,closeSheet,CAPTURES,
   notes:'Home -> Play tile opens the New Game sheet (a fixed overlay that scrolls; it remembers the last opponent, colour and clock, so every setup state taps them). Bots are buttons "Pip\\n≈ 500 Elo" in a sideways-scrolling row; ▶ Start game sits below the fold on a 679px-tall phone with Computer selected (tapBtn scrolls it into view). In a live game: moves are piece-tap then target-tap (b.move); the engine reply is awaited by counting plies in data-ct play-moverow (waitPlies); Pass & Play flips the board to the side to move after every ply. The Moves button HIDES the move list (shown on a fresh load) and the hidden state persists across games, so the start states call ensureMovesShown. More opens a bottom sheet (New game, Resign while live). RESIGN IS A TWO-TAP ARM AND THIS SENTENCE USED TO SAY "Resign ends the game at once (no confirm)", which is WITHDRAWN [R18]: #375 made it arm on the first tap and relabel to "Tap again to resign", gates/regress/46-play.js block 11 asserts exactly that and is green on main, and the "cpu-resigned" state here plays both taps - so a reader who believed this line would write a one-tap driver and land on a LIVE game, which is the #387 failure this file already records one state above. The New game row in the More sheet does NOT confirm, which is a filed defect and not a licence to copy it. SINCE #469 THE PRIMARY BUTTON ON THE SETUP SHEET ARMS WHEN A GAME IS ALREADY ON THE BOARD: the first tap relabels it "Tap again to discard your game and start" and a second tap starts the new game, so USE tapStart() AND NEVER tapBtn(/^\u25b6 Start game$/) FROM A STATE THAT MAY FOLLOW A LIVE GAME. A one-tap driver leaves the sheet UP with the label changed and the next screen never reached - that is what took gate 26 from 364 PASS to 357 PASS / 7 FAIL at #469. The sheet also carries a "Resume your game in progress (N moves played)" row whenever a game is live, Pass & Play or Computer is selected and the game is not over, so the button SET on that sheet differs between those states by design. Game over keeps the live chrome, Hint/Flip become Review/Rematch. Online -> Continue lands on a sign-in screen with no way back except a reload (b.home() handles it).'};

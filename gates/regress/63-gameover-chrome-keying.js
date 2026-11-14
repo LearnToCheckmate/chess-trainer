@@ -317,7 +317,7 @@ L.run(async()=>{
      await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},PRE_MATE);
      await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});
      await b.settle(1200);
-     await b.tapText(/^1 min$/,{wait:300});
+     await require('../drive/play').selectTime(b,'1 min');   // #550 q44: the time control is one dropdown
      await b.tapText(/^▶ (Play this position|Start game)$/,{wait:1600});
      live=await cpuChromeOf(b);
      await b.move('h5','f7',600);await b.settle(1500);

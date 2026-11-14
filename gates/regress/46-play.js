@@ -403,7 +403,7 @@ L.run(async()=>{
     const b=await L.launch({geo:'kunal730',name:'play-clock',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.tile('Play');await b.settle(500);
     await P.tapBtn(b,/^Pass & Play$/,400);
-    await b.tapText(/^1 min$/,{wait:300});           // the time chips are spans, not buttons
+    await P.selectTime(b,'1 min');                   // #550 q44: the time control is one dropdown
     await P.scrollSheetTop(b);
     await P.tapBtn(b,/^▶ Start game$/,900);
     // --- TC-PL-019: the clock does not start before the first move (clock.run is false until a move lands).

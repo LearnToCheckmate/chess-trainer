@@ -37,7 +37,10 @@ const R=require('../drive/review');
 // The assertion's own sentence ('Below the fold at six of the seven') is now stale and is left BYTE-IDENTICAL on purpose: gates/control-audit.js
 // matches records by their exact L.say lines, and editing it turned every earlier control on this gate into ASSERTIONS-MOVED (measured).
 // Was {"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5}.
-const FOLD_PIN={"320x568":207,"360x640":85,"375x667":58,"375x730":-5,"390x844":-119,"414x896":-171,"440x956":-231};
+// #550 helper B RE-PINNED AGAIN for Kunal's q44 (the computer's opponents and Strength on their own screen, the time control one dropdown):
+// measured on trial 490ee70b5ab6, Start game's bottom is 492 at every phone width (507 at 320x568, where the scan buttons' words wrap), so it
+// is ON SCREEN at all seven. Was {"320x568":207,"360x640":85,"375x667":58,"375x730":-5,"390x844":-119,"414x896":-171,"440x956":-231}.
+const FOLD_PIN={"320x568":-61,"360x640":-148,"375x667":-175,"375x730":-238,"390x844":-352,"414x896":-404,"440x956":-464};
 L.run(async()=>{
   // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
   // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].

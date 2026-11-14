@@ -169,12 +169,24 @@ const SHEET=(b)=>b.page.evaluate(()=>{
     docScrollW:document.documentElement.scrollWidth};});
 
 // Selection state without knowing the theme: --ac is the accent every selected control borders itself with.
-const GROUP=(b,re)=>b.page.evaluate((src)=>{
+// #550 helper B, Kunal's q44 (run-answers q44-answer): the five personas and the Strength slider are on the sheet's own 'Choose your opponent'
+// screen (opened by the Computer tile, left by '\u2039 Back', data-ct bot-back), and the time control is ONE dropdown ([data-ct="setup-time"]
+// select). So the helpers go to the screen that carries what they are asked about, and the time 'pills' are the dropdown's options
+// (selected = the selected option). The assertions below read the same quantities as before.
+const PERSONA=/^(Pip|Rosa|Milo|Astrid|Viktor)$/;
+const onBots=(b)=>b.page.evaluate(()=>!!document.querySelector('[data-ct="bot-back"]'));
+const toBots=async(b)=>{if(!(await onBots(b))){await b.page.evaluate(()=>{const sh=document.querySelector('[data-ct="setup-sheet"]');const e=sh&&[...sh.querySelectorAll('button')].find(x=>(x.innerText||'').trim().split('\n')[0]==='Computer');if(e)e.click();});await b.settle(450);}};
+const toMain=async(b)=>{if(await onBots(b)){await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="bot-back"]');if(e)e.click();});await b.settle(400);}};
+const GROUP=async(b,re)=>{if(PERSONA.test('Pip')&&new RegExp(re.source).test('Pip'))await toBots(b);else await toMain(b);return GROUP0(b,re);};
+const GROUP0=(b,re)=>b.page.evaluate((src)=>{
   const r=new RegExp(src);const sh=document.querySelector('[data-ct="setup-sheet"]');if(!sh)return null;
   const probe=document.createElement('span');probe.style.color='var(--ac)';sh.appendChild(probe);
   const ac=getComputedStyle(probe).color;probe.remove();
   const els=[...sh.querySelectorAll('button,span')].filter(x=>{const q=x.getBoundingClientRect();
     return q.width>1&&q.height>1&&r.test((x.innerText||'').trim().split('\n')[0])&&getComputedStyle(x).borderTopWidth!=='0px';});
+  const sel=sh.querySelector('[data-ct="setup-time"] select');const row=sel&&sel.closest('[data-ct="setup-time"]');
+  const opts=sel?[...sel.options].filter(o=>r.test(o.textContent.trim())):[];
+  if(opts.length){const q=row.getBoundingClientRect();return {ac,items:opts.map(o=>({t:o.textContent.trim(),on:o.selected,h:Math.round(q.height*10)/10,w:Math.round(q.width*10)/10}))};}
   return {ac,items:els.map(x=>{const cs=getComputedStyle(x),q=x.getBoundingClientRect();
     return {t:(x.innerText||'').trim().split('\n')[0],on:cs.borderTopColor===ac,h:Math.round(q.height*10)/10,w:Math.round(q.width*10)/10};})};},re.source);
 
@@ -207,9 +219,12 @@ const SET_SLIDER=(b,v)=>b.page.evaluate((v)=>{const i=document.querySelector('[d
   set.call(i,String(v));i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return true;},v);
 // (d) a drive tap, deliberately programmatic and deliberately NOT locator.click(): reachability is proved by
 // REACH() above, never by the fact that the harness managed to press something.
-const TAP=async(b,t,wait)=>{const ok=await b.page.evaluate((s)=>{const sh=document.querySelector('[data-ct="setup-sheet"]');
+const TAP=async(b,t,wait)=>{if(PERSONA.test(t))await toBots(b);else if(!/^\u25b6 /.test(t))await toMain(b);
+  const ok=await b.page.evaluate((s)=>{const sh=document.querySelector('[data-ct="setup-sheet"]');
     if(!sh)return false;const el=[...sh.querySelectorAll('button,span')].find(x=>(x.innerText||'').trim().split('\n')[0]===s);
-    if(!el)return false;el.click();return true;},t);
+    if(el){el.click();return true;}
+    const sel=sh.querySelector('[data-ct="setup-time"] select');const o=sel&&[...sel.options].find(x=>x.textContent.trim()===s);if(!o)return false;
+    const set=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;set.call(sel,o.value);sel.dispatchEvent(new Event('change',{bubbles:true}));return true;},t);
   await b.settle(wait==null?450:wait);return ok;};
 const openSetup=async(b)=>{await b.home();await b.tile('Play');await b.settle(600);};
 
@@ -241,7 +256,10 @@ const GEOS=['se','kunal','kunal730','kunal761','390','430'];
 // icons are 32 and the clock note is one line, so Start game rests at 681 from 375x679 up and 731 at 320x568 - on screen at 375x730 and
 // taller (gate 159 TC-INV-08p asserts it fits his phone), still below the fold at 375x679 and 320x568, where TC-PS-007's scroll reaches it.
 // Was START_REST {se:881,kunal:814,kunal730:850,kunal761:850,'390':850,'430':850}.
-const START_REST={se:731,kunal:681,kunal730:681,kunal761:681,'390':681,'430':681};
+// RE-KEYED by #550 helper B, Kunal's q44: with the personas and the slider on their own screen and the time control one row, the sheet fits
+// every phone in this set, 320x568 included, and Start game rests at 448 (463 at 320x568, where the scan buttons' words take two lines).
+// Was START_REST {se:731,kunal:681,kunal730:681,kunal761:681,'390':681,'430':681}.
+const START_REST={se:463,kunal:448,kunal730:448,kunal761:448,'390':448,'430':448};
 const SHEET_W   ={se:296,kunal:351,kunal730:351,kunal761:351,'390':366,'430':406};
 
 // CT_PS_BLOCKS=A,B  runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving eight one-line
@@ -278,7 +296,7 @@ if(blk('A'))for(const geo of GEOS){
   const st=await REACH(b,'▶ Start game');
   L.note(geo+': Start game at rest '+st.restTop+'..'+st.restBottom+' in a '+st.vh+'-tall viewport; the overlay can scroll '+sh.maxScroll+'px');
   L.say(st.found&&Math.abs(st.restTop-START_REST[geo])<2,
-    geo+': TC-PS-006 Start game sits at y='+START_REST[geo]+' at rest, measured. Since #550 (helper B) it is on screen at rest from 375x730 up and still below the fold at 375x679 and 320x568 - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.',{measured:st.restTop,want:START_REST[geo],restOn:st.restOn});
+    geo+': TC-PS-006 Start game sits at y='+START_REST[geo]+' at rest, measured. Since Kunal\'s q44 (#550 helper B) it is on screen at rest at every geometry here, 320x568 included - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.',{measured:st.restTop,want:START_REST[geo],restOn:st.restOn});
   L.say(st.found&&st.onScreen&&st.hit,
     geo+': TC-PS-007 and a thumb CAN get to it: scrolling only the overlay\'s own user-scrollable range brings Start game fully on screen ('+st.top+'..'+st.bottom+' of '+st.vh+') and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.',st);
   L.say(b.errs.length===0,geo+': zero app errors on the setup screen',b.errs.slice(0,3));
@@ -288,20 +306,26 @@ if(blk('A'))for(const geo of GEOS){
 
 // =========================================================================================================
 // PS-B  What choosing an opponent does to the geometry. TC-PS-008..010.
-// Picking a persona is the whole point of the screen, and it makes the screen taller: the selected chip gains
-// its blurb line and the row goes 95 -> 170. Start game drops another ~75px with it.
+// RE-KEYED by #550 helper B for Kunal's q44: the personas live on their own 'Choose your opponent' screen (the Computer tile opens it), in rows
+// that wrap rather than a row that scrolls sideways. What used to be pinned here - the persona row growing 95 -> 170 and pushing Start game
+// below the fold at all six geometries - is the defect q44 removed, so the assertions are now that the screen opens, that every persona and
+// Start game are on screen at rest, and that choosing the strongest one (whose blurb makes his card taller) still leaves Start game on screen.
 // =========================================================================================================
 if(blk('B'))for(const geo of GEOS){
   const b=await L.launch({geo,name:'ps-b-'+geo});await b.open();await openSetup(b);
-  const before=await REACH(b,'▶ Start game');
+  await toBots(b);
+  const title=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="top-title"]');return t?(t.innerText||'').trim():null;});
+  const before=await REACH(b,'\u25b6 Start game');
   const rowBefore=(await GROUP(b,/^(Pip|Rosa|Milo|Astrid|Viktor)$/)).items.filter(x=>x.h>40);
+  const vis0=[];for(const n of ['Pip','Rosa','Milo','Astrid','Viktor'])vis0.push(await REACH(b,n));
   await TAP(b,'Viktor',500);
   const rowAfter=(await GROUP(b,/^(Pip|Rosa|Milo|Astrid|Viktor)$/)).items.filter(x=>x.h>40);
-  const after=await REACH(b,'▶ Start game');
-  L.say(rowBefore.length===5&&rowBefore.every(x=>Math.abs(x.h-95)<0.6)&&rowAfter.length===5&&rowAfter.every(x=>Math.abs(x.h-170)<0.6),
-    geo+': TC-PS-008 choosing a persona grows EVERY chip in the row from 95 to 170 - the selected one gains its blurb line and the row is a flex row, so all five follow. Same at every width.',{before:rowBefore.map(x=>x.h),after:rowAfter.map(x=>x.h)});
-  L.say(after.restTop-before.restTop>=70&&after.restTop-before.restTop<=80,
-    geo+': TC-PS-009 and that pushes Start game down '+(after.restTop-before.restTop)+'px, to '+after.restTop+'. After a persona is chosen Start game is below the fold at ALL SIX geometries, 430x932 included - the one geometry where it fitted before.',{before:before.restTop,after:after.restTop,vh:after.vh,restOn:after.restOn});
+  const after=await REACH(b,'\u25b6 Start game');
+  const vk0=rowBefore.find(x=>x.t==='Viktor'),vk1=rowAfter.find(x=>x.t==='Viktor');
+  L.say(title==='Choose your opponent'&&rowBefore.length===5&&vis0.every(x=>x.restOn),
+    geo+': TC-PS-008 the Computer tile opens "Choose your opponent" and all five personas are on screen at rest - no sideways swipe to find one ('+vis0.map(x=>x.label+(x.restOn?'':' OFF')).join(', ')+')',{title,rest:vis0.map(x=>[x.label,x.restOn])});
+  L.say(!!vk0&&!!vk1&&vk1.h>vk0.h&&before.restOn&&after.restOn,
+    geo+': TC-PS-009 choosing Viktor grows his card ('+(vk0&&vk0.h)+' -> '+(vk1&&vk1.h)+', his blurb) and Start game stays on screen at rest ('+before.restTop+' -> '+after.restTop+' of '+after.vh+')',{before:before.restTop,after:after.restTop,vk:[vk0&&vk0.h,vk1&&vk1.h]});
   L.say(after.onScreen&&after.hit,
     geo+': TC-PS-010 it is still reachable and still hit-testable in the taller sheet ('+after.top+'..'+after.bottom+' of '+after.vh+')',after);
   await b.close();
@@ -356,8 +380,8 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   const atRest=reaches.filter(x=>x.restOn).map(x=>x.label);
   L.say(reaches.every(x=>x.onScreen&&x.hit),
     geo+': TC-PS-017 every one of the five can be brought fully on screen AND is hit-testable there - the row is a horizontal scroller, so the ones off the right edge are swiped to, not lost. Reached by scrolling the row for real, never by scrollIntoView.',reaches.map(x=>x.label+' rest.right='+x.restRight+' -> '+x.left+'..'+x.right+' hit='+x.hit));
-  L.say(!reaches[4].restOn,
-    geo+': TC-PS-018 Viktor is NEVER visible at rest - his right edge is at '+reaches[4].restRight+' against a '+reaches[4].vw+'px viewport at every width in the gate set. The strongest opponent in the app always costs a sideways swipe to find. Visible at rest here: '+atRest.join(', '),{restRight:reaches[4].restRight,vw:reaches[4].vw,atRest});
+  L.say(reaches[4].restOn,
+    geo+': TC-PS-018 Viktor IS visible at rest - his right edge is at '+reaches[4].restRight+' against a '+reaches[4].vw+'px viewport (since q44 the personas wrap on their own screen; before it the strongest opponent always cost a sideways swipe). Visible at rest here: '+atRest.join(', '),{restRight:reaches[4].restRight,vw:reaches[4].vw,atRest});
   await TAP(b,'Milo',500);
   const perOn=(await GROUP(b,/^(Pip|Rosa|Milo|Astrid|Viktor)$/)).items.filter(x=>x.on&&x.h>40);
   L.say(perOn.length===1&&perOn[0].t==='Milo',geo+': TC-PS-019 tapping one persona selects exactly one',perOn);
@@ -573,7 +597,7 @@ if(blk('J'))for(const geo of ['se','kunal730']){
     const b=await L.launch({geo,name:'bot-row-more-'+geo});await b.open();
     let ok=true;try{await b.tile('Play');await b.tapText(/^Computer$/).catch(()=>{});await b.settle(600);}catch(e){ok=false;}
     const rd=()=>b.page.evaluate(()=>{const tiles=[...document.querySelectorAll('button')].filter(x=>/Elo/.test(x.innerText||'')&&x.getBoundingClientRect().height>30);if(!tiles.length)return null;
-      let row=tiles[0].parentElement;while(row&&!(/auto|scroll/.test(getComputedStyle(row).overflowX)))row=row.parentElement;if(!row)return null;const rr=row.getBoundingClientRect();
+      let row=tiles[0].parentElement;while(row&&!(/auto|scroll/.test(getComputedStyle(row).overflowX)))row=row.parentElement;if(!row||row===document.documentElement||row===document.body)row=document.querySelector('[data-ct="bot-row"]');/* #550 q44: the personas wrap on their own screen, so the row is the bot-row itself */if(!row)return null;const rr=row.getBoundingClientRect();
       const last=tiles[tiles.length-1].getBoundingClientRect();const c=document.querySelector('[data-ct="bot-row-more"]');let chip=null;
       if(c){const q=c.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);chip={self:!!h&&(h===c||c.contains(h)),inRow:q.left>=rr.left-0.5&&q.right<=rr.right+0.5,cx:q.left+q.width/2,cy:q.top+q.height/2};}
       return {n:tiles.length,lastIn:last.right<=rr.right+0.5,sl:row.scrollLeft,chip};});
@@ -603,7 +627,8 @@ if(blk('J'))for(const geo of ['se','kunal730']){
 // `cpuElo+(winner===pColor?50:-50)`, so the direction does not change which value the readers print. Said by L.note.
 // CT_PS_BLOCKS=K runs only this block.
 const BOTS_K=[['Pip',500],['Rosa',900],['Milo',1300],['Astrid',1900],['Viktor',2350]];
-const RD_K=(b)=>b.page.evaluate(()=>{let elo=null;try{elo=localStorage.getItem('ct_elo');}catch(e){}
+const RD_K=async(b)=>{await toBots(b);return RD_K0(b);};   // #550 q44: the tiles and the slider are read on 'Choose your opponent' (a no-op once the sheet is closed)
+const RD_K0=(b)=>b.page.evaluate(()=>{let elo=null;try{elo=localStorage.getItem('ct_elo');}catch(e){}
   const bar=[...document.querySelectorAll('[data-ct^="pbar-rating-"]')].map(e=>(e.innerText||'').trim());
   const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].map(e=>(e.innerText||'').replace(/\s+/g,' ').trim());
   const sh=document.querySelector('[data-ct="setup-sheet"]');let tiles=[];

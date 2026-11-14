@@ -111,7 +111,8 @@ L.run(async()=>{
   // ── (c) the clocks ──
   {const b=await L.launch({geo:'kunal761',name:'clk144'});await b.open();await b.settle(800);let ok=true;
    try{await b.tile('Play');await b.settle(600);await b.tapText(/^Computer$/).catch(()=>{});await b.settle(500);
-     ok=await b.page.evaluate(()=>{const s=[...document.querySelectorAll('span')].find(x=>(x.innerText||'').trim()==='1 min');if(!s)return false;s.click();return true;});await b.settle(400);
+     /* #550 q44: the Computer tile opens 'Choose your opponent' and the time control is one dropdown */const _P=require('../drive/play');await _P.botBack(b);
+     ok=await _P.selectTime(b,'1 min').then(()=>true,()=>false);await b.settle(400);
      await b.page.evaluate(()=>{const s=[...document.querySelectorAll('button')].find(x=>/Start game/.test(x.innerText));s.scrollIntoView();s.click();});await b.settle(1500);}catch(e){ok=false;}
    await b.page.evaluate(COMP);
    const read=()=>b.page.evaluate(()=>[...document.querySelectorAll('[data-ct="pbar-clock"]')].map(e=>{const bar=e.closest('[data-ct="pbar-top"],[data-ct="pbar-bottom"]');const bb=getComputedStyle(bar).backgroundImage;return {light:/241, 240, 232|#f1f0e8/.test(bb),low:e.getAttribute('data-low')||'',t:e.innerText,m:window.__ctCR(e)};}));
@@ -176,7 +177,7 @@ L.run(async()=>{
    const tbh=await b.page.evaluate(()=>{const tb=[...document.querySelectorAll('[data-ct="tabbar"]')].find(t=>t.getBoundingClientRect().height>0);return tb?[...tb.querySelectorAll('button')].map(x=>({t:(x.innerText||'').trim(),h:window.__ctHit(x)})):[];});
    L.say(rl&&tbh.length===5&&tbh.every(x=>x.h.w>=44&&x.h.h>=44),'TC-R220f '+geo+' the five tab bar buttons (Review list) have 44px tap areas: '+tbh.map(x=>x.t+' '+x.h.w+'x'+x.h.h+' (drawn '+x.h.drawn.join('x')+')').join(', '));
    // Play setup: scan buttons, the menu sheet's close
-   let ps=true;try{await b.home();await b.tile('Play');await b.settle(600);await b.tapText(/^Computer$/).catch(()=>{});await b.settle(500);}catch(e){ps=false;}
+   let ps=true;try{await b.home();await b.tile('Play');await b.settle(600);await b.tapText(/^Computer$/).catch(()=>{});await b.settle(500);await require('../drive/play').botBack(b);}catch(e){ps=false;}   // #550 q44: back from 'Choose your opponent' to the sheet
    await b.page.evaluate(COMP);
    const pt=await b.page.evaluate(()=>({sc:['scan-camera','scan-upload'].map(k=>{const e=document.querySelector('[data-ct="'+k+'"]');return {t:k,h:e?window.__ctHit(e):null};})}));
    L.say(ps&&pt.sc.every(x=>x.h&&x.h.w>=44&&x.h.h>=44),'TC-R220f '+geo+' the scan buttons: '+pt.sc.map(x=>x.t+' '+(x.h?x.h.w+'x'+x.h.h+' (drawn '+x.h.drawn.join('x')+')':'absent')).join(', '));

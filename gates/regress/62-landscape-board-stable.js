@@ -62,7 +62,7 @@ const LAND=[{w:730,h:375,cap:375},{w:844,h:390,cap:390},{w:667,h:375,cap:327}]; 
 
 async function boardW(b){const bd=await b.board();return bd?+bd.w.toFixed(2):null;}
 async function boardRect(b){const bd=await b.board();return bd?{w:+bd.w.toFixed(2),y:+bd.y.toFixed(2)}:null;}
-async function liveGame(b){await P.states['setup'](b);await P.tapBtn(b,/^Pip\n/,200);await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(500);}
+async function liveGame(b){await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(500);}
 async function rotate(b,to){await b.page.setViewportSize({width:to.w,height:to.h});await b.settle(1400);}
 
 L.run(async()=>{

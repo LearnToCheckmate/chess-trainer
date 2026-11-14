@@ -153,7 +153,7 @@ L.run(async()=>{
   // auditor measured; it sets eloMsg because 500-50 = 450 != 500, which is the state under test.
   for(const [tag,geo] of [['A','kunal730'],['B','se']]){
     const b=await L.launch({geo,name:'cpu-result-'+geo,store:{ct_pool:'3'}});await b.open();
-    await P.states['setup'](b);await P.tapBtn(b,/^Pip\n/,200);await P.tapBtn(b,/^▶ Start game$/,900);
+    await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^▶ Start game$/,900);
     await b.settle(250);
     await resign(b);
     await b.settle(600);                                   // card still up (it fades at ~3s)
@@ -478,7 +478,7 @@ L.run(async()=>{
     const vpw=await b.page.evaluate(()=>innerWidth+'x'+innerHeight);
     L.say(vpw==='730x375',tag+'0 730x375: the viewport really is landscape - asserted because `wide` is a computed flag and every other assertion in this block is about the branch it selects',{viewport:vpw});
     if(opp==='pp'){await P.states['pp-m0'](b);}
-    else{await P.states['setup'](b);await P.tapBtn(b,/^Pip\n/,200);await P.tapBtn(b,/^▶ Start game$/,900);}
+    else{await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^▶ Start game$/,900);}
     await b.settle(400);
     const liveBd=await b.board(),liveSlot=await slot(b);
     L.say(!!liveSlot,tag+'1 730x375: the status row is rendered while the game is LIVE - the precondition, so a green below cannot come from a row that was never there in either state (#385)',{slot:liveSlot&&liveSlot.t});
