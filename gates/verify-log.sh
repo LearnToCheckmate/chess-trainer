@@ -2537,6 +2537,10 @@ fi
 # is the #450 shape the job existed to answer. So this file is blind to the series door again, and that is
 # now a DECLARED limit rather than a FALSE guarantee. The job stays open with the mechanism recorded on it.
 # What would actually close it is not in a log reader at all: it is re-running the door against the tree.
+# [#550 helper B] THAT TOOL EXISTS: `bash gates/series-at.sh <log>` reads only this log's header and ref line,
+# clones the gated HEAD independently with origin/main at the logged base, and sources TODAY's door against it
+# (exit 0 the door passes, 1 it refuses, 2 not answerable). Run it beside this script before citing a log; this
+# script does not call it, so a log it accepts is still blind to the series question on its own.
 
 if [ "${VLHELD_UNKNOWN:-0}" = "1" ]; then
   echo "REFUSED (held register UNKNOWN): $LOG is a full-suite green, and this script could not ask the whole"
