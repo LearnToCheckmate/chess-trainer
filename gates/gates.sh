@@ -1674,6 +1674,38 @@ M16PY
   st COV3-and-it-sits-immediately-before-the-pass-fail-footer "$(grep -A1 '^COVERAGE ' "$ST_T/cov1.out" | tail -1)" "COVPROBE: 1 pass, 0 fail"
   st COV4-a-gate-that-launched-nothing-reports-dashes-never-a-geometry "$(grep '^COVERAGE ' "$ST_T/cov2.out")" "COVERAGE COVNONE geos=- configs=-"
   st COV5-and-the-line-is-not-read-as-a-gate-footer-by-verify-log "$(grep -cE '^[^ ].*: [0-9]+ pass, [0-9]+ fail$' "$ST_T/cov1.out")" 1
+  # ── GO1 TO GO5: THE GAME-OVER COMPOSITION RULE [#550 helper A; jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30].
+  # Probes drive the REAL L.gameOverArms with a fake game (read/back/forward over a ply counter, no browser), so what is
+  # exercised is the harness's own stepping, its step assertions and done()'s both-endings verdict - not a copy of them.
+  cat > "$ST_T/go-lib.js" <<'GOJS'
+'use strict';
+module.exports=(L)=>(start,dead)=>{let p=start;return {read:async()=>({ply:p}),back:async()=>{if(!dead)p--;},forward:async()=>{if(!dead)p++;}};};
+GOJS
+  cat > "$ST_T/go1.js" <<'GOJS'
+'use strict';const L=require(process.env.ST_LIB);const g=require('./go-lib.js')(L);
+L.run(async()=>{const r=await L.gameOverArms('m',Object.assign({ending:'checkmate',steps:2},g(8)));L.say(r.back[1].ply===6&&r.forward.ply===8,'readings');},'GO1');
+GOJS
+  cat > "$ST_T/go2.js" <<'GOJS'
+'use strict';const L=require(process.env.ST_LIB);const g=require('./go-lib.js')(L);
+L.run(async()=>{await L.gameOverArms('m',Object.assign({ending:'checkmate'},g(8)));await L.gameOverArms('r',Object.assign({ending:'resign'},g(4)));},'GO2');
+GOJS
+  cat > "$ST_T/go3.js" <<'GOJS'
+'use strict';const L=require(process.env.ST_LIB);const g=require('./go-lib.js')(L);
+L.run(async()=>{await L.gameOverArms('d',Object.assign({ending:'checkmate'},g(8,true)));await L.gameOverArms('r',Object.assign({ending:'resign'},g(4)));},'GO3');
+GOJS
+  cat > "$ST_T/go5.js" <<'GOJS'
+'use strict';const L=require(process.env.ST_LIB);const g=require('./go-lib.js')(L);
+L.run(async()=>{await L.gameOverArms('x',Object.assign({ending:'adjourned'},g(8)));},'GO5');
+GOJS
+  for n in 1 2 3 5; do ( cd "$ST_T" && ST_LIB="$SG/lib.js" timeout 60 node "$ST_T/go$n.js" ) > "$ST_T/go$n.out" 2>&1; eval "GO${n}RC=\$?"; done
+  st GO1a-a-gate-composing-a-board-ending-only-is-red "$GO1RC" 1
+  st GO1b-and-the-red-is-the-harness-composition-line "$(grep -c '^FAIL HARNESS GAME-OVER COMPOSITION: this gate composed game-over arms on a BOARD ending only (m)' "$ST_T/go1.out")" 1
+  st GO1c-and-the-arm-itself-read-terminal-two-back-and-forward "$(grep -c '^PASS readings' "$ST_T/go1.out")" 1
+  st GO2a-both-kinds-of-ending-is-green "$GO2RC" 0
+  st GO2b-and-the-GAMEOVER-line-names-each-arm-then-COVERAGE-then-footer "$(grep -A2 '^GAMEOVER ' "$ST_T/go2.out" | tr '\n' '|')" "GAMEOVER GO2 board=m nonboard=r|COVERAGE GO2 geos=- configs=-|GO2: 6 pass, 0 fail|"
+  st GO3-a-dead-Back-button-reddens-its-step-by-name "$(grep -c '^FAIL GAME-OVER ARM d (checkmate): Back step 1 really moved the previewed ply (8 -> 8)' "$ST_T/go3.out")" 1
+  st GO4-a-gate-that-composes-no-arm-prints-no-GAMEOVER-line "$(grep -c '^GAMEOVER ' "$ST_T/cov2.out")" 0
+  st GO5-an-unknown-ending-is-refused-loudly-not-filed-under-a-kind "$GO5RC:$(grep -c 'ending must be one of' "$ST_T/go5.out")" "1:1"
   # ── R71a TO R71k: A SECTION THAT READ A RECORDS-ONLY PATH IS RED, BY OBSERVATION [#549, item (71); TC-FG-004]. The four
   # input shapes fastgate's source parser never modelled - path.join with a variable first segment, a template literal,
   # __dirname concatenation, a process.env default - each read a fixture under claude/ from a probe gate that never
