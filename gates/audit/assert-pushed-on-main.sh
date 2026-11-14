@@ -43,7 +43,15 @@ check(){ # check <export-dir> <since or empty> <run or empty>
       NOTLIST) f=$((f+1)); echo "pushed-on-main: NOT A LIST $id - std.pushedShas is not a list";;
       SHA) n=$((n+1))
         if ! printf '%s' "$x" | grep -qx '[0-9a-f]\{7,40\}'; then f=$((f+1)); echo "pushed-on-main: NOT A SHA $id - '${x:0:70}'"; continue; fi
-        full="$(git -C "$ROOT" rev-parse --quiet --verify "$x^{commit}" 2>/dev/null)" || { f=$((f+1)); echo "pushed-on-main: UNRESOLVED $id $x - no such commit in this complete clone"; continue; }
+        # AN AMBIGUOUS PREFIX IS ITS OWN REASON [#550 test-system helper A, on checker seat 2's note on d8a09fb]: git refuses a short
+        # sha two objects share (exit 128, "short object ID ... is ambiguous" on stderr), and this line used to report it as "no such
+        # commit" - the right verdict for the wrong reason. Without --quiet, so the reason is readable.
+        local rerr; rerr="$(git -C "$ROOT" rev-parse --verify "$x^{commit}" 2>&1 >/dev/null)"
+        full="$(git -C "$ROOT" rev-parse --quiet --verify "$x^{commit}" 2>/dev/null)" || {
+          f=$((f+1))
+          case "$rerr" in *ambiguous*) echo "pushed-on-main: AMBIGUOUS $id $x - more than one object here starts with it, so it names no one commit";;
+            *) echo "pushed-on-main: UNRESOLVED $id $x - no such commit in this complete clone";; esac
+          continue; }
         if git -C "$ROOT" merge-base --is-ancestor "$full" "$main" 2>/dev/null; then p=$((p+1)); else f=$((f+1)); echo "pushed-on-main: NOT ON MAIN $id $x - not an ancestor of origin/main ${main:0:12}"; fi;;
     esac
   done <<< "$rows"
@@ -87,6 +95,21 @@ selftest(){
   if [ "$(git -C "$SH" rev-parse --is-shallow-repository 2>/dev/null)" = true ]; then
     chk "P11 a SHALLOW clone is could-not-run (2), never a verdict" 2 "$( ( ROOT="$SH" check "$T/exp" '' '' ) >/dev/null 2>&1; echo $?)"
   else chk "P11 the shallow fixture was built" shallow "not-shallow"; fi
+  # P13 AN AMBIGUOUS 7-HEX PREFIX (checker seat 2's recipe, chk2/r34amb): two commits on A whose ids share 7 hex digits, found by a
+  # birthday search over their messages; the claimed prefix is AMBIGUOUS, not UNRESOLVED, and it refuses
+  local IJ I J X Y; IJ="$(python3 -I -c '
+import hashlib,sys
+tree,parent=sys.argv[1],sys.argv[2];seen={};i=0
+while True:
+    b=("tree %s\nparent %s\nauthor t <t@t> 1700000000 +0000\ncommitter t <t@t> 1700000000 +0000\n\nm%d\n"%(tree,parent,i)).encode()
+    h=hashlib.sha1(b"commit %d\0"%len(b)+b).hexdigest()[:7]
+    if h in seen: print(seen[h],i); break
+    seen[h]=i; i+=1' "$TREE" "$A")"
+  read -r I J <<<"$IJ"; X="$(mk "$A" "m$I")"; Y="$(mk "$A" "m$J")"
+  if [ "${X:0:7}" = "${Y:0:7}" ]; then
+    row b__3 2026-11-12T00:00:00Z "[\"${X:0:7}\"]"
+    chk "P13 a 7-hex prefix two commits share is AMBIGUOUS, not UNRESOLVED, and refuses: 1" "1 1 0" "$(rr) $(grep -c "AMBIGUOUS b__3 ${X:0:7}" "$T/last") $(grep -c 'UNRESOLVED b__3' "$T/last")"
+  else chk "P13 the birthday search built two commits sharing a prefix" shared "${X:0:7}/${Y:0:7}"; fi
   # P12 THE CHECK WITH ITS SUBJECT REMOVED: a copy whose ancestry test always holds passes P2's off-main sha
   row b__3 2026-11-12T00:00:00Z "[\"$C\"]"
   sed 's/if git -C "\$ROOT" merge-base --is-ancestor "\$full" "\$main" 2>\/dev\/null; then/if true; then/' "$SELF" > "$T/defanged.sh"
