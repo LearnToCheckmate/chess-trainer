@@ -37,5 +37,18 @@ L.run(async()=>{
       L.say(m.box.bot<=m.tab+0.5&&m.tab-m.box.bot<=32&&m.box.ch>=m.rowH+12,tag+' the games box fills the rest: '+m.box.ch+'px tall ('+m.box.top+'..'+m.box.bot+'), the tab bar starts at '+m.tab+', and it shows one whole game ('+m.rowH+'px) with the next one starting',{box:m.box,tab:m.tab,rowH:m.rowH});
       L.say(m.box.sh>m.box.ch+1&&!!m.last&&m.last.inBox&&m.last.hit,tag+' only the box scrolls (it holds '+m.box.sh+' in '+m.box.ch+') and scrolling it brings the last game fully into view, where it takes a tap',{box:m.box,last:m.last});
     }
+    // (d) TC-INV-08w FILTER OPEN [#550 helper B; checker seat 2's gap on ef0f72f]: tapping Filter opens its chips under the header, inside the
+    //     fixed page. With the box on an 88px floor the page then scrolled (670 in 568 at 320x568, the box at 503..591 under the tab bar at 512).
+    //     Asserted with the panel open: the page still does not scroll, and the games box (when shown) ends at or above the tab bar.
+    //     The box is scrolled to its END first (a player who has browsed the list), and the panel must then SHOW: its first chip fully on
+    //     screen above the tab bar where it takes a tap, and the name box rendered - so a fix that hid the panel, or opened it out of view
+    //     inside the box, goes red.
+    {let opened=false;try{await b.page.evaluate(()=>{const g=document.querySelector('[data-ct="glist-box"]');if(g)g.scrollTop=g.scrollHeight;});const t=b.page.locator('[data-ct="gf-toggle"]');if(await t.count()){await t.first().click();await b.settle(700);opened=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="gf-toggle"]');return !!e&&e.getAttribute('aria-expanded')==='true';});}}catch(e){L.note(tag+' filter: '+String(e).slice(0,120));}
+     const f=await b.page.evaluate(()=>{const root=document.getElementById('root');const box=document.querySelector('[data-ct="glist-box"]');const tb=document.querySelector('[data-ct="tabbar"]');const tbt=tb&&tb.getBoundingClientRect().height>0?tb.getBoundingClientRect().top:innerHeight;
+       const q=box?box.getBoundingClientRect():null;return {root:{sh:root.scrollHeight,ch:root.clientHeight},box:q?{top:+q.top.toFixed(1),bot:+q.bottom.toFixed(1),h:+q.height.toFixed(1)}:null,tab:+tbt.toFixed(1),
+         chip:(()=>{const c=document.querySelector('[data-ct="gf-bril"]');if(!c)return null;const r=c.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {top:+r.top.toFixed(1),bot:+r.bottom.toFixed(1),hit:!!h&&(h===c||c.contains(h))};})(),name:!![...document.querySelectorAll('input')].find(e=>e.placeholder==='Filter by player name')};});
+     L.say(opened,tag+' FILTER OPEN DENOMINATOR the Filter button opened its panel (aria-expanded true)',{opened});
+     L.say(opened&&f.root.sh<=f.root.ch+1&&(!f.box||f.box.bot<=f.tab+0.5),tag+' FILTER OPEN the page still does not scroll (#root '+f.root.sh+' in '+f.root.ch+') and the games box '+(f.box?'('+f.box.top+'..'+f.box.bot+', '+f.box.h+'px)':'(not shown)')+' ends at or above the tab bar at '+f.tab,f);
+     L.say(opened&&!!f.chip&&f.chip.top>=0&&f.chip.bot<=f.tab+0.5&&f.chip.hit&&f.name,tag+' FILTER OPEN the panel shows: its first chip '+(f.chip?'('+f.chip.top+'..'+f.chip.bot+')':'(absent)')+' is on screen above the tab bar and takes a tap, and the name box is there ('+f.name+')',{chip:f.chip,name:f.name});}
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'164-review-list-fixed-page');

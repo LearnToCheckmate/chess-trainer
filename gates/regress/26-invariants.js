@@ -670,7 +670,11 @@ const ICON_PIN={320:[16,19,20,21,22,25,26,27,28,33,36,49],   /* PIN MOVED WITH A
 // 22 the roadmap's tab bar, 26 the Play setup opponent tiles (Online, Computer, Pass & Play), 30 'More opponents', 40 the bot
 // avatars and the menu's coach hair chips. Of antagonist B's five heights 26 and 40 remain; 26.8 (home-newhere) and 36.3
 // (feedback-home) no longer occur on this bundle, and 112 (the roadmap illustration) is out by the 48 x 48 svg cap.
-const ICON_PIN_EXTRA={320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
+// #550 helper B RE-PINNED for Kunal's q44 (08f5354): the 30 was 'More opponents' (bot-row-more), the chevron painted only while the bot row
+// scrolled sideways. The opponents now wrap on their own 'Choose your opponent' screen, so the row never overflows and the chip never renders -
+// the 30 left with the thing it measured, not with a drifted glyph. Measured by app A on a207ea6 (efa1ab05dd72): 17,20,22,26,40 at se,
+// kunal730 and short375. Was {320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]}.
+const ICON_PIN_EXTRA={320:[17,20,22,26,40], 375:[17,20,22,26,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
 
 // ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
 // V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
@@ -2119,3 +2123,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 614536d 2026-11-06 total=167 red=1 scope=trial:0bf1f05f86e5 how=#549 run fix fixr5a (A6-R5), CT_INV_GEOS=kunal730: the Play setup opponent-tile AppIcon given transform:scale(0.6), nothing else - TC-INV-03b red with added [15.6] gone [26], the only red; the 1b6b89e rule passed this bundle 167 of 167
 // CONTROL-RECORD: e4a169a 2026-11-12 total=511 red=50 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se puzzles: TC-INV-02e the tab bar's five icons PAINT one height - ink
 // CONTROL-RECORD: 39ef1e3 2026-11-13 total=346 red=4 scope=CT_INV_GEOS=se,kunal730;trial:9e5a544c2ced how=#550 jobs/invariant-2-and-3-sheets-and-unswept-screens part (1), TC-INV-02g: the menu sheet's 'Terms' footer link at fontSize 19px (the other three at 14) - the 02g box-spread and ink-spread lines red at se and kunal730 (spread 6px on menu-bottom's Delete account|Privacy|Refunds|Terms row), the 02g precondition and the coach-hair pin green; on 342f7329901b 346/0 (the harness helper's own run: 45cf62b1a07a 346/0, f8cf8f755343 2 red at se)
+// CONTROL-RECORD: c35462c 2026-11-14 total=346 red=2 scope=trial:03fd6b5bafb0 how=#550 helper B, CT_INV_GEOS=se,kunal730, the TC-INV-03b re-pin after q44 (08f5354): a88ba8c's tree, where the Play setup bot row still scrolls sideways and its 'More opponents' chevron (bot-row-more) paints a 30px glyph - TC-INV-03b red with added [30] gone [] at se and kunal730, the only reds; the tip 89814e1 (trial:904bc71b9a04) is 346 pass 0 fail at that scope and 523 pass 0 fail over all geos (where a88ba8c's is 520/3, short375 red the same way)
