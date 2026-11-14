@@ -144,8 +144,27 @@ L.run(async()=>{
     const c=await corners(b,title);
     L.say(ok,'TC-R215 '+tag+' PRECONDITION the screen is reached',{ok});
     const inBar=nm==='Review board'&&gOf(geo).h<700;   // on a short phone Review keeps back and ⋯ inside its top player bar (#351, no header row); they are the standard size there, at the bar's edge
-    L.say(ok44(c.menu)&&(inBar||at8(c.menu.r)),'TC-R215a '+tag+' the menu is top-right, >=44x44, '+(inBar?'(in the player bar) ':'8 from the right edge ')+'('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
-    if(hasBack)L.say(ok44(c.back)&&(inBar||at8(c.back.x)),'TC-R215a '+tag+' the back is top-left, >=44x44, 8 from the left edge ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x:'none')+')',c.back);
+    // #550 helper B (jobs/review-board-back-and-menu-are-44x30-at-320x568-gate-139-red-on-the-branch-2026-11-14; the lead's ruling): IN THE
+    // PLAYER BAR THE 44 IS A TAP AREA, AND IT IS MEASURED AS ONE. b99cd85 (helper app A, FMT-B-03 follow-up) draws Review's back and more
+    // 44x30 inside the 32px bar under 640 tall, keeping a 44x44 tap area through an invisible ::after (ct-hitdn), because a drawn 44 there
+    // either started at y -4 with the eval bar painting over its last 5px (a 44x35 tap area) or would cost board height. So in the bar
+    // this line no longer reads the DRAWN box (printed below, not asserted): it finds the top of the button's hit area along its centre
+    // line, lays a 44x44 square from there centred on the button, and hit-tests a 5x5 grid over it, 4px in from its edges (the corners -
+    // inside the radius-12 rounding - edge midpoints and centre among them) - every point must resolve to the button (or its ::after) and no point may lie above y 0 (no safe-area inset here).
+    // The glyph's ink must also be on screen and not covered: the centre of its Range hit-tests to the button. Same instrument as gate
+    // 144's TC-R220f. Off the bar nothing changes: the drawn box is asserted >= 44x44 at 8 from the edge as before.
+    const tapArea=(ct)=>b.page.evaluate((ct)=>{const e=document.querySelector('[data-ct="'+ct+'"]');if(!e)return null;const r=e.getBoundingClientRect();
+      const own=(x,y)=>{if(y<0||y>=innerHeight||x<0||x>=innerWidth)return false;const h=document.elementFromPoint(x,y);return !!h&&(h===e||e.contains(h));};
+      const cx=r.left+r.width/2;let top=r.top+r.height/2;if(!own(cx,top))return {drawn:[+r.width.toFixed(1),+r.height.toFixed(1)],ok:false,why:'centre not the button'};
+      while(top-0.5>=0&&own(cx,top-0.5))top-=0.5;
+      const pts=[];for(let i=0;i<5;i++)for(let j=0;j<5;j++){const x=cx-22+4+i*9,y=top+4+j*9;   /* 4 in from each edge of the 44 square: a drawn 44x44 button has radius 12 and Chromium hit-tests the rounded corner, so a point 0.5 in from a corner misses a correct button (measured at 375x667) */pts.push({x:+x.toFixed(1),y:+y.toFixed(1),hit:own(x,y)});}
+      const rg=document.createRange();rg.selectNodeContents(e);const q=rg.getBoundingClientRect();const ink=q.width>0?own(q.left+q.width/2,q.top+q.height/2)&&q.top>=0:false;
+      return {drawn:[+r.width.toFixed(1),+r.height.toFixed(1)],top:+top.toFixed(1),miss:pts.filter(p=>!p.hit).map(p=>p.x+','+p.y),ink,ok:top>=0&&pts.every(p=>p.hit)&&ink};},ct);
+    if(inBar){for(const [k,ct,on] of [['menu','rev-more',true],['back','rev-back',hasBack]]){if(!on)continue;const t=await tapArea(ct);
+        L.note('TC-R215a '+tag+' '+k+' drawn '+(t&&t.drawn?t.drawn.join('x'):'none')+' (printed, not asserted: in the bar the 44 is the tap area)');
+        L.say(!!t&&t.ok,'TC-R215a '+tag+' the '+k+' (in the player bar) has a 44x44 tap area from y '+(t&&t.top)+' - all 25 grid points answer to it, none above y 0, and its glyph is on screen and uncovered ('+(t?(t.miss&&t.miss.length?'missed at '+t.miss.slice(0,6).join(' '):(t.why||'every point hits'))+(t.ink===false?', glyph covered or off screen':''):'not found')+')',t);}}
+    else{L.say(ok44(c.menu)&&at8(c.menu.r),'TC-R215a '+tag+' the menu is top-right, >=44x44, 8 from the right edge ('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
+    if(hasBack)L.say(ok44(c.back)&&at8(c.back.x),'TC-R215a '+tag+' the back is top-left, >=44x44, 8 from the left edge ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x:'none')+')',c.back);}
     if(c.menu&&c.back)L.say(c.menu.br===c.back.br&&c.menu.br==='12px','TC-R215a '+tag+' back and menu share one corner radius, 12 ('+c.back.br+' / '+c.menu.br+')',{b:c.back.br,m:c.menu.br});
     if(!inBar){const ys=[c.menu&&c.menu.y,hasBack&&c.back?c.back.y:null].filter(v=>v!=null);L.say(ys.length>0&&ys.every(y=>atY(y,geo)),'TC-R215j '+tag+' the top row is at y '+TOP_Y+' under the safe area ('+(ys.join(' / ')||'no corners')+')',ys);}
     if(title&&!inBar){L.say(!!c.title&&Math.abs(c.title.cx)<=2,'TC-R215b '+tag+' the title is centred on the screen ('+(c.title?'off by '+c.title.cx:'not found')+')',c.title);
