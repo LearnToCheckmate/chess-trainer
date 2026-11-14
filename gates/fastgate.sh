@@ -235,8 +235,13 @@ fi
 # sentence is the job's own: FORCE from the changed paths alone, before fastgate.sh executes any file of the
 # tree; the files it then executes after the decision are unchanged from the base by construction.
 # WHAT IT DOES NOT COVER, SAID RATHER THAN IMPLIED: a file this tier only READS (the READ pin's set) is not
-# in FG_EXECUTES, and gates/verify-log.sh --citations and control-audit.js already ran after the decision;
-# this job's notChecked names them and nothing here changes it.
+# in FG_EXECUTES; and the files that DO run after the decision are the records check, which since #550 is
+# `gates/records-gate.sh --binaries` (it runs gates/verify-log.sh --citations, and gates/door-checks.sh, as its
+# binaries - see the `binary "records"` line), and the control-audit ratchet (`node gates/control-audit.js`).
+# All of those are in FG_EXECUTES, so a change to any of them is FORCEd here before they run. [#550 helper A:
+# this sentence read "gates/verify-log.sh --citations and control-audit.js already ran after the decision",
+# which named the pre-#550 records check; the fastgate records line is records-gate.sh --binaries now.]
+# This job's notChecked names the read-only set and nothing here changes it.
 force_before_execution(){ # exit 2 when the changed set holds a file this tier executes; otherwise return 0
   local f hit=""
   for f in $FG_EXECUTES; do
