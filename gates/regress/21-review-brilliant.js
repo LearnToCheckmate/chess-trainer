@@ -967,6 +967,24 @@ L.run(async()=>{
     L.say(kSelf.length===0,'TC-R10b pool '+pool+': NO ply of Kunal’s game offers the played move as its own alternative - the #420 Bxh3 defect, on the game it was found on',{selfNamed:kSelf.length,ofClauses:kClause.length,plies:kSelf.map(r=>r.head.replace(/\s+/g,' '))});
     await k.close();
   }
+  // TC-R10s [#550 helper lessons, antagonist B's B2]: THE 'MORE' SHEET IS ON TOP. At 320x568 the player bar and the move strip sat over the
+  // sheet's first lines (Opera ply 12: lines at 340, 360 and 387 under a sheet spanning 327 to 504). Every text line of the open sheet must
+  // hit-test to the sheet, at se and kunal761, on ply 12 and ply 19. The denominator first: the sheet opened and has lines.
+  {const RVs=require('../drive/review');
+   for(const geo of ['se','kunal761']){const t=await L.launch({geo,name:'review-sheet-'+geo,store:{ct_pool:'3'}});await t.open();
+     try{await RVs.ensureReview(t,'opera');await RVs.startReview(t);}catch(e){}
+     for(const ply of [12,19]){let r=null;try{await RVs.goPly(t,ply);await t.settle(1800);
+         const has=await t.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return !!(e&&e.getAttribute('data-more'));});
+         if(has){await t.page.locator('[data-ct="rev-why-txt"]').click({timeout:3000});await t.settle(400);}
+         r=await t.page.evaluate(()=>{const sh=document.querySelector('[data-ct="rev-why-sheet"]');if(!sh)return {open:false};const lines=[];
+           const tw=document.createTreeWalker(sh,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())){if(!n.textContent.trim())continue;const g=document.createRange();g.selectNodeContents(n);
+             for(const q of g.getClientRects()){if(q.width<4)continue;const x=q.left+Math.min(q.width/2,20),y=q.top+q.height/2;const hit=document.elementFromPoint(x,y);const ok=!!(hit&&(hit===sh||sh.contains(hit)));let by=null;if(!ok&&hit){let e=hit,k=0;while(e&&k<6&&!(e.getAttribute&&e.getAttribute('data-ct'))){e=e.parentElement;k++;}by=hit.tagName+(e&&e.getAttribute?('<'+(e.getAttribute('data-ct')||'?')+'>'):'');}lines.push(by?{y:Math.round(y),ok,by}:{y:Math.round(y),ok});}}
+           const sr=sh.getBoundingClientRect();return {open:true,span:[Math.round(sr.top),Math.round(sr.bottom)],lines};});
+         if(r&&r.open)await t.page.locator('[data-ct="rev-why-sheet"]').click({timeout:3000}).catch(()=>{});}catch(e){r={err:String(e.message||e).slice(0,120)};}
+       L.say(!!r&&r.open&&r.lines.length>0,'TC-R10s '+geo+' ply '+ply+' PRECONDITION the more sheet opened from the line under the board and carries text lines',r);
+       const cov=r&&r.lines?r.lines.filter(x=>!x.ok).map(x=>x.y):[];
+       L.say(!!r&&r.open&&r.lines.length>0&&cov.length===0,'TC-R10s '+geo+' ply '+ply+' every text line of the open sheet hit-tests to the sheet - nothing sits over it (covered at y '+(cov.join(', ')||'none')+', sheet '+(r&&r.span)+')',r);}
+     await t.close();}}
 },'REVIEW-BRILLIANT');
 // CONTROL-RECORD: a35524b 2026-10-30 total=52 red=3 scope=trial:a9605ca30843 how=chess.jsx's played-move guard deleted from the runner-up clause, one change - TC-R10 on the Opera Game and TC-R10b at pool 3 and pool 1 on Kunal's game go red (3 self-named plies there: 41...Qh3+, 24.c4, 19...Bxh3) [#546 item (89), rebuild of #545's b37e93213529 on the 52-assertion gate]
 // CONTROL-RECORD: 5b1e1bb 2026-11-06 total=104 red=3 scope=trial:b38abbbb04fb how=CT_SRC pointed at HEAD 5b1e1bb chess.jsx (moveGist without the #549 item (50) give-up and unlike-trade branches), bundle unchanged - TC-R113 Bxg6, Rxe4 and Bxf6 go red, the Nxf6+ precondition stays green [#549 item (50)]
