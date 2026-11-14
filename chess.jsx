@@ -9425,8 +9425,15 @@ function AppMain(){
     const el=homeScrRef.current;if(!el)return;
     const need=el.scrollHeight,avail=el.clientHeight;
     if(need<=avail+1){setHomeFit(f=>({...f,done:true}));return;}
-    if(homeFit.compact){const zc=Math.max(0.75,Math.floor(homeFit.z*(avail/need)*0.99*1000)/1000);setHomeFit(f=>({...f,z:zc,done:true}));return;}   /* a laptop window shorter than the compact column (1366x648, 1280x600): the compact column scales too, floor 0.75 */
-    const z=Math.floor(homeFit.z*(avail/need)*0.99*1000)/1000;
+    /* #550 jobs/home-is-2px-over-at-1280x600-gate-141-tc-r217c-2026-11-14: the ratio is the COLUMN's, not the scroller's. The scroller's
+       12px top and 20px bottom padding do not scale with the column's zoom, so avail/need under-shrank: at 1280x600 the compact column
+       took zoom 0.759, ran 12..582.2 and with the 20px padding the scroller was 602 in 600 - 2px over, at rest and after the Today card
+       (both measured; the card was already in). Scaling only the part that zooms gives 0.75 and 595 in 600. And the compact step is
+       re-checked once (pass) instead of being marked done on its first guess. */
+    const _hc=el.querySelector('[data-ct="home-col"]');const _cH=_hc?_hc.getBoundingClientRect().height:0;const _fx=(_cH>0&&_cH<need)?(need-_cH):0;
+    const _rt=Math.max(0.01,(avail-_fx)/Math.max(1,need-_fx));
+    if(homeFit.compact){const zc=Math.max(0.75,Math.floor(homeFit.z*_rt*0.99*1000)/1000);const _last=(homeFit.pass||0)>=1||zc===0.75;setHomeFit(f=>({...f,z:zc,pass:(f.pass||0)+1,done:_last}));return;}   /* a laptop window shorter than the compact column (1366x648, 1280x600): the compact column scales too, floor 0.75 */
+    const z=Math.floor(homeFit.z*_rt*0.99*1000)/1000;
     if(homeFit.z<1||z<0.85){setHomeFit(f=>(f.z<1&&z>=0.85)?{...f,z,done:true}:{...f,z:1,compact:true,done:false});return;}
     setHomeFit(f=>({...f,z}));
   });

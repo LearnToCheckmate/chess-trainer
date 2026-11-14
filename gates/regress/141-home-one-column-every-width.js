@@ -17,6 +17,7 @@
 // AND DSK-08 (TC-R217g): the Openings list and the Puzzles roadmap are the same centred 660 column on a computer window.
 // CONTROL-RECORD: a5691bb 2026-11-12 total=59 red=2 scope=trial:6694a8b0 how=#550 DSK-08 arm: t144, the tree before it - at 1920x970 the Openings rows are 872 wide and the roadmap 838 (TC-R217g); on t145 315c163e 59/0
 // KNOW ITS LIMIT: Home, Discover and two lists; the other no-board pages (DSK-08) and the sideways board group (DSK-03/04) are separate jobs.
+// CONTROL-RECORD: 306ce27 2026-11-14 total=59 red=1 scope=trial:a23f65203248 how=#550 helper app A, jobs/home-is-2px-over-at-1280x600-gate-141-tc-r217c-2026-11-14: the branch tree before the fix - at 1280x600 the compact column took zoom 0.759 (its fit ratio counted the scroller's unzoomed 12+20px padding) and the scroller read 602 in 600 (TC-R217c); on t6 f65d734958ef 59/0 at zoom 0.75
 const L=require('../lib');
 /* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
    a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
