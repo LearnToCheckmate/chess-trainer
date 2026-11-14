@@ -19,6 +19,8 @@
 //   const m=await b.metrics();                  // {board, over, vw, vh, errs}  over = bottom-most laid-out child - viewport
 //   await b.shot('play-after-e4');              // gates/shots/<name>.png (CT_SHOTS overrides the dir)
 //   L.say(ok,'what');  ... L.done();            // PASS/FAIL lines; done() exits 1 on any FAIL
+//   await L.gameOverArms(label,{ending,steps,read,back,forward})  // a game-over reading at the terminal ply AND steps back AND
+//                                               // forward again; a gate using it must compose a board AND a non-board ending (see GAME-OVER)
 //
 // RULES BAKED IN (from HANDOFF): overflow is measured from the bottom-most laid-out child of #root, not
 // scrollHeight (clamped, #354); a move is piece-tap then target-tap (#343 trap); measure AFTER interaction
@@ -662,6 +664,59 @@ function coverageRecord(opts,geo){
   if(!_cov.configs.includes(cs))_cov.configs.push(cs);
 }
 function coverageLine(label){return 'COVERAGE '+(label||'GATE')+' geos='+(_cov.geos.join(',')||'-')+' configs='+(_cov.configs.join(',')||'-');}
+// ── THE GAME-OVER COMPOSITION RULE [#550 helper A; jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, theFix's
+// harness half]. The play chrome at game over is decided by a predicate with a GAME-keyed and a PLY-keyed half (the pre-#473
+// `(isOver||playEnd)`), and a gate that ends a game and reads only at the terminal ply exercises one half: at the terminal ply
+// the previewed position IS the final one, so either form gives the same verdict, and on a resignation `playEnd` is true at
+// every ply, so the ply term is never operative there either. The job's rule, as the harness enforces it:
+//   (a) EVERY game-over reading is taken TWICE OR MORE - at the terminal ply and `steps` plies back - and again after stepping
+//       forward to the terminal ply. gameOverArms() does the stepping itself, so a gate cannot take the terminal reading alone
+//       through it, and it asserts each step in its OWN L.say (the ply moved by exactly one; Forward restored the terminal ply),
+//       so a dead Back button reddens by name instead of turning the back readings into terminal readings under another name.
+//   (b) A GATE THAT COMPOSES ANY ARM COMPOSES BOTH KINDS OF ENDING: a BOARD ending (checkmate, stalemate - the position is
+//       terminal) and a NON-BOARD ending (resign, flag, draw - the game is over and the position is not). done() reddens a gate
+//       that used one kind only, because the two reach different terms of the same predicate.
+// Usage:  const r=await L.gameOverArms('pp-mate',{ending:'checkmate',steps:2,read:async()=>({ply:..., ...}),
+//                                                 back:async()=>tap Back, forward:async()=>tap Forward});
+//         r.terminal, r.back[0] (one ply back), r.back[1] (two back), r.forward (terminal again) - assert on them as usual.
+// read() must return an object with a numeric `ply` (the PREVIEWED ply); everything else in it is the gate's.
+// done() prints `GAMEOVER <label> board=<arms> nonboard=<arms>` before the COVERAGE line, only when an arm was composed.
+// WHAT THIS DOES NOT DO, said rather than implied: it cannot see a game-over assertion made WITHOUT it, so gates 10, 16 and 65
+// and the older arms of gate 46 are not held to it, and nothing refuses a new gate that ends a game and never calls it. That
+// detection (a gate that reaches a game-over state through gates/drive/play.js without composing an arm) is the next part.
+// Controlled by gates/gates.sh --selftest GO1-GO5.
+const GO_KIND={checkmate:'board',stalemate:'board',resign:'nonboard',flag:'nonboard',draw:'nonboard'};
+const _go={board:[],nonboard:[]};
+async function gameOverArms(label,o){
+  o=o||{};const kind=GO_KIND[o.ending];
+  if(!kind)throw new Error('L.gameOverArms('+label+'): ending must be one of '+Object.keys(GO_KIND).join(', ')+' - got '+o.ending);
+  for(const k of ['read','back','forward'])if(typeof o[k]!=='function')throw new Error('L.gameOverArms('+label+'): '+k+' must be a function');
+  const steps=o.steps==null?1:o.steps;
+  if(!(Number.isInteger(steps)&&steps>=1))throw new Error('L.gameOverArms('+label+'): steps must be an integer >= 1');
+  _go[kind].push(label);
+  const terminal=await o.read();
+  const tp=terminal&&terminal.ply;
+  say(typeof tp==='number'&&tp>=steps,'GAME-OVER ARM '+label+' ('+o.ending+'): DENOMINATOR - the terminal reading names its ply ('+tp+') and the game has at least '+steps+' to step back through',{ply:tp,steps});
+  const back=[];let prev=tp;
+  for(let i=1;i<=steps;i++){
+    await o.back();const r=await o.read();back.push(r);
+    const p=r&&r.ply;
+    say(typeof prev==='number'&&p===prev-1,'GAME-OVER ARM '+label+' ('+o.ending+'): Back step '+i+' really moved the previewed ply ('+prev+' -> '+p+') - if this is the red line, back['+(i-1)+'] is a reading of the wrong ply and says nothing',{before:prev,after:p});
+    prev=p;
+  }
+  for(let i=1;i<=steps;i++)await o.forward();
+  const forward=await o.read();
+  say(!!forward&&forward.ply===tp,'GAME-OVER ARM '+label+' ('+o.ending+'): Forward x'+steps+' restored the terminal ply ('+(forward&&forward.ply)+' vs '+tp+')',{terminal:tp,forward:forward&&forward.ply});
+  return {terminal,back,forward};
+}
+function gameOverLine(label){return 'GAMEOVER '+(label||'GATE')+' board='+(_go.board.join(',')||'-')+' nonboard='+(_go.nonboard.join(',')||'-');}
+function gameOverVerdict(){ // called by done(): the (b) half of the rule
+  const nb=_go.board.length,nn=_go.nonboard.length;
+  if(!nb&&!nn)return;
+  console.log(gameOverLine(_doneLabel));
+  if(!nb||!nn)say(false,'HARNESS GAME-OVER COMPOSITION: this gate composed game-over arms on a '+(nb?'BOARD':'NON-BOARD')+' ending only ('+(nb?_go.board:_go.nonboard).join(',')+'); the rule (jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30) is that a gate composing any arm composes both a board ending (checkmate/stalemate) and a non-board one (resign/flag/draw), because they reach different terms of the same predicate');
+}
+let _doneLabel='GATE';
 // EVERY GATE IS OBSERVED, NOT ONLY THE ONES THAT CALL done() [#546, item (86); jobs/the-premise-checks-read-the-gates-source-
 // instead-of-asking-them-to-declare-their-inputs-2026-10-07, whatIsLeft (2)]. gates.sh now preloads this file into every
 // gate with `node -r`, so the fs recorder above is live from the first byte even in a gate that never requires it (68, 72,
@@ -677,7 +732,7 @@ process.on('exit',(code)=>{if(!_doneRan&&(_pass+_fails)>0){process.stdout.write(
 process.on('exit',()=>{if(_doneRan||process.env.CT_OBSERVE_EXIT!=='1')return;try{const ins=observedInputs();process.stdout.write('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' ')+'\n');}catch(e){}});
 function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefined?'  ['+(typeof detail==='string'?detail:JSON.stringify(detail))+']':'');console.log(line);if(ok)_pass++;else _fails++;return ok;}
 function note(msg){console.log('     '+msg);}
-function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log(coverageLine(label));console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
+function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}_doneLabel=label||'GATE';gameOverVerdict();console.log(coverageLine(label));console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
 /* THE TEN GRADES, IN DISPLAY ORDER - THE ONE HAND-TYPED COPY IN THE HARNESS [#548, item (20);
    jobs/grade-ladder-has-five-independent-copies]. Five gates each carried their own literal of this list (gates 19, 20, 26,
@@ -731,4 +786,4 @@ async function acctGames(page){
     }catch(e){fin(null);}
   }));
 }
-module.exports={coverageRecord,coverageLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
+module.exports={coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};

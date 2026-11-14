@@ -686,6 +686,67 @@ L.run(async()=>{
     await c.close();
   }
 
+  /* ══ 10d: THE STATUS SLOT, MATED AND THEN STEPPED BACK - through L.gameOverArms, on a board AND a non-board ending ══
+     [#550 helper A; jobs/no-gate-mates-a-game-and-then-steps-the-ply-2026-09-30, TC-PL-072 and TC-PL-073]. Block 10's arms
+     above step the ply after a mate and read the ROW and the CARD; nothing read the STATUS SLOT there (the text in the top
+     row's middle, data-ct="play-opening"), and the slot is where the two forms of "is the game over" still DIFFER. chess.jsx's
+     slot computes `_done=_gameOver` (game-keyed, #473); the pre-#473 form is `(isOver||playEnd)` (ply-keyed on a mate). Since
+     #548 item (126) (Kunal's final-only answer: the result is stated only at the last move) both forms print the SAME text
+     after a Back step - except where the previewed earlier position is CHECK ('Check!') or the computer is thinking
+     ('thinking'): the ply-keyed form takes its live branch there and the game-keyed form does not. Fool's mate has no check
+     before the mate, so it cannot tell them apart; this line can: 1.f3 e5 2.Kf2 Qh4+ 3.Ke3 Bc5+ 4.Kd3 Qd4#, whose ply 6
+     (after 3...Bc5+) is check. MEASURED FIRST at kunal761 on trial t1 (md5 f5fa39bac951) and on the control c1 (md5
+     0d5442341a47, the slot's `_done` put back to `(isOver||playEnd)`): live play reads 'Check!' at plies 4 and 6 on both; at the
+     terminal ply past the card's unmount both read 'Checkmate! · Black wins'; one back (ply 7, not check) both read blank;
+     TWO BACK (ply 6, check) t1 reads BLANK and c1 reads 'Check!'; Forward restores the result on both. The resignation
+     (cpu-resigned-with-moves) reads identically on both bundles at every ply - playEnd is true throughout - and is composed
+     here because the harness rule requires both kinds of ending, not because it can discriminate.
+     WHICH ONE IS WANTED AT A PREVIOUSLY-CHECKED PLY IS KUNAL'S DECISION, NOT THIS GATE'S. final-only says the result is not
+     stated there; it does not say whether 'Check!' is. TC-PL-072(c) PINS WHAT THE APP DOES NOW (blank) so the term is operative
+     and a change either way goes red by name - it is not an endorsement, and if he rules for 'Check!' this is the line that
+     moves. */
+  {
+    const geo='kunal761';
+    const LINE=[['f2','f3'],['e7','e5'],['e1','f2'],['d8','h4'],['f2','e3'],['f8','c5'],['e3','d3'],['h4','d4']]; // 1.f3 e5 2.Kf2 Qh4+ 3.Ke3 Bc5+ 4.Kd3 Qd4#
+    const RES_MATE='Checkmate! · Black wins';
+    const slot=async(x)=>{const s=await P.status(x);return s?s.txt:null;};
+    const reader=(x)=>async()=>({ply:await plyCount(x),slot:await slot(x),row:(await rowBtns(x)).map(r=>r.t).join(','),card:await x.text('[data-ct="result-card"]')});
+    const stepper=(x)=>({back:()=>P.tapBtn(x,/^Back$/,500),forward:()=>P.tapBtn(x,/^Forward$/,500)});
+    const b=await L.launch({geo,name:'play-over-status-'+geo,store:{ct_pool:'3'}});await b.open();
+    await P.states['pp-m0'](b);
+    const live=[];
+    for(const [f,t] of LINE){await b.move(f,t,350);live.push(await slot(b));}
+    L.say(live[3]==='Check!'&&live[5]==='Check!',
+      geo+': TC-PL-072 DENOMINATOR - in the LIVE game the slot reads "Check!" at ply 4 (2...Qh4+) and at ply 6 (3...Bc5+), so ply 6 is a position the slot CAN call check; without this the blank read two plies back from the mate below says nothing',{live});
+    const cardM=await b.text('[data-ct="result-card"]');
+    L.say(cardM==='Checkmate! Black wins',geo+': TC-PL-072 the line really ends in mate - the result card names it',{card:cardM});
+    await b.settle(4200);   // past the card's 3300ms unmount (chess.jsx _resultKey effect), so the slot owns the result
+    const m=await L.gameOverArms('pp-check-mate',Object.assign({ending:'checkmate',steps:2,read:reader(b)},stepper(b)));
+    L.say(m.terminal.card===null&&m.terminal.slot===RES_MATE&&m.terminal.row===ROW_OVER.join(','),
+      geo+': TC-PL-072(a) at the terminal ply, past the card\'s unmount, the slot states the result ("'+RES_MATE+'") over the game-over row',m.terminal);
+    L.say(m.back[0].slot===''&&m.back[0].row===ROW_OVER.join(','),
+      geo+': TC-PL-072(b) one ply back (ply 7, 4.Kd3, not check) the slot is blank and the row is still the game-over row - final-only: the result is stated at the last move only. Both forms of _done print this (measured on c1), so this line is the ordinary half',m.back[0]);
+    L.say(m.back[1].slot===''&&m.back[1].row===ROW_OVER.join(','),
+      geo+': TC-PL-072(c) PINNED, NOT ENDORSED - two plies back (ply 6, 3...Bc5+, White in check) the slot is BLANK: it is keyed to the GAME being over, so it takes neither the result (final-only) nor the live "Check!". The ply-keyed form `(isOver||playEnd)` prints "Check!" here (control c1, md5 0d5442341a47) and THIS is the line it reddens. Whether "Check!" is wanted at an earlier checked ply of a finished game is KUNAL\'S DECISION, not this gate\'s',m.back[1]);
+    L.say(m.forward.slot===RES_MATE&&m.forward.card===null&&m.forward.row===ROW_OVER.join(','),
+      geo+': TC-PL-072(d) Forward to the terminal ply restores the result in the slot, and the dismissed card does not re-open',m.forward);
+    L.say(b.errs.length===0,geo+': zero app errors across the check-then-mate game and its round trip',b.errs.slice(0,3));
+    await b.close();
+
+    const r=await L.launch({geo,name:'play-resign-status-'+geo,store:{ct_pool:'3'}});await r.open();
+    await P.states['cpu-resigned-with-moves'](r);
+    await r.settle(4200);
+    const g=await L.gameOverArms('cpu-resigned-with-moves',Object.assign({ending:'resign',steps:1,read:reader(r)},stepper(r)));
+    L.say(g.terminal.card===null&&g.terminal.slot==='Resigned · You lose'&&g.terminal.row===ROW_OVER.join(','),
+      geo+': TC-PL-073(a) a resigned four-ply game, past the card\'s unmount: the slot states "Resigned · You lose" over the game-over row',g.terminal);
+    L.say(/^▼ Strength now ~\d+ Elo$/.test(g.back[0].slot||'')&&g.back[0].row===ROW_OVER.join(','),
+      geo+': TC-PL-073(b) one ply back the slot gives up the result (final-only) and shows the adaptive-strength note instead, over the same game-over row. Identical on the ply-keyed control: playEnd is true at every ply of a resignation, which is why the harness asks for a board ending as well',g.back[0]);
+    L.say(g.forward.slot==='Resigned · You lose'&&g.forward.card===null,
+      geo+': TC-PL-073(c) Forward restores the result and the card stays dismissed',g.forward);
+    L.say(r.errs.length===0,geo+': zero app errors across the resigned game\'s round trip',r.errs.slice(0,3));
+    await r.close();
+  }
+
   // ══ 11: resign - the two-tap arm, and the EMPTY STATE at game over (a finished game with no moves in it) ══
   // #375 (audit A2-03) made Resign a two-tap arm because a 45px row under "New game" ended the game on one
   // tap. NOTE FOR WHOEVER MAINTAINS drive/play.js: its 'cpu-resigned' state taps Resign ONCE, which only ARMS
