@@ -582,7 +582,7 @@ L.run(async()=>{
   await b.home(); await b.tile('Review');
   await b.page.locator('textarea').first().fill(PGN_LOST);
   const t0=Date.now();
-  await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   let up=true;
   try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(e){up=false;}
   await b.settle(1200);

@@ -317,7 +317,7 @@ L.run(async()=>{
     await n.tile('Review');await n.settle(900);
     await n.tapText(/find the move you missed/,{wait:1800});
     await n.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});
-    const inDrill=await n.page.evaluate(()=>/Your mistakes/.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
+    const inDrill=await n.page.evaluate(()=>/Your mistakes|Mistakes drill/.test((document.querySelector('[data-ct="pz-top"]')||{}).innerText||''));
     const drillSig=await n.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));return g?[...g.children].slice(0,64).map(k=>(k.innerText||'').trim()).join('|'):null;});
     L.say(inDrill&&!!drillSig,'TC-R69 N0 ARRIVAL: the mistakes drill opened on its own card (header names Your mistakes, a board is painted)',{inDrill});
     // THE ROUTE IS THE HOME TAB, NOT ‹ Review: ‹ Review runs exitMistakes, which clears curPuz, so this block's first

@@ -16,7 +16,7 @@
 // CONTROL-RECORD: e4a169a 2026-11-12 total=19 red=4 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: kunal761 Medieval: TC-LS-061a every tile draws the medieval-b SVG, pai
 const L=require('../lib');const D=require('../drive/lesson');
 const EMOJI=['🚀','⚔️','👑','💡'],LABELS=['Openings','Gambits','Endgames','Tactics'];
-const read=(b)=>b.page.evaluate((LABELS)=>{const out=[];for(const lab of LABELS){const btn=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').split('\n').map(t=>t.trim()).includes(lab));if(!btn){out.push(null);continue;}
+const read=(b)=>b.page.evaluate((LABELS)=>{const out=[];for(const lab of LABELS){const btn=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').split('\n').map(t=>t.trim()).some(t=>t===lab||(lab==='Tactics'&&t==='Tactics & strategy')));if(!btn){out.push(null);continue;}
   const tile=btn.firstElementChild;const svg=tile&&tile.querySelector('svg');const r=svg?svg.getBoundingClientRect():null;
   out.push({lab,set:(tile&&tile.querySelector('[data-set]'))?tile.querySelector('[data-set]').getAttribute('data-set'):null,svg:!!svg,w:r?Math.round(r.width*10)/10:0,h:r?Math.round(r.height*10)/10:0,txt:tile?(tile.innerText||'').trim():''});}return out;},LABELS);
 L.run(async()=>{

@@ -98,11 +98,11 @@ L.run(async()=>{
     return {top:Math.round(q.top),bottom:Math.round(q.bottom),fold:Math.round(fold),owns:!!hit&&(hit===btn||btn.contains(hit))};},re.source);
   const SURF=[
     {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
-    {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
+    {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze [Gg]ame$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
     // #550 answer a12 (item 95): REV_PIN IS RETIRED. The paste row now sits above Import (Option A, docs/mockup-q12-paste-2026-11-11), so with
     // stored games "⚡ Analyze Game" is on screen on arrival at every column (measured on trial a6ef99c17548: its row top 123..128 at every
     // geometry, the tab bar at 512..900) and TC-INV-08i asserts that, as 08g and 08h do. REV_PIN above is kept as the record of what it was.
-    {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze Game$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:false}];
+    {key:'review-stored',label:'Review list (stored games)',re:/^⚡ Analyze [Gg]ame$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-stored'](b),pinned:false}];
   for(const g of ['kunal761',...L.TA7]){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
     const b=await L.launch({geo:g,name:'prim-'+n});await b.open();

@@ -587,7 +587,7 @@ function mkTap(b,READ){
     await tap('gf-acct-alpha');                             // leave brilliant on, swap account
     const r7=await tap('gf-acct-beta');
     L.say(r7.rows===0,'B6 account beta AND a brilliancy matches nothing in the fixture',{rows:r7.rows});
-    L.say(r7.emptyFound&&/brilliancies/.test(r7.empty||'')&&/beta/.test(r7.empty||''),
+    L.say(r7.emptyFound&&/brilliancies|brilliant moves/.test(r7.empty||'')&&/beta/.test(r7.empty||''),
       'B6b and the empty state names BOTH active filters',{empty:r7.empty});
     // #476 AND IT HAS TO BE REACHABLE BY A FINGER, which nothing here asserted until antagonist A's F8.
     // Measured at 375x730 it arrives BELOW THE FOLD (top 748.5 against a 730 viewport). That is not the same
@@ -1531,7 +1531,7 @@ function mkTap(b,READ){
     const panel=(b)=>b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
       const num=(lab)=>{const m=new RegExp('(\\d+) '+lab,'i').exec(t);return m?+m[1]:null;};
       let achv=[];try{achv=JSON.parse(localStorage.getItem('ct_achv')||'[]');}catch(e){}
-      return {shown:/Your progress/i.test(t),reviewed:num('Games reviewed'),bril:num('Brilliancies'),achv};});
+      return {shown:/Your progress/i.test(t),reviewed:num('Games reviewed'),bril:num('(?:Brilliancies|Brilliant moves)'),achv};});
     for(const [tag,nEst,nRev,wantRev,wantBril,rv1,rv10] of [['7 est',7,0,0,0,false,false],['7 est + 1 review',7,1,1,2,true,false],['4 est + 9 review',4,9,9,18,true,false]]){
       const b=await L.launch({geo:'kunal730',name:'r49-'+nEst+'-'+nRev,store:{ct_pool:'3',ct_gamestats:mk(nEst,nRev)}});await b.open();
       await b.tile('Review');await b.settle(1200);await openProg(b);

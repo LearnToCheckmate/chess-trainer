@@ -89,7 +89,7 @@ S['train-hint']=async(b)=>{await S['train'](b);await tapBtn(b,/^💡 Hint$/,600)
 S['train-hint-show']=async(b)=>{await S['train-hint'](b);await tapBtn(b,/^👁 Show$/,600);};
 S['train-next-before']=async(b)=>{await S['train'](b);await tapAria(b,'Next puzzle',600);};
 S['train-prev']=async(b)=>{await S['train'](b);await tapAria(b,'Previous puzzle',600);};
-S['train-back']=async(b)=>{await S['train'](b);await tapAria(b,'Back to Roadmap',600).catch(()=>tapBtn(b,/^‹ Roadmap$/,600));await scrollTo(b,'top');};   // #550 FMT-A-02: the back is the 44x44 corner button, its words in its accessible name (the old '‹ Roadmap' text kept as the fallback for an older bundle)
+S['train-back']=async(b)=>{await S['train'](b);await tapAria(b,'Back to Journey',600).catch(()=>tapAria(b,'Back to Roadmap',600)).catch(()=>tapBtn(b,/^‹ Roadmap$/,600));await scrollTo(b,'top');};   // #550 FMT-A-02: the back is the 44x44 corner button, its words in its accessible name (the old '‹ Roadmap' text kept as the fallback for an older bundle)
 S['free-play']=async(b)=>{await S['roadmap'](b);await tapBtn(b,/^🧩 Free play/,800);};
 S['free-play-next']=async(b)=>{await S['free-play'](b);await tapAria(b,'Next puzzle',600);};
 // PZ[95] = c0 through the Novice node with 95 solved

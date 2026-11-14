@@ -282,7 +282,7 @@ L.run(async()=>{
   const b2=await L.launch({geo:'kunal730',name:'evalbar-review',store:{ct_evalmig361:'1',ct_evalmig550:'1',ct_evalunder:'0',ct_pool:'3'}});await b2.open();
   await b2.tile('Review');
   await b2.page.locator('textarea').first().fill('[White "A"] [Black "B"] 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *');
-  await b2.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b2.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await b2.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b2.settle(400);
   await b2.tapText(/^Start review/,{wait:900}).catch(()=>{});
   await b2.settle(600);

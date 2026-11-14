@@ -249,7 +249,7 @@ const CARDS=(b)=>b.page.evaluate(()=>{
     if(/^NEW HERE/.test(t))return 'newhere';
     if(/Discover/.test(t)&&/Puzzles/.test(t)&&/Review/.test(t)&&/Play/.test(t))return 'tiles';
     if(/^(🎓|⚠️)/.test(t))return 'coachline';
-    if(/^Colours & pieces/.test(t)||k.querySelector('[data-ct="home-look"]'))return 'lookrow';   // #550 AUD-H01: the look button reads its theme name now; found by its hook
+    if(/^Colou?rs & pieces/.test(t)||k.querySelector('[data-ct="home-look"]'))return 'lookrow';   // #550 AUD-H01: the look button reads its theme name now; found by its hook
     return 'UNKNOWN:'+t.slice(0,28);};
   return [...col.children].map(k=>{const r=k.getBoundingClientRect();
     return {id:id(k),tag:k.tagName.toLowerCase(),y:r1(r.top),h:r1(r.height),w:r1(r.width)};});});
@@ -1140,7 +1140,7 @@ const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
     if(/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))return 'tile-review';   // #550 AUD-H01: 'Free game reviews' on a phone
     if(/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))return 'tile-play';
     if(/^(\u{1F393}|⚠️)/u.test(t))return 'coachline';
-    if(/^Colours & pieces/.test(t))return 'lookrow';
+    if(/^Colou?rs & pieces/.test(t))return 'lookrow';
     if(/Style:/.test(t)||/^Style:/.test(e.getAttribute('aria-label')||''))return 'stylerow';   // #550 AUD-H01: on a phone it reads the style's name; its aria-label keeps 'Style: <name>'
     return 'UNKNOWN:'+t.slice(0,24);};
   const all=[...ov.querySelectorAll('button')]
@@ -1294,7 +1294,7 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
 for(const g of [{w:375,h:812,safe:''},L.GEOS.kunal730,{w:320,h:568,safe:''}]){
   const b=await L.launch({geo:g,name:'discover-tiles-'+g.w+'x'+g.h});await b.open();let ok=true;
   try{await H.states['discover'](b);await b.settle(600);}catch(e){ok=false;}
-  const m=await b.page.evaluate(()=>{const btns=[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').split('\n').some(l=>/^(Openings|Gambits|Endgames|Tactics)$/.test(l.trim())));
+  const m=await b.page.evaluate(()=>{const btns=[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').split('\n').some(l=>/^(Openings|Gambits|Endgames|Tactics( & strategy)?)$/.test(l.trim())));
     const tb=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/Discover/.test(d.innerText||'')&&/Puzzles/.test(d.innerText||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.top-a.top)[0];
     const r=btns.map(x=>x.getBoundingClientRect());return {n:btns.length,bottom:r.length?Math.round(Math.max(...r.map(x=>x.bottom))):null,tabTop:tb?Math.round(tb.top):null};});
   const tag=g.w+'x'+g.h;

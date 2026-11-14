@@ -17,7 +17,7 @@ L.run(async()=>{
    L.say(has>0,'TC-HM-059a PRECONDITION the Home Style button is on screen for a player who is not Pro');
    if(has){await st.click().catch(()=>{});await b.settle(600);}
    const t=has?await sheet(b):null;
-   L.say(!!t&&/Playful and Medieval are Pro skins\. Upgrade to use them\./.test(t),'TC-HM-059a AUD-H05 the Account sheet it opens says why: "Playful and Medieval are Pro skins" ('+(t&&t.slice(0,90))+')');
+   L.say(!!t&&/Playful and Medieval are Pro (skins|styles)\. Upgrade to use them\./.test(t),'TC-HM-059a AUD-H05 the Account sheet it opens says why: "Playful and Medieval are Pro skins" ('+(t&&t.slice(0,90))+')');
    L.say(b.errs.length===0,'TC-HM-059a zero app errors',b.errs.slice(0,3));
    await b.close();}
   // B. a locked skin in the menu's skin sheet
@@ -29,7 +29,7 @@ L.run(async()=>{
    const has=ok&&await row.count().catch(()=>0);
    if(has){await row.click().catch(()=>{});await b.settle(600);}
    const t=has?await sheet(b):null;
-   L.say(!!t&&/Playful is a Pro skin\. Upgrade to use Playful and Medieval\./.test(t),'TC-HM-059b AUD-H05 a locked skin opens the Account sheet naming the skin tapped: "Playful is a Pro skin" ('+(t&&t.slice(0,90))+')',{found:has});
+   L.say(!!t&&/Playful is a Pro (skin|style)\. Upgrade to use Playful and Medieval\./.test(t),'TC-HM-059b AUD-H05 a locked skin opens the Account sheet naming the skin tapped: "Playful is a Pro skin" ('+(t&&t.slice(0,90))+')',{found:has});
    await b.close();}
   // C. AUD-L15 (P2): the roadmap's scenery ran 20 to 44px past the road's own box and painted over the Free play button below it (its label
   // almost unreadable; it still took taps, the paths being pointer-events none, so a hit test cannot see this). Measured as PAINT: the lowest

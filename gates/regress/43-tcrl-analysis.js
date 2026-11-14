@@ -79,10 +79,10 @@ async function startAnalysis(b,pgn){
   await R.toList(b);
   await b.page.locator('textarea').fill(pgn);
   await b.settle(150);
-  await b.tapText(/^⚡ Analyze Game$/);
+  await b.tapText(/^⚡ Analyze [Gg]ame$/);
 }
-const pct=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(\d+)%\s*·\s*checking/);return m?+m[1]:null;});
-const progressText=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/Analyzing your game\s+\d+%\s*·\s*checking every move/);return m?m[0]:null;});
+const pct=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(\d+)%\s*·\s*checking|Checking every move\u2026\s*(\d+)%/);return m?+(m[1]||m[2]):null;});
+const progressText=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/Analyzing your game\s+(\d+%\s*·\s*checking every move|Checking every move\u2026\s*\d+%)/);return m?m[0]:null;});
 const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 const waitSummary=(b,ms)=>b.page.locator('[data-ct="rev-summary"]').last().waitFor({state:'visible',timeout:ms||240000});
 
@@ -102,7 +102,7 @@ L.run(async()=>{
   // TC-RL-005: no second analysis can be started over a running one
   const inflight=await b.page.evaluate(()=>({
     textareas:document.querySelectorAll('textarea').length,
-    analyze:[...document.querySelectorAll('button')].filter(x=>/Analyze Game/.test(x.innerText||'')).length,
+    analyze:[...document.querySelectorAll('button')].filter(x=>/Analyze [Gg]ame/.test(x.innerText||'')).length,
     buttons:document.querySelectorAll('button').length}));
   L.say(inflight.textareas===0,'TC-RL-005: the PGN box is gone while the analysis runs (textarea count 0), so a second review cannot be pasted over the first',inflight);
   L.say(inflight.analyze===0,'TC-RL-005: there is no "Analyze Game" button on screen while one is running',inflight);

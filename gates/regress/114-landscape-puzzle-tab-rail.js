@@ -24,7 +24,7 @@ L.run(async()=>{
     let ok=true;try{await b.tile('Puzzles');await b.settle(900);try{await b.tapText(/^(▶ )?(Continue|Start|Solve|Next puzzle)/i,{wait:900});}catch(e){}await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
     const m=ok?await b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8/.test(d.style.gridTemplateColumns)).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
       const tb=document.querySelector('[data-ct="tabbar"]');const t=tb?tb.getBoundingClientRect():null;
-      const want=[['Roadmap',/Roadmap/],['Hint',/^(💡 )?Hint$/],['Show',/^(👁 )?Show( move)?$/],['Reset',/^(↺ )?Reset$/],['Prev',/^Previous puzzle$/],['Next',/^Next puzzle$/]];   // A3-11: matched by what each SAYS (aria-label or text), so the tree before a8 is found too - its red is the fold, not a missing hook
+      const want=[['Roadmap',/Roadmap|Journey/],['Hint',/^(💡 )?Hint$/],['Show',/^(👁 )?Show( move)?$/],['Reset',/^(↺ )?Reset$/],['Prev',/^Previous puzzle$/],['Next',/^Next puzzle$/]];   // A3-11: matched by what each SAYS (aria-label or text), so the tree before a8 is found too - its red is the fold, not a missing hook
       const btn=(re)=>[...document.querySelectorAll('button')].find(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&(re.test(x.getAttribute('aria-label')||'')||re.test((x.innerText||'').trim()));});
       const bs=want.map(([k,re])=>{const e=btn(re);if(!e)return {k,miss:true};const r=e.getBoundingClientRect();const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {k,h:r.height,y:r.top,b:r.bottom,r:r.right,hit:!!hit&&(hit===e||e.contains(hit))};});
       const rail=document.querySelector('.ctside');

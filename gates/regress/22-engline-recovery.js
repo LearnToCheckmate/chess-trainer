@@ -84,7 +84,7 @@ L.run(async()=>{
     'TC-SUITE-236 INSTRUMENT: the trap counter counts /RuntimeError: unreachable/ and reads ZERO over an empty list - which is the reading that makes the non-vacuity line below mean something',
     {empty:trapCount([]),unrelated:trapCount(['TypeError: x is not a function']),one:trapCount(['RuntimeError: unreachable']),two:trapCount(['a','RuntimeError: unreachable at wasm://wasm/0001','RuntimeError: unreachable'])});
   const b=await L.launch({geo:'kunal730',name:'engline-recovery',store:{ct_pool:'3'}});await b.open();
-  await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(600);
   await b.tapText(/^Start review/,{wait:900});
   await b.tapText(/^⋯$/,{wait:500}).catch(()=>{});
@@ -314,7 +314,7 @@ L.run(async()=>{
     // Antagonist B of #511 measured pool 1 healthy by hand; this makes it an assertion. Costs about a minute of suite.
     for(const [POOL,tag] of [['3','R '],['1','R [ct_pool=1] ']]){
       const r=await L.launch({geo:'kunal730',name:'engline-sacrun-race-pool'+POOL,store:{ct_pool:POOL}});await r.open();
-      await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await r.tile('Review');await r.page.locator('textarea').first().fill(KPGN);await r.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       await r.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await r.settle(600);
       await r.tapText(/^Start review/,{wait:900});
 
@@ -437,7 +437,7 @@ L.run(async()=>{
    for(const G of GAMES){
     const t=await L.launch({geo:'kunal730',name:'engline-terminal-'+G.k,store:{ct_pool:'3'}});await t.open();
     let ok=true;
-    try{await t.tile('Review');await t.page.locator('textarea').first().fill(G.pgn);await t.tapText(/^⚡ Analyze Game$/,{wait:300});
+    try{await t.tile('Review');await t.page.locator('textarea').first().fill(G.pgn);await t.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       await t.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await t.settle(600);
       await t.tapText(/^Start review/,{wait:900});await t.tapText(/^⋯$/,{wait:500}).catch(()=>{});await t.tapText(/Analyze with the engine/,{wait:900}).catch(()=>{});await t.settle(1200);
       for(let i=0;i<G.n+4;i++){await t.page.keyboard.press('ArrowRight');await t.page.waitForTimeout(80);}}catch(e){ok=false;}
@@ -629,7 +629,7 @@ L.run(async()=>{
          if(log.armed&&!log.killed&&!pool&&t==='go movetime 700'){log.killed=Math.round(performance.now());log.nAtKill=log.n;setTimeout(()=>{try{w.dispatchEvent(new ErrorEvent('error',{message:'injected worker death'}));w.terminate();}catch(e){}},150);}
          return pm(m,...a);};return w;};window.Worker.prototype=W.prototype;});
    await b.open();let ok=true,short=null,landed=null,got=null,atT=null;
-   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
      await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(600);
      await b.tapText(/^Start review/,{wait:900});
      await fwd(b,T-2,80);await b.settle(4000);
@@ -681,7 +681,7 @@ L.run(async()=>{
    const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
    const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
    const b=await L.launch({geo:'kunal761',store:{ct_pool:'3',ct_safe:'51,31'},name:'coach-sentence-only-grows'});await b.open();let ok=true;
-   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+   try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
      await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(600);
      await b.tapText(/^Start review/,{wait:900});}catch(e){ok=false;}
    let at=0;

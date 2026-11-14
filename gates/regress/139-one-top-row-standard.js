@@ -42,13 +42,13 @@ const LAND={w:761,h:375,safe:'',label:'761x375'};
 const SCREENS=[['Discover',b=>H.states.discover(b),/^Discover$/,false],['Openings list',b=>D.states['openings-list'](b),/^Openings$/,true],
   ['Puzzles roadmap',b=>Z.states.roadmap(b),/^Puzzles$/,false],['Review list',b=>R.states['list-stored'](b),/^Game review$/i,false],
   ['Review summary',b=>R.states.summary(b),/^Game review$/i,true],['Review board',b=>R.states['moves-ply10'](b),/^Game review$/i,true],
-  ['Play setup',b=>P.states.setup(b),/^New Game$/,true],['Game vs computer',b=>P.states['cpu-4ply'](b),null,true],['Tactics',b=>D.states.tactics(b),null,true]];
+  ['Play setup',b=>P.states.setup(b),/^New [Gg]ame$/,true],['Game vs computer',b=>P.states['cpu-4ply'](b),null,true],['Tactics',b=>D.states.tactics(b),null,true]];
 const corners=(b,title)=>b.page.evaluate((tsrc)=>{const vw=innerWidth,vh=innerHeight;
   const vis=e=>{const r=e.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;const c=document.elementFromPoint(Math.min(vw-1,Math.max(0,r.left+r.width/2)),Math.min(vh-1,Math.max(0,r.top+r.height/2)));return !!c&&(e.contains(c)||c.contains(e));};
   const bs=[...document.querySelectorAll('button')].filter(vis).filter(e=>e.getBoundingClientRect().top<140);
   const R=e=>{const r=e.getBoundingClientRect();return {x:+r.left.toFixed(1),r:+(vw-r.right).toFixed(1),w:+r.width.toFixed(1),h:+r.height.toFixed(1),y:+r.top.toFixed(1),br:getComputedStyle(e).borderRadius};};
   const menu=bs.filter(e=>/^menu and settings$|^more$/i.test(e.getAttribute('aria-label')||'')||/^[☰⋯]$/.test((e.innerText||'').trim())).map(R).sort((a,c)=>a.r-c.r)[0]||null;
-  const back=bs.filter(e=>/^(back|home|back to games|roadmap|back to roadmap|back to review)$/i.test(e.getAttribute('aria-label')||'')||/^(‹|←|⌂)/.test((e.innerText||'').trim())).map(e=>({...R(e),al:e.getAttribute('aria-label')||(e.innerText||'').trim()})).sort((a,c)=>a.x-c.x)[0]||null;
+  const back=bs.filter(e=>/^(back|home|back to games|roadmap|back to roadmap|back to journey|back to review)$/i.test(e.getAttribute('aria-label')||'')||/^(‹|←|⌂)/.test((e.innerText||'').trim())).map(e=>({...R(e),al:e.getAttribute('aria-label')||(e.innerText||'').trim()})).sort((a,c)=>a.x-c.x)[0]||null;
   let title=null;if(tsrc){const re=new RegExp(tsrc);const t=[...document.querySelectorAll('div,span')].filter(e=>!e.closest('button')&&re.test((e.innerText||'').trim())&&e.getBoundingClientRect().top<140&&vis(e)).sort((a,c)=>a.getBoundingClientRect().top-c.getBoundingClientRect().top)[0];
     if(t){const s=getComputedStyle(t);const rg=document.createRange();rg.selectNodeContents(t);const q=rg.getBoundingClientRect();title={cx:+((q.left+q.right)/2-vw/2).toFixed(1),fs:parseFloat(s.fontSize),fw:+s.fontWeight,ff:s.fontFamily.split(',')[0].replace(/"/g,'').trim()};}}
   return {menu,back,title,vw};},title?title.source:null);
@@ -217,7 +217,7 @@ L.run(async()=>{
   {const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'],UCIS=['b2b7','c2c7','d2d7'];
    const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',...(label==='Brilliant'?{}:{wc:{g:'Blunder',drop:25}})}));
    const drill=(re)=>async b=>{await b.tile('Review');await b.settle(700);await b.tapText(re,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});};
-   const PZS=[['Puzzle training',b=>Z.states.train(b),{},/Roadmap/],['Free play',b=>Z.states['free-play'](b),{},/Roadmap/],
+   const PZS=[['Puzzle training',b=>Z.states.train(b),{},/Roadmap|Journey/],['Free play',b=>Z.states['free-play'](b),{},/Roadmap|Journey/],
      ['Mistakes drill',drill(/find the move you missed/),{ct_mymistakes:rows('Blunder',3)},/Review/],['Brilliant drill',drill(/can you spot them again\?/),{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1'},/Review/]];
    // the board on the tree before this build (trial 9f4f6f823150, the branch tip): the floor, never smaller (his board rule)
    const FLOOR={kunal761:375,'375x667':375,'320x568':320,land:375},FLOOR_MK_SE=288;

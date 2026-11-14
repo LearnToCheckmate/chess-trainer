@@ -455,7 +455,7 @@ L.run(async()=>{
     for(const id of SAC_S_IDS) L.say(false,'TC-R10/'+id+' #504 NOT RUN: chess.jsx declares no refutation-line machinery ('+SAC_SRC.missing.join(', ')+'), so neither the trim rule nor the store decision could be exercised. A missing denominator is REPORTED, never credited.');
   }
   const b=await L.launch({geo:'kunal',name:'review-brilliant',store:{ct_pool:'3'}});await b.open();
-  await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(600);
   await b.tapText(/^Start review/,{wait:900});
   for(let i=0;i<19;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(140);}await b.settle(1500);
@@ -851,7 +851,7 @@ L.run(async()=>{
   L.say(barAgree761('mate',99)&&barAgree761('2.8',2.8),'TC-R10 control: the 761 agreement check is SILENT on a mate bar for White (its own branch, not the 99 band) and on +2.8 [#546 item (49)]');
   L.say(!barAgree761('-mate',-99)&&!barAgree761('99.0',99)&&!barAgree761('-2.8',-2.8),'TC-R10 control: and it FIRES on a mate for Black, on a printed 99.0 (a number, so still the hundredfold band) and on -2.8 [#546 item (49)]');
   const c=await L.launch({geo:'kunal761',name:'review-brilliant-761',store:{ct_pool:'3'}});await c.open();
-  await c.tile('Review');await c.page.locator('textarea').first().fill(PGN);await c.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await c.tile('Review');await c.page.locator('textarea').first().fill(PGN);await c.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await c.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await c.settle(600);
   await c.tapText(/^Start review/,{wait:900});
   for(let i=0;i<19;i++){await c.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await c.page.waitForTimeout(140);}await c.settle(1500);
@@ -921,7 +921,7 @@ L.run(async()=>{
   const KPLIES=85;
   for(const pool of ['3','1']){
     const k=await L.launch({geo:'kunal',name:'review-bxh3-guard-pool'+pool,store:{ct_pool:pool}});await k.open();
-    await k.tile('Review');await k.page.locator('textarea').first().fill(KPGN);await k.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await k.tile('Review');await k.page.locator('textarea').first().fill(KPGN);await k.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
     await k.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:300000});await k.settle(600);
     await k.tapText(/^Start review/,{wait:900});
     for(let i=0;i<KPLIES+10;i++){await k.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000}).catch(()=>{});}

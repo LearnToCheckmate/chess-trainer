@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WORDS. US-R156 / TC-R224a..k.
+// gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WORDS. US-R156 / TC-R224a..l.
 //
 // WHY [#550, wording check docs/wording-check-2026-11-12, Kunal "Only you" and "Batch 10", 12 Nov 2026]: the preview gallery (the
 // film-clapper on Home), feedback-to-Claude, the Layout readout and overlay, the New features switches, the brilliant-gate numbers, the
@@ -17,6 +17,7 @@
 // KNOW ITS LIMIT: the signed-in player screens (online play, video call, board scan) are not rendered; their messages are checked as
 // bundle strings only. The More sheet is reached after one review of an 8-move game.
 // CONTROL-RECORD: c2e0d87 2026-11-13 total=33 red=12 scope=trial:b96f96352c90 how=#550 the branch tip before this change (claude/exciting-noether-v1swj8 c2e0d87), built as a trial: every tool shown to every player, so A (b..h), D (k) and the static half (7 of 9 sentences) go red, B and C stay green; on 3de557ab1c5e 33/0
+// CONTROL-RECORD: bb29be7 2026-11-14 total=44 red=11 scope=trial:f0042ce1a984 how=#550 helper app A, wording check what was left (TC-R224l): bb29be7's tree, every TXT item's old wording still in the bundle and its replacement missing (8 static) and Home, Play setup and Review entry rendering the old words (3); on w2 54fd98fdb522 44/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
@@ -49,6 +50,20 @@ L.run(async()=>{
   const left=GONE.filter(s=>src.indexOf(s)>=0);
   L.say(src.length>100000,'TC-R224 PRECONDITION the bundle under test was read ('+src.length+' bytes, '+path.basename(APP)+')');
   L.say(left.length===0,'TC-R224a no setup-error, preview or deploy sentence and no stale Correspondence line is left in the bundle ('+left.length+' of '+GONE.length+' found)',left);
+  /* #550 wording check, what was left (TXT-21, 22, 23, 27, 29, 32, 35, 37; helper app A): one name and one spelling per thing. The words
+     that live in states this gate does not render (the drill header, the Coach line, the locked-style line, the analysing line, the
+     Journey back, the rank unlock) are read from the bundle: each old wording gone AND its replacement present, so a bundle that lost
+     the line entirely cannot pass. */
+  const TXT=[['TXT-21 the mistakes drill is named once',['Your mistakes','slipped on in your games'],['Mistakes drill','Practice your mistakes: ']],
+    ['TXT-22 brilliant move in sentences, Brilliant only as the grade',['Missed Brilliants','a Brilliant was on the board','Brilliancies'],['Missed brilliant moves','a brilliant move was on the board','Brilliant moves']],
+    ['TXT-23 one spelling (colors) and Style for the sets',['Board colours','Colours &','are Pro skins','is a Pro skin'],['Board colors','Colors & pieces','are Pro styles','is a Pro style']],
+    ['TXT-27 Journey for the screen, rank for the ladder',['Back to Roadmap','tap any tier','next puzzle tier'],['Back to Journey','All ranks unlocked','next puzzle rank']],
+    ['TXT-29 the hint prompt names the button',['for a hint.)'],['Hint.)']],
+    ['TXT-32 Discover names tactics, the card names its screen',['Openings, gambits & endgames'],['Openings, tactics, endgames','Tactics & strategy']],
+    ['TXT-35 sentence case',['Analyze Game','New Game','Menu & settings'],['Analyze game','New game','Menu and settings']],
+    ['TXT-37 no engine internals on the analysing screen',['checking every move','engines side by side'],['Checking every move','This takes a few seconds.']]];
+  for(const [tag,old,neu] of TXT){const o=old.filter(s=>src.indexOf(s)>=0),n=neu.filter(s=>src.indexOf(s)<0);
+    L.say(o.length===0&&n.length===0,'TC-R224l '+tag+' (old left: '+(o.join(' / ')||'none')+'; new missing: '+(n.join(' / ')||'none')+')',{o,n});}
 
   // ── A: the player view
   {const b=await L.launch({geo:'kunal761',name:'pw148-player',dev:false,store:{ct_pool:'3',ct_revmig339:'1'}});await b.open();
@@ -83,11 +98,15 @@ L.run(async()=>{
     try{await b.page.reload();await b.settle(1200);}catch(e){}
     let rv=null,more=null;
     try{await b.tile('Review');await b.settle(700);rv=await textOf(b);
-      await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(500);
       await b.tapText(/^Start review/,{wait:900}).catch(()=>{});await b.settle(600);
       await b.tapCt('rev-more',800);await b.settle(400);more=await textOf(b);}catch(e){L.note('review: '+String(e).slice(0,160));}
     L.say(!!rv&&hits(rv).length===0,'TC-R224h Review entry: no developer words ('+hits(rv||'').join(', ')+')',hits(rv||''));
+    /* and the same words as rendered, on the screens launch A already opens */
+    L.say(/Colors & pieces/.test(home||'')&&!/Colours/.test(home||''),'TC-R224l TXT-23 rendered: Home\'s look chip reads Colors & pieces');
+    L.say(/New game/.test(setup||'')&&!/New Game/.test(setup||''),'TC-R224l TXT-35 rendered: the Play setup title reads New game');
+    L.say(/Analyze game/.test(rv||'')&&!/Analyze Game/.test(rv||''),'TC-R224l TXT-35 rendered: the Review entry button reads Analyze game');
     L.say(!!more&&/Flip board/.test(more),'TC-R224 PRECONDITION the Review More sheet is open (Flip board reads)');
     L.say(!!more&&hits(more).length===0,'TC-R224h Review More sheet: no brilliant-gate numbers row ('+hits(more||'').join(', ')+')',hits(more||''));
     L.say(b.errs.length===0,'TC-R224 launch A: zero app errors',b.errs.slice(0,3));

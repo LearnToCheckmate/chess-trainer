@@ -477,7 +477,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'ps-i-'+geo,store:{ct_pool:'3',ct_revmig339:'1',ct_revCompact:'1'}});await b.open();
   await b.tile('Review');
   await b.page.locator('textarea').first().fill(PGN);
-  await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});
   await b.settle(400);
   await b.tapText(/^Start review/,{wait:900}).catch(()=>{});

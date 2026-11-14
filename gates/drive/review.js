@@ -89,7 +89,7 @@ async function toList(b){
 async function importPgn(b,pgn,timeout){
   await toList(b);
   await b.page.locator('textarea').fill(pgn);await b.settle(150);
-  await b.tapText(/^⚡ Analyze Game$/);
+  await b.tapText(/^⚡ Analyze [Gg]ame$/);
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:timeout||180000});
   await b.settle(900);b._ctReview=pgn===PGN_OPERA?'opera':(pgn===PGN_CORNER?'corner':'other');
 }
