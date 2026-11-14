@@ -98,3 +98,4 @@ L.run(async()=>{
   }
 },'FULL-WALK');
 // SELECTOR-OPENED: preview-walk reading=presence round 4: the walk button must exist and state its count
+// CONTROL-RECORD: 016ccda 2026-11-14 total=23 red=2 scope=trial:9736ef9aa593 how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): the #390 control re-run - the !recCap guard deleted from both home dev-row renders - 'NO dev-only chrome in shot' red at kunal730 and se (dev row {w:96,h:44} on screen while recording, null on the tip); every other line green; tip trial 66ccacbf3e7f 23/0

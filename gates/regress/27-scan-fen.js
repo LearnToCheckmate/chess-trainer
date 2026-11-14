@@ -287,3 +287,4 @@ L.run(async () => {
   L.note('that the secret is named GEMINI_API_KEY. Those need Kunal to deploy and to photograph a real board.');
 }, '27-scan-fen');
 // SELECTOR-OPENED: scan-row reading=presence round 2: a source-text presence check
+// CONTROL-RECORD: 016ccda 2026-11-14 total=77 red=3 scope=trial:d7ee58e5ccb0 how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): node-only, so the trial is a mutant functions/fen.js (md5 d7ee58e5ccb0, not a bundle) with check 5, the kings-adjacent rejection, deleted - TC-BS-019 and TC-BS-020 red (ok:true where kings-adjacent is wanted) and TC-BS-027's instrument line red (18 denials wanted, 16 got); the tip's fen.js reads 77/0

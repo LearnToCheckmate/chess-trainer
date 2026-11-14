@@ -30,3 +30,4 @@ L.run(async()=>{
     await b.close();
   }
 },'MOUNTCHECK');
+// CONTROL-RECORD: 016ccda 2026-11-14 total=18 red=6 scope=trial:8b48b3979f5f how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): a useEffect in the app shell calls console.error once Puzzles is the mode - 'Puzzles opens with zero errors' red at kunal and 390, and Review and Play after it (the error list is cumulative), errs 0 -> 1; stamp, tiles, Home and Discover lines green; CT_EXPECT='#550'; tip trial 66ccacbf3e7f 18/0
