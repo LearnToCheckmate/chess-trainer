@@ -14,7 +14,7 @@
 //  TC-R222s a network that never answers and NO cached copy: nothing is served at 3.6 s (no empty answer); the network's late answer is
 //           served when it comes.
 //  TC-R222t a cross-origin request (Firestore) is not touched: respondWith is not called.
-// CONTROL-RECORD: c95453c 2026-11-14 total=7 red=2 scope=env:CT_SW=<sw.js at 21494ed> how=#550 helper B: sw.js before ERR-09 (21494ed, no fallback timer) - TC-R222o2 (no FRESH_WAIT_MS) and TC-R222p (never served while the network hangs, still waiting at 3700 ms) red; the denominator, q, r, s and t green. On the tree's sw.js 7 of 7 green
+// CONTROL-RECORD: 54d9a51 2026-11-14 total=7 red=2 scope=env:CT_SW=sw.js@21494ed how=[sha re-pointed from c95453c, the tree the run used, at which the gate did not exist: 54d9a51 is the commit that added this gate, its L.say lines are identical to today's, and sw.js is byte-identical between c95453c and 54d9a51 (only chess.jsx differs, by cfbae1a). Scope repaired #550 test-system helper B: written 'env:CT_SW=<sw.js at 21494ed>', with spaces, which made the line unparsable] #550 helper B: sw.js before ERR-09 (21494ed, no fallback timer) - TC-R222o2 (no FRESH_WAIT_MS) and TC-R222p (never served while the network hangs, still waiting at 3700 ms) red; the denominator, q, r, s and t green. On the tree's sw.js 7 of 7 green
 'use strict';
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const L=require('../lib.js');
