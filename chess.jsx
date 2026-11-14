@@ -2245,6 +2245,26 @@ function mistakeHint(pos,bestMove,playedMv){
     return 'No tactic to spot here: look for the move that improves your worst piece.';
   }catch(e){return '';}
 }
+/* #550 helper lessons, docs/hint-audit-2026-11-12 HEX-R-03 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): moveGist reads ONE
+   position, so its clauses are true by geometry and can be wrong in the game. Opera 5.Qxf3 read "Wins the bishop" - the bishop had just taken
+   the knight on f3, so it is a bishop for a knight; a piece the next move takes was still "chased". explainLine had both rules (#548), the
+   review sentence had neither. In the game's context: a capture on the square the opponent just captured on TAKES BACK (what for what); and
+   'chases', 'hits' and 'pins' are dropped when the next move played takes the piece that moved. */
+function gistInContext(did,pos,mv,prev,next){
+  let d=(did||[]).slice();
+  try{
+    if(!pos||!mv)return d;
+    const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];const sq=rc2sq(mv.tr,mv.tc);
+    if(cap&&prev&&prev.move&&prev.pos&&prev.move.tr===mv.tr&&prev.move.tc===mv.tc){
+      const lost=prev.pos.board[mv.tr][mv.tc];
+      if(lost&&lost.c!==cap.c){d=d.filter(x=>!/^(wins|trades|gives up) the /.test(x));
+        d.unshift(lost.t===cap.t?('takes back on '+sq+', so the '+PNAME[cap.t]+'s are traded'):('takes back on '+sq+', a '+PNAME[cap.t]+' for the '+PNAME[lost.t]));}}
+    if(next&&next.move&&next.move.tr===mv.tr&&next.move.tc===mv.tc)d=d.filter(x=>!/^(chases|hits|pins) /.test(x));
+  }catch(e){}
+  return d;
+}
+// HEX-R-03's third rule: a Forced move whose next ply mates says so, in place of a gist that is true and beside the point
+function forcedMateTxt(nextPly){const s=nextPly&&nextPly.san?String(nextPly.san).replace(/[!?]+$/,''):'';return /#$/.test(s)?('The only legal move, and '+s.replace(/#$/,'')+' is mate next.'):'';}
 function explainAnno(a,ctx){
   if(!a)return null;
   const L=a.cls&&a.cls.label; if(!L)return null;
@@ -2263,8 +2283,8 @@ function explainAnno(a,ctx){
   const pack=(parts)=>{let o='';for(const t of parts){if(!t)continue;const n=o?(o+' '+t):t;if(n.length>_maxw&&o)break;o=n;}return o||null;};
   // what the move did, at most two clauses, already ranked most-interesting-first by moveGist
   const G=a.gist||{};
-  const _d=(G.did||[]).slice(0,2);
-  const didTxt=_d.length?(_d[0].charAt(0).toUpperCase()+_d[0].slice(1)+(_d[1]?(' and '+_d[1]):'')+'.'):'';
+  const _d=gistInContext(G.did,ctx&&ctx.pos,ctx&&ctx.ply&&ctx.ply.move,ctx&&ctx.prev,ctx&&ctx.nextPly).slice(0,2);   // HEX-R-03: read in the game's context
+  const didTxt=_d.length?(_d[0].charAt(0).toUpperCase()+_d[0].slice(1)+(_d[1]?(((/,/.test(_d[0]))?', and ':' and ')+_d[1]):'')+'.'):'';
   // what it exposed. Only ever used on a move the engine also disliked: after a Best move a piece
   // under fire is an offer, not an oversight, and calling it hanging would be a lie.
   const _h=(G.left||[])[0];
@@ -2348,7 +2368,7 @@ function explainAnno(a,ctx){
   if(L==='Best'||L==='Excellent')return pack([didTxt,pvTxt,motifTxt,standing,gapTxt]);
   if(L==='Good')return pack([didTxt,'Sound, if not the sharpest.',(a.bestSan?(a.bestSan+' was sharper.'):''),motifTxt,standing]);
   if(L==='Book')return pack([didTxt,'Still in the book.',standing,gapTxt]);
-  if(L==='Forced')return pack(['The only legal move.',didTxt,standing]);   // #550 item (20): a Forced move says why it is graded Forced (gate 41 found the box empty at 16...Nxb8)
+  if(L==='Forced'){const _fm=forcedMateTxt(ctx&&ctx.nextPly);if(_fm)return pack([_fm]);return pack(['The only legal move.',didTxt,standing]);}   // #550 item (20): a Forced move says why it is graded Forced (gate 41 found the box empty at 16...Nxb8)
   if(L==='Miss')return pack([hangTxt||didTxt,'You were on top and this let it slip.',(a.bestSan?(a.bestSan+' was the one.'):''),(lossP<14.95?('About '+lossP.toFixed(1)+' pawns gone.'):''),replyTxt]);
   if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
     const size=L==='Inaccuracy'?'A small slip.':(L==='Mistake'?'A mistake.':'A blunder.');
@@ -9968,7 +9988,7 @@ function AppMain(){
        not read off the pending marker, because that marker is written by the effect AFTER this first render. */
     const _L=curAnno.cls&&curAnno.cls.label;
     const refuteDue=!refute&&!(R&&(R.none||R.failed))&&(_L==='Brilliant'||_L==='Great')&&ai>=0&&(()=>{const pos=review.positions&&review.positions[ai],pl=review.plies[ai];return !!(pos&&pl&&pl.move&&sacTaker(pos,pl.move));})();
-    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
+    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',pos:review.positions&&review.positions[ai],ply:review.plies[ai],prev:(ai>0&&review.plies[ai-1]&&review.positions)?{move:review.plies[ai-1].move,pos:review.positions[ai-1]}:null,next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
   },[curAnno,inReview,review,ply,sacTick,wide]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was

@@ -70,6 +70,22 @@ L.run(async()=>{
         const n=E.pzMissNote(P,g,m);if(n&&n.indexOf(' on '+E.rc2sq(m.tr,m.tc)+' ')>=0){named++;if(ex.length<3)ex.push(r.f+' '+E.rc2sq(m.tr,m.tc)+': '+n);}}}catch(e){}});
     L.say(caps>1000&&named===0,'TC-R209k over all '+caps+' capturing wrong moves, no line note names the square the move itself took on ('+named+'; 88 before the fix)',{caps,named,ex});}
    L.say(tot===876&&got>=600,'TC-R209k DENOMINATOR and coverage: of '+tot+' generated puzzles, the first legal wrong move gets a line note on '+got+' (at least 600; 627 measured)',{tot,got});}
+  // ── TC-R209m [#550 helper lessons, docs/hint-audit-2026-11-12 HEX-R-03; jobs/review-sentences-name-what-the-moves-do-2026-11-12]: the Review
+  // sentence's clauses read IN THE GAME. The Opera Game through the shipped moveGist and gistInContext: 5.Qxf3 takes back on f3 (a bishop for
+  // the knight), not "wins the bishop"; 13...Rxd7 takes back a rook for the knight; 4...Bxf3 and 13.Rxd7 no longer "chase" a queen when the
+  // next move takes the piece that moved; and the case that must NOT change - 16...Nxb8 takes a queen that arrived without capturing, so it
+  // still WINS the queen. And a Forced move whose next ply mates says so (the audit's 31.Rxf1 ... Rxf1#).
+  {const SANS='e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6 Qb3 Qe7 Nc3 c6 Bg5 b5 Nxb5 cxb5 Bxb5+ Nbd7 O-O-O Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7 Qb8+ Nxb8 Rd8#'.split(' ');
+   let g=E.fromFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');const P=[],M=[];
+   for(const s of SANS){P.push(g);const m=E.findMoveBySAN(g,s);M.push(m);g=m?E.makeMove(g,m):g;}
+   const at=(i)=>{try{const did=(E.moveGist(P[i],M[i])||{}).did||[];return {did,ctx:E.gistInContext(did,P[i],M[i],i>0?{move:M[i-1],pos:P[i-1]}:null,i+1<SANS.length?{move:M[i+1],san:SANS[i+1]}:null)};}catch(e){return {did:[],ctx:['THREW '+e.message]};}};
+   const q5=at(8),r13=at(25),b4=at(7),w13=at(24),n16=at(31);
+   L.say(M.every(Boolean)&&q5.ctx[0]==='takes back on f3, a bishop for the knight'&&!q5.ctx.some(x=>/^wins the /.test(x)),'TC-R209m 5.Qxf3 takes back on f3, a bishop for the knight, and no longer "wins the bishop" (gist '+JSON.stringify(q5.did.slice(0,2))+' -> '+JSON.stringify(q5.ctx.slice(0,2))+')',q5);
+   L.say(r13.ctx[0]==='takes back on d7, a rook for the knight','TC-R209m 13...Rxd7 takes back on d7, a rook for the knight ('+JSON.stringify(r13.ctx.slice(0,2))+')',r13);
+   L.say(b4.did.some(x=>/^chases /.test(x))&&!b4.ctx.some(x=>/^chases /.test(x))&&w13.did.some(x=>/^chases /.test(x))&&!w13.ctx.some(x=>/^chases /.test(x)),'TC-R209m 4...Bxf3 and 13.Rxd7 no longer chase the queen: the next move takes the piece that moved (gists '+JSON.stringify([b4.did[0],w13.did[0]])+' -> '+JSON.stringify([b4.ctx[0],w13.ctx[0]])+')',{b4,w13});
+   L.say(n16.ctx.indexOf('wins the queen')>=0&&!n16.ctx.some(x=>/^takes back/.test(x)),'TC-R209m (must NOT change) 16...Nxb8 takes a queen that arrived without capturing: it still wins the queen ('+JSON.stringify(n16.ctx.slice(0,2))+')',n16);
+   const f1=E.forcedMateTxt({san:'Rxf1#'}),f0=E.forcedMateTxt({san:'Kh1'});
+   L.say(f1==='The only legal move, and Rxf1 is mate next.'&&f0==='','TC-R209m a Forced move whose next ply mates says so ("'+f1+'"), and one whose next ply does not mate gets nothing from this rule ("'+f0+'")',{f1,f0});}
   const B=[['6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w - - 0 1','h4',/queen on c2 is attacked/],['8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w - - 0 1','Rxh6+',/rook on h3 can be given up with check/]];
   let bh=0;const bm=[];for(const [f,san,want] of B){let t='';try{const g=E.fromFEN(f);t=E.brilHint(g,E.findMoveBySAN(g,san),false)||'';}catch(e){t='';}if(want.test(t))bh++;else bm.push(san+': "'+t+'"');}
   L.say(bh===B.length,'TC-R209d the Brilliant drill hint names what is offered or left on the audit\'s two cards ('+bh+'/2'+(bm.length?'; '+bm.join(' | '):'')+')',bm);

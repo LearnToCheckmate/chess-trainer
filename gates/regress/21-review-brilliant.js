@@ -77,7 +77,7 @@ const SAC_SRC=(()=>{
     const m=/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(lines[a]);
     if(m&&!blocks.has(m[1])) blocks.set(m[1],lines.slice(a,z).join('\n'));
   }
-  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','brilGiveTxt','forkTxt','explainAnno'];   // #549 item (28): explainAnno's Brilliant clause reads brilGiveTxt and forkTxt
+  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','brilGiveTxt','forkTxt','gistInContext','forcedMateTxt','explainAnno'];   // #550 helper lessons: explainAnno reads gistInContext and forcedMateTxt (HEX-R-03). #549 item (28): explainAnno's Brilliant clause reads brilGiveTxt and forkTxt
   const missing=want.filter(n=>!blocks.has(n));
   if(missing.length) return {missing,md5,file};
   try{
