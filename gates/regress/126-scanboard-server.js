@@ -18,7 +18,12 @@ const SRC=process.env.CT_FN_SRC||path.join(__dirname,'..','..','functions','inde
 L.run(async()=>{
   const orig=Module._load;
   Module._load=function(r,...a){if(r.startsWith('firebase-functions'))return {onRequest:(o,f)=>f,onCall:(o,f)=>({opts:o,fn:f}),
-    HttpsError:class extends Error{constructor(c,m){super(m);this.code=c;}},defineSecret:()=>({value:()=>'test-key'}),info(){},warn(){},error(){}};
+    HttpsError:class extends Error{constructor(c,m){super(m);this.code=c;}},defineSecret:()=>({value:()=>'test-key'}),defineString:()=>({value:()=>''}),info(){},warn(){},error(){}};
+    // #550 lead: 451ae2d (the security batch) made functions/index.js require firebase-admin at load (the feedback relay's
+    // auth and per-uid limit), and this container has no functions/node_modules, so the gate went red at its PRECONDITION in the
+    // final suite. Stubbed like firebase-functions above; scanBoard itself does not touch it.
+    if(r==='firebase-admin')return {apps:[],initializeApp(){},auth:()=>({verifyIdToken:async()=>({uid:'u'})}),
+      firestore:()=>({collection:()=>({doc:()=>({})}),runTransaction:async f=>f({get:async()=>({exists:false,data:()=>({})}),set(){}})})};
     return orig.call(this,r,...a);};
   let m=null;try{m=require(SRC);}catch(e){L.say(false,'TC-R202 PRECONDITION functions/index.js loads ('+String(e.message).slice(0,120)+')');return;}
   finally{Module._load=orig;}
