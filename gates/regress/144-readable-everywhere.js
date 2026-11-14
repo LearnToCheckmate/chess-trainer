@@ -29,6 +29,7 @@
 // cream-bar inks were chosen so all six are >= 4.5 on both pills by the same arithmetic (CLK_INK in chess.jsx), which this gate does not re-derive.
 // Headless DejaVu glyphs, not his iOS fonts: ratios are font-independent, glyph boxes are not. Secondary greys (A11Y-12), placeholders (A11Y-07,
 // a global rule), field edges (A11Y-08), the Discover badge (A11Y-04), tallies (A11Y-09) and every P3 are NOT read here.
+// CONTROL-RECORD: 4baf00d 2026-11-14 total=48 red=2 scope=trial:9d44bba256e6 how=#550 helper app A, FMT-B-03 follow-up: the tree before the short-phone Review corners change (the 44x44 back and more in a 32 bar) - TC-R220f se rev-back and rev-more red (tap area 44x35, drawn from y -4); the fix's bundle 92b13a5b8746 reads 48/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=46 red=31 scope=trial:9812f33cea74 how=the branch tip before the change (white ink on every accent, one-colour clock inks, root-white flag alt text, colour-only graph dots, 43px tabs, 30px close): 2.07..3.40 on the accents, cream clock 3.56 / amber 1.44 / red 3.17, AT 1.17; on a11a610b8f51 46/0
 const L=require('../lib');
 const R=require('../drive/review');
@@ -81,7 +82,7 @@ window.__ctHit=(el)=>{const r=el.getBoundingClientRect();const cx=r.left+r.width
   const own=(x,y)=>{if(x<0||y<0||x>innerWidth||y>innerHeight)return false;const h=document.elementFromPoint(x,y);return !!h&&(h===el||el.contains(h));};
   if(!own(cx,cy))return {w:0,h:0,drawn:[Math.round(r.width*10)/10,Math.round(r.height*10)/10],centre:false};
   const walk=(dx,dy)=>{let k=0;while(k<40&&own(cx+dx*(k+0.5),cy+dy*(k+0.5)))k+=0.5;return k;};
-  return {w:walk(-1,0)+walk(1,0),h:walk(0,-1)+walk(0,1),drawn:[Math.round(r.width*10)/10,Math.round(r.height*10)/10],centre:true};};
+  return {w:walk(-1,0)+walk(1,0),h:walk(0,-1)+walk(0,1),drawn:[Math.round(r.width*10)/10,Math.round(r.height*10)/10],top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,centre:true};};
 })()`;
 const fmt=(m)=>m?(m.ratio+':1 "'+m.text+'" ink '+m.ink+' -> '+m.inkEff+' on '+m.bg+' (base '+m.base+' from '+m.baseFrom+', '+m.layers+' layers, '+m.gradients+' gradients, row y'+m.y+')'):'(not measured)';
 const ACCENT_BTNS=`(()=>{const pc=(s)=>{const m=String(s||'').match(/rgba?\\(([^)]+)\\)/);return m?m[1].split(/[ ,]+/).filter(Boolean).slice(0,3).map(Number).join(','):null;};
@@ -160,8 +161,10 @@ L.run(async()=>{
      const s=[...document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]')];const strip=document.querySelector('[data-mstrip]');const cur=s.find(x=>{const r=x.getBoundingClientRect();return r.left>strip.getBoundingClientRect().left+30&&r.right<strip.getBoundingClientRect().right-30;});
      o.strip=cur?window.__ctHit(cur):null;o.stripInner=strip?strip.clientHeight:0;return o;});
    for(const k of ['rev-back','rev-more']){const t='TC-R220f '+geo+' '+k+' tap area '+(ht[k]?ht[k].w+'x'+ht[k].h+' (drawn '+ht[k].drawn.join('x')+')':'absent');
-     if(geo==='kunal761')L.say(!!ht[k]&&ht[k].w>=44&&ht[k].h>=44,t);
-     else L.note('NOT ASSERTED (a layout defect, outside this gate): '+t+' - at 320x568 the button is drawn from y-4 and the horizontal eval bar paints over its last 5px, measured on the branch tip too; routed in the build report');}
+     // #550 helper app A, FMT-B-03 follow-up: at 320x568 this was a NOTE ('drawn from y-4 and the horizontal eval bar paints over its last
+     // 5px'); the corners now draw 30 tall inside the 32 bar with a 44 tap area, so it is asserted at both geometries, with the drawn box
+     // inside the screen (top >= 0) - the walk counts no point above y 0, so a button drawn off the top cannot reach 44 by this measure.
+     L.say(!!ht[k]&&ht[k].w>=44&&ht[k].h>=44&&ht[k].top>=0,t+', drawn from y '+(ht[k]?ht[k].top:'-')+' (inside the screen, >= 0)');}
    L.say(!!ht.strip&&ht.strip.h>=ht.stripInner-1,'TC-R220f '+geo+' a strip move\'s tap area is the strip\'s full inner height '+ht.stripInner+' (KNOWN LIMIT: not 44 - the strip is that tall and growing it moves the board): '+(ht.strip?ht.strip.w+'x'+ht.strip.h+' drawn '+ht.strip.drawn.join('x'):'absent'));
    // the Review list: the tab bar (on Play setup it sits UNDER the setup layer, so it is read here, where it is on top)
    let rl=true;try{await R.toList(b);}catch(e){rl=false;}
