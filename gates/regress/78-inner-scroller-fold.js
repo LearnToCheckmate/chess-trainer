@@ -29,7 +29,14 @@ const R=require('../drive/review');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
 // #550 RE-PINNED for the formatting audit (A-07/B-07: Start game 48 -> 44 and the setup sheet's rows, Kunal's pick 12 Nov), measured on t164 dc4dce763f87 -
 // every geometry moved UP (by 10..28px); at 414x896 the button is now on screen (-2.5). Still below the fold at five of seven: the options-row build retires it.
-const FOLD_PIN={"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5};
+// #550 helper B RE-PINNED (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, d766f3f: Play setup fitted to his phone - one 8 rhythm, the
+// caption in the scan row, 32px opponent icons, a one-line clock note), measured on trial 0dc32a0a7376 (3c7b19c's tree with the More sheet's
+// short-phone fit, which does not touch Play setup): Start game's bottom is 725 at every phone width, so it moved UP 150 (320x568) to 168.5
+// (375x730) - ON SCREEN from 375x730 up, still below the fold at 320x568 (207), 360x640 (85) and 375x667 (58), where Kunal's q44 decides.
+// The assertion's own sentence ('Below the fold at six of the seven') is now stale and is left BYTE-IDENTICAL on purpose: gates/control-audit.js
+// matches records by their exact L.say lines, and editing it turned every earlier control on this gate into ASSERTIONS-MOVED (measured).
+// Was {"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5}.
+const FOLD_PIN={"320x568":207,"360x640":85,"375x667":58,"375x730":-5,"390x844":-119,"414x896":-171,"440x956":-231};
 L.run(async()=>{
   // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
   // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].
