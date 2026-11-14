@@ -41,7 +41,7 @@ async function homeChrome(b){return b.page.evaluate(()=>{
   const look=home.querySelector('[data-ct="home-look"]');if(look)o.look=Object.assign(rc(look),{fs:getComputedStyle(look).fontSize,text:(look.innerText||'').trim()});
   const style=btns.find(x=>/^A\s*Style:/.test((x.innerText||'').replace(/\s+/g,' ').trim()));if(style)o.style=rc(style);
   const build=[...home.querySelectorAll('div')].find(d=>d.children.length===0&&/^Build #/.test((d.innerText||'').trim()));if(build)o.build=Object.assign(rc(build),{fs:getComputedStyle(build).fontSize,text:(build.innerText||'').trim()});
-  const daily=btns.find(x=>/^Daily 3/.test((x.innerText||'').trim()));if(daily)o.daily=Object.assign(rc(daily),{text:(daily.innerText||'').replace(/\s+/g,' ').trim().slice(0,80)});
+  const daily=btns.find(x=>/Today [0-3] of 3/.test((x.innerText||'').trim()));if(daily)o.daily=Object.assign(rc(daily),{text:(daily.innerText||'').replace(/\s+/g,' ').trim().slice(0,80)});
   const nh=btns.find(x=>/^NEW HERE/.test((x.innerText||'').trim()));if(nh)o.newhere=rc(nh);
   return o;});}
 

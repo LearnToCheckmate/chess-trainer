@@ -75,7 +75,7 @@ const S={};
 S['roadmap']=async(b)=>{await fresh(b);await b.tile('Puzzles');await b.settle(500);await scrollTo(b,'top');};
 S['roadmap-bottom']=async(b)=>{await S['roadmap'](b);await scrollTo(b,'end');};
 S['roadmap-rank1']=async(b)=>{await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await scrollTo(b,'top');};
-S['daily3']=async(b)=>{await setStore(b,{[PZKEY]:null,[PZUKEY]:null,ct_daily:null,ct_daily3:{date:today(),lesson:1,puz:0}});await b.home();await b.tapText(/^Daily 3\n/,{wait:800});};
+S['daily3']=async(b)=>{await setStore(b,{[PZKEY]:null,[PZUKEY]:null,ct_daily:null,ct_daily3:{date:today(),lesson:1,puz:0}});await b.home();await b.tapText(/Today [0-3] of 3/,{wait:800});/* #550: the Daily 3 card is the one Today card now */};
 // the Daily 3 card lands on the roadmap (setMode('puzzle')); Start training + a solve should bump ct_daily3.puz to 1
 S['daily3-solved']=async(b)=>{await S['daily3'](b);await tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
 S['train']=async(b)=>{await fresh(b);await startTraining(b);};

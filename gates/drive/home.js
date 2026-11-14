@@ -82,9 +82,9 @@ S['home-bottom']=async(b)=>{await fresh(b);await scrollHome(b,'end');};
 S['home-wave']=async(b)=>{await fresh(b);await tapTitle(b,'Sign in',600);};
 S['home-gallery']=async(b)=>{await fresh(b);await tapTitle(b,'Preview gallery (dev)',600);};
 S['home-feedback']=async(b)=>{await fresh(b);await tapTitle(b,'Send feedback to Claude',600);};
-S['home-daily3-fresh']=async(b)=>{await fresh(b);await tapBtn(b,/^Daily 3 /,800);};
-S['home-daily3-lesson']=async(b)=>{await fresh(b,{ct_daily3:{date:today(),lesson:1,puz:0}});await tapBtn(b,/^Daily 3 /,800);};
-S['home-daily3-continue']=async(b)=>{await fresh(b,{ct_lastlesson:'0'});await tapBtn(b,/^Daily 3 /,1200);};
+S['home-daily3-fresh']=async(b)=>{await fresh(b);await tapBtn(b,/^\u{1F525} .*Today [0-3] of 3/u,800);};
+S['home-daily3-lesson']=async(b)=>{await fresh(b,{ct_daily3:{date:today(),lesson:1,puz:0}});await tapBtn(b,/^\u{1F525} .*Today [0-3] of 3/u,800);};
+S['home-daily3-continue']=async(b)=>{await fresh(b,{ct_lastlesson:'0'});await tapBtn(b,/^\u{1F525} .*Today [0-3] of 3/u,1200);};
 S['home-newhere']=async(b)=>{await fresh(b);await tapBtn(b,/^NEW HERE\? START HERE /,1200);};
 S['home-coachline']=async(b)=>{await fresh(b);await tapBtn(b,/^🎓 .* open$/,1200);};
 // the Colours & pieces chip sits below the fold at 375x679 (y 713): scroll the overlay to its end first, lib's tapCt does not scroll

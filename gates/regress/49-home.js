@@ -35,6 +35,10 @@
 //             below the fold at rest
 //   US-HM-05  each tile opens ITS screen and Home comes down with it
 //   US-HM-06  the ☰ and the 👋 open the menu sheet and the account sheet OVER Home, without dismounting it
+//   [#550 jobs/build-home-one-today-card, Kunal's Desk yes to bench-home-one-today-card + orchestratorRuling_2026_11_07: US-HM-07's streak
+//   card (the 🔥/⭐/🎯 1/5 strip) and US-HM-08's Daily 3 card are ONE Today card now - 'Today n of 3' with the streak on it and Next. Block E
+//   asserts the strip ABSENT on every store and the Today card's words; block G drives three store shapes. Proposal measurements:
+//   claude/agents/BENCHMARK-HOME-2026-09-18.md. The two lines below are kept as the history of what these stories said.]
 //   US-HM-07  the streak card: it is absent on a fresh store, present once anything is earned, and its three
 //             chips and goal bar read the stored numbers
 //   US-HM-08  the Daily 3 card: three dots, ticked from ct_daily3, and "Continue: <lesson>" from ct_lastlesson
@@ -202,6 +206,7 @@
 // CONTROL-RECORD: 848b723 2026-11-06 total=116 red=1 scope=blocks:G how=setHomeScreen(false) removed from the streak card's goPz (trial 3bd111b9c0c2, CT_HM_GEOS=kunal730) - only kunal730/earned [streak] TC-HM-051c red; good trial 51869799ba22 116/0 [#549 item (89)]
 // CONTROL-RECORD: 4471c98 2026-11-06 total=94 red=10 scope=blocks:E,F how=the #549 base bundle before item (22) (md5 a19136012900): NEW HERE isNew read only pzXP and ct_train, card copy promised a win; the ten FAILs are exactly TC-HM-054 x2 and TC-HM-055 x8
 // CONTROL-RECORD: e4a169a 2026-11-12 total=435 red=45 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se: TC-HM-004 the column is 745px of content in a 568px screen, so the
+// CONTROL-RECORD: 97647a6 2026-11-14 total=505 red=88 scope=full how=#550 one Today card (jobs/build-home-one-today-card): the re-pinned gate run on the tree WITHOUT the card (29bb4ce, trial d61a28998af1: the 1/5 strip and the Daily 3 card) - red in every re-pinned family: TC-HM-004/007/008/016/019-021 (signature, card and tile positions), TC-HM-031/040/041 (the strip off Home), 032/033/037-039/042-045 (the card's words and counts), 047/048/050c (taps), 051a/051b (rosters, three store shapes), 054-056; the card's tree (trial ce5b699a5bf4) 523/0
 'use strict';
 const L=require('../lib');
 const H=require('../drive/home');
@@ -236,6 +241,7 @@ const CARDS=(b)=>b.page.evaluate(()=>{
   const col=[...ov.children].find(x=>x.tagName==='DIV'&&/max-width/.test(x.getAttribute('style')||''));
   if(!col)return null;
   const id=(k)=>{const t=(k.innerText||'').replace(/\s+/g,' ').trim();
+    if(/^🔥 .*\bToday [0-3] of 3\b/.test(t))return 'today';           // #550 the one Today card, found by its WORDS: data-ct="home-today" arrived with it
     if(k.getAttribute('data-ct'))return k.getAttribute('data-ct');
     if(!t)return 'intro';                                                // the animated title block: no text at all
     if(/^🔥 /.test(t))return 'streak';
@@ -329,27 +335,37 @@ const DEAD=(b)=>b.page.evaluate(()=>{
     yourCoach:/YOUR COACH/i.test(t),
     continueCard:!!(col&&[...col.children].some(k=>/^CONTINUE$/i.test(((k.innerText||'').trim().split('\n')[0])||'')))};});
 
+// #550 jobs/build-home-one-today-card: THE 1/5 STRIP LEAVES HOME. It is looked for two ways, so a strip that loses its title, or a
+// title-less re-wording of it, is still seen: its title "Today's progress", and its WORDS anywhere in the overlay - a number over the
+// five-a-day goal ('2/5') or an XP figure. Those two numbers stay on the Puzzles roadmap header (TC-HM-047), never on Home.
 const STREAK=(b)=>b.page.evaluate(()=>{
   const r1=(n)=>Math.round(n*10)/10;
   const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
   if(!ov)return null;
+  const otext=(ov.innerText||'').replace(/\s+/g,' ');
+  const words={fiveGoal:/\b\d+ ?\/ ?5\b/.test(otext),xp:/\bXP\b/.test(otext),ofThree:(otext.match(/\bToday [0-3] of 3\b/g)||[]).length};
   const card=[...ov.querySelectorAll('div')].find(x=>x.getAttribute('title')==="Today's progress");
-  if(!card)return {present:false};
+  if(!card)return {present:false,words};
   const r=card.getBoundingClientRect();
   const chips=[...card.children].filter(c=>/^1( 1 0%)?$/.test(c.style.flex||'')).map(c=>(c.innerText||'').replace(/\s+/g,' ').trim());
   const outer=[...card.querySelectorAll('div')].find(d=>d.style.height==='4px');
-  return {present:true,y:r1(r.top),h:r1(r.height),w:r1(r.width),chips,
+  return {present:true,words,y:r1(r.top),h:r1(r.height),w:r1(r.width),chips,
     bar:outer&&outer.firstElementChild?{fill:outer.firstElementChild.style.width,bg:outer.firstElementChild.style.background}:null};});
 
+// #550 THE ONE TODAY CARD (was the Daily 3 card): found by its WORDS ('Today n of 3'), never by the data-ct="home-today" hook that
+// arrived in the same build. Rows read by position: row 1 is the streak and the count, row 2 the three dots and Next, row 3 the a31 line.
 const DAILY3=(b)=>b.page.evaluate(()=>{
   const r1=(n)=>Math.round(n*10)/10;
   const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
   if(!ov)return null;
-  const btn=[...ov.querySelectorAll('button')].find(x=>/^Daily 3/.test((x.innerText||'').trim()));
-  if(!btn)return null;const r=btn.getBoundingClientRect();
+  const btns=[...ov.querySelectorAll('button')].filter(x=>/\bToday [0-3] of 3\b/.test((x.innerText||'').replace(/\s+/g,' ')));
+  if(btns.length!==1)return btns.length?{many:btns.length}:null;const btn=btns[0];const r=btn.getBoundingClientRect();
   const dots=[...btn.querySelectorAll('span')].filter(s=>s.style.width==='18px'&&s.style.height==='18px');
-  return {y:r1(r.top),h:r1(r.height),w:r1(r.width),
-    sub:((btn.innerText||'').replace(/\s+/g,' ').trim().match(/^Daily 3 ([^✓]*?)(?: ✓| \d| Continue| puzzle| 1 lesson)/)||[])[1]||null,
+  const rows=[...btn.children].map(c=>[...c.children].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
+  const T=(e)=>(e.innerText||'').replace(/\s+/g,' ').trim();
+  return {y:r1(r.top),h:r1(r.height),w:r1(r.width),nrows:btn.children.length,
+    head:rows[0]?rows[0][0]:null,count:rows[0]?rows[0][1]:null,next:rows[1]?rows[1][rows[1].length-1]:null,
+    sub:btn.children[2]?T(btn.children[2]):null,
     full:(btn.innerText||'').replace(/\s+/g,' ').trim(),
     n:dots.length,marks:dots.map(s=>(s.innerText||'').trim()),
     labels:dots.map(s=>s.nextElementSibling?(s.nextElementSibling.innerText||'').trim():null)};});
@@ -406,27 +422,27 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // under it. So the column shrinks 885 -> 745 at se and kunal730 (travel 317 -> 177 and 155 -> 15) and 870 -> 844 at 390, which now fits (travel
 // 0). Everything above the tiles is unchanged. The pre-AUD-H01 tables are in this file's history (git log -p).
 const M={
-  se      :{colW:296,sh:745,travel:177,intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
-  kunal730:{colW:351,sh:745,travel:15, intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:319},coach:{y:609,h:39},look:{y:660,h:44},devrow:{y:660},build:{y:712}},
-  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:100},
-            tiles:{y:290,h:321},coach:{y:611,h:39},look:{y:662,h:44},devrow:{y:662},build:{y:714}},
-  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},daily3:{y:106,h:68},newhere:{y:174,h:102},
-            tiles:{y:292,h:326.5},coach:{y:618.5,h:39},look:{y:669.5,h:44},devrow:{y:669.5},build:{y:721.5}}};
+  se      :{colW:296,sh:761,travel:193,intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
+            tiles:{y:306,h:319},coach:{y:625,h:39},look:{y:676,h:44},devrow:{y:676},build:{y:728}},
+  kunal730:{colW:351,sh:761,travel:31, intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
+            tiles:{y:306,h:319},coach:{y:625,h:39},look:{y:676,h:44},devrow:{y:676},build:{y:728}},
+  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
+            tiles:{y:306,h:321},coach:{y:627,h:39},look:{y:678,h:44},devrow:{y:678},build:{y:730}},
+  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:102},
+            tiles:{y:308,h:326.5},coach:{y:634.5,h:39},look:{y:685.5,h:44},devrow:{y:685.5},build:{y:737.5}}};
 // Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
 // its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 12 + w + 16 at every width (18 + w + 16 before FMT-A-08).
 // RE-KEYED by formatting audit FMT-A-08 (Kunal's pick 12 Nov): the 12 gutter on a page with no board (was the overlay's 18), so each tile is 6
 // wider and the left column starts at 12; the right column's x and every y and height are unchanged (measured on trial d2b943f841ec).
 const T={
-  se      :{learn:{x:12,y:290,w:140,h:153.5},  puzzle:{x:168,y:290,w:140,h:153.5},
-            analyze:{x:12,y:455.5,w:140,h:153.5},play:{x:168,y:455.5,w:140,h:153.5}},
-  kunal730:{learn:{x:12,y:290,w:167.5,h:153.5},puzzle:{x:195.5,y:290,w:167.5,h:153.5},
-            analyze:{x:12,y:455.5,w:167.5,h:153.5},play:{x:195.5,y:455.5,w:167.5,h:153.5}},
-  '390'   :{learn:{x:12,y:290,w:175,h:154.5},  puzzle:{x:203,y:290,w:175,h:154.5},
-            analyze:{x:12,y:456.5,w:175,h:154.5},play:{x:203,y:456.5,w:175,h:154.5}},
-  '430'   :{learn:{x:12,y:292,w:195,h:157.3},puzzle:{x:223,y:292,w:195,h:157.3},
-            analyze:{x:12,y:461.3,w:195,h:157.3},play:{x:223,y:461.3,w:195,h:157.3}}};
+  se      :{learn:{x:12,y:306,w:140,h:153.5},  puzzle:{x:168,y:306,w:140,h:153.5},
+            analyze:{x:12,y:471.5,w:140,h:153.5},play:{x:168,y:471.5,w:140,h:153.5}},
+  kunal730:{learn:{x:12,y:306,w:167.5,h:153.5},puzzle:{x:195.5,y:306,w:167.5,h:153.5},
+            analyze:{x:12,y:471.5,w:167.5,h:153.5},play:{x:195.5,y:471.5,w:167.5,h:153.5}},
+  '390'   :{learn:{x:12,y:306,w:175,h:154.5},  puzzle:{x:203,y:306,w:175,h:154.5},
+            analyze:{x:12,y:472.5,w:175,h:154.5},play:{x:203,y:472.5,w:175,h:154.5}},
+  '430'   :{learn:{x:12,y:308,w:195,h:157.3},puzzle:{x:223,y:308,w:195,h:157.3},
+            analyze:{x:12,y:477.3,w:195,h:157.3},play:{x:223,y:477.3,w:195,h:157.3}}};
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
@@ -440,8 +456,10 @@ const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
 const CLIP={se:{clipped:true},kunal730:{clipped:false}};
 // #550 AUD-H01: on a phone the 🎬/💬 pair sits INSIDE the look row (one 44pt row), so it is no longer a card of its own in the column
-const FRESH_SIG=['intro','daily3','newhere','tiles','coachline','lookrow','home-build'];
-const EARNED_SIG=['intro','streak','daily3','tiles','coachline','lookrow','home-build'];
+// #550 jobs/build-home-one-today-card: the 🔥/⭐/🎯 strip ('streak') and the Daily 3 card ('daily3') are ONE card now, 'today'. The earned
+// column is therefore one card SHORTER than the fresh one - the strip no longer takes a slot when anything is earned.
+const FRESH_SIG=['intro','today','newhere','tiles','coachline','lookrow','home-build'];
+const EARNED_SIG=['intro','today','tiles','coachline','lookrow','home-build'];
 const GEOS=['se','kunal730','390','430'];
 
 // CT_HM_BLOCKS=A,B runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving six one-line
@@ -489,10 +507,10 @@ if(blk('A'))for(const geo of GEOS){
     geo+': TC-HM-007 on a fresh store the column is exactly '+FRESH_SIG.join(' · ')+', in that order. Asserted as a signature rather than as "the cards I expected are present", so a NEW card - or one of the three dead blocks below being wired back in - is a red line rather than a silent change of screen',cards&&cards.map(c=>c.id+'@'+c.y));
   const byId=Object.fromEntries((cards||[]).map(c=>[c.id,c]));
   L.say(!!byId.intro&&near(byId.intro.y,W.intro.y)&&near(byId.intro.h,W.intro.h)
-      &&!!byId.daily3&&near(byId.daily3.y,W.daily3.y)&&near(byId.daily3.h,W.daily3.h)
+      &&!!byId.today&&near(byId.today.y,W.today.y)&&near(byId.today.h,W.today.h)
       &&!!byId.newhere&&near(byId.newhere.y,W.newhere.y)&&near(byId.newhere.h,W.newhere.h)
       &&!!byId.tiles&&near(byId.tiles.y,W.tiles.y)&&near(byId.tiles.h,W.tiles.h,1),
-    geo+': TC-HM-008 and each card is where it was measured - intro '+W.intro.y+'/'+W.intro.h+', Daily 3 '+W.daily3.y+'/'+W.daily3.h+', NEW HERE '+W.newhere.y+'/'+W.newhere.h+', tiles '+W.tiles.y+'/'+W.tiles.h+'. Pinned tops and heights are what sees a padding change: NC2 moved every card below the tiles 28px and nothing that compared the screen with itself noticed',
+    geo+': TC-HM-008 and each card is where it was measured - intro '+W.intro.y+'/'+W.intro.h+', Today '+W.today.y+'/'+W.today.h+', NEW HERE '+W.newhere.y+'/'+W.newhere.h+', tiles '+W.tiles.y+'/'+W.tiles.h+'. Pinned tops and heights are what sees a padding change: NC2 moved every card below the tiles 28px and nothing that compared the screen with itself noticed',
     {measured:cards&&cards.map(c=>c.id+' '+c.y+'/'+c.h),want:W});
 
   // --- TC-HM-009: the three blocks the source builds and never paints. RECORDED, NOT ENDORSED.
@@ -660,17 +678,18 @@ if(blk('D')){
 if(blk('E'))for(const geo of ['se','kunal730']){
   const W=M[geo];
 
-  // --- TC-HM-031/032: the empty state. No streak card at all until something is earned.
+  // --- TC-HM-031/032/033: the empty state. #550 jobs/build-home-one-today-card: ONE card, the Today card, on every store - the 1/5 strip
+  // that used to appear above it once anything was earned has left Home (it is asserted absent on the EARNED store below, where it used to be).
   {
     const b=await L.launch({geo,name:'home-e-fresh-'+geo});await b.open();
     await H.states['home'](b);
     const s=await STREAK(b),d=await DAILY3(b);
-    L.say(!!s&&s.present===false,
-      geo+': TC-HM-031 on a fresh store there is NO streak card - it is not a card reading zero, it is absent (chess.jsx:4323 returns null when xp, streak and today\'s count are all 0), which is why the fresh signature has eight children and the earned one also has eight',s);
-    L.say(!!d&&d.n===3&&d.marks.join('|')==='||'&&d.labels.join('|')==='1 lesson|puzzle|puzzle',
-      geo+': TC-HM-032 and the Daily 3 card carries three empty dots labelled "1 lesson", "puzzle", "puzzle"',d);
-    L.say(!!d&&/bonus · any one keeps your streak/.test(d.full),
-      geo+': TC-HM-033 headed "bonus · any one keeps your streak" while anything is outstanding (#550 a31: it read "keep the streak alive", but any one lesson or puzzle keeps the streak and the three are a bonus)',d&&d.full.slice(0,44));
+    L.say(!!s&&s.present===false&&!s.words.fiveGoal&&!s.words.xp&&s.words.ofThree===1,
+      geo+': TC-HM-031 on a fresh store Home carries ONE daily goal - one "Today n of 3" and no strip, no "/5", no XP',s);
+    L.say(!!d&&!d.many&&d.n===3&&d.marks.join('|')==='||'&&d.labels.join('|')==='Lesson|Puzzle|Puzzle'&&d.head==='🔥 Start a streak'&&d.count==='Today 0 of 3'&&d.next==='Next ›',
+      geo+': TC-HM-032 and the Today card reads "🔥 Start a streak", "Today 0 of 3", three empty dots labelled Lesson, Puzzle, Puzzle, and "Next ›" (the mockup 77Z8gWxqwyobzVQ6iyGFPG; a streak of 0 is not printed as "0-day")',d);
+    L.say(!!d&&d.sub==='bonus · any one keeps your streak',
+      geo+': TC-HM-033 and its third line is "bonus · any one keeps your streak" while anything is outstanding (#550 a31: any one lesson or puzzle keeps the streak and the three are a bonus)',d&&d.sub);
     const c=await COACHLINE(b);
     L.say(!!c&&near(c.h,W.coach.h)&&c.spans.length===3&&c.spans[0]==='🎓'&&c.spans[2]==='open',
       geo+': TC-HM-034 the coach line is one '+W.coach.h+'px row of exactly three spans - the glyph, the message, and the word that says it is tappable. Asserted as a shape with a pinned affordance rather than as a pinned sentence: the message is the coach\'s recommendation and moves with the lesson library',c);
@@ -687,21 +706,22 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     await b.close();
   }
 
-  // --- TC-HM-037/038: the earned state. The streak card appears and NEW HERE goes.
+  // --- TC-HM-037/038/039/040: the earned state - the store the 1/5 strip used to appear on. NEW HERE goes, and NOTHING takes its slot: the
+  // streak is on the Today card, XP and the five-a-day goal are on the Puzzles roadmap header (TC-HM-047).
   {
     const b=await L.launch({geo,name:'home-e-earned-'+geo,
       store:{ct_daily:{date:TODAY,streak:4,count:2},
              'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
-    const cards=await CARDS(b),s=await STREAK(b),h=await HOME(b);
+    const cards=await CARDS(b),s=await STREAK(b),d=await DAILY3(b);
     L.say(!!cards&&cards.map(c=>c.id).join(',')===EARNED_SIG.join(','),
-      geo+': TC-HM-037 once anything is earned the column becomes '+EARNED_SIG.join(' · ')+' - the streak card takes the top slot and the NEW HERE card GOES, because "new" is defined as no XP and nothing learned (chess.jsx:4324). Still eight children, which is why this is asserted as a signature and not as a count',cards&&cards.map(c=>c.id));
-    L.say(!!s&&s.present&&near(s.y,106)&&near(s.h,68)&&near(s.w,W.colW),
-      geo+': TC-HM-038 the streak card is 68 tall at the top of the column, the column\'s own width',s);
-    L.say(!!s&&s.chips.join('|')==='🔥 4 DAYS|⭐ 120 XP|🎯 2/5 TODAY',
-      geo+': TC-HM-039 and its three chips read the STORED numbers - a 4-day streak from ct_daily, 120 XP from the puzzle progress, and 2 of today\'s 5 (DAILY_GOAL, chess.jsx:2391). The chips are the only place on Home those three numbers appear',s&&s.chips);
-    L.say(!!s&&s.bar&&s.bar.fill==='40%'&&/245, 158, 11/.test(s.bar.bg),
-      geo+': TC-HM-040 the goal bar is filled to 2/5 = 40% and is amber while the goal is unmet. Pinned at a PARTIAL value on purpose: a bar checked only at 100% passes on a bar that is always full - NC4 proved exactly that',s&&s.bar);
+      geo+': TC-HM-037 once anything is earned the column becomes '+EARNED_SIG.join(' · ')+' - NEW HERE GOES (chess.jsx _newhere) and no strip takes the top slot: the Today card is the only card above the tiles',cards&&cards.map(c=>c.id));
+    L.say(!!d&&!d.many&&near(d.y,106)&&near(d.h,84)&&near(d.w,W.colW),
+      geo+': TC-HM-038 the Today card is 84 tall at the top of the column, the column\'s own width - the proposal\'s 84 (BENCHMARK-HOME-2026-09-18: 152px of two goals -> about 84)',d&&{y:d.y,h:d.h,w:d.w});
+    L.say(!!d&&d.head==='🔥 4-day streak'&&d.count==='Today 0 of 3',
+      geo+': TC-HM-039 the card reads the streak from ct_daily ("🔥 4-day streak") and its count from ct_daily3 ("Today 0 of 3") - NOT from ct_daily.count, which is 2 in this store and is the five-a-day goal\'s number',d&&{head:d.head,count:d.count});
+    L.say(!!s&&s.present===false&&!s.words.fiveGoal&&!s.words.xp&&s.words.ofThree===1,
+      geo+': TC-HM-040 THE 1/5 STRIP IS OFF HOME on the store it used to appear on: no "Today\'s progress" strip, no "2/5", no XP figure, and exactly one "Today n of 3" - one daily goal, not two',s);
     L.say(b.errs.length===0,geo+': zero app errors in the earned state',b.errs.slice(0,3));
     await b.close();
   }
@@ -718,9 +738,9 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     const b=await L.launch({geo,name:'home-e-used-'+nm+'-'+geo,store:seed});
     await b.open();await SEEDED(b);
     const cards=await CARDS(b);
-    if(gone)L.say(!!cards&&cards.some(c=>c.id==='daily3')&&!cards.some(c=>c.id==='newhere'),
+    if(gone)L.say(!!cards&&cards.some(c=>c.id==='today')&&!cards.some(c=>c.id==='newhere'),
       geo+': TC-HM-055 ['+nm+'] a player with no XP and no learned drill line who has '+nm.replace(/-/g,' ')+' is not new - the column renders and the NEW HERE card does not',cards&&cards.map(c=>c.id));
-    else L.say(!!cards&&cards.some(c=>c.id==='daily3')&&cards.some(c=>c.id==='newhere'),
+    else L.say(!!cards&&cards.some(c=>c.id==='today')&&cards.some(c=>c.id==='newhere'),
       geo+': TC-HM-055 ['+nm+'] a player whose only trace is an OPENED lesson (ct_lastlesson, written by the tap itself) has used nothing yet - the column renders and the NEW HERE card is STILL on it',cards&&cards.map(c=>c.id));
     await b.close();
   }
@@ -736,9 +756,9 @@ if(blk('E'))for(const geo of ['se','kunal730']){
       store:{ct_daily:{date:TODAY,streak:9,count:5},
              'chesstrainer.progress.v1':{solved:{g0:1},streak:1,best:1,xp:60,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
-    const s=await STREAK(b);
-    L.say(!!s&&s.present&&s.chips[2]==='🎯 5/5 TODAY'&&s.bar&&s.bar.fill==='100%'&&/74, 222, 128/.test(s.bar.bg),
-      geo+': TC-HM-041 at the goal the bar is full AND changes colour, amber to green - the only thing on Home that says the day is done',s);
+    const s=await STREAK(b),d=await DAILY3(b);
+    L.say(!!s&&s.present===false&&!s.words.fiveGoal&&!s.words.xp&&!!d&&d.head==='🔥 9-day streak'&&d.count==='Today 0 of 3',
+      geo+': TC-HM-041 with the five-a-day goal MET (count 5) Home still shows no 5/5 and no XP - only the Today card, with the 9-day streak and its own count',{s,head:d&&d.head,count:d&&d.count});
     await b.close();
   }
 
@@ -747,16 +767,16 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     const b=await L.launch({geo,name:'home-e-d3-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:1}}});
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
-    L.say(!!d&&d.marks.join('|')==='✓|✓|'&&/bonus · any one keeps your streak/.test(d.full),
-      geo+': TC-HM-042 one lesson and one puzzle done ticks the first two dots and leaves the third, and the card still says "bonus · any one keeps your streak"',d);
+    L.say(!!d&&d.marks.join('|')==='✓|✓|'&&d.count==='Today 2 of 3'&&d.next==='Next ›'&&d.sub==='bonus · any one keeps your streak',
+      geo+': TC-HM-042 one lesson and one puzzle done ticks the first two dots and leaves the third, counts "Today 2 of 3", still offers "Next ›" and still says "bonus · any one keeps your streak"',d);
     await b.close();
   }
   {
     const b=await L.launch({geo,name:'home-e-d3done-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:2}}});
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
-    L.say(!!d&&d.marks.join('|')==='✓|✓|✓'&&/done for today/.test(d.full),
-      geo+': TC-HM-043 all three done ticks all three and the card says "done for today" - the state the whole card exists to reach',d);
+    L.say(!!d&&d.marks.join('|')==='✓|✓|✓'&&d.count==='Today 3 of 3'&&d.sub==='done for today'&&d.next==='Puzzles ›',
+      geo+': TC-HM-043 all three done ticks all three, counts "Today 3 of 3", says "done for today", and its action reads "Puzzles ›" - there is no Next left',d);
     await b.close();
   }
   {
@@ -764,7 +784,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
     L.say(!!d&&d.labels[0]==='Continue: Italian Game'&&d.marks[0]==='',
-      geo+': TC-HM-044 with a lesson in progress the first dot names it - "Continue: Italian Game" instead of "1 lesson", truncated at 18 characters (chess.jsx:4342). This is the ONLY place on Home that a half-finished lesson is surfaced, because the CONTINUE card that would have done it is one of the three dead blocks in TC-HM-009',d&&d.labels);
+      geo+': TC-HM-044 with a lesson in progress the first dot names it - "Continue: Italian Game" instead of "Lesson" [#550 Today card; was "1 lesson"], truncated at 18 characters (chess.jsx:4342). This is the ONLY place on Home that a half-finished lesson is surfaced, because the CONTINUE card that would have done it is one of the three dead blocks in TC-HM-009',d&&d.labels);
     await b.close();
   }
 
@@ -775,8 +795,8 @@ if(blk('E'))for(const geo of ['se','kunal730']){
              'chesstrainer.progress.v1':{solved:{g0:1},streak:1,best:1,xp:60,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
     const c=await COACHLINE(b),dead=await DEAD(b);
-    L.say(!!c&&c.spans[0]==='⚠️'&&c.spans[1]==='Streak at risk - do your Daily 3 today'&&c.spans[2]==='dismiss',
-      geo+': TC-HM-045 with yesterday\'s streak unextended the coach line becomes the warning - ⚠️, "Streak at risk - do your Daily 3 today", and the affordance changes from "open" to "dismiss"',c&&c.spans);
+    L.say(!!c&&c.spans[0]==='⚠️'&&c.spans[1]==='Streak at risk - do a lesson or puzzle today'&&c.spans[2]==='dismiss',
+      geo+': TC-HM-045 with yesterday\'s streak unextended the coach line becomes the warning - ⚠️, "Streak at risk - do a lesson or puzzle today" (#550: was "do your Daily 3 today", and Home has no card called Daily 3 now; a31: any one keeps it), and the affordance changes from "open" to "dismiss"',c&&c.spans);
     L.say(!!dead&&!dead.riskHeading&&!dead.riskBody&&!dead.riskDismiss,
       geo+': TC-HM-046 and even in the state it was written for, the full at-risk BANNER stays absent - no "<n>-day streak at risk" heading, no "Do one lesson or puzzle today to keep it going", no ✕ Dismiss button. A 39px line of text is carrying what the source builds a 30px-🔥 card for. RECORDED, NOT ENDORSED (HM-K1)',dead);
     await b.close();
@@ -787,21 +807,22 @@ if(blk('E'))for(const geo of ['se','kunal730']){
 // HM-F  Taps on the cards, including the one that does not work.  TC-HM-047 … TC-HM-050.
 // =========================================================================================================
 if(blk('F')){
-  const b=await L.launch({geo:'kunal730',name:'home-f-streaktap',store:{ct_daily:{date:TODAY,streak:4,count:2}}});
+  // #550 jobs/build-home-one-today-card: the strip that this tap used to be on has left Home. What it carried - XP and the five-a-day goal -
+  // stays on the Puzzles roadmap header, and the Today card with its lesson done is what takes the player there.
+  const b=await L.launch({geo:'kunal730',name:'home-f-streaktap',store:{ct_daily:{date:TODAY,streak:4,count:2},ct_daily3:{date:TODAY,lesson:1,puz:0},
+    'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}}}});
   await b.open();await SEEDED(b);
-  await b.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
-    const c=[...ov.querySelectorAll('div')].find(x=>x.getAttribute('title')==="Today's progress");if(c)c.click();});
-  await b.settle(1400);
+  const tapped=await TAP(b,/^🔥 .*\bToday 1 of 3\b/,1400);
   const txt=await rootText(b);
-  L.say(!await homeUp(b)&&/4-day streak 2 \/ 5/.test(txt),
-    '375x730: TC-HM-047 the streak card is tappable and goes to the puzzle roadmap, which restates the same two numbers - "4-day streak 2 / 5". Two screens, one source of truth',txt.slice(0,110));
+  L.say(tapped&&!await homeUp(b)&&/4-day streak 2 \/ 5/.test(txt)&&/⭐ 120 XP/.test(txt),
+    '375x730: TC-HM-047 with today\'s lesson done, the Today card goes to the puzzle roadmap - and the roadmap header carries what left Home: "⭐ 120 XP" and the five-a-day goal "4-day streak 2 / 5"',{tapped,txt:txt.slice(0,140)});
   await b.close();
 }
 if(blk('F')){
   const b=await L.launch({geo:'kunal730',name:'home-f-d3tap'});await b.open();await H.states['home'](b);
-  await TAP(b,/^Daily 3/,1400);
-  L.say(!await homeUp(b)&&/What do you want to learn\?/.test(await rootText(b)),
-    '375x730: TC-HM-048 with no lesson in progress the Daily 3 card goes to Discover to pick one, and Home comes down',(await rootText(b)).slice(0,80));
+  const tapped=await TAP(b,/^🔥 .*\bToday 0 of 3\b/,1400);
+  L.say(tapped&&!await homeUp(b)&&/What do you want to learn\?/.test(await rootText(b)),
+    '375x730: TC-HM-048 with no lesson in progress the Today card\'s Next goes to Discover to pick one, and Home comes down',(await rootText(b)).slice(0,80));
   await b.close();
 }
 if(blk('F')){
@@ -866,9 +887,9 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     // #549 base bundle (md5 a19136012900) at 375x761 it was byte-identical here, 'START HERE' beside Daily 3's 'Continue: Italian Game'.
     if(cl&&h===true){await SEEDED(b);
       const c2=await CARDS(b);
-      L.say(!!c2&&c2.some(c=>c.id==='daily3')&&!c2.some(c=>c.id==='newhere'),geo+': TC-HM-054 back on Home after the walkthrough the NEW HERE card opened has reached its end, the NEW HERE card has RETIRED (Daily 3 is on the column and NEW HERE is not), so Home no longer says "Start here" beside "Continue" for the same lesson',c2&&c2.map(c=>c.id));
+      L.say(!!c2&&c2.some(c=>c.id==='today')&&!c2.some(c=>c.id==='newhere'),geo+': TC-HM-054 back on Home after the walkthrough the NEW HERE card opened has reached its end, the NEW HERE card has RETIRED (the Today card is on the column and NEW HERE is not), so Home no longer says "Start here" beside "Continue" for the same lesson',c2&&c2.map(c=>c.id));
       await b.open();await SEEDED(b);const c3=await CARDS(b);
-      L.say(!!c3&&c3.some(c=>c.id==='daily3')&&!c3.some(c=>c.id==='newhere'),geo+': TC-HM-054 and after a RELOAD it stays retired - the end of the walkthrough is recorded, not held in memory',c3&&c3.map(c=>c.id));}
+      L.say(!!c3&&c3.some(c=>c.id==='today')&&!c3.some(c=>c.id==='newhere'),geo+': TC-HM-054 and after a RELOAD it stays retired - the end of the walkthrough is recorded, not held in memory',c3&&c3.map(c=>c.id));}
   }
   await b.close();
   // TC-HM-056 [#549 item (22) A2-R1 fix]: OPENING THE LESSON IS NOT USING IT. The real path antagonist A drove: a fresh store, tap NEW
@@ -886,9 +907,9 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     await b2.settle(900);
     L.say(!!bx&&ll==='0'&&cl,geo+': TC-HM-056 PRECONDITION the NEW HERE card was tapped, the lesson opened (ct_lastlesson "0", written by the tap) and its Close control was tapped about a second later',{bx,ll,cl});
     await SEEDED(b2);const c1=await CARDS(b2);
-    L.say(!!c1&&c1.some(c=>c.id==='daily3')&&c1.some(c=>c.id==='newhere'),geo+': TC-HM-056 back on Home a second after opening the lesson, the NEW HERE card is STILL there - opening a lesson is not using it',c1&&c1.map(c=>c.id));
+    L.say(!!c1&&c1.some(c=>c.id==='today')&&c1.some(c=>c.id==='newhere'),geo+': TC-HM-056 back on Home a second after opening the lesson, the NEW HERE card is STILL there - opening a lesson is not using it',c1&&c1.map(c=>c.id));
     await b2.open();await SEEDED(b2);const c2=await CARDS(b2);
-    L.say(!!c2&&c2.some(c=>c.id==='daily3')&&c2.some(c=>c.id==='newhere'),geo+': TC-HM-056 and after a RELOAD the NEW HERE card is still there',c2&&c2.map(c=>c.id));
+    L.say(!!c2&&c2.some(c=>c.id==='today')&&c2.some(c=>c.id==='newhere'),geo+': TC-HM-056 and after a RELOAD the NEW HERE card is still there',c2&&c2.map(c=>c.id));
     L.say(b2.errs.length===0,geo+': TC-HM-056 zero app errors across the open-and-return path',b2.errs.slice(0,3));
     await b2.close();
   }
@@ -927,7 +948,7 @@ if(blk('F'))for(const geo of ['se','kunal730']){
   const CARDS=[
     {id:'NEW HERE',      seed:{},                  re:/^NEW HERE/,   src:'chess.jsx:4552'},
     {id:'coach line',    seed:{},                  re:/^\u{1F393}\s/u, src:'chess.jsx:4567'},
-    {id:'Daily 3',       seed:{ct_lastlesson:'0'}, re:/^Daily 3\s/,  src:'chess.jsx:4570'},
+    {id:'Today',         seed:{ct_lastlesson:'0'}, re:/^\u{1F525} .*Today [0-3] of 3/u, src:'chess.jsx _today goNext'},   // #550: the Daily 3 card is the one Today card
   ];
   for(const card of CARDS){
     const b=await L.launch({geo,name:'home-f-mode-'+geo+'-'+card.id.replace(/\s+/g,'')});await b.open();
@@ -1046,7 +1067,7 @@ const HOME_ROSTER=[
   // id              kind      lands            what it is, and the measurement behind the declaration
   {id:'home-menu',     kind:'sheet'                }, // chess.jsx: onClick={()=>setMenuOpen(true)}, no setHomeScreen
   {id:'wave',          kind:'sheet'                }, // the sign-in / account sheet, fixed in the overlay's top-right
-  {id:'daily3',        kind:'screen', lands:'learn'}, // on a FRESH store (ct_lastlesson null) it goes to Discover
+  {id:'today',         kind:'screen', lands:'learn'}, // #550 the Today card (was Daily 3): on a FRESH store (ct_lastlesson null) it goes to Discover
   {id:'newhere',       kind:'screen', lands:'lesson'},
   {id:'tile-discover', kind:'screen', lands:'learn'},
   {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
@@ -1066,8 +1087,9 @@ const HOME_ROSTER=[
 const HOME_ROSTER_EARNED=[
   {id:'home-menu',     kind:'sheet'                },
   {id:'wave',          kind:'sheet'                },
-  {id:'daily3',        kind:'screen', lands:'lesson'}, // 'Continue: <lesson>' - setMode('learn'); selectOpening(lastLesson)
-  {id:'streak',        kind:'screen', lands:'puzzle'}, // chess.jsx:5620 goPz(): setMode('puzzle'), pzView 'roadmap'
+  {id:'today',         kind:'screen', lands:'lesson'}, // 'Continue: <lesson>' - setMode('learn'); selectOpening(lastLesson)
+  // #550 jobs/build-home-one-today-card: the 'streak' strip (a div with an onclick, which landed on the puzzle roadmap) has LEFT Home, so
+  // this roster is 13 and the puzzle landing it carried moves to the third store shape below, where the Today card's Next goes there.
   {id:'tile-discover', kind:'screen', lands:'learn'},
   {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
   {id:'tile-review',   kind:'screen', lands:'review'},
@@ -1084,9 +1106,15 @@ const HOME_ROSTER_EARNED=[
 // store (49-home.js block E), and ct_lastlesson:'0' is TC-HM-044's. date is TODAY and not YDAY on purpose -
 // yesterday's date would raise the streak-at-risk path (chess.jsx:5648) and change the coach line's kind
 // mid-loop, which would make this roster measure a third store shape without declaring it.
+// #550 THE THIRD SHAPE, 'lessondone': the earned store with today's lesson done (ct_daily3 lesson 1), so the Today card's Next goes to the
+// PUZZLE ROADMAP - the destination the removed strip used to carry, now reached from the one card. Same 13 controls as earned.
+const HOME_ROSTER_LESSONDONE=HOME_ROSTER_EARNED.map(r=>r.id==='today'?{id:'today',kind:'screen',lands:'puzzle'}:r);
 const HOME_STORES=[
   {store:'fresh',  roster:HOME_ROSTER,        seed:{}},
   {store:'earned', roster:HOME_ROSTER_EARNED, seed:{ct_daily:{date:TODAY,streak:4,count:2},
+    'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}},
+    ct_lastlesson:'0'}},
+  {store:'lessondone', roster:HOME_ROSTER_LESSONDONE, seed:{ct_daily:{date:TODAY,streak:4,count:2},ct_daily3:{date:TODAY,lesson:1,puz:0},
     'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}},
     ct_lastlesson:'0'}},
 ];
@@ -1097,8 +1125,10 @@ const HOME_STORES=[
 const HOME_CTRLS=(b)=>b.page.evaluate(()=>{
   const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
   if(!ov)return null;
-  const idOf=(e)=>{const ct=e.getAttribute('data-ct');if(ct)return ct;
-    const t=(e.innerText||'').replace(/\s+/g,' ').trim();
+  const idOf=(e)=>{const t0=(e.innerText||'').replace(/\s+/g,' ').trim();
+    if(e.tagName==='BUTTON'&&/^\u{1F525} .*\bToday [0-3] of 3\b/u.test(t0))return 'today';   // #550 by its WORDS, ahead of the hook that arrived with it
+    const ct=e.getAttribute('data-ct');if(ct)return ct;
+    const t=t0;
     if(!t)return e.tagName==='DIV'?'intro':'blank';
     if(/^☰$/.test(t))return 'menu';
     if(/^\u{1F44B}$/u.test(t))return 'wave';
@@ -1150,7 +1180,7 @@ const LANDED={lesson:(w)=>w.lesson,learn:(w)=>w.learn,puzzle:(w)=>w.puzzle,revie
 // a default. CT_HM_STORES is the same shape and ITS default is both shapes, for the same reason.
 if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').map(x=>x.trim()).filter(Boolean)){
   const b=await L.launch({geo,name:'home-g-class-'+geo});await b.open();
-  const stores=HOME_STORES.filter(s=>(process.env.CT_HM_STORES||'fresh,earned').split(',').map(x=>x.trim()).indexOf(s.store)>=0);
+  const stores=HOME_STORES.filter(s=>(process.env.CT_HM_STORES||'fresh,earned,lessondone').split(',').map(x=>x.trim()).indexOf(s.store)>=0);
   for(const S of stores){
   const tag=geo+'/'+S.store;
   await H.fresh(b,S.seed);
@@ -1197,9 +1227,9 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
       if(!ov)return {ok:false,why:'no overlay'};
       const all=[...ov.querySelectorAll('button')]
         .concat([...ov.querySelectorAll('div')].filter(d=>typeof d.onclick==='function'));
-      const el=all.find(e=>(e.getAttribute('data-ct')||'')===id)||all.find(e=>{
+      const el=(id==='today'?null:all.find(e=>(e.getAttribute('data-ct')||'')===id))||all.find(e=>{
         const t=(e.innerText||'').replace(/\s+/g,' ').trim();
-        return (id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
+        return (id==='today'&&e.tagName==='BUTTON'&&/^\u{1F525} .*\bToday [0-3] of 3\b/u.test(t))||(id==='daily3'&&/^Daily 3/.test(t))||(id==='newhere'&&/^NEW HERE/.test(t))
           ||(id==='streak'&&e.tagName==='DIV'&&/^\u{1F525}/u.test(t))
           ||(id==='tile-discover'&&/^\S+\s*Discover\s+Openings/u.test(t))||(id==='tile-puzzles'&&/^\u{1F9E9}\s*Puzzles/u.test(t))
           ||(id==='tile-review'&&/^\S+\s*Review\s+Free (unlimited|game)/u.test(t))||(id==='tile-play'&&/^\S+\s*Play\s+(vs Computer|Computer or a friend)/u.test(t))
