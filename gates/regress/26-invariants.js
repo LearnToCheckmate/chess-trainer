@@ -675,6 +675,11 @@ const ICON_PIN={320:[16,19,20,21,22,25,26,27,28,33,36,49],   /* PIN MOVED WITH A
 // the 30 left with the thing it measured, not with a drifted glyph. Measured by app A on a207ea6 (efa1ab05dd72): 17,20,22,26,40 at se,
 // kunal730 and short375. Was {320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]}.
 const ICON_PIN_EXTRA={320:[17,20,22,26,40], 375:[17,20,22,26,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
+// TC-INV-03c [#550 test-system helper A; jobs/tc-inv-03b-does-not-visit-choose-your-opponent-2026-11-14]: since q44 the bot row lives only
+// on 'Choose your opponent', which TC-INV-03b's play-setup state never reached (P.states['setup'] taps Computer, then Back). The state
+// setup-bots stays there and joins EXTRA; and because a union over all the unswept states would hide a height that some OTHER state
+// already uses (40 is also the menu's coach chips), that screen's own set is pinned too. MEASURED on 17c48e4 (see the CONTROL-RECORD).
+const ICON_PIN_BOTS={320:[20,40], 375:[20,40]};   /* 20 the top bar menu button, 40 the bot faces (BotFace); measured at se, kunal730, short375 and kunal761 (width 375, so this pin; CT_INV_GEOS=kunal761 126 pass 0 fail) on 2031e0351c9d */
 
 // ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
 // V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
@@ -1973,15 +1978,15 @@ L.run(async()=>{
     const H=require('../drive/home'), M=require('../drive/menu');
     const EXTRA=[['play-setup',P.states['setup']],['home-newhere',H.states['home-newhere']],['feedback-home',M.states['feedback-home']],
                  ['menu-discover',M.states['menu-discover']],['menu-coach',async(b)=>{await M.states['menu-discover'](b);await M.openCoach(b);}] /* #550 build-menu-one-screen: the Coach look portraits open in place under their row near the TOP of the sheet, so menu-bottom (scrolled to the end) no longer has them on screen */,['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
-                 ['pz-roadmap',PZ.states['roadmap']]];
+                 ['pz-roadmap',PZ.states['roadmap']],['setup-bots',P.states['setup-bots']]];
     for(const g of GEOS){
-      const set={}; const reached=[]; const menuRows=[];
+      const set={}; const reached=[]; const menuRows=[]; const bots={};
       for(const [name,go] of EXTRA){
         const b=await L.launch({geo:g,store:R.SEED,name:'inv3b-'+name+'-'+g}); await b.open();
         try{ await go(b); await b.settle(450);
           const iv=await b.page.evaluate(ROWS,{probeVisible:true}); reached.push(name);
           if(/^menu-/.test(name)) for(const r of iv.rows) menuRows.push({state:name,r});
-          for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); }
+          for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); if(name==='setup-bots')bots[k]=iv.iconH[k]; }
         }catch(e){ L.say(false,g+' TC-INV-03b '+name+': the state could not be reached, so its icons are UNRUN, not green',String(e.message||e).slice(0,140)); }
         await b.close();
       }
@@ -1994,6 +1999,11 @@ L.run(async()=>{
         L.say(JSON.stringify(keys)===JSON.stringify(want), g+': TC-INV-03b the set of distinct ICON glyph heights over the unswept sheets and states (Play setup, home-newhere, feedback, the menu sheet top, bottom and Look picker, the puzzle roadmap) is exactly what #549 measured at '+widthOf(g)+'px wide - a drift guard over the states TC-INV-03 does not walk, not a target',
           {width:widthOf(g), want, got:keys, added:keys.filter(x=>!want.includes(x)), gone:want.filter(x=>!keys.includes(x))});
       } else L.note('    TC-INV-03b, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');
+      {const bk=Object.keys(bots).map(Number).sort((a,b)=>a-b);const bw=ICON_PIN_BOTS[widthOf(g)];
+        L.note('    TC-INV-03c, '+g+': Choose your opponent carries '+bk.length+' distinct ICON glyph heights: '+bk.map(k=>k+' ('+bots[String(k)].slice(0,3).join(' ; ')+')').join(', '));
+        if(bw) L.say(reached.includes('setup-bots')&&JSON.stringify(bk)===JSON.stringify(bw), g+': TC-INV-03c the distinct ICON glyph heights on the Choose your opponent screen are exactly what #550 measured at '+widthOf(g)+'px wide - its own set, so a height another unswept state already uses cannot hide a change here',
+          {width:widthOf(g), want:bw, got:bk, added:bk.filter(x=>!bw.includes(x)), gone:bw.filter(x=>!bk.includes(x))});
+        else L.note('    TC-INV-03c, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');}
       // TC-INV-02g [#550; jobs/invariant-2-and-3-sheets-and-unswept-screens, part (1), after the orchestrator's answer a5 (11 Nov)
       // made INK the measure invariant 2 is promoted on]. THE MENU SHEET'S ROWS UNDER INVARIANT 2, read from the same menu-discover,
       // menu-bottom and menu-look launches as TC-INV-03b above (not added to SCREENS: those states would then come under every
@@ -2124,3 +2134,4 @@ L.run(async()=>{
 // CONTROL-RECORD: e4a169a 2026-11-12 total=511 red=50 scope=trial:3ab724514641 how=#550 re-control of the gate as it stands today (the control audit read ASSERTIONS-MOVED): origin/main's own #549 bundle, which carries none of batch 10 - first red: se puzzles: TC-INV-02e the tab bar's five icons PAINT one height - ink
 // CONTROL-RECORD: 39ef1e3 2026-11-13 total=346 red=4 scope=CT_INV_GEOS=se,kunal730;trial:9e5a544c2ced how=#550 jobs/invariant-2-and-3-sheets-and-unswept-screens part (1), TC-INV-02g: the menu sheet's 'Terms' footer link at fontSize 19px (the other three at 14) - the 02g box-spread and ink-spread lines red at se and kunal730 (spread 6px on menu-bottom's Delete account|Privacy|Refunds|Terms row), the 02g precondition and the coach-hair pin green; on 342f7329901b 346/0 (the harness helper's own run: 45cf62b1a07a 346/0, f8cf8f755343 2 red at se)
 // CONTROL-RECORD: c35462c 2026-11-14 total=346 red=2 scope=trial:03fd6b5bafb0 how=#550 helper B, CT_INV_GEOS=se,kunal730, the TC-INV-03b re-pin after q44 (08f5354): a88ba8c's tree, where the Play setup bot row still scrolls sideways and its 'More opponents' chevron (bot-row-more) paints a 30px glyph - TC-INV-03b red with added [30] gone [] at se and kunal730, the only reds; the tip 89814e1 (trial:904bc71b9a04) is 346 pass 0 fail at that scope and 523 pass 0 fail over all geos (where a88ba8c's is 520/3, short375 red the same way)
+// CONTROL-RECORD: 17c48e4 2026-11-14 total=348 red=9 scope=trial:4cdfd838f023 how=#550 helper A, CT_INV_GEOS=se,kunal730, TC-INV-03c (jobs/tc-inv-03b-does-not-visit-choose-your-opponent-2026-11-14): 17c48e4's tree with the Choose your opponent bot faces drawn at 26 instead of 40 (BotFace size={40} to {26} on the bot row, nothing else) - TC-INV-03c red with added [26] gone [40] at se and kunal730, while TC-INV-03b's union stays GREEN at 17,20,22,26,40 because 26 is the Play setup tiles' height and 40 the coach chips', which is the hole 03c's own pin closes; the other 7 reds are the tip's own (rev-summary row and occlusion pins, TC-INV-13 precondition at se, TC-INV-01b grade-count 56x26/56x28), red identically on the unmutated tip trial:2031e0351c9d
