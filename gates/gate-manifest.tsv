@@ -165,3 +165,5 @@
 156-lesson-stages.js	required	550	2026-11-13	build__1794388896663	#550, jobs/lessons-teach-the-finish-not-the-method-2026-09-24 (its remainder: "the lesso	#550: gate 156 (stage lessons) from the lessons-and-drills helper's merge
 157-icon-rows-one-size.js	required	550	2026-11-13	build__1794388896663	regress/157-icon-rows-one-size.js   ONE ICON SIZE WITHIN A ROW, JUDGED BY THE PAINTED IN	#550: gate 157 (icon rows one size) from the lessons-and-drills helper's merge
 158-sideways-pages-tab-rail.js	required	550	2026-11-14	build__1794388896663	gates/regress/158-sideways-pages-tab-rail.js - SIDEWAYS, EVERY TAB PAGE TAKES THE RIGHT-	#550: gate 158 (sideways pages tab rail) from app B's merge
+160-drill-row-arrows.js	required	550	2026-11-14	build__1794388896663	gates/regress/160-drill-row-arrows.js - THE DRILL CARD'S PREV AND NEXT ARE TWO ARROWS, E	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge
+161-sw-slow-line-serves-cache.js	required	550	2026-11-14	build__1794388896663	(no header comment)	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge
