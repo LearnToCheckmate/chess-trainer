@@ -51,3 +51,4 @@ mountcheck	COVERED on records citing 016ccda (#550 test-system helper B, trial 8
 38-rev-sheet-reach	COVERED on records citing 016ccda (#550 test-system helper B, trial 1f1d063070d2 46/9)
 54-play-resume	COVERED on records citing 016ccda (#550 test-system helper B, trial b779591c834b 94/31)
 71-resume-row-agrees-with-the-board	COVERED on records citing 016ccda (#550 test-system helper B, trial 6cd89b7420c6 53/8)
+64-landscape-gameover-row	COVERED on a record citing de85c2d (#550 test-system helper B, trial a220f726ee22 150/24)
