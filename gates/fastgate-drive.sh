@@ -2662,7 +2662,11 @@ printf '18-drill-credit-provenance\tfastgate-drive.sh H71 fixture, never pushed:
 commit_case "H71 a floor row for 18-drill-credit-provenance, which the control audit reads NONE"
 # THE SUBSTRING IS THE DOOR'S OWN REFUSAL OF THE ROW, NOT control-floor's "FELL" LINE [#550 test-system helper A]: the records
 # binary shows the door's LAST FOUR lines, and since contract-asserts runs after control-floor the FELL line is pushed out of them.
-if probe 1 "records: RED" "DOOR CHECKS REFUSED - control-floor: exit 1, 1 fail"; then
+# #550 lead: THE REFUSAL LINE CAN FALL OUT OF THE LAST FOUR TOO. control-floor prints a "NOT ON THE FLOOR ... (not a refusal)"
+# note for each covered gate with no floor row (11-lesson and 26-invariants on e3bf1e1), after its REFUSED line, so the
+# fast tier's tail -4 showed only the notes, the summary and contract-asserts, and H71 went red in the final suite with
+# the door refusing correctly. The summary line control-floor always prints last is what this case now reads.
+if probe 1 "records: RED" "control-floor: " " pass / 1 fail"; then
   note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, the door refused on control-floor: 18-drill-credit-provenance is on the floor and reads NONE)"
   OK=$((OK+1))
 else
