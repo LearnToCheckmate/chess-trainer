@@ -22,6 +22,21 @@
 #   - The runId is CT_RUNID if set, else the one runId the register at HEAD gives that build number; if the register names
 #     several or none, the tool refuses with exit 2 rather than choose.
 #
+# WHERE IT IS CALLED FROM, DECIDED AND MEASURED [#550 test-system helper A; jobs/build-one-door-for-every-non-gate-check-2026-10-10]:
+#   THE PUSH SEQUENCE CALLS IT, AS ITS OWN STEP, AGAINST THE GATED LOG - `bash gates/series-at.sh <the log verify-log.sh accepted>`,
+#   exit 0 required, beside `gates/verify-log.sh <log> '#NNN'` and the `DOOR CHECKS OK - n of n` line. It is NOT wired into
+#   verify-log.sh, and NOT into records-gate.sh --checks, and the reasons are measured, not preferred:
+#   (1) verify-log.sh is read by more than the push: control-audit.js picks the newest log it accepts, --on-main and the
+#       records arms run it over ARCHIVED logs. Over all 142 archived claude/agents/gatelogs/*-all.log at 8475aea this tool
+#       answers 56 ok, 0 refuse and 86 NOT ANSWERABLE (exit 2: logs from before gates.sh wrote a `ref: HEAD ... | origin/main`
+#       line, e.g. 416-main-all.log). Called by default, verify-log.sh would refuse 86 archived logs it accepts today, and
+#       control-audit's log choice would move with them. An opt-in flag would be safe, but it changes the one push-gate script
+#       and its 137-case selftest for a step the push line can run directly in about one second (549, 548d, 545: 1s each).
+#   (2) records-gate.sh --checks runs on a TREE with no log named; a door row would have to guess which log is "the gated one".
+#   (3) For a log gated on the tree being pushed, gates.sh already ran this same door at the start of the suite; the case this
+#       tool adds is an OLDER green log being cited for a push (the job above), which only the push step can see.
+#   THE PUSH LINE IS THE LEAD'S AND prompts/build-run's (tracker documents), so the wiring is theirs to write; this paragraph is the
+#   repository side of that decision.
 # USAGE  bash gates/series-at.sh <gatelog> [repo]      exit 0 the door says ok | 1 the door refuses (RED) |
 #        bash gates/series-at.sh --selftest              2 not answerable (no header, no ref line, a sha not in
 #                                                          the repo, no runId, or the door printed no verdict)
