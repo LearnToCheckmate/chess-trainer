@@ -34,21 +34,29 @@
 //      but whoever changes the bubble should expect to move these three lines with it, not delete them.
 'use strict';
 const L=require('../lib');
+// #550 helper lessons: the Review text is a line under the board and the rest behind a 'more' tap (docs/review-text-design-2026-11-14 Q2);
+// the rest rides on the line's data-more attribute, so a reader takes both without tapping
+const whyFull=async(x)=>{try{return await x.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return '';
+  const t=(e.innerText||'').replace(/\s+/g,' ').trim(),m=(e.getAttribute('data-more')||'').trim();return (t&&t!=='\u00a0'?t:'')+(m?(' '+m):'');});}catch(e){return '';}};
 const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e) at 375x679, ct_pool 3, ply 19, twice with the same result
 // #549 item (28), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03 (theSentence): the piece is NAMED with
 // what it took, where the old ladder said "a piece" for any knight, bishop or the exchange. Re-measured on #549's trial bundle.
-const WANT='You give up the knight for a pawn. If cxb5, Bxb5+ and White is winning. Nothing else came close: Bxf6 was 1.1 pawns worse. White is winning here.';
+// PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: the pasted game has no player colour, so the voice is the
+// colours' (P1); every move carries its number or dots (P4) and its check mark is dropped (P5); the line under the board is the sacrifice and
+// its refutation, and the standing and the comparison (with its number, Q3) are behind the tap - read here from the line's data-more.
+const WANT='White gives up the knight for a pawn. If ...cxb5, 11.Bxb5. White is winning. Nothing else came close: 10.Bxf6 was 1.1 pawns worse.';
 const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)[+#]?';
+const NUMP='(?:\\d+\\.(?:\\.\\.)?|\\.\\.\\.)?';   // #550: a move is written '10.Bxf6' or '...Bxf6' (P4); the capture group keeps the bare move
 // the four forms of dropTxt(), chess.jsx:667-673, with the drop band each one is printed for
 const FORMS=[
-  {k:'throws-the-win-away',re:new RegExp('(?:^|[.] )('+SAN+'), the next best, throws the win away\\.'),band:null},
-  {k:'nothing-came-close', re:new RegExp('(?:^|[.] )Nothing else came close: ('+SAN+') was (\\d+\\.\\d) pawns worse\\.'),band:[1.0,89.99]},
-  {k:'only-other-try',     re:new RegExp('(?:^|[.] )('+SAN+') was the only other try, (\\d+\\.\\d) worse\\.'),band:[0.35,0.99]},
-  {k:'as-good-on-paper',   re:new RegExp('(?:^|[.] )('+SAN+') was as good on paper, but nothing like as forcing\\.'),band:null},
+  {k:'throws-the-win-away',re:new RegExp('(?:^|[.] )'+NUMP+'('+SAN+'), the next best, throws the win away\\.'),band:null},
+  {k:'nothing-came-close', re:new RegExp('(?:^|[.] )Nothing else came close: '+NUMP+'('+SAN+') was (\\d+\\.\\d) pawns worse\\.'),band:[1.0,89.99]},
+  {k:'only-other-try',     re:new RegExp('(?:^|[.] )'+NUMP+'('+SAN+') was the only other try, (\\d+\\.\\d) worse\\.'),band:[0.35,0.99]},
+  {k:'as-good-on-paper',   re:new RegExp('(?:^|[.] )'+NUMP+'('+SAN+') was as good on paper, but nothing like as forcing\\.'),band:null},
 ];
 // the five forms of `standing`, chess.jsx:727
-const STAND=/(?:White|Black) is (?:winning|losing) here\.$|(?:White|Black) is clearly (?:better|worse)\.$|The position stays roughly level\.$/;
+const STAND=/(?:^|\. )(?:(?:White|Black|Your opponent) is (?:winning|clearly better|a little better)|You are (?:winning|losing|clearly better|a little better)|The game is about even)\./;   // #550: 4f's standing words
 /* ── #504 BLOCK S SUPPORT. jobs/the-brilliant-sentence-prices-the-move-instead-of-explaining-it-2026-10-04,
    part (b), from KUNAL on 2026-10-04: "the why preview stops short before actually taking the knight".
    WHAT BLOCK S IS FOR, AND WHY A DRIVEN BLOCK ALONE WOULD NOT DO. The displayed line is built from
@@ -77,13 +85,16 @@ const SAC_SRC=(()=>{
     const m=/^(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(lines[a]);
     if(m&&!blocks.has(m[1])) blocks.set(m[1],lines.slice(a,z).join('\n'));
   }
-  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','brilGiveTxt','forkTxt','explainAnno'];   // #549 item (28): explainAnno's Brilliant clause reads brilGiveTxt and forkTxt
+  const want=['SAC_LINE_MAX','sacLine','refuteTxt','sacKeep','uciToMove','dropTxt','moveMotifs','brilGiveTxt','forkTxt','explainAnno'];   // #550 helper lessons: explainAnno reads gistInContext and forcedMateTxt (HEX-R-03). #549 item (28): explainAnno's Brilliant clause reads brilGiveTxt and forkTxt
   const missing=want.filter(n=>!blocks.has(n));
   if(missing.length) return {missing,md5,file};
   try{
     const E=require('../engine-extract');
     const code=want.map(n=>blocks.get(n)).join('\n')+'\nreturn {SAC_LINE_MAX:SAC_LINE_MAX,sacLine:sacLine,refuteTxt:refuteTxt,sacKeep:sacKeep,explainAnno:explainAnno};';
-    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove','PNAME',code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove,E.PNAME);
+    /* #550 helper lessons: explainAnno now renders reviewText (docs/review-text-design-2026-11-14), whose helpers engine-extract exports, so
+       the rest of the engine is put in scope by name (a name this block list defines itself is not passed twice) */
+    const en=Object.keys(E).filter(n=>/^[A-Za-z_$][\w$]*$/.test(n)&&!want.includes(n)&&['FILES','getLegal','applyMove','toSAN','makeMove','PNAME'].indexOf(n)<0);
+    const api=new Function('FILES','getLegal','applyMove','toSAN','makeMove','PNAME',...en,code)(E.FILES,E.getLegal,E.applyMove,E.toSAN,E.makeMove,E.PNAME,...en.map(n=>E[n]));
     return Object.assign({missing:[],md5,file,E},api);
   }catch(e){return {missing:['<eval: '+e.message+'>'],md5,file};}
 })();
@@ -369,16 +380,20 @@ L.run(async()=>{
     const annoB={cls:{label:'Brilliant'},gate:{given:3},altSan:'Bg6',altDrop:90,pv:[]};
     const brl3=EA(annoB,{refute:{capSan:'Nxd7',replySan:'Bxe7',replyLine:['Bxe7','Bxe7','Bxd7+'],verdict:'and White is winning'},maxw:400});
     const brl1=EA(annoB,{refute:{capSan:'Nxd7',replySan:'Bxe7',replyLine:['Bxe7'],verdict:'and White is winning'},maxw:400});
-    L.say(typeof brl3==='string'&&brl3.indexOf('If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE. This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
-    L.say(typeof brl1==='string'&&brl1.indexOf('If Nxd7, Bxe7 and White is winning.')>=0&&brl1.indexOf('Bxd7+')<0,'TC-R10/S27 #512 and the BRILLIANT branch still renders the SINGLE-ply form unchanged from what shipped before, so the change can only ever ADD the recovery on this branch too',brl1);
+    // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14 P4 and P6]: every move of the line is written with its number
+    // and dots, the check mark said in words or dropped, and the colour verdict moved behind the tap (part 4)
+    L.say(typeof brl3==='string'&&brl3.indexOf('If ...Nxd7, 2.Bxe7 Bxe7 3.Bxd7.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE. This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
+    L.say(typeof brl1==='string'&&brl1.indexOf('If ...Nxd7, 2.Bxe7.')>=0&&brl1.indexOf('Bxd7')<0,'TC-R10/S27 #512 and the BRILLIANT branch still renders the SINGLE-ply form unchanged from what shipped before, so the change can only ever ADD the recovery on this branch too',brl1);
     // TC-R87 (US-R85), #547 item (128): A PLY WITH NO STORED EVAL MUST NOT BE CALLED LEVEL. explainAnno defaulted a missing
     // evalAfter to 0 and printed 'The position stays roughly level.' - the sentence for a balanced position. The genuinely level
     // case is the PRECONDITION (with evalAfter 0 the clause must appear), so the second line cannot pass on a sentence that never
     // carries the clause at all.
-    {const lvl=EA({cls:{label:'Good'},evalAfter:0,loss:10,pv:[]},{mover:'White',maxw:400});
+    // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14 4h]: a good move's standing is said only when it is not
+    // 'about even', so the precondition is now a clearly better position (evalAfter +2), and the no-eval ply must say no standing at all
+    {const lvl=EA({cls:{label:'Good'},evalAfter:2,loss:10,pv:[]},{mover:'White',maxw:400});
      const none=EA({cls:{label:'Good'},loss:10,pv:[]},{mover:'White',maxw:400});
-     L.say(typeof lvl==='string'&&/roughly level/.test(lvl),'TC-R87 PRECONDITION a genuinely level position (evalAfter 0) is still called level',lvl);
-     L.say(typeof none==='string'&&none.length>0&&none.indexOf('roughly level')<0,'TC-R87 a ply with NO stored eval says nothing about the standing - "I do not know" is no longer printed as "it is equal"',none);}
+     L.say(typeof lvl==='string'&&/clearly better/.test(lvl),'TC-R87 PRECONDITION a position with a stored eval (+2) carries its standing',lvl);
+     L.say(typeof none==='string'&&none.length>0&&!/(better|even|level|winning|losing)/.test(none),'TC-R87 a ply with NO stored eval says nothing about the standing - "I do not know" is no longer printed as "it is equal"',none);}
     // TC-R113 (US-R85), #549 item (50): A CAPTURE THAT GIVES MORE THAN IT GETS IS NOT A TRADE. moveGist printed
     // 'trades the <captured>s off' for any recaptured capture, so 25.Bxg6 hxg6 read 'trades the pawns off' and 18.Rxe4 dxe4
     // 'trades the knights off' with no white knight on the board. The real moveGist, read out of the same source as above
@@ -460,7 +475,7 @@ L.run(async()=>{
   await b.tapText(/^Start review/,{wait:900});
   for(let i=0;i<19;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await b.page.waitForTimeout(140);}await b.settle(1500);
   const ml=await b.rect('[data-ct="rev-move-line"]');L.say(!!ml&&/Nxb5/.test(ml.text),'at 10.Nxb5',ml&&ml.text);
-  const txt=(await b.text('[data-ct="rev-why-txt"]'))||(await b.text('[data-ct="rev-why"]'))||'';
+  const txt=(await whyFull(b));
   L.note('reason: '+txt.slice(0,200));
   L.say(/give|sacrific|gives up/i.test(txt),'TC-R10 the reason says what was given up');
   L.say(/If cxb5|Bxb5\+|cxb5/.test(txt),'TC-R10 the reason names the forcing follow-up (cxb5 / Bxb5+)');
@@ -468,10 +483,10 @@ L.run(async()=>{
 
   // ── 1. THE PIN, and the four clauses separately so a red names the one that moved ────────────────
   L.say(txt===WANT,'TC-R10 PINNED the brilliancy sentence is EXACTLY the one measured on #387',{want:WANT,got:txt});
-  L.say(/^You (?:give up the (?:queen|rook|bishop|knight|pawn) (?:for an? (?:pawn|knight|bishop|rook|queen)|on [a-h][1-8])|leave the (?:queen|rook|bishop|knight|pawn) on [a-h][1-8] to be taken|give up (?:the queen|a rook|a piece|a pawn|material))(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches a brilGiveTxt template verbatim (#549: named piece, or the pre-#549 ladder for an old stored gate)',txt.slice(0,44));
-  L.say(/^You give up the knight for a pawn\./.test(txt),'TC-R10 clause 1 PINNED to "the knight for a pawn" - 10.Nxb5 gives a knight for the b5 pawn (#549; it read "a piece" before)',txt.slice(0,36));
-  L.say(/(?:^|[.] )If cxb5, Bxb5\+(?:[^.]*)?\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>."');
-  L.say(STAND.test(txt),'TC-R10 clause 4 matches a `standing` template verbatim and closes the sentence','...'+txt.slice(-34));
+  L.say(/^(?:You|White|Black|Your opponent) (?:gives? up the (?:queen|rook|bishop|knight|pawn) (?:for an? (?:pawn|knight|bishop|rook|queen)|on [a-h][1-8])|leaves? the (?:queen|rook|bishop|knight|pawn) on [a-h][1-8] to be taken|gives? up (?:the queen|a rook|a piece|a pawn|material))(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches a brilGiveTxt template verbatim (#549: named piece, or the pre-#549 ladder for an old stored gate)',txt.slice(0,44));
+  L.say(/^White gives up the knight for a pawn\./.test(txt),'TC-R10 clause 1 PINNED to "the knight for a pawn" - 10.Nxb5 gives a knight for the b5 pawn (#549; it read "a piece" before)',txt.slice(0,36));
+  L.say(/(?:^|[.] )If \.\.\.cxb5, 11\.Bxb5\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>."');
+  L.say(STAND.test(txt),'TC-R10 clause 4 matches a `standing` template verbatim (behind the tap, before the comparison, 4a part 4)','...'+txt.slice(-34));
 
   // ── 2. EXACTLY ONE dropTxt template, and its NUMBER inside that template's own band ──────────────
   const hit=FORMS.filter(f=>f.re.test(txt));
@@ -507,7 +522,7 @@ L.run(async()=>{
   const chip=await b.text('[data-ct="eval-bar-num"]');
   const cN=(chip==='mate')?99:((chip==='-mate')?-99:(/^[+-]?\d+\.\d$/.test(String(chip))?parseFloat(chip):null));
   L.say(cN!==null,'TC-R10 the eval bar shows a readable evaluation to cross-check the words against',chip);
-  const saysWinning=/White is winning here\.$/.test(txt);
+  const saysWinning=/(?:^|\. )White is winning\./.test(txt);
   L.say(saysWinning,'TC-R10 PINNED the standing clause reads "White is winning here."','...'+txt.slice(-26));
   /* #394, AND THIS ASSERTION CAUGHT ME MAKING THE EXACT MISTAKE IT EXISTS TO CATCH. It first read `cN>=3`,
      carried over unchanged from the retired coach chip, and went RED at +2.8 on a healthy bundle.
@@ -556,7 +571,7 @@ L.run(async()=>{
   const sweep=[];
   for(let k=0;k<PLIES;k++){
     const ml=await b.rect('[data-ct="rev-move-line"]');
-    const why=(await b.text('[data-ct="rev-why-txt"]'))||(await b.text('[data-ct="rev-why"]'))||'';
+    const why=(await whyFull(b));
     // first line of the move line is "10. Nxb5" / "15... Nxd7"; the SAN is its last whitespace token
     const head=String((ml&&ml.text)||'').split('\n')[0].trim();
     const played=head.split(/\s+/).pop()||'';
@@ -616,16 +631,17 @@ L.run(async()=>{
      THE SETTLE IS 1800ms, NOT THE SWEEP'S 260ms, DELIBERATELY. The clause arrives from a DEBOUNCED engine
      query - 450ms of rest and then a 700ms search - so the sweep above cannot see it at all and a short
      settle here would measure the sentence before the clause lands [#387]. */
-  const parseRefute=(w)=>{const m=/If ([^,]+), ([^.]*)\./.exec(String(w||''));if(!m)return null;
-    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').trim();
-    return {cap:m[1],moves:mv?mv.split(/\s+/):[]};};
+  const parseRefute=(w)=>{const m=/If ([^,]+), (.+?)\.(?=\s|$)/.exec(String(w||''));if(!m)return null;
+    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').replace(/\s+mate$/,'#').trim();
+    const bare=(t)=>String(t).replace(/^\d+\.+|^\.\.\./,'');   // #550 helper lessons: moves are written '11.Bxb5' and '...cxb5' now (P4)
+    return {cap:bare(m[1]),moves:mv?mv.split(/\s+/).map(bare):[]};};
   const RV=require('../drive/review');
   const n=await L.launch({geo:'kunal730',name:'review-brilliant-504',store:{ct_pool:'3'}});await n.open();
   await RV.ensureReview(n,'opera');await RV.startReview(n);
   const readPly=async(ply)=>{
     await RV.goPly(n,ply);await n.settle(1800);
     const ml=await n.rect('[data-ct="rev-move-line"]');
-    const why=(await n.text('[data-ct="rev-why-txt"]'))||(await n.text('[data-ct="rev-why"]'))||'';
+    const why=(await whyFull(n));
     const box=await n.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return null;const cs=getComputedStyle(e);const cl=parseInt(cs.webkitLineClamp,10),lh=parseFloat(cs.lineHeight);return {sh:e.scrollHeight,ch:e.clientHeight,clamp:cl||null,lh:lh||null,cap:(cl&&lh)?Math.ceil(cl*lh):null};});
     L.note('    #504 ply'+ply+' '+String((ml&&ml.text)||'').split('\n')[0].trim()+'  ->  '+why.replace(/\s+/g,' '));
     return {head:String((ml&&ml.text)||'').split('\n')[0],why,box,r:parseRefute(why)};
@@ -655,12 +671,12 @@ L.run(async()=>{
      claim is instead asserted DETERMINISTICALLY at source level by S2, S14 and S26, which render the
      three-ply line with no engine involved. The division is deliberate: block S proves the capability,
      block N proves the app never renders anything illegal. */
-  const P25OK=['The only move that keeps it. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Chases the queen off e7 and takes the open d file.',
-               'The only move that keeps it. If Nxd7, Bxe7 and White is winning. Chases the queen off e7 and takes the open d file. It forks two pieces at once.',
-               /* #550 item (17): under rule 3 (the default) 13.Rxd7 is Brilliant - the rook given for the d7 knight - so the sentence is the
-                  brilliancy's, measured on trial 09de6ae42b2c; the 3-ply variant is the same budget's other legal reading. */
-               'You give up the rook for a knight. If Nxd7, Bxe7 and White is winning. Nothing else came close: Rd5 was 1.7 pawns worse.',
-               'You give up the rook for a knight. If Nxd7, Bxe7 Bxe7 Bxd7+ and White is winning. Nothing else came close: Rd5 was 1.7 pawns worse.'];
+  /* PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: measured on trial d06ec3689cf0 (P4 notation, colour voice,
+     the standing and the comparison behind the tap); the Great forms are kept for a rule that grades 13.Rxd7 Great. */
+  const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning.',
+               'The only good move. If ...Nxd7, 14.Bxe7. White is winning.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
   const P25hit=P25OK.filter(t=>P25.why===t).length;
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,
@@ -714,7 +730,7 @@ L.run(async()=>{
     const q=await L.launch({geo:'se',name:'review-brilliant-504-se',store:{ct_pool:'3'}});await q.open();
     await RV.ensureReview(q,'opera');await RV.startReview(q);await RV.goPly(q,25);await q.settle(1800);
     const box=await q.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]')||document.querySelector('[data-ct="rev-why"]');if(!e)return null;const cs=getComputedStyle(e);const cl=parseInt(cs.webkitLineClamp,10),lh=parseFloat(cs.lineHeight);return {sh:e.scrollHeight,ch:e.clientHeight,chars:(e.textContent||'').length,lh:lh||null,ofY:cs.overflowY,clamp:cl||null,cap:(cl&&lh)?Math.ceil(cl*lh):null};});
-    const why=(await q.text('[data-ct="rev-why-txt"]'))||'';
+    const why=(await whyFull(q));
     await q.shot('review-brilliant-504-se');await q.close();
     return {box,why};
   };
@@ -731,7 +747,7 @@ L.run(async()=>{
   const extra25=await (async()=>{
     const x=await L.launch({geo:'kunal761',name:'review-brilliant-512-s3',store:{ct_pool:'3'}});await x.open();
     await RV.ensureReview(x,'opera');await RV.startReview(x);await RV.goPly(x,25);await x.settle(1800);
-    const why=(await x.text('[data-ct="rev-why-txt"]'))||(await x.text('[data-ct="rev-why"]'))||'';
+    const why=(await whyFull(x));
     await x.close();return why;
   })();
   P25SAMPLES.push(clausePlies(extra25));
@@ -857,7 +873,7 @@ L.run(async()=>{
   for(let i=0;i<19;i++){await c.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000});await c.page.waitForTimeout(140);}await c.settle(1500);
   const vp761=await c.page.evaluate(()=>({w:innerWidth,h:innerHeight,sh:document.documentElement.scrollHeight}));
   L.say(vp761.w===375&&vp761.h===761,'TC-R10 geo 375x761: the column really ran at the geometry R19 names, read from the page rather than from the GEOS entry',vp761);
-  const txt761=(await c.text('[data-ct="rev-why-txt"]'))||(await c.text('[data-ct="rev-why"]'))||'';
+  const txt761=(await whyFull(c));
   const read761=await c.page.evaluate(()=>{
     const out={};
     for(const k of ['rev-move-line','rev-why-txt','eval-bar-num','rev-playout']){
@@ -929,7 +945,7 @@ L.run(async()=>{
     const ks=[];
     for(let i=0;i<KPLIES;i++){
       const ml=await k.rect('[data-ct="rev-move-line"]');
-      const why=(await k.text('[data-ct="rev-why-txt"]'))||(await k.text('[data-ct="rev-why"]'))||'';
+      const why=(await whyFull(k));
       const head=String((ml&&ml.text)||'').split('\n')[0].trim();
       const played=head.split(/\s+/).pop()||'';
       let form=null,alt=null;

@@ -139,6 +139,34 @@ At 320x568 the explanation is clamped to one line with "▾ more" (the readabili
 - Under a Blunder, Mistake or Miss, the opponent's reply is now described by what the board after it proves - "<reply> is mate.", "It allows mate in two, starting <reply>.", or "<reply> wins the <piece>" - where it used to read "<reply> is the answer". When the swing is a mate, the "About 15.0 pawns of advantage gone" clause (the loss is capped at 15.0 there) is dropped. Not yet shown on your own games here: these are the rules as built, and the Review gates were run over them.
 - The "▶ why" button now answers in words in the line row: the first two moves of the line it plays, through the same reader as the engine line's ? sheet.
 
+**Captures read in the game, not on one board (HEX-R-03)** - Opera Game
+- 5.Qxf3, old: Wins the bishop and gets the queen out of danger.
+- 5.Qxf3, new: Takes back on f3, a bishop for the knight, and gets the queen out of danger.
+- 13...Rxd7, old: Wins the rook and defends the queen on e7. New: Takes back on d7, a rook for the knight, and defends the queen on e7.
+- 4...Bxf3, old: Chases the queen off d1 and trades the bishop for the knight. New: Trades the bishop for the knight. (The next move takes the bishop, so the queen was never chased.)
+- A Forced move whose next ply is mate, old: The only legal move. Wins the queen and takes the open f file. White is losing here. New: The only legal move, and Rxf1 is mate next.
+
+**The Review text, to docs/review-text-design-2026-11-14** (tracker; Kunal's six choices, 3:32am ET Sat 14 Nov). The line is what sits under the board; "more" is behind the tap. Fixed positions, the design's 7b:
+- F1, his 7.Re1. Old: A small slip. e5 is the answer. Nbd2 held it. About 0.9 pawns of advantage gone. The position stays roughly level. New: A small slip. Your opponent plays the pawn move ...e5: it threatens ...e4, a pawn attacking your bishop on d3 and knight on f3 at once. More: 7.Nbd2 was better: it brings a knight out. The game is about even. The engine counts it as about 0.9 pawns.
+- F2, 19.Bh4. Old: It leaves the knight on f3 hanging. A blunder. Qh5 is the answer, forking two at once. Nxg5 held it. About 4.3 pawns of advantage gone. New: A blunder. Your knight could take their queen: 19.Nxg5.
+- F3, 25.Bxb7. Old: A mistake. f5 is the answer. Qh7# held it. About 9.0 pawns of advantage gone. White is winning here. New: A mistake, though you are still winning. You missed checkmate: 25.Qh7 was mate.
+- F4, 13...Bxh3 (you are Black). Old: It puts the bishop on h3 en prise. A mistake. gxh3 wins the bishop. c5 held it. ... New: A mistake. Your bishop takes a pawn but can be taken straight back: 14.gxh3. A bishop for a pawn.
+- F5, the Opera 15...Nxd7 (your opponent's move). Old: A blunder. It allows mate in two, starting Qb8+. Qxd7 held it. Black is losing here. New: Your opponent's blunder. It allows mate in two: 16.Qb8 Nxb8 17.Rd8 mate.
+- F6, 4...g6 (you are Black; they did not play Ng5). Old: A mistake. Ng5 is the answer. Nxe4 held it. ... New: A mistake. Your opponent could play 5.Ng5, threatening 6.Nxf7.
+- F7, 11.Nxe4 (a recapture, Best). Old: Wins the pawn. White is clearly better. New: The best move. It takes the pawn back, so material is even. You are a little better.
+- F8, 4.e3 (Excellent). Old: The position stays roughly level. New: A good move. It backs up your pawn on d4, and lets your f1 bishop out.
+- F9, 2.f4 under a Book chip. Old: A small slip. About 0.8 pawns of advantage gone. The position stays roughly level. New: An opening move (King's Gambit).
+- F10, 11.b4. Old: A mistake. e6 is the answer. exd5 held it. About 1.9 pawns of advantage gone. White is clearly better. New: A mistake, though you are still better. Your pawn could take their pawn: 11.exd5.
+- F11, a quiet slip (1.a3). Old: A small slip. e5 is the answer. e4 held it. ... New: A small slip. Nothing is lost at once, but your opponent's best reply is the pawn move ...e5. More: 1.e4 was better: it puts a pawn in the center. Tap best to see it on the board.
+- F12, F1 with your colour unknown (a pasted game). New: White's small slip. Black plays the pawn move ...e5: it threatens ...e4, a pawn attacking White's bishop on d3 and knight on f3 at once.
+
+**The engine line in plain words: a trade is not a win** (jobs/explain-engine-lines-in-plain-words, checker seat 2)
+- Old: 1…Qxf6 [wins the queen] 2.exf6+ [wins the queen, with check] Kxf6 [wins the pawn]
+- New: 1…Qxf6 [trades the queens] 2.exf6+ [takes back on f6, so the queens are traded, with check] Kxf6 [wins the pawn]
+- Old: 1.Nxd4 [wins the knight] exd4 [wins the knight] 2.Bxd4 [wins the pawn]
+- New: 1.Nxd4 [trades the knights] exd4 [takes back on d4, so the knights are traded] 2.Bxd4 [wins the pawn]
+- Over the bench corpus (336 lines, 1005 explained moves): 'wins' phrases 225 -> 164, and those on a capture the next move takes back like for like 6 -> 0.
+
 ## 8. Tactics and Strategy: the wrong chess, fixed
 - Pawn fork: a second white pawn on e4 guards d5, so Bxd5 no longer refutes it (the stored move is now best by 2.4 pawns).
 - Put rooks on open files, Rooks love the 7th rank, Trade pieces when you are ahead: each had mate in one for White; Black now has air (and, for the trade card, a rook and knight to trade). No mate in one in any of the 18.

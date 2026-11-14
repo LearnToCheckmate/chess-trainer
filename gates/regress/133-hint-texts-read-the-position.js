@@ -70,6 +70,72 @@ L.run(async()=>{
         const n=E.pzMissNote(P,g,m);if(n&&n.indexOf(' on '+E.rc2sq(m.tr,m.tc)+' ')>=0){named++;if(ex.length<3)ex.push(r.f+' '+E.rc2sq(m.tr,m.tc)+': '+n);}}}catch(e){}});
     L.say(caps>1000&&named===0,'TC-R209k over all '+caps+' capturing wrong moves, no line note names the square the move itself took on ('+named+'; 88 before the fix)',{caps,named,ex});}
    L.say(tot===876&&got>=600,'TC-R209k DENOMINATOR and coverage: of '+tot+' generated puzzles, the first legal wrong move gets a line note on '+got+' (at least 600; 627 measured)',{tot,got});}
+  // ── TC-R209p [#550 helper lessons; docs/review-text-design-2026-11-14 (tracker 5326ERvZCZ5tEYRkPavPTF) 7b F1..F12; closes
+  // jobs/review-slip-sentences-say-whose-move-and-why-2026-11-14 and the wording parts of review-sentences-name-what-the-moves-do]: the Review
+  // text read through the SOURCE's own explainAnno (and reviewMore where the source has it), its block evaluated with the engine in scope,
+  // so a control source runs its own sentence. Position, move, reply and better move are given (no engine). The expected shapes are the
+  // design's; each was red on the tip before (68451db's source, CT_SRC). 'line' is the text under the board, 'more' is behind the tap.
+  {let XA=null,XM=null,xerr=null;try{const src=fs.readFileSync(E.SRC_PATH,'utf8'),ls=src.split('\n'),bl=new Map(),st=[];for(let i=0;i<ls.length;i++)if(/^(async\s+function|function|const|let|var)\s/.test(ls[i]))st.push(i);
+     for(let k=0;k<st.length;k++){const m=/^(?:async\s+function|function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(ls[st[k]]);if(m&&!bl.has(m[1]))bl.set(m[1],ls.slice(st[k],k+1<st.length?st[k+1]:ls.length).join('\n'));}
+     const want=['WHY_MAXW','gistInContext','forcedMateTxt','slipReplyRead','betterRead','explainAnno','reviewMore'].filter(n=>bl.has(n)&&!(n in E));const nm=Object.keys(E).filter(n=>/^[A-Za-z_$][\w$]*$/.test(n)&&!want.includes(n));
+     const fns=new Function(...nm,want.map(n=>bl.get(n)).join('\n')+'\nreturn {explainAnno:typeof explainAnno==="function"?explainAnno:null,reviewMore:typeof reviewMore==="function"?reviewMore:null};')(...nm.map(n=>E[n]));XA=fns.explainAnno;XM=fns.reviewMore;}catch(e){xerr=e.message;}
+   L.say(!!XA,'TC-R209p PRECONDITION the source\'s explainAnno evaluates in Node ('+(xerr||'ok')+')',xerr);
+
+    const P=(fen,san,label,o)=>{o=o||{};const pre=E.fromFEN(fen),mv=E.findMoveBySAN(pre,san);if(!mv)return {err:'no move '+san};const post=E.makeMove(pre,mv);
+      const rep=o.reply?E.findMoveBySAN(post,o.reply):null,bm=o.best?E.findMoveBySAN(pre,o.best):null;
+      const np=o.played?E.findMoveBySAN(post,o.played):rep;
+      const a={cls:{label:o.raw||label},loss:o.loss||0,evalAfter:o.ev!=null?o.ev:0,bestSan:o.best||null,bestMove:bm,gist:E.moveGist(pre,mv),motifs:E.moveMotifs(pre,mv)||[],altSan:null,altDrop:null};
+      let prev=null;if(o.prevFen){const pp=E.fromFEN(o.prevFen);prev={move:E.findMoveBySAN(pp,o.prevSan),pos:pp,chain:false};}
+      const ctx={mover:pre.turn==='w'?'White':'Black',label,userColor:o.uc===undefined?'w':o.uc,pos:pre,ply:{move:mv,san},prev,next:rep?{bestSan:o.reply,bestMove:rep}:null,nextPly:np?{san:o.played||o.reply,move:np}:null,nextPos:post,moveNo:o.no||+fen.split(' ')[5]||1,opening:o.opening||null,maxw:150};
+      return {a,ctx};};
+    const FC=[
+      ['F1',P('r2qkb1r/1pp2ppp/p1n1pn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 7','Re1','Inaccuracy',{reply:'e5',best:'Nbd2',loss:90,ev:0}),
+        t=>/your opponent/i.test(t.all)&&/\.\.\.e5/.test(t.line)&&/d3/.test(t.line)&&/f3/.test(t.line)&&!/(stops|prevents|so \.\.\.e5)/.test(t.all)&&!/is the answer|held it/.test(t.all),'names ...e5, d3 and f3; says your opponent; does not say Nbd2 stops ...e5'],
+      ['F2',P('r4rk1/1pp1p2p/p1n2pp1/3b2q1/3P1b2/2P2NBP/PPB1RPP1/RQ4K1 w - - 1 19','Bh4','Blunder',{reply:'Qh5',best:'Nxg5',loss:430,ev:0.6}),
+        t=>/could take (their|the) queen/.test(t.line)&&/19\.Nxg5/.test(t.line),'could take the queen: 19.Nxg5'],
+      ['F3',P('3r1rk1/1p1b1pp1/p3p3/4b3/2p5/2P1BB2/PPQ1KPP1/7R w - - 1 25','Bxb7','Mistake',{reply:'f5',best:'Qh7#',loss:900,ev:5}),
+        t=>/missed checkmate/.test(t.line)&&/25\.Qh7/.test(t.line)&&/still winning/.test(t.line),'missed checkmate, 25.Qh7, still winning'],
+      ['F4',P('r1b1r1k1/ppp2ppp/2p2q2/8/8/2NP1N1P/PPP3P1/R1BQ1K2 b - - 4 13','Bxh3','Mistake',{reply:'gxh3',best:'c5',loss:190,ev:-3,uc:'b'}),
+        t=>/bishop for a pawn/i.test(t.line)&&/14\.gxh3/.test(t.line)&&/\byour?\b/i.test(t.line),'bishop for a pawn, 14.gxh3, you'],
+      ['F5',P('4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 15','Nxd7','Blunder',{reply:'Qb8+',best:'Qxd7',loss:1500,ev:99}),
+        t=>/^Your opponent.s blunder/.test(t.line)&&/mate in two/.test(t.line)&&/16\.Qb8 Nxb8 17\.Rd8 mate/.test(t.line),"Your opponent's blunder, mate in two, 16.Qb8 Nxb8 17.Rd8 mate"],
+      ['F6',P('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 4','g6','Mistake',{reply:'Ng5',played:'d3',best:'Nxe4',loss:130,ev:1.3,uc:'b'}),
+        t=>/could play[^.]*5\.Ng5/.test(t.line)&&/f7/.test(t.line),'could play 5.Ng5, f7'],
+      ['F7',P('r1bq1rk1/1p2bppp/p1n1pn2/8/2pPp3/2P2N2/PPBN1PPP/R1BQR1K1 w - - 0 11','Nxe4','Best',{prevFen:'r1bq1rk1/1p2bppp/p1n1pn2/3p4/2pPP3/2P2N2/PPBN1PPP/R1BQR1K1 b - - 0 10',prevSan:'dxe4',ev:1}),
+        t=>/takes the pawn back/.test(t.line)&&!/\bwins\b/.test(t.all),'takes the pawn back, never wins'],
+      ['F8',P('rnbqkb1r/pp1p1ppp/4pn2/2p5/3P4/2P2N2/PP2PPPP/RNBQKB1R w KQkq - 1 4','e3','Excellent',{ev:0.1}),
+        t=>(/d4/.test(t.line)||/f1 bishop/.test(t.line))&&!/(was just as good|\d\.\d)/.test(t.all)&&!/\b[a-h]?[NBRQK]?x?[a-h][1-8]\b was/.test(t.all),'names d4 or the f1 bishop, no alternative, no number'],
+      ['F9',P('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2','f4','Book',{raw:'Inaccuracy',opening:'King’s Gambit',loss:80}),
+        t=>/opening move/i.test(t.line)&&!/(slip|mistake|blunder|Fine|sharp)/i.test(t.all),'opening move, no grading word'],
+      ['F10',P('2kr1b1r/pp1np1pp/1q3p1n/3p4/2pPP1b1/2P2N2/PPBN1PPP/R1BQR1K1 w - - 1 11','b4','Mistake',{reply:'e6',best:'exd5',loss:190,ev:1.9}),
+        t=>/A mistake, though you are still better/.test(t.line)&&/11\.exd5/.test(t.all),'A mistake, though you are still better; 11.exd5'],
+      ['F11',P('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','a3','Inaccuracy',{reply:'e5',best:'e4',loss:40,ev:-0.3}),
+        t=>/^A small slip\. Nothing is lost at once, but your opponent.s best reply is the pawn move \.\.\.e5\.$/.test(t.line)&&/Tap best to see it/.test(t.more)&&!/\d\.\d/.test(t.line),'the fallback shape exactly; no fact claimed'],
+      ['F12',P('r2qkb1r/1pp2ppp/p1n1pn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 7','Re1','Inaccuracy',{reply:'e5',best:'Nbd2',loss:90,ev:0,uc:null}),
+        t=>/\b(White|Black)\b/.test(t.all)&&!/\byou(r)?\b/i.test(t.all),'White and Black throughout, no you'],
+    ];
+  
+   if(XA)for(const [id,c,ok,what] of FC){let line='',more='';if(c.err)line='SETUP '+c.err;else{try{line=XA(c.a,c.ctx)||'';more=XM?(XM(c.a,c.ctx)||''):'';}catch(e){line='THREW '+e.message;}}
+     const t={line,more,all:line+' '+more};let pass=false;try{pass=!!ok(t);}catch(e){}
+     L.say(pass,'TC-R209p '+id+' '+what+': "'+line+'"'+(more?(' | more: "'+more+'"'):''),{line,more});}}
+  // ── TC-R209m [#550 helper lessons, docs/hint-audit-2026-11-12 HEX-R-03; jobs/review-sentences-name-what-the-moves-do-2026-11-12]: the Review
+  // sentence's clauses read IN THE GAME. The Opera Game through the shipped moveGist and gistInContext: 5.Qxf3 takes back on f3 (a bishop for
+  // the knight), not "wins the bishop"; 13...Rxd7 takes back a rook for the knight; 4...Bxf3 and 13.Rxd7 no longer "chase" a queen when the
+  // next move takes the piece that moved; and the case that must NOT change - 16...Nxb8 takes a queen that arrived without capturing, so it
+  // still WINS the queen. And a Forced move whose next ply mates says so (the audit's 31.Rxf1 ... Rxf1#).
+  {const SANS='e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6 Qb3 Qe7 Nc3 c6 Bg5 b5 Nxb5 cxb5 Bxb5+ Nbd7 O-O-O Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7 Qb8+ Nxb8 Rd8#'.split(' ');
+   let g=E.fromFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');const P=[],M=[];
+   for(const s of SANS){P.push(g);const m=E.findMoveBySAN(g,s);M.push(m);g=m?E.makeMove(g,m):g;}
+   const at=(i)=>{try{const did=(E.moveGist(P[i],M[i])||{}).did||[];return {did,ctx:E.gistInContext(did,P[i],M[i],i>0?{move:M[i-1],pos:P[i-1]}:null,i+1<SANS.length?{move:M[i+1],san:SANS[i+1]}:null)};}catch(e){return {did:[],ctx:['THREW '+e.message]};}};
+   const q5=at(8),r13=at(25),b4=at(7),w13=at(24),n16=at(31);
+   L.say(M.every(Boolean)&&q5.ctx[0]==='takes back on f3, a bishop for the knight'&&!q5.ctx.some(x=>/^wins the /.test(x)),'TC-R209m 5.Qxf3 takes back on f3, a bishop for the knight, and no longer "wins the bishop" (gist '+JSON.stringify(q5.did.slice(0,2))+' -> '+JSON.stringify(q5.ctx.slice(0,2))+')',q5);
+   L.say(r13.ctx[0]==='takes back on d7, a rook for the knight','TC-R209m 13...Rxd7 takes back on d7, a rook for the knight ('+JSON.stringify(r13.ctx.slice(0,2))+')',r13);
+   L.say(b4.did.some(x=>/^chases /.test(x))&&!b4.ctx.some(x=>/^chases /.test(x))&&w13.did.some(x=>/^chases /.test(x))&&!w13.ctx.some(x=>/^chases /.test(x)),'TC-R209m 4...Bxf3 and 13.Rxd7 no longer chase the queen: the next move takes the piece that moved (gists '+JSON.stringify([b4.did[0],w13.did[0]])+' -> '+JSON.stringify([b4.ctx[0],w13.ctx[0]])+')',{b4,w13});
+   L.say(n16.ctx.indexOf('wins the queen')>=0&&!n16.ctx.some(x=>/^takes back/.test(x)),'TC-R209m (must NOT change) 16...Nxb8 takes a queen that arrived without capturing: it still wins the queen ('+JSON.stringify(n16.ctx.slice(0,2))+')',n16);
+   const fpre=E.fromFEN('5rk1/r6p/2p1p1p1/P3B3/1P1P4/2P4Q/6PP/2R2q1K w - - 0 31'),fmv=E.findMoveBySAN(fpre,'Rxf1'),fpost=fmv?E.makeMove(fpre,fmv):null,fmate=fpost?E.findMoveBySAN(fpost,'Rxf1#'):null;
+   const fr=(np)=>{try{return (E.reviewText({cls:{label:'Forced'},gist:E.moveGist(fpre,fmv),motifs:[]},{label:'Forced',userColor:'w',pos:fpre,ply:{move:fmv,san:'Rxf1'},nextPly:np,nextPos:fpost,moveNo:31})||{}).line||'';}catch(e){return 'THREW '+e.message;}};
+   const f1=fr({san:'Rxf1#',move:fmate}),f0=fr(null);
+   L.say(f1==='Your only legal move, and ...Rxf1 is mate next.'&&!/mate next/.test(f0),'TC-R209m a Forced move whose next ply mates says so ("'+f1+'"), and one whose next ply does not mate gets nothing from this rule ("'+f0+'")',{f1,f0});}
   const B=[['6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w - - 0 1','h4',/queen on c2 is attacked/],['8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w - - 0 1','Rxh6+',/rook on h3 can be given up with check/]];
   let bh=0;const bm=[];for(const [f,san,want] of B){let t='';try{const g=E.fromFEN(f);t=E.brilHint(g,E.findMoveBySAN(g,san),false)||'';}catch(e){t='';}if(want.test(t))bh++;else bm.push(san+': "'+t+'"');}
   L.say(bh===B.length,'TC-R209d the Brilliant drill hint names what is offered or left on the audit\'s two cards ('+bh+'/2'+(bm.length?'; '+bm.join(' | '):'')+')',bm);
