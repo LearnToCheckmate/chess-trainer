@@ -26,7 +26,10 @@ const read=(b)=>b.page.evaluate(()=>{const q=s=>{const e=document.querySelector(
   const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8/.test(d.style.gridTemplateColumns)).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
   const tb=document.querySelector('[data-ct="rev-toolbar"]');const btns=tb?[...tb.querySelectorAll('button')].map(x=>{const r=x.getBoundingClientRect();return {l:x.getAttribute('aria-label')||'',y:r.top,b:r.bottom,h:r.height,x:r.left,r:r.right};}):[];
   const vis=s=>[...document.querySelectorAll(s)].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).length;
-  return {vw:innerWidth,vh:innerHeight,board:bd?{y:bd.top,w:Math.round(bd.width*100)/100,b:bd.bottom}:null,evh:q('[data-ct="eval-bar-h"]'),evv:q('[data-ct="eval-bar-v"]'),pb:q('[data-ct="pbar-bottom"]'),strip:q('[data-ct="strip-row"]'),cmp:q('[data-ct="rev-compact"]'),tb:q('[data-ct="rev-toolbar"]'),btns,head:q('[data-ct="rev-head"]'),backs:vis('[data-ct="rev-back"]'),mores:vis('[data-ct="rev-more"]')};});
+  return {vw:innerWidth,vh:innerHeight,board:bd?{y:bd.top,w:Math.round(bd.width*100)/100,b:bd.bottom}:null,evh:q('[data-ct="eval-bar-h"]'),evv:q('[data-ct="eval-bar-v"]'),pb:q('[data-ct="pbar-bottom"]'),strip:q('[data-ct="strip-row"]'),cmp:q('[data-ct="rev-compact"]'),tb:q('[data-ct="rev-toolbar"]'),btns,head:q('[data-ct="rev-head"]'),backs:vis('[data-ct="rev-back"]'),mores:vis('[data-ct="rev-more"]'),
+    /* #550 #432 sweep round 5: the header row counted by its WORDS as well - a painted element reading exactly 'Game review' or 'Analysis' whose top is
+       above the board's - so the short-screen absence half of TC-R192d does not read only the rev-head hook this build added with the gate */
+    titles:bd?[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom<=bd.top+0.5&&/^(Game review|Analysis)$/.test((e.innerText||'').trim());}).length:-1};});
 L.run(async()=>{
   for(const G of GEOS){const tag=G.label||G.g;
     const b=await L.launch({geo:G.g,name:'stream-'+tag,store:{ct_pool:'3'}});await b.open();
@@ -38,7 +41,7 @@ L.run(async()=>{
     L.say(!!m.pb&&!!m.strip&&m.strip.y>=m.pb.b-0.5&&m.strip.y-m.pb.b<=12&&!!m.cmp&&m.cmp.y>=m.strip.b-0.5,tag+': TC-R192b the move strip is straight under the bottom player bar ('+(m.strip&&m.pb&&Math.round((m.strip.y-m.pb.b)*10)/10)+'px) and the explanation under the strip',{pb:m.pb,strip:m.strip,cmp:m.cmp});
     const order=m.btns.map(x=>x.l);
     L.say(order.length===4&&/^Previous move$/.test(order[0])&&/key moment/i.test(order[1])&&/^Analyze/.test(order[2])&&/^Next move$/.test(order[3])&&m.btns.every(x=>x.h>=43.5&&x.y>=0&&x.b<=m.vh+0.5)&&!!m.cmp&&m.tb.y>=m.cmp.b-0.5,tag+': TC-R192c the toolbar is Back, Key move, Analyze, Forward (Analyze between the star and Forward, A3-1), each 44px or taller, on screen and below the explanation ('+order.join(' | ')+')',{btns:m.btns,cmp:m.cmp,tb:m.tb});
-    L.say((G.head?!!m.head:!m.head)&&m.backs===1&&m.mores===1,tag+': TC-R192d '+(G.head?'the header row is there':'no header row on a short screen')+' and exactly one back and one more are on screen ('+m.backs+', '+m.mores+')',{head:m.head,backs:m.backs,mores:m.mores});
+    L.say((G.head?(!!m.head&&m.titles>0):(!m.head&&m.titles===0))&&m.backs===1&&m.mores===1,tag+': TC-R192d '+(G.head?'the header row is there':'no header row on a short screen')+' (by hook, and by its title words above the board: '+m.titles+') and exactly one back and one more are on screen ('+m.backs+', '+m.mores+')',{head:m.head,titles:m.titles,backs:m.backs,mores:m.mores});
     const seen=[];const pin=async(why)=>{const x=await read(b);seen.push({why,y:x.board&&Math.round(x.board.y*100)/100,w:x.board&&x.board.w});};
     await pin('ply 19');await R.goPly(b,0);await pin('ply 0');await R.goPly(b,33);await pin('ply 33');await R.goPly(b,19);
     try{await b.tapCt('rev-fab',800);await pin('analysis');await b.tapText(/Exit analysis$/,{wait:800});await b.settle(900);await pin('after analysis');}catch(e){L.note(tag+' analysis: '+String(e).slice(0,100));}
