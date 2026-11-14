@@ -26,12 +26,34 @@ const L=require('../lib');const R=require('../drive/review');
 const WANT_W=343;   // measured on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
 L.run(async()=>{
   const b=await L.launch({geo:'kunal',name:'uat-review',store:{ct_pool:'3'}});await b.open();
-  let ok=true;try{await R.states['summary'](b);}catch(e){ok=false;L.note('summary drive: '+String(e).slice(0,140));}
+  // THE SIX LINES THAT WENT WITH THE CARD, REPLACED [#550 test-system helper A; the orchestrator's re-check cg11 at 0a115a8]. The card's caption
+  // lines named a story id at each checkpoint (US-R01 at the start, US-R03 on the summary, US-R04 on the move screen), held its strip inside
+  // the viewport, cleared it after the hold, and found the card in the gallery. Each now asserts the STATE its caption named, by the
+  // player's route: (R1) the Review list is reached from Home's tile, (R2) the import screen offers the PGN box and Analyze Game, (R3) the
+  // summary names the game's players, (R4) its Start review button is on screen and answers a tap, (R5) the move screen opens on the
+  // starting position, (R6) back on the summary the move screen has gone.
+  let onListOk=false;try{await R.toList(b);onListOk=await R.onList(b);}catch(e){L.note('list drive: '+String(e).slice(0,140));}
+  L.say(onListOk,'R1 the Review journey starts from Home: its Review tile opens the Review list, no dev gallery on the way',{onList:onListOk});
+  const imp=await b.page.evaluate(()=>{const v=e=>{if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom<=innerHeight+0.5;};
+    const ta=[...document.querySelectorAll('textarea')].find(v);const bt=[...document.querySelectorAll('button')].find(x=>v(x)&&/^⚡ Analyze [Gg]ame$/.test((x.innerText||'').trim()));
+    return {box:!!ta,button:bt?(bt.innerText||'').trim():null};});
+  L.say(imp.box&&!!imp.button,'R2 US-R01 the import screen offers a PGN box and the Analyze Game button, both on screen',imp);
+  let ok=true;try{await R.importPgn(b,R.PGN_OPERA);}catch(e){ok=false;L.note('summary drive: '+String(e).slice(0,140));}
   const sum=await b.rect('[data-ct="rev-summary"]');const foot=await b.rect('[data-ct="rev-summary-foot"]');
   L.say(ok&&!!sum&&!!foot&&foot.y+foot.h<=b.geo.h+0.5,'the summary is up with its footer pinned',foot&&Math.round(foot.y+foot.h));
+  const st=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const t=s?(s.innerText||'').replace(/\s+/g,' '):'';
+    const bt=[...document.querySelectorAll('button')].filter(x=>/^Start review/.test((x.innerText||'').trim())).filter(x=>x.getBoundingClientRect().width>0).pop();let hit=null,r=null;
+    if(bt){r=bt.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);hit=!!h&&(h===bt||bt.contains(h));}
+    return {morphy:/Morphy/.test(t),duke:/Duke|Isouard|Allies/.test(t),start:bt?{top:Math.round(r.top),bottom:Math.round(r.bottom),vh:innerHeight,hit}:null};});
+  L.say(st.morphy&&st.duke,'R3 US-R03 the summary names the game it analysed: both sides of the Opera Game',st);
+  L.say(!!st.start&&st.start.bottom<=st.start.vh+0.5&&st.start.hit,'R4 the summary\'s Start review button is inside the viewport and answers a tap',st.start);
   await b.shot('uat-review-summary');
   await R.states['moves-ply0'](b);const m4=await b.metrics();
   const ply0=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="rev-move-line"]');return t?(t.innerText||'').replace(/\s+/g,' ').trim():null;});
+  const start=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));let g=null,w=0;
+    for(const e of els){const r=e.getBoundingClientRect();if(r.width>w){w=r.width;g=e;}}if(!g)return null;const sq=[...g.children].slice(0,64);
+    const occ=sq.map(c=>c.querySelector('img,svg,[data-piece]')?1:0);return {pieces:occ.reduce((a,x)=>a+x,0),rows:[0,1,6,7].map(r=>occ.slice(r*8,r*8+8).reduce((a,x)=>a+x,0)),middle:occ.slice(16,48).reduce((a,x)=>a+x,0)};});
+  L.say(!!start&&start.pieces===32&&start.middle===0&&start.rows.every(x=>x===8),'R5 US-R04 the move screen opens on the starting position: 32 pieces on the back two ranks of each side, none between',{start,line:ply0});
   // WHAT SETS THE 343, measured rather than read [#550 round 2]: at 375x679 the board is placed by the FIT LOOP, not by a cap - SQ's
   // caps are 375 wide and 375 tall (heightCap = vh-REV_CHROME) and the loop trims 32 so the rows under the board fit. So the pin moves
   // only when the room those rows leave moves, or when a cap binds below 343; a cap change that stays above 343 is reconciled by the loop
@@ -52,6 +74,8 @@ L.run(async()=>{
   let exited=true;try{await b.tapText(/Exit analysis$/);await b.settle(600);await R.closeSheet(b).catch(()=>{});await b.tapCt('rev-back',600);}catch(e){exited=false;L.note('exit/back: '+String(e).slice(0,100));}
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:5000}).catch(()=>{});const sum9=await b.rect('[data-ct="rev-summary"]');
   L.say(exited&&!!sum9,'US-R09 back on the summary',{exited,summary:!!sum9});
+  const gone=await b.page.evaluate(()=>{const v=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};return {moveLine:[...document.querySelectorAll('[data-ct="rev-move-line"]')].filter(v).length,strip:[...document.querySelectorAll('[data-ct="strip-row"]')].filter(v).length};});
+  L.say(!!sum9&&gone.moveLine===0&&gone.strip===0,'R6 back on the summary the move screen has gone: no move line and no move strip on screen',gone);
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,'zero app errors beyond the allowed engine trap',bad.slice(0,2));
   await b.close();
 },'UAT-REVIEW-CARD');
