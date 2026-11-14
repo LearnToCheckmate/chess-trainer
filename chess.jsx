@@ -2346,9 +2346,11 @@ function rtLadder(a,ctx,V,L){
   const repPlayed=!!(rep&&np&&np.move&&np.move.fr===rep.fr&&np.move.fc===rep.fc&&np.move.tr===rep.tr&&np.move.tc===rep.tc);
   const rNum=M==='w'?num:num+1;const RN=rep?rtN(post,rep,rNum,true):'';const RF=rep?rtFirst(post,rep,rNum,true):'';
   const can=repPlayed?'':'could ';const so=V.S(Ot);
+  // the verb agrees with its subject (antagonist A, A4): 'you play', 'your opponent plays', 'White plays'; 'could play' for a move not played
+  const you=so==='you',PL=repPlayed?(you?'play':'plays'):'could play',MT=repPlayed?(you?'mate':'mates'):'could mate';
   // W1
   if(rep){let cr=null;try{cr=concreteRead(post,rep);}catch(e){}
-    if(cr&&cr.k==='mate1')return {w:'W1',t:rtCap(so)+' '+(repPlayed?'mates':'could mate')+' at once: '+RN+' mate.'};
+    if(cr&&cr.k==='mate1')return {w:'W1',t:rtCap(so)+' '+MT+' at once: '+RN+' mate.'};
     if(cr&&cr.k==='mate2'){let run='';try{const g3=makeMove(post,rep),rs=getLegal(g3);if(rs.length===1){const g4=makeMove(g3,rs[0]);const mm=getLegal(g4).find(m=>getStatus(makeMove(g4,m))==='checkmate');
         if(mm)run=rtRun([toSAN(post,rep,applyMove(post.board,rep)),toSAN(g3,rs[0],applyMove(g3.board,rs[0])),toSAN(g4,mm,applyMove(g4.board,mm))],Ot,rNum,true)+' mate';}}catch(e){}
       return {w:'W1',t:'It allows mate in two: '+(run||(RN+(cr.st==='check'?', with check':'')))+'.'};}}
@@ -2363,18 +2365,22 @@ function rtLadder(a,ctx,V,L){
   if(lf&&!(small&&lf.v>=3)){const cap=pre.board[mv.tr][mv.tc];const sqrc=[8-(+lf.sq[1]),'abcdefgh'.indexOf(lf.sq[0])];
     const on=rep&&rep.tr===sqrc[0]&&rep.tc===sqrc[1];
     if(lf.moved&&cap)return {w:'W2',t:rtCap(V.P(M))+' '+RT_PW[lf.t]+' takes a '+RT_PW[cap.t]+' but can be taken straight back'+(on?(': '+RN):'')+'. A '+RT_PW[lf.t]+' for a '+RT_PW[cap.t]+'.'};
-    return {w:'W2',t:rtCap(V.P(M))+' '+RT_PW[lf.t]+' on '+lf.sq+' can be taken for nothing'+(on?(': '+RN):'')+'.'};}
+    const undef=!isAttacked(post.board,sqrc[0],sqrc[1],M);   // antagonist A, A1: 'for nothing' only when nothing of theirs takes back
+    if(undef)return {w:'W2',t:rtCap(V.P(M))+' '+RT_PW[lf.t]+' on '+lf.sq+' can be taken for nothing'+(on?(': '+RN):'')+'.'};
+    const tk=on?post.board[rep.fr][rep.fc]:null;
+    if(tk)return {w:'W2',t:RN+' wins '+V.P(M)+' '+RT_PW[lf.t]+' for a '+RT_PW[tk.t]+'.'};
+    return {w:'W2',t:rtCap(V.P(M))+' '+RT_PW[lf.t]+' on '+lf.sq+' can be won by a cheaper piece.'};}
   if(rep){const g3=makeMove(post,rep);
     // W4
     const f=rtForkT(g3.board,rep.tr,rep.tc,M).filter(x=>x.t!=='k'||true);
-    if(f.length>=2&&!(small&&f.some(x=>x.t!=='k'&&x.v>=3)))return {w:'W4',short:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RN+', attacking two pieces at once: '+f[0].sq+' and '+f[1].sq+'.',t:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RF+', attacking '+V.P(M)+' '+RT_PW[f[0].t]+' on '+f[0].sq+' and '+RT_PW[f[1].t]+' on '+f[1].sq+' at once.'};
+    if(f.length>=2&&!(small&&f.some(x=>x.t!=='k'&&x.v>=3)))return {w:'W4',short:rtCap(so)+' '+PL+' '+RN+', attacking two pieces at once: '+f[0].sq+' and '+f[1].sq+'.',t:rtCap(so)+' '+PL+' '+RF+', attacking '+V.P(M)+' '+RT_PW[f[0].t]+' on '+f[0].sq+' and '+RT_PW[f[1].t]+' on '+f[1].sq+' at once.'};
     // W5: the reply's follow-up, a second move in a row for them
     {try{const g4={...g3,turn:Ot,ep:null};let thr=null;
       for(const m2 of getLegal(g4)){const g5=makeMove(g4,m2);if(isInCheck(g5.board,M))continue;
         const f2=rtForkT(g5.board,m2.tr,m2.tc,M).filter(x=>x.t!=='k');const pc2=g4.board[m2.fr][m2.fc];
         if(f2.length>=2&&pc2&&(SEEVAL[pc2.t]||0)<Math.min(f2[0].v,f2[1].v)&&seeSq({...g5,turn:M},m2.tr,m2.tc,M)<(SEEVAL[f2[1].t]||0)){thr={m2,pc2,f2,g4};break;}}
       if(thr){const ts=toSAN(thr.g4,thr.m2,applyMove(thr.g4.board,thr.m2)).replace(/[+#]$/,'');const T=Ot==='b'?('...'+ts):((rNum+1)+'.'+ts);
-        return {w:'W5',short:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RN+', threatening '+T+'.',t:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RF+': it threatens '+T+', a '+RT_PW[thr.pc2.t]+' attacking '+V.P(M)+' '+RT_PW[thr.f2[0].t]+' on '+thr.f2[0].sq+' and '+RT_PW[thr.f2[1].t]+' on '+thr.f2[1].sq+' at once.'};}}catch(e){}}
+        return {w:'W5',short:rtCap(so)+' '+PL+' '+RN+', threatening '+T+'.',t:rtCap(so)+' '+PL+' '+RF+': it threatens '+T+', a '+RT_PW[thr.pc2.t]+' attacking '+V.P(M)+' '+RT_PW[thr.f2[0].t]+' on '+thr.f2[0].sq+' and '+RT_PW[thr.f2[1].t]+' on '+thr.f2[1].sq+' at once.'};}}catch(e){}}
     // W6, short of defenders: the reply adds an attacker to a piece of theirs that is now attacked more times than it is guarded
     {try{const nb=g3.board;let best=null;
       for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=nb[r][c];if(!q||q.c!==M||q.t==='k'||!moveHits(nb,rep.tr,rep.tc,r,c))continue;
@@ -2382,7 +2388,7 @@ function rtLadder(a,ctx,V,L){
         if(att.length>=2&&att.length>def.length&&(!best||(SEEVAL[q.t]||0)>best.v))best={v:SEEVAL[q.t]||0,q,sq:rtSq(r,c),att,def};}
       if(best){const an=best.att.slice(0,2).map(x=>RT_PW[x.t]);const both=an[0]===an[1]?('both '+an[0]+'s'):(rtCap(an[0])+' and '+an[1]+' both');
         const guard=best.def.length===0?'and nothing guards it':best.def.length===1?('and only '+V.P(M)+' '+RT_PW[best.def[0].t]+' guards it'):'';
-        return {w:'W6',t:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RF+': '+(an[0]===an[1]?both:both)+' aim at '+V.P(M)+' '+RT_PW[best.q.t]+' on '+best.sq+(guard?(', '+guard):'')+'.'};}}catch(e){}}
+        return {w:'W6',short:rtCap(so)+' '+PL+' '+RN+': '+V.P(M)+' '+RT_PW[best.q.t]+' on '+best.sq+' is short of defenders.',t:rtCap(so)+' '+PL+' '+RF+': '+(an[0]===an[1]?both:both)+' aim at '+V.P(M)+' '+RT_PW[best.q.t]+' on '+best.sq+(guard?(', '+guard):'')+'.'};}}catch(e){}}
     // W6: the natural capture of the replying piece loses more than it wins
     try{const caps=getLegal(g3).filter(m=>m.tr===rep.tr&&m.tc===rep.tc);
       const before=new Set(getLegal({...g3,turn:Ot}).filter(m=>g3.board[m.tr][m.tc]&&g3.board[m.tr][m.tc].c===M).map(m=>m.tr*8+m.tc));
@@ -2390,7 +2396,7 @@ function rtLadder(a,ctx,V,L){
         for(const m of getLegal(g5)){const q=g5.board[m.tr][m.tc];if(!q||q.c!==M||(SEEVAL[q.t]||0)<5||before.has(m.tr*8+m.tc))continue;
           if((SEEVAL[q.t]||0)>(SEEVAL[g3.board[rep.tr][rep.tc].t]||0)&&(!best||(SEEVAL[q.t]||0)>best.v))best={v:SEEVAL[q.t]||0,t:q.t,m};}
         if(best){const cN=rtN(g3,cm,num+1,true);const tN=rtN(g5,best.m,M==='w'?num+1:num+2,true);
-          return {w:'W6',t:rtCap(so)+' '+can+'play'+(repPlayed?'s ':' ')+RF+', and taking it with '+cN+' loses '+V.P(M)+' '+RT_PW[best.t]+' to '+tN+'.'};}}}catch(e){}
+          return {w:'W6',short:rtCap(so)+' '+PL+' '+RN+', and '+cN+' loses '+V.P(M)+' '+RT_PW[best.t]+'.',t:rtCap(so)+' '+PL+' '+RF+', and taking it with '+cN+' loses '+V.P(M)+' '+RT_PW[best.t]+' to '+tN+'.'};}}}catch(e){}
   }
   return {w:'W8',t:null,RF,so,can,repPlayed};
 }
@@ -2406,6 +2412,7 @@ function reviewText0(a,ctx){
   const mot=a.motifs||[];const lossP=Math.max(0,a.loss||0)/100;
   const st=rtStand(a.evalAfter,V,uc);const evenSt=st==='The game is about even.';
   const own=(word)=>mine?word:theirs?('Your opponent’s '+word.replace(/^(a|an|the) /i,'')):((M==='w'?'White’s ':'Black’s ')+word.replace(/^(a|an|the) /i,''));
+  const fitM=(parts)=>parts.filter(Boolean).join(' ');   // 'more' sits in a sheet, not the 3-line box, so it is not cut to the line's budget (antagonist A, A7)
   const fit=(parts)=>{let o='';for(const t of parts){if(!t)continue;const n=o?(o+' '+t):t;if(n.length>maxw)continue;o=n;}return o;};   // a clause that does not fit is skipped, never everything after it (4g)
   if(mot.indexOf('mate')>=0)return {line:'Checkmate.',more:'',rung:''};
   if(mot.indexOf('stalemate')>=0)return {line:'Stalemate. The game is drawn.',more:'',rung:''};
@@ -2421,18 +2428,19 @@ function reviewText0(a,ctx){
       ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true).replace(/^(\S+) /,'$1, ')+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
     const cmp=dropTxt(a.altSan?((M==='w'?num+'.':num+'...')+a.altSan):null,a.altDrop);   // the number behind the tap (Q3), the move with its number (P4)
     if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B'};
-    return {line:fit([give+'.',ref]),more:fit([evenSt?'':st,cmp]),rung:'B'};}
+    return {line:fit([give+'.',ref]),more:fitM([evenSt?'':st,cmp]),rung:'B'};}
   if(L==='Great'){const R=ctx.refute;let ref='';if(R&&R.capSan){const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
       ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true).replace(/^(\S+) /,'$1, ')+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
     const head=mine||!V.k?'The only good move.':'Your opponent finds the only good move.';
     if(!R&&ctx.refuteDue)return {line:head,more:'',rung:'G'};
-    return {line:fit([head,ref||itDid]),more:fit([evenSt?'':st]),rung:'G'};}
+    return {line:fit([head,ref||itDid]),more:fitM([evenSt?'':st]),rung:'G'};}
   if(L==='Best'||L==='Excellent'){const head=L==='Best'?own('The best move.'):own('A good move.');
     return {line:fit([head,itDid,evenSt?'':st]),more:'',rung:''};}
   if(L==='Good'){const head=mine||!V.k?'Fine.':theirs?'Your opponent’s move is fine.':'';
     const bm=a.bestMove&&ctx.pos?rtN(ctx.pos,a.bestMove,num,false):'';
     return {line:fit([head,itDid,(bm&&lossP>=0.3)?(bm+' was a little stronger.'):'',evenSt?'':st]),more:'',rung:''};}
-  if(L==='Book'){return {line:fit(['An opening move'+(ctx.opening?(' ('+ctx.opening+')'):'')+'.',itDid]),more:'',rung:''};}
+  if(L==='Book'){const on=typeof ctx.opening==='string'?ctx.opening:(ctx.opening&&typeof ctx.opening.name==='string'?ctx.opening.name:'');   // antagonist B, B1: nameOpening returns an object; print its name, never the object
+    return {line:fit(['An opening move'+(on?(' ('+on+')'):'')+'.',itDid]),more:'',rung:''};}
   if(L==='Forced'){const head=mine||!V.k?(V.k?'Your only legal move':'The only legal move'):'Your opponent’s only legal move';
     const np=ctx.nextPly;const nm=np&&np.san&&/#$/.test(String(np.san).replace(/[!?]+$/,''))&&ctx.nextPos&&np.move?rtN(ctx.nextPos,np.move,M==='w'?num:num+1,true):'';
     if(nm)return {line:head+', and '+nm+' is mate next.',more:'',rung:'F'};
@@ -2457,10 +2465,13 @@ function reviewText0(a,ctx){
         }catch(e){}}
       better=theirs?('Better for them was '+bmN+(why?(': '+why):'')+'.'):why?(bmN+' was better: '+why+'.'):(bmN+' was the steadier move.');}
     if(r.w==='W8'){   // 4e: say so plainly and point to the best button (Q6)
-      const line=mine?(head+' Nothing is lost at once'+(r.RF?(', but '+V.O(Ot)+' best reply is '+r.RF):'')+'.'):theirs?(head+' Nothing to win at once. Keep going.'):(head+(r.RF?(' '+(Ot==='w'?'White':'Black')+'’s best reply is '+r.RF+'.'):''));
-      return {line:fit([line]),more:fit([better,'Tap best to see it on the board.',stillTxt?'':st,num0]),rung:'W8'};}
+      const rest=mine?('Nothing is lost at once'+(r.RF?(', but '+V.O(Ot)+' best reply is '+r.RF):'')+'.'):theirs?'Nothing to win at once. Keep going.':(r.RF?((Ot==='w'?'White':'Black')+'’s best reply is '+r.RF+'.'):'');
+      const shortRest=mine?'Nothing is lost at once.':theirs?'Nothing to win at once.':'';
+      let line=fit([head,rest]);if(rest&&line.indexOf(rest)<0)line=fit([head,shortRest]);   // antagonist A, A5: fit the parts, so the verdict survives a narrow box
+      return {line,more:fitM([better,'Tap best to see it on the board.',stillTxt?'':st,num0]),rung:'W8'};}
     let line=fit([head,r.t]);if(r.t&&line.indexOf(r.t)<0&&r.short)line=fit([head,r.short]);   // 4g: a reason that does not fit is replaced by its short form, never dropped
-    return {line,more:fit([better,stillTxt?'':st,num0]),rung:r.w};}
+    const lost=!!(r.t&&line.indexOf(r.t)<0&&!(r.short&&line.indexOf(r.short)>=0));   // antagonist A, A7: and if neither fits, it goes behind the tap
+    return {line,more:fitM([lost?r.t:'',better,stillTxt?'':st,num0]),rung:r.w};}
   return null;
 }
 /* explainAnno is the line under the board: reviewText's parts 1 and 2 (the rest is `more`, reviewMore). The old builder's five labels in a row
@@ -12713,7 +12724,7 @@ function AppMain(){
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
             {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical',cursor:_annoMore?'pointer':'default'}} className={_annoMore?'ct-hasmore':undefined} data-more={_annoMore||undefined} role={_annoMore?'button':undefined} aria-label={_annoMore?((_annoWhy||'')+' More about this move'):undefined} onClick={()=>{if(_annoMore)setRevMoreOpen(true);}}>{_annoWhy||'\u00a0'}</div>}
-            {!anaMode&&revMoreOpen&&_annoMore&&(<div data-ct="rev-why-sheet" role="dialog" aria-label="More about this move" onClick={()=>setRevMoreOpen(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}><div style={{marginBottom:6}}>{_annoWhy}</div><div style={{color:'rgba(255,255,255,.78)'}}>{_annoMore}</div><div style={{marginTop:8,fontSize:'.85em',color:'rgba(255,255,255,.5)'}}>Tap to close.</div></div>)}
+            {!anaMode&&revMoreOpen&&_annoMore&&(<div data-ct="rev-why-sheet" role="dialog" aria-label="More about this move" onClick={()=>setRevMoreOpen(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:9990 /* antagonist B, B2: at 320x568 the player bar and the move strip sat over the sheet's first lines at 480 */,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}><div style={{marginBottom:6}}>{_annoWhy}</div><div style={{color:'rgba(255,255,255,.78)'}}>{_annoMore}</div><div style={{marginTop:8,fontSize:'.85em',color:'rgba(255,255,255,.5)'}}>Tap to close.</div></div>)}
             {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no).map(r=>(review&&review.noNum)?{...r,san:String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')}:r);const ew=evalWords(engLine.cp);return(
               <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
                 {/* #548 item (114): what each move of the engine's line is FOR, in words the board can confirm (explainLine), and what the

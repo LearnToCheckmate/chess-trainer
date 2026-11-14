@@ -118,6 +118,25 @@ L.run(async()=>{
    if(XA)for(const [id,c,ok,what] of FC){let line='',more='';if(c.err)line='SETUP '+c.err;else{try{line=XA(c.a,c.ctx)||'';more=XM?(XM(c.a,c.ctx)||''):'';}catch(e){line='THREW '+e.message;}}
      const t={line,more,all:line+' '+more};let pass=false;try{pass=!!ok(t);}catch(e){}
      L.say(pass,'TC-R209p '+id+' '+what+': "'+line+'"'+(more?(' | more: "'+more+'"'):''),{line,more});}}
+  // ── TC-R209q [#550 helper lessons, the final read's antagonist A on 0473182 (bundle 192802292e06), four P1s in the Review text]: A4 the
+  // verb agrees with "you" ("You mate", "You play", never "You mates"/"You plays"); A1 "for nothing" only on an undefended piece (a defended
+  // queen taken by a pawn is a queen for a pawn); A5 a narrow box (maxw 130, sideways) never empties the line, the verdict survives; A7 a
+  // reason the ladder computed is in the line or behind the tap, never nowhere. Through the shipped reviewText (a control source runs its own).
+  {const RT=(fen,san,label,o)=>{o=o||{};try{const pre=E.fromFEN(fen),mv=E.findMoveBySAN(pre,san),post=E.makeMove(pre,mv);const rep=o.reply?E.findMoveBySAN(post,o.reply):null;
+       const a={cls:{label},loss:o.loss||300,evalAfter:o.ev!=null?o.ev:0,bestSan:null,bestMove:o.best?E.findMoveBySAN(pre,o.best):null,gist:E.moveGist(pre,mv),motifs:E.moveMotifs(pre,mv)||[]};
+       return E.reviewText(a,{label,userColor:o.uc===undefined?'w':o.uc,pos:pre,ply:{move:mv,san},next:rep?{bestMove:rep}:null,nextPly:rep?{move:rep,san:o.reply}:null,nextPos:post,moveNo:o.n||10,maxw:o.maxw||150})||{line:'',more:''};}catch(e){return {line:'THREW '+e.message,more:''};}};
+   const a4a=RT('6k1/1p3ppp/8/8/8/8/5PPP/R5K1 b - - 0 30','b6','Blunder',{reply:'Ra8#',uc:'w',n:30}),a4b=RT('6k1/5ppp/8/4n3/8/8/5P1P/R2Q2K1 w - - 0 20','Qd2','Blunder',{reply:'Nf3+',uc:'b',n:20});
+   L.say(/\bYou mate /.test(a4a.line)&&/\bYou play /.test(a4b.line)&&!/\bYou (mates|plays)\b/.test(a4a.line+' '+a4b.line),'TC-R209q A4 the verb agrees with "you": a black slip with your played mate reads "'+a4a.line+'", a white slip with your played fork reads "'+a4b.line+'"',{a4a,a4b});
+   const a1=RT('6k1/8/8/4p3/8/5N2/8/3Q2K1 w - - 0 20','Qd4','Blunder',{reply:'exd4',uc:'w',n:20});
+   L.say(!!a1.line&&!/for nothing/.test(a1.line+' '+a1.more)&&/queen for a pawn/.test(a1.line),'TC-R209q A1 a defended queen taken by a pawn is not "taken for nothing": "'+a1.line+'"',a1);
+   const a5=RT('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','a3','Inaccuracy',{reply:'e5',ev:1.6,maxw:130,n:1});
+   L.say(/^A small slip/.test(a5.line),'TC-R209q A5 at maxw 130 (sideways) the line keeps its verdict when there is more behind the tap: "'+a5.line+'" | more "'+a5.more+'"',a5);
+   // antagonist B, B1: a recognised opening reaches the builder as nameOpening's OBJECT; the Book line printed "An opening move ([object Object])."
+   {let b1='';try{const pre=E.fromFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'),mv=E.findMoveBySAN(pre,'e4');
+      b1=(E.reviewText({cls:{label:'Book'},gist:E.moveGist(pre,mv),motifs:[]},{label:'Book',userColor:null,opening:{name:'Philidor Defense',eco:'C41'},pos:pre,ply:{move:mv,san:'e4'},nextPos:E.makeMove(pre,mv),moveNo:1,maxw:150})||{}).line||'';}catch(e){b1='THREW '+e.message;}
+    L.say(!/\[object/.test(b1)&&/\(Philidor Defense\)/.test(b1),'TC-R209q B1 a recognised opening (an object from nameOpening) prints its name, never "[object Object]": "'+b1+'"',b1);}
+   const a7=RT('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 4','g6','Mistake',{reply:'Ng5',uc:'b',maxw:60,n:4});
+   L.say(/5\.Ng5/.test(a7.line+' '+a7.more),'TC-R209q A7 a reason the ladder computed but cannot fit a 60-character line is behind the tap, not dropped: "'+a7.line+'" | more "'+a7.more+'"',a7);}
   // ── TC-R209m [#550 helper lessons, docs/hint-audit-2026-11-12 HEX-R-03; jobs/review-sentences-name-what-the-moves-do-2026-11-12]: the Review
   // sentence's clauses read IN THE GAME. The Opera Game through the shipped moveGist and gistInContext: 5.Qxf3 takes back on f3 (a bishop for
   // the knight), not "wins the bishop"; 13...Rxd7 takes back a rook for the knight; 4...Bxf3 and 13.Rxd7 no longer "chase" a queen when the
