@@ -113,6 +113,7 @@
 // CONTROL-RECORD: 02a91e7 2026-11-13 total=23 red=1 scope=env:CT_BLK=Y how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (block Y's two game-over states, TC-MN-051 and TC-MN-052b, moved off card k10 onto drive/play.js pp-scholar-mate, Scholar's mate in Pass & Play at 730x375): trial:32051b122b3c, Escape ignored by the menu sheet while a game screen is up - 'with the game over, Escape closes the menu sheet' red; with the k10, k8 and both k11 cards DELETED (trial:e9020df7aebb) 23/0 on the new route; on 77ffccc15668 23/0 by both routes (CT_BLK=Y), lines identical except two measured figures in their text (052b's game-over sheet overflow 1806 -> 1828px, and 052's home-sheet drag 85 -> 84px in a block the move does not touch)
 'use strict';
 // CONTROL-RECORD: 48e5e12 2026-11-13 total=39 red=18 scope=env:CT_BLK=N,trial:632940b1da50 how=#550 jobs/build-menu-one-screen: the branch tip's own bundle (the menu before the row moves) - TC-MN-054 (scrollHeight 1971/1301 against 739 at 375x761, 2133/1375 against 546 at 320x568, 1971/1301 against 546 at 375x568, developer/player), TC-MN-054b (no More settings foot) and TC-MN-054c (Board colors, SKIN, Cell depth, Piece style still on the sheet) red at all six; the fix's bundle reads 39 pass 0 fail on CT_BLK=N and the whole gate 227 pass 0 fail
+// CONTROL-RECORD: 560561a 2026-11-14 total=53 red=24 scope=env:CT_BLK=T,trial:455519f81b63 how=#550 helper app A, FMT-A-11: the tree before the tap areas (560561a's own bundle) - TC-MN-056 tap-area and 44-edge lines red for Sign in (40.5), Coach look (32.5), Sound, Evaluation graph, Layout readout and Layout overlay (37.5) at 375x761 and 320x568 (24 lines); a second trial 87152f074756 (Coach look given ct-hitv, a 54 area over its neighbours) reds the three own-box lines alone (50 pass 3 fail); the fix's bundle 9d44bba256e6 reads 53/0 on CT_BLK=T and the whole gate 271 pass 0 fail
 // CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
 const L=require('../lib');
 
@@ -900,6 +901,53 @@ if(blk('S')){
     }
     await b.close();}
   }
+// =========================================================================================================
+// MN-T  THE MENU'S ROWS GIVE A 44 TAP AREA.  TC-MN-056 [#550 helper app A; jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-
+// under-44-2026-11-13, the menu half (FMT-A-11)]. The toggle rows (Coach look, Sound, and behind the foot line the Evaluation graph,
+// Layout readout and Layout overlay) measured 37 tall and the Sign in with Google button 301x42 at 375x761 on the tree before this
+// change (trial 455519f81b63). The sheet must still fit one screen (TC-MN-054, 545 of 546 at 320x568), so the rows on the sheet at
+// rest grow their TAP area (ct-hit44, an invisible ::after) and not their box. MEASURED BY HIT-TESTING, not read from the style:
+// down the row's centre line every half pixel from 24 above to 24 below, the run of points whose elementFromPoint is the row (or
+// inside it) must be >= 44 tall and contain the row's centre; the two points 21.5 above and below the centre (the edges of a 44 area,
+// half a pixel in) must hit-test to THIS row and not a neighbour - so two extended areas cannot overlap without one of them going red.
+// =========================================================================================================
+if(blk('T'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568']]){
+  const b=await L.launch({geo:gk,name:'mn-t-'+gn});await b.open();
+  await b.tapCt('home-menu',700);
+  const PROBE=(src)=>b.page.evaluate((src)=>{const sh=document.querySelector('[data-ct="menu-sheet"]');if(!sh)return null;const re=new RegExp('^('+src+')$');
+    const el=[...sh.querySelectorAll('button')].find(x=>[...x.querySelectorAll('span')].some(s=>re.test((s.textContent||'').trim()))||re.test((x.textContent||'').replace(/^G/,'').trim()));
+    if(!el)return {found:false};
+    let q=el.getBoundingClientRect();const sq=sh.getBoundingClientRect();
+    if(q.top<sq.top+30||q.bottom>sq.bottom-30){sh.scrollTop+=(q.top+q.height/2)-(sq.top+sq.height/2);q=el.getBoundingClientRect();}
+    const cx=q.left+q.width/2,cy=q.top+q.height/2;const on=(y)=>{const h=document.elementFromPoint(cx,y);return !!h&&(h===el||el.contains(h));};
+    const nm=(y)=>{const h=document.elementFromPoint(cx,y);if(!h)return null;const bt=h.closest('button,a');return bt?(bt.textContent||'').trim().slice(0,24):(h.getAttribute('data-ct')||h.tagName.toLowerCase());};
+    let lo=cy,hi=cy;if(on(cy)){while(lo-0.5>=q.top-24&&on(lo-0.5))lo-=0.5;while(hi+0.5<=q.bottom+24&&on(hi+0.5))hi+=0.5;}
+    return {found:true,box:Math.round(q.width)+'x'+(Math.round(q.height*10)/10),mid:on(cy),span:hi-lo+0.5,up:on(cy-21.5),dn:on(cy+21.5),upHit:nm(cy-21.5),dnHit:nm(cy+21.5),onScreen:cy>0&&cy<innerHeight};},src);
+  const ROWS=[['Sign in with Google|Sign-in unavailable here',false],['Coach look',false],['Sound',false],['Evaluation graph',true],['Layout readout',true],['Layout overlay',true]];
+  const f0=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');return s?{sh:s.scrollHeight,ch:s.clientHeight}:null;});
+  L.say(!!f0&&f0.sh<=f0.ch,gn+': TC-MN-056 PRECONDITION the menu sheet is open and still fits one screen (scrollHeight '+(f0&&f0.sh)+' <= '+(f0&&f0.ch)+') - the tap areas grew, not the boxes',f0);
+  // the other half of 'no overlap': no control's OWN box is taken by a neighbour's extended area - every visible button and link on
+  // the sheet hit-tests to itself at its centre and 1px inside its top and bottom edges (at rest, then with the foot line opened)
+  const OWN=()=>b.page.evaluate(()=>{const sh=document.querySelector('[data-ct="menu-sheet"]');if(!sh)return null;const sq=sh.getBoundingClientRect();const bad=[];let n=0;
+    for(const el of sh.querySelectorAll('button,a')){const q=el.getBoundingClientRect();if(q.width<2||q.height<2||q.top<sq.top||q.bottom>sq.bottom)continue;n++;const cx=q.left+q.width/2;
+      for(const y of [q.top+1,q.top+q.height/2,q.bottom-1]){const h=document.elementFromPoint(cx,y);if(!h||!(h===el||el.contains(h))){const o=h&&h.closest('button,a');bad.push((el.textContent||'').trim().slice(0,18)+' @'+Math.round(y)+' -> '+(o?(o.textContent||'').trim().slice(0,18):(h&&h.tagName)));break;}}}
+    return {n,bad};});
+  const own0=await OWN();
+  L.say(!!own0&&own0.n>=8&&own0.bad.length===0,gn+': TC-MN-056 at rest, every one of the sheet\'s '+(own0&&own0.n)+' on-screen buttons and links hit-tests to ITSELF at its centre and 1px inside its top and bottom edges - no extended tap area covers a neighbour\'s box',own0);
+  for(const [w,fold] of ROWS){
+    if(fold)await MORE(b);
+    const r=await PROBE(w);const lab=w.split('|')[0];
+    L.say(!!r&&r.found&&r.onScreen&&r.mid,gn+': TC-MN-056 PRECONDITION the "'+lab+'" row is on the sheet'+(fold?' (foot line opened)':'')+', on screen, and its centre hit-tests to it (box '+(r&&r.box)+')',r);
+    if(r&&r.found&&r.mid){
+      L.say(r.span>=44,gn+': TC-MN-056 the "'+lab+'" row\'s TAP AREA, hit-tested down its centre line, is '+r.span+' tall (>= 44; its box is '+r.box+')',r);
+      L.say(r.up&&r.dn,gn+': TC-MN-056 the "'+lab+'" row\'s 44 area does not overlap a neighbour: 21.5 above and below its centre hit-test to THIS row (above: '+JSON.stringify(r.upHit)+', below: '+JSON.stringify(r.dnHit)+')',r);
+    }
+  }
+  const own1=await OWN();
+  L.say(!!own1&&own1.n>=4&&own1.bad.length===0,gn+': TC-MN-056 with the foot line opened, every one of the sheet\'s '+(own1&&own1.n)+' on-screen buttons and links hit-tests to ITSELF at its centre and 1px inside its top and bottom edges',own1);
+  L.say(b.errs.length===0,gn+': TC-MN-056 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
 },'MENU');
 // THE CONTROL RECORD gates/control-audit.js READS [#546 item (89)]. #545 measured this control and deferred the line so its gated
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
