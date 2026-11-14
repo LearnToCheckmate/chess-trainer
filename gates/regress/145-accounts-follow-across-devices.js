@@ -84,7 +84,7 @@ L.run(async()=>{
   if(on('b')){ // (b)(c) a fresh device 2 signs in on Home; the account also carries a streak, cards and brilliant moves from device 1
     doc.ctProgress=Object.assign({},doc.ctProgress||{},{ct_daily:JSON.stringify({date:ymd(-1),count:2,streak:7}),ct_mymistakes:JSON.stringify([card(1,'c'),card(2,'c'),card(3,'c')])});
     const b=await L.launch({geo:'kunal761',name:'acct145d2',store:SEED});const hits=await stub(b);await b.open();await b.settle(800);
-    const h0=hits.length;const risk0=await b.page.evaluate(()=>/(^|\D)7\s*DAYS\b/i.test(document.body.innerText));
+    const h0=hits.length;const risk0=await b.page.evaluate(()=>(/(^|\D)7\s*DAYS\b/i.test(document.body.innerText)||/\u{1F525}\s*7-day streak/u.test(document.body.innerText)));
     L.say(h0===0&&!risk0,'TC-R221 PRECONDITION device 2 fresh on Home, signed out: nothing fetched, no streak shown ('+h0+' requests)',{h0,risk0});
     await signIn(b,doc,'gate-uid');
     let n1=0,n2=0;for(let i=0;i<40;i++){await b.settle(500);n1=hits.filter(u=>/player\/kunal2023\//.test(u)).length;n2=hits.filter(u=>/player\/friendx\//.test(u)).length;if(n1>=2&&n2>=2)break;}
@@ -92,8 +92,8 @@ L.run(async()=>{
     let st=null;for(let i=0;i<10;i++){st=await b.page.evaluate(()=>({a:localStorage.getItem('ct_accts'),m:localStorage.getItem('ct_acctmine')}));const a=J(st.a)||[];if(a.length>=2)break;await b.settle(500);}
     const a2=J(st.a)||[],m2=J(st.m)||{};
     L.say(a2.indexOf('cc:kunal2023')>=0&&a2.indexOf('cc:friendx')>=0&&m2['cc:friendx']===false,'TC-R221c both are on device 2\'s list, friendx still switched to "not mine" ('+st.a+', '+st.m+')',st);
-    const risk1=await b.page.evaluate(()=>/(^|\D)7\s*DAYS\b/i.test(document.body.innerText));
-    L.say(risk1,'TC-R221d device 2\'s Home shows the account\'s streak at once, with no reload (the 7 DAYS streak chip '+(risk1?'shown':'absent')+')',risk1);
+    const risk1=await b.page.evaluate(()=>(/(^|\D)7\s*DAYS\b/i.test(document.body.innerText)||/\u{1F525}\s*7-day streak/u.test(document.body.innerText)));
+    L.say(risk1,'TC-R221d device 2\'s Home shows the account\'s streak at once, with no reload (#550: the Today card\'s 7-day streak line, which replaced the 7 DAYS chip at build-home-one-today-card, '+(risk1?'shown':'absent')+')',risk1);
     await b.settle(3500);const p=lastProg(await saves(b));const pm=J(p&&p.ct_mymistakes)||[],pd=J(p&&p.ct_daily)||{};
     L.say(pm.length===3&&pd.streak===7,'TC-R221e device 2\'s backup carries the account\'s 3 cards and 7-day streak, not its own pre-pull empties ('+pm.length+' cards, streak '+pd.streak+')',{cards:pm.length,daily:pd});
     L.say(b.errs.length===0,'TC-R221 zero app errors (device 2)',b.errs.slice(0,3));await b.close();
@@ -166,8 +166,12 @@ L.run(async()=>{
     // #550 cg5: the other three of SYN-06's six (board depth, eval graph, sound) - this block asserted only piece set, eval on/off and opponent
     L.say(st.d==='1'&&st.g==='0'&&st.s==='0'&&p.ct_depth==='1'&&p.ct_evalgraph==='0'&&p.ct_sound==='0','TC-R221m2 the account\'s board depth (on), eval graph (off) and sound (off) come down to a fresh device and stay in its backup (device '+JSON.stringify({d:st.d,g:st.g,s:st.s})+', saved '+JSON.stringify({d:p.ct_depth,g:p.ct_evalgraph,s:p.ct_sound})+')',{st:{d:st.d,g:st.g,s:st.s},p:{d:p.ct_depth,g:p.ct_evalgraph,s:p.ct_sound}});
     let tg={};try{const M=require('../drive/menu');await M.states['menu-discover'](b);await b.settle(500);
+      /* #550 build-menu-one-screen: the Evaluation graph row sits behind the foot line, so the fold is opened first */
+      await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);
       tg=await b.page.evaluate((F)=>{const o=eval(F);if(!o)return {};const T=[...o.s.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim());const f=(re)=>T.find(t=>re.test(t))||null;
-        return {depth:f(/^Cell depth & texture/),graph:(()=>{const g=o.s.querySelector('[data-ct="menu-evalgraph"]');return g?(g.innerText||'').replace(/\s+/g,' ').trim():null;})(),sound:f(/^Sound/)};},M.FIND);await M.closeSheet(b);}catch(e){L.note('menu: '+String(e).slice(0,160));}
+        return {depth:f(/^Cell depth & texture/),graph:(()=>{const g=o.s.querySelector('[data-ct="menu-evalgraph"]');return g?(g.innerText||'').replace(/\s+/g,' ').trim():null;})(),sound:f(/^Sound/)};},M.FIND);await M.closeSheet(b);
+      /* #550 build-menu-one-screen: Cell depth & texture moved to the Look and feel screen, so it is read there */
+      await M.states['menu-look'](b);await b.settle(400);tg.depth=await b.page.evaluate(()=>{const r=document.querySelector('[data-ct="look"]');const x=r&&[...r.querySelectorAll('button')].map(e=>(e.innerText||'').replace(/\s+/g,' ').trim()).find(t=>/^Cell depth/.test(t));return x||null;});}catch(e){L.note('menu: '+String(e).slice(0,160));}
     L.say(/ON$/.test(tg.depth||'')&&/^Evaluation graph OFF$/.test(tg.graph||'')&&/OFF$/.test(tg.sound||''),'TC-R221n2 and the running app took them with no reload: the menu reads Cell depth ON, Eval graph OFF, Sound OFF ('+JSON.stringify(tg)+')',tg);
     const R=J(st.r)||[],Z=J(st.z)||{},F=J(st.f)||{};const pr=J(p.ct_rated)||[];
     L.say(R.indexOf('og-acct-1')>=0&&R.indexOf('og-dev-1')>=0&&pr.indexOf('og-acct-1')>=0&&pr.indexOf('og-dev-1')>=0,'TC-R221o the online games already rated are a union of both devices ('+st.r+', saved '+p.ct_rated+')',{R,pr});
