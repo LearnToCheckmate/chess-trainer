@@ -2284,6 +2284,8 @@ As a player asking the computer for help, the hint points at the best move - nev
 - The lit squares are a best move: the engine's, or a mate in one found exactly. (TC-R206a)
 - The status slot above the board says why in one line, naming the piece and square. (TC-R206b)
 - In Pass and Play the Hint button is disabled; online it is absent. (TC-R206c)
+- After the computer's reply the status slot says, in one line that fits, what the reply left on the board: a piece of theirs that can be taken (back), a piece of mine they now attack, the piece giving check, or a mate they threaten; nothing when there is nothing to say. (TC-R206d; HEX-R-11)
+- A checkmate against the computer names the mating move: 'Rxf8 is mate. You win!' (TC-R206e; HEX-R-12)
 
 ### US-R139 The game accuracy reads near chess.com's
 *Added #550 item (44), run-answers build__1794388896663-a39; Kunal, 12 Nov: "Change the formula".*

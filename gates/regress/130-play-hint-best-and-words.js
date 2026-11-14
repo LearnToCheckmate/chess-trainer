@@ -1,6 +1,6 @@
 'use strict';
 // gates/regress/130-play-hint-best-and-words.js - THE PLAY HINT IS THE BEST MOVE, SAYS WHY, AND IS NOT OFFERED AGAINST A PERSON.
-// US-R138 / TC-R206a..c.
+// US-R138 / TC-R206a..e.
 //
 // WHY [#550, docs/hint-audit-2026-11-12 HEX-R-10; jobs/play-hint-best-move-and-words-2026-11-12; run-answers build__1794388896663-a37]:
 // the Play hint came from a 3-ply built-in search, not the engine the eval bar uses, and on 1r4k1/1P3ppp/1Q6/p7/3R4/8/PKP4q/8 w it lit
@@ -11,6 +11,10 @@
 // squares carrying the HL_HINT overlay (rgba(255,200,30,.75)); the words are the play-context status slot.
 // KNOW ITS LIMIT: two positions. The words are concreteRead's; their coverage is a measurement on the jobs, not this gate.
 // CONTROL-RECORD: 0131b3c 2026-11-12 total=14 red=4 scope=trial:3ab724514641 how=#550 origin/main's own #549 bundle: the mate-in-2 hint lights d4-d5 (Rd5, the audit's case), the status slot is blank on both positions, and Pass and Play's Hint is live; on t125 fbb12a951537 14/0
+// AND HEX-R-11/12 (TC-R206d/e): one line in the status slot after the computer's reply (a free piece, a piece of yours attacked, the
+// checking piece), fitted in the slot's two lines at kunal761 and 320x568, and a checkmate against the computer names the mating move.
+// CONTROL-RECORD: b3ce5bf 2026-11-14 total=42 red=10 scope=trial:81ea6ac84397 how=#550 helper app A, the tree before HEX-R-11/12 (b3ce5bf's chess.jsx): the slot is blank after the free-piece and attacked-piece replies and reads 'Check!' after the check, and the mate reads 'Checkmate! You win!' on the card and in the slot, at both geometries; on t4 29df54c8df82 42/0
+// KNOW ITS LIMIT (HEX-R-11): three readings of five - the mate-threat and other-loose-piece readings have no forced-reply position here.
 const L=require('../lib');
 const P=require('../drive/play');
 const zlib=require('zlib');
@@ -52,6 +56,35 @@ L.run(async()=>{
     const t=await slot(b);
     L.say(!!t&&c.words.test(t),'TC-R206b '+c.tag+': the hint says why, in the status slot above the board ("'+(t||'')+'")',t);
     L.say(b.errs.length===0,'TC-R206 '+c.tag+' zero app errors',b.errs.slice(0,3));await b.close();
+  }
+  /* #550 HEX-R-11 and HEX-R-12 (jobs/play-hint-best-move-and-words-2026-11-12, what was left): ONE LINE AFTER THE COMPUTER'S REPLY, and a
+     checkmate against the computer NAMES THE MATING MOVE. Each position leaves the computer ONE legal reply, so the line it reads is
+     deterministic; measured at kunal761 and 320x568, and the line must fit its slot (no ellipsis, no clipped second line). */
+  const REPLY=[
+    {tag:'free piece',fen:'r6k/6pp/8/8/1Q6/8/6PP/5R1K w - - 0 1',mv:['b4','f8'],want:/^Their rook took on f8 and can be taken back\.$/,then:['f1','f8']},
+    {tag:'your piece attacked',fen:'7k/8/p7/8/1R6/5Q2/8/2K5 w - - 0 1',mv:['f3','f7'],want:/^The pawn on a5 attacks your rook on b4\.$/},
+    {tag:'check',fen:'7k/8/8/8/8/2p2Q2/8/3K4 w - - 0 1',mv:['f3','f7'],want:/^Check from the pawn on c2\.$/}];
+  const fit=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-opening"]');if(!e)return null;const r=e.getBoundingClientRect();
+    return {sw:e.scrollWidth,cw:e.clientWidth,sh:e.scrollHeight,ch:e.clientHeight,l:Math.round(r.left*10)/10,r:Math.round(r.right*10)/10,vw:innerWidth,op:getComputedStyle(e).opacity};});
+  for(const geo of ['kunal761','se']){
+    for(const c of REPLY){
+      const b=await L.launch({geo,name:'reply130',store:{ct_pool:'3'}});await b.open();
+      await scanInto(b,c.fen);const st=await start(b);await b.settle(1500);
+      const s0=(await P.status(b)).txt;
+      L.say(st==='ok'&&!c.want.test(s0||''),'TC-R206d '+geo+' '+c.tag+' PRECONDITION the position is on against the computer and the slot does not already carry the line ("'+(s0||'')+'")',{st,s0});
+      await b.move(c.mv[0],c.mv[1],300);
+      let t='';for(let i=0;i<40;i++){await b.settle(250);t=(await P.status(b)).txt||'';if(c.want.test(t))break;}
+      L.say(c.want.test(t),'TC-R206d '+geo+' '+c.tag+': after the computer\'s only reply the status slot says what it means ("'+t+'")',{t});
+      const f=await fit(b);
+      L.say(!!f&&f.sw<=f.cw+1&&f.sh<=f.ch+1&&f.l>=0&&f.r<=f.vw+0.5,'TC-R206d '+geo+' '+c.tag+': and the whole line is painted - not cut by the slot (scroll '+(f&&f.sw)+'x'+(f&&f.sh)+' in '+(f&&f.cw)+'x'+(f&&f.ch)+')',f);
+      if(c.then){
+        await b.move(c.then[0],c.then[1],300);let card=null;for(let i=0;i<12;i++){await b.settle(200);card=await b.text('[data-ct="result-card"]');if(card)break;}
+        L.say(!!card&&/Checkmate/.test(card)&&/Rxf8 is mate\. ?You win/.test(card),'TC-R206e '+geo+': a checkmate against the computer names the mating move on the result card ("'+(card||'')+'"; it read "Checkmate! You win!")',{card});
+        let s2='';for(let i=0;i<30;i++){await b.settle(300);s2=(await P.status(b)).txt||'';if(/Rxf8 is mate/.test(s2))break;}
+        L.say(/^Checkmate! · Rxf8 is mate\. You win!/.test(s2),'TC-R206e '+geo+': and the status slot states it once the card has gone ("'+s2+'")',{s2});
+      }
+      L.say(b.errs.length===0,'TC-R206d '+geo+' '+c.tag+' zero app errors',b.errs.slice(0,3));await b.close();
+    }
   }
   {const b=await L.launch({geo:'kunal761',name:'hint130pp',store:{ct_pool:'3'}});await b.open();let ok=true;try{await P.states['pp-1'](b);}catch(e){ok=false;}await b.settle(800);
    const h=await hintBtn(b);
