@@ -38,6 +38,7 @@
 // CONTROL: CT_APP=<the tip before the change>.
 // CONTROL-RECORD: 01431d7 2026-11-13 total=45 red=7 scope=trial:8e19cb261a48 how=THE SUBJECT REMOVED: the branch tip before the change (Back ←, More at 21/19, ↺ and the arrows unscaled) - TC-IR-02 red on Review at kunal761 (← 14x6 vs ⋯ 18x3), the puzzle row (↺ 9x9), the solved row (› 4x6) and the drill row (‹ › 4x6, ↺ 14x12) at both geometries; se Review green (15 vs 16, see above)
 // CONTROL-RECORD: 9bed1b7 2026-11-14 total=99 red=13 scope=trial:9177a64af34a how=#550 helper lessons, THE SUBJECT REMOVED: the branch tip before the lesson glyphs were scaled (one 21px font in the footer, the practice row at 15px) - TC-IR-02 red on all seven lesson rows at kunal761 and six at se (✕ 12x12, ▶ 16x15, ⏸ 8x9, ⋯ 18x4, ⟳ 12x9, ↻ 10x9, › 4x6, ✓ 7x8 beside the chevrons' 15x19); the four older rows green; on beeca0a9f010 99/0
+// CONTROL-RECORD: d90f5fb 2026-11-14 total=114 red=6 scope=trial:9e6aa7f57110 how=#550 helper B, jobs/lesson-footer-icons-consistent (2) one component, THE SUBJECT REMOVED: 54ea2e1's tree, where the lesson practice row is inline btn() buttons - TC-IR-06 red on lessonrow, lessondone and lessonbank at kunal761 and on lessonfoot, lessondone and lessonbank at se (Flip, Hints and the third slot differ from the Review transport row's signature: a 1px border, a gradient and a drop shadow), the only reds; this tree (trial:d9cadd79e993, d90f5fb on 68451db) is 114 pass 0 fail
 const L=require('../lib');
 const R=require('../drive/review');
 const PZ=require('../drive/puzzles');
