@@ -154,6 +154,11 @@ const sheet=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="
   return {sh:e.scrollHeight,ch:e.clientHeight,h:Math.round(r.height*100)/100,top:Math.round(r.top*100)/100,oh:sc?sc.scrollHeight:null,oc:sc?sc.clientHeight:null};});
 const busy=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="scan-busy"]');if(!e)return null;const r=e.getBoundingClientRect(),s=getComputedStyle(e);
   return {w:Math.round(r.width*100)/100,h:Math.round(r.height*100)/100,vis:s.visibility!=='hidden'&&s.display!=='none'&&r.width>0&&r.height>0,anim:s.animationName,dur:s.animationDuration};});
+/* #550 #432 sweep round 5: the spinner counted by WHAT IT IS as well as by its hook - a painted element running an endless animation, or one
+   whose accessible name is 'Reading the board' - so TC-SC-006 (none while idle) and TC-SC-018 (gone once the call resolves) do not read only
+   the scan-busy hook #408 added with this gate. TC-SC-008 below first shows the count sees the spinner while a scan is in flight. */
+const spinW=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;const s=getComputedStyle(e);
+  return (s.animationName&&s.animationName!=='none'&&s.animationIterationCount==='infinite'&&s.animationPlayState!=='paused')||/^Reading the board$/.test(e.getAttribute('aria-label')||'');}).length);
 const screenText=(b)=>b.page.evaluate(()=>(document.body.innerText||'').replace(/\s+/g,' '));
 
 // Each failure case: reach the sheet, install the double, feed the file, read the message. One helper so the
@@ -183,8 +188,8 @@ L.run(async()=>{
   L.say(!!rowIdle&&rowIdle.h>0,'TC-SC-004 [data-ct="scan-row"] - the RESERVED message row - exists and is painted with no message showing. This is R-BS-2\'s G3 half: the row that used to appear and disappear.',rowIdle&&{h:rowIdle.h,w:rowIdle.w});
   const msgIdle=await msg(b);
   L.say(msgIdle===null,'TC-SC-005 and the message element itself is ABSENT while there is no message - the row is reserved, the text is conditional, which is what "fixed height with conditional content" means',msgIdle);
-  const busyIdle=await busy(b);
-  L.say(busyIdle===null,'TC-SC-006 no spinner while idle',busyIdle);
+  const busyIdle=await busy(b),spinIdle=await spinW(b);
+  L.say(busyIdle===null&&spinIdle===0,'TC-SC-006 no spinner while idle (by hook, and by what it is: '+spinIdle+' endless animations or "Reading the board")',{busyIdle,spinIdle});
   const sheetIdle=await sheet(b);
   L.say(!!sheetIdle&&sheetIdle.sh>0,'TC-SC-007 the setup sheet reports a scroll height, so the R-BS-2 height comparison has something to compare',sheetIdle);
 
@@ -192,8 +197,9 @@ L.run(async()=>{
   await stub(b,'hold',{fen:null,ok:false,reason:'held open by the gate'});
   await feed(b);
   await b.settle(500);
-  const busyRun=await busy(b), sheetRun=await sheet(b), rowRun=await b.rect('[data-ct="scan-row"]'), msgRun=await msg(b);
+  const busyRun=await busy(b), spinRun=await spinW(b), sheetRun=await sheet(b), rowRun=await b.rect('[data-ct="scan-row"]'), msgRun=await msg(b);
   L.say(!!busyRun,'TC-SC-008 with a scan IN FLIGHT, [data-ct="scan-busy"] exists (R-BS-2, claim 1 of 2)',busyRun);
+  L.say(spinRun>0,'TC-SC-008 PRECONDITION the spinner count by what it is sees the spinner while the scan is in flight ('+spinRun+'), so its 0 at TC-SC-006 and TC-SC-018 is a reading',spinRun);
   L.say(!!busyRun&&busyRun.vis===true,'TC-SC-009 ... and it is visible, not merely in the DOM',busyRun&&{vis:busyRun.vis,w:busyRun.w,h:busyRun.h});
   L.say(!!busyRun&&busyRun.anim==='ctScanSpin'&&parseFloat(busyRun.dur)>0,'TC-SC-010 ... and it is actually SPINNING: a static ring is a lie about whether the phone is working, which is the whole complaint R-BS-2 comes from',busyRun&&{anim:busyRun.anim,dur:busyRun.dur});
   /* THE MECHANISM BEHIND TC-SC-011, and the first version of this assertion measured the WRONG QUANTITY -
@@ -222,8 +228,8 @@ L.run(async()=>{
   L.say(disabled.c===true&&disabled.u===true,'TC-SC-017 both scan buttons are disabled while a scan is in flight, so the double-tap guard still holds with a spinner beside it (PART 6.2 row 4)',disabled);
   await b.page.evaluate(()=>{ if(window.__scan&&window.__scan.release)window.__scan.release(); });
   await b.settle(700);
-  const busyAfter=await busy(b);
-  L.say(busyAfter===null,'TC-SC-018 the spinner goes when the call resolves - it is tied to scanBusy and not left behind',busyAfter);
+  const busyAfter=await busy(b),spinAfter=await spinW(b);
+  L.say(busyAfter===null&&spinAfter===0,'TC-SC-018 the spinner goes when the call resolves - it is tied to scanBusy and not left behind (by hook, and by what it is: '+spinAfter+')',{busyAfter,spinAfter});
   await b.close();
 
   // ── R-BS-1, the honest refusal. Three claims, three assertions. ──
@@ -332,7 +338,9 @@ L.run(async()=>{
   L.say(!!ask2&&/Which side of the board was the camera on\?/.test(ask2.t),'TC-SC-041 when the two readings DISAGREE the player is ASKED which side of the board the camera was on',ask2&&ask2.t);
   L.say(!landed(t2),'TC-SC-042 ... and NEITHER reading has been set up behind the question - the mirror is not taken silently, which is the defect the job exists for',{landed:landed(t2)});
   L.say(!!ask2&&ask2.bt.length===2&&ask2.bt[0].t==="White's side"&&ask2.bt[1].t==="Black's side"&&ask2.bt.every(x=>x.h>=44&&x.r<=ask2.vw+0.5),'TC-SC-043 ... with exactly two answers, White\'s side and Black\'s side, each at least 44px tall and inside the viewport',ask2&&ask2.bt);
-  await b7.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b7.settle(900);
+  /* #550 #432 sweep round 5: the three Black's side taps find the button by its words, the scan-side-b hook (#549, added with this gate) as
+     fallback only; TC-SC-044, -047 and -049 then read the landed position off the screen */
+  await b7.page.locator('button',{hasText:/^Black's side$/}).or(b7.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b7.settle(900);
   const t3=await screenText(b7); const ask3=await b7.page.evaluate(()=>!!(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})());
   L.say(landed(t3)&&/You'll play\s*Black\s*\(the side to move\)/.test(t3),'TC-SC-044 answering Black\'s side sets up reading B - the one taken from the turned photo (its FEN has Black to move, reading A\'s has White)',{landed:landed(t3),black:/You'll play\s*Black/.test(t3)});
   L.say(ask3===false,'TC-SC-045 ... and the question is gone once it is answered',ask3);
@@ -343,7 +351,7 @@ L.run(async()=>{
   await stub(b8,'seq',[{fen:FA,ok:true},{fen:null,ok:false,reason:'glare on the far ranks'}]); await feed(b8,FILE2); await b8.settle(1200);
   const ask4=await b8.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
   L.say(!!ask4&&!landed(await screenText(b8)),'TC-SC-046 when only ONE of the two readings reads, the orientation is still unchecked, so the player is still asked rather than given that reading',ask4);
-  await b8.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b8.settle(900);
+  await b8.page.locator('button',{hasText:/^Black's side$/}).or(b8.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b8.settle(900);
   const t5=await screenText(b8);
   L.say(landed(t5)&&/You'll play\s*White\s*\(the side to move\)/.test(t5),'TC-SC-047 ... and answering Black\'s side sets up the one reading turned 180 degrees, keeping its side to move (White)',{landed:landed(t5)});
   await b8.close();
@@ -364,7 +372,7 @@ L.run(async()=>{
   const m10=await msg(b10), a10=await b10.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
   if(L.say(c10===2,'TC-SC-049 PRECONDITION the photo made both calls, so call A\'s rejection and call B\'s reading both came back ('+c10+')',c10)){
     L.say(!!a10&&/Which side of the board was the camera on\?/.test(a10)&&!m10,'TC-SC-049 when call A REJECTS but call B reads, the scan is not refused: no error message, and the player is asked which side the camera was on',{ask:a10,m:m10});
-    await b10.page.locator('[data-ct="scan-side-b"]').click().catch(()=>{}); await b10.settle(900);
+    await b10.page.locator('button',{hasText:/^Black's side$/}).or(b10.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b10.settle(900);
     const t10=await screenText(b10);
     L.say(landed(t10)&&/You'll play\s*Black\s*\(the side to move\)/.test(t10),'TC-SC-049 ... and answering Black\'s side sets up reading B itself (Black to move)',{landed:landed(t10)});}
   await b10.close();
