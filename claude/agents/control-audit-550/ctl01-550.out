@@ -1,0 +1,12 @@
+== unmutated clone at 5a98927b
+  15-gallery-playall      155 assertions  1 sound record(s) of 25, assertions unchanged since each
+SUMMARY  49 covered, of 141 gates  |  2 none, 7 unparsable, 38 assertions-moved, 35 no-log, 10 bad-record
+control-floor: 49 pass / 0 fail   (49 floor row(s), 141 gates audited, 0 covered gate(s) not on the floor)
+floor exit 0
+records to delete: 1
+== mutated clone at 26efcca5 (the clone only; deleted on exit)
+  15-gallery-playall      155 assertions  the assertions changed since de0deaa (61 -> 90 L.say sites; 2 line(s) it ran are gone)
+SUMMARY  48 covered, of 141 gates  |  2 none, 7 unparsable, 39 assertions-moved, 35 no-log, 10 bad-record
+control-floor: FELL 15-gallery-playall now reads ASSERTIONS-MOVED - the assertions changed since de0deaa (61 -> 90 L.say sites; 2 line(s) it ran are gone)
+control-floor: 48 pass / 1 fail   (49 floor row(s), 141 gates audited, 0 covered gate(s) not on the floor)
+floor exit 1
