@@ -40,7 +40,9 @@ async function traffic(geo,botName){
     Worker.prototype.postMessage=function(m){try{window.__uci.push(String(m).slice(0,80));}catch(e){}return P.apply(this,arguments);};
   });
   await b.open();
-  await D.states['setup'](b);
+  /* #550 lead, final suite: since q44 (08f5354) the bot row lives on 'Choose your opponent', which D.states['setup'] leaves by Back,
+     so the bot click found no Viktor and the game started on the 800 default. setup-bots stays on that screen, Start game included. */
+  await D.states['setup-bots'](b);
   await b.settle(400);
   await b.page.evaluate((n)=>{const v=[...document.querySelectorAll('button')].find(e=>new RegExp(n).test(e.innerText||''));if(v)v.click();},botName);
   await b.settle(300);
