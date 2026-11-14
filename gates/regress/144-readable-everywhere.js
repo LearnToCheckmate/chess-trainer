@@ -31,6 +31,10 @@
 // a global rule), field edges (A11Y-08), the Discover badge (A11Y-04), tallies (A11Y-09) and every P3 are NOT read here.
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=46 red=31 scope=trial:9812f33cea74 how=the branch tip before the change (white ink on every accent, one-colour clock inks, root-white flag alt text, colour-only graph dots, 43px tabs, 30px close): 2.07..3.40 on the accents, cream clock 3.56 / amber 1.44 / red 3.17, AT 1.17; on a11a610b8f51 46/0
 const L=require('../lib');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 const R=require('../drive/review');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
@@ -125,7 +129,7 @@ L.run(async()=>{
    const b=await L.launch({geo,name:'rev144-'+geo,store:{ct_pool:'3',ct_country:JSON.stringify({'cc:jsmiller1112':'AT','cc:dukekarlcountisouard99':'US'})}});await b.open();await b.settle(800);
    let ok=true;try{await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,10);await b.settle(1200);}catch(e){ok=false;}
    await b.page.evaluate(COMP);
-   if(geo==='kunal761'){
+   if(isPhone(geo)){
      const d=await b.page.evaluate(()=>({flags:[...document.querySelectorAll('[data-ct^="pbar-flag-"]')].map(e=>({ct:e.getAttribute('data-ct'),nw:e.naturalWidth,m:window.__ctCR(e)})),
        rating:(()=>{const e=document.querySelector('[data-ct="pbar-rating-w"]');return e?window.__ctCR(e):null;})()}));
      const fw=d.flags.find(x=>x.ct==='pbar-flag-w'),fb=d.flags.find(x=>x.ct==='pbar-flag-b');
@@ -160,7 +164,7 @@ L.run(async()=>{
      const s=[...document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]')];const strip=document.querySelector('[data-mstrip]');const cur=s.find(x=>{const r=x.getBoundingClientRect();return r.left>strip.getBoundingClientRect().left+30&&r.right<strip.getBoundingClientRect().right-30;});
      o.strip=cur?window.__ctHit(cur):null;o.stripInner=strip?strip.clientHeight:0;return o;});
    for(const k of ['rev-back','rev-more']){const t='TC-R220f '+geo+' '+k+' tap area '+(ht[k]?ht[k].w+'x'+ht[k].h+' (drawn '+ht[k].drawn.join('x')+')':'absent');
-     if(geo==='kunal761')L.say(!!ht[k]&&ht[k].w>=44&&ht[k].h>=44,t);
+     if(isPhone(geo))L.say(!!ht[k]&&ht[k].w>=44&&ht[k].h>=44,t);
      else L.note('NOT ASSERTED (a layout defect, outside this gate): '+t+' - at 320x568 the button is drawn from y-4 and the horizontal eval bar paints over its last 5px, measured on the branch tip too; routed in the build report');}
    L.say(!!ht.strip&&ht.strip.h>=ht.stripInner-1,'TC-R220f '+geo+' a strip move\'s tap area is the strip\'s full inner height '+ht.stripInner+' (KNOWN LIMIT: not 44 - the strip is that tall and growing it moves the board): '+(ht.strip?ht.strip.w+'x'+ht.strip.h+' drawn '+ht.strip.drawn.join('x'):'absent'));
    // the Review list: the tab bar (on Play setup it sits UNDER the setup layer, so it is read here, where it is on top)

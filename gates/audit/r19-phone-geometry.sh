@@ -335,7 +335,12 @@ a4_dead(){
       | sed -e "s/^.*['\"]\\([A-Za-z0-9_]*\\)['\"]\$/\\1/" \
       | while IFS= read -r t; do
           case "$t" in
-            kunal|kunal[0-9][0-9][0-9]|short*|se) : ;;   # only tokens that LOOK like a geometry are asked about.
+            kunal|kunal[0-9][0-9][0-9]|short[0-9][0-9][0-9]|se) : ;;   # only tokens that LOOK like a geometry are asked about.
+            # #550 helper A [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+            # was short*, which read gate 26's `p.vh==='short'` - a VIEWPORT-HEIGHT tag (FMT-A-05: a pin for the short column) and
+            # never a GEOS key - as a dead geometry, the same false red as 'kunal2023' below. Every short* key GEOS has had is
+            # 'short' plus a THREE-digit width (short375), so that is the shape asked about; the bare word is out of scope.
+            # C58 holds the line, C59/C60 that a dead three-digit short key beside it still fires and is named.
             # #550 item (134) [jobs/gate-89s-literal-workaround-hides-from-the-r19-audit-instead-of-teaching-a4c-2026-11-07]:
             # was kunal*, which read his chess.com username 'kunal2023' as a dead geometry key, and gate 89 hid the name
             # behind ['kunal','2023'].join('') to get past it. Every kunal* key GEOS has ever had is 'kunal' or 'kunal'
@@ -723,6 +728,16 @@ if(geo==='kunal730'){b();}"
   mk4 "if(user==='kunal2023'){a();}
 if(geo==='kunal730'){b();}" "kunal761:{w:375,h:761,label:'375x761'},se:{w:320,h:568,label:'320x568'}"
   chk C57-a4c-still-fires-on-a-dead-three-digit-key-beside-it 1 r19 CT_A4CEIL=9
+  # C58-C61 [#550 helper A]: the bare word 'short' compared as a viewport tag (gate 26's p.vh==='short') is not a geometry,
+  # and a dead short<NNN> key beside it is still red and still named - and the bare word is never named.
+  mk4 "if(p.vh==='short'){a();}
+if(geo==='kunal730'){b();}"
+  chk C58-a4c-short-as-a-viewport-tag-is-not-a-geometry 0 r19 CT_A4CEIL=9
+  mk4 "if(p.vh==='short'){a();}
+if(geo==='short320'){b();}"
+  chk C59-a4c-still-fires-on-a-dead-short-key-beside-it 1 r19 CT_A4CEIL=9
+  chk C60-a4c-names-the-dead-short-key 0 says "zz-a4.js:short320" CT_A4CEIL=9
+  chk C61-a4c-and-never-names-the-bare-word 0 bash -c '[ "$(env CT_ROOT="$1" CT_A4CEIL=9 bash "$0" 2>&1 | grep -cx "  gates/regress/zz-a4.js:short")" = 0 ]' "$RUNME" "$q"
 
   # THE EMPTY DENOMINATORS. Both must read NOT CHECKED and UNSOUND - never a pass - because all three A4
   # checks are asserted over these two sets [R51/the empty-denominator class].

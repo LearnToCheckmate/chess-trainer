@@ -35,6 +35,11 @@
 // CONTROL-RECORD: 2e50b37 2026-11-06 total=221 red=2 scope=full how=#549 item (25) A3-R2 pre-fix bundle, run-branch HEAD 2bea40d (chip sticky inside the rail, over Show), trial md5 f1f932adbd41; red: TC-PZ-LAND2 'at rest the chip covers no control' at 730x375 (110/266) and 844x390 (289/418). Fixed trial 80ae56967728: 221/0.
 'use strict';
 const L=require('../lib');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
+const isSE=(geo)=>geoOf(geo).w===320;   // the 320-wide short upright phone
 // CONTROL-RECORD: ef3feab 2026-11-06 total=185 red=10 scope=trial:e824097dfb8e how=the tree before the #549 (16) veto fix (chip minWidth 0, shrinkable) - TC-PZ-CHIP's not-cut lines red for rankup-continue and rank1-train at kunal761 and kunal730 and rankup-continue at 390 [#549 item (16) veto fix]
 // CONTROL-RECORD: c33e447 2026-11-11 total=232 red=3 scope=trial:a0832813a26e how=#550 AUD-L18: the tree before the header kept the tick alone (t74, '1 / 890 · ✓ solved') - the three AUD-L18 lines red at kunal761, kunal730 and 390
 // CONTROL-RECORD: faa82a9 2026-11-13 total=232 red=6 scope=trial:480bcca1adc1 how=#550 job suite-never-asserts-after-a-success (whatIsLeft: TC-PZ-RANKUP's board-rect lines): the training card's pz-top pushed 40px further down from the moment the rank-up layer first shows, and kept there after Continue (a page-global latch) - the two TC-PZ-RANKUP board-rect lines red at kunal761, kunal730 and se (board top 222.5 -> 242.5 at kunal761; at se 116.5 -> 159 and 320 -> 280 wide), the layer-gone half and every other TC-PZ-RANKUP line green; the tip trial 342f7329901b reads 223/9 and the control 217/15, and the six added reds are exactly these (the tip's nine se reds are the a42 re-key's, not this control's)
@@ -67,11 +72,11 @@ L.run(async()=>{
     const hh=await hintHead(b);
     L.say(!!hh&&/^\u{1F4A1}/u.test(hh),geo+': the hint really did take the header row, which is the state this whole item is about',hh&&hh.slice(0,50));
     const filled=await box(b);const afterHint=await b.metrics();
-    const filledW=await fillWords(b);if(geo!=='se')L.say(!!filled&&filledW>=1,geo+': PRECONDITION with the hint up the fill is found by its words as well as its hook ('+filledW+') - so the word count can see it',filledW);
+    const filledW=await fillWords(b);if(!isSE(geo))L.say(!!filled&&filledW>=1,geo+': PRECONDITION with the hint up the fill is found by its words as well as its hook ('+filledW+') - so the word count can see it',filledW);
     // #550 a42 (1603f06): on a short upright phone (320x568 here) Puzzles keeps NO reserved verdict box - the notes are overlays over
     // the board - so there is no box for the streak to fill, BY DESIGN. That arm is therefore asserted the other way round: the box
     // and the fill are both ABSENT there (found by structure as well as by hook), and the fill lines below run at the other two only.
-    const SHORT=geo==='se';
+    const SHORT=isSE(geo);
     if(SHORT){const resv=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-verdict-box"]'));
       L.say(filled===null&&filledW===0&&!resv,geo+': a42 - no reserved verdict box and so no streak fill on a short upright phone, the board takes the room (fill by its words: '+filledW+')',{filled,filledW,resv});
       L.note(geo+': the reserved-box fill lines (filled, exact height, no hint repeat) do not apply here by a42 and are NOT credited');}
@@ -110,7 +115,7 @@ L.run(async()=>{
     const gone=await box(b);const goneW=await fillWords(b);
     const verdict=await b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^✗/.test(t));return d[0]?d[0].slice(0,44):null;});
     L.say(!!verdict,geo+': a wrong move produces the verdict',verdict);
-    if(geo!=='se')L.say(gone===null&&goneW===0,geo+': and the streak fill steps back out of the box for it - one box, never two (by hook, and by its words: '+goneW+')',{gone,goneW});
+    if(!isSE(geo))L.say(gone===null&&goneW===0,geo+': and the streak fill steps back out of the box for it - one box, never two (by hook, and by its words: '+goneW+')',{gone,goneW});
     L.say(!!afterHint.board&&!!afterWrong.board&&Math.abs(afterHint.board.w-afterWrong.board.w)<0.6&&Math.abs(afterHint.board.top-afterWrong.board.top)<0.6,
           geo+': the board does not move when the verdict replaces the streak - the transition is the half that would break silently');
     await b.shot('pzstreak-'+geo);
@@ -127,13 +132,13 @@ L.run(async()=>{
     const pre=await b2.metrics();
     await tapBtn(b2,/^\u{1F4A1} Hint$/u);await b2.settle(700);
     const live=await box(b2);const post=await b2.metrics();
-    if(geo!=='se')L.say(!!live&&/in a row/.test(live.t||''),geo+': with a live streak the box reads the STREAK, which is the one word of his answer',live&&live.t);
+    if(!isSE(geo))L.say(!!live&&/in a row/.test(live.t||''),geo+': with a live streak the box reads the STREAK, which is the one word of his answer',live&&live.t);
     // THE STREAK, NOT ANY 4 [#545, item (50)]. This read /\b4\b/ over the whole fill, which a box printing 'best 4' or
     // '4 / 40' satisfies. The seed carries streak 4 and best 6, so the pin is the streak's own phrase, and best's must
     // be absent; the branches the one seed never reaches (1, and two digits) are driven once, after this loop.
-    if(geo!=='se')L.say(!!live&&/(^|\s)4 in a row/.test(live.t||'')&&!/\b6 in a row/.test(live.t||''),geo+': and it is the STREAK the store carries ("4 in a row"), not best (6) and not a placeholder',live&&live.t);
-    if(geo!=='se')L.say(!!live&&Math.abs(live.h-wantH)<0.6,geo+': the streak text does not change the reserved height either',live&&live.h);
-    if(geo==='se')L.note(geo+': a42 - with the hint up on a short upright phone there is no box to carry the streak, so the three live-streak fill lines are NOT run here (where the streak shows instead is not asserted by this gate)');
+    if(!isSE(geo))L.say(!!live&&/(^|\s)4 in a row/.test(live.t||'')&&!/\b6 in a row/.test(live.t||''),geo+': and it is the STREAK the store carries ("4 in a row"), not best (6) and not a placeholder',live&&live.t);
+    if(!isSE(geo))L.say(!!live&&Math.abs(live.h-wantH)<0.6,geo+': the streak text does not change the reserved height either',live&&live.h);
+    if(isSE(geo))L.note(geo+': a42 - with the hint up on a short upright phone there is no box to carry the streak, so the three live-streak fill lines are NOT run here (where the streak shows instead is not asserted by this gate)');
     L.say(!!pre.board&&!!post.board&&Math.abs(pre.board.w-post.board.w)<0.6&&Math.abs(pre.board.top-post.board.top)<0.6,geo+': the board does not move on the streak branch either');
     await b2.close();
   }
@@ -312,7 +317,7 @@ L.run(async()=>{
       L.say(!!c&&!!c.fr&&c.fr.w>0&&c.fr.right<=c.right+0.5&&c.right<=c.vw+0.5,'TC-PZ-CHIP '+geo+' '+st+': the fraction "'+(c&&c.fr&&c.fr.txt)+'" is painted inside the chip - ink right '+(c&&c.fr&&c.fr.right)+' <= chip right '+(c&&c.right)+' <= viewport '+(c&&c.vw)+' (header row '+(c&&c.h)+'px)',{c});
       // #550 AUD-L18 (P2): the audit measured '1 / 890 · ✓ solv…' cut (139 in 121) after a solve; at this state on the pre-fix t74 it read
       // '1 / 890 · ✓ solved' at 129 in 129, so the cut did not reproduce here - the word, which the green verdict already says, is what goes
-      if(st==='train-solved'&&geo!=='se')L.say(!!c&&!!c.cnt&&/✓$/.test(c.cnt.t)&&c.cnt.sw<=c.cnt.cw+0.5,'TC-PZ-CHIP '+geo+' train-solved: AUD-L18 after a solve the counter carries the tick alone - the word the green verdict already says is gone - and is not cut ("'+(c&&c.cnt&&c.cnt.t)+'", scrollWidth '+(c&&c.cnt&&c.cnt.sw)+' <= clientWidth '+(c&&c.cnt&&c.cnt.cw)+')',c&&c.cnt);
+      if(st==='train-solved'&&!isSE(geo))L.say(!!c&&!!c.cnt&&/✓$/.test(c.cnt.t)&&c.cnt.sw<=c.cnt.cw+0.5,'TC-PZ-CHIP '+geo+' train-solved: AUD-L18 after a solve the counter carries the tick alone - the word the green verdict already says is gone - and is not cut ("'+(c&&c.cnt&&c.cnt.t)+'", scrollWidth '+(c&&c.cnt&&c.cnt.sw)+' <= clientWidth '+(c&&c.cnt&&c.cnt.cw)+')',c&&c.cnt);
       await b.close();
     }
   }

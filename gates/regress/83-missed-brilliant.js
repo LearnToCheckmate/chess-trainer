@@ -31,6 +31,10 @@
 'use strict';
 const path=require('path'),fs=require('fs');
 const L=require('../lib');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 const E=require('../engine-extract.js');
 console.log('83-missed-brilliant: MEASURING chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5+' (blocks A-D); bundle '+(process.env.CT_APP||'app.js')+' (block W)');
 
@@ -127,7 +131,7 @@ L.run(async()=>{
     for(const p of [44,47]){await goPly(b,p);await b.settle(400);const q=await read(b);L.say(!q.chip,geo+': TC-R136 W6 ply '+p+' carries no missed-brilliant chip ('+q.line+')');}
     L.say(b.errs.length===0,geo+': TC-R136 W7 zero app errors',b.errs.slice(0,2));
     // #550 item (18): the drill takes the missed Brilliant - the review wrote a card for 23.Reb1 (e1b1) marked missed, with what he played
-    if(geo==='kunal761'){const mb=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){return null;}});
+    if(isPhone(geo)){const mb=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mybrilliancies')||'[]');}catch(e){return null;}});
       const c=(mb||[]).find(x=>x&&x.uci==='e1b1');
       L.say(!!c&&c.missed===true&&/bxc6/.test(c.played||'')&&typeof c.why==='string'&&c.why.length>10,geo+': TC-R195 W18 the brilliant-moves drill now holds the missed 23.Reb1 (missed '+(c&&c.missed)+', played '+(c&&c.played)+', why "'+(c&&String(c.why).slice(0,60))+'")',c);}
     await b.close();

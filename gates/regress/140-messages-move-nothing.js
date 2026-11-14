@@ -18,6 +18,10 @@
 // CONTROL-RECORD: 3e082a9 2026-11-13 total=83 red=7 scope=trial:0b494f6c50db how=#550 jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control part (b), the pz-overlay pair opened: the same pre-a42 tree t140 - 'the note is gone 3.5s later' now RED at 375x667 and 320x568 (the '✗ Re7 hangs the rook' note still painted in its reserved box) where the hook-only version PASSED there because no overlay existed; the new by-text precondition green; on 08ba147127fb 83/0
 // KNOW ITS LIMIT: Puzzles and the mistakes drill; Tactics and lessons are gate 139's (the formatting standard) and Play's hint is gate 130's.
 const L=require('../lib');const Z=require('../drive/puzzles');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 const GEOS=[['kunal761','kunal761'],[{w:375,h:667,safe:'',label:'375x667'},'375x667'],['se','320x568']];
 const snap=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
   const R=(e)=>{const r=e.getBoundingClientRect();return [Math.round(r.left*10)/10,Math.round(r.top*10)/10,Math.round(r.width*10)/10,Math.round(r.height*10)/10];};
@@ -46,7 +50,7 @@ L.run(async()=>{
     for(const st of ['train-hint','train-fail','train-fail-later','train-step1','train-solved']){const s=shot[st];if(!base||!s){L.say(false,tag+': TC-R216a '+st+' could not be measured',null);continue;}
       const d=same(base,s);L.say(d.length===0,tag+': TC-R216a Puzzles '+st+': the board and every button stay where they were ('+(d.length?d.slice(0,3).join('; '):'none moved')+')',d);
       L.say(s.scroll!=null&&s.scroll<=0,tag+': TC-R216b Puzzles '+st+': nothing scrolls ('+s.scroll+')',s.scroll);}
-    if(tag!=='kunal761'){
+    if(!isPhone(geo)){
       L.say(!!base&&base.board[2]>=base.vw-1,tag+': TC-R216c the Puzzles board is the full width ('+(base&&base.board[2])+' of '+(base&&base.vw)+'; it was 277 at 320x568 and 375 at 375x667)',base&&base.board);
       const f=shot['train-fail'],fl=shot['train-fail-later'];
       L.say(!!f&&!!f.ov&&/^✗/.test(f.ov.txt),tag+': TC-R216d PRECONDITION the wrong-move note shows as an overlay ("'+(f&&f.ov?f.ov.txt:'none')+'")',f&&f.ov);
