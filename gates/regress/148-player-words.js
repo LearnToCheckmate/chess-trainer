@@ -19,6 +19,7 @@
 // CONTROL-RECORD: c2e0d87 2026-11-13 total=33 red=12 scope=trial:b96f96352c90 how=#550 the branch tip before this change (claude/exciting-noether-v1swj8 c2e0d87), built as a trial: every tool shown to every player, so A (b..h), D (k) and the static half (7 of 9 sentences) go red, B and C stay green; on 3de557ab1c5e 33/0
 // CONTROL-RECORD: bb29be7 2026-11-14 total=44 red=11 scope=trial:f0042ce1a984 how=#550 helper app A, wording check what was left (TC-R224l): bb29be7's tree, every TXT item's old wording still in the bundle and its replacement missing (8 static) and Home, Play setup and Review entry rendering the old words (3); on w2 54fd98fdb522 44/0
 // CONTROL-RECORD: e599269 2026-11-14 total=48 red=3 scope=trial:701fa8c609b0 how=#550 helper app A, TXT-36/TXT-40 (TC-R224m/n, Kunal's q46/q47): e599269's tree - chess.jsx built as the trial, lessons.js and index.html read from that tree (CT_LESSONS, CT_INDEX) - the dash line red (bundle 'No tactic to spot here \u2014 ...', lessons, page title), the British line red (analysed, centre, practise...) and the one-spelling line red (Petrov 5, Petroff 5, Maróczy 2); on d3 1a65030ba57a 48/0
+// CONTROL-RECORD: 54e83e1 2026-11-14 total=48 red=2 scope=env:CT_LESSONS=54e83e1,trial:7a1ff10f131c how=#550 helper app A, checker seat 2's TXT-36 finding: the strengthened TC-R224n (hyphen after a word matches, a stem inside a compound, plain Maroczy must be 0) over 54e83e1's own lessons.js - both TC-R224n lines red (outmanoeuvre x2, centre-pawn, Maroczy-style, Maroczy-type); on the fixed lessons.js 48/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
@@ -79,15 +80,18 @@ L.run(async()=>{
      .replace(/\{"Two Knights Defence":[^}]*\}/,'{}');
    const DASH=/—|–|\\u2014|\\u2013/g;
    const dashes=(t)=>{const o=[];let m;DASH.lastIndex=0;while((m=DASH.exec(t))&&o.length<6)o.push(t.slice(Math.max(0,m.index-40),m.index+30).replace(/\s+/g,' '));return o;};
-   const BRIT=/(?<![-\/_.A-Za-z0-9])(centre|centres|centred|centring|centralis(?:e|ed|es|ing|ation)|defences?|manoeuvr(?:e|es|ed|ing)|favourites?|favour(?:s|ed|ing|able|ably)?|colours?|coloured|colourful|neighbour(?:s|ing)?|practis(?:e|ed|es|ing)|analys(?:e|ed|ing)|neutralis(?:e|ed|es|ing)|memoris(?:e|ed|ing)|equalis(?:e|ed|es|ing)|recognis(?:e|ed)|realis(?:e|ed)|organis(?:e|ed)|learnt|whilst|behaviour|honour|armour|fianchettos|Maroczy)(?![-\/_A-Za-z0-9])/gi;
+   const BRIT=/(?<![-\/_.A-Za-z0-9])(centre|centres|centred|centring|centralis(?:e|ed|es|ing|ation)|defences?|manoeuvr(?:e|es|ed|ing)|favourites?|favour(?:s|ed|ing|able|ably)?|colours?|coloured|colourful|neighbour(?:s|ing)?|practis(?:e|ed|es|ing)|analys(?:e|ed|ing)|neutralis(?:e|ed|es|ing)|memoris(?:e|ed|ing)|equalis(?:e|ed|es|ing)|recognis(?:e|ed)|realis(?:e|ed)|organis(?:e|ed)|learnt|whilst|behaviour|honour|armour|fianchettos|Maroczy)(?![\/_A-Za-z0-9])/gi;   /* #550 checker seat 2's finding: a following HYPHEN is a word boundary here (centre-pawn, Maroczy-style were missed) */
    const brits=(t)=>{const o=[];let m;BRIT.lastIndex=0;while((m=BRIT.exec(t))&&o.length<6)o.push(m[1]+' @ '+t.slice(Math.max(0,m.index-30),m.index+20).replace(/\s+/g,' '));return o;};
+   /* and a British stem INSIDE a compound (outmanoeuvre was missed: the lookbehind refuses a letter before the word) */
+   const BRIT_IN=/manoeuvr|centre(?=[-\s.,;:!?)'"])|colour|favour/gi;
+   const britsIn=(t)=>{const o=[];let m;BRIT_IN.lastIndex=0;while((m=BRIT_IN.exec(t))&&o.length<6)o.push(m[0]+' @ '+t.slice(Math.max(0,m.index-30),m.index+20).replace(/\s+/g,' '));return o;};
    const dl=[...dashes(appTxt).map(x=>'app: '+x),...dashes(lessons).map(x=>'lessons: '+x),...dashes(index).map(x=>'index: '+x)];
    L.say(lessons.length>50000&&index.length>500,'TC-R224m PRECONDITION lessons.js and index.html were read ('+lessons.length+' and '+index.length+' chars)');
    L.say(dl.length===0,'TC-R224m TXT-40 no em or en dash in any player-facing text: bundle strings, lessons and the page ('+(dl.slice(0,3).join(' | ')||'none')+')',dl);
-   const bl=[...brits(appTxt).map(x=>'app: '+x),...brits(lessons).map(x=>'lessons: '+x),...brits(index).map(x=>'index: '+x)];
+   const bl=[...brits(appTxt).map(x=>'app: '+x),...brits(lessons).map(x=>'lessons: '+x),...brits(index).map(x=>'index: '+x),...britsIn(lessons).map(x=>'lessons (in a compound): '+x)];
    L.say(bl.length===0,'TC-R224n TXT-36 no British spelling in any player-facing text, lesson names included ('+(bl.slice(0,3).join(' | ')||'none')+')',bl);
-   const pet=(lessons.match(/Petrov\b/g)||[]).length,petf=(lessons.match(/Petroff\b/g)||[]).length,mar=(lessons.match(/Maróczy/g)||[]).length;
-   L.say(pet===0&&petf>0&&mar>0,'TC-R224n and one spelling each: Petroff ('+petf+', Petrov '+pet+'), Maróczy ('+mar+')',{pet,petf,mar});}
+   const pet=(lessons.match(/Petrov\b/g)||[]).length,petf=(lessons.match(/Petroff\b/g)||[]).length,mar=(lessons.match(/Maróczy/g)||[]).length,marP=(lessons.match(/Maroczy/g)||[]).length;
+   L.say(pet===0&&petf>0&&mar>0&&marP===0,'TC-R224n and one spelling each: Petroff ('+petf+', Petrov '+pet+'), Maróczy ('+mar+', plain Maroczy '+marP+')',{pet,petf,mar,marP});}
 
   // ── A: the player view
   {const b=await L.launch({geo:'kunal761',name:'pw148-player',dev:false,store:{ct_pool:'3',ct_revmig339:'1'}});await b.open();
