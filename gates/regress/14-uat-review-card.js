@@ -32,6 +32,11 @@ L.run(async()=>{
   // player's route: (R1) the Review list is reached from Home's tile, (R2) the import screen offers the PGN box and Analyze Game, (R3) the
   // summary names the game's players, (R4) its Start review button is on screen and answers a tap, (R5) the move screen opens on the
   // starting position, (R6) back on the summary the move screen has gone.
+  // CONTROL-RECORD: 1b6df01 2026-11-14 total=7 red=6 scope=trial:bbd501816ecc how=#550 test-system helper A, cg11: R1 and R2: the paste box display none - R1 red (onList false), R2 red (box false); the import cannot run, so the summary, R3 and R4 lines are red after them and the harness throws at moves-ply0 (1 pass 6 fail); the tip trial:a271197f3eb1 is 15 pass 0 fail
+  // CONTROL-RECORD: 1b6df01 2026-11-14 total=15 red=1 scope=trial:37de71aecc15 how=#550 test-system helper A, cg11: R3: the summary's players line prints 'White vs Black' instead of the PGN's names - R3 red, the only red (14 pass 1 fail); the tip trial:a271197f3eb1 is 15 pass 0 fail
+  // CONTROL-RECORD: 1b6df01 2026-11-14 total=7 red=2 scope=trial:9928ab5fb834 how=#550 test-system helper A, cg11: R4: the Start review button given pointerEvents none - R4 red (hit false at 625..669 of 679), then the harness throws at Start review (5 pass 2 fail); the tip trial:a271197f3eb1 is 15 pass 0 fail
+  // CONTROL-RECORD: 1b6df01 2026-11-14 total=15 red=1 scope=trial:817c51604998 how=#550 test-system helper A, cg11: R5: at ply 0 the review board draws positions[1] (after 1.e4) - R5 red (rows 8,8,7,8, one pawn between), the only red (14 pass 1 fail); the tip trial:a271197f3eb1 is 15 pass 0 fail
+  // CONTROL-RECORD: 1b6df01 2026-11-14 total=15 red=2 scope=trial:d41e4ad98a4c how=#550 test-system helper A, cg11: R6: the summary given pointerEvents none once ply is past 0 - R6 red (the move line, strip and board reachable under the returned summary) and 'move screen, board 343' red at 351 (13 pass 2 fail); the tip trial:a271197f3eb1 is 15 pass 0 fail
   let onListOk=false;try{await R.toList(b);onListOk=await R.onList(b);}catch(e){L.note('list drive: '+String(e).slice(0,140));}
   L.say(onListOk,'R1 the Review journey starts from Home: its Review tile opens the Review list, no dev gallery on the way',{onList:onListOk});
   const imp=await b.page.evaluate(()=>{const v=e=>{if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom<=innerHeight+0.5;};
@@ -41,11 +46,12 @@ L.run(async()=>{
   let ok=true;try{await R.importPgn(b,R.PGN_OPERA);}catch(e){ok=false;L.note('summary drive: '+String(e).slice(0,140));}
   const sum=await b.rect('[data-ct="rev-summary"]');const foot=await b.rect('[data-ct="rev-summary-foot"]');
   L.say(ok&&!!sum&&!!foot&&foot.y+foot.h<=b.geo.h+0.5,'the summary is up with its footer pinned',foot&&Math.round(foot.y+foot.h));
-  const st=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const t=s?(s.innerText||'').replace(/\s+/g,' '):'';
+  const names=['White','Black'].map(k=>(R.PGN_OPERA.match(new RegExp('\\['+k+' "([^"]+)"\\]'))||[])[1]||null);   // read from the PGN the route pasted, not typed here
+  const st=await b.page.evaluate((names)=>{const s=document.querySelector('[data-ct="rev-summary"]');const t=s?(s.innerText||'').replace(/\s+/g,' '):'';
     const bt=[...document.querySelectorAll('button')].filter(x=>/^Start review/.test((x.innerText||'').trim())).filter(x=>x.getBoundingClientRect().width>0).pop();let hit=null,r=null;
     if(bt){r=bt.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);hit=!!h&&(h===bt||bt.contains(h));}
-    return {morphy:/Morphy/.test(t),duke:/Duke|Isouard|Allies/.test(t),start:bt?{top:Math.round(r.top),bottom:Math.round(r.bottom),vh:innerHeight,hit}:null};});
-  L.say(st.morphy&&st.duke,'R3 US-R03 the summary names the game it analysed: both sides of the Opera Game',st);
+    const low=t.toLowerCase();return {names,named:names.map(n=>!!n&&low.indexOf(n.toLowerCase())>=0),start:bt?{top:Math.round(r.top),bottom:Math.round(r.bottom),vh:innerHeight,hit}:null};},names);
+  L.say(st.named.length===2&&st.named.every(Boolean),'R3 US-R03 the summary names the game it analysed: both players of the pasted PGN ('+names.join(' and ')+')',st);
   L.say(!!st.start&&st.start.bottom<=st.start.vh+0.5&&st.start.hit,'R4 the summary\'s Start review button is inside the viewport and answers a tap',st.start);
   await b.shot('uat-review-summary');
   await R.states['moves-ply0'](b);const m4=await b.metrics();
@@ -74,8 +80,15 @@ L.run(async()=>{
   let exited=true;try{await b.tapText(/Exit analysis$/);await b.settle(600);await R.closeSheet(b).catch(()=>{});await b.tapCt('rev-back',600);}catch(e){exited=false;L.note('exit/back: '+String(e).slice(0,100));}
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:5000}).catch(()=>{});const sum9=await b.rect('[data-ct="rev-summary"]');
   L.say(exited&&!!sum9,'US-R09 back on the summary',{exited,summary:!!sum9});
-  const gone=await b.page.evaluate(()=>{const v=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};return {moveLine:[...document.querySelectorAll('[data-ct="rev-move-line"]')].filter(v).length,strip:[...document.querySelectorAll('[data-ct="strip-row"]')].filter(v).length};});
-  L.say(!!sum9&&gone.moveLine===0&&gone.strip===0,'R6 back on the summary the move screen has gone: no move line and no move strip on screen',gone);
+  // R6 by HIT TEST, not presence: the app keeps the move screen mounted under the fixed summary (CLAUDE.md, several screens mounted at once),
+  // so what must hold is that a finger on the move line, the move strip or the board lands on the summary, not on the move screen.
+  const gone=await b.page.evaluate(()=>{const sm=document.querySelector('[data-ct="rev-summary"]');const v=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight;};
+    const els=[...document.querySelectorAll('[data-ct="rev-move-line"],[data-ct="strip-row"]')].filter(v);
+    {let g=null,w=0;for(const d of document.querySelectorAll('div'))if(/repeat\(8,/.test(d.style.gridTemplateColumns||'')){const r=d.getBoundingClientRect();if(r.width>w&&v(d)){w=r.width;g=d;}}if(g)els.push(g);}
+    const out=els.map(e=>{const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,Math.min(innerHeight-1,Math.max(0,r.top+r.height/2)));
+      return {who:e.getAttribute('data-ct')||'board',onSummary:!!h&&!!sm&&sm.contains(h),hit:h?(h.getAttribute('data-ct')||h.tagName):'none'};});
+    return {mounted:out.length,reachable:out.filter(x=>!x.onSummary),out};});
+  L.say(!!sum9&&gone.reachable.length===0,'R6 back on the summary the move screen has gone: a tap on its move line, move strip or board lands on the summary ('+gone.mounted+' still mounted under it, '+gone.reachable.length+' reachable)',gone);
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,'zero app errors beyond the allowed engine trap',bad.slice(0,2));
   await b.close();
 },'UAT-REVIEW-CARD');
