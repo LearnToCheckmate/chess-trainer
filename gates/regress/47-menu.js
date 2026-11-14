@@ -564,7 +564,8 @@ if(blk('F'))for(const g of [{k:'se',n:'320x568'},{k:'kunal730',n:'375x730'}]){
   // 375x730 too (gate 159 TC-INV-08s), so there the chips are ON screen at rest; on a shorter screen they are still below the fold and
   // reached by scrolling. Which of the two is EXPECTED is fixed per geometry (730 tall and over: on screen), so neither branch can pass
   // by the other one's reading - the #399 trap above.
-  const _fits=pr.vh>=730;
+  // #550 helper B, Kunal's q50: at 320x568 the chips lose their names and the intro line goes, so the card fits there too (gate 159 TC-INV-08s Q50).
+  const _fits=pr.vh>=730||(pr.vh<620&&pr.vw<360);
   L.say(pr.found&&(_fits?pr.restOn:!pr.restOn)&&pr.onScreen&&pr.hit,
     g.n+': TC-MN-032 the piece-set chips sit below the preview board, '+(_fits?'ON SCREEN at rest at this geometry (the card fits)':'genuinely below the fold at this geometry, and a finger reaches them by scrolling the Look card')+' (at rest '+pr.restTop+' of '+pr.vh+') - and they are hit-testable',pr);
   await CTTAP(b,'look-pc-merida',500);

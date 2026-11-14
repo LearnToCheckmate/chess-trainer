@@ -11057,10 +11057,15 @@ function AppMain(){
         /* #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-H12: Look and feel 856 in 677 / 854 in 739 at 375x761): the sheet fits one screen - the line under the title is one line, the swatch and piece chips are compact (the 290 preview board is unchanged), the two rows under them are tighter */const chip=(on)=>({display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 2px 3px',borderRadius:12,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',minWidth:0});
         const lbl=(on)=>({fontSize:11,letterSpacing:-0.3,fontWeight:700,color:on?'var(--ac2)':'rgba(255,255,255,.72)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'});
         const sets=[['classic','Classic'],['merida','Merida'],['chessnut','Chessnut'],['spatial','Spatial'],['symbol','Symbol']];
-        return(<div data-ct="look" onClick={()=>setLookOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.66)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
-        <div onClick={e=>e.stopPropagation()} className="scroll" style={{width:'100%',maxWidth:440,maxHeight:'100%',overflowY:'auto',background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'10px 13px 8px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif",boxSizing:'border-box'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}><span style={SHEET_TITLE}>Look and feel</span><button onClick={()=>setLookOpen(false)} aria-label="Close" style={SHEET_X}>✕</button></div>
-          <div style={{fontSize:'clamp(13px,2.6vw,14px)',color:'rgba(255,255,255,.6)',marginBottom:6,lineHeight:1.4}}>Every screen uses what you pick here.</div>
+        /* #550 helper B, Kunal's q50 answer: AT 320x568 ONLY (a phone under 620 tall and under 360 wide) the swatches and the piece chips lose
+           their names and sit side by side in rows of six, and the intro line goes, so the sheet fits one screen. The preview board keeps its
+           size, the headings still name the chosen colour and set, and each chip keeps its name as its title and aria-label. Taller phones
+           keep every word. */
+        const _lkS=!wide&&vw<360&&vp.h<620;
+        return(<div data-ct="look" onClick={()=>setLookOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.66)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:_lkS?'max(4px,env(safe-area-inset-top,0px)) 10px max(4px,env(safe-area-inset-bottom,0px))':'max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
+        <div onClick={e=>e.stopPropagation()} className="scroll" style={{width:'100%',maxWidth:440,maxHeight:'100%',overflowY:'auto',background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'10px 13px 8px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif",boxSizing:'border-box',...(_lkS?{padding:'6px 13px 4px'}:null)}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:_lkS?0:2}}><span style={SHEET_TITLE}>Look and feel</span><button onClick={()=>setLookOpen(false)} aria-label="Close" style={SHEET_X}>✕</button></div>
+          {!_lkS&&<div style={{fontSize:'clamp(13px,2.6vw,14px)',color:'rgba(255,255,255,.6)',marginBottom:6,lineHeight:1.4}}>Every screen uses what you pick here.</div>}
           <div data-ct="look-board" style={{width:pb,height:pb,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(8,'+sq+'px)',gridTemplateRows:'repeat(8,'+sq+'px)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 3px #4a6741, 0 10px 30px rgba(0,0,0,.6)'}}>
             {rows.map((row,rI)=>row.map((pc,cI)=>{const light=(rI+cI)%2===0;return(<div key={rI+'-'+cI} style={{width:sq,height:sq,background:light?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none'}}>
               {pc&&<div style={{transform:'scale(1.06)'}}><Piece t={pc.t} color={pc.c} sz={sq} useFallback={fallback} onFail={onPieceFail}/></div>}
@@ -11068,25 +11073,25 @@ function AppMain(){
               {rI===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1}}>{'abcdefgh'[cI]}</span>}
             </div>);}))}
           </div>
-          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'7px 2px 4px'}}>Board colors · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
-          <div data-ct="look-colours" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-            {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-pressed={on} style={chip(on)}>
-              <span style={{width:30,height:30,borderRadius:8,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.35)'}}><span style={{background:t.light}}/><span style={{background:t.dark}}/><span style={{background:t.dark}}/><span style={{background:t.light}}/></span>
-              <span style={lbl(on)}>{t.name}</span>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'3px 2px 2px':'7px 2px 4px'}}>Board colors · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
+          <div data-ct="look-colours" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(4,1fr)',gap:4}}>
+            {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-label={_lkS?t.name:undefined} aria-pressed={on} style={chip(on)}>
+              <span style={{width:_lkS?26:30,height:_lkS?26:30,borderRadius:8,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.35)'}}><span style={{background:t.light}}/><span style={{background:t.dark}}/><span style={{background:t.dark}}/><span style={{background:t.light}}/></span>
+              {!_lkS&&<span style={lbl(on)}>{t.name}</span>}
             </button>);})}
           </div>
-          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:'7px 2px 4px'}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
-          <div data-ct="look-pieces" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:7}}>
-            {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} aria-pressed={on} style={chip(on)}>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'3px 2px 2px':'7px 2px 4px'}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
+          <div data-ct="look-pieces" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(5,1fr)',gap:_lkS?4:7}}>
+            {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} title={plab} aria-label={_lkS?plab:undefined} aria-pressed={on} style={chip(on)}>
               <span style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:TH.dark}}>{src?<img src={src} width={28} height={28} alt="" draggable={false} style={{display:'block'}}/>:<span style={{fontSize:26,lineHeight:1,color:'#fff',textShadow:'0 0 2px #000'}}>{'♞'}</span>}</span>
-              <span style={lbl(on)}>{plab}</span>
+              {!_lkS&&<span style={lbl(on)}>{plab}</span>}
             </button>);})}
           </div>
-          <button onClick={()=>setBoardDepth(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',minHeight:44,padding:'4px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+          <button onClick={()=>setBoardDepth(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',minHeight:44,padding:'4px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:_lkS?2:6}}>
             <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Cell depth &amp; texture</span>
             <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:boardDepth?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:boardDepth?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${boardDepth?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{boardDepth?'ON':'OFF'}</span>
           </button>
-          <button onClick={()=>{setLookOpen(false);setSkinOpen(true);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',minHeight:44,padding:'4px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:6}}>
+          <button onClick={()=>{setLookOpen(false);setSkinOpen(true);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,width:'100%',minHeight:44,padding:'4px 11px',borderRadius:12,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',marginTop:_lkS?2:6}}>
             <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Style · fonts, icons, finish</span>
             <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'var(--ac2)'}}>{SK.name} ›</span>
           </button>

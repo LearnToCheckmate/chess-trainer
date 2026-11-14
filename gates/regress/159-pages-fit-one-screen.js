@@ -43,7 +43,7 @@ const scrollers=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('*')].fil
 L.run(async()=>{
   // #550 helper B (seat 1's check at 320x568): the pages FITTED at 320x568 are asserted there too - the Review More sheet (r), and since Kunal's
   // q44 Play setup both ways (p, q) and its 'Choose your opponent' screen (v). The Review list (q45) and Look and feel (q50) come next.
-  const RUNS=[...PAGES.map(p=>[p,'kunal761','kunal761']),...PAGES.filter(p=>/^[pqrv]$/.test(p[0])).map(p=>[p,'se','320x568'])];   // #550 q44: Play setup both ways and its opponent screen fit 320x568 too
+  const RUNS=[...PAGES.map(p=>[p,'kunal761','kunal761']),...PAGES.filter(p=>/^[pqrsv]$/.test(p[0])).map(p=>[p,'se','320x568'])];   /* #550 q50: Look and feel (s) fits 320x568 too */   // #550 q44: Play setup both ways and its opponent screen fit 320x568 too
   for(const [[id,nm,go,wre,last],geo,gn] of RUNS){const tag='TC-INV-08'+id+' '+nm+' '+gn;
     const b=await L.launch({geo,dev:false,name:'fit159-'+id,store:{ct_pool:'3'}});await b.open();let ok=true;
     try{await go(b);await b.settle(1200);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,140));}
@@ -57,6 +57,21 @@ L.run(async()=>{
       if(!e)return null;const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,Math.min(vh-1,r.top+r.height/2));
       return {w:(e.innerText||'').trim().slice(0,24).replace(/\n/g,' '),top:+r.top.toFixed(1),bot:+r.bottom.toFixed(1),vh,hit:!!h&&(h===e||e.contains(h))};},last?last.source:null);
     L.say(up&&!!lc&&lc.bot<=lc.vh+0.5&&lc.hit,tag+' its last control is on screen and answers a tap ('+(lc?'"'+lc.w+'" '+lc.top+'..'+lc.bot+' of '+lc.vh+(lc.hit?'':' COVERED'):'not found')+')',lc);
+    // (3) TC-INV-08s Q50 [#550 helper B; Kunal's q50 answer]: at 320x568 ONLY, the twelve swatches and five piece chips lose their names and sit
+    //     side by side in rows of six, and the intro line goes; the preview board keeps its size, min(vw-52, 290). At 375x761 every word stays:
+    //     the intro line and all seventeen chip names are painted. Each chip keeps its name as its title either way.
+    if(id==='s'){const q=await b.page.evaluate(()=>{const o=document.querySelector('[data-ct="look"]');if(!o)return null;const txt=o.innerText||'';
+        const cols=[...document.querySelectorAll('[data-ct="look-colours"] > button')],pcs=[...document.querySelectorAll('[data-ct="look-pieces"] > button')];
+        const row1=(list)=>{if(!list.length)return 0;const t0=list[0].getBoundingClientRect().top;return list.filter(e=>Math.abs(e.getBoundingClientRect().top-t0)<2).length;};
+        const NAMES=[...cols.map(e=>(e.getAttribute('title')||'').trim()).filter(Boolean),'Classic','Merida','Chessnut','Spatial','Symbol'];
+        const named=(list)=>list.filter(e=>{const t=(e.innerText||'');return NAMES.some(n=>t.includes(n));}).length;   /* a chip's name PAINTED, read by the words (colour titles predate q50; the piece names are the app's five) - not by a hook the q50 build added; Symbol's chip paints a bare ♞ glyph either way */const bd=document.querySelector('[data-ct="look-board"]');
+        return {intro:/Every screen uses what you pick here/.test(txt),cols:cols.length,pcs:pcs.length,colRow:row1(cols),pcRow:row1(pcs),colNamed:named(cols),pcNamed:named(pcs),
+          titled:[...cols,...pcs].filter(e=>(e.getAttribute('title')||'').length>0).length,board:bd?Math.round(bd.getBoundingClientRect().width):null,vw:innerWidth};});
+      const pbWant=Math.min(b.geo.w-52,290);
+      if(gn==='320x568')L.say(!!q&&!q.intro&&q.cols===12&&q.pcs===5&&q.colRow===6&&q.pcRow===5&&q.colNamed===0&&q.pcNamed===0&&q.titled===17&&Math.abs(q.board-pbWant)<=1,
+        tag+' Q50 the chips are name-less in rows of six (first rows '+(q&&q.colRow)+' and '+(q&&q.pcRow)+', '+(q&&q.colNamed)+'+'+(q&&q.pcNamed)+' painted names, '+(q&&q.titled)+' titles), the intro line is gone ('+(q&&q.intro)+') and the preview board keeps its size ('+(q&&q.board)+' for '+pbWant+')',q);
+      else L.say(!!q&&q.intro&&q.cols===12&&q.pcs===5&&q.colNamed===12&&q.pcNamed===5&&Math.abs(q.board-pbWant)<=1,
+        tag+' Q50 every word stays on a taller phone: the intro line ('+(q&&q.intro)+') and all '+(q?q.colNamed+q.pcNamed:0)+' of 17 chip names are painted, and the preview board is '+(q&&q.board)+' for '+pbWant,q);}
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
   for(const [nm,go,code] of [['Game Review summary',b=>R.states.summary(b),'AUD-R07'],['Puzzles roadmap',b=>Z.states.roadmap(b),'AUD-L16']]){
     const b=await L.launch({geo:'kunal761',dev:false,name:'fit159-m',store:{ct_pool:'3'}});await b.open();try{await go(b);await b.settle(1200);}catch(e){}
