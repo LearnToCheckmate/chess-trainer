@@ -13,6 +13,7 @@
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=26 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line, every older line and the six TC-R209g pins green (total 20 before TC-R209g was added)
 // CONTROL-RECORD: c9213e6 2026-11-13 total=32 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13: the branch tip's chess.jsx (17e366d62462, no mate-in-one guard) - TC-R209f F5b (Nc6 read as a fork of Qd8 and Rb8 while Rb1 mates) and two TC-R209h lines red (the reading, and the drill verdict 'Nc6 forks ...'); a fork-only guard (81b1b1c1e55a) left TC-R209h 2 red on the 'attack' fall-through; with the fix 32/0
 // CONTROL-RECORD: 1a6ab41 2026-11-14 total=37 red=3 scope=source:CT_SRC how=#550 helper lessons HEX-T-06: chess.jsx with pzMissNote stubbed to return null (CT_SRC=<copy>) - TC-R209k Kf1, the material puzzle and the coverage line red (0 of 876); on the fix tree 37/0
+// CONTROL-RECORD: e118d13 2026-11-14 total=39 red=2 scope=source:CT_SRC how=#550 helper lessons, jobs/pzmissnote-says-a-piece-is-left-to-be-won-that-the-wrong-move-just-captured-2026-11-14: chess.jsx before the fix (the 072d767 pzMissNote, CT_SRC=<copy>) - the Qxa1 line and the capture recount (88 of 1660) red; on the fix 39/0
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');
@@ -58,6 +59,16 @@ L.run(async()=>{
    L.say(n3===null,'TC-R209k a hand-written puzzle (id c0) gets no line note - its texts are authored ('+n3+')',n3);
    let tot=0,got=0;raw.forEach((r,k)=>{try{const g=E.fromFEN(r.f);const P={id:'g'+k,fen:r.f,sol:r.s,reply:r.y,goal:(r.n>0?'mate in '+r.n:'')};const s0=E.findMoveBySAN(g,r.s[0]);
      const m=E.getLegal(g).find(m=>!(s0&&m.fr===s0.fr&&m.fc===s0.fc&&m.tr===s0.tr&&m.tc===s0.tc));if(!m)return;tot++;if(E.pzMissNote(P,g,m))got++;}catch(e){}});
+   // [#550 helper lessons, jobs/pzmissnote-says-a-piece-is-left-to-be-won-that-the-wrong-move-just-captured-2026-11-14]: a wrong move that
+   // CAPTURES the piece the line wins was told that piece is "left to be won" (the checker's Qxa1, rook on a1). Its example, and the whole class:
+   // every capturing wrong move over the 876 (the class needs a capture on the named square, so captures are its whole population).
+   {const f='r5k1/5ppp/2bpp3/1pp5/4P1P1/1PqP1N2/2P1RPP1/R1Q3K1 b - - 0 1';const ri=raw.findIndex(r=>r.f===f);let nx=null;
+    if(ri>=0)nx=note({id:'g'+ri,fen:f,sol:raw[ri].s,reply:raw[ri].y,goal:''},f,'Qxa1');
+    L.say(ri>=0&&!/ on a1 /.test(String(nx)),'TC-R209k the checker\'s Qxa1 (it takes the rook on a1) is not told the rook on a1 is left to be won ("'+nx+'")',{found:ri>=0,nx});
+    let caps=0,named=0;const ex=[];raw.forEach((r,k)=>{try{const g=E.fromFEN(r.f);const P={id:'g'+k,fen:r.f,sol:r.s,reply:r.y,goal:(r.n>0?'mate in '+r.n:'')};const s0=E.findMoveBySAN(g,r.s[0]);
+      for(const m of E.getLegal(g)){if(s0&&m.fr===s0.fr&&m.fc===s0.fc&&m.tr===s0.tr&&m.tc===s0.tc)continue;if(!g.board[m.tr][m.tc])continue;caps++;
+        const n=E.pzMissNote(P,g,m);if(n&&n.indexOf(' on '+E.rc2sq(m.tr,m.tc)+' ')>=0){named++;if(ex.length<3)ex.push(r.f+' '+E.rc2sq(m.tr,m.tc)+': '+n);}}}catch(e){}});
+    L.say(caps>1000&&named===0,'TC-R209k over all '+caps+' capturing wrong moves, no line note names the square the move itself took on ('+named+'; 88 before the fix)',{caps,named,ex});}
    L.say(tot===876&&got>=600,'TC-R209k DENOMINATOR and coverage: of '+tot+' generated puzzles, the first legal wrong move gets a line note on '+got+' (at least 600; 627 measured)',{tot,got});}
   const B=[['6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w - - 0 1','h4',/queen on c2 is attacked/],['8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w - - 0 1','Rxh6+',/rook on h3 can be given up with check/]];
   let bh=0;const bm=[];for(const [f,san,want] of B){let t='';try{const g=E.fromFEN(f);t=E.brilHint(g,E.findMoveBySAN(g,san),false)||'';}catch(e){t='';}if(want.test(t))bh++;else bm.push(san+': "'+t+'"');}
