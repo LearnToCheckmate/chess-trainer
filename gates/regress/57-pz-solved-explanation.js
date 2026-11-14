@@ -123,14 +123,14 @@ const giveable=(b)=>b.page.evaluate(()=>{
 // must not set it). A scoped run says so in its own output, so a partial run can never be read as a full one.
 // The longest curated `explain:` string in the bundle, extracted from app.js at #428 and pinned here so the
 // capacity note below measures the real worst case rather than the fixture's 149.
-const LONGEST_CURATED="Nxe5!! ignores the pin. If Black grabs the queen with \u2026Bxd1??, then Bxf7+ Ke7 Nd5# \u2014 L\u00e9gal's Mate: three minor pieces deliver mate while the queen sits useless on d1. (If Black instead plays \u2026dxe5, then Bxf7+ and Qxg4 simply win a pawn.)";
+const LONGEST_CURATED="Nxe5!! ignores the pin. If Black grabs the queen with \u2026Bxd1??, then Bxf7+ Ke7 Nd5#: L\u00e9gal's Mate: three minor pieces deliver mate while the queen sits useless on d1. (If Black instead plays \u2026dxe5, then Bxf7+ and Qxg4 simply win a pawn.)";
 const ONLY=(process.env.CT_G57||'').split(',').map(x=>x.trim()).filter(Boolean);
 // #550 TEST-SYSTEM helper B round 3: TC-R85's "fits, so no chip" branch ran 0 times in 549-all.log, because its ONLY input was
 // LONGEST_CURATED, which overruns the box at all seven geometries (sh 137..178 against ch 109..153), so the absence line could
 // never execute. SHORT_FIT is a second input chosen to fit: one short line (an explanation of the kind a mate-in-one puzzle
 // carries). Its fit is a PRECONDITION asserted on its own line, so if a layout change ever makes it overrun, that is a red and
 // not a silent hop to the other branch. R85N counts each branch, printed at the end and asserted non-zero for the fit branch.
-const SHORT_FIT="Qh7# — mate in one.";
+const SHORT_FIT="Qh7#: mate in one.";
 const R85N={overrun:0,fit:0};
 
 L.run(async()=>{
@@ -320,8 +320,8 @@ L.run(async()=>{
      const m=/const ONLINE_ACK_RE=(\/.+\/);/.exec(src);let re=null;try{re=m?eval(m[1]):null;}catch(e){re=null;}
      const lits=[...src.matchAll(/setOnlineInfo\('([^']+)'/g)].map(x=>x[1]);
      L.say(!!re&&lits.length>=8,'TC-R82 U0 PRECONDITION ONLINE_ACK_RE and the setOnlineInfo literals are read out of chess.jsx ('+lits.length+' literals)',{re:m&&m[1],n:lits.length});
-     const ACK=['Code copied!','Invite link copied — send it to your friend!','Creating game…','Joining…','Opening your game…','Syncing… give it a second and tap your move again.'];
-     const EXPL=['That position needs a fix and is unavailable right now.','Move not saved (','Game created. Send ','Could not copy the link — share the code instead.'];
+     const ACK=['Code copied!','Invite link copied: send it to your friend!','Creating game…','Joining…','Opening your game…','Syncing… give it a second and tap your move again.'];
+     const EXPL=['That position needs a fix and is unavailable right now.','Move not saved (','Game created. Send ','Could not copy the link: share the code instead.'];
      if(re){
        L.say(ACK.every(t=>lits.some(l=>l.startsWith(t.slice(0,12))))&&EXPL.every(t=>lits.some(l=>l.startsWith(t.slice(0,12)))),'TC-R82 U1 PRECONDITION every listed line is still one the source prints - the lists below are not about strings that no longer exist',{lits});
        L.say(ACK.every(t=>re.test(t)),'TC-R82 U2 every ACKNOWLEDGEMENT line matches the time-out class',ACK.map(t=>[t,re.test(t)]));

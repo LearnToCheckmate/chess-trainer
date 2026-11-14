@@ -175,10 +175,10 @@ L.run(async()=>{
      if(!(new RegExp('^(✓|🎉) '+W[i].replace(/[+#]/g,'\\$&')).test(last))||p0===p1)break;accepted++;
      g=E.makeMove(g,m);if(/ is checkmate!/.test(last))break;
      const rs=(last.match(/answers (\S+?)\./)||[])[1];const rm=rs&&bySan(E,g,rs);if(!rm)break;legalReplies++;replies.push(rs);g=E.makeMove(g,rm);}
-   L.say(/^✓ Ke2 — the king answers/.test(keNote),'TC-LS-072 the non-book 2.Ke2 (the book plays Kd2) is ACCEPTED and the king answers',keNote);
+   L.say(/^✓ Ke2(?: —|:) the king answers/.test(keNote),'TC-LS-072 the non-book 2.Ke2 (the book plays Kd2) is ACCEPTED and the king answers',keNote);
    L.say(accepted===W.length,'TC-LS-072 all '+W.length+' moves of the off-book run are accepted ('+accepted+')',last);
    L.say(legalReplies===W.length-1,'TC-LS-072 the lone king answers every move with a legal move of its own ('+replies.join(' ')+')',replies);
-   L.say(/^✓ Kc4 — the king answers Ka4\. Stage 1 done\. Stage 2 of 2 · Mate on the edge/.test(stNote),'TC-LS-072 after 7.Kc4 Ka4 (the king can reach only a4 and a5) the note closes stage 1 and opens stage 2',stNote);
+   L.say(/^✓ Kc4(?: —|:) the king answers Ka4\. Stage 1 done\. Stage 2 of 2 · Mate on the edge/.test(stNote),'TC-LS-072 after 7.Kc4 Ka4 (the king can reach only a4 and a5) the note closes stage 1 and opens stage 2',stNote);
    L.say(/ is checkmate!/.test(last)&&E.getStatus(g)==='checkmate','TC-LS-072 the run ends in a checkmate the board bears out',last);
    L.say(/Flawless/.test(last)&&(await learnDays(b,NAME))===1,'TC-LS-072 the flawless run banks the day (ct_learnprog: '+(await learnDays(b,NAME))+')',last);
    await b.shot('g156-mate');});

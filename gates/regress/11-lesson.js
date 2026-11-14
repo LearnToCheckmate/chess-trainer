@@ -593,7 +593,7 @@ L.run(async()=>{
           for(const k of ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing'])pr.style[k]=cs[k];pr.style.width=w+'px';document.body.appendChild(pr);
           const C=window.CTLESSONS||{};let n=0,over=0,lessons=0;const worst=[];
           const one=(name,line,notes)=>{(notes||[]).forEach((t,i)=>{if(!t)return;n++;const ply=i+1;const san=(line||[])[i]||'';
-            pr.textContent=Math.ceil(ply/2)+(ply%2===1?'.':'…')+' '+san+' — '+t;const ph=pr.getBoundingClientRect().height;
+            pr.textContent=Math.ceil(ply/2)+(ply%2===1?'.':'…')+' '+san+': '+t;const ph=pr.getBoundingClientRect().height;
             if(ph>h+0.5){over++;worst.push([Math.round(ph),name,ply]);}});};
           for(const k of Object.keys(C))for(const o of (C[k]||[])){lessons++;one(o.name,o.line,o.notes);for(const v of (o.vars||[]))one(o.name+' / '+v.name,v.line,v.notes);}
           pr.remove();worst.sort((a,c)=>c[0]-a[0]);

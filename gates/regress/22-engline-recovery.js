@@ -432,8 +432,8 @@ L.run(async()=>{
   // 10 - after 5.Qxc7 - never gets a line, '+5.1 …' for 24s+ even when reached directly while 9 and 8 answer in 5s. That is
   // a separate dead-query finding, recorded in the #547 run report, and a control must not stand on a defect.)
   // [#549 item (91): ply 10 measured with a line in 1.0 s on HEAD ('+5.2 6. Qxb8 f5 …'), fixed by the same cedb498; ply 8 stays the control.]
-  {const GAMES=[{k:'stalemate',want:/^Stalemate — /,pgn:'[Result "1/2-1/2"]\n\n1. e3 a5 2. Qh5 Ra6 3. Qxa5 h5 4. h4 Rah6 5. Qxc7 f6 6. Qxd7+ Kf7 7. Qxb7 Qd3 8. Qxb8 Qh7 9. Qxc8 Kg6 10. Qe6 1/2-1/2',n:19},
-                {k:'checkmate',want:/^Checkmate — /,pgn:'[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1',n:4}];
+  {const GAMES=[{k:'stalemate',want:/^Stalemate(?: —|:) /,pgn:'[Result "1/2-1/2"]\n\n1. e3 a5 2. Qh5 Ra6 3. Qxa5 h5 4. h4 Rah6 5. Qxc7 f6 6. Qxd7+ Kf7 7. Qxb7 Qd3 8. Qxb8 Qh7 9. Qxc8 Kg6 10. Qe6 1/2-1/2',n:19},
+                {k:'checkmate',want:/^Checkmate(?: —|:) /,pgn:'[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1',n:4}];
    for(const G of GAMES){
     const t=await L.launch({geo:'kunal730',name:'engline-terminal-'+G.k,store:{ct_pool:'3'}});await t.open();
     let ok=true;
@@ -458,7 +458,7 @@ L.run(async()=>{
          going STRAIGHT to ply 8 without visiting the game-over ply ('+1.3 …' for 30s each time). It is a pre-existing engine-liveness fault
          on this route, not part of item (116)'s claim, and it is filed as its own job rather than left as a red that names the wrong change.
          The control keeps its one assertion and asserts what (116) is about: the reason row is confined to the game-over plies. */
-      L.say(c.ply==='8/'+G.n&&!/^(Stalemate|Checkmate) — /.test(c.txt||'')&&!!(c.txt||'').trim(),'TC-R83 control at ply 8 the game-over reason does NOT appear - the row shows the live position\'s evaluation, so the fix is confined to game-over plies',{txt:c.txt});
+      L.say(c.ply==='8/'+G.n&&!/^(Stalemate|Checkmate)(?: —|:) /.test(c.txt||'')&&!!(c.txt||'').trim(),'TC-R83 control at ply 8 the game-over reason does NOT appear - the row shows the live position\'s evaluation, so the fix is confined to game-over plies',{txt:c.txt});
       /* #549, item (91), jobs/review-engine-line-never-arrives-at-ply-8-of-the-stalemate-game-2026-11-03: THE LINE HALF, RESTORED.
          The dead search above was a STALE bestmove: the previous search's answer to `stop` (here 'bestmove a6a5', a Black move with
          White to move) arrived just after this query's `go` and finished it, so uciToMove rejected it and the line came out empty.
@@ -699,6 +699,7 @@ L.run(async()=>{
    }
    await b.close();}
 // CONTROL-RECORD: 376ccde 2026-11-06 total=6 red=2 scope=blocks:T how=TC-R117 block T extracted alone (scratchpad jobs/102/only117.js) and run against #549's pre-fix HEAD bundle 82a3c168ad2d (no first-paint hold); red are exactly the two TC-R117 NOTHING SHOWN IS REMOVED lines, at ply 38 and ply 74; the fixed bundle 6b6a47809365 runs the same 6 green. The full-gate total is for the run to take from its suite log.
+// CONTROL-RECORD: 0d4d9f1 2026-11-14 total=113 red=2 scope=trial:6822c17e62e9 how=#550 helper app A, re-control after TXT-40 moved TC-R83's want to '(Stalemate|Checkmate)(: | — )': chess.jsx with the game-over row's reason replaced by 'Game over.' for both endings - both TC-R83 SAYS-WHY lines red (stalemate and checkmate, all three reads); on d4 2be220e4f87f 113/0
   // #550 round-4 suite: TC-R118 (block U) moved to gates 120 and 121 - with it this gate ran past the suite's 900 s per-gate ceiling.
 },'ENGLINE-RECOVERY');
 // SELECTOR-OPENED: rev-engwhy reading=precondition round 4: the closes line runs only inside the branch where the PRECONDITION found the reading open

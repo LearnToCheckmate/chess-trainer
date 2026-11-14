@@ -190,7 +190,7 @@ L.run(async()=>{
     // ANY STRENGTH NOTE, IN EITHER CASE [#545, item (49)]. chess.jsx's three notes are '▲ Strength now ~N Elo',
     // '▼ Strength now ~N Elo' and 'Draw — strength stays ~N Elo'; /Strength/ was case-sensitive and missed the third.
     const STR16=/strength/i;
-    {const yes=['▲ Strength now ~840 Elo','▼ Strength now ~380 Elo','Draw — strength stays ~400 Elo'],no=['Resigned · You lose','Checkmate · You win','Draw agreed'];
+    {const yes=['▲ Strength now ~840 Elo','▼ Strength now ~380 Elo','Draw: strength stays ~400 Elo'],no=['Resigned · You lose','Checkmate · You win','Draw agreed'];
      L.say(yes.every(t=>STR16.test(t))&&!no.some(t=>STR16.test(t)),'TC-SUITE-265 C1 the strength-note pattern catches all three notes the app prints and no result line (checked both ways)',{missed:yes.filter(t=>!STR16.test(t)),wronglyCaught:no.filter(t=>STR16.test(t))});}
     L.say(!!upSlot&&!STR16.test(upSlot.t),'C1 375x730: at the Elo floor a loss changes no strength, so the slot carries NO strength note while the card is up - the branch the job called unmeasured',{slot:upSlot&&upSlot.t});
     await b.settle(5000);const dn=await slot(b),hits=await resultHits(b);

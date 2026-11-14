@@ -31,7 +31,7 @@ L.run(async()=>{
     const san=c.uci.slice(0,2)+'-'+c.uci.slice(2,4);
     const card={fen:c.fen,uci:c.uci,label:'Mistake',played:c.played,ts:1791000000000,last:null,wc:{g:'Mistake',drop:20},   /* #550 a41: marked as already re-graded, so the Home pass (gate 134's subject) does not judge this fixture - the take card's Qh3 still leaves White winning by win chance and the pass rightly drops it */
       
-      hint:'No tactic to spot here — look for the move that improves your worst piece.',why:'That was stronger. '+c.played+' went from winning to clearly better.'};
+      hint:'No tactic to spot here: look for the move that improves your worst piece.',why:'That was stronger. '+c.played+' went from winning to clearly better.'};
     const b=await L.launch({geo:'kunal761',name:'drill132-'+c.id,store:{ct_mymistakes:[card],ct_pool:'3'}});await b.open();
     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
     const goal=ok?await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-top"]');return e?e.innerText.replace(/\s+/g,' '):'';}):'';

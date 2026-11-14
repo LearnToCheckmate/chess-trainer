@@ -48,7 +48,7 @@ L.run(async()=>{
   // naming the move: a mate puzzle that starts with a check -> the move is not a check; a material puzzle -> the piece still there to be won.
   // The audit's own example (Kf1 in the first back-rank puzzle), a material one, the two cases that must give nothing (the answer's own kind
   // of move, a hand-written puzzle), and the coverage: of the 876, the first legal wrong move gets a note on 627 (measured on the fix tree).
-  {const BR={id:'g0',fen:'7k/pb3rpp/2p5/5p2/3P4/8/PPP2PPP/4R1K1 w - - 0 1',sol:['Re8+','Rxf8#'],reply:['Rf8'],goal:'White to move — mate in 2'};
+  {const BR={id:'g0',fen:'7k/pb3rpp/2p5/5p2/3P4/8/PPP2PPP/4R1K1 w - - 0 1',sol:['Re8+','Rxf8#'],reply:['Rf8'],goal:'White to move: mate in 2'};
    const MT={id:'g1',fen:'3r3r/4bk2/1R2p3/3pP2p/P2n4/2Q2p1P/6P1/R5K1 b - - 0 1',sol:null,reply:null,goal:''};
    const note=(P,f,san)=>{try{const g=E.fromFEN(f);return E.pzMissNote(P,g,E.findMoveBySAN(g,san));}catch(e){return 'THREW '+e.message;}};
    const n1=note(BR,BR.fen,'Kf1');
@@ -110,7 +110,7 @@ L.run(async()=>{
     ['K6','r2qk2r/ppp2ppp/2nbpn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 1','h3','Qc2','Their bishop on g4 is short of defenders. Attack it.'],
     ['K7','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Re4','Be4','Their knight on g4 is short of defenders. Attack it.'],
     ['K8','5rk1/pBqb1pbp/4p1p1/1p1nN3/2pP4/2P3B1/PP3PPP/R2QR1K1 w - - 0 1','Bxd5','Ba6','Their knight on d5 can be taken, and taking it is right even though it can be taken back.'],
-    ['K10','r3r1k1/p2q1p1p/1p1p2pB/1Pp5/3bPP2/1Q6/1PP3PP/3RR2K b - - 0 1','Qb7','Re7','No tactic to spot here — look for the move that improves your worst piece.'],
+    ['K10','r3r1k1/p2q1p1p/1p1p2pB/1Pp5/3bPP2/1Q6/1PP3PP/3RR2K b - - 0 1','Qb7','Re7','No tactic to spot here: look for the move that improves your worst piece.'],
   ];
   for(const [id,f,bs,ps,want] of SIXH){let t='';try{const g=E.fromFEN(f);t=E.mistakeHint(g,E.findMoveBySAN(g,bs),E.findMoveBySAN(g,ps));}catch(e){t='THREW '+e.message;}
     L.say(t===want,'TC-R209g '+id+' his card ('+ps+', best '+bs+'): the Hint reads "'+t+'"',{t,want});}

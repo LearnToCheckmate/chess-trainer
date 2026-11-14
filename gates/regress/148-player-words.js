@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WORDS. US-R156 / TC-R224a..l.
+// gates/regress/148-player-words.js - A PLAYER SEES NO DEVELOPER TOOLS AND NO DEVELOPER WORDS. US-R156 / TC-R224a..n.
 //
 // WHY [#550, wording check docs/wording-check-2026-11-12, Kunal "Only you" and "Batch 10", 12 Nov 2026]: the preview gallery (the
 // film-clapper on Home), feedback-to-Claude, the Layout readout and overlay, the New features switches, the brilliant-gate numbers, the
@@ -18,6 +18,7 @@
 // bundle strings only. The More sheet is reached after one review of an 8-move game.
 // CONTROL-RECORD: c2e0d87 2026-11-13 total=33 red=12 scope=trial:b96f96352c90 how=#550 the branch tip before this change (claude/exciting-noether-v1swj8 c2e0d87), built as a trial: every tool shown to every player, so A (b..h), D (k) and the static half (7 of 9 sentences) go red, B and C stay green; on 3de557ab1c5e 33/0
 // CONTROL-RECORD: bb29be7 2026-11-14 total=44 red=11 scope=trial:f0042ce1a984 how=#550 helper app A, wording check what was left (TC-R224l): bb29be7's tree, every TXT item's old wording still in the bundle and its replacement missing (8 static) and Home, Play setup and Review entry rendering the old words (3); on w2 54fd98fdb522 44/0
+// CONTROL-RECORD: e599269 2026-11-14 total=48 red=3 scope=trial:701fa8c609b0 how=#550 helper app A, TXT-36/TXT-40 (TC-R224m/n, Kunal's q46/q47): e599269's tree - chess.jsx built as the trial, lessons.js and index.html read from that tree (CT_LESSONS, CT_INDEX) - the dash line red (bundle 'No tactic to spot here \u2014 ...', lessons, page title), the British line red (analysed, centre, practise...) and the one-spelling line red (Petrov 5, Petroff 5, Maróczy 2); on d3 1a65030ba57a 48/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
@@ -64,6 +65,29 @@ L.run(async()=>{
     ['TXT-37 no engine internals on the analysing screen',['checking every move','engines side by side'],['Checking every move','This takes a few seconds.']]];
   for(const [tag,old,neu] of TXT){const o=old.filter(s=>src.indexOf(s)>=0),n=neu.filter(s=>src.indexOf(s)<0);
     L.say(o.length===0&&n.length===0,'TC-R224l '+tag+' (old left: '+(o.join(' / ')||'none')+'; new missing: '+(n.join(' / ')||'none')+')',{o,n});}
+  /* #550 wording check TXT-36 and TXT-40, Kunal's answers run-answers q46 and q47: US spelling everywhere (the lesson names included) and no
+     em or en dash in any player-facing text, the page title included. Read over the three places a player's words come from: the bundle's
+     strings, lessons.js (every lesson's name, idea, notes and plans) and index.html outside its comments, styles and scripts. The only
+     dashes allowed are inside a regex character class (the move-name sanitiser's [\s(—–-] and the solve line's [,—]), which
+     strip a dash from text a player pasted and are code, not words. */
+  {const ROOT=path.join(__dirname,'..','..');
+   const lessons=fs.readFileSync(process.env.CT_LESSONS||path.join(ROOT,'lessons.js'),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/[^\n]*/g,'$1');
+   const index=fs.readFileSync(process.env.CT_INDEX||path.join(ROOT,'index.html'),'utf8').replace(/<!--[\s\S]*?-->|<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/g,'');
+   const appTxt=src.replace(/\[[^\]\n"'`]{0,60}(?:—|\\u2014)[^\]\n"'`]{0,60}\]/g,'')
+     /* and the one map whose KEYS are the old spellings on purpose: VAR_RENAMED, the progress migration from the British variation names (its
+        values are the new names, so a reader still sees only US words) */
+     .replace(/\{"Two Knights Defence":[^}]*\}/,'{}');
+   const DASH=/—|–|\\u2014|\\u2013/g;
+   const dashes=(t)=>{const o=[];let m;DASH.lastIndex=0;while((m=DASH.exec(t))&&o.length<6)o.push(t.slice(Math.max(0,m.index-40),m.index+30).replace(/\s+/g,' '));return o;};
+   const BRIT=/(?<![-\/_.A-Za-z0-9])(centre|centres|centred|centring|centralis(?:e|ed|es|ing|ation)|defences?|manoeuvr(?:e|es|ed|ing)|favourites?|favour(?:s|ed|ing|able|ably)?|colours?|coloured|colourful|neighbour(?:s|ing)?|practis(?:e|ed|es|ing)|analys(?:e|ed|ing)|neutralis(?:e|ed|es|ing)|memoris(?:e|ed|ing)|equalis(?:e|ed|es|ing)|recognis(?:e|ed)|realis(?:e|ed)|organis(?:e|ed)|learnt|whilst|behaviour|honour|armour|fianchettos|Maroczy)(?![-\/_A-Za-z0-9])/gi;
+   const brits=(t)=>{const o=[];let m;BRIT.lastIndex=0;while((m=BRIT.exec(t))&&o.length<6)o.push(m[1]+' @ '+t.slice(Math.max(0,m.index-30),m.index+20).replace(/\s+/g,' '));return o;};
+   const dl=[...dashes(appTxt).map(x=>'app: '+x),...dashes(lessons).map(x=>'lessons: '+x),...dashes(index).map(x=>'index: '+x)];
+   L.say(lessons.length>50000&&index.length>500,'TC-R224m PRECONDITION lessons.js and index.html were read ('+lessons.length+' and '+index.length+' chars)');
+   L.say(dl.length===0,'TC-R224m TXT-40 no em or en dash in any player-facing text: bundle strings, lessons and the page ('+(dl.slice(0,3).join(' | ')||'none')+')',dl);
+   const bl=[...brits(appTxt).map(x=>'app: '+x),...brits(lessons).map(x=>'lessons: '+x),...brits(index).map(x=>'index: '+x)];
+   L.say(bl.length===0,'TC-R224n TXT-36 no British spelling in any player-facing text, lesson names included ('+(bl.slice(0,3).join(' | ')||'none')+')',bl);
+   const pet=(lessons.match(/Petrov\b/g)||[]).length,petf=(lessons.match(/Petroff\b/g)||[]).length,mar=(lessons.match(/Maróczy/g)||[]).length;
+   L.say(pet===0&&petf>0&&mar>0,'TC-R224n and one spelling each: Petroff ('+petf+', Petrov '+pet+'), Maróczy ('+mar+')',{pet,petf,mar});}
 
   // ── A: the player view
   {const b=await L.launch({geo:'kunal761',name:'pw148-player',dev:false,store:{ct_pool:'3',ct_revmig339:'1'}});await b.open();

@@ -547,7 +547,7 @@ L.run(async()=>{
     // assertion, not a shape one: a gate that only counts plies passes a demo playing the wrong opening.
     L.say((await D.playBtnLabel(b))==='▶',geo+': paused at ply 0 the play button reads ▶',await D.playBtnLabel(b));
     const sans=[];
-    for(let i=0;i<LINE.length;i++){await D.tapBtn(b,/^Forward a move$/,160);sans.push(((await D.noteText(b))||'').split(' — ')[0]);}
+    for(let i=0;i<LINE.length;i++){await D.tapBtn(b,/^Forward a move$/,160);sans.push(((await D.noteText(b))||'').split(/ — |: /)[0]);}
     L.say(sans.join('|')===LINE.join('|'),geo+': ten Forwards walk the Italian Game exactly - '+LINE.join(' '),{measured:sans.join(' '),want:LINE.join(' ')});
     L.say((await D.playBtnLabel(b))==='↻',geo+': at the end of the line the play button becomes ↻ (replay), which is how the harness and Kunal both know the demo is over',await D.playBtnLabel(b));
 

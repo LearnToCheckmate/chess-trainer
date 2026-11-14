@@ -500,7 +500,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
       t:d?d.innerText.replace(/\s+/g,' ').trim():null,h:d?Math.round(d.getBoundingClientRect().height):null,
       pcPresent:!!pc,pcInk:pc?pc.innerText.replace(/[\s\u00a0]+/g,''):null};});
   L.note(geo+': came from '+JSON.stringify(ply));
-  L.say(!!ban&&ban.present&&ban.t==="♟ Continuing from your reviewed position. You'll play Black (the side to move) — switch the color below if you'd rather take the other side.",
+  L.say(!!ban&&ban.present&&/^♟ Continuing from your reviewed position\. You'll play Black \(the side to move\)(?: —|:) switch the color below if you'd rather take the other side\.$/.test(ban.t),
     geo+': TC-PS-037 the setup sheet opens with the banner, word for word, naming the side to move',ban);
   /* ban.present FIRST [#546, item (61)]: ct is null when the banner is ABSENT, so without it this line passed over a
      screen with no banner at all and only TC-PS-037's red said so. */

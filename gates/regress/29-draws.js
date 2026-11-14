@@ -194,7 +194,7 @@ L.run(async()=>{
       // include 'Stalemate', 'Threefold repetition' and '½–½' with no "Draw" in them; DRAW29 is checked both ways
       // against those and against loss and win cards just below, so a narrower pattern cannot come back silently.
       const DRAW29=/Draw|Stalemate|repetition|fifty|½/i;
-      const drawForms29=['Draw agreed','Stalemate','Stalemate — draw','Threefold repetition','Draw / Fifty-move rule','½–½'];
+      const drawForms29=['Draw agreed','Stalemate','Stalemate — draw','Stalemate: draw','Threefold repetition','Draw / Fifty-move rule','½–½','½-½'];
       const notDraw29=['Checkmate · You win','Resigned · You lose','Time · White wins','1–0','0–1'];
       L.say(drawForms29.every(t=>DRAW29.test(t))&&!notDraw29.some(t=>DRAW29.test(t)),'TC-SUITE-265 (B2) the no-draw pattern catches every draw form the app prints and no win or loss card (checked both ways)',{missed:drawForms29.filter(t=>!DRAW29.test(t)),wronglyCaught:notDraw29.filter(t=>DRAW29.test(t))});
       L.say(!DRAW29.test(s2.card||''),'(B2) vs-computer: eight plies of ORDINARY PLAY against the engine do NOT produce a draw. The engine chooses Black, so no position repeats, and this is what fails if the repetition key is too coarse - one that ignored the side to move or castling rights would collide on normal play and end a game that is still going',s2);

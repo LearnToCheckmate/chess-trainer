@@ -653,8 +653,8 @@ function mkTap(b,READ){
        account beta on, so 3 != 7 and the NARROW form is the one that must fire; asserting merely that one of
        the two fired would pass on a build that printed the wide form over a narrowed set, which is the exact
        sentence #476's C4 exists to forbid. */
-    const COV_WIDE=/^Graded (\d+) of (\d+) so far — a game we haven’t graded yet can’t match this filter\.$/;
-    const COV_NARROW=/^Graded (\d+) of the (\d+) games this filter is looking at — a game we haven’t graded yet can’t match this filter\.$/;
+    const COV_WIDE=/^Graded (\d+) of (\d+) so far(?: —|:) a game we haven’t graded yet can’t match this filter\.$/;
+    const COV_NARROW=/^Graded (\d+) of the (\d+) games this filter is looking at(?: —|:) a game we haven’t graded yet can’t match this filter\.$/;
     const cov=(line,loadedTotal)=>{
       const w=COV_WIDE.exec(line||''),n=COV_NARROW.exec(line||'');
       const m=w||n;

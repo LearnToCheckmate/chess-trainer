@@ -87,7 +87,7 @@ L.run(async()=>{
   //    a 74 box) over the board; 320 needs 18px that only cutting that text to two lines would give, so it stays (gate 123 pins 302).
   {const b=await L.launch({geo:'kunal761',name:'top139-cg6-les',store:{ct_pool:'3'}});await b.open();let ok=true;try{await D.states['demo-m1'](b);await b.settle(1200);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const R=e=>{const q=e.getBoundingClientRect();return {l:+q.left.toFixed(1),r:+q.right.toFixed(1),br:getComputedStyle(e).borderTopLeftRadius};};
-     const note=[...document.querySelectorAll('div')].find(d=>/^1\. e4 — /.test((d.innerText||'').trim())&&getComputedStyle(d).borderTopWidth!=='0px'&&d.getBoundingClientRect().height>40);
+     const note=[...document.querySelectorAll('div')].find(d=>/^1\. e4(?: —|:) /.test((d.innerText||'').trim())&&getComputedStyle(d).borderTopWidth!=='0px'&&d.getBoundingClientRect().height>40);
      const mv=[...document.querySelectorAll('div.scroll')].filter(d=>/^1\.\s*e4/.test((d.innerText||'').trim())&&d.getBoundingClientRect().width>200).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];   // the outermost scroller holding the moves
      const bs=[...document.querySelectorAll('button')].filter(x=>/Now I'll try it|^⟳ Flip$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0).map(R);
      return {note:note?R(note):null,mv:mv?R(mv):null,row:bs.length?{l:Math.min(...bs.map(x=>x.l)),r:Math.max(...bs.map(x=>x.r))}:null};});
