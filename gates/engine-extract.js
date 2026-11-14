@@ -62,7 +62,7 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   'REVIEW_TWO_DEFAULT','REVIEW_TWO',
   // #550 hint audit: the concrete reading and the two drill texts it feeds
   'concreteRead','_cheapAttacker','_mateInOne','missWhy','_bestCapNet','drillVerdict','mistakeHint','WHY_DRILL_MAXW','ACC_HARM_FLOOR','ACC_SHIFT','pzText','pzMissNote','_sanDesc','_pzTxtC','gistInContext','RT_PW','rtV','rtCap','rtSq','rtN','rtRun','rtFirst','rtGist','rtForkT','rtStand','rtLadder','rtQuiet','reviewText0','reviewText','dropTxt','brilHint','mistakeWhy',
-  // #550 HEX-T-08: the Brilliant card's refutation line (the review's sacrifice pieces and the card's own taker and sentence)
+  // #550 HEX-T-08: the Brilliant card refutation line (the review sacrifice pieces, and the taker and sentence of the card); no apostrophes in this list, gate 79 reads its names by quote marks
   'SAC_LINE_MAX','sacTaker','sacLine','sacKeep','refuteTxt','brilTaker','brilRefuteTxt'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
