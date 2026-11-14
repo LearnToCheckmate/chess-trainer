@@ -65,7 +65,7 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'review-'+geo,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
     // TC-R01 import
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
-    const t0=Date.now();await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+    const t0=Date.now();await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
     let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});}catch(e){ok=false;}
     const tImport=Date.now()-t0;
     L.say(ok&&tImport<90000,geo+': TC-R01 PGN import reaches the summary in under 90 s ('+Math.round(tImport/1000)+' s)');
@@ -320,7 +320,7 @@ L.run(async()=>{
     {const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,geo+': no app error across the review beyond the one allowed engine trap (#356)',{allowed:b.errs.length-bad.length,other:bad.slice(0,3)});}
     // TC-R02 + TC-R12: reload with the graph on, re-import (cache), compare counts, check the graph
     await b.page.evaluate(()=>{localStorage.setItem('ct_evalgraph','1');});await b.open();await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
-    const t1=Date.now();await b.tapText(/^⚡ Analyze Game$/,{wait:200});let ok2=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){ok2=false;}const tCache=Date.now()-t1;
+    const t1=Date.now();await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});let ok2=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){ok2=false;}const tCache=Date.now()-t1;
     L.say(ok2&&tCache<8000,geo+': TC-R02 the cached re-analysis reaches the summary in under 8 s ('+Math.round(tCache/100)/10+' s)');
     const sum2=await summaryCounts(b);const nums=(s)=>(s.match(/\d+/g)||[]).slice(0,40).join(',');
     L.say(nums(sum2)===nums(sumText),geo+': TC-R02 the cached summary carries identical numbers');
@@ -342,7 +342,7 @@ L.run(async()=>{
     const b=await L.launch({geo:'kunal730',name:'review-graph-default',store:{ct_pool:'3'}});await b.open();
     const key0=await b.page.evaluate(()=>localStorage.getItem('ct_evalgraph'));
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
-    await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+    await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});
     let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){ok=false;}
     L.say(ok,'kunal730: TC-R12b PRECONDITION the review reached its summary with no ct_evalgraph key in the store (key read at launch: '+JSON.stringify(key0)+')',{key0});
     if(ok){
@@ -365,7 +365,7 @@ L.run(async()=>{
       const ccache=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_country')||'{}');}catch(e){return {bad:true};}});
       L.say(!Object.prototype.hasOwnProperty.call(ccache,'cc:morphy')&&!Object.prototype.hasOwnProperty.call(ccache,'cc:duke karl / count isouard'),'kunal730: TC-R68 a REFUSED country lookup is not cached - the review asked for both players and the harness refused both, and ct_country holds no entry for either, so the next review asks again',ccache);
       await b.page.evaluate(()=>{localStorage.setItem('ct_evalgraph','0');});await b.open();await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
-      await b.tapText(/^⚡ Analyze Game$/,{wait:200});try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){}
+      await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){}
       // #550 check gap cg2: TC-R68 again AFTER the review was left and opened again (the case's open, leave, reopen) - the second visit
       // asks again, is refused again, and still leaves no answer behind.
       await b.settle(1500);
@@ -396,7 +396,7 @@ L.run(async()=>{
              const row=im.parentElement;const gap=row?parseFloat(getComputedStyle(row).columnGap):NaN;out.flags.push({t:im.getAttribute('alt')||'',x:r.x,w:r.width,h:r.height,bar:sel,gap});});}
          return out;},NAMES);
        const reopen=async(cc)=>{await b.page.evaluate((cc)=>{localStorage.setItem('ct_country',JSON.stringify(cc));},cc);await b.open();await b.tile('Review');
-         await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+         await b.page.locator('textarea').first().fill(PGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});
          let s=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:60000});}catch(e){s=false;}
          if(s){await b.tapText(/^Start review/,{wait:900});await b.settle(600);}return s;};
        const un=await readBars();
@@ -438,7 +438,7 @@ L.run(async()=>{
       await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
       const took=await ta.inputValue().catch(()=>'');
       L.say(took.indexOf('[FEN "'+fen+'"]')>=0,'kunal761: TC-R66 '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
-      await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
       const st=await b.page.evaluate(()=>{const rv=window.__ctReview;if(!rv||!rv.positions||!rv.positions[0])return null;const g=rv.positions[0];const F='abcdefgh';
         const rows=g.board.map(row=>{let s='',e=0;for(const p of row){if(!p){e++;continue;}if(e){s+=e;e=0;}s+=p.c==='w'?p.t.toUpperCase():p.t;}return s+(e?e:'');});
@@ -464,7 +464,7 @@ L.run(async()=>{
       await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
       const took=await ta.inputValue().catch(()=>'');
       L.say(/\[FEN /.test(took),'kunal761: TC-R66 malformed FEN, '+tag+' PRECONDITION the paste box holds the PGN with its [FEN] header',{len:took.length});
-      await b.tapText(/^⚡ Analyze Game$/,{wait:2500});
+      await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:2500});
       const r=await b.page.evaluate(()=>{const t=(document.body.innerText||'').replace(/\s+/g,' ');
         return {summary:!!document.querySelector('[data-ct="rev-summary"]'),err:(t.match(/This game's \[FEN\] header could not be read[^.]*\./)||[null])[0],acc:/Accuracy/i.test(t),review:!!window.__ctReview};});
       L.say(!!r.err&&/FEN/.test(r.err),'kunal761: TC-R66 malformed FEN, '+tag+': the import is REFUSED with a sentence that names the [FEN] header, not the first move',r);
@@ -479,7 +479,7 @@ L.run(async()=>{
     const SU0='[Event "SetUp zero"]\n[SetUp "0"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 *';
     for(const [tag,pgn] of [['standard-start FEN',STD],['SetUp 0',SU0]]){
       const b=await L.launch({geo:'kunal730',name:'review-fen-ok-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
-      await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
       const refused=await b.page.evaluate(()=>/\[FEN\] header could not be read|This game starts from a set-up position/.test(document.body.innerText||''));
       L.say(sum&&!refused,'kunal730: TC-R66 '+tag+': NOT refused - it reaches the summary, because it is not a set-up game',{summary:sum,refused});
@@ -703,7 +703,7 @@ L.run(async()=>{
     const rows=[];
     for(const C of CASES){
       const b=await L.launch({geo,name:'r09d-'+C.tag,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
-      await b.tile('Review');await b.page.locator('textarea').first().fill(C.pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+      await b.tile('Review');await b.page.locator('textarea').first().fill(C.pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});}catch(e){ok=false;}
       L.say(ok,geo+': TC-R09d '+C.tag+' PRECONDITION the game is analysed and reaches the summary');
       if(!ok){await b.close();continue;}

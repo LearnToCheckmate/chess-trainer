@@ -12,7 +12,7 @@ const inside=(b,sel)=>b.page.evaluate((s)=>{const e=document.querySelector(s);if
 L.run(async()=>{
   for(const geo of ['kunal','se']){
     const b=await L.launch({geo,name:'anta-'+geo,store:{ct_pool:'3'}});await b.open();
-    await b.tile('Review');await b.page.locator('textarea').first().fill(PGN_BL);await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await b.tile('Review');await b.page.locator('textarea').first().fill(PGN_BL);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
     await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(500);
     await b.tapText(/^Start review/,{wait:800});await require('../drive/review').navTap(b,'First move');await b.settle(300);
     for(let i=0;i<5;i++){await b.page.locator('[aria-label="Next move"]').first().click();await b.page.waitForTimeout(120);}await b.settle(900);

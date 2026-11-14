@@ -97,7 +97,7 @@ const rows=(label)=>FENS.map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:17
 // #550 item (21): every brilliant store here seeds ct_bril_lib '0', so the tile starts the drill on all its cards as these arms
 // expect; with the library on, a store of two kinds opens the chooser instead (gate 118 covers that).
 const DRILLS=[
-  {k:'mistakes',   enter:/find the move you missed/,        store:{ct_mymistakes:rows('Blunder'),ct_pool:'3'},                                 counter:/Your mistakes/},
+  {k:'mistakes',   enter:/find the move you missed/,        store:{ct_mymistakes:rows('Blunder'),ct_pool:'3'},                                 counter:/Your mistakes|Mistakes drill/},
   {k:'brilliant',  enter:/can you spot them again\?/,       store:{ct_mybrilliancies:rows('Brilliant'),ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'},      counter:/Your brilliant moves/},
 ];
 const GS=[{n:'kunal761',g:L.GEOS.kunal761},{n:'320x568',g:L.GEOS.se}];
@@ -662,7 +662,7 @@ L.run(async()=>{
     let tapped=true;try{await b.tapText(/^Practice your mistakes/,{wait:600});}catch(e){tapped=false;}
     const toast=await b.page.evaluate(()=>[...document.querySelectorAll('div')].map(d=>(d.innerText||'').trim()).find(x=>/^None of your 2 saved positions can be played:/.test(x))||null);
     const st=await b.page.evaluate(()=>{try{return JSON.parse(localStorage.getItem('ct_mymistakes')||'null');}catch(e){return null;}});
-    const inDrill=await b.page.evaluate(()=>/Your mistakes/.test(document.body.innerText||''));
+    const inDrill=await b.page.evaluate(()=>/Your mistakes|Mistakes drill/.test(document.body.innerText||''));
     L.say(tapped&&!!toast&&/kept, not deleted/.test(toast),'TC-R177 A3 a tap says why nothing can be played (a legal position and a legal better move) and that the rows are kept',{tapped,toast});
     L.say(Array.isArray(st)&&st.length===2&&!inDrill,'TC-R177 A4 and nothing is deleted or served: the store still holds both rows and no drill opened',{stored:st&&st.length,inDrill});
     await b.close();}

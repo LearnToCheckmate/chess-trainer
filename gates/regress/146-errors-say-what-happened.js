@@ -38,7 +38,7 @@
 // CONTROL-RECORD: 4077844 2026-11-13 total=63 red=5 scope=env:CT_146_OFF_ONLY=1 how=#550 helper B (jobs/offline-notice-words-cover-bottom-controls-for-five-seconds-2026-11-13): the branch tip's bundle (f901598, trial 1b47cb7113e5) - TC-R222k 'the words notice covers no text and no control' red in pass and play at kunal761 (Moves, Back, Forward, Hint, Flip, More at 590) and se, lesson practice at se (moves panel, Analyze this line, Copy moves) and puzzle training at se (Previous..Next at 432), and TC-R222n red (the counter '1 / 890 · 600', 93 in a 90 box); lesson practice and puzzle training at kunal761 and every older line green. On t5 4ab71e8e6ef3 63/0
 const L=require('../lib');const R=require('../drive/review');const fs=require('fs'),path=require('path');
 const txt=(b)=>b.page.evaluate(()=>document.body.innerText||'');
-async function review(b){await b.tile('Review');await b.page.locator('textarea').first().fill(R.PGN_OPERA);await b.tapText(/^⚡ Analyze Game$/,{wait:1200});
+async function review(b){await b.tile('Review');await b.page.locator('textarea').first().fill(R.PGN_OPERA);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:1200});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(800);}
 async function openSheet(b){try{await b.page.locator('button[title="Sign in"],button[title="Account"]').first().click();await b.settle(900);return true;}catch(e){return false;}}
 L.run(async()=>{
@@ -189,7 +189,7 @@ L.run(async()=>{
     const b=await L.launch({geo:'kunal761',name:'err146-site',store:{ct_pool:'3'}});const hits=[];
     await b.ctx.route(/api\.chess\.com|lichess\.org\/api\/user/,r=>{hits.push(r.request().url());return r.fulfill({status:404,contentType:'application/json',body:'{}'});});
     await b.open();
-    const paste=async(pgn)=>{const n0=hits.length;await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:1200});
+    const paste=async(pgn)=>{const n0=hits.length;await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:1200});
       await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(2500);const n=hits.slice(n0);await b.home();await b.settle(500);return n;};
     let cc=[],other=[];try{cc=await paste(R.PGN_OPERA);other=await paste(R.PGN_OPERA.replace('[Site "Chess.com"]','[Site "Paris"]').replace(/Jsmiller1112/g,'GateParisWhite').replace(/DukeKarlCountIsouard99/g,'GateParisBlack'));/* new names: the first paste's 404s are cached as answers, so the same names would ask nothing on either bundle */}catch(e){L.note('paste: '+String(e).slice(0,140));}
     L.say(cc.filter(u=>/pub\/player\//.test(u)).length>=1,'TC-R222 PRECONDITION a game whose PGN says Chess.com looks its players up there ('+cc.length+' requests)',cc.slice(0,2));

@@ -156,7 +156,7 @@ async function importFixture(b,pgn,tag){
   await b.home();await b.tile('Review');
   await b.page.locator('textarea').first().fill(pgn);
   const t0=Date.now();
-  await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:150000});}catch(e){ok=false;}
   await b.settle(900);
   // the elapsed seconds go in a NOTE, not in the assertion text: it is the only part of this gate's output that

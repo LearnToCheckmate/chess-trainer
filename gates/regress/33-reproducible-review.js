@@ -61,7 +61,7 @@ async function reviewOnce(geo,tag,pool){
   await b.tile('Review');
   await b.page.locator('textarea').first().fill(PGN);
   const t0=Date.now();
-  await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});
   const ms=Date.now()-t0;
   await b.settle(700);

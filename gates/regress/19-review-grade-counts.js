@@ -204,7 +204,7 @@ async function openReview(b,pgn){
   await b.open();
   await b.tile('Review');
   await b.page.locator('textarea').first().fill(pgn);
-  await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});
   await b.settle(700);
 }

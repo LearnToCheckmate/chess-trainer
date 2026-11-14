@@ -78,7 +78,7 @@ async function closeSheet(b){await b.page.mouse.click(8,8);await b.page.waitForT
 
 // ---- navigation ----
 async function discover(b){await b.home();await b.tile('Discover');await b.settle(400);}
-const GROUP_RE={Openings:/^Openings$/,Gambits:/^Gambits$/,Endgames:/^Endgames$/,Tactics:/^Tactics$/};
+const GROUP_RE={Openings:/^Openings$/,Gambits:/^Gambits$/,Endgames:/^Endgames$/,Tactics:/^Tactics( & strategy)?$/};
 async function group(b,name){await discover(b);await b.tapText(GROUP_RE[name],{wait:500});await b.page.evaluate(()=>window.scrollTo(0,0));await b.settle(150);}
 // the lesson rows of the open list: buttons with the ♔/♚ side badge
 async function rows(b){return b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>/[♔♚]/.test((x.innerText||'').slice(0,3))&&x.getBoundingClientRect().width>200).map(x=>{const r=x.getBoundingClientRect();const name=x.querySelector('span[style*="block"]');const idea=name&&name.nextElementSibling;return {name:(name?name.innerText:x.innerText).split('\n')[0].trim(),y:Math.round(r.top),h:Math.round(r.height),w:Math.round(r.width),nameSW:name?name.scrollWidth:0,nameCW:name?name.clientWidth:0,ideaSW:idea?idea.scrollWidth:0,ideaCW:idea?idea.clientWidth:0};}));}

@@ -55,7 +55,7 @@ const toReview=async(b)=>{
   if(await b.page.locator('[aria-label="Next move"]').first().isVisible().catch(()=>false))return;   // already there
   await b.tile('Review');
   const ta=b.page.locator('textarea').first();
-  if(await ta.isVisible().catch(()=>false)){await ta.fill(PGN);await b.tapText(/^⚡ Analyze Game$/,{wait:300});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(400);}
+  if(await ta.isVisible().catch(()=>false)){await ta.fill(PGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});await b.settle(400);}
   await b.tapText(/^Start review/,{wait:800}).catch(()=>{});
   await require('../drive/review').navTap(b,'First move').catch(()=>{});   /* #550 a21: in the more sheet in the streamlined review */await b.settle(400);
 };

@@ -127,7 +127,7 @@ const step=async(b,dir)=>{
 async function reviewed(b){
   await b.tile('Review');
   await b.page.locator('textarea').first().fill(PGN);
-  await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});
   await b.settle(500);
   await b.tapText(/^Start review/,{wait:900}).catch(()=>{});

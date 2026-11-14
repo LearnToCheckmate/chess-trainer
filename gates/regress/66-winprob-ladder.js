@@ -301,7 +301,7 @@ L.run(async()=>{
   await b.home(); await b.tile('Review');
   await b.page.locator('textarea').first().fill(R.PGN_OPERA);
   const t0=Date.now();
-  await b.tapText(/^⚡ Analyze Game$/,{wait:300});
+  await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
   let up=true;
   try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(e){up=false;}
   await b.settle(1200);
@@ -394,7 +394,7 @@ L.run(async()=>{
     const e=await L.launch({geo:{w:375,h:730},name:'winprob-rung-'+g.id,store:{ct_pool:'3'}});
     await e.open(); await e.home(); await e.tile('Review');
     await e.page.locator('textarea').first().fill(g.pgn);
-    await e.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await e.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
     let eu=true;try{await e.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(x){eu=false;}
     await e.settle(1200);
     L.say(eu,g.id+' PRECONDITION the constructed game imported and the review summary rendered');
@@ -451,7 +451,7 @@ L.run(async()=>{
     const f=await L.launch({geo:{w:375,h:730},name:'winprob-bands'+(_g2pass?'':'-g1'),store:{...(_g2pass?{}:{ct_grades2:'0'}),ct_pool:'3',ct_evalcache:JSON.stringify({[key]:{evW,ev2W:nul(N+1),bU:nul(N),aU:nul(N),at:1}})}});
     await f.open(); await f.home(); await f.settle(2500); await f.tile('Review');
     await f.page.locator('textarea').first().fill(pg);
-    await f.tapText(/^⚡ Analyze Game$/,{wait:300});
+    await f.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
     let fu=true;try{await f.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});}catch(x){fu=false;}
     await f.settle(1200);
     const hit=await f.page.evaluate((k)=>{try{const v=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')[k];return v?{at:v.at,evW:v.evW}:null;}catch(e){return null;}},key);

@@ -129,7 +129,7 @@ L.run(async()=>{
   else {const pgn=fs.readFileSync(path.join(ROOT,'claude','agents','bench','pgn','174540842570.pgn'),'utf8');
    const b=await L.launch({geo:'kunal761',name:'book-b3',store:{ct_pool:'3',ct_book_table:'1'}});   // the switch on, as a phone that opts in has it
    await b.open();await b.page.evaluate(()=>{try{localStorage.removeItem('ct_evalcache');}catch(e){}});await b.open();
-   await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze Game$/,{wait:200});
+   await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:200});
    const up=await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000}).then(()=>true).catch(()=>false);await b.settle(700);
    L.say(up,'TC-R161 F0 PRECONDITION the review of 174540842570 reaches its summary');
    const book=up?await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;
