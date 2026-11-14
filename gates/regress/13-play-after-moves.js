@@ -38,6 +38,7 @@
 // board goes 353@128 at move 0 -> 353@109 after e4, and the two 'unchanged' lines and Pass & Play's ONE-top line go red ON THEIR OWN while
 // all four kunal pins stay GREEN (the after-move state is the tip's). 390x844 does not move on it (390@150 and 390@128 throughout).
 // CONTROL-RECORD: e2692c0 2026-11-13 total=25 red=3 scope=trial:eb30ab8b8b18 how=#550 round 2: the moves panel rendered only once history>0 (the #370 k8 shape: a row that appears after the first move): 'kunal: card k8 board unchanged from MOVE 0 to the first ply' (top 128 -> 109), 'kunal: card k8 board unchanged over four plies' (128 -> 109) and 'kunal: Pass & Play board has ONE width and ONE top' (tops 124, 103.7) red; every pin green; tip trial:489840ab49bb 25/0
+// CONTROL-RECORD: 1b6df01 2026-11-14 total=27 red=2 scope=trial:e4a91c8dff43 how=#550 test-system helper A, cg11: the computer's player bar names 'Computer' in place of the bot - the 'top bar names its bot' line red at kunal and 390 (+0.4 Computer 500), the only reds, every pin green; the tip trial:a271197f3eb1 is 27 pass 0 fail
 'use strict';
 const L=require('../lib');
 // measured on #387 (ae5ebbc4497645dd19a7215a0402010e). Board width and top, per geometry, for BOTH configurations.
@@ -67,6 +68,7 @@ L.run(async()=>{
     // configuration (a live game against an opponent), kept so the PASS lines read the same by both routes.
     const PD=require('../drive/play');
     await PD.states['cpu-m0'](b);const m0=await b.metrics();const e4at0=await plyText();
+    const bar0=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pbar-top"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
     await b.move('e2','e4',0);await b.settle(900);const m1=await b.metrics();const e4at1=await plyText();
     await PD.waitPlies(b,2);await b.settle(500);await b.move('g1','f3',0);await PD.waitPlies(b,4);await b.settle(500);const m4=await b.metrics();
     L.say(!!m0.board&&!e4at0,geo+': PRECONDITION the move-0 sample is really move 0 - a board is painted and e4 has not been played yet',{board:!!m0.board,e4Shown:e4at0});
@@ -91,6 +93,13 @@ L.run(async()=>{
     L.say(!!p5.board&&Math.abs(p5.board.w-P.pp.w)<0.6,geo+': Pass & Play board is PINNED at '+P.pp.w+' after five plies',p5.board&&p5.board.w);
     L.say(!!p5.board&&Math.abs(p5.board.top-P.pp.top)<0.6,geo+': Pass & Play board top is PINNED at '+P.pp.top+' after five plies',p5.board&&p5.board.top);
     L.say(p5.over.over<=0,geo+': no scroll after five plies',p5.over);
+    // WHY THE CARD PIN READS 353@109 AND 390@150, NOT THE CARD'S 375@100 AND 390@128 [#550 test-system helper A; the orchestrator's re-check
+    // cg11 at 0a115a8], MEASURED on one bundle by both routes (trial 920ed207ebc6, the cards still in the app): card k8's dev-only 'demo'
+    // opponent has a bare player bar ('♚ Black'); a game against the computer carries the eval chip and the bot in its top bar ('+0.4 Pip
+    // 500'), so the board sits at 353@109 at 375x679, 390@150 at 390x844 and 375@140.5 at kunal761. 'demo' is set only by the dev gallery,
+    // so the computer game is the configuration a player has. The cause is asserted, so a board that moves for any other reason does not
+    // pass as this one.
+    L.say(/Pip/.test(bar0||''),geo+': the computer game\'s top bar names its bot ("Pip"), which is what puts the card pin at '+P.card.w+'@'+P.card.top+' rather than the dev card\'s layout ('+bar0+')',{bar:bar0});
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

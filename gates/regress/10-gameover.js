@@ -5,6 +5,7 @@
 // CONTROL-RECORD: 02c92a8 2026-11-05 total=17 red=2 scope=trial:9fd16ca819b5 how=#548 control for item (84): a zero-height in-flow box whose 1px relative child sits at 110vh, so #root's content runs past the viewport with nothing moved - 'nothing scrolls at game over' red at kunal and 390 (the conjunct-free assertion (84) left)
 // CONTROL-RECORD: b2aa9ef 2026-11-13 total=17 red=3 scope=trial:5d648bc20064 how=#550 re-key of card k10 at 375x679 (367@102 -> 375@100): the Play board 8px narrower (boardPx=SQ*8-8 in play) - it reads exactly the old 367@102 at kunal and 382 at 390, and the kunal width and top pins and the 390 width pin go red; on the tip trial 77ffccc15668 17/0, where the gate before this re-key read 15/2 (measured 375@100 against 367@102)
 // CONTROL-RECORD: 0d80350 2026-11-13 total=17 red=3 scope=trial:5d648bc20064 how=#550 job five-gates-enter-their-state-by-tapping-a-dev-gallery-card (gate 10 moved off card k10 onto Pass & Play Scholar's mate, drive/play.js pp-scholar-2ply + scholarFinish): the Play board 8px narrower - kunal width (367) and top (105.7 vs 103.7) and 390 width (382) red; with the k10, k8 and both k11 gallery cards DELETED (trial:e9020df7aebb) 17/0 on the new route; on 77ffccc15668 17/0 by both routes, PASS/FAIL lines identical except the kunal top, 100 on the dev card's 'demo' opponent and 103.7 in Pass & Play (BSA-P-36's folded top row), re-pinned
+// CONTROL-RECORD: 1b6df01 2026-11-14 total=18 red=1 scope=trial:c48947e73152 how=#550 test-system helper A, cg11: the short-phone top row prints 'Chess Trainer' in place of '👤 vs Human · no clock' with the fold itself unchanged - the kunal 'top row names the opponent' line red (⌂ Chess Trainer ☰), the only red, the 103.7 pin still green; the tip trial:a271197f3eb1 is 18 pass 0 fail
 'use strict';
 const L=require('../lib');
 L.run(async()=>{
@@ -19,6 +20,7 @@ L.run(async()=>{
     const P=require('../drive/play');
     await P.states['pp-scholar-2ply'](b);
     const mid=await b.metrics();
+    const chrome=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="board-chrome"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
     await P.scholarFinish(b);
     const end=await b.metrics();const row=await b.texts();
     await b.shot('gameover-'+geo+'-end');
@@ -52,6 +54,13 @@ L.run(async()=>{
       if(WANT_TOP[geo]!=null)L.say(Math.abs(end.board.top-WANT_TOP[geo])<0.6,geo+': the board at game over sits at top '+WANT_TOP[geo]+', the measured position for this geometry - not merely where it was a moment ago',{measured:end.board.top,want:WANT_TOP[geo]});
     }
     L.say(end.over.over<=0,geo+': nothing scrolls at game over',end.over);
+    // WHY 103.7 AND NOT THE CARD'S 100 [#550 test-system helper A; the orchestrator's re-check cg11 at 0a115a8], MEASURED on one bundle by both
+    // routes (trial 920ed207ebc6, the cards still in the app): card k10's dev-only 'demo' opponent shows 'Chess Trainer' in the top row and
+    // puts the board at 375@100; Pass & Play at 375x679 folds '👤 vs Human · no clock' into the top row (BSA-P-36), its player bar starting at
+    // 48 and 53.7 tall against 52 and 46, so its board sits at 375@103.7. At 390x844 and kunal761 the two routes read the same (390@128,
+    // 375@120.5). 'demo' is set only by the dev gallery (setOpponent('demo'), one call), so no player sees the card's layout and the pin is
+    // the one a player gets. The cause is asserted here, so a board that moves for any other reason does not pass as this one.
+    if(geo==='kunal')L.say(/vs Human/.test(chrome||''),geo+': the top row names the opponent ("vs Human"), which is the Pass & Play fold that puts this board at 103.7 rather than the dev card\'s 100 ('+chrome+')',{chrome});
     L.say(row.includes('Review')&&row.includes('Rematch')&&!row.includes('Resign'),geo+': row reads Review · Rematch, no Resign',row.join(' | '));
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
