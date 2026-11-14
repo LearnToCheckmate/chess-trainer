@@ -57,7 +57,7 @@ L.run(async()=>{
     const hintAtBefore=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');return e?(e.innerText||'').trim():null;});
     // THE PUZZLE'S OWN MATE COUNT, read off the goal line while the hint is still absent [#547, item (21); jobs/rotating-audit-
     // 433-two-assertions-that-cannot-discriminate-2026-09-29]: the hint assertion below is pinned to it rather than to length.
-    const goalN=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(?:White|Black) to move \u2014 (?:mate in (\d)|find the best move)/);return m?(m[1]?+m[1]:0):null;});
+    const goalN=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(?:White|Black) to move(?: \u2014|:) (?:mate in (\d)|find the best move)/);return m?(m[1]?+m[1]:0):null;});
     await P.tapBtn(b,/^\u{1F4A1} Hint$/u,600);await b.settle(1800);const after=await b.metrics();await b.shot('hint-'+geo);
     const head=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height,sh:e.scrollHeight,ch:e.clientHeight,text:(e.innerText||'').trim()};});
     L.say(!!before.board&&!!after.board,geo+': puzzle board present before and with the hint');
@@ -70,7 +70,7 @@ L.run(async()=>{
     // 'It's mate in N - start with the most forcing check.' for a mate puzzle and 'Find the forcing move - ... (<motif>)' otherwise.
     // Exactly one must match, and a mate hint's N must equal the N the puzzle's own goal line printed before the hint, so a stale
     // hint from another puzzle, a wrong count, or a hint under the wrong template is red. The bare length test it replaces passed all three.
-    {const t=head?head.text:'';const HM=/^(?:\u{1F4A1} )?It.s mate in (\d) \u2014 start with the most forcing check\.$/u,HF=/^(?:\u{1F4A1} )?Find the forcing move \u2014 a check, capture, or strong threat\. \(.+\)$/u;   // the header prefixes the bulb the Hint button sets
+    {const t=head?head.text:'';const HM=/^(?:\u{1F4A1} )?It.s mate in (\d)(?: \u2014|:) start with the most forcing check\.$/u,HF=/^(?:\u{1F4A1} )?Find the forcing move(?: \u2014|:) a check, capture, or strong threat\. \(.+\)$/u;   // the header prefixes the bulb the Hint button sets
      /* #550 HEX-T-04 (gate re-key): the generated puzzles' hint is now READ from the position (pzText), not one of the two templates, so a
         mate hint says 'mate in two' or 'mate in 3' in its own words; it must still name the SAME count as the goal line, and a non-mate
         hint must not claim a mate - which keeps the stale-hint and wrong-count reds this assertion exists for. */

@@ -2445,6 +2445,7 @@ As a player, I never see the preview gallery, the layout readouts, the internal 
 - With the developer flag the tools are all reachable, whether it comes from the gate harness or from the account document. (TC-R224i, TC-R224j)
 - An account document whose flag is false shows none of them. (TC-R224k)
 - One name and one spelling per thing: the Mistakes drill, brilliant move (Brilliant only as the grade), Board colors and Style, Journey and rank on Puzzles, Tactics & strategy, sentence case on buttons and titles, and no engine internals on the analysing screen. (TC-R224l; docs/wording-check-2026-11-12 TXT-21, 22, 23, 27, 29, 32, 35, 37)
+- US spelling everywhere (center, defense, maneuver, favorite, centralized; the lesson names too), one spelling each of Petroff, Maróczy and fianchettoes, and no em or en dash in any player-facing text, the page title included. (TC-R224m, TC-R224n; TXT-36, TXT-40, Kunal's answers q46 and q47)
 
 ### US-R157 On my computer the board pages are one tidy group that fits the window
 *Added #550, docs/desktop-check-2026-11-12 DSK-05, DSK-10, DSK-11, DSK-12 and the corner-button slot; Kunal, 12 Nov: "when I expand the screen, it looks like this and it looks messy and loses all alignment", and he accepted the rule (board pages wider than tall: the board the window's height, one column beside it capped at 520, the group centred).*
