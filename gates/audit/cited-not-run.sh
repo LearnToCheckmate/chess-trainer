@@ -112,6 +112,19 @@ reachable_seed(){
 # WITHOUT THIS THE REPORT IS WRONG IN THE EXPENSIVE DIRECTION: gates/regress/22-engline-recovery.js
 # carries require('../engine-extract.js'), so engine-extract.js IS executed by the suite even though
 # no glob and no path literal names it. A detector that missed that would file a leak that is not one.
+# NOT AN EDGE [#550 test-system helper A; jobs/cited-not-run-report-refused-once-while-gates-ran-in-the-same-checkout-2026-11-14].
+# A .sh that NAMES a path is read below as invoking it. Each pair here names a file the source only names as DATA, measured by
+# reading the line: (1) gates/fastgate.sh's FG_EXECUTES is a PIN LIST (it hashes those files; the contract predicates are run by
+# gates/audit/contract-asserts.sh from gates/contract-asserts.tsv, which no edge here can follow, and their roster rows say so);
+# (2) gates/audit/verify-patch-set.sh writes these paths into FIXTURE patch headers (mk_new) and, for verify-parked-patch.sh,
+# READS its text for C56's literal set; (3) gates/audit/verify-parked-patch.sh writes gates/verify-log-selftest.sh into a fixture.
+# Without these the two predicates, verify-parked-patch.sh and verify-log-selftest.sh read as reachable for a reason that is false,
+# which is the #513 shape (a false reachability signal told a run to delete the push gate's roster row). src|dst
+NOEDGE='gates/fastgate.sh|gates/audit/assert-commit-provenance.sh
+gates/fastgate.sh|gates/audit/assert-runledger-std.js
+gates/audit/verify-patch-set.sh|gates/audit/verify-parked-patch.sh
+gates/audit/verify-patch-set.sh|gates/verify-log-selftest.sh
+gates/audit/verify-parked-patch.sh|gates/verify-log-selftest.sh'
 closure(){
   local -A seen=(); local -a queue=(); local p
   while IFS= read -r p; do [ -n "$p" ] && { seen["$p"]=1; queue+=("$p"); }; done
@@ -119,6 +132,14 @@ closure(){
   while [ $i -lt ${#queue[@]} ]; do
     local cur="${queue[$i]}"; i=$((i+1))
     local abs="$ROOT/$cur"; [ -r "$abs" ] || continue
+    # THIS FILE'S OWN TEXT IS NOT AN EDGE [#550 test-system helper A; jobs/cited-not-run-report-refused-once-while-gates-ran-in-the-
+    # same-checkout-2026-11-14]. Since #550 round 4 this script is REACHABLE (gates.sh -> records-gate.sh --checks -> door-checks.sh
+    # -> cited-not-run.sh), and its roster in section 2b names every member as a `gates/<path>|CLASS|...` DATA row - which the .sh
+    # arm below reads as an invocation. So every roster member read as reachable, the leak set was EMPTY, the report took its GREEN
+    # early return, and no roster row was ever reconciled again. MEASURED at a88ba8c: reachable 221, CITED-NOT-RUN 0, GREEN. A
+    # transient file a running gate leaves under gates/ (a bare cited name that now resolves) made the set non-empty for one run, the
+    # reconciliation then found the stale roster, and the door refused 209/51 - the flake was the only time the truth showed.
+    [ "$cur" = "gates/audit/cited-not-run.sh" ] && continue
     local dir; dir="$(dirname "$cur")"
     local spec res
     case "$cur" in
@@ -134,6 +155,7 @@ closure(){
           [ -r "$ROOT/$res" ] || continue
           case "$res" in gates/*) ;; *) continue;; esac
           [ -n "${seen[$res]:-}" ] && continue
+          case $'\n'"$NOEDGE"$'\n' in *$'\n'"$cur|$res"$'\n'*) continue;; esac
           seen["$res"]=1; queue+=("$res")
         done < <(decomment_js "$abs" | grep -oE "require\(['\"][^'\"]+['\"]\)" | sed -E "s/require\(['\"]//; s/['\"]\)//")
         ;;
@@ -142,6 +164,7 @@ closure(){
           res="gates/${spec#\$G/}"; res="${res#gates/gates/}"; case "$res" in gates/*) ;; *) res="gates/$res";; esac
           [ -r "$ROOT/$res" ] || continue
           [ -n "${seen[$res]:-}" ] && continue
+          case $'\n'"$NOEDGE"$'\n' in *$'\n'"$cur|$res"$'\n'*) continue;; esac
           seen["$res"]=1; queue+=("$res")
         done < <( { decomment "$abs" | grep -oE '\$G/[A-Za-z0-9._/-]+\.(js|sh)'; decomment "$abs" | grep -oE 'gates/[A-Za-z0-9._/-]+\.(js|sh)'; } | sort -u)
         ;;
@@ -218,7 +241,6 @@ default_records(){
 roster_default(){ cat <<'EOF'
 gates/audit/assert-commit-provenance.sh|OPERATOR|strong|A contract predicate (CLAUDE.md commit-signed and commit-trailer): every commit since merge-base(origin/main, HEAD) carries a gpgsig header and a Claude-Session trailer. It DOES run on every full suite - gates.sh -> records-gate.sh --checks -> door-checks.sh -> gates/audit/contract-asserts.sh - but contract-asserts.sh dispatches it from the command column of gates/contract-asserts.tsv at run time, which this script's source closure cannot follow, so it reads here as reachable from no entry point. Its input is the git history, not the bundle. CLASSIFIED BY #550 (the lead) in the merge that added it (ce43e98), because cited-not-run-report refused the door on it.
 gates/audit/assert-runledger-std.js|OPERATOR|strong|A contract predicate (rule-contracts R43): every check-out row of a runledger EXPORT carries the 23 typed std keys. Dispatched from gates/contract-asserts.tsv by gates/audit/contract-asserts.sh, the same invisible-to-the-closure path as assert-commit-provenance.sh above; with no export (the door's case) it reports R43 as not checked, so its live input is a tracker export a suite cannot reach. CLASSIFIED BY #550 (the lead) in the merge that added it (ce43e98).
-gates/audit/cited-not-run.sh|OPERATOR|strong|This script. Run by a process lane or the orchestrator against a tree; it reports and admits nothing, so a suite running it could only redden itself on its own report.
 gates/audit-all.sh|OPERATOR|strong|The umbrella that invokes every instrument under gates/audit/ and reports which ran, which are green and which are accounted for. Landed by the 2026-10-10 integration slot, which is also when the records began citing it. A suite running it would be wrong rather than right: it runs the OPERATOR tools above, several of which write or need a credential dump, and its verdict is about whether this directory's instruments are self-testing - a question about the harness, not about the bundle. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day it appeared, which is what this roster's own header asks for ('a new unaccounted one turns this script red on the day it appears, which is the day somebody can still say why').
 gates/audit/require-resolve.sh|OPERATOR|strong|Derives the absolute-path-require class across gates/ by command. Its input is the gates/ tree rather than the working app, so a build has nothing for it to read, and its verdict names source sites to repair - which no regression gate may assert on. Same shape and same reason as pipefail-grep.sh two rows above. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.
 gates/audit/suite-shared-paths.sh|OPERATOR|strong|Derives which paths two concurrent gate suites would collide on. Its input is the suite's own files and lock layout, not the bundle, so there is no build-time verdict to gate; it exists to justify or retire the suite lock, which is a question about the harness. CLASSIFIED BY THE INTEGRATION RUN (#513) on the day the records began citing it.
@@ -243,14 +265,13 @@ gates/audit/r19-phone-geometry.sh|OPERATOR|strong|TC-SUITE-056: does any record 
 gates/audit/red-count.sh|OPERATOR|strong|Back-audit of published red counts against every committed gatelog, built 2026-10-07 for the second half of jobs/a-fail-line-count-on-a-gatelog-over-reports-by-up-to-five-2026-10-03. Its input is the record documents and the gatelog archive, not the working tree, so a build has nothing for it to read; and it reports an over-report in RUN-LOG.md, which no suite may act on. Admitting it would also make the suite assert on its own past logs, which is a different instrument from a regression gate.
 gates/audit/landed-on-main.sh|OPERATOR|strong|Post-integration audit of collection `patches` against origin/main. Needs the tracker dumped to disk first, which no gates.sh invocation does.
 gates/audit/verify-parked-patch.sh|OPERATOR|strong|Checks ONE parked payload at park time. Its input is a patch document, not the working tree, so it has nothing to say on a build with no payload.
-gates/audit/verify-patch-set.sh|OPERATOR|strong|Checks a SET of parked payloads against each other before an apply. Same input shape: a manifest of patch documents, produced by the integration slot and by nothing else.
 gates/audit/pixel-literal-classify.sh|OPERATOR|strong|Seeded #481 to classify the suite's pinned layout literals. Reports a census for an owner to act on; it asserts nothing about the bundle, so there is no build-time verdict to gate.
 gates/audit/lesson.js|OPERATOR|strong|Audit of the Lesson screen on the live bundle at four geometries, ~900s under timeout and one PNG per state. The suite's own lesson gates cover the invariants; this is the wide sweep a person reads.
 gates/vocab.js|OPERATOR|strong|Writes the driving vocabulary (screenshots, labels, data-ct rects) for whoever must drive a screen they have not seen. Output is documentation for a reader, not a pass/fail.
 gates/ledger-diff.js|OPERATOR|strong|Two-way diff between the flag register and this repository. Its own header states node cannot read the artifact database, so the caller must dump collection `flags` to a file first. A build runner has no such dump.
 gates/fontpin-control.sh|OPERATOR|strong|THE NEGATIVE CONTROL FOR THE FONT PIN'S ONE ASSERTION, added at #544 for jobs/libjs-asserts-the-resolved-font-face-with-fc-match-in-a-host-subprocess-which-cannot-see-what-the-browser-resolved-2026-10-27. It drives gates/lib.js's in-browser font-pin assertion over FOUR fontconfig states and asserts the run REDDENS in the three degraded ones - four real browser launches, each with a different FONTCONFIG_FILE in its environment. A SUITE RUNNING IT WOULD BE WRONG RATHER THAN RIGHT, for two independent reasons rather than one: three of its four arms are DESIGNED to exit non-zero, so any runner that reads an exit code would read the control behaving as the suite failing; and its input is the HOST's fontconfig, not the bundle, so a gate run has nothing for it to assert about the artefact under test. It is also deliberately not under gates/audit/, because gates/audit-all.sh runs the --selftest arm of every executable it finds there and this one needs a browser, which would give that umbrella a dependency its whole value is in not having. CLASSIFIED BY THE RUN THAT WROTE IT, on the day it appeared, which is what this roster's header asks for.
-gates/verify-log-selftest.sh|SELFTEST|weak|The companion selftest of the push gate, run by whoever edits gates/verify-log.sh. WEAK AND I DO NOT BELIEVE IT: this is the selftest of the one script that decides whether anything ships, and an editor-triggered selftest is exactly the shape that let A4CEIL go stale and get breached by 2 on the commit it landed on. It is the strongest ADMIT candidate in this roster and it is not mine to admit.
-gates/buildnum-selftest.sh|SELFTEST|weak|The companion selftest of gates/buildnum.sh, run by whoever edits it. WEAK for the same reason one notch down: buildnum.sh owns the build-number space, two concurrent runs have already collided in it (jobs/concurrent-runs-collide-on-the-gate-number-space-2026-09-28), and nothing re-runs this after an unrelated change.
+gates/verify-log-selftest.sh|SELFTEST|strong|The companion selftest of the push gate. RUN ON EVERY FULL SUITE SINCE #550 item (104): gates.sh's records_door -> records-gate.sh --harnesses -> gates/harness-counts.sh runs it from its row in gates/harness-case-counts.tsv under a case-count pin (137), a dispatch from a register that this script's closure cannot follow, so it reads here as unreachable. Re-stated by #550 test-system helper A: this row was SELFTEST|weak, 'run by whoever edits gates/verify-log.sh', which stopped being true at item (104) and was hidden while the report took its empty-set GREEN.
+gates/buildnum-selftest.sh|SELFTEST|strong|The controls of gates/buildnum.sh. RUN ON EVERY FULL SUITE SINCE #550 item (104), as gates/verify-log-selftest.sh above: records-gate.sh --harnesses runs it from gates/harness-case-counts.tsv under a case-count pin (247), which the closure cannot follow. Re-stated by #550 test-system helper A from SELFTEST|weak, whose reason predated item (104).
 gates/measure-drill-verdict-reserve.js|ONEOFF|strong|Measured the drill verdict's board cost once; its figure is published in claude/stories/USER-STORIES.md:26 and in TEST-CASES.md. The recurring assertion lives in the drill gates.
 gates/measure-kunal-qh3.js|ONEOFF|strong|One-shot measurement of a single named position for a single published number. Nothing about it generalises to a build.
 gates/audit/antagonist373-label.js|ONEOFF|strong|Antagonist probe written for build #373 against that bundle's labels. Its finding is recorded; the gate that protects the behaviour is in gates/regress/.
@@ -292,6 +313,13 @@ main_report(){
 
   # citations: "gates/x/y.js" wins; a bare "y.js" resolves only if exactly one file under gates/
   # carries that basename, so an ambiguous bare name is reported as ambiguous rather than guessed.
+  # THE FILES A BARE CITED NAME MAY RESOLVE TO ARE THE TRACKED ONES [#550 test-system helper A, same job]. A `find` over gates/
+  # also sees what a gate run leaves there mid-run (gates/.site/<pid>/app.js, shots, a trial bundle), so the same tree gave 207
+  # cited files with no gate running and 209 with four running. In a git work tree the list is `git ls-files gates/`; a fixture
+  # tree that is not a repository (the selftest's) keeps the find.
+  local GFILES
+  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then GFILES="$(git -C "$ROOT" ls-files gates/ 2>/dev/null)"
+  else GFILES="$(cd "$ROOT" 2>/dev/null && find gates -type f 2>/dev/null)"; fi
   local CIT="" ; local rec line tok cand n
   for rec in "${RECS[@]}"; do
     [ -r "$ROOT/$rec" ] || continue
@@ -302,9 +330,9 @@ main_report(){
         case "$tok" in
           gates/*) cand="$tok"; [ -r "$ROOT/$cand" ] || continue;;
           *)
-            n="$(cd "$G" 2>/dev/null && find . -name "$tok" -type f 2>/dev/null | wc -l | tr -d ' ')"
+            n="$(printf '%s\n' "$GFILES" | awk -F/ -v t="$tok" '$NF==t' | grep -c . || true)"
             [ "$n" = "1" ] || continue
-            cand="gates/$(cd "$G" && find . -name "$tok" -type f | sed 's|^\./||')";;
+            cand="$(printf '%s\n' "$GFILES" | awk -F/ -v t="$tok" '$NF==t')";;
         esac
         case "$cand" in gates/logs/*) continue;; esac
         CIT+="$cand	$rec:$no"$'\n'
@@ -340,7 +368,10 @@ main_report(){
   # path past the UNSOUND guards above and on none of those two, so an unsound derivation reaches the door with no count line and
   # is refused there (2 is never a clearance). pass = cited files examined, which the guard above holds at >= 1; fail = members
   # accounted for by nobody + weak reasons over their ceiling + stale roster entries, i.e. exactly what decides exit 1 below.
-  if [ "$nleak" -eq 0 ]; then echo "GREEN: every cited file under gates/ is reachable by a suite run."; echo "cited-not-run report: $ncit pass / 0 fail"; return 0; fi
+  # AN EMPTY SET IS GREEN ONLY WITH AN EMPTY ROSTER [#550 test-system helper A, same job]: with roster rows, every one of them names
+  # a file that is no longer a member, which section 2b calls a failure ("an exemption that outlives the file it exempts"), and the
+  # early return here skipped exactly that check - so the roster went stale with nothing able to say so.
+  if [ "$nleak" -eq 0 ] && [ -z "$(roster | grep -v '^[[:space:]]*$')" ]; then echo "GREEN: every cited file under gates/ is reachable by a suite run."; echo "cited-not-run report: $ncit pass / 0 fail"; return 0; fi
   local f
   while IFS= read -r f; do
     [ -n "$f" ] || continue
@@ -630,8 +661,35 @@ EOF
   ck "C30b and appears on the worklist"                    "1" "$(grep -c '^  ADMIT gates/orphan-cited.js' <<<"$out")"
 
   # the GREEN arm: delete the three leaks and the same tree must pass
+  # C42 (#550 test-system helper A): THIS SCRIPT'S OWN ROSTER IS NOT AN EDGE. The fixture's suite reaches a gates/audit/cited-not-run.sh
+  # whose roster names gates/orphan-cited.js as a DATA row - the shape the live tree took at round 4 - and the member must stay a LEAK.
+  printf '%s\n' 'roster_default(){ cat <<EOF' 'gates/orphan-cited.js|ONEOFF|strong|a data row, not an invocation' 'EOF' '}' > "$T/gates/audit/cited-not-run.sh"
+  cp "$T/gates/gates.sh" "$T/gates/gates.sh.c42"; echo 'CNR="$G/audit/cited-not-run.sh"' >> "$T/gates/gates.sh"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  ck "C42 a reachable cited-not-run.sh whose roster names a member does not make that member reachable" "1" "$(grep -c '^  LEAK gates/orphan-cited.js' <<<"$out")"
+  # C43: and a NOEDGE pair is not followed - gates/fastgate.sh naming a contract predicate in its pin list does not make it reachable
+  : > "$T/gates/audit/assert-runledger-std.js"; echo 'evidence: gates/audit/assert-runledger-std.js -> 1 row' >> "$T/RUN-LOG.md"
+  echo 'FG_EXECUTES="gates/audit/assert-runledger-std.js"' > "$T/gates/fastgate.sh"; echo 'FG="$G/fastgate.sh"' >> "$T/gates/gates.sh"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"
+  ck "C43 a NOEDGE pair (fastgate.sh's pin list naming a predicate) is not followed: the predicate stays a LEAK" "1" "$(grep -c '^  LEAK gates/audit/assert-runledger-std.js' <<<"$out")"
+  mv "$T/gates/gates.sh.c42" "$T/gates/gates.sh"; rm -f "$T/gates/audit/cited-not-run.sh" "$T/gates/fastgate.sh" "$T/gates/audit/assert-runledger-std.js"; sed -i '/assert-runledger-std/d' "$T/RUN-LOG.md"
+  # C40 (#550 test-system helper A): the cited set is the TRACKED files' - a run artefact under gates/ that a bare citation would
+  # resolve to does not join it. The fixture is made a git repository for this one arm, the artefact left untracked (git add only; nothing is committed or signed).
+  full_roster; ( cd "$T" && git init -q && git add -A ) >/dev/null 2>&1   # staged is tracked for ls-files; no commit is made
+  local c0; c0="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1 | sed -n 's/^cited  *\([0-9]*\) .*/\1/p')"
+  mkdir -p "$T/gates/.site/123"; : > "$T/gates/.site/123/transient.js"; echo "evidence: transient.js -> 1 check" >> "$T/RUN-LOG.md"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C40 an untracked run artefact under gates/, cited by bare name, does not change the cited count" "$c0" "$(sed -n 's/^cited  *\([0-9]*\) .*/\1/p' <<<"$out")"
+  ck "C40b and is not a LEAK" "0" "$(grep -c 'LEAK gates/.site' <<<"$out")"
+  rm -rf "$T/gates/.site" "$T/.git"; sed -i '/transient.js/d' "$T/RUN-LOG.md"
   rm -f "$T/gates/orphan-cited.js" "$T/gates/bare-named.js" "$T/gates/measure-thing.sh"
-  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  # C41 (#550 test-system helper A): an EMPTY set with roster rows is not green - every row is stale. (C10 below takes the empty roster.)
+  full_roster
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C41 an empty cited-and-unreachable set with a non-empty roster refuses: 1" "1" "$rc"
+  ck "C41b and is not reported GREEN, and names the stale rows" "0 1" "$(grep -c '^GREEN' <<<"$out") $(grep -c '^  STALE gates/orphan-cited.js' <<<"$out")"
+  : > "$R"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C10 exit 0 once nothing is cited-and-unreachable" "0" "$rc"
   ck "C11 and it says so"                               "1" "$(grep -c '^GREEN' <<<"$out")"
   ck "C38 the empty-set green prints the door line with 0 fail" "1" "$(grep -cE '^cited-not-run report: [1-9][0-9]* pass / 0 fail$' <<<"$out")"
