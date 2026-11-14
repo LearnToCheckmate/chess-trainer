@@ -89,7 +89,7 @@ eq(mistakeWhy(pos,null,'Qb4+','cxb5',undefined,4.0,'b'),'Qb4+ was stronger. cxb5
 console.log('\n--- hints: shape, not move; and the quiet case does not misdirect ---');
 MOT=['mate'];eq(mistakeHint(pos,mvEmpty),'There is a forcing line here, and it ends the game.','mate hint');
 MOT=['fork'];eq(mistakeHint(pos,mvEmpty),'One move can hit two things at once.','fork hint');
-MOT=[];eq(mistakeHint(pos,mvEmpty),'No tactic to spot here \u2014 look for the move that improves your worst piece.','quiet hint does not say "forcing"');
+MOT=[];eq(mistakeHint(pos,mvEmpty),'No tactic to spot here: look for the move that improves your worst piece.'   /* q47, no dashes in player text: the source moved, this pin had not */,'quiet hint does not say "forcing"');
 MOT=[];eq(mistakeHint(posCap,mvCap),'There is material to be taken here.','capture hint');
 MOT=[];eq(/forcing/.test(mistakeHint(pos,mvEmpty)),false,'quiet hint contains no "forcing"');
 const hints=[mistakeHint(pos,mvEmpty),mistakeHint(posCap,mvCap)];
