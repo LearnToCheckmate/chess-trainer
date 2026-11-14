@@ -333,7 +333,10 @@ L.run(async()=>{
     const rd=()=>b.page.evaluate(()=>{const f=document.querySelector('[data-ct="pz-float"]');
       const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];
       const m=document.querySelector('[data-ct="pz-msg"]');const fr=f&&f.getBoundingClientRect(),gr=g&&g.getBoundingClientRect();
-      return {float:fr?Math.round(fr.height):null,lines:f?f.innerText.split('\n').map(x=>x.trim()).filter(Boolean):[],msg:m?m.innerText.trim():null,
+      /* #550 #432 sweep round 5: a message counted by WHAT IT IS as well as by the pz-msg hook (#547, added with this block) - a painted box laid
+         over the goal card (position absolute inside pz-float) carrying any text - so C6 and C7's 'no message' do not read only the hook */
+      const mW=f?[...f.querySelectorAll('*')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&getComputedStyle(x).position==='absolute'&&getComputedStyle(x).visibility!=='hidden'&&(x.innerText||'').trim().length>0;}).length:-1;
+      return {float:fr?Math.round(fr.height):null,lines:f?f.innerText.split('\n').map(x=>x.trim()).filter(Boolean):[],msg:m?m.innerText.trim():null,msgW:mW,
               chips:f?[...f.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).filter(Boolean):[],
               board:gr?{w:Math.round(gr.width),top:Math.round(gr.top)}:null,vw:innerWidth};});
     const c1=await rd();
@@ -343,14 +346,15 @@ L.run(async()=>{
     L.say(c1.board.w>=Math.min(G.PRE+10,Math.min(c1.vw,440)-0.5),'TC-R80 C3 '+tag+' the reclaimed height goes into the board: '+c1.board.w+'px wide against '+G.PRE+' measured pre-fix here (at least +10, or the full column)',{board:c1.board,pre:G.PRE,col:Math.min(c1.vw,440)});
     await b.move(UCIS[0].slice(0,2),UCIS[0].slice(2,4),900);await b.settle(1100);
     const s1=await rd();
+    L.say(s1.msgW>0,'TC-R80 C4 PRECONDITION '+tag+' the message count by what it is sees the verdict when it is up ('+s1.msgW+'), so its 0 at C6 and C7 is a reading',{msgW:s1.msgW});
     L.say(s1.msg==='\u{1F389} You gave up a piece and it still worked (card 1).','TC-R80 C4 '+tag+' the verdict is the move\'s own explanation and nothing else - no "That\'s your brilliant move. Nicely done."',{msg:s1.msg});
     L.say(!!s1.board&&s1.board.top===c1.board.top&&s1.board.w===c1.board.w,'TC-R80 C5 '+tag+' the board does not move when the verdict appears',{before:c1.board,after:s1.board});
     let nx=true;try{await b.page.locator('[data-ct="drill-next"]').click();}catch(e){nx=false;}await b.settle(1200);
     const c2=await rd();
-    L.say(nx&&c2.lines.length===1&&c2.msg===null,'TC-R80 C6 PRECONDITION '+tag+' card 2 (no `why`) is on screen and asking',{nx,lines:c2.lines,msg:c2.msg});
+    L.say(nx&&c2.lines.length===1&&/to move$/.test(c2.lines[0])&&c2.msg===null&&c2.msgW===0,'TC-R80 C6 PRECONDITION '+tag+' card 2 (no `why`) is on screen and asking: the goal line shows and no message is over it (by hook, and by what it is: '+c2.msgW+')',{nx,lines:c2.lines,msg:c2.msg,msgW:c2.msgW});
     await b.move(UCIS[1].slice(0,2),UCIS[1].slice(2,4),900);await b.settle(1100);
     const s2=await rd();
-    L.say(s2.msg===null&&s2.lines.length===1&&/to move$/.test(s2.lines[0]),'TC-R80 C7 '+tag+' with nothing true to say the verdict area holds nothing - no message box and no bare 🎉 - and the goal line keeps its place',{msg:s2.msg,lines:s2.lines});
+    L.say(s2.msg===null&&s2.msgW===0&&s2.lines.length===1&&/to move$/.test(s2.lines[0]),'TC-R80 C7 '+tag+' with nothing true to say the verdict area holds nothing - no message box (by hook, and by what it is: '+s2.msgW+') and no bare 🎉 - and the goal line keeps its place',{msg:s2.msg,msgW:s2.msgW,lines:s2.lines});
     L.say(!!s2.board&&s2.board.top===c1.board.top,'TC-R80 C8 '+tag+' and the board has still not moved',{first:c1.board,now:s2.board});
     L.say(b.errs.length===0,'TC-R80 C9 '+tag+' no console errors',{errs:b.errs.slice(0,2)});
     await b.close();
@@ -730,3 +734,5 @@ L.run(async()=>{
 // SELECTOR-OPENED: drill-eval control=10a6b21 D1/D5/D7 also count the bar by its painted evaluation or its accessible name; c72 renamed the hooks and drew the bar on unsolved cards, D1 and D5 red
 // SELECTOR-OPENED: drill-eval-fill control=10a6b21 read only inside the bar's own record (fill width), and the bar's absence lines no longer rest on the hooks; same c72 control
 // SELECTOR-OPENED: drill-eval-num control=10a6b21 the number is also read by its painted text (evw), so a renamed hook cannot pass D1/D5; same c72 control
+// CONTROL-RECORD: 04eb57c 2026-11-14 total=359 red=10 scope=trial:8591b0e75fd6 how=#550 #432 sweep round 5 (a drill message counted by what it is): c72, pz-msg renamed AND a bare celebration message drawn over the goal card on every brilliant-drill card (a why-less card arrives showing it) - C6 red at both geometries (1 message box over the goal), C7 red; the hook-keyed version (9833d07) on the same bundle is 349/8 with C6 GREEN at both geometries beside the bare message (lines ['🎉'], msg null) and C7 red only through its goal-line words; on t0 6925a0ca4de2 359/0
+// SELECTOR-OPENED: pz-msg control=04eb57c round 5: C6 and C7 also count the message box by what it is; c72 renamed the hook and drew a bare message on arrival, C6 red where the hook-keyed C6 was green

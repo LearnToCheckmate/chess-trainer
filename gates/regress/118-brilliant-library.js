@@ -31,6 +31,10 @@ L.run(async()=>{
    L.say(ok&&!!tile&&/4 brilliant moves you found · 1 you missed/.test(tile),'TC-R197a the tile counts the Brilliants he found and the ones he missed apart ("'+tile+'")');
    if(tile)await b.page.locator('[data-ct="bril-tile"]').click();await b.settle(700);
    const s0=await sheet(b);
+   /* #550 #432 sweep round 5: the three absence lines below (TC-R197e, both TC-R197f) also count the library by its WORDS - a painted element reading
+      exactly 'Brilliant moves by kind' - so they do not read only the bril-lib hook this build added with the gate; first, the count sees the library when it is up */
+   const libW0=await b.page.evaluate(()=>[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length);
+   L.say(libW0>=1,'TC-R197 PRECONDITION the library, once open, is found by its title words ('+libW0+')');
    L.say(!!s0&&s0.shelves.join(',')==='bril-shelf-played,bril-shelf-missed','TC-R197b a tap opens the library with two shelves, played then missed',s0&&s0.shelves);
    const want=['played|greek-gift','played|queen-sac','played|exchange-sac','missed|quiet-sac'];
    L.say(!!s0&&want.every(k=>s0.chips.some(c=>c.k===k))&&s0.chips.length===4&&/Greek gift 2/.test((s0.chips.find(c=>c.k==='played|greek-gift')||{}).t||''),'TC-R197b each shelf lists its kinds with their counts ('+(s0&&s0.chips.map(c=>c.t).join(' | '))+')',s0&&s0.chips);
@@ -41,19 +45,19 @@ L.run(async()=>{
    await chip(b,'played|queen-sac');const s2=await sheet(b);
    L.say(!!s2&&/Practi[cs]e these 3/.test(s2.go||''),'TC-R197d a chosen kind taps off again ("'+(s2&&s2.go)+'")');
    await b.page.locator('[data-ct="bril-lib-go"]').click({timeout:3000}).catch(()=>{});await b.settle(1500);
-   const d=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="drill-counter"]');return {lib:!!document.querySelector('[data-ct="bril-lib"]'),counter:c?(c.innerText||'').trim():null,fen:(window.__ctPuzzle&&window.__ctPuzzle.fen)||null};});
-   L.say(!d.lib&&!!d.counter&&/\b1 of 3\b/.test(d.counter),'TC-R197e the drill opens on the chosen kinds only: three cards, the two Greek gifts and the missed quiet sacrifice ("'+d.counter+'")',d);
+   const d=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="drill-counter"]');return {lib:!!document.querySelector('[data-ct="bril-lib"]'),libW:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length,counter:c?(c.innerText||'').trim():null,fen:(window.__ctPuzzle&&window.__ctPuzzle.fen)||null};});
+   L.say(!d.lib&&d.libW===0&&!!d.counter&&/\b1 of 3\b/.test(d.counter),'TC-R197e the drill opens on the chosen kinds only, the library gone (by hook, and by its title words: '+d.libW+'): three cards, the two Greek gifts and the missed quiet sacrifice ("'+d.counter+'")',d);
    L.say(b.errs.length===0,'TC-R197e zero app errors',b.errs.slice(0,3));
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'bril-lib-one',store:{ct_mybrilliancies:ONE,ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
    await b.tile('Review').catch(()=>{});await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click().catch(()=>{});await b.settle(1500);
-   const r=await b.page.evaluate(()=>({lib:!!document.querySelector('[data-ct="bril-lib"]'),top:!!document.querySelector('[data-ct="pz-top"]')}));
-   L.say(!r.lib&&r.top,'TC-R197f one kind on one shelf: nothing to choose, the drill starts at once',r);
+   const r=await b.page.evaluate(()=>({lib:!!document.querySelector('[data-ct="bril-lib"]'),libW:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length,top:!!document.querySelector('[data-ct="pz-top"]')}));
+   L.say(!r.lib&&r.libW===0&&r.top,'TC-R197f one kind on one shelf: nothing to choose (no library, by hook and by its title words: '+r.libW+'), the drill starts at once',r);
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'bril-lib-off',store:{ct_mybrilliancies:MIX,ct_bril_reset_v1:'1',ct_pool:'3',ct_bril_lib:'0'}});await b.open();
    await b.tile('Review').catch(()=>{});await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click().catch(()=>{});await b.settle(1500);
-   const r=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="drill-counter"]');return {lib:!!document.querySelector('[data-ct="bril-lib"]'),counter:c?(c.innerText||'').trim():null};});
-   L.say(!r.lib&&!!r.counter&&/\b1 of 5\b/.test(r.counter),'TC-R197f with the switch off (ct_bril_lib 0) the tile starts the drill on all five, as before ("'+r.counter+'")',r);
+   const r=await b.page.evaluate(()=>{const c=document.querySelector('[data-ct="drill-counter"]');return {lib:!!document.querySelector('[data-ct="bril-lib"]'),libW:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length,counter:c?(c.innerText||'').trim():null};});
+   L.say(!r.lib&&r.libW===0&&!!r.counter&&/\b1 of 5\b/.test(r.counter),'TC-R197f with the switch off (ct_bril_lib 0) the tile starts the drill on all five, as before, with no library (title words: '+r.libW+') ("'+r.counter+'")',r);
    const MD=require('../drive/menu');await b.home().catch(()=>{});
    let row=null;try{await MD.states['menu-bottom'](b);await b.settle(400);row=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Brilliant library/.test((e.innerText||'').trim()));return x?(x.innerText||'').replace(/\s+/g,' ').trim():null;});}catch(e){}
    L.say(!!row&&/OFF$/.test(row),'TC-R197f the menu\'s New features section carries the Brilliant library switch, reading OFF here ("'+row+'")');
@@ -97,3 +101,5 @@ L.run(async()=>{
 // SELECTOR-OPENED: drill-counter reading=presence round 4: TC-R197e and f need the counter to read 1 of N
 // SELECTOR-OPENED: pz-msg-more reading=presence round 4: the cover count is conjoined with the chip saying more in the same line
 // SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself
+// CONTROL-RECORD: ec64f63 2026-11-14 total=26 red=11 scope=trial:8ba321ea76ae how=#550 #432 sweep round 5 (the library counted by its title words): c118, bril-lib renamed AND the library left open when the drill starts (Go no longer closes it; a one-kind or switched-off tile opens it as it starts the drill) with its title painted at the app root over the drill - TC-R197e and both TC-R197f absence lines red (title words 2); the hook-keyed version (6d6aa82) on the same bundle is 17/8 with those three GREEN (its reds are the presence lines reading the missing hook); on t0 6925a0ca4de2 23/3, the three reds the TC-R197g kunal761 message-fold lines, which this commit does not touch
+// SELECTOR-OPENED: bril-lib control=ec64f63 round 5: TC-R197e and both TC-R197f also count the library by its title words; c118 renamed the hook and left the library up over the drill, red
