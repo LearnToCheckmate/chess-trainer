@@ -344,7 +344,7 @@ cp "$WORK/pairs" "${CT_SP_OUT:-/dev/null}" 2>/dev/null || true
 # hook-and-assertion pair is now a RED; lower it as pairs are fixed. G_SPCEIL in the environment still overrides (the selftest uses it).
 # #550 round 4: the ceiling now bounds the UNOPENED count (SELECTOR-OPENED marks above), and is set to 13, measured at this commit
 # (same-build 142, opened 129, unopened 13). The 81 it replaces bounded the raw same-build count, which read 142 on the branch tip.
-CEIL="${G_SPCEIL:-1}"   # #550 lead: 13 -> 12 (gate 30 menu-sheet), 12 -> 9 (gate 72 drill-eval, -fill, -num), 9 -> 8 (gate 39 pz-streak), 8 -> 7 (gate 112 rev-head), 7 -> 5 (gate 15 ask-card by control, rec-cap-done by reading), 5 -> 4 (gate 118 bril-lib), 4 -> 2 (gate 28 scan-busy, scan-side-b), 2 -> 1 (gate 72 pz-msg), the rest each opened by a recorded control
+CEIL="${G_SPCEIL:-0}"   # #550 lead: 13 -> 12 (gate 30 menu-sheet), 12 -> 9 (gate 72 drill-eval, -fill, -num), 9 -> 8 (gate 39 pz-streak), 8 -> 7 (gate 112 rev-head), 7 -> 5 (gate 15 ask-card by control, rec-cap-done by reading), 5 -> 4 (gate 118 bril-lib), 4 -> 2 (gate 28 scan-busy, scan-side-b), 2 -> 1 (gate 72 pz-msg), 1 -> 0 (gate 73 glist-filters by reading), the rest each opened by a recorded control
 if [ -z "$CEIL" ]; then
   echo "NO CEILING SET (G_SPCEIL unset) - this run REPORTS and asserts nothing. Set G_SPCEIL to the"
   echo "measured count to make a new same-build pair a RED rather than a line in a log."

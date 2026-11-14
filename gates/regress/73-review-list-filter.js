@@ -1745,3 +1745,4 @@ function mkTap(b,READ){
 // SELECTOR-OPENED: glist-ungraded reading=fallback round 4: the coverage line's words beside the hook
 // SELECTOR-OPENED: gf-toggle reading=nav round 4: openF returns false and the filter blocks read nothing
 // SELECTOR-OPENED: gstat-rev reading=presence round 4: E3b needs the reviewed badge
+// SELECTOR-OPENED: glist-filters reading=presence round 5: every line reads the row through this hook as a presence (B0, D0, D2 require it; chips, filOH and filTops are read through it, each with a non-empty or non-null guard); measured, a trial bundle with only the hook renamed (a6fb89c5c511) takes the gate to 145/44 with B0, D0, D2 and every chip and F-block line red, so a missing hook cannot pass
