@@ -643,7 +643,7 @@ L.run(async()=>{
    const d=await b.page.evaluate(()=>window.__ctDie||null);const atEnd=await plyTxt(b);
    L.say(ok&&!!atT&&atT.indexOf(T+'/85')>=0&&/Brilliant/.test(atT)&&!!(await b.rect('[data-ct="rev-engline"]')),'TC-R115 PRECONDITION the review reached ply '+T+', the Brilliant 19...Bxh3, with the engine line on screen',{atT});
    L.say(!!d&&!!d.killed&&d.err>=1,'TC-R115 DENOMINATOR the analysis worker really died under sacRun\'s search: an error event 150 ms after its go movetime 700, then terminate',d);
-   L.say(!!short&&!IF(short)&&/give up/.test(short),'TC-R115 STATE ENTERED half a second after the death the sentence is the short one - the sacrifice named, no "If they take it" clause ("'+short+'")',{short});
+   L.say(!!short&&!IF(short)&&/gives? up/.test(short)/* #550 helper lessons: the Review text names the side - 'You give up', 'White gives up' (docs/review-text-design-2026-11-14 P1) */,'TC-R115 STATE ENTERED half a second after the death the sentence is the short one - the sacrifice named, no "If they take it" clause ("'+short+'")',{short});
    L.say(IF(landed)&&atEnd===atT,'TC-R115 WITHOUT STEPPING OFF THE PLY the clause still arrives: sacRun asks again on a fresh worker after the one under it died (in '+(got===null?'never, 20 s watched':got+' ms')+'; was never on the pre-fix bundle)',{landed,got,atEnd});
    L.say(!!d&&d.n>(d.nAtKill||0),'TC-R115 and it was asked on a NEW worker - '+(d?d.n-(d.nAtKill||0):0)+' created after the death - not on the dead one',d);
    await b.close();}
