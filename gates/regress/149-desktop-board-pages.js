@@ -39,6 +39,7 @@
 // CONTROL-RECORD: 50bc8e6 2026-11-13 total=147 red=8 scope=trial:2abbad95b07e how=#550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: the merged tip's bundle (before the 56px lesson column top) - TC-R225j (written TC-R225i then; renamed at the merge with cg4, which took that id) gap -5 at 1280x620, 1366x700, 1100x800 and 1440x900, demo end and practice (buttons end at 50, note box from 45); the stray-glyph lines and every older line green; on t5 bade581b40e6 147/0
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=147 red=12 scope=trial:85be94e89bc2 how=#550 cg4, the branch tip (claude/exciting-noether-v1swj8 55ca2c7) with the rail at right:0: TC-R225i red at all six sizes on Puzzles (band 41/60/31/176/321/121px, right margin 0) and on Tactics (46/65/36/181/326/126px); every other line green. On t1 93ac17e053d5 147/0
 // CONTROL-RECORD: f901598 2026-11-13 total=64 red=13 scope=env:CT_149_TAC_ONLY=1 how=#550 helper B (jobs/tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13): the branch tip (claude/exciting-noether-v1swj8 f901598, trial 1b47cb7113e5) - TC-R225k 'ONE menu button' red at all nine sizes (two: the page-level one at x 1868 at 1920x1080, 1228 at 1280x720, 709 at 761x375) and 'nothing under or over the rail' red at 1280x600, 1440x780, 1280x720, 1440x900 and 761x375 (the page-level menu inside the rail's box); every older Tactics line green. On t1 2ffe57b0de6d 64/0
+// CONTROL-RECORD: e118d13 2026-11-14 total=224 red=3 scope=trial:971a642f4b4b how=#550 helper lessons: the tip before the lesson column's 56 became a margin - TC-R225m red at 667x375, 761x375 and 844x390 (the scrolled column's text under the corner buttons; at 932x430 the box is under them and its text is not); on 91fbf4cfb67b 224/0
 const L=require('../lib');const LS=require('../drive/lesson');const P=require('../drive/play');const R=require('../drive/review');
 /* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
    a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
@@ -130,6 +131,30 @@ L.run(async()=>{
       if(m&&m.across)L.say(m.gap>=6,tag+' '+st+': TC-R225j the corner buttons end at least 6px above the note box (gap '+m.gap+')',m);
       if(m)L.say(m.stray.length===0,tag+' '+st+': TC-R225j no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (corner)',b.errs.slice(0,3));await b.close();}
+  // (h3) TC-R225m [#550 helper lessons; jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13, its remainder 'the tab-rail
+  // state ... was not probed']: on a phone held sideways the lesson column SCROLLS, and entering practice leaves it scrolled (87 to 142px,
+  // measured). Its 56px top was padding, so the scrolled note box rode up under the corner Home and menu: at 932x430 and 844x390 its text
+  // painted under both (the note box at -28..47 against buttons 6..50). TC-R225j cannot see it - it reads the first bordered box's RECT, which
+  // scrolls with the content whether or not the scroller clips it. So this reads what can PAINT there: every visible text node in the
+  // column, cut to the column's own clip (its top and bottom), must not meet a corner button; and its denominator first (both buttons
+  // and the column found, the column scrolled - a column at scroll 0 cannot show this defect). The stray menu glyph is re-asked here.
+  for(const [w,h] of [[667,375],[761,375],[844,390],[932,430]]){const tag=w+'x'+h;
+    const b=await L.launch({geo:G(w,h),name:'dsk149-phone-side'});await b.open();let ok=true;
+    try{await LS.states['practice-m0'](b);await b.settle(1000);}catch(e){ok=false;}
+    const m=await b.page.evaluate(()=>{const bt=[...document.querySelectorAll('button')].filter(x=>/^(Home|Menu and settings)$/.test(x.getAttribute('aria-label')||'')&&x.getBoundingClientRect().width>0).map(x=>x.getBoundingClientRect());
+      const col=document.querySelector('.ctside');if(!col||bt.length<2)return {btns:bt.length,col:!!col};const cr=col.getBoundingClientRect();
+      const tw=document.createTreeWalker(col,NodeFilter.SHOW_TEXT);let n;const under=[];
+      while((n=tw.nextNode())){if(!n.textContent.trim())continue;const el=n.parentElement;const cs=getComputedStyle(el);if(cs.visibility==='hidden'||+cs.opacity===0)continue;
+        const g=document.createRange();g.selectNodeContents(n);for(const q of g.getClientRects()){const t=Math.max(q.top,cr.top),bo=Math.min(q.bottom,cr.bottom);if(bo-t<1)continue;
+          for(const k of bt)if(q.left<k.right&&q.right>k.left&&t<k.bottom&&bo>k.top)under.push(n.textContent.trim().slice(0,24)+'@'+Math.round(q.left)+','+Math.round(t));}}
+      const tw2=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const stray=[];while((n=tw2.nextNode())){if(!/\u2630/.test(n.textContent))continue;const el=n.parentElement;const bb=el.closest('button');
+        if(bb&&/Menu/.test(bb.getAttribute('aria-label')||''))continue;const g=document.createRange();g.selectNodeContents(n);const q=g.getBoundingClientRect();const cs=getComputedStyle(el);
+        if(q.width>0&&q.height>0&&cs.visibility!=='hidden'&&+cs.opacity>0)stray.push(el.tagName+'@'+Math.round(q.left)+','+Math.round(q.top));}
+      return {btns:bt.length,col:true,colTop:Math.round(cr.top),scroll:Math.round(col.scrollTop),btnBottom:Math.round(Math.max(...bt.map(k=>k.bottom))),under,stray};});
+    L.say(ok&&m.btns===2&&m.col&&m.scroll>0,tag+' practice-m0: TC-R225m PRECONDITION the sideways lesson is in practice with its column scrolled ('+JSON.stringify({btns:m.btns,col:m.col,scroll:m.scroll})+')',m);
+    if(m.col&&m.btns===2){L.say(m.under.length===0,tag+' practice-m0: TC-R225m no text of the scrolled column paints under the corner Home or menu ('+(m.under.slice(0,4).join(' | ')||'none')+'; column clips at '+m.colTop+', buttons end at '+m.btnBottom+')',m);
+      L.say(m.stray.length===0,tag+' practice-m0: TC-R225m no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
+    L.say(b.errs.length===0,tag+': TC-R225m zero app errors',b.errs.slice(0,3));await b.close();}
   // (d) the Review More sheet, (e) the Review corner slot
   for(const [w,h] of [...LAP,[1920,970],['kunal761']]){const ph=typeof w==='string'&&isPhone(w);const tag=ph?w:w+'x'+h;
     const b=await L.launch({geo:ph?w:G(w,h),name:'dsk149-rev',store:{ct_pool:'3'}});await b.open();let ok=true;
