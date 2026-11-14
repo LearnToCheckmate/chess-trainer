@@ -2356,6 +2356,7 @@ As the owner selling Pro, and as a player on a shared phone, Pro comes only from
 - Account has Delete account, behind a confirm; confirming deletes the account and clears the device. (TC-R213d)
 - The deletion removes every document keyed to the player, scrubs their seat and chat in played games, confirms identity first and deletes the sign-in account last. (TC-R213e)
 - Sign out offers to remove the player's data from the device, on by default; a different account signing in on a device that belonged to someone else starts clean. (TC-R213f, TC-R213g, TC-R213h)
+- The page declares a content security policy: scripts only from the site itself, the Firebase SDK host and the sign-in helper host, no plugins, no base override - and a script from anywhere else does not run. (TC-R213i; SEC-19)
 ### US-R144 The lessons and puzzles teach chess the engine agrees with
 *Added #550, docs/chess-correctness-2026-11-12 CHS-01..CHS-23; Kunal, 12 Nov: "Batch 10, wrong first".*
 As a player learning from a lesson, a card or a puzzle, the move I am taught is a good move and the words about it are true of the position.
