@@ -2648,19 +2648,22 @@ fi
 rm -f "$H70M"
 
 # H71 NEGATIVE [#550 test-system helper A]. THE COVERED SET IS A BINARY ON THE FAST TIER. A records-only commit adds a row to
-#     gates/control-covered-floor.tsv for 23-full-walk, a gate the audit reads NONE (it declares no CONTROL-RECORD). Every
+#     gates/control-covered-floor.tsv for 18-drill-credit-provenance, a gate the audit reads NONE (it declares no CONTROL-RECORD). Every
 #     fault count of the control-audit ratchet is unchanged by that commit, so the ratchet alone reads "no worse than base";
 #     the binary must refuse it. Expected: exit 1, "records: RED", and control-floor's own words naming the gate. The control,
 #     run by hand when this case was added: the same commit under a records-gate.sh whose RECORDS_BINARIES is "citations"
 #     alone takes exit 0 FAST GATE GREEN (#550 test-system helper A's report).
 reset_clone
 H71F=gates/control-covered-floor.tsv
-printf '23-full-walk\tfastgate-drive.sh H71 fixture, never pushed: a gate with no CONTROL-RECORD\n' >> "$C/$H71F"
-commit_case "H71 a floor row for 23-full-walk, which the control audit reads NONE"
+# #550 lead, 2:1xpm ET Sat 14 Nov: the fixture gate was 23-full-walk, which 395f50d gave a CONTROL-RECORD (COVERED, row 47 of the
+# floor), so H71 went red in the final suite with nothing to refuse. 18-drill-credit-provenance reads NONE on 0473182 (control-audit.js).
+# A hard-coded gate drifts as gates gain records: batch 11 should pick the fixture gate from control-audit.js NONE at run time.
+printf '18-drill-credit-provenance\tfastgate-drive.sh H71 fixture, never pushed: a gate with no CONTROL-RECORD\n' >> "$C/$H71F"
+commit_case "H71 a floor row for 18-drill-credit-provenance, which the control audit reads NONE"
 # THE SUBSTRING IS THE DOOR'S OWN REFUSAL OF THE ROW, NOT control-floor's "FELL" LINE [#550 test-system helper A]: the records
 # binary shows the door's LAST FOUR lines, and since contract-asserts runs after control-floor the FELL line is pushed out of them.
 if probe 1 "records: RED" "DOOR CHECKS REFUSED - control-floor: exit 1, 1 fail"; then
-  note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, the door refused on control-floor: 23-full-walk is on the floor and reads NONE)"
+  note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, the door refused on control-floor: 18-drill-credit-provenance is on the floor and reads NONE)"
   OK=$((OK+1))
 else
   note "  FAIL H71 [$(tc H71)]  exit $PROBE_RC, expected 1 records: RED with the door refusing on control-floor"
