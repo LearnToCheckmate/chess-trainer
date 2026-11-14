@@ -1304,3 +1304,4 @@ for(const g of [{w:375,h:812,safe:''},L.GEOS.kunal730,{w:320,h:568,safe:''}]){
   await b.close();
 }
 },'HOME');
+// SELECTOR-OPENED: home-today reading=comment #550 lead: the hook is named only in two comments (lines 244, 355); every assertion finds the Today card by its words ('Today n of 3'), and gate 49's control 417/88 on d61a28998af1 (no card) reddened them
