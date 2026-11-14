@@ -12,6 +12,7 @@
 // WHAT IT ASSERTS: (a) the Start game button is wholly on screen and nothing scrolls on a window wider than tall; (b) there, OPPONENT and TIME
 // CONTROL sit in two halves (Time control starts at least 120px right of Opponent) of one column no wider than 660, centred on the window; (c) his phone keeps the one 420 column.
 // CONTROL-RECORD: 368b7f1 2026-11-12 total=24 red=10 scope=trial:4e6cd77c how=#550 the tree before DSK-09 (t142): the 420 single column at every size - Start game off screen and the sheet scrolling by 335/287/213/173/23 px (TC-R218a, the audit's own figures) and no two halves (TC-R218b) at all five window sizes; on t143 4470ec9e 24/0
+// CONTROL-RECORD: d2fe7af 2026-11-14 total=24 red=6 scope=trial:edd11cff34ef how=#550 helper B, the q44 re-key: aaefbb5 with every setup section put in the left grid column and the phone column widened 420 -> 460 - TC-R218b red at all five window sizes (the Time control at the Opponent's x) and TC-R218c red at kunal761 (460px), the only reds; aaefbb5 itself (trial:8af83ffc1c70) is 24 pass 0 fail
 // KNOW ITS LIMIT: the computer opponent's sheet (the tallest); online and Pass and Play are shorter.
 // RE-KEYED TO q44 [#550 helper B; Kunal's q44 answer, 08f5354]: the time control is ONE dropdown now, a select whose accessible name is
 // 'Time control', and the TIME CONTROL heading it was found by is gone, so the PRECONDITION and TC-R218b/c were red on every size by a
