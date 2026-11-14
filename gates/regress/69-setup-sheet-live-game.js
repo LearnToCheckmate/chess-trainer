@@ -364,7 +364,7 @@ L.run(async()=>{
   // and ct_elo reads 1500. DENOMINATOR: the taps landed - the bot row (shown only for a pending Computer) is on the sheet.
   // Measured on the branch tip c2a816f (trial aa9cbca2cf01) at kunal761: the Computer tile alone took the board 375.0 -> 344 behind the
   // sheet (the eval bar of a computer game that did not exist) and the bars from the two humans to the computer's name.
-  // CONTROL-RECORD: 558424b 2026-11-13 total=17 red=5 scope=block:K trial:08869263d133 how=#550 item (58): the tree before the pending sheet state (the sheet's tiles write the live opponent) - K3 red at kunal761 and se (bars '-0.2 🤖 Computer 1500 0:00' / '♚ You', the eval bar painted), K2 over() red at both (73.6 -> 81.6, 155.6 -> 144.6), K2 board red at se (312 -> 288; at kunal761 the bar sits above the board and the width held at 368); K1 and K4 green; on trial 8030065fed0f 17 of 17 green
+  // CONTROL-RECORD: 558424b 2026-11-13 total=17 red=5 scope=blocks:K how=[scope repaired #550 test-system helper B: written 'block:K trial:08869263d133', two tokens and 'block' for the vocabulary's 'blocks', which made the line unparsable; the trial bundle is 08869263d133] #550 item (58): the tree before the pending sheet state (the sheet's tiles write the live opponent) - K3 red at kunal761 and se (bars '-0.2 🤖 Computer 1500 0:00' / '♚ You', the eval bar painted), K2 over() red at both (73.6 -> 81.6, 155.6 -> 144.6), K2 board red at se (312 -> 288; at kunal761 the bar sits above the board and the width held at 368); K1 and K4 green; on trial 8030065fed0f 17 of 17 green
   for(const geo of ['kunal761','se']){
    try{
     const b=await L.launch({geo,name:'setupsheet-pending-'+geo});
