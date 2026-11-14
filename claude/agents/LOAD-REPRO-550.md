@@ -1,11 +1,19 @@
-# Load reproduction, #550: WIP, paused on Kunal's load rule
+# Load reproduction, #550: a 10% CPU quota separates the trees
 
 For `jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04`. Written by #550 test-system helper B on
-2026-11-14. **Paused partway** under run-answers `hold-the-load-reproduction-and-cite-r19`: a job that loads the machine
-on purpose does not start while the 5-minute load is over 6. Nothing is running now. The cgroup this work used
-(`/sys/fs/cgroup/cpu/hbprobe`) has been removed.
+2026-11-14. Rows 1 to 13 were measured before the pause under run-answers `hold-the-load-reproduction-and-cite-r19`.
+Rows 14 to 16 were measured after the lead's restart (3:18am ET), ALONE: the LOADREPRO.lock was held, the other slots ran
+no browser, and the 5-minute load was at or under 2 at the start. Nothing is running now, and the cgroup
+(`/sys/fs/cgroup/cpu/hbprobe`) and the lock have been removed.
 
-## Result so far: the OLD tree diverges, and the tip has not been measured under that condition
+## Result: at a 10% CPU quota the old tree gives three different reviews in three runs, and the tip gives one
+
+| tree | runs at 10% | accuracy W / B | positions of 34 differing from its own unloaded reference | grade counts |
+|---|---|---|---|---|
+| **w0** `e04e657dfc3c` (51f47e7, before the fixes) | 3 (rows 10, 11, 16) | 96.9/85.9, 96.8/84.0, 96.2/83.2 (unloaded 97.6/88.9) | **18, 19, 20** | different in all three, and different from each other |
+| **tip** `926f7a68948b` (a trial of a88ba8c) | 2 (rows 14, 15) | 87.6/78.9 both (unloaded 87.6/78.9) | **0, 0** | identical to unloaded; row 15's engine record reads `retried 3`, the fix re-searching instead of grading partials |
+
+## The runs
 
 **The probe.** `load-repro-550/lprobe.js` reviews the Opera Game once at kunal761, with ct_pool 3 and the eval cache
 cleared, and prints one `LPROBE {...}` line containing:
@@ -40,7 +48,12 @@ reference row (row 1). The full JSON is in `load-repro-550/ltrials.log`.
 | 11 | w0 | cgroup cpu quota **10%** of one core | late | 232 s | **96.8 / 84.0** | 1/0 **7**/0 **4/5** 1/**5** 1/**0** 3/2 0/**3** 0/0 0/0 0/1 | **19 of 34** |
 | 12 | tip5 | none, pinned | late | 25 s | 87.6 / 78.9 | 3/0 3/0 6/3 1/6 1/1 3/2 0/2 0/0 0/0 0/1 | (its own reference); engine path pool, retried 0, abandoned 0 |
 | 13 | tip5 | 6 busy loops, same core | early | 48 s | 87.6 / 78.9 | same as row 12 | engine path pool, retried 0 |
-| - | tip5 | quota 10%, early and late | - | - | **NOT MEASURED**: stopped by the pause before either finished | - | - |
+| - | tip5 | quota 10%, early and late | - | - | NOT MEASURED: stopped by the pause before either finished | - | - |
+| 14 | tip6 | quota 10% | early | 276 s | **87.6 / 78.9** | 3/0 3/0 6/3 1/6 1/1 3/2 0/2 0/0 0/0 0/1 (same as row 12) | **0 of 34** against row 12; engine pool, retried 0 |
+| - | tip6 | quota 10% | late | - | STOPPED at 08:26:47Z: the stretch watcher saw the 5-minute load reach 4.07. The load came from another slot's gate 22 browser, started before the lock reached it. No verdict, and it is not counted | - | - |
+| - | w0 | quota 10% | early | about 45 s | STOPPED, no verdict. This stretch script's own fault: its TERM handler removed the lock but did not exit, so the loop started this run after the lock was gone. Killed by PID at about 08:27:30Z | - | - |
+| 15 | tip6 | quota 10% | late | 394 s | **87.6 / 78.9** | same as row 12 | **0 of 34**; engine pool, **retried 3**, abandoned 0 |
+| 16 | w0 | quota 10% | early | 242 s | **96.2 / 83.2** | 1/0 6/0 **3/5 3/3** 1/**3** 3/2 0/2 0/0 0/0 0/1 | **20 of 34** |
 
 **What this says:**
 - **CDP `Emulation.setCPUThrottlingRate` was not tried as a lever.** Gate 86's header already measured that it throttles
@@ -62,17 +75,20 @@ reference row (row 1). The full JSON is in `load-repro-550/ltrials.log`.
   the load average does not rise the way it does with K loops. The 1-minute load read 4.4 to 8.0 when rows 10 and 11
   started.
 
-## What is left when the pause lifts (on the lead's word)
+## What is left
 
-1. Run tip5 at quota 10%, early and late; the start command is `bash load-repro-550/ltrialq.sh tip5 early 10`. It needs the
-   cgroup, which ltrialq.sh recreates with `mkdir -p`.
-   - Expected, if the fixes hold: 87.6/78.9 with the same counts and evW, or the refusal panel ("The review stopped before
-     it finished.").
-   - If so, quota 10% is the separating load.
-2. Then add it to gate 163 (b87bb6a, held off the branch) as its control arm. The arm reviews under the cgroup quota
-   instead of, or as well as, CT_163_LOAD browsers. It then records w0 red, past TC-R152c, and the tip green.
-3. Run w0 at quota 10% two or three more times, to say how often it diverges. One run each of early and late is evidence
-   that it can, not a rate.
+1. **Gate 163's control arm is NOT added in this commit.** The lead's last instruction was to measure and commit. The
+   arm itself needs a decision:
+   - The lever is a cgroup-v1 `cpu.cfs_quota_us`, which needs root and this container's cgroup layout. That is unlike
+     every other gate's lever, and a gate that cannot create the group must say NOT CONCLUSIVE, never green.
+   - A 10% run takes 4 to 7 minutes per review, and the run has to be alone (the lock).
+   - The proposal: an arm in gate 163 (b87bb6a, still held off the branch) that runs R alone and L under the quota, using
+     the same TC-R152c/d comparison. Expected: w0 red, from 3 of 3 measured divergences, and the tip green, 2 of 2.
+2. **The rate:** w0 diverged in 3 of 3 runs at 10%, and in 0 of 9 at lighter loads (25% quota, nice, busy loops). The
+   tip has 2 of 2 at 10%. Those are small counts: the evidence shows the old tree can diverge here, not how often.
+3. **The first mechanism** (the built-in engine taking over when Stockfish is not ready by the tap) did not show in any
+   run. Even the early tap at 10% found Stockfish ready, so gate 86's TC-R148 injection remains the only control of that
+   path.
 
 ## Scripts
 
@@ -84,6 +100,8 @@ They are in `claude/agents/load-repro-550/`, copied from scratchpad hbcf/. Both 
 | `lprobe.js` | 804bbc747d4a | `CT_APP=<bundle> LP_TAP=early\|late node lprobe.js` -> one LPROBE line |
 | `ltrial.sh` | 11b70fe15ac3 | `<bundle> <tap> <K busy loops> [throttle] [nice]`: the probe and K loops pinned to cpu 3, loops killed by captured PID |
 | `ltrialq.sh` | 7e9d2ffb313a | `<bundle> <tap> <quota %>`: the probe inside cgroup `cpu/hbprobe` with `cfs_quota_us = Q*1000` per 100 ms |
+| `stretch.sh` | 0352c8c10109 | `<bundle:tap:quota>...`: holds LOADREPRO.lock and removes it on any exit, waits for a 5-minute load of 2 or less, drains (60 s, then up to 11 min until no other chrome-headless-shell runs), and stops the whole stretch at a 5-minute load over 4. Rows 14 to 16 ran through it |
 | `ltrials.log` | - | every LPROBE line above, with the cgroup's throttle counters |
 
-Bundles: w0 `e04e657dfc3c` (51f47e7); tip5 `78aa4aeb9c04` (trial of e599269, stamp `#550 - 2026-11-14 01:40 ET`).
+Bundles: tip6 `926f7a68948b` (trial of a88ba8c, stamp `#550 - 2026-11-14 03:19 ET`). tip6 was not reviewed unloaded: rows 14 and 15
+are compared with row 12 (tip5), and their 34 engine outputs equal row 12's exactly. w0 `e04e657dfc3c` (51f47e7); tip5 `78aa4aeb9c04` (trial of e599269, stamp `#550 - 2026-11-14 01:40 ET`).
