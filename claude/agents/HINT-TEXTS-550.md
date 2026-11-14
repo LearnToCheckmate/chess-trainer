@@ -115,6 +115,15 @@ Your pick, "Blunders and mistakes": by the review's win-chance grades. Over your
 - Same position, hints on, you play Bb5. Old: "✗ Not the book move — it goes Bc4 here. Try again." New: "✗ The book move is Bc4: the Italian bishop, aimed at f7 — Black's softest square. Try again."
 - A correct Bc4. Old: "✓ Bc4 — correct!" New: "✓ Bc4, correct: the Italian bishop, aimed at f7 — Black's softest square."
 
+**As the app prints them now** [#550 test-system helper A, the orchestrator's re-check cg12 at 0a115a8]. The three pairs above were written for HEX-T-12 and predate f8fb292 (HEX-T-13, the hint words, and the notes on correct moves). The lines below are copied from a run, not typed: gate 11 TC-LS-061 and TC-LS-064 on f4199b8 (trial bundle 920ed207ebc6), Italian Game practice, the same at kunal761 and at se (320x568). The note box adds the count after each one (" · 2 of 5" and so on) and, where the note is longer than the box, "more ▾". The lesson notes themselves no longer carry a dash: Bc4's reads "the Italian bishop, aimed at f7. Black's softest square."
+- Hints on, move 1, before any move (the hint words beside the arrow): "💡 King's pawn. The most popular and best first move."
+- Hints on, after 1.e4 e5, the hint words for 2.Nf3: "💡 Develop the knight and hit e5."
+- A correct 1.e4: "✓ e4, correct: king's pawn. The most popular and best first move."
+- A correct 2.Nf3: "✓ Nf3, correct: develop the knight and hit e5."
+- 3.Nxe5, hints off: "✗ Nxe5 hangs the knight (Nxe5). Try again. (Tap 💡 Hint to see it.)"
+- 3.Nxe5, hints on: "✗ Nxe5 hangs the knight (Nxe5). The book move is Bc4: the Italian bishop, aimed at f7. Black's softest square. Try again."
+- A correct 3.Bc4, with hints on: "💡 Prepare d4 for a big center, and give the bishop a retreat. ✓ Bc4, correct: the Italian bishop, aimed at f7. Black's softest square." (the hint words for 4.c3 come first, then the confirmation)
+
 ## 6. The Brilliant moves drill: Hint
 - 6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w (h4). Old: "You played something special here — a sacrifice or a precise blow." New: "Your queen on c2 is attacked. You found something better than saving it."
 - 8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w (Rxh6+). Old: the same sentence. New at the time: "A rook can be given up with check here." CORRECTED [#550, fresh checker seat 1, 14 Nov]: that wording was superseded - gate 133 now uses it as its CONTROL - and the hint names the piece AND the square it stands on, never the destination. Measured on the Opera Game's three Brilliant cards (bundle 7a5e5472ca55, kunal761): "Your knight on c3 can be given up here, and it holds." (10.Nxb5), "Your rook on d1 can be given up here, and it holds." (13.Rxd7), "Your queen on b3 can be given up with check here." (16.Qb8+).
