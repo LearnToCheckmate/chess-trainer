@@ -71,3 +71,4 @@ L.run(async()=>{
     L.say(ok&&m.reached&&!!m.tab&&m.tab.w>600&&m.tab.y>m.vh/2,'TC-PZ-LAND4e Discover at 1280x800 keeps the bottom tab bar (DSK-06) ('+(m.tab?m.tab.w+' wide at y '+m.tab.y:'none')+')',m.tab);
     await b.close();}
 },'158-sideways-pages-tab-rail');
+// SELECTOR-OPENED: pz-toprow reading=presence #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): the row's children are read from it, so a missing hook leaves no chip and no menu and both TC-PZ-LAND4d lines red at all three geometries (65/0 -> 59/6)
