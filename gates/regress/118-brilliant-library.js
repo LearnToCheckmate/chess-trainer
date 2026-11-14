@@ -85,12 +85,17 @@ L.run(async()=>{
         cover:m?vis.filter(x=>x.l<m.right&&x.r>m.left&&x.t<m.bottom&&x.b>m.top).length:0,box:Math.round(er.height),lines:L.map(x=>Math.round(x.t)+'-'+Math.round(x.b)).join(',')};});
     const f=await rd();
     L.say(ok&&!!f&&/Rd8 is mate/.test(f.txt)&&f.n>=2&&!!bd0,'TC-R197g '+geo+' PRECONDITION the Opera Game\'s Qb8+ was solved and its explanation runs to '+(f&&f.n)+' lines in a '+(f&&f.box)+'px box',f);
-    L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),'TC-R197g '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them, and it says there is more ('+JSON.stringify(f)+')',f);
-    let o=null;if(f&&f.chip){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);o=await rd();}
-    L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,'TC-R197g '+geo+' one tap on it shows the whole explanation: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
+    // #550 lead: since the brilliant drill took the goal reserve on phones >=740 tall (2eda297/7d838bb) the message box at kunal761 is 80px and
+    // the Qb8+ explanation FITS in 3 whole lines, so there is nothing to fold there. A text that fits whole with no chip is the right screen, not a
+    // defect; it is asserted as that, and the fold/open/fold lines below are NOT RUN for it (a note, never a PASS), and still run wherever it overflows.
+    const FITS=(!!f&&f.vis===f.n&&f.whole&&f.all&&!f.chip);
+    if(FITS)L.say(true,'TC-R197g '+geo+' the explanation fits its box whole ('+f.vis+' of '+f.n+' lines, no "more" chip needed) - checked: every line whole and inside, no chip',f);
+    else L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),'TC-R197g '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them, and it says there is more ('+JSON.stringify(f)+')',f);
+    let o=null;if(!FITS&&f&&f.chip){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);o=await rd();}
+    if(FITS)L.note('TC-R197g '+geo+' open/fold NOT RUN: the explanation fits whole here, so there is no fold to open'); else L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,'TC-R197g '+geo+' one tap on it shows the whole explanation: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
     const bd1=await b.board();
-    if(o){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);}const c=await rd();
-    L.say(!!c&&c.whole&&c.vis<c.n&&/more/.test(c.chip||''),'TC-R197g '+geo+' a second tap folds it again to whole lines',c);
+    if(!FITS&&o){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);}const c=await rd();
+    if(!FITS)L.say(!!c&&c.whole&&c.vis<c.n&&/more/.test(c.chip||''),'TC-R197g '+geo+' a second tap folds it again to whole lines',c);
     const bd2=await b.board();
     L.say(!!bd0&&!!bd1&&!!bd2&&[bd1,bd2].every(x=>Math.abs(x.y-bd0.y)<0.5&&Math.abs(x.w-bd0.w)<0.5),'TC-R197g '+geo+' the board did not move (solve, open, fold)',{bd0,bd1,bd2});
     L.say(b.errs.length===0,'TC-R197g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
