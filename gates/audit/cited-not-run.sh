@@ -328,7 +328,10 @@ main_report(){
       while IFS= read -r tok; do
         [ -n "$tok" ] || continue
         case "$tok" in
-          gates/*) cand="$tok"; [ -r "$ROOT/$cand" ] || continue;;
+          # A FULL-PATH CITATION IS HELD TO THE SAME TRACKED SET [#550 test-system helper A, on checker seat 2's GAP against 8475aea]:
+          # this arm tested only `-r` on the filesystem, so a cited gates/.trial/t1.js joined the set whenever a run left the file
+          # behind - 209 / 1 on the tip with TC-SUITE-396's own citation of that path - while bare names already went through GFILES.
+          gates/*) cand="$tok"; grep -qxF -- "$cand" <<<"$GFILES" || continue;;
           *)
             n="$(printf '%s\n' "$GFILES" | awk -F/ -v t="$tok" '$NF==t' | grep -c . || true)"
             [ "$n" = "1" ] || continue
@@ -681,6 +684,16 @@ EOF
   out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
   ck "C40 an untracked run artefact under gates/, cited by bare name, does not change the cited count" "$c0" "$(sed -n 's/^cited  *\([0-9]*\) .*/\1/p' <<<"$out")"
   ck "C40b and is not a LEAK" "0" "$(grep -c 'LEAK gates/.site' <<<"$out")"
+  # C40c/C40d (#550 test-system helper A, checker seat 2's GAP): the same for a FULL-PATH citation of an untracked run artefact
+  mkdir -p "$T/gates/.trial"; : > "$T/gates/.trial/t9.js"; echo "evidence: gates/.trial/t9.js -> 1 check" >> "$T/RUN-LOG.md"
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"; rc=$?
+  ck "C40c an untracked run artefact cited by its FULL path does not change the cited count" "$c0" "$(sed -n 's/^cited  *\([0-9]*\) .*/\1/p' <<<"$out")"
+  ck "C40d and is not a LEAK" "0" "$(grep -c 'LEAK gates/.trial' <<<"$out")"
+  # C40e the other side: a TRACKED file cited by its full path still counts (git add makes it tracked)
+  ( cd "$T" && git add gates/.trial/t9.js ) >/dev/null 2>&1
+  out="$(CT_ROOT="$T" CT_RECORDS="RUN-LOG.md" CT_ROSTER="$R" bash "$SELF/cited-not-run.sh" 2>&1)"
+  ck "C40e once tracked, the same full-path citation counts and is a LEAK" "1" "$(grep -c '^  LEAK gates/.trial/t9.js' <<<"$out")"
+  rm -rf "$T/gates/.trial"; sed -i '/t9.js/d' "$T/RUN-LOG.md"
   rm -rf "$T/gates/.site" "$T/.git"; sed -i '/transient.js/d' "$T/RUN-LOG.md"
   rm -f "$T/gates/orphan-cited.js" "$T/gates/bare-named.js" "$T/gates/measure-thing.sh"
   # C41 (#550 test-system helper A): an EMPTY set with roster rows is not green - every row is stale. (C10 below takes the empty roster.)
