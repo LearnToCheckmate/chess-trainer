@@ -22,6 +22,11 @@ const CARDS=[
 ];
 const rootText=(b)=>b.page.evaluate(()=>document.getElementById('root').innerText.replace(/\s+/g,' '));
 L.run(async()=>{
+  /* #550 helper B [jobs/sweep-for-regexes-checked-in-one-direction-only-2026-10-02]: this read /That was stronger/, a string chess.jsx never
+     prints - the flat sentence the verdict falls back to is mistakeWhy's '<best> was stronger. <played> went ...' (whyShape's ' was stronger'
+     fallback), so the negated half could not fail. STRONGER132 is checked both ways. */
+  const STRONGER132=/\S was stronger\b/;
+  L.say(['Rf3 was stronger. Qxh3 went from clearly better to losing.','Nc6 was stronger. Kh1 went from level to losing.'].every(t=>STRONGER132.test(t))&&!STRONGER132.test('Bxf7+ wins the queen on d8 with check.')&&!/That was stronger/.test('Rf3 was stronger.'),'TC-SUITE-265 (TC-R208b) the no-flat-sentence pattern catches the "<move> was stronger" fallback chess.jsx prints, which /That was stronger/ did not (checked both ways)');
   for(const c of CARDS){
     const san=c.uci.slice(0,2)+'-'+c.uci.slice(2,4);
     const card={fen:c.fen,uci:c.uci,label:'Mistake',played:c.played,ts:1791000000000,last:null,wc:{g:'Mistake',drop:20},   /* #550 a41: marked as already re-graded, so the Home pass (gate 134's subject) does not judge this fixture - the take card's Qh3 still leaves White winning by win chance and the pass rightly drops it */
@@ -39,7 +44,7 @@ L.run(async()=>{
     if(ok){try{await b.move(c.uci.slice(0,2),c.uci.slice(2,4),1500);}catch(e){}
       solved=await b.page.evaluate(()=>!!document.querySelector('[data-ct="drill-analyse"]'));verdict=await rootText(b);}
     L.say(solved,'TC-R208 '+c.id+' PRECONDITION playing '+san+' solves the card (Analyse shows)',{solved});
-    L.say(solved&&c.why.test(verdict)&&!/That was stronger/.test(verdict),'TC-R208b '+c.id+': the verdict says what the move does ('+c.why.source+'), not "was stronger"',{verdict:(verdict.match(c.why)||[''])[0]||verdict.slice(0,200)});
+    L.say(solved&&c.why.test(verdict)&&!STRONGER132.test(verdict),'TC-R208b '+c.id+': the verdict says what the move does ('+c.why.source+'), not "was stronger"',{verdict:(verdict.match(c.why)||[''])[0]||verdict.slice(0,200)});
     const rs=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="drill-reset-solved"]');if(!e)return null;const q=e.getBoundingClientRect();return {w:Math.round(q.width),h:Math.round(q.height),on:q.bottom<=innerHeight&&q.right<=innerWidth&&q.top>=0,label:e.getAttribute('aria-label')};});
     L.say(!!rs&&rs.on&&rs.w>=43.5&&rs.h>=43.5&&rs.label==='Reset','TC-R208c '+c.id+': the solved card keeps a Reset, 44pt or more and on screen',rs);
     if(rs){await b.page.click('[data-ct="drill-reset-solved"]').catch(()=>{});await b.settle(900);}

@@ -151,7 +151,14 @@ L.run(async()=>{
   if(coc){const r=replay(coc.fen,coc.line);const bad=[];let n=0;
     for(let k=8;k<r.plies.length;k++){const q=r.plies[k];const b=await best(q.fen),m=await only(q.fen,q.mv);n++;if(b.sc!=null&&m.sc!=null&&b.sc-m.sc>=100&&!/\?|mistake|more accurate|inaccura/i.test(coc.notes[k]||''))bad.push((k+1)+'.'+q.stored+' loses '+(b.sc-m.sc)+' to '+b.bm);}
     L.say(n>0&&bad.length===0,'TC-R212j Cochrane (CHS-09): every move from ply 9 that loses a pawn or more against the engine\'s best is marked in its note'+(bad.length?' - NOT: '+bad.join('; '):''),bad);
-    L.say(!/calls it level/i.test(coc.notes[coc.notes.length-1]||''),'TC-R212j Cochrane: the last note no longer says the engine "calls it level" (that verdict needs Black\'s ...Be6 error)');}
+    /* #550 helper B [jobs/sweep-for-regexes-checked-in-one-direction-only-2026-10-02]: this read /calls it level/i, the retired wording only,
+       so a reworded level verdict - the forms TC-R212i's claim regex above already lists, 'about equal' and 'roughly equal', or a bare
+       'level'/'equal' - passed. LEVEL136 is checked both ways: it catches those and not the note that ships ('... slightly better for White'). */
+    const LEVEL136=/calls it level|\blevel\b|\bequal(ity)?\b|balanced/i;
+    const levelForms136=['the engine calls it level','about equal','roughly equal','the position is level','equality for Black','a balanced game'];
+    const notLevel136=['The king is stranded on e6. A knight down for two pawns, but after …Be6? the open lines give full compensation: slightly better for White.'];
+    L.say(levelForms136.every(t=>LEVEL136.test(t))&&!notLevel136.some(t=>LEVEL136.test(t))&&!levelForms136.every(t=>/calls it level/i.test(t)),'TC-SUITE-265 (TC-R212j) the no-level pattern catches every level or equal wording and not the shipped note, where /calls it level/i caught one (checked both ways)',{missed:levelForms136.filter(t=>!LEVEL136.test(t)),wronglyCaught:notLevel136.filter(t=>LEVEL136.test(t))});
+    L.say(!LEVEL136.test(coc.notes[coc.notes.length-1]||''),'TC-R212j Cochrane: the last note no longer says the engine "calls it level" (that verdict needs Black\'s ...Be6 error)',coc.notes[coc.notes.length-1]);}
   else L.say(false,'TC-R212j the Cochrane Gambit lesson is in lessons.js');
   await sideMoves(byLine('Scotch Gambit',['e4','e5','Nf3','Nc6','d4','exd4','Bc4','Bc5','c3','dxc3']),'w','TC-R212k','Scotch Gambit two-pawn punch (CHS-10)');
   for(const nm of ['Space gives your pieces room','Good bishop, bad bishop']){const s=S(nm);if(!s){L.say(false,'TC-R212l the Strategy card "'+nm+'" is in STRAT');continue;}
@@ -198,7 +205,10 @@ L.run(async()=>{
   const sta=byName('Stafford Gambit: Mating Trap');
   if(sta){const r=replay(sta.fen,sta.line);const k=sta.line.indexOf('Bxf2+');const q=r.plies[k+1];const capF2=q?E.getLegal(q.g).some(m=>sqOf(m.tr,m.tc)==='f2'):true;
     L.say(!(!capF2&&/forced to take|must take/i.test(sta.notes[k]||'')),'TC-R212s Stafford (CHS-18): the king cannot take on f2, and the note on Bxf2+ does not say it is forced to ("'+(sta.notes[k]||'')+'")');
-    L.say(!/\bpins?\b/i.test(sta.notes[sta.notes.length-1]||''),'TC-R212s Stafford: the mate note does not call the mating check a pin');
+    /* #550 helper B (as LEVEL136 above): /\bpins?\b/i could not see 'pinned' or 'pinning'. PIN136 is checked both ways against the shipped note. */
+    const PIN136=/\bpin(s|ned|ning)?\b/i;
+    L.say(['the bishop pins the king','the king is pinned','a pinning check','a pin'].every(t=>PIN136.test(t))&&!PIN136.test('Checkmate! The g4-bishop checks; the f2-bishop and e4-knight take every escape. Mate down a queen.')&&!/\bpins?\b/i.test('the king is pinned'),'TC-SUITE-265 (TC-R212s) the no-pin pattern catches pins, pinned and pinning and not the shipped mate note (checked both ways)');
+    L.say(!PIN136.test(sta.notes[sta.notes.length-1]||''),'TC-R212s Stafford: the mate note does not call the mating check a pin',sta.notes[sta.notes.length-1]);
     const c12=pz(/Stafford/);L.say(!!c12&&!/bishop pins/i.test(c12.explain),'TC-R212s c12: the puzzle explanation does not call the mating check a pin');}
   else L.say(false,'TC-R212s the Stafford Gambit: Mating Trap lesson is in lessons.js');
   { const bad=[];let n=0;for(const l of audited){const r=replay(l.fen,l.line);if(r.bad)continue;l.notes.forEach((note,k)=>{const q=r.plies[k];if(!q||!/in front of (?:the|its own) pawn/i.test(note))return;n++;
