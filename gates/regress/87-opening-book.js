@@ -153,3 +153,4 @@ L.run(async()=>{
    L.say(!!r2&&/ON$/.test(r2.t)&&r2.key==='1','TC-R160 G3 a second tap turns it back ON (written 1)',r2);
    await b.close();}
 },'87-opening-book');
+// CONTROL-RECORD: 407251e 2026-11-14 total=43 red=1 scope=trial:ec047d71c5bd how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b, the audit read ASSERTIONS-MOVED): node blocks A-E under CT_SRC=a mutant chess.jsx (md5 ec047d71c5bd, not a bundle; block F skipped as the header says) in which openingBookPlies takes the table reading alone when the table is on, with no max against the lesson lines - TC-R158 C8 red (Book 14, the table's, where the lesson line's 19 is kept); CT_SRC=407251e's own chess.jsx reads 43/0
