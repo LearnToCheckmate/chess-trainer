@@ -95,7 +95,7 @@ const ROWS={
     ['Next','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','last',/^Next ›$/]]},
   drill:{store:DSTORE,enter:async b=>{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="drill-row"]').waitFor({state:'visible',timeout:15000});await b.settle(900);},
     members:[['Hint','[data-ct="drill-row"] button[aria-label="Hint"]','only'],['Show move','[data-ct="drill-row"] button[aria-label="Show move"]','only'],
-      ['Reset','[data-ct="drill-row"] button[aria-label="Reset"]','only'],['Prev','[data-ct="drill-prev"]','first',/^‹ Prev$/],['Next','[data-ct="drill-next"]','last',/^Next ›$/]]},
+      ['Reset','[data-ct="drill-row"] button[aria-label="Reset"]','only'],['Prev','[data-ct="drill-prev"]','only'],['Next','[data-ct="drill-next"]','only']]},   // #550 helper B (jobs/transport-row-icon-only, the drill-card extension): Prev and Next are the two arrows now (gate 160), so they are icons alone here
 };
 const TOL=2;
 L.run(async()=>{
