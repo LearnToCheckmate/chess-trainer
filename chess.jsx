@@ -6236,6 +6236,17 @@ function AppMain(){
      turned only (vp.h<=500): a laptop or desktop window keeps the bottom bar in its 660 column (DSK-06). The page pads its right side by the
      rail's width so nothing sits under it. */
   const pageRail=wide&&vp.h<=500&&!homeScreen&&!sideRail&&((mode==='learn'&&openIdx===null)||(mode==='analyze'&&review===null)||(mode==='puzzle'&&pzView==='roadmap'));
+  /* #550 helper B, Kunal's q45 (run-answers q45-answer, jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11): THE REVIEW GAMES LIST IS A FIXED
+     PAGE - only the games box scrolls, and it fills the rest of the screen. The box's height cap (it was min(46vh, 340)) is fitted every render
+     to what the page leaves: its own height less whatever the app's scroller (#root) would still scroll, so #root ends exactly at the tab bar.
+     Upright only; a sideways phone keeps the scrolling list beside its tab rail. */
+  const glistRef=useRef(null);const [glistMax,setGlistMax]=useState(null);
+  useLayoutEffect(()=>{
+    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){if(glistMax!==null)setGlistMax(null);return;}
+    const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
+    const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
+    if(glistMax===null||Math.abs(next-glistMax)>=1)setGlistMax(next);
+  });
   const lessonSide=wide&&mode==='learn'&&openIdx!==null;   /* #550 BSA-L-03 (job lesson-sideways-board-full-height-2026-11-12): a sideways lesson - the board takes the full height, its footer sits under the right-hand column only */   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
   const sideFull=landPlay||pzRail||landRev||landOn||tacRail||lessonSide;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */
   // #351 Kunal: "the whole page is too small, there are visible borders on the top and the sides".
@@ -11780,7 +11791,10 @@ function AppMain(){
               </div>))}
               <button data-ct="bril-lib-go" disabled={n===0} onClick={()=>{const S=sel.slice();setBrilLib(null);startBrilliant(S.length?((c)=>S.indexOf(keyOf(c))>=0):null);}} style={{width:'100%',minHeight:48,marginTop:4,borderRadius:14,border:'none',background:'linear-gradient(135deg,#22d3ee,#0e7490)',color:'#04202a',fontSize:16,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{sel.length?('Practice these '+n):('Practice all '+n)}</button>
             </div></div>);})()}
-          <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:'12px 12px',display:'flex',flexDirection:'column',gap:9}}>
+          {/* #550 helper B, q45 (a) - the lead's ruling under Kunal's a42 (collapse rows, keep everything): on a short phone (under 700 tall) the card
+              is tighter (padding 8, gap 6), 'Imported' and its chips share one line, and the name filter lives behind the Filter button (shown while
+              it is open or holds text), so the games box has room for at least one whole game with the next one showing. Every word stays. */}
+          <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:(!wide&&vp.h<700)?'8px 8px':'12px 12px',display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
             <div style={{display:'flex',gap:7,alignItems:'center'}}>
               <select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,maxWidth:'40%'}}>
@@ -11790,8 +11804,8 @@ function AppMain(){
               <input value={importSrc==='cc'?chessUser:lichessUser} onChange={e=>(importSrc==='cc'?setChessUser:setLichessUser)(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')(importSrc==='cc'?fetchChessCom:fetchLichess)();}} placeholder={importSrc==='cc'?'Chess.com username':'Lichess username'} style={{flex:1,minWidth:0,padding:'9px 11px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)'}}/>
               <button onClick={()=>(importSrc==='cc'?fetchChessCom:fetchLichess)()} disabled={ccLoading} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),whiteSpace:'nowrap',opacity:ccLoading?.6:1}}>{ccLoading?'…':'Fetch'}</button>
             </div>
-            {ccAccts.length>0&&(<div data-ct="acct-chips" style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginTop:2}}>
-              <span style={{fontSize:'clamp(13px,2.4vw,13.5px)',color:'rgba(255,255,255,.45)',fontWeight:700}}>Imported</span>
+            {ccAccts.length>0&&(<div data-ct="acct-chips" style={{display:'flex',gap:(!wide&&vp.h<700)?4:6,flexWrap:'wrap',alignItems:'center',marginTop:(!wide&&vp.h<700)?0:2}}>
+              <span style={{fontSize:(!wide&&vp.h<700)?12:'clamp(13px,2.4vw,13.5px)',color:'rgba(255,255,255,.45)',fontWeight:700}}>Imported</span>
               {ccAccts.map(id=>{const _s=id.split(':')[0],_u=id.slice(_s.length+1),_n=((acctGamesRef.current||{})[id]||[]).length;return(
                 <span key={id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 6px 4px 10px',borderRadius:16,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',fontSize:'clamp(13px,2.5vw,14px)',color:'#fff',fontWeight:700}}>
                   {_u}<span style={{color:'rgba(255,255,255,.42)',fontWeight:600}}>{_n}</span>
@@ -12239,7 +12253,7 @@ function AppMain(){
                   element does not exist at all, so the line is still not noise on the default screen. */}
               {_gradeOn&&(<div data-ct="glist-ungraded" data-complete={_ungr>0?undefined:'1'}
                 style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
-              {ccGames.length>6&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
+              {ccGames.length>6&&(!(!wide&&vp.h<700)||gfOpen||!!gameSearch)&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
               {/* #507 CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT, MEASURED, AND THE
                   EMPTY STATE IS DELIBERATELY LEFT WHERE IT WAS. The clause read: "the empty state's own
                   Clear button at top 748.5 in a 730 viewport is a placement fix", and I moved the block
@@ -12274,7 +12288,7 @@ function AppMain(){
                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
-              <div className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>
+              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:(glistMax!=null?glistMax+'px':'min(46vh,340px)'),overflowY:'auto'}}>
               {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
                 <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
                   <span data-ct="game-badge-col" style={{flexShrink:0,width:'3.8em',display:'flex',flexDirection:'column',alignItems:'stretch',gap:4}}><span data-ct="game-badge" style={{flexShrink:0,width:'3.8em',textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>{/* #550 item (72), Kunal's B9C-LIST-TALLY comment "why dont you put brilliant below Won.": the brilliant pill lives UNDER the result
