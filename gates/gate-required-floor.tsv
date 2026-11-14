@@ -97,3 +97,4 @@
 133	132	raise	2026-11-13	550	build__1794388896663	#550: gate 149 (desktop board pages, US-R157) from the app helper's merge	-	9a21526a3b52
 134	133	raise	2026-11-13	550	build__1794388896663	#550: gate 156 (stage lessons) from the lessons-and-drills helper's merge	-	feae6fd8e737
 135	134	raise	2026-11-13	550	build__1794388896663	#550: gate 157 (icon rows one size) from the lessons-and-drills helper's merge	-	8e7fafc9a46c
+136	135	raise	2026-11-14	550	build__1794388896663	#550: gate 158 (sideways pages tab rail) from app B's merge	-	162b634286fa
