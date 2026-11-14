@@ -28,6 +28,12 @@
 #        kept: its result is a selftest exit code), "citations door: 310 pass / 0 fail", ~14s alone. It gained that fixed door line
 #        for this file (its --citations-selftest C24/C24b). Its pass figure counts CITATIONS, not cases, so it is NOT pinned -
 #        the same reason as the report row.
+#   IN   gates/audit/control-floor.sh, and its --selftest (#550 test-system helper A, theFIX part (3)): the gates
+#        gates/control-audit.js reads COVERED or PARTIAL are named in gates/control-covered-floor.tsv and held there as a
+#        BINARY - the piece of fastgate's control-audit ratchet that can be one while the audit as a whole is RED
+#        (uncovered=104 of 139 at 2994c8f). Measured then: "control-floor: 39 pass / 0 fail", ~8s; selftest 17 pass / 0 fail.
+#        UNLIKE the report and citations rows its count IS pinned (door:control-floor): it counts FLOOR ROWS, and a row
+#        leaving is a gate losing its cover, which must say so in the diff.
 #   OUT  gates/audit/verify-patch-set.sh <payload-dir> (the live mode): its input is a set of parked tracker payloads, which a
 #        tree does not carry, so the door has nothing to give it. Only its --selftest can run here.
 # The IN checks run in parallel (three when this was measured; the report joined at round 4, --citations at round 5). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
@@ -52,7 +58,9 @@ CHECKS='citations-selftest|gates/verify-log.sh|--citations-selftest|citations-se
 cited-not-run-selftest|gates/audit/cited-not-run.sh|--selftest|cited-not-run selftest: [0-9]+ pass / [0-9]+ fail
 verify-patch-set-selftest|gates/audit/verify-patch-set.sh|--selftest|SELFTEST [0-9]+ pass / [0-9]+ fail
 cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ pass / [0-9]+ fail
-citations|gates/verify-log.sh|--citations|citations door: [0-9]+ pass / [0-9]+ fail'
+citations|gates/verify-log.sh|--citations|citations door: [0-9]+ pass / [0-9]+ fail
+control-floor-selftest|gates/audit/control-floor.sh|--selftest|control-floor selftest: [0-9]+ pass / [0-9]+ fail
+control-floor|gates/audit/control-floor.sh||control-floor: [0-9]+ pass / [0-9]+ fail'
 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
@@ -127,12 +135,13 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail")"
   printf '#!/usr/bin/env bash\nsleep 2; echo "s: 1 pass, 0 fail"\n' > "$T/gates/s1.sh"; cp "$T/gates/s1.sh" "$T/gates/s2.sh"
   local s0; s0=$(date +%s); rr 's1|gates/s1.sh|x|s: [0-9]+ pass, [0-9]+ fail
 s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks run in parallel (2 x 2s in under 4s)" yes "$( [ $(( $(date +%s)-s0 )) -lt 4 ] && echo yes || echo no)"
-  # DC10: the live list names exactly the five measured-green checks; verify-log --citations joined at #550 round 5, once green
-  chk "DC10 the live list has five rows" 5 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  # DC10: the live list names exactly the seven measured-green checks; verify-log --citations joined at #550 round 5, once green,
+  # and control-floor with its selftest at #550 test-system helper A (part (3))
+  chk "DC10 the live list has seven rows" 7 "$(printf '%s\n' "$CHECKS" | grep -c .)"
   chk "DC10b and verify-log --citations is one of them, by that argument (round 5: CITATIONS OK, 0 fail)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^citations\|gates/verify-log.sh\|--citations\|')"
   chk "DC10c the cited-not-run REPORT is in, with no argument (round 4: accounted-green 48 of 48)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^cited-not-run-report\|gates/audit/cited-not-run.sh\|\|')"
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
-  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"
+  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"; printf 'control-floor selftest: 17 pass / 0 fail\n' > "$T/s6"; printf 'control-floor: FELL x now reads NONE - n\ncontrol-floor: 39 pass / 0 fail   (39 floor row(s), 139 gates audited, 0 covered gate(s) not on the floor)\n' > "$T/s7"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
   # DC12-DC15: the case-count pin (#550 round 4). One check, pinned at 5.
   mk a "a: 5 pass, 0 fail"; printf 'door:a\tgates/a.sh\t5\tn\n' > "$T/pins"
@@ -148,6 +157,7 @@ s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks ru
   chk "DC16 every live --selftest check is pinned in gates/harness-case-counts.tsv" 0 "$miss"
   chk "DC16b and the report row is not (its count is cited files, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" cited-not-run-report)"
   chk "DC16c nor the citations row (its count is citations, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" citations)"
+  chk "DC16d but the control-floor row IS pinned, at the live floor's row count (a row leaving is a gate losing its cover)" "$(grep -cv '^#' "$HERE/control-covered-floor.tsv")" "$(pin_of "$HERE/harness-case-counts.tsv" control-floor)"
   # DC17 (#550 helper A round 6): --only runs the named rows and no others; an unknown or empty name is 2, never 0
   : > "$T/pins"; mk a "a: 5 pass, 0 fail"; mk b "b: 3 pass / 0 fail" 1
   L2="$L1

@@ -140,6 +140,11 @@ entries_ratchet(){
 # piece (`binary "records" ... --binaries`), and fastgate-drive.sh H28 and H55 assert the binary verdicts - H55a,
 # which asserted the grandfathering itself, now asserts that a standing breach refuses. control-audit.js is NOT in the binary set: on 2f1d50e it reads RED with uncovered=97, so as a
 # binary it would refuse every fast commit, and turning that green is entry two (the coverage ratchet), not this.
+# THE PART OF IT THAT CAN BE A BINARY NOW IS ONE [#550 test-system helper A]: the gates the audit reads COVERED or PARTIAL are
+# named in gates/control-covered-floor.tsv and gates/audit/control-floor.sh refuses any of them that falls, whatever the base
+# had - so neither a SWAP (one gate loses cover while another gains it, every count unchanged) nor a loss landed outside the
+# fast tier is grandfathered. It is a row of gates/door-checks.sh (`control-floor`, and its selftest), so it runs in --checks
+# on the full-suite path; it is NOT in RECORDS_BINARIES yet, so the fast tier still judges coverage by the ratchet alone.
 RECORDS_BINARIES="citations"
 BINARIES_BASELINE="citations"   # never-delete, control (e): a name leaves only in a commit that edits this line too
 binaries(){

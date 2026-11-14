@@ -1,0 +1,45 @@
+# gates/control-covered-floor.tsv - the gates gates/control-audit.js reads COVERED or PARTIAL, held there as a BINARY by
+# gates/audit/control-floor.sh (door check `control-floor`, run by gates/door-checks.sh through records-gate.sh --checks).
+# Any gate named here that the audit, run now, does not read COVERED or PARTIAL refuses the door, whatever the base had.
+# A gate leaves only in a commit that deletes its row AND lowers the door:control-floor pin in gates/harness-case-counts.tsv.
+# Seeded #550 test-system helper A from the audit at 2994c8f (log 549-all.log accepted): every gate it read COVERED or PARTIAL.
+# gate	verdict when seeded
+19-review-grade-counts	PARTIAL at 2994c8f
+20-review	PARTIAL at 2994c8f
+46-play	PARTIAL at 2994c8f
+84-lesson-free-defender	PARTIAL at 2994c8f
+10-gameover	COVERED at 2994c8f
+13-play-after-moves	COVERED at 2994c8f
+14-uat-review-card	COVERED at 2994c8f
+15-gallery-playall	COVERED at 2994c8f
+16-cpu-result-line	COVERED at 2994c8f
+17-drill-grade-arithmetic	COVERED at 2994c8f
+21-review-brilliant	COVERED at 2994c8f
+22-engline-recovery	COVERED at 2994c8f
+24-opponent-handshake	COVERED at 2994c8f
+25-online-clocks	COVERED at 2994c8f
+29-draws	COVERED at 2994c8f
+31-antagonist373	COVERED at 2994c8f
+33-reproducible-review	COVERED at 2994c8f
+35-width-containment	COVERED at 2994c8f
+36-evalbar	COVERED at 2994c8f
+37-strip-sync	COVERED at 2994c8f
+42-home-devrow	COVERED at 2994c8f
+43-tcrl-analysis	COVERED at 2994c8f
+47-menu	COVERED at 2994c8f
+50-drill-verdict-no-jump	COVERED at 2994c8f
+51-drill-explain-why	COVERED at 2994c8f
+53-lesson-hit-area	COVERED at 2994c8f
+55-play-from-here-terminal	COVERED at 2994c8f
+58-review-rating-source	COVERED at 2994c8f
+61-review-list-month-independence	COVERED at 2994c8f
+62-landscape-board-stable	COVERED at 2994c8f
+63-gameover-chrome-keying	COVERED at 2994c8f
+75-fit-loop-one-way-ratchet	COVERED at 2994c8f
+77-empty-bands	COVERED at 2994c8f
+78-inner-scroller-fold	COVERED at 2994c8f
+79-extractor-is-callable	COVERED at 2994c8f
+81-gatelog-covers-shipped-bundle	COVERED at 2994c8f
+82-brilliant-one-rule	COVERED at 2994c8f
+86-review-function-of-the-game	COVERED at 2994c8f
+89-brilliancy-motifs	COVERED at 2994c8f
