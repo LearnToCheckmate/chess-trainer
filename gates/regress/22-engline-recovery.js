@@ -699,6 +699,7 @@ L.run(async()=>{
    }
    await b.close();}
 // CONTROL-RECORD: 376ccde 2026-11-06 total=6 red=2 scope=blocks:T how=TC-R117 block T extracted alone (scratchpad jobs/102/only117.js) and run against #549's pre-fix HEAD bundle 82a3c168ad2d (no first-paint hold); red are exactly the two TC-R117 NOTHING SHOWN IS REMOVED lines, at ply 38 and ply 74; the fixed bundle 6b6a47809365 runs the same 6 green. The full-gate total is for the run to take from its suite log.
+// CONTROL-RECORD: 0d4d9f1 2026-11-14 total=113 red=2 scope=trial:6822c17e62e9 how=#550 helper app A, re-control after TXT-40 moved TC-R83's want to '(Stalemate|Checkmate)(: | — )': chess.jsx with the game-over row's reason replaced by 'Game over.' for both endings - both TC-R83 SAYS-WHY lines red (stalemate and checkmate, all three reads); on d4 2be220e4f87f 113/0
   // #550 round-4 suite: TC-R118 (block U) moved to gates 120 and 121 - with it this gate ran past the suite's 900 s per-gate ceiling.
 },'ENGLINE-RECOVERY');
 // SELECTOR-OPENED: rev-engwhy reading=precondition round 4: the closes line runs only inside the branch where the PRECONDITION found the reading open
