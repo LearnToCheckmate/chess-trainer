@@ -311,7 +311,9 @@ L.run(async()=>{
       L.say(!!cmp&&!!cmp71a&&Math.abs(cmp.h-cmp71a.h)<0.6&&!!m.board&&Math.abs(m.board.y-bd.y)<0.6&&Math.abs(m.board.w-bd.w)<0.6,geo+': TC-R71 rev-compact is the height it was before analysis, and the board top and width are unchanged',{cmp:cmp&&cmp.h,was:cmp71a&&cmp71a.h,board:m.board&&[m.board.y,m.board.w],wasBoard:[bd.y,bd.w]});}
     // TC-R13 sheet + navigation out
     await b.tapCt('rev-more',500);L.say(!!(await b.rect('[data-ct="rev-sheet"]')),geo+': TC-R13 the ⋯ sheet opens');
-    await b.page.mouse.click(8,120);await b.settle(400);const sheetGone=!(await b.rect('[data-ct="rev-sheet"]'));const afterSheet=await b.metrics();
+    // #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-R06): on a phone the sheet may now rise to 56 from the top so
+    // all its rows fit, so the tap on the backdrop is taken halfway down the strip above the sheet's own top (it was a fixed y 120, inside the sheet at 375x679)
+    {const _st=await b.rect('[data-ct="rev-sheet"]');await b.page.mouse.click(8,Math.max(4,Math.min(120,Math.round(((_st&&_st.y)||240)/2))));}await b.settle(400);const sheetGone=!(await b.rect('[data-ct="rev-sheet"]'));const afterSheet=await b.metrics();
     L.say(sheetGone&&afterSheet.board&&Math.abs(afterSheet.board.w-bd.w)<0.6,geo+': TC-R13 the sheet closes and the board is unchanged');
     await b.tapCt('rev-back',600);await b.tapText(/^‹ Back to games|Back to games/,{wait:600});
     L.say(await b.page.locator('textarea').first().isVisible().catch(()=>false),geo+': TC-R13 Back to games returns to the list');

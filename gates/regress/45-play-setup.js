@@ -236,7 +236,12 @@ const GEOS=['se','kunal','kunal730','kunal761','390','430'];
 // RE-KEYED by formatting audit FMT-A-06/B-05/B-07 (Kunal's pick 12 Nov), measured on trial d2b943f841ec: the overlay's gutters are 12 (were 16), so the
 // sheet is 8 wider; its top row starts at TOP_Y 2 (was 8) and Start game is 44 high (was 48), so Start game rests 22 or 23 higher (6 at 390 and
 // 430). Was START_REST {se:903,kunal:837,kunal730:873,kunal761:873,'390':856,'430':856}, SHEET_W {se:288,kunal:343,kunal730:343,kunal761:343,'390':358,'430':398}.
-const START_REST={se:881,kunal:814,kunal730:850,kunal761:850,'390':850,'430':850};
+// RE-KEYED by #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-R17), measured on trial bbd1354f35d0: on a phone
+// the sheet keeps one 8 rhythm (was 10 under 720 tall, 16 at 720 and over), the helper caption sits in the reserved scan row, the opponent
+// icons are 32 and the clock note is one line, so Start game rests at 681 from 375x679 up and 731 at 320x568 - on screen at 375x730 and
+// taller (gate 159 TC-INV-08p asserts it fits his phone), still below the fold at 375x679 and 320x568, where TC-PS-007's scroll reaches it.
+// Was START_REST {se:881,kunal:814,kunal730:850,kunal761:850,'390':850,'430':850}.
+const START_REST={se:731,kunal:681,kunal730:681,kunal761:681,'390':681,'430':681};
 const SHEET_W   ={se:296,kunal:351,kunal730:351,kunal761:351,'390':366,'430':406};
 
 // CT_PS_BLOCKS=A,B  runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving eight one-line
@@ -273,7 +278,7 @@ if(blk('A'))for(const geo of GEOS){
   const st=await REACH(b,'▶ Start game');
   L.note(geo+': Start game at rest '+st.restTop+'..'+st.restBottom+' in a '+st.vh+'-tall viewport; the overlay can scroll '+sh.maxScroll+'px');
   L.say(st.found&&Math.abs(st.restTop-START_REST[geo])<2,
-    geo+': TC-PS-006 Start game sits at y='+START_REST[geo]+' at rest, measured. It is BELOW THE FOLD at five of the six gate geometries - only 430x932 shows it without a scroll - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.',{measured:st.restTop,want:START_REST[geo],restOn:st.restOn});
+    geo+': TC-PS-006 Start game sits at y='+START_REST[geo]+' at rest, measured. Since #550 (helper B) it is on screen at rest from 375x730 up and still below the fold at 375x679 and 320x568 - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.',{measured:st.restTop,want:START_REST[geo],restOn:st.restOn});
   L.say(st.found&&st.onScreen&&st.hit,
     geo+': TC-PS-007 and a thumb CAN get to it: scrolling only the overlay\'s own user-scrollable range brings Start game fully on screen ('+st.top+'..'+st.bottom+' of '+st.vh+') and document.elementFromPoint at the centre of it lands on the button itself, not on something layered over it. Below the fold is not unreachable; not hit-testable is.',st);
   L.say(b.errs.length===0,geo+': zero app errors on the setup screen',b.errs.slice(0,3));
