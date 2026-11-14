@@ -11073,16 +11073,16 @@ function AppMain(){
               {rI===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1}}>{'abcdefgh'[cI]}</span>}
             </div>);}))}
           </div>
-          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'3px 2px 2px':'7px 2px 4px'}}>Board colors · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
-          <div data-ct="look-colours" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(4,1fr)',gap:4}}>
-            {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-label={_lkS?t.name:undefined} aria-pressed={on} style={chip(on)}>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'2px 2px 1px':'7px 2px 4px'}}>Board colors · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
+          <div data-ct="look-colours" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(4,1fr)',gap:4,...(_lkS?{rowGap:9}:null) /* #550 helper B, checker seat 2's GAP on q50 (A11Y-15): the name-less swatch is 35 tall, so its 44 tap (ct-hit44) needs a 44 row pitch - 35 + 9 */}}>
+            {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-label={_lkS?t.name:undefined} aria-pressed={on} className={_lkS?'ct-hit44':undefined} style={chip(on)}>
               <span style={{width:_lkS?26:30,height:_lkS?26:30,borderRadius:8,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.35)'}}><span style={{background:t.light}}/><span style={{background:t.dark}}/><span style={{background:t.dark}}/><span style={{background:t.light}}/></span>
               {!_lkS&&<span style={lbl(on)}>{t.name}</span>}
             </button>);})}
           </div>
-          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'3px 2px 2px':'7px 2px 4px'}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
+          <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'4px 2px 1px':'7px 2px 4px' /* 4 above: the swatch row's 44 tap reaches 4.5px under it */}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
           <div data-ct="look-pieces" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(5,1fr)',gap:_lkS?4:7}}>
-            {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} title={plab} aria-label={_lkS?plab:undefined} aria-pressed={on} style={chip(on)}>
+            {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} title={plab} aria-label={_lkS?plab:undefined} aria-pressed={on} className={_lkS?'ct-hit44':undefined} style={chip(on)}>
               <span style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:TH.dark}}>{src?<img src={src} width={28} height={28} alt="" draggable={false} style={{display:'block'}}/>:<span style={{fontSize:26,lineHeight:1,color:'#fff',textShadow:'0 0 2px #000'}}>{'♞'}</span>}</span>
               {!_lkS&&<span style={lbl(on)}>{plab}</span>}
             </button>);})}

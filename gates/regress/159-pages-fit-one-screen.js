@@ -23,6 +23,7 @@
 // CONTROL-RECORD: e324617 2026-11-14 total=25 red=8 scope=trial:0cb1d9d44e51 how=#550 helper B: the branch tip before this change (e324617, built as c0) - Play setup 935 in 761 vs the computer and 893 online with Start game / Continue below the fold (p, q 2 red each), the More sheet 719 in 623 with New game at 789 (r 2), Look and feel 854 in 739 with Style at 815 (s 2); denominators, the games list, Discover and error lines green. On p1 (0348366e60d8) 25 of 25 green
 // CONTROL-RECORD: 62ac4a1 2026-11-14 total=29 red=2 scope=trial:aebd8f5a71c1 how=#550 helper B, the 320x568 More-sheet run and the touchable-scroller rule: c0c87b1 (before the short-phone More fit, built as x0) - TC-INV-08r at 320x568 red twice (rev-sheet 703 in 511, New game 692..737 under the fold); every kunal761 line green. On x3 (5e8257d09c75, 62ac4a1's app on c0c87b1) 29 of 29
 // CONTROL-RECORD: 1fe66f4 2026-11-14 total=51 red=3 scope=trial:904bc71b9a04 how=#550 helper B, Kunal's q50: 89814e1's tree (before q50, built as f0) - Look and feel at 320x568 red three times (scroll 716 in 546; 'Style' 675..719 of 568 covered; Q50 rows 4 and 5 with 12+5 painted names and the intro line present), the only reds; its 375x761 Q50 line is green; this tree (trial:9e6aa7f57110, 1fe66f4 on 17c48e4) is 51 pass 0 fail
+// CONTROL-RECORD: 1a1d03d 2026-11-14 total=52 red=1 scope=trial:9e6aa7f57110 how=#550 helper B, checker seat 2's GAP on q50 (A11Y-15): 54ea2e1's tree (before the 44 taps) - TC-INV-08s Q50 TAP red at 320x568 (51 missed points: swatches 42x35 on a 39 row pitch, none extended), the only red; this tree (trial:c0c41a296d2b, 1a1d03d on c792c86) is 52 pass 0 fail
 const L=require('../lib');const H=require('../drive/home'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu'),Z=require('../drive/puzzles');
 const PAGES=[
   ['p','Play setup vs the computer',b=>P.states.setup(b),/Play as/i,   /* #550 q44: the opponents moved to their own screen (v); the sheet's computer-only row is Play as */
@@ -71,6 +72,15 @@ L.run(async()=>{
       const pbWant=Math.min(b.geo.w-52,290);
       if(gn==='320x568')L.say(!!q&&!q.intro&&q.cols===12&&q.pcs===5&&q.colRow===6&&q.pcRow===5&&q.colNamed===0&&q.pcNamed===0&&q.titled===17&&Math.abs(q.board-pbWant)<=1,
         tag+' Q50 the chips are name-less in rows of six (first rows '+(q&&q.colRow)+' and '+(q&&q.pcRow)+', '+(q&&q.colNamed)+'+'+(q&&q.pcNamed)+' painted names, '+(q&&q.titled)+' titles), the intro line is gone ('+(q&&q.intro)+') and the preview board keeps its size ('+(q&&q.board)+' for '+pbWant+')',q);
+      // (4) TC-INV-08s Q50 TAP [#550 helper B; checker seat 2's GAP on q50, A11Y-15]: at 320x568 every chip takes a 44 tap that is its own - a
+      //     finger anywhere in the 44x44 square on the chip's centre (nine points, 21px out) lands on that chip and not on a neighbour or nothing.
+      //     Measured by hit-testing, so it reads the tap area however it is made (the box itself or a ::after). The tip had 42x35 swatches on a
+      //     39 row pitch and 42x41 piece chips, none extended.
+      if(gn==='320x568'){const t=await b.page.evaluate(()=>{const ch=[...document.querySelectorAll('[data-ct="look-colours"] > button, [data-ct="look-pieces"] > button')];
+          const bad=[];for(const c of ch){const r=c.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+            for(const dx of [-21,0,21])for(const dy of [-21,0,21]){const h=document.elementFromPoint(cx+dx,cy+dy);if(!h||!(h===c||c.contains(h))){bad.push((c.getAttribute('title')||'?')+' '+(dx<0?'L':dx>0?'R':'')+(dy<0?'T':dy>0?'B':'')+(dx||dy?'':'C')+'->'+(h?(h.getAttribute('title')||h.getAttribute('data-ct')||h.tagName):'none'));break;}}}
+          const r0=ch[0]?ch[0].getBoundingClientRect():null;return {n:ch.length,bad,chip:r0?Math.round(r0.width)+'x'+Math.round(r0.height):null};});
+        L.say(t.n===17&&t.bad.length===0,tag+' Q50 TAP every one of the 17 chips takes a 44 tap of its own ('+t.n+' chips, a swatch '+t.chip+'; '+(t.bad.length?t.bad.length+' miss: '+t.bad.slice(0,4).join(', '):'no miss')+')',t);}
       else L.say(!!q&&q.intro&&q.cols===12&&q.pcs===5&&q.colNamed===12&&q.pcNamed===5&&Math.abs(q.board-pbWant)<=1,
         tag+' Q50 every word stays on a taller phone: the intro line ('+(q&&q.intro)+') and all '+(q?q.colNamed+q.pcNamed:0)+' of 17 chip names are painted, and the preview board is '+(q&&q.board)+' for '+pbWant,q);}
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
