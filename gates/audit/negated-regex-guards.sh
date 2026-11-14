@@ -38,12 +38,20 @@ selftest(){
   T="$(mktemp -d 2>/dev/null)" || { echo "selftest: no scratch"; return 2; }
   trap 'rm -rf "$T"' RETURN
   mk(){ rm -rf "$T/r"; mkdir -p "$T/r/gates/regress" "$T/r/claude/agents"; cp "$ROOTD"/gates/regress/*.js "$T/r/gates/regress/"; cp "$ROOTD/claude/agents/negated-regex-guards.tsv" "$T/r/claude/agents/"; }
+  # mkg: mk, then the scratch register made to agree with the scratch gates (a fixture row for every unreviewed site, every stale row
+  # dropped), so S1-S4 test the MECHANISM whatever the live tree reads [#550 test-system helper A: with the live register RED at 9
+  # unreviewed, S2's exit-0 expectation failed on the live state and S1's exit-1 passed vacuously]. S0 alone judges the live tree.
+  mkg(){ mk; local out; out="$(check "$T/r" 2>/dev/null)"
+    printf '%s\n' "$out" | sed -n 's/^  UNREVIEWED \(\S*\)  \(.*\)$/\1\t\2\tselftest fixture row/p' >> "$T/r/claude/agents/negated-regex-guards.tsv"
+    printf '%s\n' "$out" | sed -n 's/^  ROW NAMES NO SITE \(\S*\)  \(.*\)$/\1\t\2\t/p' | while IFS= read -r k; do
+      grep -vF -- "$k" "$T/r/claude/agents/negated-regex-guards.tsv" > "$T/r/reg.tmp"; mv "$T/r/reg.tmp" "$T/r/claude/agents/negated-regex-guards.tsv"; done; }
   ck(){ check "$T/r" >/dev/null 2>&1; rc=$?; if [ "$rc" = "$2" ]; then echo "  ok   $1"; pass=$((pass+1)); else echo "  FAIL $1 (exit $rc, wanted $2)"; fail=$((fail+1)); fi; }
   mk; ck "S0 the committed gates and register hold" 0
-  mk; printf "L.say(!/Resign/.test(t),'a new negated assertion');\n" >> "$T/r/gates/regress/99-new.js"; ck "S1 a NEW negated assertion nobody reviewed reddens" 1
-  mk; printf "const ok=!/Resign/.test(t);\n" >> "$T/r/gates/regress/99-new.js"; ck "S2 a negated regex on a non-asserting line is not held" 0
-  mk; sed -i '0,/^gates\/regress\//{/^gates\/regress\//d}' "$T/r/claude/agents/negated-regex-guards.tsv"; ck "S3 a deleted review row reddens (its site is unreviewed)" 1
-  mk; printf 'gates/regress/00-gone.js\t/x/\tchecked\n' >> "$T/r/claude/agents/negated-regex-guards.tsv"; ck "S4 a row naming no site reddens" 1
+  mkg; ck "S0b the fixture register made to agree with the gates holds (the baseline S1-S4 start from)" 0
+  mkg; printf "L.say(!/Resign/.test(t),'a new negated assertion');\n" >> "$T/r/gates/regress/99-new.js"; ck "S1 a NEW negated assertion nobody reviewed reddens" 1
+  mkg; printf "const ok=!/Resign/.test(t);\n" >> "$T/r/gates/regress/99-new.js"; ck "S2 a negated regex on a non-asserting line is not held" 0
+  mkg; sed -i '0,/^gates\/regress\//{/^gates\/regress\//d}' "$T/r/claude/agents/negated-regex-guards.tsv"; ck "S3 a deleted review row reddens (its site is unreviewed)" 1
+  mkg; printf 'gates/regress/00-gone.js\t/x/\tchecked\n' >> "$T/r/claude/agents/negated-regex-guards.tsv"; ck "S4 a row naming no site reddens" 1
   mk; rm "$T/r/claude/agents/negated-regex-guards.tsv"; ck "S5 no register is exit 2, not a pass" 2
   echo "negated-regex-guards selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
