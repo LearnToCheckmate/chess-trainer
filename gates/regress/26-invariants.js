@@ -670,7 +670,11 @@ const ICON_PIN={320:[16,19,20,21,22,25,26,27,28,33,36,49],   /* PIN MOVED WITH A
 // 22 the roadmap's tab bar, 26 the Play setup opponent tiles (Online, Computer, Pass & Play), 30 'More opponents', 40 the bot
 // avatars and the menu's coach hair chips. Of antagonist B's five heights 26 and 40 remain; 26.8 (home-newhere) and 36.3
 // (feedback-home) no longer occur on this bundle, and 112 (the roadmap illustration) is out by the 48 x 48 svg cap.
-const ICON_PIN_EXTRA={320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
+// #550 helper B RE-PINNED for Kunal's q44 (08f5354): the 30 was 'More opponents' (bot-row-more), the chevron painted only while the bot row
+// scrolled sideways. The opponents now wrap on their own 'Choose your opponent' screen, so the row never overflows and the chip never renders -
+// the 30 left with the thing it measured, not with a drifted glyph. Measured by app A on a207ea6 (efa1ab05dd72): 17,20,22,26,40 at se,
+// kunal730 and short375. Was {320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]}.
+const ICON_PIN_EXTRA={320:[17,20,22,26,40], 375:[17,20,22,26,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
 
 // ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
 // V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
