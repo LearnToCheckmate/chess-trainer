@@ -7,7 +7,8 @@
 // fits on one page without scrolling"]. The audit measured Play setup 1003 in 761 vs the computer and 961 online (AUD-R17), Review's More
 // sheet 681 in 623 (AUD-R06) and Look and feel 856 in 677 (AUD-H12). Home is gate 49/42's (df7946d), the menu gate 47 block N's.
 //
-// WHAT IT ASSERTS, in the PLAYER view (dev tools off: the build stamp and the dev rows are his alone) at kunal761:
+// WHAT IT ASSERTS, in the PLAYER view (dev tools off: the build stamp and the dev rows are his alone) at kunal761, and for the pages fitted
+// there also at 320x568 (the More sheet, r):
 //  for each page - Play setup vs the computer (p), Play setup online (q), Review's More sheet (r), Look and feel (s), the Review games list
 //  with three stored games (t), Discover (u) -
 //  DENOMINATOR the page is up (found by its words);
@@ -19,6 +20,7 @@
 // on Kunal's pick) and the Puzzles roadmap (AUD-L16 - whether a 890-puzzle journey is meant to scroll is a question for him). Neither is
 // squeezed here; the board is never made smaller for any of this.
 // CONTROL-RECORD: e324617 2026-11-14 total=25 red=8 scope=trial:0cb1d9d44e51 how=#550 helper B: the branch tip before this change (e324617, built as c0) - Play setup 935 in 761 vs the computer and 893 online with Start game / Continue below the fold (p, q 2 red each), the More sheet 719 in 623 with New game at 789 (r 2), Look and feel 854 in 739 with Style at 815 (s 2); denominators, the games list, Discover and error lines green. On p1 (0348366e60d8) 25 of 25 green
+// CONTROL-RECORD: 62ac4a1 2026-11-14 total=29 red=2 scope=trial:aebd8f5a71c1 how=#550 helper B, the 320x568 More-sheet run and the touchable-scroller rule: c0c87b1 (before the short-phone More fit, built as x0) - TC-INV-08r at 320x568 red twice (rev-sheet 703 in 511, New game 692..737 under the fold); every kunal761 line green. On x3 (5e8257d09c75, 62ac4a1's app on c0c87b1) 29 of 29
 const L=require('../lib');const H=require('../drive/home'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu'),Z=require('../drive/puzzles');
 const PAGES=[
   ['p','Play setup vs the computer',b=>P.states.setup(b),/Choose your opponent/i,/^▶?\s*Start game/i],
@@ -27,11 +29,18 @@ const PAGES=[
   ['s','Look and feel',b=>M.states['menu-look'](b),/Board colou?rs/i,/^Style · fonts, icons, finish/],
   ['t','Review games list',b=>R.states['list-stored'](b),/Your games/,null],
   ['u','Discover',b=>H.states.discover(b),/What do you want to learn/,/^Tactics/]];
+// A scroller counts only where the player can touch it: the centre of its on-screen part must hit-test into it. A page under an open sheet's
+// backdrop is not the page being looked at (found at 320x568: the Review board's rev-compact, 115 in 102, behind the More sheet's backdrop).
 const scrollers=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('*')].filter(e=>{const r=e.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;
+  {const x0=Math.max(0,r.left),x1=Math.min(innerWidth,r.right),y0=Math.max(0,r.top),y1=Math.min(innerHeight,r.bottom);if(x1<=x0||y1<=y0)return false;
+   const h=document.elementFromPoint((x0+x1)/2,(y0+y1)/2);if(!h||!(h===e||e.contains(h)))return false;}
   return (e.id==='root'||/auto|scroll/.test(getComputedStyle(e).overflowY))&&e.scrollHeight>e.clientHeight+1;}).map(e=>({who:e.id||e.getAttribute('data-ct')||String(e.className||e.tagName).slice(0,20),sh:e.scrollHeight,ch:e.clientHeight})));
 L.run(async()=>{
-  for(const [id,nm,go,wre,last] of PAGES){const tag='TC-INV-08'+id+' '+nm+' kunal761';
-    const b=await L.launch({geo:'kunal761',dev:false,name:'fit159-'+id,store:{ct_pool:'3'}});await b.open();let ok=true;
+  // #550 helper B (seat 1's check at 320x568): the pages FITTED at 320x568 are asserted there too - so far the Review More sheet (r). Play setup
+  // (q44) and the Review list (q45) wait on Kunal; Look and feel does not fit there with every word (146px short) and waits on him too.
+  const RUNS=[...PAGES.map(p=>[p,'kunal761','kunal761']),...PAGES.filter(p=>p[0]==='r').map(p=>[p,'se','320x568'])];
+  for(const [[id,nm,go,wre,last],geo,gn] of RUNS){const tag='TC-INV-08'+id+' '+nm+' '+gn;
+    const b=await L.launch({geo,dev:false,name:'fit159-'+id,store:{ct_pool:'3'}});await b.open();let ok=true;
     try{await go(b);await b.settle(1200);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,140));}
     const up=await b.page.evaluate((src)=>new RegExp(src,'i').test(document.body.innerText||''),wre.source);
     L.say(ok&&up,tag+' DENOMINATOR the page is up (its words are on screen)',{ok,up});

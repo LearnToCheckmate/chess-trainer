@@ -18,6 +18,7 @@
 // 360x640 on arrival with the social tiles hidden; C: the other five on arrival, unscrolled).
 // THE REACH IS ASSERTED TOO, so a pinned "below the fold" can never hide "unreachable": the button's own scroller is
 // scrolled and the button must then sit on screen - below the fold is not unreachable (CLAUDE.md), and this checks both.
+// CONTROL-RECORD: 62ac4a1 2026-11-14 total=227 red=7 scope=trial:0cb1d9d44e51 how=#550 helper B, TC-INV-08b re-pin for d766f3f (Play setup fitted to his phone): chess.jsx at e324617 (the tree before d766f3f, built as c0) - Start game at its old place (357, 235, 190.5, 163.5, 49.5, -2.5, -62.5px past the fold) so all seven TC-INV-08b lines red against the new pins; on 62ac4a1's tree (trial 0dc32a0a7376) 227 of 227 green
 // CONTROL-RECORD: 831e068 2026-11-11 total=142 red=8 scope=trial:b19697cd53cb how=#550 answer a12: the a12-only version of this gate (REV_PIN retired, TC-INV-08i asserting on screen) on the tree before the paste row - TC-INV-08i red at all eight geometries, 47.5 to 373.5px below the fold (245.5 on his phone); everything else green
 // CONTROL-RECORD: 40515d9 2026-11-11 total=198 red=34 scope=trial:a6ef99c17548 how=#550 answer a26 (with a12's 08i): the tree before the Tactics page's own bar - the new TC-INV-08l and 08m lines red where its controls or back button sit under the tab bar or scrolled away, or #root scrolls; the a26 trial 455ff0ea4f3f reads 198 pass, 0 fail
 // CONTROL-RECORD: fe3b8fd 2026-11-14 total=227 red=2 scope=trial:6f396b82e7a9 how=#550 helper app A, TC-INV-08n re-pin 41 -> 57: chess.jsx at d4db161^ (the tree before the Today card), the 320x568 analyze and play tiles 41px past the fold - both TC-INV-08n lines red against 57; on fe3b8fd's tree both read 57 (the seven TC-INV-08b 'Start game' reds there are another change, named in the job); fe3b8fd tree 4d4e3577b7c2 220/7, all seven TC-INV-08b
@@ -29,7 +30,14 @@ const R=require('../drive/review');
 // measured at #545 on app.js 049b41dfb6f1, px of "Start game"'s bottom past innerHeight on arrival (<= 0: on screen)
 // #550 RE-PINNED for the formatting audit (A-07/B-07: Start game 48 -> 44 and the setup sheet's rows, Kunal's pick 12 Nov), measured on t164 dc4dce763f87 -
 // every geometry moved UP (by 10..28px); at 414x896 the button is now on screen (-2.5). Still below the fold at five of seven: the options-row build retires it.
-const FOLD_PIN={"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5};
+// #550 helper B RE-PINNED (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, d766f3f: Play setup fitted to his phone - one 8 rhythm, the
+// caption in the scan row, 32px opponent icons, a one-line clock note), measured on trial 0dc32a0a7376 (3c7b19c's tree with the More sheet's
+// short-phone fit, which does not touch Play setup): Start game's bottom is 725 at every phone width, so it moved UP 150 (320x568) to 168.5
+// (375x730) - ON SCREEN from 375x730 up, still below the fold at 320x568 (207), 360x640 (85) and 375x667 (58), where Kunal's q44 decides.
+// The assertion's own sentence ('Below the fold at six of the seven') is now stale and is left BYTE-IDENTICAL on purpose: gates/control-audit.js
+// matches records by their exact L.say lines, and editing it turned every earlier control on this gate into ASSERTIONS-MOVED (measured).
+// Was {"320x568":357,"360x640":235,"375x667":190.5,"375x730":163.5,"390x844":49.5,"414x896":-2.5,"440x956":-62.5}.
+const FOLD_PIN={"320x568":207,"360x640":85,"375x667":58,"375x730":-5,"390x844":-119,"414x896":-171,"440x956":-231};
 L.run(async()=>{
   // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
   // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].
