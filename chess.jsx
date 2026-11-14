@@ -12073,6 +12073,29 @@ function AppMain(){
                   // only state that failed. The accent still identifies the chip through its BORDER.
                   color:on?'#fff':'rgba(255,255,255,.72)',fontWeight:on?800:700,fontSize:'clamp(13.5px,2.9vw,15px)',minWidth:44,justifyContent:'center',
                   fontFamily:"'Segoe UI',system-ui,sans-serif",whiteSpace:'nowrap'}}>{lab}</button>);
+              /* #550 helper B, q45 Filter-open [checker seat 2's gap on ef0f72f]: ON A SHORT PHONE (the same !wide&&vp.h<700 as the
+                 compaction) THE FILTER PANEL AND THE NAME BOX OPEN AT THE TOP OF THE GAMES BOX, inside its scroll, not above it. Above it
+                 they cost 94 + 32px plus gaps where the fixed page had about 124px to give, so at 320x568 the page scrolled 670 in 568 with
+                 the box at 503..591 under the tab bar at 512. Every word stays; the box keeps its height and the games scroll on below. */
+              const _gfIn=!wide&&vp.h<700;
+              const _gfPanel=gfOpen&&(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+{gfOpen&&_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
+                {_chip(!!_F.blun,'?? blunder','gf-blun',()=>gfTog('blun',1),'#ec5c4e')}
+                {_chip(!!_F.mist,'? mistake','gf-mist',()=>gfTog('mist',1),'#f0a24e')}
+                {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
+                    FROM THE DEFAULT RECORDED IN flags/amber-476-review-list-filter-row AND THE REASON IS A
+                    RULE THIS PROJECT ALREADY PAID FOR. That row's chips are about 26px tall (padding
+                    '4px 6px 4px 10px' at ~14px), so making them the filter control would have added a
+                    sub-44px tap target to a screen - the defect class of #395's lesson-footer icons and of
+                    jobs/gallery-sub-44px-controls. Invariant 1 in gates/regress/26-invariants.js REPORTS
+                    sub-44 controls and does not assert on them, so the suite would have stayed green over it;
+                    that is why this is written down rather than left to the gate. Only with more than one
+                    account, because filtering to the only account you have is a no-op that costs a row. */}
+                {ccAccts.length>1&&ccAccts.filter(id=>(((acctGamesRef.current||{})[id])||[]).length>0).map(id=>_chip(_F.acct===id,id.slice(id.indexOf(':')+1),'gf-acct-'+id.slice(id.indexOf(':')+1),()=>gfTog('acct',id),'#9bd6a0'))}
+                {/* #507 ALWAYS IN THE LAYOUT, GHOSTED WHEN THERE IS NOTHING TO CLEAR - see _chip's ghost arm. */}
+                {_chip(false,'Clear','gf-clear',_clearAll,null,!_anyF)}
+              </div>);
+              const _gfInput=ccGames.length>6&&(!(!wide&&vp.h<700)||gfOpen||!!gameSearch)&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>);
               return(<>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
@@ -12084,7 +12107,7 @@ function AppMain(){
                     is padding cancelled by an equal negative margin, the moves-copy idiom, so the header line keeps its height. */}
                 <span style={{display:'inline-flex',alignItems:'baseline',gap:10,flexShrink:0}}>
                 {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0);const _on=gfOpen||_nAct>0;return(
-                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} onClick={()=>setGfOpen(o=>!o)} style={{padding:'11px 0',margin:'-11px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}><span style={{display:'inline-block',padding:'3px 10px',borderRadius:14,fontSize:'clamp(13.5px,2.9vw,14.5px)',fontWeight:700,color:_on?'var(--ac2)':'rgba(255,255,255,.82)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.07)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.22)')}}>{'Filter'+(_nAct?(' \u00b7 '+_nAct):'')+(gfOpen?' \u25b4':' \u25be')}</span></button>);})()}
+                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} onClick={()=>{const _o=!gfOpen;setGfOpen(_o);if(_o&&!wide&&vp.h<700&&glistRef.current)glistRef.current.scrollTop=0;}} style={{padding:'11px 0',margin:'-11px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}><span style={{display:'inline-block',padding:'3px 10px',borderRadius:14,fontSize:'clamp(13.5px,2.9vw,14.5px)',fontWeight:700,color:_on?'var(--ac2)':'rgba(255,255,255,.82)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.07)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.22)')}}>{'Filter'+(_nAct?(' \u00b7 '+_nAct):'')+(gfOpen?' \u25b4':' \u25be')}</span></button>);})()}
                 <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
                 </span>
               </div>
@@ -12201,23 +12224,7 @@ function AppMain(){
                   only strands a non-empty filtered list - found by reading the diff and by antagonist A's F9
                   independently. The pre-existing gameSearch box has the identical shape and now inherits the
                   fix, since _anyF includes it. */}
-              {gfOpen&&(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-{gfOpen&&_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
-                {_chip(!!_F.blun,'?? blunder','gf-blun',()=>gfTog('blun',1),'#ec5c4e')}
-                {_chip(!!_F.mist,'? mistake','gf-mist',()=>gfTog('mist',1),'#f0a24e')}
-                {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
-                    FROM THE DEFAULT RECORDED IN flags/amber-476-review-list-filter-row AND THE REASON IS A
-                    RULE THIS PROJECT ALREADY PAID FOR. That row's chips are about 26px tall (padding
-                    '4px 6px 4px 10px' at ~14px), so making them the filter control would have added a
-                    sub-44px tap target to a screen - the defect class of #395's lesson-footer icons and of
-                    jobs/gallery-sub-44px-controls. Invariant 1 in gates/regress/26-invariants.js REPORTS
-                    sub-44 controls and does not assert on them, so the suite would have stayed green over it;
-                    that is why this is written down rather than left to the gate. Only with more than one
-                    account, because filtering to the only account you have is a no-op that costs a row. */}
-                {ccAccts.length>1&&ccAccts.filter(id=>(((acctGamesRef.current||{})[id])||[]).length>0).map(id=>_chip(_F.acct===id,id.slice(id.indexOf(':')+1),'gf-acct-'+id.slice(id.indexOf(':')+1),()=>gfTog('acct',id),'#9bd6a0'))}
-                {/* #507 ALWAYS IN THE LAYOUT, GHOSTED WHEN THERE IS NOTHING TO CLEAR - see _chip's ghost arm. */}
-                {_chip(false,'Clear','gf-clear',_clearAll,null,!_anyF)}
-              </div>)}
+              {!_gfIn&&_gfPanel}
               {/* #507 THE SECOND MEMBER OF THE SAME CLASS AS THE CLEAR CHIP, AND THE WORSE ONE, FOUND BY
                   MEASURING RATHER THAN BY READING THE CLOSER'S CLAUSE. The closer named only the Clear chip.
                   Measured with one probe on both bundles, the Clear chip moves the list 0px at 375 and 50px
@@ -12253,7 +12260,7 @@ function AppMain(){
                   element does not exist at all, so the line is still not noise on the default screen. */}
               {_gradeOn&&(<div data-ct="glist-ungraded" data-complete={_ungr>0?undefined:'1'}
                 style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
-              {ccGames.length>6&&(!(!wide&&vp.h<700)||gfOpen||!!gameSearch)&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>)}
+              {!_gfIn&&_gfInput}
               {/* #507 CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT, MEASURED, AND THE
                   EMPTY STATE IS DELIBERATELY LEFT WHERE IT WAS. The clause read: "the empty state's own
                   Clear button at top 748.5 in a 730 viewport is a placement fix", and I moved the block
@@ -12289,6 +12296,7 @@ function AppMain(){
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
               <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:(glistMax!=null?glistMax+'px':'min(46vh,340px)'),overflowY:'auto'}}>
+              {_gfIn&&_gfPanel}{_gfIn&&_gfInput}
               {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
                 <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
                   <span data-ct="game-badge-col" style={{flexShrink:0,width:'3.8em',display:'flex',flexDirection:'column',alignItems:'stretch',gap:4}}><span data-ct="game-badge" style={{flexShrink:0,width:'3.8em',textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>{/* #550 item (72), Kunal's B9C-LIST-TALLY comment "why dont you put brilliant below Won.": the brilliant pill lives UNDER the result
