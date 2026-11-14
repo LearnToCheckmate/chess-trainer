@@ -47,7 +47,10 @@
 #    id); the job's outcome names all 22. TC-R17 and US-P01 are two of them and land with this file, so the first
 #    run after #545 reaches main should read 20.
 #    It may only fall. Lower it in a commit when the list shrinks.
-TCI_CEIL=22
+#    LOWERED 22 -> 16 at #550 (test-system helper A, R08 as a binary): the same 22 on the 188-job ready export of 14 Nov 2026 against
+#    origin/main 14f1eff were 6 range endpoints ("block TC-R50..TC-R59", "US-R30..US-R39", "US-R40..US-R49", "US-R20..US-R29") that this
+#    extractor read as citations, and one id cut short (TC-INV-2 from TC-INV-2-OCCL-441). With both fixed (C7-C9) it reads 16.
+TCI_CEIL=16
 set -uo pipefail
 CEIL="${CT_TCI_CEIL:-$TCI_CEIL}"
 
@@ -63,8 +66,14 @@ extract(){ # <jobs-dir>: prints "<job-id>\t<id>" for every id cited by a not-clo
       n++;const id=f.replace(/\.json$/,"");
       for(const k of ["case","theTestCase","storyClause","theStoryClause"]){
         if(d[k]==null)continue;const s=typeof d[k]==="string"?d[k]:JSON.stringify(d[k]);
-        const re=/(?:^|[^A-Za-z0-9-])((?:TC|US)-[A-Z]+-?[0-9]+[a-z]?)(?![A-Za-z0-9])/g;let m;
-        while((m=re.exec(s)))out.push(id+"\t"+m[1]);
+        // #550 test-system helper A (R08 as a binary, jobs/entry-three-contracts-become-runnable-asserts-2026-10-10): two shapes
+        // are NOT citations and were read as unresolved ids. (1) A RANGE ENDPOINT - "block TC-R50..TC-R59", "block US-R30..US-R39" -
+        // names an id space, not a case; measured, 6 of the 22 unresolved on the 14 Nov ready export were only that. (2) An id that
+        // CONTINUES past a hyphen - "TC-INV-2-OCCL-441" was cut to TC-INV-2 - is read whole now, so it is named as written.
+        const re=/(?:^|[^A-Za-z0-9-])((?:TC|US)-[A-Z]+-?[0-9]+[a-z]?(?:-[A-Z0-9]+)*)(?![A-Za-z0-9])/g;let m;
+        while((m=re.exec(s))){const st=re.lastIndex-m[1].length;
+          if(s.slice(st-2,st)===".."||s.slice(re.lastIndex,re.lastIndex+2)==="..")continue;   // a range endpoint
+          out.push(id+"\t"+m[1]);}
       }
     }
     process.stdout.write("#JOBS "+n+"\n"+[...new Set(out)].join("\n")+(out.length?"\n":""));
@@ -153,6 +162,14 @@ selftest(){
   rm -f "$J/e.json"; printf '{"id":"x","data":{"status":"ready","case":"US-ZZ-09"},"version":3}' > "$J/f.json"
   CEIL=0 ck "C5 the ArtifactData envelope {id,data,version} is unwrapped" 1 "UNRESOLVED US-ZZ-09"
   rm -f "$J/f.json"
+  # C7/C8 (#550 test-system helper A): a range endpoint is not a citation; an id continued past a hyphen is read whole
+  printf '{"status":"ready","case":"TC-R15 (NEW; block TC-R50..TC-R59)","storyClause":"US-R12 (block US-R30..US-R39)"}' > "$J/g.json"
+  CEIL=0 ck "C7 the endpoints of 'block TC-R50..TC-R59' and 'US-R30..US-R39' are not cited, so nothing is unresolved" 0 "unresolved                    0"
+  rm -f "$J/g.json"; printf '{"status":"ready","case":"TC-INV-2-OCCL-441, to be written"}' > "$J/h.json"
+  CEIL=0 ck "C8 'TC-INV-2-OCCL-441' is read whole, not cut to TC-INV-2" 1 "UNRESOLVED TC-INV-2-OCCL-441 "
+  rm -f "$J/h.json"; printf '{"status":"ready","case":"TC-R50..TC-R59 aside, TC-R77 is the case"}' > "$J/i.json"
+  CEIL=0 ck "C9 an id beside a range is still cited (only the endpoints are skipped)" 1 "UNRESOLVED TC-R77 "
+  rm -f "$J/i.json"
   ( cd "$R" && git update-ref -d refs/remotes/origin/main ) >/dev/null 2>&1
   CEIL=0 ck "C6 no origin/main register is NOT CHECKED at exit 2" 2 "unreadable at origin/main"
   echo "tracker-cited-ids selftest: $pass pass / $fail fail"
