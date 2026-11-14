@@ -54,6 +54,12 @@ run(){ # run <register> <root> <export-dir or empty> <universe-json or empty>
                 cmd="${cmd//\{export\}/$exp}" ;;
       *) echo "contract-asserts: ADOPTION REFUSED $clause - input '$input' is neither tree nor export:<collection>"; adopt=$((adopt+1)); continue ;;
     esac
+    # {runid} IS THIS RUN'S OWN ID, from CT_RUNID (#550 test-system helper A; jobs/r43-std-block-missing-on-most-runledger-check-out-
+    # rows-2026-11-14 part 2): a clause about "your own row" can only be asserted by a run that says who it is. Without CT_RUNID it is
+    # NOT CHECKED HERE, counted in neither.
+    case "$cmd" in *"{runid}"*)
+      if [ -z "${CT_RUNID:-}" ]; then nch=$((nch+1)); echo "contract-asserts: NOT CHECKED HERE $clause - it asserts this run's own row and CT_RUNID names no run (counted in neither)"; continue; fi
+      cmd="${cmd//\{runid\}/$CT_RUNID}" ;; esac
     inforce=$((inforce+1))
     local out rc runner=bash; case "$script" in *.js) runner=node ;; esac
     # shellcheck disable=SC2086
@@ -107,6 +113,11 @@ selftest(){
   U="X1 X2" reg "X1${TAB}assert${TAB}tree${TAB}gates/audit/good.sh${TAB}n" "X2${TAB}assert${TAB}export:runledger${TAB}gates/audit/exp.sh {export}${TAB}n"
   chk "C7 an export assert with no export is NOT CHECKED HERE and counted in neither: 0" "0 1" "$(rr) $(grep -c 'NOT CHECKED HERE X2' "$T/last")"
   chk "C7b with the export named it runs, with {export} replaced: 0, 2 pass" "0 1" "$(rr "$T/exp") $(grep -c '^contract-asserts: 2 pass / 0 fail' "$T/last")"
+  printf '#!/usr/bin/env bash\n[ "$2" = run__7 ] && echo "own row $2 holds" && exit 0; echo "own row $2: BREACH"; exit 1\n' > "$T/gates/audit/own.sh"
+  U="X1 X3" reg "X1${TAB}assert${TAB}tree${TAB}gates/audit/good.sh${TAB}n" "X3${TAB}assert${TAB}export:runledger${TAB}gates/audit/own.sh {export} {runid}${TAB}n"
+  chk "C16 an own-row assert with an export and no CT_RUNID is NOT CHECKED HERE: 0" "0 1" "$(CT_RUNID= rr "$T/exp") $(grep -c 'NOT CHECKED HERE X3 - it asserts this run' "$T/last")"
+  chk "C16b with CT_RUNID it runs with {runid} replaced: a holding row, 0 and 2 pass" "0 1" "$(CT_RUNID=run__7 rr "$T/exp") $(grep -c '^contract-asserts: 2 pass / 0 fail' "$T/last")"
+  chk "C16c and a breaching own row refuses: 1" 1 "$(CT_RUNID=run__8 rr "$T/exp")"
   U="X2" reg "X2${TAB}assert${TAB}export:runledger${TAB}gates/audit/exp.sh {export}${TAB}n"
   chk "C8 a register whose only asserts cannot run here: 2, nothing was asserted" 2 "$(rr)"
   : > "$T/reg"; chk "C9 an empty register: 2" 2 "$(rr)"
