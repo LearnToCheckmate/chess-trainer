@@ -1,0 +1,129 @@
+
+### home
+  dy 39: 41  e.g. [home-col]div:🔥 Start a streak Today 0 of 3 L(12->51) | [home-today]button:🔥 Start a streak Today 0 o(106->145) | span:🔥 Start a streak(118->157) | span:Today 0 of 3(120->159)
+  dy 51: 8  e.g. [home-menu]button:☰(2->53) | button:👋(2->53) | span:👋(14->65) | [top-row]div:Chess Trainer ☰(2->53)
+  dy 10: 4  e.g. div:Endgames(593.1->603.1) | div:21 lessons(613.1->623.1) | div:Tactics & strategy(593.1->603.1) | div:New(613.1->623.1)
+  dy 36: 4  e.g. div:Openings(320.1->356.1) | div:92 lessons(340.1->376.1) | div:Gambits(320.1->356.1) | div:53 lessons(340.1->376.1)
+  dy 51 dh-26: 2  e.g. button:Openings 92 lessons(119.8->170.8) | button:Gambits 53 lessons(119.8->170.8)
+  dy 40 dh-4 dx2: 2  e.g. [disc-ic-openings]span:(152.1->192.1) | [disc-ic-gambits]span:(152.1->192.1)
+  dy 25 dh-26: 2  e.g. button:Endgames 21 lessons(392.8->417.8) | button:Tactics & strategy New(392.8->417.8)
+  dy 14 dh-4 dx2: 2  e.g. [disc-ic-endgames]span:(425.1->439.1) | [disc-ic-tactics]span:(425.1->439.1)
+  dy 51 dh-52: 1  e.g. [discover-tiles]div:Openings 92 lessons Gambit(119.8->170.8)
+  only A: [home-build]div:Build #550 - 2026-11-14 01:19 
+  NEW OVERLAPS in B: [home-scroller]div:☰ 👋 🔥 Start a streak Today 0 of 3 Less x [home-col]div:🔥 Start a streak Today 0 of 3 Les || [tile-ic-learn]span:📖 x button:Openings 92 lessons || [tile-ic-puzzle]span:🧩 x button:Gambits 53 lessons || button:📈 Review Free game reviews x [discover-tiles]div:Openings 92 lessons Gambits 53 lessons E || button:📈 Review Free game reviews x button:Endgames 21 lessons || button:👑 Play Computer or a friend x [discover-tiles]div:Openings 92 lessons Gambits 53 lessons E || button:👑 Play Computer or a friend x button:Tactics & strategy New
+  band A: [home-menu]button:☰@2+44 | button:👋@2+46 | span:👋@14+22 | [home-col]div:🔥 Start a streak Today 0 of 3 Lesson Pu@12+729 | [home-build]div:Build  - 2026-11-14 01:19 ET (src 39#1@728+13 | [top-row]div:Chess Trainer ☰@2+44 | [top-title]div:Chess Trainer@2+44 | [top-menu]button:☰@2+44
+  band B: [home-col]div:🔥 Start a streak Today 0 of 3 Lesson Pu@51+729 | [home-footrow]div:Ocean A Classic 🔒 🎬 💬@715+44 | [home-look]button:Ocean@715+44 | button:A Classic 🔒@715+44 | span:A@729+16 | span:🔒@729.5+15 | [home-devrow]span:🎬 💬@715+44 | [home-preview]button:🎬@715+44 | [home-feedback]button:💬@715+44
+
+### discover
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy 51: 5  e.g. [top-row]div:Discover ☰(2->53) | [top-title]div:Discover(2->53) | [top-menu]button:☰(2->53) | div:What do you want to learn?(65->116)
+  dy 10: 4  e.g. div:Endgames(593.1->603.1) | div:21 lessons(613.1->623.1) | div:Tactics & strategy(593.1->603.1) | div:New(613.1->623.1)
+  dy 36: 4  e.g. div:Openings(320.1->356.1) | div:92 lessons(340.1->376.1) | div:Gambits(320.1->356.1) | div:53 lessons(340.1->376.1)
+  dy 51 dh-26: 2  e.g. button:Openings 92 lessons(119.8->170.8) | button:Gambits 53 lessons(119.8->170.8)
+  dy 40 dh-4 dx2: 2  e.g. [disc-ic-openings]span:(152.1->192.1) | [disc-ic-gambits]span:(152.1->192.1)
+  dy 25 dh-26: 2  e.g. button:Endgames 21 lessons(392.8->417.8) | button:Tactics & strategy New(392.8->417.8)
+  dy 14 dh-4 dx2: 2  e.g. [disc-ic-endgames]span:(425.1->439.1) | [disc-ic-tactics]span:(425.1->439.1)
+  dy 51 dh-52: 1  e.g. [discover-tiles]div:Openings 92 lessons Gambit(119.8->170.8)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  band A: [top-row]div:Discover ☰@2+44 | [top-title]div:Discover@2+44 | [top-menu]button:☰@2+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### puzzles-roadmap
+  dy 51: 21  e.g. [top-row]div:Puzzles ☰(2->53) | [top-title]div:Puzzles(2->53) | [top-menu]button:☰(2->53) | div:🌱(81->132)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  only A: span:Student
+  NEW OVERLAPS in B: button:♞ 🔒 Student x button:Home || button:♞ 🔒 Student x button:Discover
+  band A: [top-row]div:Puzzles ☰@2+44 | [top-title]div:Puzzles@2+44 | [top-menu]button:☰@2+44 | [pz-road]div:🌱 Novice 0/10 ♟️ 🔒 Apprentice ♞ 🔒 Stu@265+1316 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [pz-road]div:🌱 Novice 0/10 ♟️ 🔒 Apprentice ♞ 🔒 Stu@316+1316 | button:♞ 🔒 Student@664+96 | [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### puzzles-browse
+  dy 51: 33  e.g. [sq-rank-lbl]span:8(174->225) | [sq-rank-lbl]span:7(220.9->271.9) | [sq-rank-lbl]span:6(267.8->318.8) | [sq-rank-lbl]span:5(314.6->365.6)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  band A: [pz-top]div:1 / 890 · 600 Free play · ✓ 0 ☰ 🎯 White@2+161 | [pz-toprow]div:1 / 890 · 600 Free play · ✓ 0 ☰@2+44 | [pz-back]button:Back to Journey@2+44 | span:600@16.5+15 | span:Free play · ✓ 0@16.5+15 | [pz-menu]button:☰@2+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### review-list
+  dy 51: 12  e.g. [top-row]div:Game review ☰(2->53) | [top-title]div:Game review(2->53) | [top-menu]button:☰(2->53) | div:Review any game, from anywhere(60->111)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  band A: [top-row]div:Game review ☰@2+44 | [top-title]div:Game review@2+44 | [top-menu]button:☰@2+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### play-setup
+  dy 51: 108  e.g. [setup-sheet]div:‹ Home New game ☰ 📷 Scan wit(2->53) | [setup-top]div:‹ Home New game ☰(2->53) | button:‹ Home(2->53) | [top-title]div:New game(2->53)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  only A: div:vs Computer · White · No clock
+  NEW OVERLAPS in B: input: x button:Home || input: x button:Discover || input: x button:Puzzles || input: x button:Review || input: x button:Play
+  band A: [setup-sheet]div:‹ Home New game ☰ 📷 Scan with camera 🖼@2+773 | [setup-top]div:‹ Home New game ☰@2+44 | button:‹ Home@2+44 | [top-title]div:New game@2+44 | [setup-menu]button:☰@2+44 | div:vs Computer · White · No clock@727+15 | [top-row]div:Chess Trainer ☰@2+44 | [top-title]div:Chess Trainer@2+44 | [top-menu]button:☰@2+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [setup-sheet]div:‹ Home New game ☰ 📷 Scan with camera 🖼@53+773 | [setup-start]button:▶ Start game@732+44 | [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### play-setup-passplay
+  dy 51: 86  e.g. [setup-sheet]div:‹ Home New game ☰ 📷 Scan wit(2->53) | [setup-top]div:‹ Home New game ☰(2->53) | button:‹ Home(2->53) | [top-title]div:New game(2->53)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  band A: [setup-sheet]div:‹ Home New game ☰ 📷 Scan with camera 🖼@2+509 | [setup-top]div:‹ Home New game ☰@2+44 | button:‹ Home@2+44 | [top-title]div:New game@2+44 | [setup-menu]button:☰@2+44 | [top-row]div:Chess Trainer ☰@2+44 | [top-title]div:Chess Trainer@2+44 | [top-menu]button:☰@2+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### play-live-computer
+  dy 25.5: 18  e.g. button:Moves(587->612.5) | span:Moves(619->644.5) | button:Back(587->612.5) | span:Back(619->644.5)
+  dy 38.2: 13  e.g. [eval-bar-h]div:(118.5->156.7) | [sq-rank-lbl]span:8(141.5->179.7) | [sq-rank-lbl]span:7(188.4->226.6) | [sq-rank-lbl]span:4(329->367.2)
+  dy 38.3: 4  e.g. [sq-rank-lbl]span:6(235.2->273.5) | [sq-rank-lbl]span:5(282.1->320.4) | [sq-rank-lbl]span:2(422.7->461) | [sq-rank-lbl]span:1(469.6->507.9)
+  dy 51: 2  e.g. [play-home]button:⌂(2->53) | [play-menu]button:☰(2->53)
+  dy 44.7: 2  e.g. span:Pip(67.1->111.8) | [pbar-rating-b]span:500(70.1->114.8)
+  dy 31.9: 2  e.g. span:You(532.7->564.6) | [pbar-taken-w]div:(548.8->580.7)
+  dy 38.3 dh-12.7: 1  e.g. [pbar-bottom]div:♔ You(517.5->555.8)
+  dy 31.8: 1  e.g. span:♔(532.3->564.1)
+  only A: [board-chrome]div:⌂ Chess Trainer ☰ | [play-context]div:Chess Trainer | [chrome-app]span:Chess Trainer | [pbar-top]div:-0.7 Pip 500 +1 | span:-0.7 | [pbar-taken-b]div:+1
+  only B: [board-chrome]div:⌂ Chess Trainer The pawn on  | [play-context]div:Chess Trainer The pawn on d5 | [play-opening]span:The pawn on d5 attacks your | [pbar-top]div:+1.1 Pip 500 | span:+1.1 | [pbar-taken-b]div:
+  band A: [board-chrome]div:⌂ Chess Trainer ☰@2+44 | [play-home]button:⌂@2+44 | [play-context]div:Chess Trainer@14+20 | [chrome-app]span:Chess Trainer@14+20 | [play-menu]button:☰@2+44 | [moves-panel]div:MOVES 1. e4 Nf6 2. Nf3 Nxe4@655+98
+  band B: [moves-panel]div:MOVES 1. e4 Na6 2. Nf3 d5@680.5+72.5 | span:1.@715.5+16 | span:e4@715.5+16 | span:Na6@715.5+16 | span:2.@715.5+16 | span:Nf3@715.5+16 | span:d5@715.5+16
+
+### play-gameover
+  dy 25.5: 27  e.g. div:👤 vs Human · no clock(569->594.5) | [play-moverow]div:3.Qh5 3…Nf6 4.Qxf7#(569->594.5) | button:Moves(590->615.5) | span:Moves(622->647.5)
+  dy 38.2: 12  e.g. [sq-rank-lbl]span:1(121.5->159.7) | [sq-rank-lbl]span:2(168.4->206.6) | [sq-rank-lbl]span:5(309->347.2) | [sq-rank-lbl]span:6(355.9->394.1)
+  dy 38.3: 7  e.g. [sq-rank-lbl]span:3(215.2->253.5) | [sq-rank-lbl]span:4(262.1->300.4) | [sq-rank-lbl]span:7(402.7->441) | [sq-rank-lbl]span:8(449.6->487.9)
+  dy 51: 5  e.g. [board-chrome]div:⌂ Chess Trainer Scholar's Ma(2->53) | [play-home]button:⌂(2->53) | [play-context]div:Chess Trainer Scholar's Mate(14->65) | [play-opening]span:Scholar's Mate(14->65)
+  dy 44.6: 4  e.g. span:White(68.2->112.8) | [pbar-taken-w]div:+1(84.3->128.9) | [pbar-takenpc-w]div:(84.3->128.9) | [pbar-lead-w]span:+1(85.8->130.4)
+  dy 31.9: 2  e.g. span:Black(513.7->545.6) | [pbar-taken-b]div:(529.8->561.7)
+  dy 51 dh-12.8: 1  e.g. [pbar-top]div:♔ White +1(52->103)
+  dy 44.7: 1  e.g. span:♔(67.7->112.4)
+  dy 38.3 dh-12.7: 1  e.g. [pbar-bottom]div:♚ Black(497.5->535.8)
+  dy 31.8: 1  e.g. span:♚(513.3->545.1)
+  dy 25.5 dh-25.5: 1  e.g. [moves-panel]div:MOVES 1. e4 e5 2. Bc4 Nc6 3. (651->676.5)
+  band A: [board-chrome]div:⌂ Chess Trainer Scholar's Mate ☰@2+44 | [play-home]button:⌂@2+44 | [play-context]div:Chess Trainer Scholar's Mate@14+20 | [play-opening]span:Scholar's Mate@14+20 | [play-menu]button:☰@2+44 | [moves-panel]div:MOVES 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. @651+102
+  band B: [moves-panel]div:MOVES 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. @676.5+76.5
+
+### lesson-demo-end
+  dy 51: 27  e.g. [lesson-note]div:8. Nc3 — Every white piece jo(5->56) | span:8. Nc3(14->65) | span:— Every white piece joins in. Down a kni(14->65) | [lesson-note-more]span:more ▾(51.8->102.8)
+  dy 49: 23  e.g. span:1.(567->616) | span:e4(567->616) | span:e5(567->616) | span:2.(567->616)
+  dy -31: 5  e.g. [foot-btn]button:✕(709->678) | [foot-btn]button:Back a move(709->678) | [foot-btn]button:↻(709->678) | [foot-btn]button:Forward a move(709->678)
+  dy 51 dh-82: 1  e.g. [moves-panel]div:King's Gambit MOVES 1. e4 e5 (522->573)
+  dy -31 dh31: 1  e.g. [lesson-footer]div:✕ ↻ ⋯(700->669)
+  band A: [lesson-note]div:8. Nc3 — Every white piece joins in. Dow@5+75 | span:8. Nc3@14+16 | span:— Every white piece joins in. Down a kni@14+92.5 | [lesson-footer]div:✕ ↻ ⋯@700+61 | [foot-btn]button:✕@709+44 | [foot-btn]button:Back a move@709+44 | [foot-btn]button:↻@709+44 | [foot-btn]button:Forward a move@709+44 | [foot-btn]button:⋯@709+44
+  band B: [lesson-footer]div:✕ ↻ ⋯@669+92
+
+### puzzle-hint
+  dy 51: 33  e.g. [sq-rank-lbl]span:8(174->225) | [sq-rank-lbl]span:7(220.9->271.9) | [sq-rank-lbl]span:6(267.8->318.8) | [sq-rank-lbl]span:5(314.6->365.6)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  band A: [pz-top]div:💡 There is mate in two, and it starts w@2+161 | [pz-toprow]div:💡 There is mate in two, and it starts w@2+44 | [pz-back]button:Back to Journey@2+44 | [pz-hint-head]span:💡 There is mate in two, and it starts w@10.6+26.9 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
+
+### menu
+  dy 41: 37  e.g. [menu-sheet]div:Menu ✕ ACCOUNT G Sign in with (10->51) | span:Menu(25.2->66.2) | button:✕(14->55) | div:ACCOUNT(51->92)
+  dy -31: 10  e.g. button:Home(711->680) | span:Home(740->709) | button:Discover(711->680) | span:Discover(740->709)
+  dy 51: 5  e.g. [top-row]div:Discover ☰(2->53) | [top-title]div:Discover(2->53) | [top-menu]button:☰(2->53) | div:What do you want to learn?(65->116)
+  dy 28.5: 4  e.g. div:Openings(327.6->356.1) | div:92 lessons(347.6->376.1) | div:Gambits(327.6->356.1) | div:53 lessons(347.6->376.1)
+  dy -12.5: 4  e.g. div:Endgames(615.6->603.1) | div:21 lessons(635.6->623.1) | div:Tactics & strategy(615.6->603.1) | div:New(635.6->623.1)
+  dy 51 dh-41: 2  e.g. button:Openings 92 lessons(119.8->170.8) | button:Gambits 53 lessons(119.8->170.8)
+  dy 32.5 dh-4 dx2: 2  e.g. [disc-ic-openings]span:(159.6->192.1) | [disc-ic-gambits]span:(159.6->192.1)
+  dy 10 dh-41: 2  e.g. button:Endgames 21 lessons(407.8->417.8) | button:Tactics & strategy New(407.8->417.8)
+  dy -8.5 dh-4 dx2: 2  e.g. [disc-ic-endgames]span:(447.6->439.1) | [disc-ic-tactics]span:(447.6->439.1)
+  dy 51 dh-82: 1  e.g. [discover-tiles]div:Openings 92 lessons Gambit(119.8->170.8)
+  dy -31 dh31: 1  e.g. [tabbar]div:Home Discover Puzzles Review Play(705->674)
+  NEW OVERLAPS in B: [menu-evalbar-beside]button:Left x [disc-ic-gambits]span: || [menu-evalbar-off]button:Off x [disc-ic-gambits]span: || [menu-share-row]div:📣 Share 💬 Feedback x button:Endgames 21 lessons || [menu-share-row]div:📣 Share 💬 Feedback x [disc-ic-endgames]span: || [menu-share-row]div:📣 Share 💬 Feedback x button:Tactics & strategy New || [menu-share-row]div:📣 Share 💬 Feedback x [disc-ic-tactics]span: || button:📣 Share x button:Endgames 21 lessons || button:📣 Share x [disc-ic-endgames]span:
+  band A: [top-row]div:Discover ☰@2+44 | [top-title]div:Discover@2+44 | [top-menu]button:☰@2+44 | [menu-sheet]div:Menu ✕ ACCOUNT G Sign in with Google Syn@10+507.2 | span:Menu@25.2+21.6 | button:✕@14+44 | [tabbar]div:Home Discover Puzzles Review Play@705+56 | button:Home@711+44 | span:Home@740+12 | button:Discover@711+44 | span:Discover@740+12 | button:Puzzles@711+44 | span:Puzzles@740+12 | button:Review@711+44 | span:Review@740+12 | button:Play@711+44 | span:Play@740+12
+  band B: [tabbar]div:Home Discover Puzzles Review Play@674+87
