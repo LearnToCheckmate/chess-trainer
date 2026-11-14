@@ -7555,7 +7555,12 @@ function AppMain(){
            since 95094b0 (sfReadyRef is not read there), and a harness route DOES reach this branch: gates/lib.js
            engineFail 'all' (ee54165) makes every Stockfish worker throw, so ensureAna returns false and the
            review runs this built-in branch. What is true is narrower: the route exists and no gate drives a
-           REVIEW through it yet (gate 34 drives Play through it; gate 86 uses engineFail 'pool' only). */
+           REVIEW through it yet (gate 34 drives Play through it; gate 86 uses engineFail 'pool' only).
+           R18 [#550, fresh checker seat 2, 14 Nov]: that last sentence went false on 13 Nov. Gate 146 (required, added 21494ed)
+           launches with engineFail 'all' and ct_pool 1, reviews the Opera game to rev-summary and asserts path0==='builtin'
+           (TC-R222 PRECONDITION) - so a REVIEW does run this branch under a required gate. It asserts the PATH and the
+           no-engine notice only, not the evalBefore / mistakeWhy sentence this comment is about, so that property is
+           still not driven through the fallback by any gate. */
         const _evB=evalPawns(res.positions[i]);
         // #440: same ladder on the fallback engine. This is the #375 rule - a code path the DEVICE
         // chooses is covered or the gate is not a gate - so the drop is computed here too, not only above.
