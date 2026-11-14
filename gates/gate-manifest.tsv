@@ -168,3 +168,4 @@
 160-drill-row-arrows.js	required	550	2026-11-14	build__1794388896663	gates/regress/160-drill-row-arrows.js - THE DRILL CARD'S PREV AND NEXT ARE TWO ARROWS, E	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge
 161-sw-slow-line-serves-cache.js	required	550	2026-11-14	build__1794388896663	(no header comment)	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge
 162-tab-switch-menu-holds.js	required	550	2026-11-14	build__1794388896663	gates/regress/162-tab-switch-menu-holds.js - THE MENU BUTTON DOES NOT MOVE WHEN THE PLAY	#550: gate 162 (tab switch menu holds) from app B's merge
+159-pages-fit-one-screen.js	required	550	2026-11-14	build__1794388896663	gates/regress/159-pages-fit-one-screen.js - PAGES THAT NEED NO SCROLL FIT HIS PHONE: NON	gate 159 (pages fit one screen, #550 app B d766f3f; control 17/8 on e324617, fix 25/0)

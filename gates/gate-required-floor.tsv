@@ -100,3 +100,4 @@
 136	135	raise	2026-11-14	550	build__1794388896663	#550: gate 158 (sideways pages tab rail) from app B's merge	-	162b634286fa
 138	136	raise	2026-11-14	550	build__1794388896663	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge	-	557905e89499
 139	138	raise	2026-11-14	550	build__1794388896663	#550: gate 162 (tab switch menu holds) from app B's merge	-	cc96c169b8c9
+140	139	raise	2026-11-14	550	build__1794388896663	gate 159 (pages fit one screen, #550 app B d766f3f; control 17/8 on e324617, fix 25/0)	-	d2f2a3930c73
