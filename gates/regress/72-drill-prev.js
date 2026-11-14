@@ -130,7 +130,7 @@ async function state(b){return b.page.evaluate(()=>{const vis=e=>{const r=e.getB
   return {btns,asking:_hint,verdict:verdict[0]||'',
           exits:[...document.querySelectorAll('button')].filter(x=>vis(x)&&(/^‹\s*Review$/.test((x.innerText||'').replace(/\s+/g,' ').trim())||x.getAttribute('aria-label')==='Back to Review')).length,   /* re-keyed by formatting audit FMT-A-02, Kunal's pick 12 Nov: the exit is the 44x44 corner button, its words 'Back to Review' in its accessible name (was the text '‹ Review'); either form counts, so two exits still read 2 */
           prev:pv?{dis:pv.disabled===true,aria:pv.getAttribute('aria-disabled'),w:Math.round(pvr.width),h:Math.round(pvr.height),
-                   op:+getComputedStyle(pv).opacity,text:(pv.innerText||'').trim(),bottom:Math.round(pvr.bottom*10)/10}:null,
+                   op:+getComputedStyle(pv).opacity,text:(pv.innerText||'').trim(),al:pv.getAttribute('aria-label')||'',bottom:Math.round(pvr.bottom*10)/10}:null,
           hasNext:!!document.querySelector('[data-ct="drill-next"]'),vh:innerHeight,
           inDrill:!!t};});}
 
@@ -181,7 +181,7 @@ L.run(async()=>{
       // bundle) reported 4 assertions and never looked at the duplicate it was built to expose.
       // [CLAUDE.md: a gate that halts on the first missing element hides every regression after it.]
       if(!s.prev){L.note(tag+' NO PREV CONTROL: the walk (b) and (c) cannot run on this bundle - that is the defect, not a gate error.');await b.close();continue;}
-      L.say(/Prev/.test(s.prev.text),'TC-R47 A1b '+tag+' the control is labelled as Prev rather than carrying some other word',{text:s.prev.text});
+      L.say(/Prev/.test(s.prev.text)||/^Previous card$/.test(s.prev.al),'TC-R47 A1b '+tag+' the control is labelled as Prev rather than carrying some other word - its words, or since #550 helper B (the drill row\'s arrows, gate 160) its accessible name "Previous card"',{text:s.prev.text,al:s.prev.al});
 
       // ---- A2 (a): on card 1 it is INERT AND STILL THERE. Absent would move the row.
       L.say(s.prev.dis===true,'TC-R47 A2a '+tag+' (a) on card 1 Prev is DISABLED',{prev:s.prev});

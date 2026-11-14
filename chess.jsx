@@ -4225,7 +4225,6 @@ const ICON_ROW_DOTS=17;      // the More dots at 17 paint about 14.5 wide, the c
 const RESET_EM=1.4;          // ↺ paints 9 at the row's 15px; 1.4em brings it to the chevrons' and 💡's 14 (1.5em read 15.1 at 375 wide)
 const DRILL_RESET_EM=1.5;     // the drill's icon-only ↺ beside 19px emoji: 1.5em paints about 20, its 💡's 20 (1.4em read 18.1, 2.1 short)
 const NEXT_ARROW_EM=2.3;     // › paints 4x6 at the label's size; 2.3em brings it to the Previous chevron's 14
-const DRILL_ARROW_EM=3.2;    // the drill's ‹ › beside 19px emoji (💡 20.5, 👁 19): 3.2em brings them to about 19.5 (3em read 18.1 at 320 wide)
 /* a large arrow at lineHeight 0 paints about 0.075em of its own size below its word's centre (2.5 to 3px, gate 157 TC-IR-03), so it is lifted; the 1.5em ↺ already sits level */
 function IconGlyph({g,em}){return <span style={{fontSize:em+'em',lineHeight:0,display:'inline-block',verticalAlign:'middle',position:'relative',top:(em>2?'-0.075em':0),fontWeight:700}}>{g}</span>;}
 function ChevIcon({size=20,dir='right'}){
@@ -13074,7 +13073,11 @@ function AppMain(){
             solved card the three helpers keep their box (hidden, inert) and Analyse sits over it, so nothing in the row changes size. */
           const _nw=vw<430,_hp=drillPosRef.current>0;   /* measured on trial 5b829b2db061: at 375 wide each helper is 62px and '💡 Hint' needs about 70, so it was cut with no ellipsis; icons below 430 */
           const _hb={...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:0,...(_nw?{fontSize:19}:null)};
-          const _nb=(pr)=>({...navBtn(pr),flex:'1.25 1 0',minWidth:0,minHeight:44,padding:'9px 2px',whiteSpace:'nowrap',fontSize:'clamp(14px,3.4vw,15px)'});
+          /* #550 helper B (jobs/transport-row-icon-only, its 2026-09-23 extension to the drill card; Kunal: "instead of Review written or Next written, it should
+             just be those arrows that are easy to understand, and much smaller buttons"): Prev and Next are the two arrows, each a 46x44 tap target (the
+             glyph shrinks, the target does not), drawn at 28 so their ink matches the row's 19px emoji (gate 157 TC-IR-02); their accessible names stay 'Previous card' / 'Next card'. The width they
+             give back goes to the three helpers. The row's height is the 44 it was (the job's own note: the 44 floor keeps the height). */
+          const _nb=(pr)=>({...navBtn(pr),flex:'0 0 46px',minWidth:46,minHeight:44,padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'});
           return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
             <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 0',minWidth:0}}>
               <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
@@ -13084,8 +13087,8 @@ function AppMain(){
               </div>
               {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}><IconGlyph g={'\u21ba'} em={_nw?DRILL_RESET_EM:1}/></button></div>)}
             </div>
-            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}><span><IconGlyph g="‹" em={DRILL_ARROW_EM}/>{' '}Prev</span></button>
-            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}><span>Next{' '}<IconGlyph g="›" em={DRILL_ARROW_EM}/></span></button>
+            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}><ChevIcon size={28} dir="left"/></button>
+            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}><ChevIcon size={28} dir="right"/></button>
           </div>);})():(<>
         <div style={{position:'relative'}}>
         {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
