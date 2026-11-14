@@ -20,6 +20,7 @@
 // scrolled and the button must then sit on screen - below the fold is not unreachable (CLAUDE.md), and this checks both.
 // CONTROL-RECORD: 831e068 2026-11-11 total=142 red=8 scope=trial:b19697cd53cb how=#550 answer a12: the a12-only version of this gate (REV_PIN retired, TC-INV-08i asserting on screen) on the tree before the paste row - TC-INV-08i red at all eight geometries, 47.5 to 373.5px below the fold (245.5 on his phone); everything else green
 // CONTROL-RECORD: 40515d9 2026-11-11 total=198 red=34 scope=trial:a6ef99c17548 how=#550 answer a26 (with a12's 08i): the tree before the Tactics page's own bar - the new TC-INV-08l and 08m lines red where its controls or back button sit under the tab bar or scrolled away, or #root scrolls; the a26 trial 455ff0ea4f3f reads 198 pass, 0 fail
+// CONTROL-RECORD: fe3b8fd 2026-11-14 total=227 red=2 scope=trial:6f396b82e7a9 how=#550 helper app A, TC-INV-08n re-pin 41 -> 57: chess.jsx at d4db161^ (the tree before the Today card), the 320x568 analyze and play tiles 41px past the fold - both TC-INV-08n lines red against 57; on fe3b8fd's tree both read 57 (the seven TC-INV-08b 'Start game' reds there are another change, named in the job); fe3b8fd tree 4d4e3577b7c2 220/7, all seven TC-INV-08b
 const L=require('../lib');
 const P=require('../drive/play');
 const D=require('../drive/lesson');
@@ -237,7 +238,15 @@ L.run(async()=>{
   // Home's layout (the audit's AUD-H01) lands"]. AUD-H01 has landed (the compact footer and tiles) and 320x568 still puts the second row below the
   // fold, so those two are PINNED at the distance measured, and a move either way is red. The tiles are found by their icon hooks (tile-ic-<k>,
   // #366's, not this build's) and their buttons' rects read unscrolled; the fold is the viewport's bottom (Home is drawn over the tab bar).
-  {const HOME_PIN={'320x568':{analyze:41,play:41}};   // px past the fold, measured on trial a7022891e79d (was 88 before AUD-H01)
+  /* RE-PINNED 41 -> 57 [#550 helper app A, jobs/gate-78-home-tile-57px-past-the-fold-at-320x568-against-a-pin-of-41-2026-11-14]: a STALE PIN,
+     not a regression to undo. Bisected on 320x568 by building chess.jsx at each commit: d4db161^ reads 41 (tile 455.5..609), d4db161 reads 57
+     (471.5..625) and nothing after it moves the tile (c6482ed^, c6482ed, fe3b8fd all 57; 690d199 touches only windows 720 wide or more). d4db161
+     is the Today card (jobs/build-home-one-today-card, his mockup 77Z8gWxqwyobzVQ6iyGFPG): one 84px card where the 68px streak strip was, the
+     16px, and gate 49 re-pinned the column for it in that build (TC-HM-038 pins the card at 84; TC-HM-004/008/016 pin 761 and the tiles at
+     306/471.5) while this pin was not re-run. Drawing the card tighter on a short phone puts the tile back at 41 and reds those seven gate-49
+     pins of his mockup, so the design stands and the pin moves. What a finger needs: nothing - the tile's top is at 471.5 in a 568 screen, so
+     96.5 of its 153.5px are on screen and it is tapped without scrolling; only its caption's foot is below the fold. */
+  {const HOME_PIN={'320x568':{analyze:57,play:57}};   // px past the fold, measured on fe3b8fd's tree (41 before the Today card, 88 before AUD-H01)
    for(const g of ['kunal761','se']){
      const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
      const b=await L.launch({geo:g,name:'home-tiles-'+n});await b.open();await b.settle(1200);
