@@ -198,7 +198,9 @@ TAMPER=""
 # THE FILES THIS TIER EXECUTES FROM THE WORKING TREE, IN ONE LIST [#540, F4]. The TAMPER pin below and the
 # FORCE-before-execution check further down both read it, so the two cannot drift apart. buildnum.sh was
 # added at #523: Part 2 EXECUTES it from the working tree.
-FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh"
+# gates/door-checks.sh joined at #550 (helper A): the records check below runs `records-gate.sh --binaries`, which
+# EXECUTES door-checks.sh --only from the working tree, so it is pinned and FORCE-before-execution like the rest.
+FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh gates/door-checks.sh"
 for f in $FG_EXECUTES; do
   hb="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$("${GIT[@]}" hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below
@@ -2400,7 +2402,16 @@ binary(){ local label="$1"; shift; local out rc
 say ""
 say "running the checks a records commit CAN break:"
 binary  "gate manifest" bash "$G/gatemanifest.sh" check
-ratchet "records"       '^(CITATIONS|REGISTER SELF-CHECK)' '^CITATIONS RATCHET:' bash "$G/verify-log.sh" --citations
+# THE RECORDS CHECK IS A BINARY, NOT A RATCHET [#550 helper A; jobs/build-one-door-for-every-non-gate-check-2026-10-10
+# theFIX part (3), "CONVERT ITS RATCHETS TO BINARIES so a standing breach blocks instead of being grandfathered"]. This
+# line was `ratchet "records" ... verify-log.sh --citations`, which compared HEAD with the BASE and refused only a head
+# that was WORSE, so a breach already on main passed every fast commit for ever (fastgate-drive.sh H55a asserted
+# exactly that, and now asserts the opposite). It now runs `records-gate.sh --binaries`, the same check through the
+# one door (door-checks.sh --only citations): any breach on HEAD refuses, whatever the base had. The label is kept
+# as `records` so its line still begins "records: " - fastgate-drive.sh's info-exclude cases (H49 and its siblings)
+# read the absence of that prefix as proof that no records verdict was computed. The control-audit ratchet below
+# stays a ratchet: as a binary it would refuse every fast commit today (entry two, the coverage ratchet).
+binary  "records" bash "$G/records-gate.sh" --binaries
 if command -v node >/dev/null 2>&1 && [ -f "$G/control-audit.js" ]; then
   # #490, antagonist A: the key here was '(uncontrolled|CONTROL AUDIT|controlled)', which matches ONLY
   # control-audit.js's HEADER line ("CONTROL AUDIT   log=claude/agents/gatelogs/489-all.log   gates=56") and

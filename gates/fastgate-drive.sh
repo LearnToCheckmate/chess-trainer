@@ -318,6 +318,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H63) printf 'TC-SUITE-272' ;;  H64) printf 'TC-SUITE-273' ;;  H65) printf 'TC-SUITE-274' ;;  H66) printf 'TC-SUITE-275' ;;
     H67) printf 'TC-SUITE-276' ;;
     H68) printf 'TC-SUITE-306' ;;
+    H69) printf 'TC-SUITE-386' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -1242,8 +1243,8 @@ else
 fi
 
 # H28 NEGATIVE, THE CATCH-ALL: A WORSE CASE REGISTER, PUT BACK ON DISK AND HIDDEN FOUR WAYS. The commit adds one
-#     dead citation to claude/stories/TEST-CASES.md, so the records ratchet honestly answers "this commit made it
-#     WORSE" (FAST GATE RED, exit 1). Then the WORKING-TREE copy is put back as the base had it and hidden with
+#     dead citation to claude/stories/TEST-CASES.md, so the records check honestly answers "records: RED" (FAST
+#     GATE RED, exit 1; a ratchet answering "this commit made it WORSE" until #550 helper A made it a binary). Then the WORKING-TREE copy is put back as the base had it and hidden with
 #     assume-unchanged, with skip-worktree, with a clean filter, and with STALE STAT DATA [#527 v3]: the clean
 #     filter makes `git status` record the doctored file's stat as clean and is then removed, so no index flag and
 #     no filter is left and status still says nothing (the mechanism restore_raw above exists for). Neither pin
@@ -1253,9 +1254,9 @@ reset_clone
 H28F=claude/stories/TEST-CASES.md
 printf '\nfastgate-drive.sh H28 fixture, never pushed: this line names claude/stories/ZZ-H28-NO-SUCH-FILE.md, one more dead path for the citations arm.\n' >> "$C/$H28F"
 commit_case "H28 one more dead citation in the case register"
-if ! probe 1 "this commit made it WORSE"; then
+if ! probe 1 "records: RED"; then
   note "  FAIL H28 [$(tc H28)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
-  note "         not exit 1 with the records ratchet reporting WORSE, so hiding the register would prove nothing"
+  note "         not exit 1 with the records check reporting RED, so hiding the register would prove nothing"
   show_verdict "$PROBE_OUT"
   BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H28"
 else
@@ -2101,6 +2102,18 @@ fi
 #     one the job measured at 4 of a ceiling of 2. Each row carries one unescaped pipe, so it reads one column
 #     too wide; the improvement escapes the pipe and changes nothing else, so the flip is arm (5)'s and no other
 #     arm's. The premise is asserted before any head is driven: the base must actually read widthrise=2.
+#     AND (a) IS NOW THE OPPOSITE ASSERTION [#550 helper A]. gates/fastgate.sh's records check became a BINARY
+#     (`records-gate.sh --binaries`, jobs/build-one-door-for-every-non-gate-check-2026-10-10 theFIX part (3)),
+#     so a breach the base already carries is no longer grandfathered: (a), head unchanged over a base with two
+#     wrong-width rows, must be REFUSED, exit 1 "records: RED". (b) is exit 0 "records: green" (the breach is
+#     gone) and (c) stays exit 1. The three heads are kept because (b) is still the direction a binary must not
+#     refuse, and (a) is now the one a regression back to a ratchet would flip.
+#     AND THE FIXTURE IDS CHANGED WITH IT, MEASURED: the rows were `TC-DRIVE-H55-A/B/C`, and TC-DRIVE is a prefix
+#     claude/stories/README.md does not register, so every head also read prefixunregistered=1. The ratchet never
+#     saw that - it was on the base and on all three heads - and the first binary run of this case went red at
+#     (b) for it, exit 1 with widthrise=0. The rows are now TC-SUITE-9551..9553, a registered prefix far above any
+#     real id, so the only breach a head carries is the one this case varies (measured: broken2 exit 1
+#     widthrise=2, fixed2 exit 0, broken3 exit 1 widthrise=3; notchecked=1 is the tree's own NOT CHECKED row).
 reset_clone
 H55F=claude/stories/TEST-CASES.md
 h55_set(){ # <broken2|fixed2|broken3>  rewrite the fixture rows, idempotently
@@ -2108,11 +2121,11 @@ h55_set(){ # <broken2|fixed2|broken3>  rewrite the fixture rows, idempotently
 import sys
 p, mode = sys.argv[1], sys.argv[2]
 s = open(p, encoding='utf-8').read().split('\n')
-s = [l for l in s if not l.startswith('| TC-DRIVE-H55-')]
+s = [l for l in s if not l.startswith('| TC-SUITE-955')]
 idx = max(i for i, l in enumerate(s) if l.startswith('| TC-SUITE-'))
 pipe = r'an escaped \| pipe' if mode == 'fixed2' else 'an unescaped | pipe'
-ids = ['A', 'B', 'C'] if mode == 'broken3' else ['A', 'B']
-rows = ['| TC-DRIVE-H55-%s | US-BN-01 | fixture only, never pushed: this row carries %s, so it reads one '
+ids = ['1', '2', '3'] if mode == 'broken3' else ['1', '2']
+rows = ['| TC-SUITE-955%s | US-BN-01 | fixture only, never pushed: this row carries %s, so it reads one '
         'column too wide | - | - | - |' % (i, pipe) for i in ids]
 s[idx+1:idx+1] = rows
 open(p, 'w', encoding='utf-8').write('\n'.join(s))
@@ -2149,29 +2162,30 @@ if [ "${H55W:-missing}" != 2 ]; then
 else
   H55FAIL=""; H55SHOW=""
   # (a) THE SAME REGISTER STATE. One innocuous records-only line, deliberately carrying no path, no pipe and no
-  #     case id, so every counter on the ratchet line is identical on both sides. Expect exit 0.
+  #     case id, so every counter on the ratchet line is identical on both sides. Expect exit 1: the base's
+  #     standing breach is still on HEAD, and a binary refuses it (a ratchet answered 0, "no worse than base").
   printf '\nH55 fixture line, never pushed: it deliberately carries no path, no pipe and no case id.\n' >> "$C/$H55F"
   commit_case "H55a an innocuous records-only line, the register state unchanged"
-  if ! probe 0 "records: no worse than base"; then H55FAIL="$H55FAIL (a) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  if ! probe 1 "records: RED"; then H55FAIL="$H55FAIL (a) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
   # (b) THE IMPROVEMENT, AND THE ONE THAT READ EXIT 1 BEFORE THIS ITEM. The two rows' pipes are escaped, so
   #     arm (5) flips RED -> OK and widthrise falls 2 -> 0 with every other counter unmoved. Expect exit 0.
   git -C "$C" reset --hard --quiet "$H55BASE" >/dev/null 2>&1; git -C "$C" clean -qfd >/dev/null 2>&1
   h55_set fixed2
   commit_case "H55b the two wrong-width rows escaped, so arm (5) flips RED to OK"
-  if ! probe 0 "records: no worse than base"; then H55FAIL="$H55FAIL (b) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  if ! probe 0 "records: green"; then H55FAIL="$H55FAIL (b) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
   # (c) THE REGRESSION, WHICH MUST STILL BE REFUSED. One further wrong-width row: widthrise rises 2 -> 3.
   #     Expect exit 1 with the ratchet naming it. A fix that made (b) pass by loosening the comparison would
   #     show up here, which is why this head is in the same case rather than trusted to the ones above.
   git -C "$C" reset --hard --quiet "$H55BASE" >/dev/null 2>&1; git -C "$C" clean -qfd >/dev/null 2>&1
   h55_set broken3
   commit_case "H55c one further wrong-width row, never pushed"
-  if ! probe 1 "this commit made it WORSE"; then H55FAIL="$H55FAIL (c) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
+  if ! probe 1 "records: RED"; then H55FAIL="$H55FAIL (c) exit $PROBE_RC"; H55SHOW="$PROBE_OUT"; fi
   if [ -n "$H55FAIL" ]; then
-    note "  FAIL H55 [$(tc H55)] $H55FAIL  (wanted: (a) 0 no worse, (b) 0 no worse, (c) 1 WORSE)"
+    note "  FAIL H55 [$(tc H55)] $H55FAIL  (wanted: (a) 1 records RED, the standing breach refused, (b) 0 records green, (c) 1 records RED)"
     [ -n "$H55SHOW" ] && show_verdict "$H55SHOW"
     BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H55"
   else
-    note "  ok  H55 [$(tc H55)]  (base widthrise=2; head unchanged -> exit 0 no worse, head improved -> exit 0 no worse, head worsened -> exit 1 WORSE)"
+    note "  ok  H55 [$(tc H55)]  (base widthrise=2; head unchanged -> exit 1 RED, not grandfathered; head improved -> exit 0 green; head worsened -> exit 1 RED)"
     OK=$((OK+1))
   fi
 fi
@@ -2540,6 +2554,50 @@ case "$H68RC:$H68OUT" in
   *) printf '  FAIL H68 [%s]  exit %s with no argument, expected 64 and "usage error, not a verdict"\n' "$(tc H68)" "$H68RC"
      BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H68" ;;
 esac
+
+# H69 NEGATIVE [#550 helper A]. gates/door-checks.sh IS EXECUTED, SO IT IS PINNED BEFORE IT RUNS. The records check
+#     became `records-gate.sh --binaries`, which execs `door-checks.sh --only citations` from the working tree, so
+#     door-checks.sh joined FG_EXECUTES. The fixture is H32's shape: an honest register-only commit (green, the
+#     premise), then a line appended to the WORKING-TREE copy of gates/door-checks.sh that writes a marker when the
+#     script runs, hidden with assume-unchanged. Expected: exit 1, "this tier EXECUTES these files" naming
+#     gates/door-checks.sh, AND NO MARKER. THE MARKER IS THE DISCRIMINATING OBSERVABLE: without the pin the doctored
+#     copy RUNS inside the records check and the catch-all refuses afterwards, also at exit 1 - so exit code alone
+#     cannot tell the two apart, and the case requires the pin's own words as well as an unwritten marker.
+reset_clone
+H69F=gates/door-checks.sh; H69M="$W/h69-marker"; rm -f "$H69M"
+H69N="$(mint_in_clone)"
+if badnum "$H69N"; then
+  note "  FAIL H69 [$(tc H69)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H69"
+else
+  commit_case "H69 register only: one minted row for #$H69N, then door-checks.sh doctored on disk"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H69 [$(tc H69)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the doctored tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H69"
+  else
+    sed -i "2i : > $H69M  # fastgate-drive.sh H69 fixture, never pushed" "$C/$H69F"
+    git -C "$C" update-index --assume-unchanged "$H69F" >/dev/null 2>&1 || true
+    if ! hidden; then
+      note "  SKIPPED H69 [$(tc H69)]  assume-unchanged did not hide the doctored file here"; SKIP=$((SKIP+1))
+    elif probe 1 "this tier EXECUTES these files" "$H69F: commit "; then
+      if [ -e "$H69M" ]; then
+        note "  FAIL H69 [$(tc H69)]  refused and named, but the doctored door-checks.sh RAN first (marker written)"
+        show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H69"
+      else
+        note "  ok  H69 [$(tc H69)]  (exit 1, this tier EXECUTES these files naming $H69F, and the doctored copy never ran: no marker)"
+        OK=$((OK+1))
+      fi
+    else
+      note "  FAIL H69 [$(tc H69)]  exit $PROBE_RC, expected 1 naming $H69F as a file this tier EXECUTES (marker $( [ -e "$H69M" ] && echo written || echo absent))"
+      show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H69"
+    fi
+    git -C "$C" update-index --no-assume-unchanged "$H69F" >/dev/null 2>&1 || true
+    restore_raw "$H69F" || true
+  fi
+fi
+rm -f "$H69M"
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
 # A HARNESS THAT CANNOT FAIL PROVES NOTHING, so zero ok is a failure in its own right and not a clean run -
