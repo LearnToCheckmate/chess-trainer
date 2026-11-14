@@ -202,7 +202,12 @@ TAMPER=""
 # EXECUTES door-checks.sh --only from the working tree, so it is pinned and FORCE-before-execution like the rest.
 # gates/audit/control-floor.sh joined at #550 (test-system helper A): records-gate.sh --binaries runs its control-floor row,
 # which executes it (and it executes control-audit.js, already here) from the working tree. fastgate-drive.sh H70 is its pin.
-FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh gates/door-checks.sh gates/audit/control-floor.sh"
+# gates/audit/contract-asserts.sh, the asserts it dispatches and gates/contract-asserts.tsv joined at #550 (test-system helper A):
+# the contract-asserts row executes each `assert` command the REGISTER names, so the register decides what runs and is pinned
+# with the scripts (a doctored hidden register naming a doctored hidden gates/audit/ script would otherwise run it before the
+# catch-all). fastgate-drive.sh H72 is the pin. A consequence, said rather than implied: a commit that changes the register is
+# FORCE by path here (FORCE-before-execution), as a change to any executed file is.
+FG_EXECUTES="gates/records-gate.sh gates/gatemanifest.sh gates/verify-log.sh gates/control-audit.js gates/buildnum.sh gates/door-checks.sh gates/audit/control-floor.sh gates/audit/contract-asserts.sh gates/audit/assert-commit-provenance.sh gates/audit/assert-runledger-std.js gates/contract-asserts.tsv"
 for f in $FG_EXECUTES; do
   hb="$("${GIT[@]}" rev-parse --quiet --verify "$HEAD:$f" 2>/dev/null || echo MISSING)"
   wb="$("${GIT[@]}" hash-object --no-filters "$ROOT/$f" 2>/dev/null || echo MISSING)"   # #527: RAW bytes, see below

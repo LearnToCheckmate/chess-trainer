@@ -198,7 +198,8 @@ if [ "$MODE" = unfixed ]; then
   done
   git -C "$C" add -A >/dev/null 2>&1
   git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet --allow-empty \
-      -m "UNFIXED BASE: fastgate.sh, buildnum.sh and build.sh as origin/main carries them" >/dev/null 2>&1 \
+      -m "UNFIXED BASE: fastgate.sh, buildnum.sh and build.sh as origin/main carries them" \
+      -m "Claude-Session: fastgate-drive.sh fixture, never pushed" >/dev/null 2>&1 \
     || { echo "fastgate-drive.sh: REFUSING - could not commit the unfixed base."; exit 2; }
   BASESHA="$(git -C "$C" rev-parse HEAD)"
 fi
@@ -252,7 +253,11 @@ commit_case(){ # <subject>
   # gives dfail>0 and gates.sh's block then reddens a 70-minute suite over a fixture's lock file. Belt and
   # braces: the path is gitignored as well, so a future caller that forgets this exclusion is still safe.
   git -C "$C" add -A -- ':!gates/.buildnum.lock' >/dev/null 2>&1
-  git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet -m "$1" >/dev/null 2>&1
+  # THE FIXTURE COMMIT CARRIES A Claude-Session TRAILER [#550 test-system helper A]: the records check runs the
+  # CLAUDE.md#commit-trailer assert over the pushed range since contract-asserts joined RECORDS_BINARIES, and a fixture
+  # commit with none is that breach (H73 makes one on purpose). The value names the harness, not a session.
+  git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet -m "$1" \
+      -m "Claude-Session: fastgate-drive.sh fixture, never pushed" >/dev/null 2>&1
 }
 # ONE INVOCATION POINT, so the guard variable and the timeout are set the same way for every case.
 CASEBASE=""
@@ -320,6 +325,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H68) printf 'TC-SUITE-306' ;;
     H69) printf 'TC-SUITE-386' ;;
     H70) printf 'TC-SUITE-388' ;;  H71) printf 'TC-SUITE-389' ;;
+    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2651,12 +2657,78 @@ reset_clone
 H71F=gates/control-covered-floor.tsv
 printf '23-full-walk\tfastgate-drive.sh H71 fixture, never pushed: a gate with no CONTROL-RECORD\n' >> "$C/$H71F"
 commit_case "H71 a floor row for 23-full-walk, which the control audit reads NONE"
-if probe 1 "records: RED" "FELL 23-full-walk now reads NONE"; then
-  note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, control-floor names 23-full-walk as fallen to NONE)"
+# THE SUBSTRING IS THE DOOR'S OWN REFUSAL OF THE ROW, NOT control-floor's "FELL" LINE [#550 test-system helper A]: the records
+# binary shows the door's LAST FOUR lines, and since contract-asserts runs after control-floor the FELL line is pushed out of them.
+if probe 1 "records: RED" "DOOR CHECKS REFUSED - control-floor: exit 1, 1 fail"; then
+  note "  ok  H71 [$(tc H71)]  (exit 1, records: RED, the door refused on control-floor: 23-full-walk is on the floor and reads NONE)"
   OK=$((OK+1))
 else
-  note "  FAIL H71 [$(tc H71)]  exit $PROBE_RC, expected 1 records: RED with FELL 23-full-walk now reads NONE"
+  note "  FAIL H71 [$(tc H71)]  exit $PROBE_RC, expected 1 records: RED with the door refusing on control-floor"
   show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H71"
+fi
+
+# H72 NEGATIVE [#550 test-system helper A]. gates/audit/contract-asserts.sh IS EXECUTED, SO IT IS PINNED BEFORE IT RUNS. H70's shape:
+#     contract-asserts joined RECORDS_BINARIES, so the records check executes contract-asserts.sh (and every assert the register
+#     names) from the working tree, and all of them, with the register, joined FG_EXECUTES. An honest register-only commit (green,
+#     the premise), then a marker-writing line in the working-tree contract-asserts.sh hidden with assume-unchanged. Expected:
+#     exit 1, "this tier EXECUTES these files" naming it, and NO MARKER.
+reset_clone
+H72F=gates/audit/contract-asserts.sh; H72M="$W/h72-marker"; rm -f "$H72M"
+H72N="$(mint_in_clone)"
+if badnum "$H72N"; then
+  note "  FAIL H72 [$(tc H72)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H72"
+else
+  commit_case "H72 register only: one minted row for #$H72N, then contract-asserts.sh doctored on disk"
+  if ! probe 0 "FAST GATE GREEN"; then
+    note "  FAIL H72 [$(tc H72)]  the fixture's premise does not hold: the honest tree answered exit $PROBE_RC and"
+    note "         not exit 0 FAST GATE GREEN, so a refusal of the doctored tree would prove nothing"
+    show_verdict "$PROBE_OUT"
+    BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H72"
+  else
+    sed -i "2i : > $H72M  # fastgate-drive.sh H72 fixture, never pushed" "$C/$H72F"
+    git -C "$C" update-index --assume-unchanged "$H72F" >/dev/null 2>&1 || true
+    if ! hidden; then
+      note "  SKIPPED H72 [$(tc H72)]  assume-unchanged did not hide the doctored file here"; SKIP=$((SKIP+1))
+    elif probe 1 "this tier EXECUTES these files" "$H72F: commit "; then
+      if [ -e "$H72M" ]; then
+        note "  FAIL H72 [$(tc H72)]  refused and named, but the doctored contract-asserts.sh RAN first (marker written)"
+        show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H72"
+      else
+        note "  ok  H72 [$(tc H72)]  (exit 1, this tier EXECUTES these files naming $H72F, and the doctored copy never ran: no marker)"
+        OK=$((OK+1))
+      fi
+    else
+      note "  FAIL H72 [$(tc H72)]  exit $PROBE_RC, expected 1 naming $H72F as a file this tier EXECUTES (marker $( [ -e "$H72M" ] && echo written || echo absent))"
+      show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H72"
+    fi
+    git -C "$C" update-index --no-assume-unchanged "$H72F" >/dev/null 2>&1 || true
+    restore_raw "$H72F" || true
+  fi
+fi
+rm -f "$H72M"
+
+# H73 NEGATIVE [#550 test-system helper A]. AN IN-FORCE CLAUSE IS A BINARY ON THE FAST TIER. The same honest register-only change
+#     every positive case makes (one minted row), committed WITHOUT a Claude-Session trailer - the one commit in this harness made
+#     with a bare `git commit -m`, on purpose. CLAUDE.md#commit-trailer is `assert` in gates/contract-asserts.tsv, so the records
+#     check must refuse it. Expected: exit 1, "records: RED", and the contract runner naming the breach. The control, run by hand
+#     when this case was added: the same commit under a records-gate.sh whose RECORDS_BINARIES lacks contract-asserts takes exit 0
+#     FAST GATE GREEN (#550 test-system helper A's report).
+reset_clone
+H73N="$(mint_in_clone)"
+if badnum "$H73N"; then
+  note "  FAIL H73 [$(tc H73)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H73"
+else
+  git -C "$C" add -A -- ':!gates/.buildnum.lock' >/dev/null 2>&1
+  git -C "$C" -c user.name=ct-drive -c user.email=ct-drive@local commit --quiet -m "H73 register only, one minted row for #$H73N, and NO session trailer" >/dev/null 2>&1
+  if probe 1 "records: RED" "REFUSED BY THE BREACH OF CLAUDE.md#commit-trailer"; then
+    note "  ok  H73 [$(tc H73)]  (exit 1, records: RED, the contract runner refused on CLAUDE.md#commit-trailer)"
+    OK=$((OK+1))
+  else
+    note "  FAIL H73 [$(tc H73)]  exit $PROBE_RC, expected 1 records: RED refused by the breach of CLAUDE.md#commit-trailer"
+    show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H73"
+  fi
 fi
 
 # ── VERDICT. ───────────────────────────────────────────────────────────────────────────────────────────────
