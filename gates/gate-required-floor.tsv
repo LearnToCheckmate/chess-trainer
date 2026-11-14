@@ -99,3 +99,4 @@
 135	134	raise	2026-11-13	550	build__1794388896663	#550: gate 157 (icon rows one size) from the lessons-and-drills helper's merge	-	8e7fafc9a46c
 136	135	raise	2026-11-14	550	build__1794388896663	#550: gate 158 (sideways pages tab rail) from app B's merge	-	162b634286fa
 138	136	raise	2026-11-14	550	build__1794388896663	#550: gates 160 (drill row arrows) and 161 (service worker slow line) from app B's merge	-	557905e89499
+139	138	raise	2026-11-14	550	build__1794388896663	#550: gate 162 (tab switch menu holds) from app B's merge	-	cc96c169b8c9
