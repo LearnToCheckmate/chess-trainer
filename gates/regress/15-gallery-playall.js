@@ -1173,12 +1173,16 @@ L.run(async()=>{
   for(const [qlab,store,wantAsks] of [['empty',{ct_pool:'3',ct_scmax:'0'},0],['one',{ct_pool:'3',ct_scmax:'1'},1]]){
     const b=await L.launch({geo:'kunal730',name:'queue-'+qlab,store});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    /* #550 #432 sweep round 5: the queue's length also counted by the cards' WORDS - a painted button carrying a line that starts with an ask
+       card's mode badge (DRIVES ITSELF or YOUR TAPS; the harness state cards carry none, and the folded blurb's line starts 'Cards are') - so
+       the empty queue's 'exactly 0' does not read only the ask-card hook #451 added with this gate */
     const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
+      askW:[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&/^\s*(\u21bb DRIVES ITSELF|\u261e YOUR TAPS)/m.test(x.innerText||'');}).length,
       states:document.querySelectorAll('button[data-ct="state-card"]').length,
       play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^▶ Play/.test(t)),
       empty:[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^Nothing needed right now\./.test((d.innerText||'').trim())).map(d=>{const r=d.getBoundingClientRect();return {t:(d.innerText||'').trim().slice(0,60),h:Math.round(r.height),top:Math.round(r.top),vh:innerHeight};})}));
     L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
-    L.say(q.asks===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) ('+q.asks+')',q);
+    L.say(q.asks===wantAsks&&q.askW===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) (by hook '+q.asks+', by their mode badges '+q.askW+')',q);
     /* TC-GL-005 [#548, item (10)]: the EMPTY queue says so in words. The sentence has been in chess.jsx since #167 (search
        'Nothing needed right now'); this is the first assertion over it. It must be rendered and painted (non-zero height,
        top inside the viewport) at zero cards and absent at one, so a build that drops it, or shows it beside a card, is red. */
