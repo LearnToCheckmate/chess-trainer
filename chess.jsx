@@ -3086,7 +3086,7 @@ function brilCardWhy(o,mc,ref){
    centred; the first gap down the screen that its measured height (plus 4px clear above and below) fits in wins, the whole sentence first,
    then the short one. null when neither fits: no free band on that screen. */
 const OFF_WORDS='You are offline. Lessons, puzzles and saved games still work.',OFF_SHORT='You are offline.',OFF_PAD='8px 14px';
-function offFreeSpot(full,short){
+function offFreeSpot(full,short,sTop,sBot){ /* #550 lead (checker seat 2, notices-cut second check): the free-band scan starts BELOW the safe top inset and ends ABOVE the bottom one - with env(safe-area-inset-top)=51 on his phone the band 0..51 sits under the status bar and Dynamic Island, and the scan used to count it free (y=0), painting 'You are offline.' at 8..45 */
   const vw=window.innerWidth,vh=window.innerHeight;const W=Math.min(vw-24,340),L0=Math.round((vw-W)/2),R0=L0+W;const obs=[];
   const on=(el,q)=>{const x=Math.min(Math.max(q.left+q.width/2,0.5),vw-0.5),y=Math.min(Math.max(q.top+q.height/2,0.5),vh-0.5);const h=document.elementFromPoint(x,y);return !!h&&(h===el||el.contains(h)||h.contains(el));};
   const add=(q)=>{if(q.width>=1&&q.height>=1&&q.bottom>0&&q.top<vh&&q.right>L0&&q.left<R0)obs.push([Math.max(0,q.top),Math.min(vh,q.bottom)]);};
@@ -3094,7 +3094,7 @@ function offFreeSpot(full,short){
   for(const d of document.querySelectorAll('div')){if(!/repeat\(8/.test(d.style.gridTemplateColumns||''))continue;const q=d.getBoundingClientRect();if(q.width>=40&&on(d,q))add(q);}
   const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())){if(!n.textContent.trim())continue;const pe=n.parentElement;if(!pe)continue;const cs=getComputedStyle(pe);if(cs.visibility==='hidden'||+cs.opacity===0)continue;
     const k=document.createRange();k.selectNodeContents(n);for(const q of k.getClientRects())if(q.width>=1&&q.height>=1&&on(pe,q))add(q);}
-  obs.sort((a,b)=>a[0]-b[0]);const gaps=[];let y=0;for(const [t,b] of obs){if(t>y)gaps.push([y,t]);y=Math.max(y,b);}if(y<vh)gaps.push([y,vh]);
+  obs.sort((a,b)=>a[0]-b[0]);const gaps=[];const yTop=Math.max(0,+sTop||0),yEnd=vh-Math.max(0,+sBot||0);let y=yTop;for(const [t,b] of obs){if(t>y)gaps.push([y,Math.min(t,yEnd)]);y=Math.max(y,b);}if(y<yEnd)gaps.push([y,yEnd]);
   const meas=(txt)=>{const m=document.createElement('div');m.style.cssText='position:fixed;left:0;top:0;visibility:hidden;box-sizing:border-box;padding:'+OFF_PAD+';border:1px solid transparent;font-size:13px;font-weight:700;line-height:18px;text-align:center;font-family:\'Segoe UI\',system-ui,sans-serif;width:'+W+'px';m.textContent=txt;document.body.appendChild(m);const h=m.offsetHeight;document.body.removeChild(m);return h;};
   for(const [txt,isShort] of [[full,false],[short,true]]){const h=meas(txt);const g=gaps.find(([a,b])=>b-a>=h+8);if(g)return {top:Math.round(g[0]+(g[1]-g[0]-h)/2),left:L0,w:W,short:isShort};}
   return null;
@@ -5966,8 +5966,8 @@ function AppMain(){
      of the screen's height, as wide as the notice, that no painted text, control, picture or board crosses (offFreeSpot). The whole sentence
      where one fits, else 'You are offline.' alone, else no words at all for those 5 s (the 2px line along the top edge stays, and carries the
      sentence for a screen reader). So for its 5 s the notice covers no piece, square, text or control on any screen. Gate 146 TC-R222k. */
-  useLayoutEffect(()=>{if(!offNote){if(offAt)setOffAt(null);return;}let at=null;try{at=offFreeSpot(OFF_WORDS,OFF_SHORT);}catch(e){}
-    setOffAt(at||{none:true});},[offNote]);
+  useLayoutEffect(()=>{if(!offNote){if(offAt)setOffAt(null);return;}let at=null;try{at=offFreeSpot(OFF_WORDS,OFF_SHORT,safeTop,safeBot);}catch(e){}
+    setOffAt(at||{none:true});},[offNote,safeTop,safeBot]);
   const pvJumpRef=useRef(null); /* #372: a Preview gallery card can ask the next finished review to open on its last move */
   useEffect(()=>{if(review&&pvJumpRef.current==='last'){pvJumpRef.current=null;setReviewView('moves');setPly(review.plies.length);}},[review]);
   useEffect(()=>{ /* #366 lay-B: measure the painted board while the overlay is on */
