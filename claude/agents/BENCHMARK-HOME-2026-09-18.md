@@ -40,3 +40,31 @@ player, and Appearance in one place instead of two.
 
 Before pictures (headless, the tree at `29bb4ce`, trial bundle md5 `d61a28998af1`, fresh and earned stores):
 `claude/agents/shots/550-today-card-before-home-{fresh,earned}-{375x761,320x568}.png`.
+
+## As built at #550, measured (headless Chromium, `gates/lib.js` geometries)
+
+Bundles: before = trial md5 `d61a28998af1` (the tree at `29bb4ce`), after = trial md5 `ce5b699a5bf4` (the Today card). Card rects
+are the Home column's direct children, read at rest with the overlay scrolled to the top. "Earned" is a 4-day streak, 120 XP, 2 of
+today's 5 puzzles, and today's lesson and one Daily 3 puzzle done.
+
+| store, geometry | before: cards above the tiles | after: cards above the tiles |
+|---|---|---|
+| earned, 375x761 (kunal761) | strip 68 @106 + Daily 3 68 @190 = **152px** to the tiles at 258 | Today **84 @106**, tiles at **190** |
+| earned, 320x568 | strip 68 @106 + Daily 3 68 @190 = **152px** to the tiles at 258 | Today **84 @106**, tiles at **190** |
+| fresh, 375x761 and 320x568 | Daily 3 68 @106, NEW HERE 100 @174, tiles at 290 | Today 84 @106, NEW HERE 100 @190, tiles at 306 |
+
+So on the store the proposal measured, the top of Home goes **152px -> 84px**, exactly the proposal's estimate, and everything below
+moves up **68px**. On a fresh store (no strip existed) the single card is 16px taller than Daily 3 was, because it carries the
+streak line and keeps answer a31's "bonus · any one keeps your streak" as its third line.
+
+The 152 here is the same figure the proposal measured on #416 at 375x679: the strip and the card each measure 68 and the strip's
+16px bottom margin separates them (measured here at 375x761 and 320x568).
+
+Pictures: `claude/agents/shots/550-today-card-{before,after}-home-{fresh,earned}-{375x761,320x568}.png`.
+
+With the longest lesson name in the library as the lesson to continue ("Continue: Albin Counter-Gambit: Lasker Trap", 239px of
+text), the dots row wraps to two lines and the card measures **114** tall at both 375x761 and 320x568; the name is whole and on
+screen (`550-today-card-after-continue-longest-{375x761,320x568}.png`).
+
+Gate: `gates/regress/49-home.js` re-pinned - 523 pass / 0 fail on the card's tree (trial `ce5b699a5bf4`), 417 pass / 88 fail on
+the tree without it (trial `d61a28998af1`, the control).
