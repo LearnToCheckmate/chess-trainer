@@ -105,3 +105,4 @@ L.run(async()=>{
   }
 },'PLYLOG');
 // SELECTOR-OPENED: menu-foot reading=nav #550 lead, opened by reading: toggle() opens the fold then taps /^Layout readout$/ behind it, so a missing hook leaves the row unreachable and the toggle reds
+// CONTROL-RECORD: 016ccda 2026-11-14 total=23 red=4 scope=trial:c504cebc5ef7 how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): setPly records whether or not the readout is on (if(true) for if(plyLogOnRef.current)) and switching it off no longer clears the buffer - 'plies stepped with the switch OFF left nothing in the buffer' and 'the buffer is cleared' red at kunal730 and kunal (null -> 'ply log fn fn fn'); tip trial 66ccacbf3e7f 23/0

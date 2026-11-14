@@ -46,3 +46,5 @@
 mountcheck	COVERED on records citing 016ccda (#550 test-system helper B, trial 8b48b3979f5f 18/6)
 23-full-walk	COVERED on records citing 016ccda (#550 test-system helper B, trial 9736ef9aa593 23/2)
 27-scan-fen	COVERED on records citing 016ccda (#550 test-system helper B, mutant fen.js d7ee58e5ccb0 77/3)
+32-plylog	COVERED on records citing 016ccda (#550 test-system helper B, trial c504cebc5ef7 23/4)
+80-castle-input	COVERED on records citing 016ccda (#550 test-system helper B, trial 931b4aa4284f 40/6)

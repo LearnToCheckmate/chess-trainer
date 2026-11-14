@@ -93,3 +93,4 @@ L.run(async()=>{
   }
   L.say(errs===0,'zero app errors across '+(CASES.length+1)+' launches',{errs});
 });
+// CONTROL-RECORD: 016ccda 2026-11-14 total=40 red=6 scope=trial:931b4aa4284f how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): applyMove's kingside branch no longer moves the rook (the castle==='K' rook line deleted) - C2 THE ROOK MOVED TOO red for wk and bk under all three gestures (f1/f8 null, the rook still on its corner) while C1 and C3 stay green, the half of castling C1 alone cannot see; queenside and the NC green; tip trial 66ccacbf3e7f 40/0
