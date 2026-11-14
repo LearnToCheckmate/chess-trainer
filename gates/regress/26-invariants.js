@@ -674,7 +674,7 @@ const ICON_PIN={320:[16,19,20,21,22,25,26,27,28,33,36,49],   /* PIN MOVED WITH A
 // scrolled sideways. The opponents now wrap on their own 'Choose your opponent' screen, so the row never overflows and the chip never renders -
 // the 30 left with the thing it measured, not with a drifted glyph. Measured by app A on a207ea6 (efa1ab05dd72): 17,20,22,26,40 at se,
 // kunal730 and short375. Was {320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]}.
-const ICON_PIN_EXTRA={320:[17,20,22,26,40], 375:[17,20,22,26,40]};   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
+const ICON_PIN_EXTRA={320:[17,20,22,26,32,40], 375:[17,20,22,26,40]};   /* #550 helper B, Kunal's q50 (1fe66f4): at 320x568 the Look picker's chips lose their names, so the Symbol set's chip is a bare 32px ♞ glyph - an icon button now, by his design; 375 keeps its names, so its set is unchanged */   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
 // TC-INV-03c [#550 test-system helper A; jobs/tc-inv-03b-does-not-visit-choose-your-opponent-2026-11-14]: since q44 the bot row lives only
 // on 'Choose your opponent', which TC-INV-03b's play-setup state never reached (P.states['setup'] taps Computer, then Back). The state
 // setup-bots stays there and joins EXTRA; and because a union over all the unswept states would hide a height that some OTHER state

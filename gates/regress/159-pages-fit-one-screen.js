@@ -71,6 +71,15 @@ L.run(async()=>{
       const pbWant=Math.min(b.geo.w-52,290);
       if(gn==='320x568')L.say(!!q&&!q.intro&&q.cols===12&&q.pcs===5&&q.colRow===6&&q.pcRow===5&&q.colNamed===0&&q.pcNamed===0&&q.titled===17&&Math.abs(q.board-pbWant)<=1,
         tag+' Q50 the chips are name-less in rows of six (first rows '+(q&&q.colRow)+' and '+(q&&q.pcRow)+', '+(q&&q.colNamed)+'+'+(q&&q.pcNamed)+' painted names, '+(q&&q.titled)+' titles), the intro line is gone ('+(q&&q.intro)+') and the preview board keeps its size ('+(q&&q.board)+' for '+pbWant+')',q);
+      // (4) TC-INV-08s Q50 TAP [#550 helper B; checker seat 2's GAP on q50, A11Y-15]: at 320x568 every chip takes a 44 tap that is its own - a
+      //     finger anywhere in the 44x44 square on the chip's centre (nine points, 21px out) lands on that chip and not on a neighbour or nothing.
+      //     Measured by hit-testing, so it reads the tap area however it is made (the box itself or a ::after). The tip had 42x35 swatches on a
+      //     39 row pitch and 42x41 piece chips, none extended.
+      if(gn==='320x568'){const t=await b.page.evaluate(()=>{const ch=[...document.querySelectorAll('[data-ct="look-colours"] > button, [data-ct="look-pieces"] > button')];
+          const bad=[];for(const c of ch){const r=c.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+            for(const dx of [-21,0,21])for(const dy of [-21,0,21]){const h=document.elementFromPoint(cx+dx,cy+dy);if(!h||!(h===c||c.contains(h))){bad.push((c.getAttribute('title')||'?')+' '+(dx<0?'L':dx>0?'R':'')+(dy<0?'T':dy>0?'B':'')+(dx||dy?'':'C')+'->'+(h?(h.getAttribute('title')||h.getAttribute('data-ct')||h.tagName):'none'));break;}}}
+          const r0=ch[0]?ch[0].getBoundingClientRect():null;return {n:ch.length,bad,chip:r0?Math.round(r0.width)+'x'+Math.round(r0.height):null};});
+        L.say(t.n===17&&t.bad.length===0,tag+' Q50 TAP every one of the 17 chips takes a 44 tap of its own ('+t.n+' chips, a swatch '+t.chip+'; '+(t.bad.length?t.bad.length+' miss: '+t.bad.slice(0,4).join(', '):'no miss')+')',t);}
       else L.say(!!q&&q.intro&&q.cols===12&&q.pcs===5&&q.colNamed===12&&q.pcNamed===5&&Math.abs(q.board-pbWant)<=1,
         tag+' Q50 every word stays on a taller phone: the intro line ('+(q&&q.intro)+') and all '+(q?q.colNamed+q.pcNamed:0)+' of 17 chip names are painted, and the preview board is '+(q&&q.board)+' for '+pbWant,q);}
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
