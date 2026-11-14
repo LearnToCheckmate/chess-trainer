@@ -2265,6 +2265,46 @@ function gistInContext(did,pos,mv,prev,next){
 }
 // HEX-R-03's third rule: a Forced move whose next ply mates says so, in place of a gist that is true and beside the point
 function forcedMateTxt(nextPly){const s=nextPly&&nextPly.san?String(nextPly.san).replace(/[!?]+$/,''):'';return /#$/.test(s)?('The only legal move, and '+s.replace(/#$/,'')+' is mate next.'):'';}
+/* #550 helper lessons, jobs/review-slip-sentences-say-whose-move-and-why-2026-11-14 (Kunal, on his phone after 7.Re1: 'A small slip. e5 is the
+   answer. Nbd2 held it.'): the reply was a bare move with no owner and no reason, and the better move 'held it' without saying what it did.
+   slipReplyRead says WHOSE move the reply is, from the player's side, and what it does, from the board: mate; mate in two; a piece won; a check
+   that forks; else what it hits, and - the case on his card - that the natural capture of the replying piece loses more than it wins
+   (after 7.Re1 e5, Nxe5 lets ...Bxd1 take the queen: the g4 bishop pins the knight). Where no reason can be read it states the plain fact.
+   who: 'Your opponent' | 'You' | 'White' | 'Black'. Pure, so gate 133 runs it in Node. */
+function slipReplyRead(pn,pm,who){
+  try{
+    if(!pn||!pm)return '';
+    const san=toSAN(pn,pm,applyMove(pn.board,pm)),R=(pn.turn==='b'?'...':'')+san,lead=who+' can answer '+R;
+    const nm=(t)=>PNAME[t]||'piece',rest=(x)=>String(x||'').replace(/^\S+\s*/,'').replace(/\.$/,'');
+    let cr=null;try{cr=concreteRead(pn,pm);}catch(e){cr=null;}
+    if(cr&&cr.k==='mate1')return lead+', and it is mate.';
+    if(cr&&cr.k==='mate2')return lead+', which forces mate in two.';
+    if(cr&&(cr.k==='take'||cr.k==='forkcheck'))return lead+', which '+rest(cr.say)+'.';
+    const me=pn.turn,them=opp(me),g3=makeMove(pn,pm),nb=g3.board;
+    // what the reply newly hits (the highest value first, pawns included, never the king)
+    let hit=null;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=nb[r][c];if(!q||q.c!==them||q.t==='k')continue;
+      if(moveHits(nb,pm.tr,pm.tc,r,c)&&!moveHits(pn.board,pm.fr,pm.fc,r,c)){const v=SEEVAL[q.t]||0;if(!hit||v>hit.v)hit={v,t:q.t,sq:rc2sq(r,c)};}}
+    // the natural capture of the replying piece, and what it lets go: a capture of a piece worth 5 or more that the reply side could not make before
+    let trap='';
+    const caps=getLegal(g3).filter(m=>m.tr===pm.tr&&m.tc===pm.tc);
+    const before=new Set(getLegal({...g3,turn:me}).filter(m=>nb[m.tr][m.tc]&&nb[m.tr][m.tc].c===them).map(m=>m.tr*8+m.tc));
+    for(const cm of caps){const g4=makeMove(g3,cm);let best=null;
+      for(const m of getLegal(g4)){const q=g4.board[m.tr][m.tc];if(!q||q.c!==them||(SEEVAL[q.t]||0)<5||before.has(m.tr*8+m.tc)&&!(cm.fr===m.tr&&cm.fc===m.tc))continue;
+        const v=SEEVAL[q.t]||0;if(v>(SEEVAL[nb[pm.tr][pm.tc].t]||0)&&(!best||v>best.v))best={v,t:q.t,m,san:toSAN(g4,m,applyMove(g4.board,m)),from:rc2sq(m.fr,m.fc),pc:g4.board[m.fr][m.fc]};}
+      if(best){const cs=toSAN(g3,cm,applyMove(g3.board,cm));trap=cs+' would lose the '+nm(best.t)+' to '+(me==='b'?'...':'')+best.san;break;}}
+        if(trap)return lead+': '+trap+'.';
+    const tk=pn.board[pm.tr][pm.tc];   // a capture says what it takes before what it hits
+    if(tk)return lead+', which takes the '+nm(tk.t)+' on '+rc2sq(pm.tr,pm.tc)+(hit?(' and hits the '+nm(hit.t)+' on '+hit.sq):'')+'.';
+    if(hit)return lead+', which hits the '+nm(hit.t)+' on '+hit.sq+'.';
+    return lead+'.';
+  }catch(e){return '';}
+}
+// what the better move would have done, from the position before the slip; the plain fact where the board gives nothing
+function betterRead(pos,bm,bestSan){
+  if(!bestSan)return '';
+  try{const gi=(pos&&bm)?((moveGist(pos,bm)||{}).did||[]):[];if(gi[0])return bestSan+' was better: it '+gi[0]+'.';}catch(e){}
+  return bestSan+' was the better move.';
+}
 function explainAnno(a,ctx){
   if(!a)return null;
   const L=a.cls&&a.cls.label; if(!L)return null;
@@ -2290,8 +2330,10 @@ function explainAnno(a,ctx){
   const _h=(G.left||[])[0];
   const hangTxt=_h?(_h.moved?('It puts the '+PNAME[_h.t]+' on '+_h.sq+' en prise.'):('It leaves the '+PNAME[_h.t]+' on '+_h.sq+' hanging.')):'';
   // describe the answer rather than only naming it
+  const _rs=(()=>{const uc=ctx&&ctx.userColor,mv=(mover==='White')?'w':'b';if(uc==='w'||uc==='b')return mv===uc?'Your opponent':'You';return mover==='White'?'Black':'White';})();
   const replyTxt=(()=>{
     if(!reply)return '';
+    try{const pn=ctx&&ctx.nextPos,pm=(nxt&&nxt.bestMove)||(nxtPly&&nxtPly.move);if(pn&&pm&&(L==='Blunder'||L==='Mistake'||L==='Inaccuracy')){const t=slipReplyRead(pn,pm,_rs);if(t)return t;}}catch(e){}
     let tail='';
     try{
       const pn=ctx&&ctx.nextPos, pm=(nxt&&nxt.bestMove)||(nxtPly&&nxtPly.move);
@@ -2373,7 +2415,7 @@ function explainAnno(a,ctx){
   if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'){
     const size=L==='Inaccuracy'?'A small slip.':(L==='Mistake'?'A mistake.':'A blunder.');
     const cost=(lossP>=0.15&&lossP<14.95/* #550 HEX-R-13: the loss is capped at 15.0 when a side of the swing is a mate, and '15.0 pawns' is not a number anyone can use - the reply clause says mate */)?('About '+lossP.toFixed(1)+' '+(lossP.toFixed(1)==='1.0'?'pawn':'pawns')+' of advantage gone.'):'';
-    const better=a.bestSan?(a.bestSan+' held it.'):'';
+    const better=betterRead(ctx&&ctx.pos,a.bestMove,a.bestSan);   // jobs/review-slip-sentences-say-whose-move-and-why-2026-11-14: never '<move> held it'
     return pack([hangTxt,size,replyTxt,better,cost,standing]);}
   return null;
 }
@@ -9988,7 +10030,7 @@ function AppMain(){
        not read off the pending marker, because that marker is written by the effect AFTER this first render. */
     const _L=curAnno.cls&&curAnno.cls.label;
     const refuteDue=!refute&&!(R&&(R.none||R.failed))&&(_L==='Brilliant'||_L==='Great')&&ai>=0&&(()=>{const pos=review.positions&&review.positions[ai],pl=review.plies[ai];return !!(pos&&pl&&pl.move&&sacTaker(pos,pl.move));})();
-    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',pos:review.positions&&review.positions[ai],ply:review.plies[ai],prev:(ai>0&&review.plies[ai-1]&&review.positions)?{move:review.plies[ai-1].move,pos:review.positions[ai-1]}:null,next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
+    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',userColor:(review.summary&&review.summary.userColor)||(review.meta&&review.meta.userColor)||null,pos:review.positions&&review.positions[ai],ply:review.plies[ai],prev:(ai>0&&review.plies[ai-1]&&review.positions)?{move:review.plies[ai-1].move,pos:review.positions[ai-1]}:null,next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
   },[curAnno,inReview,review,ply,sacTick,wide]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was

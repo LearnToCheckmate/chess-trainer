@@ -130,6 +130,20 @@ At 320x568 the explanation is clamped to one line with "▾ more" (the readabili
 - Under a Blunder, Mistake or Miss, the opponent's reply is now described by what the board after it proves - "<reply> is mate.", "It allows mate in two, starting <reply>.", or "<reply> wins the <piece>" - where it used to read "<reply> is the answer". When the swing is a mate, the "About 15.0 pawns of advantage gone" clause (the loss is capped at 15.0 there) is dropped. Not yet shown on your own games here: these are the rules as built, and the Review gates were run over them.
 - The "▶ why" button now answers in words in the line row: the first two moves of the line it plays, through the same reader as the engine line's ? sheet.
 
+**Captures read in the game, not on one board (HEX-R-03)** - Opera Game
+- 5.Qxf3, old: Wins the bishop and gets the queen out of danger.
+- 5.Qxf3, new: Takes back on f3, a bishop for the knight, and gets the queen out of danger.
+- 13...Rxd7, old: Wins the rook and defends the queen on e7. New: Takes back on d7, a rook for the knight, and defends the queen on e7.
+- 4...Bxf3, old: Chases the queen off d1 and trades the bishop for the knight. New: Trades the bishop for the knight. (The next move takes the bishop, so the queen was never chased.)
+- A Forced move whose next ply is mate, old: The only legal move. Wins the queen and takes the open f file. White is losing here. New: The only legal move, and Rxf1 is mate next.
+
+**A slip says whose move the reply is, what it does, and what the better move did** (jobs/review-slip-sentences-say-whose-move-and-why-2026-11-14) - his 7.Re1
+- Old: A small slip. e5 is the answer. Nbd2 held it.
+- New: A small slip. Your opponent can answer ...e5: Nxe5 would lose the queen to ...Bxd1. Nbd2 was better: it develops the knight.
+- When he is Black (Opera 9...b5), old: A mistake. Nxb5 is the answer. Qb6 held it. New: A mistake. Your opponent can answer Nxb5, which takes the pawn on b5 and hits the pawn on a7. Qb6 was the better move.
+- A reply that mates, old: A blunder. Rd8 is mate. h6 held it. New: A blunder. Your opponent can answer Rd8#, and it is mate. h6 was the better move.
+- Where the board gives no reason the line states the fact: "<who> can answer <move>." and "<move> was the better move."; when his colour is unknown, "White" or "Black" stands for "You" or "Your opponent".
+
 ## 8. Tactics and Strategy: the wrong chess, fixed
 - Pawn fork: a second white pawn on e4 guards d5, so Bxd5 no longer refutes it (the stored move is now best by 2.4 pawns).
 - Put rooks on open files, Rooks love the 7th rank, Trade pieces when you are ahead: each had mate in one for White; Black now has air (and, for the trade card, a rook and knight to trade). No mate in one in any of the 18.

@@ -70,6 +70,26 @@ L.run(async()=>{
         const n=E.pzMissNote(P,g,m);if(n&&n.indexOf(' on '+E.rc2sq(m.tr,m.tc)+' ')>=0){named++;if(ex.length<3)ex.push(r.f+' '+E.rc2sq(m.tr,m.tc)+': '+n);}}}catch(e){}});
     L.say(caps>1000&&named===0,'TC-R209k over all '+caps+' capturing wrong moves, no line note names the square the move itself took on ('+named+'; 88 before the fix)',{caps,named,ex});}
    L.say(tot===876&&got>=600,'TC-R209k DENOMINATOR and coverage: of '+tot+' generated puzzles, the first legal wrong move gets a line note on '+got+' (at least 600; 627 measured)',{tot,got});}
+  // ── TC-R209n [#550 helper lessons, jobs/review-slip-sentences-say-whose-move-and-why-2026-11-14 - Kunal, on his phone after 7.Re1: 'A small
+  // slip. e5 is the answer. Nbd2 held it.']: the Review sentence of a slip, read through the SHIPPED explainAnno (its source block evaluated with
+  // the engine in scope, so a control source runs its own explainAnno). It must say whose move the reply is from the player's side, what the
+  // reply does from the board, and what the better move does - never '<move> is the answer' or '<move> held it'. His position; a Black-side
+  // slip (Opera 9...b5, he is Black, the reply is White's Nxb5 with no dots); and a reply that is mate.
+  {let XA=null,xerr=null;try{const src=fs.readFileSync(E.SRC_PATH,'utf8'),ls=src.split('\n'),bl=new Map(),st=[];for(let i=0;i<ls.length;i++)if(/^(async\s+function|function|const|let|var)\s/.test(ls[i]))st.push(i);
+     for(let k=0;k<st.length;k++){const m=/^(?:async\s+function|function|const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(ls[st[k]]);if(m&&!bl.has(m[1]))bl.set(m[1],ls.slice(st[k],k+1<st.length?st[k+1]:ls.length).join('\n'));}
+     const want=['WHY_MAXW','slipReplyRead','betterRead','gistInContext','forcedMateTxt','explainAnno'].filter(n=>bl.has(n));const nm=Object.keys(E).filter(n=>/^[A-Za-z_$][\w$]*$/.test(n)&&!want.includes(n));
+     XA=new Function(...nm,want.map(n=>bl.get(n)).join('\n')+'\nreturn explainAnno;')(...nm.map(n=>E[n]));}catch(e){xerr=e.message;}
+   L.say(!!XA,'TC-R209n PRECONDITION the source\'s explainAnno evaluates in Node ('+(xerr||'ok')+')',xerr);
+   const say=(fenBefore,san,label,replySan,bestSan,mover,uc)=>{try{const pre=E.fromFEN(fenBefore),mv=E.findMoveBySAN(pre,san),pn=E.makeMove(pre,mv),rm=E.findMoveBySAN(pn,replySan);
+       const a={cls:{label},loss:label==='Blunder'?900:label==='Mistake'?150:40,evalAfter:0,bestSan,bestMove:bestSan?E.findMoveBySAN(pre,bestSan):null,gist:E.moveGist(pre,mv),motifs:[]};
+       return XA(a,{mover,userColor:uc,pos:pre,ply:{move:mv,san},prev:null,next:{bestSan:replySan,bestMove:rm},nextPly:{san:replySan,move:rm},nextPos:pn,maxw:150})||'';}catch(e){return 'THREW '+e.message;}};
+   if(XA){
+     const t1=say('r2qkb1r/1pp2ppp/p1n1pn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 1 7','Re1','Inaccuracy','e5','Nbd2','White','w');
+     L.say(/Your opponent can answer \.\.\.e5/.test(t1)&&/Nxe5 would lose the queen to \.\.\.Bxd1/.test(t1)&&/Nbd2 was better: it /.test(t1)&&!/is the answer|held it/.test(t1),'TC-R209n his 7.Re1 slip says whose move ...e5 is, what it does and what Nbd2 does: "'+t1+'"',t1);
+     const t2=say('rn2kb1r/pp2qppp/2p2n2/4p1B1/2B1P3/1QN5/PPP2PPP/R3K2R b KQkq - 0 9','b5','Mistake','Nxb5','Qb6','Black','b');
+     L.say(/Your opponent can answer Nxb5\b/.test(t2)&&!/\.\.\.Nxb5/.test(t2)&&!/is the answer|held it/.test(t2)&&/Qb6 was (better|the better move)/.test(t2),'TC-R209n a Black-side slip (Opera 9...b5, he is Black): the reply is his opponent\'s, named without dots: "'+t2+'"',t2);
+     const t3=say('6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1','Kh8','Blunder','Rd8#','h6','Black','b');
+     L.say(/Your opponent can answer Rd8#, and it is mate\./.test(t3)&&!/is the answer|held it/.test(t3),'TC-R209n a reply that is mate says so: "'+t3+'"',t3);}}
   // ── TC-R209m [#550 helper lessons, docs/hint-audit-2026-11-12 HEX-R-03; jobs/review-sentences-name-what-the-moves-do-2026-11-12]: the Review
   // sentence's clauses read IN THE GAME. The Opera Game through the shipped moveGist and gistInContext: 5.Qxf3 takes back on f3 (a bishop for
   // the knight), not "wins the bishop"; 13...Rxd7 takes back a rook for the knight; 4...Bxf3 and 13.Rxd7 no longer "chase" a queen when the
