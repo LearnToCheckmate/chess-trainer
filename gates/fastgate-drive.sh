@@ -2108,6 +2108,12 @@ fi
 #     wrong-width rows, must be REFUSED, exit 1 "records: RED". (b) is exit 0 "records: green" (the breach is
 #     gone) and (c) stays exit 1. The three heads are kept because (b) is still the direction a binary must not
 #     refuse, and (a) is now the one a regression back to a ratchet would flip.
+#     AND THE FIXTURE IDS CHANGED WITH IT, MEASURED: the rows were `TC-DRIVE-H55-A/B/C`, and TC-DRIVE is a prefix
+#     claude/stories/README.md does not register, so every head also read prefixunregistered=1. The ratchet never
+#     saw that - it was on the base and on all three heads - and the first binary run of this case went red at
+#     (b) for it, exit 1 with widthrise=0. The rows are now TC-SUITE-9551..9553, a registered prefix far above any
+#     real id, so the only breach a head carries is the one this case varies (measured: broken2 exit 1
+#     widthrise=2, fixed2 exit 0, broken3 exit 1 widthrise=3; notchecked=1 is the tree's own NOT CHECKED row).
 reset_clone
 H55F=claude/stories/TEST-CASES.md
 h55_set(){ # <broken2|fixed2|broken3>  rewrite the fixture rows, idempotently
@@ -2115,11 +2121,11 @@ h55_set(){ # <broken2|fixed2|broken3>  rewrite the fixture rows, idempotently
 import sys
 p, mode = sys.argv[1], sys.argv[2]
 s = open(p, encoding='utf-8').read().split('\n')
-s = [l for l in s if not l.startswith('| TC-DRIVE-H55-')]
+s = [l for l in s if not l.startswith('| TC-SUITE-955')]
 idx = max(i for i, l in enumerate(s) if l.startswith('| TC-SUITE-'))
 pipe = r'an escaped \| pipe' if mode == 'fixed2' else 'an unescaped | pipe'
-ids = ['A', 'B', 'C'] if mode == 'broken3' else ['A', 'B']
-rows = ['| TC-DRIVE-H55-%s | US-BN-01 | fixture only, never pushed: this row carries %s, so it reads one '
+ids = ['1', '2', '3'] if mode == 'broken3' else ['1', '2']
+rows = ['| TC-SUITE-955%s | US-BN-01 | fixture only, never pushed: this row carries %s, so it reads one '
         'column too wide | - | - | - |' % (i, pipe) for i in ids]
 s[idx+1:idx+1] = rows
 open(p, 'w', encoding='utf-8').write('\n'.join(s))
