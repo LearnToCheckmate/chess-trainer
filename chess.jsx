@@ -4863,7 +4863,7 @@ function AppMain(){
     if(kind==='lesson')nx.lesson=Math.min(1,(cur.lesson||0)+1);
     if(kind==='puz')nx.puz=Math.min(2,(cur.puz||0)+1);
     setDaily3(nx);try{localStorage.setItem('ct_daily3',JSON.stringify(nx));}catch(e){}
-    if(nx.lesson>=1&&nx.puz>=2&&!(cur.lesson>=1&&cur.puz>=2)){toastRef.current('Daily 3 complete! Streak safe.','ok');}};
+    if(nx.lesson>=1&&nx.puz>=2&&!(cur.lesson>=1&&cur.puz>=2)){toastRef.current('Today\'s 3 done! Streak safe.','ok');   /* #550: the toast named the Daily 3 card, which the Today card replaced (build-home-one-today-card) */}};
 
   /* #550 SYN-02: WHAT THE PULL BRINGS IS ON SCREEN AT ONCE. The pull used to write localStorage only, so the running app kept its pre-pull
      state - no streak, no cards, no Continue - until a reload, and the next change wrote that stale state back over the pulled copy and
