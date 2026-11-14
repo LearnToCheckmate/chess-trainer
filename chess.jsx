@@ -13559,7 +13559,7 @@ function AppMain(){
               const pts=A.map((a,i)=>xs(i)+','+ys(a.evalAfter));const line='M'+pts.join(' L');
               const area='M'+xs(0)+','+mid+' L'+pts.join(' L')+' L'+xs(n-1)+','+mid+' Z';
               const cur=ply>0?Math.min(n-1,ply-1):-1;
-              const marks=[];A.forEach((a,i)=>{const L=a.cls&&a.cls.label;if(L==='Blunder'||L==='Brilliant')marks.push({x:xs(i),c:L==='Blunder'?'#ec5c4e':'#22d3ee'});});
+              const marks=[];const _bkN=(review&&review.summary&&review.summary.book)||0;A.forEach((a,i)=>{const L=effLabel(a.cls,i,_bkN);/* #550 helper app A, jobs/grade-ladder-has-five-independent-copies (its last raw painter): the bar's graph marks the grade the badge shows, so a book ply carries no Blunder mark (gate 19 A7c) */if(L==='Blunder'||L==='Brilliant')marks.push({x:xs(i),c:L==='Blunder'?'#ec5c4e':'#22d3ee'});});
               const onTap=(e)=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();const fx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));setRevAuto(false);setPly(Math.round(fx*(n-1))+1);};
               return(<svg data-ct="eval-graph" onClick={onTap} width={gw} height={gh} viewBox={'0 0 '+gw+' '+gh} style={{flexShrink:0,display:'block',borderRadius:6,background:_lightBar?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',cursor:'pointer',touchAction:'manipulation'}} aria-label="Evaluation graph, tap to jump">
                 <defs><clipPath id="egw"><rect x="0" y="0" width={gw} height={mid}/></clipPath><clipPath id="egb"><rect x="0" y={mid} width={gw} height={gh-mid}/></clipPath></defs>
