@@ -362,6 +362,13 @@ verify_set() {
   fi
 
   local -a payloads=()
+  # DECLARANTS THAT FAILED S0 [#550 helper A; jobs/a-truncated-payload-declares-paths-in-its-stat-summary-and-exposes-none-so-s0-s1-and-s2-
+  # are-all-blind-to-it-2026-10-13, checkVerdict_550_seat2]. A payload refused by S0 as truncated was dropped from every later arm, so the
+  # ' create mode' paths it DECLARES could never meet the payload that really adds them: on the job's own testCase S1 read 'SKIP one payload
+  # in the set; no pair to compare'. Such a payload is still a format-patch stream, so its ADDITIONS (diff and declared) stay in S1's
+  # comparison, labelled '(declared-only,S0-failed)' in the verdict. Only S1's: its modifications are not read by S2..S7, because a stream
+  # S0 refused is not one whose diffs can be trusted to be whole. S0 stays FAIL; this only keeps the collision visible beside it.
+  local -a declonly=()
   local f
   for f in "$dir"/*; do
     [ -f "$f" ] || continue
@@ -391,9 +398,21 @@ verify_set() {
     if [ -n "$undecl" ]; then
       local u_sha u_nd u_ne u_p; read -r u_sha u_nd u_ne u_p <<< "$undecl"
       fail S0-SET-READABLE "$(basename "$f") commit $u_sha declares $u_nd path(s) in its stat summary and its diff exposes $u_ne ($u_p has no 'diff --git' hunk): a truncated payload, and a path S1..S6 cannot see"
+      declonly+=("$f")
+      continue
+    fi
+    # AN EMPTY COMMIT IS NOT A TRUNCATED ONE [the same job's testCase, input 2]. `git commit --allow-empty` formats as a header, a
+    # message, no stat summary and no diff, and git apply --stat refuses it ('No valid patches in input'), so the arm below called it
+    # 'truncated or corrupt'. A stream with NO 'diff --git' header AND NO 'N files changed' summary declares nothing and exposes nothing:
+    # it is whole and empty, and it is accepted with a NOTE that says so. A truncated stream always keeps one of the two (C97: a cut
+    # hunk; C103: a stat block), so this cannot excuse either.
+    if [ "$nd" = 0 ] && ! grep -qE '^ [0-9]+ files? changed' "$f" && ! git apply --stat "$f" >/dev/null 2>&1; then
+      say S0-SET-READABLE NOTE "$(basename "$f") carries only empty commit(s): no stat summary and no diff, so it declares and exposes nothing (not truncated)"
+      payloads+=("$f")
       continue
     fi
     if ! git apply --stat "$f" >/dev/null 2>&1; then
+      declonly+=("$f")
       fail S0-SET-READABLE "$(basename "$f") is not a whole patch stream (git apply --stat: $(git apply --stat "$f" 2>&1 | head -n 1)): truncated or corrupt"
       continue
     fi
@@ -401,6 +420,22 @@ verify_set() {
   done
 
   local n=${#payloads[@]}
+  local -a collided=()
+  s1_rows(){ # the S1 rows: "<path>\t<payload label>" for every addition of every well-formed payload and every S0-failed declarant
+    local g lab
+    for g in ${payloads[@]+"${payloads[@]}"} ${declonly[@]+"${declonly[@]}"}; do
+      lab="$(basename "$g")"; case " ${declonly[*]-} " in *" $g "*) lab="$lab(declared-only,S0-failed)";; esac
+      ps_new_paths "$g" | sort -u | while read -r p; do [ -n "$p" ] && printf '%s\t%s\n' "$p" "$lab"; done
+    done; }
+  s1_verdict(){ # s1_verdict <rows file>
+    collided=(); local p cnt   # the CALLER's collided (declared in verify_set): S2 reads it
+    while read -r cnt p; do [ -n "$p" ] || continue; if [ "$cnt" -gt 1 ]; then collided+=("$p"); fi
+    done < <(cut -f1 "$1" | sort | uniq -c | sed -E 's/^ *([0-9]+) /\1 /')
+    if [ "${#collided[@]}" -eq 0 ]; then say S1-NEWFILE-COLLISION PASS "no path is added as a new file by two payloads"
+    else for p in "${collided[@]}"; do fail S1-NEWFILE-COLLISION "$p added as a new file by: $(awk -F'\t' -v w="$p" '$1==w{printf "%s ", $2}' "$1")"; done; fi; }
+  if [ $(( n + ${#declonly[@]} )) -ge 2 ] && [ "$n" -le 1 ]; then
+    local s1t; s1t=$(mktemp); s1_rows > "$s1t"; s1_verdict "$s1t"; rm -f "$s1t"
+  fi
   if [ "$n" -eq 0 ]; then
     say S0-SET-READABLE SKIP "no well-formed payloads in $dir; nothing to cross-check"
     return "$FAILED"
@@ -410,7 +445,7 @@ verify_set() {
   # A set of one cannot collide with itself. Say so rather than printing five
   # vacuous passes: a check that cannot fail on this input is a SKIP [R18].
   if [ "$n" -eq 1 ]; then
-    say S1-NEWFILE-COLLISION   SKIP "one payload in the set; no pair to compare"
+    [ "${#declonly[@]}" -ge 1 ] || say S1-NEWFILE-COLLISION   SKIP "one payload in the set; no pair to compare"
     say S2-COLLISION-SKIPPABLE  SKIP "no collision to be skippable"
     say S3-GATE-NUMBER-UNIQUE   SKIP "one payload in the set; no pair to compare"
     say S4-NO-SHARED-EDIT       SKIP "one payload in the set; no pair to compare"
@@ -425,28 +460,8 @@ verify_set() {
   # The job's own pass condition: the count of paths added as a new file by more
   # than one payload must be 0.
   local tmp; tmp=$(mktemp)
-  for f in "${payloads[@]}"; do
-    ps_new_paths "$f" | sort -u | while read -r p; do
-      [ -n "$p" ] && printf '%s\t%s\n' "$p" "$(basename "$f")"
-    done
-  done > "$tmp"
-
-  local -a collided=()
-  local p cnt
-  while read -r cnt p; do
-    [ -n "$p" ] || continue
-    if [ "$cnt" -gt 1 ]; then collided+=("$p"); fi
-  # THE PATH IS THE REST OF THE LINE, NOT FIELD 2 [#546, item (51)]: awk's $2 cut a path at its first space, so a
-  # quoted path that ps_paths now reads still reached the verdict as 'claude/x' - C99 caught it on its first run.
-  done < <(cut -f1 "$tmp" | sort | uniq -c | sed -E 's/^ *([0-9]+) /\1 /')
-
-  if [ "${#collided[@]}" -eq 0 ]; then
-    say S1-NEWFILE-COLLISION PASS "no path is added as a new file by two payloads"
-  else
-    for p in "${collided[@]}"; do
-      fail S1-NEWFILE-COLLISION "$p added as a new file by: $(awk -F'\t' -v w="$p" '$1==w{printf "%s ", $2}' "$tmp")"
-    done
-  fi
+  s1_rows > "$tmp"
+  s1_verdict "$tmp"
 
   # ---- THE SHARED-MODIFICATION SET, COMPUTED BEFORE S2 -------------------
   # Modifications, not additions: additions are S1. This used to live inside S4,
@@ -967,6 +982,32 @@ selftest() {
   expect_rc    C104-stat-truncated-set-exit-1 "$rc" 1
   out=$(ps_new_paths "$T/TW/lane1")
   expect_rc    C105-ps_new_paths-harvests-a-create-once "$(printf '%s\n' "$out" | grep -cx 'gates/regress/97-x.js')" 1
+  # C106..C112 [#550 helper A; the same job's testCase, the checkVerdict_550_seat2 remainder]. THE JOB'S OWN FIXTURE, three
+  # inputs. (1) payloadA: two commits, the second TRUNCATED to prose with its stat summary and
+  # ' create mode 100644 claude/process-log/lane-4.md' kept, beside payloadB, which REALLY adds that path: S0 fails payloadA AND
+  # S1 names BOTH declarants on that path. Before the fix S1 read 'SKIP one payload in the set; no pair to compare', because an
+  # S0-failed payload was dropped from every later arm. (2) a genuinely EMPTY commit (`git commit --allow-empty`: no stat
+  # summary, no diff) is not called truncated. (3) a normal payload beside payloadB is the negative control and stays clean.
+  mkdir -p "$T/TT" "$T/TE" "$T/TN"
+  statL=$' claude/process-log/lane-4.md | 3 +++\n 1 file changed, 3 insertions(+)\n create mode 100644 claude/process-log/lane-4.md\n\n'
+  { mk_commit_header 0b1c2d3 "lane4 work"; printf '%s' "$stat2"; mk_mod gates/verify-log.sh
+    mk_commit_header 0b1c2d4 "lane4 record"; printf '%s' "$statL"; printf 'The record for this run was here; the payload was cut to prose.\n'; } > "$T/TT/payloadA"
+  { mk_commit_header 0c1d2e3 "lane4 record, the other lane"; printf '%s' "$statL"; mk_new claude/process-log/lane-4.md; } > "$T/TT/payloadB"
+  out=$(verify_set "$T/TT"); rc=$?
+  expect_line  C106-S0-fails-the-truncated-declarant "$out" '^S0-SET-READABLE +FAIL .*payloadA commit 0b1c2d4 declares 1 path\(s\).*claude/process-log/lane-4\.md'
+  expect_line  C107-S1-names-the-truncated-declarant-on-the-path "$out" '^S1-NEWFILE-COLLISION +FAIL claude/process-log/lane-4\.md added as a new file by: .*payloadA\(declared-only,S0-failed\)'
+  expect_line  C107b-and-the-payload-that-really-adds-it "$out" '^S1-NEWFILE-COLLISION +FAIL claude/process-log/lane-4\.md added as a new file by: .*payloadB '
+  expect_no_line C108-and-S1-is-not-skipped "$out" '^S1-NEWFILE-COLLISION +SKIP'
+  expect_rc    C109-the-set-is-red "$rc" 1
+  { printf 'From 0e1f2a3 Mon Sep 17 00:00:00 2001\nFrom: Claude <noreply@anthropic.com>\nDate: Sun, 4 Oct 2026 04:00:00 +0000\nSubject: [PATCH] an empty commit\n\n-- \n2.43.0\n\n'; } > "$T/TE/empty"   # byte-shape of a real `git format-patch` of a --allow-empty commit (no '---' line), measured
+  cp "$T/TT/payloadB" "$T/TE/payloadB"
+  out=$(verify_set "$T/TE"); rc=$?
+  expect_no_line C110-an-empty-commit-is-not-called-truncated "$out" 'empty .*(truncated or corrupt|not a whole patch stream)'
+  expect_line  C111-it-is-accepted-with-a-note-that-says-empty "$out" '^S0-SET-READABLE +NOTE empty carries only empty commit\(s\)'
+  { mk_commit_header 0d1e2f3 "a normal lane"; mk_new claude/process-log/lane-1.md; } > "$T/TN/normal"
+  cp "$T/TT/payloadB" "$T/TN/payloadB"
+  out=$(verify_set "$T/TN"); rc=$?
+  expect_line  C112-the-normal-payload-control-stays-clean "$out" '^S1-NEWFILE-COLLISION +PASS'
 
   # ---- fixture set F: one payload carrying another's commit (the 1-in-15 case).
   mkdir -p "$T/F"
