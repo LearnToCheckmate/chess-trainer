@@ -67,8 +67,11 @@ L.run(async()=>{
     L.say(main.min>=res[1132].min-0.5,'TC-R211c at 1063x1134 the board never dips under the 1063x1132 board ('+main.min+' vs '+res[1132].min+')',{min:main.min,ref:res[1132].min});
     L.say(b.errs.length===0,'TC-R211 1063 zero app errors',b.errs.slice(0,3));await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'rev-hold-761',store:{ct_pool:'3',ct_evalgraph:'1'}});await b.open();
-    let ok=true;try{await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,4);await b.settle(1500);}catch(e){ok=false;}
-    L.say(ok,'TC-R211 PRECONDITION the Opera Game is reviewed and on ply 4 at kunal761');
-    await column(b,"kunal761 (TC-R211d)",4);
+    /* #550 lead, final suite: at kunal761 the streamlined review shows the graph only where the explanation leaves 40px above the toolbar.
+       Measured over all 33 plies: plies 4, 11, 14 and 33 before the Review text (b6caacc), plies 32 and 33 after it (a91ea51), so ply 4
+       stopped reaching the graph and this precondition went red. Ply 32 has the graph after it and ply 33 on both, so this block starts on 32 and taps Next once (32 -> 33), where it took four taps from ply 4. */
+    let ok=true;try{await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,32);await b.settle(1500);}catch(e){ok=false;}
+    L.say(ok,'TC-R211 PRECONDITION the Opera Game is reviewed and on ply 32 at kunal761');
+    await column(b,"kunal761 (TC-R211d)",1);
     L.say(b.errs.length===0,'TC-R211 kunal761 zero app errors',b.errs.slice(0,3));await b.close();}
 },'135-review-board-holds-its-size');
