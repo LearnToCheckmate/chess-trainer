@@ -2442,6 +2442,7 @@ As a player on any colour theme or skin, the words on the accent buttons, the cl
 - A flag's two-letter code, if the picture cannot load, is drawn in the bar's own ink, and the rating on the cream bar is not faded. (TC-R220d)
 - Each grade mark on the eval graph has its own shape, is a named button the keyboard can reach and Enter, and has a 24px hit area; every move on the strip is keyboard-reachable. (TC-R220e)
 - On his phone and at 320x568 the tab bar buttons, the scan buttons, the menu sheet's close (now named "Close") and Review's back and more have 44px tap areas, without any box moving; a strip move's tap area is the strip's full height. (TC-R220f)
+- The menu's legal links (Privacy, Terms, Refunds, Delete account) each have a 44px tap area on his phone and at 320x568, while the menu still fits one screen and its foot button keeps its own 44. (TC-MN-057)
 - No app errors on any of it. (TC-R220g)
 
 ### US-R156 A player sees no developer tools and no developer words; the owner keeps them on his own account

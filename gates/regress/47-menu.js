@@ -117,6 +117,8 @@
 // CONTROL-RECORD: b99cd85 2026-11-14 total=23 red=3 scope=env:CT_BLK=Y,trial:41966c2c022b how=#550 helper app A, jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30 (whatIsLeft: 'its negative control ... a sheet a finger cannot scroll'): the menu sheet's overflowY auto -> hidden - TC-MN-052b red on the game-over sheet at 730x375 (9 of 27 controls reached in 2 drags; the Game setup pills, Look and feel, Coach look ... missed), with TC-MN-052's first-drag precondition (0px) and Home reach (8 of 15) red beside it; the tree's bundle 92b13a5b8746 reads 23/0 on CT_BLK=Y (27 of 27 reached in 8 drags)
 // CONTROL-RECORD: 560561a 2026-11-14 total=53 red=24 scope=env:CT_BLK=T,trial:455519f81b63 how=#550 helper app A, FMT-A-11: the tree before the tap areas (560561a's own bundle) - TC-MN-056 tap-area and 44-edge lines red for Sign in (40.5), Coach look (32.5), Sound, Evaluation graph, Layout readout and Layout overlay (37.5) at 375x761 and 320x568 (24 lines); a second trial 87152f074756 (Coach look given ct-hitv, a 54 area over its neighbours) reds the three own-box lines alone (50 pass 3 fail); the fix's bundle 9d44bba256e6 reads 53/0 on CT_BLK=T and the whole gate 271 pass 0 fail
 // CONTROL-RECORD: 7aeed0e 2026-10-29 total=10 red=1 scope=trial:c06079358221 how=CT_BLK=E only: the bar above the board ignores ct_hideEval, so TC-MN-045's bar-above line reddens alone while TC-MN-022 and TC-MN-023 stay green [#545 item (36)]
+// CONTROL-RECORD: c004673 2026-11-14 total=25 red=8 scope=env:CT_BLK=L,trial:7a1ff10f131c how=#550 helper app A, jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14 (TC-MN-057): 54e83e1's own bundle - every legal link's tap 40 to 41 at both geometries, so all eight tap lines red; the fix's bundle 18fc831bbbac 25/0
+// CONTROL-RECORD: c004673 2026-11-14 total=25 red=1 scope=env:CT_BLK=L,trial:24be0eba06c0 how=#550 helper app A, TC-MN-057's second control: ct-hit44 on the links but no 4px between the two rows at 320x568 - Terms (row one, over Delete account) keeps a 40 tap, red; everything else green
 const L=require('../lib');
 
 // ---------------------------------------------------------------------------------------------------------
@@ -953,6 +955,29 @@ if(blk('T'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568']]){
   const own1=await OWN();
   L.say(!!own1&&own1.n>=4&&own1.bad.length===0,gn+': TC-MN-056 with the foot line opened, every one of the sheet\'s '+(own1&&own1.n)+' on-screen buttons and links hit-tests to ITSELF at its centre and 1px inside its top and bottom edges',own1);
   L.say(b.errs.length===0,gn+': TC-MN-056 zero app errors',b.errs.slice(0,2));
+  await b.close();
+}
+// =========================================================================================================
+// MN-L  The legal links (Privacy, Terms, Refunds, Delete account) are 44 tap areas.  TC-MN-057.
+// #550 jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14: each link was a 40 box with a 40.5 tap. The box stays 40
+// (ct-hit44 grows the TAP to 44); at 320x568 the four links take two rows and the 4px the tap areas need between them comes from the
+// draft note's margin, so the sheet's height does not change. Each link is hit-tested down its centre line; the sheet must still fit
+// one screen and the foot button under the links keep its own 44.
+// =========================================================================================================
+if(blk('L'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568']]){
+  const b=await L.launch({geo:gk,name:'mn-l-'+gn});await b.open();
+  await b.tapCt('home-menu',700);
+  const r=await b.page.evaluate(()=>{const sh=document.querySelector('[data-ct="menu-sheet"]');if(!sh)return null;
+    const links=[...sh.querySelectorAll('a')].filter(a=>/^(Privacy|Terms|Refunds|Delete account)$/.test((a.textContent||'').trim()));
+    const span=(el,q)=>{const cx=q.left+q.width/2;let n=0;for(let y=Math.floor(q.top-12);y<=Math.ceil(q.bottom+12);y+=0.5){const h=document.elementFromPoint(cx,y);if(h&&(h===el||el.contains(h)))n+=0.5;}return n;};
+    const out=links.map(a=>{const q=a.getBoundingClientRect();return {t:a.textContent.trim(),h:Math.round(q.height*10)/10,top:Math.round(q.top*10)/10,tap:span(a,q),on:q.top>=0&&q.bottom<=innerHeight};});
+    const foot=sh.querySelector('[data-ct="menu-foot"]');const fq=foot&&foot.getBoundingClientRect();
+    return {links:out,sh:sh.scrollHeight,ch:sh.clientHeight,foot:foot?{h:Math.round(fq.height*10)/10,tap:span(foot,fq)}:null};});
+  L.say(!!r&&r.links.length===4&&r.links.every(x=>x.on),gn+': TC-MN-057 PRECONDITION the menu is open and its four legal links are on screen ('+(r&&r.links.map(x=>x.t+' '+x.h+'@'+x.top).join(', '))+')',r);
+  L.say(!!r&&r.sh<=r.ch,gn+': TC-MN-057 and the sheet still fits one screen (scrollHeight '+(r&&r.sh)+' <= '+(r&&r.ch)+')',r&&{sh:r.sh,ch:r.ch});
+  if(r)for(const x of r.links)L.say(x.tap>=44,gn+': TC-MN-057 the "'+x.t+'" link\'s TAP, hit-tested down its centre line, is '+x.tap+' tall (>= 44; its box is '+x.h+')',x);
+  L.say(!!r&&!!r.foot&&r.foot.tap>=43.5,gn+': TC-MN-057 and the foot button under the links keeps its own 44 ('+(r&&r.foot&&r.foot.tap)+')',r&&r.foot);
+  L.say(b.errs.length===0,gn+': TC-MN-057 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
 },'MENU');
