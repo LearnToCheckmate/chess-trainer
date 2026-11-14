@@ -29,6 +29,10 @@ check(){ ( cd "$1" && node -e '
   for(const k of unrev)console.log("  UNREVIEWED "+k.replace("\t","  "));
   for(const k of dead)console.log("  ROW NAMES NO SITE "+k.replace("\t","  "));
   if(sites.size===0){console.log("  FAIL no site found at all - an empty denominator is not a pass");process.exit(1);}
+  // THE DOOR LINE [#550 test-system helper A; jobs/build-one-door-for-every-non-gate-check-2026-10-10]: gates/door-checks.sh reads this
+  // audit through one fixed-shape line - pass = (file, pattern) sites with a reviewed row, fail = unreviewed sites + stale rows, which is
+  // exactly what decides exit 1. The empty-denominator exit above prints no door line, so the door refuses it as unreadable.
+  console.log("negated-regex-guards: "+(sites.size-unrev.length)+" pass / "+(unrev.length+dead.length)+" fail");
   console.log((unrev.length||dead.length)?"RED: "+unrev.length+" unreviewed, "+dead.length+" stale row(s)":"OK: every site has a reviewed row");
   process.exit((unrev.length||dead.length)?1:0);' ); }
 
