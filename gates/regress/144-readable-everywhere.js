@@ -32,6 +32,10 @@
 // CONTROL-RECORD: 4baf00d 2026-11-14 total=48 red=2 scope=trial:9d44bba256e6 how=#550 helper app A, FMT-B-03 follow-up: the tree before the short-phone Review corners change (the 44x44 back and more in a 32 bar) - TC-R220f se rev-back and rev-more red (tap area 44x35, drawn from y -4); the fix's bundle 92b13a5b8746 reads 48/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=46 red=31 scope=trial:9812f33cea74 how=the branch tip before the change (white ink on every accent, one-colour clock inks, root-white flag alt text, colour-only graph dots, 43px tabs, 30px close): 2.07..3.40 on the accents, cream clock 3.56 / amber 1.44 / red 3.17, AT 1.17; on a11a610b8f51 46/0
 const L=require('../lib');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 const R=require('../drive/review');
 const fs=require('fs'),path=require('path');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
@@ -126,7 +130,7 @@ L.run(async()=>{
    const b=await L.launch({geo,name:'rev144-'+geo,store:{ct_pool:'3',ct_country:JSON.stringify({'cc:jsmiller1112':'AT','cc:dukekarlcountisouard99':'US'})}});await b.open();await b.settle(800);
    let ok=true;try{await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,10);await b.settle(1200);}catch(e){ok=false;}
    await b.page.evaluate(COMP);
-   if(geo==='kunal761'){
+   if(isPhone(geo)){
      const d=await b.page.evaluate(()=>({flags:[...document.querySelectorAll('[data-ct^="pbar-flag-"]')].map(e=>({ct:e.getAttribute('data-ct'),nw:e.naturalWidth,m:window.__ctCR(e)})),
        rating:(()=>{const e=document.querySelector('[data-ct="pbar-rating-w"]');return e?window.__ctCR(e):null;})()}));
      const fw=d.flags.find(x=>x.ct==='pbar-flag-w'),fb=d.flags.find(x=>x.ct==='pbar-flag-b');

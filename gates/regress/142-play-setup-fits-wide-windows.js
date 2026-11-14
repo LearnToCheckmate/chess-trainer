@@ -14,9 +14,13 @@
 // CONTROL-RECORD: 368b7f1 2026-11-12 total=24 red=10 scope=trial:4e6cd77c how=#550 the tree before DSK-09 (t142): the 420 single column at every size - Start game off screen and the sheet scrolling by 335/287/213/173/23 px (TC-R218a, the audit's own figures) and no two halves (TC-R218b) at all five window sizes; on t143 4470ec9e 24/0
 // KNOW ITS LIMIT: the computer opponent's sheet (the tallest); online and Pass and Play are shorter.
 const L=require('../lib');const P=require('../drive/play');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 L.run(async()=>{
   for(const sz of [[1280,600],[1366,648],[1440,780],[1180,820],[1920,970],['kunal761']]){
-    const geo=sz[0]==='kunal761'?'kunal761':{w:sz[0],h:sz[1],safe:'',label:sz[0]+'x'+sz[1]};const tag=geo.label||geo;
+    const geo=typeof sz[0]==='string'?sz[0]:{w:sz[0],h:sz[1],safe:'',label:sz[0]+'x'+sz[1]};const tag=geo.label||geo;
     const b=await L.launch({geo,name:'setup142'});await b.open();let ok=true;try{await P.states['setup'](b);}catch(e){ok=false;}await b.settle(700);
     const m=await b.page.evaluate(()=>{const R=(e)=>{const r=e.getBoundingClientRect();return {l:Math.round(r.left),r:Math.round(r.right),t:Math.round(r.top),b:Math.round(r.bottom),w:Math.round(r.width)};};
       const st=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);
@@ -25,7 +29,7 @@ L.run(async()=>{
       let col=st;while(col&&!(col.style&&col.style.maxWidth))col=col.parentElement;
       return {vw:innerWidth,vh:innerHeight,start:st?R(st):null,over:sc?sc.scrollHeight-sc.clientHeight:null,opp:lab(/^Opponent$/i),tc:lab(/Time control$/i),col:col?{...R(col),max:col.style.maxWidth}:null};});
     L.say(ok&&!!m.start&&!!m.opp&&!!m.tc&&!!m.col,tag+': TC-R218 PRECONDITION Play setup is up with Start game, OPPONENT and TIME CONTROL found by their words',m);
-    if(tag==='kunal761'){L.say(!!m.col&&parseFloat(m.col.max)===420&&!!m.opp&&!!m.tc&&m.tc.t>m.opp.b,'kunal761: TC-R218c his phone keeps the one 420 column, sections stacked ('+(m.col&&m.col.max)+')',m.col);}
+    if(isPhone(geo)){L.say(!!m.col&&parseFloat(m.col.max)===420&&!!m.opp&&!!m.tc&&m.tc.t>m.opp.b,'kunal761: TC-R218c his phone keeps the one 420 column, sections stacked ('+(m.col&&m.col.max)+')',m.col);}
     else{
       L.say(!!m.start&&m.start.b<=m.vh&&m.start.t>=0&&m.over!=null&&m.over<=1,tag+': TC-R218a Start game is wholly on screen ('+(m.start&&m.start.b)+' of '+m.vh+') and nothing scrolls ('+m.over+'px over)',{start:m.start,over:m.over});
       const two=!!m.opp&&!!m.tc&&m.tc.l>=m.opp.l+120&&Math.abs(m.tc.t-m.opp.t)<300;

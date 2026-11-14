@@ -40,6 +40,10 @@
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=147 red=12 scope=trial:85be94e89bc2 how=#550 cg4, the branch tip (claude/exciting-noether-v1swj8 55ca2c7) with the rail at right:0: TC-R225i red at all six sizes on Puzzles (band 41/60/31/176/321/121px, right margin 0) and on Tactics (46/65/36/181/326/126px); every other line green. On t1 93ac17e053d5 147/0
 // CONTROL-RECORD: f901598 2026-11-13 total=64 red=13 scope=env:CT_149_TAC_ONLY=1 how=#550 helper B (jobs/tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13): the branch tip (claude/exciting-noether-v1swj8 f901598, trial 1b47cb7113e5) - TC-R225k 'ONE menu button' red at all nine sizes (two: the page-level one at x 1868 at 1920x1080, 1228 at 1280x720, 709 at 761x375) and 'nothing under or over the rail' red at 1280x600, 1440x780, 1280x720, 1440x900 and 761x375 (the page-level menu inside the rail's box); every older Tactics line green. On t1 2ffe57b0de6d 64/0
 const L=require('../lib');const LS=require('../drive/lesson');const P=require('../drive/play');const R=require('../drive/review');
+/* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
+const geoOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('no geometry '+JSON.stringify(geo));return g;};
+const isPhone=(geo)=>{const g=geoOf(geo);return g.w===375&&g.h===761;};   // Kunal's phone, R19
 const G=(w,h)=>({w,h,safe:'',label:w+'x'+h});
 const LAP=[[1280,600],[1366,648],[1440,780]];
 const ALL=[...LAP,[1920,970],[2560,1320]];
@@ -127,18 +131,18 @@ L.run(async()=>{
       if(m)L.say(m.stray.length===0,tag+' '+st+': TC-R225j no stray menu glyph is painted outside a menu button ('+(m.stray.join(' ')||'none')+')',m.stray);}
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (corner)',b.errs.slice(0,3));await b.close();}
   // (d) the Review More sheet, (e) the Review corner slot
-  for(const [w,h] of [...LAP,[1920,970],['kunal761']]){const tag=w==='kunal761'?w:w+'x'+h;
-    const b=await L.launch({geo:w==='kunal761'?w:G(w,h),name:'dsk149-rev',store:{ct_pool:'3'}});await b.open();let ok=true;
+  for(const [w,h] of [...LAP,[1920,970],['kunal761']]){const ph=typeof w==='string'&&isPhone(w);const tag=ph?w:w+'x'+h;
+    const b=await L.launch({geo:ph?w:G(w,h),name:'dsk149-rev',store:{ct_pool:'3'}});await b.open();let ok=true;
     try{await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,6);await b.settle(900);}catch(e){ok=false;}
     L.say(ok,tag+': TC-R225 PRECONDITION the Opera Game is reviewed, ply 6');
-    if(w!=='kunal761'){const c=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');const m=document.querySelector('button[aria-label="Menu and settings"]');if(!t||!m)return null;return {bar:Math.round(t.getBoundingClientRect().right),menu:Math.round(m.getBoundingClientRect().left)};});
+    if(!ph){const c=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pbar-top"]');const m=document.querySelector('button[aria-label="Menu and settings"]');if(!t||!m)return null;return {bar:Math.round(t.getBoundingClientRect().right),menu:Math.round(m.getBoundingClientRect().left)};});
       L.say(!!c&&c.bar<=c.menu-4,tag+': TC-R225f the sideways Review top bar ends before the anchored menu button ('+JSON.stringify(c)+')',c);}
     let sh=null;try{await b.tapCt('rev-more',700);sh=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-sheet"]');if(!s)return null;
       const bs=[...s.querySelectorAll('button')].filter(x=>/^(Show best move|Hide best move|Flip board|Copy PGN|New game|Menu and settings)$/.test((x.innerText||'').trim())).map(x=>Math.round(x.getBoundingClientRect().left));
       return {over:s.scrollHeight-s.clientHeight,cols:[...new Set(bs)].length,n:bs.length};});}catch(e){}
     L.say(!!sh&&sh.n>=4,tag+': TC-R225 PRECONDITION the More sheet is open and its rows found by their words',sh);
-    if(sh&&w!=='kunal761'&&h<900){L.say(sh.over<=1,tag+': TC-R225e the More sheet does not scroll ('+sh.over+'px over)',sh);L.say(sh.cols===2,tag+': TC-R225e its rows are in two columns ('+sh.cols+')',sh);}
-    if(sh&&w==='kunal761')L.say(sh.cols===1,'kunal761: TC-R225h his phone\'s More sheet is one column ('+sh.cols+')',sh);
+    if(sh&&!ph&&h<900){L.say(sh.over<=1,tag+': TC-R225e the More sheet does not scroll ('+sh.over+'px over)',sh);L.say(sh.cols===2,tag+': TC-R225e its rows are in two columns ('+sh.cols+')',sh);}
+    if(sh&&ph)L.say(sh.cols===1,'kunal761: TC-R225h his phone\'s More sheet is one column ('+sh.cols+')',sh);
     L.say(b.errs.length===0,tag+': TC-R225 zero app errors (Review)',b.errs.slice(0,3));await b.close();}
   // (e) the corner slot in a game
   for(const [w,h] of [...ALL,[761,375]]){const tag=w+'x'+h;

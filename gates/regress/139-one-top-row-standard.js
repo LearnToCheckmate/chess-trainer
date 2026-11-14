@@ -53,7 +53,12 @@ const corners=(b,title)=>b.page.evaluate((tsrc)=>{const vw=innerWidth,vh=innerHe
     if(t){const s=getComputedStyle(t);const rg=document.createRange();rg.selectNodeContents(t);const q=rg.getBoundingClientRect();title={cx:+((q.left+q.right)/2-vw/2).toFixed(1),fs:parseFloat(s.fontSize),fw:+s.fontWeight,ff:s.fontFamily.split(',')[0].replace(/"/g,'').trim()};}}
   return {menu,back,title,vw};},title?title.source:null);
 const ok44=c=>!!c&&c.w>=43.5&&c.h>=43.5;
-const TOP_Y=2;const atY=(y,gn)=>y!=null&&(Math.abs(y-TOP_Y)<=1||(gn==='kunal761'&&Math.abs(y-(51+TOP_Y))<=1));   // see the header: 53 only where the app pads by its own safeTop at kunal761
+/* #550 helper A, r19 audit A4a/A4b/A4d [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
+   every geometry test below asks the geometry ENTRY (its w, h or safe inset) and never its key or label, so a renamed key throws here
+   instead of silently skipping the branch. gOf resolves a GEOS key or an inline {w,h} entry and refuses anything else. */
+const gOf=(geo)=>{const g=typeof geo==='string'?L.GEOS[geo]:geo;if(!g||!(g.w>0))throw new Error('gate 139: no geometry '+JSON.stringify(geo));return g;};
+const safeTop=(geo)=>{const s=gOf(geo).safe;return s?parseFloat(String(s).split(',')[0])||0:0;};
+const TOP_Y=2;const atY=(y,geo)=>y!=null&&(Math.abs(y-TOP_Y)<=1||(safeTop(geo)>0&&Math.abs(y-(safeTop(geo)+TOP_Y))<=1));   // see the header: 53 only where the app pads by its own safeTop at kunal761
 const at8=(v)=>v!=null&&Math.abs(v-8)<=1;
 L.run(async()=>{
   // ── TC-R215s [cg8, jobs/formatting-audit-p1s-2026-11-12, FMT-B-02's unbuilt half]: THE ONLINE LOBBY BOARD IS THE SCREEN WIDTH. Signed in
@@ -138,11 +143,11 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'top139',store:{ct_pool:'3'}});await b.open();let ok=true;try{await go(b);await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,120));}
     const c=await corners(b,title);
     L.say(ok,'TC-R215 '+tag+' PRECONDITION the screen is reached',{ok});
-    const inBar=nm==='Review board'&&gn!=='kunal761';   // on a short phone Review keeps back and ⋯ inside its top player bar (#351, no header row); they are the standard size there, at the bar's edge
+    const inBar=nm==='Review board'&&gOf(geo).h<700;   // on a short phone Review keeps back and ⋯ inside its top player bar (#351, no header row); they are the standard size there, at the bar's edge
     L.say(ok44(c.menu)&&(inBar||at8(c.menu.r)),'TC-R215a '+tag+' the menu is top-right, >=44x44, '+(inBar?'(in the player bar) ':'8 from the right edge ')+'('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
     if(hasBack)L.say(ok44(c.back)&&(inBar||at8(c.back.x)),'TC-R215a '+tag+' the back is top-left, >=44x44, 8 from the left edge ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x:'none')+')',c.back);
     if(c.menu&&c.back)L.say(c.menu.br===c.back.br&&c.menu.br==='12px','TC-R215a '+tag+' back and menu share one corner radius, 12 ('+c.back.br+' / '+c.menu.br+')',{b:c.back.br,m:c.menu.br});
-    if(!inBar){const ys=[c.menu&&c.menu.y,hasBack&&c.back?c.back.y:null].filter(v=>v!=null);L.say(ys.length>0&&ys.every(y=>atY(y,gn)),'TC-R215j '+tag+' the top row is at y '+TOP_Y+' under the safe area ('+(ys.join(' / ')||'no corners')+')',ys);}
+    if(!inBar){const ys=[c.menu&&c.menu.y,hasBack&&c.back?c.back.y:null].filter(v=>v!=null);L.say(ys.length>0&&ys.every(y=>atY(y,geo)),'TC-R215j '+tag+' the top row is at y '+TOP_Y+' under the safe area ('+(ys.join(' / ')||'no corners')+')',ys);}
     if(title&&!inBar){L.say(!!c.title&&Math.abs(c.title.cx)<=2,'TC-R215b '+tag+' the title is centred on the screen ('+(c.title?'off by '+c.title.cx:'not found')+')',c.title);
       L.say(!!c.title&&c.title.fs===18&&c.title.fw===800,'TC-R215b '+tag+' the title is 18px weight 800 ('+(c.title?c.title.fs+'/'+c.title.fw:'-')+')',c.title);if(c.title)fams.add(c.title.ff);}
     L.say(b.errs.length===0,'TC-R215 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
@@ -185,7 +190,7 @@ L.run(async()=>{
     L.say(ok&&r.f.length>=2,'TC-R215 '+tag+' PRECONDITION the lesson bar is on screen ('+r.f.join(', ')+')',r);
     L.say(r.f[0]==='Close lesson'&&r.f[r.f.length-1]==='More for this lesson','TC-R215f '+tag+' the close X is far left of the bar and ⋯ far right ('+r.f.join(', ')+')',r.f);
     L.say(r.dots===1,'TC-R215f '+tag+' one ⋯ on the screen ('+r.dots+')',r.dots);
-    if(gn==='320x568'){L.say(r.w!=null&&r.w>=319&&r.sh<=1,'TC-R215g '+tag+' on a short phone the lesson board is the screen width ('+r.w+' of '+r.vw+'), no page scroll ('+r.sh+')',r);
+    if(gOf(geo).w===320){L.say(r.w!=null&&r.w>=319&&r.sh<=1,'TC-R215g '+tag+' on a short phone the lesson board is the screen width ('+r.w+' of '+r.vw+'), no page scroll ('+r.sh+')',r);
       if(st!=='practice-m0')L.say(r.f.includes("Now I'll try it"),'TC-R215g '+tag+' Now I\'ll try it is a button in the bar ('+r.f.join(', ')+')',r.f);
       if(st==='demo-end'){await b.page.click('button[aria-label="More for this lesson"]').catch(()=>{});await b.settle(600);
         const ln=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>/How does White reply|another of White/.test(d.innerText||'')&&d.querySelectorAll('button').length>0&&d.getBoundingClientRect().height>0);return !!e;});
@@ -225,8 +230,8 @@ L.run(async()=>{
     L.say(ok44(c.back)&&(!up||at8(c.back.x))&&word.test(c.back.al||''),'TC-R215i '+tag+' the back is the 44x44 corner'+(up?' at 8 from the left':'')+' and names the place in its accessible name ('+(c.back?c.back.w+'x'+c.back.h+' at '+c.back.x+', "'+c.back.al+'"':'none')+')',c.back);
     L.say(ok44(c.menu)&&(!up||at8(c.menu.r)),'TC-R215i '+tag+' the menu is the 44x44 corner'+(up?' at 8 from the right':'')+' ('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);
     if(c.menu&&c.back)L.say(c.menu.br==='12px'&&c.back.br==='12px','TC-R215i '+tag+' both corners radius 12 ('+c.back.br+' / '+c.menu.br+')',{b:c.back.br,m:c.menu.br});
-    if(up)L.say(!!c.back&&!!c.menu&&atY(c.back.y,gn)&&atY(c.menu.y,gn),'TC-R215j '+tag+' the top row is at y '+TOP_Y+' ('+(c.back&&c.back.y)+' / '+(c.menu&&c.menu.y)+')',{b:c.back,m:c.menu});
-    const fl=(nm==='Mistakes drill'&&gn==='320x568')?FLOOR_MK_SE:FLOOR[gn];
+    if(up)L.say(!!c.back&&!!c.menu&&atY(c.back.y,geo)&&atY(c.menu.y,geo),'TC-R215j '+tag+' the top row is at y '+TOP_Y+' ('+(c.back&&c.back.y)+' / '+(c.menu&&c.menu.y)+')',{b:c.back,m:c.menu});
+    const fl=(nm==='Mistakes drill'&&gOf(geo).w===320)?FLOOR_MK_SE:FLOOR[gn];
     L.say(r.w!=null&&r.w>=fl-0.5&&r.sh<=1,'TC-R215i '+tag+' the board is '+r.w+', not smaller than the '+fl+' it was, and the page does not scroll ('+r.sh+')',r);
     if(nm==='Mistakes drill'&&up)L.say(r.ctr!=null&&r.ctr>=43.5,'TC-R215q '+tag+' the card counter is a 44pt target ('+r.ctr+')',r.ctr);
     L.say(b.errs.length===0,'TC-R215 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}}
