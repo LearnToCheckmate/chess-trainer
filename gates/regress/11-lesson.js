@@ -6,7 +6,7 @@
 const L=require('../lib');
 const D=require('../drive/lesson');
 L.run(async()=>{
-  if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY){
+  if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY&&!process.env.CT_LS064_ONLY){
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'lesson-'+geo});await b.open();
     // THE ROUTE IN IS THE PLAYER'S, NOT A DEV GALLERY CARD [#550; jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-
@@ -581,7 +581,7 @@ L.run(async()=>{
   // note count) is its own assertion; the count is PINNED per geometry at what this build measures, so a content edit or a box change that
   // clips more notes goes red and has to move the pin on purpose. CT_LS058_ONLY=1 runs this block alone.
   // CONTROL-RECORD: 8a852bd 2026-11-11 total=5 red=2 scope=env:CT_LS058_ONLY=1 how=#550 item (82): c82 (0ca1bcd2a0d3), the lesson-note box 60px tall instead of 75 (scroller 44) - both TC-LS-058 count lines red (195 and 315 notes against pins 67 and 119); the two DENOMINATORS and the font pin green
-  if(!process.env.CT_LS061_ONLY){
+  if(!process.env.CT_LS061_ONLY&&!process.env.CT_LS064_ONLY){
     const PIN058={kunal761:{max:67},se:{max:119}};   // measured #550 on trial b195c3c10627: 67 and 119 of 2262
     for(const geo of Object.keys(PIN058)){
       const b=await L.launch({geo,name:'lesson-notefit-'+geo});await b.open();
@@ -617,7 +617,7 @@ L.run(async()=>{
   // CONTROL-RECORD: f8fb292 2026-11-13 total=13 red=4 scope=env:CT_LS061_ONLY=1 how=#550 HEX-T-13: the branch tip's bundle t0 (37af39a67536, before the words) - the two words-present lines red at kunal761 and se; the order preconditions, no-jump and error lines green
   // CONTROL-RECORD: 2f1d50e 2026-11-13 total=29 red=5 scope=env:CT_LS061_ONLY=1 how=[sha re-cited #550 lead to 2f1d50e, the tip the control ran on per control-audit.js:21 (checker seat 2, 4:59am ET; verdict unchanged); earlier repaired #550 test-system helper B: the line was written 'helper-lessons', a lane name and not a commit; 0580a32 is the commit that added this record together with the TC-LS-061c lines it ran] trial:9bf7a640ec2a, the tip 2f1d50e before jobs/lesson-practice-small-defects-2026-11-13 (1)(2) - TC-LS-061c red at kunal761 after Nf3 (confirm cut at the edge, clamp none) and at se on all three plus the count (1 of 5 at 71-87 under a box ending at 70); on trial 2c29e1ce70e9 29/0
   // CONTROL-RECORD: 016ccda 2026-11-14 total=31 red=1 scope=env:CT_LS061_ONLY=1 how=trial:b9a8a2e6a55b, the tip 016ccda before the count fix - TC-LS-061c 'the count is painted whole' red at se (1 of 5 ends at 226.5, + the 14.5px ellipsis past the 234 line end: the clamp painted '1 of …'); kunal761 green; on b9385584684e 31/0, full gate 274/0
-  if(!process.env.CT_LS058_ONLY){
+  if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS064_ONLY){
     for(const geo of ['kunal761','se']){
       const b=await L.launch({geo,name:'lesson-hintwords-'+geo,store:{}});await b.open();
       let ok=true;try{await D.states['practice-m0'](b);await b.settle(600);}catch(e){ok=false;L.say(false,'TC-LS-061 '+geo+' practice-m0 was reached',String(e).slice(0,160));}
@@ -683,6 +683,51 @@ L.run(async()=>{
         L.say(/e4, correct/.test(s2.note||'')&&!!s2.words&&s2.words.indexOf(want2)>=0&&s2.words.indexOf(want1)<0&&!/Nf3/.test(s2.words),'TC-LS-061 '+geo+' after a correct e4 and the reply, the hint words are the note of the NEXT own move ("'+s2.words+'", want "'+want2+'"), not of e4',{note:s2.note,words:s2.words});
       }
       L.say(b.errs.length===0,'TC-LS-061 '+geo+': zero app errors',b.errs.slice(0,3));
+      await b.close();
+    }
+  }
+  // TC-LS-064 A WRONG MOVE SAYS WHY, AND A CORRECT ONE SAYS WHAT IT IS FOR [#550 test-system helper A; jobs/lessons-practice-hints-and-wrong-
+  // move-reasons-2026-11-12, the orchestrator's re-check cg12 at 0a115a8]. HEX-T-12 and HEX-T-13 changed the words practice prints after a move,
+  // and until this block nothing read them: TC-R64c and TC-LS-041 only widened a regex that still accepts the old "isn't the line", so the
+  // checker's mutant with both the reason and the note removed left this gate green. Italian Game practice (drive/lesson practice-m0) at
+  // kunal761 and se (320x568), hints OFF: 1.e4 and 2.Nf3 each confirmed with the lesson's own note; then 3.Nxe5, which the book does not play
+  // and which hangs the knight to ...Nxe5, gives that reason; with hints ON the same move gives the reason, the book move Bc4 and its note;
+  // then 3.Bc4 is confirmed with its note. The notes are READ FROM window.CTLESSONS, not typed here, and turned into the sentence the way the
+  // app does (first letter lower case, one closing full stop). The board does not move at any step. CT_LS064_ONLY=1 runs this block alone.
+  // Every line the app printed is noted, so claude/agents/HINT-TEXTS-550.md section 5 quotes a run, not a typed guess.
+  // CONTROL-RECORD: f4199b8 2026-11-14 total=17 red=10 scope=env:CT_LS064_ONLY=1 how=trial:b400c5030c1b, the checker's mutant on f4199b8 (the wrong-move reason and the correct-move note removed: _why null, _n empty) - TC-LS-064 red 5 times at each of kunal761 and se ("Nxe5 isn't the line", "e4, correct!", "Nf3, correct!", "The book move is Bc4" without the reason, "Bc4, correct!"); precondition, board and error lines green; the tip trial:920ed207ebc6 is 17 pass 0 fail
+  if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY){
+    const lc=(t)=>{t=String(t||'').trim();return t?t.charAt(0).toLowerCase()+t.slice(1).replace(/\.?$/,'.'):'';};
+    for(const geo of ['kunal761','se']){
+      const b=await L.launch({geo,name:'lesson-why-'+geo,store:{}});await b.open();
+      let ok=true;try{await D.states['practice-m0'](b);await b.settle(600);}catch(e){ok=false;L.say(false,'TC-LS-064 '+geo+' practice-m0 was reached',String(e).slice(0,160));}
+      if(ok){
+        const read=()=>b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');const w=document.querySelector('[data-ct="lesson-hint-warn"]');const hw=document.querySelector('[data-ct="lesson-hint-words"]');
+          const C=window.CTLESSONS||{};let op=null;for(const k of Object.keys(C))for(const o of (C[k]||[]))if(!op&&o.name==='Italian Game')op=o;
+          return {note:n?(n.innerText||'').replace(/\s+/g,' ').trim():null,warn:w?(w.innerText||'').trim():null,words:hw?(hw.innerText||'').trim():null,notes:op?op.notes:null,line:op?op.line:null};});
+        const still=(a,c)=>!!a&&!!c&&Math.abs(a.y-c.y)<0.5&&Math.abs(a.w-c.w)<0.5&&Math.abs(a.x-c.x)<0.5;
+        const s0=await read();const bd0=await b.board();
+        L.say(!!s0.notes&&!!s0.line&&s0.line.slice(0,5).join(' ')==='e4 e5 Nf3 Nc6 Bc4'&&/Your move/.test(s0.note||'')&&!/Hints are on/.test(s0.warn||''),'TC-LS-064 '+geo+' PRECONDITION practice is at move 1 of the Italian Game (e4 e5 Nf3 Nc6 Bc4) with hints OFF',{note:s0.note,warn:s0.warn,line:s0.line&&s0.line.slice(0,5)});
+        await b.move('e2','e4',1400);await b.settle(500);const s1=await read();const bd1=await b.board();
+        const want1='✓ e4, correct: '+lc(s0.notes&&s0.notes[0]);L.note('    TC-LS-064 '+geo+' after e4 the note reads: '+s1.note);
+        L.say((s1.note||'').indexOf(want1)>=0,'TC-LS-064 '+geo+' a correct e4 is confirmed with the lesson\'s own note for it ("'+want1+'")',{note:s1.note});
+        await b.move('g1','f3',1400);await b.settle(500);const s2=await read();
+        const want2='✓ Nf3, correct: '+lc(s0.notes&&s0.notes[2]);L.note('    TC-LS-064 '+geo+' after Nf3 the note reads: '+s2.note);
+        L.say((s2.note||'').indexOf(want2)>=0,'TC-LS-064 '+geo+' a correct Nf3 is confirmed with the lesson\'s own note for it ("'+want2+'")',{note:s2.note});
+        await b.move('f3','e5',1000);await b.settle(400);const s3=await read();const bd3=await b.board();
+        const want3='✗ Nxe5 hangs the knight (Nxe5). Try again.';L.note('    TC-LS-064 '+geo+' 3.Nxe5 with hints off, the note reads: '+s3.note);
+        L.say((s3.note||'').indexOf(want3)>=0&&!/isn.t the line/.test(s3.note||''),'TC-LS-064 '+geo+' with hints OFF a wrong 3.Nxe5 gives its reason ("'+want3+'"), not "isn\'t the line"',{note:s3.note});
+        await D.tapBtn(b,/^Hints$/,400);await b.settle(400);const s4=await read();
+        L.note('    TC-LS-064 '+geo+' hints turned on after the miss, the note reads: '+s4.note);
+        await b.move('f3','e5',1000);await b.settle(400);const s5=await read();const bd5=await b.board();
+        const want5='✗ Nxe5 hangs the knight (Nxe5). The book move is Bc4: '+lc(s0.notes&&s0.notes[4])+' Try again.';L.note('    TC-LS-064 '+geo+' 3.Nxe5 with hints on, the note reads: '+s5.note);
+        L.say((s5.note||'').indexOf(want5)>=0 /* the book move is named only with hints on (chess.jsx showHintRef), so the wording is the proof the switch took; the warn line is not drawn under a miss */,'TC-LS-064 '+geo+' with hints ON the same wrong move gives the reason, the book move and what it is for ("'+want5+'")',{note:s5.note,warn:s5.warn});
+        await b.move('f1','c4',1400);await b.settle(500);const s6=await read();const bd6=await b.board();
+        const want6='✓ Bc4, correct: '+lc(s0.notes&&s0.notes[4]);L.note('    TC-LS-064 '+geo+' after Bc4 the note reads: '+s6.note+(s6.words?' | hint words for the next move: '+s6.words:''));
+        L.say((s6.note||'').indexOf(want6)>=0,'TC-LS-064 '+geo+' then a correct Bc4 is confirmed with its note ("'+want6+'")',{note:s6.note});
+        L.say(still(bd0,bd1)&&still(bd0,bd3)&&still(bd0,bd5)&&still(bd0,bd6),'TC-LS-064 '+geo+' the board does not move through the correct moves, the two misses and the hint switch',{bd0,bd1,bd3,bd5,bd6});
+      }
+      L.say(b.errs.length===0,'TC-LS-064 '+geo+': zero app errors',b.errs.slice(0,3));
       await b.close();
     }
   }
