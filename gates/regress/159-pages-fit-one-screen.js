@@ -24,7 +24,7 @@ const PAGES=[
   ['p','Play setup vs the computer',b=>P.states.setup(b),/Choose your opponent/i,/^▶?\s*Start game/i],
   ['q','Play setup online',b=>P.states['setup-online'](b),/Time per move/i,/^▶?\s*(Start game|Continue)/i],
   ['r','Review More sheet',b=>R.states['more-sheet'](b),/Copy PGN|Copied/,/^New game$/],
-  ['s','Look and feel',b=>M.states['menu-look'](b),/Board colours/i,/^Style · fonts, icons, finish/],
+  ['s','Look and feel',b=>M.states['menu-look'](b),/Board colou?rs/i,/^Style · fonts, icons, finish/],
   ['t','Review games list',b=>R.states['list-stored'](b),/Your games/,null],
   ['u','Discover',b=>H.states.discover(b),/What do you want to learn/,/^Tactics/]];
 const scrollers=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('*')].filter(e=>{const r=e.getBoundingClientRect();if(!(r.width>0&&r.height>0))return false;
