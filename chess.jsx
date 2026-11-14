@@ -6369,12 +6369,14 @@ function AppMain(){
      PAGE - only the games box scrolls, and it fills the rest of the screen. The box's height cap (it was min(46vh, 340)) is fitted every render
      to what the page leaves: its own height less whatever the app's scroller (#root) would still scroll, so #root ends exactly at the tab bar.
      Upright only; a sideways phone keeps the scrolling list beside its tab rail. */
-  const glistRef=useRef(null);const [glistMax,setGlistMax]=useState(null);
+  const glistRef=useRef(null);const glistMaxRef=useRef(null);   /* #550 lead, gate 147 TC-R223a in the final suite: the fitted height is written onto the box itself, not held in state - as state, every fit re-rendered the whole app, so opening the list with his 465 games ran two full renders (longest task 325 ms at 9fe02e7, 819 to 905 from ef0f72f on, at 4x; bisected) */
   useLayoutEffect(()=>{
-    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){if(glistMax!==null)setGlistMax(null);return;}
-    const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
-    const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
-    if(glistMax===null||Math.abs(next-glistMax)>=1)setGlistMax(next);
+    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){glistMaxRef.current=null;return;}
+    /* measured in the next frame (still before it paints), so the render that opens the list and the layout this reads are two tasks, not one */
+    const id=requestAnimationFrame(()=>{const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
+      const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
+      if(glistMaxRef.current===null||Math.abs(next-glistMaxRef.current)>=1){glistMaxRef.current=next;e.style.maxHeight=next+'px';}});
+    return ()=>cancelAnimationFrame(id);
   });
   const lessonSide=wide&&mode==='learn'&&openIdx!==null;   /* #550 BSA-L-03 (job lesson-sideways-board-full-height-2026-11-12): a sideways lesson - the board takes the full height, its footer sits under the right-hand column only */   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
   const sideFull=landPlay||pzRail||landRev||landOn||tacRail||lessonSide;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */
@@ -12434,7 +12436,7 @@ function AppMain(){
                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
-              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:(glistMax!=null?glistMax+'px':'min(46vh,340px)'),overflowY:'auto'}}>
+              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
               {_gfIn&&_gfPanel}{_gfIn&&_gfInput}
               {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
                 <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
