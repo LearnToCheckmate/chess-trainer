@@ -76,6 +76,7 @@
 //        reader cannot reproduce it from the file.
 'use strict';
 // CONTROL-RECORD: 64afd33 2026-11-12 total=74 red=1 scope=trial:be2edc1e0683 how=#550 item (64): no eval bar against the computer (_evalOn reads inReview only) - A7p red, so the widened instrument (beside or above) can fail
+// CONTROL-RECORD: 3c7b19c 2026-11-14 total=96 red=6 scope=trial:3f6d7257a64b how=#550 helper app A, TC-PL-A3b/c (jobs/auditor-424-p2-findings-2026-09-27 p2_playOverflowsUnderTheSheet): 3c7b19c's own tree - behind the sheet the board re-lays out (A3b) and the column runs past the fold (A3c) at all three geometries (320x568 312@113 vs 320@82.8, over 155.6; 375x730 368@127 vs 375@112.7, over 104.6; 390x844 384@127 vs 390@128, over 6.6); on ps2 94632141ec09 96/0
 const L=require('../lib');
 const P=require('../drive/play');
 
@@ -126,7 +127,7 @@ async function liveGameThenSheet(b,n){
   const plies=await P.plies(b), row=await moverow(b), board=await b.board();
   await b.tapCt('play-home',650);
   await b.tile('Play'); await b.settle(700);
-  return {plies,row,boardW:board?Math.round(board.w*100)/100:null,flip:board?board.flip:null};
+  return {plies,row,boardW:board?Math.round(board.w*100)/100:null,boardY:board?Math.round(board.y*10)/10:null,flip:board?board.flip:null};
 }
 
 L.run(async()=>{
@@ -144,6 +145,13 @@ L.run(async()=>{
     L.say(await hasBtn(b,/^Computer$/)===true,'A2b ['+g.k+'] the sheet carries a Computer opponent tile to tap');
     const pOpen=await P.plies(b);
     L.say(pOpen===1,'A3 ['+g.k+'] opening the sheet over the live game loses nothing (plies '+pOpen+')');
+    /* TC-PL-A3b/c [#550 helper app A, jobs/auditor-424-p2-findings-2026-09-27 p2_playOverflowsUnderTheSheet, checker seat 1's GAP]: the Play
+       screen BEHIND the opaque sheet is the live game's layout - the same board box, and nothing past the fold. Before, it re-laid out as if no
+       game were up: board 368 @127 against 375 @112.7 at 375x730, and its column 104.6px past the fold. K2 compared sheet-open with sheet-open. */
+    {const bd=await b.board();const m=await b.metrics();const ov=m.over!=null?(typeof m.over==='object'?m.over.over:m.over):null;
+     const w=bd?Math.round(bd.w*100)/100:null,y=bd?Math.round(bd.y*10)/10:null;
+     L.say(w!=null&&live.boardW!=null&&Math.abs(w-live.boardW)<=0.5&&Math.abs(y-live.boardY)<=0.5,'TC-PL-A3b ['+g.k+'] the board behind the sheet is the live game\'s board ('+w+' @'+y+' against '+live.boardW+' @'+live.boardY+')',{w,y,live});
+     L.say(ov===0,'TC-PL-A3c ['+g.k+'] and the Play column behind the sheet does not run past the fold (over '+ov+')',{over:m.over});}
 
     // ── THE DEFECT: one tap on the opponent tile, and nothing else ────────────────────────────────
     await P.tapBtn(b,/^Computer$/,900);
