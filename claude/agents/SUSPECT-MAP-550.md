@@ -1,0 +1,277 @@
+# #550 suspect map, written before the final suite
+
+Base 14f1eff (main, #549), head 0473182, bundle 192802292e06. Per gate: the commits since the base that changed the gate's own file (`git log --format=%h 14f1eff..0473182 -- <gate>`). Every gate also reads app.js, built from chess.jsx and lessons.js; the app commits are listed once at the end, newest first, so a red whose gate file did not change points at them (then at gates/lib.js and gates/drive/).
+
+- `10-gameover.js` (3): 4d0de3a 62be827 0d80350 
+- `100-online-review-rating.js` (3): 90c9d7c af5aec3 ef99d00 
+- `101-review-summary-you-left.js` (2): 92eb77f ced9bcb 
+- `102-engine-no-go-into-a-running-search.js` (3): 0b7f759 e2c63db a94b3a2 
+- `103-online-flag-auto-end.js` (4): 515b842 b9d70fa 3540fa8 ad54e8f 
+- `104-no-test-pro-for-players.js` (5): 451ae2d 13f56ed 5f06797 139be8f f5a3432 
+- `105-bank-toast-over-the-board.js` (4): 63f941c a463920 fd89352 f4d2364 
+- `106-games-list-four-counts.js` (8): e8acbde e3aec88 8fcc440 00304f6 558424b 13f56ed 5f06797 ad06ff3 
+- `107-ask-once-is-this-account-yours.js` (5): 00304f6 1aaa3a1 4a79a54 fd89352 ed44329 
+- `108-medieval-discover-icons.js` (5): 5d816a5 451ae2d 01ebf44 ddb7ac8 107530f 
+- `109-moves-chips-icon-only.js` (2): 5921f43 139f155 
+- `11-lesson.js` (25): b9ef786 30d86b9 af0fbee a207ea6 15512f4 0d4d9f1 c4c4314 a88c4b0 411d324 8fcc440 0580a32 00304f6 ab3a1e7 02a91e7 359de94 b7c226f f8fb292 39e9763 467f646 e62c8d0 b443dd8 5e77a06 8a852bd cd6d0fd e753b08 
+- `110-review-fail-panel.js` (6): 5d816a5 00304f6 1aaa3a1 c36dd41 fd89352 1decf98 
+- `111-bank-after-another-lesson.js` (3): 00304f6 fd89352 d11f418 
+- `112-review-streamlined.js` (7): 5de53c1 0a7dc6b 00304f6 01ebf44 c728cbc b443dd8 e7c5583 
+- `113-landscape-play-option-a.js` (5): 00304f6 01ebf44 c728cbc b443dd8 372f372 
+- `114-landscape-puzzle-tab-rail.js` (4): 5d816a5 c728cbc b443dd8 dfdbe8a 
+- `115-drill-verdict-says-more.js` (4): 00304f6 8b5bfe7 c728cbc b443dd8 
+- `116-brilliant-rule-3.js` (2): 06d5875 ad34c09 
+- `117-grades-as-chesscom.js` (2): 5f6fda3 c33e447 
+- `118-brilliant-library.js` (8): c211125 666e75d ec64f63 00304f6 8b5bfe7 6809068 5f6fda3 c33e447 
+- `119-audit-p2-batch.js` (4): 5d816a5 471b3e7 5f6fda3 c33e447 
+- `12-hint.js` (8): 0d4d9f1 b2aa9ef 0d72df0 ebbe41b 35d5741 8f83fef 771dc98 7c32cc7 
+- `120-coach-sentence-fits-portrait.js` (2): 9a7fb27 f7a8f9e 
+- `121-coach-sentence-clamps-small.js` (2): 9a7fb27 f7a8f9e 
+- `122-eval-bar-above-the-board.js` (4): 7007420 976131a 0a278ff 64afd33 
+- `123-drill-one-row.js` (4): 46feb49 684d46c 2b55ba6 f78f435 
+- `124-wrong-move-says-why.js` (14): 8cebe8c 1330c7e 8fcc440 4077844 00304f6 317126d 50bc8e6 d631bd1 b4c1e18 54c4855 cc900bb 66bcd7f 684d46c c539ae4 
+- `125-fit-loop-idle-wake.js` (2): 45d5fdd 0865529 
+- `126-scanboard-server.js` (2): 45d5fdd ee833ef 
+- `127-landscape-eval-graph.js` (10): c7fe385 e4a169a 04a0f25 e49a6f7 515b842 9afd7ec aeb1c6d ef54d07 81f59bb cea4753 
+- `128-board-as-big-as-the-screen.js` (9): 00304f6 1dc2fc2 45e1ddb 8239726 ae81691 01ebf44 e4a169a c8d3775 53dd89b 
+- `129-content-positions-hold.js` (2): ada215c ce025ff 
+- `13-play-after-moves.js` (5): 4d0de3a 4e1613e 8d9e7ca cfe4543 f829311 
+- `130-play-hint-best-and-words.js` (3): 8575c41 b49fdee 0131b3c 
+- `131-accuracy-near-chesscom.js` (2): 1e17d67 0bc794c 
+- `132-drill-reads-the-position.js` (6): 0d4d9f1 2994c8f 00304f6 368b7f1 c5e038e 703dad9 
+- `133-hint-texts-read-the-position.js` (13): 5732ca8 50c9205 b5f67e3 0d4d9f1 515bebd 072d767 411d324 e0e3f91 50bc8e6 8b5bfe7 189fd63 09b3cf0 467f646 
+- `134-drill-cards-regraded.js` (2): f8412c4 d3d0769 
+- `135-review-board-holds-its-size.js` (2): 6e91b42 7a3cf80 
+- `136-chess-content-holds.js` (3): 2994c8f ad11f4c 6c3914c 
+- `137-no-browser-pro-switch.js` (3): 101838b 00304f6 451ae2d 
+- `138-usernames-follow-the-account.js` (1): c5e038e 
+- `139-one-top-row-standard.js` (21): 8c22dcb 0d4d9f1 4df2ff1 a7060c8 73f6b8a 5d816a5 5013891 6190e93 c95453c 8fcc440 00304f6 2878e1b 497856f a4772ec 0699986 46feb49 f28e1d0 6809068 0bef45f 39e9763 931d495 
+- `14-uat-review-card.js` (7): 4d0de3a 8227ba5 e2692c0 15d0723 7ee512e b443dd8 9f090d3 
+- `140-messages-move-nothing.js` (4): 6190e93 00304f6 90aecdd 1603f06 
+- `141-home-one-column-every-width.js` (6): 690d199 6190e93 27cc27b c9819db 160af61 e83c0d1 
+- `142-play-setup-fits-wide-windows.js` (2): 6190e93 33c1546 
+- `143-no-movement.js` (6): d8329dd a0ab321 00304f6 0363331 058e06c 7b66748 
+- `144-readable-everywhere.js` (6): 08f5354 5013891 6190e93 b99cd85 00304f6 94d8d35 
+- `145-accounts-follow-across-devices.js` (8): 54206e5 34b7e6e 16f3f82 624072a d4a0d44 335c439 0363331 21494ed 
+- `146-errors-say-what-happened.js` (12): 5d816a5 a680056 8fcc440 199a87d d9eadf8 9d0a1a9 ab3a1e7 1aaa3a1 4a79a54 d12ea0b 0363331 21494ed 
+- `147-speed-with-his-data.js` (3): 00304f6 9fe02e7 9a76ebe 
+- `148-player-words.js` (7): c004673 0d4d9f1 5d816a5 e3aec88 471b3e7 6809068 09497fd 
+- `149-desktop-board-pages.js` (8): cde6281 fd0fb66 6190e93 fa4ab50 ab3a1e7 e14a1d6 3bcb406 0363331 
+- `15-gallery-playall.js` (14): 6d6aa82 fb7bfc7 e3aec88 8fcc440 471b3e7 00304f6 48e5e12 faa82a9 d8f4956 01ebf44 6180c2b 2269735 507ec2f 144231d 
+- `156-lesson-stages.js` (5): 0d4d9f1 7ff54e2 8eb78e0 96b7fbf 20d0dda 
+- `157-icon-rows-one-size.js` (7): faff76d d90f5fb 54206e5 a88c4b0 cfbae1a e3aec88 d1db502 
+- `158-sideways-pages-tab-rail.js` (2): 54206e5 c95453c 
+- `159-pages-fit-one-screen.js` (11): f4199b8 a9e4b9a 1a1d03d 54ea2e1 1fe66f4 b82e642 08f5354 55b19c4 62ac4a1 fe3b8fd d766f3f 
+- `16-cpu-result-line.js` (9): 0993439 08f5354 0d4d9f1 00304f6 5fd60c4 451ae2d 5c58673 e62c8d0 cd6d0fd 
+- `160-drill-row-arrows.js` (2): 54206e5 cfbae1a 
+- `161-sw-slow-line-serves-cache.js` (2): e8acbde 54d9a51 
+- `162-tab-switch-menu-holds.js` (1): e2ab255 
+- `164-review-list-fixed-page.js` (2): 139f100 ef0f72f 
+- `165-play-option-b.js` (1): 76c7a09 
+- `17-drill-grade-arithmetic.js` (2): 913cbac 3a2bfcc 
+- `18-drill-credit-provenance.js` (4): 54206e5 cc6048d 5d816a5 8953744 
+- `19-review-grade-counts.js` (17): 9cd5d41 6fe4518 0d4d9f1 5d816a5 bf09d38 00304f6 0c7d978 aaec56b 94d8d35 5f6fda3 c33e447 e7c5583 cd6d0fd 9f090d3 b66e291 ec575a0 e87d134 
+- `20-review.js` (19): a9ba37b 5d816a5 d766f3f 00304f6 ead56a2 3e082a9 7324783 0363331 368b7f1 c5e038e 01ebf44 8465a3f 2acf390 0250205 c33e447 b443dd8 e7c5583 7b7be93 6a252cf 
+- `21-review-brilliant.js` (6): a225321 5732ca8 b5f67e3 5d816a5 ad34c09 9f090d3 
+- `22-engline-recovery.js` (10): 00b3f32 edf4f68 6fe4518 0d4d9f1 5d816a5 00304f6 f7a8f9e e7c5583 a030e64 a30a884 
+- `23-full-walk.js` (2): 395f50d 00304f6 
+- `24-opponent-handshake.js` (0): none
+- `25-online-clocks.js` (2): 08f5354 61aa53b 
+- `26-invariants.js` (27): 68451db a9e4b9a 22725cc 1a1d03d ae125bb b13aeb8 c35462c a88c4b0 b99cd85 485e184 d1db502 497856f 2f5d7d2 dbbfd6b 0b5342d e32da91 4d3cd61 a3824cb 85e1b32 68f507d bbf297e 01ebf44 c33e447 5bbd103 df7946d e856800 40515d9 
+- `27-scan-fen.js` (2): 395f50d 00304f6 
+- `28-scan-client.js` (7): 9833d07 2d6ab6f 00304f6 1aaa3a1 0a74e53 4a79a54 9f090d3 
+- `29-draws.js` (1): 0d4d9f1 
+- `30-p1-fixes.js` (6): a0930b6 8fcc440 471b3e7 00304f6 a22f527 cfe4543 
+- `31-antagonist373.js` (5): 5d816a5 00304f6 36fed62 e7c5583 9f090d3 
+- `32-plylog.js` (6): 5383d42 5d816a5 e3aec88 471b3e7 e7c5583 9f090d3 
+- `33-reproducible-review.js` (2): 5d816a5 e7c5583 
+- `34-takeback.js` (11): 00304f6 1aaa3a1 342b80e 5bd5c25 976131a 0a278ff 64afd33 baf739c b7b8c75 4906adf 2a873fd 
+- `35-width-containment.js` (2): 41b53b4 4bdb619 
+- `36-evalbar.js` (4): 5d816a5 0a278ff 64afd33 e7c5583 
+- `37-strip-sync.js` (3): 5d816a5 386d5b5 e7c5583 
+- `38-rev-sheet-reach.js` (3): c0c87b1 5d816a5 9f090d3 
+- `39-pz-streak.js` (19): 072d767 6190e93 29bb4ce e34f295 00304f6 cfe4543 2f5d7d2 5d9f795 108ea8c c78bc76 46feb49 35d5741 985b9d1 5f6fda3 c33e447 dfdbe8a 5bab9b7 cd6d0fd 24f4294 
+- `40-reachability.js` (4): 00304f6 46feb49 01ebf44 831e068 
+- `41-coach-bubble.js` (5): 00304f6 0c7d978 6fef595 e7c5583 9f090d3 
+- `42-home-devrow.js` (6): 00304f6 1aaa3a1 342b80e 01ebf44 df7946d 9f090d3 
+- `43-tcrl-analysis.js` (3): 5d816a5 1decf98 9f090d3 
+- `45-play-setup.js` (15): 0993439 b82e642 08f5354 0d4d9f1 a9ba37b 5d816a5 d766f3f 8fcc440 00304f6 f901598 f9c3055 5fd60c4 90c9d7c 40515d9 d2f6c67 
+- `46-play.js` (9): 08f5354 9211730 00304f6 5fd60c4 6b5a5c3 5bd5c25 976131a 0a278ff 64afd33 
+- `47-menu.js` (20): 22725cc 1fe66f4 3e5b8a9 e2c5a60 d766f3f a633d93 4baf00d e3aec88 471b3e7 1a2a8b3 09497fd 0a278ff 64afd33 0250205 19d032b 2271748 6538420 d872218 d2f6c67 7393011 
+- `48-lesson-flow.js` (16): 0d4d9f1 00304f6 5fd60c4 ab3a1e7 20d0a51 497856f 39e9763 931d495 467f646 01ebf44 d8f7bc1 139f155 3aec5b1 b217f4a 48d695d d691d6c 
+- `49-home.js` (12): 5d816a5 11645d5 923536b 5fd60c4 90c9d7c 5904afd 6809068 01ebf44 fd89352 df7946d 7035d01 c7fe540 
+- `50-drill-verdict-no-jump.js` (2): 6494893 f78f435 
+- `51-drill-explain-why.js` (8): 8fcc440 00304f6 558424b 55ca2c7 703dad9 f78f435 b40d787 42041fe 
+- `52-drill-grades-the-move.js` (7): b4c1e18 30e8523 01ebf44 c539ae4 a6d26bf 7fbdfca 8953744 
+- `53-lesson-hit-area.js` (2): 5c58673 139f155 
+- `54-play-resume.js` (2): c0c87b1 c0f7365 
+- `55-play-from-here-terminal.js` (7): 00304f6 0c7d978 aaec56b 9124db1 190a3f4 9f090d3 6538420 
+- `57-pz-solved-explanation.js` (9): e8acbde 0d4d9f1 00304f6 2fbf564 368b7f1 ebbe41b 35d5741 be6c61d 13cd5e9 
+- `58-review-rating-source.js` (3): 5d816a5 00304f6 9f090d3 
+- `61-review-list-month-independence.js` (3): 00304f6 b5081b4 e5e196a 
+- `62-landscape-board-stable.js` (12): 08f5354 c7fe385 e4a169a 515b842 858f54e 9afd7ec 5bd5c25 976131a 0a278ff 64afd33 372f372 9f090d3 
+- `63-gameover-chrome-keying.js` (5): 08f5354 00304f6 2946adf afbbbe3 cea4753 
+- `64-landscape-gameover-row.js` (4): 407251e 00304f6 f1739c2 372f372 
+- `65-promotion-after-gameover.js` (8): 08f5354 00304f6 94d8d35 15319bf 00ecd5b d49c35d 68dffa0 358add8 
+- `66-winprob-ladder.js` (4): 5d816a5 9a6a5c6 15319bf 00ecd5b 
+- `67-sel-cls-consumers.js` (9): 5d816a5 af65841 558424b 5f6fda3 c33e447 9d2d842 e80c285 9f090d3 0261c48 
+- `68-brilliant-sac-empty-square.js` (2): 06d5875 ad34c09 
+- `69-setup-sheet-live-game.js` (6): 15512f4 08f5354 c9d8869 f9c3055 0a278ff 64afd33 
+- `70-live-game-reset-guard.js` (8): a207ea6 15512f4 00304f6 6b9f7cb 0c7d978 aaec56b a720e26 190a3f4 
+- `71-resume-row-agrees-with-the-board.js` (1): c0c87b1 
+- `72-drill-prev.js` (18): 5d816a5 f8be2ec cfbae1a 275ebb5 04eb57c 2148161 10a6b21 00304f6 8b5bfe7 46feb49 d2400ac e22d6b9 f78f435 cd6d0fd fdbfd4d 7223662 d140c9a 1e22862 
+- `73-review-list-filter.js` (13): 15512f4 0d4d9f1 5d816a5 3b4571d 8fcc440 00304f6 558424b 24912a0 5f6fda3 c33e447 cf05c35 6a2ebd5 03cb36d 
+- `74-lesson-card-hit-area.js` (3): 01ebf44 e856800 ce729f6 
+- `75-fit-loop-one-way-ratchet.js` (4): 21521dd 4bdb619 0a278ff 64afd33 
+- `77-empty-bands.js` (7): 1a6ab41 fb1d368 558424b a5691bb ebbe41b 8fa7db0 b40b9d3 
+- `78-inner-scroller-fold.js` (18): b82e642 08f5354 55b19c4 62ac4a1 0ecd9d5 5d816a5 54c4855 8f20255 951cc9b fc70b26 6809068 df7946d e856800 ba3abaa f3bb8eb 831e068 6da83d2 6ff1c24 
+- `79-extractor-is-callable.js` (4): 6538420 3decd45 4a44793 763ff37 
+- `80-castle-input.js` (1): 5383d42 
+- `81-gatelog-covers-shipped-bundle.js` (1): 7a6839d 
+- `82-brilliant-one-rule.js` (11): 00304f6 1aaa3a1 a564f4d 5e8e150 b1861b0 8fa7db0 3835b96 5f6fda3 c33e447 06d5875 ad34c09 
+- `83-missed-brilliant.js` (6): 6190e93 00304f6 1aaa3a1 509485f 06d5875 ad34c09 
+- `84-lesson-free-defender.js` (6): b7c226f f8fb292 4bdb619 dc13489 ed482aa 92b5d41 
+- `86-review-function-of-the-game.js` (2): c87fd3c 5d816a5 
+- `87-opening-book.js` (4): ad33023 5d816a5 01ebf44 76381cc 
+- `89-brilliancy-motifs.js` (1): f7b5f43 
+- `90-full-screen.js` (4): 2bbb590 20d092e 6538420 144231d 
+- `91-review-next-not-star.js` (7): 00304f6 01ebf44 b443dd8 e7c5583 cd6d0fd 9f090d3 122ecb3 
+- `92-skin-icons.js` (3): fa363c6 b013304 c7fe540 
+- `93-lib-filter.js` (10): 00304f6 d9fb639 21521dd 4bdb619 01ebf44 ddb7ac8 da38a82 a58db5b 8f11e27 09bc4bd 
+- `94-review-cache-keeps-every-review.js` (2): 1df8040 a3254c5 
+- `95-lesson-lines-legal.js` (4): b7c226f f8fb292 2024e03 f83b4e2 
+- `96-video-call-timeout-and-optout.js` (5): 00304f6 515b842 b9d70fa aba89a5 f671638 
+- `97-setup-game-carries-its-fen.js` (3): a4d667a ff46ab9 7bbec32 
+- `98-legacy-drill-card-hint.js` (6): e28dc81 0bc794c 8fa7db0 3835b96 b00e962 719c41e 
+- `99-review-engine-wait-shown.js` (6): 5d816a5 00304f6 0c7d978 aaec56b b37f074 a894f06 
+
+## gates/lib.js and gates/drive/
+
+- ae125bb #550 helper test-system A: gate 26 TC-INV-03c visits Choose your opponent and pins its own icon heights
+- 08f5354 #550 helper B: Play setup per Kunal's q44 - one Time dropdown and a 'Choose your opponent' screen; it fits 320x568 and 375x761
+- 5d816a5 #550 helper app A: wording check, what was left - one name and one spelling per thing (TXT-21, 22, 23, 27, 29, 32, 35, 37; gate 148 TC-R224l)
+- a2a84e6 #550 helper test-system A: the game-over composition rule in the harness - L.gameOverArms reads a game-over state at the terminal ply, N plies back an
+- 48b8a7c #550 merge test-system A helper: fastgate's records check is records-gate.sh --binaries (a breach already on the base is refused, no longer grandfathe
+- 923536b #550 helper app A: Home one Today card, part 2 - the card, the 1/5 strip off Home, gate 49 re-pinned with a control, after pictures
+- 5536218 #550 helper test-system A: entry two pilot - every gate prints a COVERAGE line of the geometries and configs it launched
+- 54b7f74 #550 merge app A helper: the menu fits one screen (gate 47 block N), the held bar's controls sit inside the bar under the header (gate 15 block HM); c
+- 471b3e7 #550 jobs/build-menu-one-screen: the menu fits one screen (Kunal's B9C-MENU-ONE-SCREEN 'mockup', CeQZjDt9dqSsMCT9FRCAsT)
+- 558424b #550 jobs/games-list-card-whose-game-and-layout (second pass): the card names its account, a colour square, the date on the name line, a chevron, 'not
+- c2a816f #550 drive/menu.js: menu-evalgraph-on finds the row by its current label 'Evaluation graph' (the old 'Eval graph in the player bars' no longer matched
+- 0d2da42 #550 drivers: puzzles a06 and menu card7 reach their states by the player's route, not gallery cards A-06 and 7
+- 02a91e7 #550 gate 11: the lesson demo-end and practice states are reached by the player's route, not gallery cards 3 and 4
+- 62be827 #550 gate 10: the game-over board is reached by the player's route (Pass & Play Scholar's mate), not the k10 gallery card
+- f28e1d0 #550 formatting audit, the rest (Kunal's pick 12 Nov): puzzle training, free play and the drills get the standard top row; the top row at one height; 
+- f127dd6 #550 merge the wording check (TXT P1s and most P2/P3s; dev tools for him only via users/{uid}.dev; gate 148) - conflicts resolved keeping the readabil
+- 09497fd #550 wording check: the developer tools are his alone (users/{uid}.dev or the gate harness), legal pages read as drafts, no setup errors
+- 7b66748 #550 US-R151 MOV-01..04: the Review board no longer shakes at 125%/150% display scale; sideways toolbar and explanation box hold still
+- 4d3cd61 #550 merge the formatting audit P1 batch (FMT-A-01/02/03/05/06, B-01/02/03; a42 lesson and Tactics; gate 139)
+- 68f507d #550 FMT: gate 26 pins re-keyed to the one top-row standard and the folded lesson bar; menu driver finds the header ☰ by its aria-label; Review shor
+- 931d495 #550 formatting audit P1 (FMT-A-01/02/03/05/06, B-01/02/03; Kunal's pick 12 Nov): one top row standard, Tactics board under the top row with the answe
+- 451ae2d #550 security and privacy batch (docs/security-privacy-2026-11-12, Kunal "All 20, serious first")
+- e7c5583 #550 answer a21: the streamlined review - board edge to edge, the move list under it, a bottom toolbar
+- ddb7ac8 #550 answer a22 FINAL: the Classic skin's Discover tiles draw the classic-a1-3d set
+- 1decf98 #550 answer a32: a review whose engine stops answering ends on "The review stopped before it finished."
+- e856800 #550 antagonist A round 2: coach slate re-keyed, tab ink stroke-aware, Tactics hint fits, regrade book, ask queue
+- 190a3f4 #550 item (75): every control that would throw away the game asks with the same words
+- 144231d #550 item (1): the installed app paints the whole screen, and the tab bar counts the home-bar inset once
+
+## app files (chess.jsx, lessons.js, index.html, sw.js), since 2026-11-13
+
+- 5732ca8 #550 helper lessons: the Review text, part A of docs/review-text-design-2026-11-14 - one order, "you" and "your opponent", numbered moves, a board-che
+- 7ed5c90 #550 helper lessons: the engine line never says 'wins' of a capture the next move takes back like for like
+- 50c9205 #550 helper lessons: a Review slip says whose move the reply is, what it does, and what the better move did
+- b5f67e3 #550 helper lessons: Review's captures read in the game, not on one board (HEX-R-03): takes back, no chase of a piece taken next, Forced-then-mate
+- 30d86b9 #550 helper app A: cg10 - the method clause is read without "more" (TC-LS-058b), TC-LS-058 re-pinned with a control that reddens at head's scroller
+- d90f5fb #550 helper B: lesson footer is one component - the practice row renders FootBtn like the demo bar and the Review transport row; gate 157 TC-IR-06
+- 76c7a09 #550 helper app A: q48 Option B on the game screens - the move list straight under the board, the buttons at the foot (new gate 165, TC-R227a..d)
+- f4199b8 #550 helper test-system A: the Look sheet close button takes its whole 44 tap at 320x568 (A11Y-15); gate 159 Q50 CLOSE TAP
+- 22725cc #550 helper app A: build-menu-one-screen leftovers gated (gate 47 TC-MN-058), and gate 26's summary pins re-pinned for the grade counts' 44 rows
+- 1a1d03d #550 helper B: q50 chips take a 44 tap of their own at 320x568 (A11Y-15, checker seat 2's GAP); gate 159 Q50 TAP; gate 26 TC-INV-03b 320 re-pinned for
+- 1fe66f4 #550 helper B: q50 Look and feel fits 320x568 - name-less chips in rows of six, no intro line; gate 159 page s at 320x568 plus a Q50 arm
+- 8c22dcb #550 helper app A: the Review summary's grade counts get 44 tap areas (gate 139 TC-R215zz)
+- 139f100 #550 helper B: q45 Filter open keeps the page fixed at 320x568 - the panel and name box open inside the games box; gate 164 Filter-open arm
+- ef0f72f #550 helper B: the Review games list is a fixed page - only the games box scrolls and fills the rest (Kunal's q45), at 375x761 and 320x568
+- 3e5b8a9 #550 helper app A: the menu's legal links get 44 tap areas (gate 47 TC-MN-057); gates 26 and 139 not yet re-run (load pause)
+- 08f5354 #550 helper B: Play setup per Kunal's q44 - one Time dropdown and a 'Choose your opponent' screen; it fits 320x568 and 375x761
+- c004673 #550 helper app A: TXT-36 finish - the five British forms left in lessons.js, and gate 148 TC-R224n can see them (checker seat 2's GAP)
+- 0d4d9f1 WIP #550 helper app A: TXT-36/TXT-40 - US spelling and no em or en dash in player-facing text (gate 148 TC-R224m/n); re-pin runs paused on load
+- 5c4c93f #550 the dev-only brilliant-gate numbers switch moves from Review's More sheet to the menu's dev rows beside Layout readout (checker seat 2: in his de
+- 62ac4a1 #550 helper B: Review's More sheet fits 320x568 (two columns of rows, the sheet rises to 8 from the top); gate 159 asserts it there; gate 78 TC-INV-08
+- c9d8869 #550 helper app A: the Play screen behind the New Game sheet keeps the live game's layout (auditor-424 p2_playOverflowsUnderTheSheet; gate 69 TC-PL-A3
+- b8a56cd #550 offline notice: offFreeSpot's free-band scan starts below safeTop and ends above safeBot (checker seat 2, notices-cut second check: with env(safe
+- a8cebd8 #550 Home account button stays 46x46 (gate 49 TC-HM-028 pins it) with its top at env+TOP_Y, the menu's top: 27db42a shrank it to 44, which cleared the
+- 27db42a #550 Home account button: 44 at env+TOP_Y (the menu's own row), not 46 at env+(TOP_Y-1) - its top pixel sat under the 2px offline edge on every device
+- cde6281 #550 helper lessons: a sideways lesson's practice opens on its 'Your move' prompt, not scrolled past it
+- c4c4314 #550 helper lessons: the practice count is painted whole at 320x568 ('1 of 5', not '1 of …'), and gate 11 reads it as a value
+- 5d816a5 #550 helper app A: wording check, what was left - one name and one spelling per thing (TXT-21, 22, 23, 27, 29, 32, 35, 37; gate 148 TC-R224l)
+- 515bebd #550 helper lessons: pzMissNote no longer tells a wrong move that captured a piece that the piece is "left to be won"
+- 9715325 #550 helper lessons: the Next-lesson button reads 'Next lesson ›' again (a regression of e324617's arrow, gate 48 TC-LS-036)
+- fd0fb66 #550 helper lessons: a sideways lesson's scrolled column no longer carries the note box under the corner Home and menu
+- d766f3f #550 helper B: Play setup, Review's More sheet and Look and feel fit his phone without scrolling (pages-that-scroll, part)
+- 072d767 #550 helper lessons: Puzzles' second wrong move names a reason (HEX-T-06), from the board or from the puzzle's own line
+- 101838b #550 helper app A: security SEC-19 - index.html declares a content security policy (gate 137 TC-R213i)
+- 690d199 #550 helper app A: Home fits 1280x600 again - the fit ratio scales only the column, not the scroller's padding (gate 141 TC-R217c)
+- a88c4b0 #550 helper lessons: the lesson bars' icons are one PAINTED size (19px of ink per row), and gate 157 reads the lesson rows
+- 8575c41 #550 helper app A: play hint, what was left (HEX-R-11, HEX-R-12) - a line after the computer's reply, and a mate names its move
+- e2ab255 #550 helper B: Home's menu sits in the same corner as every tab's, so it no longer jumps on a switch (movement check MOV-09)
+- bf09d38 #550 helper app A: the bottom player bar's eval graph marks the grade the badge shows - no Blunder mark on a book ply (gate 19 A7c)
+- a680056 #550 helper app A: the offline words go in a free band of the screen, so for their 5 s they cover no piece, square, text or control - or do not show (
+- cfbae1a #550 helper B: the drill card's Prev and Next are two arrows, 46x44 each (transport-row-icon-only, the drill-card extension)
+- 7c6db8f #550 chess.jsx: R18 on the #426 P0-1 fallback comment - gate 146 has driven a REVIEW through the built-in branch since 21494ed (engineFail 'all', path
+- b99cd85 #550 helper app A: at 320x568 and 375x568 the Review corners (back, more) draw inside the screen - 30 tall in the 32 bar, a 44 tap area, the board unm
+- 4baf00d #550 helper app A: the menu sheet's toggle rows and Sign in with Google give a 44 tap area (FMT-A-11), the sheet still one screen (gate 47 TC-MN-056)
+- 560561a #550 the day's-goal toast says "Today's 3 done! Streak safe." - it named the Daily 3 card, which the Today card replaced (app A's report, left open)
+- 923536b #550 helper app A: Home one Today card, part 2 - the card, the 1/5 strip off Home, gate 49 re-pinned with a control, after pictures
+- 1330c7e #550 helper lessons: card 7 (Be4) reads its point from the board - missWhy (4) guardhit, "is met by f5, which guards g4 and hits the bishop"
+- c95453c #550 helper B: sideways tab rail on Discover, the Review list and the roadmap; the 667x375 puzzle column cuts nothing
+- 2eda297 #550 the Brilliant drill's goal reserve applies only on a phone at least 740 tall, where the board is width-bound and the reserve costs nothing
+- 7d838bb #550 the Brilliant-moves drill takes the mistakes drill's goal reserve (3 lines below 380 wide, 2 above), so both drills put the board and controls in
+- 4f4d0be #550 the puzzle/drill message box fits whole lines whenever its text overflows at all (it skipped overflows of 1px or less, so at 440x956 a 105-char e
+- 8eb78e0 #550 stage lesson: a repeated position is called out ('This position has come up before: a third time is a draw by repetition.') and the third time is
+- a0ab321 #550 sideways Puzzles training: the top and bottom panels fill their side column (they stopped at 440 of 520 at 1920 and 2560 wide, an 80px empty band
+- 0580a32 #550 helper lessons: lesson practice note box clamps the hint (2 lines) and the prompt/confirm line (the rest) with an ellipsis
+- 199a87d #550 helper B: the offline words sit over the centre of the board for their 5 s, covering no control or text (they covered the bottom controls); the 3
+- 96b7fbf #550 jobs/lessons-teach-the-finish-not-the-method-2026-09-24: the failure line is part of the lesson (stage refusals play the king's way out)
+- 471b3e7 #550 jobs/build-menu-one-screen: the menu fits one screen (Kunal's B9C-MENU-ONE-SCREEN 'mockup', CeQZjDt9dqSsMCT9FRCAsT)
+- 4077844 #550 helper B: a drill reply that captures or gives check is described by that first - missWhy's letsgo ('lets them take the pawn with check (Qxf2+)',
+- 2878e1b #550 helper B: the Review summary's coach chips (Train this opening, Sharpen with puzzles) get a 44 tap area with no box moving (gate 139 TC-R215z)
+- 196b067 #550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13: concreteRead says nothing for a move they mate in one
+- fa4ab50 #550 helper B: sideways Tactics & strategy paints one menu button, not a second page-level one beside the group or under the rail (gate 149 TC-R225k)
+- d1db502 #550 jobs/lesson-footer-icons-consistent: the sweep's last rows - one icon size within a row, by painted ink (gate 157)
+- f9c3055 #550 jobs/auditor-424-p2-findings-2026-09-27 (second pass): the New Game sheet holds its choices as PENDING state and applies them at Start
+- 558424b #550 jobs/games-list-card-whose-game-and-layout (second pass): the card names its account, a colour square, the date on the name line, a chevron, 'not
+- 48e5e12 #550 jobs/the-gallery-held-bars-hide-control-covers-the-review-tabs-menu-button-at-three-geometries-2026-11-07: the held bar's ‹ and ✕ sit inside 
+- 6b9f7cb #550 gate 70 K1/K2/TC-R45b X: the lesson's Play this position arms again over a live game
+- d4a0d44 #550 cg5 SYN-07: a push pulls and merges first (jobs/accounts-devices-check-2026-11-12)
+- 78c1e98 #550 the worked example's three long notes fit the note box (jobs/lessons-teach-the-finish-not-the-method-2026-09-24)
+- 335c439 #550 cg5 SYN-11: the puzzle streak follows the account (jobs/accounts-devices-check-2026-11-12)
+- 497856f #550 cg6 jobs/formatting-audit-p2-p3-2026-11-12: radii, gutters, Try again, lobby label, two 44 tap areas
+- e14a1d6 #550 jobs/sideways-lesson-corner-buttons-overlap-the-note-box-2026-11-13: a sideways lesson's column starts at 56, so the 44px corner Home and menu (t
+- 68b829c #550 the worked example: "Queen Mate: the Box Method", a king-and-queen mate taught in two stages (jobs/lessons-teach-the-finish-not-the-method-2026-0
+- 16e5a75 #550 the stage player: a lesson made of stages, each move judged on the board by the stage's own test (jobs/lessons-teach-the-finish-not-the-method-20
+- 8b5bfe7 #550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the drill message shows whole lines, its 'more' chip covers 
+- d631bd1 #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: a drill reply that captures is described by its capture first, 
+- b4c1e18 #550 cg7 part 2: the mistakes drill's wrong-move line reads the board against the card's best move (missWhy) (jobs/drill-hints-name-the-positions-poin
+- a4772ec #550 cg8 jobs/formatting-audit-p1s-2026-11-12 FMT-B-02: the online lobby board is the screen width
+- 3bcb406 #550 cg4 jobs/desktop-check-remaining-2026-11-12 DSK-03/DSK-05: the sideways tab rail joins the centred group
+- 359de94 #550 jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: in lesson practice the hint words come first on their own line inside the
+- 09b3cf0 #550 cg7 part 1: concreteRead names a mate threat, a fork without check, and a pin (jobs/drill-hints-name-the-positions-point-2026-11-12)
+- d12ea0b #550 jobs/notices-cut-their-own-key-words-on-kunals-phone-2026-11-13: the ERR-06 line reads whole (shorter words, two lines in the top row it already 
+- fbd9ff8 #550 MOV-07 follow-up: on a sideways phone under 400 tall the puzzle hint row keeps two lines (36) instead of three (49)
+- b1861b0 #550 jobs/brilliant-drill-hint-and-explanation-concrete-2026-11-12: HEX-T-08, the line after the capture
+- 66bcd7f #550 jobs/drill-hints-name-the-positions-point-2026-11-12: HEX-T-03, the wrong-move message's engine-line half
+- f8fb292 #550 jobs/lessons-practice-hints-and-wrong-move-reasons-2026-11-12: HEX-T-13, -14, -15
+- 174b43f #550 DSK-10: the lesson move list scrolls inside itself only on a computer-height window (560 and over); a phone turned sideways keeps the rail scroll
+- 53fe3aa #550 jobs/suite-never-asserts-after-a-success-2026-09-27 theFix (4): the lesson bank celebration's 2800ms auto-clear becomes a test seam (ct_celebrate
+- 46feb49 #550 formatting audit: the hint keeps its width (it takes the menu's place while it shows); gate 139 control record; gates 123, 39, 72 and 40 re-keyed
+- f28e1d0 #550 formatting audit, the rest (Kunal's pick 12 Nov): puzzle training, free play and the drills get the standard top row; the top row at one height; 
+- bcc4eff #550 desktop, movement, accounts and errors checks (batch 10 remainder): DSK-05/10/11/12 and the corner slot; MOV-05/06/07; SYN-06/07/11; ERR-06/08/09
+- d8f4956 #550 hold-landing (6), his iPad: preview gallery card 3 IPAD walks Home, Discover, Tactics, a lesson, Puzzles, a game against the computer and a revie
+- 4a6f904 #550 desktop check DSK-03/04: board pages wider than tall centre the board and column as one group with the corner buttons anchored to it, and the boa
+- 6809068 #550 wording check batch 10: one name per thing where no layout moves, legal links marked draft, story US-R156
+- 09497fd #550 wording check: the developer tools are his alone (users/{uid}.dev or the gate harness), legal pages read as drafts, no setup errors
+- 94d8d35 #550 readability check, Kunal's pick 12 Nov (Batch 10, serious first): accent ink, clocks, flag alt ink, graph shapes, hit areas
+- 21494ed #550 accounts across devices (SYN-01..05, SYN-08) and errors/offline (ERR-01..05, ERR-07); gates 145 and 146
+- 7b66748 #550 US-R151 MOV-01..04: the Review board no longer shakes at 125%/150% display scale; sideways toolbar and explanation box hold still
+- 9a76ebe #550 speed check SPD-01/02/03 (regressions of this batch): the Review regrade scan skips the replay when the eval cache is empty, checks each game onc
