@@ -45,6 +45,7 @@
 // CONTROL-RECORD: 3620b52 2026-11-06 total=124 red=34 scope=trial:092470ec1943 how=mistake capture disabled (if(0)caps.push) and both pz-top marginTop 90: FAIL TC-S07 PHASE 1 mistakes x2, every drill-mistakes REACHED and MEASURED at all three columns (24), the four drill-brilliant PROMOTED lines (98.5/94.5 @51) and the four promoted puzzles states; the trial 96d043bdf18f reads 128 pass 0 fail [#549 item (21)]
 // CONTROL-RECORD: b40b9d3 2026-11-12 total=127 red=13 scope=trial:9bceb4fee152 how=#550 round 5, Hint re-key: the drills' Hint button does nothing - the twelve TC-S07 drill-hint lines red (hint tapped and no hint line), plus TC-S04 moves-last 63px; on 764a0b1dc097 128/1 (TC-S04 alone)
 // CONTROL-RECORD: 160af61 2026-11-12 total=135 red=6 scope=full:c5269256d63e how=#550 the wrong move is now chosen LEGAL (wrongFor): the round-7 suite's run of the old fixed a7a6 on this same card (Black in check after Bd7+) - the drill mistakes wrong state not entered at 375x761, 375x730 and 375x812 (6 red, gates/logs 550-77-empty-bands.log of the bg-r7 clone); on t142 4e6cd77c 129/0 with e8d8 played
+// CONTROL-RECORD: e324617 2026-11-14 total=45 red=16 scope=subset:d4bfaeecdb76 how=#550 helper lessons, the PAINTED reading's control: the drill row pushed 70px down (marginTop:70 on data-ct=drill-row; the board fit shrinks the board and the gap opens above the row) - the eight drill states at 375x761 real only (the gate's own code with STATES filtered to the drills and COLS to the real column, scratchpad lh/p77.js): PAINTED red x8 (68 @525-593) and PROMOTED red x8 (76.8); the full gate on c638b795f1ee 161/0
 const L=require('../lib');
 const HM=require('../drive/home');
 const PZ=require('../drive/puzzles');
@@ -164,6 +165,36 @@ const STATES=[
 // above. On the #549 base (md5 14ea26b79b33) it read 89 @379.2-468.2 at 375x761 real; the fix (rows measured against the real tab bar,
 // icon at 0.64 of the row) reads 52 @381.7-433.7. 375x730 (78) and 375x812 (119) stay reported, as the rule says.
 const PROMOTED77=['home discover','puzzles train','puzzles train-solved','puzzles train-fail','puzzles train-hint','review moves-ply10','review moves-last','review analysis'];
+// PAINT_REPORT77: promoted states whose PAINTED reading is reported, not asserted - see the PAINTED READING note above PAINT. Empty means every promoted state is asserted on paint too.
+const PAINT_REPORT77=[];
+// THE PAINTED READING [#550 helper lessons, jobs/drills-leave-a-141px-empty-band-at-375x761-while-gate-77-reads-50-2026-11-14].
+// INK above is a reading of BOXES: a text node's glyph box, a replaced element's box, a surface's box. A box is not paint, and on the
+// drills it read 50.2 where a pixel scan of the same screen reads 141 (CLAUDE.md: "a crop is a reading, not a measurement", and
+// "a container is not its contents"). PAINT reads the screenshot itself: a pixel row is EMPTY when every pixel in it is within TOL of
+// every other (no ink, no edge, no surface boundary) AND its colour is the app ground's - the commonest colour among uniform rows - so
+// a flat bar of a colour of its own (the tab bar's safe-area padding) is a surface, not empty space. Bands under 8px are dropped and the
+// 375x761 column cuts the top 51px, exactly as for INK. The colour test is derived from the screen, never hard-coded (#397's polarity rule).
+// WHAT THE 141 WAS. The checker's 141px band (576-716 on both drills) did not come from the screen this gate measures: its probe
+// launched kunal761 WITHOUT Chromium's Emulation.setSafeAreaInsetsOverride, so env(safe-area-inset-*) read 0 - the stack started 51px
+// higher and the tab bar sat 31px lower than on his phone, and the two offsets landed in one band. Its own scanner, re-run on trial
+// beeca0a9f010 with the override this gate applies, reads 59 @627-685 (41 once solved); this PAINT reads 47 @627-674 and INK 52
+// @622-674. So TC-S07 was right at 375x761 real, and the drills need no layout change for the 60px rule. The painted reading stays as a
+// second instrument the box reading cannot vouch for. KNOW ITS LIMIT: the tab bar's bottom safe-area padding (721-761, 40px) is painted
+// within 12 of the ground, so PAINT counts it as empty; INK counts the bar's box as ink. It is under 60, and it is reported.
+const PAINT_TOL=8;
+const PAINT=async(b)=>{const buf=await b.page.screenshot();
+  return b.page.evaluate(async([src,tol])=>{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=src;});
+    const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);
+    const W=c.width,H=c.height,d=x.getImageData(0,0,W,H).data,k=H/innerHeight;const uni=[],col=[];
+    for(let y=0;y<H;y++){let mn=[255,255,255],mx=[0,0,0];for(let xx=0;xx<W;xx++){const i=(y*W+xx)*4;for(let q=0;q<3;q++){if(d[i+q]<mn[q])mn[q]=d[i+q];if(d[i+q]>mx[q])mx[q]=d[i+q];}}
+      uni.push(Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2])<=tol);col.push([0,1,2].map(q=>(mn[q]+mx[q])>>1));}
+    const tally=new Map();for(let y=0;y<H;y++)if(uni[y]){const key=col[y].map(v=>v>>3).join(',');tally.set(key,(tally.get(key)||0)+1);}
+    let gk=null,gn=0;for(const [kk,n] of tally)if(n>gn){gk=kk;gn=n;}
+    const ground=gk?gk.split(',').map(v=>(+v<<3)+4):null;
+    const empty=(y)=>uni[y]&&ground&&col[y].every((v,q)=>Math.abs(v-ground[q])<=tol+4);
+    const bands=[];let s=-1;for(let y=0;y<=H;y++){const e=y<H&&empty(y);if(e&&s<0)s=y;if(!e&&s>=0){bands.push([+(s/k).toFixed(1),+(y/k).toFixed(1)]);s=-1;}}
+    return {vh:innerHeight,ground,uniformRows:uni.filter(Boolean).length,bands:bands.filter(([a,z])=>z-a>=8).map(([a,z])=>[a,z,+(z-a).toFixed(1)])};
+  },['data:image/png;base64,'+buf.toString('base64'),PAINT_TOL]);};
 const cutBands=(bands,top)=>bands.map(([a,b])=>[Math.max(a,top),b]).filter(([a,b])=>b-a>=8).map(([a,b])=>[+a.toFixed(1),+b.toFixed(1),+(b-a).toFixed(1)]);
 const sum=(bands)=>+bands.reduce((s,x)=>s+x[2],0).toFixed(1);
 const big=(bands)=>bands.reduce((m,x)=>(!m||x[2]>m[2])?x:m,null);
@@ -189,7 +220,7 @@ L.run(async()=>{
   for(const [cs,label,drive,store] of STATES){
     const row={label,cs};
     for(const c of COLS){
-      let m=null,err=null,ink=0;
+      let m=null,err=null,ink=0,pm=null;
       const b=await L.launch({geo:c.geo,store:Object.assign({ct_pool:'3'},typeof store==='function'?(store()||{}):store),name:'eb-'+label.replace(/ /g,'-')+'-'+c.n.split(' ')[0]});
       try{
         if(c.real){const cdp=await b.ctx.newCDPSession(b.page);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:51,bottom:31,left:0,right:0}});}
@@ -197,6 +228,7 @@ L.run(async()=>{
         await drive(b);
         await b.page.waitForTimeout(400);
         m=await b.page.evaluate(INK);
+        pm=await PAINT(b);
         ink=await b.page.evaluate(()=>{let k=0;const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode()))if((n.textContent||'').trim())k++;return k;});
       }catch(e){err=String(e&&e.message||e).slice(0,160);}
       await b.close();
@@ -211,6 +243,15 @@ L.run(async()=>{
       // moves-ply10 25.1, moves-last 42, analysis 11 (were 68.5/68.5/99, the graph moved into the band), puzzles train 46.6,
       // train-fail and train-hint 15.5 (already under). Rankup and review moves-ply0 (71) stay report-only; Discover was promoted at #549 (see PROMOTED77).
       if(c.real&&PROMOTED77.indexOf(label)>=0)L.say(!!bg&&bg[2]<=60,cs+' '+label+' @'+c.n+': PROMOTED - the largest empty band is at most 60px (Kunal\'s rule, adopted 11 Oct): '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'none'),{largest:bg&&bg[2],at:bg&&(bg[0]+'-'+bg[1])});
+      // THE PAINTED READING, asserted where the box reading is (PROMOTED states, 375x761 real) [#550 helper lessons]. Its own denominator
+      // first: the scan found the app ground (a screen with no uniform row has no ground and would report no band at all).
+      if(c.real&&PROMOTED77.indexOf(label)>=0){
+        L.say(!!pm&&!!pm.ground&&pm.uniformRows>0,cs+' '+label+' @'+c.n+': PAINT DENOMINATOR the pixel scan found the app ground ('+(pm&&pm.ground)+', '+(pm&&pm.uniformRows)+' uniform rows)',pm&&{ground:pm.ground,uniformRows:pm.uniformRows});
+        const pc=pm?cutBands(pm.bands.map(x=>[x[0],x[1]]),c.cut):[];const pb=big(pc);
+        if(PAINT_REPORT77.indexOf(label)>=0)L.note('    PAINT REPORT-ONLY '+cs+' '+label+' @'+c.n+': largest painted-empty band '+(pb?pb[2]+' @'+pb[0]+'-'+pb[1]:'none')+' ('+((pb?pb[2]:0)<=60?'within':'OVER')+' 60) - see PAINT_REPORT77');
+        else L.say(!!pm&&(!pb||pb[2]<=60),cs+' '+label+' @'+c.n+': PAINTED - the largest band with nothing painted in it is at most 60px: '+(pb?pb[2]+' @'+pb[0]+'-'+pb[1]:'none')+' (the box reading above says '+(bg?bg[2]:'none')+')',{largest:pb&&pb[2],at:pb&&(pb[0]+'-'+pb[1]),bands:pc});
+      }
+      if(pm)L.note('    PAINT '+cs+' '+label+' @'+c.n+': painted-empty bands >= 8 '+(c.cut?'(top '+c.cut+'px cut) ':'')+fmt(c.cut?cutBands(pm.bands.map(x=>[x[0],x[1]]),c.cut):pm.bands));
       row[c.n]={largest:bg?bg[2]:0,at:bg?bg[0]+'-'+bg[1]:'',empty:sum(cut),rawLargest:m.largest,rawAt:m.at};
       L.note('    REPORT '+cs+' '+label+' @'+c.n+(c.cut?'  RAW from y 0: largest '+m.largest+' @'+m.at+', empty '+m.empty+'  |  TOP '+c.cut+'px EXCLUDED:':':')+
         ' largest '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'0')+', empty '+sum(cut)+', bands >= 8: '+fmt(cut)+(c.cut?'   (60px rule, not asserted: '+((bg?bg[2]:0)<=60?'within':'OVER')+')':''));
