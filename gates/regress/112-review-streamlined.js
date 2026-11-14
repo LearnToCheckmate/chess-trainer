@@ -55,3 +55,5 @@ L.run(async()=>{
   }
 },'112-review-streamlined');
 // SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R192c needs its four buttons in order
+// CONTROL-RECORD: 0a7dc6b 2026-11-14 total=25 red=3 scope=trial:9afd1496d3bb how=#550 #432 sweep round 5 (the header counted by its title words): c112, rev-head renamed AND the header row drawn on every phone height (revHead=revStream) - TC-R192d red at all three geometries, se the defect itself (title words above the board 1); the hook-keyed version (29bb4ce) on the same bundle is 23/2 with se TC-R192d GREEN (its two reds are the presence half at kunal761 and 390x844, reading the missing hook); on t0 6925a0ca4de2 25/0
+// SELECTOR-OPENED: rev-head control=0a7dc6b round 5: the short-screen absence half also counts the header by its title words; c112 renamed the hook and drew the header at se, red
