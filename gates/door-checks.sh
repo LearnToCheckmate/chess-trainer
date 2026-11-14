@@ -34,6 +34,11 @@
 #        (uncovered=104 of 139 at 2994c8f). Measured then: "control-floor: 39 pass / 0 fail", ~8s; selftest 17 pass / 0 fail.
 #        UNLIKE the report and citations rows its count IS pinned (door:control-floor): it counts FLOOR ROWS, and a row
 #        leaving is a gate losing its cover, which must say so in the diff.
+#   IN   gates/audit/contract-asserts.sh, and its --selftest (#550 test-system helper A; jobs/entry-three-contracts-become-
+#        runnable-asserts-2026-10-10): ENTRY THREE - each clause in gates/contract-asserts.tsv marked `assert` runs its predicate
+#        under gates/audit/, and a breach refuses here. Measured at fe3b8fd: "contract-asserts: 2 pass / 0 fail (2 in force, 1 not
+#        checked here, 52 not in force ...)", ~6s; selftest 21 pass / 0 fail (it also runs each live assert's own --selftest).
+#        Its count IS pinned (door:contract-asserts): it counts in-force asserts that held, so an assert leaving lowers the pin.
 #   OUT  gates/audit/verify-patch-set.sh <payload-dir> (the live mode): its input is a set of parked tracker payloads, which a
 #        tree does not carry, so the door has nothing to give it. Only its --selftest can run here.
 # The IN checks run in parallel (three when this was measured; the report joined at round 4, --citations at round 5). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
@@ -60,7 +65,9 @@ verify-patch-set-selftest|gates/audit/verify-patch-set.sh|--selftest|SELFTEST [0
 cited-not-run-report|gates/audit/cited-not-run.sh||cited-not-run report: [0-9]+ pass / [0-9]+ fail
 citations|gates/verify-log.sh|--citations|citations door: [0-9]+ pass / [0-9]+ fail
 control-floor-selftest|gates/audit/control-floor.sh|--selftest|control-floor selftest: [0-9]+ pass / [0-9]+ fail
-control-floor|gates/audit/control-floor.sh||control-floor: [0-9]+ pass / [0-9]+ fail'
+control-floor|gates/audit/control-floor.sh||control-floor: [0-9]+ pass / [0-9]+ fail
+contract-asserts-selftest|gates/audit/contract-asserts.sh|--selftest|contract-asserts selftest: [0-9]+ pass / [0-9]+ fail
+contract-asserts|gates/audit/contract-asserts.sh||contract-asserts: [0-9]+ pass / [0-9]+ fail'
 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
@@ -137,11 +144,11 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail")"
 s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks run in parallel (2 x 2s in under 4s)" yes "$( [ $(( $(date +%s)-s0 )) -lt 4 ] && echo yes || echo no)"
   # DC10: the live list names exactly the seven measured-green checks; verify-log --citations joined at #550 round 5, once green,
   # and control-floor with its selftest at #550 test-system helper A (part (3))
-  chk "DC10 the live list has seven rows" 7 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  chk "DC10 the live list has nine rows (contract-asserts and its selftest joined at #550 test-system helper A)" 9 "$(printf '%s\n' "$CHECKS" | grep -c .)"
   chk "DC10b and verify-log --citations is one of them, by that argument (round 5: CITATIONS OK, 0 fail)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^citations\|gates/verify-log.sh\|--citations\|')"
   chk "DC10c the cited-not-run REPORT is in, with no argument (round 4: accounted-green 48 of 48)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^cited-not-run-report\|gates/audit/cited-not-run.sh\|\|')"
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
-  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"; printf 'control-floor selftest: 17 pass / 0 fail\n' > "$T/s6"; printf 'control-floor: FELL x now reads NONE - n\ncontrol-floor: 39 pass / 0 fail   (39 floor row(s), 139 gates audited, 0 covered gate(s) not on the floor)\n' > "$T/s7"
+  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"; printf 'control-floor selftest: 17 pass / 0 fail\n' > "$T/s6"; printf 'control-floor: FELL x now reads NONE - n\ncontrol-floor: 39 pass / 0 fail   (39 floor row(s), 139 gates audited, 0 covered gate(s) not on the floor)\n' > "$T/s7"; printf 'contract-asserts selftest: 21 pass / 0 fail\n' > "$T/s8"; printf 'contract-asserts: NOT IN FORCE (NO ROW) R01 - x\ncontract-asserts: 2 pass / 0 fail (2 in force, 1 not checked here, 52 not in force: 0 by row, 52 with no row; 0 could not run)\n' > "$T/s9"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
   # DC12-DC15: the case-count pin (#550 round 4). One check, pinned at 5.
   mk a "a: 5 pass, 0 fail"; printf 'door:a\tgates/a.sh\t5\tn\n' > "$T/pins"
@@ -158,6 +165,7 @@ s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks ru
   chk "DC16b and the report row is not (its count is cited files, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" cited-not-run-report)"
   chk "DC16c nor the citations row (its count is citations, not cases)" "" "$(pin_of "$HERE/harness-case-counts.tsv" citations)"
   chk "DC16d but the control-floor row IS pinned, at the live floor's row count (a row leaving is a gate losing its cover)" "$(grep -cv '^#' "$HERE/control-covered-floor.tsv")" "$(pin_of "$HERE/harness-case-counts.tsv" control-floor)"
+  chk "DC16e and the contract-asserts row IS pinned (it counts in-force asserts that held; an assert leaving lowers it)" yes "$([ -n "$(pin_of "$HERE/harness-case-counts.tsv" contract-asserts)" ] && echo yes || echo no)"
   # DC17 (#550 helper A round 6): --only runs the named rows and no others; an unknown or empty name is 2, never 0
   : > "$T/pins"; mk a "a: 5 pass, 0 fail"; mk b "b: 3 pass / 0 fail" 1
   L2="$L1

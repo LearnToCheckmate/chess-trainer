@@ -1,0 +1,18 @@
+# gates/contract-asserts.tsv - CLAUSES WHOSE CONTRACT IS A RUNNABLE ASSERT, read by gates/audit/contract-asserts.sh (door check
+# `contract-asserts`). [#550 test-system helper A; jobs/entry-three-contracts-become-runnable-asserts-2026-10-10]
+# Columns: clause <TAB> status <TAB> input <TAB> command <TAB> note
+#   clause   a rule id from prompts/rule-contracts (R43), or <file>#<clause> for a clause that is not a numbered rule (CLAUDE.md#...).
+#   status   assert       the clause is IN FORCE and its command is its predicate: exit 0 holds, 1 is a breach, 2 could not run.
+#            not-in-force the clause is named and deliberately not asserted; the note must say why. Reported every run, never a pass.
+#   input    tree         the command reads this repository and runs in the door.
+#            export:<coll> the command reads a tracker export (ArtifactData out_dir); it runs only when CT_CONTRACT_EXPORT names a
+#                          directory holding <coll>/, and is reported NOT CHECKED HERE otherwise.
+#   command  a path under gates/audit/ and its arguments; {export} is replaced by the export directory.
+# The UNIVERSE line names every clause the register must account for. A universe clause with no row is reported NOT IN FORCE (NO
+# ROW) - control (c) - and is not a pass. Its rule ids are prompts/rule-contracts' completeness.ruleSetGoverned at document version
+# 26 (read 14 Nov 2026), so they are a COPY and can go stale; `--universe-from <rule-contracts export json>` reads the live list.
+# UNIVERSE R01 R02 R03 R04 R05 R06 R07 R08 R09 R10 R11 R12 R13 R14 R15 R16 R17 R18 R19 R20 R21 R22 R23 R24 R25 R26 R27 R28 R29 R30 R31 R32 R33 R34 R35 R36 R37 R38 R39 R40 R41 R42 R43 R44 R45 R46 R47 R05b R49 R50 R51 R52 R05c CLAUDE.md#commit-signed CLAUDE.md#commit-trailer
+# clause	status	input	command	note
+CLAUDE.md#commit-signed	assert	tree	gates/audit/assert-commit-provenance.sh signed	every commit in merge-base(origin/main, HEAD)..HEAD carries a gpgsig header (CLAUDE.md, #546 item (85)); measured at fe3b8fd: 592 of 592
+CLAUDE.md#commit-trailer	assert	tree	gates/audit/assert-commit-provenance.sh trailer	every commit in merge-base(origin/main, HEAD)..HEAD carries a Claude-Session trailer (CLAUDE.md, #546 item (29)); measured at fe3b8fd: 592 of 592
+R43	assert	export:runledger	gates/audit/assert-runledger-std.js {export}	the typed std block on every check-out row (rule-contracts R43, 23 keys). A STANDING BREACH: on a 150-row export read 14 Nov 2026, 85 of 134 check-out rows lack keys, and 18 of the 19 since 7 Nov - so with an export this refuses, and it is NOT CHECKED HERE in the door, which has none
