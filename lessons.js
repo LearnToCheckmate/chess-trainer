@@ -774,7 +774,7 @@ const ENDGAMES=[
     idea:"The most common mate in all of chess: a king trapped on his back rank by his own pawns, and a rook or queen swings to the edge for mate. Learn to spot it. And to avoid it by giving your king 'luft'.",
     plans:"When the enemy king is boxed in by its own pawns on the last rank, a rook or queen reaching that rank with no defenders in the way is instant mate.",
     line:["Ra8#"],
-    notes:["This is the back-rank mate: the king's own f7-, g7- and h7-pawns block every escape, which is why careful players nudge a pawn to make 'luft' (a flight square) for their king. The rook crashes to the back rank: mate."] },
+    notes:["Make 'luft' (a flight square) with a pawn move, or this happens: the king's own f7-, g7- and h7-pawns block every escape, and the rook crashes to the back rank: mate. Look for this pattern in every game you play, for both sides."] },
   { name:"King & Pawn: the 6th Rank", eco:"K+P", side:"w", cat:"♚ Endgames & Theory",
     fen:"4k3/8/8/4K3/4P3/8/8/8 w - - 0 1",
     idea:"The most important pawn ending to know: with your king in front of the pawn on the 6th rank, you win no matter whose move it is. The king leads, the pawn follows.",
@@ -855,7 +855,7 @@ const ENDGAMES=[
     idea:"Queen versus a pawn one step from promoting. The queen alone can't stop it. But by checking to force the enemy king IN FRONT of its own pawn, you steal a tempo each time to march your king up. (A rook-pawn or bishop-pawn can be a draw. See the note.)",
     plans:"Check to force the king onto the pawn's promotion square; that blocks the pawn for a move and gives you a free tempo to step your king closer. Repeat until your king arrives, then win the pawn or mate.",
     line:["Qc4+","Ka3","Qc2","Ka2","Kc4","Ka1","Qa4+","Kb1","Kc3","Kc1","Qc2#"],
-    notes:["Check, nudging the king toward its own pawn.","The king is shoved back.","The queen sits beside the pawn on c2, covering b1, so it can't promote; the king must defend it.","Forced to guard the b2-pawn.","The whole point: while the queen freezes the pawn, your king sprints one square closer.","The king has to stay next to its pawn, and b1 is covered, so it goes into the corner.","Another check to repeat the cycle.","Forced.","The king steps in again, now almost on top of the pawn.","Forced: c1, beside the pawn, is the only square left.","The cycle (check, freeze the pawn, walk the king up) beats a knight- or center-pawn every time. Checkmate! Beware: with a rook-pawn (a/h) or bishop-pawn (c/f) the enemy king can dart into the corner for a stalemate trick, and it's only a draw if your king is far."] },
+    notes:["Check, nudging the king toward its own pawn.","The king is shoved back.","The queen sits beside the pawn on c2, covering b1, so it can't promote; the king must defend it.","Forced to guard the b2-pawn.","The whole point: while the queen freezes the pawn, your king sprints one square closer.","The king has to stay next to its pawn, and b1 is covered, so it goes into the corner.","Another check to repeat the cycle.","Forced.","The king steps in again, now almost on top of the pawn.","Forced: c1, beside the pawn, is the only square left.","Check, freeze the pawn, king up: it beats a knight- or center-pawn. Checkmate! Beware: with a rook-pawn (a/h) or bishop-pawn (c/f) the enemy king can dart into the corner for a stalemate trick, and it's only a draw if your king is far."] },
   { name:"Bishop & Knight Mate", video:{ id:"oX_pq-2kiJI", title:"Knight and Bishop Checkmate | Chess Endgames", author:"Hanging Pawns", length:"30 min" }, eco:"B+N#", side:"w", cat:"♚ Endgames & Theory",
     fen:"8/8/4k3/8/4K3/5N2/5B2/8 w - - 0 1",
     idea:"The hardest basic checkmate: king, bishop and knight versus a lone king. The catch. You can only mate in a corner the SAME color as your bishop. Here the dark-squared bishop drives the king into the h8 (dark) corner.",
@@ -892,14 +892,14 @@ const ENDGAMES=[
       "Out to h7 once more.",
       "Knight check: the king must go back to h8.",
       "Its only square.",
-      "Mate only in the corner of your bishop's color, where knight, bishop and king cover every square. The bishop checks on the long diagonal: checkmate in the dark corner. Against a king that runs to the WRONG corner, the knight's looping W path drives it across first."
+      "Mate only in the corner of your bishop's color. There knight, bishop and king cover every square. The bishop checks on the long diagonal: checkmate in the dark corner. Against a king that runs to the WRONG corner, the knight's looping W path drives it across first."
     ] },
   { name:"Rook vs Pawn", eco:"R v P", side:"w", cat:"♚ Endgames & Theory",
     fen:"8/8/8/8/3K4/1k6/1p6/1R6 w - - 0 1",
     idea:"Rook versus a far-advanced passed pawn. The rook holds the pawn back (here from in front, covering b1) while your king hurries over to help capture it. Bring the king up and the rook mops up.",
     plans:"Use the rook to stop the pawn promoting. Against a pawn already on the 7th the rook belongs IN FRONT, on the queening square, where the pawn cannot move at all; 'rooks belong behind passed pawns' is the rule for a pawn further back. Then march your king in to win it. If your king is too far away, a rook-pawn on the 7th can slip away with a draw.",
     line:["Kd3","Kb4","Rxb2+"],
-    notes:["The rook already covers b1, so the pawn is going nowhere; now the king marches up to help.","The black king can't both guard its pawn and stop yours, so it steps aside.","The lesson: a rook beats a runaway pawn as long as your king can get close enough to help. The rook scoops the pawn with check; it's now king-and-rook versus a lone king, an elementary win."] },
+    notes:["The rook already covers b1, so the pawn is going nowhere; now the king marches up to help.","The black king can't both guard its pawn and stop yours, so it steps aside.","A rook beats a runaway pawn if your king is close enough to help. The rook scoops the pawn with check; it's now king-and-rook versus a lone king, an elementary win."] },
 
 ];
 const MORE=[

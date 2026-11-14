@@ -572,7 +572,7 @@ L.run(async()=>{
   }   // end of !CT_LS058_ONLY
   // TC-LS-058 THE NOTE BOX'S OVERFLOW COUNT, PRINTED AND PINNED OVER EVERY NOTE [#550 item (82); jobs/bench-lesson-the-method-sentence-is-
   // the-clipped-one-2026-09-28, its folded bench-lesson-note-fit-count-in-source-is-stale-and-nothing-asserts-it-2026-10-09]. The note box
-  // (data-ct lesson-note) is a FIXED 75px with a 59px inner scroller, so the number of notes that do not fit is a property of the content and
+  // (data-ct lesson-note) is a FIXED 75px box whose inner scroller is a fixed 3.96em - three 1.32 lines, 57px, so the number of notes that do not fit is a property of the content and
   // the box together - and the source comment above the box carried "734 notes, 18 scroll" for a library that now holds 2262 notes (lesson
   // and variation, pickVariation renders both in the same box). Measured, not grepped: the box is PAINTED (drive/lesson demo-m1), its inner
   // scroller's own computed font, line-height and clientWidth (paddingRight 0, the not-overflowing width) and clientHeight are read, and every
@@ -580,9 +580,11 @@ L.run(async()=>{
   // "N. san — " prefix the demo prepends. A note overflows when the probe is taller than the scroller's clientHeight. The DENOMINATOR (the
   // note count) is its own assertion; the count is PINNED per geometry at what this build measures, so a content edit or a box change that
   // clips more notes goes red and has to move the pin on purpose. CT_LS058_ONLY=1 runs this block alone.
+  // CONTROL-RECORD: f4199b8 2026-11-14 total=15 red=7 scope=env:CT_LS058_ONLY=1,trial:c39b2e7eecb4 how=#550 helper app A, cg10: the note scroller two lines (2.64em, 38px) instead of three - both TC-LS-058 count lines red (186 of 2253 against pin 54 at kunal761, 285 against 101 at se; the c82 control above changed the BOX, which no longer sets the scroller's height, so it stays green at head) and five TC-LS-058b method clauses past the 38px edge; on 742ea8a24cb8 with this build's lessons.js 15/0
+  // (and f4199b8's own lessons.js with the method clauses as they stood, read before the re-key: Back-Rank Mate ply 1 at 93.6px of 57 at kunal761 and 112.7 at se, Queen vs Pawn ply 11 and Rook vs Pawn ply 3 at 74.4 at se - four TC-LS-058b lines red, the cg10 finding)
   // CONTROL-RECORD: 8a852bd 2026-11-11 total=5 red=2 scope=env:CT_LS058_ONLY=1 how=#550 item (82): c82 (0ca1bcd2a0d3), the lesson-note box 60px tall instead of 75 (scroller 44) - both TC-LS-058 count lines red (195 and 315 notes against pins 67 and 119); the two DENOMINATORS and the font pin green
   if(!process.env.CT_LS061_ONLY&&!process.env.CT_LS064_ONLY){
-    const PIN058={kunal761:{max:67},se:{max:119}};   // measured #550 on trial b195c3c10627: 67 and 119 of 2262
+    const PIN058={kunal761:{max:54},se:{max:101}};   // RE-MEASURED #550 helper app A (cg10) on f4199b8's tree, bundle 742ea8a24cb8: 54 and 101 of 2253 in the fixed 3.96em (57px) scroller; were 67 and 119 of 2262 on trial b195c3c10627 (a 75px box with a 59px scroller)
     for(const geo of Object.keys(PIN058)){
       const b=await L.launch({geo,name:'lesson-notefit-'+geo});await b.open();
       let ok=true;try{await D.states['demo-m1'](b);await b.settle(500);}catch(e){ok=false;L.say(false,'TC-LS-058 '+geo+' the lesson demo was reached (drive/lesson demo-m1)',String(e).slice(0,160));}
@@ -600,6 +602,30 @@ L.run(async()=>{
           return {w:+w.toFixed(1),h,font:cs.fontSize+' '+cs.lineHeight,lessons,n,over,worst:worst.slice(0,3)};});
         L.say(!!m&&m.lessons>=150&&m.n>=2000,'TC-LS-058 '+geo+' DENOMINATOR every note in the library was laid out: '+(m?m.n+' notes of '+m.lessons+' lessons':'none')+' in the painted box\'s own font and width',m&&{w:m.w,h:m.h,font:m.font});
         if(m)L.say(m.over<=PIN058[geo].max,'TC-LS-058 '+geo+' notes that do not fit the '+m.h+'px note scroller: '+m.over+' of '+m.n+' (pin '+PIN058[geo].max+'); the longest need '+m.worst.map(x=>x[0]+'px ('+x[1]+' ply '+x[2]+')').join(', '),m);
+        /* TC-LS-058b [#550 helper app A, orchestrator re-check cg10 on jobs/bench-lesson-the-method-sentence-is-the-clipped-one-2026-09-28]: the
+           sentence that STATES THE METHOD is read without 'more'. #547 put the method first in the final notes, but Back-Rank Mate ply 1's
+           'luft' clause still ended at 112.6px of a 57px scroller, and at 320x568 three endgame notes ran onto a fourth line. Each note below
+           is laid out the way the app lays it out - the "N. san: " prefix, the scroller's own font, and the 74px the 'more' chip takes from
+           the right when the note overflows - and the END of its method clause (a Range over the clause's text) must lie inside the scroller's
+           clientHeight. The clause text is read from window.CTLESSONS (the note must CONTAIN it), so a note edit that drops the clause goes red
+           here as 'clause not found' rather than passing over nothing. */
+        const M058=[['Back-Rank Mate',1,"Make 'luft' (a flight square) with a pawn move"],['King & Queen Mate',9,'The method: box it in, bring your king, and mate on the edge.'],
+          ['Queen vs Pawn',11,'Check, freeze the pawn, king up: it beats a knight- or center-pawn.'],['Bishop & Knight Mate',31,"Mate only in the corner of your bishop's color."],
+          ['Rook vs Pawn',3,'A rook beats a runaway pawn if your king is close enough to help.']];
+        const mc=await b.page.evaluate((M)=>{const box=document.querySelector('[data-ct="lesson-note"]');const sc=box&&box.firstElementChild;if(!sc)return null;
+          const cs=getComputedStyle(sc);const w0=sc.clientWidth-(parseFloat(cs.paddingRight)||0);const h=sc.clientHeight;
+          const pr=document.createElement('div');pr.style.cssText='position:absolute;left:0;top:0;visibility:hidden;white-space:normal;word-wrap:break-word;overflow-wrap:break-word';
+          for(const k of ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing'])pr.style[k]=cs[k];document.body.appendChild(pr);
+          const C=window.CTLESSONS||{};const all=[];for(const k of Object.keys(C))for(const o of (C[k]||[]))all.push(o);const out=[];
+          for(const [name,ply,clause] of M){const o=all.find(x=>x.name.indexOf(name)===0);const t=o&&o.notes&&o.notes[ply-1];const san=o&&o.line&&o.line[ply-1];
+            if(!t||t.indexOf(clause)<0){out.push({name,ply,found:false});continue;}
+            const pre=Math.ceil(ply/2)+(ply%2===1?'.':'…')+' '+san+': ';pr.style.width=w0+'px';pr.textContent=pre+t;const over=pr.getBoundingClientRect().height>h+0.5;
+            if(over)pr.style.width=(w0-74)+'px';
+            const node=pr.firstChild;const i=(pre+t).indexOf(clause)+clause.length;const r=document.createRange();r.setStart(node,i-1);r.setEnd(node,i);const rs=r.getClientRects();const q=rs[rs.length-1];
+            const top=pr.getBoundingClientRect().top;out.push({name,ply,found:true,over,end:q?Math.round((q.bottom-top)*10)/10:null,h});}
+          pr.remove();return out;},M058);
+        if(mc)for(const x of mc)L.say(x.found&&x.end!=null&&x.end<=x.h+0.5,'TC-LS-058b '+geo+' '+x.name+' ply '+x.ply+': the method clause '+(x.found?('ends at '+x.end+'px of the '+x.h+'px note scroller'+(x.over?' (the note overflows; laid out beside the more chip)':'')):'is NOT in the note')+' - read without "more"',x);
+        else L.say(false,'TC-LS-058b '+geo+' the note scroller was found');
       }
       await b.close();
     }
