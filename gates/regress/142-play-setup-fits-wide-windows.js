@@ -13,6 +13,13 @@
 // CONTROL sit in two halves (Time control starts at least 120px right of Opponent) of one column no wider than 660, centred on the window; (c) his phone keeps the one 420 column.
 // CONTROL-RECORD: 368b7f1 2026-11-12 total=24 red=10 scope=trial:4e6cd77c how=#550 the tree before DSK-09 (t142): the 420 single column at every size - Start game off screen and the sheet scrolling by 335/287/213/173/23 px (TC-R218a, the audit's own figures) and no two halves (TC-R218b) at all five window sizes; on t143 4470ec9e 24/0
 // KNOW ITS LIMIT: the computer opponent's sheet (the tallest); online and Pass and Play are shorter.
+// RE-KEYED TO q44 [#550 helper B; Kunal's q44 answer, 08f5354]: the time control is ONE dropdown now, a select whose accessible name is
+// 'Time control', and the TIME CONTROL heading it was found by is gone, so the PRECONDITION and TC-R218b/c were red on every size by a
+// missing reading, not a layout fault. MEASURED on aaefbb5 (trial 8af83ffc1c70) at 1280x600: one 660 column centred (310..970), OPPONENT
+// and PLAY AS in its left half (x 310, tops 58 and 269), the Time control dropdown in its right half (x 651, top 269) beside the Scan and
+// Upload row, Start game across both; at kunal761 the 420 column (351 wide) with OPPONENT, PLAY AS and Time control stacked at one left edge
+// (tops 130, 297, 372). So: the time control is found by its ACCESSIBLE NAME (the control he operates), OPPONENT and PLAY AS by their
+// words; (b) asserts the halves as q44 left them; (c) asserts his phone's one stacked column. TC-R218a is unchanged.
 const L=require('../lib');const P=require('../drive/play');
 /* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
    a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
@@ -27,12 +34,14 @@ L.run(async()=>{
       const lab=(re)=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&re.test((d.textContent||'').trim())&&d.getBoundingClientRect().width>0);return e?R(e):null;};
       let sc=st;while(sc&&getComputedStyle(sc).position!=='fixed')sc=sc.parentElement;
       let col=st;while(col&&!(col.style&&col.style.maxWidth))col=col.parentElement;
-      return {vw:innerWidth,vh:innerHeight,start:st?R(st):null,over:sc?sc.scrollHeight-sc.clientHeight:null,opp:lab(/^Opponent$/i),tc:lab(/Time control$/i),col:col?{...R(col),max:col.style.maxWidth}:null};});
-    L.say(ok&&!!m.start&&!!m.opp&&!!m.tc&&!!m.col,tag+': TC-R218 PRECONDITION Play setup is up with Start game, OPPONENT and TIME CONTROL found by their words',m);
-    if(isPhone(geo)){L.say(!!m.col&&parseFloat(m.col.max)===420&&!!m.opp&&!!m.tc&&m.tc.t>m.opp.b,'kunal761: TC-R218c his phone keeps the one 420 column, sections stacked ('+(m.col&&m.col.max)+')',m.col);}
+      return {vw:innerWidth,vh:innerHeight,start:st?R(st):null,over:sc?sc.scrollHeight-sc.clientHeight:null,opp:lab(/^Opponent$/i),pa:lab(/^Play as$/i),tc:(()=>{const e=[...document.querySelectorAll('[aria-label]')].find(x=>/^Time control$/i.test(x.getAttribute('aria-label')||'')&&x.getBoundingClientRect().width>0);return e?R(e):null;})(),col:col?{...R(col),max:col.style.maxWidth}:null};});
+    L.say(ok&&!!m.start&&!!m.opp&&!!m.pa&&!!m.tc&&!!m.col,tag+': TC-R218 PRECONDITION Play setup is up with Start game, OPPONENT and PLAY AS found by their words and the Time control by its accessible name',m);
+    if(isPhone(geo)){const st=!!m.opp&&!!m.pa&&!!m.tc&&m.pa.t>m.opp.b&&m.tc.t>m.pa.b&&Math.abs(m.pa.l-m.opp.l)<=2&&Math.abs(m.tc.l-m.opp.l)<=2;
+      L.say(!!m.col&&parseFloat(m.col.max)===420&&m.col.w<=420&&st,'kunal761: TC-R218c his phone keeps the one 420 column ('+(m.col&&m.col.max)+', '+(m.col&&m.col.w)+' wide), OPPONENT, PLAY AS and the Time control stacked at one left edge (tops '+[m.opp,m.pa,m.tc].map(x=>x&&x.t).join(', ')+')',{col:m.col,opp:m.opp,pa:m.pa,tc:m.tc});}
     else{
       L.say(!!m.start&&m.start.b<=m.vh&&m.start.t>=0&&m.over!=null&&m.over<=1,tag+': TC-R218a Start game is wholly on screen ('+(m.start&&m.start.b)+' of '+m.vh+') and nothing scrolls ('+m.over+'px over)',{start:m.start,over:m.over});
-      const two=!!m.opp&&!!m.tc&&m.tc.l>=m.opp.l+120&&Math.abs(m.tc.t-m.opp.t)<300;
-      L.say(two&&!!m.col&&m.col.w<=660&&Math.abs((m.col.l+m.col.r)/2-m.vw/2)<=2,tag+': TC-R218b OPPONENT and TIME CONTROL sit in two halves of one column at most 660 wide, centred (opponent x '+(m.opp&&m.opp.l)+', time control x '+(m.tc&&m.tc.l)+', column '+(m.col&&m.col.w)+')',{opp:m.opp,tc:m.tc,col:m.col});}
+      const mid=m.col?(m.col.l+m.col.r)/2:null;
+      const two=!!m.opp&&!!m.pa&&!!m.tc&&mid!=null&&m.opp.r<=mid&&m.pa.r<=mid&&Math.abs(m.pa.l-m.opp.l)<=2&&m.tc.l>=mid&&m.tc.r<=m.col.r+1&&m.tc.l>=m.opp.l+120;
+      L.say(two&&!!m.col&&m.col.w<=660&&Math.abs(mid-m.vw/2)<=2,tag+': TC-R218b q44 halves: OPPONENT and PLAY AS in the left half and the Time control in the right half of one column at most 660 wide, centred (opponent x '+(m.opp&&m.opp.l)+', play as x '+(m.pa&&m.pa.l)+', time control x '+(m.tc&&m.tc.l)+', column '+(m.col&&m.col.l)+'..'+(m.col&&m.col.r)+')',{opp:m.opp,pa:m.pa,tc:m.tc,col:m.col});}
     L.say(b.errs.length===0,tag+': TC-R218 zero app errors',b.errs.slice(0,3));await b.close();}
 },'142-play-setup-fits-wide-windows');
