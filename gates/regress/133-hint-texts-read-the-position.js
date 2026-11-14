@@ -12,6 +12,7 @@
 // CONTROL-RECORD: 359de94 2026-11-13 total=8 red=2 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13: the branch tip's chess.jsx (fbd9ff8) - TC-R209d (Rxh6+ read 'A rook can be given up with check here.') and TC-R209d2 (Qb8+ read 'There is mate in two, and it starts with a check.') red; with this fix 8/0
 // CONTROL-RECORD: 55ca2c7 2026-11-13 total=26 red=5 scope=env:CT_SRC=tip-chess.jsx how=#550 cg7: the branch tip chess.jsx (d04a8ed0b851, before the mate-threat, fork and pin readings) - TC-R209f F1 F5 F9 F10 F13 red; every must-NOT line, every older line and the six TC-R209g pins green (total 20 before TC-R209g was added)
 // CONTROL-RECORD: c9213e6 2026-11-13 total=32 red=3 scope=env:CT_SRC=tip-chess.jsx how=#550 jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13: the branch tip's chess.jsx (17e366d62462, no mate-in-one guard) - TC-R209f F5b (Nc6 read as a fork of Qd8 and Rb8 while Rb1 mates) and two TC-R209h lines red (the reading, and the drill verdict 'Nc6 forks ...'); a fork-only guard (81b1b1c1e55a) left TC-R209h 2 red on the 'attack' fall-through; with the fix 32/0
+// CONTROL-RECORD: 1a6ab41 2026-11-14 total=37 red=3 scope=source:CT_SRC how=#550 helper lessons HEX-T-06: chess.jsx with pzMissNote stubbed to return null (CT_SRC=<copy>) - TC-R209k Kf1, the material puzzle and the coverage line red (0 of 876); on the fix tree 37/0
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');
@@ -41,6 +42,23 @@ L.run(async()=>{
   L.say(conc>=780,'TC-R209b at least 780 of the 876 generated puzzles get a hint read from their position ('+conc+')',conc);
   L.say(dist.size>=300,'TC-R209b and those hints are at least 300 distinct sentences, not a template ('+dist.size+'; the two templates gave 25)',dist.size);
   L.say(ex0==='Re8 checks, Rf8 is forced, and Rxf8 is mate.','TC-R209c the solve line is read from the stored line: the first back-rank puzzle reads "'+ex0+'"',ex0);
+  // ── TC-R209k [#550 HEX-T-06, jobs/puzzles-hints-and-explanations-concrete-2026-11-12, its whatIsLeft]: Puzzles' SECOND wrong move read
+  // "isn't it either" whatever was played. Where the board gives no reason (wrongWhy), pzMissNote reads one from the stored line without
+  // naming the move: a mate puzzle that starts with a check -> the move is not a check; a material puzzle -> the piece still there to be won.
+  // The audit's own example (Kf1 in the first back-rank puzzle), a material one, the two cases that must give nothing (the answer's own kind
+  // of move, a hand-written puzzle), and the coverage: of the 876, the first legal wrong move gets a note on 627 (measured on the fix tree).
+  {const BR={id:'g0',fen:'7k/pb3rpp/2p5/5p2/3P4/8/PPP2PPP/4R1K1 w - - 0 1',sol:['Re8+','Rxf8#'],reply:['Rf8'],goal:'White to move — mate in 2'};
+   const MT={id:'g1',fen:'3r3r/4bk2/1R2p3/3pP2p/P2n4/2Q2p1P/6P1/R5K1 b - - 0 1',sol:null,reply:null,goal:''};
+   const note=(P,f,san)=>{try{const g=E.fromFEN(f);return E.pzMissNote(P,g,E.findMoveBySAN(g,san));}catch(e){return 'THREW '+e.message;}};
+   const n1=note(BR,BR.fen,'Kf1');
+   L.say(n1==='is not a check, and the mate needs one now','TC-R209k the audit\'s second wrong move (Kf1, back-rank mate in 2 that starts Re8+) gets a reason from the line: "'+n1+'"',n1);
+   const mrow=raw.find(r=>r.f===MT.fen);let n2=null;if(mrow){MT.sol=mrow.s;MT.reply=mrow.y;n2=note(MT,MT.fen,'Rd7');}
+   L.say(!!mrow&&n2==='leaves the queen on c3 to be won','TC-R209k a material puzzle names the piece the line wins and where it stands ("'+n2+'")',{found:!!mrow,n2});
+   const n3=note({...BR,id:'c0'},BR.fen,'Kf1');
+   L.say(n3===null,'TC-R209k a hand-written puzzle (id c0) gets no line note - its texts are authored ('+n3+')',n3);
+   let tot=0,got=0;raw.forEach((r,k)=>{try{const g=E.fromFEN(r.f);const P={id:'g'+k,fen:r.f,sol:r.s,reply:r.y,goal:(r.n>0?'mate in '+r.n:'')};const s0=E.findMoveBySAN(g,r.s[0]);
+     const m=E.getLegal(g).find(m=>!(s0&&m.fr===s0.fr&&m.fc===s0.fc&&m.tr===s0.tr&&m.tc===s0.tc));if(!m)return;tot++;if(E.pzMissNote(P,g,m))got++;}catch(e){}});
+   L.say(tot===876&&got>=600,'TC-R209k DENOMINATOR and coverage: of '+tot+' generated puzzles, the first legal wrong move gets a line note on '+got+' (at least 600; 627 measured)',{tot,got});}
   const B=[['6k1/1pp3pn/1p1p2pp/3P4/4P1P1/2PB1P2/rrQK3P/3R3R w - - 0 1','h4',/queen on c2 is attacked/],['8/8/P1p1prkp/2Pp2p1/4q3/4B1PR/3Q3K/8 w - - 0 1','Rxh6+',/rook on h3 can be given up with check/]];
   let bh=0;const bm=[];for(const [f,san,want] of B){let t='';try{const g=E.fromFEN(f);t=E.brilHint(g,E.findMoveBySAN(g,san),false)||'';}catch(e){t='';}if(want.test(t))bh++;else bm.push(san+': "'+t+'"');}
   L.say(bh===B.length,'TC-R209d the Brilliant drill hint names what is offered or left on the audit\'s two cards ('+bh+'/2'+(bm.length?'; '+bm.join(' | '):'')+')',bm);

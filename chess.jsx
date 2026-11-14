@@ -3408,6 +3408,26 @@ const _pzTxtC={};
 function _sanDesc(g,san){try{const m=findMoveBySAN(g,san);if(!m)return null;const pc=g.board[m.fr][m.fc],cap=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);const g2=makeMove(g,m);const st=getStatus(g2);
   const them=opp(g.turn);const sac=pc&&pc.t!=='k'&&seeSq({...g2,turn:them},m.tr,m.tc,them)>=(SEEVAL[pc.t]||0)-(cap?(SEEVAL[cap.t]||0):0)&&(SEEVAL[pc.t]||0)>(cap?(SEEVAL[cap.t]||0):0);
   return {m,g2,pc,cap,st,sac,nLegal:getLegal(g2).length};}catch(e){return null;}}
+/* #550 HEX-T-06 (docs/hint-audit-2026-11-12; jobs/puzzles-hints-and-explanations-concrete-2026-11-12): a generated puzzle's SECOND wrong move
+   read "isn't it either" whatever was played, by design of the one-line row. A puzzle knows its own point, so when the board gives no reason
+   (wrongWhy) the line says what the stored line needs, without giving the move away: on a mate puzzle whose first move is a check, that the
+   move played is not one; on a material puzzle, which enemy piece is still there to be won (the first piece of the line's captures, named
+   only if it stands on that square now). Hand-written puzzles and drill cards get null and keep their lines. */
+function pzMissNote(p,g,mv){
+  if(!(p&&typeof p.id==='string'&&p.id[0]==='g'&&p.sol&&p.sol.length))return null;
+  try{
+    const d0=_sanDesc(g,p.sol[0]);if(!d0)return null;
+    const ng=makeMove(g,mv),st=getStatus(ng),chk=st==='check'||st==='checkmate';
+    const mate=/mate in/i.test(p.goal||'');
+    if(mate)return ((d0.st==='check'||d0.st==='checkmate')&&!chk)?'is not a check, and the mate needs one now':null;
+    let gg=g;const sq=(m)=>'abcdefgh'[m.tc]+(8-m.tr);
+    for(let k=0;k<p.sol.length;k++){const dm=_sanDesc(gg,p.sol[k]);if(!dm)break;
+      if(dm.cap&&dm.cap.t!=='p'){const here=g.board[dm.m.tr][dm.m.tc];
+        if(here&&here.t===dm.cap.t&&here.c!==g.turn)return 'leaves the '+(PNAME[dm.cap.t]||'piece')+' on '+sq(dm.m)+' to be won';break;}
+      gg=dm.g2;const r=p.reply&&p.reply[k];if(r){const dr=_sanDesc(gg,r);if(!dr)break;gg=dr.g2;}}
+  }catch(e){}
+  return null;
+}
 function pzText(p){
   if(!p)return {hint:'',explain:''};
   if(!(typeof p.id==='string'&&p.id[0]==='g'))return {hint:p.hint,explain:p.explain};
@@ -8520,7 +8540,7 @@ function AppMain(){
         /* #550 item (24) say-why: the line names one reason in words where the board proves one (wrongWhy), else where the engine's reply
            proves one (replyWhy: the analysis engine warmed if it is not (ensureAna, 5 s ceiling), asked once for 300ms, and written only if the line has not changed since); no reason leaves _old as it was.
            On Puzzles the row is one line, so the reason stands alone; in a drill the box has room for what to do next. */
-        const _tail=p.mine?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=(graded||(!p.mine&&pzWrongRef.current>=2))?null:(wrongWhy(g,mv)||((p.mine&&!p.brill)?(()=>{try{return missWhy(g,mv,findMoveBySAN(g,p.sol[0]));}catch(e){return null;}})():null));   /* #550 cg7: in the mistakes drill the card's best move gives missWhy a board reading where wrongWhy has none */   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
+        let _pz2nd=null;/* #550 HEX-T-06: Puzzles' second wrong move names a reason too (the board's, else pzMissNote's) and still points at 👁 */const _tail=(p.mine||(_pz2nd=!graded&&!p.mine&&pzWrongRef.current>=2&&(()=>{let w=null;try{w=wrongWhy(g,mv);}catch(e){}if(w)return w.text;return pzMissNote(p,g,mv);})()))?(pzWrongRef.current>=2?' Tap 👁 to see the move.':' Try again.'):'';const _ww=_pz2nd?{text:_pz2nd}:(graded||(!p.mine&&pzWrongRef.current>=2))?null:(wrongWhy(g,mv)||((p.mine&&!p.brill)?(()=>{try{return missWhy(g,mv,findMoveBySAN(g,p.sol[0]));}catch(e){return null;}})():null));   /* #550 cg7: in the mistakes drill the card's best move gives missWhy a board reading where wrongWhy has none */   /* on Puzzles' one-line row the SECOND wrong move keeps its 'either - tap 👁' line, which says something new (TC-R86); the reason was given once */
         setPuzMsg(_ww?('✗ '+played+' '+_ww.text+'.'+_tail):_old);
         if(!graded&&!_ww&&!(!p.mine&&pzWrongRef.current>=2)){let _sc=null,_sb=null;ensureAna(50).then(ok=>ok?sfBestLine(toFEN(ng),300,(x)=>{if(x&&(!x.mpv||x.mpv===1))_sc=x;}):null).then(async pv=>{const r=pv&&pv[0]&&uciToMove(ng,pv[0]);if(!r)return;
           /* #550 HEX-T-03: in the drill, a second 300ms search on the card's own position (before the wrong move) gives replyWhy the mover's

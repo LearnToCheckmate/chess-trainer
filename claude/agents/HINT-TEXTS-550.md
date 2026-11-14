@@ -100,6 +100,11 @@ Your pick, "Blunders and mistakes": by the review's win-chance grades. Over your
 
 797 of 876 now get a hint read from the position, in 323 different sentences (the old two templates gave 25).
 
+**The second wrong move (HEX-T-06)** - first back-rank puzzle (Re8+ Rf8 Rxf8#)
+- Old: ✗ Kf1 isn't it either. Tap 👁 to see the move.
+- New: ✗ Kf1 is not a check, and the mate needs one now. Tap 👁 to see the move.
+- Where the board has a reason it is given instead (Re7: "✗ Re7 hangs the rook (Rxe7). Tap 👁 to see the move."); on a material puzzle the line names the piece it wins and where it stands ("Rd7 leaves the queen on c3 to be won"). Of the 25,549 wrong first moves over the 876 puzzles, 8,073 get the board's reason, 13,113 the line's, and 4,363 (17%) still read "isn't it either".
+
 ## 4. Play against the computer: Hint
 - 1r4k1/1P3ppp/1Q6/p7/3R4/8/PKP4q/8 w (mate in 2). Old: lights d4 and d5 (Rd5), no words. New: lights Rd8+ (mate in two), and the line above the board reads "There is mate in two, and it starts with a check."
 - 6kr/3q1p1p/8/4N3/8/8/PB4PP/6K1 w. Old: two squares, no words. New: Nxd7, "Their queen on d7 can be taken. Take it with the knight."

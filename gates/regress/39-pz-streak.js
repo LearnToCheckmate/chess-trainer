@@ -236,6 +236,9 @@ L.run(async()=>{
     await b.move('e1','e7',0);await b.settle(900);const r2=await rd();
     L.say(r2.head===r0.head,geo+': TC-R86 and still after a second wrong move',{after:r2.head});
     L.say(r2.x.length===1&&r2.x[0]!==r1.x[0]&&/\u{1F441}/u.test(r2.x[0]),geo+': TC-R86 the second wrong move says something new: it points at 👁 Show instead of repeating the first sentence',{first:r1.x[0],second:r2.x[0]});
+    // TC-R86c [#550 HEX-T-06, jobs/puzzles-hints-and-explanations-concrete-2026-11-12]: and it gives a REASON, not "isn't it either": the
+    // board's (wrongWhy) or, where the board has none, the stored line's (pzMissNote, gate 133 TC-R209k). Re7 in this back-rank puzzle.
+    L.say(r2.x.length===1&&!/isn.t it either/.test(r2.x[0])&&/^✗ Re7 \S.+\. Tap \u{1F441}/u.test(r2.x[0]),geo+': TC-R86c the second wrong move names a reason and still points at 👁 ("'+(r2.x[0]||'')+'")',{second:r2.x[0]});
     const m2=await b.metrics();
     L.say(!!m0&&!!m0.board&&!!m2&&!!m2.board&&Math.abs(m0.board.top-m2.board.top)<0.6&&Math.abs(m0.board.left-m2.board.left)<0.6&&Math.abs(m0.board.w-m2.board.w)<0.6,geo+': TC-R86b the board has the same rect (top, left, width) before the hint and after the second wrong move',{before:m0&&m0.board,after:m2&&m2.board});
     L.say(b.errs.length===0,geo+': TC-R86 no console errors',{errs:b.errs.slice(0,2)});
@@ -450,4 +453,5 @@ L.run(async()=>{
 },'PZ-STREAK');
 // SELECTOR-OPENED: pz-celebrate reading=presence round 4: the layer is found by structure and this hook must be its name
 // CONTROL-RECORD: e34f295 2026-11-13 total=229 red=20 scope=trial:fd8ef12dfdf0 how=#550 #432 sweep (lead): c39, pz-streak renamed AND the fill shown with any message (so it stays beside the wrong-move verdict) - the old gate passed 'the streak fill steps back out of the box for it' at kunal730 and 390 (211/16); the re-keyed line, which also counts the fill by its words and width, red at both (209/20), with the new PRECONDITION red where the hook is gone. NOT SHOWN ABLE TO FAIL BY THIS CONTROL: the no-hint line and the se a42 line, which use the same count but whose states this control leaves without a fill; on t183 d3fde42f0182 229/0
+// CONTROL-RECORD: 1a6ab41 2026-11-14 total=233 red=4 scope=trial:c638b795f1ee how=#550 helper lessons HEX-T-06: the tip before the second-wrong-move reason - TC-R86c red at all four geometries (the second line read 'isn't it either'); on 971a642f4b4b 233/0
 // SELECTOR-OPENED: pz-streak control=e34f295 the three absence lines also count the fill by its words and width; c39 renamed the hook and kept the fill beside the verdict, the wrong-move line red (the other two lines not reached by that control, see its record)
