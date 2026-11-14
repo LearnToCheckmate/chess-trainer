@@ -1,5 +1,5 @@
 const fs=require('fs');
-const src=fs.readFileSync(require('path').join(__dirname,'..','chess.jsx'),'utf8');
+const src=fs.readFileSync(process.env.CT_SRC||require('path').join(__dirname,'..','chess.jsx'),'utf8');   // CT_SRC: a control source (#550 helper lessons, the like-for-like 'wins' control)
 function grab(name){
   const i=src.indexOf('function '+name+'(');
   if(i<0)throw new Error('not found '+name);
@@ -118,7 +118,7 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
 // are exported from the bundle. The golden case is the job's own fixture and Kunal's reference reading of its row 2.
 {const os=require('os'),path=require('path'),cp=require('child_process');
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'ct-ew-'));
- fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN,bestLineTail};\n');
+ fs.writeFileSync(path.join(d,'c.jsx'),src+'\nexport {explainLine,evalWords,parsePGN,loadSANs,toFEN,bestLineTail,fromFEN,uciToMove,makeMove};\n');
  fs.writeFileSync(path.join(d,'react.js'),'module.exports={useState:()=>[null,()=>{}],useMemo:f=>f(),useRef:()=>({}),useEffect:()=>{},useLayoutEffect:()=>{},memo:x=>x,useCallback:f=>f,Component:class{},PureComponent:class{}};'   /* #550: Component added - chess.jsx's top-level error boundary (ERR-13, bcc4eff) is a class extending React.Component, and the bundle threw 'Class extends value undefined' without it */);
  let M=null;
  try{cp.execFileSync(path.join(__dirname,'node_modules','.bin','esbuild'),[path.join(d,'c.jsx'),'--bundle','--platform=node','--format=cjs','--alias:react='+path.join(d,'react.js'),'--outfile='+path.join(d,'c.cjs'),'--log-level=error']);
@@ -164,6 +164,27 @@ console.log('\n--- #548 item (114): the engine line in plain words (explainLine,
   console.log('   corpus: '+lines+' lines, '+n+' explained moves; top families: '+top.slice(0,6).map(([k,v])=>k+' '+Math.round(100*v/n)+'%').join(', '));
   eq(n>=100,true,'the corpus explained at least 100 moves, so the cap below is a measurement and not a sample of one');
   eq(n>0&&top[0][1]/n<=0.25,true,'NOT GENERIC: no phrase family explains more than 25% of the moves ('+(top[0]?top[0][0]+' '+Math.round(100*top[0][1]/n)+'%':'none')+')');
+  // NO 'WINS' ON A TRADE [#550 helper lessons; jobs/explain-engine-lines-in-plain-words, checker seat 2's gap]: a capture that the line's very
+  // next move takes back LIKE FOR LIKE (the same piece type) is a trade, so it never reads 'wins the X'. The property over the same corpus, the
+  // count printed; and two of the six lines the checker's property found on 5cb3c81 (1.Qf6+ Qxf6 'wins the queen' 2.exf6+ 'wins the queen',
+  // and 1.Nxd4 exd4, each 'wins the knight') pinned as lines, so a red names the case. Control: the 5cb3c81 source reads 6 on the property.
+  {let wins=0,lfl=0;const ex6=[];
+   for(const f of fs.readdirSync(dir).filter(x=>/\.pgn$/.test(x))){
+     const res=M.loadSANs(M.parsePGN(fs.readFileSync(path.join(dir,f),'utf8')));if(!res||!res.plies)continue;
+     for(let i=0;i+4<=res.plies.length;i+=2){const fen=M.toFEN(res.positions[i]);
+       const uci=res.plies.slice(i,i+4).map(p=>{const m=p.move,sq=(r,c)=>'abcdefgh'[c]+(8-r);return sq(m.fr,m.fc)+sq(m.tr,m.tc)+(m.promo||'');});
+       const ex=M.explainLine(fen,uci,4);let g=M.fromFEN(fen);
+       for(let j=0;j<ex.length;j++){const m=M.uciToMove(g,uci[j]);if(!m)break;const after=M.makeMove(g,m);
+         if(/^wins the/.test(ex[j].why||'')){wins++;const nx=uci[j+1]?M.uciToMove(after,uci[j+1]):null;const cp=g.board[m.tr][m.tc],mv=g.board[m.fr][m.fc];
+           if(nx&&nx.tr===m.tr&&nx.tc===m.tc&&cp&&mv&&cp.t===mv.t){lfl++;if(ex6.length<6)ex6.push(f+' '+ex.map(e=>e.san+(e.why?' ['+e.why+']':'')).join(' '));}}
+         g=after;}}}
+   console.log('   corpus: '+wins+" 'wins' phrases, "+lfl+' on a capture the next move takes back like for like'+(ex6.length?(': '+ex6.join(' | ')):''));
+   eq(wins>=50,true,"the corpus has at least 50 'wins' phrases, so the property below is read over a population ("+wins+')');
+   eq(lfl,0,"NO 'WINS' ON A TRADE: no capture the line's next move takes back like for like reads 'wins the X'");
+   const L1=M.explainLine('8/5pkp/5Qp1/4Pq2/n1r2P1P/5R2/2P4R/2K5 b - - 0 1',['f5f6','e5f6','g7f6'],3);
+   eq(L1.length===3&&!/^wins/.test(L1[0].why||'')&&/trade/.test(L1[0].why||'')&&!/^wins/.test(L1[1].why||''),true,"Qxf6 exf6+ is a queen trade, not 'wins the queen' twice ("+L1.map(e=>e.san+' ['+e.why+']').join(' ')+')');
+   const L2=M.explainLine('r1bq1rk1/ppp2pbp/3p1np1/3Np3/2BnP3/3PBN2/PPP2PPP/R2Q1RK1 w - - 0 1',['f3d4','e5d4','e3d4'],3);
+   eq(L2.length===3&&!/^wins/.test(L2[0].why||'')&&!/^wins/.test(L2[1].why||''),true,"Nxd4 exd4 is a knight trade, not 'wins the knight' twice ("+L2.map(e=>e.san+' ['+e.why+']').join(' ')+')');}
  }
  try{fs.rmSync(d,{recursive:true,force:true});}catch(e){}}
 console.log('\n'+(fails?('*** '+fails+' UNIT FAILURES ***'):'all unit checks passed'));

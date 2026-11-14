@@ -1768,7 +1768,7 @@ const SAC_DEAD_RETRY=2;   /* #549 item (81): re-asks on one visit after the anal
    none of them can say anything TRUE about gets no phrase at all, never a generic one (correction 024's lesson). Returns up to `k`
    {san,why} for the line `pv` (UCI) from the position `fen`, numbered from the FEN. */
 function explainLine(fen,pv,k,no0){
-  const out=[];
+  const out=[];let prevL=null;
   try{
     const parts=String(fen||'').trim().split(/\s+/);let no=(no0>0?no0:0)||parseInt(parts[5],10)||1;let g=fromFEN(fen);   /* the CALLER's move number first: toFEN always writes ' 0 1', so an app-made FEN says move 1 at every ply (#548 round-1 antagonist A veto) */
     for(let i=0;i<(pv||[]).length&&out.length<(k||4);i++){
@@ -1801,8 +1801,9 @@ function explainLine(fen,pv,k,no0){
          gist already says so; (2) 'chases' is never said of a piece the line's very next move captures. */
       const capP=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);
       const nx=(pv&&pv[i+1])?uciToMove(makeMove(g,m),pv[i+1]):null;const takenBack=!!(nx&&nx.tr===m.tr&&nx.tc===m.tc);
-      const gist0=(gi[0]&&!(takenBack&&/^chases\b/.test(gi[0])))?gi[0]:'';
-      const takes=capP&&!/\b(takes|wins|captures|trades|exchanges)\b/.test(gist0)?('takes the '+PNAME[capP.t]+' on '+rc2sq(m.tr,m.tc)):'';
+      const gic=gistInContext(gi,g,m,prevL,nx?{move:nx}:null);   // HEX-R-03's context rules, the line's own previous and next move: takes back, trades, no chase of a piece taken next
+      const gist0=(gic[0]&&!(takenBack&&/^chases\b/.test(gic[0])))?gic[0]:'';
+      const takes=capP&&!/^(takes back|wins|captures|trades|gives up|exchanges)\b|\btakes the \w+ on\b/.test(gist0)?('takes the '+PNAME[capP.t]+' on '+rc2sq(m.tr,m.tc)):'';
       if(mo.indexOf('mate')>=0)why='mates';
       else if(m.promo)why=(m.promo==='q'?'queens':'promotes')+(mo.indexOf('check')>=0?', with check':'');
       else if(mo.indexOf('discovered check')>=0)why='a discovered check';
@@ -1813,7 +1814,7 @@ function explainLine(fen,pv,k,no0){
       else if(hit&&!takenBack)why=hit+(mo.indexOf('check')>=0?', with check':'');
       else if(mo.indexOf('check')>=0)why='gives check';
       out.push({san:(g.turn==='w'?(no+'.'):(i===0?(no+'\u2026'):''))+san,why});
-      if(g.turn==='b')no++;g=makeMove(g,m);
+      if(g.turn==='b')no++;prevL={move:m,pos:g,chain:!!(prevL&&prevL.move.tr===m.tr&&prevL.move.tc===m.tc&&g.board[m.tr][m.tc])};g=makeMove(g,m);
     }
   }catch(e){}
   return out;
@@ -2255,10 +2256,14 @@ function gistInContext(did,pos,mv,prev,next){
   try{
     if(!pos||!mv)return d;
     const cap=pos.board[mv.tr]&&pos.board[mv.tr][mv.tc];const sq=rc2sq(mv.tr,mv.tc);
-    if(cap&&prev&&prev.move&&prev.pos&&prev.move.tr===mv.tr&&prev.move.tc===mv.tc){
+    if(cap&&prev&&prev.move&&prev.pos&&!prev.chain&&prev.move.tr===mv.tr&&prev.move.tc===mv.tc){   // not when that capture was itself a take-back: 1...Qxf6 2.exf6+ Kxf6 - the queens are already traded, the king wins a pawn
       const lost=prev.pos.board[mv.tr][mv.tc];
       if(lost&&lost.c!==cap.c){d=d.filter(x=>!/^(wins|trades|gives up) the /.test(x));
         d.unshift(lost.t===cap.t?('takes back on '+sq+', so the '+PNAME[cap.t]+'s are traded'):('takes back on '+sq+', a '+PNAME[cap.t]+' for the '+PNAME[lost.t]));}}
+    // jobs/explain-engine-lines-in-plain-words (checker seat 2): 'wins' is never said of a capture the very next move takes back LIKE FOR LIKE
+    // (1.Qf6+ Qxf6 read 'wins the queen' and 2.exf6+ 'wins the queen' again; 27 of 225 'wins' on the bench corpus) - it is a trade
+    const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];
+    if(cap&&pc&&pc.t===cap.t&&next&&next.move&&next.move.tr===mv.tr&&next.move.tc===mv.tc&&!d.some(x=>/^takes back /.test(x))){d=d.filter(x=>!/^wins the /.test(x));if(!d.some(x=>/^trades /.test(x)))d.unshift('trades the '+PNAME[cap.t]+'s');}
     if(next&&next.move&&next.move.tr===mv.tr&&next.move.tc===mv.tc)d=d.filter(x=>!/^(chases|hits|pins) /.test(x));
   }catch(e){}
   return d;
@@ -10030,7 +10035,7 @@ function AppMain(){
        not read off the pending marker, because that marker is written by the effect AFTER this first render. */
     const _L=curAnno.cls&&curAnno.cls.label;
     const refuteDue=!refute&&!(R&&(R.none||R.failed))&&(_L==='Brilliant'||_L==='Great')&&ai>=0&&(()=>{const pos=review.positions&&review.positions[ai],pl=review.plies[ai];return !!(pos&&pl&&pl.move&&sacTaker(pos,pl.move));})();
-    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',userColor:(review.summary&&review.summary.userColor)||(review.meta&&review.meta.userColor)||null,pos:review.positions&&review.positions[ai],ply:review.plies[ai],prev:(ai>0&&review.plies[ai-1]&&review.positions)?{move:review.plies[ai-1].move,pos:review.positions[ai-1]}:null,next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
+    return explainAnno(curAnno,{mover:revMover(review,ai)==='w'?'White':'Black',userColor:(review.summary&&review.summary.userColor)||(review.meta&&review.meta.userColor)||null,pos:review.positions&&review.positions[ai],ply:review.plies[ai],prev:(ai>0&&review.plies[ai-1]&&review.positions)?{move:review.plies[ai-1].move,pos:review.positions[ai-1],chain:!!(ai>1&&review.plies[ai-2]&&review.plies[ai-2].move&&review.plies[ai-1].move&&review.plies[ai-2].move.tr===review.plies[ai-1].move.tr&&review.plies[ai-2].move.tc===review.plies[ai-1].move.tc&&review.positions[ai-1].board[review.plies[ai-1].move.tr][review.plies[ai-1].move.tc])}:null,next:review.analysis[ai+1],nextPly:review.plies[ai+1],nextPos:review.positions&&review.positions[ai+1],refute,refuteDue,maxw:(!wide?150:WHY_MAXW)});
   },[curAnno,inReview,review,ply,sacTick,wide]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was

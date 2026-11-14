@@ -144,6 +144,13 @@ At 320x568 the explanation is clamped to one line with "▾ more" (the readabili
 - A reply that mates, old: A blunder. Rd8 is mate. h6 held it. New: A blunder. Your opponent can answer Rd8#, and it is mate. h6 was the better move.
 - Where the board gives no reason the line states the fact: "<who> can answer <move>." and "<move> was the better move."; when his colour is unknown, "White" or "Black" stands for "You" or "Your opponent".
 
+**The engine line in plain words: a trade is not a win** (jobs/explain-engine-lines-in-plain-words, checker seat 2)
+- Old: 1…Qxf6 [wins the queen] 2.exf6+ [wins the queen, with check] Kxf6 [wins the pawn]
+- New: 1…Qxf6 [trades the queens] 2.exf6+ [takes back on f6, so the queens are traded, with check] Kxf6 [wins the pawn]
+- Old: 1.Nxd4 [wins the knight] exd4 [wins the knight] 2.Bxd4 [wins the pawn]
+- New: 1.Nxd4 [trades the knights] exd4 [takes back on d4, so the knights are traded] 2.Bxd4 [wins the pawn]
+- Over the bench corpus (336 lines, 1005 explained moves): 'wins' phrases 225 -> 164, and those on a capture the next move takes back like for like 6 -> 0.
+
 ## 8. Tactics and Strategy: the wrong chess, fixed
 - Pawn fork: a second white pawn on e4 guards d5, so Bxd5 no longer refutes it (the stored move is now best by 2.4 pawns).
 - Put rooks on open files, Rooks love the 7th rank, Trade pieces when you are ahead: each had mate in one for White; Black now has air (and, for the trade card, a rook and knight to trade). No mate in one in any of the 18.
