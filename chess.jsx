@@ -1454,7 +1454,7 @@ function wrongWhy(pos,mv){
 // #550 cg7 (jobs/drill-hints-name-the-positions-point-2026-11-12, the independent checker's gap): IN THE MISTAKES DRILL THE CARD KNOWS THE
 // BEST MOVE, so a wrong move that leaves nothing en prise can still be read against it, from the board alone. Measured on his ten cards at
 // 375x761: playing his own move gave a reason on 4 (Bxh3, Nxc4, O-O, h5); the other 6 read "isn't it. Try again" whenever the 300ms engine
-// reply named nothing. Three readings, each true of the board after the move and one reply, and named with that reply:
+// reply named nothing. Four readings ((4) guardhit below), each true of the board after the move and one reply, and named with that reply:
 // (1) 'letsgo': the best move wins material outright (concreteRead 'take'); the wrong move takes nothing and gives no check, and they have a
 //     reply after which no capture wins that much - "lets the pawn on e5 get away (e4)" (Nf3 on 1.d4 e5; a reply moving the target is
 //     preferred, and among those one that hits a piece); "lets them guard the pawn on e5 (d6)" when the saving reply stays put; and
@@ -1463,7 +1463,7 @@ function wrongWhy(pos,mv){
 //     (Bb4+ on 1.d4 e5 2.e4, met by c3) - "is met by c3, which blocks and hits the bishop".
 // (3) 'onlypawn': the moved piece was guarding one of the mover's pieces that is attacked by a piece worth no more than it, and after the
 //     move only one pawn can take back there where a piece could before (Qc2 with Bg4 on Nf3: "unguards f3: only gxf3 meets Bxf3").
-// Null where none holds, and the caller keeps what it had (Be4, Ba6 and Re7 on his cards: nothing on the board alone proves a point).
+// Null where none holds, and the caller keeps what it had (Ba6 and Re7 on his cards: nothing on the board alone proves a point; Be4 reads from (4) below).
 function _bestCapNet(g,side){let best=0;try{for(const m of getLegal({...g,turn:side,ep:null})){const t=g.board[m.tr]&&g.board[m.tr][m.tc];if(!t||t.c===side||t.t==='k')continue;
   const g4=makeMove({...g,turn:side,ep:null},m);if(!g4)continue;const n=(SEEVAL[t.t]||0)-seeSq(g4,m.tr,m.tc,opp(side));if(n>best)best=n;}}catch(e){}return best;}
 function missWhy(pos,mv,bestMv){
@@ -1524,6 +1524,29 @@ function missWhy(pos,mv,bestMv){
         const g0=makeMove({...pos,turn:them,ep:null},pre);if(!recap(g0,r,c).some(m=>g0.board[m.fr][m.fc].t!=='p'))continue;
         const as=sanOf(g2,A),ps=sanOf(g3,after[0]).replace(/[+#]$/,'');
         return {kind:'onlypawn',reply:as,text:'unguards '+rc2sq(r,c)+': only '+ps+' meets '+as,piece:x.t};}   /* helper B: the reply keeps its + (a capture with check is said as one) */   /* 51 characters with its frame on his card: the 320x568 box cut both a 74- and a 66-character form (gate 124 TC-R210c se K6) */
+    }
+    // (4) guardhit [#550 cg7 second pass; his card 7]: the best move ATTACKS a piece of theirs that it could then win (concreteRead 'attack':
+    //     Re4 on the knight on g4, which is short of defenders); the wrong move is a quiet piece move that does not hit that piece, and they
+    //     have a pawn push, safe from capture, that both guards it and hits the piece just moved - "is met by f5, which guards g4 and hits the
+    //     bishop" (Be4 on rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w). Measured at depth 16-18: f5 is the engine's own reply to
+    //     Be4 (+4.9 to +2.3), and after Re4 the same f5 fails to Rxg4 fxg4 (+4.3), so the push with a gain of time is the point Be4 gives up.
+    if(bestMv&&!(bestMv.fr===mv.fr&&bestMv.fc===mv.fc&&bestMv.tr===mv.tr&&bestMv.tc===mv.tc)&&!capd&&st2!=='check'&&pc.t!=='p'&&pc.t!=='k'){
+      let cr=null;try{cr=concreteRead(pos,bestMv);}catch(e){cr=null;}
+      if(cr&&cr.k==='attack'){
+        const gB=makeMove(pos,bestMv);let T=null;
+        for(let r=0;r<8&&!T;r++)for(let c=0;c<8;c++){const t=gB&&gB.board[r][c];if(!t||t.c!==them||t.t==='k'||t.t==='p')continue;   /* the same target concreteRead names, found the same way */
+          if(moveHits(gB.board,bestMv.tr,bestMv.tc,r,c)&&!moveHits(pos.board,bestMv.fr,bestMv.fc,r,c)&&seeSq({...gB,turn:me,ep:null},r,c,me)>0){T=[r,c];break;}}
+        /* the moved piece must not already be lost for less: Bb5 on 1r1q1rk1/1pp2ppp/p3p3/n2n4/3P4/2P4P/P1PBBPP1/1R1Q1RK1 w (best c4) gives a
+           bishop for a pawn to axb5, and "is met by c6, which guards d5 and hits the bishop" would hide that (the one other firing over the
+           1127 wrong moves of the 41 generated puzzles whose best move is an attack, measured at #550) */
+        if(T&&g2.board[T[0]][T[1]]&&g2.board[T[0]][T[1]].c===them&&!moveHits(g2.board,mv.tr,mv.tc,T[0],T[1])&&seeSq({...g2,turn:them},mv.tr,mv.tc,them)<=0){
+          for(const r of getLegal(g2)){const q=g2.board[r.fr][r.fc];if(!q||q.t!=='p'||g2.board[r.tr][r.tc]||r.epCap||r.promo)continue;
+            const g3=makeMove(g2,r);if(!g3||getStatus(g3)!=='playing'&&getStatus(g3)!=='check')continue;
+            if(!moveHits(g3.board,r.tr,r.tc,T[0],T[1])||!moveHits(g3.board,r.tr,r.tc,mv.tr,mv.tc))continue;
+            if(seeSq({...g3,turn:me,ep:null},r.tr,r.tc,me)>0)continue;   /* a push they would lose is no answer */
+            const rs=sanOf(g2,r);return {kind:'guardhit',reply:rs,text:'is met by '+rs+', which guards '+rc2sq(T[0],T[1])+' and hits the '+nm(pc.t)};}
+        }
+      }
     }
     return null;
   }catch(e){return null;}

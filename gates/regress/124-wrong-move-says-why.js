@@ -31,7 +31,11 @@ const SIX=[
   ['K2','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 1','Bb4+','exd4','is met by c3, which blocks and hits the bishop'],
   ['K5','rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1','Nf3','dxe5','lets the pawn on e5 get away (e4)'],
   ['K6','r2qk2r/ppp2ppp/2nbpn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 1','Qc2','h3','unguards f3: only gxf3 meets Bxf3'],
-  ['K7','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Be4','Re4',null],
+  ['K7','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Be4','Re4','is met by f5, which guards g4 and hits the bishop'],   // #550 cg7 second pass: missWhy (4) guardhit
+  // K8 and K10 stay null, measured at depth 16-18 (stockfish-18-lite): K8 Ba6 +5.9 -> +3.5, the reply Bxe5 an even trade that breaks the Ne5/Bg3
+  // battery on the queen (the point lies three plies deep, past any two-ply board reading); the drill's engine line names it ("allows Bxe5, trading
+  // its bishop for your knight"). K10 Re7 -0.4 -> -1.4, the reply e5 captures, checks and hits nothing (moveGist: "stakes out the centre") and the
+  // engine's follow-up is Re8 back; at the drill's 300ms the drop reads 0.97 (-0.38 to -1.35), under replyWhy's floors (1.5 for a band, 1.0 for a described reply), so no line is printed. Positional.
   ['K8','5rk1/pBqb1pbp/4p1p1/1p1nN3/2pP4/2P3B1/PP3PPP/R2QR1K1 w - - 0 1','Ba6','Bxd5',null],
   ['K10','r3r1k1/p2q1p1p/1p1p2pB/1Pp5/3bPP2/1Q6/1PP3PP/3RR2K b - - 0 1','Re7','Qb7',null],
 ];
@@ -77,7 +81,7 @@ L.run(async()=>{
   // ── G. HIS SIX CARDS, THE BOARD READ AGAINST THE CARD'S BEST MOVE (missWhy) [#550 cg7; jobs/drill-hints-name-the-positions-point-2026-11-12,
   // the independent checker's gap: playing his own move on his ten cards (claude/agents/HINT-TEXTS-550.md) gave a reason on 4; these 6 read
   // "isn't it. Try again" whenever the 300ms engine reply named nothing]. Each line is what the drill puts after "✗ <move> " from the board
-  // alone: wrongWhy, else missWhy. Three are provable on the board; three are not, and must stay null so the line stays honest.
+  // alone: wrongWhy, else missWhy. Four are provable on the board (K7 since the second pass, missWhy (4)); two are not (K8, K10), and must stay null so the line stays honest.
   {const mw=(f,ps,bs)=>{try{const p=E.fromFEN(f);const pm=E.findMoveBySAN(p,ps),bm=E.findMoveBySAN(p,bs);const w=E.wrongWhy(p,pm);if(w)return w.text;return (typeof E.missWhy==='function'&&E.missWhy(p,pm,bm)||{}).text||null;}catch(e){return 'THREW '+e.message;}};
    for(const [id,f,ps,bs,want] of SIX){const t=mw(f,ps,bs);
      if(want)L.say(t===want,'TC-R210a '+id+' '+ps+' (best '+bs+') reads "'+ps+' '+want+'" from the board ("'+t+'")',{t});
@@ -89,6 +93,11 @@ L.run(async()=>{
      ['N3','r2qk2r/ppp2ppp/2nbpn2/3p4/3P2b1/2PBPN2/PP3PPP/RNBQ1RK1 w kq - 0 1','Nbd2','h3','the knight on d2 adds a guard, and the queen stays on d1'],
      ['N4','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PP3PPP/RNBQKBNR b KQkq - 0 1','Bb4+','exd4','with no c-pawn only a piece can block the check, so nothing blocks and hits'],
      ['N5','rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 1','Nf6','exd4','Nf6 takes nothing, and exd4 was an even trade (not a win of material), so there is nothing it lets go'],
+   // #550 cg7 second pass, missWhy (4) guardhit: where it must stay silent
+   ['N6','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Bd3','Re4','f5 still guards g4 but does not hit a bishop on d3, so no push both guards and hits'],
+   ['N7','rnb2r1k/ppqp1ppB/3b4/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Be4','Re4','with no pawn on e6 the push f5 is simply lost (Bxf5 or Nxf5), so it is no answer'],
+   ['N8','rnb2r1k/ppqp1ppB/3bp3/8/3P2n1/2P2NN1/PPQ2PPP/R1B1R1K1 w - - 0 1','Kf1','Re4','a king move: nothing for a pawn push to hit'],
+   ['N9','1r1q1rk1/1pp2ppp/p3p3/n2n4/3P4/2P4P/P1PBBPP1/1R1Q1RK1 w - - 0 1','Bb5','c4','Bb5 gives the bishop for a pawn to axb5, so c6 guarding d5 and hitting it is not the point (a generated puzzle; the one other firing over 1127 wrong moves)'],
    ];
    for(const [id,f,ps,bs,why] of NOT){const t=mw(f,ps,bs);L.say(t===null,'TC-R210b '+id+' '+ps+' (best '+bs+'): '+why+' - no board reason ('+t+')',{t});}}
   // ── H. A REPLY THAT CAPTURES OR GIVES CHECK IS DESCRIBED BY THAT FIRST [#550 helper B, jobs/drill-reply-capture-with-check-described-by-its-
@@ -140,9 +149,9 @@ L.run(async()=>{
    await b.close();}
   // ── F. HIS SIX CARDS IN THE DRILL [#550 cg7]: his own move played on each, at 375x761. The FIRST ✗ line painted is read (polled every
   // 40ms, so it is the board's line and not the engine's, which cannot arrive before its 300ms search), then again three seconds on.
-  // A board reason must be the first line, must not be replaced, and must not be cut by its box. The three with no board reason must open
+  // A board reason must be the first line, must not be replaced, and must not be cut by its box. The two with no board reason (K8, K10) must open
   // on the honest "isn't it" line (what the engine may add later is block D's business, and is not asserted here).
-  // The three with a board reason are read at 320x568 too, where the box is narrowest (74- and 66-character drafts of the Qc2 line were cut there).
+  // The four with a board reason are read at 320x568 too, where the box is narrowest (74- and 66-character drafts of the Qc2 line were cut there).
   for(const [geo,id,fen,ps,bs,want] of [...SIX.map(x=>['kunal761',...x]),...SIX.filter(x=>x[4]).map(x=>['se',...x])]){
     const p=E.fromFEN(fen);const bm=E.findMoveBySAN(p,bs),pm=E.findMoveBySAN(p,ps);const uci=E.rc2sq(bm.fr,bm.fc)+E.rc2sq(bm.tr,bm.tc);
     const row={fen,uci,label:'Mistake',played:ps,ts:1791000000000,last:null,why:bs+' was stronger.',hint:'h',wc:{g:'Mistake',drop:15,v:1}};
