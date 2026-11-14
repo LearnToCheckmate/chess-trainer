@@ -228,3 +228,4 @@ for(const g of GEOS){
   }
 }
 },'71-resume-row-agrees-with-the-board');
+// CONTROL-RECORD: 016ccda 2026-11-14 total=53 red=8 scope=trial:6cd89b7420c6 how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): the #473 defect restored - _livePlies read from playHist.length alone, not gated on _boardIsPlayGame - B1, B4, C1 and C2 red at both geometries (the row offers '(2 moves played)' over an empty move row, Start arms 'Tap again to discard your game' over the gone game); block A green as it must be; tip trial 66ccacbf3e7f 53/0

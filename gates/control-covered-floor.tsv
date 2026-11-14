@@ -48,3 +48,6 @@ mountcheck	COVERED on records citing 016ccda (#550 test-system helper B, trial 8
 27-scan-fen	COVERED on records citing 016ccda (#550 test-system helper B, mutant fen.js d7ee58e5ccb0 77/3)
 32-plylog	COVERED on records citing 016ccda (#550 test-system helper B, trial c504cebc5ef7 23/4)
 80-castle-input	COVERED on records citing 016ccda (#550 test-system helper B, trial 931b4aa4284f 40/6)
+38-rev-sheet-reach	COVERED on records citing 016ccda (#550 test-system helper B, trial 1f1d063070d2 46/9)
+54-play-resume	COVERED on records citing 016ccda (#550 test-system helper B, trial b779591c834b 94/31)
+71-resume-row-agrees-with-the-board	COVERED on records citing 016ccda (#550 test-system helper B, trial 6cd89b7420c6 53/8)

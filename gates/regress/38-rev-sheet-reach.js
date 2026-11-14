@@ -107,3 +107,4 @@ L.run(async()=>{
     await b.close();
   }
 },'REV-SHEET-REACH');
+// CONTROL-RECORD: 016ccda 2026-11-14 total=46 red=9 scope=trial:1f1d063070d2 how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): the rev-sheet panel's maxHeight cut to 'none' (the header's own control, re-run on today's sheet) - the maxHeight-under-the-viewport line red at all five geometries (none vs 568..932), and at se and kunal the sheet itself off the top (top -137, -26) with a row unreachable and untappable at se (1 inaccuracy, top -90); tip trial 66ccacbf3e7f 46/0

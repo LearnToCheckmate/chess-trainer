@@ -306,3 +306,4 @@ L.run(async()=>{
       +'  |  identical='+(kunalLive.txt===kunalFresh.txt));
   }
 },'54-play-resume');
+// CONTROL-RECORD: 016ccda 2026-11-14 total=94 red=31 scope=trial:b779591c834b how=#550 test-system helper B (jobs/control-audit-exists-is-red-and-nothing-runs-it part b): the setup sheet's resume row (setup-resume) never rendered (false&& on its condition) - A1, A2, B and C red at all seven geometries (28: the live-game sheet no longer differs from the fresh one, no resume affordance, no in-progress words), G1 and G2 red at 375x730 (no row count to read), and the G block's harness threw when the missing row was needed (88 of 94 lines ran); the E, D and other G lines green; tip trial 66ccacbf3e7f 94/0
