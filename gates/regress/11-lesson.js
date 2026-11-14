@@ -282,7 +282,7 @@ L.run(async()=>{
       try{ await D.states['practice-tryagain'](b); }catch(e){ threw=String((e&&e.message)||e).slice(0,120); }
       L.say(threw===null,'TC-R64c T2 '+tg.n+' D.states[\'practice-tryagain\'] REACHES ITS STATE instead of throwing - tapBtn throws when its target is absent, which is how this state failed silently rather than loudly',{threw});
       const n1=threw===null?await b.text('[data-ct="lesson-note"]'):null;
-      L.say(threw===null&&/Your move/.test(n1||'')&&!/Not the book move|isn.t the line|The book move is|Try again\./ /* #550 HEX-T-12: the wrong-move line now gives a reason and ends "Try again." */.test(n1||''),'TC-R64c T3 '+tg.n+' and the wrong-move line is CLEARED: the note is back to the move-0 prompt',{note:n1});
+      L.say(threw===null&&/Your move/.test(n1||'')&&!/Not the book move|isn.t the line|The book move is|Try again\./.test(n1||'') /* #550 HEX-T-12: the wrong-move line now gives a reason and ends "Try again." (comment after .test( so gates/audit/negated-regex-guards.sh sees this negated site) */,'TC-R64c T3 '+tg.n+' and the wrong-move line is CLEARED: the note is back to the move-0 prompt',{note:n1});
       L.say(b.errs.length===0,'TC-R64c T3e '+tg.n+' zero app errors through the Try-again tap',b.errs.slice(0,3));
       await b.shot('tryagain-'+tg.n);
       await b.close();

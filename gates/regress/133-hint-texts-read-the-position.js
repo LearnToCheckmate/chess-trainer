@@ -95,7 +95,15 @@ L.run(async()=>{
    try{r=E.concreteRead(g,m);const g2=E.makeMove(g,m);mated=E.getLegal(g2).some(x=>E.getStatus(E.makeMove(g2,x))==='checkmate');v=E.drillVerdict(g,m,null,'Nc6 was stronger. Kh1 went from level to losing.');}catch(e){r={k:'THREW '+e.message};}
    L.say(mated,'TC-R209h PRECONDITION after Nc6 Black has a mate in one (Rb1#) on the checker\'s position',mated);
    L.say(r===null,'TC-R209h Nc6, which Rb1 mates, gets no reading at all ('+(r?('['+r.k+'] "'+r.hint+'"'):'null')+')',r);
-   L.say(!/forks|attacks/.test(v),'TC-R209h and the drill verdict on a card storing Nc6 does not call it a fork or an attack ("'+v+'")',v);
+   /* #550 helper B [jobs/sweep-for-regexes-checked-in-one-direction-only-2026-10-02]: this read /forks|attacks/, which cannot see the forms
+      chess.jsx's readings print - ', a fork', ', a forking check', ', forking two at once', ' and hits the ', ' threatens ', ' is attacked'
+      and the older reading this block's own comment quotes, '... short of defenders. Attack it.' (capital A, no s). FORK133 is checked both
+      ways against those strings and the stored sentence the verdict must keep. */
+   const FORK133=/\bfork(s|ing)?\b|\battack(s|ed|ing)?\b|\bhits\b|\bthreatens\b/i;
+   const forkForms133=['Nc7 forks the rook on a8 and the rook on e8.','Nd5, a fork','Qe4+, a forking check','Ne6, forking two at once','Qb3 checks the king and attacks the bishop','Bd5 and hits the rook','Re1 threatens mate','Their rook on b8 is short of defenders. Attack it.','The knight is attacked.'];
+   const notFork133=['Nc6 was stronger. Kh1 went from level to losing.','Rf3 was stronger. Qxh3 went from clearly better to losing.'];
+   L.say(forkForms133.every(t=>FORK133.test(t))&&!notFork133.some(t=>FORK133.test(t))&&!forkForms133.slice(1,8).every(t=>/forks|attacks/.test(t)),'TC-SUITE-265 (TC-R209h) the no-fork pattern catches every fork, attack and threat form the readings print, not the stored sentence, and the old /forks|attacks/ missed some (checked both ways)',{missed:forkForms133.filter(t=>!FORK133.test(t)),wronglyCaught:notFork133.filter(t=>FORK133.test(t)),oldMissed:forkForms133.filter(t=>!/forks|attacks/.test(t))});
+   L.say(!FORK133.test(v),'TC-R209h and the drill verdict on a card storing Nc6 does not call it a fork or an attack ("'+v+'")',v);
    const g0=E.fromFEN(MOT[5][1]);let t=null;try{t=E.concreteRead(g0,E.findMoveBySAN(g0,'h3'));}catch(e){t=null;}
    L.say(!!t&&t.k==='threat'&&/They threaten Rb1 mate/.test(t.hint),'TC-R209h the move that does stop it (h3) still reads the threat ("'+(t&&t.hint)+'")',t);}
 },'133-hint-texts-read-the-position');
