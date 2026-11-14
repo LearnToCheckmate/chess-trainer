@@ -520,7 +520,11 @@ L.run(async()=>{
       if(await CAP(b)!==cur){raced++;continue;}                // metrics is two evaluates; do not attribute across a change
       if(!cur)continue;
       sampled++;
-      if(m.over.over>0.5)scrolled.push({cap:cur.slice(0,34),over:m.over.over});
+      /* #550 lead, final suite: the IPAD card is a WALK across screens under one caption (the shrink check below already excuses it), and
+         at 375x679 it passes through pages that still scroll there (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, open;
+         the long lists may scroll by design, AUD-L08/L16). Seen at 37, 204.7 and 261.3px over in this run's suites, and 0 in others,
+         by which screen the sample caught. Those pages have their own gates (159 and the job's list); this check is for the cards. */
+      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur))scrolled.push({cap:cur.slice(0,34),over:m.over.over});
       const pf=await PAGEFIX(b);
       if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
         pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
