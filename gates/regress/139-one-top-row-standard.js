@@ -153,7 +153,11 @@ L.run(async()=>{
    L.say(!!m&&m.w>=43.5&&m.h>=43.5&&m.br==='12px'&&/0\.08\)$/.test(m.bg),'TC-R215a Home kunal761 the menu is the standard 44x44 square button, radius 12, white 8% ('+JSON.stringify(m)+')',m);await b.close();}
   // sideways: the fixed corner buttons
   for(const [nm,go] of [['Discover',b=>H.states.discover(b)],['Puzzles roadmap',b=>Z.states.roadmap(b)]]){const b=await L.launch({geo:LAND,name:'top139-land'});await b.open();try{await go(b);await b.settle(900);}catch(e){}
-   const c=await corners(b,null);L.say(ok44(c.menu)&&at8(c.menu.r),'TC-R215a '+nm+' 761x375 sideways the menu is >=44x44 at 8 from the right ('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+c.menu.r:'none')+')',c.menu);await b.close();}
+   const c=await corners(b,null);
+   // #550 helper B (jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03): sideways these pages take the right-hand tab rail (gate 158), so
+   // the right EDGE the menu keeps its 8 from is the rail's left edge, read here from the painted rail (0 when the tab bar is a bottom row)
+   const rw=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="tabbar"][data-side="1"]');return t?+(innerWidth-t.getBoundingClientRect().left).toFixed(1):0;});const mr=c.menu?+(c.menu.r-rw).toFixed(1):null;
+   L.say(ok44(c.menu)&&at8(mr),'TC-R215a '+nm+' 761x375 sideways the menu is >=44x44 at 8 from the right edge'+(rw?' of the page (the tab rail starts '+rw+' from the screen edge)':'')+' ('+(c.menu?c.menu.w+'x'+c.menu.h+' at '+mr:'none')+')',{menu:c.menu,rail:rw});await b.close();}
   // Tactics and Strategy: one board top, full width, 44pt actions, the answer over the board
   for(const [gn,geo] of GEOS){const b=await L.launch({geo,name:'top139-tac'});await b.open();let ok=true;try{await D.states.tactics(b);await b.settle(900);}catch(e){ok=false;}
     const rd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
