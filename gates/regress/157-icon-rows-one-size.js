@@ -30,11 +30,18 @@
 // measure before the change (← 15x6 beside ⋯ 16x4), so that line is green on the control and its fix there is the standard chevron, not a
 // size correction; and at 320x568 the Review header's buttons start at y -4 (the 44px buttons overhang a bar squeezed under 44 by the short
 // screen) - the ink is on screen (top 11), which is all TC-IR-04 asks, and the overhang is the formatting audit's, recorded, not fixed here.
+// THE LESSON ROWS, ADDED BY #550 helper lessons [jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]: a
+// checker's pixel scan read the lesson footer at 12 to 19 of ink while this gate was green - because this gate never read a lesson row (see
+// the note above ROWS.lessondemo). The rows: the demo bar paused (▶), playing (⏸) and at its end (↻), the practice footer (one bar at se
+// carrying ⟳ 💡 ↻), the kunal761 practice row (⟳ 💡 '↻ Try again'), and that slot at Complete! ('Next ›') and on a hints-on clean run
+// ('✓ Bank it'). Their tolerance is 1px (row.tol), the job's '~1px'; the four older rows keep 2.
 // CONTROL: CT_APP=<the tip before the change>.
 // CONTROL-RECORD: 01431d7 2026-11-13 total=45 red=7 scope=trial:8e19cb261a48 how=THE SUBJECT REMOVED: the branch tip before the change (Back ←, More at 21/19, ↺ and the arrows unscaled) - TC-IR-02 red on Review at kunal761 (← 14x6 vs ⋯ 18x3), the puzzle row (↺ 9x9), the solved row (› 4x6) and the drill row (‹ › 4x6, ↺ 14x12) at both geometries; se Review green (15 vs 16, see above)
+// CONTROL-RECORD: 9bed1b7 2026-11-14 total=99 red=13 scope=trial:9177a64af34a how=#550 helper lessons, THE SUBJECT REMOVED: the branch tip before the lesson glyphs were scaled (one 21px font in the footer, the practice row at 15px) - TC-IR-02 red on all seven lesson rows at kunal761 and six at se (✕ 12x12, ▶ 16x15, ⏸ 8x9, ⋯ 18x4, ⟳ 12x9, ↻ 10x9, › 4x6, ✓ 7x8 beside the chevrons' 15x19); the four older rows green; on beeca0a9f010 99/0
 const L=require('../lib');
 const R=require('../drive/review');
 const PZ=require('../drive/puzzles');
+const LS=require('../drive/lesson');
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
 const DSTORE={ct_mymistakes:FENS.map((f,i)=>({fen:f,uci:UCIS[i],label:'Blunder',played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',wc:{g:'Blunder',drop:25}})),ct_pool:'3'};
 
@@ -96,29 +103,62 @@ const ROWS={
   drill:{store:DSTORE,enter:async b=>{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="drill-row"]').waitFor({state:'visible',timeout:15000});await b.settle(900);},
     members:[['Hint','[data-ct="drill-row"] button[aria-label="Hint"]','only'],['Show move','[data-ct="drill-row"] button[aria-label="Show move"]','only'],
       ['Reset','[data-ct="drill-row"] button[aria-label="Reset"]','only'],['Prev','[data-ct="drill-prev"]','only'],['Next','[data-ct="drill-next"]','only']]},   // #550 helper B (jobs/transport-row-icon-only, the drill-card extension): Prev and Next are the two arrows now (gate 160), so they are icons alone here
+  // THE LESSON ROWS [#550 helper lessons, jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]. This gate was
+  // green while the lesson footer painted ✕ 12x12 beside chevrons 15x19 and ⋯ 18x4, because it never read a lesson row: the lesson footer's
+  // only size checks (gate 11's GLYPH_PIN band, gate 26's lesson-footer pin) read the glyph's LINE BOX, which is 24 for every text glyph at
+  // the footer's one font size whatever the ink - the line box measured 17.9x24 around 12x12 of ✕ ink. Both instruments were run on the same
+  // buttons on trial f5fa39bac951 and the two ink scans (this gate's and the checker's) agree to the pixel; the box is the wrong one.
+  // A member's 5th field names the only geometry it exists at: on a short phone (se) 'Now I'll try it' folds into the demo bar, and the
+  // practice row folds into the footer (one bar), so the practice rows are two rows at kunal761 and one at se.
+  lessondemo:{tol:1,enter:b=>LS.states['demo-m0'](b),members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],['Back','[data-ct="lesson-footer"] button[aria-label="Back a move"]','only'],
+    ['Play','[data-ct="lesson-footer"] button[aria-label="Play or pause"]','only'],['Forward','[data-ct="lesson-footer"] button[aria-label="Forward a move"]','only'],
+    ['Try it','[data-ct="lesson-footer"] button[aria-label="Now I\'ll try it"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
+  lessonend:{tol:1,enter:b=>LS.states['demo-end'](b),members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],['Back','[data-ct="lesson-footer"] button[aria-label="Back a move"]','only'],
+    ['Replay','[data-ct="lesson-footer"] button[aria-label="Play or pause"]','only'],['Forward','[data-ct="lesson-footer"] button[aria-label="Forward a move"]','only'],
+    ['Try it','[data-ct="lesson-footer"] button[aria-label="Now I\'ll try it"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
+  // while the demo plays the Play button carries ⏸ (painted 9x12 beside the others' 19 before it was scaled; probe on trial e664a9a2543b)
+  lessonplay:{tol:1,enter:async b=>{await LS.states['demo-m0'](b);await b.settle(400);await b.page.locator('[data-ct="lesson-footer"] button[aria-label="Play or pause"]').click();await b.page.waitForTimeout(150);
+      const t=await b.page.locator('[data-ct="lesson-footer"] button[aria-label="Play or pause"]').innerText();if(!/\u23F8/.test(t))throw new Error('Play tapped and the button does not show ⏸ ('+t+')');},
+    members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],['Pause','[data-ct="lesson-footer"] button[aria-label="Play or pause"]','only'],
+      ['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
+  lessonfoot:{tol:1,enter:b=>LS.states['practice-m0'](b),members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],
+    ['Flip','[data-ct="lesson-footer"] button[aria-label="Flip board"]','only',null,'se'],['Hints','[data-ct="lesson-footer"] button[aria-label="Hints"]','only',null,'se'],
+    ['Try again','[data-ct="lesson-footer"] button[aria-label="Try again"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
+  lessonrow:{tol:1,geo:'kunal761',enter:b=>LS.states['practice-m0'](b),members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
+    ['Try again','button[aria-label="Try again"]','first',/^↻ Try again$/]]},
+  lessondone:{tol:1,enter:b=>LS.states['practice-complete'](b),members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
+    ['Next','button[aria-label^="Next lesson:"]','last',/^(Next: .+|Next lesson|Next) ›$/,'kunal761'],['Next','button[aria-label^="Next lesson:"]','only',null,'se'],
+    ['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only',null,'se']]},
+  // a clean run with Hints on offers '✓ Bank it' in the same slot (gate 111 TC-R191d's route: practice, Hints on at move 0, the Italian line)
+  lessonbank:{tol:1,store:{ct_pool:'3'},enter:async b=>{await LS.states['practice-m0'](b);await LS.tapBtn(b,/^Hints$/,400);
+      for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await LS.noteText(b))||''))break;}
+      await b.settle(700);await b.page.locator('[data-ct="lesson-bank-it"]').waitFor({state:'visible',timeout:8000});},
+    members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
+      ['Bank it','[data-ct="lesson-bank-it"]','first',/^✓ Bank it(: hints off)?$/,'kunal761'],['Bank it','[data-ct="lesson-bank-it"]','only',null,'se']]},
 };
 const TOL=2;
 L.run(async()=>{
   const geos=(process.env.CT_IR_GEOS||'kunal761,se').split(',');const only=process.env.CT_IR_ROWS?process.env.CT_IR_ROWS.split(','):null;
   for(const geo of geos)for(const [rk,row] of Object.entries(ROWS)){
-    if(only&&!only.includes(rk))continue;const tag=geo+' '+rk;
+    if(only&&!only.includes(rk))continue;if(row.geo&&row.geo!==geo)continue;const tag=geo+' '+rk;
+    const members=row.members.filter(m=>!m[4]||m[4]===geo);   // a member's 5th field: the only geometry it exists at
     const b=await L.launch({geo,name:'icon-rows-'+rk+'-'+geo,store:row.store});await b.open();let entered=true;
     try{await row.enter(b);}catch(e){entered=false;L.note&&L.note('enter failed: '+e.message);}
     const got=[];
-    for(const [lab,sel,which,word] of row.members){const loc=b.page.locator(sel).filter({visible:true});
+    for(const [lab,sel,which,word] of members){const loc=b.page.locator(sel).filter({visible:true});
       if(!(await loc.count())){got.push({lab,missing:true});continue;}
       const h=await loc.first().elementHandle();const g=await inkOf(b,h);const txt=(await h.evaluate(e=>(e.innerText||'').replace(/\s+/g,' ').trim()));
       const icon=g.icon&&!g.icon.empty?g.icon:null;
       got.push({lab,which,box:{y:+g.box.y.toFixed(1),h:+g.box.h.toFixed(1),w:+g.box.w.toFixed(1)},toks:g.toks,txt,word,icon,wordCy:g.word&&!g.word.empty?g.word.cy:null,
         ok1:!!icon&&(which==='only'?!g.word:!!(g.word&&!g.word.empty))});}
     const found=got.filter(x=>!x.missing&&x.icon);
-    L.say(entered&&found.length===row.members.length&&got.every(x=>x.ok1),'TC-IR-01 '+tag+' PRECONDITION the row is open, all '+row.members.length+' members found, each carries its glyph'+(row.members.some(m=>m[2]!=='only')?' and its word':'')+' ('+got.map(x=>x.lab+(x.missing?' MISSING':' ['+x.toks.join(' ')+']')).join(', ')+')',got);
+    L.say(entered&&found.length===members.length&&got.every(x=>x.ok1),'TC-IR-01 '+tag+' PRECONDITION the row is open, all '+members.length+' members found, each carries its glyph'+(members.some(m=>m[2]!=='only')?' and its word':'')+' ('+got.map(x=>x.lab+(x.missing?' MISSING':' ['+x.toks.join(' ')+']')).join(', ')+')',got);
     const ext=found.map(x=>x.icon.ext);const spread=ext.length?+(Math.max(...ext)-Math.min(...ext)).toFixed(1):null;
-    L.say(found.length===row.members.length&&spread!==null&&spread<=TOL,'TC-IR-02 '+tag+' the icon glyphs are one size: '+found.map(x=>x.lab+' '+x.icon.w+'x'+x.icon.h).join(', ')+' - spread '+spread+'px against '+TOL,found.map(x=>({lab:x.lab,icon:x.icon})));
+    L.say(found.length===members.length&&spread!==null&&spread<=(row.tol??TOL),'TC-IR-02 '+tag+' the icon glyphs are one size: '+found.map(x=>x.lab+' '+x.icon.w+'x'+x.icon.h).join(', ')+' - spread '+spread+'px against '+(row.tol??TOL),found.map(x=>({lab:x.lab,icon:x.icon})));
     const mixed=found.filter(x=>x.which!=='only');
     if(mixed.length){const off=mixed.map(x=>({lab:x.lab,d:x.wordCy==null?null:+Math.abs(x.icon.cy-x.wordCy).toFixed(1)}));
       L.say(off.every(o=>o.d!==null&&o.d<=TOL),'TC-IR-03 '+tag+' each glyph sits level with its word: '+off.map(o=>o.lab+' '+o.d+'px').join(', '),off);}
-    L.say(found.length===row.members.length&&found.every(x=>x.box.h<=44.5&&x.icon.top>=x.box.y-0.5&&x.icon.bot<=x.box.y+x.box.h+0.5),'TC-IR-04 '+tag+' no button grew past 44 and every glyph is painted inside its own button ('+found.map(x=>x.lab+' '+x.box.w+'x'+x.box.h).join(', ')+')',found.map(x=>({lab:x.lab,box:x.box,top:x.icon.top,bot:x.icon.bot})));
+    L.say(found.length===members.length&&found.every(x=>x.box.h<=44.5&&x.icon.top>=x.box.y-0.5&&x.icon.bot<=x.box.y+x.box.h+0.5),'TC-IR-04 '+tag+' no button grew past 44 and every glyph is painted inside its own button ('+found.map(x=>x.lab+' '+x.box.w+'x'+x.box.h).join(', ')+')',found.map(x=>({lab:x.lab,box:x.box,top:x.icon.top,bot:x.icon.bot})));
     const worded=got.filter(x=>x.word);
     if(worded.length)L.say(worded.every(x=>x.word.test(x.txt||'')),'TC-IR-05 '+tag+' the words a finder reads are unchanged: '+worded.map(x=>JSON.stringify(x.txt)).join(', '),worded.map(x=>({lab:x.lab,txt:x.txt})));
     L.say(b.errs.length===0,'TC-IR '+tag+' zero app errors',b.errs.slice(0,3));

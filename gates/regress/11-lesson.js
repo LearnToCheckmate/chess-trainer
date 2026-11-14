@@ -180,7 +180,7 @@ L.run(async()=>{
                   fs:parseFloat(getComputedStyle(e).fontSize),gw,gh,svg:!!svg};
         }).filter(Boolean);
       });
-      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':24,'Close lesson':24,'More for this lesson':24}; // the practice block's copy of GLYPH_PIN below [#549 item (54)]; text pin 22 -> 24 at #549 item (80), see GLYPH_PIN
+      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':33,'Close lesson':36,'More for this lesson':26};   // PIN MOVED WITH A FIX [#550 helper lessons, jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]: see GLYPH_PIN // the practice block's copy of GLYPH_PIN below [#549 item (54)]; text pin 22 -> 24 at #549 item (80), see GLYPH_PIN
       if(st==='demo-end'){
         L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
@@ -205,7 +205,12 @@ L.run(async()=>{
         // PIN MOVED WITH A FIX [#549 item (80), jobs/lesson-footer-icons-consistent]: the text glyphs now come from FootBtn, the component the
         // Review transport row uses - 21px in the Segoe/system-ui stack where they were 20-20.25px in the inherited stack - so the text line
         // box measured 22 on 2c323ead88f0 and 24 on the fixed trial 0a7612ca7dc3 at all four geometries. The chevrons are unchanged at 27.
-        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':24,'Close lesson':24,'More for this lesson':24};
+        // PIN MOVED WITH A FIX [#550 helper lessons, jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]: one
+        // FONT size was never one INK size - at 24 of line box the ✕ painted 12x12, ↻ 15x14 and ⋯ 18x4 beside the chevrons' 15x19 (a pixel
+        // scan, gate 157's lesson rows). Each text glyph is now scaled by its own em (LF_EM in chess.jsx) to the chevrons' 19 of ink, so this
+        // LINE BOX band moved: ✕ 36, the end-of-demo ↻ 33, ⋯ 26, measured on trial fa375049759b at all four geometries. The band still holds
+        // the prop and the box; whether the INK agrees is gate 157 TC-IR-02, which is where 'one size' is judged.
+        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':33,'Close lesson':36,'More for this lesson':26};
         const offBand=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN[f.aria]}));
         L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 24) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
         // ROTATION AUDIT [#549 item (54)]: this line DISCRIMINATES (slack 11px wide, 11px tall at the 44px box), but its HEIGHT
