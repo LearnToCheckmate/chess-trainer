@@ -168,3 +168,5 @@ L.run(async()=>{
 });
 // SELECTOR-OPENED: drill-row reading=presence #550 lead, opened by reading: enter() waits for it and TC-IR-01/02/04 require all members found, so a missing hook reds the row
 // SELECTOR-OPENED: drill-next reading=presence #550 lead, opened by reading: TC-IR-01 requires every member found by its selector, so a missing Next hook reds
+// SELECTOR-OPENED: lesson-bank-it reading=presence #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): enter() waits for it and TC-IR-01/02/04 require every member found, so a missing hook reds lessonbank at both geometries
+// SELECTOR-OPENED: lesson-footer reading=presence #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): every lesson-row member is found inside it, so TC-IR-01/02/04 red for lessondemo, lessonend, lessonplay and lessonfoot (99/0 -> 58/39 with the drill and bank hooks)

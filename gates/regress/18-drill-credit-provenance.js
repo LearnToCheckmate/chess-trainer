@@ -345,3 +345,4 @@ L.run(async()=>{
     await n.close();
   }
 },'18-drill-credit-provenance');
+// SELECTOR-OPENED: drill-next reading=nav #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): it is clicked to reach cards 2 and 3; a missing hook times the click out and the harness throws red (60/0 -> 14/1)

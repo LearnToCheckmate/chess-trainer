@@ -282,3 +282,4 @@ L.run(async()=>{
     L.say(b.errs.length===0,'TC-R221 zero app errors (offline backup)',b.errs.slice(0,3));await b.close();
   }
 },'145-accounts-follow-across-devices');
+// SELECTOR-OPENED: menu-foot reading=nav #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): the hook only opens the fold; with it missing the Evaluation graph row stays behind the fold, TC-R221n2 reads graph null and goes red (51/0 -> 50/1)

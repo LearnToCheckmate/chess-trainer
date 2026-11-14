@@ -37,3 +37,4 @@ L.run(async()=>{
     L.say(r.row!=null&&Math.abs(r.row-44)<=1,'TC-R114f '+tag+' the row is '+r.row+' tall - it does not grow',{row:r.row});
     L.say(b.errs.length===0,'TC-R114 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'160-drill-row-arrows');
+// SELECTOR-OPENED: drill-row reading=presence #550 test-system helper A, opened by reading and confirmed on m6 46c1c43522a4 (the tip with the six last unopened hooks renamed; tip trial aae17ede75ff green): the entry waits for it and TC-R114d DENOMINATOR and TC-R114f read its rect, so a missing hook reds every column (31/0 -> 7/12)
