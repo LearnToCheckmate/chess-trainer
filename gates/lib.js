@@ -393,6 +393,7 @@ async function launch(opts={}){
   if(opts.geo==null)throw new Error('L.launch: no geo given - name one ({geo:\'kunal761\'} is Kunal\'s phone, 375x761 with insets, per R19; see GEOS); an omitted geometry no longer defaults to 375x679');
   const geo=typeof opts.geo==='object'?opts.geo:GEOS[opts.geo];
   if(!geo)throw new Error('unknown geo '+opts.geo);
+  coverageRecord(opts,geo);
   if(opts.engineFail!=null&&opts.engineFail!=='pool'&&opts.engineFail!=='all'&&opts.engineFail!=='review')throw new Error('L.launch: engineFail must be \'pool\', \'all\' or \'review\', not '+JSON.stringify(opts.engineFail));
   const srv=await serve(opts);
   const P=pw();const launchOpts={headless:true};if(P._ctExec)launchOpts.executablePath=P._ctExec;
@@ -636,6 +637,31 @@ async function launch(opts={}){
   return b;
 }
 let _fails=0,_pass=0;
+// ── COVERAGE: WHAT THIS GATE WAS HANDED, ONE LINE PER GATE [#550 helper A; jobs/entry-two-the-coverage-ratchet-2026-10-10
+// theFIX part (1), THE PILOT PART ONLY]. Every launch() records the geometry it was given (a GEOS name, or inline:WxH for an
+// inline {w,h}) and its configuration (each option that changes what the page is: engineFail, dev:off, pro, realScale, network,
+// screen, and the KEYS - never the values - of opts.store; `default` when none), and done() prints them as one line,
+// `COVERAGE <label> geos=<a,b> configs=<c,d>`, before the pass/fail line. `-` means the gate launched no browser through this
+// harness, which is reported, never credited as covering anything. WHAT THIS PART IS NOT, said rather than implied: nothing
+// reads the line yet. Parts (2) (launch refuses an inline {w,h}), (3) (geos/configs fields in gates/gate-manifest.tsv) and (4)
+// (gatemanifest.sh check compares the line with the row) are not done, and `states=` is not recorded, so a gate covering
+// less than it claims is still not refused by anything. Controlled by gates/gates.sh --selftest COV1-COV5.
+const _cov={geos:[],configs:[]};
+function coverageRecord(opts,geo){
+  const g=typeof opts.geo==='object'?'inline:'+geo.w+'x'+geo.h:String(opts.geo);
+  const c=[];
+  if(opts.engineFail)c.push('engineFail='+opts.engineFail);
+  if(opts.dev===false)c.push('dev=off');
+  if(opts.pro)c.push('pro');
+  if(opts.realScale)c.push('realScale='+opts.realScale);
+  if(opts.network)c.push('network');
+  if(opts.screen)c.push('screen='+opts.screen.w+'x'+opts.screen.h);
+  const sk=Object.keys(opts.store||{}).sort();if(sk.length)c.push('store='+sk.join('+'));
+  const cs=c.length?c.join('+'):'default';
+  if(!_cov.geos.includes(g))_cov.geos.push(g);
+  if(!_cov.configs.includes(cs))_cov.configs.push(cs);
+}
+function coverageLine(label){return 'COVERAGE '+(label||'GATE')+' geos='+(_cov.geos.join(',')||'-')+' configs='+(_cov.configs.join(',')||'-');}
 // EVERY GATE IS OBSERVED, NOT ONLY THE ONES THAT CALL done() [#546, item (86); jobs/the-premise-checks-read-the-gates-source-
 // instead-of-asking-them-to-declare-their-inputs-2026-10-07, whatIsLeft (2)]. gates.sh now preloads this file into every
 // gate with `node -r`, so the fs recorder above is live from the first byte even in a gate that never requires it (68, 72,
@@ -651,7 +677,7 @@ process.on('exit',(code)=>{if(!_doneRan&&(_pass+_fails)>0){process.stdout.write(
 process.on('exit',()=>{if(_doneRan||process.env.CT_OBSERVE_EXIT!=='1')return;try{const ins=observedInputs();process.stdout.write('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' ')+'\n');}catch(e){}});
 function say(ok,msg,detail){const line=(ok?'PASS ':'FAIL ')+msg+(detail!==undefined?'  ['+(typeof detail==='string'?detail:JSON.stringify(detail))+']':'');console.log(line);if(ok)_pass++;else _fails++;return ok;}
 function note(msg){console.log('     '+msg);}
-function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
+function done(label){_doneRan=true;const ins=observedInputs();console.log('     inputs observed ('+ins.length+' repository files read through fs or require): '+ins.join(' '));if(process.env.CT_INPUTS_OUT){try{require('fs').writeFileSync(process.env.CT_INPUTS_OUT,ins.join('\n')+'\n');}catch(e){}}console.log(coverageLine(label));console.log((label||'GATE')+': '+_pass+' pass, '+_fails+' fail');if(_srv)_srv.close();process.exit(_fails?1:0);}
 async function run(fn,label){try{await fn();}catch(e){say(false,'harness threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));}done(label);}
 /* THE TEN GRADES, IN DISPLAY ORDER - THE ONE HAND-TYPED COPY IN THE HARNESS [#548, item (20);
    jobs/grade-ladder-has-five-independent-copies]. Five gates each carried their own literal of this list (gates 19, 20, 26,
@@ -705,4 +731,4 @@ async function acctGames(page){
     }catch(e){fin(null);}
   }));
 }
-module.exports={launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
+module.exports={coverageRecord,coverageLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};

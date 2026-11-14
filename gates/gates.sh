@@ -1661,6 +1661,19 @@ M16PY
   st V1b-and-prints-the-harness-FAIL-that-names-the-stop "$(grep -c '^FAIL HARNESS: this gate ran 1 assertion' "$ST_T/v1-stall.out")" 1
   st V1c-a-gate-that-reaches-done-is-untouched-exit-0 "$V1OK" 0
   st V1d-and-prints-no-harness-FAIL "$(grep -c '^FAIL' "$ST_T/v1-ok.out")" 0
+  # ── COV1 TO COV5: THE COVERAGE LINE, ENTRY TWO'S PILOT PART [#550 helper A; jobs/entry-two-the-coverage-ratchet-2026-10-10
+  # theFIX part (1)]. A probe drives the REAL L.launch three times with a bundle path that does not exist, so each launch records
+  # its geometry and configuration and then throws at the bundle read, before any browser starts: the call site in launch() is
+  # what is exercised, not a copy. Nothing reads the line yet (parts 2-4 are not done); these pin its content and its place.
+  printf "'use strict';const L=require(process.env.ST_LIB);L.run(async()=>{for(const o of [{geo:'kunal761'},{geo:{w:320,h:568},engineFail:'pool',store:{ct_pool:1,ct_a:2}},{geo:'kunal761',dev:false}]){try{await L.launch(Object.assign({app:'/nonexistent/cov-probe-app.js'},o));}catch(e){}}L.say(true,'probe');},'COVPROBE');\n" > "$ST_T/cov1.js"
+  printf "'use strict';const L=require(process.env.ST_LIB);L.run(async()=>{L.say(true,'no launch');},'COVNONE');\n" > "$ST_T/cov2.js"
+  ( cd "$ST_T" && ST_LIB="$SG/lib.js" timeout 60 node "$ST_T/cov1.js" ) > "$ST_T/cov1.out" 2>&1
+  ( cd "$ST_T" && ST_LIB="$SG/lib.js" timeout 60 node "$ST_T/cov2.js" ) > "$ST_T/cov2.out" 2>&1
+  st COV1-launch-records-each-geometry-and-configuration-once "$(grep '^COVERAGE ' "$ST_T/cov1.out")" "COVERAGE COVPROBE geos=kunal761,inline:320x568 configs=default,engineFail=pool+store=ct_a+ct_pool,dev=off"
+  st COV2-one-COVERAGE-line-per-gate "$(grep -c '^COVERAGE ' "$ST_T/cov1.out")" 1
+  st COV3-and-it-sits-immediately-before-the-pass-fail-footer "$(grep -A1 '^COVERAGE ' "$ST_T/cov1.out" | tail -1)" "COVPROBE: 1 pass, 0 fail"
+  st COV4-a-gate-that-launched-nothing-reports-dashes-never-a-geometry "$(grep '^COVERAGE ' "$ST_T/cov2.out")" "COVERAGE COVNONE geos=- configs=-"
+  st COV5-and-the-line-is-not-read-as-a-gate-footer-by-verify-log "$(grep -cE '^[^ ].*: [0-9]+ pass, [0-9]+ fail$' "$ST_T/cov1.out")" 1
   # ── R71a TO R71k: A SECTION THAT READ A RECORDS-ONLY PATH IS RED, BY OBSERVATION [#549, item (71); TC-FG-004]. The four
   # input shapes fastgate's source parser never modelled - path.join with a variable first segment, a template literal,
   # __dirname concatenation, a process.env default - each read a fixture under claude/ from a probe gate that never
