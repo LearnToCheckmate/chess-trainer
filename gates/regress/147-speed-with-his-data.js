@@ -38,20 +38,30 @@ const watch=(b)=>b.page.evaluate(()=>{window.__lt=0;try{new PerformanceObserver(
 L.run(async()=>{
   const S=seed();
   L.say(S.ct_mymistakes.length===60&&S.ct_acctgames['cc:kunal2023'].length===465,'TC-R223 PRECONDITION his data shape is seeded: 465 stored games of grade version 1, 60 playable drill cards, 12 brilliant moves ('+S.ct_mymistakes.length+' cards)',{cards:S.ct_mymistakes.length});
-  const b=await L.launch({geo:'kunal761',name:'speed147',store:S});
-  const cdp=await b.page.context().newCDPSession(b.page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
-  const tNav=Date.now();await b.open();
-  let home=0;for(let i=0;i<120;i++){const ok=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0));if(ok){home=Date.now()-tNav;break;}await b.page.waitForTimeout(50);}
-  L.note('Home mounted '+home+' ms after navigation (4x)');
-  L.say(home>0&&home<=2000,'TC-R223d Home is up within 2000 ms with his data at 4x ('+home+' ms; it was 2.9 s, main 0.3 to 0.8 s)',home);
-  await b.settle(1500);
-  // (a) Review
-  await watch(b);
-  const tR=Date.now();await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0);let x=e;while(x&&x.tagName!=='BUTTON')x=x.parentElement;(x||e).click();});
-  let rv=0;for(let i=0;i<400;i++){const ok=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length>0);if(ok){rv=Date.now()-tR;break;}await b.page.waitForTimeout(25);}
-  await b.page.waitForTimeout(3000);const ltR=await b.page.evaluate(()=>Math.round(window.__lt||0));
-  L.say(rv>0&&rv<=1000,'TC-R223a the Review list is on screen within 1000 ms of the tap at 4x ('+rv+' ms; it was ~83 s)',rv);
-  L.say(rv>0&&ltR<=500,'TC-R223a and no single task blocks the page for more than 500 ms in the 3 s after (longest '+ltR+' ms)',ltR);
+  /* #550 lead, the landing's second final suite: on this container one sample of Home and of the Review list's longest task swings by
+     about 200 ms on the same bundle (measured alone: Home 1824 to 2137, longest 357 to 656), so a single reading near the line is a coin
+     flip. Home and the Review list are now measured in THREE fresh sessions and the MEDIAN is asserted; the limits are unchanged. The
+     control is the bundle before 90866c7 (ad820f8bdd63, longest 819 to 1001 on every reading), which the median still fails. */
+  const H=[],RV=[],LT=[];let b=null;
+  for(let run=0;run<3;run++){
+    if(b)await b.close();
+    b=await L.launch({geo:'kunal761',name:'speed147-'+run,store:S});
+    const cdp=await b.page.context().newCDPSession(b.page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
+    const tNav=Date.now();await b.open();
+    let home=0;for(let i=0;i<120;i++){const ok=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0));if(ok){home=Date.now()-tNav;break;}await b.page.waitForTimeout(50);}
+    await b.settle(1500);
+    await watch(b);
+    const tR=Date.now();await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0);let x=e;while(x&&x.tagName!=='BUTTON')x=x.parentElement;(x||e).click();});
+    let rv=0;for(let i=0;i<400;i++){const ok=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length>0);if(ok){rv=Date.now()-tR;break;}await b.page.waitForTimeout(25);}
+    await b.page.waitForTimeout(3000);const ltR=await b.page.evaluate(()=>Math.round(window.__lt||0));
+    H.push(home);RV.push(rv);LT.push(ltR);
+    L.note('session '+(run+1)+' of 3: Home '+home+' ms, Review list '+rv+' ms, longest task '+ltR+' ms (4x)');
+  }
+  const mid=(a)=>a.slice().sort((x,y)=>x-y)[1];
+  const home=mid(H),rv=mid(RV),ltR=mid(LT);
+  L.say(H.every(x=>x>0)&&home<=2000,'TC-R223d Home is up within 2000 ms with his data at 4x (median of 3: '+home+' ms; '+H.join(', ')+'; it was 2.9 s, main 0.3 to 0.8 s)',H);
+  L.say(RV.every(x=>x>0)&&rv<=1000,'TC-R223a the Review list is on screen within 1000 ms of the tap at 4x (median of 3: '+rv+' ms; '+RV.join(', ')+'; it was ~83 s)',RV);
+  L.say(RV.every(x=>x>0)&&ltR<=500,'TC-R223a and no single task blocks the page for more than 500 ms in the 3 s after (median of 3: longest '+ltR+' ms; '+LT.join(', ')+')',LT);
   // (b) the drill
   await watch(b);
   const tD=Date.now();let okD=true;try{await b.tapText(/find the move you missed/,{wait:0});}catch(e){okD=false;}
