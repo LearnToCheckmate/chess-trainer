@@ -16,6 +16,7 @@
 // stopwatch polls the DOM from node, so it reads main's own #549 bundle (3ab724514641) at Home 1623 ms, Review list 571 ms (longest task 322)
 // and drill 516 ms on this container - the checker's 0.3-0.8 s / 0.5 s / 0.42 s on its profile. Each bar sits above main's reading here and
 // far below the regression's.
+// CONTROL-RECORD: c8fd052 2026-11-15 total=8 red=2 scope=trial:ad820f8bdd63 how=#550 lead: the bundle before 90866c7 (q45's games box re-rendering the app), measured in three sessions - both TC-R223a lines red on their medians (Review list 1094 ms, longest task 984), Home green
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=7 red=4 scope=trial:fb5726af how=#550 the tree before the SPD fixes (t152): Home 3422 ms (TC-R223d), a 60307 ms task after entering Review (TC-R223a), the drill 2566 ms (TC-R223b), Next 1165 ms median (TC-R223c); on t153 7f6c50f2: Home 1864, Review 764 (longest task 443), drill 598, Next 53 - 7/0
 // LOAD SENSITIVITY, MEASURED: with two other gate runs on the machine (load average 6) the same two bundles read Home at 2090-2330 ms in
 // alternation, so TC-R223d reads honestly only on a quiet machine - which is how the suite runs it (one suite, nothing else).
