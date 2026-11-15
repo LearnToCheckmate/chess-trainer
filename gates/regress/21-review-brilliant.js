@@ -676,7 +676,19 @@ L.run(async()=>{
   const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning.',
                'The only good move. If ...Nxd7, 14.Bxe7. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
-               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
+               /* #550 landing (batch 11): THE KING RECAPTURE IS A LEGAL ENGINE BRANCH TOO, and this list had only the
+                  bishop's. The landing suite at e26a2b329de9 printed '14.Bxe7 Kxe7 15.Bxd7' and N10 went red on a healthy
+                  bundle - #391's coin flip, the same bundle green in 550c. Counted over every archived gatelog, the engine's
+                  ply-25 pv after 14.Bxe7 is Bxe7 Bxd7+ (402), Bxe7 Rd1 (24), Bxe7 Qa4 (21), Kxe7 Rd1 (9), Kxe7 Bxd7 (9),
+                  Kxe7 Qa3+ (3), Bxe7 Qd5 (3). The trim keeps three plies only when the third is forcing, so the quiet ones
+                  print the one-ply '14.Bxe7.' rows above, and the forcing three-ply shapes are Bxe7 Bxd7, Kxe7 Bxd7 and
+                  Kxe7 Qa3 (the prose drops the check sign, as it does for Bxd7+ above). Both prefixes, so a clause
+                  entering or leaving the sentence still makes a string outside this list and reddens N10. */
+               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
+               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
   const P25hit=P25OK.filter(t=>P25.why===t).length;
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,
