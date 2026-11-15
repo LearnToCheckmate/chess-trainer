@@ -390,6 +390,7 @@ L.run(async()=>{
   // TC-DR-02 [#547 item (94); jobs/the-alt-mate-verdict-is-cut-17px-at-320x568-with-no-ellipsis-2026-10-02]: A DIFFERENT CHECKMATE
   // FROM THE STORED MOVE IS ANNOUNCED WHOLE. Card 6k1/5ppp/8/8/8/8/5PPP/R6K w, stored Kg1, the player mates with Ra8#: the 73-char
   // 'Checkmate — that works too! ...' verdict was cut 17px at 320x568 by a 74px container with no ellipsis. Since item (48) the
+  // #550 lead: TXT-40 (0d4d9f1, no dashes, his q47) made it 'Checkmate! That works too!', so the matches below ignore case.
   // verdict floats; this pins that it is not cut - its own box holds its text, and that box is inside the viewport.
   for(const geo of ['se','kunal730']){
     // #550: wc marks the card as already graded. Without it the a41 Home re-grade finds Ra2 (mate in one missed, still a rook up) is a Miss,
@@ -398,15 +399,15 @@ L.run(async()=>{
     const b=await L.launch({geo,name:'drill-altmate-'+geo,store:{ct_mymistakes:MIST1,ct_pool:'3'}});await b.open();
     await b.tile('Review');await b.settle(900);
     let ok=true;try{await b.tapText(/find the move you missed/,{wait:1800});await b.settle(800);await b.move('a1','a8',900);await b.settle(1200);}catch(e){ok=false;}
-    const r=await b.page.evaluate(()=>{const t=document.body.innerText||'';const m=[...document.querySelectorAll('div')].filter(d=>/that works too/.test(d.textContent||'')&&![...d.children].some(c=>/that works too/.test(c.textContent||''))).pop();
-      if(!m)return {found:false,alt:/that works too/.test(t)};const q=m.getBoundingClientRect();let e=m,clip=null;while((e=e.parentElement)){const s=getComputedStyle(e);if(/hidden|auto|scroll/.test(s.overflowY)&&e!==document.getElementById('root')){clip=e.getBoundingClientRect();break;}}
+    const r=await b.page.evaluate(()=>{const t=document.body.innerText||'';const m=[...document.querySelectorAll('div')].filter(d=>/that works too/i.test(d.textContent||'')&&![...d.children].some(c=>/that works too/i.test(c.textContent||''))).pop();
+      if(!m)return {found:false,alt:/that works too/i.test(t)};const q=m.getBoundingClientRect();let e=m,clip=null;while((e=e.parentElement)){const s=getComputedStyle(e);if(/hidden|auto|scroll/.test(s.overflowY)&&e!==document.getElementById('root')){clip=e.getBoundingClientRect();break;}}
       return {found:true,sh:m.scrollHeight,ch:m.clientHeight,top:q.top,bottom:q.bottom,vh:innerHeight,clipTop:clip&&clip.top,clipBottom:clip&&clip.bottom};});
     L.say(ok&&r.found,geo+': TC-DR-02 PRECONDITION the drill accepted Ra8# as a different mate and printed its verdict',r);
     /* #547, final antagonist B's B1: the verdict now floats at the reserve and SCROLLS (Kunal: "Don't change the size just allow the
        player to scroll through the text"). So "whole" is: painted whole, OR its own box is a real scroller (overflow auto/scroll, a
        vertical pan allowed) whose LAST character scrolls into view - never a silent clip, which is what (94) fixed. At 320x568 the
        73-char verdict reads sh 89 in a 78px box, so it is the scroller branch there. */
-    const sr=r.found?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('div')].filter(d=>/that works too/.test(d.textContent||'')&&![...d.children].some(c=>/that works too/.test(c.textContent||'')))[0];
+    const sr=r.found?await b.page.evaluate(()=>{const m=[...document.querySelectorAll('div')].filter(d=>/that works too/i.test(d.textContent||'')&&![...d.children].some(c=>/that works too/i.test(c.textContent||'')))[0];
       if(!m)return null;let sc=m;while(sc&&!/auto|scroll/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;if(!sc||sc===document.getElementById('root'))return {scroller:false};
       let pan=true;for(let p=sc;p&&p!==document.documentElement;p=p.parentElement){const ta=(getComputedStyle(p).touchAction||'auto').trim();if(/\bnone\b/.test(ta)||(/\bpan-(x|left|right)\b/.test(ta)&&!/\bpan-(y|up|down)\b/.test(ta)))pan=false;}
       sc.scrollTop=sc.scrollHeight;const rg=document.createRange();rg.selectNodeContents(m);const rs=[...rg.getClientRects()];const lr=rs[rs.length-1],vr=sc.getBoundingClientRect();
