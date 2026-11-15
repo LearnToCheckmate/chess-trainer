@@ -1,7 +1,45 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#549: BATCH 9. ALL 120 ORDERED JOBS WORKED, FIRST PASS AND A SECOND PASS TO THE CUT LINE - 31 FIXED, 77 FIXED IN PART, 12 CANNOT AFTER R34 - GATES GREEN #549 AT 8575 PASS / 0 FAIL OVER 74 SECTIONS.**
+**#550: BATCH 10, 96-HOUR WINDOW - BUILT, GATED RED, NOT SHIPPED. HAND-OFF: tracker jobs/land-the-550-branch-claude-exciting-noether-v1swj8-2026-11-15 and builds/550.**
+Run `build__1794388896663`, 11 to 15 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_11_batch10`, base 14f1eff (#549, main unmoved), per-run branch `claude/exciting-noether-v1swj8`.
+Kunal said land now (run-answers build__1794388896663-land-batch-10-now, 9:48am ET Sat 14 Nov). Three final suites ran; the window closed before one was green.
+**APPLICATION CODE CHANGED, NOT ON MAIN.** `app.js` md5 `e26a2b329de9` (commit 065617f), from chess.jsx `540e9ee7d2ab`; 717 commits over 14f1eff.
+Suite logs, all RED, kept in `claude/agents/gatelogs/`: `550-all-RED-stopped-after-49.log` (bundle ad820f8bdd63; reds fixed), `550b-all-RED-stopped-after-148.log` (gate 147 alone, measurement fixed), `550c-all-RED.log` (12076 regression PASS over 143 gates; red at gate 50 only, plus the footer items below).
+
+## 000. THE NEXT RUN'S FIRST STEPS (the hand-off job holds the same)
+1. `git fetch`; origin/main must still be 14f1eff, or rebase this branch and rebuild under the next number.
+2. Gate 50 alone (`CT_APP=app.js node -r ./gates/lib.js gates/regress/50-drill-verdict-no-jump.js`): 195 pass 0 fail on e26a2b329de9 after 75e4186, measured 07:3xZ Sun.
+3. Before the suite, settle the third suite's footer: ASSERTION COUNT FELL on 25-online-clocks (40 to 38), 35-width-containment (104 to 98) and 48-lesson-flow (354 to 309) against gates/assertion-counts.tsv; each needs a reason (a deliberate re-key this batch) and `bash gates/assertcount.sh record`, or a fix. "RECORDS DOOR NOT CHECKED" and "origin/main UNKNOWN" came from the container restart at about 06:35Z (fetch works again), and "HEAD MOVED DURING THE RUN" from the gate 50 fix committed mid-suite.
+4. ONE full suite alone from a copy of gates.sh, then verify-log --this-bundle --this-suite, held.sh check, push HEAD to main by fast-forward, R34, close out.
+
+
+## 00. WHAT THE NEXT RUN NEEDS FROM #550
+1. THE REVIEW TEXT, PART A OF docs/review-text-design-2026-11-14, SHIPPED (lessons slot, 5732ca8 and the veto fixes 7a8c909, ebb6898, 95a0111). LEFT FOR BATCH 11, with restart points:
+   7a T1 to T11 over the nine games (needs the design's texts.json, not in the repo, and a new gate with a manifest row); 7c the both-lines
+   check with a control; 7d the blind reader at 27 of 30 (a fresh agent); W7 the engine line after a slip (rtLadder, before W8); "they" after
+   first mention (reviewText0); short forms for W2 and W6 (rtLadder); a checker's read; his look at ten of his own slips, old and new side by side.
+   Named residuals from the pair: A2 a forced capture of the checker "blocks the check" (chess.jsx rtLadder Forced branch); A3 "lets your bishop out"
+   on a move that only answers a check (rtQuiet); A6 the last ply asserts "Nothing is lost at once" with no reply to check; B6 check signs dropped in
+   prose (11.Bxb5 for 11.Bxb5+); B7 "E4 stakes out" capitalised in the why playout; A9 (a) to (e).
+2. ON HIS PHONE THE REVIEW EVAL GRAPH NOW SHOWS ON 2 OF 33 PLIES OF THE OPERA GAME (it was 4): the three-line text he chose (Q2) fills the room the
+   streamlined review gives the graph (it needs 40px above the toolbar). Not a defect; his to judge on his phone.
+3. TWO APP BUGS THE FINAL SUITE FOUND AND THIS RUN FIXED: the landscape graph's newest point lagged the bar one engine update (91173bf, gate 127);
+   opening the Review list with his 465 games ran two full renders since q45 (ef0f72f, bisected), longest task 819-905 ms at 4x, now 422-450 (90866c7, gate 147).
+4. NINE GATE AND HARNESS REDS FIXED IN THE LANDING, so a later run does not re-find them: fastgate-drive H71 (its fixture gate gained a record, and
+   control-floor's NOT ON THE FLOOR notes push the refusal out of the fast tier's tail -4; batch 11 should pick the fixture gate at run time);
+   gate 126 (functions/index.js needs firebase-admin since 451ae2d); gate 135 (kunal761 block re-keyed to ply 32); gates 142, 24 and 61 (left behind
+   by q44 and the games-list card 558424b); gate 79 (no apostrophes inside engine-extract.js's NAMES); gate 15 (the IPAD walk card excused from the
+   card no-scroll check).
+5. OPEN QUESTIONS ON THE TABLE: run-questions q51 (Look and feel at 375x568 and 360x640, options A, B, C with pictures at 1b6df01); his picks
+   AUD-R07 (the summary) and AUD-L16 (the roadmap). App B's restart point is q51's answer.
+6. CHECKS NOT REACHED BEFORE THE LANDING STOP (checker seat 2): 4ba456c (gate 11 TC-LS-064, with two mutants built in the scratchpad that did not
+   survive) and b9ef786 (the four endgame notes, cg10); the cg11 re-check (b6caacc). Each job's checkVerdict says so.
+7. B3 (antagonist B): the Review board measured 327 wide at 375x761 with insets emulated in a page; the installed full-height shell may differ.
+   A8 (antagonist A, reasoned): sw.js races each file against 3s separately, so from #551 on a slow line can mix a new index.html and lessons.js
+   with a cached app.js, and the lessons index migrations make that risky.
+
+**(previous) #549: BATCH 9. ALL 120 ORDERED JOBS WORKED, FIRST PASS AND A SECOND PASS TO THE CUT LINE - 31 FIXED, 77 FIXED IN PART, 12 CANNOT AFTER R34 - GATES GREEN #549 AT 8575 PASS / 0 FAIL OVER 74 SECTIONS.**
 Run `build__1793935200785`, 6-7 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_05_batch9`, base 7340372.
 **APPLICATION CODE CHANGED.** `app.js` md5 `3ab724514641`, from chess.jsx `12d8e7944da3` (chess.jsx +1931/-362 over 7340372..f31f924).
 The push-gate log is `claude/agents/gatelogs/549-all.log`, the SECOND final suite, gated sha e3e32fb, started 14:31:28Z (log header) and written 18:24:58Z.
