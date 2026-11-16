@@ -1,7 +1,10 @@
 # HANDOFF - where the last run left off
 
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
-**#550: BATCH 10, 96-HOUR WINDOW - BUILT, GATED RED, NOT SHIPPED. HAND-OFF: tracker jobs/land-the-550-branch-claude-exciting-noether-v1swj8-2026-11-15 and builds/550.**
+**#550: BATCH 10 LANDED ON MAIN BY BATCH 11 - GATES GREEN #550 (12080 PASS / 0 FAIL, 143 sections, `claude/agents/gatelogs/550e-all.log`), fast-forward 14f1eff..309f72e, 16 Nov 2026 03:00Z.**
+Landing run `build__1794753583565` (batch 11, `directOpening_2026_11_15_batch11`): gate 50 alone 195/0; pins recorded from 550c (ec72925); first landing suite red on gate 21 (an unlisted legal engine branch, fixed at 309f72e) and gate 84 (load: 97/0 twice alone), archived `550d-all-RED.log`; the rerun green. Bundle `e26a2b329de9` unchanged, so the number stays #550. Everything in sections 00 and below that is LEFT FOR BATCH 11 now goes to batch 12. The section below is batch 10's hand-off as it was written; its first steps are done.
+
+**#550 (as handed off at 1:57am EST Sun 15 Nov): BATCH 10, 96-HOUR WINDOW - BUILT, GATED RED, NOT SHIPPED. HAND-OFF: tracker jobs/land-the-550-branch-claude-exciting-noether-v1swj8-2026-11-15 and builds/550.**
 Run `build__1794388896663`, 11 to 15 Nov 2026, under `docs/restart-readiness.directOpening_2026_11_11_batch10`, base 14f1eff (#549, main unmoved), per-run branch `claude/exciting-noether-v1swj8`.
 Kunal said land now (run-answers build__1794388896663-land-batch-10-now, 9:48am ET Sat 14 Nov). Three final suites ran; the window closed before one was green.
 **APPLICATION CODE CHANGED, NOT ON MAIN.** `app.js` md5 `e26a2b329de9` (commit 065617f), from chess.jsx `540e9ee7d2ab`; 717 commits over 14f1eff.
