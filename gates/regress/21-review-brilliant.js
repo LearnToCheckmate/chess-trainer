@@ -724,7 +724,27 @@ L.run(async()=>{
      WHAT IS PINNED HERE IS THE WHOLE STRING, in the idiom this gate already uses for the #387 sentence at
      ply 19: if any future change moves a clause in or out of this sentence, this assertion says so on the
      next run instead of a reader having to diff two logs. */
-  L.say(P25hit===1,'TC-R10/N10 #512 the WHOLE ply-25 sentence is byte-identical to EXACTLY ONE of the two sentences this code can legally print, so a clause silently entering or leaving it is still a red rather than a diff - and a THIRD string, which is what a regression would produce, reddens here. Replaces a single-template pin that was measured flaky at 2 runs in 8',{hits:P25hit,got:P25.why,chars:P25.why&&P25.why.length,pinned:P25OK.length});
+  /* ── N11 [#551 batch 12, jobs/gate-21-plays-every-line-it-cares-about-on-purpose-2026-11-15]: AN UNLISTED LEGAL LINE IS CHECKED BY THE
+     RULE, NOT BY A LIST. On 15 Nov 2026 the engine chose 14.Bxe7 Kxe7 15.Bxd7, legal and correct, and N10's list did not have it, so the
+     landing went red on a healthy bundle; the list grew by four (309f72e) and the next unseen line would fail it again. The engine is now
+     repeatable under test (gate 166), and BLOCK D below DRIVES each line this gate cares about on purpose, so each is checked on every
+     run. For whatever line the engine itself returns here, the rule: the capture the sentence names ("...Nxd7") is legal after 13.Rxd7 and
+     takes on d7, the square of the move that was played; every move of the line is legal in turn from the position after it; the line is
+     one or three plies and each ply after the first is a capture or a check; and the sentence is one of the two openings this code writes
+     for 13.Rxd7 with "White is winning." after the line. N10 then passes on a listed sentence OR on this rule, so a new legal line is not a
+     red, and a wrong one still is. */
+  const ruleOf=(why)=>{const out={ok:false};try{const E=SAC_SRC.E;if(!E)return {ok:false,why:'no engine-extract'};
+      const pre=E.loadSANs(E.parsePGN(PGN)).positions[25];const r=parseRefute(why);if(!r)return {ok:false,why:'no refutation clause'};out.cap=r.cap;out.moves=r.moves;
+      const cap=E.getLegal(pre).find(m=>E.cleanSAN(E.toSAN(pre,m,E.applyMove(pre.board,m)))===E.cleanSAN(r.cap));if(!cap)return Object.assign(out,{why:'the named capture is not legal after 13.Rxd7'});
+      if(!(cap.tr===1&&cap.tc===3))return Object.assign(out,{why:'the named capture does not take on d7'});
+      let g=E.makeMove(pre,cap);for(let k=0;k<r.moves.length;k++){const m=E.getLegal(g).find(x=>E.cleanSAN(E.toSAN(g,x,E.applyMove(g.board,x)))===E.cleanSAN(r.moves[k]));if(!m)return Object.assign(out,{why:'ply '+(k+1)+' '+r.moves[k]+' is not legal'});
+        const san=E.toSAN(g,m,E.applyMove(g.board,m));if(k>0&&!/[x+#]/.test(san))return Object.assign(out,{why:'ply '+(k+1)+' '+san+' is not forcing'});g=E.makeMove(g,m);}
+      if(!(r.moves.length===1||r.moves.length===3))return Object.assign(out,{why:'the line is '+r.moves.length+' plies'});
+      if(!/^(The only good move\. |White gives up the rook for a knight\. )If \.\.\.Nxd7, 14\.\S+( \S+ 15\.\S+)?\. White is winning\.( Nothing else came close: 13\.Rd5 was 1\.7 pawns worse\.)?$/.test(why))return Object.assign(out,{why:'the sentence is not one of the two openings with White is winning after the line'});
+      return Object.assign(out,{ok:true});}catch(e){return {ok:false,why:'threw: '+e.message};}};
+  const P25RULE=ruleOf(P25.why);
+  L.say(P25RULE.ok,'TC-R229a #551 the ply-25 refutation line the engine returned obeys the rule - the named capture takes the played rook on d7, every move is legal in turn, one or three plies with every later ply forcing, in one of the two sentence openings ('+(P25RULE.moves||[]).join(' ')+')',P25RULE);
+  L.say(P25hit===1||(P25hit===0&&P25RULE.ok),'TC-R10/N10 #512 the WHOLE ply-25 sentence is byte-identical to EXACTLY ONE of the two sentences this code can legally print, so a clause silently entering or leaving it is still a red rather than a diff - and a THIRD string, which is what a regression would produce, reddens here. Replaces a single-template pin that was measured flaky at 2 runs in 8',{hits:P25hit,got:P25.why,chars:P25.why&&P25.why.length,pinned:P25OK.length});
   /* ── #504 N9: THE NARROWEST SUPPORTED PHONE ───────────────────────────────────────────────────────
      CLAUDE.md, as it then read (R19 has since settled 375x761 as the device): the 730 figure "is
      not the standard, and the app must be playable on any standard phone." Block N above drives 375x730 only, so 320x568 was measured on BOTH bundles.
@@ -803,6 +823,41 @@ L.run(async()=>{
   L.note('    #504 block N app errors beyond the allowed engine trap: '+badN.length+(badN.length?' '+JSON.stringify(badN.slice(0,2)):''));
   await n.shot('review-brilliant-504-ply25');
   await n.close();
+
+  /* ── #551 BLOCK D: EVERY LINE THIS GATE CARES ABOUT, DRIVEN ON PURPOSE, ON EVERY RUN ─────────────────────────────────────────────
+     [jobs/gate-21-plays-every-line-it-cares-about-on-purpose-2026-11-15]. Block N reads whatever line the engine returns at ply 25, so the
+     lines N10's list names were checked only on the runs where the engine happened to choose them. Here each one is FORCED: a wrapper on
+     window.Worker (installed before the app loads) rewrites the engine's answer for the refutation search - the position after 13.Rxd7
+     Nxd7, SAC_FEN25 - into the chosen principal variation, and the app's own trim, store and sentence then run on it. One fresh browser
+     per line, because the review caches the clause per ply. The lines are the ones the archived gatelogs record (Bxe7 Bxd7+ 402 times,
+     Bxe7 Rd1 24, Kxe7 Bxd7 9, Kxe7 Qa3+ 3): the forcing three-ply shapes must print all three plies, a line whose third ply is quiet must
+     print the one-ply form, and each sentence must be EXACTLY the natural ply-25 sentence with only its line changed. */
+  const FORCE=[
+    {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen)'},
+    {pv:'g5e7 f8e7 h1d1',line:'14.Bxe7',what:'the bishop recapture, then the quiet Rd1 (trimmed to one ply)'},
+    {pv:'g5e7 e8e7 b5d7',line:'14.Bxe7 Kxe7 15.Bxd7',what:'the KING recapture, then Bxd7 (three plies) - the line of 15 Nov 2026'},
+    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3',what:'the king recapture, then Qa3+ (three plies, the check sign dropped in prose)'}];
+  const FORCE_FEN=SAC_FEN25.split(' ').slice(0,2).join(' ');
+  const forceInit=(f)=>{const W=window.Worker;if(!W||window.__g21f)return;window.__g21f=f;window.__g21hits=0;const d=Object.getOwnPropertyDescriptor(W.prototype,'onmessage');
+    window.Worker=function(u,o){const w=new W(u,o);let cur='';const pm=w.postMessage.bind(w);
+      w.postMessage=function(m){const s=String(m);if(s.indexOf('position fen ')===0)cur=s.slice(13).split(' ').slice(0,2).join(' ');return pm(m);};
+      const xf=(e)=>{const s=String(e.data);if(cur!==f.fen)return e;
+        if(/^info .* pv /.test(s)&&!/ multipv [2-9]/.test(s)){window.__g21hits++;return {data:s.replace(/ pv .*$/,' pv '+f.pv)};}
+        if(s.indexOf('bestmove')===0)return {data:'bestmove '+f.pv.split(' ')[0]};return e;};
+      let h=null;Object.defineProperty(w,'onmessage',{configurable:true,get(){return h;},set(fn){h=fn;d.set.call(w,fn?function(e){return fn.call(this,xf(e));}:null);}});
+      return w;};window.Worker.prototype=W.prototype;};
+  const S0=P25.why;const lineRe=/If \.\.\.Nxd7, (.+?)\. White is winning\./;
+  L.say(lineRe.test(S0),'TC-R229b #551 PRECONDITION the natural ply-25 sentence has its line in the shape the driven sentences are built from ('+JSON.stringify(S0.slice(0,90))+')',S0);
+  for(const F of FORCE){
+    const x=await L.launch({geo:'kunal730',name:'review-brilliant-551-'+F.pv.replace(/ /g,'-'),store:{ct_pool:'3'}});
+    await x.ctx.addInitScript(forceInit,{fen:FORCE_FEN,pv:F.pv});await x.open();
+    let why='';try{await RV.ensureReview(x,'opera');await RV.startReview(x);await RV.goPly(x,25);await x.settle(2200);why=await whyFull(x);}catch(e){why='';}
+    const hits=await x.page.evaluate(()=>window.__g21hits||0);await x.close();
+    const want=lineRe.test(S0)?S0.replace(lineRe,'If ...Nxd7, '+F.line+'. White is winning.'):null;
+    L.say(hits>0,'TC-R229b #551 '+F.pv+': the forced answer reached the app (its refutation search was rewritten '+hits+' time(s))',{hits});
+    L.say(!!want&&why===want,'TC-R229b #551 driven line '+F.pv+' - '+F.what+': the ply-25 sentence is exactly the natural one with "'+F.line+'" as its line',{want,got:why});
+    const R=ruleOf(why);L.say(R.ok,'TC-R229c #551 driven line '+F.pv+': and it obeys the rule N11 checks an unlisted line by',R);
+  }
 
   const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(bad.length===0,'TC-R10 no app error beyond the one allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
