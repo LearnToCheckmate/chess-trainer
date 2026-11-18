@@ -2472,3 +2472,35 @@ As a player on a laptop or a monitor, a board page fits my window without scroll
 - US-R151, docs/movement-check-2026-11-12 MOV-05/06/07: sideways, a lesson's practice buttons, the Play rail's bottom player bar and the puzzle top panel hold their place after a move, a Moves toggle, a checkmate and a hint. (TC-R219g, TC-R219h, TC-R219i)
 - US-R153, docs/accounts-devices-check-2026-11-12 SYN-06/07/11: the piece set, board depth, eval on/off, eval graph, sound and chosen opponent follow the account (a fresh device's defaults never win); coming back to an open app pulls the account first; rated online games, puzzles shown and lessons finished are unions. (TC-R221m to TC-R221q)
 - US-R154, docs/errors-offline-check-2026-11-12 ERR-06/08/11/13 (and ERR-09 in sw.js): an opponent meant for Stockfish says when the built-in engine plays instead; offline shows a notice that moves nothing; a pasted game looks names up only on its own site; a render error shows a page with Reload. (TC-R222j to TC-R222m)
+
+### US-R158 Under test the engine plays the same line every time; on a real device it is unchanged
+*Added #551 (batch 12), jobs/the-engine-plays-the-same-line-every-time-under-test-2026-11-15.*
+As the person who reads this project's gates, I get the same verdict on the same build whether the machine is quiet or busy, because a gate that reads the engine's line reads the same line every run; and as a player my engine is exactly what it was.
+- With ct_engdet = 1 (seeded by the gate harness only) a timed search is a node-count search on a cleared table, a clock is dropped from a depth search, and the built-in engine has no jitter. (TC-R228b, TC-R228f)
+- The same position searched in five fresh browsers on a quiet machine gives the same line, and five more beside a fully busy machine give the same line again. (TC-R228c, TC-R228d)
+- What the player reads at that ply is byte-identical in all ten. (TC-R228e)
+- A real device (no ct_engdet) still searches by the clock: 'go movetime', never 'go nodes'. (TC-R228a, TC-R228f)
+
+### US-R159 Gate 21 checks every refutation line it cares about on every run, and any other legal line by the rule
+*Added #551 (batch 12), jobs/gate-21-plays-every-line-it-cares-about-on-purpose-2026-11-15.*
+As the person who reads gate 21, a legal line the engine has not chosen before does not turn a healthy build red, and a line the app renders wrongly still does.
+- Each named ply-25 line (Bxe7 Bxd7+, Bxe7 Rd1, Kxe7 Bxd7, Kxe7 Qa3+) is forced into the engine's answer and its sentence is exactly the natural one with that line. (TC-R229b)
+- An unlisted line passes only by the rule: the named capture takes the played rook, every move is legal in turn, one or three plies with every later ply forcing, in one of the two sentence openings. (TC-R229a, TC-R229c)
+
+### US-R160 The owner's own account has Pro without paying, granted only from the Firebase console
+*Added #551 (batch 12), jobs/kunals-own-account-gets-pro-without-paying-2026-11-17 (decisions/kunals-own-account-gets-pro-without-paying-2026-11-17).*
+As the owner, once I add my grant in the Firebase console, my account opens the Pro features and no longer shows the Pro offer; as a player, nothing I can do in the app turns Pro on.
+- Pro is the OR of an active or trialing subscription and a grant ownerGrants/{uid} whose pro is exactly true; anything else is no grant. (TC-R230a, TC-R230b, TC-R230c)
+- It follows the grant as it is added or taken away, and signing out stops both listeners. (TC-R230d, TC-R230e)
+- No client code writes a grant, the app itself never names one, and no browser key or address turns Pro on. (TC-R230f)
+- The rules let the signed-in owner read their own grant and no client list, create, change or delete one, proven on the Firestore emulator. (TC-R230g, rules-test 'ownerGrants: ...')
+
+### US-R161 A job's gate is graded against broken copies of the code and in every situation, with no model reading anything
+*Added #551 (batch 12), jobs/build-the-grading-machine-2026-11-15 (decisions/batch-12-adopts-break-it-again-testing-2026-11-15).*
+As the orchestrator checking a job, I can run one command that tries the job's gate on the real code in every situation and on two or three copies broken on purpose, and read BLIND, OVER STRICT or CHECKED with a short report of anything unexpected.
+- The machine's own test catches a blind pair, an over-strict situation and a caught break, and its short report carries a cause printed before the failure; reversing any expectation turns it red. (TC-R231)
+- The worked example, the Tactics board on gate 78, reads CHECKED: each break fails the gate and the real code passes in all eight situations. (TC-R232)
+
+*Additions at #551 to earlier stories (their sections above are not reworded):*
+- US-R134, jobs/the-board-scan-asks-for-gemini-3-8-flash-2026-11-17: the scan asks Google for gemini-3.8-flash with no sampling setting and a 50 second budget, and reads the reply from every answer part, skipping thought parts. (TC-R202f, TC-R202g)
+- US-R107, jobs/gate-84-holds-on-a-busy-machine-2026-11-15: gate 84 drives the free defender game with the app's own search under test and plays only moves the app will keep, so every king reply is the one it foresaw and the run is the same on every machine. (TC-LS-077)
