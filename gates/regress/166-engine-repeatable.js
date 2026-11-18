@@ -70,10 +70,12 @@ L.run(async()=>{
   const unclear=runs.map(r=>timed(r).filter(s=>/^go nodes /.test(s.go)&&!s.cleared).length);
   L.say(unclear.every(n=>n===0),'TC-R228b and every node-count search had its table cleared first (searches without a ucinewgame before them, per run: '+unclear.join(',')+')',{unclear});
   // the ply-25 refutation search: the FEN searched with 'go nodes' whose answered line starts with the bishop taking on e7 (g5e7)
-  const byFen=runs.map(r=>{const m={};for(const s of timed(r))if(/^go nodes /.test(s.go)&&s.fen){(m[s.fen]=m[s.fen]||[]).push((s.pv||s.best||'').trim());}return m;});
+  // every timed search, whatever its command: under test they are all 'go nodes' (TC-R228b), and on a copy that keeps the clock the
+  // same comparison is what shows the lines drifting, rather than finding nothing to compare
+  const byFen=runs.map(r=>{const m={};for(const s of timed(r))if(s.fen){(m[s.fen]=m[s.fen]||[]).push((s.pv||s.best||'').trim());}return m;});
   const common=Object.keys(byFen[0]||{}).filter(f=>byFen.every(m=>m[f]));
   const target=common.find(f=>byFen[0][f].some(pv=>/^g5e7\b/.test(pv)));
-  L.say(!!target,'TC-R228c PRECONDITION the refutation search of ply 25 (a node-count search answered with g5e7, Bxe7) was found in all '+runs.length+' runs; '+common.length+' positions were searched in every run',{target,common:common.length});
+  L.say(!!target,'TC-R228c PRECONDITION the refutation search of ply 25 (a timed search answered with g5e7, Bxe7) was found in all '+runs.length+' runs; '+common.length+' positions were searched in every run',{target,common:common.length});
   const quiet=runs.filter(r=>r.arm==='quiet'),busy=runs.filter(r=>r.arm==='busy');
   const lineOf=(r)=>{const m=byFen[runs.indexOf(r)];return target&&m[target]?m[target][m[target].length-1]:null;};
   const ql=quiet.map(lineOf),bl=busy.map(lineOf);
@@ -81,7 +83,7 @@ L.run(async()=>{
   L.say(!!target&&bl.every(x=>x&&x===ql[0]),'TC-R228d busy machine ('+ncpu+' cores spinning): the same line again in all '+busy.length+', equal to the quiet one ('+new Set(bl).size+' distinct; equal to quiet: '+bl.filter(x=>x===ql[0]).length+')',{lines:bl.map(x=>(x||'').split(' ').slice(0,8).join(' '))});
   // every position searched in every run, not only ply 25: the whole set of answers is one function of the position
   const diverge=common.filter(f=>new Set(byFen.map(m=>m[f][m[f].length-1])).size>1);
-  L.say(common.length>0&&diverge.length===0,'TC-R228d and every one of the '+common.length+' positions searched with a node count in all '+runs.length+' runs got one answer ('+diverge.length+' differ)',{diverge:diverge.slice(0,3)});
+  L.say(common.length>0&&diverge.length===0,'TC-R228d and every one of the '+common.length+' positions given a timed search in all '+runs.length+' runs got one answer ('+diverge.length+' differ)',{diverge:diverge.slice(0,3)});
   const whys=runs.map(r=>r.why);
   L.say(/If \.\.\.Nxd7, 14\.Bxe7/.test(whys[0]||''),'TC-R228e PRECONDITION the ply-25 sentence carries its refutation: '+JSON.stringify((whys[0]||'').slice(0,90)),{why:whys[0]});
   L.say(whys.every(w=>w===whys[0]),'TC-R228e what the player reads is the same: the ply-25 sentence is byte-identical in all '+runs.length+' runs ('+new Set(whys).size+' distinct)',{distinct:[...new Set(whys)].map(w=>w.slice(0,120))});
