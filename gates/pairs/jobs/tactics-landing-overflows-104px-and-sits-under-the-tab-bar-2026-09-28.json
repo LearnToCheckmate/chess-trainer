@@ -1,0 +1,24 @@
+{
+ "job": "tactics-landing-overflows-104px-and-sits-under-the-tab-bar-2026-09-28",
+ "about": "THE WORKED EXAMPLE (jobs/build-the-grading-machine-2026-11-15 part 5). The Tactics board on Discover -> Tactics: clear of the fixed tab bar at rest on every card (TC-INV-08e), one width on every card (TC-INV-08k), with both tabs proven reached (TC-INV-08d). Gate 78 is run whole and unchanged (about 6 minutes a try); only its 08d, 08e and 08k lines are graded, in the eight situations gate 78 itself drives. NOT COVERED, said rather than implied: gate 78 drives no laptop width and no skin, so neither is a situation here; and gate 78 does not assert the board's horizontal place, so a board pushed sideways off the edge is invisible to these checks (measured with a probe patch at batch 12, BLIND; recorded on the job, not shipped as a break here because this example must prove the machine on a gate that sees its breaks).",
+ "gate": "gates/regress/78-inner-scroller-fold.js",
+ "env": {},
+ "checks": ["TC-INV-08[dek] "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^375x761\\+51,31 "},
+  {"name": "se 320x568", "match": "^320x568 "},
+  {"name": "w360 360x640", "match": "^360x640 "},
+  {"name": "w375h667 375x667", "match": "^375x667 "},
+  {"name": "kunal730 375x730", "match": "^375x730 "},
+  {"name": "390x844", "match": "^390x844 "},
+  {"name": "w414 414x896", "match": "^414x896 "},
+  {"name": "w440 440x956", "match": "^440x956 "}
+ ],
+ "breaks": [
+  {"name": "one-card-narrower", "patch": "breaks/78-one-card-narrower.diff", "why": "the board is 48px narrower on the 12th motif (Decoy) than on the others, so it jumps between cards", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "board-under-the-tab-bar", "patch": "breaks/78-board-under-the-tab-bar.diff", "why": "the cap is 400px larger than the room, so the board runs under the tab bar and past the screen", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "strategy-tab-unreachable", "patch": "breaks/78-strategy-tab-unreachable.diff", "why": "the Strategy tab button is relabelled Plans, so the Strategy board is never reached and nothing about it can be checked", "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1500
+}

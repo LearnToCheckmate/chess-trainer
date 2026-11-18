@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 9aad24d..4930d65 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4677,5 +4677,5 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
+          or #root scrolls by that 8px (measured on trial d17aafa01c24: #root scrollHeight 769 over 761 with the area ending 6px above) */
+       const av2=avail-8,wmax=Math.floor(window.innerWidth||(el.parentNode?el.parentNode.getBoundingClientRect().width:400));   /* #550 BSA-L-45: the board may take the screen's width; its rows keep a 4px inset */
+-      const c2=Math.max(176,Math.min(wmax,av2-TT_BELOW.phone));setCap(c2);   /* #550 FMT-A-06: one board for both tabs, everything else below it */
++      const c2=Math.max(176,Math.min(wmax,av2-TT_BELOW.phone));setCap(c2+400);   /* #550 FMT-A-06: one board for both tabs, everything else below it */
+       setBelowH(av2-c2-10);};   // at the 176 floor the area gives way, never the tab bar: it keeps status and buttons, and the text box shrinks
+     /* #550 item (99) [jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, #549 antagonist B's
