@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/126-scanboard-server.js - THE scanBoard SERVER FUNCTION ANSWERS THE CLIENT'S CONTRACT. US-R134 / TC-R202a..e.
+// gates/regress/126-scanboard-server.js - THE scanBoard SERVER FUNCTION ANSWERS THE CLIENT'S CONTRACT. US-R134 / TC-R202a..g.
 //
 // WHY [#550 item (32), jobs/scan-orientation-double-check]: the client (chess.jsx scanBoardFile) calls the callable `scanBoard` twice per
 // photo, as shot and turned 180 degrees, and needs {fen} for a read, {fen:null, ok:false, reason} for an honest refusal, and the
@@ -45,4 +45,20 @@ L.run(async()=>{
   {const a=await call(IMG);L.say(!!a.r&&a.r.ok===false&&a.r.fen===null&&a.r.reason==='A hand covers the bottom two ranks.','TC-R202e an honest refusal is a successful call {fen:null, ok:false, reason} carrying the model\'s reason, not an error',a.r||a.e&&a.e.message);}
   reply({confident:true,fen:'8/8/8/8/8/8/8/8',orientation:'white-bottom',reason:''});
   {const a=await call(IMG);L.say(!!a.r&&a.r.ok===false&&a.r.reason==='invalid-position','TC-R202e a confident read that is not a legal position (no kings) is refused as invalid-position, never handed to the player',a.r);}
+  // ── TC-R202f/g [#551 batch 12, jobs/the-board-scan-asks-for-gemini-3-8-flash-2026-11-17]: Google retired gemini-2.5-flash for new
+  // users (404 NOT_FOUND on 16 and 17 Nov 2026) and Kunal deployed a hotfix by hand; main must match it, or a deploy from main undoes it.
+  reply({confident:true,fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR',orientation:'white-bottom',reason:''});
+  {await call(IMG);const u=last&&last.u||'';const gc=last&&last.body&&last.body.generationConfig||{};
+   L.say(/\/v1beta\/models\/gemini-3\.8-flash:generateContent$/.test(u),'TC-R202f the request asks for gemini-3.8-flash, the model Google serves to new users ('+u.replace(/^.*\/models\//,'')+')',u);
+   L.say(!('temperature' in gc)&&!('topP' in gc)&&!('topK' in gc),'TC-R202f and carries no sampling setting (no temperature, topP or topK), as the Gemini 3.8 migration notes say ('+JSON.stringify(Object.keys(gc))+')',gc);
+   L.say(gc.responseMimeType==='application/json'&&!!gc.responseSchema,'TC-R202f and keeps the JSON reply and its schema',{mime:gc.responseMimeType,schema:!!gc.responseSchema});
+   const src=require('fs').readFileSync(SRC,'utf8');const tm=/const GEMINI_TIMEOUT_MS = (\d+)/.exec(src);const ts=m.scanBoard.opts&&m.scanBoard.opts.timeoutSeconds;
+   L.say(!!tm&&+tm[1]===50000&&ts===60&&+tm[1]<ts*1000,'TC-R202f the model gets 50 seconds (it thinks before it answers), inside the function\'s own 60 ('+(tm&&tm[1])+'ms, timeoutSeconds '+ts+')',{tm:tm&&tm[1],ts});}
+  const FEN='rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR';const ANS=JSON.stringify({confident:true,fen:FEN,orientation:'white-bottom',reason:''});
+  const replyParts=(parts)=>{global.fetch=async(u,init)=>{last={u,body:JSON.parse(init.body)};return {ok:true,json:async()=>({candidates:[{content:{parts}}]})};};};
+  for(const [name,parts] of [['in one part',[{text:ANS}]],['split over three parts',[{text:ANS.slice(0,17)},{text:ANS.slice(17,40)},{text:ANS.slice(40)}]],
+      ['with a thought part first',[{thought:true,text:'The board is photographed from White\'s side; the e-pawn has moved.'},{text:ANS}]],
+      ['with thought parts around a split answer',[{thought:true,text:'{"confident":false}'},{text:ANS.slice(0,30)},{thought:true,text:'checking rank 2'},{text:ANS.slice(30)}]]]){
+    replyParts(parts);const a=await call(IMG);
+    L.say(!!a.r&&a.r.ok===true&&a.r.fen===FEN+' w KQkq - 0 1','TC-R202g the reply reader keeps only the answer text, '+name+' ('+(a.r?(a.r.fen||a.r.reason):(a.e&&a.e.message))+')',a.r||(a.e&&a.e.message));}
 },'126-scanboard-server');

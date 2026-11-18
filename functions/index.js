@@ -161,11 +161,16 @@ const {onCall, HttpsError} = require("firebase-functions/v2/https");
 
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+// #551 batch 12 (jobs/the-board-scan-asks-for-gemini-3-8-flash-2026-11-17): Google answered 404 NOT_FOUND for gemini-2.5-flash on
+// 16 and 17 Nov 2026 ("no longer available to new users. Please update your code to use models/gemini-3.8-flash"), and Kunal
+// deployed a hotfix by hand at about 6:30pm EST Tue 17 Nov 2026. This file now matches it in its four places: the model, no
+// sampling settings (Google's Gemini 3.8 migration notes say to remove them), a 50 second budget (3.8 Flash thinks before it
+// answers; the function itself stops at 60), and the reply read from every answer part with thought parts skipped.
+const GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" +
   GEMINI_MODEL + ":generateContent";
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;   // the client caps its JPEG at 1024px/q0.85; this is the ceiling
-const GEMINI_TIMEOUT_MS = 25000;
+const GEMINI_TIMEOUT_MS = 50000;   // #551: under timeoutSeconds 60 below, with room for the validation after it
 const SCAN_PER_DAY = 60;   // #550 SEC-12: 30 photos, read twice each
 
 // FEN validation lives in ./fen.js (R-BS-7: the validator lives in one place), which gate 27 requires in plain Node.
@@ -245,7 +250,7 @@ exports.scanBoard = onCall(
         ],
       }],
       generationConfig: {
-        temperature: 0,
+        // #551: no temperature (nor any other sampling setting) for Gemini 3.8, per Google's migration notes
         responseMimeType: "application/json",
         responseSchema: SCAN_SCHEMA,
       },
@@ -277,8 +282,11 @@ exports.scanBoard = onCall(
       throw new HttpsError("internal", "The board reader is not answering right now. Try again in a moment.");
     }
 
-    const txt = (((j.candidates || [])[0] || {}).content || {}).parts;
-    const rawText = (txt && txt[0] && txt[0].text) || "";
+    // #551: a 3.8 reply may come in several parts, and a thinking model may put its thoughts in parts marked thought:true.
+    // The answer is every non-thought part's text, joined in order.
+    const parts = (((j.candidates || [])[0] || {}).content || {}).parts;
+    const rawText = Array.isArray(parts) ?
+      parts.filter((p) => p && p.thought !== true && typeof p.text === "string").map((p) => p.text).join("") : "";
     let parsed = null;
     try { parsed = JSON.parse(rawText); } catch (e) { parsed = null; }
     if (!parsed || typeof parsed !== "object") {

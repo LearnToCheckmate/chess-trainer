@@ -1,0 +1,11 @@
+--- a/functions/index.js
++++ b/functions/index.js
+@@ -166,7 +166,7 @@
+ // deployed a hotfix by hand at about 6:30pm EST Tue 17 Nov 2026. This file now matches it in its four places: the model, no
+ // sampling settings (Google's Gemini 3.8 migration notes say to remove them), a 50 second budget (3.8 Flash thinks before it
+ // answers; the function itself stops at 60), and the reply read from every answer part with thought parts skipped.
+-const GEMINI_MODEL = "gemini-3.8-flash";
++const GEMINI_MODEL = "gemini-2.5-flash";
+ const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/" +
+   GEMINI_MODEL + ":generateContent";
+ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;   // the client caps its JPEG at 1024px/q0.85; this is the ceiling

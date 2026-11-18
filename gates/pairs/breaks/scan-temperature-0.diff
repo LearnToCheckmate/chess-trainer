@@ -1,0 +1,10 @@
+--- a/functions/index.js
++++ b/functions/index.js
+@@ -251,6 +251,7 @@
+       }],
+       generationConfig: {
+         // #551: no temperature (nor any other sampling setting) for Gemini 3.8, per Google's migration notes
++        temperature: 0,
+         responseMimeType: "application/json",
+         responseSchema: SCAN_SCHEMA,
+       },

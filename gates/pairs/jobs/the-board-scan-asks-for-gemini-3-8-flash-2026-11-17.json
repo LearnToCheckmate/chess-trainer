@@ -1,0 +1,14 @@
+{
+ "job": "the-board-scan-asks-for-gemini-3-8-flash-2026-11-17",
+ "about": "functions/index.js scanBoard matches the hotfix Kunal deployed on 17 Nov 2026: gemini-3.8-flash, no sampling settings, a 50 second budget, and the reply read from every answer part with thought parts skipped. Gate 126 runs it in plain Node with firebase-functions and fetch stubbed (no network, no key); only its TC-R202f and TC-R202g lines are graded. One situation, because the gate drives no screen. NOT COVERED: whether Google's real 3.8 Flash reads a real board - that is his phone check of a scan after the deploy (Cloud Logging, Cloud Run service scanboard).",
+ "gate": "gates/regress/126-scanboard-server.js",
+ "checks": ["TC-R202[fg] "],
+ "build": "never",
+ "situations": [{"name": "node, stubbed fetch", "match": "."}],
+ "breaks": [
+  {"name": "model-back-to-2-5", "patch": "breaks/scan-model-back-to-2-5.diff", "why": "main's old model name, which Google now answers with 404 NOT_FOUND"},
+  {"name": "temperature-0", "patch": "breaks/scan-temperature-0.diff", "why": "the sampling setting the 3.8 migration notes say to remove, put back"},
+  {"name": "first-part-only", "patch": "breaks/scan-first-part-only.diff", "why": "the old reader that takes only the first part, so a thought part or a split answer is read as the reply"}
+ ],
+ "timeoutSec": 120
+}
