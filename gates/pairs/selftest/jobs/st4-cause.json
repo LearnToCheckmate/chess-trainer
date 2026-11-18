@@ -1,0 +1,3 @@
+{"job":"st4-cause","about":"selftest 4: the real code fails ST-D and the cause is printed seven lines earlier; the short report must carry it","gate":"gates/pairs/selftest/gate-d.js","checks":["ST-D "],"build":"never",
+ "situations":[{"name":"phone","match":"."}],
+ "breaks":[{"name":"board-400","patch":"breaks/board-d-400.diff","why":"the board is 400 wide"}],"timeoutSec":60}

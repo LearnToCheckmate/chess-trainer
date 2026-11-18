@@ -31,3 +31,7 @@ gates/.probe*.js
 # as well; this line is the half that protects every OTHER caller, including a human running `git add -A`
 # during a mint, and a stop hook that would otherwise ask for a lock file to be committed.
 gates/.buildnum.lock/
+gates/pairs/.work/
+gates/pairs/logs/
+gates/pairs/report.json
+gates/pairs/report.txt

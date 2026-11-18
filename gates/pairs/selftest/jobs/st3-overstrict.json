@@ -1,0 +1,3 @@
+{"job":"st3-overstrict","about":"selftest 3: the gate fails the real code at ST_W=320, so the pair must read OVER STRICT (its break is caught)","gate":"gates/pairs/selftest/gate-c.js","checks":["ST-C "],"build":"never",
+ "situations":[{"name":"phone","env":{"ST_W":"375"}},{"name":"small","env":{"ST_W":"320"}}],
+ "breaks":[{"name":"board-999","patch":"breaks/board-999.diff","why":"the board is 999 wide"}],"timeoutSec":60}

@@ -1,0 +1,3 @@
+{"job":"st2-blind","about":"selftest 2: the gate's check (ST-B, the tab bar) cannot see the break (the board's width), so the pair must read BLIND","gate":"gates/pairs/selftest/gate-ab.js","checks":["ST-B "],"build":"never",
+ "situations":[{"name":"phone","match":"^phone: "},{"name":"wide","match":"^wide: "}],
+ "breaks":[{"name":"board-too-wide","patch":"breaks/board-400.diff","why":"the board is 400 wide on a 375 screen"}],"timeoutSec":60}

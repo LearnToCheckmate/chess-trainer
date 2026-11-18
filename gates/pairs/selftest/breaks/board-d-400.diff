@@ -1,0 +1,5 @@
+--- a/gates/pairs/selftest/fixture-d.json
++++ b/gates/pairs/selftest/fixture-d.json
+@@ -1 +1 @@
+-{"board":375,"boardBottom":600}
++{"board":400,"boardBottom":600}
