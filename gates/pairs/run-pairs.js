@@ -67,8 +67,9 @@ function applyPatch(dir,p){
   const a=git(['apply','--whitespace=nowarn',p],dir);if(a.status!==0)return 'git apply failed: '+trim((a.stderr||a.stdout).split('\n')[0]);
   const d=git(['diff','--quiet'],dir);if(d.status===0)return 'the patch applied but changed nothing';return null;
 }
-function buildNumber(dir){const t=(()=>{try{return fs.readFileSync(path.join(dir,'app.js'),'utf8').slice(0,4000);}catch(e){return '';}})();
-  const m=/#(\d{3,4}) - \d{4}-\d\d-\d\d/.exec(t)||/#(\d{3,4})/.exec(t);return m?'#'+m[1]:'#999';}
+// the trial is stamped with the base's own build number, read from the stamp in its committed app.js ("#550 - 2026-11-14 18:22 ET")
+function buildNumber(dir){const t=(()=>{try{return fs.readFileSync(path.join(dir,'app.js'),'utf8');}catch(e){return '';}})();
+  const m=/#(\d{3,4}) - \d{4}-\d\d-\d\d \d\d:\d\d ET/.exec(t);return m?'#'+m[1]:'#999';}
 function build(dir,logf){
   const out=dir+'.app.js';const env=Object.assign({},process.env,{CT_OUT:out,CT_RUNID:process.env.CT_RUNID||'pairs-runner'});SCRUB.filter(k=>k!=='CT_OUT').forEach(k=>delete env[k]);
   const r=sh('bash',[path.join(dir,'gates','build.sh'),buildNumber(dir)],{cwd:dir,env,timeout:600000});
