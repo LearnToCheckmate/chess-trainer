@@ -146,7 +146,11 @@ L.run(async()=>{
   const g1=src.match(/Math\.max\((\w+)\?2e4:4e3,\w+\*8\)/);
   const dv=g1&&g1[1];
   const esc=(x)=>x.replace(/\$/g,'\\$');
-  const wired=dv?new RegExp('\\('+esc(dv)+'\\?"go depth "\\+'+esc(dv)+':"go movetime "').test(src):false;
+  // #551 (jobs/the-engine-plays-the-same-line-every-time-under-test-2026-11-15): the timed branch is now a call to engDetSearch, the one
+  // place a timed search is written ('go movetime' on a device, 'go nodes' under test), so the same variable must choose 'go depth' over
+  // a call to THAT function - which is identified by its body, so a call to anything else does not satisfy this.
+  const tw=dv?new RegExp('\\('+esc(dv)+'\\?"go depth "\\+'+esc(dv)+':(?:"go movetime "|([\\w$]+)\\([\\w$]+\\))').exec(src):null;
+  const twFn=tw&&tw[1];const wired=!!tw&&(!twFn||new RegExp('function '+esc(twFn)+'\\([\\w$]+\\)\\{return [\\w$]+\\(\\)\\?"go nodes "[^}]*:"go movetime "\\+[\\w$]+\\}').test(src));
   L.say(!!g1,'the single-worker search takes a depth, and gets a 20 s guard when it does (was a flat 4 s)',g1&&g1[0]);
   L.say(wired,'the same depth argument chooses "go depth" over "go movetime", so the fixed depth and the 20 s guard are one change and not two',dv);
   // #549 item (30): the single-worker calls are sfEval1(_fen(i),MT,16,<fresh>) now - the fourth argument is the table cadence - so the

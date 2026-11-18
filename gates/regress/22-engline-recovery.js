@@ -626,7 +626,7 @@ L.run(async()=>{
    await b.ctx.addInitScript(()=>{if(window.__ctDie)return;const W=window.Worker;const log=window.__ctDie={n:0,err:0,killed:0,armed:false};
      window.Worker=function(u,o){const w=new W(u,o);log.n++;let pool=false;w.addEventListener('error',()=>{log.err++;});const pm=w.postMessage.bind(w);
        w.postMessage=(m,...a)=>{const t=String(m);if(/Hash value 16/.test(t))pool=true;
-         if(log.armed&&!log.killed&&!pool&&t==='go movetime 700'){log.killed=Math.round(performance.now());log.nAtKill=log.n;setTimeout(()=>{try{w.dispatchEvent(new ErrorEvent('error',{message:'injected worker death'}));w.terminate();}catch(e){}},150);}
+         if(log.armed&&!log.killed&&!pool&&(t==='go movetime 700'||t==='go nodes 560000')){   /* #551: under ct_engdet sacRun's 700ms search is 'go nodes 560000' (chess.jsx engDetSearch) */ log.killed=Math.round(performance.now());log.nAtKill=log.n;setTimeout(()=>{try{w.dispatchEvent(new ErrorEvent('error',{message:'injected worker death'}));w.terminate();}catch(e){}},150);}
          return pm(m,...a);};return w;};window.Worker.prototype=W.prototype;});
    await b.open();let ok=true,short=null,landed=null,got=null,atT=null;
    try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
