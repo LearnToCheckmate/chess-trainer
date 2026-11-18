@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..60e1746 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7522,5 +7522,5 @@ function AppMain(){
+        timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
+        position's principal variation. */
+-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');if(engDet())w.postMessage('ucinewgame');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):engDetSearch(movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
++    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):engDetSearch(movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
+   });
+   // ── #343: parallel review workers ────────────────────────────────────────

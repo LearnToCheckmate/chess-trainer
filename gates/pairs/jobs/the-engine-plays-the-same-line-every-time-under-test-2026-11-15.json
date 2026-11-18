@@ -1,0 +1,18 @@
+{
+ "job": "the-engine-plays-the-same-line-every-time-under-test-2026-11-15",
+ "about": "Under test (ct_engdet, seeded by gates/lib.js) the app's timed searches are node counts on a cleared table, so the same position gives the same line on a quiet machine and a busy one; a real device is unchanged. Graded by gate 166 whole (one real-device run, five quiet, five beside one spinning node process per core; about 10 minutes a try). The situations are the gate's own arms: the real device, the quiet machine and the busy machine. NOT COVERED: a real phone's search speed (the node budget is set for headless Chromium here); the computer's opponent with UCI_LimitStrength stays random by Stockfish's own design (its skill level draws a move with a time-seeded generator), so Play against a limited-strength bot is not made repeatable.",
+ "gate": "gates/regress/166-engine-repeatable.js",
+ "checks": ["TC-R228[a-f] "],
+ "build": "auto",
+ "situations": [
+  {"name": "a real device", "match": "^TC-R228[af] "},
+  {"name": "under test, quiet", "match": "^TC-R228[bce] "},
+  {"name": "under test, busy", "match": "^TC-R228d "}
+ ],
+ "breaks": [
+  {"name": "switch-ignored", "patch": "breaks/eng-switch-ignored.diff", "why": "the timed searches keep their clock under test, which is the defect the job fixes", "mustFailIn": ["under test, quiet"]},
+  {"name": "table-not-cleared", "patch": "breaks/eng-table-not-cleared.diff", "why": "the line search runs on whatever an earlier search left in the hash table", "mustFailIn": ["under test, quiet"]},
+  {"name": "real-device-repeatable-too", "patch": "breaks/eng-real-device-repeatable-too.diff", "why": "the switch is always on, so a real device loses its normal search", "mustFailIn": ["a real device"]}
+ ],
+ "timeoutSec": 2400
+}

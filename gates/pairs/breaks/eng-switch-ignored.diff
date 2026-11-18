@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..389283c 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -287,5 +287,5 @@ function styleBias(game,m,style){
+ const ENGDET_NODES_PER_MS=800;
+ function engDet(){try{return typeof localStorage!=='undefined'&&localStorage.getItem('ct_engdet')==='1';}catch(e){return false;}}
+-function engDetSearch(movetime){return engDet()?('go nodes '+Math.max(20000,Math.round(movetime*ENGDET_NODES_PER_MS))):('go movetime '+movetime);}
++function engDetSearch(movetime){return false?('go nodes '+Math.max(20000,Math.round(movetime*ENGDET_NODES_PER_MS))):('go movetime '+movetime);}
+ function bestMove(game,depth,randomness=0,style='balanced'){
+   const moves=getLegal(game);if(moves.length===0)return null;
