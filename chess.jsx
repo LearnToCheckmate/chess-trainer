@@ -275,11 +275,23 @@ function styleBias(game,m,style){
   else if(style==='positional'){if(m.castle)s+=18;if(pc.t==='n'||pc.t==='b')s+=9*central;s+=7*central;if(cap)s-=2;}
   return s;
 }
+/* #551 batch 12 (jobs/the-engine-plays-the-same-line-every-time-under-test-2026-11-15): UNDER TEST ONLY, THE ENGINE IS REPEATABLE.
+   A search cut by a wall clock ('go movetime') reaches a different depth on a busy machine than on a quiet one, so the same
+   build played 14.Bxe7 Kxe7 15.Bxd7 in one gate run and 14.Bxe7 Bxe7 15.Bxd7 in the next, and a gate that reads engine output
+   failed on correct code. With localStorage ct_engdet = '1', which only the gate harness sets (gates/lib.js), every timed
+   search becomes a NODE-COUNT search ('go nodes', about 800 nodes per millisecond asked for, which is what headless Chromium
+   reaches here: measured 578751 nodes in a 700ms search at batch 12), the analysis worker's hash table is cleared before each
+   line search ('ucinewgame', so what an earlier search left in it cannot change this one), a 'go depth N movetime T' drops its
+   clock, and the built-in engine's random jitter is zero. Without the key - every real device - nothing here changes: the
+   same 'go movetime' commands, the same table, the same jitter. engDetSearch() is the one place a timed search is written. */
+const ENGDET_NODES_PER_MS=800;
+function engDet(){try{return typeof localStorage!=='undefined'&&localStorage.getItem('ct_engdet')==='1';}catch(e){return false;}}
+function engDetSearch(movetime){return engDet()?('go nodes '+Math.max(20000,Math.round(movetime*ENGDET_NODES_PER_MS))):('go movetime '+movetime);}
 function bestMove(game,depth,randomness=0,style='balanced'){
   const moves=getLegal(game);if(moves.length===0)return null;
   const maxing=game.turn==='w';
   const ordered=orderMoves(game,moves);
-  let scored=ordered.map(m=>{const v=minimax(makeFast(game,m),depth-1,-Infinity,Infinity,!maxing);const sb=styleBias(game,m,style);return{m,v:v+(Math.random()-0.5)*randomness+(maxing?sb:-sb)};});
+  let scored=ordered.map(m=>{const v=minimax(makeFast(game,m),depth-1,-Infinity,Infinity,!maxing);const sb=styleBias(game,m,style);return{m,v:v+(engDet()?0:(Math.random()-0.5)*randomness)+(maxing?sb:-sb)};});
   scored.sort((a,b)=>maxing?b.v-a.v:a.v-b.v);
   return scored[0].m;
 }
@@ -579,7 +591,7 @@ function nearbyArea(z){const t=String(z||'').trim().toLowerCase();if(!t)return '
 // the device's own settings (look, sound, board options) and the one-shot migration markers (removing a marker would re-run a migration
 // over data pulled from the cloud), plus the puzzle progress and the imported-games IndexedDB store. ct_owner records which uid this
 // device's progress belongs to, so a DIFFERENT account signing in later starts clean instead of absorbing it (see the onAuth handler).
-const CT_WIPE_KEEP=new Set(['ct_theme','ct_sound','ct_skin','ct_pieceSet','ct_hideEval','ct_depth','ct_evalgraph','ct_layoutgrid','ct_safe','ct_pool','ct_vc_timeout_ms','ct_vc_noring','ct_scsteps','ct_schold','ct_scmax','ct_coachfree','ct_book_table','ct_demodone','ct_hintprefs','ct_bot']);
+const CT_WIPE_KEEP=new Set(['ct_theme','ct_sound','ct_skin','ct_pieceSet','ct_hideEval','ct_depth','ct_evalgraph','ct_layoutgrid','ct_safe','ct_pool','ct_vc_timeout_ms','ct_vc_noring','ct_scsteps','ct_schold','ct_scmax','ct_coachfree','ct_book_table','ct_demodone','ct_hintprefs','ct_bot','ct_engdet']);
 const ctWipeKeep=(k)=>CT_WIPE_KEEP.has(k)||/mig\d|^ct_regrade\d|_reset_v\d|_migrated$/.test(k);
 function ctDeviceWipeKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k)continue;if((k.indexOf('ct_')===0&&!ctWipeKeep(k))||k==='chesstrainer.progress.v1')out.push(k);}}catch(e){}return out;}
 // opts.set: keys to write once the wipe is done; opts.freeze: the caller reloads next, so every later localStorage write is dropped -
@@ -6041,7 +6053,7 @@ function AppMain(){
           const t=setTimeout(()=>{rgOn=null;res({ok:false});},20000);
           rgOn=(l)=>{if(l.startsWith('info ')&&/ score /.test(l)){const m=/ score (cp|mate) (-?\d+)/.exec(l);if(m){if(m[1]==='mate'){mate=sign*(+m[2]);cp=null;}else{cp=sign*(+m[2]);mate=null;}}}
             else if(l.startsWith('bestmove')){clearTimeout(t);rgOn=null;res({ok:true,cp,mate});}};
-          rgSend('ucinewgame');rgSend('position fen '+fen);rgSend('go depth 12 movetime 400');});
+          rgSend('ucinewgame');rgSend('position fen '+fen);rgSend(engDet()?'go depth 12':'go depth 12 movetime 400');});
         let rec=null;try{rec=JSON.parse(localStorage.getItem('ct_regrade550')||'null');}catch(e){rec=null;}
         if(!rec)rec={before:(myMistakesRef.current||[]).length,after:null,dropped:0,checked:0,at:null};
         const toW=(r)=>{if(!r||!r.ok)return null;if(r.mate!=null)return r.mate>0?(100000-r.mate*100):(-100000-r.mate*100);return typeof r.cp==='number'?r.cp:null;};
@@ -7059,7 +7071,7 @@ function AppMain(){
           sfRef.current.postMessage('setoption name UCI_Elo value '+e);
           sfRef.current.postMessage('setoption name MultiPV value '+(_style==='balanced'?1:3));
           sfRef.current.postMessage('position fen '+toFEN(game));
-          sfRef.current.postMessage('go movetime '+_mvTime);sfGoRef.current++;
+          sfRef.current.postMessage(engDetSearch(_mvTime));sfGoRef.current++;
         }catch(err){
           const {d:_d,r:_r}=eloParams(cpuElo);
           const _bs=(selBot&&botById(selBot)&&botById(selBot).style)||'balanced';
@@ -7451,7 +7463,7 @@ function AppMain(){
        close it, because the yield reads the same busy flag. Moving the assignment inside the idle callback
        means a stray message from a search we did not issue finds a null slot and is ignored (see the handler's
        own `if(!cb)return`). anaIdle's own `readyok` handling does not read this slot, so nothing else moves. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}if(depth)_last=Date.now();sfAnaCbRef.current={tick:depth?()=>{_last=Date.now();}:null,score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)w.postMessage('ucinewgame');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}if(depth)_last=Date.now();sfAnaCbRef.current={tick:depth?()=>{_last=Date.now();}:null,score:(s)=>{const _m=s.mpv||1;if(_m===1){if(s.mate!=null){mate=mateW(s.mate,sign);cp=null;}else{cp=sign*s.cp;mate=null;}}else if(_m===2){if(s.mate!=null){mate2=mateW(s.mate,sign);cp2=null;}else{cp2=sign*s.cp;mate2=null;}if(s.first)alt=s.first;}},best:(bm)=>finish(bm,true)};try{w.postMessage('setoption name UCI_LimitStrength value false');if(fresh||(!depth&&engDet()))w.postMessage('ucinewgame');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):engDetSearch(movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
   });
   // Engine's best line (principal variation) from a position; resolves an array of UCI moves or null. Lets Review play the better line out at full engine strength.
   /* #512, ANTAGONIST A's F1, VETO UPHELD: THIS FUNCTION NOW SAYS WHETHER THE ENGINE ACTUALLY ANSWERED.
@@ -7509,7 +7521,7 @@ function AppMain(){
        must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
        timeout resolves whatever `line` holds: a stray pv from the old search would have been returned as this
        position's principal variation. */
-    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):('go movetime '+movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
+    anaIdle(w,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}sfAnaCbRef.current={score:(sc)=>{if(!started){if(sc&&sc.depth!=null&&sc.depth<=1)started=true;else return;}if(onScore)try{onScore(sc);}catch(e){}},pv:(arr)=>{if(!started)return;if(arr&&arr.length)line=arr;},best:(bm)=>{if(!started)return;finish(line||(bm&&bm!=='(none)'?[bm]:null),true);}};try{w.postMessage('setoption name UCI_LimitStrength value false');if(engDet())w.postMessage('ucinewgame');w.postMessage('position fen '+fen);w.postMessage(depth?('go depth '+depth):engDetSearch(movetime));sfAnaGoRef.current++;}catch(e){finish(null,false);}});
   });
   // ── #343: parallel review workers ────────────────────────────────────────
   // A game review is 60-80 INDEPENDENT position evaluations, so it parallelises almost perfectly.

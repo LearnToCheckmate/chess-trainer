@@ -10,6 +10,7 @@
 //   L.launch({geo,engineFail:'all'})            // worker; 'all' = every Stockfish worker fails, so the app uses its built-in engine.
 //   await b.engineFail()                        // {mode,created,failed}: a gate driving it MUST assert failed>0 (see ENGINE FAILURE below)
 //   L.launch({geo,dev:false})                  // the PLAYER view: the developer tools are off (default ON for gates; #550 wording check)
+//   L.launch({geo,engDet:false})               // the engine as a real device runs it (timed searches); default is repeatable (#551, ct_engdet)
 //   L.launch({app:'path/to/bundle.js'})          // per-launch bundle. Launches IN SEQUENCE in one process may use different bundles:
 //                                               // serve() restarts on a different bundle (#545). Two bundles OPEN AT ONCE in one process
 //                                               // are not supported - the second launch closes the first one's server.
@@ -414,7 +415,12 @@ async function launch(opts={}){
   const _scr=opts.screen||geo.screen||null;
   const ctx=_rs?await browser.newContext({viewport:null,hasTouch:true,userAgent:'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome CTGATE'}):await browser.newContext({viewport:{width:geo.w,height:geo.h},..._scr?{screen:{width:_scr.w,height:_scr.h}}:{},deviceScaleFactor:opts.dpr||1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 CTGATE'});
   if(!opts.network)await ctx.route(u=>BLOCK.test(u.href),r=>r.abort());
-  const store=Object.assign({},geo.safe?{ct_safe:geo.safe}:{},opts.store||{});
+  // #551 batch 12 (jobs/the-engine-plays-the-same-line-every-time-under-test-2026-11-15): EVERY LAUNCH RUNS THE ENGINE REPEATABLY
+  // unless the gate asks otherwise. ct_engdet=1 makes the app's timed Stockfish searches node-count searches on a cleared table and
+  // zeroes the built-in engine's jitter (chess.jsx, search engDetSearch), so the same position gives the same line on a busy machine
+  // and a quiet one. opts.engDet:false launches the app as a real device runs it (the 'go movetime' clock), which is how
+  // gates/regress/166-engine-repeatable.js proves real play keeps its normal settings. A gate's own store can still override it.
+  const store=Object.assign({},geo.safe?{ct_safe:geo.safe}:{},opts.engDet===false?{}:{ct_engdet:'1'},opts.store||{});
   // #353 harness hole: addInitScript re-runs on every navigation; seed once per origin, guarded by a marker.
   await ctx.addInitScript((st)=>{try{if(!sessionStorage.getItem('ct_seeded')){for(const k in st)localStorage.setItem(k,typeof st[k]==='string'?st[k]:JSON.stringify(st[k]));sessionStorage.setItem('ct_seeded','1');}}catch(e){}},store);
   // ── ENGINE FAILURE [#549, item (108); jobs/twenty-four-regress-gates-force-ct-pool-on-every-launch-and-no-harness-
