@@ -1,7 +1,7 @@
 // regress/84-lesson-free-defender.js   THE FREE-DEFENDER LESSON: Two Bishops Mate practised against a king that chooses.
 // #549 item (85), jobs/bench-lesson-one-format-two-content-types-2026-09-28, Kunal's 'one-first' on
 // questions/endgame-lessons-should-the-defender-choose-2026-10-10: ONE lesson rebuilt as a trial, so he can judge it before
-// anything spreads. TC-LS-054..056 / US-R107. The judgement calls the card did not settle are flags/amber-549-two-bishops-free-defender.
+// anything spreads. TC-LS-054..056, TC-LS-077 / US-R107. The judgement calls the card did not settle are flags/amber-549-two-bishops-free-defender.
 //
 // WHAT IT GUARDS
 //   TC-LS-054 (node, no browser) the net test itself, read out of chess.jsx by declaration: a stalemate and a piece the lone king
@@ -84,25 +84,51 @@ async function pins(b,geo,when,demoW){
 // The white side, played by a Stockfish of the gate's own in the page - a separate worker, so it shares nothing with the app's.
 async function sfInit(b){await b.page.evaluate(()=>{window.__g84=new Worker('./stockfish-18-lite-single.js');window.__g84o=[];window.__g84.onmessage=e=>window.__g84o.push(String(e.data));window.__g84.postMessage('uci');window.__g84.postMessage('isready');});
   for(let i=0;i<100;i++){await b.page.waitForTimeout(100);if(await b.page.evaluate(()=>window.__g84o.includes('readyok')))return true;}return false;}
-async function sfGo(b,fen,ms){await b.page.evaluate((a)=>{window.__g84o=[];window.__g84.postMessage('position fen '+a[0]);window.__g84.postMessage('go movetime '+a[1]);},[fen,ms]);
-  for(let i=0;i<(ms/100+60);i++){await b.page.waitForTimeout(100);const r=await b.page.evaluate(()=>{const bl=window.__g84o.find(x=>x.startsWith('bestmove'));if(!bl)return null;const inf=window.__g84o.filter(x=>/^info .* score /.test(x)&&!/ multipv [2-9]/.test(x));const l=inf[inf.length-1]||'';const mm=l.match(/score mate (-?\d+)/),cm=l.match(/score cp (-?\d+)/);return {best:bl.split(' ')[1],mate:mm?+mm[1]:null,cp:cm?+cm[1]:null};});if(r)return r;}return null;}
+// #551 batch 12 (jobs/gate-84-holds-on-a-busy-machine-2026-11-15): THE GATE'S ENGINE IS REPEATABLE AND READS THE APP'S OWN VERDICT.
+// THE CAUSE, from the 30 runs on main ffc8fa2 (overnight 16 Nov and the 20 of 17 Nov, claude/TESTS-2026-11-17/gate84/): 7 of 20 runs red,
+// as often quiet as busy, so not load. (1) TC-LS-055: this driver played white with its own 400ms search and never asked whether the
+// app would accept the move. The app refuses a white move that loosens the net (freeNetVerdict, on ITS OWN 500ms search of the position
+// after the move), so on a long game the driver's choice was refused, it asked its engine again about the SAME position, got the same
+// or a similar move, and after 4 refusals stopped - or drifted to the app's 50-move limit; a refused move also makes the run not
+// flawless, which is what TC-LS-055 asserts. (2) TC-LS-056/063: the loosening move was picked with this driver's own 250ms searches, so
+// on some runs the app's deeper search judged the same move as no looser and ACCEPTED it (same:false). Both are the driver guessing the
+// app's verdict with a different search. THE FIX, in the gate: every search here is the app's own under test - a cleared table and a
+// node count (ct_engdet, which gates/lib.js seeds; chess.jsx ENGDET_NODES_PER_MS = 800), MultiPV 2 like the app's analysis worker - so
+// for the position after a candidate move this driver gets the SAME score the app will, and freeNetVerdict (chess.jsx, read through
+// engine-extract) PREDICTS the app's verdict exactly. The driver plays only moves the app will accept; when its first choice would be
+// refused it asks its engine again with that move excluded (searchmoves). TC-LS-056 picks a loosening move by that same prediction.
+// Nothing the app checks is loosened: the assertions are unchanged.
+const NODES_PER_MS=800;
+async function sfGo(b,fen,ms,o){o=o||{};await b.page.evaluate((a)=>{window.__g84o=[];const w=window.__g84;w.postMessage('setoption name MultiPV value '+a[3]);w.postMessage('ucinewgame');w.postMessage('position fen '+a[0]);w.postMessage('go nodes '+a[1]+(a[2]?' searchmoves '+a[2]:''));},[fen,Math.round(ms*NODES_PER_MS),o.only||'',o.mpv||1]);
+  for(let i=0;i<(ms/25+300);i++){await b.page.waitForTimeout(100);const r=await b.page.evaluate(()=>{const bl=window.__g84o.find(x=>x.startsWith('bestmove'));if(!bl)return null;const inf=window.__g84o.filter(x=>/^info .* score /.test(x)&&!/ multipv [2-9]/.test(x));const l=inf[inf.length-1]||'';const mm=l.match(/score mate (-?\d+)/),cm=l.match(/score cp (-?\d+)/);return {best:bl.split(' ')[1],mate:mm?+mm[1]:null,cp:cm?+cm[1]:null};});if(r)return r;}return null;}
+// the app's verdict on white move m from g: its sync check (stalemate, a hanging piece), then freeNetVerdict(K, the score of ITS search
+// of the position after m - FREE_MS 500 in chess.jsx, so 500 here), and the king's reply that search returns
+async function appVerdict(b,E,H,g,m,K){const ng=E.makeMove(g,m);const sv=H.freeSyncVerdict(ng);if(!sv.ok)return Object.assign({ok:false},sv);if(sv.mate)return {ok:true,mate:true,M:K};
+  const sc=await sfGo(b,E.toFEN(ng),500,{mpv:2});const v=H.freeNetVerdict(K,sc?{mate:sc.mate,cp:sc.cp}:null);return Object.assign({},v,{reply:sc&&sc.best});}
 // Play one white move by tapping, then wait for the app's answer (the note stops saying the king is thinking).
 async function tapMove(b,E,g,m){const [f,t]=sqs(E,m);await b.move(f,t,150);let n='';for(let i=0;i<60;i++){n=(await D.noteText(b))||'';if(!/thinking/.test(n))break;await b.page.waitForTimeout(150);}await b.settle(150);return n;}
 async function openPractice(b){await D.openLesson(b,'Endgames',/^Two Bishops Mate$/);await D.startDemoPaused(b);const dm=await b.metrics();await D.toEnd(b);await D.tapBtn(b,/^(✋ Now I'll try it|Now I'll try it)$/,700);return dm.board?dm.board.w:null;}
-// Drive the rest of the game with the gate's engine; returns {mated, moves, replies:[{ply,san}], refused}
+// Drive the rest of the game with the gate's engine; returns {mated, moves, replies:[{ply,san}], refused, predictedRefused, replyMismatch}.
+// opts.K is the app's mate distance after the last kept move (its F.K), opts.H the free-run helpers; each white move is one the app
+// will accept (appVerdict), found by excluding the refused candidates one at a time.
 async function driveToMate(b,E,g0,startPly,opts){
-  let g=g0,ply=startPly,refused=0,last='';const replies=[];const o=opts||{};
+  const o=opts||{};const H=o.H;let g=g0,ply=startPly,refused=0,last='',K=o.K==null?null:o.K,predictedRefused=0,replyMismatch=0;const replies=[];
   for(let k=0;k<55;k++){
-    if(o.beforeMove){const r=await o.beforeMove(g);if(r&&r.g){g=r.g;}}
-    const r=await sfGo(b,E.toFEN(g),400);const mv=r&&E.getLegal(g).find(x=>uciOf(E,x)===r.best);if(!mv)return {mated:false,why:'no engine move',ply,replies,refused,last};
+    if(o.beforeMove){const r=await o.beforeMove(g,K);if(r&&r.g){g=r.g;}}
+    const legal=E.getLegal(g);const excl=new Set();let mv=null,v=null;
+    for(let t=0;t<8&&excl.size<legal.length;t++){const only=excl.size?legal.filter(x=>!excl.has(uciOf(E,x))).map(x=>uciOf(E,x)).join(' '):'';
+      const r=await sfGo(b,E.toFEN(g),400,{only});const c=r&&legal.find(x=>uciOf(E,x)===r.best);if(!c)break;
+      const cv=await appVerdict(b,E,H,g,c,K);if(cv.ok){mv=c;v=cv;break;}excl.add(uciOf(E,c));predictedRefused++;}
+    if(!mv)return {mated:false,why:'no engine move the app would keep ('+excl.size+' excluded)',ply,replies,refused,last,predictedRefused,replyMismatch};
     last=await tapMove(b,E,g,mv);
-    if(/checkmate/.test(last))return {mated:true,ply:ply+1,replies,refused,last};
-    if(/^✗/.test(last)){refused++;if(refused>3)return {mated:false,why:'refused 4 engine moves',ply,replies,refused,last};continue;}
-    g=E.makeMove(g,mv);ply++;
-    const rs=(last.match(/answers (\S+?)\./)||[])[1];const rm=rs&&bySan(E,g,rs);if(!rm)return {mated:false,why:'no defender reply read from "'+last+'"',ply,replies,refused,last};
+    if(/checkmate/.test(last))return {mated:true,ply:ply+1,replies,refused,last,predictedRefused,replyMismatch};
+    if(/^✗/.test(last)){refused++;excl.add(uciOf(E,mv));if(refused>3)return {mated:false,why:'refused 4 engine moves',ply,replies,refused,last,predictedRefused,replyMismatch};continue;}
+    g=E.makeMove(g,mv);ply++;K=v.M;
+    const rs=(last.match(/answers (\S+?)\./)||[])[1];const rm=rs&&bySan(E,g,rs);if(!rm)return {mated:false,why:'no defender reply read from "'+last+'"',ply,replies,refused,last,predictedRefused,replyMismatch};
+    if(v.reply&&uciOf(E,rm)!==v.reply)replyMismatch++;
     replies.push({ply,san:sanOf(E,g,rm)});g=E.makeMove(g,rm);ply++;
   }
-  return {mated:false,why:'55 moves without mate',ply,replies,refused,last};
+  return {mated:false,why:'55 moves without mate',ply,replies,refused,last,predictedRefused,replyMismatch};
 }
 
 L.run(async()=>{
@@ -155,14 +181,16 @@ L.run(async()=>{
     L.say(!(await b.page.$('[data-ct="lesson-progress"]')),'TC-LS-055 '+geo+': the line-length progress strip is not drawn in this lesson');
     const ok=await sfInit(b);L.say(ok,'TC-LS-055 '+geo+' PRECONDITION the gate\'s own engine is up in the page');
     let g=E.fromFEN('8/8/4k3/8/3BK3/8/4B3/8 w - - 0 1');const p0=await position(b);
-    const first=bySan(E,g,'Bc4+');const n1=await tapMove(b,E,g,first);const p1=await position(b);
+    const first=bySan(E,g,'Bc4+');const v1=await appVerdict(b,E,X.H,g,first,null);const n1=await tapMove(b,E,g,first);const p1=await position(b);
     L.say(/^✓ Bc4\+/.test(n1)&&p1!==p0,'TC-LS-055 '+geo+': the off-book first move Bc4+ is ACCEPTED (the scripted lesson refused it as "isn\'t the line") and the board moves',{note:n1});
     const rs=(n1.match(/answers (\S+?)\./)||[])[1];g=E.makeMove(g,first);const rm=rs&&bySan(E,g,rs);
     L.say(!!rm,'TC-LS-055 '+geo+': the defender answers with a legal king move of its own ('+(rs||'none')+')',n1);
     if(!rm){await b.close();continue;}
     const replies=[{ply:1,san:sanOf(E,g,rm)}];g=E.makeMove(g,rm);
     await pins(b,geo,'after the first exchange',demoW);
-    const R=await driveToMate(b,E,g,2);replies.push(...R.replies);
+    const R=await driveToMate(b,E,g,2,{H:X.H,K:v1.M});replies.push(...R.replies);
+    L.note('    TC-LS-055 '+geo+': the driver set aside '+R.predictedRefused+' engine choice(s) the app would have refused; the app refused '+R.refused+'; its replies differed from the predicted ones '+R.replyMismatch+' time(s) (0 means the driver and the app searched alike)');
+    L.say(R.replyMismatch===0&&R.replies.length>0,'TC-LS-077 '+geo+': the driver predicts the app exactly - every king reply the app played ('+R.replies.length+') is the one the driver\'s copy of the app\'s search returned ('+R.replyMismatch+' differ), so no move it plays can be refused by a search it did not foresee',{mismatch:R.replyMismatch,setAside:R.predictedRefused});
     const diff=replies.filter(x=>E.cleanSAN(x.san)!==E.cleanSAN(BOOK[x.ply]||''));
     L.say(diff.length>=1,'TC-LS-055 '+geo+': the defender\'s replies are its own - '+diff.length+' of '+replies.length+' differ from the script\'s move at that ply',replies.map(x=>x.ply+':'+x.san).join(' '));
     L.say(R.mated&&R.refused===0,'TC-LS-055 '+geo+': a game that left the book on move 1 still ends in checkmate, with no engine move refused ('+(R.mated?'mate at ply '+R.ply:R.why)+')',R.last);
@@ -179,28 +207,27 @@ L.run(async()=>{
     await D.tapBtn(b,/^Hints$/,400);
     const hs=await hintSquares(b);L.say(!!hs&&hs.join(',')==='d4,e5','TC-LS-056 '+geo+': on the book line the hint paints the book move Be5 (d4, e5)',hs);
     await D.tapBtn(b,/^Hints$/,300);
-    let g=E.fromFEN('8/8/4k3/8/3BK3/8/4B3/8 w - - 0 1');
+    let g=E.fromFEN('8/8/4k3/8/3BK3/8/4B3/8 w - - 0 1');let K56=null,vb={M:null};
     const p0=await position(b);const nh=await tapMove(b,E,g,bySan(E,g,'Bf6'));const ph=await position(b);
     L.say(/^✗ Bf6 leaves your bishop on f6/.test(nh)&&ph===p0,'TC-LS-056 '+geo+': Bf6, where the king takes the bishop, is refused and the board does not move',nh);
     // TC-LS-063 [#550 HEX-T-15]: a kept move on the book line reads the lesson's own note for it, after the king's answer, and only while the
     // move and the reply are both the book's. Be5 is the book's first move; the note expected is READ from window.CTLESSONS, not typed here.
     {const bn=await b.page.evaluate(()=>{const C=window.CTLESSONS||{};for(const k of Object.keys(C))for(const o of (C[k]||[]))if(o.name==='Two Bishops Mate')return o.notes[0];return null;});
-     const be5=bySan(E,g,'Be5');const nb=await tapMove(b,E,g,be5);const rs=(nb.match(/answers (\S+?)\./)||[])[1];const ng=E.makeMove(g,be5);const rm=rs&&bySan(E,ng,rs);
+     const be5=bySan(E,g,'Be5');vb=await appVerdict(b,E,X.H,g,be5,null);const nb=await tapMove(b,E,g,be5);const rs=(nb.match(/answers (\S+?)\./)||[])[1];const ng=E.makeMove(g,be5);const rm=rs&&bySan(E,ng,rs);
      L.say(/^✓ Be5/.test(nb)&&!!rm&&!!bn,'TC-LS-063 '+geo+' PRECONDITION the book move Be5 is kept and the king answers with a legal move ('+(rs||'none')+')',nb);
      const onBook=!!rm&&E.cleanSAN(rs)==='Kd7';
      L.say(onBook?(nb.indexOf(String(bn).trim())>0&&nb.indexOf('answers '+rs+'.')<nb.indexOf(String(bn).trim())):(nb.indexOf(String(bn).trim())<0),'TC-LS-063 '+geo+': '+(onBook?'move and reply on the book (Be5 Kd7): the line gives the lesson\'s note for Be5 after the king\'s answer':'the reply left the book ('+rs+'): the book\'s note is NOT shown'),{note:nb,bookNote:bn});
      L.note('TC-LS-063 '+geo+': arm run = '+(onBook?'on-book (note present)':'off-book (note absent)'));
-     if(rm){g=E.makeMove(ng,rm);}}
+     if(rm){g=E.makeMove(ng,rm);}K56=vb.M;}
     let tested=null,testedAt=null;
-    const before=async(gg)=>{if(tested)return null;const r=await sfGo(b,E.toFEN(gg),300);if(!r||r.mate==null||r.mate<=0||r.mate>4)return null;
-      const K=r.mate;let worst=null;
-      for(const m of E.getLegal(gg)){const ng=E.makeMove(gg,m);if(E.getStatus(ng)!=='playing'&&E.getStatus(ng)!=='check')continue;
-        let hang=false;for(let rr=0;rr<8;rr++)for(let cc=0;cc<8;cc++){const p=ng.board[rr][cc];if(p&&p.c==='w'&&p.t!=='k'&&E.isAttacked(ng.board,rr,cc,'b')&&!E.isAttacked(ng.board,rr,cc,'w'))hang=true;}if(hang)continue;
-        const s=await sfGo(b,E.toFEN(ng),250);const M=(s&&s.mate!=null&&s.mate<0)?-s.mate:99;if(!worst||M>worst.M)worst={m,M};}
-      tested={K,worst:worst&&{san:sanOf(E,gg,worst.m),M:worst.M}};
-      if(!worst||worst.M<K+3){tested.skip=true;return null;}
+    // the loosening move is the one the APP will refuse as looser (or as losing the mate), picked by appVerdict once the app's mate
+    // distance K is 4 or less; if no such move exists at this position the next one is tried, so a skip is only ever 'none in the game'
+    const before=async(gg,K)=>{if(tested)return null;if(K==null||K>4)return null;let worst=null;
+      for(const m of E.getLegal(gg)){const v=await appVerdict(b,E,X.H,gg,m,K);if(v.ok||!(v.why==='looser'||v.why==='lost-mate'))continue;const M=v.M==null?99:v.M;if(!worst||M>worst.M)worst={m,M};}
+      if(!worst)return null;
+      tested={K,worst:{san:sanOf(E,gg,worst.m),M:worst.M}};
       const pa=await position(b);const n=await tapMove(b,E,gg,worst.m);const pb=await position(b);tested.note=n;tested.same=pa===pb;testedAt={gg,m:worst.m};return null;};
-    const R=await driveToMate(b,E,g,2,{beforeMove:before});
+    const R=await driveToMate(b,E,g,2,{beforeMove:before,H:X.H,K:K56});
     L.say(!!tested&&!tested.skip,'TC-LS-056 '+geo+' PRECONDITION the run reached mate in 4 or fewer and found a move that loosens it by 3 or more',tested);
     // TC-LS-063 [#550 HEX-T-15]: the refusal names the king's answer from the app's own search, and that answer is a legal king move in the
     // position after the refused move (checked here with the app's own move code, so the line cannot name a move that is not on the board).
