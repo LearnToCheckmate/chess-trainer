@@ -154,6 +154,25 @@ test('customers: no client ever writes a subscription; checkout sessions are the
 });
 
 // ── everything else
+// ── ownerGrants (#551 batch 12, jobs/kunals-own-account-gets-pro-without-paying-2026-11-17): written only in the console; the owner
+// reads their own; no client may read another's, list them, or create, change or delete one - so no client can turn Pro on.
+test('ownerGrants: the owner reads their own grant; no client can write, list or read another', async () => {
+  await assertFails(setDoc(doc(as('u-a'), 'ownerGrants/u-a'), {pro: true}));
+  await assertFails(setDoc(doc(as('u-x'), 'ownerGrants/u-a'), {pro: true}));
+  await assertFails(setDoc(doc(as(null), 'ownerGrants/u-a'), {pro: true}));
+  await assertSucceeds(getDoc(doc(as('u-a'), 'ownerGrants/u-a')));   // reading a missing grant is allowed: it reads as no grant
+  await seed((db) => setDoc(doc(db, 'ownerGrants/u-a'), {pro: true}));
+  await assertSucceeds(getDoc(doc(as('u-a'), 'ownerGrants/u-a')));
+  await assertFails(getDoc(doc(as('u-x'), 'ownerGrants/u-a')));
+  await assertFails(getDoc(doc(as(null), 'ownerGrants/u-a')));
+  await assertFails(getDocs(collection(as('u-a'), 'ownerGrants')));
+  await assertFails(updateDoc(doc(as('u-a'), 'ownerGrants/u-a'), {pro: false}));
+  await assertFails(deleteDoc(doc(as('u-a'), 'ownerGrants/u-a')));
+  await assertFails(setDoc(doc(as('u-x'), 'ownerGrants/u-x'), {pro: true}, {merge: true}));
+  // and a grant gives nothing else: the owner still cannot write a subscription
+  await assertFails(setDoc(doc(as('u-a'), 'customers/u-a/subscriptions/s1'), {status: 'active'}));
+});
+
 test('an unknown collection is denied', async () => {
   await assertFails(setDoc(doc(as('u-a'), 'anything/x'), {a: 1}));
   await assertFails(getDoc(doc(as('u-a'), 'anything/x')));

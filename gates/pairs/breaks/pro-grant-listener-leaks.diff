@@ -1,0 +1,11 @@
+--- a/index.html
++++ b/index.html
+@@ -314,7 +314,7 @@
+         const s2=onSnapshot(doc(db,'ownerGrants',u.uid), function(g){
+           const d=(g&&g.exists&&g.exists())?(g.data()||{}):{}; granted=(d.pro===true); emit();
+         }, function(){ granted=false; emit(); });
+-        _psub=function(){ try{s1();}catch(e){} try{s2();}catch(e){} };
++        _psub=s1;
+         return _psub;
+       };
+       C._proCheckout = async function(priceId){

@@ -208,6 +208,13 @@ service cloud.firestore {
         allow read: if signedIn() && me() == uid;
       }
     }
+    // ── ownerGrants/{uid} (#551 batch 12, jobs/kunals-own-account-gets-pro-without-paying-2026-11-17): Pro for an account without paying,
+    // {pro: true}. Written ONLY by hand in the Firebase console, which bypasses these rules. The signed-in owner may read their own
+    // grant (index.html's proWatch does); nobody may read another's, list the collection, or create, change or delete a grant.
+    match /ownerGrants/{uid} {
+      allow get: if signedIn() && me() == uid;
+      allow list, create, update, delete: if false;
+    }
     match /products/{id} {
       allow read: if true;
       match /prices/{id} { allow read: if true; }

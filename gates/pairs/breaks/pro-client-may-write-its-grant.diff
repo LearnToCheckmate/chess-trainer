@@ -1,0 +1,12 @@
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -213,7 +213,8 @@
+     // grant (index.html's proWatch does); nobody may read another's, list the collection, or create, change or delete a grant.
+     match /ownerGrants/{uid} {
+       allow get: if signedIn() && me() == uid;
+-      allow list, create, update, delete: if false;
++      allow create, update: if signedIn() && me() == uid;
++      allow list, delete: if false;
+     }
+     match /products/{id} {
+       allow read: if true;

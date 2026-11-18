@@ -35,3 +35,5 @@ gates/pairs/.work/
 gates/pairs/logs/
 gates/pairs/report.json
 gates/pairs/report.txt
+rules-test/firestore-debug.log
+rules-test/node_modules

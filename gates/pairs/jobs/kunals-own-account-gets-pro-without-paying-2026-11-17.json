@@ -1,0 +1,15 @@
+{
+ "job": "kunals-own-account-gets-pro-without-paying-2026-11-17",
+ "about": "Pro for an account with a grant ownerGrants/{uid} {pro: true} that only the Firebase console can write. Graded by gates/pairs/checks/pro-grant.sh: gate 167 (index.html's proWatch on stand-in snapshots, and the source and rule texts) and the rules emulator test in rules-test/ (Java and, once, the network; it runs in the build container). NOT COVERED: his phone after he adds his grant (the Pro features open, the offer gone) - his phone check after the landing.",
+ "gate": "gates/pairs/checks/pro-grant.sh",
+ "cmd": ["bash", "gates/pairs/checks/pro-grant.sh"],
+ "checks": ["TC-R230[a-g]? ", "RULES ownerGrants: ", "RULES customers: "],
+ "build": "never",
+ "situations": [{"name": "the bridge (node)", "match": "^TC-R230"}, {"name": "the rules (emulator)", "match": "^RULES "}],
+ "breaks": [
+  {"name": "any-truthy-grant", "patch": "breaks/pro-any-truthy-grant.diff", "why": "a grant of pro: \"true\" or 1 turns Pro on, so a grant is not exactly {pro: true}", "mustFailIn": ["the bridge (node)"]},
+  {"name": "grant-listener-leaks", "patch": "breaks/pro-grant-listener-leaks.diff", "why": "signing out stops only the subscription listener and leaves the grant listener running", "mustFailIn": ["the bridge (node)"]},
+  {"name": "client-may-write-its-grant", "patch": "breaks/pro-client-may-write-its-grant.diff", "why": "the rules let a signed-in player create or change their own grant, so the app could turn Pro on", "mustFailIn": ["the rules (emulator)"]}
+ ],
+ "timeoutSec": 600
+}

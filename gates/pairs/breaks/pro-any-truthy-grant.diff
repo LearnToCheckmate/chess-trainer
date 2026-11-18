@@ -1,0 +1,11 @@
+--- a/index.html
++++ b/index.html
+@@ -312,7 +312,7 @@
+           subActive=active; emit();
+         }, function(){ subActive=false; emit(); });
+         const s2=onSnapshot(doc(db,'ownerGrants',u.uid), function(g){
+-          const d=(g&&g.exists&&g.exists())?(g.data()||{}):{}; granted=(d.pro===true); emit();
++          const d=(g&&g.exists&&g.exists())?(g.data()||{}):{}; granted=!!d.pro; emit();
+         }, function(){ granted=false; emit(); });
+         _psub=function(){ try{s1();}catch(e){} try{s2();}catch(e){} };
+         return _psub;

@@ -297,13 +297,24 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       C._gameLeave = function(){ if(_gu){ _gu(); _gu=null; } };
       // ---- Stripe Pro (firestore-stripe-payments extension, default instance "firestore-stripe-payments", region us-central1) ----
       let _psub=null;
+      // #551 batch 12 (jobs/kunals-own-account-gets-pro-without-paying-2026-11-17; decisions/kunals-own-account-gets-pro-without-paying-2026-11-17):
+      // Pro is on for an active or trialing subscription (unchanged) OR an OWNER GRANT: ownerGrants/{uid} with pro exactly true. A grant
+      // is written ONLY in the Firebase console, which bypasses the rules; firestore.rules lets the signed-in owner read their own grant
+      // and lets no client create, change, delete or list one, so nothing in the app can turn Pro on. A missing, unreadable or
+      // non-true grant is no grant. Each answer is the OR of the two latest readings, sent again whenever either one changes.
       C._proWatch = function(cb){
         const u=auth.currentUser; if(!u){ if(typeof cb==='function') cb(false); return function(){}; }
         if(_psub){ try{_psub();}catch(e){} _psub=null; }
-        _psub=onSnapshot(collection(db,'customers',u.uid,'subscriptions'), function(snap){
+        let subActive=false, granted=false;
+        const emit=function(){ if(typeof cb==='function') cb(subActive===true||granted===true); };
+        const s1=onSnapshot(collection(db,'customers',u.uid,'subscriptions'), function(snap){
           let active=false; snap.forEach(function(d){ const s=d.data()||{}; if(s.status==='active'||s.status==='trialing') active=true; });
-          if(typeof cb==='function') cb(active);
-        }, function(){ if(typeof cb==='function') cb(false); });
+          subActive=active; emit();
+        }, function(){ subActive=false; emit(); });
+        const s2=onSnapshot(doc(db,'ownerGrants',u.uid), function(g){
+          const d=(g&&g.exists&&g.exists())?(g.data()||{}):{}; granted=(d.pro===true); emit();
+        }, function(){ granted=false; emit(); });
+        _psub=function(){ try{s1();}catch(e){} try{s2();}catch(e){} };
         return _psub;
       };
       C._proCheckout = async function(priceId){
