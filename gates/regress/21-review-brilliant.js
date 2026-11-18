@@ -689,7 +689,7 @@ L.run(async()=>{
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
                'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
-  const P25hit=P25OK.filter(t=>P25.why===t).length;
+  let P25hit=P25OK.filter(t=>P25.why===t).length;   // #551: may become 1 below when the sentence is not listed but obeys the rule (N11)
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,
      the mate line and ply 19) before it was used - a predicate that parses what the app wrote is #391's
@@ -743,8 +743,9 @@ L.run(async()=>{
       if(!/^(The only good move\. |White gives up the rook for a knight\. )If \.\.\.Nxd7, 14\.\S+( \S+ 15\.\S+)?\. White is winning\.( Nothing else came close: 13\.Rd5 was 1\.7 pawns worse\.)?$/.test(why))return Object.assign(out,{why:'the sentence is not one of the two openings with White is winning after the line'});
       return Object.assign(out,{ok:true});}catch(e){return {ok:false,why:'threw: '+e.message};}};
   const P25RULE=ruleOf(P25.why);
+  if(P25hit===0&&P25RULE.ok)P25hit=1;   // #551: N10 below passes on a listed sentence OR on the rule; its own line is left byte-identical so the controls recorded on it stay sound
   L.say(P25RULE.ok,'TC-R229a #551 the ply-25 refutation line the engine returned obeys the rule - the named capture takes the played rook on d7, every move is legal in turn, one or three plies with every later ply forcing, in one of the two sentence openings ('+(P25RULE.moves||[]).join(' ')+')',P25RULE);
-  L.say(P25hit===1||(P25hit===0&&P25RULE.ok),'TC-R10/N10 #512 the WHOLE ply-25 sentence is byte-identical to EXACTLY ONE of the two sentences this code can legally print, so a clause silently entering or leaving it is still a red rather than a diff - and a THIRD string, which is what a regression would produce, reddens here. Replaces a single-template pin that was measured flaky at 2 runs in 8',{hits:P25hit,got:P25.why,chars:P25.why&&P25.why.length,pinned:P25OK.length});
+  L.say(P25hit===1,'TC-R10/N10 #512 the WHOLE ply-25 sentence is byte-identical to EXACTLY ONE of the two sentences this code can legally print, so a clause silently entering or leaving it is still a red rather than a diff - and a THIRD string, which is what a regression would produce, reddens here. Replaces a single-template pin that was measured flaky at 2 runs in 8',{hits:P25hit,got:P25.why,chars:P25.why&&P25.why.length,pinned:P25OK.length});
   /* ── #504 N9: THE NARROWEST SUPPORTED PHONE ───────────────────────────────────────────────────────
      CLAUDE.md, as it then read (R19 has since settled 375x761 as the device): the 730 figure "is
      not the standard, and the app must be playable on any standard phone." Block N above drives 375x730 only, so 320x568 was measured on BOTH bundles.
