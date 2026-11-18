@@ -1,0 +1,19 @@
+{
+ "job": "gate-84-holds-on-a-busy-machine-2026-11-15",
+ "about": "Gate 84 (the Two Bishops Mate free defender): its driver now plays white with the app's own search under test and keeps only moves the app will accept, so the off-book game is the same on every run (TC-LS-055, TC-LS-077) and the loosening move it tests is one the app does refuse (TC-LS-056, TC-LS-063). Graded: every TC-LS line, in the gate's three sizes (TC-LS-056 and 063 run at 375x761 only). The whole gate runs, about 2 minutes a try. NOT COVERED: how the defender plays on his phone, where the engine is not repeatable.",
+ "gate": "gates/regress/84-lesson-free-defender.js",
+ "checks": ["TC-LS-0(5[4-6]|63|77) "],
+ "build": "auto",
+ "situations": [
+  {"name": "the net test (node)", "match": "^TC-LS-054 "},
+  {"name": "kunal761", "match": "^TC-LS-0(55|56|63|77) kunal761"},
+  {"name": "se 320x568", "match": "^TC-LS-0(55|77) se"},
+  {"name": "390x844", "match": "^TC-LS-0(55|77) 390"}
+ ],
+ "breaks": [
+  {"name": "loosening-move-kept", "patch": "breaks/g84-loosening-move-kept.diff", "why": "the app keeps a white move that lets the king out of the net (mate in 4 to mate in 9)", "mustFailIn": ["kunal761"]},
+  {"name": "defender-ignores-the-engine", "patch": "breaks/g84-defender-ignores-the-engine.diff", "why": "the defending king walks to the centre instead of playing the engine's reply", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "stalemate-kept", "patch": "breaks/g84-stalemate-kept.diff", "why": "a stalemating move is kept instead of refused", "mustFailIn": ["the net test (node)"]}
+ ],
+ "timeoutSec": 900
+}

@@ -1,0 +1,10 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..8e60f7f 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1897,5 +1897,4 @@ function sacLine(gAfterCap,pvUci){
+          honest statement of the rule is therefore: the FIRST ply is the engine's reply as before, and
+          the line is EXTENDED only through forcing plies of which the last is the mover's own. */
+-      if(out.length>0&&!/[x+#]/.test(san))break;
+       out.push(san);
+       g=makeMove(g,m);

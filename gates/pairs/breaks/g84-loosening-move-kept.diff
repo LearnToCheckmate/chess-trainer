@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..21b33f1 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -154,5 +154,5 @@ function freeHangs(board,att){const def=opp(att);for(let r=0;r<8;r++)for(let c=0
+ function freeSyncVerdict(ng){const st=getStatus(ng);if(st==='checkmate')return {ok:true,mate:true};if(st==='stalemate')return {ok:false,why:'stalemate'};const h=freeHangs(ng.board,opp(ng.turn));if(h)return {ok:false,why:'hangs',sq:h.sq,t:h.t};return {ok:true};}
+ function freeNetVerdict(K,sc){if(!sc)return {ok:true,M:K,why:'no-engine'};const M=(sc.mate!=null&&sc.mate<=0)?-sc.mate:null;const cp=(sc.cp!=null)?-sc.cp:null;
+-  if(K!=null&&M!=null&&M>=K+3)return {ok:false,M,why:'looser'};if(K!=null&&K<=5&&M==null)return {ok:false,M,why:'lost-mate'};if(M==null&&cp!=null&&cp<150)return {ok:false,M,why:'not-winning'};return {ok:true,M};}
++  if(K!=null&&M!=null&&M>=K+30)return {ok:false,M,why:'looser'};if(K!=null&&K<=5&&M==null)return {ok:false,M,why:'lost-mate'};if(M==null&&cp!=null&&cp<150)return {ok:false,M,why:'not-winning'};return {ok:true,M};}
+ /* the reply when no engine is available (no Worker): the lone king heads for the centre, the textbook defence. */
+ function freeFallbackReply(g){const ms=getLegal(g);if(!ms.length)return null;let best=null,bv=-1e9;for(const m of ms){const v=-Math.max(Math.abs(3.5-m.tr),Math.abs(3.5-m.tc))-0.1*(Math.abs(3.5-m.tr)+Math.abs(3.5-m.tc));if(v>bv){bv=v;best=m;}}return best;}

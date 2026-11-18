@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..0f31a8f 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11700,5 +11700,5 @@ function AppMain(){
+              font and width and pins the count (at #550: 67 of 2262 do not fit at 375x761, 119 at 320x568; the figure this comment used to
+              carry, 18 of 734, was #366's library). */
+-          <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12 /* #550 cg6 FMT-A-09: one card radius, 12 */,padding:'7px 11px',height:75,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'3.96em' /* #550 jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: exactly three 1.32 lines (57.4 of the 59 inside), so a fourth line is never painted as a strip at the edge; the 'more' chip says there is more */,overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
++          <div data-ct="lesson-note" onClick={()=>{if(noteOver)setNoteOpen(true);}} style={{margin:'3px auto 0',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12 /* #550 cg6 FMT-A-09: one card radius, 12 */,padding:'7px 11px',height:83,boxSizing:'border-box',overflow:'hidden',fontSize:14.5,lineHeight:1.32,textAlign:'left',color:'rgba(255,255,255,.88)',position:'relative',cursor:noteOver?'pointer':'default'}}><div ref={noteInnerRef} className="scroll" style={{height:'3.96em' /* #550 jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: exactly three 1.32 lines (57.4 of the 59 inside), so a fourth line is never painted as a strip at the edge; the 'more' chip says there is more */,overflowY:'auto',overflowX:'hidden',WebkitOverflowScrolling:'touch',paddingRight:noteOver?74:0}}>
+             {learnPhase==='demo'
+               ? (demoPly===0?<span style={{color:'var(--ac2)'}}>▶ Press Play to watch</span>:<span><span style={{fontWeight:700,color:'#f0b429'}}>{Math.ceil(demoPly/2)}{demoPly%2===1?'.':'…'} {learnLine[demoPly-1]}</span>{curNote?<span>: {curNote}</span>:null}</span>)

@@ -1,0 +1,10 @@
+diff --git a/gates/fonts.conf b/gates/fonts.conf
+index ec2b5e7..2815d32 100644
+--- a/gates/fonts.conf
++++ b/gates/fonts.conf
+@@ -2,4 +2,5 @@
+ <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+ <!--
++  a double hyphen -- here makes fontconfig refuse this whole file
+   gates/fonts.conf - PIN THE FONT FACE THE SUITE'S PINS WERE CALIBRATED AGAINST.
+   Added #485. Turn it off for one run with CT_NOFC=1; an explicit FONTCONFIG_FILE always wins.

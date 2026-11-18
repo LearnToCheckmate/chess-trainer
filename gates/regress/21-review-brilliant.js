@@ -831,12 +831,14 @@ L.run(async()=>{
      Nxd7, SAC_FEN25 - into the chosen principal variation, and the app's own trim, store and sentence then run on it. One fresh browser
      per line, because the review caches the clause per ply. The lines are the ones the archived gatelogs record (Bxe7 Bxd7+ 402 times,
      Bxe7 Rd1 24, Kxe7 Bxd7 9, Kxe7 Qa3+ 3): the forcing three-ply shapes must print all three plies, a line whose third ply is quiet must
-     print the one-ply form, and each sentence must be EXACTLY the natural ply-25 sentence with only its line changed. */
+     print the one-ply form, a quiet ply in the MIDDLE stops the line there (the fifth, which no log records but the trim must handle), and each sentence must be EXACTLY the natural ply-25 sentence with only its line changed. */
   const FORCE=[
     {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen)'},
     {pv:'g5e7 f8e7 h1d1',line:'14.Bxe7',what:'the bishop recapture, then the quiet Rd1 (trimmed to one ply)'},
     {pv:'g5e7 e8e7 b5d7',line:'14.Bxe7 Kxe7 15.Bxd7',what:'the KING recapture, then Bxd7 (three plies) - the line of 15 Nov 2026'},
-    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3',what:'the king recapture, then Qa3+ (three plies, the check sign dropped in prose)'}];
+    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3',what:'the king recapture, then Qa3+ (three plies, the check sign dropped in prose)'},
+    // not from the logs: a QUIET ply in the middle (...a6) before a capture - the trim must stop at the quiet ply, so one ply is shown
+    {pv:'g5e7 a7a6 b5d7',line:'14.Bxe7',what:'a quiet ...a6 between two captures (trimmed to one ply: a line the opponent has no reason to follow is not shown)'}];
   const FORCE_FEN=SAC_FEN25.split(' ').slice(0,2).join(' ');
   const forceInit=(f)=>{const W=window.Worker;if(!W||window.__g21f)return;window.__g21f=f;window.__g21hits=0;const d=Object.getOwnPropertyDescriptor(W.prototype,'onmessage');
     window.Worker=function(u,o){const w=new W(u,o);let cur='';const pm=w.postMessage.bind(w);

@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..7cd667b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1760,5 +1760,5 @@ const forkTxt=(names)=>(names&&names.length>=2)?('It forks the '+names.slice(0,-
+    is only ever called at runtime from sacRun. A `const` arrow would have been a temporal-dead-zone
+    ReferenceError here; a declaration is not. */
+-const SAC_LINE_MAX=3;
++const SAC_LINE_MAX=1;
+ /* #512, ANTAGONIST A's F1: THE STORE DECISION, PURE AND MODULE-LEVEL SO IT CAN BE ENUMERATED.
+    `ok` is sfBestLine's new onDone flag - true only when the engine's `best` callback delivered - and

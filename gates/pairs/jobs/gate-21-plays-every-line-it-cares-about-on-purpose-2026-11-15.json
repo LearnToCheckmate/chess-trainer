@@ -1,0 +1,64 @@
+{
+ "job": "gate-21-plays-every-line-it-cares-about-on-purpose-2026-11-15",
+ "about": "Gate 21 drives each ply-25 refutation line it names (block D: Bxe7 Bxd7+, Bxe7 Rd1, Kxe7 Bxd7, Kxe7 Qa3+, and a quiet-middle Bxe7 a6 Bxd7 forced into the engine's answer) and checks the engine's own line by the rule (N11). Graded: the TC-R229 lines and N10, in the gate's own situations - the natural line, and each driven line. The whole gate runs, about 6 minutes a try. NOT COVERED: plies other than 25 and the Opera Game; a line the rule accepts that a strong player would call silly (the rule asks legality, forcing plies and the sentence shape, not chess judgement).",
+ "gate": "gates/regress/21-review-brilliant.js",
+ "checks": [
+  "TC-R229[abc] ",
+  "TC-R10/N10 "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "the engine's own line",
+   "match": "^(TC-R229a |TC-R10/N10 )"
+  },
+  {
+   "name": "driven Bxe7 Bxd7+",
+   "match": "g5e7 f8e7 b5d7"
+  },
+  {
+   "name": "driven Bxe7 Rd1",
+   "match": "g5e7 f8e7 h1d1"
+  },
+  {
+   "name": "driven Kxe7 Bxd7",
+   "match": "g5e7 e8e7 b5d7"
+  },
+  {
+   "name": "driven Kxe7 Qa3+",
+   "match": "g5e7 e8e7 b3a3"
+  },
+  {
+   "name": "driven Bxe7 a6 Bxd7",
+   "match": "g5e7 a7a6 b5d7"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "quiet-ply-kept",
+   "patch": "breaks/g21-quiet-ply-kept.diff",
+   "why": "the trim keeps a quiet ply inside the line, so Bxe7 a6 Bxd7 is shown as a line the opponent has no reason to follow",
+   "mustFailIn": [
+    "driven Bxe7 a6 Bxd7"
+   ]
+  },
+  {
+   "name": "line-cut-to-one-ply",
+   "patch": "breaks/g21-line-cut-to-one-ply.diff",
+   "why": "the line is always one ply, so the recovery Kunal asked to see is never on screen",
+   "mustFailIn": [
+    "driven Bxe7 Bxd7+",
+    "driven Kxe7 Bxd7"
+   ]
+  },
+  {
+   "name": "line-may-end-on-the-opponent",
+   "patch": "breaks/g21-line-may-end-on-the-opponent.diff",
+   "why": "the trim stops at any forcing ply, so a line can end on the opponent's move",
+   "mustFailIn": [
+    "driven Bxe7 Rd1"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}

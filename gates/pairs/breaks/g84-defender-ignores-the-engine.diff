@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..053958b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8585,5 +8585,5 @@ function AppMain(){
+         let _rs='';try{const _rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;if(_rm)_rs=toSAN(ng,_rm,applyMove(ng.board,_rm));}catch(e){_rs='';}
+         setOpenMsg('\u2717 '+san+(v.why==='not-winning'?(' throws the win away'+(_rs?(': the king answers '+_rs):'')+'. Try again.'):(' lets the king out of the net'+(_rs?(': after '+_rs+' the mate is further away now'):': the mate is further away now')+'. Try again.')));repaint();return;}
+-      let rm=(pv&&pv[0])?uciToMove(ng,pv[0]):null;const fromEngine=!!rm;if(!rm)rm=freeFallbackReply(ng);
++      let rm=null;const fromEngine=!!rm;if(!rm)rm=freeFallbackReply(ng);
+       if(!rm){freeSet({busy:false,over:true});repaint();return;}
+       const rsan=toSAN(ng,rm,applyMove(ng.board,rm));const ng2=makeMove(ng,rm);const hist2=hist.concat([ng2]);

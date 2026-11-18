@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e650514..649f663 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1901,5 +1901,5 @@ function sacLine(gAfterCap,pvUci){
+       g=makeMove(g,m);
+     }
+-    while(out.length>1&&!(/[x+#]/.test(out[out.length-1])&&(out.length-1)%2===0))out.pop();
++    while(out.length>1&&!(/[x+#]/.test(out[out.length-1])))out.pop();
+   }catch(e){}
+   return out;

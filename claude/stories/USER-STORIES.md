@@ -2484,7 +2484,7 @@ As the person who reads this project's gates, I get the same verdict on the same
 ### US-R159 Gate 21 checks every refutation line it cares about on every run, and any other legal line by the rule
 *Added #551 (batch 12), jobs/gate-21-plays-every-line-it-cares-about-on-purpose-2026-11-15.*
 As the person who reads gate 21, a legal line the engine has not chosen before does not turn a healthy build red, and a line the app renders wrongly still does.
-- Each named ply-25 line (Bxe7 Bxd7+, Bxe7 Rd1, Kxe7 Bxd7, Kxe7 Qa3+) is forced into the engine's answer and its sentence is exactly the natural one with that line. (TC-R229b)
+- Each named ply-25 line (Bxe7 Bxd7+, Bxe7 Rd1, Kxe7 Bxd7, Kxe7 Qa3+, and a quiet-middle Bxe7 a6 Bxd7 that must trim to one ply) is forced into the engine's answer and its sentence is exactly the natural one with that line. (TC-R229b)
 - An unlisted line passes only by the rule: the named capture takes the played rook, every move is legal in turn, one or three plies with every later ply forcing, in one of the two sentence openings. (TC-R229a, TC-R229c)
 
 ### US-R160 The owner's own account has Pro without paying, granted only from the Firebase console
