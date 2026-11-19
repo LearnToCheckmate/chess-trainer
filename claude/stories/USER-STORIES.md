@@ -2519,3 +2519,18 @@ As a player whose Brilliants are nearly all one kind, I open my brilliant moves 
 
 *Addition in batch 13 to an earlier story (its section above is not reworded):*
 - US-R129, same job: its last clause read "With one kind on one shelf, or with the switch off, the drill starts at once as before." Since the famous-games shelf, a store of one kind opens the library too (there is something to choose) and Practice all starts the drill; with the switch off the drill still starts at once. (TC-R197f, re-pinned)
+
+### US-R163 The Review tells me what a move does on the board, in the line, the engine line and the summary
+*Added in batch 13, jobs/review-sentences-name-what-the-moves-do-2026-11-12 (the remainder after batch 10: docs/hint-audit-2026-11-12 HEX-R-02, -06, -07, -08, and the residuals A2, A3, A6, B6, B7 of docs/review-text-design-2026-11-14). Kunal, 12 Nov 2026: "we have a few places we are giving hints explanations. We should check all of those."*
+As a player reading the review of my game, I am told what each move concretely does where the board proves it, and nothing the board does not prove, so that I learn the point of the move and not only its grade.
+- A good move that takes a piece away from an attacker that was winning it says so, with the attacker and its square. (TC-R234a)
+- A good move that threatens mate in one names the mating move with its move number; a good move that stops my opponent's mate in one names the mate it stops. (TC-R234b, TC-R234c)
+- "Backs up" is said only of a piece my opponent attacks, and a move that answers a check does not "let a bishop out". (TC-R234d)
+- My only legal move says what it does about the check: the king steps out, a piece blocks it, or the checking piece is taken. (TC-R234e)
+- With no reply to look at (the last move of a game), a slip keeps its verdict and claims nothing about what is lost. (TC-R234f)
+- A sacrifice that forces mate in two says so at once, with the moves, and the sentence does not change while I look at it. (TC-R234g)
+- A move that gives check is written with its check sign, in a run of moves and in a sentence. (TC-R234h)
+- The why button's words spell a pawn move as the move is written ("e4", never "E4"). (TC-R234i)
+- In the engine line in words, a capture that takes back is not "wins", a check is called a check, a king that steps out of check says so, and the only legal move says so. (TC-R234j, TC-R234k)
+- The summary's Coach's take names my toughest moment with its move number and, where the board proves it, what the move lost. (TC-R234l, TC-R234n)
+- All of this reads the same on my phone and at 320x568, after stepping to the move. (TC-R234m, TC-R234n)
