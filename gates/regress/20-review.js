@@ -43,8 +43,64 @@ const ladderRows=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data
       const n=[...d.querySelectorAll('button')].map(x=>{const t=(x.innerText||'').trim();return /^\d+$/.test(t)?Number(t):null;});
       return {label:lab,w:n[0],b:n[1]};});});
 const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');return s?(s.innerText||'').replace(/\s+/g,' ').slice(0,8000):'';});
+/* ───── TC-R236: THIS GATE'S OWN SPEED AND ITS OWN CASE COUNT [batch 13; jobs/gate-20-is-killed-at-its-900-second-limit-in-3-of-4-
+   runs-on-551-make-it-finish-well-inside-it-2026-11-18] ─────
+   gates.sh kills a gate at 900 s. On #551 this gate was killed there in 3 of 4 runs (flake check A). WHERE THE SECONDS WENT,
+   measured on the head before the fix (bundle 408f902514e5, the tree at ca53d655, `node -r gates/lib.js` exactly as gates.sh runs it,
+   per case from the timestamp of each case's lines; busy = one `node -e 'for(;;){}'` beside it on this 4-core container):
+   BEFORE (quiet 724 s, busy 769 s; both 320 PASS 0 FAIL, so neither was killed here - on #551 three of four were):
+                               quiet  busy                                  quiet  busy
+     main walk kunal (375x679)    51    53     R03 accounts                     5     5
+     main walk kunal730           51    52     R04 row verdicts                11    11
+     main walk 390                50    53     R88 best-line badge             21    21
+     R12b/R68/R107 graph+flags    25    27     R89 grade headers x2            28    30
+     R66 legal set-up games x3    17    18     R93 badge v pill, 33 plies x2  114   122
+     R66 malformed headers x3     14    14     R94 analysis numbering          19    21
+     R66 not-set-up games x2      10    11     R114 transport row x4           64    73
+     R36 best move in full x3     90    93     R09d Lasker                     45    45
+     R79 summary inset            14    16     R09d blunder game               23    23
+     R111 menu over text x2       27    31     R71 re-entry x2                 44    51
+   Every one of the 18 launches after the main walks that merely stood on a reviewed Opera Game spent 8 to 10 s ANALYSING IT AGAIN
+   (the review's own engine pass, from nothing, in a new browser): about 150 s a run. The rest is fixed settles inside walks, which
+   the one busy core barely moves (+45 s in all) - so the gate was close to its limit on a quiet machine, and #551's slower engine
+   and a busier container put it past.
+   WHAT CHANGED, and nothing else did: (1) the Opera Game is ANALYSED ONCE PER RUN by the cases that exist to analyse it - the three
+   main walks, whose TC-R01 times a FRESH import at each geometry and so must not be handed a cache - and the stored analysis that
+   first walk leaves in ct_evalcache is SEEDED into every later launch that only needs a reviewed Opera Game to stand on (TC-R36, R79,
+   R111, R88, R89, R93, R94, R114 and the TC-R71 re-entry arm, 18 launches). Each of those launches used to run the whole engine pass
+   again from nothing - under ct_engdet, which gates/lib.js seeds, the same search on the same game gives the same numbers, so the
+   seeded analysis IS what each of them used to compute, and TC-R236 SHARED below checks that it was the one they graded from
+   (review.engine.path is 'cache'). The other fresh imports stay fresh on purpose: TC-R12b reads the default with nothing seeded,
+   TC-R66 reviews set-up games from their own headers, TC-R09d analyses two other games. (2) TC-R36 walks the game's 33 plies, not
+   70 clicks of which 37 landed on the last ply again (n read 3 at every geometry before and after; a line now checks the walk
+   reached 33/33). (3) LANE B: the six layout cases that read only the stored analysis (TC-R36, R79, R111, R89, R93, R114: 14
+   launches, about 190 s, nearly all of it R93's settles) run in a second lane of their own browsers, started as soon as the
+   first main walk has left the analysis to share; lane A keeps every case that reads the engine or a clock, in its old order.
+   The 5-minute load stayed at or under 2.3 on this 4-core container through the quiet run (1-minute peak 3.5).
+   AFTER_TABLE
+   THE TWO GUARDS, both FAIL lines and never a timeout: CASES - every case run named in CASE_RUNS ran, in order, so a case dropped from
+   a loop (a geometry left out, a block deleted) is red here; and TIME - the whole gate, measured from node's own start, finished
+   inside 600 s, two thirds of the 900 s limit. */
+// Each lane's case runs, in the order that lane runs them (lane B is the layout lane, below).
+const CASE_RUNS={A:['flagOf','main kunal','main kunal730','main 390','R12b kunal730',
+  'R66 23…','R66 40.','R66 4.','R66 bad a 9 in a rank','R66 bad two white kings','R66 bad the side not to move in check','R66 ok standard-start FEN','R66 ok SetUp 0',
+  'R03 kunal','R04 kunal730','R88 kunal730','R94 kunal730','R09d Lasker','R09d blunder','R71 se','R71 kunal761'],
+  B:['R36 se','R36 short375','R36 kunal730','R79 kunal761','R111 kunal761','R111 kunal730','R89 kunal730','R89 se',
+  'R93 kunal730','R93 se','R114 kunal761','R114 se','R114 kunal730','R114 390']};
+const CASE_TOTAL=CASE_RUNS.A.length+CASE_RUNS.B.length;   // 35
+const TIME_LIMIT_S=600;
+const RUNS=[];const _run={A:null,B:null};
+let laneBP=null;   // lane B's promise, started by the first main walk (below) and awaited before the TC-R236 lines
+const mark=(id,lane)=>{lane=lane||'A';const now=Date.now();const r=_run[lane];if(r)RUNS.push({lane,id:r.id,s:Math.round((now-r.t)/100)/10});_run[lane]=id?{id,t:now}:null;};
+// THE SHARED ANALYSIS: ct_evalcache as the first main walk left it (a JSON string), seeded into every launch that only stands on a review.
+let OPERA_CACHE=null;
+const shared=(st)=>Object.assign({},st||{},OPERA_CACHE?{ct_evalcache:OPERA_CACHE}:{});
+const SHARED_SEEN=[];
+const sharedHit=async(b,id)=>{const e=await b.page.evaluate(()=>{const r=window.__ctReview;return r&&r.engine?{path:r.engine.path,plies:r.plies&&r.plies.length}:null;}).catch(()=>null);
+  SHARED_SEEN.push(id);return L.say(!!OPERA_CACHE&&!!e&&e.path==='cache'&&e.plies===33,id+': TC-R236 SHARED this case stood on the Opera Game analysed once by the first main walk - its review was graded from the seeded stored analysis (review.engine.path '+(e&&e.path)+'), not by a second engine pass',e);};
 
-L.run(async()=>{
+L.run(async()=>{try{
+  mark('flagOf');
   // #550 check gap cg2: flagOf as a PREDICATE over the case's 17 inputs (7 valid codes, 1 lowercase, 2 unassigned pairs, 7 rejects),
   // through engine-extract so the function measured is the shipped one. A valid code is two regional-indicator letters; the rest are ''.
   {const E=require('../engine-extract.js');const RI=(c)=>String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65));
@@ -56,10 +112,153 @@ L.run(async()=>{
      ['XX',''],['XE','gb-eng'],['',''],[null,''],['USA',''],['1A',''],['U',''],['U$',''],[' US','']];
    const bad=cases.filter(([i,w])=>E.flagOf(i)!==w).map(([i,w])=>JSON.stringify(i)+' -> '+JSON.stringify(E.flagOf(i))+' (want '+JSON.stringify(w)+')');
    L.say(cases.length===17&&bad.length===0,'TC-R107b flagOf over 17 inputs: 7 valid codes name their flag picture, a lowercase code is read the same, XE names England\'s, and XX and the 7 rejects name none',bad);}
+  /* ───── LANE B [batch 13, TC-R236]: THE LAYOUT CASES THAT STAND ON THE SHARED ANALYSIS RUN BESIDE THE REST ─────
+     TC-R36, R79, R111, R89, R93 and R114 measure the review's layout over the Opera Game's STORED analysis and nothing else - no engine
+     answer, no timing, no state another case leaves behind (each launches its own browser with its own store). Almost all of their
+     time is the fixed settles of their walks (R93 alone is 66 plies at 1.2 s). So they run as a second lane, in their own browsers,
+     started the moment the first main walk has left the shared analysis, while lane A carries on with every case that reads the
+     engine or the clock. Every case still runs once with every line it had; the lines of the two lanes interleave in the log. */
+  const laneB=async()=>{
+  // TC-R36 [#547 item (103); Kunal's 'drop-word', desk round 1]: THE BEST MOVE IS SHOWN IN FULL ON A NARROW BOARD. Walk the stored
+  // review at 320x568 and 375x568 (a WIDE viewport over a NARROW board - the row is sized to the board) and 375x730; at every ply that
+  // shows a best-move chip, the chip's text is not cut and it ends inside its row. On the narrow boards the verdict word yields (the ??
+  // and its colour stay); at 375x730 it stays. Denominator first: plies with a chip were found.
+  {const RV=require('../drive/review');
+   for(const g of ['se','short375','kunal730']){mark('R36 '+g,'B');const b=await L.launch({geo:g,name:'r36-'+g,store:shared(RV.SEED)});await b.open();
+     let ok=true;try{await RV.states['moves-ply0'](b);await b.settle(500);}catch(e){ok=false;}
+     await sharedHit(b,g+': TC-R36');
+     let n=0;const bad=[];const pills=new Set();
+     /* batch 13 (TC-R236): the walk is the game's 33 plies, one Next each. It was 70 clicks, and the 37 after 17.Rd8# landed on the
+        last ply again and again (about 9 s a geometry); n read 3 at all three geometries before and after, so no ply left the walk.
+        That the walk did reach the end is now its own line below, rather than assumed. */
+     if(ok)for(let k=0;k<RV.OPERA_PLIES;k++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click().catch(()=>{});await b.page.waitForTimeout(140);
+       const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');if(!e)return null;const row=e.parentElement.getBoundingClientRect();const q=e.getBoundingClientRect();const p=e.previousElementSibling;
+         return {sw:e.scrollWidth,cw:e.clientWidth,inRow:q.right<=row.right+0.5,pill:p?(p.innerText||'').replace(/\s+/g,' ').trim():'',glyph:p?/[?!]/.test(p.innerText||''):false};});
+       if(r){n++;pills.add(r.pill);if(r.sw>r.cw+0.5||!r.inRow||!r.glyph)bad.push(k+1+':'+r.sw+'/'+r.cw+(r.inRow?'':' out')+(r.glyph?'':' no-glyph'));}}
+     {const end=ok?await b.text('[data-ct="rev-move-line"]'):null;L.say(!!end&&new RegExp('\\b'+RV.OPERA_PLIES+'/'+RV.OPERA_PLIES+'\\b').test(end),g+': TC-R36 DENOMINATOR the walk reached the last ply, '+RV.OPERA_PLIES+' of '+RV.OPERA_PLIES,{end});}
+     L.say(n>0,g+': TC-R36 DENOMINATOR the walk found plies with a best-move chip ('+n+')',{n});
+     L.say(n>0&&bad.length===0,g+': TC-R36 at every such ply the best move is shown in full and inside its row, and the verdict glyph stays',{n,bad,pills:[...pills]});
+     await b.close();}
+  }
+  // TC-R79 [#547 item (107); jobs/review-summary-runs-under-the-status-bar-2026-09-22]: THE SUMMARY STAYS BELOW THE STATUS BAR. At
+  // 375x761 with ct_safe 51,31 (Kunal's insets): the summary's scroller starts at or below the 51px inset, the menu button sits below
+  // it, and with the summary scrolled to the bottom no VISIBLE text is above 51 (text the scroller clips is not painted, so it is not
+  // counted). The inset used to be padding inside the scroller, which scrolled away with the content.
+  {mark('R79 kunal761','B');const RV=require('../drive/review');const b=await L.launch({geo:'kunal761',name:'r79-summary-inset',store:shared(RV.SEED)});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   await sharedHit(b,'kunal761: TC-R79');
+   const rd=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);
+     const scr=sc?sc.getBoundingClientRect():null;const mb=document.querySelector('[data-ct="rev-summary-menu"]');let vis=1e9;const tw=document.createTreeWalker(s,NodeFilter.SHOW_TEXT);let n;
+     while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);const q=rg.getBoundingClientRect();if(q.height<=0)continue;
+       const inSc=sc&&sc.contains(n.parentElement);const top=inSc?Math.max(q.top,scr.top):q.top;if(inSc&&q.bottom<=scr.top)continue;if(top<vis)vis=top;}
+     return {scTop:scr&&scr.top,menuTop:mb?mb.getBoundingClientRect().top:null,visTop:vis};});
+   const r0=await rd();
+   L.say(ok&&!!r0&&r0.scTop!=null,'kunal761: TC-R79 PRECONDITION the summary is up and its scroller is found',r0);
+   await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const sc=s&&[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(sc)sc.scrollTop=sc.scrollHeight;});await b.settle(400);
+   const r1=await rd();
+   L.say(!!r0&&r0.scTop>=50.5&&r0.menuTop>=50.5,'kunal761: TC-R79 the summary scroller and its menu button both start below the 51px status bar ('+(r0&&Math.round(r0.scTop))+', '+(r0&&Math.round(r0.menuTop))+')',r0);
+   L.say(!!r1&&r1.visTop>=50.5,'kunal761: TC-R79 scrolled to the bottom, no visible text of the summary is under the status bar (top visible text at '+(r1&&Math.round(r1.visTop))+')',r1);
+   await b.close();}
+  // CONTROL-RECORD: 18de6cc 2026-11-06 total=225 red=2 scope=full how=HEAD 7982ed8's own bundle (menu button position absolute over the scroller), trial md5 3a181ac1b381; red: both TC-R111 no-cover lines (kunal761 56 of 237, kunal730 56 of 232). The good trial 9a0f44fae251 reads 225 PASS 0 FAIL.
+  // TC-R111 [#549 item (44); jobs/review-summary-runs-under-the-status-bar-2026-09-22, the job's case (b) and (a) over every scroll
+  // position]: THE ☰ NEVER SITS ON SUMMARY TEXT. It used to be position:absolute over the scroller, so at 56 of 237 positions (4px
+  // steps) it covered the players line, the coach sentence, 'Black' and '2/10', at BOTH insets. Scanned at 375x761 with 51/31 and at
+  // 375x730 with no inset (the control the job names: the overlap never depended on the inset). Painted text = a text rect clipped to
+  // the scroller. DENOMINATOR, its own assertion: some text passes through the button's own column (x band) during the scan, so a
+  // summary that lost its text cannot pass.
+  for(const g of ['kunal761','kunal730']){mark('R111 '+g,'B');const RV=require('../drive/review');const b=await L.launch({geo:g,name:'r111-menu-over-text-'+g,store:shared(RV.SEED)});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   await sharedHit(b,g+': TC-R111');
+   // The top inset is a PROPERTY OF THE GEOMETRY ENTRY (L.GEOS[g].safe, 'top,bottom'), never inferred from its name [#549 veto A1-R2].
+   const inset=+(String((L.GEOS[g]||{}).safe||'').split(',')[0])||0;
+   const r=ok?await b.page.evaluate((inset)=>{const s=document.querySelector('[data-ct="rev-summary"]');const mb=document.querySelector('[data-ct="rev-summary-menu"]');if(!s||!mb)return null;
+     const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(!sc)return null;
+     const max=sc.scrollHeight-sc.clientHeight;const o={max,positions:0,hitPos:0,colPos:0,underInset:0,ex:[],minTop:1e9};
+     for(let st=0;st<=max+4;st+=4){sc.scrollTop=st;const scr=sc.getBoundingClientRect();const m=mb.getBoundingClientRect();let hit=0,col=0;
+       const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let n;
+       while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);
+         for(const q of rg.getClientRects()){const t=Math.max(q.top,scr.top),bt=Math.min(q.bottom,scr.bottom);if(bt<=t||q.width<=0)continue;
+           if(t<o.minTop)o.minTop=t;if(t<inset-0.5)o.underInset++;
+           if(q.left<m.right&&q.right>m.left){col=1;if(t<m.bottom&&bt>m.top){hit=1;if(o.ex.length<6)o.ex.push(st+':'+n.nodeValue.trim().slice(0,24));}}}}
+       o.positions++;if(hit)o.hitPos++;if(col)o.colPos++;}
+     sc.scrollTop=0;return o;},inset):null;
+   L.say(ok&&!!r&&r.positions>0,g+': TC-R111 PRECONDITION the summary, its scroller and its menu button are found and the scroll was scanned ('+(r&&r.positions)+' positions)',r&&{max:r.max,positions:r.positions});
+   L.say(!!r&&r.colPos>0,g+': TC-R111 DENOMINATOR summary text passes through the menu button\'s column during the scan ('+(r&&r.colPos)+' positions)',r&&{colPos:r.colPos});
+   L.say(!!r&&r.positions>0&&r.hitPos===0,g+': TC-R111 at no scroll position does the menu button cover painted summary text ('+(r&&r.hitPos)+' of '+(r&&r.positions)+')',r&&{hitPos:r.hitPos,ex:r.ex});
+   L.say(!!r&&r.positions>0&&r.underInset===0,g+': TC-R111 at every scroll position no painted summary text is above the '+inset+'px top inset (highest at '+(r&&Math.round(r.minTop))+')',r&&{underInset:r.underInset,minTop:r.minTop});
+   await b.close();}
+  // TC-R89 (US-R88), #547 item (139): THE GRADE TABLE'S COLUMN HEADERS SIT OVER THEIR COLUMNS. Pre-fix the header grid was 1fr 48px
+  // 48px over rows of 1fr 56px 56px: at 375x730 'White' inked at 262 over digits at 250, 'Black' at 318 over 314. Located by structure
+  // (the header's own text), not by the data-ct this build added - so the pre-fix bundle reds on the misalignment, not a selector.
+  for(const geo of ['kunal730','se']){mark('R89 '+geo,'B');const RV=require('../drive/review');const b=await L.launch({geo,name:'r89-grade-head-'+geo,store:shared()});await b.open();
+   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
+   await sharedHit(b,geo+': TC-R89');
+   const r=await b.page.evaluate(()=>{const ink=e=>{const rg=document.createRange();rg.selectNodeContents(e);const q=rg.getBoundingClientRect();return Math.round((q.left+q.right)/2*10)/10;};
+     const head=[...document.querySelectorAll('div')].find(d=>/^1fr \d+px \d+px$/.test(d.style.gridTemplateColumns||'')&&/^\s*White\s*Black\s*$/.test(d.innerText||''));if(!head||!head.nextElementSibling)return null;
+     const hc=[...head.children],rc=[...head.nextElementSibling.children];if(hc.length<3||rc.length<3)return null;return {white:ink(hc[1]),black:ink(hc[2]),wDig:ink(rc[1]),bDig:ink(rc[2])};});
+   if(L.say(ok&&!!r,geo+': TC-R89 PRECONDITION the summary\'s grade table and its White/Black header are found',r))
+     L.say(Math.abs(r.white-r.wDig)<=1&&Math.abs(r.black-r.bDig)<=1,geo+': TC-R89 each header\'s ink is centred over its column\'s digits, within 1px (White '+r.white+' vs '+r.wDig+', Black '+r.black+' vs '+r.bDig+')',r);
+   await b.close();}
+  // TC-R93 (US-R95), #547 item (170): THE VERDICT BADGE NEVER PAINTS OVER ITS WORD PILL. Pre-fix the pill was centred on the square and
+  // the round badge sat on the square's corner: 18x13px of overlap at ply 30 at 375x730, 'Blunder' read 'Blund'. Every ply of the
+  // reference game is walked, so the clamped edge squares are in the population; plies with no pill are not counted.
+  for(const geo of ['kunal730','se']){mark('R93 '+geo,'B');const RV=require('../drive/review');const b=await L.launch({geo,name:'r93-pill-'+geo,store:shared()});await b.open();
+   let ok=true;try{await RV.states['moves-ply0'](b);}catch(e){ok=false;}
+   await sharedHit(b,geo+': TC-R93');
+   const hits=[],bad=[];
+   for(let p=1;ok&&p<=33;p++){try{await RV.goPly(b,p);await b.settle(500);}catch(e){break;}
+     const r=await b.page.evaluate(()=>{const bd=document.querySelector('[data-ct="rev-badge"]'),lb=document.querySelector('[data-ct="rev-badge-label"]');if(!bd||!lb)return null;const sp=lb.querySelector('span')||lb;const a=bd.getBoundingClientRect(),c=sp.getBoundingClientRect();
+       return {area:Math.max(0,Math.min(a.right,c.right)-Math.max(a.left,c.left))*Math.max(0,Math.min(a.bottom,c.bottom)-Math.max(a.top,c.top)),t:(sp.innerText||'').trim()};});
+     if(r){hits.push(p);if(r.area>0.5)bad.push({ply:p,area:Math.round(r.area),t:r.t});}}
+   if(L.say(ok&&hits.length>=1,geo+': TC-R93 PRECONDITION the walk met at least one ply that paints both the badge and its word pill ('+hits.length+': plies '+hits.join(',')+')',{hits}))
+     L.say(bad.length===0,geo+': TC-R93 at every such ply the badge and the pill do not overlap',bad);
+   await b.close();}
+  // TC-R114 (US-R104), #549 item (68), jobs/transport-row-icon-only: THE TRANSPORT ROW'S ICONS ARE THE BUTTONS, AND THE TARGET
+  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:7cce11ece74a how=cb() phone minHeight 36 with border, gradient and shadow off, trial md5 7cce11ece74a; red: TC-R114 44 x 44 at all four geometries, the chrome line stays green.
+  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:3c77598400b0 how=cb() phone minHeight 44 with border, gradient and shadow kept, trial md5 3c77598400b0; red: TC-R114 chrome at all four geometries, the 44 x 44 line stays green. The pre-fix HEAD bundle 780a57efc6f9 reds both lines (8). The good trial ec4bcdbf1098 reads gate 20 245 PASS 0 FAIL.
+  // DOES NOT SHRINK. Kunal: "do we need the outline, or can we just make the icons look like buttons themselves to save space".
+  // Pre-fix every control in rev-row1 was 42.00px tall (2px under the 44px floor) with a 1px border, a gradient and a box-shadow,
+  // at every geometry. The pairing is the point: chrome off AND 44x44 kept AND the centre still hits the control - neither half
+  // alone. The board-width floor is the shipped width at that size (keyed by dimensions, never by geometry name), so the 2px the
+  // row gained cannot be taken from the board unnoticed. Row width is NOT asserted: flex 1 1 0 makes it a constant here
+  // (jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29).
+  for(const geo of ['kunal761','se','kunal730','390']){mark('R114 '+geo,'B');const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo,store:shared()});await b.open();
+   const G=L.GEOS[geo],dim=G.w+'x'+G.h;const BOARD_FLOOR={'375x761':349,'320x568':264,'375x730':349,'390x844':364}[dim];
+   let ok=true;try{await RV.states['moves-ply10'](b);await b.settle(500);}catch(e){ok=false;}
+   await sharedHit(b,geo+': TC-R114');
+   const m=ok?await b.page.evaluate((INKSRC)=>{const INK=new Function('return ('+INKSRC+')')();const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;
+     return [...row.children].filter(c=>{const q=c.getBoundingClientRect();return q.width>1&&q.height>1;}).map(c=>{const q=c.getBoundingClientRect(),st=getComputedStyle(c);
+       const hit=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
+       const pl=parseFloat(st.paddingLeft)||0,pr=parseFloat(st.paddingRight)||0,bl=parseFloat(st.borderLeftWidth)||0,br=parseFloat(st.borderRightWidth)||0,k=INK(c);
+       return {t:(c.getAttribute('aria-label')||c.innerText||'').trim().slice(0,24),w:+q.width.toFixed(2),h:+q.height.toFixed(2),bottom:+q.bottom.toFixed(2),
+         bw:parseFloat(st.borderTopWidth)||0,bs:st.borderTopStyle,img:st.backgroundImage,sh:st.boxShadow,hit:!!(hit&&(hit===c||c.contains(hit))),
+         cl:+(q.left+bl+pl).toFixed(2),cr:+(q.right-br-pr).toFixed(2),ink:k?{l:+k.l.toFixed(2),r:+k.r.toFixed(2),w:+k.w.toFixed(2),n:k.n}:null};});},L.INK_RECT):null;
+   const bd=ok?await b.board():null;
+   if(L.say(!!m&&m.length>=3,geo+': TC-R114 PRECONDITION the review transport row is on screen at ply 10 with its controls ('+(m?m.map(k=>k.t).join(' | '):'none')+')',m)){
+     const small=m.filter(k=>k.h<43.99||k.w<43.99);
+     L.say(small.length===0,geo+': TC-R114 every transport control is at least 44 x 44 ('+m.map(k=>k.w+'x'+k.h).join(' ')+')',small);
+     const chrome=m.filter(k=>k.bw>0.01||k.bs!=='none'||k.img!=='none'||k.sh!=='none');
+     L.say(chrome.length===0,geo+': TC-R114 no transport control carries a border, a gradient or a box-shadow ('+chrome.length+' of '+m.length+' do)',chrome);
+     // TC-R39 [#550; jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, the second criterion of the story that job calls 'R28'; R18 #550: this comment wrote it with the US- prefix, which reads as an id of claude/stories/USER-STORIES.md, and that register has no such story - the job's id is from a story list this repo does not carry, so the prefix is dropped rather than a story imported. In this register the transport row's story is US-R104, which TC-R114 - the case TC-R39 sits inside - files under]: THE ROW FITS, MEASURED ON
+     // THE INK. Each control is flex 1 1 0 (or a fixed basis) with overflow visible, so the row's width is the sum of its children
+     // and scrollWidth equals clientWidth whatever the padding - both obvious instruments are constants here (the job measured
+     // NC3, 40px of horizontal padding on every control, at 13 pass / 0 fail against both). So the glyph's own rect
+     // (gates/lib.js INK_RECT) is held inside the control's CONTENT box (its rect less border and padding): a control too
+     // narrow for what it carries paints past its content box even when no box overflows anything. Non-empty first, own line.
+     const inkless=m.filter(k=>!k.ink||!(k.ink.n>0));
+     if(L.say(inkless.length===0,geo+': TC-R39 PRECONDITION gates/lib.js INK_RECT read painted ink in every transport control ('+m.map(k=>k.t+' n'+(k.ink?k.ink.n:0)).join(' | ')+')',inkless)){
+       const spill=m.filter(k=>k.ink.l<k.cl-0.5||k.ink.r>k.cr+0.5);
+       L.say(spill.length===0,geo+': TC-R39 every transport control\'s painted ink sits inside its own content box, within 0.5px ('+m.map(k=>k.t+' ink '+k.ink.l+'..'+k.ink.r+' in '+k.cl+'..'+k.cr).join(' | ')+')',spill);}
+     const blind=m.filter(k=>!k.hit||k.bottom>G.h+0.5);
+     L.say(blind.length===0,geo+': TC-R114 the centre of every control hit-tests to it and the control is on screen',blind);
+     L.say(!!bd&&BOARD_FLOOR!=null&&bd.w>=BOARD_FLOOR,geo+': TC-R114 the board keeps its shipped width at '+dim+' ('+(bd&&bd.w.toFixed(2))+' >= '+BOARD_FLOOR+')',{board:bd&&bd.w});}
+   await b.close();}
+  mark(null,'B');};
   // kunal730 ADDED 2026-10-03: this suite had never once run at Kunal's real 375x730. 679 stays as the
   // shorter-phone column [CLAUDE.md], and the one literal pin in this file (the 349 board width) stays bound to
   // 679 by its own geo check below rather than being moved - which reading changed has not been established.
   for(const geo of ['kunal','kunal730','390']){
+    mark('main '+geo);
     // #547 item (56): the eval graph is ON by default now, so this walk pins it OFF to keep its baseline the graph-off bar
     // that TC-R12 below compares the graph-on reload against (otherwise that comparison would read graph-on against itself).
     const b=await L.launch({geo,name:'review-'+geo,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
@@ -71,6 +270,13 @@ L.run(async()=>{
     L.say(ok&&tImport<90000,geo+': TC-R01 PGN import reaches the summary in under 90 s ('+Math.round(tImport/1000)+' s)');
     L.say(b.errs.length===0,geo+': TC-R01 zero app errors during import',b.errs.slice(0,3));
     await b.settle(800);await b.shot('review-'+geo+'-summary');
+    // TC-R236 SHARED: the first walk's fresh analysis is what the later Opera cases are seeded with. Its own line: the cache holds
+    // exactly this game, all 34 positions, every search finished (det 1) - a partial or abandoned pass is never shared.
+    if(!OPERA_CACHE){const c=await b.page.evaluate(()=>{const s=localStorage.getItem('ct_evalcache');let o=null;try{o=JSON.parse(s||'null');}catch(e){}
+        const ks=o?Object.keys(o):[];const v=ks.length===1?o[ks[0]]:null;return {s,keys:ks.length,evW:v&&v.evW?v.evW.length:0,det:v?v.det:null,path:window.__ctReview&&window.__ctReview.engine&&window.__ctReview.engine.path};});
+      if(L.say(ok&&c.keys===1&&c.evW===34&&c.det===1&&c.path!=='cache',geo+': TC-R236 SHARED the first main walk analysed the Opera Game from nothing (engine path '+c.path+') and left one complete stored analysis, 34 positions, det 1, to share',{keys:c.keys,evW:c.evW,det:c.det,path:c.path}))OPERA_CACHE=c.s;}
+    // Lane B starts here, once, whether or not the share was taken (without it each of its cases analyses afresh and its SHARED line is red).
+    if(!laneBP)laneBP=laneB().catch(e=>{L.say(false,'TC-R236 lane B threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));});
     // TC-R04 summary
     /* #393 (uat390-review-summary-menu-covered): THE SUMMARY MUST OFFER A WAY INTO THE MENU, AND IT MUST
        ACTUALLY OPEN. The panel is position:fixed inset:0 zIndex:500 and opaque, so the shared header row and
@@ -339,6 +545,7 @@ L.run(async()=>{
   // the player bar, and the board's width and top are identical to the same review with the graph switched off - the graph
   // lives in the band and costs the board nothing. Both readings are taken in one session, off after on, at ply 0.
   {
+    mark('R12b kunal730');
     const b=await L.launch({geo:'kunal730',name:'review-graph-default',store:{ct_pool:'3'}});await b.open();
     const key0=await b.page.evaluate(()=>localStorage.getItem('ct_evalgraph'));
     await b.tile('Review');await b.page.locator('textarea').first().fill(PGN);
@@ -434,6 +641,7 @@ L.run(async()=>{
       ['endgame, White to move','8/8/8/4k3/8/8/4K3/R7 w - - 0 40','[Event "Set-up endgame"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 42. Kd3 Kb5 *','40.','Ra5',{w:3,b:3}],
       ['middlegame with castling rights','r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4','[Event "Set-up middlegame"]\n[SetUp "1"]\n[FEN "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"]\n[Result "*"]\n\n4. O-O Nf6 5. d3 d6 6. c3 *','4.','O-O',{w:3,b:2}]];
     for(const [tag,fen,pgn,no,san,per] of OK){
+      mark('R66 '+no);
       const b=await L.launch({geo:'kunal761',name:'review-fen-'+no.replace(/\W/g,''),store:{ct_pool:'3'}});await b.open();
       await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
       const took=await ta.inputValue().catch(()=>'');
@@ -460,6 +668,7 @@ L.run(async()=>{
       ['two white kings','[Event "Two kings"]\n[SetUp "1"]\n[FEN "8/8/8/4k3/8/8/4K3/R3K3 w - - 0 40"]\n[Result "*"]\n\n40. Ra5+ Kd4 41. Ra4+ Kc5 *'],
       ['the side not to move in check','[Event "Impossible check"]\n[SetUp "1"]\n[FEN "8/8/8/R3k3/8/8/4K3/8 w - - 0 40"]\n[Result "*"]\n\n40. Ra4 Kd5 41. Kd3 Kc5 *']];
     for(const [tag,pgn] of BAD){
+      mark('R66 bad '+tag);
       const b=await L.launch({geo:'kunal761',name:'review-badfen-'+tag.replace(/\W/g,''),store:{ct_pool:'3'}});await b.open();
       await b.tile('Review');const ta=b.page.locator('textarea').first();await ta.fill(pgn);
       const took=await ta.inputValue().catch(()=>'');
@@ -478,6 +687,7 @@ L.run(async()=>{
     const STD='[Event "Standard start in a FEN header"]\n[SetUp "1"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *';
     const SU0='[Event "SetUp zero"]\n[SetUp "0"]\n[FEN "8/8/8/4k3/8/8/4K3/R7 w - - 0 40"]\n[Result "*"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 *';
     for(const [tag,pgn] of [['standard-start FEN',STD],['SetUp 0',SU0]]){
+      mark('R66 ok '+tag);
       const b=await L.launch({geo:'kunal730',name:'review-fen-ok-'+tag.replace(/ /g,'-'),store:{ct_pool:'3'}});await b.open();
       await b.tile('Review');await b.page.locator('textarea').first().fill(pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       let sum=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:90000});}catch(e){sum=false;}
@@ -486,69 +696,9 @@ L.run(async()=>{
       await b.close();
     }
   }
-  // TC-R36 [#547 item (103); Kunal's 'drop-word', desk round 1]: THE BEST MOVE IS SHOWN IN FULL ON A NARROW BOARD. Walk the stored
-  // review at 320x568 and 375x568 (a WIDE viewport over a NARROW board - the row is sized to the board) and 375x730; at every ply that
-  // shows a best-move chip, the chip's text is not cut and it ends inside its row. On the narrow boards the verdict word yields (the ??
-  // and its colour stay); at 375x730 it stays. Denominator first: plies with a chip were found.
-  {const RV=require('../drive/review');
-   for(const g of ['se','short375','kunal730']){const b=await L.launch({geo:g,name:'r36-'+g,store:RV.SEED});await b.open();
-     let ok=true;try{await RV.states['moves-ply0'](b);await b.settle(500);}catch(e){ok=false;}
-     let n=0;const bad=[];const pills=new Set();
-     if(ok)for(let k=0;k<70;k++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click().catch(()=>{});await b.page.waitForTimeout(140);
-       const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');if(!e)return null;const row=e.parentElement.getBoundingClientRect();const q=e.getBoundingClientRect();const p=e.previousElementSibling;
-         return {sw:e.scrollWidth,cw:e.clientWidth,inRow:q.right<=row.right+0.5,pill:p?(p.innerText||'').replace(/\s+/g,' ').trim():'',glyph:p?/[?!]/.test(p.innerText||''):false};});
-       if(r){n++;pills.add(r.pill);if(r.sw>r.cw+0.5||!r.inRow||!r.glyph)bad.push(k+1+':'+r.sw+'/'+r.cw+(r.inRow?'':' out')+(r.glyph?'':' no-glyph'));}}
-     L.say(n>0,g+': TC-R36 DENOMINATOR the walk found plies with a best-move chip ('+n+')',{n});
-     L.say(n>0&&bad.length===0,g+': TC-R36 at every such ply the best move is shown in full and inside its row, and the verdict glyph stays',{n,bad,pills:[...pills]});
-     await b.close();}
-  }
-  // TC-R79 [#547 item (107); jobs/review-summary-runs-under-the-status-bar-2026-09-22]: THE SUMMARY STAYS BELOW THE STATUS BAR. At
-  // 375x761 with ct_safe 51,31 (Kunal's insets): the summary's scroller starts at or below the 51px inset, the menu button sits below
-  // it, and with the summary scrolled to the bottom no VISIBLE text is above 51 (text the scroller clips is not painted, so it is not
-  // counted). The inset used to be padding inside the scroller, which scrolled away with the content.
-  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal761',name:'r79-summary-inset',store:RV.SEED});await b.open();
-   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
-   const rd=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');if(!s)return null;const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);
-     const scr=sc?sc.getBoundingClientRect():null;const mb=document.querySelector('[data-ct="rev-summary-menu"]');let vis=1e9;const tw=document.createTreeWalker(s,NodeFilter.SHOW_TEXT);let n;
-     while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);const q=rg.getBoundingClientRect();if(q.height<=0)continue;
-       const inSc=sc&&sc.contains(n.parentElement);const top=inSc?Math.max(q.top,scr.top):q.top;if(inSc&&q.bottom<=scr.top)continue;if(top<vis)vis=top;}
-     return {scTop:scr&&scr.top,menuTop:mb?mb.getBoundingClientRect().top:null,visTop:vis};});
-   const r0=await rd();
-   L.say(ok&&!!r0&&r0.scTop!=null,'kunal761: TC-R79 PRECONDITION the summary is up and its scroller is found',r0);
-   await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="rev-summary"]');const sc=s&&[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(sc)sc.scrollTop=sc.scrollHeight;});await b.settle(400);
-   const r1=await rd();
-   L.say(!!r0&&r0.scTop>=50.5&&r0.menuTop>=50.5,'kunal761: TC-R79 the summary scroller and its menu button both start below the 51px status bar ('+(r0&&Math.round(r0.scTop))+', '+(r0&&Math.round(r0.menuTop))+')',r0);
-   L.say(!!r1&&r1.visTop>=50.5,'kunal761: TC-R79 scrolled to the bottom, no visible text of the summary is under the status bar (top visible text at '+(r1&&Math.round(r1.visTop))+')',r1);
-   await b.close();}
-  // CONTROL-RECORD: 18de6cc 2026-11-06 total=225 red=2 scope=full how=HEAD 7982ed8's own bundle (menu button position absolute over the scroller), trial md5 3a181ac1b381; red: both TC-R111 no-cover lines (kunal761 56 of 237, kunal730 56 of 232). The good trial 9a0f44fae251 reads 225 PASS 0 FAIL.
-  // TC-R111 [#549 item (44); jobs/review-summary-runs-under-the-status-bar-2026-09-22, the job's case (b) and (a) over every scroll
-  // position]: THE ☰ NEVER SITS ON SUMMARY TEXT. It used to be position:absolute over the scroller, so at 56 of 237 positions (4px
-  // steps) it covered the players line, the coach sentence, 'Black' and '2/10', at BOTH insets. Scanned at 375x761 with 51/31 and at
-  // 375x730 with no inset (the control the job names: the overlap never depended on the inset). Painted text = a text rect clipped to
-  // the scroller. DENOMINATOR, its own assertion: some text passes through the button's own column (x band) during the scan, so a
-  // summary that lost its text cannot pass.
-  for(const g of ['kunal761','kunal730']){const RV=require('../drive/review');const b=await L.launch({geo:g,name:'r111-menu-over-text-'+g,store:RV.SEED});await b.open();
-   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
-   // The top inset is a PROPERTY OF THE GEOMETRY ENTRY (L.GEOS[g].safe, 'top,bottom'), never inferred from its name [#549 veto A1-R2].
-   const inset=+(String((L.GEOS[g]||{}).safe||'').split(',')[0])||0;
-   const r=ok?await b.page.evaluate((inset)=>{const s=document.querySelector('[data-ct="rev-summary"]');const mb=document.querySelector('[data-ct="rev-summary-menu"]');if(!s||!mb)return null;
-     const sc=[...s.querySelectorAll('div')].find(d=>/auto|scroll/.test(getComputedStyle(d).overflowY)&&d.scrollHeight>d.clientHeight);if(!sc)return null;
-     const max=sc.scrollHeight-sc.clientHeight;const o={max,positions:0,hitPos:0,colPos:0,underInset:0,ex:[],minTop:1e9};
-     for(let st=0;st<=max+4;st+=4){sc.scrollTop=st;const scr=sc.getBoundingClientRect();const m=mb.getBoundingClientRect();let hit=0,col=0;
-       const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let n;
-       while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);
-         for(const q of rg.getClientRects()){const t=Math.max(q.top,scr.top),bt=Math.min(q.bottom,scr.bottom);if(bt<=t||q.width<=0)continue;
-           if(t<o.minTop)o.minTop=t;if(t<inset-0.5)o.underInset++;
-           if(q.left<m.right&&q.right>m.left){col=1;if(t<m.bottom&&bt>m.top){hit=1;if(o.ex.length<6)o.ex.push(st+':'+n.nodeValue.trim().slice(0,24));}}}}
-       o.positions++;if(hit)o.hitPos++;if(col)o.colPos++;}
-     sc.scrollTop=0;return o;},inset):null;
-   L.say(ok&&!!r&&r.positions>0,g+': TC-R111 PRECONDITION the summary, its scroller and its menu button are found and the scroll was scanned ('+(r&&r.positions)+' positions)',r&&{max:r.max,positions:r.positions});
-   L.say(!!r&&r.colPos>0,g+': TC-R111 DENOMINATOR summary text passes through the menu button\'s column during the scan ('+(r&&r.colPos)+' positions)',r&&{colPos:r.colPos});
-   L.say(!!r&&r.positions>0&&r.hitPos===0,g+': TC-R111 at no scroll position does the menu button cover painted summary text ('+(r&&r.hitPos)+' of '+(r&&r.positions)+')',r&&{hitPos:r.hitPos,ex:r.ex});
-   L.say(!!r&&r.positions>0&&r.underInset===0,g+': TC-R111 at every scroll position no painted summary text is above the '+inset+'px top inset (highest at '+(r&&Math.round(r.minTop))+')',r&&{underInset:r.underInset,minTop:r.minTop});
-   await b.close();}
   // TC-R03 stored accounts survive a reload and name both players
   const games=(u)=>[{src:'cc',acct:u,pgn:PGN.replace('Morphy',u).replace('Duke Karl / Count Isouard','DukeKarlCountIsouard99'),white:u,black:'DukeKarlCountIsouard99',wr:'win',tc:'rapid',date:1789000000000}];
+  mark('R03 kunal');
   const b=await L.launch({geo:'kunal',name:'review-accounts',store:{ct_accts:['cc:jsmiller1112','cc:kunal2023'],ct_acctgames:{'cc:jsmiller1112':games('jsmiller1112'),'cc:kunal2023':games('kunal2023')}}});await b.open();await b.tile('Review');await b.settle(600);
   const chips=await b.rect('[data-ct="acct-chips"]');const body=await b.page.evaluate(()=>document.body.innerText.replace(/\s+/g,' '));
   L.say(!!chips&&/jsmiller1112/.test(chips.text)&&/kunal2023/.test(chips.text),'kunal: TC-R03 two account chips render',chips&&chips.text);
@@ -571,6 +721,7 @@ L.run(async()=>{
   // does, and one word closes it. Measured before: lose -> LOST, win -> WON, loss -> DRAW. After: all three right.
   // Asserted here because "did I win" is user-facing truth, and a silent draw is worse than a visible error.
   {
+    mark('R04 kunal730');
     const b3=await L.launch({geo:'kunal730',name:'row-verdicts',store:{}});await b3.open();
     for(const [wr,want] of [['win','WON'],['lose','LOST'],['loss','LOST'],['agreed','DRAW']]){
       await b3.page.evaluate((wr)=>{
@@ -590,8 +741,9 @@ L.run(async()=>{
   // TC-R88 (US-R86), #547 item (129): WHILE THE BEST LINE PLAYS, THE PLAYED MOVE'S BADGE AND TINT ARE NOT ON THE BOARD. Pre-fix at
   // ply 30 of the reference game the blunder badge and its red tint stayed on squares 11 and 21 throughout the replay of a line
   // that never played that move. The tint must follow the board (the plain last-move colour, on the line's own moves).
-  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r88-bestline-badge'});await b.open();
+  {mark('R88 kunal730');const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r88-bestline-badge',store:shared()});await b.open();
    let ok=true;try{await RV.states['moves-ply0'](b);await RV.goPly(b,30);await b.settle(900);}catch(e){ok=false;}
+   await sharedHit(b,'kunal730: TC-R88');
    const rd=()=>b.page.evaluate(()=>{const bd=document.querySelector('[data-ct="rev-badge"]');const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
      const tints=g?[...g.children].slice(0,64).map((c,i)=>{const o=[...c.children].find(x=>x.style&&x.style.position==='absolute'&&/inset/.test(x.getAttribute('style')||'')&&x.style.zIndex==='1');return o?{i,bg:o.style.background}:null;}).filter(Boolean):[];
      return {badge:bd?(bd.innerText||'').trim():null,tints};});
@@ -603,78 +755,16 @@ L.run(async()=>{
      L.say(t&&r1.tints.every(x=>x.bg!==graded)&&JSON.stringify(r1.tints.map(x=>x.i))!==JSON.stringify(r0.tints.map(x=>x.i)),'TC-R88 and no square carries the played move\'s grade tint: the tint is on the line\'s own last move, in the plain last-move colour',{before:r0.tints,during:r1.tints});
    }
    await b.close();}
-  // TC-R89 (US-R88), #547 item (139): THE GRADE TABLE'S COLUMN HEADERS SIT OVER THEIR COLUMNS. Pre-fix the header grid was 1fr 48px
-  // 48px over rows of 1fr 56px 56px: at 375x730 'White' inked at 262 over digits at 250, 'Black' at 318 over 314. Located by structure
-  // (the header's own text), not by the data-ct this build added - so the pre-fix bundle reds on the misalignment, not a selector.
-  for(const geo of ['kunal730','se']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r89-grade-head-'+geo});await b.open();
-   let ok=true;try{await RV.states['summary'](b);await b.settle(800);}catch(e){ok=false;}
-   const r=await b.page.evaluate(()=>{const ink=e=>{const rg=document.createRange();rg.selectNodeContents(e);const q=rg.getBoundingClientRect();return Math.round((q.left+q.right)/2*10)/10;};
-     const head=[...document.querySelectorAll('div')].find(d=>/^1fr \d+px \d+px$/.test(d.style.gridTemplateColumns||'')&&/^\s*White\s*Black\s*$/.test(d.innerText||''));if(!head||!head.nextElementSibling)return null;
-     const hc=[...head.children],rc=[...head.nextElementSibling.children];if(hc.length<3||rc.length<3)return null;return {white:ink(hc[1]),black:ink(hc[2]),wDig:ink(rc[1]),bDig:ink(rc[2])};});
-   if(L.say(ok&&!!r,geo+': TC-R89 PRECONDITION the summary\'s grade table and its White/Black header are found',r))
-     L.say(Math.abs(r.white-r.wDig)<=1&&Math.abs(r.black-r.bDig)<=1,geo+': TC-R89 each header\'s ink is centred over its column\'s digits, within 1px (White '+r.white+' vs '+r.wDig+', Black '+r.black+' vs '+r.bDig+')',r);
-   await b.close();}
-  // TC-R93 (US-R95), #547 item (170): THE VERDICT BADGE NEVER PAINTS OVER ITS WORD PILL. Pre-fix the pill was centred on the square and
-  // the round badge sat on the square's corner: 18x13px of overlap at ply 30 at 375x730, 'Blunder' read 'Blund'. Every ply of the
-  // reference game is walked, so the clamped edge squares are in the population; plies with no pill are not counted.
-  for(const geo of ['kunal730','se']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r93-pill-'+geo});await b.open();
-   let ok=true;try{await RV.states['moves-ply0'](b);}catch(e){ok=false;}
-   const hits=[],bad=[];
-   for(let p=1;ok&&p<=33;p++){try{await RV.goPly(b,p);await b.settle(500);}catch(e){break;}
-     const r=await b.page.evaluate(()=>{const bd=document.querySelector('[data-ct="rev-badge"]'),lb=document.querySelector('[data-ct="rev-badge-label"]');if(!bd||!lb)return null;const sp=lb.querySelector('span')||lb;const a=bd.getBoundingClientRect(),c=sp.getBoundingClientRect();
-       return {area:Math.max(0,Math.min(a.right,c.right)-Math.max(a.left,c.left))*Math.max(0,Math.min(a.bottom,c.bottom)-Math.max(a.top,c.top)),t:(sp.innerText||'').trim()};});
-     if(r){hits.push(p);if(r.area>0.5)bad.push({ply:p,area:Math.round(r.area),t:r.t});}}
-   if(L.say(ok&&hits.length>=1,geo+': TC-R93 PRECONDITION the walk met at least one ply that paints both the badge and its word pill ('+hits.length+': plies '+hits.join(',')+')',{hits}))
-     L.say(bad.length===0,geo+': TC-R93 at every such ply the badge and the pill do not overlap',bad);
-   await b.close();}
   // TC-R94 (US-R96), #547 item (171): ON THE ANALYSIS BOARD THE ENGINE LINE IS NUMBERED FROM THE POSITION ANALYSED. Drive 'analysis'
   // enters analysis at ply 0 and plays 1.e4 e5, so the engine's line starts with White's SECOND move. Pre-fix it read '1. Nf3 ...':
   // the number of the ply analysis was entered at, drifting a full move every two plies played.
-  {const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r94-ana-num'});await b.open();
+  {mark('R94 kunal730');const RV=require('../drive/review');const b=await L.launch({geo:'kunal730',name:'r94-ana-num',store:shared()});await b.open();
    let ok=true;try{await RV.states['analysis'](b);}catch(e){ok=false;}
+   await sharedHit(b,'kunal730: TC-R94');
    let t=null;for(let k=0;k<40&&!/\d+\.\s/.test(t||'');k++){await b.page.waitForTimeout(500);t=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});}
    const m=/(\d+)(\.{1,3})\s/.exec(t||'');
    if(L.say(ok&&!!m,'TC-R94 PRECONDITION after 1.e4 e5 on the analysis board the engine row printed a numbered line',{line:t}))
      L.say(+m[1]===2&&m[2]==='.','TC-R94 the line starts at White\'s move 2 ("2. ..."), the move after 1.e4 e5 - not at the move analysis was entered on ("'+m[0].trim()+'")',{line:t});
-   await b.close();}
-  // TC-R114 (US-R104), #549 item (68), jobs/transport-row-icon-only: THE TRANSPORT ROW'S ICONS ARE THE BUTTONS, AND THE TARGET
-  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:7cce11ece74a how=cb() phone minHeight 36 with border, gradient and shadow off, trial md5 7cce11ece74a; red: TC-R114 44 x 44 at all four geometries, the chrome line stays green.
-  // CONTROL-RECORD: 729b4d4 2026-11-06 total=245 red=4 scope=trial:3c77598400b0 how=cb() phone minHeight 44 with border, gradient and shadow kept, trial md5 3c77598400b0; red: TC-R114 chrome at all four geometries, the 44 x 44 line stays green. The pre-fix HEAD bundle 780a57efc6f9 reds both lines (8). The good trial ec4bcdbf1098 reads gate 20 245 PASS 0 FAIL.
-  // DOES NOT SHRINK. Kunal: "do we need the outline, or can we just make the icons look like buttons themselves to save space".
-  // Pre-fix every control in rev-row1 was 42.00px tall (2px under the 44px floor) with a 1px border, a gradient and a box-shadow,
-  // at every geometry. The pairing is the point: chrome off AND 44x44 kept AND the centre still hits the control - neither half
-  // alone. The board-width floor is the shipped width at that size (keyed by dimensions, never by geometry name), so the 2px the
-  // row gained cannot be taken from the board unnoticed. Row width is NOT asserted: flex 1 1 0 makes it a constant here
-  // (jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29).
-  for(const geo of ['kunal761','se','kunal730','390']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo});await b.open();
-   const G=L.GEOS[geo],dim=G.w+'x'+G.h;const BOARD_FLOOR={'375x761':349,'320x568':264,'375x730':349,'390x844':364}[dim];
-   let ok=true;try{await RV.states['moves-ply10'](b);await b.settle(500);}catch(e){ok=false;}
-   const m=ok?await b.page.evaluate((INKSRC)=>{const INK=new Function('return ('+INKSRC+')')();const row=document.querySelector('[data-ct="rev-row1"]');if(!row)return null;
-     return [...row.children].filter(c=>{const q=c.getBoundingClientRect();return q.width>1&&q.height>1;}).map(c=>{const q=c.getBoundingClientRect(),st=getComputedStyle(c);
-       const hit=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
-       const pl=parseFloat(st.paddingLeft)||0,pr=parseFloat(st.paddingRight)||0,bl=parseFloat(st.borderLeftWidth)||0,br=parseFloat(st.borderRightWidth)||0,k=INK(c);
-       return {t:(c.getAttribute('aria-label')||c.innerText||'').trim().slice(0,24),w:+q.width.toFixed(2),h:+q.height.toFixed(2),bottom:+q.bottom.toFixed(2),
-         bw:parseFloat(st.borderTopWidth)||0,bs:st.borderTopStyle,img:st.backgroundImage,sh:st.boxShadow,hit:!!(hit&&(hit===c||c.contains(hit))),
-         cl:+(q.left+bl+pl).toFixed(2),cr:+(q.right-br-pr).toFixed(2),ink:k?{l:+k.l.toFixed(2),r:+k.r.toFixed(2),w:+k.w.toFixed(2),n:k.n}:null};});},L.INK_RECT):null;
-   const bd=ok?await b.board():null;
-   if(L.say(!!m&&m.length>=3,geo+': TC-R114 PRECONDITION the review transport row is on screen at ply 10 with its controls ('+(m?m.map(k=>k.t).join(' | '):'none')+')',m)){
-     const small=m.filter(k=>k.h<43.99||k.w<43.99);
-     L.say(small.length===0,geo+': TC-R114 every transport control is at least 44 x 44 ('+m.map(k=>k.w+'x'+k.h).join(' ')+')',small);
-     const chrome=m.filter(k=>k.bw>0.01||k.bs!=='none'||k.img!=='none'||k.sh!=='none');
-     L.say(chrome.length===0,geo+': TC-R114 no transport control carries a border, a gradient or a box-shadow ('+chrome.length+' of '+m.length+' do)',chrome);
-     // TC-R39 [#550; jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29, the second criterion of the story that job calls 'R28'; R18 #550: this comment wrote it with the US- prefix, which reads as an id of claude/stories/USER-STORIES.md, and that register has no such story - the job's id is from a story list this repo does not carry, so the prefix is dropped rather than a story imported. In this register the transport row's story is US-R104, which TC-R114 - the case TC-R39 sits inside - files under]: THE ROW FITS, MEASURED ON
-     // THE INK. Each control is flex 1 1 0 (or a fixed basis) with overflow visible, so the row's width is the sum of its children
-     // and scrollWidth equals clientWidth whatever the padding - both obvious instruments are constants here (the job measured
-     // NC3, 40px of horizontal padding on every control, at 13 pass / 0 fail against both). So the glyph's own rect
-     // (gates/lib.js INK_RECT) is held inside the control's CONTENT box (its rect less border and padding): a control too
-     // narrow for what it carries paints past its content box even when no box overflows anything. Non-empty first, own line.
-     const inkless=m.filter(k=>!k.ink||!(k.ink.n>0));
-     if(L.say(inkless.length===0,geo+': TC-R39 PRECONDITION gates/lib.js INK_RECT read painted ink in every transport control ('+m.map(k=>k.t+' n'+(k.ink?k.ink.n:0)).join(' | ')+')',inkless)){
-       const spill=m.filter(k=>k.ink.l<k.cl-0.5||k.ink.r>k.cr+0.5);
-       L.say(spill.length===0,geo+': TC-R39 every transport control\'s painted ink sits inside its own content box, within 0.5px ('+m.map(k=>k.t+' ink '+k.ink.l+'..'+k.ink.r+' in '+k.cl+'..'+k.cr).join(' | ')+')',spill);}
-     const blind=m.filter(k=>!k.hit||k.bottom>G.h+0.5);
-     L.say(blind.length===0,geo+': TC-R114 the centre of every control hit-tests to it and the control is on screen',blind);
-     L.say(!!bd&&BOARD_FLOOR!=null&&bd.w>=BOARD_FLOOR,geo+': TC-R114 the board keeps its shipped width at '+dim+' ('+(bd&&bd.w.toFixed(2))+' >= '+BOARD_FLOOR+')',{board:bd&&bd.w});}
    await b.close();}
   // TC-R09d [#549 item (79); jobs/review-mate-label-not-plus9-9]: A FORCED MATE IS LABELLED AS A MATE AT EVERY REVIEW RENDER SITE, AT
   // THREE MATE DISTANCES, AND A GENUINE +9.9 IS NOT. TC-R09/TC-R09c cover the Opera Game only, whose mates are M2 and shorter, so a
@@ -702,6 +792,7 @@ L.run(async()=>{
     const geo='kunal761';
     const rows=[];
     for(const C of CASES){
+      mark('R09d '+C.tag);
       const b=await L.launch({geo,name:'r09d-'+C.tag,store:{ct_pool:'3',ct_evalgraph:'0'}});await b.open();
       await b.tile('Review');await b.page.locator('textarea').first().fill(C.pgn);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
       let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:120000});}catch(e){ok=false;}
@@ -777,9 +868,10 @@ L.run(async()=>{
      screen; the engine line must still be off. Each step reads the row's presence first (the precondition is that analysis
      turned it ON), so a green is not an engine line that never appeared. 360x640 is ruled out, not filed: it is in no named set
      (USER-STORIES THE GEOMETRY SETS, NAMED ONCE) and the case names 320x568. */
-  for(const geo of ['se','kunal761']){const RV=require('../drive/review');const b=await L.launch({geo,name:'r71-reenter-'+geo,store:{ct_pool:'3'}});await b.open();
+  for(const geo of ['se','kunal761']){mark('R71 '+geo);const RV=require('../drive/review');const b=await L.launch({geo,name:'r71-reenter-'+geo,store:shared({ct_pool:'3'})});await b.open();
     const eng=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="rev-engline"]'));
     let ok=true;try{await RV.ensureReview(b,'opera');await RV.startReview(b);await RV.goPly(b,19);await b.settle(500);}catch(e){ok=false;}
+    await sharedHit(b,geo+': TC-R71 REENTER');
     if(L.say(ok,geo+': TC-R71 REENTER PRECONDITION the Opera Game move screen at 10.Nxb5 was reached')){
       const e0=await eng();L.say(!e0,geo+': TC-R71 REENTER PRECONDITION before analysis there is no engine-line row',{e0});
       let e1=null,e2=null,e3=null,onSum=false,back=false;
@@ -792,6 +884,20 @@ L.run(async()=>{
       L.say(onSum&&back&&e3===false,geo+': TC-R71 back to the summary and in again, the engine line is STILL off: leaving analysis restored it for the rest of the review, not one screen',{e3});
     }
     await b.close();}
+  }finally{
+  // TC-R236 [batch 13]: the gate's own case count and its own time. In a finally, so a case that throws still leaves both lines -
+  // red, with the list of what ran - rather than a gate that stops without saying which cases it never reached.
+  mark(null);if(laneBP)await laneBP;
+  const secs=Math.round(process.uptime());
+  for(const ln of ['A','B'])L.note('TC-R236 TIMINGS lane '+ln+' (s, per case run, in order): '+RUNS.filter(r=>r.lane===ln).map(r=>r.id+' '+r.s).join(' | ')+' | lane total '+Math.round(RUNS.filter(r=>r.lane===ln).reduce((a,r)=>a+r.s,0)));
+  L.note('TC-R236 TIMINGS whole gate '+secs+' s');
+  const ranA=RUNS.filter(r=>r.lane==='A').map(r=>r.id),ranB=RUNS.filter(r=>r.lane==='B').map(r=>r.id),all=CASE_RUNS.A.concat(CASE_RUNS.B),ran=ranA.concat(ranB);
+  const missing=all.filter(x=>ran.indexOf(x)<0),extra=ran.filter(x=>all.indexOf(x)<0);
+  L.say(ranA.join('|')===CASE_RUNS.A.join('|')&&ranB.join('|')===CASE_RUNS.B.join('|')&&ran.length===CASE_TOTAL,'TC-R236 CASES all '+CASE_TOTAL+' of this gate\'s case runs ran, each lane in its order ('+ran.length+' ran: lane A '+ranA.length+' of '+CASE_RUNS.A.length+', lane B '+ranB.length+' of '+CASE_RUNS.B.length+')',{missing,extra});
+  const SHARED_WANT=18;
+  L.say(SHARED_SEEN.length===SHARED_WANT,'TC-R236 SHARED '+SHARED_SEEN.length+' of the '+SHARED_WANT+' launches that stand on a reviewed Opera Game checked that they graded from the one shared analysis',SHARED_SEEN);
+  L.say(secs<TIME_LIMIT_S,'TC-R236 TIME the whole gate finished in '+secs+' s, inside '+TIME_LIMIT_S+' s (two thirds of the 900 s gates.sh allows a gate)',{secs,slowest:RUNS.slice().sort((a,b)=>b.s-a.s).slice(0,5)});
+  }
 },'REVIEW');
 // SELECTOR-OPENED: pbar-top reading=presence round 4: the names and flags are read inside the bars and must be found
 // SELECTOR-OPENED: rev-summary-menu reading=presence round 4: the summary must carry its menu button, measured
