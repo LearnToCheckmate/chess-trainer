@@ -52,6 +52,7 @@
 //   AND THIS GATE'S FIRST VERSION WENT GREEN ON THE REAL CONTROL TOO, 12 of 12, for both reasons above. A gate
 //   written to warn about a measurement error, making exactly that error, is the most useful thing in this file.
 'use strict';
+// CONTROL-RECORD: b5fd7276 2026-11-19 total=42 red=1 scope=trial:77d872f466a3 how=batch 13, kunal730's denominator re-declared 'some' for the three row game card: on the bundle of the tree before the card (1e0c21e8) nothing sits below the fold at 375x730, so the re-declared line is the one red; on the card's trial (4901584b6a4b) 5 boxes sit below the fold there and all 5 are scrolled on screen
 // CONTROL-RECORD: ce729f6 2026-11-11 total=42 red=5 scope=trial:b19697cd53cb how=#550 answer a12: the tree before the paste row (paste box under the games list, no '?') - both TC-R40-HELP-REST lines red at se and kunal730 (no '?' to find), and kunal730's declared-none denominator red because the old entry screen put 10 boxes below the fold there; the a12 trial a6ef99c17548 reads 42 pass, 0 fail
 const L=require('../lib');
 // ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
@@ -225,7 +226,13 @@ const hdrKind=(all)=>((all||[]).some(k=>k.depth>=2)?'deep':'flat');
   L.say(spillPast([],V).length===0&&spillPast(null,V).length===0,'CONTROL C6: an EMPTY reading returns empty - which is a PASS the live assertion must never be allowed to earn on its own, which is why the live block asserts its own denominator below rather than only this filter.',0);
 }
 
-const DENOM_KIND={se:'some',kunal730:'none'};
+/* RE-DECLARED IN BATCH 13 [jobs/review-depth-per-game-on-the-new-game-card-2026-11-15]: kunal730 contributes SOME now. The three row game card is
+   122px (it was 85.7) and Your games is its own section, so with this gate's three stored games the third card runs past the fold inside the games
+   box at 375x730 (its rect ends at 762): 5 boxes below the fold, every one brought on screen by scrolling the games box (moved 5, stranded 0). By
+   this block's own rule that flip is the stronger state - the headline assertion is live at 375x730 instead of an empty-set pass - and the
+   declaration is updated in the same change as the layout that moved it. On the tree before the card (bundle 77d872f466a3) the count is 0.
+   The control is recorded with this gate's other records, at the top. */
+const DENOM_KIND={se:'some',kunal730:'some'};
 const DENOM={};           // geo -> {below, moved, stranded}
 const HELP_REST={};       // geo -> was the named help text already on screen at rest (so no scrolling exercised)
 
@@ -249,7 +256,7 @@ L.run(async()=>{
     L.note(geo+': '+bf.items.length+' painted boxes sit below the fold at rest; docScroll '+bf.docScroll);
     for(const x of bf.items.slice(0,4))L.note('   '+JSON.stringify(x));
     const kind=bf.items.length>0?'some':'none';
-    L.say(kind===DENOM_KIND[geo],geo+': THE DENOMINATOR OF THE HEADLINE ASSERTION, asserted rather than noted - this geometry contributed '+bf.items.length+' box(es) below the fold ('+kind+'), and it is DECLARED to contribute '+DENOM_KIND[geo]+'. At kunal730 that number is ZERO, so the headline PASS below is an EMPTY-SET pass at Kunal\'s own geometry and proves nothing there; saying so is the point of this line [jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28].',DENOM[geo]);
+    L.say(kind===DENOM_KIND[geo],geo+': THE DENOMINATOR OF THE HEADLINE ASSERTION, asserted rather than noted - this geometry contributed '+bf.items.length+' box(es) below the fold ('+kind+'), and it is DECLARED to contribute '+DENOM_KIND[geo]+'. At kunal730 that number was ZERO until the three row game card (batch 13), when the headline PASS below was an EMPTY-SET pass there; a geometry going back to none is the vacuity this line exists to say [jobs/gate40-headline-assertion-has-a-zero-denominator-at-kunals-geometry-2026-09-28].',DENOM[geo]);
     L.say(stranded.length===0,geo+': over '+bf.items.length+' input(s) - and that count is the assertion above, not decoration - every box below the fold on the Review entry screen can be SCROLLED onto the screen by a finger - measured by actually scrolling its user-scrollable ancestors and re-reading the rect, not by finding one and assuming. "Below the fold" is not "unreachable", and that is the measurement the test lane got wrong twice in one night.',stranded.slice(0,3));
 
     // #550 answer a12 (item 95, Option A): the how-to sits behind the paste row's '?' (docs/mockup-q12-paste-2026-11-11), so the rest state
