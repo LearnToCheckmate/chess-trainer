@@ -104,3 +104,4 @@
 141	140	raise	2026-11-14	550	build__1794388896663	gate 164 (Review games list is a fixed page, q45, #550 app B ef0f72f; control 5/6 on b82e642, fix 11/0)	-	d64bbd5f30e6
 142	141	raise	2026-11-14	550	build__1794388896663	q48 Option B (Kunal 2:08am ET Sat 14 Nov): move list under the bottom bar on upright game screens; gate 165 TC-R227a..d, control 4f86589d5ec9 13/12	-	c7f9638527c5
 144	142	raise	2026-11-18	551	build__1794962122974	#551 batch 12: gate 166 (the engine repeatable under test, TC-R228, US-R158) and gate 167 (Pro from an owner grant only the console writes, TC-R230, US-R160)	-	6ac290080e5b
+145	144	raise	2026-11-19	552	batch13-seat-B1	batch 13, jobs/brilliancy-library-and-motif-coverage-2026-09-23: gate 168, the Brilliant library's famous-games shelf (54 moves from 28 famous games, each graded Brilliant by the app's own engine and rule) and the kinds that read the line; US-R162, TC-R233a..m	-	677f17235eef

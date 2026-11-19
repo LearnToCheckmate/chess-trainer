@@ -1,0 +1,55 @@
+{
+ "job": "brilliancy-library-and-motif-coverage-2026-09-23",
+ "about": "The Brilliant library's famous-games shelf and the kinds that read the line (batch 13, the remainder of the job: seeding source 3 and the engine-line motifs). Gate 168 is run whole (about 3 minutes a try) and every TC-R233 line is graded: the node lines (the table is the generated one, every row a legal sacrifice the app's own engine graded Brilliant, the line rules pinned to named games) and the screen lines at his phone 375x761 and at 320x568 (the one-kind player's tile opens the library; the coverage line; the shelf's chips, the kinds he has not played first; the shelf scrolled with the Practice button still on screen; one chooser of three kinds; a famous deck started, its first card named and solved; a deck of his cards and famous ones; no famous move offered twice; the switch off). NOT COVERED, said rather than implied: what was built at batch 10 (the played and missed shelves: gate 118, TC-R197); the engine search that graded the 1211 plies is a recorded measurement (gates/fixtures/brilliancy-classics-measured.json), not re-run by the gate, so a wrong record is invisible here; no laptop width and no skin is a situation; zwischenzug and desperado are not tagged at all; seeding sources 1 (followed players) and 2 (the Lichess set) are not built.",
+ "gate": "gates/regress/168-brilliant-famous-games.js",
+ "env": {},
+ "checks": [
+  "TC-R233[a-m] "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "node",
+   "match": "^node "
+  },
+  {
+   "name": "kunal761",
+   "match": "^kunal761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "one-kind-tile-starts-the-drill",
+   "patch": "breaks/g168-one-kind-tile-starts-the-drill.diff",
+   "why": "the tile opens the library only for a store of two or more kinds, as before the shelf: the player whose Brilliants are all one kind - the player the job is for - never sees the famous-games shelf",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "famous-card-reads-as-his-own",
+   "patch": "breaks/g168-famous-card-reads-as-his-own.diff",
+   "why": "a famous card names nobody: the header reads Your brilliant moves and neither the goal nor the explanation says whose move it was, so another player's move is presented as his",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "shelf-does-not-read-the-line",
+   "patch": "breaks/g168-shelf-does-not-read-the-line.diff",
+   "why": "the shelf's kinds are read without the line, so every kind that needs it (king hunt, drawing the king out, deflection, clearance) vanishes and the shelf offers him less that is new",
+   "mustFailIn": [
+    "node",
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}

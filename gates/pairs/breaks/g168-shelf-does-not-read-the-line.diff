@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index dbb10291..17eb9a53 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2853,5 +2853,5 @@ const _brilKindsMemo=new Map();
+ function brilKinds(c){
+   if(!c||!c.fen||!c.uci)return ['sacrifice'];const k=c.fen+'|'+c.uci;if(_brilKindsMemo.has(k))return _brilKindsMemo.get(k);
+-  let r=['sacrifice'];try{const pos=fromFEN(c.fen),m=uciToMove(pos,c.uci);if(m){const g=brilliantGate(pos,m,0,0.5,0.5,null);const t=brilMotifs(pos,m,g,Array.isArray(c.line)?c.line:undefined)||{};
++  let r=['sacrifice'];try{const pos=fromFEN(c.fen),m=uciToMove(pos,c.uci);if(m){const g=brilliantGate(pos,m,0,0.5,0.5,null);const t=brilMotifs(pos,m,g,undefined)||{};
+     const hi=(t.tags||[]).filter(x=>x.conf==='high').map(x=>x.tag);r=hi.length?hi:[t.primary||'sacrifice'];}}catch(e){r=['sacrifice'];}
+   _brilKindsMemo.set(k,r);return r;
