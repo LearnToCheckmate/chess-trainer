@@ -323,7 +323,13 @@ L.run(async()=>{
   const b6=await L.launch({geo:'kunal761',name:'scan-orient',store:{ct_pool:'3'}});await b6.open();
   const orient=async(payloads)=>{ await P.states['setup'](b6); await b6.settle(200); await signIn(b6); await b6.settle(250); await stub(b6,'seq',payloads); await feed(b6,FILE2); await b6.settle(1200);
     return {calls:await b6.page.evaluate(()=>window.__scan.calls.slice()),ask:await b6.page.evaluate(()=>{const e=(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})();return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;}),txt:await screenText(b6),m:await msg(b6)}; };
-  const landed=(t)=>/Continuing from your reviewed position/.test(t);
+  /* batch 13 (jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18): a reading that is TAKEN no longer lands on
+     the New Game sheet with a side chosen. It opens Check the board, turned the way the photo shows it, so 'landed' is that screen with its
+     line, and which reading was taken is read off its painted board (gates/drive/scan.js check(): the placement, and the square painted
+     bottom-left - a1 for a camera on White's side, h8 for Black's). The whole flow after it is gate 174's. */
+  const SC=require('../drive/scan');
+  const landed=(t)=>/Check the board/.test(t)&&/Tap a square to fix it\./.test(t);
+  const turned=(f)=>{const ex=f.split(' ')[0].split('/').map(rw=>rw.replace(/[1-8]/g,d=>'.'.repeat(+d))).join('').split('').reverse().join('');const rows=[];for(let i=0;i<8;i++)rows.push(ex.slice(i*8,i*8+8).replace(/\.+/g,m=>String(m.length)));return rows.join('/');};
   // (1) the two readings AGREE
   const o1=await orient([{fen:FA,ok:true},{fen:FA,ok:true}]);
   L.say(o1.calls.length===2&&o1.calls[0]!==o1.calls[1]&&o1.calls.every(c=>/^[A-Za-z0-9+/]+={0,2}$/.test(c)),'TC-SC-039 one photo makes TWO calls and the second carries a DIFFERENT image - the photo turned 180 degrees, not the same bytes sent twice (FILE2 is not symmetric under the turn)',{n:o1.calls.length,same:o1.calls[0]===o1.calls[1],len:o1.calls.map(c=>c.length)});
@@ -342,7 +348,8 @@ L.run(async()=>{
      fallback only; TC-SC-044, -047 and -049 then read the landed position off the screen */
   await b7.page.locator('button',{hasText:/^Black's side$/}).or(b7.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b7.settle(900);
   const t3=await screenText(b7); const ask3=await b7.page.evaluate(()=>!!(()=>{const l=[...document.querySelectorAll('body *')].find(x=>x.children.length===0&&/^Which side of the board was the camera on\?$/.test((x.textContent||'').trim())&&x.getBoundingClientRect().height>0);return (l&&l.parentElement)||document.querySelector('[data-ct="scan-ask"]');})());
-  L.say(landed(t3)&&/You'll play\s*Black\s*\(the side to move\)/.test(t3),'TC-SC-044 answering Black\'s side sets up reading B - the one taken from the turned photo (its FEN has Black to move, reading A\'s has White)',{landed:landed(t3),black:/You'll play\s*Black/.test(t3)});
+  const k3=await SC.check(b7);
+  L.say(landed(t3)&&!!k3&&k3.placement===FB.split(' ')[0]&&k3.bottomLeft==='h8','TC-SC-044 answering Black\'s side takes reading B - the one from the turned photo - to Check the board, shown with Black at the bottom as the photo has it (was: set up on the New Game sheet with its side to move chosen)',{landed:landed(t3),placement:k3&&k3.placement,bottomLeft:k3&&k3.bottomLeft});
   L.say(ask3===false,'TC-SC-045 ... and the question is gone once it is answered',ask3);
   await b7.close();
   // (3) only ONE reading reads, and (4) neither does
@@ -353,7 +360,8 @@ L.run(async()=>{
   L.say(!!ask4&&!landed(await screenText(b8)),'TC-SC-046 when only ONE of the two readings reads, the orientation is still unchecked, so the player is still asked rather than given that reading',ask4);
   await b8.page.locator('button',{hasText:/^Black's side$/}).or(b8.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b8.settle(900);
   const t5=await screenText(b8);
-  L.say(landed(t5)&&/You'll play\s*White\s*\(the side to move\)/.test(t5),'TC-SC-047 ... and answering Black\'s side sets up the one reading turned 180 degrees, keeping its side to move (White)',{landed:landed(t5)});
+  const k5=await SC.check(b8);
+  L.say(landed(t5)&&!!k5&&k5.placement===turned(FA)&&k5.bottomLeft==='h8','TC-SC-047 ... and answering Black\'s side takes the one reading turned 180 degrees to Check the board, Black at the bottom',{landed:landed(t5),placement:k5&&k5.placement,want:turned(FA),bottomLeft:k5&&k5.bottomLeft});
   await b8.close();
   const b9=await L.launch({geo:'kunal761',name:'scan-orient4',store:{ct_pool:'3'}});await b9.open();
   await P.states['setup'](b9); await b9.settle(200); await signIn(b9); await b9.settle(250);
@@ -374,7 +382,8 @@ L.run(async()=>{
     L.say(!!a10&&/Which side of the board was the camera on\?/.test(a10)&&!m10,'TC-SC-049 when call A REJECTS but call B reads, the scan is not refused: no error message, and the player is asked which side the camera was on',{ask:a10,m:m10});
     await b10.page.locator('button',{hasText:/^Black's side$/}).or(b10.page.locator('[data-ct="scan-side-b"]')).first().click().catch(()=>{}); await b10.settle(900);
     const t10=await screenText(b10);
-    L.say(landed(t10)&&/You'll play\s*Black\s*\(the side to move\)/.test(t10),'TC-SC-049 ... and answering Black\'s side sets up reading B itself (Black to move)',{landed:landed(t10)});}
+    const k10=await SC.check(b10);
+    L.say(landed(t10)&&!!k10&&k10.placement===FB.split(' ')[0]&&k10.bottomLeft==='h8','TC-SC-049 ... and answering Black\'s side takes reading B itself to Check the board, Black at the bottom',{landed:landed(t10),placement:k10&&k10.placement,bottomLeft:k10&&k10.bottomLeft});}
   await b10.close();
 
   // ── The success path, and G3 across the whole cycle. ──
@@ -386,16 +395,16 @@ L.run(async()=>{
   await feed(b4);
   await b4.settle(1200);
   const txt=await screenText(b4);
-  L.say(/Play this position/.test(txt),'TC-SC-027 a valid FEN lands on the New Game sheet with the "Play this position" button (PART 6.3 row 10, claim 1)',/Play this position/.test(txt));
-  L.say(/Continuing from your reviewed position/.test(txt),'TC-SC-028 ... and the sheet says where the position came from (claim 2)');
-  /* The FEN fed above has BLACK to move, and the banner prints the side as a word: "You'll play <b>White|Black</b>
-     (the side to move)". So the assertion pins the WHOLE phrase and then checks the other branch is absent.
-     The first version of this line was /You'll play\s*Black|Black/, which matches the bare word "Black"
-     anywhere on the sheet - and the sheet carries a Black COLOUR CHIP, so it was green by construction and
-     would have stayed green with pColor set to White. #388's rule: read the branches the code can print and
-     check the pattern rejects the others. */
-  L.say(/You'll play\s*Black\s*\(the side to move\)/.test(txt),'TC-SC-029 ... and the side to move in the FEN (b) is the side the player is given - the banner\'s whole phrase, not the bare word, which the Black colour chip on the same sheet would satisfy (claim 3)',/You'll play\s*Black/.test(txt));
-  L.say(!/You'll play\s*White/.test(txt),'TC-SC-029b ... and it does NOT say White - the half that makes the line above an assertion rather than a coincidence');
+  /* batch 13 (Q30): the success path ends on Check the board, not on the New Game sheet with a side already chosen. TC-SC-027..029b were
+     'lands on the sheet with Play this position', 'says where the position came from', 'the FEN's side to move is the side the player is
+     given' and 'it does not say White'; they are now the four claims below. The FEN fed has BLACK to move, which the app must NOT turn
+     into a choice of side: who moves and which side he plays are asked on the next step (gate 174 drives them). */
+  const k4=await SC.check(b4);
+  L.say(!!k4&&k4.step===1&&/^Check the board$/.test(k4.title)&&k4.line==='Tap a square to fix it.','TC-SC-027 a valid FEN opens Check the board with its line "Tap a square to fix it." (was: lands on the New Game sheet with Play this position; PART 6.3 row 10, claim 1)',k4&&{title:k4.title,line:k4.line});
+  L.say(!!k4&&k4.placement==='r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R'&&k4.bottomLeft==='a1','TC-SC-028 ... and its board is the position that was read, White at the bottom (claim 2)',k4&&{placement:k4.placement,bottomLeft:k4.bottomLeft});
+  L.say(!/Play this position/.test(txt)&&!/You'll play/.test(txt),'TC-SC-029 ... and nothing has chosen a side for the player: no "Play this position" and no "You\'ll play" banner anywhere on the screen (claim 3, turned round by his FB-16 note: a photo cannot tell which side he wants)',{play:/Play this position/.test(txt),youll:/You'll play/.test(txt)});
+  await SC.next(b4);const q4t=await SC.answered(b4,'turn'),q4s=await SC.answered(b4,'side');
+  L.say(!!q4t&&!!q4s&&q4t.on.length===0&&q4s.on.length===0,'TC-SC-029b ... and on the next step both questions - who moves next, which side are you - are asked and neither is answered for him, although the FEN said Black to move',{q4t,q4s});
   const after=await sheet(b4);
   L.say(!!before&&!!after&&Math.abs(after.top-before.top)<0.5,'TC-SC-030 the sheet has not moved across the whole cycle (PART 6.3 row 11, G3)',{before:before&&before.top,after:after&&after.top});
   const bad=b4.errs.filter(e=>!/RuntimeError: unreachable/.test(e));

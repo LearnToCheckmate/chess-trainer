@@ -72,10 +72,6 @@ const termNote=(b)=>b.page.evaluate(()=>{
 // button, and the refusal is deliberately OFF for 'online'. The note and the button must agree at EVERY value,
 // which is the defect B found - they used to read two different expressions, so switching to Online left the
 // amber "there is no move to play from it" above an ENABLED "Continue -> ".
-const noteAndButton=async(b)=>{
-  const note=!!(await termNote(b));
-  const btn=await confirmBtn(b);
-  return {note,btn};};
 // [#549 item (19), folded in by item (12)] THE CONFIRM BUTTON IS FOUND BY WHAT IT SAYS inside the setup sheet, not by the
 // data-ct #466 added with these assertions: on the pre-#466 bundle that hook is absent, so a hook-keyed tap clicked NOTHING
 // and A7-A9 ("tapping it starts nothing") PASSED on the one bundle where tapping it started a game. The hook is a FALLBACK
@@ -111,23 +107,7 @@ const same=(a,b)=>!!a&&!!b&&a.length===64&&b.length===64&&(a.join('|')===b.join(
 // deployed bridge assigns). Since #549 the review row refuses BEFORE the setup sheet, so the committer guard - which
 // stays, as the defence for the scan route - is reached here the only way a player still can: a scan that reads a
 // finished position.
-const zlib=require('zlib');
-function png8(){const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){raw[y*(1+w*3)]=0;for(let x=0;x<w*3;x++)raw[y*(1+w*3)+1+x]=((x+y)%2)?200:40;}
-  const T=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);T[n]=c>>>0;}
-  const crc=(buf)=>{let c=0xffffffff;for(let i=0;i<buf.length;i++)c=T[(c^buf[i])&0xff]^(c>>>8);return (c^0xffffffff)>>>0;};
-  const chunk=(type,data)=>{const len=Buffer.alloc(4);len.writeUInt32BE(data.length,0);const td=Buffer.concat([Buffer.from(type,'ascii'),data]);const cr=Buffer.alloc(4);cr.writeUInt32BE(crc(td),0);return Buffer.concat([len,td,cr]);};
-  const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(w,0);ihdr.writeUInt32BE(h,4);ihdr[8]=8;ihdr[9]=2;
-  return Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),chunk('IHDR',ihdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);}
 const FEN={mate:'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3',stalemate:'5bnr/4p1pq/4Qpkr/7p/7P/4P3/PPPP1PP1/RNB1KBNR b KQ - 2 10'};
-async function scanInto(b,fen){
-  await P.states['setup'](b); await b.settle(200);
-  await b.page.evaluate(()=>{const C=window.CTCloud;if(C&&C._emit)C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
-  await b.settle(250);
-  await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},fen);
-  await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});
-  await b.settle(1200);
-}
-
 // ---- A/B: the TERMINAL ply. The route must refuse, and say why. ----
 async function terminal(b,pgn,kind,tag){
   await R.importPgn(b,pgn,180000);
@@ -149,40 +129,44 @@ async function terminal(b,pgn,kind,tag){
   const stillTerminal=kind==='mate'?/won by checkmate|Checkmate/.test(after.root):/Stalemate\. The game is drawn|Draw ½|Stalemate/.test(after.root);
   L.say(!!row&&!after.setup&&stillTerminal, tag+': A15 tapping it does NOT navigate - no setup sheet, still on the review at the SAME terminal ply', JSON.stringify({setup:after.setup,stillTerminal}));
   await R.closeSheet(b);
-  // The committer guard stays (it is the scan route's defence), so A1..A13 now reach it by the scan route.
-  await scanInto(b,FEN[kind]);
-  L.say(await vis(b,'[data-ct="setup-sheet"]'), tag+': PRECONDITION the setup sheet opened, from a scan of the finished position');
-
-  const note=await termNote(b);
-  L.say(!!note, tag+': A1 the setup sheet carries the TERMINAL note', note&&note.slice(0,90));
-  L.say(!!note&&new RegExp(kind==='mate'?'checkmate':'stalemate','i').test(note), tag+': A2 the note names the terminal KIND', note&&note.slice(0,70));
-  L.say(!!note&&/Scan or upload a board where it is still someone/.test(note), tag+': A3 the note names the REMEDY for its route (a scan: scan another board), so the refusal is not a dead end', note&&note.slice(-70));
+  // batch 13 (jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18): THE SCAN ROUTE'S REFUSAL MOVED
+  // WITH THE ROUTE. A scan no longer lands on the New Game sheet, so the sheet's terminal note is not where a scanned finished
+  // position is refused any more: it is refused on the scan's own second step, once he has said who moves next - the line under
+  // the board says which ending it is, and Play and Analyze stay inert. A1..A9 are the same nine claims about that screen
+  // (gates/drive/scan.js finds everything by its words). A10..A13 compared the sheet's note with the sheet's button at each
+  // opponent tile; no route reaches the sheet with a finished position now (the review row refuses at the row, A14/A15), so
+  // they are retired here and said so in a note line rather than left to pass on nothing.
+  const SC=require('../drive/scan');
+  const mover=FEN[kind].split(' ')[1]==='b'?'Black':'White';
+  await SC.scan(b,{fen:FEN[kind]});
+  const k1=await SC.check(b);
+  L.say(!!k1&&k1.step===1, tag+': PRECONDITION Check the board opened, from a scan of the finished position', k1&&k1.title);
+  await SC.next(b);
+  const pre=await SC.check(b);
+  L.say(!!pre&&pre.step===2&&!/nothing to play/.test(pre.line||''), tag+': PRECONDITION before he says who moves the screen refuses nothing (presence before absence, the other way round)', pre&&pre.line);
+  await SC.answer(b,'turn',mover);await SC.answer(b,'side',mover);
+  const k2=await SC.check(b);const note=k2&&k2.line;
+  L.say(!!note&&/nothing to play/.test(note), tag+': A1 with '+mover+' to move the scan step carries the TERMINAL line', note);
+  L.say(!!note&&new RegExp(kind==='mate'?'it is checkmate':'it is stalemate').test(note), tag+': A2 the line names the terminal KIND', note);
+  const back=await SC.btn(b,'Back to the board');
+  L.say(!!back&&back.dis===false, tag+': A3 the way out is on the same screen - Back to the board is live, so the refusal is not a dead end', back&&JSON.stringify(back));
   L.say((await ordinaryNote(b))===null, tag+': A4 the ordinary "Continuing from your reviewed position" note is ABSENT here (found by TEXT, not by a hook)');
-
-  const btn=await confirmBtn(b);
-  L.say(!!btn&&btn.dis===true, tag+': A5 the confirm button is DISABLED', btn&&JSON.stringify(btn));
-  L.say(!!btn&&/already over/i.test(btn.txt), tag+': A6 the confirm button SAYS the position is over', btn&&btn.txt);
+  const pbt=await SC.btn(b,'Play'),abt=await SC.btn(b,'Analyze');
+  L.say(!!pbt&&pbt.dis===true, tag+': A5 Play is DISABLED', pbt&&JSON.stringify(pbt));
+  L.say(!!abt&&abt.dis===true, tag+': A6 and so is Analyze', abt&&JSON.stringify(abt));
 
   const e0=await elo(b);
-  const tapped=await b.page.evaluate(()=>{const e=document.querySelector('[data-gate-confirm="1"]');if(e){e.click();return true;}return false;});
-  L.say(tapped, tag+': A7-FOUND the confirm button was located (by its TEXT, the hook only as fallback) and tapped - a tap on nothing cannot show that tapping starts nothing');
+  const tapped=await b.page.evaluate(()=>{const d=document.querySelector('[role="dialog"]');const x=d&&[...d.querySelectorAll('button')].find(e=>(e.innerText||'').trim()==='Play');if(x){x.click();const r=x.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}return null;});
+  if(tapped)await b.page.mouse.click(tapped.x,tapped.y);
+  L.say(!!tapped, tag+': A7-FOUND Play was located (by its TEXT) and tapped, by script and by pointer - a tap on nothing cannot show that tapping starts nothing');
   await b.settle(1400);
-  L.say(await vis(b,'[data-ct="setup-sheet"]'), tag+': A7 tapping it starts NOTHING - still on the setup sheet');
+  const k3=await SC.check(b);
+  L.say(!!k3&&k3.step===2, tag+': A7 tapping it starts NOTHING - still on the scan step');
   L.say((await b.rect('[data-ct="result-card"]'))===null, tag+': A8 no result card, so no game was started');
   const e1=await elo(b);
   L.say(e0===e1, tag+': A9 the stored adaptive strength ct_elo is UNCHANGED', 'before='+e0+' after='+e1);
-
-  // A10..A13: THE NOTE AND THE BUTTON READ ONE EXPRESSION, AT EVERY OPPONENT VALUE. Driven because antagonist
-  // B found them reading two, and the disagreeing state is ONE TAP from here.
-  const atComputer=await noteAndButton(b);
-  L.say(atComputer.note===true&&atComputer.btn&&atComputer.btn.dis===true, tag+': A10 vs Computer - warning shown AND button disabled, i.e. they agree', JSON.stringify(atComputer));
-  await b.tapText(/^Pass & Play$/,{wait:600});
-  const atHuman=await noteAndButton(b);
-  L.say(atHuman.note===true&&atHuman.btn&&atHuman.btn.dis===true, tag+': A11 Pass & Play - warning shown AND button disabled, i.e. they agree', JSON.stringify(atHuman));
-  await b.tapText(/^Online$/,{wait:600});
-  const atOnline=await noteAndButton(b);
-  L.say(atOnline.note===false&&atOnline.btn&&atOnline.btn.dis===false, tag+': A12 Online - the refusal is OFF, so the warning must be GONE too: no warning above an enabled button', JSON.stringify(atOnline));
-  L.say(!!atOnline.btn&&/Continue/.test(atOnline.btn.txt), tag+': A13 and that enabled button is the ONLINE one, not a Play-this-position', atOnline.btn&&atOnline.btn.txt);
+  L.note(tag+': A10..A13 (the New Game sheet\'s terminal note against its button at each opponent tile) are RETIRED at batch 13: no route opens the sheet on a finished position any more');
+  await SC.tapBtn(b,'Back to the board');await SC.tapBtn(b,'Close');await b.settle(300);
 }
 
 // ---- C: the POSITIVE CONTROL. The ordinary route must still work. ----
