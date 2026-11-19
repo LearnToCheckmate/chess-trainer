@@ -19,6 +19,13 @@
 // `opponent!=='online'`), which is read from source and not measured here. (2) The engine's view is checked for SHAPE (an evaluation
 // and a legal-looking move) and for WHEN it shows, not for the quality of the move. (3) One opponent (Pip), one colour (White).
 // CT_G170_GEO=kunal761|se runs one geometry.
+// CONTROL-RECORD: 89c4ccf6 2026-11-19 total=93 red=6 scope=trial:fcfab98b3d3e how=batch 13 pair break guard-dropped: coachLive and Start stop asking who the opponent is - a Pass & Play game started with the switch on has the Note row and the Engine's view and is saved as a coach game; three TC-R235j lines red at each size; the real tree 52eb63c4578a 93/0
+// CONTROL-RECORD: 89c4ccf6 2026-11-19 total=93 red=12 scope=trial:10c720ac3262 how=batch 13 pair break notes-not-saved: playedPgn is handed no notes - TC-R235g (the store's PGN has no comment), three TC-R235h lines and two TC-R235i lines red at each size
+// CONTROL-RECORD: 89c4ccf6 2026-11-19 total=93 red=6 scope=trial:feb9f9a9dab0 how=batch 13 pair break engine-unasked: an effect runs coachEngine on every position where it is the player's move - the TC-R235e precondition, the hint line and the after-takeback line red at each size ('Engine: +1.0. Best move: e5.' with nothing asked)
+// CONTROL-RECORD: 89c4ccf6 2026-11-19 total=93 red=2 scope=trial:f3d19b8e5d4d how=batch 13 control note-sheet-in-flow (gates/pairs/breaks/coach-note-sheet-in-flow.diff, not in the pair): the note sheet's backdrop is laid out in the page instead of fixed - TC-R235c 'the board has not moved under the note sheet' red at both sizes (192 wide where it was 375 and 298)
+// THE TREE WITH THE SUBJECT REMOVED (a9bdace0's own app.js dd8b009fc3f8, before coach mode): 2 pass, 8 fail and the harness throws at the first
+// missing control (the note text box) - red, but for a missing control and not for a wrong one, which is why the four one-change breaks above
+// are the controls and this is only the record that the set does not pass with its subject gone.
 const L=require('../lib');
 const P=require('../drive/play');
 const R=require('../drive/review');
