@@ -1,0 +1,15 @@
+diff --git a/index.html b/index.html
+index 2a7d3510..a639972f 100644
+--- a/index.html
++++ b/index.html
+@@ -194,9 +194,5 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
+       function _redirect(){ try { localStorage.setItem(RKEY, String(Date.now())); } catch(e) {} return signInWithRedirect(auth, provider); }
+       function _afterRedirect(err){ popupNext = true; C._signInVia = 'popup'; C._signInIssue(err); }
+-      getRedirectResult(auth).then(function(r){
+-        if (r && r.user) return;
+-        if (!leftByRedirect) return;
+-        return Promise.resolve(auth.authStateReady ? auth.authStateReady() : null).then(function(){ if (!auth.currentUser) _afterRedirect({code:'ct/redirect-came-back-empty'}); });
+-      }).catch(function(err){ if (leftByRedirect) _afterRedirect(err); });
++      getRedirectResult(auth).catch(function(){});
+       C._signIn  = function(){
+         if (standalone && !popupNext) { return _redirect(); }

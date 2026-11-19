@@ -1,0 +1,11 @@
+diff --git a/index.html b/index.html
+index 2a7d3510..c2271ec2 100644
+--- a/index.html
++++ b/index.html
+@@ -200,5 +200,5 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
+       }).catch(function(err){ if (leftByRedirect) _afterRedirect(err); });
+       C._signIn  = function(){
+-        if (standalone && !popupNext) { return _redirect(); }
++        if (standalone) { return _redirect(); }
+         return signInWithPopup(auth, provider).catch(function(err){
+           var c = err && err.code;

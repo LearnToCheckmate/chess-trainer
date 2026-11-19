@@ -1,0 +1,35 @@
+{
+ "job": "sign-in-with-google-does-nothing-from-the-ipad-home-screen-icon-2026-11-18",
+ "about": "Sign in with Google from an app opened from the Home Screen icon: the first tap is the redirect (the path his iPhone takes, unchanged), the redirect's return is read at start-up, a return with no account or with an error is said on the sign-in line, and the next tap uses the pop-up; a Safari tab still calls the pop-up first and falls back to the redirect. Graded by gate 171 (TC-R236a..j) on a trial bundle with the four Firebase modules answered by recording stand-ins and the Home Screen display mode emulated (navigator.standalone and matchMedia display-mode), at 375x761 with his insets, 320x568 and an iPad-sized 820x1180, after a tap and a return. NOT COVERED: the real Google and Firebase round trip, Safari's storage partitioning, and what iPadOS does with a pop-up opened from a Home Screen app - no browser here is WebKit on an iPad; his check on his iPad from the Home Screen icon is what proves those.",
+ "gate": "gates/regress/171-signin-home-screen.js",
+ "checks": [
+  "TC-R236[a-j]2? "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761 "},
+  {"name": "se 320x568", "match": "^se "},
+  {"name": "ipad 820x1180", "match": "^ipad "}
+ ],
+ "breaks": [
+  {
+   "name": "redirect-return-swallowed",
+   "patch": "breaks/171-redirect-return-swallowed.diff",
+   "why": "the start-up read of the redirect's result throws its outcome away again (getRedirectResult(auth).catch(function(){})), so a return with no account or with an error leaves the app exactly as it was - the reported defect",
+   "mustFailIn": ["kunal761", "se 320x568", "ipad 820x1180"]
+  },
+  {
+   "name": "home-screen-always-redirects",
+   "patch": "breaks/171-home-screen-always-redirects.diff",
+   "why": "an app opened from the Home Screen icon takes the redirect on every tap, so after a redirect that came back empty the next tap goes round the same redirect instead of the pop-up",
+   "mustFailIn": ["kunal761", "se 320x568", "ipad 820x1180"]
+  },
+  {
+   "name": "app-never-hears-the-return",
+   "patch": "breaks/171-app-never-hears-the-return.diff",
+   "why": "index.html reports the failed return but the app no longer listens (the CTCloud.onSignInIssue subscription is gone), so nothing is said on the sign-in line",
+   "mustFailIn": ["kunal761", "se 320x568", "ipad 820x1180"]
+  }
+ ],
+ "timeoutSec": 1800
+}

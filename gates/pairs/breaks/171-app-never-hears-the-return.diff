@@ -1,0 +1,10 @@
+diff --git a/chess.jsx b/chess.jsx
+index 762b3eb3..de6454da 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7100,5 +7100,4 @@ function AppMain(){
+     const C=(typeof window!=='undefined')?window.CTCloud:null;
+     if(!C)return; setCloudAvail(true);
+-    if(typeof C.onSignInIssue==='function')C.onSignInIssue((e)=>{setCloudErr(signInReturnMsg(e));});   /* batch 13: a redirect sign-in that came back without an account says so */
+     C.onAuth(async(u)=>{
+       if(u&&u.uid)setCloudErr('');   /* batch 13: signed in, so an earlier sign-in message no longer applies */
