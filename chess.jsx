@@ -425,6 +425,33 @@ function ccEnded(g){
 function ccMonthGames(mj){const all=((mj&&mj.games)||[]).filter(g=>g&&typeof g==='object');const done=all.filter(ccEnded);
   const open=all.filter(g=>!(+g.end_time>0)||!g.white||!g.black||typeof g.white!=='object'||typeof g.black!=='object'||!g.white.result||!g.black.result||/\[Result\s+"\*"\]/.test(String(g.pgn||''))).length;
   return {done,open,all:all.length};}
+/* batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16 (Kunal, 16 Nov 2026: review chess.com games
+   while they are being played, "developed first and kept private, then he decides"): THE ONE EXCEPTION TO THE RULE ABOVE ccEnded, AND
+   IT IS A DEVELOPER TOOL. With the developer tools on (devOn) AND the 'Review games in progress' switch on (New features, OFF unless
+   turned on: ct_live_review '1'), Review lists the Daily games still being played on the Chess.com accounts he follows and opens one
+   as a review that grows as its moves arrive. A player never has devOn, so in the public app none of this exists: no list, no request.
+   WHAT IS REACHABLE: chess.com's published-data API has one list of games in progress, /pub/player/<u>/games ("Daily Chess games
+   that a player is currently playing"); a live blitz, rapid or bullet game is published only once it has ended, in the monthly
+   archive. So this is Daily games only, read from that one endpoint, and no chess.com page is ever read.
+   POLITE: one request per account per LIVE_POLL_MS at most, whoever asks (liveAsk keeps the time of the last one), one account at a
+   time, the list only when the Review screen opens and the open game's account only while its review is open and the page is visible.
+   NOTHING OF A GAME IN PROGRESS IS KEPT: the list and the game live in memory, with no key and no player colour, so the review writes
+   no tally, no drill card and no stored game (the engine's evaluations of its positions are cached like any review's). */
+const LIVE_REVIEW=(()=>{try{return typeof localStorage!=='undefined'&&localStorage.getItem('ct_live_review')==='1';}catch(e){return false;}})();
+const LIVE_POLL_MS=45000;
+/* THE OWN-GAME RULE, ONE SWITCH (the lead's constraint on this job, put to Kunal as a question; his recorded answer of 16 Nov was "No
+   rule for now"): a game in progress in which one of HIS accounts plays is listed and NOT reviewed until it ends. An engine's view of
+   your own game while it is being played is engine help, which chess.com's fair-play rules forbid and which is unfair to the opponent.
+   `false` here is his "no rule": every game in progress opens. liveReviewWaits is the only reader. */
+const LIVE_OWN_GAMES_WAIT=true;
+const ccUrlUser=(p)=>String((p&&typeof p==='object')?(p.username||''):(p||'')).replace(/\/+$/,'').split('/').pop().trim().toLowerCase();
+// the rows of one account's /games answer: standard chess, a PGN, not ended; players by lower-cased username (the API names them by URL)
+function ccLiveGames(j,from){return ((j&&j.games)||[]).filter(g=>g&&typeof g==='object'&&typeof g.pgn==='string'&&g.pgn&&g.url&&!ccEnded(g)&&(!g.rules||g.rules==='chess'))
+  .map(g=>({url:String(g.url),pgn:g.pgn,white:ccUrlUser(g.white),black:ccUrlUser(g.black),turn:g.turn==='black'?'b':'w',tc:g.time_class||'daily',last:(+g.last_activity||0)*1000,from}));}
+// whose games are his: the Chess.com username in the box and every followed Chess.com account, except one he marked "not yours"
+function liveOwnNames(chessUser,accts,mine){const out=[];const add=(u)=>{u=String(u||'').trim().toLowerCase().replace(/^@/,'');if(u&&(mine||{})['cc:'+u]!==false&&out.indexOf(u)<0)out.push(u);};
+  add(chessUser);(accts||[]).forEach(id=>{if(/^cc:./.test(id))add(id.slice(3));});return out;}
+function liveReviewWaits(g,own){return LIVE_OWN_GAMES_WAIT&&!!g&&((own||[]).indexOf(g.white)>=0||(own||[]).indexOf(g.black)>=0);}
 function acctCapLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_C)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 function acctGamesLoad(){try{const o=JSON.parse(localStorage.getItem(ACCT_G)||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}}
 // #431 THE CAP RAISE MADE THIS FUNCTION LOAD-BEARING, AND IT USED TO SWALLOW THE ONE ERROR THAT
@@ -3600,6 +3627,7 @@ const NEW_FEATURES=[
   {id:'missed-bril',label:'Missed brilliant moves',sub:'marks where you had a Brilliant and played something half a pawn worse, and drills every one',key:'ct_missed_bril',on:'1',off:'0',isOn:()=>MISSED_BRIL===true},
   {id:'grades-2',label:'Move grades as chess.com gives them',sub:'Best is only the engine\'s move; Great, Miss and Forced as chess.com marks them',key:'ct_grades2',on:'1',off:'0',isOn:()=>GRADES2===true},
   {id:'bril-library',label:'Brilliant library',sub:'your brilliant moves and the ones you missed, by kind; practice two or three kinds at a time',key:'ct_bril_lib',on:'1',off:'0',isOn:()=>BRIL_LIB===true},
+  {id:'live-review',label:'Review games in progress',sub:'developer only: Chess.com Daily games still being played, reviewed as the moves arrive',key:'ct_live_review',on:'1',off:'0',isOn:()=>LIVE_REVIEW},   /* batch 13: the one row that ships OFF (kept private until he decides) */
   {id:'review-two',label:"Drill: the review's second move",sub:'a drill card also accepts the review\'s second choice when it rated it Excellent',key:'ct_review_two',on:'1',off:'0',isOn:()=>REVIEW_TWO===1},
 ];
 // The position's book key: FNV-1a 32 over 'board side castling' of its FEN, seven base-36 digits. gates/opening-book/build.js writes
@@ -6062,6 +6090,11 @@ function AppMain(){
   const [depthMenu,setDepthMenu]=useState(null);
   const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
   const [ccGames,setCcGames]=useState(null);
+  /* batch 13 (games in progress, developer only - see LIVE_REVIEW): liveOn is the whole gate. The list is memory only. */
+  const liveOn=devOn&&LIVE_REVIEW;
+  const [liveGames,setLiveGames]=useState(null);   // null: not asked yet
+  const [liveStat,setLiveStat]=useState(null);     // the open game: {at: last check, ended, err}
+  const liveAtRef=useRef({}),liveByRef=useRef({}),liveCurRef=useRef(null),liveBusyRef=useRef(false),liveTickRef=useRef(null),liveRevRef=useRef(null),liveOwnRef=useRef([]);
   const gamesListRef=useRef(null);
   const [ccErr,setCcErr]=useState('');
   const [ccLoading,setCcLoading]=useState(false);
@@ -8038,7 +8071,10 @@ function AppMain(){
     if(res.plies.length===0){setPgnErr(res.error||'Could not read any moves.');return;}
     const headers=parsePGNHeaders(text);
     if(!res.ok)setPgnErr(`Couldn't read past move ${res.plies.length+1}: ${res.error} Analyzed the first ${res.plies.length} half-moves only: check that move in your PGN.`);
-    setAnaFail(null);setAnalyzing(true);setProgress(0);
+    /* batch 13 (games in progress): a review GROWING with a new move is recomputed behind the open review - no progress panel, the
+       view and the move he is on kept - and is dropped if he has left that review by the time it is ready. */
+    const _grow=!!(meta&&meta.live&&meta.live.grow);
+    if(_grow)analyzingRef.current=true;else{setAnaFail(null);setAnalyzing(true);setProgress(0);}
     await new Promise(r=>setTimeout(r,30));
     /* #550 a32: THE ANALYSIS RUNS INSIDE ONE try. Before this, anything that threw in here - or a table group that failed on every
        engine after all its retries (it was stored from a partial or static score and the review shown as if it were whole) - left the
@@ -8410,11 +8446,14 @@ function AppMain(){
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN,_pb);}catch(e){skills=null;} /* #368 y17b */
     const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng,meta:meta||null,coach:(headers&&headers.CTCoach!=null)?{notes:pgnNotes(text),reqs:coachReqParse(headers.CTCoach)}:null /* batch 13: a coach game's notes and requests, by ply */};   /* #550 ERR-01: meta kept so 'Grade it again' re-runs the same game as the same player */
+    if(_grow){analyzingRef.current=false;if(liveCurRef.current!==meta.live.url)return;const _was=(liveRevRef.current&&liveRevRef.current.plies.length)||0;
+      setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;setPly(p=>(p>=_was?_rv.plies.length:p));/* on the last move he follows the game; anywhere else he stays put */return;}
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
     }catch(e){
       _anaStop.on=true;try{poolClose();}catch(_){}setAnaLoadAt(0);
+      if(_grow){analyzingRef.current=false;return;}   /* batch 13: a growth that failed leaves the open review as it is; the next check tries again */
       if(typeof window!=='undefined')window.__ctAnaFail={why:(e&&e.ctEngine)?'engine':'error',msg:String((e&&e.message)||e).slice(0,160)};   // harness seam, read-only
       setAnaFail({pgn:text,meta:meta||null,why:(e&&e.ctEngine)?'engine':'error'});
     }
@@ -8755,6 +8794,28 @@ function AppMain(){
     const n1=_heldN();if(n1>n0)setGPage(p=>Math.max(p,n0)+(n1-n0));
     setCcLoading(false);setCcProg('');setOlderBusy(false);setGsVer(v=>v+1);
   };
+  /* batch 13 (games in progress, developer only). liveAsk is the ONLY request to chess.com's in-progress list, and it refuses to ask
+     about one account twice within LIVE_POLL_MS. */
+  const liveAsk=async(u)=>{const now=Date.now();if(now-(liveAtRef.current[u]||0)<LIVE_POLL_MS)return null;liveAtRef.current[u]=now;
+    try{const r=await fetch('https://api.chess.com/pub/player/'+encodeURIComponent(u)+'/games');if(!r.ok)return {err:r.status};return {games:ccLiveGames(await r.json(),u)};}catch(e){return {err:'net'};}};
+  const liveMerge=()=>{const seen={},a=[];liveOwnNames('',ccAccts,{}).forEach(u=>(liveByRef.current[u]||[]).forEach(g=>{if(!seen[g.url]){seen[g.url]=1;a.push(g);}}));a.sort((x,y)=>(y.last||0)-(x.last||0));setLiveGames(a);};
+  const liveListRefresh=async()=>{const us=liveOwnNames('',ccAccts,{});   /* every followed Chess.com account, his or not, one at a time */
+    for(const u of us){const r=await liveAsk(u);if(r&&r.games)liveByRef.current[u]=r.games;}
+    liveMerge();};
+  const liveOpen=(g)=>{if(!liveOn||liveReviewWaits(g,liveOwnRef.current))return;setPgnText(g.pgn);setLiveStat({at:liveAtRef.current[g.from]||Date.now()});liveCurRef.current=g.url;importGame(g.pgn,{live:{url:g.url,from:g.from}});};
+  const liveTick=async()=>{const rv=liveRevRef.current,lv=rv&&rv.meta&&rv.meta.live;
+    if(!liveOn||!lv||liveBusyRef.current||analyzingRef.current||(typeof document!=='undefined'&&document.hidden))return;
+    const r=await liveAsk(lv.from);if(!r||liveCurRef.current!==lv.url)return;
+    if(!r.games){setLiveStat(s=>({...(s||{}),err:true}));return;}
+    liveByRef.current[lv.from]=r.games;const g=r.games.find(x=>x.url===lv.url);
+    if(!g){setLiveStat({at:Date.now(),ended:true});return;}
+    if(liveReviewWaits(g,liveOwnRef.current))return;   // the rule holds at every growth too (an account marked his after the review opened)
+    setLiveStat({at:Date.now()});
+    if(parsePGN(g.pgn).length>rv.plies.length){liveBusyRef.current=true;try{await importGame(g.pgn,{live:{url:g.url,from:g.from,grow:true}});}finally{liveBusyRef.current=false;}}};
+  liveTickRef.current=liveTick;liveOwnRef.current=liveOwnNames(chessUser,ccAccts,acctMine);
+  const _liveUrl=(liveOn&&mode==='analyze'&&review&&review.meta&&review.meta.live)?review.meta.live.url:null;liveRevRef.current=_liveUrl?review:null;
+  useEffect(()=>{liveCurRef.current=_liveUrl;if(!_liveUrl)return;const t=setInterval(()=>{try{liveTickRef.current&&liveTickRef.current();}catch(e){}},5000);return ()=>clearInterval(t);},[_liveUrl]);   /* asked only while that review is open; liveAsk spaces the requests */
+  useEffect(()=>{if(liveOn&&mode==='analyze'&&!review)liveListRefresh();},[liveOn,mode,!review,ccAccts.join(',')]);
   const pickCcGame=(g,lv)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null,...(lv!=null?{depth:lv}:{})});};   /* batch 13: lv = a review depth just picked in the card's depth menu; without it importGame reads the game's stored pick */
   // #353 show what is already stored the moment the Review screen opens, before any network call
   useEffect(()=>{if(mode!=='analyze')return;const M=acctGamesRef.current||{};if(Object.keys(M).length)mergeGames();},[mode]);
@@ -12325,8 +12386,8 @@ function AppMain(){
           <div className="scroll" style={{flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 12px 16px' /* #550 FMT-B-05: the 12 gutter (was 18) */,WebkitOverflowScrolling:'touch'}}>
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
-              <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{review.headers.Result?(' · '+review.headers.Result):''}</div>
-              {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}{review.coach&&<div data-ct="rev-coach" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{'Coach game \u00b7 '+Object.keys(review.coach.notes||{}).length+(Object.keys(review.coach.notes||{}).length===1?' note':' notes')}</div>}{/* batch 13 */}
+              <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{(review.headers.Result&&!(review.meta&&review.meta.live&&review.headers.Result==='*'))?(' · '+review.headers.Result):'' /* batch 13: a game in progress has no result to print; the line below says so */}</div>
+              {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}{review.meta&&review.meta.live&&<div data-ct="rev-live" role="status" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{(liveStat&&liveStat.ended)?'This game has ended. Its full review opens from your games list.':('In progress \u00b7 '+review.plies.length+(review.plies.length===1?' move':' moves')+' so far'+((liveStat&&liveStat.at)?(' \u00b7 checked '+new Date(liveStat.at).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})):''))}</div>}{/* batch 13: a game in progress (developer only) */}{review.coach&&<div data-ct="rev-coach" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{'Coach game \u00b7 '+Object.keys(review.coach.notes||{}).length+(Object.keys(review.coach.notes||{}).length===1?' note':' notes')}</div>}{/* batch 13 */}
             </div>
             {/* #550 ERR-01 and ERR-02 (errors-offline check, P1): A REVIEW GRADED WITHOUT STOCKFISH SAYS SO. On a slow line the 7MB engine was
                 still downloading when the 120s wait ran out, and offline after a first visit it never loaded: the review then finished on the
@@ -12581,6 +12642,20 @@ function AppMain(){
             {ccLoading&&ccProg&&<div data-ct="cc-progress" role="status" aria-live="polite" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{ccProg}</div>}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
           </div>
+          {/* batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16: GAMES IN PROGRESS, developer only
+              (liveOn). A game one of his accounts plays in is listed and says its review opens when the game ends (liveReviewWaits). */}
+            {liveOn&&(<div data-ct="live-section" style={{display:'flex',flexDirection:'column',gap:6}}>
+              <div style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Games in progress <span style={{color:'rgba(255,255,255,.6)',fontWeight:600,fontSize:'.86em'}}>{'\u00b7 developer only'}</span></div>
+              {(()=>{const _txt={fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.45};
+                if(!ccAccts.some(id=>/^cc:./.test(id)))return <div data-ct="live-note" style={_txt}>Follow a Chess.com account above to see its Daily games in progress.</div>;
+                if(liveGames===null)return <div data-ct="live-note" role="status" style={_txt}>{'Asking Chess.com for games in progress\u2026'}</div>;
+                if(!liveGames.length)return <div data-ct="live-note" style={_txt}>No Daily games in progress on the Chess.com accounts you follow. Chess.com publishes a live game only once it has ended.</div>;
+                return liveGames.map(g=>{const h=parsePGNHeaders(g.pgn)||{};const _w=liveReviewWaits(g,liveOwnRef.current);const n=parsePGN(g.pgn).length;
+                  return(<button key={g.url} data-ct="live-row" data-own={_w?'1':'0'} aria-disabled={_w?'true':undefined} onClick={_w?undefined:()=>liveOpen(g)} style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:2,width:'100%',minHeight:44,padding:'8px 12px',borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:_w?'default':'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+                    <span data-ct="live-names" style={{fontSize:15,fontWeight:700,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(h.White||g.white||'White')+' vs '+(h.Black||g.black||'Black')}</span>
+                    <span data-ct="live-sub" style={{fontSize:'clamp(13.5px,2.9vw,14.5px)',color:'rgba(255,255,255,.7)',lineHeight:1.4}}>{_w?'Your game. Its review opens when it ends.':(tcLabel(g.tc)+' \u00b7 '+n+(n===1?' move':' moves')+' played \u00b7 '+(g.turn==='b'?'Black':'White')+' to move')}</span>
+                  </button>);});})()}
+            </div>)}
           {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (1), his answer of 18 Nov 2026 ("Own section"): YOUR GAMES IS ITS
               OWN SECTION right under the Import box, not a part of it, so the cards use the full content width. */}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
