@@ -24,9 +24,13 @@ const L=require('../lib');const R=require('../drive/review');
 const DAY=86400000;
 const OPERA={src:'cc',acct:'jsmiller1112',pgn:R.PGN_OPERA,white:'Jsmiller1112',black:'DukeKarlCountIsouard99',wr:'win',tc:'blitz'};
 const readRow=(b,i)=>b.page.evaluate((i)=>{const r=document.querySelectorAll('[data-ct="game-row"]')[i];if(!r)return null;const t=s=>{const e=r.querySelector(s);return e?e.textContent.replace(/\s+/g,' ').trim():null;};
-  const line=r.querySelector('[data-ct="gstat-rev"],[data-ct="gstat-est"]');const tops=line?[...new Set([...line.children].filter(c=>c.getBoundingClientRect().width>0).map(c=>Math.round(c.getBoundingClientRect().top)))]:[];
-  const col=r.querySelector('[data-ct="game-badge-col"]');const pill=r.querySelector('[data-ct="bril-pill"],[data-ct="bril-pill-est"]');
-  return {best:t('[data-ct="gstat-best"]'),great:t('[data-ct="gstat-great"]'),both:t('[data-ct="gstat-bestgreat"]'),blun:t('[data-ct="gstat-blun"]'),line:line?line.textContent.replace(/\s+/g,' ').trim():null,tops,pill:pill?pill.textContent.replace(/\s+/g,' ').trim():null,pillInCol:!!(pill&&col&&col.contains(pill))};},i);
+  /* batch 13 (jobs/review-depth-per-game-on-the-new-game-card-2026-11-15): THE THREE ROW CARD. The counts are four boxes in the card's third row
+     (gstat-bril, gstat-best, gstat-great, gstat-blun); the brilliant count is the first of them, under the result box and exactly as wide,
+     where the pill used to sit in the badge's column. `line` is the four boxes' text, `tops` their tops, `pill` the brilliant box's text. */
+  const boxes=['bril','best','great','blun'].map(k=>r.querySelector('[data-ct="gstat-'+k+'"]')).filter(Boolean);const tops=[...new Set(boxes.filter(c=>c.getBoundingClientRect().width>0).map(c=>Math.round(c.getBoundingClientRect().top)))];
+  const bd=r.querySelector('[data-ct="game-badge"]');const pill=r.querySelector('[data-ct="gstat-bril"]');
+  const under=(()=>{if(!pill||!bd)return false;const p=pill.getBoundingClientRect(),q=bd.getBoundingClientRect();return p.width>0&&p.top>=q.bottom-0.5&&Math.abs(p.left-q.left)<=1&&Math.abs(p.right-q.right)<=1;})();
+  return {best:t('[data-ct="gstat-best"]'),great:t('[data-ct="gstat-great"]'),both:t('[data-ct="gstat-bestgreat"]'),blun:t('[data-ct="gstat-blun"]'),line:boxes.length?boxes.map(c=>c.textContent.replace(/\s+/g,' ').trim()).join(' '):null,tops,pill:pill?pill.textContent.replace(/\s+/g,' ').trim():null,pillInCol:under};},i);
 L.run(async()=>{
   // (a) end to end
   {const store={ct_accts:['cc:jsmiller1112'],ct_acctgames:{'cc:jsmiller1112':[{...OPERA,date:Date.now()-DAY}]},ct_pool:'3',ct_bril_reset_v1:'1'};
@@ -45,7 +49,7 @@ L.run(async()=>{
    L.say(ok&&sum.Best!=null&&sum.Great!=null&&sum.Brilliant!=null&&sum.Blunder!=null,'TC-R187a DENOMINATOR the Opera review summary is reached and his column is read: '+JSON.stringify(sum),{sum});
    L.say(!!st&&st.src==='review'&&st.best===sum.Best&&st.grt===sum.Great&&st.bril===sum.Brilliant&&st.blun===sum.Blunder,'TC-R187a the stored tally is the summary\'s own: best '+(st&&st.best)+'/'+sum.Best+', great '+(st&&st.grt)+'/'+sum.Great+', brilliant '+(st&&st.bril)+'/'+sum.Brilliant+', blunder '+(st&&st.blun)+'/'+sum.Blunder,{st,sum});
    let r=null;try{await b.page.reload();await b.settle(1500);await b.tile('Review');await b.settle(1200);r=await readRow(b,0);}catch(e){L.note('reload: '+String(e).slice(0,120));}
-   L.say(!!r&&!!st&&r.best==='★ '+st.best&&r.great==='! '+st.grt&&r.blun==='?? '+st.blun&&(st.bril>0?(!!r.pill&&r.pill.startsWith('!! '+st.bril)&&r.pillInCol):!r.pill),'TC-R187a and the row prints those numbers: '+JSON.stringify(r&&{best:r.best,great:r.great,blun:r.blun,pill:r.pill}),{r,st});
+   L.say(!!r&&!!st&&r.best==='★ '+st.best&&r.great==='! '+st.grt&&r.blun==='?? '+st.blun&&r.pill==='!! '+st.bril&&r.pillInCol,'TC-R187a and the row prints those numbers, the brilliant count in the box under the result box: '+JSON.stringify(r&&{best:r.best,great:r.great,blun:r.blun,pill:r.pill}),{r,st});
    L.say(b.errs.length===0,'TC-R187a zero app errors',b.errs.slice(0,3));
    await b.close();}
   // (b)+(c) display, seeded
@@ -60,9 +64,9 @@ L.run(async()=>{
     const a=i1>=0?await readRow(b,i1):null,c=i2>=0?await readRow(b,i2):null;
     L.say(!!a&&!!c,geo+': TC-R187b DENOMINATOR both seeded rows are on the list ('+rows.length+' rows)',{rows});
     L.say(!!a&&a.best==='★ 3'&&a.great==='! 2'&&a.blun==='?? 1'&&!/\? 4\b/.test(a.line||''),geo+': TC-R187b the split row reads ★ 3, ! 2, ?? 1 and no Mistake count ("'+(a&&a.line)+'")',{a});
-    L.say(!!a&&!!a.pill&&a.pill.startsWith('!! 1')&&a.pillInCol,geo+': TC-R187b its Brilliant count is the pill below the result badge ("'+(a&&a.pill)+'")',{a});
-    L.say(!!a&&a.tops.length===1,geo+': TC-R187b the counts line is ONE line (child tops '+JSON.stringify(a&&a.tops)+')',{a});
-    L.say(!!c&&c.both==='★! 4'&&c.best==null&&c.great==null&&c.blun==='?? 2',geo+': TC-R187c a tally stored before the split shows one combined "★! 4" count, never a guessed split ("'+(c&&c.line)+'")',{c});
+    L.say(!!a&&!!a.pill&&a.pill.startsWith('!! 1')&&a.pillInCol,geo+': TC-R187b its Brilliant count is the box under the result box, exactly as wide ("'+(a&&a.pill)+'")',{a});
+    L.say(!!a&&a.tops.length===1,geo+': TC-R187b the four counts are ONE row (box tops '+JSON.stringify(a&&a.tops)+')',{a});
+    L.say(!!c&&c.both==null&&c.best==='★ \u2013'&&c.great==='! \u2013'&&c.blun==='?? 2',geo+': TC-R187c a tally stored before the split shows a dash for Best and for Great, never a guessed split and never the two added together ("'+(c&&c.line)+'")',{c});
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
@@ -72,7 +76,7 @@ L.run(async()=>{
   // Pre-change heights with THIS fixture, measured on the branch tip c2a816f (trial aa9cbca2cf01): every card 85.7px at kunal761; at se
   // 85.7 (tallied by review) and 92.5 (the estimate's counts wrapping in 106px). Line 2 was cut by an ellipsis on all five cards at both
   // geometries (268..290px of text in 161px at 375 and 106px at 320).
-  {const PRE={kunal761:85.7,se:92.5};
+  {const PRE={kunal761:122,se:106};   /* batch 13: the three row card he approved on 15 Nov 2026 - 122px (20 + 30 + 30, 8 apart, 12 padding, 1 border) and 106 on the short phone (rows 4 apart, 8 above and below); it was 85.7 and 92.5 */
    const D0=1757000000000;
    const mk=(acct,opp,col,wr,tc,d)=>({src:'cc',acct,white:col==='w'?acct:opp,black:col==='w'?opp:acct,wr,tc,date:d,pgn:'[White "'+(col==='w'?acct:opp)+'"]\n[Black "'+(col==='w'?opp:acct)+'"]\n[Result "1-0"]\n\n1. e4 e5 1-0'});
    const GAMES={'cc:kunal2023':[mk('kunal2023','DukeKarlCountIsouard99','w','win','daily',D0+5e6),mk('kunal2023','Shortname','b','win','blitz',D0+4e6-40*DAY)],
@@ -81,18 +85,18 @@ L.run(async()=>{
    const ALL=Object.entries(GAMES).flatMap(([id,gs])=>gs.map(g=>({...g,id,opp:g.white===g.acct?g.black:g.white,col:g.white===g.acct?'w':'b',mine:id!=='cc:peter-patzer'})));
    const T={[gk(ALL[0])]:{bril:2,great:9,best:5,grt:4,inacc:1,mist:2,blun:1,src:'review'},[gk(ALL[3])]:{bril:1,great:37,best:25,grt:12,mist:6,blun:10,src:'review'}};
    const readCards=(b)=>b.page.evaluate((ALL)=>[...document.querySelectorAll('[data-ct="game-row"]')].map(row=>{
-     const txt=row.innerText.replace(/\s+/g,' ');const g=ALL.find(x=>new RegExp('vs\\s'+x.opp+'(\\s|$|…)').test(txt)||txt.includes('vs '+x.opp.slice(0,6)));
+     const txt=row.innerText.replace(/\s+/g,' ');const on=((row.querySelector('[data-ct="game-opp"]')||{}).textContent||'').replace(/\u00a0/g,' ').replace(/^vs\s/,'').trim();const g=ALL.find(x=>x.opp===on);   /* batch 13: the opponent is read from the name box itself (its full text, cut or not; the old card's began 'vs ') */
      const q=s=>row.querySelector(s);const sub=q('[data-ct="game-sub"]'),src=q('[data-ct="game-src"]'),sq=q('[data-ct="game-color"]'),dt=q('[data-ct="game-date"]'),nm=q('[data-ct="game-notmine"]');
-     const cnt=q('[data-ct="gstat-rev"],[data-ct="gstat-est"],[data-ct="gstat-slot"]');
+     const bx=['bril','best','great','blun'].map(k=>q('[data-ct="gstat-'+k+'"]')).filter(Boolean);   /* batch 13: the counts are the four boxes of row 3 */
      const lines=(e)=>{if(!e)return 0;const rg=document.createRange();rg.selectNodeContents(e);const c=[...rg.getClientRects()].filter(x=>x.width>0).map(x=>(x.top+x.bottom)/2).sort((a,b)=>a-b);let n=0,l=-1e9;for(const y of c){if(y-l>6){n++;l=y;}}return n;};
      const rr=row.getBoundingClientRect(),inRow=(e)=>{if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.left>=rr.left-0.5&&r.right<=rr.right+0.5&&r.top>=rr.top-0.5&&r.bottom<=rr.bottom+0.5;};
      // a visible 'Review' WORD: any element with its own text 'Review' painted wider than a 1px screen-reader-only box
      const word=[...row.querySelectorAll('*')].some(e=>[...e.childNodes].some(n=>n.nodeType===3&&/Review/.test(n.textContent))&&e.getBoundingClientRect().width>2);
-     const kids=cnt?[...cnt.children].filter(c=>c.getBoundingClientRect().width>0):[];
+     
      return {opp:g?g.opp:null,acct:src?src.textContent.trim():null,sq:sq?sq.getAttribute('data-color'):null,sqW:sq?+sq.getBoundingClientRect().width.toFixed(1):0,
-       side:/as (White|Black)/.test(txt),date:dt?dt.textContent.trim():null,dateIn:inRow(dt),nm:!!nm&&nm.getBoundingClientRect().width>0,nmFirst:!!nm&&kids[0]===nm,
-       sub:sub?{sw:sub.scrollWidth,cw:sub.clientWidth,lines:lines(sub),t:sub.textContent}:null,cnt:cnt?{sw:cnt.scrollWidth,cw:cnt.clientWidth,tops:lines(cnt),t:cnt.textContent.replace(/\s+/g,' ').trim()}:null,
-       word,go:!!q('[data-ct="game-go"]')&&inRow(q('[data-ct="game-go"]')),h:+rr.height.toFixed(1)};}),ALL);
+       side:/as (White|Black)/.test(txt),date:dt?dt.textContent.trim():null,dateIn:inRow(dt),nm:!!nm&&nm.getBoundingClientRect().width>0&&inRow(nm),nmFirst:!!nm&&nm.previousElementSibling===src,
+       sub:sub?{sw:sub.scrollWidth,cw:sub.clientWidth,lines:lines(sub),t:sub.textContent}:null,cnt:bx.length===4?{sw:Math.max(...bx.map(e=>e.scrollWidth-e.clientWidth)),cw:0,tops:new Set(bx.map(e=>Math.round(e.getBoundingClientRect().top))).size,t:bx.map(e=>e.textContent.replace(/\s+/g,' ').trim()).join(' ')}:null,
+       word,btn:row.tagName==='BUTTON'||row.getAttribute('role')==='button',h:+rr.height.toFixed(1)};}),ALL);
    for(const geo of ['kunal761','se']){
     const b=await L.launch({geo,name:'whose-game-'+geo,store:{ct_ccuser:'',ct_liuser:'',ct_accts:Object.keys(GAMES),ct_acctgames:GAMES,ct_gamestats:T,ct_acctmine:{'cc:peter-patzer':false},ct_acctasked:{'cc:kunal2023':1,'cc:kunalschess':1,'cc:peter-patzer':1}}});await b.open();
     try{await b.tile('Review');await b.settle(1500);}catch(e){L.note(geo+' open: '+String(e).slice(0,100));}
@@ -100,15 +104,15 @@ L.run(async()=>{
     L.say(C.length===5&&ALL.every(g=>byOpp[g.opp]),geo+': TC-R187e DENOMINATOR all five fixture games are on the list, each found by its opponent ('+C.length+' rows: '+C.map(c=>c.opp).join(', ')+')',{C});
     L.say(ALL.every(g=>byOpp[g.opp]&&byOpp[g.opp].acct===g.acct),geo+': TC-R187e every card names the account that played it ('+C.map(c=>c.opp+'->'+c.acct).join('; ')+')',C.map(c=>[c.opp,c.acct]));
     L.say(ALL.every(g=>byOpp[g.opp]&&byOpp[g.opp].sq===g.col&&byOpp[g.opp].sqW>4)&&C.every(c=>!c.side),geo+': TC-R187f each card shows a colour square for the side its account played, in place of the words "as White"/"as Black" ('+C.map(c=>c.opp+':'+c.sq).join(' ')+')',C.map(c=>[c.opp,c.sq,c.sqW,c.side]));
-    L.say(C.length>0&&C.every(c=>c.sub&&c.sub.lines===1&&c.sub.sw<=c.sub.cw),geo+': TC-R187g line 2 (square, account, time control) is ONE line and is NOT cut on any card ('+C.map(c=>c.sub&&(c.sub.sw+'/'+c.sub.cw)).join(' ')+')',C.map(c=>c.sub));
-    L.say(C.length>0&&C.every(c=>c.cnt&&c.cnt.tops<=1&&c.cnt.sw<=c.cnt.cw),geo+': TC-R187g the counts line is ONE line and not cut on any card, including "not mine" beside the largest tally ('+C.map(c=>c.cnt&&('"'+c.cnt.t+'" '+c.cnt.sw+'/'+c.cnt.cw)).join('; ')+')',C.map(c=>c.cnt));
+    L.say(C.length>0&&C.every(c=>c.sub&&c.sub.lines===1&&c.sub.sw<=c.sub.cw),geo+': TC-R187g the middle of row 2 (square, time control and, where there is room, the date) is ONE line and is NOT cut on any card ('+C.map(c=>c.sub&&(c.sub.sw+'/'+c.sub.cw)).join(' ')+')',C.map(c=>c.sub));
+    L.say(C.length>0&&C.every(c=>c.cnt&&c.cnt.tops<=1&&c.cnt.sw<=c.cnt.cw),geo+': TC-R187g the four counts are ONE row and none is cut on any card, the largest tally included ('+C.map(c=>c.cnt&&('"'+c.cnt.t+'" over by '+c.cnt.sw)).join('; ')+')',C.map(c=>c.cnt));
     const want=g=>new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'});
     const dates=await b.page.evaluate((ds)=>ds.map(d=>new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric'})),ALL.map(g=>g.date));
     L.say(ALL.every((g,i)=>byOpp[g.opp]&&byOpp[g.opp].date===dates[i]&&byOpp[g.opp].dateIn),geo+': TC-R187h each card shows its own date, inside the card ('+C.map(c=>c.opp+':'+c.date).join(' ')+')',{dates,C:C.map(c=>[c.opp,c.date,c.dateIn])});
-    L.say(ALL.filter(g=>!g.mine).length===2&&ALL.every(g=>byOpp[g.opp]&&byOpp[g.opp].nm===!g.mine&&(g.mine||byOpp[g.opp].nmFirst)),geo+': TC-R187i exactly the two peter-patzer cards (the account marked not his) say "not mine", at the head of the counts line, tallied or not ('+C.filter(c=>c.nm).map(c=>c.opp).join(', ')+')',C.map(c=>[c.opp,c.nm,c.nmFirst]));
-    L.say(C.length>0&&C.every(c=>!c.word&&c.go),geo+': TC-R187j no card spends its width on the word "Review": a chevron inside the card instead (the whole card is the button)',C.map(c=>[c.opp,c.word,c.go]));
+    L.say(ALL.filter(g=>!g.mine).length===2&&ALL.every(g=>byOpp[g.opp]&&byOpp[g.opp].nm===!g.mine&&(g.mine||byOpp[g.opp].nmFirst)),geo+': TC-R187i exactly the two peter-patzer cards (the account marked not his) say "not mine", right after the account name and inside the card, tallied or not ('+C.filter(c=>c.nm).map(c=>c.opp).join(', ')+')',C.map(c=>[c.opp,c.nm,c.nmFirst]));
+    L.say(C.length>0&&C.every(c=>!c.word&&c.btn),geo+': TC-R187j no card spends its width on the word "Review": the whole card is the button',C.map(c=>[c.opp,c.word,c.btn]));
     const hs=C.map(c=>c.h);
-    L.say(C.length>0&&Math.max(...hs)<=PRE[geo]+0.5&&Math.max(...hs)-Math.min(...hs)<=1,geo+': TC-R187k no card is taller than before ('+PRE[geo]+'px measured on c2a816f) and every card is one height ('+[...new Set(hs)].join(', ')+')',{hs});
+    L.say(C.length>0&&Math.max(...hs)<=PRE[geo]+0.5&&Math.max(...hs)-Math.min(...hs)<=1,geo+': TC-R187k no card is taller than the three row card ('+PRE[geo]+'px) and every card is one height ('+[...new Set(hs)].join(', ')+')',{hs});
     L.say(b.errs.length===0,geo+': TC-R187e zero app errors',b.errs.slice(0,3));
     await b.close();}
    // ONE ACCOUNT: the card names it too (it used to read the site, 'Chess.com', whenever only one account was imported)
@@ -124,8 +128,6 @@ L.run(async()=>{
 // SELECTOR-OPENED: gstat-great control=f4d2364 same pre-split control: the row's Great count read through this hook went red
 // SELECTOR-OPENED: gstat-blun control=f4d2364 same pre-split control: the row's Blunder count read through this hook went red
 // SELECTOR-OPENED: gstat-bestgreat control=f4d2364 same pre-split control: TC-R187c's combined count, read through this hook, went red
-// SELECTOR-OPENED: game-badge-col reading=presence round 4: pillInCol needs the column, and TC-R187a and b require the pill in it
 // SELECTOR-OPENED: game-color reading=presence #550 lead, opened by reading: TC-R187f requires sq===g.col and sqW>4 on every card, so a missing hook reads sq null and reds
 // SELECTOR-OPENED: game-date reading=presence #550 lead, opened by reading: TC-R187h requires each card's date to equal its own and dateIn, so a missing hook reads null and reds
-// SELECTOR-OPENED: game-go reading=presence #550 lead, opened by reading: TC-R187j requires c.go true on every card, so a missing chevron hook reds
 // SELECTOR-OPENED: game-notmine reading=presence #550 lead, opened by reading: TC-R187i requires nm true on the two not-mine cards, so a missing hook reds on them
