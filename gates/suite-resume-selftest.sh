@@ -46,12 +46,17 @@ mkdriver(){ # <gates.sh to extract from> <out>
     echo 'APP="$DRV_APP"; BUNDLE_MD5="$(md5sum "$APP" | cut -c1-12)"'
     awk '/^tree_fingerprint\(\)\{/{p=1} p{print} p&&/^\}/{exit}' "$src"
     awk '/^obs_records\(\)\{/{p=1} p{print} p&&/^\}/{exit}' "$src"
+    awk '/^tree_fp_moved\(\)\{/{p=1} p{print} p&&/^\}/{exit}' "$src"
     echo 'HEADSHA="$(git -C "$ROOT" rev-parse HEAD)"; HEADTREE="$(git -C "$ROOT" rev-parse "HEAD^{tree}")"'
     echo 'DIRTYL0="$(git -C "$ROOT" status --porcelain 2>/dev/null || true)"; TREEFP0="$(tree_fingerprint "$ROOT")"'
     echo 'echo "gates.sh $N  bundle $APP  md5 $BUNDLE_MD5  (selftest driver)" | tee -a "$ALL"'
     echo 'gates=(); for g in ${DRV_ROSTER:-01-alpha 02-bravo 03-charlie}; do gates+=("$G/regress/$g.js"); done'
     echo 'red=0'
     awk '/^SR_ON=0$/{p=1} p{print} p&&/^fi$/{exit}' "$src"
+    echo '[ -n "${DRV_MOVE_TREE:-}" ] && : > "$ROOT/written-by-the-prelude.txt"   # stands for a prelude that wrote to the repository'
+    echo 'if [ -z "${DRV_NO_TREECHECK:-}" ]; then'
+    awk '/^TREEMOVED="\$\(tree_fp_moved/{p=1} p{print} p&&/^else echo "tree unchanged before the browser gates/{exit}' "$src"
+    echo "fi"
     awk '/^for f in "\$\{gates\[@\]\}"; do$/{p=1} p{print} p&&/^done$/{exit}' "$src"
     echo 'REGN=$(awk '"'"'/^=== .* ===$/{s=1} s&&/^PASS/{n++} END{print n+0}'"'"' "$ALL")'
     echo 'echo "regression assertions (PASS lines): $REGN" | tee -a "$ALL"'
@@ -74,7 +79,7 @@ if (C && fs.existsSync(path.join(C,'hold-$1'))) {
   fs.writeFileSync(path.join(C,'started-$1'), String(process.pid)+' '+String(process.ppid));
   const t0=Date.now(); while (Date.now()-t0 < 60000) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,100); }
 }
-console.log('PASS $2 second check');
+if (C && fs.existsSync(path.join(C,'red-$1'))) console.log('FAIL $2 second check'); else console.log('PASS $2 second check');
 EOF
 }
 mkgate 01-alpha g1; mkgate 02-bravo g2; mkgate 03-charlie g3
@@ -83,7 +88,7 @@ printf 'gates/logs/\n' > "$SB/.gitignore"
   || { echo "FAIL TC-R241z0 could not make the sandbox repository"; exit 1; }
 printf 'selftest bundle one\n' > "$OUT/app.js"; export DRV_APP="$OUT/app.js"
 DRV="$TD/driver.sh"; mkdriver "$SF" "$DRV"
-for part in 'SR_ON=0' 'sr_import "$name"' 'sr_mark "$name"' 'for f in "${gates[@]}"; do'; do
+for part in 'SR_ON=0' 'sr_import "$name"' 'sr_mark "$name"' 'for f in "${gates[@]}"; do' 'TREEMOVED="$(tree_fp_moved' 'tree unchanged before the browser gates'; do
   grep -qF -- "$part" "$DRV" || { echo "FAIL TC-R241z0 the driver lacks [$part]: the extraction from gates.sh found nothing"; exit 1; }
 done
 L="$SB/gates/logs"
@@ -158,7 +163,9 @@ J1="$L/997-resume.tsv"; A1="$L/997-all.log"
 refuse(){ # <id+description> <substring> env...
   local d="$1" need="$2"; shift 2
   run "$@"; local rc=$?
-  if [ "$rc" = 1 ] && grep '^RESUME REFUSED: ' "$TD/last.out" | grep -qF -- "$need" && ! grep -q '^=== ' "$TD/last.out"; then ok "$d (exit 1, before any gate, names \"$need\")"
+  # a herestring, never `grep ... | grep -q` (the pipefail SIGPIPE class, gates/gatemanifest.sh sigpipe)
+  local refl; refl="$(grep '^RESUME REFUSED: ' "$TD/last.out" || true)"
+  if [ "$rc" = 1 ] && grep -qF -- "$need" <<<"$refl" && ! grep -q '^=== ' "$TD/last.out"; then ok "$d (exit 1, before any gate, names \"$need\")"
   else bad "$d (exit $rc; refusal named: $(grep -m1 'RESUME REFUSED' "$TD/last.out" || echo none); sections run: $(grep -c '^=== ' "$TD/last.out"))"; fi
 }
 cp "$DRV_APP" "$TD/app.keep"; printf 'selftest bundle TWO\n' > "$DRV_APP"
@@ -205,6 +212,40 @@ refuse "TC-R241b15 a missing journal is refused" "missing or unreadable" DRV_STE
 run DRV_STEM=997y CT_RESUME="$A1"; rc=$?
 eqc "TC-R241b16 CT_RESUME may name the killed -all.log; with nothing changed the resume goes ahead" "$rc $(secs "$L/997y-all.log")" "0 $WANTSECS"
 
+# ── the review's fixes (claude/agents/SUITE-RESUME-REVIEW.md), each a case that fails on the code before the fix ──
+# 1a: a CUT journal. Gate 2 red in the killed run, the run killed in gate 3, then gate 2's row cut: the rows are still a
+# clean prefix (row 1), gate 2 would re-run here (green) and the red would vanish from the join.
+touch "$SR_CTL/red-02-bravo"; runkill 03-charlie DRV_STEM=993 CT_RESUMABLE=1 >/dev/null; rm -f "$SR_CTL/red-02-bravo"
+J3="$L/993-resume.tsv"; eqc "TC-R241b17 (setup) the killed run journaled gate 2 RED" "$(grep -c $'^gate\t2\t02-bravo\t993\tred\t' "$J3")" 1
+sed -i '/^gate\t2\t/d' "$J3"
+refuse "TC-R241b17 a CUT journal (a finished RED gate's row removed) is refused, not resumed green [review 1a]" "the journal was cut" DRV_STEM=993x CT_RESUME="$J3"
+# 1a: the unfinished gate had printed FAIL before the restart (killed between its output and its verdict): carried as RED
+runkill 02-bravo DRV_STEM=992 CT_RESUMABLE=1 >/dev/null
+printf 'PASS g2 first check\nFAIL g2 second check\n' >> "$L/992-all.log"
+run DRV_STEM=992b CT_RESUME="$L/992-resume.tsv"; rc=$?
+eqc "TC-R241b18 FAIL lines the cut gate had already printed are not dropped: the resumed run is RED and says so [review 1a]" \
+  "$rc $(grep -c "^RESUME: the killed run's unfinished gate 02-bravo had printed 1 red line" "$L/992b-all.log") $(tail -1 "$L/992b-all.log")" "1 1 GATES RED #999"
+runkill 02-bravo DRV_STEM=991 CT_RESUMABLE=1 >/dev/null
+printf 'PASS g2 first check\nPASS g2 second check\n    02-bravo: green (2 PASS)\n' >> "$L/991-all.log"
+refuse "TC-R241b19 a green verdict after the last journaled gate (journal cut, or a kill between verdict and row) is refused [review 1a]" "already carries a green verdict" DRV_STEM=991x CT_RESUME="$L/991-resume.tsv"
+# 1b: another node (a container restart that brought a new toolchain); no environment variable changes
+mkdir -p "$TD/fakebin"; REALNODE="$(command -v node)"
+printf '#!/usr/bin/env bash\nif [ "${1:-}" = --version ]; then echo v0.0.0-another-node; exit 0; fi\nexec "%s" "$@"\n' "$REALNODE" > "$TD/fakebin/node"; chmod +x "$TD/fakebin/node"
+runkill 02-bravo DRV_STEM=990 CT_RESUMABLE=1 >/dev/null
+refuse "TC-R241b20 a resume under ANOTHER TOOLCHAIN (node --version differs, every variable the same) is refused [review 1b]" "ANOTHER TOOLCHAIN" DRV_STEM=990x CT_RESUME="$L/990-resume.tsv" PATH="$TD/fakebin:$PATH"
+eqc "TC-R241b21 the start record names node, Playwright, Chromium and fonts" "$(grep -c $'^start\t.*\tnode=v[^ ]* playwright=[^ ]* chromium=[^ ]* fonts=[0-9a-f]*\t' "$L/990-resume.tsv")" 1
+# 1c: the killed run's prelude said TREE MOVED (the stray file gone again by the time of the resume)
+runkill 02-bravo DRV_STEM=989 CT_RESUMABLE=1 DRV_MOVE_TREE=1 >/dev/null; rm -f "$SB/written-by-the-prelude.txt"
+eqc "TC-R241b22 (setup) the killed run's prelude says TREE MOVED" "$(grep -c '^TREE MOVED BEFORE THE BROWSER GATES' "$L/989-all.log")" 1
+refuse "TC-R241b22 a resume of a run whose prelude said TREE MOVED is refused [review 1c]" "TREE MOVED BEFORE THE BROWSER GATES" DRV_STEM=989x CT_RESUME="$L/989-resume.tsv"
+runkill 02-bravo DRV_STEM=988 CT_RESUMABLE=1 DRV_NO_TREECHECK=1 >/dev/null
+refuse "TC-R241b23 a resume of a run with no 'tree unchanged' line is refused [review 1c]" "carries no 'tree unchanged before the browser gates' line" DRV_STEM=988x CT_RESUME="$L/988-resume.tsv"
+# 1d: the journal's verdict column edited from red to green; the copied section is red, so the join is red
+touch "$SR_CTL/red-01-alpha"; runkill 02-bravo DRV_STEM=987 CT_RESUMABLE=1 >/dev/null; rm -f "$SR_CTL/red-01-alpha"
+sed -i 's/^\(gate\t1\t01-alpha\t987\t\)red\t/\1green\t/' "$L/987-resume.tsv"
+run DRV_STEM=987b CT_RESUME="$L/987-resume.tsv"; rc=$?
+eqc "TC-R241a22 a copied RED section keeps the run RED although its journal row was edited to green [review 1d]" "$rc $(tail -1 "$L/987b-all.log")" "1 GATES RED #999"
+
 # ════ c. THE JUDGE: verify-log.sh over joins built from a real committed green ═══════════════════════════════════
 REALLOG="$REPO/claude/agents/gatelogs/474-integration-all.log"
 VS="$TD/vl"; mkdir -p "$VS/gates" "$VS/logs"
@@ -216,22 +257,25 @@ GOOD="$VS/logs/good.log"; sed "1s/md5 $LOGMD5/md5 $B12/" "$REALLOG" > "$GOOD"
 RHEAD="$(grep '^ref: HEAD ' "$GOOD" | awk '{print $3}')"; TREE0="$(printf 'tree' | sha1sum | cut -c1-40)"
 FOOTB="$(tail -1 "$GOOD" | grep -o '#[0-9]*')"
 # join <out> <K: sections 1..K are run p1, the rest p2> [bundle-for-p2] [head-for-p2] [header-bundle]
-join(){ local out="$1" K="$2" b2="${3:-$BFULL}" h2="${4:-$RHEAD}" bh="${5:-$BFULL}"
+STATE0="$(printf 's' | sha1sum | cut -c1-16).$(printf 't' | md5sum | cut -c1-32).$(printf 'e' | md5sum | cut -c1-32)"
+# join <out> <K> [bundle p2] [head p2] [bundle p1 and header] [state p2] [toolchain line p1] [toolchain line p2]
+join(){ local out="$1" K="$2" b2="${3:-$BFULL}" h2="${4:-$RHEAD}" bh="${5:-$BFULL}" st2="${6:-$STATE0}" tc1="${7:-}" tc2="${8:-}"
   ( . "$SR" >/dev/null 2>&1
     awk '/^=== .* ===$/{print "S\t" NR} /^regression assertions \(PASS lines\)/{print "E\t" NR; exit}' "$GOOD" > "$VS/bounds"
     N_=$(grep -c '^S' "$VS/bounds"); mapfile -t ST < <(cut -f2 "$VS/bounds")
     : > "$out"; sed -n "1,$((ST[0]-1))p" "$GOOD" >> "$out"
     for k in $(seq 1 "$N_"); do
       s="${ST[$((k-1))]}"; e=$(( ${ST[$k]} - 1 )); nm="$(sed -n "${s}s/^=== \(.*\) ===$/\1/p" "$GOOD")"
-      if [ "$k" -le "$K" ]; then stem=p1; b="$bh"; h="$RHEAD"; else stem=p2; b="$b2"; h="$h2"; fi
-      sed -n "${s},${e}p" "$GOOD" >> "$out"
-      sr_mark_text "$k" "$N_" "$nm" "$stem" "$b" "$h" "$TREE0" "$(sed -n "${s},${e}p" "$GOOD" | md5sum | cut -c1-32)" >> "$out"
+      if [ "$k" -le "$K" ]; then stem=p1; b="$bh"; h="$RHEAD"; stt="$STATE0"; tc="$tc1"; else stem=p2; b="$b2"; h="$h2"; stt="$st2"; tc="$tc2"; fi
+      { sed -n "${s}p" "$GOOD"; [ -n "$tc" ] && printf '     %s\n' "$tc"; sed -n "$((s+1)),${e}p" "$GOOD"; } > "$VS/sec"
+      cat "$VS/sec" >> "$out"
+      sr_mark_text "$k" "$N_" "$nm" "$stem" "$b" "$h" "$TREE0" "$stt" "$(md5sum < "$VS/sec" | cut -c1-32)" >> "$out"
     done
     parts="p1 gates 1-$K, p2 gates $((K+1))-$N_"; [ "$K" -ge "$N_" ] && parts="p1 gates 1-$N_"
     awk -v from="${ST[$N_]}" -v rl="$(sr_footer_text "$([ "$K" -ge "$N_" ] && echo 1 || echo 2)" "$parts" "$bh" "$RHEAD" "$TREE0" /selftest/journal.tsv)" \
       'NR>=from{ if($0 ~ /^gates ran \(/) print rl; print }' "$GOOD" >> "$out" )
 }
-vl(){ ( cd "$VS" && bash "$1" "$2" "$FOOTB" ) > "$TD/vl.out" 2>&1; echo $?; }
+vl(){ local sc="$1" lg="$2"; shift 2; ( cd "$VS" && bash "$sc" "$lg" "$FOOTB" "$@" ) > "$TD/vl.out" 2>&1; echo $?; }
 JG="$VS/logs/joined.log"; join "$JG" 20
 eqc "TC-R241c1 the unjoined real green is still accepted (no mark, no join check)" "$(vl "$VS/gates/verify-log.sh" "$GOOD")" 0
 eqc "TC-R241c2 a join of that green in two parts (sections 1-20, then 21-54) is accepted by verify-log.sh" "$(vl "$VS/gates/verify-log.sh" "$JG")" 0
@@ -241,11 +285,11 @@ eqc "TC-R241c4 an unbroken resumable run (one part) is accepted" "$(vl "$VS/gate
 # the mutant: the same verify-log.sh with its join hook removed - the control that the hook is what refuses
 MUT="$VS/gates/verify-log-nojoin.sh"; grep -v '^  bash "\$VJ" "\$LOG" || exit 1$' "$VS/gates/verify-log.sh" > "$MUT"
 eqc "TC-R241c5 the control copy differs from verify-log.sh by exactly the join hook line" "$(diff "$VS/gates/verify-log.sh" "$MUT" | grep -c '^<')" 1
-judge(){ # <id> <description> <log> <substring of the join refusal> <mutant: accepts|refuses>
-  local id="$1" d="$2" log="$3" need="$4" mwant="$5" rc mrc
-  rc="$(vl "$VS/gates/verify-log.sh" "$log")"; local named=no; grep -qF -- "$need" "$TD/vl.out" && named=yes
+judge(){ # <id> <description> <log> <substring of the join refusal> <mutant: accepts|refuses> [verify-log option]
+  local id="$1" d="$2" log="$3" need="$4" mwant="$5" rc mrc; local -a xo=(); [ -n "${6:-}" ] && xo=("$6")
+  rc="$(vl "$VS/gates/verify-log.sh" "$log" "${xo[@]}")"; local named=no; grep -qF -- "$need" "$TD/vl.out" && named=yes
   if [ "$rc" = 1 ] && [ "$named" = yes ]; then ok "$id $d is REFUSED (names \"$need\")"; else bad "$id $d (exit $rc, names \"$need\": $named; $(grep -m1 REFUSED "$TD/vl.out" || echo 'no refusal'))"; fi
-  mrc="$(vl "$MUT" "$log")"
+  mrc="$(vl "$MUT" "$log" "${xo[@]}")"
   case "$mwant:$mrc" in accepts:0|refuses:1) ok "${id}m control: without the join hook verify-log $mwant it (exit $mrc)";;
     *) bad "${id}m control: without the join hook verify-log should $mwant it (exit $mrc)";; esac
 }
@@ -281,6 +325,17 @@ sed '0,/^    resume-mark: gate 2\//s//    resume-mark: gate 3\//' "$JG" > "$VS/l
 judge TC-R241c15 "a join whose mark puts a gate at the wrong position" "$VS/logs/b-index.log" "its mark says gate 3/54" accepts
 grep -v '^    resume-mark: ' "$JG" > "$VS/logs/b-nomarks.log"
 judge TC-R241c18 "a join with every mark removed and its resume: line kept" "$VS/logs/b-nomarks.log" "no gate marks" accepts
+TCA='toolchain: playwright 1.55.0 chromium 141.0.7390.37 (selftest)'; TCB='toolchain: playwright 1.55.0 chromium 153.0.7000.1 (selftest)'
+join "$VS/logs/tc-same.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$STATE0" "$TCA" "$TCA"
+# (a toolchain line puts a log in the instrumented era, whose fontconfig line the 474 fixture predates, so these two run with
+# verify-log's own --ignore-fc; that override touches the fontconfig check only)
+eqc "TC-R241c19 a join whose every section prints the same toolchain line is accepted" "$(vl "$VS/gates/verify-log.sh" "$VS/logs/tc-same.log" --ignore-fc)" 0
+join "$VS/logs/b-tc.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$STATE0" "$TCA" "$TCB"
+judge TC-R241c20 "a join whose second part printed ANOTHER TOOLCHAIN line (gates.sh's footer reads only the first) [review 1b]" "$VS/logs/b-tc.log" "TWO TOOLCHAINS" accepts --ignore-fc
+join "$VS/logs/b-state.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$(printf 'x' | sha1sum | cut -c1-16).$(printf 't' | md5sum | cut -c1-32).$(printf 'e' | md5sum | cut -c1-32)"
+judge TC-R241c21 "a join whose second part ran in another tree state (same bundle, HEAD, tree sha) [review 1e]" "$VS/logs/b-state.log" "ran in state" accepts
+awk 'NR==2{print "suite-resume: RESUMING from /selftest/j.tsv (md5 0): 3 of 54 gates finished there"} {print}' "$GOOD" > "$VS/logs/b-sronly.log"
+judge TC-R241c22 "a log carrying only a 'suite-resume:' line (marks and resume: line stripped) [review 1f]" "$VS/logs/b-sronly.log" "0 'resume:' footer line(s)" accepts
 eqc "TC-R241c16 verify-join.sh on the selftest's own resumed log (part a) agrees with verify-log's judge" "$(bash "$VJ" "$L/999b-all.log" | grep -c '^JOIN OK: 3 gate section(s), each marked once and in roster order, in 2 part(s) (999 gates 1-1, 999b gates 2-3)')" 1
 rm -f "$VS/gates/verify-join.sh"
 eqc "TC-R241c17 a joined log with verify-join.sh absent is refused, not passed" "$(vl "$VS/gates/verify-log.sh" "$JG") $(grep -c 'the join cannot be judged' "$TD/vl.out")" "1 1"
@@ -302,8 +357,8 @@ else
 fi
 eqc "TC-R241d4 the four hooks in gates.sh are each guarded by SR_ON, set to 0 unless CT_RESUMABLE or CT_RESUME is set" \
   "$(grep -c '^SR_ON=0$' "$SF") $(grep -c 'if \[ -n "\${CT_RESUMABLE:-}\${CT_RESUME:-}" \]; then' "$SF") $(grep -c 'if \[ "\$SR_ON" = 1 \]' "$SF")" "1 1 3"
-eqc "TC-R241d5 verify-log.sh calls the join judge only for a log carrying a mark or a resume: line" \
-  "$(grep -c "^if grep -qE '\^(    resume-mark: |resume: )' \"\$LOG\"; then$" "$VL")" 1
+eqc "TC-R241d5 verify-log.sh calls the join judge only for a log carrying a mark, a resume: footer or a suite-resume: line" \
+  "$(grep -cF "if grep -qE '^(    resume-mark: |resume: [0-9]+ part\(s\): |suite-resume: )' \"\$LOG\"; then" "$VL")" 1
 
 echo "suite-resume selftest: $P pass, $F fail"
 [ "$F" -eq 0 ]

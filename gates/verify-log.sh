@@ -1589,9 +1589,9 @@ if [ "${GREENS:-0}" -gt 1 ] 2>/dev/null && [ -n "$FOOTN" ] && [ "$FOOTN" -ge 380
 fi
 # (9j) A JOINED LOG - A FULL SUITE RESUMED AFTER A CONTAINER RESTART - IS ALSO JUDGED AS A JOIN [batch 13; jobs/the-full-
 # suite-resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18]. Only a suite launched with
-# CT_RESUMABLE or CT_RESUME writes these two line shapes, so for every other log this block does nothing. The join judge
+# CT_RESUMABLE or CT_RESUME writes these three line shapes, so for every other log this block does nothing. The join judge
 # is gates/verify-join.sh; a log that carries them and cannot be judged is refused. Design: claude/agents/SUITE-RESUME-DESIGN.md.
-if grep -qE '^(    resume-mark: |resume: )' "$LOG"; then
+if grep -qE '^(    resume-mark: |resume: [0-9]+ part\(s\): |suite-resume: )' "$LOG"; then
   VJ="$(cd "$(dirname "$0")" && pwd)/verify-join.sh"
   [ -r "$VJ" ] || { echo "REFUSED (join): $LOG is a resumable or joined suite log and $VJ is missing, so the join cannot be judged."; exit 1; }
   bash "$VJ" "$LOG" || exit 1
