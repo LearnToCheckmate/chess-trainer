@@ -2606,8 +2606,15 @@ const LF_EM={x:1.5,play:1.19,replay:1.33,pause:1.9,hand:0.86,dots:1.06,flip:1.10
    under the board on a tall phone and in the lesson bar on a short one, renders FootBtn too, so the lesson demo bar, the practice row and the
    Review transport row are one button. `go` is the lesson's green advance (Next lesson, Bank it - the colour those two already had); `clip`
    lets a label that can outgrow its slot end in an ellipsis (Bank it). Neither changes the radius, the border, the 44 floor or the glyph size. */
+/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: FootBtn's look is now ONE function,
+   footBtnStyle, shared with RowBtn (below ChevIcon), so the footer rows and every other button row cannot drift apart. FootBtn renders
+   exactly what it did before this change (same keys, same values). */
+const ROW_BTN_BG='rgba(255,255,255,.08)';   // the shared row button's face (Kunal, questions/Q24 'A, icons only': one background)
+function footBtnStyle({hot,primary,go,clip,wide,flex,minW,text}){
+  return {flex:flex||'0 0 auto',minWidth:(minW==null?44:minW),minHeight:(wide?48:44),borderRadius:12,cursor:'pointer',fontSize:(text?'clamp(14px,2.9vw,15px)':FOOT_ICON_GLYPH),fontWeight:800,background:primary?'var(--ac)':go?'#4a6741':hot?'rgba(var(--acr),.22)':ROW_BTN_BG,backgroundImage:'none',border:'none',color:primary?'var(--acInk,#0b0d10)':go?'#fff':hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:'none',padding:'0 6px',...(clip?{overflow:'hidden',textOverflow:'ellipsis'}:null)};
+}
 function FootBtn({onClick,label,hot,primary,go,clip,wide,flex,minW,text,children,ct}){
-  return(<button onClick={onClick} title={label} aria-label={label} data-ct={ct||"foot-btn"} style={{flex:flex||'0 0 auto',minWidth:(minW==null?44:minW),minHeight:(wide?48:44),borderRadius:12,cursor:'pointer',fontSize:(text?'clamp(14px,2.9vw,15px)':FOOT_ICON_GLYPH),fontWeight:800,background:primary?'var(--ac)':go?'#4a6741':hot?'rgba(var(--acr),.22)':'rgba(255,255,255,.08)',backgroundImage:'none',border:'none',color:primary?'var(--acInk,#0b0d10)':go?'#fff':hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:'none',padding:'0 6px',...(clip?{overflow:'hidden',textOverflow:'ellipsis'}:null)}}>{children}</button>);
+  return(<button onClick={onClick} title={label} aria-label={label} data-ct={ct||"foot-btn"} style={footBtnStyle({hot,primary,go,clip,wide,flex,minW,text})}>{children}</button>);
 }
 /* #394: COACH_MAXH went with the bubble. The #387 work it encoded - that a CLAMP must do the cutting
    rather than a box, so an ellipsis is drawn - now applies to rev-why-txt, which is clamped, not clipped. */
@@ -4378,21 +4385,7 @@ function _CIcon({name,size=21,style}){
   };
   return(<svg viewBox="0 0 24 24" width={size} height={size} style={{display:'block',...style}}>{P[name]||null}</svg>);
 }
-// One in-game control button: filled icon + tiny label (chess.com-style).
-function _CBtn({icon,label,on,dis,accent,active,cmp}){
-  return(
-    <button onClick={dis?undefined:on} disabled={dis} title={label} style={{
-      flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:cmp?1:3,
-      padding:cmp?'3px 2px':'7px 2px',minHeight:cmp?44:undefined,minWidth:cmp?44:undefined,boxSizing:cmp?'border-box':undefined,borderRadius:12,   /* #550 a36: cmp, the sideways game with its graph - 44 tall, not 51 */cursor:dis?'default':'pointer',
-      background:accent?'linear-gradient(145deg,rgba(var(--acr),.22),rgba(var(--acr),.10))':active?'rgba(var(--acr),.14)':'var(--card,#1a212a)',
-      border:'1px solid '+(accent?'rgba(var(--acr),.5)':active?'rgba(var(--acr),.45)':'rgba(255,255,255,.12)'),
-      color:dis?'rgba(255,255,255,.30)':(accent||active)?'var(--ac2)':'#fff',opacity:dis?.6:1
-    }}>
-      <_CIcon name={icon} size={cmp?19:21}/>
-      <span style={{fontSize:9.5,fontWeight:800,letterSpacing:.2,color:dis?'rgba(255,255,255,.30)':(accent||active)?'var(--ac2)':'rgba(255,255,255,.62)'}}>{label}</span>
-    </button>
-  );
-}
+// batch 13: _CBtn (an icon with a tiny label under it) is gone - the game's row is RowBtn, icons only (jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18).
 // One row in the More bottom sheet.
 function _SheetItem({icon,label,on,dis,warn,ct}){
   return(
@@ -4671,6 +4664,57 @@ function ChevIcon({size=20,dir='right'}){
     <polyline points={x1+','+t+' '+x2+','+(size/2)+' '+x1+','+b} stroke="currentColor" strokeWidth={sw}
       strokeLinecap="round" strokeLinejoin="round"/>
   </svg>);
+}
+/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18 (Kunal: questions/Q24 'A, icons only',
+   11:15pm EST Tue 17 Nov 2026; FB-13 'none of the buttons should actually have something written on them'; in chat about 9:30pm the same day,
+   'whatever is applicable across the board' and a different arrow for moving between puzzles or openings).
+   THE ONE ROW BUTTON, ITS ICON SET AND THE TWO KINDS OF ARROW. Every button row this job draws (Play and Pass & Play, the puzzle and drill
+   rows, Tactics and Strategy, the lesson rows, the menu's Share row) renders RowBtn, whose look IS FootBtn's (footBtnStyle: 44 floor,
+   radius 12, the flat ROW_BTN_BG face, no border, no gradient), so a row's buttons are one size, one shape and one face. It carries NO
+   words: its name is its aria-label (and title), which every gate and screen reader reads. The only buttons that keep words are a screen's
+   single start button (Now I'll try it in a lesson, Analyze game on the Review list, Start game on the setup sheet) - claude/agents/BUTTON-ROWS-B13.md lists them.
+   TWO ARROWS, NEVER MIXED: StepArrow (a WHITE chevron) steps through the moves of a game, a puzzle or a lesson; NavTri (a BLUE solid
+   triangle, NAV_BLUE in every skin) goes to the previous or next puzzle, card, lesson or opening. One icon, one meaning: RowIcon names
+   each action once (hint, show, reset, flip, more, moves, review, rematch, copy, analyze, share, feedback, lines, tick, close). */
+const NAV_BLUE='#5b9bd5';
+const ROW_ICON_PX=24;
+function StepArrow({dir='right',size=27}){
+  const sw=Math.max(2,size*0.13), m=size*0.30, t=size*0.20, b=size-t;
+  const x1=dir==='left'?(size-m):m, x2=dir==='left'?m:(size-m);
+  return(<svg data-icon={'step-'+dir} width={size} height={size} viewBox={'0 0 '+size+' '+size} fill="none" aria-hidden="true" style={{display:'block'}}>
+    <polyline points={x1+','+t+' '+x2+','+(size/2)+' '+x1+','+b} stroke="#ffffff" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>);
+}
+function NavTri({dir='right',size=26.6 /* 17.6 of ink at 24, scaled to the row's 19.5 */}){
+  const pts=dir==='left'?'17,4 6,12 17,20':'7,4 18,12 7,20';
+  return(<svg data-icon={'nav-'+dir} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{display:'block'}}>
+    <polygon points={pts} fill={NAV_BLUE} stroke={NAV_BLUE} strokeWidth="1.6" strokeLinejoin="round"/>
+  </svg>);
+}
+const ROW_ICON_PATHS={
+  show:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3.1" fill="currentColor" stroke="none"/></g>,
+  reset:<g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5"/><path d="M4 3.5v4.6h4.6"/></g>,
+  close:<g fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></g>,
+  copy:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinejoin="round"><rect x="8.5" y="8.5" width="11.5" height="12.5" rx="2"/><path d="M15.5 8.5V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9.5a2 2 0 0 0 2 2h2.5"/></g>,
+  share:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></g>,
+  lines:<g fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3.5-11 7.5"/></g>,
+  tick:<path d="M4.5 12.5l5 5L19.5 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>,
+};
+/* ONE PAINTED SIZE: each icon's drawn ink differs inside the same 24 box (the More dots 16 wide, the eye 22), so RowIcon scales each by its own
+   factor to about 19.5 of ink on its larger side - the StepArrow's 19.7, the size gate 157 holds a row to (CLAUDE.md, #395: the ink, not the box). */
+const ROW_ICON_K={moves:1.22,hint:1.0,flip:0.98,more:1.22,analyze:1.04,review:1.04,rematch:1.02,show:0.88,reset:1.08 /* flip and reset measured 21 of ink at 1.03 and 1.14 beside the bar's 19-20 (gate 157 TC-IR-02 at se, tolerance 1) */,close:1.35,copy:0.97,share:1.02,lines:0.97,tick:1.1,feedback:1.08};
+function RowIcon({name,size:size0=ROW_ICON_PX}){
+  const size=Math.round(size0*(ROW_ICON_K[name]||1)*10)/10;
+  const own=ROW_ICON_PATHS[name];
+  if(own)return(<svg data-icon={name} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" style={{display:'block'}}>{own}</svg>);
+  const alias={review:'analyze',rematch:'newgame',feedback:'chat'}[name]||name;
+  return <span data-icon={name} style={{display:'inline-flex'}}><_CIcon name={alias} size={size}/></span>;
+}
+/* RowBtn: `label` is REQUIRED (it is the button's only name). `dis` dims it and makes it inert; `hot` is the toggled-on tint (the
+   footer's gold); `primary` the one solid-accent action of a row. Children are ONE icon: RowIcon, StepArrow or NavTri. */
+function RowBtn({label,onClick,dis,hot,primary,ct,flex,minW,children,hidden}){
+  return(<button type="button" onClick={dis?undefined:onClick} disabled={!!dis} aria-disabled={dis?true:undefined} title={label} aria-label={label} aria-pressed={hot==null?undefined:!!hot} data-ct={ct||'row-btn'} data-rowbtn="1"
+    style={{...footBtnStyle({hot,primary,flex:flex||'1 1 0',minW:(minW==null?44:minW)}),opacity:dis?.42:1,cursor:dis?'default':'pointer',color:dis?'rgba(255,255,255,.55)':(primary?'var(--acInk,#0b0d10)':hot?'var(--ac2)':'#fff'),...(hidden?{visibility:'hidden',pointerEvents:'none'}:null)}}>{children}</button>);
 }
 /* #366 y3b. The same lesson a third time, for emoji. Four emoji in four identical boxes never look
    the same size, because an emoji's font-size is not its drawn size: measured, the pawn drew 15px of
@@ -5002,9 +5046,11 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
             {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length)}{_st}<div>{cur.idea}</div></div>)
           :(<div ref={stratRef} data-ct="tactics-strat-text" onScroll={stratCheck} style={{..._box,WebkitMaskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined}}>
             {_hd(cstr.title,((si%STRAT.length)+1)+'/'+STRAT.length)}<div style={{color:'var(--ac2)',fontWeight:700,marginBottom:4}}>👀 {cstr.look}</div><div style={{color:'rgba(255,255,255,.88)'}}>{cstr.text}</div></div>)}
-        <div style={{display:'flex',gap:8,flexShrink:0}}>
-          {tab==='motifs'?(doneM?<button onClick={nextM} style={_pri}>Next motif →</button>:<><button onClick={()=>setShowHint(h=>!h)} style={_ab}>Hint</button><button onClick={()=>{setShown(true);setSel(null);setAnsHide(false);}} style={_ab}>Show answer</button></>)
-            :<><button onClick={()=>setSi(i=>(i-1+STRAT.length)%STRAT.length)} style={_ab}>‹ Prev</button><button onClick={()=>setSi(i=>(i+1)%STRAT.length)} style={_pri}>Next ›</button></>}
+        <div data-ct="tactics-row" style={{display:'flex',gap:8,flexShrink:0}}>
+          {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: Tactics and Strategy's row is RowBtn, icons only;
+              Next motif and Strategy's Previous / Next go to another item, so they are the blue NavTri */}
+          {tab==='motifs'?(doneM?<RowBtn ct="tactics-next" label="Next motif" onClick={nextM}><NavTri dir="right"/></RowBtn>:<><RowBtn ct="tactics-hintbtn" label="Hint" hot={!!showHint} onClick={()=>setShowHint(h=>!h)}><RowIcon name="hint"/></RowBtn><RowBtn ct="tactics-show" label="Show answer" onClick={()=>{setShown(true);setSel(null);setAnsHide(false);}}><RowIcon name="show"/></RowBtn></>)
+            :<><RowBtn ct="strat-prev" label="Previous idea" onClick={()=>setSi(i=>(i-1+STRAT.length)%STRAT.length)}><NavTri dir="left"/></RowBtn><RowBtn ct="strat-next" label="Next idea" onClick={()=>setSi(i=>(i+1)%STRAT.length)}><NavTri dir="right"/></RowBtn></>}
         </div>
       </div>
     </div>);
@@ -9733,8 +9779,8 @@ function AppMain(){
   const _rowTiny0=rowTiny;
   const _prRow=(inBar)=>{const rowTiny=inBar||_rowTiny0;return(
               <div data-ct={inBar?'lesson-bar-practice':undefined} style={{display:'flex',gap:6,alignItems:'stretch',...(inBar?{flex:1,minWidth:0}:null)}}>
-                <FootBtn onClick={()=>setFlip(f=>!f)} label="Flip board" flex="0 0 46px" minW={46}><IconGlyph g="⟳" em={LF_EM.flip}/></FootBtn>
-                <FootBtn onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);/* #548 item (22): switching the hint OFF before the first practice move clears the run's hinted mark - no move has been made with it on, so the run is still clean; after a move the mark stays */if(!nv&&learnPhase==='practice'&&openStep===0&&!revealHint&&learnRepRef.current)learnRepRef.current.hints=false;}} label="Hints" hot={showHint} flex="0 0 46px" minW={46}><IconGlyph g="💡" em={LF_EM.bulb}/></FootBtn>
+                {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the practice row is RowBtn, icons only, one size (in the bar each is 44 wide beside the bar's X and ⋯; under the board the three share the row). Try again is the reset icon, Next lesson the blue NavTri (another lesson), Bank it the tick */}<RowBtn ct="lesson-flip" onClick={()=>setFlip(f=>!f)} label="Flip board" flex={inBar?'0 0 44px':'1 1 0'}><RowIcon name="flip"/></RowBtn>
+                <RowBtn ct="lesson-hints" onClick={()=>{const nv=!showHint;setShowHint(nv);setHintFor(LIB[openIdx]?.name,nv);if(nv)setRevealHint(false);/* #548 item (22): switching the hint OFF before the first practice move clears the run's hinted mark - no move has been made with it on, so the run is still clean; after a move the mark stays */if(!nv&&learnPhase==='practice'&&openStep===0&&!revealHint&&learnRepRef.current)learnRepRef.current.hints=false;}} label="Hints" hot={!!showHint} flex={inBar?'0 0 44px':'1 1 0'}><RowIcon name="hint"/></RowBtn>
                 {/* #384 (Z-06 "Support 320 properly"): this row is three fixed 46px buttons and one flexible one, and the
                     flexible one defaulted to min-width:auto - so it refused to shrink below its own min-content width and
                     pushed the trailing (...) button 3.1px off a 320 screen, with no page scroll to recover it. minWidth:0
@@ -9767,9 +9813,9 @@ function AppMain(){
                 {(()=>{const _done=openStep>=learnLine.length&&learnLine.length>0;const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;
                   let _nx=-1;if(_done&&_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}
                   /* #550 a33: after a clean run with hints on, the slot offers to bank it - the same line again with the lightbulb off */
-                  if(_done&&bankOffer&&learnPhase==='practice')return(<FootBtn ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} label="Bank it: play again with hints off" go clip text flex="1 1 0" minW={0}>{rowTiny?<IconGlyph g={'\u2713'} em={LF_EM.tick} top={0}/>:<span><IconGlyph g={'\u2713'} em={LF_EM.tick} top={0}/>{(boardPx-3*46-3*6)>=150?' Bank it: hints off':' Bank it'}</span>}</FootBtn>);
-                  if(_nx>=0)return(<FootBtn ct="lesson-next" onClick={()=>selectOpening(_nx)} label={'Next lesson: '+LIB[_nx].name} go text flex="1 1 0" minW={0}>{(()=>{if(rowTiny)return <IconGlyph g="›" em={LF_EM.next}/>;const _bud=(boardPx-3*46-3*6)-12-6 /* FootBtn's padding, 6 each side */;const _w=(t)=>{try{const c=window.__ctNextMC||(window.__ctNextMC=document.createElement('canvas').getContext('2d'));c.font="800 15px 'Segoe UI',system-ui,-apple-system,sans-serif";return c.measureText(t).width;}catch(e){return 1e9;}};const _full='Next: '+LIB[_nx].name+' ›';const _bw=_bud-10/* the › is drawn at LF_EM.nextw (about 10px wider than at 15px) */;const _lab=_w(_full)<=_bw?_full:(_w('Next lesson ›')<=_bw?'Next lesson ›':'Next ›');return <span>{/* ONE inline span: the button is inline-flex, so separate children were flex items and innerText read 'Next lesson\n›' (gate 48 TC-LS-036). No ellipsis and no clip - the label is chosen by measurement to fit (_bw), and a clipping box would cut the 3em arrow's line box (gate 26) */}{_lab.slice(0,-1)}<IconGlyph g="›" em={LF_EM.nextw}/></span>;})() /* the NAME only where the slot measures wide enough for it, so it is never cut by the ellipsis; the name is in aria-label and title either way */}</FootBtn>);
-                  return(<FootBtn onClick={()=>startPractice(learnLine,learnLabel)} label="Try again" text flex="1 1 0" minW={0}>{/* #550 cg6 FMT-A-07: Try again is the secondary style, as Flip beside it */}{rowTiny?<IconGlyph g="↻" em={LF_EM.again}/>:<span><IconGlyph g="↻" em={LF_EM.again}/>{(boardPx-3*46-3*6)>=96?' Try again':' Again'}</span>}</FootBtn>);})()}
+                  if(_done&&bankOffer&&learnPhase==='practice')return(<RowBtn ct="lesson-bank-it" onClick={()=>{setBankOffer(false);setShowHint(false);setHintFor(LIB[openIdx]&&LIB[openIdx].name,false);showHintRef.current=false;startPractice(learnLine,learnLabel);}} label="Bank it: play again with hints off" flex={inBar?'0 0 44px':'1 1 0'}><RowIcon name="tick"/></RowBtn>);
+                  if(_nx>=0)return(<RowBtn ct="lesson-next" onClick={()=>selectOpening(_nx)} label={'Next lesson: '+LIB[_nx].name} flex={inBar?'0 0 44px':'1 1 0'}><NavTri dir="right"/></RowBtn>);
+                  return(<RowBtn ct="lesson-try-again" onClick={()=>startPractice(learnLine,learnLabel)} label="Try again" flex={inBar?'0 0 44px':'1 1 0'}><RowIcon name="reset"/></RowBtn>);})()}
                 {/* #550 FMT-A-05 (Kunal's pick 12 Nov): ONE ⋯ PER SCREEN. The practice row's own ⋯ ('More actions') is gone; its actions are at the top of the bottom bar's ⋯ sheet in practice */}
               </div>);};
   // #424, ANTAGONIST B'S VETO, AND IT IS THE DIFFERENCE BETWEEN A FIX AND A BROAD UNASKED-FOR CHANGE.
@@ -11649,8 +11695,7 @@ function AppMain(){
               <span style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.82)',fontWeight:600}}>Sound</span>
               <span style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:soundOn?'var(--ac2)':'rgba(255,255,255,.5)',padding:'2px 10px',borderRadius:20,background:soundOn?'rgba(var(--acr),.2)':'rgba(255,255,255,.08)',border:`1px solid ${soundOn?'rgba(var(--acr),.45)':'rgba(255,255,255,.15)'}`}}>{soundOn?'ON':'OFF'}</span>
             </button>
-          <div data-ct="menu-share-row" style={{display:'flex',gap:8,marginTop:6} /* #550 one screen: Share and (for a developer) Feedback share one row */}><button onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play the computer or a friend.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}} style={{display:'flex',alignItems:'center',justifyContent:devOn?'center':undefined,gap:7,flex:'1 1 0',minWidth:0,minHeight:44,padding:'0 10px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',whiteSpace:'nowrap'}}>{devOn?'📣 Share':'📣 Share Chess Trainer'}</button>
-          {/* #550 TXT-05/07: feedback goes to Claude in his chat (it copies a block for him to paste; LOG_ENDPOINT is empty, so nothing is sent), so it is a dev tool (devOn) until there is a support address */}{devOn&&<button onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);setMenuOpen(false);}} aria-label="Send feedback" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:7,flex:'1 1 0',minWidth:0,minHeight:44,padding:'0 10px',borderRadius:11,background:'transparent',border:'1px solid rgba(255,255,255,.12)',cursor:'pointer',color:'rgba(255,255,255,.85)',fontWeight:600,fontSize:'clamp(14px,2.7vw,14px)',whiteSpace:'nowrap'}}>💬 Feedback</button>}</div>
+          <div data-ct="menu-share-row" style={{display:'flex',gap:8,marginTop:6} /* #550 one screen: Share and (for a developer) Feedback share one row. batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: RowBtn icons, the names in aria-label */}><RowBtn ct="menu-share" label="Share Chess Trainer" onClick={()=>{const url=window.location.origin+window.location.pathname;const flash=(m)=>{setShareMsg(m);setTimeout(()=>setShareMsg(''),2600);};const data={title:'Chess Trainer',text:'Learn chess move by move: openings, puzzles, game review, and play the computer or a friend.',url};if(navigator.share){navigator.share(data).catch(()=>{});}else{try{navigator.clipboard.writeText(url).then(()=>flash('✓ Link copied. Send it to a friend.')).catch(()=>flash('Copy the link from your address bar.'));}catch(e){flash('Copy the link from your address bar.');}}}}><RowIcon name="share"/></RowBtn>{/* #550 TXT-05/07: feedback goes to Claude in his chat (it copies a block for him to paste; LOG_ENDPOINT is empty, so nothing is sent), so it is a dev tool (devOn) until there is a support address */}{devOn&&<RowBtn ct="menu-feedback" label="Send feedback" onClick={()=>{setFbText('');setFbSent(false);setFbCopied(false);setFbOpen(true);setMenuOpen(false);}}><RowIcon name="feedback"/></RowBtn>}</div>
           {LEGAL_DRAFT&&<div data-ct="menu-legal-draft" style={{textAlign:'center',fontSize:'clamp(12px,2.1vw,12px)',color:'rgba(255,255,255,.45)',marginTop:vp.w<360?2:6 /* #550 legal links: on a narrow phone the links take two rows, and the 4px their 44 tap areas need between the rows comes from here, so the sheet's height does not change */}}>Legal pages: drafts, some details to come</div>}
           <div style={{display:'flex',flexWrap:'wrap',gap:(vp.w<360?'4px':'0')+' 8px',justifyContent:'center',marginTop:LEGAL_DRAFT?0:(vp.w<360?2:6)}}>{[['Privacy','./privacy.html'],['Terms','./terms.html'],['Refunds','./refund.html'],['Delete account','./delete-account.html']].map(([lab,href])=>(<a key={href} href={href} target="_blank" rel="noopener noreferrer" data-ct="menu-legal" className="ct-hit44" /* #550 jobs/menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14: the box stays 40 tall (the menu keeps one screen); ct-hit44 gives the TAP 44, 2px over and under, which is exactly the gap to the foot button below */ style={{fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.52)',textDecoration:'none',display:'inline-flex',alignItems:'center',minHeight:40,padding:'8px 4px' /* #373 (audit A-11): a bare 16px line box; 40px tap box now */}}>{lab}</a>))}</div>
           {/* #550, jobs/build-menu-one-screen: THE FOOT LINE IS A BUTTON. A player sees the version, a developer the stamp; one tap opens the rows the
@@ -13217,10 +13262,10 @@ function AppMain(){
             {_bb('land-rematch',<span style={{fontSize:18,lineHeight:1}}>{'\u2295'}</span>,'Rematch',()=>{fullReset();})}
             {_bb('land-newgame',<span style={{fontSize:17,lineHeight:1}}>{'\u265f'}</span>,'New game',()=>{setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);})}
             {_bb('land-more',<span style={{fontSize:18,lineHeight:1}}>{'\u22ef'}</span>,'More',()=>setMoreOpen(true))}
-          </div>);})():(<div style={{display:'flex',gap:landGraph?4:6,width:'100%'}}>
-            <_CBtn cmp={landGraph} icon="moves" label="Moves" active={movesOpen} on={()=>setMovesOpen(o=>!o)}/>
-            <_CBtn cmp={landGraph} icon="back" label="Back" dis={playHist.length===0||pvIdx===0} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}/>
-            <_CBtn cmp={landGraph} icon="forward" label="Forward" dis={playHist.length===0||pvIdx==null} on={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}/>
+          </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:6,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
+            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={movesOpen} onClick={()=>setMovesOpen(o=>!o)}><RowIcon name="moves"/></RowBtn>
+            <RowBtn ct="play-back" label="Back" dis={playHist.length===0||pvIdx===0} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}><StepArrow dir="left"/></RowBtn>
+            <RowBtn ct="play-forward" label="Forward" dis={playHist.length===0||pvIdx==null} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}><StepArrow dir="right"/></RowBtn>
             {/* #371: when the game is over on a phone, Hint and Flip give their two slots to Review and New game -
                 same row, same height, the board does not move.
                 #437: #371's parenthesis read "(Flip is still in More)" AND IT IS NOT TRUE - measured on the
@@ -13249,13 +13294,13 @@ function AppMain(){
                 antagonists of #437 found this independently from different doors. Portrait at the same ply is
                 correct, so this is one predicate disagreeing with itself across an orientation, not two defects. */}
             {_gameOver?(<>
-              <_CBtn cmp={landGraph} icon="analyze" label="Review" accent dis={!(game.history&&game.history.length>=2)} on={reviewPlayedGame}/>
-              <_CBtn cmp={landGraph} icon="newgame" label="Rematch" on={()=>{fullReset();}}/>
+              <RowBtn ct="play-review" label="Review" dis={!(game.history&&game.history.length>=2)} onClick={reviewPlayedGame}><RowIcon name="review"/></RowBtn>
+              <RowBtn ct="play-rematch" label="Rematch" onClick={()=>{fullReset();}}><RowIcon name="rematch"/></RowBtn>
             </>):(<>
-              <_CBtn cmp={landGraph} icon="hint" label="Hint" accent dis={opponent!=='computer' /* #550 HEX-R-10: no hint against a person (Pass and Play) - shown dimmed, never a live control that does nothing */} on={requestHint}/>
-              <_CBtn cmp={landGraph} icon="flip" label="Flip" on={()=>setFlip(f=>!f)}/>
+              <RowBtn ct="play-hint" label="Hint" dis={opponent!=='computer' /* #550 HEX-R-10: no hint against a person (Pass and Play) - shown dimmed, never a live control that does nothing */} onClick={requestHint}><RowIcon name="hint"/></RowBtn>
+              <RowBtn ct="play-flip" label="Flip" onClick={()=>setFlip(f=>!f)}><RowIcon name="flip"/></RowBtn>
             </>)}
-            <_CBtn cmp={landGraph} icon="more" label="More" on={()=>setMoreOpen(true)}/>
+            <RowBtn ct="play-more" label="More" onClick={()=>setMoreOpen(true)}><RowIcon name="more"/></RowBtn>
           </div>)}
           {/* #438: the adaptive-strength pill, moved here from ABOVE the control row. Below it, it can be the box
               that gets clipped on a short landscape instead of the six controls, which is the right way round. */}
@@ -13583,14 +13628,17 @@ function AppMain(){
             74px verdict box and the roadmap header left it nowhere to go. The height cap was doing exactly what
             it was told; what it was told was too much chrome. Prev/Next become chevrons at the ends of the same
             row as Hint/Show/Reset, which is also how his chess.com screenshot lays its row out. iPad keeps two rows. */}
-        {!wide?(<div style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
-          <button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} aria-label="Previous puzzle" style={{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><ChevIcon size={20} dir="left"/></button>
+        {!wide?(<div data-ct="pz-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
+          {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the phone puzzle row is RowBtn, icons only.
+              Previous and Next go to another PUZZLE, so they are the blue NavTri (never the white step arrow); a solved puzzle keeps the same two
+              buttons. Hint, Show and Reset keep their names in aria-label. */}
+          <RowBtn ct="pz-prev" label="Previous puzzle" onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)}><NavTri dir="left"/></RowBtn>
           {!puzSolved&&(<>
-            <button onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
-            <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}} aria-label="Show move"/* batch 13, jobs/wording-check-2026-11-12: the phone row keeps the short word (measured: '👁 Show move' needs 112.5 of ink at 14px and the three share 196px at 320 wide and 251 at 375, against 268 for the three long labels), so its NAME is the one every other Show button carries */ style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
-            <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}><span><IconGlyph g="↺" em={RESET_EM}/>{' '}Reset</span></button>
+            <RowBtn ct="pz-hint" label="Hint" onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}}><RowIcon name="hint"/></RowBtn>
+            <RowBtn ct="pz-show" label="Show move" onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}}><RowIcon name="show"/></RowBtn>
+            <RowBtn ct="pz-reset" label="Reset" onClick={()=>loadPuzzle(puzIdx)}><RowIcon name="reset"/></RowBtn>
           </>)}
-          <button onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={puzSolved?{...navBtn(true),minHeight:44,padding:'9px 14px'}:{...navBtn(false),flex:'0 0 46px',minWidth:46,padding:0,minHeight:44,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{puzSolved?<span>Next{' '}<IconGlyph g="›" em={NEXT_ARROW_EM}/></span>:<ChevIcon size={20} dir="right"/>}</button>
+          <RowBtn ct="pz-next" label="Next puzzle" onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}}><NavTri dir="right"/></RowBtn>
         </div>):(<>
         {!puzSolved&&(()=>{/* #550 a8: in the sideways rail the three sit on ONE row (flex, no wrap), with shorter words where the column is narrow */const _rb=pzRail?{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff');const _nar=pzRail&&sideW<380 /* #550 helper B: at 844x390 the column is 358 and '👁 Show move' needs 121 of its 113 */;const _xn=pzRail&&sideW<230;/* #550 helper B (same job, whatIsLeft): at 667x375 the column is 200, each of the three is 61 wide and '💡 Hint', '👁 Show' and '↺ Reset' need 65 to 68, so Show and Reset were cut at their edges; there the glyph sits over its word, which fits in the same 44 height */const _rbx=_xn?{..._rb,whiteSpace:'pre',fontSize:12,lineHeight:1.15,padding:'3px 2px'}:_rb;return(<div style={{display:'flex',gap:pzRail?6:7,flexWrap:pzRail?'nowrap':'wrap',justifyContent:'center',...(pzRail?{width:'100%'}:null)}}>
           <button onClick={()=>{const _h=pzText(p).hint;setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} aria-label="Hint" style={_rbx}>{_xn?'💡\nHint':'💡 Hint'}</button>
@@ -13706,17 +13754,19 @@ function AppMain(){
              glyph shrinks, the target does not), drawn at 28 so their ink matches the row's 19px emoji (gate 157 TC-IR-02); their accessible names stay 'Previous card' / 'Next card'. The width they
              give back goes to the three helpers. The row's height is the 44 it was (the job's own note: the 44 floor keeps the height). */
           const _nb=(pr)=>({...navBtn(pr),flex:'0 0 46px',minWidth:46,minHeight:44,padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'});
-          return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
-            <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 0',minWidth:0}}>
-              <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
-                <button onClick={()=>setPuzMsg('💡 '+pzText(p).hint)} aria-label="Hint" style={_hb}>{_nw?'💡':'💡 Hint'}</button>
-                <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}} aria-label="Show move" style={_hb}>{_nw?'👁':'👁 Show'}</button>
-                <button onClick={()=>loadExternal(curPuz)} aria-label="Reset" style={_hb}>{_nw?<IconGlyph g="↺" em={DRILL_RESET_EM}/>:'↺ Reset'}</button>
+          return(<div data-ct="drill-row" style={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))' /* batch 13: five equal columns, the helpers' box spans three, so all five buttons are one size */,gap:6,width:'100%',alignItems:'stretch'}}>
+            <div style={{position:'relative',display:'grid',gridColumn:'span 3',minWidth:0}}>
+              <div aria-hidden={puzSolved||undefined} style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
+                {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the drill row is RowBtn, icons only at every width;
+                    Previous and Next card are the blue NavTri (another card, not a move) */}
+                <RowBtn ct="drill-hint" label="Hint" onClick={()=>setPuzMsg('💡 '+pzText(p).hint)}><RowIcon name="hint"/></RowBtn>
+                <RowBtn ct="drill-show" label="Show move" onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}}><RowIcon name="show"/></RowBtn>
+                <RowBtn ct="drill-reset" label="Reset" onClick={()=>loadExternal(curPuz)}><RowIcon name="reset"/></RowBtn>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<button data-ct="drill-analyse" onClick={analyseFromDrill} aria-label="Analyze this position on the review board" style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.55)','#fff'),flex:'1 1 0',minWidth:0,minHeight:44,padding:'9px 4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_nw?'\u2315 Analyze':'\u2315 Analyze this position'}</button><button data-ct="drill-reset-solved" onClick={()=>loadExternal(curPuz)} aria-label="Reset" title="Reset the card and play it again" style={{..._hb,flex:'0 0 48px'}}><IconGlyph g={'\u21ba'} em={_nw?DRILL_RESET_EM:1}/></button></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6,alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<RowBtn ct="drill-analyse" label="Analyze this position on the review board" onClick={analyseFromDrill}><RowIcon name="analyze"/></RowBtn><RowBtn ct="drill-reset-solved" label="Reset" onClick={()=>loadExternal(curPuz)}><RowIcon name="reset"/></RowBtn></div>)}
             </div>
-            <button onClick={()=>{if(_hp)prevMistake();}} disabled={!_hp} aria-disabled={!_hp} aria-label="Previous card" data-ct="drill-prev" style={{..._nb(false),opacity:_hp?1:.42,cursor:_hp?'pointer':'default'}}><ChevIcon size={28} dir="left"/></button>
-            <button onClick={nextOnline} aria-label="Next card" data-ct="drill-next" style={_nb(puzSolved)}><ChevIcon size={28} dir="right"/></button>
+            <RowBtn ct="drill-prev" label="Previous card" dis={!_hp} onClick={()=>{if(_hp)prevMistake();}}><NavTri dir="left"/></RowBtn>
+            <RowBtn ct="drill-next" label="Next card" onClick={nextOnline}><NavTri dir="right"/></RowBtn>
           </div>);})():(<>
         <div style={{position:'relative'}}>
         {(<div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
@@ -13931,7 +13981,7 @@ function AppMain(){
         )}
         {openIdx!==null&&(<>
           {learnPhase==='demo'&&(<>
-            {!lessonShort&&<div style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1.8fr 1fr',gap:6}}>
+            {!lessonShort&&<div data-ct="lesson-demo-row" style={{alignSelf:'stretch',display:'grid',gridTemplateColumns:'1fr 58px' /* batch 13 (icons-only rows): the start button keeps its words and takes the row; the second cell is one 58-wide RowBtn icon */,gap:6}}>
               <button onClick={()=>startPractice(learnLine,learnLabel)} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),...((rowNarrow&&_demoLinesSlot)||_flipTight?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424: THE FONT FLOOR IS THE ROW'S, NOT ONE BUTTON'S, AND KUNAL'S OWN INVARIANT IS WHAT SAID SO.
                   Dropping only the "Other lines" button to 12px left this one at 14px beside it, and
                   gates/regress/26-invariants.js went RED at se/lesson-demo with a 2px glyph spread on the
@@ -13939,7 +13989,7 @@ function AppMain(){
                   size"). Pinning that would have been pinning a spread this build had just created, so the row
                   moves together instead. It also frees min-content in the FIRST track, which is the track that
                   binds at board 192. Only under rowNarrow, so nothing changes on his phone. */}✋ Now I'll try it</button>
-              {_demoLinesSlot?(<button data-ct="lesson-lines" onClick={()=>setLessonMore(true)} style={{...btn('rgba(var(--acr),.16)','1px solid rgba(var(--acr),.4)','var(--ac2)'),...(rowNarrow?{padding:'9px 6px',fontSize:'12px',letterSpacing:0}:null)}}>{/* #424 CLOSES THIS ROW'S OVERFLOW AGAINST ITS OWN ROW, which is a different box from the viewport and is
+              {_demoLinesSlot?(<RowBtn ct="lesson-lines" onClick={()=>setLessonMore(true)} label={'Other lines ('+LIB[openIdx].vars.length+')'} flex="1 1 auto"><RowIcon name="lines"/></RowBtn>):(<RowBtn ct="lesson-demo-flip" onClick={()=>setFlip(f=>!f)} label="Flip board" flex="1 1 auto"><RowIcon name="flip"/></RowBtn>)}{/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: Other lines and Flip are RowBtn icons (their names, the count included, in aria-label). The history of the words these two carried, kept: */}{/* #424 CLOSES THIS ROW'S OVERFLOW AGAINST ITS OWN ROW, which is a different box from the viewport and is
                   why the defect survived #404, #405 and #406. Those three fixed the VIEWPORT overhang and the suite
                   agreed; measured on #424 at the demo end, the button was still 16.86px past the right edge of ITS
                   OWN ROW at every narrow-board geometry - 320x568 row 270.88 at 24.56..295.44 with the button
@@ -13970,7 +14020,7 @@ function AppMain(){
                   gates/regress/48-lesson-flow.js, with the arithmetic above recorded so any height can be checked.
                   NOTHING CHANGES AT boardPx>=340, measured and not promised: 375x730 and 390x844 both keep the
                   169.17px box ending at exactly 375.00 and 390.00, so Kunal's Z-06 condition holds by construction.
-                  #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{rowNarrow?'Other lines':'\u265f Other lines ('+LIB[openIdx].vars.length+')'}</button>):(<button onClick={()=>setFlip(f=>!f)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),...(rowNarrow?{padding:'9px 6px'}:null),...(_flipTight?{fontSize:'12px',letterSpacing:0}:null)}}>{/* #424 REVERTED THE FONT FLOOR HERE on antagonist B's veto. It shares the slot with "Other lines" - this is what renders when a lesson has no variations - but its min-content is 59.59px against the other's 122.56px, so this branch was ALREADY contained at 14px (measured 320x568: 0.02px of slack) and the floor bought nothing here while costing smaller text on 145 of 170 lessons. The row stays uniform because NEITHER button drops in this branch. See the _demoLinesSlot block for the 34.77px at h=520 this leaves, and its flag. */}⟳ Flip</button>)}
+                  #404, decision `lesson-lines-320-label`, Kunal 2026-09-15 02:08 UTC: "Other lines" - the COUNT DROPS on a narrow phone. Measured before: the button is 169.19px wide at EVERY viewport and never shrinks, so at 320 it ran 189.73..358.92 with documentElement.scrollWidth still 320 and 38.92px unreachable. HIS NOTE SAID "only below 340px wide, above 340 nothing changes by construction", and that clause was a wrong measurement rather than a preference: #405 widened it to a measured 360 and #406 replaced the viewport threshold altogether with `boardPx<340`, because this row is sized to the BOARD and the board is fit to HEIGHT. See the NARROW/rowNarrow block for the eleven measured geometries. */}{/* #424 REVERTED THE FONT FLOOR HERE on antagonist B's veto. It shares the slot with "Other lines" - this is what renders when a lesson has no variations - but its min-content is 59.59px against the other's 122.56px, so this branch was ALREADY contained at 14px (measured 320x568: 0.02px of slack) and the floor bought nothing here while costing smaller text on 145 of 170 lessons. The row stays uniform because NEITHER button drops in this branch. See the _demoLinesSlot block for the 34.77px at h=520 this leaves, and its flag. */}
               {/* #404, AND THE HALF HIS ANSWER DID NOT REACH. Dropping the count took the overhang from 38.9px
                   to 10.3px and NOT to zero: measured at 320x568 after the label change, the button still ran
                   left 189.7 to right 330.3, w 140.6, 10.3px past a 320 screen with nothing able to scroll to
@@ -14368,9 +14418,9 @@ function AppMain(){
           means numerically over there is still open. Guessing it would be inventing scope while he is asleep. */}
       {lessonFocus&&(<div data-ct="lesson-footer" style={{position:'fixed',left:lessonSide?Math.round(_grpPad+boardPx+(_edge?0:3)+12):0 /* #550 BSA-L-03: sideways the footer sits under the right-hand column, so the board takes the full height. #550 DSK-03/10: and the column is in the centred group, so the footer takes the group's edges (_grpPad), not the window's */,right:lessonSide?_grpPad:0,bottom:0,zIndex:471,display:'flex',gap:lessonSide?5:(lessonShort?6:10),alignItems:'center',padding:lessonSide?'8px 6px calc(8px + env(safe-area-inset-bottom,0px))':(lessonShort?'8px 8px calc(8px + env(safe-area-inset-bottom,0px))':'8px 12px calc(8px + env(safe-area-inset-bottom,0px))') /* #550 a42: a short phone's bar carries six buttons in the demo (Now I'll try it joins it), so its gaps close to 6 and its sides to 8 - at 320 it would otherwise run 24 past the edge */,minWidth:0,background:'rgba(13,16,21,.97)',borderTop:'1px solid rgba(255,255,255,.12)'}}>
         {/* #550 FMT-A-05 (Kunal's pick 12 Nov): the close X is ALWAYS far left of this bar and ⋯ always far right, in demo, practice and finish */}<FootBtn onClick={()=>{setLessonMore(false);setOpenIdx(null);}} label="Close lesson"><IconGlyph g={'\u2715'} em={LF_EM.x}/></FootBtn>
-        {learnPhase!=='practice'&&(<><FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} label="Back a move"><ChevIcon size={27} dir="left"/></FootBtn>
-        <FootBtn onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} label="Play or pause" primary minW={52}>{demoPlaying?<IconGlyph g={'\u23F8'} em={LF_EM.pause}/>:(demoPly>=learnLine.length?<IconGlyph g={'\u21BB'} em={LF_EM.replay}/>:<IconGlyph g={'\u25B6'} em={LF_EM.play}/>)}</FootBtn>
-        <FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} label="Forward a move"><ChevIcon size={27} dir="right"/></FootBtn></>)}
+        {learnPhase!=='practice'&&(<><FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.max(0,p-1));}} label="Back a move"><StepArrow dir="left"/></FootBtn>
+        <FootBtn onClick={()=>{if(demoPly>=learnLine.length){setDemoPly(0);setDemoPlaying(true);}else setDemoPlaying(p=>!p);}} label="Play or pause" primary>{/* batch 13 (icons-only rows): 44 wide like the rest of the bar, one size per row */}{demoPlaying?<IconGlyph g={'\u23F8'} em={LF_EM.pause}/>:(demoPly>=learnLine.length?<IconGlyph g={'\u21BB'} em={LF_EM.replay}/>:<IconGlyph g={'\u25B6'} em={LF_EM.play}/>)}</FootBtn>
+        <FootBtn onClick={()=>{setDemoPlaying(false);setDemoPly(p=>Math.min(learnLine.length,p+1));}} label="Forward a move"><StepArrow dir="right"/></FootBtn></>)}
         {lessonShort&&learnPhase==='practice'&&!freeSt.on&&<div data-ct="lesson-progress" style={{position:'absolute',left:8,right:8,top:2,height:4,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div style={{height:'100%',width:(learnLine.length?Math.round(100*Math.min(openStep,learnLine.length)/learnLine.length):0)+'%',background:'var(--ac)',borderRadius:2,transition:'width .25s'}}/></div>}{/* #550 a42: on a short phone the practice progress strip rides the bar's top edge, with the row */}{lessonShort&&learnPhase==='practice'?_prRow(true):wide?(<div style={{flex:1,textAlign:'center',fontSize:12.5,color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{LIB[openIdx]?LIB[openIdx].name:''}</div>):(<div aria-hidden="true" style={{flex:1,marginRight:lessonShort?-6:0 /* its own gap cancelled, so ⋯ sits at the same x in demo and practice */}}/>)}{/* #549 item (100): on a phone the lesson name left this row for its own line at the top of the moves panel (search data-ct="lesson-name"); the spacer keeps the More control at the right edge. */}
         {lessonShort&&learnPhase!=='practice'&&<FootBtn onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} label="Now I'll try it" primary><IconGlyph g={'\u270B'} em={LF_EM.hand}/></FootBtn>}{/* #550 run-answers a42: on a short upright phone the row under the board folds into this bar - Now I'll try it is this button, Other lines is in the ⋯ sheet - so the board grows */}
         <FootBtn onClick={()=>setLessonMore(v=>!v)} label="More for this lesson" hot={lessonMore}><IconGlyph g={'\u22EF'} em={LF_EM.dots}/></FootBtn>

@@ -319,8 +319,10 @@ L.run(async()=>{
     // what makes it an assertion rather than a description.
     const lab=fRow&&fRow.lines, bw=fRow&&fRow.boardW;
     if(lab!==undefined&&bw){
-      const wantCount=bw>=340;
-      const hasCount=lab!==null&&/\(\d+\)/.test(lab);
+      /* RE-KEYED [batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18; Kunal, questions/Q24 'A, icons only']: the button
+         is an icon at every width now, so no words and no count are painted at any board width (the count lives in its aria-label, 'Other lines (3)'). */
+      const wantCount=false;
+      const hasCount=lab!==null&&/\(\d+\)|[A-Za-z]/.test(lab);
       L.say(hasCount===wantCount,
         geo+' (board '+bw+'px wide): the count is present exactly when the board can hold it - his answer was that the count DROPS on a narrow phone, and the thing that decides is the board width, not the viewport (#406, SIT run 5: a geometry list has two axes)',
         {label:lab, boardW:bw, wantCount, hasCount});

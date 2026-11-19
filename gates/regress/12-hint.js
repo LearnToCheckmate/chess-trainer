@@ -58,7 +58,7 @@ L.run(async()=>{
     // THE PUZZLE'S OWN MATE COUNT, read off the goal line while the hint is still absent [#547, item (21); jobs/rotating-audit-
     // 433-two-assertions-that-cannot-discriminate-2026-09-29]: the hint assertion below is pinned to it rather than to length.
     const goalN=await b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(?:White|Black) to move(?: \u2014|:) (?:mate in (\d)|find the best move)/);return m?(m[1]?+m[1]:0):null;});
-    await P.tapBtn(b,/^\u{1F4A1} Hint$/u,600);await b.settle(1800);const after=await b.metrics();await b.shot('hint-'+geo);
+    await P.tapBtn(b,/^(\u{1F4A1} Hint|Hint)$/u,600);await b.settle(1800);const after=await b.metrics();await b.shot('hint-'+geo);
     const head=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height,sh:e.scrollHeight,ch:e.clientHeight,text:(e.innerText||'').trim()};});
     L.say(!!before.board&&!!after.board,geo+': puzzle board present before and with the hint');
     L.say(!hintAtBefore,geo+': PRECONDITION the hint was NOT yet showing at the before sample, so the next line compares a hintless board with a hinted one',{hintAtBefore:hintAtBefore&&hintAtBefore.slice(0,60)});
@@ -97,7 +97,7 @@ L.run(async()=>{
   // route in is the same player route (Home -> Puzzles -> Start training -> Hint), with the header asserted present first.
   for(const geo of [...L.TA7.filter(g=>!['se','390','kunal'].includes(g)),'kunal761']){
     const b=await L.launch({geo,name:'hint-fit-'+geo});await b.open();
-    await P.states['train'](b);await P.tapBtn(b,/^\u{1F4A1} Hint$/u,600);await b.settle(1200);
+    await P.states['train'](b);await P.tapBtn(b,/^(\u{1F4A1} Hint|Hint)$/u,600);await b.settle(1200);
     const up=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-hint-head"]'));
     L.say(up,geo+': PRECONDITION the hint header is showing after the Hint tap, so the corpus below is set into the real box');
     await corpusFit(b,geo);

@@ -120,7 +120,7 @@ const plies=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="
   const last=m[m.length-1];return last[2]==='.'?2*(+last[1])-1:2*(+last[1]);});
 const row=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 const card=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="result-card"]')||document.querySelector('[data-ct="land-result"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});   /* #550 a23: a finished sideways game states its result in land-result, not in a card over the board */
-const ctrls=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(Boolean).join(' | '));
+const ctrls=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()||x.getAttribute('aria-label')||'').filter(Boolean).join(' | '));   // batch 13: icons-only row, named by aria-label
 // the captured-material readout, the "+13" the defect inflated
 const taken=(b)=>b.page.evaluate(()=>[...new Set([...document.querySelectorAll('div,span')].map(d=>(d.innerText||'').trim()).filter(x=>/^[+-]\d+$/.test(x)))].join(','));
 // the promotion picker: the position:fixed overlay whose own text starts "Promote to"
@@ -158,7 +158,7 @@ const pieceAt=async(b,sq)=>{const bd=await b.board();if(!bd)return null;
 
 async function tapBtn(b,re,wait){
   const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;
-    for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();if(!re.test(t))continue;
+    for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();if(!re.test(t)&&!(!/[A-Za-z0-9]/.test(t)&&re.test(el.getAttribute('aria-label')||'')))continue;   // batch 13: a wordless button also answers to its aria-label
       const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}
     if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
   const el=h.asElement();if(!el)return false;

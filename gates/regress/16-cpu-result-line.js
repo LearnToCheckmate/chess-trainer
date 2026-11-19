@@ -132,7 +132,7 @@ async function slot(b){
 async function fwdState(b){
   return b.page.evaluate(()=>{
     for(const x of document.querySelectorAll('button')){
-      if((x.textContent||'').replace(/\s+/g,' ').trim()!=='Forward')continue;
+      if(((x.textContent||'').replace(/\s+/g,' ').trim()||x.getAttribute('aria-label')||'')!=='Forward')continue;   // batch 13: icons-only row, named by aria-label
       const r=x.getBoundingClientRect();if(r.width<1||r.height<1)continue;
       return {found:true,dis:!!x.disabled,x:+r.x.toFixed(1),y:+r.y.toFixed(1)};
     }

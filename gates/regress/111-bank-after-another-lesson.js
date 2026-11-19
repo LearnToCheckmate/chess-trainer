@@ -46,7 +46,7 @@ L.run(async()=>{
   let ok=true;try{await D.states['practice-m0'](b);await D.tapBtn(b,/^Hints$/,400);await playThrough(b);}catch(e){ok=false;L.note('TC-R191d: '+String(e).slice(0,120));}
   const n1=(await D.noteText(b))||'';
   L.say(ok&&/Complete!/.test(n1)&&/Hints were on during this run/.test(n1),'TC-R191d DENOMINATOR a clean run with hints on reached Complete! and says hints were on',{n1:n1.slice(0,200)});
-  const bk=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-bank-it"]');if(!e)return null;const r=e.getBoundingClientRect();return {t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,txt:e.textContent,vw:innerWidth,vh:innerHeight};});
+  const bk=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-bank-it"]');if(!e)return null;const r=e.getBoundingClientRect();return {t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,txt:e.textContent||e.getAttribute('aria-label')/* batch 13: icon-only, named by aria-label */,vw:innerWidth,vh:innerHeight};});
   L.say(!!bk&&bk.t>=0&&bk.b<=bk.vh&&bk.l>=0&&bk.r<=bk.vw&&bk.h>=44&&/Bank it/.test(bk.txt),'TC-R191d the row offers "Bank it" on screen, 44px or taller ("'+(bk&&bk.txt)+'")',bk);
   const d0=await days(b)||[];
   let again=false;if(bk){try{await b.page.locator('[data-ct="lesson-bank-it"]').click();await b.settle(700);const n2=(await D.noteText(b))||'';again=!/Complete!/.test(n2);await playThrough(b);}catch(e){L.note('bank-it: '+String(e).slice(0,120));}}

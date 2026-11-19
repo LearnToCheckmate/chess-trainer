@@ -108,7 +108,7 @@ S['menu-overlay-on']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^
 S['overlay-play-live']=async(b)=>{await S['menu-overlay-on'](b);await tapRow(b,/^✕$/,400);const P=require('./play');await P.states['pp-m0'](b);await b.settle(400);};
 S['menu-sound-off']=async(b)=>{await S['menu-discover'](b);await setToggle(b,/^Sound/,/OFF$/);};
 S['menu-signin']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/Sign in with Google|Sign-in unavailable/,1500);};
-S['menu-share']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^📣 Share/,900);};
+S['menu-share']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/^(📣 Share|Share Chess Trainer)/,900);};   // batch 13: an icon-only RowBtn, matched by its title (= its aria-label)
 S['feedback-home']=async(b)=>{await b.home();await b.tapText(/^💬$/,{wait:600});};
 S['feedback-menu']=async(b)=>{await S['menu-discover'](b);await tapRow(b,/Send feedback$/,600);};
 S['feedback-typed']=async(b)=>{await S['feedback-home'](b);await b.page.locator('textarea[placeholder="Your feedback..."]').fill('audit note');await b.tapText(/^Copy for Claude$/,{wait:700});};
