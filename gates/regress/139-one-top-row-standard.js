@@ -252,7 +252,7 @@ L.run(async()=>{
    const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',...(label==='Brilliant'?{}:{wc:{g:'Blunder',drop:25}})}));
    const drill=(re)=>async b=>{await b.tile('Review');await b.settle(700);await b.tapText(re,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});};
    const PZS=[['Puzzle training',b=>Z.states.train(b),{},/Roadmap|Journey/],['Free play',b=>Z.states['free-play'](b),{},/Roadmap|Journey/],
-     ['Mistakes drill',drill(/find the move you missed/),{ct_mymistakes:rows('Blunder',3)},/Review/],['Brilliant drill',drill(/can you spot them again\?/),{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1'},/Review/]];
+     ['Mistakes drill',drill(/find the move you missed/),{ct_mymistakes:rows('Blunder',3)},/Review/],['Brilliant drill',drill(/can you spot them again\?/),{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1',ct_bril_lib:'0'},/Review/]];   // batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23): since the famous-games shelf, the Your brilliant moves tile opens the library even for a store of one kind; this gate is about the DRILL, so its brilliant store seeds ct_bril_lib '0' and the tile starts the drill at once, as gate 72's stores have since #550 (gates 118 and 168 cover the library)
    // the board on the tree before this build (trial 9f4f6f823150, the branch tip): the floor, never smaller (his board rule)
    const FLOOR={kunal761:375,'375x667':375,'320x568':320,land:375},FLOOR_MK_SE=288;
    for(const [gn,geo] of [...GEOS,['land',LAND]])for(const [nm,go,st,word] of PZS){const tag=nm+' '+gn;const up=gn!=='land';

@@ -109,6 +109,7 @@ L.run(async()=>{
   const b=await L.launch({geo:'kunal730',name:'drill-credit',store:Object.assign({},{
     ct_mymistakes:MIST,
     ct_mybrilliancies:BRIL,
+    ct_bril_lib:'0',        // batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23): since the famous-games shelf, the Your brilliant moves tile opens the library even for a store of one kind; this gate is about the DRILL, so its brilliant store seeds ct_bril_lib '0' and the tile starts the drill at once, as gate 72's stores have since #550 (gates 118 and 168 cover the library)
     ct_bril_reset_v1:'1',   // chess.jsx:2730 empties ct_mybrilliancies once per install unless this is set.
                             // Without it the brilliancies drill cannot be reached at all and block A would
                             // be unrunnable - the #457 handover note names this trap and it is real.
@@ -275,6 +276,7 @@ L.run(async()=>{
      one fumble, then 0 after solving. ================================================================== */
   const e=await L.launch({geo:'kunal730',name:'drill-credit-sink',store:{
     ct_mybrilliancies:[bcard()],
+    ct_bril_lib:'0',   // batch 13: as in launch 1 above
     ct_bril_reset_v1:'1',
     // FOUR REAL LICHESS ROWS AND A LIVE STREAK. The rows matter: they are what makes the streak this block
     // protects a record of real Lichess work rather than an empty number.

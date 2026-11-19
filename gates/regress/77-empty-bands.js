@@ -215,7 +215,7 @@ L.run(async()=>{
     const card=got.find(m=>m&&m.fen&&m.uci)||null;   // the FIRST captured card; if its side to move cannot make the pawn push the wrong state goes red and says so
     L.say(!err&&got.length>0,'TC-S07 PHASE 1 the app CAPTURED at least one '+k+' card by reviewing the Opera Game as '+(k==='mistakes'?'Black':'White')+' through the stored-account path ('+got.length+' in '+key+')',err?{err}:got.map(m=>({uci:m.uci,played:m.played,fen:m.fen})));
     L.say(!!card,'TC-S07 PHASE 1 a captured '+k+' card was chosen to drive the four drill states (the first captured)',card&&{uci:card.uci,fen:card.fen});
-    if(card){DRCARD[k]=card;DRSEED[k]=k==='mistakes'?{ct_mymistakes:[card]}:{ct_mybrilliancies:[card],ct_bril_reset_v1:'1'};}
+    if(card){DRCARD[k]=card;DRSEED[k]=k==='mistakes'?{ct_mymistakes:[card]}:{ct_mybrilliancies:[card],ct_bril_reset_v1:'1',ct_bril_lib:'0'};}   // batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23): since the famous-games shelf, the Your brilliant moves tile opens the library even for a store of one kind; this gate is about the DRILL, so its brilliant store seeds ct_bril_lib '0' and the tile starts the drill at once, as gate 72's stores have since #550 (gates 118 and 168 cover the library)
   }
   for(const [cs,label,drive,store] of STATES){
     const row={label,cs};

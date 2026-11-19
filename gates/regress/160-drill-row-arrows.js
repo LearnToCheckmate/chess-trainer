@@ -20,7 +20,7 @@ const L=require('../lib');
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
 const rows=(label,n)=>FENS.slice(0,n).map((f,i)=>({fen:f,uci:UCIS[i],label,played:'Kd1',ts:1791000000000+i*1000,last:null,why:'the queen gets behind the pawn',hint:'look up the file',...(label==='Brilliant'?{}:{wc:{g:label,drop:25}})}));
 const DRILLS=[{k:'mistakes',enter:/find the move you missed/,store:{ct_mymistakes:rows('Blunder',3),ct_pool:'3'}},
-              {k:'brilliant',enter:/can you spot them again\?/,store:{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1',ct_pool:'3'}}];
+              {k:'brilliant',enter:/can you spot them again\?/,store:{ct_mybrilliancies:rows('Brilliant',1),ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}}];   // batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23): since the famous-games shelf, the Your brilliant moves tile opens the library even for a store of one kind; this gate is about the DRILL, so its brilliant store seeds ct_bril_lib '0' and the tile starts the drill at once, as gate 72's stores have since #550 (gates 118 and 168 cover the library)
 const GEOS=[['320x568','se'],['375x761','kunal761'],['390x844','390']];
 L.run(async()=>{
   for(const [gn,geo] of GEOS)for(const d of DRILLS){const tag=gn+' '+d.k;

@@ -16,7 +16,7 @@ const WHY='You gave up the queen to open the long diagonal, and the bishop then 
 L.run(async()=>{
   for(const geo of ['kunal761','se']){
     const rows=[{fen:'4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1',uci:'b2b7',label:'Brilliant',played:'Kd1',ts:1791000000000,last:null,why:WHY,hint:'look up the file'}];
-    const b=await L.launch({geo,name:'drill-more-'+geo,store:{ct_mybrilliancies:rows,ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
+    const b=await L.launch({geo,name:'drill-more-'+geo,store:{ct_mybrilliancies:rows,ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();   // batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23): since the famous-games shelf, the Your brilliant moves tile opens the library even for a store of one kind; this gate is about the DRILL, so its brilliant store seeds ct_bril_lib '0' and the tile starts the drill at once, as gate 72's stores have since #550 (gates 118 and 168 cover the library)
     let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(/can you spot them again\?/,{wait:1500});await b.settle(800);}catch(e){ok=false;L.note(geo+': '+String(e).slice(0,100));}
     const bd0=ok?await b.board():null;if(ok){await b.move('b2','b7',1500);await b.settle(1200);}
     const m=await b.page.evaluate(()=>{const v0=document.querySelector('[data-ct="pz-msg"]');const v=(v0&&v0.querySelector('[data-ct="pz-msg-text"]'))||v0;const c=document.querySelector('[data-ct="pz-msg-more"]');if(!v)return null;const r=v0.getBoundingClientRect(),cr=c&&c.getBoundingClientRect();return {sh:v.scrollHeight,ch:v.clientHeight,st:v.scrollTop,box:[r.top,r.bottom],chip:cr&&{t:cr.top,b:cr.bottom,h:cr.height}};});

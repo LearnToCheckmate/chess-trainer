@@ -52,7 +52,15 @@ L.run(async()=>{
   {const b=await L.launch({geo:'kunal761',name:'bril-lib-one',store:{ct_mybrilliancies:ONE,ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
    await b.tile('Review').catch(()=>{});await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click().catch(()=>{});await b.settle(1500);
    const r=await b.page.evaluate(()=>({lib:!!document.querySelector('[data-ct="bril-lib"]'),libW:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length,top:!!document.querySelector('[data-ct="pz-top"]')}));
-   L.say(!r.lib&&r.libW===0&&r.top,'TC-R197f one kind on one shelf: nothing to choose (no library, by hook and by its title words: '+r.libW+'), the drill starts at once',r);
+   /* batch 13 RE-PIN (jobs/brilliancy-library-and-motif-coverage-2026-09-23, the famous-games shelf): this line read "one kind on one shelf: nothing to
+      choose (no library), the drill starts at once". With the famous-games shelf there IS something to choose - the one-kind player is the player the
+      job is for - so the library opens for him too: his one kind on the played shelf, no missed shelf, 'Practice all 1', and that button starts the
+      drill on his one card with the library gone. Gate 168 covers the famous-games shelf itself. */
+   const s1=await sheet(b);
+   L.say(r.lib&&r.libW>=1&&!r.top&&!!s1&&s1.shelves.join(',')==='bril-shelf-played'&&s1.chips.length===1&&s1.chips[0].k==='played|greek-gift'&&/Practi[cs]e all 1$/.test(s1.go||''),'TC-R197f one kind on one shelf: the library opens for him too (title words: '+r.libW+'), with his one kind on the played shelf and "'+(s1&&s1.go)+'"',{r,s1});
+   await b.page.locator('[data-ct="bril-lib-go"]').click({timeout:3000}).catch(()=>{});await b.settle(1500);
+   const r2=await b.page.evaluate(()=>({lib:!!document.querySelector('[data-ct="bril-lib"]'),libW:[...document.querySelectorAll('body *')].filter(x=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0&&/^Brilliant moves by kind$/.test((x.innerText||'').trim());}).length,top:!!document.querySelector('[data-ct="pz-top"]')}));
+   L.say(!r2.lib&&r2.libW===0&&r2.top,'TC-R197f Practice all starts the drill on his one card, the library gone (by hook, and by its title words: '+r2.libW+')',r2);
    await b.close();}
   {const b=await L.launch({geo:'kunal761',name:'bril-lib-off',store:{ct_mybrilliancies:MIX,ct_bril_reset_v1:'1',ct_pool:'3',ct_bril_lib:'0'}});await b.open();
    await b.tile('Review').catch(()=>{});await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click().catch(()=>{});await b.settle(1500);
@@ -69,7 +77,7 @@ L.run(async()=>{
   // shows every line inside the message and the screen; tapping again folds it; the board never moves.
   for(const geo of ['kunal761','se']){
     const OP={fen:'1n2kb1r/p2r1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16',uci:'b3b8',why:"Qb8+ gives up the queen to drag the knight off d7's guard, and Rd8 is mate next move.",label:'Brilliant',ts:1791000000000,last:null,no:20};
-    const b=await L.launch({geo,name:'bril-opera-'+geo,store:{ct_mybrilliancies:[OP],ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
+    const b=await L.launch({geo,name:'bril-opera-'+geo,store:{ct_mybrilliancies:[OP],ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();   // batch 13: ct_bril_lib '0' - TC-R197g is about the drill's explanation, so the tile starts the drill at once (the library now opens for a one-kind store, TC-R197f)
     let ok=true;try{await b.tile('Review');await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click();await b.settle(1500);}catch(e){ok=false;}
     const bd0=await b.board();if(ok){try{await b.move('b3','b8',0);await b.settle(2500);}catch(e){ok=false;}}
     // the text's own line boxes: the text node inside the message (the inner box where the fix adds one, the message itself before it)
@@ -108,3 +116,4 @@ L.run(async()=>{
 // SELECTOR-OPENED: pz-msg-text reading=fallback round 4: falls back to the message box itself
 // CONTROL-RECORD: ec64f63 2026-11-14 total=26 red=11 scope=trial:8ba321ea76ae how=#550 #432 sweep round 5 (the library counted by its title words): c118, bril-lib renamed AND the library left open when the drill starts (Go no longer closes it; a one-kind or switched-off tile opens it as it starts the drill) with its title painted at the app root over the drill - TC-R197e and both TC-R197f absence lines red (title words 2); the hook-keyed version (6d6aa82) on the same bundle is 17/8 with those three GREEN (its reds are the presence lines reading the missing hook); on t0 6925a0ca4de2 23/3, the three reds the TC-R197g kunal761 message-fold lines, which this commit does not touch
 // SELECTOR-OPENED: bril-lib control=ec64f63 round 5: TC-R197e and both TC-R197f also count the library by its title words; c118 renamed the hook and left the library up over the drill, red
+// CONTROL-RECORD: 76d9e736 2026-11-19 total=25 red=1 scope=default:dd8b009fc3f8 how=batch 13 RE-PIN of TC-R197f (the famous-games shelf, jobs/brilliancy-library-and-motif-coverage-2026-09-23): the re-pinned gate on the app.js before the shelf - 24/1, the red the re-pinned line 'one kind on one shelf: the library opens for him too' (there the tile started the drill at once). The gate as it stood BEFORE the re-pin, on this build's trial 5908598db222: 15/11, the reds the old TC-R197f one-kind line and the ten TC-R197g lines behind it (the one-card store opened the library instead of the drill). On this build's trials 3c6a5b681eb1 and 5f50cef175ce the re-pinned gate is 25/0
