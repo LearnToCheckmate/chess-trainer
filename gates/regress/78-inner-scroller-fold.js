@@ -59,13 +59,13 @@ L.run(async()=>{
    const rd=()=>b.page.evaluate(()=>{const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
      const bar=document.querySelector('[data-ct="tabbar"]');if(!gs.length||!bar)return null;const r=gs[0].getBoundingClientRect();return {top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(bar.getBoundingClientRect().top*10)/10};});
    try{await D.states['tactics'](b);await b.settle(600);
-     await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(x=>/^Show answer$/.test((x.innerText||'').trim()));if(x)x.click();});await b.settle(600);}catch(e){ok=false;}
+     await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(x=>/^Show answer$/.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||'')));if(x)x.click();});await b.settle(600);}catch(e){ok=false;}
    const m0=ok?await rd():null;   // card 1 with its answer shown, so the next tap is "Next motif" - a CARD CHANGE, which is what re-runs fit()
    const push=m0?Math.round(Math.max(40,m0.barTop-m0.bottom+40)):0;   // far enough that a board NOT re-measured ends 40px under the tab bar: at kunal761 the board is width-bound with room below it
    if(m0){await b.page.evaluate((push)=>{const tgt=()=>{const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);return gs[0]?gs[0].parentElement:null;};
        const mo=new MutationObserver(()=>{mo.disconnect();requestAnimationFrame(()=>{const p=tgt();if(p){p.style.paddingTop=push+'px';window.__late08p=true;}});});
        mo.observe(document.getElementById('root'),{subtree:true,childList:true,characterData:true,attributes:true});
-       const x=[...document.querySelectorAll('button')].find(x=>/^Next motif/.test((x.innerText||'').trim()));window.__next08p=!!x;if(x)x.click();},push);
+       const x=[...document.querySelectorAll('button')].find(x=>/^Next motif/.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||'')));window.__next08p=!!x;if(x)x.click();},push);
      await b.settle(900);}
    const m1=m0?await rd():null;const late=await b.page.evaluate(()=>!!window.__late08p&&!!window.__next08p);
    L.say(!!m0&&!!m1&&late&&Math.abs((m1.top-m0.top)-push)<=2,'TC-INV-08p '+g+' PRECONDITION the late layout was provoked: the board\'s top moved '+(m0&&m1?Math.round((m1.top-m0.top)*10)/10:'?')+'px after the first frame of the card change (pushed '+push+'px, enough that an unre-measured board ends 40px under the tab bar)',{m0,m1,late,push});
@@ -195,7 +195,7 @@ L.run(async()=>{
     // the new bar's tabs both satisfy it, so the check reads the same page on a bundle from before a26.
     const head=[...document.querySelectorAll('div')].some(d=>/^Tactics & strategy$/i.test((d.innerText||'').trim()))||(['Tactics','Strategy'].every(t=>[...document.querySelectorAll('button')].some(x=>(x.innerText||'').trim()===t)));
     // #550 a26: the page's controls (Hint, Show answer, Next motif, Prev, Next) must end ABOVE the tab bar, and #root must not scroll
-    const ctls=[...document.querySelectorAll('button')].filter(x=>/^(💡 ?Hint|Hint|Show answer|Next motif|‹ Prev|Next ›)/.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2).map(x=>({t:(x.innerText||'').trim().slice(0,12),bottom:Math.round(x.getBoundingClientRect().bottom*10)/10}));
+    const ctls=[...document.querySelectorAll('button')].filter(x=>/^(💡 ?Hint|Hint|Show answer|Next motif|‹ Prev|Next ›|Previous idea|Next idea)/.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||''))&&x.getBoundingClientRect().height>2).map(x=>({t:((x.innerText||'').trim()||x.getAttribute('aria-label')||'').slice(0,12),bottom:Math.round(x.getBoundingClientRect().bottom*10)/10}));
     const rsc=root?Math.max(0,root.scrollHeight-root.clientHeight):null;
     const back=[...document.querySelectorAll('button')].find(x=>/^(‹ Back)$/.test((x.innerText||'').trim())||x.getAttribute('aria-label')==='Back');const backTop=back?Math.round(back.getBoundingClientRect().top):null;
     const btn=re=>[...document.querySelectorAll('button')].some(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
@@ -203,7 +203,7 @@ L.run(async()=>{
     const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^‹ Prev$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null,ctls,rsc,backTop};
     if(!gs.length||!bar)return o;const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
     return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10});});
-  const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim()));if(x)x.click();return !!x;},re.source);
+  const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||'')));if(x)x.click();return !!x;},re.source);   // batch 13: icons-only RowBtn named by aria-label
   for(const g of ['kunal761',...L.TA7]){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
     const b=await L.launch({geo:g,name:'tactics-'+n});await b.open();
@@ -214,7 +214,7 @@ L.run(async()=>{
       const onTab=c=>!!c&&(tab==='Tactics'?c.tacticsCtl&&!c.strategyCtl:c.strategyCtl&&!c.tacticsCtl);
       if(m&&m.board&&m.bar&&onTab(m)&&m.of){
         for(let k=0;k<m.of;k++){
-          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);if(k===1){const sh=await readCard(b);const nm=sh.ctls.find(x=>/^Next motif/.test(x.t));L.say(!!sh.board&&sh.top===cards[0].top&&sh.w===cards[0].w,n+' Tactics: TC-INV-08l with the answer SHOWN the board does not move ('+cards[0].top+'/'+cards[0].w+' at rest, '+sh.top+'/'+sh.w+' shown) - the board never jumps when the answer appears (antagonist A round 2, P2)',{rest:{top:cards[0].top,w:cards[0].w},shown:{top:sh.top,w:sh.w}});L.say(!!nm&&nm.bottom<=sh.barTop&&sh.rsc!==null&&sh.rsc<=0.5,n+' Tactics: TC-INV-08l with the answer SHOWN "Next motif" ends above the tab bar and the page does not scroll ('+(nm&&nm.bottom)+' against '+sh.barTop+', #root overflow '+sh.rsc+')',{nm,barTop:sh.barTop,rsc:sh.rsc});}await press(b,/^Next motif/);}else await press(b,/^Next ›$/);await b.settle(300);m=await readCard(b);}
+          if(k>0){if(tab==='Tactics'){await press(b,/^Show answer$/);await b.settle(150);if(k===1){const sh=await readCard(b);const nm=sh.ctls.find(x=>/^Next motif/.test(x.t));L.say(!!sh.board&&sh.top===cards[0].top&&sh.w===cards[0].w,n+' Tactics: TC-INV-08l with the answer SHOWN the board does not move ('+cards[0].top+'/'+cards[0].w+' at rest, '+sh.top+'/'+sh.w+' shown) - the board never jumps when the answer appears (antagonist A round 2, P2)',{rest:{top:cards[0].top,w:cards[0].w},shown:{top:sh.top,w:sh.w}});L.say(!!nm&&nm.bottom<=sh.barTop&&sh.rsc!==null&&sh.rsc<=0.5,n+' Tactics: TC-INV-08l with the answer SHOWN "Next motif" ends above the tab bar and the page does not scroll ('+(nm&&nm.bottom)+' against '+sh.barTop+', #root overflow '+sh.rsc+')',{nm,barTop:sh.barTop,rsc:sh.rsc});}await press(b,/^Next motif/);}else await press(b,/^(Next ›|Next idea)$/);await b.settle(300);m=await readCard(b);}
           if(!m||!m.board||!m.bar||!onTab(m))break;cards.push(m);
           // #550 antagonist A round 2 (P1): WITH THE HINT ON (every motif card) the hint is not clipped silently - it fits its box or the box
           // fades at its foot - and the page's controls still end above the tab bar. Hint is a toggle, so it is closed again after the read.
