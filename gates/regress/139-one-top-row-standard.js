@@ -90,7 +90,7 @@ L.run(async()=>{
    const r=await b.page.evaluate(()=>{const R=e=>{const q=e.getBoundingClientRect();return {l:+q.left.toFixed(1),r:+q.right.toFixed(1),br:getComputedStyle(e).borderTopLeftRadius};};
      const note=[...document.querySelectorAll('div')].find(d=>/^1\. e4(?: —|:) /.test((d.innerText||'').trim())&&getComputedStyle(d).borderTopWidth!=='0px'&&d.getBoundingClientRect().height>40);
      const mv=[...document.querySelectorAll('div.scroll')].filter(d=>/^1\.\s*e4/.test((d.innerText||'').trim())&&d.getBoundingClientRect().width>200).sort((x,y)=>y.getBoundingClientRect().width-x.getBoundingClientRect().width)[0];   // the outermost scroller holding the moves
-     const bs=[...document.querySelectorAll('button')].filter(x=>/Now I'll try it|^⟳ Flip$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0).map(R);
+     const bs=[...document.querySelectorAll('button')].filter(x=>(/Now I'll try it|^⟳ Flip$/.test((x.innerText||'').trim())||(!(x.innerText||'').trim()&&/^Flip board$/.test(x.getAttribute('aria-label')||'')&&!x.closest('[data-ct="lesson-footer"]')))&&x.getBoundingClientRect().width>0).map(R);   /* batch 13: Flip is an icon-only RowBtn named 'Flip board' */
      return {note:note?R(note):null,mv:mv?R(mv):null,row:bs.length?{l:Math.min(...bs.map(x=>x.l)),r:Math.max(...bs.map(x=>x.r))}:null};});
    L.say(ok&&!!r.note&&!!r.mv&&!!r.row,'TC-R215t lesson demo kunal761 PRECONDITION the note box, the moves panel and the row under the board are found by their words',r);
    L.say(!!r.note&&!!r.mv&&r.note.br==='12px'&&r.mv.br==='12px','TC-R215t lesson demo kunal761 the note box and the moves panel are radius 12 ('+(r.note&&r.note.br)+' / '+(r.mv&&r.mv.br)+')',r);
