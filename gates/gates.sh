@@ -2608,6 +2608,16 @@ else
 fi
 
 red=0
+# ── [suite-resume hook a] A FULL SUITE THAT RESUMES AFTER A CONTAINER RESTART, OPT-IN ONLY [batch 13; jobs/the-full-suite-
+# resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18]. CT_RESUMABLE=1 journals each finished gate;
+# CT_RESUME=<journal> resumes from the first unfinished one after proving tree, bundle, roster and environment unchanged.
+# With both unset SR_ON is 0 and hooks b, c and d below do nothing. All the logic is in gates/suite-resume.sh; the design
+# is claude/agents/SUITE-RESUME-DESIGN.md, to be reviewed before use.
+SR_ON=0
+if [ -n "${CT_RESUMABLE:-}${CT_RESUME:-}" ]; then
+  [ -r "$G/suite-resume.sh" ] && . "$G/suite-resume.sh" || { echo "GATES RED $N — CT_RESUME/CT_RESUMABLE is set and $G/suite-resume.sh could not be loaded." | tee -a "$ALL"; exit 1; }
+  sr_begin || exit 1
+fi
 
 # ── THE UNIT LAYER: gates/unit-drill-why.js RUNS, AND ITS RED IS THE SUITE'S RED ──────────────────────────────
 # Closes jobs/a-unit-test-written-for-the-p0-is-not-in-the-suite-2026-09-28 (P1-shaped, priority 8) and
@@ -3041,6 +3051,7 @@ if [ -n "$TREEMOVED" ]; then red=1; echo "TREE MOVED BEFORE THE BROWSER GATES: $
 else echo "tree unchanged before the browser gates: tracked bytes, untracked set, refs and .git config/hooks/info as at the start [#546]" | tee -a "$ALL"; fi
 for f in "${gates[@]}"; do
   name="$(basename "$f" .js)"; log="$G/logs/$STEM-$name.log"
+  if [ "$SR_ON" = 1 ] && sr_import "$name"; then continue; fi   # [suite-resume hook b] a finished gate is copied, md5-checked; nothing unless opted in
   echo "=== $name ===" | tee -a "$ALL"
   # EVERY GATE RUNS WITH THE INPUT RECORDER PRELOADED [#546, item (86)]: `-r gates/lib.js` makes the fs recorder live in
   # gates that never require the harness, and CT_OBSERVE_EXIT makes such a gate print its inputs line on exit. A section
@@ -3072,6 +3083,7 @@ for f in "${gates[@]}"; do
   elif [ "$orc" -ne 0 ]; then red=1; echo "    $name: RED (NOT CHECKED - classify() could not be read out of gates/fastgate.sh, so whether this gate read a records-only path is unknown; never a pass)" | tee -a "$ALL"
   elif [ -n "$orec" ]; then red=1; echo "    $name: RED (READ A RECORDS-ONLY PATH - gates/fastgate.sh's classify() calls these RECORDS, so a records commit could change this gate's verdict while the fast tier reports no gate can differ: $(printf '%s' "$orec" | tr '\n' ' ') - make the path FORCE in classify(), or stop reading it [#549 item (71)])" | tee -a "$ALL"
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
+  if [ "$SR_ON" = 1 ]; then sr_mark "$name"; fi   # [suite-resume hook c] mark + journal row; nothing unless opted in
 done
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 # THE HEADLINE COUNTS REGRESS GATES ONLY [#546, item (52); jobs/the-published-regression-assertion-count-includes-40-
@@ -3107,6 +3119,7 @@ echo "$MANI_LINE" | tee -a "$ALL"
 # older-green-log-still-authorises-a-push-2026-10-22, with the fix belonging to a file this run may not edit.
 # Until it lands, an OVERRIDE is a HUMAN duty: say so in the run report and the ledger, because no grep will.
 echo "${GF_LINE:-build-number series: NOT CHECKED - the door set no verdict.}" | tee -a "$ALL"
+if [ "$SR_ON" = 1 ]; then sr_footer; fi   # [suite-resume hook d] the resume: footer line; nothing unless opted in
 echo "gates ran ($(( ${#gates[@]} ))): $(for f in "${gates[@]}"; do printf '%s ' "$(basename "$f" .js)"; done)" | tee -a "$ALL"
 # #538 [the container job]: restate the instrument beside the verdict, so a later reader knows what the pins were read on.
 # #539 [the same job, after BOTH antagonist doors read the #538 line and converged on the same remedy]: also COMPARE

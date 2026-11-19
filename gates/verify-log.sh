@@ -1587,6 +1587,15 @@ if [ "${GREENS:-0}" -gt 1 ] 2>/dev/null && [ -n "$FOOTN" ] && [ "$FOOTN" -ge 380
   echo "REFUSED: $LOG carries $GREENS 'GATES GREEN' lines; a suite prints one. An appended verdict is not a verdict."
   exit 1
 fi
+# (9j) A JOINED LOG - A FULL SUITE RESUMED AFTER A CONTAINER RESTART - IS ALSO JUDGED AS A JOIN [batch 13; jobs/the-full-
+# suite-resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18]. Only a suite launched with
+# CT_RESUMABLE or CT_RESUME writes these two line shapes, so for every other log this block does nothing. The join judge
+# is gates/verify-join.sh; a log that carries them and cannot be judged is refused. Design: claude/agents/SUITE-RESUME-DESIGN.md.
+if grep -qE '^(    resume-mark: |resume: )' "$LOG"; then
+  VJ="$(cd "$(dirname "$0")" && pwd)/verify-join.sh"
+  [ -r "$VJ" ] || { echo "REFUSED (join): $LOG is a resumable or joined suite log and $VJ is missing, so the join cannot be judged."; exit 1; }
+  bash "$VJ" "$LOG" || exit 1
+fi
 
 # (10) THE HELD-TREE REGISTER, AND IT IS ON BY DEFAULT. Added #450 for
 # jobs/a-gated-green-log-is-not-a-shippable-tree-2026-10-01.
