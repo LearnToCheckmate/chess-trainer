@@ -45,7 +45,7 @@ const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 
 // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: the pasted game has no player colour, so the voice is the
 // colours' (P1); every move carries its number or dots (P4) and its check mark is dropped (P5); the line under the board is the sacrifice and
 // its refutation, and the standing and the comparison (with its number, Q3) are behind the tap - read here from the line's data-more.
-const WANT='White gives up the knight for a pawn. If ...cxb5, 11.Bxb5. White is winning. Nothing else came close: 10.Bxf6 was 1.1 pawns worse.';
+const WANT='White gives up the knight for a pawn. If ...cxb5, 11.Bxb5+. White is winning. Nothing else came close: 10.Bxf6 was 1.1 pawns worse.';
 const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)[+#]?';
 const NUMP='(?:\\d+\\.(?:\\.\\.)?|\\.\\.\\.)?';   // #550: a move is written '10.Bxf6' or '...Bxf6' (P4); the capture group keeps the bare move
 // the four forms of dropTxt(), chess.jsx:667-673, with the drop band each one is printed for
@@ -485,7 +485,7 @@ L.run(async()=>{
   L.say(txt===WANT,'TC-R10 PINNED the brilliancy sentence is EXACTLY the one measured on #387',{want:WANT,got:txt});
   L.say(/^(?:You|White|Black|Your opponent) (?:gives? up the (?:queen|rook|bishop|knight|pawn) (?:for an? (?:pawn|knight|bishop|rook|queen)|on [a-h][1-8])|leaves? the (?:queen|rook|bishop|knight|pawn) on [a-h][1-8] to be taken|gives? up (?:the queen|a rook|a piece|a pawn|material))(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches a brilGiveTxt template verbatim (#549: named piece, or the pre-#549 ladder for an old stored gate)',txt.slice(0,44));
   L.say(/^White gives up the knight for a pawn\./.test(txt),'TC-R10 clause 1 PINNED to "the knight for a pawn" - 10.Nxb5 gives a knight for the b5 pawn (#549; it read "a piece" before)',txt.slice(0,36));
-  L.say(/(?:^|[.] )If \.\.\.cxb5, 11\.Bxb5\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>."');
+  L.say(/(?:^|[.] )If \.\.\.cxb5, 11\.Bxb5\+\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>.", the reply with its check sign (batch 13, the design pair\'s residual B6: it read 11.Bxb5)');
   L.say(STAND.test(txt),'TC-R10 clause 4 matches a `standing` template verbatim (behind the tap, before the comparison, 4a part 4)','...'+txt.slice(-34));
 
   // ── 2. EXACTLY ONE dropTxt template, and its NUMBER inside that template's own band ──────────────

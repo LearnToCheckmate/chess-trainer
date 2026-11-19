@@ -99,7 +99,7 @@ L.run(async()=>{
       ['F4',P('r1b1r1k1/ppp2ppp/2p2q2/8/8/2NP1N1P/PPP3P1/R1BQ1K2 b - - 4 13','Bxh3','Mistake',{reply:'gxh3',best:'c5',loss:190,ev:-3,uc:'b'}),
         t=>/bishop for a pawn/i.test(t.line)&&/14\.gxh3/.test(t.line)&&/\byour?\b/i.test(t.line),'bishop for a pawn, 14.gxh3, you'],
       ['F5',P('4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 15','Nxd7','Blunder',{reply:'Qb8+',best:'Qxd7',loss:1500,ev:99}),
-        t=>/^Your opponent.s blunder/.test(t.line)&&/mate in two/.test(t.line)&&/16\.Qb8 Nxb8 17\.Rd8 mate/.test(t.line),"Your opponent's blunder, mate in two, 16.Qb8 Nxb8 17.Rd8 mate"],
+        t=>/^Your opponent.s blunder/.test(t.line)&&/mate in two/.test(t.line)&&/16\.Qb8\+ Nxb8 17\.Rd8 mate/.test(t.line),"Your opponent's blunder, mate in two, 16.Qb8+ Nxb8 17.Rd8 mate (batch 13: the check keeps its sign, the design pair's residual B6)"],
       ['F6',P('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 4','g6','Mistake',{reply:'Ng5',played:'d3',best:'Nxe4',loss:130,ev:1.3,uc:'b'}),
         t=>/could play[^.]*5\.Ng5/.test(t.line)&&/f7/.test(t.line),'could play 5.Ng5, f7'],
       ['F7',P('r1bq1rk1/1p2bppp/p1n1pn2/8/2pPp3/2P2N2/PPBN1PPP/R1BQR1K1 w - - 0 11','Nxe4','Best',{prevFen:'r1bq1rk1/1p2bppp/p1n1pn2/3p4/2pPP3/2P2N2/PPBN1PPP/R1BQR1K1 b - - 0 10',prevSan:'dxe4',ev:1}),
