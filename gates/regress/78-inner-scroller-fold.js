@@ -198,9 +198,9 @@ L.run(async()=>{
     const ctls=[...document.querySelectorAll('button')].filter(x=>/^(💡 ?Hint|Hint|Show answer|Next motif|‹ Prev|Next ›|Previous idea|Next idea)/.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||''))&&x.getBoundingClientRect().height>2).map(x=>({t:((x.innerText||'').trim()||x.getAttribute('aria-label')||'').slice(0,12),bottom:Math.round(x.getBoundingClientRect().bottom*10)/10}));
     const rsc=root?Math.max(0,root.scrollHeight-root.clientHeight):null;
     const back=[...document.querySelectorAll('button')].find(x=>/^(‹ Back)$/.test((x.innerText||'').trim())||x.getAttribute('aria-label')==='Back');const backTop=back?Math.round(back.getBoundingClientRect().top):null;
-    const btn=re=>[...document.querySelectorAll('button')].some(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().height>2);
+    const btn=re=>[...document.querySelectorAll('button')].some(x=>re.test((x.innerText||'').trim()||x.getAttribute('aria-label')||'')&&x.getBoundingClientRect().height>2);   // batch 13: icons-only RowBtn named by aria-label
     const ctr=[...document.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).map(t=>/(?:^|· )(\d+)\/(\d+)$/.exec(t)).find(Boolean);
-    const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^‹ Prev$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null,ctls,rsc,backTop};
+    const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^(‹ Prev|Previous idea)$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null,ctls,rsc,backTop};
     if(!gs.length||!bar)return o;const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
     return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10});});
   const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||'')));if(x)x.click();return !!x;},re.source);   // batch 13: icons-only RowBtn named by aria-label
