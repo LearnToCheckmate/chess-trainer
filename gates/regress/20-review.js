@@ -89,6 +89,9 @@ const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[d
    a loop (a geometry left out, a block deleted) is red here; and TIME - the whole gate, measured from node's own start, finished
    inside 600 s, two thirds of the 900 s limit. */
 // Each lane's case runs, in the order that lane runs them (lane B is the layout lane, below).
+// CONTROL-RECORD: bd79425c 2026-11-19 total=345 red=19 scope=trial:80b38f83b3d7 how=batch 13 TC-R236, gates/pairs/breaks/g20-old-shape-back.diff (no launch seeded with the shared analysis, lane B run after lane A) - the gate took 714 s: TC-R236c TIME red and all 18 per-launch TC-R236a SHARED lines red; on the good trial 80d2fb609f96 345 PASS 0 FAIL in 355 s
+// CONTROL-RECORD: bd79425c 2026-11-19 total=337 red=2 scope=trial:60940cb1046d how=batch 13 TC-R236, gates/pairs/breaks/g20-case-dropped.diff (TC-R114's loop without 390x844) - TC-R236b CASES red (missing R114 390) and the TC-R236a SHARED count red (17 of 18); every other line green
+// CONTROL-RECORD: bd79425c 2026-11-19 total=345 red=7 scope=trial:4cb38e9cb070 how=batch 13 TC-R236, gates/pairs/breaks/g20-engine-line-left-on.diff (chess.jsx _engRestore a no-op) - the restructured gate still reports it as FAIL lines, not a timeout: TC-R71 after-exit at kunal, kunal730 and 390, after-exit and REENTER at se and kunal761; TC-R236a/b/c green
 const CASE_RUNS={A:['flagOf','main kunal','main kunal730','main 390','R12b kunal730',
   'R66 23…','R66 40.','R66 4.','R66 bad a 9 in a rank','R66 bad two white kings','R66 bad the side not to move in check','R66 ok standard-start FEN','R66 ok SetUp 0',
   'R03 kunal','R04 kunal730','R88 kunal730','R94 kunal730','R09d Lasker','R09d blunder','R71 se','R71 kunal761'],
