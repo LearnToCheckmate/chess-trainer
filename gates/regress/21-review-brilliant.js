@@ -382,7 +382,7 @@ L.run(async()=>{
     const brl1=EA(annoB,{refute:{capSan:'Nxd7',replySan:'Bxe7',replyLine:['Bxe7'],verdict:'and White is winning'},maxw:400});
     // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14 P4 and P6]: every move of the line is written with its number
     // and dots, the check mark said in words or dropped, and the colour verdict moved behind the tap (part 4)
-    L.say(typeof brl3==='string'&&brl3.indexOf('If ...Nxd7, 2.Bxe7 Bxe7 3.Bxd7.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE. This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
+    L.say(typeof brl3==='string'&&brl3.indexOf('If ...Nxd7, 2.Bxe7 Bxe7 3.Bxd7+.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE (batch 13: its last move, a check, keeps its sign). This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
     L.say(typeof brl1==='string'&&brl1.indexOf('If ...Nxd7, 2.Bxe7.')>=0&&brl1.indexOf('Bxd7')<0,'TC-R10/S27 #512 and the BRILLIANT branch still renders the SINGLE-ply form unchanged from what shipped before, so the change can only ever ADD the recovery on this branch too',brl1);
     // TC-R87 (US-R85), #547 item (128): A PLY WITH NO STORED EVAL MUST NOT BE CALLED LEVEL. explainAnno defaulted a missing
     // evalAfter to 0 and printed 'The position stays roughly level.' - the sentence for a balanced position. The genuinely level
@@ -673,10 +673,10 @@ L.run(async()=>{
      block N proves the app never renders anything illegal. */
   /* PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: measured on trial d06ec3689cf0 (P4 notation, colour voice,
      the standing and the comparison behind the tap); the Great forms are kept for a rule that grades 13.Rxd7 Great. */
-  const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning.',
+  const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7+. White is winning.',
                'The only good move. If ...Nxd7, 14.Bxe7. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
-               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7+. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
                /* #550 landing (batch 11): THE KING RECAPTURE IS A LEGAL ENGINE BRANCH TOO, and this list had only the
                   bishop's. The landing suite at e26a2b329de9 printed '14.Bxe7 Kxe7 15.Bxd7' and N10 went red on a healthy
                   bundle - #391's coin flip, the same bundle green in 550c. Counted over every archived gatelog, the engine's
@@ -687,8 +687,8 @@ L.run(async()=>{
                   entering or leaving the sentence still makes a string outside this list and reddens N10. */
                'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
-               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning.',
-               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
+               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3+. White is winning.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3+. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
   let P25hit=P25OK.filter(t=>P25.why===t).length;   // #551: may become 1 below when the sentence is not listed but obeys the rule (N11)
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,
@@ -712,7 +712,7 @@ L.run(async()=>{
   L.say(!!P25.box&&P25.box.cap!=null,'TC-R10/N6a #504 the clamp and line-height are readable, so N6b below is a real #396 check rather than a null comparison',P25.box);
   L.say(!!P25.box&&P25.box.cap!=null&&P25.box.ch<=P25.box.cap,'TC-R10/N6b #504 the CONTAINER is no taller than the lines its clamp allows - clientHeight <= ceil(clamp x lineHeight) - so whatever truncates is the clamp, which draws an ellipsis, and not the box, which would not [#396]',P25.box);
   L.say(!!P19.r&&P19.r.moves.length===1,'TC-R10/N7 #504 ply 19 is UNCHANGED at one ply, because the pv after cxb5 has no forcing continuation - the trim rule can only ever ADD the recovery and never rewrites a sentence that was already right',{moves:P19.r&&P19.r.moves,why:P19.why.slice(0,70)});
-  L.say(/Qb8\+/.test(P31.head)&&!!P31.r&&P31.r.moves.length===1&&/#$/.test(P31.r.moves[0]),'TC-R10/N8 #504 ply 31, 16.Qb8+, still reads exactly "If Nxb8, Rd8#" - a line that ENDS IN MATE is one ply, is not extended past the mate, and gets no verdict clause appended after it',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
+  L.say(/Qb8\+/.test(P31.head)&&String(P31.why||'').indexOf('White gives up the queen on b8. It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate.')===0&&!P31.r,'TC-R10/N8 ply 31, 16.Qb8+: the sentence is the mate itself, read from the board - "It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate." - with no "If" clause to wait for (batch 13, docs/hint-audit-2026-11-12 HEX-R-06; until then it read "If ...Nxb8, 17.Rd8 mate." once the refutation search landed, and only what was given up before that)',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
   /* ── N10: THE WHOLE PLY-25 SENTENCE, PINNED, BECAUSE A LONGER CLAUSE SPENDS A SHARED BUDGET ────────
      Antagonist B's second veto ground: the longer refutation clause pushed "It forks two pieces at once."
      out of the sentence at 375x730 - 126 characters against the shipped 144 - and NOTHING in this gate
@@ -834,10 +834,10 @@ L.run(async()=>{
      Bxe7 Rd1 24, Kxe7 Bxd7 9, Kxe7 Qa3+ 3): the forcing three-ply shapes must print all three plies, a line whose third ply is quiet must
      print the one-ply form, a quiet ply in the MIDDLE stops the line there (the fifth, which no log records but the trim must handle), and each sentence must be EXACTLY the natural ply-25 sentence with only its line changed. */
   const FORCE=[
-    {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen)'},
+    {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7+',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen; batch 13: the check keeps its sign)'},
     {pv:'g5e7 f8e7 h1d1',line:'14.Bxe7',what:'the bishop recapture, then the quiet Rd1 (trimmed to one ply)'},
     {pv:'g5e7 e8e7 b5d7',line:'14.Bxe7 Kxe7 15.Bxd7',what:'the KING recapture, then Bxd7 (three plies) - the line of 15 Nov 2026'},
-    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3',what:'the king recapture, then Qa3+ (three plies, the check sign dropped in prose)'},
+    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3+',what:'the king recapture, then Qa3+ (three plies; batch 13: the check keeps its sign, it read 15.Qa3)'},
     // not from the logs: a QUIET ply in the middle (...a6) before a capture - the trim must stop at the quiet ply, so one ply is shown
     {pv:'g5e7 a7a6 b5d7',line:'14.Bxe7',what:'a quiet ...a6 between two captures (trimmed to one ply: a line the opponent has no reason to follow is not shown)'}];
   const FORCE_FEN=SAC_FEN25.split(' ').slice(0,2).join(' ');
