@@ -691,7 +691,14 @@ function signInFailMsg(e){const code=String((e&&(e.code||e.message))||'');
   if(/popup-blocked/.test(code))return 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.';
   if(/unauthorized-domain/.test(code))return 'Sign-in does not work at this web address. Open the app at its usual address to sign in.';
   if(/cloud-not-ready/.test(code))return 'Sign-in could not start: the sign-in service did not load. Check your connection and try again.';
+  /* batch 13 (jobs/sign-in-with-google-does-nothing-from-the-ipad-home-screen-icon-2026-11-18): the two ways a Home Screen sign-in used to
+     fail in silence. index.html raises them through CTCloud.onSignInIssue after the redirect comes back, and from the pop-up that follows. */
+  if(/ct\/redirect-came-back-empty/.test(code))return 'Sign-in did not come back to the app. Tap Sign in with Google again to finish it in a sign-in window.';
+  if(/ct\/popup-closed-in-app/.test(code))return 'The sign-in window closed before sign-in finished. Tap Sign in with Google to try again.';
   return 'Sign-in did not finish. Check your connection and try again.';}
+// a sign-in that failed on the way BACK into the app (no tap to answer): the words above, and the service's own code when the words are the
+// general ones, so a screenshot of it says which failure it was
+function signInReturnMsg(e){const m=signInFailMsg(e);const c=String((e&&e.code)||'');return (m&&/^Sign-in did not finish\./.test(m)&&/^auth\//.test(c))?m+' ('+c+')':m;}
 const acctRowKey=(g)=>((g&&g.src)||'')+':'+((g&&g.date)||0)+':'+((g&&g.white)||'')+':'+((g&&g.black)||'');
 // fresh rows first, so a game present in both keeps the fresh copy; newest first; then the cap
 function acctMergeRows(fresh,held,cap){
@@ -7092,7 +7099,9 @@ function AppMain(){
   useEffect(()=>{
     const C=(typeof window!=='undefined')?window.CTCloud:null;
     if(!C)return; setCloudAvail(true);
+    if(typeof C.onSignInIssue==='function')C.onSignInIssue((e)=>{setCloudErr(signInReturnMsg(e));});   /* batch 13: a redirect sign-in that came back without an account says so */
     C.onAuth(async(u)=>{
+      if(u&&u.uid)setCloudErr('');   /* batch 13: signed in, so an earlier sign-in message no longer applies */
       /* #550 SEC-15: THIS DEVICE'S PROGRESS BELONGS TO ONE ACCOUNT. ct_owner is stamped with the first uid that signs in here (a guest's
          progress is adopted by that first sign-in, as before). A DIFFERENT uid signing in later finds the stamp, and the device is wiped
          and reloaded BEFORE the sync pull and push run, so the last player's data is never merged into, or uploaded to, the new account. */

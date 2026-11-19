@@ -113,8 +113,12 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
   <!-- Cloud bridge: defined before app.js so the app can always call it. -->
   <script>
     window.CTCloud = {
-      ready:false, user:null, _cbs:[],
+      ready:false, user:null, _cbs:[], issue:null, _icbs:[],
       onAuth:function(cb){ this._cbs.push(cb); if(this.ready){ try{cb(this.user);}catch(e){} } },
+      /* batch 13: a sign-in that failed AFTER the app was left (a redirect that came back empty or with an error) has no promise to
+         reject, so it is told to the app here; a listener added after it happened still hears it. */
+      onSignInIssue:function(cb){ this._icbs.push(cb); if(this.issue){ try{cb(this.issue);}catch(e){} } },
+      _signInIssue:function(e){ this.issue=e; this._icbs.forEach(function(cb){ try{cb(e);}catch(x){} }); },
       _emit:function(u){ this.user=u; this.ready=true; this._cbs.forEach(function(cb){ try{cb(u);}catch(e){} }); },
       signIn:function(){ return this._signIn ? this._signIn() : Promise.reject(new Error('cloud-not-ready')); },
       signOut:function(){ return this._signOut ? this._signOut() : Promise.resolve(); },
@@ -175,13 +179,36 @@ html.ct-fullh body{bottom:auto;transform:translateZ(0)}
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-      getRedirectResult(auth).catch(function(){});
+      /* batch 13 (jobs/sign-in-with-google-does-nothing-from-the-ipad-home-screen-icon-2026-11-18): an app opened from the Home Screen
+         icon signs in by REDIRECT first, as it has since June (the path his iPhone takes). What was missing is the way back: the
+         redirect's result was read with its error thrown away, so a redirect that came back with no account - which is what Firebase
+         documents for Safari when the sign-in helper (firebaseapp.com) is on another site than the app (github.io), its storage being
+         partitioned - left the app exactly as it was: "it doesn't do anything". Now a redirect leaves a mark (ct_signin_redirect), the
+         start-up read of the result checks it, and a redirect that came back empty or with an error is SAID, and the next tap uses the
+         pop-up, which does not depend on that storage. A Safari tab is unchanged: the pop-up first, the redirect when the pop-up cannot open. */
+      const RKEY = 'ct_signin_redirect';
+      let popupNext = false;
+      let leftByRedirect = false;
+      try { const t = +(localStorage.getItem(RKEY) || 0); localStorage.removeItem(RKEY); leftByRedirect = t > 0 && (Date.now() - t) < 30*60*1000; } catch(e) {}
+      C._signInVia = standalone ? 'redirect' : 'popup';
+      function _redirect(){ try { localStorage.setItem(RKEY, String(Date.now())); } catch(e) {} return signInWithRedirect(auth, provider); }
+      function _afterRedirect(err){ popupNext = true; C._signInVia = 'popup'; C._signInIssue(err); }
+      getRedirectResult(auth).then(function(r){
+        if (r && r.user) return;
+        if (!leftByRedirect) return;
+        return Promise.resolve(auth.authStateReady ? auth.authStateReady() : null).then(function(){ if (!auth.currentUser) _afterRedirect({code:'ct/redirect-came-back-empty'}); });
+      }).catch(function(err){ if (leftByRedirect) _afterRedirect(err); });
       C._signIn  = function(){
-        if (standalone) { return signInWithRedirect(auth, provider); }
+        if (standalone && !popupNext) { return _redirect(); }
         return signInWithPopup(auth, provider).catch(function(err){
           var c = err && err.code;
+          if (popupNext) {
+            /* the redirect already failed on this device: going round it again would change nothing, so the reason is said instead */
+            if (c==='auth/popup-closed-by-user') throw {code:'ct/popup-closed-in-app'};
+            throw err;
+          }
           if (c==='auth/popup-blocked' || c==='auth/operation-not-supported-in-this-environment' || c==='auth/cancelled-popup-request' || c==='auth/popup-closed-by-user') {
-            return signInWithRedirect(auth, provider);
+            return _redirect();
           }
           throw err;
         });
