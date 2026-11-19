@@ -25,6 +25,12 @@
 // KNOW ITS LIMIT: a claim is checked where the board or a short forced line settles it. "A small but lasting edge" and "the invasion
 // works" are engine questions and live in gate 129 (TC-R205d, e). General advice with no position claim ("avoid overextending") is not
 // judged. The upright phone layout only; sideways and desktop draw the same wrongTxt string in a different box.
+// CONTROLS (each a trial bundle; the real tree, trial 4cebd0a0fbdb, reads 571 pass 0 fail):
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=113 scope=trial:53b6466fd06e how=THE SUBJECT REMOVED: the tree before the change (a70b9c65, built as a trial) - at each size the bare fixed line on all 13 cards (TC-R246a, 13 lines) and their no-legal-move taps, the wrong-try sentence absent from all 13 (TC-R246b), the four sentences since reworded (Fork hint, Discovered check idea, Double check idea, Discovered attack explanation), the open-file invasion (Rc7 allows mate), the bishops on one colour, and the two 7th-rank sentences
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=60 scope=trial:ee9d298a4c9e how=batch 13 pair break fixed-line-back (gates/pairs/breaks/tactics-wrong-try-fixed-line-back.diff): tacWrongLine returns nothing where wrongWhy has no reason - 30 TC-R246a lines red at each size (the bare line on every card, the tap that is no legal move, and no line to measure where every move was bare)
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=2 scope=trial:49d8234e5779 how=batch 13 pair break open-file-no-luft (gates/pairs/breaks/strategy-open-file-no-luft.diff): the open-file card back on the board without h3 - the one TC-R246c line 'Owning it lets a rook invade deep into the enemy camp' red at each size
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=26 scope=trial:bd06f038e570 how=batch 13 pair break line-cut-on-a-short-phone (gates/pairs/breaks/tactics-wrong-try-line-cut-on-a-short-phone.diff): the line is not scrolled to the top of its box - 26 TC-R246a lines red at 320x568 only (41px of line in a 64px box under the card's name), none at 375x761
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=6 scope=trial:d45998d53c19 how=batch 13 control, not in the pair: the Deflection board given luft (h6) under unchanged words - its hint, explanation and wrong-try sentence red at each size (the rook is not forced to take and Rxe8 is no mate); a board changed under its words is seen by the claim, not by the wording
 const L=require('../lib');
 const E=require('../engine-extract');
 const D=require('../drive/lesson');
