@@ -51,6 +51,7 @@ top edge, at 375x761 (kunal761), on the trial bundles before (`73dbc284724b`, f6
 | ✋ Now I'll try it (lesson demo) | the lesson's single start button (named in the job) |
 | ⚡ Analyze game (Review list) | the Review list's single start button |
 | ▶ Start game (setup sheet), Continue ▶ (rank up) | a screen's single start button |
+| Play, Analyze (the scan's second step, after Check the board) | the scan's two start buttons; his Q30 pick says they keep their words. The rows around them are RowBtn: Close and the accept tick on Check the board (one size), Back to the board beside Play and Analyze. White / Black under each question are CHOICES, as on the setup sheet. Gate 174 (TC-R244d, TC-R244f). |
 | Online / Computer / Pass & Play, White / Black, bot tiles, clocks, Coach mode (setup sheet); Above / Left / Off (menu eval bar); Tactics / Strategy (tab switch) | CHOICES, not actions: each shows the option it picks. Not changed here - question (a) to Kunal. |
 | The tab bar (Home, Discover, Puzzles, Review, Play) | navigation with icon and word; not changed here - question (b) to Kunal. |
 | Top corners ("‹ Home", "‹ Back to review", "‹ Back" on the setup sheet) | the top-row standard's (gate 139); its own note says gates 45, 49, 54, 55 find the exit by its words. |

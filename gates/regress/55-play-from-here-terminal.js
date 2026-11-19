@@ -269,3 +269,4 @@ L.run(async()=>{
 // SELECTOR-OPENED: setup-terminal-note control=aaec56b round 2: the note found by its words; c1 renamed the hook and painted the warning at a playable ply, C2 and A12 red
 // SELECTOR-OPENED: setup-start reading=fallback round 2: words first since #549, the hook a fallback
 // SELECTOR-OPENED: setup-fen-note reading=comment round 2: named only in a comment, the hook is gone
+// CONTROL-RECORD: 10fd11f8 2026-11-19 total=68 red=18 scope=trial:ceeb645f8221 how=batch 13 re-pin of A1..A9 to the scan's second step: scanTurnProblem's checkmate and stalemate refusals removed, so a scanned finished position gets a live Play - A1, A2, A5, A6, A7 and A8 red at mate@kunal730, mate@se and stale@kunal730 (6 each; the game it starts is over at once, result card up), A3, A4, A9 and every review and positive-control line green; on trial cb2a2950c12a of the change 68 pass, 0 fail

@@ -246,3 +246,4 @@ L.run(async()=>{
   if(!process.env.CT_G174_NO_NOENG)await noEngine(GEOS[0]);
   L.done();
 });
+// CONTROL-RECORD: 10fd11f8 2026-11-19 total=55 red=44 scope=trial:78a0892eb416 how=THE SUBJECT REMOVED: the tree before the change (9f308d12, built as a trial) - the scan lands on the New Game sheet, there is no Check the board screen, so lines a, b, c and the first two d lines are red at each of the four screen launches (8 each), the drive stops at its first tap on a square and says so (4 lines), and the no-engine launch has no game to read (8 lines); the 9 unit lines read this tree's chess.jsx, not the bundle, and stay green with the two engine-free pass lines. On trial 0595c2962e15 of this tree: 259 pass, 0 fail, 176s. The three pairs breaks are the controls of lines f, h and j (gates/pairs/jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18.json).
