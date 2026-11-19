@@ -53,7 +53,7 @@ async function seedSolved(b,ids){await setStore(b,{[PZKEY]:{solved:Object.fromEn
 
 // the smallest visible BUTTON whose text matches (lib's tapText matches any element; the roadmap is long, so scroll it into view)
 async function tapBtn(b,re,wait){
-  const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
+  const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of document.querySelectorAll('button')){const _i=(el.innerText||'').trim();const t=/[A-Za-z0-9]/.test(_i)?_i:(el.getAttribute('aria-label')||_i);/* batch 13 (icons-only rows): a wordless button is named by its aria-label */if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
   const el=h.asElement();if(!el)throw new Error('tapBtn: no button matches '+re);
   await b.page.waitForTimeout(150);const box=await el.boundingBox();
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;
@@ -79,14 +79,14 @@ S['daily3']=async(b)=>{await setStore(b,{[PZKEY]:null,[PZUKEY]:null,ct_daily:nul
 // the Daily 3 card lands on the roadmap (setMode('puzzle')); Start training + a solve should bump ct_daily3.puz to 1
 S['daily3-solved']=async(b)=>{await S['daily3'](b);await tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
 S['train']=async(b)=>{await fresh(b);await startTraining(b);};
-S['train-show']=async(b)=>{await S['train'](b);await tapBtn(b,/^👁 Show$/,600);};
+S['train-show']=async(b)=>{await S['train'](b);await tapBtn(b,/^(👁 Show|Show move)$/,600);};
 S['train-step1']=async(b)=>{await S['train'](b);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);};   // the reply Rf8 comes 450 ms later
 S['train-solved']=async(b)=>{await S['train-step1'](b);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};  // pzBurst confetti 1.2 s
-S['train-solved-next']=async(b)=>{await S['train-solved'](b);await tapBtn(b,/^Next ›$/,700);};
+S['train-solved-next']=async(b)=>{await S['train-solved'](b);await tapBtn(b,/^(Next ›|Next puzzle)$/,700);};
 S['train-fail']=async(b)=>{await S['train'](b);await b.move('e1','e7',0);await waitMsg(b,/^✗/,3000);await b.settle(400);};
-S['train-fail-reset']=async(b)=>{await S['train-fail'](b);await tapBtn(b,/^↺ Reset$/,600);};
-S['train-hint']=async(b)=>{await S['train'](b);await tapBtn(b,/^💡 Hint$/,600);};
-S['train-hint-show']=async(b)=>{await S['train-hint'](b);await tapBtn(b,/^👁 Show$/,600);};
+S['train-fail-reset']=async(b)=>{await S['train-fail'](b);await tapBtn(b,/^(↺ Reset|Reset)$/,600);};
+S['train-hint']=async(b)=>{await S['train'](b);await tapBtn(b,/^(💡 Hint|Hint)$/,600);};
+S['train-hint-show']=async(b)=>{await S['train-hint'](b);await tapBtn(b,/^(👁 Show|Show move)$/,600);};
 S['train-next-before']=async(b)=>{await S['train'](b);await tapAria(b,'Next puzzle',600);};
 S['train-prev']=async(b)=>{await S['train'](b);await tapAria(b,'Previous puzzle',600);};
 S['train-back']=async(b)=>{await S['train'](b);await tapAria(b,'Back to Journey',600).catch(()=>tapAria(b,'Back to Roadmap',600)).catch(()=>tapBtn(b,/^‹ Roadmap$/,600));await scrollTo(b,'top');};   // #550 FMT-A-02: the back is the 44x44 corner button, its words in its accessible name (the old '‹ Roadmap' text kept as the fallback for an older bundle)
@@ -97,7 +97,7 @@ S['free-play-next']=async(b)=>{await S['free-play'](b);await tapAria(b,'Next puz
 async function openC0(b){await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await tapBtn(b,/^(✓|🌱)\s*Novice/,900);
   const goal=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||''):'';});
   if(!/mate in 1/.test(goal))throw new Error('openC0: expected PZ[95] (White to play — mate in 1), got: '+goal.replace(/\s+/g,' ').slice(0,120));}
-S['long-hint']=async(b)=>{await openC0(b);await tapBtn(b,/^💡 Hint$/,600);};
+S['long-hint']=async(b)=>{await openC0(b);await tapBtn(b,/^(💡 Hint|Hint)$/,600);};
 S['long-solved']=async(b)=>{await openC0(b);await b.move('d1','d8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
 S['long-fail']=async(b)=>{await openC0(b);await b.move('d1','d7',0);await waitMsg(b,/^✗/,3000);await b.settle(400);};
 // the 10th Novice solve: PZ[9] = g9 (Qd5xd8+, Bf6xd8, Rd1xd8#)
