@@ -11740,7 +11740,7 @@ function AppMain(){
                 <div style={{display:'flex',gap:2}}>{['k','q','r','b','n','p'].map(ch=>pal(ch,ch))}<span aria-hidden="true" style={{flex:'1 1 0',minWidth:0}}/></div>
               </div>
               <div data-ct="scan-check-row" style={{display:'flex',gap:6,height:44,flexShrink:0}}>
-                <RowBtn ct="scan-check-close" label="Close" flex="0 0 58px" onClick={()=>setScanCheck(null)}><RowIcon name="close"/></RowBtn>
+                <RowBtn ct="scan-check-close" label="Close" onClick={()=>setScanCheck(null)}><RowIcon name="close"/></RowBtn>{/* the two are one size, as in every icon row (gate 172's rule c) */}
                 <RowBtn ct="scan-check-ok" label="The board is right" primary dis={!!prob} onClick={()=>upd({step:2,sel:null})}><RowIcon name="tick"/></RowBtn>
               </div>
             </>):(<>

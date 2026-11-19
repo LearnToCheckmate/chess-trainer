@@ -102,6 +102,8 @@ async function screens(geo,skin,sstore,pro){
     const pal0=await S.btn(b,'Empty square'),ok0=await S.btn(b,'The board is right');
     L.say(!!pal0&&pal0.dis===true,T+'d ITALIAN: the piece row is inert until a square is tapped',pal0);
     L.say(!!ok0&&ok0.dis===false&&ok0.words===''&&ok0.icons===1&&ok0.h>=44,T+'d ITALIAN: the accept button is an icon with no words, 44 tall ('+(ok0&&ok0.w)+'x'+(ok0&&ok0.h)+')',ok0);
+    const cl0=await S.btn(b,'Close');
+    L.say(!!cl0&&!!ok0&&cl0.words===''&&cl0.icons===1&&Math.abs(cl0.w-ok0.w)<=1&&Math.abs(cl0.h-ok0.h)<=1,T+'d ITALIAN: Close and the accept button are one row of two icons of one size ('+(cl0&&cl0.w)+'x'+(cl0&&cl0.h)+' and '+(ok0&&ok0.w)+'x'+(ok0&&ok0.h)+')',{cl0,ok0});
     stage='ITALIAN a tap on a square';
     await S.tapSquare(b,'a7');let c1=await S.check(b);
     L.say(!!c1&&c1.line==='Pick what stands on a7.',T+'d ITALIAN: a tapped square is asked about by name ("'+(c1&&c1.line)+'")',c1&&c1.line);
