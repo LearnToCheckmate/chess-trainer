@@ -158,7 +158,7 @@ const pieceAt=async(b,sq)=>{const bd=await b.board();if(!bd)return null;
 
 async function tapBtn(b,re,wait){
   const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;
-    for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();if(!re.test(t))continue;
+    for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();if(!re.test(t)&&!(!/[A-Za-z0-9]/.test(t)&&re.test(el.getAttribute('aria-label')||'')))continue;   // batch 13: a wordless button also answers to its aria-label
       const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}
     if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
   const el=h.asElement();if(!el)return false;
