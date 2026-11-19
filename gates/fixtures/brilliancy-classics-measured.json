@@ -1,0 +1,729 @@
+{
+ "srcMd5": "5714d500c9d8",
+ "engine": "stockfish-18-lite-single.js",
+ "depth": 16,
+ "rule": 3,
+ "games": {
+  "opera": {
+   "plies": 33,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 18,
+     "move": "10.Nxb5",
+     "evBefore": 280,
+     "evAfter": 287,
+     "best": "c3b5"
+    },
+    {
+     "i": 24,
+     "move": "13.Rxd7",
+     "evBefore": 529,
+     "evAfter": 523,
+     "best": "d1d7"
+    },
+    {
+     "i": 30,
+     "move": "16.Qb8+",
+     "evBefore": 99800,
+     "evAfter": 99900,
+     "best": "b3b8"
+    }
+   ],
+   "labels": "Be Ex Be Ex Be Go Be Ex Be Be Ex In Be Ex Ex Be Be In Br Mi Be Ex Gr Ex Br Be Gr Ex Be Bl Br Fo Gr"
+  },
+  "legal": {
+   "plies": 13,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 8,
+     "move": "5.Nxe5",
+     "evBefore": 174,
+     "evAfter": 172,
+     "best": "f3e5"
+    }
+   ],
+   "labels": "Be Ex Be Ex Ex Ex Ex Mi Br Bl Gr Fo Gr"
+  },
+  "immortal": {
+   "plies": 45,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 18,
+     "move": "10.g4",
+     "evBefore": -22,
+     "evAfter": -85,
+     "best": "b5a4"
+    },
+    {
+     "i": 20,
+     "move": "11.Rg1",
+     "evBefore": -38,
+     "evAfter": -27,
+     "best": "h1g1"
+    },
+    {
+     "i": 36,
+     "move": "19.e5",
+     "evBefore": 216,
+     "evAfter": 130,
+     "best": "f3d1"
+    },
+    {
+     "i": 42,
+     "move": "22.Qf6+",
+     "evBefore": 99800,
+     "evAfter": 99900,
+     "best": "f3f6"
+    }
+   ],
+   "labels": "Be Ex In Be Be Ex Be In Be Ex Be Be Go In In Be Gr Ex Br Go Br Mi Gr Gr Gr Ex Gr Go Be Be Gr Mi Mi Gr Bl Mi Br Be Gr Bl Gr Fo Br Be Gr"
+  },
+  "evergreen": {
+   "plies": 47,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 35,
+     "move": "18...Rg8",
+     "evBefore": 106,
+     "evAfter": 93,
+     "best": "h8g8"
+    },
+    {
+     "i": 38,
+     "move": "20.Rxe7+",
+     "evBefore": -51,
+     "evAfter": 347,
+     "best": "e1e7"
+    },
+    {
+     "i": 40,
+     "move": "21.Qxd7+",
+     "evBefore": 99600,
+     "evAfter": 99700,
+     "best": "a4d7"
+    }
+   ],
+   "labels": "Be Ex Be Be Ex Ex Ex Be Be Ex Be Ex Be Ex Be Be Be Be Go Be Go Mi Ex Ex Gr Ex Ex Go Be Mi Be Ex Mi Gr Be Br In Ex Br Bl Br Be Gr Be Gr Be Gr"
+  },
+  "reti": {
+   "plies": 21,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 14,
+     "move": "8.O-O-O",
+     "evBefore": 96,
+     "evAfter": 98,
+     "best": "e1c1"
+    },
+    {
+     "i": 16,
+     "move": "9.Qd8+",
+     "evBefore": 99700,
+     "evAfter": 99800,
+     "best": "d3d8"
+    }
+   ],
+   "labels": "Be Ex Ex Be Be Be Be Be Ex Go Be Ex Be Gr Br Bl Br Fo Gr Be Gr"
+  },
+  "lasker-thomas": {
+   "plies": 35,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 20,
+     "move": "11.Qxh7+",
+     "evBefore": 99300,
+     "evAfter": 99200,
+     "best": "h5h7"
+    }
+   ],
+   "labels": "Ex Ex Ex Go Go Be Be Ex Be Be Be Ex Be Ex Go Be Mi Mi Go Bl Br Fo Gr Be Gr Fo Be Fo Be Fo Ex Fo Be Fo Be"
+  },
+  "century": {
+   "plies": 50,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 21,
+     "move": "11...Na4",
+     "evBefore": -186,
+     "evAfter": -193,
+     "best": "b6a4"
+    },
+    {
+     "i": 29,
+     "move": "15...Nxc3",
+     "evBefore": -189,
+     "evAfter": -184,
+     "best": "e4c3"
+    },
+    {
+     "i": 33,
+     "move": "17...Be6",
+     "evBefore": -176,
+     "evAfter": -189,
+     "best": "g4e6"
+    }
+   ],
+   "labels": "Ex Be Ex Ex Be Ex Ex Be Go Be Go Ex Be Be Be Go Ex Ex Go Be Mi Br Be Gr Be Gr Be Ex Be Br Ex Be Be Br Mi Gr Be Gr Fo Go Be Be Fo Ex Be Be Be Ex Be Go"
+  },
+  "gold-coins": {
+   "plies": 46,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 36,
+     "move": "19.Rxd5",
+     "evBefore": 0,
+     "evAfter": -19,
+     "best": "d1d5"
+    },
+    {
+     "i": 43,
+     "move": "22...Rxh3",
+     "evBefore": -399,
+     "evAfter": -401,
+     "best": "h6h3"
+    }
+   ],
+   "labels": "Ex Ex Be Be Be Go Go Ex Be Be In Ex Ex Ex Ex Ex Be Ex In Be Ex Be Ex Be Be Be Ex Ex Be Ex Go Be Ex Be Be Go Br Be Bl Gr Go Be Ex Br Be Be"
+  },
+  "rubinstein": {
+   "plies": 50,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 39,
+     "move": "20...Ng4",
+     "evBefore": -246,
+     "evAfter": -265,
+     "best": "f6g4"
+    },
+    {
+     "i": 41,
+     "move": "21...Qh4",
+     "evBefore": -308,
+     "evAfter": -201,
+     "best": "g4h2"
+    },
+    {
+     "i": 43,
+     "move": "22...Rxc3",
+     "evBefore": -474,
+     "evAfter": -565,
+     "best": "c8c3"
+    },
+    {
+     "i": 45,
+     "move": "23...Rd2",
+     "evBefore": -902,
+     "evAfter": -99000,
+     "best": "d8d2"
+    }
+   ],
+   "labels": "Ex Be Be Ex Ex Ex Ex Ex Ex Be Ex Be Be Ex Be Be Be Be Ex Be Go Be Be Be Be Ex Ex Be Be Ex Be Be Ex Be Go Ex Mi Ex Be Br Be Br Mi Br In Br Ex Gr Be Be"
+  },
+  "steinitz": {
+   "plies": 49,
+   "status": "check",
+   "brilliant": [
+    {
+     "i": 40,
+     "move": "21.Ng5+",
+     "evBefore": 455,
+     "evAfter": 321,
+     "best": "e6g5"
+    },
+    {
+     "i": 42,
+     "move": "22.Rxe7+",
+     "evBefore": 468,
+     "evAfter": 481,
+     "best": "e1e7"
+    },
+    {
+     "i": 46,
+     "move": "24.Rg7+",
+     "evBefore": 523,
+     "evAfter": 513,
+     "best": "f7g7"
+    }
+   ],
+   "labels": "Be Ex Be Be Ex Ex Ex Be Ex Be Be Be Go In Be Ex Be Ex In Ex Ex Be Ex Be Gr Be Be Be Ex Be Go Mi Be In Be Gr Gr Mi Gr Be Br Be Br Ex Gr Be Br Ex Gr"
+  },
+  "windmill": {
+   "plies": 63,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 44,
+     "move": "23.Nc4",
+     "evBefore": -8,
+     "evAfter": -30,
+     "best": "a3c4"
+    },
+    {
+     "i": 48,
+     "move": "25.Bf6",
+     "evBefore": 408,
+     "evAfter": 443,
+     "best": "g5f6"
+    }
+   ],
+   "labels": "Ex Ex Ex Ex Ex Ex Ex Ex Be Ex Ex Ex Ex Ex Be Ex Ex Ex Ex Be Be Ex Ex Ex Ex Ex Go Ex Ex Be Gr Be Be Be Ex Ex In Be Be Be Gr Ex Mi Mi Br Mi Gr Mi Br Be Gr Fo Be Fo Gr Fo Ex Fo Gr Fo Be Fo Ex"
+  },
+  "adams": {
+   "plies": 45,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 36,
+     "move": "19.Qc4",
+     "evBefore": 68,
+     "evAfter": 43,
+     "best": "g4c4"
+    },
+    {
+     "i": 40,
+     "move": "21.a4",
+     "evBefore": 50,
+     "evAfter": 1,
+     "best": "c7c4"
+    },
+    {
+     "i": 42,
+     "move": "22.Re4",
+     "evBefore": 49,
+     "evAfter": 367,
+     "best": "c7a5"
+    }
+   ],
+   "labels": "Be Ex Be Ex Be Be Ex Be Be Ex Ex Be Be Ex Be Be Ex Ex Be Be Ex Ex Go Be Be Be Ex Ex Ex Go Be Gr Go Be Be Gr Br Gr Be Gr Br Gr Br In Be"
+  },
+  "capablanca": {
+   "plies": 58,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 57,
+     "move": "29...Qb2",
+     "evBefore": -581,
+     "evAfter": -583,
+     "best": "b6b2"
+    }
+   ],
+   "labels": "Ex Be Ex Be Be Be Ex Ex Ex Ex Be Ex Ex Ex Be Be Ex Ex Be Be Be Ex Ex Be Ex Be Be Ex Ex Ex Ex Be Be Be Ex Be Ex Be Be Be Be Be Be Ex Be Ex Ex Ex Be Ex Go Be Bl Be Be Be Be Br"
+  },
+  "greco": {
+   "plies": 23,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 12,
+     "move": "7.Bxh7+",
+     "evBefore": 375,
+     "evAfter": 333,
+     "best": "d3h7"
+    }
+   ],
+   "labels": "Be Ex Ex Go Ex Ex Ex Go Go Mi Gr Mi Br In Gr Bl Be Be Gr Be Gr Ex Be"
+  },
+  "lasker-bauer": {
+   "plies": 43,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 28,
+     "move": "15.Bxh7+",
+     "evBefore": 399,
+     "evAfter": 408,
+     "best": "d3h7"
+    },
+    {
+     "i": 32,
+     "move": "17.Bxg7",
+     "evBefore": 410,
+     "evAfter": 376,
+     "best": "e5g7"
+    }
+   ],
+   "labels": "In Ex Ex Be Ex Ex Be Be Ex Ex Ex Be Ex Ex Ex Be Go Go Ex Ex Ex Mi In Ex Go Mi Be Mi Br Be Gr Fo Br Be Gr Be Ex Be Gr Be Be Fo Be"
+  },
+  "paulsen-morphy": {
+   "plies": 50,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 10,
+     "move": "6.Nxe5",
+     "evBefore": 46,
+     "evAfter": 37,
+     "best": "f3e5"
+    },
+    {
+     "i": 33,
+     "move": "17...Qxf3",
+     "evBefore": -107,
+     "evAfter": -166,
+     "best": "d3f3"
+    }
+   ],
+   "labels": "Be Ex Be Be Go Be Ex Ex Ex Be Br Be In Be Go Mi Be Be Be Be Be Be Ex Be Go Go Go Be Ex Mi Mi Be Ex Br Be Gr Fo Gr Bl Gr Fo Be Fo Ex Fo Ex Fo Mi Be Gr"
+  },
+  "boden": {
+   "plies": 30,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 27,
+     "move": "14...Qxc3+",
+     "evBefore": -99800,
+     "evAfter": -99900,
+     "best": "f6c3"
+    }
+   ],
+   "labels": "Be Ex Be Ex Ex Ex Mi Mi Go Be Go Gr Gr Be Go Be Go Ex Be Ex Be Ex Be In Mi Gr Bl Br Fo Gr"
+  },
+  "fischer-byrne63": {
+   "plies": 42,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 29,
+     "move": "15...Nxf2",
+     "evBefore": -186,
+     "evAfter": -249,
+     "best": "d3f2"
+    }
+   ],
+   "labels": "Ex Ex Be Ex Ex Be Be Be Ex Be Be Ex Ex Ex Be Be Ex Ex Be Ex Ex Ex Ex Be Be Be Go Be In Br Be Gr Be Gr Be Go Be Gr Be Gr Ex Be"
+  },
+  "spassky-bronstein": {
+   "plies": 45,
+   "status": "check",
+   "brilliant": [
+    {
+     "i": 30,
+     "move": "16.Nxf7",
+     "evBefore": 113,
+     "evAfter": 174,
+     "best": "d6f7"
+    }
+   ],
+   "labels": "Be Ex In Be Ex Ex Be Ex Ex Be Be Be Be Be Be Go Be Be Be Be Gr Be Ex Be Be Go Be Go Mi Mi Br Be Be Mi Gr Be Be Be Ex Mi In Go Be Go Be"
+  },
+  "polish-immortal": {
+   "plies": 44,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 17,
+     "move": "9...Bxh2+",
+     "evBefore": -82,
+     "evAfter": -70,
+     "best": "d6h2"
+    },
+    {
+     "i": 25,
+     "move": "13...Bg1",
+     "evBefore": -172,
+     "evAfter": -168,
+     "best": "h2g1"
+    },
+    {
+     "i": 31,
+     "move": "16...Ndxe5+",
+     "evBefore": -425,
+     "evAfter": -391,
+     "best": "d7e5"
+    },
+    {
+     "i": 39,
+     "move": "20...Bg4+",
+     "evBefore": -460,
+     "evAfter": -471,
+     "best": "c8g4"
+    },
+    {
+     "i": 41,
+     "move": "21...Ne5+",
+     "evBefore": -99800,
+     "evAfter": -99900,
+     "best": "g6e5"
+    }
+   ],
+   "labels": "Ex Go Ex Ex Ex Be Ex Ex Ex Be Ex Be Ex Ex Ex Be Mi Br In Ex Go Be Ex Be Be Br Mi Gr Fo Gr Go Br Fo Go Fo Be Fo Be Be Br Bl Br Fo Gr"
+  },
+  "philidor-legacy": {
+   "plies": 3,
+   "status": "checkmate",
+   "brilliant": [
+    {
+     "i": 0,
+     "move": "1.Qg8+",
+     "evBefore": 99800,
+     "evAfter": 99900,
+     "best": "c4g8"
+    }
+   ],
+   "labels": "Br Fo Gr"
+  },
+  "kasparov-topalov": {
+   "plies": 87,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 46,
+     "move": "24.Rxd4",
+     "evBefore": -39,
+     "evAfter": -38,
+     "best": "d1d4"
+    },
+    {
+     "i": 48,
+     "move": "25.Re7+",
+     "evBefore": 65,
+     "evAfter": 0,
+     "best": "e1e7"
+    },
+    {
+     "i": 50,
+     "move": "26.Qxd4+",
+     "evBefore": 64,
+     "evAfter": 87,
+     "best": "f4d4"
+    },
+    {
+     "i": 54,
+     "move": "28.Qc3",
+     "evBefore": 69,
+     "evAfter": 58,
+     "best": "d4c3"
+    },
+    {
+     "i": 55,
+     "move": "28...Qxd5",
+     "evBefore": 58,
+     "evAfter": 74,
+     "best": "d6d5"
+    },
+    {
+     "i": 57,
+     "move": "29...Bb7",
+     "evBefore": 68,
+     "evAfter": 66,
+     "best": "a8b7"
+    },
+    {
+     "i": 58,
+     "move": "30.Rxb7",
+     "evBefore": 66,
+     "evAfter": 58,
+     "best": "a7b7"
+    },
+    {
+     "i": 70,
+     "move": "36.Bf1",
+     "evBefore": 74,
+     "evAfter": -7,
+     "best": "h3f1"
+    },
+    {
+     "i": 72,
+     "move": "37.Rd7",
+     "evBefore": 213,
+     "evAfter": 208,
+     "best": "b7d7"
+    }
+   ],
+   "labels": "Be Ex Be Be Ex Ex Ex Be Ex Be Ex Be Ex Ex Be Be Be Ex Be Ex Ex Be Ex Ex Ex Ex Ex Be Be Ex Ex Be Ex Ex Ex Be Go Be Be Gr Be Gr Be Gr Be Gr Br In Br Gr Br Gr Gr Gr Br Br Be Br Br Be Gr Be Be Fo Go Gr Gr Gr Gr Gr Br Gr Br Gr Gr Be Be Be Ex Be Be Be Ex Go Be Be Gr"
+  },
+  "nezhmetdinov": {
+   "plies": 65,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 15,
+     "move": "8...Ng4",
+     "evBefore": 34,
+     "evAfter": 41,
+     "best": "f8e8"
+    },
+    {
+     "i": 23,
+     "move": "12...Ne2+",
+     "evBefore": 42,
+     "evAfter": 0,
+     "best": "d4e2"
+    },
+    {
+     "i": 42,
+     "move": "22.Nxh7+",
+     "evBefore": 315,
+     "evAfter": 275,
+     "best": "f6h7"
+    },
+    {
+     "i": 46,
+     "move": "24.f4",
+     "evBefore": 158,
+     "evAfter": 169,
+     "best": "f2f4"
+    },
+    {
+     "i": 54,
+     "move": "28.Bxf7+",
+     "evBefore": 517,
+     "evAfter": 420,
+     "best": "d4e5"
+    },
+    {
+     "i": 56,
+     "move": "29.Rh8+",
+     "evBefore": 398,
+     "evAfter": 427,
+     "best": "h3h8"
+    }
+   ],
+   "labels": "Be Be Ex Be Be Be Be Ex Be Be Be Be Be Be Be Br Be Be Be Ex Be Be Be Br Gr Gr Be Go Ex Be Be Ex Ex In Be Ex Be Be In Be Be Mi Br Be In Be Br In Mi Ex Be In Be Mi Br Be Br Be Gr Ex Gr Be Be Be Be"
+  },
+  "petrosian-spassky": {
+   "plies": 59,
+   "status": "check",
+   "brilliant": [
+    {
+     "i": 29,
+     "move": "15...e4",
+     "evBefore": 66,
+     "evAfter": 72,
+     "best": "g4f6"
+    },
+    {
+     "i": 39,
+     "move": "20...Bh3",
+     "evBefore": 28,
+     "evAfter": 26,
+     "best": "f8f4"
+    },
+    {
+     "i": 40,
+     "move": "21.Ne3",
+     "evBefore": 26,
+     "evAfter": 55,
+     "best": "d1e3"
+    },
+    {
+     "i": 46,
+     "move": "24.Rxf4",
+     "evBefore": 316,
+     "evAfter": 224,
+     "best": "d2e4"
+    },
+    {
+     "i": 58,
+     "move": "30.Qh8+",
+     "evBefore": 657,
+     "evAfter": 660,
+     "best": "b2h8"
+    }
+   ],
+   "labels": "Ex Be Ex Ex Ex Be Be Ex Ex Ex Ex Ex Be Ex Ex Be Ex Be Ex Go Ex Ex Ex Be Be Be Go Ex Be Br Be Be Be Be Be Be Ex In Mi Br Br Go Be Be Be Mi Br Ex Gr Be Be Be Gr Ex Be In Bl Be Br"
+  },
+  "fischer-benko": {
+   "plies": 41,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 36,
+     "move": "19.Rf6",
+     "evBefore": 313,
+     "evAfter": 423,
+     "best": "f1f6"
+    },
+    {
+     "i": 38,
+     "move": "20.e5",
+     "evBefore": 493,
+     "evAfter": 427,
+     "best": "e4e5"
+    }
+   ],
+   "labels": "Be Go Be Be Ex Ex Ex Be Be Be Be Go Be Be Be Ex Be Be Be Be Be Ex Be Ex Be Ex Be Ex Ex Be Ex Go Ex Be Gr Be Br Go Br Be Be"
+  },
+  "shirov": {
+   "plies": 13,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 0,
+     "move": "47...Bh3",
+     "evBefore": -262,
+     "evAfter": -309,
+     "best": "f5c2"
+    }
+   ],
+   "labels": "Br Ex Gr Ex Gr Be Gr Ex Gr Ex Gr Be Be"
+  },
+  "zukertort": {
+   "plies": 65,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 54,
+     "move": "28.Qb4",
+     "evBefore": 442,
+     "evAfter": 502,
+     "best": "d2b4"
+    },
+    {
+     "i": 56,
+     "move": "29.Rf8+",
+     "evBefore": 810,
+     "evAfter": 877,
+     "best": "f1f8"
+    },
+    {
+     "i": 62,
+     "move": "32.Bg7+",
+     "evBefore": 964,
+     "evAfter": 1315,
+     "best": "e5g7"
+    }
+   ],
+   "labels": "Ex Ex Ex Ex Be Ex Ex Ex Ex Be Be Be Ex Be Be Ex Ex Go Be Ex Be Be Ex Go Go Gr Be Ex Ex Ex Be Be Ex Go Be Ex Be Ex Ex Ex Ex Ex Be Be Be Gr Gr Be Be Be Be Gr Be Gr Br In Br Mi Gr Be In Be Br Be Gr"
+  },
+  "aronian-anand": {
+   "plies": 46,
+   "status": "playing",
+   "brilliant": [
+    {
+     "i": 25,
+     "move": "13...Ng4",
+     "evBefore": -76,
+     "evAfter": -39,
+     "best": "f6g4"
+    },
+    {
+     "i": 29,
+     "move": "15...Bc5",
+     "evBefore": -93,
+     "evAfter": -80,
+     "best": "d6c5"
+    },
+    {
+     "i": 31,
+     "move": "16...Nde5",
+     "evBefore": -181,
+     "evAfter": -142,
+     "best": "d7e5"
+    }
+   ],
+   "labels": "Ex Be Ex Ex Ex Be Ex Be Be Ex Be Be Be Be Be Ex Be Be Be Be Ex Ex Ex Ex Mi Br Go Be Be Br In Br Gr Be Gr Gr Go Gr Be Ex Ex Gr Be Ex Mi Ex"
+  }
+ }
+}

@@ -1,0 +1,263 @@
+{
+ "about": "The game scores behind the Brilliant library's famous-games shelf (batch 13, jobs/brilliancy-library-and-motif-coverage-2026-09-23, seeding source 3). `games`: each a famous game as a move list (or, with `fen`, a position and the moves from it), `who` as the card names it, and `why`: the explanation written for this app for each move that may enter the shelf, keyed by move as gates/make-brilliancy-classics.js names it (16.Qb8+, 17...Be6). A move enters chess.jsx's BRIL_CLASSICS only when it has a `why` here AND gates/fixtures/brilliancy-classics-measured.json records that the app's own engine and rule grade it Brilliant. Game scores are facts; no explanation is copied from anywhere. Every move list is replayed strictly (each move must be legal and written exactly as the app writes it) by the script and by gate 168. `threat`: for a move the game ENDED on (the opponent resigned), the line the move threatened, used as the card's line; it is analysis of a forced line, checked for legality by the tagger's own replay.",
+ "games": [
+  {
+   "id": "opera",
+   "who": "Morphy v the Duke and the Count, Paris 1858",
+   "pgn": "1.e4 e5 2.Nf3 d6 3.d4 Bg4 4.dxe5 Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 10.Nxb5 cxb5 11.Bxb5+ Nbd7 12.O-O-O Rd8 13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+ Nxb8 17.Rd8#",
+   "why": {
+    "10.Nxb5": "The knight takes a pawn the c-pawn guards. After cxb5, Bxb5+ pins the knight on d7 to the king, and Black never gets the pieces out.",
+    "13.Rxd7": "The rook takes the pinned knight. After Rxd7 the other rook comes to d1, and the piece on d7 is pinned again and cannot be held.",
+    "16.Qb8+": "The queen is given up to pull the knight off d7. After Nxb8 the d-file is open and Rd8 is mate."
+   }
+  },
+  {
+   "id": "legal",
+   "who": "Legal v Saint Brie, Paris 1750",
+   "pgn": "1.e4 e5 2.Nf3 d6 3.Bc4 Bg4 4.Nc3 g6 5.Nxe5 Bxd1 6.Bxf7+ Ke7 7.Nd5#",
+   "why": {
+    "5.Nxe5": "The knight takes on e5 and leaves the queen to the bishop. If Bxd1, then Bxf7+ Ke7 and Nd5 is mate."
+   }
+  },
+  {
+   "id": "immortal",
+   "who": "Anderssen v Kieseritzky, London 1851",
+   "pgn": "1.e4 e5 2.f4 exf4 3.Bc4 Qh4+ 4.Kf1 b5 5.Bxb5 Nf6 6.Nf3 Qh6 7.d3 Nh5 8.Nh4 Qg5 9.Nf5 c6 10.g4 Nf6 11.Rg1 cxb5 12.h4 Qg6 13.h5 Qg5 14.Qf3 Ng8 15.Bxf4 Qf6 16.Nc3 Bc5 17.Nd5 Qxb2 18.Bd6 Bxg1 19.e5 Qxa1+ 20.Ke2 Na6 21.Nxg7+ Kd8 22.Qf6+ Nxf6 23.Be7#",
+   "why": {
+    "11.Rg1": "The rook steps aside and leaves the bishop on b5 to the pawn. After cxb5, h4 and h5 chase the queen, and White gains the time to bring every piece out.",
+    "19.e5": "A pawn move that leaves the second rook to be taken with check. It shuts the queen out of g7, and after Qxa1+ Ke2 White threatens Nxg7+ and mate.",
+    "22.Qf6+": "The queen is given up to pull the knight off g8. After Nxf6 nothing guards e7, and Be7 is mate."
+   }
+  },
+  {
+   "id": "evergreen",
+   "who": "Anderssen v Dufresne, Berlin 1852",
+   "pgn": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.b4 Bxb4 5.c3 Ba5 6.d4 exd4 7.O-O d3 8.Qb3 Qf6 9.e5 Qg6 10.Re1 Nge7 11.Ba3 b5 12.Qxb5 Rb8 13.Qa4 Bb6 14.Nbd2 Bb7 15.Ne4 Qf5 16.Bxd3 Qh5 17.Nf6+ gxf6 18.exf6 Rg8 19.Rad1 Qxf3 20.Rxe7+ Nxe7 21.Qxd7+ Kxd7 22.Bf5+ Ke8 23.Bd7+ Kf8 24.Bxe7#",
+   "why": {
+    "20.Rxe7+": "The rook takes the knight with check. After Nxe7 the queen is given up on d7 as well, and the two bishops mate.",
+    "21.Qxd7+": "The queen is given up to drag the king to d7. Bf5+ is then a double check, from the bishop and the rook on d1, and the bishops mate: Ke8, Bd7+ Kf8, Bxe7."
+   }
+  },
+  {
+   "id": "reti",
+   "who": "Reti v Tartakower, Vienna 1910",
+   "pgn": "1.e4 c6 2.d4 d5 3.Nc3 dxe4 4.Nxe4 Nf6 5.Qd3 e5 6.dxe5 Qa5+ 7.Bd2 Qxe5 8.O-O-O Nxe4 9.Qd8+ Kxd8 10.Bg5+ Kc7 11.Bd8#",
+   "why": {
+    "8.O-O-O": "White castles and lets the knight on e4 be taken. After Nxe4 the queen is given up on d8, and it is mate in two more moves.",
+    "9.Qd8+": "The queen is given up to drag the king onto the d-file. Bg5+ is then a double check, from the bishop and the rook, so the king must move, and it is mated on d8 either way."
+   }
+  },
+  {
+   "id": "lasker-thomas",
+   "who": "Edward Lasker v Thomas, London 1912",
+   "pgn": "1.d4 e6 2.Nf3 f5 3.Nc3 Nf6 4.Bg5 Be7 5.Bxf6 Bxf6 6.e4 fxe4 7.Nxe4 b6 8.Ne5 O-O 9.Bd3 Bb7 10.Qh5 Qe7 11.Qxh7+ Kxh7 12.Nxf6+ Kh6 13.Neg4+ Kg5 14.h4+ Kf4 15.g3+ Kf3 16.Be2+ Kg2 17.Rh2+ Kg1 18.Kd2#",
+   "why": {
+    "11.Qxh7+": "The queen is given up to drag the king out. Nxf6+ is a double check, and the king is driven all the way down the board to g1, where Kd2 is mate."
+   }
+  },
+  {
+   "id": "century",
+   "who": "Fischer (Black) v Donald Byrne, New York 1956",
+   "pgn": "1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O 5.Bf4 d5 6.Qb3 dxc4 7.Qxc4 c6 8.e4 Nbd7 9.Rd1 Nb6 10.Qc5 Bg4 11.Bg5 Na4 12.Qa3 Nxc3 13.bxc3 Nxe4 14.Bxe7 Qb6 15.Bc4 Nxc3 16.Bc5 Rfe8+ 17.Kf1 Be6 18.Bxb6 Bxc4+ 19.Kg1 Ne2+ 20.Kf1 Nxd4+ 21.Kg1 Ne2+ 22.Kf1 Nc3+ 23.Kg1 axb6 24.Qb4 Ra4 25.Qxb6 Nxd1",
+   "why": {
+    "11...Na4": "The knight goes where the knight on c3 can take it. If Nxa4, then Nxe4 hits the queen and the bishop on g5 together, and Black wins the piece back with the better game.",
+    "17...Be6": "The bishop comes to e6 and leaves the queen to be taken. After Bxb6 Bxc4+ the knight and bishop give check after check, win back far more than the queen cost, and the king never gets out."
+   }
+  },
+  {
+   "id": "gold-coins",
+   "who": "Marshall (Black) v Levitsky, Breslau 1912",
+   "pgn": "1.d4 e6 2.e4 d5 3.Nc3 c5 4.Nf3 Nc6 5.exd5 exd5 6.Be2 Nf6 7.O-O Be7 8.Bg5 O-O 9.dxc5 Be6 10.Nd4 Bxc5 11.Nxe6 fxe6 12.Bg4 Qd6 13.Bh3 Rae8 14.Qd2 Bb4 15.Bxf6 Rxf6 16.Rad1 Qc5 17.Qe2 Bxc3 18.bxc3 Qxc3 19.Rxd5 Nd4 20.Qh5 Ref8 21.Re5 Rh6 22.Qg5 Rxh3 23.Rc5 Qg3",
+   "why": {
+    "22...Rxh3": "The rook takes the bishop on h3 where the g-pawn can take it. If gxh3, Nf3+ forks the king and the queen."
+   }
+  },
+  {
+   "id": "rubinstein",
+   "who": "Rubinstein (Black) v Rotlewi, Lodz 1907",
+   "pgn": "1.d4 d5 2.Nf3 e6 3.e3 c5 4.c4 Nc6 5.Nc3 Nf6 6.dxc5 Bxc5 7.a3 a6 8.b4 Bd6 9.Bb2 O-O 10.Qd2 Qe7 11.Bd3 dxc4 12.Bxc4 b5 13.Bd3 Rd8 14.Qe2 Bb7 15.O-O Ne5 16.Nxe5 Bxe5 17.f4 Bc7 18.e4 Rac8 19.e5 Bb6+ 20.Kh1 Ng4 21.Be4 Qh4 22.g3 Rxc3 23.gxh4 Rd2 24.Qxd2 Bxe4+ 25.Qg2 Rh3",
+   "why": {
+    "22...Rxc3": "The rook takes the knight and leaves the queen to the g-pawn. After gxh4 Rd2 the second rook is offered too: Qxd2 Bxe4+ Qg2 Rh3, and mate on h2 cannot be stopped.",
+    "23...Rd2": "The rook lands on d2 where the queen can take it, to pull the queen away from the bishop on e4. After Qxd2 Bxe4+ Qg2 Rh3, mate on h2 cannot be stopped."
+   }
+  },
+  {
+   "id": "steinitz",
+   "who": "Steinitz v von Bardeleben, Hastings 1895",
+   "pgn": "1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5 4.c3 Nf6 5.d4 exd4 6.cxd4 Bb4+ 7.Nc3 d5 8.exd5 Nxd5 9.O-O Be6 10.Bg5 Be7 11.Bxd5 Bxd5 12.Nxd5 Qxd5 13.Bxe7 Nxe7 14.Re1 f6 15.Qe2 Qd7 16.Rac1 c6 17.d5 cxd5 18.Nd4 Kf7 19.Ne6 Rhc8 20.Qg4 g6 21.Ng5+ Ke8 22.Rxe7+ Kf8 23.Rf7+ Kg8 24.Rg7+ Kh8 25.Rxh7+",
+   "why": {
+    "21.Ng5+": "The knight leaves e6 with check, where the f-pawn can take it, and uncovers the queen's attack on d7. If fxg5, Qxd7 wins the queen.",
+    "22.Rxe7+": "The rook takes the knight with check and cannot be taken: Qxe7 loses the rook on c8 with check, and Kxe7 runs into Re1+ and a mating attack. So the king steps aside and the rook follows it.",
+    "24.Rg7+": "The rook still cannot be taken: Kxg7 loses the queen to Qxd7+ with check, and Qxg7 lets Rxc8+ in. The king is chased into the corner."
+   }
+  },
+  {
+   "id": "windmill",
+   "who": "Torre v Emanuel Lasker, Moscow 1925",
+   "pgn": "1.d4 Nf6 2.Nf3 e6 3.Bg5 c5 4.e3 cxd4 5.exd4 Be7 6.Nbd2 d6 7.c3 Nbd7 8.Bd3 b6 9.Nc4 Bb7 10.Qe2 Qc7 11.O-O O-O 12.Rfe1 Rfe8 13.Rad1 Nf8 14.Bc1 Nd5 15.Ng5 b5 16.Na3 b4 17.cxb4 Nxb4 18.Qh5 Bxg5 19.Bxg5 Nxd3 20.Rxd3 Qa5 21.b4 Qf5 22.Rg3 h6 23.Nc4 Qd5 24.Ne3 Qb5 25.Bf6 Qxh5 26.Rxg7+ Kh8 27.Rxf7+ Kg8 28.Rg7+ Kh8 29.Rxb7+ Kg8 30.Rg7+ Kh8 31.Rg5+ Kh7 32.Rxh5",
+   "why": {
+    "25.Bf6": "The bishop steps to f6 and leaves the queen to be taken. After Qxh5, Rxg7+ Kh8 the rook checks back and forth along the seventh rank, taking a piece each time the bishop uncovers the king, and then takes the queen on h5."
+   }
+  },
+  {
+   "id": "adams",
+   "who": "Adams v Torre, New Orleans 1920",
+   "pgn": "1.e4 e5 2.Nf3 d6 3.d4 exd4 4.Qxd4 Nc6 5.Bb5 Bd7 6.Bxc6 Bxc6 7.Nc3 Nf6 8.O-O Be7 9.Nd5 Bxd5 10.exd5 O-O 11.Bg5 c6 12.c4 cxd5 13.cxd5 Re8 14.Rfe1 a5 15.Re2 Rc8 16.Rae1 Qd7 17.Bxf6 Bxf6 18.Qg4 Qb5 19.Qc4 Qd7 20.Qc7 Qb5 21.a4 Qxa4 22.Re4 Qb5 23.Qxb7",
+   "why": {
+    "19.Qc4": "The queen is offered where the queen can take it. Black cannot: the queen on d7 must keep guarding e8, and after Qxc4, Rxe8+ is mate on the back rank.",
+    "21.a4": "A pawn is offered to pull the queen off b5. After Qxa4, Re4 hits it again, and it is running out of squares from which to guard e8.",
+    "22.Re4": "The rook steps onto e4 where the queen could take it, but the queen must keep guarding e8. After Qb5, Qxb7 leaves it nowhere to go."
+   }
+  },
+  {
+   "id": "capablanca",
+   "who": "Capablanca (Black) v Bernstein, Moscow 1914",
+   "pgn": "1.d4 d5 2.c4 e6 3.Nc3 Nf6 4.Nf3 Be7 5.Bg5 O-O 6.e3 Nbd7 7.Rc1 b6 8.cxd5 exd5 9.Qa4 Bb7 10.Ba6 Bxa6 11.Qxa6 c5 12.Bxf6 Nxf6 13.dxc5 bxc5 14.O-O Qb6 15.Qe2 c4 16.Rfd1 Rfd8 17.Nd4 Bb4 18.b3 Rac8 19.bxc4 dxc4 20.Rc2 Bxc3 21.Rxc3 Nd5 22.Rc2 c3 23.Rdc1 Rc5 24.Nb3 Rc6 25.Nd4 Rc7 26.Nb5 Rc5 27.Nxc3 Nxc3 28.Rxc3 Rxc3 29.Rxc3 Qb2",
+   "why": {
+    "29...Qb2": "The queen lands where the queen can take it. If Qxb2, Rd1 is mate on the back rank; if not, the rook on c3 is lost."
+   },
+   "threat": {
+    "29...Qb2": "Qxb2 Rd1#"
+   }
+  },
+  {
+   "id": "greco",
+   "who": "Greco v NN, Rome 1620",
+   "pgn": "1.e4 e6 2.d4 Nf6 3.Bd3 Nc6 4.Nf3 Be7 5.h4 O-O 6.e5 Nd5 7.Bxh7+ Kxh7 8.Ng5+ Bxg5 9.hxg5+ Kg8 10.Qh5 f5 11.g6 Re8 12.Qh8#",
+   "why": {
+    "7.Bxh7+": "The bishop is given up for the pawn in front of the king. After Kxh7, Ng5+ brings the knight and then the queen to the h-file, and the king has no shelter."
+   }
+  },
+  {
+   "id": "lasker-bauer",
+   "who": "Emanuel Lasker v Bauer, Amsterdam 1889",
+   "pgn": "1.f4 d5 2.e3 Nf6 3.b3 e6 4.Bb2 Be7 5.Bd3 b6 6.Nf3 Bb7 7.Nc3 Nbd7 8.O-O O-O 9.Ne2 c5 10.Ng3 Qc7 11.Ne5 Nxe5 12.Bxe5 Qc6 13.Qe2 a6 14.Nh5 Nxh5 15.Bxh7+ Kxh7 16.Qxh5+ Kg8 17.Bxg7 Kxg7 18.Qg4+ Kh7 19.Rf3 e5 20.Rh3+ Qh6 21.Rxh6+ Kxh6 22.Qd7",
+   "why": {
+    "15.Bxh7+": "The first bishop is given up for the h-pawn. After Kxh7, Qxh5+ Kg8 the second bishop is given up on g7 as well, and the king has no pawns left in front of it.",
+    "17.Bxg7": "The second bishop goes too. After Kxg7, Qg4+ Kh7, Rf3 the rook swings to h3, and Black must give up the queen to stop mate."
+   }
+  },
+  {
+   "id": "paulsen-morphy",
+   "who": "Morphy (Black) v Paulsen, New York 1857",
+   "pgn": "1.e4 e5 2.Nf3 Nc6 3.Nc3 Nf6 4.Bb5 Bc5 5.O-O O-O 6.Nxe5 Re8 7.Nxc6 dxc6 8.Bc4 b5 9.Be2 Nxe4 10.Nxe4 Rxe4 11.Bf3 Re6 12.c3 Qd3 13.b4 Bb6 14.a4 bxa4 15.Qxa4 Bd7 16.Ra2 Rae8 17.Qa6 Qxf3 18.gxf3 Rg6+ 19.Kh1 Bh3 20.Rd1 Bg2+ 21.Kg1 Bxf3+ 22.Kf1 Bg2+ 23.Kg1 Bh3+ 24.Kh1 Bxf2 25.Qf1 Bxf1",
+   "why": {
+    "17...Qxf3": "The queen is given up for the bishop to rip open the king's cover. After gxf3, Rg6+ Kh1 Bh3 the rook and the two bishops weave a mating net."
+   }
+  },
+  {
+   "id": "boden",
+   "who": "Boden (Black) v Schulder, London 1853",
+   "pgn": "1.e4 e5 2.Nf3 d6 3.c3 f5 4.Bc4 Nf6 5.d4 fxe4 6.dxe5 exf3 7.exf6 Qxf6 8.gxf3 Nc6 9.f4 Bd7 10.Be3 O-O-O 11.Nd2 Re8 12.Qf3 Bf5 13.O-O-O d5 14.Bxd5 Qxc3+ 15.bxc3 Ba3#",
+   "why": {
+    "14...Qxc3+": "The queen is given up to pull the b-pawn away from guarding a3. After bxc3, Ba3 is mate: the two bishops cross, and the king's own pieces block its way out."
+   }
+  },
+  {
+   "id": "fischer-byrne63",
+   "who": "Fischer (Black) v Robert Byrne, New York 1963",
+   "pgn": "1.d4 Nf6 2.c4 g6 3.g3 c6 4.Bg2 d5 5.cxd5 cxd5 6.Nc3 Bg7 7.e3 O-O 8.Nge2 Nc6 9.O-O b6 10.b3 Ba6 11.Ba3 Re8 12.Qd2 e5 13.dxe5 Nxe5 14.Rfd1 Nd3 15.Qc2 Nxf2 16.Kxf2 Ng4+ 17.Kg1 Nxe3 18.Qd2 Nxg2 19.Kxg2 d4 20.Nxd4 Bb7+ 21.Kf1 Qd7",
+   "why": {
+    "15...Nxf2": "The knight is given up for the f-pawn to drag the king out. After Kxf2, Ng4+ Kg1 Nxe3 the second knight forks the queen and the rook, and then takes the bishop that guards the king's light squares."
+   }
+  },
+  {
+   "id": "spassky-bronstein",
+   "who": "Spassky v Bronstein, Leningrad 1960",
+   "pgn": "1.e4 e5 2.f4 exf4 3.Nf3 d5 4.exd5 Bd6 5.Nc3 Ne7 6.d4 O-O 7.Bd3 Nd7 8.O-O h6 9.Ne4 Nxd5 10.c4 Ne3 11.Bxe3 fxe3 12.c5 Be7 13.Bc2 Re8 14.Qd3 e2 15.Nd6 Nf8 16.Nxf7 exf1=Q+ 17.Rxf1 Bf5 18.Qxf5 Qd7 19.Qf4 Bf6 20.N3e5 Qe7 21.Bb3 Bxe5 22.Nxe5+ Kh7 23.Qe4+",
+   "why": {
+    "16.Nxf7": "The knight takes on f7 and leaves the rook to be taken with check. After exf1=Q+ Rxf1 the king has no cover: if Kxf7, Ne5+ Kg8, Qh7+ leads to mate."
+   }
+  },
+  {
+   "id": "polish-immortal",
+   "who": "Najdorf (Black) v Glucksberg, Warsaw 1929",
+   "pgn": "1.d4 f5 2.c4 Nf6 3.Nc3 e6 4.Nf3 d5 5.e3 c6 6.Bd3 Bd6 7.O-O O-O 8.Ne2 Nbd7 9.Ng5 Bxh2+ 10.Kh1 Ng4 11.f4 Qe8 12.g3 Qh5 13.Kg2 Bg1 14.Nxg1 Qh2+ 15.Kf3 e5 16.dxe5 Ndxe5+ 17.fxe5 Nxe5+ 18.Kf4 Ng6+ 19.Kf3 f4 20.exf4 Bg4+ 21.Kxg4 Ne5+ 22.fxe5 h5#",
+   "why": {
+    "9...Bxh2+": "The bishop takes the h-pawn with check. If Kxh2, Ng4+ wins the knight on g5 back with an attack; after Kh1 the bishop stays to trouble the king.",
+    "13...Bg1": "The bishop steps to g1, where it can be taken three ways, to clear h2 for the queen. After Nxg1 Qh2+ the king is driven into the open.",
+    "16...Ndxe5+": "A knight is given up to open lines to the king: after fxe5, Nxe5+ brings the second knight in with check.",
+    "20...Bg4+": "The bishop is given up to drag the king one square further. After Kxg4, Ne5+ is offered too, and h5 is mate.",
+    "21...Ne5+": "The last knight is given up to take away the king's squares. After fxe5, the pawn move h5 is mate."
+   }
+  },
+  {
+   "id": "philidor-legacy",
+   "who": "Philidor's legacy, known since Lucena in 1497",
+   "fen": "r6k/6pp/7N/8/2Q5/8/8/6K1 w - - 0 1",
+   "pgn": "1.Qg8+ Rxg8 2.Nf7#",
+   "why": {
+    "1.Qg8+": "The queen is given up so that the rook must take on g8 and box in its own king. Nf7 is then mate: a smothered mate."
+   }
+  },
+  {
+   "id": "kasparov-topalov",
+   "who": "Kasparov v Topalov, Wijk aan Zee 1999",
+   "pgn": "1.e4 d6 2.d4 Nf6 3.Nc3 g6 4.Be3 Bg7 5.Qd2 c6 6.f3 b5 7.Nge2 Nbd7 8.Bh6 Bxh6 9.Qxh6 Bb7 10.a3 e5 11.O-O-O Qe7 12.Kb1 a6 13.Nc1 O-O-O 14.Nb3 exd4 15.Rxd4 c5 16.Rd1 Nb6 17.g3 Kb8 18.Na5 Ba8 19.Bh3 d5 20.Qf4+ Ka7 21.Rhe1 d4 22.Nd5 Nbxd5 23.exd5 Qd6 24.Rxd4 cxd4 25.Re7+ Kb6 26.Qxd4+ Kxa5 27.b4+ Ka4 28.Qc3 Qxd5 29.Ra7 Bb7 30.Rxb7 Qc4 31.Qxf6 Kxa3 32.Qxa6+ Kxb4 33.c3+ Kxc3 34.Qa1+ Kd2 35.Qb2+ Kd1 36.Bf1 Rd2 37.Rd7 Rxd7 38.Bxc4 bxc4 39.Qxh8 Rd3 40.Qa8 c3 41.Qa4+ Ke1 42.f4 f5 43.Kc1 Rd2 44.Qa7",
+   "why": {
+    "24.Rxd4": "The rook is given up on d4 to open the way to the king. After cxd4, Re7+ comes, and the king is pulled up the board: Kb6, Qxd4+ Kxa5, b4+ Ka4.",
+    "25.Re7+": "A second rook is offered with check. It cannot be taken: Qxe7 allows Qxd4+ and mate soon after. So the king walks forward, into the net.",
+    "26.Qxd4+": "The queen takes on d4 with check and leaves the knight on a5 to the king. After Kxa5, b4+ Ka4 the king is cut off on the edge of the board.",
+    "37.Rd7": "The rook is offered on d7 to pull the black rook off the d2 square. After Rxd7, Bxc4 wins the queen, because bxc4 then loses the rook on h8 to the queen."
+   }
+  },
+  {
+   "id": "nezhmetdinov",
+   "who": "Nezhmetdinov v Chernikov, Rostov 1962",
+   "pgn": "1.e4 c5 2.Nf3 Nc6 3.d4 cxd4 4.Nxd4 g6 5.Nc3 Bg7 6.Be3 Nf6 7.Bc4 O-O 8.Bb3 Ng4 9.Qxg4 Nxd4 10.Qh4 Qa5 11.O-O Bf6 12.Qxf6 Ne2+ 13.Nxe2 exf6 14.Nc3 Re8 15.Nd5 Re6 16.Bd4 Kg7 17.Rad1 d6 18.Rd3 Bd7 19.Rf3 Bb5 20.Bc3 Qd8 21.Nxf6 Be2 22.Nxh7+ Kg8 23.Rh3 Re5 24.f4 Bxf1 25.Kxf1 Rc8 26.Bd4 b5 27.Ng5 Rc7 28.Bxf7+ Rxf7 29.Rh8+ Kxh8 30.Nxf7+ Kh7 31.Nxd8 Rxe4 32.Nc6 Rxf4+ 33.Ke2",
+   "why": {
+    "28.Bxf7+": "The bishop is given up on f7. After Rxf7, Rh8+ drags the king to h8, and Nxf7+ forks the king and the queen.",
+    "29.Rh8+": "The rook is given up to drag the king to h8. After Kxh8, Nxf7+ forks the king and the queen."
+   }
+  },
+  {
+   "id": "petrosian-spassky",
+   "who": "Petrosian v Spassky, Moscow 1966",
+   "pgn": "1.Nf3 Nf6 2.g3 g6 3.c4 Bg7 4.Bg2 O-O 5.O-O Nc6 6.Nc3 d6 7.d4 a6 8.d5 Na5 9.Nd2 c5 10.Qc2 e5 11.b3 Ng4 12.e4 f5 13.exf5 gxf5 14.Nd1 b5 15.f3 e4 16.Bb2 exf3 17.Bxf3 Bxb2 18.Qxb2 Ne5 19.Be2 f4 20.gxf4 Bh3 21.Ne3 Bxf1 22.Rxf1 Ng6 23.Bg4 Nxf4 24.Rxf4 Rxf4 25.Be6+ Rf7 26.Ne4 Qh4 27.Nxd6 Qg5+ 28.Kh1 Ra7 29.Bxf7+ Rxf7 30.Qh8+",
+   "why": {
+    "21.Ne3": "The knight comes to e3 and leaves the rook on f1 to the bishop. That bishop was Black's best attacker, and once it is gone White's pieces take over the light squares.",
+    "24.Rxf4": "The rook is given up for the knight. After Rxf4, Be6+ Rf7, Ne4 the bishop on e6 and the two knights rule the board, and Black's rooks have nothing to do.",
+    "30.Qh8+": "The queen is given up to drag the king to h8. After Kxh8, Nxf7+ forks the king and the queen, and White comes out a knight ahead."
+   },
+   "threat": {
+    "30.Qh8+": "Kxh8 Nxf7+ Kg7 Nxg5"
+   }
+  },
+  {
+   "id": "fischer-benko",
+   "who": "Fischer v Benko, New York 1963",
+   "pgn": "1.e4 g6 2.d4 Bg7 3.Nc3 d6 4.f4 Nf6 5.Nf3 O-O 6.Bd3 Bg4 7.h3 Bxf3 8.Qxf3 Nc6 9.Be3 e5 10.dxe5 dxe5 11.f5 gxf5 12.Qxf5 Nd4 13.Qf2 Ne8 14.O-O Nd6 15.Qg3 Kh8 16.Qg4 c6 17.Qh5 Qe8 18.Bxd4 exd4 19.Rf6 Kg8 20.e5 h6 21.Ne2",
+   "why": {
+    "19.Rf6": "The rook lands on f6, where the bishop can take it, to block the f-pawn. If Bxf6, e5 opens the bishop's line to h7 and mate follows, because the f-pawn can no longer step forward to block."
+   }
+  },
+  {
+   "id": "shirov",
+   "who": "Shirov (Black) v Topalov, Linares 1998",
+   "fen": "8/8/4kpp1/3p1b2/p6P/2B5/6P1/6K1 b - - 0 47",
+   "pgn": "47...Bh3 48.gxh3 Kf5 49.Kf2 Ke4 50.Bxf6 d4 51.Be7 Kd3 52.Bc5 Kc4 53.Be7 Kb3",
+   "why": {
+    "47...Bh3": "The bishop is given up on h3 just to gain a move. After gxh3 Kf5 the king reaches e4 in time, and the three passed pawns are too many for the bishop."
+   }
+  },
+  {
+   "id": "zukertort",
+   "who": "Zukertort v Blackburne, London 1883",
+   "pgn": "1.c4 e6 2.e3 Nf6 3.Nf3 b6 4.Be2 Bb7 5.O-O d5 6.d4 Bd6 7.Nc3 O-O 8.b3 Nbd7 9.Bb2 Qe7 10.Nb5 Ne4 11.Nxd6 cxd6 12.Nd2 Ndf6 13.f3 Nxd2 14.Qxd2 dxc4 15.Bxc4 d5 16.Bd3 Rfc8 17.Rae1 Rc7 18.e4 Rac8 19.e5 Ne8 20.f4 g6 21.Re3 f5 22.exf6 Nxf6 23.f5 Ne4 24.Bxe4 dxe4 25.fxg6 Rc2 26.gxh7+ Kh8 27.d5+ e5 28.Qb4 R8c5 29.Rf8+ Kxh7 30.Qxe4+ Kg7 31.Bxe5+ Kxf8 32.Bg7+ Kg8 33.Qxe7",
+   "why": {
+    "28.Qb4": "The queen is offered on b4 to pull the black queen off e7. If Qxb4, Bxe5+ and the rooks hunt the king down the h-file to mate.",
+    "29.Rf8+": "The rook is offered with check. If Qxf8, Bxe5+ Kxh7, Qxe4+ and mate follows; so the king takes the pawn instead, and falls anyway.",
+    "32.Bg7+": "The bishop checks on g7 where the king or the queen can take it. Either way the black queen is lost: Qxg7 allows Qe8 mate, and after Kxg7 or Kg8 comes Qxe7."
+   }
+  },
+  {
+   "id": "aronian-anand",
+   "who": "Anand (Black) v Aronian, Wijk aan Zee 2013",
+   "pgn": "1.d4 d5 2.c4 c6 3.Nf3 Nf6 4.Nc3 e6 5.e3 Nbd7 6.Bd3 dxc4 7.Bxc4 b5 8.Bd3 Bd6 9.O-O O-O 10.Qc2 Bb7 11.a3 Rc8 12.Ng5 c5 13.Nxh7 Ng4 14.f4 cxd4 15.exd4 Bc5 16.Be2 Nde5 17.Bxg4 Bxd4+ 18.Kh1 Nxg4 19.Nxf8 f5 20.Ng6 Qf6 21.h3 Qxg6 22.Qe2 Qh5 23.Qd3 Be3",
+   "why": {
+    "15...Bc5": "The bishop steps to c5 where the d-pawn can take it. If dxc5, Nxc5 hits the bishop on d3 and opens the d-file and the long diagonal onto the king.",
+    "16...Nde5": "The knight comes to e5 where two pawns can take it. If fxe5, Qxd4+ Kh1, Qg1+ Rxg1, Nf2 is a smothered mate."
+   }
+  }
+ ]
+}
