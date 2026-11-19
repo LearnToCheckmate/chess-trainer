@@ -1,0 +1,20 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6458,7 +6458,7 @@
+   const _applySetupDraft=()=>{const d=_sDraft;
+     if(d.onlineReset&&d.opponent==='online'){setOnlineGame(null);setMyColor(null);setOnlineErr('');setOnlineInfo('');}
+     setOpponent(d.opponent);setPColor(d.pColor);timeCtrlRef.current=d.timeCtrl;setTimeCtrl(d.timeCtrl);setCpuElo(d.cpuElo);setSelBot(d.selBot);
+-    setCoachGame(!!coachWant&&d.opponent==='computer');/* batch 13: coach mode is chosen with the game and only for a game against the computer */};
++    setCoachGame(!!coachWant);/* batch 13: coach mode is chosen with the game and only for a game against the computer */};
+   const status=useMemo(()=>getStatus(boardGame),[boardGame]);
+   const isOver=status==='checkmate'||status==='stalemate';
+   /* #437: `isOver` answers "is the position ON THE BOARD a terminal one", because `status` reads boardGame,
+@@ -9032,7 +9032,7 @@
+   /* batch 13 coach mode: THE GUARD. Everything a coach game adds - the note sheet, the engine's view, the saved game - hangs off this one
+      expression, so none of it can exist on an online game, a game between two people, or anywhere but Play. No game from outside the app
+      reaches it: there is no import into Play, and the engine's view below returns at once unless this is true. */
+-  const coachLive=mode==='play'&&opponent==='computer'&&coachGame;
++  const coachLive=mode==='play'&&coachGame;
+   const _coachAsk=(k,p)=>setCoachReqs(r=>r.some(x=>x.k===k&&x.p===p)?r:[...r,{k,p}]);
+   const coachEngine=async()=>{
+     if(!coachLive||playEnd)return;

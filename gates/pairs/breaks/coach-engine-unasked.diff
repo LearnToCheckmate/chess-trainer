@@ -1,0 +1,12 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9083,7 +9083,8 @@
+     const h=parsePGNHeaders(p.pgn);const row={id:coachIdRef.current,at:Date.now(),pgn:p.pgn,uc:p.uc,w:h.White||'White',b:h.Black||'Black',res:h.Result||'*',n:_n,notes:Object.keys(coachNotes).length};
+     _put(a=>[row,...a.filter(x=>x.id!==row.id)]);
+   },[coachLive,game,coachNotes,coachReqs,playEnd]);
+-  useEffect(()=>{setCoachEngTxt('');},[game,pvIdx]);   /* the engine's view is of one position: it goes when the position does */
++  useEffect(()=>{setCoachEngTxt('');},[game,pvIdx]);
++  useEffect(()=>{if(coachLive&&playHist.length>0&&game.turn===pColor)coachEngine();},[game,coachLive]);   /* the engine's view is of one position: it goes when the position does */
+   /* #547 item (189): a draw BY AGREEMENT had no route anywhere in local play. Pass & Play only - both players hold the
+      phone, so one double tap is the agreement. A draw OFFER to the computer needs a rule for when the bot accepts, which is
+      a product choice and is not built here. */

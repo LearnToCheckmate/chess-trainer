@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10470,7 +10470,7 @@
+         const pick=(i)=>{setCoachNoteAt(i);setCoachDraft(coachNotes[i]||'');};
+         const put=(t)=>{setCoachNotes(o=>{const q={...o};if(t)q[p]=t;else delete q[p];return q;});setCoachNoteAt(null);};
+         const _b={flex:1,minHeight:44,borderRadius:11,cursor:'pointer',fontWeight:800,fontSize:14,border:'1px solid rgba(255,255,255,.16)',background:'rgba(255,255,255,.06)',color:'#fff'};
+-        return(<div data-ct="coach-note-back" onClick={()=>setCoachNoteAt(null)} style={{position:'fixed',inset:0,zIndex:9991,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
++        return(<div data-ct="coach-note-back" onClick={()=>setCoachNoteAt(null)} style={{position:'relative',order:-1,width:'100%',zIndex:9991,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
+           <div data-ct="coach-note-sheet" role="dialog" aria-label="Note on a move" onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,boxSizing:'border-box',background:'#10161d',borderBottomLeftRadius:18,borderBottomRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderTop:'none',padding:(safeTop+12)+'px 14px 14px',boxShadow:'0 10px 30px rgba(0,0,0,.5)'}}>
+             <div style={{...SEC_LABEL,marginBottom:8}}>Note on a move</div>
+             <div data-ct="coach-note-moves" className="scroll" ref={el=>{if(el&&el.getAttribute('data-for')!==String(p)){el.setAttribute('data-for',String(p));const c=el.querySelector('[data-on="1"]');if(c)el.scrollLeft=Math.max(0,c.offsetLeft-el.clientWidth/2);}}} style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8}}>
