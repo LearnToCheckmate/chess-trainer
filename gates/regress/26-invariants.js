@@ -1474,6 +1474,13 @@ L.run(async()=>{
     WALK.push([name,go]);
     if(NC_DUP.includes(name)) WALK.push([name,go]);
   }
+  // CT_INV_ONLY=band runs ONLY the TC-INV-15 block at the foot of this run (the grading machine's pair for
+  // jobs/gate-26-goes-red-at-ply-31-...-2026-11-18 uses it, about a minute a geometry). Opt-in, printed loudly, never set by gates.sh, and
+  // like CT_INV_GEOS it skips the default-run guards, so such a run is never a coverage run.
+  const ONLY=process.env.CT_INV_ONLY||'';
+  if(ONLY&&ONLY!=='band'){L.say(false,'CT_INV_ONLY names a block this gate has ("band"), so a typo cannot read as a narrowed pass',{ONLY});}
+  if(ONLY) L.note('!! CT_INV_ONLY='+ONLY+' - ONE BLOCK OF THIS GATE, NOT a coverage run: the screen walk and every other block are skipped.');
+  if(!ONLY){
   for(const g of GEOS){
     const visits=new Map();
     const b=await L.launch({geo:g,store:R.SEED,name:'inv-'+g});
@@ -2115,6 +2122,75 @@ L.run(async()=>{
     // THE WALK IS DECLARED, NOT NARROWED, ON A DEFAULT RUN. The negative-control variables must be off, or
     // the run is a control run and its green means nothing.
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
+  }
+  }   // end if(!ONLY)
+  // TC-INV-15 [batch 13; jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18].
+  // THE EVAL GRAPH NEVER SITS OVER THE MOVE'S EXPLANATION, IN ANY FRAME. Gate 26 went red 1 in 20 at se rev-ply31 on main ffc8fa2 with
+  // one core busy: the centre of the explanation (rev-why-txt, a button when it has more to say) hit an SVG rect of the eval graph. The
+  // checker's frame probe on c58695d found why: from the jump until the refutation clause arrived 1.3 to 1.5 s later the reason was one
+  // line, and the band (data-ink) put the graph into the box's empty lines over its centre; then, when the clause landed, the graph stayed
+  // over the NEW text for one frame, because the band followed the text through a MutationObserver and a requestAnimationFrame. A screen
+  // walk scanning at a fixed moment caught whichever of the two its scan landed in. The fix is in the app (chess.jsx, revBandRef and the
+  // pending flag reviewText returns): while the clause is coming the reason box is held whole (data-pending), and the band is re-measured in
+  // a layout effect, in the frame the text changes. So this block samples EVERY animation frame from the jump until 2 s after the text is
+  // final, at each swept geometry, at every ply of the reference game whose reason waits for a clause, and at the last ply - whose
+  // one-word final reason ('Checkmate.') must still give its empty lines to the graph (gate 77 TC-S04's case), which is what shows the
+  // detector can see a graph in the box at all.
+  // The plies: PEND_PLIES are the plies whose first frame carries data-pending (asserted, so a ply that stopped pending is red, not
+  // silently easier). 16.Qb8+ (ply 31) pended on c58695d; since c71cd95e (HEX-R-06) it states its mate in two at once and does not pend,
+  // so it is walked as a final-at-once ply: its frames are held to the same rule.
+  {
+    const PEND_PLIES=[19,25];const FINAL_PLIES=[31];const SHORT_PLY=R.OPERA_PLIES;
+    const frames=async(b,n,hold,cap,grow)=>b.page.evaluate(async({n,hold,cap,grow})=>{const out=[];const t0=performance.now();let stop=false,lastTxt=null,changedAt=null,changes=0;
+      const samp=()=>{const tx=document.querySelector('[data-ct="rev-why-txt"]');const g=document.querySelector('[data-ct="eval-graph"]');
+        let ink=null;if(tx){const rg=document.createRange();rg.selectNodeContents(tx);const tb=tx.getBoundingClientRect().bottom;for(const q of rg.getClientRects())if(q.height>0)ink=Math.max(ink==null?-1e9:ink,Math.min(q.bottom,tb));}
+        const xr=tx?tx.getBoundingClientRect():null;const gr=g?g.getBoundingClientRect():null;
+        let hit=null;if(xr&&xr.height>0){const h=document.elementFromPoint(xr.left+xr.width/2,xr.top+xr.height/2);hit=h?(h.closest('[data-ct="eval-graph"]')?'graph':(h.closest('[data-ct="rev-why-txt"]')?'txt':(h.getAttribute('data-ct')||h.tagName))):null;}
+        const pend=tx?tx.getAttribute('data-pending')==='1':false;const t=Math.round(performance.now()-t0);
+        const tt=tx?(tx.textContent||'').trim():'';if(lastTxt!==null&&tt!==lastTxt){changedAt=t;changes++;}lastTxt=tt;
+        out.push({t,txt:tx?(tx.textContent||'').trim():'',pend,ink:ink==null?null:+ink.toFixed(1),xTop:xr?+xr.top.toFixed(1):null,xBot:xr?+xr.bottom.toFixed(1):null,gTop:(gr&&gr.height>0)?+gr.top.toFixed(1):null,hit});
+        if(!stop)requestAnimationFrame(samp);};
+      requestAnimationFrame(samp);
+      const s=document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]');if(!s.length||n>s.length)throw new Error('ply '+n+' is past the strip ('+s.length+' moves)');s[n-1].click();
+      /* the window ends HOLD ms after the reason last changed (and not before 3.5s), and on a ply whose reason must grow, not before it has - read from the text, not from the app's mark */
+      const T0=performance.now();await new Promise(res=>{const tick=()=>{const t=performance.now()-T0;const quiet=t>=Math.max(3500,(changedAt==null?0:changedAt)+hold);if(t>=cap||(quiet&&(!grow||changes>0)))res();else setTimeout(tick,50);};tick();});
+      stop=true;return out;},{n,hold,cap,grow});
+    for(const g of GEOS){
+      const b=await L.launch({geo:g,store:R.SEED,name:'inv-band-'+g});await b.open();
+      try{
+        await R.states['moves-ply0'](b);
+        for(const n of [...PEND_PLIES,...FINAL_PLIES,SHORT_PLY]){
+          await R.goPly(b,0);await b.settle(400);
+          const fr=await frames(b,n,2000,9000,PEND_PLIES.includes(n));
+          const first=fr[0]||{},last=fr[fr.length-1]||{};
+          // "STILL COMING" IS READ FROM THE TEXT, NOT FROM THE APP'S OWN data-pending MARK: a frame is in the window when its reason is
+          // not yet the reason the ply ends on. data-pending is the fix's hook, and a precondition keyed to it would go red on the very
+          // bundle that lacks the fix for the wrong reason (CLAUDE.md, #432: a check that reads only what the fix added cannot see the
+          // defect the fix removes). The mark is reported beside it (markN) and not asserted.
+          const pendN=fr.filter(f=>f.txt!==last.txt).length,markN=fr.filter(f=>f.pend).length,graphN=fr.filter(f=>f.gTop!=null).length;
+          const overTxt=fr.filter(f=>f.gTop!=null&&f.ink!=null&&f.gTop<f.ink-0.5);
+          const inPend=fr.filter(f=>f.txt!==last.txt&&f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
+          const onCentre=fr.filter(f=>f.hit==='graph');
+          const finalAt=(fr.find(f=>f.txt===last.txt)||{}).t;
+          L.say(fr.length>=60&&last.t>=2000,g+' TC-INV-15 PRECONDITION ply '+n+': '+fr.length+' animation frames sampled from the jump over '+(last.t||0)+'ms, the reason final from '+finalAt+'ms - the verdicts below are over every frame of that window',{frames:fr.length,ms:last.t,finalAt,firstTxt:first.txt,lastTxt:last.txt});
+          if(PEND_PLIES.includes(n)){
+            L.say(pendN>0&&first.txt!==last.txt&&String(last.txt).indexOf(String(first.txt))===0,g+' TC-INV-15a PRECONDITION ply '+n+': the reason WAS still coming at the jump ('+pendN+' frames before it reached its final text, which it then grew to) - the window this block exists for was reached',{pendFrames:pendN,markedPending:markN,pendingTxt:first.txt,finalTxt:last.txt,finalAt});
+            L.say(inPend.length===0,g+' TC-INV-15b ply '+n+': in NO frame while the reason is still coming does the eval graph sit inside the reason\'s box - the box is held whole for the text that is coming',inPend.slice(0,3));
+          }
+          if(FINAL_PLIES.includes(n)) L.say(pendN===0&&markN===0,g+' TC-INV-15a ply '+n+': the reason is final from the first frame (16.Qb8+ states its mate in two at once, HEX-R-06) - so this ply has no pending window, and a pending one appearing again is red here first',{pendFrames:pendN,markedPending:markN,txt:last.txt});
+          L.say(overTxt.length===0,g+' TC-INV-15c ply '+n+': in NO frame, from the jump to 2s after the reason is final, does the eval graph\'s top sit above the last painted line of the reason - including the frame the longer text lands in',overTxt.slice(0,3));
+          if(n!==SHORT_PLY) L.say(onCentre.length===0,g+' TC-INV-15d ply '+n+': in NO frame does the centre of the reason hit the eval graph, so a tap on the explanation never jumps the review to another move (the gate 26 red of 17 Nov)',onCentre.slice(0,3));
+          // 15d is not asked at the last ply: there a one-word final reason gives its empty lines to the graph BY DESIGN (gate 77 TC-S04), and
+          // the box's centre lies in those lines - measured on ca53d655 at 320x568, 'Checkmate.' inks to 457 and the graph starts at 463. That
+          // the graph is there and stays there is 15e's claim; what this block forbids is a graph that comes and goes over a reason.
+          if(n===SHORT_PLY){
+            const ins=fr.filter(f=>f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
+            L.say(graphN>0&&ins.length>0,g+' TC-INV-15e ply '+n+' (a one-line final reason): the eval graph IS drawn, and inside the reason box\'s empty lines ('+ins.length+' of '+fr.length+' frames) - the short reason still gives its unused lines to the graph (gate 77 TC-S04), and the detector above can see a graph in the box',{graphFrames:graphN,inBox:ins.length,txt:last.txt,gTop:last.gTop,xBot:last.xBot,ink:last.ink});
+          }
+        }
+      }catch(e){L.say(false,g+' TC-INV-15 the band walk drove to its end',String(e.message||e));}
+      await b.close();
+    }
   }
 },'26-invariants');
 // THE CONTROL RECORDS gates/control-audit.js READS [#546 item (89)]. #545 measured both trials and deferred these lines so its

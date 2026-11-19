@@ -537,6 +537,11 @@ instance.
   (jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03). (TC-PZ-LAND2)
 - With the phone sideways on Puzzles, the tabs are a slim rail on the right edge, the board fills the height, and Roadmap, Hint,
   Show move, Reset, Prev and Next are all on screen with nothing to scroll (#550 answer a8, Option A). (TC-PZ-LAND3)
+- On the Review move screen, the eval graph never sits over a move's explanation, not even for a frame: while the
+  explanation is still coming (a Brilliant or Great move waiting for the engine's refutation) its box is kept whole for
+  the text that is coming, and when the text changes the graph moves in that same frame. So a tap on the explanation
+  always lands on the explanation, never on the graph that would jump the review to another move. A one-line final
+  reason still gives its empty lines to the graph. (batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18; TC-INV-15)
 
 ### US-INV-06 No screen that does not scroll leaves an empty band over 60px
 On a screen that does not scroll, no empty vertical band is over 60px. This is certified at 375x761 with the real insets (51 top, 31 bottom), and the top 51px status area does not count. Other heights are reported, not asserted. A screen meets it by growing the board or by moving something useful into the gap, not by adding padding.
