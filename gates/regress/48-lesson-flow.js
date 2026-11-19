@@ -249,7 +249,7 @@ const demoRow=(b)=>b.page.evaluate(()=>{
   return {rowX:r2(rr.left),rowR:r2(rr.right),rowW:r2(rr.width),gap,kids,tracks,
     btnX:r2(er.left),btnR:r2(er.right),btnW:r2(er.width),text:(el.innerText||'').trim(),
     needed,neededClone,mcTracks,restored,cloneShortfall:needed===null?null:r2(needed-neededClone),
-    gtc:gtc0,gtcNow:String(cs.gridTemplateColumns||''),isFrGrid:/^1\.8fr\s+1fr$/.test((rowEl.style.gridTemplateColumns||'').trim()),
+    gtc:gtc0,gtcNow:String(cs.gridTemplateColumns||''),isFrGrid:/^(1\.8fr\s+1fr|1fr\s+58px)$/.test((rowEl.style.gridTemplateColumns||'').trim()) /* batch 13: '1fr 58px' since the second cell is one icon RowBtn */,
     fs:getComputedStyle(el).fontSize,ls:getComputedStyle(el).letterSpacing,
     docSW:document.documentElement.scrollWidth,vw:window.innerWidth};
 });
@@ -353,7 +353,7 @@ const FLIP_NEEDED_TIGHT=196.0;
 const DEMO_NEEDED=231.55;
 const flipRow=(b)=>b.page.evaluate(()=>{
   const r2=(n)=>Math.round(n*100)/100;
-  const cand=[...document.querySelectorAll('button')].filter(x=>/^⟳\s*Flip$/.test((x.innerText||'').replace(/\s+/g,' ').trim()));
+  const cand=[...document.querySelectorAll('button')].filter(x=>/^⟳\s*Flip$/.test((x.innerText||'').replace(/\s+/g,' ').trim())||(!(x.innerText||'').trim()&&x.getAttribute('aria-label')==='Flip board'&&!x.closest('[data-ct="lesson-footer"]')&&x.parentElement&&/fr/.test(x.parentElement.style.gridTemplateColumns||'')));   // batch 13: the demo row's Flip is an icon-only RowBtn named 'Flip board'
   let el=null;
   for(const c of cand){const p=c.parentElement;if(!p)continue;
     if([...p.children].some(k=>/Now I'll try it/.test(k.innerText||''))){el=c;break;}}
@@ -1515,8 +1515,10 @@ L.run(async()=>{
    L.say(_wf.found===true&&_wf.hasLines===false,
      geo+' [demo-m0]: the demo row is in its ⟳ Flip branch ABOVE the rowNarrow boundary - board '+(_wm.board&&_wm.board.w)+', which is the state every lesson shows at every ply before its demo ends, and which no assertion reached before #427',
      {found:_wf.found,hasLines:_wf.hasLines,board:_wm.board&&_wm.board.w,kids:_wf.kids});
-   L.say(_wf.found&&Math.abs(_wf.needed-FLIP_NEEDED_WIDE)<=0.6,
-     geo+' [demo-m0]: the row needs '+_wf.needed+'px here (pinned at '+FLIP_NEEDED_WIDE+'), EIGHTEEN PIXELS MORE than the '+FLIP_NEEDED+' the narrow columns pin, because above rowNarrow this button\'s padding is 9px/15px and not 9px/6px. The narrow constant is rowNarrow-only and the band formula does not reach here.',
+   /* RE-KEYED [batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18]: the 244.77 pin was the min-content of the words '⟳ Flip' beside
+      'Now I\'ll try it'; the second cell is now one 58px icon, so what this asserts is that the row holds its own min-content, with the number printed. */
+   L.say(_wf.found&&_wf.needed<=_wf.rowW+0.5,
+     geo+' [demo-m0]: the row needs '+_wf.needed+'px and is '+_wf.rowW+' wide (it was pinned at '+FLIP_NEEDED_WIDE+' when the second cell carried words), EIGHTEEN PIXELS MORE than the '+FLIP_NEEDED+' the narrow columns pin, because above rowNarrow this button\'s padding is 9px/15px and not 9px/6px. The narrow constant is rowNarrow-only and the band formula does not reach here.',
      {needed:_wf.needed,pinned:FLIP_NEEDED_WIDE,narrow:FLIP_NEEDED,fs:_wf.fs});
    L.say(_wf.found&&_wf.past<=0.5,
      geo+' [demo-m0]: and it is inside its own row ('+_wf.btnR+' against a row ending at '+_wf.rowR+') - the row is wide enough here, which is why this branch has never been reported as a defect at his geometry',
