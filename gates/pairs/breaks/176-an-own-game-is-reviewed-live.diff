@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -444,5 +444,5 @@
+    your own game while it is being played is engine help, which chess.com's fair-play rules forbid and which is unfair to the opponent.
+    `false` here is his "no rule": every game in progress opens. liveReviewWaits is the only reader. */
+-const LIVE_OWN_GAMES_WAIT=true;
++const LIVE_OWN_GAMES_WAIT=false;
+ const ccUrlUser=(p)=>String((p&&typeof p==='object')?(p.username||''):(p||'')).replace(/\/+$/,'').split('/').pop().trim().toLowerCase();
+ // the rows of one account's /games answer: standard chess, a PGN, not ended; players by lower-cased username (the API names them by URL)

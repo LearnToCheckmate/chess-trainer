@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6092,5 +6092,5 @@
+   const [ccGames,setCcGames]=useState(null);
+   /* batch 13 (games in progress, developer only - see LIVE_REVIEW): liveOn is the whole gate. The list is memory only. */
+-  const liveOn=devOn&&LIVE_REVIEW;
++  const liveOn=devOn;
+   const [liveGames,setLiveGames]=useState(null);   // null: not asked yet
+   const [liveStat,setLiveStat]=useState(null);     // the open game: {at: last check, ended, err}

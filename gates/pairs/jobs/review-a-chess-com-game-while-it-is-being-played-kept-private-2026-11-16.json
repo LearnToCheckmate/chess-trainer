@@ -1,0 +1,23 @@
+{
+ "job": "review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16",
+ "about": "Review of a chess.com game still being played, behind a developer switch that ships off. Graded by gate 176 (TC-R247a..h) on a trial bundle at 375x761 with his insets and at 320x568, with every chess.com request answered by the gate's own route: with the switch off, and for a player with the switch's key set by hand, nothing shows and the in-progress list is never asked for; with it on the Daily games in progress are listed, a game one of his accounts plays in says its review opens when it ends and never reaches the engine, a game nobody of his plays opens as a review that grows with no tap when a move arrives, and the requests are spaced. NOT COVERED: a real chess.com response (the fixture is built from the API's documented shape; the network is closed in the container); the game-has-ended line and a game that ends while its review is open; a Chess960 Daily game; the Menu switch row's own tap; the growth on the move screen and the silence after closing are read at 375x761 only; his phone.",
+ "gate": "gates/regress/176-review-game-in-progress.js",
+ "checks": ["TC-R247[a-h] "],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761 "},
+  {"name": "se 320x568", "match": "^se "}
+ ],
+ "breaks": [
+  {"name": "list-shows-with-the-switch-off", "patch": "breaks/176-the-list-shows-with-the-switch-off.diff",
+   "why": "the feature no longer asks whether the switch is on: with the developer tools on and the switch never turned on, the games in progress are listed and chess.com's in-progress list is asked for",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "review-does-not-grow", "patch": "breaks/176-the-review-does-not-grow.diff",
+   "why": "the open review still asks chess.com about its game but never takes a new move in, so it stays at the moves it was opened with",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "own-game-reviewed-live", "patch": "breaks/176-an-own-game-is-reviewed-live.diff",
+   "why": "the own-game rule is off (LIVE_OWN_GAMES_WAIT false): a game in progress that one of his own accounts plays in opens and is analysed by the engine while it is being played",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 2400
+}
