@@ -17,7 +17,7 @@
 // logic as the bundle - so the lines that matter are ALSO pinned to facts about chess: the king-hunt deck opens on Edward Lasker v
 // Thomas, London 1912, and its answer is the queen from h5 to h7; the Opera Game's Qb8+ is a deflection and a back-rank mate; the
 // king mated on g1 in Lasker v Thomas is NOT a back-rank mate. A table or tagger that drifts fails those whatever it computes.
-// ON THE REAL TREE: 64/0 on trial 3c6a5b681eb1 (chess.jsx 5714d500c9d8), 19 Nov 2026.
+// ON THE REAL TREE: 64/0 on trial 5f50cef175ce (chess.jsx ead9b155bbbd), 19 Nov 2026. The controls below ran on the tree two explanation sentences earlier (chess.jsx 5714d500c9d8, real-tree trial 3c6a5b681eb1, also 64/0); the pair re-runs breaks A, B and C on the committed head.
 // CONTROL-RECORD: 76d9e736 2026-11-19 total=36 red=29 scope=default:dd8b009fc3f8 how=batch 13: THE TREE BEFORE THE SHELF (CT_SRC the chess.jsx of 76d9e736~1, md5 893d670340e1, and its app.js): no table, no line kinds, no shelf - 7 pass, 29 red
 // CONTROL-RECORD: 76d9e736 2026-11-19 total=64 red=32 scope=trial:71a8d16c0fb1 how=batch 13 break A (gates/pairs/breaks/g168-one-kind-tile-starts-the-drill.diff): the one-kind player's tile starts the drill again, so the shelf is unreachable for the player the job is for - every screen line of the one-kind and mixed launches red at both sizes, node lines green
 // CONTROL-RECORD: 76d9e736 2026-11-19 total=64 red=7 scope=trial:e017a63b089a how=batch 13 break B (g168-famous-card-reads-as-his-own.diff): a famous card carries no name - the header reads Your brilliant moves, the goal and the explanation name nobody; TC-R233m red at both sizes (header, name, mixed deck; at 320 the old header is also 17px cut)
@@ -128,7 +128,7 @@ L.run(async()=>{
      L.say(khDeck.length>=2&&!!s3&&s3.go==='Practice these '+khDeck.length,geo+' TC-R233l with King hunt alone chosen the button counts that deck ("'+(s3&&s3.go)+'", '+khDeck.length+' cards)');
      await b.page.locator('[data-ct="bril-lib-go"]').click({timeout:3000}).catch(()=>{});await b.settle(1500);
      const d=await drill(b);const bd0=await b.board();
-     L.say(!!d&&!d.lib&&d.libW===0&&!!d.counter&&new RegExp('Famous games · 1 of '+khDeck.length+'\\b').test(d.counter)&&!/Your brilliant moves/.test(d.counter),geo+' TC-R233m the drill opens on that deck, the library gone, and its header does not call the moves his ("'+(d&&d.counter)+'")',d);
+     L.say(!!d&&!d.lib&&d.libW===0&&d.counter==='✨ Famous games · 1 of '+khDeck.length+' ▾',geo+' TC-R233m the drill opens on that deck, the library gone, and its header reads Famous games and the count, nothing else ("'+(d&&d.counter)+'")',d);
      L.say(!!d&&d.cut!==null&&d.cut<=0.5&&!!d.cR&&d.cR.l>=0&&d.cR.r<=d.vw+0.5,geo+' TC-R233m the header and its counter are whole, not cut ('+(d&&d.cut)+'px over)',d&&{cut:d.cut,cR:d.cR});
      // WHERE the name is: in the goal on a phone at least 740 tall (the brilliant drill reserves the goal's three lines there, so the board holds its
      // place); on a shorter phone the goal stays the one line his own cards have and the name opens the explanation once the card is solved.
@@ -155,7 +155,7 @@ L.run(async()=>{
      await b.page.locator('[data-ct="drill-counter"]').click({timeout:3000}).catch(()=>{});await b.settle(400);
      await b.page.locator('[data-ct="drill-pick-n"]').nth(2).click({timeout:3000}).catch(()=>{});await b.settle(1200);
      const d1=await drill(b);const mb1=await b.board();
-     L.say(!!d0&&/Your brilliant moves · 1 of 3/.test(d0.counter||'')&&!/Find the brilliant move/.test(d0.top||'')&&!!d1&&/Famous games · 3 of 3/.test(d1.counter||'')&&(d1.vh>=740?/Philidor's legacy/.test(d1.top||''):/🎯 White to move$/.test(d1.top||'')),geo+' TC-R233m in one deck his cards read as his and the famous card as theirs (card 1 "'+(d0&&d0.counter)+'", card 3 "'+(d1&&d1.counter)+'")',{d0:d0&&d0.top,d1:d1&&d1.top});
+     L.say(!!d0&&/Your brilliant moves · 1 of 3/.test(d0.counter||'')&&/🎯 White to move$/.test(d0.top||'')&&!!d1&&/Famous games · 3 of 3/.test(d1.counter||'')&&(d1.vh>=740?/Philidor's legacy/.test(d1.top||''):/🎯 White to move$/.test(d1.top||'')),geo+' TC-R233m in one deck his cards read as his and the famous card as theirs (card 1 "'+(d0&&d0.counter)+'", card 3 "'+(d1&&d1.counter)+'")',{d0:d0&&d0.top,d1:d1&&d1.top});
      L.say(!!mb0&&!!mb1&&Math.abs(mb1.y-mb0.y)<0.5&&Math.abs(mb1.w-mb0.w)<0.5,geo+' TC-R233m the board is the same size in the same place on his card and on the famous card (y '+(mb0&&mb0.y)+' and '+(mb1&&mb1.y)+', width '+(mb0&&mb0.w)+' and '+(mb1&&mb1.w)+')',{mb0,mb1});
      L.say(b.errs.length===0,geo+' TC-R233m zero app errors (the mixed deck)',b.errs.slice(0,3));
      await b.close();}

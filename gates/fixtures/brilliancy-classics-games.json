@@ -104,7 +104,7 @@
    "who": "Adams v Torre, New Orleans 1920",
    "pgn": "1.e4 e5 2.Nf3 d6 3.d4 exd4 4.Qxd4 Nc6 5.Bb5 Bd7 6.Bxc6 Bxc6 7.Nc3 Nf6 8.O-O Be7 9.Nd5 Bxd5 10.exd5 O-O 11.Bg5 c6 12.c4 cxd5 13.cxd5 Re8 14.Rfe1 a5 15.Re2 Rc8 16.Rae1 Qd7 17.Bxf6 Bxf6 18.Qg4 Qb5 19.Qc4 Qd7 20.Qc7 Qb5 21.a4 Qxa4 22.Re4 Qb5 23.Qxb7",
    "why": {
-    "19.Qc4": "The queen is offered where the queen can take it. Black cannot: the queen on d7 must keep guarding e8, and after Qxc4, Rxe8+ is mate on the back rank.",
+    "19.Qc4": "The queen is offered where the queen can take it. Black cannot take: the black queen must keep guarding e8, and after Qxc4, Rxe8+ leads to mate on the back rank.",
     "21.a4": "A pawn is offered to pull the queen off b5. After Qxa4, Re4 hits it again, and it is running out of squares from which to guard e8.",
     "22.Re4": "The rook steps onto e4 where the queen could take it, but the queen must keep guarding e8. After Qb5, Qxb7 leaves it nowhere to go."
    }
@@ -125,7 +125,7 @@
    "who": "Greco v NN, Rome 1620",
    "pgn": "1.e4 e6 2.d4 Nf6 3.Bd3 Nc6 4.Nf3 Be7 5.h4 O-O 6.e5 Nd5 7.Bxh7+ Kxh7 8.Ng5+ Bxg5 9.hxg5+ Kg8 10.Qh5 f5 11.g6 Re8 12.Qh8#",
    "why": {
-    "7.Bxh7+": "The bishop is given up for the pawn in front of the king. After Kxh7, Ng5+ brings the knight and then the queen to the h-file, and the king has no shelter."
+    "7.Bxh7+": "The bishop is given up for the pawn in front of the king. After Kxh7, Ng5+ Bxg5, hxg5+ opens the h-file for the rook and the queen, and the king has no shelter."
    }
   },
   {
