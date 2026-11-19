@@ -2289,6 +2289,7 @@ As a player learning a pattern, the position on the card does what the card says
 - Every Tactics card's answer is the engine's best move, or within half a pawn of it, and does not leave me worse. (TC-R205a)
 - No Strategy position about a slow plan hides a mate in one for the side to move. (TC-R205b)
 - "The opposition" is a win for White, as its text says. (TC-R205c)
+- *Added in batch 13 by US-R172:* the invasion "Put rooks on open files" promises is the engine's best move or within half a pawn of it, and "The bishop pair" is a small edge for White, not a won game. (TC-R205d, TC-R205e)
 
 ### US-R138 The Play hint is the best move, says why, and is not offered against a person
 *Added #550, docs/hint-audit-2026-11-12 HEX-R-10; jobs/play-hint-best-move-and-words-2026-11-12; Kunal, 12 Nov: "All of it in this batch".*
@@ -2613,3 +2614,12 @@ As a player who has photographed a board, I see what the app read before anythin
 - Analyze puts the same board up with both sides mine to move: nothing moves by itself, and the board does not turn to the side to move. (TC-R244m)
 - In both, the board stays the way my photo shows it whichever side I am, and the Flip icon turns it and it stays turned. (TC-R244h, TC-R244k)
 - The three best moves sit under the board, headed BEST, each with its score from White's side, and they are asked again after every move (against the computer, when it is my move). With no engine available the app ranks them itself. The board is the size it is in any other game and does not move. (TC-R244i, TC-R244j, TC-R244n)
+
+### US-R172 What Tactics and Strategy tell me is true of the board in front of me, and a wrong try gets a reason
+*Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12 (Kunal, 12 Nov 2026: "we have a few places we are giving hints explanations. We should check all of those."). The independent checker's gap of 15 Nov 2026: a wrong move on Tactics read one fixed line on 213 of 238 moves; the open-file card promised an invasion that lost; the bishop pair stood on one colour; the 7th-rank card pinned a king that could leave.*
+As a player learning a pattern, every sentence on a Tactics or Strategy card is true of the position it sits under, and when I try the wrong move the card tells me something about the position instead of only "no".
+- On Tactics, any wrong move gets a line of its own: the mate it allows, the piece it hangs, or "Not <my move>." and one sentence about the position that only the right move satisfies, which never names the move. A tap that is no legal move says "Not legal." and the same sentence. The bare "Not the key move. Try again." is gone. (TC-R246a)
+- That line is whole inside its box on my phone and on a short one, and after any number of wrong tries the right move is still accepted and explained. (TC-R246a)
+- Each chess claim in a Tactics card's idea, hint, explanation and wrong-try sentence holds on its board: "the king must move", "Kh7 is forced", "then it is mate", "nothing defends it", and where a sentence says one move does something, exactly one legal move does. (TC-R246b)
+- Each Strategy card's look line and text holds on its board: the bishops stand on both colours, the 7th-rank rook attacks a pawn only the king defends, the passed pawn really outruns the king on h8 and not a king on g8, the rook can invade down its open file without losing. (TC-R246c)
+- What I read and the board I see are the card's own, on both screens. (TC-R246d)

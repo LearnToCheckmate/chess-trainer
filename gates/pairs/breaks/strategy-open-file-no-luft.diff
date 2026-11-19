@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index a438ce6b..017ec05d 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4945,5 +4945,5 @@ const STRAT=[
+  {title:'Control the center',fen:"r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3",text:'Pawns and pieces in the center control the most squares and give your army room to move. Here White has built a broad pawn center on d4 and e4.',look:'Big pawn center on d4 and e4.'},
+  {title:'Develop and castle early',fen:"rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4",text:'Get your knights and bishops out, then tuck your king away by castling, all before you go hunting. White is developed and castled; Black still has work to do.',look:'Pieces out, king safely castled on g1.'},
+- {title:'Put rooks on open files',fen:"3r2k1/pp3pp1/7p/8/8/7P/PP3PP1/2R3K1 w - - 0 1",text:'An open file has no pawns on it, so it is a highway for your rooks. Owning it lets a rook invade deep into the enemy camp.',look:'Rook on the open c-file.'},
++ {title:'Put rooks on open files',fen:"3r2k1/pp3pp1/7p/8/8/8/PP3PPP/2R3K1 w - - 0 1",text:'An open file has no pawns on it, so it is a highway for your rooks. Owning it lets a rook invade deep into the enemy camp.',look:'Rook on the open c-file.'},
+  {title:'Knights love outposts',fen:"4k3/pp3ppp/8/3N4/4P3/8/PP3P1P/4K3 w - - 0 1",text:'An outpost is a square your knight can sit on where no enemy pawn can chase it away, ideally guarded by one of your own pawns. The d5 knight here is a monster.',look:'Knight on d5, backed by the e4 pawn.'},
+  {title:'The bishop pair',fen:"4k3/pp3ppp/2n2b2/8/8/8/PP3PPP/2B1KB2 w - - 0 1",text:'Two bishops cover squares of both colors and rake an open position from a distance. Holding on to both of them is a small but lasting edge.',look:'White has both bishops; Black has a bishop and a knight.'},

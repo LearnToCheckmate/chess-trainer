@@ -1,0 +1,15 @@
+diff --git a/chess.jsx b/chess.jsx
+index a438ce6b..15bf7bd2 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4976,8 +4976,8 @@ function tacWrongLine(card,pos,fr,fc,tr,tc){
+   const miss=(card&&card.miss)||'';let m=null;
+   try{m=getLegal(pos).find(x=>x.fr===fr&&x.fc===fc&&x.tr===tr&&x.tc===tc)||null;}catch(e){m=null;}
+-  if(!m)return miss?('Not legal. '+miss):'';
++  if(!m)return '';
+   try{const s=toSAN(pos,m,applyMove(pos.board,m));const w=wrongWhy(pos,m);
+     if(w)return w.kind==='mate'?(s+' allows mate ('+w.reply+'). Try again.'):(s+' '+w.text+'. Try again.');
+-    return miss?('Not '+s+'. '+miss):'';
++    return '';
+   }catch(e){return '';}
+ }

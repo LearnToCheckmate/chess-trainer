@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index a438ce6b..a8cc74dc 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5054,5 +5054,5 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
+     if(!wrong||!el){if(wrongScrollRef.current){wrongScrollRef.current=false;box.scrollTop=0;ideaCheck();}return;}
+     const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
+-    if(er.bottom>br.bottom-8||er.top<br.top+8){box.scrollTop+=er.top-br.top-8;wrongScrollRef.current=true;}ideaCheck();},[wrong,wrongTxt,mi,belowH]);
++    if(false){box.scrollTop+=er.top-br.top-8;wrongScrollRef.current=true;}ideaCheck();},[wrong,wrongTxt,mi,belowH]);
+   const psz=Math.min(37,Math.floor(cap/8*0.94));
+   useEffect(()=>{

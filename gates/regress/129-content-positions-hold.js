@@ -14,6 +14,8 @@
 // alone with searchmoves) and is within 0.5 of the engine's best; (b) no Strategy position has mate in one for the side to move (a card
 // about a slow plan must not hide a mate); (c) "The opposition" is a win for White, as its look line says.
 // KNOW ITS LIMIT: it checks that the chess is true, not that the words describe it well (that is the hint audit's other findings).
+// batch 13 added TC-R205d and TC-R205e (below, at their lines). Their control: the same gate on a trial of a70b9c65, the tree before the
+// two positions changed - TC-R205d red (c1c7 mate -1 against best g2g3 +22) and TC-R205e red (+633), every other line as before.
 // CONTROL-RECORD: ce025ff 2026-11-12 total=47 red=5 scope=trial:3ab724514641 how=#550 origin/main's own #549 bundle, the cards as the audit found them: Pawn fork -190 (TC-R205a), mate in one on Put rooks on open files, Rooks love the 7th rank and Trade pieces when you are ahead (TC-R205b), The opposition 0 cp (TC-R205c); on t124 47/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path'),cp=require('child_process'),crypto=require('crypto');
@@ -42,6 +44,15 @@ L.run(async()=>{
   for(const s of STR){
     const r=await E.go(s.fen);
     L.say(r.sc!=null&&r.mate!==1,'TC-R205b Strategy "'+s.name+'": the side to move has no mate in one ('+(r.mate===1?'MATE IN ONE with '+r.bm:(r.mate!=null?'mate in '+r.mate:r.sc+' cp'))+')',r);
+    /* batch 13 (the independent checker's gap of 15 Nov 2026 on this job). TC-R205d: "Put rooks on open files" says owning the file "lets a rook
+       invade deep into the enemy camp" - the invasion (the rook to the 7th or 8th rank on its file) must be the engine's best move or within 0.5
+       of it, and must not lose (the position ce025ff shipped had Rc7 allowing Rd1 mate and Rc8+ dropping the rook, best g3). TC-R205e: "The bishop
+       pair" calls it "a small but lasting edge" - White is better, by less than 1.5 (it read +633 against a bare king). */
+    if(s.name==='Put rooks on open files'){const P=s.fen.split(' ')[0].split('/');let rk=null;P.forEach((row,ri)=>{let c=0;for(const ch of row){if(/\d/.test(ch))c+=+ch;else{if(ch==='R')rk='abcdefgh'[c]+(8-ri);c++;}}});
+      const inv=[];for(const to of [rk[0]+'7',rk[0]+'8']){const m=await E.go(s.fen,' searchmoves '+rk+to);inv.push({uci:rk+to,sc:m.sc,mate:m.mate});}
+      const bestInv=inv.filter(x=>x.sc!=null).sort((a,b)=>b.sc-a.sc)[0];
+      L.say(!!bestInv&&r.sc!=null&&bestInv.sc>=-50&&bestInv.sc>=r.sc-50,'TC-R205d "Put rooks on open files": the invasion the card promises works - '+(bestInv?bestInv.uci+' scores '+bestInv.sc:'no rook move to the 7th or 8th')+' against the engine\'s best '+r.bm+' at '+r.sc,{inv,best:r});}
+    if(s.name==='The bishop pair'){const wpov=s.fen.split(' ')[1]==='w'?r.sc:-r.sc;L.say(r.sc!=null&&wpov>0&&wpov<150,'TC-R205e "The bishop pair": a small edge for White, as the card says ('+wpov+' cp for White, wanted above 0 and under 150)',r);}
     if(s.name==='The opposition'){const wpov=s.fen.split(' ')[1]==='w'?r.sc:-r.sc;L.say(wpov>=300,'TC-R205c "The opposition": the position is a win for White, as the card says ('+wpov+' cp for White)',r);}
   }
   E.quit();

@@ -1,0 +1,23 @@
+{
+ "job": "tactics-strategy-wrong-chess-and-messages-2026-11-12",
+ "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
+ "gate": "gates/regress/175-tactics-strategy-claims-hold.js",
+ "checks": ["TC-R246[a-d] "],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761 "},
+  {"name": "se 320x568", "match": "^se "}
+ ],
+ "breaks": [
+  {"name": "fixed-line-back", "patch": "breaks/tactics-wrong-try-fixed-line-back.diff",
+   "why": "the card's own line is dropped: a wrong move the board proves nothing about, and a tap that is no legal move, read 'Not the key move. Try again.' again (213 of the 238 legal wrong moves)",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "open-file-no-luft", "patch": "breaks/strategy-open-file-no-luft.diff",
+   "why": "Put rooks on open files goes back to the board without h3, where the invasion its text promises loses: Rc7 allows Rd1 mate and Rc8+ drops the rook",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "line-cut-on-a-short-phone", "patch": "breaks/tactics-wrong-try-line-cut-on-a-short-phone.diff",
+   "why": "the wrong-try line is no longer scrolled to the top of its box, so at 320x568 its second line is cut at the box's foot under the card's name",
+   "mustFailIn": ["se 320x568"]}
+ ],
+ "timeoutSec": 1800
+}
