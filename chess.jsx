@@ -12826,13 +12826,16 @@ function AppMain(){
                 const _tc=g.tc?tcLabel(g.tc):'';
                 return(
                 <div key={i} data-ct="game-row" role="button" tabIndex={0} onClick={_open} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();_open();}}} style={{flexShrink:0,display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',columnGap:10,rowGap:_sht?4:8,padding:_sht?'8px 12px':12,borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:15,boxShadow:SHADOW_BTN}}>
+                  {/* row 1. Only the opponent's name gives way (an ellipsis; a long one keeps at least 2.5em); the account is never cut. On a narrow phone the date
+                      ends this row, and is left out there when the account's name is over 16 characters, which would leave the opponent no room
+                      (296px card: a 16-character account, 'vs', the date and 2.5em of opponent measure about 254 of its 272). */}
                   <span data-ct="game-names" style={{gridColumn:'1 / -1',display:'flex',alignItems:'baseline',gap:6,minWidth:0,fontSize:15,fontWeight:400,lineHeight:'20px',whiteSpace:'nowrap'}}>
                     {st&&st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{flexShrink:0,color:'rgba(123,233,247,.85)',fontWeight:700}}>!!</span>}
-                    <span data-ct="game-opp" style={{flex:'0 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',color:'#fff'}}>{info.opp?info.opp:(g.white+' vs '+g.black)}</span>
+                    <span data-ct="game-opp" style={{flex:'0 1 auto',minWidth:(info.opp||'').length>4?'2.5em':0,overflow:'hidden',textOverflow:'ellipsis',color:'#fff'}}>{info.opp?info.opp:(g.white+' vs '+g.black)}</span>
                     <span aria-hidden={info.opp?undefined:'true'} style={{flexShrink:0,color:_mut}}>{info.opp?'vs':'·'}</span>
                     <span data-ct="game-src" style={{flexShrink:0,color:g.src==='li'?'#c9b6ff':'#9bd6a0'}}>{_acct}</span>
-                    {_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flexShrink:0,color:_mut}}>(not mine)</span>}
-                    {_nar&&_dt&&<span data-ct="game-date" style={{flexShrink:0,marginLeft:'auto',paddingLeft:4,color:_mut}}>{_dt}</span>}
+                    {_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flex:'0 4 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',color:_mut}}>(not mine)</span>/* the one other text that may give way, as on the old card: it shrinks (an ellipsis) before the opponent's name does */}
+                    {_nar&&_dt&&_acct.length<=16&&<span data-ct="game-date" style={{flexShrink:0,marginLeft:'auto',paddingLeft:4,color:_mut}}>{_dt}</span>}
                   </span>
                   <span data-ct="game-badge" style={{gridColumn:'1',height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:8}}>{bd.t}</span>
                   <span data-ct="game-meta" style={{gridColumn:'2 / -1',height:30,display:'flex',alignItems:'center',gap:8,minWidth:0}}>
@@ -12849,7 +12852,9 @@ function AppMain(){
                       <span data-ct="game-depth-face" style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),minHeight:0,height:30,width:_nar?88:100,boxSizing:'border-box',padding:0,borderRadius:9,fontSize:15,fontWeight:800,letterSpacing:0,gap:4}}>{REV_DEPTHS[_lv].name}<span aria-hidden="true">{'▾'}</span></span>
                     </button>
                   </span>
-                  {_mv.map(([id,gl,col,rgb,n,word])=>(<span key={id} data-ct={'gstat-'+id} data-known={n==null?'0':'1'} title={n==null?('The '+word+' count is not known yet'):(n+' '+word)} aria-label={n==null?(word+' not counted yet'):(n+' '+word)} style={{height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:col,background:'rgba('+rgb+',.14)',border:'1px solid rgba('+rgb+',.45)',borderRadius:8,opacity:n?1:.42}}>{gl+' '+(n==null?'–':n)}</span>))}
+                  {/* the four boxes are grid children through a box-less group that keeps the counts' own hook: a review's (gstat-rev), the background
+                      estimate's (gstat-est), or none yet (gstat-slot). The card no longer SHOWS which - his round-6 card has no approximate mark. */}
+                  <span data-ct={st?(st.src!=='review'?'gstat-est':'gstat-rev'):'gstat-slot'} style={{display:'contents'}}>{_mv.map(([id,gl,col,rgb,n,word])=>(<span key={id} data-ct={'gstat-'+id} data-known={n==null?'0':'1'} title={n==null?('The '+word+' count is not known yet'):(n+' '+word)} aria-label={n==null?(word+' not counted yet'):(n+' '+word)} style={{height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:col,background:'rgba('+rgb+',.14)',border:'1px solid rgba('+rgb+',.45)',borderRadius:8,opacity:n?1:.42}}>{gl+' '+(n==null?'–':n)}</span>))}</span>
                 </div>);})}
               {/* THE DEPTH MENU, under the button it was opened from (above it when there is no room below): a label, then the four levels with
                   their rough times, the game's current one ticked. Picking another level stores it for that game and runs its review at
