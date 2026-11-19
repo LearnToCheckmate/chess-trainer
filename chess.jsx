@@ -5169,7 +5169,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c)))}
       </div>
       <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={land?{gridColumn:2,gridRow:4,alignSelf:'stretch',display:'flex',flexDirection:'column',marginTop:6,minHeight:0}:(_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0}:undefined)}>
-      {!(_bar&&(solved||shown))&&!(_bar&&showHint&&!sel&&!wrong)/* #550 A2-P1: the hint takes the status line's room in the bar layout */&&<div style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0}}>
+      {!(_bar&&(solved||shown))&&!(_bar&&showHint&&!sel&&!wrong)/* #550 A2-P1: the hint takes the status line's room in the bar layout */&&<div data-ct={land?'tactics-status':undefined} style={{minHeight:_bar?40:24,textAlign:'center',margin:_bar?'0 0 4px':'10px 0 4px',flexShrink:0,...(land?{height:40,overflowY:'auto'}:null) /* batch 13: sideways the column has no spare height (568x320: the buttons end at the board's foot), so a wrong-try line of three lines scrolls inside this 40px slot instead of pushing the buttons 16px down */}}>
         {solved?<span style={{color:'#6fce97',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>✓ {cur.san}: correct!</span>
          :shown?<span style={{color:'var(--ac2)',fontWeight:800,fontSize:'clamp(14px,3vw,15px)'}}>Answer: {cur.san}</span>
          :wrong?<span style={{color:'#f0a24e',fontWeight:700,fontSize:'clamp(13.5px,2.8vw,14px)'}}>{wrongTxt||'Not the key move. Try again.'}</span>

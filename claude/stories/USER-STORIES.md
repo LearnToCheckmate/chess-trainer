@@ -2623,3 +2623,4 @@ As a player learning a pattern, every sentence on a Tactics or Strategy card is 
 - Each chess claim in a Tactics card's idea, hint, explanation and wrong-try sentence holds on its board: "the king must move", "Kh7 is forced", "then it is mate", "nothing defends it", and where a sentence says one move does something, exactly one legal move does. (TC-R246b)
 - Each Strategy card's look line and text holds on its board: the bishops stand on both colours, the 7th-rank rook attacks a pawn only the king defends, the passed pawn really outruns the king on h8 and not a king on g8, the rook can invade down its open file without losing. (TC-R246c)
 - What I read and the board I see are the card's own, on both screens. (TC-R246d)
+- With the phone turned sideways, the line for a wrong try moves neither the board nor the buttons; a long line scrolls inside its own slot. (TC-R246e)

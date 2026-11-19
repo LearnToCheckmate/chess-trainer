@@ -22,15 +22,18 @@
 //            position: ONE predicate per claim, the sentence pinned by its own words, and "one move does X" counted over every legal move.
 //  TC-R246c  each of the 18 Strategy cards' look line and text is checked against its position the same way.
 //  TC-R246d  the screen shows the row's words and the row's board (occupancy of all 64 squares, and one picture per piece kind).
+//  TC-R246e  sideways at 568x320 (one launch, its own line prefix): the card's line on a wrong try moves neither the board nor the buttons.
 // KNOW ITS LIMIT: a claim is checked where the board or a short forced line settles it. "A small but lasting edge" and "the invasion
 // works" are engine questions and live in gate 129 (TC-R205d, e). General advice with no position claim ("avoid overextending") is not
-// judged. The upright phone layout only; sideways and desktop draw the same wrongTxt string in a different box.
-// CONTROLS (each a trial bundle; the real tree, trial 4cebd0a0fbdb, reads 571 pass 0 fail):
+// judged. Sideways is read for what moves (TC-R246e), not move by move; the desktop layout draws the same string in the same slot.
+// CONTROLS (each a trial bundle). The first five were taken before TC-R246e was added, when the gate had 571 lines; with it the real tree,
+// trial fdfae5b382ad, reads 575 pass 0 fail.
 // CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=113 scope=trial:53b6466fd06e how=THE SUBJECT REMOVED: the tree before the change (a70b9c65, built as a trial) - at each size the bare fixed line on all 13 cards (TC-R246a, 13 lines) and their no-legal-move taps, the wrong-try sentence absent from all 13 (TC-R246b), the four sentences since reworded (Fork hint, Discovered check idea, Double check idea, Discovered attack explanation), the open-file invasion (Rc7 allows mate), the bishops on one colour, and the two 7th-rank sentences
 // CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=60 scope=trial:ee9d298a4c9e how=batch 13 pair break fixed-line-back (gates/pairs/breaks/tactics-wrong-try-fixed-line-back.diff): tacWrongLine returns nothing where wrongWhy has no reason - 30 TC-R246a lines red at each size (the bare line on every card, the tap that is no legal move, and no line to measure where every move was bare)
 // CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=2 scope=trial:49d8234e5779 how=batch 13 pair break open-file-no-luft (gates/pairs/breaks/strategy-open-file-no-luft.diff): the open-file card back on the board without h3 - the one TC-R246c line 'Owning it lets a rook invade deep into the enemy camp' red at each size
 // CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=26 scope=trial:bd06f038e570 how=batch 13 pair break line-cut-on-a-short-phone (gates/pairs/breaks/tactics-wrong-try-line-cut-on-a-short-phone.diff): the line is not scrolled to the top of its box - 26 TC-R246a lines red at 320x568 only (41px of line in a 64px box under the card's name), none at 375x761
 // CONTROL-RECORD: 01a124ac 2026-11-19 total=571 red=6 scope=trial:d45998d53c19 how=batch 13 control, not in the pair: the Deflection board given luft (h6) under unchanged words - its hint, explanation and wrong-try sentence red at each size (the rook is not forced to take and Rxe8 is no mate); a board changed under its words is seen by the claim, not by the wording
+// CONTROL-RECORD: 01a124ac 2026-11-19 total=575 red=1 scope=trial:4cebd0a0fbdb how=batch 13, TC-R246e: the tree one commit before the sideways slot was given a fixed height (01a124ac's chess.jsx) - 'the board and the Hint and Show answer buttons stay exactly where they were' red at 568x320 (the buttons 16px lower while a three-line wrong-try line shows, on Fork, Pin, Discovered check and more); every other line green
 const L=require('../lib');
 const E=require('../engine-extract');
 const D=require('../drive/lesson');
@@ -299,4 +302,24 @@ L.run(async()=>{
     L.say(b.errs.length===0,g+'TC-R246d no page error while every card was played',b.errs.slice(0,3));
     await b.close();
   }
+  // ── TC-R246e: SIDEWAYS (a short phone turned, 568x320) the column beside the board has no spare height, so the line must not move anything ──
+  if(!process.env.CT_G175_NO_SIDEWAYS){const g='sideways568x320 ';
+    const b=await L.launch({geo:{w:568,h:320,safe:'',label:'568x320'},name:'g175-side'});await b.open();let reached=true;try{await D.states['tactics'](b);await b.settle(900);}catch(e){reached=false;}
+    const rd=()=>b.page.evaluate(()=>new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(()=>{const q=document.querySelector('[data-ct="tactics-board"]');const bd=q?q.getBoundingClientRect():null;
+      const w=[...document.querySelectorAll('span,div')].find(e=>e.children.length===0&&getComputedStyle(e).color==='rgb(240, 162, 78)');const wr=w?w.getBoundingClientRect():null;
+      let sc=w;while(sc&&!/(auto|scroll)/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;const sr=sc?sc.getBoundingClientRect():null;
+      const btns=[...document.querySelectorAll('button')].filter(x=>/^(Hint|Show answer)$/.test((x.textContent||'').trim())).map(x=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');});
+      const root=document.getElementById('root');
+      res({board:bd?[Math.round(bd.left),Math.round(bd.top),Math.round(bd.width)].join(','):null,wrong:w?w.textContent:null,startSeen:(wr&&sr)?(wr.top>=sr.top-0.5&&wr.top<sr.bottom):null,btns:btns.join(' | '),nb:btns.length,onScreen:btns.length>0&&[...document.querySelectorAll('button')].filter(x=>/^(Hint|Show answer)$/.test((x.textContent||'').trim())).every(x=>x.getBoundingClientRect().bottom<=innerHeight+0.5),scroll:root?root.scrollHeight-root.clientHeight:null});}))));
+    const s0=reached?await rd():{};
+    if(L.say(reached&&s0.nb===2&&!!s0.board,g+'TC-R246e PRECONDITION Tactics is on screen sideways with its board and its Hint and Show answer buttons',s0)){
+      const moved=[],unseen=[];let n=0;
+      for(let i=0;i<TAC.length;i++){const row=TAC[i];const p=P(row.fen);const key=legal(p).find(m=>from(m)===row.from&&to(m)===row.to);const before=await rd();let got=null;
+        for(const m of legal(p).filter(m=>!(from(m)===row.from&&to(m)===row.to)).slice(0,8)){await click(b,from(m));await click(b,to(m));const s=await rd();if(s.wrong==='Not '+san(p,m)+'. '+row.miss){got=s;break;}}
+        if(got){n++;if(got.board!==before.board||got.btns!==before.btns||got.onScreen!==true||got.scroll>0)moved.push(row.motif+': board '+before.board+' -> '+got.board+', buttons '+before.btns+' -> '+got.btns+', page scroll '+got.scroll);if(got.startSeen!==true)unseen.push(row.motif);}
+        await b.tapText(/^Show answer$/);await b.settle(150);await b.tapText(/^Next motif/);await b.settle(200);}
+      L.say(n===TAC.length,g+'TC-R246e DENOMINATOR the card\'s own wrong-try line was shown on all '+TAC.length+' cards ('+n+')',n);
+      L.say(moved.length===0,g+'TC-R246e while the line shows, the board and the Hint and Show answer buttons stay exactly where they were, on screen, and the page does not scroll',moved.slice(0,3));
+      L.say(unseen.length===0,g+'TC-R246e the line starts inside its own slot (its first line is on screen; a third line scrolls inside the slot)',unseen);}
+    await b.close();}
 },'175-tactics-strategy-claims-hold');
