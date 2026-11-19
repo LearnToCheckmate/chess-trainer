@@ -52,7 +52,7 @@
 // sideways; the Computer sheet scrolls down). lib's tapText matches any element and can pick the player bar
 // that sits BEHIND the setup sheet, so the sheet is driven through buttons only.
 async function tapBtn(b,re,wait){
-  const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of document.querySelectorAll('button')){const _i=(el.innerText||'').trim();const t=/[A-Za-z0-9]/.test(_i)?_i:(el.getAttribute('aria-label')||_i);/* batch 13 (icons-only rows): a wordless button is named by its aria-label */if(!re.test(t))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
+  const h=await b.page.evaluateHandle((src)=>{const re=new RegExp(src[0],src[1]);let best=null,ba=1e12;for(const el of document.querySelectorAll('button')){const t=(el.innerText||'').trim();/* batch 13 (icons-only rows): a wordless button also answers to its aria-label */if(!re.test(t)&&!(!/[A-Za-z0-9]/.test(t)&&re.test(el.getAttribute('aria-label')||'')))continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;const a=r.width*r.height;if(a<ba){ba=a;best=el;}}if(best)best.scrollIntoView({block:'center',inline:'center'});return best;},[re.source,re.flags]);
   const el=h.asElement();if(!el)throw new Error('tapBtn: no button matches '+re);
   await b.page.waitForTimeout(150);const box=await el.boundingBox();
   await b.page.mouse.click(box.x+box.width/2,box.y+box.height/2);await b.page.waitForTimeout(wait==null?500:wait);return box;

@@ -120,7 +120,7 @@ const plies=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="
   const last=m[m.length-1];return last[2]==='.'?2*(+last[1])-1:2*(+last[1]);});
 const row=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="play-moverow"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
 const card=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="result-card"]')||document.querySelector('[data-ct="land-result"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});   /* #550 a23: a finished sideways game states its result in land-result, not in a card over the board */
-const ctrls=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(Boolean).join(' | '));
+const ctrls=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()||x.getAttribute('aria-label')||'').filter(Boolean).join(' | '));   // batch 13: icons-only row, named by aria-label
 // the captured-material readout, the "+13" the defect inflated
 const taken=(b)=>b.page.evaluate(()=>[...new Set([...document.querySelectorAll('div,span')].map(d=>(d.innerText||'').trim()).filter(x=>/^[+-]\d+$/.test(x)))].join(','));
 // the promotion picker: the position:fixed overlay whose own text starts "Promote to"
