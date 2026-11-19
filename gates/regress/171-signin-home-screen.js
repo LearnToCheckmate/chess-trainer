@@ -29,7 +29,8 @@
 // Screen app are NOT exercised - no browser here is WebKit on an iPad. What this proves is which sign-in method the app calls in each display
 // mode, that a redirect's return is read at start-up and a failed one is said, and that the second route is the pop-up. His check on his
 // iPad from the Home Screen icon is what proves the round trip.
-// CONTROL-RECORD: (filled in below by the control runs)
+// CONTROL-RECORD: ee291588 2026-11-19 total=31 red=14 scope=shipped:dd8b009fc3f8 how=batch 13, the tree before the fix: ee291588's index.html served with its committed app.js (#551): TC-R236a2, c, d, e red at all three sizes (no mark; the sign-in line empty after the empty return; the second tap the redirect again, so no account), f and h red at kunal761 (the error and the closed window both silent); TC-R236a, g, i, j and the zero-errors lines stay green there by design (the redirect-first Home Screen path, a successful return and the Safari tab are what the fix keeps - named, not credited); on the fix's trial 933e06068a31 31/0
+// CONTROL-RECORD: bb094f75 2026-11-19 total=23 red=11/7/4 scope=pairs how=batch 13, gates/pairs/jobs/sign-in-with-google-...-2026-11-18.json on bb094f75 (graded lines only, kunal761 11, se 6, ipad 6): redirect-return-swallowed 5+3+3 FAIL (7daf04f8149e), home-screen-always-redirects 3+2+2 (55a8c5bf6e1c), app-never-hears-the-return 2+1+1 (5e46668f1dc4); real a0577d4fcfe6 23/0 - CHECKED
 const L=require('../lib');
 const GS='https://www.gstatic.com/firebasejs/10.12.2/';
 const STUB={

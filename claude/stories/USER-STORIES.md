@@ -2548,3 +2548,12 @@ As a player learning with a teacher beside me, I can play the app's computer at 
 - Review opens it with them: the summary says it is a coach game and how many notes it has, the line under the board leads with the note at its move, a tap shows all of it, and a move a hint, a takeback or the engine's view was asked before says so. The Review board does not move for a note. (TC-R235h)
 - More > Saved coach games lists the coach games kept on this phone, and a tap opens one in Review. The PGN I copy keeps my notes as comments and nothing private to the app. (TC-R235i)
 - There is no coach control on a game between two people, on the Online sheet or screen, or on a computer game started with Coach mode off; such a game is never saved as a coach game. (TC-R235j)
+
+### US-R165 Sign in with Google from the Home Screen icon finishes, or says why it did not
+*Added in batch 13, jobs/sign-in-with-google-does-nothing-from-the-ipad-home-screen-icon-2026-11-18. Kunal, Mon 16 Nov 2026: "I'm trying to sign in on my ipad using the google accout. it doesn't do anything"; he opens the app from the Home Screen icon (his pick, Wed 18 Nov). The iPad layout itself stays parked; this story is the sign-in path only.*
+As a player who opens the app from its Home Screen icon on my iPhone or iPad, when I tap Sign in with Google I am signed in, or the app tells me what happened and what to tap next; a tap never ends with nothing changed.
+- From the Home Screen icon the first tap goes to Google's page in the app and comes back, as it does on my iPhone today. (TC-R236a)
+- If it comes back without signing me in, the sign-in line says so and the next tap opens Google's sign-in window instead, which signs me in. (TC-R236b, TC-R236c, TC-R236d, TC-R236e)
+- If it comes back with an error, the sign-in line says sign-in did not finish and names the error, so a screenshot says which one. (TC-R236f)
+- If that window closes before I finish, the line says so. (TC-R236h)
+- When it comes back signed in, nothing else is said and no window opens. In a Safari tab sign-in works as before: Google's window first, and Google's page when the window cannot open. (TC-R236g, TC-R236i, TC-R236j)
