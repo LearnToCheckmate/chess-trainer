@@ -447,6 +447,10 @@ const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
 const SUBS=['Openings & endgames','890 tactical puzzles','Free game reviews','Computer or a friend'];   // #550 wording check TXT-17/25: was '890+ tactical puzzles' and 'vs Computer or Human'
+// PIN MOVED WITH A FIX [batch 13, jobs/wording-check-2026-11-12 TXT-32]: Discover's caption names tactics wherever the long words fit on the one
+// line (chess.jsx FitLine). Measured on trial bbd39ed5bdf9: 'Openings, tactics, endgames' is 161.2px at 12.5px (170.7 at 414, 177.3 at 430) against a
+// tile inner width of 136 at 320, 164 at 375, 171 at 390 and 191 at 430, so se keeps the short caption and the other three geometries read the long one.
+const SUBS_AT=(geo)=>geo==='se'?SUBS:['Openings, tactics, endgames',...SUBS.slice(1)];
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
@@ -550,7 +554,7 @@ if(blk('B'))for(const geo of GEOS){
     geo+': TC-HM-011 all four tile icon hooks are present - tile-ic-learn, tile-ic-puzzle, tile-ic-analyze, tile-ic-play. Addressed by data-ct and not by text, so the Discover group cards rendered UNDER this overlay cannot be picked up instead',t.map(x=>x.k+':'+x.found));
   L.say(t.map(x=>x.k).join(',')===KS.join(',')&&t.map(x=>x.label).join(',')===LABELS.join(','),
     geo+': TC-HM-012 the tiles are '+LABELS.join(' · ')+', in that DOM ORDER - which is the painted order, top-left to bottom-right. WALKED in document order rather than fetched key by key: the first version of this helper mapped over a hardcoded key list, so it imposed the order it claimed to be testing and NC5 walked straight past it. Order and not just arity',{ks:t.map(x=>x.k).join(','),labels:t.map(x=>x.label).join(',')});
-  L.say(t.map(x=>x.sub).join('|')===SUBS.join('|'),
+  L.say(t.map(x=>x.sub).join('|')===SUBS_AT(geo).join('|'),
     geo+': TC-HM-013 and each carries its own subtitle - the only text on this screen that says what is behind a tile',t.map(x=>x.sub));
   L.say(t.every(x=>near(x.boxW,80)&&near(x.boxH,80)),
     geo+': TC-HM-014 every tile\'s icon box is 80x80 at every width (84 until #550 AUD-H01\'s 80pt icons) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
