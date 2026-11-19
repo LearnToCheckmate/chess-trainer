@@ -3306,6 +3306,15 @@ function drillAcceptMsg(played,gr,pos,playedMv,sol,alt){   /* alt: the move matc
    polls (120 s at rest; longer in wall time on a loaded phone, which is the point). It was 5 s, and on a busy phone that handed the game to
    a different grader with different grades. A worker that cannot be built or dies ends the wait at once. */
 const REVIEW_ENGINE_WAIT=1200;
+/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (Kunal, 15 Nov 2026: "I wouldn't mind if our engines ran on a deeper
+   value too"): THE REVIEW DEPTH IS PICKED PER GAME. Four levels, each a FIXED search depth, so a level gives the same result every time
+   (the #375 rule: a review is a function of the game, never of the clock). Quick is the depth every review has used since #375 (16), so
+   every stored review and every cached evaluation is a Quick one and stays valid; each level above searches `dx` plies further.
+   `about` is the time printed in the depth menu for a game of about 35 moves; the measured times are in the gate's header
+   (gates/regress/172-review-depth-game-card.js). ct_gdepth holds the picked level per game (gkey -> 1..3; Quick is the absence of a row). */
+const REV_DEPTHS=[{name:'Quick',dx:0,about:'about 20 s'},{name:'Deep',dx:2,about:'about 1 min'},{name:'Deeper',dx:4,about:'about 3 min'},{name:'Deepest',dx:6,about:'about 8 min'}];
+const revLevel=(v)=>{const n=Math.round(Number(v));return (n>=0&&n<REV_DEPTHS.length)?n:0;};
+const gdepthAll=()=>{try{const o=JSON.parse(localStorage.getItem('ct_gdepth')||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}};
 const GRADE_VER=(BRIL_RULE===3?3:BRIL_RULE===2?2:1)+(GRADES2?10:0);   // #550 items (17) and (20): the ones digit is the brilliant rule (3 rule 3, the default; 2 the #549 rule; 1 the old one), plus 10 with item (20)'s grades on - so 13 by default
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
 /* A cached tally is usable when its grading version is the current one. A src:'review' tally is ALSO left
@@ -5911,6 +5920,11 @@ function AppMain(){
      coachNudge and coachPlan (REAL), achvStats.reviewed for rv1/rv10 (REAL), the Your progress panel's Games reviewed and
      Brilliancies tiles (REAL), and that panel's show condition (ALL, so the Achievements link stays reachable). */
   const gsRealKeys=()=>{const GS=gameStatsRef.current||{};return Object.keys(GS).filter(k=>GS[k]&&GS[k].src!=='est');};   /* #547 antagonist A on (67): full reviews written before #331 carry NO src; only the background pass stamps 'est', so 'not est' is real */
+  /* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15: the review depth picked for each game (REV_DEPTHS), kept in
+     ct_gdepth so it survives a reload, and the depth menu open under one card's button ({key,g,left,top}). */
+  const [gDepth,setGDepth]=useState(gdepthAll);
+  const setGameDepth=(k,lv)=>{const o={...gdepthAll()};if(lv>0)o[k]=lv;else delete o[k];try{localStorage.setItem('ct_gdepth',JSON.stringify(o));}catch(e){}setGDepth(o);};
+  const [depthMenu,setDepthMenu]=useState(null);
   const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
   const [ccGames,setCcGames]=useState(null);
   const gamesListRef=useRef(null);
@@ -7805,7 +7819,7 @@ function AppMain(){
   const poolClose=()=>{try{sfPoolRef.current.forEach(s=>{try{s.w&&s.w.terminate();}catch(e){}});}catch(e){}sfPoolRef.current=[];};
   useEffect(()=>()=>poolClose(),[]);
   // One eval on one pool worker. Same contract as sfEval1.
-  const sfEvalOn=(slot,fen,movetime,fresh)=>new Promise(resolve=>{
+  const sfEvalOn=(slot,fen,movetime,fresh,dx)=>new Promise(resolve=>{   /* batch 13: dx = the picked review depth's extra plies over DCAP (REV_DEPTHS); absent or 0 is Quick */
     if(!slot||!slot.w||!slot.ready||slot.dead){resolve(null);return;}
     const stm=(fen.split(' ')[1]||'w'),sign=stm==='w'?1:-1;
     let cp=null,mate=null,cp2=null,mate2=null,alt=null,done=false;
@@ -7833,7 +7847,7 @@ function AppMain(){
        scored differently - the same game reviewed twice gave Black 84.6% one run and 58.4% the next, with the
        verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
        and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
-    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null,false);}};
+    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+(DCAP+(dx>0?dx:0)));slot.S.go.current++;}catch(e){finish(null,false);}};
     if(!slot.S.go.current&&!slot.S.owed.current)run();
     else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}run();});
   });
@@ -7867,10 +7881,19 @@ function AppMain(){
        Great 6 -> 0, a Blunder from nowhere, and the same bundle at rest gives 97.6 every time. Now the review waits for Stockfish to load for
        as long as it is loading (ensureAna returns false at once if the worker cannot be built or dies), and only a device with no Stockfish
        at all gets the built-in engine. A game whose Stockfish output is already cached is graded from it without waiting. */
-    const _ckEarly=evalCacheKey(res.plies,_st.fen);
+    /* batch 13 (review depth per game): the level asked for is the caller's (the depth menu passes it) or the game's stored pick; Quick for
+       a game with no key (a pasted PGN, a played game). THE COUNTS AND LABELS COME FROM THE DEEPEST FINISHED PASS: a complete cached
+       pass at a deeper level than the one asked for is used instead of a shallower search. A deeper level's evaluations are cached
+       under their own key (the Quick key is unchanged, so no review cached before this build is thrown away - the #343 lesson). */
+    const _lvAsk=revLevel((meta&&meta.depth!=null)?meta.depth:((meta&&meta.key)?gdepthAll()[meta.key]:0));
+    const _ckBase=evalCacheKey(res.plies,_st.fen);const _ckOf=(lv)=>lv>0?(_ckBase+'-d'+(16+REV_DEPTHS[lv].dx)):_ckBase;
+    let _lv=_lvAsk;{const _all0=evalCacheAll();for(let l=REV_DEPTHS.length-1;l>_lvAsk;l--){const c=_all0[_ckOf(l)];if(c&&c.evW&&c.evW.length===res.plies.length+1){_lv=l;break;}}}
+    const _dx=REV_DEPTHS[_lv].dx;
+    const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d+_dx,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum
+    const _ckEarly=_ckOf(_lv);
     const _c0=evalCacheAll()[_ckEarly];
     const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await (async()=>{/* #550 item (90): the wait for Stockfish (up to REVIEW_ENGINE_WAIT, 120s at rest) is SHOWN, not silent */const _ready=!!(sfAnaRef.current&&sfAnaReadyRef.current);if(!_ready)setAnaLoadAt(Date.now());try{return await ensureAna(REVIEW_ENGINE_WAIT);}finally{setAnaLoadAt(0);}})();
-    const _eng={path:useSF?'pool':'builtin',workers:0,retried:0,abandoned:0,cached:false};   // #549 item (30): how this review was computed, for the harness (review.engine)
+    const _eng={path:useSF?'pool':'builtin',workers:0,retried:0,abandoned:0,cached:false,level:_lv,depth:16+_dx};   // #549 item (30): how this review was computed, for the harness (review.engine)
     let out=[];
     if(useSF){
       // Full-strength Stockfish: eval every position (White POV cp; mate as a large ±cp), then derive each move's loss and the engine's best move.
@@ -7956,8 +7979,8 @@ function AppMain(){
         const _try=async(ev,g0,g1,last)=>{const rs=[];for(let i=g0;i<=g1;i++){if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}/* #550 A3-5: a stopped review starts no further search - its zombie workers would otherwise abort the next run's sfEval1 */const r=await ev(i,i===g0);if(!_okR(r)&&!last)return null;rs.push(r);}return rs;};
         const _group=async(ev,g0,g1)=>{
           for(let a=0;a<2;a++){if(a){_eng.retried++;await new Promise(r=>setTimeout(r,800));}const rs=await _try(ev,g0,g1,false);if(rs)return rs;}
-          for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
-          const rs=await _onAna(()=>_try((i,f)=>sfEval1(_fen(i),MT,16,f),g0,g1,true));_eng.abandoned+=rs.filter(r=>!_okR(r)).length;
+          for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>_ev1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
+          const rs=await _onAna(()=>_try((i,f)=>_ev1(_fen(i),MT,16,f),g0,g1,true));_eng.abandoned+=rs.filter(r=>!_okR(r)).length;
           /* #550 a32: a group no engine could finish is not graded from a partial score - the review STOPS and says so */
           if(rs.some(r=>!_okR(r))){const _e=new Error('engine-stopped');_e.ctEngine=true;throw _e;}
           return rs;
@@ -7966,7 +7989,7 @@ function AppMain(){
       if(_slots.length>=1){
         _eng.workers=_slots.length;
         const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
-        await Promise.all(_slots.map(async(sl,_k)=>_block((i,f)=>sfEvalOn(sl,_fen(i),MT,f),_k*_chunk,Math.min(N,(_k+1)*_chunk-1))));
+        await Promise.all(_slots.map(async(sl,_k)=>_block((i,f)=>sfEvalOn(sl,_fen(i),MT,f,_dx),_k*_chunk,Math.min(N,(_k+1)*_chunk-1))));
       }else{
         /* #549 item (30): THE SAME TABLE CADENCE ON THE ANALYSIS WORKER. This loop searched every position on one uncleared table, and
            skipped the mate-boundary re-search below (it ran only on a pool slot), so the review a device got with no pool worker was a
@@ -7974,7 +7997,7 @@ function AppMain(){
            Blunder 1 -> 0 (15...Nxd7, the move that allows mate). Now the groups and the fresh start of each are the pool's, and so are the
            numbers. */
         _eng.path='one';
-        await _block((i,f)=>sfEval1(_fen(i),MT,16,f),0,N);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
+        await _block((i,f)=>_ev1(_fen(i),MT,16,f),0,N);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
       }
       /* #375: reusing a worker's table between neighbouring positions is what keeps a review fast, but a table
          carried in from the move before can hold a position's refutation out of view. The case that matters is
@@ -7989,7 +8012,7 @@ function AppMain(){
         /* #549 item (30): on whichever worker is there - a pool slot, else the analysis worker - and only a finished search replaces the
            stored one (a fresh table on either gives the same answer). */
         if(_fix.length)for(const i of _fix.slice(0,8)){
-          let r2=null;try{r2=(await _group(_sl2.length?((j,f)=>sfEvalOn(_sl2[0],_fen(j),MT,true)):((j,f)=>_onAna(()=>sfEval1(_fen(j),MT,16,true))),i,i))[0];}catch(e){if(e&&e.ctStop)throw e;}   /* #550 A3-6: one boundary that no engine finishes keeps its first search and the other boundaries are still re-searched */
+          let r2=null;try{r2=(await _group(_sl2.length?((j,f)=>sfEvalOn(_sl2[0],_fen(j),MT,true,_dx)):((j,f)=>_onAna(()=>_ev1(_fen(j),MT,16,true))),i,i))[0];}catch(e){if(e&&e.ctStop)throw e;}   /* #550 A3-6: one boundary that no engine finishes keeps its first search and the other boundaries are still re-searched */
           if(_okR(r2)&&(r2.mate!=null||r2.cp!=null))_store(i,r2);
         }
       }catch(e){}
@@ -8076,7 +8099,7 @@ function AppMain(){
       const _prev=gameStatsRef.current[meta.key];
       let _was=null;
       if(_prev){if((_prev.bril||0)>bril)_was=_prev.bril||0;else if(_prev.was!=null&&(_prev.bril||0)===bril)_was=_prev.was;}
-      recordGameStats(meta.key,{bril,great,inacc,mist,blun,obril,src:'review',engine:useSF?'sf':'fallback',...(_was!=null?{was:_was}:{})});
+      recordGameStats(meta.key,{bril,great,inacc,mist,blun,obril,src:'review',engine:useSF?'sf':'fallback',dp:useSF?_lv:0 /* batch 13: the level this tally was graded at */,...(_was!=null?{was:_was}:{})});
     }
     const playedSans=res.positions.slice(0,res.plies.length).map((pos,i)=>toSAN(pos,res.plies[i].move,applyMove(pos.board,res.plies[i].move)));
     const openingName=_st.game?null:nameOpening(playedSans);   // #549 item (66): a set-up game has no opening and no book moves
@@ -8560,7 +8583,7 @@ function AppMain(){
     const n1=_heldN();if(n1>n0)setGPage(p=>Math.max(p,n0)+(n1-n0));
     setCcLoading(false);setCcProg('');setOlderBusy(false);setGsVer(v=>v+1);
   };
-  const pickCcGame=(g)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null});};
+  const pickCcGame=(g,lv)=>{const info=gameInfo(g);setPgnText(g.pgn);importGame(g.pgn,{key:gkey(g),userColor:info.userColor,acctId:g.acct?acctId(g.src,g.acct):null,...(lv!=null?{depth:lv}:{})});};   /* batch 13: lv = a review depth just picked in the card's depth menu; without it importGame reads the game's stored pick */
   // #353 show what is already stored the moment the Review screen opens, before any network call
   useEffect(()=>{if(mode!=='analyze')return;const M=acctGamesRef.current||{};if(Object.keys(M).length)mergeGames();},[mode]);
   /* #547 item (133), jobs/the-review-list-filter-survives-leaving-the-review-screen-2026-10-06: the #476 filter (gFil) and the
@@ -12305,6 +12328,9 @@ function AppMain(){
             {ACCT_UNREAD&&ccAccts.length>0&&<div data-ct="acct-unread" role="status" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{'Your saved games couldn\u2019t be read on this device this time, so they aren\u2019t shown. Nothing has been deleted.'}</div>}
             {ccLoading&&ccProg&&<div data-ct="cc-progress" role="status" aria-live="polite" style={{fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.7)',lineHeight:1.5}}>{ccProg}</div>}
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
+          </div>
+          {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (1), his answer of 18 Nov 2026 ("Own section"): YOUR GAMES IS ITS
+              OWN SECTION right under the Import box, not a part of it, so the cards use the full content width. */}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
               // #476 ONE PREDICATE, so the count, the rows, the empty state and the coverage line can never
               // disagree about what is shown - they all read `_shown`.
@@ -12576,7 +12602,7 @@ function AppMain(){
                 {_chip(false,'Clear','gf-clear',_clearAll,null,!_anyF)}
               </div>);
               const _gfInput=ccGames.length>6&&(!(!wide&&vp.h<700)||gfOpen||!!gameSearch)&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>);
-              return(<>
+              return(<div data-ct="games-section" style={{display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
               <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
                 <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
                 {/* #548 item (123), jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's pick
@@ -12775,43 +12801,67 @@ function AppMain(){
                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
-              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:6,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
+              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
               {_gfIn&&_gfPanel}{_gfIn&&_gfInput}
-              {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const st=gameStatsRef.current[gkey(g)];return(
-                <button key={i} data-ct="game-row" onClick={()=>pickCcGame(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 11px',borderRadius:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",boxShadow:SHADOW_BTN}}>
-                  <span data-ct="game-badge-col" style={{flexShrink:0,width:'3.8em',display:'flex',flexDirection:'column',alignItems:'stretch',gap:4}}><span data-ct="game-badge" style={{flexShrink:0,width:'3.8em',textAlign:'center',fontSize:'clamp(14.5px,3vw,15.5px)',fontWeight:800,letterSpacing:.4,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:7,padding:'6px 0'}}>{bd.t}</span>{/* #550 item (72), Kunal's B9C-LIST-TALLY comment "why dont you put brilliant below Won.": the brilliant pill lives UNDER the result
-                      badge, in the badge's own 3.8em column, as two short lines (!! N over 'brilliant'), so the counts line beside it keeps to
-                      one line and the row does not grow when the tally lands (it grew 78 -> 124 at 375x761 and 78 -> 140 at 320x568, #549). */}{st&&st.bril>0&&(st.src!=='review'
-                    ?<span data-ct="bril-pill-est" style={{display:'block',textAlign:'center',lineHeight:1.15,color:'#7be9f7',background:'transparent',border:'1px dashed rgba(34,211,238,.75)',borderRadius:8,padding:'2px 0',fontWeight:800,fontSize:'clamp(13px,2.8vw,14px)'}}>!! {st.bril}<span style={{display:'block',fontSize:'.72em'}}>brilliant?</span></span>
-                    :<span data-ct="bril-pill" style={{display:'block',textAlign:'center',lineHeight:1.15,color:'#062a30',background:'linear-gradient(135deg,#22d3ee,#7be9f7)',border:'1px solid #22d3ee',borderRadius:8,padding:'2px 0',fontWeight:900,boxShadow:'0 0 10px rgba(34,211,238,.55)',fontSize:'clamp(13px,2.8vw,14px)'}}>!! {st.bril}<span style={{display:'block',fontSize:'.72em'}}>brilliant</span></span>)}{!(st&&st.bril>0)&&<span aria-hidden="true" style={{display:'block',visibility:'hidden',textAlign:'center',lineHeight:1.15,border:'1px solid transparent',padding:'2px 0',fontWeight:900,fontSize:'clamp(13px,2.8vw,14px)'}}>!! 0<span style={{display:'block',fontSize:'.72em'}}>brilliant</span></span>/* #550 FMT-B-09 / a7: the tally's slot is held on every card, so every card is one height and none grows when its tally lands (TC-R76) */}</span>
-                  <span style={{minWidth:0,flex:1}}>
-                    {/* #550 item (74), jobs/games-list-card-whose-game-and-layout, second pass (#549's patch was lost with its container and is
-                        rebuilt here). The 'Review ›' word took ~70px of every line on every card (18% of the card, whatIsWrong 6) and line 2
-                        was cut by an ellipsis on EVERY card at 375 and 320 (268-290px of text in 161px at 375, 106px at 320). Now: the whole
-                        card is the tap target and the word becomes a chevron; the date moves to the right end of THIS line (not under the
-                        result badge as #549 placed it: since item (72) the badge column holds the brilliant pill and is the TALLER column,
-                        65.7px against 57.8px, so a date there would grow every card by ~16px, measured; the name line has the room); line 2
-                        is a colour square, the account (on every card, also with one account) and the time control. */}
-                    <span data-ct="game-line1" style={{display:'flex',alignItems:'baseline',gap:6,minWidth:0}}>
-                    <span data-ct="game-opp" style={{display:'block',flex:'1 1 auto',minWidth:0,fontSize:'clamp(14.5px,3.6vw,17px)',fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' /* #550 run-answers a7 (Kunal: "keep it as the three dots towards the end of the name") and formatting audit FMT-B-09: one line, ending in an ellipsis, so every card is the same height */}}>{st&&st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{marginRight:6,color:'rgba(123,233,247,.8)',border:'1px solid rgba(123,233,247,.45)',borderRadius:8,padding:'0 5px',fontWeight:800,fontSize:'.75em',verticalAlign:'1px',whiteSpace:'nowrap'}}>!!</span>}{info.opp?('vs\u00a0'+info.opp):(g.white+' vs\u00a0'+g.black)}</span>
-                    {g.date?<span data-ct="game-date" style={{flexShrink:0,whiteSpace:'nowrap',fontSize:'clamp(13px,2.9vw,14px)',fontWeight:600,color:'rgba(255,255,255,.55)'}}>{new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>:null}
-                    <span data-ct="game-go" aria-hidden="true" style={{flexShrink:0,fontSize:'clamp(17px,4.2vw,19px)',lineHeight:1,fontWeight:800,color:'var(--ac2)'}}>{"\u203a"}</span>
-                    </span>
-                    <span data-ct="game-sub" style={{display:'block',fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.55)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{/* #549 item (100), jobs/labels-truncate-in-shared-rows-2026-09-24: THIS ROW REFLOWS INSTEAD OF TRUNCATING. The opponent's name and this line shared a row with the fixed result badge and the fixed 'Review ›' control, so they got the remainder (184px at 375, 130px at 320) and were ellipsised - 'vs DukeKarlCountIs…' and 'jsmiller1112 · as Whit…' on Kunal's own phone with ordinary data, and a 25-character handle (chess.com's cap) lost half of itself at 320. The list scrolls, so a second line costs a row height and never the board: both lines now wrap, a handle with no spaces breaking anywhere. 'vs' is joined to the name by a no-break space so it is never left alone on a line. The badge (folded in from jobs/games-list-outcome-badge-word-spills-its-pill-2026-09-28) was a fixed 44px box and DRAW (51px in the row's own font at 14.5px, 3.52em) and GAME painted outside it; it is now 3.8em, ONE width for all four words so the names still line up row to row, and every word fits it with room. */}{info.userColor&&<span data-ct="game-color" data-color={info.userColor} role="img" aria-label={info.userColor==='w'?'played White':'played Black'} title={info.userColor==='w'?'played White':'played Black'} style={{display:'inline-block',width:'.72em',height:'.72em',marginRight:'.4em',verticalAlign:'-.02em',borderRadius:2,background:info.userColor==='w'?'#f2f2f2':'#141414',border:'1px solid '+(info.userColor==='w'?'rgba(255,255,255,.9)':'rgba(255,255,255,.55)')}}/>}<span data-ct="game-src" style={{color:g.src==='li'?'#c9b6ff':'#9bd6a0',fontWeight:700}}>{g.acct?g.acct:(g.src==='li'?'Lichess':'Chess.com')}</span>{/* #547 item (79) named the account only with more than one imported; #550 item (74) names it on EVERY card (the site stays as its colour), and the colour square replaces 'as White'/'as Black' - the line now fits at 320 */}{g.tc?(' · '+tcLabel(g.tc)):''}</span>
-                    {!st&&<span data-ct="gstat-slot" aria-hidden={_nm?undefined:'true'} style={{display:'flex',alignItems:'center',marginTop:4,height:'1.5em',fontSize:'clamp(14.5px,3.2vw,16.5px)'}}>{_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flexShrink:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',alignSelf:'center',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(11px,2.6vw,12.5px)',fontWeight:500,lineHeight:1.2,color:'rgba(255,255,255,.7)',border:'1px solid rgba(255,255,255,.28)',borderRadius:7,padding:'0 3px',whiteSpace:'nowrap'}}>not mine</span>}</span>/* #547 item (99): the tally line's height is held before the tally arrives */}{st&&(()=>{const est=st.src!=='review';const _dg=!est&&st.was!=null&&st.was>(st.bril||0);return(<span data-ct={est?'gstat-est':'gstat-rev'} style={{display:'flex',flexWrap:_dg?'wrap':'nowrap',whiteSpace:_dg?undefined:'nowrap'/* #550 item (74): ONE line; only the 'not mine' tag may give way (a drawn ellipsis), so a not-his card is never a row taller */,alignItems:'center',gap:'clamp(4px,1.4vw,9px)',minHeight:'1.5em',marginTop:4,fontSize:'clamp(14.5px,3.2vw,16.5px)',fontWeight:800,fontFamily:'monospace',opacity:est?.78:1}}>
-                      {_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flexShrink:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',alignSelf:'center',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:'clamp(11px,2.6vw,12.5px)',fontWeight:500,lineHeight:1.2,color:'rgba(255,255,255,.7)',border:'1px solid rgba(255,255,255,.28)',borderRadius:7,padding:'0 3px',whiteSpace:'nowrap'}}>not mine</span>/* #550 item (74): an account he marked not his (the chip's 'mine' switch, #547 item (79)) says so on each of its cards, at the head of the counts line, so WON/LOST and the counts are not read as his */}
-                      {est&&<span data-ct="gstat-esttag" title="estimate: review the game for exact counts" aria-label="estimate" style={{fontWeight:700,color:'rgba(255,255,255,.55)'}}>≈</span>/* #550 item (72): one character, not a 33px 'EST' tag, so the counts keep to one line at 320 (they needed 156px of 123 with it) */}
-                      {/* #550 answer a9 (item 73), Kunal on build__1794388896663-q9: "brilliant Best great and blunder" - four separate counts, each the summary's, Brilliant kept in its pill below Won. The summary's own glyphs and colours (GRADE_LADDER). A tally stored before the split carries Best and Great as one number, shown as one '★!' count until it is graded again (the backfill rides the GRADE_VER bump). */}{st.best!=null&&st.grt!=null
-                        ?<><span data-ct="gstat-best" title="Best moves" aria-label={st.best+' best'} style={{color:'#6fd66f'}}>★ {st.best}</span><span data-ct="gstat-great" title="Great moves" aria-label={st.grt+' great'} style={{color:'#5d93e8'}}>! {st.grt}</span></>
-                        :<span data-ct="gstat-bestgreat" title="Best and Great moves together - review the game to count them apart" aria-label={st.great+' best and great'} style={{color:'#6fd66f'}}>★! {st.great}</span>}<span data-ct="gstat-blun" title="Blunders" aria-label={st.blun+' blunders'} style={{color:'#ec5c4e'}}>?? {st.blun}</span>
-                      {/* #548 item (128), jobs/opponent-brilliancies-on-the-games-list-2026-09-30, Kunal's 'marker': ONE small marker, no
-                          number, when the OPPONENT played a brilliant move; the player's own count beside it is untouched. Outlined and
-                          muted so it never reads as his own pill. */}
-                      {/* #550 (gate 73 TC-R76 at 320): the marker moved up beside the opponent's name - on the count line it wrapped the row 110 -> 124 the moment rule 3 found an opponent's Brilliant */}
-                      {!est&&st.was!=null&&st.was>(st.bril||0)&&<span data-ct="bril-downgrade" style={{flexBasis:'100%',fontSize:'.8em',fontWeight:600,fontFamily:"'Segoe UI',system-ui,sans-serif",color:'rgba(123,233,247,.75)'}}>review found {st.bril||0} brilliant (estimate said {st.was})</span>}
-                    </span>);})()}
+              {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
+                  2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.
+                  Row 1 the two names (only the opponent's may be cut, with an ellipsis). Row 2, 30px: the result box exactly one column wide, then
+                  the side played, the time control and the date, then the depth button at the right end. Row 3, 30px: four move boxes, one per
+                  column - brilliant, best, great, blunder - a zero count dimmed. So the result box sits over the brilliant box and the button's
+                  right edge is the blunder box's right edge, by the grid and not by arithmetic. The dashed 'brilliant?' pill, the approximate
+                  mark and the 'review found N (estimate said M)' line are gone: the move boxes replace them. The whole card opens the review;
+                  the button opens only the depth menu. The card is a div with a button's role because a button may not hold a button.
+                  EVERY TEXT IS 15px. A count the app does not have yet (a game the background pass has not reached, or the Best and Great of a
+                  tally stored before they were counted apart) reads as a dash, dimmed, never as a 0 it did not measure.
+                  THE MIDDLE OF ROW 2 NEVER CUTS A WORD: its three parts wrap inside a 30px line, so a part that does not fit leaves whole.
+                  ON A NARROW PHONE (under 360 wide) the middle of row 2 is about 105px, which at 15px holds the square and the time control but
+                  not the date too (measured at 320: 'Bullet' 43px and 'Nov 12' 53px beside a 12px square), so there the date sits at the right
+                  end of row 1 and the button is 88px, as wide as 'Deepest' needs. ON A SHORT PHONE (under 700 tall, the a42 compaction the
+                  Import box already has) the card's padding above and below is 8 and its rows are 4 apart, so the fixed page's games box
+                  (about 120px at 320x568) still holds one whole game with the next one starting (gate 164, TC-INV-08w). */}
+              {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const _k=gkey(g);const st=gameStatsRef.current[_k];
+                const _lv=revLevel(gDepth[_k]);const _nar=vp.w<360;const _sht=!wide&&vp.h<700;const _dt=g.date?new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';const _split=!!st&&st.best!=null&&st.grt!=null;const _mut='rgba(255,255,255,.6)';
+                const _mv=[['bril','!!','#7be9f7','34,211,238',st?(st.bril||0):null,'brilliant'],['best','★','#7fdc7f','111,214,111',_split?st.best:null,'best'],['great','!','#8fb6f2','93,147,232',_split?st.grt:null,'great'],['blun','??','#f28b80','236,92,78',st?(st.blun||0):null,'blunders']];
+                const _open=()=>pickCcGame(g);const _acct=g.acct?g.acct:(g.src==='li'?'Lichess':'Chess.com');
+                const _tc=g.tc?tcLabel(g.tc):'';
+                return(
+                <div key={i} data-ct="game-row" role="button" tabIndex={0} onClick={_open} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();_open();}}} style={{flexShrink:0,display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',columnGap:10,rowGap:_sht?4:8,padding:_sht?'8px 12px':12,borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:15,boxShadow:SHADOW_BTN}}>
+                  <span data-ct="game-names" style={{gridColumn:'1 / -1',display:'flex',alignItems:'baseline',gap:6,minWidth:0,fontSize:15,fontWeight:400,lineHeight:'20px',whiteSpace:'nowrap'}}>
+                    {st&&st.obril>0&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{flexShrink:0,color:'rgba(123,233,247,.85)',fontWeight:700}}>!!</span>}
+                    <span data-ct="game-opp" style={{flex:'0 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',color:'#fff'}}>{info.opp?info.opp:(g.white+' vs '+g.black)}</span>
+                    <span aria-hidden={info.opp?undefined:'true'} style={{flexShrink:0,color:_mut}}>{info.opp?'vs':'·'}</span>
+                    <span data-ct="game-src" style={{flexShrink:0,color:g.src==='li'?'#c9b6ff':'#9bd6a0'}}>{_acct}</span>
+                    {_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flexShrink:0,color:_mut}}>(not mine)</span>}
+                    {_nar&&_dt&&<span data-ct="game-date" style={{flexShrink:0,marginLeft:'auto',paddingLeft:4,color:_mut}}>{_dt}</span>}
                   </span>
-                </button>);})}
+                  <span data-ct="game-badge" style={{gridColumn:'1',height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:8}}>{bd.t}</span>
+                  <span data-ct="game-meta" style={{gridColumn:'2 / -1',height:30,display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                    <span data-ct="game-sub" style={{flex:'1 1 auto',minWidth:0,height:30,display:'flex',flexWrap:'wrap',alignItems:'center',alignContent:'flex-start',columnGap:8,overflow:'hidden',fontSize:15,lineHeight:'30px',color:_mut,whiteSpace:'nowrap'}}>
+                      {info.userColor&&<span data-ct="game-color" data-color={info.userColor} role="img" aria-label={info.userColor==='w'?'played White':'played Black'} title={info.userColor==='w'?'played White':'played Black'} style={{flexShrink:0,alignSelf:'center',boxSizing:'border-box',width:12,height:12,margin:'9px 0',borderRadius:2,background:info.userColor==='w'?'#f2f2f2':'#141414',border:'1px solid '+(info.userColor==='w'?'rgba(255,255,255,.9)':'rgba(255,255,255,.55)')}}/>}
+                      {_tc&&<span data-ct="game-tc" style={{flexShrink:0}}>{_tc}</span>}
+                      {!_nar&&_dt&&<span data-ct="game-date" style={{flexShrink:0}}>{_dt}</span>}
+                    </span>
+                    {/* the depth button: Fetch's look (btn's accent primary, so it follows whatever the primary buttons become), 30px tall inside a 44px tap box
+                        (padding cancelled by an equal negative margin, the Filter button's idiom, so row 2 keeps its 30px). */}
+                    <button data-ct="game-depth" data-level={_lv} aria-haspopup="menu" aria-expanded={depthMenu&&depthMenu.key===_k?'true':'false'} aria-label={'Review depth: '+REV_DEPTHS[_lv].name}
+                      onClick={e=>{e.stopPropagation();if(depthMenu&&depthMenu.key===_k){setDepthMenu(null);return;}const f=e.currentTarget.firstElementChild||e.currentTarget;const r=f.getBoundingClientRect();const W=Math.min(248,vp.w-16),H=46+44*REV_DEPTHS.length;const left=Math.max(8,Math.min(vp.w-8-W,r.right-W));const below=r.bottom+6+H<=vp.h-8;setDepthMenu({key:_k,g,left,top:below?r.bottom+6:Math.max(8,r.top-6-H),w:W});}}
+                      style={{flexShrink:0,padding:'7px 0',margin:'-7px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}>
+                      <span data-ct="game-depth-face" style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),minHeight:0,height:30,width:_nar?88:100,boxSizing:'border-box',padding:0,borderRadius:9,fontSize:15,fontWeight:800,letterSpacing:0,gap:4}}>{REV_DEPTHS[_lv].name}<span aria-hidden="true">{'▾'}</span></span>
+                    </button>
+                  </span>
+                  {_mv.map(([id,gl,col,rgb,n,word])=>(<span key={id} data-ct={'gstat-'+id} data-known={n==null?'0':'1'} title={n==null?('The '+word+' count is not known yet'):(n+' '+word)} aria-label={n==null?(word+' not counted yet'):(n+' '+word)} style={{height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:col,background:'rgba('+rgb+',.14)',border:'1px solid rgba('+rgb+',.45)',borderRadius:8,opacity:n?1:.42}}>{gl+' '+(n==null?'–':n)}</span>))}
+                </div>);})}
+              {/* THE DEPTH MENU, under the button it was opened from (above it when there is no room below): a label, then the four levels with
+                  their rough times, the game's current one ticked. Picking another level stores it for that game and runs its review at
+                  that depth; picking the current one, or a tap outside, only closes the menu. Fixed to the viewport, so the list's own
+                  scroll box cannot cut it; a scroll or a resize closes it rather than leave it hanging off its button. */}
+              {depthMenu&&(()=>{const m=depthMenu;const cur=revLevel(gDepth[m.key]);return(
+                <div data-ct="depth-menu-veil" onClick={()=>setDepthMenu(null)} onWheel={()=>setDepthMenu(null)} onTouchMove={()=>setDepthMenu(null)} style={{position:'fixed',inset:0,zIndex:9980,touchAction:'none'}}>
+                  <div data-ct="depth-menu" role="menu" aria-label="Review depth" onClick={e=>e.stopPropagation()} style={{position:'fixed',left:m.left,top:m.top,width:m.w,boxSizing:'border-box',padding:'6px 0',borderRadius:12,background:'#18202b',border:'1px solid rgba(255,255,255,.24)',boxShadow:'0 12px 32px rgba(0,0,0,.65)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+                    <div data-ct="depth-menu-label" style={{height:32,boxSizing:'border-box',padding:'6px 14px 0',fontSize:15,fontWeight:700,color:'rgba(255,255,255,.6)',whiteSpace:'nowrap'}}>Review depth</div>
+                    {REV_DEPTHS.map((d,l)=>(<button key={d.name} data-ct="depth-opt" data-level={l} role="menuitemradio" aria-checked={l===cur?'true':'false'} onClick={()=>{setDepthMenu(null);if(l!==cur){setGameDepth(m.key,l);pickCcGame(m.g,l);}}} style={{display:'flex',alignItems:'center',gap:7,width:'100%',height:44,boxSizing:'border-box',padding:'0 14px',background:l===cur?'rgba(var(--acr),.16)':'none',border:'none',color:'#fff',fontSize:15,fontFamily:'inherit',cursor:'pointer',textAlign:'left',whiteSpace:'nowrap'}}><span data-ct="depth-tick" aria-hidden="true" style={{flexShrink:0,width:15,color:'var(--ac2)',fontWeight:800}}>{l===cur?'✓':''}</span><span style={{fontWeight:700}}>{d.name}</span><span style={{color:'rgba(255,255,255,.6)'}}>{'('+d.about+')'}</span></button>))}
+                  </div>
+                </div>);})()}
               {/* #549 item (78) work[3]: the list pages in the OLDEST direction by an explicit tap, at its end, never by scrolling
                   [Amber: flags/amber-549-review-load-older-games]. Shown only while acctCanGrow says a walk would bring something. 
                   WHILE THE WALK RUNS (olderBusy) the busy control stays and "Show N more" is withheld: acctStore publishes the merged rows
@@ -12824,8 +12874,7 @@ function AppMain(){
                   header that still reads a count, which is how a filter gets read as an empty archive - the
                   shape of the report that opened this job. */}
               {_shown.length===0&&_anyF&&(<div data-ct="glist-empty" style={{padding:'10px 2px',fontSize:'clamp(14px,3.1vw,16px)',color:'rgba(255,255,255,.66)',lineHeight:1.5}}>{_emptyTxt} <button data-ct="glist-empty-clear" onClick={_clearAll} style={{minHeight:44,padding:'0 11px',marginLeft:2,borderRadius:9,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:'clamp(13.5px,2.9vw,15px)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>Clear filters</button></div>)}
-              </>);})()}
-          </div>
+              </div>);})()}
         </div>
       )}
 
