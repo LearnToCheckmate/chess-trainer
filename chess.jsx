@@ -13748,16 +13748,16 @@ function AppMain(){
              glyph shrinks, the target does not), drawn at 28 so their ink matches the row's 19px emoji (gate 157 TC-IR-02); their accessible names stay 'Previous card' / 'Next card'. The width they
              give back goes to the three helpers. The row's height is the 44 it was (the job's own note: the 44 floor keeps the height). */
           const _nb=(pr)=>({...navBtn(pr),flex:'0 0 46px',minWidth:46,minHeight:44,padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'});
-          return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
-            <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 12px' /* batch 13: the 12px basis is this box's own two gaps, so its three helpers come out the width of Prev and Next (one size per row) */,minWidth:0}}>
-              <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
+          return(<div data-ct="drill-row" style={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))' /* batch 13: five equal columns, the helpers' box spans three, so all five buttons are one size */,gap:6,width:'100%',alignItems:'stretch'}}>
+            <div style={{position:'relative',display:'grid',gridColumn:'span 3',minWidth:0}}>
+              <div aria-hidden={puzSolved||undefined} style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
                 {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the drill row is RowBtn, icons only at every width;
                     Previous and Next card are the blue NavTri (another card, not a move) */}
                 <RowBtn ct="drill-hint" label="Hint" onClick={()=>setPuzMsg('💡 '+pzText(p).hint)}><RowIcon name="hint"/></RowBtn>
                 <RowBtn ct="drill-show" label="Show move" onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}}><RowIcon name="show"/></RowBtn>
                 <RowBtn ct="drill-reset" label="Reset" onClick={()=>loadExternal(curPuz)}><RowIcon name="reset"/></RowBtn>
               </div>
-              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'flex',gap:6,justifyContent:'center',alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<RowBtn ct="drill-analyse" label="Analyze this position on the review board" flex="0 0 calc((100% - 12px) / 3)" onClick={analyseFromDrill}><RowIcon name="analyze"/></RowBtn><RowBtn ct="drill-reset-solved" label="Reset" flex="0 0 calc((100% - 12px) / 3)" onClick={()=>loadExternal(curPuz)}><RowIcon name="reset"/></RowBtn></div>)}
+              {puzSolved&&mistakeMode&&(<div style={{position:'absolute',inset:0,display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6,alignItems:'stretch'}}>{/* #550 a37 (jobs/drill-reset-after-solving-2026-11-12), Kunal: "give me the option to reset the board even after I get the answer right so I can redo it" - a solved card keeps Reset beside Analyse, in the same box, so nothing changes height */}<RowBtn ct="drill-analyse" label="Analyze this position on the review board" onClick={analyseFromDrill}><RowIcon name="analyze"/></RowBtn><RowBtn ct="drill-reset-solved" label="Reset" onClick={()=>loadExternal(curPuz)}><RowIcon name="reset"/></RowBtn></div>)}
             </div>
             <RowBtn ct="drill-prev" label="Previous card" dis={!_hp} onClick={()=>{if(_hp)prevMistake();}}><NavTri dir="left"/></RowBtn>
             <RowBtn ct="drill-next" label="Next card" onClick={nextOnline}><NavTri dir="right"/></RowBtn>

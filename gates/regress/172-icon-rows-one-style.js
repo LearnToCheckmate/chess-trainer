@@ -22,6 +22,7 @@
 // in batch 13; the lead hands that part to this job after B2 merges, and its rows are added to ROWS then. The sideways layouts, the setup
 // sheet's choice chips, the tab bar and the top corners are listed in claude/agents/BUTTON-ROWS-B13.md with the reason each is not a row here.
 // CT_G172_ONLY=<comma list of row keys> runs only those rows (a subset is never the whole gate).
+// CONTROL-RECORD: f62b2460 2026-11-19 total=341 red=174 scope=trial:73dbc284724b how=THE SUBJECT REMOVED: the branch's start (f62b2460, built as base) - every row red for its own reason: words on the game rows, the puzzle and solved rows, Tactics, Strategy, the lesson demo and practice rows and the menu's Share (b); the puzzle, solved, drill, Strategy, game-over, lesson practice and footer rows of two sizes (c; the footer's Play 52 beside 44); the bordered gradient faces (d); Previous/Next drawn as white chevrons or words and the game's Back/Forward as filled triangles (e). 16 of the 174 are the se lesson-demo rows this gate no longer runs (they fold into the bar there), so the current scope reads about 158 red. The real tree (trial 5f278df801f2, drill re-run after its grid) is green: 317/4 on a1b7be1236cf with the drill's flex row 64/76 wide, fixed, then drill 25/0
 const L=require('../lib');
 const P=require('../drive/play'),Z=require('../drive/puzzles'),D=require('../drive/lesson'),M=require('../drive/menu');
 const FENS=['4k3/8/8/8/8/8/1Q6/4K3 w - - 0 1','4k3/8/8/8/8/8/2Q5/4K3 w - - 0 1','4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1'];const UCIS=['b2b7','c2c7','d2d7'];
@@ -40,8 +41,10 @@ const ROWS=[
   ['tactics',b=>D.states.tactics(b),[['Hint'],['Show answer']],{}],
   ['tactics-answered',answered,[['Next motif']],{nav:['Next motif']}],
   ['strategy',strategy,[['Previous idea','Prev'],['Next idea','Next']],{nav:['Previous idea','Next idea','Prev','Next']}],
-  ['lesson-demo',b=>D.states['demo-m1'](b),[["Now I'll try it"],['Flip board','Flip']],{start:["Now I'll try it"]}],
-  ['lesson-demo-end',b=>D.states['demo-end'](b),[["Now I'll try it"],['Other lines*']],{start:["Now I'll try it"]}],
+  // on a short phone (se) the lesson's row under the board folds into the bar (Now I'll try it is a bar button, Other lines in the ⋯ sheet, #550 a42),
+  // so these two rows exist at kunal761 only (the 6th field); the bar is read by lesson-footer at both sizes
+  ['lesson-demo',b=>D.states['demo-m1'](b),[["Now I'll try it"],['Flip board','Flip']],{start:["Now I'll try it"]},null,'kunal761'],
+  ['lesson-demo-end',b=>D.states['demo-end'](b),[["Now I'll try it"],['Other lines*']],{start:["Now I'll try it"]},null,'kunal761'],
   ['lesson-footer',b=>D.states['demo-m4'](b),[['Close lesson'],['Back a move'],['Play or pause'],['Forward a move'],['More for this lesson']],{step:['Back a move','Forward a move'],primary:['Play or pause']}],
   ['lesson-practice',b=>D.states['practice-wrong'](b),[['Flip board','Flip'],['Hints'],['Try again']],{}],
   ['lesson-complete',b=>D.states['practice-complete'](b),[['Flip board','Flip'],['Hints'],['Next lesson*']],{nav:['Next lesson*']}],
@@ -60,19 +63,19 @@ const READ=([members,roles])=>{const vw=innerWidth,vh=innerHeight;
     const svgs=[...e.querySelectorAll('svg')];const shapes=[];
     for(const sv of svgs)for(const g of sv.querySelectorAll('polyline,polygon,path,circle,rect')){const cs=getComputedStyle(g);shapes.push({tag:g.tagName.toLowerCase(),stroke:cs.stroke,fill:cs.fill});}
     return {alts,found:true,name:n,text:(e.innerText||'').trim(),w:+r.width.toFixed(1),h:+r.height.toFixed(1),top:+r.top.toFixed(1),bg:s.backgroundColor,bi:s.backgroundImage,bw:s.borderTopWidth,bs:s.borderTopStyle,rad:s.borderTopLeftRadius,pressed:e.getAttribute('aria-pressed'),shapes};});
-  return {out,vw,vh,ac:getComputedStyle(document.documentElement).getPropertyValue('--ac').trim()};};
+  return {out,vw,vh,ac:getComputedStyle(document.getElementById('root')||document.body).fontFamily.split(',')[0].replace(/["']/g,'')};};
 const isStep=m=>m.shapes.length>0&&m.shapes.some(x=>x.tag==='polyline'&&/^rgb\(255, 255, 255\)$/.test(x.stroke))&&!m.shapes.some(x=>x.tag==='polygon'||(x.fill&&x.fill!=='none'&&!/rgba\(0, 0, 0, 0\)/.test(x.fill)));
 const isNav=m=>m.shapes.some(x=>x.tag==='polygon'&&x.fill==='rgb(91, 155, 213)')&&!m.shapes.some(x=>x.tag==='polyline');
 const inRole=(m,list)=>!!list&&list.some(x=>x.endsWith('*')?m.name.startsWith(x.slice(0,-1)):m.name===x);
 L.run(async()=>{
-  for(const geo of ['kunal761','se'])for(const [skin,sstore,pro] of SKINS)for(const [key,enter,members,roles,xstore] of ROWS){
-    if(ONLY.length&&!ONLY.includes(key))continue;
+  for(const geo of ['kunal761','se'])for(const [skin,sstore,pro] of SKINS)for(const [key,enter,members,roles,xstore,onlyGeo] of ROWS){
+    if(ONLY.length&&!ONLY.includes(key))continue;if(onlyGeo&&onlyGeo!==geo)continue;
     const tag=(geo==='kunal761'?'375x761':'320x568')+' '+skin+' '+key;
     const b=await L.launch({geo,name:'g172-'+key+'-'+skin+'-'+geo,pro:!!pro,store:{...sstore,...(xstore||{})}});await b.open();let ok=true,err='';
     try{await enter(b);await b.settle(700);}catch(e){ok=false;err=e.message;}
     const r=await b.page.evaluate(READ,[members,roles]);
     const ms=r.out;
-    L.say(ok&&ms.every(m=>m.found),'TC-R237a '+tag+' PRECONDITION the state is reached and every member is on screen and takes a tap ('+ms.map(m=>m.found?m.name:'MISSING '+m.alts.join('|')).join(', ')+'; accent '+r.ac+')',{err,ms:ms.map(m=>({n:m.name||m.alts,f:m.found}))});
+    L.say(ok&&ms.every(m=>m.found),'TC-R237a '+tag+' PRECONDITION the state is reached and every member is on screen and takes a tap ('+ms.map(m=>m.found?m.name:'MISSING '+m.alts.join('|')).join(', ')+'; skin font '+r.ac+')',{err,ms:ms.map(m=>({n:m.name||m.alts,f:m.found}))});
     const fm=ms.filter(m=>m.found);const row=fm.filter(m=>!inRole(m,roles.start));
     const worded=row.filter(m=>/[\p{L}\p{N}]/u.test(m.text));
     L.say(fm.length===ms.length&&row.length>0&&worded.length===0,'TC-R237b '+tag+' no row button shows a word ('+(worded.length?worded.map(m=>JSON.stringify(m.text)).join(', '):'none of '+row.length)+')',worded.map(m=>({n:m.name,t:m.text})));
