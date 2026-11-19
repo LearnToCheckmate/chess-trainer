@@ -2563,3 +2563,11 @@ As the person who runs the full suite, gate 20 (the Review screen) is never kill
 - The Opera Game is analysed from nothing by the three main walks (whose TC-R01 times a fresh import), and every later launch that only needs a reviewed Opera Game is given that stored analysis and is graded from it, not by a second engine pass. (TC-R238a)
 - All 35 of the gate's case runs run, each lane in its order, and a case dropped from a loop is a red line. (TC-R238b)
 - The whole gate finishes inside 600 seconds, two thirds of its limit, quiet and with one core busy. (TC-R238c)
+
+### US-R169 A full suite killed by a container restart resumes from its first unfinished gate, and the joined log still has to pass verify-log
+*Added in batch 13, jobs/the-full-suite-resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18 (decisions/batch-13-avoids-wasted-full-suite-reruns-2026-11-18, part 2: his pick "All three (Recommended)"). Design: claude/agents/SUITE-RESUME-DESIGN.md, to be reviewed before use.*
+As the person who runs the six-hour full suite, a container restart in the middle of it costs only the gate it was in, not the gates already finished; and a resumed suite can never authorise a push it would not have authorised unbroken.
+- A suite launched with CT_RESUMABLE=1 records each finished gate; one launched with CT_RESUME=<that record> on the same tree, bundle and options copies the finished gates' sections unchanged and runs the rest, and the joined log holds every gate once with the same PASS and FAIL lines as an unbroken run. (TC-R241a)
+- A resume on another bundle, another HEAD or tree, a moved working tree, another roster, other options or another build number, from a finished run, or from a record or log that was edited, has a gap or a repeat, is refused before any gate runs. (TC-R241b)
+- gates/verify-log.sh accepts a joined log only when every gate is there once and in order, every part ran on the one bundle, HEAD and tree the log names, and no section was changed after it was written. (TC-R241c)
+- Without either variable the suite and verify-log behave exactly as they did. (TC-R241d)

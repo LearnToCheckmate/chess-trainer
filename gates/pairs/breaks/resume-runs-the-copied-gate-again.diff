@@ -1,0 +1,11 @@
+diff --git a/gates/suite-resume.sh b/gates/suite-resume.sh
+index ed6ef724..b128513e 100755
+--- a/gates/suite-resume.sh
++++ b/gates/suite-resume.sh
+@@ -142,5 +142,5 @@ sr_import(){
+     [ "${SR_RVERD[$j]}" = red ] && red=1
+     echo "=== $1 === copied from run ${SR_RSTEM[$j]} (${SR_RVERD[$j]}, md5 $m)"
+-    return 0
++    SR_OFF="$(sr_size "$ALL")"; return 1
+   fi
+   SR_OFF="$(sr_size "$ALL")"

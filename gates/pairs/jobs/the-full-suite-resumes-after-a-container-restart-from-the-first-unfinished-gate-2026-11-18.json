@@ -1,0 +1,18 @@
+{
+ "job": "the-full-suite-resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18",
+ "about": "A full suite launched with CT_RESUMABLE=1 journals and marks each finished gate; CT_RESUME=<journal> resumes it from the first unfinished gate after proving the build number, bundle md5, HEAD, tree, git status, roster and environment unchanged, and gates/verify-log.sh judges the joined log through gates/verify-join.sh. Graded by gates/suite-resume-selftest.sh (TC-R241, node and shell, no browser): situation 'the joiner' is the real gate loop and hooks extracted from gates/gates.sh, run over three tiny gates in a throwaway repository, SIGKILLed mid-gate and resumed (twice), plus every refusal before a resume and the off-by-default comparison with the base commit's loop (TC-R241a, b, d); situation 'the judge' is the whole of gates/verify-log.sh over joins assembled from the committed green claude/agents/gatelogs/474-integration-all.log, accepted and each bad join refused, with a no-hook control copy (TC-R241c). NOT COVERED: a real six-hour suite killed by a container restart and resumed (the selftest drives the loop with a minimal header and footer, not the prelude or the real footer); the design's review, which the decision requires before use.",
+ "gate": "gates/suite-resume-selftest.sh",
+ "cmd": ["bash", "gates/suite-resume-selftest.sh"],
+ "checks": ["TC-R241[abcd][0-9]+m? "],
+ "build": "never",
+ "situations": [
+  {"name": "the joiner (gates.sh loop and hooks)", "match": "^TC-R241[abd]"},
+  {"name": "the judge (verify-log.sh and verify-join.sh)", "match": "^TC-R241c"}
+ ],
+ "breaks": [
+  {"name": "resume-ignores-the-bundle", "patch": "breaks/resume-ignores-the-bundle.diff", "why": "the resume no longer compares the bundle md5, at the start row or in each copied section's mark, so a joined log's second part can run on another bundle", "mustFailIn": ["the joiner (gates.sh loop and hooks)"]},
+  {"name": "resume-runs-the-copied-gate-again", "patch": "breaks/resume-runs-the-copied-gate-again.diff", "why": "a finished gate is copied AND run again, so the joined log counts it twice - a resume that starts again from the first gate", "mustFailIn": ["the joiner (gates.sh loop and hooks)"]},
+  {"name": "judge-trusts-the-section-count", "patch": "breaks/judge-trusts-the-section-count.diff", "why": "verify-join no longer checks each roster name once and each mark's position, so a joined log with one gate missing and another counted twice (equal in number) is accepted", "mustFailIn": ["the judge (verify-log.sh and verify-join.sh)"]}
+ ],
+ "timeoutSec": 600
+}
