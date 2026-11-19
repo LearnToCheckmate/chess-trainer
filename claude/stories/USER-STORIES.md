@@ -2565,6 +2565,31 @@ As the person who runs the full suite, gate 20 (the Review screen) is never kill
 - All 35 of the gate's case runs run, each lane in its order, and a case dropped from a loop is a red line. (TC-R238b)
 - The whole gate finishes inside 600 seconds, two thirds of its limit, quiet and with one core busy. (TC-R238c)
 
+### US-R169 A full suite killed by a container restart resumes from its first unfinished gate, and the joined log still has to pass verify-log
+*Added in batch 13, jobs/the-full-suite-resumes-after-a-container-restart-from-the-first-unfinished-gate-2026-11-18 (decisions/batch-13-avoids-wasted-full-suite-reruns-2026-11-18, part 2: his pick "All three (Recommended)"). Design: claude/agents/SUITE-RESUME-DESIGN.md, to be reviewed before use.*
+As the person who runs the six-hour full suite, a container restart in the middle of it costs only the gate it was in, not the gates already finished; and a resumed suite can never authorise a push it would not have authorised unbroken.
+- A suite launched with CT_RESUMABLE=1 records each finished gate; one launched with CT_RESUME=<that record> on the same tree, bundle and options copies the finished gates' sections unchanged and runs the rest, and the joined log holds every gate once with the same PASS and FAIL lines as an unbroken run. (TC-R241a)
+- A resume on another bundle, another HEAD or tree, a moved working tree, another roster, other options or another build number, from a finished run, or from a record or log that was edited, has a gap or a repeat, is refused before any gate runs. (TC-R241b)
+- gates/verify-log.sh accepts a joined log only when every gate is there once and in order, every part ran on the one bundle, HEAD and tree the log names, and no section was changed after it was written. (TC-R241c)
+- Without either variable the suite and verify-log behave exactly as they did. (TC-R241d)
+
+### US-R168 On Review, the eval graph never covers a move's explanation
+*Added batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18.*
+
+- On the Review move screen, the eval graph never sits over a move's explanation, not even for a frame: while the
+  explanation is still coming (a Brilliant or Great move waiting for the engine's refutation) its box is kept whole for
+  the text that is coming, and when the text changes the graph moves in that same frame. So a tap on the explanation
+  always lands on the explanation, never on the graph that would jump the review to another move. A one-line final
+  reason still gives its empty lines to the graph. (batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18; TC-R239)
+
+
+### US-R166 Every button row is icons only, in one style, with one arrow for moves and another for the next item
+*Added in batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18. Kunal's pick on questions/Q24, 11:15pm EST Tue 17 Nov 2026: "A: icons only"; on FB-13: "none of the buttons should actually have something written on them"; in chat the same evening: "whatever is applicable across the board".*
+As a player moving between Play, Puzzles, the drills, Tactics and Strategy, the lessons and the menu, I see every row of buttons drawn the same way, so I read each screen at a glance and the same icon always does the same thing.
+- A row's buttons show an icon and no words; each button's name is read out by a screen reader and shown on a long press. The only buttons with words are a screen's one start button (Now I'll try it in a lesson). (TC-R237b)
+- The buttons in a row are one size, at least 44 by 44 points, with the same face: the same shape, background and icon weight. (TC-R237c, TC-R237d)
+- White arrows step through the moves of a game, a puzzle or a lesson; blue triangles go to the previous or next puzzle, card, lesson, motif or idea. One is never drawn where the other belongs. (TC-R237e)
+- The board does not get smaller or move when the words go. (TC-R237a, gate 46 and gate 26's board pins)
 ### US-R170 Each game on my Review list is a three row card, and I pick how deep its review goes
 *Added in batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (decisions/review-depth-is-picked-per-game-with-a-chip-and-a-row-in-the-review-sheet-2026-11-15, decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15, decisions/your-games-gets-its-own-section-under-import-2026-11-18). Kunal, 15 Nov 2026, on the round-6 card: "Yes, this is good. Thanks."; and on the engine: "I wouldn't mind if our engines ran on a deeper value too". The row and the progress line inside a review (the job's part 4) are on the game-review screen and are not built yet.*
 As a player looking down my games on the Review screen, each game is one card I can read at a glance, and each card has a button that says how deep that game's review goes and lets me pick a deeper one.

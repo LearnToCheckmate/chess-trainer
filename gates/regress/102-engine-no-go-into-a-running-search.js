@@ -44,10 +44,10 @@ L.run(async()=>{
         // DOUBLE STEP - Back or Forward clicked twice 15ms apart, then 300ms - so the eval bar is asked for a new position while its last
         // depth-12 search runs; and the player's move goes in the instant the last step lands, so the bot's search is asked for while
         // the eval bar's still runs on the same main worker. Each arm is now shown able to fail (control records below).
-        const dbl=async(t)=>{const n=await b.page.evaluate(async(t)=>{const f=()=>[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()===t&&x.getBoundingClientRect().width>1);let k=0;const a=f();if(a){a.click();k++;}await new Promise(r=>setTimeout(r,15));const c=f();if(c){c.click();k++;}return k;},t);await b.page.waitForTimeout(300);return n;};
+        const dbl=async(t)=>{const n=await b.page.evaluate(async(t)=>{const f=()=>[...document.querySelectorAll('button')].find(x=>((x.innerText||'').trim()||x.getAttribute('aria-label')||'')===t/* batch 13: icons-only row */&&x.getBoundingClientRect().width>1);let k=0;const a=f();if(a){a.click();k++;}await new Promise(r=>setTimeout(r,15));const c=f();if(c){c.click();k++;}return k;},t);await b.page.waitForTimeout(300);return n;};
         let clicks=0;for(let i=0;i<4;i++)clicks+=await dbl('Back');for(let i=0;i<3;i++)clicks+=await dbl('Forward');
         // the last Forward lands on the live position and the move goes in 20ms later, inside the eval bar's search for it
-        clicks+=await b.page.evaluate(async()=>{const f=()=>[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Forward'&&x.getBoundingClientRect().width>1);let k=0;for(let j=0;j<2;j++){const a=f();if(a){a.click();k++;}await new Promise(r=>setTimeout(r,15));}return k;});
+        clicks+=await b.page.evaluate(async()=>{const f=()=>[...document.querySelectorAll('button')].find(x=>((x.innerText||'').trim()||x.getAttribute('aria-label')||'')==='Forward'/* batch 13: icons-only row, named by aria-label */&&x.getBoundingClientRect().width>1);let k=0;for(let j=0;j<2;j++){const a=f();if(a){a.click();k++;}await new Promise(r=>setTimeout(r,15));}return k;});
         await b.page.waitForTimeout(20);
         L.note('play: '+clicks+' Back/Forward clicks in 8 double steps');
         await b.move('d2','d4',0);await P.waitPlies(b,6,20000);}

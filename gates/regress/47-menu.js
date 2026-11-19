@@ -286,10 +286,10 @@ if(blk('N'))for(const [gk,gn] of [['kunal761','375x761'],['se','320x568'],['shor
     return {sh:s.scrollHeight,ch:s.clientHeight,h:Math.round(s.getBoundingClientRect().height),vh:innerHeight};});
   L.say(!!f,tag+': TC-MN-054 PRECONDITION ☰ opened the menu sheet',f);
   if(f)L.say(f.sh<=f.ch,tag+': TC-MN-054 the menu sheet needs NO scroll - scrollHeight '+f.sh+' <= clientHeight '+f.ch+' (sheet '+f.h+' in a '+f.vh+'-tall viewport)',f);
-  const want=['Sign in with Google|Sign-in unavailable here','Look and feel','Coach look','Evaluation bar|Eval bar','Sound','📣 Share','Privacy','Delete account','More settings'];
+  const want=['Sign in with Google|Sign-in unavailable here','Look and feel','Coach look','Evaluation bar|Eval bar','Sound','📣 Share|Share Chess Trainer','Privacy','Delete account','More settings'];
   const miss=[],off=[];
   for(const w of want){const r=await b.page.evaluate((src)=>{const sh=document.querySelector('[data-ct="menu-sheet"]');if(!sh)return null;const re=new RegExp('^('+src+')');
-      const el=[...sh.querySelectorAll('button,a,div,span')].filter(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;}).find(x=>re.test(((x.innerText||'').trim().split('\n')[0]))||(x.tagName==='BUTTON'&&re.test((x.innerText||'').replace(/^\s*G\s*/,'').trim())));   // the sign-in button's first line is its G mark
+      const el=[...sh.querySelectorAll('button,a,div,span')].filter(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;}).find(x=>re.test(((x.innerText||'').trim().split('\n')[0]))||(x.tagName==='BUTTON'&&re.test((x.innerText||'').replace(/^\s*G\s*/,'').trim()))||(x.tagName==='BUTTON'&&!(x.innerText||'').trim()&&re.test(x.getAttribute('aria-label')||'')));   /* batch 13: the Share row is an icon-only RowBtn, named by aria-label */   // the sign-in button's first line is its G mark
       if(!el)return {found:false};const q=el.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
       return {found:true,on:q.top>=-0.5&&q.bottom<=innerHeight+0.5,hit:!!h&&(h===el||el.contains(h)||h.contains(el))};},w);
     if(!r||!r.found)miss.push(w);else if(!r.on||!r.hit)off.push(w);}

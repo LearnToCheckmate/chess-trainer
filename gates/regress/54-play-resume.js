@@ -252,7 +252,7 @@ L.run(async()=>{
     await b.settle(550);
     const over=await b.page.evaluate(()=>[...document.querySelectorAll('button')]
       .filter(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;})
-      .map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()));
+      .map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()||x.getAttribute('aria-label')||''));   // batch 13: icons-only row, named by aria-label
     L.say(over.some(t=>/^Review$/i.test(t))&&over.some(t=>/^Rematch$/i.test(t)),
       KUNAL+': G3a PRECONDITION the game really is over - Review and Rematch have replaced Hint and Flip',
       {buttons:over.slice(0,12)});

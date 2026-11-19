@@ -1,0 +1,18 @@
+diff --git a/gates/suite-resume.sh b/gates/suite-resume.sh
+index 7a4ff1fd..915cdd2c 100755
+--- a/gates/suite-resume.sh
++++ b/gates/suite-resume.sh
+@@ -108,5 +108,5 @@ sr_resume_check(){
+   [ -n "$pdate" ] && [ -z "${extra:-}" ] || { sr_refuse "the journal's start row is malformed (wrong field count)."; return 1; }
+   [ "$pn" = "$N" ]            || { sr_refuse "another build number: the killed run gated $pn, this run is $N."; return 1; }
+-  [ "$pbun" = "$SR_BUNDLE" ]  || { sr_refuse "ANOTHER BUNDLE: the killed run gated bundle md5 $pbun ($papp), this run's bundle is $SR_BUNDLE ($APP)."; return 1; }
++  : || { sr_refuse "ANOTHER BUNDLE: the killed run gated bundle md5 $pbun ($papp), this run's bundle is $SR_BUNDLE ($APP)."; return 1; }
+   [ "$phead" = "$HEADSHA" ]   || { sr_refuse "ANOTHER TREE: the killed run gated HEAD $phead, this run's HEAD is $HEADSHA."; return 1; }
+   [ "$ptree" = "$HEADTREE" ]  || { sr_refuse "ANOTHER TREE: the killed run's HEAD tree was $ptree, this run's is $HEADTREE."; return 1; }
+@@ -140,5 +140,5 @@ sr_resume_check(){
+     local mk; mk="$(sr_bytes "$SR_PALL" "$off" "$len" | grep -a '^    resume-mark: ')"
+     case "$mk" in
+-      *"gate $i/$SR_NG $nm | run "*" | bundle $SR_BUNDLE | head $HEADSHA | tree $HEADTREE | state $SR_STATE | body md5 "*) ;;
++      *"gate $i/$SR_NG $nm | run "*" | bundle "*" | head $HEADSHA | tree $HEADTREE | state $SR_STATE | body md5 "*) ;;
+       *) sr_refuse "gate $i ($nm): its own mark does not name this run's bundle, HEAD, tree and state - a section from another run was spliced in." "mark: ${mk:-(none)}"; return 1 ;;
+     esac

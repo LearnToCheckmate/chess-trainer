@@ -1,15 +1,15 @@
 diff --git a/chess.jsx b/chess.jsx
-index 124a94ff..229302ac 100644
+index 1aef92c0..3f234777 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -7848,5 +7848,5 @@ function AppMain(){
+@@ -7895,5 +7895,5 @@ function AppMain(){
         verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
         and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
 -    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+(DCAP+(dx>0?dx:0)));slot.S.go.current++;}catch(e){finish(null,false);}};
 +    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null,false);}};
      if(!slot.S.go.current&&!slot.S.owed.current)run();
      else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}run();});
-@@ -7890,5 +7890,5 @@ function AppMain(){
+@@ -7937,5 +7937,5 @@ function AppMain(){
      let _lv=_lvAsk;{const _all0=evalCacheAll();for(let l=REV_DEPTHS.length-1;l>_lvAsk;l--){const c=_all0[_ckOf(l)];if(c&&c.evW&&c.evW.length===res.plies.length+1){_lv=l;break;}}}
      const _dx=REV_DEPTHS[_lv].dx;
 -    const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d+_dx,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum

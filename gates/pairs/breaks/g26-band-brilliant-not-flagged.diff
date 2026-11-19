@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 753dbcf6..efe4c7fa 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2504,5 +2504,5 @@ function reviewText0(a,ctx){
+             if(mm)mt='It is mate in two: '+rtRun([toSAN(ctx.pos,mv0,applyMove(ctx.pos.board,mv0)),toSAN(g2,rs[0],applyMove(g2.board,rs[0])),toSAN(g3,mm,applyMove(g3.board,mm))],M,num,false)+' mate.';}}}catch(e){mt='';}
+       if(mt)return {line:fit([give+'.',mt]),more:fitM([cmp]),rung:'B'};}
+-    if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B',pending:true};   /* batch 13 (jobs/gate-26-goes-red-at-ply-31-...-2026-11-18): pending - the refutation clause is still coming, so the band keeps the graph out of this box */
++    if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B'};   /* batch 13 (jobs/gate-26-goes-red-at-ply-31-...-2026-11-18): pending - the refutation clause is still coming, so the band keeps the graph out of this box */
+     return {line:fit([give+'.',ref]),more:fitM([evenSt?'':st,cmp]),rung:'B'};}
+   if(L==='Great'){const R=ctx.refute;let ref='';if(R&&R.capSan){const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);

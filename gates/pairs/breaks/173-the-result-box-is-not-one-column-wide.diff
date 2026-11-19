@@ -1,8 +1,8 @@
 diff --git a/chess.jsx b/chess.jsx
-index 124a94ff..4e4fcf3d 100644
+index 1aef92c0..adb5165f 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -12838,5 +12838,5 @@ function AppMain(){
+@@ -12889,5 +12889,5 @@ function AppMain(){
                      {_nar&&_dt&&_acct.length<=16&&<span data-ct="game-date" style={{flexShrink:0,marginLeft:'auto',paddingLeft:4,color:_mut}}>{_dt}</span>}
                    </span>
 -                  <span data-ct="game-badge" style={{gridColumn:'1',height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:bd.c,background:bd.bg,border:'1px solid '+bd.br,borderRadius:8}}>{bd.t}</span>

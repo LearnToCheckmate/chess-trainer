@@ -113,7 +113,7 @@ const IS_PAWN=(s)=>/^[a-h]/.test(s);
 
 const S=function(){
   const rc=document.querySelector('[data-ct="result-card"]');
-  const btns=[...document.querySelectorAll('button')].map(b=>(b.textContent||'').trim());
+  const btns=[...document.querySelectorAll('button')].map(b=>(b.textContent||'').trim()||b.getAttribute('aria-label')||'');   // batch 13: icons-only row, named by aria-label
   return {card: rc?(rc.textContent||'').trim():null,
     over: btns.some(t=>t==='Rematch'), live: btns.some(t=>t==='Hint')};
 };

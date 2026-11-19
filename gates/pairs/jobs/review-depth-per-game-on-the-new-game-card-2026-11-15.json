@@ -1,7 +1,7 @@
 {
  "job": "review-depth-per-game-on-the-new-game-card-2026-11-15",
- "about": "The Review list's three row game card (his round-6 card), Your games in its own section, the Fetch-style depth button and its menu, and a review run at the depth picked for that game (Quick 16, Deep 18, Deeper 20, Deepest 22), kept per game, with the deepest finished pass reused. Graded by gate 172 (TC-R242a..h) on a trial bundle at 375x761 with his insets and at 320x568, in the Classic and the Medieval skin, after the depth menu was opened and closed; the engine half (the searches recorded at the Worker) runs at 375x761 Classic, with a Quick review also run at 320x568. NOT COVERED: the job's part (4), the 'Review depth' row in the review sheet and the 'Going deeper' progress line, which are on the game-review screen and are not built; the Deeper and Deepest levels are not run by the gate (about 45 s and 125 s each on this machine; the same code path as Deep with another number); how long each level takes on his phone; the look of the button against Fetch beyond its size and place (it is built from the same style call as Fetch).",
- "gate": "gates/regress/172-review-depth-game-card.js",
+ "about": "The Review list's three row game card (his round-6 card), Your games in its own section, the Fetch-style depth button and its menu, and a review run at the depth picked for that game (Quick 16, Deep 18, Deeper 20, Deepest 22), kept per game, with the deepest finished pass reused. Graded by gate 173 (TC-R242a..h) on a trial bundle at 375x761 with his insets and at 320x568, in the Classic and the Medieval skin, after the depth menu was opened and closed; the engine half (the searches recorded at the Worker) runs at 375x761 Classic, with a Quick review also run at 320x568. NOT COVERED: the job's part (4), the 'Review depth' row in the review sheet and the 'Going deeper' progress line, which are on the game-review screen and are not built; the Deeper and Deepest levels are not run by the gate (about 45 s and 125 s each on this machine; the same code path as Deep with another number); how long each level takes on his phone; the look of the button against Fetch beyond its size and place (it is built from the same style call as Fetch).",
+ "gate": "gates/regress/173-review-depth-game-card.js",
  "checks": ["TC-R242[a-h] "],
  "build": "always",
  "situations": [
@@ -9,13 +9,13 @@
   {"name": "se 320x568", "match": "^320x568 "}
  ],
  "breaks": [
-  {"name": "engine-ignores-the-picked-depth", "patch": "breaks/172-the-engine-ignores-the-picked-depth.diff",
+  {"name": "engine-ignores-the-picked-depth", "patch": "breaks/173-the-engine-ignores-the-picked-depth.diff",
    "why": "the pick is stored and the button reads it, but every search of the review still asks the engine for depth 16: a Deep review is a Quick one under another name",
    "mustFailIn": ["kunal761"]},
-  {"name": "depth-button-also-opens-the-review", "patch": "breaks/172-the-depth-button-also-opens-the-review.diff",
+  {"name": "depth-button-also-opens-the-review", "patch": "breaks/173-the-depth-button-also-opens-the-review.diff",
    "why": "the button's tap is no longer kept from the card under it, so opening the depth menu also starts the game's review",
    "mustFailIn": ["kunal761", "se 320x568"]},
-  {"name": "result-box-not-one-column-wide", "patch": "breaks/172-the-result-box-is-not-one-column-wide.diff",
+  {"name": "result-box-not-one-column-wide", "patch": "breaks/173-the-result-box-is-not-one-column-wide.diff",
    "why": "the result box is back to a fixed 3.8em width at the start of its column, so it no longer sits exactly over the brilliant box",
    "mustFailIn": ["kunal761", "se 320x568"]}
  ],

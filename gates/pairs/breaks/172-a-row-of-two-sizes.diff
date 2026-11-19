@@ -1,0 +1,18 @@
+diff --git a/chess.jsx b/chess.jsx
+index d6dcefdb..554df208 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13627,5 +13627,5 @@ function AppMain(){
+               Previous and Next go to another PUZZLE, so they are the blue NavTri (never the white step arrow); a solved puzzle keeps the same two
+               buttons. Hint, Show and Reset keep their names in aria-label. */}
+-          <RowBtn ct="pz-prev" label="Previous puzzle" onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)}><NavTri dir="left"/></RowBtn>
++          <RowBtn ct="pz-prev" label="Previous puzzle" flex="0 0 46px" onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)}><NavTri dir="left"/></RowBtn>
+           {!puzSolved&&(<>
+             <RowBtn ct="pz-hint" label="Hint" onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}}><RowIcon name="hint"/></RowBtn>
+@@ -13633,5 +13633,5 @@ function AppMain(){
+             <RowBtn ct="pz-reset" label="Reset" onClick={()=>loadPuzzle(puzIdx)}><RowIcon name="reset"/></RowBtn>
+           </>)}
+-          <RowBtn ct="pz-next" label="Next puzzle" onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}}><NavTri dir="right"/></RowBtn>
++          <RowBtn ct="pz-next" label="Next puzzle" flex="0 0 46px" onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}}><NavTri dir="right"/></RowBtn>
+         </div>):(<>
+         {!puzSolved&&(()=>{/* #550 a8: in the sideways rail the three sit on ONE row (flex, no wrap), with shorter words where the column is narrow */const _rb=pzRail?{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}:btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff');const _nar=pzRail&&sideW<380 /* #550 helper B: at 844x390 the column is 358 and '👁 Show move' needs 121 of its 113 */;const _xn=pzRail&&sideW<230;/* #550 helper B (same job, whatIsLeft): at 667x375 the column is 200, each of the three is 61 wide and '💡 Hint', '👁 Show' and '↺ Reset' need 65 to 68, so Show and Reset were cut at their edges; there the glyph sits over its word, which fits in the same 44 height */const _rbx=_xn?{..._rb,whiteSpace:'pre',fontSize:12,lineHeight:1.15,padding:'3px 2px'}:_rb;return(<div style={{display:'flex',gap:pzRail?6:7,flexWrap:pzRail?'nowrap':'wrap',justifyContent:'center',...(pzRail?{width:'100%'}:null)}}>

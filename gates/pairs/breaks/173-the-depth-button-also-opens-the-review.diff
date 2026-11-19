@@ -1,8 +1,8 @@
 diff --git a/chess.jsx b/chess.jsx
-index 124a94ff..7668bd9b 100644
+index 1aef92c0..41e3067d 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -12848,5 +12848,5 @@ function AppMain(){
+@@ -12899,5 +12899,5 @@ function AppMain(){
                          (padding cancelled by an equal negative margin, the Filter button's idiom, so row 2 keeps its 30px). */}
                      <button data-ct="game-depth" data-level={_lv} aria-haspopup="menu" aria-expanded={depthMenu&&depthMenu.key===_k?'true':'false'} aria-label={'Review depth: '+REV_DEPTHS[_lv].name}
 -                      onClick={e=>{e.stopPropagation();if(depthMenu&&depthMenu.key===_k){setDepthMenu(null);return;}const f=e.currentTarget.firstElementChild||e.currentTarget;const r=f.getBoundingClientRect();const W=Math.min(248,vp.w-16),H=46+44*REV_DEPTHS.length;const left=Math.max(8,Math.min(vp.w-8-W,r.right-W));const below=r.bottom+6+H<=vp.h-8;setDepthMenu({key:_k,g,left,top:below?r.bottom+6:Math.max(8,r.top-6-H),w:W});}}
