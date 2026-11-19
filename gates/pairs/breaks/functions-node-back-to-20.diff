@@ -1,0 +1,7 @@
+--- a/functions/package.json
++++ b/functions/package.json
+@@ -3,3 +3,3 @@
+   "description": "Feedback relay: appends app feedback to feedback-inbox.md in the repo.",
+-  "engines": {"node": "22"},
++  "engines": {"node": "20"},
+   "main": "index.js",

@@ -1,7 +1,7 @@
 {
   "name": "chess-trainer-functions",
   "description": "Feedback relay: appends app feedback to feedback-inbox.md in the repo.",
-  "engines": {"node": "20"},
+  "engines": {"node": "22"},
   "main": "index.js",
   "private": true,
   "dependencies": {

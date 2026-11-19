@@ -1,0 +1,13 @@
+{
+ "job": "functions-run-on-node-22-because-node-20-was-retired-2026-11-16",
+ "about": "functions/package.json names Node.js 22 in engines.node, the runtime the deployed functions use (Google decommissioned 20 on 2026-10-30). Gate 126's TC-R202h line reads the file in plain Node, no browser, no network; only that line is graded. One situation, because the gate drives no screen. NOT COVERED: that the deploy itself succeeds (his firebase deploy) and the 2027-04-30 deprecation of 22, noted in functions/README.md.",
+ "gate": "gates/regress/126-scanboard-server.js",
+ "checks": ["TC-R202h "],
+ "build": "never",
+ "situations": [{"name": "node, no browser", "match": "."}],
+ "breaks": [
+  {"name": "engines-back-to-20", "patch": "breaks/functions-node-back-to-20.diff", "why": "the retired runtime that stopped his first deploy, put back"},
+  {"name": "engines-removed", "patch": "breaks/functions-node-engines-removed.diff", "why": "no engines field at all, so the deploy picks whatever default the tooling has"}
+ ],
+ "timeoutSec": 120
+}

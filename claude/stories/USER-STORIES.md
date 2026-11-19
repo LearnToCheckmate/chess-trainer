@@ -2262,6 +2262,7 @@ As a player who photographs a board, I get the position back, an honest reason w
 - A confident read returns the position with the unseeable fields repaired by fen.js; the photo goes to the reader unaltered. (TC-R202c)
 - An unknown orientation is read as White at the bottom, not refused, so the client's two readings can disagree and ask. (TC-R202d)
 - An honest refusal carries its reason; an impossible board is refused as invalid-position. (TC-R202e)
+- The functions are declared to run on Node.js 22, the runtime Google still deploys, so a deploy from main does not stop on the retired Node.js 20. (TC-R202h)
 
 ### US-R135 In landscape the eval graph uses the right-hand space, on Review and against the computer
 *Added #550, jobs/landscape-eval-graph-in-the-right-hand-space-2026-11-12, Kunal's answer run-answers build__1794388896663-a36 (11 Nov: "I like option B, but I don't want you to remove everything ... You just make them fit better").*

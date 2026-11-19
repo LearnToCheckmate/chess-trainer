@@ -61,4 +61,9 @@ L.run(async()=>{
       ['with thought parts around a split answer',[{thought:true,text:'{"confident":false}'},{text:ANS.slice(0,30)},{thought:true,text:'checking rank 2'},{text:ANS.slice(30)}]]]){
     replyParts(parts);const a=await call(IMG);
     L.say(!!a.r&&a.r.ok===true&&a.r.fen===FEN+' w KQkq - 0 1','TC-R202g the reply reader keeps only the answer text, '+name+' ('+(a.r?(a.r.fen||a.r.reason):(a.e&&a.e.message))+')',a.r||(a.e&&a.e.message));}
+  // ── TC-R202h [batch 13, jobs/functions-run-on-node-22-because-node-20-was-retired-2026-11-16]: Google decommissioned Node.js 20 on
+  // 2026-10-30 and a deploy on it stops. The repository must name the runtime the deployed functions use. Read from the tree the gate
+  // runs in (not CT_FN_SRC), no browser. Node.js 22 is deprecated 2027-04-30; 24 is the next step (functions/README.md).
+  {let eng=null,err='';try{eng=(JSON.parse(require('fs').readFileSync(path.join(__dirname,'..','..','functions','package.json'),'utf8')).engines||{}).node;}catch(e){err=String(e.message).slice(0,80);}
+   L.say(eng==='22','TC-R202h functions/package.json says engines.node "22", the runtime Google still deploys ('+(eng===undefined?'no engines.node':eng===null?'unreadable '+err:eng)+')',eng);}
 },'126-scanboard-server');
