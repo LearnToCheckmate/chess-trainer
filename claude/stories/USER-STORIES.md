@@ -2557,3 +2557,9 @@ As a player who opens the app from its Home Screen icon on my iPhone or iPad, wh
 - If it comes back with an error, the sign-in line says sign-in did not finish and names the error, so a screenshot says which one. (TC-R236f)
 - If that window closes before I finish, the line says so. (TC-R236h)
 - When it comes back signed in, nothing else is said and no window opens. In a Safari tab sign-in works as before: Google's window first, and Google's page when the window cannot open. (TC-R236g, TC-R236i, TC-R236j)
+### US-R167 Gate 20 finishes well inside its limit on a quiet machine and a busy one, with every one of its checks run
+*Added in batch 13, jobs/gate-20-is-killed-at-its-900-second-limit-in-3-of-4-runs-on-551-make-it-finish-well-inside-it-2026-11-18 (decisions/batch-13-avoids-wasted-full-suite-reruns-2026-11-18, part 3: the two flaky gates fixed first; his pick C, the slowest gates made faster).*
+As the person who runs the full suite, gate 20 (the Review screen) is never killed at its 900 second limit, so a red there is a real fault and never the clock; and every case it ran before still runs, with every line it had.
+- The Opera Game is analysed from nothing by the three main walks (whose TC-R01 times a fresh import), and every later launch that only needs a reviewed Opera Game is given that stored analysis and is graded from it, not by a second engine pass. (TC-R238a)
+- All 35 of the gate's case runs run, each lane in its order, and a case dropped from a loop is a red line. (TC-R238b)
+- The whole gate finishes inside 600 seconds, two thirds of its limit, quiet and with one core busy. (TC-R238c)

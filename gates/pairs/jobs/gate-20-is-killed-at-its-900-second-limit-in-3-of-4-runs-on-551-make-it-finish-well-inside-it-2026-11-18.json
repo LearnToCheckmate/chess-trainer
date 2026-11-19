@@ -1,0 +1,24 @@
+{
+ "job": "gate-20-is-killed-at-its-900-second-limit-in-3-of-4-runs-on-551-make-it-finish-well-inside-it-2026-11-18",
+ "about": "Gate 20 (the Review screen) is the subject: it analyses the Opera Game once and shares that stored analysis with the 18 launches that only stand on a review, walks TC-R36's 33 plies instead of 70 clicks, and runs its six stored-analysis layout cases in a second lane, so it finishes in about 360 s instead of 724 (quiet) / 769 (one core busy). Graded: every line of the whole gate, in three situations - his phone (kunal761 lines), 320x568 (se lines), and the gate's own guards (TC-R238 CASES, SHARED and TIME, which carry no geometry). The breaks are the ways the speed or a check could come undone: the old shape back (every case analyses again and the layout lane runs after the rest), a case dropped from a loop, and the app leaving the engine line on after Exit analysis (a real check that must still fail as a FAIL line, not a timeout). NOT COVERED: a busy machine (the grading runs on whatever load the container has; the busy timings are on the job and in the gate's header), and the 900 s kill itself, which only gates.sh applies.",
+ "gate": "gates/regress/20-review.js",
+ "checks": ["."],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761: "},
+  {"name": "se 320x568", "match": "^se: "},
+  {"name": "the gate's own guards", "match": "^TC-R238[abc]? "}
+ ],
+ "breaks": [
+  {"name": "old-shape-back", "patch": "breaks/g20-old-shape-back.diff",
+   "why": "the speed undone: no launch is seeded with the shared analysis, so every Opera case runs the engine pass again, and the layout lane runs after lane A instead of beside it - the gate goes back to about 700 s",
+   "mustFailIn": ["kunal761", "se 320x568", "the gate's own guards"]},
+  {"name": "case-dropped", "patch": "breaks/g20-case-dropped.diff",
+   "why": "a check lost: TC-R114's loop no longer visits 390x844, so its eight lines there (TC-R114, TC-R39 and its SHARED line) silently stop running and the gate is a little faster",
+   "mustFailIn": ["the gate's own guards"]},
+  {"name": "engine-line-left-on", "patch": "breaks/g20-engine-line-left-on.diff",
+   "why": "chess.jsx _engRestore made a no-op: leaving analysis keeps the engine line on for the rest of the review (TC-R71), which the restructured gate must still report as FAIL lines at his phone and at 320x568",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1500
+}

@@ -1,0 +1,11 @@
+diff --git a/gates/regress/20-review.js b/gates/regress/20-review.js
+index 17502e72..da52681f 100644
+--- a/gates/regress/20-review.js
++++ b/gates/regress/20-review.js
+@@ -230,5 +230,5 @@ L.run(async()=>{try{
+   // row gained cannot be taken from the board unnoticed. Row width is NOT asserted: flex 1 1 0 makes it a constant here
+   // (jobs/row-fit-needs-a-glyph-rect-instrument-2026-09-29).
+-  for(const geo of ['kunal761','se','kunal730','390']){mark('R114 '+geo,'B');const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo,store:shared()});await b.open();
++  for(const geo of ['kunal761','se','kunal730']){mark('R114 '+geo,'B');const RV=require('../drive/review');const b=await L.launch({geo,name:'r114-transport-'+geo,store:shared()});await b.open();
+    const G=L.GEOS[geo],dim=G.w+'x'+G.h;const BOARD_FLOOR={'375x761':349,'320x568':264,'375x730':349,'390x844':364}[dim];
+    let ok=true;try{await RV.states['moves-ply10'](b);await b.settle(500);}catch(e){ok=false;}
