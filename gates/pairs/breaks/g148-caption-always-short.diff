@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 4bc82e40..a9dd1acf 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10682,5 +10682,5 @@ function AppMain(){
+                 {(()=>{const _ss={color:'rgba(255,255,255,.62)',fontSize:hbig?'clamp(15px,1.9vw,18px)':(hLand?'clamp(15px,1.9vw,18px)':'clamp(12.5px,3.2vw,15px)'),lineHeight:1.4,...(_hc?{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}:null)};
+                   /* batch 13 TXT-32: on a phone Discover's caption names tactics wherever the long words fit on the one line (FitLine) */
+-                  return (_hc&&SUB_FIT[k])?<FitLine ct={'tile-sub-'+k} long={sub} short={SUB_SHORT[k]} w={vp.w} style={_ss}/>:<div data-ct={'tile-sub-'+k} style={_ss}>{_hc&&SUB_SHORT[k]?SUB_SHORT[k]:sub}</div>;})()}
++                  return (false&&_hc&&SUB_FIT[k])?<FitLine ct={'tile-sub-'+k} long={sub} short={SUB_SHORT[k]} w={vp.w} style={_ss}/>:<div data-ct={'tile-sub-'+k} style={_ss}>{_hc&&SUB_SHORT[k]?SUB_SHORT[k]:sub}</div>;})()}
+               </button>);})}
+           </div>);

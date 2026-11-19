@@ -1,0 +1,57 @@
+{
+ "job": "wording-check-2026-11-12",
+ "about": "The two wording items #550 held for layout (batch 13, the remainder of the job). Gate 148's block O is run alone (CT_G148_ONLY=o, about 40 seconds a try) and every TC-R224o line is graded at his phone 375x761 and at 320x568: Home's Discover caption reads 'Openings, tactics, endgames' where those words fit on its one line and 'Openings & endgames' where they do not, whole both times, at no cost in height; it follows the width when the window changes and is still right back on Home after a puzzle; the phone puzzle row's Show button is named 'Show move' and its words are whole. NOT COVERED, said rather than implied: everything #550 built for this job (the developer tools hidden from players, the legal drafts, the setup errors, TXT-21 to TXT-40: gate 148's other blocks, TC-R224a to n, which this pair does not run); no width between 320 and 375 is a situation (360 measures 156px of slot, so it reads the short caption); the fit is measured in the gate browser's font, and his phone's own font is narrower or wider than it by an amount no gate here can read; the visible word on the puzzle row stays 'Show' (his call).",
+ "gate": "gates/regress/148-player-words.js",
+ "env": {"CT_G148_ONLY": "o"},
+ "checks": [
+  "TC-R224o "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^kunal761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "caption-always-short",
+   "patch": "breaks/g148-caption-always-short.diff",
+   "why": "the phone caption is the short one at every width, as before the change: on his phone Discover's caption names no tactics although the long words fit",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  },
+  {
+   "name": "caption-never-falls-back",
+   "patch": "breaks/g148-caption-never-falls-back.diff",
+   "why": "the long caption is painted whether or not it fits: at 320 wide it is cut with an ellipsis ('Openings, tactics, endg...'), which is the reason #550 held the item",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "caption-measured-once",
+   "patch": "breaks/g148-caption-measured-once.diff",
+   "why": "the caption is decided at the first paint and never again: after the window changes width it keeps the words chosen for the old width, cut at the narrow one and short at the wide one",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "show-button-unnamed",
+   "patch": "breaks/g148-show-button-unnamed.diff",
+   "why": "the phone puzzle row's Show button loses its name: a screen reader hears 'Show' here and 'Show move' on every other puzzle screen",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 600
+}

@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 4bc82e40..80e84957 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4569,5 +4569,5 @@ function FitLine({long,short,w,ct,style}){
+   const ref=useRef(null);const [st,setSt]=useState({w:null,cut:false});
+   const useShort=st.w===w&&st.cut;
+-  useLayoutEffect(()=>{if(st.w===w)return;const e=ref.current;if(!e||e.clientWidth<=0)return;setSt({w,cut:e.scrollWidth>e.clientWidth});});
++  useLayoutEffect(()=>{if(st.w===w)return;const e=ref.current;if(!e||e.clientWidth<=0)return;setSt({w,cut:false});});
+   return <div ref={ref} data-ct={ct} data-fit={st.w===w?(st.cut?'short':'long'):'measuring'} style={style}>{useShort?short:long}</div>;
+ }
