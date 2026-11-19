@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2485,5 +2485,5 @@
+           if(rs.length===1){const g3=makeMove(g2,rs[0]);const mm=getLegal(g3).find(x=>getStatus(makeMove(g3,x))==='checkmate');
+             if(mm)mt='It is mate in two: '+rtRun([toSAN(ctx.pos,mv0,applyMove(ctx.pos.board,mv0)),toSAN(g2,rs[0],applyMove(g2.board,rs[0])),toSAN(g3,mm,applyMove(g3.board,mm))],M,num,false)+' mate.';}}}catch(e){mt='';}
+-      if(mt)return {line:fit([give+'.',mt]),more:fitM([cmp]),rung:'B'};}
++      if(false&&mt)return {line:fit([give+'.',mt]),more:fitM([cmp]),rung:'B'};}
+     if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B'};
+     return {line:fit([give+'.',ref]),more:fitM([evenSt?'':st,cmp]),rung:'B'};}

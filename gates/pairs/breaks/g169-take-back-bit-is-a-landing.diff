@@ -1,0 +1,16 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -872,5 +872,5 @@
+    capture after it wins what it takes.) It asked only whether ply i-1 landed there, so after 8...Qb4+ 9.Qxb4 the recapture 9...Bxb4+ read
+    'wins a queen'. */
+-const revChain=(rv,i)=>{try{const a=rv.plies[i-1]&&rv.plies[i-1].move,b=rv.plies[i]&&rv.plies[i].move;return !!(i>0&&a&&b&&a.tr===b.tr&&a.tc===b.tc&&rv.positions[i].board[b.tr][b.tc]&&rv.positions[i-1].board[a.tr][a.tc]);}catch(e){return false;}};
++const revChain=(rv,i)=>{try{const a=rv.plies[i-1]&&rv.plies[i-1].move,b=rv.plies[i]&&rv.plies[i].move;return !!(i>0&&a&&b&&a.tr===b.tr&&a.tc===b.tc&&rv.positions[i].board[b.tr][b.tc]);}catch(e){return false;}};
+ const revNoTxt=(rv,i)=>revNo(rv,i)+(revMover(rv,i)==='w'?'.':'…');
+ /* The move strip and the key-moments rows render the number and its dot as TWO text nodes, as they did before revNo: one node
+@@ -1840,5 +1840,5 @@
+          (1...Qxf6 2.exf6+ Kxf6). It was set whenever the move before merely LANDED on the square, so 8...Qb4+ 9.Qxb4 Bxb4+ read 'wins the
+          queen' on the recapture: Qb4+ took nothing. The move before must have captured there too. */
+-      prevL={move:m,pos:g,chain:!!(prevL&&prevL.move.tr===m.tr&&prevL.move.tc===m.tc&&g.board[m.tr][m.tc]&&prevL.pos.board[m.tr][m.tc])};g=makeMove(g,m);
++      prevL={move:m,pos:g,chain:!!(prevL&&prevL.move.tr===m.tr&&prevL.move.tc===m.tc&&g.board[m.tr][m.tc])};g=makeMove(g,m);
+     }
+   }catch(e){}

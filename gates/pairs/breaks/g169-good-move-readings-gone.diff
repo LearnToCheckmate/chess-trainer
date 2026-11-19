@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2468,5 +2468,5 @@
+   if(ctx.pos&&ctx.ply&&ctx.ply.move&&did.length<2&&!/^(takes|wins|gives|trades)/.test(did[0]||''))did=did.concat(rtQuiet(ctx.pos,ctx.ply.move,V)).slice(0,2);
+   if(ctx.pos&&ctx.ply&&ctx.ply.move&&(L==='Best'||L==='Excellent'||L==='Good'||L==='Book'||L==='Great')){   // HEX-R-02: the point the board proves comes first
+-    const rd=rtRead(ctx.pos,ctx.ply.move,num,V);if(rd.length)did=rd.concat(did.filter(x=>!/ out of danger$/.test(x))).slice(0,2);}
++    const rd=rtRead(ctx.pos,ctx.ply.move,num,V);if(false&&rd.length)did=rd.concat(did.filter(x=>!/ out of danger$/.test(x))).slice(0,2);}
+   const itDid=did.length?('It '+did[0]+(did[1]?(', and '+did[1]):'')+'.'):'';
+   const num0=(a.loss>=15&&a.loss<1495)?('The engine counts it as about '+lossP.toFixed(1)+' '+(lossP.toFixed(1)==='1.0'?'pawn':'pawns')+'.'):'';   // Q3: the number behind the tap

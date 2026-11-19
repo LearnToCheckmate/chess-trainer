@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2508,5 +2508,5 @@
+     let fw=chk&&pc&&pc.t==='k'?': the king steps out of check.':chk?': it blocks the check.':'.';
+     try{const mv0=ctx.ply.move,cp=chk&&mv0?ctx.pos.board[mv0.tr][mv0.tc]:null,kg=chk?findKing(ctx.pos.board,M):null;
+-      if(cp&&cp.c===Ot&&kg&&moveHits(ctx.pos.board,mv0.tr,mv0.tc,kg[0],kg[1]))fw=pc.t==='k'?(': the king takes the '+RT_PW[cp.t]+' that gives check.'):(': it takes the '+RT_PW[cp.t]+' that gives check.');}catch(e){}
++      if(false&&cp&&cp.c===Ot&&kg&&moveHits(ctx.pos.board,mv0.tr,mv0.tc,kg[0],kg[1]))fw=pc.t==='k'?(': the king takes the '+RT_PW[cp.t]+' that gives check.'):(': it takes the '+RT_PW[cp.t]+' that gives check.');}catch(e){}
+     return {line:fit([head+fw,evenSt?'':st]),more:'',rung:'F'};}
+   if(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'||L==='Miss'){
