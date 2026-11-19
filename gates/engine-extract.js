@@ -67,7 +67,9 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   // #551 batch 12: the engine is repeatable under test (localStorage ct_engdet); bestMove reads engDet for its jitter
   'ENGDET_NODES_PER_MS','engDet','engDetSearch',
   // batch 13: the three good-move readings of the Review line, the words of the why pill, the engine line in words and the summary coach line, so gate 169 runs the shipped functions (no apostrophe here, gate 79 X1)
-  'rtRead','playWhyTxt','explainLine','revBase','revNo','revChain','coachWorst'];
+  'rtRead','playWhyTxt','explainLine','revBase','revNo','revChain','coachWorst',
+  // batch 13: the pure pieces of the scan steps (the grid of a scanned board, its problems, the FEN a game starts from), so gate 174 runs the shipped functions (no apostrophe here, gate 79 X1)
+  'scanGridOf','scanPlacement','scanBoardProblem','scanFenFor','scanTurnProblem'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,

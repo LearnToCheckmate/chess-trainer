@@ -24,17 +24,12 @@ function png8(){const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){r
   const chunk=(type,data)=>{const len=Buffer.alloc(4);len.writeUInt32BE(data.length,0);const td=Buffer.concat([Buffer.from(type,'ascii'),data]);const cr=Buffer.alloc(4);cr.writeUInt32BE(crc(td),0);return Buffer.concat([len,td,cr]);};
   const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(w,0);ihdr.writeUInt32BE(h,4);ihdr[8]=8;ihdr[9]=2;
   return Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),chunk('IHDR',ihdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);}
-const CONFIRM_RE=/^(▶ Start game|▶ Play this position)$/;
-async function scanInto(b,fen){
-  await P.states['setup'](b); await b.settle(200);
-  await b.page.evaluate(()=>{const C=window.CTCloud;if(C&&C._emit)C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
-  await b.settle(250);
-  await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},fen);
-  await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});
-  await b.settle(1200);
-}
-const start=(b)=>b.page.evaluate((src)=>{const re=new RegExp(src);const s=document.querySelector('[data-ct="setup-sheet"]');if(!s)return 'no sheet';
-  const x=[...s.querySelectorAll('button')].filter(e=>re.test((e.innerText||'').trim())).pop()||s.querySelector('[data-ct="setup-start"]');if(!x)return 'no button';if(x.disabled)return 'disabled';x.click();return 'ok';},CONFIRM_RE.source);
+/* batch 13 (jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18): a scan no longer lands on the New Game
+   sheet. It opens Check the board and asks who moves and which side; this gate only needs the game, so it takes the board as read, answers
+   both questions with the position's own side to move and taps Play (gates/drive/scan.js). `start` reports how that went. */
+const SC=require('../drive/scan');
+async function scanInto(b,fen){const t=fen.split(' ')[1]==='b'?'b':'w';b.__scanSt=await SC.through(b,{fen,turn:t,side:t,kind:'Play',settle:300});}
+const start=async(b)=>b.__scanSt;
 const hintSquares=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!g)return null;
   const out=[];[...g.children].slice(0,64).forEach((sq,i)=>{if([...sq.querySelectorAll('div')].some(d=>/rgba\(255, ?200, ?30/.test(d.style.background||'')))out.push('abcdefgh'[i%8]+(8-Math.floor(i/8)));});return out.sort();});
 const hintBtn=(b)=>b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>(e.getAttribute('title')||e.getAttribute('aria-label')||'')==='Hint'&&e.getBoundingClientRect().height>0);return x?{dis:!!x.disabled}:null;});

@@ -9301,7 +9301,10 @@ function AppMain(){
     let g=null;try{g=fromFEN(fen);}catch(e){g=null;}if(!g)return;
     const sg={fen,flip:!!sc.flip,kind:kind==='analyze'?'analyze':'play'};
     liveSettingsRef.current=null;setStartArm(false);
-    setOpponent(sg.kind==='analyze'?'human':'computer');setPColor(sc.side);timeCtrlRef.current=null;setTimeCtrl(null);setCoachGame(false);
+    /* the scan buttons live on the New Game sheet, so a game against the computer takes that sheet's pending opponent strength and clock
+       (what Start game would apply); the side is the one he answered here, and Analyze has no clock */
+    const d=_sDraft;const tc=sg.kind==='play'?(d.timeCtrl||null):null;setCpuElo(d.cpuElo);setSelBot(d.selBot);
+    setOpponent(sg.kind==='analyze'?'human':'computer');setPColor(sc.side);timeCtrlRef.current=tc;setTimeCtrl(tc);setCoachGame(false);
     setOpenIdx(null);setMode('play');setHomeScreen(false);setPlaySetup(false);setSetupFromFEN(null);
     scanArmRef.current=true;fullReset(g);playStartFenRef.current=fen;
     scanGameRef.current=sg;setScanGame(sg);setScanBest(null);setFlip(sg.flip);setScanCheck(null);

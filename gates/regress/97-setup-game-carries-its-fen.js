@@ -27,12 +27,12 @@ function png8(){const w=8,h=8,raw=Buffer.alloc(h*(1+w*3));for(let y=0;y<h;y++){r
   const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(w,0);ihdr.writeUInt32BE(h,4);ihdr[8]=8;ihdr[9]=2;
   return Buffer.concat([Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),chunk('IHDR',ihdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);}
 const FEN0='r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3';
+/* batch 13 (jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18): the scan route now runs through
+   Check the board and its two questions (gates/drive/scan.js); the board is taken as read and White - FEN0's side to move - both moves
+   next and is the player, so the game starts from FEN0 itself, move counters and all, as it did from the sheet's Play this position. */
 async function startFromFen(b){
-  await P.states['setup'](b);await b.settle(200);
-  await b.page.evaluate(()=>{const C=window.CTCloud;if(C&&C._emit)C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});await b.settle(250);
-  await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},FEN0);
-  await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});await b.settle(1200);
-  await b.tapText(/^▶ Play this position$/,{wait:1600});
+  const st=await require('../drive/scan').through(b,{fen:FEN0,turn:'w',side:'w',kind:'Play',settle:1600});
+  if(st!=='ok')throw new Error('the scan route did not start a game: '+st);
 }
 const errOnScreen=(b)=>b.page.evaluate(()=>/could not|couldn.t|illegal|Not a legal|failed/i.test(document.getElementById('root').innerText));
 
