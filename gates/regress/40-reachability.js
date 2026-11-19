@@ -52,7 +52,7 @@
 //   AND THIS GATE'S FIRST VERSION WENT GREEN ON THE REAL CONTROL TOO, 12 of 12, for both reasons above. A gate
 //   written to warn about a measurement error, making exactly that error, is the most useful thing in this file.
 'use strict';
-// CONTROL-RECORD: b5fd7276 2026-11-19 total=42 red=1 scope=trial:77d872f466a3 how=batch 13, kunal730's denominator re-declared 'some' for the three row game card: on the bundle of the tree before the card (1e0c21e8) nothing sits below the fold at 375x730, so the re-declared line is the one red; on the card's trial (4901584b6a4b) 5 boxes sit below the fold there and all 5 are scrolled on screen
+// CONTROL-RECORD: b15b7567 2026-11-19 total=42 red=1 scope=trial:2c909a2c92c1 how=batch 13, kunal730's denominator re-declared 'some' for the three row game card: on the bundle of the lead's tree before the card (c27de58b) nothing sits below the fold at 375x730, so the re-declared line is the one red; on the merged head's trial (7870b3a5e846) 5 boxes sit below the fold there, all 5 are scrolled on screen, and the gate is 42 of 42 green
 // CONTROL-RECORD: ce729f6 2026-11-11 total=42 red=5 scope=trial:b19697cd53cb how=#550 answer a12: the tree before the paste row (paste box under the games list, no '?') - both TC-R40-HELP-REST lines red at se and kunal730 (no '?' to find), and kunal730's declared-none denominator red because the old entry screen put 10 boxes below the fold there; the a12 trial a6ef99c17548 reads 42 pass, 0 fail
 const L=require('../lib');
 // ── PAGELOCK [#549 item (7); jobs/two-assertions-pin-docscrolly-which-is-zero-by-design-2026-09-28]. This gate used to
@@ -230,7 +230,7 @@ const hdrKind=(all)=>((all||[]).some(k=>k.depth>=2)?'deep':'flat');
    122px (it was 85.7) and Your games is its own section, so with this gate's three stored games the third card runs past the fold inside the games
    box at 375x730 (its rect ends at 762): 5 boxes below the fold, every one brought on screen by scrolling the games box (moved 5, stranded 0). By
    this block's own rule that flip is the stronger state - the headline assertion is live at 375x730 instead of an empty-set pass - and the
-   declaration is updated in the same change as the layout that moved it. On the tree before the card (bundle 77d872f466a3) the count is 0.
+   declaration is updated in the same change as the layout that moved it. On the tree before the card the count is 0.
    The control is recorded with this gate's other records, at the top. */
 const DENOM_KIND={se:'some',kunal730:'some'};
 const DENOM={};           // geo -> {below, moved, stranded}

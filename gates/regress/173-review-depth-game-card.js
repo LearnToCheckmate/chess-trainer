@@ -49,7 +49,9 @@
 // CONTROL-RECORD: 3dd181fe 2026-11-19 total=57 red=1 scope=trial:c766d064b301 how=batch 13, pairs break engine-ignores-the-picked-depth (gates/pairs/breaks/173-the-engine-ignores-the-picked-depth.diff): the one red line is 'picking Deep runs that game's review at depth 18' - all 35 recorded searches were at 16. Every line that reads what this build writes (ct_gdepth, the tally's dp, the -d18 cache key, review.engine's depth, the button's word) stayed GREEN on this bundle, which is why the search depth is read from the engine's own messages at the Worker and not from any of them
 // CONTROL-RECORD: 3dd181fe 2026-11-19 total=25 red=19 scope=trial:99b8dc47ba0b how=batch 13, pairs break depth-button-also-opens-the-review (the button's stopPropagation removed): the review starts under the menu, so TC-R242f and everything read after it are red at all four launches (12 graded lines at 375x761, 7 at 320x568)
 // CONTROL-RECORD: 3dd181fe 2026-11-19 total=57 red=5 scope=trial:3337ffb155f0 how=batch 13, pairs break result-box-not-one-column-wide (the result box a fixed 3.8em at the start of its column): TC-R242b red at all four launches and the after-the-review grid line red (3 at 375x761, 2 at 320x568)
-// The grading machine on 3dd181fe: CHECKED, real 31/31 at kunal761 and 25/25 at 320x568 (bundle 6e2bccc93e3b), all three breaks CAUGHT.
+// (This gate was numbered 172 when those ran; it became 173 at the merge with the lead's branch, where 172 is the icon rows gate. Its checked lines
+// are unchanged.) The grading machine again on the merged head b15b7567: CHECKED, real 31/31 and 25/25 (f6d2d9b09868), the three breaks CAUGHT with
+// the same 1, 12 + 7 and 3 + 2 red lines. The grading machine on 3dd181fe: CHECKED, real 31/31 at kunal761 and 25/25 at 320x568 (bundle 6e2bccc93e3b), all three breaks CAUGHT.
 const L=require('../lib');const R=require('../drive/review');
 const DAY=86400000,D0=1763000000000;
 const ME=['cc','jsmiller1112','Jsmiller1112'];
