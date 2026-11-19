@@ -11,6 +11,7 @@
 // is his phone check after the deploy.
 // CONTROL-RECORD: ee833ef 2026-11-12 total=9 red=1 scope=env:CT_FN_SRC=spec-prompt how=#550 item (32): functions/index.js with the spec's own prompt (refuses an unknown orientation) - TC-R202d red alone
 // CONTROL-RECORD: ee833ef 2026-11-12 total=1 red=1 scope=env:CT_FN_SRC=pre-scanboard how=#550 item (32): functions/index.js before scanBoard - the precondition red, nothing else runs
+// CONTROL-RECORD: a78020c 2026-11-19 total=18 red=1 scope=pairs:functions-run-on-node-22-because-node-20-was-retired-2026-11-16 how=batch 13: functions/package.json with engines.node "20", and again with engines removed - TC-R202h red alone in each
 const L=require('../lib');
 const path=require('path');
 const Module=require('module');
