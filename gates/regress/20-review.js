@@ -69,7 +69,7 @@ const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[d
    first walk leaves in ct_evalcache is SEEDED into every later launch that only needs a reviewed Opera Game to stand on (TC-R36, R79,
    R111, R88, R89, R93, R94, R114 and the TC-R71 re-entry arm, 18 launches). Each of those launches used to run the whole engine pass
    again from nothing - under ct_engdet, which gates/lib.js seeds, the same search on the same game gives the same numbers, so the
-   seeded analysis IS what each of them used to compute, and TC-R236 SHARED below checks that it was the one they graded from
+   seeded analysis IS what each of them used to compute, and TC-R236a SHARED below checks that it was the one they graded from
    (review.engine.path is 'cache'). The other fresh imports stay fresh on purpose: TC-R12b reads the default with nothing seeded,
    TC-R66 reviews set-up games from their own headers, TC-R09d analyses two other games. (2) TC-R36 walks the game's 33 plies, not
    70 clicks of which 37 landed on the last ply again (n read 3 at every geometry before and after; a line now checks the walk
@@ -77,7 +77,14 @@ const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[d
    launches, about 190 s, nearly all of it R93's settles) run in a second lane of their own browsers, started as soon as the
    first main walk has left the analysis to share; lane A keeps every case that reads the engine or a clock, in its old order.
    The 5-minute load stayed at or under 2.3 on this 4-core container through the quiet run (1-minute peak 3.5).
-   AFTER_TABLE
+   AFTER, same bundle and container, four runs, every one 345 PASS 0 FAIL (the 25 new lines are TC-R236a/b/c and TC-R36's end check):
+     quiet 356 s and 357 s; one core busy 364 s and 370 s (the 5-minute load peaked at 4.18 with other seats' browsers running too).
+     Lane A, which sets the time:  main walks 52 / 53 / 51 (busy 54-56), R12b 26-28, R66 x8 41-43, R03 5, R04 11, R88 11 (was 21),
+       R94 10 (was 19), R09d Lasker 44-46, R09d blunder 22-24, R71 x2 29 (was 44-51).
+     Lane B, beside it:  R36 x3 43-46 (was 90-93), R79 6 (14-16), R111 x2 10-11 (27-31), R89 x2 10-11 (28-30), R93 x2 96-97 (114-122),
+       R114 x4 27-28 (64-73); lane total 193-198 s, finished well before lane A.
+   What is left of the 357 s is lane A's own settles and its fresh engine passes, which no case here can share without changing
+   what it checks; the next cut, if one is ever needed, is TC-R93's 1.2 s settle per ply in lane B, which does not set the time.
    THE TWO GUARDS, both FAIL lines and never a timeout: CASES - every case run named in CASE_RUNS ran, in order, so a case dropped from
    a loop (a geometry left out, a block deleted) is red here; and TIME - the whole gate, measured from node's own start, finished
    inside 600 s, two thirds of the 900 s limit. */
@@ -97,7 +104,7 @@ let OPERA_CACHE=null;
 const shared=(st)=>Object.assign({},st||{},OPERA_CACHE?{ct_evalcache:OPERA_CACHE}:{});
 const SHARED_SEEN=[];
 const sharedHit=async(b,id)=>{const e=await b.page.evaluate(()=>{const r=window.__ctReview;return r&&r.engine?{path:r.engine.path,plies:r.plies&&r.plies.length}:null;}).catch(()=>null);
-  SHARED_SEEN.push(id);return L.say(!!OPERA_CACHE&&!!e&&e.path==='cache'&&e.plies===33,id+': TC-R236 SHARED this case stood on the Opera Game analysed once by the first main walk - its review was graded from the seeded stored analysis (review.engine.path '+(e&&e.path)+'), not by a second engine pass',e);};
+  SHARED_SEEN.push(id);return L.say(!!OPERA_CACHE&&!!e&&e.path==='cache'&&e.plies===33,id+': TC-R236a SHARED this case stood on the Opera Game analysed once by the first main walk - its review was graded from the seeded stored analysis (review.engine.path '+(e&&e.path)+'), not by a second engine pass',e);};
 
 L.run(async()=>{try{
   mark('flagOf');
@@ -270,11 +277,11 @@ L.run(async()=>{try{
     L.say(ok&&tImport<90000,geo+': TC-R01 PGN import reaches the summary in under 90 s ('+Math.round(tImport/1000)+' s)');
     L.say(b.errs.length===0,geo+': TC-R01 zero app errors during import',b.errs.slice(0,3));
     await b.settle(800);await b.shot('review-'+geo+'-summary');
-    // TC-R236 SHARED: the first walk's fresh analysis is what the later Opera cases are seeded with. Its own line: the cache holds
+    // TC-R236a SHARED: the first walk's fresh analysis is what the later Opera cases are seeded with. Its own line: the cache holds
     // exactly this game, all 34 positions, every search finished (det 1) - a partial or abandoned pass is never shared.
     if(!OPERA_CACHE){const c=await b.page.evaluate(()=>{const s=localStorage.getItem('ct_evalcache');let o=null;try{o=JSON.parse(s||'null');}catch(e){}
         const ks=o?Object.keys(o):[];const v=ks.length===1?o[ks[0]]:null;return {s,keys:ks.length,evW:v&&v.evW?v.evW.length:0,det:v?v.det:null,path:window.__ctReview&&window.__ctReview.engine&&window.__ctReview.engine.path};});
-      if(L.say(ok&&c.keys===1&&c.evW===34&&c.det===1&&c.path!=='cache',geo+': TC-R236 SHARED the first main walk analysed the Opera Game from nothing (engine path '+c.path+') and left one complete stored analysis, 34 positions, det 1, to share',{keys:c.keys,evW:c.evW,det:c.det,path:c.path}))OPERA_CACHE=c.s;}
+      if(L.say(ok&&c.keys===1&&c.evW===34&&c.det===1&&c.path!=='cache',geo+': TC-R236a SHARED the first main walk analysed the Opera Game from nothing (engine path '+c.path+') and left one complete stored analysis, 34 positions, det 1, to share',{keys:c.keys,evW:c.evW,det:c.det,path:c.path}))OPERA_CACHE=c.s;}
     // Lane B starts here, once, whether or not the share was taken (without it each of its cases analyses afresh and its SHARED line is red).
     if(!laneBP)laneBP=laneB().catch(e=>{L.say(false,'TC-R236 lane B threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));});
     // TC-R04 summary
@@ -893,10 +900,10 @@ L.run(async()=>{try{
   L.note('TC-R236 TIMINGS whole gate '+secs+' s');
   const ranA=RUNS.filter(r=>r.lane==='A').map(r=>r.id),ranB=RUNS.filter(r=>r.lane==='B').map(r=>r.id),all=CASE_RUNS.A.concat(CASE_RUNS.B),ran=ranA.concat(ranB);
   const missing=all.filter(x=>ran.indexOf(x)<0),extra=ran.filter(x=>all.indexOf(x)<0);
-  L.say(ranA.join('|')===CASE_RUNS.A.join('|')&&ranB.join('|')===CASE_RUNS.B.join('|')&&ran.length===CASE_TOTAL,'TC-R236 CASES all '+CASE_TOTAL+' of this gate\'s case runs ran, each lane in its order ('+ran.length+' ran: lane A '+ranA.length+' of '+CASE_RUNS.A.length+', lane B '+ranB.length+' of '+CASE_RUNS.B.length+')',{missing,extra});
+  L.say(ranA.join('|')===CASE_RUNS.A.join('|')&&ranB.join('|')===CASE_RUNS.B.join('|')&&ran.length===CASE_TOTAL,'TC-R236b CASES all '+CASE_TOTAL+' of this gate\'s case runs ran, each lane in its order ('+ran.length+' ran: lane A '+ranA.length+' of '+CASE_RUNS.A.length+', lane B '+ranB.length+' of '+CASE_RUNS.B.length+')',{missing,extra});
   const SHARED_WANT=18;
-  L.say(SHARED_SEEN.length===SHARED_WANT,'TC-R236 SHARED '+SHARED_SEEN.length+' of the '+SHARED_WANT+' launches that stand on a reviewed Opera Game checked that they graded from the one shared analysis',SHARED_SEEN);
-  L.say(secs<TIME_LIMIT_S,'TC-R236 TIME the whole gate finished in '+secs+' s, inside '+TIME_LIMIT_S+' s (two thirds of the 900 s gates.sh allows a gate)',{secs,slowest:RUNS.slice().sort((a,b)=>b.s-a.s).slice(0,5)});
+  L.say(SHARED_SEEN.length===SHARED_WANT,'TC-R236a SHARED '+SHARED_SEEN.length+' of the '+SHARED_WANT+' launches that stand on a reviewed Opera Game checked that they graded from the one shared analysis',SHARED_SEEN);
+  L.say(secs<TIME_LIMIT_S,'TC-R236c TIME the whole gate finished in '+secs+' s, inside '+TIME_LIMIT_S+' s (two thirds of the 900 s gates.sh allows a gate)',{secs,slowest:RUNS.slice().sort((a,b)=>b.s-a.s).slice(0,5)});
   }
 },'REVIEW');
 // SELECTOR-OPENED: pbar-top reading=presence round 4: the names and flags are read inside the bars and must be found

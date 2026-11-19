@@ -2547,3 +2547,10 @@ As a player learning with a teacher beside me, I can play the app's computer at 
 - Review opens it with them: the summary says it is a coach game and how many notes it has, the line under the board leads with the note at its move, a tap shows all of it, and a move a hint, a takeback or the engine's view was asked before says so. The Review board does not move for a note. (TC-R235h)
 - More > Saved coach games lists the coach games kept on this phone, and a tap opens one in Review. The PGN I copy keeps my notes as comments and nothing private to the app. (TC-R235i)
 - There is no coach control on a game between two people, on the Online sheet or screen, or on a computer game started with Coach mode off; such a game is never saved as a coach game. (TC-R235j)
+
+### US-R165 Gate 20 finishes well inside its limit on a quiet machine and a busy one, with every one of its checks run
+*Added in batch 13, jobs/gate-20-is-killed-at-its-900-second-limit-in-3-of-4-runs-on-551-make-it-finish-well-inside-it-2026-11-18 (decisions/batch-13-avoids-wasted-full-suite-reruns-2026-11-18, part 3: the two flaky gates fixed first; his pick C, the slowest gates made faster).*
+As the person who runs the full suite, gate 20 (the Review screen) is never killed at its 900 second limit, so a red there is a real fault and never the clock; and every case it ran before still runs, with every line it had.
+- The Opera Game is analysed from nothing by the three main walks (whose TC-R01 times a fresh import), and every later launch that only needs a reviewed Opera Game is given that stored analysis and is graded from it, not by a second engine pass. (TC-R236a)
+- All 35 of the gate's case runs run, each lane in its order, and a case dropped from a loop is a red line. (TC-R236b)
+- The whole gate finishes inside 600 seconds, two thirds of its limit, quiet and with one core busy. (TC-R236c)
