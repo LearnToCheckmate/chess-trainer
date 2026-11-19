@@ -1,0 +1,26 @@
+{
+ "job": "scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18",
+ "about": "After a board scan: Check the board first (the board the way the photo shows it, the line 'Tap a square to fix it.', a tap changing a square), then who moves next and which side you are (neither answered for him, Play and Analyze inert until both are), then Play (the side and turn he said, the computer first only when he said the other side moves) or Analyze (both sides his), with the board kept the way the photo shows it, the Flip icon, and three best moves under the board that update after each move. Graded by gate 174 (TC-R244a..n) on a trial bundle at 375x761 with his insets and at 320x568, classic and medieval skins, plus one launch with every Stockfish worker failed (the row's own-search branch), on three RECORDED scan answers doubled at CTCloud._scanBoard (Black to move; a camera on Black's side with the two readings disagreeing; an as-shot reading that says Black is at the bottom). NOT COVERED: a real photograph through the deployed scan function (his Q32 deploy, then his phone); whether the three moves are the engine's true best beyond the mate-in-one pin; the look against Q30-r3.png, which is his to judge from the renders; landscape and desktop widths.",
+ "gate": "gates/regress/174-scan-check-then-ask-then-play.js",
+ "checks": ["^(kunal761|se) (classic|medieval|no-engine) TC-R244"],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761 classic", "match": "^kunal761 classic "},
+  {"name": "kunal761 medieval", "match": "^kunal761 medieval "},
+  {"name": "se classic", "match": "^se classic "},
+  {"name": "se medieval", "match": "^se medieval "},
+  {"name": "kunal761 no engine", "match": "^kunal761 no-engine "}
+ ],
+ "breaks": [
+  {"name": "side-question-skipped", "patch": "breaks/scan-side-question-skipped.diff",
+   "why": "Play and Analyze go live as soon as who-moves is answered and the side is taken to be the side to move - the old behaviour his FB-16 note asks to end ('a picture cannot always tell which side I am interested in playing')",
+   "mustFailIn": ["kunal761 classic", "kunal761 medieval", "se classic", "se medieval"]},
+  {"name": "board-flipped-to-side-chosen", "patch": "breaks/scan-board-flipped-to-side-chosen.diff",
+   "why": "the game's board is turned to the side he plays (Black at the bottom when he plays Black) instead of kept the way the photo shows it",
+   "mustFailIn": ["kunal761 classic", "kunal761 medieval", "se classic", "se medieval"]},
+  {"name": "best-moves-not-updated", "patch": "breaks/scan-best-moves-not-updated.diff",
+   "why": "the three best moves are asked once when the game starts and never again, so after a move the row still shows the first position's moves",
+   "mustFailIn": ["kunal761 classic", "kunal761 medieval", "se classic", "se medieval", "kunal761 no engine"]}
+ ],
+ "timeoutSec": 1500
+}

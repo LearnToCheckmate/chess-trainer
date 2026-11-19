@@ -311,14 +311,14 @@ L.run(async()=>{
    const b=await L.launch({geo:land?{w:375,h:730,safe:gv.safe,label:'375x730 then rotated to '+gv.label}:gv,name:'gk-F-'+glab});await b.open();
    let live=null;
    try{
+     /* batch 13 (jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18): the scan route runs through Check the
+        board and its two questions (gates/drive/scan.js), and Play takes the New Game sheet's pending clock - so the 1 min control is chosen on
+        the sheet BEFORE the scan (it was chosen after the scan landed there), and White, PRE_MATE's side to move, moves next and is the player. */
      await P.states['setup'](b);await b.settle(200);
-     await b.page.evaluate(()=>{const C=window.CTCloud;if(C&&C._emit)C._emit({uid:'gate-uid',name:'Gate',email:'gate@example.test',photo:null});});
-     await b.settle(250);
-     await b.page.evaluate((fen)=>{window.CTCloud._scanBoard=function(){return Promise.resolve({ok:true,fen});};},PRE_MATE);
-     await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});
-     await b.settle(1200);
      await require('../drive/play').selectTime(b,'1 min');   // #550 q44: the time control is one dropdown
-     await b.tapText(/^▶ (Play this position|Start game)$/,{wait:1600});
+     {const SC=require('../drive/scan');await SC.signIn(b);await b.settle(250);await SC.stub(b,[{ok:true,fen:PRE_MATE}]);
+      await b.page.locator('input[type=file]').nth(1).setInputFiles({name:'board.png',mimeType:'image/png',buffer:png8()});await b.settle(1200);
+      await SC.next(b);await SC.answer(b,'turn','White');await SC.answer(b,'side','White');const st=await SC.start(b,'Play');if(st!=='ok')throw new Error('the scan route did not start a game: '+st);await b.settle(1600);}
      live=await cpuChromeOf(b);
      await b.move('h5','f7',600);await b.settle(1500);
    }catch(e){L.say(false,G+'F0 harness threw driving the scan route to the vs-Computer mate (NOT an app result)',String(e&&e.message||e).slice(0,160));}

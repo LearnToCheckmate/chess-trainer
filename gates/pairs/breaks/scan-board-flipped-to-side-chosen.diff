@@ -1,0 +1,16 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7585,5 +7585,5 @@
+ 
+   /* batch 13 (Q30): a game a scan started keeps the board the way the PHOTO shows it whichever side he plays and whoever is to move; the Flip icon is the only thing that turns it */
+-  useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(scanGameRef.current?scanGameRef.current.flip:pColor==='b');},[pColor,opponent,mode]);
++  useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(pColor==='b');},[pColor,opponent,mode]);
+   useEffect(()=>{if(mode==='play'&&opponent==='human'&&!playEnd){if(scanGameRef.current)return;setFlip(game.turn==='b');}},[game.turn,opponent,mode,playEnd]);
+   useEffect(()=>{if((mode==='learn'||mode==='puzzle')&&scanGameRef.current){scanGameRef.current=null;setScanGame(null);}},[mode]);   /* a lesson or a puzzle replaces the board */
+@@ -9308,5 +9308,5 @@
+     setOpenIdx(null);setMode('play');setHomeScreen(false);setPlaySetup(false);setSetupFromFEN(null);
+     scanArmRef.current=true;fullReset(g);playStartFenRef.current=fen;
+-    scanGameRef.current=sg;setScanGame(sg);setScanBest(null);setFlip(sg.flip);setScanCheck(null);
++    scanGameRef.current=sg;setScanGame(sg);setScanBest(null);setFlip(sc.side==='b');setScanCheck(null);
+   };
+   const scanBoardFile=(file)=>{

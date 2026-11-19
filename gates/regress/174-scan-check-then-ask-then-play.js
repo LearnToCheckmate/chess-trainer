@@ -142,7 +142,7 @@ async function screens(geo,skin,sstore,pro){
     L.say(!!r&&r.sans.length===3&&new Set(r.sans).size===3&&r.sans.every(s=>legalSans(g).includes(s)),T+'i ITALIAN: three different legal moves for Black sit in the best-moves row ('+(r&&r.slots.map(x=>x.text).join(' | '))+')',r&&r.slots);
     L.say(!!r&&r.head==='BEST'&&r.vis==='visible',T+'i ITALIAN: the row is headed BEST',r&&{head:r.head,vis:r.vis});
     L.say(!!r&&!!B0&&r.y>=B0.y+B0.w-0.5&&r.x>=-0.5&&r.right<=r.vw+0.5,T+'i ITALIAN: it is under the board (row top '+(r&&r.y)+', board bottom '+(B0&&(B0.y+B0.w))+') and inside the screen',r&&{y:r.y,x:r.x,right:r.right});
-    L.say(!!r&&r.slots.every(x=>!x.cut&&/^[+-]?\d+\.\d$|^-?M\d+$|^#$/.test(x.ev)),T+'i ITALIAN: each move carries a score and none is cut ('+(r&&r.slots.map(x=>x.ev+' in '+x.w).join(', '))+')',r&&r.slots);
+    L.say(!!r&&r.slots.every(x=>!x.cut&&/^[+-]?\d+\.\d$|^-?M\d+$|^-?#$/.test(x.ev)),T+'i ITALIAN: each move carries a score and none is cut ('+(r&&r.slots.map(x=>x.ev+' in '+x.w).join(', '))+')',r&&r.slots);
     L.say(!!plain&&!!B0&&Math.abs(B0.w-plain.w)<0.6,T+'n ITALIAN: the board is the size of an ordinary game\'s on this phone ('+(B0&&B0.w)+' against '+(plain&&plain.w)+') - the row costs it nothing',{scan:B0,plain});
     stage='ITALIAN his move and the reply';
     const first=r&&r.sans[0];const g1=first?await playSan(b,g,first):null;

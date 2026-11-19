@@ -1,0 +1,16 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9297,5 +9297,5 @@
+      both sides his to move (the one-device game, no clock). Either way the board stays the way the photo shows it (the two flip
+      effects read scanGameRef) and the best three moves sit under it. */
+-  const scanStart=(kind)=>{const sc=scanCheck;if(!sc||!sc.turn||!sc.side||scanBoardProblem(sc.grid))return;
++  const scanStart=(kind)=>{const sc0=scanCheck;if(!sc0||!sc0.turn||scanBoardProblem(sc0.grid))return;const sc={...sc0,side:sc0.side||sc0.turn};
+     const fen=scanFenFor(sc);if(scanTurnProblem(fen))return;
+     let g=null;try{g=fromFEN(fen);}catch(e){g=null;}if(!g)return;
+@@ -11710,5 +11710,5 @@
+         const prob=scanBoardProblem(sc.grid);
+         const fen=(!prob&&sc.turn)?scanFenFor(sc):null;const tprob=fen?scanTurnProblem(fen):null;
+-        const ready=!prob&&!!sc.turn&&!!sc.side&&!tprob;
++        const ready=!prob&&!!sc.turn&&!tprob;
+         const upd=(patch)=>setScanCheck(c=>c?{...c,...patch}:c);
+         const NAME={k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'};

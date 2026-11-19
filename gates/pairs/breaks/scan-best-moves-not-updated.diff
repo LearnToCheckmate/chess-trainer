@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7606,5 +7606,5 @@
+       if(rows.length)setScanBest({fen,rows,src:'sf'});else own();});
+     return()=>{gone=true;if(stopOwn)stopOwn();};
+-  },[scanLive,scanGame,game,playEnd,pColor]);
++  },[scanLive,scanGame]);
+   useEffect(()=>()=>{if(scanBestEngRef.current){scanBestEngRef.current.close();scanBestEngRef.current=null;}},[]);
+   /* batch 13 (Q30, his FB-18): THE BEST THREE MOVES UNDER THE BOARD of a game a scan started, AT NO COST TO THE BOARD. On a phone they sit
