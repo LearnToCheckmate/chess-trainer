@@ -58,7 +58,7 @@ L.run(async()=>{
      truth=!!at&&at.c==='w'&&PW[at.t]===m[2]&&!!me&&PW[me.t]===m[1]&&E.moveHits(t.pre.board,ar,ac,t.m.fr,t.m.fc)&&!E.moveHits(t.post.board,ar,ac,t.m.tr,t.m.tc);why=PW[at&&at.t]+' on '+m[3]+' hits f6 before and not e4 after';}
    L.say(!!m&&truth,'node TC-R234a 12...Ne4 (the audit\'s position) says the knight moves away from the pawn on e5, and the board agrees ('+why+'): "'+t.line+'"',t.line);
    const no1=line('rnbqkb1r/pppp1ppp/5n2/4P3/8/7P/PPPP1PP1/RNBQKBNR b KQkq - 0 3','Ng4','Good',{n:3}),no2=line(F,'a6','Good',{n:12});
-   L.say(!/ away from /.test(no1.line)&&!/ away from /.test(no2.line)&&no1.line.indexOf('THREW')<0&&no2.line.indexOf('NOMOVE')<0,'node TC-R234a (must not) a knight that steps onto a square where a pawn takes it (3...Ng4, hxg4) and a move that leaves the knight where it is (12...a6) are not "moved away": "'+no1.line+'" | "'+no2.line+'"',{no1:no1.line,no2:no2.line});}
+   L.say(!/away from|out of danger|out of the attack/.test(no1.line)&&!/away from|out of danger|out of the attack/.test(no2.line)&&no1.line.indexOf('THREW')<0&&no2.line.indexOf('NOMOVE')<0,'node TC-R234a (must not) a knight that steps onto a square where a pawn takes it (3...Ng4, hxg4) and a move that leaves the knight where it is (12...a6) are not "moved away": "'+no1.line+'" | "'+no2.line+'"',{no1:no1.line,no2:no2.line});}
   // ── TC-R234b, HEX-R-02: A MATE THREAT, the move named with ITS number, and this gate plays it ────────────────────────────────────────
   {const C=[['r4rk1/6pp/2p1p3/P2qB3/1P1P4/2PQ4/5PPP/R5K1 w - - 0 25','Qg3','Good',25,/It threatens (26)\.(Qxg7) mate/],
             ['5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w - - 0 30','Qe4','Best',30,/It threatens (31)\.(Qxh7) mate/],
@@ -67,7 +67,7 @@ L.run(async()=>{
      if(m&&t.pre){was=matesIn1(t.pre);now=matesIn1(flip(t.post));truth=now.indexOf(m[2])>=0&&was.length===0&&+m[1]===n+1&&matesIn1(t.post).length===0;}
      L.say(!!m&&truth,'node TC-R234b '+n+(fen.indexOf(' w ')>0?'.':'...')+san+' names the mate it threatens with the next move number, and this gate finds that move to be mate (mates the mover has if it moves again: '+now.join(',')+'; before the move: '+(was.join(',')||'none')+'): "'+t.line+'"',t.line);}
    const n1=line('5rk1/5ppp/5n2/6N1/8/8/5PPP/4Q1K1 w - - 0 30','Qe4','Good',{n:30}),n2=line('5rk1/5ppp/8/6N1/8/8/5PPP/4Q1K1 w - - 0 30','Qe3','Good',{n:30});
-   L.say(!/threatens/.test(n1.line)&&!/threatens/.test(n2.line)&&n1.line.indexOf('THREW')<0,'node TC-R234b (must not) no mate threat is claimed where the knight on f6 takes the queen (Qe4) or the queen sees nothing near the king (Qe3): "'+n1.line+'" | "'+n2.line+'"',{n1:n1.line,n2:n2.line});}
+   L.say(!/threaten/.test(n1.line)&&!/threaten/.test(n2.line)&&n1.line.indexOf('THREW')<0,'node TC-R234b (must not) no mate threat is claimed where the knight on f6 takes the queen (Qe4) or the queen sees nothing near the king (Qe3): "'+n1.line+'" | "'+n2.line+'"',{n1:n1.line,n2:n2.line});}
   // ── TC-R234c, HEX-R-02: A MATE IN ONE STOPPED ───────────────────────────────────────────────────────────────────────────────────────
   {let g=E.fromFEN(START);for(const s of OPERA.slice(0,11))g=E.makeMove(g,mv(g,s));const fenO=E.toFEN(g);
    const C=[[fenO,'Nf6','Best',6,/It stops (7)\.(Qxf7) mate/],['4r1k1/R4ppp/8/8/8/8/5PPP/6K1 w - - 0 30','h3','Best',30,/It stops ()\.\.\.(Re1) mate/]];
@@ -107,7 +107,7 @@ L.run(async()=>{
      const want=new RegExp('^(You give|You leave)[^.]*\\. It is mate in two: '+run.replace(/[.+]/g,'\\$&')+'\\.$');
      L.say(want.test(due.line)&&due.line===got.line&&truth,'node TC-R234g '+san+' prints the mate before the refutation search lands and the same after it (this gate plays '+three.join(' ')+': one legal reply ('+rep+'), then checkmate): "'+due.line+'"',{due:due.line,got:got.line});}
    const nb=line('rn2kb1r/p3qppp/2p2n2/1p2p1B1/2B1P3/1QN5/PPP2PPP/R3K2R w KQkq - 0 10','Nxb5','Brilliant',{n:10,ctx:{refuteDue:true}});
-   L.say(!/\bmate\b/.test(nb.line)&&/^You give/.test(nb.line),'node TC-R234g (must not) 10.Nxb5, a sacrifice that mates nobody, claims no mate: "'+nb.line+'"',nb.line);}
+   L.say(!/mate\b/i.test(nb.line)&&/^You give/.test(nb.line),'node TC-R234g (must not) 10.Nxb5, a sacrifice that mates nobody, claims no mate: "'+nb.line+'"',nb.line);}
   // ── TC-R234h, residual B6: a check keeps its sign, in a run and in the prose ────────────────────────────────────────────────────────
   {const f5=line('4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 15','Nxd7','Blunder',{n:15,reply:'Qb8+',best:'Qxd7',loss:1500,ev:99,uc:'w'});
    L.say(/It allows mate in two: 16\.Qb8\+ Nxb8 17\.Rd8 mate\.$/.test(f5.line),'node TC-R234h the mate-in-two run keeps the check sign on the move that checks and drops only the mate mark: "'+f5.line+'"',f5.line);
