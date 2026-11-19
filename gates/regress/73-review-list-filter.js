@@ -368,7 +368,7 @@ async function READ(b){
     // not ("of 7 so far"). `(?:the )?` is what lets ONE instrument read the shipped bundle and the fix, which
     // is the whole point of block A's design and is why C2/C4/C4b did not have to be rewritten per bundle.
     const ung=txt(ungEl), m=ung?ung.match(/graded (\d+) of (?:the )?(\d+)/i):null;
-    const opps=rows.map(r=>{const m2=(r.innerText||'').match(/vs\s+(\S+)/);return m2?m2[1]:null;}).filter(Boolean);
+    const opps=rows.map(r=>{const o=r.querySelector('[data-ct="game-opp"]');if(o){const t=(o.textContent||'').replace(/\u00a0/g,' ').replace(/^vs\s+/,'').trim();if(t&&!/\s/.test(t))return t;}   /* batch 13, the three row card reads '<opponent> vs <account>': the opponent is the name box's own text (the old card's began 'vs '); the text route below stays as the fallback */const m2=(r.innerText||'').match(/vs\s+(\S+)/);return m2?m2[1]:null;}).filter(Boolean);
     const badges=rows.map(r=>{const m3=(r.innerText||'').match(/^(WON|LOST|DRAW|GAME)/);return m3?m3[1]:null;});
     const fil=document.querySelector('[data-ct="glist-filters"]');
     // #507 vis AND ghost ARE WHAT STOP B7 AND D2b GOING VACUOUS. The Clear chip is now ALWAYS in the layout
@@ -1568,10 +1568,10 @@ function mkTap(b,READ){
    const pre=seen.filter(x=>!x.tally),post=seen.filter(x=>x.tally);
    L.say(pre.length>0&&post.length>0,geo+': TC-R76 DENOMINATOR the first row was sampled both BEFORE its tally ('+pre.length+') and AFTER it ('+post.length+')',{pre:pre.length,post:post.length});
    L.say(pre.length>0&&post.length>0&&pre[0].top===post[post.length-1].top,geo+': TC-R76 the first game row does not move when the tally lands ('+(pre[0]&&pre[0].top)+' -> '+(post.length&&post[post.length-1].top)+')',{first:pre[0],last:post[post.length-1]});
-   L.say(pre.length>0&&post.length>0&&Math.abs(pre[0].h-post[post.length-1].h)<=1,geo+': TC-R76 and the first row\'s HEIGHT does not change when its tally lands ('+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+'): the brilliant pill sits under the result badge and the counts keep to one line',{first:pre[0],last:post[post.length-1]});
-   const bp=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');const p=e&&e.querySelector('[data-ct="bril-pill"],[data-ct="bril-pill-est"]');const bd=e&&e.querySelector('[data-ct="game-badge"]');
+   L.say(pre.length>0&&post.length>0&&Math.abs(pre[0].h-post[post.length-1].h)<=1,geo+': TC-R76 and the first row\'s HEIGHT does not change when its tally lands ('+(pre[0]&&pre[0].h)+' -> '+(post.length&&post[post.length-1].h)+'): the counts\' row is held before they arrive',{first:pre[0],last:post[post.length-1]});
+   const bp=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="game-row"]');const p=e&&e.querySelector('[data-ct="bril-pill"],[data-ct="bril-pill-est"],[data-ct="gstat-bril"]');   /* batch 13 (the three row card): the brilliant count is the first move box, under the result box and as wide; the pill hooks are the old card's and stay so the control bundle is read the same way */const bd=e&&e.querySelector('[data-ct="game-badge"]');
      if(!p||!bd)return {pill:!!p,badge:!!bd};const q=p.getBoundingClientRect(),r=bd.getBoundingClientRect();return {pill:true,badge:true,below:q.top>=r.bottom-0.5,inCol:q.left>=r.left-1&&q.right<=r.right+1,text:(p.innerText||'').replace(/\s+/g,' ')};});
-   L.say(!!bp.pill&&!!bp.badge&&bp.below&&bp.inCol,geo+': TC-R76 the first row\'s brilliant pill sits BELOW its result badge, inside the badge\'s column ("'+(bp.text||'')+'")',bp);
+   L.say(!!bp.pill&&!!bp.badge&&bp.below&&bp.inCol,geo+': TC-R76 the first row\'s brilliant count sits BELOW its result badge, inside the badge\'s column ("'+(bp.text||'')+'")',bp);
    await b.close();}}
   // TC-R90 (US-R90), #547 item (136): A CLOUD PULL MERGES THE GAME TALLIES, IT DOES NOT TRADE THEM FOR A LONGER STRING. The signed-in
   // path, which no gate drove before: window.CTCloud is stubbed (held against index.html's own assignment). This device holds three
@@ -1598,7 +1598,8 @@ function mkTap(b,READ){
     await b.open(); await b.tile('Review'); await b.settle(1200); await openF(b);
     const r=await b.page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-ct="game-row"]')];
       return rows.map(x=>{const t=(x.innerText||'').replace(/\s+/g,' ');const m=[...x.querySelectorAll('[aria-label]')].filter(e=>/opponent played a brilliant/i.test(e.getAttribute('aria-label')));
-        return {opp:(t.match(/vs ([^\s!]+)/)||[])[1]||null,mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||null};});});
+        const o=x.querySelector('[data-ct="game-opp"]');const on=o?(o.textContent||'').replace(/\u00a0/g,' ').replace(/^vs\s+/,'').trim():'';   /* batch 13, the three row card: the opponent from the name box, the player's own brilliant count from the first move box ('!! N'); the old card's 'vs <name>' and '!! N brilliant' are still read */
+        return {opp:(on&&!/[\s!]/.test(on))?on:((t.match(/vs ([^\s!]+)/)||[])[1]||null),mark:m.length,markText:m.length?(m[0].innerText||'').trim():null,own:(t.match(/!! (\d+) brilliant/)||[])[1]||((((x.querySelector('[data-ct="gstat-bril"]')||{}).textContent||'').match(/^!! (\d+)$/)||[])[1])||null};});});
     const g1=r.find(x=>x.opp==='opp1'),g2=r.find(x=>x.opp==='opp2');
     L.say(!!g1&&!!g2,'TC-R101 PRECONDITION the rows for g1 (obril 1) and g2 (obril 0) are on the list',{rows:r.length,g1,g2});
     L.say(!!g1&&g1.mark===1,'TC-R101 the row of a game where the opponent played a brilliant carries ONE marker that says so',g1);
@@ -1654,7 +1655,7 @@ function mkTap(b,READ){
       const pan=(pe&&pe!==document.body)?{h:pe.getBoundingClientRect().height,t:(pe.innerText||'').replace(/\s+/g,' ')}:null;
       const r1=v=>v==null?null:Math.round(v*10)/10;
       return {n:document.querySelectorAll('[data-ct="game-row"]').length,top:q&&r1(q.top),bot:q&&r1(q.bottom),h:q&&r1(q.height),tally:!!(e&&e.querySelector('[data-ct="gstat-est"],[data-ct="gstat-rev"]')),
-        brilLine:!!(e&&/brilliant/i.test(e.innerText||'')),tabTop:r1(tb),panH:pan&&r1(pan.h),panTiles:!!(pan&&/Games reviewed/i.test(pan.t)&&/Achievements/i.test(pan.t))};});
+        brilLine:!!(e&&(/brilliant/i.test(e.innerText||'')||(()=>{const q2=e.querySelector('[data-ct="gstat-bril"]');return !!q2&&q2.getBoundingClientRect().height>0&&/^!! \d+$/.test(q2.textContent.trim());})())),   /* batch 13: on the three row card the brilliant line is the counted brilliant box */tabTop:r1(tb),panH:pan&&r1(pan.h),panTiles:!!(pan&&/Games reviewed/i.test(pan.t)&&/Achievements/i.test(pan.t))};});
     let r=null;for(let k=0;k<60;k++){r=await M();if(r.tally&&r.brilLine)break;await b.page.waitForTimeout(250);}
     await b.settle(600);r=await M();
     L.say(r.n===10&&r.tally&&r.brilLine&&r.tabTop!=null,geo+': TC-R110 PRECONDITION ten games on one account, the first row TALLIED (EST/grade badge and the brilliant line) and the tab bar found',r);
@@ -1716,15 +1717,19 @@ function mkTap(b,READ){
       // the cell around it is a flex item, so its computed display is block too and its textContent also starts 'vs' - a first
       // draft matched that wrapper and measured the wrong box. The line under it is the name line's next sibling.
       const own=(e)=>[...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').replace(/\u00a0/g,' ');
-      const out=rows.map(row=>{const opp=[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));const sub=row.querySelector('[data-ct="game-sub"]')||(opp?opp.nextElementSibling:null);   /* #550 item (74): the name line now shares its row with the date and the chevron, so the line under it is no longer the name's next sibling; game-sub is the hook #549 already carried (not one this build adds), with the old route kept as the fallback */const badge=(row.firstElementChild&&row.firstElementChild.firstElementChild)||row.firstElementChild;   /* the badge is the first child OF the row's badge column (#549 put it in a column with the tally under it; #550 holds the tally's slot on every card, so the column's own text is no longer the badge's) */
-        return {opp:full(opp),sub:full(sub),badge:badge&&{t:badge.textContent,...full(badge)},_o:opp,_s:sub,_b:badge};});
+      const out=rows.map(row=>{const opp=row.querySelector('[data-ct="game-opp"]')||[...row.querySelectorAll('span')].find(s=>/(^|\s)vs\s\S/.test(own(s)));   /* batch 13, the three row card: the opponent's name is its own box ('<opponent> vs <account>'), found by the hook the old card already carried, the text route kept as the fallback */const sub=row.querySelector('[data-ct="game-sub"]')||(opp?opp.nextElementSibling:null);   /* #550 item (74): the name line now shares its row with the date and the chevron, so the line under it is no longer the name's next sibling; game-sub is the hook #549 already carried (not one this build adds), with the old route kept as the fallback */const badge=row.querySelector('[data-ct="game-badge"]')||(row.firstElementChild&&row.firstElementChild.firstElementChild)||row.firstElementChild;   /* the badge is the first child OF the row's badge column (#549 put it in a column with the tally under it; #550 holds the tally's slot on every card, so the column's own text is no longer the badge's) */
+        return {opp:full(opp),sub:full(sub),badge:badge&&{t:badge.textContent,...full(badge)},_o:opp,_s:sub,_b:badge,_r:row};});
       const seeded=[];const words=[];
       for(const o of out){
         if(o._o){const keep=o._o.textContent;o._o.textContent='vs\u00a0'+H25;seeded.push({what:'opponent',...full(o._o)});o._o.textContent=keep;}
-        if(o._s){const keep=o._s.innerHTML;o._s.textContent=H25+' · as White · Correspondence · Sep 30';seeded.push({what:'line under it',...full(o._s)});o._s.innerHTML=keep;}
+        /* batch 13, THE THREE ROW CARD (jobs/review-depth-per-game-on-the-new-game-card-2026-11-15): the account sits on the name line and the line under
+           it is the side, the time control and the date. A text swapped into that card cannot re-run the card's own rules (which depend on the
+           account's length and the screen's width), so its longest real values are read from REAL DATA in a second launch below (seeded3). */
+        if(o._s&&o._r.querySelector('[data-ct="game-names"]')){}
+        else if(o._s){const keep=o._s.innerHTML;o._s.textContent=H25+' · as White · Correspondence · Sep 30';seeded.push({what:'line under it',...full(o._s)});o._s.innerHTML=keep;}
         if(o._b){const keep=o._b.textContent;for(const w of ['WON','LOST','DRAW','GAME']){o._b.textContent=w;words.push({w,...full(o._b)});}o._b.textContent=keep;}
-        delete o._o;delete o._s;delete o._b;}
-      return {n:rows.length,draw:out.some(o=>o.badge&&o.badge.t==='DRAW'),rows:out,seeded,words};},H25);
+        delete o._o;delete o._s;delete o._b;delete o._r;}
+      return {n:rows.length,three:rows.length>0&&rows.every(x=>!!x.querySelector('[data-ct="game-names"]')),draw:out.some(o=>o.badge&&o.badge.t==='DRAW'),rows:out,seeded,words};},H25);
     L.say(r.n>=3&&r.draw&&r.rows.every(o=>o.opp&&o.sub&&o.badge),'TC-R153 '+dim+' DENOMINATOR the Review list shows the seeded games ('+r.n+' rows, a DRAW among them), and in every row the name line, the line under it and the badge were found by their text',{n:r.n,draw:r.draw});
     // CONTROL-RECORD: c9819db 2026-11-12 total=189 red=9 scope=blocks:TC-R153 how=[scope repaired #550 test-system helper B: written 'block:TC-R153 trial:315c163e', two tokens and 'block' for 'blocks', which made the line unparsable; the trial bundle is 315c163e (8 hex, as written)] #550 a7 re-key (one line, a drawn ellipsis): t145, the tree where the card lines reflow - TC-R153a/b/c red at 320x568, 375x761 and 440x956 (the 25-character handle wraps to 2 lines); on t146 49b5f01b 189/0, TC-R76 included (the tally's slot is held on every card)
     /* RE-KEYED AT #550 [run-answers build__1794388896663-a7, Kunal 11 Nov: "keep it as the three dots towards the end of the name"; formatting
@@ -1733,7 +1738,21 @@ function mkTap(b,READ){
        and never by a silent clip - CLAUDE.md "when something is cut off, assert WHICH THING DID THE CUTTING". d (the badge) is unchanged. */
     L.say(r.rows.length>0&&r.rows.every(o=>o.opp&&o.opp.one),'TC-R153a '+dim+': every row keeps the opponent line to ONE line, ending in an ellipsis if it does not fit (run-answers a7)',r.rows.map(o=>o.opp));
     L.say(r.rows.length>0&&r.rows.every(o=>o.sub&&o.sub.one),'TC-R153b '+dim+': every row keeps the line under it (account, colour, time control, date) to ONE line, ending in an ellipsis if it does not fit',r.rows.map(o=>o.sub));
-    L.say(r.seeded.length>=2*r.n&&r.seeded.every(x=>x.one),'TC-R153c '+dim+': holding the LONGEST real values (a 25-character handle; a 25-character account and the longest tail), both lines stay ONE line, cut by a drawn ellipsis - every card the same height',r.seeded);
+    /* batch 13, the three row card, TC-R153c ON REAL DATA: a 25-character account (chess.com's cap) playing a 25-character opponent, a Lichess
+       correspondence game dated 30 Sep, once as White and once as Black. The reading, per card: the opponent's name ONE line cut by a drawn
+       ellipsis (never a silent clip); the account whole and inside the card; every part of the line under it (side, time control, date) wholly
+       inside that line's box or wholly out of it, never cut through; and both cards one height. */
+    let s3=null;
+    if(r.three){const A25='Zyxwvutsrqponmlkjihgfedcb';const D=Date.UTC(2026,8,30,12);const mk3=(w)=>({src:'li',acct:A25,white:w?A25:H25,black:w?H25:A25,wr:'win',tc:'correspondence',date:D-(w?0:86400000),pgn:'[White "'+(w?A25:H25)+'"]\n[Black "'+(w?H25:A25)+'"]\n[Result "1-0"]\n\n1. e4 e5 1-0'});
+      const b3=await L.launch({geo,name:'r153c3-'+geo,store:{ct_ccuser:'',ct_liuser:'',ct_accts:['li:'+A25],ct_acctgames:{['li:'+A25]:[mk3(true),mk3(false)]},ct_acctasked:{['li:'+A25]:1}}});await b3.open();await b3.tile('Review');await b3.settle(1200);
+      s3=await b3.page.evaluate(([A25,H25])=>[...document.querySelectorAll('[data-ct="game-row"]')].map(row=>{const q1=(k)=>row.querySelector('[data-ct="'+k+'"]');const opp=q1('game-opp'),src=q1('game-src'),sub=q1('game-sub');if(!opp||!src||!sub)return {one:false,why:'a part is missing'};
+        const rr=row.getBoundingClientRect(),inR=(x,b)=>x.left>=b.left-0.5&&x.right<=b.right+0.5&&x.top>=b.top-0.5&&x.bottom<=b.bottom+0.5;const st=getComputedStyle(opp);const oq=opp.getBoundingClientRect(),sr=src.getBoundingClientRect(),sq=sub.getBoundingClientRect();
+        const oppOne=opp.textContent===H25&&oq.width>10&&oq.height<=24&&inR(oq,rr)&&(opp.scrollWidth<=opp.clientWidth||(st.textOverflow==='ellipsis'&&st.overflow==='hidden'));
+        const acctWhole=src.textContent===A25&&sr.width>0&&inR(sr,rr)&&src.scrollWidth<=src.clientWidth+1;
+        const parts=[...sub.children].map(c=>({t:c.textContent,r:c.getBoundingClientRect()})).filter(x=>x.r.width>0);const cutParts=parts.filter(x=>!inR(x.r,sq)&&!(x.r.top>=sq.bottom-0.5)).map(x=>x.t);const shown=parts.filter(x=>inR(x.r,sq)).map(x=>x.t);
+        return {opp:+oq.width.toFixed(1),oppOne,acctWhole,shown,cutParts,h:+rr.height.toFixed(1),one:oppOne&&acctWhole&&cutParts.length===0&&shown.some(t=>/\w/.test(t))};}),[A25,H25]);
+      await b3.close();}
+    L.say(r.three?(!!s3&&s3.length===2&&s3.every(x=>x.one)&&s3[0].h===s3[1].h):(r.seeded.length>=2*r.n&&r.seeded.every(x=>x.one)),'TC-R153c '+dim+': holding the LONGEST real values (a 25-character handle; a 25-character account and the longest tail), '+(r.three?'the opponent is one line cut by a drawn ellipsis, the account is whole, no part of the line under it is cut through - every card the same height':'both lines stay ONE line, cut by a drawn ellipsis - every card the same height'),r.three?s3:r.seeded);
     L.say(r.words.length===4*r.n&&r.words.every(x=>x.ok),'TC-R153d '+dim+': the result badge holds each of its four words (WON, LOST, DRAW, GAME) inside its own border',r.words.filter(x=>!x.ok).concat(r.words.slice(0,4)));
     L.say(b.errs.length===0,'TC-R153 '+dim+': zero app errors',b.errs.slice(0,2));
     await b.close();}
