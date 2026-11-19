@@ -6,8 +6,10 @@ close condition). Decision: `decisions/batch-13-avoids-wasted-full-suite-reruns-
 by hash, and the joined log must still pass gates/verify-log.sh before it can authorise a push; its design is reviewed
 before use."
 
-Written by batch 13 seat B1 BEFORE the code, as the decision asks. **Status: NOT REVIEWED.** The review is the lead's to
-arrange and goes on the job. Nothing in the routine's procedure should use `CT_RESUME` until that review is written.
+Written by batch 13 seat B1 BEFORE the code, as the decision asks. **Status: REVIEWED - SOUND WITH FIXES**
+(`claude/agents/SUITE-RESUME-REVIEW.md`, an independent read-only agent started by the lead, 19 Nov 2026). Fixes 1 to 4
+(review items 1a-1d) and the recommended 1e, 1f, 2i, 2ii, 2iii and 3 are built, each with a TC-R241 case that fails on
+the code before it (section 11). The review belongs on the job as well; that write is the lead's.
 
 ## 0. The shape in one paragraph
 
@@ -44,7 +46,7 @@ last line (a torn line is refused, never half-read).
 
 ```
 #suite-resume v1
-start  <N>  <STEM>  <ALL log path>  <bundle path>  <bundle md5, 32 hex>  <HEAD sha>  <HEAD tree>  <tree digest>  <status digest>  <roster digest>  <env digest>  <gate count>  <UTC time>
+start  <N>  <STEM>  <ALL log path>  <bundle path>  <bundle md5, 32 hex>  <HEAD sha>  <HEAD tree>  <tree digest>  <status digest>  <roster digest>  <env digest>  <gate count>  <toolchain>  <UTC time>
 from   <parent journal path>  <parent journal md5>  <gates imported>            (a resumed run only)
 gate   <i>  <name>  <run stem>  <green|red>  <byte offset in THIS run's ALL>  <byte length>  <unit md5, 32 hex>
 ```
@@ -56,7 +58,11 @@ gate   <i>  <name>  <run stem>  <green|red>  <byte offset in THIS run's ALL>  <b
   carried separately.
 - **status digest**: md5 of the `git status --porcelain` listing at start (`DIRTYL0`).
 - **roster digest**: md5 of the gate list in order (basenames). The gate files' bytes are in the tree digest.
-- **env digest**: md5 of every `CT_*` variable (sorted `name=value`) plus `FONTCONFIG_FILE`, `PLAYWRIGHT_BROWSERS_PATH`,
+- **toolchain** [review 1b]: `node=<node --version> playwright=<its package version> chromium=<the executable path
+  Playwright resolves, which carries the revision directory> fonts=<md5 of the sorted fc-list>`, read from `gates/`.
+  A container restart can change any of these and no variable says so (#537 was Chromium 141 to 153). It is compared
+  on its own (so the refusal names it) and folded into the env digest.
+- **env digest**: md5 of the toolchain and of every `CT_*` variable (sorted `name=value`) plus `FONTCONFIG_FILE`, `PLAYWRIGHT_BROWSERS_PATH`,
   `TZ`, `LANG`, `LC_ALL`, EXCEPT `CT_RESUME`, `CT_RESUMABLE`, `CT_GATES_SELFCOPY` (carries a pid), `CT_RUNID` and
   `CT_GAPFILL_OVERRIDE`. The last two act only on the prelude, which the resumed part re-runs and records in its own
   log; everything else that could change what a gate does must be equal.
@@ -65,7 +71,7 @@ gate   <i>  <name>  <run stem>  <green|red>  <byte offset in THIS run's ALL>  <b
 ### 2b. The mark: one line in the log after each finished gate
 
 ```
-    resume-mark: gate <i>/<n> <name> | run <stem> | bundle <md5 32> | head <sha> | tree <tree sha> | body md5 <md5 32>
+    resume-mark: gate <i>/<n> <name> | run <stem> | bundle <md5 32> | head <sha> | tree <tree sha> | state <tree digest>.<status digest>.<env digest> | body md5 <md5 32>
 ```
 
 `body md5` is the md5 of the section from `=== name ===` up to the line before the mark. The line starts with four
@@ -93,6 +99,13 @@ killed run's log at the recorded offset and length and checks the md5; and it ch
 same bundle, head and tree as the start record. It checks the killed log carries no `GATES GREEN`/`GATES RED`/`SUBSET`
 verdict line: a finished run is re-run, never resumed. All of this runs BEFORE the unit layers.
 
+After the rows [review 1a]: the killed log must carry exactly `k` marks (more means rows were cut or lost, and a
+finished gate - a red one included - would drop out of the join), and the bytes after the last journaled unit may hold at
+most one unfinished section, with no green verdict line (a green verdict there means the journal was cut, or the kill
+fell between the verdict and the row: refused). FAIL lines, a `RED (` verdict or `<<<` there are not dropped: the
+resumed run is RED and says so in a `RESUME:` line. And [review 1c] the killed log's prelude must say `tree unchanged
+before the browser gates` and must not say `TREE MOVED BEFORE THE BROWSER GATES`, because that prelude is not carried.
+
 At import time (inside the loop) the md5 is checked AGAIN, because the unit layers ran in between and the killed log is
 an ordinary file.
 
@@ -107,7 +120,7 @@ gates.sh #NNN  bundle ...  md5 <same 12>  <resumed run's start time>     <- part
 ...
 regression assertions (PASS lines): ...                                   <- the UNCHANGED footer code, over the joined file
 ...
-resume: joined run of 2 part(s): 552 gates 1-2, 552b gates 3-145 | every part on bundle <md5> head <sha> tree <sha> | journal <path> md5 <md5>
+resume: 2 part(s): 552 gates 1-2, 552b gates 3-145 | bundle <md5 32> | head <sha> | tree <tree sha> | journal <path>
 gates ran (145): ...
 ...
 GATES GREEN #NNN
@@ -142,8 +155,14 @@ before the unit layers):
 | a unit's bytes in the killed log do not match its md5, at start or at import | the killed log was edited, truncated or overwritten |
 | a unit's mark names another bundle, head or tree | a unit from another run was spliced in |
 | the killed log carries a verdict line | a finished run is re-run, not resumed |
+| another toolchain (node, Playwright, the Chromium path, the font list) [1b] | the rest would be another measurement |
+| the killed log's mark count is not its journal's row count, or more than one section follows the last row, or that section already carries a green verdict [1a] | the journal was cut, so a finished gate would drop out |
+| the killed log says TREE MOVED, or does not say tree unchanged, before its browser gates [1c] | its gates may have read another tree |
+| (not refused, made RED) FAIL, RED or `<<<` in the unfinished section [1a] | they are carried, never dropped |
+| (not refused, read from the bytes) a copied section whose journal column says green and whose bytes say red [1d] | the copied section's own verdict decides `red`, never the journal column |
 
-By `gates/verify-join.sh`, called from verify-log.sh whenever a log carries a mark or a `resume:` line:
+By `gates/verify-join.sh`, called from verify-log.sh whenever a log carries a mark, a `resume: <n> part(s): ` line or a
+`suite-resume: ` line [1f, 2i]:
 
 | refused | why |
 |---|---|
@@ -151,7 +170,8 @@ By `gates/verify-join.sh`, called from verify-log.sh whenever a log carries a ma
 | a section with no mark, a mark with no section, or two marks in one section | the section and its proof disagree |
 | a mark's index, count or name disagreeing with the section's position and the roster | **a gate missing** or **a gate counted twice**, even when the two cancel out in the count (which the existing roster-count check alone cannot see) |
 | a roster name with no section, or a name with two sections | the same, stated by name |
-| two marks naming different bundles, heads or trees | **two parts with different hashes** |
+| two marks naming different bundles, heads, trees or states (tree, status and environment digests) [1e] | **two parts with different hashes** |
+| more than one distinct `toolchain: playwright` line across the sections [1b] | the parts ran on different builds; gates.sh's footer and verify-log read only the first such line |
 | a mark's bundle not beginning with the header's md5, or its head not the ref line's HEAD | **another bundle or tree** than the log says it gated |
 | a section whose body md5 is not its mark's | edited after it was written, or assembled from elsewhere |
 | the `resume:` line's parts not equal to the marks' run stems as contiguous blocks, in order | the join's own account disagrees with its contents |
@@ -207,3 +227,16 @@ bash gates/verify-log.sh gates/logs/NNNb-all.log '#NNN'                    # the
 
 Archive the joined log AND the killed part's log; name the killed one `NNN-all-INCOMPLETE-container-restart.log` as
 prompts/build-run already says.
+
+## 11. The review's fixes, and the proof each one was needed
+
+The selftest after the fixes reads 88 pass, 0 fail. The same selftest run against the code BEFORE the fixes (commit
+0481a730's suite-resume.sh, verify-join.sh and verify-log.sh) reads 66 pass, 22 fail, and every new case is among the
+fails: b17 (a cut journal resumed GATES GREEN over a dropped red gate), b18 (FAIL lines in the unfinished tail dropped,
+GATES GREEN), b19 (a green verdict with no row accepted), b20 and b21 (another node accepted; no toolchain recorded),
+b22 and b23 (a TREE MOVED prelude, and a log with no tree line, resumed), a22 (a journal edited to green gave GATES GREEN
+over a copied red section), c20 (two toolchains joined), c21 (another state joined), c22 (a `suite-resume:`-only log
+never reached the judge). c19 fails there too, only because the old mark format has no `state` field.
+2ii: `gates/gatemanifest.sh sigpipe` found the selftest's `grep ... | grep -qF` (TIER A, total 13 over the ceiling 12);
+it is a herestring now and the audit reads 12 again; `gates/audit/pipefail-grep.sh` reads the base's counts.
+2iii: the header comment of suite-resume.sh now says what it does (no early-exiting grep reads a pipe).
