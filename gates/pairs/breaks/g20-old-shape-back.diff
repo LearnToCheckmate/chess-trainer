@@ -1,0 +1,25 @@
+diff --git a/gates/regress/20-review.js b/gates/regress/20-review.js
+index 17502e72..4d3468a4 100644
+--- a/gates/regress/20-review.js
++++ b/gates/regress/20-review.js
+@@ -102,5 +102,5 @@ const mark=(id,lane)=>{lane=lane||'A';const now=Date.now();const r=_run[lane];if
+ // THE SHARED ANALYSIS: ct_evalcache as the first main walk left it (a JSON string), seeded into every launch that only stands on a review.
+ let OPERA_CACHE=null;
+-const shared=(st)=>Object.assign({},st||{},OPERA_CACHE?{ct_evalcache:OPERA_CACHE}:{});
++const shared=(st)=>Object.assign({},st||{});
+ const SHARED_SEEN=[];
+ const sharedHit=async(b,id)=>{const e=await b.page.evaluate(()=>{const r=window.__ctReview;return r&&r.engine?{path:r.engine.path,plies:r.plies&&r.plies.length}:null;}).catch(()=>null);
+@@ -284,5 +284,5 @@ L.run(async()=>{try{
+       if(L.say(ok&&c.keys===1&&c.evW===34&&c.det===1&&c.path!=='cache',geo+': TC-R236a SHARED the first main walk analysed the Opera Game from nothing (engine path '+c.path+') and left one complete stored analysis, 34 positions, det 1, to share',{keys:c.keys,evW:c.evW,det:c.det,path:c.path}))OPERA_CACHE=c.s;}
+     // Lane B starts here, once, whether or not the share was taken (without it each of its cases analyses afresh and its SHARED line is red).
+-    if(!laneBP)laneBP=laneB().catch(e=>{L.say(false,'TC-R236 lane B threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));});
++    if(!laneBP)laneBP=Promise.resolve().catch(e=>{L.say(false,'TC-R236 lane B threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));});
+     // TC-R04 summary
+     /* #393 (uat390-review-summary-menu-covered): THE SUMMARY MUST OFFER A WAY INTO THE MENU, AND IT MUST
+@@ -895,5 +895,5 @@ L.run(async()=>{try{
+   // TC-R236 [batch 13]: the gate's own case count and its own time. In a finally, so a case that throws still leaves both lines -
+   // red, with the list of what ran - rather than a gate that stops without saying which cases it never reached.
+-  mark(null);if(laneBP)await laneBP;
++  mark(null);await laneB();
+   const secs=Math.round(process.uptime());
+   for(const ln of ['A','B'])L.note('TC-R236 TIMINGS lane '+ln+' (s, per case run, in order): '+RUNS.filter(r=>r.lane===ln).map(r=>r.id+' '+r.s).join(' | ')+' | lane total '+Math.round(RUNS.filter(r=>r.lane===ln).reduce((a,r)=>a+r.s,0)));
