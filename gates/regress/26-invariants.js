@@ -1474,7 +1474,7 @@ L.run(async()=>{
     WALK.push([name,go]);
     if(NC_DUP.includes(name)) WALK.push([name,go]);
   }
-  // CT_INV_ONLY=band runs ONLY the TC-INV-15 block at the foot of this run (the grading machine's pair for
+  // CT_INV_ONLY=band runs ONLY the TC-R239 block at the foot of this run (the grading machine's pair for
   // jobs/gate-26-goes-red-at-ply-31-...-2026-11-18 uses it, about a minute a geometry). Opt-in, printed loudly, never set by gates.sh, and
   // like CT_INV_GEOS it skips the default-run guards, so such a run is never a coverage run.
   const ONLY=process.env.CT_INV_ONLY||'';
@@ -2124,7 +2124,7 @@ L.run(async()=>{
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
   }
   }   // end if(!ONLY)
-  // TC-INV-15 [batch 13; jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18].
+  // TC-R239 [batch 13; jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18].
   // THE EVAL GRAPH NEVER SITS OVER THE MOVE'S EXPLANATION, IN ANY FRAME. Gate 26 went red 1 in 20 at se rev-ply31 on main ffc8fa2 with
   // one core busy: the centre of the explanation (rev-why-txt, a button when it has more to say) hit an SVG rect of the eval graph. The
   // checker's frame probe on c58695d found why: from the jump until the refutation clause arrived 1.3 to 1.5 s later the reason was one
@@ -2172,23 +2172,23 @@ L.run(async()=>{
           const inPend=fr.filter(f=>f.txt!==last.txt&&f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
           const onCentre=fr.filter(f=>f.hit==='graph');
           const finalAt=(fr.find(f=>f.txt===last.txt)||{}).t;
-          L.say(fr.length>=60&&last.t>=2000,g+' TC-INV-15 PRECONDITION ply '+n+': '+fr.length+' animation frames sampled from the jump over '+(last.t||0)+'ms, the reason final from '+finalAt+'ms - the verdicts below are over every frame of that window',{frames:fr.length,ms:last.t,finalAt,firstTxt:first.txt,lastTxt:last.txt});
+          L.say(fr.length>=60&&last.t>=2000,g+' TC-R239 PRECONDITION ply '+n+': '+fr.length+' animation frames sampled from the jump over '+(last.t||0)+'ms, the reason final from '+finalAt+'ms - the verdicts below are over every frame of that window',{frames:fr.length,ms:last.t,finalAt,firstTxt:first.txt,lastTxt:last.txt});
           if(PEND_PLIES.includes(n)){
-            L.say(pendN>0&&first.txt!==last.txt&&String(last.txt).indexOf(String(first.txt))===0,g+' TC-INV-15a PRECONDITION ply '+n+': the reason WAS still coming at the jump ('+pendN+' frames before it reached its final text, which it then grew to) - the window this block exists for was reached',{pendFrames:pendN,markedPending:markN,pendingTxt:first.txt,finalTxt:last.txt,finalAt});
-            L.say(inPend.length===0,g+' TC-INV-15b ply '+n+': in NO frame while the reason is still coming does the eval graph sit inside the reason\'s box - the box is held whole for the text that is coming',inPend.slice(0,3));
+            L.say(pendN>0&&first.txt!==last.txt&&String(last.txt).indexOf(String(first.txt))===0,g+' TC-R239a PRECONDITION ply '+n+': the reason WAS still coming at the jump ('+pendN+' frames before it reached its final text, which it then grew to) - the window this block exists for was reached',{pendFrames:pendN,markedPending:markN,pendingTxt:first.txt,finalTxt:last.txt,finalAt});
+            L.say(inPend.length===0,g+' TC-R239b ply '+n+': in NO frame while the reason is still coming does the eval graph sit inside the reason\'s box - the box is held whole for the text that is coming',inPend.slice(0,3));
           }
-          if(FINAL_PLIES.includes(n)) L.say(pendN===0&&markN===0,g+' TC-INV-15a ply '+n+': the reason is final from the first frame (16.Qb8+ states its mate in two at once, HEX-R-06) - so this ply has no pending window, and a pending one appearing again is red here first',{pendFrames:pendN,markedPending:markN,txt:last.txt});
-          L.say(overTxt.length===0,g+' TC-INV-15c ply '+n+': in NO frame, from the jump to 2s after the reason is final, does the eval graph\'s top sit above the last painted line of the reason - including the frame the longer text lands in',overTxt.slice(0,3));
-          if(n!==SHORT_PLY) L.say(onCentre.length===0,g+' TC-INV-15d ply '+n+': in NO frame does the centre of the reason hit the eval graph, so a tap on the explanation never jumps the review to another move (the gate 26 red of 17 Nov)',onCentre.slice(0,3));
+          if(FINAL_PLIES.includes(n)) L.say(pendN===0&&markN===0,g+' TC-R239a ply '+n+': the reason is final from the first frame (16.Qb8+ states its mate in two at once, HEX-R-06) - so this ply has no pending window, and a pending one appearing again is red here first',{pendFrames:pendN,markedPending:markN,txt:last.txt});
+          L.say(overTxt.length===0,g+' TC-R239c ply '+n+': in NO frame, from the jump to 2s after the reason is final, does the eval graph\'s top sit above the last painted line of the reason - including the frame the longer text lands in',overTxt.slice(0,3));
+          if(n!==SHORT_PLY) L.say(onCentre.length===0,g+' TC-R239d ply '+n+': in NO frame does the centre of the reason hit the eval graph, so a tap on the explanation never jumps the review to another move (the gate 26 red of 17 Nov)',onCentre.slice(0,3));
           // 15d is not asked at the last ply: there a one-word final reason gives its empty lines to the graph BY DESIGN (gate 77 TC-S04), and
           // the box's centre lies in those lines - measured on ca53d655 at 320x568, 'Checkmate.' inks to 457 and the graph starts at 463. That
           // the graph is there and stays there is 15e's claim; what this block forbids is a graph that comes and goes over a reason.
           if(n===SHORT_PLY){
             const ins=fr.filter(f=>f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
-            L.say(graphN>0&&ins.length>0,g+' TC-INV-15e ply '+n+' (a one-line final reason): the eval graph IS drawn, and inside the reason box\'s empty lines ('+ins.length+' of '+fr.length+' frames) - the short reason still gives its unused lines to the graph (gate 77 TC-S04), and the detector above can see a graph in the box',{graphFrames:graphN,inBox:ins.length,txt:last.txt,gTop:last.gTop,xBot:last.xBot,ink:last.ink});
+            L.say(graphN>0&&ins.length>0,g+' TC-R239e ply '+n+' (a one-line final reason): the eval graph IS drawn, and inside the reason box\'s empty lines ('+ins.length+' of '+fr.length+' frames) - the short reason still gives its unused lines to the graph (gate 77 TC-S04), and the detector above can see a graph in the box',{graphFrames:graphN,inBox:ins.length,txt:last.txt,gTop:last.gTop,xBot:last.xBot,ink:last.ink});
           }
         }
-      }catch(e){L.say(false,g+' TC-INV-15 the band walk drove to its end',String(e.message||e));}
+      }catch(e){L.say(false,g+' TC-R239 the band walk drove to its end',String(e.message||e));}
       await b.close();
     }
   }
