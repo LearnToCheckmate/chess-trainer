@@ -2534,3 +2534,16 @@ As a player reading the review of my game, I am told what each move concretely d
 - In the engine line in words, a capture that takes back is not "wins", a check is called a check, a king that steps out of check says so, and the only legal move says so. (TC-R234j, TC-R234k)
 - The summary's Coach's take names my toughest moment with its move number and, where the board proves it, what the move lost. (TC-R234l, TC-R234n)
 - All of this reads the same on my phone and at 320x568, after stepping to the move. (TC-R234m, TC-R234n)
+
+### US-R164 Coach mode: a game against the app with a teacher's notes, hints, takebacks and the engine's view when I ask
+*Added in batch 13, jobs/coach-mode-a-game-against-the-app-with-a-teachers-notes-hints-takebacks-and-the-engine-on-request-2026-11-03. Kunal, 31 Oct 2026: coaching inside a live game, "as a training exercise with a teacher"; his answer to questions/CHESSCOM-GAMES, 3 Nov 2026: "Both" (coach mode on the app's own games, and finished games in Review). Coach mode is for the app's own games against its own computer and nothing else: no game in progress on Chess.com or any other site is brought into the app, followed or analysed (Chess.com's fair play rules count outside help in a live game as a breach whatever the reason; commitments open[109]).*
+As a player learning with a teacher beside me, I can play the app's computer at the level I choose in a coach game, so that we can stop on any move, write down what to remember, ask for help, try a move again, and read it all back in the review afterwards.
+- On the New Game sheet, with Computer chosen, a Coach mode button sits beside White and Black; it is off until I tap it and it starts the game as a coach game at the level I picked. The sheet is no taller for it. (TC-R235a, TC-R235b)
+- In a coach game, More has Note on a move: a sheet with every move played and a text box, hanging from the top of the screen so the keyboard does not cover it. A move with a note is underlined in the move list, and a tap on a move opens its note. (TC-R235c)
+- Hint is the game's own hint, and Takeback is the game's own takeback; a coach game remembers that each was asked for. A note on a move that is taken back goes with the move. (TC-R235d, TC-R235f)
+- More has Engine's view: the engine's evaluation and best move for the position in front of me, in the status line above the board, only when I ask, and gone when the position changes. (TC-R235e)
+- None of these moves the board or changes its size. (TC-R235c, TC-R235d, TC-R235e, TC-R235f)
+- The game is saved on my phone as I play it, with its notes and what was asked for. (TC-R235g)
+- Review opens it with them: the summary says it is a coach game and how many notes it has, the line under the board leads with the note at its move, a tap shows all of it, and a move a hint, a takeback or the engine's view was asked before says so. The Review board does not move for a note. (TC-R235h)
+- More > Saved coach games lists the coach games kept on this phone, and a tap opens one in Review. The PGN I copy keeps my notes as comments and nothing private to the app. (TC-R235i)
+- There is no coach control on a game between two people, on the Online sheet or screen, or on a computer game started with Coach mode off; such a game is never saved as a coach game. (TC-R235j)
