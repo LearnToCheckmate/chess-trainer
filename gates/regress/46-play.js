@@ -81,8 +81,8 @@ const plyCount=(b)=>b.page.evaluate(()=>{const p=document.querySelector('[data-c
 // The six control buttons, in DOM order, with rects. Matched on their own text so the sheet's rows cannot
 // be picked up by mistake.
 const rowBtns=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')]
-  .filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&/^(Moves|Back|Forward|Hint|Flip|More|Review|Rematch)$/.test((x.innerText||'').trim());})
-  .map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim(),x:Math.round(r.left*10)/10,y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,bottom:Math.round(r.bottom*10)/10,right:Math.round(r.right*10)/10,dis:!!x.disabled};}));
+  .filter(x=>{const r=x.getBoundingClientRect();const t=(x.innerText||'').trim()||x.getAttribute('aria-label')||'';return r.width>1&&r.height>1&&/^(Moves|Back|Forward|Hint|Flip|More|Review|Rematch)$/.test(t);})   /* batch 13 (jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18): the row is icons only, so a button with no words is named by its aria-label */
+  .map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||'').trim()||x.getAttribute('aria-label')||'',x:Math.round(r.left*10)/10,y:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,bottom:Math.round(r.bottom*10)/10,right:Math.round(r.right*10)/10,dis:!!x.disabled};}));
 // The hint paints HL_HINT (chess.jsx:1111, 'rgba(255,200,30,.75)') on the from and to squares. There is no
 // data-ct on the hint - counting the painted squares is the only measurement available, and it is exact.
 const hintSquares=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(d=>d.style.background==='rgba(255, 200, 30, 0.75)').length);
@@ -263,10 +263,10 @@ L.run(async()=>{
     // control into view and pass a row a thumb cannot reach; these rects are the pre-tap truth.
     const r4=await rowBtns(b);
     L.say(r4.length===6&&r4.map(x=>x.t).join(',')===ROW_LIVE.join(','),geo+': in a live game the row is '+ROW_LIVE.join(' · '),r4.map(x=>x.t).join(','));
-    L.say(r4.every(x=>near(x.h,51)),geo+': every control button is 51 tall',r4.map(x=>x.t+':'+x.h).join(' '));
+    L.say(r4.every(x=>near(x.h,44)),geo+': every control button is 44 tall (batch 13, icons only in the shared row button; the row keeps its 51 so the board does not move)',r4.map(x=>x.t+':'+x.h).join(' '));
     L.say(r4.every(x=>x.bottom<=b.geo.h+0.5&&x.y>=0),geo+': the whole control row is inside the viewport before any tap (bottom '+(r4[0]&&r4[0].bottom)+' <= '+b.geo.h+')',{bottom:r4[0]&&r4[0].bottom,vh:b.geo.h});
     L.say(r4.every(x=>x.right<=b.geo.w+0.5&&x.x>=0),geo+': no control button hangs off either edge',r4.map(x=>x.x+'..'+x.right).join(' '));
-    L.note(geo+': narrowest control button is '+Math.min(...r4.map(x=>x.w))+' wide x 51 tall (K-PL-1 ANSWERED - decisions/k5k7-tap-size-44, \'No - 44 binds only where a story says so\', so 44 is not a floor here)');
+    L.note(geo+': narrowest control button is '+Math.min(...r4.map(x=>x.w))+' wide x 44 tall (K-PL-1 ANSWERED - decisions/k5k7-tap-size-44, \'No - 44 binds only where a story says so\', so 44 is not a floor here)');
 
     // --- TC-PL-007: Back is live after moves, Forward is dead at the head.
     L.say(r4[1].dis===false&&r4[2].dis===true,geo+': after four plies Back is live and Forward is dead - the board is at the head of the game',{back:r4[1].dis,forward:r4[2].dis});
@@ -449,7 +449,7 @@ L.run(async()=>{
     L.say(!!mh&&mh.inkLeft>=10.5,geo+': TC-PL-060 the MOVES label sits at least 11px in from the screen edge (it read '+(mh&&mh.inkLeft)+'; vs Computer reads 11) - the Pass & Play panel runs edge to edge and the label must not',mh);
     const rE=await rowBtns(b);
     L.say(rE.length===6&&rE.map(x=>x.t).join(',')===ROW_OVER.join(','),geo+': at game over the row is '+ROW_OVER.join(' · ')+' - Hint and Flip give their two slots to Review and Rematch, same row, same height (#371)',rE.map(x=>x.t).join(','));
-    L.say(rE.every(x=>near(x.h,51)),geo+': and every one of them is still 51 tall, so the row below the board did not change height',rE.map(x=>x.t+':'+x.h).join(' '));
+    L.say(rE.every(x=>near(x.h,44)),geo+': and every one of them is still 44 tall, so the row below the board did not change height',rE.map(x=>x.t+':'+x.h).join(' '));
     L.say(rE.every(x=>x.bottom<=b.geo.h+0.5),geo+': the whole game-over row is inside the viewport before any tap',{bottom:rE[0]&&rE[0].bottom,vh:b.geo.h});
     // --- TC-PL-024: Review is live once there are moves to review.
     L.say(rE[3].t==='Review'&&rE[3].dis===false,geo+': Review is live on a finished four-ply game',{review:rE[3]});
@@ -578,8 +578,8 @@ L.run(async()=>{
     L.say(pBack===pTerm-1,geo+': Back actually moves the previewed ply off the terminal one ('+pTerm+' -> '+pBack+') - without this the two assertions below are the terminal-ply assertions again under another name',{before:pTerm,after:pBack});
     L.say(rBack.length===6&&rBack.map(x=>x.t).join(',')===ROW_OVER.join(','),
       geo+': ONE PLY BACK FROM THE MATE the row is still '+ROW_OVER.join(' · ')+' - the game-over row is keyed to the GAME being over, not to the ply on screen. This is the first assertion in the suite where the ply-keyed half of (isOver||playEnd) is the operative half: if the row reverted to '+ROW_LIVE.join(' · ')+' here, this line and only this line would go red',rBack.map(x=>x.t).join(','));
-    L.say(rBack.every(x=>near(x.h,51))&&rBack.every(x=>x.bottom<=b.geo.h+0.5),
-      geo+': and that row is still 51 tall and still inside the viewport one ply back - the row does not change height or fall off the fold when the previewed position does',{heights:rBack.map(x=>x.t+':'+x.h).join(' '),bottom:rBack[0]&&rBack[0].bottom,vh:b.geo.h});
+    L.say(rBack.every(x=>near(x.h,44))&&rBack.every(x=>x.bottom<=b.geo.h+0.5),
+      geo+': and that row is still 44 tall and still inside the viewport one ply back - the row does not change height or fall off the fold when the previewed position does',{heights:rBack.map(x=>x.t+':'+x.h).join(' '),bottom:rBack[0]&&rBack[0].bottom,vh:b.geo.h});
     /* THE CARD'S PLY-KEYING IS MEASURED AND DELIBERATELY NOT ASSERTED HERE, AND THIS IS THE ONE THING THIS
        ARM COSTS. It is real: read twice on #492, once by a standalone probe and once by this arm sitting
        mid-block, stepping one ply back from the mate removes "Checkmate! Black wins" and stepping forward

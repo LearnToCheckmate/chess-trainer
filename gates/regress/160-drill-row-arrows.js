@@ -28,11 +28,12 @@ L.run(async()=>{
     try{await b.tile('Review');await b.settle(700);await b.tapText(d.enter,{wait:1800});await b.page.locator('[data-ct="drill-row"]').waitFor({state:'visible',timeout:15000});await b.settle(900);}catch(e){ok=false;L.note(tag+': '+String(e).slice(0,140));}
     const r=await b.page.evaluate(()=>{const row=document.querySelector('[data-ct="drill-row"]');const one=(ct)=>{const e=document.querySelector('[data-ct="'+ct+'"]');if(!e)return null;const q=e.getBoundingClientRect();
         const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return {w:+q.width.toFixed(1),h:+q.height.toFixed(1),txt:(e.innerText||'').replace(/\s+/g,' ').trim(),svg:!!e.querySelector('svg'),al:e.getAttribute('aria-label'),self:!!h&&(h===e||e.contains(h))};};
-      return {row:row?+row.getBoundingClientRect().height.toFixed(1):null,prev:one('drill-prev'),next:one('drill-next')};});
+      const hb=[...(row?row.querySelectorAll('button[aria-label="Hint"]'):[])].map(e=>+e.getBoundingClientRect().width.toFixed(1))[0]||null;
+      return {row:row?+row.getBoundingClientRect().height.toFixed(1):null,rowW:row?+row.getBoundingClientRect().width.toFixed(1):null,hintW:hb,prev:one('drill-prev'),next:one('drill-next')};});
     L.say(ok&&!!r.row&&!!r.prev&&!!r.next,'TC-R114d '+tag+' DENOMINATOR the drill row is up with Prev and Next',r);
     if(r.prev&&r.next){
       L.say(r.prev.txt===''&&r.next.txt===''&&r.prev.svg&&r.next.svg&&r.prev.al==='Previous card'&&r.next.al==='Next card','TC-R114d '+tag+' Prev and Next are arrows with no words, named Previous card / Next card (words "'+r.prev.txt+'" / "'+r.next.txt+'")',{prev:r.prev,next:r.next});
-      L.say([r.prev,r.next].every(x=>x.w>=43.5&&x.h>=43.5&&x.self)&&r.prev.w+r.next.w<=100,'TC-R114e '+tag+' each is a 44 tap target that takes a tap at its centre, and the two take '+(r.prev.w+r.next.w).toFixed(1)+' of the row ('+r.prev.w+'x'+r.prev.h+', '+r.next.w+'x'+r.next.h+')',{prev:r.prev,next:r.next});
+      L.say([r.prev,r.next].every(x=>x.w>=43.5&&x.h>=43.5&&x.self)&&r.hintW!=null&&[r.prev,r.next].every(x=>Math.abs(x.w-r.hintW)<=1),'TC-R114e '+tag+' each is a 44 tap target that takes a tap at its centre, and each is the width of the row\'s Hint button ('+r.hintW+'; batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: one size per row, re-pinned from "the two take at most 100") - the two take '+(r.prev.w+r.next.w).toFixed(1)+' of the row ('+r.prev.w+'x'+r.prev.h+', '+r.next.w+'x'+r.next.h+')',{prev:r.prev,next:r.next});
     }
     L.say(r.row!=null&&Math.abs(r.row-44)<=1,'TC-R114f '+tag+' the row is '+r.row+' tall - it does not grow',{row:r.row});
     L.say(b.errs.length===0,'TC-R114 '+tag+' zero app errors',b.errs.slice(0,3));await b.close();}

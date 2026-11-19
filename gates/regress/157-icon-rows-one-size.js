@@ -97,10 +97,10 @@ async function inkOf(b,handle){
 const ROWS={
   rev:{enter:b=>R.states['moves-ply31'](b),members:[['Back','[data-ct="rev-back"]','only'],['More','[data-ct="rev-more"]','only']]},
   puzzle:{enter:b=>PZ.states['train'](b),members:[['Previous puzzle','[data-ct="pz-bottom"] button[aria-label="Previous puzzle"]','only'],
-    ['Hint','[data-ct="pz-bottom"] button:has-text("Hint")','first',/^💡 Hint$/],['Show','[data-ct="pz-bottom"] button:has-text("Show")','first',/^👁 Show$/],
-    ['Reset','[data-ct="pz-bottom"] button:has-text("Reset")','first',/^↺ Reset$/],['Next puzzle','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','only']]},
+    ['Hint','[data-ct="pz-bottom"] button[aria-label="Hint"]','only'],['Show','[data-ct="pz-bottom"] button[aria-label="Show move"]','only'],
+    ['Reset','[data-ct="pz-bottom"] button[aria-label="Reset"]','only']   /* batch 13 (jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18): the row is icons only, so each is an icon alone found by its name */,['Next puzzle','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','only']]},
   solved:{enter:b=>PZ.states['train-solved'](b),members:[['Previous puzzle','[data-ct="pz-bottom"] button[aria-label="Previous puzzle"]','only'],
-    ['Next','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','last',/^Next ›$/]]},
+    ['Next','[data-ct="pz-bottom"] button[aria-label="Next puzzle"]','only']]},
   drill:{store:DSTORE,enter:async b=>{await b.tile('Review');await b.settle(700);await b.tapText(/find the move you missed/,{wait:1800});await b.page.locator('[data-ct="drill-row"]').waitFor({state:'visible',timeout:15000});await b.settle(900);},
     members:[['Hint','[data-ct="drill-row"] button[aria-label="Hint"]','only'],['Show move','[data-ct="drill-row"] button[aria-label="Show move"]','only'],
       ['Reset','[data-ct="drill-row"] button[aria-label="Reset"]','only'],['Prev','[data-ct="drill-prev"]','only'],['Next','[data-ct="drill-next"]','only']]},   // #550 helper B (jobs/transport-row-icon-only, the drill-card extension): Prev and Next are the two arrows now (gate 160), so they are icons alone here
@@ -126,16 +126,16 @@ const ROWS={
     ['Flip','[data-ct="lesson-footer"] button[aria-label="Flip board"]','only',null,'se'],['Hints','[data-ct="lesson-footer"] button[aria-label="Hints"]','only',null,'se'],
     ['Try again','[data-ct="lesson-footer"] button[aria-label="Try again"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
   lessonrow:{tol:1,geo:'kunal761',enter:b=>LS.states['practice-m0'](b),members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
-    ['Try again','button[aria-label="Try again"]','first',/^↻ Try again$/]]},
+    ['Try again','button[aria-label="Try again"]','only']]},
   lessondone:{tol:1,enter:b=>LS.states['practice-complete'](b),members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
-    ['Next','button[aria-label^="Next lesson:"]','last',/^(Next: .+|Next lesson|Next) ›$/,'kunal761'],['Next','button[aria-label^="Next lesson:"]','only',null,'se'],
+    ['Next','button[aria-label^="Next lesson:"]','only'],
     ['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only',null,'se']]},
   // a clean run with Hints on offers '✓ Bank it' in the same slot (gate 111 TC-R191d's route: practice, Hints on at move 0, the Italian line)
   lessonbank:{tol:1,store:{ct_pool:'3'},enter:async b=>{await LS.states['practice-m0'](b);await LS.tapBtn(b,/^Hints$/,400);
       for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3'],['d2','d3']]){await b.move(f,t,1100);if(/Complete!/.test((await LS.noteText(b))||''))break;}
       await b.settle(700);await b.page.locator('[data-ct="lesson-bank-it"]').waitFor({state:'visible',timeout:8000});},
     members:[['Flip','button[aria-label="Flip board"]','only'],['Hints','button[aria-label="Hints"]','only'],
-      ['Bank it','[data-ct="lesson-bank-it"]','first',/^✓ Bank it(: hints off)?$/,'kunal761'],['Bank it','[data-ct="lesson-bank-it"]','only',null,'se']]},
+      ['Bank it','[data-ct="lesson-bank-it"]','only']]},
 };
 const TOL=2;
 // TC-IR-06 ONE COMPONENT [#550 helper B; jobs/lesson-footer-icons-consistent, checkVerdict_550_recheck stillUnmet (2): "the lesson footer

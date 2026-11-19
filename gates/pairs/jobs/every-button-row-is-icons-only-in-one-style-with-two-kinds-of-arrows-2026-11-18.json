@@ -1,0 +1,24 @@
+{
+ "job": "every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18",
+ "about": "Every button row icons only in one shared style (RowBtn on footBtnStyle), with white step arrows (StepArrow) for moves and blue triangles (NavTri) for the previous or next item. Graded by gate 172 (TC-R237a..e) on a trial bundle at 375x761 with his insets and at 320x568, in the Classic and Medieval skins, over four of its rows (the game's row vs the computer after four plies, the puzzle row after a first move, the solved puzzle, Strategy) - the whole gate runs fifteen rows and is the suite's. NOT COVERED: the game-review screen (held: B2 on the Review screen, batch 13), the sideways layouts, Apple emoji ink and his phone.",
+ "gate": "gates/regress/172-icon-rows-one-style.js",
+ "env": {"CT_G172_ONLY": "play-live,puzzle,puzzle-solved,strategy"},
+ "checks": ["TC-R237[a-e] "],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-R237[a-e] 375x761 "},
+  {"name": "se 320x568", "match": "^TC-R237[a-e] 320x568 "}
+ ],
+ "breaks": [
+  {"name": "a-word-comes-back", "patch": "breaks/172-a-word-comes-back.diff",
+   "why": "the game's Moves button paints its word again under the icon (the old icon-and-tiny-label button)",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "a-row-of-two-sizes", "patch": "breaks/172-a-row-of-two-sizes.diff",
+   "why": "the puzzle row's Previous and Next go back to fixed 46px buttons beside three wider helpers, so the row has two sizes",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "prev-next-drawn-with-the-step-arrow", "patch": "breaks/172-prev-next-drawn-with-the-step-arrow.diff",
+   "why": "the puzzle's Next puzzle button draws the white step chevron instead of the blue triangle, so going to another puzzle looks like stepping a move",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1500
+}

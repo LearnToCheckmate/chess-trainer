@@ -4714,7 +4714,7 @@ function RowIcon({name,size:size0=ROW_ICON_PX}){
    footer's gold); `primary` the one solid-accent action of a row. Children are ONE icon: RowIcon, StepArrow or NavTri. */
 function RowBtn({label,onClick,dis,hot,primary,ct,flex,minW,children,hidden}){
   return(<button type="button" onClick={dis?undefined:onClick} disabled={!!dis} aria-disabled={dis?true:undefined} title={label} aria-label={label} aria-pressed={hot==null?undefined:!!hot} data-ct={ct||'row-btn'} data-rowbtn="1"
-    style={{...footBtnStyle({hot,primary,flex:flex||'1 1 0',minW:(minW==null?44:minW)}),padding:0,opacity:dis?.42:1,cursor:dis?'default':'pointer',color:dis?'rgba(255,255,255,.55)':(primary?'var(--acInk,#0b0d10)':hot?'var(--ac2)':'#fff'),...(hidden?{visibility:'hidden',pointerEvents:'none'}:null)}}>{children}</button>);
+    style={{...footBtnStyle({hot,primary,flex:flex||'1 1 0',minW:(minW==null?44:minW)}),opacity:dis?.42:1,cursor:dis?'default':'pointer',color:dis?'rgba(255,255,255,.55)':(primary?'var(--acInk,#0b0d10)':hot?'var(--ac2)':'#fff'),...(hidden?{visibility:'hidden',pointerEvents:'none'}:null)}}>{children}</button>);
 }
 /* #366 y3b. The same lesson a third time, for emoji. Four emoji in four identical boxes never look
    the same size, because an emoji's font-size is not its drawn size: measured, the pawn drew 15px of
@@ -13749,7 +13749,7 @@ function AppMain(){
              give back goes to the three helpers. The row's height is the 44 it was (the job's own note: the 44 floor keeps the height). */
           const _nb=(pr)=>({...navBtn(pr),flex:'0 0 46px',minWidth:46,minHeight:44,padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'});
           return(<div data-ct="drill-row" style={{display:'flex',gap:6,width:'100%',alignItems:'stretch'}}>
-            <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 0',minWidth:0}}>
+            <div style={{position:'relative',display:'flex',gap:6,flex:'3 1 12px' /* batch 13: the 12px basis is this box's own two gaps, so its three helpers come out the width of Prev and Next (one size per row) */,minWidth:0}}>
               <div aria-hidden={puzSolved||undefined} style={{display:'flex',gap:6,flex:1,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>
                 {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the drill row is RowBtn, icons only at every width;
                     Previous and Next card are the blue NavTri (another card, not a move) */}

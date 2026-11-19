@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/172-icon-rows-one-style.js - EVERY BUTTON ROW IS ICONS ONLY, IN ONE STYLE, WITH TWO KINDS OF ARROWS. US-R165 / TC-R236a..e.
+// gates/regress/172-icon-rows-one-style.js - EVERY BUTTON ROW IS ICONS ONLY, IN ONE STYLE, WITH TWO KINDS OF ARROWS. US-R166 / TC-R237a..e.
 //
 // WHY [batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18; Kunal's pick on questions/Q24, 'A, icons only',
 // 11:15pm EST Tue 17 Nov 2026; FB-13 'none of the buttons should actually have something written on them']: the rows mixed words with icons,
@@ -10,7 +10,7 @@
 // every screen state below AFTER INTERACTION (moves played, a puzzle solved, a lesson finished). Each row member is found by WHAT IT IS - its
 // accessible name, else its title, else its own words with the glyph stripped - never by a data-ct this build added (CLAUDE.md, #432), so the
 // tree before the change is found, measured and reddened for the right reason (its words, its sizes, its arrows), not for a missing hook.
-// WHAT IT ASSERTS per row (TC-R236):
+// WHAT IT ASSERTS per row (TC-R237):
 //   a PRECONDITION every member is on screen, takes a tap at its centre, and the screen state was reached (a missing member is red, never a pass)
 //   b no member shows a letter or a digit (its painted innerText), except the row's named start button
 //   c every member (start button aside) is at least 44x44 and all of them are ONE size (width and height within 1px)
@@ -72,22 +72,22 @@ L.run(async()=>{
     try{await enter(b);await b.settle(700);}catch(e){ok=false;err=e.message;}
     const r=await b.page.evaluate(READ,[members,roles]);
     const ms=r.out;
-    L.say(ok&&ms.every(m=>m.found),'TC-R236a '+tag+' PRECONDITION the state is reached and every member is on screen and takes a tap ('+ms.map(m=>m.found?m.name:'MISSING '+m.alts.join('|')).join(', ')+'; accent '+r.ac+')',{err,ms:ms.map(m=>({n:m.name||m.alts,f:m.found}))});
+    L.say(ok&&ms.every(m=>m.found),'TC-R237a '+tag+' PRECONDITION the state is reached and every member is on screen and takes a tap ('+ms.map(m=>m.found?m.name:'MISSING '+m.alts.join('|')).join(', ')+'; accent '+r.ac+')',{err,ms:ms.map(m=>({n:m.name||m.alts,f:m.found}))});
     const fm=ms.filter(m=>m.found);const row=fm.filter(m=>!inRole(m,roles.start));
     const worded=row.filter(m=>/[\p{L}\p{N}]/u.test(m.text));
-    L.say(fm.length===ms.length&&row.length>0&&worded.length===0,'TC-R236b '+tag+' no row button shows a word ('+(worded.length?worded.map(m=>JSON.stringify(m.text)).join(', '):'none of '+row.length)+')',worded.map(m=>({n:m.name,t:m.text})));
+    L.say(fm.length===ms.length&&row.length>0&&worded.length===0,'TC-R237b '+tag+' no row button shows a word ('+(worded.length?worded.map(m=>JSON.stringify(m.text)).join(', '):'none of '+row.length)+')',worded.map(m=>({n:m.name,t:m.text})));
     const ws=row.map(m=>m.w),hs=row.map(m=>m.h);
     const one=row.length>0&&Math.max(...ws)-Math.min(...ws)<=1&&Math.max(...hs)-Math.min(...hs)<=1;
-    L.say(fm.length===ms.length&&row.length>0&&row.every(m=>m.w>=43.5&&m.h>=43.5)&&one,'TC-R236c '+tag+' every row button is at least 44x44 and all are one size ('+row.map(m=>m.name+' '+m.w+'x'+m.h).join('; ')+')',row.map(m=>[m.name,m.w,m.h]));
+    L.say(fm.length===ms.length&&row.length>0&&row.every(m=>m.w>=43.5&&m.h>=43.5)&&one,'TC-R237c '+tag+' every row button is at least 44x44 and all are one size ('+row.map(m=>m.name+' '+m.w+'x'+m.h).join('; ')+')',row.map(m=>[m.name,m.w,m.h]));
     const face=m=>(inRole(m,roles.primary)||(m.pressed==='true')||m.bg==='rgba(255, 255, 255, 0.08)')&&m.bi==='none'&&(m.bs==='none'||parseFloat(m.bw)===0)&&m.rad==='12px';
     const bad=row.filter(m=>!face(m));
-    L.say(fm.length===ms.length&&row.length>0&&bad.length===0,'TC-R236d '+tag+' every row button has the shared face ('+(bad.length?bad.map(m=>m.name+' bg '+m.bg+(m.bi!=='none'?' gradient':'')+' border '+m.bw+' r'+m.rad).join('; '):'all '+row.length)+')',bad);
+    L.say(fm.length===ms.length&&row.length>0&&bad.length===0,'TC-R237d '+tag+' every row button has the shared face ('+(bad.length?bad.map(m=>m.name+' bg '+m.bg+(m.bi!=='none'?' gradient':'')+' border '+m.bw+' r'+m.rad).join('; '):'all '+row.length)+')',bad);
     const st=fm.filter(m=>inRole(m,roles.step)),nv=fm.filter(m=>inRole(m,roles.nav));
     if(st.length||nv.length||roles.step||roles.nav){
       const want=(roles.step?roles.step.length:0)+(roles.nav?roles.nav.filter(x=>members.some(a=>a.includes(x))).length:0);
       const badA=[...st.filter(m=>!isStep(m)).map(m=>m.name+' (step) draws '+JSON.stringify(m.shapes.map(x=>x.tag+':'+x.stroke+'/'+x.fill))),...nv.filter(m=>!isNav(m)).map(m=>m.name+' (prev/next) draws '+(m.shapes.length?JSON.stringify(m.shapes.map(x=>x.tag+':'+x.stroke+'/'+x.fill)):JSON.stringify(m.text)))];
-      L.say(fm.length===ms.length&&(st.length+nv.length)>0&&badA.length===0,'TC-R236e '+tag+' each step arrow is the white chevron and each previous/next the blue triangle ('+(badA.length?badA.join('; '):st.length+' step, '+nv.length+' prev/next')+')',{badA,want});
+      L.say(fm.length===ms.length&&(st.length+nv.length)>0&&badA.length===0,'TC-R237e '+tag+' each step arrow is the white chevron and each previous/next the blue triangle ('+(badA.length?badA.join('; '):st.length+' step, '+nv.length+' prev/next')+')',{badA,want});
     }
-    L.say(b.errs.length===0,'TC-R236 '+tag+' zero app errors',b.errs.slice(0,3));
+    L.say(b.errs.length===0,'TC-R237 '+tag+' zero app errors',b.errs.slice(0,3));
     await b.close();}
 });

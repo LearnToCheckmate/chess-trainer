@@ -96,7 +96,7 @@ L.run(async()=>{
    L.say(!!r.note&&!!r.mv&&r.note.br==='12px'&&r.mv.br==='12px','TC-R215t lesson demo kunal761 the note box and the moves panel are radius 12 ('+(r.note&&r.note.br)+' / '+(r.mv&&r.mv.br)+')',r);
    L.say(!!r.note&&!!r.mv&&!!r.row&&Math.abs(r.note.l-r.row.l)<=0.5&&Math.abs(r.note.r-r.row.r)<=0.5&&Math.abs(r.mv.l-r.row.l)<=0.5&&Math.abs(r.mv.r-r.row.r)<=0.5,'TC-R215u lesson demo kunal761 the note box, the row and the moves panel share one left and right edge (note '+(r.note&&r.note.l+'..'+r.note.r)+', row '+(r.row&&r.row.l+'..'+r.row.r)+', moves '+(r.mv&&r.mv.l+'..'+r.mv.r)+')',r);
    try{await D.states['practice-m0'](b);await b.settle(1200);}catch(e){}
-   const t=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);const a=f(/^↻( Try again| Again)?$/),fl=[...document.querySelectorAll('button[aria-label="Flip board"]')].find(x=>x.getBoundingClientRect().width>0);
+   const t=await b.page.evaluate(()=>{const f=(re)=>[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);const a=f(/^↻( Try again| Again)?$/)||[...document.querySelectorAll('button[aria-label="Try again"]')].find(x=>x.getBoundingClientRect().width>0)/* batch 13: icons only */,fl=[...document.querySelectorAll('button[aria-label="Flip board"]')].find(x=>x.getBoundingClientRect().width>0);
      return {again:a?getComputedStyle(a).backgroundColor:null,flip:fl?getComputedStyle(fl).backgroundColor:null};});
    L.say(!!t.again&&!!t.flip,'TC-R215v lesson practice kunal761 PRECONDITION Try again and Flip are on screen',t);
    L.say(!!t.again&&t.again===t.flip,'TC-R215v lesson practice kunal761 Try again is the secondary style, Flip\'s background ('+t.again+' / '+t.flip+')',t);
@@ -200,7 +200,7 @@ L.run(async()=>{
   // Tactics and Strategy: one board top, full width, 44pt actions, the answer over the board
   for(const [gn,geo] of GEOS){const b=await L.launch({geo,name:'top139-tac'});await b.open();let ok=true;try{await D.states.tactics(b);await b.settle(900);}catch(e){ok=false;}
     const rd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
-      const act=[...document.querySelectorAll('button')].filter(x=>x.getBoundingClientRect().width>0&&/^(Hint|Show answer|Next motif →|‹ Prev|Next ›)$/.test((x.innerText||'').trim())).map(x=>({t:(x.innerText||'').trim(),h:+x.getBoundingClientRect().height.toFixed(1)}));
+      const act=[...document.querySelectorAll('button')].filter(x=>x.getBoundingClientRect().width>0&&/^(Hint|Show answer|Next motif →|‹ Prev|Next ›|Next motif|Previous idea|Next idea)$/.test((x.innerText||'').trim()||x.getAttribute('aria-label')||'')).map(x=>({t:(x.innerText||'').trim()||x.getAttribute('aria-label')||'',/* batch 13: icons-only RowBtn, named by aria-label */h:+x.getBoundingClientRect().height.toFixed(1)}));
       const root=document.getElementById('root');return {top:g?+g.top.toFixed(1):null,w:g?+g.width.toFixed(1):null,bottom:g?g.bottom:null,act,sh:root.scrollHeight-root.clientHeight,vw:innerWidth};});
     const t=await rd();
     L.say(ok&&t.top!=null,'TC-R215 Tactics '+gn+' PRECONDITION the Tactics board is on screen',t);
@@ -210,7 +210,7 @@ L.run(async()=>{
     const ov=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].filter(d=>{const r=d.getBoundingClientRect();return r.width>0&&/^(✓ |Answer: )/.test((d.innerText||'').trim())&&d.querySelector('button')&&getComputedStyle(d).position==='absolute';})[0];if(!e)return null;const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom};});
     L.say(!!a&&a.top===t.top&&a.w===t.w&&a.sh<=1,'TC-R215e Tactics '+gn+' showing the answer moves nothing: board top '+t.top+' -> '+(a&&a.top)+', width '+t.w+' -> '+(a&&a.w),a);
     L.say(!!ov&&!!a&&ov.top>=a.top-0.5&&ov.bottom<=a.bottom+0.5,'TC-R215e Tactics '+gn+' the answer opens OVER the board ('+(ov?Math.round(ov.top)+'..'+Math.round(ov.bottom):'no overlay')+' inside '+(a?a.top+'..'+Math.round(a.bottom):'-')+')',ov);
-    L.say(!!a&&a.act.length===1&&a.act[0].t==='Next motif →'&&Math.abs(a.act[0].h-44)<=0.5,'TC-R215c Tactics '+gn+' Next motif is 44 high ('+(a&&a.act.map(x=>x.t+' '+x.h).join(', '))+')',a&&a.act);
+    L.say(!!a&&a.act.length===1&&/^Next motif( →)?$/.test(a.act[0].t)&&Math.abs(a.act[0].h-44)<=0.5,'TC-R215c Tactics '+gn+' Next motif is 44 high ('+(a&&a.act.map(x=>x.t+' '+x.h).join(', '))+')',a&&a.act);
     let s=null;try{await b.tapText(/^Strategy$/);await b.settle(900);s=await rd();}catch(e){}
     L.say(!!s&&s.top===t.top&&s.w===t.w,'TC-R215d Tactics '+gn+' the Strategy board sits at the Tactics board\'s top and size ('+t.top+'/'+t.w+' vs '+(s&&s.top)+'/'+(s&&s.w)+')',s);
     L.say(!!s&&s.act.length===2&&s.act.every(x=>Math.abs(x.h-44)<=0.5),'TC-R215c Strategy '+gn+' Prev and Next are 44 high ('+(s&&s.act.map(x=>x.t+' '+x.h).join(', '))+')',s&&s.act);

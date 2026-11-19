@@ -57,7 +57,7 @@ const box=(b)=>b.page.evaluate(()=>{
 // the hook. The header's own puzzle counter carries the same 'N / D ·' but sits in a narrow span, so the width bound keeps it out.
 const fillWords=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('div')].filter(x=>{const q=x.getBoundingClientRect();return q.width>=innerWidth*0.6&&q.height>0&&q.height<=80&&/^\d+ \/ \d+ \u00b7 .*(in a row|solved|rating)/.test((x.innerText||'').replace(/\s+/g,' ').trim());}).length);
 const hintHead=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="pz-hint-head"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
-const tapBtn=async(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);const el=[...document.querySelectorAll('button')].filter(x=>r.test((x.innerText||'').trim()))[0];if(el){el.scrollIntoView({block:'center'});el.click();return true;}return false;},[re.source,re.flags]);
+const tapBtn=async(b,re)=>b.page.evaluate((src)=>{const r=new RegExp(src[0],src[1]);const el=[...document.querySelectorAll('button')].filter(x=>r.test((x.innerText||'').trim())||(!/[A-Za-z]/.test(x.innerText||'')&&/^(Show move|Hint|Reset)$/.test(x.getAttribute('aria-label')||'')&&r.test({'Show move':'\u{1F441} Show','Hint':'\u{1F4A1} Hint','Reset':'\u21ba Reset'}[x.getAttribute('aria-label')])))[0];   /* batch 13: the phone puzzle row is icons only; its buttons are matched by aria-label mapped to the words this gate's patterns name */if(el){el.scrollIntoView({block:'center'});el.click();return true;}return false;},[re.source,re.flags]);
 
 L.run(async()=>{
   for(const [geo,wantH] of [['kunal730',30],['se',30],['390',74]]){
@@ -227,7 +227,7 @@ L.run(async()=>{
       const x=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^✗/.test((e.innerText||'').trim())).map(e=>e.innerText.trim()):[];const hl=t?[...t.querySelectorAll('div,span')].filter(e=>e.children.length===0&&/^\u{1F4A1}/u.test((e.innerText||'').trim())):[];
       /* #549 (46): the hint is found by WHAT IT SAYS (a leaf in pz-top starting 💡), pz-hint-head first - not by the hook alone, which on the pre-#549 landscape rail does not exist, so the control would only have failed the precondition */
       return {head:h?(h.innerText||'').trim():(hl.length?hl[0].innerText.trim():null),x};});
-    let ok=true,m0=null;try{await Z.states['train'](b);await b.settle(400);m0=await b.metrics();await Z.tapBtn(b,/^💡 Hint$/,600);await b.settle(400);}catch(e){ok=false;}
+    let ok=true,m0=null;try{await Z.states['train'](b);await b.settle(400);m0=await b.metrics();await Z.tapBtn(b,/^(💡 Hint|Hint)$/,600);await b.settle(400);}catch(e){ok=false;}
     const r0=await rd();
     if(!L.say(ok&&!!r0.head&&/^\u{1F4A1}/u.test(r0.head),geo+': TC-R86 PRECONDITION the hint was asked for and is in the header',r0)){await b.close();continue;}
     await b.move('e1','e7',0);try{await Z.waitMsg(b,/^✗/,3000);}catch(e){}await b.settle(500);const r1=await rd();

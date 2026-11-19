@@ -2557,3 +2557,11 @@ As a player who opens the app from its Home Screen icon on my iPhone or iPad, wh
 - If it comes back with an error, the sign-in line says sign-in did not finish and names the error, so a screenshot says which one. (TC-R236f)
 - If that window closes before I finish, the line says so. (TC-R236h)
 - When it comes back signed in, nothing else is said and no window opens. In a Safari tab sign-in works as before: Google's window first, and Google's page when the window cannot open. (TC-R236g, TC-R236i, TC-R236j)
+
+### US-R166 Every button row is icons only, in one style, with one arrow for moves and another for the next item
+*Added in batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18. Kunal's pick on questions/Q24, 11:15pm EST Tue 17 Nov 2026: "A: icons only"; on FB-13: "none of the buttons should actually have something written on them"; in chat the same evening: "whatever is applicable across the board".*
+As a player moving between Play, Puzzles, the drills, Tactics and Strategy, the lessons and the menu, I see every row of buttons drawn the same way, so I read each screen at a glance and the same icon always does the same thing.
+- A row's buttons show an icon and no words; each button's name is read out by a screen reader and shown on a long press. The only buttons with words are a screen's one start button (Now I'll try it in a lesson). (TC-R237b)
+- The buttons in a row are one size, at least 44 by 44 points, with the same face: the same shape, background and icon weight. (TC-R237c, TC-R237d)
+- White arrows step through the moves of a game, a puzzle or a lesson; blue triangles go to the previous or next puzzle, card, lesson, motif or idea. One is never drawn where the other belongs. (TC-R237e)
+- The board does not get smaller or move when the words go. (TC-R237a, gate 46 and gate 26's board pins)
