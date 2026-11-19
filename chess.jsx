@@ -4702,7 +4702,7 @@ const ROW_ICON_PATHS={
 };
 /* ONE PAINTED SIZE: each icon's drawn ink differs inside the same 24 box (the More dots 16 wide, the eye 22), so RowIcon scales each by its own
    factor to about 19.5 of ink on its larger side - the StepArrow's 19.7, the size gate 157 holds a row to (CLAUDE.md, #395: the ink, not the box). */
-const ROW_ICON_K={moves:1.22,hint:1.0,flip:1.03,more:1.22,analyze:1.04,review:1.04,rematch:1.02,show:0.88,reset:1.14,close:1.35,copy:0.97,share:1.02,lines:0.97,tick:1.1,feedback:1.08};
+const ROW_ICON_K={moves:1.22,hint:1.0,flip:0.98,more:1.22,analyze:1.04,review:1.04,rematch:1.02,show:0.88,reset:1.08 /* flip and reset measured 21 of ink at 1.03 and 1.14 beside the bar's 19-20 (gate 157 TC-IR-02 at se, tolerance 1) */,close:1.35,copy:0.97,share:1.02,lines:0.97,tick:1.1,feedback:1.08};
 function RowIcon({name,size:size0=ROW_ICON_PX}){
   const size=Math.round(size0*(ROW_ICON_K[name]||1)*10)/10;
   const own=ROW_ICON_PATHS[name];

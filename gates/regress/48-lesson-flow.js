@@ -597,8 +597,11 @@ L.run(async()=>{
        BOTH BRANCHES ARE STILL ASSERTED, which is the point: "it no longer hangs off" would also be satisfied by
        the button disappearing, or by the glyph and the count dropping at EVERY width - and the second of those
        breaks his Z-06 condition rather than meeting it. The wide branch pins the glyph AND the count. */
-    say(!!lines&&(wantCount?/^♟ Other lines \(3\)$/.test(lTxt):/^Other lines$/.test(lTxt)),
-      geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide, so the button reads '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, WITH the pawn glyph, because the row can hold them':'"Other lines" with NO glyph and NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
+    const lAl=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-lines"]');return e?e.getAttribute('aria-label'):null;});
+    /* RE-KEYED [batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18; Kunal, questions/Q24 'A, icons only']: the button is
+       an icon at every board width now - no words, no count painted - and its NAME carries the count ('Other lines (3)'), so the count is never lost. */
+    say(!!lines&&!/[A-Za-z0-9]/.test(lTxt)&&lAl==='Other lines (3)',
+      geo+': the demo board is '+(dmBoard&&dmBoard.w)+' wide; the button is the lines icon named "'+lAl+'" (it used to read '+(wantCount?'"♟ Other lines (3)" - the Italian Game\'s three variations, WITH the pawn glyph, because the row can hold them':'"Other lines" with NO glyph and NO count, because it cannot')+'. Keyed to the BOARD, which is what decides it, and not to the geometry\'s name.',
       {board:dmBoard&&dmBoard.w,wantCount,label:lTxt});
     /* #550 item (47), jobs/class-clause-instance-case-2026-09-28 (the orchestrator's GAP of 10 Nov): US-INV-05 bullet 3 says NO
        control's box passes the viewport's right edge at THE LESSON THREE, and TC-INV-05c checked one button. Widened to the
@@ -741,8 +744,10 @@ L.run(async()=>{
     // TC-LS-035 [#547 item (187)]: THE OTHER DIRECTION, now that the app keys the words to the budget. Where the
     // budget clears the long label with a margin (>= 96px, against its measured 92.52) the label is the LONG one.
     // The window between 92.52 and 96 is left to a note, so the margin is the app's choice and not a pin.
-    if(budget>=96)say(r0.length===3&&r0[2].t==='↻ Try again',
-      geo+': TC-LS-035 the budget ('+Math.round(budget*100)/100+'px) holds the long label with a margin, so it reads "↻ Try again" - not shortened by a board threshold (#430 measured se at 98.9 reading "↻ Again")',
+    /* RE-KEYED [batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18; Kunal, questions/Q24 'A, icons only']:
+       the row is icons only, so the third button carries no words at any budget; its name, read by a screen reader and by every finder, is 'Try again'. */
+    say(r0.length===3&&!/[A-Za-z]/.test(r0[2].t||'')&&r0[2].a==='Try again',
+      geo+': TC-LS-035 the third button is the reset icon with no words, named "Try again" (it read "↻ Try again" when the budget ('+Math.round(budget*100)/100+'px) held the words; icons only since batch 13)',
       {label:r0[2]&&r0[2].t,budget:Math.round(budget*100)/100});
     else if(!mustBeShort&&r0[2]&&r0[2].t!=='↻ Try again')
       L.note(geo+': NOTE the budget ('+Math.round(budget*100)/100+'px) holds the long label by under 96 - inside the '+
@@ -937,7 +942,7 @@ L.run(async()=>{
      {first:dm0.board&&dm0.board.w,settled:dm.board&&dm.board.w,tol:0.2});
    const dTxt=((dl&&dl.text)||'').trim();
    say(!!dm.board&&dm.board.w<340,geo+': the DEMO board is under 340 here too ('+(dm.board&&dm.board.w)+') while the viewport is '+vw,{board:dm.board&&dm.board.w,vw});
-   say(!!dl&&/^Other lines$/.test(dTxt),geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
+   say(!!dl&&/^(Other lines|)$/.test(dTxt) /* batch 13: icons only - no words at any width */,geo+': so the demo end\'s button reads "Other lines" with NO glyph and NO count - the assertion a viewport-keyed rule gets wrong, because 375 and 390 are above any threshold anyone would set while the row is 270.88 wide. The glyph went at #424 on Kunal\'s Desk answer R2-NARROW-LEVERS; the count went at #404 on his earlier one.',dTxt);
    /* #415 PINS THIS AT 375x520 INSTEAD OF ASSERTING IT, because at that height the button really is off the
       screen and the fix is not this build's to make. MEASURED on the shipped #414 bundle at the demo end:
       320x520 puts it at 229.17..351.73, 31.73px past the right edge of a 320 viewport; 375x520 at
@@ -1537,7 +1542,7 @@ L.run(async()=>{
    const done=await b.page.evaluate(()=>/Complete!/.test(document.body.innerText||''));
    L.say(ok&&done,geo+': TC-LS-036 PRECONDITION the practice line was played to its end and the Complete! note is on screen',{ok,done});
    const nx=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="lesson-next"]');if(!e)return null;return {t:(e.innerText||'').trim(),a:e.getAttribute('aria-label')||'',sw:e.scrollWidth,cw:e.clientWidth};});
-   L.say(!!nx&&/^Next lesson: .+/.test(nx.a)&&/^(Next: .+ ›|Next lesson ›|Next ›|›)$/.test(nx.t),geo+': TC-LS-036 the row offers the NEXT lesson in the slot Try again held ("'+(nx&&nx.t)+'", named in its label: '+(nx&&nx.a)+')',nx);
+   L.say(!!nx&&/^Next lesson: .+/.test(nx.a)&&/^(Next: .+ ›|Next lesson ›|Next ›|›|)$/.test(nx.t) /* batch 13: icons only, so '' (the blue triangle) is the current form */,geo+': TC-LS-036 the row offers the NEXT lesson in the slot Try again held ("'+(nx&&nx.t)+'", named in its label: '+(nx&&nx.a)+')',nx);
    L.say(!!nx&&nx.sw<=nx.cw+0.5,geo+': TC-LS-036 and its label is not cut - the name is shown only where the slot measures wide enough for it',nx);
    const want=nx?nx.a.replace(/^Next lesson: /,''):null;
    // [#547 antagonist A] with Next in the slot, practising the same line again must still have a route: the lesson's ⋯ sheet
