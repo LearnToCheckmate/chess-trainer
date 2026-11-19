@@ -4725,6 +4725,66 @@ function RowBtn({label,onClick,dis,hot,primary,ct,flex,minW,children,hidden}){
   return(<button type="button" onClick={dis?undefined:onClick} disabled={!!dis} aria-disabled={dis?true:undefined} title={label} aria-label={label} aria-pressed={hot==null?undefined:!!hot} data-ct={ct||'row-btn'} data-rowbtn="1"
     style={{...footBtnStyle({hot,primary,flex:flex||'1 1 0',minW:(minW==null?44:minW)}),opacity:dis?.42:1,cursor:dis?'default':'pointer',color:dis?'rgba(255,255,255,.55)':(primary?'var(--acInk,#0b0d10)':hot?'var(--ac2)':'#fff'),...(hidden?{visibility:'hidden',pointerEvents:'none'}:null)}}>{children}</button>);
 }
+/* batch 13, jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18 (Kunal: questions/Q30 'Accept as
+   shown', 11:24pm EST Tue 17 Nov 2026, built from FB-16 'the board the way the photo shows it ... ask it after you set it up', FB-17 a
+   Check the board screen first, FB-18 the best three moves under the board, FB-19 Analyze to move both sides).
+   THE SCAN STEPS, AS PURE PIECES. A scanned position is held as an 8x8 grid of FEN letters (row 0 is rank 8) so one tap can change one
+   square; `flip` is the way the PHOTO shows the board (true: Black at the bottom) and is never derived from the side he plays.
+   scanFenFor keeps the reading's own FEN (castling, move counters) while nothing it rests on was changed, and otherwise writes the
+   placement with the side he said moves next and only the castling rights the kings and rooks still allow. */
+function scanGridOf(fen){const rows=String(fen||'').trim().split(/\s+/)[0].split('/');const g=[];for(let r=0;r<8;r++){const row=[];for(const ch of (rows[r]||'')){if(/[1-8]/.test(ch)){for(let i=0;i<+ch&&row.length<8;i++)row.push(null);}else if(/[prnbqkPRNBQK]/.test(ch)&&row.length<8)row.push(ch);}while(row.length<8)row.push(null);g.push(row);}return g;}
+function scanPlacement(grid){return grid.map(row=>{let o='',e=0;for(const ch of row){if(ch){if(e){o+=e;e=0;}o+=ch;}else e++;}if(e)o+=e;return o;}).join('/');}
+function scanBoardProblem(grid){let K=0,k=0;for(const row of grid)for(const ch of row){if(ch==='K')K++;if(ch==='k')k++;}
+  if(K!==1||k!==1)return 'Each side needs exactly one king.';
+  if(grid[0].some(ch=>ch==='P'||ch==='p')||grid[7].some(ch=>ch==='P'||ch==='p'))return 'A pawn cannot stand on the first or last row.';
+  return null;}
+function scanFenFor(sc){const turn=sc.turn==='b'?'b':'w';const pl=scanPlacement(sc.grid);const parts=String(sc.fen0||'').trim().split(/\s+/);
+  if(parts[0]===pl&&(parts[1]==='b'?'b':'w')===turn&&parts.length>=2)return String(sc.fen0).trim();
+  const g=sc.grid;let cs='';const want=String(parts[2]||'');
+  if(g[7][4]==='K'){if(want.includes('K')&&g[7][7]==='R')cs+='K';if(want.includes('Q')&&g[7][0]==='R')cs+='Q';}
+  if(g[0][4]==='k'){if(want.includes('k')&&g[0][7]==='r')cs+='k';if(want.includes('q')&&g[0][0]==='r')cs+='q';}
+  return pl+' '+turn+' '+(cs||'-')+' - 0 1';}
+/* what stops a game from this board with this side to move: the other king could be taken, or there is no move at all */
+function scanTurnProblem(fen){let g=null;try{g=fromFEN(fen);}catch(e){g=null;}if(!g)return 'That board could not be read.';
+  const mover=g.turn==='w'?'White':'Black',other=g.turn==='w'?'Black':'White';
+  if(isInCheck(g.board,opp(g.turn)))return mover+' cannot be next: '+other+"'s king is in check.";
+  const st=getStatus(g);
+  if(st==='checkmate')return 'With '+mover+' to move it is checkmate: nothing to play.';
+  if(st==='stalemate')return 'With '+mover+' to move it is stalemate: nothing to play.';
+  return null;}
+/* THE BEST THREE MOVES, FROM AN ENGINE OF THEIR OWN. The game's opponent, the hint and the review each own a Stockfish whose searches
+   abort one another (see sfBestLine), and all of them run at MultiPV 1 or 2; a fourth reader on any of them would be a new way for two
+   queries to kill each other. So the scan game's row asks ONE more single-threaded Stockfish at MultiPV 3, made when the first question
+   is asked and closed when the scan game ends. One search at a time: a newer question stops the running one and starts when its
+   `bestmove` arrives, so no line of an old search is ever read as the new position's. cb(rows) gets [{uci,cp,mate}] best first with the
+   score from the MOVER's side, or null when the engine cannot answer (the row then ranks with the app's own search). */
+const SCAN_BEST_MS=500;
+function makeScanBest(){
+  const S={w:null,ready:false,dead:false,cur:null,next:null,to:null};
+  const fail=()=>{S.dead=true;clearTimeout(S.to);const c=S.cur,n=S.next;S.cur=null;S.next=null;try{if(S.w)S.w.terminate();}catch(e){}S.w=null;const q=n||c;if(q)try{q.cb(null);}catch(e){}};
+  const start=()=>{const q=S.next;if(!q||!S.w||!S.ready||S.cur)return;S.next=null;S.cur={fen:q.fen,cb:q.cb,rows:{}};
+    clearTimeout(S.to);S.to=setTimeout(fail,9000);
+    try{S.w.postMessage('position fen '+q.fen);S.w.postMessage(engDetSearch(SCAN_BEST_MS));}catch(e){fail();}};
+  const onMsg=(e)=>{const msg=String(e.data||'');
+    if(msg==='readyok'){S.ready=true;start();return;}
+    const c=S.cur;if(!c)return;
+    if(msg.startsWith('info')&&msg.indexOf(' score ')!==-1&&msg.indexOf(' pv ')!==-1&&msg.indexOf('bound')===-1){
+      const pm=msg.match(/ multipv (\d+)/),fm=msg.match(/ pv (\S+)/),cm=msg.match(/score cp (-?\d+)/),mm=msg.match(/score mate (-?\d+)/);
+      if(fm&&(cm||mm))c.rows[pm?parseInt(pm[1],10):1]={uci:fm[1],cp:cm?parseInt(cm[1],10):null,mate:mm?parseInt(mm[1],10):null};
+    }else if(msg.startsWith('bestmove')){clearTimeout(S.to);S.cur=null;
+      if(S.next){start();return;}
+      const out=Object.keys(c.rows).map(Number).sort((a,b)=>a-b).slice(0,3).map(k=>c.rows[k]);
+      try{c.cb(out.length?out:null);}catch(_e){}}
+  };
+  return {
+    ask(fen,cb){if(S.dead){cb(null);return;}
+      S.next={fen,cb};
+      if(!S.w){try{const w=new Worker('./stockfish-18-lite-single.js');w.onmessage=onMsg;w.onerror=fail;S.w=w;w.postMessage('uci');w.postMessage('setoption name MultiPV value 3');w.postMessage('setoption name Hash value 16');w.postMessage('isready');
+          clearTimeout(S.to);S.to=setTimeout(()=>{if(!S.ready)fail();},9000);}catch(e){fail();}return;}
+      if(S.cur){try{S.w.postMessage('stop');}catch(e){fail();}}else start();},
+    close(){clearTimeout(S.to);S.cur=null;S.next=null;S.ready=false;try{if(S.w)S.w.terminate();}catch(e){}S.w=null;S.dead=false;}
+  };
+}
 /* #366 y3b. The same lesson a third time, for emoji. Four emoji in four identical boxes never look
    the same size, because an emoji's font-size is not its drawn size: measured, the pawn drew 15px of
    ink where the telescope drew 26. Kunal chose "all four emoji, ink-matched". The matching happens on
@@ -5569,6 +5629,12 @@ function AppMain(){
   const [scanBusy,setScanBusy]=useState(false);
   const [scanMsg,setScanMsg]=useState('');
   const [scanAsk,setScanAsk]=useState(null);   /* #549 item (67): {w,b} when the two readings of a scan disagree */
+  /* batch 13, the scan steps (see scanGridOf): scanCheck is the Check the board screen and its two questions - {fen0,grid,flip,step,turn,side,sel};
+     scanGame is the game a scan started - {fen,flip,kind:'play'|'analyze'} - while it is the game on the board, and scanBest its three best moves. */
+  const [scanCheck,setScanCheck]=useState(null);
+  const [scanGame,setScanGame]=useState(null);const scanGameRef=useRef(null);scanGameRef.current=scanGame;
+  const [scanBest,setScanBest]=useState(null);
+  const scanBestEngRef=useRef(null);const scanArmRef=useRef(false);
   const scanInputRef=useRef(null);
   const uploadInputRef=useRef(null);
   const timeCtrlRef=useRef(null);
@@ -7064,7 +7130,7 @@ function AppMain(){
     return()=>{window.removeEventListener('touchmove',block,{passive:false});document.removeEventListener('touchmove',block,{passive:false});};
   },[]);
 
-  const fullReset=(g=initGame())=>{liveSettingsRef.current=null;/* #470 */try{const _f=(g&&(!g.history||g.history.length===0))?toFEN(g):null;playStartFenRef.current=(_f&&_f!==toFEN(initGame()))?_f:null;}catch(e){playStartFenRef.current=null;}/* #550 item (88) */setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setCoachNotes({});setCoachReqs([]);setCoachNoteAt(null);setCoachEngTxt('');coachIdRef.current=null;/* batch 13: a new game starts with no notes and is saved as a new coach game */setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
+  const fullReset=(g=initGame())=>{if(scanArmRef.current)scanArmRef.current=false;else if(scanGameRef.current){scanGameRef.current=null;setScanGame(null);}/* batch 13: any other new game ends the scan game (its orientation and its best-moves row) */liveSettingsRef.current=null;/* #470 */try{const _f=(g&&(!g.history||g.history.length===0))?toFEN(g):null;playStartFenRef.current=(_f&&_f!==toFEN(initGame()))?_f:null;}catch(e){playStartFenRef.current=null;}/* #550 item (88) */setGame(g);setLastMv(null);setPlayHist([]);setPlayHintMv(null);setCoachNotes({});setCoachReqs([]);setCoachNoteAt(null);setCoachEngTxt('');coachIdRef.current=null;/* batch 13: a new game starts with no notes and is saved as a new coach game */setPlayEnd(null);playEndRef.current=null;setPreMv(null);eloDoneRef.current=false;setEloMsg('');const tc=timeCtrlRef.current;const live=!!tc&&tc.kind!=='corr';setClock({w:live?tc.init*1000:0,b:live?tc.init*1000:0,run:false});UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};
 
   /* #471: the one place that decides whether a control may replace the running game.
      IT IS DELIBERATELY NOT KEYED ON `!_gameOver`. A finished game is still worth a confirm - SIT run 12
@@ -7517,8 +7583,45 @@ function AppMain(){
     if(ne!==cpuElo){setCpuElo(ne);setEloMsg((winner===pColor?'▲ ':'▼ ')+'Strength now ~'+ne+' Elo');}
   },[game,playEnd,mode,opponent,pColor,cpuElo,playHist,playSetup]);
 
-  useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(pColor==='b');},[pColor,opponent,mode]);
-  useEffect(()=>{if(mode==='play'&&opponent==='human'&&!playEnd)setFlip(game.turn==='b');},[game.turn,opponent,mode,playEnd]);
+  /* batch 13 (Q30): a game a scan started keeps the board the way the PHOTO shows it whichever side he plays and whoever is to move; the Flip icon is the only thing that turns it */
+  useEffect(()=>{if(mode==='play'&&opponent==='computer')setFlip(scanGameRef.current?scanGameRef.current.flip:pColor==='b');},[pColor,opponent,mode]);
+  useEffect(()=>{if(mode==='play'&&opponent==='human'&&!playEnd){if(scanGameRef.current)return;setFlip(game.turn==='b');}},[game.turn,opponent,mode,playEnd]);
+  useEffect(()=>{if((mode==='learn'||mode==='puzzle')&&scanGameRef.current){scanGameRef.current=null;setScanGame(null);}},[mode]);   /* a lesson or a puzzle replaces the board */
+  /* the best three moves of the position on the board, asked again after every move. Against the computer they are asked when it is HIS
+     move (while the computer thinks the row waits); in Analyze for whoever is to move. */
+  const scanLive=!!scanGame&&mode==='play'&&(opponent==='computer'||opponent==='human');
+  useEffect(()=>{
+    if(!scanLive){if(scanBestEngRef.current){scanBestEngRef.current.close();scanBestEngRef.current=null;}setScanBest(null);return;}
+    const st=getStatus(game);
+    if(playEnd||st==='checkmate'||st==='stalemate'){setScanBest({fen:toFEN(game),rows:[],over:true});return;}
+    if(scanGame.kind==='play'&&game.turn!==pColor){setScanBest({fen:null,rows:[],wait:true});return;}
+    const fen=toFEN(game),sgn=game.turn==='w'?1:-1;let gone=false,stopOwn=null;
+    setScanBest({fen:null,rows:[],wait:true});
+    const own=()=>{stopOwn=drillRankWarm(game,(R)=>{if(gone||!R)return;const maxing=game.turn==='w';
+      const rows=[...R.bySan.entries()].sort((a,b)=>maxing?b[1]-a[1]:a[1]-b[1]).slice(0,3).map(x=>({san:x[0],cp:Math.abs(x[1])>90000?null:x[1],mate:Math.abs(x[1])>90000?(x[1]>0?1:-1):null,rough:Math.abs(x[1])>90000}));
+      setScanBest({fen,rows,src:'own'});});};
+    if(!scanBestEngRef.current)scanBestEngRef.current=makeScanBest();
+    scanBestEngRef.current.ask(fen,(list)=>{if(gone)return;
+      const rows=[];if(list)for(const x of list){const m=uciToMove(game,x.uci);if(!m)continue;rows.push({san:cleanSAN(toSAN(game,m,applyMove(game.board,m))),cp:x.cp!=null?sgn*x.cp:null,mate:x.mate!=null?sgn*x.mate:null});}
+      if(rows.length)setScanBest({fen,rows,src:'sf'});else own();});
+    return()=>{gone=true;if(stopOwn)stopOwn();};
+  },[scanLive,scanGame,game,playEnd,pColor]);
+  useEffect(()=>()=>{if(scanBestEngRef.current){scanBestEngRef.current.close();scanBestEngRef.current=null;}},[]);
+  /* batch 13 (Q30, his FB-18): THE BEST THREE MOVES UNDER THE BOARD of a game a scan started, AT NO COST TO THE BOARD. On a phone they sit
+     on the Moves box's own heading row, which is already laid out at 23px with nothing beside its label in a game: the label reads BEST
+     and the three moves fill the row, so the board is the size it is in any other game (a row of their own measured 288 -> 256 on a
+     320x568 phone, trial 3bed8e897e0c). The row stays painted when Moves is closed (the box hides its list, not this). Sideways and on a
+     computer, where that heading is not always shown, the same three are a 30px row of their own above the Moves box. Three slots from
+     the game's first frame to its last - while the computer thinks, while the engine is asked and at game over only their words change.
+     The score is from White's side, the eval bar's own convention. */
+  const _scanBestRow=(inline)=>{const b=scanBest||{rows:[],wait:true};
+    const ev=(x)=>x.rough?'#':(x.mate!=null?mateLbl(x.mate):(x.cp==null?'':(()=>{const v=Math.round(Math.max(-99,Math.min(99,x.cp/100))*10)/10;return (v>0?'+':'')+(v===0?'0.0':v.toFixed(1));})()));
+    return(<div data-ct="scan-best" role="status" aria-live="polite" aria-label="Best moves" data-fen={b.fen||''} data-src={b.src||''} data-wait={b.wait?'1':'0'} style={inline?{flex:'1 1 auto',minWidth:0,height:23,display:'flex',alignItems:'center',gap:5,visibility:'visible',paddingRight:`max(0px, calc(6px - (100vw - ${boardPx}px) / 2))`}:{...(_playB?{order:1}:null),flexShrink:0,width:landPlay?'100%':boardPx,maxWidth:'98vw',boxSizing:'border-box',height:30,marginTop:6,padding:'0 6px',display:'flex',alignItems:'center',gap:6}}>
+      <span data-ct="scan-best-head" style={{...SEC_LABEL,flex:'0 0 auto'}}>Best</span>
+      {[0,1,2].map(i=>{const x=b.rows[i];return(<span key={i} data-ct="scan-best-move" data-san={x?x.san:''} style={{flex:'1 1 0',minWidth:0,height:inline?22:26,borderRadius:7,background:ROW_BTN_BG,display:'flex',alignItems:'center',justifyContent:'center',gap:4,whiteSpace:'nowrap',overflow:'hidden',fontSize:13.5,lineHeight:1,padding:'0 3px',boxSizing:'border-box'}}>
+        {x?(<><b style={{color:'#fff',fontWeight:800,flex:'0 0 auto'}}>{x.san}</b><span data-ct="scan-best-ev" style={{color:'rgba(255,255,255,.62)',fontSize:13,fontWeight:600,flex:'0 1 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{ev(x)}</span></>):(<span style={{color:'rgba(255,255,255,.45)'}}>{b.over?'':(b.wait?'\u2026':'')}</span>)}
+      </span>);})}
+    </div>);};
   // Online: rebuild the board from the authoritative synced move list whenever it changes
   useEffect(()=>{
     if(opponent!=='online'||!onlineGame)return;
@@ -9181,11 +9284,27 @@ function AppMain(){
   // ─── Online multiplayer handlers ───
   /* #549 item (67): where a scanned position lands, shared by the agreed reading and the player's answer to "which
      side was the camera on". */
-  const landScan=(fen)=>{
+  /* batch 13 (Q30): a scan no longer lands on the New Game sheet with a side already chosen. It opens Check the board, with the board
+     turned the way the PHOTO shows it (`flip`: Black at the bottom), and nothing is decided for him - who moves next and which side he
+     plays are asked on the next step (FB-16: 'from a picture is not always possible to tell which side I am interested in playing'). */
+  const landScan=(fen,flip)=>{
     let g=null; try{ g=fromFEN(fen); }catch(e){ g=null; }
     if(!g){ setScanMsg('The scan came back unreadable. Try another photo.'); return; }
     setScanAsk(null); setScanMsg('');
-    setSetupFromFEN(fen); setSetupSrc('scan'); setOpponent('computer'); setPColor(g.turn); setTimeCtrl(null); timeCtrlRef.current=null; setOpenIdx(null); setMode('play'); setHomeScreen(false); setPlaySetup(true);
+    setScanCheck({fen0:String(fen).trim(),grid:scanGridOf(fen),flip:!!flip,step:1,turn:null,side:null,sel:null});
+  };
+  /* Play or Analyze from the checked board. Play is a game against the computer as the side he chose; Analyze is the same board with
+     both sides his to move (the one-device game, no clock). Either way the board stays the way the photo shows it (the two flip
+     effects read scanGameRef) and the best three moves sit under it. */
+  const scanStart=(kind)=>{const sc=scanCheck;if(!sc||!sc.turn||!sc.side||scanBoardProblem(sc.grid))return;
+    const fen=scanFenFor(sc);if(scanTurnProblem(fen))return;
+    let g=null;try{g=fromFEN(fen);}catch(e){g=null;}if(!g)return;
+    const sg={fen,flip:!!sc.flip,kind:kind==='analyze'?'analyze':'play'};
+    liveSettingsRef.current=null;setStartArm(false);
+    setOpponent(sg.kind==='analyze'?'human':'computer');setPColor(sc.side);timeCtrlRef.current=null;setTimeCtrl(null);setCoachGame(false);
+    setOpenIdx(null);setMode('play');setHomeScreen(false);setPlaySetup(false);setSetupFromFEN(null);
+    scanArmRef.current=true;fullReset(g);playStartFenRef.current=fen;
+    scanGameRef.current=sg;setScanGame(sg);setScanBest(null);setFlip(sg.flip);setScanCheck(null);
   };
   const scanBoardFile=(file)=>{
     if(!file) return;
@@ -9242,7 +9361,7 @@ function AppMain(){
             const rows=[]; for(let i=0;i<8;i++) rows.push(ex.slice(i*8,i*8+8).replace(/\.+/g,m=>String(m.length)));
             return rows.join('/')+' '+(f.split(/\s+/)[1]==='b'?'b':'w')+' - - 0 1'; };
           const wSide=fA||_turn(fB), bSide=fB||_turn(fA);
-          if(wSide.split(/\s+/)[0]===bSide.split(/\s+/)[0]){ setScanBusy(false); landScan(wSide); return; }
+          if(wSide.split(/\s+/)[0]===bSide.split(/\s+/)[0]){ setScanBusy(false); landScan(wSide,!!(r&&r.orientation==='black-bottom')) /* batch 13: both readings agree, so the reader placed the board from the picture; the as-shot reading says which side is at the bottom of the photo */; return; }
           setScanBusy(false); setScanMsg(''); setScanAsk({w:wSide,b:bSide}); return;
         }
         const fen=r&&r.fen;
@@ -11320,8 +11439,8 @@ function AppMain(){
             {!!scanAsk&&<div data-ct="scan-ask" style={{marginTop:6}}>
               <div style={{fontSize:'clamp(14px,2.5vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>Which side of the board was the camera on?</div>
               <div style={{display:'flex',gap:8,marginTop:6}}>
-                <button data-ct="scan-side-w" onClick={()=>{ const f=scanAsk&&scanAsk.w; if(f) landScan(f); }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>White's side</button>
-                <button data-ct="scan-side-b" onClick={()=>{ const f=scanAsk&&scanAsk.b; if(f) landScan(f); }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>Black's side</button>
+                <button data-ct="scan-side-w" onClick={()=>{ const f=scanAsk&&scanAsk.w; if(f) landScan(f,false); }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>White's side</button>
+                <button data-ct="scan-side-b" onClick={()=>{ const f=scanAsk&&scanAsk.b; if(f) landScan(f,true) /* batch 13: the camera was on Black's side, so the photo shows Black at the bottom */; }} style={{flex:1,minWidth:0,minHeight:44,padding:'10px 8px',borderRadius:12,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.06)',color:'#fff',fontWeight:800,fontSize:'clamp(13px,3vw,15px)',cursor:'pointer'}}>Black's side</button>
               </div>
             </div>}
           </div>
@@ -11577,6 +11696,63 @@ function AppMain(){
           is the live setting: the preview is painted from the same TH / pieceSet / boardDepth the real board uses, so
           what you see here is exactly what the next screen shows. The home icons are NOT tied to this (y3b fixed them
           as one emoji set on every skin, same round). Reached from the home Colors button and the menu. */}
+      {scanCheck&&(()=>{/* batch 13, jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18 (Q30).
+          CHECK THE BOARD, THEN THE TWO QUESTIONS, ON ONE SCREEN WHOSE BOARD DOES NOT MOVE. Step 1 shows the board the way the photo
+          shows it with the line 'Tap a square to fix it.'; a tapped square is marked and the piece row under the board says what
+          stands there. Step 2 asks who moves next and which side he is, and only then are Play and Analyze live. Everything under the
+          board sits in one box of a fixed height (SC_UNDER), so the board is the same size and in the same place on both steps and
+          when a message is longer than one line. The row buttons are RowBtn (icons only, Q24); Play and Analyze keep their words. */
+        const sc=scanCheck;const SC_TITLE=40,SC_MSG=36,SC_UNDER=SC_MSG+6+90+6+44;
+        const bpx=Math.max(160,Math.min(vp.w,wide?520:9999,vp.h-safeTop-safeBot-SC_TITLE-SC_UNDER-20)),sq=bpx/8,lab=Math.max(8,Math.round(sq*0.26));
+        const prob=scanBoardProblem(sc.grid);
+        const fen=(!prob&&sc.turn)?scanFenFor(sc):null;const tprob=fen?scanTurnProblem(fen):null;
+        const ready=!prob&&!!sc.turn&&!!sc.side&&!tprob;
+        const upd=(patch)=>setScanCheck(c=>c?{...c,...patch}:c);
+        const NAME={k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'};
+        const pcName=(ch)=>ch?((ch===ch.toUpperCase()?'white ':'black ')+NAME[ch.toLowerCase()]):'empty';
+        const selSq=sc.sel?rc2sq(sc.sel[0],sc.sel[1]):null;
+        const put=(ch)=>{if(!sc.sel)return;const [r,c]=sc.sel;setScanCheck(cur=>{if(!cur)return cur;const g=cur.grid.map(row=>row.slice());g[r][c]=ch;return {...cur,grid:g,sel:null};});};
+        const line=sc.step===1?(sc.sel?('Pick what stands on '+selSq+'.'):(prob||'Tap a square to fix it.')):(tprob||'The board stays as your photo shows it.');
+        const warn=sc.step===1?(!sc.sel&&!!prob):!!tprob;
+        const pal=(ch,key)=>(<button key={key} type="button" data-ct={'scan-pal-'+(ch||'empty')} aria-label={ch?pcName(ch):'Empty square'} title={ch?pcName(ch):'Empty square'} disabled={!sc.sel} onClick={()=>put(ch)} style={{...footBtnStyle({flex:'1 1 0',minW:0}),padding:0,opacity:sc.sel?1:.42,cursor:sc.sel?'pointer':'default',color:'#fff'}}>{ch?<Piece t={ch.toLowerCase()} color={ch===ch.toUpperCase()?'w':'b'} sz={30} useFallback={fallback} onFail={onPieceFail}/>:<svg data-icon="empty-square" viewBox="0 0 24 24" width={24} height={24} aria-hidden="true" style={{display:'block'}}><rect x="4.5" y="4.5" width="15" height="15" rx="2" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3.2 2.8"/></svg>}</button>);
+        const ask=(q,key,val,ctq)=>(<div data-ct={'scan-q-'+ctq} role="group" aria-label={q} style={{display:'flex',alignItems:'center',gap:6,minHeight:44}}>
+          <div style={{flex:'1 1 auto',minWidth:0,fontSize:15,fontWeight:700,color:'#fff',lineHeight:1.2}}>{q}</div>
+          {[['w','White'],['b','Black']].map(o=>(<button key={o[0]} type="button" data-ct={'scan-q-'+ctq+'-'+o[0]} aria-pressed={val===o[0]} onClick={()=>upd({[key]:o[0]})} style={{...footBtnStyle({hot:val===o[0],text:true,flex:'0 0 76px',minW:76}),border:val===o[0]?'1.5px solid var(--ac)':'1.5px solid transparent'}}>{o[1]}</button>))}
+        </div>);
+        return(<div data-ct="scan-check" role="dialog" aria-modal="true" aria-label={sc.step===1?'Check the board':'Who moves next, and which side are you'} style={{position:'fixed',inset:0,zIndex:1100,background:'#12151b',display:'flex',flexDirection:'column',alignItems:'center',boxSizing:'border-box',padding:(safeTop+4)+'px 0 '+(safeBot+4)+'px',overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+          <div data-ct="scan-check-title" style={{...SHEET_TITLE,height:SC_TITLE,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>{sc.step===1?'Check the board':'Who moves, and which side?'}</div>
+          <div data-ct="scan-check-board" data-flip={sc.flip?'1':'0'} style={{width:bpx,height:bpx,flexShrink:0,display:'grid',gridTemplateColumns:'repeat(8,'+sq+'px)',gridTemplateRows:'repeat(8,'+sq+'px)',borderRadius:3,overflow:'hidden'}}>
+            {Array.from({length:64},(_,i)=>{const dr=Math.floor(i/8),dc=i%8,r=sc.flip?7-dr:dr,c=sc.flip?7-dc:dc;const ch=sc.grid[r][c];const light=(r+c)%2===0;const on=!!sc.sel&&sc.sel[0]===r&&sc.sel[1]===c;const name=rc2sq(r,c);
+              return(<div key={name} role="button" tabIndex={sc.step===1?0:-1} data-sq={name} data-pc={ch||''} aria-label={name+', '+pcName(ch)} aria-pressed={sc.step===1?on:undefined} onClick={sc.step===1?(()=>upd({sel:on?null:[r,c]})):undefined} style={{width:sq,height:sq,background:light?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center',cursor:sc.step===1?'pointer':'default',boxShadow:on?'inset 0 0 0 3px var(--ac)':(boardDepth?'inset 0 0 0 0.5px rgba(0,0,0,.13), inset 0 2px 3px rgba(255,255,255,.13), inset 0 -3px 6px rgba(0,0,0,.2)':'none')}}>
+                {ch&&<div style={{transform:'scale(1.06)',pointerEvents:'none'}}><Piece t={ch.toLowerCase()} color={ch===ch.toUpperCase()?'w':'b'} sz={sq} useFallback={fallback} onFail={onPieceFail}/></div>}
+                {dc===0&&<span style={{position:'absolute',top:1,left:2,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1,pointerEvents:'none'}}>{8-r}</span>}
+                {dr===7&&<span style={{position:'absolute',bottom:1,right:3,fontSize:lab,fontWeight:700,color:light?TH.dark:TH.light,lineHeight:1,pointerEvents:'none'}}>{FILES[c]}</span>}
+              </div>);})}
+          </div>
+          <div data-ct="scan-check-under" style={{width:Math.min(vp.w,Math.max(bpx,320)),maxWidth:'100vw',height:SC_UNDER,flexShrink:0,boxSizing:'border-box',padding:'0 6px',marginTop:8,display:'flex',flexDirection:'column',gap:6}}>
+            <div data-ct="scan-check-line" role="status" aria-live="polite" style={{height:SC_MSG,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',fontSize:14,lineHeight:'18px',fontWeight:600,color:warn?'#e0a83a':'rgba(255,255,255,.78)',overflow:'hidden'}}>{line}</div>
+            {sc.step===1?(<>
+              <div data-ct="scan-pal" role="group" aria-label={selSq?('What stands on '+selSq):'Pieces'} style={{display:'flex',flexDirection:'column',gap:2,height:90,flexShrink:0}}>
+                <div style={{display:'flex',gap:2}}>{['K','Q','R','B','N','P'].map(ch=>pal(ch,ch))}{pal(null,'empty')}</div>
+                <div style={{display:'flex',gap:2}}>{['k','q','r','b','n','p'].map(ch=>pal(ch,ch))}<span aria-hidden="true" style={{flex:'1 1 0',minWidth:0}}/></div>
+              </div>
+              <div data-ct="scan-check-row" style={{display:'flex',gap:6,height:44,flexShrink:0}}>
+                <RowBtn ct="scan-check-close" label="Close" flex="0 0 58px" onClick={()=>setScanCheck(null)}><RowIcon name="close"/></RowBtn>
+                <RowBtn ct="scan-check-ok" label="The board is right" primary dis={!!prob} onClick={()=>upd({step:2,sel:null})}><RowIcon name="tick"/></RowBtn>
+              </div>
+            </>):(<>
+              <div style={{display:'flex',flexDirection:'column',gap:2,height:90,flexShrink:0}}>
+                {ask('Who moves next?','turn',sc.turn,'turn')}
+                {ask('Which side are you?','side',sc.side,'side')}
+              </div>
+              <div data-ct="scan-start-row" style={{display:'flex',gap:6,height:44,flexShrink:0}}>
+                <RowBtn ct="scan-check-back" label="Back to the board" flex="0 0 58px" onClick={()=>upd({step:1})}><StepArrow dir="left"/></RowBtn>
+                <button type="button" data-ct="scan-play" disabled={!ready} aria-disabled={!ready?true:undefined} onClick={()=>scanStart('play')} style={{...footBtnStyle({primary:true,text:true,flex:'1 1 0'}),fontSize:16,opacity:ready?1:.42,cursor:ready?'pointer':'default'}}>Play</button>
+                <button type="button" data-ct="scan-analyze" disabled={!ready} aria-disabled={!ready?true:undefined} onClick={()=>scanStart('analyze')} style={{...footBtnStyle({text:true,flex:'1 1 0'}),fontSize:16,opacity:ready?1:.42,cursor:ready?'pointer':'default'}}>Analyze</button>
+              </div>
+            </>)}
+          </div>
+        </div>);})()}
       {lookOpen&&(()=>{const _fen='r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R';const rows=_fen.split('/').map(r=>{const out=[];for(const ch of r){if(/\d/.test(ch)){for(let i=0;i<+ch;i++)out.push(null);}else out.push({t:ch.toLowerCase(),c:ch===ch.toUpperCase()?'w':'b'});}return out;});
         const pb=Math.min(vw-52,wide?360:290);const sq=pb/8;const lab=Math.max(8,Math.round(sq*0.26));
         /* #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-H12: Look and feel 856 in 677 / 854 in 739 at 375x761): the sheet fits one screen - the line under the title is one line, the swatch and piece chips are compact (the 290 preview board is unchanged), the two rows under them are tighter */const chip=(on)=>({display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 2px 3px',borderRadius:12,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',minWidth:0});
@@ -14132,10 +14308,11 @@ function AppMain(){
 
       {/* Move history (play/learn) */}
       {landGraph&&(<div ref={pgRef} data-ct="play-graph" role="img" aria-label="Evaluation so far - tap a point to see that move" style={{flex:'1 1 0px',minHeight:36,width:'100%',position:'relative',borderRadius:10,border:'1px solid rgba(255,255,255,.10)',background:'rgba(0,0,0,.18)',overflow:'hidden',flexShrink:1}}>{pgBox&&_pgData&&_pgData.length>=2&&(<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={_pgData} plies={[]} ply={pvIdx==null?_pgData.length:pvIdx} missed={null} bookN={0} onJump={(p)=>{const n=_pgData.length;setPvIdx(p>=n?null:Math.max(0,p));}} width={Math.max(40,pgBox.w-12)} height={Math.max(24,pgBox.h-8)}/></div>)}{!(_pgData&&_pgData.length>=2)&&(<span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'rgba(255,255,255,.38)'}}>The evaluation graph grows here as you play.</span>)}</div>)}{/* #550 a36, Kunal 11 Nov ('Option B ... keep the buttons, the move list, the graph, everything ... make them fit better'): under the toolbar, taking the room the compact rows freed; a tap previews that move as Back and Forward do */}
+      {scanLive&&!_psLay&&wide&&_scanBestRow(false)}
       {(()=>{const _lFill=(mode==='learn'&&openIdx!==null&&!wide); /* #372 (antagonist Y-02): in a lesson on a phone this panel is always there and absorbs the slack, so the board's top edge holds and there is no empty band under it on taller phones */ const _pLive=(mode==='play'&&!wide&&!_psLay&&!!opponent); /* #373 (audit A-12 / antagonist X-09): on a phone this panel used to leave the flow when Moves was closed, and the fit loop handed its ~64px to the board - the board moved 23px on every toggle. HANDOFF rule: a row that can appear or disappear must reserve its space; toggle its CONTENT, never the row. So in a live phone game the panel is always laid out and Moves only hides what is in it. */ const _pFill=_pLive||_lFill;const _pLand=landPlay&&!_gameOver; /* #550 movement check MOV-06 (US-R151): in the sideways Play rail the panel is laid out from move 0 and stays laid out when Moves is closed (its content hides), so the bottom player bar sits at the rail's foot from the start - it jumped 136px at 761x375 (541 at 1440x780) after the first move and on every Moves toggle */const _pHide=(_pLive||_pLand)&&!movesOpen;if(landPlay&&_gameOver)return(<div data-ct="moves-panel-room" aria-hidden="true" style={{flex:'1 1 0px',minHeight:0}}/>); /* MOV-06: at the end of the game the room stays, so the bottom bar does not ride up */return (!inReview&&!pzLow&&(boardGame.history.length>0||_pFill||_pLand)&&!(mode==='learn'&&openIdx===null)&&(mode!=='play'||movesOpen||_pLive||_pLand)&&!(landPlay&&_gameOver)&&(<div data-ct="moves-panel" data-fitwake={fitWake} ref={movesPanelRef} style={{...(_playB?{order:1}:null) /* #550 q48 Option B: the move list straight under the board's bottom bar */,marginTop:_lFill?0:((!wide&&vp.h<700&&mode==='play'&&opponent==='human')?4:10),width:boardPx,maxWidth:_edge?'100vw':'98vw',visibility:_pHide?'hidden':'visible',...(_pFill?{flex:'1 1 auto',minHeight:0,display:'flex',flexDirection:'column'}:null),...(landPlay?{flex:'1 1 0px',minHeight:0,overflowY:'auto',width:'100%',marginTop:0}:null),...((_lsFold&&vp.h>=560)?{flex:'0 1 auto',minHeight:30,marginTop:0,overflowY:'auto'}:null) /* #550 DSK-10: on a short sideways lesson on a computer the move list gives way (it scrolls inside itself) before the column does; a phone turned sideways (under 560 tall) keeps the rail scrolling with its More-below chip, which reaches Analyze and Copy moves (gate 48 TC-R78b) */,...(landGraph?{flex:'0 0 auto',height:30}:null) /* #550 a36: with the graph above it the panel is its |< < LIVE > >| row, MOVES on that row, and the list scrolls inside it */ /* #550 a23: in the sideways rail the list scrolls inside itself, so the bottom player bar stays on screen; a finished game shows the result card instead */}}>
         {_lFill&&LIB[openIdx]&&(<div data-ct="lesson-name" title={LIB[openIdx].name} style={{flexShrink:0,fontSize:12,lineHeight:'14px',fontWeight:600,color:'rgba(255,255,255,.62)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',paddingLeft:`max(0px, calc(11px - (100vw - ${boardPx}px) / 2))`,paddingRight:`max(0px, calc(11px - (100vw - ${boardPx}px) / 2))`}}>{LIB[openIdx].name}</div>)}{/* #549 item (100), jobs/labels-truncate-in-shared-rows-2026-09-24 (Amber: flags/amber-549-lesson-name-own-line). THE LESSON NAME HAS ITS OWN LINE, AT THE TOP OF THIS BOX. It used to sit in the lesson footer between the close control and the More control, a variable-length label in a row of five fixed 44px controls, so the controls won and the name got what was left: 18px at 320 and 73px at 375x761 for "King's Gambit" (87px), and every phone width short of the longest real name, "Albin Counter-Gambit: Lasker Trap" (214.7px at 12.5px) - Kunal's own "Two-Rook..." and "King & Pa...". theRule on that job: a label that shares a row with controls loses; it gets its own line or goes into a box that already has one. This panel is the lesson's flex absorber on a phone (_lFill), so the line is paid from the panel's slack and not from the board - measured, the board is the same to the hundredth at eleven geometries. In landscape (wide) there is no absorber and the footer row is wide, so the name stays in the footer there. The ellipsis stays as the fallback so a cut, if one ever comes, is visible and never silent. */}
         <div data-ct="moves-head-row" style={{display:landGraph?'none':'flex' /* #550 a36: MOVES moves onto the nav row */,alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:_lFill?0:4,minHeight:23,paddingLeft:`max(0px, calc(11px - (100vw - ${boardPx}px) / 2))`}}>{/* #549 item (24), the #547 auditor's P2 'the Pass & Play MOVES label has no gutter': where the board runs edge to edge (Pass & Play at 375, boardPx 375) this panel starts at x=0 and the MOVES label sat on the screen edge, while vs Computer it sits at x=11. The panel is centred, so its offset from the edge is (100vw - boardPx)/2, and this inset brings the label to max(11, that offset) - 11 at 375 in Pass & Play, and exactly 0 wherever the panel already sits 11 or more in (vs Computer, 320), so no other screen moves. The move list below already carries its own 11px padding. */}{/* #378: minHeight is the chips' own drawn height. fb-controls removes them on the play screen only, and without this the row shrinks there, the board grows into the slack (Pass & Play 351 -> 367) and then shrinks back at game over (375 -> 367) - the board jumping, which gate 15 caught inside the k10 card. A row that can appear reserves its space. */}
-          <span data-ct="moves-head" style={{...SEC_LABEL}}>MOVES</span>
+          {(scanLive&&!wide&&mode==='play')?_scanBestRow(true):<span data-ct="moves-head" style={{...SEC_LABEL}}>MOVES</span>}{/* batch 13 (Q30): in a game a scan started this row is BEST and the three best moves (see _scanBestRow) */}
           {/* fb-controls (Kunal, "Just those two"): in a live game Analyze and Copy moves are rows in the More sheet, not chips in this row. They stay HERE on every screen that has no More sheet - a lesson, a puzzle, the analysis board, an online game - because there they are the only way to reach either control. The predicate is the sheet's own: chess.jsx line 4068 renders the sheet on mode==='play'&&opponent!=='online'. */}
           {!(mode==='play'&&opponent!=='online')&&(<div style={{display:'flex',paddingRight:7 /* #550 a6: Copy's tap box reaches 7px past its chip, and the row runs to the screen edge on a full-width board (gate 109 measured it ending at 382 on a 375 screen) */,gap:14 /* #550 a6: each icon chip's tap box reaches 7px past it, so 14 keeps the two 44px boxes from overlapping (gate 53's N3 measured 8px at gap 6) */,flexWrap:'wrap',justifyContent:'flex-end'}}>
             {/* #373 (audit A-11): these drew 23px tall. The visible chip keeps its size; the button around it carries 10px of padding cancelled by a negative margin, so the tap box is 43px without the row growing (a taller row would come out of the board). */}
