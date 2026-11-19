@@ -2504,3 +2504,17 @@ As the orchestrator checking a job, I can run one command that tries the job's g
 *Additions at #551 to earlier stories (their sections above are not reworded):*
 - US-R134, jobs/the-board-scan-asks-for-gemini-3-8-flash-2026-11-17: the scan asks Google for gemini-3.8-flash with no sampling setting and a 50 second budget, and reads the reply from every answer part, skipping thought parts. (TC-R202f, TC-R202g)
 - US-R107, jobs/gate-84-holds-on-a-busy-machine-2026-11-15: gate 84 drives the free defender game with the app's own search under test and plays only moves the app will keep, so every king reply is the one it foresaw and the run is the same on every machine. (TC-LS-077)
+
+### US-R162 I see the kinds of Brilliant I have never played, and practise them from famous games
+*Added in batch 13, jobs/brilliancy-library-and-motif-coverage-2026-09-23 (the remainder: seeding source 3 and the kinds that read the line). Kunal, 23 Sep 2026: "we might also want to give a whole set of brilliant moves that people might be able to learn from. Because I think I learned one brilliant move and I keep playing that again and again"; 30 Sep: "if somebody wants to see like two or three different kinds of brilliance then they can like click on those"; 10 Nov, on the library: "now". It extends US-R129, whose section above is not reworded except as its own note says.*
+As a player whose Brilliants are nearly all one kind, I open my brilliant moves and see how many kinds I have played and which kinds I have not, and I practise a small deck of any of those kinds from famous games, so I learn a Brilliant I do not already play.
+- The library opens for me even when all my Brilliants are one kind, and it carries a famous-games shelf that says how many moves it holds. (TC-R233h)
+- A line says how many Brilliants I have played, of how many kinds, and how many more kinds are new to me. (TC-R233i)
+- Every kind on the shelf is a 44px chip with its count; the kinds I have not played come first and say so; the shelf scrolls and the Practice button stays on screen. (TC-R233j, TC-R233k)
+- I choose up to three kinds across my shelves and the famous one together; a famous move I already hold as my own is not offered twice; with the library switched off there is no shelf. (TC-R233l)
+- A famous card says whose move it was, never calls it mine, shows an explanation written for it once solved, leaves the board where it was, and is never saved into my own list. (TC-R233m)
+- Every move on the shelf is one this app's own engine and rule grade Brilliant, from a game whose every move replays. (TC-R233a, TC-R233b)
+- The kinds read from the moves that followed - king hunt, drawing the king out, deflection, interference, clearance, positional sacrifice - are right on named famous games, and a card with no moves stored reads as it did before. (TC-R233c to TC-R233g)
+
+*Addition in batch 13 to an earlier story (its section above is not reworded):*
+- US-R129, same job: its last clause read "With one kind on one shelf, or with the switch off, the drill starts at once as before." Since the famous-games shelf, a store of one kind opens the library too (there is something to choose) and Practice all starts the drill; with the switch off the drill still starts at once. (TC-R197f, re-pinned)
