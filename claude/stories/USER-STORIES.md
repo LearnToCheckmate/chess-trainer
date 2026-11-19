@@ -2571,3 +2571,12 @@ As the person who runs the six-hour full suite, a container restart in the middl
 - A resume on another bundle, another HEAD or tree, a moved working tree, another roster, other options or another build number, from a finished run, or from a record or log that was edited, has a gap or a repeat, is refused before any gate runs. (TC-R241b)
 - gates/verify-log.sh accepts a joined log only when every gate is there once and in order, every part ran on the one bundle, HEAD and tree the log names, and no section was changed after it was written. (TC-R241c)
 - Without either variable the suite and verify-log behave exactly as they did. (TC-R241d)
+
+### US-R168 On Review, the eval graph never covers a move's explanation
+*Added batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18.*
+
+- On the Review move screen, the eval graph never sits over a move's explanation, not even for a frame: while the
+  explanation is still coming (a Brilliant or Great move waiting for the engine's refutation) its box is kept whole for
+  the text that is coming, and when the text changes the graph moves in that same frame. So a tap on the explanation
+  always lands on the explanation, never on the graph that would jump the review to another move. A one-line final
+  reason still gives its empty lines to the graph. (batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18; TC-R239)

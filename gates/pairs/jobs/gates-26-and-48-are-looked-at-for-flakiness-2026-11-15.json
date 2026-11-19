@@ -1,6 +1,6 @@
 {
  "job": "gates-26-and-48-are-looked-at-for-flakiness-2026-11-15",
- "about": "Gates 26 (invariants) and 48 (lesson flow) were found NOT flaky (the finding is on the job): their archived reds were the lesson-board latch #522 fixed, deliberate re-pins, and #537's font alias. So the breaks re-create those causes: a drifted icon (what gate 26's invariant 3 guards), a lesson note 8px taller (what moved gate 48's board pins), and the font calibration refused by fontconfig (the #537 state, a double hyphen in gates/fonts.conf's comment). Every line of both gates is graded. Gate 26 runs narrowed to one geometry per situation (CT_INV_GEOS, about 3 minutes each); gate 48 runs whole (about 11 minutes). NOT COVERED: gate 26's other ten geometries in this pair (the full suite runs them all).",
+ "about": "Gates 26 (invariants) and 48 (lesson flow) were found NOT flaky (the finding is on the job): their archived reds were the lesson-board latch #522 fixed, deliberate re-pins, and #537's font alias. So the breaks re-create those causes: a drifted icon (what gate 26's invariant 3 guards), a lesson note 8px taller (what moved gate 48's board pins), and the font calibration refused by fontconfig (the #537 state, a double hyphen in gates/fonts.conf's comment). Every line of both gates is graded. Gate 26 runs narrowed to one geometry per situation (CT_INV_GEOS, about 3 minutes each); gate 48 runs whole (about 11 minutes). NOT COVERED: gate 26's other ten geometries in this pair (the full suite runs them all). BATCH 13 ADDS THE LIVE CAUSE THE ORCHESTRATOR'S CHECK FOUND (its gap of 18 Nov 2026: gate 26 red 1 in 20 at se rev-ply31 under load, the explanation card's centre on the eval graph while the refutation clause was still coming): a fourth situation, gate 26 at 320x568 running its TC-R239 block alone (CT_INV_ONLY=band: every animation frame from the jump to a pending reason until 2s after it is final - where the cause is asserted since jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18 fixed it in the app), and a fourth break that re-creates the cause (the reason box's pending mark never set, so the band puts the graph into the one-line reason while the clause is coming), which must fail there. The full gate at 320x568 is not added: its main walk's rev-ply31 no longer pends (16.Qb8+ is final at once since c71cd95e), so it cannot see this cause either way; the two full-gate situations above also run TC-R239 now.",
  "gate": "gates/regress/26-invariants.js",
  "cmd": ["bash", "-c", "if [ -n \"$G48\" ]; then node gates/regress/48-lesson-flow.js; else node gates/regress/26-invariants.js; fi"],
  "checks": ["."],
@@ -8,12 +8,14 @@
  "situations": [
   {"name": "26 at short375", "env": {"CT_INV_GEOS": "short375"}},
   {"name": "26 at kunal730", "env": {"CT_INV_GEOS": "kunal730"}},
-  {"name": "48, the lesson three", "env": {"G48": "1"}}
+  {"name": "48, the lesson three", "env": {"G48": "1"}},
+  {"name": "26 at se, the band block", "env": {"CT_INV_GEOS": "se", "CT_INV_ONLY": "band"}}
  ],
  "breaks": [
   {"name": "home-tab-icon-4px-larger", "patch": "breaks/g26-home-tab-icon-4px-larger.diff", "why": "the Home tab icon is drawn 26px instead of 22, a glyph height outside the measured set", "mustFailIn": ["26 at kunal730"]},
   {"name": "lesson-note-8px-taller", "patch": "breaks/g48-lesson-note-8px-taller.diff", "why": "the lesson note box is 83 tall instead of 75, which pushes the lesson board down", "mustFailIn": ["48, the lesson three"]},
-  {"name": "font-calibration-refused", "patch": "breaks/g26-48-font-calibration-refused.diff", "why": "fontconfig refuses gates/fonts.conf (a double hyphen in its comment), so the container's substitute font is back - the cause of #537's reds", "mustFailIn": ["26 at short375", "26 at kunal730", "48, the lesson three"]}
+  {"name": "font-calibration-refused", "patch": "breaks/g26-48-font-calibration-refused.diff", "why": "fontconfig refuses gates/fonts.conf (a double hyphen in its comment), so the container's substitute font is back - the cause of #537's reds", "mustFailIn": ["26 at short375", "26 at kunal730", "48, the lesson three"]},
+  {"name": "graph-over-the-pending-reason", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "the cause of the 17 Nov red re-created: rev-why-txt no longer carries data-pending, so while a Brilliant move's refutation clause is coming the band puts the eval graph into the one-line reason's box over its centre, then over the new text for a frame", "mustFailIn": ["26 at se, the band block"]}
  ],
  "timeoutSec": 2400
 }

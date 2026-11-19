@@ -1,0 +1,20 @@
+{
+ "job": "gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18",
+ "about": "The app fix: while a Brilliant or Great move's reason waits for its refutation clause, the Review band keeps the eval graph out of the reason's box (reviewText marks the answer pending, rev-why-txt carries data-pending, the band holds the box whole), and the band is re-measured in a layout effect in the frame the reason changes. Graded by gate 26's TC-R239 block alone (CT_INV_ONLY=band, about a minute a geometry): every animation frame from the jump to plies 19, 25, 31 and 33 of the reference game until 2s after the reason last changed, at 320x568, 375x730 and 375x568. The three breaks undo the hold at its three layers - the mark never set on the box, the band ignoring the mark, the Brilliant answer never flagged pending - and each re-creates the cause the checker found on c58695d (the graph in the box over its centre while the clause is coming, then over the new text for a frame). NOT COVERED: the layout-effect half of the fix on its own. With the hold in place no ply of the reference game grows its reason under a graph, so removing the layout effect alone changes nothing a frame can see here; it is kept as the same-frame guarantee for any later reason that grows without the mark.",
+ "gate": "gates/regress/26-invariants.js",
+ "cmd": ["node", "gates/regress/26-invariants.js"],
+ "env": {"CT_INV_ONLY": "band"},
+ "checks": ["TC-R239"],
+ "build": "auto",
+ "situations": [
+  {"name": "320x568", "match": "^se TC-R239"},
+  {"name": "kunal730", "match": "^kunal730 TC-R239"},
+  {"name": "short375", "match": "^short375 TC-R239"}
+ ],
+ "breaks": [
+  {"name": "pending-not-marked", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "rev-why-txt no longer carries data-pending, so the band reads the one-line reason's ink and puts the graph into the box while the clause is coming", "mustFailIn": ["320x568", "kunal730", "short375"]},
+  {"name": "band-ignores-the-hold", "patch": "breaks/g26-band-ignores-the-hold.diff", "why": "the band's measure skips its data-pending branch, so the mark is set and nothing honours it", "mustFailIn": ["320x568", "kunal730", "short375"]},
+  {"name": "brilliant-not-flagged", "patch": "breaks/g26-band-brilliant-not-flagged.diff", "why": "reviewText's Brilliant answer while the refutation is due no longer says pending (the Great one still does), so plies 19 and 25 - both Brilliant - are not held", "mustFailIn": ["320x568", "kunal730", "short375"]}
+ ],
+ "timeoutSec": 1500
+}
