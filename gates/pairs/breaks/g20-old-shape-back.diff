@@ -1,5 +1,5 @@
 diff --git a/gates/regress/20-review.js b/gates/regress/20-review.js
-index 17502e72..4d3468a4 100644
+index 17502e72..cfd349cb 100644
 --- a/gates/regress/20-review.js
 +++ b/gates/regress/20-review.js
 @@ -102,5 +102,5 @@ const mark=(id,lane)=>{lane=lane||'A';const now=Date.now();const r=_run[lane];if
@@ -16,10 +16,9 @@ index 17502e72..4d3468a4 100644
 +    if(!laneBP)laneBP=Promise.resolve().catch(e=>{L.say(false,'TC-R236 lane B threw: '+(e&&e.stack?e.stack.split('\n').slice(0,3).join(' | '):e));});
      // TC-R04 summary
      /* #393 (uat390-review-summary-menu-covered): THE SUMMARY MUST OFFER A WAY INTO THE MENU, AND IT MUST
-@@ -895,5 +895,5 @@ L.run(async()=>{try{
+@@ -892,4 +892,5 @@ L.run(async()=>{try{
+     }
+     await b.close();}
++  await laneB();
+   }finally{
    // TC-R236 [batch 13]: the gate's own case count and its own time. In a finally, so a case that throws still leaves both lines -
-   // red, with the list of what ran - rather than a gate that stops without saying which cases it never reached.
--  mark(null);if(laneBP)await laneBP;
-+  mark(null);await laneB();
-   const secs=Math.round(process.uptime());
-   for(const ln of ['A','B'])L.note('TC-R236 TIMINGS lane '+ln+' (s, per case run, in order): '+RUNS.filter(r=>r.lane===ln).map(r=>r.id+' '+r.s).join(' | ')+' | lane total '+Math.round(RUNS.filter(r=>r.lane===ln).reduce((a,r)=>a+r.s,0)));

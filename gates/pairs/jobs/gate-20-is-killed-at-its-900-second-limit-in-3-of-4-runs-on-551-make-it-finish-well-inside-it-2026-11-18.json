@@ -7,7 +7,7 @@
  "situations": [
   {"name": "kunal761", "match": "^kunal761: "},
   {"name": "se 320x568", "match": "^se: "},
-  {"name": "the gate's own guards", "match": "^TC-R236 "}
+  {"name": "the gate's own guards", "match": "^TC-R236[abc]? "}
  ],
  "breaks": [
   {"name": "old-shape-back", "patch": "breaks/g20-old-shape-back.diff",
