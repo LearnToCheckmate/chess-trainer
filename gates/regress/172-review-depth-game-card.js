@@ -33,10 +33,23 @@
 //            opens from the finished Deep pass (no new search; the counts stay the deepest finished pass's).
 //  320x568 Classic also taps a card and reaches its review (TC-R242g, 'opens the review as today').
 //
-// THE MEASURED TIMES (the job asks for them): this harness, 375x761, three pool workers, the Opera Game (33 plies, 34 positions), stockfish-18-lite
-// single-threaded, repeatable engine, taken while this gate ran - see TIMES below; a phone is slower than this machine by a factor this
-// harness cannot measure, so the menu keeps his rough figures until they are read off his phone.
-// TIMES: filled by the CONTROL-RECORD block's run; the gate prints 'review took N s' notes for Quick and Deep on every run.
+// THE MEASURED TIMES (the job asks for them). The Opera Game (33 plies, 34 positions), 375x761, three pool workers, this container (4 cores),
+// stockfish-18-lite single-threaded, from the tap to the summary, one fresh launch per level, bundle 1df7e5ebe25a, 19 Nov 2026:
+//   Quick   (depth 16)    8.4 s
+//   Deep    (depth 18)   17.8 s     2.1 times Quick
+//   Deeper  (depth 20)   45.5 s     5.4 times Quick
+//   Deepest (depth 22)  125.4 s    14.9 times Quick
+// The four levels gave the Opera Game's White side Brilliant 3 at every level, and Best/Great 6/3, 7/2, 6/3 and 5/3. A phone is slower than
+// this machine by a factor this harness cannot measure: if a phone's Quick is his 20 s, the same ratios give about 40 s, 1 min 50 s and
+// 5 min, under his rough 1, 3 and 8 minutes. The menu keeps his figures until they are read off his phone. The gate prints 'took N s' notes
+// for its Quick and Deep reviews on every run (4.6 s for the 8-ply game, 17.8 to 21.4 s for the Opera Game at Deep).
+//
+// CONTROLS, each the whole gate on a trial bundle (the sha is this branch's head when they ran; the bundle is the broken one):
+// CONTROL-RECORD: 3dd181fe 2026-11-19 total=25 red=18 scope=trial:77d872f466a3 how=batch 13, the tree before the change (1e0c21e8, the old card: a result tag beside the name, the dashed brilliant pill, no depth button): TC-R242f red at all four launches (there is no button to tap), the layout's DENOMINATOR red at all four, and every Deep line of TC-R242g and TC-R242h red at 375x761 Classic; the two 'tapping the card opens the review, searched at depth 16' lines and the four zero-errors lines stay green, as they should - that is the app as it was
+// CONTROL-RECORD: 3dd181fe 2026-11-19 total=57 red=1 scope=trial:c766d064b301 how=batch 13, pairs break engine-ignores-the-picked-depth (gates/pairs/breaks/172-the-engine-ignores-the-picked-depth.diff): the one red line is 'picking Deep runs that game's review at depth 18' - all 35 recorded searches were at 16. Every line that reads what this build writes (ct_gdepth, the tally's dp, the -d18 cache key, review.engine's depth, the button's word) stayed GREEN on this bundle, which is why the search depth is read from the engine's own messages at the Worker and not from any of them
+// CONTROL-RECORD: 3dd181fe 2026-11-19 total=25 red=19 scope=trial:99b8dc47ba0b how=batch 13, pairs break depth-button-also-opens-the-review (the button's stopPropagation removed): the review starts under the menu, so TC-R242f and everything read after it are red at all four launches (12 graded lines at 375x761, 7 at 320x568)
+// CONTROL-RECORD: 3dd181fe 2026-11-19 total=57 red=5 scope=trial:3337ffb155f0 how=batch 13, pairs break result-box-not-one-column-wide (the result box a fixed 3.8em at the start of its column): TC-R242b red at all four launches and the after-the-review grid line red (3 at 375x761, 2 at 320x568)
+// The grading machine on 3dd181fe: CHECKED, real 31/31 at kunal761 and 25/25 at 320x568 (bundle 6e2bccc93e3b), all three breaks CAUGHT.
 const L=require('../lib');const R=require('../drive/review');
 const DAY=86400000,D0=1763000000000;
 const ME=['cc','jsmiller1112','Jsmiller1112'];
@@ -168,3 +181,11 @@ L.run(async()=>{
   }
   L.done();
 });
+// SELECTOR-OPENED: game-depth control=3dd181fe the tree before the change has no depth button: the tap throws, TC-R242f goes red at every launch and the layout is not read
+// SELECTOR-OPENED: game-depth-face control=3dd181fe same control; and a card without it fails the DENOMINATOR (every card must carry a result box, four move boxes and a button)
+// SELECTOR-OPENED: depth-menu control=3dd181fe same control: no menu, TC-R242f red
+// SELECTOR-OPENED: depth-opt control=3dd181fe same control: picking Deep throws and every Deep line is red
+// SELECTOR-OPENED: depth-menu-label reading=presence the label's text must equal 'Review depth', so a missing hook reads null and reds
+// SELECTOR-OPENED: gstat-bril control=3dd181fe same control: the old card has no brilliant box and fails the DENOMINATOR
+// SELECTOR-OPENED: game-tc reading=presence TC-R242c requires a time control text on every card, so a missing hook reads null and reds
+// SELECTOR-OPENED: game-meta reading=fallback named only where a text's own hook is absent; no line depends on it
