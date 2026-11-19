@@ -173,3 +173,31 @@ At 320x568 the explanation is clamped to one line with "▾ more" (the readabili
 - The opposition: now 8/8/3k4/8/3K4/3P4/8/8 b, a win for White (was a draw).
 - Found by this build, not the audit: Keep your queen home early had no black queen; King safety first had White a rook down. Both restored.
 - Wording: the Pin card ("so it cannot run from your pawn. Take it: hxg6") and Double attack ("the short diagonal down to b6").
+
+## 9. Tactics and Strategy, batch 13: the words against the boards (jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12, the checker's gap of 15 Nov 2026)
+**A wrong try on Tactics.** Old: "Not the key move. Try again." on 213 of the 238 legal wrong moves and on every tap that is no legal move (a mate allowed or a piece hung was already named on the other 25). New: "Not <the move>. <the card's line>", and "Not legal. <the card's line>" for a tap that is no legal move. The card's lines:
+- Fork: One knight move checks the king and attacks the queen.
+- Pin: The g6 knight is pinned. Take it the cheapest way.
+- Skewer: One rook check has the queen behind the king.
+- Discovered check: Every knight move gives check. One takes the queen.
+- Back-rank mate: There is a mate in one along the back rank.
+- Smothered mate: There is a mate in one, and only the knight can give it.
+- Double attack: One queen check also attacks the rook on b6.
+- Pawn fork: One pawn push attacks the knight and the bishop together.
+- Double check: Two knight moves give double check. One hits the queen.
+- Hanging piece: One black piece has no defender. Take it.
+- Deflection: A queen check forces the a8 rook to take. Then you mate.
+- Decoy: The rook must take one check. Then the knight mates.
+- Discovered attack: One knight move wins the queen and unmasks the bishop.
+
+**Sentences the board contradicted.**
+- Fork, hint. Old: A knight check that also lands next to the queen. New: A knight check that also attacks the queen. (f6 is not next to d7.)
+- Discovered check, idea. Old: White to play. Move one piece so another delivers check. New: ... so another delivers check, and take something on the way. (All eight knight moves deliver the check; seven were refused.)
+- Double check, idea. Old: White to play. Move the knight so two pieces check the king together. New: ... check the king together, and win the queen. (Nd6+ is a double check too, and was refused.)
+- Discovered attack, explanation. Old: Black is a queen for a knight down and must save the rook as well. New: Black has lost the queen for nothing and must save the rook as well. (Nothing can take the knight on d7.)
+- Rooks love the 7th rank, text. Old: A rook on the 7th rank attacks the enemy pawns from behind and pins the king to the back rank. New: A rook on the 7th rank attacks the enemy pawns from the side and ties the king to defending them. Look line, old: White rook on a7, raking the pawns. New: White rook on a7, attacking f7, which only the king defends. (The king can leave by h7; what holds it is f7.)
+- The bishop pair, look line. Old: White keeps both bishops. New: White has both bishops; Black has a bishop and a knight.
+
+**Boards.**
+- Put rooks on open files: 3r2k1/pp3pp1/7p/8/8/7P/PP3PP1/2R3K1 w (h3 added). Rc7 is the engine's best (+0.03); before, Rc7 allowed Rd1 mate and Rc8+ lost the rook.
+- The bishop pair: 4k3/pp3ppp/2n2b2/8/8/8/PP3PPP/2B1KB2 w. A light and a dark bishop against a bishop and a knight, +0.48; before, two dark-squared bishops against a bare king, +6.33.
