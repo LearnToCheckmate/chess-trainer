@@ -2503,12 +2503,12 @@ function reviewText0(a,ctx){
           if(rs.length===1){const g3=makeMove(g2,rs[0]);const mm=getLegal(g3).find(x=>getStatus(makeMove(g3,x))==='checkmate');
             if(mm)mt='It is mate in two: '+rtRun([toSAN(ctx.pos,mv0,applyMove(ctx.pos.board,mv0)),toSAN(g2,rs[0],applyMove(g2.board,rs[0])),toSAN(g3,mm,applyMove(g3.board,mm))],M,num,false)+' mate.';}}}catch(e){mt='';}
       if(mt)return {line:fit([give+'.',mt]),more:fitM([cmp]),rung:'B'};}
-    if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B'};
+    if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B',pending:true};   /* batch 13 (jobs/gate-26-goes-red-at-ply-31-...-2026-11-18): pending - the refutation clause is still coming, so the band keeps the graph out of this box */
     return {line:fit([give+'.',ref]),more:fitM([evenSt?'':st,cmp]),rung:'B'};}
   if(L==='Great'){const R=ctx.refute;let ref='';if(R&&R.capSan){const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
       ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true).replace(/^(\S+) /,'$1, ')+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
     const head=mine||!V.k?'The only good move.':'Your opponent finds the only good move.';
-    if(!R&&ctx.refuteDue)return {line:head,more:'',rung:'G'};
+    if(!R&&ctx.refuteDue)return {line:head,more:'',rung:'G',pending:true};
     return {line:fit([head,ref||itDid]),more:fitM([evenSt?'':st]),rung:'G'};}
   if(L==='Best'||L==='Excellent'){const head=L==='Best'?own('The best move.'):own('A good move.');
     return {line:fit([head,itDid,evenSt?'':st]),more:'',rung:''};}
@@ -5441,17 +5441,18 @@ function AppMain(){
      where it does not, so a short phone keeps the small graph and loses nothing. */
   const [revBandH,setRevBandH]=useState(0);const [revBandOff,setRevBandOff]=useState(0);const revBandMO=useRef(null);
   const revBandRO=useRef(null);
+  const revBandFRef=useRef(null);   /* batch 13: the band's measure, for the layout effect that re-runs it when the reason changes (see revMoreOpen) */
   /* #550 a36: the sideways eval graph's box (Review under the explanation, Play under the toolbar), and in a game against the computer the
      evaluation the bar showed for each position, keyed by FEN, so the graph grows from what the bar already showed */
   const playEvRef=useRef({});const [pgBox,setPgBox]=useState(null);const pgRO=useRef(null);
   const pgRef=useCallback((el)=>{try{if(pgRO.current){pgRO.current.disconnect();pgRO.current=null;}if(!el){setPgBox(null);return;}const f=()=>{const r=el.getBoundingClientRect();const v={w:Math.round(r.width),h:Math.round(r.height)};setPgBox(o=>(o&&o.w===v.w&&o.h===v.h)?o:v);};f();if(typeof ResizeObserver!=='undefined'){pgRO.current=new ResizeObserver(f);pgRO.current.observe(el);}}catch(e){}},[]);
-  const revBandRef=useCallback((el)=>{try{if(revBandRO.current){revBandRO.current.disconnect();revBandRO.current=null;}if(revBandMO.current){revBandMO.current.disconnect();revBandMO.current=null;}if(!el){setRevBandH(0);setRevBandOff(0);return;}const f=()=>{const c=document.querySelector(el.getAttribute('data-to')||'[data-ct="rev-compact"]');const et=el.getBoundingClientRect().top;const v=c?Math.max(0,Math.round(c.getBoundingClientRect().top-et)):0;setRevBandH(h=>v===h?h:v);
+  const revBandRef=useCallback((el)=>{try{if(revBandRO.current){revBandRO.current.disconnect();revBandRO.current=null;}if(revBandMO.current){revBandMO.current.disconnect();revBandMO.current=null;}if(!el){revBandFRef.current=null;setRevBandH(0);setRevBandOff(0);return;}const f=()=>{const c=document.querySelector(el.getAttribute('data-to')||'[data-ct="rev-compact"]');const et=el.getBoundingClientRect().top;const v=c?Math.max(0,Math.round(c.getBoundingClientRect().top-et)):0;setRevBandH(h=>v===h?h:v);
     /* #550 round 5 (gate 77 TC-S04, 63px at the last move): outside analysis the why box keeps a fixed three-line reservation so the board never
        jumps, and a one-line reason ('Checkmate.') leaves two empty lines in it that the band below could not see. With data-ink the graph's band
        starts 6px under the last thing painted in the why box (the reason's last line, the engine line, the best line), so a short reason gives
        its unused lines to the graph and a full one leaves the graph out (under 40px) - nothing is ever drawn over text. */
-    let off=0;if(el.getAttribute('data-ink')==='1'){const w=document.querySelector('[data-ct="rev-why"]');if(w){let b=-1e9;const tx=w.querySelector('[data-ct="rev-why-txt"]');if(tx&&(tx.textContent||'').trim()){const tb=tx.getBoundingClientRect().bottom;const rg=document.createRange();rg.selectNodeContents(tx);for(const q of rg.getClientRects())if(q.height>0)b=Math.max(b,Math.min(q.bottom,tb));}for(const k of w.querySelectorAll('[data-ct="rev-engline"],[data-ct="rev-bestline"]')){const q=k.getBoundingClientRect();if(q.height>0)b=Math.max(b,q.bottom);}off=b>-1e9?Math.min(0,Math.round(b+6-et)):Math.min(0,Math.round(w.getBoundingClientRect().top-et));}}setRevBandOff(o=>o===off?o:off);};
-    f();requestAnimationFrame(f);if(typeof ResizeObserver!=='undefined'&&el.parentElement){revBandRO.current=new ResizeObserver(f);revBandRO.current.observe(el.parentElement);}
+    let off=0;if(el.getAttribute('data-ink')==='1'){const w=document.querySelector('[data-ct="rev-why"]');if(w){let b=-1e9;const tx=w.querySelector('[data-ct="rev-why-txt"]');if(tx&&tx.getAttribute('data-pending')==='1'){b=tx.getBoundingClientRect().bottom;/* batch 13: the reason is still coming (its refutation clause), so its box is held whole - the graph never takes lines the final text will fill */}else if(tx&&(tx.textContent||'').trim()){const tb=tx.getBoundingClientRect().bottom;const rg=document.createRange();rg.selectNodeContents(tx);for(const q of rg.getClientRects())if(q.height>0)b=Math.max(b,Math.min(q.bottom,tb));}for(const k of w.querySelectorAll('[data-ct="rev-engline"],[data-ct="rev-bestline"]')){const q=k.getBoundingClientRect();if(q.height>0)b=Math.max(b,q.bottom);}off=b>-1e9?Math.min(0,Math.round(b+6-et)):Math.min(0,Math.round(w.getBoundingClientRect().top-et));}}setRevBandOff(o=>o===off?o:off);};
+    revBandFRef.current=f;f();requestAnimationFrame(f);if(typeof ResizeObserver!=='undefined'&&el.parentElement){revBandRO.current=new ResizeObserver(f);revBandRO.current.observe(el.parentElement);}
     if(el.getAttribute('data-ink')==='1'&&typeof MutationObserver!=='undefined'){const w=document.querySelector('[data-ct="rev-why"]');if(w){revBandMO.current=new MutationObserver(()=>requestAnimationFrame(f));revBandMO.current.observe(w,{subtree:true,childList:true,characterData:true});}}}catch(e){}},[]);
   const [evalGraph,setEvalGraph]=useState(()=>{try{return localStorage.getItem('ct_evalgraph')!=='0';}catch{return true;}}); /* #547 item (56), jobs/eval-graph-into-the-band: ON by default - Kunal answered this on 14 and 15 Sep; only an explicit '0' turns it off */
   useEffect(()=>{try{localStorage.setItem('ct_evalgraph',evalGraph?'1':'0');}catch{}},[evalGraph]);
@@ -10378,6 +10379,11 @@ function AppMain(){
   const _annoWhy=_cNote?(_cNote.head+(_annoWhy0?(' \u00b7 '+_annoWhy0):'')):_annoWhy0;
   const _annoMore=_cNote?([(_cNote.note&&_cNote.asked)?_cNote.asked:'',_annoMore0].filter(Boolean).join(' ')||'From your coach game.'):_annoMore0;
   const [revMoreOpen,setRevMoreOpen]=useState(false);
+  /* batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18: THE BAND IS RE-MEASURED IN THE
+     SAME FRAME AS THE REASON CHANGES. It used to follow the text through a MutationObserver and a requestAnimationFrame, so for one frame the
+     new, longer reason was painted with the eval graph still sitting over it (measured on c58695d at 320x568, ply 31). A layout effect runs
+     after the DOM has the new text and before the browser paints, and a state update made in it is rendered before that paint too. */
+  useLayoutEffect(()=>{try{if(revBandFRef.current)revBandFRef.current();}catch(e){}},[_annoWhy,_annoRT&&_annoRT.pending]);
   useEffect(()=>{setRevMoreOpen(false);},[ply,review]);
   /* #365 the next-best strip: the move that was played and the engine's other choice, each with its
      evaluation, the way chess.com's engine panel shows them. Data the review already had; it was
@@ -13055,7 +13061,7 @@ function AppMain(){
             {_stripH>0&&_cmpStrip&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
-            {!anaMode&&<div data-ct="rev-why-txt" style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical',cursor:_annoMore?'pointer':'default'}} className={_annoMore?'ct-hasmore':undefined} data-more={_annoMore||undefined} role={_annoMore?'button':undefined} aria-label={_annoMore?((_annoWhy||'')+' More about this move'):undefined} onClick={()=>{if(_annoMore)setRevMoreOpen(true);}}>{_annoWhy||'\u00a0'}</div>}
+            {!anaMode&&<div data-ct="rev-why-txt" data-pending={(_annoRT&&_annoRT.pending&&!_cNote)?'1':undefined} style={{height:_reasonH,flexShrink:0,fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?3:2,WebkitBoxOrient:'vertical',cursor:_annoMore?'pointer':'default'}} className={_annoMore?'ct-hasmore':undefined} data-more={_annoMore||undefined} role={_annoMore?'button':undefined} aria-label={_annoMore?((_annoWhy||'')+' More about this move'):undefined} onClick={()=>{if(_annoMore)setRevMoreOpen(true);}}>{_annoWhy||'\u00a0'}</div>}
             
             {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no).map(r=>(review&&review.noNum)?{...r,san:String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')}:r);const ew=evalWords(engLine.cp);return(
               <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
