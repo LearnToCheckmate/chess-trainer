@@ -40,6 +40,14 @@ L.run(async()=>{
   // ── node: the table ────────────────────────────────────────────────────────────────────────────────────────────────────────────
   L.note('168: chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5);
   L.say(CL.length>0,'node TC-R233a PRECONDITION the famous-games table is not empty ('+CL.length+' rows)');
+  // batch 13 lead, on seat B1's report of job 3: brilBetween() looped for ever on bare or same-square input (NaN never equals NaN;
+  // a zero step never reaches its end), so gate 79 X2, which calls every exported function bare, timed out at 900s. Run each call
+  // in a worker with a 5s limit so the hang is a red here, not a hung gate.
+  // CONTROL-RECORD batch 13 lead: TC-R233n on chess.jsx 057f3b41371c (before the guard) reads ["HUNG","false","true","false"], 1 FAIL (41 pass at kunal761 only); after the guard 65 pass, 0 fail on trial 6e23b857a674.
+  {const {Worker}=require('worker_threads');const EX=require.resolve('../engine-extract.js');
+   const probe=(args)=>new Promise(res=>{const w=new Worker('const {parentPort,workerData}=require("worker_threads");const E=require(workerData.p);parentPort.postMessage(String(E.brilBetween(...workerData.a)))',{eval:true,workerData:{p:EX,a:args}});const t=setTimeout(()=>{w.terminate();res('HUNG');},5000);w.on('message',m=>{clearTimeout(t);w.terminate();res(m);});w.on('error',e=>{clearTimeout(t);res('ERR '+e.message);});});
+   const got=[await probe([]),await probe([1,1,0,0,0,0]),await probe([1,1,0,0,3,3]),await probe([1,2,0,0,3,3])];
+   L.say(got[0]==='false'&&got[1]==='false'&&got[2]==='true'&&got[3]==='false','node TC-R233n brilBetween returns at once on bare input and on from===to (false), and still finds a square between on a diagonal (true) and not off it (false)',got);}
   let gen=null,genErr=null;try{const {games,meas}=M.load();gen=Object.assign(M.rowsFrom(games,meas),{meas,games});}catch(e){genErr=String(e&&e.message||e);}
   const want=gen?gen.out.map(c=>JSON.stringify([c.id,c.who,c.fen,c.uci,c.no,c.line,c.why])):[];const have=(E.BRIL_CLASSICS||[]).map(r=>JSON.stringify(r));
   L.say(!!gen&&want.length>0&&have.length===want.length&&have.every((x,i)=>x===want[i]),'node TC-R233a every row is one the game scores and the measured record generate: each game replays move by move, each row\'s move is one the app\'s own engine and rule graded Brilliant (depth '+(gen&&gen.meas.depth)+', rule '+(gen&&gen.meas.rule)+'), and chess.jsx carries exactly those rows ('+have.length+' in chess.jsx, '+want.length+' generated'+(genErr?'; '+genErr:'')+')');

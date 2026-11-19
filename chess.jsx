@@ -2937,8 +2937,8 @@ function brilBears(b,r,c,tr,tc){const p=b[r]&&b[r][c];if(!p)return false;const d
   const diag=ar===ac,str=!dr||!dc;if(!((p.t==='b'&&diag)||(p.t==='r'&&str)||(p.t==='q'&&(diag||str))))return false;
   const sr=Math.sign(dr),sc=Math.sign(dc);for(let rr=r+sr,cc=c+sc;rr!==tr||cc!==tc;rr+=sr,cc+=sc)if(b[rr][cc])return false;return true;}
 // is (ar,ac) strictly between (fr,fc) and (tr,tc) on a rank, file or diagonal?
-function brilBetween(ar,ac,fr,fc,tr,tc){const dr=tr-fr,dc=tc-fc;if(!(!dr||!dc||Math.abs(dr)===Math.abs(dc)))return false;const sr=Math.sign(dr),sc=Math.sign(dc);
-  for(let rr=fr+sr,cc=fc+sc;rr!==tr||cc!==tc;rr+=sr,cc+=sc)if(rr===ar&&cc===ac)return true;return false;}
+function brilBetween(ar,ac,fr,fc,tr,tc){if(![ar,ac,fr,fc,tr,tc].every(Number.isInteger))return false;const dr=tr-fr,dc=tc-fc;if(!dr&&!dc)return false;if(!(!dr||!dc||Math.abs(dr)===Math.abs(dc)))return false;const sr=Math.sign(dr),sc=Math.sign(dc);   /* batch 13: guard non-integer squares and from===to, which looped for ever (gate 79 X2 calls it bare) */
+  for(let rr=fr+sr,cc=fc+sc,k=0;(rr!==tr||cc!==tc)&&k<8;rr+=sr,cc+=sc,k++)if(rr===ar&&cc===ac)return true;return false;}
 function brilMotifs(pos,pl,g,line){
   const tags=[],add=(tag,conf)=>{if(!tags.some(t=>t.tag===tag))tags.push({tag,conf});};
   g=g||{};
