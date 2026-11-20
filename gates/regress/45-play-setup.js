@@ -1,4 +1,5 @@
 // RENUMBERED BY THE BUILD SESSION, 2026-09-14. This file was authored as 43-play-setup.js. The build session had
+// CONTROL-RECORD: 463595ec 2026-11-20 total=51 red=6 scope=trial:0c76fe88f75a how=batch 13, Kunal's q10 START_REST re-key, CT_PS_BLOCKS=A: the tree before (beb7d657, Coach mode beside White and Black) - TC-PS-006 red at all six geometries (Start game measured 463 at 320x568 and 448 elsewhere against 485 / 500); on the re-keyed tree 27c5fcac6c76 51/0
 // CONTROL-RECORD: 08f5354 2026-11-14 total=271 red=19 scope=trial:03fd6b5bafb0 how=#550 helper B, Kunal's q44 re-keys: a88ba8c (before the Time dropdown and the opponent screen, built as r0c) - TC-PS-006 at all six (Start game 731 / 681, not 463 / 448), TC-PS-008 at all six (no opponent screen, Viktor off screen), TC-PS-009 at four (Start game pushed below the fold), TC-PS-018 at three (Viktor at 532, off the right edge); on r1 (490ee70b5ab6, 08f5354's tree) 267 of 267
 // CONTROL-RECORD: f41fd3c 2026-11-03 total=190 red=4 scope=trial:078c3f87ef2b how=#547 item (141)'s pre-fix bundle, the bot row with no 'more' chip and the strongest bot off its edge: TC-PL-047 red x4 at kunal730 and se (run nc141) [#547 close-out, ratchet]
 // CONTROL-RECORD: 096531f 2026-11-06 total=100 red=3 scope=blocks:C how=gate mutant hands the page a box-returning function in place of gates/lib.js INK_RECT, served trial cd7e18670623 - TC-INV-02f red at se, kunal730 and 430, 97 green [#549 item (20)]
@@ -260,7 +261,11 @@ const GEOS=['se','kunal','kunal730','kunal761','390','430'];
 // RE-KEYED by #550 helper B, Kunal's q44: with the personas and the slider on their own screen and the time control one row, the sheet fits
 // every phone in this set, 320x568 included, and Start game rests at 448 (463 at 320x568, where the scan buttons' words take two lines).
 // Was START_REST {se:731,kunal:681,kunal730:681,kunal761:681,'390':681,'430':681}.
-const START_REST={se:463,kunal:448,kunal730:448,kunal761:448,'390':448,'430':448};
+// RE-KEYED by batch 13, Kunal's q10 (Desk, 19 Nov; jobs/coach-mode-...-2026-11-03, TC-R252a): Coach mode is a full-width row of its own
+// under White and Black on the Computer sheet (44 and the 8 above it), so Start game rests 52 lower at every geometry 640 and taller, and 22
+// lower at 320x568, where the sheet's rows sit 4 apart and the scan buttons' padding is 9 so it still fits (gate 159 TC-INV-08p). Measured on
+// trial 27c5fcac6c76. Was START_REST {se:463,kunal:448,kunal730:448,kunal761:448,'390':448,'430':448}.
+const START_REST={se:485,kunal:500,kunal730:500,kunal761:500,'390':500,'430':500};
 const SHEET_W   ={se:296,kunal:351,kunal730:351,kunal761:351,'390':366,'430':406};
 
 // CT_PS_BLOCKS=A,B  runs only the named blocks. It exists for the NEGATIVE CONTROLS - proving eight one-line
