@@ -617,7 +617,7 @@ if(blk('D')){
   const NAV=[
     ['learn',  /What do you want to learn\?/,               'Discover'],
     ['puzzle', /Rank 0 \/ 8 · 0 solved/,                    'the puzzle roadmap'],
-    ['analyze',/Review any game, from anywhere/,            'Game review'],
+    ['analyze',/Review any game, from anywhere|Analyze game/,'Game review'],   // batch 13 (Q25 B): the list's heading line is cut; its Analyze game button (an icon, its name in its text) is on both trees
     ['play',   null,                                        'the New Game setup sheet'],
   ];
   let n=23;
@@ -1164,7 +1164,7 @@ const WHERE=(b)=>b.page.evaluate(()=>{
     lesson:q('[data-ct="lesson-note"]'),
     learn:/What do you want to learn\?/.test(t),
     puzzle:/Puzzle goal|Daily goal/.test(t)&&/Rank/.test(t),   /* #550 TXT-26: 'Daily goal' on Puzzles reads 'Puzzle goal' */
-    review:/Review any game, from anywhere/.test(t)||q('[data-ct="rev-row1"]'),
+    review:/Review any game, from anywhere|Analyze game/.test(t)||q('[data-ct="rev-row1"]'),   /* batch 13 (Q25 B): the heading line is cut */
     play:q('[data-ct="setup-sheet"]')||q('[data-ct="play-home"]'),
     look:q('[data-ct="look"]'),
     txt:t.slice(0,90)};});

@@ -65,7 +65,7 @@ L.run(async()=>{
   const tileRead=(b)=>b.page.evaluate(()=>{const painted=(x)=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0;};
     const lab=[...document.querySelectorAll('body *')].filter(x=>x.children.length===0&&painted(x)&&/^(Famous|Your) brilliant moves$/.test((x.textContent||'').trim()));
     const t=lab.map(x=>{const btn=x.closest('button');const r=(btn||x).getBoundingClientRect();const box=document.querySelector('[data-ct="glist-box"]');const bq=box&&box.getBoundingClientRect();
-      return {label:(x.textContent||'').trim(),text:btn?(btn.innerText||'').replace(/\s+/g,' ').trim():null,t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,inBox:!!(box&&box.contains(x)),box:bq?{t:bq.top,b:bq.bottom,h:bq.height,st:box.scrollTop}:null};});
+      return {label:(x.textContent||'').trim(),text:btn?(btn.innerText||'').replace(/\s+/g,' ').trim():null,t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,inBox:!!(box&&box.contains(x)),inPractice:!!x.closest('[data-ct="practice-row"]'),ink:(()=>{const q=x.getBoundingClientRect();return {h:q.height};})(),box:bq?{t:bq.top,b:bq.bottom,h:bq.height,st:box.scrollTop}:null};});
     const root=document.getElementById('root');const row=document.querySelector('[data-ct="game-row"]');
     return {tiles:t,vw:innerWidth,vh:innerHeight,root:{sh:root.scrollHeight,ch:root.clientHeight},rowH:row?row.getBoundingClientRect().height:null};});
   const tapTile=async(b,label)=>{const el=b.page.locator('button',{hasText:label}).first();await el.scrollIntoViewIfNeeded({timeout:3000}).catch(()=>{});await el.click({timeout:4000}).catch(()=>{});await b.settle(800);};
@@ -82,20 +82,23 @@ L.run(async()=>{
     {const b=await L.launch({geo,name:'b181-new-'+geo,store:{ct_bril_reset_v1:'1',ct_pool:'3'}});await b.open();
      await b.tile('Review').catch(()=>{});await b.settle(1200);const t=await tileRead(b);const f=t.tiles.filter(x=>x.label==='Famous brilliant moves');
      L.say(t.tiles.length===1&&f.length===1&&!f[0].inBox,geo+' TC-R250d a player with no brilliant move of his own and no games sees ONE Brilliant tile on Review, reading "Famous brilliant moves" ('+JSON.stringify(t.tiles.map(x=>x.label))+')',t.tiles);
-     L.say(f.length===1&&f[0].text==='✨ Famous brilliant moves '+NCL+' from famous games · can you find them? ›'&&f[0].h>=44&&f[0].l>=0&&f[0].r<=t.vw+0.5&&f[0].b<=t.vh,geo+' TC-R250d the tile says what it holds ("'+(f[0]&&f[0].text)+'"), is a full tap target ('+(f[0]&&Math.round(f[0].h))+'px) and on screen');
+     L.say(f.length===1&&/^✨ Famous brilliant moves (\u203a )?/.test(f[0].text||'')&&(f[0].text||'').replace(/^✨ Famous brilliant moves (\u203a )?/,'').replace(/ \u203a$/,'')===NCL+' from famous games · can you find them?'&&f[0].h>=44&&f[0].l>=0&&f[0].r<=t.vw+0.5&&f[0].b<=t.vh,geo+' TC-R250d the tile says what it holds ("'+(f[0]&&f[0].text)+'"; since batch 13 Q25 B the sentence is kept for a screen reader, not painted), is a full tap target ('+(f[0]&&Math.round(f[0].h))+'px) and on screen');
      await tapTile(b,'Famous brilliant moves');const l=await lib(b);
      L.say(l.lib&&l.heads.length===1&&l.heads[0].toUpperCase()===('From famous games · '+NCL).toUpperCase()&&l.go==='Practice all '+NCL&&l.goDis===false,geo+' TC-R250e tapping it opens the library on the famous-games shelf, and Practice all takes all '+NCL+' famous moves (heads '+JSON.stringify(l.heads)+', "'+l.go+'")');
      await b.page.locator('[data-ct="bril-lib-go"]').click({timeout:3000}).catch(()=>{});await b.settle(1500);const d=await drill(b);
      L.say(!d.lib&&d.counter==='✨ Famous games · 1 of '+NCL+' ▾'&&d.cut!==null&&d.cut<=0.5,geo+' TC-R250e the drill opens on the famous deck ("'+d.counter+'"), its header whole');
      const st=await stored(b,'ct_mybrilliancies');L.say(Array.isArray(st)&&st.length===0,geo+' TC-R250e his own list is still empty: the famous moves are not his',st);
      L.say(b.errs.length===0,geo+' TC-R250e zero app errors',b.errs.slice(0,3));await b.close();}
-    // 2. q2 with games listed: the famous tile is one compact row at the top of the games box, and the page still does not scroll
+    // 2. q2 with games listed: the famous tile is one compact card in the practice row (batch 13 Q25 B; it was the games box's first row), and the page still does not scroll
     // the store is gate 164's: one account and 40 games, the fixed Review page (only the games box scrolls) that q45 settled
     {const DAY=86400000;const games=[];for(let i=0;i<40;i++)games.push({src:'cc',acct:'jsmiller1112',pgn:R.PGN_OPERA,white:'Jsmiller1112',black:'Opponent'+i,wr:(i%3?'win':'checkmated'),tc:'blitz',date:Date.now()-(i+1)*DAY});
      const st={ct_accts:['cc:jsmiller1112'],ct_acctgames:{'cc:jsmiller1112':games},ct_pool:'3',ct_bril_reset_v1:'1'};
      const b=await L.launch({geo,dev:false,name:'b181-games-'+geo,store:st});await b.open();await b.tile('Review').catch(()=>{});await b.settle(1500);
      const t=await tileRead(b);const f=t.tiles.find(x=>x.label==='Famous brilliant moves');
-     L.say(t.tiles.length===1&&!!f&&f.inBox&&f.text==='✨ Famous brilliant moves ›'&&f.h>=44&&!!f.box&&f.t>=f.box.t-0.5&&f.b<=f.box.b+0.5&&f.box.st===0,geo+' TC-R250f with his games listed the Famous tile is the first row of the games box, one line and a full tap target ('+(f&&Math.round(f.h))+'px, box '+(f&&f.box&&Math.round(f.box.t)+'-'+Math.round(f.box.b))+')',f);
+     // batch 13, jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18 (Q25 B, FB-03): the tile is a PRACTICE CARD
+     // in the row under the PGN box, not a row of the games box - the job moved it; this line followed. Its name is one painted line (the label's
+     // own box at most 24px tall), the card a full tap target, above the games box and outside it.
+     L.say(t.tiles.length===1&&!!f&&!f.inBox&&f.inPractice&&f.ink.h<=24&&f.h>=44&&!!f.box&&f.b<=f.box.t+0.5&&f.box.st===0,geo+' TC-R250f with his games listed the Famous tile is a practice card above the games box (not in it), its name one line and the card a full tap target ('+(f&&Math.round(f.h))+'px, its name '+(f&&Math.round(f.ink.h))+'px, box '+(f&&f.box&&Math.round(f.box.t)+'-'+Math.round(f.box.b))+')',f);
      L.say(t.root.sh<=t.root.ch+1&&!!f&&!!f.box&&t.rowH>0&&f.box.h>=t.rowH+12,geo+' TC-R250f the Review page still does not scroll with the tile in (#root '+t.root.sh+' in '+t.root.ch+'), and the games box still holds one whole game with the next one starting (box '+(f&&f.box&&Math.round(f.box.h))+'px, a game '+(t.rowH&&Math.round(t.rowH))+'px)');
      await tapTile(b,'Famous brilliant moves');const l=await lib(b);
      L.say(l.lib&&l.heads.some(h=>/^From famous games/i.test(h)),geo+' TC-R250f tapping it opens the library ('+JSON.stringify(l.heads)+')');
