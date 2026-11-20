@@ -132,6 +132,7 @@
 // CONTROL-RECORD: 76b40e9 2026-11-06 total=218 red=2 scope=trial:1f1d1d2b4acc how=#549 run fix fixr5a (A1-R5): the run-head 46340d1 bundle, where Play's growth branch parks the trim at -480 on a width-bound phone - TC-R64-D17 THE SMALL OVERFLOW IS CORRECTED WITHIN THE WAKE red at 375x730 (13.03) and 375x761 (12.03), the only reds
 // CONTROL-RECORD: 76b40e9 2026-11-06 total=218 red=7 scope=trial:125a75dde92f how=#549 run fix fixr5a, D15 re-control: the fix tree with 1029033's Play absorbed-slack term switched off - TC-R64-D15 THE PHONE-GAME BOARD COMES BACK red at all five cells and the two TC-R64-D17 recovery tails
 // CONTROL-RECORD: bd4ecb7 2026-11-07 total=224 red=3 scope=trial:1e0c67e7dbd3 how=f462559's own bundle (the fit loop before fixr6b: growth claims all slack and no fresh-trim memory); reddens TC-R64-D15's recovery line at 320x540 (268 vs 276), 320x568 (296 vs 298) and 375x568-4ply (304 vs 296), 221 pass 3 fail [#549 run fix fixr6b, antagonist A round 6 A2-R6]
+// CONTROL-RECORD: 7f7fdf73 2026-11-20 total=236 red=16 scope=trial:f441ebae3739 how=batch 13 red repair: the Moves finder as it was before the re-key (innerText 'Moves' only) on the branch head, where the game row is icons only since 1cc57a16 - tap1/tap2 false, so every TC-R64-D15 'control was applied' and 'Moves toggled back' line red at its six cells and D17's applied and recovery lines at 375x730 and 375x761 (the 16 reds the brief measured on 6e02e303); with the finder reading the name too, the same trial is 236 PASS 0 FAIL (9m28s)
 // CONTROL-RECORD: 64afd33 2026-11-12 total=236 red=4 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - D17's re-calibrated blocks (56, 86) reach no overflow there, so both state-reached and both corrected lines red
 const L=require('../lib.js');
 const D=require('../drive/lesson.js');
@@ -627,7 +628,9 @@ L.run(async()=>{
       {n:'375x568-4ply', g:L.GEOS.short375, px:40, st:'cpu-4ply'},
     ];
     const STEP=8,SAME=1;   // the fit loop moves in 8px steps, and a tolerance of one step admitted A2-R6 (304 vs 296); since fixr6b the board comes back to its fresh size exactly, so the recovery is asserted to under 1px
-    const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;});
+    // batch 13 re-key (1cc57a16, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18): the game row's
+    // Moves is icons only, its name in aria-label (RowBtn), so the word is matched as its text OR its name - the same button, D15/D17 unchanged.
+    const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves'||(x.getAttribute('aria-label')||'').trim()==='Moves');if(!e)return false;e.click();return true;});
     for(const c of PCELLS){
       const R={};
       const b=await L.launch({geo:c.g,name:'d15-'+c.n,store:{ct_pool:'3'}});
@@ -719,7 +722,7 @@ L.run(async()=>{
         await b.open();await P.states['cpu-4ply'](b);await b.settle(800);
         R.fresh=await bw(b);
         Object.assign(R,await b.page.evaluate(async(a)=>{const root=document.getElementById('root');
-          const tm=()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;};
+          const tm=()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves'||(x.getAttribute('aria-label')||'').trim()==='Moves');if(!e)return false;e.click();return true;};
           const bwf=()=>{let m=0;for(const e of document.querySelectorAll('div'))if(/repeat\(8,/.test(e.style.gridTemplateColumns||''))m=Math.max(m,e.getBoundingClientRect().width);return Math.round(m*100)/100;};
           const ovf=()=>{const de=document.documentElement;let bot=0;for(const k of root.children){const s=getComputedStyle(k);if(s.position==='fixed'||s.position==='absolute')continue;bot=Math.max(bot,k.getBoundingClientRect().bottom);}return Math.round((bot-de.clientHeight)*100)/100;};
           const d=document.createElement('div');d.id='ct-d17-kick';d.style.cssText='height:'+a.px+'px;flex:0 0 '+a.px+'px';root.firstElementChild.prepend(d);

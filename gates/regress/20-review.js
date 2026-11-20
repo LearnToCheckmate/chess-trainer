@@ -94,6 +94,7 @@ const summaryCounts=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[d
 // CONTROL-RECORD: bd79425c 2026-11-19 total=345 red=19 scope=trial:80b38f83b3d7 how=batch 13 TC-R238, gates/pairs/breaks/g20-old-shape-back.diff (no launch seeded with the shared analysis, lane B run after lane A) - the gate took 714 s: TC-R238c TIME red and all 18 per-launch TC-R238a SHARED lines red; on the good trial 80d2fb609f96 345 PASS 0 FAIL in 355 s
 // CONTROL-RECORD: bd79425c 2026-11-19 total=337 red=2 scope=trial:60940cb1046d how=batch 13 TC-R238, gates/pairs/breaks/g20-case-dropped.diff (TC-R114's loop without 390x844) - TC-R238b CASES red (missing R114 390) and the TC-R238a SHARED count red (17 of 18); every other line green
 // CONTROL-RECORD: bd79425c 2026-11-19 total=345 red=7 scope=trial:4cb38e9cb070 how=batch 13 TC-R238, gates/pairs/breaks/g20-engine-line-left-on.diff (chess.jsx _engRestore a no-op) - the restructured gate still reports it as FAIL lines, not a timeout: TC-R71 after-exit at kunal, kunal730 and 390, after-exit and REENTER at se and kunal761; TC-R238a/b/c green
+// CONTROL-RECORD: c51993c9 2026-11-20 total=345 red=5 scope=trial:7b43504727c4 how=batch 13 red repair, TC-R04 re-pinned to the three row game card (verdict after the opponent's name): run on 1e0c21e8, the tree before df0a8230 (the one-row card, verdict before the name) - all four TC-R04 verdict lines red ("no verdict row"), plus TC-R06's later full-width re-pin (343); on the head 6e02e303 trial 0075dfcc49e3 345 PASS 0 FAIL
 const CASE_RUNS={A:['flagOf','main kunal','main kunal730','main 390','R12b kunal730',
   'R66 23…','R66 40.','R66 4.','R66 bad a 9 in a rank','R66 bad two white kings','R66 bad the side not to move in check','R66 ok standard-start FEN','R66 ok SetUp 0',
   'R03 kunal','R04 kunal730','R88 kunal730','R94 kunal730','R09d Lasker','R09d blunder','R71 se','R71 kunal761'],
@@ -752,7 +753,11 @@ L.run(async()=>{try{
       await b3.open();
       await b3.tile('Review');await b3.settle(700);
       const row=await b3.page.evaluate(()=>{const t=(document.getElementById('root').innerText||'').replace(/\s+/g,' ');
-        const m=t.match(/(WON|LOST|DRAW|DREW)[^|]{0,30}mr_dhanzzxnsx/i);return m?m[0].trim():'no verdict row';});
+        // batch 13 re-pin (df0a8230, the three row game card, decisions/the-game-card-has-three-rows-...-2026-11-15): the
+        // card's row 1 is the names (opponent, "vs", your account) and its result box opens row 2, so the verdict now
+        // FOLLOWS the opponent's name ("mr_dhanzzxnsx vs Chess.com WON"). The same 30-character window, the other order;
+        // the verdict word is returned first so the ^want test below is unchanged.
+        const m=t.match(/mr_dhanzzxnsx[^|]{0,30}?\b(WON|LOST|DRAW|DREW)\b/i);return m?m[1]+' ('+m[0].trim()+')':'no verdict row';});
       L.say(new RegExp('^'+want,'i').test(row),'TC-R04 a stored game with wr="'+wr+'" reads '+want+' (seeding ct_ccuser is what makes the verdict appear at all)',row);
     }
     await b3.close();
