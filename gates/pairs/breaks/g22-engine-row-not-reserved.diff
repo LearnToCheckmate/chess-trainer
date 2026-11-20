@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13486,5 +13486,5 @@
+                  Fixed in both places; gate 135. Each half measured alone: (1) without (2) stops the shaking and leaves the board at 804 for good
+                  at 1063x1133..1135 (trial 4ac0b45c43bb); (2) is what gives back the 820. */
+-                 const _engSlack=(vp.h-safeTop-safeBot-REV_CHROME)-(sqBoard0Ref.current||boardPx);const _engRes=!anaMode&&!wide&&_engSlack<20&&(_engSlack+(revStream?103:100)-20)/2>=(vp.h<640?32:46);const _engH=(engOn||_engRes)?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;/* #398 (review-engline-clipped-2px): THE PARENT RESERVES A FIXED HEIGHT AND THE GAPS WERE SPENDING IT.
++                 const _engSlack=(vp.h-safeTop-safeBot-REV_CHROME)-(sqBoard0Ref.current||boardPx);const _engRes=false&&!anaMode&&!wide&&_engSlack<20&&(_engSlack+(revStream?103:100)-20)/2>=(vp.h<640?32:46);const _engH=(engOn||_engRes)?20:0;const _bestH=(showBest&&bestLineSan&&!anaMode)?20:0;/* #398 (review-engline-clipped-2px): THE PARENT RESERVES A FIXED HEIGHT AND THE GAPS WERE SPENDING IT.
+                  rev-why is display:flex column and _whyH is a RESERVATION - a fixed height so the board does not jump when
+                  a row appears or disappears. It is the sum of the rows' DECLARED heights. The container also had gap:2,
