@@ -5,7 +5,7 @@
  "env": {},
  "checks": [
   "TC-R233[a-n] ",
-  "TC-R252[a-k] "
+  "TC-R250[a-k] "
  ],
  "build": "auto",
  "situations": [
