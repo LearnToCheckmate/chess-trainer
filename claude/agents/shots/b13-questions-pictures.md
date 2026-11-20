@@ -84,3 +84,11 @@ All paths below are in `claude/agents/shots/`.
 - Option "keep the label": `b13-q33-c2-opt-keep-375x761.png` (mock-up: the old wording; box: the row)
 - Option "reword to 'Eval bar: above the board'": `b13-q33-c2-opt-reword-375x761.png` (mock-up; box: the row)
 - Where the bar's setting is worded in Play: the menu's "Eval bar  Above / Left / Off" row, today `b13-q33-c2-menu-today-320x568.png`, built `b13-q33-c2-menu-built-320x568.png` (box: the row)
+
+## q34 - the game card's unknown move count
+
+One call. A game whose best and great counts are not known paints those two boxes with a dash. Red boxes mark the two unknown counts.
+- Today: the en dash. Main (`c58695d5`) has an older card layout with no such boxes, so this is the batch head just before the change (`1bb794b9`, the parent of `4994fd67`), which is where the en dash was: `b13-q34-c1-today-375x761.png`
+- Built (`bd8758c1`, a plain hyphen): `b13-q34-c1-built-375x761.png`
+- Option "?": `b13-q34-c1-opt-question-mark-375x761.png` (mock-up on the built bundle)
+- Option "blank": `b13-q34-c1-opt-blank-375x761.png` (mock-up: the dash removed, the box left empty)
