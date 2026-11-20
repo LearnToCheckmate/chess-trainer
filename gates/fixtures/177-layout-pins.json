@@ -1,5 +1,14 @@
 {
  "about": "gates 177 and 178 (gates/drive/layout.js): the layout faults found on the tree this file was last written from; the fix list of jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19. Key: screen state | kind | what. Value: the cells (phone WxH @ text size %) it happens in. A finding listed here is printed and counted, not red; any other finding is red. `capped` lists the cells where the height caps the board (state -> cell -> its width): there the board must be centred and at least that wide. Delete a key (or a cell) when its fault is fixed. Rewritten only by hand: CT_G177_WRITE_PINS=1 on each gate, on a trial bundle of the tree, with the diff read.",
+ "notes": {
+  "review-list-empty|cut|[paste-box] textarea \"Paste a PGN here\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list-empty|cut|input \"Chess.com username\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list-empty|cut|select \"Chess.com\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list|card|[glist-box] div": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list|cut|[paste-box] textarea \"Paste a PGN here\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list|cut|input \"Chess.com username\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list|cut|select \"Chess.com\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18"
+ },
  "pins": {
   "account-sheet|card|div \"Account ✕ Sign in to s\"": [
    "320x568@50",
@@ -105,32 +114,6 @@
    "360x640@125",
    "375x667@125"
   ],
-  "lesson-demo-end|overlap|[moves-panel] span \"#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "360x640@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \".\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "320x568@125",
-   "360x640@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Bc#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "360x640@125",
-   "375x667@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Nf#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Nf#\" x [moves-copy] button \"Copy moves\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"c#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"c#\" x [moves-copy] button \"Copy moves\"": [
-   "320x568@100"
-  ],
   "lesson-demo-end|spill|[foot-btn] button \"⋯\"": [
    "360x640@125",
    "375x667@125",
@@ -173,23 +156,9 @@
    "360x640@125",
    "375x667@125"
   ],
-  "lesson-practice-wrong|overlap|[moves-panel] span \"The moves appear here \" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "375x667@125"
-  ],
-  "lesson-practice-wrong|overlap|[moves-panel] span \"The moves appear here \" x [moves-copy] button \"Copy moves\"": [
-   "375x667@125"
-  ],
   "lesson-practice|board|the board": [
    "320x568@125",
    "360x640@125",
-   "375x667@125"
-  ],
-  "lesson-practice|overlap|[moves-panel] span \"The moves appear here \" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "375x667@125"
-  ],
-  "lesson-practice|overlap|[moves-panel] span \"The moves appear here \" x [moves-copy] button \"Copy moves\"": [
    "375x667@125"
   ],
   "look|card|[look] button \"Cell depth & texture O\"": [
@@ -337,21 +306,22 @@
   "play-setup-bots|overlap|[top-title] div \"Choose your opponent\" x [bot-back] button \"‹ Back\"": [
    "320x568@125"
   ],
+  "play-setup|card|[setup-coach] button \"Coach mode Off\"": [
+   "320x568@50",
+   "360x640@50",
+   "375x667@50",
+   "375x761@50",
+   "390x844@50",
+   "414x896@50",
+   "414x896@75",
+   "430x932@75",
+   "375x730@50"
+  ],
   "play-setup|card|[setup-start] button \"▶ Start game\"": [
    "320x568@50",
    "360x640@50",
    "375x667@50",
    "375x730@50",
-   "375x761@50",
-   "390x844@50",
-   "414x896@50",
-   "414x896@75",
-   "430x932@75"
-  ],
-  "play-setup|card|[setup-coach] button \"Coach mode Off\"": [
-   "320x568@50",
-   "360x640@50",
-   "375x667@50",
    "375x761@50",
    "390x844@50",
    "414x896@50",
