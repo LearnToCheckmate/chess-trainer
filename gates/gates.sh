@@ -2715,6 +2715,42 @@ if [ -z "$SUBSET" ] && [ -f "$HGSH" ]; then
   fi
 fi
 
+# ── THE UNIT LAYER, TOKEN-USE BLOCK: gates/audit/token-use-selftest.js. ADDED batch 13. ──────────────────────
+# jobs/the-fleet-has-no-token-or-cost-instrumentation-at-all-2026-10-06 (job 52) shipped gates/audit/token-use.js, the
+# counter over a run's session transcripts, and its selftest over synthetic fixtures (gates/fixtures/token-use/), and no
+# suite ran the selftest - the same hole #550 item (138) closed for unit-drill-why and unit-held-guard. Same shape as the
+# held-guard block above, deliberately: `--- ` marker (never `=== `, the roster arm of verify-log.sh), "  ok  " lines
+# translated to ^PASS from ONE pattern that both the count and the emitted lines come from, 0 ok is as red as a FAIL, an
+# absent script is RED and says so, full runs only, no pipes (gatemanifest.sh and pipefail-grep ratchet this file's pipe
+# sites). No browser, no network: node only, 19 checks when it landed, so the footer total RISES BY 19 on the first full
+# run after this block - a one-time step, said here so a reader comparing totals across that run is not surprised.
+TUJS="$G/audit/token-use-selftest.js"
+if [ -z "$SUBSET" ] && [ ! -f "$TUJS" ]; then
+  red=1
+  echo "--- token-use (unit layer) ---" >> "$ALL"
+  echo "--- token-use (unit layer) ---"
+  echo "    token-use: RED - THE UNIT FILE IS ABSENT: $TUJS (the token counter's selftest; its absence must not print nothing)" >> "$ALL"
+  echo "    token-use: RED - THE UNIT FILE IS ABSENT: $TUJS (the token counter's selftest; its absence must not print nothing)"
+fi
+if [ -z "$SUBSET" ] && [ -f "$TUJS" ]; then
+  tlog="$G/logs/$STEM-token-use.log"
+  echo "--- token-use (unit layer, not a regress gate, not in the roster) ---" >> "$ALL"
+  echo "--- token-use (unit layer, not a regress gate, not in the roster) ---"
+  ( cd "$ROOT" && timeout 300 node "$TUJS" ) > "$tlog" 2>&1; trc=$?
+  sed -n 's/^  ok  *\(.*\)$/PASS token-use \1/p' "$tlog" > "$tlog.pass"   # one pattern for claim and evidence (#545 item 88)
+  tok=$(grep -c '^PASS token-use ' "$tlog.pass"); tfail=$(grep -c '^  FAIL' "$tlog")
+  cat "$tlog.pass" >> "$ALL"
+  if [ "$trc" -ne 0 ] || [ "$tfail" -gt 0 ] || [ "$tok" -eq 0 ]; then
+    red=1
+    echo "    token-use: RED (exit $trc, $tfail FAIL, $tok ok). Full output: $tlog" >> "$ALL"
+    echo "    token-use: RED (exit $trc, $tfail FAIL, $tok ok). Full output: $tlog"
+    sed -n 's/^  FAIL /FAIL token-use /p' "$tlog" >> "$ALL"
+  else
+    echo "    token-use: green ($tok ok -> $tok PASS lines)" >> "$ALL"
+    echo "    token-use: green ($tok ok -> $tok PASS lines)"
+  fi
+fi
+
 # ── THE UNIT LAYER, SECOND BLOCK: gates/fastgate-drive.sh DRIVES THE TIERED PUSH GATE. ADDED #523. ────────────
 # Closes the coverage half of
 # jobs/no-test-drives-gates-fastgate-sh-end-to-end-so-a-same-length-wrong-stamp-and-a-planted-register-row-both-take-a-fast-green-2026-10-15.

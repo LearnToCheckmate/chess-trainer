@@ -12,7 +12,7 @@
 // VERBS
 //   plan    <red-log>                      which gates must rerun, and why; or FULL with the reason
 //   combine <red-log> <subset-log> [out]   re-derives the plan, checks the subset rerun covers it green over the SAME bundle md5
-//                                          and the same toolchain, reruns the three fast layers (unit-drill-why, unit-held-guard,
+//                                          and the same toolchain, reruns the four fast layers (unit-drill-why, unit-held-guard, token-use,
 //                                          fastgate-drive) itself, and writes one combined log
 //   selftest                               the controls, over constructed logs in a scratch git repository
 //
@@ -35,7 +35,7 @@
 const fs=require('fs'),path=require('path'),cp=require('child_process'),os=require('os');
 
 const HARNESS=['gates/gates.sh','gates/package.json','gates/package-lock.json'];
-const FAST=[['unit-drill-why','node',['gates/unit-drill-why.js']],['unit-held-guard','bash',['gates/unit-held-guard.sh']],['fastgate-drive','bash',['gates/fastgate-drive.sh','fixed']]];
+const FAST=[['unit-drill-why','node',['gates/unit-drill-why.js']],['unit-held-guard','bash',['gates/unit-held-guard.sh']],['fastgate-drive','bash',['gates/fastgate-drive.sh','fixed']],['token-use','node',['gates/audit/token-use-selftest.js']]]; // token-use joined batch 13, as gates.sh's fourth unit block
 
 function git(root,args){return cp.execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','ignore']});}
 function md5_12(file){return require('crypto').createHash('md5').update(fs.readFileSync(file)).digest('hex').slice(0,12);}
