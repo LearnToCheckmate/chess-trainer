@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 4132003a..9d094f12 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14620,5 +14620,5 @@ function AppMain(){
+               coachEngTxt), or at a tap on it. It sits on the board's top edge with the board's width less 8 each side, a sibling of the board
+               grid and not a child of it, so a hit test that names the 64 squares is not answered by it. */}
+-          {mode==='play'&&coachLive&&!!coachEngTxt&&(<div data-ct="coach-engine-card" role="status" aria-live="polite" onClick={()=>setCoachEngTxt('')} style={{position:'absolute',zIndex:30,top:8,left:(wide?0:evalW)+8,width:Math.max(0,boardPx-16),boxSizing:'border-box',display:'flex',alignItems:'center',gap:10,padding:'9px 10px 9px 12px',borderRadius:12,background:'rgba(16,18,24,.92)',border:'1px solid rgba(var(--acr),.55)',boxShadow:'0 6px 22px rgba(0,0,0,.55)',color:'#fff',cursor:'pointer'}}>
++          {mode==='play'&&coachLive&&!!coachEngTxt&&(<div data-ct="coach-engine-card" role="status" aria-live="polite" onClick={()=>setCoachEngTxt('')} style={{position:'relative',flexShrink:0,zIndex:30,top:8,left:(wide?0:evalW)+8,width:Math.max(0,boardPx-16),boxSizing:'border-box',display:'flex',alignItems:'center',gap:10,padding:'9px 10px 9px 12px',borderRadius:12,background:'rgba(16,18,24,.92)',border:'1px solid rgba(var(--acr),.55)',boxShadow:'0 6px 22px rgba(0,0,0,.55)',color:'#fff',cursor:'pointer'}}>
+             <span data-ct="coach-engine-txt" style={{flex:'1 1 auto',minWidth:0,fontSize:'clamp(14px,3.6vw,15px)',fontWeight:700,lineHeight:1.35}}>{coachEngTxt}</span>
+             <span aria-label="Close the engine's view" style={{flex:'0 0 auto',width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.1)',color:'rgba(255,255,255,.8)',fontSize:15,fontWeight:800}}>{'\u00d7'}</span>
