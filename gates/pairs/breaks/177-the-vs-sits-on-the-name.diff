@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13160,5 +13160,5 @@ function AppMain(){
+                     {st&&st.obril>0&&!_tight&&<span data-ct="opp-bril-mark" role="img" title="Your opponent played a brilliant move" aria-label="Your opponent played a brilliant move" style={{flexShrink:0,color:'rgba(123,233,247,.85)',fontWeight:700}}>!!</span>}
+                     <span data-ct="game-opp" style={{flex:'0 1 auto',minWidth:(info.opp||'').length>4?(_tight?'1.6em':'2.5em'):0,overflow:'hidden',textOverflow:'ellipsis',color:'#fff'}}>{info.opp?info.opp:(g.white+' vs '+g.black)}</span>
+-                    <span aria-hidden={info.opp?undefined:'true'} style={{flexShrink:0,color:_mut}}>{info.opp?'vs':'·'}</span>
++                    <span aria-hidden={info.opp?undefined:'true'} style={{flexShrink:0,marginLeft:-22,color:_mut}}>{info.opp?'vs':'·'}</span>
+                     <span data-ct="game-src" style={{flexShrink:0,color:g.src==='li'?'#c9b6ff':'#9bd6a0'}}>{_acct}</span>
+                     {_nm&&<span data-ct="game-notmine" title="Not your account: this game stays out of your mistakes drill and brilliant moves" style={{flex:'0 4 auto',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',color:_mut}}>(not mine)</span>/* the one other text that may give way, as on the old card: it shrinks (an ellipsis) before the opponent's name does */}

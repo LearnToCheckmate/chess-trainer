@@ -2636,3 +2636,13 @@ As the developer, with the "Review games in progress" switch on (Menu, New featu
 - While that review is open it grows by itself: when a new move has been played the summary's count and grades take it in, and on the move screen at the last move the board follows to the new one without moving or changing size; anywhere else I stay on the move I was reading. (TC-R247f)
 - It asks politely: one account at a time, never twice about one account within 45 seconds, only while that review is open and the page is on screen, and not at all once I close it. (TC-R247g)
 - The list fits my phone and a short one: rows 44px or taller, no text under 13.5px, nothing cut without an ellipsis. (TC-R247h)
+
+### US-R174 Every screen stays clean at every phone width and every text size
+*Added in batch 13, jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19 (Kunal, 19 Nov 2026: "once I make the size smaller, it starts getting messy but that shouldn't happen ... Every setting should be, and it should work on every setting. It should be clean."), built with jobs/short-upright-boards-sized-to-height-2026-11-12 (the board half; FB-07 "Yes, full width"). PART 1, the gate, is what this clause covers so far: the faults it finds on today's screens are listed and pinned (gates/fixtures/177-layout-pins.json), and each fix that follows removes its pins. The app has no text-size setting of its own; a phone's text size reaches it as the page zoom, a bigger or smaller sheet of CSS pixels.*
+As a player on any phone from 320 to 430 points wide, with my text size anywhere from the smallest (50%) to larger than the default (125%), every screen is laid out cleanly.
+- No text or control overlaps another, and no text or pill sits hard against its neighbour. (TC-R248a)
+- No text is cut off without an ellipsis, and no placeholder or chosen option is wider than its field. (TC-R248b)
+- No text or control spills out of its box or off the edge of the screen. (TC-R248c)
+- Nothing scrolls sideways. (TC-R248d)
+- The board fills the width of the screen on every board screen. (TC-R248e)
+- Every card is centred and fills the width, and no list hides rows while the screen under it is empty. (TC-R248f)
