@@ -16,6 +16,7 @@
 // CONTROL-RECORD: e118d13 2026-11-14 total=39 red=2 scope=source:CT_SRC how=#550 helper lessons, jobs/pzmissnote-says-a-piece-is-left-to-be-won-that-the-wrong-move-just-captured-2026-11-14: chess.jsx before the fix (the 072d767 pzMissNote, CT_SRC=<copy>) - the Qxa1 line and the capture recount (88 of 1660) red; on the fix 39/0
 // CONTROL-RECORD: 7a8c909 2026-11-14 total=62 red=5 scope=source:CT_SRC how=#550 helper lessons, antagonists A and B on the Review text: d21c7bf's chess.jsx (CT_SRC=<copy>) - TC-R209q A4 (You mates / You plays), A1 (a defended queen 'taken for nothing'), A5 (the W8 reason dropped at maxw 130), B1 ('[object Object]' in the Book line) and A7 (the reason lost from more at maxw 60) go red; the fix reads 62/0
 // CONTROL-RECORD: 5517aa33 2026-11-19 total=62 red=1 scope=source:CT_SRC how=batch 13, jobs/review-sentences-name-what-the-moves-do-2026-11-12, TC-R209p F5 re-pinned to the run with its check sign (16.Qb8+ Nxb8 17.Rd8 mate): 3d1a988b's chess.jsx (CT_SRC=<copy>, md5 3bea9d949937) prints 16.Qb8 Nxb8 and F5 is red, the other 61 green; on the change 62/0
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=62 red=1 scope=env:CT_SRC=beb7d657 how=batch 13, Desk q7: TC-R209p F5 re-pinned to the run with the check in words (16.Qb8 with check, Nxb8 17.Rd8 mate) - beb7d657's chess.jsx (CT_SRC), F5 alone red, 61 pass
 const L=require('../lib');
 const fs=require('fs');
 const E=require('../engine-extract');

@@ -290,7 +290,7 @@ L.run(async()=>{
     const KPGN=fs.readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
     const T=38;                       // 19...Bxh3!! Brilliant  - THE RACE TARGET, kept cold until the race
     const D=74;                       // 37...Rf7 !  Great      - THE DENOMINATOR, a different ply
-    const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+    const IF=(x)=>!!x&&/\bIf\s+\S+(?: with check)?,\s+\S+/.test(x)   /* batch 13, Desk q7: a capture that checks reads "If 38.Qxf7 with check, Kxf7." */;
     const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
     /* TWO ARMS, NAMED BY THE STATE THEY RACE AND NOT BY A MILLISECOND COUNT [antagonist B's cross-read,
        upheld]. The first version of this pair stepped away at fixed 600ms and 1200ms. Those numbers are
@@ -620,7 +620,7 @@ L.run(async()=>{
   // 3 visits of 20 s on HEAD - and is the worker-recovery half the job excludes.
   // CONTROL-RECORD: bd8c4a7 2026-11-06 total=94 red=2 scope=full how=the pre-fix HEAD bundle (sacRun drops the entry on a dead-worker failure and never re-asks on the visit), trial md5 d335e71dffd4; red: TC-R115 the clause arrives without stepping off, and it was asked on a new worker. The fixed trial 9f4c2886c48c is 94 of 94.
   {const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
-   const T=38, IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+   const T=38, IF=(x)=>!!x&&/\bIf\s+\S+(?: with check)?,\s+\S+/.test(x)   /* batch 13, Desk q7: a capture that checks reads "If 38.Qxf7 with check, Kxf7." */;
    const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
    const b=await L.launch({geo:'kunal761',store:{ct_pool:'3',ct_safe:'51,31'},name:'engline-sac-worker-death'});
    await b.ctx.addInitScript(()=>{if(window.__ctDie)return;const W=window.Worker;const log=window.__ctDie={n:0,err:0,killed:0,armed:false};
@@ -678,7 +678,7 @@ L.run(async()=>{
      denominator is that the refutation really arrived (the last sample carries the "If" clause), so a green is not a ply where
      nothing happened. Plies 38 (Brilliant) and 74 (Great) cover both branches of explainAnno that take a refutation. */
   {const KPGN=require('fs').readFileSync(__dirname+'/../../claude/agents/bench/pgn/184024052818.pgn','utf8');
-   const IF=(x)=>!!x&&/\bIf\s+\S+,\s+\S+/.test(x);
+   const IF=(x)=>!!x&&/\bIf\s+\S+(?: with check)?,\s+\S+/.test(x)   /* batch 13, Desk q7: a capture that checks reads "If 38.Qxf7 with check, Kxf7." */;
    const why=(bb)=>bb.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
    const b=await L.launch({geo:'kunal761',store:{ct_pool:'3',ct_safe:'51,31'},name:'coach-sentence-only-grows'});await b.open();let ok=true;
    try{await b.tile('Review');await b.page.locator('textarea').first().fill(KPGN);await b.tapText(/^⚡ Analyze [Gg]ame$/,{wait:300});
