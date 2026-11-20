@@ -295,7 +295,9 @@ L.run(async()=>{
   L.say(!sr&&!!sh&&!!m.board&&Math.abs(sh.w-m.board.w)<0.6,'the REVIEW bar is the horizontal one above the board, as wide as the board ('+(sh&&sh.w)+' against '+(m.board&&m.board.w)+'), with no bar beside it',{v:sr,h:sh});
   const cr=sh&&rgb(sh.bg);
   L.say(!!cr&&cr[0]===43&&cr[1]===41&&cr[2]===50,'the horizontal Review bar keeps its own dark track (#2b2932) - it is a different element from the beside bar, so Play\'s lighter track does not reach it',sh&&sh.bg);
-  L.say(!!m.board&&Math.abs(m.board.w-354)<0.6,'the review board is 354 at 375x730 - bound by the HEIGHT once the bar went above it (#550 a21; it was 349 beside an 18 bar)',m.board&&m.board.w);
+  /* batch 13 (jobs/short-upright-boards-sized-to-height-2026-11-12, FB-07 "full width"): re-pinned 354 -> 375. At 375x730 the header row was shown
+     (any screen 700 tall) and its 48 came out of the board; the rows now give way first (the header row here), so the board is the width. */
+  L.say(!!m.board&&Math.abs(m.board.w-375)<0.6,'the review board is 375 at 375x730 - the full width: the header row gives way before the board (batch 13, FB-07; it was 354, bound by the height under the header row, #550 a21)',m.board&&m.board.w);
   L.say(!!sh&&sh.l>=-0.5&&sh.r<=375.5,'the whole REVIEW bar is on the screen as well',sh&&{left:sh.l,right:sh.r});
   await b2.close();
 
