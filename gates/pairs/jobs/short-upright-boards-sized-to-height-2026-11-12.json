@@ -1,9 +1,9 @@
 {
  "job": "short-upright-boards-sized-to-height-2026-11-12",
- "about": "THE BOARD HALF (FB-07, full width), graded by the board reading of gates 177 and 178 (gates/drive/layout.js, TC-R248e) on a trial bundle, on four states: Review at move 10, Analysis from a solved drill card, a lesson demo and a puzzle with its hint, each at eight phones (375x761, 390x844, 414x896, 430x932 with his insets; 320x568, 360x640, 375x667 and 375x730 - the room his phone leaves in the Home Screen app - without) and four text sizes. The real code passes: in Review and drill Analysis the board is the width in every cell at 50, 75 and 100 percent, and where the height caps it (125 percent on the three smallest phones) it is centred and as wide as the fixture lists. Three ways it could come undone are each caught. NOT COVERED: Play against the computer on the three short phones, which still keeps the bar beside the board (his a35 pick; pinned, a question for him); the non-Review boards at 125 percent (pinned); the explanation's tap-for-the-whole-text and the engine line taking its place on a short phone (gate 22 and gate 26 read those screens; no break here is aimed at them); his phone itself.",
+ "about": "THE BOARD HALF (FB-07, full width), graded by the board reading of gates 177 and 178 (gates/drive/layout.js, TC-R248e) on a trial bundle, on six states: Review at move 10, Analysis from a solved drill card, a lesson demo, a puzzle with its hint, and (batch 13, the Play part, on his q29 answer of 20 Nov 2026) a game against the computer at 4 plies and the same game resigned, each at eight phones (375x761, 390x844, 414x896, 430x932 with his insets; 320x568, 360x640, 375x667 and 375x730 - the room his phone leaves in the Home Screen app - without) and four text sizes. The real code passes: in Review and drill Analysis the board is the width in every cell at 50, 75 and 100 percent, and where the height caps it (125 percent on the three smallest phones) it is centred and as wide as the fixture lists. Three ways it could come undone are each caught. In Play against the computer the eval bar is above and the board the full width in every cell but 320x568 at 125 percent, where it is height-capped, 238 wide and centred (playFit: the bars at 32, then the gaps closed, then the move list behind its Moves button); two more breaks are aimed at it. NOT COVERED: the Moves sheet itself on 320x568 (gate 183 reads it: the board does not move when it opens and closes); Pass & Play and online games (not changed); the non-Review, non-Play boards at 125 percent (pinned); the explanation's tap-for-the-whole-text and the engine line taking its place on a short phone (gate 22 and gate 26 read those screens; no break here is aimed at them); his phone itself.",
  "gate": "gates/regress/177-clean-at-every-width-and-text-size.js",
  "cmd": ["sh", "-c", "node gates/regress/177-clean-at-every-width-and-text-size.js; node gates/regress/178-clean-at-every-width-and-text-size-small-phones.js"],
- "env": {"CT_G177_STATES": "^(review-move-10|drill-analysis|lesson-demo|puzzle-hint)$"},
+ "env": {"CT_G177_STATES": "^(review-move-10|drill-analysis|lesson-demo|puzzle-hint|play-cpu|play-cpu-resigned)$"},
  "checks": ["TC-R248e "],
  "build": "always",
  "situations": [
@@ -19,7 +19,13 @@
    "mustFailIn": ["the small phones (320x568, 360x640, 375x667, 375x730)"]},
   {"name": "the-820-cap-on-a-phone-sheet", "patch": "breaks/177-the-820-cap-on-a-phone-sheet.diff",
    "why": "the 820px desktop cap applies to a phone sheet again: at 50 percent text on 414 and 430 wide phones every board leaves a band each side",
-   "mustFailIn": ["the notch phones (375x761 his gate geometry, 390, 414, 430)"]}
+   "mustFailIn": ["the notch phones (375x761 his gate geometry, 390, 414, 430)"]},
+  {"name": "the-play-eval-bar-beside-the-board-again", "patch": "breaks/178-the-play-eval-bar-beside-the-board-again.diff",
+   "why": "Play against the computer puts the eval bar beside the board on a short phone again (his 11 Nov a35 pick, reversed on 20 Nov): at 375x667 the board is back under 375 and off centre",
+   "mustFailIn": ["the small phones (320x568, 360x640, 375x667, 375x730)"]},
+  {"name": "the-play-move-list-stays-in-the-column", "patch": "breaks/178-the-play-move-list-stays-in-the-column.diff",
+   "why": "the move list of a game against the computer never goes behind its Moves button, so on 320x568 the rows run out before the board is the full width and it narrows again",
+   "mustFailIn": ["the small phones (320x568, 360x640, 375x667, 375x730)"]}
  ],
- "timeoutSec": 2400
+ "timeoutSec": 3000
 }

@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index e0d80b51..a78f895f 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6909,5 +6909,5 @@ function AppMain(){
+   const [playMovesSheet,setPlayMovesSheet]=useState(false);   /* the move list's sheet where playFit.noMoves (the Moves button opens it) */
+   useEffect(()=>{if(!playFit.noMoves)setPlayMovesSheet(false);},[playFit.noMoves]);
+-  const evalAbove=evalUnder&&!wide&&((vp.h/Math.max(1,vp.w))>=EVAL_ABOVE_MIN_RATIO||playUp||(vp.w>440&&vp.h-328>=vp.w-22));
++  const evalAbove=evalUnder&&!wide&&((vp.h/Math.max(1,vp.w))>=EVAL_ABOVE_MIN_RATIO||(vp.w>440&&vp.h-328>=vp.w-22));
+   const evalTop=!wide&&(evalAbove||revStream);   /* the horizontal bar above the board: portrait only */
+   const pzRail=wide&&mode==='puzzle'&&(pzView==='browse'||pzView==='online');
