@@ -78,6 +78,61 @@ function compare(uText, jText, u2Text) {
   return { rc: 0, gatesVarying, lines: [head, ...kn, 'SUITE COMPARE: SAME apart from numbers' + (known.length ? ' and ' + known.length + ' known variation(s)' : '')] };
 }
 
+// ── --split <serial A> <serial B> <split S>: the rule in claude/agents/b13-split-suite-rule.md, written before the runs
+// [batch 13; jobs/the-full-suite-is-split-across-two-or-three-test-machines-and-the-joined-log-is-proved-2026-11-18].
+// compare() above normalises numbers away, so it cannot see a VALUE that moved - which is what rejected the 28 Oct split.
+// This mode keys each PASS/FAIL line by its words and its occurrence among same-worded lines in its gate, and compares
+// the numbers: a line whose values A and B agree on (STABLE) must print them in S; a line A and B disagree on (NOISY, the
+// 166 of 28 Oct) is reported and never decides. Sections, order, verdicts, counts and words go through compare() with B
+// as the KNOWN source (a gate whose verdict differs between A and B is KNOWN too); a PASS/FAIL flip on a line A and B
+// agree on always counts. Exit 0 SPLIT HOLDS | 1 SPLIT MOVES RESULTS (every moved line listed) | 2 NO VERDICT.
+const nums = (l) => (l.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+function keyed(lines) {
+  const seen = new Map(), out = new Map();
+  for (const l of lines) { const w = norm(l).replace(/^(PASS|FAIL) /, ''), k = (seen.get(w) || 0) + 1; seen.set(w, k); out.set(w + '\u0000' + k, l); }
+  return out;
+}
+function splitCompare(aText, bText, sText) {
+  const A = parse(aText), B = parse(bText), S = parse(sText);
+  if (!A.order.length || !B.order.length || !S.order.length) return { rc: 2, lines: ['NO VERDICT: a log carries no "=== gate ===" section (' + A.order.length + ', ' + B.order.length + ', ' + S.order.length + ')'] };
+  if (A.md5 !== B.md5 || A.md5 !== S.md5) return { rc: 2, lines: ['NO VERDICT: the three logs are not on one bundle (' + A.md5 + ', ' + B.md5 + ', ' + S.md5 + ')'] };
+  const struct = compare(aText, sText, bText);
+  const flaky = new Set(A.order.filter((g) => B.sec[g] && A.sec[g].verdict !== B.sec[g].verdict));
+  const structDiff = [], known = struct.lines.filter((l) => /^  KNOWN /.test(l));
+  for (const l of struct.lines.filter((x) => /^  DIFFERENT /.test(x))) {
+    const m = l.match(/^  DIFFERENT (\S+): verdict /);
+    if (m && flaky.has(m[1])) known.push('  KNOWN (the verdict differs between the two serial runs) ' + l.slice(12)); else structDiff.push(l);
+  }
+  const moved = [], noisy = [];
+  let stable = 0;
+  for (const g of A.order) {
+    if (!B.sec[g] || !S.sec[g]) continue;   // a missing gate is already DIFFERENT above
+    const ka = keyed([...A.sec[g].pass, ...A.sec[g].fail]), kb = keyed([...B.sec[g].pass, ...B.sec[g].fail]), ks = keyed([...S.sec[g].pass, ...S.sec[g].fail]);
+    for (const [k, la] of ka) {
+      const lb = kb.get(k), ls = ks.get(k);
+      if (lb === undefined || ls === undefined) continue;   // a word-level difference: compare()'s, above
+      const w = k.split('\u0000')[0].slice(0, 140), fa = /^FAIL/.test(la), fb = /^FAIL/.test(lb), fs = /^FAIL/.test(ls);
+      if (fa === fb && fs !== fa) { moved.push(g + ': FLIP ' + (fa ? 'FAIL' : 'PASS') + ' in A and B, ' + (fs ? 'FAIL' : 'PASS') + ' in S: ' + w); continue; }
+      const va = nums(la), vb = nums(lb), vs = nums(ls);
+      if (va.join(',') === vb.join(',')) {
+        stable++;
+        if (vs.join(',') !== va.join(',')) moved.push(g + ': STABLE VALUE MOVED [' + va.join(',') + '] in A and B, [' + vs.join(',') + '] in S: ' + w);
+      } else {
+        const inside = va.length === vs.length && vb.length === vs.length && vs.every((x, i) => x >= Math.min(va[i], vb[i]) && x <= Math.max(va[i], vb[i]));
+        noisy.push(g + ': NOISY (not judged) A [' + va.join(',') + '] B [' + vb.join(',') + '] S [' + vs.join(',') + '] ' + (inside ? 'inside' : 'OUTSIDE') + ' the A-B range: ' + w);
+      }
+    }
+  }
+  const head = 'suite-compare --split: ' + A.order.length + ' gate(s), bundle ' + A.md5 + ', ' + stable + ' stable line(s) (A = B), ' + noisy.length + ' noisy line(s) (A != B, reported, not judged; ' + noisy.filter((l) => / OUTSIDE /.test(l)).length + ' with S outside the A-B range), ' + known.length + ' known variation(s)';
+  const out = [head, ...known, ...noisy.map((l) => '  ' + l), ...structDiff, ...moved.map((l) => '  MOVED ' + l)];
+  if (moved.length || structDiff.length) {
+    out.push('SPLIT MOVES RESULTS (' + moved.length + ' moved line(s), ' + structDiff.length + ' structural difference(s); every one is listed above)');
+    return { rc: 1, lines: out };
+  }
+  out.push('SPLIT HOLDS: every stable line identical, no flip, every section, verdict, count and word as in the serial runs (known variation apart)');
+  return { rc: 0, lines: out };
+}
+
 function selftest() {
   let ok = 0, fail = 0;
   const t = (c, name) => { if (c) { ok++; console.log('  ok  ' + name); } else { fail++; console.log('  FAIL ' + name); } };
@@ -108,6 +163,22 @@ function selftest() {
   t(k3.rc === 1 && k3.lines.some((l) => /DIFFERENT 10-a/.test(l)), 'S13 a gate that does NOT vary between the unbroken runs still refuses (the excuse is per gate, not global)');
   const k4 = compare(base, log('aaaaaaaaaaaa', [A[0]]), log('aaaaaaaaaaaa', [A[0], sec('11-b', ['PASS b other', 'PASS b took 300ms'])]));
   t(k4.rc === 1, 'S14 a MISSING gate is never excused, even when that gate varies between the two unbroken runs');
+  // --split (claude/agents/b13-split-suite-rule.md)
+  const sv = (box, ms, v) => log('aaaaaaaaaaaa', [sec('10-a', ['PASS a one', 'PASS a box at ' + box + '  [{"x":' + box + '}]']), sec('11-b', ['PASS b two', 'PASS b took ' + ms + 'ms'], v)]);
+  const p1 = splitCompare(sv('12.5', 300), sv('12.5', 412), sv('12.5', 390));
+  t(p1.rc === 0 && /1 noisy line/.test(p1.lines[0]) && /SPLIT HOLDS/.test(p1.lines[p1.lines.length - 1]), 'S15 --split: stable lines identical and a noisy line (A != B) moved: SPLIT HOLDS, the noisy line reported');
+  const p2 = splitCompare(sv('12.5', 300), sv('12.5', 412), sv('13.1', 300));
+  t(p2.rc === 1 && p2.lines.some((l) => /MOVED 10-a: STABLE VALUE MOVED \[12\.5,12\.5\] in A and B, \[13\.1,13\.1\] in S/.test(l)), 'S16 --split: a STABLE value (same in A and B) moved in S: SPLIT MOVES RESULTS, the line named with its values');
+  const p3 = splitCompare(sv('12.5', 300), sv('12.5', 412), sv('12.5', 9999));
+  t(p3.rc === 0 && p3.lines.some((l) => /NOISY .* OUTSIDE the A-B range/.test(l)), 'S17 --split: a noisy line outside the A-B range is reported OUTSIDE and does not decide');
+  const fl = log('aaaaaaaaaaaa', [sec('10-a', ['PASS a one', 'FAIL a box at 12.5  [{"x":12.5}]'], 'RED'), sec('11-b', ['PASS b two', 'PASS b took 300ms'])]);
+  const p4 = splitCompare(sv('12.5', 300), sv('12.5', 412), fl);
+  t(p4.rc === 1 && p4.lines.some((l) => /MOVED 10-a: FLIP PASS in A and B, FAIL in S/.test(l)), 'S18 --split: a PASS in A and B that FAILs in S is a moved result, values or not');
+  t(splitCompare(sv('12.5', 300), sv('12.5', 412), log('aaaaaaaaaaaa', [A[0]])).rc === 1, 'S19 --split: a gate missing from S moves results');
+  t(splitCompare(sv('12.5', 300), sv('12.5', 412), log('bbbbbbbbbbbb', A)).rc === 2, 'S20 --split: three logs not on one bundle give NO VERDICT (exit 2), never HOLDS');
+  const p6 = splitCompare(sv('12.5', 300), sv('12.5', 412, 'RED'), sv('12.5', 300, 'RED'));
+  t(p6.rc === 0 && p6.lines.some((l) => /KNOWN \(the verdict differs between the two serial runs\) 11-b/.test(l)), 'S21 --split: a gate whose verdict differs between A and B is KNOWN, not a moved result');
+  t(splitCompare(sv('12.5', 300), sv('12.5', 300), sv('12.5', 300, 'RED')).rc === 1, 'S22 --split: a verdict change on a gate A and B agree on moves results');
   console.log('suite-compare selftest: ' + ok + ' ok / ' + fail + ' FAIL');
   return fail ? 1 : 0;
 }
@@ -115,9 +186,15 @@ function selftest() {
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === '--selftest') process.exit(selftest());
+  if (a[0] === '--split') {
+    if (a.length !== 4) { console.log('usage: gates/suite-compare.js --split <serial A -all.log> <serial B -all.log> <split joined -all.log>'); process.exit(2); }
+    let t3;
+    try { t3 = a.slice(1).map((f) => fs.readFileSync(f, 'utf8')); } catch (e) { console.log('NO VERDICT: ' + e.message); process.exit(2); }
+    const r = splitCompare(t3[0], t3[1], t3[2]); console.log(r.lines.join('\n')); process.exit(r.rc);
+  }
   if (a.length !== 2 && a.length !== 3) { console.log('usage: gates/suite-compare.js <unbroken -all.log> <joined -all.log> [<second unbroken -all.log>] | --selftest'); process.exit(2); }
   let u, j, u2 = null;
   try { u = fs.readFileSync(a[0], 'utf8'); j = fs.readFileSync(a[1], 'utf8'); if (a[2]) u2 = fs.readFileSync(a[2], 'utf8'); } catch (e) { console.log('COULD NOT COMPARE: ' + e.message); process.exit(2); }
   const r = compare(u, j, u2); console.log(r.lines.join('\n')); process.exit(r.rc);
 }
-module.exports = { compare, norm, parse };
+module.exports = { compare, norm, parse, splitCompare };

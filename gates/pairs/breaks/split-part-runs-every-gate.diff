@@ -1,0 +1,10 @@
+diff --git a/gates/suite-resume.sh b/gates/suite-resume.sh
+index bb14cd64..4dde633a 100755
+--- a/gates/suite-resume.sh
++++ b/gates/suite-resume.sh
+@@ -195,5 +195,4 @@ sr_import(){
+   SR_I=$((SR_I+1))
+   # [suite-split] a part runs only its own positions; the others are not run, not written, not journaled
+-  if [ -n "$SR_PK" ] && { [ "$SR_I" -lt "$SR_PA" ] || [ "$SR_I" -gt "$SR_PB" ]; }; then return 0; fi
+   if [ "$SR_I" -le "$SR_K" ]; then
+     local j=$((SR_I-1)) off len m now
