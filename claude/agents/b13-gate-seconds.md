@@ -68,3 +68,14 @@ The first pairs run (stopped after 2 of its 3 tries, for the shared load) showed
 seeded launches on the app's cache path. It also found the first break BLIND. With the engine-row reservation turned off,
 the board does not move at this tree, so that break was not a defect gate 22 can see, and it was replaced with a Review board
 that loses 8px of width while the engine line is on. The job's line from the full run is in the build's reply.
+
+The replacement break was checked red on gate 22 before it went into the pairs file: bundle `c3f2ea602039` (09ecebf7 plus the
+break), 626.2 s at a load of 1.63, 105 PASS and 8 FAIL. All 8 are TC-R116: switching the line on and off moves the board in the
+fresh se launch and in the seeded short375, w375h667 and kunal761 launches, so a seeded launch sees the defect as well as a
+fresh one does. The four commits of this job were rebased onto 09ecebf7. The only conflicts were the appended rows in
+USER-STORIES.md and TEST-CASES.md, and both sides were kept.
+
+Full pairs run on c450b660 (2026-11-20T18:42Z): `CHECKED the-slowest-gates-are-made-faster-with-every-check-kept-2026-11-18
+(gates/regress/22-engline-recovery.js)`. The real code PASSED in all 6 situations (bundle 2c788b67aa4b, 629 s). Break
+board-shrinks-with-the-engine-line was CAUGHT in all 4 TC-R116 situations (2 FAIL each, 642 s), and break
+engine-reading-does-not-close was CAUGHT in both TC-R105 situations (1 FAIL each, 637 s).
