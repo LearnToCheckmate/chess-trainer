@@ -12700,6 +12700,9 @@ function AppMain(){
               <span style={SR_ONLY}>{' '+(mkPlayN>0?(mkPlayN+' position'+(mkPlayN>1?'s':'')+' from your reviewed games · find the move you missed'):('None of your '+myMistakes.length+' saved position'+(myMistakes.length>1?'s':'')+' can be played yet'))}</span>
             </span>
           </button>)}
+          {/* batch 13 q2 (his Desk answer, 19 Nov 2026): the Brilliant tile shows for EVERYONE on Review, reading "Famous brilliant moves" until
+              the player has a brilliant move of his own (any card in his store), then its usual label; with none of his own it opens the library
+              on the famous-games shelf (and the players he follows). With the library switched off (ct_bril_lib '0') it shows only for a store, as before. */}
           {brilTileOn()&&brilTileEl(true)}
           </div>)}
           {brilLib&&(()=>{/* #550 item (21): THE BRILLIANT LIBRARY - two shelves by kind, up to BRIL_LIB_MAX kinds practised together */

@@ -39,6 +39,10 @@
 // CT_G182_GEOS=kunal761,se  CT_G182_SKINS=classic,medieval narrow a run (a subset is never the whole gate).
 // ON THE REAL TREE: 55/0 (54 TC-R258 lines) on trial b957424375c7 (chess.jsx of c64665d0), 20 Nov 2026.
 // CONTROL-RECORD: c64665d0 2026-11-20 total=55 red=42 scope=trial:b9f3716eca72 how=THE SUBJECT REMOVED: the bake-off's base 2c6bdd2f built as it is (the tree before this job) - every TC-R258 letter red somewhere: b (the 'Review any game' line), d (Analyze with its words), e (the practice cards stacked with their sentences), f (Fetch in words), h (the name box under its title), i (the third card's top at 838.6 under the tab bar at 705; at 320x568 the box 88px, 582 against the tab bar at 512, after YOUR PROGRESS opened and closed), j, k, l (the pill under the top row), and at 320x568 a and g (no name box until Filter opens); 13 green, as they should be: the font pin, a, c and g at 375x761 in both skins, the two l denominators, the four zero-errors lines
+// CONTROL-RECORD: df5bf0e1 2026-11-20 total=55 red=10 scope=trial:08f157a648be how=pairs break search-box-on-its-own-line (gates/pairs/breaks/182-search-box-on-its-own-line.diff): h and k red in all four launches, i at 320x568 (the extra line costs the box its second card)
+// CONTROL-RECORD: df5bf0e1 2026-11-20 total=55 red=4 scope=trial:2be6d29b136d how=pairs break back-words-back-under-the-top-row (182-back-words-back-under-the-top-row.diff): both TC-R258l lines red at both sizes (no back icon; the pill's words painted); every other line green, which is why l reads the list after a real review
+// CONTROL-RECORD: df5bf0e1 2026-11-20 total=55 red=10 scope=trial:04345d8b4ea7 how=pairs break practice-cards-stacked (182-practice-cards-stacked.diff): e and i red in all four launches, j at 320x568
+// The grading machine on df5bf0e1: CHECKED, real 27/27 at kunal761 and 27/27 at 320x568 (bundle 4b558e0e5fa0), the three breaks CAUGHT.
 const L=require('../lib');const R=require('../drive/review');
 const GEOS=(process.env.CT_G182_GEOS||'kunal761,se').split(',');
 const SKINS=(process.env.CT_G182_SKINS||'classic,medieval').split(',');
