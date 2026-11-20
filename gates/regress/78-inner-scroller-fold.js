@@ -23,6 +23,7 @@
 // CONTROL-RECORD: 831e068 2026-11-11 total=142 red=8 scope=trial:b19697cd53cb how=#550 answer a12: the a12-only version of this gate (REV_PIN retired, TC-INV-08i asserting on screen) on the tree before the paste row - TC-INV-08i red at all eight geometries, 47.5 to 373.5px below the fold (245.5 on his phone); everything else green
 // CONTROL-RECORD: 40515d9 2026-11-11 total=198 red=34 scope=trial:a6ef99c17548 how=#550 answer a26 (with a12's 08i): the tree before the Tactics page's own bar - the new TC-INV-08l and 08m lines red where its controls or back button sit under the tab bar or scrolled away, or #root scrolls; the a26 trial 455ff0ea4f3f reads 198 pass, 0 fail
 // CONTROL-RECORD: fe3b8fd 2026-11-14 total=227 red=2 scope=trial:6f396b82e7a9 how=#550 helper app A, TC-INV-08n re-pin 41 -> 57: chess.jsx at d4db161^ (the tree before the Today card), the 320x568 analyze and play tiles 41px past the fold - both TC-INV-08n lines red against 57; on fe3b8fd's tree both read 57 (the seven TC-INV-08b 'Start game' reds there are another change, named in the job); fe3b8fd tree 4d4e3577b7c2 220/7, all seven TC-INV-08b
+// CONTROL-RECORD: 6e02e303 2026-11-20 total=22 red=7 scope=trial:baae70df6841 how=batch 13 red repair B3, TC-INV-08b re-pin for Kunal's q10 (the Coach mode row): 8c6b7bba (the tree before 6f2f4667 merged job 4's q10, built as a trial) - Start game at its old place (-61, -148, -175, -238, -352, -404, -464), so all seven TC-INV-08b lines red against the new pins; run on the fold block alone (a copy of this gate holding only the TA7 Start game loop); on the head (trial:0075dfcc49e3) that block 22 of 22
 const L=require('../lib');
 const P=require('../drive/play');
 const D=require('../drive/lesson');
@@ -41,7 +42,12 @@ const R=require('../drive/review');
 // #550 helper B RE-PINNED AGAIN for Kunal's q44 (the computer's opponents and Strength on their own screen, the time control one dropdown):
 // measured on trial 490ee70b5ab6, Start game's bottom is 492 at every phone width (507 at 320x568, where the scan buttons' words wrap), so it
 // is ON SCREEN at all seven. Was {"320x568":207,"360x640":85,"375x667":58,"375x730":-5,"390x844":-119,"414x896":-171,"440x956":-231}.
-const FOLD_PIN={"320x568":-61,"360x640":-148,"375x667":-175,"375x730":-238,"390x844":-352,"414x896":-404,"440x956":-464};
+// batch 13 red repair (B3) RE-PINNED for Kunal's q10 (jobs/coach-mode-a-game-against-the-app-with-a-teachers-notes-hints-takebacks-and-the-
+// engine-on-request-2026-11-03; merged at 6f2f4667, built in 50129146): the Coach mode switch on a full-width row of its own in the Computer
+// sheet, which moves Start game DOWN 52px at every phone width from 360 up and 22px at 320x568 (the sheet tightened under 640 tall), still
+// ON SCREEN at all seven (bottom 544 from 360 up, 529 at 320x568). Measured on the batch 13 head 6e02e303 (trial 0075dfcc49e3). The same row
+// is what gate 45's Start game rest was re-keyed for (6f09ab5a). Was {"320x568":-61,"360x640":-148,"375x667":-175,"375x730":-238,"390x844":-352,"414x896":-404,"440x956":-464}.
+const FOLD_PIN={"320x568":-39,"360x640":-96,"375x667":-123,"375x730":-186,"390x844":-300,"414x896":-352,"440x956":-412};
 L.run(async()=>{
   // TC-INV-08p THE TACTICS BOARD CAP IS RE-MEASURED WHEN THE LAYOUT SETTLES AFTER THE FIRST FRAME [#550 item (99);
   // jobs/the-tactics-board-cap-is-measured-once-per-change-with-no-animation-frame-retry-2026-11-07, whose outcome named this as NO CONTROL].

@@ -40,6 +40,7 @@
 // THE 375x761 COLUMN applies BOTH halves of the real insets, as the card's readings were taken: lib's kunal761 geometry
 // (ct_safe 51,31) plus Chromium's Emulation.setSafeAreaInsetsOverride top 51 bottom 31, so CSS env(safe-area-inset-*)
 // reads 51 and 31 rather than 0.
+// CONTROL-RECORD: 6e02e303 2026-11-20 total=6 red=2 scope=trial:cc8f247ec3db how=batch 13 red repair B3, the row buttons' faces read as ink (FACES, after INK): the head with ROW_BTN_BG made transparent (the face not drawn) - TC-S07 drill mistakes asked @375x761 real PROMOTED red (60.7 @613.3-674) and PAINTED red (63 @611-674); run on that one state at 375x761 real (a copy of this gate holding the captured card and that state alone); on the head (trial:0075dfcc49e3) 52 @622-674 green and on c58695d5 (trial:8cd98b615beb) 52 @622-674 green, INK alone 60.7 on the head
 // CONTROL-RECORD: 752b6d3 2026-10-29 total=61 red=6 scope=trial:dfd2bce100c5 how=the Home tile relabelled "Discovery" so home discover cannot be reached; the REACHED and MEASURED pair reddens at all three columns [#545 item (25)]
 // CONTROL-RECORD: 8f55589 2026-11-06 total=93 red=1 scope=trial:14ea26b79b33 how=the #549 base bundle (rows read against the viewport less 56, icons at 0.52 of the row); restricted to home discover, the PROMOTED line reds at 375x761 real reading 89 @379.2-468.2; a row-fix-reverted bundle 05984d62dcd7 reds it at 68 [#549 item (18)]
 // CONTROL-RECORD: 3620b52 2026-11-06 total=124 red=34 scope=trial:092470ec1943 how=mistake capture disabled (if(0)caps.push) and both pz-top marginTop 90: FAIL TC-S07 PHASE 1 mistakes x2, every drill-mistakes REACHED and MEASURED at all three columns (24), the four drill-brilliant PROMOTED lines (98.5/94.5 @51) and the four promoted puzzles states; the trial 96d043bdf18f reads 128 pass 0 fail [#549 item (21)]
@@ -89,6 +90,22 @@ const COLS=[
   {n:'375x730',      geo:{w:375,h:730,safe:'',label:'375x730, no insets (reported column)'}, real:false, cut:0},
   {n:'375x812',      geo:{w:375,h:812,safe:'',label:'375x812, no insets (reported column)'}, real:false, cut:0},
 ];
+// THE ROW BUTTONS' FACES [batch 13 red repair, B3]. INK above is pasted unchanged and counts a surface only at a fill over 0.99 alpha, a
+// visible border or a shadow. Since 1cc57a16 (jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18, Kunal's
+// questions/Q24 'A, icons only') every row button is an icon on ONE translucent face, ROW_BTN_BG rgba(255,255,255,.08), no border, no shadow -
+// so INK sees only the icon's svg (586..613.7 on the drill row) where the old emoji's text box reached the row's foot (622), and the drills'
+// band read 60.7 @613.3-674 against 52 @622-674 on c58695d5 while the PAINTED reading of the same screen says 52 @622-674 (the face is
+// drawn: .08 white over the ground is 20 levels, over PAINT_TOL). A control drawn as a translucent face IS painted, so its face is ink: any
+// visible, unoccluded BUTTON whose own background has alpha 0.05 or more (and under 90 percent of the viewport tall) adds its box. Applied
+// AFTER INK to its bands, as the 51px cut is, so the pasted method stays byte-identical; it can only shorten a band.
+const FACES=()=>{const vh=innerHeight,vw=innerWidth;const alpha=(c)=>{const m=c.match(/rgba?\(([^)]+)\)/);if(!m)return 0;const p=m[1].split(',').map(s=>parseFloat(s));return p.length>=4?p[3]:1;};
+  const vis=(el)=>{for(let e=el;e&&e!==document.documentElement;e=e.parentElement){const st=getComputedStyle(e);if(st.display==='none'||st.visibility==='hidden'||parseFloat(st.opacity)<=0.05)return false;}return true;};
+  const out=[];for(const el of document.querySelectorAll('button')){const r=el.getBoundingClientRect();if(r.width<1||r.height<1||r.bottom<0||r.top>vh||r.height>0.9*vh)continue;
+    if(!(alpha(getComputedStyle(el).backgroundColor)>=0.05)||!vis(el))continue;
+    const x=Math.min(vw-1,Math.max(0,r.left+r.width/2)),y=Math.min(vh-1,Math.max(0,r.top+r.height/2));const t=document.elementFromPoint(x,y);if(!(t&&(t===el||el.contains(t))))continue;
+    out.push([r.top,r.bottom]);}return out;};
+const withFaces=(bands,faces)=>{let bs=bands.map(x=>[x[0],x[1]]);for(const [a,z] of faces){const nx=[];for(const [p,q] of bs){if(z<=p||a>=q){nx.push([p,q]);continue;}if(a>p)nx.push([p,a]);if(z<q)nx.push([z,q]);}bs=nx;}
+  return bs.filter(([p,q])=>q-p>=8).map(([p,q])=>[+p.toFixed(1),+q.toFixed(1),+(q-p).toFixed(1)]);};
 // [case, label, driver state, store]. TC-S04 is the draft's nine states; TC-S05 is Discover; TC-S06 is the Review move
 // screen in the card's three states (moves-ply10 mid-game, moves-ply0 move 0, analysis engine lines open). The ninth
 // TC-S04 state moves-last and the extra moves-ply0 are named, as the job asks.
@@ -227,7 +244,7 @@ L.run(async()=>{
         await b.open();
         await drive(b);
         await b.page.waitForTimeout(400);
-        m=await b.page.evaluate(INK);
+        m=await b.page.evaluate(INK);{const f=await b.page.evaluate(FACES);const wb=withFaces(m.bands,f);m.inkOnly={largest:m.largest,at:m.at};m.bands=wb;const bb=big(wb);m.largest=bb?bb[2]:0;m.at=bb?bb[0].toFixed(1)+'-'+bb[1].toFixed(1):'';m.empty=sum(wb);}
         pm=await PAINT(b);
         ink=await b.page.evaluate(()=>{let k=0;const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode()))if((n.textContent||'').trim())k++;return k;});
       }catch(e){err=String(e&&e.message||e).slice(0,160);}
@@ -254,7 +271,7 @@ L.run(async()=>{
       if(pm)L.note('    PAINT '+cs+' '+label+' @'+c.n+': painted-empty bands >= 8 '+(c.cut?'(top '+c.cut+'px cut) ':'')+fmt(c.cut?cutBands(pm.bands.map(x=>[x[0],x[1]]),c.cut):pm.bands));
       row[c.n]={largest:bg?bg[2]:0,at:bg?bg[0]+'-'+bg[1]:'',empty:sum(cut),rawLargest:m.largest,rawAt:m.at};
       L.note('    REPORT '+cs+' '+label+' @'+c.n+(c.cut?'  RAW from y 0: largest '+m.largest+' @'+m.at+', empty '+m.empty+'  |  TOP '+c.cut+'px EXCLUDED:':':')+
-        ' largest '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'0')+', empty '+sum(cut)+', bands >= 8: '+fmt(cut)+(c.cut?'   (60px rule, not asserted: '+((bg?bg[2]:0)<=60?'within':'OVER')+')':''));
+        ' largest '+(bg?bg[2]+' @'+bg[0]+'-'+bg[1]:'0')+', empty '+sum(cut)+', bands >= 8: '+fmt(cut)+(c.cut?'   (60px rule, not asserted: '+((bg?bg[2]:0)<=60?'within':'OVER')+')':'')+'   [INK alone, before the row buttons\' faces: largest '+(m.inkOnly?m.inkOnly.largest+' @'+m.inkOnly.at:'?')+']');
     }
     table.push(row);
   }

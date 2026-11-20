@@ -1682,6 +1682,7 @@ async function input(seed,n,geo,name,thin){
     // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=1 scope=blocks:A33 how=a month of games in progress only counted as a gap again (missed++): A33c red alone, trial md5 2e7645fe91c4
     // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=1 scope=blocks:A33 how=fetchChessCom also asks /player/<u>/games (the in-progress list): A33g red alone, trial md5 b7d04797106f
     // CONTROL-RECORD: 33b93b0 2026-11-07 total=9 red=4 scope=blocks:A33 how=time_class daily dropped from the walk: A33a A33b A33d A33e red, trial md5 927356604fce
+    // CONTROL-RECORD: 6e02e303 2026-11-20 total=290 red=2 scope=trial:28f54e11d989 how=batch 13 red repair B3, A33d/A33e re-pinned to the three row card's name order (df0a8230): b5992127 (the tree before the card) read as the control - A33d and A33e red (its one-row card reads 'WON ... vs dailydone ...'), every other line green; on the head (trial:0075dfcc49e3) 290 pass 0 fail
     const DU='gatedaily', OPP='dailyopp', T=(y,mo,d,h)=>Math.floor(Date.UTC(y,mo-1,d,h||12,0,0)/1000);
     const dstate={ended:false,hits:[]};
     const pgnOf=(white,black,res,ev,tcs,date)=>['[Event "'+ev+'"]','[Site "Chess.com"]','[Date "'+date+'"]','[Round "-"]','[White "'+white+'"]','[Black "'+black+'"]','[Result "'+res+'"]','[TimeControl "'+tcs+'"]','[Termination "'+(res==='*'?'':white+' won by resignation')+'"]','',(res==='*'?'1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *':MOVES)].join('\n');
@@ -1713,12 +1714,14 @@ async function input(seed,n,geo,name,thin){
       L.say(r1.rows===4&&!t1.some(x=>x.indexOf(OPP)>=0||/White vs Black/.test(x)),'A33a '+tag+': THE GAME IN PROGRESS IS NOT LISTED - the four finished games are, and no row names its opponent',{rows:r1.rows,expect:4,rowTexts:t1});
       L.say(inProg(r1,true)===0&&r1.stored===4,'A33b '+tag+': and NOTHING of it is stored - no held game carries Result "*" or its opponent - so the background pass, which analyses held games only, can never put the engine on it',{inProgressHeld:inProg(r1,true),stored:r1.stored});
       L.say(!GAP_RE.test(r1.body||''),'A33c '+tag+': and the month that held only the game in progress is NOT called a month that could not be loaded - declining a game being played is not a failed read',{gapSaid:((r1.body||'').match(GAP_RE)||['none'])[0],line:r1.cap&&r1.cap.text});
-      L.say(t1.some(x=>/vs dailydone/.test(x)&&/Daily/.test(x)),'A33d '+tag+': and the finished daily game IS listed, labelled Daily',{rowTexts:t1});
+      // batch 13 red repair (B3): the three row card (df0a8230, his round-6 card) paints the opponent FIRST, 'dailydone vs gatedaily', where the
+      // one-row card painted 'WON vs dailydone'; A33d and A33e read the opponent and the account in the card's new order (red on b5992127)
+      L.say(t1.some(x=>x.indexOf('dailydone vs '+DU)>=0&&/Daily/.test(x)),'A33d '+tag+': and the finished daily game IS listed, as dailydone vs '+DU+', labelled Daily',{rowTexts:t1});
       // launch 2: the one check after the game ends
       dstate.ended=true;const h2=dstate.hits.length;
       await b.open();await b.tile('Review');await b.settle(1800);const st2=await rowsSettled(b,1);
       const r2=await READ(b);const t2=await rowTexts();const hs2=dstate.hits.slice(h2);
-      L.say(st2.ok&&nov(hs2)===1&&r2.rows===5&&oppRows(r2)===1&&t2.filter(x=>x.indexOf('vs '+OPP)>=0&&/Daily/.test(x)).length===1,'A33e TC-R155 DAILY GAME ENDED: on the first launch after it ended the same daily game IS in Review without a manual import - listed once, as vs '+OPP+', labelled Daily, beside the four it held (5)',{rows:r2.rows,heldOnce:oppRows(r2),requests:hs2,rowTexts:t2});
+      L.say(st2.ok&&nov(hs2)===1&&r2.rows===5&&oppRows(r2)===1&&t2.filter(x=>x.indexOf(OPP+' vs '+DU)>=0&&/Daily/.test(x)).length===1,'A33e TC-R155 DAILY GAME ENDED: on the first launch after it ended the same daily game IS in Review without a manual import - listed once, as '+OPP+' vs '+DU+', labelled Daily, beside the four it held (5)',{rows:r2.rows,heldOnce:oppRows(r2),requests:hs2,rowTexts:t2});
       L.say(inProg(r2)===0,'A33f TC-R155: and what is held of it is the ENDED game - nothing with Result "*" was kept from the launch before',{inProgressHeld:inProg(r2)});
     }
     L.say(live(dstate.hits)===0,'A33g '+tag+': no request at any point went to chess.com\'s lists of games IN PROGRESS (/games, /games/to-move) - only the archive index and its months',{inProgressListRequests:live(dstate.hits),requests:dstate.hits});
