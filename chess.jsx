@@ -2362,14 +2362,17 @@ function rtV(uc){const k=(uc==='w'||uc==='b');
     O:(s)=>k?(s===uc?'your':'your opponent’s'):(s==='w'?'White’s':'Black’s')};}  // possessive of a side as an actor
 const rtCap=(t)=>t?t.charAt(0).toUpperCase()+t.slice(1):t;
 const rtSq=(r,c)=>'abcdefgh'[c]+(8-r);
-// notation (P4): White 'N.X', Black '...X' when it is the very next move after the one being explained, else 'N...X'. The mate mark is
-// dropped and said in words; batch 13, the design pair's residual B6: a check KEEPS its sign ('the bishop move 11.Bxb5+' read '11.Bxb5')
-function rtN(pos,mv,num,veryNext){try{const s=toSAN(pos,mv,applyMove(pos.board,mv)).replace(/#$/,'');return pos.turn==='w'?(num+'.'+s):((veryNext?'...':num+'...')+s);}catch(e){return '';}}
-// a run of moves (P6): 'N.X Y N+1.Z', the first Black move with its dots
-// batch 13, the design pair's residual B6: a run is notation, not prose, so a check keeps its sign ('11.Bxb5+'; it read '11.Bxb5', and the
-// forced reply after it had no cause on the page). Only the mate mark is dropped, because the run's caller says 'mate' in words.
-function rtRun(sans,side,num,veryNext){const o=[];let s=side,n=num;for(let i=0;i<sans.length;i++){const t=String(sans[i]).replace(/#$/,'');
-  if(s==='w')o.push(n+'.'+t);else o.push(i===0?((veryNext?'...':n+'...')+t):t);if(s==='b')n++;s=s==='w'?'b':'w';}return o.join(' ');}
+// notation (P4): White 'N.X', Black '...X' when it is the very next move after the one being explained, else 'N...X'.
+/* batch 13, Kunal's Decision Desk answer q7 (19 Nov 2026, 'with check' in words; docs/review-text-design-2026-11-14 rule P5): a move a
+   Review sentence quotes carries NO + and NO # sign. A check is said in words after the move ('the bishop move 11.Bxb5 with check'), and a
+   mate is said by the sentence itself ('17.Rd8 mate'). The sign had been kept since the design pair's residual B6; his answer reverses that.
+   rtSay is the one place the signs leave: every quoted move in reviewText, rtLadder, coachWorst and the why pill goes through it. */
+function rtSay(san){const t=String(san||'').replace(/[!?]+$/,'');return /\+$/.test(t)?(t.replace(/\+$/,'')+' with check'):t.replace(/#$/,'');}
+function rtN(pos,mv,num,veryNext){try{const s=rtSay(toSAN(pos,mv,applyMove(pos.board,mv)));return pos.turn==='w'?(num+'.'+s):((veryNext?'...':num+'...')+s);}catch(e){return '';}}
+// a run of moves (P6): 'N.X Y N+1.Z', the first Black move with its dots. batch 13, q7: a check in the run is said in words and closed by a
+// comma ('16.Qb8 with check, Nxb8 17.Rd8 mate'); `c1` puts a comma after the first move too (the 'If ...cxb5, 11.Bxb5' form).
+function rtRun(sans,side,num,veryNext,c1){const o=[];let s=side,n=num;for(let i=0;i<sans.length;i++){const ck=/\+$/.test(String(sans[i]).replace(/[!?]+$/,'')),t=rtSay(sans[i]);
+  const w=s==='w'?(n+'.'+t):(i===0?((veryNext?'...':n+'...')+t):t);o.push(w+((i<sans.length-1&&(ck||(c1&&i===0)))?',':''));if(s==='b')n++;s=s==='w'?'b':'w';}return o.join(' ');}
 // the piece word the first time a move is named (P5): 'the pawn move ...e5'
 function rtFirst(pos,mv,num,veryNext){const pc=pos.board[mv.fr]&&pos.board[mv.fr][mv.fc];return (pc?('the '+RT_PW[pc.t]+' move '):'')+rtN(pos,mv,num,veryNext);}
 // the moved piece's clauses from moveGist, in plain words and the reader's voice (4f, P7)
@@ -2478,7 +2481,7 @@ function rtLadder(a,ctx,V,L){
       for(const m2 of getLegal(g4)){const g5=makeMove(g4,m2);if(isInCheck(g5.board,M))continue;
         const f2=rtForkT(g5.board,m2.tr,m2.tc,M).filter(x=>x.t!=='k');const pc2=g4.board[m2.fr][m2.fc];
         if(f2.length>=2&&pc2&&(SEEVAL[pc2.t]||0)<Math.min(f2[0].v,f2[1].v)&&seeSq({...g5,turn:M},m2.tr,m2.tc,M)<(SEEVAL[f2[1].t]||0)){thr={m2,pc2,f2,g4};break;}}
-      if(thr){const ts=toSAN(thr.g4,thr.m2,applyMove(thr.g4.board,thr.m2)).replace(/#$/,'');const T=Ot==='b'?('...'+ts):((rNum+1)+'.'+ts);
+      if(thr){const ts=rtSay(toSAN(thr.g4,thr.m2,applyMove(thr.g4.board,thr.m2)));const T=Ot==='b'?('...'+ts):((rNum+1)+'.'+ts);
         return {w:'W5',short:rtCap(so)+' '+PL+' '+RN+', threatening '+T+'.',t:rtCap(so)+' '+PL+' '+RF+': it threatens '+T+', a '+RT_PW[thr.pc2.t]+' attacking '+V.P(M)+' '+RT_PW[thr.f2[0].t]+' on '+thr.f2[0].sq+' and '+RT_PW[thr.f2[1].t]+' on '+thr.f2[1].sq+' at once.'};}}catch(e){}}
     // W6, short of defenders: the reply adds an attacker to a piece of theirs that is now attacked more times than it is guarded
     {try{const nb=g3.board;let best=null;
@@ -2526,8 +2529,8 @@ function reviewText0(a,ctx){
     const subj=mine?'You':theirs?'Your opponent':(M==='w'?'White':'Black');
     const give=brilGiveTxt(g,false).replace(/^You (give|leave)\b/,(x,v)=>subj+' '+(subj==='You'?v:v+'s'));
     let ref='';if(R&&R.capSan){const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
-      ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true).replace(/^(\S+) /,'$1, ')+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
-    const cmp=dropTxt(a.altSan?((M==='w'?num+'.':num+'...')+a.altSan):null,a.altDrop);   // the number behind the tap (Q3), the move with its number (P4)
+      ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true,true)+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
+    const cmp=dropTxt(a.altSan?((M==='w'?num+'.':num+'...')+rtSay(a.altSan)):null,a.altDrop);   // the number behind the tap (Q3), the move with its number (P4)
     /* batch 13, docs/hint-audit-2026-11-12 HEX-R-06: a sacrifice that forces mate in two says so AT ONCE, from the board (every reply is
        answered by a mate in one, concreteRead's own test) - it does not wait for the refutation search, and it does not change when that
        search lands. 16.Qb8+ read 'You give up the queen on b8.' and nothing more for as long as the search took. With one legal reply the
@@ -2540,7 +2543,7 @@ function reviewText0(a,ctx){
     if(!R&&ctx.refuteDue)return {line:give+'.',more:'',rung:'B',pending:true};   /* batch 13 (jobs/gate-26-goes-red-at-ply-31-...-2026-11-18): pending - the refutation clause is still coming, so the band keeps the graph out of this box */
     return {line:fit([give+'.',ref]),more:fitM([evenSt?'':st,cmp]),rung:'B'};}
   if(L==='Great'){const R=ctx.refute;let ref='';if(R&&R.capSan){const line=(R.replyLine&&R.replyLine.length)?R.replyLine:(R.replySan?[R.replySan]:[]);
-      ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true).replace(/^(\S+) /,'$1, ')+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
+      ref='If '+rtRun([R.capSan].concat(line),Ot,M==='w'?num:num+1,true,true)+(/#$/.test(String(line[line.length-1]||R.capSan))?' mate':'')+'.';}
     const head=mine||!V.k?'The only good move.':'Your opponent finds the only good move.';
     if(!R&&ctx.refuteDue)return {line:head,more:'',rung:'G',pending:true};
     return {line:fit([head,ref||itDid]),more:fitM([evenSt?'':st]),rung:'G'};}
@@ -2570,7 +2573,7 @@ function reviewText0(a,ctx){
     // part 4 joined to the verdict when they pull apart (4a)
     if(L!=='Miss'){if(mine&&e>=1)head+=', though you are still '+(e>=3?'winning':'better');else if(theirs&&e<=-1)head+=', though they are still '+(e<=-3?'winning':'better');head+='.';stillTxt=head.indexOf('though')>=0?'x':'';}
     const r=rtLadder(a,ctx,V,L)||{w:'W8',t:null};
-    const bmN=(a.bestMove&&ctx.pos)?rtN(ctx.pos,a.bestMove,num,false):(a.bestSan||'');
+    const bmN=(a.bestMove&&ctx.pos)?rtN(ctx.pos,a.bestMove,num,false):rtSay(a.bestSan||'');
     let better='';
     if(bmN&&!r.usedBest){let why='';try{const cb=concreteRead(ctx.pos,a.bestMove);if(cb&&cb.k==='take'){const tk=ctx.pos.board[a.bestMove.tr][a.bestMove.tc];why=tk?('it takes '+V.P(Ot)+' '+RT_PW[tk.t]):'';}}catch(e){}
       if(!why&&ctx.pos&&a.bestMove){try{const gb=gistInContext((moveGist(ctx.pos,a.bestMove)||{}).did,ctx.pos,a.bestMove,ctx.prev,null);const g0=gb[0];
@@ -2597,13 +2600,33 @@ function reviewText0(a,ctx){
    proves a reason on the board for that ply (rtLadder: a mate allowed, a piece left, something not taken, a fork, a threat), that reason
    as its sentence. No reason proved (the ladder's W8) returns why '' and the caller keeps the size it printed. Pure: gate 169 runs it. */
 function coachWorst(rv,i,uc){const out={name:'',why:''};try{const a=rv.analysis[i],pl=rv.plies[i],pos=rv.positions[i];if(!a||!pl||!pos)return out;
-    const n=revNo(rv,i),san=String(pl.san||pl||'').replace(/[!?]+$/,'');if(!san)return out;out.name=(pos.turn==='w'?(n+'.'):(n+'...'))+san;
+    const n=revNo(rv,i),san=rtSay(pl.san||pl||'');if(!san)return out;out.name=(pos.turn==='w'?(n+'.'):(n+'...'))+san;   /* q7: no sign, 'with check' in words */
     const L=effLabel(a.cls,i,(rv.summary&&rv.summary.book)||0);if(!pl.move||!(L==='Blunder'||L==='Mistake'||L==='Inaccuracy'||L==='Miss'))return out;
     const r=rtLadder(a,{pos,ply:pl,next:rv.analysis[i+1],nextPly:rv.plies[i+1],nextPos:rv.positions[i+1],moveNo:n},rtV(uc),L);
     if(r&&r.t&&r.w!=='W8')out.why=(r.short&&r.t.length>120)?r.short:r.t;}catch(e){}return out;}
+/* batch 13, Kunal's Decision Desk answer q9 (19 Nov 2026, "the bubble points at the tiles and the toughest moment"): the summary's speech
+   bubble said "below" of a list that is not there - "The key moments (list) below show where it turned", "Step through it below", "See them
+   below", "clean up the 2 blunders below" - while the key-moments list is switched off. What IS below the bubble is the grade table, whose
+   counts are buttons that jump to that grade's first move, and what is above it is Coach's take, which names the toughest moment. So the
+   sentences now point at those two. A game with no graded move of the player's (every move from the book) has no counts to tap and no
+   toughest moment, so it says that instead (jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-
+   are-none-2026-11-19). revToughI is Coach's take's own rule for naming a toughest moment (an own Blunder or Mistake in the game, and the
+   costliest own move at 90 or more), so the bubble names one exactly when Coach's take does. Pure: gate 169 runs both. */
+function revToughI(rv,uc){try{const an=(rv&&rv.analysis)||[];let wI=-1,wL=0,bad=0;
+    an.forEach((a,i)=>{if(!a)return;if(uc&&revMover(rv,i)!==uc)return;const L=a.cls&&a.cls.label;if(L==='Blunder'||L==='Mistake')bad++;if((a.loss||0)>wL){wL=a.loss||0;wI=i;}});
+    return (bad>0&&wI>=0&&wL>=90)?wI:-1;}catch(e){return -1;}}
+function revBubble(o){o=o||{};const bl=o.bl||0,mi=o.mi||0,br=o.br||0,won=!!o.won,lost=!!o.lost,tough=o.tough||'';
+  const tapB=bl>1?'Tap the Blunder count below to go to the first.':'Tap the Blunder count below to go to it.';
+  if(br>0)return 'Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+': '+tapB.charAt(0).toLowerCase()+tapB.slice(1)):'Strong play.');
+  if(won&&bl===0&&(o.moves||0)>0&&(o.acc||0)>=85)return 'Clean game. You stayed accurate and converted without slipping.';
+  if(won&&bl>0)return 'You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. '+tapB;
+  if(lost&&bl>0)return (bl>1?('Those '+bl+' blunders cost you. Tap the Blunder count below to go to the first and see the better line.'):'That blunder cost you. Tap the Blunder count below to go to it and see the better line.');   /* #548 item (160): it read 'Those 1 blunder cost you.' */
+  if(lost){if(!(o.moves>0))return 'A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.';
+    return tough?('A tough one. The toughest moment, '+tough+', named in Coach\u2019s take above, is where it turned. Tap a count below to go to that kind of move.'):'A tough one. Tap a count below to go to those moves and see where it turned.';}
+  return (bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';}
 /* The why pill's words (HEX-R-04): the first two explained moves of the line it plays. batch 13, the design pair's residual B7: the line
    was capitalised as a sentence, so a pawn move at its head read 'E4 stakes out the center' - a move's name is spelt as the move is. */
-function playWhyTxt(rows){try{const w=(rows||[]).filter(r=>r&&r.why).slice(0,2).map(r=>String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')+' '+r.why).join('; ');return w?(w+'.'):'';}catch(e){return '';}}
+function playWhyTxt(rows){try{const w=(rows||[]).filter(r=>r&&r.why).slice(0,2).map(r=>String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'').replace(/[+#]$/,'')+' '+r.why)   /* q7: the row's own words already say 'gives check' or 'with check' */.join('; ');return w?(w+'.'):'';}catch(e){return '';}}
 /* explainAnno is the line under the board: reviewText's parts 1 and 2 (the rest is `more`, reviewMore). The old builder's five labels in a row
    ('A small slip. e5 is the answer. Nbd2 held it. About 0.9 pawns of advantage gone. The position stays roughly level.') are gone. */
 function explainAnno(a,ctx){const r=reviewText(a,ctx);return (r&&r.line)||null;}
@@ -12410,7 +12433,7 @@ function AppMain(){
               const _selN=uc?an.reduce((t,a,i)=>{if(!mine(i)||!a||!a.bestMove)return t;const _s=a.sel||classifyByLoss(a.loss||0);return t+((_s==='Mistake'||_s==='Blunder')?1:0);},0):0;
               const psan=(i)=>{const p=review.plies&&review.plies[i];return (p&&(p.san||p))||('ply '+(i+1));};
               let msg;
-              if(!phases.length){msg=((uc?S[uc].moves:Math.min(S.w.moves,S.b.moves))===0)?'Nothing to score yet: the game never left the opening book.':(uc?(_youLost?(/ resigned$/.test(_ended)&&/^You /.test(_ended)?'You resigned, yet none of your moves was graded a mistake or a blunder: the position may still have held. Step through it below before resigning next time.':'No mistakes or blunders on your side, but the game was still lost. The key moments below show where it turned.'):(_selN>0?('No move of yours is labelled a mistake or a blunder, but '+(_selN===1?'one':_selN)+' cost enough to go into Practice your mistakes. Try '+(_selN===1?'it':'them')+' there.'):'A clean game: no mistakes or blunders on your side. Keep testing yourself against stronger opposition.')):'A clean game on both sides.');}   /* #550 item (57), Kunal's reword-coach (11 Oct): the labels say clean, the practice list (sel) does not - say both, SHOW FIRST */   /* #549 item (49): a game you lost - resigned above all - is not 'a clean game' */   /* #547 item (108): 'clean' is a verdict on graded moves, and there were none */
+              if(!phases.length){msg=((uc?S[uc].moves:Math.min(S.w.moves,S.b.moves))===0)?'Nothing to score yet: the game never left the opening book.':(uc?(_youLost?(/ resigned$/.test(_ended)&&/^You /.test(_ended)?'You resigned, yet none of your moves was graded a mistake or a blunder: the position may still have held. Step through it below before resigning next time.':'No mistakes or blunders on your side, but the game was still lost.' /* batch 13, q9: it went on to point at a list of key moments under it, which the summary does not show - there is no such list; the bubble under it points at the counts */):(_selN>0?('No move of yours is labelled a mistake or a blunder, but '+(_selN===1?'one':_selN)+' cost enough to go into Practice your mistakes. Try '+(_selN===1?'it':'them')+' there.'):'A clean game: no mistakes or blunders on your side. Keep testing yourself against stronger opposition.')):'A clean game on both sides.');}   /* #550 item (57), Kunal's reword-coach (11 Oct): the labels say clean, the practice list (sel) does not - say both, SHOW FIRST */   /* #549 item (49): a game you lost - resigned above all - is not 'a clean game' */   /* #547 item (108): 'clean' is a verdict on graded moves, and there were none */
               else{const ph=phases[0][0];msg=(uc?'Most of your trouble came in ':'Most trouble came in ')+ph+'.';
                 if(worstI>=0&&worstL>=90){const _cw=coachWorst(review,worstI,uc);   /* batch 13, HEX-R-07: the move with its number, and what the board proves it lost */
                   msg+=' The toughest moment was '+(_cw.name||psan(worstI))+(worstL>=800?' (a game-deciding swing).':' (about '+(worstL/100).toFixed(1)+' pawns).')+(_cw.why?(' '+_cw.why):'');}
@@ -12425,7 +12448,7 @@ function AppMain(){
                   {trainIdx>=0&&<button onClick={()=>{setMode('learn');selectOpening(trainIdx);}} style={{background:'rgba(212,175,55,.18)',border:'1px solid rgba(212,175,55,.5)',borderRadius:9,color:'#f0e6cf',fontSize:12,padding:'6px 11px',cursor:'pointer',position:'relative'}}>Train this opening<span aria-hidden="true" style={{position:'absolute',left:-1,right:-1,top:-9,bottom:-9}}/></button>}
                   <button onClick={()=>{setMode('puzzle');}} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.25)',borderRadius:9,color:'#ddd',fontSize:12,padding:'6px 11px',cursor:'pointer',position:'relative'}}>Sharpen with puzzles<span aria-hidden="true" style={{position:'absolute',left:-1,right:-1,top:-9,bottom:-9}}/></button>{/* #550 helper B, FMT-B-06 (jobs/fmt-a11-menu-rows-and-fmt-b06-summary-chips-still-under-44-2026-11-13): the two coach chips keep their 28 box and get a 44 tap area from an invisible 8px reach above and below the border box (-9 from the padding box; the 8 gap over them and the card's 10 padding under), so nothing on the summary moves; gate 139 TC-R215z */}
                 </div>
-              </div>);})()}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;let m;if(br>0)m='Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+' below.'):'Strong play.');else if(won&&bl===0&&me.moves>0&&acc>=85)m='Clean game. You stayed accurate and converted without slipping.';else if(won&&bl>0)m='You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. See them below.';else if(lost&&bl>0)m=(bl>1?('Those '+bl+' blunders cost you. Step through them below'):'That blunder cost you. Step through it below')+' to see the better line.'; /* #548 item (160): it read 'Those 1 blunder cost you.' */else if(lost)m='A tough one. The key moments below show where it turned.';else m=(bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';return(<div style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
+              </div>);})()}{(()=>{const uc=S.userColor;if(!uc)return null;const me=S[uc];const c=me.counts;const acc=me.accuracy;const R=review.headers.Result;const won=(R==='1-0'&&uc==='w')||(R==='0-1'&&uc==='b');const lost=(R==='1-0'&&uc==='b')||(R==='0-1'&&uc==='w');const bl=c.Blunder||0,mi=(c.Mistake||0)+(c.Miss||0),br=c.Brilliant||0;const _tI=revToughI(review,uc);const m=revBubble({bl,mi,br,won,lost,acc,moves:me.moves,tough:_tI>=0?(coachWorst(review,_tI,uc).name||''):''});   /* batch 13, q9: revBubble */return(<div data-ct="rev-bubble" style={{display:'flex',gap:9,alignItems:'flex-start',background:'rgba(var(--acr),.1)',border:'1px solid rgba(var(--acr),.3)',borderRadius:14,padding:'10px 13px'}}><span style={{fontSize:18,lineHeight:1.2}}>💬</span><span style={{fontSize:'clamp(14px,3.1vw,15.5px)',color:'#fff',fontWeight:600,lineHeight:1.45}}>{m}</span></div>);})()}
             {(()=>{const W=S.w,B=S.b,uc=S.userColor;/* #550 item (94) [jobs/the-review-summary-puts-kunal-on-the-left-whichever-colour-he-played-2026-11-11, AUD-R08]: HIS side is the left column of the accuracy cards, the count columns and the Skills columns, whichever colour he played; a game with no side marked his keeps White then Black */const ORD=uc==='b'?['b','w']:['w','b'];const SN={w:'White',b:'Black'};const colHead=(sk,sl,d)=>{const me=uc===sk;const _hr=hdrElo((review&&review.headers)||{},sk);return(<div style={{flex:1,minWidth:0,textAlign:'center',padding:'6px 2px',borderRadius:12,background:me?'rgba(var(--acr),.14)':'transparent',border:me?'1px solid var(--ac)':'1px solid transparent'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:5}}><Piece t="k" color={sk} sz={20}/><span style={{fontSize:'clamp(14px,3.4vw,16px)',fontWeight:800,color:'#fff'}}>{sl}</span>{me&&<span style={{fontSize:8.5,fontWeight:800,color:'var(--ac2)',background:'rgba(var(--acr),.2)',borderRadius:6,padding:'1px 5px'}}>YOU</span>}</div>
                 <div data-ct={'rev-acc-'+sk} style={{fontSize:'clamp(27px,8vw,38px)',fontWeight:900,color:'#fff',lineHeight:1}}>{d.moves>0?<>{d.accuracy}<span style={{fontSize:'.45em',fontWeight:700,color:'rgba(255,255,255,.55)'}}>%</span></>:'-'}</div>
