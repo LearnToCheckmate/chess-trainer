@@ -474,7 +474,7 @@ function mkTap(b,READ){
      file at once inside an unrelated build. Block F below ADDS 761 and 320x568 for the assertions that are
      new, which is the migration done the way #505 prescribed. */
   const GEO={w:375,h:730,safe:''};   // 375x730, the shorter-phone column for this file's existing pins
-  const NAMEBOX='Filter by player name';
+  const NAMEBOX='Filter by player name';   // batch 13 (Q25 B): the box on the Your games line shows 'Player name' and keeps this as its aria-label; found by either, so the tree before it is found the same way
 
   // ══ BLOCK A. THE SHIPPED SCREEN'S OWN DEFECT, keyed on nothing this build added, so it runs on both
   //    bundles and its red on the shipped bundle is evidence rather than a missing selector.
@@ -487,7 +487,7 @@ function mkTap(b,READ){
       'A1b the unfiltered count reads exactly "7 loaded" - the SHIPPED wording, unchanged by this build, which is what gate 61 locates with /^\\d+ loaded$/',{count:base.count});
 
     // drive the PRE-EXISTING name box to a state that matches nothing
-    const box=b.page.locator('input[placeholder="'+NAMEBOX+'"]');
+    const box=b.page.locator('input[placeholder="'+NAMEBOX+'"],input[aria-label="'+NAMEBOX+'"]');
     const boxThere=await box.count()>0;
     L.say(boxThere,'A1c the pre-existing name box is on screen at 7 games (it renders above six)',{found:boxThere});
     if(boxThere){
@@ -755,7 +755,7 @@ function mkTap(b,READ){
        the sentence that only exists in it [CLAUDE.md: assert the denominator in its own L.say]. */
     await tapC('gf-acct-alpha',500);                        // alpha off
     await tapC('gf-acct-beta');                             // beta on: g5, g6, g7
-    const boxC=b.page.locator('input[placeholder="'+NAMEBOX+'"]');
+    const boxC=b.page.locator('input[placeholder="'+NAMEBOX+'"],input[aria-label="'+NAMEBOX+'"]');
     let c1g=null;
     if(await boxC.count()>0){
       await boxC.fill('opp6'); await b.settle(800);
