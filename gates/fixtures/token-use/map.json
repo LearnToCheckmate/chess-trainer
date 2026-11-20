@@ -1,0 +1,4 @@
+{"lead":{"transcript":"dup.jsonl"},
+ "entries":[
+  {"transcript":"dup.jsonl","job":"job-x","part":"p1","slot":"S","estimateMinutes":60},
+  {"transcript":"seat.jsonl","job":"job-x","part":"p2","slot":"T"}]}

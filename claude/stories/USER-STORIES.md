@@ -2646,3 +2646,12 @@ As a player on any phone from 320 to 430 points wide, with my text size anywhere
 - Nothing scrolls sideways. (TC-R248d)
 - The board fills the width of the screen on every board screen. (TC-R248e)
 - Every card is centred and fills the width, and no list hides rows while the screen under it is empty. (TC-R248f)
+
+### US-R175 A build run's token use is counted from its own transcripts
+*Added in batch 13, jobs/the-fleet-has-no-token-or-cost-instrumentation-at-all-2026-10-06 (Kunal, 19 Nov 2026: "Yes, and a bake-off").*
+As the project owner comparing which model does a job best, I can see how many tokens each job, part and model used in a build run, counted from the run's own session transcripts and not from any reported total.
+- Every model call is counted once, however many times its usage was repeated while it streamed. (TC-R249a)
+- The weight is input + 1.25 x cache writes + 0.1 x cache reads + 5 x output, to the token. (TC-R249b)
+- A transcript with no model calls reports zero and does not crash. (TC-R249c)
+- A time window over one transcript gives one block of numbers for a work-log entry. (TC-R249d)
+- A mapping file turns transcripts into one list per job, with a per-job summary of weighted tokens per estimate hour. (TC-R249e)
