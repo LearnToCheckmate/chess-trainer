@@ -23,7 +23,12 @@
 // CONTROL-RECORD: 15d0723 2026-11-13 total=9 red=1 scope=trial:ae1f4d7f12c3 how=the streamlined rev-compact floor 93 -> 109 (a row under the board takes 16px more): 'move screen, board 343, no scroll' red at board 327, rows printed {rev-compact 122, min 109px}, every other line green
 'use strict';
 const L=require('../lib');const R=require('../drive/review');
-const WANT_W=343;   // measured on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
+// RE-PINNED 343 -> 375 [batch 13 red repair; e7a59c2f (merged at 98eaaba6), jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19
+// with jobs/short-upright-boards-sized-to-height-2026-11-12, Kunal's FB-07 "Yes, full width"]: in Review the rows give way before the board
+// narrows, so at 375x679 the board is the full 375 (that commit's own message measures 375x679 343 -> 375, and re-pinned gate 20's TC-R06 the
+// same way). 'no scroll' is unchanged. Control: the tree before, 98eaaba6^1 (trial db9feb00e9aa), reads 343 and the line is red there.
+// CONTROL-RECORD: 6f2f4667 2026-11-20 total=15 red=1 scope=trial:db9feb00e9aa how=batch 13 red repair, the board pin re-pinned 343 -> 375 for e7a59c2f (Review full width): run on 6f2f4667, the tree before its merge 98eaaba6 - 'move screen, board 375, no scroll' red at board 343, the only red (14 pass 1 fail); on the branch head 7f7fdf73 trial f441ebae3739 15 pass 0 fail
+const WANT_W=375;   // WAS 343, on 77ffccc15668 by this route: the streamlined phone review is height-bound at 343 here with or without the card's caption strip (the card route read 343 too)
 L.run(async()=>{
   const b=await L.launch({geo:'kunal',name:'uat-review',store:{ct_pool:'3'}});await b.open();
   // THE SIX LINES THAT WENT WITH THE CARD, REPLACED [#550 test-system helper A; the orchestrator's re-check cg11 at 0a115a8]. The card's caption
