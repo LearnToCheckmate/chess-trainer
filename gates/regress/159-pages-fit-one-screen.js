@@ -25,6 +25,7 @@
 // CONTROL-RECORD: 1fe66f4 2026-11-14 total=51 red=3 scope=trial:904bc71b9a04 how=#550 helper B, Kunal's q50: 89814e1's tree (before q50, built as f0) - Look and feel at 320x568 red three times (scroll 716 in 546; 'Style' 675..719 of 568 covered; Q50 rows 4 and 5 with 12+5 painted names and the intro line present), the only reds; its 375x761 Q50 line is green; this tree (trial:9e6aa7f57110, 1fe66f4 on 17c48e4) is 51 pass 0 fail
 // CONTROL-RECORD: 1a1d03d 2026-11-14 total=52 red=1 scope=trial:9e6aa7f57110 how=#550 helper B, checker seat 2's GAP on q50 (A11Y-15): 54ea2e1's tree (before the 44 taps) - TC-INV-08s Q50 TAP red at 320x568 (51 missed points: swatches 42x35 on a 39 row pitch, none extended), the only red; this tree (trial:c0c41a296d2b, 1a1d03d on c792c86) is 52 pass 0 fail
 // CONTROL-RECORD: 68451db 2026-11-14 total=53 red=1 scope=trial:945eacc1a537 how=#550 helper test-system A, checker seat 2 on q50 (A11Y-15): 68451db's tree (before the Look close button's ct-hit44 and z-index, built as x0) - TC-INV-08s Q50 CLOSE TAP red at 320x568 (4 miss: LT, LB, B and RB land on the unlabelled content div under the compact header; RT on the backdrop, which closes the sheet), the only red; this tree (trial:698d15f0c763, the fix on 68451db) is 53 pass 0 fail, card 558 in 558 inside its 560 box, board 268
+// CONTROL-RECORD: 6e02e303 2026-11-20 total=6 red=2 scope=trial:a715499cb5a6 how=batch 13 red repair B3, TC-INV-08t re-pinned for the three row card (df0a8230) and Q25 FB-05: the head with the games box overflow-y hidden (built as 159k1) - 'the games box ... a finger can scroll it' red (overflow-y hidden) and 'its last control' red (the last card 700..822 of 761 COVERED, unreachable); run on the t page only (a copy of this gate filtered to id t). Second break, the box fitted 150px past the page (trial:506c8c5f87cf, 159k2): 'nothing scrolls but the games box' red (root 892 in 761) and 'the games box ends on the page' red (436..822 against the tab bar at 705). The OLD pins on df0a8230 (trial:64d5c943986e) read 2 red (glist-box 386 in 279; the last card not found, its text no longer leads with WON); on b5992127 (trial:28f54e11d989, before the card) the re-pinned lines are 6 of 6 green; on the head (trial:0075dfcc49e3) the whole gate is 54 pass 0 fail
 const L=require('../lib');const H=require('../drive/home'),R=require('../drive/review'),P=require('../drive/play'),M=require('../drive/menu'),Z=require('../drive/puzzles');
 const PAGES=[
   ['p','Play setup vs the computer',b=>P.states.setup(b),/Play as/i,   /* #550 q44: the opponents moved to their own screen (v); the sheet's computer-only row is Play as */
@@ -53,10 +54,26 @@ L.run(async()=>{
     const up=await b.page.evaluate((src)=>new RegExp(src,'i').test(document.body.innerText||''),wre.source);
     L.say(ok&&up,tag+' DENOMINATOR the page is up (its words are on screen)',{ok,up});
     const sc=await scrollers(b);
-    L.say(up&&sc.length===0,tag+' nothing scrolls ('+(sc.map(x=>x.who+' '+x.sh+' in '+x.ch).join(', ')||'no scroller overflows')+')',sc);
-    const lc=await b.page.evaluate((src)=>{const vh=innerHeight;const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};
+    // TC-INV-08t [batch 13 red repair, B3]: the Review games list's own box is the ONE scroller this page may have. Since df0a8230 (the three
+    // row game card, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15, his round-6 card) and Q25 FB-05 (jobs/review-list-the-search-
+    // box-on-the-your-games-line-and-the-final-layout-2026-11-18: "3 or 4 game cards show without scrolling; 3 and a half in B", the list
+    // "running down to the tab bar"), three stored cards are 386px of list in a box that ends at the tab bar, so the games box scrolls BY
+    // DESIGN. Every other scroller, #root first, is still asserted not to; the box itself is asserted to end on the page (above the tab bar),
+    // and the last card is asserted reachable by scrolling THAT box (overflow-y auto, so a finger can) and to answer a tap where it lands.
+    const own=id==='t'?sc.filter(x=>x.who==='glist-box'):[],rest=sc.filter(x=>!own.includes(x));
+    L.say(up&&rest.length===0,tag+' nothing scrolls'+(id==='t'?' but the games box, the list\'s own scroller (Q25 FB-05; '+(own.map(x=>x.sh+' in '+x.ch).join('')||'it does not overflow')+')':'')+' ('+(rest.map(x=>x.who+' '+x.sh+' in '+x.ch).join(', ')||'no '+(id==='t'?'other ':'')+'scroller overflows')+')',sc);
+    if(id==='t'){const gb=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="glist-box"]');if(!e)return null;const r=e.getBoundingClientRect();const tb=document.querySelector('[data-ct="tabbar"]');
+        const tab=tb&&tb.getBoundingClientRect().height>0?tb.getBoundingClientRect().top:innerHeight;return {t:+r.top.toFixed(1),b:+r.bottom.toFixed(1),tab:+tab.toFixed(1),oy:getComputedStyle(e).overflowY};});
+      L.say(up&&!!gb&&gb.b<=gb.tab+0.5&&/auto|scroll/.test(gb.oy),tag+' the games box ends on the page, above the tab bar, and a finger can scroll it ('+(gb?gb.t+'..'+gb.b+' against the tab bar at '+gb.tab+', overflow-y '+gb.oy:'no games box')+')',gb);}
+    const lc=await b.page.evaluate(async(src)=>{const vh=innerHeight;const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};
       let e=null;if(src){const re=new RegExp(src);e=[...document.querySelectorAll('button')].filter(vis).filter(x=>re.test((x.innerText||'').trim().replace(/\n/g,' '))).pop()||null;}
-      else{const cards=[...document.querySelectorAll('button,div[role="button"]')].filter(vis).filter(x=>/^(WON|LOST|DRAW)/.test((x.innerText||'').trim()));e=cards.pop()||null;}
+      else{/* a game card found by what it says, its result word (WON, LOST, DRAW) on a line of its own or leading - the old one-row card led with
+          it, the three row card (df0a8230) paints the names first - the deepest such control, so the list box holding them is not one */
+        const re=/(^|\n)\s*(WON|LOST|DRAW)\b/;const cards=[...document.querySelectorAll('button,div[role="button"]')].filter(vis).filter(x=>re.test((x.innerText||'').trim()));
+        e=cards.filter(x=>!cards.some(y=>y!==x&&x.contains(y))).pop()||null;
+        /* reachable, not merely laid out: scroll the nearest ancestor a finger can scroll (overflow-y auto/scroll) to its end, then re-read */
+        let a=e&&e.parentElement;while(a&&a!==document.body){if(/auto|scroll/.test(getComputedStyle(a).overflowY)&&a.scrollHeight>a.clientHeight+1){a.scrollTop=a.scrollHeight;break;}a=a.parentElement;}
+        await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));}
       if(!e)return null;const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,Math.min(vh-1,r.top+r.height/2));
       return {w:(e.innerText||'').trim().slice(0,24).replace(/\n/g,' '),top:+r.top.toFixed(1),bot:+r.bottom.toFixed(1),vh,hit:!!h&&(h===e||e.contains(h))};},last?last.source:null);
     L.say(up&&!!lc&&lc.bot<=lc.vh+0.5&&lc.hit,tag+' its last control is on screen and answers a tap ('+(lc?'"'+lc.w+'" '+lc.top+'..'+lc.bot+' of '+lc.vh+(lc.hit?'':' COVERED'):'not found')+')',lc);
