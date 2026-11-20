@@ -99,5 +99,19 @@ for s in "${STEMSEQ[@]}" ""; do
   fi
 done
 [ "$RPARTS" = "$WANT" ] && [ "$RP" = "$NP" ] || no "its 'resume:' line says $RP part(s): $RPARTS - the marks say $NP part(s): $WANT."
+# [suite-split; batch 13] A SPLIT'S PARTS ARE THE MACHINES: when any run stem is a part's (<n>-p<K>of<M>[letter], which only
+# CT_PART names), every block must be one, of the same M, and the blocks must be parts 1..M, each once, in that order -
+# so a part run twice, a part missing or two parts swapped is refused here even where each mark is otherwise sound.
+BLK=(); prev=""; for s in "${STEMSEQ[@]}"; do [ "$s" = "$prev" ] || BLK+=("$s"); prev="$s"; done
+if grep -qE -- '-p[0-9]of[0-9][a-z]?$' <<<"$(printf '%s\n' "${BLK[@]}")"; then
+  SM=""; k=0
+  for s in "${BLK[@]}"; do
+    k=$((k+1))
+    [[ "$s" =~ -p([0-9])of([0-9])[a-z]?$ ]] || no "A SPLIT MIXED WITH ANOTHER RUN: block $k ($s) is not a part of the split the other blocks belong to."
+    [ -z "$SM" ] && SM="${BASH_REMATCH[2]}"
+    [ "${BASH_REMATCH[2]}" = "$SM" ] && [ "${BASH_REMATCH[1]}" = "$k" ] || no "A SPLIT'S PARTS OUT OF ORDER: block $k is $s, where part $k of $SM belongs - a part missing, run twice, or two parts swapped."
+  done
+  [ "$k" = "$SM" ] || no "A SPLIT WITH A PART MISSING: $k block(s) of a $SM-part split."
+fi
 echo "JOIN OK: $RN gate section(s), each marked once and in roster order, in $NP part(s) ($WANT), all on bundle $B0 HEAD $H0 tree $T0; every body md5 matches its mark."
 exit 0

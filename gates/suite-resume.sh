@@ -19,6 +19,7 @@
 
 SR_VERSION='#suite-resume v1'
 SR_ON=1; SR_I=0; SR_K=0; SR_OFF=0; SR_PALL=""; SR_PJ=""; SR_PJMD5=""
+SR_SPLIT=0; SR_PK=""; SR_PN=""; SR_PA=0; SR_PB=0; SR_PW=0; SR_PWT=0; SR_PWSRC=""; SR_PLANMD5=""; SR_SPLITN=""; SR_PLAN=""; SR_PLANOF=()
 SR_ROFF=(); SR_RLEN=(); SR_RMD5=(); SR_RSTEM=(); SR_RVERD=(); SR_STEMS=()
 
 sr_md5(){ md5sum "$1" 2>/dev/null | cut -c1-32; }
@@ -28,7 +29,10 @@ sr_bytes(){ dd if="$1" iflag=skip_bytes,count_bytes skip="$2" count="$3" bs=6553
 sr_bytes_md5(){ sr_bytes "$1" "$2" "$3" | md5sum | cut -c1-32; }
 # the tree digest: tree_fingerprint's tracked, untracked and gitmeta lines. NOT refs - a fetch, or pushing the per-run
 # branch to save the work, moves refs and changes nothing a gate reads; HEAD is carried on its own.
-sr_treedigest(){ grep -E '^(tracked|untracked|gitmeta) ' <<<"$1" | sha1sum | cut -c1-16; }
+# [suite-split] ACROSS MACHINES THE gitmeta LINE IS LEFT OUT: two clones at one sha carry different .git/config (the remote's
+# proxy URL, the per-run branch each session was given), so it differs with nothing a gate reads differing. A part and the
+# joining run both set SR_SPLIT=1; each part's own prelude still checked its gitmeta did not move before its first gate.
+sr_treedigest(){ if [ "${SR_SPLIT:-0}" = 1 ]; then grep -E '^(tracked|untracked) ' <<<"$1"; else grep -E '^(tracked|untracked|gitmeta) ' <<<"$1"; fi | sha1sum | cut -c1-16; }
 sr_statusdigest(){ printf '%s' "$1" | md5sum | cut -c1-32; }
 sr_rosterdigest(){ local f; for f in "${gates[@]}"; do basename "$f" .js; done | md5sum | cut -c1-32; }
 # THE TOOLCHAIN [review 1b]: a container restart can bring another node, Playwright, Chromium or font set (#537 was a
@@ -44,8 +48,10 @@ sr_toolchain(){ local nv pv cv fv
 # every CT_* variable plus the few non-CT ones that change what a browser draws, EXCEPT the five that name this
 # invocation or act only on the prelude (which the resumed part re-runs and records in its own log), AND the toolchain
 sr_envdigest(){ local v; { for v in $(compgen -e | LC_ALL=C sort); do
-    case "$v" in CT_RESUME|CT_RESUMABLE|CT_GATES_SELFCOPY|CT_RUNID|CT_GAPFILL_OVERRIDE) continue ;; esac
-    case "$v" in CT_*|FONTCONFIG_FILE|PLAYWRIGHT_BROWSERS_PATH|TZ|LANG|LC_ALL) printf '%s=%s\n' "$v" "${!v}" ;; esac
+    case "$v" in CT_RESUME|CT_RESUMABLE|CT_GATES_SELFCOPY|CT_RUNID|CT_GAPFILL_OVERRIDE|CT_PART) continue ;; esac
+    # [suite-split] the clone's own path is written <ROOT>, so CT_APP=$ROOT/app.js and CT_SHOTS=$G/... agree between two
+    # machines whose clones sit at different paths; any other path (a trial bundle outside the clone) must be the same
+    case "$v" in CT_*|FONTCONFIG_FILE|PLAYWRIGHT_BROWSERS_PATH|TZ|LANG|LC_ALL) local val="${!v}"; printf '%s=%s\n' "$v" "${val//"$ROOT"/<ROOT>}" ;; esac
   done; printf 'toolchain=%s\n' "$SR_TC"; } | md5sum | cut -c1-32; }
 # ONE place that writes the mark line, so gates.sh and the selftest's fixture joins cannot drift apart.
 # `state` is <tree digest>.<status digest>.<env digest> [review 1e], so every section names the whole state it ran in.
@@ -68,6 +74,9 @@ sr_begin(){
     sr_refuse "CT_RESUME/CT_RESUMABLE was set on a SUBSET run. Resume is for the full suite only: a subset authorises nothing, so there is nothing to carry across a restart."; return 1
   fi
   SR_BUNDLE="$(sr_md5 "$APP")"; [ -n "$SR_BUNDLE" ] || { sr_refuse "could not read the bundle $APP to hash it."; return 1; }
+  if [ -n "${CT_PART:-}" ]; then sr_part_init || return 1; fi
+  if [ -n "${CT_RESUME:-}" ]; then local sj="$CT_RESUME"; case "$sj" in *-all.log) sj="${sj%-all.log}-resume.tsv" ;; esac
+    [ -r "$sj" ] && grep -q $'^split\t' "$sj" && SR_SPLIT=1; fi
   SR_TD="$(sr_treedigest "$TREEFP0")"; SR_SD="$(sr_statusdigest "${DIRTYL0:-}")"
   SR_TC="$(sr_toolchain)"
   SR_RD="$(sr_rosterdigest)"; SR_ED="$(sr_envdigest)"; SR_NG="${#gates[@]}"; SR_STATE="$SR_TD.$SR_SD.$SR_ED"
@@ -82,11 +91,14 @@ sr_begin(){
   } > "$SR_J" || { sr_refuse "could not write the journal $SR_J."; return 1; }
   if [ -n "$SR_PJ" ]; then
     local nx="(none - every gate had finished)"; [ "$SR_K" -lt "$SR_NG" ] && nx="$((SR_K+1)) ($(basename "${gates[$SR_K]}" .js))"
+    [ -n "${SR_SPLITN:-}" ] && sr_say "suite-split: JOINING $SR_SPLITN part(s) merged by gates/suite-split.sh (plan md5 $SR_PLANMD5): every gate is copied from the part that ran it; this run runs the prelude, the unit layers and the footer."
     sr_say "suite-resume: RESUMING from $SR_PJ (md5 $SR_PJMD5): $SR_K of $SR_NG gates finished there and are copied after an md5 check; the first unfinished gate is $nx. Tree, bundle ($SR_BUNDLE), HEAD, status, roster, environment and toolchain ($SR_TC) all proven equal to that run's start. Journal: $SR_J"
     if [ -n "${SR_TAILRED:-}" ]; then
       red=1
       sr_say "RESUME: the killed run's unfinished gate $SR_TAILRED red line(s) (FAIL, a RED verdict or <<<) before the restart. They are not dropped: this run is RED whatever that gate does here [review 1a]."
     fi
+  elif [ -n "$SR_PK" ]; then
+    sr_say "suite-split: PART $SR_PK/$SR_PN - runs gates $SR_PA-$SR_PB of $SR_NG ($(basename "${gates[$((SR_PA-1))]}" .js) to $(basename "${gates[$((SR_PB-1))]}" .js)), weight $SR_PW of $SR_PWT ($SR_PWSRC); plan md5 $SR_PLANMD5. Journal $SR_J. The unit layers are left to the joining run. This log is never a push gate: join every part with gates/suite-split.sh join."
   else
     sr_say "suite-resume: resumable run - every finished gate is journaled in $SR_J and marked in this log (bundle $SR_BUNDLE)."
   fi
@@ -114,10 +126,10 @@ sr_resume_check(){
   [ "$psd" = "$SR_SD" ]       || { sr_refuse "THE WORKING TREE MOVED: the git status listing differs from the killed run's start."; return 1; }
   [ "$prd" = "$SR_RD" ] && [ "$png" = "$SR_NG" ] || { sr_refuse "ANOTHER ROSTER: the killed run's gate list ($png gates) is not this run's ($SR_NG gates) - a gate was added, removed or reordered."; return 1; }
   [ "$ptc" = "$SR_TC" ]       || { sr_refuse "ANOTHER TOOLCHAIN: the killed run had [$ptc], this run has [$SR_TC] - a container restart brought another node, Playwright, Chromium or font set, so the rest would not be the same measurement."; return 1; }
-  [ "$ped" = "$SR_ED" ]       || { sr_refuse "ANOTHER ENVIRONMENT: a CT_* option (or FONTCONFIG_FILE, PLAYWRIGHT_BROWSERS_PATH, TZ, LANG, LC_ALL) differs from the killed run's, so the rest would not be the same measurement." "Excluded on purpose: CT_RESUME, CT_RESUMABLE, CT_GATES_SELFCOPY, CT_RUNID, CT_GAPFILL_OVERRIDE."; return 1; }
+  [ "$ped" = "$SR_ED" ]       || { sr_refuse "ANOTHER ENVIRONMENT: a CT_* option (or FONTCONFIG_FILE, PLAYWRIGHT_BROWSERS_PATH, TZ, LANG, LC_ALL) differs from the killed run's, so the rest would not be the same measurement." "Excluded on purpose: CT_RESUME, CT_RESUMABLE, CT_GATES_SELFCOPY, CT_RUNID, CT_GAPFILL_OVERRIDE, CT_PART."; return 1; }
   SR_PALL="$pall"
   [ -f "$SR_PALL" ] && [ -r "$SR_PALL" ] || { sr_refuse "the killed run's log $SR_PALL is missing or unreadable."; return 1; }
-  if grep -qE '^(GATES (GREEN|RED)|SUBSET (OK|RED)) ' "$SR_PALL"; then
+  if grep -qE '^(GATES (GREEN|RED)|SUBSET (OK|RED)|PART (OK|RED)) ' "$SR_PALL"; then
     sr_refuse "the run in $SR_PALL FINISHED (it carries a verdict line). A finished run is re-run from the top, never resumed."; return 1
   fi
   # [review 1c] the killed part's prelude is not carried, so its one prelude verdict about the TREE must be read here
@@ -127,8 +139,18 @@ sr_resume_check(){
   grep -q '^tree unchanged before the browser gates' "$SR_PALL" \
     || { sr_refuse "the killed run's log carries no 'tree unchanged before the browser gates' line, so whether its gates read the tree it started on is unknown."; return 1; }
   # every other line: a gate row or a from row; nothing else
-  local bad; bad="$(grep -vcE '^(#suite-resume v1|start	.*|from	[^	]+	[0-9a-f]{32}	[0-9]+|gate	[0-9]+	[^	]+	[^	]+	(green|red)	[0-9]+	[0-9]+	[0-9a-f]{32})$' "$pj")"
+  local bad; bad="$(grep -vcE '^(#suite-resume v1|start	.*|from	[^	]+	[0-9a-f]{32}	[0-9]+|split	[0-9]+	[0-9a-f]{32}|gate	[0-9]+	[^	]+	[^	]+	(green|red)	[0-9]+	[0-9]+	[0-9a-f]{32})$' "$pj")"
   [ "$bad" = 0 ] || { sr_refuse "the journal $pj carries $bad malformed row(s)."; return 1; }
+  # [suite-split] a merged journal names its plan; the plan is recomputed HERE from this run's roster and weights, and every
+  # row must come from the part the plan gives its position to (a gate run on the wrong machine, or under another plan)
+  local nsplit; nsplit="$(grep -c $'^split\t' "$pj")"
+  if [ "$nsplit" -gt 0 ]; then
+    [ "$nsplit" = 1 ] || { sr_refuse "the merged journal $pj carries $nsplit split rows, not 1."; return 1; }
+    local _t sn smd5; IFS=$'\t' read -r _t sn smd5 < <(grep $'^split\t' "$pj")
+    sr_plan_load "$sn" || { sr_refuse "the split's plan for $sn parts could not be computed from this run's roster."; return 1; }
+    [ "$SR_PLANMD5" = "$smd5" ] || { sr_refuse "ANOTHER PLAN: the parts were assigned by plan md5 $smd5, this run's roster and weights give $SR_PLANMD5 - the gate list or gates/suite-split-seconds.tsv differs."; return 1; }
+    SR_SPLITN="$sn"
+  fi
   local i nm st vd off len m want=1 psize; psize="$(sr_size "$SR_PALL")"
   while IFS=$'\t' read -r tag i nm st vd off len m; do
     [ "$tag" = gate ] || continue
@@ -142,6 +164,10 @@ sr_resume_check(){
       *"gate $i/$SR_NG $nm | run "*" | bundle $SR_BUNDLE | head $HEADSHA | tree $HEADTREE | state $SR_STATE | body md5 "*) ;;
       *) sr_refuse "gate $i ($nm): its own mark does not name this run's bundle, HEAD, tree and state - a section from another run was spliced in." "mark: ${mk:-(none)}"; return 1 ;;
     esac
+    if [ -n "${SR_SPLITN:-}" ]; then
+      local pk=""; [[ "$st" =~ -p([0-9]+)of${SR_SPLITN}[a-z]?$ ]] && pk="${BASH_REMATCH[1]}"
+      [ "$pk" = "${SR_PLANOF[$i]}" ] || { sr_refuse "gate $i ($nm) was run by $st, but the plan gives position $i to part ${SR_PLANOF[$i]} of $SR_SPLITN - a gate run on the wrong machine."; return 1; }
+    fi
     SR_ROFF+=("$off"); SR_RLEN+=("$len"); SR_RMD5+=("$m"); SR_RSTEM+=("$st"); SR_RVERD+=("$vd")
     want=$((want+1))
   done < "$pj"
@@ -167,6 +193,8 @@ sr_resume_check(){
 # first line of the gate loop. 0 = imported (the caller continues), 1 = run it.
 sr_import(){
   SR_I=$((SR_I+1))
+  # [suite-split] a part runs only its own positions; the others are not run, not written, not journaled
+  if [ -n "$SR_PK" ] && { [ "$SR_I" -lt "$SR_PA" ] || [ "$SR_I" -gt "$SR_PB" ]; }; then return 0; fi
   if [ "$SR_I" -le "$SR_K" ]; then
     local j=$((SR_I-1)) off len m now
     off="${SR_ROFF[$j]}"; len="${SR_RLEN[$j]}"; m="${SR_RMD5[$j]}"
@@ -219,4 +247,64 @@ sr_footer(){
   done
   [ -n "$parts" ] || parts="(no gate ran)"
   sr_footer_text "$np" "$parts" "$SR_BUNDLE" "$HEADSHA" "$HEADTREE" "$SR_J" | tee -a "$ALL"
+}
+
+# ══ THE SUITE SPLIT [batch 13; jobs/the-full-suite-is-split-across-two-or-three-test-machines-and-the-joined-log-is-proved-
+# 2026-11-18]. CT_PART=K/N runs part K of N of the roster on this machine; gates/suite-split.sh join merges the N parts' logs
+# and journals into ONE journal with a `split` row, and a run with CT_RESUME=<that journal> copies every gate from its part
+# and is judged as a resumed run is judged (verify-log.sh -> verify-join.sh). Rule: claude/agents/b13-split-suite-rule.md;
+# commands: gates/suite-split.sh's header; controls: gates/suite-split-selftest.sh (TC-R257).
+#
+# THE PLAN: the roster cut into N CONTIGUOUS runs of positions with the largest part's weight as small as it can be (an
+# exact linear-partition DP; among cuts with the same largest part the smaller sum of squares, then the earliest), so each part is one block and the joined footer's parts are the
+# machines. Weights are whole seconds from gates/suite-split-seconds.tsv (`<gate>\t<seconds>` rows, the shape
+# gates/audit/time-gates.sh writes; a gate it does not list weighs the median of those it does) or, with no such file, 1 a
+# gate (the roster's order and count - the 551c log carries no per-gate seconds). Integers, so every awk on every machine
+# cuts identically. Prints "k<TAB>a<TAB>b<TAB>weight" lines, positions 1-based and inclusive.
+sr_plan(){ # <N> <gate name>...
+  local n="$1"; shift
+  printf '%s\n' "$@" | awk -v n="$n" -v wf="$G/suite-split-seconds.tsv" '
+    BEGIN{ nw=0; while ((getline l < wf) > 0) { if (l ~ /^#/) continue; split(l, c, "\t"); if (c[2] ~ /^[0-9]+(\.[0-9]+)?$/) { g=c[1]; sub(/\.js$/,"",g); w[g]=int(c[2]+0.5); if (w[g]<1) w[g]=1; ws[++nw]=w[g] } } }
+    { name[++m]=$0 }
+    END{ med=1; if (nw>0) { for(i=1;i<=nw;i++) for(j=i+1;j<=nw;j++) if (ws[j]<ws[i]) { t=ws[i]; ws[i]=ws[j]; ws[j]=t }; med=ws[int((nw+1)/2)] }
+      if (n<1 || n>m) exit 3
+      S[0]=0; for(i=1;i<=m;i++){ x=(name[i] in w)?w[name[i]]:med; S[i]=S[i-1]+x }
+      for(i=1;i<=m;i++){ B[1,i]=S[i]; Q[1,i]=S[i]*S[i] }
+      for(k=2;k<=n;k++) for(i=k;i<=m;i++){ best=-1
+        for(j=k-1;j<i;j++){ d=S[i]-S[j]; v=B[k-1,j]; if (d>v) v=d; q=Q[k-1,j]+d*d
+          if (best<0 || v<best || (v==best && q<bq)) { best=v; bq=q; cj=j } }
+        B[k,i]=best; Q[k,i]=bq; C[k,i]=cj }
+      e=m; for(k=n;k>=1;k--){ s=(k>1)?C[k,e]+1:1; A[k]=s; E[k]=e; e=s-1 }
+      for(k=1;k<=n;k++) printf "%d\t%d\t%d\t%d\n", k, A[k], E[k], S[E[k]]-S[A[k]-1] }'
+}
+sr_weights_src(){ local wf="$G/suite-split-seconds.tsv"; if [ -r "$wf" ]; then echo "seconds from gates/suite-split-seconds.tsv md5 $(sr_md5 "$wf" | cut -c1-12)"; else echo "1 a gate: no gates/suite-split-seconds.tsv"; fi; }
+# loads SR_PLAN, SR_PLANMD5 and SR_PLANOF[position]=part for this run's roster (gates[])
+sr_plan_load(){ # <N>
+  local names=() f k a b w; for f in "${gates[@]}"; do names+=("$(basename "$f" .js)"); done
+  SR_PLAN="$(sr_plan "$1" "${names[@]}")" || return 1
+  [ "$(grep -c . <<<"$SR_PLAN")" = "$1" ] || return 1
+  SR_PLANMD5="$( { printf '%s\n' "$SR_PLAN"; sr_weights_src; printf '%s\n' "${names[@]}"; } | md5sum | cut -c1-32)"
+  SR_PLANOF=()
+  while IFS=$'\t' read -r k a b w; do for ((f=a; f<=b; f++)); do SR_PLANOF[$f]="$k"; done; done <<<"$SR_PLAN"
+}
+sr_part_init(){
+  [[ "${CT_PART:-}" =~ ^([1-9])/([2-9])$ ]] && [ "${BASH_REMATCH[1]}" -le "${BASH_REMATCH[2]}" ] \
+    || { sr_refuse "CT_PART=${CT_PART:-} is not K/N with 1 <= K <= N and 2 <= N <= 9."; return 1; }
+  SR_PK="${BASH_REMATCH[1]}"; SR_PN="${BASH_REMATCH[2]}"
+  [ -z "${CT_RESUME:-}" ] || { sr_refuse "CT_PART and CT_RESUME together: a part is never resumed. Re-run the part from the top on its machine."; return 1; }
+  [[ "$STEM" =~ -p${SR_PK}of${SR_PN}[a-z]?$ ]] || { sr_refuse "a part's log must be named <number>-p${SR_PK}of${SR_PN}[letter]-all.log (gates.sh names it from CT_PART); this run's stem is $STEM."; return 1; }
+  SR_SPLIT=1
+  sr_plan_load "$SR_PN" || { sr_refuse "the plan for $SR_PN parts could not be computed over a roster of ${#gates[@]} gate(s)."; return 1; }
+  local k a b w; while IFS=$'\t' read -r k a b w; do [ "$k" = "$SR_PK" ] && { SR_PA="$a"; SR_PB="$b"; SR_PW="$w"; }; SR_PWT=$((SR_PWT+w)); done <<<"$SR_PLAN"
+  SR_PWSRC="$(sr_weights_src)"
+}
+# after the gate loop, in a part: a part's footer, which can NEVER say GATES GREEN or GATES RED. Its status is the verdict.
+sr_part_footer(){
+  local regn; regn=$(awk '/^=== .* ===$/{s=1} s&&/^PASS/{n++} END{print n+0}' "$ALL")
+  echo "regression assertions (PASS lines): $regn" | tee -a "$ALL"
+  printf 'suite-split: part %s/%s ran gates %s-%s of %s | run %s | bundle %s | head %s | tree %s | state %s | plan %s | journal %s\n' \
+    "$SR_PK" "$SR_PN" "$SR_PA" "$SR_PB" "$SR_NG" "$STEM" "$SR_BUNDLE" "$HEADSHA" "$HEADTREE" "$SR_STATE" "$SR_PLANMD5" "$SR_J" | tee -a "$ALL"
+  echo "gates ran (${#gates[@]}): $(for f in "${gates[@]}"; do printf '%s ' "$(basename "$f" .js)"; done)" | tee -a "$ALL"
+  if [ "$red" -eq 0 ]; then echo "PART OK $SR_PK/$SR_PN $N — NOT A PUSH GATE: join every part with gates/suite-split.sh join" | tee -a "$ALL"; return 0
+  else echo "PART RED $SR_PK/$SR_PN $N — NOT A PUSH GATE: the joined run will be RED" | tee -a "$ALL"; return 1; fi
 }
