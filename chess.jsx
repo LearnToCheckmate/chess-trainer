@@ -4516,6 +4516,9 @@ const TOP_TITLE={position:'absolute',top:0,bottom:0,left:TOP_EDGE+TOP_SZ+6,right
 const SHEET_TITLE={fontFamily:'var(--head)',fontSize:18,fontWeight:700,color:'var(--ac2)',lineHeight:1.2,letterSpacing:0};
 /* #550 FMT-A-10/B-08 (Kunal's pick 12 Nov): ONE SECTION LABEL - 12.5 point weight 700, capitals, 1 point letter spacing, white 55 percent, on
    the gutter. Five styles before (13/700/1, 13/600/0.5 centred, 12/400 monospace 1.5, 14.5/700/0.6, 13/700/0.5). */
+/* batch 13 (jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18): words kept for screen readers only, the
+   play-moverow's pattern - a button that shows an icon keeps its name in its text (gates/drive/layout.js does not read such text). */
+const SR_ONLY={position:'absolute',width:1,height:1,overflow:'hidden',clip:'rect(0 0 0 0)',clipPath:'inset(50%)',whiteSpace:'nowrap',padding:0,margin:-1,border:0};
 const SEC_LABEL={fontSize:12.5,fontWeight:700,letterSpacing:1,textTransform:'uppercase',color:'rgba(255,255,255,.55)',fontFamily:"'Segoe UI',system-ui,sans-serif"};
 const SHEET_X={...TOP_BTN,fontSize:16,margin:'-7px -6px -7px 0'};
 function TopBtn({ct,onClick,label,children,style}){return <button data-ct={ct} onClick={onClick} aria-label={label} title={label} style={{...TOP_BTN,...style}}>{children}</button>;}
@@ -6558,13 +6561,14 @@ function AppMain(){
      "Famous brilliant moves"; when his games list is up, that tile sits as one compact row (no second line) at the top of the games box
      (a 36px icon, so the row is 46px: still a full tap target), so the fixed Review page (gate 164) keeps its games box. With a card of his own it is the tile it always was, where it always was. */
   const brilTileOn=()=>myBrilliant.length>0||(BRIL_LIB&&(BRIL_CLASSIC_CARDS.length>0||followShown().length>0));
-  const brilTileEl=(compact)=>(<button data-ct="bril-tile" onClick={()=>{if(!myBrilliant.length){setBrilLib({sel:[]});return;}const _ks=new Set((myBrilliant||[]).filter(Boolean).map(c=>(c.missed?'m':'p')+brilKind(c)));if(BRIL_LIB&&(_ks.size>1||BRIL_CLASSIC_CARDS.length>0||followShown().length>0))setBrilLib({sel:[]});else startBrilliant();/* batch 13: with the famous-games shelf there is always something to choose */}}/* #550 item (21): the library opens when there is a choice to make - two or more kinds or shelves; with one, the drill starts as before */ data-compact={compact?'1':undefined} style={{display:'flex',alignItems:'center',gap:12,width:'100%',flexShrink:0,padding:compact?'4px 14px 4px 4px':'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
-            <span style={{flexShrink:0,width:compact?36:44,height:compact?36:44,borderRadius:compact?10:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?18:22,background:'linear-gradient(150deg,#22d3ee,#0e7490)',boxShadow:'0 4px 12px rgba(14,116,144,.4)'}}>✨</span>
+  const brilTileEl=(compact)=>(<button data-ct="bril-tile" onClick={()=>{if(!myBrilliant.length){setBrilLib({sel:[]});return;}const _ks=new Set((myBrilliant||[]).filter(Boolean).map(c=>(c.missed?'m':'p')+brilKind(c)));if(BRIL_LIB&&(_ks.size>1||BRIL_CLASSIC_CARDS.length>0||followShown().length>0))setBrilLib({sel:[]});else startBrilliant();/* batch 13: with the famous-games shelf there is always something to choose */}}/* #550 item (21): the library opens when there is a choice to make - two or more kinds or shelves; with one, the drill starts as before */ data-compact={compact?'1':undefined} style={{display:'flex',alignItems:'center',gap:compact?10:12,width:'100%',flexShrink:0,...(compact?{flex:'1 1 0',minWidth:0,minHeight:46,boxSizing:'border-box',position:'relative'}:{}),padding:compact?(vp.w<360?'4px 10px':'4px 10px 4px 4px'):'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
+            {!(compact&&vp.w<360)&&<span aria-hidden="true" style={{flexShrink:0,width:compact?36:44,height:compact?36:44,borderRadius:compact?10:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?18:22,background:'linear-gradient(150deg,#22d3ee,#0e7490)',boxShadow:'0 4px 12px rgba(14,116,144,.4)'}}>✨</span>}
             <span style={{flex:1,minWidth:0}}>
-              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>{myBrilliant.length>0?'Your brilliant moves':'Famous brilliant moves'}</span>
-              {!compact&&<span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{!myBrilliant.length?(()=>{const nf=followShown().length,nc=BRIL_CLASSIC_CARDS.length;return [nc>0?(nc+' from famous games'):'',nf>0?(nf+' from players you follow'):'','can you find them?'].filter(Boolean).join(' · ');})()/* batch 13 q2 */:(()=>{const nm=myBrilliant.filter(x=>x&&x.missed).length,nf=myBrilliant.length-nm;return (nf>0?(nf+' brilliant move'+(nf>1?'s':'')+' you found'):'')+(nf>0&&nm>0?' · ':'')+(nm>0?(nm+' you missed'):'')+' · can you spot them again?';})()/* #550 items (18) and (21): the missed ones are counted apart */}</span>}
+              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,lineHeight:compact?1.2:undefined}}>{myBrilliant.length>0?'Your brilliant moves':'Famous brilliant moves'}</span>
+              {/* batch 13 (Q25 B, FB-03): the compact card, one of the two practice cards side by side, shows no description line; its words stay for a screen reader */}
+              {<span style={compact?SR_ONLY:{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{compact?' ':''}{!myBrilliant.length?(()=>{const nf=followShown().length,nc=BRIL_CLASSIC_CARDS.length;return [nc>0?(nc+' from famous games'):'',nf>0?(nf+' from players you follow'):'','can you find them?'].filter(Boolean).join(' · ');})()/* batch 13 q2 */:(()=>{const nm=myBrilliant.filter(x=>x&&x.missed).length,nf=myBrilliant.length-nm;return (nf>0?(nf+' brilliant move'+(nf>1?'s':'')+' you found'):'')+(nf>0&&nm>0?' · ':'')+(nm>0?(nm+' you missed'):'')+' · can you spot them again?';})()/* #550 items (18) and (21): the missed ones are counted apart */}</span>}
             </span>
-            <span style={{flexShrink:0,fontSize:20,color:'#22d3ee'}}>›</span>
+            {!compact&&<span style={{flexShrink:0,fontSize:20,color:'#22d3ee'}}>›</span>}
           </button>);
   // One-time reset (per Kunal): drop pre-#59 saved brilliancies so they rebuild with the stricter detector as games are reviewed.
   useEffect(()=>{try{if(!localStorage.getItem('ct_bril_reset_v1')){localStorage.setItem('ct_bril_reset_v1','1');setMyBrilliant([]);}}catch(e){}},[]);
@@ -6895,13 +6899,20 @@ function AppMain(){
      PAGE - only the games box scrolls, and it fills the rest of the screen. The box's height cap (it was min(46vh, 340)) is fitted every render
      to what the page leaves: its own height less whatever the app's scroller (#root) would still scroll, so #root ends exactly at the tab bar.
      Upright only; a sideways phone keeps the scrolling list beside its tab rail. */
-  const glistRef=useRef(null);const glistMaxRef=useRef(null);   /* #550 lead, gate 147 TC-R223a in the final suite: the fitted height is written onto the box itself, not held in state - as state, every fit re-rendered the whole app, so opening the list with his 465 games ran two full renders (longest task 325 ms at 9fe02e7, 819 to 905 from ef0f72f on, at 4x; bisected) */
+  const glistRef=useRef(null);const glistMaxRef=useRef(null);const glistKeyRef=useRef('');   /* #550 lead, gate 147 TC-R223a in the final suite: the fitted height is written onto the box itself, not held in state - as state, every fit re-rendered the whole app, so opening the list with his 465 games ran two full renders (longest task 325 ms at 9fe02e7, 819 to 905 from ef0f72f on, at 4x; bisected) */
   useLayoutEffect(()=>{
-    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){glistMaxRef.current=null;return;}
+    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){glistMaxRef.current=null;glistKeyRef.current='';return;}
     /* measured in the next frame (still before it paints), so the render that opens the list and the layout this reads are two tasks, not one */
+    /* batch 13 (jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18, "the list running down to the tab bar"):
+       THE FIT ONLY EVER SHRANK. Over 0 it kept the cap it had, so a panel that opened above the box (YOUR PROGRESS, the Filter chips, the PGN
+       how-to) shrank the box to make room and closing it left the box short for good - at 320x568 88px, under one game, with 48px of empty
+       page above the tab bar (on the tree before this job the box then sat under the tab bar). When what sits above the box changes, the cap
+       is lifted for one measurement, so the fit is taken afresh; only then, so a steady page pays no extra layout. */
+    const _fitKey=[progOpen,gfOpen,pasteHelp,!!pgnErr,vp.w,vp.h].join('|');
     const id=requestAnimationFrame(()=>{const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
+      const _lift=_fitKey!==glistKeyRef.current;if(_lift){glistKeyRef.current=_fitKey;e.style.maxHeight='none';}
       const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
-      if(glistMaxRef.current===null||Math.abs(next-glistMaxRef.current)>=1){glistMaxRef.current=next;e.style.maxHeight=next+'px';}});
+      if(_lift||glistMaxRef.current===null||Math.abs(next-glistMaxRef.current)>=1){glistMaxRef.current=next;e.style.maxHeight=next+'px';}});
     return ()=>cancelAnimationFrame(id);
   });
   const lessonSide=wide&&mode==='learn'&&openIdx!==null;   /* #550 BSA-L-03 (job lesson-sideways-board-full-height-2026-11-12): a sideways lesson - the board takes the full height, its footer sits under the right-hand column only */   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
@@ -11786,8 +11797,12 @@ function AppMain(){
         const _grpT={openings:'Openings',gambits:'Gambits & Traps',endgames:'Endgames',train:'Train',notation:'Notation'};
         const _hT2=homeScreen?'Chess Trainer':((mode==='learn'&&openIdx!==null&&LIB[openIdx])?LIB[openIdx].name:(mode==='learn'?(learnGroup?(_grpT[learnGroup]||'Discover'):'Discover'):((mode==='play'&&!playSetup)?(opponent==='computer'?'Play':opponent==='online'?'Online game':opponent==='local'?'Pass & play':'Play'):((mode==='puzzle')?'Puzzles':((mode==='analyze')?'Game review':'Chess Trainer')))));
         const _bk=(mode==='learn'&&openIdx===null&&learnGroup&&learnGroup!=='tactics')?()=>setLearnGroup(null):null;
+        /* batch 13, jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18 (FB-02, his note: "don't say back to
+           your analysis. It's too big just say back and game review should be centered"): the Review list's way back to the last analysis is the
+           top row's back icon, not the '‹ Back to your analysis' pill that sat under it. Shown only when there is an analysis to go back to. */
+        const _rvBk=(mode==='analyze'&&!inReview&&!analyzing&&lastReview&&!review)?()=>{setReview(lastReview);setReviewView('summary');}:null;
         return(<TopRow ct="top-row" full title={_hT2} style={{marginBottom:8,marginTop:TOP_Y-(_edge?2:8) /* #550 FMT-A-06: the row at TOP_Y on every screen (the root pads 8 here, 2 on an edge to edge screen) */}}
-          back={_bk?<TopBack ct="top-back" onClick={_bk}/>:null}
+          back={_bk?<TopBack ct="top-back" onClick={_bk}/>:(_rvBk?<TopBack ct="rev-list-back" label="Back to your analysis" onClick={_rvBk}/>:null)}
           menu={lessonFocus?null:<TopMenu ct="top-menu" onClick={()=>setMenuOpen(true)}/>}/>);})()}
       {/* #435: the play clause dropped !isOver&&!playEnd. Landscape used to SWAP this button for the tab bar at
           game over - not show both - so with the bar now hidden for the whole game (see _hideTabs) this button is
@@ -12630,10 +12645,9 @@ function AppMain(){
       {/* ── Analyze: import panel (no review yet) ── */}
       {mode==='analyze'&&!inReview&&!analyzing&&(
         <div style={{width:_npG(boardPx+22),maxWidth:_edge?'100vw':'98vw',display:'flex',flexDirection:'column',gap:10,marginTop:6}}>
-          {lastReview&&!review&&(<button onClick={()=>{setReview(lastReview);setReviewView('summary');}} style={{alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:7,padding:'8px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Back to your analysis</button>)}
-          <div style={{textAlign:'center'}}>
-            <div style={{fontSize:'clamp(15px,3.6vw,18px)',color:'#fff',fontWeight:800}}>Review any game, from anywhere</div>
-          </div>
+          {/* batch 13, jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18 (Q25 B with FB-02 and FB-05): the
+              '‹ Back to your analysis' pill is the top row's back icon now (search _rvBk), and the 'Review any game, from anywhere' line is cut -
+              the top row already says Game review - so three game cards show above the tab bar on his phone. */}
           {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReal=gk.filter(k=>GS[k]&&GS[k].src!=='est');const gReviewed=gReal.length;let tB=0;gReal.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gk.length>0||pTot>0||pzXP>0||(ccGames&&ccGames.length>0);   /* #547 item (99): shown from FIRST PAINT when the list has games, so the background pass's first tally cannot mount it above the list and push every row 253px down */ /* #547 item (67): the tiles count REAL reviews only; the panel still shows on ANY entry */if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliant moves',tB,'#22d3ee']];return(
             <div data-ct="prog-panel" style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:0,boxShadow:SHADOW_BOX}}>
               {/* #549 item (27), Kunal's "collapse" on questions/B9-TALLIED-ROW: the panel is ONE LINE that opens on tap, so the
@@ -12666,26 +12680,33 @@ function AppMain(){
             <textarea data-ct="paste-box" rows={1} value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder="Paste a PGN here" aria-label="Paste a PGN here"
               style={{flex:1,minWidth:0,height:44,minHeight:44,padding:'11px 10px',borderRadius:10,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(14px,3.4vw,16px)',resize:'none',lineHeight:1.3,fontFamily:'monospace',overflow:'hidden',whiteSpace:'nowrap'}}/>
             <button data-ct="paste-help" onClick={()=>setPasteHelp(h=>!h)} aria-expanded={pasteHelp} aria-label="How to get a PGN" style={{flexShrink:0,width:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:17,cursor:'pointer',padding:0}}>?</button>
-            <button data-ct="paste-analyze" onClick={importGame} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),flexShrink:0,minHeight:44,padding:'0 11px',fontSize:'clamp(14px,3.4vw,16px)',fontWeight:700,whiteSpace:'nowrap'}}>⚡ Analyze game</button>
+            <button data-ct="paste-analyze" onClick={importGame} aria-label="Analyze game" title="Analyze game" style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),flexShrink:0,position:'relative',width:44,minHeight:44,padding:0,fontSize:18,fontWeight:700,lineHeight:1}}><span><span aria-hidden="true">⚡</span><span style={{fontSize:0}}> Analyze game</span></span></button>{/* batch 13 (Q25 B): the PGN box with its two icons. The name is an
+              INLINE zero-size run inside one span with the glyph (the button is a flex box, so two children would read as two lines), not SR_ONLY's absolute box, so the button's text still reads '⚡ Analyze game' on one line - the words some 30 gates
+              (and gates/drive/review.js importPgn) find it by - while only the ⚡ is painted. */}
           </div>
           {pgnErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.4}}>{pgnErr}</div>}
           {pasteHelp&&(<div data-ct="paste-howto" style={{fontSize:'clamp(14.5px,3vw,15.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.6}}>
             <b style={{color:'rgba(255,255,255,.75)'}}>Getting your game from Chess.com:</b><br/>
             Open the finished game → tap <b>Share</b> → <b>PGN</b> → copy, then paste it above. The review finds your mistakes, blunders, and the moves you should have played.
           </div>)}
-          {myMistakes.length>0&&(<button onClick={startMistakes} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:12,background:'linear-gradient(135deg,rgba(240,162,78,.2),rgba(240,162,78,.06))',border:'1px solid rgba(240,162,78,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
-            <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>
+          {/* batch 13, jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18 (Q25 B with FB-03, his pick: "the two
+              practice cards side by side, without their description lines"): Practice your mistakes and the Brilliant tile share ONE ROW under the
+              PGN box, each a 46px card with its icon and its name; one alone takes the row. Their sentences (the count of positions, 'find the
+              move you missed', the Brilliant counts) are kept in the button for a screen reader, not painted. The Famous tile is no longer a row
+              of the games box (batch 13 q2 put it there to keep the page fitting): it is a practice card like the other. */}
+          {(myMistakes.length>0||brilTileOn())&&(<div data-ct="practice-row" style={{display:'flex',gap:8,alignItems:'stretch'}}>
+          {myMistakes.length>0&&(<button data-ct="mistakes-tile" onClick={startMistakes} style={{position:'relative',flex:'1 1 0',minWidth:0,minHeight:46,boxSizing:'border-box',display:'flex',alignItems:'center',gap:10,padding:vp.w<360?'4px 10px':'4px 10px 4px 4px',borderRadius:14,background:'linear-gradient(135deg,rgba(240,162,78,.2),rgba(240,162,78,.06))',border:'1px solid rgba(240,162,78,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
+            {vp.w>=360&&<span aria-hidden="true" style={{flexShrink:0,width:36,height:36,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>}{/* under 360 wide the two cards keep their names on two lines by dropping the icon square */}
             <span style={{flex:1,minWidth:0}}>
-              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>Practice your mistakes</span>
-              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{mkPlayN>0?(mkPlayN+' position'+(mkPlayN>1?'s':'')+' from your reviewed games · find the move you missed'):('None of your '+myMistakes.length+' saved position'+(myMistakes.length>1?'s':'')+' can be played yet')}</span>
+              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,lineHeight:1.2}}>Practice your mistakes</span>
+              <span style={SR_ONLY}>{' '+(mkPlayN>0?(mkPlayN+' position'+(mkPlayN>1?'s':'')+' from your reviewed games · find the move you missed'):('None of your '+myMistakes.length+' saved position'+(myMistakes.length>1?'s':'')+' can be played yet'))}</span>
             </span>
-            <span style={{flexShrink:0,fontSize:20,color:'#f0b35e'}}>›</span>
           </button>)}
           {/* batch 13 q2 (his Desk answer, 19 Nov 2026): the Brilliant tile shows for EVERYONE on Review, reading "Famous brilliant moves" until
               the player has a brilliant move of his own (any card in his store), then its usual label; with none of his own it opens the library
               on the famous-games shelf (and the players he follows). With the library switched off (ct_bril_lib '0') it shows only for a store, as before. */}
-          {/* batch 13 q2: see brilTileEl - here unless it is the famous tile and the games box is up (then it is the box's first row) */}
-          {brilTileOn()&&!(myBrilliant.length===0&&ccGames&&ccGames.length>0)&&brilTileEl(false)}
+          {brilTileOn()&&brilTileEl(true)}
+          </div>)}
           {brilLib&&(()=>{/* #550 item (21): THE BRILLIANT LIBRARY - two shelves by kind, up to BRIL_LIB_MAX kinds practised together */
             const all=(myBrilliant||[]).filter(Boolean);const sel=brilLib.sel||[];
             const keyOf=(c)=>(c.missed?'missed':'played')+'|'+brilKind(c);
@@ -12741,14 +12762,15 @@ function AppMain(){
               is tighter (padding 8, gap 6), 'Imported' and its chips share one line, and the name filter lives behind the Filter button (shown while
               it is open or holds text), so the games box has room for at least one whole game with the next one showing. Every word stays. */}
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:(!wide&&vp.h<700)?'8px 8px':'12px 12px',display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
-            <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
-            <div style={{display:'flex',gap:7,alignItems:'center'}}>
+            {/* batch 13 (Q25 B): the Import box is its import row - site, username and the fetch icon; the '📥 Import from' heading line is cut
+                (the site picker and the username box say what the row is), and Fetch is an icon with its name kept for a screen reader. */}
+            <div style={{display:'flex',gap:7,alignItems:'center'}}>{/* no data-ct here: gates 177/178 name their findings by the nearest hook, and their pins name these fields without one */}
               <select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,maxWidth:'40%'}}>
                 <option value="cc">Chess.com</option>
                 <option value="li">Lichess</option>
               </select>
               <input value={importSrc==='cc'?chessUser:lichessUser} onChange={e=>(importSrc==='cc'?setChessUser:setLichessUser)(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')(importSrc==='cc'?fetchChessCom:fetchLichess)();}} placeholder={importSrc==='cc'?'Chess.com username':'Lichess username'} style={{flex:1,minWidth:0,padding:'9px 11px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)'}}/>
-              <button onClick={()=>(importSrc==='cc'?fetchChessCom:fetchLichess)()} disabled={ccLoading} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),whiteSpace:'nowrap',opacity:ccLoading?.6:1}}>{ccLoading?'…':'Fetch'}</button>
+              <button data-ct="import-fetch" onClick={()=>(importSrc==='cc'?fetchChessCom:fetchLichess)()} disabled={ccLoading} aria-label="Fetch" title="Fetch games" style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),position:'relative',flexShrink:0,width:44,padding:0,opacity:ccLoading?.6:1}}>{ccLoading?'…':(<><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3v10M5.5 8.5 10 13l4.5-4.5M4 17h12"/></svg><span style={SR_ONLY}>Fetch</span></>)}</button>
             </div>
             {ccAccts.length>0&&(<div data-ct="acct-chips" style={{display:'flex',gap:(!wide&&vp.h<700)?4:6,flexWrap:'wrap',alignItems:'center',marginTop:(!wide&&vp.h<700)?0:2}}>
               <span style={{fontSize:(!wide&&vp.h<700)?12:'clamp(13px,2.4vw,13.5px)',color:'rgba(255,255,255,.45)',fontWeight:700}}>Imported</span>
@@ -13058,19 +13080,27 @@ function AppMain(){
                 {/* #507 ALWAYS IN THE LAYOUT, GHOSTED WHEN THERE IS NOTHING TO CLEAR - see _chip's ghost arm. */}
                 {_chip(false,'Clear','gf-clear',_clearAll,null,!_anyF)}
               </div>);
-              const _gfInput=ccGames.length>6&&(!(!wide&&vp.h<700)||gfOpen||!!gameSearch)&&(<input value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Filter by player name" style={{width:'100%',padding:'6px 10px',borderRadius:7,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.10)',fontSize:'clamp(14px,3.1vw,16px)'}}/>);
+              /* batch 13, jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18 (Q25, his pick B at about 11:33pm
+                 EST Tue 17 Nov 2026): THE NAME BOX IS ON THE YOUR GAMES LINE, in the title's place, beside the filter icon and the count - not a
+                 line of its own (and not hidden behind Filter on a short phone, which is what kept it off the line there). It shows when the
+                 filter does (more than six games, or a filter on), as before; with six or fewer the line keeps its title. Its words say what it
+                 searches ('Player name'); its name for a screen reader, and for the gates that find it, stays 'Filter by player name'. */
+              const _gfInput=(ccGames.length>6||_anyF)&&(<input data-ct="glist-search" type="search" value={gameSearch} onChange={e=>setGameSearch(e.target.value)} placeholder="Player name" aria-label="Filter by player name" style={{flex:'1 1 0',minWidth:0,height:36,boxSizing:'border-box',padding:'0 10px',borderRadius:8,background:'rgba(0,0,0,.25)',color:'rgba(255,255,255,.85)',border:'1px solid rgba(255,255,255,.16)',fontSize:'clamp(14px,3.1vw,16px)',fontFamily:"'Segoe UI',system-ui,sans-serif",WebkitAppearance:'none',appearance:'none'}}/>);
               return(<div data-ct="games-section" style={{display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
-              <div ref={gamesListRef} style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:8,marginTop:3}}>
-                <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
+              {/* batch 13 (Q25 B, 'Filter open'): the chips open ABOVE the search box, as they did above the name box - except on a short phone,
+                  where they open at the top of the games box (below), as since #550 q45, so the fixed page still fits. */}
+              {!_gfIn&&_gfPanel}
+              <div ref={gamesListRef} data-ct="glist-line" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:_gfIn?36:44}}>
+                {_gfInput||<span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>}
                 {/* #548 item (123), jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's pick
                     (2) on questions/B8-LAYOUT: THE FILTER CHIPS FOLD INTO ONE FILTER BUTTON, so the first game is above the fold on his phone.
                     The button sits in this header line, so a closed filter costs the list NO row at all (#476's row was 94px at 375 and 144px
                     at 320 over two and three lines); it names how many filters are on, so a narrowed list is never silent, and the chips
                     (with Clear) open on the lines below on a tap - a jump the player asked for, not one under his finger. Its 44px tap box
                     is padding cancelled by an equal negative margin, the moves-copy idiom, so the header line keeps its height. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,flexShrink:0}}>
+                <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0}}>
                 {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0);const _on=gfOpen||_nAct>0;return(
-                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} onClick={()=>{const _o=!gfOpen;setGfOpen(_o);if(_o&&!wide&&vp.h<700&&glistRef.current)glistRef.current.scrollTop=0;}} style={{padding:'11px 0',margin:'-11px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}><span style={{display:'inline-block',padding:'3px 10px',borderRadius:14,fontSize:'clamp(13.5px,2.9vw,14.5px)',fontWeight:700,color:_on?'var(--ac2)':'rgba(255,255,255,.82)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.07)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.22)')}}>{'Filter'+(_nAct?(' \u00b7 '+_nAct):'')+(gfOpen?' \u25b4':' \u25be')}</span></button>);})()}
+                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} aria-label={'Filter'+(_nAct?(', '+_nAct+' on'):'')} title="Filter" className={_gfIn?'ct-hit44':undefined} onClick={()=>{const _o=!gfOpen;setGfOpen(_o);if(_o&&!wide&&vp.h<700&&glistRef.current)glistRef.current.scrollTop=0;}} style={{position:'relative',flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:4,minWidth:44,height:_gfIn?36:44 /* a short phone: 36 tall with a 44 tap area (ct-hit44), so the games box keeps one whole game and the next one starting */,boxSizing:'border-box',padding:'0 8px',borderRadius:12,cursor:'pointer',color:_on?'var(--ac2)':'rgba(255,255,255,.85)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.08)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),fontSize:15,fontWeight:800,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{/* batch 13 (Q25 B): the filter icon - a funnel, with the number of filters on beside it when any is */}<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M2.5 3.5h13l-5 6v5l-3-1.6V9.5z"/></svg>{_nAct?<span aria-hidden="true">{_nAct}</span>:null}</button>);})()}
                 <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
                 </span>
               </div>
@@ -13187,7 +13217,6 @@ function AppMain(){
                   only strands a non-empty filtered list - found by reading the diff and by antagonist A's F9
                   independently. The pre-existing gameSearch box has the identical shape and now inherits the
                   fix, since _anyF includes it. */}
-              {!_gfIn&&_gfPanel}
               {/* #507 THE SECOND MEMBER OF THE SAME CLASS AS THE CLEAR CHIP, AND THE WORSE ONE, FOUND BY
                   MEASURING RATHER THAN BY READING THE CLOSER'S CLAUSE. The closer named only the Clear chip.
                   Measured with one probe on both bundles, the Clear chip moves the list 0px at 375 and 50px
@@ -13223,7 +13252,6 @@ function AppMain(){
                   element does not exist at all, so the line is still not noise on the default screen. */}
               {_gradeOn&&(<div data-ct="glist-ungraded" data-complete={_ungr>0?undefined:'1'}
                 style={{fontSize:'clamp(12px,2.1vw,12.5px)',color:'rgba(255,255,255,.60)',lineHeight:1.4}}>{_covTxt}</div>)}
-              {!_gfIn&&_gfInput}
               {/* #507 CLAUSE (2) OF THE CLOSER'S SCREEN IS WITHDRAWN AS A FALSE DEFECT, MEASURED, AND THE
                   EMPTY STATE IS DELIBERATELY LEFT WHERE IT WAS. The clause read: "the empty state's own
                   Clear button at top 748.5 in a 730 viewport is a placement fix", and I moved the block
@@ -13259,8 +13287,8 @@ function AppMain(){
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
               <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
-              {brilTileOn()&&myBrilliant.length===0&&brilTileEl(true)/* batch 13 q2: the famous tile, one compact row at the top of the games box */}
-              {_gfIn&&_gfPanel}{_gfIn&&_gfInput}
+              
+              {_gfIn&&_gfPanel}
               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.
                   Row 1 the two names (only the opponent's may be cut, with an ellipsis). Row 2, 30px: the result box exactly one column wide, then

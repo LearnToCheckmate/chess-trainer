@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 1d1e3432..81b20813 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12693,5 +12693,5 @@ function AppMain(){
+               move you missed', the Brilliant counts) are kept in the button for a screen reader, not painted. The Famous tile is no longer a row
+               of the games box (batch 13 q2 put it there to keep the page fitting): it is a practice card like the other. */}
+-          {(myMistakes.length>0||brilTileOn())&&(<div data-ct="practice-row" style={{display:'flex',gap:8,alignItems:'stretch'}}>
++          {(myMistakes.length>0||brilTileOn())&&(<div data-ct="practice-row" style={{display:'flex',flexDirection:'column',gap:8,alignItems:'stretch'}}>
+           {myMistakes.length>0&&(<button data-ct="mistakes-tile" onClick={startMistakes} style={{position:'relative',flex:'1 1 0',minWidth:0,minHeight:46,boxSizing:'border-box',display:'flex',alignItems:'center',gap:10,padding:vp.w<360?'4px 10px':'4px 10px 4px 4px',borderRadius:14,background:'linear-gradient(135deg,rgba(240,162,78,.2),rgba(240,162,78,.06))',border:'1px solid rgba(240,162,78,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
+             {vp.w>=360&&<span aria-hidden="true" style={{flexShrink:0,width:36,height:36,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,background:'linear-gradient(150deg,#f59e0b,#b45309)',boxShadow:'0 4px 12px rgba(180,83,9,.4)'}}>🎯</span>}{/* under 360 wide the two cards keep their names on two lines by dropping the icon square */}
