@@ -198,7 +198,7 @@ async function settleCell(b){let prev='';for(let i=0;i<12;i++){await b.page.wait
 
 async function run(which){
   const LN=Object.assign({name:which},LAUNCHES[which]);if(!LN.geo)throw new Error('layout.run: launch must be notch or flat, not '+which);
-  let pins={},capped={};try{const pf=JSON.parse(fs.readFileSync(PINFILE,'utf8'));pins=pf.pins||{};capped=pf.capped||{};}catch(e){pins={};capped={};}
+  let pins={},capped={},notes={};try{const pf=JSON.parse(fs.readFileSync(PINFILE,'utf8'));pins=pf.pins||{};capped=pf.capped||{};notes=pf.notes||{};}catch(e){pins={};capped={};notes={};}   // notes: key -> why it is still pinned (kept as written; a note whose key is gone is dropped)
   // THE HEIGHT CAP (part 2 of the job; FB-07). The board fills the width unless the height caps it: where the rows round it are at their
   // floors and the screen is still too short, the board is as wide as the height leaves and sits CENTRED. Those cells are listed in the
   // fixture's `capped` (state -> cell -> the board's width there). In a listed cell the board passes if it is centred within 1.5px and
@@ -254,12 +254,12 @@ async function run(which){
     const o={};for(const k of Object.keys(pins)){const keep=pins[k].filter(c=>!allIds.includes(c));if(keep.length)o[k]=keep;}
     for(const k of Object.keys(group))o[k]=(o[k]||[]).concat(group[k].cells);
     const sorted={};for(const k of Object.keys(o).sort())sorted[k]=o[k];
-    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,pins:sorted,capped},null,1)+'\n');L.note('pins rewritten for the '+which+' launch: '+Object.keys(sorted).length+' keys in the file');pins=sorted;}
+    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,notes:Object.fromEntries(Object.entries(notes).filter(([k])=>sorted[k])),pins:sorted,capped},null,1)+'\n');L.note('pins rewritten for the '+which+' launch: '+Object.keys(sorted).length+' keys in the file');pins=sorted;}
   else if(WRITE_CAPPED){if(reS||reC)throw new Error('CT_G177_WRITE_CAPPED needs the whole launch');
     // a cell now on the capped list leaves the board pins; nothing else in the pins moves
     const o={};for(const k of Object.keys(pins)){const [st,kind]=k.split('|');const keep=kind==='board'?pins[k].filter(c=>!(capped[st]&&capped[st][c]!=null)):pins[k];if(keep.length)o[k]=keep;}
     const cs={};for(const st of Object.keys(capped).sort()){cs[st]={};for(const c of Object.keys(capped[st]).sort())cs[st][c]=capped[st][c];}
-    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,pins:o,capped:cs},null,1)+'\n');L.note('capped list rewritten for the '+which+' launch');pins=o;capped=cs;}
+    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,notes:Object.fromEntries(Object.entries(notes).filter(([k])=>o[k])),pins:o,capped:cs},null,1)+'\n');L.note('capped list rewritten for the '+which+' launch');pins=o;capped=cs;}
   let nPinned=0,nNew=0;const usedPins=new Set();
   for(const [name,,,wantsBoard] of wanted){const ps=perState[name]||{reached:0,failed:['never driven'],cells:0,minTexts:0,boards:0};
     L.say(ps.failed.length===0&&ps.reached===1&&ps.cells===myCells.length&&ps.cells>0&&ps.minTexts>0&&(!wantsBoard||ps.boards===ps.cells),'TC-R248 '+which+' '+name+': DENOMINATOR - the state was reached, all '+myCells.length+' cells were read, each read found text in front'+(wantsBoard?', and a board in every cell':''),

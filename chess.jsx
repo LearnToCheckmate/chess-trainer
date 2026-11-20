@@ -6847,7 +6847,6 @@ function AppMain(){
     for(const [o,m] of order){if(_revRoom-C(o)>=vw+m){o.rows=C(o);return o;}}
     const last=order[order.length-1][0];last.rows=C(last);return last;},[revStream,vp.h,vw,_revRoom]);
   const revHead=revStream&&revFit.head;
-  const _impHead=wide||vp.h>=700;   /* batch 13: the Review list's site menu sits on the 'Import from' line (see there); not on a phone under 700 tall */
   /* #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right";
      jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29, mockup 550-70-mock-A761.png): SIDEWAYS
      PLAY puts the two player bars in the rail, so the board takes the whole height (216 -> 344 at 761x375). It is the whole sideways
@@ -6901,13 +6900,7 @@ function AppMain(){
     if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){glistMaxRef.current=null;return;}
     /* measured in the next frame (still before it paints), so the render that opens the list and the layout this reads are two tasks, not one */
     const id=requestAnimationFrame(()=>{const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
-      const over=root.scrollHeight-root.clientHeight;let next=Math.max(88,Math.floor(e.clientHeight-over));
-      /* batch 13 (jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19): AND IT GROWS INTO THE ROOM THE PAGE HAS. The fit
-         above only ever shrank the box from its first cap (the smaller of 46vh and 340), so on a taller phone it stopped there with rows
-         still hidden behind its scroll and the screen under it empty - 124px of it at 430x932, and the same on 360x640, 375x667, 375x730,
-         390x844 and 414x896 (gate 177/178 TC-R248f). Where nothing overflows and the box still hides rows, it takes the room down to 14px
-         above the tab bar, which is where the shrink leaves it (measured at 320x568: box bottom 498, tab bar 512). */
-      if(over<=0&&e.scrollHeight>e.clientHeight+1){const tb=document.querySelector('[data-ct="tabbar"]');if(tb){const room=Math.floor(tb.getBoundingClientRect().top-e.getBoundingClientRect().bottom-14);if(room>0)next=e.clientHeight+room;}}
+      const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
       if(glistMaxRef.current===null||Math.abs(next-glistMaxRef.current)>=1){glistMaxRef.current=next;e.style.maxHeight=next+'px';}});
     return ()=>cancelAnimationFrame(id);
   });
@@ -12670,7 +12663,7 @@ function AppMain(){
               Import - the box (still a textarea, so a pasted PGN keeps its line breaks), a '?' that shows the how-to, and Analyze - and the intro is
               its one heading line. */}
           <div data-ct="paste-row" style={{display:'flex',gap:6,alignItems:'stretch'}}>
-            <textarea data-ct="paste-box" rows={1} value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder={vp.w<360?"PGN":(vp.w<420?"Paste PGN":"Paste a PGN here")} aria-label="Paste a PGN here" /* batch 13: a shorter form where the long one does not fit its field beside the two buttons (154px of words in 67 to 137px of field from 320 to 390 wide, and 87px of 'Paste PGN' in 67 at 320; gates 177/178 TC-R248b) */
+            <textarea data-ct="paste-box" rows={1} value={pgnText} onChange={e=>setPgnText(e.target.value)} placeholder="Paste a PGN here" aria-label="Paste a PGN here"
               style={{flex:1,minWidth:0,height:44,minHeight:44,padding:'11px 10px',borderRadius:10,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(14px,3.4vw,16px)',resize:'none',lineHeight:1.3,fontFamily:'monospace',overflow:'hidden',whiteSpace:'nowrap'}}/>
             <button data-ct="paste-help" onClick={()=>setPasteHelp(h=>!h)} aria-expanded={pasteHelp} aria-label="How to get a PGN" style={{flexShrink:0,width:44,minHeight:44,borderRadius:10,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',fontWeight:800,fontSize:17,cursor:'pointer',padding:0}}>?</button>
             <button data-ct="paste-analyze" onClick={importGame} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),flexShrink:0,minHeight:44,padding:'0 11px',fontSize:'clamp(14px,3.4vw,16px)',fontWeight:700,whiteSpace:'nowrap'}}>⚡ Analyze game</button>
@@ -12748,19 +12741,12 @@ function AppMain(){
               is tighter (padding 8, gap 6), 'Imported' and its chips share one line, and the name filter lives behind the Filter button (shown while
               it is open or holds text), so the games box has room for at least one whole game with the next one showing. Every word stays. */}
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:(!wide&&vp.h<700)?'8px 8px':'12px 12px',display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
-            {/* batch 13 (jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19): the site's menu sits on this line, where it finishes the
-                words "Import from", and the username field has the row to itself beside Fetch. Three in one row left the field 61px for an 18
-                letter placeholder at 375 wide ("Chess.c") (gates 177/178 TC-R248b). ON A PHONE UNDER 700 TALL THE THREE STAY IN ONE ROW, as before: the taller
-                header line costs 22px there, which at 320x568 took the games box to its 88 floor and the page 3px past the tab bar; that cut is still on the fix list. */}
-            <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span>{_impHead&&(<select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,marginLeft:'auto'}}>
-                <option value="cc">Chess.com</option>
-                <option value="li">Lichess</option>
-              </select>)}</div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:'clamp(15px,3.8vw,19px)',lineHeight:1}}>📥</span><span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Import from</span></div>
             <div style={{display:'flex',gap:7,alignItems:'center'}}>
-              {!_impHead&&(<select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,maxWidth:'40%'}}>
+              <select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,maxWidth:'40%'}}>
                 <option value="cc">Chess.com</option>
                 <option value="li">Lichess</option>
-              </select>)}
+              </select>
               <input value={importSrc==='cc'?chessUser:lichessUser} onChange={e=>(importSrc==='cc'?setChessUser:setLichessUser)(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')(importSrc==='cc'?fetchChessCom:fetchLichess)();}} placeholder={importSrc==='cc'?'Chess.com username':'Lichess username'} style={{flex:1,minWidth:0,padding:'9px 11px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)'}}/>
               <button onClick={()=>(importSrc==='cc'?fetchChessCom:fetchLichess)()} disabled={ccLoading} style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),whiteSpace:'nowrap',opacity:ccLoading?.6:1}}>{ccLoading?'…':'Fetch'}</button>
             </div>

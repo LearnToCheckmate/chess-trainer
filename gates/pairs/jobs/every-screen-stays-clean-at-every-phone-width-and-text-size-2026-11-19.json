@@ -1,25 +1,65 @@
 {
  "job": "every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19",
- "about": "PART 1 OF THE JOB: the gate, pinned. Gates 177 and 178 (gates/drive/layout.js, TC-R248a..f) render sampled screen states at 7 phones (375x761, 390x844, 414x896, 430x932 with his insets; 320x568, 360x640, 375x667 without) each at 4 text sizes (50, 75, 100, 125 percent, as the viewport the page zoom gives), and read overlap, text cut, spill, sideways scroll, the board's side gaps and a card's side gaps; a finding that is not on gates/fixtures/177-layout-pins.json is red. Graded here on four of its states (Home, the Review list, Review at move 10, a puzzle with its hint) on a trial bundle: the real code passes with today's faults pinned, and three new faults - each of a different kind - are caught on both sets of phones. NOT COVERED YET: the fixes themselves (parts 2 and 3 of the job turn pinned lines into plain ones and add their own breaks here); the other 32 states (run by the gates, not by this pair); a fault of a pinned kind on a pinned element in a pinned cell; his phone's fonts.",
+ "about": "Gates 177 and 178 (gates/drive/layout.js, TC-R248a..f) render sampled screen states at 8 phones (375x761, 390x844, 414x896, 430x932 with his insets; 320x568, 360x640, 375x667, 375x730 without) each at 4 text sizes (50, 75, 100, 125 percent, as the viewport the page zoom gives), and read overlap, text cut, spill, sideways scroll, the board's side gaps and a card's side gaps; a finding that is not on gates/fixtures/177-layout-pins.json is red. Graded here on five of its states (Home, the Review list, Review at move 10, a puzzle with its hint, a lesson at its demo end) on a trial bundle: the real code passes with the remaining faults pinned, and four new faults - each of a different kind - are caught. The fourth (the Analyze chip drawn 120x70 over the move text) checks the ink reading of part 3: a control with no fill of its own is read by what it draws, so its 44px tap box over the text is not a finding and its drawing over the text is. The board half has its own pair (short-upright-boards-sized-to-height-2026-11-12). NOT COVERED: the other states (run by the gates, not by this pair); a fault of a pinned kind on a pinned element in a pinned cell; the Review list's faults at the normal text size (pinned, job 13); Play on the short phones (pinned, his answer awaited); the faults at 50, 75 and 125 percent (pinned: his pick, no more on the zoom axis); his phone's fonts.",
  "gate": "gates/regress/177-clean-at-every-width-and-text-size.js",
- "cmd": ["sh", "-c", "node gates/regress/177-clean-at-every-width-and-text-size.js; node gates/regress/178-clean-at-every-width-and-text-size-small-phones.js"],
- "env": {"CT_G177_STATES": "^(home|review-list|review-move-10|puzzle-hint)$"},
- "checks": ["TC-R248[a-f] "],
+ "cmd": [
+  "sh",
+  "-c",
+  "node gates/regress/177-clean-at-every-width-and-text-size.js; node gates/regress/178-clean-at-every-width-and-text-size-small-phones.js"
+ ],
+ "env": {
+  "CT_G177_STATES": "^(home|review-list|review-move-10|puzzle-hint|lesson-demo-end)$"
+ },
+ "checks": [
+  "TC-R248[a-f] "
+ ],
  "build": "always",
  "situations": [
-  {"name": "the notch phones (375x761 his, 390, 414, 430)", "match": "^TC-R248[a-f] notch "},
-  {"name": "the small phones (320x568, 360x640, 375x667)", "match": "^TC-R248[a-f] flat "}
+  {
+   "name": "the notch phones (375x761 his, 390, 414, 430)",
+   "match": "^TC-R248[a-f] notch "
+  },
+  {
+   "name": "the small phones (320x568, 360x640, 375x667)",
+   "match": "^TC-R248[a-f] flat "
+  }
  ],
  "breaks": [
-  {"name": "the-vs-sits-on-the-name", "patch": "breaks/177-the-vs-sits-on-the-name.diff",
+  {
+   "name": "the-vs-sits-on-the-name",
+   "patch": "breaks/177-the-vs-sits-on-the-name.diff",
    "why": "on the game card the word vs is pulled 22px left, onto the end of the opponent's name: text on text",
-   "mustFailIn": ["the notch phones (375x761 his, 390, 414, 430)", "the small phones (320x568, 360x640, 375x667)"]},
-  {"name": "the-board-leaves-a-side-gap", "patch": "breaks/177-the-board-leaves-a-side-gap.diff",
+   "mustFailIn": [
+    "the notch phones (375x761 his, 390, 414, 430)",
+    "the small phones (320x568, 360x640, 375x667)"
+   ]
+  },
+  {
+   "name": "the-board-leaves-a-side-gap",
+   "patch": "breaks/177-the-board-leaves-a-side-gap.diff",
    "why": "the board is pushed 16px in from the left edge on every board screen, so it no longer fills the width where it does today",
-   "mustFailIn": ["the notch phones (375x761 his, 390, 414, 430)", "the small phones (320x568, 360x640, 375x667)"]},
-  {"name": "home-scrolls-sideways", "patch": "breaks/177-home-scrolls-sideways.diff",
+   "mustFailIn": [
+    "the notch phones (375x761 his, 390, 414, 430)",
+    "the small phones (320x568, 360x640, 375x667)"
+   ]
+  },
+  {
+   "name": "home-scrolls-sideways",
+   "patch": "breaks/177-home-scrolls-sideways.diff",
    "why": "Home's first card is made wider than the screen, so Home scrolls sideways and the card runs off the right edge",
-   "mustFailIn": ["the notch phones (375x761 his, 390, 414, 430)", "the small phones (320x568, 360x640, 375x667)"]}
+   "mustFailIn": [
+    "the notch phones (375x761 his, 390, 414, 430)",
+    "the small phones (320x568, 360x640, 375x667)"
+   ]
+  },
+  {
+   "name": "the-analyze-chip-drawn-over-the-moves",
+   "patch": "breaks/178-the-analyze-chip-drawn-over-the-moves.diff",
+   "why": "the lesson's Analyze chip is drawn 120 wide and 70 tall, down over the move list: a control's own drawing on top of text",
+   "mustFailIn": [
+    "the small phones (320x568, 360x640, 375x667)"
+   ]
+  }
  ],
  "timeoutSec": 2400
 }
