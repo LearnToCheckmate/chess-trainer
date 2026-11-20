@@ -61,3 +61,10 @@ of lib.js and is not in this commit.
   the resignation the card has gone"). If they were replaced with a wait for the card to go, the assertion would have nothing left to test.
 - Gate 61's 1800 ms settle after opening Review covers the first account's auto-fetch starting AND finishing. The Fetch button
   is already enabled before the fetch starts, so a wait on the button alone would not be the condition the settle waits for.
+
+## The grading machine
+
+The first pairs run (stopped after 2 of its 3 tries, for the shared load) showed the real code passing, with 113 PASS and the
+seeded launches on the app's cache path. It also found the first break BLIND. With the engine-row reservation turned off,
+the board does not move at this tree, so that break was not a defect gate 22 can see, and it was replaced with a Review board
+that loses 8px of width while the engine line is on. The job's line from the full run is in the build's reply.
