@@ -13326,7 +13326,8 @@ function AppMain(){
                   mark and the 'review found N (estimate said M)' line are gone: the move boxes replace them. The whole card opens the review;
                   the button opens only the depth menu. The card is a div with a button's role because a button may not hold a button.
                   EVERY TEXT IS 15px. A count the app does not have yet (a game the background pass has not reached, or the Best and Great of a
-                  tally stored before they were counted apart) reads as a dash, dimmed, never as a 0 it did not measure.
+                  tally stored before they were counted apart) reads as a dash, dimmed, never as a 0 it did not measure. The dash is the plain
+                  hyphen '-', not an en dash: Kunal's q47 (TXT-40, gate 148 TC-R224m) allows no em or en dash in any player-facing text.
                   THE MIDDLE OF ROW 2 NEVER CUTS A WORD: its three parts wrap inside a 30px line, so a part that does not fit leaves whole.
                   ON A NARROW PHONE (under 360 wide) the middle of row 2 is about 105px, which at 15px holds the square and the time control but
                   not the date too (measured at 320: 'Bullet' 43px and 'Nov 12' 53px beside a 12px square), so there the date sits at the right
@@ -13368,7 +13369,7 @@ function AppMain(){
                   </span>
                   {/* the four boxes are grid children through a box-less group that keeps the counts' own hook: a review's (gstat-rev), the background
                       estimate's (gstat-est), or none yet (gstat-slot). The card no longer SHOWS which - his round-6 card has no approximate mark. */}
-                  <span data-ct={st?(st.src!=='review'?'gstat-est':'gstat-rev'):'gstat-slot'} style={{display:'contents'}}>{_mv.map(([id,gl,col,rgb,n,word])=>(<span key={id} data-ct={'gstat-'+id} data-known={n==null?'0':'1'} title={n==null?('The '+word+' count is not known yet'):(n+' '+word)} aria-label={n==null?(word+' not counted yet'):(n+' '+word)} style={{height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:col,background:'rgba('+rgb+',.14)',border:'1px solid rgba('+rgb+',.45)',borderRadius:8,opacity:n?1:.42}}>{gl+' '+(n==null?'–':n)}</span>))}</span>
+                  <span data-ct={st?(st.src!=='review'?'gstat-est':'gstat-rev'):'gstat-slot'} style={{display:'contents'}}>{_mv.map(([id,gl,col,rgb,n,word])=>(<span key={id} data-ct={'gstat-'+id} data-known={n==null?'0':'1'} title={n==null?('The '+word+' count is not known yet'):(n+' '+word)} aria-label={n==null?(word+' not counted yet'):(n+' '+word)} style={{height:30,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,whiteSpace:'nowrap',color:col,background:'rgba('+rgb+',.14)',border:'1px solid rgba('+rgb+',.45)',borderRadius:8,opacity:n?1:.42}}>{gl+' '+(n==null?'-':n)}</span>))}</span>
                 </div>);})}
               {/* THE DEPTH MENU, under the button it was opened from (above it when there is no room below): a label, then the four levels with
                   their rough times, the game's current one ticked. Picking another level stores it for that game and runs its review at

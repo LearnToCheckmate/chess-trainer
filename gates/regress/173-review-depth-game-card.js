@@ -123,7 +123,7 @@ function layout(tag,m,narrow){
   const small=[];cs.forEach((c,i)=>c.texts.forEach(t=>{if(t.fs<15-0.01)small.push('card '+i+' '+t.ct+' "'+t.t+'" '+t.fs);}));
   L.say(cs.reduce((a,c)=>a+c.texts.length,0)>=cs.length*9&&small.length===0,tag+' TC-R242d no text under 15px in any card',small.slice(0,5));
   const i0=idxOf(m,/^DukeKarl/),i3=idxOf(m,/^bob$/);const a=cs[i0],z=cs[iL],o=cs[i3];
-  L.say(i0>=0&&i3>=0&&a.tBril==='!! 1'&&a.tBest==='★ 3'&&a.tGreat==='! 2'&&a.tBlun==='?? 1'&&[a.oBril,a.oBest,a.oGreat,a.oBlun].every(x=>x===1)&&z.tBril==='!! 0'&&[z.oBril,z.oBest,z.oGreat,z.oBlun].every(x=>near(x,.42,.011))&&o.tBest==='★ –'&&o.tGreat==='! –'&&o.tBlun==='?? 2'&&near(o.oBest,.42,.011)&&o.oBlun===1&&cs.every(c=>!c.old),
+  L.say(i0>=0&&i3>=0&&a.tBril==='!! 1'&&a.tBest==='★ 3'&&a.tGreat==='! 2'&&a.tBlun==='?? 1'&&[a.oBril,a.oBest,a.oGreat,a.oBlun].every(x=>x===1)&&z.tBril==='!! 0'&&[z.oBril,z.oBest,z.oGreat,z.oBlun].every(x=>near(x,.42,.011))&&o.tBest==='★ -'&&o.tGreat==='! -'&&o.tBlun==='?? 2'&&near(o.oBest,.42,.011)&&o.oBlun===1&&cs.every(c=>!c.old),
     tag+' TC-R242e the move boxes read the stored tally ('+(a&&[a.tBril,a.tBest,a.tGreat,a.tBlun].join(' '))+'), a zero is dimmed to '+(z&&z.oBril)+', an uncounted Best and Great read a dash ('+(o&&[o.tBest,o.tGreat].join(' '))+'), and no estimate pill or approximate mark is left',{a:a&&a.all,z:z&&z.all,o:o&&o.all});
   L.say(i0>=0&&/^Quick/.test(a.tFace)&&/^Deepest/.test(z.tFace)&&/^Deep\b/.test(o.tFace)&&!/^Deeper|^Deepest/.test(o.tFace),tag+' TC-R242e the button reads each game\'s own depth: '+[a.tFace,z.tFace,o.tFace].join(', '),{});
   return true;
