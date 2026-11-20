@@ -7,6 +7,8 @@
 // shorter-phone column (the 679 came from subtracting the 51pt status bar twice - CLAUDE.md corrects it by name,
 // and the header of this file asserted the wrong one from #348 to 2026-10-03); and 390x844. The Opera Game (33 plies, 10.Nxb5!! at ply 19, 14.Rd1 at ply 27, 17.Rd8# at ply 33) is the
 // fixture; its PGN carries WhiteElo/BlackElo so the rating pills render (#348). Every line is a measured claim.
+// SWITCH: CT_G20_LANE_A_ONLY=1 runs lane A only (lane B's 14 layout case runs are not started), for a scoped control record; it is never
+// set by gates.sh, and with it unset the gate runs exactly as before. See LANE_A_ONLY by CASE_RUNS below.
 'use strict';
 const L=require('../lib');
 // #550 ERR-11: the PGN says Chess.com (it was "Paris") because the app now looks a name up only on the site the PGN names; TC-R68 (refused lookups not cached) and TC-R107 (seeded cc: flags paint) both need the Chess.com lookup to be asked for.
@@ -97,6 +99,13 @@ const CASE_RUNS={A:['flagOf','main kunal','main kunal730','main 390','R12b kunal
   'R03 kunal','R04 kunal730','R88 kunal730','R94 kunal730','R09d Lasker','R09d blunder','R71 se','R71 kunal761'],
   B:['R36 se','R36 short375','R36 kunal730','R79 kunal761','R111 kunal761','R111 kunal730','R89 kunal730','R89 se',
   'R93 kunal730','R93 se','R114 kunal761','R114 se','R114 kunal730','R114 390']};
+// CT_G20_LANE_A_ONLY=1 [batch 13, job 25]: a SCOPED run for a control, never the graded run. Lane B is not started, so its 14 case runs and
+// their 14 shared launches leave the CASES and SHARED expectations below, and the gate runs lane A alone (the three main walks, TC-R06 among
+// them, and every case that reads the engine or a clock). Unset, nothing here changes. It exists because control-audit.js holds a record's
+// total to the newest committed log's count for this gate (320 at 551c) while the gate as it stands runs 345, so no WHOLE-gate record can
+// be sound until a log of the grown gate is committed; a lane-A record (scope=env:CT_G20_LANE_A_ONLY=1) runs fewer than 320.
+const LANE_A_ONLY=process.env.CT_G20_LANE_A_ONLY==='1';
+if(LANE_A_ONLY)CASE_RUNS.B=[];
 const CASE_TOTAL=CASE_RUNS.A.length+CASE_RUNS.B.length;   // 35
 const TIME_LIMIT_S=600;
 const RUNS=[];const _run={A:null,B:null};
@@ -128,7 +137,7 @@ L.run(async()=>{try{
      time is the fixed settles of their walks (R93 alone is 66 plies at 1.2 s). So they run as a second lane, in their own browsers,
      started the moment the first main walk has left the shared analysis, while lane A carries on with every case that reads the
      engine or the clock. Every case still runs once with every line it had; the lines of the two lanes interleave in the log. */
-  const laneB=async()=>{
+  const laneB=async()=>{if(LANE_A_ONLY)return;   /* CT_G20_LANE_A_ONLY: lane B is not run (see CASE_RUNS) */
   // TC-R36 [#547 item (103); Kunal's 'drop-word', desk round 1]: THE BEST MOVE IS SHOWN IN FULL ON A NARROW BOARD. Walk the stored
   // review at 320x568 and 375x568 (a WIDE viewport over a NARROW board - the row is sized to the board) and 375x730; at every ply that
   // shows a best-move chip, the chip's text is not cut and it ends inside its row. On the narrow boards the verdict word yields (the ??
@@ -904,7 +913,7 @@ L.run(async()=>{try{
   const ranA=RUNS.filter(r=>r.lane==='A').map(r=>r.id),ranB=RUNS.filter(r=>r.lane==='B').map(r=>r.id),all=CASE_RUNS.A.concat(CASE_RUNS.B),ran=ranA.concat(ranB);
   const missing=all.filter(x=>ran.indexOf(x)<0),extra=ran.filter(x=>all.indexOf(x)<0);
   L.say(ranA.join('|')===CASE_RUNS.A.join('|')&&ranB.join('|')===CASE_RUNS.B.join('|')&&ran.length===CASE_TOTAL,'TC-R238b CASES all '+CASE_TOTAL+' of this gate\'s case runs ran, each lane in its order ('+ran.length+' ran: lane A '+ranA.length+' of '+CASE_RUNS.A.length+', lane B '+ranB.length+' of '+CASE_RUNS.B.length+')',{missing,extra});
-  const SHARED_WANT=18;
+  const SHARED_WANT=LANE_A_ONLY?4:18;   // lane B's 14 shared launches leave it under CT_G20_LANE_A_ONLY (lane A: TC-R88, R94, R71 x2)
   L.say(SHARED_SEEN.length===SHARED_WANT,'TC-R238a SHARED '+SHARED_SEEN.length+' of the '+SHARED_WANT+' launches that stand on a reviewed Opera Game checked that they graded from the one shared analysis',SHARED_SEEN);
   L.say(secs<TIME_LIMIT_S,'TC-R238c TIME the whole gate finished in '+secs+' s, inside '+TIME_LIMIT_S+' s (two thirds of the 900 s gates.sh allows a gate)',{secs,slowest:RUNS.slice().sort((a,b)=>b.s-a.s).slice(0,5)});
   }
@@ -913,3 +922,4 @@ L.run(async()=>{try{
 // SELECTOR-OPENED: rev-summary-menu reading=presence round 4: the summary must carry its menu button, measured
 // SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R11 needs the toolbar and its four buttons in order
 // CONTROL-RECORD: c0d52abf 2026-11-20 total=345 red=5 scope=trial:e94e09711f6e how=batch 13, the re-pin of TC-R06 at 375x679 (343 -> 375): the tree before the board half (c608f411's chess.jsx as a trial) - 'kunal: TC-R06 review board is 375 wide (343)' red; the other four reds are the TC-R04 verdict-row lines, red on that tree before this change too; on the change's trial 7fa11ae19933 the gate reads 341/4, those four only
+// CONTROL-RECORD: 87600f12 2026-11-20 total=275 red=5 scope=env:CT_G20_LANE_A_ONLY=1,trial:e3ae2ffea1d1 how=batch 13 job 25, a lane-A-only control (the record above runs 345, more than the 320 the newest committed log 551c says this gate runs, so control-audit cannot hold it until a log of the grown gate lands): c608f411's chess.jsx as a trial, the gate at e7bf5526, rebased as 87600f12 (its L.say lines identical to this commit's) with CT_G20_LANE_A_ONLY=1 - 'kunal: TC-R06 review board is 375 wide (343)' red, plus the four TC-R04 verdict-row lines that are red on the unbroken tree too; the head's own trial edcce2eaa5de under the same switch reads 271/4 (those four only), and the whole gate with the switch unset reads 341/4 there, as before
