@@ -242,5 +242,22 @@ SCEN.q28=async()=>{
        a.setAttribute('data-qmoved','1');a.style.top='auto';a.style.bottom='6px';})()`,marks:[{sel:'[data-qmoved="1"]',pad:2}]});
    await b.close();}
 };
+
+// ── q34: the game card's unknown move count (en dash, hyphen, question mark, blank) ──────────────────────────────────────────────────────
+SCEN.q34=async()=>{
+  const N='b13-q34-';
+  const gk=g=>g.src+':'+g.date+':'+g.white+':'+g.black;
+  const st=Object.assign({},LIST_STORE,{ct_gamestats:{[gk(GAMES[1])]:{bril:0,great:4,inacc:0,mist:1,blun:2,src:'review'}}});   // no best/great split: those two counts are unknown
+  const U=(i)=>({fn:'()=>document.querySelectorAll(\'[data-known="0"]\')['+i+']'});
+  const unk=`(f)=>{document.querySelectorAll('[data-known="0"]').forEach(e=>{const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode())){n.nodeValue=n.nodeValue.replace(/[-\\u2013]/,f);}});}`;
+  for(const [tag,app] of [['today',TODAY],['built',BUILT]]){
+   const b=await launch(app,'kunal761','q34'+tag,st);await b.open();await b.tile('Review').catch(()=>{});await wait(b,1500);
+   await b.page.evaluate(()=>{const e=document.querySelector('[data-known="0"]');if(e)e.scrollIntoView({block:'center'});});await wait(b,400);
+   await snap(b,N+'c1-'+tag+'-375x761',{marks:[U(0),U(1)]});
+   if(tag==='built'){
+     await snap(b,N+'c1-opt-question-mark-375x761',{caption:cap('?','an unknown count shown as a question mark'),mock:'('+unk+')("?")',marks:[U(0),U(1)]});
+     await snap(b,N+'c1-opt-blank-375x761',{caption:cap('blank','an unknown count left empty'),mock:'('+unk+')("")',marks:[U(0),U(1)]});}
+   await b.close();}
+};
 // END SCENARIOS
 L.run(async()=>{for(const q of ONLY){if(!SCEN[q]){console.log('no scenario '+q);continue;}console.log('== '+q);await SCEN[q]();}console.log('made '+made.length+' pictures');L.say(true,'made '+made.length+' pictures');},'question-shots');
