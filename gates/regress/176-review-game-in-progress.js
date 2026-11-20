@@ -26,6 +26,16 @@
 // A REQUEST IS COUNTED BY THE ROUTE, NOT BY THE APP, and the own-game check reads the messages posted to the Stockfish workers
 // (a wrapper installed before the page's scripts), so neither reads a hook this build adds. The list rows are found by the
 // players' names in the page's text first; the data-ct hooks are used for geometry only.
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=9 red=1 scope=trial:5d8f7a318212 how=batch 13, THE SUBJECT REMOVED: the tree before the change (3fb41a07's chess.jsx built as a trial), CT_G176_GEO=kunal761 - with the switch's key set there is no list, so TC-R247c is red and nothing after it is read; the six lines of a and b pass, as they must on a tree with no such feature
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=42 red=4 scope=trial:8217d029b597 how=batch 13, pairs break list-shows-with-the-switch-off (liveOn no longer asks for the switch), both geometries, run by the grading machine: both TC-R247a lines red at each - the games are listed with the switch never turned on and the in-progress list was asked for
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=40 red=2 scope=trial:bb504d512e0a how=batch 13, pairs break review-does-not-grow (the open review asks and never takes the new move in), both geometries, run by the grading machine: the TC-R247f summary line red at each after its 80 s wait - still 6 moves; the move-screen growth and the silence after closing are then not read
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=31 red=8 scope=trial:9a2fc9b0f25b how=batch 13, pairs break own-game-reviewed-live (LIVE_OWN_GAMES_WAIT false), both geometries, run by the grading machine: at each the three TC-R247d lines red - no row says its review waits and a tap on B opens its review - and TC-R247e red behind them
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=23 red=2 scope=trial:3767dee77109 how=batch 13, liveOn reads the switch's key alone and not the developer tools, CT_G176_GEO=kunal761: both TC-R247b lines red - a player who set the key by hand gets the list and the request
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=23 red=1 scope=trial:62cc0f13e312 how=batch 13, liveAsk spaces its requests by 4 s instead of LIVE_POLL_MS, CT_G176_GEO=kunal761: the TC-R247g spacing line red (gaps 16, 5, 5 s)
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=21 red=2 scope=trial:579ac2646155 how=batch 13, the list is asked for on a timer whether or not the Review screen or a review is open, CT_G176_GEO=kunal761: the TC-R247g line for the 50 s after closing red (6 requests before, 8 after), and TC-R247f red because the timer spends the open game's turn to ask
+// A mutant that stayed GREEN, kept so it is not mistaken for a control: the open review's timer never cleared when the review closes
+// (trial bf1652419fe6, 23 lines, 0 red at kunal761). The tick also checks that a review of a game in progress is open, so nothing is asked;
+// two guards overlap there, and the line for the 50 s after closing is shown able to fail by the timer control above instead.
 const fs=require('fs'),path=require('path');
 const L=require('../lib');const R=require('../drive/review');
 const FX=JSON.parse(fs.readFileSync(path.join(__dirname,'..','fixtures','chesscom-current-daily-games.json'),'utf8'));
