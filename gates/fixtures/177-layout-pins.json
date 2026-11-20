@@ -105,32 +105,6 @@
    "360x640@125",
    "375x667@125"
   ],
-  "lesson-demo-end|overlap|[moves-panel] span \"#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "360x640@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \".\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "320x568@125",
-   "360x640@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Bc#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "360x640@125",
-   "375x667@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Nf#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"Nf#\" x [moves-copy] button \"Copy moves\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"c#\" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@125"
-  ],
-  "lesson-demo-end|overlap|[moves-panel] span \"c#\" x [moves-copy] button \"Copy moves\"": [
-   "320x568@100"
-  ],
   "lesson-demo-end|spill|[foot-btn] button \"⋯\"": [
    "360x640@125",
    "375x667@125",
@@ -173,23 +147,9 @@
    "360x640@125",
    "375x667@125"
   ],
-  "lesson-practice-wrong|overlap|[moves-panel] span \"The moves appear here \" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "375x667@125"
-  ],
-  "lesson-practice-wrong|overlap|[moves-panel] span \"The moves appear here \" x [moves-copy] button \"Copy moves\"": [
-   "375x667@125"
-  ],
   "lesson-practice|board|the board": [
    "320x568@125",
    "360x640@125",
-   "375x667@125"
-  ],
-  "lesson-practice|overlap|[moves-panel] span \"The moves appear here \" x [moves-analyze] button \"Analyze this line\"": [
-   "320x568@100",
-   "375x667@125"
-  ],
-  "lesson-practice|overlap|[moves-panel] span \"The moves appear here \" x [moves-copy] button \"Copy moves\"": [
    "375x667@125"
   ],
   "look|card|[look] button \"Cell depth & texture O\"": [
@@ -337,7 +297,7 @@
   "play-setup-bots|overlap|[top-title] div \"Choose your opponent\" x [bot-back] button \"‹ Back\"": [
    "320x568@125"
   ],
-  "play-setup|card|[setup-start] button \"▶ Start game\"": [
+  "play-setup|card|[setup-coach] button \"Coach mode Off\"": [
    "320x568@50",
    "360x640@50",
    "375x667@50",
@@ -348,10 +308,11 @@
    "414x896@75",
    "430x932@75"
   ],
-  "play-setup|card|[setup-coach] button \"Coach mode Off\"": [
+  "play-setup|card|[setup-start] button \"▶ Start game\"": [
    "320x568@50",
    "360x640@50",
    "375x667@50",
+   "375x730@50",
    "375x761@50",
    "390x844@50",
    "414x896@50",
@@ -455,40 +416,20 @@
   "review-last-move|spill|[rev-playout] button \"why\"": [
    "320x568@125"
   ],
-  "review-list-empty|cut|[paste-box] textarea \"Paste a PGN here\"": [
-   "320x568@100",
-   "320x568@125",
-   "360x640@100",
-   "360x640@125",
-   "375x667@100",
-   "375x667@125",
-   "375x730@100",
-   "375x730@125",
-   "375x761@100",
-   "375x761@125",
-   "390x844@100",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+  "review-list-empty|cut|[paste-box] textarea \"PGN\"": [
+   "320x568@125"
   ],
   "review-list-empty|cut|input \"Chess.com username\"": [
-   "320x568@75",
    "320x568@100",
    "320x568@125",
    "360x640@100",
    "360x640@125",
    "375x667@100",
    "375x667@125",
-   "375x730@100",
    "375x730@125",
-   "375x761@100",
    "375x761@125",
-   "390x844@100",
    "390x844@125",
-   "414x896@100",
-   "414x896@125",
-   "430x932@100",
-   "430x932@125"
+   "414x896@125"
   ],
   "review-list-empty|cut|select \"Chess.com\"": [
    "320x568@100",
@@ -497,71 +438,22 @@
    "375x667@125",
    "375x730@125",
    "375x761@125",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+   "390x844@125"
   ],
-  "review-list|card|[glist-box] div": [
-   "320x568@50",
-   "320x568@75",
-   "360x640@50",
-   "360x640@75",
-   "360x640@100",
-   "375x667@50",
-   "375x667@75",
-   "375x667@100",
-   "375x730@50",
-   "375x730@75",
-   "375x730@100",
-   "375x761@50",
-   "375x761@75",
-   "390x844@50",
-   "390x844@75",
-   "390x844@100",
-   "390x844@125",
-   "414x896@50",
-   "414x896@75",
-   "414x896@100",
-   "414x896@125",
-   "430x932@50",
-   "430x932@75",
-   "430x932@100",
-   "430x932@125"
-  ],
-  "review-list|cut|[paste-box] textarea \"Paste a PGN here\"": [
-   "320x568@100",
-   "320x568@125",
-   "360x640@100",
-   "360x640@125",
-   "375x667@100",
-   "375x667@125",
-   "375x730@100",
-   "375x730@125",
-   "375x761@100",
-   "375x761@125",
-   "390x844@100",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+  "review-list|cut|[paste-box] textarea \"PGN\"": [
+   "320x568@125"
   ],
   "review-list|cut|input \"Chess.com username\"": [
-   "320x568@75",
    "320x568@100",
    "320x568@125",
    "360x640@100",
    "360x640@125",
    "375x667@100",
    "375x667@125",
-   "375x730@100",
    "375x730@125",
-   "375x761@100",
    "375x761@125",
-   "390x844@100",
    "390x844@125",
-   "414x896@100",
-   "414x896@125",
-   "430x932@100",
-   "430x932@125"
+   "414x896@125"
   ],
   "review-list|cut|select \"Chess.com\"": [
    "320x568@100",
@@ -570,9 +462,7 @@
    "375x667@125",
    "375x730@125",
    "375x761@125",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+   "390x844@125"
   ],
   "review-more-sheet|card|[rev-sheet] div \"📖 Opening: Philidor D\"": [
    "320x568@50",

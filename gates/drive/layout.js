@@ -115,7 +115,15 @@ function MEASURE(){
     const k=desc(A.el,A.s)+' x '+desc(B.el,B.s);if(seenPair.has(k))continue;seenPair.add(k);add('overlap',k,{kind:'text on text',overlap:[r1(o.x),r1(o.y)],a:A.s.slice(0,30),b:B.s.slice(0,30)});}
   for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){const A=controls[i],B=controls[j];if(related(A.el,B.el))continue;const o=ix(A,B);if(o.x<=2||o.y<=2)continue;if(layerOf(A.el)!==layerOf(B.el))continue;
     const k=desc(A.el)+' x '+desc(B.el);if(seenPair.has(k))continue;seenPair.add(k);add('overlap',k,{kind:'control on control',overlap:[r1(o.x),r1(o.y)]});}
-  for(const T of texts)for(const C of controls){if(related(T.el,C.el))continue;const o=ix(T,C);if(o.x<=2||o.y<=3||o.y<=0.34*(T.b-T.t))continue;
+  // a control that paints nothing of its own (no fill, no border) is only as big as what it draws: its tap box may be padded out to 44px
+  // over a neighbour (the icon chips in the moves panel are, on purpose), and that is not ink on ink. Such a control is read by its ink.
+  const inkOf=(e)=>{if(boxed(e))return null;let l=1e9,t=1e9,r=-1e9,b=-1e9;const add=(q)=>{if(q.width<0.5||q.height<0.5)return;l=Math.min(l,q.left);t=Math.min(t,q.top);r=Math.max(r,q.right);b=Math.max(b,q.bottom);};
+    for(const k of e.querySelectorAll('*')){if(k.tagName==='svg'||k.tagName==='IMG'||boxed(k))add(k.getBoundingClientRect());}
+    const w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let tn;while((tn=w.nextNode())){if(!tn.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(tn);for(const q of rg.getClientRects())add(q);}
+    return r>l?{l,t,r,b}:null;};
+  for(const T of texts)for(const C of controls){if(related(T.el,C.el))continue;let o=ix(T,C);if(o.x<=2||o.y<=3||o.y<=0.34*(T.b-T.t))continue;
+    if(C.ink===undefined)C.ink=inkOf(C.el);if(C.ink){o=ix(T,C.ink);if(o.x<=2||o.y<=3||o.y<=0.34*(T.b-T.t))continue;}
+
     if(layerOf(T.el)!==layerOf(C.el)){   // a pinned bar over the page: a fault only where the line is half under it and nothing can scroll it clear
       if(o.y>=0.9*(T.b-T.t)||canScroll(T.el))continue;const k2=desc(T.el,T.s)+' x '+desc(C.el);if(seenPair.has(k2))continue;seenPair.add(k2);add('overlap',k2,{kind:'text half under a pinned control, and nothing scrolls',overlap:[r1(o.x),r1(o.y)],text:T.s.slice(0,30)});continue;}
     const h=document.elementFromPoint(Math.max(T.l,C.l)+o.x/2,Math.max(T.t,C.t)+o.y/2);const textOnTop=!!h&&related(h,T.el)&&!related(h,C.el);
