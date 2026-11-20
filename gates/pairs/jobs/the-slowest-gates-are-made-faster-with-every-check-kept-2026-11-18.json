@@ -1,6 +1,6 @@
 {
  "job": "the-slowest-gates-are-made-faster-with-every-check-kept-2026-11-18",
- "about": "Gate 22 (the engine line) now analyses the Opera Game once per block in its TC-R105 and TC-R116 blocks: the first launch of each block analyses the game from nothing, as before, and the later launches are seeded with that analysis (gates/drive/review.js shareAnalysis, keyed on the bundle md5, the PGN and ct_pool/ct_engdet/ct_gdepth), so the app takes its own cache path. Graded: every TC-R105 and TC-R116 line, in the fresh first launch and in the seeded launches after it, so a seeded launch is shown to be no blinder than a fresh one. The breaks are app defects those blocks exist for: the engine row no longer reserved on short screens (the board moves when the line is toggled), and the engine line's plain-words reading that a tap no longer closes. The whole gate runs, about 12 minutes a try. NOT COVERED: the other blocks of gate 22 are unchanged and keep their fresh analyses, so they are not graded here.",
+ "about": "Gate 22 (the engine line) now analyses the Opera Game once per block in its TC-R105 and TC-R116 blocks: the first launch of each block analyses the game from nothing, as before, and the later launches are seeded with that analysis (gates/drive/review.js shareAnalysis, keyed on the bundle md5, the PGN and ct_pool/ct_engdet/ct_gdepth), so the app takes its own cache path. Graded: every TC-R105 and TC-R116 line, in the fresh first launch and in the seeded launches after it, so a seeded launch is shown to be no blinder than a fresh one. The breaks are app defects those blocks exist for: the board shrinking whenever the engine line is on (the board moves when the line is toggled), and the engine line's plain-words reading that a tap no longer closes. The whole gate runs, about 12 minutes a try. NOT COVERED: the other blocks of gate 22 are unchanged and keep their fresh analyses, so they are not graded here.",
  "gate": "gates/regress/22-engline-recovery.js",
  "checks": ["TC-R105 ", "TC-R116 "],
  "build": "auto",
@@ -13,7 +13,7 @@
   {"name": "TC-R116 seeded (kunal761)", "match": "^kunal761 \\(375x761\\): TC-R116"}
  ],
  "breaks": [
-  {"name": "engine-row-not-reserved", "patch": "breaks/g22-engine-row-not-reserved.diff", "why": "the 20px engine row is no longer reserved where the board is height-bound, so switching the engine line on moves the board (the #549 defect TC-R116 was written for)", "mustFailIn": ["TC-R116 fresh (se, first launch)", "TC-R116 seeded (short375)"]},
+  {"name": "board-shrinks-with-the-engine-line", "patch": "breaks/g22-board-shrinks-with-the-engine-line.diff", "why": "the Review board loses 8px of width whenever the engine line is on, so switching the line on moves the board (what TC-R116 exists to catch)", "mustFailIn": ["TC-R116 fresh (se, first launch)", "TC-R116 seeded (short375)", "TC-R116 seeded (kunal761)"]},
   {"name": "engine-reading-does-not-close", "patch": "breaks/g22-engine-reading-does-not-close.diff", "why": "a tap on the engine line's plain-words reading no longer closes it", "mustFailIn": ["TC-R105 fresh (kunal730, first launch)", "TC-R105 seeded (se)"]}
  ],
  "timeoutSec": 1500
