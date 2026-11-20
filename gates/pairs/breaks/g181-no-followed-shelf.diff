@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 97500176..cac60976 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12633,5 +12633,5 @@ function AppMain(){
+             /* batch 13 q4 (his Desk answer, 19 Nov 2026): THE PLAYERS HE FOLLOWS, one shelf each, labelled by the player, grouped by kind like his
+                own; a chip's key is follow:<account>|<kind>. A move already on his own shelf is not offered again. */
+-            const FOL=followShown().filter(c=>!ownK.has(c.fen+'|'+c.uci));const folAccts=ccAccts.filter(a=>FOL.some(c=>c.acct===a));
++            const FOL=followShown().filter(c=>!ownK.has(c.fen+'|'+c.uci));const folAccts=[];
+             const folKey=(c)=>'follow:'+c.acct+'|'+brilKind(c);
+             const extraF=FOL.filter(c=>sel.indexOf(folKey(c))>=0);
