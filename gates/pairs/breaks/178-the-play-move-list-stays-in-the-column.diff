@@ -1,11 +1,11 @@
 diff --git a/chess.jsx b/chess.jsx
-index e0d80b51..2d3394ef 100644
+index 5eb9371e..24d77f35 100644
 --- a/chess.jsx
 +++ b/chess.jsx
 @@ -6904,5 +6904,5 @@ function AppMain(){
-     const ev=evalUnder&&!hideEval;const C=(o)=>PLAY_ROWS-(ev?0:PLAY_ROWS_EVAL)-(o.thin?PLAY_ROWS_BARS:0)-(o.tight?PLAY_ROWS_GAPS:0)-(o.noMoves?PLAY_ROWS_MOVES:0);
-     const want=vw-(ev?0:4+EVAL_BAR_W(false));   /* with the bar set beside (his setting), the most the board can be is the width less the bar */
+   const playFit=useMemo(()=>{const F=(o)=>Object.assign({thin:false,tight:false,noMoves:false},o);if(!playUp)return F({});
+     const C=(o)=>PLAY_ROWS-(o.thin?PLAY_ROWS_BARS:0)-(o.tight?PLAY_ROWS_GAPS:0)-(o.noMoves?PLAY_ROWS_MOVES:0);
 -    const order=[F({}),F({thin:true}),F({thin:true,tight:true}),F({thin:true,tight:true,noMoves:true})];
 +    const order=[F({}),F({thin:true}),F({thin:true,tight:true})];
-     for(const o of order){if(_revRoom-C(o)>=want){o.rows=C(o);return o;}}
-     const last=order[order.length-1];last.rows=C(last);return last;},[playUp,evalUnder,hideEval,vw,_revRoom]);
+     for(const o of order){if(_revRoom-C(o)>=vw){o.rows=C(o);return o;}}
+     const last=order[order.length-1];last.rows=C(last);return last;},[playUp,vw,_revRoom]);
