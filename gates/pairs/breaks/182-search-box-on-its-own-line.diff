@@ -1,0 +1,17 @@
+diff --git a/chess.jsx b/chess.jsx
+index 1d1e3432..5a13cf21 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13087,5 +13087,5 @@ function AppMain(){
+               {!_gfIn&&_gfPanel}
+               <div ref={gamesListRef} data-ct="glist-line" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:_gfIn?36:44}}>
+-                {_gfInput||<span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>}
++                <span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>
+                 {/* #548 item (123), jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's pick
+                     (2) on questions/B8-LAYOUT: THE FILTER CHIPS FOLD INTO ONE FILTER BUTTON, so the first game is above the fold on his phone.
+@@ -13204,4 +13204,5 @@ function AppMain(){
+                 const _dtxt=_drop.length?('There wasn\u2019t room on this device to keep '+_join(_drop.map(_u))+'\u2019s games.'):'';
+                 return <div data-ct="games-cap" style={_sty}>{[_lim,_capTxt,_gtxt2,_dtxt].filter(Boolean).join(' ')}</div>;})()}
++              {_gfInput}
+               {/* #476 `||_anyF` IS LOAD-BEARING, NOT DEFENSIVE. The row renders above six games, but gFil
+                   is component state that nothing resets when the list SHRINKS - remove an account with the

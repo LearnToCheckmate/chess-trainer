@@ -1,0 +1,17 @@
+diff --git a/chess.jsx b/chess.jsx
+index 1d1e3432..d2cf404e 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11803,5 +11803,5 @@ function AppMain(){
+         const _rvBk=(mode==='analyze'&&!inReview&&!analyzing&&lastReview&&!review)?()=>{setReview(lastReview);setReviewView('summary');}:null;
+         return(<TopRow ct="top-row" full title={_hT2} style={{marginBottom:8,marginTop:TOP_Y-(_edge?2:8) /* #550 FMT-A-06: the row at TOP_Y on every screen (the root pads 8 here, 2 on an edge to edge screen) */}}
+-          back={_bk?<TopBack ct="top-back" onClick={_bk}/>:(_rvBk?<TopBack ct="rev-list-back" label="Back to your analysis" onClick={_rvBk}/>:null)}
++          back={_bk?<TopBack ct="top-back" onClick={_bk}/>:null}
+           menu={lessonFocus?null:<TopMenu ct="top-menu" onClick={()=>setMenuOpen(true)}/>}/>);})()}
+       {/* #435: the play clause dropped !isOver&&!playEnd. Landscape used to SWAP this button for the tab bar at
+@@ -12649,4 +12649,5 @@ function AppMain(){
+               '‹ Back to your analysis' pill is the top row's back icon now (search _rvBk), and the 'Review any game, from anywhere' line is cut -
+               the top row already says Game review - so three game cards show above the tab bar on his phone. */}
++          {lastReview&&!review&&(<button onClick={()=>{setReview(lastReview);setReviewView('summary');}} style={{alignSelf:'flex-start',display:'inline-flex',alignItems:'center',gap:7,padding:'8px 13px',borderRadius:10,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.4)',color:'var(--ac2)',cursor:'pointer',fontSize:'clamp(15px,3.6vw,17px)',fontWeight:700,boxShadow:SHADOW_BTN}}>‹ Back to your analysis</button>)}
+           {(()=>{const GS=gameStatsRef.current||{};const gk=Object.keys(GS);const gReal=gk.filter(k=>GS[k]&&GS[k].src!=='est');const gReviewed=gReal.length;let tB=0;gReal.forEach(k=>{const s=GS[k]||{};tB+=s.bril||0;});const pr=pzRank(pzSolvedMap);const pTot=pzTotalSolved(pzSolvedMap)+pzOSolved;const has=gk.length>0||pTot>0||pzXP>0||(ccGames&&ccGames.length>0);   /* #547 item (99): shown from FIRST PAINT when the list has games, so the background pass's first tally cannot mount it above the list and push every row 253px down */ /* #547 item (67): the tiles count REAL reviews only; the panel still shows on ANY entry */if(!has)return null;const cells=[['Games reviewed',gReviewed,'#7bd1ff'],['Puzzles solved',pTot,'#7bd88f'],['Rank',pr+' / '+PZ_TIERS.length,'#e0b85a'],['XP',pzXP,'#f0cf5e'],['Best streak',pzBest,'#f0a24e'],['Brilliant moves',tB,'#22d3ee']];return(
+             <div data-ct="prog-panel" style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',borderRadius:12,padding:0,boxShadow:SHADOW_BOX}}>
