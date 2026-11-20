@@ -1,0 +1,23 @@
+{
+ "job": "review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+ "about": "The Review list's final layout, Q25 panel B with his 18 Nov answer: the top row (back icon, 'Game review' centred, menu; no 'Back to your analysis' words, no 'Review any game, from anywhere' line), YOUR PROGRESS, the PGN box with its two icons, the two practice cards side by side painting only their names, the Import box's import row with the fetch icon, Your games as its own section under the Import box with full-width cards, the name box on the Your games line beside the filter icon and the count, the chips above it when Filter opens (short phone: at the top of the games box), the name search, three cards above the tab bar at 375x761 and the games box down to the tab bar at 320x568 after YOUR PROGRESS was opened and closed, and Back after a review. Graded by gate 182 (TC-R258a..m) on a trial bundle at 375x761 with his insets and 320x568, Classic and Medieval (Back after a review in Classic). NOT COVERED: the likeness to Q25-v2.png itself (no picture is in the repo; the gate reads positions and sizes, the pictures are for his look); the N of M count and the Result and Time control chips (jobs/search-and-filter-your-games-2026-11-15) and the three-row card's depth button (gate 173); landscape, where the list keeps its side rail layout.",
+ "gate": "gates/regress/182-review-list-final-layout.js",
+ "checks": ["TC-R258[a-m] "],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^375x761 "},
+  {"name": "se 320x568", "match": "^320x568 "}
+ ],
+ "breaks": [
+  {"name": "search-box-on-its-own-line", "patch": "breaks/182-search-box-on-its-own-line.diff",
+   "why": "the name box is back on a line of its own under the Your games title (Q25 panel A, the one he did not pick)",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "back-words-back-under-the-top-row", "patch": "breaks/182-back-words-back-under-the-top-row.diff",
+   "why": "the top row loses its back icon and the '< Back to your analysis' pill is back under it (FB-02: 'don't say back to your analysis')",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "practice-cards-stacked", "patch": "breaks/182-practice-cards-stacked.diff",
+   "why": "the two practice cards are stacked again, one under the other, instead of side by side (FB-03)",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1500
+}
