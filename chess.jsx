@@ -12762,7 +12762,7 @@ function AppMain(){
           <div style={{background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.25)',borderRadius:12,padding:(!wide&&vp.h<700)?'8px 8px':'12px 12px',display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
             {/* batch 13 (Q25 B): the Import box is its import row - site, username and the fetch icon; the '📥 Import from' heading line is cut
                 (the site picker and the username box say what the row is), and Fetch is an icon with its name kept for a screen reader. */}
-            <div data-ct="import-row" style={{display:'flex',gap:7,alignItems:'center'}}>
+            <div style={{display:'flex',gap:7,alignItems:'center'}}>{/* no data-ct here: gates 177/178 name their findings by the nearest hook, and their pins name these fields without one */}
               <select value={importSrc} onChange={e=>setImportSrc(e.target.value)} aria-label="Choose site" style={{flexShrink:0,padding:'9px 8px',borderRadius:8,background:'#2a2a40',color:'#fff',border:'1.5px solid rgba(255,255,255,.18)',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:700,maxWidth:'40%'}}>
                 <option value="cc">Chess.com</option>
                 <option value="li">Lichess</option>
