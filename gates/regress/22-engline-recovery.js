@@ -493,7 +493,12 @@ L.run(async()=>{
   // and read the reading it opens. It states who is better and roughly by how much, gives at least two of the line's moves a phrase,
   // cuts nothing (each line wraps inside its box), moves nothing (the board's top and width are unchanged), and a tap closes it. The
   // generator's own truth-by-rule and its 25% fan-out cap are the unit layer's (gates/unit-drill-why.js, the #548 item (114) block).
-  {const R=require('../drive/review');
+  // [batch 13; jobs/the-slowest-gates-are-made-faster-with-every-check-kept-2026-11-18] THE SHARED ANALYSIS, here and in TC-R116 below
+  // only: these launches stand on a reviewed Opera Game and their subject is the engine line on the move screen, so the review is
+  // analysed once (the first launch, from nothing) and the next launch is seeded with it (drive/review.js shareAnalysis). It is
+  // switched off again after each block: the race and handshake blocks above and below keep their fresh analyses, because there
+  // the review's own workers and their load are part of the case.
+  {const R=require('../drive/review');R.shareAnalysis(true);
    for(const geo of ['kunal730','se']){const b=await L.launch({geo,store:R.SEED,name:'engwhy-'+geo});await b.open();let ok=true;
     try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await b.page.waitForFunction(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return !!e&&/\d\.\S/.test(e.innerText||'');},{timeout:60000});await b.settle(500);}catch(e){ok=false;}
     const bd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];return g?[+g.top.toFixed(1),+g.width.toFixed(1)]:null;});
@@ -517,7 +522,7 @@ L.run(async()=>{
      L.say(en==='6'&&rn==='6','TC-R105 '+geo+': the reading numbers its moves from the GAME - its first move is 6., as the row\'s is (reading "'+(r.moves[0]||'').slice(0,20)+'", row "'+rowTxt.slice(0,30)+'")',{reading:en,row:rn});
      await b.page.click('[data-ct="rev-engwhy"]').catch(()=>{});await b.settle(400);
      L.say(!(await b.page.locator('[data-ct="rev-engwhy"]').count()),geo+': TC-R105 and a tap on it closes it');}
-    await b.close();}}
+    await b.close();}R.shareAnalysis(false);}
 
   // ── BLOCK P [#549, item (26); jobs/review-engine-line-recommends-the-losing-recapture-at-opera-ply-29-2026-11-05, P1]. TC-R109.
   // THE ENGINE LINE AT OPERA PLY 29 (after 15.Bxd7+) MUST NOT RECOMMEND THE RECAPTURE THE REVIEW CALLS A BLUNDER. #548's antagonist B read
@@ -654,7 +659,7 @@ L.run(async()=>{
   // kunal730, where the shift is zero, so it could not see it. The geometries are read from GEOS, not named in a comparison. 360x640 is
   // left out ON PURPOSE: there the reservation would cost the board 14px for good, so the app does not reserve and the board still
   // shrinks 334 -> 320 on the toggle - the job's named remainder, not a pass.
-  {const R=require('../drive/review');
+  {const R=require('../drive/review');R.shareAnalysis(true);   // the shared analysis: see TC-R105 above
    for(const geo of ['se','short375','w375h667','kunal761']){const b=await L.launch({geo,store:{...R.SEED,ct_pool:'3'},name:'engtoggle-'+geo});await b.open();let ok=true;
     const bd=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(e=>e.getBoundingClientRect()).sort((x,c)=>c.width-x.width)[0];return g?{top:+g.top.toFixed(2),w:+g.width.toFixed(2),eng:!!document.querySelector('[data-ct="rev-engline"]')}:null;});
     let b0=null,b1=null,b2=null;
@@ -666,6 +671,7 @@ L.run(async()=>{
     L.say(!!b0&&!!b1&&Math.abs(b0.top-b1.top)<=0.5&&Math.abs(b0.w-b1.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 switching the engine line ON moves nothing - board top and width '+JSON.stringify(b0&&[b0.top,b0.w])+' -> '+JSON.stringify(b1&&[b1.top,b1.w])+' (was 55.5 -> 45.5 at 568 tall)',{b0,b1});
     L.say(!!b1&&!!b2&&Math.abs(b1.top-b2.top)<=0.5&&Math.abs(b1.w-b2.w)<=0.5,geo+' ('+G.w+'x'+G.h+'): TC-R116 and switching it OFF again moves nothing ('+JSON.stringify(b2&&[b2.top,b2.w])+')',{b1,b2});
     await b.close();}
+   R.shareAnalysis(false);
   }
   // CONTROL-RECORD: 37f44ea 2026-11-06 total=107 red=6 scope=full how=TC-R116 run against #549's pre-fix HEAD bundle (no engine-row reservation), trial md5 8c672822fc88; red are exactly the six TC-R116 board-unchanged lines at se, short375 and w375h667; kunal761 stays green
   /* ── TC-R117, BLOCK T: THE COACH SENTENCE ONLY GROWS WHILE THE REFUTATION ARRIVES (#549 item (102)) ──────────────────────────────

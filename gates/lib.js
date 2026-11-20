@@ -502,7 +502,7 @@ async function launch(opts={}){
   const errs=[],noise=[];
   page.on('console',m=>{if(m.type()==='error'){const t=m.text();(NET_NOISE.test(t)?noise:errs).push(t.slice(0,300));}});
   page.on('pageerror',e=>errs.push('PAGEERROR '+String(e).slice(0,300)));
-  const b={browser,ctx,page,geo,errs,noise,url:srv.url,name:opts.name||'run',
+  const b={browser,ctx,page,geo,errs,noise,url:srv.url,bundleMd5:srv.md5,name:opts.name||'run',
     async open(p){await page.goto(srv.url+(p||'index.html'),{waitUntil:'domcontentloaded'});
       await page.waitForFunction(()=>{const r=document.getElementById('root');return r&&r.children.length&&!document.getElementById('boot');},null,{timeout:30000});
       await page.waitForTimeout(opts.settle||900);await sayTextMetrics(page);return b;},
