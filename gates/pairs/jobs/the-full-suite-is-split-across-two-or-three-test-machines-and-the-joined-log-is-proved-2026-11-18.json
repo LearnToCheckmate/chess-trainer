@@ -1,0 +1,20 @@
+{
+ "job": "the-full-suite-is-split-across-two-or-three-test-machines-and-the-joined-log-is-proved-2026-11-18",
+ "about": "The suite split into N parts on N machines: CT_PART=K/N in gates/gates.sh and gates/suite-resume.sh (the plan, the part filter, the part footer), gates/suite-split.sh join (the merged journal), the joining run (CT_RESUME=<merged journal>, the resume's own checks plus each row's part against the plan) and gates/verify-join.sh's split arm. Graded by gates/suite-split-selftest.sh (TC-R257, node and shell, no browser): the real gate loop and hooks extracted from gates.sh run over six tiny gates on three clones of one sandbox commit at three different paths (the machines), each running its part, joined on machine 1 and run there green; every control refused by name. NOT COVERED: a real browser suite on real separate machines (the suite window's three runs, compared by node gates/suite-compare.js --split under claude/agents/b13-split-suite-rule.md); the prelude, the unit layers and the real footer of a part (the driver writes a minimal header and footer).",
+ "gate": "gates/suite-split-selftest.sh",
+ "cmd": ["bash", "gates/suite-split-selftest.sh"],
+ "checks": ["TC-R257[abcd][0-9]+m? "],
+ "build": "never",
+ "situations": [
+  {"name": "the plan and the split run (three machines, joined)", "match": "^TC-R257[ab]"},
+  {"name": "the controls (join, joining run and verify-join refusals)", "match": "^TC-R257c"},
+  {"name": "gates.sh's CT_PART refusals and off by default", "match": "^TC-R257d"}
+ ],
+ "breaks": [
+  {"name": "split-join-ignores-the-bundle", "patch": "breaks/split-join-ignores-the-bundle.diff", "why": "the join no longer compares the parts' start rows, so a part run on another bundle (or HEAD, tree, state, toolchain) is merged", "mustFailIn": ["the controls (join, joining run and verify-join refusals)"]},
+  {"name": "split-part-runs-every-gate", "patch": "breaks/split-part-runs-every-gate.diff", "why": "a part no longer skips the positions the plan gives the other parts, so every gate runs on every machine and would be counted N times", "mustFailIn": ["the plan and the split run (three machines, joined)"]},
+  {"name": "split-join-accepts-a-missing-part", "patch": "breaks/split-join-accepts-a-missing-part.diff", "why": "the join no longer requires parts 1..N each present and every position run, so a split with one machine's part missing is assembled", "mustFailIn": ["the controls (join, joining run and verify-join refusals)"]},
+  {"name": "split-join-accepts-a-reordered-gate", "patch": "breaks/split-join-accepts-a-reordered-gate.diff", "why": "the join no longer checks each part's journal rows are its positions in order with the roster's names, so a reordered part is merged", "mustFailIn": ["the controls (join, joining run and verify-join refusals)"]}
+ ],
+ "timeoutSec": 600
+}
