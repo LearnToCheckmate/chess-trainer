@@ -17,7 +17,7 @@ D.own={states:{
     await b.tapCt('drill-analyse',1200);await b.settle(800);}
 }};
 // the phones of each launch. 'notch' carries his insets (ct_safe 51,31, read once at mount); 'flat' has none.
-const LAUNCHES={notch:{geo:'kunal761',phones:[[375,761],[390,844],[414,896],[430,932]]},flat:{geo:'se',phones:[[320,568],[360,640],[375,667]]}};
+const LAUNCHES={notch:{geo:'kunal761',phones:[[375,761],[390,844],[414,896],[430,932]]},flat:{geo:'se',phones:[[320,568],[360,640],[375,667],[375,730]]}   /* 375x730: the room his phone leaves the column in the Home Screen app (a 812 shell less its 51 and 31 insets), where Review and drill Analysis drew the board 344 wide, flush left, with the header row on (his 19 Nov report of about 43pt short) */};
 const SIZES=[50,75,100,125];
 // the sampled states: [name, driver, state, wantsBoard]
 const STATES=[
@@ -34,7 +34,7 @@ const STATES=[
 const KINDS=[['overlap','TC-R248a','no text or control overlaps another'],['cut','TC-R248b','no text is cut off without an ellipsis'],['spill','TC-R248c','no text or control spills out of its box or off the screen'],
   ['sideways','TC-R248d','nothing scrolls sideways'],['board','TC-R248e','the board fills the width'],['card','TC-R248f','every card is centred and fills the width']];
 const PINFILE=path.join(__dirname,'..','fixtures','177-layout-pins.json');
-const PIN_ABOUT='gates 177 and 178 (gates/drive/layout.js): the layout faults found on the tree this file was last written from; the fix list of jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19. Key: screen state | kind | what. Value: the cells (phone WxH @ text size %) it happens in. A finding listed here is printed and counted, not red; any other finding is red. Delete a key (or a cell) when its fault is fixed. Rewritten only by hand: CT_G177_WRITE_PINS=1 on each gate, on a trial bundle of the tree, with the diff read.';
+const PIN_ABOUT='gates 177 and 178 (gates/drive/layout.js): the layout faults found on the tree this file was last written from; the fix list of jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19. Key: screen state | kind | what. Value: the cells (phone WxH @ text size %) it happens in. A finding listed here is printed and counted, not red; any other finding is red. `capped` lists the cells where the height caps the board (state -> cell -> its width): there the board must be centred and at least that wide. Delete a key (or a cell) when its fault is fixed. Rewritten only by hand: CT_G177_WRITE_PINS=1 on each gate, on a trial bundle of the tree, with the diff read.';
 const STRICT=process.env.CT_G177_STRICT==='1';
 const reS=process.env.CT_G177_STATES?new RegExp(process.env.CT_G177_STATES):null,reC=process.env.CT_G177_CELLS?new RegExp(process.env.CT_G177_CELLS):null;
 
@@ -190,7 +190,15 @@ async function settleCell(b){let prev='';for(let i=0;i<12;i++){await b.page.wait
 
 async function run(which){
   const LN=Object.assign({name:which},LAUNCHES[which]);if(!LN.geo)throw new Error('layout.run: launch must be notch or flat, not '+which);
-  let pins={};try{pins=JSON.parse(fs.readFileSync(PINFILE,'utf8')).pins||{};}catch(e){pins={};}
+  let pins={},capped={};try{const pf=JSON.parse(fs.readFileSync(PINFILE,'utf8'));pins=pf.pins||{};capped=pf.capped||{};}catch(e){pins={};capped={};}
+  // THE HEIGHT CAP (part 2 of the job; FB-07). The board fills the width unless the height caps it: where the rows round it are at their
+  // floors and the screen is still too short, the board is as wide as the height leaves and sits CENTRED. Those cells are listed in the
+  // fixture's `capped` (state -> cell -> the board's width there). In a listed cell the board passes if it is centred within 1.5px and
+  // at least that wide (less 1px); narrower or off centre is a finding. In every other cell any side gap over 1.5px is a finding.
+  // The list is written by hand only (CT_G177_WRITE_CAPPED=1, centred boards only, the diff read): a cell belongs on it only when the
+  // rows have nothing left to give, which is a judgement the gate cannot make for itself.
+  const WRITE_CAPPED=process.env.CT_G177_WRITE_CAPPED==='1';let nCapped=0;
+  if(WRITE_CAPPED){const mine=[];for(const [w,h] of LN.phones)for(const t of SIZES)mine.push(w+'x'+h+'@'+t);for(const st of Object.keys(capped)){for(const c of mine)delete capped[st][c];if(!Object.keys(capped[st]).length)delete capped[st];}}
   let tDrive=0,tCells=0;const all=[];             // every finding: {state,cell,kind,desc,detail}
   const perState={};let myCells=[];
   const wanted=STATES.filter(s=>!reS||reS.test(s[0]));
@@ -215,7 +223,12 @@ async function run(which){
         if(m&&unpinned(m).length){await b.page.waitForTimeout(700);try{const m2=await b.page.evaluate(MEASURE);const k2=new Set(m2.findings.map(f=>f.kind+'|'+f.desc));m.findings=m.findings.filter(f=>k2.has(f.kind+'|'+f.desc));}catch(e){}}
         ps.cells++;ps.minTexts=Math.min(ps.minTexts,m.stats.texts);if(m.board)ps.boards++;
         ps.ellipsis=(ps.ellipsis||0)+m.stats.ellipsis;ps.cards=(ps.cards||0)+m.stats.cards;
-        for(const f of m.findings)all.push({state:name,cell:c.id,vp:c.w+'x'+c.h,kind:f.kind,desc:f.desc,detail:f.detail});
+        for(const f of m.findings){
+          if(f.kind==='board'){const d=f.detail,centred=Math.abs(d.left-d.right)<=1.5;const want=(capped[name]||{})[c.id];
+            if(WRITE_CAPPED&&centred&&(!process.env.CT_G177_CAPPED_STATES||new RegExp(process.env.CT_G177_CAPPED_STATES).test(name))){(capped[name]=capped[name]||{})[c.id]=d.width;nCapped++;continue;}
+            if(want!=null&&centred&&d.width>=want-1){nCapped++;continue;}
+            if(want!=null)f.detail=Object.assign({heightCappedCell:'listed at '+want+' wide, centred',fault:centred?'narrower than listed':'off centre'},d);}
+          all.push({state:name,cell:c.id,vp:c.w+'x'+c.h,kind:f.kind,desc:f.desc,detail:f.detail});}
         if(process.env.CT_G177_SHOTS==='1')await b.shot('g177-'+name+'-'+c.id.replace('@','at')+'-'+c.w+'x'+c.h);
       }
       tCells+=Date.now()-t1;
@@ -233,7 +246,12 @@ async function run(which){
     const o={};for(const k of Object.keys(pins)){const keep=pins[k].filter(c=>!allIds.includes(c));if(keep.length)o[k]=keep;}
     for(const k of Object.keys(group))o[k]=(o[k]||[]).concat(group[k].cells);
     const sorted={};for(const k of Object.keys(o).sort())sorted[k]=o[k];
-    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,pins:sorted},null,1)+'\n');L.note('pins rewritten for the '+which+' launch: '+Object.keys(sorted).length+' keys in the file');pins=sorted;}
+    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,pins:sorted,capped},null,1)+'\n');L.note('pins rewritten for the '+which+' launch: '+Object.keys(sorted).length+' keys in the file');pins=sorted;}
+  else if(WRITE_CAPPED){if(reS||reC)throw new Error('CT_G177_WRITE_CAPPED needs the whole launch');
+    // a cell now on the capped list leaves the board pins; nothing else in the pins moves
+    const o={};for(const k of Object.keys(pins)){const [st,kind]=k.split('|');const keep=kind==='board'?pins[k].filter(c=>!(capped[st]&&capped[st][c]!=null)):pins[k];if(keep.length)o[k]=keep;}
+    const cs={};for(const st of Object.keys(capped).sort()){cs[st]={};for(const c of Object.keys(capped[st]).sort())cs[st][c]=capped[st][c];}
+    fs.writeFileSync(PINFILE,JSON.stringify({about:PIN_ABOUT,pins:o,capped:cs},null,1)+'\n');L.note('capped list rewritten for the '+which+' launch');pins=o;capped=cs;}
   let nPinned=0,nNew=0;const usedPins=new Set();
   for(const [name,,,wantsBoard] of wanted){const ps=perState[name]||{reached:0,failed:['never driven'],cells:0,minTexts:0,boards:0};
     L.say(ps.failed.length===0&&ps.reached===1&&ps.cells===myCells.length&&ps.cells>0&&ps.minTexts>0&&(!wantsBoard||ps.boards===ps.cells),'TC-R248 '+which+' '+name+': DENOMINATOR - the state was reached, all '+myCells.length+' cells were read, each read found text in front'+(wantsBoard?', and a board in every cell':''),
@@ -249,6 +267,7 @@ async function run(which){
   const stale=[];for(const k of Object.keys(pins)){if(!wanted.some(s=>s[0]===k.split('|')[0]))continue;const gone=pins[k].filter(c=>myCells.includes(c)&&!(group[k]&&group[k].cells.includes(c)));if(gone.length)stale.push(k+' @ '+gone.join(','));}
   L.note('TC-R248 totals: '+all.length+' findings in '+Object.keys(group).length+' groups (state | kind | what); '+nPinned+' pinned, '+nNew+' new'+(STRICT?' [STRICT: pins ignored]':'')+'; '+stale.length+' STALE pin(s) no longer firing'+(stale.length?': '+stale.slice(0,12).join(' ;; '):''));
   L.note('time: '+Math.round(tDrive/1000)+' s reaching the states, '+Math.round(tCells/1000)+' s reading the cells');
+  L.note('TC-R248e height cap: '+nCapped+' board reading(s) were in a listed height-capped cell, centred and at least as wide as listed');
   const byKind={};for(const f of all)byKind[f.kind]=(byKind[f.kind]||0)+1;L.note('TC-R248 by kind: '+JSON.stringify(byKind));
 }
-module.exports={run,LAUNCHES,SIZES,STATES,KINDS,MEASURE,PINFILE};
+module.exports={run,LAUNCHES,SIZES,STATES,KINDS,MEASURE,PINFILE,drivers:D};

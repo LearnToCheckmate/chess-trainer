@@ -2645,6 +2645,9 @@ As a player on any phone from 320 to 430 points wide, with my text size anywhere
 - No text or control spills out of its box or off the edge of the screen. (TC-R248c)
 - Nothing scrolls sideways. (TC-R248d)
 - The board fills the width of the screen on every board screen. (TC-R248e)
+- **In Review, Review analysis and Analysis from a drill card the rows give way before the board narrows** (FB-07, "Yes, full width"; jobs/short-upright-boards-sized-to-height-2026-11-12). On a screen too short for every row and a full-width board, in this order: the header row goes (back and more sit in the top player bar, as on a short phone); the two player bars go to 38; the explanation's box goes to two lines and then one, the rest scrolling inside it behind its fade; the gaps round the move strip and the buttons close. Only past all of that does the height cap the board, and then it sits centred. So the board is the full width at 375x667, 360x640 and 320x568, and on my own phone in the Home Screen app, where the header row used to take 43pt from it and leave it flush left. Nothing is removed: the header's two buttons and every line of the explanation are still there. (TC-R253a, b)
+- At a small text size (a wider sheet of CSS pixels) the bar goes above the board wherever above gives the bigger board, and a phone-shaped sheet is not held to the 820px desktop cap, so the board fills the width there too. (TC-R253c)
+- Where the height does cap the board (larger text on a small phone) it is centred and no narrower than the gate records. (TC-R253d)
 - Every card is centred and fills the width, and no list hides rows while the screen under it is empty. (TC-R248f)
 
 ### US-R175 A build run's token use is counted from its own transcripts

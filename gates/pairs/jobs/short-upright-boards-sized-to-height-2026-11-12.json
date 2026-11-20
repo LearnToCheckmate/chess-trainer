@@ -1,0 +1,25 @@
+{
+ "job": "short-upright-boards-sized-to-height-2026-11-12",
+ "about": "THE BOARD HALF (FB-07, full width), graded by the board reading of gates 177 and 178 (gates/drive/layout.js, TC-R248e) on a trial bundle, on four states: Review at move 10, Analysis from a solved drill card, a lesson demo and a puzzle with its hint, each at eight phones (375x761, 390x844, 414x896, 430x932 with his insets; 320x568, 360x640, 375x667 and 375x730 - the room his phone leaves in the Home Screen app - without) and four text sizes. The real code passes: in Review and drill Analysis the board is the width in every cell at 50, 75 and 100 percent, and where the height caps it (125 percent on the three smallest phones) it is centred and as wide as the fixture lists. Three ways it could come undone are each caught. NOT COVERED: Play against the computer on the three short phones, which still keeps the bar beside the board (his a35 pick; pinned, a question for him); the non-Review boards at 125 percent (pinned); the explanation's tap-for-the-whole-text and the engine line taking its place on a short phone (gate 22 and gate 26 read those screens; no break here is aimed at them); his phone itself.",
+ "gate": "gates/regress/177-clean-at-every-width-and-text-size.js",
+ "cmd": ["sh", "-c", "node gates/regress/177-clean-at-every-width-and-text-size.js; node gates/regress/178-clean-at-every-width-and-text-size-small-phones.js"],
+ "env": {"CT_G177_STATES": "^(review-move-10|drill-analysis|lesson-demo|puzzle-hint)$"},
+ "checks": ["TC-R248e "],
+ "build": "always",
+ "situations": [
+  {"name": "the notch phones (375x761 his gate geometry, 390, 414, 430)", "match": "^TC-R248e notch "},
+  {"name": "the small phones (320x568, 360x640, 375x667, 375x730)", "match": "^TC-R248e flat "}
+ ],
+ "breaks": [
+  {"name": "review-board-fits-the-height-again", "patch": "breaks/178-review-board-fits-the-height-again.diff",
+   "why": "the Review board is sized as if no row gave way: back at 331 of 375 at 375x667 and narrower than the screen on every short phone",
+   "mustFailIn": ["the notch phones (375x761 his gate geometry, 390, 414, 430)", "the small phones (320x568, 360x640, 375x667, 375x730)"]},
+  {"name": "the-header-row-on-any-screen-700-tall", "patch": "breaks/178-the-header-row-on-any-screen-700-tall.diff",
+   "why": "the header row is shown on any screen 700 tall again, so at 375x730 (his phone's room) it takes its 48 from the board, which sits narrower than the screen",
+   "mustFailIn": ["the small phones (320x568, 360x640, 375x667, 375x730)"]},
+  {"name": "the-820-cap-on-a-phone-sheet", "patch": "breaks/177-the-820-cap-on-a-phone-sheet.diff",
+   "why": "the 820px desktop cap applies to a phone sheet again: at 50 percent text on 414 and 430 wide phones every board leaves a band each side",
+   "mustFailIn": ["the notch phones (375x761 his gate geometry, 390, 414, 430)"]}
+ ],
+ "timeoutSec": 2400
+}

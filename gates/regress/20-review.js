@@ -448,7 +448,7 @@ L.run(async()=>{try{
     await b.settle(400);await rec('p33');await b.shot('review-'+geo+'-ply33');
     const ws=new Set(Object.values(at).map(x=>x.board&&x.board.w)),tops=new Set(Object.values(at).map(x=>x.board&&x.board.top));
     L.say(ws.size===1&&tops.size===1&&!ws.has(null),geo+': TC-R06 one board width and one top across plies 0/10/19/33',{ws:[...ws],tops:[...tops]});
-    if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679)L.say(/* dimensions, not the name [#545 item (4)] */at.p0.board&&Math.abs(at.p0.board.w-343)<0.6,'kunal: TC-R06 review board is 343 wide ('+(at.p0.board&&at.p0.board.w)+') [#550 a21: the streamlined review puts the eval bar above an edge-to-edge board, so at 375x679 the board is bounded by the HEIGHT, 343, not by the 349 the beside-bar left; on his phone, 375x761, it is 375]');
+    if(L.GEOS[geo].w===375&&L.GEOS[geo].h===679)L.say(/* dimensions, not the name [#545 item (4)] */at.p0.board&&Math.abs(at.p0.board.w-375)<0.6,'kunal: TC-R06 review board is 375 wide ('+(at.p0.board&&at.p0.board.w)+') [batch 13, FB-07 "full width": at 375x679 the rows give way before the board - the player bars at 38 and the explanation at two lines - so the board is the width; it was 343, bounded by the height (#550 a21)]');   /* re-pinned 343 -> 375 by batch 13, jobs/short-upright-boards-sized-to-height-2026-11-12 */
     // The docScroll===0 conjunct that used to sit beside this one is GONE. index.html:39 sets body{overflow:hidden}
     // and makes #root the scroller, so documentElement scrollHeight minus clientHeight is 0 on every screen in
     // every state BY DESIGN and that half could never redden - while reading as though it covered reachability.
@@ -912,3 +912,4 @@ L.run(async()=>{try{
 // SELECTOR-OPENED: pbar-top reading=presence round 4: the names and flags are read inside the bars and must be found
 // SELECTOR-OPENED: rev-summary-menu reading=presence round 4: the summary must carry its menu button, measured
 // SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R11 needs the toolbar and its four buttons in order
+// CONTROL-RECORD: c0d52abf 2026-11-20 total=345 red=5 scope=trial:e94e09711f6e how=batch 13, the re-pin of TC-R06 at 375x679 (343 -> 375): the tree before the board half (c608f411's chess.jsx as a trial) - 'kunal: TC-R06 review board is 375 wide (343)' red; the other four reds are the TC-R04 verdict-row lines, red on that tree before this change too; on the change's trial 7fa11ae19933 the gate reads 341/4, those four only
