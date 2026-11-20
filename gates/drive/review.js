@@ -85,13 +85,41 @@ async function toList(b){
   await b.home();await b.tile('Review');await b.settle(600);
   if(!(await onList(b)))throw new Error('toList: the Review list did not open');
 }
+// ── THE SHARED ANALYSIS, OPT-IN PER GATE [batch 13; jobs/the-slowest-gates-are-made-faster-with-every-check-kept-2026-11-18].
+// A gate that calls shareAnalysis() BEFORE the launches that only stand on a reviewed game gets each game analysed once: the
+// first import of a game analyses it from nothing, as before, and leaves its engine output in the app's own ct_evalcache;
+// that one entry is kept (in this process, and in gates/logs/analysis-cache/ for any later gate of the same suite), and every
+// later import of the same game is seeded with it before Analyze is tapped, so the app takes its own cache path - the one a
+// player takes on reopening a game. WHAT KEYS IT, so no gate is handed a stale game: the bundle's md5 (another build never
+// reuses it), the PGN text, and the store values that change what the engine computes (ct_pool, ct_engdet, ct_gdepth). WHAT IS
+// KEPT: only a COMPLETE fresh pass - one new cache entry, every position searched, det 1, and engine path not 'cache' - the
+// same bar gate 20's TC-R238a holds its own share to. A gate that never calls it, and any gate run alone with an empty cache,
+// analyses from nothing exactly as before. Do NOT turn it on for a launch whose subject is the analysis itself (its timing,
+// its workers, its progress line): there the fresh pass IS the case. Each import says which it took in a note line.
+const _crypto=require('crypto'),_fs=require('fs'),_path=require('path');
+const _shareDir=_path.join(__dirname,'..','logs','analysis-cache');const _shareMem=new Map();let _shareOn=false;
+function shareAnalysis(on){_shareOn=on!==false;}
+async function _shareKey(b,pgn){const st=await b.page.evaluate(()=>({pool:localStorage.getItem('ct_pool'),det:localStorage.getItem('ct_engdet'),gd:localStorage.getItem('ct_gdepth')}));
+  return (b.bundleMd5||'nobundle').slice(0,12)+'-'+_crypto.createHash('sha1').update(JSON.stringify([pgn,st.pool,st.det,st.gd])).digest('hex').slice(0,16);}
+function _shareGet(k){if(_shareMem.has(k))return _shareMem.get(k);try{const v=JSON.parse(_fs.readFileSync(_path.join(_shareDir,k+'.json'),'utf8'));if(v&&v.key&&v.entry){_shareMem.set(k,v);return v;}}catch(e){}return null;}
+function _sharePut(k,v){_shareMem.set(k,v);try{_fs.mkdirSync(_shareDir,{recursive:true});const f=_path.join(_shareDir,k+'.json');_fs.writeFileSync(f+'.'+process.pid,JSON.stringify(v));_fs.renameSync(f+'.'+process.pid,f);}catch(e){}}
 // paste a PGN and analyse it; waits for the summary (a cached game takes seconds, a fresh one 20-60 s)
 async function importPgn(b,pgn,timeout){
   await toList(b);
+  let sk=null,seeded=false,before=null;
+  if(_shareOn&&b.bundleMd5){sk=await _shareKey(b,pgn);const v=_shareGet(sk);
+    before=await b.page.evaluate(()=>{try{return Object.keys(JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{});}catch(e){return [];}});
+    if(v&&!before.includes(v.key)){seeded=await b.page.evaluate((v)=>{try{const all=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};all[v.key]=Object.assign({},v.entry,{at:Date.now()});localStorage.setItem('ct_evalcache',JSON.stringify(all));return true;}catch(e){return false;}},v);}}
   await b.page.locator('textarea').fill(pgn);await b.settle(150);
   await b.tapText(/^⚡ Analyze [Gg]ame$/);
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:timeout||180000});
   await b.settle(900);b._ctReview=pgn===PGN_OPERA?'opera':(pgn===PGN_CORNER?'corner':'other');
+  if(sk){const r=await b.page.evaluate((was)=>{let o={};try{o=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};}catch(e){}const nk=Object.keys(o).filter(k=>!was.includes(k));
+      const rv=window.__ctReview;return {nk,entry:nk.length===1?o[nk[0]]:null,path:rv&&rv.engine&&rv.engine.path,plies:rv&&rv.plies?rv.plies.length:-1};},before);
+    b._ctShared={key:sk,seeded,path:r.path};
+    if(seeded)console.log('     shared analysis: '+b._ctReview+' seeded from '+sk+' -> engine path '+r.path);
+    else if(r.path!=='cache'&&r.entry&&r.entry.det===1&&r.entry.evW&&r.entry.evW.length===r.plies+1){_sharePut(sk,{key:r.nk[0],entry:r.entry});console.log('     shared analysis: '+b._ctReview+' analysed from nothing (engine path '+r.path+') and kept as '+sk);}
+    else console.log('     shared analysis: '+b._ctReview+' analysed (engine path '+r.path+'), NOT kept - not one complete fresh pass');}
 }
 // the summary of `which` ('opera'|'corner') on screen, importing when it is not the current review
 async function ensureReview(b,which){
@@ -151,5 +179,5 @@ const states={
   'fab-corner-mid':async(b)=>{await exitAnalysis(b);await movesAt(b,6,'corner');},
   'stored-review':async(b)=>{await seed(b,SEED);await b.open();b._ctReview=null;await b.tile('Review');await b.settle(700);await b.page.locator('[data-ct="game-row"]').first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(900);b._ctReview='stored';}
 };
-module.exports={navTap,engineSet,states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
+module.exports={shareAnalysis,navTap,engineSet,states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
   notes:'Home tile Review -> the list (textarea + "⚡ Analyze Game"). The summary is a fixed overlay (rev-summary) with a pinned footer (rev-summary-foot: "‹ Back to games" / "Start review ›"). The move screen: top player bar holds rev-back and rev-more, the round rev-fab sits on the board, rev-compact holds the move line, the reason (rev-why/rev-why-txt), the control row (rev-row1: ⏮ ▶ ⏭ ★) and the strip (strip-row: 26px arrows + [data-mstrip] move spans). Plies are reached by clicking the strip spans (goPly). Stored games render as "Review ›" rows from ct_accts/ct_acctgames (SEED). The eval cache (ct_evalcache) makes a repeat import instant; a first analysis of the Opera Game takes ~20-60 s with ct_pool=3. b._ctReview remembers which PGN is loaded.'};
