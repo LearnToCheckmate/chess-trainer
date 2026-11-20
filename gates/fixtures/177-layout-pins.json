@@ -379,8 +379,15 @@
    "414x896@75",
    "430x932@75"
   ],
-  "play-setup|spill|[setup-coach] span \"Coach mode\"": [
-   "320x568@125"
+  "play-setup|card|[setup-coach] button \"Coach mode Off\"": [
+   "320x568@50",
+   "360x640@50",
+   "375x667@50",
+   "375x761@50",
+   "390x844@50",
+   "414x896@50",
+   "414x896@75",
+   "430x932@75"
   ],
   "puzzle-fail|board|the board": [
    "320x568@125",

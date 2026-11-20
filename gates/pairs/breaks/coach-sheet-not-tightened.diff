@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 4132003a..868613bb 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11418,5 +11418,5 @@ function AppMain(){
+            320x568 as his q44 has it: the rows sit 4 apart (were 8) and the scan buttons' padding is 9 (was 13). No row is removed, and the
+            Online and Pass & Play sheets, which have no Coach row, keep their spacing. */
+-        const _tight=!_sw2&&vp.h<640&&opponent==='computer'&&!botPick;
++        const _tight=false;
+         const setOpponent=(v)=>_setDraft({opponent:v}),setPColor=(v)=>_setDraft({pColor:v}),setTimeCtrl=(v)=>_setDraft({timeCtrl:v}),setCpuElo=(v)=>_setDraft({cpuElo:v}),setSelBot=(v)=>_setDraft({selBot:v});
+         const timeCtrlRef={get current(){return timeCtrl;},set current(v){}};   /* writes go through setTimeCtrl above, which every write here pairs with */
