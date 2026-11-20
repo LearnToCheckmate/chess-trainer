@@ -9,9 +9,14 @@
 // HIS FINAL RULE (run-answers a35, chat about 7:45pm EST Wed 11 Nov 2026): portrait above where that gives the bigger board, and beside on
 // short portrait screens (320x568, 375x667: above made the board 272 and 339 against 298 and 353 beside); in landscape the bar is upright
 // on the board's RIGHT. chess.jsx draws the line at a height/width ratio of 1.87 (EVAL_ABOVE_MIN_RATIO). Block D asserts both halves.
+// BATCH 13 REVERSES THE SHORT-PORTRAIT HALF, ON HIS OWN WORD (run-question q29, about 3:01-3:05pm EST Fri 20 Nov 2026, "The run's picks";
+// jobs/short-upright-boards-sized-to-height-2026-11-12): Play against the computer on a short upright phone now has the bar ABOVE and the
+// board the FULL WIDTH, the rows round it giving way first (chess.jsx playFit) - 320 at 320x568 and 375 at 375x667, where beside left 298
+// and 353. TC-R198d now asserts that; the landscape half (TC-R198e) is unchanged. Gate 183 reads the rows that give way.
 // CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=2 scope=trial:b8b9d170d5e9 how=#550 item (64): the migration run on every load - both TC-R198c lines red (a choice of beside does not stand)
 // CONTROL-RECORD: 64afd33 2026-11-12 total=17 red=8 scope=trial:b06b4a724838 how=#550 item (64): the tree before the migration - TC-R198a and TC-R198b red, the preconditions and TC-R198c green
 // CONTROL-RECORD: 976131a 2026-11-12 total=21 red=4 scope=trial:fa0485d4646e how=#550 a35: the trial before his final rule (portrait above everywhere, landscape bar on the left) - both TC-R198d and both TC-R198e lines red
+// CONTROL-RECORD: 54754943 2026-11-20 total=21 red=2 scope=trial:a5a69f3a4462 how=batch 13, q29 (the Play part of job 12): the tree before playFit, where a short portrait screen keeps the bar beside - both new TC-R198d lines red (bar beside, 298 of 320 and 353 of 375); the OLD TC-R198d lines read 21/0 on that same trial, and the new ones 21/0 on the fix's trial a4e4b10faa66
 const L=require('../lib');
 const P=require('../drive/play');
 const board=(b)=>b.page.evaluate(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.width-a.width)[0];
@@ -41,11 +46,12 @@ L.run(async()=>{
    L.say(ok&&r.beside&&!r.above&&r.key==='0','TC-R198c beside, chosen after the migration ran, stays beside: the migration runs once and never again',r);
    L.say(r.w!==null&&r.w<r.vw-10,'TC-R198c and there the board gives the bar its width back ('+r.w+' of '+r.vw+'), so A\'s full width is the placement and not the screen',r);
    await b.close();}
-  // D. a35: short portrait keeps the bar beside at its old width; landscape puts it on the board's right, upright
-  for(const [g,want] of [[{w:320,h:568,safe:'',label:'320x568'},298],[{w:375,h:667,safe:'',label:'375x667'},353]]){
+  // D. batch 13, q29 (reversing a35's short-portrait half): a short portrait screen has the bar ABOVE and the board the full width; landscape
+  //    puts it on the board's right, upright, as a35 said
+  for(const [g,want] of [[{w:320,h:568,safe:'',label:'320x568'},320],[{w:375,h:667,safe:'',label:'375x667'},375]]){
     const b=await L.launch({geo:g,name:'r198-short',store:{ct_pool:'3'}});await b.open();let ok=true;try{await P.states['cpu-m0'](b);await b.settle(900);}catch(e){ok=false;}
     const r=await board(b);
-    L.say(ok&&r.beside&&!r.above&&Math.abs(r.w-want)<=1,'TC-R198d '+g.label+' a short portrait screen keeps the bar BESIDE, so the board keeps its '+want+' (above would make it smaller): '+r.w,r);
+    L.say(ok&&r.above&&!r.beside&&Math.abs(r.w-want)<=1,'TC-R198d '+g.label+' a short portrait screen has the bar ABOVE and the board the full width, '+want+' (batch 13, his q29; beside left 298 and 353): '+r.w,r);
     await b.close();}
   for(const g of [{w:761,h:375,safe:'',label:'761x375'},{w:730,h:375,safe:'',label:'730x375'}]){
     const b=await L.launch({geo:g,name:'r198-land',store:{ct_pool:'3'}});await b.open();let ok=true;try{await P.states['cpu-m0'](b);await b.settle(900);}catch(e){ok=false;}
