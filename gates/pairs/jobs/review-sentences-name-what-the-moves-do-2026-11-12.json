@@ -1,10 +1,11 @@
 {
  "job": "review-sentences-name-what-the-moves-do-2026-11-12",
- "about": "The Review's sentences name what the moves do (batch 13, the remainder of the job: docs/hint-audit-2026-11-12 HEX-R-02, -06, -07, -08 and the residuals A2, A3, A6, B6, B7 of docs/review-text-design-2026-11-14). Gate 169 is run whole and every TC-R234 line is graded: the node lines (the shipped reviewText, explainLine, playWhyTxt, revChain and coachWorst on fixed positions, each sentence matched to one template and its facts checked against the position by the gate's own reading of the rules) and the screen lines at his phone 375x761 and at 320x568, read after stepping to the ply in two reviewed games (the Opera Game and a 13-ply Alekhine Defense): a piece moved away from a pawn, a mate threat named with its number, the king's only legal move that takes the checking queen, the why pill's words, check signs in the line, the queen sacrifice's mate printed as the move lands and unchanged 3.2 s later, and the summary's Coach's take. NOT COVERED, said rather than implied: what batch 10 built for this job (HEX-R-01, -04, -13: gates 133, 20, 21, 22); HEX-R-05 (the best line row) and HEX-R-09 (the analysis board) are not built; the screen reads a pasted game, so the you/your voice is graded on the node lines only; the engine line's ? sheet is graded on the node lines only (explainLine), not on screen; grades come from the engine under ct_engdet, so a different browser build could grade 6.Bc4 or 2...Nd5 differently and turn those two screen lines red without the sentence being wrong; no laptop width and no skin is a situation. Controls D (the forced capture) and E (the take-back bit) are recorded on the gate and are not breaks here.",
+ "about": "The Review's sentences name what the moves do (batch 13, the remainder of the job: docs/hint-audit-2026-11-12 HEX-R-02, -06, -07, -08 and the residuals A2, A3, A6, B6, B7 of docs/review-text-design-2026-11-14). Gate 169 is run whole and every TC-R234 line is graded: the node lines (the shipped reviewText, explainLine, playWhyTxt, revChain and coachWorst on fixed positions, each sentence matched to one template and its facts checked against the position by the gate's own reading of the rules) and the screen lines at his phone 375x761 and at 320x568, read after stepping to the ply in two reviewed games (the Opera Game and a 13-ply Alekhine Defense): a piece moved away from a pawn, a mate threat named with its number, the king's only legal move that takes the checking queen, the why pill's words, a check said in words and no + or # sign in a quoted move (Kunal's Desk answer q7, 19 Nov 2026, which reverses residual B6), the queen sacrifice's mate printed as the move lands and unchanged 3.2 s later, and the summary's Coach's take. NOT COVERED, said rather than implied: what batch 10 built for this job (HEX-R-01, -04, -13: gates 133, 20, 21, 22); HEX-R-05 (the best line row) and HEX-R-09 (the analysis board) are not built; the screen reads a pasted game, so the you/your voice is graded on the node lines only; the engine line's ? sheet is graded on the node lines only (explainLine), not on screen; grades come from the engine under ct_engdet, so a different browser build could grade 6.Bc4 or 2...Nd5 differently and turn those two screen lines red without the sentence being wrong; no laptop width and no skin is a situation. Controls D (the forced capture) and E (the take-back bit) are recorded on the gate and are not breaks here. Added for his Desk answers of 19 Nov 2026 (TC-R249): q7, a move a Review sentence quotes carries no + or # sign and a check is said 'with check' (node lines, a sweep of every Opera Game ply at five grades, and the screen at plies 20, 30 and 31); q9, the summary's speech bubble points at the count tiles and the toughest moment Coach's take names, never at a list 'below' (every branch of revBubble in node, and on screen the Opera Game reviewed as Black from the games list, whose Blunder count is tapped and opens a Blunder, and a book-only game that was lost). The old break check-signs-dropped is retired: what it broke is now the fix.",
  "gate": "gates/regress/169-review-sentences-name-moves.js",
  "env": {},
  "checks": [
-  "TC-R234[a-n] "
+  "TC-R234[a-n] ",
+  "TC-R249[a-c] "
  ],
  "build": "auto",
  "situations": [
@@ -43,9 +44,29 @@
    ]
   },
   {
-   "name": "check-signs-dropped",
-   "patch": "breaks/g169-check-signs-dropped.diff",
-   "why": "a move that gives check is written without its sign in the line and in a run of moves (11.Bxb5, 16.Qb8 Nxb8 17.Rd8 mate), so the forced reply after it has no cause on the page",
+   "name": "check-signs-kept",
+   "patch": "breaks/g169-check-signs-kept.diff",
+   "why": "rtSay keeps the + sign again (Kunal's q7 undone): '11.Bxb5+', '16.Qb8+ Nxb8 17.Rd8 mate', '6...Qxf2+' in the Coach's take, and no 'with check' in words",
+   "mustFailIn": [
+    "node",
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "bubble-says-below",
+   "patch": "breaks/g169-bubble-says-below.diff",
+   "why": "the bubble's blunder sentences say 'See them below' and 'Step through it below' again, of a key-moments list the summary does not show, instead of pointing at the Blunder count",
+   "mustFailIn": [
+    "node",
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "book-game-key-moments-below",
+   "patch": "breaks/g169-book-game-key-moments-below.diff",
+   "why": "a lost game whose moves were all book says 'The key moments below show where it turned.' again, and there are none",
    "mustFailIn": [
     "node",
     "kunal761",

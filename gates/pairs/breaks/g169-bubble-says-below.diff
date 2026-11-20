@@ -1,0 +1,16 @@
+diff --git a/chess.jsx b/chess.jsx
+index 16de3f0f..e43b1597 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2617,9 +2617,9 @@ function revToughI(rv,uc){try{const an=(rv&&rv.analysis)||[];let wI=-1,wL=0,bad=
+     return (bad>0&&wI>=0&&wL>=90)?wI:-1;}catch(e){return -1;}}
+ function revBubble(o){o=o||{};const bl=o.bl||0,mi=o.mi||0,br=o.br||0,won=!!o.won,lost=!!o.lost,tough=o.tough||'';
+-  const tapB=bl>1?'Tap the Blunder count below to go to the first.':'Tap the Blunder count below to go to it.';
++  const tapB='See them below.';
+   if(br>0)return 'Sharp eye. You found '+br+' brilliant move'+(br>1?'s':'')+'. '+(won?'A deserved win.':bl>0?('Now clean up the '+bl+' blunder'+(bl>1?'s':'')+': '+tapB.charAt(0).toLowerCase()+tapB.slice(1)):'Strong play.');
+   if(won&&bl===0&&(o.moves||0)>0&&(o.acc||0)>=85)return 'Clean game. You stayed accurate and converted without slipping.';
+   if(won&&bl>0)return 'You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. '+tapB;
+-  if(lost&&bl>0)return (bl>1?('Those '+bl+' blunders cost you. Tap the Blunder count below to go to the first and see the better line.'):'That blunder cost you. Tap the Blunder count below to go to it and see the better line.');   /* #548 item (160): it read 'Those 1 blunder cost you.' */
++  if(lost&&bl>0)return (bl>1?('Those '+bl+' blunders cost you. Step through them below'):'That blunder cost you. Step through it below')+' to see the better line.';   /* #548 item (160): it read 'Those 1 blunder cost you.' */
+   if(lost){if(!(o.moves>0))return 'A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.';
+     return tough?('A tough one. The toughest moment, '+tough+', named in Coach\u2019s take above, is where it turned. Tap a count below to go to that kind of move.'):'A tough one. Tap a count below to go to those moves and see where it turned.';}
