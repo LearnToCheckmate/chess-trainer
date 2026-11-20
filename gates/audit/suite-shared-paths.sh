@@ -84,6 +84,9 @@ $G/logs/$STEM-fastgate-drive.log.err	RUN-UNIQUE	$STEM, via $dlog plus a suffix -
 $G/logs/$STEM-fastgate-drive.log.pass	RUN-UNIQUE	$STEM, via $dlog plus a suffix - the job's named instance [#546 item (58)]
 $G/logs/$STEM-unit-drill-why.log.pass	RUN-UNIQUE	$STEM, via $ulog plus a suffix [#546 item (58)]
 $G/logs/$STEM-unit-held-guard.log.pass	RUN-UNIQUE	$STEM, via $hlog plus a suffix [#546 item (58)]
+$G/logs/$STEM-token-use.log	RUN-UNIQUE	$STEM, same derivation [batch 13, the token-use unit block]
+$G/logs/$STEM-token-use.log.pass	RUN-UNIQUE	$STEM, via $tlog plus a suffix [batch 13]
+$G/logs/$STEM-records-door.log	RUN-UNIQUE	$STEM, same derivation (the records door's own log, passed to records_door as its 4th argument) [classified batch 13]
 $G/shots/gates-$TAG	COLLIDES	$TAG ONLY - no suffix, so two runs at one build number share it
 INV
 )
@@ -110,6 +113,9 @@ say(){ printf '%s\n' "$*"; }
 # unit-held-guard.sh is a read target for the same reason: gates.sh runs it and never writes it [#545 item (85)].
 # lib.js is a read target too: gates.sh PRELOADS it into every gate with `node -r "$G/lib.js"` (#546 item (86)) and
 # never writes it. That line made this audit RED until this exclusion [#546, antagonist B's V2].
+# Four more READ targets, classified at batch 13 (the audit read RED on them at 8c6b7bba): gates.sh RUNS
+# audit/token-use-selftest.js (its token-use unit block), SOURCES suite-resume.sh (the opt-in resume), CALLS records-gate.sh
+# (the records door) and READS fastgate.sh (obs_records' classify()); it writes none of them.
 # ONE LEVEL OF VARIABLE COMPOSITION [#546, item (58); jobs/suite-shared-paths-derive-cannot-see-a-write-destination-
 # built-from-a-variable-2026-10-16]. The literal scan below sees `$G/`-prefixed text and nothing else, so a destination
 # written as a variable plus a suffix - `> "$dlog.pass"`, `2> "$dlog.err"` - was invisible to it, and arm (1) printed
@@ -132,7 +138,7 @@ composed(){
 }
 derive(){  # every distinct $G/ expression gates.sh can write to, from the source, sorted
   { grep -oE '\$G/[A-Za-z0-9_./$={}#-]*' "$GATESH" | sed 's/}$//'; composed; } \
-    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|lib\.js|regress/?)' \
+    | grep -vxE '\$G/(gatemanifest\.sh|mountcheck\.js|unit-drill-why\.js|unit-held-guard\.sh|fastgate-drive\.sh|assertion-counts\.tsv|lib\.js|regress/?|audit/token-use-selftest\.js|fastgate\.sh|records-gate\.sh|suite-resume\.sh)' \
     | sort -u
 }
 

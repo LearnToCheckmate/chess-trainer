@@ -1738,6 +1738,38 @@ JS
   st R71i-and-names-no-records-path "$(obs_records "$ST_T/r71-none.out" "$SG/fastgate.sh" | wc -l | tr -d ' ')" 0
   st R71j-the-gate-loop-reddens-on-it "$(grep -c '^  elif \[ -n "\$orec" \]; then red=1;' "$SF")" 1
   st R71k-and-on-an-unreadable-classify "$(grep -c '^  elif \[ "\$orc" -ne 0 \]; then red=1;' "$SF")" 1
+
+  # ── TU1 TO TU9: THE token-use UNIT BLOCK [batch 13; job 25's part 2, for job 52's gates/audit/token-use-selftest.js]. ──
+  # THE REAL BLOCK, extracted from this file (TUJS= up to the fastgate-drive block's banner), driven over stub selftests in a
+  # scratch tree: green on oks, and RED on each way it could otherwise say nothing - the script absent, 0 ok at exit 0, a
+  # FAIL line at exit 0, a non-zero exit with oks. TU8 runs the REAL selftest through the block (its audit/ and fixtures/
+  # linked into the scratch tree, so no log lands in this repository's gates/logs) and holds its PASS count to the count
+  # the selftest prints when run alone. No pipes, as in the block itself.
+  # CONTROLS, run 2026-11-20 over copies of this file (gates/.gates-run-tuctl.sh, removed after): the block deleted (the
+  # subject itself) -> 430 pass / 8 fail, TU1-6, TU8 and TU9 red (TU7 green: a subset run does nothing either way); the
+  # `[ "$tok" -eq 0 ]` limb removed -> 437 / 1, TU4 red alone; the absent-script branch removed -> 437 / 1, TU3 red alone.
+  awk '/^TUJS=/{p=1} /^# ── THE UNIT LAYER, SECOND BLOCK/{if(p){exit}} p{print}' "$SF" > "$ST_T/tublock.sh"
+  st TU1-the-token-use-block-was-extracted "$( [ -s "$ST_T/tublock.sh" ] && grep -c 'PASS token-use' "$ST_T/tublock.sh" )" 2
+  st_tu(){ # $1 = stub body ('' = no script), $2 = SUBSET; prints "<red> <PASS token-use lines> <ABSENT lines> <FAIL token-use lines>"
+    local d="$ST_T/tu"; rm -rf "$d"; mkdir -p "$d/gates/logs" "$d/gates/audit"; : > "$ST_T/tu-all.log"
+    [ -n "$1" ] && printf '%s\n' "$1" > "$d/gates/audit/token-use-selftest.js"
+    local r; r="$( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/tu-all.log" SUBSET="$2" BLK="$ST_T/tublock.sh" \
+      bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )"
+    printf '%s %s %s %s' "$r" "$(grep -c '^PASS token-use ' "$ST_T/tu-all.log")" "$(grep -c 'THE UNIT FILE IS ABSENT' "$ST_T/tu-all.log")" "$(grep -c '^FAIL token-use ' "$ST_T/tu-all.log")"
+  }
+  st TU2-three-oks-at-exit-0-are-green-and-three-PASS-lines "$(st_tu 'console.log("  ok  a");console.log("  ok  b");console.log("  ok  c");' '')" '0 3 0 0'
+  st TU3-an-absent-selftest-is-RED-and-says-so "$(st_tu '' '')" '1 0 1 0'
+  st TU4-zero-ok-at-exit-0-is-RED "$(st_tu 'console.log("nothing asserted");' '')" '1 0 0 0'
+  st TU5-a-FAIL-line-at-exit-0-is-RED-and-carried-into-the-log "$(st_tu 'console.log("  ok  a");console.log("  FAIL b");' '')" '1 1 0 1'
+  st TU6-oks-at-a-non-zero-exit-are-RED "$(st_tu 'console.log("  ok  a");process.exit(1);' '')" '1 1 0 0'
+  st TU7-a-subset-run-skips-the-block-even-when-the-script-is-absent "$(st_tu '' 'x')" '0 0 0 0'
+  rm -rf "$ST_T/tu"; mkdir -p "$ST_T/tu/gates/logs"; ln -s "$SG/audit" "$ST_T/tu/gates/audit"; ln -s "$SG/fixtures" "$ST_T/tu/gates/fixtures"; : > "$ST_T/tu-all.log"
+  tu_alone="$( cd "$(dirname "$SG")" && node "$SG/audit/token-use-selftest.js" 2>/dev/null )"
+  tu_n="$(grep -c '^  ok  ' <<<"$tu_alone")"
+  tu_red="$( cd "$ST_T/tu" && G="$ST_T/tu/gates" ROOT="$ST_T/tu" STEM=probe ALL="$ST_T/tu-all.log" SUBSET="" BLK="$ST_T/tublock.sh" \
+    bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )"
+  st TU8-the-real-selftest-through-the-block-is-green-with-as-many-PASS-lines-as-it-prints-oks-alone "$tu_red $(grep -c '^PASS token-use ' "$ST_T/tu-all.log") $( [ "$tu_n" -gt 0 ] && echo nonzero || echo ZERO )" "0 $tu_n nonzero"
+  st TU9-the-block-is-reached-only-on-full-runs "$(grep -c '^if \[ -z "\$SUBSET" \] && \[ -f "\$TUJS" \]; then$' "$SF")" 1
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
@@ -2712,6 +2744,42 @@ if [ -z "$SUBSET" ] && [ -f "$HGSH" ]; then
   else
     echo "    unit-held-guard: green ($hok ok -> $hok PASS lines)" >> "$ALL"
     echo "    unit-held-guard: green ($hok ok -> $hok PASS lines)"
+  fi
+fi
+
+# ── THE UNIT LAYER, TOKEN-USE BLOCK: gates/audit/token-use-selftest.js. ADDED batch 13. ──────────────────────
+# jobs/the-fleet-has-no-token-or-cost-instrumentation-at-all-2026-10-06 (job 52) shipped gates/audit/token-use.js, the
+# counter over a run's session transcripts, and its selftest over synthetic fixtures (gates/fixtures/token-use/), and no
+# suite ran the selftest - the same hole #550 item (138) closed for unit-drill-why and unit-held-guard. Same shape as the
+# held-guard block above, deliberately: `--- ` marker (never `=== `, the roster arm of verify-log.sh), "  ok  " lines
+# translated to ^PASS from ONE pattern that both the count and the emitted lines come from, 0 ok is as red as a FAIL, an
+# absent script is RED and says so, full runs only, no pipes (gatemanifest.sh and pipefail-grep ratchet this file's pipe
+# sites). No browser, no network: node only, 19 checks when it landed, so the footer total RISES BY 19 on the first full
+# run after this block - a one-time step, said here so a reader comparing totals across that run is not surprised.
+TUJS="$G/audit/token-use-selftest.js"
+if [ -z "$SUBSET" ] && [ ! -f "$TUJS" ]; then
+  red=1
+  echo "--- token-use (unit layer) ---" >> "$ALL"
+  echo "--- token-use (unit layer) ---"
+  echo "    token-use: RED - THE UNIT FILE IS ABSENT: $TUJS (the token counter's selftest; its absence must not print nothing)" >> "$ALL"
+  echo "    token-use: RED - THE UNIT FILE IS ABSENT: $TUJS (the token counter's selftest; its absence must not print nothing)"
+fi
+if [ -z "$SUBSET" ] && [ -f "$TUJS" ]; then
+  tlog="$G/logs/$STEM-token-use.log"
+  echo "--- token-use (unit layer, not a regress gate, not in the roster) ---" >> "$ALL"
+  echo "--- token-use (unit layer, not a regress gate, not in the roster) ---"
+  ( cd "$ROOT" && timeout 300 node "$TUJS" ) > "$tlog" 2>&1; trc=$?
+  sed -n 's/^  ok  *\(.*\)$/PASS token-use \1/p' "$tlog" > "$tlog.pass"   # one pattern for claim and evidence (#545 item 88)
+  tok=$(grep -c '^PASS token-use ' "$tlog.pass"); tfail=$(grep -c '^  FAIL' "$tlog")
+  cat "$tlog.pass" >> "$ALL"
+  if [ "$trc" -ne 0 ] || [ "$tfail" -gt 0 ] || [ "$tok" -eq 0 ]; then
+    red=1
+    echo "    token-use: RED (exit $trc, $tfail FAIL, $tok ok). Full output: $tlog" >> "$ALL"
+    echo "    token-use: RED (exit $trc, $tfail FAIL, $tok ok). Full output: $tlog"
+    sed -n 's/^  FAIL /FAIL token-use /p' "$tlog" >> "$ALL"
+  else
+    echo "    token-use: green ($tok ok -> $tok PASS lines)" >> "$ALL"
+    echo "    token-use: green ($tok ok -> $tok PASS lines)"
   fi
 fi
 

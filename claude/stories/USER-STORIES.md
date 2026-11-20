@@ -2574,6 +2574,7 @@ As the person who runs the six-hour full suite, a container restart in the middl
 - A resume on another bundle, another HEAD or tree, a moved working tree, another roster, other options or another build number, from a finished run, or from a record or log that was edited, has a gap or a repeat, is refused before any gate runs. (TC-R241b)
 - gates/verify-log.sh accepts a joined log only when every gate is there once and in order, every part ran on the one bundle, HEAD and tree the log names, and no section was changed after it was written. (TC-R241c)
 - Without either variable the suite and verify-log behave exactly as they did. (TC-R241d)
+- A joined log can be laid beside an unbroken run of the same head: the same bundle, the same gates once each in the same order, and per gate the same verdict, PASS and FAIL counts and assertion words; only numbers may differ, and a word-level difference is excused only on a gate that already differs between two unbroken runs. A missing, doubled or reordered gate is never excused. (batch 13; TC-R254b)
 
 ### US-R168 On Review, the eval graph never covers a move's explanation
 *Added batch 13, jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18.*
@@ -2658,6 +2659,7 @@ As the project owner comparing which model does a job best, I can see how many t
 - A transcript with no model calls reports zero and does not crash. (TC-R249c)
 - A time window over one transcript gives one block of numbers for a work-log entry. (TC-R249d)
 - A mapping file turns transcripts into one list per job, with a per-job summary of weighted tokens per estimate hour. (TC-R249e)
+- Every full suite runs the counter's selftest as a unit layer, so a full suite cannot go green with the counter broken or its selftest deleted. (batch 13; TC-R254a)
 ### US-R177 The Review says "with check" in words, and the summary's bubble points at what is on the screen
 *Added in batch 13, jobs/review-sentences-name-what-the-moves-do-2026-11-12, Kunal's Decision Desk answers of 19 Nov 2026: q7 BUILD ("'with check' in words": docs/review-text-design-2026-11-14 rule P5) and q9 BUILD ("the bubble points at the tiles and the toughest moment"). q9 also closes jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19. q8 (the size in brackets on Coach's take) stands as built.*
 As a player reading my game's review, I read moves in sentences as words rather than notation marks, and the summary sends me to things that are actually on the screen, so that nothing I read points at something I cannot find.
