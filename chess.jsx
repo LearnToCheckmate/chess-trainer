@@ -2679,7 +2679,7 @@ const REV_ROWS=323,REV_ROWS_HEAD=48,REV_ROWS_BARS=16,REV_ROWS_LINE=17,REV_ROWS_G
    AT THEIR FLOORS, in px - measured at 375x667, 360x640 and 320x568 on the column as it renders: the corner row 52 (2 + 44 + 6), the top
    player bar 46 + 2, the eval bar above the board 17 + 5, the bottom bar 2 + 46, the move list 10 + 61 (its MOVES row 23 + 4 and the list
    at its 34 floor), the button row 5 + 58 and the 8 under it come to 312. playFit (in the component) takes from that in a fixed order. */
-const PLAY_ROWS=312,PLAY_ROWS_EVAL=22,PLAY_ROWS_BARS=28,PLAY_ROWS_GAPS=13,PLAY_ROWS_MOVES=65;   /* BARS: 46 -> 32 each; GAPS: the move list's 10 above it -> 4 and the button row's 7 to the empty row under it -> 0; MOVES: the move list (4 + 61) leaves the column for a sheet over the board, behind its Moves button */
+const PLAY_ROWS=312,PLAY_ROWS_BARS=28,PLAY_ROWS_GAPS=13,PLAY_ROWS_MOVES=65;   /* BARS: 46 -> 32 each; GAPS: the move list's 10 above it -> 4 and the button row's 7 to the empty row under it -> 0; MOVES: the move list (4 + 61) leaves the column for a sheet over the board, behind its Moves button */
 const REV_CHROME = 304;  // #364: 360 was measured with the player bars at their 74px cap. They are flex and their
 // minimum is 46, so the honest first guess is 56 lower. On Kunal's phone (375x761, insets 51/31) 360 pinned the
 // board at 319 with a 28px gutter each side, and the loop above could not grow it back. 304 lets the width cap
@@ -6898,14 +6898,14 @@ function AppMain(){
        ... and the move list behind its Moves button: it leaves the column and opens as a sheet over the board's foot, so the board never
            moves when it opens                             - 320x568, and the short phones at larger text
      Past the last the height caps the board and it sits centred. The order is fixed by the screen's size alone, so nothing in a game
-     (a move, the end, a Moves tap) can switch it and move the board. Pass & Play and online games are not changed. */
-  const playUp=mode==='play'&&opponent==='computer'&&!wide&&!_psLay&&vp.w<600;
+     (a move, the end, a Moves tap) can switch it and move the board. Pass & Play and online games are not changed, and neither is a game
+     where the menu's Eval bar row is set to Beside or Off (his own choice; playFit then leaves every row as it was). */
+  const playUp=mode==='play'&&opponent==='computer'&&!wide&&!_psLay&&vp.w<600&&evalUnder&&!hideEval;
   const playFit=useMemo(()=>{const F=(o)=>Object.assign({thin:false,tight:false,noMoves:false},o);if(!playUp)return F({});
-    const ev=evalUnder&&!hideEval;const C=(o)=>PLAY_ROWS-(ev?0:PLAY_ROWS_EVAL)-(o.thin?PLAY_ROWS_BARS:0)-(o.tight?PLAY_ROWS_GAPS:0)-(o.noMoves?PLAY_ROWS_MOVES:0);
-    const want=vw-(ev?0:4+EVAL_BAR_W(false));   /* with the bar set beside (his setting), the most the board can be is the width less the bar */
+    const C=(o)=>PLAY_ROWS-(o.thin?PLAY_ROWS_BARS:0)-(o.tight?PLAY_ROWS_GAPS:0)-(o.noMoves?PLAY_ROWS_MOVES:0);
     const order=[F({}),F({thin:true}),F({thin:true,tight:true}),F({thin:true,tight:true,noMoves:true})];
-    for(const o of order){if(_revRoom-C(o)>=want){o.rows=C(o);return o;}}
-    const last=order[order.length-1];last.rows=C(last);return last;},[playUp,evalUnder,hideEval,vw,_revRoom]);
+    for(const o of order){if(_revRoom-C(o)>=vw){o.rows=C(o);return o;}}
+    const last=order[order.length-1];last.rows=C(last);return last;},[playUp,vw,_revRoom]);
   const [playMovesSheet,setPlayMovesSheet]=useState(false);   /* the move list's sheet where playFit.noMoves (the Moves button opens it) */
   useEffect(()=>{if(!playFit.noMoves)setPlayMovesSheet(false);},[playFit.noMoves]);
   const evalAbove=evalUnder&&!wide&&((vp.h/Math.max(1,vp.w))>=EVAL_ABOVE_MIN_RATIO||playUp||(vp.w>440&&vp.h-328>=vp.w-22));

@@ -52,7 +52,12 @@ const L=require('../lib');
 // is now a game against the computer (Pip) played by hand, not the gallery's dev-only 'demo' opponent. Its top bar names the bot, so the board
 // is 353 at 109 at 375x679 and 390 at 150 at 390x844 - measured on 77ffccc15668 at move 0 and after four plies, both - where card k8 read
 // 375@100 and 390@128. Pass & Play is unchanged.
-const PIN={kunal:{card:{w:353,top:109},pp:{w:375,top:103.7}},'390':{card:{w:390,top:150},pp:{w:390,top:128}}};
+// CONTROL-RECORD: 54754943 2026-11-20 total=27 red=2 scope=trial:a5a69f3a4462 how=batch 13, his q29: the tree before playFit - the two kunal card pins (375 and 113 against 353 and 109) red; the old pins read 27/0 on that trial and the new ones 27/0 on the fix's trial a4e4b10faa66
+// batch 13 (jobs/short-upright-boards-sized-to-height-2026-11-12, the Play part, his q29 of 20 Nov 2026): the kunal card pin moves
+// 353@109 -> 375@113 - at 375x679 a game against the computer now has the eval bar ABOVE and the board the full width (chess.jsx playFit),
+// where the bar sat beside (a35, reversed on his word). The old pin held on 54754943's tree (trial a5a69f3a4462); see the CONTROL-RECORD.
+const PIN={kunal:{card:{w:375,top:113},pp:{w:375,top:103.7}},
+'390':{card:{w:390,top:150},pp:{w:390,top:128}}};
 L.run(async()=>{
   for(const geo of ['kunal','390']){
     const b=await L.launch({geo,name:'k8-'+geo});await b.open();

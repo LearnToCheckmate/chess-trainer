@@ -75,9 +75,15 @@ const P=require('../drive/play');
 const movesVis=(b)=>b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return p?getComputedStyle(p).visibility:null;});
 // Plies from the MOVES panel, one token per line, SAN only - the 34-takeback idiom, kept identical on purpose
 // so the two gates cannot drift apart. NOTE it follows the PREVIEWED position, not the whole game.
+// batch 13 (his q29; jobs/short-upright-boards-sized-to-height-2026-11-12): on 320x568 vs the computer the panel is a CLOSED SHEET
+// (data-sheet="1", visibility hidden), and innerText reads nothing under visibility:hidden - so the count makes it visible for the one
+// read and puts it back. The sheet is position:fixed and out of the column, so the read moves nothing.
 const plyCount=(b)=>b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');if(!p)return -1;
   const SAN=/^(?:[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O(?:-O)?)[+#]?$/;
-  return (p.innerText||'').replace(/ /g,' ').split('\n').map(x=>x.trim()).filter(x=>SAN.test(x)).length;});
+  const sh=p.getAttribute('data-sheet')==='1',v0=p.style.visibility;if(sh)p.style.visibility='visible';
+  const t=(p.innerText||'');if(sh)p.style.visibility=v0;
+  return t.replace(/ /g,' ').split('\n').map(x=>x.trim()).filter(x=>SAN.test(x)).length;});
+const movesSheetHere=(b)=>b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return !!p&&p.getAttribute('data-sheet')==='1'&&getComputedStyle(p).position==='fixed';});
 // The six control buttons, in DOM order, with rects. Matched on their own text so the sheet's rows cannot
 // be picked up by mistake.
 const rowBtns=(b)=>b.page.evaluate(()=>[...document.querySelectorAll('button')]
@@ -176,7 +182,11 @@ const overhangLive=(b)=>b.page.evaluate(()=>{
 // (se 298 -> 272, the bar's 22px of height); every vs-Computer board starts 22 to 23px lower. Was: se 298 at (20,88) bars 34, kunal730 353 at
 // (20,121.7) bars 67.7, 390 368 at (20,128) bars 74. The cost on short screens is run question q35. Pass & Play has no eval bar and is unchanged.
 /* #550 a35 (his final rule): on short portrait screens the bar stays BESIDE, so se is back to its #548 pins */
-const CPU={se:{bw:298,bx:20,by:88,barW:298,barH:34},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
+/* batch 13, REVERSED ON HIS WORD (run-question q29, about 3:01-3:05pm EST Fri 20 Nov 2026; jobs/short-upright-boards-sized-to-height-2026-11-12):
+   at 320x568 vs the computer the eval bar is ABOVE, the board the full width and the move list behind its Moves button as a sheet (chess.jsx
+   playFit), so se is 320 at (0,129) with the bars 53 tall (they take the room the move list left). Was 298 at (20,88), bars 34; that held on
+   54754943's tree (trial a5a69f3a4462), see the CONTROL-RECORD. */
+const CPU={se:{bw:320,bx:0,by:129,barW:320,barH:53},kunal730:{bw:375,bx:0,by:132.7,barW:375,barH:56.7},'390':{bw:390,bx:0,by:150,barW:390,barH:74}};
 // #550 short upright (BSA-P-27, q42): at 320x568 Pass & Play folds 'vs Human' into the top row and trims its gaps, so the board is the full 320 at x=0, y=82.8 (measured on the round-7 bundle c5269256d63e)
 const PP ={se:{bw:320,bx:0,by:82.8,barW:320,barH:33},kunal730:{bw:375,bx:0,by:112.7,barW:375,barH:58.7},'390':{bw:390,bx:0,by:128,barW:390,barH:74}};
 const ROW_LIVE=['Moves','Back','Forward','Hint','Flip','More'];
@@ -245,8 +255,9 @@ L.run(async()=>{
     L.say(!!vis&&vis.every(v=>v.found&&v.w>=44&&v.h>0&&v.above&&v.shown&&v.ownsCentre),geo+': TC-PL-057 and each is a visible box at least 44 wide in a row ABOVE the bar, owning the point at its own centre',vis);
     const lists=await b.page.evaluate(()=>{const paints=(e)=>{const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return r.width>4&&r.height>4&&cs.visibility!=='hidden'&&cs.display!=='none';};
       const strip=document.querySelector('[data-ct="play-moverow"]'),panel=document.querySelector('[data-ct="moves-panel"]');
-      return {strip:!!strip&&paints(strip),panel:!!panel&&paints(panel)};});
-    L.say(lists.panel===true&&lists.strip===false,geo+': TC-PL-057 exactly ONE painted element renders the move list - the Moves box - and the strip under the board is not painted',lists);
+      return {strip:!!strip&&paints(strip),panel:!!panel&&paints(panel),sheet:!!panel&&panel.getAttribute('data-sheet')==='1'};});
+    /* batch 13 (q29): where the move list is a closed sheet behind Moves (vs the computer at 320x568) nothing paints it until Moves is tapped */
+    L.say((lists.panel===true||lists.sheet===true)&&lists.strip===false,geo+': TC-PL-057 exactly ONE painted element renders the move list - the Moves box - and the strip under the board is not painted',lists);
     // THE GAP IS PINNED AT 2px, MEASURED AT #545 ON 049b41dfb6f1 AT ALL THREE GEOMETRIES (se 60.5 -> 62.5, kunal730 91.73 -> 93.7,
     // 390 101 -> 103): the column's own 2px gap, not a row. The first draft asserted <= 1px and went red on main at all three,
     // which is the measurement, so the pin moved to it. #351's row was 40px; anything that occupies vertical space is red.
@@ -274,16 +285,18 @@ L.run(async()=>{
     // --- TC-PL-009 (US-PL-04): the #373 rule. Moves toggles the CONTENT, never the row: the panel is always
     // laid out and only its visibility changes, so the fit loop never hands its ~64px to the board. Before
     // #373 the board moved 23px on every toggle. This is the assertion that would have caught it.
+    const sheetHere=await movesSheetHere(b);
     const v1=await movesVis(b),g1=await b.metrics();
     await P.tapBtn(b,/^Moves$/,600);
     const v2=await movesVis(b),g2=await b.metrics();
     await P.tapBtn(b,/^Moves$/,600);
     const v3=await movesVis(b),g3=await b.metrics();
-    L.say(v1==='visible'&&v2==='hidden'&&v3==='visible',geo+': Moves toggles the list\'s VISIBILITY (visible -> hidden -> visible), it does not unmount the row',{v1,v2,v3});
+    /* batch 13 (q29): where the list is a sheet it starts closed, so the toggle reads hidden -> visible -> hidden */
+    L.say(sheetHere?(v1==='hidden'&&v2==='visible'&&v3==='hidden'):(v1==='visible'&&v2==='hidden'&&v3==='visible'),geo+': Moves toggles the list\'s VISIBILITY ('+(sheetHere?'the sheet: hidden -> visible -> hidden':'visible -> hidden -> visible')+'), it does not unmount the row',{v1,v2,v3,sheetHere});
     const tops=new Set([g1.board&&g1.board.top,g2.board&&g2.board.top,g3.board&&g3.board.top]);
     const wids=new Set([g1.board&&g1.board.w,g2.board&&g2.board.w,g3.board&&g3.board.w]);
     L.say(tops.size===1&&wids.size===1,geo+': the board has ONE top and ONE width across the Moves toggle (#373: it used to move 23px)',{tops:[...tops],wids:[...wids]});
-    L.say(near(g2.board&&g2.board.w,W.bw),geo+': and that width is still the pinned '+W.bw+' with the list hidden',{measured:g2.board&&g2.board.w,want:W.bw});
+    L.say(near(g2.board&&g2.board.w,W.bw),geo+': and that width is still the pinned '+W.bw+' with the list '+(sheetHere?'shown (its sheet open)':'hidden'),{measured:g2.board&&g2.board.w,want:W.bw});
 
     // --- TC-PL-010/011 (US-PL-05): Back steps the painted position back one ply and Forward returns.
     const liveP=await plyCount(b);
@@ -999,6 +1012,7 @@ L.run(async()=>{
 // tree would not change; its trial bundle did not survive its container, so it was REBUILT from the recipe at #546 with
 // gates/build.sh + CT_OUT (app.js untouched) and re-run against this file at a35524b, whose L.say set is today's.
 // CONTROL-RECORD: a35524b 2026-10-30 total=206 red=26 scope=trial:95bf8d0efc91 how=chess.jsx's player bar width:boardPx+60, one change - the painted-box overhang line goes red at all three geometries, and the widened bars cascade into the bar-width, board-size and game-over-row lines (#545 read 23 red on the 196-assertion gate) [rebuild of #545's ebf59f1ad606]
+// CONTROL-RECORD: 54754943 2026-11-20 total=240 red=5 scope=trial:a5a69f3a4462 how=batch 13, his q29 (jobs/short-upright-boards-sized-to-height-2026-11-12): the tree before playFit - the se vs-Computer pins (320 at (0,129), bars 320 wide and 53 tall, the width with the list toggled, the board at a previewed ply) red against 298 at (20,88); the old gate read 240/0 on that trial and the new one 240/0 on the fix's trial a4e4b10faa66
 // CONTROL-RECORD: 8c9a628 2026-11-05 total=218 red=33 scope=trial:c7f6a1228e43 how=#548: main #547 (no phone top row) - TC-PL-057 (Home and Menu in the player bar, the strip still painted) and the re-pinned board sizes red
 // CONTROL-RECORD: 46fa96e 2026-11-06 total=222 red=1 scope=trial:8a5218f597fe how=#549 item (24): the #549 base bundle before the MOVES-row gutter (Pass & Play panel at x=0) - TC-PL-060's gutter line red at kunal730 (it read 0) and nothing else
 // CONTROL-RECORD: 64afd33 2026-11-12 total=222 red=19 scope=trial:b06b4a724838 how=#550 item (64): the tree before the eval bar moved above - the re-pinned vs-Computer widths, bars and gap at se, kunal730 and 390 red
