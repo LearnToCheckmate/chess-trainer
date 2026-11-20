@@ -627,7 +627,9 @@ L.run(async()=>{
       {n:'375x568-4ply', g:L.GEOS.short375, px:40, st:'cpu-4ply'},
     ];
     const STEP=8,SAME=1;   // the fit loop moves in 8px steps, and a tolerance of one step admitted A2-R6 (304 vs 296); since fixr6b the board comes back to its fresh size exactly, so the recovery is asserted to under 1px
-    const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;});
+    // batch 13 re-key (1cc57a16, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18): the game row's
+    // Moves is icons only, its name in aria-label (RowBtn), so the word is matched as its text OR its name - the same button, D15/D17 unchanged.
+    const tapMoves=(b)=>b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves'||(x.getAttribute('aria-label')||'').trim()==='Moves');if(!e)return false;e.click();return true;});
     for(const c of PCELLS){
       const R={};
       const b=await L.launch({geo:c.g,name:'d15-'+c.n,store:{ct_pool:'3'}});
@@ -719,7 +721,7 @@ L.run(async()=>{
         await b.open();await P.states['cpu-4ply'](b);await b.settle(800);
         R.fresh=await bw(b);
         Object.assign(R,await b.page.evaluate(async(a)=>{const root=document.getElementById('root');
-          const tm=()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves');if(!e)return false;e.click();return true;};
+          const tm=()=>{const e=[...document.querySelectorAll('button')].find(x=>(x.innerText||'').trim()==='Moves'||(x.getAttribute('aria-label')||'').trim()==='Moves');if(!e)return false;e.click();return true;};
           const bwf=()=>{let m=0;for(const e of document.querySelectorAll('div'))if(/repeat\(8,/.test(e.style.gridTemplateColumns||''))m=Math.max(m,e.getBoundingClientRect().width);return Math.round(m*100)/100;};
           const ovf=()=>{const de=document.documentElement;let bot=0;for(const k of root.children){const s=getComputedStyle(k);if(s.position==='fixed'||s.position==='absolute')continue;bot=Math.max(bot,k.getBoundingClientRect().bottom);}return Math.round((bot-de.clientHeight)*100)/100;};
           const d=document.createElement('div');d.id='ct-d17-kick';d.style.cssText='height:'+a.px+'px;flex:0 0 '+a.px+'px';root.firstElementChild.prepend(d);
