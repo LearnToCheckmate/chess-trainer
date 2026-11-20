@@ -3004,6 +3004,35 @@ function brilKinds(c){
     const hi=(t.tags||[]).filter(x=>x.conf==='high').map(x=>x.tag);r=hi.length?hi:[t.primary||'sacrifice'];}}catch(e){r=['sacrifice'];}
   _brilKindsMemo.set(k,r);return r;
 }
+/* batch 13 (jobs/brilliancy-library-and-motif-coverage-2026-09-23, his Desk answer q4, 19 Nov 2026: "the brilliant moves of the players he
+   follows as their own shelf in the library, labelled by player"; his words, 23 Sep: "I'd like to see his brilliant moves without actually
+   having to keep importing them"). THE FOLLOWED PLAYERS' SHELF. A followed account he marked not his (ct_acctmine false) feeds none of
+   his pools (#547 item (79)); a review of one of its games now keeps THAT player's Brilliant moves in their own store, ct_followbril, each
+   card naming the player and the account it came from. They ride the drill like the famous-games cards and are never written to his own
+   list. The shelf lists only accounts still followed and still marked not his, so removing an account or marking it his hides its cards. */
+const FOLLOW_BRIL_K='ct_followbril';
+const FOLLOW_BRIL_MAX=160;
+// The card's sentence is written for the mover ("You gave up the bishop ... for you"); on another player's card it names him instead.
+function brilWhyOf(why,who){
+  const s=String(why||''),w=String(who||'').trim();if(!s||!w)return s;
+  return s.replace(/\bYou (gave|give) up\b/g,w+' $1 up').replace(/\bYou (left|leave) the\b/g,w+' $1 the').replace(/\bfor you\b/g,'for '+w)
+    .replace(/\bagainst you\b/g,'against '+w).replace(/\byou are winning\b/g,w+' is winning').replace(/\byou hold\b/g,w+' holds').replace(/\byou keep\b/g,w+' keeps');
+}
+// The player's name on a card, from the account id ('cc:peterpatzer' -> 'peterpatzer').
+function followWho(acct){const a=String(acct||'');const i=a.indexOf(':');return i>=0?a.slice(i+1):a;}
+/* From one review (rows `out`, its positions and plies, the side `uc` the followed player had, his account id and the game's first ply
+   number), that player's Brilliant moves as cards for ct_followbril. Pure, so gate 179 runs the shipped function. */
+function followBrilCards(out,positions,plies,uc,acct,pb){
+  const cards=[];if(!Array.isArray(out)||!Array.isArray(positions)||!Array.isArray(plies)||(uc!=='w'&&uc!=='b')||!acct)return cards;const who=followWho(acct);if(!who)return cards;
+  for(let i=0;i<out.length;i++){const o=out[i],pos=positions[i],pl=plies[i];if(!o||!pos||!pl||!pl.move||pos.turn!==uc)continue;if(!(o.cls&&o.cls.label==='Brilliant'))continue;
+    const m=pl.move,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');let why='';try{why=brilWhyOf(brilCardWhy(o,uc),who);}catch(e){why='';}
+    cards.push({fen:toFEN(pos),uci:u,label:'Brilliant',who,acct,why,no:Math.floor(((+pb||0)+i)/2)+1,ts:Date.now(),_i:i/* the review row, for the refutation line; dropped before the card is stored */});}
+  return cards;
+}
+// Merge fresh cards into the store: one card a position and move, the newest first, at most FOLLOW_BRIL_MAX.
+function followBrilMerge(prev,add){const P=Array.isArray(prev)?prev.filter(x=>x&&x.fen&&x.uci):[];const A=Array.isArray(add)?add.filter(x=>x&&x.fen&&x.uci):[];
+  const seen=new Set(P.map(x=>x.fen+'|'+x.uci));const nw=A.filter(x=>{const k=x.fen+'|'+x.uci;if(seen.has(k))return false;seen.add(k);return true;});
+  return nw.length?[...nw,...P].slice(0,FOLLOW_BRIL_MAX):P;}
 /* batch 13 (same job): THE RULES THAT READ THE LINE. king-hunt, attraction, deflection, interference, clearance and positional-sac are
    tagged ONLY when a line is given (the moves that followed, as SAN), so a card with no line reads exactly as it did. What each needs:
    attraction - the king itself takes the piece offered; king-hunt - the enemy king moves three or more times along the line;
@@ -6134,6 +6163,7 @@ function AppMain(){
   const [pgnCopied,setPgnCopied]=useState(false);
   const [lastReview,setLastReview]=useState(null);
   const [myBrilliant,setMyBrilliant]=useState(()=>{try{const v=localStorage.getItem('ct_mybrilliancies');return v?JSON.parse(v):[];}catch{return [];}});
+  const [followBril,setFollowBril]=useState(()=>{try{const v=JSON.parse(localStorage.getItem(FOLLOW_BRIL_K)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}});   /* batch 13 q4: the followed players' Brilliant moves (their own store, never his list) */
   const [ply,_setPlyRaw]=useState(0);
   /* #376 PLY LOG - TEMPORARY, WITH AN EXPIRY. REMOVE IT WHEN KUNAL CERTIFIES k12 CLOSED ON HIS OWN PHONE.
      His decision, 2026-09-13: keep the instrumentation because his phone is the one place with no other
@@ -6513,6 +6543,20 @@ function AppMain(){
     return()=>{halt();clearTimeout(off);};
   },[homeScreen]);
   useEffect(()=>{try{localStorage.setItem('ct_mybrilliancies',JSON.stringify(myBrilliant));}catch{}},[myBrilliant]);
+  useEffect(()=>{try{if(!followBril.length&&localStorage.getItem(FOLLOW_BRIL_K)==null)return;localStorage.setItem(FOLLOW_BRIL_K,JSON.stringify(followBril));}catch(e){}},[followBril]);   /* batch 13 q4: nothing is written until there is something to keep */
+  const followShown=()=>BRIL_LIB?(followBril||[]).filter(c=>c&&c.acct&&c.fen&&c.uci&&ccAccts.indexOf(c.acct)>=0&&acctMine[c.acct]===false):[];   /* batch 13 q4: only accounts still followed and still marked not his */
+  /* batch 13 q2 (his Desk answer, 19 Nov 2026): the Brilliant tile, shown for EVERYONE on Review (brilTileOn). With none of his own it reads
+     "Famous brilliant moves"; when his games list is up, that tile sits as one compact row (no second line) at the top of the games box
+     (a 36px icon, so the row is 46px: still a full tap target), so the fixed Review page (gate 164) keeps its games box. With a card of his own it is the tile it always was, where it always was. */
+  const brilTileOn=()=>myBrilliant.length>0||(BRIL_LIB&&(BRIL_CLASSIC_CARDS.length>0||followShown().length>0));
+  const brilTileEl=(compact)=>(<button data-ct="bril-tile" onClick={()=>{if(!myBrilliant.length){setBrilLib({sel:[]});return;}const _ks=new Set((myBrilliant||[]).filter(Boolean).map(c=>(c.missed?'m':'p')+brilKind(c)));if(BRIL_LIB&&(_ks.size>1||BRIL_CLASSIC_CARDS.length>0||followShown().length>0))setBrilLib({sel:[]});else startBrilliant();/* batch 13: with the famous-games shelf there is always something to choose */}}/* #550 item (21): the library opens when there is a choice to make - two or more kinds or shelves; with one, the drill starts as before */ data-compact={compact?'1':undefined} style={{display:'flex',alignItems:'center',gap:12,width:'100%',flexShrink:0,padding:compact?'4px 14px 4px 4px':'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
+            <span style={{flexShrink:0,width:compact?36:44,height:compact?36:44,borderRadius:compact?10:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?18:22,background:'linear-gradient(150deg,#22d3ee,#0e7490)',boxShadow:'0 4px 12px rgba(14,116,144,.4)'}}>✨</span>
+            <span style={{flex:1,minWidth:0}}>
+              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>{myBrilliant.length>0?'Your brilliant moves':'Famous brilliant moves'}</span>
+              {!compact&&<span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{!myBrilliant.length?(()=>{const nf=followShown().length,nc=BRIL_CLASSIC_CARDS.length;return [nc>0?(nc+' from famous games'):'',nf>0?(nf+' from players you follow'):'','can you find them?'].filter(Boolean).join(' · ');})()/* batch 13 q2 */:(()=>{const nm=myBrilliant.filter(x=>x&&x.missed).length,nf=myBrilliant.length-nm;return (nf>0?(nf+' brilliant move'+(nf>1?'s':'')+' you found'):'')+(nf>0&&nm>0?' · ':'')+(nm>0?(nm+' you missed'):'')+' · can you spot them again?';})()/* #550 items (18) and (21): the missed ones are counted apart */}</span>}
+            </span>
+            <span style={{flexShrink:0,fontSize:20,color:'#22d3ee'}}>›</span>
+          </button>);
   // One-time reset (per Kunal): drop pre-#59 saved brilliancies so they rebuild with the stricter detector as games are reviewed.
   useEffect(()=>{try{if(!localStorage.getItem('ct_bril_reset_v1')){localStorage.setItem('ct_bril_reset_v1','1');setMyBrilliant([]);}}catch(e){}},[]);
   const pzOSolvedRef=useRef(pzOSolved); pzOSolvedRef.current=pzOSolved;
@@ -8433,6 +8477,18 @@ function AppMain(){
           const fresh=new Map(bril.map(c=>[c.fen+'|'+c.uci,c]));let up=false;
           const prev2=prev.map(x=>{const f=fresh.get(x.fen+'|'+x.uci);if(f&&/Hard to see, and it holds\.$/.test(x.why||'')&&f.why&&!/Hard to see, and it holds\.$/.test(f.why)){up=true;return {...x,why:f.why};}return x;});
           return (add.length||up)?[...add,...prev2].slice(0,80):prev;});
+      }else if(uc2&&_notMine&&BRIL_LIB){
+        /* batch 13 q4 (his Desk answer, 19 Nov): a game of a player he follows - an account he marked not his - keeps THAT player's Brilliant
+           moves for the followed players' shelf of the library, never for his own pools */
+        const fc=followBrilCards(out,res.positions,res.plies,uc2,meta.acctId,_pb);
+        /* the same refutation line his own cards get (#550 HEX-T-08, above): a card that would close on the generic phrase takes the line after the capture */
+        if(fc.length&&useSF&&sfAnaReadyRef.current){for(const c of fc.slice(0,12)){try{const o=out[c._i];
+          if(!o||!/Hard to see, and it holds\.$/.test(c.why||''))continue;const g0=fromFEN(c.fen),m0=uciToMove(g0,c.uci);if(!m0)continue;
+          const t=brilTaker(g0,m0,o.gate);if(!t)continue;const fa=toFEN(t.after);const sgn=((fa.split(' ')[1]||'w')==='w')?1:-1;let cpW=null,mtW=null,ok=false;
+          const pv=await sfBestLine(fa,700,(sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){mtW=mateW(sc.mate,sgn);cpW=null;}else if(sc.cp!=null){cpW=sgn*sc.cp;mtW=null;}},(x)=>{ok=x;});
+          const rt=brilRefuteTxt(t,pv,ok,cpW,mtW);if(rt)c.why=brilWhyOf(brilCardWhy(o,uc2,rt),c.who);}catch(e){}}}
+        for(const c of fc)delete c._i;
+        if(fc.length)setFollowBril(prev=>followBrilMerge(prev,fc));
       }
     }catch(e){}
     const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
@@ -10386,7 +10442,7 @@ function AppMain(){
   const puzzleFromMistake=(m)=>{if(!m)return null;try{const g=fromFEN(m.fen);
     // Guard against stale/illegal saved data: the position must be legal (the side NOT to move cannot be in check) and the saved solution must be a legal move.
     if(!g||!g.board||!findKing(g.board,'w')||!findKing(g.board,'b')||isInCheck(g.board,opp(g.turn))||!uciToMove(g,m.uci))return null;
-    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.who=(isB&&m.who)?m.who:null;o.goal=isB?(m.who?((vp.h>=740)?(side+' to move. '+m.who+'. Find the brilliant move.'):(side+' to move'))/* batch 13: a famous-games card names whose move it was - in the goal on a phone at least 740 tall, where the brilliant drill reserves the goal's three lines (so the board holds its place); on a shorter phone the goal stays the one line his own cards have, and the name opens the explanation instead */:m.missed?(side+' to move: you played '+(m.played||'another move')+' here, and a brilliant move was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move: '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?((()=>{try{return brilHint(g,uciToMove(g,m.uci),!!m.missed);}catch(e){return null;}})()/* #550 HEX-T-07 */||(m.who?'Something special was played here: a sacrifice or a precise blow.':m.missed?'There was something special here: a sacrifice or a precise blow.':'You played something special here: a sacrifice or a precise blow.')):((()=>{if(m.hint&&!/^(No tactic to spot here|There is a forcing line here|One move can hit two things|Moving one piece can uncover|A pawn is closer to the end|There is material to be taken|Look for the most forcing or solid option)/.test(m.hint))return null;try{const _bm=uciToMove(g,m.uci);const _cr=_bm&&concreteRead(g,_bm);return _cr&&_cr.hint;}catch(e){return null;}})()/* #550 HEX-T-01: every card, old ones too, reads its position - unless its stored hint is not one of mistakeHint's general lines (an authored hint is kept) */||m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?((m.who&&!(vp.h>=740))?(m.who+'. '+(m.why||'')):(m.why||'')):((((m.why?drillVerdict(g,uciToMove(g,m.uci),m.played?findMoveBySAN(g,m.played):null,m.why):null)/* #550 HEX-T-02 */||(m.why||"That's the move you missed. Well spotted.")))+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
+    const o=_lichessObj(g,[m.uci],0,null,['mix'],'mine:'+m.fen);if(!o)return null;const side=g.turn==='w'?'White':'Black';const isB=m.label==='Brilliant'&&drillKindRef.current==='brilliant';o.who=(isB&&m.who)?m.who:null;o.fol=(isB&&m.who&&m.acct)?m.who:null;/* batch 13 q4: a followed player's card */o.goal=isB?(m.who?((vp.h>=740)?(side+' to move. '+(m.acct?('Played by '+m.who):m.who)+'. Find the brilliant move.'):(side+' to move'))/* batch 13: a famous-games card names whose move it was - in the goal on a phone at least 740 tall, where the brilliant drill reserves the goal's three lines (so the board holds its place); on a shorter phone the goal stays the one line his own cards have, and the name opens the explanation instead */:m.missed?(side+' to move: you played '+(m.played||'another move')+' here, and a brilliant move was on the board. Find it.')/* #550 item (18): a missed Brilliant */:(side+' to move')):(side+' to move: '+(m.played?('you played '+m.played+' here, '):'your move here was ')+artic(String(drillGrade(m.label)).toLowerCase())+'. Find the stronger move.')/* #547 item (164)(2): with no `played` it read 'you played here, a blunder' */;o.hint=isB?((()=>{try{return brilHint(g,uciToMove(g,m.uci),!!m.missed);}catch(e){return null;}})()/* #550 HEX-T-07 */||(m.who?'Something special was played here: a sacrifice or a precise blow.':m.missed?'There was something special here: a sacrifice or a precise blow.':'You played something special here: a sacrifice or a precise blow.')):((()=>{if(m.hint&&!/^(No tactic to spot here|There is a forcing line here|One move can hit two things|Moving one piece can uncover|A pawn is closer to the end|There is material to be taken|Look for the most forcing or solid option)/.test(m.hint))return null;try{const _bm=uciToMove(g,m.uci);const _cr=_bm&&concreteRead(g,_bm);return _cr&&_cr.hint;}catch(e){return null;}})()/* #550 HEX-T-01: every card, old ones too, reads its position - unless its stored hint is not one of mistakeHint's general lines (an authored hint is kept) */||m.hint||(()=>{/* #550 item (89) [jobs/a-legacy-drill-card-with-no-stored-hint-...-2026-11-07]: a card captured before #426 stored no hint, and the generic 'most forcing' sentence sent the player hunting a tactic on every quiet card; the same mistakeHint every new capture stores is computed from the card's own position, best move and played move */try{const _bm=uciToMove(g,m.uci);let _pm=null;try{_pm=m.played?findMoveBySAN(g,m.played):null;}catch(e){_pm=null;}const _h=_bm?mistakeHint(g,_bm,_pm):'';if(_h)return _h;}catch(e){}return 'There was a better move than the one you chose. Look for the most forcing or solid option.';})());o.explain=isB?((m.who&&!m.acct&&!(vp.h>=740))?(m.who+'. '+(m.why||'')):(m.why||''))/* batch 13 q4: a followed player's sentence already names him */:((((m.why?drillVerdict(g,uciToMove(g,m.uci),m.played?findMoveBySAN(g,m.played):null,m.why):null)/* #550 HEX-T-02 */||(m.why||"That's the move you missed. Well spotted.")))+(m.line?(' It goes on '+m.line+'.'):''));/* #548 item (125): the line that follows */o.url=null;o.mine=true;o.brill=isB;o.gameSan=m.played||null;/* #549 item (97), #457 ground 5: the flag that keeps the drill grader off a brilliancy re-find card */o.last=m.last||null;
     /* #547 item (110), jobs/drill-card-boxes-earn-their-space-2026-09-23 (Kunal, 23 Sep: "the box right on top ... is the same text
        everywhere in all of those brilliancies ... everybody knows it's a brilliant move"). On a brilliancy the goal is the one
        thing that varies, the side to move (the header already says "Your brilliant moves"); the praise line is gone, so the
@@ -12581,14 +12637,11 @@ function AppMain(){
             </span>
             <span style={{flexShrink:0,fontSize:20,color:'#f0b35e'}}>›</span>
           </button>)}
-          {myBrilliant.length>0&&(<button data-ct="bril-tile" onClick={()=>{const _ks=new Set((myBrilliant||[]).filter(Boolean).map(c=>(c.missed?'m':'p')+brilKind(c)));if(BRIL_LIB&&(_ks.size>1||BRIL_CLASSIC_CARDS.length>0))setBrilLib({sel:[]});else startBrilliant();/* batch 13: with the famous-games shelf there is always something to choose */}}/* #550 item (21): the library opens when there is a choice to make - two or more kinds or shelves; with one, the drill starts as before */ style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'13px 14px',borderRadius:14,background:'linear-gradient(135deg,rgba(34,211,238,.2),rgba(34,211,238,.06))',border:'1px solid rgba(34,211,238,.45)',color:'#fff',cursor:'pointer',textAlign:'left',boxShadow:SHADOW_BOX}}>
-            <span style={{flexShrink:0,width:44,height:44,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,background:'linear-gradient(150deg,#22d3ee,#0e7490)',boxShadow:'0 4px 12px rgba(14,116,144,.4)'}}>✨</span>
-            <span style={{flex:1,minWidth:0}}>
-              <span style={{display:'block',fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800}}>Your brilliant moves</span>
-              <span style={{display:'block',fontSize:'clamp(14.5px,3.3vw,16.5px)',color:'rgba(255,255,255,.6)',lineHeight:1.4}}>{(()=>{const nm=myBrilliant.filter(x=>x&&x.missed).length,nf=myBrilliant.length-nm;return (nf>0?(nf+' brilliant move'+(nf>1?'s':'')+' you found'):'')+(nf>0&&nm>0?' · ':'')+(nm>0?(nm+' you missed'):'')+' · can you spot them again?';})()/* #550 items (18) and (21): the missed ones are counted apart */}</span>
-            </span>
-            <span style={{flexShrink:0,fontSize:20,color:'#22d3ee'}}>›</span>
-          </button>)}
+          {/* batch 13 q2 (his Desk answer, 19 Nov 2026): the Brilliant tile shows for EVERYONE on Review, reading "Famous brilliant moves" until
+              the player has a brilliant move of his own (any card in his store), then its usual label; with none of his own it opens the library
+              on the famous-games shelf (and the players he follows). With the library switched off (ct_bril_lib '0') it shows only for a store, as before. */}
+          {/* batch 13 q2: see brilTileEl - here unless it is the famous tile and the games box is up (then it is the box's first row) */}
+          {brilTileOn()&&!(myBrilliant.length===0&&ccGames&&ccGames.length>0)&&brilTileEl(false)}
           {brilLib&&(()=>{/* #550 item (21): THE BRILLIANT LIBRARY - two shelves by kind, up to BRIL_LIB_MAX kinds practised together */
             const all=(myBrilliant||[]).filter(Boolean);const sel=brilLib.sel||[];
             const keyOf=(c)=>(c.missed?'missed':'played')+'|'+brilKind(c);
@@ -12600,7 +12653,12 @@ function AppMain(){
             const ownK=new Set(all.map(c=>c.fen+'|'+c.uci));const CL=BRIL_CLASSIC_CARDS.filter(c=>!ownK.has(c.fen+'|'+c.uci));
             const mineK=new Set(all.filter(x=>!x.missed).map(brilKind));const nPlayed=all.filter(x=>!x.missed).length;
             const selC=sel.filter(k=>k.indexOf('classic|')===0).map(k=>k.slice(8));
-            const extra=selC.length?CL.filter(c=>brilKinds(c).some(k=>selC.indexOf(k)>=0)):[];
+            /* batch 13 q4 (his Desk answer, 19 Nov 2026): THE PLAYERS HE FOLLOWS, one shelf each, labelled by the player, grouped by kind like his
+               own; a chip's key is follow:<account>|<kind>. A move already on his own shelf is not offered again. */
+            const FOL=followShown().filter(c=>!ownK.has(c.fen+'|'+c.uci));const folAccts=ccAccts.filter(a=>FOL.some(c=>c.acct===a));
+            const folKey=(c)=>'follow:'+c.acct+'|'+brilKind(c);
+            const extraF=FOL.filter(c=>sel.indexOf(folKey(c))>=0);
+            const extra=all.length===0&&sel.length===0?[...FOL,...CL]/* q2: with none of his own, Practice all is everything on offer */:[...extraF,...(selC.length?CL.filter(c=>brilKinds(c).some(k=>selC.indexOf(k)>=0)):[])];
             const n=all.filter(keep).length+extra.length;
             const tog=(k)=>setBrilLib(b=>{const cur=(b&&b.sel)||[];return {...b,sel:cur.indexOf(k)>=0?cur.filter(x=>x!==k):(cur.length>=BRIL_LIB_MAX?cur:[...cur,k])};});
             const ORDK=[...BRIL_MOTIF_ORDER,'sacrifice'];
@@ -12617,6 +12675,11 @@ function AppMain(){
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{ORDK.map(kd=>{const m=cs.filter(c=>brilKind(c)===kd).length;if(!m)return null;const k=id+'|'+kd,on=sel.indexOf(k)>=0;
                   return(<button key={k} data-ct="bril-kind" data-k={k} aria-pressed={on?'true':'false'} onClick={()=>tog(k)} style={{minHeight:44,padding:'6px 12px',borderRadius:22,border:'1px solid '+(on?'rgba(34,211,238,.9)':'rgba(255,255,255,.18)'),background:on?'rgba(34,211,238,.22)':'rgba(255,255,255,.05)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{(BRIL_KIND_NAME[kd]||kd)+' '}<span style={{opacity:.6}}>{m}</span></button>);})}</div>
               </div>))}
+              {folAccts.map(a=>{const cs=FOL.filter(c=>c.acct===a);return(<div key={a} data-ct="bril-shelf-follow" data-acct={a} style={{marginBottom:12}}>
+                <div style={{fontSize:13,fontWeight:800,letterSpacing:.6,textTransform:'uppercase',color:'#c4b5fd',marginBottom:6,overflowWrap:'anywhere'}}>{'From '+followWho(a)+' · '+cs.length}</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{ORDK.map(kd=>{const m=cs.filter(c=>brilKind(c)===kd).length;if(!m)return null;const k='follow:'+a+'|'+kd,on=sel.indexOf(k)>=0;
+                  return(<button key={k} data-ct="bril-fkind" data-k={k} aria-pressed={on?'true':'false'} onClick={()=>tog(k)} style={{minHeight:44,padding:'6px 12px',borderRadius:22,border:'1px solid '+(on?'rgba(196,181,253,.9)':'rgba(255,255,255,.18)'),background:on?'rgba(196,181,253,.2)':'rgba(255,255,255,.05)',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{(BRIL_KIND_NAME[kd]||kd)+' '}<span style={{opacity:.6}}>{m}</span></button>);})}</div>
+              </div>);})}
               {clK.length>0&&(<div data-ct="bril-classics" style={{marginBottom:8}}>
                 <div style={{fontSize:13,fontWeight:800,letterSpacing:.6,textTransform:'uppercase',color:'#fcd34d',marginBottom:2}}>{'From famous games · '+CL.length}</div>
                 <div style={{fontSize:13.5,color:'rgba(255,255,255,.6)',marginBottom:6,lineHeight:1.35}}>Other players' brilliant moves. Each card names who played it.</div>
@@ -13152,6 +13215,7 @@ function AppMain(){
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
               <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
+              {brilTileOn()&&myBrilliant.length===0&&brilTileEl(true)/* batch 13 q2: the famous tile, one compact row at the top of the games box */}
               {_gfIn&&_gfPanel}{_gfIn&&_gfInput}
               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.
@@ -14031,8 +14095,8 @@ function AppMain(){
           {/* #550 item (22), jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 (Kunal, 11 Nov: "a way to jump to a
               specific number so we don't have to hit next next next 50 times"): in a drill of two or more cards the counter is a button that
               opens a chooser of the card numbers; choosing one shows that card, and Prev and Next work on from there. Both drills. */}
-          {(_drill&&_dn>1)?(<button data-ct="drill-counter" onClick={()=>setDrillPick(true)} aria-label={'Card '+_di+' of '+_dn+': choose a card'} style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'none',border:'none',padding:0,margin:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left',minWidth:0,minHeight:TOP_SZ,display:'inline-flex',alignItems:'center' /* #550 FMT-A-11: the counter is a 44pt tap target (was 39) */}}>{(drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+((p&&(puzSolved||puzReveal))?' ':' · ')}<span style={{textDecoration:'underline dotted',textUnderlineOffset:3}}>{_di+' of '+_dn}</span> ▾</button>)
-          :(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+(_dn>1?(((p&&(puzSolved||puzReveal))?' ':' · ')+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>)}
+          {(_drill&&_dn>1)?(<button data-ct="drill-counter" onClick={()=>setDrillPick(true)} aria-label={'Card '+_di+' of '+_dn+': choose a card'} style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'none',border:'none',padding:0,margin:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left',minWidth:0,minHeight:TOP_SZ,display:'inline-flex',alignItems:'center' /* #550 FMT-A-11: the counter is a 44pt tap target (was 39) */}}>{(drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+((p&&(puzSolved||puzReveal))?' ':' · ')}<span style={{textDecoration:'underline dotted',textUnderlineOffset:3}}>{_di+' of '+_dn}</span> ▾</button>)
+          :(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+(_dn>1?(((p&&(puzSolved||puzReveal))?' ':' · ')+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>)}
           {drillPick&&_drill&&(<div data-ct="drill-pick" onClick={()=>setDrillPick(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'70vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'12px 14px calc(16px + env(safe-area-inset-bottom,0px))'}}>
             <div style={{fontSize:15,fontWeight:800,color:'#fff',marginBottom:10}}>Go to card</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(48px,1fr))',gap:6}}>{Array.from({length:_dn},(_,k)=>k+1).map(n=>(<button key={n} data-ct="drill-pick-n" onClick={()=>{setDrillPick(false);drillGo(n-1);}} style={{height:44,borderRadius:10,border:'1px solid '+(n===_di?'rgba(var(--acr),.8)':'rgba(255,255,255,.14)'),background:n===_di?'rgba(var(--acr),.25)':'rgba(255,255,255,.05)',color:'#fff',fontSize:15,fontWeight:700,cursor:'pointer'}}>{n}</button>))}</div>

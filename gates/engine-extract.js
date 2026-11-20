@@ -54,6 +54,8 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   'whyShape','findMoveBySAN','whyBand','DRILL_RANK_DEPTH','_drillRankMax','_drillRank','_drillRankStore','drillRanking','drillRankWarm','DRILL_ACCEPT','gradeDrillMove','drillGradeMsg','drillAcceptMsg','DRILL_GRADE_DEFAULT','DRILL_GRADE',
   // #549 item (35): the brilliancy motif tagger, read by gates/measure-brilliancy-motifs.js and gate 89.
   'BRIL_MOTIF_ORDER','brilBears','brilBetween','brilMotifs','BRIL_LIB_DEFAULT','BRIL_LIB','BRIL_LIB_MAX','BRIL_KIND_NAME','_brilKindMemo','brilKind','BRIL_CLASSICS','BRIL_CLASSIC_CARDS','_brilKindsMemo','brilKinds',
+  // batch 13 q4: the followed players shelf of the Brilliant library (their cards, the sentence in the third person, the merge), so gate 179 runs the shipped functions (no apostrophe here, gate 79 X1)
+  'FOLLOW_BRIL_K','FOLLOW_BRIL_MAX','brilWhyOf','followWho','followBrilCards','followBrilMerge',
   // #549 item (98): the opening book - the named-position table, its key, and the Book count the review reads, so gate 87 and
   // gates/opening-book/build.js run the shipped functions (lessonBookPlies takes the lesson list as an argument; the stub window has none).
   'BOOK_TABLE_DEFAULT','BOOK_TABLE','bookKey','_bookSet','bookHas','bookTablePlies','lessonBookPlies','openingBookPlies','BOOK_POS',

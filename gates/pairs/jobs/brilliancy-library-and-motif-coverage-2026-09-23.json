@@ -1,10 +1,11 @@
 {
  "job": "brilliancy-library-and-motif-coverage-2026-09-23",
- "about": "The Brilliant library's famous-games shelf and the kinds that read the line (batch 13, the remainder of the job: seeding source 3 and the engine-line motifs). Gate 168 is run whole (about 3 minutes a try) and every TC-R233 line is graded: the node lines (the table is the generated one, every row a legal sacrifice the app's own engine graded Brilliant, the line rules pinned to named games) and the screen lines at his phone 375x761 and at 320x568 (the one-kind player's tile opens the library; the coverage line; the shelf's chips, the kinds he has not played first; the shelf scrolled with the Practice button still on screen; one chooser of three kinds; a famous deck started, its first card named and solved; a deck of his cards and famous ones; no famous move offered twice; the switch off). NOT COVERED, said rather than implied: what was built at batch 10 (the played and missed shelves: gate 118, TC-R197); the engine search that graded the 1211 plies is a recorded measurement (gates/fixtures/brilliancy-classics-measured.json), not re-run by the gate, so a wrong record is invisible here; no laptop width and no skin is a situation; zwischenzug and desperado are not tagged at all; seeding sources 1 (followed players) and 2 (the Lichess set) are not built.",
- "gate": "gates/regress/168-brilliant-famous-games.js",
+ "about": "The Brilliant library's famous-games shelf and the kinds that read the line (batch 13, the remainder of the job: seeding source 3 and the engine-line motifs). Gate 168 is run whole (about 3 minutes a try) and every TC-R233 line is graded: the node lines (the table is the generated one, every row a legal sacrifice the app's own engine graded Brilliant, the line rules pinned to named games) and the screen lines at his phone 375x761 and at 320x568 (the one-kind player's tile opens the library; the coverage line; the shelf's chips, the kinds he has not played first; the shelf scrolled with the Practice button still on screen; one chooser of three kinds; a famous deck started, its first card named and solved; a deck of his cards and famous ones; no famous move offered twice; the switch off). NOT COVERED, said rather than implied: what was built at batch 10 (the played and missed shelves: gate 118, TC-R197); the engine search that graded the 1211 plies is a recorded measurement (gates/fixtures/brilliancy-classics-measured.json), not re-run by the gate, so a wrong record is invisible here; no laptop width and no skin is a situation; zwischenzug and desperado are not tagged at all; seeding sources 1 (followed players) and 2 (the Lichess set) are not built. BATCH 13, HIS DESK ANSWERS q2 AND q4 (19 Nov 2026), graded by gate 181, run after gate 168 in the same try (cmd; the try fails if either gate fails): q2 the Brilliant tile for everyone - a player with no card of his own sees 'Famous brilliant moves', it opens the famous shelf and its drill, it is one compact row at the top of the games box when his games are listed (the fixed Review page still does not scroll), it reads 'Your brilliant moves' once a card is his, and with the library off there is none; q4 the shelf of the players he follows - followBrilCards over the Opera Game keeps the followed player's moves only, every card sentence the app can write reads in his name with no 'you', the store's merge, one shelf labelled by the player for an account still followed and marked not his, its kind chip, its drill header and goal naming him, the card solved, nothing written to his own list; and at kunal761 a real review of a followed account's game storing that player's Brilliant moves with the refutation line. NOT COVERED: the account refresh that fetches a followed player's new games does not review them, so his shelf grows only with the games Kunal opens; a laptop width; ct_followbril is not synced between devices.",
+ "gate": "gates/regress/181-brilliant-tile-for-everyone-and-followed-shelf.js",
  "env": {},
  "checks": [
-  "TC-R233[a-m] "
+  "TC-R233[a-n] ",
+  "TC-R250[a-k] "
  ],
  "build": "auto",
  "situations": [
@@ -49,7 +50,40 @@
     "kunal761",
     "se 320x568"
    ]
+  },
+  {
+   "name": "famous-tile-only-for-a-store",
+   "patch": "breaks/g181-famous-tile-only-for-a-store.diff",
+   "why": "q2 undone: the Brilliant tile shows only for a store with a card in it, so a player with no brilliant move of his own never sees the famous moves from Review",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "no-followed-shelf",
+   "patch": "breaks/g181-no-followed-shelf.diff",
+   "why": "q4 undone on the screen: the followed players' moves are kept but the library shows no shelf for them, so he cannot practise them",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "followed-card-says-you",
+   "patch": "breaks/g181-followed-card-says-you.diff",
+   "why": "q4's card sentence is left in the second person, so a followed player's sacrifice reads 'You gave up the bishop' - another player's move presented as his",
+   "mustFailIn": [
+    "node",
+    "kunal761",
+    "se 320x568"
+   ]
   }
  ],
- "timeoutSec": 900
+ "timeoutSec": 1500,
+ "cmd": [
+  "bash",
+  "-c",
+  "node gates/regress/168-brilliant-famous-games.js; s1=$?; node gates/regress/181-brilliant-tile-for-everyone-and-followed-shelf.js; s2=$?; [ $s1 -eq 0 ] && [ $s2 -eq 0 ]"
+ ]
 }

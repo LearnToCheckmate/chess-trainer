@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 97500176..eb22eec2 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2992,5 +2992,5 @@ const FOLLOW_BRIL_MAX=160;
+ // The card's sentence is written for the mover ("You gave up the bishop ... for you"); on another player's card it names him instead.
+ function brilWhyOf(why,who){
+-  const s=String(why||''),w=String(who||'').trim();if(!s||!w)return s;
++  const s=String(why||''),w=String(who||'').trim();return s;
+   return s.replace(/\bYou (gave|give) up\b/g,w+' $1 up').replace(/\bYou (left|leave) the\b/g,w+' $1 the').replace(/\bfor you\b/g,'for '+w)
+     .replace(/\bagainst you\b/g,'against '+w).replace(/\byou are winning\b/g,w+' is winning').replace(/\byou hold\b/g,w+' holds').replace(/\byou keep\b/g,w+' keeps');
