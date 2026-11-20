@@ -58,6 +58,9 @@
 // does not are excused by the one-third rule, and ink that collides inside it is missed. A long name or a long engine line that
 // the fixtures do not contain is not rendered. The pins are per descriptor, so a second fault of the same kind on the same element
 // in a pinned cell is not seen until the first is fixed.
+// CONTROL-RECORD: 7d0c3b9a 2026-11-20 total=30 red=1 scope=trial:b0701b4a645c how=batch 13, pairs break the-vs-sits-on-the-name (the word vs pulled 22px onto the opponent's name), run by the grading machine with CT_G177_STATES=^(home|review-list|review-move-10|puzzle-hint)$ (4 of the 36 states): TC-R248a notch review-list red: [game-opp] x 'vs' text on text in all 16 cells; the real code's trial 45cd057fcb91 reads 30/0 under the same switch
+// CONTROL-RECORD: 7d0c3b9a 2026-11-20 total=30 red=5 scope=trial:f66a8fea0c6a how=batch 13, pairs break the-board-leaves-a-side-gap (the board pushed 16px in from the left), run by the grading machine with CT_G177_STATES=^(home|review-list|review-move-10|puzzle-hint)$ (4 of the 36 states): TC-R248e red at puzzle-hint (16 cells) and review-move-10 (12 new cells), with TC-R248b (the h file letter cut at the board's edge) at both and TC-R248f (the player bar off centre); the real code's trial 45cd057fcb91 reads 30/0 under the same switch
+// CONTROL-RECORD: 7d0c3b9a 2026-11-20 total=30 red=1 scope=trial:d2d0ac20f676 how=batch 13, pairs break home-scrolls-sideways (Home's first card wider than the screen), run by the grading machine with CT_G177_STATES=^(home|review-list|review-move-10|puzzle-hint)$ (4 of the 36 states): TC-R248d notch home red: [home-scroller] scrolls sideways in 13 cells that are not pinned; the real code's trial 45cd057fcb91 reads 30/0 under the same switch
 const L=require('../lib');
 const LAYOUT=require('../drive/layout');
 L.run(()=>LAYOUT.run('notch'),'CLEAN-EVERYWHERE-NOTCH');
