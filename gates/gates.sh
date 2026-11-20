@@ -1776,6 +1776,14 @@ JS
 fi
 N="${1:-}"; [[ "$N" =~ ^#[0-9]{3,4}$ ]] || { echo "usage: gates/gates.sh '#373' ['20-review 21-review-brilliant']"; exit 1; }
 SUBSET="${2:-}"
+# [suite-split; batch 13] CT_PART=K/N runs part K of N of the full roster on this machine (gates/suite-resume.sh, sr_plan),
+# journaled, its log named <number>-p<K>of<N>-all.log, and ends PART OK / PART RED - never GATES GREEN. Refused here, before
+# the lock and the log, when it is malformed, on a subset, or beside CT_RESUME. Join the parts with gates/suite-split.sh.
+if [ -n "${CT_PART:-}" ]; then
+  if ! [[ "$CT_PART" =~ ^([1-9])/([2-9])$ ]] || [ "${BASH_REMATCH[1]}" -gt "${BASH_REMATCH[2]}" ] || [ -n "$SUBSET" ] || [ -n "${CT_RESUME:-}" ]; then
+    echo "gates.sh: REFUSED BEFORE ANY GATE RAN - CT_PART='$CT_PART' must be K/N (1 <= K <= N, 2 <= N <= 9) on a FULL run without CT_RESUME. A part is never a subset and is never resumed."; exit 1
+  fi
+fi
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"; TAG="${N#\#}"
 mkdir -p "$G/logs"
 # ── THE NUMBER ARGUMENT AGAINST THE BUNDLE STAMP, BEFORE ANYTHING IS SPENT [#545, item (98); jobs/gates-sh-never-compares-its-
@@ -1835,14 +1843,15 @@ trap 'rm -rf "$LOCK"' EXIT
 if [ -n "$SUBSET" ]; then
   ALL="$G/logs/$TAG-subset-all.log"
 else
-  ALL="$G/logs/$TAG-all.log"
+  PSFX=""; [ -n "${CT_PART:-}" ] && PSFX="-p${CT_PART%/*}of${CT_PART#*/}"   # [suite-split] a part's log: 552-p2of3-all.log
+  ALL="$G/logs/$TAG$PSFX-all.log"
   if [ -e "$ALL" ]; then
     for sfx in b c d e f g h i j k l m n o p q r s t u v w x y z; do
-      cand="$G/logs/$TAG$sfx-all.log"
+      cand="$G/logs/$TAG$PSFX$sfx-all.log"
       [ -e "$cand" ] || { ALL="$cand"; break; }
     done
-    [ "$ALL" = "$G/logs/$TAG-all.log" ] && { echo "FAIL: $TAG-all.log through ${TAG}z-all.log all exist; move some out of $G/logs/ first"; exit 1; }
-    echo "NOTE: $TAG-all.log already exists, so this run writes $(basename "$ALL") rather than overwriting it."
+    [ "$ALL" = "$G/logs/$TAG$PSFX-all.log" ] && { echo "FAIL: $TAG$PSFX-all.log through ${TAG}${PSFX}z-all.log all exist; move some out of $G/logs/ first"; exit 1; }
+    echo "NOTE: $TAG$PSFX-all.log already exists, so this run writes $(basename "$ALL") rather than overwriting it."
   fi
 fi
 : > "$ALL"
@@ -2646,6 +2655,7 @@ red=0
 # With both unset SR_ON is 0 and hooks b, c and d below do nothing. All the logic is in gates/suite-resume.sh; the design
 # is claude/agents/SUITE-RESUME-DESIGN.md, to be reviewed before use.
 SR_ON=0
+if [ -n "${CT_PART:-}" ]; then export CT_RESUMABLE="${CT_RESUMABLE:-1}"; fi   # [suite-split] a part is always journaled; the rest is in suite-resume.sh
 if [ -n "${CT_RESUMABLE:-}${CT_RESUME:-}" ]; then
   [ -r "$G/suite-resume.sh" ] && . "$G/suite-resume.sh" || { echo "GATES RED $N — CT_RESUME/CT_RESUMABLE is set and $G/suite-resume.sh could not be loaded." | tee -a "$ALL"; exit 1; }
   sr_begin || exit 1
@@ -2809,6 +2819,8 @@ fi
 # FULL RUNS ONLY, same as above. And it needs no network and no esbuild: its one esbuild case prints SKIPPED
 # and does not count as an ok, so a container without esbuild cannot quietly turn this green on fewer cases.
 DRIVESH="$G/fastgate-drive.sh"
+# [suite-split] a PART leaves this layer, the slowest in the prelude, to the joining run, which runs it on the same tree
+[ -n "${CT_PART:-}" ] && echo "fastgate-drive (unit layer): NOT RUN in part ${CT_PART} - the joining run (CT_RESUME=<merged journal>) runs it" | tee -a "$ALL"
 # ── A MISSING HARNESS IS A RED, NOT A SILENCE [#525]. ───────────────────────────────────────────────────────
 # This block was guarded by a bare `[ -f "$DRIVESH" ]`, so with gates/fastgate-drive.sh moved aside it printed
 # NOTHING, added no line to the suite log, and the suite ended green with red still 0 - MEASURED by the
@@ -2820,7 +2832,7 @@ DRIVESH="$G/fastgate-drive.sh"
 # gate get exercised?" was a blank where it should have been a refusal.
 # A SUBSET RUN IS STILL EXEMPT, and that is not the same hole: a subset cannot emit GATES GREEN at all, so it
 # authorises nothing and has no verdict to protect.
-if [ -z "$SUBSET" ] && [ ! -f "$DRIVESH" ]; then
+if [ -z "$SUBSET" ] && [ -z "${CT_PART:-}" ] && [ ! -f "$DRIVESH" ]; then
   red=1
   echo "--- fastgate-drive (unit layer) ---" | tee -a "$ALL"
   echo "    fastgate-drive: RED - THE HARNESS FILE IS ABSENT: $DRIVESH" | tee -a "$ALL"
@@ -2828,7 +2840,7 @@ if [ -z "$SUBSET" ] && [ ! -f "$DRIVESH" ]; then
   echo "        layer in this suite that drives it end to end. Its absence used to print nothing at all, so a" | tee -a "$ALL"
   echo "        full suite could go GREEN with the push gate wholly unexercised and no line saying so [#525]." | tee -a "$ALL"
 fi
-if [ -z "$SUBSET" ] && [ -f "$DRIVESH" ]; then
+if [ -z "$SUBSET" ] && [ -z "${CT_PART:-}" ] && [ -f "$DRIVESH" ]; then
   dlog="$G/logs/$STEM-fastgate-drive.log"
   echo "--- fastgate-drive (unit layer, not a regress gate, not in the roster) ---" | tee -a "$ALL"
   # ── STDOUT IS COUNTED AND STDERR IS NOT, AND THE HARNESS IS HELD TO ITS OWN DECLARATION [#529]. ─────────
@@ -3153,6 +3165,7 @@ for f in "${gates[@]}"; do
   elif [ $rc -ne 0 ] || [ "$fails" -gt 0 ] || [ "$marks" -gt 0 ]; then red=1; echo "    $name: RED (exit $rc, $fails FAIL lines, $marks <<<)" | tee -a "$ALL"; grep '^FAIL' "$log" | head -5 | tee -a "$ALL"; else echo "    $name: green ($passn PASS)" | tee -a "$ALL"; fi
   if [ "$SR_ON" = 1 ]; then sr_mark "$name"; fi   # [suite-resume hook c] mark + journal row; nothing unless opted in
 done
+if [ -n "${SR_PK:-}" ]; then sr_part_footer; exit $?; fi   # [suite-split] a part ends here: PART OK / PART RED, never GATES GREEN
 PASSN=$(grep -c '^PASS' "$ALL" || true)
 # THE HEADLINE COUNTS REGRESS GATES ONLY [#546, item (52); jobs/the-published-regression-assertion-count-includes-40-
 # assertions-the-log-itself-says-are-not-regress-gates-2026-10-07]. This line was a raw ^PASS grep over the whole log,
