@@ -29,6 +29,15 @@
 // CONTROL-RECORD: 1c54c84d 2026-11-19 total=36 red=5 scope=env:CT_G169_NODE_ONLY=1 how=batch 13 break C (g169-check-signs-dropped.diff): rtN and rtRun drop the check sign again - both TC-R234g runs, both TC-R234h lines and the TC-R234l reason red
 // CONTROL-RECORD: 1c54c84d 2026-11-19 total=36 red=2 scope=env:CT_G169_NODE_ONLY=1 how=batch 13 control D (not a pairs break; the diff is kept as gates/pairs/breaks/g169-forced-capture-blocks-the-check.diff): the Forced branch never reads the captured piece - TC-R234e Rxe1 and Kxg1 red ("it blocks the check", "the king steps out of check")
 // CONTROL-RECORD: 1c54c84d 2026-11-19 total=36 red=2 scope=env:CT_G169_NODE_ONLY=1 how=batch 13 control E (not a pairs break; g169-take-back-bit-is-a-landing.diff): the chain bit is set when the move before only landed on the square - TC-R234j (Bxb4+ "wins the queen, with check") and TC-R234k red
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=86 red=31 scope=trial:42fb9f10be1f how=batch 13, Desk q7 and q9: THE TREE BEFORE (CT_APP a trial of beb7d657, CT_SRC its chess.jsx md5 0d929de1144c) - every TC-R251a line that reads a quoted move (node and screen plies 20 and 30), every TC-R251b line (revBubble and revToughI absent, the source says key moments below), all four TC-R251c bubble lines on content (Step through it below / The key moments below) and the TC-R234g/l/n strings moved with q7 red; the must-not lines green
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=86 red=16 scope=trial:707921815b2d how=batch 13 break check-signs-kept (gates/pairs/breaks/g169-check-signs-kept.diff): rtSay keeps the + sign - node 8, kunal761 4, se 4 red (grading machine at 8d02012f, bundle 707921815b2d)
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=86 red=6 scope=trial:a4ab24869270 how=batch 13 break bubble-says-below (g169-bubble-says-below.diff): the blunder sentences say See them below / Step through it below again - node 4, kunal761 1, se 1 red (bundle a4ab24869270)
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=86 red=4 scope=trial:6e87c4d836ee how=batch 13 break book-game-key-moments-below (g169-book-game-key-moments-below.diff): a lost book-only game says The key moments below show where it turned again - node 2, kunal761 1, se 1 red (bundle 6e87c4d836ee)
+// KUNAL'S DESK ANSWERS OF 19 NOV 2026, ADDED HERE (TC-R251a..c, US-R177): q7 'with check' in words - a move a Review sentence quotes has no
+// + and no # sign, and a check is said after the move (this REVERSES residual B6: the TC-R234h lines that pinned the kept sign are now
+// TC-R251a lines pinning the opposite, and the old break C is retired); q9 the summary's speech bubble points at the count tiles and the
+// toughest moment Coach's take names, never at a list 'below' (the key-moments list is switched off), and a book-only game says its moves
+// were all book (closes jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19).
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const RV=require('../drive/review');
@@ -100,22 +109,65 @@ L.run(async()=>{
    L.say(last.line==='A small slip.','node TC-R234f the last ply (no reply to look at) keeps its verdict and claims nothing about what is lost: "'+last.line+'"',last.line);
    L.say(mid.line==='A small slip. Nothing is lost at once, but your opponent’s best reply is the pawn move ...e5.','node TC-R234f (must still) with the reply in hand the fallback is the design\'s sentence: "'+mid.line+'"',mid.line);}
   // ── TC-R234g, HEX-R-06: a sacrifice that forces mate in two says so at once, and the same when the search lands ─────────────────────
-  {const C=[['4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16','Qb8+',16,'16.Qb8+ Nxb8 17.Rd8 mate',['Qb8+','Nxb8','Rd8#']],
-            ['5rk1/r6p/2p1p1p1/P3B3/1P1P4/2P4Q/5qPP/2R4K b - - 0 30','Qf1+',30,'30...Qf1+ 31.Rxf1 Rxf1 mate',['Qf1+','Rxf1','Rxf1#']]];
+  {const C=[['4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16','Qb8+',16,'16.Qb8 with check, Nxb8 17.Rd8 mate',['Qb8+','Nxb8','Rd8#']],
+            ['5rk1/r6p/2p1p1p1/P3B3/1P1P4/2P4Q/5qPP/2R4K b - - 0 30','Qf1+',30,'30...Qf1 with check, 31.Rxf1 Rxf1 mate',['Qf1+','Rxf1','Rxf1#']]];
    for(const [fen,san,n,run,three] of C){const due=line(fen,san,'Brilliant',{n,ctx:{refuteDue:true}}),got=line(fen,san,'Brilliant',{n,ctx:{refute:{capSan:three[1],replyLine:[three[2]]}}});
      let truth=false,rep=0;try{let g=E.fromFEN(fen);const m1=mv(g,three[0]);g=E.makeMove(g,m1);rep=E.getLegal(g).length;const m2=mv(g,three[1]);g=E.makeMove(g,m2);const m3=mv(g,three[2]);g=E.makeMove(g,m3);truth=rep===1&&E.getStatus(g)==='checkmate';}catch(e){}
      const want=new RegExp('^(You give|You leave)[^.]*\\. It is mate in two: '+run.replace(/[.+]/g,'\\$&')+'\\.$');
      L.say(want.test(due.line)&&due.line===got.line&&truth,'node TC-R234g '+san+' prints the mate before the refutation search lands and the same after it (this gate plays '+three.join(' ')+': one legal reply ('+rep+'), then checkmate): "'+due.line+'"',{due:due.line,got:got.line});}
    const nb=line('rn2kb1r/p3qppp/2p2n2/1p2p1B1/2B1P3/1QN5/PPP2PPP/R3K2R w KQkq - 0 10','Nxb5','Brilliant',{n:10,ctx:{refuteDue:true}});
    L.say(!/mate\b/i.test(nb.line)&&/^You give/.test(nb.line),'node TC-R234g (must not) 10.Nxb5, a sacrifice that mates nobody, claims no mate: "'+nb.line+'"',nb.line);}
-  // ── TC-R234h, residual B6: a check keeps its sign, in a run and in the prose ────────────────────────────────────────────────────────
-  {const f5=line('4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 15','Nxd7','Blunder',{n:15,reply:'Qb8+',best:'Qxd7',loss:1500,ev:99,uc:'w'});
-   L.say(/It allows mate in two: 16\.Qb8\+ Nxb8 17\.Rd8 mate\.$/.test(f5.line),'node TC-R234h the mate-in-two run keeps the check sign on the move that checks and drops only the mate mark: "'+f5.line+'"',f5.line);
+  // ── TC-R251a, Kunal's Desk answer q7 (19 Nov 2026; it reverses the design pair's residual B6, which TC-R234h pinned): a quoted move has no
+  // + and no # sign - a check is said in words right after the move, and a mate by the sentence. This gate plays each move and finds the check.
+  {const F15='4kb1r/p2B1ppp/4qn2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 0 15';const f5=line(F15,'Nxd7','Blunder',{n:15,reply:'Qb8+',best:'Qxd7',loss:1500,ev:99,uc:'w'});
+   let ck=false;try{let x=E.fromFEN(F15);x=E.makeMove(x,mv(x,'Nxd7'));x=E.makeMove(x,mv(x,'Qb8+'));ck=E.isInCheck(x.board,'b');}catch(e){}
+   L.say(/It allows mate in two: 16\.Qb8 with check, Nxb8 17\.Rd8 mate\.$/.test(f5.line)&&!/[+#]/.test(f5.line)&&ck,'node TC-R251a the mate-in-two run says the check in words after 16.Qb8 (this gate finds Black in check after it) and has no + or # sign (it read "16.Qb8+ Nxb8 17.Rd8 mate"): "'+f5.line+'"',f5.line);
    let g=E.fromFEN(START);for(const s of OPERA.slice(0,19))g=E.makeMove(g,mv(g,s));const w8=line(E.toFEN(g),'cxb5','Inaccuracy',{n:10,reply:'Bxb5+',loss:60,uc:'b'});
-   const m=/best reply is the bishop move (11)\.(Bxb5)(\+?)\.$/.exec(w8.line);let chk=false;if(w8.post){const r=mv(w8.post,'Bxb5+');chk=!!r&&E.isInCheck(E.makeMove(w8.post,r).board,'b');}
-   L.say(!!m&&m[3]==='+'&&chk,'node TC-R234h 10...cxb5: the reply is written 11.Bxb5+ and this gate finds it gives check (it read "11.Bxb5"): "'+w8.line+'"',w8.line);
+   const m=/best reply is the bishop move (11)\.(Bxb5)( with check)?\.$/.exec(w8.line);let chk=false;if(w8.post){const r=mv(w8.post,'Bxb5+');chk=!!r&&E.isInCheck(E.makeMove(w8.post,r).board,'b');}
+   L.say(!!m&&m[3]===' with check'&&!/\+/.test(w8.line)&&chk,'node TC-R251a 10...cxb5: the reply is written "11.Bxb5 with check" and this gate finds it gives check (it read "11.Bxb5+"): "'+w8.line+'"',w8.line);
    const q=line(START,'a3','Inaccuracy',{n:1,loss:40,reply:'e5'});
-   L.say(!/\+/.test(q.line),'node TC-R234h (must not) a reply that gives no check carries no sign: "'+q.line+'"',q.line);}
+   L.say(!/\+| with check/.test(q.line)&&/\.\.\.e5\.$/.test(q.line),'node TC-R251a (must not) a reply that gives no check carries no sign and no "with check": "'+q.line+'"',q.line);
+   // the Brilliant refutation run, its comma after the first move kept: 'If ...cxb5, 11.Bxb5 with check.'
+   let g9=E.fromFEN(START);for(const s of OPERA.slice(0,18))g9=E.makeMove(g9,mv(g9,s));const br=line(E.toFEN(g9),'Nxb5','Brilliant',{n:10,uc:'w',ctx:{refute:{capSan:'cxb5',replyLine:['Bxb5+']}}});
+   L.say(/If \.\.\.cxb5, 11\.Bxb5 with check\.$/.test(br.line)&&!/[+#]/.test(br.line),'node TC-R251a 10.Nxb5 (Brilliant): its refutation reads "If ...cxb5, 11.Bxb5 with check." (it read "11.Bxb5+"): "'+br.line+'"',br.line);
+   // the Coach's take name of a move that gives check (the 13-ply Alekhine's 6...Qxf2+)
+   {let x=E.fromFEN(START);const pos=[x],pl=[];for(const s of 'e4 Nf6 e5 Nd5 c4 Nb6 d3 e6 Nc3 Qh4 a3 Qxf2+ Kxf2'.split(' ')){const m2=mv(x,s);pl.push({san:s,move:m2});x=E.makeMove(x,m2);pos.push(x);}
+    const an=pl.map((p,i)=>({cls:{label:'Best'},loss:0,evalAfter:0,gist:E.moveGist(pos[i],p.move),motifs:[]}));an[11]=Object.assign(an[11],{cls:{label:'Blunder'},loss:510,bestMove:mv(pos[11],'Qe7')});an[12].bestMove=pl[12].move;
+    const w=(typeof E.coachWorst==='function'?E.coachWorst:(()=>({name:'NO coachWorst',why:''})))({plies:pl,positions:pos,analysis:an,plyBase:0,summary:{book:0}},11,null);
+    L.say(w.name==='6...Qxf2 with check'&&E.isInCheck(pos[12].board,'w')&&!/[+#]/.test(w.why)&&/7\.Kxf2/.test(w.why),'node TC-R251a the Coach\'s take names 6...Qxf2 as "6...Qxf2 with check" (this gate finds White in check after it; it read "6...Qxf2+"), and its reason carries no sign: "'+w.name+'" | "'+w.why+'"',w);}
+   // the why pill on a line that starts with a check
+   {const rows=E.explainLine('4kb1r/p2q1ppp/5n2/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16',['b3b8','e8e7'],3,16)||[];const t=(typeof E.playWhyTxt==='function'?E.playWhyTxt:(()=>'NO playWhyTxt'))(rows);
+    L.say(/^Qb8 gives check; Ke7 /.test(t)&&!/[+#]/.test(t),'node TC-R251a the why pill on 16.Qb8+ Ke7 reads "Qb8 gives check; ..." with no sign (it read "Qb8+ gives check"): "'+t+'"',t);}
+   // the sweep: every Opera Game ply at five grades, the next ply as the reply - no sentence and no "more" carries a sign
+   {let x=E.fromFEN(START);const P=[x];for(const s of OPERA){x=E.makeMove(x,mv(x,s));P.push(x);}let n=0;const bad=[];
+    for(let i=0;i<OPERA.length;i++){const fen=E.toFEN(P[i]);for(const lab of ['Best','Good','Inaccuracy','Blunder','Brilliant']){
+      const t=line(fen,OPERA[i],lab,{n:Math.floor(i/2)+1,reply:OPERA[i+1],best:OPERA[i],loss:lab==='Good'?40:lab==='Inaccuracy'?60:lab==='Blunder'?400:0,ev:1,uc:'w',ctx:(lab==='Brilliant'&&OPERA[i+2])?{refute:{capSan:OPERA[i+1],replyLine:[OPERA[i+2]]}}:{}});
+      if(!t.line||/^(THREW|NOMOVE)/.test(t.line))continue;n++;if(/[+#]/.test(t.line+' '+t.more))bad.push(OPERA[i]+'/'+lab+': '+t.line+' | '+t.more);}}
+    L.say(n>=100,'node TC-R251a DENOMINATOR the sweep produced '+n+' sentences over the Opera Game\'s 33 plies at five grades',n);
+    L.say(n>=100&&bad.length===0,'node TC-R251a no sentence of the sweep carries a + or # sign ('+bad.length+' do'+(bad.length?': '+bad.slice(0,3).join(' || '):'')+')',bad.slice(0,6));}}
+  // ── TC-R251b, Kunal's Desk answer q9 (19 Nov 2026): the summary's speech bubble points at the count tiles and the toughest moment ─────
+  // Every branch of revBubble is read; none may say "below" of a list (the key-moments list is switched off). This gate's own reading of
+  // what is below the bubble: the grade table, whose counts jump to the moves. A book-only game has no graded move and no toughest moment.
+  {const RB=typeof E.revBubble==='function'?E.revBubble:(()=>'NO revBubble'),RT=typeof E.revToughI==='function'?E.revToughI:(()=>-2);
+   const LIST=/key moments|below show|(Step through|See) (it|them) below|blunders? below\./;
+   const C=[['lost, one blunder',{lost:true,bl:1,moves:20},/^That blunder cost you\. Tap the Blunder count below to go to it and see the better line\.$/],
+            ['lost, two blunders',{lost:true,bl:2,moves:20},/^Those 2 blunders cost you\. Tap the Blunder count below to go to the first and see the better line\.$/],
+            ['won, one blunder',{won:true,bl:1,moves:20,acc:70},/^You won, but 1 blunder made it closer than it needed to be\. Tap the Blunder count below to go to it\.$/],
+            ['a brilliant, lost, two blunders',{br:1,lost:true,bl:2,moves:20},/^Sharp eye\. You found 1 brilliant move\. Now clean up the 2 blunders: tap the Blunder count below to go to the first\.$/],
+            ['lost, no blunder, a toughest moment',{lost:true,bl:0,mi:1,moves:20,tough:'15...Nxd7'},/^A tough one\. The toughest moment, 15\.\.\.Nxd7, named in Coach’s take above, is where it turned\. Tap a count below to go to that kind of move\.$/],
+            ['lost, no blunder, no toughest moment',{lost:true,bl:0,moves:20},/^A tough one\. Tap a count below to go to those moves and see where it turned\.$/],
+            ['lost, every move from the book',{lost:true,bl:0,moves:0},/^A tough one\. Your moves all came from the opening book, so none was graded\. Start the review to step through the game\.$/]];
+   for(const [nm,o,re] of C){const t=RB(o);L.say(re.test(t)&&!LIST.test(t),'node TC-R251b the bubble, '+nm+', points at what is there (it said "below" of a list that is not): "'+t+'"',t);}
+   const keep=[RB({won:true,bl:0,moves:20,acc:90}),RB({bl:1,mi:2,moves:20}),RB({moves:20})];
+   L.say(keep[0]==='Clean game. You stayed accurate and converted without slipping.'&&keep[1]==='Solid overall. Tighten the 3 costly moves flagged below.'&&keep[2]==='Solid, accurate game throughout.','node TC-R251b (must still) the three bubble sentences q9 does not touch read as before: '+JSON.stringify(keep),keep);
+   // the toughest-moment rule is Coach's take's own: an own Blunder or Mistake, and the costliest own move at 90 or more
+   let x=E.fromFEN(START);const pos=[x],pl=[];for(const s of OPERA){const m2=mv(x,s);pl.push({san:s,move:m2});x=E.makeMove(x,m2);pos.push(x);}
+   const mk=(f)=>{const an=pl.map(()=>({cls:{label:'Best'},loss:0}));f(an);return {plies:pl,positions:pos,analysis:an,plyBase:0};};
+   const r1=mk(an=>{an[29]={cls:{label:'Blunder'},loss:1500};an[19]={cls:{label:'Inaccuracy'},loss:60};}),r2=mk(an=>{an[19]={cls:{label:'Inaccuracy'},loss:120};}),r3=mk(an=>{an[21]={cls:{label:'Mistake'},loss:80};});
+   const got=[RT(r1,'b'),RT(r1,'w'),RT(r1,null),RT(r2,'b'),RT(r3,'w')];
+   L.say(got.join(',')==='29,-1,29,-1,-1','node TC-R251b revToughI names the toughest moment exactly when Coach\'s take does: Black\'s 15...Nxd7 Blunder (29), none for White, 29 with no side, none when the only slip is an Inaccuracy (120), none when the costliest move is under 90: '+got.join(','),got);
+   const src=require('fs').readFileSync(E.SRC_PATH,'utf8');const hits=(src.match(/key moments below/g)||[]).length;
+   L.say(hits===0,'node TC-R251b the source under test says "key moments below" nowhere (the bubble and Coach\'s take both said it of a list the summary does not show): '+hits+' found',hits);}
   // ── TC-R234i, residual B7: the why pill's words keep a move's own spelling ──────────────────────────────────────────────────────────
   // a control source older than a helper must go red on its own line and carry on (CLAUDE.md: a gate that halts on the first missing element hides every regression after it)
   const PWT=typeof E.playWhyTxt==='function'?E.playWhyTxt:(()=>'NO playWhyTxt'),RCH=typeof E.revChain==='function'?E.revChain:(()=>null),CWO=typeof E.coachWorst==='function'?E.coachWorst:(()=>({name:'NO coachWorst',why:''}));
@@ -148,7 +200,7 @@ L.run(async()=>{
    an[19]=Object.assign(an[19],{cls:{label:'Inaccuracy'},loss:60});an[20].bestMove=pl[20].move;
    const rv={plies:pl,positions:pos,analysis:an,plyBase:0,summary:{book:0}};const w=CWO(rv,29,null),q=CWO(rv,19,null),b=CWO(rv,10,null);
    let truth=false;try{let x=pos[30];for(const s of ['Qb8+','Nxb8','Rd8#'])x=E.makeMove(x,mv(x,s));truth=E.getStatus(x)==='checkmate'&&pos[29].turn==='b';}catch(e){}
-   L.say(w.name==='15...Nxd7'&&w.why==='It allows mate in two: 16.Qb8+ Nxb8 17.Rd8 mate.'&&truth,'node TC-R234l the Opera Game\'s 15...Nxd7 is named with its number and its reason, and this gate plays the mate: "'+w.name+'" | "'+w.why+'"',w);
+   L.say(w.name==='15...Nxd7'&&w.why==='It allows mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate.'&&truth,'node TC-R234l the Opera Game\'s 15...Nxd7 is named with its number and its reason, and this gate plays the mate: "'+w.name+'" | "'+w.why+'"',w);
    L.say(q.name==='10...cxb5'&&q.why===''&&b.name==='6.Bc4'&&b.why==='','node TC-R234l (must not) a slip no rung proves a reason for (10...cxb5) and a move that is no slip (6.Bc4) get the numbered name and no reason: '+JSON.stringify([q,b]),[q,b]);}
   if(process.env.CT_G169_NODE_ONLY){L.note('169 NARROWED by CT_G169_NODE_ONLY: the node lines only - the screen lines at kunal761 and 320x568 did NOT run');return;}
   // ── THE SCREEN: the bundle under test, both games, after stepping to the ply ────────────────────────────────────────────────────────
@@ -178,7 +230,7 @@ L.run(async()=>{
     // game 2: the Opera Game
     {const b=await L.launch({geo,store:{ct_pool:'3'},name:'g169-o-'+geo});await b.open();let ok=true;try{await RV.importPgn(b,RV.PGN_OPERA,240000);}catch(e){ok=false;}
      const co=ok?await coachTxt(b):null;
-     L.say(!!co&&/The toughest moment was 15\.\.\.Nxd7 \(a game-deciding swing\)\. It allows mate in two: 16\.Qb8\+ Nxb8 17\.Rd8 mate\./.test(co.t)&&co.l>=0&&co.r<=co.vw&&co.sw<=co.cw+1,G+'TC-R234n the summary\'s Coach\'s take names 15...Nxd7 with its number and the mate it allowed, inside the screen ('+(co?co.l+'..'+co.r+' of '+co.vw:'none')+') - "'+(co&&co.t)+'"',co);
+     L.say(!!co&&/The toughest moment was 15\.\.\.Nxd7 \(a game-deciding swing\)\. It allows mate in two: 16\.Qb8 with check, Nxb8 17\.Rd8 mate\./.test(co.t)&&!/[+#]/.test(co.t)&&co.l>=0&&co.r<=co.vw&&co.sw<=co.cw+1,G+'TC-R234n the summary\'s Coach\'s take names 15...Nxd7 with its number and the mate it allowed, inside the screen ('+(co?co.l+'..'+co.r+' of '+co.vw:'none')+') - "'+(co&&co.t)+'"',co);
      if(ok&&geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-coach');
      try{await RV.startReview(b);}catch(e){ok=false;}
      L.say(ok,G+'TC-R234n PRECONDITION the Opera Game is reviewed and its move screen is open');
@@ -186,15 +238,52 @@ L.run(async()=>{
        L.say(GOOD.test(p11.move||'')&&/It threatens 7\.Qxf7 mate\b/.test(p11.why||''),G+'TC-R234n ply 11, 6.Bc4 (chip: '+((GOOD.exec(p11.move||'')||[])[0]||'none')+'): the mate on f7 it threatens is named with its number - "'+p11.why+'"',p11);
        if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-threat');
        await RV.goPly(b,20);await b.page.waitForTimeout(500);const p20=await read(b);
-       L.say(/\?/.test(p20.move||'')?/11\.Bxb5\+/.test(p20.why||'')&&!/11\.Bxb5(?!\+)/.test(p20.why||''):false,G+'TC-R234n ply 20, 10...cxb5 (a slip): White\'s reply is written 11.Bxb5+, with its check sign - "'+p20.why+'"',p20);
+       L.say(/\?/.test(p20.move||'')?/11\.Bxb5 with check\b/.test(p20.why||'')&&!/[+#]/.test(p20.why||''):false,G+'TC-R251a ply 20, 10...cxb5 (a slip): White\'s reply is written "11.Bxb5 with check", no sign (it read "11.Bxb5+") - "'+p20.why+'"',p20);
        await RV.goPly(b,30);await b.page.waitForTimeout(500);const p30=await read(b);
-       L.say(/It allows mate in two: 16\.Qb8\+ Nxb8 17\.Rd8 mate\.$/.test(p30.why||''),G+'TC-R234n ply 30, 15...Nxd7: the mate-in-two run keeps the check sign - "'+p30.why+'"',p30);
+       L.say(/It allows mate in two: 16\.Qb8 with check, Nxb8 17\.Rd8 mate\.$/.test(p30.why||'')&&!/[+#]/.test(p30.why||''),G+'TC-R251a ply 30, 15...Nxd7: the mate-in-two run says the check in words and has no sign - "'+p30.why+'"',p30);
        // ply 31, read as soon as the ply lands and again after the refutation search has had its time: the same sentence, the mate in it
        await b.page.evaluate(()=>{const s=document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]');s[30].click();});await b.page.waitForTimeout(250);const e1=await read(b);await b.page.waitForTimeout(3200);const e2=await read(b);
-       const W='White gives up the queen on b8. It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate.';
+       const W='White gives up the queen on b8. It is mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate.';
        L.say(/\bBrilliant\b/.test(e1.move||'')&&e1.why===W&&e2.why===W,G+'TC-R234n ply 31, 16.Qb8+ (chip Brilliant): the mate is in the sentence a quarter of a second after landing and unchanged 3.2 s later - "'+e1.why+'" then "'+e2.why+'"',{e1:e1.why,e2:e2.why});
        const f=e2.fit;L.say(!!f&&f.l>=0&&f.r<=f.vw&&(f.sh<=f.ch+0.5||(!!f.clamp&&f.ch<=Math.ceil(f.clamp*f.lh)+1)),G+'TC-R234n the sentence at ply 31 fits its box, or is cut by the line clamp and nothing else ('+(f?f.sh+' in '+f.ch+', clamp '+f.clamp+' x '+f.lh:'none')+')',f);
        if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-brilliant');}
+     await b.close();}
+  }
+  // ── TC-R251c, q9 ON THE SCREEN: the bubble of a game reviewed from the games list (so the app decides which side is his, gate 101's
+  // recipe) points at what is there. The Opera Game as BLACK (a lost game): the bubble's blunder count is the Blunder tile's, and a tap on
+  // that tile opens a move graded Blunder - the pointer is followed, not only read. A book-only game as WHITE (lost): the bubble says the
+  // moves were all book and points at no list. Both at kunal761 and 320x568.
+  const ACCT=(u,pgn,white,black,wr)=>({ct_accts:['cc:'+u],ct_acctgames:{['cc:'+u]:[{src:'cc',acct:u,pgn,white,black,wr,tc:'blitz',date:Date.now()-86400000}]},ct_pool:'3',ct_bril_reset_v1:'1'});
+  const BOOK='[Event "gate 169 book"]\n[White "Bookwhite169"]\n[Black "Bookblack169"]\n[Result "0-1"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 0-1';
+  const LIST=/key moments|below show|(Step through|See) (it|them) below|blunders? below\./;
+  const sumRead=(b)=>b.page.evaluate(()=>{const tx=(e)=>e?(e.innerText||'').replace(/\s+/g,' ').trim():null;const bub=[...document.querySelectorAll('[data-ct="rev-summary"] div')].find(d=>d.children.length===2&&(d.firstElementChild.textContent||'').trim()==='\u{1F4AC}');   /* found by WHAT IT IS (the speech-bubble glyph and its sentence), never by the rev-bubble hook this build added (CLAUDE.md: a check keyed to a hook its own build adds cannot see the defect) */
+    const s=document.querySelector('[data-ct="rev-summary"]');const c=s&&[...s.querySelectorAll('div')].find(d=>(d.innerText||'').trim()==="Coach's take");
+    const row=[...document.querySelectorAll('[data-ct="grade-row"]')].find(r=>/^Blunder/.test((r.innerText||'').trim()));const btn=row?row.querySelector('button'):null;
+    let box=null;if(bub){const r=bub.getBoundingClientRect();box={l:Math.round(r.left),r:Math.round(r.right),vw:window.innerWidth};}
+    return {bub:tx(bub&&bub.lastElementChild),coach:tx(c&&c.nextElementSibling),blN:btn?+(btn.textContent||'').trim():null,box,acc:tx(document.querySelector('[data-ct="rev-acc-w"]'))};});
+  const openFromList=async(b)=>{await b.tile('Review');await b.settle(700);await b.page.locator('[data-ct="game-row"]').first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});await b.settle(1500);};
+  for(const geo of ['kunal761','se']){const G=geo+' ';
+    {const b=await L.launch({geo,name:'g169-bub-o-'+geo,store:ACCT('dukekarlcountisouard99',RV.PGN_OPERA,'Jsmiller1112','DukeKarlCountIsouard99','loss')});await b.open();let ok=true;
+     try{await openFromList(b);}catch(e){ok=false;L.note('TC-R251c '+String(e).slice(0,120));}
+     const r=ok?await sumRead(b):null;
+     L.say(ok&&!!r&&!!r.bub&&r.blN!=null,G+'TC-R251c PRECONDITION the Opera Game reviewed as Black from the games list shows the bubble and Black\'s Blunder count ('+(r&&r.blN)+')',r);
+     if(r&&r.bub&&r.blN!=null){
+       const m=/^(?:That blunder cost you\. Tap the Blunder count below to go to it|Those (\d+) blunders cost you\. Tap the Blunder count below to go to the first) and see the better line\.$/.exec(r.bub);
+       const tm=/^A tough one\. The toughest moment, (\S+), named in Coach’s take above, is where it turned\. Tap a count below to go to that kind of move\.$/.exec(r.bub);
+       const agree=r.blN>0?(!!m&&(r.blN===1?!m[1]:+m[1]===r.blN)):(!!tm&&(r.coach||'').indexOf('The toughest moment was '+tm[1])>=0);
+       L.say(agree&&!LIST.test(r.bub)&&r.box.l>=0&&r.box.r<=r.box.vw,G+'TC-R251c the bubble points at the tiles (Black\'s Blunder count reads '+r.blN+') and says "below" of no list: "'+r.bub+'"',r);
+       if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble');
+       if(r.blN>0){let chip=null;try{await b.page.evaluate(()=>{const row=[...document.querySelectorAll('[data-ct="grade-row"]')].find(x=>/^Blunder/.test((x.innerText||'').trim()));row.querySelector('button').click();});
+           await b.page.locator('[data-ct="strip-row"]').last().waitFor({state:'visible',timeout:8000});await b.settle(700);
+           chip=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('[data-ct="rev-move-line"]')].find(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;});return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});}catch(e){L.note('TC-R251c tap '+String(e).slice(0,100));}
+         L.say(!!chip&&/(\bBlunder\b|\?\?)/.test(chip),G+'TC-R251c the pointer is true: a tap on Black\'s Blunder count opens a move graded Blunder, by its name or its ?? mark ("'+chip+'")',chip);}}
+     await b.close();}
+    {const b=await L.launch({geo,name:'g169-bub-b-'+geo,store:ACCT('bookwhite169',BOOK,'Bookwhite169','Bookblack169','loss')});await b.open();let ok=true;
+     try{await openFromList(b);}catch(e){ok=false;L.note('TC-R251c book '+String(e).slice(0,120));}
+     const r=ok?await sumRead(b):null;
+     L.say(ok&&!!r&&!!r.bub&&/^-/.test(r.acc||'')&&/never left the opening book/.test(r.coach||''),G+'TC-R251c PRECONDITION the book-only game reviewed as White shows the bubble, White is "Not scored" ('+(r&&r.acc)+') and Coach\'s take says the game never left the book',r);
+     if(r&&r.bub)L.say(r.bub==='A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.'&&!LIST.test(r.bub),G+'TC-R251c a book-only game that was lost: the bubble says the moves were all book and points at no list of key moments (it read "A tough one. The key moments below show where it turned."): "'+r.bub+'"',r);
+     if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble-book');
      await b.close();}
   }
 });

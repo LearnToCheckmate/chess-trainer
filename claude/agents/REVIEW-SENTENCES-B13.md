@@ -70,7 +70,7 @@ move answers a check (in a check every piece that cannot answer it has no legal 
 The mate is read from the board (every reply is answered by a mate in one), so it is printed at once and the sentence no
 longer changes a second or two after you arrive. When the defender has several replies it reads "It forces mate in two."
 
-## 6. Checks keep their sign (residual B6)
+## 6. Checks keep their sign (residual B6) - SUPERSEDED by section 10 (Kunal's Desk answer q7, 19 Nov 2026)
 
 | Where | Old | New |
 |---|---|---|
@@ -116,3 +116,44 @@ that move. Where no reason can be proved the line keeps the move, now with its n
   sentences (the count tiles under it do jump to the moves; the key moments list is still switched off).
 - HEX-R-14 has no text of its own: the star lands on the sentences above.
 - HEX-R-03 was already in place (batch 10, b5f67e3): 5.Qxf3 "takes back on f3: a bishop for a knight".
+
+## 10. "With check" in words, no signs (Kunal's Desk answer q7, 19 Nov 2026)
+
+His answer reverses section 6: a move a Review sentence quotes drops its + and # signs, a check is said in words after the move, and a
+mate is said by the sentence. OLD is the chess.jsx this part started from (beb7d657), NEW is this part's (91a123d5), both through gate 169.
+
+| Where | Old | New |
+|---|---|---|
+| Opera Game 10...cxb5 (on screen) | Black's small slip. White's best reply is the bishop move 11.Bxb5+. | Black's small slip. White's best reply is the bishop move 11.Bxb5 with check. |
+| Opera Game 15...Nxd7 (on screen) | Black's blunder. It allows mate in two: 16.Qb8+ Nxb8 17.Rd8 mate. | Black's blunder. It allows mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate. |
+| Opera Game 16.Qb8+, Brilliant (on screen) | White gives up the queen on b8. It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate. | White gives up the queen on b8. It is mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate. |
+| 30...Qf1+, Brilliant | It is mate in two: 30...Qf1+ 31.Rxf1 Rxf1 mate. | It is mate in two: 30...Qf1 with check, 31.Rxf1 Rxf1 mate. |
+| 10.Nxb5, Brilliant, the refutation in hand | You give up material. If ...cxb5, 11.Bxb5+. | You give up material. If ...cxb5, 11.Bxb5 with check. |
+| Coach's take, Opera Game (on screen) | ... The toughest moment was 15...Nxd7 (a game-deciding swing). It allows mate in two: 16.Qb8+ Nxb8 17.Rd8 mate. | ... The toughest moment was 15...Nxd7 (a game-deciding swing). It allows mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate. |
+| Coach's take, the 13-move Alekhine game | The toughest moment was 6...Qxf2+ (about 5.1 pawns). | The toughest moment was 6...Qxf2 with check (about 5.1 pawns). |
+| the why button on 16.Qb8+ Ke7 | Qb8+ gives check; Ke7 steps out of check. | Qb8 gives check; Ke7 steps out of check. |
+
+In a run of moves a check is closed by a comma ("16.Qb8 with check, Nxb8 17.Rd8 mate"). Unchanged, because they are notation and not
+sentences: the move strip, the best chip ("best Qb4+"), the move line over the sentence, and the engine line's own moves in the ? sheet.
+
+## 11. The summary's speech bubble (Kunal's Desk answer q9, 19 Nov 2026)
+
+The bubble said "below" of a list of key moments the summary does not show. Under the bubble is the grade table, whose counts are
+buttons that open that grade's first move; above it is Coach's take, which names the toughest moment. Read in the you voice (a game
+reviewed from your games list); the bubble is not shown for a pasted game.
+
+| When | Old | New |
+|---|---|---|
+| you lost, one blunder (the Opera Game as Black, on screen) | That blunder cost you. Step through it below to see the better line. | That blunder cost you. Tap the Blunder count below to go to it and see the better line. |
+| you lost, two blunders | Those 2 blunders cost you. Step through them below to see the better line. | Those 2 blunders cost you. Tap the Blunder count below to go to the first and see the better line. |
+| you won, one blunder | You won, but 1 blunder made it closer than it needed to be. See them below. | You won, but 1 blunder made it closer than it needed to be. Tap the Blunder count below to go to it. |
+| a brilliant move, lost, two blunders | Sharp eye. You found 1 brilliant move. Now clean up the 2 blunders below. | Sharp eye. You found 1 brilliant move. Now clean up the 2 blunders: tap the Blunder count below to go to the first. |
+| lost, no blunder, Coach's take names a toughest moment | A tough one. The key moments below show where it turned. | A tough one. The toughest moment, 15...Nxd7, named in Coach's take above, is where it turned. Tap a count below to go to that kind of move. |
+| lost, no blunder, no toughest moment | A tough one. The key moments below show where it turned. | A tough one. Tap a count below to go to those moves and see where it turned. |
+| lost, every move from the opening book (on screen) | A tough one. The key moments below show where it turned. | A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game. |
+| Coach's take, lost with no mistake or blunder | No mistakes or blunders on your side, but the game was still lost. The key moments below show where it turned. | No mistakes or blunders on your side, but the game was still lost. |
+
+Unchanged: "Clean game. You stayed accurate and converted without slipping.", "Solid overall. Tighten the 3 costly moves flagged below."
+(the counts it means are below) and "Solid, accurate game throughout." The toughest moment in the bubble is Coach's take's own (the same
+rule, revToughI), so the two never disagree. The last row closes
+jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19.

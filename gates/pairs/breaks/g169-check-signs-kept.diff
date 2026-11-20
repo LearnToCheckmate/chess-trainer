@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 16de3f0f..81636214 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2368,5 +2368,5 @@ const rtSq=(r,c)=>'abcdefgh'[c]+(8-r);
+    mate is said by the sentence itself ('17.Rd8 mate'). The sign had been kept since the design pair's residual B6; his answer reverses that.
+    rtSay is the one place the signs leave: every quoted move in reviewText, rtLadder, coachWorst and the why pill goes through it. */
+-function rtSay(san){const t=String(san||'').replace(/[!?]+$/,'');return /\+$/.test(t)?(t.replace(/\+$/,'')+' with check'):t.replace(/#$/,'');}
++function rtSay(san){const t=String(san||'').replace(/[!?]+$/,'');return t.replace(/#$/,'');}
+ function rtN(pos,mv,num,veryNext){try{const s=rtSay(toSAN(pos,mv,applyMove(pos.board,mv)));return pos.turn==='w'?(num+'.'+s):((veryNext?'...':num+'...')+s);}catch(e){return '';}}
+ // a run of moves (P6): 'N.X Y N+1.Z', the first Black move with its dots. batch 13, q7: a check in the run is said in words and closed by a

@@ -2533,7 +2533,7 @@ As a player reading the review of my game, I am told what each move concretely d
 - My only legal move says what it does about the check: the king steps out, a piece blocks it, or the checking piece is taken. (TC-R234e)
 - With no reply to look at (the last move of a game), a slip keeps its verdict and claims nothing about what is lost. (TC-R234f)
 - A sacrifice that forces mate in two says so at once, with the moves, and the sentence does not change while I look at it. (TC-R234g)
-- A move that gives check is written with its check sign, in a run of moves and in a sentence. (TC-R234h)
+- ~~A move that gives check is written with its check sign, in a run of moves and in a sentence. (TC-R234h)~~ Superseded by Kunal's Desk answer q7 (19 Nov 2026): see US-R177, TC-R251a.
 - The why button's words spell a pawn move as the move is written ("e4", never "E4"). (TC-R234i)
 - In the engine line in words, a capture that takes back is not "wins", a check is called a check, a king that steps out of check says so, and the only legal move says so. (TC-R234j, TC-R234k)
 - The summary's Coach's take names my toughest moment with its move number and, where the board proves it, what the move lost. (TC-R234l, TC-R234n)
@@ -2655,3 +2655,8 @@ As the project owner comparing which model does a job best, I can see how many t
 - A transcript with no model calls reports zero and does not crash. (TC-R249c)
 - A time window over one transcript gives one block of numbers for a work-log entry. (TC-R249d)
 - A mapping file turns transcripts into one list per job, with a per-job summary of weighted tokens per estimate hour. (TC-R249e)
+### US-R177 The Review says "with check" in words, and the summary's bubble points at what is on the screen
+*Added in batch 13, jobs/review-sentences-name-what-the-moves-do-2026-11-12, Kunal's Decision Desk answers of 19 Nov 2026: q7 BUILD ("'with check' in words": docs/review-text-design-2026-11-14 rule P5) and q9 BUILD ("the bubble points at the tiles and the toughest moment"). q9 also closes jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19. q8 (the size in brackets on Coach's take) stands as built.*
+As a player reading my game's review, I read moves in sentences as words rather than notation marks, and the summary sends me to things that are actually on the screen, so that nothing I read points at something I cannot find.
+- A move a Review sentence quotes (the line under the board, its "more", a run of moves, a refutation, the Coach's take, the why button's words) has no + or # sign. A move that gives check is followed by "with check"; a mate is said by the sentence ("17.Rd8 mate"). The move strip, the best chip and the engine line's notation keep their signs: they are notation, not sentences. (TC-R251a)
+- The summary's speech bubble never says "below" of a list of key moments, because the summary does not show one. A blunder sentence sends me to the Blunder count in the table under it (a tap on the count opens that move); a lost game with no blunder names the toughest moment Coach's take names, above it, and the counts below it; a lost game whose moves were all from the opening book says so and sends me to Start review. Coach's take no longer says "The key moments below show where it turned." either. (TC-R251b, TC-R251c)

@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 16de3f0f..b25bb126 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2622,5 +2622,5 @@ function revBubble(o){o=o||{};const bl=o.bl||0,mi=o.mi||0,br=o.br||0,won=!!o.won
+   if(won&&bl>0)return 'You won, but '+bl+' blunder'+(bl>1?'s':'')+' made it closer than it needed to be. '+tapB;
+   if(lost&&bl>0)return (bl>1?('Those '+bl+' blunders cost you. Tap the Blunder count below to go to the first and see the better line.'):'That blunder cost you. Tap the Blunder count below to go to it and see the better line.');   /* #548 item (160): it read 'Those 1 blunder cost you.' */
+-  if(lost){if(!(o.moves>0))return 'A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.';
++  if(lost){if(!(o.moves>0))return 'A tough one. The key moments below show where it turned.';
+     return tough?('A tough one. The toughest moment, '+tough+', named in Coach\u2019s take above, is where it turned. Tap a count below to go to that kind of move.'):'A tough one. Tap a count below to go to those moves and see where it turned.';}
+   return (bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';}

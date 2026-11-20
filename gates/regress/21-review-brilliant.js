@@ -45,7 +45,7 @@ const PGN='[White "Morphy"] [Black "Duke Karl / Count Isouard"] 1. e4 e5 2. Nf3 
 // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: the pasted game has no player colour, so the voice is the
 // colours' (P1); every move carries its number or dots (P4) and its check mark is dropped (P5); the line under the board is the sacrifice and
 // its refutation, and the standing and the comparison (with its number, Q3) are behind the tap - read here from the line's data-more.
-const WANT='White gives up the knight for a pawn. If ...cxb5, 11.Bxb5+. White is winning. Nothing else came close: 10.Bxf6 was 1.1 pawns worse.';
+const WANT='White gives up the knight for a pawn. If ...cxb5, 11.Bxb5 with check. White is winning. Nothing else came close: 10.Bxf6 was 1.1 pawns worse.';
 const SAN='(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)[+#]?';
 const NUMP='(?:\\d+\\.(?:\\.\\.)?|\\.\\.\\.)?';   // #550: a move is written '10.Bxf6' or '...Bxf6' (P4); the capture group keeps the bare move
 // the four forms of dropTxt(), chess.jsx:667-673, with the drop band each one is printed for
@@ -382,7 +382,7 @@ L.run(async()=>{
     const brl1=EA(annoB,{refute:{capSan:'Nxd7',replySan:'Bxe7',replyLine:['Bxe7'],verdict:'and White is winning'},maxw:400});
     // PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14 P4 and P6]: every move of the line is written with its number
     // and dots, the check mark said in words or dropped, and the colour verdict moved behind the tap (part 4)
-    L.say(typeof brl3==='string'&&brl3.indexOf('If ...Nxd7, 2.Bxe7 Bxe7 3.Bxd7+.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE (batch 13: its last move, a check, keeps its sign). This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
+    L.say(typeof brl3==='string'&&brl3.indexOf('If ...Nxd7, 2.Bxe7 Bxe7 3.Bxd7 with check.')>=0,'TC-R10/S26 #512 THE BRILLIANT BRANCH RENDERS THE MULTI-PLY LINE (batch 13, Desk q7: its last move, a check, is said "with check" and has no sign). This is the assertion antagonist A proved was missing: it reddens on a source whose Brilliant branch still carries main inline single-ply template, where the Great branch alone would keep this gate green',brl3);
     L.say(typeof brl1==='string'&&brl1.indexOf('If ...Nxd7, 2.Bxe7.')>=0&&brl1.indexOf('Bxd7')<0,'TC-R10/S27 #512 and the BRILLIANT branch still renders the SINGLE-ply form unchanged from what shipped before, so the change can only ever ADD the recovery on this branch too',brl1);
     // TC-R87 (US-R85), #547 item (128): A PLY WITH NO STORED EVAL MUST NOT BE CALLED LEVEL. explainAnno defaulted a missing
     // evalAfter to 0 and printed 'The position stays roughly level.' - the sentence for a balanced position. The genuinely level
@@ -485,7 +485,7 @@ L.run(async()=>{
   L.say(txt===WANT,'TC-R10 PINNED the brilliancy sentence is EXACTLY the one measured on #387',{want:WANT,got:txt});
   L.say(/^(?:You|White|Black|Your opponent) (?:gives? up the (?:queen|rook|bishop|knight|pawn) (?:for an? (?:pawn|knight|bishop|rook|queen)|on [a-h][1-8])|leaves? the (?:queen|rook|bishop|knight|pawn) on [a-h][1-8] to be taken|gives? up (?:the queen|a rook|a piece|a pawn|material))(?:\.|, and )/.test(txt),'TC-R10 clause 1 matches a brilGiveTxt template verbatim (#549: named piece, or the pre-#549 ladder for an old stored gate)',txt.slice(0,44));
   L.say(/^White gives up the knight for a pawn\./.test(txt),'TC-R10 clause 1 PINNED to "the knight for a pawn" - 10.Nxb5 gives a knight for the b5 pawn (#549; it read "a piece" before)',txt.slice(0,36));
-  L.say(/(?:^|[.] )If \.\.\.cxb5, 11\.Bxb5\+\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>.", the reply with its check sign (batch 13, the design pair\'s residual B6: it read 11.Bxb5)');
+  L.say(/(?:^|[.] )If \.\.\.cxb5, 11\.Bxb5 with check\./.test(txt),'TC-R10 clause 2 is the refutation template "If <capture>, <reply>.", the reply\'s check said in words with no sign (batch 13, Desk q7: it read 11.Bxb5+)');
   L.say(STAND.test(txt),'TC-R10 clause 4 matches a `standing` template verbatim (behind the tap, before the comparison, 4a part 4)','...'+txt.slice(-34));
 
   // ── 2. EXACTLY ONE dropTxt template, and its NUMBER inside that template's own band ──────────────
@@ -632,9 +632,9 @@ L.run(async()=>{
      query - 450ms of rest and then a 700ms search - so the sweep above cannot see it at all and a short
      settle here would measure the sentence before the clause lands [#387]. */
   const parseRefute=(w)=>{const m=/If ([^,]+), (.+?)\.(?=\s|$)/.exec(String(w||''));if(!m)return null;
-    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').replace(/\s+mate$/,'#').trim();
+    const mv=m[2].replace(/\s+and\s+(?:White|Black|it)\b.*$/,'').replace(/ with check,?/g,'+').replace(/\s+mate$/,'#').trim();   // batch 13, Desk q7: a check is said 'with check' in the sentence; read back as the move's + so a ply stays one token
     const bare=(t)=>String(t).replace(/^\d+\.+|^\.\.\./,'');   // #550 helper lessons: moves are written '11.Bxb5' and '...cxb5' now (P4)
-    return {cap:bare(m[1]),moves:mv?mv.split(/\s+/).map(bare):[]};};
+    return {cap:bare(m[1].replace(/ with check$/,'+')),moves:mv?mv.split(/\s+/).map(bare):[]};};
   const RV=require('../drive/review');
   const n=await L.launch({geo:'kunal730',name:'review-brilliant-504',store:{ct_pool:'3'}});await n.open();
   await RV.ensureReview(n,'opera');await RV.startReview(n);
@@ -673,10 +673,10 @@ L.run(async()=>{
      block N proves the app never renders anything illegal. */
   /* PIN MOVED WITH A FIX [#550 helper lessons, docs/review-text-design-2026-11-14]: measured on trial d06ec3689cf0 (P4 notation, colour voice,
      the standing and the comparison behind the tap); the Great forms are kept for a rule that grades 13.Rxd7 Great. */
-  const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7+. White is winning.',
+  const P25OK=['The only good move. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7 with check. White is winning.',
                'The only good move. If ...Nxd7, 14.Bxe7. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
-               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7+. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
+               'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Bxe7 15.Bxd7 with check. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
                /* #550 landing (batch 11): THE KING RECAPTURE IS A LEGAL ENGINE BRANCH TOO, and this list had only the
                   bishop's. The landing suite at e26a2b329de9 printed '14.Bxe7 Kxe7 15.Bxd7' and N10 went red on a healthy
                   bundle - #391's coin flip, the same bundle green in 550c. Counted over every archived gatelog, the engine's
@@ -687,14 +687,14 @@ L.run(async()=>{
                   entering or leaving the sentence still makes a string outside this list and reddens N10. */
                'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Bxd7. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.',
-               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3+. White is winning.',
+               'The only good move. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3 with check. White is winning.',
                'White gives up the rook for a knight. If ...Nxd7, 14.Bxe7 Kxe7 15.Qa3+. White is winning. Nothing else came close: 13.Rd5 was 1.7 pawns worse.'];
   let P25hit=P25OK.filter(t=>P25.why===t).length;   // #551: may become 1 below when the sentence is not listed but obeys the rule (N11)
   /* #512: THE PLY COUNT DERIVED FROM THE RENDERED SENTENCE, so an arm that has only the text can still
      contribute a sample. Validated against all four sentence shapes this fixture produces (3-ply, 1-ply,
      the mate line and ply 19) before it was used - a predicate that parses what the app wrote is #391's
      coin flip unless you enumerate what the app can legally write. */
-  const clausePlies=(t)=>{const m=/If [^,]+, (.+?)(?: and [A-Z]| and it is mate|\.\s|\.$)/.exec(t||'');return m?m[1].trim().split(/\s+/).length:0;};
+  const clausePlies=(t)=>{const m=/If [^,]+, (.+?)(?: and [A-Z]| and it is mate|\.\s|\.$)/.exec(t||'');return m?m[1].replace(/ with check,?/g,'+').trim().split(/\s+/).length:0;};   /* batch 13, Desk q7: 'with check' is part of its move, not a ply */
   const P25SAMPLES=[P25.r?P25.r.moves.length:0];
   L.say(!!P25.r&&(P25.r.moves.length===1||P25.r.moves.length===3),'TC-R10/N3 #512 the refutation line at ply 25 is ONE or THREE plies - odd, never even, so it never ends on the opponent move - and which of the two the engine yields is recorded in the payload rather than pinned. Eight runs of the shipping bundle gave three plies six times and one ply twice',{moves:P25.r&&P25.r.moves,n:P25.r&&P25.r.moves.length});
   L.say(!!P25.r&&P25.r.moves.slice(1).every(m=>/[x+#]/.test(m)),'TC-R10/N3b #512 and EVERY ply the line adds past the first is forcing - a capture, a check or mate - which is the invariant B F2 established and which holds whichever branch the engine returns. Vacuously true at one ply BY DESIGN: N3 above pins the length separately, so the two cannot both be satisfied by an empty set',{added:P25.r&&P25.r.moves.slice(1)});
@@ -712,7 +712,7 @@ L.run(async()=>{
   L.say(!!P25.box&&P25.box.cap!=null,'TC-R10/N6a #504 the clamp and line-height are readable, so N6b below is a real #396 check rather than a null comparison',P25.box);
   L.say(!!P25.box&&P25.box.cap!=null&&P25.box.ch<=P25.box.cap,'TC-R10/N6b #504 the CONTAINER is no taller than the lines its clamp allows - clientHeight <= ceil(clamp x lineHeight) - so whatever truncates is the clamp, which draws an ellipsis, and not the box, which would not [#396]',P25.box);
   L.say(!!P19.r&&P19.r.moves.length===1,'TC-R10/N7 #504 ply 19 is UNCHANGED at one ply, because the pv after cxb5 has no forcing continuation - the trim rule can only ever ADD the recovery and never rewrites a sentence that was already right',{moves:P19.r&&P19.r.moves,why:P19.why.slice(0,70)});
-  L.say(/Qb8\+/.test(P31.head)&&String(P31.why||'').indexOf('White gives up the queen on b8. It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate.')===0&&!P31.r,'TC-R10/N8 ply 31, 16.Qb8+: the sentence is the mate itself, read from the board - "It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate." - with no "If" clause to wait for (batch 13, docs/hint-audit-2026-11-12 HEX-R-06; until then it read "If ...Nxb8, 17.Rd8 mate." once the refutation search landed, and only what was given up before that)',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
+  L.say(/Qb8\+/.test(P31.head)&&String(P31.why||'').indexOf('White gives up the queen on b8. It is mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate.')===0&&!P31.r,'TC-R10/N8 ply 31, 16.Qb8+: the sentence is the mate itself, read from the board - "It is mate in two: 16.Qb8+ Nxb8 17.Rd8 mate." - with no "If" clause to wait for (batch 13, docs/hint-audit-2026-11-12 HEX-R-06; until then it read "If ...Nxb8, 17.Rd8 mate." once the refutation search landed, and only what was given up before that)',{at:P31.head,moves:P31.r&&P31.r.moves,why:P31.why});
   /* ── N10: THE WHOLE PLY-25 SENTENCE, PINNED, BECAUSE A LONGER CLAUSE SPENDS A SHARED BUDGET ────────
      Antagonist B's second veto ground: the longer refutation clause pushed "It forks two pieces at once."
      out of the sentence at 375x730 - 126 characters against the shipped 144 - and NOTHING in this gate
@@ -740,7 +740,7 @@ L.run(async()=>{
       let g=E.makeMove(pre,cap);for(let k=0;k<r.moves.length;k++){const m=E.getLegal(g).find(x=>E.cleanSAN(E.toSAN(g,x,E.applyMove(g.board,x)))===E.cleanSAN(r.moves[k]));if(!m)return Object.assign(out,{why:'ply '+(k+1)+' '+r.moves[k]+' is not legal'});
         const san=E.toSAN(g,m,E.applyMove(g.board,m));if(k>0&&!/[x+#]/.test(san))return Object.assign(out,{why:'ply '+(k+1)+' '+san+' is not forcing'});g=E.makeMove(g,m);}
       if(!(r.moves.length===1||r.moves.length===3))return Object.assign(out,{why:'the line is '+r.moves.length+' plies'});
-      if(!/^(The only good move\. |White gives up the rook for a knight\. )If \.\.\.Nxd7, 14\.\S+( \S+ 15\.\S+)?\. White is winning\.( Nothing else came close: 13\.Rd5 was 1\.7 pawns worse\.)?$/.test(why))return Object.assign(out,{why:'the sentence is not one of the two openings with White is winning after the line'});
+      if(!/^(The only good move\. |White gives up the rook for a knight\. )If \.\.\.Nxd7, 14\.\S+( \S+ 15\.\S+( with check)?)?\. White is winning\.( Nothing else came close: 13\.Rd5 was 1\.7 pawns worse\.)?$/.test(why))return Object.assign(out,{why:'the sentence is not one of the two openings with White is winning after the line'});
       return Object.assign(out,{ok:true});}catch(e){return {ok:false,why:'threw: '+e.message};}};
   const P25RULE=ruleOf(P25.why);
   if(P25hit===0&&P25RULE.ok)P25hit=1;   // #551: N10 below passes on a listed sentence OR on the rule; its own line is left byte-identical so the controls recorded on it stay sound
@@ -834,10 +834,10 @@ L.run(async()=>{
      Bxe7 Rd1 24, Kxe7 Bxd7 9, Kxe7 Qa3+ 3): the forcing three-ply shapes must print all three plies, a line whose third ply is quiet must
      print the one-ply form, a quiet ply in the MIDDLE stops the line there (the fifth, which no log records but the trim must handle), and each sentence must be EXACTLY the natural ply-25 sentence with only its line changed. */
   const FORCE=[
-    {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7+',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen; batch 13: the check keeps its sign)'},
+    {pv:'g5e7 f8e7 b5d7',line:'14.Bxe7 Bxe7 15.Bxd7 with check',what:'the bishop recapture, then Bxd7+ (three plies, the recovery on screen; batch 13, Desk q7: the check said in words)'},
     {pv:'g5e7 f8e7 h1d1',line:'14.Bxe7',what:'the bishop recapture, then the quiet Rd1 (trimmed to one ply)'},
     {pv:'g5e7 e8e7 b5d7',line:'14.Bxe7 Kxe7 15.Bxd7',what:'the KING recapture, then Bxd7 (three plies) - the line of 15 Nov 2026'},
-    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3+',what:'the king recapture, then Qa3+ (three plies; batch 13: the check keeps its sign, it read 15.Qa3)'},
+    {pv:'g5e7 e8e7 b3a3',line:'14.Bxe7 Kxe7 15.Qa3 with check',what:'the king recapture, then Qa3+ (three plies; batch 13, Desk q7: the check said in words)'},
     // not from the logs: a QUIET ply in the middle (...a6) before a capture - the trim must stop at the quiet ply, so one ply is shown
     {pv:'g5e7 a7a6 b5d7',line:'14.Bxe7',what:'a quiet ...a6 between two captures (trimmed to one ply: a line the opponent has no reason to follow is not shown)'}];
   const FORCE_FEN=SAC_FEN25.split(' ').slice(0,2).join(' ');
@@ -1064,3 +1064,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 2963b1e 2026-11-18 total=129 red=8 scope=trial:750270d532fe how=#551 job 3, the grading machine's break line-cut-to-one-ply (SAC_LINE_MAX 3 -> 1, one change) - TC-R229b red for the three driven three-ply lines, TC-R10/N3c, S2, S3, S4 and S33 red; on the real code eb4e649bd0fd 129/0
 // CONTROL-RECORD: 2963b1e 2026-11-18 total=129 red=3 scope=trial:5a566d36ae28 how=#551 job 3, the grading machine's break quiet-ply-kept (sacLine no longer stops at a quiet ply, one change) - TC-R229b and TC-R229c red for the driven Bxe7 a6 Bxd7, and TC-R10/S32 red
 // CONTROL-RECORD: 0d857757 2026-11-19 total=129 red=6 scope=trial:bdd43b05539c how=batch 13, jobs/review-sentences-name-what-the-moves-do-2026-11-12, the six re-pinned lines on THE TREE BEFORE THE CHANGE (3d1a988b built as a trial, CT_SRC its chess.jsx 3bea9d949937): the sentence pin and clause 2 (11.Bxb5 with no check sign), TC-R10/S26 (3.Bxd7), TC-R10/N8 (ply 31 still waits for an If clause) and the two TC-R229b driven lines that end in a check red; on the trial f3ca51cee808 129/0
+// CONTROL-RECORD: bd9a7bff 2026-11-20 total=129 red=5 scope=trial:42fb9f10be1f how=batch 13, Desk q7: the lines re-pinned to 'with check' in words on THE TREE BEFORE (a trial of beb7d657) - TC-R10 PINNED, TC-R10 clause 2, TC-R10/N8 and both TC-R229b driven lines with a check red, 124 pass
