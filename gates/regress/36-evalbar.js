@@ -314,3 +314,4 @@ L.run(async()=>{
         {playBar:play730&&play730.barW,playBoard:play730&&play730.boardW,playSum:play730&&play730.sum,reviewBar:sr&&sr.w,reviewBoard:m.board&&m.board.w,reviewSum:revSum});
   if(playShort)L.note('375x568 for reference (board fit to height there, so the sum is a different number and is not compared): bar '+playShort.barW+' + board '+playShort.boardW+' = '+playShort.sum);
 },'EVALBAR');
+// CONTROL-RECORD: c0d52abf 2026-11-20 total=34 red=1 scope=trial:e94e09711f6e how=batch 13, the re-pin of the Review board at 375x730 (354 -> 375): the tree before the board half (c608f411's chess.jsx as a trial) - 'the review board is 375 at 375x730' red at 354; on the change's trial 7fa11ae19933 34/0

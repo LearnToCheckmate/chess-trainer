@@ -912,3 +912,4 @@ L.run(async()=>{try{
 // SELECTOR-OPENED: pbar-top reading=presence round 4: the names and flags are read inside the bars and must be found
 // SELECTOR-OPENED: rev-summary-menu reading=presence round 4: the summary must carry its menu button, measured
 // SELECTOR-OPENED: rev-toolbar reading=presence round 4: TC-R11 needs the toolbar and its four buttons in order
+// CONTROL-RECORD: c0d52abf 2026-11-20 total=345 red=5 scope=trial:e94e09711f6e how=batch 13, the re-pin of TC-R06 at 375x679 (343 -> 375): the tree before the board half (c608f411's chess.jsx as a trial) - 'kunal: TC-R06 review board is 375 wide (343)' red; the other four reds are the TC-R04 verdict-row lines, red on that tree before this change too; on the change's trial 7fa11ae19933 the gate reads 341/4, those four only
