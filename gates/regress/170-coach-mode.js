@@ -18,13 +18,13 @@
 // its sign-in screen, and on a Pass & Play game. The More sheet itself is not rendered for an online game (chess.jsx, the sheet's own
 // `opponent!=='online'`), which is read from source and not measured here. (2) The engine's view is checked for SHAPE (an evaluation
 // and a legal-looking move) and for WHEN it shows, not for the quality of the move. (3) One opponent (Pip), one colour (White).
-// SINCE KUNAL'S DESK ANSWERS OF 19 NOV 2026 (run-questions build__1795066268355-q10, q12, q14; US-R175 / TC-R249a..c):
-//  TC-R249a (q10) the Coach mode switch is a full-width row of its own under White and Black (found by their words), and every row of the New
+// SINCE KUNAL'S DESK ANSWERS OF 19 NOV 2026 (run-questions build__1795066268355-q10, q12, q14; US-R178 / TC-R252a..c):
+//  TC-R252a (q10) the Coach mode switch is a full-width row of its own under White and Black (found by their words), and every row of the New
 //           game sheet but the developer's build line is on screen at rest with Start game answering a tap - at 320x568 too.
-//  TC-R249b (q12) the engine's view is a CARD FLOATING OVER THE BOARD: the element painting its words (found by the words, not by the hook) sits
+//  TC-R252b (q12) the engine's view is a CARD FLOATING OVER THE BOARD: the element painting its words (found by the words, not by the hook) sits
 //           in an absolute box inside the board's rect, outside the board grid and outside the status slot; the status line carries no engine
 //           text; nothing on the page moves (the top row, both player bars, the board and the moves box, to 0.1px). TC-R235e reads the card now.
-//  TC-R249c (q14) saved coach games follow the account: block (k), kunal761 only, two stubbed devices on one in-memory account (gate 145's
+//  TC-R252c (q14) saved coach games follow the account: block (k), kunal761 only, two stubbed devices on one in-memory account (gate 145's
 //           method; nothing reaches Firebase) - device 1 backs its game up with the note, device 2 keeps its own and takes the account's, lists
 //           both under More > Saved coach games with no reload, opens device 1's game in Review with its note, and backs both up.
 // CT_G170_GEO=kunal761|se runs one geometry. CT_G170_SYNC=0 leaves block (k) out (a diagnosis aid only).
@@ -82,7 +82,7 @@ const ONLY_K=process.env.CT_G170_SYNC;   // '0' leaves block (k) out (a diagnosi
 const GEOS=(process.env.CT_G170_GEO?[process.env.CT_G170_GEO]:['kunal761','se']);
 L.run(async()=>{
   for(const geo of GEOS){
-    const T=(id)=>geo+' TC-R235'+id+' ';const T2=(id)=>geo+' TC-R249'+id+' ';
+    const T=(id)=>geo+' TC-R235'+id+' ';const T2=(id)=>geo+' TC-R252'+id+' ';
     const b=await L.launch({geo,name:'coach170-'+geo,store:{ct_pool:'3'}});await b.open();
     // ── a. the New Game sheet: Coach mode is chosen with the level, on the Computer's sheet ─────────────────────────────────────────
     await P.states['setup'](b);await b.settle(300);
