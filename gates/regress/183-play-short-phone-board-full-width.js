@@ -19,6 +19,11 @@
 //  d  his 375x761 is unchanged: board 375 at top 140.5 and the bars 64.5 tall, as on 54754943's tree (trial a5a69f3a4462)
 //  e  the move list: on 320x568 it is a sheet (out of the column), closed; Moves opens it with the game's moves in it and closes it,
 //     and the board does not move by 0.5px either way; on the other phones it is in the column, shown, under the bottom bar
+//  f  (batch 13, after the full suite's gate 130 red at se) A GAME STARTED FROM A SCAN at 320x568 against the computer: with the Moves sheet
+//     closed nothing is painted over the board - the centre of every square on ranks 1 to 3 hits that square - and the BEST row (scan-best,
+//     the Moves heading of a scanned game) is not painted; Moves opens the sheet with the BEST row in it and closes it again, and the board
+//     does not move. On cb86e4dc's parent the BEST row was styled visible inside the closed sheet, floated over ranks 3-2 and took the
+//     tap meant for f3 (gate 130 TC-R206d: Qf3-f7 never played). Found by the hit test, not by the row's own visibility alone.
 // KNOW ITS LIMIT: one game, two states, four phones at normal text; the text sizes and the other screens are gates 177 and 178's
 // (they read play-cpu and play-cpu-resigned in all 32 cells). Headless Chromium, not his phone.
 // CONTROL-RECORD: 54754943 2026-11-20 total=55 red=18 scope=trial:a5a69f3a4462 how=batch 13, the tree before playFit (bar beside on the short phones): TC-R260a and b red at 375x667, 360x640 and 320x568 in both states (353, 338 and 298 wide, 20px from the left, eval-bar-v), TC-R260e red at 320x568 (the list in the column, no sheet) - 18; the 375x761 lines, TC-R260d among them, green; the fix's trial a4e4b10faa66 reads 55/0
@@ -57,4 +62,24 @@ L.run(async()=>{
     const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,'TC-R260 '+tag+': no app error',{errs:bad.slice(0,3)});
     await b.close();
   }
+  // f. a scanned game at 320x568: nothing over the board while the Moves sheet is closed
+  {const SC=require('../drive/scan');const tag='320x568 a game from a scan';
+    const b=await L.launch({geo:'se',name:'g183-scan',store:{ct_pool:'3'}});await b.open();let st='';
+    try{st=await SC.through(b,{fen:'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3',turn:'w',side:'w',kind:'Play',settle:900});await b.settle(1500);}catch(e){st='threw '+String(e).slice(0,120);}
+    const hits=()=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||'')).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width)[0];if(!g)return null;
+      const sq=[...g.children].slice(0,64);const r=g.getBoundingClientRect();const bad=[];let n=0;
+      for(let i=40;i<64;i++){const q=sq[i].getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);n++;if(!h||!(h===sq[i]||sq[i].contains(h))){const a=h&&h.closest('[data-ct]');bad.push(i+':'+(a?a.getAttribute('data-ct'):(h?h.tagName:'none')));}}
+      const bs=document.querySelector('[data-ct="scan-best"]');const br=bs?bs.getBoundingClientRect():null;
+      const mp=document.querySelector('[data-ct="moves-panel"]');
+      return {n,bad,board:{l:r.left,t:r.top,w:r.width},best:bs?{vis:getComputedStyle(bs).visibility,t:br.top,b:br.bottom,h:br.height}:null,sheet:!!mp&&mp.getAttribute('data-sheet')==='1',mpVis:mp?getComputedStyle(mp).visibility:null};});
+    const h0=await hits();
+    L.say(st==='ok'&&!!h0&&h0.sheet&&h0.mpVis==='hidden'&&!!h0.best,'TC-R260f '+tag+': DENOMINATOR - the scanned game is on against the computer ('+st+'), the move list is the closed sheet and the BEST row exists',{st,h0});
+    L.say(!!h0&&h0.n===24&&h0.bad.length===0,'TC-R260f '+tag+': with the Moves sheet closed nothing is painted over the board - all '+(h0&&h0.n)+' squares of ranks 1 to 3 take their own tap'+(h0&&h0.bad.length?' (NOT: '+h0.bad.slice(0,8).join(', ')+')':''),h0);
+    L.say(!!h0&&!!h0.best&&h0.best.vis==='hidden','TC-R260f '+tag+': and the BEST row is not painted while the sheet is closed ('+(h0&&h0.best&&h0.best.vis)+')',h0&&h0.best);
+    let h1=null,h2=null;try{await P.tapBtn(b,/^Moves$/,700);h1=await hits();await P.tapBtn(b,/^Moves$/,700);h2=await hits();}catch(e){L.note(tag+': Moves tap: '+String(e).slice(0,140));}
+    const same=(x)=>!!x&&!!h0&&Math.abs(x.board.t-h0.board.t)<0.5&&Math.abs(x.board.w-h0.board.w)<0.5&&Math.abs(x.board.l-h0.board.l)<0.5;
+    L.say(!!h1&&h1.mpVis==='visible'&&!!h1.best&&h1.best.vis==='visible'&&h1.best.h>0&&same(h1),'TC-R260f '+tag+': Moves opens the sheet with the BEST row in it, and the board does not move',{h1});
+    L.say(!!h2&&h2.mpVis==='hidden'&&!!h2.best&&h2.best.vis==='hidden'&&h2.bad.length===0&&same(h2),'TC-R260f '+tag+': Moves again closes it, the BEST row with it, the squares take their taps again, and the board does not move',{h2});
+    const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));L.say(bad.length===0,'TC-R260f '+tag+': no app error',{errs:bad.slice(0,3)});
+    await b.close();}
 },'PLAY-SHORT-PHONE-FULL-WIDTH');
