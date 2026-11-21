@@ -572,7 +572,7 @@ L.run(async()=>{
      rev-why-txt was NOT RENDERED, whyFull fell back to rev-why (the engine line, no data-more), and the sweep read 34 plies and 0
      clauses: the explanation could not be reached at all. The app now keeps one line and its tap (chess.jsx _reasonH, _reasonLast).
      So the sweep runs WITH THE ENGINE LINE ON - the state the player is in after the play-out - and the lines below assert the
-     explanation is there in that state. CONTROL-RECORD: on 81d3ffd0b7ba (448a848a, the fix absent) the sweep's clause count was 0
+     explanation is there in that state. Control record (prose, not a CONTROL-RECORD line): on 81d3ffd0b7ba (448a848a, the fix absent) the sweep's clause count was 0
      (claude/agents/gatelogs/552-run1-21-review-brilliant.log), so TC-R10 'every ply had the box' and the one-line checks here are red there by construction
      (no rev-why-txt exists); the run on the fixed bundle is owed after the suite. */
   const engOnSweep=!!(await b.rect('[data-ct="rev-engline"]'));
