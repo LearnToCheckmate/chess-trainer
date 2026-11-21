@@ -567,15 +567,24 @@ L.run(async()=>{
      time. Reading backwards collects the same per-ply pairs as reading forwards. */
   const NAV_FWD=40, PLIES=34;
   /* batch 13 (jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19, e7a59c2f revFit): THE PLAY-OUT ABOVE SWITCHES
-     THE ENGINE LINE ON (rev-playout calls setEngOn(true)), and where the rows have given way (revFit.lines under 3, which is this 375x679
-     column) the engine line takes the explanation's lines: _reasonH = 17*floor((34-20)/17) = 0 and rev-why-txt is NOT RENDERED. whyFull
-     then fell back to rev-why, which carries the engine line and no data-more, so every ply read no clause and TC-R10 below went red at
-     0 clauses on 448a848a (bundle 81d3ffd0b7ba) while the app still wrote the clause into data-more. The sweep is about the comparison
-     clause, so it reads with the engine line OFF - the state the clause's box exists in - and it says so in its own line rather than
-     letting a fallback read a different element silently. */
-  {const RVe=require('../drive/review');await RVe.engineSet(b,false);}
-  const engOffSweep=!(await b.rect('[data-ct="rev-engline"]'));
-  L.say(engOffSweep,'TC-R10 the engine line the play-out switched on is OFF again before the sweep, so the explanation has its box (rev-why-txt) to be read from');
+     THE ENGINE LINE ON (rev-playout calls setEngOn(true)), and where the rows have given way (revFit.lines under 3, this 375x679 column)
+     the engine line takes the explanation's lines. On 448a848a (bundle 81d3ffd0b7ba) that left _reasonH = 17*floor((34-20)/17) = 0,
+     rev-why-txt was NOT RENDERED, whyFull fell back to rev-why (the engine line, no data-more), and the sweep read 34 plies and 0
+     clauses: the explanation could not be reached at all. The app now keeps one line and its tap (chess.jsx _reasonH, _reasonLast).
+     So the sweep runs WITH THE ENGINE LINE ON - the state the player is in after the play-out - and the lines below assert the
+     explanation is there in that state. CONTROL-RECORD: on 81d3ffd0b7ba (448a848a, the fix absent) the sweep's clause count was 0
+     (gates/logs/552-21-review-brilliant.log), so TC-R10 'every ply had the box' and the one-line checks here are red there by construction
+     (no rev-why-txt exists); the run on the fixed bundle is owed after the suite. */
+  const engOnSweep=!!(await b.rect('[data-ct="rev-engline"]'));
+  L.say(engOnSweep,'TC-R10 the play-out left the engine line ON, so the sweep below reads the state the player is in after it');
+  {const one=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-txt"]');if(!e)return null;const r=e.getBoundingClientRect();
+      return {h:Math.round(r.height),last:e.getAttribute('data-last'),role:e.getAttribute('role'),more:!!(e.getAttribute('data-more')||'').trim(),vw:innerWidth,vh:innerHeight};});
+    L.note('    engine on, '+(one?one.vw+'x'+one.vh:'?')+': rev-why-txt '+JSON.stringify(one));
+    L.say(!!one&&one.h>=16&&one.role==='button','TC-R10 with the engine line on at 375x679 the explanation keeps at least one line (rev-why-txt, '+(one&&one.h)+'px) and it is a tap target',one);
+    let opened=false;if(one){try{await b.page.locator('[data-ct="rev-why-txt"]').first().click({timeout:4000});await b.settle(400);opened=!!(await b.rect('[data-ct="rev-why-sheet"]'));}catch(e){opened=false;}}
+    L.say(opened,'TC-R10 and a tap on that line opens the whole explanation in its sheet (rev-why-sheet)',{opened});
+    if(opened){try{await b.page.locator('[data-ct="rev-why-sheet"]').first().click({timeout:3000});await b.settle(400);}catch(e){}}
+    L.say(!(await b.rect('[data-ct="rev-why-sheet"]')),'TC-R10 the sheet closes again before the sweep, so the sweep reads the screen and not the sheet');}
   for(let i=0;i<NAV_FWD;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000}).catch(()=>{});}
   await b.settle(700);
   const sweep=[];
@@ -597,7 +606,7 @@ L.run(async()=>{
   const withClause=sweep.filter(r=>r.form&&r.alt);
   L.note('    sweep: '+sweep.length+' plies read, '+withClause.length+' carrying a comparison clause -> '+withClause.map(r=>r.played+'/'+r.alt).join(', '));
   const noBox=sweep.filter(r=>!r.hasBox).map(r=>r.played);
-  L.say(sweep.length>0&&noBox.length===0,'TC-R10 every ply the sweep read had the explanation box (rev-why-txt), so no reading came from the rev-why fallback, which carries no comparison clause',{noBox,read:sweep.length});
+  L.say(sweep.length>0&&noBox.length===0,'TC-R10 every ply the sweep read had the explanation box (rev-why-txt), with the engine line on, so no reading came from the rev-why fallback, which carries no comparison clause',{noBox,read:sweep.length});
   L.say(sweep.length>=PLIES-2,'TC-R10 the ply sweep actually walked the game rather than reading one screen '+sweep.length+' times',{pliesRead:sweep.length,want:PLIES});
   /* NON-VACUITY, and deliberately NOT a pinned count: which plies carry a clause is the engine's answer,
      and pinning it would be #391's coin flip with extra steps. What must never be zero is the population,
