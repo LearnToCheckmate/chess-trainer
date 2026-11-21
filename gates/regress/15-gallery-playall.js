@@ -524,7 +524,16 @@ L.run(async()=>{
          at 375x679 it passes through pages that still scroll there (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, open;
          the long lists may scroll by design, AUD-L08/L16). Seen at 37, 204.7 and 261.3px over in this run's suites, and 0 in others,
          by which screen the sample caught. Those pages have their own gates (159 and the job's list); this check is for the cards. */
-      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur))scrolled.push({cap:cur.slice(0,34),over:m.over.over});
+      /* #552 (batch 13, run 3): "LEAVES the page scrolling" means an overflow that is still there a moment later. Run 3 reddened on the EXP
+         card's entry step at 375x679, over 2 while Review's fit loop sized the board (341.03 before it settled at 375.03), and the same
+         2px reddens the bundle from before batch 13's fixes (81d3ffd0b7ba) as often as this one, at random: three single runs, red 1 of
+         2 and 1 of 1. A diagnostic copy caught it once, and its own evaluate a few ms after the sample found NO in-flow element past the
+         screen, so it is a layout-in-progress frame, and body is position:fixed throughout, so nothing scrolled. So an over is re-read
+         250ms later under the same caption and counted only if it is still there; one that clears is NOTED with both readings, never
+         dropped silently. NC=over (a persistent 14px child of #root) must and does still redden this line. */
+      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur)){await b.settle(250);const m2=await b.metrics();const still=(await CAP(b))===cur&&m2.over.over>0.5;
+        if(still)scrolled.push({cap:cur.slice(0,34),over:m.over.over,again:m2.over.over});
+        else L.note('      '+lab+' card "'+cur.slice(0,34)+'": over '+m.over.over+' at one sample, '+m2.over.over+' 250ms later - a layout-in-progress frame, not counted (see the #552 note above this line)');}
       const pf=await PAGEFIX(b);
       if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
         pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
