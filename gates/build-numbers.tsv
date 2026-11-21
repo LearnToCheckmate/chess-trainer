@@ -609,3 +609,4 @@
 552	minted	-	-	-	2026-11-20T23:33Z	build__1795066268355	minted	batch 13: the Fable sprint (jobs 23, 71, 99), the Desk parts of jobs 1, 3 and 4, job 104 with 12 (and his q29 Play board), job 52, jobs 25, 26 and 27, the bake-off job 13, the pre-check red repair
 552	built	-	81d3ffd0b7ba	c8ef211b8231	2026-11-20T23:33Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
 552	built	-	79771278f743	33d1afcadd8c	2026-11-21T08:29Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
+552	built	-	73249bd45e30	aaeee7dd1101	2026-11-21T10:45Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
