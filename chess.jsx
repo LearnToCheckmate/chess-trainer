@@ -7268,6 +7268,13 @@ function AppMain(){
          next overflow is taken out on its first pass (aba4af0: 100px block then Re8+ at 375x761, 17px for 10-13 frames; fixed 0).
          A trim at or above the floor still grows, so the height-bound fresh sizes (259.03 at 320x568 and 375x568) are
          unchanged; Review's clamp at 0 is untouched. Gate 75 TC-R64-D18. */
+      /* batch 13, gate 125 TC-R201a at 375x667: REVIEW SNAPS BACK TO TRIM 0 WHEN THE ROOM COVERS IT. Since revFit (e7a59c2f) the
+         streamlined Review's board is width-bound by under 2px wherever the rows gave way (375x667: heightCap 377 against 375.04), so
+         from a trim t the board gains t less that margin and "over" reads ~1.96 short of t. The growth step floors -over to a multiple
+         of 8, so a 128 trim walked 128 -> 64 -> 8 and stopped there (over -7.96 is inside the -24 threshold): board 369.03 for good
+         against a fresh 375.03. The gain from t to trim 0 is t less the width-cap margin (sqTrimFloorRef), so when the measured room
+         covers that gain trim 0 fits by construction and the loop takes it. Review only, and only back to 0 (fixr3e's clamp). */
+      else if(inReview&&revCompact&&_t0>0&&over<=0&&(_t0-Math.max(0,Math.min(_t0,sqTrimFloorRef.current)))<=-over){if(!_held(0)){fitLeftRef.current=null;setBoardTrim(0);settle=true;}}
       else if(over<-24){const _revFit=inReview&&revCompact,_fl=sqTrimFloorRef.current;const _grow=(t)=>{const n=Math.max(-480,t-Math.min(64,Math.floor(-over/8)*8));return _revFit?Math.max(Math.min(t,0),n):Math.max(Math.min(t,_fl),n);};if(!_held(_grow(_t0))){fitLeftRef.current=null;setBoardTrim(_grow);settle=true;}} /* #549 fixr3e: Review grows back to trim 0 and no further (see _fitOver) */ /* #364: t>0?...:t meant the loop could only UNDO a trim, never grow past SQ's first guess. Kunal's phone (375x761, insets 51/31) sat at board 319 with trim 0 and 56px of slack nobody could claim. Negative trim is growth; SQ clamps it to the width cap so it can never push the board off the sides. */
       if(++passes<36)raf=requestAnimationFrame(tick);else fitIdleRef.current=true;
     };
@@ -7287,7 +7294,7 @@ function AppMain(){
     const _fs=!wide&&((inReview&&revCompact)||(mode==='play'&&!_psLay)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online')));
     if(!_fs)return;let last=null;
     const id=setInterval(()=>{if(!fitIdleRef.current)return;const t=boardTrimRef.current,o=_fitOver();
-      const need=(t>0&&o<-24)||o>0;if(!need){last=null;return;}
+      const need=(t>0&&o<-24)||o>0||(inReview&&revCompact&&t>0&&o<=0&&(t-Math.max(0,Math.min(t,sqTrimFloorRef.current)))<=-o);   /* batch 13: the Review snap to trim 0 above */if(!need){last=null;return;}
       {const _L=fitLeftRef.current;if(!(o>0)&&_L&&_L.to===t&&_L.o!==null&&Math.abs(o-_L.o)<2)return;}   /* #550 US-R151: the loop is holding this trim on this reading on purpose (see _held); waking it would change nothing */
       if(last&&last.t===t&&Math.abs(last.o-o)<2)return;last={t,o};setFitBump(b=>b+1);},600);
     return()=>clearInterval(id);},[wide,inReview,revCompact,mode,playSetup,pzView,_fitOver]);
