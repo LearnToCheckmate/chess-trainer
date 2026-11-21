@@ -22,6 +22,9 @@
 //            position: ONE predicate per claim, the sentence pinned by its own words, and "one move does X" counted over every legal move.
 //  TC-R246c  each of the 18 Strategy cards' look line and text is checked against its position the same way.
 //  TC-R246d  the screen shows the row's words and the row's board (occupancy of all 64 squares, and one picture per piece kind).
+//  TC-R262   [batch 13, q23 "Longer, friendlier wrong try lines"] each card's line is the longer one (80+ characters, pinned by its words in
+//            TC-R246b); while it shows the board, the card box and the button row do not move and the page does not scroll; on his phone it
+//            is drawn at the box's own size, and on a short phone it may step down to fit, never below 11.5px.
 //  TC-R246e  sideways at 568x320 (one launch, its own line prefix): the card's line on a wrong try moves neither the board nor the buttons.
 // KNOW ITS LIMIT: a claim is checked where the board or a short forced line settles it. "A small but lasting edge" and "the invasion
 // works" are engine questions and live in gate 129 (TC-R205d, e). General advice with no position claim ("avoid overextending") is not
@@ -103,69 +106,77 @@ const TCL={
   ['explain',/forks the king and queen/,x=>st(x.a)==='check'&&find(x.a.board,'q','b').every(([r,c])=>hits(x.a,x.key,sqn(r,c)))],
   ['explain',/The king must move out of check, then you simply take the queen/,x=>kingOnly(x)&&thenTakes(x,'n','q')],
   ['hint',/A knight check that also attacks the queen/,x=>mover(x.p,x.key).t==='n'&&st(x.a)==='check'&&hits(x.a,x.key,sqn(...find(x.a.board,'q','b')[0]))],
-  ['miss',/^One knight move checks the king and attacks the queen\.$/,x=>only(x.p,movesOf(x.p,'n').filter(m=>{const a=mk(x.p,m);return inCheck(a)&&hits(a,m,sqn(...find(a.board,'q','b')[0]));}),x.key)]],
+  ['miss',/^Have another look: one knight jump checks the king and hits the queen at the same time\.$/,x=>only(x.p,movesOf(x.p,'n').filter(m=>{const a=mk(x.p,m);return inCheck(a)&&hits(a,m,sqn(...find(a.board,'q','b')[0]));}),x.key)]],
  'Pin':[
   ['hint',/The rook pins the knight to its king, so the knight is not allowed to move/,x=>{const b={...x.p,turn:'b',ep:null};const none=legal(b).filter(m=>from(m)==='g6').length===0;
      const bd=x.p.board.map(r=>r.slice());bd[2][6]=null;const k=find(bd,'k','b')[0];return none&&attackers(bd,k[0],k[1],'w').some(a=>a.t==='r'&&sqn(a.r,a.c)==='g1');}],
   ['explain',/The rook on g1 pins the knight to the king, so it cannot run from your pawn\. Take it: hxg6/,x=>san(x.p,x.key)==='hxg6'&&target(x.p,x.key).t==='n'&&at(x.p.board,'g1').t==='r'],
-  ['miss',/^The g6 knight is pinned\. Take it the cheapest way\.$/,x=>{const cs=legal(x.p).filter(m=>to(m)==='g6');const v=m=>VAL[mover(x.p,m).t];
+  ['miss',/pinned to its king, so it cannot run away/,x=>{const b={...x.p,turn:'b',ep:null};const bd=x.p.board.map(r=>r.slice());bd[2][6]=null;const k=find(bd,'k','b')[0];return legal(b).filter(m=>from(m)==='g6').length===0&&attackers(bd,k[0],k[1],'w').some(a=>a.t==='r'&&sqn(a.r,a.c)==='g1');}],
+  ['miss',/^The g6 knight is pinned to its king, so it cannot run away\. Take it with your cheapest piece\.$/,x=>{const cs=legal(x.p).filter(m=>to(m)==='g6');const v=m=>VAL[mover(x.p,m).t];
      return at(x.p.board,'g6').t==='n'&&cs.length>=2&&cs.every(m=>m===cs.find(k=>from(k)===from(x.key))||v(m)>v(x.key))&&cs.some(k=>from(k)===from(x.key));}]],
  'Skewer':[
   ['explain',/Rg1\+ skewers the king and queen on the g-file/,x=>san(x.p,x.key)==='Rg1+'&&(()=>{const b=behindKing(x.a,x.key);return !!b&&b.t==='q'&&b.c==='b';})()&&find(x.a.board,'k','b')[0][1]===6&&find(x.a.board,'q','b')[0][1]===6],
   ['explain',/The king must step aside, then Rxg8 wins the queen/,x=>kingOnly(x)&&legal(x.a).every(r=>{const p3=mk(x.a,r);const m=legal(p3).find(k=>san(p3,k).replace(/[+#]/,'')==='Rxg8');return !!m&&target(p3,m).t==='q'&&!legal(mk(p3,m)).some(k=>to(k)==='g8');})],
   ['hint',/Check the king down the g-file/,x=>to(x.key)[0]==='g'&&st(x.a)==='check'],
-  ['miss',/^One rook check has the queen behind the king\.$/,x=>only(x.p,movesOf(x.p,'r').filter(m=>{const a=mk(x.p,m);if(!inCheck(a))return false;const b=behindKing(a,m);return !!b&&b.t==='q'&&b.c==='b';}),x.key)]],
+  ['miss',/so the queen falls next/,x=>kingOnly(x)&&legal(x.a).every(r=>{const p3=mk(x.a,r);const m=legal(p3).find(k=>mover(p3,k).t==='r'&&target(p3,k)&&target(p3,k).t==='q');return !!m&&!legal(mk(p3,m)).some(k=>to(k)===to(m));})],
+  ['miss',/^Look again: one rook check has the queen standing right behind the king, so the queen falls next\.$/,x=>only(x.p,movesOf(x.p,'r').filter(m=>{const a=mk(x.p,m);if(!inCheck(a))return false;const b=behindKing(a,m);return !!b&&b.t==='q'&&b.c==='b';}),x.key)]],
  'Discovered check':[
   ['idea',/Move one piece so another delivers check, and take something on the way/,x=>!!target(x.p,x.key)&&checkers(x.a).length>0&&checkers(x.a).every(a=>!(a.r===x.key.tr&&a.c===x.key.tc))],
   ['explain',/Nxd7\+ grabs the queen and uncovers the rook check on the e-file/,x=>san(x.p,x.key)==='Nxd7+'&&target(x.p,x.key).t==='q'&&checkers(x.a).length===1&&checkers(x.a)[0].t==='r'&&checkers(x.a)[0].c===4],
   ['explain',/Black can take the knight back with Kxd7, but the queen is gone and White is left a whole rook up/,x=>{const r=legal(x.a).find(m=>san(x.a,m)==='Kxd7');if(!r)return false;const p3=mk(x.a,r);return material(p3.board,'w')===5&&material(p3.board,'b')===0&&find(p3.board,'r','w').length===1;}],
   ['hint',/Move the knight, and the rook gives check down the e-file/,x=>movesOf(x.p,'n').length>0&&movesOf(x.p,'n').every(m=>checkers(mk(x.p,m)).some(a=>a.t==='r'&&a.c===4))],
-  ['miss',/^Every knight move gives check\. One takes the queen\.$/,x=>movesOf(x.p,'n').length>1&&movesOf(x.p,'n').every(m=>checkers(mk(x.p,m)).some(a=>a.t==='r'))&&only(x.p,movesOf(x.p,'n').filter(m=>target(x.p,m)&&target(x.p,m).t==='q'),x.key)]],
+  ['miss',/^Every knight move here gives check from the rook\. Pick the one that also takes the queen\.$/,x=>movesOf(x.p,'n').length>1&&movesOf(x.p,'n').every(m=>checkers(mk(x.p,m)).some(a=>a.t==='r'))&&only(x.p,movesOf(x.p,'n').filter(m=>target(x.p,m)&&target(x.p,m).t==='q'),x.key)]],
  'Back-rank mate':[
   ['idea',/Mate in one/,x=>isMate(x.a)],
   ['explain',/Ra8# is checkmate\. The f7, g7 and h7 pawns that shelter the king also trap it on the back rank/,x=>san(x.p,x.key)==='Ra8#'&&isMate(x.a)&&['f7','g7','h7'].every(s=>{const q=at(x.p.board,s);return q&&q.t==='p'&&q.c==='b';})&&find(x.p.board,'k','b')[0][0]===0],
   ['hint',/fenced in by its own pawns on the back rank/,x=>{const k=find(x.p.board,'k','b')[0];return k[0]===0&&[-1,0,1].every(d=>{const q=inB(1,k[1]+d)?x.p.board[1][k[1]+d]:null;return !inB(1,k[1]+d)||(q&&q.c==='b'&&q.t==='p');});}],
-  ['miss',/^There is a mate in one along the back rank\.$/,x=>only(x.p,legal(x.p).filter(m=>isMate(mk(x.p,m))),x.key)&&x.key.tr===0]],
+  ['miss',/where the king's own pawns hem it in/,x=>{const k=find(x.p.board,'k','b')[0];return k[0]===0&&[-1,0,1].every(d=>{if(!inB(1,k[1]+d))return true;const q=x.p.board[1][k[1]+d];return !!q&&q.c==='b'&&q.t==='p';});}],
+  ['miss',/^Have another look: there is a mate in one on the back rank, where the king's own pawns hem it in\.$/,x=>only(x.p,legal(x.p).filter(m=>isMate(mk(x.p,m))),x.key)&&x.key.tr===0]],
  'Smothered mate':[
   ['idea',/Mate in one/,x=>isMate(x.a)],
   ['explain',/Nf7# is the smothered mate\. The king is hemmed in by its own rook and pawns/,x=>{const k=find(x.p.board,'k','b')[0];let all=true,kinds=new Set();for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const R=k[0]+dr,C=k[1]+dc;if(!inB(R,C))continue;const q=x.p.board[R][C];if(!q||q.c!=='b')all=false;else kinds.add(q.t);}
      return san(x.p,x.key)==='Nf7#'&&isMate(x.a)&&all&&kinds.has('r')&&kinds.has('p')&&kinds.size===2;}],
-  ['miss',/^There is a mate in one, and only the knight can give it\.$/,x=>only(x.p,legal(x.p).filter(m=>isMate(mk(x.p,m))),x.key)&&mover(x.p,x.key).t==='n']],
+  ['miss',/the king is boxed in by its own pieces/,x=>{const k=find(x.p.board,'k','b')[0];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const R=k[0]+dr,C=k[1]+dc;if(!inB(R,C))continue;const q=x.p.board[R][C];if(!q||q.c!=='b')return false;}return true;}],
+  ['miss',/^There is a mate in one here, and only the knight can give it: the king is boxed in by its own pieces\.$/,x=>only(x.p,legal(x.p).filter(m=>isMate(mk(x.p,m))),x.key)&&mover(x.p,x.key).t==='n']],
  'Double attack':[
   ['explain',/Qd8\+ is a double attack: it checks the king and attacks the rook on b6/,x=>san(x.p,x.key)==='Qd8+'&&at(x.a.board,'b6').t==='r'&&hits(x.a,x.key,'b6')],
   ['explain',/Black must answer the check with Kh7, then Qxb6 wins the rook/,x=>{const rs=legal(x.a);if(rs.length!==1||san(x.a,rs[0])!=='Kh7')return false;const p3=mk(x.a,rs[0]);const m=legal(p3).find(k=>san(p3,k).replace(/[+#]/,'')==='Qxb6');return !!m&&!legal(mk(p3,m)).some(k=>to(k)==='b6');}],
   ['hint',/the short diagonal down to b6/,x=>{const [r,c]=rc(to(x.key)),[r2,c2]=rc('b6');return Math.abs(r-r2)===Math.abs(c-c2)&&Math.abs(r-r2)===2;}],
-  ['miss',/^One queen check also attacks the rook on b6\.$/,x=>only(x.p,movesOf(x.p,'q').filter(m=>{const a=mk(x.p,m);return inCheck(a)&&at(a.board,'b6')&&at(a.board,'b6').t==='r'&&hits(a,m,'b6');}),x.key)]],
+  ['miss',/once the king steps away the rook is yours/,x=>{const rs=legal(x.a);return rs.length>0&&rs.every(r=>{if(mover(x.a,r).t!=='k')return false;const p3=mk(x.a,r);const m=legal(p3).find(k=>to(k)==='b6'&&target(p3,k)&&target(p3,k).t==='r');return !!m&&!legal(mk(p3,m)).some(k=>to(k)==='b6');});}],
+  ['miss',/^Look again: one queen check also hits the rook on b6, so once the king steps away the rook is yours\.$/,x=>only(x.p,movesOf(x.p,'q').filter(m=>{const a=mk(x.p,m);return inCheck(a)&&at(a.board,'b6')&&at(a.board,'b6').t==='r'&&hits(a,m,'b6');}),x.key)]],
  'Pawn fork':[
   ['explain',/d5 forks the knight on c6 and the bishop on e6/,x=>san(x.p,x.key)==='d5'&&at(x.a.board,'c6').t==='n'&&at(x.a.board,'e6').t==='b'&&hits(x.a,x.key,'c6')&&hits(x.a,x.key,'e6')],
   ['explain',/the e4 pawn guards it, so Bxd5 is no answer/,x=>{const r=legal(x.a).find(m=>san(x.a,m)==='Bxd5');if(!r)return false;const p3=mk(x.a,r);return legal(p3).some(m=>san(p3,m)==='exd5');}],
   ['explain',/whichever one moves, you simply take the other/,x=>legal(x.a).every(r=>{const p3=mk(x.a,r);return legal(p3).some(m=>mover(p3,m).t==='p'&&target(p3,m)&&/[nb]/.test(target(p3,m).t));})],
-  ['miss',/^One pawn push attacks the knight and the bishop together\.$/,x=>only(x.p,movesOf(x.p,'p').filter(m=>{const a=mk(x.p,m);return ['n','b'].every(t=>find(a.board,t,'b').some(([r,c])=>hits(a,m,sqn(r,c))));}),x.key)]],
+  ['miss',/Whichever one runs, you take the other/,x=>legal(x.a).every(r=>{const p3=mk(x.a,r);return legal(p3).some(m=>mover(p3,m).t==='p'&&target(p3,m)&&/[nb]/.test(target(p3,m).t));})],
+  ['miss',/^Look for the pawn push that attacks the knight and the bishop together\. Whichever one runs, you take the other\.$/,x=>only(x.p,movesOf(x.p,'p').filter(m=>{const a=mk(x.p,m);return ['n','b'].every(t=>find(a.board,t,'b').some(([r,c])=>hits(a,m,sqn(r,c))));}),x.key)]],
  'Double check':[
   ['idea',/two pieces check the king together, and win the queen/,x=>checkers(x.a).length===2&&kingOnly(x)&&thenTakes(x,'n','q')],
   ['explain',/Nf6\+ is a double check, from the knight and the rook/,x=>san(x.p,x.key)==='Nf6+'&&checkers(x.a).map(a=>a.t).sort().join('')==='nr'],
   ['explain',/the king is forced to move, and then Nxg8 scoops the queen/,x=>kingOnly(x)&&thenTakes(x,'n','q','g8')],
   ['hint',/the knight checks the king, and the rook checks down the e-file behind it/,x=>to(x.key)==='f6'&&checkers(x.a).some(a=>a.t==='r'&&a.c===4)&&checkers(x.a).some(a=>a.t==='n')],
-  ['miss',/^Two knight moves give double check\. One hits the queen\.$/,x=>{const dc=movesOf(x.p,'n').filter(m=>checkers(mk(x.p,m)).length===2);return dc.length===2&&only(x.p,dc.filter(m=>{const a=mk(x.p,m);return hits(a,m,sqn(...find(a.board,'q','b')[0]));}),x.key);}]],
+  ['miss',/^Two knight moves give double check, and only one of them also attacks the queen\. Find that one\.$/,x=>{const dc=movesOf(x.p,'n').filter(m=>checkers(mk(x.p,m)).length===2);return dc.length===2&&only(x.p,dc.filter(m=>{const a=mk(x.p,m);return hits(a,m,sqn(...find(a.board,'q','b')[0]));}),x.key);}]],
  'Hanging piece':[
   ['hint',/Look at the bishop on b7\. What is guarding it/,x=>at(x.p.board,'b7').t==='b'&&attackers(x.p.board,1,1,'b').length===0],
   ['explain',/Rxb7 wins a whole bishop for free, because nothing defends it/,x=>san(x.p,x.key)==='Rxb7'&&target(x.p,x.key).t==='b'&&!legal(x.a).some(m=>to(m)==='b7')],
-  ['miss',/^One black piece has no defender\. Take it\.$/,x=>{let loose=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=x.p.board[r][c];if(q&&q.c==='b'&&q.t!=='k'&&attackers(x.p.board,r,c,'b').length===0)loose.push(sqn(r,c));}
+  ['miss',/take it for free/,x=>!!target(x.p,x.key)&&target(x.p,x.key).c==='b'&&!legal(x.a).some(m=>to(m)===to(x.key))],
+  ['miss',/^Have a look around: one black piece has nothing defending it\. Find it and take it for free\.$/,x=>{let loose=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=x.p.board[r][c];if(q&&q.c==='b'&&q.t!=='k'&&attackers(x.p.board,r,c,'b').length===0)loose.push(sqn(r,c));}
      return loose.length===1&&loose[0]===to(x.key)&&only(x.p,legal(x.p).filter(m=>to(m)===loose[0]),x.key);}]],
  'Deflection':[
   ['idea',/The rook on a8 is the only thing guarding the back rank/,x=>{const a=attackers(x.p.board,0,4,'b');return a.length===1&&a[0].t==='r'&&sqn(a[0].r,a[0].c)==='a8';}],
   ['hint',/A queen check on e8 that the rook is forced to take/,x=>to(x.key)==='e8'&&mover(x.p,x.key).t==='q'&&forcedThenMate(x.p,x.key,'r','r')],
   ['explain',/the rook must capture \(Rxe8\), abandoning the back rank, and then Rxe8 is checkmate/,x=>{const rs=legal(x.a);if(rs.length!==1||san(x.a,rs[0])!=='Rxe8')return false;const p3=mk(x.a,rs[0]);return legal(p3).some(m=>san(p3,m)==='Rxe8#'&&isMate(mk(p3,m)));}],
-  ['miss',/^A queen check forces the a8 rook to take\. Then you mate\.$/,x=>at(x.p.board,'a8').t==='r'&&only(x.p,movesOf(x.p,'q').filter(m=>forcedThenMate(x.p,m,'r','r')||forcedThenMate(x.p,m,'r','q')),x.key)]],
+  ['miss',/^Look for the queen check that the a8 rook is forced to take\. Once the rook leaves, you mate\.$/,x=>at(x.p.board,'a8').t==='r'&&only(x.p,movesOf(x.p,'q').filter(m=>forcedThenMate(x.p,m,'r','r')||forcedThenMate(x.p,m,'r','q')),x.key)]],
  'Decoy':[
   ['hint',/Give up the queen with check on g8/,x=>to(x.key)==='g8'&&mover(x.p,x.key).t==='q'&&st(x.a)==='check'],
   ['explain',/Rxg8 is forced, and now the king is smothered by its own pieces, so Nf7 is checkmate/,x=>{const rs=legal(x.a);if(rs.length!==1||san(x.a,rs[0])!=='Rxg8')return false;const p3=mk(x.a,rs[0]);return legal(p3).some(m=>san(p3,m)==='Nf7#'&&isMate(mk(p3,m)));}],
-  ['miss',/^The rook must take one check\. Then the knight mates\.$/,x=>only(x.p,legal(x.p).filter(m=>forcedThenMate(x.p,m,'r','n')),x.key)]],
+  ['miss',/the rook boxes in its own king/,x=>{const rs=legal(x.a);if(rs.length!==1||mover(x.a,rs[0]).t!=='r')return false;const p3=mk(x.a,rs[0]);const k=find(p3.board,'k','b')[0];let nextTo=false;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const R=k[0]+dr,C=k[1]+dc;if(!inB(R,C))continue;const q=p3.board[R][C];if(!q||q.c!=='b')return false;if(R===rs[0].tr&&C===rs[0].tc)nextTo=true;}return nextTo;}],
+  ['miss',/^Look for the check the rook is forced to take\. Then the rook boxes in its own king, and your knight mates\.$/,x=>only(x.p,legal(x.p).filter(m=>forcedThenMate(x.p,m,'r','n')),x.key)]],
  'Discovered attack':[
   ['explain',/Nxd7 wins the queen and, by stepping aside, uncovers the bishop's attack on the rook on h8/,x=>san(x.p,x.key)==='Nxd7'&&target(x.p,x.key).t==='q'&&at(x.p.board,'h8').t==='r'&&!attackers(x.p.board,0,7,'w').some(a=>a.t==='b')&&attackers(x.a.board,0,7,'w').some(a=>a.t==='b'&&sqn(a.r,a.c)==='b2')],
   ['explain',/Black has lost the queen for nothing and must save the rook as well/,x=>!legal(x.a).some(m=>to(m)===to(x.key))&&find(x.a.board,'q','b').length===0],
   ['hint',/the bishop on b2 looks straight down the long diagonal/,x=>at(x.p.board,'b2').t==='b'&&at(x.p.board,'b2').c==='w'],
-  ['miss',/^One knight move wins the queen and unmasks the bishop\.$/,x=>only(x.p,movesOf(x.p,'n').filter(m=>target(x.p,m)&&target(x.p,m).t==='q'&&attackers(mk(x.p,m).board,0,7,'w').some(a=>a.t==='b')),x.key)]],
+  ['miss',/^Have another look: one knight move takes the queen and uncovers your bishop's attack on the h8 rook\.$/,x=>only(x.p,movesOf(x.p,'n').filter(m=>target(x.p,m)&&target(x.p,m).t==='q'&&attackers(mk(x.p,m).board,0,7,'w').some(a=>a.t==='b')),x.key)]],
 };
 
 // ── TC-R246c: the Strategy claims. [field, the words, what must be true of the position p] ──────────────────────────────────────────
@@ -229,7 +240,11 @@ const readTac=b=>b.page.evaluate(()=>new Promise(res=>requestAnimationFrame(()=>
   const ans=q('[data-ct="tactics-answer"]');const hint=q('[data-ct="tactics-hint"]');
   res({kind:box?box.getAttribute('data-ct'):null,head:kids[0]&&kids[0].children[0]?tx(kids[0].children[0]):null,chip:kids[0]&&kids[0].children[1]?tx(kids[0].children[1]):null,
     parts:kids.slice(1).map(tx),wrong:tx(w),wrongIn:(wr&&br)?(wr.top>=br.top-0.5&&wr.bottom<=br.bottom+0.5&&wr.height>0):null,wrongH:wr?Math.round(wr.height):null,boxH:br?Math.round(br.height):null,
-    cells,ans:ans?[...ans.children].map(tx):null,hint:tx(hint)});}))));
+    cells,ans:ans?[...ans.children].map(tx):null,hint:tx(hint),
+    wrongFs:w?parseFloat(getComputedStyle(w).fontSize):null,boxFs:box?parseFloat(getComputedStyle(box).fontSize):null,
+    boardAt:bd?(r=>[r.left,r.top,r.width,r.height].map(v=>Math.round(v*10)/10).join(','))(bd.getBoundingClientRect()):null,
+    rowAt:(e=>e?(r=>[r.left,r.top,r.width,r.height].map(v=>Math.round(v*10)/10).join(','))(e.getBoundingClientRect()):null)(q('[data-ct="tactics-row"]')),
+    boxAt:br?[br.left,br.top,br.width,br.height].map(v=>Math.round(v*10)/10).join(','):null,pageScroll:(e=>e?e.scrollHeight-e.clientHeight:null)(document.getElementById('root'))});}))));
 const boardMatches=(cells,fen)=>{const p=P(fen);if(cells.length!==64)return 'the board has '+cells.length+' squares';const kindOf={},srcOf={};
   for(let r=0;r<8;r++)for(let c=0;c<8;c++){const q=p.board[r][c],s=cells[r*8+c];if(!q&&s!==-1)return 'a piece is drawn on empty '+sqn(r,c);if(q&&s===-1)return 'no piece is drawn on '+sqn(r,c);
     if(q){const k=q.c+q.t;if(kindOf[s]!==undefined&&kindOf[s]!==k)return 'one picture for '+kindOf[s]+' and '+k+' ('+sqn(r,c)+')';if(srcOf[k]!==undefined&&srcOf[k]!==s)return 'two pictures for '+k+' ('+sqn(r,c)+')';kindOf[s]=k;srcOf[k]=s;}}
@@ -255,10 +270,12 @@ L.run(async()=>{
       L.say(hintShown==='💡 '+row.hint,g+'TC-R246d '+nm+': the hint on screen is the row\'s hint',hintShown);
       // TC-R246a: play every legal wrong move
       const wrongs=legal(p).filter(m=>m!==key&&!(m.fr===key.fr&&m.fc===key.fc&&m.tr===key.tr&&m.tc===key.tc));
-      const bare=[],untrue=[],other=[],cut=[];let nWhy=0,nMiss=0,maxH=0;
+      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[];let nWhy=0,nMiss=0,maxH=0,minFs=99;const still=s;
       for(const m of wrongs){await click(b,from(m));await click(b,to(m));s=await readTac(b);const T=s.wrong,S=san(p,m);let mm;
         if(T==null||T===''||T===BARE){bare.push(S+' -> '+JSON.stringify(T));continue;}
         if(s.wrongIn!==true)cut.push(S+' ('+s.wrongH+' in a box of '+s.boxH+')');maxH=Math.max(maxH,s.wrongH||0);
+        if(s.wrongFs!=null){minFs=Math.min(minFs,s.wrongFs);if(s.wrongFs<s.boxFs-0.01)shrunk.push(S+' '+s.wrongFs+'px');if(s.wrongFs<11.5-0.01)tiny.push(S+' '+s.wrongFs+'px');}
+        if(s.boardAt!==still.boardAt||s.rowAt!==still.rowAt||s.boxAt!==still.boxAt||s.pageScroll>0)jumped.push(S+': board '+still.boardAt+' -> '+s.boardAt+', box '+still.boxAt+' -> '+s.boxAt+', row '+still.rowAt+' -> '+s.rowAt+', page scroll '+s.pageScroll);
         if((mm=/^(\S+) allows mate \((\S+)\)\. Try again\.$/.exec(T))){nWhy++;const a=mk(p,m);const r=legal(a).find(x=>san(a,x)===mm[2]);if(mm[1]!==S||!r||!isMate(mk(a,r)))untrue.push(T);}
         else if((mm=/^(\S+) (hangs|drops) the (pawn|knight|bishop|rook|queen) \((\S+)\)\. Try again\.$/.exec(T))){nWhy++;const a=mk(p,m);const r=legal(a).find(x=>san(a,x).replace(/[+#]$/,'')===mm[4].replace(/[+#]$/,''));
           const v=r&&target(a,r);const nameOf={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen'};
@@ -271,6 +288,11 @@ L.run(async()=>{
       L.say(other.length===0&&nWhy+nMiss===wrongs.length-bare.length,g+'TC-R246a '+nm+': every wrong-move line is one of the three known forms - a mate allowed, a piece hung, or "Not <move>. <the card\'s line>" ('+nWhy+' from the board, '+nMiss+' the card\'s line)',other.slice(0,4));
       L.say(untrue.length===0,g+'TC-R246a '+nm+': every line that names a mate or a piece hung is true of the board (the reply is legal and mates, or takes that piece there for profit)',untrue.slice(0,4));
       L.say(cut.length===0&&maxH>0,g+'TC-R246a '+nm+': the wrong-move line is wholly inside its box on every one of them (tallest '+maxH+'px)',cut.slice(0,4));
+      // TC-R262 (batch 13, his Desk answer to q23: "Longer, friendlier wrong try lines"): the card's line is the longer one, the box keeps its place, and only a short phone draws it smaller
+      L.say(typeof row.miss==='string'&&row.miss.length>=80&&/^(Have another look|Have a look around|Look again|Look for|Every|There is|The g6|Two)\b/.test(row.miss),g+'TC-R262 '+nm+': the card\'s wrong-try line is the longer, friendlier one ('+(row.miss||'').length+' characters, at least 80)',row.miss);
+      L.say(jumped.length===0&&nMiss>0,g+'TC-R262 '+nm+': while a wrong-try line shows, the board, the card box and the button row stay exactly where they were and the page does not scroll ('+nMiss+' card lines shown)',jumped.slice(0,3));
+      if(geo==='kunal761')L.say(shrunk.length===0&&minFs<99,g+'TC-R262 '+nm+': on his phone the wrong-try line is drawn at the box\'s own size on every wrong move (never shrunk; smallest '+minFs+'px)',shrunk.slice(0,4));
+      else L.say(tiny.length===0&&minFs<99,g+'TC-R262 '+nm+': on a short phone the wrong-try line may be drawn smaller to fit, never below 11.5px (smallest '+minFs+'px)',tiny.slice(0,4));
       // a tap that is no legal move
       let ill=null;const lg=legal(p);for(let r=0;r<8&&!ill;r++)for(let c=0;c<8&&!ill;c++){const q=p.board[r][c];if(!q||q.c!=='w')continue;for(let R=0;R<8&&!ill;R++)for(let C=0;C<8&&!ill;C++){const t=p.board[R][C];if(t&&t.c==='w')continue;if(!lg.some(m=>m.fr===r&&m.fc===c&&m.tr===R&&m.tc===C))ill=[sqn(r,c),sqn(R,C)];}}
       await click(b,ill[0]);await click(b,ill[1]);s=await readTac(b);
