@@ -566,18 +566,29 @@ L.run(async()=>{
      forward (clicks past the end are no-ops) to anchor at the last ply, then step back one ply at a
      time. Reading backwards collects the same per-ply pairs as reading forwards. */
   const NAV_FWD=40, PLIES=34;
+  /* batch 13 (jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19, e7a59c2f revFit): THE PLAY-OUT ABOVE SWITCHES
+     THE ENGINE LINE ON (rev-playout calls setEngOn(true)), and where the rows have given way (revFit.lines under 3, which is this 375x679
+     column) the engine line takes the explanation's lines: _reasonH = 17*floor((34-20)/17) = 0 and rev-why-txt is NOT RENDERED. whyFull
+     then fell back to rev-why, which carries the engine line and no data-more, so every ply read no clause and TC-R10 below went red at
+     0 clauses on 448a848a (bundle 81d3ffd0b7ba) while the app still wrote the clause into data-more. The sweep is about the comparison
+     clause, so it reads with the engine line OFF - the state the clause's box exists in - and it says so in its own line rather than
+     letting a fallback read a different element silently. */
+  {const RVe=require('../drive/review');await RVe.engineSet(b,false);}
+  const engOffSweep=!(await b.rect('[data-ct="rev-engline"]'));
+  L.say(engOffSweep,'TC-R10 the engine line the play-out switched on is OFF again before the sweep, so the explanation has its box (rev-why-txt) to be read from');
   for(let i=0;i<NAV_FWD;i++){await b.page.locator('[aria-label="Next move"], [title="Next move"]').first().click({timeout:5000}).catch(()=>{});}
   await b.settle(700);
   const sweep=[];
   for(let k=0;k<PLIES;k++){
     const ml=await b.rect('[data-ct="rev-move-line"]');
     const why=(await whyFull(b));
+    const hasBox=!!(await b.rect('[data-ct="rev-why-txt"]'));
     // first line of the move line is "10. Nxb5" / "15... Nxd7"; the SAN is its last whitespace token
     const head=String((ml&&ml.text)||'').split('\n')[0].trim();
     const played=head.split(/\s+/).pop()||'';
     let form=null,alt=null;
     for(const f of FORMS){const m=f.re.exec(why); if(m){form=f.k;alt=m[1];break;}}
-    if(played) sweep.push({played,form,alt,head});
+    if(played) sweep.push({played,form,alt,head,hasBox});
     await b.page.locator('[aria-label="Previous move"], [title="Previous move"]').first().click({timeout:5000}).catch(()=>{});
     await b.page.waitForTimeout(120);
     await b.settle(260);
@@ -585,6 +596,8 @@ L.run(async()=>{
   const bare=(x)=>String(x||'').replace(/[+#]$/,'');
   const withClause=sweep.filter(r=>r.form&&r.alt);
   L.note('    sweep: '+sweep.length+' plies read, '+withClause.length+' carrying a comparison clause -> '+withClause.map(r=>r.played+'/'+r.alt).join(', '));
+  const noBox=sweep.filter(r=>!r.hasBox).map(r=>r.played);
+  L.say(sweep.length>0&&noBox.length===0,'TC-R10 every ply the sweep read had the explanation box (rev-why-txt), so no reading came from the rev-why fallback, which carries no comparison clause',{noBox,read:sweep.length});
   L.say(sweep.length>=PLIES-2,'TC-R10 the ply sweep actually walked the game rather than reading one screen '+sweep.length+' times',{pliesRead:sweep.length,want:PLIES});
   /* NON-VACUITY, and deliberately NOT a pinned count: which plies carry a clause is the engine's answer,
      and pinning it would be #391's coin flip with extra steps. What must never be zero is the population,
