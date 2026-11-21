@@ -190,6 +190,22 @@ At 320x568 the explanation is clamped to one line with "▾ more" (the readabili
 - Decoy: The rook must take one check. Then the knight mates.
 - Discovered attack: One knight move wins the queen and unmasks the bishop.
 
+
+**The card's lines made longer and friendlier (Kunal's Desk answer to q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines").** The lines above are what shipped first; they now read as below, still after "Not <the move>. " or "Not legal. ". Every clause is checked against its board by gate 175 (TC-R246b, one predicate per clause: the pin, the queen falling after the skewer, the pawns that hem the king in, the box of its own pieces, the rook won once the king steps away, whichever piece runs, nothing recaptures, the rook that boxes its own king in). The box keeps its height, so the board never moves; on a short phone (320x568) a line too tall for the box is drawn smaller, never below 11.5px, and on his phone it is drawn at the box's own size (TC-R262).
+- Fork: Have another look: one knight jump checks the king and hits the queen at the same time.
+- Pin: The g6 knight is pinned to its king, so it cannot run away. Take it with your cheapest piece.
+- Skewer: Look again: one rook check has the queen standing right behind the king, so the queen falls next.
+- Discovered check: Every knight move here gives check from the rook. Pick the one that also takes the queen.
+- Back-rank mate: Have another look: there is a mate in one on the back rank, where the king's own pawns hem it in.
+- Smothered mate: There is a mate in one here, and only the knight can give it: the king is boxed in by its own pieces.
+- Double attack: Look again: one queen check also hits the rook on b6, so once the king steps away the rook is yours.
+- Pawn fork: Look for the pawn push that attacks the knight and the bishop together. Whichever one runs, you take the other.
+- Double check: Two knight moves give double check, and only one of them also attacks the queen. Find that one.
+- Hanging piece: Have a look around: one black piece has nothing defending it. Find it and take it for free.
+- Deflection: Look for the queen check that the a8 rook is forced to take. Once the rook leaves, you mate.
+- Decoy: Look for the check the rook is forced to take. Then the rook boxes in its own king, and your knight mates.
+- Discovered attack: Have another look: one knight move takes the queen and uncovers your bishop's attack on the h8 rook.
+
 **Sentences the board contradicted.**
 - Fork, hint. Old: A knight check that also lands next to the queen. New: A knight check that also attacks the queen. (f6 is not next to d7.)
 - Discovered check, idea. Old: White to play. Move one piece so another delivers check. New: ... so another delivers check, and take something on the way. (All eight knight moves deliver the check; seven were refused.)
