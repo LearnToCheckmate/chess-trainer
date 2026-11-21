@@ -28,6 +28,7 @@
 // (they read play-cpu and play-cpu-resigned in all 32 cells). Headless Chromium, not his phone.
 // CONTROL-RECORD: 54754943 2026-11-20 total=55 red=18 scope=trial:a5a69f3a4462 how=batch 13, the tree before playFit (bar beside on the short phones): TC-R260a and b red at 375x667, 360x640 and 320x568 in both states (353, 338 and 298 wide, 20px from the left, eval-bar-v), TC-R260e red at 320x568 (the list in the column, no sheet) - 18; the 375x761 lines, TC-R260d among them, green; the fix's trial a4e4b10faa66 reads 55/0
 // CONTROL-RECORD: (pairs) the two Play breaks of gates/pairs/jobs/short-upright-boards-sized-to-height-2026-11-12.json are graded on gates 177/178 by the grading machine; see that job's report line
+// CONTROL-RECORD: f853d63e 2026-11-21 total=61 red=3 scope=trial:81d3ffd0b7ba how=batch 13, TC-R260f on 448a848a's bundle (before cb86e4dc): the BEST row floats over the board inside the closed Moves sheet - the ranks 1-3 hit test names scan-best on all seven squares a3..g3 it covers, the row reads visible while closed, and after Moves twice the same seven squares are still covered; the landing bundle 73249bd45e30 reads 61/0
 const L=require('../lib');
 const P=require('../drive/play');
 const PHONES=[['375x667',{w:375,h:667,safe:'',label:'375x667'}],['360x640',{w:360,h:640,safe:'',label:'360x640'}],['320x568','se'],['375x761','kunal761']];
