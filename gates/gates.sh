@@ -3378,7 +3378,10 @@ echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text
 # still #415. Three lanes each spent a run re-deriving that. So the log STATES it. It never fails the run: a
 # gate legitimately runs before its push, and one that reddens on a pre-push tree blocks every build.
 # The sha, the dirty count and the bundle md5 were all sampled at run START (see the header above).
-MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
+# #552 (batch 13): one ls-remote was the whole read, and run 1 of #552 lost its records door to a single transient
+# failure at the end of a 159-section suite ("refs/heads/main unreadable"), when the same command answered seconds later.
+# So it is asked up to four times, five seconds apart, and still reads UNKNOWN if every try fails.
+MAINSHA=""; for _mt in 1 2 3 4; do MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"; [ -n "$MAINSHA" ] && break; [ "$_mt" -lt 4 ] && sleep 5; done
 DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRTYN path(s) - the gated bundle is not this commit's"
 # #545 item (33): did HEAD move while the suite ran? See head_reconcile at the top of this file.
 IFS=$'\t' read -r HR_V HR_SHA HR_TXT < <(head_reconcile "$ROOT" "$HEADSHA" "$HEADTREE" "${DIRTYN:-0}")
