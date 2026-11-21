@@ -1554,13 +1554,19 @@ L.run(async()=>{
           L.say(!!ex&&ex.last==='1',g+' '+name+': TC-INV-15 PRECONDITION the explanation line is rendered and placed after the switched-on line (data-last)',ex);
           const mine=(iv.coveredList||[]).filter(c=>ex&&c.lab&&ex.lab.startsWith(c.lab));
           L.say(mine.length===1,g+' '+name+': TC-INV-15 exactly one excluded control is the explanation line, matched by its label ('+mine.length+')',{which:iv.coveredList,why:ex&&ex.lab.slice(0,60)});
-          L.say(mine.length===1&&mine[0].hitWas==='rev-row1',g+' '+name+': TC-INV-15 and what covers it at rest is rev-row1, the row below the scroll box',{mine});
+          // On rev-more-sheet the more sheet is OPEN over the screen, so the line is covered by the sheet like the other controls
+          // excluded there, and no scroll reaches under an open sheet: that state asserts the sheet is the cover and nothing more
+          // (measured on trial a21a50ce202d: hitWas rev-sheet-items at 320x568 and 375x667, the reach check false there by design).
+          const sheetUp=name==='rev-more-sheet', cover=sheetUp?'rev-sheet-items':'rev-row1';
+          L.say(mine.length===1&&mine[0].hitWas===cover,g+' '+name+': TC-INV-15 and what covers it at rest is '+(sheetUp?'the open more sheet (rev-sheet-items), as for the other controls excluded on this screen':'rev-row1, the row below the scroll box'),{mine});
+          if(!sheetUp){
           const reach=await b.page.evaluate(async()=>{const rc=document.querySelector('[data-ct="rev-compact"]'),w=document.querySelector('[data-ct="rev-why-txt"]');if(!rc||!w)return null;
             const st0=rc.scrollTop;rc.scrollTop=rc.scrollHeight;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
             const q=w.getBoundingClientRect(),h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);
             const out={ov:getComputedStyle(rc).overflowY,st:rc.scrollTop,top:Math.round(q.top),bot:Math.round(q.bottom),vh:innerHeight,hitsSelf:!!h&&w.contains(h)};
             rc.scrollTop=st0;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return out;});
           L.say(!!reach&&/auto|scroll/.test(reach.ov)&&reach.st>0&&reach.hitsSelf&&reach.bot<=reach.vh,g+' '+name+': TC-INV-15 scrolling rev-compact to its end (a finger can: overflow-y '+(reach&&reach.ov)+') brings the explanation line on screen and its tap lands on it',reach);
+          }
         }
         if(Object.prototype.hasOwnProperty.call(COVERED_LABELS,rk)){
           const gotLabs=iv.coveredList.map(c=>c.lab).sort();
