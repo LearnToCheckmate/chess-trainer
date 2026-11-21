@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -446,7 +446,7 @@
+    SET TO false ON HIS DESK ANSWER to run-question q24 call (1), 11:22pm EST Thu 19 Nov 2026, "Review my own games live as well"
+    (option own-live): his own games in progress are listed and reviewed live exactly as a followed account's are, still only behind
+    the developer switch above, which ships off. `true` puts the wait back. */
+-const LIVE_OWN_GAMES_WAIT=false;
++const LIVE_OWN_GAMES_WAIT=true;
+ const ccUrlUser=(p)=>String((p&&typeof p==='object')?(p.username||''):(p||'')).replace(/\/+$/,'').split('/').pop().trim().toLowerCase();
+ // the rows of one account's /games answer: standard chess, a PGN, not ended; players by lower-cased username (the API names them by URL)
+ function ccLiveGames(j,from){return ((j&&j.games)||[]).filter(g=>g&&typeof g==='object'&&typeof g.pgn==='string'&&g.pgn&&g.url&&!ccEnded(g)&&(!g.rules||g.rules==='chess'))

@@ -442,8 +442,11 @@ const LIVE_POLL_MS=45000;
 /* THE OWN-GAME RULE, ONE SWITCH (the lead's constraint on this job, put to Kunal as a question; his recorded answer of 16 Nov was "No
    rule for now"): a game in progress in which one of HIS accounts plays is listed and NOT reviewed until it ends. An engine's view of
    your own game while it is being played is engine help, which chess.com's fair-play rules forbid and which is unfair to the opponent.
-   `false` here is his "no rule": every game in progress opens. liveReviewWaits is the only reader. */
-const LIVE_OWN_GAMES_WAIT=true;
+   `false` here is his "no rule": every game in progress opens. liveReviewWaits is the only reader.
+   SET TO false ON HIS DESK ANSWER to run-question q24 call (1), 11:22pm EST Thu 19 Nov 2026, "Review my own games live as well"
+   (option own-live): his own games in progress are listed and reviewed live exactly as a followed account's are, still only behind
+   the developer switch above, which ships off. `true` puts the wait back. */
+const LIVE_OWN_GAMES_WAIT=false;
 const ccUrlUser=(p)=>String((p&&typeof p==='object')?(p.username||''):(p||'')).replace(/\/+$/,'').split('/').pop().trim().toLowerCase();
 // the rows of one account's /games answer: standard chess, a PGN, not ended; players by lower-cased username (the API names them by URL)
 function ccLiveGames(j,from){return ((j&&j.games)||[]).filter(g=>g&&typeof g==='object'&&typeof g.pgn==='string'&&g.pgn&&g.url&&!ccEnded(g)&&(!g.rules||g.rules==='chess'))
@@ -12830,7 +12833,7 @@ function AppMain(){
             {ccErr&&<div style={{fontSize:'clamp(14px,3.1vw,16px)',color:'#ffb86b',lineHeight:1.5}}>{ccErr}</div>}
           </div>
           {/* batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16: GAMES IN PROGRESS, developer only
-              (liveOn). A game one of his accounts plays in is listed and says its review opens when the game ends (liveReviewWaits). */}
+              (liveOn). A game one of his accounts plays in opens live like any other since his 19 Nov answer; with LIVE_OWN_GAMES_WAIT on it says its review opens when the game ends (liveReviewWaits). */}
             {liveOn&&(<div data-ct="live-section" style={{display:'flex',flexDirection:'column',gap:6}}>
               <div style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Games in progress <span style={{color:'rgba(255,255,255,.6)',fontWeight:600,fontSize:'.86em'}}>{'\u00b7 developer only'}</span></div>
               {(()=>{const _txt={fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.45};

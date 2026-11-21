@@ -1,7 +1,7 @@
 // gates/regress/176-review-game-in-progress.js
 // batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16 (Kunal, 16 Nov 2026): IN REVIEW, BEHIND A
 // DEVELOPER SWITCH THAT IS OFF IN THE PUBLIC APP, A CHESS.COM GAME STILL BEING PLAYED OPENS AS A REVIEW THAT GROWS AS ITS MOVES ARRIVE.
-// US-R173 / TC-R247a..h. Graded on a trial bundle at 375x761 with his insets (kunal761) and at 320x568 (se), after the game is opened.
+// US-R173 / TC-R247a..h, and TC-R261 (his own games reviewed live, his answer of 19 Nov 2026). Graded on a trial bundle at 375x761 with his insets (kunal761) and at 320x568 (se), after the game is opened.
 //
 // WHAT IT DRIVES. Three launches per geometry, every chess.com request answered by this gate's own route (nothing leaves the
 // container; the in-progress answers are gates/fixtures/chesscom-current-daily-games.json, built from the API's documented shape):
@@ -13,8 +13,11 @@
 //   B gatefriend vs GateMe      (HIS account plays; it comes in on the FRIEND's list too)
 //   C GateMe vs OtherPerson     (his)
 // a/b: with the switch off, and for a player with the key, nothing of it shows and no request goes to the in-progress list.
-// c: with it on the three games are listed, from one request per followed account. d: THE OWN-GAME RULE - B and C say their review
-// opens when the game ends, a tap opens nothing and no position of either reaches a Stockfish worker. e: A opens as a review and
+// c: with it on the three games are listed, from one request per followed account. d: HIS OWN GAMES ARE REVIEWED LIVE (his Desk answer
+// to run-question q24 call (1), 11:22pm EST Thu 19 Nov 2026, "Review my own games live as well"; until then they waited for the end):
+// B and C read like any game in progress, with no wait line, and a tap on each opens its review, the summary naming its players and
+// reading In progress with its moves so far, and its positions reach a Stockfish worker; the gate goes back to the list after each,
+// and nothing of either is kept (read in e against the list as first shown). e: A opens as a review and
 // nothing of it is stored. f: THE REVIEW GROWS - after the fixture gains a move the open summary reads 8 moves with no tap, and
 // (kunal761) on the move screen at the last move it follows to 10 with the board where it was. g: POLITE - no two requests about one
 // account within 30 s, none to /games/to-move or to a chess.com page, and (kunal761) none at all for 50 s once the review is closed.
@@ -29,7 +32,7 @@
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=9 red=1 scope=trial:5d8f7a318212 how=batch 13, THE SUBJECT REMOVED: the tree before the change (3fb41a07's chess.jsx built as a trial), CT_G176_GEO=kunal761 - with the switch's key set there is no list, so TC-R247c is red and nothing after it is read; the six lines of a and b pass, as they must on a tree with no such feature
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=42 red=4 scope=trial:8217d029b597 how=batch 13, pairs break list-shows-with-the-switch-off (liveOn no longer asks for the switch), both geometries, run by the grading machine: both TC-R247a lines red at each - the games are listed with the switch never turned on and the in-progress list was asked for
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=40 red=2 scope=trial:bb504d512e0a how=batch 13, pairs break review-does-not-grow (the open review asks and never takes the new move in), both geometries, run by the grading machine: the TC-R247f summary line red at each after its 80 s wait - still 6 moves; the move-screen growth and the silence after closing are then not read
-// CONTROL-RECORD: ab9d2eea 2026-11-20 total=31 red=8 scope=trial:9a2fc9b0f25b how=batch 13, pairs break own-game-reviewed-live (LIVE_OWN_GAMES_WAIT false), both geometries, run by the grading machine: at each the three TC-R247d lines red - no row says its review waits and a tap on B opens its review - and TC-R247e red behind them
+// CONTROL-RECORD: ab9d2eea 2026-11-20 total=31 red=8 scope=trial:9a2fc9b0f25b how=batch 13, BEFORE HIS 19 NOV ANSWER (the wait was the rule then and that break is now the fix; kept as history), pairs break own-game-reviewed-live (LIVE_OWN_GAMES_WAIT false), both geometries, run by the grading machine: at each the three TC-R247d lines red - no row says its review waits and a tap on B opens its review - and TC-R247e red behind them
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=23 red=2 scope=trial:3767dee77109 how=batch 13, liveOn reads the switch's key alone and not the developer tools, CT_G176_GEO=kunal761: both TC-R247b lines red - a player who set the key by hand gets the list and the request
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=23 red=1 scope=trial:62cc0f13e312 how=batch 13, liveAsk spaces its requests by 4 s instead of LIVE_POLL_MS, CT_G176_GEO=kunal761: the TC-R247g spacing line red (gaps 16, 5, 5 s)
 // CONTROL-RECORD: ab9d2eea 2026-11-20 total=21 red=2 scope=trial:579ac2646155 how=batch 13, the list is asked for on a timer whether or not the Review screen or a review is open, CT_G176_GEO=kunal761: the TC-R247g line for the 50 s after closing red (6 requests before, 8 after), and TC-R247f red because the timer spends the open game's turn to ask
@@ -100,26 +103,30 @@ L.run(async()=>{
       // layout
       const rows=[r0.A,r0.B,r0.C];const bad=[];rows.forEach((x,i)=>{if(x.rect.l<-0.5||x.rect.r>r0.vw+0.5)bad.push('row '+i+' '+x.rect.l+'..'+x.rect.r);if(x.rect.h<44-0.6)bad.push('row '+i+' height '+x.rect.h);x.texts.forEach(t=>{if(t.fs<13.5-0.01)bad.push('row '+i+' "'+t.t.slice(0,24)+'" '+t.fs+'px');if(t.cut&&!t.ell)bad.push('row '+i+' "'+t.t.slice(0,24)+'" cut with no ellipsis');});});
       L.say(rows.every(x=>x.texts.length>=2)&&bad.length===0&&!!r0.section&&r0.section.l>=-0.5&&r0.section.r<=r0.vw+0.5,tag+' TC-R247h the list is inside the '+r0.vw+'px screen, every row 44px or taller ('+rows.map(x=>x.rect.h.toFixed(0)).join(', ')+'), no text under 13.5px and none cut without an ellipsis',bad.slice(0,5));
-      // ── d: the own-game rule ──
-      const WAITS=/review opens when it ends/i;
-      L.say(WAITS.test(r0.B.text)&&WAITS.test(r0.C.text)&&!WAITS.test(r0.A.text),tag+' TC-R247d OWN GAME: each game one of his accounts plays in says its review opens when it ends - the one from his own list and the one that came in on the friend\'s list - and the stranger\'s game does not',{B:r0.B.text,C:r0.C.text,A:r0.A.text});
-      for(const [k,re] of [['B',/gatefriend vs GateMe/],['C',/GateMe vs OtherPerson/]]){
+      // ── d: his own games are reviewed live (TC-R261) ──
+      const WAITS=/review opens when it ends|Your game/i;
+      L.say(!WAITS.test(r0.B.text)&&!WAITS.test(r0.C.text)&&!WAITS.test(r0.A.text)&&/Daily/.test(r0.B.text)&&/\b4 moves played\b/.test(r0.B.text)&&/White to move/.test(r0.B.text)&&!r0.B.off&&/Daily/.test(r0.C.text)&&/\b2 moves played\b/.test(r0.C.text)&&/White to move/.test(r0.C.text)&&!r0.C.off,tag+' TC-R247d TC-R261 OWN GAME LIVE: each game one of his accounts plays in reads like any game in progress, with no wait line - the one that came in on the friend\'s list ("'+r0.B.text+'") and the one from his own ("'+r0.C.text+'")',{B:r0.B.text,C:r0.C.text,A:r0.A.text});
+      for(const [k,re,nm,np,r4] of [['B',/gatefriend vs GateMe/,/gatefriend vs GateMe/i,4,['3P4','2PP4']],['C',/GateMe vs OtherPerson/,/GateMe vs OtherPerson/i,2,['2P5']]]){
+        const p0=(await read(b)).pos.length;
         let tapped=false;try{const el=b.page.locator('button',{hasText:re}).first();await el.evaluate(e=>e.scrollIntoView({block:'center'}));await b.settle(400);const bx=await el.boundingBox();const cx=bx.x+bx.width/2,cy=bx.y+bx.height/2;
           const hit=await el.evaluate((e,p)=>{const h=document.elementFromPoint(p[0],p[1]);return !!h&&e.contains(h);},[cx,cy]);   // the row itself is under the finger (Playwright's own click refuses an aria-disabled button)
           if(hit){await b.page.mouse.click(cx,cy);tapped=true;}else L.note('tap '+k+': the row is not what is under its own centre');}catch(e){L.note('tap '+k+': '+String(e).replace(/\s+/g,' ').slice(0,300));}
-        await b.settle(3500);const r=await read(b);
-        L.say(tapped&&!!r[k]&&!r.summary&&!r.analyzing&&r.plies==null&&r.pos.filter(f=>OWN_RANK4.indexOf(rank4(f))>=0).length===0,tag+' TC-R247d OWN GAME: a tap on game '+k+' (scrolled on screen, tapped where a finger would) opens nothing - no review, no analysis, and no position of it reached a Stockfish worker ('+r.pos.length+' positions posted so far)',{summary:r.summary,analyzing:r.analyzing,plies:r.plies,own:r.pos.filter(f=>OWN_RANK4.indexOf(rank4(f))>=0).slice(0,3)});
+        const wk=await until(b,r=>r.summary&&r.plies!=null,150000);const r=wk.r;const mine=r.pos.slice(p0).filter(f=>r4.indexOf(rank4(f))>=0).length;
+        L.say(tapped&&wk.ok&&r.plies===np&&nm.test(r.sumText)&&/In progress/.test(r.sumText)&&new RegExp('\\b'+np+' moves so far').test(r.sumText)&&!WAITS.test(r.sumText)&&mine>=1,tag+' TC-R247d TC-R261 OWN GAME LIVE: a tap on game '+k+' (scrolled on screen, tapped where a finger would) opens its review - '+np+' plies graded, the summary names its players and reads In progress, '+np+' moves so far - and '+mine+' of its positions reached a Stockfish worker',{tapped,ok:wk.ok,plies:r.plies,sum:r.sumText.slice(0,160),mine});
+        try{const bk=b.page.locator('[data-ct="rev-back"]');if(await bk.count()){await bk.first().click();await b.settle(700);}await b.tapText(/Back to games/);}catch(e){try{await b.page.locator('[aria-label="Back to games"]').first().click();}catch(e2){L.note('back from '+k+': '+String(e2).slice(0,120));}}
+        const wb=await until(b,x=>!x.summary&&!!(x.A&&x.B&&x.C),20000);
+        L.say(wb.ok,tag+' TC-R247d TC-R261 and back on the games list from game '+k+'\'s review, the three games in progress are listed again',{summary:wb.r.summary,A:!!wb.r.A,B:!!wb.r.B,C:!!wb.r.C});
       }
       // ── e: A opens ──
-      const before=await read(b);
+      const before=r0;   // the list as first shown, before B, C or A was opened, so e's nothing-kept line covers his own games too
       try{const el=b.page.locator('button',{hasText:/gatefriend vs Stranger99/}).first();await el.scrollIntoViewIfNeeded();await el.click({timeout:4000});}catch(e){L.note('tap A: '+String(e).replace(/\s+/g,' ').slice(0,900));}
       S.plies=8;   // the next answer about gatefriend carries one more move by each side
       const w1=await until(b,r=>r.summary&&r.plies!=null,150000);const r1=w1.r;
       if(L.say(w1.ok&&r1.plies===6&&r1.rvWhite==='gatefriend'&&/gatefriend vs Stranger99/.test(r1.sumText)&&/In progress/.test(r1.sumText)&&/\b6 moves so far/.test(r1.sumText),tag+' TC-R247e the game in progress opens as a review: 6 plies graded, the summary names the players and reads "In progress · 6 moves so far"',{ok:w1.ok,plies:r1.plies,sum:r1.sumText.slice(0,160)})){
         const e4=r1.pos.filter(f=>/P/.test(rank4(f))&&OWN_RANK4.indexOf(rank4(f))<0).length;
-        L.say(e4>=6&&r1.pos.filter(f=>OWN_RANK4.indexOf(rank4(f))>=0).length===0,tag+' TC-R247d DENOMINATOR the recorder sees the engine at work: '+e4+' positions of games opened 1.e4 were posted to Stockfish workers, and still none of B or C',{posted:r1.pos.length});
+        L.say(e4>=6,tag+' TC-R247e the recorder sees the engine at work on A: '+e4+' positions of games opened 1.e4 were posted to Stockfish workers',{posted:r1.pos.length});
         const ag=await L.acctGames(b.page);const held=[];Object.keys(ag.map||{}).forEach(id=>(ag.map[id]||[]).forEach(g=>{if(/\[Result\s+"\*"\]/.test(g.pgn||'')||/Stranger99|OtherPerson/i.test(JSON.stringify(g)))held.push(id);}));
-        L.say(ag.from!=='none'&&held.length===0&&r1.starInStore.length===0&&r1.gs===before.gs&&r1.mm===before.mm&&r1.mb===before.mb,tag+' TC-R247e and nothing of it is kept: no held game is in progress or names its players, no stored key carries them (but the player-country cache, which names a player and no game), and the review tally, the mistakes drill and the brilliant moves are as they were',{heldInProgress:held,keys:r1.starInStore,from:ag.from});
+        L.say(ag.from!=='none'&&held.length===0&&r1.starInStore.length===0&&r1.gs===before.gs&&r1.mm===before.mm&&r1.mb===before.mb,tag+' TC-R247e TC-R261 and nothing of it, or of his own games B and C reviewed before it, is kept: no held game is in progress or names its players, no stored key carries them (but the player-country cache, which names a player and no game), and the review tally, the mistakes drill and the brilliant moves are as they were',{heldInProgress:held,keys:r1.starInStore,from:ag.from});
         // ── f: it grows, with no tap ──
         const w2=await until(b,r=>r.plies===8&&/\b8 moves so far/.test(r.sumText),80000);const r2=w2.r;
         L.say(w2.ok&&r2.summary,tag+' TC-R247f THE REVIEW GROWS: with no tap, '+Math.round(w2.ms/1000)+'s after the fixture gained a move by each side the open summary reads 8 moves and the review holds 8 graded plies',{plies:r2.plies,sum:r2.sumText.slice(0,160),waitedMs:w2.ms});
