@@ -524,7 +524,16 @@ L.run(async()=>{
          at 375x679 it passes through pages that still scroll there (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, open;
          the long lists may scroll by design, AUD-L08/L16). Seen at 37, 204.7 and 261.3px over in this run's suites, and 0 in others,
          by which screen the sample caught. Those pages have their own gates (159 and the job's list); this check is for the cards. */
-      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur))scrolled.push({cap:cur.slice(0,34),over:m.over.over});
+      /* #552 (batch 13, run 3): "LEAVES the page scrolling" means an overflow that is still there a moment later. Run 3 reddened on the EXP
+         card's entry step at 375x679, over 2 while Review's fit loop sized the board (341.03 before it settled at 375.03), and the same
+         2px reddens the bundle from before batch 13's fixes (81d3ffd0b7ba) as often as this one, at random: three single runs, red 1 of
+         2 and 1 of 1. A diagnostic copy caught it once, and its own evaluate a few ms after the sample found NO in-flow element past the
+         screen, so it is a layout-in-progress frame, and body is position:fixed throughout, so nothing scrolled. So an over is re-read
+         250ms later under the same caption and counted only if it is still there; one that clears is NOTED with both readings, never
+         dropped silently. NC=over (a persistent 14px child of #root) must and does still redden this line. */
+      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur)){await b.settle(250);const m2=await b.metrics();const still=(await CAP(b))===cur&&m2.over.over>0.5;
+        if(still)scrolled.push({cap:cur.slice(0,34),over:m.over.over,again:m2.over.over});
+        else L.note('      '+lab+' card "'+cur.slice(0,34)+'": over '+m.over.over+' at one sample, '+m2.over.over+' 250ms later - a layout-in-progress frame, not counted (see the #552 note above this line)');}
       const pf=await PAGEFIX(b);
       if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
         pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
@@ -1230,5 +1239,7 @@ L.run(async()=>{
 // SELECTOR-OPENED: state-card reading=precondition round 4: Q needs four state cards
 // SELECTOR-OPENED: menu-foot reading=nav #550 lead, opened by reading: the click opens the fold and the next tapText(/^Layout readout$/) targets a row behind it, so a missing hook leaves it unreachable and the tap fails red
 // CONTROL-RECORD: fb7bfc7 2026-11-14 total=135 red=18 scope=trial:ae6bed67afdf how=#550 #432 sweep round 5 (the queue counted by its cards' mode badges): c15, ask-card renamed AND the gallery drawing every ask card whatever ct_scmax truncates the queue to - 'Q empty: the ask queue holds exactly 0' red (by hook 0, by mode badges 3); the hook-keyed version (5de53c1) on the same bundle is 119/16 with that line GREEN beside three drawn cards (its reds are the presence lines reading the missing hook, and TC-GL-005 because the cards push the empty sentence below the fold); the one further red in the new run ('no card leaves the page scrolling', in the play-all walk, which this commit does not touch) did not recur on t0; on t0 6925a0ca4de2 156/0
+// CONTROL-RECORD: b7317056 2026-11-21 total=130 red=1 scope=env:CT_G15_GEOS=kunal,CT_G15_NC=over how=batch 13, the over re-read (an over counts only if still there 250ms later): a persistent 14px child of #root still reddens 'no card leaves the page scrolling', every sample reading over 14 and again 14 (claude/agents/gatelogs/552-15-NC-over-after-b7317056.log)
+// (not control records) batch 13, 2026-11-21, on 73249bd45e30: BEFORE b7317056 the whole gate read 156/0, 155/1 and, on the bundle from before batch 13's fixes 81d3ffd0b7ba, 155/1 - the same 2px on the EXP card's entry step each time it went red. AFTER it, 156/0 and 156/0; the first of those NOTED the very frame ('over 2 at one sample, 0 250ms later'; claude/agents/gatelogs/552-15-after-b7317056-real1.log).
 // SELECTOR-OPENED: ask-card control=fb7bfc7 round 5: Q's queue-length line also counts the cards by their mode badges; c15 renamed the hook and drew three cards in the empty queue, red
 // SELECTOR-OPENED: rec-cap-done reading=presence round 5: M5b requires the Hide control by this hook before M6/M7 read or tap it, M7's own absence check reads rec-cap (#451, not this pair), and the block is NOT RUN since a29 (MANUAL_CARD null), so no line reads the hook on any bundle today

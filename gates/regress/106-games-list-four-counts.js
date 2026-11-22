@@ -71,7 +71,7 @@ L.run(async()=>{
     L.say(!!a&&a.best==='★ 3'&&a.great==='! 2'&&a.blun==='?? 1'&&!/\? 4\b/.test(a.line||''),geo+': TC-R187b the split row reads ★ 3, ! 2, ?? 1 and no Mistake count ("'+(a&&a.line)+'")',{a});
     L.say(!!a&&!!a.pill&&a.pill.startsWith('!! 1')&&a.pillInCol,geo+': TC-R187b its Brilliant count is the box under the result box, exactly as wide ("'+(a&&a.pill)+'")',{a});
     L.say(!!a&&a.tops.length===1,geo+': TC-R187b the four counts are ONE row (box tops '+JSON.stringify(a&&a.tops)+')',{a});
-    L.say(!!c&&c.both==null&&c.best==='★ \u2013'&&c.great==='! \u2013'&&c.blun==='?? 2',geo+': TC-R187c a tally stored before the split shows a dash for Best and for Great, never a guessed split and never the two added together ("'+(c&&c.line)+'")',{c});
+    L.say(!!c&&c.both==null&&c.best==='★ -'&&c.great==='! -'&&c.blun==='?? 2',geo+': TC-R187c a tally stored before the split shows a dash for Best and for Great, never a guessed split and never the two added together ("'+(c&&c.line)+'")',{c});
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

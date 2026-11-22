@@ -79,7 +79,12 @@ const plyCount=(b)=>b.page.evaluate(()=>{
   // filter counts the empty-state line ("Your moves appear here as you play.") as a ply, so a takeback
   // back to move 0 reads 1 instead of 0 - which is what this gate did on its first green-looking run.
   const SAN=/^(?:[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O(?:-O)?)[+#]?$/;
-  return (p.innerText||'').replace(/ /g,' ').split('\n').map(x=>x.trim()).filter(x=>SAN.test(x)).length;
+  // batch 13 (his q29; jobs/short-upright-boards-sized-to-height-2026-11-12): at 320x568 vs the computer the panel is a CLOSED SHEET
+  // (data-sheet="1", visibility hidden) and innerText reads nothing under visibility:hidden, so it is made visible for the one read and
+  // put back - the same read as gate 46's. The sheet is position:fixed, out of the column, so the read moves nothing.
+  const sh=p.getAttribute('data-sheet')==='1',v0=p.style.visibility;if(sh)p.style.visibility='visible';
+  const t=(p.innerText||'');if(sh)p.style.visibility=v0;
+  return t.replace(/ /g,' ').split('\n').map(x=>x.trim()).filter(x=>SAN.test(x)).length;
 });
 // "Computer thinking…" sits in data-ct="play-context" only while the engine searches, and is empty otherwise.
 const thinking=(b)=>b.page.evaluate(()=>{const c=document.querySelector('[data-ct="play-context"]');return c?/thinking/i.test(c.innerText||''):false;});
@@ -106,7 +111,9 @@ const COLS=[{geo:'kunal730',pool:'3'},{geo:'kunal730',pool:'1'},{geo:'kunal730',
 // 288), the figure gate 46 re-pinned to; 375x730 stays 353. Caught red in #548's round-1 suite.
 /* #550 item (64) move 1 RE-PINNED, measured by gate 34 itself on trial 02206a0f900e: the eval bar sits ABOVE the board now, so the width-bound
    geometries are edge to edge (353 -> 375) and the height-bound 320x568 gives the bar's height back as width (298 -> 272). */
-const WANT_W={kunal730:375,se:298,kunal761:375};   /* #550 a35: se keeps the bar beside (short portrait), so 298 again */   // was {kunal730:353,se:298,kunal761:353}   /* #550 item (35): kunal761 measured 353 after a takeback on trial 129ebbaa9770 (the same as 375x730: the board is width-bound there) */
+/* batch 13, his q29 (reversing a35's short-portrait half): at 320x568 vs the computer the bar is above and the board the full width (chess.jsx
+   playFit), so se is 320 (was 298, which held on the trial of 34d8f671 with playFit switched off; see the CONTROL-RECORD) */
+const WANT_W={kunal730:375,se:320,kunal761:375};   /* #550 a35: se keeps the bar beside (short portrait), so 298 again */   // was {kunal730:353,se:298,kunal761:353}   /* #550 item (35): kunal761 measured 353 after a takeback on trial 129ebbaa9770 (the same as 375x730: the board is width-bound there) */
 // HOLDING THE SEARCH OPEN, FROM THE HARNESS SIDE [#549 item (70); jobs/gate-34-takeback-pins-a-three-worker-pool-and-one-
 // geometry-2026-09-30, whatIsLeft 'a way to hold the engine's search open long enough to sample the in-flight state']. No
 // chess.jsx change: an init script subclasses Worker so that, while window.__ctTbHold is a positive number of ms, any
@@ -249,4 +256,5 @@ L.run(async()=>{
   await b2.close();
 },'TAKEBACK');
 // CONTROL-RECORD: 342b80e 2026-11-13 total=81 red=7 scope=trial:851ae98b9f35 how=#550 #432 sweep (More sheet found by structure and its Takeback row): c2, more-sheet renamed AND a takeback leaves the sheet up - 'the More sheet closes behind a takeback' red at all six runs, plus se's disabled-again line; the hook-keyed version (55ca2c7) is 80/1 with all six GREEN; on t0 6c4245e05ecc 81/0
+// CONTROL-RECORD: 34d8f671 2026-11-21 total=81 red=1 scope=trial:110dddbdc062 how=batch 13, his q29 re-key: the landing head with playFit switched off (const playUp=false) - se/pool 3 board red (298 against the new 320), the sheet-aware ply count green there; on the landing head's trial d13ddd35cf00 the gate as it was read 77/4 (the ply count read the closed Moves sheet as 0 plies at se, three lines, and the 298 pin) and the re-keyed gate reads 81/0
 // SELECTOR-OPENED: more-sheet control=342b80e round 1: the sheet found as a fixed layer carrying the Takeback row; c2 renamed the hook and left the sheet up, the closes lines red

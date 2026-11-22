@@ -1879,6 +1879,13 @@ else echo "browsers at launch: 0 Chromium processes besides this suite's own" | 
 GIT="git -C $ROOT --git-dir=$ROOT/.git --work-tree=$ROOT"
 HEADSHA="$($GIT rev-parse HEAD 2>/dev/null || echo unknown)"
 HEADTREE="$($GIT rev-parse 'HEAD^{tree}' 2>/dev/null || echo unknown)"   # for head_reconcile at the end [#545]
+# #552 (batch 13, run 3): origin/main is also read HERE, at launch. Two full runs of #552 (run 1 and run 3) lost the
+# end-of-run read in every one of its four tries while the same command answered from any fresh shell. Both runs
+# outlived a session tooling restart (run 3: the proxy setup restarted at 14:41:49Z, mid-suite), and a process keeps
+# the proxy address it inherited at launch, so no retry inside the old suite can recover it. The end read stays the
+# authority; this launch read is used ONLY when the end read fails, and the ref line then SAYS it is the launch read.
+MAINSHA_START=""; for _mt in 1 2 3; do MAINSHA_START="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"; [ -n "$MAINSHA_START" ] && break; [ "$_mt" -lt 3 ] && sleep 3; done
+MAINSHA_START_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 DIRTYN="$($GIT status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 DIRTYL0="$($GIT status --porcelain 2>/dev/null || true)"   # the whole listing, for tree_reconcile at the end [#546]
 TREEFP0="$(tree_fingerprint "$ROOT")"   # the four-part fingerprint, re-taken before the first browser gate [#546, item (87)]
@@ -3378,7 +3385,11 @@ echo "instrument: ${TC_LINE:-toolchain: NOT FOUND in this log} | ${TM_LINE:-text
 # still #415. Three lanes each spent a run re-deriving that. So the log STATES it. It never fails the run: a
 # gate legitimately runs before its push, and one that reddens on a pre-push tree blocks every build.
 # The sha, the dirty count and the bundle md5 were all sampled at run START (see the header above).
-MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"
+# #552 (batch 13): one ls-remote was the whole read, and run 1 of #552 lost its records door to a single transient
+# failure at the end of a 159-section suite ("refs/heads/main unreadable"), when the same command answered seconds later.
+# So it is asked up to four times, five seconds apart, and still reads UNKNOWN if every try fails.
+MAINSHA=""; for _mt in 1 2 3 4; do MAINSHA="$($GIT ls-remote origin refs/heads/main 2>/dev/null | head -1 | cut -f1)"; [ -n "$MAINSHA" ] && break; [ "$_mt" -lt 4 ] && sleep 5; done
+MAINFROM=""; if [ -z "$MAINSHA" ] && [ -n "${MAINSHA_START:-}" ]; then MAINSHA="$MAINSHA_START"; MAINFROM=" (READ AT LAUNCH $MAINSHA_START_AT: the end-of-run read failed all four tries, see MAINSHA_START above)"; fi
 DIRTYTXT=""; [ "${DIRTYN:-0}" != "0" ] && DIRTYTXT=" | WORKING TREE DIRTY: $DIRTYN path(s) - the gated bundle is not this commit's"
 # #545 item (33): did HEAD move while the suite ran? See head_reconcile at the top of this file.
 IFS=$'\t' read -r HR_V HR_SHA HR_TXT < <(head_reconcile "$ROOT" "$HEADSHA" "$HEADTREE" "${DIRTYN:-0}")
@@ -3387,13 +3398,13 @@ DIRTYTXT="$DIRTYTXT$(tree_reconcile "$DIRTYL0" "$($GIT status --porcelain 2>/dev
 if [ -z "$MAINSHA" ]; then
   REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main UNKNOWN (refs/heads/main unreadable: offline, refused, or no such branch - NOT a pass)$DIRTYTXT"
 elif [ "$HEADSHA" = "$MAINSHA" ]; then
-  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD IS origin/main$DIRTYTXT"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA$MAINFROM | HEAD IS origin/main$DIRTYTXT"
 elif ($GIT merge-base --is-ancestor "$HEADSHA" "$MAINSHA" 2>/dev/null); then
-  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | HEAD is an ancestor of origin/main (already shipped)$DIRTYTXT"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA$MAINFROM | HEAD is an ancestor of origin/main (already shipped)$DIRTYTXT"
 else
   AHEAD="$($GIT rev-list --count "$MAINSHA..$HEADSHA" 2>/dev/null || echo '?')"
   ONREFS="$($GIT branch -a --contains "$HEADSHA" 2>/dev/null | sed 's/^[* ] *//' | paste -sd, - )"
-  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}$DIRTYTXT"
+  REFLINE="ref: HEAD $HEADSHA | bundle md5 $BUNDLE_MD5 | origin/main $MAINSHA$MAINFROM | NOT ON MAIN - $AHEAD commit(s) ahead, on: ${ONREFS:-no ref}$DIRTYTXT"
 fi
 echo "$REFLINE" | tee -a "$ALL"
 if [ -n "$SUBSET" ]; then

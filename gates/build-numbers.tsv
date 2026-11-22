@@ -606,3 +606,7 @@
 550	built	-	e26a2b329de9	540e9ee7d2ab	2026-11-14T23:22Z	build__1794388896663	build.sh	Bundle built and stamped #550. Recorded by gates/build.sh so the number resolves to an artefact.
 551	minted	-	-	-	2026-11-18T00:49Z	build__1794962122974	minted	batch 12: the grading machine, the engine repeatable under test, gates 21/84/26/48 steadied, Pro for the owner, the scan on gemini-3.8-flash
 551	built	-	dd8b009fc3f8	893d670340e1	2026-11-18T03:36Z	build__1794962122974	build.sh	Bundle built and stamped #551. Recorded by gates/build.sh so the number resolves to an artefact.
+552	minted	-	-	-	2026-11-20T23:33Z	build__1795066268355	minted	batch 13: the Fable sprint (jobs 23, 71, 99), the Desk parts of jobs 1, 3 and 4, job 104 with 12 (and his q29 Play board), job 52, jobs 25, 26 and 27, the bake-off job 13, the pre-check red repair
+552	built	-	81d3ffd0b7ba	c8ef211b8231	2026-11-20T23:33Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
+552	built	-	79771278f743	33d1afcadd8c	2026-11-21T08:29Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
+552	built	-	73249bd45e30	aaeee7dd1101	2026-11-21T10:45Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.

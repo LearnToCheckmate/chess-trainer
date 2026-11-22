@@ -58,8 +58,16 @@ const moveOf=(g,san)=>E.getLegal(g).find(m=>E.cleanSAN(E.toSAN(g,m,E.applyMove(g
 const applySans=(g,sans)=>{let cur=g;for(const s of sans){const m=moveOf(cur,s);if(!m)return null;cur=E.makeMove(cur,m);}return cur;};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 // wait for the row to answer for the position on the board: three (or every) legal moves of `g`, none of them a wait mark
+// batch 13 (chess.jsx playFit, his q29; cb86e4dc): at 320x568 against the computer the move list is a SHEET behind the Moves button, closed
+// until tapped, and the BEST row (the list's heading in a scanned game) closes with it - painted inside the closed sheet it floated over the
+// board's ranks 3-2 and took their taps. So where the list is that sheet the row is read the way he reads it: Moves opens the sheet, the
+// row is read, and Moves closes it again before any move is played (an open sheet covers the squares a move may need). r.sheet says so.
+const sheetOf=(b)=>b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return {sheet:!!p&&p.getAttribute('data-sheet')==='1',vis:p?getComputedStyle(p).visibility:null};});
 async function bestFor(b,g,ms){const legal=new Set(legalSans(g));const want=Math.min(3,legal.size);let r=null;
-  for(let t=0;t<(ms||12000);t+=300){r=await S.best(b);if(r&&r.sans.length>=want&&r.sans.every(s=>legal.has(s)))return r;await b.settle(300);}return r;}
+  const sh=await sheetOf(b);const opened=sh.sheet&&sh.vis==='hidden';if(opened){await S.tapRow(b,'Moves',600);}
+  try{for(let t=0;t<(ms||12000);t+=300){r=await S.best(b);if(r&&r.sans.length>=want&&r.sans.every(s=>legal.has(s)))break;await b.settle(300);}}
+  finally{if(opened){await S.tapRow(b,'Moves',600);}}
+  if(r)r.sheet=sh.sheet;return r;}
 async function playSan(b,g,san){const m=moveOf(g,san);if(!m)return null;await b.move(E.rc2sq(m.fr,m.fc),E.rc2sq(m.tr,m.tc),500);return E.makeMove(g,m);}
 const bd=async(b)=>{const x=await b.board();return x?{x:Math.round(x.x*10)/10,y:Math.round(x.y*10)/10,w:Math.round(x.w*10)/10,flip:x.flip}:null;};
 
@@ -140,10 +148,15 @@ async function screens(geo,skin,sstore,pro){
     L.say(!!o&&same(o.sq,occOf(g)),T+'g ITALIAN: the board holds the checked position, the fix included (a7 empty, the pawn on h3)',o&&o.sq.join(' '));
     L.say(Array.isArray(pl)&&pl.length===0,T+'g ITALIAN: Black moves next and he is Black, so the computer has NOT moved first (2.2s in, moves played: '+JSON.stringify(pl)+')',pl);
     L.say(!!B0&&B0.flip===false,T+'h ITALIAN: he plays Black and the board still shows White at the bottom, as the photo does',B0);
+    /* batch 13 (cb86e4dc): where the move list is the sheet behind Moves the BEST row is not painted until Moves is tapped - its own line */
+    const sh0=await sheetOf(b),r0=await S.best(b);
+    if(sh0.sheet)L.say(sh0.vis==='hidden'&&!!r0&&r0.vis==='hidden',T+'i ITALIAN: the move list is the sheet behind Moves here, and with it closed the BEST row is not painted ('+(r0&&r0.vis)+') - Moves opens it',{sh0,vis:r0&&r0.vis});
+    else L.say(!!r0&&r0.vis==='visible',T+'i ITALIAN: the move list is in the column here, and the BEST row is painted without a tap ('+(r0&&r0.vis)+')',{sh0,vis:r0&&r0.vis});
     let r=await bestFor(b,g);
     L.say(!!r&&r.sans.length===3&&new Set(r.sans).size===3&&r.sans.every(s=>legalSans(g).includes(s)),T+'i ITALIAN: three different legal moves for Black sit in the best-moves row ('+(r&&r.slots.map(x=>x.text).join(' | '))+')',r&&r.slots);
     L.say(!!r&&r.head==='BEST'&&r.vis==='visible',T+'i ITALIAN: the row is headed BEST',r&&{head:r.head,vis:r.vis});
-    L.say(!!r&&!!B0&&r.y>=B0.y+B0.w-0.5&&r.x>=-0.5&&r.right<=r.vw+0.5,T+'i ITALIAN: it is under the board (row top '+(r&&r.y)+', board bottom '+(B0&&(B0.y+B0.w))+') and inside the screen',r&&{y:r.y,x:r.x,right:r.right});
+    if(r&&r.sheet)L.say(r.y>=-0.5&&r.y+r.h<=b.geo.h+0.5&&r.x>=-0.5&&r.right<=r.vw+0.5,T+'i ITALIAN: with Moves tapped it heads the sheet, inside the screen (row '+r.x+'..'+r.right+' at y '+r.y+')',{y:r.y,h:r.h,x:r.x,right:r.right});
+    else L.say(!!r&&!!B0&&r.y>=B0.y+B0.w-0.5&&r.x>=-0.5&&r.right<=r.vw+0.5,T+'i ITALIAN: it is under the board (row top '+(r&&r.y)+', board bottom '+(B0&&(B0.y+B0.w))+') and inside the screen',r&&{y:r.y,x:r.x,right:r.right});
     L.say(!!r&&r.slots.every(x=>!x.cut&&/^[+-]?\d+\.\d$|^-?M\d+$|^-?#$/.test(x.ev)),T+'i ITALIAN: each move carries a score and none is cut ('+(r&&r.slots.map(x=>x.ev+' in '+x.w).join(', '))+')',r&&r.slots);
     L.say(!!plain&&!!B0&&Math.abs(B0.w-plain.w)<0.6,T+'n ITALIAN: the board is the size of an ordinary game\'s on this phone ('+(B0&&B0.w)+' against '+(plain&&plain.w)+') - the row costs it nothing',{scan:B0,plain});
     stage='ITALIAN his move and the reply';
@@ -247,3 +260,4 @@ L.run(async()=>{
   L.done();
 });
 // CONTROL-RECORD: 10fd11f8 2026-11-19 total=55 red=44 scope=trial:78a0892eb416 how=THE SUBJECT REMOVED: the tree before the change (9f308d12, built as a trial) - the scan lands on the New Game sheet, there is no Check the board screen, so lines a, b, c and the first two d lines are red at each of the four screen launches (8 each), the drive stops at its first tap on a square and says so (4 lines), and the no-engine launch has no game to read (8 lines); the 9 unit lines read this tree's chess.jsx, not the bundle, and stay green with the two engine-free pass lines. On trial 0595c2962e15 of this tree: 259 pass, 0 fail, 176s. The three pairs breaks are the controls of lines f, h and j (gates/pairs/jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18.json).
+// CONTROL-RECORD: 06bd1da2 2026-11-21 total=263 red=2 scope=trial:62116944acab how=batch 13, the playFit re-key (cb86e4dc's one line reverted, so the scanned game's BEST row is styled visible inside the closed Moves sheet at 320x568): the new 'with it closed the BEST row is not painted' line red at se for classic and medieval; the landing bundle 73249bd45e30 reads 263/0

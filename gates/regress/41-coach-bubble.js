@@ -77,7 +77,7 @@ const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 // board 293, by 56px, which process lane 1 measured independently on 2026-10-04 at a different bundle.
 // #550 a21 (the streamlined review, his Option B): the eval bar moved ABOVE an edge-to-edge board, so at kunal761 the board is the
 // screen's width, 375.03 (was 349), and at kunal730 the height binds it at 354 (was 349); se keeps 264. Measured on trial t55 by this gate (375.03125 and 354).
-const WANT={kunal761:{board:375.03},kunal730:{board:354},se:{board:264}};
+const WANT={kunal761:{board:375.03},kunal730:{board:375.03},se:{board:320}}; // batch 13 (job 104 with 12, e7a59c2f, his FB-07 'full width'): Review's rows give way before the board narrows, so kunal730 354 -> 375.03 and se 264 -> 320, measured in the #552 suite (552-all.log: 375.03125 and 320)
 const WORKERS={};
 // THE NINE-POINT HIT TEST, as a function so the analysis-mode check below runs the SAME test [#550, the gate-41 item of
 // jobs/an-assertion-keyed-to-a-selector-its-own-build-adds-cannot-control-2026-09-29]. Returns the points that did NOT land on a square.

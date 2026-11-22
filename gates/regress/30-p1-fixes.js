@@ -82,7 +82,9 @@ L.run(async()=>{
     // #550 THE PLAYER'S ROUTE RE-KEYS IT [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the live game is now
     // a game against the computer (drive/play.js cpu-4ply), whose top bar names the bot, so at 375x679 the board is 353 - measured on
     // 77ffccc15668 after the toggle - where the dev card's 'demo' opponent, a configuration no player can choose, read 375. 390x844 stays 390.
-    const A12={kunal:353,   /* was 375 on card k8:    /* #550 re-keyed: 367 -> 375 at 375x679, measured on t163 7719e5a7fd39 (the board is full width, as gate 13's card k8) */ '390':390};
+    /* batch 13, his q29 (jobs/short-upright-boards-sized-to-height-2026-11-12): at 375x679 a game against the computer now has the bar above
+       and the board the full width (chess.jsx playFit), so kunal is 375 (was 353, which held on the trial of 34d8f671 with playFit off) */
+    const A12={kunal:375,   /* was 375 on card k8:    /* #550 re-keyed: 367 -> 375 at 375x679, measured on t163 7719e5a7fd39 (the board is full width, as gate 13's card k8) */ '390':390};
     if(A12[geo]!=null)L.say(!!m2.board&&Math.abs(m2.board.w-A12[geo])<0.6,geo+': A-12 the board is '+A12[geo]+' wide after the toggle, the measured size - not merely the same as before it',{measured:m2.board&&m2.board.w,want:A12[geo]});
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
     L.say(m2.over.over<=0,geo+': A-12 no scroll after toggling',m2.over);
@@ -113,4 +115,5 @@ L.run(async()=>{
 // SELECTOR-OPENED: moves-panel reading=presence round 4: A-12 needs one of two visibilities to be hidden; null against null is red
 // SELECTOR-OPENED: setup-sheet reading=presence round 4: A-13 requires an overflow reading, which needs the sheet
 // CONTROL-RECORD: e3aec88 2026-11-13 total=41 red=10 scope=trial:b7e6bd6c651f how=#550 #432 sweep (lead): c30, menu-sheet renamed AND the backdrop tap made a no-op (the sheet stays up) - the old gate passed 'the menu closes on a backdrop tap' at kunal and 390 (31/8, its 8 reds the sheet-rect reads); the re-keyed line, which also counts the Look and feel row by its words, red at both (31/10); on t180 9aa49ab2df6f 41/0
+// CONTROL-RECORD: 34d8f671 2026-11-21 total=41 red=1 scope=trial:110dddbdc062 how=batch 13, his q29 re-pin: the landing head with playFit switched off (const playUp=false) - A-12 kunal red (353 against the new 375); on the landing head's own trial d13ddd35cf00 the gate as it was read 40/1 (that line, 375 against 353) and the re-pinned gate reads 41/0
 // SELECTOR-OPENED: menu-sheet control=e3aec88 the backdrop absence line also counts the sheet by its Look and feel row; c30 renamed the hook and kept the sheet up, red

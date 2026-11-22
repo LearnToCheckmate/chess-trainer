@@ -23,7 +23,7 @@
 const L=require('../lib');const H=require('../drive/home'),Z=require('../drive/puzzles'),R=require('../drive/review');
 const PHONES=[[761,375],[667,375],[844,390]];
 const PAGES=[['Discover',b=>H.states.discover(b),/What do you want to learn/],['Openings list',b=>H.states['discover-openings'](b),/Openings/],
-  ['Review list',b=>R.states['list-stored'](b),/Review any game/],['Puzzles roadmap',b=>Z.states.roadmap(b),/puzzles · \d+ of \d+/i]];
+  ['Review list',b=>R.states['list-stored'](b),/Your games|Game review/ /* batch 13: job 13 cut the 'Review any game, from anywhere' line, so the page is found by its Your games heading or its Game review title (the heading gives way to the search box when games are listed) */],['Puzzles roadmap',b=>Z.states.roadmap(b),/puzzles · \d+ of \d+/i]];
 const TABS=/Home[\s\S]*Discover[\s\S]*Puzzles[\s\S]*Review[\s\S]*Play/;
 const read=(b,wre)=>b.page.evaluate((src)=>{const vw=innerWidth,vh=innerHeight;const tb=document.querySelector('[data-ct="tabbar"]');const t=tb?tb.getBoundingClientRect():null;
   const reached=new RegExp(src).test(document.body.innerText||'');
