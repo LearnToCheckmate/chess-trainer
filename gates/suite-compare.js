@@ -21,7 +21,14 @@
 // EXIT 0 SAME (apart from numbers) | 1 DIFFERENT, every difference named | 2 could not run (missing file, no sections).
 const fs = require('fs');
 
-const norm = (l) => l.replace(/\s{2,}[\[{].*$/, '').replace(/-?\d+(?:\.\d+)?/g, '#').replace(/\s+$/, '');
+// RANDOM IDS [batch 14; jobs/suite-compare-blanks-digits-but-not-letters-so-a-random-id-reads-as-a-difference-2026-11-22]:
+// chess.jsx:9522 mints a game id as 'c'+Date.now().toString(36) - 'c' and 8 base36 characters, whose first is 'm' until
+// Jan 2027 and 'n' until about Jul 2029 (36^7 ms steps). Gate 170 prints one in its assertion text, and digits-to-'#' alone
+// left 'cmwr2p14u' and 'cmwrhtstm' (the same shape) reading as different words. ONLY that shape is blanked: 9 characters,
+// a word boundary each side, 'c' then 'm' or 'n' - no English word starts 'cm' or 'cn' - so a reworded assertion and a
+// fixed fixture id such as 'cdev2own' still compare as they did. When the timestamp reaches 'o', widen the class.
+const RANDID = /\bc[mn][a-z0-9]{7}\b/g;
+const norm = (l) => l.replace(/\s{2,}[\[{].*$/, '').replace(RANDID, '<id>').replace(/-?\d+(?:\.\d+)?/g, '#').replace(/\s+$/, '');
 function parse(text) {
   const L = text.split('\n');
   const h = (L[0] || '').match(/md5 ([0-9a-f]{12})/);
@@ -179,6 +186,12 @@ function selftest() {
   const p6 = splitCompare(sv('12.5', 300), sv('12.5', 412, 'RED'), sv('12.5', 300, 'RED'));
   t(p6.rc === 0 && p6.lines.some((l) => /KNOWN \(the verdict differs between the two serial runs\) 11-b/.test(l)), 'S21 --split: a gate whose verdict differs between A and B is KNOWN, not a moved result');
   t(splitCompare(sv('12.5', 300), sv('12.5', 300), sv('12.5', 300, 'RED')).rc === 1, 'S22 --split: a verdict change on a gate A and B agree on moves results');
+  // random ids (job suite-compare-blanks-digits-but-not-letters...): the two real ids from the two real runs
+  const idl = (id) => log('aaaaaaaaaaaa', [A[0], sec('11-b', ['PASS b two', "PASS kunal761 TC-R252c device 2's next backup carries both games (2: " + id + ', cdev2own)  [["' + id + '","cdev2own"]]'])]);
+  t(compare(idl('cmwr2p14u'), idl('cmwrhtstm')).rc === 0, 'S23 two logs differing only in the random backup id (cmwr2p14u / cmwrhtstm, gate 170) compare SAME');
+  const rw = compare(idl('cmwr2p14u'), log('aaaaaaaaaaaa', [A[0], sec('11-b', ['PASS b two', "PASS kunal761 TC-R252c device 2's next backup carries ONE game (2: cmwrhtstm, cdev2own)  [[]]"])]));
+  t(rw.rc === 1 && rw.lines.some((l) => /DIFFERENT 11-b: only/.test(l)), 'S24 a real wording difference beside a random id is still DIFFERENT');
+  t(compare(idl('cmwr2p14u'), log('aaaaaaaaaaaa', [A[0], sec('11-b', ['PASS b two', "PASS kunal761 TC-R252c device 2's next backup carries both games (2: cmwrhtstm, cother1own)  [[]]"])])).rc === 1, 'S25 a fixed fixture id that changes in its letters (cdev2own -> cother1own) is still DIFFERENT: letters other than the random id are not blanked');
   console.log('suite-compare selftest: ' + ok + ' ok / ' + fail + ' FAIL');
   return fail ? 1 : 0;
 }
