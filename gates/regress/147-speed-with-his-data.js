@@ -23,7 +23,9 @@
 // (CT_G147_SELF=1) three times at kunal761, N=5: ratios Home 1.04/0.95/1.03, Review list 1.05/1.08/0.93, longest task 1.10/1.01/0.85,
 // drill 0.93/1.27/0.91, Next 1.02/0.94/1.07; paired median diffs within -105..+120 (Home), -76..-5 (Review), -62..+28 (longest), -47..+69
 // (drill), +1..+6 (Next). Each floor is about twice the worst self diff and each ratio sits above the worst self ratio, so noise alone
-// does not cross both, and a regression of about 250-400 ms at 4x does.
+// does not cross both, and a regression of about 250-400 ms at 4x does. THAT IS THE RESOLUTION, MEASURED: a 4e7-sqrt busy loop on every
+// Review list render added +370 ms (ratio 1.58) at kunal761 and was red, and +206 ms (ratio 1.44) at 320x568 and was NOT; the pairs break
+// is therefore 6e7. A slowdown under about 250 ms at 4x on the Review list is below what this container can tell from noise.
 // RETIRED, NOT DELETED (the job's close condition (4)): the absolute limits Home <= 2000, Review list <= 1000, longest task <= 500, drill
 // <= 1000 and Next <= 100 below are history; they now survive only as the catastrophe ceilings 8000/5000/5000/5000/1000.
 // THE BARS ARE CALIBRATED ON THIS INSTRUMENT, NOT COPIED FROM THE CHECKER'S (CLAUDE.md, 'a threshold belongs to the instrument'): this gate's

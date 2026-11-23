@@ -10,7 +10,7 @@
  ],
  "breaks": [
   {"name": "review-renders-every-game", "patch": "breaks/147-review-renders-every-game.diff", "why": "the games list loses its paging and renders all 465 games when Review opens (a second, full render of the list)", "mustFailIn": ["kunal761", "se 320x568"]},
-  {"name": "busy-loop-on-review-list", "patch": "breaks/147-busy-loop-on-review-list.diff", "why": "a fixed busy loop (4e7 sqrt) runs on every render of the Review games list", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "busy-loop-on-review-list", "patch": "breaks/147-busy-loop-on-review-list.diff", "why": "a fixed busy loop (6e7 sqrt, about +350-500 ms at 4x) runs on every render of the Review games list", "mustFailIn": ["kunal761", "se 320x568"]},
   {"name": "busy-loop-at-home-start", "patch": "breaks/147-busy-loop-at-home-start.diff", "why": "a fixed busy loop (8e7 sqrt) runs once as the app mounts, so Home is late", "mustFailIn": ["kunal761", "se 320x568"]}
  ],
  "timeoutSec": 900
