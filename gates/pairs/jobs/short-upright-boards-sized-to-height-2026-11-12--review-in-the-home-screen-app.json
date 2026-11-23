@@ -1,0 +1,28 @@
+{
+ "job": "short-upright-boards-sized-to-height-2026-11-12",
+ "about": "BATCH 14, ITEM 1 OF THE JOB (his picture of Sun 22 Nov 2026 on Version 552: Review's board about 330 of 375 in the Home Screen app, Play's full width). A second pairs file for the same job, beside the board half's (short-upright-boards-sized-to-height-2026-11-12.json, gates 177 and 178), so this item can be graded without re-running those two long gates. Graded by gate 184 on a trial bundle: Review of the Opera Game at ply 0, 16 and the last, against Play at move 0 on the same launch, in his Home Screen app as it really lays out (a 375x761 layout viewport, the 375x812 shell, env() insets 51/31 reported by Chromium: L.HOME_SCREEN_APP), a 375x812 viewport with the same insets and no shell, the same shape on a 320x568 phone with a 20 inset, and unchanged at 375x761 (ct_safe), 375x667, 320x568 and 812x375 sideways. The real code passes everywhere; three ways the fix could come undone are each caught. NOT COVERED: iOS Safari itself (Chromium's inset override and ct_fullh stand in), text sizes other than 100 percent (gates 177 and 178), the analysis board and the drill Analysis (same fit loop, not read here), his own look on the phone.",
+ "gate": "gates/regress/184-review-board-full-width-in-the-home-screen-app.js",
+ "checks": ["TC-R263"],
+ "build": "always",
+ "situations": [
+  {"name": "his phone in the Home Screen app (375x761 on a 375x812 screen, the shell, real insets 51/31)", "match": "^TC-R263[a-c]? app "},
+  {"name": "375x812 with real insets 51/31, no shell", "match": "^TC-R263[a-c]? 812 "},
+  {"name": "320x568 in the Home Screen app (real inset 20/0)", "match": "^TC-R263[a-c]? 320x568-app "},
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R263[a-c]? 375x761 "},
+  {"name": "375x667", "match": "^TC-R263[a-c]? 375x667 "},
+  {"name": "320x568", "match": "^TC-R263[a-c]? 320x568 "},
+  {"name": "812x375 sideways", "match": "^TC-R263[a-c]? sideways "}
+ ],
+ "breaks": [
+  {"name": "the-fit-loop-reads-the-layout-viewport-again", "patch": "breaks/184-the-fit-loop-reads-the-layout-viewport-again.diff",
+   "why": "the fit loop compares the content with documentElement.clientHeight (the 761 layout viewport) inside the 812 shell again: Review's board is trimmed to 343 on his phone (269 on the 320 phone) while Play's stays 375 - the shipped #552 defect",
+   "mustFailIn": ["his phone in the Home Screen app (375x761 on a 375x812 screen, the shell, real insets 51/31)", "320x568 in the Home Screen app (real inset 20/0)"]},
+  {"name": "review-counts-the-insets-as-room", "patch": "breaks/184-review-counts-the-insets-as-room.diff",
+   "why": "revFit counts the whole height as room even where the insets are real, so on his phone it keeps the header row and the rows no longer fit beside a full-width board",
+   "mustFailIn": ["his phone in the Home Screen app (375x761 on a 375x812 screen, the shell, real insets 51/31)"]},
+  {"name": "the-gaps-never-close", "patch": "breaks/184-the-gaps-never-close.diff",
+   "why": "revFit's last step (the gaps round the strip and the buttons closed) is gone, so on a 320x568 phone the rows run out before the board is the full width and it narrows again",
+   "mustFailIn": ["320x568", "320x568 in the Home Screen app (real inset 20/0)"]}
+ ],
+ "timeoutSec": 2400
+}

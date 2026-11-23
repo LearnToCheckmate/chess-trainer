@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7089,5 +7089,5 @@
+        trimmed the board 375 -> 343 and rev-compact took the room it gave up. Play was spared only because its bars and move list count
+        as absorbed slack. Measured with real env() insets (gate 184, L.HOME_SCREEN_APP): 343.03 before, 375.03 after; 269.03 -> 301.03 on a 320x568 phone with a 20 inset. */
+-    const _vh=(window.__ctFullH>0)?window.__ctFullH:de.clientHeight;
++    const _vh=de.clientHeight;
+     const _o=bottom>0?(bottom-spacers-absorbed+padB-_vh):(de.scrollHeight-de.clientHeight);
+     /* #550 US-R151 MOV-01 (docs/movement-check-2026-11-12, Kunal: "fix the cause"): LESS THAN ONE PIXEL IS NOT AN OVERFLOW. At a display
