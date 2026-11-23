@@ -62,7 +62,7 @@ L.run(async()=>{
   for(const [name,opts,want] of LAUNCHES){
     if(ONLY&&!ONLY.test(name))continue;
     const tag=name;let b=null,ok=true;const rev=[];let play=null,ins=null,shell=null;
-    try{b=await L.launch(opts);await b.open();ins=await insets(b);shell=await b.page.evaluate(()=>({fullH:window.__ctFullH||0,ih:innerHeight}));
+    try{b=await L.launch(opts);await b.open();ins=await insets(b);shell=await b.page.evaluate(()=>({fullH:document.documentElement.classList.contains('ct-fullh')?Math.round(document.documentElement.getBoundingClientRect().height):0,ih:innerHeight}));   /* the PAINTED shell (index.html's class and html's height), not window.__ctFullH, which is what the app is handed and is the thing under test */
       await R.ensureReview(b,'opera');await R.startReview(b);
       for(const [pn,ply] of [['ply 0',0],['ply 16',16],['the last ply',99]]){await R.goPly(b,ply);await b.settle(1500);rev.push([pn,await read(b)]);}
       await P.states['cpu-m0'](b);await b.settle(1200);play=await read(b);
@@ -70,8 +70,8 @@ L.run(async()=>{
     const allB=ok&&rev.length===3&&rev.every(([,m])=>!!m.board)&&!!play&&!!play.board;
     L.say(allB,'TC-R263 '+tag+': DENOMINATOR - Review reached at ply 0, ply 16 and the last ply and Play at move 0, a board found in each',{ok,rev:rev.map(([p,m])=>[p,m.board&&m.board.w]),play:play&&play.board&&play.board.w});
     if(want.insets)L.say(!!ins&&ins.top===want.insets[0]&&ins.bot===want.insets[1],'TC-R263 '+tag+': DENOMINATOR - env(safe-area-inset-top/bottom) read '+want.insets.join('/')+' in the page (real insets, padded as on the phone)',ins);
-    if(want.shell)L.say(!!shell&&shell.fullH===want.shell&&shell.ih===want.ih,'TC-R263 '+tag+': DENOMINATOR - the Home Screen shell is on: the app paints '+want.shell+' (__ctFullH) over a '+want.ih+' layout viewport',shell);
-    if(want.side)L.say(!!shell&&shell.fullH===0,'TC-R263 '+tag+': DENOMINATOR - sideways the shell is off (__ctFullH 0), so the shell height cannot enter',shell);
+    if(want.shell)L.say(!!shell&&shell.fullH===want.shell&&shell.ih===want.ih,'TC-R263 '+tag+': DENOMINATOR - the Home Screen shell is on: html is ct-fullh and '+want.shell+' tall over a '+want.ih+' layout viewport',shell);
+    if(want.side)L.say(!!shell&&shell.fullH===0,'TC-R263 '+tag+': DENOMINATOR - sideways the shell is off (no ct-fullh), so the shell height cannot enter',shell);
     if(!allB){if(b)await b.browser.close().catch(()=>{});continue;}
     const pw=play.board.w;
     for(const [pn,m] of rev){
