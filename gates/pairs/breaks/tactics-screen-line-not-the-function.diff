@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index d0080f5f..fd756b9b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5191,7 +5191,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
+       if(p&&p.c==='w'){setSel([r,c]);setWrong(false);return;}
+       const f=alg(sel[0],sel[1]),t=alg(r,c);
+       if(f===cur.from&&t===cur.to){setSolved(true);setWrong(false);}
+-      else{setWrongTxt(tacWrongLine(cur,pos,sel[0],sel[1],r,c));setWrong(true);setSel(null);}   /* #550 HEX-T-09 (jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12): one fixed sentence on every wrong move of all 13 cards; wrongWhy names a mate allowed or a piece hung, as Puzzles does. batch 13: where the board proves neither, and on a tap that is no legal move, the card's own authored line (tacWrongLine) */
++      else{setWrongTxt((()=>{const m=getLegal(pos).find(x=>x.fr===sel[0]&&x.fc===sel[1]&&x.tr===r&&x.tc===c);return m?('Not '+toSAN(pos,m,applyMove(pos.board,m))+'. '+cur.miss):tacWrongLine(cur,pos,sel[0],sel[1],r,c);})());setWrong(true);setSel(null);}   /* #550 HEX-T-09 (jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12): one fixed sentence on every wrong move of all 13 cards; wrongWhy names a mate allowed or a piece hung, as Puzzles does. batch 13: where the board proves neither, and on a tap that is no legal move, the card's own authored line (tacWrongLine) */
+     } else if(p&&p.c==='w'){setSel([r,c]);setWrong(false);}
+   };
+   const hiFrom=(solved||shown)?fromRC:sel;

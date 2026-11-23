@@ -26,6 +26,13 @@
 //            TC-R246b); while it shows the board, the card box and the button row do not move and the page does not scroll; on his phone it
 //            is drawn at the box's own size, and on a short phone it may step down to fit, never below 11.5px.
 //  TC-R246e  sideways at 568x320 (one launch, its own line prefix): the card's line on a wrong try moves neither the board nor the buttons.
+//  TC-R246f  [batch 14, the job's remainder "put tacWrongLine into the engine extractor"] the SHIPPED tacWrongLine, run in node through
+//            gates/engine-extract.js, over every legal wrong move of every card (no browser, so no move is skipped): never empty and never
+//            the bare fixed line; where a reply MATES (found here by playing every reply, not by asking wrongWhy) the line says so; every
+//            other line is a true "hangs/drops" line or "Not <move>. <the card's line>"; and a tap that is no legal move reads
+//            "Not legal. <the card's line>". The board reason comes FIRST: a line that gives the card's sentence where a reply mates is red.
+//  TC-R246g  the line on screen for each wrong move played, and for the tap that is no legal move, is exactly what that shipped function
+//            returns for the same card, board and squares - so the screen cannot drift from the function the node check judged.
 // KNOW ITS LIMIT: a claim is checked where the board or a short forced line settles it. "A small but lasting edge" and "the invasion
 // works" are engine questions and live in gate 129 (TC-R205d, e). General advice with no position claim ("avoid overextending") is not
 // judged. Sideways is read for what moves (TC-R246e), not move by move; the desktop layout draws the same string in the same slot.
@@ -41,6 +48,7 @@
 // CONTROL-RECORD: 85f035e1 2026-11-21 total=665 red=26 scope=trial:280f1b85b909 how=batch 13 q23: the card box grows while the line shows instead of keeping its place - TC-R262 'the board, the card box and the button row stay exactly where they were' red on all 13 cards at each size
 // CONTROL-RECORD: 85f035e1 2026-11-21 total=665 red=13 scope=trial:7fdfc54c43ff how=batch 13 q23: the line drawn at 13px on every phone - TC-R262 'on his phone ... never shrunk' red on all 13 cards at 375x761
 // (not control records) batch 13, 2026-11-21: real #552 73249bd45e30 669 pass 0 fail (with sideways); floor10 trial d0f2c0033fb9 665/0 - every line fits at 11.5px, so the 10px floor is never reached and THE 11.5px FLOOR CHECK IS NOT SHOWN ABLE TO FAIL. At 320x568 every card's line is drawn at that floor (box 64px, 46px of room, three lines take 61px at 14px and 45px at 11.5px).
+// (not control records) batch 14, 2026-11-23, TC-R246f/g added: real trial 211427dcda6f 823 pass 0 fail without sideways (both sizes). Break screen-line-not-the-function (da687d6fbcca, kunal761 only): 9 TC-R246g lines red, every TC-R246a line green. Break wrong-line-skips-the-board-reason (c4df435af120, kunal761 only): 2 TC-R246f lines red on Discovered attack (Kh1 allows mate), every TC-R246a line green - the hangs lines it also loses read as the card's line and are not seen, because whether a piece is left en prise is wrongWhy's reading and this gate does not recompute it.
 const L=require('../lib');
 const E=require('../engine-extract');
 const D=require('../drive/lesson');
@@ -274,8 +282,25 @@ L.run(async()=>{
       L.say(hintShown==='💡 '+row.hint,g+'TC-R246d '+nm+': the hint on screen is the row\'s hint',hintShown);
       // TC-R246a: play every legal wrong move
       const wrongs=legal(p).filter(m=>m!==key&&!(m.fr===key.fr&&m.fc===key.fc&&m.tr===key.tr&&m.tc===key.tc));
-      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[];let nWhy=0,nMiss=0,maxH=0,minFs=99;const still=s;
+      // TC-R246f: the shipped function itself, in node, over every one of them (batch 14)
+      const hasFn=typeof E.tacWrongLine==='function';
+      if(i===0)L.say(hasFn,g+'TC-R246f PRECONDITION gates/engine-extract.js exports the shipped tacWrongLine (chess.jsx md5 '+E.SOURCE_MD5+')',typeof E.tacWrongLine);
+      const fn=(m)=>{try{return hasFn?E.tacWrongLine(row,p,m.fr,m.fc,m.tr,m.tc):null;}catch(e){return 'THREW '+(e&&e.message||e);}};
+      {const fBare=[],fMate=[],fWrong=[];let fM=0,fH=0,fN=0;
+        for(const m of wrongs){const S=san(p,m),T=fn(m);const a=mk(p,m);const mr=(st(a)==='playing'||st(a)==='check')?legal(a).find(x=>isMate(mk(a,x))):null;let mm;
+          if(T==null||T===''||T===BARE){fBare.push(S+' -> '+JSON.stringify(T));continue;}
+          if(mr){if((mm=/^(\S+) allows mate \((\S+)\)\. Try again\.$/.exec(T))&&mm[1]===S&&(()=>{const r=legal(a).find(x=>san(a,x)===mm[2]);return !!r&&isMate(mk(a,r));})())fM++;else fMate.push(S+' (a reply mates: '+san(a,mr)+') -> '+T);continue;}
+          if(/allows mate/.test(T)){fWrong.push(S+' (no reply mates) -> '+T);continue;}
+          if((mm=/^(\S+) (hangs|drops) the (pawn|knight|bishop|rook|queen) \((\S+)\)\. Try again\.$/.exec(T))){const r=legal(a).find(x=>san(a,x).replace(/[+#]$/,'')===mm[4].replace(/[+#]$/,''));const v=r&&target(a,r);const nameOf={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen'};
+            if(mm[1]===S&&!!r&&!!v&&v.c==='w'&&nameOf[v.t]===mm[3]&&((mm[2]==='hangs')===(to(r)===to(m)))&&(VAL[mover(a,r).t]<VAL[v.t]||!legal(mk(a,r)).some(x=>to(x)===to(r))))fH++;else fWrong.push(S+' -> '+T);continue;}
+          if(T==='Not '+S+'. '+row.miss){fN++;continue;}
+          fWrong.push(S+' -> '+T);}
+        L.say(hasFn&&wrongs.length>0&&fBare.length===0,g+'TC-R246f '+nm+': the shipped tacWrongLine, run in node, gives a line for each of its '+wrongs.length+' legal wrong moves - never empty, never the bare fixed line ('+fBare.length+' bare)',fBare.slice(0,4));
+        L.say(hasFn&&fMate.length===0,g+'TC-R246f '+nm+': where a reply mates (found by playing every reply), the function says that mate first and not the card\'s sentence ('+fM+' such moves)',fMate.slice(0,4));
+        L.say(hasFn&&fWrong.length===0&&fM+fH+fN===wrongs.length-fBare.length,g+'TC-R246f '+nm+': every other line is a true hangs/drops line or "Not <move>. <the card\'s line>" ('+fH+' hangs/drops, '+fN+' the card\'s line)',fWrong.slice(0,4));}
+      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[],drift=[];let nWhy=0,nMiss=0,maxH=0,minFs=99;const still=s;
       for(const m of wrongs){await click(b,from(m));await click(b,to(m));s=await readTac(b);const T=s.wrong,S=san(p,m);let mm;
+        if(hasFn){const F=fn(m);if(T!==F)drift.push(S+': screen '+JSON.stringify(T)+' function '+JSON.stringify(F));}
         if(T==null||T===''||T===BARE){bare.push(S+' -> '+JSON.stringify(T));continue;}
         if(s.wrongIn!==true)cut.push(S+' ('+s.wrongH+' in a box of '+s.boxH+')');maxH=Math.max(maxH,s.wrongH||0);
         if(s.wrongFs!=null){minFs=Math.min(minFs,s.wrongFs);if(s.wrongFs<s.boxFs-0.01)shrunk.push(S+' '+s.wrongFs+'px');if(s.wrongFs<11.5-0.01)tiny.push(S+' '+s.wrongFs+'px');}
@@ -290,6 +315,7 @@ L.run(async()=>{
         else other.push(S+' -> '+T);}
       L.say(wrongs.length>0&&bare.length===0,g+'TC-R246a '+nm+': each of its '+wrongs.length+' legal wrong moves, played, shows a reason or the card\'s own line - never the bare fixed line ('+bare.length+' bare)',bare.slice(0,6));
       L.say(other.length===0&&nWhy+nMiss===wrongs.length-bare.length,g+'TC-R246a '+nm+': every wrong-move line is one of the three known forms - a mate allowed, a piece hung, or "Not <move>. <the card\'s line>" ('+nWhy+' from the board, '+nMiss+' the card\'s line)',other.slice(0,4));
+      L.say(hasFn&&drift.length===0,g+'TC-R246g '+nm+': the line on screen for each of its '+wrongs.length+' wrong moves is exactly the shipped tacWrongLine for that move ('+drift.length+' differ)',drift.slice(0,3));
       L.say(untrue.length===0,g+'TC-R246a '+nm+': every line that names a mate or a piece hung is true of the board (the reply is legal and mates, or takes that piece there for profit)',untrue.slice(0,4));
       L.say(cut.length===0&&maxH>0,g+'TC-R246a '+nm+': the wrong-move line is wholly inside its box on every one of them (tallest '+maxH+'px)',cut.slice(0,4));
       // TC-R262 (batch 13, his Desk answer to q23: "Longer, friendlier wrong try lines"): the card's line is the longer one, the box keeps its place, and only a short phone draws it smaller
@@ -301,6 +327,9 @@ L.run(async()=>{
       let ill=null;const lg=legal(p);for(let r=0;r<8&&!ill;r++)for(let c=0;c<8&&!ill;c++){const q=p.board[r][c];if(!q||q.c!=='w')continue;for(let R=0;R<8&&!ill;R++)for(let C=0;C<8&&!ill;C++){const t=p.board[R][C];if(t&&t.c==='w')continue;if(!lg.some(m=>m.fr===r&&m.fc===c&&m.tr===R&&m.tc===C))ill=[sqn(r,c),sqn(R,C)];}}
       await click(b,ill[0]);await click(b,ill[1]);s=await readTac(b);
       L.say(typeof row.miss==='string'&&s.wrong==='Not legal. '+row.miss&&s.wrongIn===true,g+'TC-R246a '+nm+': a tap that is no legal move ('+ill[0]+' to '+ill[1]+') says so, with the card\'s own line, inside its box',{shown:s.wrong,inBox:s.wrongIn});
+      {const [ir,ic]=rc(ill[0]),[jr,jc]=rc(ill[1]);const F=(()=>{try{return hasFn?E.tacWrongLine(row,p,ir,ic,jr,jc):null;}catch(e){return 'THREW '+(e&&e.message||e);}})();
+        L.say(hasFn&&typeof row.miss==='string'&&F==='Not legal. '+row.miss,g+'TC-R246f '+nm+': the shipped tacWrongLine, in node, answers the same tap that is no legal move with "Not legal. <the card\'s line>"',F);
+        L.say(hasFn&&s.wrong===F,g+'TC-R246g '+nm+': the line on screen for that tap is exactly what the shipped function returns',{shown:s.wrong,fn:F});}
       // TC-R246b: the claims, each against the position
       const x={p,key,a:mk(p,key),row};const claims=TCL[row.motif]||[];
       L.say(claims.length>=3&&claims.some(c=>c[0]==='miss'),g+'TC-R246b '+nm+': DENOMINATOR this gate holds '+claims.length+' claims for the card, its wrong-try line among them',claims.length);

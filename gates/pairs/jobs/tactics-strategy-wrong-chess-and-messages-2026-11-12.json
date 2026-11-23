@@ -1,9 +1,9 @@
 {
  "job": "tactics-strategy-wrong-chess-and-messages-2026-11-12",
- "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
+ "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. Batch 14 (the job's remainder, tacWrongLine in gates/engine-extract.js): TC-R246f runs the shipped tacWrongLine in node over every legal wrong move and the no-legal tap of every card (a reply that mates, found by playing every reply, must be named first; every other line a true hangs/drops line or the card's line), and TC-R246g holds the line on screen to that function's output move by move. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
  "gate": "gates/regress/175-tactics-strategy-claims-hold.js",
  "checks": [
-  "TC-R246[a-d] ",
+  "TC-R246[a-g] ",
   "TC-R262 "
  ],
  "build": "always",
@@ -48,6 +48,33 @@
    "name": "short-line-back",
    "patch": "breaks/tactics-wrong-try-short-line-back.diff",
    "why": "the 13 card lines go back to the short ones he was shown before his q23 answer ('Not Nc3. One knight move checks the king and attacks the queen.'): the longer, friendlier sentence and the clue it carries are gone",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "wrong-line-not-extracted",
+   "patch": "breaks/tactics-wrong-line-not-extracted.diff",
+   "why": "tacWrongLine is dropped from the engine extractor's NAMES again (the state before batch 14): node cannot run the shipped function, so the 238 wrong moves are judged only where a screen run plays them",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "wrong-line-skips-the-board-reason",
+   "patch": "breaks/tactics-wrong-line-skips-the-board-reason.diff",
+   "why": "tacWrongLine stops asking wrongWhy, so a move that allows a mate (Discovered attack Kh1) or hangs a piece reads the card's sentence instead; every TC-R246a screen line stays green on this break (measured at kunal761), only TC-R246f sees it",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "screen-line-not-the-function",
+   "patch": "breaks/tactics-screen-line-not-the-function.diff",
+   "why": "the Tactics page builds its own 'Not <move>. <line>' at the call site instead of calling tacWrongLine, so the board's reason never reaches the screen while the function is still right; every TC-R246a line stays green (measured at kunal761), only TC-R246g sees it",
    "mustFailIn": [
     "kunal761",
     "se 320x568"
