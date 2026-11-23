@@ -1,0 +1,11 @@
+--- a/gates/regress/15-gallery-playall.js
++++ b/gates/regress/15-gallery-playall.js
+@@ -350,7 +350,7 @@
+ const OV_WIN=900, OV_HOLD=250;
+ function ovEpisodes(ev,tEnd,win,hold){
+   const eps=[];let ep=null;
+-  const close=(why)=>{ep.why=why;ep.persists=!!why;ep.ms=(ep.clearAt===null?null:Math.round(ep.clearAt-ep.onset));eps.push(ep);ep=null;};
++  const close=(why)=>{ep.why=why;ep.persists=true;ep.ms=(ep.clearAt===null?null:Math.round(ep.clearAt-ep.onset));eps.push(ep);ep=null;};
+   for(const e of ev){
+     const isOver=e.over>0.5;
+     if(isOver){

@@ -321,6 +321,94 @@ function walkOk(caps,N){
   for(let n=1;n<=N;n++)if(!ns.includes(n))return {ok:false,why:'card '+n+' never appeared',ns};
   return {ok:true,ns};
 }
+/* #553 jobs/gate-15-reddened-on-a-review-entry-frame-2px-over-that-clears-in-ms-2026-11-21: "LEAVES THE PAGE SCROLLING" IS DECIDED
+   ON THE SETTLED FRAME, BY A RECORDER THAT SEES EVERY FRAME, NOT BY A 700ms SAMPLE AND ONE RE-READ.
+   WHAT THE APP DOES, traced frame by frame (an in-page requestAnimationFrame recorder, the same overflow rule as lib's b.over(), on the
+   #553 trial bundle 41cb9b63624a): when Review mounts under the EXP caption the first painted frame has the board at the full 375.03
+   and the shell (#root's first child) 699 tall in a 679 viewport - over 20 - for one frame (~37ms); the fit loop's first pass trims 16
+   (board 357.03, shell 681, over 2) for one more frame (~33ms); its second pass lands on 341.03 and over 0, which then holds. Two
+   painted frames, about 70ms. At 320x568 the same mount paints ONE frame over 45 (board 320 -> 265.03, ~26ms); at 375x761 (his phone)
+   and 375x812 the first frame already fits, so there is no transient at all. The cause is that the fit loop (chess.jsx, the effect
+   that measures `over` and calls setBoardTrim from a requestAnimationFrame tick) runs AFTER paint, so the frames it corrects are
+   painted. Sizing the board before the first paint is a change to the Review fit, which another seat owns this batch; it is not
+   made here, so the close condition's branch (3) applies: the gate keeps a settle window, and this is why.
+   THE OLD RE-READ (b7317056) HAD TWO HOLES, and they are why it is replaced rather than lengthened. (a) It decided on ONE more
+   sample 250ms later: an overflow that flickers (over in some frames, not in others - a fit loop oscillating between two trims,
+   which is a real board jump) passes whenever that one read lands in a clear frame. (b) A re-read that found the caption changed
+   was NOTED and not counted whatever it read, so a persistent overflow sampled near the end of a card escaped. And it saw the
+   transient only by luck - a 70ms window under a 700ms sampler - which is why the red was random (1 of 2, 1 of 1) and why no
+   control could show the settle wait was doing anything.
+   WHY A PERSISTENCE RULE IS RIGHT HERE WHEN CLAUDE.md SAYS ONE WAS WRONG FOR THIS SAME GATE (gate15-baseline-is-the-unsettled-
+   frame, "THE FIX A FLAG PROPOSES IS A HYPOTHESIS"): that flag's transient was the BASELINE, so the shrink from it to the settled
+   width persisted for ever and a two-sample filter kept the false red. Overflow has no baseline - its bound is the viewport, which
+   does not move - so "is it still over once the frame has settled" is a question with a fixed reference, and a transient really
+   does end. The rule: an episode (over > 0.5) is a TRANSIENT only if it clears within OV_WIN of its onset AND the clear then holds
+   for OV_HOLD (the same 900ms and 250ms as tailStable's window). Anything else PERSISTS and is counted: still over at the end of
+   the record, cleared too late, or back over before the clear has held (a flicker is one episode, not two transients).
+   Episodes are followed ACROSS a caption change on purpose: an overflow that lasts until the card changes has lasted longer than
+   the window and so persists anyway, and one that starts just before a change is judged by its own duration, not by the caption. */
+const OV_WIN=900, OV_HOLD=250;
+function ovEpisodes(ev,tEnd,win,hold){
+  const eps=[];let ep=null;
+  const close=(why)=>{ep.why=why;ep.persists=!!why;ep.ms=(ep.clearAt===null?null:Math.round(ep.clearAt-ep.onset));eps.push(ep);ep=null;};
+  for(const e of ev){
+    const isOver=e.over>0.5;
+    if(isOver){
+      if(!ep){ep={cap:e.cap,onset:e.t,peak:e.over,clearAt:null,flicks:0};continue;}
+      if(ep.clearAt!==null){
+        if(e.t-ep.clearAt>=hold){close(ep.clearAt-ep.onset<=win?null:'took '+Math.round(ep.clearAt-ep.onset)+'ms to clear, past the '+win+'ms window');
+          ep={cap:e.cap,onset:e.t,peak:e.over,clearAt:null,flicks:0};continue;}
+        ep.clearAt=null;ep.flicks++;}
+      ep.peak=Math.max(ep.peak,e.over);
+    }else if(ep&&ep.clearAt===null)ep.clearAt=e.t;
+  }
+  if(ep){
+    if(ep.clearAt===null)close('still over at the end of the record');
+    else if(tEnd-ep.clearAt<hold)close('the record ended '+Math.round(tEnd-ep.clearAt)+'ms after it cleared, before the clear had held '+hold+'ms');
+    else close(ep.clearAt-ep.onset<=win?null:'took '+Math.round(ep.clearAt-ep.onset)+'ms to clear, past the '+win+'ms window');
+  }
+  return eps;
+}
+// Each fixture is a recorder event list (only the frames where the value changed, as the recorder stores them), the time the record
+// was read, and the verdicts ovEpisodes MUST give. O1 is the trace measured at 375x679; O3, O4, O5 and O7 are what must never be
+// waved through as a transient.
+const OVE=(a)=>a.map(x=>({t:x[0],cap:x[1]||'c',over:x[2]}));
+const OVFIX=[
+  ['O1 the measured 375x679 Review entry: over 20 for a frame, 2 for a frame, then 0 to the end - one TRANSIENT',
+   OVE([[0,'c',0],[19790,'c',20],[19827,'c',2],[19860,'c',0]]),64000,[false]],
+  ['O2 nothing ever over - no episodes',OVE([[0,'c',0],[500,'d',0]]),9000,[]],
+  ['O3 a persistent overflow (NC=over, 14px for good) PERSISTS',OVE([[0,'c',0],[1000,'c',14],[2000,'d',14]]),9000,[true]],
+  ['O4 a flicker - over, clear 100ms, over again, clear for good - is ONE episode that did not clear inside the window: PERSISTS',
+   OVE([[0,'c',0],[1000,'c',6],[1100,'c',0],[1200,'c',6],[1300,'c',0],[1400,'c',6],[1500,'c',0],[1600,'c',6],[1700,'c',0],[1800,'c',6],[1950,'c',0]]),9000,[true]],
+  ['O5 an overflow that takes 1200ms to clear PERSISTS (past the 900ms window)',OVE([[0,'c',0],[1000,'c',9],[2200,'c',0]]),9000,[true]],
+  ['O6 two separate transients, each cleared fast and held, are two TRANSIENTS',
+   OVE([[0,'c',0],[1000,'c',20],[1060,'c',0],[5000,'d',45],[5030,'d',0]]),9000,[false,false]],
+  ['O7 a clear the record ends before it has held PERSISTS (not yet proved settled)',OVE([[0,'c',0],[1000,'c',3],[1040,'c',0]]),1100,[true]],
+  ['O8 an overflow that lasts until the caption changes and clears on the next card: judged by its duration (3s), PERSISTS',
+   OVE([[0,'c',0],[1000,'c',5],[4000,'d',5],[4020,'d',0]]),9000,[true]],
+];
+/* The recorder itself. Installed in the page before Play-all; every requestAnimationFrame it computes `over` by the rule lib's
+   b.over() uses (bottom-most laid-out child of #root to depth 4, fixed and absolute children skipped, minus innerHeight) and stores
+   an event only when the value or the caption changes, so a 100s walk is a few hundred events. frames[cap] counts the frames it ran
+   under each caption (its denominator, asserted non-empty per caption below); cur/since are the current value and when it last
+   changed, which the walk compares against b.over() at every steady sample so the recorder is shown to measure what the harness
+   measures rather than trusted to. */
+const OVREC=(b)=>b.page.evaluate(()=>{
+  const R=window.__g15ov={ev:[],frames:{},cur:null,since:0,cap:null};
+  const tick=()=>{
+    const t=performance.now();
+    const ce=document.querySelector('[data-ct="rec-cap"]');const cap=ce?(ce.innerText||'').replace(/\s+/g,' ').trim():null;
+    const root=document.getElementById('root');let bottom=0;
+    const walk=(el,depth)=>{for(const c of el.children){const st=getComputedStyle(c);if(st.position==='fixed'||st.position==='absolute')continue;const r=c.getBoundingClientRect();if(r.height>0)bottom=Math.max(bottom,r.bottom);if(depth<4)walk(c,depth+1);}};
+    if(root)walk(root,0);
+    const over=Math.round((bottom-innerHeight)*10)/10;
+    if(cap)R.frames[cap]=(R.frames[cap]||0)+1;
+    if(over!==R.cur||cap!==R.cap){if(R.ev.length<50000)R.ev.push({t:Math.round(t),cap,over});if(over!==R.cur)R.since=t;R.cur=over;R.cap=cap;}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);return true;
+});
+const OVREAD=(b)=>b.page.evaluate(()=>{const R=window.__g15ov;return R?{cur:R.cur,steadyMs:Math.round(performance.now()-R.since),now:Math.round(performance.now())}:null;});
 const CAPS8=['🎬 #415 · 375x679 Starting…','🎬 #415 · 1/8 · k10 · 375x679 game over','🎬 #415 · 2/8 · k8 · 375x679 four plies',
   '🎬 #415 · 3/8 · k11 · 375x679 demo end','🎬 #415 · 4/8 · k11 · 375x679 practice','🎬 #415 · 5/8 · A-06 · 375x679 hint',
   '🎬 #415 · 6/8 · US-R01 · 375x679 Review','🎬 #415 · 6/8 · US-R03 · 375x679 Summary','🎬 #415 · 6/8 · US-R04 · 375x679 Move',
@@ -437,14 +525,22 @@ L.run(async()=>{
     const ok=got.ok===want.ok&&(!want.ok||(Math.abs(got.w-want.w)<1e-9&&got.fromMs===want.fromMs));
     L.say(ok,'tailStable unit: '+f[0],{got:{ok:got.ok,w:got.w,fromMs:got.fromMs,heldMs:got.heldMs,why:got.why},want});
   }
+  for(const f of OVFIX){
+    const got=ovEpisodes(f[1],f[2],OV_WIN,OV_HOLD).map(e=>e.persists);
+    L.say(JSON.stringify(got)===JSON.stringify(f[3]),'ovEpisodes unit: '+f[0],{got,want:f[3]});
+  }
   for(const f of WFIX){
     const got=walkOk(f[1],f[2]);
     L.say(got.ok===f[3],'walkOk unit: '+f[0],{ok:got.ok,why:got.why,ns:got.ns});
   }
   const ALL=[['kunal','kunal'],['375x812',{w:375,h:812,safe:'',label:'375x812'}]];
+  /* #553: his phone and the narrowest screen, SELECTABLE (CT_G15_GEOS=kunal761,se) and not in the default walk, so the suite's run time
+     does not change in this commit; the pairs file for this job grades all four. 375x761 paints no transient at Review entry, 320x568
+     paints one frame over 45 - which is why both are worth walking. */
+  const OPT=[['kunal761','kunal761'],['se','se']];
   const pick=(process.env.CT_G15_GEOS||'').split(',').map(s=>s.trim()).filter(Boolean);
-  if(pick.length){const bad=pick.filter(p=>!ALL.some(a=>a[0]===p));if(bad.length)throw new Error('CT_G15_GEOS: unknown geometry '+bad.join(','));}
-  const GEOS=pick.length?ALL.filter(a=>pick.includes(a[0])):ALL;
+  if(pick.length){const bad=pick.filter(p=>!ALL.concat(OPT).some(a=>a[0]===p));if(bad.length)throw new Error('CT_G15_GEOS: unknown geometry '+bad.join(','));}
+  const GEOS=pick.length?ALL.concat(OPT).filter(a=>pick.includes(a[0])):ALL;
   L.note('geometries: '+GEOS.map(g=>g[0]).join(' ')+(pick.length?'  (CT_G15_GEOS subset)':'')+(NC?'   NEGATIVE CONTROL '+NC+' at card '+NC_CARD:''));
   for(const [lab,geo] of GEOS){
     const b=await L.launch({geo,name:'playall-'+lab,store:{ct_pool:'3'}});await b.open();
@@ -490,7 +586,9 @@ L.run(async()=>{
     const pabN=await pab.count();
     L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
     if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
+    const recOn=await OVREC(b).catch(()=>false);
     await pab.first().click();
+    let ovCompared=0;const ovDisagree=[];
     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
     let cur=null,base=null,raced=0,sampled=0,lateBase=0;
     let lastSample=Date.now();
@@ -524,16 +622,9 @@ L.run(async()=>{
          at 375x679 it passes through pages that still scroll there (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, open;
          the long lists may scroll by design, AUD-L08/L16). Seen at 37, 204.7 and 261.3px over in this run's suites, and 0 in others,
          by which screen the sample caught. Those pages have their own gates (159 and the job's list); this check is for the cards. */
-      /* #552 (batch 13, run 3): "LEAVES the page scrolling" means an overflow that is still there a moment later. Run 3 reddened on the EXP
-         card's entry step at 375x679, over 2 while Review's fit loop sized the board (341.03 before it settled at 375.03), and the same
-         2px reddens the bundle from before batch 13's fixes (81d3ffd0b7ba) as often as this one, at random: three single runs, red 1 of
-         2 and 1 of 1. A diagnostic copy caught it once, and its own evaluate a few ms after the sample found NO in-flow element past the
-         screen, so it is a layout-in-progress frame, and body is position:fixed throughout, so nothing scrolled. So an over is re-read
-         250ms later under the same caption and counted only if it is still there; one that clears is NOTED with both readings, never
-         dropped silently. NC=over (a persistent 14px child of #root) must and does still redden this line. */
-      if(m.over.over>0.5&&!/\sIPAD\s/.test(cur)){await b.settle(250);const m2=await b.metrics();const still=(await CAP(b))===cur&&m2.over.over>0.5;
-        if(still)scrolled.push({cap:cur.slice(0,34),over:m.over.over,again:m2.over.over});
-        else L.note('      '+lab+' card "'+cur.slice(0,34)+'": over '+m.over.over+' at one sample, '+m2.over.over+' 250ms later - a layout-in-progress frame, not counted (see the #552 note above this line)');}
+      /* #552 (batch 13, run 3) reddened here on a 2px Review-entry frame; #553 moved the verdict to the frame recorder (see ovEpisodes).
+         What a sample does now is CHECK THE RECORDER: when the recorder's value has been steady for 200ms, it must equal b.over()'s. */
+      {const rr=await OVREAD(b);if(rr&&rr.cur!==null&&rr.steadyMs>=200){ovCompared++;if(Math.abs(rr.cur-m.over.over)>0.6)ovDisagree.push({cap:cur.slice(0,34),rec:rr.cur,harness:m.over.over});}}
       const pf=await PAGEFIX(b);
       if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
         pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
@@ -555,6 +646,20 @@ L.run(async()=>{
     const w=walkOk(seen,N);
     L.say(w.ok,lab+': every one of the '+N+' gallery cards was reached, in order ('+seen.length+' captions'+
       (w.ok?', card numbers '+w.ns.join(',')+')':') - '+w.why),w.ok?undefined:seen.map(c=>c.slice(0,44)));
+    /* #553: the verdict, from every frame of the walk. IPAD is a walk across screens that may scroll (see above) and is excused as before. */
+    const ovR=recOn?await b.page.evaluate(()=>({ev:(window.__g15ov||{}).ev||[],frames:(window.__g15ov||{}).frames||{},now:Math.round(performance.now())})):{ev:[],frames:{},now:0};
+    const eps=ovEpisodes(ovR.ev,ovR.now,OV_WIN,OV_HOLD);
+    for(const e of eps){
+      const tag='      '+lab+' card "'+String(e.cap||'').slice(0,34)+'": over '+e.peak+' from '+e.onset+'ms';
+      if(/\sIPAD\s/.test(String(e.cap||''))){L.note(tag+' - IPAD walks screens that may scroll, excused (not counted)');continue;}
+      if(e.persists)scrolled.push({cap:String(e.cap||'').slice(0,34),over:e.peak,onset:e.onset,why:e.why});
+      else L.note(tag+', cleared in '+e.ms+'ms and held - a layout-in-progress frame of the fit loop, not counted (#553, ovEpisodes)');
+    }
+    const capsNoFrames=seen.filter(c=>!/RECORDING COMPLETE/i.test(c)&&!(ovR.frames[c]>0));
+    L.say(recOn&&capsNoFrames.length===0&&Object.keys(ovR.frames).length>0,lab+': the frame recorder ran under every caption of the walk ('+
+      Object.values(ovR.frames).reduce((a,v)=>a+v,0)+' frames, '+ovR.ev.length+' changes, '+eps.length+' over-episodes) - the verdict below is over every painted frame, not a sample',
+      {recOn,capsNoFrames:capsNoFrames.map(c=>c.slice(0,34))});
+    L.say(ovCompared>=Math.max(1,N)&&ovDisagree.length===0,lab+': the recorder reads the same overflow as the harness\'s own b.over() at every steady sample ('+ovCompared+' compared, '+ovDisagree.length+' disagreed)',ovDisagree.slice(0,3));
     L.say(scrolled.length===0,lab+': no card leaves the page scrolling',scrolled.slice(0,3));
     // expected vacuous by design and kept as a tripwire for the design changing: index.html says #root is the
     // app's scroller and "the page never does", so docScroll is 0 on every screen (CLAUDE.md, two false P0s).
@@ -641,6 +746,7 @@ L.run(async()=>{
     await b.close();
   }
 
+  if(process.env.CT_G15_ONLY==='WALK'){L.note('CT_G15_ONLY=WALK: the units and the Play-all walk only - blocks S, F, M and HM skipped (a subset; never a push gate)');return;}   // #553: the pairs file's scope
   /* #451 BLOCK S: THE DENSE BOARD SAMPLER, MOVED ONTO THE FIXTURE CARDS RATHER THAN DELETED WITH THE QUEUE.
      THIS EXISTS BECAUSE ANTAGONIST A MEASURED WHAT MY CHANGE COST AND IT WAS MORE THAN I HAD NOTICED.
      Before #451 the walk above drove eight board screens, and the loop sampled the board every ~700ms against a
