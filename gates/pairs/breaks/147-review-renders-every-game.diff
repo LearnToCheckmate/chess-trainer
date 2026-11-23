@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index d0080f5f..d7c9d4dc 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13356,5 +13356,5 @@ function AppMain(){
+                   Import box already has) the card's padding above and below is 8 and its rows are 4 apart, so the fixed page's games box
+                   (about 120px at 320x568) still holds one whole game with the next one starting (gate 164, TC-INV-08w). */}
+-              {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const _k=gkey(g);const st=gameStatsRef.current[_k];
++              {_shown.map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const _k=gkey(g);const st=gameStatsRef.current[_k];
+                 const _lv=revLevel(gDepth[_k]);const _nar=vp.w<360;const _tight=_nar&&(g.acct||'').length>20;   /* a 21 to 25 character account on a 320 wide phone: the opponent keeps 1.6em and its brilliant mark is left out, so the account is still whole (measured: 25 characters are about 213 of the row's 272px) */const _sht=!wide&&vp.h<700;const _dt=g.date?new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';const _split=!!st&&st.best!=null&&st.grt!=null;const _mut='rgba(255,255,255,.6)';
+                 const _mv=[['bril','!!','#7be9f7','34,211,238',st?(st.bril||0):null,'brilliant'],['best','★','#7fdc7f','111,214,111',_split?st.best:null,'best'],['great','!','#8fb6f2','93,147,232',_split?st.grt:null,'great'],['blun','??','#f28b80','236,92,78',st?(st.blun||0):null,'blunders']];

@@ -10,12 +10,31 @@
 // version 1 each, one unrelated eval-cache entry (so the cache is NOT empty and the regrade scan does run), 60 playable drill cards (generated
 // puzzle positions read from chess.jsx's own PZGEN_RAW, each marked re-graded so the Home pass leaves them) and 12 brilliant moves. Timing is
 // read in the page: tap to the thing on screen, and the longest main-thread task (PerformanceObserver 'longtask') in that window.
-// WHAT IT ASSERTS: (a) Review list on screen within 1000 ms of the tap and no single task over 500 ms for 3 s after; (b) the drill opens
-// within 1000 ms; (c) Next card under 100 ms median of 5 (the job's bar); (d) Home mounted within 2000 ms of navigation.
+// WHAT IT ASSERTS SINCE #553 [batch 14, jobs/gate-147-speed-is-red-at-its-limits-on-both-builds-make-it-compare-new-against-old-2026-11-21]:
+// NEW AGAINST OLD, NOT AGAINST A FIXED LIMIT. The bundle under test and origin/main's app.js are timed in one process, interleaved
+// (one warm-up each, discarded, then N=5 blocks alternating new-old / old-new), and each of (a) the Review list on screen after the tap,
+// (a) the longest task in the 3 s after, (b) the drill open, (c) Next card (median of 5 per session) and (d) Home up after navigation is
+// red only when the new is CLEARLY slower: the median paired difference above a floor AND the median ratio above a ratio (RULE below),
+// or the new above an absolute catastrophe ceiling, or any reading 0. CT_G147_GEO picks the geometry (default kunal761; se is 320x568),
+// CT_G147_N the blocks, CT_G147_REF a reference bundle path, CT_G147_SELF=1 the bundle against itself.
+// WHY: at #552 the fixed limits below sat at the edge on BOTH builds (552c and 552f: Home 2030 new / 2073 old at 2000, the longest task
+// 557 at 500, Next 111 at 100), so a red measured the machine's load, not the build.
+// CALIBRATION, MEASURED #553 on this container (4 cores, other seats running, load 1.6 to 4.1), the same trial bundle against itself
+// (CT_G147_SELF=1) three times at kunal761, N=5: ratios Home 1.04/0.95/1.03, Review list 1.05/1.08/0.93, longest task 1.10/1.01/0.85,
+// drill 0.93/1.27/0.91, Next 1.02/0.94/1.07; paired median diffs within -105..+120 (Home), -76..-5 (Review), -62..+28 (longest), -47..+69
+// (drill), +1..+6 (Next). Each floor is about twice the worst self diff and each ratio sits above the worst self ratio, so noise alone
+// does not cross both, and a regression of about 250-400 ms at 4x does. THAT IS THE RESOLUTION, MEASURED: a 4e7-sqrt busy loop on every
+// Review list render added +370 ms (ratio 1.58) at kunal761 and was red, and +206 ms (ratio 1.44) at 320x568 and was NOT; the pairs break
+// is therefore 6e7. A slowdown under about 250 ms at 4x on the Review list is below what this container can tell from noise.
+// RETIRED, NOT DELETED (the job's close condition (4)): the absolute limits Home <= 2000, Review list <= 1000, longest task <= 500, drill
+// <= 1000 and Next <= 100 below are history; they now survive only as the catastrophe ceilings 8000/5000/5000/5000/1000.
 // THE BARS ARE CALIBRATED ON THIS INSTRUMENT, NOT COPIED FROM THE CHECKER'S (CLAUDE.md, 'a threshold belongs to the instrument'): this gate's
 // stopwatch polls the DOM from node, so it reads main's own #549 bundle (3ab724514641) at Home 1623 ms, Review list 571 ms (longest task 322)
 // and drill 516 ms on this container - the checker's 0.3-0.8 s / 0.5 s / 0.42 s on its profile. Each bar sits above main's reading here and
 // far below the regression's.
+// CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=2 scope=trial:79e1785572ca how=#553 pairs break busy-loop-on-review-list (6e7 sqrt on every Review list render), counted at kunal761 (320x568 in the same try also 2 red): both TC-R223a lines red (Review 1182 vs 696 ms, longest 912 vs 367 at 375); the real code 8/0 at each size in the same pairs run
+// CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=1 scope=trial:53e85603be2a how=#553 pairs break busy-loop-at-home-start (8e7 sqrt once at app mount), counted at kunal761: TC-R223d red (also red at 320x568) (Home 2354 vs 1755 ms at 375, 2367 vs 1717 at 320)
+// CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=2 scope=trial:3f08597bec3e how=#553 pairs break review-renders-every-game (the games list loses its paging, 465 rows), counted at kunal761: both TC-R223a lines red; at 320x568 the Review list red and the longest task green (701 vs 402, diff 207 under the 250 floor)
 // CONTROL-RECORD: c8fd052 2026-11-15 total=8 red=2 scope=trial:ad820f8bdd63 how=#550 lead: the bundle before 90866c7 (q45's games box re-rendering the app), measured in three sessions - both TC-R223a lines red on their medians (Review list 1094 ms, longest task 984), Home green
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=7 red=4 scope=trial:fb5726af how=#550 the tree before the SPD fixes (t152): Home 3422 ms (TC-R223d), a 60307 ms task after entering Review (TC-R223a), the drill 2566 ms (TC-R223b), Next 1165 ms median (TC-R223c); on t153 7f6c50f2: Home 1864, Review 764 (longest task 443), drill 598, Next 53 - 7/0
 // LOAD SENSITIVITY, MEASURED: with two other gate runs on the machine (load average 6) the same two bundles read Home at 2090-2330 ms in
@@ -36,44 +55,79 @@ function seed(){
   return {ct_accts:['cc:kunal2023'],ct_acctgames:{'cc:kunal2023':games},ct_gamestats:stats,ct_evalcache:{'h-unrelated':{a:[]}},ct_mymistakes:cards,ct_mybrilliancies:brils,ct_bril_reset_v1:'1',ct_pool:'3'};
 }
 const watch=(b)=>b.page.evaluate(()=>{window.__lt=0;try{new PerformanceObserver(l=>{for(const e of l.getEntries())window.__lt=Math.max(window.__lt,e.duration);}).observe({type:'longtask'});}catch(e){}});
-L.run(async()=>{
-  const S=seed();
-  L.say(S.ct_mymistakes.length===60&&S.ct_acctgames['cc:kunal2023'].length===465,'TC-R223 PRECONDITION his data shape is seeded: 465 stored games of grade version 1, 60 playable drill cards, 12 brilliant moves ('+S.ct_mymistakes.length+' cards)',{cards:S.ct_mymistakes.length});
-  /* #550 lead, the landing's second final suite: on this container one sample of Home and of the Review list's longest task swings by
-     about 200 ms on the same bundle (measured alone: Home 1824 to 2137, longest 357 to 656), so a single reading near the line is a coin
-     flip. Home and the Review list are now measured in THREE fresh sessions and the MEDIAN is asserted; the limits are unchanged. The
-     control is the bundle before 90866c7 (ad820f8bdd63, longest 819 to 1001 on every reading), which the median still fails. */
-  const H=[],RV=[],LT=[];let b=null;
-  for(let run=0;run<3;run++){
-    if(b)await b.close();
-    b=await L.launch({geo:'kunal761',name:'speed147-'+run,store:S});
+// THE REFERENCE BUNDLE: origin/main's app.js (git show), or CT_G147_REF=<path>; CT_G147_SELF=1 times the bundle under test against
+// ITSELF (the control that must stay green). A reference that cannot be had is a red, never a quiet pass at absolute limits.
+function refBundle(){
+  if(process.env.CT_G147_SELF==='1')return {path:path.resolve(process.env.CT_APP||path.join(L.ROOT,'app.js')),how:'the bundle under test itself (CT_G147_SELF=1)'};
+  if(process.env.CT_G147_REF)return {path:path.resolve(process.env.CT_G147_REF),how:'CT_G147_REF'};
+  try{const buf=require('child_process').execFileSync('git',['show','origin/main:app.js'],{cwd:L.ROOT,maxBuffer:64<<20});
+    const f=path.join(require('os').tmpdir(),'ct147-ref-'+process.pid+'.js');fs.writeFileSync(f,buf);return {path:f,how:'git show origin/main:app.js',tmp:true};}
+  catch(e){return {path:null,how:'git show origin/main:app.js FAILED: '+String(e.message||e).split('\n')[0]};}
+}
+const md5=(f)=>require('crypto').createHash('md5').update(fs.readFileSync(f)).digest('hex').slice(0,12);
+const median=(a)=>{const x=a.slice().sort((p,q)=>p-q);if(!x.length)return 0;const m=x.length>>1;return x.length%2?x[m]:Math.round((x[m-1]+x[m])/2);};
+// ONE SESSION: a fresh browser on one bundle, CPU 4x, his data; Home, the Review list and its longest task, the drill, Next card x5.
+async function session(app,geo,S,name){
+  const b=await L.launch({geo,name,store:S,app});
+  try{
     const cdp=await b.page.context().newCDPSession(b.page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
     const tNav=Date.now();await b.open();
-    let home=0;for(let i=0;i<120;i++){const ok=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0));if(ok){home=Date.now()-tNav;break;}await b.page.waitForTimeout(50);}
+    let home=0;for(let i=0;i<240;i++){const ok=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0));if(ok){home=Date.now()-tNav;break;}await b.page.waitForTimeout(50);}
     await b.settle(1500);
     await watch(b);
-    const tR=Date.now();await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0);let x=e;while(x&&x.tagName!=='BUTTON')x=x.parentElement;(x||e).click();});
-    let rv=0;for(let i=0;i<400;i++){const ok=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length>0);if(ok){rv=Date.now()-tR;break;}await b.page.waitForTimeout(25);}
-    await b.page.waitForTimeout(3000);const ltR=await b.page.evaluate(()=>Math.round(window.__lt||0));
-    H.push(home);RV.push(rv);LT.push(ltR);
-    L.note('session '+(run+1)+' of 3: Home '+home+' ms, Review list '+rv+' ms, longest task '+ltR+' ms (4x)');
+    const tR=Date.now();await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0);let x=e;while(x&&x.tagName!=='BUTTON')x=x.parentElement;if(x||e)(x||e).click();});
+    let rv=0;for(let i=0;i<800;i++){const ok=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length>0);if(ok){rv=Date.now()-tR;break;}await b.page.waitForTimeout(25);}
+    await b.page.waitForTimeout(3000);const lt=await b.page.evaluate(()=>Math.round(window.__lt||0));
+    await watch(b);
+    const tD=Date.now();let okD=true;try{await b.tapText(/find the move you missed/,{wait:0});}catch(e){okD=false;}
+    let dr=0;for(let i=0;i<800&&okD;i++){const ok=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-top"]')&&/you played/.test(document.querySelector('[data-ct="pz-top"]').innerText));if(ok){dr=Date.now()-tD;break;}await b.page.waitForTimeout(25);}
+    const nx=[];for(let k=0;k<5&&dr>0;k++){const before=await b.page.evaluate(()=>(document.querySelector('[data-ct="drill-counter"]')||{}).innerText||'');const t=Date.now();
+      await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Next/.test(e.getAttribute('aria-label')||e.innerText||'')&&e.getBoundingClientRect().width>0&&!e.disabled);if(x)x.click();});
+      let d=0;for(let i=0;i<400;i++){const now=await b.page.evaluate(()=>(document.querySelector('[data-ct="drill-counter"]')||{}).innerText||'');if(now&&now!==before){d=Date.now()-t;break;}await b.page.waitForTimeout(10);}nx.push(d);}
+    const nxm=(nx.length===5&&nx.every(x=>x>0))?median(nx):0;
+    return {home,rv,lt,dr,nx:nxm,errs:b.errs.slice(0,3)};
+  }finally{await b.close();}
+}
+// THE RULE [batch 14, jobs/gate-147-speed-is-red-at-its-limits-on-both-builds-make-it-compare-new-against-old-2026-11-21; Kunal, 21 Nov
+// 2026: "make test 147 trustworthy first in batch 14" - the new and old builds timed side by side, red only when the new is clearly
+// slower]. The bundle under test (NEW) and the reference (OLD, origin/main's app.js) are measured in ONE process, in N blocks of one
+// session each, the order alternating new-old / old-new so a machine that slows down over the run slows both. A line is red only when
+// BOTH (i) the median of the N paired differences (new minus old, each pair adjacent in time) is above the floor, AND (ii) the new
+// median is above the old median by the ratio. Floors and ratios come from the SAME-BUNDLE spread measured here (CT_G147_SELF=1; see
+// CALIBRATION in the header). A CEILING per line stays as the catastrophe bar (the ~83 s Review freeze class), far above any honest
+// reading. A reading of 0 (the thing never appeared) on either bundle is red: a missing denominator is never credited.
+const RULE={
+  home:{id:'TC-R223d',what:'Home is up after navigation',floor:400,ratio:1.25,ceil:8000},
+  rv:{id:'TC-R223a',what:'the Review list is on screen after the tap',floor:250,ratio:1.30,ceil:5000},
+  lt:{id:'TC-R223a',what:'the longest single task in the 3 s after the Review tap',floor:250,ratio:1.40,ceil:5000},
+  dr:{id:'TC-R223b',what:'the drill opens after the tap',floor:250,ratio:1.30,ceil:5000},
+  nx:{id:'TC-R223c',what:'Next card answers (median of 5 per session)',floor:60,ratio:1.60,ceil:1000},
+};
+L.run(async()=>{
+  const S=seed();
+  const GEO=process.env.CT_G147_GEO||'kunal761';const N=Math.max(3,parseInt(process.env.CT_G147_N||'5',10)||5);
+  const lab=(L.GEOS[GEO]||{}).label||GEO;
+  L.say(S.ct_mymistakes.length===60&&S.ct_acctgames['cc:kunal2023'].length===465,'TC-R223 PRECONDITION his data shape is seeded: 465 stored games of grade version 1, 60 playable drill cards, 12 brilliant moves ('+S.ct_mymistakes.length+' cards)',{cards:S.ct_mymistakes.length});
+  const NEWP=path.resolve(process.env.CT_APP||path.join(L.ROOT,'app.js'));const REF=refBundle();const refOk=!!REF.path&&fs.existsSync(REF.path);
+  L.say(refOk,'TC-R223 PRECONDITION a reference bundle to time against: '+REF.how+(refOk?' md5 '+md5(REF.path):''),{new:fs.existsSync(NEWP)?md5(NEWP):null});
+  if(!refOk)return;
+  L.note('NEW '+NEWP+' md5 '+md5(NEWP)+'  against OLD md5 '+md5(REF.path)+' ('+REF.how+'), '+lab+', '+N+' blocks, CPU 4x');
+  // one warm-up session per bundle, discarded: the first browser of a process pays cold caches the later ones do not
+  for(const [tag,app] of [['old',REF.path],['new',NEWP]]){const w=await session(app,GEO,S,'speed147-warm-'+tag);L.note('warm-up '+tag+' (discarded): '+JSON.stringify(w));}
+  const A={new:[],old:[]};const errs=[];
+  for(let i=0;i<N;i++){
+    const order=i%2===0?['new','old']:['old','new'];
+    for(const tag of order){const r=await session(tag==='new'?NEWP:REF.path,GEO,S,'speed147-'+tag+'-'+i);A[tag].push(r);if(tag==='new')errs.push(...r.errs);
+      L.note('block '+(i+1)+' of '+N+' '+tag+': Home '+r.home+' ms, Review list '+r.rv+' ms, longest task '+r.lt+' ms, drill '+r.dr+' ms, Next '+r.nx+' ms (4x)');}
   }
-  const mid=(a)=>a.slice().sort((x,y)=>x-y)[1];
-  const home=mid(H),rv=mid(RV),ltR=mid(LT);
-  L.say(H.every(x=>x>0)&&home<=2000,'TC-R223d Home is up within 2000 ms with his data at 4x (median of 3: '+home+' ms; '+H.join(', ')+'; it was 2.9 s, main 0.3 to 0.8 s)',H);
-  L.say(RV.every(x=>x>0)&&rv<=1000,'TC-R223a the Review list is on screen within 1000 ms of the tap at 4x (median of 3: '+rv+' ms; '+RV.join(', ')+'; it was ~83 s)',RV);
-  L.say(RV.every(x=>x>0)&&ltR<=500,'TC-R223a and no single task blocks the page for more than 500 ms in the 3 s after (median of 3: longest '+ltR+' ms; '+LT.join(', ')+')',LT);
-  // (b) the drill
-  await watch(b);
-  const tD=Date.now();let okD=true;try{await b.tapText(/find the move you missed/,{wait:0});}catch(e){okD=false;}
-  let dr=0;for(let i=0;i<400&&okD;i++){const ok=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-top"]')&&/you played/.test(document.querySelector('[data-ct="pz-top"]').innerText));if(ok){dr=Date.now()-tD;break;}await b.page.waitForTimeout(25);}
-  L.say(dr>0&&dr<=1000,'TC-R223b the drill opens within 1000 ms at 4x ('+dr+' ms; it was 4.8 s, main 0.42 s)',dr);
-  // (c) Next card x5
-  const nx=[];for(let k=0;k<5&&dr>0;k++){const before=await b.page.evaluate(()=>(document.querySelector('[data-ct="drill-counter"]')||{}).innerText||'');const t=Date.now();
-    await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Next/.test(e.getAttribute('aria-label')||e.innerText||'')&&e.getBoundingClientRect().width>0&&!e.disabled);if(x)x.click();});
-    let d=0;for(let i=0;i<200;i++){const now=await b.page.evaluate(()=>(document.querySelector('[data-ct="drill-counter"]')||{}).innerText||'');if(now&&now!==before){d=Date.now()-t;break;}await b.page.waitForTimeout(10);}nx.push(d);}
-  const med=nx.slice().sort((a,c)=>a-c)[2];
-  L.say(nx.length===5&&nx.every(x=>x>0)&&med<=100,'TC-R223c Next card answers in under 100 ms (median of 5 at 4x: '+med+' ms; '+nx.join(', ')+'; it was 2.0 s, main 0.06 s)',nx);
-  L.say(b.errs.length===0,'TC-R223 zero app errors',b.errs.slice(0,3));await b.close();
+  if(REF.tmp)try{fs.unlinkSync(REF.path);}catch(e){}
+  const vs=REF.how.startsWith('git')?'main':'the reference';
+  for(const k of Object.keys(RULE)){const R=RULE[k];
+    const nv=A.new.map(r=>r[k]),ov=A.old.map(r=>r[k]);const allN=nv.every(v=>v>0),allO=ov.every(v=>v>0);
+    const mn=median(nv),mo=median(ov);const dmed=median(nv.map((v,i)=>v-ov[i]));const ratio=mo>0?mn/mo:0;
+    const slower=dmed>R.floor&&ratio>R.ratio;
+    L.say(allN&&allO&&!slower&&mn<=R.ceil,R.id+' '+lab+': '+R.what+' is not clearly slower than '+vs+' at 4x (new median '+mn+' ms vs old '+mo+' ms, ratio '+ratio.toFixed(2)+', paired median diff '+dmed+' ms; red when the diff > '+R.floor+' ms AND the ratio > '+R.ratio+', or new > '+R.ceil+' ms, or any reading 0; new '+nv.join(',')+' / old '+ov.join(',')+')',{k,new:nv,old:ov,ratio:+ratio.toFixed(3),dmed});
+  }
+  L.say(errs.length===0,'TC-R223 '+lab+' zero app errors on the bundle under test',errs.slice(0,3));
 },'147-speed-with-his-data');
 // SELECTOR-OPENED: drill-counter reading=presence round 2: a renamed hook never changes, so the time is 0 and TC-R223c is red

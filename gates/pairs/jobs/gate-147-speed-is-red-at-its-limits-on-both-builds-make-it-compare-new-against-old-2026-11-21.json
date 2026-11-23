@@ -1,0 +1,17 @@
+{
+ "job": "gate-147-speed-is-red-at-its-limits-on-both-builds-make-it-compare-new-against-old-2026-11-21",
+ "about": "Gate 147 (speed with his data) times the bundle under test against origin/main's app.js in one process, interleaved, 5 blocks each at CPU 4x, and reds a line only when the new is clearly slower (median paired diff above a floor AND median ratio above a ratio) or past a catastrophe ceiling. Graded: the five TC-R223a..d comparison lines and the zero-errors line, at 375x761 (kunal761) and 320x568 (se), about 2 minutes a try per size. Breaks: the Review list renders every game instead of a page; a busy loop on every Review list render; a busy loop at app start (Home). NOT COVERED: a slowdown smaller than about 250 ms at 4x (the gate's measured resolution on this container), and his real phone.",
+ "gate": "gates/regress/147-speed-with-his-data.js",
+ "checks": ["^TC-R223[a-d] ", "^TC-R223 .* zero app errors"],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "env": {"CT_G147_GEO": "kunal761"}},
+  {"name": "se 320x568", "env": {"CT_G147_GEO": "se"}}
+ ],
+ "breaks": [
+  {"name": "review-renders-every-game", "patch": "breaks/147-review-renders-every-game.diff", "why": "the games list loses its paging and renders all 465 games when Review opens (a second, full render of the list)", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "busy-loop-on-review-list", "patch": "breaks/147-busy-loop-on-review-list.diff", "why": "a fixed busy loop (6e7 sqrt, about +350-500 ms at 4x) runs on every render of the Review games list", "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "busy-loop-at-home-start", "patch": "breaks/147-busy-loop-at-home-start.diff", "why": "a fixed busy loop (8e7 sqrt) runs once as the app mounts, so Home is late", "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 900
+}
