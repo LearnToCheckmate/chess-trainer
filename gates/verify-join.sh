@@ -12,8 +12,9 @@
 #   - every mark names the same bundle, HEAD, tree and state (tree, status and environment-with-toolchain digests)
 #     (two parts with different hashes are refused), the bundle begins with the header's md5 and the HEAD is the ref
 #     line's (another bundle or tree than the log says it gated);
-#   - every 'toolchain: playwright' line the gates printed is one and the same line [review 1b]: a join across a
-#     node, Playwright or Chromium change is refused even where gates.sh's footer reads only the first such line;
+#   - every 'toolchain: playwright' line the gates printed INSIDE THEIR SECTIONS is one and the same line [review 1b]: a
+#     join across a node, Playwright or Chromium change is refused even where gates.sh's footer reads only the first
+#     such line (the footer's own 'instrument: toolchain:' line is not a gate's and is not counted [b14]);
 #   - each section's body md5 is its mark's (edited after it was written, or pasted from elsewhere);
 #   - exactly one `resume:` footer line, agreeing with the marks: same hashes, and its parts are the marks' run stems as
 #     contiguous blocks in order.
@@ -39,8 +40,14 @@ read -r -a RNAMES <<<"$(sed -E 's/^gates ran \([0-9]+\): *//' <<<"$ROSTER")"
 NRES="$(grep -cE '^resume: [0-9]+ part\(s\): ' "$LOG")"; NMARK="$(grep -c '^    resume-mark: ' "$LOG")"
 [ "$NRES" = 1 ] || no "it carries $NRES 'resume:' footer line(s); a resumable run writes exactly one."
 [ "$NMARK" -ge 1 ] || no "it carries a 'resume:' line and no gate marks, so no section can be traced to a run."
-NTC="$(grep -a 'toolchain: playwright' "$LOG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | LC_ALL=C sort -u | grep -c .)"
-[ "$NTC" -le 1 ] || no "TWO TOOLCHAINS: its gate sections print $NTC different 'toolchain: playwright' lines, so its parts ran on different node, Playwright or Chromium builds." "$(grep -a 'toolchain: playwright' "$LOG" | sed 's/^[[:space:]]*//' | LC_ALL=C sort -u | tr '\n' ';')"
+# [b14] ONLY LINES INSIDE GATE SECTIONS ARE COUNTED (the same bounds as SECS below: from '=== name ===' to the next section,
+# '--- ' or the PASS-total footer). The suite footer's 'instrument: toolchain: playwright ...' line is the same toolchain
+# printed a second way, and every full suite writes it, so counting it refused every real joined log as TWO TOOLCHAINS
+# (claude/agents/gatelogs/552f-all-job25-resumed-RED-147-only.log; jobs/verify-join-counts-the-suite-footer-as-a-second-
+# toolchain-and-refuses-every-real-joined-log-2026-11-22). Two different lines printed by the gates are still refused.
+TCL="$(awk '/^=== .* ===$/{s=1; next} /^--- / || /^regression assertions \(PASS lines\)/{s=0; next} s && /toolchain: playwright/' "$LOG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | LC_ALL=C sort -u)"
+NTC="$(grep -c . <<<"$TCL")"
+[ "$NTC" -le 1 ] || no "TWO TOOLCHAINS: its gate sections print $NTC different 'toolchain: playwright' lines, so its parts ran on different node, Playwright or Chromium builds." "$(tr '\n' ';' <<<"$TCL")"
 
 # one row per section: name, first line, last line, marks inside, line of the last mark, that mark's text
 SECS="$(awk '

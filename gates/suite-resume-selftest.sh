@@ -332,6 +332,25 @@ join "$VS/logs/tc-same.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$STATE0" "$TCA" "$TCA
 eqc "TC-R241c19 a join whose every section prints the same toolchain line is accepted" "$(vl "$VS/gates/verify-log.sh" "$VS/logs/tc-same.log" --ignore-fc)" 0
 join "$VS/logs/b-tc.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$STATE0" "$TCA" "$TCB"
 judge TC-R241c20 "a join whose second part printed ANOTHER TOOLCHAIN line (gates.sh's footer reads only the first) [review 1b]" "$VS/logs/b-tc.log" "TWO TOOLCHAINS" accepts --ignore-fc
+# [b14; jobs/verify-join-counts-the-suite-footer-as-a-second-toolchain-and-refuses-every-real-joined-log-2026-11-22] the
+# suite FOOTER's 'instrument: toolchain: playwright ...' line, taken verbatim from a real full suite's footer, is the same
+# toolchain printed a second way and is not a gate section's line; verify-join counted it and refused every real join.
+REALJ="$REPO/claude/agents/gatelogs/552f-all-job25-resumed-RED-147-only.log"
+FOOTIL="$(grep -a -m1 '^instrument: toolchain: playwright' "$REALJ")"
+eqc "TC-R241c23a the real footer line was read from the committed 552f log" "$([ -n "$FOOTIL" ] && echo 1 || echo 0)" 1
+addfoot(){ awk -v l="$FOOTIL" '{print} /^resume: [0-9]+ part\(s\): /{print l}' "$1" > "$2"; }
+addfoot "$VS/logs/tc-same.log" "$VS/logs/tc-same-foot.log"
+eqc "TC-R241c23 a join whose sections print one toolchain line and whose footer carries a REAL 'instrument: toolchain:' line is JOIN OK" \
+  "$(bash "$VJ" "$VS/logs/tc-same-foot.log" >"$TD/vj.out" 2>&1; echo $?) $(grep -c '^JOIN OK: 54 gate section(s)' "$TD/vj.out")" "0 1"
+addfoot "$VS/logs/b-tc.log" "$VS/logs/b-tc-foot.log"
+eqc "TC-R241c24 a join whose GATE lines name two toolchains is still refused with that footer, counting 2 (not 3)" \
+  "$(bash "$VJ" "$VS/logs/b-tc-foot.log" >"$TD/vj.out" 2>&1; echo $?) $(grep -c 'TWO TOOLCHAINS: its gate sections print 2 different' "$TD/vj.out")" "1 1"
+eqc "TC-R241c25 the real joined log 552f (552e killed at gate 46, resumed) is JOIN OK: 159 sections in 2 parts" \
+  "$(bash "$VJ" "$REALJ" >"$TD/vj.out" 2>&1; echo $?) $(grep -c '^JOIN OK: 159 gate section(s), each marked once and in roster order, in 2 part(s) (552e gates 1-111, 552f gates 112-159)' "$TD/vj.out")" "0 1"
+TCLN="$(grep -an 'toolchain: playwright' "$REALJ" | grep -v ':instrument: ' | sed -n '1s/:.*//p')"
+awk -v n="$TCLN" 'NR==n{sub(/chromium [0-9.]+/,"chromium 999.0.0.1")} {print}' "$REALJ" > "$VS/logs/b-real-tc.log"
+eqc "TC-R241c26 that real log with ONE gate's toolchain line changed to another Chromium is refused as TWO TOOLCHAINS" \
+  "$(bash "$VJ" "$VS/logs/b-real-tc.log" >"$TD/vj.out" 2>&1; echo $?) $(grep -c 'TWO TOOLCHAINS: its gate sections print 2 different' "$TD/vj.out")" "1 1"
 join "$VS/logs/b-state.log" 20 "$BFULL" "$RHEAD" "$BFULL" "$(printf 'x' | sha1sum | cut -c1-16).$(printf 't' | md5sum | cut -c1-32).$(printf 'e' | md5sum | cut -c1-32)"
 judge TC-R241c21 "a join whose second part ran in another tree state (same bundle, HEAD, tree sha) [review 1e]" "$VS/logs/b-state.log" "ran in state" accepts
 awk 'NR==2{print "suite-resume: RESUMING from /selftest/j.tsv (md5 0): 3 of 54 gates finished there"} {print}' "$GOOD" > "$VS/logs/b-sronly.log"
