@@ -499,6 +499,18 @@ async function launch(opts={}){
     }catch(e){}},opts.engineFail);
   }
   const page=await ctx.newPage();
+  // ── REAL INSETS [batch 14, jobs/short-upright-boards-sized-to-height-2026-11-12]. ct_safe (the 'safe' of a geo) hands the app the
+  // NUMBERS 51/31 and pads nothing: env(safe-area-inset-*) stays 0 in headless Chromium, so every padding the app writes with env()
+  // is missing and the app is told (safeFake) to count the whole height as room. opts.realInsets '<top>,<bottom>' instead makes
+  // Chromium itself report those insets to env() (CDP Emulation.setSafeAreaInsetsOverride, set before the first navigation and kept
+  // across reloads), so the page pads exactly as his phone does and the app measures them the way it does on the phone. Use it
+  // WITHOUT a geo 'safe'. HOME_SCREEN_APP below is his phone in the Home Screen app, the whole recipe. MEASURED: a probe div of
+  // height env(safe-area-inset-top) reads 51 and one of env(safe-area-inset-bottom) reads 31.
+  if(opts.realInsets){const [it,ib]=String(opts.realInsets).split(',').map(Number);
+    if(!(it>=0&&ib>=0))throw new Error('L.launch: realInsets must be "<top>,<bottom>", not '+JSON.stringify(opts.realInsets));
+    if(geo.safe)throw new Error('L.launch: realInsets with a geo that also sets ct_safe ('+geo.safe+') would count the insets twice');
+    const cdp=await ctx.newCDPSession(page);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:it,bottom:ib,left:0,right:0}});
+    console.log('     realInsets: env(safe-area-inset-top/bottom) = '+it+'/'+ib+' (Chromium reports them; the page pads as on a phone)');}
   const errs=[],noise=[];
   page.on('console',m=>{if(m.type()==='error'){const t=m.text();(NET_NOISE.test(t)?noise:errs).push(t.slice(0,300));}});
   page.on('pageerror',e=>errs.push('PAGEERROR '+String(e).slice(0,300)));
@@ -664,6 +676,7 @@ function coverageRecord(opts,geo){
   if(opts.realScale)c.push('realScale='+opts.realScale);
   if(opts.network)c.push('network');
   if(opts.screen)c.push('screen='+opts.screen.w+'x'+opts.screen.h);
+  if(opts.realInsets)c.push('realInsets='+opts.realInsets);
   const sk=Object.keys(opts.store||{}).sort();if(sk.length)c.push('store='+sk.join('+'));
   const cs=c.length?c.join('+'):'default';
   if(!_cov.geos.includes(g))_cov.geos.push(g);
@@ -792,4 +805,9 @@ async function acctGames(page){
     }catch(e){fin(null);}
   }));
 }
-module.exports={coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
+// HIS PHONE IN THE HOME SCREEN APP, AS IT REALLY LAYS OUT [batch 14]: iOS reports a 375x761 LAYOUT viewport on the 375x812 screen,
+// index.html's shell (ct_fullh stands in for navigator.standalone, which Chromium never sets) sizes html and body to the 812 it
+// paints (window.__ctFullH), and env() reports the insets 51 above and 31 below. kunal761 (375x761 with ct_safe) is none of those
+// three. Spread it into a launch: L.launch(Object.assign({},L.HOME_SCREEN_APP,{store:Object.assign({},L.HOME_SCREEN_APP.store,mine)})).
+const HOME_SCREEN_APP={geo:{w:375,h:761,safe:'',label:'375x812 Home Screen app: 761 layout viewport, the 812 shell, real insets 51/31'},screen:{w:375,h:812},realInsets:'51,31',store:{ct_fullh:'1'}};
+module.exports={HOME_SCREEN_APP,coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};

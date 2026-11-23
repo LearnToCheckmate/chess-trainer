@@ -1,0 +1,9 @@
+--- a/index.html
++++ b/index.html
+@@ -104,5 +104,5 @@
+           on=standalone()&&W<H&&gap>0&&gap<120&&Math.abs(gap-t)<=2;
+         }catch(e){on=false;}
+-        if(on){d.style.setProperty('--ct-full-h',full+'px');d.classList.add('ct-fullh');window.__ctFullH=full;}
++        if(on){d.style.setProperty('--ct-full-h',full+'px');d.classList.add('ct-fullh');window.__ctFullH=0;}
+         else{d.classList.remove('ct-fullh');d.style.removeProperty('--ct-full-h');window.__ctFullH=0;}
+       }

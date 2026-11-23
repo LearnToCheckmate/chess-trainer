@@ -7081,7 +7081,15 @@ function AppMain(){
       {const rc=rEl.querySelector('[data-ct="rev-compact"]');const rcs=rc&&getComputedStyle(rc);if(rc&&parseFloat(rcs.flexGrow)>0)absorbed+=Math.max(0,rc.getBoundingClientRect().height-(parseFloat(rcs.minHeight)||0));}
     }
     const padB=parseFloat(getComputedStyle(rEl).paddingBottom)||0;
-    const _o=bottom>0?(bottom-spacers-absorbed+padB-de.clientHeight):(de.scrollHeight-de.clientHeight);
+    /* batch 14, jobs/short-upright-boards-sized-to-height-2026-11-12 (Kunal, 22 Nov 2026, Version 552 in the Home Screen app: "The chess
+       board still isn't full size" - Review 330ish of 375 with about 100 empty under the explanation, Play full width): THE ROOM IS THE
+       SHELL'S HEIGHT, NOT THE LAYOUT VIEWPORT'S. Installed on his phone iOS reports a 375x761 layout viewport on a 375x812 screen, and
+       index.html's shell sizes html and body (so #root) to the 812 it paints (window.__ctFullH) - but documentElement.clientHeight is the
+       LAYOUT viewport whatever height html is given, so it read 761 and every Review laid out in the 812 shell read 51 over: the loop
+       trimmed the board 375 -> 343 and rev-compact took the room it gave up. Play was spared only because its bars and move list count
+       as absorbed slack. Measured with real env() insets (gate 184, L.HOME_SCREEN_APP): 343.03 before, 375.03 after; 269.03 -> 301.03 on a 320x568 phone with a 20 inset. */
+    const _vh=(window.__ctFullH>0)?window.__ctFullH:de.clientHeight;
+    const _o=bottom>0?(bottom-spacers-absorbed+padB-_vh):(de.scrollHeight-de.clientHeight);
     /* #550 US-R151 MOV-01 (docs/movement-check-2026-11-12, Kunal: "fix the cause"): LESS THAN ONE PIXEL IS NOT AN OVERFLOW. At a display
        scale other than 100% the root's 100dvh is fractional (1267.33 in a 1063x1267 window at 150%, 1510.4 in 1230x1510 at 125%) while
        clientHeight is the same viewport rounded (1267), so content that exactly fills the root read +0.33 over. The loop trimmed 16, fixr3e

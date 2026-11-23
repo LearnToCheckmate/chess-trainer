@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6867,5 +6867,5 @@
+     const short=vp.h<640;const C=(o)=>REV_ROWS+(o.head?REV_ROWS_HEAD:0)-(short?28:(o.bars32?REV_ROWS_BARS:0))-(3-o.lines)*REV_ROWS_LINE+(o.lines===1?3:0)-(o.tight?REV_ROWS_GAPS:0);   /* one line keeps 20, not 17: the engine line, which takes its place when switched on, is 20 tall, and 3px over the floor put it under the box's fade (and its explainer under the mask, gate 22 TC-R105 at 320x568) */
+     const order=[];if(vp.h>=700){order.push([F({head:true}),6],[F({head:true,lines:2}),6]);}
+-    order.push([F({}),2],[F({bars32:true}),2],[F({bars32:true,lines:2}),2],[F({bars32:true,lines:1}),2],[F({bars32:true,lines:1,tight:true}),2]);
++    order.push([F({}),2],[F({bars32:true}),2],[F({bars32:true,lines:2}),2],[F({bars32:true,lines:1}),2]);
+     for(const [o,m] of order){if(_revRoom-C(o)>=vw+m){o.rows=C(o);return o;}}
+     const last=order[order.length-1][0];last.rows=C(last);return last;},[revStream,vp.h,vw,_revRoom]);
