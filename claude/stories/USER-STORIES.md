@@ -2625,6 +2625,7 @@ As a player learning a pattern, every sentence on a Tactics or Strategy card is 
 - Each Strategy card's look line and text holds on its board: the bishops stand on both colours, the 7th-rank rook attacks a pawn only the king defends, the passed pawn really outruns the king on h8 and not a king on g8, the rook can invade down its open file without losing. (TC-R246c)
 - What I read and the board I see are the card's own, on both screens. (TC-R246d)
 - With the phone turned sideways, the line for a wrong try moves neither the board nor the buttons; a long line scrolls inside its own slot. (TC-R246e)
+- The line I read is the one the app's own rule for it (tacWrongLine) gives, and that rule is checked on every legal wrong move of every card, not only the ones a screen run happens to play: where my move allows a mate, the line names the mate before anything else. *(Batch 14, the job's remainder: the rule is in the engine extractor.)* (TC-R246f, TC-R246g)
 
 ### US-R173 With a developer switch on, I open a chess.com game that is still being played and its review grows as the moves arrive
 *Added in batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16 (Kunal, 16 Nov 2026: review chess.com games while they are being played, for commentary and coaching, "developed first and kept private, then he decides"). It is the one exception to US-R25's rule that a game in progress is never listed, and it exists only behind his developer tools.*

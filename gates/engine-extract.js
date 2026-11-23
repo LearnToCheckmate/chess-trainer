@@ -73,7 +73,9 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   // batch 13: the pure pieces of the scan steps (the grid of a scanned board, its problems, the FEN a game starts from), so gate 174 runs the shipped functions (no apostrophe here, gate 79 X1)
   'scanGridOf','scanPlacement','scanBoardProblem','scanFenFor','scanTurnProblem',
   // batch 13, Desk answers q7 and q9: the one place a quoted move loses its sign, and the summary bubble with the toughest-moment rule it shares with Coach s take, so gate 169 runs the shipped functions (no apostrophe here, gate 79 X1)
-  'rtSay','revMover','revToughI','revBubble'];
+  'rtSay','revMover','revToughI','revBubble',
+  // batch 14, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12: the line a wrong try on a Tactics card shows, so gate 175 TC-R246f runs the shipped function over every legal wrong move in node and TC-R246g holds the screen to it (no apostrophe here, gate 79 X1)
+  'tacWrongLine'];
 
 // #545 item (91), the part that stops this recurring: a STALE LIST IS A RED, NOT A SILENCE. For every exported block, any
 // identifier that is a top-level declaration of chess.jsx and is NOT in NAMES is a reference this module cannot satisfy,
