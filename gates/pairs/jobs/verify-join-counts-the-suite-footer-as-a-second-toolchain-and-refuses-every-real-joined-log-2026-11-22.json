@@ -1,0 +1,17 @@
+{
+ "job": "verify-join-counts-the-suite-footer-as-a-second-toolchain-and-refuses-every-real-joined-log-2026-11-22",
+ "about": "gates/verify-join.sh counts 'toolchain: playwright' lines only inside gate sections (from '=== name ===' to the next section, '--- ' or the PASS-total footer), so the suite footer's 'instrument: toolchain: ...' line, which every full suite writes, no longer refuses every real joined log as TWO TOOLCHAINS; two different lines printed by the gates are still refused. Graded by gates/suite-resume-selftest.sh (shell, no browser), its judge arms only: TC-R241c19/c20 (the synthetic same-toolchain and two-toolchain joins built from 474-integration-all.log), c23 (the same join with the REAL footer line from claude/agents/gatelogs/552f-all-job25-resumed-RED-147-only.log is JOIN OK), c24 (the two-toolchain join with that footer still refused, counting 2), c25 (the real joined log 552f, 552e killed at gate 46 and resumed, is JOIN OK at 159 sections in 2 parts) and c26 (that real log with one gate's toolchain line changed to another Chromium is refused). One situation, because no screen is driven. NOT COVERED: verify-log.sh's own verdict on 552f, which stays REFUSED on its GATES RED #552 footer, as it should.",
+ "gate": "gates/suite-resume-selftest.sh",
+ "cmd": ["bash", "gates/suite-resume-selftest.sh"],
+ "checks": ["TC-R241c(19|20|23a?|24|25|26)m? "],
+ "build": "never",
+ "situations": [
+  {"name": "the judge (verify-join.sh)", "match": "^TC-R241c"}
+ ],
+ "breaks": [
+  {"name": "counts-the-footer-again", "patch": "breaks/verify-join-counts-the-footer-again.diff", "why": "the toolchain count greps the whole log again, footer included - the defect itself, so the real 552f join is refused as TWO TOOLCHAINS", "mustFailIn": ["the judge (verify-join.sh)"]},
+  {"name": "section-never-closes-at-the-footer", "patch": "breaks/verify-join-section-never-closes-at-the-footer.diff", "why": "the section bounds no longer end at the PASS-total line, so the last section runs on into the footer and its instrument line is counted as a gate's", "mustFailIn": ["the judge (verify-join.sh)"]},
+  {"name": "toolchain-count-dropped", "patch": "breaks/verify-join-toolchain-count-dropped.diff", "why": "the over-correction: the TWO TOOLCHAINS refusal is switched off, so a join whose gates ran on two Chromium builds is accepted", "mustFailIn": ["the judge (verify-join.sh)"]}
+ ],
+ "timeoutSec": 600
+}

@@ -1,0 +1,9 @@
+--- a/gates/verify-join.sh
++++ b/gates/verify-join.sh
+@@ -46,5 +46,5 @@
+ # (claude/agents/gatelogs/552f-all-job25-resumed-RED-147-only.log; jobs/verify-join-counts-the-suite-footer-as-a-second-
+ # toolchain-and-refuses-every-real-joined-log-2026-11-22). Two different lines printed by the gates are still refused.
+-TCL="$(awk '/^=== .* ===$/{s=1; next} /^--- / || /^regression assertions \(PASS lines\)/{s=0; next} s && /toolchain: playwright/' "$LOG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | LC_ALL=C sort -u)"
++TCL="$(grep -a 'toolchain: playwright' "$LOG" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | LC_ALL=C sort -u)"
+ NTC="$(grep -c . <<<"$TCL")"
+ [ "$NTC" -le 1 ] || no "TWO TOOLCHAINS: its gate sections print $NTC different 'toolchain: playwright' lines, so its parts ran on different node, Playwright or Chromium builds." "$(tr '\n' ';' <<<"$TCL")"
