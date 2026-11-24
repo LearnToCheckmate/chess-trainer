@@ -1,0 +1,43 @@
+{
+ "job": "drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13",
+ "about": "Gate 202 (node, no browser) scans every capturing or checking reply to every wrong move over 40 library puzzles and four fixtures through the shipped replyWhy and asserts the capture is named before any fork / discovered / threat clause (S1), a checking reply with a side clause says check (S2), and every capture phrase names the piece really taken (S3), plus the checker's Rd2/Qxg5 position. NOT COVERED: the browser box fit (gate 124 TC-R211), the sentences' wording beyond order and facts, the missWhy side (the other job's file).",
+ "gate": "gates/regress/202-drill-reply-sentences-lead-with-capture.js",
+ "env": {},
+ "checks": [
+  "^TC-R30[234] "
+ ],
+ "build": "never",
+ "situations": [
+  {
+   "name": "node (chess.jsx scan)",
+   "match": "^TC-R30[234] "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "fork-before-capture",
+   "patch": "breaks/202-fork-before-capture.diff",
+   "why": "the fork and forking-check readings go back before the capture phrase: Qxg5 taking a knight reads 'allows Qxg5, a fork' again (the checker's GAP)",
+   "mustFailIn": [
+    "node (chess.jsx scan)"
+   ]
+  },
+  {
+   "name": "names-the-moving-piece",
+   "patch": "breaks/202-names-the-moving-piece.diff",
+   "why": "the capture phrase names the capturing piece instead of the captured one ('taking your queen' for a queen taking a knight)",
+   "mustFailIn": [
+    "node (chess.jsx scan)"
+   ]
+  },
+  {
+   "name": "forking-check-loses-its-check",
+   "patch": "breaks/202-forking-check-loses-its-check.diff",
+   "why": "a forking reply that gives check stops saying check, so a capture with check is described as a plain fork",
+   "mustFailIn": [
+    "node (chess.jsx scan)"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}

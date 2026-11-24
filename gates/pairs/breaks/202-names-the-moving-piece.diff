@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7095447a..72fbbcea 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1667,5 +1667,5 @@ function replyWhy(g2,r,sc,base){
+     let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
+       if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
+-      else if(cv>=3)capW='taking your '+PNAME[cap.t];}
++      else if(cv>=3)capW='taking your '+PNAME[mp.t];}
+     const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', '+(capW?(capW+(chk?' with a forking check':', a fork')):(chk?'a forking check':'a fork'));if(sh===' is a discovered check')return 'allows '+s+', '+(capW?capW+', ':'')+'a discovered check';
+     if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');

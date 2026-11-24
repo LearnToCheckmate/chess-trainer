@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7095447a..086ceaec 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1668,5 +1668,5 @@ function replyWhy(g2,r,sc,base){
+       if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
+       else if(cv>=3)capW='taking your '+PNAME[cap.t];}
+-    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', '+(capW?(capW+(chk?' with a forking check':', a fork')):(chk?'a forking check':'a fork'));if(sh===' is a discovered check')return 'allows '+s+', '+(capW?capW+', ':'')+'a discovered check';
++    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+(chk?', a forking check':', a fork');if(sh===' is a discovered check')return 'allows '+s+', '+(capW?capW+', ':'')+'a discovered check';
+     if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');
+     let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}

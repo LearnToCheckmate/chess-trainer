@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7095447a..aee4d832 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1586,5 +1586,5 @@ function missWhy(pos,mv,bestMv){
+                  (Qxf2+)"; a capture alone "lets them take the knight (Nxc3)", a check alone "lets them give check (Qe7+)". */
+               const g3c=makeMove(g2,c.r),rcap=(g2.board[c.r.tr]&&g2.board[c.r.tr][c.r.tc])||(c.r.epCap?{t:'p'}:null),rchk=!!g3c&&getStatus(g3c)==='check';
+-              if(rcap||rchk)return {kind:'letsgo',reply:rs,text:(rcap?('lets them take the '+nm(rcap.t)+(rchk?' with check':'')):'lets them give check')+' ('+rs+')'};
++              if(rcap||rchk)return {kind:'letsgo',reply:rs,text:(rcap?('lets them take the '+nm(rcap.t)+''):'lets them give check')+' ('+rs+')'};
+               return c.moved?{kind:'letsgo',reply:rs,text:'lets the '+what+' get away ('+rs+')'}:{kind:'letsgo',reply:rs,text:'lets them guard the '+what+' ('+rs+')'};}
+           }

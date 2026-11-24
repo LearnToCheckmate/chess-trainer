@@ -1,0 +1,35 @@
+{
+ "job": "drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13",
+ "about": "Gate 202 (node, no browser) runs the shipped missWhy over every wrong move of 40 library puzzles and four fixtures against the puzzle's first solution move and checks every 'letsgo' sentence against the reply's real capture and check (S4), plus the job card Bg5 line. NOT COVERED: blockhit / onlypawn check wording (gate 124 TC-R212b), replyWhy (the other job's file), the browser box.",
+ "gate": "gates/regress/202-drill-reply-sentences-lead-with-capture.js",
+ "env": {},
+ "checks": [
+  "^TC-R305 "
+ ],
+ "build": "never",
+ "situations": [
+  {
+   "name": "node (missWhy scan)",
+   "match": "^TC-R305 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "letsgo-capture-called-guard",
+   "patch": "breaks/202-letsgo-capture-called-guard.diff",
+   "why": "the capture branch of letsgo is skipped, so a queen taking a pawn with check reads 'lets them guard the rook' again (the job's defect text)",
+   "mustFailIn": [
+    "node (missWhy scan)"
+   ]
+  },
+  {
+   "name": "letsgo-drops-with-check",
+   "patch": "breaks/202-letsgo-drops-with-check.diff",
+   "why": "the capture is named but its check is not: 'lets them take the pawn (Qxf2+)'",
+   "mustFailIn": [
+    "node (missWhy scan)"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}
