@@ -1,0 +1,20 @@
+{
+ "job": "picking-quick-after-a-deeper-review-keeps-the-deeper-grades-under-the-quick-label-2026-11-20",
+ "about": "BATCH 14 ENTRY 32 [Amber: flags/amber-553-card-shows-the-depth-held]. After Deep then Quick, the review reuses the Deep grades (level 1, depth 18) and its sheet reads Deep; the game card now reads Deep too (the stored tally's dp), says in its aria-label that Quick was picked and the deeper grades are kept, ticks Deep in its menu, and an unreviewed game still reads Quick. Face stays 30px and uncut, the card no taller. Graded by gate 191 on a trial bundle at kunal761 and 320x568. NOT COVERED: Deeper and Deepest held levels (same code path as Deep), the card after a reload (stats are stored, not driven), the visible wording on his phone.",
+ "gate": "gates/regress/191-card-shows-the-depth-held.js",
+ "checks": ["^TC-R28[6-9] "],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R28[6-9] kunal761 "},
+  {"name": "320x568", "match": "^TC-R28[6-9] 320x568 "}
+ ],
+ "breaks": [
+  {"name": "the-card-shows-the-last-pick", "patch": "breaks/191-the-card-shows-the-last-pick.diff",
+   "why": "the card goes back to showing the last pick, so after Deep then Quick it reads Quick beside a Deep review", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "the-kept-note-is-never-said", "patch": "breaks/191-the-kept-note-is-never-said.diff",
+   "why": "the card reads Deep but nothing says the Quick pick was set aside (no data-kept, no aria note)", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "the-menu-ticks-the-pick", "patch": "breaks/191-the-menu-ticks-the-pick.diff",
+   "why": "the card's menu ticks the last pick (Quick) while the card reads Deep", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]}
+ ],
+ "timeoutSec": 1500
+}

@@ -2617,6 +2617,13 @@ As a player reading a review, I can ask for a deeper review of the same game fro
 - Leaving the review, or opening another game, stops the pass, and nothing it had not finished is kept. (TC-R284)
 - Not yet: the per-level times on his phone (his to measure).
 
+### US-R201 The game card says the depth its grades were made at
+*Added in batch 14 (#553), jobs/picking-quick-after-a-deeper-review-keeps-the-deeper-grades-under-the-quick-label-2026-11-20 (from flags/antagonist-a-552 finding 4). Amber: flags/amber-553-card-shows-the-depth-held. classSwept {found: 5, fixed: 3, left: 0}: the places that say a game's depth are the card button's face, its aria-label and title, the card's menu tick (all three now read the held depth) and the review sheet's row and its menu tick (already read the review's own level).*
+As a player who reviewed a game deeper and then picked Quick, I am not told Quick on the card while the review shows the deeper grades.
+- The game card's depth button reads the depth the stored grades were made at, never a shallower last pick; after Deep then Quick it reads Deep, the same word the review's More sheet shows, and a game never reviewed deeper still reads its pick. (TC-R286)
+- Its title and aria-label say the shallower pick was set aside and the deeper grades kept; the card's menu ticks the held depth once. (TC-R286, TC-R287)
+- The button keeps its size and the card its height. (TC-R288)
+
 ### US-R171 After a scan I check the board first, then say who moves and which side I am, then Play or Analyze
 *Added in batch 13, jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18. Kunal's pick on the Decision Desk, questions/Q30, 11:24pm EST Tue 17 Nov 2026: "Accept as shown", built from his four scan answers of that evening: FB-16 (the board the way the photo shows it, and "from a picture is not always possible to tell which side I am interested in playing so you should also ask that question like you do today just ask it after you set it up like this are you black or are you white right?"), FB-17 (a Check the board screen first), FB-18 (the best three moves under the board) and FB-19 (Analyze, to move both sides). Proven on recorded scan answers; a real photo waits for the deploy of the scan function (his Q32).*
 As a player who has photographed a board, I see what the app read before anything is decided, fix what it got wrong, say whose move it is and which side is mine, and then either play it out against the computer or move both sides myself.
