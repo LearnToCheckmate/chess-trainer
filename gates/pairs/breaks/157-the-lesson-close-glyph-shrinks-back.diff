@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2792,5 +2792,5 @@
+    and 10. A font size is not an ink size, so each glyph is scaled to the chevrons' 19 (larger ink dimension) by its own em, at lineHeight 0
+    so no button grows (IconGlyph, the puzzle and drill rows' mechanism). Measured by gate 157's pixel scan; the em is the ratio 19/ink. */
+-const LF_EM={x:1.5,play:1.19,replay:1.33,pause:1.9,hand:0.86,dots:1.06,flip:1.107,bulb:0.85 /* #550 helper B: flip and bulb were 1.55 and 1.19 at the practice row's old 15px; that row is FootBtn now, at FOOT_ICON_GLYPH (21 at 320 and 375), so 15/21 of each */,again:1.9,tick:2.6,next:3.0,nextw:3.05};
++const LF_EM={x:1.0,play:1.19,replay:1.33,pause:1.9,hand:0.86,dots:1.06,flip:1.107,bulb:0.85 /* #550 helper B: flip and bulb were 1.55 and 1.19 at the practice row's old 15px; that row is FootBtn now, at FOOT_ICON_GLYPH (21 at 320 and 375), so 15/21 of each */,again:1.9,tick:2.6,next:3.0,nextw:3.05};
+ /* #550 helper B, jobs/lesson-footer-icons-consistent (2) 'one component': the lesson PRACTICE row (Flip, Hints, Try again / Next / Bank it),
+    under the board on a tall phone and in the lesson bar on a short one, renders FootBtn too, so the lesson demo bar, the practice row and the

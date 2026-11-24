@@ -1,0 +1,28 @@
+{
+ "job": "lesson-footer-icons-consistent",
+ "about": "The lesson demo bar, the lesson practice row (on a tall phone under the board, on a short one in the lesson bar) and the Review transport row draw one icon size (painted ink within 2px, TC-IR-02) as one component (FootBtn, TC-IR-06), and the Review Back|More, puzzle, solved-puzzle and drill rows do too. Graded by gate 157 at kunal761 and 320x568. NOT COVERED: his look at the rows on his phone; iOS emoji ink.",
+ "gate": "gates/regress/157-icon-rows-one-size.js",
+ "checks": [
+  "TC-IR-0[26] "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "kunal761"},
+  {"name": "320x568", "match": "\\bse\\b"}
+ ],
+ "breaks": [
+  {
+   "name": "the-lesson-close-glyph-shrinks-back",
+   "patch": "breaks/157-the-lesson-close-glyph-shrinks-back.diff",
+   "why": "the lesson bar's Close glyph drops back to the row's base size (1.0 em instead of 1.5), so it paints smaller than its neighbours - the job's 'too small, not consistent' defect",
+   "mustFailIn": ["kunal761", "320x568"]
+  },
+  {
+   "name": "the-practice-bulb-at-its-old-scale",
+   "patch": "breaks/157-the-practice-bulb-at-its-old-scale.diff",
+   "why": "the practice row's bulb keeps the scale it had at the row's old 15px font (1.19) after the row became FootBtn, so it paints larger than Flip and Try again",
+   "mustFailIn": ["kunal761", "320x568"]
+  }
+ ],
+ "timeoutSec": 1500
+}
