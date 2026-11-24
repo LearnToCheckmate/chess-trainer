@@ -1854,6 +1854,7 @@ As a player who taps Review straight after a game, the summary names me and my o
 *Added #547, from jobs/a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29.*
 As a player stepping through a review, "the position stays roughly level" means the position IS level, not that the app has no number for that move.
 - A move with no stored evaluation gets no sentence about who stands better; a genuinely level position is still called level. (TC-R87)
+- Stepping through a real review, the sentence's word for who stands better never disagrees in kind with the eval bar beside it: never 'about even' beside a clear edge, never the wrong side, never 'winning' beside a level bar. (TC-R399; #553 B3)
 - A capture that is taken back is called a trade only when it is like for like; one that gives more than it gets says what it gives for what ('gives up the bishop for the pawn'), and an even trade of unlike pieces names both. (TC-R113)
 
 ### US-R86 When the best line plays, the board stops marking the move I did not make there
@@ -2269,6 +2270,7 @@ As a player in a game, a review or a puzzle, I see the board shrink only while s
 - On Play, the review move screen and a library puzzle, at 375x761 and 375x667, a transient that shrank the board and then left with no re-render is followed by the board returning to at least its fresh width within 3.5 s. (TC-R201a)
 - Nothing overflows where it lands. (TC-R201b)
 - A board nothing disturbed does not move at rest. (TC-R201c)
+- The same holds on the smallest phone, 320x568. (TC-R401; #553 B3)
 
 ### US-R134 The board-scan server function exists in the repository and answers the client's contract
 *Added #550, item (32), jobs/scan-orientation-double-check and jobs/build-spec-board-scan-server (decisions scan-in-scope: "Build it properly"). Not deployed: the vision key is Kunal's.*
