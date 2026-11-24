@@ -121,3 +121,4 @@
 162	159	raise	2026-11-24	553	build__1795473826826	batch 14 entry 27, jobs/when-the-app-says-mate-in-n-show-the-moves-on-the-board-2026-11-19: a solved drill card that claims a mate in N plays the engine line on the board once mateLineCheck passes it; 411 engine lines checked in node, US-R205 / TC-R290..293	-	437a19bffa8d
 163	162	raise	2026-11-24	553	build__1795473826826	batch 14 merge: gate 187 (jobs/review-sentences-name-what-the-moves-do-2026-11-12) joins 195 and the rest	-	378ce298f83b
 164	163	raise	2026-11-24	553	build__1795473826826	batch 14 entry 22, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 part (4): going deeper inside an open review (the More sheet row, the pass behind the review, the engine line at its depth), US-R200 / TC-R280..285	-	9aa5049d5cc8
+166	164	raise	2026-11-24	553	build__1795473826826	batch 14 merge: gates 200 and 201 (the Review graph markers; the book-only review sentence) join 190 and the rest	-	6d197125f88f

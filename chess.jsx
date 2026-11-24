@@ -2696,6 +2696,7 @@ function revBubble(o){o=o||{};const bl=o.bl||0,mi=o.mi||0,br=o.br||0,won=!!o.won
   if(lost&&bl>0)return (bl>1?('Those '+bl+' blunders cost you. Tap the Blunder count below to go to the first and see the better line.'):'That blunder cost you. Tap the Blunder count below to go to it and see the better line.');   /* #548 item (160): it read 'Those 1 blunder cost you.' */
   if(lost){if(!(o.moves>0))return 'A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.';
     return tough?('A tough one. The toughest moment, '+tough+', named in Coach\u2019s take above, is where it turned. Tap a count below to go to that kind of move.'):'A tough one. Tap a count below to go to those moves and see where it turned.';}
+  if(!(o.moves>0))return 'Your moves all came from the opening book, so none was graded. Start the review to step through the game.';   /* #553 amber-553-book-only-bubble-not-lost, jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19: a won or drawn game with nothing graded was told 'Solid, accurate game throughout.' while Coach's take beside it says 'Nothing to score yet' */
   return (bl+mi>0)?('Solid overall. Tighten the '+(bl+mi)+' costly move'+((bl+mi)>1?'s':'')+' flagged below.'):'Solid, accurate game throughout.';}
 /* The why pill's words (HEX-R-04): the first two explained moves of the line it plays. batch 13, the design pair's residual B7: the line
    was capitalised as a sentence, so a pawn move at its head read 'E4 stakes out the center' - a move's name is spelt as the move is. */
@@ -4695,18 +4696,23 @@ function graphMark(m,x,y){const r=m.r,k='rgba(0,0,0,.55)';
   if(m.shape==='cross')return <g stroke={m.c} strokeWidth="2.4" strokeLinecap="round"><path d={'M'+(x-r*0.75)+','+(y-r*0.75)+' L'+(x+r*0.75)+','+(y+r*0.75)+' M'+(x+r*0.75)+','+(y-r*0.75)+' L'+(x-r*0.75)+','+(y+r*0.75)}/></g>;
   if(m.shape==='triangle')return <path d={'M'+(x-r)+','+(y-r*0.8)+' L'+(x+r)+','+(y-r*0.8)+' L'+x+','+(y+r)+' Z'} fill={m.c} stroke={k} strokeWidth="1"/>;
   return <circle cx={x} cy={y} r={r} fill={m.c} stroke={k} strokeWidth="1"/>;}
-function EvalGraph({analysis,plies,ply,onJump,width,height,missed,bookN}){
+function EvalGraph({analysis,plies,ply,onJump,width:askW,height,missed,bookN}){
+  const svgRef=useRef(null);const [bw,setBw]=useState(0);
+  /* #553, jobs/the-review-graphs-last-ply-marker-is-clipped-to-a-sliver-by-the-svg-edge-2026-11-19: the box this svg is LAID OUT in can be narrower than the width it was asked for (375x761: 369 for 375; 320x568: 290 for 320; the more sheet 8% under), and an svg with no viewBox does not shrink its drawing, it clips it - the last ply, drawn at x = width, lost 18 of its 24px. So the drawing is made at the width the svg actually gets (read after layout, kept up to date by a ResizeObserver), and its plies span [GX, W-GX], GX = the 24px hit circle's radius, so every mark lies wholly inside the box at its true 24px size. The line, area, cursor and tap-to-ply mapping all use that one x. */
+  useLayoutEffect(()=>{const el=svgRef.current;if(!el)return;const m=()=>{const w=el.getBoundingClientRect().width;setBw(w>1?Math.round(w*100)/100:0);};m();let ro=null;try{ro=new ResizeObserver(m);ro.observe(el);}catch(e){}return()=>{try{ro&&ro.disconnect();}catch(e){}};},[askW,height]);
+  const width=bw>0?Math.min(askW,bw):askW;
   const H=height||72,n=analysis.length;if(!n)return null;
-  const pad=4;
-  const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=(i/(n-1||1))*width;const y=H/2-(e/6)*(H/2-pad);return[x,y];};
+  const GX=Math.min(12,width/8),pad=Math.min(7,H/4);   /* the vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) off the top and bottom edges too */
+  const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
+  const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=xAt(i);const y=H/2-(e/6)*(H/2-pad);return[x,y];};
   const pts=analysis.map((_,i)=>pt(i));
   const line=pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-  const area=`M0,${H/2} `+pts.map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')+` L${width},${H/2} Z`;
+  const area=`M${GX},${H/2} `+pts.map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')+` L${width-GX},${H/2} Z`;
   const cur=ply>0?Math.min(ply-1,n-1):0;
-  const cx=(cur/(n-1||1))*width;
+  const cx=xAt(cur);
   return(
-    <svg width={width} height={H} style={{display:'block',cursor:'pointer',borderRadius:6}}
-      onClick={e=>{const r=e.currentTarget.getBoundingClientRect();const f=(e.clientX-r.left)/r.width;onJump(Math.round(f*(n-1))+1);}}>
+    <svg ref={svgRef} width={askW} height={H} style={{display:'block',cursor:'pointer',borderRadius:6,maxWidth:'100%'}}
+      onClick={e=>{const r=e.currentTarget.getBoundingClientRect();const f=Math.max(0,Math.min(1,((e.clientX-r.left)-GX)/((width-2*GX)||1)));onJump(Math.round(f*(n-1))+1);}}>
       <rect x="0" y="0" width={width} height={H/2} fill="rgba(255,255,255,.06)"/>
       <rect x="0" y={H/2} width={width} height={H/2} fill="rgba(0,0,0,.30)"/>
       <line x1="0" y1={H/2} x2={width} y2={H/2} stroke="rgba(255,255,255,.25)" strokeWidth="1" strokeDasharray="4 3"/>

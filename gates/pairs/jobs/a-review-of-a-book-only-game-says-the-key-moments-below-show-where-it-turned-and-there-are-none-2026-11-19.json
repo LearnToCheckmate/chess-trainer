@@ -1,0 +1,21 @@
+{
+ "job": "a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19",
+ "about": "Gate 201 (TC-R301): a game whose every move is sound book (1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5), reviewed from the games list as White as a loss, a win and a draw, reads in the summary bubble that the moves were all book and none graded - never 'key moments below', never 'accurate'; the graded Opera Game never reads as a book game. Graded at 375x761 and 320x568. The lost branch was fixed in batch 13 (gate 169 TC-R251c, graded under jobs/review-sentences-name-what-the-moves-do-2026-11-12); this job adds the won/drawn branch. NOT COVERED: a book-only game as Black; the Coach's take sentence (gate 169); Pass & Play resigned games (the same revBubble, a different way in); his look on the phone.",
+ "gate": "gates/regress/201-book-only-bubble.js",
+ "env": {},
+ "checks": ["^(kunal761|se) (lost|won|drawn|graded) TC-R301[bc] "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761 "},
+  {"name": "se 320x568", "match": "^se "}
+ ],
+ "breaks": [
+  {"name": "book-branch-for-not-lost-gone", "patch": "breaks/g201-book-branch-not-lost-gone.diff",
+   "why": "the new branch is removed: a won or drawn game with nothing graded falls through to 'Solid, accurate game throughout.' again",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "lost-says-key-moments-below", "patch": "breaks/g201-lost-says-key-moments-below.diff",
+   "why": "the lost branch says 'A tough one. The key moments below show where it turned.' again, with no key moments to show - the defect as found",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1200
+}

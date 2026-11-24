@@ -1,0 +1,25 @@
+{
+ "job": "the-review-graphs-last-ply-marker-is-clipped-to-a-sliver-by-the-svg-edge-2026-11-19",
+ "about": "Gate 200 (TC-R300): on Scholar's Mate, in the started Review, every grade mark of the eval graph (its 24px hit circle, and its painted shape on both axes) lies inside the graph svg's own box, and a hit test at the last mark's centre reaches that mark. Graded at 375x761 (his phone), 320x568 and 844x390. NOT COVERED: the graph in the summary's hidden Review, the sideways Play graph (landGraph) and the Analyze-board graph, which share EvalGraph and so the fix but are not driven here; games with more than two marks (the gate pins geometry of whatever marks there are, at least two); his look on the phone.",
+ "gate": "gates/regress/200-review-graph-markers-inside.js",
+ "env": {},
+ "checks": ["^(kunal761|se|844x390) TC-R300[bcde] "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761 TC-R300"},
+  {"name": "se 320x568", "match": "^se TC-R300"},
+  {"name": "landscape 844x390", "match": "^844x390 TC-R300"}
+ ],
+ "breaks": [
+  {"name": "graph-draws-at-asked-width", "patch": "breaks/g200-graph-draws-at-asked-width.diff",
+   "why": "the graph is drawn at the width it was asked for and not the width its box has, so when the box is narrower the last ply lies past the edge and is clipped - the defect as found",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "graph-no-edge-inset", "patch": "breaks/g200-graph-no-edge-inset.diff",
+   "why": "the first and last ply sit on x=0 and x=width again, so half of each 24px tap circle hangs past the svg edge",
+   "mustFailIn": ["kunal761", "se 320x568", "landscape 844x390"]},
+  {"name": "graph-no-vertical-pad", "patch": "breaks/g200-graph-no-vertical-pad.diff",
+   "why": "the vertical pad shrinks to 1px, so a mark at a clamped evaluation (the mate) paints past the top edge",
+   "mustFailIn": ["kunal761", "se 320x568", "landscape 844x390"]}
+ ],
+ "timeoutSec": 900
+}

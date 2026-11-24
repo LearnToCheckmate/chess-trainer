@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index d89e35bf..a59f964c 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4688,7 +4688,7 @@ function EvalGraph({analysis,plies,ply,onJump,width:askW,height,missed,bookN}){
+   useLayoutEffect(()=>{const el=svgRef.current;if(!el)return;const m=()=>{const w=el.getBoundingClientRect().width;setBw(w>1?Math.round(w*100)/100:0);};m();let ro=null;try{ro=new ResizeObserver(m);ro.observe(el);}catch(e){}return()=>{try{ro&&ro.disconnect();}catch(e){}};},[askW,height]);
+   const width=bw>0?Math.min(askW,bw):askW;
+   const H=height||72,n=analysis.length;if(!n)return null;
+-  const GX=Math.min(12,width/8),pad=Math.min(7,H/4);   /* the vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) off the top and bottom edges too */
++  const GX=Math.min(12,width/8),pad=1;   /* the vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) off the top and bottom edges too */
+   const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
+   const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=xAt(i);const y=H/2-(e/6)*(H/2-pad);return[x,y];};
+   const pts=analysis.map((_,i)=>pt(i));

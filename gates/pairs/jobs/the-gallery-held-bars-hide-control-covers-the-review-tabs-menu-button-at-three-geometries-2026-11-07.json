@@ -1,0 +1,25 @@
+{
+ "job": "the-gallery-held-bars-hide-control-covers-the-review-tabs-menu-button-at-three-geometries-2026-11-07",
+ "about": "Gate 15's HM block (TC-GL-012): while a Preview-gallery card's instruction is held, the Review header's menu button hit-tests to itself (HM1), no on-screen button has its centre taken by the bar's back or Hide control (HM2), both controls lie inside the bar's box (HM3), and a real tap on the menu button opens the menu sheet with the bar still up (HM4). Graded at 375x761 (his phone), 320x568 and 730x375. The fix itself landed at #550 (controls inside the bar, bar under the header); this job's remainder is the proof. NOT COVERED: the other gate 15 blocks (CT_G15_ONLY=HM runs this one alone), and 390x844.",
+ "gate": "gates/regress/15-gallery-playall.js",
+ "env": {"CT_G15_ONLY": "HM"},
+ "checks": ["^HM[1-4] "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^HM[1-4] 375x761"},
+  {"name": "se 320x568", "match": "^HM[1-4] 320x568"},
+  {"name": "landscape 730x375", "match": "^HM[1-4] 730x375"}
+ ],
+ "breaks": [
+  {"name": "hide-hangs-above-the-bar", "patch": "breaks/g15hold-hide-hangs-above-the-bar.diff",
+   "why": "the Hide control goes back to hanging 16px above the bar's top-right corner, where the header menu button is: the tap lands on Hide",
+   "mustFailIn": ["kunal761", "se 320x568", "landscape 730x375"]},
+  {"name": "bar-back-up-at-2", "patch": "breaks/g15hold-bar-back-up-at-2.diff",
+   "why": "the bar goes back up to 2px from the top with its controls inside it, so the Hide control sits over the header's menu button",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "hide-sticks-out-sideways", "patch": "breaks/g15hold-hide-sticks-out-sideways.diff",
+   "why": "the Hide control is pushed out past the bar's right edge, so it protrudes from the bar's box",
+   "mustFailIn": ["kunal761", "se 320x568", "landscape 730x375"]}
+ ],
+ "timeoutSec": 900
+}

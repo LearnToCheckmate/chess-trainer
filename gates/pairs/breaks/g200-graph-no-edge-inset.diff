@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index d89e35bf..3d40fa1b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4689,7 +4689,7 @@ function EvalGraph({analysis,plies,ply,onJump,width:askW,height,missed,bookN}){
+   const width=bw>0?Math.min(askW,bw):askW;
+   const H=height||72,n=analysis.length;if(!n)return null;
+   const GX=Math.min(12,width/8),pad=Math.min(7,H/4);   /* the vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) off the top and bottom edges too */
+-  const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
++  const xAt=(i)=>(i/(n-1||1))*width;
+   const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=xAt(i);const y=H/2-(e/6)*(H/2-pad);return[x,y];};
+   const pts=analysis.map((_,i)=>pt(i));
+   const line=pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
