@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index b7d891ce..717d7319 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10128,5 +10128,5 @@ function AppMain(){
+     if(_mated){setEngLine({txt,cp:pos.turn==='w'?-99:99,line:''});return;} /* #374 (antagonist on #373): a mated position gets no engine query at all - Stockfish's answer on it (a mate score with no line) printed "M1" for a mate delivered by Black on the analysis board */
+     if(hit){setEngLine({...hit,txt:hit.txt||txt,cp:(hit.cp!=null?hit.cp:ev)});return;}
+-    let dead=false;setEngLine({txt,cp:ev,line:''});
++    let dead=false;setEngLine({txt:'',cp:ev,line:''});
+     (async()=>{
+       const ok=sfReadyRef.current?await ensureAna():false;

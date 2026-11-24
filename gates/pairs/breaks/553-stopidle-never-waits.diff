@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index b7d891ce..94d8d949 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8233,5 +8233,5 @@ function AppMain(){
+   const S_ANA={go:sfAnaGoRef,owed:sfAnaOwedRef,wait:sfAnaStopWaitRef,sync:sfAnaSyncRef};
+   const S_MAIN={go:sfGoRef,owed:sfOwedRef,wait:sfStopWaitRef,sync:sfSyncRef};
+-  const stopIdle=(w,S,then)=>{
++  const stopIdle=(w,S,then)=>{if(w){then(true);return()=>{};}
+     const _old=S.wait.current;if(_old){S.wait.current=null;try{_old.cancel();}catch(_e){}}
+     if(!S.go.current&&!S.owed.current)return engIdle(w,S.sync,then);

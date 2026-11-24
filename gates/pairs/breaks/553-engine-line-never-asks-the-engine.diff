@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index b7d891ce..b747abeb 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10130,5 +10130,5 @@ function AppMain(){
+     let dead=false;setEngLine({txt,cp:ev,line:''});
+     (async()=>{
+-      const ok=sfReadyRef.current?await ensureAna():false;
++      const ok=false;
+       if(dead)return;
+       if(!ok){setEngLine({txt,cp:ev,line:ctOffline()?'Stockfish is not loaded (offline)':'Stockfish is not loaded yet'});return;}   /* #550 ERR-02 */

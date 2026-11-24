@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index b7d891ce..7f8f7189 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10371,5 +10371,5 @@ function AppMain(){
+     const w=sfRef.current; if(!w||!sfReady)return;
+     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
+-    const cancel=stopIdle(w,S_MAIN,(idle)=>{
++    const cancel=((w0,S0,f0)=>{f0(true);return()=>{};})(w,S_MAIN,(idle)=>{
+       if(!idle)return;                       // the next ply change will ask again
+       sfEvalFenRef.current=_fen; sfEvalingRef.current=true; sfLastRef.current=null;
