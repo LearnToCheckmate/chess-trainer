@@ -1,0 +1,49 @@
+{
+ "job": "review-grade-table-header-and-colour",
+ "about": "The grade table on the Review summary: the White and Black headers centred over their digits, and the Best, Excellent and Good dots told apart by colour (each pair dE76 >= 15, each >= 10 from every other grade), on the Desk default taken at #553 (flags/amber-553-grade-dot-colours: keep the CLS_BANDS colours #6fd66f / #9fcf6f / #c9d06a). Graded by gate 193 (TC-R321..323) on the Opera Game's summary at 375x761 with his insets and 320x568, dots read from painted pixels. NOT COVERED: whether he likes the greens (his look).",
+ "gate": "gates/regress/193-grade-table-dots-apart.js",
+ "checks": [
+  "TC-R32[1-3] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "dots-back-to-three-shades-of-green",
+   "patch": "breaks/193-dots-back-to-three-shades-of-green.diff",
+   "why": "the three green dots go back to the #422 shades rgb(123,216,143), (139,209,143), (156,203,143), about dE 8 apart - the defect filed",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "excellent-dot-painted-as-best",
+   "patch": "breaks/193-excellent-dot-painted-as-best.diff",
+   "why": "the Excellent dot paints Best's colour, so only its word tells the two rows apart",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "header-grid-48-again",
+   "patch": "breaks/193-header-grid-48-again.diff",
+   "why": "the header row's grid is 1fr 48px 48px again over rows of 1fr 56px 56px, so White and Black sit right of their digits",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}
