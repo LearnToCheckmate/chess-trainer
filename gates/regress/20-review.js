@@ -607,8 +607,8 @@ L.run(async()=>{try{
       // arm - that id is already a case in the register]. TC-R68 above proves a refused lookup leaves no answer behind; this proves the
       // other half, that an ANSWER in the cache paints. Three arms in this one session, graph off, ply 0 of the Opera Game:
       // UNSEEDED (the reading just taken: TC-R68 left no entry, so no flag), SEEDED with 'us' (lowercase, so flagOf must
-      // uppercase it) and 'DE', and REJECTS with 'USA' and '1A', which flagOf must refuse. Flags are counted as text nodes
-      // made of regional-indicator letters inside the two player bars, and the names are found by WHAT THEY SAY, not by any
+      // uppercase it) and 'DE', and REJECTS with 'USA' and '1A', which flagOf must refuse. Flags are counted as the loaded
+      // flag PICTURES (img, alt = the code; regional-indicator text nodes until #550 his report (b)) in the two player bars, and the names are found by WHAT THEY SAY, not by any
       // data-ct - #432's rule. A painted flag must push its own player's name right by the flag's width plus the computed gap of the row they share (6px today; read, not hard-coded).
       // CONTROL-RECORD: 5fec51b 2026-11-06 total=217 red=2 scope=full how=flagOf without toUpperCase (seeded us paints nothing), trial md5 7995a040f477; red: TC-R107 two-flags and Morphy's name shift. The good trial 0ec547e8eecc reads 217 PASS 0 FAIL.
       // CONTROL-RECORD: 5fec51b 2026-11-06 total=217 red=2 scope=full how=flag span position absolute (flag paints, names do not move), trial md5 5e5a52a68228; red: both TC-R107 name shifts, while the two-flags assertion stays green. NOT controlled: the USA/1A arm.

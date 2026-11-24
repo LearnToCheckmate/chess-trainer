@@ -109,7 +109,7 @@ As a player who just finished a game on chess.com, I paste its PGN and get a rev
 - A best-effort lookup the review makes on the side (the players' countries for their flags) that FAILS leaves the app as it
   was and is tried again the next time the review opens: a refused or offline lookup is never stored as the answer, so one
   offline review cannot remove a player's flag for good. A country that IS known paints as its flag in that player's
-  bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107; #548 item (41), #549 item (3),
+  bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107, TC-R376, TC-R377; #548 item (41), #549 item (3),
   jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10)
 - A pasted PGN whose [FEN] header sets up a position is reviewed FROM THAT POSITION: the review's first board is the header's,
   and the move numbers and the side each move belongs to follow it (a study chapter with Black to move at 23 opens on '23…').

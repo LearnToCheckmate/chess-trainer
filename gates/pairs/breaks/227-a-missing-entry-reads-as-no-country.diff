@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -770,5 +770,5 @@
+ const CC_CACHE_KEY='ct_country';
+ function countryCacheAll(){try{return JSON.parse(localStorage.getItem(CC_CACHE_KEY)||'{}');}catch(e){return {};}}
+-function countryCacheGet(site,user){const k=site+':'+String(user||'').toLowerCase();const a=countryCacheAll();return Object.prototype.hasOwnProperty.call(a,k)?a[k]:undefined;}
++function countryCacheGet(site,user){const k=site+':'+String(user||'').toLowerCase();const a=countryCacheAll();return Object.prototype.hasOwnProperty.call(a,k)?a[k]:'';}
+ function countryCacheSet(site,user,cc){try{const a=countryCacheAll();a[site+':'+String(user||'').toLowerCase()]=cc||'';const ks=Object.keys(a);if(ks.length>400)delete a[ks[0]];localStorage.setItem(CC_CACHE_KEY,JSON.stringify(a));}catch(e){}}
+ async function fetchCountry(site,user){
