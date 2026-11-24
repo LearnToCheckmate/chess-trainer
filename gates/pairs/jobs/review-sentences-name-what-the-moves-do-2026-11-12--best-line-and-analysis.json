@@ -1,0 +1,42 @@
+{
+ "job": "review-sentences-name-what-the-moves-do-2026-11-12",
+ "about": "Batch 14, the job's remainder HEX-R-05 and HEX-R-09 (docs/hint-audit-2026-11-12): while the best line shows, the Review sentence row says what that line does (bestLineSay: its first move's reading, and how it ends - in mate, or the queens coming off and the material it wins or gives up, counted over the line), and on the analysis board the same row, kept at its height, says what the move just tried does (anaSay: mate, stalemate, a mate in one allowed, a capture that lets the other side win material by the exchange count, a capture that can be taken back, else the engine line's own reading of the move). Gate 185 is run whole: the node lines check bestLineSay over 440 lines (every ply of three games, 1 to 5 moves) and anaSay over every legal move at every position of those games (3123 moves) against this gate's own count of the board - material by square, mate and stalemate by the rules, every reply tried for a mate in one, a full minimax over every capture on the square - and the other way round (a mate, stalemate, mate in one or free piece the board proves must be said); the screen lines at 375x761 and 320x568 read the Opera Game at ply 20 with the best chip tapped (the line on screen replayed by the gate), and on the analysis board 14...Qe6, 15.Bxd7+, Undo and 17.Rd8 mate, with the board's position before and after. NOT COVERED, said rather than implied: the tablet (768x1024, the iPad is parked) keeps its old analysis box with no sentence; the engine's best line on screen is whatever the engine returns under ct_engdet, so the screen line is checked by replaying it, not pinned word for word past its first move; at 320x568 the analysis sentence sits under the engine line in rev-compact's scrolled area (the same place the explanation goes when a line is switched on there) and is one line, cut by its clamp; HEX-R-07's tappable toughest moment waits on Kunal's AUD-R07 pick and is not built.",
+ "gate": "gates/regress/185-review-best-line-and-analysis-say-what-moves-do.js",
+ "env": {},
+ "checks": [
+  "TC-R264[a-f] "
+ ],
+ "build": "auto",
+ "situations": [
+  {"name": "node", "match": "^node "},
+  {"name": "kunal761", "match": "^kunal761 "},
+  {"name": "se 320x568", "match": "^se "}
+ ],
+ "breaks": [
+  {
+   "name": "best-line-not-said",
+   "patch": "breaks/g185-best-line-not-said.diff",
+   "why": "the best chip's line is never put into words again: the row keeps the played move's sentence under 'best line 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3'",
+   "mustFailIn": ["kunal761", "se 320x568"]
+  },
+  {
+   "name": "for-nothing-on-any-capture",
+   "patch": "breaks/g185-for-nothing-on-any-capture.diff",
+   "why": "the analysis sentence says a piece is taken 'for nothing' even where it can be taken back (14...Qe6: Bxd7 is met by Nxd7 or Qxd7)",
+   "mustFailIn": ["node", "kunal761", "se 320x568"]
+  },
+  {
+   "name": "analysis-row-not-kept",
+   "patch": "breaks/g185-analysis-row-not-kept.diff",
+   "why": "the analysis board drops the sentence row again (its height 0 in analysis), so the move just tried gets no word",
+   "mustFailIn": ["kunal761", "se 320x568"]
+  },
+  {
+   "name": "material-counted-for-the-wrong-side",
+   "patch": "breaks/g185-material-counted-for-the-wrong-side.diff",
+   "why": "the best line's material is counted from the other side, so a line that wins a pawn reads 'gives up a pawn'",
+   "mustFailIn": ["node"]
+  }
+ ],
+ "timeoutSec": 1500
+}

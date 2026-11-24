@@ -118,3 +118,4 @@
 157	156	raise	2026-11-20	552	build__1795066268355	batch 13 jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18: the Review list final layout (Q25 B), US-R184 / TC-R258	-	88828bbebc03
 158	157	raise	2026-11-20	552	batch13-seat-b1	batch 13, jobs/short-upright-boards-sized-to-height-2026-11-12 (the Play part, his q29): Play vs the computer on a short upright phone (digest re-derived at the lead's merge with gate 182 from the other branch: the set of 158 with both 182 and 183)	-	df33b44679df
 159	158	raise	2026-11-23	553	build__1795473826826	batch 14, jobs/short-upright-boards-sized-to-height-2026-11-12 (item 1, his 22 Nov picture): Review's board as wide as Play's in the Home Screen app with real insets	-	201818568d97
+160	159	raise	2026-11-24	553	build__1795473826826	batch 14, jobs/review-sentences-name-what-the-moves-do-2026-11-12 (HEX-R-05, HEX-R-09): the best line and the analysis board say what the moves do	-	1e45fb106ad1
