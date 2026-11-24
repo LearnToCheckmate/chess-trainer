@@ -1,5 +1,8 @@
 // regress/26-invariants.js   THE INVARIANT GATE - INVARIANT 4: NO TEXT IS CUT BY ITS OWN CLIPPING ANCESTOR.
 // ── TC-INV CASE IDS ARE EMITTED BY THIS GATE, AND THIS COMMENT IS THE REASON ─────────────────────────
+//   [#553, jobs/five-of-ten-423-spec-items-are-not-singular-2026-09-27: four claims that shared an id now carry their own -
+//   TC-R406 (02d's exclusions), TC-R407 (02d's pinned coverage), TC-R408 (02b's pinned locations coverage), TC-R409 (03's pinned coverage),
+//   TC-R410 (02d's control floor; 02d keeps the row floor)]
 //   TC-INV-01, TC-INV-02a, TC-INV-02b, TC-INV-02c, TC-INV-02d and TC-INV-03 of
 //   claude/stories/TEST-CASES.md are executed here, and until 2026-10-08 this file named NONE of them.
 //   claude/stories/TEST-CASES.md states the consequence at its own TC-INV note and MEASURED it:
@@ -1924,12 +1927,16 @@ L.run(async()=>{
     // screen going silent while another grows. It is kept as the backstop for the whole sweep collapsing.
     const FLOOR={320:[26,130],375:[28,135],390:[28,135]};
     const fl=FLOOR[widthOf(g)]||[20,100];
-    L.say(ivRows>=fl[0]&&ivCtls>=fl[1], g+': TC-INV-02d invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one',
-      {rowsMeasured:ivRows, controlsMeasured:ivCtls, floor:fl, width:widthOf(g), screens:SCREENS.length});
+    /* #553 (jobs/five-of-ten-423-spec-items-are-not-singular-2026-09-27): the ROW floor and the CONTROL floor were one conjunct under one id,
+       so a red could not say which population had gone quiet. Two lines now, each with its own id: TC-INV-02d the rows, TC-R410 the controls. */
+    L.say(ivRows>=fl[0], g+': TC-INV-02d invariant 2 measured a real population of ROWS rather than an empty one ('+ivRows+' against the floor '+fl[0]+') - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one',
+      {rowsMeasured:ivRows, floor:fl[0], width:widthOf(g), screens:SCREENS.length});
+    L.say(ivCtls>=fl[1], g+': TC-R410 (was the controls half of TC-INV-02d, split at #553) invariant 2 measured a real population of CONTROLS ('+ivCtls+' against the floor '+fl[1]+')',
+      {controlsMeasured:ivCtls, floor:fl[1], width:widthOf(g), screens:SCREENS.length});
     // THE EXCLUSIONS MUST STILL FIRE, and this assertion had 99.7% slack in its first version (`>0` against 114
     // and 300). It is now pinned per geometry like everything else, because "an exclusion still fired at all" is
     // the same shape of floor that let the row population go silent.
-    L.say(ivNested>0&&ivSvgKid>0, g+': TC-INV-02d both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6',
+    L.say(ivNested>0&&ivSvgKid>0, g+': TC-R406 (was the second half of TC-INV-02d, split at #553) both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6',
       {nestedExcluded:ivNested, svgInternalsExcluded:ivSvgKid, occludedExcluded:ivCovered});
     // AND THE BOARD EXCLUSION IS AN UNTESTED HYPOTHESIS, SAID SO RATHER THAN LEFT AS PROSE. The header argued at
     // length that the board's 64 squares would flood every board screen with eight-control rows of piece glyphs.
@@ -2180,15 +2187,15 @@ L.run(async()=>{
     const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
     const unpinnedX=ALL_GEOS.filter(g=>!ICON_PIN_EXTRA[L.GEOS[g].w]);
     L.say(unpinnedX.length===0, 'TC-INV-03b every geometry the suite sweeps by default carries a pinned unswept-state icon set, so TC-INV-03b never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedX});
-    L.say(unpinnedW.length===0, 'TC-INV-03 every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
-    L.say(unpinnedPop.length===0, 'TC-INV-02d every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
+    L.say(unpinnedW.length===0, 'TC-R409 (was a TC-INV-03 line, split at #553) every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
+    L.say(unpinnedPop.length===0, 'TC-R407 (was a TC-INV-02d line, split at #553) every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
     // AND THE SAME GUARD FOR THE PIN-LOCATION ASSERTION, added with the width-keying above: that assertion
     // now REPORTS at a width carrying no location pins, so without this it could go quiet on a full suite
     // the day ALL_GEOS gains a width PIN_ROWS does not cover. Keyed on width for the same reason the
     // assertion itself now is.
     const pinnedLocW=new Set(); for(const p of PIN_ROWS) for(const at of p.at){const nm=at.split('/')[0]; if(L.GEOS[nm])pinnedLocW.add(L.GEOS[nm].w);}
     const unpinnedLoc=ALL_GEOS.filter(g=>!pinnedLocW.has(L.GEOS[g].w));
-    L.say(unpinnedLoc.length===0, 'TC-INV-02b every geometry the suite sweeps by default carries pinned invariant-2 LOCATIONS at its width, so the pin-location assertion never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedLoc.map(g=>g+'='+L.GEOS[g].w)});
+    L.say(unpinnedLoc.length===0, 'TC-R408 (was a TC-INV-02b line, split at #553) every geometry the suite sweeps by default carries pinned invariant-2 LOCATIONS at its width, so the pin-location assertion never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedLoc.map(g=>g+'='+L.GEOS[g].w)});
     // THE WALK IS DECLARED, NOT NARROWED, ON A DEFAULT RUN. The negative-control variables must be off, or
     // the run is a control run and its green means nothing.
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
