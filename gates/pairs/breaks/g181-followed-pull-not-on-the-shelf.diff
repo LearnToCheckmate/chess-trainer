@@ -1,0 +1,10 @@
+diff --git a/chess.jsx b/chess.jsx
+index 44c2bd70..b73dd02c 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5579,5 +5579,4 @@ function AppMain(){
+       case 'ct_sound':setSoundOn(v!=='0');break;
+       case 'ct_bot':if(v)setSelBot(v);break;
+-      case 'ct_followbril':if(Array.isArray(o))setFollowBril(o.filter(x=>x&&x.fen&&x.uci));break;   // batch 14: the library's followed shelf reads them at once
+       case 'ct_coachgames':if(Array.isArray(o))setCoachSaved(o.filter(x=>x&&x.id&&typeof x.pgn==='string'));break;   // batch 13 q14: More > Saved coach games lists them at once
+       default:break;}};

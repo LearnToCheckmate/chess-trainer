@@ -1,11 +1,11 @@
 {
  "job": "brilliancy-library-and-motif-coverage-2026-09-23",
- "about": "The Brilliant library's famous-games shelf and the kinds that read the line (batch 13, the remainder of the job: seeding source 3 and the engine-line motifs). Gate 168 is run whole (about 3 minutes a try) and every TC-R233 line is graded: the node lines (the table is the generated one, every row a legal sacrifice the app's own engine graded Brilliant, the line rules pinned to named games) and the screen lines at his phone 375x761 and at 320x568 (the one-kind player's tile opens the library; the coverage line; the shelf's chips, the kinds he has not played first; the shelf scrolled with the Practice button still on screen; one chooser of three kinds; a famous deck started, its first card named and solved; a deck of his cards and famous ones; no famous move offered twice; the switch off). NOT COVERED, said rather than implied: what was built at batch 10 (the played and missed shelves: gate 118, TC-R197); the engine search that graded the 1211 plies is a recorded measurement (gates/fixtures/brilliancy-classics-measured.json), not re-run by the gate, so a wrong record is invisible here; no laptop width and no skin is a situation; zwischenzug and desperado are not tagged at all; seeding sources 1 (followed players) and 2 (the Lichess set) are not built. BATCH 13, HIS DESK ANSWERS q2 AND q4 (19 Nov 2026), graded by gate 181, run after gate 168 in the same try (cmd; the try fails if either gate fails): q2 the Brilliant tile for everyone - a player with no card of his own sees 'Famous brilliant moves', it opens the famous shelf and its drill, it is one compact row at the top of the games box when his games are listed (the fixed Review page still does not scroll), it reads 'Your brilliant moves' once a card is his, and with the library off there is none; q4 the shelf of the players he follows - followBrilCards over the Opera Game keeps the followed player's moves only, every card sentence the app can write reads in his name with no 'you', the store's merge, one shelf labelled by the player for an account still followed and marked not his, its kind chip, its drill header and goal naming him, the card solved, nothing written to his own list; and at kunal761 a real review of a followed account's game storing that player's Brilliant moves with the refutation line. NOT COVERED: the account refresh that fetches a followed player's new games does not review them, so his shelf grows only with the games Kunal opens; a laptop width; ct_followbril is not synced between devices.",
+ "about": "The Brilliant library's famous-games shelf and the kinds that read the line (batch 13, the remainder of the job: seeding source 3 and the engine-line motifs). Gate 168 is run whole (about 3 minutes a try) and every TC-R233 line is graded: the node lines (the table is the generated one, every row a legal sacrifice the app's own engine graded Brilliant, the line rules pinned to named games) and the screen lines at his phone 375x761 and at 320x568 (the one-kind player's tile opens the library; the coverage line; the shelf's chips, the kinds he has not played first; the shelf scrolled with the Practice button still on screen; one chooser of three kinds; a famous deck started, its first card named and solved; a deck of his cards and famous ones; no famous move offered twice; the switch off). NOT COVERED, said rather than implied: what was built at batch 10 (the played and missed shelves: gate 118, TC-R197); the engine search that graded the 1211 plies is a recorded measurement (gates/fixtures/brilliancy-classics-measured.json), not re-run by the gate, so a wrong record is invisible here; no laptop width and no skin is a situation; zwischenzug and desperado are not tagged at all; seeding sources 1 (followed players) and 2 (the Lichess set) are not built. BATCH 13, HIS DESK ANSWERS q2 AND q4 (19 Nov 2026), graded by gate 181, run after gate 168 in the same try (cmd; the try fails if either gate fails): q2 the Brilliant tile for everyone - a player with no card of his own sees 'Famous brilliant moves', it opens the famous shelf and its drill, it is one compact row at the top of the games box when his games are listed (the fixed Review page still does not scroll), it reads 'Your brilliant moves' once a card is his, and with the library off there is none; q4 the shelf of the players he follows - followBrilCards over the Opera Game keeps the followed player's moves only, every card sentence the app can write reads in his name with no 'you', the store's merge, one shelf labelled by the player for an account still followed and marked not his, its kind chip, its drill header and goal naming him, the card solved, nothing written to his own list; and at kunal761 a real review of a followed account's game storing that player's Brilliant moves with the refutation line. NOT COVERED: the account refresh that fetches a followed player's new games does not review them, so his shelf grows only with the games Kunal opens; a laptop width; ct_followbril is not synced between devices. BATCH 14 (remainingToClose_b14 item 2, its sync half), also graded by gate 181: the followed players' store ct_followbril follows the account - node TC-R250l runs the shipped syncMerge (a union card by card keyed by position and move, a tombstone removes, capped at 160); TC-R250m/n sign two devices in to one stubbed account at both sizes (device 1 backs its card up, device 2 keeps both, its library shelf counts both with no reload, its next backup carries both). STILL NOT COVERED: the account refresh does not review a followed player's new games (a background engine review, which jobs/precompute-reviews-while-the-app-is-open-2026-09-23 records as needing engine timing on his phone); the real Firestore round trip.",
  "gate": "gates/regress/181-brilliant-tile-for-everyone-and-followed-shelf.js",
  "env": {},
  "checks": [
   "TC-R233[a-n] ",
-  "TC-R250[a-k] "
+  "TC-R250[a-n] "
  ],
  "build": "auto",
  "situations": [
@@ -75,6 +75,32 @@
    "why": "q4's card sentence is left in the second person, so a followed player's sacrifice reads 'You gave up the bishop' - another player's move presented as his",
    "mustFailIn": [
     "node",
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "followed-store-not-synced",
+   "patch": "breaks/g181-followed-store-not-synced.diff",
+   "why": "batch 14 undone: ct_followbril is out of SYNC_KEYS, so the followed players' Brilliant moves stay on the device that kept them and a second device's shelf never has them",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "followed-sync-id-is-the-position",
+   "patch": "breaks/g181-followed-sync-id-is-the-position.diff",
+   "why": "the account merge keys a followed card by its position alone, so two cards from one position with different moves collapse into one when the devices merge and a move is lost",
+   "mustFailIn": [
+    "node"
+   ]
+  },
+  {
+   "name": "followed-pull-not-on-the-shelf",
+   "patch": "breaks/g181-followed-pull-not-on-the-shelf.diff",
+   "why": "the pull writes ct_followbril to the device but not to the running app, so the shelf shows only the device's own moves until a reload",
+   "mustFailIn": [
     "kunal761",
     "se 320x568"
    ]
