@@ -1,6 +1,6 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -12873,7 +12873,7 @@
+@@ -13150,7 +13150,7 @@
            </div>
            {/* batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16: GAMES IN PROGRESS, developer only
                (liveOn). A game one of his accounts plays in opens live like any other since his 19 Nov answer; with LIVE_OWN_GAMES_WAIT on it says its review opens when the game ends (liveReviewWaits). */}
@@ -9,10 +9,10 @@
                sits here as it did; with games it is the top of the games box (below), so it never squeezes that box */}
            {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (1), his answer of 18 Nov 2026 ("Own section"): YOUR GAMES IS ITS
                OWN SECTION right under the Import box, not a part of it, so the cards use the full content width. */}
-@@ -13356,7 +13356,6 @@
-               <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
-               
-               {_gfIn&&_gfPanel}
+@@ -13631,7 +13631,6 @@
+                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
+                   is: it was already the right assertion, and this build does not touch it. */}
+               <div ref={glistRef} data-ct="glist-box" style={{display:'flex',flexDirection:'column',gap:10}}>{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
 -              {liveOn&&liveSecEl()}{/* batch 14: the games in progress, at the top of the games box (liveSecEl) */}
                {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
                    2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.

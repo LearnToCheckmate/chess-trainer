@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13630,7 +13630,7 @@
+                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
+                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
+                   is: it was already the right assertion, and this build does not touch it. */}
+-              <div ref={glistRef} data-ct="glist-box" style={{display:'flex',flexDirection:'column',gap:10}}>{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
++              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:'min(46vh,340px)',overflowY:'auto'}}>{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
+               {liveOn&&liveSecEl()}{/* batch 14: the games in progress, at the top of the games box (liveSecEl) */}
+               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
+                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.

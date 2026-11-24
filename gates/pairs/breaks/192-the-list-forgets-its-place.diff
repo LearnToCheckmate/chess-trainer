@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7144,7 +7144,7 @@
+      replaces it, as it was when the list could not scroll. */
+   const glistUp=mode==='analyze'&&review===null&&!homeScreen;const glistPlaceRef=useRef(0);
+   useLayoutEffect(()=>{if(!glistUp)return;const root=document.getElementById('root');if(!root)return;
+-    root.scrollTop=glistPlaceRef.current||0;const on=()=>{const g=glistRef.current;if(g&&g.isConnected&&g.getBoundingClientRect().height>0)glistPlaceRef.current=root.scrollTop;};   /* only while the games box is laid out: opening a game swaps the list for its loading screen first, and the clamp to that page's height is not his place */root.addEventListener('scroll',on,{passive:true});
++    const on=()=>{const g=glistRef.current;if(g&&g.isConnected&&g.getBoundingClientRect().height>0)glistPlaceRef.current=root.scrollTop;};   /* only while the games box is laid out: opening a game swaps the list for its loading screen first, and the clamp to that page's height is not his place */root.addEventListener('scroll',on,{passive:true});
+     return ()=>{root.removeEventListener('scroll',on);root.scrollTop=0;};},[glistUp]);
+   const lessonSide=wide&&mode==='learn'&&openIdx!==null;   /* #550 BSA-L-03 (job lesson-sideways-board-full-height-2026-11-12): a sideways lesson - the board takes the full height, its footer sits under the right-hand column only */   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
+   const sideFull=landPlay||pzRail||landRev||landOn||tacRail||lessonSide;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */

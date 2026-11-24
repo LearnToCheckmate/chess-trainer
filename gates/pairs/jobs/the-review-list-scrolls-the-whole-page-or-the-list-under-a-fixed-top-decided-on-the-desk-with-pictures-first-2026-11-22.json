@@ -1,0 +1,54 @@
+{
+ "job": "the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22",
+ "about": "Kunal's card-69 pick 'whole-page': the Review list scrolls as one page inside #root, the games box is no scroller of its own, Your games stays right under Import, the end of the list and the more-games button are reached by scrolling the page and the page comes back to where it started, the Filter chips open above the Player name box at every size, and the list keeps its place across a review. Graded by gate 192 (TC-R310..317) with his 465 stored games at 375x761 with his insets, 320x568 and 844x390 (a phone turned). NOT COVERED: his look at the page on his phone (close condition 4); the Desk card's pictures (the card was answered before this build); Q25-v2.png (not in the repository; see the job record).",
+ "gate": "gates/regress/192-review-list-page-scrolls.js",
+ "checks": [
+  "TC-R31[0-7] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  },
+  {
+   "name": "sideways 844x390",
+   "match": "^844x390 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-games-box-scrolls-again",
+   "patch": "breaks/192-the-games-box-scrolls-again.diff",
+   "why": "the games box is a scroller of its own again (min(46vh,340px), overflow-y auto) inside the page - the list under a fixed top he did not pick",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568",
+    "sideways 844x390"
+   ]
+  },
+  {
+   "name": "short-phone-chips-inside-the-box",
+   "patch": "breaks/192-short-phone-chips-inside-the-box.diff",
+   "why": "on a short upright phone the Filter chips open inside the games box, under the Player name box, as #550 q45 had them for the fixed page",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-list-forgets-its-place",
+   "patch": "breaks/192-the-list-forgets-its-place.diff",
+   "why": "the list does not put #root back at its place when it comes up again, so coming back from a review it opens at the top, not where he left it",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568",
+    "sideways 844x390"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}
