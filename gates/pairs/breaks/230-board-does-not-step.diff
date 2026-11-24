@@ -1,6 +1,6 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -8608,7 +8608,7 @@
+@@ -8614,7 +8614,7 @@
          let _anaQ=Promise.resolve();
          const _onAna=(fn)=>{const p=_anaQ.then(fn,fn);_anaQ=p.catch(()=>{});return p;};
          const _fen=(i)=>toFEN(res.positions[i]);
@@ -9,7 +9,7 @@
          const _group=async(ev,g0,g1)=>{
            for(let a=0;a<2;a++){if(a){_eng.retried++;await new Promise(r=>setTimeout(r,800));}const rs=await _try(ev,g0,g1,false);if(rs)return rs;}
            for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>_ev1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
-@@ -8623,7 +8623,7 @@
+@@ -8629,7 +8629,7 @@
          const _part=_eng.abandoned?{}:anaPartGet(_ck);const _hasG=(g0,g1)=>{for(let i=g0;i<=g1;i++)if(!_part[i]||!_part[i].ok)return false;return true;};
          const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const _was=_hasG(g,g1);const rs=_was?Array.from({length:g1-g+1},(_,j)=>_part[g+j]):await _group(ev,g,g1);if(_anaStop.on)return;/* A3-5: nothing a stopped run computed reaches the store or the progress ring */for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}
            if(!_was&&!_deep&&!_grow){const _kp={};for(let i=g;i<=g1;i++)_kp[i]=rs[i-g];anaPartPut(_ck,_kp);}

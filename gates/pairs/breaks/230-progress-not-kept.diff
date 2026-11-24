@@ -1,6 +1,6 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -10811,7 +10811,7 @@
+@@ -10817,7 +10817,7 @@
    const ANA_PART_MAX=3;
    const anaPartAll=()=>{try{return JSON.parse(localStorage.getItem('ct_anapart')||'{}')||{};}catch(e){return {};}};
    const anaPartGet=(k)=>{const v=anaPartAll()[k];return (v&&v.r)?v.r:{};};

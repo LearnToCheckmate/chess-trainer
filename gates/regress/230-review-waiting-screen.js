@@ -17,7 +17,7 @@
 //          (data-ply and the squares' occupancy both change), and the strip [data-ct=ana-strip-fill] grows.
 //  TC-R387 the words: "Analyzing move K of 33 · P%" (K and P rising), "Quick review · " then a time ("in all" or "left"), and the
 //          words "a few seconds" are nowhere on the screen.
-//  TC-R388 the box says "Keep the app open" and that the phone pauses the review; today's puzzle is offered with a Try it of 44px or
+//  TC-R388 the box says "Keep the app open" and that the review waits where it stopped if he leaves (card 75 option 3's words); today's puzzle is offered with a Try it of 44px or
 //          more; Stop is reachable by scrolling the page's own scroller (at 320x568 it is below the fold).
 //  TC-R389 Stop asks once (Stop review / Keep going); Keep going leaves the review running (the percentage rises after it); Stop review
 //          goes straight to the games list (the Analyze button is back within 1s) and no review summary arrives after it.
@@ -45,7 +45,7 @@ L.run(async()=>{
     const seen=[];let s=null;const t0=Date.now();
     while(Date.now()-t0<60000){s=await st(b);if(s.on&&s.n===64)seen.push(s);if(s.on&&(pctOf(s.prog)||0)>=30)break;if(s.summary)break;await b.page.waitForTimeout(300);}
     const plies=new Set(seen.map(x=>x.ply)),occs=new Set(seen.map(x=>x.occ));
-    L.say(seen.length>0&&seen.every(x=>x.n===64&&x.bw>=150),P+'TC-R386 DENOMINATOR the waiting screen paints an 8x8 board ('+(seen[0]?seen[0].bw:0)+'px, '+seen.length+' readings)',{n:seen.length});
+    L.say(seen.length>0&&seen.every(x=>x.n===64&&x.bw>=112),P+'TC-R386 DENOMINATOR the waiting screen paints an 8x8 board, at least 112px, its floor ('+(seen[0]?seen[0].bw:0)+'px, '+seen.length+' readings)',{n:seen.length});
     L.say(plies.size>=8&&occs.size>=8,P+'TC-R386 the board steps through the game: '+plies.size+' positions by data-ply, '+occs.size+' by the squares',{plies:[...plies]});
     const f0=seen.length?seen[0].fill:0,f1=seen.length?seen[seen.length-1].fill:0;
     L.say(f1>f0+5,P+'TC-R386 the progress strip grows ('+f0.toFixed(1)+' -> '+f1.toFixed(1)+'px)',{f0,f1});
@@ -57,7 +57,7 @@ L.run(async()=>{
     L.say(seen.length>0&&seen.every(x=>!/few seconds/i.test(x.body)),P+'TC-R387 "a few seconds" is nowhere on the waiting screen');
     const box=await b.page.evaluate(()=>{const k=document.querySelector('[data-ct="ana-keep-open"]');const t=document.querySelector('[data-ct="ana-suggest-title"]');const tr=document.querySelector('[data-ct="ana-suggest-try"]');
       return {keep:k?k.innerText:'',sug:t?t.textContent:'',tryH:tr?tr.getBoundingClientRect().height:0,tryT:tr?tr.textContent:''};});
-    L.say(/^Keep the app open/.test(box.keep)&&/pauses the review when you leave the app/.test(box.keep),P+'TC-R388 the box says to keep the app open and why',{keep:box.keep});
+    L.say(/^Keep the app open/.test(box.keep)&&/The review waits where it stopped if you leave\./.test(box.keep),P+'TC-R388 the box says to keep the app open and why',{keep:box.keep});
     L.say(/^(Today's puzzle: \d of 5|Puzzle goal done today)$/.test(box.sug)&&box.tryT==='Try it'&&box.tryH>=44,P+'TC-R388 today\'s puzzle is offered: "'+box.sug+'", Try it '+box.tryH+'px',box);
     // Stop is reached by scrolling the nearest finger-scrollable ancestor, then it must sit above the tab bar
     const reach=await b.page.evaluate(async()=>{const el=document.querySelector('[data-ct="ana-stop"]');if(!el)return {ok:false,why:'no stop'};let a=el.parentElement;

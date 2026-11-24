@@ -6459,7 +6459,7 @@ function AppMain(){
   const [anaTick,setAnaTick]=useState(0);
   /* #553: the waiting screen's board takes the height the rest of the screen leaves (measured before paint, once per review and per window
      size, so it never changes size while he watches): everything fits above the tab bar at every size down to 320x568. */
-  const anaWaitRef=useRef(null);const [anaBs,setAnaBs]=useState(0);
+  const anaWaitRef=useRef(null);const [anaBs,setAnaBs]=useState(0);const anaFitRef=useRef(null);
   /* #553: Stop review (his "cross out of it", 23 Nov 2026): the running review stops at once - its workers closed, nothing it computed after
      this reaches the screen - and he is back on the games list; the groups it finished are kept (anaPart), so the same review started again
      picks up where it stopped. */
@@ -6721,14 +6721,20 @@ function AppMain(){
   const gameRef=useRef(game); gameRef.current=game;
   const flipRef=useRef(flip); flipRef.current=flip;
   const modeRef=useRef(mode); modeRef.current=mode;
-  useEffect(()=>{if(mode==='analyze'&&!homeScreen)setRevReady(null);},[mode,homeScreen]);
+  useEffect(()=>{if(mode==='analyze'&&!homeScreen)setRevReady(null);},[mode,homeScreen]);   /* #553: the ready banner goes once he is on Review (opened it himself or by its Open) */
   useLayoutEffect(()=>{if(!analyzing||mode!=='analyze'||homeScreen)return;const el=anaWaitRef.current;if(!el)return;const bd=el.querySelector('[data-ct="ana-board"]');if(!bd)return;   /* #553: see anaBs */
     const tb=document.querySelector('[data-ct="tabbar"]');const rt=document.getElementById('root');const lim=(tb&&!tb.dataset.side)?tb.getBoundingClientRect().top:window.innerHeight;
     const r=el.getBoundingClientRect();const cur=bd.getBoundingClientRect().height;const sy=rt?rt.scrollTop:0;
-    /* the page's own end too (the column under the panel carries the tab bar's room): its bottom-most laid-out box must end inside the window */
-    let fb=0;const walk=(e,d)=>{for(const c of e.children){const cs=getComputedStyle(c);if(cs.position==='fixed'||cs.position==='absolute')continue;const q=c.getBoundingClientRect();if(q.height>0)fb=Math.max(fb,q.bottom);if(d<4)walk(c,d+1);}};if(rt)walk(rt,0);
-    const slack=Math.min(lim-8-(r.bottom+sy),window.innerHeight-((fb||r.bottom)+sy));   /* in page terms: a list scrolled down before the tap does not count as room */
-    const want=Math.floor(Math.max(112,cur+slack));if(Math.abs(want-cur)>1)setAnaBs(want);},[analyzing,mode,homeScreen,vp.w,vp.h,anaFail]);   /* #553: the ready banner goes once he is on Review (opened it himself or by its Open) */
+    /* the room is the smaller of two, in page terms so a list scrolled down before the tap does not count: between the panel's end and
+       the tab bar (8px kept), and between the end of what the page lays out after the panel (the column's room for the tab bar) and the
+       window's bottom - the boxes that hold the panel are left out of the second, since they are as tall as the window by design. The column
+       can move the panel as it grows, so the fit takes up to four passes, all before paint, and stops once the room is within 2px; it starts
+       again only for a new review or a new window size. */
+    let fb=0;const walk=(e,d)=>{for(const c of e.children){const cs=getComputedStyle(c);if(cs.position==='fixed'||cs.position==='absolute')continue;if(!c.contains(el)){const q=c.getBoundingClientRect();if(q.height>0)fb=Math.max(fb,q.bottom);}if(d<4)walk(c,d+1);}};if(rt)walk(rt,0);
+    let pb=0;for(let a=el.parentElement;a&&a!==rt;a=a.parentElement)pb+=parseFloat(getComputedStyle(a).paddingBottom)||0;   /* the holding boxes' own bottom padding comes after it all */
+    const room=Math.min(lim-8-(r.bottom+sy),window.innerHeight-(Math.max(fb,r.bottom)+pb+sy));const key=[vp.w,vp.h,anaView?anaView.plies.length:0].join('x');
+    const f=anaFitRef.current;const n=(f&&f.key===key)?f.n:0;if(n>=4||Math.abs(room)<=2){anaFitRef.current={key,n:4};return;}anaFitRef.current={key,n:n+1};
+    const want=Math.floor(Math.max(112,cur+room));if(Math.abs(want-cur)>1)setAnaBs(want);},[analyzing,mode,homeScreen,vp.w,vp.h,anaFail,anaBs,anaView]);
   const opponentRef=useRef(opponent); opponentRef.current=opponent;
   const onlineGameRef=useRef(onlineGame); onlineGameRef.current=onlineGame;
   const myColorRef=useRef(myColor); myColorRef.current=myColor;
@@ -13849,13 +13855,19 @@ function AppMain(){
               </div>);})}
           </div>
           <div data-ct="ana-strip" role="progressbar" aria-label="Review progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} style={{width:_bs,height:4,flexShrink:0,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden',marginTop:-5}}><div data-ct="ana-strip-fill" style={{width:Math.max(0,Math.min(100,progress*100))+'%',height:'100%',background:'var(--ac)',transition:'width .3s ease'}}/></div>
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,textAlign:'center'}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,textAlign:'center',width:'100%'}}>
             <div data-ct="ana-progress" style={{fontSize:'clamp(15px,3.9vw,17px)',color:'#fff',fontWeight:800}}>{anaLoadAt?('Loading the Stockfish engine… '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):(N?('Analyzing move '+_k+' of '+N+' · '+pct+'%'):('Analyzing your game · '+pct+'%'))}</div>
-            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,3.4vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600,lineHeight:1.35,maxWidth:340}}>{anaLoadAt?'The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.':(LV.name+' review · '+_leftTxt) /* #550 TXT-37: engine internals out; #553: the real time, never "a few seconds" */}</div>
+            {/* #553: the loading sentence and the time line share one cell as tall as the taller of the two, so the screen keeps its height
+                when the engine answers (the row that can change reserves its space; the board is fitted once and never moves) */}
+            {(()=>{const _lt='The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.';const _tt=LV.name+' review · '+_leftTxt;const _st={gridArea:'1 / 1',fontSize:'clamp(13.5px,3.4vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600,lineHeight:1.35};return(
+            <div style={{display:'grid',justifyItems:'center',width:'100%'}}>
+              <div data-ct="ana-engines" style={_st}>{anaLoadAt?_lt:_tt /* #550 TXT-37: engine internals out; #553: the real time, never "a few seconds" */}</div>
+              <div aria-hidden="true" style={{..._st,visibility:'hidden'}}>{anaLoadAt?_tt:_lt}</div>
+            </div>);})()}
           </div>
           <div data-ct="ana-keep-open" style={{width:'100%',boxSizing:'border-box',background:'rgba(240,162,78,.12)',border:'1px solid rgba(240,162,78,.55)',borderRadius:12,padding:'8px 12px',textAlign:'left'}}>
             <div style={{fontSize:'clamp(14px,3.6vw,15px)',fontWeight:800,color:'#f3c27a'}}>Keep the app open</div>
-            <div style={{fontSize:'clamp(13px,3.3vw,13.5px)',color:'rgba(255,255,255,.8)',fontWeight:600,lineHeight:1.35}}>Your phone pauses the review when you leave the app. It picks up where it stopped when you come back, and you can use the rest of the app while it runs.</div>
+            <div style={{fontSize:'clamp(13px,3.3vw,13.5px)',color:'rgba(255,255,255,.8)',fontWeight:600,lineHeight:1.35}}>The review waits where it stopped if you leave.</div>
           </div>
           {_pz&&<div data-ct="ana-suggest" style={{width:'100%',display:'flex',flexDirection:'column',gap:4}}>
             <div style={{fontSize:12,fontWeight:800,letterSpacing:.6,color:'rgba(255,255,255,.55)'}}>WHILE YOU WAIT, FROM TODAY'S STREAK</div>
