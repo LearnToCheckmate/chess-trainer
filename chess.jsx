@@ -1660,17 +1660,22 @@ function replyWhy(g2,r,sc,base){
     /* #550 helper B, jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13: a reply that gives check is described by
        the check first - "a forking check", "winning the knight with check", "a check" - and never by what it hits behind the check. */
     const chk=getStatus(g3)==='check';
-    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+(chk?', a forking check':', a fork');if(sh===' is a discovered check')return 'allows '+s+', a discovered check';
-    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');
+    const cap=g2.board[r.tr]&&g2.board[r.tr][r.tc];
+    /* #553 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13 (checker GAP, 15 Nov): the fork test ran BEFORE the
+       capture was looked at, so Qxg5 taking a knight read "allows Qxg5, a fork". A reply that takes a minor piece or more, or trades even,
+       names the capture first and the fork after it ("taking your knight, a fork"); a pawn capture keeps its fork wording. */
+    let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
+      if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
+      else if(cv>=3)capW='taking your '+PNAME[cap.t];}
+    const sh=whyShape(g2,r,null);if(sh===' forks two pieces')return 'allows '+s+', '+(capW?(capW+(chk?' with a forking check':', a fork')):(chk?'a forking check':'a fork'));if(sh===' is a discovered check')return 'allows '+s+', '+(capW?capW+', ':'')+'a discovered check';
+    if(sh===' wins material'&&cap&&(SEEVAL[cap.t]||0)>=3)return 'allows '+s+', winning the '+PNAME[cap.t]+(chk?' with check':'');
     let gist='';try{const gi=moveGist(g2,r);gist=((gi&&gi.did)||[]).find(x=>/^(hits|chases|pins) /.test(x))||'';}catch(e){gist='';}
     /* #550 jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13: on r4rk1/np6/3pNq1Q/p2p4/2bP4/2P5/3B1PPP/R3R1K1 w
        after 1.h3 the line read "allows Qxh6, which hits the bishop on d2" - Qxh6 TAKES WHITE'S QUEEN and Bxh6 takes back, so the side effect was
        named and the capture was not. A reply that captures is now described by its capture: an even trade (same value, and the mover can take
        back on that square) reads "trading queens" and is never called a threat; a capture of a minor piece or more reads "taking your knight".
        A pawn capture keeps no phrase (a pawn won is not named, as B4). The threat gist is used only for a reply that captures nothing. */
-    let capW='';if(cap){const mp=g2.board[r.fr][r.fc];const cv=SEEVAL[cap.t]||0,mv=mp?(SEEVAL[mp.t]||0):0;let back=false;try{back=getLegal(g3).some(m=>m&&m.tr===r.tr&&m.tc===r.tc);}catch(e){back=false;}
-      if(mp&&back&&cv===mv&&cv>=1)capW=cap.t===mp.t?('trading '+PNAME[cap.t]+'s'):('trading its '+PNAME[mp.t]+' for your '+PNAME[cap.t]);
-      else if(cv>=3)capW='taking your '+PNAME[cap.t];gist='';}
+    if(cap)gist='';
     if(chk){if(capW)capW+=' with check';else if(!cap&&gist)capW='a check that '+gist;gist='';}   /* a pawn taken with check keeps no phrase (B1, B7): its SAN already says both */
     let band='';
     if(sc&&typeof sc.cp==='number'&&(sc.mate==null)){const v=-sc.cp/100;

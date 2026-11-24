@@ -2758,3 +2758,10 @@ As a player looking at the Review's evaluation graph, I can see and tap the mark
 As a player reviewing a game in which none of my moves was graded (every move was opening book), the speech bubble on the summary says my moves were all book and that none was graded, and never sends me to key moments that are not there or calls the game accurate, whether I lost, won or drew.
 - Lost: "A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game." (batch 13, TC-R251c). Won or drawn: the same sentence without "A tough one." (TC-R301)
 - A game with a graded move never reads this way. A book move graded Mistake, Blunder or Miss ends the book, so only a game of sound book moves is a book-only game. (TC-R301)
+### US-R212 A wrong move's reason names what the reply captures or checks before anything else
+*Added in batch 14 (#553), jobs/drill-reply-description-leads-with-a-side-effect-not-the-capture-2026-11-13 and jobs/drill-reply-capture-with-check-described-by-its-side-effect-2026-11-13. Checker GAP, 15 Nov: "allows Qxg5, a fork" for a queen taking a knight. Amber: flags/amber-553-drill-reply-capture-before-fork.*
+As a player who played a wrong move in the Mistakes drill or on Puzzles, the reason that describes the opponent's reply says what the reply takes, and that it gives check, before it says what else the reply threatens.
+- A reply that takes a knight or more, or trades even, reads "taking your knight, a fork" / "taking your knight with a forking check" / "trading queens, a fork"; a pawn capture keeps its fork wording. (TC-R302)
+- A reply that gives check with a side-effect clause says "check". (TC-R303)
+- Every capture phrase names the piece really taken, and "check" is said only of a check. (TC-R304)
+- The drill's "lets them ..." line describes a capture, a check, or a capture with check by exactly that, and a quiet reply by "get away" or "guard". (TC-R305)
