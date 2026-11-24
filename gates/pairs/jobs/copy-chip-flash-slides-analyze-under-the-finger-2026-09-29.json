@@ -1,0 +1,20 @@
+{
+ "job": "copy-chip-flash-slides-analyze-under-the-finger-2026-09-29",
+ "about": "BATCH 14 B2, the part of this job the 15 Nov check found not addressed: its folded job moves-chip-padding-band-covers-the-move-list-2026-09-29. The MOVES row's Analyze and Copy keep a 44x44 tap box around a 22px chip, stacked above the page, and its lower 10.5px lay over the move list, so a tap on a move (Kh8 at 320x568 on an endgame lesson's demo end) opened the analysis board. The list is now stacked above the two boxes: no point of a move token or of the list's visible box hits either button, and each button still answers over its whole chip and all of its box above the list. Graded by gate 231 on a trial bundle at kunal761 (375x761, ct_safe 51,31) on a lesson's demo end and at 320x568 on the first endgame lesson's demo end. The title's own defect (the Copy flash moving Analyze) was fixed by #547 and kept by #550 and is guarded by gate 48's TC-LS-040 and gate 109, not here. NOT COVERED: the puzzle, analysis-board and online-game surfaces that render the same row (the same list and buttons, not driven here), a real finger, his look on the phone.",
+ "gate": "gates/regress/231-moves-chips-leave-the-move-list.js",
+ "checks": ["TC-R39[2-4]"],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31), lesson demo end", "match": "^375x761 "},
+  {"name": "320x568, endgame lesson demo end", "match": "^320x568 "}
+ ],
+ "breaks": [
+  {"name": "the-list-under-the-chips", "patch": "breaks/231-the-list-under-the-chips.diff",
+   "why": "the list loses its stacking, so the tap boxes' lower band covers the first line of moves again (the defect)", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31), lesson demo end", "320x568, endgame lesson demo end"]},
+  {"name": "the-chips-raised-above-the-list", "patch": "breaks/231-the-chips-raised-above-the-list.diff",
+   "why": "the two buttons are raised above the list (zIndex 3), which takes the list's first line back the other way", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31), lesson demo end", "320x568, endgame lesson demo end"]},
+  {"name": "the-list-rises-into-the-chips", "patch": "breaks/231-the-list-rises-into-the-chips.diff",
+   "why": "an overreaching fix: the list moved up 12px over the chips, so part of each painted chip answers as the list", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31), lesson demo end", "320x568, endgame lesson demo end"]}
+ ],
+ "timeoutSec": 1800
+}

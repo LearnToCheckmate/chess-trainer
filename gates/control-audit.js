@@ -512,7 +512,7 @@ function selftest() {
     //     record for a gate the log does not carry, which without the guard reads NO-LOG - a different verdict, not a refusal.
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /total=0 - a record that ran nothing controls nothing/.test(r.out) && r.rc === 1, '(7b) a record with total=0 reads BAD-RECORD at exit 1, refused by the total>0 guard itself (its own fault text)');
     r = capture(() => report(audit(root, parseLog('=== 99-other ===\n  99-other: green (5 PASS)\n')), 'selftest-7d'));
-    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /a record that ran nothing controls nothing/.test(r.out) && /^--- NO-LOG \(0\) ---$/m.test(r.out), '(7d) a total=0 record on a gate the log does not carry is BAD-RECORD (the total>0 guard), not NO-LOG');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /a record that ran nothing controls nothing/.test(r.out) && /^--- NO-LOG \(0\) ---$/m.test(r.out) && r.rc === 1, '(7d) a total=0 record on a gate the log does not carry is BAD-RECORD (the total>0 guard), not NO-LOG, at exit 1 (#553: the exit code asserted, the nit of 13 Nov)');
     write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=4 red=1 scope=full how=one iteration flipped', LOOP]); commit('full-scope mismatch');
     r = run(5, 'selftest-7c');
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /full-scope total=4 but the log says this gate runs 5/.test(r.out) && r.rc === 1, '(7c) a full-scope total of 4 against a log of 5 reads BAD-RECORD at exit 1');
