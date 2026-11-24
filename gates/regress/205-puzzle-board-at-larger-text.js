@@ -15,6 +15,8 @@
 // CONTROL: the fit loop skipped for the puzzle screens, or never reading any overflow - (d) red at 320x568 x2.4 (the other two geometries still fit by
 // the loop's own floor, so they are not asked to go red). Two breaks that LOOKED like controls were BLIND and are not shipped: leaving pzStackH unmeasured and
 // dropping it from the height cap (the board is trimmed by the fit loop, not by that cap, at these sizes - measured).
+// CONTROL-RECORD: bf564d17 2026-11-24 total=61 red=1 scope=trial:5f5224a6ee40 how=#553 batch 14, the fit loop skipped for the puzzle screens (_fitScreen without the puzzle term): TC-R319d red at se x2.4 (#root 596 in a 568 box), every other line green; the real tree's trial 86d17430d02c reads 61/0
+// CONTROL-RECORD: bf564d17 2026-11-24 total=61 red=1 scope=trial:0b4b9d1efa9d how=#553 batch 14, the fit loop running but reading zero overflow every pass (const over=0): TC-R319d red at se x2.4, every other line green; the real tree's trial 86d17430d02c reads 61/0
 const L=require('../lib');
 const TS=require('../drive/textscale');
 const Z=require('../drive/puzzles');
