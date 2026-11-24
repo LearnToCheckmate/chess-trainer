@@ -1,11 +1,12 @@
 diff --git a/chess.jsx b/chess.jsx
-index 4bc82e40..f87e2ae6 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -13407,5 +13407,5 @@ function AppMain(){
+@@ -14656,7 +14656,7 @@ function AppMain(){
+           <RowBtn ct="pz-prev" label="Previous puzzle" onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)}><NavTri dir="left"/></RowBtn>
            {!puzSolved&&(<>
-             <button onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>💡 Hint</button>
--            <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}} aria-label="Show move"/* batch 13, jobs/wording-check-2026-11-12: the phone row keeps the short word (measured: '👁 Show move' needs 112.5 of ink at 14px and the three share 196px at 320 wide and 251 at 375, against 268 for the three long labels), so its NAME is the one every other Show button carries */ style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
-+            <button onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}} /* batch 13, jobs/wording-check-2026-11-12: the phone row keeps the short word (measured: '👁 Show move' needs 112.5 of ink at 14px and the three share 196px at 320 wide and 251 at 375, against 268 for the three long labels), so its NAME is the one every other Show button carries */ style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}>👁 Show</button>
-             <button onClick={()=>loadPuzzle(puzIdx)} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),flex:'1 1 0',minWidth:0,padding:'9px 4px',minHeight:44}}><span><IconGlyph g="↺" em={RESET_EM}/>{' '}Reset</span></button>
+             <RowBtn ct="pz-hint" label="Hint" onClick={()=>{const _h=((!wide&&vp.h<700)?(p.motif+(p.level?' \u00b7 '+p.level:'')+': '):'')+pzText(p).hint;/* #550 a42: on a short upright phone the motif and level chips live behind the Hint */setPzHintMsg('💡 '+_h);setPuzMsg('💡 '+_h);}}><RowIcon name="hint"/></RowBtn>
+-            <RowBtn ct="pz-show" label="Show move" onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}}><RowIcon name="show"/></RowBtn>
++            <RowBtn ct="pz-show" onClick={()=>{setPuzReveal(true);pzShownRef.current=true;setPuzMsg('👁 Play '+p.sol[puzStep]+': squares highlighted.');}}><RowIcon name="show"/></RowBtn>
+             <RowBtn ct="pz-reset" label="Reset" onClick={()=>loadPuzzle(puzIdx)}><RowIcon name="reset"/></RowBtn>
            </>)}
+           <RowBtn ct="pz-next" label="Next puzzle" onClick={()=>{if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}}><NavTri dir="right"/></RowBtn>

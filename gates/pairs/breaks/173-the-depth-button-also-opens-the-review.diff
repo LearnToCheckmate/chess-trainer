@@ -1,11 +1,12 @@
 diff --git a/chess.jsx b/chess.jsx
-index 1aef92c0..41e3067d 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -12899,5 +12899,5 @@ function AppMain(){
+@@ -13804,7 +13804,7 @@ function AppMain(){
+                     {/* the depth button: Fetch's look (btn's accent primary, so it follows whatever the primary buttons become), 30px tall inside a 44px tap box
                          (padding cancelled by an equal negative margin, the Filter button's idiom, so row 2 keeps its 30px). */}
-                     <button data-ct="game-depth" data-level={_lv} aria-haspopup="menu" aria-expanded={depthMenu&&depthMenu.key===_k?'true':'false'} aria-label={'Review depth: '+REV_DEPTHS[_lv].name}
+                     <button data-ct="game-depth" data-level={_lv} aria-haspopup="menu" aria-expanded={depthMenu&&depthMenu.key===_k?'true':'false'} data-kept={_kept?'1':'0'} title={_kept?(REV_DEPTHS[_lv].name+' grades kept: '+REV_DEPTHS[_lvPick].name+' was picked, but the deeper review is held'):undefined} aria-label={'Review depth: '+REV_DEPTHS[_lv].name+(_kept?' ('+REV_DEPTHS[_lvPick].name+' was picked; the deeper grades are kept)':'')}
 -                      onClick={e=>{e.stopPropagation();if(depthMenu&&depthMenu.key===_k){setDepthMenu(null);return;}const f=e.currentTarget.firstElementChild||e.currentTarget;const r=f.getBoundingClientRect();const W=Math.min(248,vp.w-16),H=46+44*REV_DEPTHS.length;const left=Math.max(8,Math.min(vp.w-8-W,r.right-W));const below=r.bottom+6+H<=vp.h-8;setDepthMenu({key:_k,g,left,top:below?r.bottom+6:Math.max(8,r.top-6-H),w:W});}}
 +                      onClick={e=>{if(depthMenu&&depthMenu.key===_k){setDepthMenu(null);return;}const f=e.currentTarget.firstElementChild||e.currentTarget;const r=f.getBoundingClientRect();const W=Math.min(248,vp.w-16),H=46+44*REV_DEPTHS.length;const left=Math.max(8,Math.min(vp.w-8-W,r.right-W));const below=r.bottom+6+H<=vp.h-8;setDepthMenu({key:_k,g,left,top:below?r.bottom+6:Math.max(8,r.top-6-H),w:W});}}
                        style={{flexShrink:0,padding:'7px 0',margin:'-7px 0',background:'none',border:'none',cursor:'pointer',position:'relative',zIndex:1}}>
-                       <span data-ct="game-depth-face" style={{...btn('var(--ac)','none','var(--acInk,#0b0d10)'),minHeight:0,height:30,width:_nar?88:100,boxSizing:'border-box',padding:0,borderRadius:9,fontSize:15,fontWeight:800,letterSpacing:0,gap:4}}>{REV_DEPTHS[_lv].name}<span aria-hidden="true">{'▾'}</span></span>
+                       <span data-ct="game-depth-face" style={{...btn('var(--acf)','none','var(--acInk,#0b0d10)'),minHeight:0,height:30,width:_nar?88:100,boxSizing:'border-box',padding:0,borderRadius:9,fontSize:15,fontWeight:800,letterSpacing:0,gap:4}}>{REV_DEPTHS[_lv].name}<span aria-hidden="true">{'▾'}</span></span>
+                     </button>

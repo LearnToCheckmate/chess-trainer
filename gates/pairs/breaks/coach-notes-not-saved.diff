@@ -1,9 +1,10 @@
+diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -8216,7 +8216,7 @@
-     }
-   };
-   const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
+@@ -8951,7 +8951,7 @@ function AppMain(){
+   const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */stopDeep();/* #553: leaving the review stops its deeper pass */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');/* #553 B1 (card 69): no scroll to the Your games line here any more - the list comes back at its own place (glistPlaceRef); with the page
+      scrolling, that scroll moved him to the games line (347px down at 375x761, the top row and its back icon off screen), and on an upright phone
+      it had moved nothing since #550's fixed page */};
 -  const playedPgn=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return null;const _pm=pgnMovesFrom(mvs,opponent==='online'?null:playStartFenRef.current,coachLive?coachNotes:null);let pgn=_pm.text;   /* batch 13: a coach game's notes ride in as comments */   /* #550 item (88): numbered from the set-up position, its FEN in the tags below */
 +  const playedPgn=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return null;const _pm=pgnMovesFrom(mvs,opponent==='online'?null:playStartFenRef.current,null);let pgn=_pm.text;   /* batch 13: a coach game's notes ride in as comments */   /* #550 item (88): numbered from the set-up position, its FEN in the tags below */
      /* #547 item (127), jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29: this PGN carried no tags, so the
