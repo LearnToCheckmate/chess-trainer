@@ -1,0 +1,36 @@
+{
+ "job": "gate-12-clipping-assertion-cannot-fail-while-the-clamp-is-what-cuts-2026-09-30",
+ "about": "Every puzzle hint, as the header DISPLAYS it (with the motif and level prefix on short upright phones, #550 a42), fits the 3 lines the clamp draws: the 14 curated hints and the 876 generated ones (pzText). Graded by gate 12's TC-PZ-04c at its nine geometries; the short phones (320x568, 360x640, 375x667) and his 375x761 are the situations. NOT COVERED: iOS WebKit's text metrics (headless Chromium with gates/fonts.conf); the sideways layout (clamp 2 under 400 tall); his look.",
+ "gate": "gates/regress/12-hint.js",
+ "checks": [
+  "TC-PZ-04c "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "se", "match": "^se: "},
+  {"name": "w360", "match": "^w360: "},
+  {"name": "w375h667", "match": "^w375h667: "},
+  {"name": "kunal761", "match": "^kunal761: "}
+ ],
+ "breaks": [
+  {
+   "name": "the-long-curated-hints-come-back",
+   "patch": "breaks/12-the-long-curated-hints-come-back.diff",
+   "why": "the ten curated hints are back to their long wording, so with the motif and level prefix they need 4 or 5 lines on the short phones and the clamp cuts them - the job's defect",
+   "mustFailIn": ["se", "w360", "w375h667"]
+  },
+  {
+   "name": "the-long-trade-hint-comes-back",
+   "patch": "breaks/12-the-long-trade-hint-comes-back.diff",
+   "why": "the position-read trade hint is back to its long wording, so generated puzzle g6 needs 4 lines at 320",
+   "mustFailIn": ["se"]
+  },
+  {
+   "name": "the-320-hint-font-grows-to-12",
+   "patch": "breaks/12-the-320-hint-font-grows-to-12.diff",
+   "why": "the hint header's font at 320 wide grows from 11 to 12px, so hints that fit at 11 need a fourth line",
+   "mustFailIn": ["se"]
+  }
+ ],
+ "timeoutSec": 1500
+}
