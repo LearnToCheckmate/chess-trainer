@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7d6d2a14..4fd37afa 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1099,7 +1099,7 @@ function artic(w){const t=String(w||'').trim();return (/^[aeiou]/i.test(t)?'an '
+    overlay historically drawn from those two, so these three are exactly the words a drill row can honestly
+    carry. Gate 67 block G renders the card from a seeded store and asserts no painted goal names a PRAISE grade. */
+ const DRILL_GRADES=['Mistake','Blunder','Miss'];
+-function drillGrade(lab){const t=String(lab||'').trim();const i=DRILL_GRADES.findIndex(g=>g.toLowerCase()===t.toLowerCase());return i>=0?DRILL_GRADES[i]:'mistake';}
++function drillGrade(lab){const t=String(lab||'').trim();const i=DRILL_GRADES.findIndex(g=>g.toLowerCase()===t.toLowerCase());return i>=0&&t.toLowerCase()!=='miss'?DRILL_GRADES[i]:'mistake';}
+ /* #494 antagonist B, free fix rather than a residual: the first version matched the admissible set
+    CASE-SENSITIVELY while every other step in this expression lowercases, so a stored 'blunder' would
+    have been DOWNGRADED to 'a mistake' where main got it right - the one input class on which the fix
