@@ -1,0 +1,11 @@
+diff --git a/gates/control-audit.js b/gates/control-audit.js
+index 1febb21c..2b77d7ca 100755
+--- a/gates/control-audit.js
++++ b/gates/control-audit.js
+@@ -256,5 +256,5 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
+         if (!(r.total > 0 && r.total <= now)) { r.fault = (r.scope === 'full' ? 'full-scope' : 'scoped') + ' total=' + r.total + ' is not inside 1..' + now + ' (the log ran a superset of what this record ran, so it runs at least as many)'; faults.push(r); continue; }
+       } else if (r.hold === 'record-grew') {
+-        if (r.scope === 'full' && !(r.total > now)) { r.fault = 'full-scope total=' + r.total + ' is a STALE TOTAL: the gate grew after the log (which runs ' + now + ') and this record ran the grown set, so its total must exceed ' + now; faults.push(r); continue; }
++        if (r.scope === 'full' && !(r.total >= now)) { r.fault = 'full-scope total=' + r.total + ' is a STALE TOTAL: the gate grew after the log (which runs ' + now + ') and this record ran the grown set, so its total must exceed ' + now; faults.push(r); continue; }
+       } else if (r.hold === 'unheld') {
+         r.unheld = true;   // positive, red<=total and the assertion match were all checked above; the log can judge nothing more

@@ -1,0 +1,11 @@
+diff --git a/gates/control-audit.js b/gates/control-audit.js
+index 1febb21c..2da6c4ae 100755
+--- a/gates/control-audit.js
++++ b/gates/control-audit.js
+@@ -137,5 +137,5 @@ function parseLog(logText) {
+   // way every log was before #553: its count is the count, exactly. See holdTo() in audit().
+   const rm = logText.match(/^ref: HEAD ([0-9a-f]{40})\b/m);
+-  const logSha = rm ? rm[1] : null;
++  const logSha = null;
+   let cur = null;
+   for (const line of logText.split('\n')) {

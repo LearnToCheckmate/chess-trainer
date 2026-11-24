@@ -1,0 +1,18 @@
+{
+ "job": "control-audit-holds-a-record-only-to-a-log-carrying-the-gates-current-assertion-set-2026-11-20",
+ "about": "gates/control-audit.js holds a CONTROL-RECORD's total to the cited log's count only where that log ran the record's count set (the gate's L.say lines, plus files a CONTROL-COUNT-INPUT line declares), compared at the record's sha and the log's ref: HEAD sha: exact when equal, 1..count when the log ran more, above the count when the gate grew after the log (a total at it is a STALE TOTAL), HELD TO NO LOG when neither. Graded by gates/pairs/checks/control-audit-holds.sh (node only, no browser, so no phone geometry applies): situation 'fixture arms' is the script's own --selftest arms (8) to (10) in scratch repositories, (10) being the same arms rerun with the hold defanged; situation 'real records' is the audit over this tree's records and newest accepted gatelog - gate 81 COVERED with all six records sound, gate 147 COVERED while its records c8fd052 (assertions changed since) and 34a4a6d (8-hex trial scope) still fault. NOT COVERED: fastgate-drive and records-gate.sh --checks as wholes (run by hand, see the commit), and a full suite.",
+ "gate": "gates/control-audit.js",
+ "cmd": ["bash", "gates/pairs/checks/control-audit-holds.sh"],
+ "checks": ["^ARM \\((8|9|10)[a-zL]?\\) ", "^REAL "],
+ "build": "never",
+ "situations": [
+  {"name": "fixture arms", "match": "^ARM "},
+  {"name": "real records", "match": "^REAL "}
+ ],
+ "breaks": [
+  {"name": "hold-ignores-the-logs-gated-sha", "patch": "breaks/ca-hold-ignores-the-logs-gated-sha.diff", "why": "parseLog no longer reads the log's ref: HEAD line, so every record is held to the newest log's count exactly again - the batch-13 refusal of a grown gate's record, and gate 81's per-build chore", "mustFailIn": ["fixture arms", "real records"]},
+  {"name": "stale-total-accepted", "patch": "breaks/ca-stale-total-accepted.diff", "why": "a record over a set the gate grew to after the log is accepted at the log's own count (>= instead of >), so a stale total reads COVERED", "mustFailIn": ["fixture arms"]},
+  {"name": "count-input-ignored", "patch": "breaks/ca-count-input-ignored.diff", "why": "the CONTROL-COUNT-INPUT declaration is no longer read, so a gate whose count grows with the tree (gate 81) is held to the newest log's count and its older records fault", "mustFailIn": ["fixture arms", "real records"]}
+ ],
+ "timeoutSec": 600
+}
