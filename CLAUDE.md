@@ -266,7 +266,11 @@ came from subtracting the status bar twice. Keep 375x679 as a shorter-phone colu
   make the `793e89a` ancestry answer correct, and it leaves line 52's own command,
   `git rev-list --left-right --count origin/main...origin/claude/ecstatic-tesla-m9updx`, printing **`456` then `50`** where
   the truth is **`624` then `1`** - the branch-side count wrong by 50x, exit 0, no warning, in the very cell this build
-  exists to correct. After `--unshallow` the same command returns `624` and `1`. A deepen sized by guess answers the
+  exists to correct. After `--unshallow` the same command returned `624` and `1` **WHEN MAIN WAS `87b432a` (the #514 close-out) AND
+  THE BRANCH `155aedb`** - those two figures are dated evidence for that main, not today's: the same command on
+  `origin/main` `1c777c56`, clone unshallowed (`--is-shallow-repository` false), 24 Nov 2026, prints `2410` then `1`, and it
+  will read differently again at the next push. The `456`/`50` pair was read in a scratch `--depth 50` clone after the deepen (#516's measurement, main not
+  re-derived here). A deepen sized by guess answers the
   question you asked and silently corrupts the one you ask next; use it only if `--unshallow` fails, and state the depth you
   actually reached.
   **AND THE PROJECT'S OWN PUSH-GATE TOOL CARRIES THE STALE VERSION OF THAT NUMBER. NOT FIXED HERE, AND THE REASON IS
