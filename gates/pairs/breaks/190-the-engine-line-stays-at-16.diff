@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index a92d2134..efb93bf8 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10077,7 +10077,7 @@ function AppMain(){
+   useEffect(()=>{
+     if(!engOn||!inReview||!review||!review.positions){setEngLine(null);return;}
+     const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
+-    const fen=toFEN(pos);const _ed=(review.engine&&review.engine.depth>16)?review.engine.depth:16;   /* #553: the line is searched at the open review's own depth (16 Quick, 18/20/22 deeper), and cached per depth */
++    const fen=toFEN(pos);const _ed=16;   /* #553: the line is searched at the open review's own depth (16 Quick, 18/20/22 deeper), and cached per depth */
+     const _ek=_ed>16?(fen+'|d'+_ed):fen;const _c=engCacheRef.current[_ek];const hit=(_c&&_c.line)?_c:null; /* #389: an entry with NO line is a FAILED query, not an answer - see below */
+     const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
+     /* #373 (audit N-review-2): on a checkmated position the engine has no line to give, so this placeholder was the label - and the review's forced mate score printed as "+99.0" where A-03 (#371) had put 1-0. The mated side to move decides the label. */

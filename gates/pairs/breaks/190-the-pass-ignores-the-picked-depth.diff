@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index a92d2134..7ae29cf9 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11275,7 +11275,7 @@ function AppMain(){
+         <_SheetItem icon="newgame" label="New game" on={()=>{setRevMore(false);resetReview();}}/>
+         </div>
+       </div></div>)}
+-      {revDepthMenu&&inReview&&<DepthMenu m={revDepthMenu} cur={revDepthMenu.cur} onClose={()=>setRevDepthMenu(null)} onPick={(l)=>{const R=review;setRevDepthMenu(null);setRevMore(false);if(!R)return;const k=R.meta&&R.meta.key;if(k)setGameDepth(k,l);if(l!==revDepthMenu.cur)importGame(R.pgn,{...(R.meta||{}),depth:l,deeper:true});}}/>}
++      {revDepthMenu&&inReview&&<DepthMenu m={revDepthMenu} cur={revDepthMenu.cur} onClose={()=>setRevDepthMenu(null)} onPick={(l)=>{const R=review;setRevDepthMenu(null);setRevMore(false);if(!R)return;const k=R.meta&&R.meta.key;if(k)setGameDepth(k,l);if(l!==revDepthMenu.cur)importGame(R.pgn,{...(R.meta||{}),depth:revDepthMenu.cur,deeper:true});}}/>}
+       {devOn&&preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
+         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>setIntroCard(false),60);};
+         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};

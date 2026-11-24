@@ -1,0 +1,20 @@
+{
+ "job": "review-depth-per-game-on-the-new-game-card-2026-11-15",
+ "about": "BATCH 14 ENTRY 22, PART (4) of the job (the game card, its button and a review at the picked depth are graded by the job's other pairs file, gate 173). Inside an open review: the More sheet's 'Review depth: Quick' control on the opening's line (44px tap, the opening's name not cut, the sheet not scrolling), the depth menu over the sheet, a deeper pass run BEHIND the open review (every search at the picked depth, recorded at the Worker; the 'Going deeper: Deep, N of 33' line under the title, or in the bottom player bar on a short phone; the board and the explanation unmoved; the move, view and flip kept when it lands), the live engine line at the review's depth, and leaving the review stopping the pass with nothing unfinished stored. Graded by gate 190 on a trial bundle at kunal761 (375x761, ct_safe 51,31) and 320x568. NOT COVERED: the summary screen's progress line (the same deepTitle as the moves view's), Deeper and Deepest landing (Deep is driven; Deeper is driven only to be stopped), a second device pulling ct_gdepth, the per-level times on his phone.",
+ "gate": "gates/regress/190-review-depth-inside-a-review.js",
+ "checks": ["^TC-R28[0-5] "],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R28[0-5] kunal761 "},
+  {"name": "320x568", "match": "^TC-R28[0-5] 320x568 "}
+ ],
+ "breaks": [
+  {"name": "the-pass-ignores-the-picked-depth", "patch": "breaks/190-the-pass-ignores-the-picked-depth.diff",
+   "why": "the sheet's menu passes the review's current level, not the one picked, so the 'deeper' pass is the same Quick review again: no search at 18 and the open review stays at depth 16", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "the-pass-replaces-the-open-move-and-view", "patch": "breaks/190-the-pass-replaces-the-open-move-and-view.diff",
+   "why": "when the deeper pass lands it sends him to the summary at move 0 instead of keeping the move and the view he was reading", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "the-engine-line-stays-at-16", "patch": "breaks/190-the-engine-line-stays-at-16.diff",
+   "why": "the live engine line of a deeper review still searches at Quick's depth 16", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]}
+ ],
+ "timeoutSec": 1500
+}
