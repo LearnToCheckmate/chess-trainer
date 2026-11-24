@@ -197,7 +197,7 @@ L.run(async()=>{
                   fs:parseFloat(getComputedStyle(e).fontSize),gw,gh,svg:!!svg};
         }).filter(Boolean);
       });
-      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':33,'Close lesson':36,'More for this lesson':26};   // PIN MOVED WITH A FIX [#550 helper lessons, jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]: see GLYPH_PIN // the practice block's copy of GLYPH_PIN below [#549 item (54)]; text pin 22 -> 24 at #549 item (80), see GLYPH_PIN
+      const GLYPH_PIN_ALL={'Back a move':27,'Forward a move':27,'Play or pause':25.9 /* #553, see GLYPH_PIN */,'Close lesson':36,'More for this lesson':26};   // PIN MOVED WITH A FIX [#550 helper lessons, jobs/lesson-footer-icons-still-differ-6-to-8px-while-gate-157-is-green-2026-11-14]: see GLYPH_PIN // the practice block's copy of GLYPH_PIN below [#549 item (54)]; text pin 22 -> 24 at #549 item (80), see GLYPH_PIN
       if(st==='demo-end'){
         L.say(foot.length===5,name+': the lesson footer shows its five buttons (precondition - without this the size checks below pass by measuring nothing)',foot.map(f=>f.aria));
         L.say(foot.every(f=>f.h>=44&&f.h<=46),name+': every footer button is still 44 to 46 tall - the fix had to go INSIDE the box, because this row is fixed and any growth here is board height spent',foot.map(f=>f.h));
@@ -214,7 +214,7 @@ L.run(async()=>{
         // (size={27}) that fontSize cannot see: size={10} left it green. It now claims only what fontSize governs, the three
         // TEXT glyphs, and the band below holds all five glyphs at their measured heights.
         const tsizes=[...new Set(foot.filter(f=>!f.svg).map(f=>f.fs))];
-        L.say(tsizes.length===1&&foot.filter(f=>!f.svg).length===3,name+': the three TEXT glyphs carry ONE font size (the play button shipped at 13px because it used to carry the word "Pause" - #347). fontSize does not size the two SVG chevrons; the band below does',{textSizes:tsizes,svgCount:foot.filter(f=>f.svg).length});
+        L.say(tsizes.length===1&&foot.filter(f=>!f.svg).length===2,name+': the two TEXT glyphs (Close and More) carry ONE font size (the play button shipped at 13px because it used to carry the word "Pause" - #347; since #553 it is an svg, the curled arrow at the end). fontSize does not size the three SVGs; the band below does',{textSizes:tsizes,svgCount:foot.filter(f=>f.svg).length});
         // THE GLYPH BAND, two-sided as #395 needs: a floor cannot see a glyph GROW, and growth here costs board height.
         // Pinned to the heights measured at #545 on 049b41dfb6f1 at all four geometries: chevron SVG box 27, text line box 22.
         // NOTE the 27 is the SVG BOX, which is what the size prop sets; the polyline INK inside it is 16.2 (gate 26's lesson
@@ -227,7 +227,10 @@ L.run(async()=>{
         // scan, gate 157's lesson rows). Each text glyph is now scaled by its own em (LF_EM in chess.jsx) to the chevrons' 19 of ink, so this
         // LINE BOX band moved: ✕ 36, the end-of-demo ↻ 33, ⋯ 26, measured on trial fa375049759b at all four geometries. The band still holds
         // the prop and the box; whether the INK agrees is gate 157 TC-IR-02, which is where 'one size' is judged.
-        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':33,'Close lesson':36,'More for this lesson':26};
+        // PIN MOVED WITH A FIX [#553 jobs/one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23, card 70]: the Play button
+        // is an svg now, and at the demo's end it draws the curled arrow (RowIcon reset, a 24 x 1.08 = 25.9 box) where it painted a 33 line box of
+        // the ↻ glyph; its ink is held with the others' by gate 157 TC-IR-02 (100/0 on the fix). Measured 25.9 at every geometry; the band is unchanged.
+        const GLYPH_PIN={'Back a move':27,'Forward a move':27,'Play or pause':25.9,'Close lesson':36,'More for this lesson':26};
         const offBand=foot.filter(f=>!(Math.abs(f.gh-(GLYPH_PIN[f.aria]??-99))<=1.5)).map(f=>({a:f.aria,gh:f.gh,pin:GLYPH_PIN[f.aria]}));
         L.say(offBand.length===0,name+': every footer glyph is within 1.5px of its pinned height (chevrons 27, text 24) - a band, so a chevron shrunk to size={10} or grown past the row is red',offBand.length?offBand:foot.map(f=>({a:f.aria,gh:f.gh})));
         // ROTATION AUDIT [#549 item (54)]: this line DISCRIMINATES (slack 11px wide, 11px tall at the 44px box), but its HEIGHT
