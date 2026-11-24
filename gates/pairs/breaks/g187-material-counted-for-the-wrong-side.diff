@@ -1,0 +1,12 @@
+diff --git a/chess.jsx b/chess.jsx
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2672,7 +2672,7 @@
+   if(st==='stalemate')return head+' The line ends in stalemate.';
+   const lm=moves[moves.length-1];if(states[moves.length-1].board[lm.tr][lm.tc]||lm.epCap)return head;
+   const got={w:[],b:[]};for(let i=0;i<moves.length;i++){const g=states[i],m=moves[i];const c=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);if(c)got[g.turn].push(c.t);}
+-  const mine=got[me].slice(),theirs=got[opp(me)].slice();if(!mine.length&&!theirs.length)return head;
++  const mine=got[opp(me)].slice(),theirs=got[me].slice();if(!mine.length&&!theirs.length)return head;
+   const qOff=mine.indexOf('q')>=0&&theirs.indexOf('q')>=0;
+   for(let i=mine.length-1;i>=0;i--){const j=theirs.indexOf(mine[i]);if(j>=0){theirs.splice(j,1);mine.splice(i,1);}}
+   const sv=(a)=>a.reduce((s,t)=>s+(SEEVAL[t]||0),0);const net=sv(mine)-sv(theirs);
