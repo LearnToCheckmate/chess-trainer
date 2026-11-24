@@ -12,6 +12,10 @@
 // it NOSHRINK). THE TRACKER'S feedback COLLECTION IS STILL THE HOME (prompts/common R37); a Cloud Function cannot write to
 // it, so moving a relayed entry from this file into that collection is the orchestrator's sweep. NOT DEPLOYED: deploying
 // needs Kunal's Firebase credentials (firebase deploy --only functions), recorded as the job's whatIsLeft.
+// #553 [R18; jobs/feedback-relay-to-a-dead-file, measured 2026-11-24]: THE PARAGRAPH ABOVE IS SUPERSEDED BY SEC-10 BELOW. The target
+// is FEEDBACK-INBOX.md in the separate INBOX_REPO, not the app repository's FEEDBACK-INBOX.md, and no process reads that repository
+// today. And the app does not call this function: chess.jsx sets LOG_ENDPOINT = "", so postReport() returns at once and a note from
+// the feedback sheet stays on the device (clipboard, localStorage ct_feedback_notes). Where feedback should go is the job's open question.
 //
 // #550 SEC-10 [docs/security-privacy-2026-11-12, Kunal "All 20, serious first"]: AS FIRST WRITTEN THIS MUST NOT BE DEPLOYED, and it has
 // been changed so that it can be. It took unauthenticated POSTs from any origin, its only guard was a shared key the app would have had
