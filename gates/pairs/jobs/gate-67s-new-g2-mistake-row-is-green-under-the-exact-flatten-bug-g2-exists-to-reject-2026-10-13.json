@@ -1,0 +1,54 @@
+{
+ "job": "gate-67s-new-g2-mistake-row-is-green-under-the-exact-flatten-bug-g2-exists-to-reject-2026-10-13",
+ "about": "Gate 67's G block (the drill card's goal sentence for every stored label the store can hold). G2 CONTROL now asserts only Blunder and Miss, the two admissible labels whose correct word differs from the fallback 'mistake'; the Mistake row is G2b, named NOT A CONTROL; the loop has its own non-empty line (G2 INSTRUMENT). Gate 67 is run whole; only its G0..G3b lines are graded, in two situations: Kunal's phone (CT_G67_GEO=kunal761, 375x761+51,31) and se (320x568). NOT COVERED: the Mistake row cannot go red under the flatten by construction (the two outputs are the same string), which is the point; the other blocks of gate 67 (U, D, P, G4) are not graded here.",
+ "gate": "gates/regress/67-sel-cls-consumers.js",
+ "env": {},
+ "checks": [
+  "^G[0-3]"
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "kunal761",
+   "env": {
+    "CT_G67_GEO": "kunal761"
+   }
+  },
+  {
+   "name": "se 320x568",
+   "env": {
+    "CT_G67_GEO": "se"
+   }
+  }
+ ],
+ "breaks": [
+  {
+   "name": "every-label-flattens-to-mistake",
+   "patch": "breaks/67-every-label-flattens-to-mistake.diff",
+   "why": "drillGrade's mapping is gone: every label, admissible or not, flattens to the fallback 'mistake' - the bug G2 exists to reject. G2 CONTROL Blunder and Miss must go red (the Mistake row cannot).",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "miss-flattens-to-mistake",
+   "patch": "breaks/67-miss-flattens-to-mistake.diff",
+   "why": "only Miss is flattened to 'mistake'; Blunder and Mistake still pass through, so only the per-label G2 CONTROL Miss line can see it",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "guard-removed-praise-reaches-the-card",
+   "patch": "breaks/67-guard-removed-praise-reaches-the-card.diff",
+   "why": "an inadmissible label is returned as stored, so praise words (Best, Excellent, Good, Great) reach the drill card: the G1 defect itself",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}

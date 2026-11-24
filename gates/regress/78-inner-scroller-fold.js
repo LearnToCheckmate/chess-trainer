@@ -208,7 +208,7 @@ L.run(async()=>{
     const ctr=[...document.querySelectorAll('span')].map(x=>(x.innerText||'').trim()).map(t=>/(?:^|· )(\d+)\/(\d+)$/.exec(t)).find(Boolean);
     const o={board:!!gs.length,bar:!!bar,head,tacticsCtl:btn(/^Show answer$/),strategyCtl:btn(/^(‹ Prev|Previous idea)$/),card:ctr?+ctr[1]:null,of:ctr?+ctr[2]:null,ctls,rsc,backTop};
     if(!gs.length||!bar)return o;const r=gs[0].getBoundingClientRect(),t=bar.getBoundingClientRect();
-    return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10});});
+    return Object.assign(o,{top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(t.top*10)/10,left:Math.round(r.left*10)/10,right:Math.round(r.right*10)/10,vw:window.innerWidth});});
   const press=(b,re)=>b.page.evaluate(src=>{const re=new RegExp(src);const x=[...document.querySelectorAll('button')].find(x=>re.test(((x.innerText||'').trim()||x.getAttribute('aria-label')||'')));if(x)x.click();return !!x;},re.source);   // batch 13: icons-only RowBtn named by aria-label
   for(const g of ['kunal761',...L.TA7]){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
@@ -245,6 +245,13 @@ L.run(async()=>{
       L.say(cards.every(c=>c.rsc!==null&&c.rsc<=0.5),n+' '+tab+': TC-INV-08l and the page does not scroll on any card (#root overflow '+[...new Set(cards.map(c=>c.rsc))].join(', ')+'px)',{rsc:cards.map(c=>c.rsc)});
       L.say(cards.every(c=>c.backTop!==null&&c.backTop>=0&&c.backTop<80),n+' '+tab+': TC-INV-08m the back control is in the first 80px of the screen on every card ('+[...new Set(cards.map(c=>c.backTop))].join(', ')+')',{backTops:cards.map(c=>c.backTop)});
       const ws=[...new Set(cards.map(c=>c.w))];
+      // TC-INV-08q [jobs/gate-78-does-not-check-where-the-tactics-board-sits-sideways-2026-11-18]: the board's HORIZONTAL place. 08e reads only
+      // its bottom and 08k only its width, so a board shoved 80px sideways passed both (measured at batch 12 with a probe patch). On EVERY card
+      // the board's left edge is at or after the screen's left, its right edge at or before the screen's right (the width read is the live
+      // innerWidth), it is centred (gap left and gap right within 1px of each other), and its left edge is ONE value across the cards.
+      const lefts=[...new Set(cards.map(c=>c.left))];
+      const offs=cards.map(c=>typeof c.left!=='number'?999:Math.round(Math.abs(c.left-(c.vw-c.right))*10)/10);
+      L.say(cards.length>0&&cards.every(c=>typeof c.left==='number'&&c.left>=-0.5&&c.right<=c.vw+0.5)&&Math.max(...offs)<=1&&lefts.length===1,n+' '+tab+': TC-INV-08q the board sits inside the screen and centred on EVERY card ('+cards.length+'): left '+lefts.join(', ')+'px, right '+[...new Set(cards.map(c=>c.right))].join(', ')+'px of '+(cards[0]&&cards[0].vw)+', worst off-centre '+Math.max(...offs)+'px',{lefts,rights:cards.map(c=>c.right),vw:cards[0]&&cards[0].vw,offs});
       L.say(ws.length===1,n+' '+tab+': TC-INV-08k the board is ONE width on every card ('+ws.join(', ')+'px'+(ws.length>1?', cards '+cards.map((c,k)=>(k+1)+':'+c.w).join(' '):'')+') - the board must never jump between cards',{widths:cards.map(c=>c.w),tops:cards.map(c=>c.top)});
     }
     await b.close();

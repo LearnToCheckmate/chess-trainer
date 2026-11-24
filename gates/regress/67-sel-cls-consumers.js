@@ -449,11 +449,11 @@ L.run(async()=>{
   // (it must fall back to "a mistake", G3b - the vowel case G3 cannot tell an article bug from a fallback bug).
   const G_INPUTS=[['Best','praise'],['Excellent','praise'],['Good','praise'],['Great','praise'],
                   ['Inaccuracy','inadmissible-vowel'],['Blunder','control-admissible'],
-                  ['Mistake','control-admissible'],['Miss','control-admissible'],['Book','inadmissible-consonant']];
+                  ['Mistake','admissible-same-as-fallback'],['Miss','control-admissible'],['Book','inadmissible-consonant']];
   const gRead=[];
   for(const gi of G_INPUTS){
     const lab=gi[0];
-    const bg=await L.launch({geo:L.GEOS.kunal761,name:'selcls-legacy-'+lab,store:{ct_mymistakes:gRows(lab),ct_pool:'3'}});
+    const bg=await L.launch({geo:L.GEOS[process.env.CT_G67_GEO||'kunal761'],name:'selcls-legacy-'+lab,store:{ct_mymistakes:gRows(lab),ct_pool:'3'}});
     let painted=null,gerr=null;
     try{
       await bg.open();
@@ -503,12 +503,28 @@ L.run(async()=>{
     // indistinguishable from a correct one, and every G1 above would still be green.
     // #550 item (124): one assertion per ADMISSIBLE label (Blunder, Mistake, Miss), each pinned to its own word - the
     // first version checked Blunder alone with .find(), so a guard that flattened Miss to "mistake" was invisible.
-    for(const gCtl of gRead.filter(r=>r.kind==='control-admissible')){
+    // [jobs/gate-67s-new-g2-mistake-row-is-green-under-the-exact-flatten-bug-g2-exists-to-reject-2026-10-13] THE LOOP'S OWN
+    // DENOMINATOR, in its own L.say: a filter that came back empty would run ZERO assertions below and print nothing.
+    // And the Mistake row is NO LONGER IN THIS LOOP: a stored "Mistake" is painted "mistake" by a correct guard (DRILL_GRADES[0],
+    // lower-cased) AND by one that flattened every label to the fallback literal 'mistake', so it cannot tell the two apart and
+    // must not be logged as a control. Only Blunder and Miss can (a flatten paints "mistake" for them), so exactly those two are asserted here.
+    const gCtls=gRead.filter(r=>r.kind==='control-admissible');
+    L.say(gCtls.length===2&&gCtls.map(r=>r.label).sort().join()==='Blunder,Miss',
+      'G2 INSTRUMENT: the control loop has its two rows, Blunder and Miss, the only admissible labels whose correct word differs from the fallback ('+gCtls.map(r=>r.label).join(', ')+')',
+      {controls:gCtls.map(r=>r.label)});
+    for(const gCtl of gCtls){
       const want=String(gCtl.label).toLowerCase();
       L.say(String(gCtl.painted.word).toLowerCase()===want,
         'G2 CONTROL '+gCtl.label+': an ADMISSIBLE stored label still reaches the card unchanged - a '+gCtl.label+' row says "a '+want+'", so the guard is selective and has not flattened every grade to "mistake"',
         {seeded:gCtl.label,paintedWord:gCtl.painted.word,sentence:gCtl.painted.all});
     }
+    // G2b THE MISTAKE ROW, UNDER ITS OWN NAME AND NOT AS A CONTROL. It pins that an admissible stored "Mistake" still paints
+    // "a mistake" (not mangled into another word, not a praise word). It does NOT show the guard is selective: the fallback
+    // prints the same word, so a total flatten leaves this row green. G2 above is what rejects the flatten.
+    const gMis=gRead.filter(r=>r.kind==='admissible-same-as-fallback');
+    L.say(gMis.length===1&&String(gMis[0].painted.word).toLowerCase()==='mistake'&&gMis[0].painted.article==='a',
+      'G2b NOT A CONTROL: a stored label of "Mistake" paints "a mistake" - the same words the fallback paints, so this row cannot tell a pass-through from a flatten and certifies only that the word is not mangled',
+      {seeded:'Mistake',rows:gMis.length,sentence:gMis[0]&&gMis[0].painted&&gMis[0].painted.all});
     // G3 THE FALLBACK, ARTICLE AND ALL. `Inaccuracy` is the grade antagonist B and the auditor each read off
     // a real screen as "a inaccuracy" on the #441 bundles. It is inadmissible, so it must fall back - and the
     // article must then be chosen from the word that is actually printed, not from the word that was stored.

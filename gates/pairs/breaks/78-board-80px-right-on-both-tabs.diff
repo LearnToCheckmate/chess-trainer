@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7d6d2a14..d1571cbe 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5406,7 +5406,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
+       :solved?<div style={{color:'#6fce97',fontWeight:800,marginBottom:3}}>✓ {cur.san}: correct!</div>
+       :shown?<div style={{color:'var(--ac2)',fontWeight:800,marginBottom:3}}>Answer: {cur.san}</div>:null;
+     const _wf=tab==='motifs'&&wrong&&wrongFit!=='all',_wcut=tab==='motifs'&&wrong&&wrongFit==='cut';   /* #553 Q68: the wrong-try line does not fit beside the idea / is itself cut (see the wrong-line effect) */
+-    const _bd=(cells,extra)=>(<div style={{position:'relative',width:cap,marginLeft:'calc(50% - '+(cap/2)+'px)',marginTop:6}}>
++    const _bd=(cells,extra)=>(<div style={{position:'relative',width:cap,marginLeft:'calc(50% + 80px - '+(cap/2)+'px)',marginTop:6}}>
+       <div ref={bRef} data-ct="tactics-board" style={{width:cap,maxWidth:cap,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>{cells}</div>{extra}</div>);
+     const _ans=(tab==='motifs'&&doneM&&!ansHide)?(<div data-ct="tactics-answer" role="dialog" aria-label="Answer" style={{position:'absolute',left:6,right:6,bottom:6,maxHeight:'58%',display:'flex',flexDirection:'column',background:'rgba(18,20,27,.94)',border:'1px solid '+(solved?'rgba(111,206,151,.55)':'rgba(var(--acr),.5)'),borderRadius:12,boxShadow:'0 10px 30px rgba(0,0,0,.55)',zIndex:3}}>
+       <div style={{display:'flex',alignItems:'center',gap:8,padding:'4px 4px 0 12px',flexShrink:0}}><span style={{flex:1,minWidth:0,fontWeight:800,fontSize:15,color:solved?'#6fce97':'var(--ac2)'}}>{solved?('✓ '+cur.san+', correct!'):('Answer: '+cur.san)}</span>

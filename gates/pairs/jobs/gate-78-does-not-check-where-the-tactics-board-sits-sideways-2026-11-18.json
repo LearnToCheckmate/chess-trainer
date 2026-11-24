@@ -1,0 +1,74 @@
+{
+ "job": "gate-78-does-not-check-where-the-tactics-board-sits-sideways-2026-11-18",
+ "about": "Gate 78's TC-INV-08q: on every card of both Discover -> Tactics tabs the board's left edge is at or after the screen's left, its right edge at or before the screen's right, it is centred within 1px, and its left edge is one value across the cards. Graded in the eight situations gate 78 drives (portrait phone widths 320 to 440; kunal761 is 375x761 with insets 51/31). Gate 78 is run whole (about 6 minutes a try); only its 08q lines are graded. The three breaks shove the board 80px sideways in three different ways. NOT COVERED: landscape (gate 78 drives none), the two boards TacticsTrainer draws outside the _bd helper (not reached on a phone), laptop width.",
+ "gate": "gates/regress/78-inner-scroller-fold.js",
+ "env": {},
+ "checks": [
+  "TC-INV-08q "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761\\+51,31 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  },
+  {
+   "name": "w360 360x640",
+   "match": "^360x640 "
+  },
+  {
+   "name": "w375h667 375x667",
+   "match": "^375x667 "
+  },
+  {
+   "name": "kunal730 375x730",
+   "match": "^375x730 "
+  },
+  {
+   "name": "390x844",
+   "match": "^390x844 "
+  },
+  {
+   "name": "w414 414x896",
+   "match": "^414x896 "
+  },
+  {
+   "name": "w440 440x956",
+   "match": "^440x956 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "board-80px-right-on-both-tabs",
+   "patch": "breaks/78-board-80px-right-on-both-tabs.diff",
+   "why": "the Tactics and Strategy boards are both pushed 80px right, past the screen's right edge, with unchanged width and bottom, so 08e and 08k stay green",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "strategy-board-80px-left",
+   "patch": "breaks/78-strategy-board-80px-left.diff",
+   "why": "the Strategy board alone is pushed 80px left, off the screen's left edge",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "one-motif-board-80px-right",
+   "patch": "breaks/78-one-motif-board-80px-right.diff",
+   "why": "only the 12th motif's board (Decoy) is pushed 80px right, so the boards differ in place from card to card",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}
