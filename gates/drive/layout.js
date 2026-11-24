@@ -17,7 +17,7 @@ D.own={states:{
     await b.tapCt('drill-analyse',1200);await b.settle(800);}
 }};
 // the phones of each launch. 'notch' carries his insets (ct_safe 51,31, read once at mount); 'flat' has none.
-const LAUNCHES={notch:{geo:'kunal761',phones:[[375,761],[390,844],[414,896],[430,932]]},flat:{geo:'se',phones:[[320,568],[360,640],[375,667],[375,730]]}   /* 375x730: the room his phone leaves the column in the Home Screen app (a 812 shell less its 51 and 31 insets), where Review and drill Analysis drew the board 344 wide, flush left, with the header row on (his 19 Nov report of about 43pt short) */};
+const LAUNCHES={notch:{geo:'kunal761',phones:[[375,761],[390,844],[414,896],[430,932]]},flat:{geo:'se',phones:[[320,568],[360,640],[375,667],[375,730]]}   /* 375x730: his R19 phone, 375x812 less the 51 and 31 insets, leaves a 375x730 column in the Home Screen app (the 730 is that arithmetic, not a phone), where Review and drill Analysis drew the board 344 wide, flush left, with the header row on (his 19 Nov report of about 43pt short) */};
 const SIZES=[50,75,100,125];
 // the sampled states: [name, driver, state, wantsBoard]
 const STATES=[
