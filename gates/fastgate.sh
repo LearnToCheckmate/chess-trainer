@@ -2136,6 +2136,33 @@ if [ -n "$GONE" ]; then
   say "A gate log is what verify-log.sh cites to prove a bundle was gated. Run FULL, or do not delete it."
   exit 1
 fi
+# ── A RECORDS COMMIT THAT ADDS OR EDITS A GATE LOG RUNS GATE 81, BECAUSE GATE 81 READS THAT DIRECTORY AND CANNOT SAY SO [#553;
+# jobs/fastgate-classes-claude-agents-gatelogs-as-records-so-a-records-only-commit-adding-a-log-can-change-gate-81s-verdict-2026-11-07].
+# classify() calls claude/agents/gatelogs/* RECORDS, and it must stay so (every close-out adds a log; FORCE would send the commit that
+# records a green suite to another full suite for ever). But gate 81 lists that directory through git (TC-SUITE-351 attribution,
+# TC-SUITE-372 coverage and its STALE-exception check), so an ADDED log can turn it red - e.g. a log for a number that
+# gates/gatelog-exceptions.tsv excuses makes that row stale - while this tier read green. Gate 81 reads committed git objects only (no
+# browser, no network, about 15 s), so this tier RUNS it when a log is added or changed, and refuses at exit 1 on any red or on a run
+# that cannot be read. Deletions are the GONE block above. Controls: gates/fastgate-drive.sh H74 (a stale-making log is refused) and H75.
+ADDLOG="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=AM "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
+if [ -n "$ADDLOG" ]; then
+  say ""
+  say "    gate logs added or changed in this range - gate 81 reads that directory, so it is run here:"
+  echo "$ADDLOG" | sed 's/^/        /' | tee -a "$LOG"
+  G81OUT=""; G81RC=99
+  if command -v node >/dev/null 2>&1 && [ -f "$G/regress/81-gatelog-covers-shipped-bundle.js" ]; then
+    G81OUT="$(cd "$ROOT" && CT_APP="$ROOT/app.js" timeout 300 node "$G/regress/81-gatelog-covers-shipped-bundle.js" 2>&1)"; G81RC=$?
+  fi
+  G81PASS="$(printf '%s\n' "$G81OUT" | grep -oE 'GATELOG-COVERS-SHIPPED-BUNDLE: [0-9]+ pass, 0 fail' | head -1 || true)"
+  if [ "$G81RC" != 0 ] || [ -z "$G81PASS" ]; then
+    say ""
+    say "FAST GATE REFUSED - a gate log was added or changed and gate 81 (81-gatelog-covers-shipped-bundle.js) is not green over this tree (exit $G81RC):"
+    printf '%s\n' "$G81OUT" | grep -E '^FAIL|fail|ERROR|Error' | head -5 | sed 's/^/    /' | tee -a "$LOG"
+    say "Run FULL (gates/gates.sh), or fix the log or gates/gatelog-exceptions.tsv. A records-only commit may not change gate 81's verdict."
+    exit 1
+  fi
+  say "    gate 81 over this tree: $G81PASS"
+fi
 SHORTER=""
 for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
   nb="$("${GIT[@]}" show "$BASEFULL:$f" 2>/dev/null | wc -l | tr -d ' ')"; nb="${nb:-0}"

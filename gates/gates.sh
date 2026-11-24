@@ -1770,6 +1770,31 @@ JS
     bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )"
   st TU8-the-real-selftest-through-the-block-is-green-with-as-many-PASS-lines-as-it-prints-oks-alone "$tu_red $(grep -c '^PASS token-use ' "$ST_T/tu-all.log") $( [ "$tu_n" -gt 0 ] && echo nonzero || echo ZERO )" "0 $tu_n nonzero"
   st TU9-the-block-is-reached-only-on-full-runs "$(grep -c '^if \[ -z "\$SUBSET" \] && \[ -f "\$TUJS" \]; then$' "$SF")" 1
+  # ── UD1 TO UD8: THE unit-drill-why AND unit-held-guard BLOCKS' ABSENT-SCRIPT REDS [#553; jobs/three-unit-blocks-in-gates-sh-run-only-if-their-
+  # script-exists-so-deleting-one-still-ends-gates-green-2026-11-07, whose #550 item (138) fix had no control but a hand extraction]. THE REAL
+  # BLOCKS (UNITJS= up to the token-use block's banner), driven over stub scripts in a scratch tree, as TU1..TU9 drive theirs: a full
+  # run with either script missing is RED and says THE UNIT FILE IS ABSENT, with both present it is green with one PASS line each, and
+  # a subset run is silent either way. No pipes, as in the blocks.
+  # CONTROL (see the run record on the job): the two `[ ! -f ... ]` absent-script branches deleted from a copy of this file, which is the
+  # tree before #550 item (138): measured 2026-11-24, UD1, UD2, UD3, UD4 and UD7 go red (441 pass / 5 fail against 446 / 0).
+  awk '/^UNITJS=/{p=1} /^# ── THE UNIT LAYER, TOKEN-USE BLOCK/{if(p){exit}} p{print}' "$SF" > "$ST_T/udblock.sh"
+  st UD1-the-two-unit-blocks-were-extracted-with-both-absent-reds "$( [ -s "$ST_T/udblock.sh" ] && grep -c 'THE UNIT FILE IS ABSENT' "$ST_T/udblock.sh" )" 2
+  st_ud(){ # $1 = unit-drill-why.js body ('' = absent), $2 = unit-held-guard.sh body ('' = absent), $3 = SUBSET; prints "<red> <PASS drill> <PASS held> <ABSENT lines>"
+    local d="$ST_T/ud"; rm -rf "$d"; mkdir -p "$d/gates/logs"; : > "$ST_T/ud-all.log"
+    [ -n "$1" ] && printf '%s\n' "$1" > "$d/gates/unit-drill-why.js"
+    [ -n "$2" ] && printf '%s\n' "$2" > "$d/gates/unit-held-guard.sh"
+    local r; r="$( cd "$d" && G="$d/gates" ROOT="$d" STEM=probe ALL="$ST_T/ud-all.log" SUBSET="$3" BLK="$ST_T/udblock.sh" \
+      bash -c 'set -uo pipefail; red=0; . "$BLK" >/dev/null 2>&1; printf %s "$red"' 2>/dev/null )"
+    printf '%s %s %s %s' "$r" "$(grep -c '^PASS unit-drill-why ' "$ST_T/ud-all.log")" "$(grep -c '^PASS unit-held-guard ' "$ST_T/ud-all.log")" "$(grep -c 'THE UNIT FILE IS ABSENT' "$ST_T/ud-all.log")"
+  }
+  UD_OKJS='console.log("  ok  a");'; UD_OKSH='echo "  ok  a"'
+  st UD2-both-scripts-absent-on-a-full-run-is-RED-twice "$(st_ud '' '' '')" '1 0 0 2'
+  st UD3-unit-drill-why-absent-alone-is-RED-and-says-so "$(st_ud '' "$UD_OKSH" '')" '1 0 1 1'
+  st UD4-unit-held-guard-absent-alone-is-RED-and-says-so "$(st_ud "$UD_OKJS" '' '')" '1 1 0 1'
+  st UD5-both-present-and-ok-is-green-with-one-PASS-line-each "$(st_ud "$UD_OKJS" "$UD_OKSH" '')" '0 1 1 0'
+  st UD6-a-subset-run-is-silent-with-both-absent "$(st_ud '' '' 'x')" '0 0 0 0'
+  st UD7-the-two-absent-branches-are-in-the-file-once-each "$(grep -c '^if \[ -z "\$SUBSET" \] && \[ ! -f "\$UNITJS" \]; then$' "$SF") $(grep -c '^if \[ -z "\$SUBSET" \] && \[ ! -f "\$HGSH" \]; then$' "$SF")" '1 1'
+  st UD8-the-real-unit-scripts-are-where-the-blocks-look "$( [ -f "$SG/unit-drill-why.js" ] && [ -f "$SG/unit-held-guard.sh" ] && echo both )" both
   echo "SELFTEST $st_p pass / $st_f fail"
   [ "$st_f" -eq 0 ] || exit 1
   exit 0
