@@ -1,0 +1,41 @@
+{
+ "job": "the-suite-varies-seven-geometries-and-exactly-one-font-so-no-gate-covers-a-larger-accessibility-font-2026-10-06",
+ "about": "Gate 205 (browser) drives the Puzzles trainer at 320x568, 375x667 and kunal761 at text scales 1, 1.6 and 2.4 (gates/drive/textscale.js multiplies every text element's font-size and px line-height) and asserts the board is inside the viewport, above the tab bar and the same across two settles, after proving the larger text moved the board. NOT COVERED: other screens, the other four of the drill seven, the job's control-row budget from gate 48, a real iOS Larger Text.",
+ "gate": "gates/regress/205-puzzle-board-at-larger-text.js",
+ "env": {},
+ "checks": [
+  "^TC-R319[abc] "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "se (320x568)",
+   "match": "^TC-R319[abc] se "
+  },
+  {
+   "name": "w375h667",
+   "match": "^TC-R319[abc] w375h667 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "stack-never-measured",
+   "patch": "breaks/205-stack-never-measured.diff",
+   "why": "the puzzle's measured text stack can no longer change, so the board does not hear larger text and keeps its size",
+   "mustFailIn": [
+    "se (320x568)",
+    "w375h667"
+   ]
+  },
+  {
+   "name": "height-cap-ignores-the-stack",
+   "patch": "breaks/205-height-cap-ignores-the-stack.diff",
+   "why": "the board's height cap stops subtracting the text stack",
+   "mustFailIn": [
+    "se (320x568)",
+    "w375h667"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}

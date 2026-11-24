@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 5ba73e9b..7f73aa9b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10670,7 +10670,7 @@ function AppMain(){
+   // #338: keep pzStackH in step with the text above / controls below the puzzle board. Their widths do NOT depend on the board, so this cannot feed back into itself.
+   useEffect(()=>{
+     if(!pzLow){if(pzStackH!==0)setPzStackH(0);return;}
+-    const measure=()=>{try{const a=pzTopRef.current?pzTopRef.current.getBoundingClientRect().height:0;const b=pzBotRef.current?pzBotRef.current.getBoundingClientRect().height:0;const h=Math.round(a+b);setPzStackH(x=>Math.abs(x-h)>2?h:x);}catch(e){}};
++    const measure=()=>{try{const a=pzTopRef.current?pzTopRef.current.getBoundingClientRect().height:0;const b=pzBotRef.current?pzBotRef.current.getBoundingClientRect().height:0;const h=Math.round(a+b);setPzStackH(x=>x);}catch(e){}};
+     measure();const t=setTimeout(measure,120);
+     let ro;try{if(window.ResizeObserver){ro=new ResizeObserver(measure);if(pzTopRef.current)ro.observe(pzTopRef.current);if(pzBotRef.current)ro.observe(pzBotRef.current);}}catch(e){}
+     return()=>{clearTimeout(t);if(ro)try{ro.disconnect();}catch(e){}};
