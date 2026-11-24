@@ -1,0 +1,23 @@
+{
+ "job": "tc-inv-case-rows-cite-a-result-that-is-not-in-the-log-2026-09-27",
+ "about": "Gate 219 (TC-R361..362), no browser: every case row in claude/stories/*.md that publishes 'N PASS / M FAIL lines naming <id> in <log>' (today the five TC-INV rows 02a, 02b, 02c, 02d and 03, citing 548b-all.log) is re-counted in its cited log by the cell's own rule, and N and M must match. This closes the 14 Nov checker's caveat on verify-log.sh --citations arm (2), which checks only that the id occurs. The one situation is the committed tree (the records have no geometry). NOT COVERED: rows that publish a result in any other form (arm (2) and the citations door hold those), TC-INV-01, which publishes no result.",
+ "gate": "gates/regress/219-case-row-counts-match-their-log.js",
+ "env": {},
+ "checks": ["TC-R361 ", "TC-R362 "],
+ "build": "never",
+ "situations": [
+  {"name": "committed records", "env": {}}
+ ],
+ "breaks": [
+  {"name": "count-off-by-one", "patch": "breaks/553-case-row-count-off-by-one.diff",
+   "why": "TC-INV-02a's cell publishes 46 PASS where its log carries 45 - the id still occurs, so citations arm (2) stays green",
+   "mustFailIn": ["committed records"]},
+  {"name": "cites-a-log-without-its-id", "patch": "breaks/553-case-row-cites-a-log-without-its-id.diff",
+   "why": "TC-INV-02c's cell cites 423-all.log, which never names a TC-INV id - the job's original defect",
+   "mustFailIn": ["committed records"]},
+  {"name": "archived-log-loses-two-lines", "patch": "breaks/553-archived-log-loses-two-lines.diff",
+   "why": "two of the seven TC-INV-02d PASS lines are cut out of the archived 548b-all.log while the cell still says 7 - the id still occurs five times",
+   "mustFailIn": ["committed records"]}
+ ],
+ "timeoutSec": 300
+}

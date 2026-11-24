@@ -11,6 +11,7 @@
 // CONTROL-RECORD: d140c9a 2026-11-11 total=287 red=16 scope=trial:6fd424a4553c how=#550 item (22): trial t5 (item 13's tree, no drill chooser) - TC-R178's four lines red at both drills and both geometries (the counter opens nothing); every other line green
 // CONTROL-RECORD: d140c9a 2026-11-11 total=287 red=19 scope=trial:d044eeb93e96 how=#550 item (13): trial c13 (mineN counting every stored row, t5's tree otherwise) - block K's TC-R177 lines red (3) plus block L's 16 (no chooser on that tree)
 // CONTROL-RECORD: 7223662 2026-11-11 total=357 red=5 scope=trial:7b8e4db40255 how=#550 item (54): pz-bottom's marginTop 8 -> 70 in both drill layouts (the bottom area pushed down under the tab bar) - TC-R181 asking and solved red at 320x568 on the mistakes drill (Prev and Next UNDER tabbar), plus TC-R47 A2d, TC-R80 C3 and TC-R102 at 320x568 that the same push moves; every other line green
+// CONTROL-RECORD: e3f89f0 2026-11-24 total=31 red=2 scope=env:CT_G72_ONLY=M,CT_G72_M_GEOS=se,kunal761,844x390,trial:e7e75112315f how=#553 B2 (the pair gates/pairs/jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04.json): the drill's whole bottom area drawn 56px lower by a transform, upright - TC-R181 asking red at 320x568 in both drills (Prev and Next under the tab bar), kunal761 and 844x390 green; the five-button row drawn 56px lower (trial:d8cf102cdbc4) 29/2 the same; sideways the row drawn 80px lower (trial:8b7b679daf00) 27/4, red at 844x390 only; the tree (trial:64e32a8da41a) 31/0. NOTE: #550's own control above (pz-bottom marginTop 70) no longer reddens block M - the layout absorbs it on this tree
 // CONTROL-RECORD: 914f15d 2026-11-06 total=262 red=3 scope=full how=the pre-fix #548 bundle (app.js e07e3d4fb9ea, no first-card stamp in startMistakes, no cap on load): TC-R108 A2 A4 A5 red
 // BLOCK D, TC-R81 (US-R76, #547 item (111)): the drill's evaluation bar - absent until solved or shown, in the header row,
 // from the player's side.
@@ -152,6 +153,9 @@ async function tap(b,ct,wait){const r=await reach(b,ct);if(!r.hit)return r;
   await b.page.mouse.click(r.cx,r.cy);await b.page.waitForTimeout(wait==null?600:wait);return r;}
 
 L.run(async()=>{
+  // #553 B2 [jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04]: CT_G72_ONLY=M runs block M (TC-R181) alone,
+  // for the pairs grader; CT_G72_M_GEOS lists block M's geometries as GEOS names or WxH (default L.TA7, THE DRILL SEVEN, as before).
+  if(process.env.CT_G72_ONLY!=='M'){
   L.note('GEOMETRIES: '+GS.map(x=>x.n).join(', ')+'   [R19 settled 375x761 as the device; TC-R47 says 375x730 and that is the figure R19 corrects]');
   L.note('INPUTS: '+DRILLS.length+' drills x '+GS.length+' geometries, queue of '+N+' cards each');
   for(const d of DRILLS){
@@ -690,6 +694,7 @@ L.run(async()=>{
     L.say(!!nb&&pv&&!!p2&&p2.i===N-1,tag+': TC-R178 Prev then steps back to card '+(N-1)+' (read '+(p2&&p2.i)+')',{pv,p2});
    }
    await b.close();}
+  } /* end of the blocks CT_G72_ONLY=M skips */
   /* ===== BLOCK M, TC-R181 [#550 item (54); jobs/the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04] =====
      The job's case, which no gate wrote: at REST, with #root not scrolled, EVERY button in the drill's bottom area (the pz-bottom
      container plus Prev and Next, wherever they sit: Hint, Show move, Reset, Prev, Next, and Analyse after a solve) hit-tests to
@@ -704,9 +709,10 @@ L.run(async()=>{
         under:h&&!(h===e||e.contains(h))?((h.closest('[data-ct]')||h).getAttribute('data-ct')||h.tagName):null,cy:Math.round((r.top+r.height/2)*10)/10};});
     return {scrollTop:root?root.scrollTop:null,vh:innerHeight,btns:out};});
   for(const d of DRILLS){
-    for(const g of L.TA7){
-      const tag=d.k+' @ '+L.GEOS[g].label;
-      const b=await L.launch({geo:g,name:'drill-rest-'+d.k+'-'+g,store:d.store});await b.open();
+    for(const g0 of (process.env.CT_G72_M_GEOS?process.env.CT_G72_M_GEOS.split(','):L.TA7)){
+      const gm=/^(\d+)x(\d+)$/.exec(g0),g=gm?{w:+gm[1],h:+gm[2],safe:''}:g0;
+      const tag=d.k+' @ '+(gm?g0:L.GEOS[g0].label);
+      const b=await L.launch({geo:g,name:'drill-rest-'+d.k+'-'+g0,store:d.store});await b.open();
       let ok=true;try{await b.tile('Review');await b.settle(700);await b.tapText(d.enter,{wait:1800});await b.page.locator('[data-ct="pz-top"]').waitFor({state:'visible',timeout:15000});await b.settle(600);}catch(e){ok=false;}
       if(L.say(ok,'TC-R181 '+tag+': PRECONDITION the drill opened')){
         const r=await atRest(b);
