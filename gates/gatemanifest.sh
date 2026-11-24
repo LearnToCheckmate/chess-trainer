@@ -608,6 +608,16 @@ sigpipe_audit(){
     [ "$tot" -lt "$SP_TOTAL_CEIL" ] && echo "  CEILING CAN BE LOWERED: $tot of $SP_TOTAL_CEIL in use. Commit SP_TOTAL_CEIL=$tot so it cannot rise again."
     [ "$a" -lt "$SP_A_CEIL" ] && echo "  CEILING CAN BE LOWERED: SP_A_CEIL=$a."
   fi
+  # THE DOOR LINE [#553; jobs/gatemanifest-selftest-is-red-on-main-23-sigpipe-sites-against-a-ceiling-of-15-2026-11-11]:
+  # gates/door-checks.sh runs `gatemanifest.sh sigpipe` and reads this line, so a breach refuses records-gate.sh --checks
+  # (every seat, every full suite) instead of waiting for someone to run the 8-minute selftest. It is the second time this
+  # ceiling was breached unseen: 23 vs 15 at #550, and 13 vs 12 on #553's own lead branch (fastgate.sh's gate-81 block).
+  # pass/fail count the FOUR ceilings (A, B, total, fixture) held or breached.
+  local held=0 brk=0
+  for t in "$a:$SP_A_CEIL" "$b:$SP_B_CEIL" "$tot:$SP_TOTAL_CEIL" "$x:$SP_FIXTURE_CEIL"; do
+    if [ "${t%%:*}" -gt "${t##*:}" ]; then brk=$((brk+1)); else held=$((held+1)); fi
+  done
+  echo "sigpipe door: $held pass / $brk fail"
   return $rc
 }
 # ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1080,7 +1090,10 @@ sigpipe)
   # jobs/gates-sh-mani-line-captures-the-fallback-as-well-as-the-verdict-on-sigpipe-2026-10-02's theFIX that
   # was never done: "whoever fixes it should grep the WHOLE gates/ directory for `| grep -` under pipefail
   # rather than only this line." Takes an optional directory so it can be pointed at a fabricated tree.
-  # EXIT 0 clean, 1 if a ceiling is breached. NOTHING INVOKES THIS YET and that is stated rather than hidden:
+  # EXIT 0 clean, 1 if a ceiling is breached. INVOKED SINCE #553 by gates/door-checks.sh (row sigpipe-ceilings, read from
+  # the `sigpipe door:` line), so records-gate.sh --checks and every full suite refuse a breach; and this file's selftest
+  # joined records-gate.sh --harnesses (gates/harness-case-counts.tsv row gatemanifest-selftest). WAS, until #553:
+  # NOTHING INVOKES THIS YET and that is stated rather than hidden:
   # gates/gates.sh runs `gatemanifest.sh check` and not this, so it is a check a reader must type. Wiring it
   # in is a gates/gates.sh edit and that file was not this run's claimed artefact [R44]; the gap is routed on
   # jobs/five-cited-harness-files-are-unreachable-by-every-suite-run-2026-10-04, which is the same class.

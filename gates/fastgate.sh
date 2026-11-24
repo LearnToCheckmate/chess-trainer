@@ -2153,7 +2153,7 @@ if [ -n "$ADDLOG" ]; then
   if command -v node >/dev/null 2>&1 && [ -f "$G/regress/81-gatelog-covers-shipped-bundle.js" ]; then
     G81OUT="$(cd "$ROOT" && CT_APP="$ROOT/app.js" timeout 300 node "$G/regress/81-gatelog-covers-shipped-bundle.js" 2>&1)"; G81RC=$?
   fi
-  G81PASS="$(printf '%s\n' "$G81OUT" | grep -oE 'GATELOG-COVERS-SHIPPED-BUNDLE: [0-9]+ pass, 0 fail' | head -1 || true)"
+  G81PASS="$(printf '%s\n' "$G81OUT" | grep -oE 'GATELOG-COVERS-SHIPPED-BUNDLE: [0-9]+ pass, 0 fail' | sed -n 1p || true)"
   if [ "$G81RC" != 0 ] || [ -z "$G81PASS" ]; then
     say ""
     say "FAST GATE REFUSED - a gate log was added or changed and gate 81 (81-gatelog-covers-shipped-bundle.js) is not green over this tree (exit $G81RC):"
