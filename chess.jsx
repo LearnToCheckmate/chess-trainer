@@ -4683,16 +4683,18 @@ function graphMark(m,x,y){const r=m.r,k='rgba(0,0,0,.55)';
   return <circle cx={x} cy={y} r={r} fill={m.c} stroke={k} strokeWidth="1"/>;}
 function EvalGraph({analysis,plies,ply,onJump,width,height,missed,bookN}){
   const H=height||72,n=analysis.length;if(!n)return null;
-  const pad=4;
-  const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=(i/(n-1||1))*width;const y=H/2-(e/6)*(H/2-pad);return[x,y];};
+  /* #553, jobs/the-review-graphs-last-ply-marker-is-clipped-to-a-sliver-by-the-svg-edge-2026-11-19: the first and last ply sat ON the svg's left and right edges (x = 0 and x = width), so the svg's own clip cut the 24px hit circle in half and left a 6x16 sliver of the last ply's button at 375x761 (the mate or the Brilliant, usually). The plies now span [GX, width-GX], GX = the hit circle's radius, so every marker lies wholly inside the box; the line, the area, the cursor and the tap-to-ply mapping all use the same x. The vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) inside too. */
+  const GX=Math.min(12,width/8),pad=Math.min(7,H/4);
+  const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
+  const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=xAt(i);const y=H/2-(e/6)*(H/2-pad);return[x,y];};
   const pts=analysis.map((_,i)=>pt(i));
   const line=pts.map((p,i)=>`${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-  const area=`M0,${H/2} `+pts.map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')+` L${width},${H/2} Z`;
+  const area=`M${GX},${H/2} `+pts.map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')+` L${width-GX},${H/2} Z`;
   const cur=ply>0?Math.min(ply-1,n-1):0;
-  const cx=(cur/(n-1||1))*width;
+  const cx=xAt(cur);
   return(
-    <svg width={width} height={H} style={{display:'block',cursor:'pointer',borderRadius:6}}
-      onClick={e=>{const r=e.currentTarget.getBoundingClientRect();const f=(e.clientX-r.left)/r.width;onJump(Math.round(f*(n-1))+1);}}>
+    <svg width={width} height={H} viewBox={'0 0 '+width+' '+H} preserveAspectRatio="none" style={{display:'block',cursor:'pointer',borderRadius:6,maxWidth:'100%'}} /* #553: the box this svg is laid out in can be NARROWER than the width it was asked for (375x761: the box was 369 wide for a 375 request; 320x568: 290 for 320), and an svg with no viewBox does not shrink its drawing, it clips it - which is what cut the last ply's mark. With a viewBox the drawing shrinks with the box, so every mark stays inside whatever box it gets. */
+      onClick={e=>{const r=e.currentTarget.getBoundingClientRect();const f=Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*width-GX)/((width-2*GX)||1)));onJump(Math.round(f*(n-1))+1);}}>
       <rect x="0" y="0" width={width} height={H/2} fill="rgba(255,255,255,.06)"/>
       <rect x="0" y={H/2} width={width} height={H/2} fill="rgba(0,0,0,.30)"/>
       <line x1="0" y1={H/2} x2={width} y2={H/2} stroke="rgba(255,255,255,.25)" strokeWidth="1" strokeDasharray="4 3"/>
