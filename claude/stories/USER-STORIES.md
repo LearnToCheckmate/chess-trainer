@@ -2778,6 +2778,12 @@ As a player who opens the menu at the end of a game, with my phone upright or si
 - With the game over, a tap outside the sheet closes it, and so does Escape, at 730x375, 844x390, my phone and 320x568. (TC-R356)
 - Every button, link and Game setup pill in the sheet can be brought wholly inside it by finger drags and taken at its centre; where the sheet fits, every one is there at rest. (TC-R356)
 
+### US-R229 A puzzle I finish after Show tells me exactly what it paid, and pays exactly that
+*Added in batch 14 (#553, builder seat B2), jobs/puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03: Kunal's show-no-rank (#547 item (66)) as the orchestrator applied it in a10 (11 Nov 2026) - a revealed finish keeps the streak and the XP and earns no rank, and the line says so. If he answers q10 'neither', this story changes with it.*
+As a player who taps Show and then plays the answer, the closing line tells me in full that the answer was shown, that it earns no rank and that it still counts for XP and my streak, without praising me, and my progress moves exactly that way.
+- The whole line says the answer was shown, earns no rank, and counts for XP and the streak; it never says Solved!, "not counted" or "nicely done", at my phone and 320x568. (TC-R358, TC-R359)
+- My solved count does not move, my streak rises by one, and I get the same XP an unaided solve of that puzzle pays. (TC-R360)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

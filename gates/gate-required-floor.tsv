@@ -135,3 +135,4 @@
 177	176	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 208 (the play board between its bars) joins the required set	-	2b99d6afc202
 178	177	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 209 (the engine line toggle at 360x640) joins the required set	-	262b245d4a75
 179	178	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 217 (the puzzle Prev and Next named, clear at rest and working, sideways and upright) joins the required set	-	9c75c0942ce6
+180	179	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 218 (a puzzle finished after Show says what it paid, and pays it) joins the required set	-	af7518dea599

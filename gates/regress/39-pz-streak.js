@@ -164,7 +164,7 @@ L.run(async()=>{
   // and the Daily 3 puzzle step still credited, and the closing line is not "Solved!" and says the answer was shown.
   const prog=(b)=>b.page.evaluate((k)=>{let p=null,d=null;try{p=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}try{d=JSON.parse(localStorage.getItem('ct_daily3')||'null');}catch(e){}
     return {solved:p&&p.solved?Object.keys(p.solved).length:0,streak:p?p.streak:null,xp:p?p.xp:null,puz:d?d.puz:null};},PZKEY);
-  const closing=(b)=>b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^(\u{1F389}|\u{1F441})/u.test(t)&&t.length>12);return d.length?d[d.length-1].slice(0,120):null;});
+  const closing=(b)=>b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^(\u{1F389}|\u{1F441})/u.test(t)&&t.length>12);return d.length?d[d.length-1]:null;});   /* #553 B2: read WHOLE - the 120-character cap made R4b vacuous once a10's 108-character prefix took most of it (checker, 15 Nov); gate 218 holds the full line against the store */
   for(const geo of ['kunal730','kunal761']){
     for(const shown of [false,true]){
       const tag=geo+(shown?' shown':' unaided');
