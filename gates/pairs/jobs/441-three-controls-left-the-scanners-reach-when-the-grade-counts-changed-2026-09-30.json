@@ -1,0 +1,29 @@
+{
+ "job": "441-three-controls-left-the-scanners-reach-when-the-grade-counts-changed-2026-09-30",
+ "about": "Gate 26 at 320x568 (CT_INV_GEOS=se), the Review summary: the occlusion count (COVERED_PIN se/rev-summary) now counts only the occluded controls a finger cannot reach - TC-INV-13's REACH runs before the count and the 4 grade cells it proves reachable come off it (20 occluded at rest -> 16) - and TC-INV-13's verdict still says all 4 are REACHABLE. NOT COVERED: the other screens and geometries, where no REACH_PIN exists, so their counts are still raw occluded counts; his phone (the job names 320x568 only).",
+ "gate": "gates/regress/26-invariants.js",
+ "env": {"CT_INV_GEOS": "se"},
+ "checks": [
+  "rev-summary: exactly ",
+  "rev-summary: TC-INV-13 "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "se 320x568", "match": "^se rev-summary"}
+ ],
+ "breaks": [
+  {
+   "name": "the-summary-stops-scrolling",
+   "patch": "breaks/26-the-summary-stops-scrolling.diff",
+   "why": "the summary's scroller becomes overflow hidden, so the 4 grade cells behind its footer are buried for good: they are no longer reachable and the count is 20 again",
+   "mustFailIn": ["se 320x568"]
+  },
+  {
+   "name": "reachable-cells-counted-as-occluded-again",
+   "patch": "breaks/26-reachable-cells-counted-as-occluded-again.diff",
+   "why": "the gate goes back to counting reachable controls as occluded (the 15 Nov checker's gap), so the count reads 20 against the pin of 16",
+   "mustFailIn": ["se 320x568"]
+  }
+ ],
+ "timeoutSec": 2400
+}

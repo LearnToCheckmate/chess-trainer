@@ -1,0 +1,37 @@
+{
+ "job": "puzzles-in-a-computer-window-at-half-width-switch-to-the-phone-layout-below-a-set-width-2026-11-18",
+ "about": "Gate 222 (TC-R368..TC-R370): Puzzles training shows the phone layout (every control under the board and inside its width, on screen, nothing overlapping, no page scroll) at the half widths of common screens 960x1080, 840x1050, 720x900 and at 375x761; the computer layout (every control right of the board) at 1280x800 and 1920x1080; and one window walked across square changes layout once each way and never on a 10px jiggle. The switch is DSK-12's (wider than tall, a 4 percent dead band at square), so for a window of height H the set width is H. NOT COVERED: what Kunal saw on 16 Nov (not reproduced at these sizes on that day's bundle either); his look.",
+ "gate": "gates/regress/222-puzzles-half-width-phone-layout.js",
+ "checks": [
+  "TC-R36[89] ",
+  "TC-R370 "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "half widths", "match": "^(960x1080|840x1050|720x900) "},
+  {"name": "kunal761", "match": "^375x761 "},
+  {"name": "computer windows", "match": "^(1280x800|1920x1080) "},
+  {"name": "resize", "match": "^resize "}
+ ],
+ "breaks": [
+  {
+   "name": "half-widths-keep-two-sides",
+   "patch": "breaks/222-half-widths-keep-two-sides.diff",
+   "why": "the switch moved so low (wider than 3/4 of the height) that 960x1080, 840x1050 and 720x900 keep the two-sided computer layout - his report",
+   "mustFailIn": ["half widths"]
+  },
+  {
+   "name": "wide-windows-get-the-phone-layout",
+   "patch": "breaks/222-wide-windows-get-the-phone-layout.diff",
+   "why": "the switch moved so high (1.7 times the height) that a 1280x800 window gets the phone layout",
+   "mustFailIn": ["computer windows"]
+  },
+  {
+   "name": "no-dead-band-at-square",
+   "patch": "breaks/222-no-dead-band-at-square.diff",
+   "why": "DSK-12's dead band gone, so a 10px drag either side of square flips the whole page back and forth",
+   "mustFailIn": ["resize"]
+  }
+ ],
+ "timeoutSec": 1800
+}
