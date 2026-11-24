@@ -780,6 +780,15 @@ const INK_RECT=`function(el){let l=Infinity,t=Infinity,r=-Infinity,bt=-Infinity,
 // rows first - the same precedence the app's own load gives a store found in both places. Seeding is unchanged: put
 // ct_acctgames in `store` and the app migrates it on load, which is itself the path a returning player takes.
 // Never throws; a store it cannot open reads as idb:null, which is NOT the same answer as an empty store.
+// #553 jobs/widen-the-input-space part (b): THE REVIEW THE APP JUST BUILT, read through its one seam (window.__ctReview, chess.jsx,
+// #549 item (55)) so a per-ply property over a real review costs one page.evaluate per game instead of one tap per ply. Returns a JSON
+// copy {plies, positions, analysis, summary, openingName, meta, startFen, plyBase, engine:{path}}, or null when the seam is absent or holds no analysis - and
+// null is NOT an empty review: a caller asserts it is not null before asserting anything over it (gate 239 TC-R420 PRECONDITION).
+async function readReview(page){
+  return page.evaluate(()=>{const v=window.__ctReview;if(!v||!Array.isArray(v.analysis)||!Array.isArray(v.plies))return null;
+    try{return JSON.parse(JSON.stringify({plies:v.plies,positions:v.positions||null,analysis:v.analysis,summary:v.summary||null,openingName:v.openingName||null,meta:v.meta||null,startFen:v.startFen||null,plyBase:v.plyBase||0,engine:v.engine?{path:v.engine.path||null}:null}));}
+    catch(e){return {unreadable:String(e).slice(0,200)};}});
+}
 async function acctGames(page){
   return page.evaluate(()=>new Promise(res=>{
     let ls=null;try{const v=localStorage.getItem('ct_acctgames');if(v!=null)ls=JSON.parse(v)||{};}catch(e){ls=null;}
@@ -816,4 +825,4 @@ async function acctGames(page){
 // is not a key string (an object, 'land', undefined) is false, as the old string comparison was.
 const geoIs=(geo,w,h)=>{if(typeof geo!=='string'||!Object.prototype.hasOwnProperty.call(GEOS,geo))return false;const g=GEOS[geo];return g.w===w&&g.h===h;};
 const HOME_SCREEN_APP={geo:{w:375,h:761,safe:'',label:'375x812 Home Screen app: 761 layout viewport, the 812 shell, real insets 51/31'},screen:{w:375,h:812},realInsets:'51,31',store:{ct_fullh:'1'}};
-module.exports={geoIs,HOME_SCREEN_APP,coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
+module.exports={geoIs,HOME_SCREEN_APP,coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames,readReview};

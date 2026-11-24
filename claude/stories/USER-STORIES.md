@@ -2953,3 +2953,12 @@ As a player using the app from its Home Screen icon, every lesson shows its boar
 *Added #553 B3, jobs/lesson-practice-small-defects-2026-11-13, his pick A on Desk card 83 (run-answers orchestrator-B14-Q10-2026-11-24).*
 As a player practising a lesson line on my phone, after a right move I always see where I am, because the count comes before the move and its note, which may be cut short.
 - A right move's confirm line reads '<N> of <M> · ✓ <move>, correct: <note>', the count first; the prompt before a move, a miss and a free run's 'move N' keep the count where it was. (TC-R419)
+
+### US-R246 The review holds on every move of my own games, not just one famous game
+*Added #553 B3, jobs/widen-the-input-space Part 1 and Part 2 (the corpus: docs/fixtures-kunal-40, settled 18 Sep 2026).*
+As a player reviewing my own games, every explanation is right about the move I actually played, on every move of every game, because the review is checked over forty of my own games and not only the Opera Game.
+- No move's explanation offers the move I played as the other try. (TC-R421)
+- Every move an explanation names is a legal move where it is named. (TC-R422)
+- The explanation's word for who is better agrees with the engine's number. (TC-R423)
+- Each side's grade counts add up to the moves that side played (a move with one legal choice is left out, as chess.com does). (TC-R424)
+- The check runs on his recorded games, and any game whose review cannot be made is named, not dropped. (TC-R420)
