@@ -29,6 +29,11 @@
 // for Coach's own marks); Review analysis keeps the game's moves in its box (current = the ply he branched from) and is covered by the
 // Review stepping, not by playing moves in it. His look on the phone is his.
 // CT_196_GEOS=kunal761,se,land picks geometries; CT_196_PARTS=drill,play,review picks parts.
+// PAIRS (1df7cb96, 2026-11-24): gates/pairs/run-pairs.js --job every-move-list-...-2026-11-19 (drill part, kunal761, 320x568, 761x375): CHECKED - real 18/18, 19/19, 18/18; break box-not-listing 3 FAIL at kunal761 (the gate stops at its precondition elsewhere); newest-not-scrolled 2 FAIL at each size; engine-line-runs-off 2 FAIL at 320x568 and 1 at 761x375 (at 375 the lines tried fit on one row, so the break is invisible there by design)
+// CONTROL-RECORD: 1df7cb96 2026-11-24 total=5 red=2 scope=trial:a3a8058b9f4f how=CT_196_GEOS=kunal761 CT_196_PARTS=play, the Play screen's move list with its scroll-to-the-end ref removed (chess.jsx, the moves panel's inner scroller): the after-each-move line red from ply 25 (Qc2 below the box) and the three-Backs line red (c6 at 829 in a 761 screen); the real tree 13/13 at all three sizes
+// CONTROL-RECORD: 1df7cb96 2026-11-24 total=5 red=2 scope=trial:dd51b405f8b4 how=CT_196_GEOS=kunal761 CT_196_PARTS=review, the Review box's current-move ref removed: red from ply 7 (Ke2 at 359.7..405.4 in a box ending 366) and after Last (Rh7 at 5320); the real tree 15/15 at all three sizes
+// FOUND BY THIS GATE ON ITS OWN BUILD, both fixed before the first push: the empty drill box was 33 tall and 36 with a move (the rows under it moved 3px on his
+// first move; an invisible placeholder chip now holds the height), and the caption put the engine line half under rev-why's fixed 20px (TC-R296's clip line).
 'use strict';
 const L=require('../lib');
 const E=require('../engine-extract');
