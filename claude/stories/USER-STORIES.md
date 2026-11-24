@@ -2771,6 +2771,12 @@ As a player solving puzzles with my phone upright or turned sideways, the Previo
 - At rest each is wholly on screen, 44px or taller, clear of the tab bar or rail, and owns its centre, at 730x375, 844x390, 667x375, 761x375, my phone and 320x568. (TC-R353, TC-R355a)
 - A real tap on Next shows another puzzle and a real tap on Prev brings the first back. (TC-R355b)
 
+### US-R228 The menu closes from outside and every setting in it is in reach, sideways and upright, with the game over
+*Added in batch 14 (#553, builder seat B2), jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30: US-MN-01 (close it without changing anything) and US-MN-03 (reach the settings at the bottom) of claude/stories/MENU-LANE-2026-09-15.md, held at the sizes the job did not reach. #547 and #550 made the fix; #553 measured it at 844x390, his phone and 320x568 as well as 730x375.*
+As a player who opens the menu at the end of a game, with my phone upright or sideways, a tap outside the sheet or Escape closes it, and every setting in it can be brought on screen with my finger.
+- With the game over, a tap outside the sheet closes it, and so does Escape, at 730x375, 844x390, my phone and 320x568. (TC-R356)
+- Every button, link and Game setup pill in the sheet can be brought wholly inside it by finger drags and taken at its centre; where the sheet fits, every one is there at rest. (TC-R356)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.
