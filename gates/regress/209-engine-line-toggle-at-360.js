@@ -14,6 +14,9 @@
 //  TC-R333 PRECONDITION the line was off, on screen, then off again; the board's top and width do not move when it is switched ON, nor when
 //          it is switched OFF (0.5px), and the board is the screen's full width.
 //  TC-R334 a separate launch at ply 19: no engine row; Analyze turns it on (precondition); Exit analysis and a 1.5s settle: it is gone.
+// CONTROL-RECORD: be0ebceb 2026-11-24 total=6 red=1 scope=trial:0e71c99c66d3 how=#553 B1 pairs break leaving-analysis-keeps-the-engine-line (_engRestore forgets without restoring) - TC-R334 'after Exit analysis the engine row is gone' red at 360x640
+// CONTROL-RECORD: be0ebceb 2026-11-24 total=6 red=1 scope=trial:a3970888f67e how=#553 pairs break the-engine-line-takes-its-own-rows (the move-text floor +40px with the line on: board 360 -> 316 on the toggle) - TC-R333 red at 360x640
+// The grading machine on be0ebceb: CHECKED, real 6/6 at 360x640 (bundle b578bfd68f54), both breaks CAUGHT. A first version of the second break (the engine row's reserved height 20 -> 60) left the board at 360 (the overlay path absorbs it) and was replaced before it was recorded.
 const L=require('../lib');const R=require('../drive/review');
 const GEO=process.env.CT_G209_GEO||'w360';
 L.run(async()=>{
