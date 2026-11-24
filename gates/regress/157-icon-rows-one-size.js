@@ -119,7 +119,8 @@ const ROWS={
     ['Try it','[data-ct="lesson-footer"] button[aria-label="Now I\'ll try it"]','only',null,'se'],['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
   // while the demo plays the Play button carries ⏸ (painted 9x12 beside the others' 19 before it was scaled; probe on trial e664a9a2543b)
   lessonplay:{tol:1,enter:async b=>{await LS.states['demo-m0'](b);await b.settle(400);await b.page.locator('[data-ct="lesson-footer"] button[aria-label="Play or pause"]').click();await b.page.waitForTimeout(150);
-      const t=await b.page.locator('[data-ct="lesson-footer"] button[aria-label="Play or pause"]').innerText();if(!/\u23F8/.test(t))throw new Error('Play tapped and the button does not show ⏸ ('+t+')');},
+      /* #553 card 70: the pause is the blue circled pause (svg data-icon line-pause) now, no longer the ⏸ glyph; either reads as 'it is playing' */
+      const t=await b.page.locator('[data-ct="lesson-footer"] button[aria-label="Play or pause"]').evaluate(e=>(e.innerText||'')+'|'+[...e.querySelectorAll('[data-icon]')].map(x=>x.getAttribute('data-icon')).join(','));if(!/\u23F8|line-pause/.test(t))throw new Error('Play tapped and the button does not show the pause ('+t+')');},
     members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],['Pause','[data-ct="lesson-footer"] button[aria-label="Play or pause"]','only'],
       ['More','[data-ct="lesson-footer"] button[aria-label="More for this lesson"]','only']]},
   lessonfoot:{tol:1,enter:b=>LS.states['practice-m0'](b),members:[['Close','[data-ct="lesson-footer"] button[aria-label="Close lesson"]','only'],

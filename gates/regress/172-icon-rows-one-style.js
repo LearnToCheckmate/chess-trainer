@@ -16,8 +16,11 @@
 //   c every member (start button aside) is at least 44x44 and all of them are ONE size (width and height within 1px)
 //   d every member has the shared face: background rgba(255,255,255,0.08) (a toggle that is ON, aria-pressed=true, the accent tint), no
 //     background image, no border, radius 12
-//   e each STEP member draws the white chevron (an svg polyline stroked rgb(255,255,255), no filled shape) and each PREVIOUS/NEXT member the
-//     blue triangle (an svg polygon filled rgb(91,155,213)) - never the other one
+//   e each STEP member draws the SOLID white triangle (an svg polygon filled rgb(255,255,255), no chevron, nothing blue) and each PREVIOUS/NEXT
+//     member the HOLLOW white triangle with a bar at its outer end - never the other one [RE-PINNED at #553 to card 70's standard, his picks of
+//     Mon 23 Nov 2026; until #553 it read the white chevron and the blue triangle of batch 13. The lesson bar's Play or pause is no longer a
+//     primary (accent) face, so its face exemption is gone and it is held to the shared face like the rest. Gate 227 holds the same symbols
+//     on every visible button.]
 // EXCLUDED, NAMED: the game-review screen (the Review board's transport row, its eval band and summary) - HELD: seat B2 is on the Review screen
 // in batch 13; the lead hands that part to this job after B2 merges, and its rows are added to ROWS then. The sideways layouts, the setup
 // sheet's choice chips, the tab bar and the top corners are listed in claude/agents/BUTTON-ROWS-B13.md with the reason each is not a row here.
@@ -45,7 +48,7 @@ const ROWS=[
   // so these two rows exist at kunal761 only (the 6th field); the bar is read by lesson-footer at both sizes
   ['lesson-demo',b=>D.states['demo-m1'](b),[["Now I'll try it"],['Flip board','Flip']],{start:["Now I'll try it"]},null,'kunal761'],
   ['lesson-demo-end',b=>D.states['demo-end'](b),[["Now I'll try it"],['Other lines*']],{start:["Now I'll try it"]},null,'kunal761'],
-  ['lesson-footer',b=>D.states['demo-m4'](b),[['Close lesson'],['Back a move'],['Play or pause'],['Forward a move'],['More for this lesson']],{step:['Back a move','Forward a move'],primary:['Play or pause']}],
+  ['lesson-footer',b=>D.states['demo-m4'](b),[['Close lesson'],['Back a move'],['Play or pause'],['Forward a move'],['More for this lesson']],{step:['Back a move','Forward a move']}],
   ['lesson-practice',b=>D.states['practice-wrong'](b),[['Flip board','Flip'],['Hints'],['Try again']],{}],
   ['lesson-complete',b=>D.states['practice-complete'](b),[['Flip board','Flip'],['Hints'],['Next lesson*']],{nav:['Next lesson*']}],
   ['menu-share',b=>M.states['menu-discover'](b),[['Share Chess Trainer','Share','Share Chess Trainer'],['Send feedback','Feedback']],{}],
@@ -64,8 +67,12 @@ const READ=([members,roles])=>{const vw=innerWidth,vh=innerHeight;
     for(const sv of svgs)for(const g of sv.querySelectorAll('polyline,polygon,path,circle,rect')){const cs=getComputedStyle(g);shapes.push({tag:g.tagName.toLowerCase(),stroke:cs.stroke,fill:cs.fill});}
     return {alts,found:true,name:n,text:(e.innerText||'').trim(),w:+r.width.toFixed(1),h:+r.height.toFixed(1),top:+r.top.toFixed(1),bg:s.backgroundColor,bi:s.backgroundImage,bw:s.borderTopWidth,bs:s.borderTopStyle,rad:s.borderTopLeftRadius,pressed:e.getAttribute('aria-pressed'),shapes};});
   return {out,vw,vh,ac:getComputedStyle(document.getElementById('root')||document.body).fontFamily.split(',')[0].replace(/["']/g,'')};};
-const isStep=m=>m.shapes.length>0&&m.shapes.some(x=>x.tag==='polyline'&&/^rgb\(255, 255, 255\)$/.test(x.stroke))&&!m.shapes.some(x=>x.tag==='polygon'||(x.fill&&x.fill!=='none'&&!/rgba\(0, 0, 0, 0\)/.test(x.fill)));
-const isNav=m=>m.shapes.some(x=>x.tag==='polygon'&&x.fill==='rgb(91, 155, 213)')&&!m.shapes.some(x=>x.tag==='polyline');
+// #553 card 70 (jobs/one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23): RE-PINNED to his new standard - a step
+// member paints the SOLID white triangle (a polygon filled rgb(255,255,255), no chevron line, nothing blue), a previous/next member the HOLLOW
+// white triangle with a bar at its outer end (a polygon with no fill and a white stroke, plus a filled rect, nothing blue). Blue is Play's alone.
+const _none=f=>!f||f==='none'||/rgba\(0, 0, 0, 0\)/.test(f);const _blue=m=>m.shapes.some(x=>/rgb\(91, 155, 213\)/.test(x.fill+' '+x.stroke));
+const isStep=m=>m.shapes.some(x=>x.tag==='polygon'&&x.fill==='rgb(255, 255, 255)')&&!m.shapes.some(x=>x.tag==='polyline'||(x.tag==='polygon'&&_none(x.fill)))&&!_blue(m);
+const isNav=m=>m.shapes.some(x=>x.tag==='polygon'&&_none(x.fill)&&x.stroke==='rgb(255, 255, 255)')&&m.shapes.some(x=>x.tag==='rect'&&!_none(x.fill))&&!m.shapes.some(x=>x.tag==='polyline'||(x.tag==='polygon'&&!_none(x.fill)))&&!_blue(m);
 const inRole=(m,list)=>!!list&&list.some(x=>x.endsWith('*')?m.name.startsWith(x.slice(0,-1)):m.name===x);
 L.run(async()=>{
   for(const geo of ['kunal761','se'])for(const [skin,sstore,pro] of SKINS)for(const [key,enter,members,roles,xstore,onlyGeo] of ROWS){
@@ -89,7 +96,7 @@ L.run(async()=>{
     if(st.length||nv.length||roles.step||roles.nav){
       const want=(roles.step?roles.step.length:0)+(roles.nav?roles.nav.filter(x=>members.some(a=>a.includes(x))).length:0);
       const badA=[...st.filter(m=>!isStep(m)).map(m=>m.name+' (step) draws '+JSON.stringify(m.shapes.map(x=>x.tag+':'+x.stroke+'/'+x.fill))),...nv.filter(m=>!isNav(m)).map(m=>m.name+' (prev/next) draws '+(m.shapes.length?JSON.stringify(m.shapes.map(x=>x.tag+':'+x.stroke+'/'+x.fill)):JSON.stringify(m.text)))];
-      L.say(fm.length===ms.length&&(st.length+nv.length)>0&&badA.length===0,'TC-R237e '+tag+' each step arrow is the white chevron and each previous/next the blue triangle ('+(badA.length?badA.join('; '):st.length+' step, '+nv.length+' prev/next')+')',{badA,want});
+      L.say(fm.length===ms.length&&(st.length+nv.length)>0&&badA.length===0,'TC-R237e '+tag+' each step arrow is the solid white triangle and each previous/next the hollow triangle with a bar (card 70) ('+(badA.length?badA.join('; '):st.length+' step, '+nv.length+' prev/next')+')',{badA,want});
     }
     L.say(b.errs.length===0,'TC-R237 '+tag+' zero app errors',b.errs.slice(0,3));
     await b.close();}
