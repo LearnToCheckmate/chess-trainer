@@ -422,28 +422,37 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // the look, style, 🎬 and 💬 buttons are ONE 44pt row (the dev row is inside it, so it sits at the look row's y) and the build line is one line
 // under it. So the column shrinks 885 -> 745 at se and kunal730 (travel 317 -> 177 and 155 -> 15) and 870 -> 844 at 390, which now fits (travel
 // 0). Everything above the tiles is unchanged. The pre-AUD-H01 tables are in this file's history (git log -p).
+// RE-PINNED [#553, jobs/home-spread-down-to-the-tab-bar-with-a-board-and-play-sign-as-the-play-icon-2026-11-18, his FB-06 spread and card 86
+// pick A; Amber: flags/amber-553-home-phone-fit-and-spread]: Home on a phone is fitted to the window height (scaled to fit, floor 0.85) and
+// spreads its free space into the gaps. This gate runs with the developer tools ON, so the column also holds the dev row and the build
+// stamp: at se it scales to 0.85 and still scrolls 81px, at kunal730 it scales to about 0.957 and fits, at 390 and 430 it spreads.
+// Measured on the trial 12d354e48f34 (the numbers below; the footer row's 44pt controls are drawn at 44/scale, so they stay 44); the pins before were the packed-at-the-top column (sh 761, travel 193 at se).
 const M={
-  se      :{colW:296,sh:761,travel:193,intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
-            tiles:{y:306,h:319},coach:{y:625,h:39},look:{y:676,h:44},devrow:{y:676},build:{y:728}},
-  kunal730:{colW:351,sh:761,travel:31, intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
-            tiles:{y:306,h:319},coach:{y:625,h:39},look:{y:676,h:44},devrow:{y:676},build:{y:728}},
-  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:100},
-            tiles:{y:306,h:321},coach:{y:627,h:39},look:{y:678,h:44},devrow:{y:678},build:{y:730}},
-  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:106,h:84},newhere:{y:190,h:102},
-            tiles:{y:308,h:326.5},coach:{y:634.5,h:39},look:{y:685.5,h:44},devrow:{y:685.5},build:{y:737.5}}};
+  se      :{colW:296,sh:655,travel:87,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
+            tiles:{y:262.8,h:267.4},coach:{y:530.2,h:33.3},look:{y:573.6,h:37.4},devrow:{y:573.6},build:{y:624.4}},
+  kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:89.7},today:{y:101.7,h:79.5},newhere:{y:181.2,h:93.3},
+            tiles:{y:289.7,h:304.2},coach:{y:593.8,h:37.2},look:{y:642.4,h:44},devrow:{y:642.4},build:{y:694}},
+  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:125.5,h:84},newhere:{y:229,h:100},
+            tiles:{y:348.5,h:321},coach:{y:689,h:39},look:{y:747.5,h:44},devrow:{y:747.5},build:{y:811}},
+  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:138.9,h:84},newhere:{y:255.8,h:102},
+            tiles:{y:390.7,h:326.5},coach:{y:750.1,h:39},look:{y:822,h:44},devrow:{y:822},build:{y:898.9}}};
 // Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
 // its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 12 + w + 16 at every width (18 + w + 16 before FMT-A-08).
 // RE-KEYED by formatting audit FMT-A-08 (Kunal's pick 12 Nov): the 12 gutter on a page with no board (was the overlay's 18), so each tile is 6
 // wider and the left column starts at 12; the right column's x and every y and height are unchanged (measured on trial d2b943f841ec).
-const T={
-  se      :{learn:{x:12,y:306,w:140,h:153.5},  puzzle:{x:168,y:306,w:140,h:153.5},
-            analyze:{x:12,y:471.5,w:140,h:153.5},play:{x:168,y:471.5,w:140,h:153.5}},
-  kunal730:{learn:{x:12,y:306,w:167.5,h:153.5},puzzle:{x:195.5,y:306,w:167.5,h:153.5},
-            analyze:{x:12,y:471.5,w:167.5,h:153.5},play:{x:195.5,y:471.5,w:167.5,h:153.5}},
-  '390'   :{learn:{x:12,y:306,w:175,h:154.5},  puzzle:{x:203,y:306,w:175,h:154.5},
-            analyze:{x:12,y:472.5,w:175,h:154.5},play:{x:203,y:472.5,w:175,h:154.5}},
-  '430'   :{learn:{x:12,y:308,w:195,h:157.3},puzzle:{x:223,y:308,w:195,h:157.3},
-            analyze:{x:12,y:477.3,w:195,h:157.3},play:{x:223,y:477.3,w:195,h:157.3}}};
+const T={   // RE-PINNED [#553, see M above]: scaled at se and kunal730, moved down by the spread at 390 and 430
+  se      :{learn:{x:12,y:262.8,w:141.2,h:128.6},  puzzle:{x:166.8,y:262.8,w:141.2,h:128.6},
+            analyze:{x:12,y:401.5,w:141.2,h:128.6},play:{x:166.8,y:401.5,w:141.2,h:128.6}},
+  kunal730:{learn:{x:12,y:289.7,w:167.9,h:146.4},puzzle:{x:195.1,y:289.7,w:167.9,h:146.4},
+            analyze:{x:12,y:447.5,w:167.9,h:146.4},play:{x:195.1,y:447.5,w:167.9,h:146.4}},
+  '390'   :{learn:{x:12,y:348.5,w:175,h:154.5},  puzzle:{x:203,y:348.5,w:175,h:154.5},
+            analyze:{x:12,y:515,w:175,h:154.5},play:{x:203,y:515,w:175,h:154.5}},
+  '430'   :{learn:{x:12,y:390.7,w:195,h:157.3},puzzle:{x:223,y:390.7,w:195,h:157.3},
+            analyze:{x:12,y:559.9,w:195,h:157.3},play:{x:223,y:559.9,w:195,h:157.3}}};
+// #553: the icon box is 80 at full size and scales with the column where Home is fitted (se 0.85, kunal730 about 0.957 with the dev row)
+const ICONBOX={se:68,kunal730:76.5,'390':80,'430':80};
+// #553: the Today card in the earned state (block E, se and kunal730 only): scaled at se, moved down by the spread at kunal730
+const TODAY_E={se:{y:93.2,h:73.6},kunal730:{y:127,h:84}};
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.
@@ -459,7 +468,7 @@ const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
 // The coach line's middle span is nowrap with an ellipsis, so whether the recommendation survives is a question
 // about the WIDTH. Measured with the fresh-store recommendation, "New to chess? Lock in the endgame basics":
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
-const CLIP={se:{clipped:true},kunal730:{clipped:false}};
+const CLIP={se:{clipped:false},kunal730:{clipped:false}};   // #553: at se Home is scaled to 0.85, so the sentence now fits (257 of 257); re-pinned with the fit
 // #550 AUD-H01: on a phone the 🎬/💬 pair sits INSIDE the look row (one 44pt row), so it is no longer a card of its own in the column
 // #550 jobs/build-home-one-today-card: the 🔥/⭐/🎯 strip ('streak') and the Daily 3 card ('daily3') are ONE card now, 'today'. The earned
 // column is therefore one card SHORTER than the fresh one - the strip no longer takes a slot when anything is earned.
@@ -557,8 +566,8 @@ if(blk('B'))for(const geo of GEOS){
     geo+': TC-HM-012 the tiles are '+LABELS.join(' · ')+', in that DOM ORDER - which is the painted order, top-left to bottom-right. WALKED in document order rather than fetched key by key: the first version of this helper mapped over a hardcoded key list, so it imposed the order it claimed to be testing and NC5 walked straight past it. Order and not just arity',{ks:t.map(x=>x.k).join(','),labels:t.map(x=>x.label).join(',')});
   L.say(t.map(x=>x.sub).join('|')===SUBS_AT(geo).join('|'),
     geo+': TC-HM-013 and each carries its own subtitle - the only text on this screen that says what is behind a tile',t.map(x=>x.sub));
-  L.say(t.every(x=>near(x.boxW,80)&&near(x.boxH,80)),
-    geo+': TC-HM-014 every tile\'s icon box is 80x80 at every width (84 until #550 AUD-H01\'s 80pt icons) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
+  L.say(t.every(x=>near(x.boxW,ICONBOX[geo])&&near(x.boxH,ICONBOX[geo])),
+    geo+': TC-HM-014 every tile\'s icon box is '+ICONBOX[geo]+'x'+ICONBOX[geo]+' - 80x80 at full size (84 until #550 AUD-H01\'s 80pt icons), scaled with the column where Home is fitted to the window (#553) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
   L.say(t.every(x=>x.ink===INK[x.k]),
     geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99 (Classic, #550 item (68)), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
   L.say(t.every(x=>near(x.x,W[x.k].x)&&near(x.y,W[x.k].y)&&near(x.w,W[x.k].w)&&near(x.h,W[x.k].h,1)),
@@ -721,8 +730,8 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     const cards=await CARDS(b),s=await STREAK(b),d=await DAILY3(b);
     L.say(!!cards&&cards.map(c=>c.id).join(',')===EARNED_SIG.join(','),
       geo+': TC-HM-037 once anything is earned the column becomes '+EARNED_SIG.join(' · ')+' - NEW HERE GOES (chess.jsx _newhere) and no strip takes the top slot: the Today card is the only card above the tiles',cards&&cards.map(c=>c.id));
-    L.say(!!d&&!d.many&&near(d.y,106)&&near(d.h,84)&&near(d.w,W.colW),
-      geo+': TC-HM-038 the Today card is 84 tall at the top of the column, the column\'s own width - the proposal\'s 84 (BENCHMARK-HOME-2026-09-18: 152px of two goals -> about 84)',d&&{y:d.y,h:d.h,w:d.w});
+    L.say(!!d&&!d.many&&near(d.y,TODAY_E[geo].y)&&near(d.h,TODAY_E[geo].h)&&near(d.w,W.colW),
+      geo+': TC-HM-038 the Today card is '+TODAY_E[geo].h+' tall at '+TODAY_E[geo].y+' (84 at full size, at 106 before #553\'s spread), the column\'s own width - the proposal\'s 84 (BENCHMARK-HOME-2026-09-18: 152px of two goals -> about 84)',d&&{y:d.y,h:d.h,w:d.w});
     L.say(!!d&&d.head==='🔥 4-day streak'&&d.count==='Today 0 of 3',
       geo+': TC-HM-039 the card reads the streak from ct_daily ("🔥 4-day streak") and its count from ct_daily3 ("Today 0 of 3") - NOT from ct_daily.count, which is 2 in this store and is the five-a-day goal\'s number',d&&{head:d.head,count:d.count});
     L.say(!!s&&s.present===false&&!s.words.fiveGoal&&!s.words.xp&&s.words.ofThree===1,

@@ -274,7 +274,10 @@ L.run(async()=>{
      306/471.5) while this pin was not re-run. Drawing the card tighter on a short phone puts the tile back at 41 and reds those seven gate-49
      pins of his mockup, so the design stands and the pin moves. What a finger needs: nothing - the tile's top is at 471.5 in a 568 screen, so
      96.5 of its 153.5px are on screen and it is tapped without scrolling; only its caption's foot is below the fold. */
-  {const HOME_PIN={'320x568':{analyze:57,play:57}};   // px past the fold, measured on fe3b8fd's tree (41 before the Today card, 88 before AUD-H01)
+  /* PIN RETIRED [#553, jobs/home-spread-down-to-the-tab-bar-with-a-board-and-play-sign-as-the-play-icon-2026-11-18, his card 86 pick A: 'fix the
+     320x568 overflow first'; Amber: flags/amber-553-home-phone-fit-and-spread]: Home is fitted to the window on a phone, so at 320x568 the
+     Review and Play tiles are on screen at rest (37.8px clear, measured on the trial 12d354e48f34) and the check is the stricter one: fully on screen. */
+  {const HOME_PIN={};   // was {'320x568':{analyze:57,play:57}}   // px past the fold, measured on fe3b8fd's tree (41 before the Today card, 88 before AUD-H01)
    for(const g of ['kunal761','se']){
      const geo=L.GEOS[g];const n=geo.w+'x'+geo.h+(geo.safe?'+'+geo.safe:'');
      const b=await L.launch({geo:g,name:'home-tiles-'+n});await b.open();await b.settle(1200);

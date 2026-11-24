@@ -2175,6 +2175,12 @@ As a player in a lesson with the move list under the Analyze and Copy buttons, t
 - No point of any move I can see, and no point of the list's own box, is taken by Analyze or Copy, on my phone at a lesson's demo end and at 320x568 at an endgame lesson's demo end. (TC-R392, TC-R393)
 - Every point of each button's icon, and every point of its tap area above the list, still answers for that button, and each tap area is still at least 44 wide; nothing on screen moves. (TC-R394)
 
+### US-R240 Home on my phone fits the screen and spreads evenly down to its foot, the colours and style row last
+*Added in batch 14 (#553, builder seat B2), jobs/home-spread-down-to-the-tab-bar-with-a-board-and-play-sign-as-the-play-icon-2026-11-18. Kunal, FB-06 (17 Nov 2026): "spread it evenly"; Desk card 86, his pick A (docs/run-answers orchestrator-B14-Q13-2026-11-24): the colours and style row stays the last item, spaced like everything else, and the 320x568 overflow is fixed first. Amber: flags/amber-553-home-phone-fit-and-spread.*
+As a player opening the app, Home fills my phone's screen top to bottom with even gaps, and on a small phone it fits without scrolling.
+- On a 320x568 phone a returning player's Home does not scroll; a brand-new player's Home is scaled no smaller than 85 percent and its last row is reached by scrolling Home. (TC-R413)
+- On my phone (375x761), on 375x812 and on 390x844 Home does not scroll, the colours and style row is the last item and ends at the foot of the screen, no gap is smaller than it was, and where the free space allows the gaps are within 8 points of each other. (TC-R414)
+
 ### US-R123 When a review cannot finish, it says so and lets me try again
 *Added #550 answer a32 (Kunal on build__1794388896663, 11 Nov 2026: "a short message with Try again and Back to games when a review's analysis fails, as in your mockup (550-136-k14-2)").*
 As a player whose review's engine stops answering partway, I am told the review stopped and that it was not my doing, with Try again and Back to games, instead of a progress screen that never ends or a review graded from nothing.
