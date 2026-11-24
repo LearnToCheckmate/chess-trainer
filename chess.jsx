@@ -8996,6 +8996,22 @@ function AppMain(){
     setLiveStat({at:Date.now()});
     if(parsePGN(g.pgn).length>rv.plies.length){liveBusyRef.current=true;try{await importGame(g.pgn,{live:{url:g.url,from:g.from,grow:true}});}finally{liveBusyRef.current=false;}}};
   liveTickRef.current=liveTick;liveOwnRef.current=liveOwnNames(chessUser,ccAccts,acctMine);
+  /* batch 14, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16 ("the games box is squeezed"): THE GAMES IN PROGRESS
+     ARE THE TOP OF THE GAMES BOX, NOT A SECTION ABOVE IT. Above it, the three rows took 207px of a fixed page, the box's fit fell to its 88px
+     floor at 375x761 (204 with the switch off) and at 320x568 the whole box went below the tab bar. Inside the box they scroll with the games and
+     the box keeps the height it has with the switch off. Rendered above the box only when there is no box (no finished games). */
+  const liveSecEl=()=>(<div data-ct="live-section" style={{display:'flex',flexDirection:'column',gap:6}}>
+    <div style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Games in progress <span style={{color:'rgba(255,255,255,.6)',fontWeight:600,fontSize:'.86em'}}>{'\u00b7 developer only'}</span></div>
+    {(()=>{const _txt={fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.45};
+      if(!ccAccts.some(id=>/^cc:./.test(id)))return <div data-ct="live-note" style={_txt}>Follow a Chess.com account above to see its Daily games in progress.</div>;
+      if(liveGames===null)return <div data-ct="live-note" role="status" style={_txt}>{'Asking Chess.com for games in progress\u2026'}</div>;
+      if(!liveGames.length)return <div data-ct="live-note" style={_txt}>No Daily games in progress on the Chess.com accounts you follow. Chess.com publishes a live game only once it has ended.</div>;
+      return liveGames.map(g=>{const h=parsePGNHeaders(g.pgn)||{};const _w=liveReviewWaits(g,liveOwnRef.current);const n=parsePGN(g.pgn).length;
+        return(<button key={g.url} data-ct="live-row" data-own={_w?'1':'0'} aria-disabled={_w?'true':undefined} onClick={_w?undefined:()=>liveOpen(g)} style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:2,width:'100%',minHeight:44,padding:'8px 12px',borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:_w?'default':'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+          <span data-ct="live-names" style={{fontSize:15,fontWeight:700,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(h.White||g.white||'White')+' vs '+(h.Black||g.black||'Black')}</span>
+          <span data-ct="live-sub" style={{fontSize:'clamp(13.5px,2.9vw,14.5px)',color:'rgba(255,255,255,.7)',lineHeight:1.4}}>{_w?'Your game. Its review opens when it ends.':(tcLabel(g.tc)+' \u00b7 '+n+(n===1?' move':' moves')+' played \u00b7 '+(g.turn==='b'?'Black':'White')+' to move')}</span>
+        </button>);});})()}
+  </div>);
   const _liveUrl=(liveOn&&mode==='analyze'&&review&&review.meta&&review.meta.live)?review.meta.live.url:null;liveRevRef.current=_liveUrl?review:null;
   useEffect(()=>{liveCurRef.current=_liveUrl;if(!_liveUrl)return;const t=setInterval(()=>{try{liveTickRef.current&&liveTickRef.current();}catch(e){}},5000);return ()=>clearInterval(t);},[_liveUrl]);   /* asked only while that review is open; liveAsk spaces the requests */
   useEffect(()=>{if(liveOn&&mode==='analyze'&&!review)liveListRefresh();},[liveOn,mode,!review,ccAccts.join(',')]);
@@ -12582,7 +12598,11 @@ function AppMain(){
           <div style={{width:'100%',maxWidth:460,display:'flex',flexDirection:'column',gap:14}}>
             <div style={{textAlign:'center'}}>
               <div style={{fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',fontWeight:600}}>{review.headers.White||'White'} vs {review.headers.Black||'Black'}{(review.headers.Result&&!(review.meta&&review.meta.live&&review.headers.Result==='*'))?(' · '+review.headers.Result):'' /* batch 13: a game in progress has no result to print; the line below says so */}</div>
-              {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}{review.meta&&review.meta.live&&<div data-ct="rev-live" role="status" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{(liveStat&&liveStat.ended)?'This game has ended. Its full review opens from your games list.':('In progress \u00b7 '+review.plies.length+(review.plies.length===1?' move':' moves')+' so far'+((liveStat&&liveStat.at)?(' \u00b7 checked '+new Date(liveStat.at).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})):''))}</div>}{/* batch 13: a game in progress (developer only) */}{review.coach&&<div data-ct="rev-coach" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{'Coach game \u00b7 '+Object.keys(review.coach.notes||{}).length+(Object.keys(review.coach.notes||{}).length===1?' note':' notes')}</div>}{/* batch 13 */}
+              {review.headers.CTEnded&&<div data-ct="rev-ended" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{review.headers.CTEnded}</div>}{/* #549 item (49): how a just-played game ended */}{review.meta&&review.meta.live&&<div data-ct="rev-live" role="status" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{(liveStat&&liveStat.ended)?'This game has ended. Its full review opens from your games list.':(<>
+                <span data-ct="rev-live-moves" style={{display:'block',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{'In progress \u00b7 '+review.plies.length+(review.plies.length===1?' move':' moves')+' so far'}</span>
+                <span data-ct="rev-live-at" style={{display:'block',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{(liveStat&&liveStat.at)?('Checked '+new Date(liveStat.at).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})):'\u00a0'}</span></>)}</div>}{/* batch 13: a game in progress (developer only). batch 14 (the job's "summary line wraps at 375"): TWO LINES ALWAYS, each kept whole -
+                as one line it ran 352px into 351 at 375 and 296 at 320, so "AM" alone took a second line, and the line's height changed with the
+                time and the move count as the review grew. The moves on one line, the time it was last checked on the next, so it is 2 lines at every width. */}{review.coach&&<div data-ct="rev-coach" style={{marginTop:2,fontSize:'clamp(13px,3vw,14px)',color:'rgba(255,255,255,.6)',fontWeight:600}}>{'Coach game \u00b7 '+Object.keys(review.coach.notes||{}).length+(Object.keys(review.coach.notes||{}).length===1?' note':' notes')}</div>}{/* batch 13 */}
             </div>
             {/* #550 ERR-01 and ERR-02 (errors-offline check, P1): A REVIEW GRADED WITHOUT STOCKFISH SAYS SO. On a slow line the 7MB engine was
                 still downloading when the 120s wait ran out, and offline after a first visit it never loaded: the review then finished on the
@@ -12853,18 +12873,8 @@ function AppMain(){
           </div>
           {/* batch 13, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16: GAMES IN PROGRESS, developer only
               (liveOn). A game one of his accounts plays in opens live like any other since his 19 Nov answer; with LIVE_OWN_GAMES_WAIT on it says its review opens when the game ends (liveReviewWaits). */}
-            {liveOn&&(<div data-ct="live-section" style={{display:'flex',flexDirection:'column',gap:6}}>
-              <div style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Games in progress <span style={{color:'rgba(255,255,255,.6)',fontWeight:600,fontSize:'.86em'}}>{'\u00b7 developer only'}</span></div>
-              {(()=>{const _txt={fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.7)',lineHeight:1.45};
-                if(!ccAccts.some(id=>/^cc:./.test(id)))return <div data-ct="live-note" style={_txt}>Follow a Chess.com account above to see its Daily games in progress.</div>;
-                if(liveGames===null)return <div data-ct="live-note" role="status" style={_txt}>{'Asking Chess.com for games in progress\u2026'}</div>;
-                if(!liveGames.length)return <div data-ct="live-note" style={_txt}>No Daily games in progress on the Chess.com accounts you follow. Chess.com publishes a live game only once it has ended.</div>;
-                return liveGames.map(g=>{const h=parsePGNHeaders(g.pgn)||{};const _w=liveReviewWaits(g,liveOwnRef.current);const n=parsePGN(g.pgn).length;
-                  return(<button key={g.url} data-ct="live-row" data-own={_w?'1':'0'} aria-disabled={_w?'true':undefined} onClick={_w?undefined:()=>liveOpen(g)} style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:2,width:'100%',minHeight:44,padding:'8px 12px',borderRadius:14,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',cursor:_w?'default':'pointer',textAlign:'left',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                    <span data-ct="live-names" style={{fontSize:15,fontWeight:700,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(h.White||g.white||'White')+' vs '+(h.Black||g.black||'Black')}</span>
-                    <span data-ct="live-sub" style={{fontSize:'clamp(13.5px,2.9vw,14.5px)',color:'rgba(255,255,255,.7)',lineHeight:1.4}}>{_w?'Your game. Its review opens when it ends.':(tcLabel(g.tc)+' \u00b7 '+n+(n===1?' move':' moves')+' played \u00b7 '+(g.turn==='b'?'Black':'White')+' to move')}</span>
-                  </button>);});})()}
-            </div>)}
+            {liveOn&&!(ccGames&&ccGames.length>0)&&liveSecEl()}{/* batch 14: with no finished games there is no games box, so the section
+              sits here as it did; with games it is the top of the games box (below), so it never squeezes that box */}
           {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (1), his answer of 18 Nov 2026 ("Own section"): YOUR GAMES IS ITS
               OWN SECTION right under the Import box, not a part of it, so the cards use the full content width. */}
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
@@ -13346,6 +13356,7 @@ function AppMain(){
               <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
               
               {_gfIn&&_gfPanel}
+              {liveOn&&liveSecEl()}{/* batch 14: the games in progress, at the top of the games box (liveSecEl) */}
               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.
                   Row 1 the two names (only the opponent's may be cut, with an ellipsis). Row 2, 30px: the result box exactly one column wide, then
