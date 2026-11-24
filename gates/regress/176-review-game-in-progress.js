@@ -117,7 +117,7 @@ const liveLine=(b)=>b.page.evaluate(()=>{const sum=document.querySelector('[data
 const liveLineOk=(x)=>!!x&&!!x.moves&&!!x.at&&x.moves.lines===1&&x.at.lines===1&&!x.moves.cut&&!x.at.cut;
 L.run(async()=>{
   for(const geo of (process.env.CT_G176_GEO?process.env.CT_G176_GEO.split(','):['kunal761','se'])){   // CT_G176_GEO=se runs one geometry (a rerun while fixing; never the graded run)
-    const tag=geo;const full=geo==='kunal761';
+    const tag=geo;const full=L.geoIs(geo,375,761);
     let offBox=null;
     // ── 1 and 2: the switch off, and a player with the key ──
     for(const [nm,opts,what] of [['a',{store:{...STORE}},'SWITCH OFF (developer tools on, the switch not set)'],['b',{dev:false,store:{...STORE,ct_live_review:'1'}},'A PLAYER WITH THE KEY SET (no developer tools, ct_live_review 1)']]){

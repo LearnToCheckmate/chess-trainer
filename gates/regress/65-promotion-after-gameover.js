@@ -1301,9 +1301,9 @@ async function blockKF(){
 // moves rather than take the geometry on trust.
 async function blockL(geo){
   // #553 B3 [jobs/gate-65-block-ks-k0d-and-k0e-do-not-read-which-side-flagged-so-they-pass-for-block-is-cell-2026-10-13, the 14 Nov
-  // checker's sideNote]: this block ran at 375x730 only, which R19 superseded. It now runs at his phone too (kunal761, 375x761 with
-  // insets 51/31), one more 60-second flag. The 730 lines keep their exact text; the 761 lines carry '375x761' after the case id.
-  const T=geo==='kunal730'?'TC-PL-054':'TC-PL-054 375x761';const G=L.GEOS[geo];
+  // checker's sideNote]: this block ran at the superseded 730 column only. It now runs at kunal761 too (375x761 with insets
+  // 51/31, R19's settled size), one more 60-second flag. The 730 lines keep their exact text; the 761 lines carry '375x761' after the case id.
+  const T=L.geoIs(geo,375,730)?'TC-PL-054':'TC-PL-054 375x761';const G=L.GEOS[geo];
   const b=await L.launch({geo,name:'65L-port-'+geo});await b.open();
   const v=await vp(b);
   L.say(v.w===G.w&&v.h===G.h,T+' L00 INSTRUMENT: the viewport really is '+G.w+'x'+G.h,v);
@@ -1361,7 +1361,7 @@ async function blockL(geo){
   L.say(pSettled===pBefore,T+' L1b the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
   L.say((await row(b))===rowBefore,T+' L1c the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
   L.say(b.errs.length===0,T+' L1d no console errors in the human-plays-Black clock-flag block',{errs:b.errs.length});
-  await b.shot('65-L-black-clock-flag'+(geo==='kunal730'?'':'-'+geo));
+  await b.shot('65-L-black-clock-flag'+(L.geoIs(geo,375,730)?'':'-'+geo));
   await b.close();
 }
 

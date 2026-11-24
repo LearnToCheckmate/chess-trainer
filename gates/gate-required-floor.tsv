@@ -138,3 +138,4 @@
 180	179	raise	2026-11-24	553	build__1795473826826	batch 14 B1, jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: Italian practice with hints on at kunal761 and 320x568, after every own move the hint is whole (or two lines and more at move 1), the board still, the confirm on screen or behind more, US-R224 / TC-R346..347	-	99a5174e0c98
 181	180	raise	2026-11-24	553	build__1795473826826	B2 merge: gate 218 (the answer-shown line checked against the store) joins 214 and the rest	-	9e0ea464833b
 182	181	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 219 (a counted case row is right about its count) joins the required set	-	af818b223e14
+183	182	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 211 (a long Puzzles wrong-move line shows whole) joins 219 and the rest	-	84f36f5d4061

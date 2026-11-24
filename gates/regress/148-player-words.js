@@ -75,7 +75,7 @@ L.run(async()=>{
     const others=['puzzle','analyze','play'];
     L.say(others.every(k=>whole(c[k]))&&others.every(k=>c[k]&&d&&c[k].tileH===d.tileH),geo+' TC-R224o TXT-32 the other three captions are whole too and all four tiles are one height ('+['learn',...others].map(k=>c[k]&&c[k].tileH).join(', ')+'), so the caption cost Home no height',c);
     /* a new width is measured again, both ways (a caption decided once at the first paint would keep the wrong words after a turn or a resize) */
-    const other=geo==='se'?{w:375,h:761,want:LONG}:{w:320,h:568,want:SHORT};
+    const other=L.geoIs(geo,320,568)?{w:375,h:761,want:LONG}:{w:320,h:568,want:SHORT};
     await b.page.setViewportSize({width:other.w,height:other.h});await b.settle(700);const c2=await caps(b);
     await b.page.setViewportSize({width:L.GEOS[geo].w,height:L.GEOS[geo].h});await b.settle(700);const c3=await caps(b);
     L.say(!!c2.learn&&c2.learn.text===other.want&&whole(c2.learn)&&!!c3.learn&&c3.learn.text===WANT[geo]&&whole(c3.learn),geo+' TC-R224o TXT-32 the caption follows the width: at '+other.w+' wide it reads "'+(c2.learn&&c2.learn.text)+'", and back at '+L.GEOS[geo].w+' "'+(c3.learn&&c3.learn.text)+'", whole both times',{c2:c2.learn,c3:c3.learn});

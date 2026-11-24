@@ -1,0 +1,40 @@
+{
+ "job": "puzzles-the-second-wrong-move-line-is-cut-on-his-phone-hiding-tap-the-eye-to-see-the-move-2026-11-18",
+ "about": "Gate 211 (TC-R342..TC-R344): on the first training puzzle, Kf1 twice; each wrong-move line shows whole (one painted element, nothing over its box), the second reads 'Kf1 is not a check, and the mate needs one now. Tap 👁 to see the move.' in full, and the board keeps its measured rect (top 173 width 375 at 375x761, top 104 width 320 at 320x568), classic and medieval skins. NOT COVERED: the longest second wrong-move lines over all 876 generated puzzles (only the first puzzle's two lines are driven); the hint and the solved line, which gates 12 and 57 hold; his look.",
+ "gate": "gates/regress/211-pz-wrong-line-shows-whole.js",
+ "checks": [
+  "TC-R34[234] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-row-cuts-the-line-again",
+   "patch": "breaks/211-the-row-cuts-the-line-again.diff",
+   "why": "the overflow measurement never marks a line, so at 375x761 the one-line row cuts it with an ellipsis again (the job's defect)",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "a-two-line-row-moves-the-board",
+   "patch": "breaks/211-a-two-line-row-moves-the-board.diff",
+   "why": "room made the other way: the row is 52px and wraps, so the line shows whole but the board sits 22px lower on every puzzle at 375x761 - it does not move between the readings, so only the measured pin sees it",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "the-second-line-drops-the-eye",
+   "patch": "breaks/211-the-second-line-drops-the-eye.diff",
+   "why": "a fix that shortens the second wrong-move line by dropping 'Tap 👁 to see the move.'",
+   "mustFailIn": ["kunal761", "se 320x568"]
+  }
+ ],
+ "timeoutSec": 2400
+}

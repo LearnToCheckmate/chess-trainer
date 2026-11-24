@@ -1,0 +1,32 @@
+{
+ "job": "r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14",
+ "about": "gates/audit/r19-phone-geometry.sh --selftest, no browser: C34 (the live repo has no geometry-name comparison bound to a value, i.e. A4a is green on this tree) and C62 (gates/lib.js geoIs is the old key comparison exactly, over the real GEOS). NOT COVERED: the A4c SIGPIPE flake fixed at #553 (a herestring replaces printf | grep -q) is intermittent by nature, so no break can be CAUGHT every time; 10 live runs read 10 GREEN after it.",
+ "gate": "gates/audit/r19-phone-geometry.sh",
+ "cmd": ["bash", "gates/audit/r19-phone-geometry.sh", "--selftest"],
+ "checks": [
+  "^C34-",
+  "^C62-"
+ ],
+ "build": "never",
+ "situations": [
+  {
+   "name": "this tree",
+   "match": "^C"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "geois-reads-the-width-only",
+   "patch": "breaks/r19-geois-reads-the-width-only.diff",
+   "why": "geoIs compares the width only, so kunal761, kunal730, kunal and short375 (all 375 wide) answer for one another",
+   "mustFailIn": ["this tree"]
+  },
+  {
+   "name": "a-gate-binds-its-geometry-name-again",
+   "patch": "breaks/r19-a-gate-binds-its-geometry-name-again.diff",
+   "why": "gate 182 goes back to const narrow=geo==='se', a geometry's name turned into a value (A4a)",
+   "mustFailIn": ["this tree"]
+  }
+ ],
+ "timeoutSec": 600
+}

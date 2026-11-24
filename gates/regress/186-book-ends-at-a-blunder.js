@@ -110,7 +110,7 @@ async function review(geo,name,pgn){
 }
 
 async function partB(geo){
-  const tag=geo==='se'?'320x568':geo;
+  const tag=L.geoIs(geo,320,568)?'320x568':geo;
   const S=await review(geo,'scholar',SCHOLAR);
   const w=S.walk.map(x=>x.label);
   L.say(S.walk.length===7,'TC-R270 PRECONDITION '+tag+' the Scholar\'s Mate review walks all 7 plies ('+S.walk.length+': '+w.join(' ')+')',S.walk);

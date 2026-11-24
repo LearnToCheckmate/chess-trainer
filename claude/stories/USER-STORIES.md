@@ -1821,6 +1821,7 @@ As a player stuck on a puzzle, the hint I asked for stays on screen while I try 
 - The second wrong move on the same puzzle points at 👁 Show rather than printing the first sentence again. (TC-R86)
 - The same holds with the phone turned sideways: in the landscape rail the hint takes the counter row, a wrong move does not replace it, and the board does not move. (TC-R86b, #549)
 - The whole hint reads: no puzzle's hint needs more lines than the hint box draws, at any supported width, so the instruction half is never cut off behind an ellipsis. (TC-PZ-04, #550 item (139))
+- The whole wrong-move line reads too, the second one's 'Tap 👁 to see the move.' included: on his phone (375x761) a line longer than the one-line row shows whole over the top of the board for its 3 s, as it does at 320x568, and the board neither moves nor shrinks for it. (TC-R342, TC-R343, TC-R344; #553, Amber: flags/amber-553-pz-long-wrong-line-overlay)
 
 ### US-R83 Starting to practise a lesson moves nothing on screen
 *Added #547, from jobs/lesson-moves-head-and-action-row-jump-12px-demo-to-practice-2026-09-29 (Kunal's N-lesson-3, 13 Sep 2026).*

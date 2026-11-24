@@ -78,9 +78,9 @@ L.run(async()=>{
     let s1=null;for(let i=0;i<40;i++){await b.settle(250);s1=await read(b);if(s1.prog&&/ [1-9]\d* of /.test(s1.prog))break;}
     const bd1=await b.board();
     L.say(!!s1&&!s1.menu&&!s1.sheet&&s1.moves&&!s1.summary&&s1.ply===PLY,'TC-R281 '+gn+' picking Deep closes the menu and the sheet and leaves him in the moves view on ply '+(s1&&s1.ply)+' (summary up: '+(s1&&s1.summary)+')',s1&&{menu:s1.menu,sheet:s1.sheet,moves:s1.moves,summary:s1.summary,ply:s1.ply});
-    const where=geo==='se'?(s1&&s1.inBar):(s1&&s1.inTitle);
-    L.say(!!s1&&/^Going deeper: Deep, \d+ of 33$/.test(s1.prog||'')&&!!where&&!!s1.progR&&s1.progR.r<=b.page.viewportSize().width+0.6,'TC-R281 '+gn+' the line reads "'+(s1&&s1.prog)+'" '+(geo==='se'?'in the bottom player bar (no title row here)':'under the Game review title'),s1&&{inTitle:s1.inTitle,inBar:s1.inBar,r:s1.progR});
-    L.say(!!s1&&same(bd0,bd1)&&same(s0.why,s1.why)&&(geo==='se'||same(s0.title,s1.title)),'TC-R281 '+gn+' while it runs the board ('+(bd1&&bd1.y.toFixed(1))+', '+(bd1&&bd1.w.toFixed(1))+'), the explanation box'+(geo==='se'?'':' and the title row')+' did not move',{bd0,bd1,why0:s0.why,why1:s1&&s1.why,t0:s0.title,t1:s1&&s1.title});
+    const where=L.geoIs(geo,320,568)?(s1&&s1.inBar):(s1&&s1.inTitle);
+    L.say(!!s1&&/^Going deeper: Deep, \d+ of 33$/.test(s1.prog||'')&&!!where&&!!s1.progR&&s1.progR.r<=b.page.viewportSize().width+0.6,'TC-R281 '+gn+' the line reads "'+(s1&&s1.prog)+'" '+(L.geoIs(geo,320,568)?'in the bottom player bar (no title row here)':'under the Game review title'),s1&&{inTitle:s1.inTitle,inBar:s1.inBar,r:s1.progR});
+    L.say(!!s1&&same(bd0,bd1)&&same(s0.why,s1.why)&&(L.geoIs(geo,320,568)||same(s0.title,s1.title)),'TC-R281 '+gn+' while it runs the board ('+(bd1&&bd1.y.toFixed(1))+', '+(bd1&&bd1.w.toFixed(1))+'), the explanation box'+(L.geoIs(geo,320,568)?'':' and the title row')+' did not move',{bd0,bd1,why0:s0.why,why1:s1&&s1.why,t0:s0.title,t1:s1&&s1.title});
     // TC-R282 the pass
     let s2=null;for(let i=0;i<240;i++){await b.settle(1000);s2=await read(b);if(!s2.prog&&s2.eng&&s2.eng.level===1)break;if(!s2.prog&&i>5)break;}
     const secs=(Date.now()-t0)/1000;const go=await goList(b);const bd2=await b.board();
@@ -94,7 +94,7 @@ L.run(async()=>{
     const go3=await goList(b);
     L.say(go3.includes(18)&&!go3.includes(16),'TC-R283 '+gn+' the engine line is searched at the review\'s depth: '+JSON.stringify(go3)+' (line "'+String(el||'').slice(0,40)+'")',go3);
     // TC-R284 leaving stops a pass (kunal761)
-    if(geo==='kunal761'){
+    if(L.geoIs(geo,375,761)){
       let s3=null,stopped=null;try{await R.engineSet(b,false);await b.tapCt('rev-more',500);await b.tapCt('rev-depth',450);await goReset(b);await b.page.locator('[data-ct="depth-opt"][data-level="2"]').click();
         for(let i=0;i<40;i++){await b.settle(500);s3=await read(b);if(s3.prog&&/ [1-9]\d* of /.test(s3.prog))break;}
         await b.tapCt('rev-back',600);await b.tapText(/^‹ Back to games$/);await b.settle(800);const n0=(await goList(b)).length;await b.settle(6000);const n1=(await goList(b)).length;const s4=await read(b);

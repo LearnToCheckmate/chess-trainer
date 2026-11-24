@@ -360,7 +360,10 @@ a4_dead(){
             # key, so asking GEOS about it would report a dead token on a tree where nothing is wrong.
             *) continue ;;
           esac
-          printf '%s\n' "$keys" | grep -qxF "$t" || printf '%s:%s\n' "${f#$ROOT/}" "$t"
+          # #553 B3: a HERESTRING, not `printf | grep -q` - this file's own header rule. Under pipefail grep -q's early exit gave
+          # printf a SIGPIPE now and then, the pipeline read as 'not a key', and a LIVE key was printed dead: measured at #553,
+          # 'A4c FAIL ... gates/regress/175-tactics-strategy-claims-hold.js:se' on one run in several on an unchanged tree.
+          grep -qxF "$t" <<<"$keys" || printf '%s:%s\n' "${f#$ROOT/}" "$t"
         done
   done < <(a4_files)
 }
@@ -738,6 +741,9 @@ if(geo==='short320'){b();}"
   chk C59-a4c-still-fires-on-a-dead-short-key-beside-it 1 r19 CT_A4CEIL=9
   chk C60-a4c-names-the-dead-short-key 0 says "zz-a4.js:short320" CT_A4CEIL=9
   chk C61-a4c-and-never-names-the-bare-word 0 bash -c '[ "$(env CT_ROOT="$1" CT_A4CEIL=9 bash "$0" 2>&1 | grep -cx "  gates/regress/zz-a4.js:short")" = 0 ]' "$RUNME" "$q"
+  # C62 [#553 B3]: gates/lib.js geoIs(key,w,h), which the A4 sites moved to at #553, is the old key comparison exactly: every GEOS
+  # entry has its own w x h, so geoIs(k,w,h) is true for k and for no other key, and false for a non-key ('land', an object, undefined).
+  chk C62-geoIs-is-the-key-comparison-over-the-real-GEOS 0 node -e 'const L=require(process.argv[1]+"/gates/lib.js");const K=Object.keys(L.GEOS);let bad=[];for(const k of K){const g=L.GEOS[k];for(const j of K)if(L.geoIs(j,g.w,g.h)!==(j===k))bad.push(k+"/"+j);if(L.geoIs({w:g.w,h:g.h},g.w,g.h))bad.push("object "+k);}if(L.geoIs("land",320,568)||L.geoIs(undefined,320,568))bad.push("non-key");if(K.length<5||bad.length){console.error(bad);process.exit(1);}' "$ROOT"
 
   # THE EMPTY DENOMINATORS. Both must read NOT CHECKED and UNSOUND - never a pass - because all three A4
   # checks are asserted over these two sets [R51/the empty-denominator class].

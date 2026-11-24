@@ -53,7 +53,7 @@ function controls(g,ucis,n,lead){
     else{ref[shape][c.why]=(ref[shape][c.why]||0)+1;if(process.env.CT_VERBOSE)console.log('  refused '+shape+' '+tag+' '+c.why+' engine mate '+r.mate+' pv '+(r.pv||[]).join(' '));}
   };
   const all=[KUNAL,...PZ.slice(0,lim)];
-  for(let i=0;i<all.length;i++){const p=all[i];const g0=E.fromFEN(p.f);const tag=p.kunal?'kunal':('pz'+i+' '+p.f);
+  for(let i=0;i<all.length;i++){const p=all[i];const g0=E.fromFEN(p.f);const tag=p.kunal?'kunals-card':('pz'+i+' '+p.f);
     if(!p.kunal)await run('D',g0,p.f,0,p.n,[],tag);
     if(p.n>=2&&p.s&&p.y&&p.y[0]){const m1=E.findMoveBySAN(g0,p.s[0]);if(!m1)continue;const g1=E.makeMove(g0,m1);const rm=E.findMoveBySAN(g1,p.y[0]);if(!rm)continue;
       const ru=E.rc2sq(rm.fr,rm.fc)+E.rc2sq(rm.tr,rm.tc)+(rm.promo||'');const g2=E.makeMove(g1,rm);
@@ -64,7 +64,7 @@ function controls(g,ucis,n,lead){
   console.log('D (mate from the puzzle position): '+ok.D+' of '+tried.D+' engine lines pass the check; refused by reason '+JSON.stringify(ref.D));
   console.log('R (the reply, then the mate - the card shape): '+ok.R+' of '+tried.R+' pass; refused by reason '+JSON.stringify(ref.R));
   console.log('controls: '+(rows.length*3)+' broken copies of the '+rows.length+' accepted lines; ACCEPTED by mistake: '+ctl.length+(ctl.length?(' '+ctl.slice(0,5).join('; ')):''));
-  const k=rows.find(r=>r.tag==='kunal');console.log('Kunal\'s card: '+(k?k.sans.join(' '):'NOT ACCEPTED'));
+  const k=rows.find(r=>r.tag==='kunals-card');console.log('Kunal\'s card: '+(k?k.sans.join(' '):'NOT ACCEPTED'));
   fs.writeFileSync(OUT,JSON.stringify({about:'gates/measure-mate-lines.js: engine lines (stockfish-18-lite-single, movetime '+MT+' ms) the shipped mateLineCheck accepted; chess.jsx md5 '+E.SOURCE_MD5,tried,ok,refused:ref,rows},null,0)+'\n');
   console.log('wrote '+OUT+' ('+rows.length+' lines)');
 })();

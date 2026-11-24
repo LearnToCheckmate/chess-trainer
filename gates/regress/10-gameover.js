@@ -60,7 +60,7 @@ L.run(async()=>{
     // 48 and 53.7 tall against 52 and 46, so its board sits at 375@103.7. At 390x844 and kunal761 the two routes read the same (390@128,
     // 375@120.5). 'demo' is set only by the dev gallery (setOpponent('demo'), one call), so no player sees the card's layout and the pin is
     // the one a player gets. The cause is asserted here, so a board that moves for any other reason does not pass as this one.
-    if(geo==='kunal')L.say(/vs Human/.test(chrome||''),geo+': the top row names the opponent ("vs Human"), which is the Pass & Play fold that puts this board at 103.7 rather than the dev card\'s 100 ('+chrome+')',{chrome});
+    if(L.geoIs(geo,375,679))L.say(/vs Human/.test(chrome||''),geo+': the top row names the opponent ("vs Human"), which is the Pass & Play fold that puts this board at 103.7 rather than the dev card\'s 100 ('+chrome+')',{chrome});
     L.say(row.includes('Review')&&row.includes('Rematch')&&!row.includes('Resign'),geo+': row reads Review · Rematch, no Resign',row.join(' | '));
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();

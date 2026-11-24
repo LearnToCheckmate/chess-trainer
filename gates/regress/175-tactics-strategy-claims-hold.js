@@ -357,8 +357,8 @@ L.run(async()=>{
       // while a line shows, the box does not fade and nothing in it is drawn part in, part out.
       L.say(moreBad.length===0&&nMoreSeen>=0,g+'TC-R298 '+nm+': on each wrong move the more chip shows exactly when the line does not fit the box at full size, and then the line itself cuts at whole lines, inside the box, with no word under the chip ('+nMoreSeen+' of '+wrongs.length+' needed it)',moreBad.slice(0,3));
       L.say(sliverBad.length===0&&wrongs.length>0,g+'TC-R299 '+nm+': while a wrong-try line shows, the box does not fade and nothing in it is drawn part inside, part outside it (no sliver)',sliverBad.slice(0,3));
-      if(geo==='se')L.say(nMoreSeen>0,g+'TC-R298 DENOMINATOR '+nm+': at 320x568 at least one wrong move needs the more chip ('+nMoreSeen+')',nMoreSeen);
-      if(geo==='kunal761')L.say(nMoreSeen===0,g+'TC-R298 '+nm+': on his phone no wrong move needs the more chip - nothing changes there ('+nMoreSeen+')',nMoreSeen);
+      if(L.geoIs(geo,320,568))L.say(nMoreSeen>0,g+'TC-R298 DENOMINATOR '+nm+': at 320x568 at least one wrong move needs the more chip ('+nMoreSeen+')',nMoreSeen);
+      if(L.geoIs(geo,375,761))L.say(nMoreSeen===0,g+'TC-R298 '+nm+': on his phone no wrong move needs the more chip - nothing changes there ('+nMoreSeen+')',nMoreSeen);
       // a tap that is no legal move
       let ill=null;const lg=legal(p);for(let r=0;r<8&&!ill;r++)for(let c=0;c<8&&!ill;c++){const q=p.board[r][c];if(!q||q.c!=='w')continue;for(let R=0;R<8&&!ill;R++)for(let C=0;C<8&&!ill;C++){const t=p.board[R][C];if(t&&t.c==='w')continue;if(!lg.some(m=>m.fr===r&&m.fc===c&&m.tr===R&&m.tc===C))ill=[sqn(r,c),sqn(R,C)];}}
       await click(b,ill[0]);await click(b,ill[1]);s=await readTac(b);

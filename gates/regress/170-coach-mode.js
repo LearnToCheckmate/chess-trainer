@@ -244,7 +244,7 @@ L.run(async()=>{
     // has _load stubbed to return the document and _save captured, and a save is merged into it field by field inside ctProgress, the way
     // Firestore's setDoc(..., {merge:true}) merges a nested map. Nothing reaches Firebase. kunal761 only (one account round trip is enough).
     let b2=null;
-    if(geo==='kunal761'&&ONLY_K!=='0'){
+    if(L.geoIs(geo,375,761)&&ONLY_K!=='0'){
       const acct={};
       await signIn(b,null,'gate-uid-170');let p1=null;for(let i=0;i<24;i++){await b.settle(500);p1=lastProg(await saves(b));if(p1&&p1.ct_coachgames)break;}
       const up=J(p1&&p1.ct_coachgames)||[];mergeInto(acct,await saves(b));

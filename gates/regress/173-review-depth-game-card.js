@@ -131,7 +131,7 @@ function layout(tag,m,narrow){
 
 L.run(async()=>{
   for(const [gn,geo] of [['375x761','kunal761'],['320x568','se']])for(const [sk,skin] of [['classic',null],['medieval','2']]){
-    const tag=gn+' '+sk;const narrow=geo==='se';const eng=geo==='kunal761'&&!skin;
+    const tag=gn+' '+sk;const narrow=L.geoIs(geo,320,568);const eng=L.geoIs(geo,375,761)&&!skin;
     const b=await L.launch({geo,name:'depthcard-'+geo+'-'+sk,...(skin?{pro:true}:{}),store:{...STORE,...(skin?{ct_skin:skin}:{})}});await b.ctx.addInitScript(recordGo);await b.open();
     try{await b.tile('Review');await b.settle(1300);}catch(e){L.note(tag+' open: '+String(e).slice(0,100));}
     // THE MENU first: open it on the short Quick game, read it, close it by a tap outside
