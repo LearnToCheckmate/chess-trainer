@@ -13450,6 +13450,7 @@ function AppMain(){
                 {[['win','Won'],['draw','Draw'],['loss','Lost']].map(([k,l])=>_chip(_fRes.includes(k),l,'gf-res-'+k,()=>gfTogIn('res',k),null))}
                 <span style={{flexBasis:'100%',height:0}} aria-hidden="true"/>
                 {[['bullet','Bullet'],['blitz','Blitz'],['rapid','Rapid'],['daily','Daily']].map(([k,l])=>_chip(_fTc.includes(k),l,'gf-tc-'+k,()=>gfTogIn('tc',k),null))}
+                {ccAccts.length>1&&<span style={{flexBasis:'100%',height:0}} aria-hidden="true"/>}
                 {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
                     FROM THE DEFAULT RECORDED IN flags/amber-476-review-list-filter-row AND THE REASON IS A
                     RULE THIS PROJECT ALREADY PAID FOR. That row's chips are about 26px tall (padding

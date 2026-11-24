@@ -27,6 +27,7 @@
 //  TC-R349 inside a group picks widen (Won + Lost, Bullet + Daily); across groups they narrow (Won + Bullet, Lost + Blitz), and with the
 //          existing chips (Won + !! brilliant), the account chip (Won + gamma) and the name box (Draw + "opp3"; Won + "opp3" shows none).
 //  TC-R350 Clear clears the new chips too: nine rows, "9 loaded", no chip pressed; zero app errors.
+// CONTROL-RECORD: 3507eb84 2026-11-24 total=73 red=68 scope=trial:8efda1fd1af9 how=#553 B1, the tree before the Result and Time control chips (the lead's 3507eb84) - every chip case red at both geometries and both skins (no gf-res-/gf-tc- chip to press; the precondition red), only the font pin and the zero-errors lines green; on the fix 73/0
 const L=require('../lib');
 const GV=require('../engine-extract.js').GRADE_VER;
 const GEOS=(process.env.CT_G215_GEOS||'kunal761,se').split(',').filter(Boolean);
