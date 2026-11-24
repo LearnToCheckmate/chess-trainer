@@ -1,0 +1,41 @@
+{
+ "job": "gate-65-block-ks-k0d-and-k0e-do-not-read-which-side-flagged-so-they-pass-for-block-is-cell-2026-10-13",
+ "about": "Gate 65 block L (the old block K): vs Computer with the human playing Black, the human's own clock flags; L0e reads WHICH side flagged off the card ('You lose', never 'You win'), L0c2 waits for the engine's reply before pBefore is read, and L1/L1b/L1c hold that the board refuses a legal Black move after the flag. Graded at 375x730 (the block's column) and 375x761 with his insets (added #553 B3). NOT COVERED: 320x568 and landscape (each flag costs a real 60-second clock; the block's header records the cost choice).",
+ "gate": "gates/regress/65-promotion-after-gameover.js",
+ "env": {"CT_B65": "L"},
+ "checks": [
+  "^TC-PL-054 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-PL-054 375x761 "
+  },
+  {
+   "name": "375x730",
+   "match": "^TC-PL-054 L"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-time-card-names-the-wrong-side",
+   "patch": "breaks/65-the-time-card-names-the-wrong-side.diff",
+   "why": "the vs-Computer result card's side is inverted, so the human's own flag reads 'Time! You win!' - the card still says Time!, which is all the old K0e read",
+   "mustFailIn": [
+    "kunal761",
+    "375x730"
+   ]
+  },
+  {
+   "name": "a-flagged-game-takes-moves-again",
+   "patch": "breaks/65-a-flagged-game-takes-moves-again.diff",
+   "why": "humanCanMove's playEnd guard is gone, so after the human's clock flags the board accepts f6-g8 (the #438 defect this cell guards)",
+   "mustFailIn": [
+    "kunal761",
+    "375x730"
+   ]
+  }
+ ],
+ "timeoutSec": 3000
+}

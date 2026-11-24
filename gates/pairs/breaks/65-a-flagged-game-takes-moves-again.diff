@@ -1,0 +1,8 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10076,5 +10076,4 @@
+        to the site that actually admits the moves; see the comment at its definition. Play mode only, because
+        playEnd is play mode's own state and the branches above already own analyze, puzzle and learn. */
+-    if(modeRef.current==='play'&&playEndRef.current)return false;
+     if(modeRef.current==='play'&&opponentRef.current==='online'){const og=onlineGameRef.current;return !!og&&og.status==='active'&&!og.result&&myColorRef.current===gameRef.current.turn;}
+     if(modeRef.current==='play'&&opponent==='computer'&&gameRef.current.turn!==pColor)return false;

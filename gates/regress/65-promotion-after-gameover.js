@@ -1299,10 +1299,14 @@ async function blockKF(){
 // the retreat f6-g8 - legal iff the knight is still on f6 and g8 is still empty, which K1pre asserts by reading
 // both squares. The move row at the flag is logged on that same assertion so a reader can see the engine's two
 // moves rather than take the geometry on trust.
-async function blockL(){
-  const b=await L.launch({geo:'kunal730',name:'65L-port'});await b.open();
+async function blockL(geo){
+  // #553 B3 [jobs/gate-65-block-ks-k0d-and-k0e-do-not-read-which-side-flagged-so-they-pass-for-block-is-cell-2026-10-13, the 14 Nov
+  // checker's sideNote]: this block ran at 375x730 only, which R19 superseded. It now runs at his phone too (kunal761, 375x761 with
+  // insets 51/31), one more 60-second flag. The 730 lines keep their exact text; the 761 lines carry '375x761' after the case id.
+  const T=geo==='kunal730'?'TC-PL-054':'TC-PL-054 375x761';const G=L.GEOS[geo];
+  const b=await L.launch({geo,name:'65L-port-'+geo});await b.open();
   const v=await vp(b);
-  L.say(v.w===375&&v.h===730,'TC-PL-054 L00 INSTRUMENT: the viewport really is 375x730',v);
+  L.say(v.w===G.w&&v.h===G.h,T+' L00 INSTRUMENT: the viewport really is '+G.w+'x'+G.h,v);
   await P.states['cpu-black-clock'](b);
   await b.settle(500);
   const pStart=await plies(b),bdStart=await b.board();
@@ -1310,16 +1314,16 @@ async function blockL(){
   // of this block is that the human is BLACK, so the engine has already moved before the human has touched the
   // board (which cannot happen on the White side) AND the board is flipped.
   L.say(pStart>=1&&!!bdStart&&bdStart.flip===true,
-    'TC-PL-054 L0a the human really is on the BLACK side with the clock running - the engine has already moved and the board is flipped',
+    T+' L0a the human really is on the BLACK side with the clock running - the engine has already moved and the board is flipped',
     {plies:pStart,row:await row(b),flip:bdStart?bdStart.flip:null});
-  L.say((await card(b))===null,'TC-PL-054 L0b INSTRUMENT: no result card while the game is live',{card:await card(b)});
+  L.say((await card(b))===null,T+' L0b INSTRUMENT: no result card while the game is live',{card:await card(b)});
   // K0c INSTRUMENT, AND THE OVER-APPLICATION CONTROL IN ONE. "The board refused a tap" is worthless unless the
   // same kind of tap is shown to do something first, and if the fix ever over-applied and froze the board for
   // the Black side, or froze the engine under a clock, this is the assertion that goes red.
   await b.move('g8','f6',900);
   const pLive=await plies(b);
   L.say(pLive>pStart,
-    'TC-PL-054 L0c INSTRUMENT: a BLACK move from the human side is accepted while the game is LIVE and the clock runs',
+    T+' L0c INSTRUMENT: a BLACK move from the human side is accepted while the game is LIVE and the clock runs',
     {before:pStart,after:pLive,row:await row(b)});
   // #550 item (121) [jobs/gate-65-block-ks-k0d-and-k0e-do-not-read-which-side-flagged-so-they-pass-for-block-is-cell-2026-10-13,
   // antagonist B's P1-3 of #517]: pBefore and rowBefore WERE captured here, straight after the human's move and BEFORE the
@@ -1330,34 +1334,34 @@ async function blockL(){
   const replied=await P.waitPlies(b,pStart+2,30000).then(()=>true,()=>false);
   await b.settle(300);
   const rowBefore=await row(b),pBefore=await plies(b);
-  L.say(replied&&pBefore===pStart+2,'TC-PL-054 L0c2 INSTRUMENT: the engine replied (the human\'s move plus the reply, '+pStart+' -> '+pBefore+' plies) before the board is read for the flag comparison, so pBefore is not stale',{pStart,pLive,pBefore,replied});
+  L.say(replied&&pBefore===pStart+2,T+' L0c2 INSTRUMENT: the engine replied (the human\'s move plus the reply, '+pStart+' -> '+pBefore+' plies) before the board is read for the flag comparison, so pBefore is not stale',{pStart,pLive,pBefore,replied});
   // Now simply wait. It is BLACK's move - the human's - and Black never moves again, so BLACK's clock runs out.
   const ms=await waitFlag(b,140000);
-  L.say(ms!==null,'TC-PL-054 L0d BLACK'+"'"+'s clock - the HUMAN'+"'"+'s - flagged with the engine as opponent',{ms});
+  L.say(ms!==null,T+' L0d BLACK'+"'"+'s clock - the HUMAN'+"'"+'s - flagged with the engine as opponent',{ms});
   const cd=await card(b);
   // L0e CARRIES THE VETO THAT DROPPED THIS BLOCK THREE TIMES (integrationResult517/518/520 on the parked patch): 'Time!' is the
   // head for ANY time-out, whichever clock ran out, so /Time/ alone cannot say whose clock it was. The card's sub line is
   // 'You lose' vs the computer when the HUMAN'S side ran out (chess.jsx _winTxt: _winSide===pColor ? 'You win!' : 'You lose'),
   // and a flag on the ENGINE'S clock would read 'You win!'. So the side is asserted, not only the ending.
-  L.say(/Time/i.test(cd||'')&&/You lose/.test(cd||'')&&!/You win/.test(cd||''),'TC-PL-054 L0e the vs-Computer game ended ON TIME and it was the HUMAN (Black) who flagged - the card reads "You lose", not "You win"',{card:cd});
-  L.say(/Rematch/.test(await ctrls(b)),'TC-PL-054 L0f the control row swapped to the game-over set',{});
+  L.say(/Time/i.test(cd||'')&&/You lose/.test(cd||'')&&!/You win/.test(cd||''),T+' L0e the vs-Computer game ended ON TIME and it was the HUMAN (Black) who flagged - the card reads "You lose", not "You win"',{card:cd});
+  L.say(/Rematch/.test(await ctrls(b)),T+' L0f the control row swapped to the game-over set',{});
   const onF6=await pieceAt(b,'f6'),onG8=await pieceAt(b,'g8');
   L.say(!!onF6&&onG8===null,
-    'TC-PL-054 L1pre PRECONDITION: the Black knight is still on f6 and g8 is empty, so f6-g8 is a legal Black move in this position',
+    T+' L1pre PRECONDITION: the Black knight is still on f6 and g8 is empty, so f6-g8 is a legal Black move in this position',
     {f6:!!onF6,g8empty:onG8===null,rowAtFlag:rowBefore});
   // K1 THE HEADLINE: the cell nothing covered - the human on the BLACK side, the engine present, and the ending
   // produced by the HUMAN'S OWN CLOCK rather than by a resignation.
   await b.move('f6','g8',600);
   const pAfter=await plies(b);
   L.say(pAfter===pBefore,
-    'TC-PL-054 L1 the board refuses a legal BLACK move after a clock flag, vs COMPUTER, with the human playing Black - no ply appended',
+    T+' L1 the board refuses a legal BLACK move after a clock flag, vs COMPUTER, with the human playing Black - no ply appended',
     {before:pBefore,after:pAfter,row:await row(b)});
   await b.settle(2200);
   const pSettled=await plies(b);
-  L.say(pSettled===pBefore,'TC-PL-054 L1b the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
-  L.say((await row(b))===rowBefore,'TC-PL-054 L1c the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
-  L.say(b.errs.length===0,'TC-PL-054 L1d no console errors in the human-plays-Black clock-flag block',{errs:b.errs.length});
-  await b.shot('65-L-black-clock-flag');
+  L.say(pSettled===pBefore,T+' L1b the ending still holds 2.2s later - no move has appeared',{before:pBefore,after:pSettled});
+  L.say((await row(b))===rowBefore,T+' L1c the move row is byte-identical to what it was before the flag',{before:rowBefore,after:await row(b)});
+  L.say(b.errs.length===0,T+' L1d no console errors in the human-plays-Black clock-flag block',{errs:b.errs.length});
+  await b.shot('65-L-black-clock-flag'+(geo==='kunal730'?'':'-'+geo));
   await b.close();
 }
 
@@ -1375,6 +1379,6 @@ L.run(async()=>{
   if(want('JS'))await blockJS();
   if(want('K'))await blockK();
   if(want('KF'))await blockKF();
-  if(want('L'))await blockL();
+  if(want('L'))for(const g of ['kunal730','kunal761'])await blockL(g);
 },'65-promotion-after-gameover');
 // SELECTOR-OPENED: land-result reading=fallback round 4: result-card first
