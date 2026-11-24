@@ -27,6 +27,7 @@ record(){ # <log> <why>
     awk -F'\t' -v why="$why" -v bn="$bn" '
       FILENAME==ARGV[1]{ if($0 ~ /^[[:space:]]*#/ || NF<2) next; old[$1]=$2; oldbn[$1]=$3; oldwhy[$1]=$4; next }
       /^=== [^ ]+ ===/{ sec=$0; sub(/^=== /,"",sec); sub(/ ===.*/,"",sec); if(!(sec in got)){ got[sec]=0; ord[++no]=sec }; next }
+      sec=="" && /^(PASS|FAIL) fastgate-drive /{ if(!("fastgate-drive" in got)){ got["fastgate-drive"]=0; ord[++no]="fastgate-drive" }; got["fastgate-drive"]++; next }   # #553: the unit layer, as gates.sh assert_falls counts it
       sec!="" && /^(PASS|FAIL) /{ got[sec]++ }
       END{ for(i=1;i<=no;i++){ k=ord[i]; n=got[k]
           if((k in old) && old[k]+0==n) printf "%s\t%d\t%s\t%s\n",k,n,oldbn[k],oldwhy[k]
@@ -52,6 +53,9 @@ selftest(){
   CT_ACREG="$T/r.tsv" record "$T/b.log" "" >/dev/null 2>&1; ck "R5 no reason, no record (exit 2)" "$?" 2
   printf '=== ALPHA ===\nPASS 1\n' > "$T/c.log"
   CT_ACREG="$T/r.tsv" record "$T/c.log" "x" >/dev/null 2>&1; ck "R6 a log with no verdict line is refused (a subset or a fragment)" "$?" 2
+  printf 'gates.sh #902  bundle x\nPASS fastgate-drive H1 [TC-SUITE-057]  (exit 0)\nPASS fastgate-drive H2 [TC-SUITE-058]  (exit 0)\n=== ALPHA ===\nPASS 1\nPASS 2\nPASS 3\nPASS 4\nPASS 5\n=== BETA ===\nPASS 1\nGATES GREEN #902\n' > "$T/d.log"
+  CT_ACREG="$T/r.tsv" record "$T/d.log" "the unit layer joins" >/dev/null
+  ck "R7 (#553) the fastgate-drive unit layer is recorded under its own label, its lines not counted into a gate" "$(grep -c "^fastgate-drive	2	#902	new: the unit layer joins$" "$T/r.tsv")/$(grep '^ALPHA' "$T/r.tsv" | cut -f2)" "1/5"
   echo "assertcount selftest: $pass pass / $fail fail"; [ "$fail" -eq 0 ]
 }
 
