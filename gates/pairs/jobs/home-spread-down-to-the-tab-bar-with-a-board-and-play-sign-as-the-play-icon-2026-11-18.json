@@ -1,0 +1,58 @@
+{
+ "job": "home-spread-down-to-the-tab-bar-with-a-board-and-play-sign-as-the-play-icon-2026-11-18",
+ "about": "BATCH 14 B2, the fit and the even spread of his FB-06 pick and card 86 pick A (the colours and style row the last item, spaced like everything else; the 320x568 overflow fixed first). Graded by gate 236 (TC-R413..414) on a trial bundle in the player view: a returning and a brand-new player at 320x568, 375x761, 375x812 and 390x844. Three ways it could come undone are each caught: the spread dropped (packed at the top again), the phone fit dropped (320x568 scrolls again), and pick B instead of his A (only the colours row pinned to the foot). NOT COVERED: icon C on the Play tile (the next part of the job), the dev view's extra rows (gate 49 pins those), a wide or sideways Home, his look on the phone.",
+ "gate": "gates/regress/236-home-fits-and-spreads.js",
+ "checks": [
+  "TC-R41[34] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "320x568",
+   "match": "^320x568 "
+  },
+  {
+   "name": "375x761 kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "375x812",
+   "match": "^375x812 "
+  },
+  {
+   "name": "390x844",
+   "match": "^390x844 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "packed-at-the-top-again",
+   "patch": "breaks/236-packed-at-the-top-again.diff",
+   "why": "the free space is not shared out: Home is packed at the top with the empty band under it again",
+   "mustFailIn": [
+    "375x761 kunal761",
+    "375x812",
+    "390x844"
+   ]
+  },
+  {
+   "name": "overflow-at-320-again",
+   "patch": "breaks/236-overflow-at-320-again.diff",
+   "why": "Home is not fitted to the window on a phone: at 320x568 a returning player's Home runs 56px past the screen again",
+   "mustFailIn": [
+    "320x568"
+   ]
+  },
+  {
+   "name": "the-last-row-pinned-to-the-foot",
+   "patch": "breaks/236-the-last-row-pinned-to-the-foot.diff",
+   "why": "the option he did not pick (B): the colours and style row alone is pushed to the foot and the gaps above it stay as they were, so they are not even",
+   "mustFailIn": [
+    "375x761 kunal761",
+    "375x812",
+    "390x844"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}

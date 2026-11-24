@@ -264,7 +264,7 @@
    "430x932@50",
    "430x932@75"
   ],
-  "play-setup-bots|card|[setup-start] button \"▶ Start game\"": [
+  "play-setup-bots|card|[setup-start] button \"Start game\"": [
    "320x568@50",
    "360x640@50",
    "375x667@50",
@@ -289,7 +289,7 @@
    "430x932@75",
    "375x730@50"
   ],
-  "play-setup|card|[setup-start] button \"▶ Start game\"": [
+  "play-setup|card|[setup-start] button \"Start game\"": [
    "320x568@50",
    "360x640@50",
    "375x667@50",
