@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10273,5 +10273,5 @@
+   const _replyTxt=useMemo(()=>{try{if(mode!=='play'||opponent!=='computer'||_gameOver||!game||game.turn!==pColor)return '';const h=game.history||[];const l=h[h.length-1];if(!l||!l.move)return '';const r=replyRead(game,{tr:l.move.tr,tc:l.move.tc,cap:/x/.test(String(l.san||''))});return r?r.txt:'';}catch(e){return '';}},[game,mode,opponent,pColor,_gameOver]);
+   const _mateSanTxt=(()=>{if(playEnd||_gameTermStatus!=='checkmate')return '';try{const h=game.history||[];const l=h[h.length-1];const sn=l&&String(l.san||'').replace(/[+#]+$/,'');return sn?(sn+' is mate. '):'';}catch(e){return '';}})();
+-  const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_mateSanTxt+(_winSide===pColor?'You win! 🎉':'You lose')):(_winSide==='w'?'White wins':'Black wins'));
++  const _winTxt=_winSide==null?'Draw':((mode==='play'&&opponent==='computer')?(_mateSanTxt+(_winSide!==pColor?'You win! 🎉':'You lose')):(_winSide==='w'?'White wins':'Black wins'));
+   // #414: a draw by repetition or the fifty-move rule names the RULE in the sub-line, because "Draw" alone
+   // does not tell the player why a game they were still playing has just ended. `_winTxt` already reads

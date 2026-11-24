@@ -86,6 +86,13 @@ L.run(async()=>{
     // (read from the source, both quote styles) is set into THIS box, and the lines it NEEDS - measured in an unclamped probe
     // of the same width, font, letter-spacing and line-height - must not exceed the 3 the clamp draws. Measured at #550 on
     // trial 4fe71d55db29: 27 hints, 0 over 3 lines at all eight geometries (the three that clamped at #445 have been shortened).
+    // R18 [#553 B3; jobs/gate-11-asserts-consistency-on-fontsize-while-two-of-the-five-glyphs-are-svg-props-2026-09-30, its
+    // rotationPointer, which called 'hint text not clipped (scroll 27 vs 27)' a self-comparison]: MEASURED, NOT TRUE BY CONSTRUCTION.
+    // In this Chromium a line-clamped box's scrollHeight still counts the lines the clamp hides. Control trial 184ad8713b23 (pz-hint-head
+    // WebkitLineClamp 3 -> 1, gates/pairs/breaks/12-the-hint-clamps-at-one-line.diff): the line reads 'scroll 27 vs 13' at kunal and 390
+    // and '25 vs 12' at se, RED at all three, with this gate 55 pass / 21 fail (the corpus lines red too); on e97c7bcbe69e 76 / 0. So
+    // the line does see a clamp that cuts the header's OWN hint; what it cannot see is a hint in the corpus that this puzzle does not
+    // show, which is what corpusFit is for. Both stay; neither is decoration.
     await corpusFit(b,geo);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
