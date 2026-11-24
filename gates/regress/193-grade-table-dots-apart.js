@@ -16,6 +16,10 @@
 //          grade's dot by >= 10.
 //  TC-R323 the White and Black headers' ink is centred over their column's digits within 1px (the header half of the job; gate 20's TC-R89
 //          checks it at kunal730 and 320x568, this at his phone).
+// CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:837976ecee8c how=#553 B1, THE SUBJECT REMOVED: pairs break dots-back-to-three-shades-of-green (the #422 dot colours rgb(123,216,143) / (139,209,143) / (156,203,143)) - TC-R322 red at 375x761 and 320x568
+// CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:2a6e09e91716 how=#553 pairs break excellent-dot-painted-as-best - TC-R322 red at both sizes
+// CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:0362ffe27f15 how=#553 pairs break header-grid-48-again (header grid 1fr 48px 48px) - TC-R323 red at both sizes
+// The grading machine on 6558346f: CHECKED, real 4/4 at kunal761 and 4/4 at 320x568 (bundle dad553e492f2), the three breaks CAUGHT.
 const L=require('../lib');const RV=require('../drive/review');
 const lab=(rgb)=>{const f=(c)=>{c/=255;return c>0.04045?Math.pow((c+0.055)/1.055,2.4):c/12.92;};const [r,g,b]=rgb.map(f);
   const X=(r*0.4124+g*0.3576+b*0.1805)/0.95047,Y=(r*0.2126+g*0.7152+b*0.0722),Z=(r*0.0193+g*0.1192+b*0.9505)/1.08883;
