@@ -2812,6 +2812,14 @@ As a player stepping through a reviewed game with the engine line on, the evalua
 - The row shows its number within a fifth of a second of each step, never an empty row or "not loaded". (TC-R363, TC-R364)
 - The row shows the engine's moves within ten seconds, so a search that never finishes cannot hide. (TC-R365)
 
+### US-R235 Each navigation symbol means one thing on every screen
+*Added in batch 14 (#553, builder seat B1), jobs/one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23. Kunal's picks on card 70, Mon 23 Nov 2026 ("1: Circled Play"; "Please make sure you use these buttons across the app consistently"), and his words at about 7:35am EST Tue 24 Nov (docs/run-answers orchestrator-B14-BUTTONS-NOW-2026-11-24). Amber (first and last move, pause, the lesson Play's face, white item triangles): flags/amber-553-nav-symbols.*
+As a player, the same triangle never means "next puzzle" on one screen and "next move" on another: I can tell what a button will do by its shape alone.
+- Going to the previous or next puzzle, drill card, lesson, motif or idea is a hollow triangle with a bar at its outer end, on every screen. (TC-R378)
+- Stepping through the moves of a game, a review, a card's line or a lesson is a solid triangle; the first and last move are that triangle with a bar. (TC-R377)
+- Playing a line is a solid triangle inside a circle, and it is the only blue symbol; reset and retry are the curled arrow, not blue. (TC-R379)
+- No button anywhere uses one of these symbols for another meaning, and no navigation button draws an old text triangle. (TC-R380, TC-R376)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

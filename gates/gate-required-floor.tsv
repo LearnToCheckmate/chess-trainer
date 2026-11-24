@@ -142,3 +142,4 @@
 184	183	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 220 (the Moves engine line shows its number at once and its variation soon) joins the required set	-	ab6d2f170431
 185	184	raise	2026-11-24	553	build__1795473826826	lead: gate 215 (the Result and Time control chips) joins 220 and the rest, carried by cherry-pick from B1	-	6ff9cde86b0a
 186	185	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 222 (desktop Puzzles at half width uses the phone layout) joins 215 and the rest	-	5f6695c97326
+187	186	raise	2026-11-24	553	build__1795473826826	B1 merge: gate 227 (one set of navigation symbols) joins 222 and the rest	-	50b97bc63c54

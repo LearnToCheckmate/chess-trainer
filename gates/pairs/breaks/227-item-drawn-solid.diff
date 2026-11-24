@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 2b8b2c8..dee6847 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4963,7 +4963,7 @@ function StepEnd({dir='right',size=27}){
+ function NavTri({dir='right',size=26.6 /* 17.6 of ink at 24, scaled to the row's 19.5 */}){
+   const pts=dir==='left'?'19.5,4.5 9,12 19.5,19.5':'4.5,4.5 15,12 4.5,19.5';
+   return(<svg data-icon={'nav-'+dir} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{display:'block'}}>
+-    <polygon points={pts} fill="none" stroke="#ffffff" strokeWidth="2.1" strokeLinejoin="round"/><rect x={dir==='left'?3.2:17.8} y="3.6" width="2.9" height="16.8" rx="1" fill="#ffffff"/>
++    <polygon points={pts} fill="#ffffff" stroke="#ffffff" strokeWidth="2.1" strokeLinejoin="round"/><rect x={dir==='left'?3.2:17.8} y="3.6" width="2.9" height="16.8" rx="1" fill="#ffffff"/>
+   </svg>);
+ }
+ /* #553 jobs/when-the-app-says-mate-in-n-show-the-moves-on-the-board-2026-11-19, card 70's symbols (orchestrator-B14-CARD70-2026-11-23 and its

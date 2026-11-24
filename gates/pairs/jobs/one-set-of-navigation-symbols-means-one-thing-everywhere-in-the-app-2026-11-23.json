@@ -1,0 +1,24 @@
+{
+ "job": "one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23",
+ "about": "Card 70's four navigation symbols, each meaning one thing on every screen: hollow triangle with a bar = switch item, solid triangle = step a move, blue circled triangle = play a line (the only blue), curled arrow = reset. Graded by gate 227 (TC-R376..380) on a trial bundle at 375x761 with his insets and at 320x568, over three of its states (Play mid-game, a training puzzle after one move, the lesson demo at ply 4); the whole gate walks sixteen states and the desktop Play moves panel and Review row, and is the suite's. NOT COVERED: worded start buttons with a decorative triangle (named in the gate header, a copy question), the Review best-move chip row (card 76, on the Desk), Apple emoji ink and his phone.",
+ "gate": "gates/regress/227-nav-symbols-one-meaning.js",
+ "env": {"CT_G227_ONLY": "play-live,puzzle,lesson-demo"},
+ "checks": ["TC-R37[6-9] ", "TC-R380 "],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-R3(7[6-9]|80) 375x761 "},
+  {"name": "se 320x568", "match": "^TC-R3(7[6-9]|80) 320x568 "}
+ ],
+ "breaks": [
+  {"name": "item-drawn-solid", "patch": "breaks/227-item-drawn-solid.diff",
+   "why": "the previous/next-item triangle is filled in, so going to another puzzle looks like stepping a move",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "step-back-to-the-chevron", "patch": "breaks/227-step-back-to-the-chevron.diff",
+   "why": "the move step goes back to batch 13's white chevron instead of the solid triangle",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "lesson-play-is-a-plain-triangle", "patch": "breaks/227-lesson-play-is-a-plain-triangle.diff",
+   "why": "the lesson's Play draws the plain solid move triangle, not the blue circled one, so playing the line looks like stepping one move",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 1500
+}

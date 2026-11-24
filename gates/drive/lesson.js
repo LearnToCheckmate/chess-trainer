@@ -66,7 +66,10 @@ async function tapBtn(b,re,wait){
 async function hasBtn(b,re){return b.page.evaluate((src)=>{const re=new RegExp(src[0],src[1]);return [...document.querySelectorAll('button')].some(el=>{const r=el.getBoundingClientRect();return r.width>1&&(re.test((el.innerText||'').replace(/\s+/g,' ').trim())||re.test(el.getAttribute('aria-label')||''));});},[re.source,re.flags]);}
 async function noteText(b){return b.text(NOTE);}
 async function demoPly(b){const t=(await noteText(b))||'';if(/Press Play/.test(t))return 0;const m=t.match(/^(\d+)(\.|…)\s/);if(!m)return -1;return m[2]==='.'?2*(+m[1])-1:2*(+m[1]);}
-async function playBtnLabel(b){return b.page.evaluate(()=>{const e=document.querySelector('button[aria-label="Play or pause"]');return e?(e.innerText||'').trim():null;});}
+// #553 nav symbols (card 70): the button draws an svg now (line-play, line-pause, the curled arrow 'reset'), not a text glyph, so its state is
+// read from the icon it draws and reported in the glyphs every caller already compares against (▶ paused, ⏸ playing, ↻ at the end).
+async function playBtnLabel(b){return b.page.evaluate(()=>{const e=document.querySelector('button[aria-label="Play or pause"]');if(!e)return null;const t=(e.innerText||'').trim();if(t)return t;
+  const ic=e.querySelector('[data-icon]');const k=ic&&ic.getAttribute('data-icon');return ({'line-play':'▶','line-pause':'⏸','reset':'↻'})[k]||('?'+k);});}
 // every button on screen: text/aria-label and rect
 async function btnRects(b){return b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>{const r=x.getBoundingClientRect();return {t:((x.innerText||'').replace(/\s+/g,' ').trim()||x.getAttribute('aria-label')||'').slice(0,30),x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height)};}));}
 // rect of the smallest element whose text matches (any element)

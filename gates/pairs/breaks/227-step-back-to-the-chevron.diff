@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 2b8b2c8..82362d6 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4951,7 +4951,7 @@ const ROW_ICON_PX=24;
+ function StepArrow({dir='right',size=27}){
+   const pts=dir==='left'?'17,4.25 7,12 17,19.75':'7,4.25 17,12 7,19.75';   /* 19 of ink at 27, the row's size (gate 157 TC-IR-02: 21 read one too tall beside Close's 19) */
+   return(<svg data-icon={'step-'+dir} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{display:'block'}}>
+-    <polygon points={pts} fill="#ffffff" stroke="#ffffff" strokeWidth="1.4" strokeLinejoin="round"/>
++    <polyline points={pts} fill="none" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+   </svg>);
+ }
+ function StepEnd({dir='right',size=27}){
