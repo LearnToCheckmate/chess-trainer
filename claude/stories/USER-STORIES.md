@@ -2772,3 +2772,8 @@ As a player who played a wrong move in the Mistakes drill or on Puzzles, the rea
 - A reply that gives check with a side-effect clause says "check". (TC-R303)
 - Every capture phrase names the piece really taken, and "check" is said only of a check. (TC-R304)
 - The drill's "lets them ..." line describes a capture, a check, or a capture with check by exactly that, and a quiet reply by "get away" or "guard". (TC-R305)
+### US-R213 A move that loses to mate in one is never praised with a fork, pin, threat or attack reading
+*Added in batch 14 (#553), jobs/fork-reading-fires-on-a-move-that-is-mated-2026-11-13. Found by the checker on t173: Nc6 read as a fork of queen and rook while Rb1 mates. classSwept {found: 1, fixed: 1, left: 0}: the one place a reading for a move is decided is `concreteRead` (every hint, drill and Review sentence takes it from there); its guard sits above every positive branch (mate2, forkcheck, threat, take, save, matethreat, fork, pin, attack), so none can fire on a mated move. No player-visible wording changes in this build, which only proves the guard (landed #550) over 150 library positions.*
+As a player asking for a hint or reading a reason, I am never told a move forks, pins, threatens or wins something when the opponent has a mate in one against it.
+- Over every legal move of 150 library positions and the job's fixtures, a move that allows mate in one has no concreteRead reading at all. (TC-R306)
+- The guard does not silence real readings: unmated moves still read, and the real fork Nc7 still reads "Your knight can attack the rook on a8 and the rook on e8 at once." (TC-R306, TC-R307)
