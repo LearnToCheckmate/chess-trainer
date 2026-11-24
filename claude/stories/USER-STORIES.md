@@ -2743,3 +2743,8 @@ As a player looking at the Review's evaluation graph, I can see and tap the mark
 - Every grade mark's 24px tap circle and its painted shape lie wholly inside the graph's box, on my phone (375x761), on a 320x568 screen and sideways at 844x390; the graph shrinks to the box it is given instead of being cut. (TC-R300)
 - A tap on the last mark's centre reaches that mark, and tapping elsewhere on the graph still jumps to the nearest move. (TC-R300)
 - The board's size is unchanged.
+### US-R211 A review of a game that never left the opening book says so, whoever won
+*Added in batch 14 (#553), jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19. Antagonist B on #551. Amber: flags/amber-553-book-only-bubble-not-lost.*
+As a player reviewing a game in which none of my moves was graded (every move was opening book), the speech bubble on the summary says my moves were all book and that none was graded, and never sends me to key moments that are not there or calls the game accurate, whether I lost, won or drew.
+- Lost: "A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game." (batch 13, TC-R251c). Won or drawn: the same sentence without "A tough one." (TC-R301)
+- A game with a graded move never reads this way. A book move graded Mistake, Blunder or Miss ends the book, so only a game of sound book moves is a book-only game. (TC-R301)
