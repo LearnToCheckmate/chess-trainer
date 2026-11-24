@@ -1,0 +1,11 @@
+diff --git a/claude/agents/gatelogs/548b-all.log b/claude/agents/gatelogs/548b-all.log
+index aed0af0a..136a138a 100644
+--- a/claude/agents/gatelogs/548b-all.log
++++ b/claude/agents/gatelogs/548b-all.log
+@@ -1872,6 +1872,4 @@ PASS se: no clipping ancestor was skipped for a rotated/skewed transform (a skip
+ PASS se: the sweep as a whole measured a real quantity of ink across the screens  [{"inkedTextNodes":1231}]
+ PASS se: TC-INV-02c invariant 2 found its pinned failures in EXACTLY the states they were measured in - nothing fixed without retiring its pin, and no pinned spread has appeared on a new screen (pins resolved by WIDTH 320, not by the geometry name)  [{"pinsFound":10,"width":320}]
+-PASS se: TC-INV-02d invariant 2 measured a real population rather than an empty one - a scanner that finds no rows reports "no inconsistent rows" and would be believed. Floor re-derived at #423 from the post-occlusion population, not carried over from the pre-occlusion one  [{"rowsMeasured":34,"controlsMeasured":156,"floor":[26,130],"width":320,"screens":15}]
+-PASS se: TC-INV-02d both structural control-population exclusions still fired, so the gate is measuring OUTERMOST, non-SVG controls rather than having quietly lost the distinction. cursor:pointer is inherited, and before these two the same sweep at this geometry reported roughly four times as many undersized "controls", most of them SVG internals like svg>g>circle 1.6x1.6  [{"nestedExcluded":146,"svgInternalsExcluded":328,"occludedExcluded":50}]
+ PASS se: the board exclusion still excludes nothing, so the header's reasoning for it remains a prediction rather than a measurement - the 64 squares are not controls under this predicate. RED here means the board became tappable under this predicate and the exclusion started doing real work, which is worth knowing about  [{"boardElementsExcluded":0}]
+          invariant 3, se: 11 distinct ICON glyph heights (svg box, or a one-grapheme text node): 16, 17, 18, 19, 20, 21, 22, 24, 25, 27, 28

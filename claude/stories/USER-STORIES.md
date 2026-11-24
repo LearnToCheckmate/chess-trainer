@@ -2792,6 +2792,12 @@ As a player who taps Show and then plays the answer, the closing line tells me i
 - The whole line says the answer was shown, earns no rank, and counts for XP and the streak; it never says Solved!, "not counted" or "nicely done", at my phone and 320x568. (TC-R358, TC-R359)
 - My solved count does not move, my streak rises by one, and I get the same XP an unaided solve of that puzzle pays. (TC-R360)
 
+### US-R230 A case row that publishes a counted result is right about the count
+*Added in batch 14 (#553, builder seat B2), jobs/tc-inv-case-rows-cite-a-result-that-is-not-in-the-log-2026-09-27: the TC-INV rows were re-cited in a counted form at #548 and #550; the 14 Nov checker found nothing checked the counts themselves, only that the id occurs in the log.*
+As Kunal reading the test register, when a row says how many PASS and FAIL lines name its case in a log, that log carries exactly those lines, so a published result can be traced and is never a number someone typed.
+- Every counted row's log resolves to a committed file, and there is at least one such row. (TC-R361)
+- Each counted row's PASS and FAIL numbers equal the lines in its cited log that begin PASS or FAIL and name its id. (TC-R362)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.
