@@ -1,0 +1,50 @@
+{
+ "job": "primary-blue-buttons-get-white-text-on-a-deeper-blue-2026-11-15",
+ "about": "Gate 204 (browser) on the Review list: Ocean's Analyze game and Fetch read fill #2b65a8, white ink with the faint shadow, contrast at least 4.5 through the gradient at kunal761 and 320x568, no visible button on the old light blue, and the eleven other themes unchanged. NOT COVERED: the hand-styled accent buttons on other screens (the gate reads the Review list), the Playful and Medieval skins' own palettes.",
+ "gate": "gates/regress/204-primary-blue-white-on-deeper-blue.js",
+ "env": {},
+ "checks": [
+  "^TC-R308[abc] (kunal761|se) "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "kunal761"
+  },
+  {
+   "name": "small (320x568)",
+   "match": " se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "ocean-has-no-fill",
+   "patch": "breaks/204-ocean-has-no-fill.diff",
+   "why": "Ocean's fill is gone, so the buttons are the old light blue again with dark ink",
+   "mustFailIn": [
+    "kunal761",
+    "small (320x568)"
+   ]
+  },
+  {
+   "name": "dark-ink-on-the-deep-fill",
+   "patch": "breaks/204-dark-ink-on-the-deep-fill.diff",
+   "why": "the ink is still chosen from the accent, so near-black text sits on the deep blue",
+   "mustFailIn": [
+    "kunal761",
+    "small (320x568)"
+   ]
+  },
+  {
+   "name": "analyze-button-kept-on-the-old-fill",
+   "patch": "breaks/204-analyze-button-kept-on-the-old-fill.diff",
+   "why": "the Analyze game button is left painting the accent (migrated button by button, one missed), so it is light blue with white ink",
+   "mustFailIn": [
+    "kunal761",
+    "small (320x568)"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}
