@@ -1,0 +1,49 @@
+{
+ "job": "review-star-button-sits-on-the-next-move-arrow-so-next-taps-hit-the-star-2026-11-11",
+ "about": "Kunal's report of 11 Nov 2026: on Review he kept hitting the star (next key moment) when he meant the next move. Fixed at #550 (his order: the button row, then the explanation, then the strip; since a21 the streamlined toolbar with Analyze between Key move and Next). Graded by gate 91 (TC-R176a..c) on the Opera Game at ply 10 at 375x761 with his insets and 320x568: the order, Key move and Next at least 40pt apart (104 measured at #553) with both 44pt targets, and a real tap at Next's centre lands on Next and moves exactly one ply. NOT COVERED: his phone check (his).",
+ "gate": "gates/regress/91-review-next-not-star.js",
+ "checks": [
+  "TC-R176[abc] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^kunal761: "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^se: "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "key-move-beside-next-again",
+   "patch": "breaks/91-key-move-beside-next-again.diff",
+   "why": "Key move (the star) sits right beside Next again, Analyze moved before it - the 6pt-apart layout he reported",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "next-jumps-to-the-key-moment",
+   "patch": "breaks/91-next-jumps-to-the-key-moment.diff",
+   "why": "the Next button's tap jumps to the next key moment instead of one move - what his taps were doing",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "analyze-squeezed-so-the-star-nears-next",
+   "patch": "breaks/91-analyze-squeezed-so-the-star-nears-next.diff",
+   "why": "the Analyze button between them shrinks to 20px, so the star comes within a thumb of Next",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}

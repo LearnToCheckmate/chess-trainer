@@ -2738,6 +2738,12 @@ As a player with hundreds of games, I scroll the Review list like any page: ever
 - When I open a game from the list and come back from its review, the list is where I left it. (TC-R317)
 - Measured with his 465 games at 375x761, 320x568 and 844x390. (TC-R310, TC-R316)
 
+### US-R203 In the grade table I can tell Best, Excellent and Good apart by their dots
+*Added in batch 14 (#553, builder seat B1), jobs/review-grade-table-header-and-colour part 2, from antagonist B's #422 finding excellent-dot-indistinguishable ("three shades of one green", dE about 8). The colours are the Desk default taken at #553 (Amber: flags/amber-553-grade-dot-colours): the classifier colours already on main since #547 item 84 - Best #6fd66f, Excellent #9fcf6f, Good #c9d06a - which the move badges share. Completes US-R88.*
+As a player scanning the ten-row grade table, each green row has a dot I can tell from its neighbours without reading the word.
+- The painted Best, Excellent and Good dots differ from each other by at least dE76 15 (measured 18.7, 34.9 and 16.9) and from every other grade's dot by at least 10, on my phone and on a 320x568 screen. (TC-R321, TC-R322)
+- The White and Black headers stay over their digits. (TC-R323, with US-R88's TC-R89)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.
