@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index c6f80904..ca983725 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13684,7 +13684,7 @@ function AppMain(){
+                   their rough times, the game's current one ticked. Picking another level stores it for that game and runs its review at
+                   that depth; picking the current one, or a tap outside, only closes the menu. Fixed to the viewport, so the list's own
+                   scroll box cannot cut it; a scroll or a resize closes it rather than leave it hanging off its button. */}
+-              {depthMenu&&<DepthMenu m={depthMenu} cur={Math.max(revLevel(gDepth[depthMenu.key]),(()=>{const _s=(gameStatsRef.current||{})[depthMenu.key];return (_s&&_s.src==='review'&&_s.dp!=null)?revLevel(_s.dp):0;})())} onClose={()=>setDepthMenu(null)} onPick={(l)=>{const m=depthMenu;setDepthMenu(null);if(l!==revLevel(gDepth[m.key])){setGameDepth(m.key,l);pickCcGame(m.g,l);}}}/>}
++              {depthMenu&&<DepthMenu m={depthMenu} cur={revLevel(gDepth[depthMenu.key])} onClose={()=>setDepthMenu(null)} onPick={(l)=>{const m=depthMenu;setDepthMenu(null);if(l!==revLevel(gDepth[m.key])){setGameDepth(m.key,l);pickCcGame(m.g,l);}}}/>}
+               {/* #549 item (78) work[3]: the list pages in the OLDEST direction by an explicit tap, at its end, never by scrolling
+                   [Amber: flags/amber-549-review-load-older-games]. Shown only while acctCanGrow says a walk would bring something. 
+                   WHILE THE WALK RUNS (olderBusy) the busy control stays and "Show N more" is withheld: acctStore publishes the merged rows
