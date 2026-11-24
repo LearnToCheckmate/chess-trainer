@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index aaea5954..83aeced3 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13191,5 +13191,5 @@ function AppMain(){
+                  Bullet and correspondence as Daily, its classical and a game with none match none of them). Inside a group picks widen (any of
+                  them); groups narrow each other and the grade chips, the account chip and the name box. */
+-              const _tcOf=(g)=>{const t=String(g.tc||'').toLowerCase();return t==='ultrabullet'?'bullet':(t==='correspondence'?'daily':t);};
++              const _tcOf=(g)=>String(g.tc||'').toLowerCase();
+               const _resTcHit=(g)=>(!_fRes.length||_fRes.includes(gameInfo(g).code))&&(!_fTc.length||_fTc.includes(_tcOf(g)));
+               // #476 CASE. acctId() lowercases and strips a leading @ (chess.jsx, acctId), but the chess.com

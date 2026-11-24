@@ -1,0 +1,19 @@
+{
+ "job": "search-and-filter-your-games-2026-11-15",
+ "about": "#553 (B1), his pick of 17 Nov ('Keep only the missing bits'): #550's Filter panel on Your games gains a Result group (Won, Draw, Lost) and a Time control group (Bullet, Blitz, Rapid, Daily); picks in a group widen, groups narrow each other and the existing chips and the name box; Clear clears them; the line reads N of M while anything is on. Gate 215 seeds nine offline games (two chess.com accounts and one Lichess account, whose ultraBullet, classical and correspondence games test the class mapping) and checks each chip alone, the widen and narrow combinations, and Clear, at kunal761 and 320x568 in the Classic and Medieval skins. Breaks: the two groups widen each other instead of narrowing; Clear leaves the new chips on; the Lichess classes read raw (ultraBullet and correspondence match no chip). NOT COVERED: games with no time class at all (the fixture's classical game stands in for 'matches none'), and his look on his phone.",
+ "gate": "gates/regress/215-games-filter-result-and-time.js",
+ "checks": ["TC-R34[89] ", "TC-R350 "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761 classic", "match": "^375x761 classic: "},
+  {"name": "kunal761 medieval", "match": "^375x761 medieval: "},
+  {"name": "320x568 classic", "match": "^320x568 classic: "},
+  {"name": "320x568 medieval", "match": "^320x568 medieval: "}
+ ],
+ "breaks": [
+  {"name": "groups-widen-each-other", "patch": "breaks/gfr-groups-widen-each-other.diff", "why": "a Result chip and a Time control chip together show games matching EITHER, so Won + Bullet shows every win and every bullet game", "mustFailIn": ["kunal761 classic", "kunal761 medieval", "320x568 classic", "320x568 medieval"]},
+  {"name": "clear-leaves-new-chips-on", "patch": "breaks/gfr-clear-leaves-new-chips-on.diff", "why": "Clear resets #550's chips and the name but leaves Result and Time control picks on, so the list stays narrowed", "mustFailIn": ["kunal761 classic", "kunal761 medieval", "320x568 classic", "320x568 medieval"]},
+  {"name": "lichess-classes-read-raw", "patch": "breaks/gfr-lichess-classes-read-raw.diff", "why": "the time class is compared as stored, so Lichess's ultraBullet is not Bullet and correspondence is not Daily", "mustFailIn": ["kunal761 classic", "kunal761 medieval", "320x568 classic", "320x568 medieval"]}
+ ],
+ "timeoutSec": 1500
+}

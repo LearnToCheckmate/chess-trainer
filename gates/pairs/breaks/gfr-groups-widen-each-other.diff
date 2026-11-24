@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index aaea5954..6eb3893b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13192,5 +13192,5 @@ function AppMain(){
+                  them); groups narrow each other and the grade chips, the account chip and the name box. */
+               const _tcOf=(g)=>{const t=String(g.tc||'').toLowerCase();return t==='ultrabullet'?'bullet':(t==='correspondence'?'daily':t);};
+-              const _resTcHit=(g)=>(!_fRes.length||_fRes.includes(gameInfo(g).code))&&(!_fTc.length||_fTc.includes(_tcOf(g)));
++              const _resTcHit=(g)=>(!_fRes.length&&!_fTc.length)||_fRes.includes(gameInfo(g).code)||_fTc.includes(_tcOf(g));
+               // #476 CASE. acctId() lowercases and strips a leading @ (chess.jsx, acctId), but the chess.com
+               // fetch stores the row's `acct` as the RAW trimmed input while the Lichess one lowercases it, so

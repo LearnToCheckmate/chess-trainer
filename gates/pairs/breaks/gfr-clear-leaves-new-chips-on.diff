@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index aaea5954..774b20f2 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13377,5 +13377,5 @@ function AppMain(){
+                 ?('Graded '+_nG+' of '+_scope(_preGrade.length)+': a game we haven\u2019t graded yet can\u2019t match this filter.')
+                 :('All '+_scope(_preGrade.length)+' '+(_preGrade.length===1?'is':'are')+' graded.');
+-              const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:'',res:[],tc:[]});setGameSearch('');};
++              const _clearAll=()=>{setGFil(f=>({...f,bril:0,blun:0,mist:0,acct:''}));setGameSearch('');};
+               /* #507 THE `ghost` ARM RESERVES A CHIP'S SPACE WITHOUT PAINTING IT. A row that can appear must
+                  reserve its space [CLAUDE.md]. MEASURED on the shipped bundle before this change, with the
