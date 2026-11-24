@@ -1,0 +1,25 @@
+{
+ "job": "short-upright-boards-sized-to-height-2026-11-12",
+ "about": "BATCH 14, CARD 74 (his pick C, run-answers orchestrator-B14-Q2-2026-11-24): on a 320x568 phone opened from its Home Screen icon Review's button row thins 44 -> 32, icons only, with the move arrows the solid triangles, and the board grows 301 -> 313; every other phone keeps the 44 row. A third pairs file for the same job, beside the board half's and the Home Screen app's. Graded by gate 228 (TC-R381..384) at the 320x568 Home Screen app (real inset 20/0, the 568 shell), 320x568 in Safari (no insets) and 375x761 kunal761. NOT COVERED: iOS Safari itself, larger text, his phone (his look).",
+ "gate": "gates/regress/228-review-thin-row-small-phone.js",
+ "env": {"CT_G228_ONLY": "^(app|320x568|375x761)$"},
+ "checks": ["TC-R38[1-4] "],
+ "build": "always",
+ "situations": [
+  {"name": "320x568 in the Home Screen app (real inset 20/0)", "match": "^TC-R38[1-4] app: "},
+  {"name": "320x568", "match": "^TC-R38[1-4] 320x568: "},
+  {"name": "375x761 kunal761", "match": "^TC-R38[1-4] 375x761: "}
+ ],
+ "breaks": [
+  {"name": "the-row-never-thins", "patch": "breaks/228-the-row-never-thins.diff",
+   "why": "revFit never takes the thin step, so on the small phone from its Home Screen icon the board stays at 301 and the row at 44 (the tree before his pick C)",
+   "mustFailIn": ["320x568 in the Home Screen app (real inset 20/0)"]},
+  {"name": "thin-everywhere-short", "patch": "breaks/228-thin-everywhere-short.diff",
+   "why": "the thin step fires whenever the tightest rows miss the margin by a pixel, so 320x568 in Safari (321 of room, a full-width board at 44) loses its 44 row for nothing",
+   "mustFailIn": ["320x568"]},
+  {"name": "the-labels-stay", "patch": "breaks/228-the-labels-stay.diff",
+   "why": "the thin row keeps the words Key move and Analyze under their icons, which is not the icons-only standard he asked the row to follow",
+   "mustFailIn": ["320x568 in the Home Screen app (real inset 20/0)"]}
+ ],
+ "timeoutSec": 1800
+}

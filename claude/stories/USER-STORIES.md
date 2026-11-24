@@ -2838,6 +2838,12 @@ As a player waiting for my game's review, I watch the board step through my game
 - The moves already checked are kept, so starting the same review again picks up where it stopped and finishes. (TC-R390)
 - The review keeps running while I use another screen, and a "Your review is ready" banner appears there; its Open takes me to the finished review. (TC-R391)
 
+### US-R236 On a small phone opened from its Home Screen icon, Review's button row is thin so the board is bigger
+*Added in batch 14 (#553, builder seat B1), jobs/short-upright-boards-sized-to-height-2026-11-12. Kunal's pick C on Desk card 74, about 7:29am EST Tue 24 Nov 2026 (docs/run-answers orchestrator-B14-Q2-2026-11-24): "make the buttons thinner and make them consistent with the icons that we're using as of yesterday". Amber (32 tall, icons only, only at the last step): flags/amber-553-review-thin-row-small-phone.*
+As a player reviewing a game on a 320x568 phone from its Home Screen icon, the buttons under the board give up height so the board is as big as it can be.
+- There the board is at least 313 wide and centred (it was 301), and the four buttons (previous move, key move, Analyze, next move) are 32 tall, at least 44 wide, icons only, the move arrows the solid triangles, ending on screen. (TC-R382, TC-R383)
+- Every other phone, including 320x568 in Safari and my own phone, keeps the 44 tall row and a full-width board. (TC-R384, TC-R381)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

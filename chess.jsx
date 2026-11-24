@@ -2800,15 +2800,15 @@ const ROW_BTN_BG='rgba(255,255,255,.08)';   // the shared row button's face (Kun
 function footBtnStyle({hot,primary,go,clip,wide,flex,minW,text}){
   return {flex:flex||'0 0 auto',minWidth:(minW==null?44:minW),minHeight:(wide?48:44),borderRadius:12,cursor:'pointer',fontSize:(text?'clamp(14px,2.9vw,15px)':FOOT_ICON_GLYPH),fontWeight:800,textShadow:primary?'var(--acSh,none)':'none',background:primary?'var(--acf)':go?'#4a6741':hot?'rgba(var(--acr),.22)':ROW_BTN_BG,backgroundImage:'none',border:'none',color:primary?'var(--acInk,#0b0d10)':go?'#fff':hot?'var(--ac2)':'#fff',letterSpacing:.3,fontFamily:"'Segoe UI',system-ui,sans-serif",display:'inline-flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',boxShadow:'none',padding:'0 6px',...(clip?{overflow:'hidden',textOverflow:'ellipsis'}:null)};
 }
-function FootBtn({onClick,label,hot,primary,go,clip,wide,flex,minW,text,children,ct}){
-  return(<button onClick={onClick} title={label} aria-label={label} data-ct={ct||"foot-btn"} style={footBtnStyle({hot,primary,go,clip,wide,flex,minW,text})}>{children}</button>);
+function FootBtn({onClick,label,hot,primary,go,clip,wide,flex,minW,text,children,ct,thin}){   /* thin: Review's small-phone row (revFit.thin), 32 tall */
+  return(<button onClick={onClick} title={label} aria-label={label} data-ct={ct||"foot-btn"} style={{...footBtnStyle({hot,primary,go,clip,wide,flex,minW,text}),...(thin?{minHeight:REV_THIN_BTN,height:REV_THIN_BTN}:null)}}>{children}</button>);
 }
 /* #394: COACH_MAXH went with the bubble. The #387 work it encoded - that a CLAMP must do the cutting
    rather than a box, so an ellipsis is drawn - now applies to rev-why-txt, which is clamped, not clipped. */
 /* batch 13: THE UPRIGHT REVIEW'S ROWS OTHER THAN THE BOARD, AT THEIR FLOORS, in px - measured at 375x667, 320x568 and 375x761: the two
    player bars at 46 each, the bar above the board, the move strip, the move line with three lines of explanation, the buttons and the
    gaps come to 323. revFit (in the component) takes from that in a fixed order when a screen is too short for a full-width board. */
-const REV_ROWS=323,REV_ROWS_HEAD=48,REV_ROWS_BARS=16,REV_ROWS_LINE=17,REV_ROWS_GAPS=17;   /* BARS: 46 -> 38 each on a screen 640 or taller (at 32 the name and the taken pieces ran 3px out of the bar at 375 wide and at 36 1px, gate 20 TC-R14); under 640 the bars are 32 already and REV_ROWS is 28 less */
+const REV_ROWS=323,REV_ROWS_HEAD=48,REV_ROWS_BARS=16,REV_ROWS_LINE=17,REV_ROWS_GAPS=17,REV_THIN_BTN=32,REV_ROWS_THIN=44-REV_THIN_BTN;   /* #553 card 74 (his pick C, run-answers orchestrator-B14-Q2-2026-11-24): revFit's LAST step, only where the tightest rows still leave the board short of the width, thins the button row 44 -> 32, 12px to the board (320x568 from its Home Screen icon: 301 -> 313). Amber: flags/amber-553-review-thin-row-small-phone */   /* BARS: 46 -> 38 each on a screen 640 or taller (at 32 the name and the taken pieces ran 3px out of the bar at 375 wide and at 36 1px, gate 20 TC-R14); under 640 the bars are 32 already and REV_ROWS is 28 less */
 /* batch 13, jobs/short-upright-boards-sized-to-height-2026-11-12 (Play): THE UPRIGHT GAME AGAINST THE COMPUTER'S ROWS OTHER THAN THE BOARD,
    AT THEIR FLOORS, in px - measured at 375x667, 360x640 and 320x568 on the column as it renders: the corner row 52 (2 + 44 + 6), the top
    player bar 46 + 2, the eval bar above the board 17 + 5, the bottom bar 2 + 46, the move list 10 + 61 (its MOVES row 23 + 4 and the list
@@ -7139,12 +7139,16 @@ function AppMain(){
      336 at 375x720 here). ct_safe (the gate's stand-in for the insets) sets the numbers without the padding a phone's real insets
      add, so the room is the whole height there (safeFake). */
   const _revRoom=vp.h-(safeFake?0:(safeTop+safeBot));
-  const revFit=useMemo(()=>{const F=(o)=>Object.assign({head:false,bars32:false,lines:3,tight:false},o);if(!revStream)return F({});
-    const short=vp.h<640;const C=(o)=>REV_ROWS+(o.head?REV_ROWS_HEAD:0)-(short?28:(o.bars32?REV_ROWS_BARS:0))-(3-o.lines)*REV_ROWS_LINE+(o.lines===1?3:0)-(o.tight?REV_ROWS_GAPS:0);   /* one line keeps 20, not 17: the engine line, which takes its place when switched on, is 20 tall, and 3px over the floor put it under the box's fade (and its explainer under the mask, gate 22 TC-R105 at 320x568) */
+  const revFit=useMemo(()=>{const F=(o)=>Object.assign({head:false,bars32:false,lines:3,tight:false,thin:false},o);if(!revStream)return F({});
+    const short=vp.h<640;const C=(o)=>REV_ROWS+(o.head?REV_ROWS_HEAD:0)-(short?28:(o.bars32?REV_ROWS_BARS:0))-(3-o.lines)*REV_ROWS_LINE+(o.lines===1?3:0)-(o.tight?REV_ROWS_GAPS:0)-(o.thin?REV_ROWS_THIN:0);   /* one line keeps 20, not 17: the engine line, which takes its place when switched on, is 20 tall, and 3px over the floor put it under the box's fade (and its explainer under the mask, gate 22 TC-R105 at 320x568) */
     const order=[];if(vp.h>=700){order.push([F({head:true}),6],[F({head:true,lines:2}),6]);}
     order.push([F({}),2],[F({bars32:true}),2],[F({bars32:true,lines:2}),2],[F({bars32:true,lines:1}),2],[F({bars32:true,lines:1,tight:true}),2]);
     for(const [o,m] of order){if(_revRoom-C(o)>=vw+m){o.rows=C(o);return o;}}
-    const last=order[order.length-1][0];last.rows=C(last);return last;},[revStream,vp.h,vw,_revRoom]);
+    const last=order[order.length-1][0];last.rows=C(last);
+    /* #553 card 74: the thin row only where the tightest rows still leave the board SHORT of the width (320x568 from its Home Screen icon:
+       548 - 247 = 301); a phone that falls a pixel or two short of the margin (320x568 in Safari: 321) keeps the 44 row, as before */
+    if(_revRoom-last.rows>=vw-2)return last;
+    const thin=F({bars32:true,lines:1,tight:true,thin:true});thin.rows=C(thin);return thin;},[revStream,vp.h,vw,_revRoom]);
   const revHead=revStream&&revFit.head;
   /* #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right";
      jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29, mockup 550-70-mock-A761.png): SIDEWAYS
@@ -13981,7 +13985,8 @@ function AppMain(){
            buttons. The border, the gradient and the four-layer shadow are gone; the flat tint stays (it carries the hot state of
            Auto-play and the star), and the phone target rises 42->44, the touch floor. Measured: the board keeps 349.03 at 375x761
            and 264 at 320x568 - the row moves up 2px into slack under it, so the 2px is not taken from the board. */
-        const cb=(lab,on,w,hot,title)=>(<FootBtn onClick={on} label={title} hot={hot} wide={wide} flex={w?('0 0 '+w+'px'):'1 1 0'} minW={0} text={String(lab).length>2}>{lab}</FootBtn>);   /* #549 item (80): the shared footer component, same styles as before */
+        const _thin=!!(revStream&&revFit.thin);   /* #553 card 74: the toolbar's small-phone form, 32 tall (icons only; the analysis row keeps its words at 32, so the board does not move between the two) */
+        const cb=(lab,on,w,hot,title)=>(<FootBtn onClick={on} label={title} hot={hot} wide={wide} thin={_thin} flex={w?('0 0 '+w+'px'):'1 1 0'} minW={0} text={String(lab).length>2}>{lab}</FootBtn>);   /* #549 item (80): the shared footer component, same styles as before */
         const _row1=(
           <div data-ct="rev-row1" style={{display:'flex',gap:6,alignItems:'stretch'}}>
             {anaMode?(<>
@@ -14001,12 +14006,12 @@ function AppMain(){
           </div>);
         /* #550 a21: in the streamlined view the row is the BOTTOM TOOLBAR of his picked mockup - Back, Analyze, Key move, Forward -
            pinned to the foot of the screen; First, Last and Auto-play move to the more sheet. In analysis it stays the analysis row. */
-        const _tbLbl=(ic,t)=>(<span style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2,lineHeight:1}}>{ic}<span style={{fontSize:'clamp(12px,3vw,13px)',fontWeight:700}}>{t}</span></span>);
+        const _tbLbl=(ic,t)=>(_thin?ic:<span style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2,lineHeight:1}}>{ic}<span style={{fontSize:'clamp(12px,3vw,13px)',fontWeight:700}}>{t}</span></span>);   /* thin: the icon alone, its name in aria-label */
         const _tb=(anaMode?_row1:(<div data-ct="rev-row1" data-tb="1" style={{display:'flex',gap:8,alignItems:'stretch'}}>{/* #550 antagonist A round 3, A3-1: Key move is NOT beside Forward - item (2) was the star 6pt from next; Analyze sits between them */}
             {/* #550 round-3 suite, gate 26 TC-INV-02a: ONE glyph height across the toolbar - chevrons, star and Analyze all 20px (they were 22, text and 17) */}
             {cb(<StepArrow size={20} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},0,false,'Previous move')}
             {cb(_tbLbl(<StarIcon size={20}/>,'Key move'),()=>jumpKey(1),88,keyPlies.length>0,keyPlies.length?('Next key moment ('+keyPlies.length+')'):'No key moments in this game')}
-            <FootBtn ct="rev-fab" onClick={()=>_goAnalyze()} label="Analyze this position" wide={wide} flex="0 0 88px" minW={0} text>{_tbLbl(<AppIcon name="analyze" size={20} sw={2.2}/>,'Analyze')}</FootBtn>
+            <FootBtn ct="rev-fab" onClick={()=>_goAnalyze()} label="Analyze this position" wide={wide} thin={_thin} flex="0 0 88px" minW={0} text>{_tbLbl(<AppIcon name="analyze" size={20} sw={2.2}/>,'Analyze')}</FootBtn>
             {cb(<StepArrow size={20} dir="right"/>,()=>{setRevAuto(false);setPly(p=>Math.min(review.plies.length,p+1));},0,false,'Next move')}
           </div>));
         return(<><div data-ct="rev-compact" ref={revCmpRef} onScroll={_revCmpMeasure} style={{...(revStream?{flex:'1 1 0px',minHeight:(wide?38:32)+6+(revFit.lines===1?20:17*revFit.lines)+4 /* batch 13: two lines or one of the explanation where the rows give way (revFit); A3-8: the move line and the reason ONLY - the engine and best lines are switched on by per-ply chips too, so counting them moved the board on a tap; past the floor rev-compact scrolls, with a fade */,...((revCmpMore&&!(engOn&&engWhy)) /* batch 13 (#552 subset, gate 22 TC-R105 at 320x568): NO FADE WHILE THE ENGINE LINE'S READING IS OPEN. rev-engwhy is position:fixed but renders inside this box, and a mask makes the box a stacking context that clips every descendant, fixed ones included - so once the kept explanation line (4be27005) made this box overflow and switched the fade on, the reading was cut to this box's 63px and the board and the move strip painted over the rest of it, and its own close tap landed on the strip. Measured: hit at the panel's centre was strip-row, mask the only computed-style difference on its ancestor chain */?{WebkitMaskImage:'linear-gradient(#000 calc(100% - 18px),transparent)',maskImage:'linear-gradient(#000 calc(100% - 18px),transparent)'}:null),overflowY:'auto',overflowX:'hidden',paddingBottom:4}:null),width:revStream?vp.w:(boardPx+((hideEval||evalAbove)?0:22)),...(revStream?{padding:(vp.w<=380?'0 3px':'0 10px') /* #550 a21: at 375 the move line needs the 371px it had (gate 20 TC-R36: the best move pill 103 in 88 at 10px) */,boxSizing:'border-box'}:null),maxWidth:_edge?'100vw':'98vw',marginTop:revFit.tight?2:6,display:'flex',flexDirection:'column',alignItems:'stretch',gap:6}}>

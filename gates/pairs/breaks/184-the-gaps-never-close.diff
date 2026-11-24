@@ -1,9 +1,19 @@
+diff --git a/chess.jsx b/chess.jsx
+index 602a33b..5c421f4 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -6867,5 +6867,5 @@
-     const short=vp.h<640;const C=(o)=>REV_ROWS+(o.head?REV_ROWS_HEAD:0)-(short?28:(o.bars32?REV_ROWS_BARS:0))-(3-o.lines)*REV_ROWS_LINE+(o.lines===1?3:0)-(o.tight?REV_ROWS_GAPS:0);   /* one line keeps 20, not 17: the engine line, which takes its place when switched on, is 20 tall, and 3px over the floor put it under the box's fade (and its explainer under the mask, gate 22 TC-R105 at 320x568) */
+@@ -7110,12 +7110,12 @@ function AppMain(){
+   const revFit=useMemo(()=>{const F=(o)=>Object.assign({head:false,bars32:false,lines:3,tight:false,thin:false},o);if(!revStream)return F({});
+     const short=vp.h<640;const C=(o)=>REV_ROWS+(o.head?REV_ROWS_HEAD:0)-(short?28:(o.bars32?REV_ROWS_BARS:0))-(3-o.lines)*REV_ROWS_LINE+(o.lines===1?3:0)-(o.tight?REV_ROWS_GAPS:0)-(o.thin?REV_ROWS_THIN:0);   /* one line keeps 20, not 17: the engine line, which takes its place when switched on, is 20 tall, and 3px over the floor put it under the box's fade (and its explainer under the mask, gate 22 TC-R105 at 320x568) */
      const order=[];if(vp.h>=700){order.push([F({head:true}),6],[F({head:true,lines:2}),6]);}
 -    order.push([F({}),2],[F({bars32:true}),2],[F({bars32:true,lines:2}),2],[F({bars32:true,lines:1}),2],[F({bars32:true,lines:1,tight:true}),2]);
 +    order.push([F({}),2],[F({bars32:true}),2],[F({bars32:true,lines:2}),2],[F({bars32:true,lines:1}),2]);
      for(const [o,m] of order){if(_revRoom-C(o)>=vw+m){o.rows=C(o);return o;}}
-     const last=order[order.length-1][0];last.rows=C(last);return last;},[revStream,vp.h,vw,_revRoom]);
+     const last=order[order.length-1][0];last.rows=C(last);
+     /* #553 card 74: the thin row only where the tightest rows still leave the board SHORT of the width (320x568 from its Home Screen icon:
+        548 - 247 = 301); a phone that falls a pixel or two short of the margin (320x568 in Safari: 321) keeps the 44 row, as before */
+-    if(_revRoom-last.rows>=vw-2)return last;
++    return last;
+     const thin=F({bars32:true,lines:1,tight:true,thin:true});thin.rows=C(thin);return thin;},[revStream,vp.h,vw,_revRoom]);
+   const revHead=revStream&&revFit.head;
+   /* #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right";
