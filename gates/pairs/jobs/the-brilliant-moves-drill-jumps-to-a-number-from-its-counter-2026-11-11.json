@@ -1,0 +1,49 @@
+{
+ "job": "the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11",
+ "about": "TC-R37's caseADDITION (scopeADDED_jumpToIndex_2026-09-30) as the 15 Nov checker held TC-R178 short of it: both drills with 18 cards; the counter opens a chooser of exactly 1..18 with no field to type into, every number 44x44 on screen; choose 18 and the board is card 18's; again, choose 2; Prev to 1; Next to 2; and a driven negative control (typing 19, 190, Escape, a tap outside) that leaves the card unchanged. Graded by gate 194 (TC-R324..325) at 375x761 with his insets and 320x568, the board read as the painted position against a reference walk. NOT COVERED: his phone check; grouping by kind (jobs/brilliancy-library-and-motif-coverage-2026-09-23).",
+ "gate": "gates/regress/194-drill-jump-to-a-card.js",
+ "checks": [
+  "TC-R32[45] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "each-number-shows-the-card-before-it",
+   "patch": "breaks/194-each-number-shows-the-card-before-it.diff",
+   "why": "each number in the chooser goes one card short (choose 18 shows 17), so the counter or the board disagrees with the number tapped",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-counter-opens-nothing",
+   "patch": "breaks/194-the-counter-opens-nothing.diff",
+   "why": "the counter is a button that does nothing - Next 29 times again",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-chooser-offers-a-number-past-the-last-card",
+   "patch": "breaks/194-the-chooser-offers-a-number-past-the-last-card.diff",
+   "why": "the chooser offers 19 for an 18-card drill, a number outside 1..N",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}
