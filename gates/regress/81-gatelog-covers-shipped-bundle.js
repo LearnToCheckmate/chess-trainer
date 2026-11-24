@@ -98,6 +98,11 @@ L.run(async()=>{
   L.say(unsourced.length===0,'TC-SUITE-372 every exception row carries a known class (pre-practice, never-committed, reverted, burnt) and a source of at least 20 characters',{unsourced});
   L.note('     excused (no log, sourced): '+[...exc.entries()].map(([n,r])=>'#'+n+' '+r.cls).join(', '));
 },'GATELOG-COVERS-SHIPPED-BUNDLE');
+// THIS GATE'S COUNT GROWS WITH THE TREE, NOT WITH ITS CODE: one TC-SUITE-351 PASS per committed gatelog, so every landed build adds one.
+// The line below declares that to gates/control-audit.js [#553; jobs/control-audit-holds-a-record-only-to-a-log-carrying-the-gates-
+// current-assertion-set-2026-11-20], which then compares the gatelog files at a record's sha with those at the cited log's gated sha
+// instead of holding every record to the newest log's count exactly - so the per-build re-control chore batch 13 paid for this gate goes.
+// CONTROL-COUNT-INPUT: claude/agents/gatelogs -all\.log$
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 claude/agents/gatelogs/400-all.log removed in a scratch commit -> MISSING #400
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 a stale gates/gatelog-exceptions.tsv row for #400 -> STALE #400
 // CONTROL-RECORD: f989ab4 2026-11-06 total=101 red=1 scope=full how=TC-SUITE-372 #448's exception class changed to an unknown one -> unsourced

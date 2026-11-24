@@ -104,6 +104,15 @@
  * SUMMARY's first number, is a count whose rise is GOOD and is read the wrong way round there is a limit of
  * fastgate.sh that predates this change; it is recorded on the CANUM job and not repaired here.)
  *
+ * WHICH LOG COUNT A RECORD IS HELD TO [#553; jobs/control-audit-holds-a-record-only-to-a-log-carrying-the-gates-current-
+ * assertion-set-2026-11-20]. The equality and bounds above are asked only of a log that RAN THE RECORD'S COUNT SET: the gate's
+ * L.say lines (plus any files a `// CONTROL-COUNT-INPUT: <dir> <regex>` line declares, for a gate whose count grows with the
+ * tree, like gate 81) at the record's sha, against the same at the sha on the log's `ref: HEAD` line. Equal: exact, as before.
+ * The log ran more: 1..count. The record ran more (the gate grew after the log): above the count, and a total AT it is a
+ * STALE TOTAL. Neither: no log here judges the total, and the record is printed HELD TO NO LOG. A log with no usable ref line
+ * is held exactly, as before. holdTo() in audit() is the comparison; --selftest arms (8) to (10) are its controls, (10)
+ * being the same arms run with holdTo() defanged, where they must go red.
+ *
  * THE LOG IS RUN THROUGH gates/verify-log.sh, which is the one place that decides whether a log is
  * evidence. v1 chose the newest filename matching *-all.log and excluded names containing DEFECTIVE,
  * which is a convention, not a check: a `<N>-subset-all.log` matched it and would have become the
@@ -123,17 +132,22 @@ const ORDER = ['NONE', 'UNPARSABLE', 'DIRTY', 'ASSERTIONS-MOVED', 'NO-LOG', 'NO-
 /* ---- the log's own account of what each gate ran ---- */
 function parseLog(logText) {
   const ranNow = {}, redNow = {};
+  // THE SHA THE LOG GATED [#553; jobs/control-audit-holds-a-record-only-to-a-log-carrying-the-gates-current-assertion-set-
+  // 2026-11-20]. gates.sh writes it on its `ref: HEAD <sha>` line. A log without one (or a sha this clone lacks) is held the
+  // way every log was before #553: its count is the count, exactly. See holdTo() in audit().
+  const rm = logText.match(/^ref: HEAD ([0-9a-f]{40})\b/m);
+  const logSha = rm ? rm[1] : null;
   let cur = null;
   for (const line of logText.split('\n')) {
     const h = line.match(/^=== (\S+) ===$/); if (h) { cur = h[1]; continue; }
     const g = line.match(/^\s*(\S+): green \((\d+) PASS\)/); if (g && cur) { ranNow[cur] = +g[2]; continue; }
     if (/^\s*(\S+): RED/.test(line) && cur) redNow[cur] = true;
   }
-  return { ranNow, redNow };
+  return { ranNow, redNow, logSha };
 }
 
 /* ---- the audit itself, over one repository root and one parsed log ---- */
-function audit(ROOT, { ranNow, redNow }) {
+function audit(ROOT, { ranNow, redNow, logSha }) {
   const G = (a) => cp.execSync('git -C ' + JSON.stringify(ROOT) + ' ' + a, { encoding: 'utf8', stdio: ['pipe','pipe','pipe'] }).trim();
   const Gq = (a) => { try { G(a); return true; } catch (e) { return false; } };
   // A SHALLOW CLONE CANNOT TELL A MISSING SHA FROM AN INVENTED ONE [#546, item (67); jobs/control-audit-verdict-depends-on-
@@ -142,6 +156,7 @@ function audit(ROOT, { ranNow, redNow }) {
   // record, and in a shallow clone it condemned the honest ones. So an absent sha in a shallow clone is UNVERIFIABLE-HERE -
   // its own verdict and its own exit code, 3 - and never BAD-RECORD. In a complete clone an absent sha is still BAD-RECORD.
   let SHALLOW = false; try { SHALLOW = G('rev-parse --is-shallow-repository') === 'true'; } catch (e) {}
+  const LOGSHA = logSha && Gq('cat-file -e ' + logSha + '^{commit}') ? logSha : null;
   const targets = fs.readdirSync(path.join(ROOT, 'gates/regress')).filter(f => f.endsWith('.js'))
     .map(f => 'gates/regress/' + f).concat(['gates/mountcheck.js']).sort();   // mountcheck runs in the suite too
   const rows = [];
@@ -165,6 +180,38 @@ function audit(ROOT, { ranNow, redNow }) {
     const linesOf = (s) => s.split('\n').filter(l => /L\.say\(/.test(l)).map(l => l.trim());
     const nowSrc = fs.readFileSync(abs, 'utf8');
     const nowL = linesOf(nowSrc);
+    // ── WHICH COUNT A RECORD IS HELD TO [#553; jobs/control-audit-holds-a-record-only-to-a-log-carrying-the-gates-current-
+    //    assertion-set-2026-11-20, the orchestrator's ruling (B) on q30]. Until #553 every full-scope record was held to the
+    //    NEWEST LOG's count for its gate, exactly - whatever that log ran. A gate that grew inside a batch (gate 20, 320 -> 345
+    //    lines in batch 13) could therefore get no valid full-scope record until the batch's own log landed, and a gate whose
+    //    count grows with the TREE rather than with its code (gate 81: one PASS per committed gatelog) had every record go stale
+    //    the moment the next log landed - so the suite's records door refused on its own records, and each batch paid a chore.
+    //    THE COUNT IS NOW COMPARED ONLY WHERE IT MEANS SOMETHING: the gate's COUNT SET (its trimmed `L.say(` lines as a multiset,
+    //    plus the files named by any `// CONTROL-COUNT-INPUT: <dir> <regex>` line the gate declares) at the RECORD's sha against
+    //    the same at the LOG's gated sha (its `ref: HEAD` line):
+    //      equal               the log ran what the record ran: a full-scope total must EQUAL the log's count (as before)
+    //      record's within log  the log ran MORE (it grew after the record): the total is bounded 1..count
+    //      log's within record  the record ran MORE (the gate grew after the log): a full-scope total must EXCEED the log's
+    //                           count - a record at the log's count over a grown set is a STALE TOTAL and is refused
+    //      neither             the log cannot judge the total (it ran a different set): positive is all that is asked, and the
+    //                           record is printed as HELD TO NO LOG on its own line (never on a ratchet line)
+    //    With no usable ref line the log is held as before #553. WHETHER THE RECORD MATCHES THE GATE'S PRESENT ASSERTIONS is
+    //    a separate question, asked first and unchanged: lines gone since the record is ASSERTIONS-MOVED, lines added is PARTIAL.
+    const inputs = []; for (const l of nowSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUT:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
+    const countSet = (sha, src) => { const out = linesOf(src);
+      for (const inp of inputs) { let ls = ''; try { ls = G('ls-tree -r --name-only ' + sha + ' -- ' + JSON.stringify(inp.dir)); } catch (e) {}
+        for (const f of ls.split('\n')) if (f && inp.re.test(f)) out.push('file:' + f); }
+      return out; };
+    const bag = (a) => { const m = new Map(); for (const x of a) m.set(x, (m.get(x) || 0) + 1); return m; };
+    const within = (a, b) => { for (const [k, v] of a) if ((b.get(k) || 0) < v) return false; return true; };   // multiset a <= b
+    let logSet = null;
+    if (LOGSHA) { try { logSet = bag(countSet(LOGSHA, G('show ' + LOGSHA + ':' + rel))); } catch (e) { logSet = null; } }
+    const holdTo = (r, old) => {   // HOLD-TO: the one comparison #553 adds
+      if (!logSet) return 'legacy';
+      const rs = bag(countSet(r.commit, old));
+      const fw = within(rs, logSet), bw = within(logSet, rs);
+      return fw && bw ? 'exact' : fw ? 'log-grew' : bw ? 'record-grew' : 'unheld';
+    };
     const faults = [];
     for (const r of recs) {
       if (!Gq('cat-file -e ' + r.commit + '^{commit}')) {
@@ -201,7 +248,17 @@ function audit(ROOT, { ranNow, redNow }) {
                                                : 'the same ' + says(old) + ' L.say sites in a different order since';
       }
       if (now === undefined) { r.fault = 'this gate is not in the cited log' + (redNow[name] ? ' as green (it is RED there)' : ''); r.nolog = true; faults.push(r); continue; }
-      if (r.partial) {
+      r.hold = holdTo(r, old);
+      if (r.hold === 'exact') {
+        if (r.scope === 'full' && r.total !== now) { r.fault = 'full-scope total=' + r.total + ' but the log, which ran the same assertion set as this record, says this gate runs ' + now; faults.push(r); continue; }
+        if (r.scope !== 'full' && !(r.total > 0 && r.total <= now)) { r.fault = 'scoped total=' + r.total + ' is not inside 1..' + now; faults.push(r); continue; }
+      } else if (r.hold === 'log-grew') {
+        if (!(r.total > 0 && r.total <= now)) { r.fault = (r.scope === 'full' ? 'full-scope' : 'scoped') + ' total=' + r.total + ' is not inside 1..' + now + ' (the log ran a superset of what this record ran, so it runs at least as many)'; faults.push(r); continue; }
+      } else if (r.hold === 'record-grew') {
+        if (r.scope === 'full' && !(r.total > now)) { r.fault = 'full-scope total=' + r.total + ' is a STALE TOTAL: the gate grew after the log (which runs ' + now + ') and this record ran the grown set, so its total must exceed ' + now; faults.push(r); continue; }
+      } else if (r.hold === 'unheld') {
+        r.unheld = true;   // positive, red<=total and the assertion match were all checked above; the log can judge nothing more
+      } else if (r.partial) {
         // A partial record's full-scope total was the WHOLE count when it ran, and no log here says what the
         // gate ran at that sha (a PASS count is not an L.say site count: real records read total=25 against 13
         // sites), so it cannot be re-verified exactly. What CAN be asked: the gate grew, so today's log must run
@@ -229,13 +286,21 @@ function audit(ROOT, { ranNow, redNow }) {
     else { verdict = 'BAD-RECORD'; note = faults[0].fault; }
     rows.push({ name, rel, recs, bad, now, verdict, note, faults });
   }
+  rows.logSha = LOGSHA; rows.logShaCited = logSha || null;
   return rows;
 }
 
+const HOLD_SAYS = { 'log-grew': 'total held 1..log (the log ran a superset of this record\'s count set)',
+  'record-grew': 'total held above the log (the gate grew after the log; the log\'s own count would be stale)',
+  'unheld': 'HELD TO NO LOG (the log ran a different count set)' };
 /* ---- report. Returns the process exit code rather than exiting, so the selftest can read it. ---- */
 function report(rows, logLabel) {
   const pad = (s, n) => String(s).padEnd(n);
   console.log('CONTROL AUDIT   log=' + logLabel + '   gates=' + rows.length);
+  // [#553] which sha the counts were held against. Not on a ^(SUMMARY|CONTROL-AUDIT) line: fastgate.sh's ratchet reads those.
+  console.log('COUNTS HELD TO  ' + (rows.logSha ? 'the log\'s gated sha ' + rows.logSha.slice(0, 12) + ' (its ref: HEAD line), per gate by count set'
+    : rows.logShaCited ? 'the log\'s count exactly - its gated sha ' + rows.logShaCited.slice(0, 12) + ' is not a commit in this clone'
+    : 'the log\'s count exactly - it carries no ref: HEAD line'));
   console.log('');
   for (const v of ORDER) {
     const g = rows.filter(r => r.verdict === v);
@@ -245,7 +310,8 @@ function report(rows, logLabel) {
       console.log('  ' + pad(r.name, 24) + pad(r.now === undefined ? 'not in log' : r.now + ' assertions', 16) + r.note);
       if (v !== 'NONE') {
         for (const c of r.recs) console.log('      ' + (c.sound ? 'sound   ' : c.partialOk ? 'partial ' : c.baseline ? 'base    ' : 'FAULT   ') + c.commit + ' ' + c.date +
-          '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : c.partialOk ? '   <- ' + c.growth : ''));
+          '  total=' + c.total + ' red=' + c.red + ' scope=' + c.scope + '  ' + c.how + (c.fault ? '   <- ' + c.fault : c.partialOk ? '   <- ' + c.growth : '') +
+          (!c.fault && HOLD_SAYS[c.hold] ? '   <- ' + HOLD_SAYS[c.hold] : ''));
         for (const b of r.bad) console.log('      UNPARSABLE  ' + b.slice(0, 120));
       }
     }
@@ -258,6 +324,8 @@ function report(rows, logLabel) {
   const covered = n('COVERED') + n('PARTIAL');
   console.log('SUMMARY  ' + covered + ' covered, of ' + rows.length + ' gates  |  ' +
     ORDER.filter(v => v !== 'COVERED' && v !== 'PARTIAL' && n(v)).map(v => n(v) + ' ' + v.toLowerCase()).join(', '));
+  const unheld = rows.reduce((a, r) => a + r.recs.filter(c => (c.sound || c.partialOk) && c.unheld).length, 0);
+  console.log('RECORDS-HELD-TO-NO-LOG  ' + unheld + ' non-fault record(s) ran an assertion set the cited log neither contains nor is contained by, so no log here checked their total [#553].');
   console.log('PARTIAL-RECORDS  ' + n('PARTIAL') + ' of those ' + covered + ' covered gate(s) rest on partial records only: shown able to fail for the assertions the record ran, not for the ones added since.');
   const bad = rows.filter(r => r.verdict !== 'COVERED');
   // ── THE RATCHET LINE: ONE FIXED SHAPE, DEFECTS ONLY, PRINTED WHETHER THIS AUDIT IS GREEN OR RED ───────────
@@ -439,9 +507,92 @@ function selftest() {
     write(['// fixture gate', '// CONTROL-RECORD: ' + lseed + ' ' + TODAY + ' total=4 red=1 scope=full how=one iteration flipped', LOOP]); commit('full-scope mismatch');
     r = run(5, 'selftest-7c');
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /full-scope total=4 but the log says this gate runs 5/.test(r.out) && r.rc === 1, '(7c) a full-scope total of 4 against a log of 5 reads BAD-RECORD at exit 1');
+    // ── (8) THE COUNT IS HELD ONLY TO A LOG THAT RAN THE SAME COUNT SET [#553; jobs/control-audit-holds-a-record-only-to-a-log-
+    //     carrying-the-gates-current-assertion-set-2026-11-20, close condition (2)]. runL() writes the log the way gates.sh does,
+    //     with a `ref: HEAD <sha>` line naming the tree it gated. Every arm before (8) uses run(), whose log carries no ref line,
+    //     so it is held exactly as before #553 - which is also why (8L) below can show the old verdict on the same input.
+    const runL = (passCount, label, sha) => capture(() => report(audit(root, parseLog('ref: HEAD ' + sha + ' | bundle md5 000000000000\n=== 01-fixture ===\n  01-fixture: green (' + passCount + ' PASS)\n')), label));
+    const A4 = "L.say('d', 4 === 4);";
+    write(['// fixture gate', A1, A2, A3]); const s3 = commit('the tree the log gated: three assertions');
+    write(['// fixture gate', A1, A2, A3, A4]); const g4 = commit('the gate grew to four after the log');
+    const recG = (t) => '// CONTROL-RECORD: ' + g4 + ' ' + TODAY + ' total=' + t + ' red=1 scope=full how=the grown fixture flipped assertion d';
+    write(['// fixture gate', recG(4), A1, A2, A3, A4]); commit('a record at the grown total');
+    r = runL(3, 'selftest-8', s3);
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0 && /held above the log/.test(r.out),
+       '(8) a gate that GREW after the log, with a record at its new total (4 against the log\'s 3), reads COVERED at exit 0 - the log predates its assertion set');
+    r = run(3, 'selftest-8L');
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /full-scope total=4 but the log says this gate runs 3/.test(r.out),
+       '(8L) the same record against a log with no ref line is held to the count exactly, as before #553: BAD-RECORD (the batch-13 refusal)');
+    write(['// fixture gate', recG(3), A1, A2, A3, A4]); commit('a record at the stale total');
+    r = runL(3, 'selftest-8b', s3);
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /is a STALE TOTAL/.test(r.out) && r.rc === 1,
+       '(8b) a record over the grown set at the log\'s own count (3) is a STALE TOTAL: BAD-RECORD at exit 1');
+    write(['// fixture gate', recG(4), A1, "L.say('b', 2 === 3);", A3, A4]); commit('a recorded assertion rewritten after the record');
+    r = runL(3, 'selftest-8c', s3);
+    ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /^SUMMARY  0 covered/m.test(r.out),
+       '(8c) a record for a gate whose assertions changed AFTER the record still fails: ASSERTIONS-MOVED, not covered, whatever the log');
+    write(['// fixture gate', recG(5), A1, A2, A3, A4]); commit('a record off the count of a log that ran the same set');
+    r = runL(4, 'selftest-8d', g4);
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /which ran the same assertion set as this record, says this gate runs 4/.test(r.out),
+       '(8d) where the log DID run the record\'s set (both at the grown four), the total must still equal its count: 5 against 4 is BAD-RECORD');
+    write(['// fixture gate', recG(4), A1, A2, A3, A4]); commit('the record again');
+    r = runL(4, 'selftest-8e', g4);
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0 && !/held above|held 1\.\.|HELD TO NO LOG/.test(r.out),
+       '(8e) and at its count (4 of 4) it reads COVERED with no hold note - the exact path');
+    const recS = (t) => '// CONTROL-RECORD: ' + s3 + ' ' + TODAY + ' total=' + t + ' red=1 scope=full how=the three-line fixture flipped assertion b';
+    write(['// fixture gate', recS(2), A1, A2, A3, A4]); commit('an old record off the count of the log that ran its set');
+    r = runL(3, 'selftest-8f', s3);
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /which ran the same assertion set/.test(r.out),
+       '(8f) a PARTIAL record (taken on the three-line set) is held EXACTLY to a log that ran that set: 2 against 3 is BAD-RECORD');
+    write(['// fixture gate', "L.say('x', 1);", A2]); const sx = commit('a log tree whose set neither contains nor is contained by the record\'s');
+    write(['// fixture gate', recG(4), A1, A2, A3, A4]); commit('the grown record over a diverged log');
+    r = runL(2, 'selftest-8g', sx);
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && /HELD TO NO LOG/.test(r.out) && /^RECORDS-HELD-TO-NO-LOG  1 /m.test(r.out),
+       '(8g) a log that ran a DIFFERENT set judges no total: COVERED, printed HELD TO NO LOG and counted on its own line');
+    // ── (9) A COUNT THAT GROWS WITH THE TREE, NOT THE CODE (gate 81's shape: one PASS per committed gatelog). The gate declares
+    //     `CONTROL-COUNT-INPUT: <dir> <regex>`, and the files it names join the count set.
+    fs.mkdirSync(path.join(root, 'logs'), { recursive: true });
+    const LOOPF = "for (const f of fs.readdirSync('logs')) L.say('log ' + f, true);";
+    const DECL = '// CONTROL-COUNT-INPUT: logs -all\\.log$';
+    fs.writeFileSync(path.join(root, 'logs/1-all.log'), 'one\n');
+    write(['// fixture gate', DECL, LOOPF]); const i1 = commit('one log in the tree');
+    fs.writeFileSync(path.join(root, 'logs/2-all.log'), 'two\n');
+    const recI = (sha, t) => '// CONTROL-RECORD: ' + sha + ' ' + TODAY + ' total=' + t + ' red=1 scope=full how=a log removed in a scratch commit';
+    write(['// fixture gate', DECL, recI(i1, 1), LOOPF]); const i2 = commit('a second log lands, and the record taken at one');
+    r = runL(2, 'selftest-9', i2);
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0 && /held 1\.\.log/.test(r.out),
+       '(9) a record taken over one log, judged by a log over two, reads COVERED at exit 0 - the per-build re-control chore goes');
+    write(['// fixture gate', recI(i1, 1), LOOPF]); commit('the same gate without its CONTROL-COUNT-INPUT line');
+    r = runL(2, 'selftest-9b', i2);
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /says this gate runs 2/.test(r.out),
+       '(9b) without the declaration the same record is held to the log\'s count exactly: BAD-RECORD (gate 81 before #553)');
+    write(['// fixture gate', DECL, recI(i1, 2), LOOPF]); commit('a record over one log claiming two');
+    r = runL(1, 'selftest-9c', i1);
+    ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /which ran the same assertion set as this record, says this gate runs 1/.test(r.out),
+       '(9c) and the declaration does not loosen the exact case: a log over the record\'s own one file holds it to 1, so 2 is BAD-RECORD');
+    // ── (10) THE ARMS WITH THEIR SUBJECT REMOVED (CLAUDE.md: a new control set is run against the tree without its subject, and
+    //     seen to go red, before it is counted). A copy of this file whose holdTo() always answers 'legacy' - the pre-#553
+    //     behaviour - runs this same selftest; (8), (8g) and (9) must FAIL there. The child skips (10), or it would recurse.
+    if (process.env.CT_CA_SUBJECT_ARM !== 'off') {
+      const me = fs.readFileSync(__filename, 'utf8');
+      const cut = me.replace("if (!logSet) return 'legacy';", "return 'legacy';");
+      const cf = path.join(root + '-defanged.js');
+      ok(cut !== me, '(10) the defang edit applied (holdTo always answers legacy)');
+      fs.writeFileSync(cf, cut);
+      const ch = cp.spawnSync('node', [cf, '--selftest'], { encoding: 'utf8', env: Object.assign({}, process.env, { CT_CA_SUBJECT_ARM: 'off' }), maxBuffer: 1 << 24 });
+      fs.rmSync(cf, { force: true });
+      const co = (ch.stdout || '') + (ch.stderr || '');
+      // EXPECTED RED: every arm whose verdict or fault text the hold decides. (8d) and (9c) are red there by their TEXT - the
+      // legacy refusal names no assertion set - which is the point: they pin the exact path's own words, not just a BAD-RECORD.
+      const want = ['(8)', '(8b)', '(8d)', '(8f)', '(8g)', '(9)', '(9c)'];
+      const got = (co.match(/^SELFTEST FAIL \(\w+\)/gm) || []).map(l => l.replace('SELFTEST FAIL ', ''));
+      ok(ch.status === 1 && got.join(',') === want.join(',') && ['(8L)', '(8c)', '(8e)', '(9b)'].every(k => co.includes('SELFTEST PASS ' + k + ' ')),
+         '(10) with the subject removed the selftest goes RED on exactly the arms the hold decides: ' + (got.join(',') || 'none') + ' failed (exit ' + ch.status + '; want ' + want.join(',') + '), while (8L), (8c), (8e), (9b) still pass');
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(root + '-shallow', { recursive: true, force: true });
+    fs.rmSync(root + '-defanged.js', { force: true });
   }
   console.log('control-audit selftest: ' + pass + ' pass / ' + fail + ' fail');
   return fail ? 1 : 0;
