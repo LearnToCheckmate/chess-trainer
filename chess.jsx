@@ -2073,7 +2073,7 @@ function mateLineSans(chk,no){
   return out;
 }
 /* what one ply of the line is, FIRST in the box (a short phone shows one line of it): its number in the line, the move numbered, and what it
-   is - the reply the message named, a check, the defender's best defence (the engine's main line), or the mate. `no` as mateLineSans. */
+   is - the reply the message named, a check, the defender's best defense (the engine's main line), or the mate. `no` as mateLineSans. */
 function mateLineSay(chk,i,no){
   if(!chk||!chk.ok||i<0||i>=chk.plies.length)return '';const p=chk.plies[i];const side=p.turn==='w'?'White':'Black';
   let k=(no>0?no:1);for(let j=0;j<i;j++)if(chk.plies[j].turn==='b')k++;
@@ -2081,7 +2081,7 @@ function mateLineSay(chk,i,no){
   if(i===chk.plies.length-1)return at+mv+' is checkmate.';
   if(i<chk.lead&&chk.named!==false)return at+side+(/x/.test(p.san)?' takes, ':' answers ')+mv+'.';
   if(p.turn===chk.plies[chk.plies.length-1].turn)return at+mv+(/\+$/.test(p.san)?', check.':'.');
-  return at+mv+', '+side+'\'s best defence.';
+  return at+mv+', '+side+'\'s best defense.';
 }
 /* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
    that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
