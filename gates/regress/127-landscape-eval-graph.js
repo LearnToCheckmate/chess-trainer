@@ -75,8 +75,8 @@ L.run(async()=>{
      const C=[['e2','e4'],['g1','f3'],['b1','c3'],['d2','d3'],['a2','a3'],['h2','h3'],['c1','e3'],['f1','e2'],['b2','b3'],['g2','g3'],['a3','a4'],['h3','h4'],['e1','d2']];let ci=0;
      for(let k=0;k<8;k++){let done=false;while(!done&&ci<C.length){const [f,t]=C[ci++];await b.move(f,t,0).catch(()=>{});await b.settle(300);if(await P.plies(b)>n){n+=2;await P.waitPlies(b,n).catch(()=>{});await b.settle(1600);done=true;}}}await b.settle(2500);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const rail=document.querySelector('.ctside');const s=rail&&[...rail.querySelectorAll('svg')].find(x=>x.querySelector('line[stroke-dasharray="4 3"]'));if(!s)return null;
-     const H=+s.getAttribute('height');const d=([...s.querySelectorAll('path')].find(p=>p.getAttribute('fill')==='none')||{getAttribute:()=>''}).getAttribute('d')||'';
-     const ys=[...d.matchAll(/[ML][\d.]+,([\d.-]+)/g)].map(m=>+m[1]);const v=ys.map(y=>Math.round((H/2-y)/(H/2-4)*6*100)/100);
+     const H=+s.getAttribute('height');/* #553: EvalGraph's vertical pad is min(7,H/4) since the marks were kept wholly inside the graph's box (was a fixed 4); this reads the y back to pawns with the same pad */const d=([...s.querySelectorAll('path')].find(p=>p.getAttribute('fill')==='none')||{getAttribute:()=>''}).getAttribute('d')||'';
+     const ys=[...d.matchAll(/[ML][\d.]+,([\d.-]+)/g)].map(m=>+m[1]);const v=ys.map(y=>Math.round((H/2-y)/(H/2-Math.min(7,H/4))*6*100)/100);
      const pill=[...document.querySelectorAll('[data-ct="pbar-top"] span')].map(e=>(e.innerText||'').trim()).find(t=>/^[+-]?\d+\.\d$/.test(t));return {v,pill:pill==null?null:+pill};});
    L.say(ok&&!!r&&r.v.length>=12,'TC-R203c 761x375 PRECONDITION a quiet game of 12 plies or more against the computer, its graph read back as values ('+(r&&r.v.length)+' points)',r);
    const cl=(x)=>Math.abs(x)>=5.99;   // the graph clamps at +-6, so a point beside the clamp cannot be checked against its neighbours' midpoint
