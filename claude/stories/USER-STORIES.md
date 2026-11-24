@@ -2764,6 +2764,19 @@ As a player on a 360x640 phone, switching the engine line on or off leaves the b
 - With the engine line switched on and off at a mid-game ply, the board's top and width do not move, and it is the screen's full width. (TC-R333)
 - After Exit analysis the engine line row is gone. (TC-R334)
 
+### US-R227 The puzzle Prev and Next are named, in reach at rest and do what they say, sideways and upright
+*Added in batch 14 (#553, builder seat B2), jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: #548 named the sideways pair and #550 (Kunal's Option A, answer a8) moved the tabs to a rail, so the pair is clear of them. Measured at #553 by a real tap: sideways, Next on an unsolved training puzzle re-loaded the same puzzle (the #373 A-10 defect, fixed upright then and never sideways); fixed here.*
+As a player solving puzzles with my phone upright or turned sideways, the Previous and Next buttons are on screen without scrolling, nothing covers them, a screen reader names them, and Next shows another puzzle even before I solve this one.
+- Each is named "Previous puzzle" / "Next puzzle" once, on the buttons painted as the pair. (TC-R354)
+- At rest each is wholly on screen, 44px or taller, clear of the tab bar or rail, and owns its centre, at 730x375, 844x390, 667x375, 761x375, my phone and 320x568. (TC-R353, TC-R355a)
+- A real tap on Next shows another puzzle and a real tap on Prev brings the first back. (TC-R355b)
+
+### US-R228 The menu closes from outside and every setting in it is in reach, sideways and upright, with the game over
+*Added in batch 14 (#553, builder seat B2), jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30: US-MN-01 (close it without changing anything) and US-MN-03 (reach the settings at the bottom) of claude/stories/MENU-LANE-2026-09-15.md, held at the sizes the job did not reach. #547 and #550 made the fix; #553 measured it at 844x390, his phone and 320x568 as well as 730x375.*
+As a player who opens the menu at the end of a game, with my phone upright or sideways, a tap outside the sheet or Escape closes it, and every setting in it can be brought on screen with my finger.
+- With the game over, a tap outside the sheet closes it, and so does Escape, at 730x375, 844x390, my phone and 320x568. (TC-R356)
+- Every button, link and Game setup pill in the sheet can be brought wholly inside it by finger drags and taken at its centre; where the sheet fits, every one is there at rest. (TC-R356)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

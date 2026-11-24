@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index ea440f31..6ba10da9 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12390,5 +12390,5 @@ function AppMain(){
+         </div>
+       </div>);})()}
+-      {menuOpen&&(<div onClick={()=>setMenuOpen(false)} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'max(10px,env(safe-area-inset-top,0px)) 12px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
++      {menuOpen&&(<div onClick={()=>{}} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'max(10px,env(safe-area-inset-top,0px)) 12px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
+         {/* #373 (audit A-16): the sheet was 5vh + 88vh + 12px of padding, which on a 679px screen left 36px of backdrop under it. It now takes the padded viewport (the safe-area insets are the only margins). */}
+         <div data-ct="menu-sheet" onClick={e=>e.stopPropagation()} className="scroll" style={{marginTop:0,marginBottom:0,width:'100%',maxWidth:380,maxHeight:'100%',overflowY:'auto',background:'#16161d',border:'1px solid rgba(255,255,255,.14)',borderRadius:16,padding:'10px 14px 10px' /* #550 one screen: was 12/18 */,boxShadow:'0 24px 70px rgba(0,0,0,.65)'}}>

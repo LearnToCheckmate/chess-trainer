@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..24368b35 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14506,5 +14506,5 @@ function AppMain(){
+           <button onClick={()=>loadPuzzle(puzIdx)} aria-label="Reset" style={_rbx}>{_xn?'↺\nReset':'↺ Reset'}</button>
+         </div>);})()}
+-        <div style={{display:'flex',gap:7,width:'100%'}}>
++        <div style={{display:'flex',gap:7,width:'100%',position:'relative',top:60}}>
+           {/* #548 item (161), jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: the landscape pair carries the same accessible names as the portrait pair, so a screen reader and the puzzles driver find them in both layouts */}<button onClick={()=>loadPuzzle(pzTrainTierRef.current!=null?pzPrevInTier(pzTrainTierRef.current,puzIdx):puzIdx-1)} aria-label="Previous puzzle" style={pzRail?{...navBtn(false),minHeight:44,padding:'9px 12px'}:navBtn(false)}>‹ Prev</button>
+           <button onClick={()=>{/* #553 jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: the sideways Next passes the index after the puzzle on screen, as the upright Next does since #373 A-10; without it Next re-loaded the unsolved puzzle on screen and read as dead */if(pzTrainTierRef.current!=null)loadPuzzle(pzNextInTier(pzSolvedRef.current,pzTrainTierRef.current,puzIdx+1));else loadPuzzle(puzIdx+1);}} aria-label="Next puzzle" style={pzRail?{...navBtn(puzSolved),minHeight:44,padding:'9px 12px'}:navBtn(puzSolved)}>Next ›</button>
