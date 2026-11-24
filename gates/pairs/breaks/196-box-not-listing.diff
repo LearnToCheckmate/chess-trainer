@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13637,7 +13637,7 @@
+              one kept in view the same way the game's moves are, older ones scrolling off to the left; a tap goes back (or forward) to that
+              move. Until his first move the box is invisible but keeps its height, so the board never moves when it fills.
+              Amber: flags/amber-553-drill-analysis-moves */
+-          const _dAna=!!(anaMode&&review&&review.fromDrill);const _aPos=_dAna?[...anaHist,game,...anaFwd]:null;const _aCur=_dAna?anaHist.length-1:-1;const _aN=_dAna?_aPos.length-1:0;
++          const _dAna=false&&!!(anaMode&&review&&review.fromDrill);const _aPos=_dAna?[...anaHist,game,...anaFwd]:null;const _aCur=_dAna?anaHist.length-1:-1;const _aN=_dAna?_aPos.length-1:0;
+           const _aGo=(j)=>{const P=_aPos;if(!P||j<0||j>=P.length-1)return;setAnaHist(P.slice(0,j+1));setGame(P[j+1]);setAnaFwd(P.slice(j+2));const h=P[j+1].history;setLastMv((h&&h.length&&h[h.length-1].move)||null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();};const _abtn=(lbl,on,lab)=>(<button onClick={on} aria-label={lab} style={{flex:'0 0 auto',width:26,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',color:'rgba(255,255,255,.75)',fontSize:15,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{lbl}</button>);return(
+       <div data-ct="strip-row" style={{marginTop:(revCompact&&!wide)?(revFit.tight?2:6):(landRev?2:10),marginBottom:(revCompact&&!wide&&!revStream)?'auto':0,width:revStream?vp.w:(boardPx+((hideEval||evalAbove)?0:22)),...(revStream?{padding:'0 8px',boxSizing:'border-box'}:null),maxWidth:_edge?'100vw':'98vw',display:'flex',alignItems:'stretch',gap:6}}>
+         {_arrows&&_abtn(<ChevIcon size={17} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},'Previous move')}

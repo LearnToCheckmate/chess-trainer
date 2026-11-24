@@ -1,0 +1,22 @@
+{
+ "job": "every-move-list-keeps-the-newest-move-in-view-and-drill-analysis-lists-your-moves-2026-11-19",
+ "about": "BATCH 14 ENTRY 28 (Kunal, 19 Nov 2026, his pick 'Box lists my moves (Recommended)'). On the drill Analysis board the move box lists the moves he plays, the current one kept fully inside the box (older ones scroll off to the left), a tap goes back or forward to a move, the box invisible but keeping its height until his first move; the engine's line is captioned \"Engine's best line\" and wraps inside the screen. Graded by gate 196's drill part on a trial bundle, on an 84-ply game played move by move at kunal761 (375x761, ct_safe 51,31), 320x568 and sideways 761x375: after each of 84 moves the box's chips against a node replay and the newest chip's rect against the box's visible rect; the board and the box never move; back to move 10 (painted squares against the replay), forward, Undo; the engine row's overflow and the line's wrap (at 320 the line at move 10 needs 281.8px on one row against 252.7). Three ways the fix could come undone are each caught. NOT GRADED HERE (to keep a try under ten minutes): gate 196's Pass & Play and Review parts (TC-R297), which no break touches - they run in the full suite and in the gate's own control record; Coach and vs Computer (they render the Play screen's list); the 125% text sizes; iOS Safari; his look on the phone.",
+ "gate": "gates/regress/196-newest-move-in-view.js",
+ "env": {"CT_196_PARTS": "drill"},
+ "checks": ["TC-R29[4-6]"],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R29[4-6] (PRECONDITION )?kunal761 "},
+  {"name": "320x568", "match": "^TC-R29[4-6] (PRECONDITION )?320x568 "},
+  {"name": "761x375 sideways", "match": "^TC-R29[4-6] (PRECONDITION )?761x375 "}
+ ],
+ "breaks": [
+  {"name": "box-not-listing", "patch": "breaks/196-box-not-listing.diff",
+   "why": "the drill Analysis box goes back to listing the review's plies only: it is the empty black bar again and his moves are in no list"},
+  {"name": "newest-not-scrolled", "patch": "breaks/196-newest-move-not-scrolled-into-view.diff",
+   "why": "the box lists his moves but no longer scrolls to the current one: past about nine moves the newest is off the right edge (his 8:55pm words)"},
+  {"name": "engine-line-runs-off", "patch": "breaks/196-engine-line-runs-off.diff",
+   "why": "the engine row is one line again on the analysis board: at 320 the line runs past the row's edge instead of wrapping"}
+ ],
+ "timeoutSec": 1800
+}
