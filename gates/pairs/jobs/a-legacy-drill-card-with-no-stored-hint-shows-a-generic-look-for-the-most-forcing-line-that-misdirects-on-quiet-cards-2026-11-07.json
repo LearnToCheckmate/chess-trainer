@@ -1,0 +1,34 @@
+{
+ "job": "a-legacy-drill-card-with-no-stored-hint-shows-a-generic-look-for-the-most-forcing-line-that-misdirects-on-quiet-cards-2026-11-07",
+ "about": "A mistakes-drill card saved before #426 with no hint field: its Hint is computed from the card's own position (concreteRead, then mistakeHint), never the generic 'Look for the most forcing or solid option' - a quiet card reads 'No tactic to spot here', a mating card names the mate. Graded by gate 98 (TC-R183a..b) at kunal761. NOT COVERED: Kunal's look on his phone; Kunal's real deck (the 15 Nov checker's probe covered 6501 generated cards).",
+ "gate": "gates/regress/98-legacy-drill-card-hint.js",
+ "checks": [
+  "TC-R183[ab] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R183"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "a-legacy-card-falls-back-to-the-generic-hint",
+   "patch": "breaks/98-a-legacy-card-falls-back-to-the-generic-hint.diff",
+   "why": "item (89)'s computed hint is gone, so a quiet legacy card shows the generic 'most forcing or solid option' again (the job's defect)",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  },
+  {
+   "name": "no-hint-is-computed-for-a-legacy-card",
+   "patch": "breaks/98-no-hint-is-computed-for-a-legacy-card.diff",
+   "why": "neither the concrete reading (HEX-T-01) nor the computed hint runs, so every legacy card - the mating one too - shows the generic sentence",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  }
+ ],
+ "timeoutSec": 1200
+}
