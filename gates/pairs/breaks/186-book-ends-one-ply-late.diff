@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index f74246b3..7dbad55b 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1285,5 +1285,5 @@ const BOOK_BREAKS=['Mistake','Blunder','Miss'];
+ function bookBreaks(label){return BOOK_BREAKS.indexOf(label)>=0;}
+ // The Book prefix with the cut applied: bookN plies of book, labelAt(i) the engine's grade of ply i.
+-function bookSound(bookN,labelAt){const n=bookN||0;for(let i=0;i<n;i++){let L=null;try{L=labelAt(i);}catch(e){L=null;}if(bookBreaks(L))return i;}return n;}
++function bookSound(bookN,labelAt){const n=bookN||0;for(let i=0;i<n;i++){let L=null;try{L=labelAt(i);}catch(e){L=null;}if(bookBreaks(L))return i+1;}return n;}
+ let SFX_ON=true; let _ctxSfx=null;
+ function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}

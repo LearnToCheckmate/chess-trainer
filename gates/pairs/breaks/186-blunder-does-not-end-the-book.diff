@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index f74246b3..1bdac3d9 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1282,5 +1282,5 @@ function effLabel(cls,i,bookN){const c=effCls(cls,i,bookN);return c&&c.label;}
+    summary counts, the jump, the badge, the strip, the eval graphs, the skills panel, the games-list split, the regrade preview) reads the
+    cut number, so they agree by construction as they did before. */
+-const BOOK_BREAKS=['Mistake','Blunder','Miss'];
++const BOOK_BREAKS=['Mistake','Miss'];
+ function bookBreaks(label){return BOOK_BREAKS.indexOf(label)>=0;}
+ // The Book prefix with the cut applied: bookN plies of book, labelAt(i) the engine's grade of ply i.
