@@ -456,8 +456,81 @@ async function blockA18(){
     await b.close();
 }
 
+// #553 B3 [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30]: block A10 is a function so CT_G61_ONLY=A10 runs it
+// ALONE (the pairs grader runs it per situation), and CT_G61_A10_GEO picks its geometry: a GEOS name (kunal761, se) or WxH; default
+// 375x730, the geometry it has always run at. Unset, the gate runs A10 in its place exactly as before.
+function A10GEO(){const g=process.env.CT_G61_A10_GEO;if(!g)return {w:375,h:730,safe:''};const m=/^(\d+)x(\d+)$/.exec(g);
+  if(m)return {w:+m[1],h:+m[2],safe:''};if(!L.GEOS[g])throw new Error('CT_G61_A10_GEO: unknown geometry '+g);return g;}
+async function blockA10(){
+// ── A10 #432, THE LEGACY STORE. THE SECOND STATE ANTAGONIST A BROKE THIS BUILD IN.
+//    A8 seeds 200 rows and 12. ACCT_GMAX was 40 from #353 to #430, so NO store written by any shipped build
+//    before #431 can hold 200 rows - the entire installed base sits at or under 40, and inferring at today's
+//    ACCT_GMAX read every one of them as "nothing bound" and stated no limit on a list that HAD been cut.
+//    A8's 200-row input is the one row-count no real upgrading user is in.
+  const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
+  // #433 THE BAND origin/main ITSELF WRITES. A10 seeded only 40 and 9, both at or under the legacy cap,
+  // and antagonist A measured why that is the wrong population: ct_acctcap arrives in #432, which has
+  // never shipped, so the bound-less stores were written by builds up to and INCLUDING #431 - which is on
+  // main with ACCT_GMAX=200. 41..199 is the band the deployed app creates and no input reached it; the
+  // first #433 inferred the cap as the row count and printed 137 back at the player as a limit.
+  // #474 THE 39 FIXTURE, jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: 39 and 41 now sit
+  // either side of 40, so A10a/A10b/A10c cannot be satisfied by 'a line always' or by 'no line ever' -
+  // each verdict has to turn on the row count rather than on a constant policy. 41 arrived at #433; 39 is
+  // the other side of the same boundary and is the cheapest input that discriminates a cap from a count.
+  for(const t of [{n:39,expect:null,why:'ONE ROW BELOW the legacy cap of 40: a store that stopped before any cap could have cut it, so nothing is known to have been cut'},
+                  // #550 item (111) [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30, and
+                  // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30]: this row expected 'games', which asserted the
+                  // inference itself, so the suite was green on it by construction. 40 is not evidence of a cut (#431 writes
+                  // 40-row stores of accounts that have 40 games), and Kunal's B8-SMALL-DEFAULTS (4) says the line appears only
+                  // when the limit actually cut games, so 40 now expects what 39 and 41 do.
+                  {n:40,expect:null,why:'a store at the LEGACY cap of 40 with no recorded bound: #431 (cap 200) writes 40-row stores of accounts that simply HAVE 40 games, so 40 is not evidence that the cap cut it'},
+                  {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
+                  // #553 B3 [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30, the 15 Nov check's one gap]: 199, the
+                  // last count of the band #431 writes, one row under the current cap - the proposed TC-R35(v) input the gate did not carry.
+                  {n:199,expect:null,why:'ONE ROW BELOW the current cap of 200: the top of the band origin/main writes, nothing cut it'},
+                  {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
+                  {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
+                  {n:9,expect:null,why:'below any cap this app has shipped, so nothing is known to have been cut'}]){
+    const rows=[];for(let i=0;i<t.n;i++)rows.push({src:'cc',acct:'me',pgn:PGN,white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
+    const b=await L.launch({geo:A10GEO(),name:'legacy-'+t.n,store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
+    await b.open(); await b.tile('Review'); await b.settle(1200);
+    const r=await READ(b);
+    // #474 THE TAG IS BUILT FROM THE FIXTURE'S OWN FACTS AND NEVER FROM A CONSTANT SENTENCE.
+    // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: the old tag printed 'written by a
+    // pre-#431 build (cap 40)' verbatim for EVERY fixture in this loop, including n=200 and n=137, which
+    // a cap-40 build cannot write - and the block's own preamble three lines above says so. Prose that
+    // contradicts the number beside it, inside the instrument, invisible to every value-shaped check
+    // because nothing asserts a log string. The population is pre-#432, not pre-#431; `why` is already
+    // correct per row, so the tag now carries it and the log cannot print a provenance its own fixture
+    // disproves.
+    const tag='LEGACY STORE, '+t.n+' rows, no ct_acctcap (written by a build up to and including #431, so pre-#432, NOT pre-#431): '+t.why;
+    L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
+    if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
+      if(t.expect==='games'){
+        L.say(OLDER_RE.test(r.body||''),'A10a US-R25 '+tag+': a cut IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(OLDER_RE)?((r.body||'').match(OLDER_RE))[0]:'NONE',line:r.cap&&r.cap.text,note:t.why});
+        // #433 A10c. A10a ASKS ONLY WHETHER A SENTENCE IS THERE, AND THAT IS HOW THE WRONG NUMBER GOT
+        // THROUGH IT. #432 inferred 'games' from this exact store and then printed today's ACCT_GMAX, so
+        // 40 rows cut at 40 read "Showing up to 200 games per account." - A10a is green on that, because
+        // a limit is indeed stated. The number a legacy store can justify is the cap of the build that
+        // WROTE it, and the only one it can ever have been is 40. Asserted against the ROW COUNT on
+        // screen rather than against a constant this gate holds: whatever number the line names must be
+        // the number of rows the store was cut at, which is a fact about this input and not about the app.
+        // #549 item (31): what is stated is no longer a cap number but the date the held games reach back to, and
+        // the same rule applies to it: it must be the store's OWN oldest row, measured, and no cap number may be
+        // printed - neither ACCT_GMAX nor the legacy 40 is a limit on what a merged list holds.
+        {const gcm=(r.body||'').match(CAP_RE);const stated=gcm?+String(gcm[1]).replace(/,/g,''):null;
+         const h10=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},['cc:me']);
+         L.say(h10.ok&&stated===null,'A10c US-R25 '+tag+': the date stated is the oldest game THIS store holds, and no cap number is printed as the bound of a held list',{held:h10,capNumberStated:stated,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});}
+      }else
+        L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
+    }
+    await b.close();
+  }
+}
+
 (async()=>{
   if(process.env.CT_G61_ONLY==='A18'){await blockA18();L.done('61-review-list-month-independence');return;}
+  if(process.env.CT_G61_ONLY==='A10'){await blockA10();L.done('61-review-list-month-independence');return;}
   const seeds=(process.env.CT_SEEDS||'a,b,c').split(',');
   const accts=(process.env.CT_ACCTS||'1,3').split(',').map(Number);
   const GEO={w:375,h:730,safe:''};
@@ -723,69 +796,7 @@ async function blockA18(){
   //    guard. The wording was settled at #432 as "name both limits"; this is the input that exercises it across sources.
   await blockA18();
 
-  // ── A10 #432, THE LEGACY STORE. THE SECOND STATE ANTAGONIST A BROKE THIS BUILD IN.
-  //    A8 seeds 200 rows and 12. ACCT_GMAX was 40 from #353 to #430, so NO store written by any shipped build
-  //    before #431 can hold 200 rows - the entire installed base sits at or under 40, and inferring at today's
-  //    ACCT_GMAX read every one of them as "nothing bound" and stated no limit on a list that HAD been cut.
-  //    A8's 200-row input is the one row-count no real upgrading user is in.
-  {
-    const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2026.08.01"]\n[White "me"]\n[Black "opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n'+MOVES+'\n';
-    // #433 THE BAND origin/main ITSELF WRITES. A10 seeded only 40 and 9, both at or under the legacy cap,
-    // and antagonist A measured why that is the wrong population: ct_acctcap arrives in #432, which has
-    // never shipped, so the bound-less stores were written by builds up to and INCLUDING #431 - which is on
-    // main with ACCT_GMAX=200. 41..199 is the band the deployed app creates and no input reached it; the
-    // first #433 inferred the cap as the row count and printed 137 back at the player as a limit.
-    // #474 THE 39 FIXTURE, jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: 39 and 41 now sit
-    // either side of 40, so A10a/A10b/A10c cannot be satisfied by 'a line always' or by 'no line ever' -
-    // each verdict has to turn on the row count rather than on a constant policy. 41 arrived at #433; 39 is
-    // the other side of the same boundary and is the cheapest input that discriminates a cap from a count.
-    for(const t of [{n:39,expect:null,why:'ONE ROW BELOW the legacy cap of 40: a store that stopped before any cap could have cut it, so nothing is known to have been cut'},
-                    // #550 item (111) [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30, and
-                    // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30]: this row expected 'games', which asserted the
-                    // inference itself, so the suite was green on it by construction. 40 is not evidence of a cut (#431 writes
-                    // 40-row stores of accounts that have 40 games), and Kunal's B8-SMALL-DEFAULTS (4) says the line appears only
-                    // when the limit actually cut games, so 40 now expects what 39 and 41 do.
-                    {n:40,expect:null,why:'a store at the LEGACY cap of 40 with no recorded bound: #431 (cap 200) writes 40-row stores of accounts that simply HAVE 40 games, so 40 is not evidence that the cap cut it'},
-                    {n:200,expect:'games',why:'a full store at the CURRENT cap, which #431 on main writes and records no bound for'},
-                    {n:137,expect:null,why:'THE BAND origin/main CREATES: above the legacy cap so it cannot be a legacy cut, below the current one so nothing cut it - and a number this app has never capped at'},
-                    {n:41,expect:null,why:'one row above the legacy cap: the cheapest case where a row count is not a cap'},
-                    {n:9,expect:null,why:'below any cap this app has shipped, so nothing is known to have been cut'}]){
-      const rows=[];for(let i=0;i<t.n;i++)rows.push({src:'cc',acct:'me',pgn:PGN,white:'me',black:'opp'+i,wr:'win',tc:'blitz',date:Date.UTC(2026,7,1+(i%28),12,0,0)});
-      const b=await L.launch({geo:{w:375,h:730,safe:''},name:'legacy-'+t.n,store:{ct_accts:['cc:me'],ct_acctgames:{'cc:me':rows}}});
-      await b.open(); await b.tile('Review'); await b.settle(1200);
-      const r=await READ(b);
-      // #474 THE TAG IS BUILT FROM THE FIXTURE'S OWN FACTS AND NEVER FROM A CONSTANT SENTENCE.
-      // jobs/gate-61-a10c-asserts-the-forty-row-inference-2026-09-30: the old tag printed 'written by a
-      // pre-#431 build (cap 40)' verbatim for EVERY fixture in this loop, including n=200 and n=137, which
-      // a cap-40 build cannot write - and the block's own preamble three lines above says so. Prose that
-      // contradicts the number beside it, inside the instrument, invisible to every value-shaped check
-      // because nothing asserts a log string. The population is pre-#432, not pre-#431; `why` is already
-      // correct per row, so the tag now carries it and the log cannot print a provenance its own fixture
-      // disproves.
-      const tag='LEGACY STORE, '+t.n+' rows, no ct_acctcap (written by a build up to and including #431, so pre-#432, NOT pre-#431): '+t.why;
-      L.note(tag+'  rows '+r.rows+'  limit line '+JSON.stringify(r.cap&&r.cap.text));
-      if(L.say(r.rows===t.n,'A10-0 vacuity '+tag+': the stored games render from localStorage with no fetch',{rows:r.rows,expect:t.n})){
-        if(t.expect==='games'){
-          L.say(OLDER_RE.test(r.body||''),'A10a US-R25 '+tag+': a cut IS stated - a legacy account sitting at the cap of the build that wrote it was cut by that cap, and that is inferable without a re-fetch',{stated:(r.body||'').match(OLDER_RE)?((r.body||'').match(OLDER_RE))[0]:'NONE',line:r.cap&&r.cap.text,note:t.why});
-          // #433 A10c. A10a ASKS ONLY WHETHER A SENTENCE IS THERE, AND THAT IS HOW THE WRONG NUMBER GOT
-          // THROUGH IT. #432 inferred 'games' from this exact store and then printed today's ACCT_GMAX, so
-          // 40 rows cut at 40 read "Showing up to 200 games per account." - A10a is green on that, because
-          // a limit is indeed stated. The number a legacy store can justify is the cap of the build that
-          // WROTE it, and the only one it can ever have been is 40. Asserted against the ROW COUNT on
-          // screen rather than against a constant this gate holds: whatever number the line names must be
-          // the number of rows the store was cut at, which is a fact about this input and not about the app.
-          // #549 item (31): what is stated is no longer a cap number but the date the held games reach back to, and
-          // the same rule applies to it: it must be the store's OWN oldest row, measured, and no cap number may be
-          // printed - neither ACCT_GMAX nor the legacy 40 is a limit on what a merged list holds.
-          {const gcm=(r.body||'').match(CAP_RE);const stated=gcm?+String(gcm[1]).replace(/,/g,''):null;
-           const h10=HELD_OK(r.cap&&r.cap.text,r.heldDates||{},['cc:me']);
-           L.say(h10.ok&&stated===null,'A10c US-R25 '+tag+': the date stated is the oldest game THIS store holds, and no cap number is printed as the bound of a held list',{held:h10,capNumberStated:stated,rowsOnScreen:r.rows,line:r.cap&&r.cap.text});}
-        }else
-          L.say(!CAP_RE.test(r.body||'')&&!ANY_LIMIT_RE.test(r.body||''),'A10b US-R25 '+tag+': NO limit is stated below every cap this app has shipped, because nothing is known to have been cut',{gamesCapInBody:(r.body||'').match(CAP_RE)?((r.body||'').match(CAP_RE))[0]:'no',note:t.why});
-      }
-      await b.close();
-    }
-  }
+  await blockA10();   // ── A10 #432, THE LEGACY STORE: see blockA10 above
 
   // ── A11 #433, THE SPARSE INDEX. THE INPUT THAT MAKES THE UNITS BUG VISIBLE, AND THE REASON NO EXISTING
   //    ASSERTION COULD SEE IT IS THIS FILE'S OWN FIXTURE.
