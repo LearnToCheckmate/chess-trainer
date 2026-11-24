@@ -1,0 +1,23 @@
+{
+ "job": "us-r16-clause-5-bundles-three-claims-under-one-case-2026-10-06",
+ "about": "Gate 70 block Y (CT_B70_ONLY_Y=1 runs it alone with U and X): over a live game against the computer (cpu-4ply), each of the 14 Game-setup pills (vs Human, vs Computer, Online, No clock, eight clocks, White, Black) on its own fresh game: one tap keeps the game (US-R16 5a), arms ONLY the pill tapped (5c) with the shared words 'Tap again to discard your game' (5b), and the same pill tapped again replaces the game (5c); then block X's cross-control equality over the set, its floor raised from 4 control kinds to 14 here (15 in the full run). At kunal761 (375x761, insets 51/31): the subject is game state, not layout (gate 70's own note on J and K). NOT COVERED by this pair: the More sheet's New game, the lesson's Play this position and the setup Start, which blocks B, K and X0 drive in the full gate; a real tap on his phone.",
+ "gate": "gates/regress/70-live-game-reset-guard.js",
+ "env": {"CT_B70_ONLY_Y": "1"},
+ "checks": ["TC-R45a Y ", "TC-R45b Y ", "TC-R45c Y ", "TC-R45b X "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "env": {}}
+ ],
+ "breaks": [
+  {"name": "3plus1-shares-no-clocks-arm", "patch": "breaks/553-the-3plus1-pill-shares-no-clocks-arm.diff",
+   "why": "the 3+1 pill arms with No clock's key, so tapping 3+1 turns No clock amber and one tap on No clock would then replace the game - the 15 Nov checker's plant B, green on every block before Y",
+   "mustFailIn": ["kunal761"]},
+  {"name": "black-arms-whites-key", "patch": "breaks/553-black-arms-whites-key.diff",
+   "why": "the Black pill arms with White's key, so the colour pair confirm each other",
+   "mustFailIn": ["kunal761"]},
+  {"name": "white-replaces-without-asking", "patch": "breaks/553-white-replaces-the-game-without-asking.diff",
+   "why": "the White pill replaces the live game on its first tap, with no confirm (clause 5a undone for one control the older blocks never tap)",
+   "mustFailIn": ["kunal761"]}
+ ],
+ "timeoutSec": 1200
+}
