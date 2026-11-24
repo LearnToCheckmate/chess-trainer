@@ -325,7 +325,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H68) printf 'TC-SUITE-306' ;;
     H69) printf 'TC-SUITE-386' ;;
     H70) printf 'TC-SUITE-388' ;;  H71) printf 'TC-SUITE-389' ;;
-    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;
+    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;  H74) printf 'TC-SUITE-399' ;;  H75) printf 'TC-SUITE-400' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2735,6 +2735,47 @@ else
   else
     note "  FAIL H73 [$(tc H73)]  exit $PROBE_RC, expected 1 records: RED refused by the breach of CLAUDE.md#commit-trailer"
     show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H73"
+  fi
+fi
+
+# H74 NEGATIVE AND H75 POSITIVE [#553; jobs/fastgate-classes-claude-agents-gatelogs-as-records-so-a-records-only-commit-adding-a-log-can-change-gate-81s-verdict-2026-11-07].
+#     claude/agents/gatelogs/* is RECORDS, and gate 81 reads that directory through git, so a records-only commit that ADDS a log
+#     can turn gate 81 red while the fast tier read green. H74's honest register-only change (one minted row) also adds
+#     claude/agents/gatelogs/364-all.log: #364 is a row of gates/gatelog-exceptions.tsv, so its number now HAS a log and the row is
+#     STALE (TC-SUITE-372). Expected: exit 1 and "gate 81". H75 is the control that the arm is not a blanket refusal: the same
+#     commit adding an inert note under that directory (no -all.log) runs gate 81, which stays green, and takes exit 0.
+#     The control for H74 is the tree before #553 (fastgate.sh without the arm), where the same commit took exit 0 FAST GATE GREEN.
+reset_clone
+H74N="$(mint_in_clone)"
+H74SRC="$(git -C "$C" ls-files claude/agents/gatelogs | awk '/-all\.log$/{print; exit}')"
+if badnum "$H74N" || [ -z "$H74SRC" ] || ! grep -qE '^364[[:space:]]' "$C/gates/gatelog-exceptions.tsv" 2>/dev/null; then
+  note "  FAIL H74 [$(tc H74)]  the fixture cannot pose (number '$H74N', source log '$H74SRC', or no #364 exception row)"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H74"
+else
+  cp "$C/$H74SRC" "$C/claude/agents/gatelogs/364-all.log"
+  commit_case "H74 register only: one minted row for #$H74N, plus a gate log for #364 (an excused number)"
+  if probe 1 "gate 81"; then
+    note "  ok  H74 [$(tc H74)]  (exit 1 naming gate 81: a records commit that adds a log for an excused number makes its exception row stale)"
+    OK=$((OK+1))
+  else
+    note "  FAIL H74 [$(tc H74)]  exit $PROBE_RC, expected 1 naming gate 81 - a log added for an excused number must not take a fast green"
+    show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H74"
+  fi
+fi
+reset_clone
+H75N="$(mint_in_clone)"
+if badnum "$H75N"; then
+  note "  FAIL H75 [$(tc H75)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H75"
+else
+  printf 'H75 fixture: an inert note, not a gate log.\n' > "$C/claude/agents/gatelogs/H75-note.txt"
+  commit_case "H75 register only: one minted row for #$H75N, plus an inert note under claude/agents/gatelogs"
+  if probe 0 "FAST GATE GREEN" "gate 81 over this tree"; then
+    note "  ok  H75 [$(tc H75)]  (exit 0 FAST GATE GREEN with gate 81 run and green over the added file)"
+    OK=$((OK+1))
+  else
+    note "  FAIL H75 [$(tc H75)]  exit $PROBE_RC, expected 0 FAST GATE GREEN with gate 81 run over the added file"
+    show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H75"
   fi
 fi
 
