@@ -28,7 +28,7 @@
   {
    "name": "analysis-row-not-kept",
    "patch": "breaks/g185-analysis-row-not-kept.diff",
-   "why": "the analysis board drops the sentence row again (its height 0 in analysis), so the move just tried gets no word",
+   "why": "the analysis board does not draw the sentence row again, so the move just tried gets no word (the first cut of this break zeroed only _reasonH0, which the one-line floor at 320x568 still lifted to 17px - BLIND at se, so it was re-cut to the render condition)",
    "mustFailIn": ["kunal761", "se 320x568"]
   },
   {
