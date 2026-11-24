@@ -84,7 +84,11 @@ function lines(){
 async function main(){
   const L=lines();
   const games=[];const need=new Map();   // fen -> position
-  for(const l of L){const res=E.loadSANs(l.sans);if(!res||!res.plies||res.plies.length<l.book){continue;}
+  const OPS=lessonOpenings();
+  for(const l0 of L){const res=E.loadSANs(l0.sans);if(!res||!res.plies||res.plies.length<l0.book){continue;}
+    // the Book plies are the SHIPPED openingBookPlies over the line (table on, as shipped), never more than the line: a named line
+    // longer than 24 plies is Book only to the last named position inside the first 24 (C83 Tarrasch Trap: 19 of its 24)
+    const l={...l0,book:Math.min(l0.book,E.openingBookPlies(res.plies.map(p=>p.san),res.positions,OPS,1))};
     games.push({...l,res});for(let i=0;i<=l.book;i++){const p=res.positions[i];const f=E.toFEN(p);if(!need.has(f))need.set(f,p);}}
   const fens=[...need.keys()];const ev=new Map();
   const K=Math.max(1,+(process.env.CT_JOBS||2));
