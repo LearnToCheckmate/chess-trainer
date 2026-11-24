@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 44c2bd70..e3afbe24 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -649,5 +649,5 @@ const SYNC_SETS={ct_mymistakes:1,ct_mybrilliancies:1,ct_coachgames:1,ct_followbr
+    THE ACCOUNT. ct_followbril is merged card by card like his own two lists, its id the position AND the move - the store's own key
+    (followBrilMerge) - so two cards from one position are never collapsed into one; it is capped at FOLLOW_BRIL_MAX as the device caps it. */
+-const syncItemId=(x,k)=>(k==='ct_followbril'&&x&&typeof x==='object'&&x.fen&&x.uci)?(String(x.fen)+'|'+String(x.uci)):typeof x==='string'?x:(x&&typeof x==='object'&&x.fen)?String(x.fen):(x&&typeof x==='object'&&typeof x.id==='string'&&x.id)?('coach:'+x.id):'';
++const syncItemId=(x,k)=>typeof x==='string'?x:(x&&typeof x==='object'&&x.fen)?String(x.fen):(x&&typeof x==='object'&&typeof x.id==='string'&&x.id)?('coach:'+x.id):'';
+ function syncMetaRead(s){try{const o=typeof s==='string'?JSON.parse(s):s;if(o&&typeof o==='object')return {t:(o.t&&typeof o.t==='object')?o.t:{},s:(o.s&&typeof o.s==='object')?o.s:{}};}catch(e){}return {t:{},s:{}};}
+ function syncMetaLoad(){let v=null;try{v=localStorage.getItem(SYNC_META);}catch(e){}return syncMetaRead(v);}

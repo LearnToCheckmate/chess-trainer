@@ -643,9 +643,12 @@ async function ctDeviceWipe(opts){opts=opts||{};
 const SYNC_META='ct_syncmeta';
 // #550 SYN-06: the board look and eval settings that follow the account, with the value a fresh device writes at start-up (never a change)
 const SYNC_PREF_DEFAULT={ct_pieceSet:'classic',ct_depth:'0',ct_hideEval:'0',ct_evalgraph:'1',ct_sound:'1'};
-const SYNC_SETS={ct_mymistakes:1,ct_mybrilliancies:1,ct_coachgames:1};   // lists merged item by item (id = the position), removals kept as tombstones
+const SYNC_SETS={ct_mymistakes:1,ct_mybrilliancies:1,ct_coachgames:1,ct_followbril:1};   // lists merged item by item (id = the position), removals kept as tombstones
 // batch 13 q14: a saved coach game is one item, its id the game's own ('c' + a time), which it keeps while it is played; it has no fen
-const syncItemId=(x)=>typeof x==='string'?x:(x&&typeof x==='object'&&x.fen)?String(x.fen):(x&&typeof x==='object'&&typeof x.id==='string'&&x.id)?('coach:'+x.id):'';
+/* batch 14 (jobs/brilliancy-library-and-motif-coverage-2026-09-23, remainingToClose_b14 item 2): THE FOLLOWED PLAYERS' BRILLIANT MOVES FOLLOW
+   THE ACCOUNT. ct_followbril is merged card by card like his own two lists, its id the position AND the move - the store's own key
+   (followBrilMerge) - so two cards from one position are never collapsed into one; it is capped at FOLLOW_BRIL_MAX as the device caps it. */
+const syncItemId=(x,k)=>(k==='ct_followbril'&&x&&typeof x==='object'&&x.fen&&x.uci)?(String(x.fen)+'|'+String(x.uci)):typeof x==='string'?x:(x&&typeof x==='object'&&x.fen)?String(x.fen):(x&&typeof x==='object'&&typeof x.id==='string'&&x.id)?('coach:'+x.id):'';
 function syncMetaRead(s){try{const o=typeof s==='string'?JSON.parse(s):s;if(o&&typeof o==='object')return {t:(o.t&&typeof o.t==='object')?o.t:{},s:(o.s&&typeof o.s==='object')?o.s:{}};}catch(e){}return {t:{},s:{}};}
 function syncMetaLoad(){let v=null;try{v=localStorage.getItem(SYNC_META);}catch(e){}return syncMetaRead(v);}
 function syncMetaPrune(m){const old=Date.now()-120*24*3600*1000;Object.keys(m.s).forEach(k=>{const S=m.s[k]||{};
@@ -661,7 +664,7 @@ function syncIsDefault(k,v){if(v==null||v==='')return true;if(k==='ct_coachstyle
 function syncStamp(k,oldV,newV,raw){const m=syncMetaLoad();const now=Date.now();
   if(!(oldV==null&&syncIsDefault(k,newV)))m.t[k]=now;
   if(SYNC_SETS[k]){let a=[],b=[];try{a=JSON.parse(oldV||'[]');}catch(e){}try{b=JSON.parse(newV||'[]');}catch(e){}if(!Array.isArray(a))a=[];if(!Array.isArray(b))b=[];
-    const A=new Set(a.map(syncItemId)),B=new Set(b.map(syncItemId));const S=m.s[k]||(m.s[k]={});
+    const A=new Set(a.map(x=>syncItemId(x,k))),B=new Set(b.map(x=>syncItemId(x,k)));const S=m.s[k]||(m.s[k]={});
     B.forEach(id=>{if(id&&!A.has(id)){const p=S[id]||[0,0];S[id]=[now,+p[1]||0];}});A.forEach(id=>{if(id&&!B.has(id)){const p=S[id]||[0,0];S[id]=[+p[0]||0,now];}});}
   syncMetaSave(m,raw);}
 // an explicit add or removal of one item (the followed accounts: an account leaves the list only when he removes it, not when a store
@@ -676,8 +679,8 @@ function syncMerge(k,lv,cv,lm,cm,mm){
   const lt=+(lm.t[k]||0),ct=+(cm.t[k]||0);const P=(s)=>{try{return JSON.parse(s);}catch(e){return undefined;}};
   const lo=P(lv),co=P(cv);
   if(SYNC_SETS[k]||k==='ct_accts'){const L=Array.isArray(lo)?lo:[],C=Array.isArray(co)?co:[];const S=(mm.s[k])||{};
-    const byId=new Map();L.forEach(x=>{const id=syncItemId(x);if(id&&!byId.has(id))byId.set(id,x);});
-    C.forEach(x=>{const id=syncItemId(x);if(!id)return;const l=byId.get(id);
+    const byId=new Map();L.forEach(x=>{const id=syncItemId(x,k);if(id&&!byId.has(id))byId.set(id,x);});
+    C.forEach(x=>{const id=syncItemId(x,k);if(!id)return;const l=byId.get(id);
       if(l===undefined){byId.set(id,x);return;}
       if(k==='ct_coachgames'){if(x&&typeof x==='object'&&(+x.at||0)>(+(l&&l.at)||0))byId.set(id,x);return;}   /* batch 13 q14: one game is saved whole on every move, so the copy saved later is the whole game */
       if(l&&typeof l==='object'&&x&&typeof x==='object'){const pa=Math.max(+l.practisedAt||0,+x.practisedAt||0);const mg=ct>lt?{...l,...x}:{...x,...l};if(pa)mg.practisedAt=pa;byId.set(id,mg);}});
@@ -685,7 +688,7 @@ function syncMerge(k,lv,cv,lm,cm,mm){
     let out=[...byId.entries()].filter(([id])=>syncAlive(S,id));
     if(SYNC_SETS[k]){const at=(id)=>(S[id]&&+S[id][0])||0;out=out.map((e,i)=>[e,i]).sort((x,y)=>(at(y[0][0])-at(x[0][0]))||(x[1]-y[1])).map(z=>z[0]);}
     let arr=out.map(e=>e[1]);if(k==='ct_coachgames')arr=arr.filter(x=>x&&typeof x==='object'&&typeof x.pgn==='string').sort((a,b)=>(+b.at||0)-(+a.at||0)).slice(0,COACH_KEEP);   /* batch 13 q14: newest first, the last 30, as the device keeps them */
-    if(k==='ct_mymistakes')arr=capMistakes(arr,150);if(k==='ct_mybrilliancies')arr=arr.slice(0,80);
+    if(k==='ct_mymistakes')arr=capMistakes(arr,150);if(k==='ct_mybrilliancies')arr=arr.slice(0,80);if(k==='ct_followbril')arr=arr.slice(0,FOLLOW_BRIL_MAX);
     const s=JSON.stringify(arr);return (s===lv||(lv==null&&s==='[]'))?null:s;}
   const lEmpty=lv==null||(!lt&&syncIsDefault(k,lv));
   if(lEmpty)return lv===cv?null:cv;
@@ -5498,7 +5501,7 @@ function AppMain(){
   const [noteSClamp,setNoteSClamp]=useState(3); // #550 jobs/lesson-practice-small-defects-2026-11-13 (1)(2): lines the practice prompt/confirm line may take, 3 less the hint's (at most 2)
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser','ct_accts','ct_acctmine','ct_acctasked','ct_pieceSet','ct_depth','ct_hideEval','ct_evalgraph','ct_sound','ct_bot','ct_rated','ct_lessonfin','ct_pzshown','ct_coachgames'];   /* batch 13, Kunal's q14 (Desk, 19 Nov): saved coach games, with their notes, follow the account - merged game by game (SYNC_SETS) */   /* #550 SYN-11: the online games already counted in his rating (ct_rated), the lessons finished and the puzzles already shown follow the account as unions, so a finished online game is not rated again on a second device and puzzles do not repeat there */   /* #550 SYN-06 (accounts-devices check): the piece set, board depth, eval bar on/off, eval graph, sound and the chosen opponent follow the account too (the newer change wins; a fresh device's defaults never do). Where the eval bar sits (ct_evalunder) stays per device until he says otherwise. */   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now. SYN-01: and so do the accounts he follows (ct_accts), which of them are his (ct_acctmine) and which he was already asked about (ct_acctasked) - the games themselves are fetched again, never stored in the account */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser','ct_accts','ct_acctmine','ct_acctasked','ct_pieceSet','ct_depth','ct_hideEval','ct_evalgraph','ct_sound','ct_bot','ct_rated','ct_lessonfin','ct_pzshown','ct_coachgames','ct_followbril'];   /* batch 14: the followed players' Brilliant moves (ct_followbril) follow the account, merged card by card (SYNC_SETS) */   /* batch 13, Kunal's q14 (Desk, 19 Nov): saved coach games, with their notes, follow the account - merged game by game (SYNC_SETS) */   /* #550 SYN-11: the online games already counted in his rating (ct_rated), the lessons finished and the puzzles already shown follow the account as unions, so a finished online game is not rated again on a second device and puzzles do not repeat there */   /* #550 SYN-06 (accounts-devices check): the piece set, board depth, eval bar on/off, eval graph, sound and the chosen opponent follow the account too (the newer change wins; a fresh device's defaults never do). Where the eval bar sits (ct_evalunder) stays per device until he says otherwise. */   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now. SYN-01: and so do the accounts he follows (ct_accts), which of them are his (ct_acctmine) and which he was already asked about (ct_acctasked) - the games themselves are fetched again, never stored in the account */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
   const syncTimer=useRef(null);
   /* #550 SYN-02: NOTHING GOES UP UNTIL THE ACCOUNT'S COPY HAS COME DOWN. A push sends every synced key, so one fired before the pull (a state
      effect at start-up, a lesson finished in the first seconds) sent this device's defaults over the account's progress. syncPulledRef is
@@ -5575,6 +5578,7 @@ function AppMain(){
       case 'ct_evalgraph':setEvalGraph(v!=='0');break;
       case 'ct_sound':setSoundOn(v!=='0');break;
       case 'ct_bot':if(v)setSelBot(v);break;
+      case 'ct_followbril':if(Array.isArray(o))setFollowBril(o.filter(x=>x&&x.fen&&x.uci));break;   // batch 14: the library's followed shelf reads them at once
       case 'ct_coachgames':if(Array.isArray(o))setCoachSaved(o.filter(x=>x&&x.id&&typeof x.pgn==='string'));break;   // batch 13 q14: More > Saved coach games lists them at once
       default:break;}};
   useEffect(()=>{const C=typeof window!=='undefined'?window.CTCloud:null;if(!C||!C.load||!cloudUser){setSyncPulled(false);syncPulledRef.current=false;setCloudDev(false);return;}

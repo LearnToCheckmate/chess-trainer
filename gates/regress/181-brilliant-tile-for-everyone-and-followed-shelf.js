@@ -12,6 +12,11 @@
 // functions), and the bundle under test (CT_APP) at kunal761 and 320x568 for the screen lines, AFTER interaction: the tile is tapped, the
 // library read, a kind chosen, the drill started and its first card solved; and at kunal761 a real review of a followed player's game is
 // run and what it stored is read back.
+// BATCH 14 (remainingToClose_b14 item 2, its sync half): TC-R250l runs the shipped account merge (syncMerge) over the followed store in node,
+// and TC-R250m/n sign two devices in to one account in sequence at both sizes (blocks 6; CT_G181_SYNC=0 skips them).
+// NOT COVERED: the account refresh still does not REVIEW a followed player's new games (that is a background engine review, which
+// jobs/precompute-reviews-while-the-app-is-open-2026-09-23 rules needs engine timing on his phone first), so his shelf grows only from the
+// games Kunal opens; the real Firestore round trip.
 // NOT THE SAME OBJECT TWICE: the tile is found by its WORDS ("Famous brilliant moves" / "Your brilliant moves"), not by the bril-tile hook
 // alone, and the followed shelf by its heading's words ("From peterpatzer · 2"); the card the review stores is pinned to a fact about the
 // game (the Opera Game's 10.Nxb5 is c3b5 and 16.Qb8+ is b3b8, both White's, and White is the followed player), not to a count the gate
@@ -21,6 +26,9 @@
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=9 scope=trial:9fe9ad8708c6 how=batch 13 break B (g181-no-followed-shelf.diff): the followed cards are kept but the library shows no shelf - TC-R250h x2 and i x2 at both sizes, and j's next-visit shelf line
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=5 scope=trial:0e7407f09883 how=batch 13 break C (g181-followed-card-says-you.diff, CT_SRC its chess.jsx): brilWhyOf leaves the sentence in the second person - node TC-R250b x2, TC-R250i at both sizes ('You gave up the bishop'), TC-R250k
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=3 scope=trial:1f2ec4cb4b80 how=batch 13 control D (not a pairs break): the review of a followed account's game keeps nothing (the else-branch off) - TC-R250j x2 and TC-R250k at kunal761; every seeded-store line stays green, which is why the end-to-end review is in this gate
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=8 scope=trial:61e20949764e how=batch 14 pairs break followed-store-not-synced (ct_followbril out of SYNC_KEYS): TC-R250m x3 and TC-R250n red at both sizes; node lines green
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=2 scope=trial:4cabffc8cc2e how=batch 14 pairs break followed-sync-id-is-the-position (the merge keys a followed card by its position alone): node TC-R250l union and tombstone lines red; the screen cards have distinct positions, so the screen stays green by design
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=2 scope=trial:08316d5794bf how=batch 14 pairs break followed-pull-not-on-the-shelf (no syncApplyState case): TC-R250n red at both sizes (the shelf reads 1); the store lines green, so n reads the running app and not the store
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const R=require('../drive/review');
@@ -32,6 +40,15 @@ const rowFor=(pos,m,ev)=>({cls:{label:'Brilliant'},gate:E.brilliantGate(pos,m,0,
 // a followed player's card, built the way the app builds one (followBrilCards over a one-row review)
 const folCard=(id,acct)=>{const t=T.find(x=>x.id===id);const pos=E.fromFEN(t.fen);const m=mvOf(pos,t.san);const c=E.followBrilCards([rowFor(pos,m,pos.turn==='w'?2.4:-2.4)],[pos],[{move:m}],pos.turn,acct,0)[0];delete c._i;c.no=17;return c;};
 const ownCard=(id)=>{const t=T.find(x=>x.id===id);const pos=E.fromFEN(t.fen);const m=mvOf(pos,t.san);return {fen:t.fen,uci:uciOf(m),label:'Brilliant',ts:1791000000000,last:null,why:'You give up a piece here, and it holds.',no:17};};
+// batch 14 (remainingToClose_b14 item 2, the ct_followbril half): the account is an in-memory document in this process, as gates 145 and 170
+// do it - each device's window.CTCloud has _load stubbed to return the document and _save captured, a save merged into it field by field inside
+// ctProgress the way Firestore's setDoc(..., {merge:true}) merges a nested map. Nothing reaches Firebase.
+function mergeInto(doc,sv){for(const d of sv){for(const k of Object.keys(d)){if(k==='ctProgress'){doc.ctProgress=Object.assign({},doc.ctProgress||{},d.ctProgress);}else doc[k]=d[k];}}return doc;}
+const signIn=(b,doc,uid)=>b.page.evaluate(([doc,uid])=>{const C=window.CTCloud;window.__saved=[];C._load=()=>Promise.resolve(doc?JSON.parse(JSON.stringify(doc)):null);C._save=(d)=>{window.__saved.push(JSON.parse(JSON.stringify(d)));return Promise.resolve();};
+  C.signOut=()=>{C._emit(null);return Promise.resolve();};C._emit({uid:uid||'gate-uid',name:'Gate',email:'gate@example.test',photo:null});},[doc,uid]);
+const saves=(b)=>b.page.evaluate(()=>window.__saved||[]);
+const lastProg=(sv)=>{for(let i=sv.length-1;i>=0;i--)if(sv[i]&&sv[i].ctProgress)return sv[i].ctProgress;return null;};
+const JP=(x)=>{try{return JSON.parse(x);}catch(e){return null;}};
 L.run(async()=>{
   L.note('181: chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5);
   // ── node: the cards a followed player's review keeps ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +76,15 @@ L.run(async()=>{
   {const a={fen:'f1',uci:'a1a2'},b={fen:'f2',uci:'a1a2'},c={fen:'f1',uci:'a1a3'};
    const m1=E.followBrilMerge([a],[b,a,c,b]);const big=E.followBrilMerge([],Array.from({length:400},(x,i)=>({fen:'p'+i,uci:'a1a2'})));
    L.say(m1.map(x=>x.fen+x.uci).join(',')==='f2a1a2,f1a1a3,f1a1a2'&&big.length===E.FOLLOW_BRIL_MAX&&big[0].fen==='p0'&&E.followBrilMerge().length===0&&E.FOLLOW_BRIL_K==='ct_followbril','node TC-R250c the store keeps one card a position and move, the newest first, at most '+E.FOLLOW_BRIL_MAX+', under ct_followbril ('+m1.map(x=>x.fen+x.uci).join(',')+'; 400 in, '+big.length+' kept)');}
+  // ── node: batch 14, the followed players' store follows the account - the shipped merge rule (syncMerge), card by card ──────────
+  {const M0={t:{},s:{}};const A={fen:'f1',uci:'a1a2',who:'p'},B={fen:'f2',uci:'a1a2',who:'p'},A2={fen:'f1',uci:'a1a3',who:'p'},D={fen:'f3',uci:'a1a2',who:'p'};
+   const mv=(L0,C0,mm)=>JP(E.syncMerge('ct_followbril',JSON.stringify(L0),JSON.stringify(C0),M0,M0,mm||M0));
+   const u=mv([A,B],[A2,D])||[];const ids=u.map(x=>x.fen+'|'+x.uci).sort().join(',');
+   L.say(!!E.SYNC_SETS.ct_followbril&&u.length===4&&ids==='f1|a1a2,f1|a1a3,f2|a1a2,f3|a1a2','node TC-R250l two devices\' followed-player cards merge as a union, card by card - one position with two different moves stays two cards ('+ids+')');
+   const tomb={t:{},s:{ct_followbril:{'f2|a1a2':[1,5]}}};const t=mv([A,B],[A2,D],tomb)||[];
+   L.say(t.length===3&&!t.some(x=>x.fen==='f2'),'node TC-R250l a card removed on one device (its tombstone in the account\'s record) leaves the other too ('+t.map(x=>x.fen+'|'+x.uci).join(',')+')');
+   const many=(n,p)=>Array.from({length:n},(x,i)=>({fen:p+i,uci:'a1a2'}));const big=mv(many(120,'l'),many(120,'c'))||[];
+   L.say(big.length===E.FOLLOW_BRIL_MAX,'node TC-R250l the merged store is capped as the device caps it ('+big.length+' of 240, cap '+E.FOLLOW_BRIL_MAX+')');}
   // ── the screen ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const FOL=[folCard('FT01','cc:peterpatzer'),folCard('FT02','cc:peterpatzer'),folCard('FT01','cc:gone')];   // the third is the same move from an account he no longer follows
   const MINE_FOL=folCard('FT02','cc:myother');   // an account he marked HIS: its card is never on a followed shelf
@@ -133,6 +159,27 @@ L.run(async()=>{
      const mb=await stored(b,'ct_mybrilliancies');const fb=await stored(b,'ct_followbril');
      L.say(Array.isArray(mb)&&mb.length===0&&Array.isArray(fb)&&fb.length===4,geo+' TC-R250i his moves are not yours: his own list is still empty and the followed store is untouched ('+(mb&&mb.length)+' / '+(fb&&fb.length)+')');
      L.say(b.errs.length===0,geo+' TC-R250i zero app errors',b.errs.slice(0,3));await b.close();}
+    // 6. batch 14: the followed players' Brilliant moves FOLLOW THE ACCOUNT. Device 1 backs its card up; a second device, holding a card
+    // of its own, takes the account's at sign-in and keeps its own, the library's followed shelf counts both with no reload, and device 2's
+    // next backup carries both. Pinned to the cards themselves (their position and move), not to a count the app computes.
+    if(process.env.CT_G181_SYNC!=='0'){const acct={};const base={ct_bril_reset_v1:'1',ct_pool:'3',ct_accts:['cc:peterpatzer'],ct_acctmine:{'cc:peterpatzer':false}};
+     const key=(c)=>c&&(c.fen+'|'+c.uci);const K0=key(FOL[0]),K1=key(FOL[1]);
+     const b=await L.launch({geo,name:'b181-sync1-'+geo,store:Object.assign({},base,{ct_followbril:[FOL[0]]})});await b.open();
+     await signIn(b,null,'gate-uid-181');let p1=null;for(let i=0;i<24;i++){await b.settle(500);p1=lastProg(await saves(b));if(p1&&p1.ct_followbril)break;}
+     const up=JP(p1&&p1.ct_followbril)||[];mergeInto(acct,await saves(b));
+     L.say(up.length===1&&key(up[0])===K0&&up[0].who==='peterpatzer',geo+' TC-R250m device 1, signing in, backs the followed player\'s Brilliant move up to the account ('+up.map(key).join(', ')+')');
+     L.say(b.errs.length===0,geo+' TC-R250m zero app errors on device 1',b.errs.slice(0,3));await b.close();
+     const b2=await L.launch({geo,name:'b181-sync2-'+geo,store:Object.assign({},base,{ct_followbril:[FOL[1]]})});await b2.open();
+     await signIn(b2,acct,'gate-uid-181');let pulled=null;for(let i=0;i<24;i++){await b2.settle(500);pulled=await b2.page.evaluate(()=>window.__ctSyncPulled||null);if(pulled)break;}
+     await b2.settle(800);const st2=await stored(b2,'ct_followbril');const k2=(Array.isArray(st2)?st2:[]).map(key);
+     L.say(!!pulled&&k2.length===2&&k2.indexOf(K0)>=0&&k2.indexOf(K1)>=0,geo+' TC-R250m device 2 takes the account\'s card and keeps its own ('+k2.join(', ')+')',{pulled});
+     await b2.tile('Review').catch(()=>{});await b2.settle(1200);await tapTile(b2,'Famous brilliant moves');const l=await lib(b2);const fh=l.heads.filter(h=>!/^From famous games/i.test(h));
+     L.say(fh.length===1&&fh[0].toUpperCase()==='FROM PETERPATZER · 2',geo+' TC-R250n with no reload the library\'s followed shelf on device 2 counts both moves ('+JSON.stringify(fh)+')');
+     let p2=null;await b2.page.evaluate(()=>{window.__saved=[];});await b2.page.evaluate(()=>{try{localStorage.setItem('ct_sound',localStorage.getItem('ct_sound')==='0'?'1':'0');}catch(e){}});
+     for(let i=0;i<30;i++){await b2.settle(500);p2=lastProg(await saves(b2));if(p2)break;}
+     const up2=(JP(p2&&p2.ct_followbril)||[]).map(key);
+     L.say(up2.length===2&&up2.indexOf(K0)>=0&&up2.indexOf(K1)>=0,geo+' TC-R250m device 2\'s next backup carries both cards, so neither device\'s card is written over ('+up2.join(', ')+')');
+     L.say(b2.errs.length===0,geo+' TC-R250m zero app errors on device 2',b2.errs.slice(0,3));await b2.close();}
   }
   // 5. q4 end to end, on his phone: a real review of a followed player's game keeps that player's moves for the shelf, and none for him
   if(GEOS.indexOf('kunal761')>=0&&process.env.CT_G181_E2E!=='0'){
