@@ -1,0 +1,21 @@
+{
+ "job": "when-the-app-says-mate-in-n-show-the-moves-on-the-board-2026-11-19",
+ "about": "BATCH 14 ENTRY 27 (Kunal, 19 Nov 2026: 'show me if it's made in 4, how it's made in 4'). A solved drill card in Puzzles whose words claim a mate in N carries Play once the engine's line from the board passes chess.jsx mateLineCheck (every move legal, the last mate, the mating side's moves exactly N after the named reply); Play steps the line onto the board one move per tap, forward and back, the box naming each move, and the curled arrow returns to the position after his move. Graded by gate 195 on a trial bundle: part N in node (411 engine lines from gates/measure-mate-lines.js re-checked by the shipped function, 1233 broken copies refused, an independent replay of each line to mate in N, mateClaim on his sentence), part B in the browser at kunal761 (375x761, ct_safe 51,31) and 320x568 on his own card (the board read square by square against a node replay at every step, the board, row and box unmoved, a card with a false 'mate in 2' showing no Play). Three ways the fix could come undone are each caught. NOT COVERED: the Review's notes and Coach (not built in this entry), the mistakes drill's own sentences (the same code path, gate 195 drives the brilliant-moves drill), the 125% text sizes, iOS Safari, his look on the phone.",
+ "gate": "gates/regress/195-mate-line-on-the-board.js",
+ "checks": ["TC-R29[0-3]"],
+ "build": "always",
+ "situations": [
+  {"name": "node: the check over 411 engine lines", "match": "^TC-R290 "},
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R29[1-3] (PRECONDITION )?kunal761 "},
+  {"name": "320x568", "match": "^TC-R29[1-3] (PRECONDITION )?320x568 "}
+ ],
+ "breaks": [
+  {"name": "mate-length-not-checked", "patch": "breaks/195-mate-length-not-checked.diff",
+   "why": "mateLineCheck no longer checks that the mating side's moves number N: a line that mates sooner or later than the words say passes (N+1 copies accepted in node; the queen-up card that falsely claims 'mate in 2' offers Play)"},
+  {"name": "board-not-stepped", "patch": "breaks/195-board-not-stepped.diff",
+   "why": "the step buttons move the marker in the line and the words but not the board: the painted squares stay on the position after his move"},
+  {"name": "named-reply-left-out-of-the-line", "patch": "breaks/195-named-reply-left-out-of-the-line.diff",
+   "why": "the reply the words name (Kxg5) is left out of the line given to the check, so his card's line never passes and Play never appears"}
+ ],
+ "timeoutSec": 1800
+}

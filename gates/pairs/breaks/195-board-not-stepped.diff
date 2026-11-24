@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index d2bb7e25..ab8114ad 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10734,5 +10734,5 @@ function AppMain(){
+   },[mode,mistakeMode,puzSolved,puzMsg,curPuz]);
+   const pzLineGo=(k)=>{const L0=pzLine;if(!L0)return;const c=L0.chk;const i=Math.max(-1,Math.min(c.plies.length-1,k));
+-    if(i<0){setGame(c.start);setLastMv(L0.last||null);}else{setGame(c.plies[i].g);setLastMv(c.plies[i].mv);}
++    if(i<0){setGame(c.start);setLastMv(L0.last||null);}else{setLastMv(c.plies[i].mv);}
+     UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzLine({...L0,i});repaint();};
+   const pzLineReset=()=>{const L0=pzLine;if(!L0)return;setGame(L0.chk.start);setLastMv(L0.last||null);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzLine({...L0,i:null});repaint();};

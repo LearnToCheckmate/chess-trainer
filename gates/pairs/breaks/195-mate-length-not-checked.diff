@@ -1,0 +1,10 @@
+diff --git a/chess.jsx b/chess.jsx
+index d2bb7e25..90b42c10 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2049,5 +2049,4 @@ function mateLineCheck(game,ucis,n,lead){
+   try{
+     const ld=lead|0;if(!game||!Array.isArray(ucis)||!(n>=1))return {ok:false,why:'input'};
+-    if(ucis.length!==ld+2*n-1)return {ok:false,why:'length',len:ucis.length,want:ld+2*n-1};
+     let g=game;const plies=[];
+     for(let i=0;i<ucis.length;i++){

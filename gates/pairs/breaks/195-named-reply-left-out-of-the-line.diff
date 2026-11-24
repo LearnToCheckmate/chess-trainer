@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index d2bb7e25..fc0e7ee2 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10721,5 +10721,5 @@ function AppMain(){
+     (async()=>{try{
+       let start=base,pre=[],n=cl.n,lead=1;
+-      if(cl.reply){const rm=findMoveBySAN(base,cl.reply);if(!rm)return;pre=[_mvUci(rm)];start=makeMove(base,rm);}
++      if(cl.reply){const rm=findMoveBySAN(base,cl.reply);if(!rm)return;start=makeMove(base,rm);}
+       else{if(cl.n<2)return;n=cl.n-1;}
+       const st=getStatus(start);if(st==='checkmate'||st==='stalemate')return;
