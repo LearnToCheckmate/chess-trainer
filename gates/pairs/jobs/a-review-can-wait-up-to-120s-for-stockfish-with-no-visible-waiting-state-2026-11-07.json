@@ -1,0 +1,34 @@
+{
+ "job": "a-review-can-wait-up-to-120s-for-stockfish-with-no-visible-waiting-state-2026-11-07",
+ "about": "While a review waits for Stockfish (the worker script held 6s by a context route, as a slow phone does), the analysing panel says 'Loading the Stockfish engine... Ns' with a count that rises, not a progress line frozen at 0%, and the review then completes. Graded by gate 99 (TC-R184a..b) at kunal761. NOT COVERED: whether 120s is the right ceiling (#549 item (30)'s decision, not reopened); Kunal's look.",
+ "gate": "gates/regress/99-review-engine-wait-shown.js",
+ "checks": [
+  "TC-R184[ab] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R184"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-wait-is-not-shown",
+   "patch": "breaks/99-the-wait-is-not-shown.diff",
+   "why": "the panel shows the progress line during the wait again ('Checking every move... 0%'), which does not move - the job's defect",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  },
+  {
+   "name": "the-wait-count-is-frozen",
+   "patch": "breaks/99-the-wait-count-is-frozen.diff",
+   "why": "the loading line stays at 0s, a line that does not move",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  }
+ ],
+ "timeoutSec": 1200
+}

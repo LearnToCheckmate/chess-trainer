@@ -17,6 +17,9 @@
 // DENOMINATOR: the route really held the worker (it was requested, and the hold was observed before it was served).
 // CONTROL-RECORD: a894f06 2026-11-11 total=6 red=2 scope=trial:3ab724514641 how=#550 item (90): origin/main's bundle with the worker held 6s - the panel reads '0% · checking every move' at both readings, so both TC-R184a lines are red; the DENOMINATOR, TC-R184b and zero-errors green
 // CONTROL-RECORD: aaec56b 2026-11-13 total=6 red=1 scope=trial:9c7713635681 how=#550 #432 sweep round 2 (ana-progress re-keyed by its words): c1, the hook renamed AND 'Loading the Stockfish engine… 3s' painted on the review summary - TC-R184b red; the hook-keyed version (a7f55b2) on the same bundle is 4/2 with TC-R184b GREEN (its fallback read only the percentage wording); on t0 fb3bb7b31754 6/0
+// CONTROL-RECORD: 80f6d7f4 2026-11-24 total=5 red=2 scope=trial:fd20e99f961f how=#553 B1 pairs break the-wait-is-not-shown (the panel shows 'Checking every move... 0%' during the hold) - both TC-R184a lines red
+// CONTROL-RECORD: 80f6d7f4 2026-11-24 total=5 red=1 scope=trial:3378c98e2744 how=#553 pairs break the-wait-count-is-frozen (the count stays 0s) - TC-R184a 'its seconds count rises' red
+// The grading machine on 80f6d7f4: CHECKED, real 4/4 at kunal761 (bundle f74692cb5b8f), both breaks CAUGHT.
 const L=require('../lib');const R=require('../drive/review');
 const HOLD_MS=6000;
 L.run(async()=>{

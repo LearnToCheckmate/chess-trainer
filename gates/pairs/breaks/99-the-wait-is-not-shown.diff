@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13753,7 +13753,7 @@
+           </div>
+           <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+             <div style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
+-            <div data-ct="ana-progress" style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{anaLoadAt?('Loading the Stockfish engine\u2026 '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):('Checking every move\u2026 '+pct+'%')}</div>
++            <div data-ct="ana-progress" style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{('Checking every move\u2026 '+pct+'%')}</div>
+             <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{anaLoadAt?'The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.':'This takes a few seconds.' /* #550 TXT-37 (docs/wording-check-2026-11-12): engine internals out; the pool size is in the dev readouts */}</div>
+           </div>
+           <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
