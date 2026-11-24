@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 6492317c..eb4b744e 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4220,7 +4220,7 @@ const CLK_INK={runL:'#14501a',runD:'#86d99a',amberL:'#6e4300',amberD:'#f2b233',r
+ const THEMES=[
+   { name:"Forest",   light:"#eeeed2", dark:"#769656", bg:"#1a1a2e", glow:"rgba(120,160,80,.13)", accent:"#9ab860", accent2:"#aad07a", rgb:"154,184,96", group:"classic" },
+   { name:"Walnut",   light:"#e8cfa0", dark:"#9c6b3f", bg:"#20170f", glow:"rgba(180,130,70,.13)", accent:"#c89a5a", accent2:"#e6b87a", rgb:"200,154,90", group:"classic" },
+-  { name:"Ocean",    light:"#dbe7f0", dark:"#587fa0", bg:"#0e1626", glow:"rgba(90,150,210,.15)", accent:"#5b9bd5", fill:"#2b65a8", accent2:"#8fc4ec", rgb:"91,155,213", group:"playful" },
++  { name:"Ocean",    light:"#dbe7f0", dark:"#587fa0", bg:"#0e1626", glow:"rgba(90,150,210,.15)", accent:"#5b9bd5", accent2:"#8fc4ec", rgb:"91,155,213", group:"playful" },
+   { name:"Dusk",     light:"#e8dcef", dark:"#896fa0", bg:"#181027", glow:"rgba(150,110,195,.16)", accent:"#a47fc8", accent2:"#c8a9e4", rgb:"164,127,200", group:"playful" },
+   { name:"Coral",    light:"#f2ddd3", dark:"#c17a69", bg:"#241614", glow:"rgba(205,120,100,.14)", accent:"#dd8a68", accent2:"#f2ab88", rgb:"221,138,104", group:"playful" },
+   { name:"Graphite", light:"#dadade", dark:"#6d6d75", bg:"#151517", glow:"rgba(175,175,185,.10)", accent:"#a6acba", accent2:"#cdd2dc", rgb:"166,172,186", group:"classic" },

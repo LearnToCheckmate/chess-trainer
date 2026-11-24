@@ -90,7 +90,7 @@ window.__ctHit=(el)=>{const r=el.getBoundingClientRect();const cx=r.left+r.width
 })()`;
 const fmt=(m)=>m?(m.ratio+':1 "'+m.text+'" ink '+m.ink+' -> '+m.inkEff+' on '+m.bg+' (base '+m.base+' from '+m.baseFrom+', '+m.layers+' layers, '+m.gradients+' gradients, row y'+m.y+')'):'(not measured)';
 const ACCENT_BTNS=`(()=>{const pc=(s)=>{const m=String(s||'').match(/rgba?\\(([^)]+)\\)/);return m?m[1].split(/[ ,]+/).filter(Boolean).slice(0,3).map(Number).join(','):null;};
-  const host=[...document.querySelectorAll('div')].find(d=>d.style.getPropertyValue('--ac'));const ac=host?host.style.getPropertyValue('--ac').trim():'';
+  const host=[...document.querySelectorAll('div')].find(d=>d.style.getPropertyValue('--acf'));const ac=host?host.style.getPropertyValue('--acf').trim():'';
   const t=document.createElement('div');t.style.color=ac;document.body.appendChild(t);const acr=pc(getComputedStyle(t).color);t.remove();
   return {ac,btns:[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.top<innerHeight&&r.bottom>0&&pc(getComputedStyle(x).backgroundColor)===acr;}).map(x=>window.__ctCR(x))};})()`;
 async function themed(b,skin,theme){await b.page.evaluate(([s,t])=>{localStorage.setItem('ct_skin',String(s));localStorage.setItem('ct_theme',String(t));},[skin,theme]);
