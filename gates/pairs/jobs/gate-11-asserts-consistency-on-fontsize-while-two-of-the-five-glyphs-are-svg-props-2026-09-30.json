@@ -1,0 +1,40 @@
+{
+ "job": "gate-11-asserts-consistency-on-fontsize-while-two-of-the-five-glyphs-are-svg-props-2026-09-30",
+ "about": "Gate 11's lesson footer glyph band (the job's fix, b995cfe: every footer glyph within 1.5px of its pinned height, which fontSize could not see) and TC-R339 (#553 B3, the discriminating replacement for the self-declared vacuous 'the column fills the viewport'): no blank band between the MOVES panel and the fixed lesson footer, 0 to 10.5px, read in the short-and-narrow sweep and at 375x761. NOT COVERED: the rest of the rotation audit of gate 12 beyond its 'hint text not clipped' line, whose control (gates/pairs/breaks/12-the-hint-clamps-at-one-line.diff) is recorded in gate 12's comment, not graded here.",
+ "gate": "gates/regress/11-lesson.js",
+ "checks": [
+  "TC-R339 ",
+  "every footer glyph is within 1\\.5px"
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-lesson-panel-stops-flexing",
+   "patch": "breaks/11-the-lesson-panel-stops-flexing.diff",
+   "why": "the lesson's MOVES panel no longer takes the leftover height, so a blank band opens between it and the footer - which the old 'column fills the viewport' line passed at every geometry (bottom 568 of 568)",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-forward-chevron-grows",
+   "patch": "breaks/11-the-forward-chevron-grows.diff",
+   "why": "the Forward chevron's size prop 27 -> 34: the footer glyphs drift apart with every fontSize identical, the job's own defect",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 3000
+}
