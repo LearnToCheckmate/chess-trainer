@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6590,5 +6590,5 @@
+   useLayoutEffect(()=>{let k=null;try{const box=pzVerdRef.current;if(box&&puzMsg&&!puzSolved&&!/^\uD83D\uDCA1/.test(puzMsg)&&vp.h<820){const line=box.firstElementChild;if(line){
+     const m=line.cloneNode(false);m.textContent=puzMsg;m.style.position='fixed';m.style.left='0';m.style.top='0';m.style.visibility='hidden';m.style.width=box.clientWidth+'px';m.style.whiteSpace='nowrap';m.style.overflow='hidden';m.style.animation='none';
+-    const host=box.parentElement||document.body;host.appendChild(m);if(m.scrollWidth>m.clientWidth+1)k=puzMsg;host.removeChild(m);   /* in the app's own tree, so the clone inherits the row's font: appended to body it read 362 for a 403px line */}}}catch(e){}setPzRowOver(v=>v===k?v:k);},[puzMsg,puzSolved,vp.w,vp.h]);
++    const host=box.parentElement||document.body;host.appendChild(m);if(m.scrollWidth>m.clientWidth+1)k=null;host.removeChild(m);   /* in the app's own tree, so the clone inherits the row's font: appended to body it read 362 for a 403px line */}}}catch(e){}setPzRowOver(v=>v===k?v:k);},[puzMsg,puzSolved,vp.w,vp.h]);
+   /* #550, AUD-R13 (the app audit's P1): in the drills the solved explanation floats at the reserve and SCROLLS - Kunal's ruling on this
+      box, "Don't change the size just allow the player to scroll through the text" - but nothing said there was more: the audit saw a
