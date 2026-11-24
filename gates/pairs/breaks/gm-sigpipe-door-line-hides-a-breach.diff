@@ -1,0 +1,11 @@
+diff --git a/gates/gatemanifest.sh b/gates/gatemanifest.sh
+index 690ff4cd..ebabfb2c 100755
+--- a/gates/gatemanifest.sh
++++ b/gates/gatemanifest.sh
+@@ -618,5 +618,5 @@ sigpipe_audit(){
+     if [ "${t%%:*}" -gt "${t##*:}" ]; then brk=$((brk+1)); else held=$((held+1)); fi
+   done
+-  echo "sigpipe door: $held pass / $brk fail"
++  echo "sigpipe door: $((held+brk)) pass / 0 fail"
+   return $rc
+ }

@@ -1,0 +1,17 @@
+{
+ "job": "gatemanifest-selftest-is-red-on-main-23-sigpipe-sites-against-a-ceiling-of-15-2026-11-11",
+ "about": "#553 (B1). The sigpipe audit's ceilings are now a row of gates/door-checks.sh (sigpipe-ceilings, read from gatemanifest.sh sigpipe's fixed 'sigpipe door: <held> pass / <breached> fail' line), so records-gate.sh --checks refuses a breach; the ceiling had been breached unseen twice (23 vs 15 at #550, 13 vs 12 on #553's lead branch at gates/fastgate.sh:2156, fixed here). The graded lines: GM-SP door, the live door row over this tree; GM-SP DC10*, the door's live list carries the row; GM-SP DC18*, the row over a copy of the real gates/ passes and the same copy one site past the committed ceiling refuses with the ceiling's own count line. Breaks: the fastgate.sh site put back (the actual recurrence), the door row deleted, and the door line reporting every ceiling held whatever the audit found. No browser and no bundle: the situation is the tree. NOT COVERED HERE: the gatemanifest-selftest row of gates/harness-case-counts.tsv (records-gate.sh --harnesses, about 10 minutes) - its own controls are harness-counts.sh --selftest HC15/15b/15c.",
+ "gate": "gates/door-checks.sh",
+ "cmd": ["bash", "-c", "o=$(bash gates/door-checks.sh --only sigpipe-ceilings 2>&1); r=$?; if [ \"$r\" = 0 ]; then echo 'PASS GM-SP door: sigpipe-ceilings exit 0 over this tree'; else echo \"FAIL GM-SP door: sigpipe-ceilings exit $r over this tree\"; fi; printf '%s\\n' \"$o\"; bash gates/door-checks.sh --selftest 2>&1 | sed -n 's/^  ok  \\(DC1[08]\\)/PASS GM-SP \\1/p; s/^  FAIL \\(DC1[08]\\)/FAIL GM-SP \\1/p'"],
+ "checks": ["^GM-SP "],
+ "build": "never",
+ "situations": [
+  {"name": "this tree", "env": {}}
+ ],
+ "breaks": [
+  {"name": "fastgate-site-back", "patch": "breaks/gm-sigpipe-fastgate-site-back.diff", "why": "gates/fastgate.sh:2156 ends '| head -1' again, the site that took the total to 13 against the ceiling 12", "mustFailIn": ["this tree"]},
+  {"name": "door-row-gone", "patch": "breaks/gm-sigpipe-door-row-gone.diff", "why": "the sigpipe-ceilings row is deleted from door-checks.sh's list, so nothing on the push path runs the audit again", "mustFailIn": ["this tree"]},
+  {"name": "door-line-hides-a-breach", "patch": "breaks/gm-sigpipe-door-line-hides-a-breach.diff", "why": "the 'sigpipe door:' line reports every ceiling held and none breached whatever the audit counted", "mustFailIn": ["this tree"]}
+ ],
+ "timeoutSec": 600
+}
