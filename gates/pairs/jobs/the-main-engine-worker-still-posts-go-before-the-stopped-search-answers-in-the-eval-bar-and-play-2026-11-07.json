@@ -1,22 +1,45 @@
 {
  "job": "the-main-engine-worker-still-posts-go-before-the-stopped-search-answers-in-the-eval-bar-and-play-2026-11-07",
- "about": "Gate 102's Play arm (TC-R186, CT_NOGO_WALKS=play): window.Worker wrapped before the app loads; a game vs Pip (drive/play cpu-4ply), Back and Forward double-clicked 15ms apart, the move 20ms after the last step, then the reply. Graded: the engines searched (every go answered), no worker sent 'go' while its last search ran, no 'unreachable' trap. Situations: kunal761 (375x761, insets 51/31), the same with the CPU throttled 4x by CDP (a slower-phone stand-in), and 320x568 (CT_NOGO_GEO). NOT COVERED, measured at #553: the Review arm's walk sends the main worker ONE go (its 36 are the review's own pass), so its eval-bar control cannot redden it; the bot's own stopIdle and the Moves-view analysis worker's (anaIdle) stay green when removed, even at 4x throttle; the real phone's engine timing (device-only).",
+ "about": "Gate 102's Play arm (TC-R186, CT_NOGO_WALKS=play): window.Worker wrapped before the app loads; a game vs Pip (drive/play cpu-4ply), Back and Forward double-clicked 15ms apart, the move 20ms after the last step, then the reply. Graded: the engines searched (every go answered), no worker sent 'go' while its last search ran, no 'unreachable' trap. Situations: kunal761 (375x761, insets 51/31) and 320x568 (CT_NOGO_GEO). The 4x CPU-throttle situation (CT_NOGO_THROTTLE=4) was tried and dropped: the tree stays at 0 early there, but the slowed walk asks for 9 to 10 searches against the DENOMINATOR's floor of 10, so it reads OVER STRICT one run in two; both breaks red at 4x as well. NOT COVERED, measured at #553: the Review arm's walk sends the main worker ONE go (its 36 are the review's own pass), so its eval-bar control cannot redden it; the bot's own stopIdle and the Moves-view analysis worker's (anaIdle) stay green when removed, even at 4x throttle; the real phone's engine timing (device-only).",
  "gate": "gates/regress/102-engine-no-go-into-a-running-search.js",
- "env": {"CT_NOGO_WALKS": "play"},
- "checks": ["TC-R186 play "],
+ "env": {
+  "CT_NOGO_WALKS": "play"
+ },
+ "checks": [
+  "TC-R186 play "
+ ],
  "build": "auto",
  "situations": [
-  {"name": "kunal761", "env": {}},
-  {"name": "kunal761 cpu 4x", "env": {"CT_NOGO_THROTTLE": "4"}},
-  {"name": "se 320x568", "env": {"CT_NOGO_GEO": "se"}}
+  {
+   "name": "kunal761",
+   "env": {}
+  },
+  {
+   "name": "se 320x568",
+   "env": {
+    "CT_NOGO_GEO": "se"
+   }
+  }
  ],
  "breaks": [
-  {"name": "eval-bar-posts-go-without-stopping", "patch": "breaks/553-eval-bar-posts-go-without-stopping-the-last-search.diff",
+  {
+   "name": "eval-bar-posts-go-without-stopping",
+   "patch": "breaks/553-eval-bar-posts-go-without-stopping-the-last-search.diff",
    "why": "the eval bar's go depth 12 goes out through an always-idle shim instead of stopIdle(S_MAIN) - the job's defect (#550's mA)",
-   "mustFailIn": ["kunal761", "kunal761 cpu 4x", "se 320x568"]},
-  {"name": "stopidle-never-waits", "patch": "breaks/553-stopidle-never-waits.diff",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "stopidle-never-waits",
+   "patch": "breaks/553-stopidle-never-waits.diff",
    "why": "the shared stopIdle helper calls its callback at once without stopping the running search, so every caller (eval bar, bot, analysis) posts into a live search",
-   "mustFailIn": ["kunal761", "kunal761 cpu 4x", "se 320x568"]}
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
  ],
  "timeoutSec": 1500
 }

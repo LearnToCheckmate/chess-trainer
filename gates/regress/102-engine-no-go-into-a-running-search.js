@@ -37,7 +37,8 @@ const read=(b)=>b.page.evaluate(()=>window.__wk.filter(r=>r.gos>0).map(r=>({id:r
 // analysis pass on the pool), so the eval-bar mutant mA stays green on it 4 of 4 runs (3 of them at 4x throttle) - that arm guards the
 // review pass, not the walk. The bot's own stopIdle and the analysis worker's anaIdle, each replaced by an always-idle shim, stay green
 // at 1x and 4x too: on this machine the move's effect cleanup stops the eval search before the bot asks. The Play arm reds on mA and on
-// a stopIdle that never waits, at kunal761, 4x throttled and 320x568 (gates/pairs/jobs/the-main-engine-worker-...-2026-11-07.json).
+// a stopIdle that never waits, at kunal761, 4x throttled and 320x568 (the pair grades kunal761 and 320x568: at 4x the slowed walk asks 9-10
+// searches against the DENOMINATOR's floor of 10) (gates/pairs/jobs/the-main-engine-worker-...-2026-11-07.json).
 const NG_GEO=process.env.CT_NOGO_GEO||'kunal761',NG_THR=+(process.env.CT_NOGO_THROTTLE||1);
 L.run(async()=>{
   for(const walk of (process.env.CT_NOGO_WALKS||'review,play').split(',')){
