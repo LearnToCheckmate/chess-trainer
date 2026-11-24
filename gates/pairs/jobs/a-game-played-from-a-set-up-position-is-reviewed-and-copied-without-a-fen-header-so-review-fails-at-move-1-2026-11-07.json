@@ -1,10 +1,10 @@
 {
  "job": "a-game-played-from-a-set-up-position-is-reviewed-and-copied-without-a-fen-header-so-review-fails-at-move-1-2026-11-07",
- "about": "A vs-Computer game started through the board scan from a set-up position is copied with [SetUp \"1\"] [FEN] and numbered from that position's own move number and side, and Analyze and Review open it instead of failing at move 1. Graded by gate 97 (TC-PL-069a..c, White to move at 3; TC-R378, Black to move at 3 with the player Black) at kunal761 and 320x568. NOT COVERED: the play screen's own moves panel, which still numbers a set-up game from 1 (display only, named by #550 as not this job); Pass & Play and online games (online never starts from a set-up position); Kunal's own phone.",
+ "about": "A vs-Computer game started through the board scan from a set-up position is copied with [SetUp \"1\"] [FEN] and numbered from that position's own move number and side, and Analyze and Review open it instead of failing at move 1. Graded by gate 97 (TC-PL-069a..c, White to move at 3; TC-R398, Black to move at 3 with the player Black) at kunal761 and 320x568. NOT COVERED: the play screen's own moves panel, which still numbers a set-up game from 1 (display only, named by #550 as not this job); Pass & Play and online games (online never starts from a set-up position); Kunal's own phone.",
  "gate": "gates/regress/97-setup-game-carries-its-fen.js",
  "checks": [
   "TC-PL-069",
-  "TC-R378 "
+  "TC-R398 "
  ],
  "build": "always",
  "situations": [
@@ -27,7 +27,7 @@
   {
    "name": "black-to-move-is-numbered-as-white",
    "patch": "breaks/97-black-to-move-is-numbered-as-white.diff",
-   "why": "the side to move in the FEN is ignored, so a game from a Black-to-move position is copied as '3. Nf6 Qe2' - only the Black arm (TC-R378) can see it",
+   "why": "the side to move in the FEN is ignored, so a game from a Black-to-move position is copied as '3. Nf6 Qe2' - only the Black arm (TC-R398) can see it",
    "mustFailIn": ["kunal761", "se"]
   }
  ],

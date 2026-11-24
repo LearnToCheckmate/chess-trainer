@@ -1,31 +1,31 @@
 {
  "job": "a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10",
- "about": "A refused chess.com country lookup (the harness aborts every api.chess.com request) is not stored in ct_country, the review left and opened again asks again for both players, a stored answer paints its flag picture before the name (lowercase 'us' read as US) and sends no lookup, and a value that is not a two-letter code paints nothing. Graded by gate 227 (TC-R376, TC-R377) at kunal761 and 320x568; gate 20 keeps TC-R68/TC-R107 at 375x730. NOT COVERED: the lichess branch (same code path, by reading); a real chess.com answer (the endpoint is blocked here); Kunal's own phone.",
- "gate": "gates/regress/227-country-lookup-failure-is-not-an-answer.js",
+ "about": "A refused chess.com country lookup (the harness aborts every api.chess.com request) is not stored in ct_country, the review left and opened again asks again for both players, a stored answer paints its flag picture before the name (lowercase 'us' read as US) and sends no lookup, and a value that is not a two-letter code paints nothing. Graded by gate 233 (TC-R396, TC-R397) at kunal761 and 320x568; gate 20 keeps TC-R68/TC-R107 at 375x730. NOT COVERED: the lichess branch (same code path, by reading); a real chess.com answer (the endpoint is blocked here); Kunal's own phone.",
+ "gate": "gates/regress/233-country-lookup-failure-is-not-an-answer.js",
  "checks": [
-  "TC-R37[67] "
+  "TC-R39[67] "
  ],
  "build": "always",
  "situations": [
-  {"name": "kunal761", "env": {"CT_G227_GEO": "kunal761"}},
-  {"name": "se", "env": {"CT_G227_GEO": "se"}}
+  {"name": "kunal761", "env": {"CT_G233_GEO": "kunal761"}},
+  {"name": "se", "env": {"CT_G233_GEO": "se"}}
  ],
  "breaks": [
   {
    "name": "a-refused-lookup-is-cached-again",
-   "patch": "breaks/227-a-refused-lookup-is-cached-again.diff",
+   "patch": "breaks/233-a-refused-lookup-is-cached-again.diff",
    "why": "fetchCountry stores its result on every exit path again, so a refused lookup is cached as '' (no country) and never asked again - the job's defect",
    "mustFailIn": ["kunal761", "se"]
   },
   {
    "name": "a-missing-entry-reads-as-no-country",
-   "patch": "breaks/227-a-missing-entry-reads-as-no-country.diff",
+   "patch": "breaks/233-a-missing-entry-reads-as-no-country.diff",
    "why": "countryCacheGet answers '' for a player it holds nothing for, so the reader cannot tell 'never asked' from 'no country' and no lookup is ever sent",
    "mustFailIn": ["kunal761", "se"]
   },
   {
    "name": "the-flag-paints-over-the-name",
-   "patch": "breaks/227-the-flag-paints-over-the-name.diff",
+   "patch": "breaks/233-the-flag-paints-over-the-name.diff",
    "why": "the flag picture is taken out of the row (position absolute), so it paints over the start of the name instead of before it and the names do not move",
    "mustFailIn": ["kunal761", "se"]
   }
