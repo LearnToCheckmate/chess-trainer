@@ -2766,6 +2766,13 @@ As a player on a 360x640 phone, switching the engine line on or off leaves the b
 - With the engine line switched on and off at a mid-game ply, the board's top and width do not move, and it is the screen's full width. (TC-R333)
 - After Exit analysis the engine line row is gone. (TC-R334)
 
+### US-R224 In lesson practice with hints on, the hint is read whole without a tap after every move
+*Added in batch 14 (#553, builder seat B1), jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13, the orchestrator's GAP of 15 Nov 2026: at kunal761 the Italian Game hint after c3 needed a third line and was clamped at two ('...the old d4 is...' and 'more'); at 320x568 four of five states were. Amber: flags/amber-553-hint-takes-the-third-line.*
+As a player practising a lesson line with hints on, the words saying what my next move is for are on screen whole after every move I make, and the board does not move.
+- After every own move of the line the hint words are not clamped and every line of them is inside the note box as it shows; where they need the box's third line they take it, and the confirm of the move just made steps behind the 'more' chip. (TC-R346)
+- At move 1 the line saying hints cost the day keeps its place; there the hint is whole, or clamped at two lines with the 'more' chip. (TC-R346)
+- The board's top and width do not change, and after a move the confirm is on screen or one tap away behind 'more'. (TC-R347)
+
 ### US-R227 The puzzle Prev and Next are named, in reach at rest and do what they say, sideways and upright
 *Added in batch 14 (#553, builder seat B2), jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: #548 named the sideways pair and #550 (Kunal's Option A, answer a8) moved the tabs to a rail, so the pair is clear of them. Measured at #553 by a real tap: sideways, Next on an unsolved training puzzle re-loaded the same puzzle (the #373 A-10 defect, fixed upright then and never sideways); fixed here.*
 As a player solving puzzles with my phone upright or turned sideways, the Previous and Next buttons are on screen without scrolling, nothing covers them, a screen reader names them, and Next shows another puzzle even before I solve this one.

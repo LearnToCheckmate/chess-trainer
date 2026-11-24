@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index fc9f1940..bbefa7be 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9465,5 +9465,5 @@ function AppMain(){
+       /* #550 jobs/lesson-practice-small-defects-2026-11-13 (3): a repeated position is called out, and the third time is a draw by repetition
+          that ends the run honestly (it accepted 30+ repetitions of a king shuffle in stage 2). Same position = same pieces and same side to move. */
+-      const _rk=stageKey(ng2.board),_rep=hist2.filter(x=>x.turn===ng2.turn&&stageKey(x.board)===_rk).length;
++      const _rk=stageKey(ng2.board),_rep=1;
+       if(_rep>=3){learnRepRef.current.miss=true;freeSet({hist:hist2,hint:null,off:off2,busy:false,over:true,last:rm,stage:K2});setOpenMsg('\u2717 '+san+': the king answers '+rsan+', and this position has now come up three times: a draw by repetition. Squeeze the box instead of repeating. Tap \u21bb Try again.');repaint();return;}
+       const _repTail=_rep===2?' This position has come up before: a third time is a draw by repetition.':'';

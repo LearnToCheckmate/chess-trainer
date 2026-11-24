@@ -1,0 +1,19 @@
+{
+ "job": "lesson-practice-small-defects-2026-11-13",
+ "about": "#553 (B1): the proof for items (1)-(3), which #550 fixed and its checkers passed (MET, 14 Nov). Gate 11's TC-LS-061c block (CT_LS061_ONLY=1, Italian practice with hints on at kunal761 and 320x568: the confirm or prompt line whole or clamped with an ellipsis inside the box, the count '1 of 5' painted whole) and gate 156's TC-LS-076 (the Box Method stage lesson: a repeated position called out, the third a draw by repetition that ends the run). Breaks: the prompt line's clamp removed (cut at the edge with no ellipsis, item 1); the side name never dropped (at 320x568 the ellipsis eats the count, item 2); a repeated position never counted (item 3). NOT COVERED HERE: item (4), sideways Puzzles at 1920 and 2560 - gate 143 TC-R219j holds it with its own subject-removed CONTROL-RECORD (a0ab321). Since #553's hint change (flags/amber-553-hint-takes-the-third-line) the confirm line steps behind 'more' when the hint needs the third line, so TC-LS-061c reads it only in the states where it shows.",
+ "gate": "gates/regress/11-lesson.js",
+ "cmd": ["bash", "-c", "CT_LS061_ONLY=1 node gates/regress/11-lesson.js; node gates/regress/156-lesson-stages.js"],
+ "checks": ["^TC-LS-061c ", "^TC-LS-076 "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-LS-061c kunal761 "},
+  {"name": "320x568", "match": "^TC-LS-061c se "},
+  {"name": "stage lesson", "match": "^TC-LS-076 "}
+ ],
+ "breaks": [
+  {"name": "confirm-line-not-clamped", "patch": "breaks/lpsd-confirm-line-not-clamped.diff", "why": "the prompt/confirm span loses its -webkit-line-clamp (display block), so a long confirm runs past the box edge with no ellipsis", "mustFailIn": ["kunal761"]},
+  {"name": "side-name-never-dropped", "patch": "breaks/lpsd-side-name-never-dropped.diff", "why": "the one-line prompt always keeps '(White)', so at 320x568 the clamp's ellipsis takes the count's 5", "mustFailIn": ["320x568"]},
+  {"name": "repetition-never-counted", "patch": "breaks/lpsd-repetition-never-counted.diff", "why": "a stage lesson never counts a repeated position, so the king shuffle is accepted for ever with no word", "mustFailIn": ["stage lesson"]}
+ ],
+ "timeoutSec": 1500
+}

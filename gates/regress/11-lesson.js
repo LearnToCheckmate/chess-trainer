@@ -774,7 +774,16 @@ L.run(async()=>{
         L.say((s5.note||'').indexOf(want5)>=0 /* the book move is named only with hints on (chess.jsx showHintRef), so the wording is the proof the switch took; the warn line is not drawn under a miss */,'TC-LS-064 '+geo+' with hints ON the same wrong move gives the reason, the book move and what it is for ("'+want5+'")',{note:s5.note,warn:s5.warn});
         await b.move('f1','c4',1400);await b.settle(500);const s6=await read();const bd6=await b.board();
         const want6='✓ Bc4, correct: '+lc(s0.notes&&s0.notes[4]);L.note('    TC-LS-064 '+geo+' after Bc4 the note reads: '+s6.note+(s6.words?' | hint words for the next move: '+s6.words:''));
-        L.say((s6.note||'').indexOf(want6)>=0,'TC-LS-064 '+geo+' then a correct Bc4 is confirmed with its note ("'+want6+'")',{note:s6.note});
+        // #553 B1 [flags/amber-553-hint-takes-the-third-line; jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13]: with hints
+        // on, a next hint that needs the box's third line takes it and the confirm steps behind the 'more' chip (at se after Bc4). So where the
+        // note as it shows does not carry the confirm AND the chip is up, the confirm is read from the note sheet the chip opens (a real tap on
+        // lesson-note), and the sheet is closed again. The wording required is unchanged; a missing chip still leaves only the note to read.
+        let sheet6=null,closed6=null;
+        if((s6.note||'').indexOf(want6)<0&&await b.page.evaluate(()=>!!document.querySelector('[data-ct="lesson-note-more"]'))){
+          try{await b.tapCt('lesson-note',500);sheet6=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="lesson-note-sheet"]');return t?(t.innerText||'').replace(/\s+/g,' ').trim():null;});
+            await b.page.locator('[data-ct="lesson-note-sheet"] button').filter({hasText:/^Close$/}).first().click();await b.settle(300);
+            closed6=await b.page.evaluate(()=>!document.querySelector('[data-ct="lesson-note-sheet"]'));}catch(e){L.note('    TC-LS-064 '+geo+' reading the note sheet threw: '+String(e).slice(0,160));}}
+        L.say((s6.note||'').indexOf(want6)>=0||((sheet6||'').indexOf(want6)>=0&&closed6===true),'TC-LS-064 '+geo+' then a correct Bc4 is confirmed with its note ("'+want6+'"), on screen or in the sheet behind the more chip'+(sheet6!=null?' (read from the sheet, then closed: '+closed6+')':''),{note:s6.note,sheet:sheet6,closed:closed6});
         L.say(still(bd0,bd1)&&still(bd0,bd3)&&still(bd0,bd5)&&still(bd0,bd6),'TC-LS-064 '+geo+' the board does not move through the correct moves, the two misses and the hint switch',{bd0,bd1,bd3,bd5,bd6});
       }
       L.say(b.errs.length===0,'TC-LS-064 '+geo+': zero app errors',b.errs.slice(0,3));
