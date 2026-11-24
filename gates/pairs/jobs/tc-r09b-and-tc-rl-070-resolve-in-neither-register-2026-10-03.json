@@ -1,0 +1,34 @@
+{
+ "job": "tc-r09b-and-tc-rl-070-resolve-in-neither-register-2026-10-03",
+ "about": "What was left (a) of this records job: gate 67 prints TC-SELCLS-CONSUMERS, so the case row can cite a log line. The line counts every assertion of gate 67's blocks U, P, G and D (the sel/cls consumer checks) and is red if any failed or fewer than 20 ran. Graded by gate 67 on a trial bundle (its blocks are node and one browser launch; the line carries no geometry). NOT COVERED: TC-R09b and TC-RL-070 themselves (rows since #546, read by the citations door), and the TC-LS-001..034 ruling (the orchestrator's).",
+ "gate": "gates/regress/67-sel-cls-consumers.js",
+ "checks": [
+  "TC-SELCLS-CONSUMERS "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "default",
+   "match": "^TC-SELCLS-CONSUMERS "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "drill-grades-take-book-not-miss",
+   "patch": "breaks/67-drill-grades-take-book-not-miss.diff",
+   "why": "a consumer of the grade goes wrong (the drill's admissible grades lose Miss and gain Book), so the consumer checks fail and the case line must go red with them",
+   "mustFailIn": [
+    "default"
+   ]
+  },
+  {
+   "name": "the-consumer-count-counts-nothing",
+   "patch": "breaks/67-the-consumer-count-counts-nothing.diff",
+   "why": "the wrapper counts nothing, so the case line would pass over an empty count; it must go red on the 20-assertion floor",
+   "mustFailIn": [
+    "default"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}
