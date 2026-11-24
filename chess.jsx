@@ -2028,6 +2028,53 @@ function brilRefuteTxt(t,pv,ok,cpW,mtW){
     return refuteTxt({capSan:t.san,replyLine:line,verdict});
   }catch(e){return '';}
 }
+/* #553 jobs/when-the-app-says-mate-in-n-show-the-moves-on-the-board-2026-11-19 (Kunal, about 7:50pm EST Thu 19 Nov 2026, on a Puzzles card
+   reading "You gave up the knight on g5. If Kxg5, Qd2+ and it is mate in 4.": "you should also then show me if it's made in 4, how it's
+   made in 4, because now I don't know"). THE MATE LINE, AS PURE PIECES, so the gate and the measurement run the shipped functions.
+   mateClaim reads what a message claims: N from "mate in N" (digits or a word) and, in the refutation shape refuteTxt writes
+   ("If <reply>, <line> and it is mate in N."), the reply it names. A message that says a mate is ALLOWED ("allows mate in two") claims a
+   mate against the side whose move it praises, which is not a line from the position on the board, so it claims nothing here.
+   mateLineCheck is the only door a line goes through to the board: from `game`, every move must be legal, no position before the last
+   may be mate, the last must be mate, and after `lead` opening plies (the reply the message names) the mating side's moves must number
+   exactly N - so a line that mates sooner or later than the message says is refused, and nothing is shown. */
+const MATE_WORDS={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+function mateClaim(text){
+  const t=String(text||'');if(/\ballows? (a )?mate\b/i.test(t))return null;
+  const m=/\bmate in (\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.exec(t);if(!m)return null;
+  const w=m[1].toLowerCase();const n=/^\d+$/.test(w)?parseInt(w,10):MATE_WORDS[w];if(!(n>=1&&n<=10))return null;
+  const r=/\bIf ([KQRBNO][^\s,]*|[a-h][^\s,]*),/.exec(t);
+  return {n,reply:(r&&r.index<m.index)?r[1]:null};
+}
+function mateLineCheck(game,ucis,n,lead){
+  try{
+    const ld=lead|0;if(!game||!Array.isArray(ucis)||!(n>=1))return {ok:false,why:'input'};
+    if(ucis.length!==ld+2*n-1)return {ok:false,why:'length',len:ucis.length,want:ld+2*n-1};
+    let g=game;const plies=[];
+    for(let i=0;i<ucis.length;i++){
+      const m=uciToMove(g,String(ucis[i]||''));if(!m)return {ok:false,why:'illegal',at:i};
+      const san=toSAN(g,m,applyMove(g.board,m));const g2=makeMove(g,m);const st=getStatus(g2);
+      if(i<ucis.length-1&&(st==='checkmate'||st==='stalemate'))return {ok:false,why:'ends-early',at:i};
+      plies.push({uci:String(ucis[i]),san,mv:m,turn:g.turn,g:g2});g=g2;
+    }
+    if(getStatus(g)!=='checkmate')return {ok:false,why:'not-mate'};
+    if(plies[plies.length-1].turn!==plies[ld].turn)return {ok:false,why:'wrong-side'};
+    return {ok:true,plies,start:game,n,lead:ld};
+  }catch(e){return {ok:false,why:'error'};}
+}
+/* the line in words, numbered from `no` (the move number of the line's first ply; 1 when the card stores none) */
+function mateLineSans(chk,no){
+  if(!chk||!chk.ok)return [];let k=(no>0?no:1);const out=[];
+  chk.plies.forEach((p,i)=>{out.push(p.turn==='w'?(k+'.'+p.san):(i===0?(k+'…'+p.san):p.san));if(p.turn==='b')k++;});
+  return out;
+}
+/* what one ply of the line is, for the box under the line: the reply the message named, the mate, a check, or the defender's best answer */
+function mateLineSay(chk,i){
+  if(!chk||!chk.ok||i<0||i>=chk.plies.length)return '';const p=chk.plies[i];const side=p.turn==='w'?'White':'Black';
+  if(i===chk.plies.length-1)return p.san+' is checkmate.';
+  if(i<chk.lead)return side+(/x/.test(p.san)?' takes: ':' answers: ')+p.san+'.';
+  if(p.turn===chk.plies[chk.plies.length-1].turn)return p.san+(/\+$/.test(p.san)?', check.':'.');
+  return p.san+' is '+side+'\'s best defence.';
+}
 /* #426 jobs/drill-explain-why-it-was-better. Kunal, twice (2026-09-19 and 2026-09-20): "it told me yes
    that's the move you missed, but it doesn't explain to me why that's better, which is what it should be
    doing." The mistake drill stored NO `why` at all: out[i] is in scope at the capture site carrying loss,

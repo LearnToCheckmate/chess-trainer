@@ -66,6 +66,8 @@ const NAMES=['FLAG_KEYS','flagOf','wrongWhy','replyWhy','FILES','rc2sq','inB','o
   'concreteRead','_cheapAttacker','_mateInOne','missWhy','_bestCapNet','drillVerdict','mistakeHint','WHY_DRILL_MAXW','ACC_HARM_FLOOR','ACC_SHIFT','pzText','pzMissNote','_sanDesc','_pzTxtC','gistInContext','RT_PW','rtV','rtCap','rtSq','rtN','rtRun','rtFirst','rtGist','rtForkT','rtStand','rtLadder','rtQuiet','reviewText0','reviewText','dropTxt','brilHint','mistakeWhy',
   // #550 HEX-T-08: the Brilliant card refutation line (the review sacrifice pieces, and the taker and sentence of the card); no apostrophes in this list, gate 79 reads its names by quote marks
   'SAC_LINE_MAX','sacTaker','sacLine','sacKeep','refuteTxt','brilTaker','brilRefuteTxt',
+  // #553 jobs/when-the-app-says-mate-in-n-show-the-moves-on-the-board-2026-11-19: what a message claims, the one check a mate line passes, and its words (gate 187)
+  'MATE_WORDS','mateClaim','mateLineCheck','mateLineSans','mateLineSay',
   // #551 batch 12: the engine is repeatable under test (localStorage ct_engdet); bestMove reads engDet for its jitter
   'ENGDET_NODES_PER_MS','engDet','engDetSearch',
   // batch 13: the three good-move readings of the Review line, the words of the why pill, the engine line in words and the summary coach line, so gate 169 runs the shipped functions (no apostrophe here, gate 79 X1)
