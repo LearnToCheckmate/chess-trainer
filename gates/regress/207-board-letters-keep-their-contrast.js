@@ -22,6 +22,10 @@
 //  TC-R327 on each highlighted square the letter is painted ABOVE the highlight: at the letter's centre, elementsFromPoint lists the label
 //          before the overlay.
 //  TC-R326 zero app errors.
+// CONTROL-RECORD: 4f2b8dd2 2026-11-24 total=16 red=4 scope=trial:2f3c02f0b110 how=#553 B1, THE SUBJECT REMOVED: pairs break the-letters-lose-their-chip (#548's chip stripped) - TC-R326 (opaque chip, the pair on every letter) red in both states at kunal761 and 320x568
+// CONTROL-RECORD: 4f2b8dd2 2026-11-24 total=16 red=4 scope=trial:7d83cbbc2865 how=#553 pairs break the-letters-sit-under-the-highlight (zIndex 0) - TC-R327 red in both states at both sizes
+// CONTROL-RECORD: 4f2b8dd2 2026-11-24 total=16 red=4 scope=trial:d871363f3302 how=#553 pairs break the-file-letters-take-a-faint-ink - TC-R326 red in both states at both sizes
+// The grading machine on 4f2b8dd2: CHECKED, real 8/8 at kunal761 and 8/8 at 320x568 (bundle 3869ce1fdcec), the three breaks CAUGHT.
 const L=require('../lib');const Z=require('../drive/puzzles');const P=require('../drive/play');
 const read=(b)=>b.page.evaluate(()=>{
   const rgb=(s)=>{const m=String(s).match(/rgba?\(([^)]+)\)/);if(!m)return null;const p=m[1].split(',').map(x=>parseFloat(x));return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1};};
