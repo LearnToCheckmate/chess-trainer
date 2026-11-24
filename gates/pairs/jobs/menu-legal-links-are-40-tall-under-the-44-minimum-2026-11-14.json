@@ -1,0 +1,25 @@
+{
+ "job": "menu-legal-links-are-40-tall-under-the-44-minimum-2026-11-14",
+ "about": "BATCH 14 ENTRY 31 (the legal-links half; the grade-count cells are graded by gate 139 TC-R215zz). Gate 47 block L (CT_BLK=L, TC-MN-057): at 375x761 (kunal761, ct_safe 51,31) and 320x568 the menu's four legal links (Privacy, Terms, Refunds, Delete account) each take a hit-tested tap of 44 down their centre line (the box stays 40 by design: ct-hit44 grows the tap and the sheet fits one screen with 1px to spare), the sheet still fits one screen (scrollHeight <= clientHeight), the foot button keeps its 44, and no app error. Three ways it could come undone: ct-hit44 gone from all four links; gone from Delete account only; the 4px row gap at vp.w<360 gone so Terms over Delete account overlap at 320. NOT COVERED: other widths between 320 and 375, text sizes above 100 percent, iOS Safari, his own look.",
+ "gate": "gates/regress/47-menu.js",
+ "cmd": ["node", "gates/regress/47-menu.js"],
+ "env": {"CT_BLK": "L"},
+ "checks": ["TC-MN-057"],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^375x761: TC-MN-057"},
+  {"name": "320x568", "match": "^320x568: TC-MN-057"}
+ ],
+ "breaks": [
+  {"name": "no-hit44-on-any-link", "patch": "breaks/47-menu-legal-no-hit44.diff",
+   "why": "the four legal links lose ct-hit44: each is a 40 box with a 40.5 tap again",
+   "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "delete-account-no-hit44", "patch": "breaks/47-menu-legal-delete-account-no-hit44.diff",
+   "why": "only Delete account loses ct-hit44 (the checker's own control): three links 44, one 40.5",
+   "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "no-row-gap-at-320", "patch": "breaks/47-menu-legal-no-row-gap-at-320.diff",
+   "why": "the 4px gap between the two rows of links at vp.w<360 is gone: the 44 tap areas overlap and Terms (above Delete account) keeps a 40 tap at 320x568",
+   "mustFailIn": ["320x568"]}
+ ],
+ "timeoutSec": 1500
+}

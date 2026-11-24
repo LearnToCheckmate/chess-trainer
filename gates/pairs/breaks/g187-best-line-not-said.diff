@@ -1,0 +1,12 @@
+diff --git a/chess.jsx b/chess.jsx
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10091,7 +10091,7 @@
+         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
+       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
+     /* batch 14, HEX-R-05: the best chip's line in words, in the sentence row while it shows (not for the why pill or a missed brilliant: neither is 'the best move') */
+-    setBestSay(firstOverride?'':bestLineSay(states,moves));
++    setBestSay('');
+     /* #550 HEX-R-04 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): "A button called why should answer in words." When the why pill
+        (firstOverride: the move he played) runs the line, the first two moves of it are put through explainLine - the engine line in words the
+        ? sheet already uses - and shown in the line row in place of the bare moves. */

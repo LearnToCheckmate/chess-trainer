@@ -2700,6 +2700,64 @@ function revBubble(o){o=o||{};const bl=o.bl||0,mi=o.mi||0,br=o.br||0,won=!!o.won
 /* The why pill's words (HEX-R-04): the first two explained moves of the line it plays. batch 13, the design pair's residual B7: the line
    was capitalised as a sentence, so a pawn move at its head read 'E4 stakes out the center' - a move's name is spelt as the move is. */
 function playWhyTxt(rows){try{const w=(rows||[]).filter(r=>r&&r.why).slice(0,2).map(r=>String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'').replace(/[+#]$/,'')+' '+r.why)   /* q7: the row's own words already say 'gives check' or 'with check' */.join('; ');return w?(w+'.'):'';}catch(e){return '';}}
+/* batch 14, HEX-R-05 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): THE BEST LINE IN ONE SENTENCE. Tapping the best chip showed
+   the moves only ('best line 29... Qf1+ 30. Rxf1 Rxf1#') while the sentence above still described the move he played. This reads the line
+   that is on the board (the first move and the up to four engine moves after it, as states) and says what its first move does (explainLine's
+   own reading of that move, the words the ? sheet uses) and how the line ends, from the positions alone: in mate; or, where the last move is
+   not a capture (an exchange still going on proves nothing), the queens coming off and the material the line wins or gives up, counted
+   piece by piece over the line. Quoted moves carry no + or # (Kunal's Desk answer q7): a check is said in words. '' when there is no line. */
+function _matList(ts){const n={};for(const t of ts)n[t]=(n[t]||0)+1;const W=['','a','two','three','four','five','six','seven','eight'];
+  return 'qrbnp'.split('').filter(t=>n[t]).map(t=>n[t]===1?((t==='q'?'the ':'a ')+PNAME[t]):(W[n[t]]||String(n[t]))+' '+PNAME[t]+'s').join(' and ');}
+function bestLineSay(states,moves){try{
+  if(!states||!moves||!moves.length||states.length<moves.length+1)return '';
+  const g0=states[0],me=g0.turn;const sanAt=(i)=>toSAN(states[i],moves[i],states[i+1].board);
+  const uc=moves.map(m=>rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||''));const rows=explainLine(toFEN(g0),uc,1,1)||[];
+  const s1=sanAt(0),chk=/\+$/.test(s1),n1=s1.replace(/[+#]$/,'');let why=(rows[0]&&rows[0].why)||'';
+  if(/#$/.test(s1))return 'Best was '+n1+', and it is mate.';
+  let head;if(!why||why==='gives check')head='Best was '+n1+(chk?' with check':'')+'.';
+  else if(/^(a|the) /.test(why))head='Best was '+n1+(chk&&!/check/.test(why)?' with check':'')+': it is '+why+'.';
+  else head='Best was '+n1+': it '+why+(chk&&!/check/.test(why)?', with check':'')+'.';
+  const last=states[moves.length];const st=getStatus(last);
+  if(st==='checkmate'){const ls=sanAt(moves.length-1).replace(/[+#]$/,'');return head+' The line ends in mate: '+ls+' mate.';}
+  if(st==='stalemate')return head+' The line ends in stalemate.';
+  const lm=moves[moves.length-1];if(states[moves.length-1].board[lm.tr][lm.tc]||lm.epCap)return head;
+  const got={w:[],b:[]};for(let i=0;i<moves.length;i++){const g=states[i],m=moves[i];const c=g.board[m.tr][m.tc]||(m.epCap?{t:'p'}:null);if(c)got[g.turn].push(c.t);}
+  const mine=got[me].slice(),theirs=got[opp(me)].slice();if(!mine.length&&!theirs.length)return head;
+  const qOff=mine.indexOf('q')>=0&&theirs.indexOf('q')>=0;
+  for(let i=mine.length-1;i>=0;i--){const j=theirs.indexOf(mine[i]);if(j>=0){theirs.splice(j,1);mine.splice(i,1);}}
+  const sv=(a)=>a.reduce((s,t)=>s+(SEEVAL[t]||0),0);const net=sv(mine)-sv(theirs);
+  let tail='';
+  if(net>=1)tail=theirs.length?('the line wins material: '+_matList(mine)+' for '+_matList(theirs)):('the line wins '+_matList(mine));
+  else if(net<=-1)tail=mine.length?('the line gives up material: '+_matList(theirs)+' for '+_matList(mine)):('the line gives up '+_matList(theirs));
+  else if(!qOff)tail='material stays even';
+  const sent=qOff?('The queens come off'+(tail?(' and '+tail):'')+'.'):(tail?(tail[0].toUpperCase()+tail.slice(1)+'.'):'');
+  return head+(sent?(' '+sent):'');}catch(e){return '';}}
+/* batch 14, HEX-R-09: THE ANALYSIS BOARD SAYS WHAT THE MOVE JUST TRIED DOES. It printed 'Analysis | 1 move in | White to play' and no word
+   on the move. From the two positions alone, in order: the move mates or stalemates; it allows a mate in one (named); it lets the other side
+   win material with a capture (their best capture by the exchange count, seeSq - not said of a check, nor where the capture walks into a
+   mate in one, which is a sacrifice and not a loss); it takes on a square and can be taken back there; else explainLine's reading of the move,
+   the words the engine line's ? sheet uses. '' when none holds, and the row stays empty. Quoted moves carry no + or # (q7). */
+function _anaCap(g,side,min){const out=[];try{for(const m of getLegal({...g,turn:side,ep:null})){const t=g.board[m.tr]&&g.board[m.tr][m.tc];if(!t||t.c===side||t.t==='k')continue;
+  const g4=makeMove({...g,turn:side,ep:null},m);if(!g4)continue;const n=(SEEVAL[t.t]||0)-seeSq(g4,m.tr,m.tc,opp(side));if(n>=min)out.push({m,net:n,t:t.t,g4});}}catch(e){}
+  /* the best capture by the exchange count that does not walk into a mate in one (gate 187: Bxa4 was a decoy where Nxa4 won the same knight clean) */
+  out.sort((a,b)=>b.net-a.net);for(const c of out){let decoy=false;try{for(const r of getLegal(c.g4)){const g5=makeMove(c.g4,r);if(g5&&getStatus(g5)==='checkmate'){decoy=true;break;}}}catch(e){}if(!decoy)return c;}return null;}
+function anaSay(pre,mv){try{
+  if(!pre||!mv)return '';const me=pre.turn,them=opp(me);const post=makeMove(pre,mv);if(!post)return '';
+  const sanP=(g,m)=>toSAN(g,m,applyMove(g.board,m));const S=sanP(pre,mv),N=S.replace(/[+#]$/,''),chk=/\+$/.test(S);const SIDE={w:'White',b:'Black'};
+  const st=getStatus(post);
+  if(st==='checkmate')return N+' is checkmate.';
+  if(st==='stalemate')return N+' is stalemate: '+SIDE[them]+' has no legal move.';
+  for(const r of getLegal(post)){const g3=makeMove(post,r);if(g3&&getStatus(g3)==='checkmate')return N+(chk?' gives check but':'')+' allows '+sanP(post,r).replace(/[+#]$/,'')+' mate.';}
+  const capd=pre.board[mv.tr][mv.tc]||(mv.epCap?{t:'p'}:null);const gain=capd?(SEEVAL[capd.t]||0):0;
+  const bc=chk?null:_anaCap(post,them,gain+1);
+  if(bc){{const R=sanP(post,bc.m),rc=/\+$/.test(R);const free=!getLegal(bc.g4).some(x=>x.tr===bc.m.tr&&x.tc===bc.m.tc);/* 'for nothing' only where nothing can take back on the square (gate 187 caught 'dxe5 ... for nothing' where ...dxe5 can, and loses to Nxe5) */
+      return N+(capd?(' takes the '+PNAME[capd.t]+', but it'):'')+' lets '+R.replace(/[+#]$/,'')+' win material: it takes the '+PNAME[bc.t]+' on '+rc2sq(bc.m.tr,bc.m.tc)+(free?' for nothing':'')+(rc?', with check':'')+'.';}}
+  if(capd){const rb=getLegal(post).filter(r=>r.tr===mv.tr&&r.tc===mv.tc).sort((a,b)=>(SEEVAL[post.board[a.fr][a.fc].t]||0)-(SEEVAL[post.board[b.fr][b.fc].t]||0));
+    if(rb.length)return N+' takes the '+PNAME[capd.t]+' on '+rc2sq(mv.tr,mv.tc)+(chk?', with check':'')+', and '+sanP(post,rb[0]).replace(/[+#]$/,'')+' can take back.';}
+  const rows=explainLine(toFEN(pre),[rc2sq(mv.fr,mv.fc)+rc2sq(mv.tr,mv.tc)+(mv.promo||'')],1,1)||[];const why=(rows[0]&&rows[0].why)||'';
+  if(!why)return chk?(N+' gives check.'):'';
+  if(/^(a|the) /.test(why))return N+' is '+why+(chk&&!/check/.test(why)?', with check':'')+'.';
+  return N+' '+why+(chk&&!/check/.test(why)?', with check':'')+'.';}catch(e){return '';}}
 /* explainAnno is the line under the board: reviewText's parts 1 and 2 (the rest is `more`, reviewMore). The old builder's five labels in a row
    ('A small slip. e5 is the answer. Nbd2 held it. About 0.9 pawns of advantage gone. The position stays roughly level.') are gone. */
 function explainAnno(a,ctx){const r=reviewText(a,ctx);return (r&&r.line)||null;}
@@ -3482,6 +3540,9 @@ const REVIEW_ENGINE_WAIT=1200;
    (gates/regress/173-review-depth-game-card.js). ct_gdepth holds the picked level per game (gkey -> 1..3; Quick is the absence of a row). */
 const REV_DEPTHS=[{name:'Quick',dx:0,about:'about 20 s'},{name:'Deep',dx:2,about:'about 1 min'},{name:'Deeper',dx:4,about:'about 3 min'},{name:'Deepest',dx:6,about:'about 8 min'}];
 const revLevel=(v)=>{const n=Math.round(Number(v));return (n>=0&&n<REV_DEPTHS.length)?n:0;};
+/* #553 (part 4 of that job): the evaluation cache key of one level - Quick is the base key (unchanged since #343), a deeper level carries its
+   search depth. One definition, read by the review (importGame) and by the regrade preview, which used to look up the Quick key only. */
+const revCacheKey=(base,lv)=>{const l=revLevel(lv);return l>0?(base+'-d'+(16+REV_DEPTHS[l].dx)):base;};
 const gdepthAll=()=>{try{const o=JSON.parse(localStorage.getItem('ct_gdepth')||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}};
 const GRADE_VER=(BRIL_RULE===3?3:BRIL_RULE===2?2:1)+(GRADES2?10:0);   // #550 items (17) and (20): the ones digit is the brilliant rule (3 rule 3, the default; 2 the #549 rule; 1 the old one), plus 10 with item (20)'s grades on - so 13 by default
 const gradeVerOf=(st)=>(st&&st.gv!==undefined)?st.gv:1;
@@ -4557,6 +4618,17 @@ function _CIcon({name,size=21,style}){
   };
   return(<svg viewBox="0 0 24 24" width={size} height={size} style={{display:'block',...style}}>{P[name]||null}</svg>);
 }
+/* batch 13 / #553: THE DEPTH MENU (Review depth: Quick, Deep, Deeper, Deepest with his rough times, the current one ticked), one component for
+   the game card's button and the review sheet's Review depth row. m = {left,top,w,z?}: fixed to the viewport; a tap outside, a scroll or a
+   touch move closes it. */
+function DepthMenu({m,cur,onPick,onClose}){
+  return(<div data-ct="depth-menu-veil" onClick={onClose} onWheel={onClose} onTouchMove={onClose} style={{position:'fixed',inset:0,zIndex:m.z||9980,touchAction:'none'}}>
+    <div data-ct="depth-menu" role="menu" aria-label="Review depth" onClick={e=>e.stopPropagation()} style={{position:'fixed',left:m.left,top:m.top,width:m.w,boxSizing:'border-box',padding:'6px 0',borderRadius:12,background:'#18202b',border:'1px solid rgba(255,255,255,.24)',boxShadow:'0 12px 32px rgba(0,0,0,.65)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+      <div data-ct="depth-menu-label" style={{height:32,boxSizing:'border-box',padding:'6px 14px 0',fontSize:15,fontWeight:700,color:'rgba(255,255,255,.6)',whiteSpace:'nowrap'}}>Review depth</div>
+      {REV_DEPTHS.map((d,l)=>(<button key={d.name} data-ct="depth-opt" data-level={l} role="menuitemradio" aria-checked={l===cur?'true':'false'} onClick={()=>onPick(l)} style={{display:'flex',alignItems:'center',gap:7,width:'100%',height:44,boxSizing:'border-box',padding:'0 14px',background:l===cur?'rgba(var(--acr),.16)':'none',border:'none',color:'#fff',fontSize:15,fontFamily:'inherit',cursor:'pointer',textAlign:'left',whiteSpace:'nowrap'}}><span data-ct="depth-tick" aria-hidden="true" style={{flexShrink:0,width:15,color:'var(--ac2)',fontWeight:800}}>{l===cur?'\u2713':''}</span><span style={{fontWeight:700}}>{d.name}</span><span style={{color:'rgba(255,255,255,.6)'}}>{'('+d.about+')'}</span></button>))}
+    </div>
+  </div>);
+}
 // batch 13: _CBtn (an icon with a tiny label under it) is gone - the game's row is RowBtn, icons only (jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18).
 // One row in the More bottom sheet.
 function _SheetItem({icon,label,on,dis,warn,ct}){
@@ -5583,7 +5655,7 @@ function AppMain(){
   const [noteSClamp,setNoteSClamp]=useState(3); // #550 jobs/lesson-practice-small-defects-2026-11-13 (1)(2): lines the practice prompt/confirm line may take, 3 less the hint's (at most 2)
   const introHoldRef=useRef(false); // #315: intro card auto-dismiss (effect lives after state decls)
   // ── Progress sync (#310): mirror key progress to users/{uid} via CTCloud.load/save (merge:true).
-  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser','ct_accts','ct_acctmine','ct_acctasked','ct_pieceSet','ct_depth','ct_hideEval','ct_evalgraph','ct_sound','ct_bot','ct_rated','ct_lessonfin','ct_pzshown','ct_coachgames','ct_followbril'];   /* batch 14: the followed players' Brilliant moves (ct_followbril) follow the account, merged card by card (SYNC_SETS) */   /* batch 13, Kunal's q14 (Desk, 19 Nov): saved coach games, with their notes, follow the account - merged game by game (SYNC_SETS) */   /* #550 SYN-11: the online games already counted in his rating (ct_rated), the lessons finished and the puzzles already shown follow the account as unions, so a finished online game is not rated again on a second device and puzzles do not repeat there */   /* #550 SYN-06 (accounts-devices check): the piece set, board depth, eval bar on/off, eval graph, sound and the chosen opponent follow the account too (the newer change wins; a fresh device's defaults never do). Where the eval bar sits (ct_evalunder) stays per device until he says otherwise. */   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now. SYN-01: and so do the accounts he follows (ct_accts), which of them are his (ct_acctmine) and which he was already asked about (ct_acctasked) - the games themselves are fetched again, never stored in the account */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
+  const SYNC_KEYS=['ct_learnprog','ct_daily','ct_gamestats','ct_achv','ct_mybrilliancies','ct_mymistakes','ct_train','ct_lastlesson','ct_daily3','ct_elo','ct_rating','ct_coachstyle','ct_coachtargets','ct_coachtier','ct_ccuser','ct_liuser','ct_accts','ct_acctmine','ct_acctasked','ct_pieceSet','ct_depth','ct_hideEval','ct_evalgraph','ct_sound','ct_bot','ct_rated','ct_lessonfin','ct_pzshown','ct_coachgames','ct_followbril','ct_gdepth'];   /* #553: the review depth picked for each game follows the account (one value, the newer change wins) */   /* batch 14: the followed players' Brilliant moves (ct_followbril) follow the account, merged card by card (SYNC_SETS) */   /* batch 13, Kunal's q14 (Desk, 19 Nov): saved coach games, with their notes, follow the account - merged game by game (SYNC_SETS) */   /* #550 SYN-11: the online games already counted in his rating (ct_rated), the lessons finished and the puzzles already shown follow the account as unions, so a finished online game is not rated again on a second device and puzzles do not repeat there */   /* #550 SYN-06 (accounts-devices check): the piece set, board depth, eval bar on/off, eval graph, sound and the chosen opponent follow the account too (the newer change wins; a fresh device's defaults never do). Where the eval bar sits (ct_evalunder) stays per device until he says otherwise. */   /* #550 his report (a), 12 Nov: "I'm signed in. Why is it asking me to pull in my games again?" - the usernames stayed on the phone; they follow the account now. SYN-01: and so do the accounts he follows (ct_accts), which of them are his (ct_acctmine) and which he was already asked about (ct_acctasked) - the games themselves are fetched again, never stored in the account */   // #549 A4-R4: ct_libmig549 no longer syncs - the push's ct_lastlesson549 copy below replaces it
   const syncTimer=useRef(null);
   /* #550 SYN-02: NOTHING GOES UP UNTIL THE ACCOUNT'S COPY HAS COME DOWN. A push sends every synced key, so one fired before the pull (a state
      effect at start-up, a lesson finished in the first seconds) sent this device's defaults over the account's progress. syncPulledRef is
@@ -5642,6 +5714,7 @@ function AppMain(){
       case 'ct_learnprog':if(o&&typeof o==='object')setLearnProg(migLearnProg(o));break;
       case 'ct_daily':if(o&&typeof o==='object'){dailyRef.current=o;setDaily(o);}break;
       case 'ct_gamestats':if(o&&typeof o==='object')gameStatsRef.current=o;break;
+      case 'ct_gdepth':if(o&&typeof o==='object'&&!Array.isArray(o))setGDepth(o);break;   /* #553 */
       case 'ct_achv':if(Array.isArray(o))setAchv(o);break;
       case 'ct_mybrilliancies':if(Array.isArray(o))setMyBrilliant(o);break;
       case 'ct_mymistakes':if(Array.isArray(o))setMyMistakes(capMistakes(o,150));break;
@@ -6258,6 +6331,20 @@ function AppMain(){
   /* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15: the review depth picked for each game (REV_DEPTHS), kept in
      ct_gdepth so it survives a reload, and the depth menu open under one card's button ({key,g,left,top}). */
   const [gDepth,setGDepth]=useState(gdepthAll);
+  /* #553 (part 4): A DEEPER PASS RUN BEHIND THE OPEN REVIEW (the review sheet's Review depth row). deepRun is {lv,n,f} - the level, the game's
+     moves and the fraction of its positions searched - for the 'Going deeper' line under the Game review title; deepStopRef holds that run's
+     stop flag, so leaving the review or opening another game stops it (its unfinished pass is never stored). */
+  const [revDepthMenu,setRevDepthMenu]=useState(null);   // #553: the depth menu opened from the review sheet's row ({left,top,w,z,cur})
+  const [deepRun,setDeepRun]=useState(null);const deepStopRef=useRef(null);const revNowRef=useRef(null);
+  /* the title while a deeper pass runs: 'Game review' moved up inside its own row, the line under it ('Going deeper: Deeper, 14 of 33') and a 2px
+     bar at the row's foot - all absolute inside the title's own box, so nothing under the row moves */
+  const deepLine=(d)=>'Going deeper: '+REV_DEPTHS[revLevel(d.lv)].name+', '+Math.min(d.n,Math.round((d.f||0)*(d.n+1)))+' of '+d.n;
+  const deepTitle=(base)=>(<div data-ct="top-title-box" style={{...base,lineHeight:'normal'}}>
+    <div data-ct="top-title" style={{position:'absolute',left:0,right:0,top:1,lineHeight:'24px',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Game review</div>
+    <div data-ct="deep-progress" role="status" aria-live="polite" style={{position:'absolute',left:0,right:0,top:25,lineHeight:'16px',fontFamily:"'Segoe UI',system-ui,sans-serif",fontSize:13,fontWeight:700,color:'var(--ac2)',letterSpacing:0,textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{deepLine(deepRun)}</div>
+    <div aria-hidden="true" style={{position:'absolute',left:0,right:0,bottom:0,height:2,borderRadius:1,background:'rgba(255,255,255,.12)',overflow:'hidden'}}><div data-ct="deep-progress-bar" style={{height:'100%',width:(Math.max(0,Math.min(1,deepRun.f||0))*100)+'%',background:'var(--ac)',transition:'width .3s'}}/></div>
+  </div>);
+  const stopDeep=()=>{const d=deepStopRef.current;if(!d)return;d.on=true;d.ext=true;deepStopRef.current=null;try{poolClose();}catch(e){}analyzingRef.current=false;setDeepRun(null);};
   const setGameDepth=(k,lv)=>{const o={...gdepthAll()};if(lv>0)o[k]=lv;else delete o[k];try{localStorage.setItem('ct_gdepth',JSON.stringify(o));}catch(e){}setGDepth(o);};
   const [depthMenu,setDepthMenu]=useState(null);
   const recordGameStats=(k,v)=>{gameStatsRef.current={...gameStatsRef.current,[k]:{...v,gv:GRADE_VER}};try{localStorage.setItem('ct_gamestats',JSON.stringify(gameStatsRef.current));}catch{}setGsVer(x=>x+1);};
@@ -6419,7 +6506,7 @@ function AppMain(){
   useEffect(()=>{try{/* #364 dev-only: ct_safe='51,31' fakes the insets so a phone's Layout readout can be reproduced in the build sandbox, where env() is always 0. Kunal's phone reports 51/31 and no test rig here can emulate that natively. */const _ov=(localStorage.getItem('ct_safe')||'').split(',').map(Number);if(_ov.length===2&&_ov.every(n=>n>=0&&n<120)){setSafeTop(_ov[0]);setSafeBot(_ov[1]);setSafeFake(true);return;}const pr=document.createElement('div');pr.style.cssText='position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pr);const h=Math.round(pr.getBoundingClientRect().height);document.body.removeChild(pr);if(h>=0&&h<120)setSafeTop(h);}catch(e){}
     try{const pb=document.createElement('div');pb.style.cssText='position:fixed;left:0;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(pb);const h2=Math.round(pb.getBoundingClientRect().height);document.body.removeChild(pb);if(h2>=0&&h2<80)setSafeBot(h2);}catch(e){}},[]);
   const [bestLineBoard,setBestLineBoard]=useState(null);
-  const [bestLineSan,setBestLineSan]=useState('');const [playWhy,setPlayWhy]=useState('');   /* #550 HEX-R-04: the why pill answers in words */   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
+  const [bestLineSan,setBestLineSan]=useState('');const [bestSay,setBestSay]=useState('');/* batch 14 HEX-R-05: the best line in one sentence (bestLineSay) */const [playWhy,setPlayWhy]=useState('');   /* #550 HEX-R-04: the why pill answers in words */   // #344: the best move AND what follows it, in words (Kunal: "that's where the value is")
   const [engOn,setEngOn]=useState(false);
   /* #547 item (188): what the engine-line switch read before analysis turned it on, so leaving analysis puts it
      back. null = not inside an analysis entry. Exiting analysis used to leave the row on for the rest of the session. */
@@ -6427,7 +6514,7 @@ function AppMain(){
   const _engRestore=()=>{if(engPreAnaRef.current!==null){setEngOn(engPreAnaRef.current);engPreAnaRef.current=null;}};          // #341: engine analysis of the position on screen, on demand
   const [anaMode,setAnaMode]=useState(false);      // #342: analysis board - play the position out yourself from the review
   const anaModeRef=useRef(false);anaModeRef.current=anaMode;
-  const [anaHist,setAnaHist]=useState([]);
+  const [anaHist,setAnaHist]=useState([]);const anaSayRef=useRef(null);
   /* #553 (jobs/every-move-list-keeps-the-newest-move-in-view-and-drill-analysis-lists-your-moves-2026-11-19, his pick 'Box lists my moves'):
      the positions AFTER the moves he stepped back past on the analysis board, so the drill Analysis box keeps them (dimmed) and a tap goes
      forward again. A new move that is not the next one replaces them. Amber: flags/amber-553-drill-analysis-moves */
@@ -6722,6 +6809,7 @@ function AppMain(){
   const rootRef=useRef(null);
 
   const inReview=mode==='analyze'&&review!==null;
+  revNowRef.current=review;   /* #553: the open review, read by a deeper pass when it finishes */
   const inDemo=mode==='learn'&&learnPhase==='demo'&&learnLine.length>0;
   const demoSt=useMemo(()=>inDemo?demoState(learnLine,demoPly,learnFEN):null,[inDemo,learnLine,demoPly,learnFEN]);
   const lpHist=useMemo(()=>{
@@ -8233,7 +8321,7 @@ function AppMain(){
     const finish=(r,ok)=>{if(done)return;done=true;sfAnaCbRef.current=null;sfAnaBusyRef.current=false;if(sfAnaAbortRef.current===_abort)sfAnaAbortRef.current=null;clearTimeout(to);_say(ok);resolve(r);};
     const _abort=()=>finish(null,false); sfAnaAbortRef.current=_abort;
     /* #512: still resolves the partial `line` - that is the existing contract - but reports ok:false. */
-    const to=setTimeout(()=>finish(line,false),depth?20000:Math.max(4000,movetime*8));
+    const to=setTimeout(()=>finish(line,false),depth?(depth>16?Math.round(20000*Math.pow(2,(depth-16)/2)):20000):Math.max(4000,movetime*8));   /* #553: a deeper review's line (18, 20, 22) gets a ceiling that grows with its depth, as the search does (40, 80, 160 s) */
     let started=false;   /* #549 item (26): see above - nothing before this search's own depth-0/1 line is ours */
     /* #511: the same move as in sfEval1 above, for the same reason - a previous search's `bestmove` or `info`
        must not be read as this query's. Here it matters doubly, because `pv` ACCUMULATES into `line` and the
@@ -8342,13 +8430,16 @@ function AppMain(){
     /* batch 13 (games in progress): a review GROWING with a new move is recomputed behind the open review - no progress panel, the
        view and the move he is on kept - and is dropped if he has left that review by the time it is ready. */
     const _grow=!!(meta&&meta.live&&meta.live.grow);
-    if(_grow)analyzingRef.current=true;else{setAnaFail(null);setAnalyzing(true);setProgress(0);}
+    const _deep=!!(meta&&meta.deeper)&&!_grow;   /* #553: a deeper pass of the open review, run behind it (no progress panel; the 'Going deeper' line) */
+    if(!_grow)stopDeep();   /* #553: any other review, or a second deeper pick, stops a deeper pass still running */
+    if(_grow||_deep)analyzingRef.current=true;else{setAnaFail(null);setAnalyzing(true);setProgress(0);}
     await new Promise(r=>setTimeout(r,30));
     /* #550 a32: THE ANALYSIS RUNS INSIDE ONE try. Before this, anything that threw in here - or a table group that failed on every
        engine after all its retries (it was stored from a partial or static score and the review shown as if it were whole) - left the
        player on "Analyzing your game" for ever, or on a review graded by a different engine with nothing said. Now both end on the
        failure panel: "The review stopped before it finished." with Try again (the same game, from the start) and Back to games. */
-    const _anaStop={on:false};
+    const _anaStop={on:false};if(_deep)deepStopRef.current=_anaStop;
+    const _setP=(f)=>{if(_deep){if(deepStopRef.current===_anaStop)setDeepRun(d=>d?{...d,f}:d);}else setProgress(f);};   /* #553: a deeper pass reports to its own line, never to the analysing panel */
     try{
     /* #549 item (30), jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04: WHICH GRADER REVIEWS THE GAME MUST NOT
        DEPEND ON HOW BUSY THE PHONE IS. This read `sfReadyRef.current?await ensureAna():false`: if the play worker had not answered readyok
@@ -8362,9 +8453,10 @@ function AppMain(){
        pass at a deeper level than the one asked for is used instead of a shallower search. A deeper level's evaluations are cached
        under their own key (the Quick key is unchanged, so no review cached before this build is thrown away - the #343 lesson). */
     const _lvAsk=revLevel((meta&&meta.depth!=null)?meta.depth:((meta&&meta.key)?gdepthAll()[meta.key]:0));
-    const _ckBase=evalCacheKey(res.plies,_st.fen);const _ckOf=(lv)=>lv>0?(_ckBase+'-d'+(16+REV_DEPTHS[lv].dx)):_ckBase;
+    const _ckBase=evalCacheKey(res.plies,_st.fen);const _ckOf=(lv)=>revCacheKey(_ckBase,lv);
     let _lv=_lvAsk;{const _all0=evalCacheAll();for(let l=REV_DEPTHS.length-1;l>_lvAsk;l--){const c=_all0[_ckOf(l)];if(c&&c.evW&&c.evW.length===res.plies.length+1){_lv=l;break;}}}
     const _dx=REV_DEPTHS[_lv].dx;
+    if(_deep)setDeepRun({lv:_lv,n:res.plies.length,f:0});
     const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d+_dx,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum
     const _ckEarly=_ckOf(_lv);
     const _c0=evalCacheAll()[_ckEarly];
@@ -8383,7 +8475,7 @@ function AppMain(){
         /* #371: reviews cached before the mate-0 fix hold the mated side as the winner at a checkmate; the position itself says who is mated, so patch on read rather than throw the cache away (the #343 lesson) */
         for(let i=0;i<=N;i++){const _p=res.positions[i];try{if(_p&&getStatus(_p)==='checkmate')evW[i]=(_p.turn==='w')?-99950:99950;}catch(e){}}
         _eng.path='cache';_eng.cached=true;
-        setProgress(1);await new Promise(r=>setTimeout(r,10));
+        _setP(1);await new Promise(r=>setTimeout(r,10));
       }else{
       // #343: aim for a ~25s wall clock instead of ~60s AND give each position more thinking time than before,
       // because P workers run at once. A single worker falls back to the old 60s budget so nothing regresses.
@@ -8461,7 +8553,7 @@ function AppMain(){
           if(rs.some(r=>!_okR(r))){const _e=new Error('engine-stopped');_e.ctEngine=true;throw _e;}
           return rs;
         };
-        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);if(_anaStop.on)return;/* A3-5: nothing a stopped run computed reaches the store or the progress ring */for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}setProgress(done/(N+1));}};
+        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);if(_anaStop.on)return;/* A3-5: nothing a stopped run computed reaches the store or the progress ring */for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}_setP(done/(N+1));}};
       if(_slots.length>=1){
         _eng.workers=_slots.length;
         const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
@@ -8475,6 +8567,7 @@ function AppMain(){
         _eng.path='one';
         await _block((i,f)=>_ev1(_fen(i),MT,16,f),0,N);   /* #377: the SAME depth the pool uses (DCAP in sfEvalOn). If one of these moves, the other must move with it - gate 33 asserts both. */
       }
+      if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}   /* #553: a pass stopped from outside (stopDeep) returns from its blocks without throwing; it must not reach the store */
       /* #375: reusing a worker's table between neighbouring positions is what keeps a review fast, but a table
          carried in from the move before can hold a position's refutation out of view. The case that matters is
          the move that ALLOWS A MATE: if the next position is mate and this one reads like an ordinary
@@ -8492,6 +8585,7 @@ function AppMain(){
           if(_okR(r2)&&(r2.mate!=null||r2.cp!=null))_store(i,r2);
         }
       }catch(e){}
+      if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}
       if(!_eng.abandoned)evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});   // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
       }
       poolClose();
@@ -8560,7 +8654,7 @@ function AppMain(){
         // eval after is read the way this site reads a played move's (the static eval of the position it leaves); its next best is scored[1].
         let _mbF=null;if(MISSED_BRIL&&_bMv2&&!_g.ok){let _evAB=null;try{_evAB=evalPawns(makeMove(res.positions[i],_bMv2));}catch(e){}const _g2=_evAB==null?null:missedBrilliant(res.positions[i],_bMv2,_evAB,_evB,scored[1]?Math.max(-99,Math.min(99,scored[1].v/100)):null,undefined,{positions:res.positions,i});if(_g2)_mbF={san:bestSan,move:_bMv2,gate:_g2};}
         out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g,mbril:_mbF});
-        if(i%2===0){setProgress((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
+        if(i%2===0){_setP((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
       }
     }
     // Summary counts
@@ -8725,20 +8819,27 @@ function AppMain(){
     return {counts:c,moves:n,acpl:Math.round(acpl),accuracy:Math.round(acc*10)/10};};
     const summary={w:_sideStats('w'),b:_sideStats('b'),userColor:(meta&&meta.userColor)||null,book:bookN};
     let skills=null;try{skills=gameSkills(res.positions,res.plies,out,bookN,_pb);}catch(e){skills=null;} /* #368 y17b */
-    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng,meta:meta||null,coach:(headers&&headers.CTCoach!=null)?{notes:pgnNotes(text),reqs:coachReqParse(headers.CTCoach)}:null /* batch 13: a coach game's notes and requests, by ply */};   /* #550 ERR-01: meta kept so 'Grade it again' re-runs the same game as the same player */
+    const _rv={positions:res.positions,plies:res.plies,headers,analysis:out,counts,openingName,summary,skills,pgn:text,plyBase:_pb,startFen:_st.fen||'',engine:_eng,meta:(meta&&meta.deeper)?(({deeper,...m})=>m)(meta):(meta||null),coach:(headers&&headers.CTCoach!=null)?{notes:pgnNotes(text),reqs:coachReqParse(headers.CTCoach)}:null /* batch 13: a coach game's notes and requests, by ply */};   /* #550 ERR-01: meta kept so 'Grade it again' re-runs the same game as the same player */
     if(_grow){analyzingRef.current=false;if(liveCurRef.current!==meta.live.url)return;const _was=(liveRevRef.current&&liveRevRef.current.plies.length)||0;
       setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;setPly(p=>(p>=_was?_rv.plies.length:p));/* on the last move he follows the game; anywhere else he stays put */return;}
+    /* #553: a deeper pass that finished replaces the open review in one step - the move he is on, the view and the flip kept - and only if
+       that review is still the one open (the same game's moves); anything else and the pass is dropped (its cache and tally stay). */
+    if(_deep){if(deepStopRef.current!==_anaStop)return;deepStopRef.current=null;analyzingRef.current=false;setDeepRun(null);
+      const _cur=revNowRef.current;if(!_cur||!_cur.plies||_cur.plies.length!==_rv.plies.length||_cur.pgn!==_rv.pgn)return;
+      setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;return;}
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
     }catch(e){
+      if(_deep&&_anaStop.ext)return;   /* #553: stopped from outside (stopDeep): the pool is already another run's - leave it alone */
       _anaStop.on=true;try{poolClose();}catch(_){}setAnaLoadAt(0);
+      if(_deep){if(deepStopRef.current===_anaStop){deepStopRef.current=null;analyzingRef.current=false;setDeepRun(null);}return;}   /* #553: a deeper pass that failed leaves the open review as it was */
       if(_grow){analyzingRef.current=false;return;}   /* batch 13: a growth that failed leaves the open review as it is; the next check tries again */
       if(typeof window!=='undefined')window.__ctAnaFail={why:(e&&e.ctEngine)?'engine':'error',msg:String((e&&e.message)||e).slice(0,160)};   // harness seam, read-only
       setAnaFail({pgn:text,meta:meta||null,why:(e&&e.ctEngine)?'engine':'error'});
     }
   };
-  const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
+  const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */stopDeep();/* #553: leaving the review stops its deeper pass */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
   const playedPgn=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return null;const _pm=pgnMovesFrom(mvs,opponent==='online'?null:playStartFenRef.current,coachLive?coachNotes:null);let pgn=_pm.text;   /* batch 13: a coach game's notes ride in as comments */   /* #550 item (88): numbered from the set-up position, its FEN in the tags below */
     /* #547 item (127), jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29: this PGN carried no tags, so the
        review's header read 'White vs Black' with no result, where an imported game on the same screen names both players and the
@@ -9199,7 +9300,7 @@ function AppMain(){
       if(regradeSeenRef.current.has(k))continue;regradeSeenRef.current.add(k);
       if(_cacheEmpty){noCache++;continue;}
       if(performance.now()-_t0>12){await new Promise(r=>setTimeout(r,0));if(dead){regradeSeenRef.current.delete(k);return;}_t0=performance.now();}
-      let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[evalCacheKey(res.plies,_st.fen)]||null,gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
+      let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[revCacheKey(evalCacheKey(res.plies,_st.fen),st.dp)]||null,/* #553: the pass this tally was graded from (st.dp, its level), not always the Quick one */gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
       if(!r){noCache++;continue;}
       if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version
       const info=gameInfo(g);
@@ -9980,7 +10081,8 @@ function AppMain(){
   useEffect(()=>{
     if(!engOn||!inReview||!review||!review.positions){setEngLine(null);return;}
     const pos=anaMode?game:review.positions[ply];if(!pos){setEngLine(null);return;}
-    const fen=toFEN(pos);const _c=engCacheRef.current[fen];const hit=(_c&&_c.line)?_c:null; /* #389: an entry with NO line is a FAILED query, not an answer - see below */
+    const fen=toFEN(pos);const _ed=(review.engine&&review.engine.depth>16)?review.engine.depth:16;   /* #553: the line is searched at the open review's own depth (16 Quick, 18/20/22 deeper), and cached per depth */
+    const _ek=_ed>16?(fen+'|d'+_ed):fen;const _c=engCacheRef.current[_ek];const hit=(_c&&_c.line)?_c:null; /* #389: an entry with NO line is a FAILED query, not an answer - see below */
     const ev=(!anaMode&&ply>0&&review.analysis[ply-1]&&typeof review.analysis[ply-1].evalAfter==='number')?review.analysis[ply-1].evalAfter:evalPawns(pos);
     /* #373 (audit N-review-2): on a checkmated position the engine has no line to give, so this placeholder was the label - and the review's forced mate score printed as "+99.0" where A-03 (#371) had put 1-0. The mated side to move decides the label. */
     let _mated=false;try{_mated=getStatus(pos)==='checkmate';}catch(e){}
@@ -9998,7 +10100,7 @@ function AppMain(){
       let _lcp=null,_lmate=null;
       const _sgn=((fen.split(' ')[1]||'w')==='w')?1:-1;
       let _lok=false;
-      const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}}),((ok)=>{_lok=ok;}),16); /* #549 item (26): searched to the review's own depth (16, DCAP), and `ok` read - a line from a search that never reached its bestmove (the 20 s guard) is a search not finished, not an answer */ /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
+      const pv=await sfBestLine(fen,900,((sc)=>{if((sc.mpv||1)!==1)return;if(sc.mate!=null){_lmate=mateW(sc.mate,_sgn);_lcp=null;}else if(sc.cp!=null){_lcp=_sgn*sc.cp;_lmate=null;}}),((ok)=>{_lok=ok;}),_ed); /* #549 item (26): searched to the review's own depth (16, DCAP), and `ok` read - a line from a search that never reached its bestmove (the 20 s guard) is a search not finished, not an answer */ /* #375: read the engine's mate score in the moves view too, and through mateW so "mate 0" (a mated side to move) does not read as the other side winning */
       if(dead)return;
       let line='';
       try{let g=pos,n=0,num=Math.floor((((pos&&Array.isArray(pos.history))?pos.history.length:ply)+((review&&review.plyBase)||0))/2)+1 /* #547 item (171): numbered from the position ANALYSED, not the review ply - on the analysis board pos is the game you have moved on, so the number drifted a full move every two plies */,first=true;
@@ -10029,7 +10131,7 @@ function AppMain(){
          ellipsis for the rest of the session. Measured on #387: plies 19 and 25 of the Opera Game, three
          revisits each, never recovered. The trap itself is inside Stockfish and is not ours to fix; leaving
          the failure out of the cache is, and it turns 'never' into 'tries again when you come back'. */
-      if(line.trim()){engCacheRef.current[fen]={...val,txt:_t2,cp:_c2};}else{delete engCacheRef.current[fen];}
+      if(line.trim()){engCacheRef.current[_ek]={...val,txt:_t2,cp:_c2};}else{delete engCacheRef.current[_ek];}
       setEngLine({...val,txt:_t2,cp:_c2});
     })();
     return()=>{dead=true;};
@@ -10103,6 +10205,8 @@ function AppMain(){
       for(let i=0;i<moves.length;i++){const nb=applyMove(g.board,moves[i]);const san=toSAN(g,moves[i],nb);const wt=g.turn==='w';
         txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
       setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
+    /* batch 14, HEX-R-05: the best chip's line in words, in the sentence row while it shows (not for the why pill or a missed brilliant: neither is 'the best move') */
+    setBestSay(firstOverride?'':bestLineSay(states,moves));
     /* #550 HEX-R-04 (jobs/review-sentences-name-what-the-moves-do-2026-11-12): "A button called why should answer in words." When the why pill
        (firstOverride: the move he played) runs the line, the first two moves of it are put through explainLine - the engine line in words the
        ? sheet already uses - and shown in the line row in place of the bare moves. */
@@ -10110,7 +10214,7 @@ function AppMain(){
       setPlayWhy(playWhyTxt(_rows));}catch(e){setPlayWhy('');}}
     else setPlayWhy('');
     let plays=0;const step=(i)=>{if(bestLineTokenRef.current!==tok)return;if(i>=moves.length){setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setAnim(null);setSlideFromHide(false);plays++;if(plays<2){setBestLineBoard(states[0]);setTimeout(()=>step(0),650);}else{setBestLineBoard(null);}},950);return;}const pc=states[i].board[moves[i].fr][moves[i].fc];setBestLineBoard(states[i]);setSlideFromHide(true);setAnim({piece:pc,from:[moves[i].fr,moves[i].fc],to:[moves[i].tr,moves[i].tc]});setAnimTo(false);requestAnimationFrame(()=>requestAnimationFrame(()=>setAnimTo(true)));setTimeout(()=>{if(bestLineTokenRef.current!==tok)return;setBestLineBoard(states[i+1]);setSlideFromHide(false);setAnim(null);setTimeout(()=>step(i+1),430);},470);};step(0);};
-  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setPlayWhy('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
+  useEffect(()=>{bestLineTokenRef.current++;setBestLineBoard(null);setBestLineSan('');setBestSay('');setPlayWhy('');setAnaMode(false);setAnaHist([]);_engRestore();},[ply]);
   useEffect(()=>{if(!anaMode)setAnaFwd([]);},[anaMode]);   // #553: the stepped-past moves belong to one analysis board
   /* #548 item (109): ENTER the analysis board once the one-position review is on screen. Declared AFTER the [ply] effect above on
      purpose: that one turns analysis off on every ply change, and setPly(0) is one, so this must run later in the same flush. */
@@ -10998,6 +11102,8 @@ function AppMain(){
      (the box is a fixed height, so the board does not move), and the whole of it - with what was asked for before that move - is behind
      the same 'more' tap. Only a game this app saved as a coach game (the CTCoach tag) has any. */
   const _cNote=(inReview&&review&&review.coach)?coachPlyNote(review.coach,ply):null;
+  /* batch 14, HEX-R-09: the analysis board's sentence on the move just tried (anaSay), computed once per move (a ref, not a hook: this body has early returns above) */
+  const _anaKey=(inReview&&anaMode&&lastMv&&anaHist.length)?(anaHist.length+':'+lastMv.fr+lastMv.fc+lastMv.tr+lastMv.tc+(lastMv.promo||'')+':'+toFEN(anaHist[anaHist.length-1])):'';if(!anaSayRef.current||anaSayRef.current.k!==_anaKey)anaSayRef.current={k:_anaKey,t:_anaKey?anaSay(anaHist[anaHist.length-1],lastMv):''};const anaTxt=anaSayRef.current.t;
   const _annoWhy0=_annoRT?(_annoRT.line||null):null;const _annoMore0=_annoRT?(_annoRT.more||''):'';
   const _annoWhy=_cNote?(_cNote.head+(_annoWhy0?(' \u00b7 '+_annoWhy0):'')):_annoWhy0;
   const _annoMore=_cNote?([(_cNote.note&&_cNote.asked)?_cNote.asked:'',_annoMore0].filter(Boolean).join(' ')||'From your coach game.'):_annoMore0;
@@ -11137,11 +11243,25 @@ function AppMain(){
         </div>
       </div></div>)}
       {revMore&&inReview&&(<div onClick={()=>setRevMore(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div data-ct="rev-sheet" data-two={_rsTwo?'1':undefined} onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:_rsTwo?720:440,maxHeight:_rsTwo?'calc(100dvh - 12px)':(_rsShort?'calc(var(--ct-full-h,100dvh) - 8px)':'calc(var(--ct-full-h,100dvh) - 56px)') /* #550 helper B (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, AUD-R06: the More sheet 681 in 623 at 375x761): on a phone the sheet may rise to just under the 52 header row (it stopped at 82vh, 623 of 761), so every row is on screen without scrolling; the header's back and title stay visible above it. */ /* #550 desktop check DSK-11: on a window wider than tall (720 and over) the sheet is two columns of rows and may use the window's height, so it does not scroll on a laptop (it scrolled 194px at 1280x600) */,overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'10px 14px calc(16px + env(safe-area-inset-bottom,0px))',boxShadow:'0 -10px 30px rgba(0,0,0,.5)'}}><div style={{width:38,height:4,borderRadius:3,background:'rgba(255,255,255,.22)',margin:_rsTwo?'2px auto 12px':'2px auto 8px'}}/>
-        {review.openingName&&(<div style={{textAlign:'center',fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:_rsTwo?10:6}}>📖 Opening: <b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>)}
+        {(()=>{/* #553, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 part (4) [Amber: flags/amber-553-review-depth-in-review]: ONE COMPACT ROW, 'Review depth: Quick' with a
+            down arrow, on the opening's line (the sheet already filled his phone to the pixel - 703 in 704 at 375x761 - so a row of its own made it scroll:
+            755 in 704, and 597 in 559 at 320x568). It names the level THIS review was graded at (review.engine.level) and opens the card's depth menu
+            over the sheet; picking a level stores it for the game and runs that level BEHIND the open review (importGame meta.deeper), so he goes
+            deeper without leaving. The button's tap box is 44 tall; its negative margins keep the line 32 (the opening's name may take two 16px lines beside it). Hidden on the analysis board and in a
+            drill's one-position review, where there is no game to go deeper on. */
+          const _dOn=!anaMode&&!review.fromDrill;const _lvR=revLevel(review.engine&&review.engine.level);
+          if(!review.openingName&&!_dOn)return null;
+          return(<div data-ct="rev-sheet-head" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,height:_dOn?32:undefined,fontSize:'clamp(13.5px,2.5vw,14px)',color:'rgba(255,255,255,.8)',marginBottom:_rsTwo?10:(_dOn?4:6)}}>
+            {review.openingName&&<div data-ct="rev-opening" style={_dOn?{flex:'0 1 auto',minWidth:0,lineHeight:'16px',maxHeight:32,overflow:'hidden',display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflowWrap:'anywhere'}:undefined}>📖 {_dOn?null:'Opening: '}<b style={{color:'var(--ac2)'}}>{review.openingName.name}</b></div>}
+            {_dOn&&<button data-ct="rev-depth" aria-haspopup="menu" aria-expanded={revDepthMenu?'true':'false'} onClick={(e)=>{const r=e.currentTarget.getBoundingClientRect();const W=Math.min(248,vp.w-16),H=46+44*REV_DEPTHS.length;const left=Math.max(8,Math.min(vp.w-8-W,r.right-W));const below=r.bottom+6+H<=vp.h-8;setRevDepthMenu({left,top:below?r.bottom+6:Math.max(8,r.top-6-H),w:W,z:9995,cur:_lvR});}}
+              style={{flex:'0 0 auto',height:44,margin:'-6px 0',padding:0,background:'none',border:'none',cursor:'pointer',display:'flex',alignItems:'center',fontFamily:'inherit'}}>
+              <span data-ct="rev-depth-face" style={{display:'inline-flex',alignItems:'center',gap:5,height:30,boxSizing:'border-box',padding:'0 11px',borderRadius:9,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',color:'#fff',fontSize:14,fontWeight:700,whiteSpace:'nowrap'}}>{'Review depth: '}<span data-ct="rev-depth-level" style={{color:'var(--ac2)'}}>{REV_DEPTHS[_lvR].name}</span><span aria-hidden="true">{'\u25be'}</span></span>
+            </button>}
+          </div>);})()}
         <div style={{display:'flex',gap:7,flexWrap:'wrap',justifyContent:'center',marginBottom:_rsTwo?10:6}}>
           {[[review.counts.Brilliant,'#22d3ee','brilliant','Brilliant','brilliant'],[review.counts.Great,'#5d93e8','great','Great','great'],[review.counts.Blunder,'#ec5c4e','blunders','Blunder','blunder'],[review.counts.Mistake,'#f0a24e','mistakes','Mistake','mistake'],[review.counts.Inaccuracy,'#f0cf5e','inaccuracies','Inaccuracy','inaccuracy']].filter(x=>x[0]>0).map(([cn,c,lab,L,one])=>(<button key={lab} onClick={()=>{jumpToIssue(L);setRevMore(false);}} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:'clamp(13.5px,3vw,15px)',fontWeight:700,color:c,background:c+'1f',border:'1px solid '+c+'66',borderRadius:20,padding:'5px 12px',minHeight:44 /* #550 cg6 FMT-B-06: a 44 tap area (was 27) */,boxSizing:'border-box',cursor:'pointer'}}><b>{cn}</b> {cn===1?one:lab} ›</button>))}{/* #548 item (160): '1 blunders ›' read as plural whatever the count */}
         </div>
-        <div style={{display:'flex',justifyContent:'center',marginBottom:_rsTwo?10:6}}><EvalGraph analysis={review.analysis} bookN={(review&&review.summary&&review.summary.book)||0} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setPly(Math.max(0,Math.min(review.plies.length,p)));setRevMore(false);}} width={Math.min(boardPx,400)} height={_rsShort?44:62}/></div>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:_rsTwo?10:6}}><EvalGraph analysis={review.analysis} bookN={(review&&review.summary&&review.summary.book)||0} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setPly(Math.max(0,Math.min(review.plies.length,p)));setRevMore(false);}} width={Math.min(boardPx,400)} height={(anaMode||review.fromDrill)?(_rsShort?44:62):(_rsShort?30:48) /* #553: 14px less where the Review depth line sits above it (the 32px line replaces the opening's 18px one), so the sheet still fits his phone and the short one without scrolling */}/></div>
         {revStream&&!anaMode&&(()=>{/* #550 a21: the streamlined toolbar keeps Back, Analyze, Key move and Forward; First, Auto-play and Last live here */const _sb={flex:'1 1 0',minHeight:46,borderRadius:12,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',fontSize:'clamp(14px,3.6vw,15px)',fontWeight:800,cursor:'pointer'};return(
           <div data-ct="rev-sheet-nav" style={{display:'flex',gap:8,marginBottom:_rsShort?7:10}}>
             <button title="First move" aria-label="First move" onClick={()=>{setRevAuto(false);setPly(0);setRevMore(false);}} style={_sb}>{'\u23ee First'}</button>
@@ -11160,6 +11280,7 @@ function AppMain(){
         <_SheetItem icon="newgame" label="New game" on={()=>{setRevMore(false);resetReview();}}/>
         </div>
       </div></div>)}
+      {revDepthMenu&&inReview&&<DepthMenu m={revDepthMenu} cur={revDepthMenu.cur} onClose={()=>setRevDepthMenu(null)} onPick={(l)=>{const R=review;setRevDepthMenu(null);setRevMore(false);if(!R)return;const k=R.meta&&R.meta.key;if(k)setGameDepth(k,l);if(l!==revDepthMenu.cur)importGame(R.pgn,{...(R.meta||{}),depth:l,deeper:true});}}/>}
       {devOn&&preview&&(()=>{const _ev=LIB.findIndex(o=>o.name&&o.name.indexOf('Evans')>=0);
         const _lesson=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setTimeout(()=>setIntroCard(false),60);};
         const _picker=(i)=>{const j=i>=0?i:0;setHomeScreen(false);setMode('learn');selectOpening(j);setDemoPlaying(false);setTimeout(()=>{setDemoPlaying(false);setDemoPly((LIB[j].line||[]).length);},200);};
@@ -12737,7 +12858,7 @@ function AppMain(){
           {/* #549 item (44), gate 26 at se: the title moved up into this row so the row costs no summary height. With the title
               left in the scroller the whole summary sat 26px lower and at 320x568 the Best row went under the footer (gate 26's
               se/rev-summary pin read 1 side-by-side row, not 2). The title stays centred and clear of the button. */}
-          <TopRow ct="rev-summary-top" style={{height:46,marginTop:TOP_Y /* #550 FMT-A-06: TOP_Y under the safe area, as on every screen */}} title={'Game review'}
+          <TopRow ct="rev-summary-top" style={{height:46,marginTop:TOP_Y /* #550 FMT-A-06: TOP_Y under the safe area, as on every screen */}} title={deepRun?null:'Game review'} mid={deepRun?deepTitle(TOP_TITLE):null}
             back={<TopBack ct="rev-summary-back" label="Back to games" onClick={resetReview}/>}
             menu={<TopBtn ct="rev-summary-menu" onClick={()=>setMenuOpen(true)} label="Menu and settings">{'\u2630'}</TopBtn>}/>{/* #550 FMT-B-01/B-03 (Kunal's pick 12 Nov): the standard top row - Back top-left (the same as the footer's Back to games), the title centred at the one size, the menu 44x44 at TOP_EDGE (was 38x30 at 12) */}
           {/* #334: the summary scrolls inside this box; the two action buttons live in a footer pinned to the bottom of the screen (Kunal: no scrolling to reach Start review or Back) */}
@@ -13562,13 +13683,7 @@ function AppMain(){
                   their rough times, the game's current one ticked. Picking another level stores it for that game and runs its review at
                   that depth; picking the current one, or a tap outside, only closes the menu. Fixed to the viewport, so the list's own
                   scroll box cannot cut it; a scroll or a resize closes it rather than leave it hanging off its button. */}
-              {depthMenu&&(()=>{const m=depthMenu;const cur=revLevel(gDepth[m.key]);return(
-                <div data-ct="depth-menu-veil" onClick={()=>setDepthMenu(null)} onWheel={()=>setDepthMenu(null)} onTouchMove={()=>setDepthMenu(null)} style={{position:'fixed',inset:0,zIndex:9980,touchAction:'none'}}>
-                  <div data-ct="depth-menu" role="menu" aria-label="Review depth" onClick={e=>e.stopPropagation()} style={{position:'fixed',left:m.left,top:m.top,width:m.w,boxSizing:'border-box',padding:'6px 0',borderRadius:12,background:'#18202b',border:'1px solid rgba(255,255,255,.24)',boxShadow:'0 12px 32px rgba(0,0,0,.65)',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-                    <div data-ct="depth-menu-label" style={{height:32,boxSizing:'border-box',padding:'6px 14px 0',fontSize:15,fontWeight:700,color:'rgba(255,255,255,.6)',whiteSpace:'nowrap'}}>Review depth</div>
-                    {REV_DEPTHS.map((d,l)=>(<button key={d.name} data-ct="depth-opt" data-level={l} role="menuitemradio" aria-checked={l===cur?'true':'false'} onClick={()=>{setDepthMenu(null);if(l!==cur){setGameDepth(m.key,l);pickCcGame(m.g,l);}}} style={{display:'flex',alignItems:'center',gap:7,width:'100%',height:44,boxSizing:'border-box',padding:'0 14px',background:l===cur?'rgba(var(--acr),.16)':'none',border:'none',color:'#fff',fontSize:15,fontFamily:'inherit',cursor:'pointer',textAlign:'left',whiteSpace:'nowrap'}}><span data-ct="depth-tick" aria-hidden="true" style={{flexShrink:0,width:15,color:'var(--ac2)',fontWeight:800}}>{l===cur?'✓':''}</span><span style={{fontWeight:700}}>{d.name}</span><span style={{color:'rgba(255,255,255,.6)'}}>{'('+d.about+')'}</span></button>))}
-                  </div>
-                </div>);})()}
+              {depthMenu&&<DepthMenu m={depthMenu} cur={revLevel(gDepth[depthMenu.key])} onClose={()=>setDepthMenu(null)} onPick={(l)=>{const m=depthMenu;setDepthMenu(null);if(l!==revLevel(gDepth[m.key])){setGameDepth(m.key,l);pickCcGame(m.g,l);}}}/>}
               {/* #549 item (78) work[3]: the list pages in the OLDEST direction by an explicit tap, at its end, never by scrolling
                   [Amber: flags/amber-549-review-load-older-games]. Shown only while acctCanGrow says a walk would bring something. 
                   WHILE THE WALK RUNS (olderBusy) the busy control stays and "Show N more" is withheld: acctStore publishes the merged rows
@@ -13772,7 +13887,7 @@ function AppMain(){
                  where the container ends - and #394 asserted only that a clamp was set, which is why this survived.
                  ceil(3 x 16.9) = 51 and ceil(2 x 16.9) = 34. The child now takes _reasonH rather than repeating the
                  literal, so the two can never drift apart again; that duplication is how 58 outlived its line height. */
-                 const _reasonH0=anaMode?0:(_tall?17*revFit.lines:34);/* batch 13: 51, 34 or 17 - the box is exactly the lines its clamp allows (#397), and where the rows have given way (revFit.lines under 3) a tap on it opens the whole explanation in the sheet *//* #549 item (95), jobs/exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30 (folded in: engine-line-toggle-moves-the-board-9-5px-at-568-tall-2026-10-01): A ROW THAT CAN APPEAR MUST RESERVE ITS SPACE. Where the board is bound by HEIGHT (heightCap = vp.h-safeTop-safeBot-REV_CHROME, the SQ term) the two player bars share every spare pixel, so switching the engine line on took its 20px out of BOTH bars and the board rose 10px - measured on #549's own HEAD at 320x568 and 375x568, top 55.5 -> 45.5, width 264 unchanged; zero at 375x679/730/761, 390 and 430, where the board is width-bound and the 20px comes out of the band below the bars. So where the height cap leaves under 20px over the board, the row's 20px is reserved with the line off too; the board then sits where it will sit with the line on and the toggle moves nothing. Width-bound screens (Kunal's phone) are untouched: no reservation, nothing moves. BUT ONLY WHERE THE BARS CAN PAY FOR IT. At the height cap each bar is 51.5 (measured at 320x568 and 375x568), so the two share slack+103; the reservation takes 20 of that, and if either bar would fall under its minHeight (32 under 640 tall, else 46) the fit loop trims the BOARD instead - measured at 360x640: 334 -> 320 with the reservation on. A smaller board for good to stop a one-time shrink on a toggle is a trade the board rule does not license, so 360x640 is NOT reserved and keeps its old behaviour (334 -> 320 when the line goes on), named as the remainder on the job. 375x667 (slack 14, bars 48.5 >= 46) is reserved and keeps 349.03: its 3.5px shift goes. *//* #550 US-R143 (Kunal: "every time I click on the next move button ... the board keeps shaking for a few seconds", Review on his
+                 const _reasonH0=(anaMode&&_tall&&!revStream)?0:(_tall?17*revFit.lines:34);/* batch 14, HEX-R-09: the analysis board keeps the sentence row too, for the move just tried (anaTxt) - the same height, so entering analysis or playing a move there changes no row (measured: board 375 wide at y 118 at 375x761, 320 at 58 at 320x568, 390 at 0 at 844x390, before and after). NOT in the upright non-streamlined layout (the tablet, 768x1024): there rev-compact is content-sized and the row cost the board 24px (720 -> 696), so it keeps its old analysis box with no sentence - the iPad is parked (CLAUDE.md) *//* batch 13: 51, 34 or 17 - the box is exactly the lines its clamp allows (#397), and where the rows have given way (revFit.lines under 3) a tap on it opens the whole explanation in the sheet *//* #549 item (95), jobs/exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30 (folded in: engine-line-toggle-moves-the-board-9-5px-at-568-tall-2026-10-01): A ROW THAT CAN APPEAR MUST RESERVE ITS SPACE. Where the board is bound by HEIGHT (heightCap = vp.h-safeTop-safeBot-REV_CHROME, the SQ term) the two player bars share every spare pixel, so switching the engine line on took its 20px out of BOTH bars and the board rose 10px - measured on #549's own HEAD at 320x568 and 375x568, top 55.5 -> 45.5, width 264 unchanged; zero at 375x679/730/761, 390 and 430, where the board is width-bound and the 20px comes out of the band below the bars. So where the height cap leaves under 20px over the board, the row's 20px is reserved with the line off too; the board then sits where it will sit with the line on and the toggle moves nothing. Width-bound screens (Kunal's phone) are untouched: no reservation, nothing moves. BUT ONLY WHERE THE BARS CAN PAY FOR IT. At the height cap each bar is 51.5 (measured at 320x568 and 375x568), so the two share slack+103; the reservation takes 20 of that, and if either bar would fall under its minHeight (32 under 640 tall, else 46) the fit loop trims the BOARD instead - measured at 360x640: 334 -> 320 with the reservation on. A smaller board for good to stop a one-time shrink on a toggle is a trade the board rule does not license, so 360x640 is NOT reserved and keeps its old behaviour (334 -> 320 when the line goes on), named as the remainder on the job. 375x667 (slack 14, bars 48.5 >= 46) is reserved and keeps 349.03: its 3.5px shift goes. *//* #550 US-R143 (Kunal: "every time I click on the next move button ... the board keeps shaking for a few seconds", Review on his
                  computer, a 1063x1134 page at 150%): TWO DEFECTS IN THIS ONE LINE, and together they were a loop. (1) THE SLACK WAS READ OFF THE
                  TRIMMED BOARD (boardPx), so the fit loop's own trim switched the reservation: at trim 0 the 20px row was reserved and the page
                  read 2px over, the loop trimmed 16, the slack became 26, the reservation LAPSED and gave its 20px back to the column, fixr3e's
@@ -13810,7 +13925,7 @@ function AppMain(){
                  rev-bestline, which is overflowY:hidden and therefore cuts its own text with no ellipsis, the very
                  silent cut this build exists to remove. The two-row state has no slack and no shrinkable row, which
                  is why the defect showed up there and only there. See the note on rev-bestline below. */
-                 /* batch 13: where the rows have given way the engine line and the best line take the explanation's lines instead of adding to them (an overlay, not a reserved row), so a line just switched on is on screen and not under the buttons; the explanation is a tap away in its sheet */const _reasonH=(_tall&&!anaMode&&revFit.lines<3)?Math.max(17,17*Math.floor(Math.max(0,_reasonH0-_engH-_bestH)/17)):_reasonH0;/* batch 13 (gate 21's sweep, 448a848a): BUT NEVER LESS THAN ONE LINE. It was 17*floor((34-20)/17) = 0 at 375x679 and 375x667 with the engine line on (and at 320x568 from 20), so rev-why-txt was not rendered and the explanation - its tap, its sheet, its comparison clause - could not be reached at all until the engine line was switched off. It keeps one line and its tap; where the switched-on lines leave no room for it, it goes AFTER them (_reasonLast) and rev-compact scrolls to it behind its fade, so the line just switched on is still on screen and the board, which revFit sizes and engOn does not touch, does not move */const _reasonLast=_tall&&!anaMode&&revFit.lines<3&&(_engH+_bestH)>0;const _whyH=_stripH+_reasonH+_engH+_bestH;const _whyTap=_tall&&revFit.lines<3&&!!_annoWhy;return _whyH>0&&(
+                 /* batch 13: where the rows have given way the engine line and the best line take the explanation's lines instead of adding to them (an overlay, not a reserved row), so a line just switched on is on screen and not under the buttons; the explanation is a tap away in its sheet */const _reasonH=(_tall&&revFit.lines<3)?Math.max(17,17*Math.floor(Math.max(0,_reasonH0-_engH-_bestH)/17)):_reasonH0;/* batch 13 (gate 21's sweep, 448a848a): BUT NEVER LESS THAN ONE LINE. It was 17*floor((34-20)/17) = 0 at 375x679 and 375x667 with the engine line on (and at 320x568 from 20), so rev-why-txt was not rendered and the explanation - its tap, its sheet, its comparison clause - could not be reached at all until the engine line was switched off. It keeps one line and its tap; where the switched-on lines leave no room for it, it goes AFTER them (_reasonLast) and rev-compact scrolls to it behind its fade, so the line just switched on is still on screen and the board, which revFit sizes and engOn does not touch, does not move */const _reasonLast=_tall&&revFit.lines<3&&(_engH+_bestH)>0;const _bSay=(showBest&&bestSay&&!anaMode)?bestSay:'';/* batch 14, HEX-R-05: while the best line shows, the row says what it does; the played move's sentence is a tap away in the sheet */const _rTxt=anaMode?anaTxt:(_bSay||_annoWhy);const _rTap=!anaMode&&(_annoMore||(_tall&&revFit.lines<3&&!!_annoWhy)||(!!_bSay&&!!_annoWhy));const _whyH=_stripH+_reasonH+_engH+_bestH;const _whyTap=_tall&&revFit.lines<3&&!!_annoWhy;return _whyH>0&&(
             <div data-ct="rev-why" style={{...(anaMode?{minHeight:_whyH}:{height:_whyH}) /* #553: on the analysis board the engine's line has a caption and wraps, so this box grows with it (rev-compact scrolls past its floor, so the board does not move); its fixed 20 cut the line in half under the caption (gate 196 TC-R296) */,flexShrink:0,overflow:'hidden',display:'flex',flexDirection:'column',gap:0}}>
             {/* #398: THIS ROW IS THE ONE WITH NO DECLARED HEIGHT, AND THAT IS DELIBERATE. rev-why reserves a fixed
                 height summed from its rows' declared heights; this row is content-sized and _bestH reserves 20 for
@@ -13831,7 +13946,7 @@ function AppMain(){
             {_stripH>0&&_cmpStrip&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
               {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
             </div>)}
-            {!anaMode&&_reasonH>0&&<div data-ct="rev-why-txt" data-pending={(_annoRT&&_annoRT.pending&&!_cNote)?'1':undefined} data-last={_reasonLast?'1':undefined} style={{height:_reasonH,flexShrink:0,...(_reasonLast?{order:1}:null),fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?Math.round(_reasonH/17):2,WebkitBoxOrient:'vertical',cursor:(_annoMore||_whyTap)?'pointer':'default'}} className={(_annoMore||_whyTap)?'ct-hasmore':undefined} data-more={_annoMore||undefined} role={(_annoMore||_whyTap)?'button':undefined} aria-label={(_annoMore||_whyTap)?((_annoWhy||'')+' More about this move'):undefined} onClick={()=>{if(_annoMore||_whyTap)setRevMoreOpen(true);}}>{_annoWhy||'\u00a0'}</div>}
+            {_reasonH>0&&<div data-ct="rev-why-txt" data-say={anaMode?'ana':(_bSay?'best':undefined)} data-pending={(!anaMode&&!_bSay&&_annoRT&&_annoRT.pending&&!_cNote)?'1':undefined} data-last={_reasonLast?'1':undefined} style={{height:_reasonH,flexShrink:0,...(_reasonLast?{order:1}:null),fontSize:'clamp(13px,2.8vw,14.5px)',lineHeight:1.3,color:'rgba(255,255,255,.78)',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:_tall?Math.round(_reasonH/17):2,WebkitBoxOrient:'vertical',cursor:_rTap?'pointer':'default'}} className={_rTap?'ct-hasmore':undefined} data-more={(!anaMode&&_annoMore)||undefined} role={_rTap?'button':undefined} aria-label={_rTap?((_rTxt||'')+' More about this move'):undefined} onClick={()=>{if(_rTap)setRevMoreOpen(true);}}>{_rTxt||'\u00a0'}</div>}
             
             {engOn&&engWhy&&engLine&&engLine.pv&&engLine.pv.length>0&&(()=>{const rows=explainLine(engLine.fen,engLine.pv,4,engLine.no).map(r=>(review&&review.noNum)?{...r,san:String(r.san||'').replace(/^\d+(\.|\u2026)+\s*/,'')}:r);const ew=evalWords(engLine.cp);return(
               <div data-ct="rev-engwhy" role="dialog" aria-label="What the engine line means" onClick={()=>setEngWhy(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:480,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}>
@@ -13858,7 +13973,7 @@ function AppMain(){
           {devOn&&showGates&&(curAnno&&curAnno.gate?(()=>{const G=curAnno.gate;return(<div style={{fontSize:'clamp(12px,2.3vw,12.5px)',fontFamily:'monospace',color:'rgba(255,255,255,.85)',background:'rgba(0,0,0,.28)',border:'1px solid rgba(255,255,255,.14)',borderRadius:9,padding:'6px 10px',textAlign:'center'}}>loss {G.loss} · sac {G.sac} · evAfter {G.evAfter} · evBefore {G.evBefore} · cap {G.cap} · {G.ok?'!! passes':'no'}</div>);})():null)}
           {revStream&&evalGraph&&review&&review.analysis&&review.analysis.length>1&&(<div key={'band'+(anaMode?1:0)+':'+ply+':'+(engOn?1:0)+(showBest?1:0)} ref={revBandRef} data-to='[data-ct="rev-toolbar"]' /* #550 round 6 (gate 20 TC-R72): measured to the toolbar's own top, so the graph never reaches 4px into it */ data-ink={anaMode?undefined:'1'} /* #550 a21: in analysis too - its row hides the reason, and the room it leaves (81px at 375x761, gate 77) is the graph's, not an empty band */ data-ct="rev-graph-band" style={{position:'relative',width:'100%',height:0,flex:'0 0 0px'}}>{(revBandH-revBandOff)>=40&&(<div data-ct="eval-graph" style={{position:'absolute',left:0,top:revBandOff,width:'100%',height:revBandH-revBandOff,display:'flex',alignItems:'center',justifyContent:'center'}}><EvalGraph analysis={review.analysis} bookN={(review&&review.summary&&review.summary.book)||0} plies={review.plies} ply={ply} missed={revMissed} onJump={(p)=>{setRevAuto(false);setPly(Math.max(0,Math.min(review.plies.length,p)));}} width={Math.round(boardPx)} height={Math.min(84,revBandH-revBandOff-8)}/></div>)}</div>)}
         </div>
-        {!anaMode&&revMoreOpen&&(_annoMore||(revFit.lines<3&&_annoWhy))&&(<div data-ct="rev-why-sheet" role="dialog" aria-label="More about this move" onClick={()=>setRevMoreOpen(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:9990 /* antagonist B, B2: at 320x568 the player bar and the move strip sat over the sheet's first lines. The z-index was never the cause: rev-compact carries a mask-image (its bottom fade), a mask makes a stacking context, and inside one a z-index only orders siblings, so the strip and the player bar painted over the sheet at any value. The sheet now renders OUTSIDE rev-compact, as its sibling. Gate 21 TC-R10s */,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}><div style={{marginBottom:6}}>{_annoWhy}</div>{_annoMore&&<div style={{color:'rgba(255,255,255,.78)'}}>{_annoMore}</div>}<div style={{marginTop:8,fontSize:'.85em',color:'rgba(255,255,255,.5)'}}>Tap to close.</div></div>)}
+        {!anaMode&&revMoreOpen&&(_annoMore||(revFit.lines<3&&_annoWhy)||(showBest&&bestSay&&_annoWhy))&&(<div data-ct="rev-why-sheet" role="dialog" aria-label="More about this move" onClick={()=>setRevMoreOpen(false)} style={{position:'fixed',left:8,right:8,bottom:'calc(env(safe-area-inset-bottom,0px) + 64px)',zIndex:9990 /* antagonist B, B2: at 320x568 the player bar and the move strip sat over the sheet's first lines. The z-index was never the cause: rev-compact carries a mask-image (its bottom fade), a mask makes a stacking context, and inside one a z-index only orders siblings, so the strip and the player bar painted over the sheet at any value. The sheet now renders OUTSIDE rev-compact, as its sibling. Gate 21 TC-R10s */,maxHeight:'45vh',overflowY:'auto',background:'#15181f',border:'1px solid rgba(var(--acr),.45)',borderRadius:14,padding:'11px 13px',boxShadow:'0 10px 30px rgba(0,0,0,.6)',fontSize:'clamp(14px,3.3vw,15px)',lineHeight:1.45,color:'rgba(255,255,255,.9)'}}><div style={{marginBottom:6}}>{_annoWhy}</div>{_annoMore&&<div style={{color:'rgba(255,255,255,.78)'}}>{_annoMore}</div>}<div style={{marginTop:8,fontSize:'.85em',color:'rgba(255,255,255,.5)'}}>Tap to close.</div></div>)}
         {/* #550 a21: THE BOARD IS A FUNCTION OF THE SCREEN, NOT OF THE PLY. rev-compact takes the room between the strip and this
             toolbar (flex 1 1 0, at least the move line plus the why box's reason, and the engine line and best line when they are SWITCHED on - a setting, not a ply), and
             scrolls anything beyond it, so a ply with a longer explanation, the engine line, the best line or analysis cannot
@@ -14951,7 +15066,10 @@ function AppMain(){
                   the row identical at 76 inked columns), which is #398's own distinction between "this was cut"
                   and "this could be cut". Fixed anyway, for #398's reason: a longer tally or a larger
                   accessibility font would have cashed it in. */}
-              <div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&<div data-ct={'pbar-takenpc-'+col} style={{display:'flex',alignItems:'center',flexWrap:'nowrap',minWidth:0,flexShrink:1,overflow:'hidden'}}>{taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:(i===taken.length-1?0:-2),...(landBars?{flex:(i===taken.length-1?'0 0 auto':'0 1 18px'),minWidth:5,overflow:'visible'}:null) /* #550 antagonist B F2: sideways a long tally overlaps tighter instead of being cut - each slot gives way, the last piece stays whole */}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}</div>}{lead>0&&<span data-ct={'pbar-lead-'+col} style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_lightBar?'rgba(0,0,0,.72)':_fgDim /* readability check A11Y-11 (Kunal's pick 12 Nov): the material count read 3.48 to 1 on the cream bar at half ink */,marginLeft:6,flexShrink:0}}>+{lead}</span>}</div>
+              {(!isTop&&inReview&&revCompact&&!revHead&&deepRun&&!anaMode)?(<div data-ct="deep-progress-strip" style={{height:18,flexShrink:0,display:'flex',flexDirection:'column',justifyContent:'space-between',minWidth:0}}>{/* #553 (part 4): where the moves view has no title row (a short phone: back and the menu sit in this bar), the 'Going deeper' line takes the captured pieces' 18px line of the BOTTOM bar while the pass runs (the top bar there holds back and the menu and is about 190px wide at 320, too narrow for 'Going deeper: Deepest, 33 of 33'; the bottom bar has about 255) - nothing in the bar or under it moves, and the pieces come back when it ends [Amber: flags/amber-553-review-depth-in-review] */}
+                <div data-ct="deep-progress" role="status" aria-live="polite" style={{lineHeight:'15px',fontSize:13,fontWeight:700,color:_lightBar?'#1d4f8f':'var(--ac2)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{deepLine(deepRun)}</div>
+                <div aria-hidden="true" style={{height:2,borderRadius:1,background:_lightBar?'rgba(0,0,0,.14)':'rgba(255,255,255,.14)',overflow:'hidden'}}><div data-ct="deep-progress-bar" style={{height:'100%',width:(Math.max(0,Math.min(1,deepRun.f||0))*100)+'%',background:'var(--ac)',transition:'width .3s'}}/></div>
+              </div>):<div data-ct={'pbar-taken-'+col} style={{display:'flex',alignItems:'center',height:18,flexShrink:0,flexWrap:'nowrap',overflow:'hidden'}}>{taken.length>0&&<div data-ct={'pbar-takenpc-'+col} style={{display:'flex',alignItems:'center',flexWrap:'nowrap',minWidth:0,flexShrink:1,overflow:'hidden'}}>{taken.map((t,i)=>(<span key={i} style={{display:'inline-flex',marginRight:(i===taken.length-1?0:-2),...(landBars?{flex:(i===taken.length-1?'0 0 auto':'0 1 18px'),minWidth:5,overflow:'visible'}:null) /* #550 antagonist B F2: sideways a long tally overlaps tighter instead of being cut - each slot gives way, the last piece stays whole */}}><Piece t={t} color={enemy} sz={18} useFallback={fallback} onFail={onPieceFail}/></span>))}</div>}{lead>0&&<span data-ct={'pbar-lead-'+col} style={{fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:_lightBar?'rgba(0,0,0,.72)':_fgDim /* readability check A11Y-11 (Kunal's pick 12 Nov): the material count read 3.48 to 1 on the cream bar at half ink */,marginLeft:6,flexShrink:0}}>+{lead}</span>}</div>}
             </div>
             {!isTop&&inReview&&revCompact&&!revStream&&!landRev/* #550 antagonist B F8: sideways the column's own graph shows the game, so the bar's 130px copy goes and the captured pieces get its width */&&evalGraph&&!(revBandH>=40)&&boardPx>=300&&review&&review.analysis&&review.analysis.length>1&&(()=>{ /* #547 item (56): the bar fallback only where the bar (the board's width) has room for it. Once the graph was ON by default it sat in the 264px bottom bar at 320x568 and left the player's name 15 of 98px - gate 26 TC-INV-04c, measured on this run's trial; there the graph lives in the review's ⋯ sheet only */const A=review.analysis;const n=A.length;const gw=Math.max(90,Math.min(130,Math.round(boardPx*0.36))); /* #371: 154 left 'Duke Kar…' in 89px; 126 on his phone */const gh=Math.max(26,Math.min(40,(vp.h<640?32:46)-8));const mid=gh/2;const cl=(v)=>Math.max(-5,Math.min(5,(typeof v==='number'?v:0)));
               const xs=(i)=>Math.round((i/(n-1))*(gw-2)*10)/10+1;const ys=(v)=>Math.round((mid-cl(v)/5*(mid-1))*10)/10;
@@ -14990,7 +15108,7 @@ function AppMain(){
         {revHead&&reviewView!=='summary'&&(()=>{const _hs={...TOP_BTN,fontWeight:800};   /* #550 FMT-B-03: the standard corner button (was 44x40 radius 10) */return(
           <div data-ct="rev-head" style={{position:'relative',width:vp.w,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'0 '+TOP_EDGE+'px 2px',boxSizing:'border-box',flexShrink:0}}>{/* the row stays 46 tall: 44 buttons and 2 under, where it was 2 + 40 + 4 */}
             <button data-ct="rev-back" onClick={()=>{if(review&&review.fromDrill){leaveDrillAnalysis();return;}setReviewView('summary');}} aria-label="Back" title="Back to the summary" style={{..._hs,fontSize:24}}><ChevIcon size={ICON_ROW_CHEV} dir="left"/></button>
-            <div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game review'}</div>{/* #550 FMT-B-01: centred, the one title style */}
+            {(!anaMode&&deepRun)?deepTitle({...TOP_TITLE,bottom:2}):<div data-ct="top-title" style={{...TOP_TITLE,bottom:2}}>{anaMode?'Analysis':'Game review'}</div>}{/* #550 FMT-B-01: centred, the one title style */}
             <button data-ct="rev-more" onClick={()=>setRevMore(true)} aria-label="More" style={{..._hs,fontSize:ICON_ROW_DOTS}}>{'\u22ef'}</button>
           </div>);})()}
         {_showBars&&!landBars&&pBar(topColor,true)}

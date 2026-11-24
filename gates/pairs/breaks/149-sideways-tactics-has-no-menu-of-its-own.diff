@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14639,7 +14639,7 @@
+         ):learnGroup==='tactics'?(
+           <div style={tacRail?{position:'fixed',left:'calc(env(safe-area-inset-left,0px) + '+_tacPad+'px)',top:0,bottom:0,right:_tacPad+TAB_RAIL_W+8,zIndex:3,overflow:'hidden'}:{width:'100%'}}>{/* #550 BSA-L-01: sideways the page takes the space between the edge and the tab rail, free of the 280 learn column */}
+             {wide&&!tacRail&&<button onClick={()=>setLearnGroup(null)} style={{...TOP_BTN,width:'auto',padding:'0 12px' /* #550 FMT-A-02/A-14: sideways the Back is the standard 44 high corner button, its words kept (was 68x32) */,fontSize:14,fontWeight:600,marginBottom:12}}>‹ Back</button>}
+-            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo} land={tacRail} onBack={(wide&&!tacRail)?undefined:()=>setLearnGroup(null)} onMenu={(wide&&!tacRail)?undefined:()=>setMenuOpen(true)}/>{/* #550 a26: on a phone the trainer draws its own bar (back, tabs, menu) */}
++            <TacticsTrainer light={TH.light} dark={TH.dark} demo={trainerDemo} land={tacRail} onBack={(wide&&!tacRail)?undefined:()=>setLearnGroup(null)} onMenu={undefined}/>{/* #550 a26: on a phone the trainer draws its own bar (back, tabs, menu) */}
+           </div>
+         ):learnGroup==='train'?((()=>{
+           const trainable=LIB.map((o,i)=>i).filter(i=>{const g=groupOf(LIB[i].cat);return g==='openings'||g==='gambits';});

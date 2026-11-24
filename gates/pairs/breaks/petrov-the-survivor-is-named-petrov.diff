@@ -1,0 +1,11 @@
+--- a/lessons.js
++++ b/lessons.js
+@@ -509,7 +509,7 @@
+     ] },
+   // ─────────────── more main openings ───────────────
+   // #549 item (65): the ONE Petrov/Petroff lesson. It sits in the OPENINGS slot the duplicate "Petrov (Russian) Defense" held (so no LIB index before MORE moves); its line already contains that lesson's whole line as a prefix. Old progress under the removed name is migrated in chess.jsx (search LIB_RENAMED).
+-  {name:"Petroff (Russian) Defense", video:{ id:"KrGPeutGfaQ", title:"Petroff Defense Classical Variation (main line)", author:"Hanging Pawns", length:"29 min" },eco:"C42",side:"b",cat:"Defenses to 1. e4",
++  {name:"Petrov (Russian) Defense", video:{ id:"KrGPeutGfaQ", title:"Petroff Defense Classical Variation (main line)", author:"Hanging Pawns", length:"29 min" },eco:"C42",side:"b",cat:"Defenses to 1. e4",
+    // #549 antagonist B final read (B5-F): bookPlies 10 keeps the review's Book count where the removed Petrov lesson's 10-ply line
+    // had it (chess.jsx lessonBookPlies reads only that prefix as book); the lesson itself still teaches all 12 plies.
+    bookPlies:10,

@@ -1,0 +1,20 @@
+{
+ "job": "tactics-sideways-paints-a-second-page-level-menu-button-2026-11-13",
+ "about": "Sideways Tactics & strategy paints exactly one 'Menu and settings' button (the one in its own bar) and none under or over the tab rail. Gate 149 run with CT_149_TAC_ONLY=1 (its Tactics blocks only); graded lines are TC-R225k: the rail is found, ONE menu, every rail tab answers its own tap. Windows are the gate's own computer-sized ones: it is a desktop-width defect (the page-level button is drawn only when `wide`), so kunal761 and 320x568 are not situations; the phone's own menu is covered by other gates. NOT COVERED: how the single menu looks to him on a computer.",
+ "gate": "gates/regress/149-desktop-board-pages.js",
+ "env": {"CT_149_TAC_ONLY": "1"},
+ "checks": ["TC-R225k "],
+ "build": "auto",
+ "situations": [
+  {"name": "1920x1080", "match": "^1920x1080: "},
+  {"name": "1280x720", "match": "^1280x720: "},
+  {"name": "761x375", "match": "^761x375: "},
+  {"name": "1280x600", "match": "^1280x600: "}
+ ],
+ "breaks": [
+  {"name": "page-level-menu-is-back", "patch": "breaks/149-page-level-menu-is-back-on-sideways-tactics.diff", "why": "the original defect: the page-level menu is drawn again on sideways Tactics (beside the group at 1920, under the rail's Home tab on laptops)"},
+  {"name": "no-menu-of-its-own", "patch": "breaks/149-sideways-tactics-has-no-menu-of-its-own.diff", "why": "the other way to get it wrong: Tactics's own bar menu is dropped as well, so there is no menu button at all"},
+  {"name": "back-on-the-widest-windows", "patch": "breaks/149-page-level-menu-is-back-on-the-widest-windows.diff", "why": "the guard narrowed so the second button returns only at 1700 wide and over (1920x1080, 2560x1320), where it sits beside the group"}
+ ],
+ "timeoutSec": 1500
+}

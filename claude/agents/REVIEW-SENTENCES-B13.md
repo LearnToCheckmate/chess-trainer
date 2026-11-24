@@ -110,8 +110,8 @@ that move. Where no reason can be proved the line keeps the move, now with its n
 
 ## Not changed here
 
-- HEX-R-05, the "best line" row after tapping best: still the moves only.
-- HEX-R-09, the analysis board: still no sentence about the move just tried.
+- HEX-R-05, the "best line" row after tapping best: still the moves only. (Built at batch 14, #553: section 12.)
+- HEX-R-09, the analysis board: still no sentence about the move just tried. (Built at batch 14, #553: section 12.)
 - HEX-R-07, the rest: the toughest moment is not a button, and the speech bubble still says "below" in four of its six
   sentences (the count tiles under it do jump to the moves; the key moments list is still switched off).
 - HEX-R-14 has no text of its own: the star lands on the sentences above.
@@ -157,3 +157,30 @@ Unchanged: "Clean game. You stayed accurate and converted without slipping.", "S
 (the counts it means are below) and "Solid, accurate game throughout." The toughest moment in the bubble is Coach's take's own (the same
 rule, revToughI), so the two never disagree. The last row closes
 jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turned-and-there-are-none-2026-11-19.
+
+## 12. The best line and the analysis board in words (HEX-R-05, HEX-R-09; batch 14, #553)
+
+OLD is the tree this part started from (cce5367e), NEW is this part's, both read through gate 187 (US-R190, TC-R264). The sentence row
+under the move line (rev-why-txt) carries both; nothing else on the screen changes and the board does not move (measured at 375x761,
+320x568 and 844x390). Amber: flags/amber-553-review-best-and-analysis-sentences.
+
+| Where | Old | New |
+|---|---|---|
+| Opera Game 10...cxb5, best tapped (on screen; the line row reads "best line 10... Qb4+ 11. Qxb4 Bxb4+ 12. c3") | Black's small slip. White's best reply is the bishop move 11.Bxb5 with check. | Best was Qb4 with check. The queens come off. (The old sentence is one tap away on the row, in its sheet.) |
+| 29...Ra7, best line 29...Qf1+ 30.Rxf1 Rxf1# | (the played move's sentence) | Best was Qf1 with check. The line ends in mate: Rxf1 mate. |
+| 22.a5, best line 22.Qxc7 Qf7 23.Qxf7+ Rxf7 24.Bd6 | (the played move's sentence) | Best was Qxc7: it wins the pawn. The queens come off and the line wins a pawn. |
+| analysis board, 14...Qe6 tried (on screen) | Analysis · 1 move in · White to play (nothing under it) | Qe6 lets Bxd7 win material: it takes the rook on d7, with check. |
+| analysis board, then 15.Bxd7+ (on screen) | Analysis · 2 moves in · Black to play | Bxd7 takes the rook on d7, with check, and Nxd7 can take back. |
+| analysis board, 17.Rd8 from 16...Nxb8 (on screen) | Analysis · 1 move in · Black to play | Rd8 is checkmate. |
+| analysis board, 20...Rf8 (audit example) | Analysis · 1 move in · White to play | Rf8 lets Qxa7 win material: it takes the pawn on a7 for nothing. |
+| analysis board, 14...fxe5 (audit example) | Analysis · 1 move in · White to play | fxe5 takes the pawn on e5, and dxe5 can take back. |
+| analysis board, 1.e4 | Analysis · 1 move in · Black to play | e4 stakes out the center. |
+
+The rules, each read off the positions and checked by gate 187's own count: a best line that ends in mate says so and names the mating
+move; otherwise, where its last move is not a capture, the queens coming off and the material won or given up, counted piece by piece
+over the moves shown (none is said when the line stops in the middle of an exchange). On the analysis board, in order: mate,
+stalemate, a mate in one allowed, a capture that wins material by the exchange count (never said of a check, nor of a capture that
+walks into a mate in one; "for nothing" only when nothing can take back), a capture that can be taken back, else the engine line's own
+reading of the move; nothing when none holds. Not changed: the parked tablet layout has no analysis sentence; HEX-R-07's tappable
+toughest moment waits on Kunal's AUD-R07 pick.
+
