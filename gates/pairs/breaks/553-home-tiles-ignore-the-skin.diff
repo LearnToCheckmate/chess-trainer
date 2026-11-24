@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..0a0e5220 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11611,5 +11611,5 @@ function AppMain(){
+               {icon:'♟️',label:'Play',sub:'Computer or a friend',big:true,tint:['#22c55e','#15803d'],k:'play',fn:()=>{setHomeScreen(false);setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}},
+             ].map(({icon,label,sub,fn,big,tint,pro,k})=>{
+-              const ic=(SK.icons&&SK.icons[k])||icon; const tn=(SK.tints&&SK.tints[k])||tint;
++              const ic=icon; const tn=(SK.tints&&SK.tints[k])||tint;
+               const _tf=42*(hbig?1.3:(hLand?1.64:1)); const _ts=inkScale(ic,"'Segoe UI',system-ui,sans-serif",1.1); /* #366 y3b: ink-matched on this device */
+               return(

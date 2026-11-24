@@ -401,7 +401,7 @@ lesson and leaves what the card says, and when it shows, out of scope. This clau
 
 ### US-HM-15 Each skin has its own icons
 *Added #550 item (68), jobs/playful-and-classic-skins-show-the-same-icon-2026-11-11 (Kunal, 11 Nov 2026: "Why do playful and classic have the same Icon ... We used to have different ones.").*
-As a player choosing a skin, each skin looks like itself: no two skins share their Home tile icons, and each skin's row in the menu leads with its own icons, so Playful and Classic can be told apart at a glance. Classic's are its own pre-#366 emoji (📖 🧩 📈 👑), still all four emoji as Kunal chose at #366. (TC-HM-057)
+As a player choosing a skin, each skin looks like itself: no two skins share their Home tile icons, and each skin's row in the menu leads with its own icons, so Playful and Classic can be told apart at a glance; on Home, a subscriber who picks a skin sees that skin's four tile icons (#553). Classic's are its own pre-#366 emoji (📖 🧩 📈 👑), still all four emoji as Kunal chose at #366. (TC-HM-057)
 
 ### US-HM-16 I can find a lesson in a long list without scrolling through all of it
 *Added #550 item (77), jobs/bench-97-lesson-list-is-5934px-of-scroll-with-no-filter-and-no-position-marker-2026-10-06 (Kunal, 8 Oct 2026, on counts and a filter for these lists: "Yes, same rule everywhere"; orchestratorRuling_2026_11_07).*

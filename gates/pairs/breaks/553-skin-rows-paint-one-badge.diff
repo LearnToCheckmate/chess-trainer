@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..d6955e70 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12269,5 +12269,5 @@ function AppMain(){
+           <div style={{display:'flex',flexDirection:'column',gap:9}}>
+             {SKINS.map((s,i)=>{const on=skin===i;const lock=s.pro&&!isPro;return(<button key={s.key} onClick={()=>{if(lock){setSkinOpen(false);setUpgradeMsg(SKIN_PRO_MSG(s));setAcctOpen(true);}else setSkin(i);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'11px 12px',borderRadius:13,background:on?'rgba(var(--acr),.16)':'rgba(255,255,255,.04)',border:on?'1.5px solid var(--ac)':'1.5px solid rgba(255,255,255,.12)',cursor:'pointer',textAlign:'left',opacity:lock?.85:1}}>
+-              <span style={{flexShrink:0,display:'flex',gap:4,fontSize:19,lineHeight:1}}><span>{s.icons.learn}</span><span>{s.icons.play}</span></span>
++              <span style={{flexShrink:0,display:'flex',gap:4,fontSize:19,lineHeight:1}}><span>{SKINS[0].icons.learn}</span><span>{SKINS[0].icons.play}</span></span>
+               <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontFamily:s.font,fontSize:'clamp(15px,3.8vw,18px)',fontWeight:700,color:'#fff'}}>{s.name}</span><span style={{display:'block',fontSize:'clamp(14px,2.4vw,14px)',color:'rgba(255,255,255,.6)'}}>{s.blurb}</span></span>
+               {lock&&<span style={{flexShrink:0,fontSize:'clamp(13px,2.2vw,13px)',fontWeight:800,color:'#2a2010',background:'#f0d48a',borderRadius:8,padding:'2px 7px'}}>PRO</span>}

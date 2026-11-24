@@ -1,0 +1,24 @@
+{
+ "job": "playful-and-classic-skins-show-the-same-icon-2026-11-11",
+ "about": "Gate 92 (TC-HM-057a..d): (a, b) read out of chess.jsx's SKINS, no two skins share their four tile icons or the learn+play badge their Skin row paints; (c) on the Style sheet (Look and feel, then Style) each skin's row is found by name and leads with its own icons; (d) on Home, with each skin chosen through ct_skin for a Pro subscriber (the harness's stand-in; Playful and Medieval are Pro skins), the four tiles found by label paint four glyphs no other skin paints. Rendered halves graded at kunal761 (375x761, insets 51/31) and 320x568 by CT_G92_GEO. NOT COVERED: Discover's tiles (their own job, discover-tile-icons-should-match-each-theme), the Layout readout's ink line, a non-subscriber (who sees Classic's tiles whatever the stored skin), his look on his phone.",
+ "gate": "gates/regress/92-skin-icons.js",
+ "env": {},
+ "checks": ["TC-HM-057a ", "TC-HM-057b ", "TC-HM-057c ", "TC-HM-057d "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "env": {}},
+  {"name": "se 320x568", "env": {"CT_G92_GEO": "se"}}
+ ],
+ "breaks": [
+  {"name": "classic-takes-playfuls-icons", "patch": "breaks/553-classic-skin-takes-playfuls-icons.diff",
+   "why": "Classic's SKINS icons go back to Playful's four (the #366 state Kunal reported), so the rows, the Home tiles and the source all match",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "home-tiles-ignore-the-skin", "patch": "breaks/553-home-tiles-ignore-the-skin.diff",
+   "why": "Home's tiles paint their built-in glyph instead of the skin's, so every skin shows the same four tiles while SKINS and the Skin rows still differ",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "skin-rows-paint-one-badge", "patch": "breaks/553-skin-rows-paint-one-badge.diff",
+   "why": "every Skin row paints the first skin's learn+play badge, so the rows on the Style sheet look alike while SKINS and Home still differ",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 900
+}
