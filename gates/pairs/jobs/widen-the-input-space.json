@@ -1,0 +1,27 @@
+{
+ "job": "widen-the-input-space",
+ "about": "Gate 239 runs the review's content invariants over every ply of 39 of his own games (gates/fixtures/kunal/kunal-40.pgn, engine output recorded in kunal-40-evals.json and seeded back, grading live in the bundle): C1 no ply offers the played move as its own alternative (TC-R421), C2 every named move legal where named (TC-R422), C3 the standing clause agrees with the recorded engine number (TC-R423), C4 each side's counts sum to its moves (TC-R424). One geometry, kunal761. NOT COVERED: a change to the engine (re-record the fixture); game 29, which never finishes its review (named in the fixture); the refutation search a Brilliant waits for.",
+ "gate": "gates/regress/239-kunal-40-every-ply.js",
+ "checks": [
+  "^TC-R42[0-4] "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-R42[0-4] "}
+ ],
+ "breaks": [
+  {
+   "name": "the-runner-up-may-be-the-played-move",
+   "patch": "breaks/239-the-runner-up-may-be-the-played-move.diff",
+   "why": "the #420 guard is removed from sfGradePly's altSan, so where the engine's second choice is the move he played the review offers that move as its own alternative - the defect he found on his phone, which the Opera Game never visits",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "the-counts-drop-excellent",
+   "patch": "breaks/239-the-counts-drop-excellent.diff",
+   "why": "the summary's grade counts leave Excellent out, so the counts no longer add up to the moves each side played",
+   "mustFailIn": ["kunal761"]
+  }
+ ],
+ "timeoutSec": 1500
+}
