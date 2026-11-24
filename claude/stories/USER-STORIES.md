@@ -2799,6 +2799,12 @@ As Kunal reading the test register, when a row says how many PASS and FAIL lines
 - Every counted row's log resolves to a committed file, and there is at least one such row. (TC-R361)
 - Each counted row's PASS and FAIL numbers equal the lines in its cited log that begin PASS or FAIL and name its id. (TC-R362)
 
+### US-R231 With the engine line on, I see its number at once and its moves soon, on any position
+*Added in batch 14 (#553, builder seat B2), jobs/the-moves-view-engine-line-searches-to-depth-16-so-on-a-phone-the-line-takes-longer-than-main-2026-11-07: #549 made the Moves-view line search to the review's own depth (16 on Quick); its antagonist feared a slower line on a phone. Measured in the container it is not slower to show; on his phone the search time is device-only.*
+As a player stepping through a reviewed game with the engine line on, the evaluation is on screen the moment I land on a move, and the engine's moves follow, on the game's own positions and on one I set up on the analysis board.
+- The row shows its number within half a second of each step, never an empty row or "not loaded". (TC-R363, TC-R364)
+- The row shows the engine's moves within ten seconds, so a search that never finishes cannot hide. (TC-R365)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

@@ -1,0 +1,24 @@
+{
+ "job": "the-moves-view-engine-line-searches-to-depth-16-so-on-a-phone-the-line-takes-longer-than-main-2026-11-07",
+ "about": "Gate 220 (TC-R363..365): the Opera Game reviewed, Moves view, engine line on; at plies 11 to 14 and on the analysis board after 1.d4 d5 (a position the review never searched) the engine row shows its number within 500ms and a variation within 10s - the 10s is a ceiling against 'no line at all' (the job's '20s wall clock shows no line'), not a speed target. At kunal761 (375x761, insets 51/31) and 320x568 (CT_G220_GEO). NOT COVERED, and not measurable here: the depth-16 search time on his phone's WASM engine (device-only per CLAUDE.md; a CDP CPU throttle does not reach the engine's worker - ply 14 read 0.73s at 1x and 0.74s at 4x); whether depth 16 is the right depth, which is no one's change without his word.",
+ "gate": "gates/regress/220-moves-engine-line-arrives.js",
+ "env": {},
+ "checks": ["TC-R363 ", "TC-R364 ", "TC-R365 "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "env": {}},
+  {"name": "se 320x568", "env": {"CT_G220_GEO": "se"}}
+ ],
+ "breaks": [
+  {"name": "searches-to-depth-40", "patch": "breaks/553-engine-line-searches-to-depth-40.diff",
+   "why": "the Moves-view line searches to depth 40 on a Quick review (and so misses every cached line): the search does not finish, and the row never shows a variation - the job's fear taken to its end",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "number-waits-for-the-search", "patch": "breaks/553-engine-line-number-waits-for-the-search.diff",
+   "why": "while a live search runs, the row's stored number is blanked, so on a fresh position the player sees nothing until the engine answers",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "never-asks-the-engine", "patch": "breaks/553-engine-line-never-asks-the-engine.diff",
+   "why": "the line never asks the engine and reads 'Stockfish is not loaded yet' wherever the review left no cached line",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 900
+}
