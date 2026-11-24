@@ -24,6 +24,7 @@ try{rec=JSON.parse(fs.readFileSync(OUT,'utf8'));}catch(e){}
   const fresh=async()=>{const b=await L.launch({geo:'kunal761',store:{ct_pool:process.env.CT_POOL||'3'}});await b.open();return b;};
   let b=await fresh();
   const stamp=await b.page.evaluate(()=>{try{return (document.body.innerText.match(/#\d{3}[^\n]*ET/)||[''])[0];}catch(e){return '';}});
+  for(const v of Object.values(rec.games))if(!v.bundleMd5&&rec.recordedOn)v.bundleMd5=rec.recordedOn.bundleMd5;   // a resumed run: each game keeps the bundle it was recorded on
   rec.recordedOn={bundleMd5:(()=>{try{return require('crypto').createHash('md5').update(fs.readFileSync(process.env.CT_APP||path.join(__dirname,'..','app.js'))).digest('hex').slice(0,12);}catch(e){return null;}})(),stamp,pool:process.env.CT_POOL||'3',at:new Date().toISOString()};
   let n=0;
   for(let gi=0;gi<games.length;gi++){
@@ -37,7 +38,7 @@ try{rec=JSON.parse(fs.readFileSync(OUT,'utf8'));}catch(e){}
         const v=window.__ctReview;return {keys:k,entry:k.length===1?a[k[0]]:null,plies:v&&v.plies?v.plies.length:null};});
       if(!got.entry){console.log('ERR',gi,link,'cache holds '+got.keys.length+' keys after the review, not 1');continue;}
       const e=got.entry;delete e.at;
-      rec.games[link]={gi,key:got.keys[0],plies:got.plies,det:e.det||0,entry:e,secs:Math.round((Date.now()-t0)/1000)};
+      rec.games[link]={gi,key:got.keys[0],plies:got.plies,det:e.det||0,entry:e,secs:Math.round((Date.now()-t0)/1000),bundleMd5:rec.recordedOn.bundleMd5};
       fs.writeFileSync(OUT,JSON.stringify(rec));
       console.log(`${n+1} game ${gi} ${link} plies ${got.plies} det ${e.det} ${rec.games[link].secs}s`);
     }catch(err){console.log('ERR',gi,link,String(err).slice(0,200));
