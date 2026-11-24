@@ -65,6 +65,7 @@
 // CONTROL-RECORD: e80c285 2026-11-11 total=45 red=2 scope=trial:962efa8a5c77 how=#550 item (124): c124, chess.jsx's DRILL_GRADES with Miss removed and Book added (['Mistake','Blunder','Book']) - G2 CONTROL Miss red (a Miss row flattened to 'a mistake') and G3b red (a Book row says 'a book'); every other line green; good trial 762fd238c730 45/0
 // CONTROL-RECORD: c33e447 2026-11-11 total=44 red=4 scope=trial:1ddf30c42dc4 how=#550 item (20): a mutant whose ct_grades2 switch is ignored (t78) - the four TC-R180 coach lines red (the new bands label 5...Qxd5 a Mistake, so the fixture's premise breaks)
 // CONTROL-RECORD: 5796549d 2026-11-24 total=45 red=3 scope=trial:8dc3968456f8 how=#553 B1 (the TC-SELCLS-CONSUMERS line added): record 1's mutant again, chess.jsx's DRILL_GRADES ['Mistake','Blunder','Book'] - G2 CONTROL Miss and G3b red, and TC-SELCLS-CONSUMERS red with them (33 PASS, 2 FAIL counted); good trial 7c25ad4319c4 45/0 with the line reading 35 PASS, 0 FAIL
+// The grading machine on ac650669 (jobs/tc-r09b-and-tc-rl-070-resolve-in-neither-register-2026-10-03): CHECKED, the TC-SELCLS-CONSUMERS line PASSED on the real tree (bundle 8e589be91c41) and red on both breaks - drill-grades-take-book-not-miss (13cfaf7bab9e) and the-consumer-count-counts-nothing (5bff4f229f60, the count's 20-assertion floor).
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
 // TC-SELCLS-CONSUMERS IS PRINTED, NOT ONLY NAMED [#553 B1, jobs/tc-r09b-and-tc-rl-070-resolve-in-neither-register-2026-10-03, what was left

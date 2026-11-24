@@ -20,6 +20,10 @@
 //  TC-R325 NEGATIVE CONTROL, driven: with the chooser open, type 1, 9, Enter, 0, Enter and Escape, then tap outside it - the drill is still on
 //          the card it was on (counter and board unchanged) and the chooser is closed. So no number outside 1..18 (19, 190) is reachable.
 //  TC-R324 zero app errors.
+// CONTROL-RECORD: 187aeaaf 2026-11-24 total=24 red=4 scope=trial:84777b41f5c0 how=#553 B1 pairs break each-number-shows-the-card-before-it (drillGo(n-2)): the choose-18/2/Prev/Next line and the negative control red in both drills at kunal761 and 320x568
+// CONTROL-RECORD: 187aeaaf 2026-11-24 total=24 red=12 scope=trial:bf28a5ea92ca how=#553 THE SUBJECT REMOVED: pairs break the-counter-opens-nothing (the counter's onClick a no-op) - the chooser, number-size, jump and negative-control lines red in both drills at both sizes
+// CONTROL-RECORD: 187aeaaf 2026-11-24 total=24 red=8 scope=trial:b1727e9fa330 how=#553 pairs break the-chooser-offers-a-number-past-the-last-card (19 numbers for 18 cards): the exact-1..N and every-number lines red in both drills at both sizes
+// The grading machine on 187aeaaf: CHECKED, real 12/12 at kunal761 and 12/12 at 320x568 (bundle 297de6b4c67a), the three breaks CAUGHT.
 const L=require('../lib');
 // the 18 positions: three white king squares x the queen's file (not e), the first 18
 const KS=[['4K3',''],['7K','h1'],['K7','a1']];const FILES='abcdfgh';
