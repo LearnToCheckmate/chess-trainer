@@ -2774,6 +2774,13 @@ As a player practising a lesson line with hints on, the words saying what my nex
 - At move 1 the line saying hints cost the day keeps its place; there the hint is whole, or clamped at two lines with the 'more' chip. (TC-R346)
 - The board's top and width do not change, and after a move the confirm is on screen or one tap away behind 'more'. (TC-R347)
 
+### US-R225 I can narrow my games by result and by time control, and the list says how many it shows
+*Added in batch 14 (#553, builder seat B1), jobs/search-and-filter-your-games-2026-11-15. Kunal's pick at about 9:59am EST Tue 17 Nov 2026, "Keep only the missing bits": #550's Filter panel stays as it is and gains a Result group and a Time control group. Amber (placement in the panel, Lichess time classes): flags/amber-553-games-filter-result-and-time-rows.*
+As a player looking through my imported games, I can open Filter and pick Won, Draw or Lost, and Bullet, Blitz, Rapid or Daily, and see only those games.
+- Each Result chip (Won, Draw, Lost: the outcome for my account) and each Time control chip (Bullet, Blitz, Rapid, Daily: the game's time class; Lichess's ultraBullet is Bullet and correspondence is Daily; a game with none of them matches none) alone shows exactly its games; each chip is 44px tall or more. (TC-R348)
+- Picks inside one group widen the list; the groups narrow each other, the brilliant/blunder/mistake chips, the account chip and the player-name box. (TC-R349)
+- While anything is on, the Your games line reads "N of M"; Clear clears the new chips too and the line goes back to "M loaded". (TC-R348, TC-R350)
+
 ### US-R227 The puzzle Prev and Next are named, in reach at rest and do what they say, sideways and upright
 *Added in batch 14 (#553, builder seat B2), jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03: #548 named the sideways pair and #550 (Kunal's Option A, answer a8) moved the tabs to a rail, so the pair is clear of them. Measured at #553 by a real tap: sideways, Next on an unsolved training puzzle re-loaded the same puzzle (the #373 A-10 defect, fixed upright then and never sideways); fixed here.*
 As a player solving puzzles with my phone upright or turned sideways, the Previous and Next buttons are on screen without scrolling, nothing covers them, a screen reader names them, and Next shows another puzzle even before I solve this one.

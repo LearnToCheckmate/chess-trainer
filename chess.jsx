@@ -6299,9 +6299,10 @@ function AppMain(){
   // the job's work[2] adds a mistake filter "if it is free". A result and colour pair was drafted, measured
   // at nine chips wrapping to three 44px rows on this screen, and REMOVED as scope he did not ask for -
   // see flags/amber-476-review-list-filter-row, which records the change and the reason.
-  const [gFil,setGFil]=useState({bril:0,blun:0,mist:0,acct:''});
+  const [gFil,setGFil]=useState({bril:0,blun:0,mist:0,acct:'',res:[],tc:[]});   // #553 B1 (jobs/search-and-filter-your-games-2026-11-15, his pick 17 Nov 'Keep only the missing bits'): res and tc are the Result and Time control groups, any number on in each
   const [gfOpen,setGfOpen]=useState(false);   // #548 item (123): the filter chips fold behind one Filter button
   const gfTog=(k,v)=>setGFil(f=>({...f,[k]:(f[k]===v?(typeof v==='number'?0:''):v)}));
+  const gfTogIn=(k,v)=>setGFil(f=>{const a=f[k]||[];return {...f,[k]:a.includes(v)?a.filter(x=>x!==v):a.concat([v])};});   // #553: a chip in a group of several (Result, Time control) - picks in one group widen
   const ccRawRef=useRef(null),liRawRef=useRef(null),gamesAutoRef=useRef(false);
   // #353 Kunal: "only one chess.com ID is kept at a time, so importing friends wiped my games.
   // Keep imported IDs and their games forever, for multiple accounts, don't replace on import."
@@ -9254,7 +9255,7 @@ function AppMain(){
   /* #547 item (133), jobs/the-review-list-filter-survives-leaving-the-review-screen-2026-10-06: the #476 filter (gFil) and the
      search box (gameSearch) are PER VISIT. Leaving the Review screen used to keep them, so the next visit showed a silently
      narrowed list - the complaint the filter was built to cure. Both are reset together when the app leaves the screen. */
-  useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct)?{bril:0,blun:0,mist:0,acct:''}:f);setGameSearch(q=>q?'':q);setGPage(GLIST_PAGE);},[mode,homeScreen]);
+  useEffect(()=>{if(mode==='analyze'&&!homeScreen)return;setGFil(f=>(f.bril||f.blun||f.mist||f.acct||(f.res&&f.res.length)||(f.tc&&f.tc.length))?{bril:0,blun:0,mist:0,acct:'',res:[],tc:[]}:f);setGameSearch(q=>q?'':q);setGPage(GLIST_PAGE);},[mode,homeScreen]);
   // #549 item (103), jobs/follow-a-player-not-reimport-2026-09-23 work[3]: ONCE PER LAUNCH, after the box account(s) above have
   // been fetched, refresh at most ONE other stored account, the stalest one older than ACCT_STALE_MS (acctStalest). Quiet: no
   // progress line, no busy Fetch button, no error card. The box accounts keep their every-launch fetch unchanged.
@@ -13183,7 +13184,14 @@ function AppMain(){
             {ccGames&&ccGames.length>0&&(()=>{const _gs=gameSearch.trim().toLowerCase();const _GS=gameStatsRef.current||{};
               // #476 ONE PREDICATE, so the count, the rows, the empty state and the coverage line can never
               // disagree about what is shown - they all read `_shown`.
-              const _F=gFil,_gradeOn=!!(_F.bril||_F.blun||_F.mist),_anyF=!!(_gradeOn||_F.acct||_gs);
+              const _F=gFil,_gradeOn=!!(_F.bril||_F.blun||_F.mist),_fRes=_F.res||[],_fTc=_F.tc||[],_anyF=!!(_gradeOn||_F.acct||_gs||_fRes.length||_fTc.length);
+              /* #553 B1, jobs/search-and-filter-your-games-2026-11-15 (his pick, 17 Nov: keep #550's panel and add only the missing bits): a Result group
+                 (Won, Draw, Lost: the game's outcome for the account it was imported for, gameInfo's code - a game whose side is unknown and not drawn
+                 matches none) and a Time control group (Bullet, Blitz, Rapid, Daily, from the game's time class; Lichess's ultraBullet counts as
+                 Bullet and correspondence as Daily, its classical and a game with none match none of them). Inside a group picks widen (any of
+                 them); groups narrow each other and the grade chips, the account chip and the name box. */
+              const _tcOf=(g)=>{const t=String(g.tc||'').toLowerCase();return t==='ultrabullet'?'bullet':(t==='correspondence'?'daily':t);};
+              const _resTcHit=(g)=>(!_fRes.length||_fRes.includes(gameInfo(g).code))&&(!_fTc.length||_fTc.includes(_tcOf(g)));
               // #476 CASE. acctId() lowercases and strips a leading @ (chess.jsx, acctId), but the chess.com
               // fetch stores the row's `acct` as the RAW trimmed input while the Lichess one lowercases it, so
               // a case-sensitive compare here silently returns ZERO rows for any account typed with a capital
@@ -13192,7 +13200,7 @@ function AppMain(){
               const _nameHit=(g)=>!_gs||((g.white+' '+g.black+' '+(g.src==='li'?'lichess':'chess.com')).toLowerCase().includes(_gs));
               // #476 the non-grade half, kept separate because the coverage line's denominator is the set a
               // grade filter is CHOOSING FROM, not the whole list.
-              const _preGrade=ccGames.filter(g=>_nameHit(g)&&(!_F.acct||_aid(g)===_F.acct));
+              const _preGrade=ccGames.filter(g=>_nameHit(g)&&(!_F.acct||_aid(g)===_F.acct)&&_resTcHit(g));
               const _gradeHit=(g)=>{const st=_GS[gkey(g)];if(!st)return false;
                 if(_F.bril&&!(st.bril>0))return false;if(_F.blun&&!(st.blun>0))return false;if(_F.mist&&!(st.mist>0))return false;return true;};
               const _shown=_gradeOn?_preGrade.filter(_gradeHit):_preGrade;
@@ -13237,6 +13245,7 @@ function AppMain(){
               // blunders", which a player reads as "you have neither" - and that is false of the archive.
               const _gl=[_F.bril&&'brilliant moves',_F.blun&&'blunders',_F.mist&&'mistakes'].filter(Boolean);
               const _fLab=[(_gl.length>1?'all of '+_gl.join(', '):_gl[0]),
+                _fRes.length&&_fRes.map(r=>r==='win'?'won':(r==='loss'?'lost':'drawn')).join(' or ')+' games',_fTc.length&&_fTc.join(' or '),
                 _F.acct&&('account '+_F.acct.slice(_F.acct.indexOf(':')+1)),_gs&&('\u201c'+gameSearch.trim()+'\u201d')].filter(Boolean).join(', ');
               // #476 AND THE EMPTY STATE MUST NOT ASSERT WHAT THE APP CANNOT KNOW. ANTAGONIST B P1 VETO,
               // and it is the sharpest finding of this build: clause (4) made the COVERAGE line honest and
@@ -13367,7 +13376,7 @@ function AppMain(){
               const _covTxt=(_ungr>0)
                 ?('Graded '+_nG+' of '+_scope(_preGrade.length)+': a game we haven\u2019t graded yet can\u2019t match this filter.')
                 :('All '+_scope(_preGrade.length)+' '+(_preGrade.length===1?'is':'are')+' graded.');
-              const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:''});setGameSearch('');};
+              const _clearAll=()=>{setGFil({bril:0,blun:0,mist:0,acct:'',res:[],tc:[]});setGameSearch('');};
               /* #507 THE `ghost` ARM RESERVES A CHIP'S SPACE WITHOUT PAINTING IT. A row that can appear must
                  reserve its space [CLAUDE.md]. MEASURED on the shipped bundle before this change, with the
                  SAME probe on both bundles: turning on one grade chip makes the Clear chip appear, and at
@@ -13436,6 +13445,11 @@ function AppMain(){
 {gfOpen&&_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
                 {_chip(!!_F.blun,'?? blunder','gf-blun',()=>gfTog('blun',1),'#ec5c4e')}
                 {_chip(!!_F.mist,'? mistake','gf-mist',()=>gfTog('mist',1),'#f0a24e')}
+                {/* #553 B1: the Result and Time control groups, in the panel's chip look (44px), each group starting on its own line */}
+                <span style={{flexBasis:'100%',height:0}} aria-hidden="true"/>
+                {[['win','Won'],['draw','Draw'],['loss','Lost']].map(([k,l])=>_chip(_fRes.includes(k),l,'gf-res-'+k,()=>gfTogIn('res',k),null))}
+                <span style={{flexBasis:'100%',height:0}} aria-hidden="true"/>
+                {[['bullet','Bullet'],['blitz','Blitz'],['rapid','Rapid'],['daily','Daily']].map(([k,l])=>_chip(_fTc.includes(k),l,'gf-tc-'+k,()=>gfTogIn('tc',k),null))}
                 {/* #476 THE ACCOUNT CHIPS LIVE HERE AND NOT ON THE 'Imported' ROW ABOVE, which is a CHANGE
                     FROM THE DEFAULT RECORDED IN flags/amber-476-review-list-filter-row AND THE REASON IS A
                     RULE THIS PROJECT ALREADY PAID FOR. That row's chips are about 26px tall (padding
@@ -13469,7 +13483,7 @@ function AppMain(){
                     (with Clear) open on the lines below on a tap - a jump the player asked for, not one under his finger. Its 44px tap box
                     is padding cancelled by an equal negative margin, the moves-copy idiom, so the header line keeps its height. */}
                 <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0}}>
-                {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0);const _on=gfOpen||_nAct>0;return(
+                {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0)+_fRes.length+_fTc.length;const _on=gfOpen||_nAct>0;return(
                   <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} aria-label={'Filter'+(_nAct?(', '+_nAct+' on'):'')} title="Filter" className={_gfIn?'ct-hit44':undefined} onClick={()=>setGfOpen(o=>!o)} style={{position:'relative',flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:4,minWidth:44,height:_gfIn?36:44 /* a short phone: 36 tall with a 44 tap area (ct-hit44), so the games box keeps one whole game and the next one starting */,boxSizing:'border-box',padding:'0 8px',borderRadius:12,cursor:'pointer',color:_on?'var(--ac2)':'rgba(255,255,255,.85)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.08)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),fontSize:15,fontWeight:800,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{/* batch 13 (Q25 B): the filter icon - a funnel, with the number of filters on beside it when any is */}<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M2.5 3.5h13l-5 6v5l-3-1.6V9.5z"/></svg>{_nAct?<span aria-hidden="true">{_nAct}</span>:null}</button>);})()}
                 <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
                 </span>
