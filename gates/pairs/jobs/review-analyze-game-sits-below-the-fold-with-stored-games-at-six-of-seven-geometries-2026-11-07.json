@@ -1,0 +1,19 @@
+{
+ "job": "review-analyze-game-sits-below-the-fold-with-stored-games-at-six-of-seven-geometries-2026-11-07",
+ "about": "#553 (B1). #550's answer a12 moved the paste row (paste box, '?', '⚡ Analyze Game') above Import, and the check of 15 Nov found it MET. Re-measured on #553 after card 69 (the Review list scrolls as one page): with stored games the button is at 116-160 and owns its centre at all eight geometries. Gate 78 with CT_G78_PRIM_ONLY=1 runs only its primary-actions loop; graded here are the stored-games lines TC-INV-08f (reached, carries the button), 08i (on arrival, unscrolled, above the fold) and 08j (reachable, owns its centre). Breaks: the paste row pushed 100vh down when games are stored (08i red at all eight); the row hidden when games are stored (08f red at all eight); the Analyze button taking no taps (08j red at all eight, empty and stored). NOT COVERED: the Puzzles and empty-Review lines of the same loop are run but not graded; Kunal's look on his phone.",
+ "gate": "gates/regress/78-inner-scroller-fold.js",
+ "env": {"CT_G78_PRIM_ONLY": "1"},
+ "checks": ["review-stored: TC-INV-08[fij] "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^375x761\\+51,31 review-stored"},
+  {"name": "320x568", "match": "^320x568 review-stored"},
+  {"name": "440x956", "match": "^440x956 review-stored"}
+ ],
+ "breaks": [
+  {"name": "paste-row-pushed-below-the-fold", "patch": "breaks/rag-paste-row-pushed-below-the-fold.diff", "why": "with stored games the paste row sits a screen lower, as the Analyze box under the games list did before a12", "mustFailIn": ["kunal761", "320x568", "440x956"]},
+  {"name": "paste-row-hidden-with-games", "patch": "breaks/rag-paste-row-hidden-with-games.diff", "why": "with stored games the paste row is not drawn, so there is no Analyze Game to reach", "mustFailIn": ["kunal761", "320x568", "440x956"]},
+  {"name": "analyze-takes-no-taps", "patch": "breaks/rag-analyze-takes-no-taps.diff", "why": "the Analyze button is on screen but pointer-events none, so a tap at its centre lands on the row behind it", "mustFailIn": ["kunal761", "320x568", "440x956"]}
+ ],
+ "timeoutSec": 900
+}
