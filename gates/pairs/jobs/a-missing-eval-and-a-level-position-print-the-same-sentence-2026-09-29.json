@@ -1,33 +1,43 @@
 {
  "job": "a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29",
- "about": "Stepping through a real review (the Opera Game, engine line off), the sentence's standing clause never disagrees in category with the eval bar at any ply, and a ply whose stored evaluation is removed from the cache gets no standing clause at all. Graded by gate 234 (TC-R399, TC-R400) at kunal761 and 320x568; gate 21's TC-R87 keeps the unit layer. NOT COVERED: the folded cost-in-chances wording (Kunal's Desk answer of 11 Oct, whose render he must see before main; the batch 13 sentences have since removed the pawns-of-advantage clause) and the folded sacrifice sentence's second pawn (TC-R113 covers the trade rule).",
+ "about": "Stepping through a real review (the Opera Game, engine line off), the sentence's standing clause - in the line and behind its tap - never disagrees in category with the eval bar at any ply. Graded by gate 234 (TC-R399) at kunal761 and 320x568; gate 21's TC-R87 keeps the missing-eval unit layer. NOT COVERED: an unanalysed ply in a real review (a null in the stored analysis is read as 0 and regrades the move, so no honest fixture exists; reported as a finding); the folded cost-in-chances wording (Kunal's Desk answer of 11 Oct, whose render he must see before main; the batch 13 sentences have since removed the pawns-of-advantage clause); the folded sacrifice sentence's second pawn (TC-R113 covers the trade rule).",
  "gate": "gates/regress/234-review-standing-agrees-with-the-bar.js",
  "checks": [
-  "TC-R(399|400) "
+  "TC-R399 "
  ],
  "build": "always",
  "situations": [
-  {"name": "kunal761", "env": {"CT_G234_GEO": "kunal761"}},
-  {"name": "se", "env": {"CT_G234_GEO": "se"}}
+  {
+   "name": "kunal761",
+   "env": {
+    "CT_G234_GEO": "kunal761"
+   }
+  },
+  {
+   "name": "se",
+   "env": {
+    "CT_G234_GEO": "se"
+   }
+  }
  ],
  "breaks": [
-  {
-   "name": "a-missing-eval-reads-as-level",
-   "patch": "breaks/234-a-missing-eval-reads-as-level.diff",
-   "why": "rtStand treats a missing evaluation as 0 again, so the unanalysed ply reads 'The game is about even.' - the job's defect",
-   "mustFailIn": ["kunal761", "se"]
-  },
   {
    "name": "the-standing-names-the-wrong-side",
    "patch": "breaks/234-the-standing-names-the-wrong-side.diff",
    "why": "the standing clause names the other side as better (a sign error between the stored analysis and the words)",
-   "mustFailIn": ["kunal761", "se"]
+   "mustFailIn": [
+    "kunal761",
+    "se"
+   ]
   },
   {
    "name": "the-standing-reads-pawns-as-centipawns",
    "patch": "breaks/234-the-standing-reads-pawns-as-centipawns.diff",
    "why": "the standing clause divides a pawn value by 100 (the #385 scale error), so every ply reads 'about even' beside a bar that is not",
-   "mustFailIn": ["kunal761", "se"]
+   "mustFailIn": [
+    "kunal761",
+    "se"
+   ]
   }
  ],
  "timeoutSec": 1200
