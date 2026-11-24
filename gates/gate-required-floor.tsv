@@ -145,3 +145,4 @@
 187	186	raise	2026-11-24	553	build__1795473826826	B1 merge: gate 227 (one set of navigation symbols) joins 222 and the rest	-	50b97bc63c54
 188	187	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 233 (a refused country lookup is retried) joins 227 and the rest	-	f22eeca2f1f4
 189	188	raise	2026-11-24	553	build__1795473826826	B2 merge: gate 230 (the review waiting screen) joins 233 and the rest	-	7c086b36a626
+190	189	raise	2026-11-24	553	build__1795473826826	lead: gate 231 (the move list answers over the Analyze and Copy boxes lower band) joins 230 and the rest	-	bd80b1eb6d56
