@@ -15,6 +15,9 @@
 //  TC-R329 no piece's PAINTED box crosses into either bar: the highest piece's top is at or below the top bar's bottom, the lowest piece's
 //          bottom at or above the bottom bar's top (the 1.06 overhang printed).
 //  TC-R328 zero app errors.
+// CONTROL-RECORD: 9bad5aaa 2026-11-24 total=21 red=12 scope=trial:f43827357dd7 how=#553 B1 pairs break the-you-bar-rides-up-onto-the-board (bottom bar position relative, top -6: the job's overlap) - TC-R328 (gap -4) and TC-R329 red at both plies at 375x568, 320x568 and 375x761
+// CONTROL-RECORD: 9bad5aaa 2026-11-24 total=21 red=6 scope=trial:6f28f7de0b55 how=#553 pairs break the-pieces-paint-onto-the-bars (pieces at scale 1.2) - TC-R329 red at both plies at all three sizes; TC-R328 green (the board's box did not move)
+// The grading machine on 9bad5aaa: CHECKED, real 7/7 at each of short375, 320x568 and kunal761 (bundle 8aa3be432f6f), both breaks CAUGHT. A first version of the You-bar break (marginTop -6) left the bar at 467 and read BLIND; it was replaced.
 const L=require('../lib');const P=require('../drive/play');
 const read=(b)=>b.page.evaluate(()=>{const R=(e)=>{if(!e)return null;const q=e.getBoundingClientRect();return {t:+q.top.toFixed(1),b:+q.bottom.toFixed(1),l:+q.left.toFixed(1),r:+q.right.toFixed(1),h:+q.height.toFixed(1)};};
   const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));let grid=null,bw=0;for(const e of els){const q=e.getBoundingClientRect();if(q.width>bw){bw=q.width;grid=e;}}
