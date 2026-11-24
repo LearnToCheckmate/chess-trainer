@@ -1,6 +1,12 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -10076,5 +10076,4 @@
+@@ -9526,5 +9526,4 @@
+        setTimeout window together. humanCanMove keeps its own guard because stopping the interaction earlier is
+        better than letting a piece be lifted and silently refused. */
+-    if(modeRef.current==='play'&&playEndRef.current)return;
+     if(modeRef.current==='puzzle'){
+       if(puzSolvedRef.current){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
+@@ -10076,5 +10075,4 @@
         to the site that actually admits the moves; see the comment at its definition. Play mode only, because
         playEnd is play mode's own state and the branches above already own analyze, puzzle and learn. */
 -    if(modeRef.current==='play'&&playEndRef.current)return false;

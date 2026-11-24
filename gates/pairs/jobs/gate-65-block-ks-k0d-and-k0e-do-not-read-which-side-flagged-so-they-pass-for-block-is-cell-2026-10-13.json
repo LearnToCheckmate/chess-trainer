@@ -30,7 +30,7 @@
   {
    "name": "a-flagged-game-takes-moves-again",
    "patch": "breaks/65-a-flagged-game-takes-moves-again.diff",
-   "why": "humanCanMove's playEnd guard is gone, so after the human's clock flags the board accepts f6-g8 (the #438 defect this cell guards)",
+   "why": "both playEnd guards are gone - humanCanMove's and doMove's - so after the human's clock flags the board accepts f6-g8 (the #438 defect this cell guards). Removing humanCanMove's alone is BLIND here, measured at #553: doMove's own guard holds the ply (as the 5fec51b record says of K3), so the break removes the two together",
    "mustFailIn": [
     "kunal761",
     "375x730"
