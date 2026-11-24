@@ -19,6 +19,7 @@
 //  TC-R360 the store agrees with the line: the solved map is unchanged (no rank), the streak rose by one, and the XP rose by the
 //          same amount the unaided solve paid.
 // The answer this holds is a10, not q10's open 'neither' option; if Kunal picks 'neither', TC-R359 and TC-R360 change with it.
+// CONTROL-RECORD: 4b8fd17 2026-11-24 total=13 red=2 scope=trial:e3fe12f0259c how=#553 B2 (the pair gates/pairs/jobs/puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03.json): ' - nicely done.' put back after the a10 prefix - TC-R359 red at kunal761 and 320x568; the 'not counted as solved' wording (trial:02feda0e8fe6) reds TC-R359 alone at both; a revealed finish paying no XP (trial:36671e6b09df) reds TC-R360 alone at both; the tree (trial:18d731b84249) 13/0. Pairs verdict CHECKED at base 4b8fd17
 const L=require('../lib');
 const Z=require('../drive/puzzles');
 const PZKEY='chesstrainer.progress.v1';
