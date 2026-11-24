@@ -24,7 +24,12 @@
 //  TC-R246d  the screen shows the row's words and the row's board (occupancy of all 64 squares, and one picture per piece kind).
 //  TC-R262   [batch 13, q23 "Longer, friendlier wrong try lines"] each card's line is the longer one (80+ characters, pinned by its words in
 //            TC-R246b); while it shows the board, the card box and the button row do not move and the page does not scroll; on his phone it
-//            is drawn at the box's own size, and on a short phone it may step down to fit, never below 11.5px.
+//            is drawn at the box's own size - and since #553 (his Q68 pick) so it is on every phone: it read "on a short phone it may step down
+//            to fit, never below 11.5px", and that pin is now "never shrunk" at every size.
+//  TC-R298   [#553, Q68 "A more button"] at 375x761, 320x568 and 375x667: the more chip (found by its words) shows exactly when the line does
+//            not fit the box's room at full size (a hidden copy measures it); then the LINE cuts itself at whole lines inside the box with no
+//            word under the chip; tapping it opens the whole line over the box, on screen, nothing moving, and less closes it.
+//  TC-R299   [#553] while a wrong-try line shows, the box does not fade and no child of it is drawn part in, part out (no faded sliver).
 //  TC-R246e  sideways at 568x320 (one launch, its own line prefix): the card's line on a wrong try moves neither the board nor the buttons.
 //  TC-R246f  [batch 14, the job's remainder "put tacWrongLine into the engine extractor"] the SHIPPED tacWrongLine, run in node through
 //            gates/engine-extract.js, over every legal wrong move of every card (no browser, so no move is skipped): never empty and never
@@ -49,6 +54,8 @@
 // CONTROL-RECORD: 85f035e1 2026-11-21 total=665 red=13 scope=trial:7fdfc54c43ff how=batch 13 q23: the line drawn at 13px on every phone - TC-R262 'on his phone ... never shrunk' red on all 13 cards at 375x761
 // (not control records) batch 13, 2026-11-21: real #552 73249bd45e30 669 pass 0 fail (with sideways); floor10 trial d0f2c0033fb9 665/0 - every line fits at 11.5px, so the 10px floor is never reached and THE 11.5px FLOOR CHECK IS NOT SHOWN ABLE TO FAIL. At 320x568 every card's line is drawn at that floor (box 64px, 46px of room, three lines take 61px at 14px and 45px at 11.5px).
 // (not control records) batch 14, 2026-11-23, TC-R246f/g added: real trial 211427dcda6f 823 pass 0 fail without sideways (both sizes). Break screen-line-not-the-function (da687d6fbcca, kunal761 only): 9 TC-R246g lines red, every TC-R246a line green. Break wrong-line-skips-the-board-reason (c4df435af120, kunal761 only): 2 TC-R246f lines red on Discovered attack (Kh1 allows mate), every TC-R246a line green - the hangs lines it also loses read as the card's line and are not seen, because whether a piece is left en prise is wrongWhy's reading and this gate does not recompute it.
+// CONTROL-RECORD: bc7f285c 2026-11-24 total=1377 red=78 scope=trial:156227cc32c8 how=#553 Q68, THE SUBJECT REMOVED: the tree before the more chip (bc7f285c, the 11.5px shrink and the faded idea under the line), no sideways - at 320x568 TC-R262 never-shrunk (13, every card at 11.5px), TC-R298 on every wrong move and on the no-legal tap (26: no chip where the line does not fit at full size), TC-R299 (13: the box fades and the idea shows part in); at 375x667 TC-R299 (13) and the no-legal-tap TC-R298 line that carries the sliver check (13); none at 375x761
+// (not control records) #553 Q68, 2026-11-24: real trial 15af6f17e979 1407 pass 0 fail at kunal761, 320x568, 375x667 and sideways. At 320x568 every card line is 14px, cut by itself at 2 lines (40.6px in 46px of room) with the more chip; at 375x667 every line fits whole (no chip) and the idea is not drawn under it; at 375x761 nothing changes (no chip, the idea shown, no fade).
 const L=require('../lib');
 const E=require('../engine-extract');
 const D=require('../drive/lesson');
@@ -56,7 +63,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const APP=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
 const src=fs.readFileSync(APP,'utf8');
 console.log('     bundle: '+APP+'  md5 '+crypto.createHash('md5').update(src).digest('hex').slice(0,12)+'   rules: chess.jsx md5 '+E.SOURCE_MD5);
-const GEOS=(process.env.CT_G175_GEOS||'kunal761,se').split(',');
+const GEOS=(process.env.CT_G175_GEOS||'kunal761,se,w375h667').split(',');   // #553 Q68: 375x667 too, the second short phone his pick names
 const BARE='Not the key move. Try again.';
 
 // ── the rows, out of the bundle ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -250,7 +257,22 @@ const readTac=b=>b.page.evaluate(()=>new Promise(res=>requestAnimationFrame(()=>
   const w=box?[...box.querySelectorAll('div,span')].find(e=>e.children.length===0&&getComputedStyle(e).color==='rgb(240, 162, 78)'):null;const wr=w?w.getBoundingClientRect():null;
   const bd=q('[data-ct="tactics-board"]');const srcs=[];const cells=bd?[...bd.children].map(c=>{const im=c.querySelector('img');if(!im)return -1;let i=srcs.indexOf(im.src);if(i<0){srcs.push(im.src);i=srcs.length-1;}return i;}):[];
   const ans=q('[data-ct="tactics-answer"]');const hint=q('[data-ct="tactics-hint"]');
-  res({kind:box?box.getAttribute('data-ct'):null,head:kids[0]&&kids[0].children[0]?tx(kids[0].children[0]):null,chip:kids[0]&&kids[0].children[1]?tx(kids[0].children[1]):null,
+  // TC-R298/TC-R299 (#553, his Q68 pick "A more button"): what cuts the line, whether it fits at full size, and the 'more' chip found BY ITS WORDS
+  const MO=(()=>{if(!box||!w)return null;const bcs=getComputedStyle(box),wcs=getComputedStyle(w);const bt=box.clientTop||0;const pt=parseFloat(bcs.paddingTop)||0,pb=parseFloat(bcs.paddingBottom)||0,pl=parseFloat(bcs.paddingLeft)||0,pr=parseFloat(bcs.paddingRight)||0;
+    const vTop=br.top+bt,vBot=vTop+box.clientHeight;const room=box.clientHeight-pt-pb;
+    // the line's natural height at the box's own size and width, with nothing reserved: a hidden copy, so the app's own cut cannot answer this
+    const k=document.createElement('div');k.textContent=w.textContent;k.style.cssText='position:absolute;visibility:hidden;left:0;top:0;margin:0;padding:0;font-size:'+bcs.fontSize+';line-height:'+bcs.lineHeight+';font-family:'+bcs.fontFamily+';font-weight:'+wcs.fontWeight+';width:'+(box.clientWidth-pl-pr)+'px';document.body.appendChild(k);const full=k.getBoundingClientRect().height;k.remove();
+    const pitch=parseFloat(wcs.lineHeight)||0;const nLines=pitch?wr.height/pitch:0;
+    const below=box.parentElement;const btn=below?[...below.querySelectorAll('button')].find(x=>/^(\u25be more|\u25b4 less)$/.test((x.textContent||'').trim())):null;const cr=btn?btn.getBoundingClientRect():null;
+    const rg=document.createRange();rg.selectNodeContents(w);const ink=[...rg.getClientRects()].filter(r=>r.width>0.5&&r.top<wr.bottom-0.5&&r.bottom>wr.top+0.5);
+    const over=cr?ink.filter(r=>r.left<cr.right&&r.right>cr.left&&r.top<cr.bottom&&r.bottom>cr.top).length:0;
+    const sliver=[...box.children].filter(c=>getComputedStyle(c).visibility!=='hidden').map(c=>[c,c.getBoundingClientRect()]).filter(([c,r])=>r.height>0&&r.bottom>vTop+0.5&&r.top<vBot-0.5&&(r.top<vTop-0.5||r.bottom>vBot+0.5)).map(([c,r])=>(c===w?'the line':(c.textContent||'').slice(0,24))+' '+Math.round(r.top-vTop)+'..'+Math.round(r.bottom-vTop)+' in 0..'+Math.round(vBot-vTop));
+    const panel=below?[...below.children].find(x=>x!==box&&!x.contains(box)&&x.tagName==='DIV'&&(x.textContent||'')===w.textContent):null;const pr2=panel?panel.getBoundingClientRect():null;const tb=q('[data-ct="tabbar"]');
+    return {room:Math.round(room*10)/10,full:Math.round(full*10)/10,fits:full<=room+0.5,lineCuts:wcs.overflow==='hidden'&&w.scrollHeight>w.clientHeight+1,lineWhole:w.scrollHeight<=w.clientHeight+1,
+      nLines:Math.round(nLines*100)/100,whole:nLines>=0.98&&Math.abs(nLines-Math.round(nLines))<0.02,btn:btn?(btn.textContent||'').trim():null,btnAt:cr?[cr.left,cr.top,cr.width,cr.height].map(v=>Math.round(v)).join(','):null,over,
+      mask:(bcs.webkitMaskImage&&bcs.webkitMaskImage!=='none')||(bcs.maskImage&&bcs.maskImage!=='none'),sliver,
+      panel:panel?{fs:parseFloat(getComputedStyle(panel).fontSize),top:Math.round(pr2.top),bottom:Math.round(pr2.bottom),barTop:tb?Math.round(tb.getBoundingClientRect().top):null,whole:panel.scrollHeight<=panel.clientHeight+1,coversBox:pr2.top<=br.top+0.5&&pr2.bottom>=br.bottom-0.5,bg:getComputedStyle(panel).backgroundImage+' '+getComputedStyle(panel).backgroundColor}:null};})();
+  res({more:MO,kind:box?box.getAttribute('data-ct'):null,head:kids[0]&&kids[0].children[0]?tx(kids[0].children[0]):null,chip:kids[0]&&kids[0].children[1]?tx(kids[0].children[1]):null,
     parts:kids.slice(1).map(tx),wrong:tx(w),wrongIn:(wr&&br)?(wr.top>=br.top-0.5&&wr.bottom<=br.bottom+0.5&&wr.height>0):null,wrongH:wr?Math.round(wr.height):null,boxH:br?Math.round(br.height):null,
     cells,ans:ans?[...ans.children].map(tx):null,hint:tx(hint),
     wrongFs:w?parseFloat(getComputedStyle(w).fontSize):null,boxFs:box?parseFloat(getComputedStyle(box).fontSize):null,
@@ -298,12 +320,18 @@ L.run(async()=>{
         L.say(hasFn&&wrongs.length>0&&fBare.length===0,g+'TC-R246f '+nm+': the shipped tacWrongLine, run in node, gives a line for each of its '+wrongs.length+' legal wrong moves - never empty, never the bare fixed line ('+fBare.length+' bare)',fBare.slice(0,4));
         L.say(hasFn&&fMate.length===0,g+'TC-R246f '+nm+': where a reply mates (found by playing every reply), the function says that mate first and not the card\'s sentence ('+fM+' such moves)',fMate.slice(0,4));
         L.say(hasFn&&fWrong.length===0&&fM+fH+fN===wrongs.length-fBare.length,g+'TC-R246f '+nm+': every other line is a true hangs/drops line or "Not <move>. <the card\'s line>" ('+fH+' hangs/drops, '+fN+' the card\'s line)',fWrong.slice(0,4));}
-      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[],drift=[];let nWhy=0,nMiss=0,maxH=0,minFs=99;const still=s;
+      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[],drift=[],moreBad=[],sliverBad=[];let nWhy=0,nMiss=0,maxH=0,minFs=99,nMoreSeen=0;const still=s;
+      const moreCheck=(S,s)=>{const M=s.more;if(!M){moreBad.push(S+': no line read');return;}if(!M.fits)nMoreSeen++;
+        if(!!M.btn!==!M.fits)moreBad.push(S+': chip '+JSON.stringify(M.btn)+' but the line is '+M.full+'px at full size in '+M.room+'px of room');
+        else if(!M.fits&&!(M.btn==='\u25be more'&&M.lineCuts&&M.whole&&M.over===0&&s.wrongIn===true))moreBad.push(S+': cut but not by the line at whole lines with the words clear of the chip '+JSON.stringify({btn:M.btn,lineCuts:M.lineCuts,nLines:M.nLines,over:M.over,inBox:s.wrongIn}));
+        else if(M.fits&&!M.lineWhole)moreBad.push(S+': the line fits at full size and is still cut');
+        if(M.mask||M.sliver.length)sliverBad.push(S+': '+(M.mask?'the box fades; ':'')+M.sliver.join('; '));};
       for(const m of wrongs){await click(b,from(m));await click(b,to(m));s=await readTac(b);const T=s.wrong,S=san(p,m);let mm;
         if(hasFn){const F=fn(m);if(T!==F)drift.push(S+': screen '+JSON.stringify(T)+' function '+JSON.stringify(F));}
         if(T==null||T===''||T===BARE){bare.push(S+' -> '+JSON.stringify(T));continue;}
         if(s.wrongIn!==true)cut.push(S+' ('+s.wrongH+' in a box of '+s.boxH+')');maxH=Math.max(maxH,s.wrongH||0);
-        if(s.wrongFs!=null){minFs=Math.min(minFs,s.wrongFs);if(s.wrongFs<s.boxFs-0.01)shrunk.push(S+' '+s.wrongFs+'px');if(s.wrongFs<11.5-0.01)tiny.push(S+' '+s.wrongFs+'px');}
+        if(s.wrongFs!=null){minFs=Math.min(minFs,s.wrongFs);if(s.wrongFs<s.boxFs-0.01)shrunk.push(S+' '+s.wrongFs+'px');if(s.wrongFs<11.5+0.01)tiny.push(S+' '+s.wrongFs+'px');}
+        moreCheck(S,s);
         if(s.boardAt!==still.boardAt||s.rowAt!==still.rowAt||s.boxAt!==still.boxAt||s.pageScroll>0)jumped.push(S+': board '+still.boardAt+' -> '+s.boardAt+', box '+still.boxAt+' -> '+s.boxAt+', row '+still.rowAt+' -> '+s.rowAt+', page scroll '+s.pageScroll);
         if((mm=/^(\S+) allows mate \((\S+)\)\. Try again\.$/.exec(T))){nWhy++;const a=mk(p,m);const r=legal(a).find(x=>san(a,x)===mm[2]);if(mm[1]!==S||!r||!isMate(mk(a,r)))untrue.push(T);}
         else if((mm=/^(\S+) (hangs|drops) the (pawn|knight|bishop|rook|queen) \((\S+)\)\. Try again\.$/.exec(T))){nWhy++;const a=mk(p,m);const r=legal(a).find(x=>san(a,x).replace(/[+#]$/,'')===mm[4].replace(/[+#]$/,''));
@@ -321,12 +349,27 @@ L.run(async()=>{
       // TC-R262 (batch 13, his Desk answer to q23: "Longer, friendlier wrong try lines"): the card's line is the longer one, the box keeps its place, and only a short phone draws it smaller
       L.say(typeof row.miss==='string'&&row.miss.length>=80&&/^(Have another look|Have a look around|Look again|Look for|Every|There is|The g6|Two)\b/.test(row.miss),g+'TC-R262 '+nm+': the card\'s wrong-try line is the longer, friendlier one ('+(row.miss||'').length+' characters, at least 80)',row.miss);
       L.say(jumped.length===0&&nMiss>0,g+'TC-R262 '+nm+': while a wrong-try line shows, the board, the card box and the button row stay exactly where they were and the page does not scroll ('+nMiss+' card lines shown)',jumped.slice(0,3));
-      if(geo==='kunal761')L.say(shrunk.length===0&&minFs<99,g+'TC-R262 '+nm+': on his phone the wrong-try line is drawn at the box\'s own size on every wrong move (never shrunk; smallest '+minFs+'px)',shrunk.slice(0,4));
-      else L.say(tiny.length===0&&minFs<99,g+'TC-R262 '+nm+': on a short phone the wrong-try line may be drawn smaller to fit, never below 11.5px (smallest '+minFs+'px)',tiny.slice(0,4));
+      // #553 (his Q68 pick, 23 Nov 2026: "on short phones the lines stay at full size and the same text ... no 11.5px text"): this line read 'on a short phone the
+      // line may be drawn smaller to fit, never below 11.5px'; it is now the same pin as on his phone, at every size - never shrunk, so nothing is drawn at 11.5px
+      L.say(shrunk.length===0&&tiny.length===0&&minFs<99,g+'TC-R262 '+nm+': the wrong-try line is drawn at the box\'s own size on every wrong move, on every phone (never shrunk; smallest '+minFs+'px)',shrunk.slice(0,4));
+      // TC-R298 (#553 Q68): the 'more' chip appears exactly when the line does not fit the box's room at full size; when it shows, the LINE is what cuts (its own
+      // overflow, at whole lines, inside the box) and the chip covers none of its words; when it does not, the whole line is drawn. TC-R299: no faded sliver -
+      // while a line shows, the box does not fade and nothing in it is drawn part in, part out.
+      L.say(moreBad.length===0&&nMoreSeen>=0,g+'TC-R298 '+nm+': on each wrong move the more chip shows exactly when the line does not fit the box at full size, and then the line itself cuts at whole lines, inside the box, with no word under the chip ('+nMoreSeen+' of '+wrongs.length+' needed it)',moreBad.slice(0,3));
+      L.say(sliverBad.length===0&&wrongs.length>0,g+'TC-R299 '+nm+': while a wrong-try line shows, the box does not fade and nothing in it is drawn part inside, part outside it (no sliver)',sliverBad.slice(0,3));
+      if(geo==='se')L.say(nMoreSeen>0,g+'TC-R298 DENOMINATOR '+nm+': at 320x568 at least one wrong move needs the more chip ('+nMoreSeen+')',nMoreSeen);
+      if(geo==='kunal761')L.say(nMoreSeen===0,g+'TC-R298 '+nm+': on his phone no wrong move needs the more chip - nothing changes there ('+nMoreSeen+')',nMoreSeen);
       // a tap that is no legal move
       let ill=null;const lg=legal(p);for(let r=0;r<8&&!ill;r++)for(let c=0;c<8&&!ill;c++){const q=p.board[r][c];if(!q||q.c!=='w')continue;for(let R=0;R<8&&!ill;R++)for(let C=0;C<8&&!ill;C++){const t=p.board[R][C];if(t&&t.c==='w')continue;if(!lg.some(m=>m.fr===r&&m.fc===c&&m.tr===R&&m.tc===C))ill=[sqn(r,c),sqn(R,C)];}}
       await click(b,ill[0]);await click(b,ill[1]);s=await readTac(b);
       L.say(typeof row.miss==='string'&&s.wrong==='Not legal. '+row.miss&&s.wrongIn===true,g+'TC-R246a '+nm+': a tap that is no legal move ('+ill[0]+' to '+ill[1]+') says so, with the card\'s own line, inside its box',{shown:s.wrong,inBox:s.wrongIn});
+      {moreBad.length=0;sliverBad.length=0;moreCheck('the tap that is no legal move',s);
+        L.say(moreBad.length===0&&sliverBad.length===0,g+'TC-R298 '+nm+': on the tap that is no legal move the more chip shows exactly when that line does not fit, the line cuts itself at whole lines, and no sliver shows',moreBad.concat(sliverBad).slice(0,3));
+        const M=s.more;if(M&&M.btn){const at=s.boardAt,ra=s.rowAt,ba=s.boxAt;const c0=M.btnAt.split(',').map(Number);await b.page.mouse.click(c0[0]+c0[2]/2,c0[1]+c0[3]/2);await b.settle(150);const o=await readTac(b);const P2=o.more&&o.more.panel;
+          L.say(!!P2&&P2.whole&&P2.coversBox&&P2.top>=0&&(P2.barTop==null||P2.bottom<=P2.barTop)&&Math.abs(P2.fs-s.boxFs)<0.01&&o.more.btn==='\u25b4 less'&&o.boardAt===at&&o.rowAt===ra&&o.boxAt===ba&&o.pageScroll<=0,g+'TC-R298 '+nm+': tapping more opens the whole line over the box, on screen above the tab bar, at the box\'s own size, the chip then reads less, and the board, box and buttons do not move',{panel:P2,btn:o.more&&o.more.btn,board:[at,o.boardAt],row:[ra,o.rowAt],scroll:o.pageScroll});
+          if(o.more&&o.more.btnAt){const c1=o.more.btnAt.split(',').map(Number);await b.page.mouse.click(c1[0]+c1[2]/2,c1[1]+c1[3]/2);await b.settle(150);}const z=await readTac(b);
+          L.say(!!z.more&&!z.more.panel&&z.more.btn==='\u25be more'&&z.more.lineCuts,g+'TC-R298 '+nm+': tapping less closes it again, back to the cut line and the more chip',{panel:z.more&&z.more.panel,btn:z.more&&z.more.btn});
+          s=z;}}
       {const [ir,ic]=rc(ill[0]),[jr,jc]=rc(ill[1]);const F=(()=>{try{return hasFn?E.tacWrongLine(row,p,ir,ic,jr,jc):null;}catch(e){return 'THREW '+(e&&e.message||e);}})();
         L.say(hasFn&&typeof row.miss==='string'&&F==='Not legal. '+row.miss,g+'TC-R246f '+nm+': the shipped tacWrongLine, in node, answers the same tap that is no legal move with "Not legal. <the card\'s line>"',F);
         L.say(hasFn&&s.wrong===F,g+'TC-R246g '+nm+': the line on screen for that tap is exactly what the shipped function returns',{shown:s.wrong,fn:F});}

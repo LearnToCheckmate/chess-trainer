@@ -5244,7 +5244,7 @@ function tacWrongLine(card,pos,fr,fc,tr,tc){
     return miss?('Not '+s+'. '+miss):'';
   }catch(e){return '';}
 }
-const TT_WRONG_MIN=11.5;   /* batch 13, q23: the smallest a Tactics wrong-try line is drawn, on a short phone only (see the wrong-line effect in TacticsTrainer) */
+const TT_MORE_W=68;   /* #553 Q68: the room a cut wrong-try line keeps clear on its right for the 'more' chip (with the box's 12px padding, 80px from the box's edge, as pz-msg keeps) */
 const TT_BELOW={motifs:120,strategy:180,phone:114};   /* phone (#550 FMT-A-06, a42): the card box keeps two lines (62) + 8 + the 44 action row */   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
 function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const _bar=!!onBack;
@@ -5285,6 +5285,12 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const [cap,setCap]=useState(400);
   const [rowH,setRowH]=useState(0);
   const [ideaMore,setIdeaMore]=useState(false);
+  /* #553, Kunal's Q68 pick (docs/run-answers orchestrator-B14-Q68-2026-11-23, "A more button"; Amber: flags/amber-553-tactics-wrong-more):
+     wrongFit is 'all' while the card box holds its name, the wrong-try line and the idea at once (his phone), 'line' when it holds the whole
+     line but not the idea after it (the idea is then not drawn, so no faded part-line shows), 'cut' when the line itself is taller than the
+     box's room (the box shows the whole lines that fit and the 'more' chip); wrongOpen is the line opened whole over the board. */
+  const [wrongFit,setWrongFit]=useState('all');const [wrongUp,setWrongUp]=useState(false);   /* the box was scrolled so the line starts at its top: the card's name above it is not drawn either */
+  const [wrongOpen,setWrongOpen]=useState(false);
   const ideaCheck=()=>{const el=ideaRef.current;setIdeaMore(!!el&&el.scrollTop+el.clientHeight<el.scrollHeight-1);};
   useLayoutEffect(()=>{
     const fit=()=>{const row=rowRef.current;
@@ -5315,19 +5321,26 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
      wrong try sits under the card's name, so its second line was cut at the box's foot (measured at 320x568: 41px of text in a 64px box with the
      name above it). While the line shows, the box is scrolled so the line starts at its top; it goes back when the line goes. */
   useLayoutEffect(()=>{const box=ideaRef.current,el=wrongRef.current;if(!box)return;
-    if(!wrong||!el){if(wrongScrollRef.current){wrongScrollRef.current=false;box.scrollTop=0;ideaCheck();}return;}
-    /* batch 13, Kunal's Desk answer to q23 (19 Nov 2026, "Longer, friendlier wrong try lines", the option that said "needs a taller box or
-       smaller text on short phones"): the card lines are now one or two sentences, up to three lines at 320. SMALLER TEXT ON SHORT PHONES,
-       not a taller box, because a taller box is board height on every card of every short phone and this costs the board nothing: the box
-       keeps its height (TT_BELOW and belowH are untouched, so nothing above or below it moves), and only when the line is taller than the
-       room inside the box does the line alone step down, 0.5px at a time with a tighter line height, to TT_WRONG_MIN. On his phone
-       (375x761) the box has room for the longest line at the box's own size, so it never shrinks there. */
-    el.style.fontSize='';el.style.lineHeight='';
-    {const cs=getComputedStyle(box);const room=box.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0);
-      if(room>0&&el.offsetHeight>room){el.style.lineHeight='1.3';let f=parseFloat(getComputedStyle(el).fontSize)||15;
-        while(el.offsetHeight>room&&f>TT_WRONG_MIN){f=Math.max(TT_WRONG_MIN,f-0.5);el.style.fontSize=f+'px';}}}
-    const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
-    if(er.bottom>br.bottom-8||er.top<br.top+8){box.scrollTop+=er.top-br.top-8;wrongScrollRef.current=true;}ideaCheck();},[wrong,wrongTxt,mi,belowH]);
+    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';}
+    setWrongOpen(false);
+    if(!wrong||!el){setWrongFit('all');setWrongUp(false);if(wrongScrollRef.current){wrongScrollRef.current=false;box.scrollTop=0;ideaCheck();}return;}
+    /* #553, Kunal's Q68 pick ("A more button", 23 Nov 2026; Amber: flags/amber-553-tactics-wrong-more), replacing batch 13's smaller text on short
+       phones (the line stepped down to 11.5px, and the idea showed under it as a faded part-line). THE LINE STAYS AT THE BOX'S OWN SIZE AND
+       KEEPS ITS WORDS on every phone. The box keeps its height (TT_BELOW and belowH are untouched, so nothing above or below it moves):
+       - everything fits (his phone, 375x761): nothing changes;
+       - the box cannot hold the name, the line and the idea at once: the idea is not drawn while the line shows and the box neither scrolls
+         by hand nor fades, so no part-line of anything shows at its foot;
+       - the line itself is taller than the room inside the box (320x568: three lines at 14px in 46px): the LINE is cut at the whole lines that
+         fit (its own maxHeight, a whole number of line pitches, so the box never cuts it), it keeps the chip's width clear on the right, and
+         the puzzle explanation's '\u25be more' chip opens the whole line over the board until it is tapped again, as pz-msg does. */
+    {const cs=getComputedStyle(box);const pt=parseFloat(cs.paddingTop)||0,pb=parseFloat(cs.paddingBottom)||0;const room=box.clientHeight-pt-pb;let fit='all';
+      if(box.scrollHeight>box.clientHeight+1){fit='line';
+        if(room>0&&el.offsetHeight>room+0.5){fit='cut';el.style.paddingRight=TT_MORE_W+'px';const pitch=parseFloat(getComputedStyle(el).lineHeight)||20.3;
+          const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';}}
+      setWrongFit(fit);
+      const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
+      const bw=box.clientTop||0;if(er.bottom>br.bottom-bw-pb+0.5||er.top<br.top+bw+pt-0.5){box.scrollTop+=er.top-br.top-bw-pt;wrongScrollRef.current=true;}setWrongUp(box.scrollTop>0);}
+    ideaCheck();},[wrong,wrongTxt,mi,belowH,tab]);
   const psz=Math.min(37,Math.floor(cap/8*0.94));
   useEffect(()=>{
     if(!demo)return;
@@ -5386,12 +5399,13 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
     const _pri={..._ab,background:'var(--ac)',border:'none',color:'var(--acInk,#0b0d10)',fontWeight:800};
     const _chip={flexShrink:0,fontSize:13,color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'};
     const _box={flex:'1 1 auto',minHeight:0,overflowY:'auto',background:'rgba(var(--acr),.08)',border:'1px solid rgba(var(--acr),.26)',borderRadius:12,padding:'8px 12px',fontSize:'clamp(14px,3.1vw,15px)',color:'rgba(255,255,255,.9)',lineHeight:1.45,marginBottom:8};
-    const _hd=(t,c)=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:3}}><span style={{fontSize:16,fontWeight:800,color:'#fff',minWidth:0}}>{t}</span><span style={_chip}>{c}</span></div>);
-    const _st=wrong?<div ref={wrongRef} style={{color:'#f0a24e',fontWeight:700,marginBottom:3}}>{wrongTxt||'Not the key move. Try again.'}</div>
+    const _hd=(t,c,hide)=>(<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:3,...(hide?{visibility:'hidden'}:null)}}><span style={{fontSize:16,fontWeight:800,color:'#fff',minWidth:0}}>{t}</span><span style={_chip}>{c}</span></div>);
+    const _st=wrong?<div key="wrong" ref={wrongRef} data-ct="tactics-wrong" style={{color:'#f0a24e',fontWeight:700,marginBottom:3}}>{wrongTxt||'Not the key move. Try again.'}</div>
       :(showHint&&!doneM)?<div data-ct="tactics-hint" style={{color:'rgba(255,255,255,.78)',marginBottom:3}}>💡 {cur.hint}</div>
       :(sel&&!doneM)?<div style={{color:'rgba(255,255,255,.62)',marginBottom:3}}>Now tap where it goes.</div>
       :solved?<div style={{color:'#6fce97',fontWeight:800,marginBottom:3}}>✓ {cur.san}: correct!</div>
       :shown?<div style={{color:'var(--ac2)',fontWeight:800,marginBottom:3}}>Answer: {cur.san}</div>:null;
+    const _wf=tab==='motifs'&&wrong&&wrongFit!=='all',_wcut=tab==='motifs'&&wrong&&wrongFit==='cut';   /* #553 Q68: the wrong-try line does not fit beside the idea / is itself cut (see the wrong-line effect) */
     const _bd=(cells,extra)=>(<div style={{position:'relative',width:cap,marginLeft:'calc(50% - '+(cap/2)+'px)',marginTop:6}}>
       <div ref={bRef} data-ct="tactics-board" style={{width:cap,maxWidth:cap,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>{cells}</div>{extra}</div>);
     const _ans=(tab==='motifs'&&doneM&&!ansHide)?(<div data-ct="tactics-answer" role="dialog" aria-label="Answer" style={{position:'absolute',left:6,right:6,bottom:6,maxHeight:'58%',display:'flex',flexDirection:'column',background:'rgba(18,20,27,.94)',border:'1px solid '+(solved?'rgba(111,206,151,.55)':'rgba(var(--acr),.5)'),borderRadius:12,boxShadow:'0 10px 30px rgba(0,0,0,.55)',zIndex:3}}>
@@ -5406,9 +5420,12 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
       </div>
       {tab==='motifs'?_bd(Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>cell(r,c))),_ans)
         :_bd(Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c))),null)}
-      <div ref={belowRef} data-ct="tactics-below" style={{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0,padding:'0 4px'}}>
-        {tab==='motifs'?(<div ref={ideaRef} data-ct="tactics-idea" onScroll={ideaCheck} style={{..._box,WebkitMaskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined}}>
-            {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length)}{_st}<div>{cur.idea}</div></div>)
+      <div ref={belowRef} data-ct="tactics-below" style={{height:belowH||undefined,display:'flex',flexDirection:'column',marginTop:10,minHeight:0,padding:'0 4px',position:'relative'}}>
+        {/* #553 Q68 (Amber: flags/amber-553-tactics-wrong-more): the cut wrong-try line opened whole, over the box and up over the board's foot, opaque, until 'less' or the panel is tapped - the puzzle explanation's 'more' (pz-msg-more), same chip, same gesture */}
+        {tab==='motifs'&&_wcut&&wrongOpen&&(<div data-ct="tactics-wrong-open" onClick={()=>setWrongOpen(false)} style={{position:'absolute',left:4,right:4,bottom:ACT_H+8,minHeight:belowH?Math.max(0,belowH-ACT_H-8):undefined,maxHeight:'70vh',overflowY:'auto',boxSizing:'border-box',zIndex:6,background:'linear-gradient(rgba(var(--acr),.14),rgba(var(--acr),.14)),rgb(20,22,27)',border:'1px solid rgba(var(--acr),.45)',borderRadius:12,boxShadow:'0 -6px 18px rgba(0,0,0,.45)',padding:'8px 80px 8px 12px',fontSize:'clamp(14px,3.1vw,15px)',lineHeight:1.45,color:'#f0a24e',fontWeight:700}}>{wrongTxt}</div>)}
+        {tab==='motifs'&&_wcut&&(<button data-ct="tactics-wrong-more" aria-label={wrongOpen?'Show less of the line':'Show the rest of the line'} onClick={()=>setWrongOpen(o=>!o)} style={{position:'absolute',right:12,bottom:ACT_H+8+6,zIndex:7,minHeight:28,padding:'3px 10px',borderRadius:14,border:'1px solid rgba(255,255,255,.35)',background:'rgba(20,24,32,.92)',color:'#fff',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>{wrongOpen?'\u25b4 less':'\u25be more'}</button>)}
+        {tab==='motifs'?(<div ref={ideaRef} data-ct="tactics-idea" data-fit={wrong?wrongFit:undefined} onScroll={ideaCheck} style={{..._box,...(_wf?{overflowY:'hidden'}:null),WebkitMaskImage:(ideaMore&&!_wf)?'linear-gradient(#000 70%,transparent)':undefined,maskImage:(ideaMore&&!_wf)?'linear-gradient(#000 70%,transparent)':undefined}}>
+            {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length,_wf&&wrongUp)}{_st}<div style={_wf?{visibility:'hidden'}:undefined}>{cur.idea}</div></div>)
           :(<div ref={stratRef} data-ct="tactics-strat-text" onScroll={stratCheck} style={{..._box,WebkitMaskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined}}>
             {_hd(cstr.title,((si%STRAT.length)+1)+'/'+STRAT.length)}<div style={{color:'var(--ac2)',fontWeight:700,marginBottom:4}}>👀 {cstr.look}</div><div style={{color:'rgba(255,255,255,.88)'}}>{cstr.text}</div></div>)}
         <div data-ct="tactics-row" style={{display:'flex',gap:8,flexShrink:0}}>

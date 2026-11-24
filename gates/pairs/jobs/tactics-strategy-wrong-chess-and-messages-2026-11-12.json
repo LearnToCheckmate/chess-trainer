@@ -1,10 +1,11 @@
 {
  "job": "tactics-strategy-wrong-chess-and-messages-2026-11-12",
- "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. Batch 14 (the job's remainder, tacWrongLine in gates/engine-extract.js): TC-R246f runs the shipped tacWrongLine in node over every legal wrong move and the no-legal tap of every card (a reply that mates, found by playing every reply, must be named first; every other line a true hangs/drops line or the card's line), and TC-R246g holds the line on screen to that function's output move by move. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
+ "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. Batch 14 (the job's remainder, tacWrongLine in gates/engine-extract.js): TC-R246f runs the shipped tacWrongLine in node over every legal wrong move and the no-legal tap of every card (a reply that mates, found by playing every reply, must be named first; every other line a true hangs/drops line or the card's line), and TC-R246g holds the line on screen to that function's output move by move. #553 (his Q68 pick, 23 Nov 2026, 'A more button'): TC-R262 now pins the line at the box's own size on every phone (the 11.5px floor is gone), TC-R298 holds the 'more' chip to appear exactly when the line does not fit the box at full size (measured by a hidden copy, not by the app's own cut), the line itself to cut at whole lines inside the box with no word under the chip, and the chip to open the whole line over the box and close it again; TC-R299 holds that no faded sliver shows while a line is up; graded at 375x667 too. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
  "gate": "gates/regress/175-tactics-strategy-claims-hold.js",
  "checks": [
   "TC-R246[a-g] ",
-  "TC-R262 "
+  "TC-R262 ",
+  "TC-R29[89] "
  ],
  "build": "always",
  "situations": [
@@ -15,6 +16,10 @@
   {
    "name": "se 320x568",
    "match": "^se "
+  },
+  {
+   "name": "w375h667",
+   "match": "^w375h667 "
   }
  ],
  "breaks": [
@@ -39,7 +44,7 @@
   {
    "name": "line-cut-on-a-short-phone",
    "patch": "breaks/tactics-wrong-try-line-cut-on-a-short-phone.diff",
-   "why": "the wrong-try line is no longer scrolled to the top of its box, so at 320x568 the longer line runs past the box's foot under the card's name",
+   "why": "the wrong-try line is no longer scrolled to the top of its box, so at 320x568 its whole lines sit under the card's name and run past the box's foot (regenerated at #553 against the more-chip code)",
    "mustFailIn": [
     "se 320x568"
    ]
@@ -78,6 +83,31 @@
    "mustFailIn": [
     "kunal761",
     "se 320x568"
+   ]
+  },
+  {
+   "name": "11px-back",
+   "patch": "breaks/tactics-wrong-try-11px-back.diff",
+   "why": "batch 13's shrink comes back: on a short phone a line too tall for the box steps down to 11.5px instead of keeping its size and showing the more chip",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "more-missing",
+   "patch": "breaks/tactics-wrong-try-more-missing.diff",
+   "why": "the line is still cut at whole lines but the more chip is not drawn, so the rest of the line cannot be read and nothing says there is more",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "faded-sliver-back",
+   "patch": "breaks/tactics-wrong-try-faded-sliver-back.diff",
+   "why": "the idea is drawn under the wrong-try line again and the box fades at its foot, so a faded part-line of the idea peeks under the line on a short phone",
+   "mustFailIn": [
+    "se 320x568",
+    "w375h667"
    ]
   }
  ],

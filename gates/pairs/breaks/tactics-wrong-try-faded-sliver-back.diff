@@ -1,0 +1,14 @@
+diff --git a/chess.jsx b/chess.jsx
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5424,8 +5424,8 @@
+         {/* #553 Q68 (Amber: flags/amber-553-tactics-wrong-more): the cut wrong-try line opened whole, over the box and up over the board's foot, opaque, until 'less' or the panel is tapped - the puzzle explanation's 'more' (pz-msg-more), same chip, same gesture */}
+         {tab==='motifs'&&_wcut&&wrongOpen&&(<div data-ct="tactics-wrong-open" onClick={()=>setWrongOpen(false)} style={{position:'absolute',left:4,right:4,bottom:ACT_H+8,minHeight:belowH?Math.max(0,belowH-ACT_H-8):undefined,maxHeight:'70vh',overflowY:'auto',boxSizing:'border-box',zIndex:6,background:'linear-gradient(rgba(var(--acr),.14),rgba(var(--acr),.14)),rgb(20,22,27)',border:'1px solid rgba(var(--acr),.45)',borderRadius:12,boxShadow:'0 -6px 18px rgba(0,0,0,.45)',padding:'8px 80px 8px 12px',fontSize:'clamp(14px,3.1vw,15px)',lineHeight:1.45,color:'#f0a24e',fontWeight:700}}>{wrongTxt}</div>)}
+         {tab==='motifs'&&_wcut&&(<button data-ct="tactics-wrong-more" aria-label={wrongOpen?'Show less of the line':'Show the rest of the line'} onClick={()=>setWrongOpen(o=>!o)} style={{position:'absolute',right:12,bottom:ACT_H+8+6,zIndex:7,minHeight:28,padding:'3px 10px',borderRadius:14,border:'1px solid rgba(255,255,255,.35)',background:'rgba(20,24,32,.92)',color:'#fff',fontSize:12.5,fontWeight:800,cursor:'pointer'}}>{wrongOpen?'\u25b4 less':'\u25be more'}</button>)}
+-        {tab==='motifs'?(<div ref={ideaRef} data-ct="tactics-idea" data-fit={wrong?wrongFit:undefined} onScroll={ideaCheck} style={{..._box,...(_wf?{overflowY:'hidden'}:null),WebkitMaskImage:(ideaMore&&!_wf)?'linear-gradient(#000 70%,transparent)':undefined,maskImage:(ideaMore&&!_wf)?'linear-gradient(#000 70%,transparent)':undefined}}>
+-            {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length,_wf&&wrongUp)}{_st}<div style={_wf?{visibility:'hidden'}:undefined}>{cur.idea}</div></div>)
++        {tab==='motifs'?(<div ref={ideaRef} data-ct="tactics-idea" data-fit={wrong?wrongFit:undefined} onScroll={ideaCheck} style={{..._box,...(_wf?{overflowY:'hidden'}:null),WebkitMaskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:ideaMore?'linear-gradient(#000 70%,transparent)':undefined}}>
++            {_hd(cur.motif,cur.level+' · '+((mi%TACTICS.length)+1)+'/'+TACTICS.length,_wf&&wrongUp)}{_st}<div>{cur.idea}</div></div>)
+           :(<div ref={stratRef} data-ct="tactics-strat-text" onScroll={stratCheck} style={{..._box,WebkitMaskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined,maskImage:stratMore?'linear-gradient(#000 70%,transparent)':undefined}}>
+             {_hd(cstr.title,((si%STRAT.length)+1)+'/'+STRAT.length)}<div style={{color:'var(--ac2)',fontWeight:700,marginBottom:4}}>👀 {cstr.look}</div><div style={{color:'rgba(255,255,255,.88)'}}>{cstr.text}</div></div>)}
+         <div data-ct="tactics-row" style={{display:'flex',gap:8,flexShrink:0}}>
