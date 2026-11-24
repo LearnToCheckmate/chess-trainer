@@ -40,6 +40,11 @@
 //      taken, and the board does not turn to the side to move
 //   n  the board is the same size as the same game set up without a scan (the row costs it nothing) and does not move
 //      between moves; the screen does not overflow
+//   s  SIDEWAYS AND DESKTOP (batch 14, the job's remainder; CT_G174_SIDE_GEOS, default 761x375 his phone on its side,
+//      568x320 the short corner, 1280x800 a desktop window; one skin): the board stands LEFT of one column holding the
+//      title, the line, the pieces or the two questions and the buttons; the board takes at least 3/4 of the screen's
+//      height (the stack left it at 160 of 375 and 520 of 800); nothing scrolls and nothing leaves the screen on either
+//      side; the board does not move between the two steps; a square is fixed there; and Play starts the game
 //   u  (node, once) the pure pieces: the FEN keeps the reading's own tail while nothing changed, drops castling the pieces
 //      no longer allow, and the two refusals (a king in check with the other side to move; checkmate) say why
 'use strict';
@@ -51,6 +56,7 @@ const ITALIAN='r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R';
 const CORNER='6k1/5ppp/8/8/8/8/5PPP/R5K1',CORNER_TURNED='1K5R/PPP5/8/8/8/8/ppp5/1k6';
 const GIUOCO='r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R';
 const GEOS=(process.env.CT_G174_GEOS||'kunal761,se').split(',');
+const SIDE_GEOS=(process.env.CT_G174_SIDE_GEOS||'761x375,568x320,1280x800').split(',').filter(Boolean);
 const SKINS=[['classic',{},false],['medieval',{ct_skin:'2'},true]].filter(s=>!process.env.CT_G174_SKINS||process.env.CT_G174_SKINS.split(',').includes(s[0]));
 const occOf=(g)=>{const o=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(g.board[r][c])o.push(E.rc2sq(r,c));return o.sort();};
 const legalSans=(g)=>E.getLegal(g).map(m=>E.cleanSAN(E.toSAN(g,m,E.applyMove(g.board,m))));
@@ -83,6 +89,10 @@ function unit(){
   L.say(/pawn cannot stand/.test(E.scanBoardProblem(E.scanGridOf('k6P/8/8/8/8/8/8/K7'))||''),T+'a pawn on the last row is refused in words');
   L.say(E.scanTurnProblem(CORNER+' w - - 0 1')===null,T+'a playable position with the right side to move is not refused');
   L.say(/White cannot be next: Black's king is in check/.test(E.scanTurnProblem('R5k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1')||''),T+'the wrong side to move (the other king could be taken) is refused in words',E.scanTurnProblem('R5k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1'));
+  // the dead sheet code (batch 14): a scan never reaches the New Game sheet, so the sheet's scan-only source flag and its
+  // scan sentence are gone from the source; read from this tree's chess.jsx (engine-extract's own read)
+  const SRC=require('fs').readFileSync(require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
+  L.say(!/\bsetSetupSrc\b|setupSrc===/.test(SRC)&&SRC.indexOf("Scan or upload a board where it is still someone's turn")<0,T+'the New Game sheet carries no scan source and no scan sentence any more (dead since a scan opens Check the board)');
   L.say(/With Black to move it is checkmate/.test(E.scanTurnProblem('R5k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1')||''),T+'a position that is already checkmate is refused in words',E.scanTurnProblem('R5k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1'));
 }
 
@@ -234,6 +244,47 @@ async function screens(geo,skin,sstore,pro){
   await b.close();
 }
 
+// SIDEWAYS AND DESKTOP: the same screen on a screen wider than it is tall (TC-R244s). Lines are named 'side<WxH> TC-R244s'.
+const sideRead=(b)=>b.page.evaluate((DLG)=>{const d=document.querySelector(DLG);if(!d)return null;
+  const grid=[...d.querySelectorAll('div')].find(x=>/repeat\(8,/.test(x.style.gridTemplateColumns||''));if(!grid)return null;const g=grid.getBoundingClientRect();
+  // everything else on the screen that is painted: its text rows and its buttons (found by being in the dialog and not in the board)
+  const els=[...d.querySelectorAll('button,[role="status"]')].filter(e=>!grid.contains(e)&&e.getBoundingClientRect().width>0);
+  const rs=els.map(e=>e.getBoundingClientRect());const titleEl=[...d.querySelectorAll('div')].find(e=>!grid.contains(e)&&e.children.length===0&&/^(Check the board|Who moves, and which side\?)$/.test((e.innerText||'').trim()));
+  const t=titleEl?titleEl.getBoundingClientRect():null;
+  return {vw:window.innerWidth,vh:window.innerHeight,sh:d.scrollHeight,ch:d.clientHeight,sw:d.scrollWidth,cw:d.clientWidth,
+    board:{x:Math.round(g.left*10)/10,y:Math.round(g.top*10)/10,w:Math.round(g.width*10)/10,h:Math.round(g.height*10)/10,r:Math.round(g.right*10)/10,b:Math.round(g.bottom*10)/10},
+    title:t?{x:Math.round(t.left),r:Math.round(t.right),y:Math.round(t.top),b:Math.round(t.bottom)}:null,
+    restL:Math.round(Math.min(...rs.map(r=>r.left))*10)/10,restR:Math.round(Math.max(...rs.map(r=>r.right))*10)/10,restB:Math.round(Math.max(...rs.map(r=>r.bottom))*10)/10,restT:Math.round(Math.min(...rs.map(r=>r.top))*10)/10,n:els.length};},'[role="dialog"][aria-label="Check the board"],[role="dialog"][aria-label^="Who moves next"]');
+async function sideways(geo){
+  const [w,h]=geo.split('x').map(Number);const T='side'+geo+' TC-R244s';
+  const b=await L.launch({geo:{w,h,safe:'',label:geo+' (sideways / desktop)'},name:'g174-side-'+geo,store:{ct_pool:'3'}});await b.open();
+  let stage='the scan';
+  try{
+    await S.scan(b,{fen:ITALIAN+' w KQkq - 0 1',orientation:'white-bottom'});
+    const c=await S.check(b);const r1=await sideRead(b);
+    L.say(!!c&&c.step===1&&c.count===64&&c.line==='Tap a square to fix it.'&&c.placement===ITALIAN,T+' PRECONDITION the scan opens Check the board with the board read and its line',c&&{step:c.step,line:c.line,count:c.count});
+    L.say(!!r1&&!!r1.title&&r1.board.r<=r1.restL+0.5&&r1.board.r<=r1.title.x+0.5,T+' the board stands LEFT of the title, the line and the buttons (board right '+(r1&&r1.board.r)+', the rest from '+(r1&&r1.restL)+')',r1&&{board:r1.board,title:r1.title,restL:r1.restL});
+    L.say(!!r1&&r1.board.h>=0.75*r1.vh,T+' the board takes at least three quarters of the screen\'s height ('+(r1&&r1.board.h)+' of '+(r1&&r1.vh)+')',r1&&r1.board);
+    L.say(!!r1&&r1.sh<=r1.ch+1&&r1.sw<=r1.cw+1,T+' nothing scrolls ('+(r1&&(r1.sh+' in '+r1.ch+' tall, '+r1.sw+' in '+r1.cw+' wide'))+')',r1&&{sh:r1.sh,ch:r1.ch,sw:r1.sw,cw:r1.cw});
+    L.say(!!r1&&r1.board.x>=-0.5&&r1.board.y>=-0.5&&r1.board.b<=r1.vh+0.5&&r1.restL>=-0.5&&r1.restR<=r1.vw+0.5&&r1.restB<=r1.vh+0.5&&r1.restT>=-0.5,T+' the board and every button are inside the screen (board '+(r1&&(r1.board.x+','+r1.board.y+' to '+r1.board.r+','+r1.board.b))+', buttons to '+(r1&&(r1.restR+','+r1.restB))+' on '+geo+')',r1);
+    stage='a tap on a square';
+    await S.tapSquare(b,'a7');await S.pick(b,'Empty square');const c2=await S.check(b);
+    L.say(!!c2&&c2.squares.a7==='empty',T+' a square is fixed there the same way (a7 cleared)',c2&&c2.squares.a7);
+    await S.tapSquare(b,'a7');await S.pick(b,'black pawn');
+    stage='the questions';
+    const nx=await S.next(b);const r2=await sideRead(b);const qT=await S.answered(b,'turn'),qS=await S.answered(b,'side');
+    L.say(nx==='ok'&&!!qT&&!!qS&&!!r2&&!!r1&&JSON.stringify(r2.board)===JSON.stringify(r1.board),T+' the two questions come next beside the SAME board in the same place ('+JSON.stringify(r2&&r2.board)+')',{nx,now:r2&&r2.board,was:r1&&r1.board});
+    L.say(!!r2&&r2.sh<=r2.ch+1&&r2.sw<=r2.cw+1&&r2.restR<=r2.vw+0.5&&r2.restB<=r2.vh+0.5,T+' and on that step too nothing scrolls and every button is on the screen',r2&&{sh:r2.sh,ch:r2.ch,restR:r2.restR,restB:r2.restB});
+    const pb=await S.btn(b,'Play');
+    L.say(!!pb&&pb.words==='Play'&&pb.h>=44&&pb.x+pb.w<=w+0.5&&pb.y+pb.h<=h+0.5,T+' Play is its word, 44 tall, on the screen',pb);
+    await S.answer(b,'turn','White');await S.answer(b,'side','White');
+    const st=await S.start(b,'Play');await b.settle(900);const after=await S.check(b);
+    L.say(st==='ok'&&!after,T+' answered, Play starts the game and the screen closes',{st,open:!!after});
+    L.say(b.errs.length===0,T+' zero app errors',b.errs.slice(0,3));
+  }catch(e){L.say(false,T+' HARNESS: the drive threw at "'+stage+'" (NOT an app result; every line after it is unrun)',String(e&&e.message||e).slice(0,220));}
+  await b.close();
+}
+
 // every Stockfish worker fails: the row ranks with the app's own search and says so
 async function noEngine(geo){
   const T=geo+' no-engine TC-R244';
@@ -257,6 +308,7 @@ L.run(async()=>{
   if(!process.env.CT_G174_NO_UNIT)unit();
   for(const geo of GEOS)for(const [skin,sstore,pro] of SKINS)await screens(geo,skin,sstore,pro);
   if(!process.env.CT_G174_NO_NOENG)await noEngine(GEOS[0]);
+  for(const geo of SIDE_GEOS)await sideways(geo);
   L.done();
 });
 // CONTROL-RECORD: 10fd11f8 2026-11-19 total=55 red=44 scope=trial:78a0892eb416 how=THE SUBJECT REMOVED: the tree before the change (9f308d12, built as a trial) - the scan lands on the New Game sheet, there is no Check the board screen, so lines a, b, c and the first two d lines are red at each of the four screen launches (8 each), the drive stops at its first tap on a square and says so (4 lines), and the no-engine launch has no game to read (8 lines); the 9 unit lines read this tree's chess.jsx, not the bundle, and stay green with the two engine-free pass lines. On trial 0595c2962e15 of this tree: 259 pass, 0 fail, 176s. The three pairs breaks are the controls of lines f, h and j (gates/pairs/jobs/scan-check-the-board-first-then-who-moves-and-which-side-then-play-or-analyze-2026-11-18.json).
