@@ -29,9 +29,20 @@ const WRAP=()=>{const W=window.Worker;let n=0;window.__wk=[];
     w.addEventListener('message',e=>{if(/^bestmove/.test(String(e.data||''))){rec.bms++;rec.open=Math.max(0,rec.open-1);}});return w;};
   window.Worker.prototype=W.prototype;};
 const read=(b)=>b.page.evaluate(()=>window.__wk.filter(r=>r.gos>0).map(r=>({id:r.id,gos:r.gos,bms:r.bms,early:r.early})));
+// #553 B2 [jobs/the-main-engine-worker-still-posts-go-before-the-stopped-search-answers-in-the-eval-bar-and-play-2026-11-07]: two knobs for
+// the pairs grader. CT_NOGO_GEO picks the geometry (a GEOS name; default kunal761, as before). CT_NOGO_THROTTLE=<n> slows the page's CPU
+// n times through CDP (Emulation.setCPUThrottlingRate), a stand-in for a slower phone: the job's whatIsLeft says a slower phone may
+// overlap two searches where this machine does not. Neither changes a line's text; the default run is unchanged.
+// MEASURED AT #553 WITH THEM: the Review arm's walk sends the MAIN worker one go (worker 0: 1 go; the arm's 36 are the review's own
+// analysis pass on the pool), so the eval-bar mutant mA stays green on it 4 of 4 runs (3 of them at 4x throttle) - that arm guards the
+// review pass, not the walk. The bot's own stopIdle and the analysis worker's anaIdle, each replaced by an always-idle shim, stay green
+// at 1x and 4x too: on this machine the move's effect cleanup stops the eval search before the bot asks. The Play arm reds on mA and on
+// a stopIdle that never waits, at kunal761, 4x throttled and 320x568 (gates/pairs/jobs/the-main-engine-worker-...-2026-11-07.json).
+const NG_GEO=process.env.CT_NOGO_GEO||'kunal761',NG_THR=+(process.env.CT_NOGO_THROTTLE||1);
 L.run(async()=>{
   for(const walk of (process.env.CT_NOGO_WALKS||'review,play').split(',')){
-    const b=await L.launch({geo:'kunal761',name:'nogo-'+walk,store:{ct_pool:'3'}});await b.ctx.addInitScript(WRAP);await b.open();
+    const b=await L.launch({geo:NG_GEO,name:'nogo-'+walk,store:{ct_pool:'3'}});await b.ctx.addInitScript(WRAP);await b.open();
+    if(NG_THR>1){try{const c=await b.page.context().newCDPSession(b.page);await c.send('Emulation.setCPUThrottlingRate',{rate:NG_THR});L.note(walk+': CPU throttled '+NG_THR+'x (CDP), a slower-device stand-in');}catch(e){L.note(walk+': CPU throttle refused: '+String(e).slice(0,80));}}
     let ok=true;try{
       if(walk==='review'){await R.ensureReview(b,'opera');await R.startReview(b);await R.goPly(b,1);await b.settle(400);
         // DOUBLE STEPS: the strip's next arrow clicked twice 15ms apart (one render apart - two clicks in one task batch into ONE render and one
