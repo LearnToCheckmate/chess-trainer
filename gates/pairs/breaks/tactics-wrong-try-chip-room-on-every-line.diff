@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5370,7 +5370,7 @@
+              here with the cut, like maxHeight, and removed at the top of this effect, so React's text node is never touched. */
+           const f1=document.createElement('span');f1.setAttribute('data-tt-more-room','1');f1.setAttribute('aria-hidden','true');f1.style.cssText='float:right;width:0;height:'+((n-1)*pitch)+'px';
+           const f2=document.createElement('span');f2.setAttribute('data-tt-more-room','2');f2.setAttribute('aria-hidden','true');f2.style.cssText='float:right;clear:right;width:'+TT_MORE_W+'px;height:'+pitch+'px';
+-          el.insertBefore(f2,el.firstChild);el.insertBefore(f1,f2);}}
++          el.style.paddingRight=TT_MORE_W+'px';}}
+       setWrongFit(fit);
+       const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
+       const bw=box.clientTop||0;if(er.bottom>br.bottom-bw-pb+0.5||er.top<br.top+bw+pt-0.5){box.scrollTop+=er.top-br.top-bw-pt;wrongScrollRef.current=true;}setWrongUp(box.scrollTop>0);}
