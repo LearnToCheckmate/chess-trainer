@@ -586,7 +586,7 @@ L.run(async()=>{
       await b.close();
     }
   }
-  // TC-R339 AT HIS PHONE [#553 B3]: the sweep above runs 375x730 (R19 superseded it) and never 375x761, so the band is read there too,
+  // TC-R339 AT KUNAL761 [#553 B3]: the sweep above never runs 375x761 (R19's settled size), so the band is read there too,
   // in both states, by the same player route. Only TC-R339 runs here; the sweep's width and top pins are not claimed at 761.
   for(const st of ['demo-end','practice-m0']){
     const b=await L.launch({geo:'kunal761',name:'lesson-761-band-'+st,store:{}});await b.open();

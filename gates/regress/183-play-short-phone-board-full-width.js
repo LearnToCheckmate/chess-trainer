@@ -51,8 +51,8 @@ L.run(async()=>{
     const inCol=!m.mp.sheet;
     const order=m.top.b<=(m.evH?m.evH.t:m.board.t)+0.5&&m.bot.t>=m.board.b-0.5&&(inCol?(m.mp.rect.t>=m.bot.b-0.5&&m.tb.t>=m.mp.rect.b-0.5):m.tb.t>=m.bot.b-0.5)&&m.tb.b<=m.vh+0.5;
     L.say(order,'TC-R260c '+tag+': the rows stack in order and on screen (top bar, eval bar, board, bottom bar, '+(inCol?'move list, ':'')+'buttons ending at '+m.tb.b+' of '+m.vh+')',{top:m.top,evH:m.evH,board:m.board,bot:m.bot,mp:m.mp.rect,tb:m.tb});
-    if(name==='375x761')L.say(Math.abs(m.board.w-375)<0.5&&Math.abs(m.board.t-140.5)<0.5&&Math.abs(m.top.h-64.5)<0.6&&Math.abs(m.bot.h-64.5)<0.6&&inCol,'TC-R260d '+tag+': his phone is unchanged - board '+m.board.w+' at top '+m.board.t+', bars '+m.top.h+' and '+m.bot.h+' (54754943: 375 at 140.5, 64.5 and 64.5), the move list in the column',{board:m.board,top:m.top,bot:m.bot,sheet:m.mp.sheet});
-    if(name==='320x568'){
+    if(L.geoIs(geo,375,761))L.say(Math.abs(m.board.w-375)<0.5&&Math.abs(m.board.t-140.5)<0.5&&Math.abs(m.top.h-64.5)<0.6&&Math.abs(m.bot.h-64.5)<0.6&&inCol,'TC-R260d '+tag+': his phone is unchanged - board '+m.board.w+' at top '+m.board.t+', bars '+m.top.h+' and '+m.bot.h+' (54754943: 375 at 140.5, 64.5 and 64.5), the move list in the column',{board:m.board,top:m.top,bot:m.bot,sheet:m.mp.sheet});
+    if(L.geoIs(geo,320,568)){
       L.say(m.mp.sheet&&m.mp.pos==='fixed'&&m.mp.vis==='hidden','TC-R260e '+tag+': the move list is behind its Moves button - a sheet out of the column, closed',{mp:m.mp});
       let opened=null,closed=null;
       try{await P.tapBtn(b,/^Moves$/,700);opened=await read(b);await P.tapBtn(b,/^Moves$/,700);closed=await read(b);}catch(e){L.note(tag+': Moves tap: '+String(e).slice(0,140));}

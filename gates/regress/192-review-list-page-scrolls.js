@@ -70,7 +70,7 @@ function read(){
 
 L.run(async()=>{
   for(const g0 of GEOS){const geo=/^\d+x\d+$/.test(g0)?{w:+g0.split('x')[0],h:+g0.split('x')[1],safe:''}:g0;
-    const gn=g0==='kunal761'?'375x761':g0==='se'?'320x568':g0;
+    const gn=L.geoIs(g0,375,761)?'375x761':L.geoIs(g0,320,568)?'320x568':g0;
     const b=await L.launch({geo,dev:false,name:'g192-'+gn,store:STORE});await b.open();let ok=true;
     try{await b.tile('Review');await b.settle(1500);}catch(e){ok=false;L.note(gn+' open: '+String(e).slice(0,120));}
     const m=await b.page.evaluate(read);

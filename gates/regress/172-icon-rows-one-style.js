@@ -70,7 +70,7 @@ const inRole=(m,list)=>!!list&&list.some(x=>x.endsWith('*')?m.name.startsWith(x.
 L.run(async()=>{
   for(const geo of ['kunal761','se'])for(const [skin,sstore,pro] of SKINS)for(const [key,enter,members,roles,xstore,onlyGeo] of ROWS){
     if(ONLY.length&&!ONLY.includes(key))continue;if(onlyGeo&&onlyGeo!==geo)continue;
-    const tag=(geo==='kunal761'?'375x761':'320x568')+' '+skin+' '+key;
+    const tag=(L.geoIs(geo,375,761)?'375x761':'320x568')+' '+skin+' '+key;
     const b=await L.launch({geo,name:'g172-'+key+'-'+skin+'-'+geo,pro:!!pro,store:{...sstore,...(xstore||{})}});await b.open();let ok=true,err='';
     try{await enter(b);await b.settle(700);}catch(e){ok=false;err=e.message;}
     const r=await b.page.evaluate(READ,[members,roles]);

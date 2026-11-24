@@ -2252,7 +2252,7 @@ L.run(async()=>{
                375x568 the board is now the width and the explanation's box is ONE line (it was three), so there are no empty lines for the
                graph to take and it is not drawn there - the graph gives way to the board. Re-keyed for those two geometries only; the claim
                that the graph never sits over a reason (15c) is unchanged everywhere. */
-            if(g==='se'||g==='short375') L.say(graphN===0,g+' TC-R239e ply '+n+' (a one-line final reason): on this short phone the board is the full width, the reason box is one line, and the eval graph is NOT drawn in it ('+graphN+' of '+fr.length+' frames) - it gives way to the board (batch 13, FB-07)',{graphFrames:graphN,txt:last.txt});
+            if(L.geoIs(g,320,568)||L.geoIs(g,375,568)) L.say(graphN===0,g+' TC-R239e ply '+n+' (a one-line final reason): on this short phone the board is the full width, the reason box is one line, and the eval graph is NOT drawn in it ('+graphN+' of '+fr.length+' frames) - it gives way to the board (batch 13, FB-07)',{graphFrames:graphN,txt:last.txt});
             else L.say(graphN>0&&ins.length>0,g+' TC-R239e ply '+n+' (a one-line final reason): the eval graph IS drawn, and inside the reason box\'s empty lines ('+ins.length+' of '+fr.length+' frames) - the short reason still gives its unused lines to the graph (gate 77 TC-S04), and the detector above can see a graph in the box',{graphFrames:graphN,inBox:ins.length,txt:last.txt,gTop:last.gTop,xBot:last.xBot,ink:last.ink});
           }
         }

@@ -164,7 +164,7 @@ L.run(async()=>{
         if(mv.length)chk=checkBest(st,mv);}
       L.say(af.say==='best'&&af.txt===chk.s&&/^Best was Qb4 with check\./.test(af.txt||'')&&!chk.errs.length,G+'TC-R264d with the best line showing ("'+af.bl+'") the row says what it does, and this gate\'s replay of that line agrees - "'+af.txt+'"'+(chk.errs.length?' ('+chk.errs.join('; ')+')':''));
       L.say(fits(af.fit)&&!!bd0&&!!bd1&&Math.abs(bd0.y-bd1.y)<0.5&&Math.abs(bd0.w-bd1.w)<0.5,G+'TC-R264d the sentence fits its box or is cut by its clamp only, and the board did not move ('+(bd0&&bd0.y)+'/'+(bd0&&bd0.w)+' -> '+(bd1&&bd1.y)+'/'+(bd1&&bd1.w)+')',af.fit);
-      if(geo==='kunal761'){let sh=null;try{await b.tapCt('rev-why-txt');await b.settle(500);sh=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-sheet"]');return e?e.innerText:null;});}catch(e){}
+      if(L.geoIs(geo,375,761)){let sh=null;try{await b.tapCt('rev-why-txt');await b.settle(500);sh=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-sheet"]');return e?e.innerText:null;});}catch(e){}
         L.say(!!sh&&/small slip/.test(sh),G+'TC-R264d the played move\'s sentence is one tap away: the row opens the sheet with it - "'+String(sh).slice(0,80)+'"');
         if(sh){await b.page.mouse.click(8,8);await b.settle(300);}
         if(process.env.CT_G187_SHOT)await b.shot(process.env.CT_G187_SHOT+'-best');}
@@ -173,7 +173,7 @@ L.run(async()=>{
       let inA=true;try{await b.tapCt('rev-fab');await b.settle(900);}catch(e){inA=false;}
       const a0=await rd(b);
       await b.move('e7','e6');await b.settle(1200);const a1=await rd(b);const bdB=await b.board();
-      if(geo==='kunal761'&&process.env.CT_G187_SHOT)await b.shot(process.env.CT_G187_SHOT+'-analysis');
+      if(L.geoIs(geo,375,761)&&process.env.CT_G187_SHOT)await b.shot(process.env.CT_G187_SHOT+'-analysis');
       await b.move('b5','d7');await b.settle(1200);const a2=await rd(b);
       let ud=true;try{await b.tapText(/Undo$/);await b.settle(700);}catch(e){ud=false;}const a3=await rd(b);
       L.say(inA&&a0.say==='ana'&&/^\s*$/.test(a0.txt||''),G+'TC-R264e PRECONDITION the analysis board opened, its sentence row is there and empty before a move ("'+a0.txt+'")');

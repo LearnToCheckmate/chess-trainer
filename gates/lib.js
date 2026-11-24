@@ -809,5 +809,11 @@ async function acctGames(page){
 // index.html's shell (ct_fullh stands in for navigator.standalone, which Chromium never sets) sizes html and body to the 812 it
 // paints (window.__ctFullH), and env() reports the insets 51 above and 31 below. kunal761 (375x761 with ct_safe) is none of those
 // three. Spread it into a launch: L.launch(Object.assign({},L.HOME_SCREEN_APP,{store:Object.assign({},L.HOME_SCREEN_APP.store,mine)})).
+// geoIs(geo,w,h) [#553 B3, jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]: is this
+// GEOS KEY the geometry of that width and height? Gates branch on a geometry by its PROPERTIES, not its name (the r19 audit's A4 arms),
+// so a renamed key cannot silently make a branch unreachable. Every GEOS entry has its own w x h (geoIs-selftest in
+// gates/audit/r19-phone-geometry.sh checks it), so geoIs(k,320,568) is true exactly when k is the key the old k==='se' named; a value that
+// is not a key string (an object, 'land', undefined) is false, as the old string comparison was.
+const geoIs=(geo,w,h)=>{if(typeof geo!=='string'||!Object.prototype.hasOwnProperty.call(GEOS,geo))return false;const g=GEOS[geo];return g.w===w&&g.h===h;};
 const HOME_SCREEN_APP={geo:{w:375,h:761,safe:'',label:'375x812 Home Screen app: 761 layout viewport, the 812 shell, real insets 51/31'},screen:{w:375,h:812},realInsets:'51,31',store:{ct_fullh:'1'}};
-module.exports={HOME_SCREEN_APP,coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};
+module.exports={geoIs,HOME_SCREEN_APP,coverageRecord,coverageLine,gameOverArms,gameOverLine,launch,serve,say,note,done,run,GEOS,TA7,ROOT,SHOTS,NET_NOISE,observedInputs,GRADES,INK_RECT,acctGames};

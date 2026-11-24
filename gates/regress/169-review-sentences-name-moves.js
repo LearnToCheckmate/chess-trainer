@@ -221,7 +221,7 @@ L.run(async()=>{
        await RV.goPly(b,13);await b.page.waitForTimeout(500);const p13=await read(b);
        L.say(/\bForced\b/.test(p13.move||'')&&/^The only legal move: the king takes the queen that gives check\./.test(p13.why||''),G+'TC-R234m ply 13, 7.Kxf2 (chip Forced): the king takes the queen that gives check, it does not "block" it - "'+p13.why+'"',p13);
        const f=p13.fit;L.say(!!f&&f.l>=0&&f.r<=f.vw&&(f.sh<=f.ch+0.5||(!!f.clamp&&f.ch<=Math.ceil(f.clamp*f.lh)+1)),G+'TC-R234m the sentence at ply 13 fits its box, or is cut by the line clamp and nothing else ('+(f?f.sh+' in '+f.ch+', clamp '+f.clamp+' x '+f.lh:'none')+')',f);
-       if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-forced');
+       if(L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-forced');
        // the why pill on 1.e4: the words start with the move as it is spelt
        await RV.goPly(b,1);await b.page.waitForTimeout(300);let pw=null;
        try{await b.tapCt('rev-playout',200);for(let i=0;i<40&&!pw;i++){await b.page.waitForTimeout(250);pw=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-playwhy"]');return e?(e.innerText||'').trim():null;});}}catch(e){}
@@ -231,12 +231,12 @@ L.run(async()=>{
     {const b=await L.launch({geo,store:{ct_pool:'3'},name:'g169-o-'+geo});await b.open();let ok=true;try{await RV.importPgn(b,RV.PGN_OPERA,240000);}catch(e){ok=false;}
      const co=ok?await coachTxt(b):null;
      L.say(!!co&&/The toughest moment was 15\.\.\.Nxd7 \(a game-deciding swing\)\. It allows mate in two: 16\.Qb8 with check, Nxb8 17\.Rd8 mate\./.test(co.t)&&!/[+#]/.test(co.t)&&co.l>=0&&co.r<=co.vw&&co.sw<=co.cw+1,G+'TC-R234n the summary\'s Coach\'s take names 15...Nxd7 with its number and the mate it allowed, inside the screen ('+(co?co.l+'..'+co.r+' of '+co.vw:'none')+') - "'+(co&&co.t)+'"',co);
-     if(ok&&geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-coach');
+     if(ok&&L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-coach');
      try{await RV.startReview(b);}catch(e){ok=false;}
      L.say(ok,G+'TC-R234n PRECONDITION the Opera Game is reviewed and its move screen is open');
      if(ok){await RV.goPly(b,11);await b.page.waitForTimeout(500);const p11=await read(b);
        L.say(GOOD.test(p11.move||'')&&/It threatens 7\.Qxf7 mate\b/.test(p11.why||''),G+'TC-R234n ply 11, 6.Bc4 (chip: '+((GOOD.exec(p11.move||'')||[])[0]||'none')+'): the mate on f7 it threatens is named with its number - "'+p11.why+'"',p11);
-       if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-threat');
+       if(L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-threat');
        await RV.goPly(b,20);await b.page.waitForTimeout(500);const p20=await read(b);
        L.say(/\?/.test(p20.move||'')?/11\.Bxb5 with check\b/.test(p20.why||'')&&!/[+#]/.test(p20.why||''):false,G+'TC-R251a ply 20, 10...cxb5 (a slip): White\'s reply is written "11.Bxb5 with check", no sign (it read "11.Bxb5+") - "'+p20.why+'"',p20);
        await RV.goPly(b,30);await b.page.waitForTimeout(500);const p30=await read(b);
@@ -246,7 +246,7 @@ L.run(async()=>{
        const W='White gives up the queen on b8. It is mate in two: 16.Qb8 with check, Nxb8 17.Rd8 mate.';
        L.say(/\bBrilliant\b/.test(e1.move||'')&&e1.why===W&&e2.why===W,G+'TC-R234n ply 31, 16.Qb8+ (chip Brilliant): the mate is in the sentence a quarter of a second after landing and unchanged 3.2 s later - "'+e1.why+'" then "'+e2.why+'"',{e1:e1.why,e2:e2.why});
        const f=e2.fit;L.say(!!f&&f.l>=0&&f.r<=f.vw&&(f.sh<=f.ch+0.5||(!!f.clamp&&f.ch<=Math.ceil(f.clamp*f.lh)+1)),G+'TC-R234n the sentence at ply 31 fits its box, or is cut by the line clamp and nothing else ('+(f?f.sh+' in '+f.ch+', clamp '+f.clamp+' x '+f.lh:'none')+')',f);
-       if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-brilliant');}
+       if(L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-brilliant');}
      await b.close();}
   }
   // ── TC-R251c, q9 ON THE SCREEN: the bubble of a game reviewed from the games list (so the app decides which side is his, gate 101's
@@ -272,7 +272,7 @@ L.run(async()=>{
        const tm=/^A tough one\. The toughest moment, (\S+), named in Coach’s take above, is where it turned\. Tap a count below to go to that kind of move\.$/.exec(r.bub);
        const agree=r.blN>0?(!!m&&(r.blN===1?!m[1]:+m[1]===r.blN)):(!!tm&&(r.coach||'').indexOf('The toughest moment was '+tm[1])>=0);
        L.say(agree&&!LIST.test(r.bub)&&r.box.l>=0&&r.box.r<=r.box.vw,G+'TC-R251c the bubble points at the tiles (Black\'s Blunder count reads '+r.blN+') and says "below" of no list: "'+r.bub+'"',r);
-       if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble');
+       if(L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble');
        if(r.blN>0){let chip=null;try{await b.page.evaluate(()=>{const row=[...document.querySelectorAll('[data-ct="grade-row"]')].find(x=>/^Blunder/.test((x.innerText||'').trim()));row.querySelector('button').click();});
            await b.page.locator('[data-ct="strip-row"]').last().waitFor({state:'visible',timeout:8000});await b.settle(700);
            chip=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('[data-ct="rev-move-line"]')].find(x=>{const q=x.getBoundingClientRect();return q.width>1&&q.height>1;});return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});}catch(e){L.note('TC-R251c tap '+String(e).slice(0,100));}
@@ -283,7 +283,7 @@ L.run(async()=>{
      const r=ok?await sumRead(b):null;
      L.say(ok&&!!r&&!!r.bub&&/^-/.test(r.acc||'')&&/never left the opening book/.test(r.coach||''),G+'TC-R251c PRECONDITION the book-only game reviewed as White shows the bubble, White is "Not scored" ('+(r&&r.acc)+') and Coach\'s take says the game never left the book',r);
      if(r&&r.bub)L.say(r.bub==='A tough one. Your moves all came from the opening book, so none was graded. Start the review to step through the game.'&&!LIST.test(r.bub),G+'TC-R251c a book-only game that was lost: the bubble says the moves were all book and points at no list of key moments (it read "A tough one. The key moments below show where it turned."): "'+r.bub+'"',r);
-     if(geo==='kunal761'&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble-book');
+     if(L.geoIs(geo,375,761)&&process.env.CT_G169_SHOT)await b.shot(process.env.CT_G169_SHOT+'-bubble-book');
      await b.close();}
   }
 });

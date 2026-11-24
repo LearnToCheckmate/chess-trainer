@@ -15,7 +15,7 @@
 //  TC-R322 Best, Excellent and Good: each pair's painted dots differ by CIELAB dE76 >= 15; and each of the three differs from every other
 //          grade's dot by >= 10.
 //  TC-R323 the White and Black headers' ink is centred over their column's digits within 1px (the header half of the job; gate 20's TC-R89
-//          checks it at kunal730 and 320x568, this at his phone).
+//          checks it at the superseded 730 column and 320x568; this gate checks it at kunal761).
 // CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:837976ecee8c how=#553 B1, THE SUBJECT REMOVED: pairs break dots-back-to-three-shades-of-green (the #422 dot colours rgb(123,216,143) / (139,209,143) / (156,203,143)) - TC-R322 red at 375x761 and 320x568
 // CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:2a6e09e91716 how=#553 pairs break excellent-dot-painted-as-best - TC-R322 red at both sizes
 // CONTROL-RECORD: 6558346f 2026-11-24 total=8 red=2 scope=trial:0362ffe27f15 how=#553 pairs break header-grid-48-again (header grid 1fr 48px 48px) - TC-R323 red at both sizes

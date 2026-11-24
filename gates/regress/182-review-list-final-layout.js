@@ -121,7 +121,7 @@ async function check(b,tag,narrow){
 
 L.run(async()=>{
   for(const geo of GEOS)for(const sk of SKINS){
-    const narrow=geo==='se';const gn=narrow?'320x568':'375x761';const tag=gn+' '+sk;const med=sk==='medieval';
+    const narrow=L.geoIs(geo,320,568);const gn=narrow?'320x568':'375x761';const tag=gn+' '+sk;const med=sk==='medieval';
     const b=await L.launch({geo,dev:false,name:'b182-'+geo+'-'+sk,...(med?{pro:true}:{}),store:{...STORE,...(med?{ct_skin:'2'}:{})}});await b.open();
     try{await b.tile('Review');await b.settle(1500);}catch(e){L.note(tag+' open: '+String(e).slice(0,120));}
     // after an interaction: the progress panel opened and closed again, then read

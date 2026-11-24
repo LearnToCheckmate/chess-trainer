@@ -61,7 +61,7 @@ function partN(){
   L.say(FIX.rows.length>=400&&badPass.length===0,'TC-R290 '+pass+' of '+FIX.rows.length+' engine mate lines (243 puzzle mates, 168 reply-then-mate, Kunal\'s card) pass the shipped mateLineCheck',{badPass:badPass.slice(0,5)});
   L.say(badCtl.length===0&&ctl===FIX.rows.length*3,'TC-R290 all '+ctl+' broken copies refused (the last move dropped, N+1 claimed, an illegal move): accepted by mistake '+badCtl.length,{badCtl:badCtl.slice(0,5)});
   L.say(badReplay.length===0,'TC-R290 independently of mateLineCheck: each line replayed from its own SANs ends in checkmate with the mating side moving exactly N times ('+(FIX.rows.length-badReplay.length)+' of '+FIX.rows.length+')',{badReplay:badReplay.slice(0,5)});
-  const k=FIX.rows.find(r=>r.tag==='kunal');
+  const k=FIX.rows.find(r=>r.tag==='kunals-card');
   L.say(!!k&&k.n===4&&k.lead===1&&k.sans[0]==='Kxg5'&&/#$/.test(k.sans[k.sans.length-1])&&k.sans.length===8,'TC-R290 Kunal\'s card is in the set: '+(k?k.sans.join(' '):'absent'),{k});
   const c1=E.mateClaim(HIS),c2=E.mateClaim('It allows mate in two: Qxh7+ Kxh7 Rh3#.'),c3=E.mateClaim('Black missed a mate in two that starts Qh4.'),c4=E.mateClaim('Hard to see, and it holds.');
   L.say(!!c1&&c1.n===4&&c1.reply==='Kxg5'&&c2===null&&!!c3&&c3.n===2&&c3.reply===null&&c4===null,'TC-R290 mateClaim: his sentence -> '+JSON.stringify(c1)+'; "allows mate in two" -> '+JSON.stringify(c2)+' (a mate against the praised side is no line from this board); "missed a mate in two" -> '+JSON.stringify(c3)+'; no claim -> '+JSON.stringify(c4),{c1,c2,c3,c4});
@@ -125,5 +125,5 @@ L.run(async()=>{
   partN();
   if(process.env.CT_195_NODE_ONLY)return;
   const geos=(process.env.CT_195_GEOS||'kunal761,se').split(',');
-  for(const gname of geos)await partB(gname,gname==='se'?'320x568':gname);
+  for(const gname of geos)await partB(gname,L.geoIs(gname,320,568)?'320x568':gname);
 },'195-mate-line-on-the-board');
