@@ -18,6 +18,7 @@
 //          never an empty row and never 'Stockfish is not loaded'.
 //  TC-R365 at the same stops, within 10s the row shows a variation (a numbered move), so a search that never finishes is red.
 //  The 10s bound is a ceiling against 'no line at all', not a speed target: this machine takes under 1s.
+// CONTROL-RECORD: 3219e5b 2026-11-24 total=14 red=2 scope=trial:ca9cec7b445b how=#553 B2 (the pair gates/pairs/jobs/the-moves-view-engine-line-searches-to-depth-16-so-on-a-phone-the-line-takes-longer-than-main-2026-11-07.json, base 3219e5b): the stored number blanked while a live search runs - TC-R364 red on the live stops at kunal761 and 320x568; depth 40 (trial:8e92d28ff4c4) reds TC-R365 at five stops; the engine never asked (trial:aa3df642d369) reds TC-R364 and TC-R365 at five; the tree (trial:aa193eeacd95 at the first pair run) 14/0
 const L=require('../lib');const R=require('../drive/review');
 const GEO=process.env.CT_G220_GEO||'kunal761';
 const read=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-engline"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
