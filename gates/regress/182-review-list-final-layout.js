@@ -27,10 +27,11 @@
 //  g Your games is its own section: below the Import box and outside it, its cards the content width (viewport less 24)
 //  h the search box on the Your games line: the name box, the filter button and the count on one line (vertical centres within 4px),
 //    the box left of the filter button, the count at the right end; and no "Your games" title is painted (the box is in its place)
-//  i the fold: at 375x761 the third card's top is above the tab bar; at 320x568 the games box holds one whole card and the next one starting
-//    and runs down to the tab bar (its bottom within 32px of it, gate 164's measure) - read after YOUR PROGRESS was opened and closed
-//  j filter open: tapping the filter button opens the chips ABOVE the search box (at 375x761; on the short phone at the top of the games
-//    box under it, as since q45), on screen above the tab bar; the page still does not scroll
+//  i the fold: at 375x761 the third card's top is above the tab bar; at 320x568 the first card is whole above it; the games box is no scroller
+//    of its own (since #553 card 69 the page scrolls as one; until then: the box ran down to the tab bar and the page did not scroll) - read
+//    after YOUR PROGRESS was opened and closed
+//  j filter open: tapping the filter button opens the chips ABOVE the search box at both sizes (since #553 card 69; the short phone had them at
+//    the top of the games box from q45), on screen above the tab bar; the games box is still no scroller
 //  k the search filters by name: typing a name leaves its one game and the count reads '1 of 10'; clearing it brings all ten back
 //  l BACK, after a review (Classic only, both sizes): a game is opened, reviewed and left by 'Back to games'; the list's top row then shows the
 //    back icon at its left (44x44, no words painted, named 'Back to your analysis' for a screen reader), the title still centred within 2px;
@@ -90,7 +91,7 @@ function read(){
     prog:R0(prog),paste:R0(pasteBox),help:R0(help),ana:R0(ana),anaPainted:ana?painted(ana).map(x=>x.t).join(''):null,mk,br,
     imp:R0(imp),sel:R0(sel),user:R0(user),fetch:R0(fetch),fetchPainted:fetch?painted(fetch).map(x=>x.t).join(''):null,
     nb:nb.map(R0),nbIn:{imp:!!(imp&&nb[0]&&imp.contains(nb[0]))},tog:R0(tog),cnt:R0(cnt),cntTxt:cnt?(cnt.innerText||'').trim():null,
-    rows:rows.map(R0),secOutsideImp:!!(sec&&imp&&!imp.contains(sec)&&!sec.contains(imp)),box:box?{...R0(box),st:box.scrollTop}:null,
+    rows:rows.map(R0),secOutsideImp:!!(sec&&imp&&!imp.contains(sec)&&!sec.contains(imp)),box:box?{...R0(box),st:box.scrollTop,sh:box.scrollHeight,ch:box.clientHeight}:null,
     root:{sh:root.scrollHeight,ch:root.clientHeight},chip:chips?{...R0(chips),hit:(()=>{const q=chips.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);return !!h&&(h===chips||chips.contains(h));})()}:null};
 }
 
@@ -109,8 +110,12 @@ async function check(b,tag,narrow){
   L.say(m.secOutsideImp&&!m.nbIn.imp&&!!m.imp&&!!m.nb[0]&&m.nb[0].t>=m.imp.b-0.5&&m.rows.length>0&&m.rows.every(r=>near(r.w,cw,1)),tag+' TC-R258g Your games is its own section below the Import box and outside it, its cards the content width ('+(m.rows[0]&&m.rows[0].w.toFixed(1))+' of '+cw+')',{imp:m.imp,nb:m.nb[0],w:m.rows.slice(0,3).map(r=>r.w)});
   const n=m.nb[0];
   L.say(!!n&&!!m.tog&&!!m.cnt&&near(n.cy,m.tog.cy,4)&&near(m.cnt.cy,m.tog.cy,4)&&n.r<=m.tog.l+0.5&&m.tog.r<=m.cnt.l+0.5&&m.cnt.r>=m.vw-12-1&&n.l<=12+1&&!m.yourGamesTitle&&/^10 loaded$/.test(m.cntTxt||''),tag+' TC-R258h the search box on the Your games line: the box ('+(n&&Math.round(n.l)+'..'+Math.round(n.r)+' at '+n.cy.toFixed(1))+'), the filter button ('+(m.tog&&m.tog.cy.toFixed(1))+') and "'+m.cntTxt+'" ('+(m.cnt&&m.cnt.cy.toFixed(1))+') on one line, in the title\'s place (a "Your games" title painted: '+m.yourGamesTitle+')',{n,tog:m.tog,cnt:m.cnt});
-  if(!narrow)L.say(m.rows.length>=3&&m.rows[2].t<m.tab-0.5&&m.root.sh<=m.root.ch+1,tag+' TC-R258i at least three game cards show without scrolling: the third card\'s top '+(m.rows[2]&&m.rows[2].t.toFixed(1))+' is above the tab bar at '+m.tab.toFixed(1)+', the page does not scroll',{tops:m.rows.slice(0,4).map(r=>+r.t.toFixed(1)),tab:m.tab});
-  else L.say(!!m.box&&m.rows.length>0&&m.box.h>=m.rows[0].h+12&&m.box.b<=m.tab+0.5&&m.tab-m.box.b<=32&&m.root.sh<=m.root.ch+1,tag+' TC-R258i the games box holds one whole card and the next one starting ('+(m.box&&Math.round(m.box.h))+'px for a '+(m.rows[0]&&Math.round(m.rows[0].h))+'px card), running down to the tab bar ('+(m.box&&Math.round(m.box.b))+' to '+Math.round(m.tab)+', within 32 as gate 164), and the page does not scroll',{box:m.box,tab:m.tab});
+  // #553 B1 RE-PIN of i [jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22,
+  // his card-69 pick 'whole-page']: the page scrolls as one, so 'the page does not scroll' and 'the games box runs down to the tab bar' are gone;
+  // what stays is what shows on the first screen, and the games box is asserted to be no scroller of its own.
+  const flat=!!m.box&&m.box.sh<=m.box.ch+1;
+  if(!narrow)L.say(m.rows.length>=3&&m.rows[2].t<m.tab-0.5&&flat,tag+' TC-R258i at least three game cards show without scrolling: the third card\'s top '+(m.rows[2]&&m.rows[2].t.toFixed(1))+' is above the tab bar at '+m.tab.toFixed(1)+', and the games box is no scroller of its own (the page carries it; '+(m.box&&m.box.sh+' in '+m.box.ch)+')',{tops:m.rows.slice(0,4).map(r=>+r.t.toFixed(1)),tab:m.tab,box:m.box});
+  else L.say(m.rows.length>0&&m.rows[0].t>=0&&m.rows[0].b<=m.tab+0.5&&flat,tag+' TC-R258i the first game card shows whole without scrolling ('+(m.rows[0]&&Math.round(m.rows[0].t)+'..'+Math.round(m.rows[0].b))+' above the tab bar at '+Math.round(m.tab)+'), and the games box is no scroller of its own (the page carries it; '+(m.box&&m.box.sh+' in '+m.box.ch)+')',{first:m.rows[0],tab:m.tab,box:m.box});
   return m;
 }
 
@@ -125,8 +130,10 @@ L.run(async()=>{
     // j: filter open
     {let opened=false;try{await b.page.locator('[data-ct="gf-toggle"]').first().click({timeout:3000});await b.settle(700);opened=true;}catch(e){L.note(tag+' filter: '+String(e).slice(0,100));}
      const f=await b.page.evaluate(read);const n=f.nb[0];
-     const where=narrow?(!!f.chip&&!!n&&f.chip.t>=n.b-0.5&&!!f.box&&f.chip.t>=f.box.t-0.5):(!!f.chip&&!!n&&f.chip.b<=n.t+0.5);
-     L.say(opened&&where&&!!f.chip&&f.chip.t>=0&&f.chip.b<=f.tab+0.5&&f.chip.hit&&f.root.sh<=f.root.ch+1,tag+' TC-R258j filter open: the chips '+(f.chip?Math.round(f.chip.t)+'..'+Math.round(f.chip.b):'(absent)')+' sit '+(narrow?'at the top of the games box under the search box':'above the search box')+' ('+(n&&Math.round(n.t)+'..'+Math.round(n.b))+'), on screen where they take a tap, and the page does not scroll',{chip:f.chip,nb:n,box:f.box});
+     // #553 B1 RE-PIN of j (card 69, Amber: flags/amber-553-review-list-page-scrolls): the chips open ABOVE the search box at both sizes now -
+     // the short phone opened them at the top of the games box only so the fixed page fitted - and the page may scroll; the box may not.
+     const where=!!f.chip&&!!n&&f.chip.b<=n.t+0.5;
+     L.say(opened&&where&&!!f.chip&&f.chip.t>=0&&f.chip.b<=f.tab+0.5&&f.chip.hit&&!!f.box&&f.box.sh<=f.box.ch+1,tag+' TC-R258j filter open: the chips '+(f.chip?Math.round(f.chip.t)+'..'+Math.round(f.chip.b):'(absent)')+' sit above the search box ('+(n&&Math.round(n.t)+'..'+Math.round(n.b))+'), on screen where they take a tap, and the games box is no scroller of its own',{chip:f.chip,nb:n,box:f.box,tab:f.tab});
      try{await b.page.locator('[data-ct="gf-toggle"]').first().click({timeout:3000});await b.settle(500);}catch(e){}}
     // k: the search filters by name
     {const box=b.page.locator('input[placeholder="Filter by player name"],input[aria-label="Filter by player name"]').first();let r1=null,r2=null;

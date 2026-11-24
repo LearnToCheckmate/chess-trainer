@@ -1,0 +1,20 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13432,7 +13432,7 @@
+               return(<div data-ct="games-section" style={{display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
+               {/* batch 13 (Q25 B, 'Filter open'): the chips open ABOVE the search box, as they did above the name box - except on a short phone,
+                   where they open at the top of the games box (below), as since #550 q45, so the fixed page still fits. */}
+-              {_gfPanel}{/* #553 B1 (card 69, Amber: flags/amber-553-review-list-page-scrolls): above the search box at every size now - the short
++              {!_gfIn&&_gfPanel}{/* #553 B1 (card 69, Amber: flags/amber-553-review-list-page-scrolls): above the search box at every size now - the short
+                   phone opened them inside the games box only so the fixed page fitted, and the page scrolls now */}
+               <div ref={gamesListRef} data-ct="glist-line" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:_gfIn?36:44}}>
+                 {_gfInput||<span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>}
+@@ -13630,7 +13630,7 @@
+                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
+                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
+                   is: it was already the right assertion, and this build does not touch it. */}
+-              <div ref={glistRef} data-ct="glist-box" style={{display:'flex',flexDirection:'column',gap:10}}>{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
++              <div ref={glistRef} data-ct="glist-box" style={{display:'flex',flexDirection:'column',gap:10}}>{_gfIn&&_gfPanel}{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
+               {liveOn&&liveSecEl()}{/* batch 14: the games in progress, at the top of the games box (liveSecEl) */}
+               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
+                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.

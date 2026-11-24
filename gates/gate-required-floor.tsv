@@ -126,3 +126,4 @@
 168	167	raise	2026-11-24	553	build__1795473826826	batch 14 merge: gate 191 (the game card shows the depth held) joins 202 and the rest	-	d7ded2672924
 169	168	raise	2026-11-24	553	build__1795473826826	batch 14 merge: gate 196 (every move list keeps the newest move in view) joins 191 and the rest	-	865e27b19855
 170	169	raise	2026-11-24	553	build__1795473826826	B3 merge adds gate 203 (no reading for a mated move)	-	cc885fafa473
+171	170	raise	2026-11-24	553	build__1795473826826	B1 merge: gate 192 (the Review list scrolls as one page, card 69) joins 203 and the rest	-	e335e21d7d26

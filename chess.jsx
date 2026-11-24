@@ -7147,26 +7147,22 @@ function AppMain(){
      turned only (vp.h<=500): a laptop or desktop window keeps the bottom bar in its 660 column (DSK-06). The page pads its right side by the
      rail's width so nothing sits under it. */
   const pageRail=wide&&vp.h<=500&&!homeScreen&&!sideRail&&((mode==='learn'&&openIdx===null)||(mode==='analyze'&&review===null)||(mode==='puzzle'&&pzView==='roadmap'));
-  /* #550 helper B, Kunal's q45 (run-answers q45-answer, jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11): THE REVIEW GAMES LIST IS A FIXED
-     PAGE - only the games box scrolls, and it fills the rest of the screen. The box's height cap (it was min(46vh, 340)) is fitted every render
-     to what the page leaves: its own height less whatever the app's scroller (#root) would still scroll, so #root ends exactly at the tab bar.
-     Upright only; a sideways phone keeps the scrolling list beside its tab rail. */
-  const glistRef=useRef(null);const glistMaxRef=useRef(null);const glistKeyRef=useRef('');   /* #550 lead, gate 147 TC-R223a in the final suite: the fitted height is written onto the box itself, not held in state - as state, every fit re-rendered the whole app, so opening the list with his 465 games ran two full renders (longest task 325 ms at 9fe02e7, 819 to 905 from ef0f72f on, at 4x; bisected) */
-  useLayoutEffect(()=>{
-    if(!(mode==='analyze'&&review===null&&!homeScreen&&!wide)){glistMaxRef.current=null;glistKeyRef.current='';return;}
-    /* measured in the next frame (still before it paints), so the render that opens the list and the layout this reads are two tasks, not one */
-    /* batch 13 (jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18, "the list running down to the tab bar"):
-       THE FIT ONLY EVER SHRANK. Over 0 it kept the cap it had, so a panel that opened above the box (YOUR PROGRESS, the Filter chips, the PGN
-       how-to) shrank the box to make room and closing it left the box short for good - at 320x568 88px, under one game, with 48px of empty
-       page above the tab bar (on the tree before this job the box then sat under the tab bar). When what sits above the box changes, the cap
-       is lifted for one measurement, so the fit is taken afresh; only then, so a steady page pays no extra layout. */
-    const _fitKey=[progOpen,gfOpen,pasteHelp,!!pgnErr,vp.w,vp.h].join('|');
-    const id=requestAnimationFrame(()=>{const e=glistRef.current,root=document.getElementById('root');if(!e||!root)return;
-      const _lift=_fitKey!==glistKeyRef.current;if(_lift){glistKeyRef.current=_fitKey;e.style.maxHeight='none';}
-      const over=root.scrollHeight-root.clientHeight;const next=Math.max(88,Math.floor(e.clientHeight-over));
-      if(_lift||glistMaxRef.current===null||Math.abs(next-glistMaxRef.current)>=1){glistMaxRef.current=next;e.style.maxHeight=next+'px';}});
-    return ()=>cancelAnimationFrame(id);
-  });
+  /* #553 B1, jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22 (Kunal's
+     pick 'whole-page' on Desk card 69, 4:08pm EST Mon 23 Nov 2026; "Scroll the page. I already answered this on desk"): THE REVIEW LIST SCROLLS
+     AS ONE PAGE, inside the app's scroller (#root), at every size. This replaces #550's q45 fixed page, where only the games box scrolled with
+     its height fitted every render to what the page left (88px at 320x568, under one game) and a sideways phone had the box (min(46vh,340))
+     as a second scroller inside a page that also scrolled. His no page scroll rule is set aside for this screen only, on his pick; every
+     other page keeps it. glistRef stays: the box is still where the games are. Amber: flags/amber-553-review-list-page-scrolls. */
+  const glistRef=useRef(null);
+  /* #553 B1, the same job: NOW THAT THE LIST SCROLLS THE PAGE, THE PAGE'S SCROLL IS THE LIST'S PLACE. #root is shared by every screen, so
+     coming back from a review the list used to open wherever the review had left #root (measured: 347px down at 375x761, the top row with
+     its back icon scrolled off) - the fixed page never showed it, because a page that cannot scroll clamps to 0. So the list keeps its own
+     place: recorded while it is up, put back when it comes up again (before paint), and #root goes back to the top for the screen that
+     replaces it, as it was when the list could not scroll. */
+  const glistUp=mode==='analyze'&&review===null&&!homeScreen;const glistPlaceRef=useRef(0);
+  useLayoutEffect(()=>{if(!glistUp)return;const root=document.getElementById('root');if(!root)return;
+    root.scrollTop=glistPlaceRef.current||0;const on=()=>{const g=glistRef.current;if(g&&g.isConnected&&g.getBoundingClientRect().height>0)glistPlaceRef.current=root.scrollTop;};   /* only while the games box is laid out: opening a game swaps the list for its loading screen first, and the clamp to that page's height is not his place */root.addEventListener('scroll',on,{passive:true});
+    return ()=>{root.removeEventListener('scroll',on);root.scrollTop=0;};},[glistUp]);
   const lessonSide=wide&&mode==='learn'&&openIdx!==null;   /* #550 BSA-L-03 (job lesson-sideways-board-full-height-2026-11-12): a sideways lesson - the board takes the full height, its footer sits under the right-hand column only */   // #550 a8: sideways Puzzles - tabs as a right rail, the board the full height
   const sideFull=landPlay||pzRail||landRev||landOn||tacRail||lessonSide;   /* #550 a38: the sideways screens whose board takes the full height - the root keeps no padding above or below them */
   // #351 Kunal: "the whole page is too small, there are visible borders on the top and the sides".
@@ -8867,7 +8863,9 @@ function AppMain(){
       setAnaFail({pgn:text,meta:meta||null,why:(e&&e.ctEngine)?'engine':'error'});
     }
   };
-  const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */stopDeep();/* #553: leaving the review stops its deeper pass */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');if(ccGames&&ccGames.length){setTimeout(()=>{try{gamesListRef.current&&gamesListRef.current.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},140);}};
+  const resetReview=()=>{/* final-read antagonist A veto: New game must not carry the analysis board (or a drill's one-position review state) into the next game */stopDeep();/* #553: leaving the review stops its deeper pass */anaModeRef.current=false;setAnaMode(false);setAnaHist([]);_engRestore();drillAnaRef.current=null;setRevAuto(false);setReview(null);setPgnText('');setPgnErr('');setPly(0);setCcErr('');/* #553 B1 (card 69): no scroll to the Your games line here any more - the list comes back at its own place (glistPlaceRef); with the page
+     scrolling, that scroll moved him to the games line (347px down at 375x761, the top row and its back icon off screen), and on an upright phone
+     it had moved nothing since #550's fixed page */};
   const playedPgn=()=>{let mvs,uc;if(opponent==='online'){const og=onlineGameRef.current;mvs=(og&&og.moves)||[];uc=myColorRef.current||'w';}else{mvs=((game&&game.history)||[]).map(h=>h.san);uc=(opponent==='computer')?pColor:'w';}if(mvs.length<2)return null;const _pm=pgnMovesFrom(mvs,opponent==='online'?null:playStartFenRef.current,coachLive?coachNotes:null);let pgn=_pm.text;   /* batch 13: a coach game's notes ride in as comments */   /* #550 item (88): numbered from the set-up position, its FEN in the tags below */
     /* #547 item (127), jobs/review-of-a-played-game-drops-the-result-and-the-opponent-2026-09-29: this PGN carried no tags, so the
        review's header read 'White vs Black' with no result, where an imported game on the same screen names both players and the
@@ -13421,10 +13419,9 @@ function AppMain(){
                   // only state that failed. The accent still identifies the chip through its BORDER.
                   color:on?'#fff':'rgba(255,255,255,.72)',fontWeight:on?800:700,fontSize:'clamp(13.5px,2.9vw,15px)',minWidth:44,justifyContent:'center',
                   fontFamily:"'Segoe UI',system-ui,sans-serif",whiteSpace:'nowrap'}}>{lab}</button>);
-              /* #550 helper B, q45 Filter-open [checker seat 2's gap on ef0f72f]: ON A SHORT PHONE (the same !wide&&vp.h<700 as the
-                 compaction) THE FILTER PANEL AND THE NAME BOX OPEN AT THE TOP OF THE GAMES BOX, inside its scroll, not above it. Above it
-                 they cost 94 + 32px plus gaps where the fixed page had about 124px to give, so at 320x568 the page scrolled 670 in 568 with
-                 the box at 503..591 under the tab bar at 512. Every word stays; the box keeps its height and the games scroll on below. */
+              /* #550 q45 opened the Filter panel at the top of the games box on a short phone so the fixed page fitted. #553 B1 (card 69): the
+                 page scrolls now, so the panel opens above the search box at every size (Q25 B); _gfIn keeps only the short phone's compact
+                 Your games line (36px, the Filter button's 44px tap box by ct-hit44). */
               const _gfIn=!wide&&vp.h<700;
               const _gfPanel=gfOpen&&(ccGames.length>6||_anyF)&&(<div data-ct="glist-filters" style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
 {gfOpen&&_chip(!!_F.bril,'!! brilliant','gf-bril',()=>gfTog('bril',1),'#7be9f7')}
@@ -13452,7 +13449,8 @@ function AppMain(){
               return(<div data-ct="games-section" style={{display:'flex',flexDirection:'column',gap:(!wide&&vp.h<700)?6:9}}>
               {/* batch 13 (Q25 B, 'Filter open'): the chips open ABOVE the search box, as they did above the name box - except on a short phone,
                   where they open at the top of the games box (below), as since #550 q45, so the fixed page still fits. */}
-              {!_gfIn&&_gfPanel}
+              {_gfPanel}{/* #553 B1 (card 69, Amber: flags/amber-553-review-list-page-scrolls): above the search box at every size now - the short
+                  phone opened them inside the games box only so the fixed page fitted, and the page scrolls now */}
               <div ref={gamesListRef} data-ct="glist-line" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:_gfIn?36:44}}>
                 {_gfInput||<span style={{fontSize:'clamp(15px,3.4vw,17px)',fontWeight:800,color:'#fff'}}>Your games <span style={{color:'rgba(255,255,255,.42)',fontWeight:600,fontSize:'.86em'}}>· latest first</span></span>}
                 {/* #548 item (123), jobs/the-476-review-filter-row-pushes-the-games-list-below-the-fold-on-kunals-phone-2026-10-06, Kunal's pick
@@ -13463,7 +13461,7 @@ function AppMain(){
                     is padding cancelled by an equal negative margin, the moves-copy idiom, so the header line keeps its height. */}
                 <span style={{display:'inline-flex',alignItems:'center',gap:8,flexShrink:0}}>
                 {(ccGames.length>6||_anyF)&&(()=>{const _nAct=(_F.bril?1:0)+(_F.blun?1:0)+(_F.mist?1:0)+(_F.acct?1:0)+(_gs?1:0);const _on=gfOpen||_nAct>0;return(
-                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} aria-label={'Filter'+(_nAct?(', '+_nAct+' on'):'')} title="Filter" className={_gfIn?'ct-hit44':undefined} onClick={()=>{const _o=!gfOpen;setGfOpen(_o);if(_o&&!wide&&vp.h<700&&glistRef.current)glistRef.current.scrollTop=0;}} style={{position:'relative',flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:4,minWidth:44,height:_gfIn?36:44 /* a short phone: 36 tall with a 44 tap area (ct-hit44), so the games box keeps one whole game and the next one starting */,boxSizing:'border-box',padding:'0 8px',borderRadius:12,cursor:'pointer',color:_on?'var(--ac2)':'rgba(255,255,255,.85)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.08)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),fontSize:15,fontWeight:800,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{/* batch 13 (Q25 B): the filter icon - a funnel, with the number of filters on beside it when any is */}<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M2.5 3.5h13l-5 6v5l-3-1.6V9.5z"/></svg>{_nAct?<span aria-hidden="true">{_nAct}</span>:null}</button>);})()}
+                  <button data-ct="gf-toggle" aria-expanded={gfOpen?'true':'false'} aria-label={'Filter'+(_nAct?(', '+_nAct+' on'):'')} title="Filter" className={_gfIn?'ct-hit44':undefined} onClick={()=>setGfOpen(o=>!o)} style={{position:'relative',flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center',gap:4,minWidth:44,height:_gfIn?36:44 /* a short phone: 36 tall with a 44 tap area (ct-hit44), so the games box keeps one whole game and the next one starting */,boxSizing:'border-box',padding:'0 8px',borderRadius:12,cursor:'pointer',color:_on?'var(--ac2)':'rgba(255,255,255,.85)',background:_on?'rgba(var(--acr),.16)':'rgba(255,255,255,.08)',border:'1px solid '+(_on?'rgba(var(--acr),.5)':'rgba(255,255,255,.2)'),fontSize:15,fontWeight:800,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>{/* batch 13 (Q25 B): the filter icon - a funnel, with the number of filters on beside it when any is */}<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M2.5 3.5h13l-5 6v5l-3-1.6V9.5z"/></svg>{_nAct?<span aria-hidden="true">{_nAct}</span>:null}</button>);})()}
                 <span data-ct="glist-count" style={{flexShrink:0,fontSize:'clamp(14px,2.9vw,15px)',color:'rgba(255,255,255,.60)',fontWeight:600}}>{_anyF?(_shown.length+' of '+ccGames.length):(ccGames.length+' loaded')}</span>
                 </span>
               </div>
@@ -13649,9 +13647,7 @@ function AppMain(){
                   that an element below the fold is unreachable only when no scrollable ancestor can bring it
                   on screen. Gate 73's own B6c already proves one can. B6c is therefore left exactly as it
                   is: it was already the right assertion, and this build does not touch it. */}
-              <div ref={glistRef} data-ct="glist-box" className="scroll" style={{display:'flex',flexDirection:'column',gap:10,maxHeight:(glistMaxRef.current!=null?glistMaxRef.current+'px':'min(46vh,340px)'),overflowY:'auto'}}>
-              
-              {_gfIn&&_gfPanel}
+              <div ref={glistRef} data-ct="glist-box" style={{display:'flex',flexDirection:'column',gap:10}}>{/* #553 B1: no height cap and no scroller of its own - the page scrolls (card 69) */}
               {liveOn&&liveSecEl()}{/* batch 14: the games in progress, at the top of the games box (liveSecEl) */}
               {/* batch 13, jobs/review-depth-per-game-on-the-new-game-card-2026-11-15 (2) and (3), his round-6 card ("Yes, this is good. Thanks.", 15 Nov
                   2026; decisions/the-game-card-has-three-rows-and-the-games-list-gets-search-and-filter-2026-11-15): THREE ROWS ON FOUR EQUAL COLUMNS.

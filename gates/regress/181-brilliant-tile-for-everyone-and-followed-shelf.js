@@ -91,7 +91,7 @@ L.run(async()=>{
   const tileRead=(b)=>b.page.evaluate(()=>{const painted=(x)=>{const q=x.getBoundingClientRect();return q.width>0&&q.height>0;};
     const lab=[...document.querySelectorAll('body *')].filter(x=>x.children.length===0&&painted(x)&&/^(Famous|Your) brilliant moves$/.test((x.textContent||'').trim()));
     const t=lab.map(x=>{const btn=x.closest('button');const r=(btn||x).getBoundingClientRect();const box=document.querySelector('[data-ct="glist-box"]');const bq=box&&box.getBoundingClientRect();
-      return {label:(x.textContent||'').trim(),text:btn?(btn.innerText||'').replace(/\s+/g,' ').trim():null,t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,inBox:!!(box&&box.contains(x)),inPractice:!!x.closest('[data-ct="practice-row"]'),ink:(()=>{const q=x.getBoundingClientRect();return {h:q.height};})(),box:bq?{t:bq.top,b:bq.bottom,h:bq.height,st:box.scrollTop}:null};});
+      return {label:(x.textContent||'').trim(),text:btn?(btn.innerText||'').replace(/\s+/g,' ').trim():null,t:r.top,b:r.bottom,l:r.left,r:r.right,h:r.height,inBox:!!(box&&box.contains(x)),inPractice:!!x.closest('[data-ct="practice-row"]'),ink:(()=>{const q=x.getBoundingClientRect();return {h:q.height};})(),box:bq?{t:bq.top,b:bq.bottom,h:bq.height,st:box.scrollTop,sh:box.scrollHeight,ch:box.clientHeight}:null};});
     const root=document.getElementById('root');const row=document.querySelector('[data-ct="game-row"]');
     return {tiles:t,vw:innerWidth,vh:innerHeight,root:{sh:root.scrollHeight,ch:root.clientHeight},rowH:row?row.getBoundingClientRect().height:null};});
   const tapTile=async(b,label)=>{const el=b.page.locator('button',{hasText:label}).first();await el.scrollIntoViewIfNeeded({timeout:3000}).catch(()=>{});await el.click({timeout:4000}).catch(()=>{});await b.settle(800);};
@@ -125,7 +125,10 @@ L.run(async()=>{
      // in the row under the PGN box, not a row of the games box - the job moved it; this line followed. Its name is one painted line (the label's
      // own box at most 24px tall), the card a full tap target, above the games box and outside it.
      L.say(t.tiles.length===1&&!!f&&!f.inBox&&f.inPractice&&f.ink.h<=24&&f.h>=44&&!!f.box&&f.b<=f.box.t+0.5&&f.box.st===0,geo+' TC-R250f with his games listed the Famous tile is a practice card above the games box (not in it), its name one line and the card a full tap target ('+(f&&Math.round(f.h))+'px, its name '+(f&&Math.round(f.ink.h))+'px, box '+(f&&f.box&&Math.round(f.box.t)+'-'+Math.round(f.box.b))+')',f);
-     L.say(t.root.sh<=t.root.ch+1&&!!f&&!!f.box&&t.rowH>0&&f.box.h>=t.rowH+12,geo+' TC-R250f the Review page still does not scroll with the tile in (#root '+t.root.sh+' in '+t.root.ch+'), and the games box still holds one whole game with the next one starting (box '+(f&&f.box&&Math.round(f.box.h))+'px, a game '+(t.rowH&&Math.round(t.rowH))+'px)');
+     // #553 B1 RE-PIN [jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22,
+     // his card-69 pick 'whole-page']: the page scrolls as one now, so 'the page does not scroll' is gone; the games box holds every game it
+     // renders (no scroller of its own) and starts above the tab bar with the tile in.
+     L.say(!!f&&!!f.box&&t.rowH>0&&f.box.sh<=f.box.ch+1&&f.box.h>=t.rowH+12&&f.box.t<t.vh,geo+' TC-R250f with the tile in the games box is no scroller of its own and holds its games (box '+(f&&f.box&&Math.round(f.box.h))+'px, '+(f&&f.box&&f.box.sh+' in '+f.box.ch)+', a game '+(t.rowH&&Math.round(t.rowH))+'px), starting at '+(f&&f.box&&Math.round(f.box.t))+' - the page carries it (#root '+t.root.sh+' in '+t.root.ch+')');
      await tapTile(b,'Famous brilliant moves');const l=await lib(b);
      L.say(l.lib&&l.heads.some(h=>/^From famous games/i.test(h)),geo+' TC-R250f tapping it opens the library ('+JSON.stringify(l.heads)+')');
      L.say(b.errs.length===0,geo+' TC-R250f zero app errors',b.errs.slice(0,3));await b.close();}

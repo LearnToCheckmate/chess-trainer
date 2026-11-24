@@ -22,8 +22,9 @@
 // (kunal761) on the move screen at the last move it follows to 10 with the board where it was. g: POLITE - no two requests about one
 // account within 30 s, none to /games/to-move or to a chess.com page, and (kunal761) none at all for 50 s once the review is closed.
 // h: the list's layout (inside the screen, 44px rows, text 13.5px or more) and zero app errors.
-// i (batch 14, the job's listed limit "the games box squeezed to about 88px"): with the switch on, the box around the finished games keeps the
-// height it has in launch 1 (switch off) and the page does not scroll - the games in progress are the top of that box now.
+// i (batch 14, the job's listed limit "the games box squeezed to about 88px"): with the switch on, the games box starts where it does in launch 1
+// (switch off), is no scroller of its own, and the games in progress are its top, above the finished games (re-pinned at #553 for card 69; it
+// read the box's scroller height and 'the page does not scroll' until then).
 // j (batch 14, the job's listed limit "the summary line wraps at 375"): the open review's "In progress ... so far" and "checked h:mm AM" each
 // sit whole on one line, uncut, at 6 moves and at 8, and their block keeps its height. At 375 the old one-line wording ran 352px into 351
 // at 12:29 AM, so whether IT wrapped there depended on the clock (a one-digit hour fits); its pairs breaks are graded at 320x568, where it always does.
@@ -95,8 +96,15 @@ const stripCount=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data
 // batch 14 (the job's two listed limits). THE GAMES BOX: the scroller around the finished games (found from a game card, the nearest ancestor that
 // scrolls, never #root) and what #root would still scroll - the Review list is a fixed page (q45), so with the switch on the box must keep
 // the height it has with the switch off and the page must not scroll. Read the same way in both launches, so the switch is the only difference.
-const boxRead=(b)=>b.page.evaluate(()=>{const row=document.querySelector('[data-ct="game-row"]');let sc=null;for(let e=row&&row.parentElement;e;e=e.parentElement){if(e.id==='root')break;const o=getComputedStyle(e).overflowY;if(o==='auto'||o==='scroll'){sc=e;break;}}
-  const root=document.getElementById('root');return {h:sc?Math.round(sc.clientHeight*10)/10:null,over:root?Math.round((root.scrollHeight-root.clientHeight)*10)/10:null};});
+// #553 B1 RE-PIN [jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22,
+// his card-69 pick 'whole-page']: the games box is no scroller any more and the PAGE scrolls, so 'not squeezed' is read as: the games box
+// starts where it starts with the switch off (the section does not push it down), it is no scroller of its own, and the games in progress
+// are inside it, above the first finished game - they scroll with his games, as batch 14 built it. Until #553 it read the box's scroller
+// height and asserted the page did not scroll.
+const boxRead=(b)=>b.page.evaluate(()=>{const box=document.querySelector('[data-ct="glist-box"]');const row=document.querySelector('[data-ct="game-row"]');
+  const live=[...document.querySelectorAll('button')].find(e=>/moves played/.test(e.innerText||''));
+  if(!box)return {top:null,flat:null,liveIn:null};const q=box.getBoundingClientRect();
+  return {top:Math.round(q.top*10)/10,flat:box.scrollHeight<=box.clientHeight+1,oy:getComputedStyle(box).overflowY,liveIn:live?(box.contains(live)&&!!row&&live.getBoundingClientRect().bottom<=row.getBoundingClientRect().top+0.5):null};});
 // THE SUMMARY'S IN-PROGRESS WORDS, found by what they say (no hook): the moves ("In progress ... so far") and the time it was checked
 // ("checked h:mm AM"), each read as a Range - how many lines its glyphs sit on, and whether its right edge passes its block's (cut) - and the
 // height of the smallest element holding both. Base: one string, 352px into 351, so "AM" alone took a second line.
@@ -134,7 +142,7 @@ L.run(async()=>{
       L.say(rows.every(x=>x.texts.length>=2)&&bad.length===0&&!!r0.section&&r0.section.l>=-0.5&&r0.section.r<=r0.vw+0.5,tag+' TC-R247h the list is inside the '+r0.vw+'px screen, every row 44px or taller ('+rows.map(x=>x.rect.h.toFixed(0)).join(', ')+'), no text under 13.5px and none cut without an ellipsis',bad.slice(0,5));
       // ── i (batch 14): the games box is not squeezed ──
       await b.settle(1500);const onBox=await boxRead(b);
-      L.say(!!offBox&&offBox.h!=null&&onBox.h!=null&&Math.abs(onBox.h-offBox.h)<=1&&onBox.over!=null&&onBox.over<=1,tag+' TC-R247i THE GAMES BOX IS NOT SQUEEZED: with the switch on the box around the finished games is '+(onBox.h)+'px, as with it off ('+(offBox&&offBox.h)+'px), and the page itself does not scroll ('+onBox.over+'px over) - the games in progress scroll inside the box',{off:offBox,on:onBox});
+      L.say(!!offBox&&offBox.top!=null&&onBox.top!=null&&Math.abs(onBox.top-offBox.top)<=1&&onBox.flat===true&&onBox.oy==='visible'&&onBox.liveIn===true,tag+' TC-R247i THE GAMES BOX IS NOT SQUEEZED: with the switch on the games box starts at '+onBox.top+', as with it off ('+(offBox&&offBox.top)+'), it is no scroller of its own ('+onBox.oy+'), and the games in progress sit inside it above the first finished game ('+onBox.liveIn+'), so they scroll with his games [#553 card 69: the page scrolls]',{off:offBox,on:onBox});
       // ── d: his own games are reviewed live (TC-R261) ──
       const WAITS=/review opens when it ends|Your game/i;
       L.say(!WAITS.test(r0.B.text)&&!WAITS.test(r0.C.text)&&!WAITS.test(r0.A.text)&&/Daily/.test(r0.B.text)&&/\b4 moves played\b/.test(r0.B.text)&&/White to move/.test(r0.B.text)&&!r0.B.off&&/Daily/.test(r0.C.text)&&/\b2 moves played\b/.test(r0.C.text)&&/White to move/.test(r0.C.text)&&!r0.C.off,tag+' TC-R247d TC-R261 OWN GAME LIVE: each game one of his accounts plays in reads like any game in progress, with no wait line - the one that came in on the friend\'s list ("'+r0.B.text+'") and the one from his own ("'+r0.C.text+'")',{B:r0.B.text,C:r0.C.text,A:r0.A.text});

@@ -1,5 +1,9 @@
 'use strict';
-// gates/regress/164-review-list-fixed-page.js - THE REVIEW GAMES LIST IS A FIXED PAGE: ONLY THE GAMES BOX SCROLLS, AND IT FILLS THE REST. TC-INV-08w.
+// gates/regress/164-review-list-fixed-page.js - THE REVIEW GAMES LIST: SINCE #553 THE PAGE SCROLLS AS ONE AND THE GAMES BOX IS NO SCROLLER. TC-INV-08w.
+// RE-PINNED AT #553 B1 [jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-
+// 11-22]: Kunal picked 'whole-page' on Desk card 69 (4:08pm EST Mon 23 Nov 2026), which REVERSES the q45 fixed page this gate was written for, so
+// (a) to (d) below now assert his new pick on the same 40-game list (gate 192 carries it with his 465 games and a sideways phone). The file name
+// is kept (the manifest and the floor name it); the q45 text below is the history of what it asserted until #553.
 //
 // WHY [#550 helper B; jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11; Kunal's q45 answer (run-answers q45-answer): of the Review games
 // list, option (a) "a fixed page where only the games box scrolls, filling the rest of the screen"]. The list page scrolled as a whole (root
@@ -27,15 +31,19 @@ L.run(async()=>{
       if(!box)return {rows:rows.length,box:null};const q=box.getBoundingClientRect();
       const rowH=+rows[0].getBoundingClientRect().height.toFixed(1);
       const out={rowH,rows:rows.length,root:{sh:root.scrollHeight,ch:root.clientHeight},box:{top:+q.top.toFixed(1),bot:+q.bottom.toFixed(1),sh:box.scrollHeight,ch:box.clientHeight},tab:+tbt.toFixed(1)};
+      {const lr=rows[rows.length-1];lr.scrollIntoView({block:'end'});const rr=lr.getBoundingClientRect();if(rr.bottom>tbt)root.scrollTop+=Math.ceil(rr.bottom-tbt)+1;   /* #553: the page, not the box, is what scrolls */
+        const r1=lr.getBoundingClientRect();const h1=document.elementFromPoint(r1.left+r1.width/2,r1.top+r1.height/2);out.page={st:Math.round(root.scrollTop),onScreen:r1.top>=-0.5&&r1.bottom<=tbt+0.5,hit:!!h1&&(h1===lr||lr.contains(h1))};root.scrollTop=0;}
       box.scrollTop=box.scrollHeight;const last=rows[rows.length-1];{const r0=last.getBoundingClientRect(),qb=box.getBoundingClientRect();if(r0.top<qb.top)box.scrollTop-=Math.ceil(qb.top-r0.top);}   /* scrolled to its end, then back just far enough that the last game is whole (the 'more' buttons follow it inside the box) */
       const r=last.getBoundingClientRect();const q2=box.getBoundingClientRect();
       const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
       out.last={top:+r.top.toFixed(1),bot:+r.bottom.toFixed(1),inBox:r.top>=q2.top-0.5&&r.bottom<=q2.bottom+0.5&&r.bottom<=tbt+0.5,hit:!!h&&(h===last||last.contains(h))};return out;});
     L.say(ok&&m.rows>0&&!!m.box,tag+' DENOMINATOR the list is up with '+m.rows+' game rows in its games box',m);
     if(m.box){
-      L.say(m.root.sh<=m.root.ch+1,tag+' the page does not scroll (#root '+m.root.sh+' in '+m.root.ch+')',m.root);
-      L.say(m.box.bot<=m.tab+0.5&&m.tab-m.box.bot<=32&&m.box.ch>=m.rowH+12,tag+' the games box fills the rest: '+m.box.ch+'px tall ('+m.box.top+'..'+m.box.bot+'), the tab bar starts at '+m.tab+', and it shows one whole game ('+m.rowH+'px) with the next one starting',{box:m.box,tab:m.tab,rowH:m.rowH});
-      L.say(m.box.sh>m.box.ch+1&&!!m.last&&m.last.inBox&&m.last.hit,tag+' only the box scrolls (it holds '+m.box.sh+' in '+m.box.ch+') and scrolling it brings the last game fully into view, where it takes a tap',{box:m.box,last:m.last});
+      // #553 B1 (card 69): (a) the page scrolls, (b) the games box holds every game it renders and starts above the tab bar, (c) scrolling the
+      // PAGE brings the last game fully on screen above the tab bar, where it takes a tap.
+      L.say(m.root.sh>m.root.ch+1&&m.box.sh<=m.box.ch+1,tag+' the page scrolls (#root '+m.root.sh+' in '+m.root.ch+') and the games box is no scroller of its own ('+m.box.sh+' in '+m.box.ch+')',{root:m.root,box:m.box});
+      L.say(m.box.sh<=m.box.ch+1&&m.box.top<m.tab-0.5,tag+' the games box is not capped: '+m.box.ch+'px tall holding all '+m.rows+' games ('+m.box.top+'..'+m.box.bot+'), starting above the tab bar at '+m.tab,{box:m.box,tab:m.tab,rowH:m.rowH});
+      L.say(!!m.page&&m.page.st>0&&m.page.onScreen&&m.page.hit,tag+' scrolling the page (#root to '+(m.page&&m.page.st)+') brings the last game fully on screen above the tab bar, where it takes a tap',{page:m.page});
     }
     // (d) TC-INV-08w FILTER OPEN [#550 helper B; checker seat 2's gap on ef0f72f]: tapping Filter opens its chips under the header, inside the
     //     fixed page. With the box on an 88px floor the page then scrolled (670 in 568 at 320x568, the box at 503..591 under the tab bar at 512).
@@ -45,10 +53,10 @@ L.run(async()=>{
     //     inside the box, goes red.
     {let opened=false;try{await b.page.evaluate(()=>{const g=document.querySelector('[data-ct="glist-box"]');if(g)g.scrollTop=g.scrollHeight;});const t=b.page.locator('[data-ct="gf-toggle"]');if(await t.count()){await t.first().click();await b.settle(700);opened=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="gf-toggle"]');return !!e&&e.getAttribute('aria-expanded')==='true';});}}catch(e){L.note(tag+' filter: '+String(e).slice(0,120));}
      const f=await b.page.evaluate(()=>{const root=document.getElementById('root');const box=document.querySelector('[data-ct="glist-box"]');const tb=document.querySelector('[data-ct="tabbar"]');const tbt=tb&&tb.getBoundingClientRect().height>0?tb.getBoundingClientRect().top:innerHeight;
-       const q=box?box.getBoundingClientRect():null;return {root:{sh:root.scrollHeight,ch:root.clientHeight},box:q?{top:+q.top.toFixed(1),bot:+q.bottom.toFixed(1),h:+q.height.toFixed(1)}:null,tab:+tbt.toFixed(1),
+       const q=box?box.getBoundingClientRect():null;return {root:{sh:root.scrollHeight,ch:root.clientHeight},box:q?{top:+q.top.toFixed(1),bot:+q.bottom.toFixed(1),h:+q.height.toFixed(1),sh:box.scrollHeight,ch:box.clientHeight}:null,tab:+tbt.toFixed(1),
          chip:(()=>{const c=document.querySelector('[data-ct="gf-bril"]');if(!c)return null;const r=c.getBoundingClientRect();const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {top:+r.top.toFixed(1),bot:+r.bottom.toFixed(1),hit:!!h&&(h===c||c.contains(h))};})(),name:!![...document.querySelectorAll('input')].find(e=>e.placeholder==='Filter by player name'||e.getAttribute('aria-label')==='Filter by player name')/* batch 13 (Q25 B): 'Player name' on the Your games line, this its aria-label */};});
      L.say(opened,tag+' FILTER OPEN DENOMINATOR the Filter button opened its panel (aria-expanded true)',{opened});
-     L.say(opened&&f.root.sh<=f.root.ch+1&&(!f.box||f.box.bot<=f.tab+0.5),tag+' FILTER OPEN the page still does not scroll (#root '+f.root.sh+' in '+f.root.ch+') and the games box '+(f.box?'('+f.box.top+'..'+f.box.bot+', '+f.box.h+'px)':'(not shown)')+' ends at or above the tab bar at '+f.tab,f);
+     L.say(opened&&f.root.sh>f.root.ch+1&&!!f.box&&f.box.sh<=f.box.ch+1,tag+' FILTER OPEN the page still scrolls as one (#root '+f.root.sh+' in '+f.root.ch+') and the games box '+(f.box?'('+f.box.top+'..'+f.box.bot+', '+f.box.h+'px)':'(not shown)')+' is still no scroller of its own [#553 card 69]',f);
      L.say(opened&&!!f.chip&&f.chip.top>=0&&f.chip.bot<=f.tab+0.5&&f.chip.hit&&f.name,tag+' FILTER OPEN the panel shows: its first chip '+(f.chip?'('+f.chip.top+'..'+f.chip.bot+')':'(absent)')+' is on screen above the tab bar and takes a tap, and the name box is there ('+f.name+')',{chip:f.chip,name:f.name});}
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'164-review-list-fixed-page');
