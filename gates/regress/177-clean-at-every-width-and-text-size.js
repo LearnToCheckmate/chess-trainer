@@ -76,5 +76,7 @@
 // CONTROL-RECORD: 864311df 2026-11-24 total=44 red=2 scope=trial:42022f373b49 how=batch 14 re-run, pairs break review-board-fits-the-height-again, CT_G177_STATES=^(review-move-10|drill-analysis|lesson-demo|puzzle-hint|play-cpu|play-cpu-resigned)$ (job short-upright-boards, run-pairs CHECKED at 864311df): TC-R248e notch red at review-move-10 and drill-analysis (the board not filling the width); the real code's trial faa610e62e88 reads 44/0
 // CONTROL-RECORD: 864311df 2026-11-24 total=44 red=3 scope=trial:d3736ec6da3a how=batch 14 re-run, pairs break the-820-cap-on-a-phone-sheet, CT_G177_STATES=^(review-move-10|drill-analysis|lesson-demo|puzzle-hint|play-cpu|play-cpu-resigned)$ (job short-upright-boards, run-pairs CHECKED at 864311df): TC-R248e notch red at lesson-demo, review-move-10 and drill-analysis (820 of 828 at 414x896@50 and 430x932@50); the real code's trial faa610e62e88 reads 44/0
 const L=require('../lib');
+// Every assertion this gate runs is an L.say in gates/drive/layout.js, so the line below names it to gates/control-audit.js [#553]:
+// CONTROL-ASSERTIONS-IN: gates/drive/layout.js
 const LAYOUT=require('../drive/layout');
 L.run(()=>LAYOUT.run('notch'),'CLEAN-EVERYWHERE-NOTCH');

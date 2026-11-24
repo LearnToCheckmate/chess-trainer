@@ -174,11 +174,20 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
       if (m) recs.push({ commit: m[1], date: m[2], total: +m[3], red: +m[4], scope: m[5], how: m[6].trim(), raw: l.trim() });
       else bad.push(l.trim());
     }
-    const dirty = !Gq('diff --quiet HEAD -- ' + JSON.stringify(rel));
     const now = ranNow[name];
     const says = (s) => (s.match(/L\.say\(/g) || []).length;
     const linesOf = (s) => s.split('\n').filter(l => /L\.say\(/.test(l)).map(l => l.trim());
-    const nowSrc = fs.readFileSync(abs, 'utf8');
+    // ── A GATE WHOSE ASSERTIONS LIVE IN A SHARED DRIVER [#553, the records-door follow-up]. Gates 177 and 178 are
+    //    wrappers: every L.say( they run is in gates/drive/layout.js, so their own files carry 0 sites and the
+    //    empty-collection guard below refused every record they could ever have. A gate names such a file with
+    //    `// CONTROL-ASSERTIONS-IN: <repo path>`; its L.say( lines join the gate's own, read AT EACH SHA (the record's,
+    //    the log's, and the working tree now), so an edit to the driver moves every record exactly as an edit to the
+    //    gate does. The driver also joins the DIRTY test.
+    const gateSrc = fs.readFileSync(abs, 'utf8');
+    const decl = []; for (const l of gateSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-ASSERTIONS-IN:\s*(\S+)\s*$/); if (m) decl.push(m[1]); }
+    const full = (src, sha) => src + decl.map(f => { try { return '\n' + (sha ? G('show ' + sha + ':' + f) : fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return ''; } }).join('');
+    const dirty = !Gq('diff --quiet HEAD -- ' + [rel].concat(decl).map(f => JSON.stringify(f)).join(' '));
+    const nowSrc = full(gateSrc, null);
     const nowL = linesOf(nowSrc);
     // ── WHICH COUNT A RECORD IS HELD TO [#553; jobs/control-audit-holds-a-record-only-to-a-log-carrying-the-gates-current-
     //    assertion-set-2026-11-20, the orchestrator's ruling (B) on q30]. Until #553 every full-scope record was held to the
@@ -197,7 +206,7 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
     //                           record is printed as HELD TO NO LOG on its own line (never on a ratchet line)
     //    With no usable ref line the log is held as before #553. WHETHER THE RECORD MATCHES THE GATE'S PRESENT ASSERTIONS is
     //    a separate question, asked first and unchanged: lines gone since the record is ASSERTIONS-MOVED, lines added is PARTIAL.
-    const inputs = []; for (const l of nowSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUT:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
+    const inputs = []; for (const l of gateSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUT:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
     const countSet = (sha, src) => { const out = linesOf(src);
       for (const inp of inputs) { let ls = ''; try { ls = G('ls-tree -r --name-only ' + sha + ' -- ' + JSON.stringify(inp.dir)); } catch (e) {}
         for (const f of ls.split('\n')) if (f && inp.re.test(f)) out.push('file:' + f); }
@@ -205,7 +214,7 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
     const bag = (a) => { const m = new Map(); for (const x of a) m.set(x, (m.get(x) || 0) + 1); return m; };
     const within = (a, b) => { for (const [k, v] of a) if ((b.get(k) || 0) < v) return false; return true; };   // multiset a <= b
     let logSet = null;
-    if (LOGSHA) { try { logSet = bag(countSet(LOGSHA, G('show ' + LOGSHA + ':' + rel))); } catch (e) { logSet = null; } }
+    if (LOGSHA) { try { logSet = bag(countSet(LOGSHA, full(G('show ' + LOGSHA + ':' + rel), LOGSHA))); } catch (e) { logSet = null; } }
     const holdTo = (r, old) => {   // HOLD-TO: the one comparison #553 adds
       if (!logSet) return 'legacy';
       const rs = bag(countSet(r.commit, old));
@@ -223,7 +232,7 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
       if (!(r.total > 0)) { r.fault = 'total=' + r.total + ' - a record that ran nothing controls nothing [#550 item (107)]'; faults.push(r); continue; }
       if (r.red > r.total) { r.fault = 'red=' + r.red + ' exceeds total=' + r.total; faults.push(r); continue; }
       let old;
-      try { old = G('show ' + r.commit + ':' + rel); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
+      try { old = full(G('show ' + r.commit + ':' + rel), r.commit); } catch (e) { r.fault = 'the gate did not exist at ' + r.commit; faults.push(r); continue; }
       const oldL = linesOf(old);
       // THE COLLECTION IS ASSERTED NON-EMPTY BEFORE A PROPERTY OF IT IS [#540 repair, antagonist A's A-F1, P2]. A
       // record whose sha carried ZERO `L.say(` lines satisfied the subset test over nothing ("every line it ran is
@@ -570,6 +579,29 @@ function selftest() {
     r = runL(1, 'selftest-9c', i1);
     ok(/^--- BAD-RECORD \(1\) ---$/m.test(r.out) && /which ran the same assertion set as this record, says this gate runs 1/.test(r.out),
        '(9c) and the declaration does not loosen the exact case: a log over the record\'s own one file holds it to 1, so 2 is BAD-RECORD');
+    // ── (11) A GATE WHOSE ASSERTIONS LIVE IN A SHARED DRIVER (gates 177 and 178 over gates/drive/layout.js). The gate's own file
+    //     carries no L.say( line; `// CONTROL-ASSERTIONS-IN: <path>` names the driver, whose lines are read at each sha.
+    fs.mkdirSync(path.join(root, 'drive'), { recursive: true });
+    const DRV = path.join(root, 'drive/drv.js');
+    const D1 = "L.say('drv a', 1);", D2 = "L.say('drv b', 2);";
+    const DECLA = '// CONTROL-ASSERTIONS-IN: drive/drv.js';
+    fs.writeFileSync(DRV, [D1, D2].join('\n') + '\n');
+    write(['// a wrapper gate', DECLA, "require('../../drive/drv.js');"]); const w1 = commit('a wrapper gate over a driver');
+    const recW = '// CONTROL-RECORD: ' + w1 + ' ' + TODAY + ' total=2 red=1 scope=full how=the driver flipped drv b';
+    write(['// a wrapper gate', DECLA, recW, "require('../../drive/drv.js');"]); const w2 = commit('its record');
+    r = runL(2, 'selftest-11', w2);
+    ok(/^--- COVERED \(1\) ---$/m.test(r.out) && r.rc === 0, '(11) a wrapper gate that names its driver reads COVERED over the driver\'s two lines at exit 0');
+    fs.writeFileSync(DRV, [D1, "L.say('drv b', 3);"].join('\n') + '\n'); commit('the driver\'s assertion rewritten after the record');
+    r = runL(2, 'selftest-11b', w2);
+    ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /1 line\(s\) it ran are gone/.test(r.out), '(11b) an assertion rewritten IN THE DRIVER after the record moves the record: ASSERTIONS-MOVED');
+    fs.writeFileSync(DRV, [D1, D2].join('\n') + '\n'); write(['// a wrapper gate', recW, "require('../../drive/drv.js');"]); commit('the driver restored, the declaration dropped');
+    r = runL(2, 'selftest-11c', w2);
+    ok(/^--- ASSERTIONS-MOVED \(1\) ---$/m.test(r.out) && /carried no L\.say\( line at/.test(r.out), '(11c) without the declaration the wrapper carries no L.say( line, so its record cannot match (gates 177 and 178 before)');
+    fs.writeFileSync(DRV, [D1, D2, "L.say('drv c', 4);"].join('\n') + '\n');
+    write(['// a wrapper gate', DECLA, recW, "require('../../drive/drv.js');"]); git('add -A gates'); git('-c user.email=selftest@local -c user.name=selftest commit -q -m redeclare');
+    r = runL(2, 'selftest-11e', w2);
+    ok(/^--- DIRTY \(1\) ---$/m.test(r.out), '(11e) with the declaration, an uncommitted edit to the DRIVER makes the gate DIRTY');
+    git('checkout -- drive/drv.js');   // the driver clean again for any arm after this one
     // ── (10) THE ARMS WITH THEIR SUBJECT REMOVED (CLAUDE.md: a new control set is run against the tree without its subject, and
     //     seen to go red, before it is counted). A copy of this file whose holdTo() always answers 'legacy' - the pre-#553
     //     behaviour - runs this same selftest; (8), (8g) and (9) must FAIL there. The child skips (10), or it would recurse.
@@ -585,6 +617,13 @@ function selftest() {
       // EXPECTED RED: every arm whose verdict or fault text the hold decides. (8d) and (9c) are red there by their TEXT - the
       // legacy refusal names no assertion set - which is the point: they pin the exact path's own words, not just a BAD-RECORD.
       const want = ['(8)', '(8b)', '(8d)', '(8f)', '(8g)', '(9)', '(9c)'];
+      const cut2 = me.replace('if (m) decl.push(m[1]); }', '}');
+      ok(cut2 !== me, '(10b) the second defang edit applied (CONTROL-ASSERTIONS-IN never read)');
+      fs.writeFileSync(cf, cut2);
+      const ch2 = cp.spawnSync('node', [cf, '--selftest'], { encoding: 'utf8', env: Object.assign({}, process.env, { CT_CA_SUBJECT_ARM: 'off' }), maxBuffer: 1 << 24 });
+      fs.rmSync(cf, { force: true });
+      const got2 = (((ch2.stdout || '') + (ch2.stderr || '')).match(/^SELFTEST FAIL \(\w+\)/gm) || []).map(l => l.replace('SELFTEST FAIL ', ''));
+      ok(ch2.status === 1 && got2.join(',') === '(11),(11b),(11e)', '(10b) with the driver declaration ignored, exactly (11), (11b), (11e) go red: ' + (got2.join(',') || 'none') + ' (exit ' + ch2.status + ')');
       const got = (co.match(/^SELFTEST FAIL \(\w+\)/gm) || []).map(l => l.replace('SELFTEST FAIL ', ''));
       ok(ch.status === 1 && got.join(',') === want.join(',') && ['(8L)', '(8c)', '(8e)', '(9b)'].every(k => co.includes('SELFTEST PASS ' + k + ' ')),
          '(10) with the subject removed the selftest goes RED on exactly the arms the hold decides: ' + (got.join(',') || 'none') + ' failed (exit ' + ch.status + '; want ' + want.join(',') + '), while (8L), (8c), (8e), (9b) still pass');
