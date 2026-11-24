@@ -1,0 +1,12 @@
+diff --git a/chess.jsx b/chess.jsx
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2686,7 +2686,7 @@
+   for(const r of getLegal(post)){const g3=makeMove(post,r);if(g3&&getStatus(g3)==='checkmate')return N+(chk?' gives check but':'')+' allows '+sanP(post,r).replace(/[+#]$/,'')+' mate.';}
+   const capd=pre.board[mv.tr][mv.tc]||(mv.epCap?{t:'p'}:null);const gain=capd?(SEEVAL[capd.t]||0):0;
+   const bc=chk?null:_anaCap(post,them,gain+1);
+-  if(bc){{const R=sanP(post,bc.m),rc=/\+$/.test(R);const free=!getLegal(bc.g4).some(x=>x.tr===bc.m.tr&&x.tc===bc.m.tc);/* 'for nothing' only where nothing can take back on the square (gate 185 caught 'dxe5 ... for nothing' where ...dxe5 can, and loses to Nxe5) */
++  if(bc){{const R=sanP(post,bc.m),rc=/\+$/.test(R);const free=true;/* 'for nothing' only where nothing can take back on the square (gate 185 caught 'dxe5 ... for nothing' where ...dxe5 can, and loses to Nxe5) */
+       return N+(capd?(' takes the '+PNAME[capd.t]+', but it'):'')+' lets '+R.replace(/[+#]$/,'')+' win material: it takes the '+PNAME[bc.t]+' on '+rc2sq(bc.m.tr,bc.m.tc)+(free?' for nothing':'')+(rc?', with check':'')+'.';}}
+   if(capd){const rb=getLegal(post).filter(r=>r.tr===mv.tr&&r.tc===mv.tc).sort((a,b)=>(SEEVAL[post.board[a.fr][a.fc].t]||0)-(SEEVAL[post.board[b.fr][b.fc].t]||0));
+     if(rb.length)return N+' takes the '+PNAME[capd.t]+' on '+rc2sq(mv.tr,mv.tc)+(chk?', with check':'')+', and '+sanP(post,rb[0]).replace(/[+#]$/,'')+' can take back.';}
