@@ -1,0 +1,35 @@
+{
+ "job": "gate-61-a15b-cannot-be-red-while-a15a-is-green-and-its-comment-names-an-impossible-mechanism-2026-10-06",
+ "about": "Gate 61's A15 block (four months of fifty, the index exhausted): A15b now reads the PERSISTED bound (ct_acctcap in localStorage) for '+gap', so it can fail while A15a, which reads the screen, is green. Checks A15a and A15b. Break 1 persists '+gap' while the live bound stays clean: A15b RED and A15a GREEN (measured at 375x730, 276 pass 11 fail on the whole gate, A15c and the reload arms follow). Break 2 records a gap for every walk: both red. NOT COVERED: A15c (reload), A17 (recovery), the rest of the gate.",
+ "gate": "gates/regress/61-review-list-month-independence.js",
+ "env": {},
+ "checks": [
+  "^A15[ab] "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "exact-cap (375x730)",
+   "match": "^A15[ab] "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "stored-bound-gets-a-gap",
+   "patch": "breaks/61-stored-bound-gets-a-gap.diff",
+   "why": "the walk persists every recorded bound with '+gap' appended while the live ref stays clean: the screen is clean (A15a green) and only the stored bound is wrong",
+   "mustFailIn": [
+    "exact-cap (375x730)"
+   ]
+  },
+  {
+   "name": "walk-records-a-gap-for-no-failed-month",
+   "patch": "breaks/61-walk-records-a-gap-for-no-failed-month.diff",
+   "why": "fetchChessCom records '+gap' on every walk whether or not a month failed",
+   "mustFailIn": [
+    "exact-cap (375x730)"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}

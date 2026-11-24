@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 93e27bb8..693b3a59 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9071,7 +9071,7 @@ function AppMain(){
+       // reached. Otherwise an exhausted index means nothing was cut and there is no limit to state.
+       const cutByGames=games.length>=ACCT_GMAX&&(leftover||i>=0);
+       // #549 item (32) 'held': the walk reached the newest held game, so acctStore keeps the bound already recorded
+-      const bound=(reached?'held':(cutByGames?'games':(i<0?'all':'months')))+(missed?'+gap':'');
++      const bound=(reached?'held':(cutByGames?'games':(i<0?'all':'months')))+'+gap';
+       if(!games.length&&!reached)throw new Error('no recent games found');
+       const rows=games.map(g=>({src:'cc',acct:u,pgn:g.pgn,white:(g.white&&g.white.username)||'White',black:(g.black&&g.black.username)||'Black',wr:g.white&&g.white.result,tc:g.time_class,date:(g.end_time||0)*1000}));
+       ccRawRef.current=null; if(await acctStore('cc',u,rows,bound,_gen)!==false)acctFreshMark(acctId('cc',u),true); mergeGames();
