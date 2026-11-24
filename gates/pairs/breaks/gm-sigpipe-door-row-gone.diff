@@ -1,0 +1,12 @@
+diff --git a/gates/door-checks.sh b/gates/door-checks.sh
+index 79b828cd..97f0b381 100755
+--- a/gates/door-checks.sh
++++ b/gates/door-checks.sh
+@@ -79,6 +79,5 @@ contract-asserts-selftest|gates/audit/contract-asserts.sh|--selftest|contract-as
+ contract-asserts|gates/audit/contract-asserts.sh||contract-asserts: [0-9]+ pass / [0-9]+ fail
+ negated-regex-guards-selftest|gates/audit/negated-regex-guards.sh|--selftest|negated-regex-guards selftest: [0-9]+ pass / [0-9]+ fail
+-negated-regex-guards|gates/audit/negated-regex-guards.sh||negated-regex-guards: [0-9]+ pass / [0-9]+ fail
+-sigpipe-ceilings|gates/gatemanifest.sh|sigpipe|sigpipe door: [0-9]+ pass / [0-9]+ fail'
++negated-regex-guards|gates/audit/negated-regex-guards.sh||negated-regex-guards: [0-9]+ pass / [0-9]+ fail'
+ 
+ # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing

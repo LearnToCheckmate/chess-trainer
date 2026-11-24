@@ -27,6 +27,7 @@ count_of(){ # <name> <outfile>
     held-selftest)       m=$(grep -oE '^[0-9]+ PASS +[0-9]+ FAIL' "$o" | tail -1 | awk '{print $1, $3}') ;;
     verify-log-selftest) m=$(grep -oE 'verify-log self-test: [0-9]+ pass, [0-9]+ fail' "$o" | tail -1 | awk '{gsub(",","");print $3, $5}') ;;
     buildnum-selftest)   m=$(grep -oE 'buildnum self-test: [0-9]+ pass, [0-9]+ fail' "$o" | tail -1 | awk '{gsub(",","");print $3, $5}') ;;
+    gatemanifest-selftest) m=$(grep -oE '^selftest: [0-9]+ passed, [0-9]+ failed' "$o" | tail -1 | awk '{gsub(",","");print $2, $4}') ;;   # #553: its line says passed/failed, which the generic arm below cannot read
     *)                   m=$(grep -oE '(^|: )[0-9]+ (PASS|pass),? +[0-9]+ (FAIL|fail)' "$o" | tail -1 | awk '{n=0;o="";for(i=1;i<=NF;i++){g=$i;gsub(/[^0-9]/,"",g);if(g!=""&&n<2){o=o(n?" ":"")g;n++}}print o}') ;;   # awk, not grep|head: no early-exit pipe under pipefail (gatemanifest.sh sigpipe)
   esac
   printf '%s' "$m"
@@ -47,7 +48,10 @@ run(){
     case "$name" in ''|\#*|door:*) printf '%s\t%s\t%s\t%s\n' "$name" "$path" "$pin" "$note" >> "$new"; continue;; esac   # door: rows are gates/door-checks.sh's pins, run there (#550 round 4)
     local f="$path" out="$tmp/$name.out"; case "$f" in /*) : ;; *) f="$ROOT/$path" ;; esac
     [ -f "$f" ] || { echo "HARNESS COUNTS COULD NOT RUN - $name: $path is missing"; rm -rf "$tmp"; return 2; }
-    ( cd "$ROOT" && timeout 900 bash "$f" ) > "$out" 2>&1; local hrc=$?
+    # 1500s, was 900 [#553]: gatemanifest-selftest joined and measured 7m46s on its own at a 5-minute load of 3 (CPU-bound, about
+    # 1.4 cores), so 900 left under 2x headroom on a 4-core container shared with other seats. A hang now costs 25 minutes, not 15.
+    local -a harg=(); [ "$name" = gatemanifest-selftest ] && harg=(selftest)   # the one harness that takes a verb
+    ( cd "$ROOT" && timeout 1500 bash "$f" "${harg[@]}" ) > "$out" 2>&1; local hrc=$?
     local pf; pf="$(count_of "$name" "$out")"; local p="${pf%% *}" fl="${pf##* }"
     if ! [[ "$p" =~ ^[0-9]+$ && "$fl" =~ ^[0-9]+$ ]]; then echo "HARNESS COUNTS COULD NOT RUN - $name printed no readable count line (exit $hrc); its output is $out"; rm -rf "$tmp"; return 2; fi
     if [ "$hrc" -ne 0 ] || [ "$fl" -gt 0 ]; then echo "HARNESS COUNTS REFUSED - $name: exit $hrc, $fl FAIL ($p pass)"; rc=1
@@ -96,6 +100,11 @@ selftest(){
   mkh held "164 PASS  0 FAIL  (x)"; : > "$T/reg"; reg held-selftest "$T/held.sh" 164 n; reg door:x "$T/never-run.sh" 9 n
   chk "HC14 a door: row is skipped, not run and not refused: 0" 0 "$(rr)"
   ( CT_HARNESS_REG="$T/reg" run --write ) >/dev/null 2>&1; chk "HC14b and survives --write unchanged" "door:x 9" "$(awk -F'\t' '$1=="door:x"{print $1, $3}' "$T/reg")"
+  # HC15 (#553): gatemanifest.sh selftest's own count line ("selftest: N passed, M failed") is read, and one case down refuses
+  mkh gm "selftest: 101 passed, 0 failed"; : > "$T/reg"; reg gatemanifest-selftest "$T/gm.sh" 101 n
+  chk "HC15 gatemanifest's count line is read at its pin: 0" 0 "$(rr)"
+  : > "$T/reg"; reg gatemanifest-selftest "$T/gm.sh" 102 n; chk "HC15b and one case down refuses: 1" 1 "$(rr)"
+  mkh gm "selftest: 100 passed, 1 failed"; : > "$T/reg"; reg gatemanifest-selftest "$T/gm.sh" 100 n; chk "HC15c and its FAIL refuses: 1" 1 "$(rr)"
   rm -rf "$T"; echo "harness-counts self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 

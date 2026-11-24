@@ -44,6 +44,10 @@
 #        row in claude/agents/negated-regex-guards.tsv. It went RED unnoticed after 2994c8f (9 unreviewed sites, 1 stale row) because
 #        nothing on the push path ran it. Measured at 8475aea: "negated-regex-guards: 108 pass / 0 fail", ~1s; selftest 7 / 0.
 #        The report row is NOT pinned (its count is sites, which a gate edit may lower legitimately); the selftest row is.
+#   IN   gates/gatemanifest.sh sigpipe (#553; jobs/gatemanifest-selftest-is-red-on-main-23-sigpipe-sites-against-a-ceiling-of-15-
+#        2026-11-11): the early-exit-pipe audit's four ceilings. Its only runner was `gatemanifest.sh selftest` (about 8 minutes,
+#        run by nothing on the push path), and the total ceiling was breached unseen TWICE - 23 vs 15 at #550, 13 vs 12 on #553's
+#        lead branch. Measured on the fixed tree: "sigpipe door: 4 pass / 0 fail", ~2s. NOT pinned: its count is a fixed four.
 #   OUT  gates/audit/verify-patch-set.sh <payload-dir> (the live mode): its input is a set of parked tracker payloads, which a
 #        tree does not carry, so the door has nothing to give it. Only its --selftest can run here.
 # The IN checks run in parallel (three when this was measured; the report joined at round 4, --citations at round 5). MEASURED on this 4-core container that buys almost nothing - 54s in parallel against 57s
@@ -74,7 +78,8 @@ control-floor|gates/audit/control-floor.sh||control-floor: [0-9]+ pass / [0-9]+ 
 contract-asserts-selftest|gates/audit/contract-asserts.sh|--selftest|contract-asserts selftest: [0-9]+ pass / [0-9]+ fail
 contract-asserts|gates/audit/contract-asserts.sh||contract-asserts: [0-9]+ pass / [0-9]+ fail
 negated-regex-guards-selftest|gates/audit/negated-regex-guards.sh|--selftest|negated-regex-guards selftest: [0-9]+ pass / [0-9]+ fail
-negated-regex-guards|gates/audit/negated-regex-guards.sh||negated-regex-guards: [0-9]+ pass / [0-9]+ fail'
+negated-regex-guards|gates/audit/negated-regex-guards.sh||negated-regex-guards: [0-9]+ pass / [0-9]+ fail
+sigpipe-ceilings|gates/gatemanifest.sh|sigpipe|sigpipe door: [0-9]+ pass / [0-9]+ fail'
 
 # "<pass> <fail>" from the LAST line of <outfile> matching <ere>, or nothing
 count_of(){ grep -oE "$2" "$1" 2>/dev/null | tail -1 | grep -oE '[0-9]+ (pass|fail)' | awk '{printf "%s%s", (NR>1?" ":""), $1}'; }
@@ -151,11 +156,12 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail")"
 s2|gates/s2.sh|x|s: [0-9]+ pass, [0-9]+ fail' >/dev/null; chk "DC9 the checks run in parallel (2 x 2s in under 4s)" yes "$( [ $(( $(date +%s)-s0 )) -lt 4 ] && echo yes || echo no)"
   # DC10: the live list names exactly the seven measured-green checks; verify-log --citations joined at #550 round 5, once green,
   # and control-floor with its selftest at #550 test-system helper A (part (3))
-  chk "DC10 the live list has eleven rows (contract-asserts, negated-regex-guards and their selftests joined at #550 test-system helper A)" 11 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  chk "DC10 the live list has twelve rows (contract-asserts, negated-regex-guards and their selftests joined at #550 test-system helper A; the sigpipe ceilings at #553)" 12 "$(printf '%s\n' "$CHECKS" | grep -c .)"
+  chk "DC10d and the sigpipe ceilings are one of them, as gatemanifest.sh sigpipe (#553)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^sigpipe-ceilings\|gates/gatemanifest.sh\|sigpipe\|')"
   chk "DC10b and verify-log --citations is one of them, by that argument (round 5: CITATIONS OK, 0 fail)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^citations\|gates/verify-log.sh\|--citations\|')"
   chk "DC10c the cited-not-run REPORT is in, with no argument (round 4: accounted-green 48 of 48)" 1 "$(printf '%s\n' "$CHECKS" | grep -cE '^cited-not-run-report\|gates/audit/cited-not-run.sh\|\|')"
   # DC11: each live pattern reads the real summary line its script prints (a fixed specimen of each, from 503946c)
-  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"; printf 'control-floor selftest: 17 pass / 0 fail\n' > "$T/s6"; printf 'control-floor: FELL x now reads NONE - n\ncontrol-floor: 39 pass / 0 fail   (39 floor row(s), 139 gates audited, 0 covered gate(s) not on the floor)\n' > "$T/s7"; printf 'contract-asserts selftest: 21 pass / 0 fail\n' > "$T/s8"; printf 'contract-asserts: NOT IN FORCE (NO ROW) R01 - x\ncontract-asserts: 2 pass / 0 fail (2 in force, 1 not checked here, 52 not in force: 0 by row, 52 with no row; 0 could not run)\n' > "$T/s9"; printf 'negated-regex-guards selftest: 7 pass / 0 fail\n' > "$T/s10"; printf 'negated regex tests on an asserting line: 119 at 108 (file, pattern) sites; 118 more\nnegated-regex-guards: 108 pass / 0 fail\nOK: every site has a reviewed row\n' > "$T/s11"
+  printf 'citations-selftest: 63 pass, 0 fail\n' > "$T/s1"; printf 'cited-not-run selftest: 47 pass / 0 fail\n' > "$T/s2"; printf 'SELFTEST 105 pass / 0 fail\n' > "$T/s3"; printf 'cited-not-run report: 203 pass / 0 fail\n' > "$T/s4"; printf 'citations door: 310 pass / 0 fail (1 row(s) NOT CHECKED, counted in neither)\n' > "$T/s5"; printf 'control-floor selftest: 17 pass / 0 fail\n' > "$T/s6"; printf 'control-floor: FELL x now reads NONE - n\ncontrol-floor: 39 pass / 0 fail   (39 floor row(s), 139 gates audited, 0 covered gate(s) not on the floor)\n' > "$T/s7"; printf 'contract-asserts selftest: 21 pass / 0 fail\n' > "$T/s8"; printf 'contract-asserts: NOT IN FORCE (NO ROW) R01 - x\ncontract-asserts: 2 pass / 0 fail (2 in force, 1 not checked here, 52 not in force: 0 by row, 52 with no row; 0 could not run)\n' > "$T/s9"; printf 'negated-regex-guards selftest: 7 pass / 0 fail\n' > "$T/s10"; printf 'negated regex tests on an asserting line: 119 at 108 (file, pattern) sites; 118 more\nnegated-regex-guards: 108 pass / 0 fail\nOK: every site has a reviewed row\n' > "$T/s11"; printf 'sigpipe audit: 12 early-exit pipe(s) into grep under pipefail - A 0 (ceiling 1), B 0 (ceiling 0), C 1, D 11, total ceiling 12; 13 fixture line(s) exempt (ceiling 13)\nsigpipe door: 4 pass / 0 fail\n' > "$T/s12"
   local k=0 name script arg pat; while IFS='|' read -r name script arg pat; do k=$((k+1)); chk "DC11 the live pattern for $name reads its real count line" "$(sed -n 's/[^0-9]*\([0-9]*\) pass[^0-9]*\([0-9]*\) fail.*/\1 \2/p' "$T/s$k")" "$(count_of "$T/s$k" "$pat")"; done <<< "$CHECKS"
   # DC12-DC15: the case-count pin (#550 round 4). One check, pinned at 5.
   mk a "a: 5 pass, 0 fail"; printf 'door:a\tgates/a.sh\t5\tn\n' > "$T/pins"
@@ -185,6 +191,19 @@ b|gates/b.sh|--selftest|b: [0-9]+ pass / [0-9]+ fail"
   chk "DC17d --only a,b runs both and refuses on b: 1" 1 "$(ro a,b)"
   chk "DC17e --only a name not in the list: 2" 2 "$(ro nosuch)"
   chk "DC17f --only with an empty name: 2" 2 "$(ro '')"
+  # DC18 (#553; jobs/gatemanifest-selftest-is-red-on-main-23-sigpipe-sites-against-a-ceiling-of-15-2026-11-11): the LIVE
+  # sigpipe-ceilings row, run through this door over a copy of the real gates/*.sh, passes; the same copy with one more site than
+  # the committed total ceiling allows refuses. The planted site is assembled at run time so this file is not itself a site.
+  local SR="$T/sp"; mkdir -p "$SR/gates"; cp "$HERE"/*.sh "$HERE/gate-manifest.tsv" "$SR/gates/"   # the manifest too: gatemanifest.sh refuses every verb without one
+  local LSP; LSP="$(printf '%s\n' "$CHECKS" | awk -F'|' '$1=="sigpipe-ceilings"')"
+  rs(){ ( CT_DOOR_ROOT="$SR" CT_DOOR_PINS="$T/pins" CT_DOOR_CHECKS="$LSP" run ) > "$T/last" 2>&1; echo $?; }
+  : > "$T/pins"; chk "DC18 the sigpipe-ceilings row over a copy of the real gates/: 0" 0 "$(rs)"
+  local cap tot0 need g='gr''ep' i; cap="$(sed -n 's/^SP_TOTAL_CEIL=\([0-9]*\).*/\1/p' "$HERE/gatemanifest.sh")"
+  tot0="$(bash "$SR/gates/gatemanifest.sh" sigpipe "$SR/gates" 2>/dev/null | sed -n 's/^sigpipe audit: \([0-9]*\) .*/\1/p')"
+  need=$(( ${cap:-0} - ${tot0:-0} + 1 ))
+  { printf '#!/usr/bin/env bash\nset -uo pipefail\n'; for ((i=0;i<need;i++)); do printf 'v%s="$(printf x | %s -oE x | head -1 || true)"\n' "$i" "$g"; done; } > "$SR/gates/zz-planted.sh"
+  chk "DC18b one site past the total ceiling ($need planted over $tot0 of $cap) refuses through the door: 1" 1 "$(rs)"
+  chk "DC18c and the refusal is the ceiling's own count line (3 pass / 1 fail)" 1 "$(grep -c 'REFUSED - sigpipe-ceilings: exit 1, 1 fail (3 pass' "$T/last")"
   rm -rf "$T"; echo "door-checks self-test: $ok pass, $bad fail"; [ "$bad" -eq 0 ]
 }
 

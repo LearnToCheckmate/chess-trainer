@@ -1,0 +1,11 @@
+diff --git a/gates/fastgate.sh b/gates/fastgate.sh
+index 40addcf7..c6e505a9 100755
+--- a/gates/fastgate.sh
++++ b/gates/fastgate.sh
+@@ -2154,5 +2154,5 @@ if [ -n "$ADDLOG" ]; then
+     G81OUT="$(cd "$ROOT" && CT_APP="$ROOT/app.js" timeout 300 node "$G/regress/81-gatelog-covers-shipped-bundle.js" 2>&1)"; G81RC=$?
+   fi
+-  G81PASS="$(printf '%s\n' "$G81OUT" | grep -oE 'GATELOG-COVERS-SHIPPED-BUNDLE: [0-9]+ pass, 0 fail' | sed -n 1p || true)"
++  G81PASS="$(printf '%s\n' "$G81OUT" | grep -oE 'GATELOG-COVERS-SHIPPED-BUNDLE: [0-9]+ pass, 0 fail' | head -1 || true)"
+   if [ "$G81RC" != 0 ] || [ -z "$G81PASS" ]; then
+     say ""
