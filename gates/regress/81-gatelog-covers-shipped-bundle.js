@@ -80,7 +80,7 @@ L.run(async()=>{
   // path on the 'inputs observed' line; fastgate.sh classifies it FORCE, and obs_records reddens this gate if that arm is ever removed.
   // NOT DECLARED, AND SAID SO: claude/agents/gatelogs/ (also read through git). classify() calls it RECORDS, every close-out adds a log
   // to it, and declaring it would redden this gate in every suite; so a records commit that ADDS a log can still change TC-SUITE-351
-  // or 372 here while the fast tier reports green (fastgate.sh refuses only a commit that DELETES one). Residual, routed by the run.
+  // or 372 here, so fastgate.sh RUNS THIS GATE whenever a records commit adds or changes a log and refuses on any red [#553; fastgate-drive.sh H74 and H75], and refuses a commit that DELETES one.
   require('fs').existsSync(path.join(ROOT,'gates','gatelog-exceptions.tsv'));
   const exc=new Map();
   try{for(const l of g('show HEAD:gates/gatelog-exceptions.tsv').toString().split('\n')){if(/^\s*(#|$)/.test(l))continue;const f=l.split('\t');exc.set(f[0],{cls:f[1]||'',src:f[2]||''});}}catch(e){}
