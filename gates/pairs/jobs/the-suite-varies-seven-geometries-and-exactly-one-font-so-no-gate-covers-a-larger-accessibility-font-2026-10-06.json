@@ -1,39 +1,41 @@
 {
  "job": "the-suite-varies-seven-geometries-and-exactly-one-font-so-no-gate-covers-a-larger-accessibility-font-2026-10-06",
- "about": "Gate 205 (browser) drives the Puzzles trainer at 320x568, 375x667 and kunal761 at text scales 1, 1.6 and 2.4 (gates/drive/textscale.js multiplies every text element's font-size and px line-height) and asserts the board is inside the viewport, above the tab bar and the same across two settles, after proving the larger text moved the board. NOT COVERED: other screens, the other four of the drill seven, the job's control-row budget from gate 48, a real iOS Larger Text.",
+ "about": "Gate 205 (browser) drives the Puzzles trainer at 320x568, 375x667 and kunal761 at text scales 1, 1.6 and 2.4 (gates/drive/textscale.js multiplies every text element's font-size and px line-height) and asserts the board is inside the viewport, above the tab bar, the same across two settles, and that #root has nothing to scroll, after proving the larger text moved the board. The breaks redden the no-scroll line at 320x568 at 2.4 only; the real code must pass everywhere. NOT COVERED: other screens, the other four of the drill seven, the job's control-row budget from gate 48, a real iOS Larger Text.",
  "gate": "gates/regress/205-puzzle-board-at-larger-text.js",
  "env": {},
  "checks": [
-  "^TC-R319[abc] "
+  "^TC-R319[abcd] "
  ],
  "build": "auto",
  "situations": [
   {
    "name": "se (320x568)",
-   "match": "^TC-R319[abc] se "
+   "match": "^TC-R319[abcd] se "
   },
   {
    "name": "w375h667",
-   "match": "^TC-R319[abc] w375h667 "
+   "match": "^TC-R319[abcd] w375h667 "
+  },
+  {
+   "name": "kunal761",
+   "match": "^TC-R319[abcd] kunal761 "
   }
  ],
  "breaks": [
   {
-   "name": "stack-never-measured",
-   "patch": "breaks/205-stack-never-measured.diff",
-   "why": "the puzzle's measured text stack can no longer change, so the board does not hear larger text and keeps its size",
+   "name": "fit-loop-skips-puzzles",
+   "patch": "breaks/205-fit-loop-skips-puzzles.diff",
+   "why": "the fit loop no longer runs for the puzzle screens, so the board keeps its first size and the column overflows its box at the largest text",
    "mustFailIn": [
-    "se (320x568)",
-    "w375h667"
+    "se (320x568)"
    ]
   },
   {
-   "name": "height-cap-ignores-the-stack",
-   "patch": "breaks/205-height-cap-ignores-the-stack.diff",
-   "why": "the board's height cap stops subtracting the text stack",
+   "name": "fit-loop-reads-no-overflow",
+   "patch": "breaks/205-fit-loop-reads-no-overflow.diff",
+   "why": "the fit loop runs but reads zero overflow every pass, so it never trims",
    "mustFailIn": [
-    "se (320x568)",
-    "w375h667"
+    "se (320x568)"
    ]
   }
  ],

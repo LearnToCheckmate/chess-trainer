@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 5ba73e9b..b0be15c2 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7444,7 +7444,7 @@ function AppMain(){
+       if(settle){settle=false;if(++passes<36)raf=requestAnimationFrame(tick);else fitIdleRef.current=true;return;}
+       // #355's "measure the content, not the document" body now lives in _fitOver above, called by this loop
+       // and by #522's pre-paint refit, so the two cannot drift apart.
+-      const over=_fitOver();
++      const over=0;
+       /* #550 US-R151 MOV-01, THE SECOND HALF (Kunal: "keep the loop from flipping between two trims whatever the cause"): THE LOOP NEVER
+          GROWS STRAIGHT BACK TO A TRIM IT JUST LEFT ON THE SAME READING. The shake was two states each sending the loop to the other: trim 0
+          read over (+0.33), trim 16 read room (fixr3e counts the graph band as slack). Any such pair is bistable by construction, so after a
