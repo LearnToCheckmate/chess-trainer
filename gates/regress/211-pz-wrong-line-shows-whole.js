@@ -44,7 +44,8 @@ L.run(async()=>{
     const same=(a,c)=>!!a&&!!c&&Math.abs(a.y-c.y)<0.6&&Math.abs(a.x-c.x)<0.6&&Math.abs(a.w-c.w)<0.6;
     L.say(same(bd0,bd1)&&same(bd0,bd2),tag+': TC-R344 the board keeps its rect through both wrong moves ('+(bd0&&[bd0.x,bd0.y,bd0.w].join(','))+')',{bd0,bd1,bd2});
     const P=PIN[gn];L.say(!!P&&!!bd0&&Math.abs(bd0.y-P.top)<0.6&&Math.abs(bd0.w-P.w)<0.6,tag+': TC-R344 and it is the measured board: top '+(P&&P.top)+', width '+(P&&P.w)+' ('+(bd0&&bd0.y)+', '+(bd0&&bd0.w)+') - no room was made by moving or shrinking it',bd0);
-    L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,tag+': TC-R342 no app errors',b.errs.slice(0,2));
+    const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));   // the engine trap this suite allows by exact text (#356), as gate 39 does
+    L.say(bad.length===0,tag+': TC-R342 no app errors',bad.slice(0,2));
     await b.close();
   }
 },'211-pz-wrong-line-shows-whole');
