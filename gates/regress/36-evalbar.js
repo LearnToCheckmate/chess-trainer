@@ -315,3 +315,7 @@ L.run(async()=>{
   if(playShort)L.note('375x568 for reference (board fit to height there, so the sum is a different number and is not compared): bar '+playShort.barW+' + board '+playShort.boardW+' = '+playShort.sum);
 },'EVALBAR');
 // CONTROL-RECORD: c0d52abf 2026-11-20 total=34 red=1 scope=trial:e94e09711f6e how=batch 13, the re-pin of the Review board at 375x730 (354 -> 375): the tree before the board half (c608f411's chess.jsx as a trial) - 'the review board is 375 at 375x730' red at 354; on the change's trial 7fa11ae19933 34/0
+// batch 14 (#553, B2): the batch-13 records above cite c0d52abf / 7d0c3b9a / ff11ce90, which are in no ref of this repository (rebased away
+// before the push), so control-audit.js reads them BAD-RECORD. They are kept as history; the controls were RE-RUN at 864311df and recorded below.
+// CONTROL-RECORD: 864311df 2026-11-24 total=34 red=1 scope=trial:80c59457dc2d how=batch 14 re-run of the c0d52abf record: gates/pairs/breaks/178-the-header-row-on-any-screen-700-tall.diff on 864311df's chess.jsx as a trial - 'the review board is 375 at 375x730' red at 359; the real code's trial d0cd8c761eb9 reads 34/0
+// CONTROL-RECORD: 864311df 2026-11-24 total=34 red=1 scope=trial:d0b7201b1eb6 how=batch 14 re-run of the c0d52abf record as written: c608f411's chess.jsx (the tree before the board half) as a trial - 'the review board is 375 at 375x730' red at 354, as recorded
