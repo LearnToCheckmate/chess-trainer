@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7d6d2a14..b5cc6eb1 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5481,7 +5481,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
+         <span style={{fontSize:'clamp(14px,3.2vw,17px)',fontWeight:800,color:'#fff'}}>{cstr.title}</span>
+         <span style={{fontSize:'clamp(13.5px,2.3vw,13.5px)',color:'var(--ac2)',fontWeight:700,background:'rgba(var(--acr),.16)',border:'1px solid rgba(var(--acr),.3)',borderRadius:20,padding:'2px 10px'}}>{(si%STRAT.length)+1}/{STRAT.length}</span>
+       </div>
+-      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:_bar?'0 auto 10px':'0 auto 11px',...((_bar&&!land)?{width:cap,marginLeft:'calc(50% - '+(cap/2)+'px)',marginRight:0}:null),..._lb,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
++      <div ref={bRef} data-ct="tactics-board" style={{maxWidth:cap,margin:_bar?'0 auto 10px':'0 auto 11px',...((_bar&&!land)?{width:cap,marginLeft:'calc(50% - 80px - '+(cap/2)+'px)',marginRight:0}:null),..._lb,display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderRadius:4,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+         {Array.from({length:8}).map((_,r)=>Array.from({length:8}).map((__,c)=>scell(r,c)))}
+       </div>
+       <div ref={belowRef} data-ct={_bar?'tactics-below':undefined} style={land?{gridColumn:2,gridRow:'3 / -1',alignSelf:'stretch',display:'flex',flexDirection:'column',minHeight:0}:(_bar?{height:belowH||undefined,display:'flex',flexDirection:'column',minHeight:0}:undefined)}>
