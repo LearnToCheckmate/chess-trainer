@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2516,5 +2516,5 @@
+   if(!w)return 'The game is about even.';
+   if(V.k)return e>0?('You are '+w+'.'):(w==='winning'?'You are losing.':('Your opponent is '+w+'.'));
+-  return (e>0?'White':'Black')+' is '+w+'.';}
++  return (e>0?'Black':'White')+' is '+w+'.';}
+ /* the ladder (4c) for a slip by `M`: W1 mate, W2 a piece left to be taken, W3 something the better move took, W4 a reply that forks,
+    W5 a reply whose follow-up threatens a fork, a piece or mate, W6 a reply the natural capture of which loses more; W7 (the engine

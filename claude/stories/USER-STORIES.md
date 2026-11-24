@@ -1853,7 +1853,8 @@ As a player who taps Review straight after a game, the summary names me and my o
 ### US-R85 The review never calls a position level when it simply has no evaluation for it
 *Added #547, from jobs/a-missing-eval-and-a-level-position-print-the-same-sentence-2026-09-29.*
 As a player stepping through a review, "the position stays roughly level" means the position IS level, not that the app has no number for that move.
-- A move with no stored evaluation gets no sentence about who stands better; a genuinely level position is still called level. (TC-R87)
+- A move with no stored evaluation gets no sentence about who stands better; a genuinely level position is still called level. (TC-R87, TC-R400)
+- Stepping through a real review, the sentence's word for who stands better never disagrees in kind with the eval bar beside it: never 'about even' beside a clear edge, never the wrong side, never 'winning' beside a level bar. (TC-R399; #553 B3)
 - A capture that is taken back is called a trade only when it is like for like; one that gives more than it gets says what it gives for what ('gives up the bishop for the pawn'), and an even trade of unlike pieces names both. (TC-R113)
 
 ### US-R86 When the best line plays, the board stops marking the move I did not make there

@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2512,5 +2512,5 @@
+   return out.sort((x,y)=>y.v-x.v);}
+ // standing from the player's side (4f), or by colour with no player colour
+-function rtStand(ev,V,uc){if(typeof ev!=='number')return '';const e=V.k?(uc==='w'?ev:-ev):ev;const a=Math.abs(e);
++function rtStand(ev,V,uc){if(typeof ev!=='number')ev=0;const e=V.k?(uc==='w'?ev:-ev):ev;const a=Math.abs(e);
+   const w=a>=3?'winning':a>=1.5?'clearly better':a>=0.5?'a little better':'';
+   if(!w)return 'The game is about even.';
