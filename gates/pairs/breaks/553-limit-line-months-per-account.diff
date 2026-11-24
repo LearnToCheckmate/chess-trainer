@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..f9883f78 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13561,5 +13561,5 @@ function AppMain(){
+                   :!_dated.length?'Older games aren\u2019t loaded.'
+                   :(_one&&(_all||_dated.length===1&&_cut.length===1))?('Games back to '+_dated[0].d+(_all?'':' for '+_dated[0].u)+'; older ones aren\u2019t loaded.')
+-                  :('Games back to '+_join(_dated.map(x=>x.d+' for '+x.u))+'; older ones aren\u2019t loaded.');
++                  :'Showing your last 6 months per account.';
+                 const _capTxt=_cut.some(x=>x.full)?('This app keeps up to '+_scap.toLocaleString('en-US')+' games per account.'):'';
+                 // #433 a failed month is stated rather than swallowed, and it is a SEPARATE sentence because

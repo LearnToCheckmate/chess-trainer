@@ -1,0 +1,25 @@
+{
+ "job": "mixed-source-accounts-get-one-limit-sentence-that-is-false-for-one-of-them-2026-09-29",
+ "about": "Gate 61 block A18 run alone (CT_G61_ONLY=A18): a thin chess.com account stopped by the month window beside a Lichess account stopped by its 200-game request (the suite's Lichess games stub, which counts its own requests). Graded: both accounts in the list (A18-0c), the stub asked (A18-0a), the two bounds recorded as months and games (A18-0b), and the Review list's limit line naming each cut account with the date its held games reach back to, so it is false for neither (A18a, US-R25; the line reads 'Games back to Aug 1, 2026 for listubuser and Apr 1, 2026 for gateacct1; older ones aren't loaded.' since #549 item (31), Kunal's merge-big answer). Situations by CT_G61_A18_GEO: 375x730 (the block's own), kunal761 (375x761, insets 51/31) and 320x568. NOT COVERED: whether the line is whole on screen at 320 (the block reads its text, not its box), a real Lichess response, an account bound by nothing.",
+ "gate": "gates/regress/61-review-list-month-independence.js",
+ "env": {"CT_G61_ONLY": "A18"},
+ "checks": ["A18-0c ", "A18-0a ", "A18-0b ", "A18a "],
+ "build": "auto",
+ "situations": [
+  {"name": "375x730", "env": {}},
+  {"name": "kunal761", "env": {"CT_G61_A18_GEO": "kunal761"}},
+  {"name": "se 320x568", "env": {"CT_G61_A18_GEO": "se"}}
+ ],
+ "breaks": [
+  {"name": "line-leaves-out-lichess", "patch": "breaks/553-limit-line-leaves-out-lichess.diff",
+   "why": "the cut-account list skips Lichess accounts, so the line dates only the chess.com account and says nothing of the Lichess one its 200-game request cut",
+   "mustFailIn": ["375x730", "kunal761", "se 320x568"]},
+  {"name": "one-date-for-all", "patch": "breaks/553-limit-line-one-date-for-all.diff",
+   "why": "the bare-date branch is taken whatever the dates, so one account's date is printed as true of both - the 'per account' over-claim in its current costume",
+   "mustFailIn": ["375x730", "kunal761", "se 320x568"]},
+  {"name": "months-per-account", "patch": "breaks/553-limit-line-months-per-account.diff",
+   "why": "the line goes back to the #432 wording the job was filed against, 'Showing your last 6 months per account.', which is false for the Lichess account (no month window)",
+   "mustFailIn": ["375x730", "kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 900
+}

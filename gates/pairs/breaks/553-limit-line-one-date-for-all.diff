@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..be48a131 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13560,5 +13560,5 @@ function AppMain(){
+                 const _lim=!_cut.length?''
+                   :!_dated.length?'Older games aren\u2019t loaded.'
+-                  :(_one&&(_all||_dated.length===1&&_cut.length===1))?('Games back to '+_dated[0].d+(_all?'':' for '+_dated[0].u)+'; older ones aren\u2019t loaded.')
++                  :(true&&(_all||_dated.length===1&&_cut.length===1))?('Games back to '+_dated[0].d+(_all?'':' for '+_dated[0].u)+'; older ones aren\u2019t loaded.')
+                   :('Games back to '+_join(_dated.map(x=>x.d+' for '+x.u))+'; older ones aren\u2019t loaded.');
+                 const _capTxt=_cut.some(x=>x.full)?('This app keeps up to '+_scap.toLocaleString('en-US')+' games per account.'):'';
