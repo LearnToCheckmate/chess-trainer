@@ -2936,3 +2936,9 @@ As a player in a game from a scanned board on a phone where the move list is a c
 - The bottom row carries a Best moves button (a white star) after Forward, and all seven buttons are 44 by 44 and inside the screen; where the move list is not a sheet the row is as it was. (TC-R402)
 - A tap on Best opens the Moves sheet with the BEST row on screen, the button shows pressed, and the board does not move. (TC-R403)
 - A second tap closes the sheet and the BEST row goes. (TC-R404)
+
+### US-R244 In the Home Screen app a lesson's board is as wide as the phone
+*Added #553 B3, jobs/the-lesson-board-shrinks-to-half-width-in-the-home-screen-app-because-fit-measures-against-761-not-812-2026-11-24 (P1, his report of 24 Nov 2026: "the screen is horribly distorted").*
+As a player using the app from its Home Screen icon, every lesson shows its board at the width of the phone, as it does in the browser, from the intro to practice.
+- In the Home Screen shell (a layout viewport short by the top inset under a page as tall as the screen), every lesson state's board is at least 90% of the screen's width at 375x812, 320x568, 390x844 and 430x932. (TC-R416, TC-R417)
+- The Puzzles board in the same shell is at least 90% of the width too. (TC-R418)

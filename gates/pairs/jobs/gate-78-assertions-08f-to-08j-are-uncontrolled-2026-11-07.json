@@ -1,0 +1,29 @@
+{
+ "job": "gate-78-assertions-08f-to-08j-are-uncontrolled-2026-11-07",
+ "about": "Gate 78's primary-actions loop (CT_G78_PRIM_ONLY=1): on the Puzzles roadmap and the Review list, the primary button is found (08f), above the fold on arrival (08g, 08h, 08i) and reachable by its own scroller (08j), at kunal761 and the seven columns. The breaks give 08g and 08j each a red of their own on the lines as they now read; 08f's is record 84932825 and 08h's faa82a9. NOT COVERED: his look.",
+ "gate": "gates/regress/78-inner-scroller-fold.js",
+ "env": {"CT_G78_PRIM_ONLY": "1"},
+ "checks": [
+  "TC-INV-08[fghij] "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^375x761\\+51,31 "},
+  {"name": "se", "match": "^320x568 "}
+ ],
+ "breaks": [
+  {
+   "name": "the-paste-row-takes-no-touch",
+   "patch": "breaks/78-the-paste-row-takes-no-touch.diff",
+   "why": "Review's paste row (Analyze Game's container) takes no touch, so the button cannot be scrolled to by a finger - 08j",
+   "mustFailIn": ["kunal761", "se"]
+  },
+  {
+   "name": "start-training-900-below",
+   "patch": "breaks/78-start-training-900-below.diff",
+   "why": "the Puzzles roadmap's Start training sits 900px lower, below the fold on arrival - 08g",
+   "mustFailIn": ["kunal761", "se"]
+  }
+ ],
+ "timeoutSec": 1500
+}
