@@ -21,7 +21,7 @@
    "why": "index.html's shell still paints 812 (ct-fullh on html and body) but no longer hands the app that height (window.__ctFullH 0), so the app sizes Review for the 761 layout viewport inside an 812 page and the fit loop trims the board again",
    "mustFailIn": ["his phone in the Home Screen app (375x761 on a 375x812 screen, the shell, real insets 51/31)", "320x568 in the Home Screen app (real inset 20/0)"]},
   {"name": "the-gaps-never-close", "patch": "breaks/184-the-gaps-never-close.diff",
-   "why": "revFit's last step (the gaps round the strip and the buttons closed) is gone, so on a 320x568 phone the rows run out before the board is the full width and it narrows again",
+   "why": "revFit's last steps (the gaps round the strip and the buttons closed, and since #553 card 74 the thin button row after it) are gone, so on a 320x568 phone the rows run out before the board is the full width and it narrows again. [#553: the break removed the gaps step alone until the thin row arrived; the thin row then made up the 17px on its own and the break read BLIND, so it now removes both]",
    "mustFailIn": ["320x568", "320x568 in the Home Screen app (real inset 20/0)"]}
  ],
  "timeoutSec": 2400
