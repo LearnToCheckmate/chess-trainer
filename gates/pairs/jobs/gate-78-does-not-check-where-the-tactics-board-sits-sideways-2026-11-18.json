@@ -1,6 +1,6 @@
 {
  "job": "gate-78-does-not-check-where-the-tactics-board-sits-sideways-2026-11-18",
- "about": "Gate 78's TC-INV-08q: on every card of both Discover -> Tactics tabs the board's left edge is at or after the screen's left, its right edge at or before the screen's right, it is centred within 1px, and its left edge is one value across the cards. Graded in the eight situations gate 78 drives (portrait phone widths 320 to 440; kunal761 is 375x761 with insets 51/31). Gate 78 is run whole (about 6 minutes a try); only its 08q lines are graded. The three breaks shove the board 80px sideways in three different ways. NOT COVERED: landscape (gate 78 drives none), the wrong-try variant board (the first _bd board), laptop width.",
+ "about": "Gate 78's TC-INV-08q: on every card of both Discover -> Tactics tabs the board's left edge is at or after the screen's left, its right edge at or before the screen's right, it is centred within 1px, and its left edge is one value across the cards. Graded in the eight situations gate 78 drives (portrait phone widths 320 to 440; kunal761 is 375x761 with insets 51/31). Gate 78 is run whole (about 6 minutes a try); only its 08q lines are graded. The three breaks shove the board 80px sideways in three different ways. NOT COVERED: landscape (gate 78 drives none), the two boards TacticsTrainer draws outside the _bd helper (not reached on a phone), laptop width.",
  "gate": "gates/regress/78-inner-scroller-fold.js",
  "env": {},
  "checks": [
