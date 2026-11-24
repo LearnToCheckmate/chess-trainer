@@ -5271,7 +5271,7 @@ function tacWrongLine(card,pos,fr,fc,tr,tc){
     return miss?('Not '+s+'. '+miss):'';
   }catch(e){return '';}
 }
-const TT_MORE_W=68;   /* #553 Q68: the room a cut wrong-try line keeps clear on its right for the 'more' chip (with the box's 12px padding, 80px from the box's edge, as pz-msg keeps) */
+const TT_MORE_W=68;   /* #553 Q68: the room a cut wrong-try line keeps clear on its right for the 'more' chip (with the box's 12px padding, 80px from the box's edge, as pz-msg keeps) - since his pick B on card 80, on its LAST line only */
 const TT_BELOW={motifs:120,strategy:180,phone:114};   /* phone (#550 FMT-A-06, a42): the card box keeps two lines (62) + 8 + the 44 action row */   // the least room the area under the board keeps (motifs: status 44 + buttons 44 + gaps; once the answer shows, the status line folds into the answer box, which takes that room)
 function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
   const _bar=!!onBack;
@@ -5348,7 +5348,7 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
      wrong try sits under the card's name, so its second line was cut at the box's foot (measured at 320x568: 41px of text in a 64px box with the
      name above it). While the line shows, the box is scrolled so the line starts at its top; it goes back when the line goes. */
   useLayoutEffect(()=>{const box=ideaRef.current,el=wrongRef.current;if(!box)return;
-    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';}
+    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';el.querySelectorAll('[data-tt-more-room]').forEach(x=>x.remove());}
     setWrongOpen(false);
     if(!wrong||!el){setWrongFit('all');setWrongUp(false);if(wrongScrollRef.current){wrongScrollRef.current=false;box.scrollTop=0;ideaCheck();}return;}
     /* #553, Kunal's Q68 pick ("A more button", 23 Nov 2026; Amber: flags/amber-553-tactics-wrong-more), replacing batch 13's smaller text on short
@@ -5362,8 +5362,15 @@ function TacticsTrainer({light,dark,demo,onBack,onMenu,land}){
          the puzzle explanation's '\u25be more' chip opens the whole line over the board until it is tapped again, as pz-msg does. */
     {const cs=getComputedStyle(box);const pt=parseFloat(cs.paddingTop)||0,pb=parseFloat(cs.paddingBottom)||0;const room=box.clientHeight-pt-pb;let fit='all';
       if(box.scrollHeight>box.clientHeight+1){fit='line';
-        if(room>0&&el.offsetHeight>room+0.5){fit='cut';el.style.paddingRight=TT_MORE_W+'px';const pitch=parseFloat(getComputedStyle(el).lineHeight)||20.3;
-          const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';}}
+        if(room>0&&el.offsetHeight>room+0.5){fit='cut';const pitch=parseFloat(getComputedStyle(el).lineHeight)||20.3;
+          const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';
+          /* #553, Kunal's pick B on card 80 (docs/run-answers orchestrator-B14-Q7-2026-11-24): the chip's room is kept ONLY UNDER THE LAST LINE
+             that shows, not down the whole right side, so the lines above it run the box's full width and about three more words show before
+             'more'. Two floats ahead of the text: an empty one as tall as the lines above the last, then the chip's room on the last line. Built
+             here with the cut, like maxHeight, and removed at the top of this effect, so React's text node is never touched. */
+          const f1=document.createElement('span');f1.setAttribute('data-tt-more-room','1');f1.setAttribute('aria-hidden','true');f1.style.cssText='float:right;width:0;height:'+((n-1)*pitch)+'px';
+          const f2=document.createElement('span');f2.setAttribute('data-tt-more-room','2');f2.setAttribute('aria-hidden','true');f2.style.cssText='float:right;clear:right;width:'+TT_MORE_W+'px;height:'+pitch+'px';
+          el.insertBefore(f2,el.firstChild);el.insertBefore(f1,f2);}}
       setWrongFit(fit);
       const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
       const bw=box.clientTop||0;if(er.bottom>br.bottom-bw-pb+0.5||er.top<br.top+bw+pt-0.5){box.scrollTop+=er.top-br.top-bw-pt;wrongScrollRef.current=true;}setWrongUp(box.scrollTop>0);}

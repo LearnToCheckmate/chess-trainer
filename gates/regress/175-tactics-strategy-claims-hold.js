@@ -254,22 +254,31 @@ const SCL={
 const readTac=b=>b.page.evaluate(()=>new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
   const q=s=>document.querySelector(s);const box=q('[data-ct="tactics-idea"]')||q('[data-ct="tactics-strat-text"]');const kids=box?[...box.children]:[];
   const tx=e=>e?(e.textContent||''):null;const br=box?box.getBoundingClientRect():null;
-  const w=box?[...box.querySelectorAll('div,span')].find(e=>e.children.length===0&&getComputedStyle(e).color==='rgb(240, 162, 78)'):null;const wr=w?w.getBoundingClientRect():null;
+  const w=box?[...box.querySelectorAll('div,span')].find(e=>(e.textContent||'').trim()&&![...e.children].some(c=>(c.textContent||'').trim())&&getComputedStyle(e).color==='rgb(240, 162, 78)')   /* #553 pick B: the line may hold two empty float spans (the chip's room on its last line); found by its words, as before */:null;const wr=w?w.getBoundingClientRect():null;
   const bd=q('[data-ct="tactics-board"]');const srcs=[];const cells=bd?[...bd.children].map(c=>{const im=c.querySelector('img');if(!im)return -1;let i=srcs.indexOf(im.src);if(i<0){srcs.push(im.src);i=srcs.length-1;}return i;}):[];
   const ans=q('[data-ct="tactics-answer"]');const hint=q('[data-ct="tactics-hint"]');
   // TC-R298/TC-R299 (#553, his Q68 pick "A more button"): what cuts the line, whether it fits at full size, and the 'more' chip found BY ITS WORDS
   const MO=(()=>{if(!box||!w)return null;const bcs=getComputedStyle(box),wcs=getComputedStyle(w);const bt=box.clientTop||0;const pt=parseFloat(bcs.paddingTop)||0,pb=parseFloat(bcs.paddingBottom)||0,pl=parseFloat(bcs.paddingLeft)||0,pr=parseFloat(bcs.paddingRight)||0;
     const vTop=br.top+bt,vBot=vTop+box.clientHeight;const room=box.clientHeight-pt-pb;
     // the line's natural height at the box's own size and width, with nothing reserved: a hidden copy, so the app's own cut cannot answer this
-    const k=document.createElement('div');k.textContent=w.textContent;k.style.cssText='position:absolute;visibility:hidden;left:0;top:0;margin:0;padding:0;font-size:'+bcs.fontSize+';line-height:'+bcs.lineHeight+';font-family:'+bcs.fontFamily+';font-weight:'+wcs.fontWeight+';width:'+(box.clientWidth-pl-pr)+'px';document.body.appendChild(k);const full=k.getBoundingClientRect().height;k.remove();
+    const k=document.createElement('div');k.textContent=w.textContent;k.style.cssText='position:absolute;visibility:hidden;left:0;top:0;margin:0;padding:0;font-size:'+bcs.fontSize+';line-height:'+bcs.lineHeight+';font-family:'+bcs.fontFamily+';font-weight:'+wcs.fontWeight+';width:'+(box.clientWidth-pl-pr)+'px';document.body.appendChild(k);const full=k.getBoundingClientRect().height;
+    /* #553, his pick B on card 80 (run-answers orchestrator-B14-Q7-2026-11-24): the chip's room is kept only under the LAST line shown, so every
+       line above it breaks exactly where the line breaks at the box's full width with nothing reserved (the hidden copy k). Lines are read
+       character by character from what the browser laid out, never from the app's own reserve. */
+    const linesOf=(el,clipB)=>{const out=[];let cur=null,top=null;const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let tn;const rr=document.createRange();
+      while((tn=tw.nextNode())){for(let i=0;i<tn.length;i++){rr.setStart(tn,i);rr.setEnd(tn,i+1);const rc=[...rr.getClientRects()].find(x=>x.width>0.1||x.height>0.1);if(!rc)continue;if(rc.bottom>clipB+0.5)continue;
+        if(top==null||Math.abs(rc.top-top)>2){if(cur!=null)out.push(cur.trim());cur='';top=rc.top;}cur+=tn.data[i];}}
+      if(cur!=null)out.push(cur.trim());return out;};
+    const kLines=linesOf(k,Infinity);k.remove();
     const pitch=parseFloat(wcs.lineHeight)||0;const nLines=pitch?wr.height/pitch:0;
+    const shown=linesOf(w,wr.bottom);const fullAbove=shown.length<2||shown.slice(0,-1).every((t,i)=>t===kLines[i]);
     const below=box.parentElement;const btn=below?[...below.querySelectorAll('button')].find(x=>/^(\u25be more|\u25b4 less)$/.test((x.textContent||'').trim())):null;const cr=btn?btn.getBoundingClientRect():null;
-    const rg=document.createRange();rg.selectNodeContents(w);const ink=[...rg.getClientRects()].filter(r=>r.width>0.5&&r.top<wr.bottom-0.5&&r.bottom>wr.top+0.5);
+    const ink=[...(function*(){const tw=document.createTreeWalker(w,NodeFilter.SHOW_TEXT);let tn;while((tn=tw.nextNode())){const rg=document.createRange();rg.selectNodeContents(tn);yield* rg.getClientRects();}})()].filter(   /* #553 pick B: the WORDS' ink only - a range over the element would also return the two empty float spans that hold the chip's room */r=>r.width>0.5&&r.top<wr.bottom-0.5&&r.bottom>wr.top+0.5);
     const over=cr?ink.filter(r=>r.left<cr.right&&r.right>cr.left&&r.top<cr.bottom&&r.bottom>cr.top).length:0;
     const sliver=[...box.children].filter(c=>getComputedStyle(c).visibility!=='hidden').map(c=>[c,c.getBoundingClientRect()]).filter(([c,r])=>r.height>0&&r.bottom>vTop+0.5&&r.top<vBot-0.5&&(r.top<vTop-0.5||r.bottom>vBot+0.5)).map(([c,r])=>(c===w?'the line':(c.textContent||'').slice(0,24))+' '+Math.round(r.top-vTop)+'..'+Math.round(r.bottom-vTop)+' in 0..'+Math.round(vBot-vTop));
     const panel=below?[...below.children].find(x=>x!==box&&!x.contains(box)&&x.tagName==='DIV'&&(x.textContent||'')===w.textContent):null;const pr2=panel?panel.getBoundingClientRect():null;const tb=q('[data-ct="tabbar"]');
     return {room:Math.round(room*10)/10,full:Math.round(full*10)/10,fits:full<=room+0.5,lineCuts:wcs.overflow==='hidden'&&w.scrollHeight>w.clientHeight+1,lineWhole:w.scrollHeight<=w.clientHeight+1,
-      nLines:Math.round(nLines*100)/100,whole:nLines>=0.98&&Math.abs(nLines-Math.round(nLines))<0.02,btn:btn?(btn.textContent||'').trim():null,btnAt:cr?[cr.left,cr.top,cr.width,cr.height].map(v=>Math.round(v)).join(','):null,over,
+      shown,fullAbove,lastLine:shown[shown.length-1]||'',nLines:Math.round(nLines*100)/100,whole:nLines>=0.98&&Math.abs(nLines-Math.round(nLines))<0.02,btn:btn?(btn.textContent||'').trim():null,btnAt:cr?[cr.left,cr.top,cr.width,cr.height].map(v=>Math.round(v)).join(','):null,over,
       mask:(bcs.webkitMaskImage&&bcs.webkitMaskImage!=='none')||(bcs.maskImage&&bcs.maskImage!=='none'),sliver,
       panel:panel?{fs:parseFloat(getComputedStyle(panel).fontSize),top:Math.round(pr2.top),bottom:Math.round(pr2.bottom),barTop:tb?Math.round(tb.getBoundingClientRect().top):null,whole:panel.scrollHeight<=panel.clientHeight+1,coversBox:pr2.top<=br.top+0.5&&pr2.bottom>=br.bottom-0.5,bg:getComputedStyle(panel).backgroundImage+' '+getComputedStyle(panel).backgroundColor}:null};})();
   res({more:MO,kind:box?box.getAttribute('data-ct'):null,head:kids[0]&&kids[0].children[0]?tx(kids[0].children[0]):null,chip:kids[0]&&kids[0].children[1]?tx(kids[0].children[1]):null,
@@ -320,11 +329,12 @@ L.run(async()=>{
         L.say(hasFn&&wrongs.length>0&&fBare.length===0,g+'TC-R246f '+nm+': the shipped tacWrongLine, run in node, gives a line for each of its '+wrongs.length+' legal wrong moves - never empty, never the bare fixed line ('+fBare.length+' bare)',fBare.slice(0,4));
         L.say(hasFn&&fMate.length===0,g+'TC-R246f '+nm+': where a reply mates (found by playing every reply), the function says that mate first and not the card\'s sentence ('+fM+' such moves)',fMate.slice(0,4));
         L.say(hasFn&&fWrong.length===0&&fM+fH+fN===wrongs.length-fBare.length,g+'TC-R246f '+nm+': every other line is a true hangs/drops line or "Not <move>. <the card\'s line>" ('+fH+' hangs/drops, '+fN+' the card\'s line)',fWrong.slice(0,4));}
-      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[],drift=[],moreBad=[],sliverBad=[];let nWhy=0,nMiss=0,maxH=0,minFs=99,nMoreSeen=0;const still=s;
+      const bare=[],untrue=[],other=[],cut=[],shrunk=[],tiny=[],jumped=[],drift=[],moreBad=[],sliverBad=[],fullBad=[];let nCutSeen=0;let nWhy=0,nMiss=0,maxH=0,minFs=99,nMoreSeen=0;const still=s;
       const moreCheck=(S,s)=>{const M=s.more;if(!M){moreBad.push(S+': no line read');return;}if(!M.fits)nMoreSeen++;
         if(!!M.btn!==!M.fits)moreBad.push(S+': chip '+JSON.stringify(M.btn)+' but the line is '+M.full+'px at full size in '+M.room+'px of room');
         else if(!M.fits&&!(M.btn==='\u25be more'&&M.lineCuts&&M.whole&&M.over===0&&s.wrongIn===true))moreBad.push(S+': cut but not by the line at whole lines with the words clear of the chip '+JSON.stringify({btn:M.btn,lineCuts:M.lineCuts,nLines:M.nLines,over:M.over,inBox:s.wrongIn}));
         else if(M.fits&&!M.lineWhole)moreBad.push(S+': the line fits at full size and is still cut');
+        if(!M.fits){nCutSeen++;if(!M.fullAbove||M.shown.length<2)fullBad.push(S+': the lines above the last do not run the full width '+JSON.stringify({shown:M.shown}));}   /* #553 pick B (TC-R412) */
         if(M.mask||M.sliver.length)sliverBad.push(S+': '+(M.mask?'the box fades; ':'')+M.sliver.join('; '));};
       for(const m of wrongs){await click(b,from(m));await click(b,to(m));s=await readTac(b);const T=s.wrong,S=san(p,m);let mm;
         if(hasFn){const F=fn(m);if(T!==F)drift.push(S+': screen '+JSON.stringify(T)+' function '+JSON.stringify(F));}
@@ -356,6 +366,7 @@ L.run(async()=>{
       // overflow, at whole lines, inside the box) and the chip covers none of its words; when it does not, the whole line is drawn. TC-R299: no faded sliver -
       // while a line shows, the box does not fade and nothing in it is drawn part in, part out.
       L.say(moreBad.length===0&&nMoreSeen>=0,g+'TC-R298 '+nm+': on each wrong move the more chip shows exactly when the line does not fit the box at full size, and then the line itself cuts at whole lines, inside the box, with no word under the chip ('+nMoreSeen+' of '+wrongs.length+' needed it)',moreBad.slice(0,3));
+      if(L.geoIs(geo,320,568))L.say(nCutSeen>0&&fullBad.length===0,g+'TC-R412 '+nm+': at 320x568 every cut wrong-try line keeps the more chip\'s room under its LAST line only - each line above it breaks where the line breaks at the box\'s full width ('+nCutSeen+' cut lines'+(fullBad.length?'; '+fullBad.slice(0,2).join('; '):'')+')',fullBad.slice(0,3));   /* #553, his pick B on card 80 */
       L.say(sliverBad.length===0&&wrongs.length>0,g+'TC-R299 '+nm+': while a wrong-try line shows, the box does not fade and nothing in it is drawn part inside, part outside it (no sliver)',sliverBad.slice(0,3));
       if(L.geoIs(geo,320,568))L.say(nMoreSeen>0,g+'TC-R298 DENOMINATOR '+nm+': at 320x568 at least one wrong move needs the more chip ('+nMoreSeen+')',nMoreSeen);
       if(L.geoIs(geo,375,761))L.say(nMoreSeen===0,g+'TC-R298 '+nm+': on his phone no wrong move needs the more chip - nothing changes there ('+nMoreSeen+')',nMoreSeen);
@@ -404,7 +415,7 @@ L.run(async()=>{
   if(!process.env.CT_G175_NO_SIDEWAYS){const g='sideways568x320 ';
     const b=await L.launch({geo:{w:568,h:320,safe:'',label:'568x320'},name:'g175-side'});await b.open();let reached=true;try{await D.states['tactics'](b);await b.settle(900);}catch(e){reached=false;}
     const rd=()=>b.page.evaluate(()=>new Promise(res=>requestAnimationFrame(()=>requestAnimationFrame(()=>{const q=document.querySelector('[data-ct="tactics-board"]');const bd=q?q.getBoundingClientRect():null;
-      const w=[...document.querySelectorAll('span,div')].find(e=>e.children.length===0&&getComputedStyle(e).color==='rgb(240, 162, 78)');const wr=w?w.getBoundingClientRect():null;
+      const w=[...document.querySelectorAll('span,div')].find(e=>(e.textContent||'').trim()&&![...e.children].some(c=>(c.textContent||'').trim())&&getComputedStyle(e).color==='rgb(240, 162, 78)')   /* #553 pick B: the line may hold two empty float spans (the chip's room on its last line); found by its words, as before */;const wr=w?w.getBoundingClientRect():null;
       let sc=w;while(sc&&!/(auto|scroll)/.test(getComputedStyle(sc).overflowY))sc=sc.parentElement;const sr=sc?sc.getBoundingClientRect():null;
       const btns=[...document.querySelectorAll('button')].filter(x=>/^(Hint|Show answer)$/.test((x.textContent||'').trim())).map(x=>{const r=x.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)].join(',');});
       const root=document.getElementById('root');

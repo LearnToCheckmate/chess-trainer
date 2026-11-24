@@ -2904,6 +2904,7 @@ As a player, in every move list - Play, Pass & Play, Review, and the analysis bo
 As a player on a short phone who just tried the wrong move, I read the card's line at the same size and in the same words as on a tall phone, and I can open the part that does not fit.
 - On my phone (375x761) nothing changes: the card's name, the line and the idea all show and there is no more button. (TC-R298, TC-R262)
 - When the line is taller than the room in the card box at its full size (320x568), the box shows the whole lines that fit, never a cut line, the line itself does the cutting inside the box, and the puzzle explanation's "more" chip sits at the box's foot with no word under it; it shows exactly when the line does not fit. (TC-R298)
+- The more chip's room is kept only under the last line that shows, so the lines above it run the box's full width and a few more words show before more (Kunal's pick B on card 80, run-answers orchestrator-B14-Q7-2026-11-24; added at #553 by seat B2). (TC-R412)
 - Tapping more opens the whole line over the box, on screen above the tab bar, at the box's own size; "less" closes it; the board, the box and the buttons do not move. (TC-R298)
 - While a wrong-try line shows, the box does not fade and nothing in it (the idea, the card's name) shows as a part-line; on 375x667, where the line fits but the idea after it does not, the idea is not drawn until the line goes. (TC-R299)
 ### US-R213 A move that loses to mate in one is never praised with a fork, pin, threat or attack reading
