@@ -16,7 +16,7 @@
   {
    "name": "the-wait-is-not-shown",
    "patch": "breaks/99-the-wait-is-not-shown.diff",
-   "why": "the panel shows the progress line during the wait again ('Checking every move... 0%'), which does not move - the job's defect",
+   "why": "the panel shows the progress line during the wait again ('Analyzing move 1 of 33 · 0%' since #553's waiting screen; 'Checking every move... 0%' before), which does not move - the job's defect",
    "mustFailIn": [
     "kunal761"
    ]

@@ -6471,6 +6471,24 @@ function AppMain(){
   const [anaFail,setAnaFail]=useState(null);   /* #550 a32 (Kunal 2026-11-11): a review whose analysis stops says so, with Try again and Back to games (mockup 550-136-k14-2) */
   const [anaLoadAt,setAnaLoadAt]=useState(0);const [anaLoadTick,setAnaLoadTick]=useState(0);
   useEffect(()=>{if(!anaLoadAt)return;const t=setInterval(()=>setAnaLoadTick(x=>x+1),1000);return ()=>clearInterval(t);},[anaLoadAt]);
+  /* #553, jobs/long-reviews-keep-running-in-the-app-...-2026-11-22 (Kunal's picks: card 71 "build-as-shown", card 75 option 3 "board", and
+     his "cross out of it" of 23 Nov). THE WAITING SCREEN OF A REVIEW: anaView is the game being reviewed (its positions, its level, which
+     side he played), anaCur the position the engine finished last - the board on the waiting screen shows it, so it steps through the
+     game as the review goes - and anaClock when the searching began and how far along it was then (a resumed review starts part-way),
+     which gives the real time left. anaStopRef holds the running review's stop handle, so the Stop control can end it; anaStopAsk is
+     its one question (Stop review / Keep going). revReady is the "Your review is ready" banner, for a review that finished while he
+     was on another screen. */
+  const [anaView,setAnaView]=useState(null);const [anaCur,setAnaCur]=useState(0);const [anaClock,setAnaClock]=useState(null);
+  const anaStopRef=useRef(null);const [anaStopAsk,setAnaStopAsk]=useState(false);const [revReady,setRevReady]=useState(null);
+  const [anaTick,setAnaTick]=useState(0);
+  /* #553: the waiting screen's board takes the height the rest of the screen leaves (measured before paint, once per review and per window
+     size, so it never changes size while he watches): everything fits above the tab bar at every size down to 320x568. */
+  const anaWaitRef=useRef(null);const [anaBs,setAnaBs]=useState(0);const anaFitRef=useRef(null);
+  /* #553: Stop review (his "cross out of it", 23 Nov 2026): the running review stops at once - its workers closed, nothing it computed after
+     this reaches the screen - and he is back on the games list; the groups it finished are kept (anaPart), so the same review started again
+     picks up where it stopped. */
+  const stopReview=()=>{const st=anaStopRef.current;if(st){st.on=true;st.ext=true;}anaStopRef.current=null;try{poolClose();}catch(e){}setAnaLoadAt(0);setAnaStopAsk(false);setAnaView(null);setAnaClock(null);setAnalyzing(false);setProgress(0);};
+  useEffect(()=>{if(!analyzing)return;const t=setInterval(()=>setAnaTick(x=>x+1),5000);return ()=>clearInterval(t);},[analyzing]);
   const [pgnErr,setPgnErr]=useState('');
   const [showBest,setShowBest]=useState(false);
   const [showGates,setShowGates]=useState(false);
@@ -6727,6 +6745,20 @@ function AppMain(){
   const gameRef=useRef(game); gameRef.current=game;
   const flipRef=useRef(flip); flipRef.current=flip;
   const modeRef=useRef(mode); modeRef.current=mode;
+  useEffect(()=>{if(mode==='analyze'&&!homeScreen)setRevReady(null);},[mode,homeScreen]);   /* #553: the ready banner goes once he is on Review (opened it himself or by its Open) */
+  useLayoutEffect(()=>{if(!analyzing||mode!=='analyze'||homeScreen)return;const el=anaWaitRef.current;if(!el)return;const bd=el.querySelector('[data-ct="ana-board"]');if(!bd)return;   /* #553: see anaBs */
+    const tb=document.querySelector('[data-ct="tabbar"]');const rt=document.getElementById('root');const lim=(tb&&!tb.dataset.side)?tb.getBoundingClientRect().top:window.innerHeight;
+    const r=el.getBoundingClientRect();const cur=bd.getBoundingClientRect().height;const sy=rt?rt.scrollTop:0;
+    /* the room is the smaller of two, in page terms so a list scrolled down before the tap does not count: between the panel's end and
+       the tab bar (8px kept), and between the end of what the page lays out after the panel (the column's room for the tab bar) and the
+       window's bottom - the boxes that hold the panel are left out of the second, since they are as tall as the window by design. The column
+       can move the panel as it grows, so the fit takes up to four passes, all before paint, and stops once the room is within 2px; it starts
+       again only for a new review or a new window size. */
+    let fb=0;const walk=(e,d)=>{for(const c of e.children){const cs=getComputedStyle(c);if(cs.position==='fixed'||cs.position==='absolute')continue;if(!c.contains(el)){const q=c.getBoundingClientRect();if(q.height>0)fb=Math.max(fb,q.bottom);}if(d<4)walk(c,d+1);}};if(rt)walk(rt,0);
+    let pb=0;for(let a=el.parentElement;a&&a!==rt;a=a.parentElement)pb+=parseFloat(getComputedStyle(a).paddingBottom)||0;   /* the holding boxes' own bottom padding comes after it all */
+    const room=Math.min(lim-8-(r.bottom+sy),window.innerHeight-(Math.max(fb,r.bottom)+pb+sy));const key=[vp.w,vp.h,anaView?anaView.plies.length:0].join('x');
+    const f=anaFitRef.current;const n=(f&&f.key===key)?f.n:0;if(n>=4||Math.abs(room)<=2){anaFitRef.current={key,n:4};return;}anaFitRef.current={key,n:n+1};
+    const want=Math.floor(Math.max(112,cur+room));if(Math.abs(want-cur)>1)setAnaBs(want);},[analyzing,mode,homeScreen,vp.w,vp.h,anaFail,anaBs,anaView]);
   const opponentRef=useRef(opponent); opponentRef.current=opponent;
   const onlineGameRef=useRef(onlineGame); onlineGameRef.current=onlineGame;
   const myColorRef=useRef(myColor); myColorRef.current=myColor;
@@ -8497,6 +8529,8 @@ function AppMain(){
        player on "Analyzing your game" for ever, or on a review graded by a different engine with nothing said. Now both end on the
        failure panel: "The review stopped before it finished." with Try again (the same game, from the start) and Back to games. */
     const _anaStop={on:false};if(_deep)deepStopRef.current=_anaStop;
+    const _main=!_deep&&!_grow;   /* #553 (long reviews): the review the waiting screen shows - not a deeper pass behind an open review, not a growth */
+    if(_main){anaStopRef.current=_anaStop;setAnaStopAsk(false);setAnaView(null);setAnaCur(0);setAnaClock(null);setRevReady(null);}
     const _setP=(f)=>{if(_deep){if(deepStopRef.current===_anaStop)setDeepRun(d=>d?{...d,f}:d);}else setProgress(f);};   /* #553: a deeper pass reports to its own line, never to the analysing panel */
     try{
     /* #549 item (30), jobs/review-accuracy-and-grade-counts-depend-on-machine-load-2026-10-04: WHICH GRADER REVIEWS THE GAME MUST NOT
@@ -8515,10 +8549,12 @@ function AppMain(){
     let _lv=_lvAsk;{const _all0=evalCacheAll();for(let l=REV_DEPTHS.length-1;l>_lvAsk;l--){const c=_all0[_ckOf(l)];if(c&&c.evW&&c.evW.length===res.plies.length+1){_lv=l;break;}}}
     const _dx=REV_DEPTHS[_lv].dx;
     if(_deep)setDeepRun({lv:_lv,n:res.plies.length,f:0});
+    if(_main)setAnaView({positions:res.positions,plies:res.plies,lv:_lv,flip:!!(meta&&meta.userColor==='b')});   /* #553: the waiting screen's board and its real time */
     const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d+_dx,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum
     const _ckEarly=_ckOf(_lv);
     const _c0=evalCacheAll()[_ckEarly];
     const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await (async()=>{/* #550 item (90): the wait for Stockfish (up to REVIEW_ENGINE_WAIT, 120s at rest) is SHOWN, not silent */const _ready=!!(sfAnaRef.current&&sfAnaReadyRef.current);if(!_ready)setAnaLoadAt(Date.now());try{return await ensureAna(REVIEW_ENGINE_WAIT);}finally{setAnaLoadAt(0);}})();
+    if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}   /* #553: stopped while the engine was loading */
     const _eng={path:useSF?'pool':'builtin',workers:0,retried:0,abandoned:0,cached:false,level:_lv,depth:16+_dx};   // #549 item (30): how this review was computed, for the harness (review.engine)
     let out=[];
     if(useSF){
@@ -8602,7 +8638,7 @@ function AppMain(){
         let _anaQ=Promise.resolve();
         const _onAna=(fn)=>{const p=_anaQ.then(fn,fn);_anaQ=p.catch(()=>{});return p;};
         const _fen=(i)=>toFEN(res.positions[i]);
-        const _try=async(ev,g0,g1,last)=>{const rs=[];for(let i=g0;i<=g1;i++){if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}/* #550 A3-5: a stopped review starts no further search - its zombie workers would otherwise abort the next run's sfEval1 */const r=await ev(i,i===g0);if(!_okR(r)&&!last)return null;rs.push(r);}return rs;};
+        const _try=async(ev,g0,g1,last)=>{const rs=[];for(let i=g0;i<=g1;i++){if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}/* #550 A3-5: a stopped review starts no further search - its zombie workers would otherwise abort the next run's sfEval1 */const r=await ev(i,i===g0);if(!_okR(r)&&!last)return null;if(_main&&!_anaStop.on)setAnaCur(i);/* #553: the waiting screen's board shows each position as its search ends */rs.push(r);}return rs;};
         const _group=async(ev,g0,g1)=>{
           for(let a=0;a<2;a++){if(a){_eng.retried++;await new Promise(r=>setTimeout(r,800));}const rs=await _try(ev,g0,g1,false);if(rs)return rs;}
           for(let a=0;a<3;a++){_eng.retried++;const rs=await _onAna(()=>_try((i,f)=>_ev1(_fen(i),MT,16,f),g0,g1,false));if(rs)return rs;await new Promise(r=>setTimeout(r,800<<a));}
@@ -8611,7 +8647,14 @@ function AppMain(){
           if(rs.some(r=>!_okR(r))){const _e=new Error('engine-stopped');_e.ctEngine=true;throw _e;}
           return rs;
         };
-        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const rs=await _group(ev,g,g1);if(_anaStop.on)return;/* A3-5: nothing a stopped run computed reaches the store or the progress ring */for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}_setP(done/(N+1));}};
+        /* #553 (long reviews, "progress is kept"): a group this review already finished in an earlier run is read back instead of searched
+           (_part, kept per group under the review's cache key), and each group searched now is kept as soon as it is done. A group is read
+           back only whole, so every number comes from a group searched from its own cleared table, as a fresh run would search it. */
+        const _part=_eng.abandoned?{}:anaPartGet(_ck);const _hasG=(g0,g1)=>{for(let i=g0;i<=g1;i++)if(!_part[i]||!_part[i].ok)return false;return true;};
+        const _block=async(ev,lo,hi)=>{for(let g=lo;g<=hi;g+=_TBLK){if(_anaStop.on)return;const g1=Math.min(hi,g+_TBLK-1);const _was=_hasG(g,g1);const rs=_was?Array.from({length:g1-g+1},(_,j)=>_part[g+j]):await _group(ev,g,g1);if(_anaStop.on)return;/* A3-5: nothing a stopped run computed reaches the store or the progress ring */for(let i=g;i<=g1;i++){_store(i,rs[i-g]);done++;}
+          if(!_was&&!_deep&&!_grow){const _kp={};for(let i=g;i<=g1;i++)_kp[i]=rs[i-g];anaPartPut(_ck,_kp);}
+          if(_main)setAnaCur(g1);_setP(done/(N+1));}};
+        if(_main){let _rz=0;for(let g=0;g<=N;g+=_TBLK){const g1=Math.min(N,g+_TBLK-1);if(_hasG(g,g1))_rz+=g1-g+1;}setAnaClock({t:Date.now(),p:_rz/(N+1)});}
       if(_slots.length>=1){
         _eng.workers=_slots.length;
         const _chunk=Math.max(_TBLK,Math.ceil(Math.ceil((N+1)/_slots.length)/_TBLK)*_TBLK);
@@ -8644,7 +8687,7 @@ function AppMain(){
         }
       }catch(e){}
       if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}
-      if(!_eng.abandoned)evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});   // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
+      if(!_eng.abandoned){evalCacheSet(_ck,{evW,ev2W,bU,aU,det:1});anaPartDrop(_ck);}   /* #553: cached whole, so its kept groups go */    // #549 item (30): det:1 marks output computed with every search finished (none abandoned)
       }
       poolClose();
       for(let i=0;i<N;i++)out.push(sfGradePly(res.positions[i],res.plies[i].move,evW[i],evW[i+1],ev2W[i],bU[i],aU[i],null,undefined,MISSED_BRIL,gradeHist(res,evW,bU,i)));
@@ -8712,7 +8755,7 @@ function AppMain(){
         // eval after is read the way this site reads a played move's (the static eval of the position it leaves); its next best is scored[1].
         let _mbF=null;if(MISSED_BRIL&&_bMv2&&!_g.ok){let _evAB=null;try{_evAB=evalPawns(makeMove(res.positions[i],_bMv2));}catch(e){}const _g2=_evAB==null?null:missedBrilliant(res.positions[i],_bMv2,_evAB,_evB,scored[1]?Math.max(-99,Math.min(99,scored[1].v/100)):null,undefined,{positions:res.positions,i});if(_g2)_mbF={san:bestSan,move:_bMv2,gate:_g2};}
         out.push({loss:Math.round(loss),wdrop:_wd2,macc:_ma2,sel:classifyByLoss(loss),cls:_cls,bestSan,bestMove:_bMv2,evalAfter:_evA,evalBefore:_evB,gate:_g,mbril:_mbF});
-        if(i%2===0){_setP((i+1)/res.plies.length);await new Promise(r=>setTimeout(r,0));}
+        if(i%2===0){_setP((i+1)/res.plies.length);if(_main)setAnaCur(i+1);await new Promise(r=>setTimeout(r,0));if(_anaStop.on){const _x=new Error('review-stopped');_x.ctStop=true;throw _x;}}
       }
     }
     // Summary counts
@@ -8885,11 +8928,15 @@ function AppMain(){
     if(_deep){if(deepStopRef.current!==_anaStop)return;deepStopRef.current=null;analyzingRef.current=false;setDeepRun(null);
       const _cur=revNowRef.current;if(!_cur||!_cur.plies||_cur.plies.length!==_rv.plies.length||_cur.pgn!==_rv.pgn)return;
       setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;return;}
+    if(anaStopRef.current!==_anaStop)return;   /* #553: stopped by him (the Stop control) - his games list stays */
+    anaStopRef.current=null;
     setReview(_rv);setLastReview(_rv);setReviewView('summary');
+    /* #553 (card 71, mock-up 3): finished while he was on another screen - the "Your review is ready" banner, on whatever screen he is on */
+    if(modeRef.current!=='analyze'||homeScreenRef.current){const _h=headers||{};const _uc=meta&&meta.userColor;setRevReady({who:_uc==='w'?('Game vs '+(_h.Black||'Black')):_uc==='b'?('Game vs '+(_h.White||'White')):((_h.White||'White')+' vs '+(_h.Black||'Black'))});}
     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
     }catch(e){
-      if(_deep&&_anaStop.ext)return;   /* #553: stopped from outside (stopDeep): the pool is already another run's - leave it alone */
+      if(_anaStop.ext)return;   /* #553: stopped from outside (stopDeep, or his Stop on the waiting screen): the pool is already another run's or closed - leave it alone */
       _anaStop.on=true;try{poolClose();}catch(_){}setAnaLoadAt(0);
       if(_deep){if(deepStopRef.current===_anaStop){deepStopRef.current=null;analyzingRef.current=false;setDeepRun(null);}return;}   /* #553: a deeper pass that failed leaves the open review as it was */
       if(_grow){analyzingRef.current=false;return;}   /* batch 13: a growth that failed leaves the open review as it is; the next check tries again */
@@ -10787,6 +10834,17 @@ function AppMain(){
     while(keys.length+1>EVAL_CACHE_MAX)delete all[keys.shift()];
     for(;;){try{localStorage.setItem('ct_evalcache',JSON.stringify(all));return;}catch(e){if(!keys.length)return;const n=Math.max(1,Math.ceil(keys.length/10));for(let i=0;i<n&&keys.length;i++)delete all[keys.shift()];}}
   }catch(e){}};
+  /* #553 (long reviews, card 71: "progress is kept"): A REVIEW'S FINISHED SEARCHES ARE KEPT AS IT GOES, so a review stopped part-way - by
+     the Stop control, by the phone closing the app, by a reload - picks up where it stopped when it is started again. Kept per group of
+     positions (the review's own table groups, each searched from a cleared table, so a group read back gives the numbers a fresh search
+     gives), under the review's cache key; at most ANA_PART_MAX unfinished reviews; dropped when the review is cached whole. */
+  const ANA_PART_MAX=3;
+  const anaPartAll=()=>{try{return JSON.parse(localStorage.getItem('ct_anapart')||'{}')||{};}catch(e){return {};}};
+  const anaPartGet=(k)=>{const v=anaPartAll()[k];return (v&&v.r)?v.r:{};};
+  const anaPartPut=(k,rs)=>{try{const all=anaPartAll();const cur=(all[k]&&all[k].r)||{};for(const i of Object.keys(rs))cur[i]=rs[i];all[k]={r:cur,at:Date.now()};
+    const ks=Object.keys(all).filter(x=>x!==k).sort((a,b)=>(all[a].at||0)-(all[b].at||0));while(ks.length+1>ANA_PART_MAX)delete all[ks.shift()];
+    localStorage.setItem('ct_anapart',JSON.stringify(all));}catch(e){}};
+  const anaPartDrop=(k)=>{try{const all=anaPartAll();if(!all[k])return;delete all[k];localStorage.setItem('ct_anapart',JSON.stringify(all));}catch(e){}};
   const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);setDrillAfter(null);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(DRILL_GRADE&&obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
@@ -13790,21 +13848,69 @@ function AppMain(){
           <div style={{maxWidth:344,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 Try again starts this game's review from the beginning. Moves already checked are not kept.</div>
         </div>
       )}
-      {mode==='analyze'&&analyzing&&!anaFail&&(()=>{const pct=Math.round(progress*100);const R=46,CIRC=2*Math.PI*R;const TIPS=['A brilliant move (!!) gives up material for a winning blow.','Accuracy measures how close your moves were to the best ones.','Blunders are the moves that cost you the most.','Tap a key-moment chip to jump straight to it.','The eval bar shows who is winning, and by how much.'];const tip=TIPS[Math.min(TIPS.length-1,Math.floor(progress*TIPS.length))];return(
-        <div style={{width:boardPx,maxWidth:_edge?'100vw':'98vw',marginTop:34,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
-          <div style={{position:'relative',width:124,height:124,display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <svg width="124" height="124" style={{position:'absolute',top:0,left:0,transform:'rotate(-90deg)'}}>
-              <circle cx="62" cy="62" r={R} fill="none" stroke="rgba(255,255,255,.10)" strokeWidth="8"/>
-              <circle cx="62" cy="62" r={R} fill="none" stroke="var(--ac)" strokeWidth="8" strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={CIRC*(1-Math.max(0.02,progress))} style={{transition:'stroke-dashoffset .3s ease'}}/>
-            </svg>
-            <div style={{animation:'floaty 1.6s ease-in-out infinite'}}><Piece t="n" color="w" sz={56}/></div>
+      {/* #553, jobs/long-reviews-keep-running-in-the-app-and-say-plainly-that-the-app-must-stay-open-with-the-real-time-a-puzzle-while-waiting-
+          and-a-ready-banner-2026-11-22. THE WAITING SCREEN, as Kunal picked it: card 71 ("build-as-shown", 23 Nov 2026) with its progress
+          display replaced by card 75's option 3 ("board", 24 Nov 2026): the board steps through each move as it is analysed, with a thin
+          progress strip; under it the move and the percentage, the review's level and the REAL time left (measured from this run's own
+          pace; the level's usual time until there is a pace to measure), the "Keep the app open" box, today's puzzle to do while waiting,
+          and Stop. It said "This takes a few seconds." even at Deepest (about 8 minutes). Stop is his "cross out of it" (23 Nov): it asks
+          once, Stop review or Keep going, and stopping goes straight back to the games list; the moves already checked are kept (anaPart),
+          so starting the same review again picks up where it stopped. The review keeps running while he uses the rest of the app, and the
+          "Your review is ready" banner (rev-ready) tells him when it is done. The server review ("Review on the server instead (Pro)") is
+          not here: it waits for his OK on its costs and a cap.
+          Amber: flags/amber-553-review-waiting-screen */}
+      {mode==='analyze'&&analyzing&&!anaFail&&(()=>{const pct=Math.round(progress*100);const av=anaView;const N=av?av.plies.length:0;const LV=REV_DEPTHS[av?av.lv:0];
+        const _ab=String(LV.about).replace(/(\d+) s$/,'$1 seconds').replace(/^about 1 min$/,'about 1 minute').replace(/(\d+) min$/,'$1 minutes');
+        const _now=Date.now()+anaTick*0;let _left=null;if(anaClock&&progress>=anaClock.p+0.05&&_now-anaClock.t>=3000)_left=(_now-anaClock.t)/(progress-anaClock.p)*(1-progress)/1000;
+        const _leftTxt=_left==null?(_ab+' in all'):(_left<60?'less than a minute left':('about '+Math.round(_left/60)+' minute'+(Math.round(_left/60)===1?'':'s')+' left'));
+        const _k=Math.min(N,Math.max(1,Math.round(progress*(N+1))));
+        const _ci=av?Math.max(0,Math.min(N,anaCur)):0;const _pos=av?av.positions[_ci]:null;const _lm=(av&&_ci>0&&av.plies[_ci-1])?av.plies[_ci-1].move:null;const _fl=!!(av&&av.flip);
+        const _bsMax=Math.min(boardPx,vp.w-16);const _bs=anaBs?Math.min(_bsMax,anaBs):Math.min(_bsMax,240);const _sq=_bs/8;const _gp=vp.h<640?6:9;
+        const _rank=pzRank(pzSolvedMap);const _act=Math.min(_rank,PZ_TIERS.length-1);const _pzi=pzNextInTier(pzSolvedMap,_act);const _pz=PZ[_pzi];const _dTd=(daily&&daily.date===dstr(new Date()))?(daily.count||0):0;
+        const _tryPz=()=>{setMenuOpen(false);setCoachOpen(false);setHomeScreen(false);setMistakeMode(false);setOpenIdx(null);setMode('puzzle');pzEnterBrowse(_pzi,_act);};
+        const _xI=(<svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true" style={{display:'block'}}><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none"/></svg>);
+        return(
+        <div ref={anaWaitRef} data-ct="ana-wait" style={{width:Math.min(boardPx,vp.w-16),maxWidth:_edge?'100vw':'98vw',marginTop:_gp,display:'flex',flexDirection:'column',alignItems:'center',gap:_gp}}>
+          <div data-ct="ana-board" data-ply={String(_ci)} aria-hidden="true" style={{width:_bs,height:_bs,flexShrink:0,display:'grid',gridTemplateColumns:'repeat(8,'+_sq+'px)',gridTemplateRows:'repeat(8,'+_sq+'px)',borderRadius:3,overflow:'hidden',boxShadow:'0 0 0 2px #4a6741'}}>
+            {Array.from({length:64},(_,i)=>{const dr=Math.floor(i/8),dc=i%8,r=_fl?7-dr:dr,c=_fl?7-dc:dc;const pc=_pos&&_pos.board?_pos.board[r][c]:null;const light=(r+c)%2===0;const isL=_lm&&((_lm.fr===r&&_lm.fc===c)||(_lm.tr===r&&_lm.tc===c));
+              return(<div key={i} style={{width:_sq,height:_sq,background:light?TH.light:TH.dark,position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {isL&&<div style={{position:'absolute',inset:0,background:HL_LAST,pointerEvents:'none'}}/>}
+                {pc&&<div style={{position:'relative',pointerEvents:'none'}}><Piece t={pc.t} color={pc.c} sz={_sq} useFallback={fallback} onFail={onPieceFail}/></div>}
+              </div>);})}
           </div>
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-            <div style={{fontSize:'clamp(15px,3.9vw,19px)',color:'#fff',fontWeight:800,letterSpacing:.2}}>Analyzing your game</div>
-            <div data-ct="ana-progress" style={{fontSize:'clamp(14px,2.8vw,14px)',color:'var(--ac2)',fontWeight:700}}>{anaLoadAt?('Loading the Stockfish engine\u2026 '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):('Checking every move\u2026 '+pct+'%')}</div>
-            <div data-ct="ana-engines" style={{fontSize:'clamp(13.5px,2.4vw,13.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,marginTop:2,maxWidth:312,textAlign:'center',lineHeight:1.4}}>{anaLoadAt?'The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.':'This takes a few seconds.' /* #550 TXT-37 (docs/wording-check-2026-11-12): engine internals out; the pool size is in the dev readouts */}</div>
+          <div data-ct="ana-strip" role="progressbar" aria-label="Review progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} style={{width:_bs,height:4,flexShrink:0,borderRadius:2,background:'rgba(255,255,255,.12)',overflow:'hidden',marginTop:-5}}><div data-ct="ana-strip-fill" style={{width:Math.max(0,Math.min(100,progress*100))+'%',height:'100%',background:'var(--ac)',transition:'width .3s ease'}}/></div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,textAlign:'center',width:'100%'}}>
+            <div data-ct="ana-progress" style={{fontSize:'clamp(15px,3.9vw,17px)',color:'#fff',fontWeight:800}}>{anaLoadAt?('Loading the Stockfish engine… '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):(N?('Analyzing move '+_k+' of '+N+' · '+pct+'%'):('Analyzing your game · '+pct+'%'))}</div>
+            {/* #553: the loading sentence and the time line share one cell as tall as the taller of the two, so the screen keeps its height
+                when the engine answers (the row that can change reserves its space; the board is fitted once and never moves) */}
+            {(()=>{const _lt='The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.';const _tt=LV.name+' review · '+_leftTxt;const _st={gridArea:'1 / 1',fontSize:'clamp(13.5px,3.4vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600,lineHeight:1.35};return(
+            <div style={{display:'grid',justifyItems:'center',width:'100%'}}>
+              <div data-ct="ana-engines" style={_st}>{anaLoadAt?_lt:_tt /* #550 TXT-37: engine internals out; #553: the real time, never "a few seconds" */}</div>
+              <div aria-hidden="true" style={{..._st,visibility:'hidden'}}>{anaLoadAt?_tt:_lt}</div>
+            </div>);})()}
           </div>
-          <div style={{maxWidth:344,minHeight:36,textAlign:'center',fontSize:'clamp(14px,2.6vw,14px)',color:'rgba(255,255,255,.62)',lineHeight:1.45,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:12,padding:'10px 14px'}}>💡 {tip}</div>
+          <div data-ct="ana-keep-open" style={{width:'100%',boxSizing:'border-box',background:'rgba(240,162,78,.12)',border:'1px solid rgba(240,162,78,.55)',borderRadius:12,padding:'8px 12px',textAlign:'left'}}>
+            <div style={{fontSize:'clamp(14px,3.6vw,15px)',fontWeight:800,color:'#f3c27a'}}>Keep the app open</div>
+            <div style={{fontSize:'clamp(13px,3.3vw,13.5px)',color:'rgba(255,255,255,.8)',fontWeight:600,lineHeight:1.35}}>The review waits where it stopped if you leave.</div>
+          </div>
+          {_pz&&<div data-ct="ana-suggest" style={{width:'100%',display:'flex',flexDirection:'column',gap:4}}>
+            <div style={{fontSize:12,fontWeight:800,letterSpacing:.6,color:'rgba(255,255,255,.55)'}}>WHILE YOU WAIT, FROM TODAY'S STREAK</div>
+            <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:12,padding:'6px 8px 6px 12px'}}>
+              <div style={{flex:'1 1 auto',minWidth:0,textAlign:'left'}}>
+                <div data-ct="ana-suggest-title" style={{fontSize:'clamp(14px,3.6vw,15px)',fontWeight:800,color:'#fff'}}>{_dTd>=DAILY_GOAL?'Puzzle goal done today':("Today's puzzle: "+(_dTd+1)+' of '+DAILY_GOAL)}</div>
+                <div style={{fontSize:'clamp(13px,3.3vw,13.5px)',color:'rgba(255,255,255,.66)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_pz.motif||PZ_TIERS[_act].name}</div>
+              </div>
+              <button data-ct="ana-suggest-try" onClick={_tryPz} style={{flex:'0 0 auto',minHeight:44,minWidth:76,padding:'0 14px',borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.28)',color:'#fff',fontWeight:800,fontSize:'clamp(14px,3.6vw,15px)',cursor:'pointer'}}>Try it</button>
+            </div>
+          </div>}
+          {!anaStopAsk?(<button data-ct="ana-stop" aria-label="Stop the review" onClick={()=>setAnaStopAsk(true)} style={{minHeight:44,padding:'0 18px',borderRadius:10,background:'transparent',border:'none',color:'rgba(255,255,255,.82)',fontWeight:800,fontSize:'clamp(14px,3.6vw,15px)',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>{_xI}Stop</button>)
+          :(<div data-ct="ana-stop-ask" role="group" aria-label="Stop the review?" style={{width:'100%',boxSizing:'border-box',display:'flex',flexDirection:'column',gap:6,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.14)',borderRadius:12,padding:'8px 10px'}}>
+            <div style={{fontSize:'clamp(13.5px,3.4vw,14px)',color:'#fff',fontWeight:700,lineHeight:1.35,textAlign:'center'}}>Stop this review? The moves checked so far are kept, so starting it again picks up here.</div>
+            <div style={{display:'flex',gap:8}}>
+              <button data-ct="ana-stop-yes" onClick={stopReview} style={{flex:'1 1 0',minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.28)',color:'#fff',fontWeight:800,fontSize:'clamp(14px,3.6vw,15px)',cursor:'pointer'}}>Stop review</button>
+              <button data-ct="ana-stop-no" onClick={()=>setAnaStopAsk(false)} style={{flex:'1 1 0',minHeight:44,borderRadius:10,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.28)',color:'#fff',fontWeight:800,fontSize:'clamp(14px,3.6vw,15px)',cursor:'pointer'}}>Keep going</button>
+            </div>
+          </div>)}
         </div>
       );})()}
 
@@ -15332,6 +15438,17 @@ function AppMain(){
           <div style={{position:'absolute',left:8,right:8,bottom:safeBot+6,display:'flex',justifyContent:'center'}}><div style={{padding:'4px 9px',borderRadius:6,background:'rgba(0,0,0,.78)',border:'1px solid '+C,color:'#fff',..._mono,fontSize:11.5,textAlign:'center',whiteSpace:'normal',maxWidth:'100%'}}>{(R?('board '+Math.round(R.w)+'x'+Math.round(R.h)+' · sq '+(Math.round(R.w/8*10)/10)+' · gap '+gl+'|'+gr):'no board on screen')+' · vw '+W+' · vh '+H+' · safe '+safeTop+'/'+safeBot+' · '+(typeof __BUILD__!=='undefined'?String(__BUILD__).split(' ')[0]:'?')}</div></div>
         </div>);})()}
       {!homeScreen&&!_hideTabs&&!sideRail&&!pageRail&&!lessonSide&&(<div aria-hidden="true" style={{order:99,height:'calc(62px + env(safe-area-inset-bottom,0px))',flexShrink:0,width:'100%'}}/>)}
+      {/* #553 (card 71, mock-up 3): "Your review is ready", on whatever screen he is on when a review finishes elsewhere. Open goes to the finished
+          review; the X closes it; it stays until one of the two (or until he opens Review himself). Over the screen, never in its flow, so
+          nothing under it moves when it comes or goes. */}
+      {revReady&&!(mode==='analyze'&&!homeScreen)&&(<div data-ct="rev-ready" role="status" style={{position:'fixed',top:safeTop+56,left:'50%',transform:'translateX(-50%)',width:'min(420px, calc(100vw - 16px))',boxSizing:'border-box',zIndex:520,display:'flex',alignItems:'center',gap:8,padding:'6px 6px 6px 12px',borderRadius:12,background:'#173a2a',border:'1.5px solid #4caf7a',boxShadow:'0 8px 24px rgba(0,0,0,.5)'}}>
+        <div style={{flex:'1 1 auto',minWidth:0}}>
+          <div data-ct="rev-ready-title" style={{fontSize:'clamp(14.5px,3.8vw,16px)',fontWeight:800,color:'#fff'}}>Your review is ready</div>
+          <div style={{fontSize:'clamp(13px,3.3vw,13.5px)',fontWeight:600,color:'rgba(255,255,255,.78)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{revReady.who}</div>
+        </div>
+        <button data-ct="rev-ready-open" onClick={()=>{setRevReady(null);setMenuOpen(false);setCoachOpen(false);setHomeScreen(false);setMode('analyze');}} style={{flex:'0 0 auto',minHeight:44,padding:'0 14px',borderRadius:10,background:'#2f8a5b',border:'none',color:'#fff',fontWeight:800,fontSize:'clamp(14px,3.6vw,15px)',cursor:'pointer'}}>Open</button>
+        <button data-ct="rev-ready-close" aria-label="Close" onClick={()=>setRevReady(null)} style={{flex:'0 0 auto',width:44,height:44,borderRadius:10,background:'transparent',border:'none',color:'rgba(255,255,255,.8)',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}><svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none"/></svg></button>
+      </div>)}
       {!homeScreen&&!_hideTabs&&(()=>{const _ta=mode==='learn'?'learn':mode==='puzzle'?'puzzle':mode==='analyze'?'analyze':mode==='play'?'play':'';const _go=(k)=>{setMenuOpen(false);setCoachOpen(false);if(k==='home'){setHomeScreen(true);return;}setHomeScreen(false);if(k==='learn'){setMode('learn');setOpenIdx(null);setLearnGroup(null);setLearnCat(null);}else if(k==='puzzle'){setMistakeMode(false);setMode('puzzle');setOpenIdx(null);setPzView('roadmap');}else if(k==='analyze'){setMode('analyze');}else if(k==='play'){setMode('play');setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);}};return lessonFocus?null:<_TabBar active={_ta} go={_go} side={sideRail||pageRail} sideRight={pageRail?0:pzRail?Math.max(0,_grpPad-1)/* the rail is 63 painted (62 + its 1px left border), so it starts one px further right than the 62 the group pad centres; flush, not over the column */:(tacRail?_tacPad:0)}/>;})()}
       {/* #394 (kunal-lesson-footer-icons-small): THE BOXES WERE NEVER THE PROBLEM, THE GLYPHS WERE.
           Measured off his screenshot (1125x2436, 2.616 px/pt, so pt == CSS px): the five buttons are 50.5pt

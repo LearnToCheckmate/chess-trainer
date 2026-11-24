@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13859,7 +13859,7 @@
+             <div data-ct="ana-progress" style={{fontSize:'clamp(15px,3.9vw,17px)',color:'#fff',fontWeight:800}}>{anaLoadAt?('Loading the Stockfish engine… '+Math.max(0,Math.round((Date.now()-anaLoadAt)/1000))+'s'):(N?('Analyzing move '+_k+' of '+N+' · '+pct+'%'):('Analyzing your game · '+pct+'%'))}</div>
+             {/* #553: the loading sentence and the time line share one cell as tall as the taller of the two, so the screen keeps its height
+                 when the engine answers (the row that can change reserves its space; the board is fitted once and never moves) */}
+-            {(()=>{const _lt='The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.';const _tt=LV.name+' review · '+_leftTxt;const _st={gridArea:'1 / 1',fontSize:'clamp(13.5px,3.4vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600,lineHeight:1.35};return(
++            {(()=>{const _lt='The review starts as soon as the engine is ready, so every move is graded the same way. On a busy phone this can take a minute.';const _tt='This takes a few seconds.';const _st={gridArea:'1 / 1',fontSize:'clamp(13.5px,3.4vw,14px)',color:'rgba(255,255,255,.7)',fontWeight:600,lineHeight:1.35};return(
+             <div style={{display:'grid',justifyItems:'center',width:'100%'}}>
+               <div data-ct="ana-engines" style={_st}>{anaLoadAt?_lt:_tt /* #550 TXT-37: engine internals out; #553: the real time, never "a few seconds" */}</div>
+               <div aria-hidden="true" style={{..._st,visibility:'hidden'}}>{anaLoadAt?_tt:_lt}</div>

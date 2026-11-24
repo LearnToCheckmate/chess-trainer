@@ -1,0 +1,20 @@
+{
+ "job": "long-reviews-keep-running-in-the-app-and-say-plainly-that-the-app-must-stay-open-with-the-real-time-a-puzzle-while-waiting-and-a-ready-banner-2026-11-22",
+ "about": "BATCH 14 B2 (Kunal 22 Nov 2026; his picks card 71 build-as-shown, card 75 option 3 'board', and his 'cross out of it' of 23 Nov). The review's waiting screen: the board steps through the game's positions as each is checked with a thin strip under it, 'Analyzing move K of N · P%', '<Level> review · <real time left>' (never 'a few seconds'), the Keep the app open box, today's puzzle with Try it, Stop that asks once (Stop review / Keep going) and goes straight back to the games list; the finished groups kept in localStorage ct_anapart so the same review started again picks up there; the review keeps running on another screen and a 'Your review is ready' banner shows there with Open. Graded by gate 230 on a trial bundle at kunal761 (375x761, ct_safe 51,31) and 320x568, the Opera Game at Quick on one pool worker. Three ways the fix could come undone are each caught. NOT COVERED: Deeper and Deepest on a real phone (the times are device-only), the page being killed and reloaded mid-review (the kept groups are read back when the same review is started again; nothing restarts it by itself), iOS pausing the app, the server review (a separate job), his look on the phone.",
+ "gate": "gates/regress/230-review-waiting-screen.js",
+ "checks": ["TC-R38[6-9]", "TC-R39[01]"],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^375x761 "},
+  {"name": "320x568", "match": "^320x568 "}
+ ],
+ "breaks": [
+  {"name": "this-takes-a-few-seconds", "patch": "breaks/230-this-takes-a-few-seconds.diff",
+   "why": "the time line goes back to 'This takes a few seconds.' whatever the level, the untrue line of 22 Nov", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "board-does-not-step", "patch": "breaks/230-board-does-not-step.diff",
+   "why": "the waiting screen's board is never told which position the engine finished, so it stays on the start position for the whole review", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "progress-not-kept", "patch": "breaks/230-progress-not-kept.diff",
+   "why": "the finished groups are not kept, so a stopped review started again begins from move 0", "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]}
+ ],
+ "timeoutSec": 2400
+}
