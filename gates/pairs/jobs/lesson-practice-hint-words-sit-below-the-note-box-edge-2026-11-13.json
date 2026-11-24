@@ -1,0 +1,17 @@
+{
+ "job": "lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13",
+ "about": "#553 (B1). Gate 214 walks Italian Game practice with hints on at kunal761 and 320x568 (se), at move 1 and after e4, Nf3, Bc4 and c3, and reads the hint SPAN: not clamped, every word line inside it and the note box; at move 1 the hints-on warning keeps its line; the board still; after a move the confirm painted or behind 'more' (flags/amber-553-hint-takes-the-third-line). Breaks: the hint held at two lines again (the defect the check found, after c3 at kunal761); the span given the room but its clamp left at two; the move-1 warning giving way to the hint too. NOT COVERED: other lessons' hints (the checker's survey found 220 of 875 needing more than two lines at kunal761; a hint needing more than three is still clamped with an ellipsis and 'more'), and his phone's fonts.",
+ "gate": "gates/regress/214-lesson-hint-words-whole.js",
+ "checks": ["TC-R34[67]"],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^kunal761[ :]"},
+  {"name": "320x568", "match": "^se[ :]"}
+ ],
+ "breaks": [
+  {"name": "hint-held-at-two-lines", "patch": "breaks/lph-hint-held-at-two-lines.diff", "why": "the hint may never take the third line (hMax 2), so after c3 at kunal761 it is clamped at 'the old d4 is...'", "mustFailIn": ["kunal761", "320x568"]},
+  {"name": "span-clamp-stays-two", "patch": "breaks/lph-span-clamp-stays-two.diff", "why": "the prompt steps aside but the hint span's -webkit-line-clamp stays 2, so the third line is still not painted", "mustFailIn": ["kunal761", "320x568"]},
+  {"name": "warning-gives-way-at-move-1", "patch": "breaks/lph-warning-gives-way-at-move-1.diff", "why": "at move 1 the hints-on warning steps behind 'more' too, so the player who just turned hints on is not told it costs the day", "mustFailIn": ["320x568"]}
+ ],
+ "timeoutSec": 900
+}
