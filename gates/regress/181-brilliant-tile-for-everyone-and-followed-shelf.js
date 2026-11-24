@@ -26,6 +26,9 @@
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=9 scope=trial:9fe9ad8708c6 how=batch 13 break B (g181-no-followed-shelf.diff): the followed cards are kept but the library shows no shelf - TC-R250h x2 and i x2 at both sizes, and j's next-visit shelf line
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=5 scope=trial:0e7407f09883 how=batch 13 break C (g181-followed-card-says-you.diff, CT_SRC its chess.jsx): brilWhyOf leaves the sentence in the second person - node TC-R250b x2, TC-R250i at both sizes ('You gave up the bishop'), TC-R250k
 // CONTROL-RECORD: 92844de0 2026-11-20 total=56 red=3 scope=trial:1f2ec4cb4b80 how=batch 13 control D (not a pairs break): the review of a followed account's game keeps nothing (the else-branch off) - TC-R250j x2 and TC-R250k at kunal761; every seeded-store line stays green, which is why the end-to-end review is in this gate
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=8 scope=trial:61e20949764e how=batch 14 pairs break followed-store-not-synced (ct_followbril out of SYNC_KEYS): TC-R250m x3 and TC-R250n red at both sizes; node lines green
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=2 scope=trial:4cabffc8cc2e how=batch 14 pairs break followed-sync-id-is-the-position (the merge keys a followed card by its position alone): node TC-R250l union and tombstone lines red; the screen cards have distinct positions, so the screen stays green by design
+// CONTROL-RECORD: 450b160d 2026-11-24 total=134 red=2 scope=trial:08316d5794bf how=batch 14 pairs break followed-pull-not-on-the-shelf (no syncApplyState case): TC-R250n red at both sizes (the shelf reads 1); the store lines green, so n reads the running app and not the store
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const R=require('../drive/review');
