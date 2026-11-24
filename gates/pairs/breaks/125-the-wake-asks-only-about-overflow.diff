@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7557,5 +7557,5 @@
+     if(!_fs)return;let last=null;
+     const id=setInterval(()=>{if(!fitIdleRef.current)return;const t=boardTrimRef.current,o=_fitOver();
+-      const need=(t>0&&o<-24)||o>0||(inReview&&revCompact&&t>0&&o<=0&&(t-Math.max(0,Math.min(t,sqTrimFloorRef.current)))<=-o);   /* batch 13: the Review snap to trim 0 above */if(!need){last=null;return;}
++      const need=o>0||(false&&inReview&&revCompact&&t>0&&o<=0&&(t-Math.max(0,Math.min(t,sqTrimFloorRef.current)))<=-o);   /* batch 13: the Review snap to trim 0 above */if(!need){last=null;return;}
+       {const _L=fitLeftRef.current;if(!(o>0)&&_L&&_L.to===t&&_L.o!==null&&Math.abs(o-_L.o)<2)return;}   /* #550 US-R151: the loop is holding this trim on this reading on purpose (see _held); waking it would change nothing */
+       if(last&&last.t===t&&Math.abs(last.o-o)<2)return;last={t,o};setFitBump(b=>b+1);},600);

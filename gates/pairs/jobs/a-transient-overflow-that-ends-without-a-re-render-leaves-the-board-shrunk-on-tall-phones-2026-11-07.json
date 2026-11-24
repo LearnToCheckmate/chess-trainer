@@ -1,0 +1,36 @@
+{
+ "job": "a-transient-overflow-that-ends-without-a-re-render-leaves-the-board-shrunk-on-tall-phones-2026-11-07",
+ "about": "After a 120px in-flow block at the top of the app root shrinks the board and is removed with no re-render, the Play, Review and Puzzles boards come back to at least their fresh width within 3.5 s, nothing overflows, and a board nothing disturbed does not move at rest. Graded by gate 125 (TC-R201a..c) with CT_G125_GEOS=kunal761,375x667,se. NOT COVERED: a real app transient (a message that shrinks, a row that leaves) rather than the synthetic block; the idle wake's CPU and battery cost (a 600 ms poll while a fit screen is idle); wide/landscape and lessons (outside the wake by design); Kunal's own phone.",
+ "gate": "gates/regress/125-fit-loop-idle-wake.js",
+ "env": {"CT_G125_GEOS": "kunal761,375x667,se"},
+ "checks": [
+  "TC-R201[abc]? "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-R201[abc]? kunal761 "},
+  {"name": "375x667", "match": "^TC-R201[abc]? 375x667 "},
+  {"name": "se", "match": "^TC-R201[abc]? se "}
+ ],
+ "breaks": [
+  {
+   "name": "the-idle-wake-never-fires",
+   "patch": "breaks/125-the-idle-wake-never-fires.diff",
+   "why": "the 600 ms idle check returns at once, so once the loop has stopped nothing re-arms it and the board stays trimmed - the job's defect",
+   "mustFailIn": ["kunal761", "375x667", "se"]
+  },
+  {
+   "name": "the-wake-asks-only-about-overflow",
+   "patch": "breaks/125-the-wake-asks-only-about-overflow.diff",
+   "why": "the wake fires only when the content overflows, not when a trimmed board has room to grow back, which is the state a transient leaves behind",
+   "mustFailIn": ["kunal761", "375x667", "se"]
+  },
+  {
+   "name": "the-loop-never-says-it-is-idle",
+   "patch": "breaks/125-the-loop-never-says-it-is-idle.diff",
+   "why": "the fit loop runs its passes but never marks itself idle, so the idle check (which only acts on an idle loop) never acts",
+   "mustFailIn": ["kunal761", "375x667", "se"]
+  }
+ ],
+ "timeoutSec": 1800
+}

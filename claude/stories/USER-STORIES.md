@@ -2264,6 +2264,7 @@ As a player in a game, a review or a puzzle, I see the board shrink only while s
 - On Play, the review move screen and a library puzzle, at 375x761 and 375x667, a transient that shrank the board and then left with no re-render is followed by the board returning to at least its fresh width within 3.5 s. (TC-R201a)
 - Nothing overflows where it lands. (TC-R201b)
 - A board nothing disturbed does not move at rest. (TC-R201c)
+- The same holds on the smallest phone, 320x568. (TC-R401; #553 B3)
 
 ### US-R134 The board-scan server function exists in the repository and answers the client's contract
 *Added #550, item (32), jobs/scan-orientation-double-check and jobs/build-spec-board-scan-server (decisions scan-in-scope: "Build it properly"). Not deployed: the vision key is Kunal's.*

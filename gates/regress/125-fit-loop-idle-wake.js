@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/125-fit-loop-idle-wake.js - A TRANSIENT OVERFLOW THAT ENDS WITH NO RE-RENDER NO LONGER LEAVES THE BOARD SHRUNK. US-R133 / TC-R201a..c.
+// gates/regress/125-fit-loop-idle-wake.js - A TRANSIENT OVERFLOW THAT ENDS WITH NO RE-RENDER NO LONGER LEAVES THE BOARD SHRUNK. US-R133 / TC-R201a..c, TC-R401 (se, with CT_G125_GEOS).
 //
 // WHY [#550 item (91), jobs/a-transient-overflow-that-ends-without-a-re-render-leaves-the-board-shrunk-on-tall-phones-2026-11-07, #549's
 // antagonist A residual A4-F]: the Play/Review/Puzzles fit loop is re-armed by #root's ResizeObserver (fitBump). Once the loop has trimmed
@@ -17,7 +17,9 @@ const bw=(b)=>b.page.evaluate(()=>{let m=0,t=0;for(const e of document.querySele
   const root=document.getElementById('root');let bot=0;for(const k of root.children){const s=getComputedStyle(k);if(s.position==='fixed'||s.position==='absolute')continue;bot=Math.max(bot,k.getBoundingClientRect().bottom);}
   return {w:Math.round(m*100)/100,top:Math.round(t*10)/10,sh:root.scrollHeight,ch:root.clientHeight};});
 const SCREENS=[['Play vs the computer at 4 plies',b=>P.states['cpu-4ply'](b)],['the review move screen',b=>R.states['moves-ply10'](b)],['a library puzzle',b=>Z.states['train'](b)]];
-const GEOS=[['kunal761','kunal761'],['375x667',{w:375,h:667,safe:'',label:'375x667'}]];
+const GEO_ALL={kunal761:'kunal761','375x667':{w:375,h:667,safe:'',label:'375x667'},se:'se'};
+// CT_G125_GEOS [#553 B3]: a comma list of the recovery geometries (kunal761, 375x667, se); unset, the two the job names, as before.
+const GEOS=(process.env.CT_G125_GEOS||'kunal761,375x667').split(',').filter(k=>GEO_ALL[k]).map(k=>[k,GEO_ALL[k]]);
 L.run(async()=>{
   for(const [nm,go] of SCREENS)for(const [gn,geo] of GEOS){const tag=gn+' '+nm;
     const b=await L.launch({geo,name:'idle-wake-'+gn,store:{ct_pool:'3'}});await b.open();let ok=true;try{await go(b);await b.settle(1500);}catch(e){ok=false;}
