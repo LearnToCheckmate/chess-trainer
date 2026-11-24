@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index ea440f31..ebd5b1e4 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5608,5 +5608,5 @@ function AppMain(){
+   /* #547 item (180): Escape closes the menu sheet. Measured on the #547 trial at 730x375 and 375x730: a tap outside the
+      sheet closed it, Escape did nothing - so a keyboard or a hardware back key had no way out but the sheet's own X. */
+-  useEffect(()=>{if(!menuOpen)return;const k=e=>{if(e.key==='Escape'){e.stopPropagation();setMenuOpen(false);}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[menuOpen]);
++  useEffect(()=>{if(!menuOpen)return;const k=e=>{if(e.key==='Esc'){e.stopPropagation();setMenuOpen(false);}};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[menuOpen]);
+   const [boardDepth,setBoardDepth]=useState(()=>{try{return localStorage.getItem('ct_depth')==='1';}catch{return false;}});
+   const cyclingRef=useRef(false);

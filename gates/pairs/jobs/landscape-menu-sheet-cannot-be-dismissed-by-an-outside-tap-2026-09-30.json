@@ -1,0 +1,26 @@
+{
+ "job": "landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30",
+ "about": "Gate 47 block Y (TC-MN-051, TC-MN-052, TC-MN-052b), run at four geometries by CT_MN_Y_GEOS: sideways 730x375 (the job's) and 844x390, and upright kunal761 (375x761, insets 51/31) and 320x568. With the game over (Scholar's mate in Pass & Play, the player's route) a real tap outside the menu sheet closes it and so does Escape; every button and link of the Home sheet, and every control of the game-over sheet including its 12 Game setup span pills, is brought fully inside the sheet's visible box by real CDP finger drags and hit at its centre (upright the Home sheet fits and the reach line asks for every control at rest). Only TC-MN-051/052/052b lines are graded; the block's TC-MN-049 lines are ignored. NOT COVERED: a real iPhone's swipe and back gesture, the Strength slider (absent from this state: a Pass & Play game is not against the computer), other sideways sizes, and taps inside the sheet not closing it.",
+ "gate": "gates/regress/47-menu.js",
+ "env": {"CT_BLK": "Y", "CT_MN_Y_GEOS": "730x375,844x390,kunal761,se"},
+ "checks": ["TC-MN-051 ", "TC-MN-052 ", "TC-MN-052b "],
+ "build": "auto",
+ "situations": [
+  {"name": "land 730x375", "match": "^730x375: "},
+  {"name": "land 844x390", "match": "^844x390: "},
+  {"name": "kunal761", "match": "^375x761: "},
+  {"name": "se 320x568", "match": "^320x568: "}
+ ],
+ "breaks": [
+  {"name": "outside-tap-ignored", "patch": "breaks/553-menu-outside-tap-ignored.diff",
+   "why": "the menu backdrop's onClick does nothing, so a tap outside the sheet leaves it open (the job's measured defect); Escape and the sheet's scroll are untouched",
+   "mustFailIn": ["land 730x375", "land 844x390", "kunal761", "se 320x568"]},
+  {"name": "escape-ignored", "patch": "breaks/553-menu-escape-ignored.diff",
+   "why": "the menu's keydown listener waits for a key named 'Esc', which no modern browser sends, so Escape no longer closes the sheet; the outside tap still works",
+   "mustFailIn": ["land 730x375", "land 844x390", "kunal761", "se 320x568"]},
+  {"name": "sheet-not-scrollable", "patch": "breaks/553-menu-sheet-not-scrollable.diff",
+   "why": "the menu sheet's overflowY auto -> hidden: script could still scroll it, a finger cannot, so the lower controls of the 355-tall sideways sheet are unreachable",
+   "mustFailIn": ["land 730x375", "land 844x390"]}
+ ],
+ "timeoutSec": 1500
+}

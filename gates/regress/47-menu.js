@@ -732,39 +732,49 @@ async function fingerDragY(b,x,y0,y1){
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await cdp.detach();
 }
-const LAND={w:730,h:375,safe:'',label:'730x375'};
+// #553 [jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30, batch 14]: block Y runs at EACH geometry of
+// CT_MN_Y_GEOS (default 730x375,844x390 - the job's sideways phone and a wider one; a GEOS name such as kunal761 or se, or WxH). Each
+// line carries its geometry. At a geometry where the sheet's content FITS (maxScroll 0 - his phone and 320x568 since #550 fitted
+// the menu) the overflow and first-drag preconditions are replaced by a note, and the reach line then asks the case's other branch:
+// every control is inside the sheet and hit at its centre with no drag at all. Sideways (w > h) the sheet MUST overflow, as measured.
+const YGEOS=(process.env.CT_MN_Y_GEOS||'730x375,844x390').split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
+  const m=/^(\d+)x(\d+)$/.exec(s);if(m)return {k:{w:+m[1],h:+m[2],safe:'',label:s},n:s,side:+m[1]>+m[2]};
+  const G=L.GEOS[s];if(!G)throw new Error('CT_MN_Y_GEOS: unknown geometry '+s);return {k:s,n:G.w+'x'+G.h,side:G.w>G.h};});
+for(const YG of YGEOS){
+const LAND=YG.k;
 if(blk('Y')){
-  const b=await L.launch({geo:LAND,name:'mn-y-over'});await b.open();
+  const b=await L.launch({geo:LAND,name:'mn-y-over-'+YG.n});await b.open();
   const up=()=>b.page.evaluate(()=>!!document.querySelector('[data-ct="menu-sheet"]'));
   // #550 [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the game-over screen by the PLAYER'S route - Scholar's
   // mate in Pass & Play (drive/play.js pp-scholar-mate) - not b.card('k10',2600) + settle(10500), the gallery's scripted game.
   await require('../drive/play').states['pp-scholar-mate'](b);
-  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
-  L.say(over,'730x375: TC-MN-051 PRECONDITION the game is over (Checkmate on screen, Rematch offered) before the menu is opened',{over});
+  const over=await b.page.evaluate((side)=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim())||(!side&&x.getAttribute('aria-label')==='Rematch'&&x.getBoundingClientRect().width>0)/* #553: upright the Rematch button is an icon whose name is its aria-label */)/* #550 a23: sideways the Rematch button is an icon over its label, and its text is still required there (gate 47 control 19d032b) */,YG.side);
+  L.say(over,YG.n+': TC-MN-051 PRECONDITION the game is over (Checkmate on screen, Rematch offered) before the menu is opened',{over});
   const open=async()=>{const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
     if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
     if(m){await b.page.mouse.click(m[0],m[1]);await b.settle(600);}return !!m&&await up();};
   const o1=await open();
-  L.say(o1,'730x375: TC-MN-051 PRECONDITION a real tap on the game-over screen\'s ☰ opens the menu sheet',{open:o1});
+  L.say(o1,YG.n+': TC-MN-051 PRECONDITION a real tap on the game-over screen\'s ☰ opens the menu sheet',{open:o1});
   const sr=await b.rect('[data-ct="menu-sheet"]');const pt=sr&&sr.x>16?[8,Math.round(sr.y+sr.h/2)]:[8,8];
   await b.page.mouse.click(pt[0],pt[1]);await b.settle(500);const c1=o1&&!(await up());
-  L.say(c1,'730x375: TC-MN-051 with the game over, a tap OUTSIDE the sheet, at ('+pt+'), closes it',{closed:c1,sheet:sr});
+  L.say(c1,YG.n+': TC-MN-051 with the game over, a tap OUTSIDE the sheet, at ('+pt+'), closes it',{closed:c1,sheet:sr});
   const o2=await open();
-  L.say(o2,'730x375: TC-MN-051 PRECONDITION the sheet is open again on the game-over screen before Escape',{open:o2});
+  L.say(o2,YG.n+': TC-MN-051 PRECONDITION the sheet is open again on the game-over screen before Escape',{open:o2});
   await b.page.keyboard.press('Escape');await b.settle(400);const c2=o2&&!(await up());
-  L.say(c2,'730x375: TC-MN-051 with the game over, Escape closes the menu sheet',{closed:c2});
-  L.say(b.errs.length===0,'730x375: TC-MN-051 zero app errors',b.errs.slice(0,2));
+  L.say(c2,YG.n+': TC-MN-051 with the game over, Escape closes the menu sheet',{closed:c2});
+  L.say(b.errs.length===0,YG.n+': TC-MN-051 zero app errors',b.errs.slice(0,2));
   await b.close();
 }
 if(blk('Y')){
-  const b=await L.launch({geo:LAND,name:'mn-y-reach'});await b.open();
+  const b=await L.launch({geo:LAND,name:'mn-y-reach-'+YG.n});await b.open();
   await b.tapCt('home-menu',700);
   const sh0=await SHEET(b);
   const ids=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return 0;
     const els=[...s.querySelectorAll('button,a')].filter(e=>{const q=e.getBoundingClientRect();return q.width>1&&q.height>1;});
     els.forEach((e,i)=>e.setAttribute('data-gy',String(i)));return els.length;});
-  L.say(ids>0,'730x375: TC-MN-052 PRECONDITION the sheet holds controls to reach ('+ids+' buttons and links)',{ids});
-  L.say(!!sh0&&sh0.maxScroll>0,'730x375: TC-MN-052 PRECONDITION the sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
+  L.say(ids>0,YG.n+': TC-MN-052 PRECONDITION the sheet holds controls to reach ('+ids+' buttons and links)',{ids});
+  if(!(YG.side||!sh0||sh0.maxScroll>0))L.note(YG.n+': TC-MN-052 the sheet fits here (maxScroll 0), so no drag is needed and the reach line asks for every control at rest');
+  else L.say(!!sh0&&sh0.maxScroll>0,YG.n+': TC-MN-052 PRECONDITION the sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
   const look=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;const c=s.getBoundingClientRect();
     const seen=[];for(const e of s.querySelectorAll('[data-gy]')){const q=e.getBoundingClientRect();
       if(q.top<c.top-0.5||q.bottom>c.bottom+0.5||q.top<0||q.bottom>innerHeight)continue;
@@ -774,10 +784,10 @@ if(blk('Y')){
   (st&&st.seen||[]).forEach(i=>got.add(i));
   while(st&&steps<80&&stuck<2){const t0=st.top;await fingerDragY(b,st.cx,st.y0,st.y1);await b.settle(450);st=await look();steps++;
     if(!st)break;if(moved===null)moved=st.top-t0;st.seen.forEach(i=>got.add(i));stuck=Math.abs(st.top-t0)<1?stuck+1:0;}
-  L.say(moved!==null&&moved>20,'730x375: TC-MN-052 PRECONDITION the first finger drag scrolled the sheet ('+moved+'px)',{moved});
+  if((YG.side||!sh0||sh0.maxScroll>0))L.say(moved!==null&&moved>20,YG.n+': TC-MN-052 PRECONDITION the first finger drag scrolled the sheet ('+moved+'px)',{moved});
   const missed=await b.page.evaluate((g)=>[...document.querySelectorAll('[data-ct="menu-sheet"] [data-gy]')].filter(e=>g.indexOf(+e.getAttribute('data-gy'))<0)
     .map(e=>((e.innerText||'').trim().split('\n')[0]||e.getAttribute('aria-label')||e.getAttribute('title')||e.tagName).slice(0,30)),[...got]);
-  L.say(ids>0&&missed.length===0,'730x375: TC-MN-052 every one of the sheet\'s '+ids+' buttons and links is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags, scrollTop '+(st&&Math.round(st.top))+' of '+(st&&Math.round(st.max))+')',{missed});
+  L.say(ids>0&&missed.length===0,YG.n+': TC-MN-052 every one of the sheet\'s '+ids+' buttons and links is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags, scrollTop '+(st&&Math.round(st.top))+' of '+(st&&Math.round(st.max))+')',{missed});
   await b.close();
 }
 // TC-MN-052b [#550 item (28); jobs/landscape-menu-sheet-cannot-be-dismissed-by-an-outside-tap-2026-09-30, the gap batch 9's checker named]:
@@ -785,11 +795,11 @@ if(blk('Y')){
 // the span pills (spans with a pointer cursor and no button above them) and the Strength range input. Every one of them must be brought
 // fully inside the sheet's visible box by finger drags and hit-test to itself at its centre.
 if(blk('Y')){
-  const b=await L.launch({geo:LAND,name:'mn-y-over-reach'});await b.open();
+  const b=await L.launch({geo:LAND,name:'mn-y-over-reach-'+YG.n});await b.open();
   // #550 [jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card-2026-10-01]: the game-over screen by the PLAYER'S route - Scholar's
   // mate in Pass & Play (drive/play.js pp-scholar-mate) - not b.card('k10',2600) + settle(10500), the gallery's scripted game.
   await require('../drive/play').states['pp-scholar-mate'](b);
-  const over=await b.page.evaluate(()=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim()))/* #550 a23: sideways the Rematch button is an icon over its label */);
+  const over=await b.page.evaluate((side)=>/Checkmate/.test(document.body.innerText)&&[...document.querySelectorAll('button')].some(x=>/(^|\n)\s*Rematch$/.test((x.innerText||'').trim())||(!side&&x.getAttribute('aria-label')==='Rematch'&&x.getBoundingClientRect().width>0)/* #553: upright the Rematch button is an icon whose name is its aria-label */)/* #550 a23: sideways the Rematch button is an icon over its label, and its text is still required there (gate 47 control 19d032b) */,YG.side);
   const m=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/Menu/.test(e.getAttribute('title')||'')&&(e.innerText||'').trim()==='☰'&&e.getBoundingClientRect().width>0);
     if(!x)return null;const q=x.getBoundingClientRect();return [q.left+q.width/2,q.top+q.height/2];});
   if(m){await b.page.mouse.click(m[0],m[1]);await b.settle(700);}
@@ -803,9 +813,10 @@ if(blk('Y')){
   /* The job named a Strength range input in this sheet; measured on #550 trial t7 there is NONE here (0 range inputs: the k10 game is not
      against the computer), so the precondition requires what the sheet holds - the span pills - and REPORTS the slider count rather than
      requiring a control this state does not have. Any range input that is present is walked like every other control. */
-  L.note('730x375: TC-MN-052b the game-over sheet holds '+ids.ranges+' range input(s) on this bundle');
-  L.say(over&&ids.n>0&&ids.pills>0,'730x375: TC-MN-052b PRECONDITION the game is over and its menu sheet holds the Game setup span pills ('+ids.pills+') among '+ids.n+' controls (range inputs: '+ids.ranges+')',{over,ids});
-  L.say(!!sh0&&sh0.maxScroll>0,'730x375: TC-MN-052b PRECONDITION the game-over sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
+  L.note(YG.n+': TC-MN-052b the game-over sheet holds '+ids.ranges+' range input(s) on this bundle');
+  L.say(over&&ids.n>0&&ids.pills>0,YG.n+': TC-MN-052b PRECONDITION the game is over and its menu sheet holds the Game setup span pills ('+ids.pills+') among '+ids.n+' controls (range inputs: '+ids.ranges+')',{over,ids});
+  if(!(YG.side||!sh0||sh0.maxScroll>0))L.note(YG.n+': TC-MN-052b the game-over sheet fits here (maxScroll 0), so the reach line asks for every control at rest');
+  else L.say(!!sh0&&sh0.maxScroll>0,YG.n+': TC-MN-052b PRECONDITION the game-over sheet overflows ('+(sh0&&sh0.maxScroll)+'px hidden), so reaching its controls takes a swipe',sh0);
   const look=()=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;const c=s.getBoundingClientRect();
     const seen=[];for(const e of s.querySelectorAll('[data-gy]')){const q=e.getBoundingClientRect();
       if(q.top<c.top-0.5||q.bottom>c.bottom+0.5||q.top<0||q.bottom>innerHeight)continue;
@@ -817,9 +828,10 @@ if(blk('Y')){
     if(!st)break;st.seen.forEach(i=>got.add(i));stuck=Math.abs(st.top-t0)<1?stuck+1:0;}
   const missed=await b.page.evaluate((g)=>[...document.querySelectorAll('[data-ct="menu-sheet"] [data-gy]')].filter(e=>g.indexOf(+e.getAttribute('data-gy'))<0)
     .map(e=>((e.innerText||'').trim().split('\n')[0]||e.getAttribute('aria-label')||e.getAttribute('title')||e.tagName).slice(0,30)),[...got]);
-  L.say(ids.n>0&&missed.length===0,'730x375: TC-MN-052b on the game-over sheet every one of its '+ids.n+' controls, pills and the slider included, is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags)',{missed});
-  L.say(b.errs.length===0,'730x375: TC-MN-052b zero app errors',b.errs.slice(0,2));
+  L.say(ids.n>0&&missed.length===0,YG.n+': TC-MN-052b on the game-over sheet every one of its '+ids.n+' controls, pills and the slider included, is brought fully inside its visible box by real finger drags and hit-tested at its centre ('+got.size+' reached in '+steps+' drags)',{missed});
+  L.say(b.errs.length===0,YG.n+': TC-MN-052b zero app errors',b.errs.slice(0,2));
   await b.close();
+}
 }
 // TC-MN-048 (US-R89), #547 item (135): THE READOUT'S 'screen' ROW PRINTS THE SCREEN, NOT THE INNER VIEWPORT. TC-MN-042 cannot
 // tell the two apart (headless screen = viewport, its own note says so). Here CDP emulates a 375x812 SCREEN over a 375x730 viewport, so a
