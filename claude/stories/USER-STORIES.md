@@ -2758,6 +2758,12 @@ As a player in a game against the computer on a short phone, the board sits betw
 - The board's box ends at or above the bottom bar and starts at or below the top bar, at move 0 and after moves, at 375x568, 320x568 and on my phone. (TC-R328)
 - No piece, drawn a little larger than its square, paints onto either bar. (TC-R329)
 
+### US-R219 On a 360x640 phone the engine line moves nothing on the Review board, and leaving analysis turns it off
+*Added in batch 14 (#553, builder seat B1), jobs/exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30: the remainder #549 and #550 left at 360x640 (switching the line on shrank the board 334 -> 320 there, and reserving its row would have cost 14px for good, a trade left for Kunal). Measured at #553: since batch 13's short-upright layout the board is the full 360 wide and does not move on the toggle, so nothing waits on that trade.*
+As a player on a 360x640 phone, switching the engine line on or off leaves the board exactly where it was, and closing analysis puts the line back off.
+- With the engine line switched on and off at a mid-game ply, the board's top and width do not move, and it is the screen's full width. (TC-R333)
+- After Exit analysis the engine line row is gone. (TC-R334)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

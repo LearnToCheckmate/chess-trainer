@@ -1,0 +1,34 @@
+{
+ "job": "exiting-analysis-leaves-the-engine-line-on-for-the-rest-of-the-review-2026-09-30",
+ "about": "The job's remainder at 360x640 (the folded 9.5px-shift job's corner that #549 left for Kunal's word): switching the engine line on and off moves nothing on the board, which stays the full 360px wide, and leaving analysis turns the line off. Measured at #553: since batch 13's short-upright layout the trade is gone (360 wide at top 64 both ways). Graded by gate 209 (TC-R333..334) at 360x640. The rest of the job is held by gate 20 TC-R71 (exit and re-entry at se, kunal761 and the main walk) and gate 22 TC-R116 (the toggle at se, short375, w375h667, kunal761). NOT COVERED: Kunal's look; landscape.",
+ "gate": "gates/regress/209-engine-line-toggle-at-360.js",
+ "checks": [
+  "TC-R33[34] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "w360",
+   "match": "^360x640: "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "leaving-analysis-keeps-the-engine-line",
+   "patch": "breaks/209-leaving-analysis-keeps-the-engine-line.diff",
+   "why": "_engRestore forgets the saved switch without putting it back, so the engine line analysis turned on stays on after Exit analysis - the job's defect",
+   "mustFailIn": [
+    "w360"
+   ]
+  },
+  {
+   "name": "the-engine-line-takes-its-own-rows",
+   "patch": "breaks/209-the-engine-line-takes-its-own-rows.diff",
+   "why": "the move-text box's floor grows by 40px whenever the engine line is on, so the board is fitted smaller on the toggle - the board moving with a setting, the folded job's defect",
+   "mustFailIn": [
+    "w360"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}
