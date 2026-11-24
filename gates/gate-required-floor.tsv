@@ -140,3 +140,4 @@
 182	181	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 219 (a counted case row is right about its count) joins the required set	-	af818b223e14
 183	182	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 211 (a long Puzzles wrong-move line shows whole) joins 219 and the rest	-	84f36f5d4061
 184	183	raise	2026-11-24	553	build__1795473826826	batch 14 B2: gate 220 (the Moves engine line shows its number at once and its variation soon) joins the required set	-	ab6d2f170431
+185	184	raise	2026-11-24	553	build__1795473826826	lead: gate 215 (the Result and Time control chips) joins 220 and the rest, carried by cherry-pick from B1	-	6ff9cde86b0a
