@@ -1,0 +1,15 @@
+{
+ "job": "the-openings-list-carries-petrov-and-petroff-as-two-adjacent-lessons-2026-10-04",
+ "about": "The Petrov/Petroff opening is ONE lesson, 'Petroff (Russian) Defense', and a player's progress under the removed name 'Petrov (Russian) Defense' moves onto it. Gate 74 run with CT_74_GEOS=se (its own per-geometry blocks on the small phone only, to keep the run short); graded lines are TC-LS-049 (the rendered Openings list at kunal761 offers it once, by name, with the Petrov name gone from the library) and TC-LS-050 (ct_learnprog, ct_train, ct_lastlesson and the coach slate re-keyed from the removed names). The 049/050 block opens its own kunal761 browser whatever CT_74_GEOS says, so that is the one situation. NOT COVERED: TC-LS-052 (the cloud-sync index shift, a separate sync defect), the Sicilian/Ruy Lopez renames beyond the lines TC-LS-050 grades, and whether he agrees Petroff is the right name to keep (the orchestrator ruled it, 4 Nov 2026).",
+ "gate": "gates/regress/74-lesson-card-hit-area.js",
+ "env": {"CT_74_GEOS": "se"},
+ "checks": ["TC-LS-0(49|50) "],
+ "build": "always",
+ "situations": [{"name": "kunal761 (the 049/050 block's own geometry)", "match": "."}],
+ "breaks": [
+  {"name": "a-second-petrov-lesson-is-back", "patch": "breaks/petrov-a-second-petrov-lesson-is-back.diff", "why": "the original defect: a lesson named 'Petrov (Russian) Defense' is in the library again beside the Petroff one"},
+  {"name": "the-survivor-is-named-petrov", "patch": "breaks/petrov-the-survivor-is-named-petrov.diff", "why": "one lesson, but under the wrong spelling: the ruling keeps 'Petroff (Russian) Defense'"},
+  {"name": "old-progress-is-not-moved-to-petroff", "patch": "breaks/petrov-old-progress-is-not-moved-to-petroff.diff", "why": "the duplicate is gone but a player's days and drill record banked under the removed name are orphaned (the rename map loses its Petrov entry)"}
+ ],
+ "timeoutSec": 1500
+}

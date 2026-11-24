@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4084,7 +4084,7 @@
+    161 "Ruy Lopez: Marshall Attack" (post-#549 indices). What was banked under a removed or old name moves to the survivor through the same two
+    re-keyings, and ct_lastlesson through a SECOND index epoch chained after #549's (LIB_IDX_550, its own per-device flag ct_libmig550 and its own
+    cloud stamp ct_lastlesson550, read exactly as #549's ct_lastlesson549 is). */
+-const LIB_RENAMED={'Petrov (Russian) Defense':'Petroff (Russian) Defense','Sicilian: Closed':'Closed Sicilian','Sicilian: Dragon':'Sicilian Dragon','Sicilian: Sveshnikov':'Sveshnikov Sicilian','Ruy Lopez: Marshall Attack':'Marshall Attack'};
++const LIB_RENAMED={'Sicilian: Closed':'Closed Sicilian','Sicilian: Dragon':'Sicilian Dragon','Sicilian: Sveshnikov':'Sveshnikov Sicilian','Ruy Lopez: Marshall Attack':'Marshall Attack'};
+ const LIB_IDX_550={149:62,158:83,159:82,161:90};   // a removed post-#549 index -> its survivor's index (all below 149, so unmoved)
+ const LIB_IDX_MOVED={removedAt:149,survivorAt:35};
+ /* #550 wording check TXT-36 (Kunal, run-answers q46: US spelling everywhere, the lesson names included): five VARIATION names changed spelling,
