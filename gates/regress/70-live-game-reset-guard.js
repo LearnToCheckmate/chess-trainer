@@ -2,6 +2,7 @@
 // CONTROL-RECORD: 190a3f4 2026-11-11 total=121 red=4 scope=trial:f0477c0d12aa how=#550 item (75): trial t12, the tree before the shared wording (four different confirm sentences) - H4 red at kunal, 320x568 and 390x844, and TC-R45b X red (4 distinct texts); X0 and every other line green
 // CONTROL-RECORD: aaec56b 2026-11-13 total=121 red=6 scope=trial:9c7713635681 how=#550 #432 sweep round 2 (setup-reset-warn re-keyed by its words): c1, the hook renamed AND the row rendered with nothing to lose (somethingToLose||true) - E2 red at kunal, 320x568, 390x844, plus K1, K2 and TC-R45b X, which are red on the tip too; the hook-keyed version (a7f55b2) on the same bundle is 101/20 with all three E2 GREEN; on t0 fb3bb7b31754 118/3 (K1, K2, TC-R45b X)
 // CONTROL-RECORD: f3c633d 2026-11-13 total=50 red=3 scope=env:CT_B70=kunal how=[sha re-cited #550 lead to f3c633d, the unfixed tip the control ran on per control-audit.js:21 (checker seat 2, 4:59am ET; verdict unchanged); earlier repaired #550 test-system helper B: written 'HEAD ... total=121 ... scope=geo:kunal trial:abf7f0fe7043'. 'HEAD' is no commit (6b9f7cb added this line and the K1/K2/TC-R45b X lines it ran). The two-token scope made the line unparsable, and total=121 is the fixed trial's whole-gate count, while the red run this record describes is the one its own text gives as 'CT_B70=kunal 50/3'; the record now states that run. The trial bundle is abf7f0fe7043] #550 test-system helper B round 3: the tip f3c633d unfixed (931d495 FMT-A-05 moved 'Play this position vs Computer' into the lessonMore sheet, and the disarm effect at chess.jsx 'Leaving either sheet disarms' listed menuOpen/moreOpen/learnSheet only, so every arm was cleared on the render it was set in) - K1 red (label stayed '▶ Play this position vs Computer'), K2 red (plies -1: the second tap re-armed, the position never started), TC-R45b X red (2 distinct texts); CT_B70=kunal 50/3. With lessonMore added to that effect, trial 04156dc9b029 is 121/0 (all geometries)
+// CONTROL-RECORD: a8fc1c0 2026-11-24 total=10 red=1 scope=env:CT_B70_ONLY_Y=1,trial:5a1d5a9ff70d how=#553 B2 (the pair gates/pairs/jobs/us-r16-clause-5-bundles-three-claims-under-one-case-2026-10-06.json): the 15 Nov checker's plant B, the 3+1 pill armed with No clock's key - TC-R45c Y 'the pill the first tap arms is the pill tapped' red (13 of 14), every block before Y green on it at #550; Black armed with White's key (trial:c5c8b112f5e8) reds the same line; White replacing the game on its first tap (trial:d27937a4cb31) reds 5a, 5c and 5b Y and X; the tree 10/0
 // #471, for jobs/at-least-eleven-fullreset-call-sites-destroy-a-live-game-on-one-silent-tap-2026-10-03.
 // Story US-R16 (extended, see claude/stories/USER-STORIES.md), case TC-R45.
 //
@@ -198,7 +199,7 @@ L.run(async()=>{
   L.say(badA.length===0,'U1 the result predicate ACCEPTS every result string chess.jsx can print ('+accept.length+': each head, each sub, and head \u00b7 sub as the status slot joins them)',{missed:badA});
   L.say(badR.length===0,'U2 and REJECTS the chrome the old unanchored predicate matched - Close (via lose), Withdraw (via draw), is winning (via win) - plus '+(reject.length-3)+' near-misses',{wronglyAccepted:badR});
 }
-for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
+for(const g of (process.env.CT_B70_ONLY_Y==='1'?[]:(ONLY?GEOS.filter(x=>x.k===ONLY):GEOS))){   /* #553: CT_B70_ONLY_Y=1 runs block Y (and U, X) alone */
   const G=g.k;
 
   // ---------- A. the instrument, and B. the More sheet's New game row ----------
@@ -477,14 +478,46 @@ for(const g of (ONLY?GEOS.filter(x=>x.k===ONLY):GEOS)){
   }
   } // end of the kunal-only J/K blocks
 }
+  /* Y [#553 B2; jobs/us-r16-clause-5-bundles-three-claims-under-one-case-2026-10-06, the 15 Nov checker's gap]: EVERY Game-setup pill, ONE
+     AT A TIME, over a live game against the computer (cpu-4ply, so the colour pills render too - Pass and Play hides them): vs Human, vs
+     Computer, Online, No clock, the eight clocks, White and Black - 14 controls, where blocks C and D drive two. For each, on a FRESH game:
+     one tap keeps the game and arms ONLY the pill tapped (the amber one is that pill and no other) with the shared words on screen; the
+     same pill tapped again replaces the game (plies differ: a new game, Black's bot reply, or Online leaving the board). US-R16 5a (asks
+     first), 5b (same words, every control) and 5c (the thing tapped twice is the thing that armed), asserted over the SET with the count
+     printed. At his phone (kunal761). The checker's plant B - the 3+1 pill keyed to No clock's arm - passes every block above and reds
+     5c here. */
+  {const WY='Tap again to discard your game';
+   const YG='kunal761';const ylist=[];
+   {const b=await L.launch({geo:YG,name:'b70-y-keys'});await b.open();let ks=[];
+    try{await P.states['cpu-4ply'](b);await openMenu(b);ks=Object.keys(await pills(b));}catch(e){L.note('Y keys: '+String(e).slice(0,120));}
+    await b.close();
+    L.say(ks.length>=14,'TC-R45c Y DENOMINATOR over a live game vs the computer the Game-setup sheet shows '+ks.length+' pills, each driven below on its own game ('+ks.join(', ')+')',ks);
+    for(const k of ks){const c=await L.launch({geo:YG,name:'b70-y'});await c.open();let r={k,ok:false};
+      try{await P.states['cpu-4ply'](c);const p0=await P.plies(c);await openMenu(c);
+        const t1=await tryTap(()=>tapPill(c,k));const a=await pills(c);const am=Object.keys(a).filter(x=>amber(a[x].bg));const p1=await P.plies(c);const w=await warnRow(c);
+        const t2=await tryTap(()=>tapPill(c,k));await c.settle(700);const p2=await P.plies(c);
+        r={k,ok:t1&&t2,p0,p1,armed:am,text:w?(w.t||'').trim():null,p2};}catch(e){r.err=String(e).slice(0,100);}
+      ylist.push(r);CONFIRMS.push({g:YG,control:'Game-setup pill '+k,text:r.text||null});await c.close();}
+   }
+   const n=ylist.length;
+   const kept=ylist.filter(r=>r.ok&&r.p0>0&&r.p1===r.p0);
+   L.say(n>=14&&kept.length===n,'TC-R45a Y one tap on each of the '+n+' pills keeps the game ('+kept.length+' of '+n+' kept their plies)',ylist.filter(r=>!kept.includes(r)));
+   const same=ylist.filter(r=>r.armed&&r.armed.length===1&&r.armed[0]===r.k);
+   L.say(n>=14&&same.length===n,'TC-R45c Y the pill the first tap ARMS is the pill tapped, and only it, for all '+n+' ('+same.length+' of '+n+'; armed elsewhere: '+ylist.filter(r=>!same.includes(r)).map(r=>r.k+' -> '+JSON.stringify(r.armed)).join(', ')+')',ylist.filter(r=>!same.includes(r)));
+   const words=ylist.filter(r=>r.text===WY);
+   L.say(n>=14&&words.length===n,'TC-R45b Y every one of the '+n+' pills, armed, shows the shared words "'+WY+'" ('+words.length+' of '+n+')',ylist.filter(r=>!words.includes(r)).map(r=>({k:r.k,text:r.text})));
+   const repl=ylist.filter(r=>r.ok&&r.p2!==r.p0);
+   L.say(n>=14&&repl.length===n,'TC-R45c Y and a second tap on the SAME pill replaces the game, for all '+n+' ('+repl.length+' of '+n+')',ylist.filter(r=>!repl.includes(r)));
+  }
   /* X [#550 item (75); US-R16 clauses 5b and 5c, Kunal's B9C-CONFIRM-WORDS 'same-words']: OVER THE SET of game-replacing controls this gate
      arms, the confirm text is ONE string, and it is the shared wording. The count prints every run; a control whose text was not read is a
      red, never a skip. The set: the More sheet's New game, the Game-setup pills' warning row, the lesson's Play this position and the setup
      Start (X0). */
   {const W='Tap again to discard your game';
    const kinds=[...new Set(CONFIRMS.map(c=>c.control))];
-   L.say(kinds.length>=4&&CONFIRMS.every(c=>c.text),'TC-R45b X DENOMINATOR the confirm text was read on '+CONFIRMS.length+' arming(s) over '+kinds.length+' controls ('+kinds.join('; ')+')',CONFIRMS);
+   const KMIN=process.env.CT_B70_ONLY_Y==='1'?14:15;   /* #553: the set now holds block Y's 14 pills beside the four blocks above (the 15 Nov checker asked for at least the 11 the case names) */
+   L.say(kinds.length>=KMIN&&CONFIRMS.every(c=>c.text),'TC-R45b X DENOMINATOR the confirm text was read on '+CONFIRMS.length+' arming(s) over '+kinds.length+' controls ('+kinds.join('; ')+')',CONFIRMS);
    const texts=[...new Set(CONFIRMS.map(c=>c.text))];
-   L.say(kinds.length>=4&&texts.length===1&&texts[0]===W,'TC-R45b X every game-replacing control asks with the SAME words, "'+W+'" ('+texts.length+' distinct: '+texts.map(t=>JSON.stringify(t)).join(', ')+')',CONFIRMS);}
+   L.say(kinds.length>=KMIN&&texts.length===1&&texts[0]===W,'TC-R45b X every game-replacing control asks with the SAME words, "'+W+'" ('+texts.length+' distinct: '+texts.map(t=>JSON.stringify(t)).join(', ')+')',CONFIRMS);}
 },'70-live-game-reset-guard');
 // SELECTOR-OPENED: setup-reset-warn control=aaec56b round 2: the warning found by its words; c1 renamed the hook and showed it with nothing to lose, E2 red

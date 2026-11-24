@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index b7d891ce..9d5b3ef1 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12449,5 +12449,5 @@ function AppMain(){
+             {opponent==='computer'&&(<>
+               <div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'center',marginBottom:8}}>
+-                <span data-ct="setup-color-w" style={armPill('color-w',pColor==='w')} onClick={()=>guardReset('color-w',()=>{setPColor('w');fullReset();})}>♔ White</span>
++                <span data-ct="setup-color-w" style={armPill('color-w',pColor==='w')} onClick={()=>{setPColor('w');fullReset();}}>♔ White</span>
+                 <span data-ct="setup-color-b" style={armPill('color-b',pColor==='b')} onClick={()=>guardReset('color-b',()=>{setPColor('b');fullReset();})}>♚ Black</span>
+               </div>
