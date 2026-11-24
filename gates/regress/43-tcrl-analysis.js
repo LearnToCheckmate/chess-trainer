@@ -63,6 +63,7 @@ const L=require('../lib');
 // ancestor can scroll it horizontally (overflow-x auto/scroll with real overflow). `n` is how many painted elements were
 // scanned, so an empty walk is visible rather than green.
 // CONTROL-RECORD: d9b25e1 2026-10-30 total=37 red=3 scope=full how=gate mutant inserts a 500px-wide painted block into the progress screen before each reading - the three TC-RL-011 spill lines go red at 375x730, 320x568 and 390x844 while the old document scrollLeft reads 0 at all three [#546 item (76)]
+// CONTROL-RECORD: 44327f70 2026-11-24 total=37 red=6 scope=full how=#553 B2 (jobs/long-reviews-keep-running-in-the-app-...-2026-11-22), the tree before the waiting screen (bundle 75144b609ca8, 'Checking every move… P%' and six buttons): TC-RL-001 the words, TC-RL-005 eight named buttons, TC-RL-002 no samples, TC-RL-006 both lines (no readings), TC-RL-007 not the waiting screen - red; on the waiting screen (trial 94fd25341edd) 37/0, TC-RL-011 over 0 at 375x730, 320x568 and 390x844
 const hspill=(b)=>b.page.evaluate(()=>{const vw=innerWidth,bad=[];let n=0;
   const inScroller=(e)=>{let p=e.parentElement;while(p&&p!==document.body){const s=getComputedStyle(p);if(/auto|scroll/.test(s.overflowX)&&p.scrollWidth>p.clientWidth+1)return true;p=p.parentElement;}return false;};
   for(const e of document.querySelectorAll('#root *')){const s=getComputedStyle(e);if(s.visibility==='hidden'||s.display==='none')continue;
