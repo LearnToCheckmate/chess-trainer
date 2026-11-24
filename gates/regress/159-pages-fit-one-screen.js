@@ -60,11 +60,15 @@ L.run(async()=>{
     // "running down to the tab bar"), three stored cards are 386px of list in a box that ends at the tab bar, so the games box scrolls BY
     // DESIGN. Every other scroller, #root first, is still asserted not to; the box itself is asserted to end on the page (above the tab bar),
     // and the last card is asserted reachable by scrolling THAT box (overflow-y auto, so a finger can) and to answer a tap where it lands.
-    const own=id==='t'?sc.filter(x=>x.who==='glist-box'):[],rest=sc.filter(x=>!own.includes(x));
-    L.say(up&&rest.length===0,tag+' nothing scrolls'+(id==='t'?' but the games box, the list\'s own scroller (Q25 FB-05; '+(own.map(x=>x.sh+' in '+x.ch).join('')||'it does not overflow')+')':'')+' ('+(rest.map(x=>x.who+' '+x.sh+' in '+x.ch).join(', ')||'no '+(id==='t'?'other ':'')+'scroller overflows')+')',sc);
+    // #553 B1 RE-PIN [jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22]:
+    // Kunal picked 'whole-page' on Desk card 69 (4:08pm EST Mon 23 Nov 2026), setting the no page scroll rule aside FOR THIS SCREEN ONLY. So on
+    // the Review games list (t) the ONE scroller it may have is now the page itself (#root), and the games box may not scroll; every other page
+    // here keeps the rule unchanged.
+    const own=id==='t'?sc.filter(x=>x.who==='root'):[],rest=sc.filter(x=>!own.includes(x));
+    L.say(up&&rest.length===0,tag+' nothing scrolls'+(id==='t'?' but the page itself, as one (card 69; '+(own.map(x=>x.sh+' in '+x.ch).join('')||'it does not overflow')+')':'')+' ('+(rest.map(x=>x.who+' '+x.sh+' in '+x.ch).join(', ')||'no '+(id==='t'?'other ':'')+'scroller overflows')+')',sc);
     if(id==='t'){const gb=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="glist-box"]');if(!e)return null;const r=e.getBoundingClientRect();const tb=document.querySelector('[data-ct="tabbar"]');
-        const tab=tb&&tb.getBoundingClientRect().height>0?tb.getBoundingClientRect().top:innerHeight;return {t:+r.top.toFixed(1),b:+r.bottom.toFixed(1),tab:+tab.toFixed(1),oy:getComputedStyle(e).overflowY};});
-      L.say(up&&!!gb&&gb.b<=gb.tab+0.5&&/auto|scroll/.test(gb.oy),tag+' the games box ends on the page, above the tab bar, and a finger can scroll it ('+(gb?gb.t+'..'+gb.b+' against the tab bar at '+gb.tab+', overflow-y '+gb.oy:'no games box')+')',gb);}
+        const tab=tb&&tb.getBoundingClientRect().height>0?tb.getBoundingClientRect().top:innerHeight;return {t:+r.top.toFixed(1),b:+r.bottom.toFixed(1),tab:+tab.toFixed(1),oy:getComputedStyle(e).overflowY,sh:e.scrollHeight,ch:e.clientHeight};});
+      L.say(up&&!!gb&&gb.t<gb.tab-0.5&&gb.oy==='visible'&&gb.sh<=gb.ch+1,tag+' the games box starts on the page, above the tab bar, and is no scroller of its own - the page carries it (card 69; '+(gb?gb.t+'..'+gb.b+' against the tab bar at '+gb.tab+', overflow-y '+gb.oy+', '+gb.sh+' in '+gb.ch:'no games box')+')',gb);}
     const lc=await b.page.evaluate(async(src)=>{const vh=innerHeight;const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};
       let e=null;if(src){const re=new RegExp(src);e=[...document.querySelectorAll('button')].filter(vis).filter(x=>re.test((x.innerText||'').trim().replace(/\n/g,' '))).pop()||null;}
       else{/* a game card found by what it says, its result word (WON, LOST, DRAW) on a line of its own or leading - the old one-row card led with

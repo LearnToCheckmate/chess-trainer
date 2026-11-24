@@ -1,11 +1,11 @@
 {
  "about": "gates 177 and 178 (gates/drive/layout.js): the layout faults found on the tree this file was last written from; the fix list of jobs/every-screen-stays-clean-at-every-phone-width-and-text-size-2026-11-19. Key: screen state | kind | what. Value: the cells (phone WxH @ text size %) it happens in. A finding listed here is printed and counted, not red; any other finding is red. `capped` lists the cells where the height caps the board (state -> cell -> its width): there the board must be centred and at least that wide. Delete a key (or a cell) when its fault is fixed. Rewritten only by hand: CT_G177_WRITE_PINS=1 on each gate, on a trial bundle of the tree, with the diff read.",
  "notes": {
-  "review-list-empty|cut|[paste-box] textarea \"Paste a PGN here\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list-empty|cut|[paste-box] textarea \"Paste a PGN here\"": "RE-PINNED at #553 B1 (jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22, job 13's leftover): job 13 widened the paste box, and gates 177 and 178 restricted to this state read this cut in 2 of its 14 cells only (320x568@125, 360x640@125), the same on the tree before #553 B1 (trial 4bd00a97d8f9) and after it (38b076c377f2); the 12 cells that stopped firing are deleted. What is left is a 125% text cut on the two narrowest phones.",
   "review-list-empty|cut|input \"Chess.com username\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
   "review-list-empty|cut|select \"Chess.com\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
-  "review-list|card|[glist-box] div": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
-  "review-list|cut|[paste-box] textarea \"Paste a PGN here\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
+  "review-list|card|[glist-box] div": "RETIRED at #553 B1 (jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22, job 13's leftover): the pin no longer fired in any of its 25 cells, read by gates 177 and 178 restricted to the Review list on the tree before #553 B1 (trial 4bd00a97d8f9) and after it (38b076c377f2), so the key is deleted from pins; and since #553 B1 the games box is no scroller of its own (the page scrolls, card 69), so the box it named is not the box it was.",
+  "review-list|cut|[paste-box] textarea \"Paste a PGN here\"": "RE-PINNED at #553 B1 (jobs/the-review-list-scrolls-the-whole-page-or-the-list-under-a-fixed-top-decided-on-the-desk-with-pictures-first-2026-11-22, job 13's leftover): job 13 widened the paste box, and gates 177 and 178 restricted to this state read this cut in 2 of its 14 cells only (320x568@125, 360x640@125), the same on the tree before #553 B1 (trial 4bd00a97d8f9) and after it (38b076c377f2); the 12 cells that stopped firing are deleted. What is left is a 125% text cut on the two narrowest phones.",
   "review-list|cut|input \"Chess.com username\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18",
   "review-list|cut|select \"Chess.com\"": "covered by job 13 (the bake-off): jobs/review-list-the-search-box-on-the-your-games-line-and-the-final-layout-2026-11-18"
  },
@@ -398,20 +398,8 @@
    "320x568@125"
   ],
   "review-list-empty|cut|[paste-box] textarea \"Paste a PGN here\"": [
-   "320x568@100",
    "320x568@125",
-   "360x640@100",
-   "360x640@125",
-   "375x667@100",
-   "375x667@125",
-   "375x730@100",
-   "375x730@125",
-   "375x761@100",
-   "375x761@125",
-   "390x844@100",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+   "360x640@125"
   ],
   "review-list-empty|cut|input \"Chess.com username\"": [
    "320x568@75",
@@ -443,48 +431,9 @@
    "414x896@125",
    "430x932@125"
   ],
-  "review-list|card|[glist-box] div": [
-   "320x568@50",
-   "320x568@75",
-   "360x640@50",
-   "360x640@75",
-   "360x640@100",
-   "375x667@50",
-   "375x667@75",
-   "375x667@100",
-   "375x730@50",
-   "375x730@75",
-   "375x730@100",
-   "375x761@50",
-   "375x761@75",
-   "390x844@50",
-   "390x844@75",
-   "390x844@100",
-   "390x844@125",
-   "414x896@50",
-   "414x896@75",
-   "414x896@100",
-   "414x896@125",
-   "430x932@50",
-   "430x932@75",
-   "430x932@100",
-   "430x932@125"
-  ],
   "review-list|cut|[paste-box] textarea \"Paste a PGN here\"": [
-   "320x568@100",
    "320x568@125",
-   "360x640@100",
-   "360x640@125",
-   "375x667@100",
-   "375x667@125",
-   "375x730@100",
-   "375x730@125",
-   "375x761@100",
-   "375x761@125",
-   "390x844@100",
-   "390x844@125",
-   "414x896@125",
-   "430x932@125"
+   "360x640@125"
   ],
   "review-list|cut|input \"Chess.com username\"": [
    "320x568@75",
