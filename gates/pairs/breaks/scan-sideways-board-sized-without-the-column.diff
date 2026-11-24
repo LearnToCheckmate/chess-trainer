@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index b4de9340..bcd6aff1 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11987,7 +11987,7 @@ function AppMain(){
+            questions and the buttons stand in one column on its right, so nothing scrolls and the board is not the 160px the stack left it
+            at 761x375. The column is 280 to 360 wide; the board is capped at 640 on a large desktop. Upright it is the stack it was. */
+         const SC_SIDE=!!wide,SC_PANEL=Math.max(280,Math.min(360,Math.round(vp.w*0.4))),SC_GAP=16;
+-        const bpx=SC_SIDE?Math.max(160,Math.min(640,vp.h-safeTop-safeBot-16,vp.w-SC_PANEL-SC_GAP-24)):Math.max(160,Math.min(vp.w,vp.h-safeTop-safeBot-SC_TITLE-SC_UNDER-20)),sq=bpx/8,lab=Math.max(8,Math.round(sq*0.26));
++        const bpx=SC_SIDE?Math.max(160,Math.min(640,vp.h-safeTop-safeBot-16)):Math.max(160,Math.min(vp.w,vp.h-safeTop-safeBot-SC_TITLE-SC_UNDER-20)),sq=bpx/8,lab=Math.max(8,Math.round(sq*0.26));
+         const prob=scanBoardProblem(sc.grid);
+         const fen=(!prob&&sc.turn)?scanFenFor(sc):null;const tprob=fen?scanTurnProblem(fen):null;
+         const ready=!prob&&!!sc.turn&&!!sc.side&&!tprob;
