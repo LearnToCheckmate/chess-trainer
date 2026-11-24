@@ -64,8 +64,16 @@
 'use strict';
 // CONTROL-RECORD: e80c285 2026-11-11 total=45 red=2 scope=trial:962efa8a5c77 how=#550 item (124): c124, chess.jsx's DRILL_GRADES with Miss removed and Book added (['Mistake','Blunder','Book']) - G2 CONTROL Miss red (a Miss row flattened to 'a mistake') and G3b red (a Book row says 'a book'); every other line green; good trial 762fd238c730 45/0
 // CONTROL-RECORD: c33e447 2026-11-11 total=44 red=4 scope=trial:1ddf30c42dc4 how=#550 item (20): a mutant whose ct_grades2 switch is ignored (t78) - the four TC-R180 coach lines red (the new bands label 5...Qxd5 a Mistake, so the fixture's premise breaks)
+// CONTROL-RECORD: 5796549d 2026-11-24 total=45 red=3 scope=trial:8dc3968456f8 how=#553 B1 (the TC-SELCLS-CONSUMERS line added): record 1's mutant again, chess.jsx's DRILL_GRADES ['Mistake','Blunder','Book'] - G2 CONTROL Miss and G3b red, and TC-SELCLS-CONSUMERS red with them (33 PASS, 2 FAIL counted); good trial 7c25ad4319c4 45/0 with the line reading 35 PASS, 0 FAIL
+// The grading machine on ac650669 (jobs/tc-r09b-and-tc-rl-070-resolve-in-neither-register-2026-10-03): CHECKED, the TC-SELCLS-CONSUMERS line PASSED on the real tree (bundle 8e589be91c41) and red on both breaks - drill-grades-take-book-not-miss (13cfaf7bab9e) and the-consumer-count-counts-nothing (5bff4f229f60, the count's 20-assertion floor).
 const fs=require('fs'),path=require('path');
 const L=require('../lib');
+// TC-SELCLS-CONSUMERS IS PRINTED, NOT ONLY NAMED [#553 B1, jobs/tc-r09b-and-tc-rl-070-resolve-in-neither-register-2026-10-03, what was left
+// (a)]: this file's header named the id and no line in its log carried it, so the case register could not give it a row that cites a log
+// line. Every L.say of blocks U, P, G and D (the sel/cls consumer checks, everything before TC-R180) is counted here without touching any
+// assertion line, and one line after block D prints the id with the count: red if any of them failed or if fewer than 20 ran.
+const _say0=L.say;const _selc={pass:0,fail:0,on:true};
+L.say=function(ok,...rest){if(_selc.on){if(ok)_selc.pass++;else _selc.fail++;}return _say0.call(L,ok,...rest);};
 const R=require('../drive/review');
 const BUNDLE=process.env.CT_APP||path.join(__dirname,'..','..','app.js');
 
@@ -722,6 +730,8 @@ L.run(async()=>{
   //       (`git log -S` shows every version of the capture carrying `label:`), so it is a gate blindness
   //       rather than a reachable defect, and it is recorded on job (1) rather than asserted here.
 
+  _selc.on=false;
+  L.say(_selc.fail===0&&_selc.pass>=20,'TC-SELCLS-CONSUMERS the sel/cls consumer checks of blocks U, P, G and D all passed ('+_selc.pass+' PASS, '+_selc.fail+' FAIL; at least 20 must run)',{pass:_selc.pass,fail:_selc.fail});
   /* ── TC-R180 (US-R03 clause, #550 item (57); jobs/drill-grading-uses-a-shallow-local-search-2026-10-01 folding in
      jobs/coachs-take-stop-calling-a-game-clean-when-its-own-moves-went-into-the-practice-list-2026-10-12) ─────────────────────────────
      THE FOURTH LABEL CONSUMER this file's job names (newInstance4_P1_coachsTake): the Coach's take counted a.cls.label while the drill

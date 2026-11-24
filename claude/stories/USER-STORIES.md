@@ -2107,6 +2107,7 @@ As a player stepping through a reviewed game, the move strip's next arrow and th
 *Added #550 item (22), from jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 (Kunal, 11 Nov 2026: "a way to jump to a specific number so we don't have to hit next next next 50 times"), the scope added on 30 Sep to jobs/drill-needs-a-previous-card-2026-09-23 and dropped when it closed.*
 As a player with dozens of cards in the brilliant moves drill or the mistakes drill, I tap the counter ('8 of 36'), choose a number, and the drill shows that card; Prev and Next work on from there.
 - In both drills, at 375x761 and 320x568, the counter opens a chooser with every number at least 44 by 44, choosing the last shows it, and Prev steps back one. (TC-R178)
+- With 18 cards (since #553, the 15 Nov checker's gap): the chooser offers exactly 1 to 18 and nothing to type into, every number a whole 44 by 44 target on screen; choosing 18 puts card 18 on the BOARD, choosing 2 again puts card 2 there, and Prev and Next step from it; typing a number outside 1 to 18 into the open chooser, or tapping outside it, leaves the card as it was. (TC-R324, TC-R325)
 
 ### US-R115 A game I have reviewed opens again without a second engine pass
 *Added #550 item (79), jobs/precompute-reviews-while-the-app-is-open-2026-09-23 part (2) (Kunal, 23 Sep 2026, on reviewing his pulled-in games: the job's step 1, "cache every review he actually runs").*

@@ -1,0 +1,11 @@
+--- a/gates/regress/67-sel-cls-consumers.js
++++ b/gates/regress/67-sel-cls-consumers.js
+@@ -71,7 +71,7 @@
+ // (a)]: this file's header named the id and no line in its log carried it, so the case register could not give it a row that cites a log
+ // line. Every L.say of blocks U, P, G and D (the sel/cls consumer checks, everything before TC-R180) is counted here without touching any
+ // assertion line, and one line after block D prints the id with the count: red if any of them failed or if fewer than 20 ran.
+-const _say0=L.say;const _selc={pass:0,fail:0,on:true};
++const _say0=L.say;const _selc={pass:0,fail:0,on:false};
+ L.say=function(ok,...rest){if(_selc.on){if(ok)_selc.pass++;else _selc.fail++;}return _say0.call(L,ok,...rest);};
+ const R=require('../drive/review');
+ const BUNDLE=process.env.CT_APP||path.join(__dirname,'..','..','app.js');

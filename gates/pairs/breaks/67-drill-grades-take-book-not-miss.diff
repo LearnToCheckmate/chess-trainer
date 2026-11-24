@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -1098,7 +1098,7 @@
+    THE SET IS THE POOL'S OWN, not a guess: the capture admits `_S` in {Mistake, Blunder}, and Miss is the
+    overlay historically drawn from those two, so these three are exactly the words a drill row can honestly
+    carry. Gate 67 block G renders the card from a seeded store and asserts no painted goal names a PRAISE grade. */
+-const DRILL_GRADES=['Mistake','Blunder','Miss'];
++const DRILL_GRADES=['Mistake','Blunder','Book'];
+ function drillGrade(lab){const t=String(lab||'').trim();const i=DRILL_GRADES.findIndex(g=>g.toLowerCase()===t.toLowerCase());return i>=0?DRILL_GRADES[i]:'mistake';}
+ /* #494 antagonist B, free fix rather than a residual: the first version matched the admissible set
+    CASE-SENSITIVELY while every other step in this expression lowercases, so a stored 'blunder' would
