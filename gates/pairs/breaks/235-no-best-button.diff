@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8096,5 +8096,5 @@
+      move (while the computer thinks the row waits); in Analyze for whoever is to move. */
+   const scanLive=!!scanGame&&mode==='play'&&(opponent==='computer'||opponent==='human');
+-  const _playBest=scanLive&&playFit.noMoves&&!wide;   /* #553 card 82 (Amber: flags/amber-553-play-best-button): the Best button's phones - a game from a scanned board where the move list is a closed sheet */
++  const _playBest=false;   /* #553 card 82 (Amber: flags/amber-553-play-best-button): the Best button's phones - a game from a scanned board where the move list is a closed sheet */
+   useEffect(()=>{
+     if(!scanLive){if(scanBestEngRef.current){scanBestEngRef.current.close();scanBestEngRef.current=null;}setScanBest(null);return;}

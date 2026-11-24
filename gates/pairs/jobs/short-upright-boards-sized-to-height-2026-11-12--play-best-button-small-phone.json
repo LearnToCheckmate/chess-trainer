@@ -1,0 +1,34 @@
+{
+ "job": "short-upright-boards-sized-to-height-2026-11-12",
+ "about": "Card 82, his pick (1) (run-answers orchestrator-B14-PREP7B-2026-11-24): on a phone whose move list is a closed sheet (320x568 against the computer), a game from a scanned board has a Best moves button after Forward in the bottom row; all seven buttons 44x44 inside the screen; a tap opens the Moves sheet with the BEST row on screen and the board unmoved; a second tap closes it. At 375x761, where the move list is not a sheet, the row is as it was. Graded by gate 235 (TC-R402..R404). NOT COVERED: the job's other parts (Review's board on his phone, the mistakes drill board, card 74's thin row - gates 228 and 26 hold those); his look on his phone.",
+ "gate": "gates/regress/235-play-best-button-small-phone.js",
+ "checks": [
+  "TC-R40[234] "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "se", "env": {"CT_G235_GEO": "se"}},
+  {"name": "kunal761-absent", "env": {"CT_G235_GEO": "kunal761", "CT_G235_EXPECT": "absent"}}
+ ],
+ "breaks": [
+  {
+   "name": "no-best-button",
+   "patch": "breaks/235-no-best-button.diff",
+   "why": "the Best button is never shown - batch 13 as built (option 4), the BEST row reachable only through Moves",
+   "mustFailIn": ["se"]
+  },
+  {
+   "name": "best-opens-nothing",
+   "patch": "breaks/235-best-opens-nothing.diff",
+   "why": "the button is drawn but its tap does nothing, so the BEST row never shows",
+   "mustFailIn": ["se"]
+  },
+  {
+   "name": "the-gaps-stay-six",
+   "patch": "breaks/235-the-gaps-stay-six.diff",
+   "why": "the row keeps its 6px gaps, so seven 44-wide buttons need 344 of a 320 screen and run off its edge",
+   "mustFailIn": ["se"]
+  }
+ ],
+ "timeoutSec": 1200
+}

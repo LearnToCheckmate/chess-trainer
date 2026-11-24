@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14287,5 +14287,5 @@
+             <RowBtn ct="play-back" label="Back" dis={playHist.length===0||pvIdx===0} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}><StepArrow dir="left"/></RowBtn>
+             <RowBtn ct="play-forward" label="Forward" dis={playHist.length===0||pvIdx==null} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}><StepArrow dir="right"/></RowBtn>
+-            {_playBest&&(<RowBtn ct="play-best" label="Best moves" hot={playMovesSheet==='best'} onClick={()=>setPlayMovesSheet(o=>o==='best'?false:'best')}><StarIcon size={22}/></RowBtn>)}{/* #553 card 82, his pick (1) (run-answers orchestrator-B14-PREP7B-2026-11-24; Amber: flags/amber-553-play-best-button): on a phone whose move list is a closed sheet, a game from a scanned board gets a Best button that opens that same sheet, the BEST row on top as batch 13 built it; a second tap (or Moves) closes it. The star is the Review toolbar's Key move star, white, about 20 of ink like the row's other icons. */}
++            {_playBest&&(<RowBtn ct="play-best" label="Best moves" hot={playMovesSheet==='best'} onClick={()=>{}}><StarIcon size={22}/></RowBtn>)}{/* #553 card 82, his pick (1) (run-answers orchestrator-B14-PREP7B-2026-11-24; Amber: flags/amber-553-play-best-button): on a phone whose move list is a closed sheet, a game from a scanned board gets a Best button that opens that same sheet, the BEST row on top as batch 13 built it; a second tap (or Moves) closes it. The star is the Review toolbar's Key move star, white, about 20 of ink like the row's other icons. */}
+             {/* #371: when the game is over on a phone, Hint and Flip give their two slots to Review and New game -
+                 same row, same height, the board does not move.
