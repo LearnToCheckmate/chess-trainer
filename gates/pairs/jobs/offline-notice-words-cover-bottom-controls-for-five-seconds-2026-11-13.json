@@ -1,0 +1,40 @@
+{
+ "job": "offline-notice-words-cover-bottom-controls-for-five-seconds-2026-11-13",
+ "about": "Gate 146 block (i), TC-R222k: for its first 5 s the offline notice's words go in a free band (offFreeSpot) and cover no text, control, picture or board square, on Pass and Play, lesson practice, puzzle training, Home and (#553 B3, TC-R341) the New game sheet, where at 320x568 'You are offline.' sat over the Time control - a transparent native select over its painted label, which neither the scan nor the gate's reader counted. The gate's reader now counts a form control at opacity 0 too. NOT COVERED: both inset mechanisms (gate 146 runs ct_safe only); screens beyond these five; whether line-only on a full small screen is what he wants (his call).",
+ "gate": "gates/regress/146-errors-say-what-happened.js",
+ "env": {"CT_146_OFF_ONLY": "1"},
+ "checks": [
+  "^TC-R222k "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": " at kunal761[: ]"
+  },
+  {
+   "name": "se 320x568",
+   "match": " at se[: ]"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "a-transparent-select-is-free-again",
+   "patch": "breaks/146-a-transparent-select-is-free-again.diff",
+   "why": "the #553 fix undone: a form control at opacity 0 is skipped again, so on the New game sheet at 320x568 'You are offline.' goes back over the Time control",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-free-band-ignores-every-obstacle",
+   "patch": "breaks/146-the-free-band-ignores-every-obstacle.diff",
+   "why": "the scan drops every obstacle, so the words sit mid-screen over whatever is there (the orchestrator's 15 Nov control)",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 3000
+}

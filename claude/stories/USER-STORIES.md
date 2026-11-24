@@ -2437,6 +2437,7 @@ As a player on a slow or missing connection, I am told when a review was graded 
 - Signing in while offline says it needs a connection. (TC-R222f)
 - When this browser cannot save (storage blocked or full) the app says so. (TC-R222g, TC-R222h)
 - No message mentions Firebase setup, database rules or a preview sandbox. (TC-R222i)
+- Going offline, the words that say so never sit over a control or its words - not even a see-through one such as the New game sheet's Time menu - at 375x761 or 320x568; where no free place exists only the thin line along the top shows. (TC-R222k, TC-R341; #553, Amber: flags/amber-553-offline-words-clear-the-time-control)
 ### US-R151 Nothing on the Review screen moves unless he moves it
 *Added #550, docs/movement-check-2026-11-12 MOV-01..MOV-04; Kunal, 12 Nov: "Fix the cause, keep the loop from flipping between two trims whatever the cause, and gate it in a real scaled window at his size".*
 As a player stepping through a reviewed game on a computer at 125% or 150% display scale, the board stays one size after every move, and sideways the buttons and rows beside it stay where they are.

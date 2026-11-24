@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -3680,5 +3680,5 @@
+   const tw=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())){if(!n.textContent.trim())continue;const pe=n.parentElement;if(!pe)continue;const cs=getComputedStyle(pe);if(cs.visibility==='hidden'||+cs.opacity===0)continue;
+     const k=document.createRange();k.selectNodeContents(n);for(const q of k.getClientRects())if(q.width>=1&&q.height>=1&&on(pe,q))add(q);}
+-  obs.sort((a,b)=>a[0]-b[0]);const gaps=[];const yTop=Math.max(0,+sTop||0),yEnd=vh-Math.max(0,+sBot||0);let y=yTop;for(const [t,b] of obs){if(t>y)gaps.push([y,Math.min(t,yEnd)]);y=Math.max(y,b);}if(y<yEnd)gaps.push([y,yEnd]);
++  obs.length=0;const gaps=[];const yTop=Math.max(0,+sTop||0),yEnd=vh-Math.max(0,+sBot||0);let y=yTop;for(const [t,b] of obs){if(t>y)gaps.push([y,Math.min(t,yEnd)]);y=Math.max(y,b);}if(y<yEnd)gaps.push([y,yEnd]);
+   const meas=(txt)=>{const m=document.createElement('div');m.style.cssText='position:fixed;left:0;top:0;visibility:hidden;box-sizing:border-box;padding:'+OFF_PAD+';border:1px solid transparent;font-size:13px;font-weight:700;line-height:18px;text-align:center;font-family:\'Segoe UI\',system-ui,sans-serif;width:'+W+'px';m.textContent=txt;document.body.appendChild(m);const h=m.offsetHeight;document.body.removeChild(m);return h;};
+   for(const [txt,isShort] of [[full,false],[short,true]]){const h=meas(txt);const g=gaps.find(([a,b])=>b-a>=h+8);if(g)return {top:Math.round(g[0]+(g[1]-g[0]-h)/2),left:L0,w:W,short:isShort};}
