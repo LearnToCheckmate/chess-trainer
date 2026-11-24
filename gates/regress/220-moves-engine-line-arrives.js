@@ -14,7 +14,7 @@
 //
 // WHAT IT ASSERTS at kunal761 (CT_G220_GEO picks another GEOS name), the Opera Game reviewed (drive/review), engine line on:
 //  TC-R363 (DENOMINATOR) the engine row is on screen in the Moves view, and the analysis board takes 1.d4 d5.
-//  TC-R364 at each of plies 11..14 and on the fresh analysis position, within 500ms of arriving the row shows a number (+1.1, M2, ...),
+//  TC-R364 at each of plies 11..14 and on the fresh analysis position, within 200ms of arriving the row shows a number (measured 1 to 5ms; the first draft's 500ms could not see a number held back for a 290ms search - the pair read it BLIND) (+1.1, M2, ...),
 //          never an empty row and never 'Stockfish is not loaded'.
 //  TC-R365 at the same stops, within 10s the row shows a variation (a numbered move), so a search that never finishes is red.
 //  The 10s bound is a ceiling against 'no line at all', not a speed target: this machine takes under 1s.
@@ -27,7 +27,7 @@ async function stop(b,tag){
   const t0=Date.now();let n=null,first=null,t='';
   while(Date.now()-t0<10000){t=await read(b);const el=Date.now()-t0;
     if(n===null&&t&&NUM.test(t))n=el;if(hasVar(t)){first=el;break;}await b.page.waitForTimeout(50);}
-  L.say(n!==null&&n<=500&&!/not loaded/i.test(t||''),'TC-R364 '+GEO+' '+tag+': the engine row shows its number within 500ms ('+n+'ms)',{n,row:t});
+  L.say(n!==null&&n<=200&&!/not loaded/i.test(t||''),'TC-R364 '+GEO+' '+tag+': the engine row shows its number within 200ms ('+n+'ms)',{n,row:t});
   L.say(first!==null,'TC-R365 '+GEO+' '+tag+': the engine row shows a variation within 10s ('+first+'ms)',{first,row:t});
 }
 L.run(async()=>{
