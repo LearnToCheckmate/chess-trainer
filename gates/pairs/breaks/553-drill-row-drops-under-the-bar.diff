@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index cc24854d..272cebd8 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14624,5 +14624,5 @@ function AppMain(){
+              give back goes to the three helpers. The row's height is the 44 it was (the job's own note: the 44 floor keeps the height). */
+           const _nb=(pr)=>({...navBtn(pr),flex:'0 0 46px',minWidth:46,minHeight:44,padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center'});
+-          return(<div data-ct="drill-row" style={{display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))' /* batch 13: five equal columns, the helpers' box spans three, so all five buttons are one size */,gap:6,width:'100%',alignItems:'stretch'}}>
++          return(<div data-ct="drill-row" style={{position:'relative',top:pzRail?0:56,display:'grid',gridTemplateColumns:'repeat(5,minmax(0,1fr))' /* batch 13: five equal columns, the helpers' box spans three, so all five buttons are one size */,gap:6,width:'100%',alignItems:'stretch'}}>
+             <div style={{position:'relative',display:'grid',gridColumn:'span 3',minWidth:0}}>
+               <div aria-hidden={puzSolved||undefined} style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6,minWidth:0,visibility:puzSolved?'hidden':'visible',pointerEvents:puzSolved?'none':'auto'}}>

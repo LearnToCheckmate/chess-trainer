@@ -1,0 +1,25 @@
+{
+ "job": "the-drill-nav-row-rests-under-the-tab-bar-at-320x568-on-main-2026-10-04",
+ "about": "Gate 72 block M (TC-R181) run alone (CT_G72_ONLY=M) at 320x568 (the job's), kunal761 (375x761, insets 51/31) and 844x390 sideways (CT_G72_M_GEOS): both drills (mistakes, brilliant), never scrolling - #root.scrollTop asserted 0 - every button of the drill's bottom area (Hint, Show move, Reset, Prev, Next; Analyse after a solve) is the element under its own centre, asking and after a solve, each state's denominator on its own line. NOT COVERED: the other four of THE DRILL SEVEN here (the suite runs block M at all seven), a real phone's home-indicator area, the drill's top card.",
+ "gate": "gates/regress/72-drill-prev.js",
+ "env": {"CT_G72_ONLY": "M", "CT_G72_M_GEOS": "se,kunal761,844x390"},
+ "checks": ["TC-R181 "],
+ "build": "auto",
+ "situations": [
+  {"name": "se 320x568", "match": "@ 320x568: "},
+  {"name": "kunal761", "match": "@ 375x761 with ct_safe 51,31: "},
+  {"name": "land 844x390", "match": "@ 844x390: "}
+ ],
+ "breaks": [
+  {"name": "bottom-pushed-under-the-bar", "patch": "breaks/553-drill-bottom-pushed-under-the-bar.diff",
+   "why": "the drill's bottom area starts 70px below the card instead of 8 (#550's control): at 320x568 Prev and Next come to rest under the tab bar, the job's defect",
+   "mustFailIn": ["se 320x568"]},
+  {"name": "row-drops-under-the-bar", "patch": "breaks/553-drill-row-drops-under-the-bar.diff",
+   "why": "upright, the drill's five-button row is drawn 56px lower than its box (position relative), so its buttons sit under the tab bar while the layout above is unchanged",
+   "mustFailIn": ["se 320x568"]},
+  {"name": "row-drops-off-the-sideways-rail", "patch": "breaks/553-drill-row-drops-off-the-sideways-rail.diff",
+   "why": "sideways only, the drill's button row is drawn 80px lower, past the bottom of the screen",
+   "mustFailIn": ["land 844x390"]}
+ ],
+ "timeoutSec": 1200
+}
