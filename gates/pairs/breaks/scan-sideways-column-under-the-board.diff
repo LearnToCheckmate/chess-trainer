@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index b4de9340..40a8e206 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12035,7 +12035,7 @@ function AppMain(){
+               </div>
+             </>)}
+           </div>);
+-        return(<div data-ct="scan-check" data-side={SC_SIDE?'1':'0'} role="dialog" aria-modal="true" aria-label={sc.step===1?'Check the board':'Who moves next, and which side are you'} style={{position:'fixed',inset:0,zIndex:1100,background:'#12151b',display:'flex',flexDirection:SC_SIDE?'row':'column',alignItems:'center',justifyContent:SC_SIDE?'center':'flex-start',gap:SC_SIDE?SC_GAP:0,boxSizing:'border-box',padding:SC_SIDE?((safeTop+8)+'px max(12px,env(safe-area-inset-right,0px)) '+(safeBot+8)+'px max(12px,env(safe-area-inset-left,0px))'):((safeTop+4)+'px 0 '+(safeBot+4)+'px'),overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
++        return(<div data-ct="scan-check" data-side={SC_SIDE?'1':'0'} role="dialog" aria-modal="true" aria-label={sc.step===1?'Check the board':'Who moves next, and which side are you'} style={{position:'fixed',inset:0,zIndex:1100,background:'#12151b',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:SC_SIDE?'center':'flex-start',gap:SC_SIDE?SC_GAP:0,boxSizing:'border-box',padding:SC_SIDE?((safeTop+8)+'px max(12px,env(safe-area-inset-right,0px)) '+(safeBot+8)+'px max(12px,env(safe-area-inset-left,0px))'):((safeTop+4)+'px 0 '+(safeBot+4)+'px'),overflowY:'auto',fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+           {SC_SIDE?(<>{scBoard}<div data-ct="scan-check-panel" style={{width:SC_PANEL,flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center'}}>{scTitle}{scUnder}</div></>):(<>{scTitle}{scBoard}{scUnder}</>)}
+         </div>);})()}
+       {lookOpen&&(()=>{const _fen='r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R';const rows=_fen.split('/').map(r=>{const out=[];for(const ch of r){if(/\d/.test(ch)){for(let i=0;i<+ch;i++)out.push(null);}else out.push({t:ch.toLowerCase(),c:ch===ch.toUpperCase()?'w':'b'});}return out;});
