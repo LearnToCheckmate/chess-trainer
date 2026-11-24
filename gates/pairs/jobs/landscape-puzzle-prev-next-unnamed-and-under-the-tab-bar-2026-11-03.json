@@ -21,7 +21,7 @@
    "why": "the sideways Next calls pzNextInTier without the index after the puzzle on screen, as before #553, so on an unsolved training puzzle it re-loads the same one and reads as dead",
    "mustFailIn": ["land 730x375", "land 844x390", "land 667x375", "land 761x375"]},
   {"name": "sideways-pair-under-the-fold", "patch": "breaks/553-sideways-puzzle-pair-under-the-fold.diff",
-   "why": "the sideways pair's row is moved 60px down (position relative, top 60), so at rest it runs past the bottom of the screen (a marginTop 60 was tried first and is absorbed by the column's slack at 844x390, where the pair does not move) and is reachable only by scrolling the panel - the job's 'starts under the fold' in another costume",
+   "why": "the sideways pair's row is moved 60px down (position relative, top 60), so at rest it runs past the bottom of the screen (a marginTop 60 was tried first and is absorbed by the column's slack at 844x390, where the pair does not move) and is cut off or reachable only by scrolling - the job's 'starts under the fold' in another costume",
    "mustFailIn": ["land 730x375", "land 844x390", "land 667x375", "land 761x375"]}
  ],
  "timeoutSec": 1800

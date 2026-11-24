@@ -17,6 +17,7 @@
 //  TC-R355a each is wholly on screen, 44px or taller, its box does not intersect the tab bar's, and its centre hit-tests to itself -
 //          at REST: nothing is scrolled first, so a pair that is only reachable after a scroll is red.
 //  TC-R355b a real mouse tap at Next's centre changes the position on the board, and a real tap at Prev's centre brings the first back.
+// CONTROL-RECORD: 0b17d54 2026-11-24 total=36 red=12 scope=trial:df4719c8bd5f how=#553 B2, the pair gates/pairs/jobs/landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03.json: the sideways pair's row moved 60px down (position relative, top 60) - TC-R355a Prev and Next and TC-R355b red at 730x375, 844x390, 667x375 and 761x375, upright green; the aria-labels removed (trial:65186643fed3) reds TC-R354 and TC-R355b (the second tap finds Prev by its name) at the four sideways sizes; Next without from (trial:0381a205e925, the tree before #553) reds TC-R355b alone at the four; the tree (trial:fac6db05d4e9) 36/0. Pairs verdict CHECKED at base 0b17d54
 const L=require('../lib');
 const Z=require('../drive/puzzles');
 const SIZES=[{k:{w:730,h:375,safe:''},n:'730x375'},{k:{w:844,h:390,safe:''},n:'844x390'},{k:{w:667,h:375,safe:''},n:'667x375'},
