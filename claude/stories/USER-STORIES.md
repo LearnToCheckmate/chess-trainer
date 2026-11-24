@@ -401,7 +401,7 @@ lesson and leaves what the card says, and when it shows, out of scope. This clau
 
 ### US-HM-15 Each skin has its own icons
 *Added #550 item (68), jobs/playful-and-classic-skins-show-the-same-icon-2026-11-11 (Kunal, 11 Nov 2026: "Why do playful and classic have the same Icon ... We used to have different ones.").*
-As a player choosing a skin, each skin looks like itself: no two skins share their Home tile icons, and each skin's row in the menu leads with its own icons, so Playful and Classic can be told apart at a glance. Classic's are its own pre-#366 emoji (📖 🧩 📈 👑), still all four emoji as Kunal chose at #366. (TC-HM-057)
+As a player choosing a skin, each skin looks like itself: no two skins share their Home tile icons, and each skin's row in the menu leads with its own icons, so Playful and Classic can be told apart at a glance; on Home, a subscriber who picks a skin sees that skin's four tile icons (#553). Classic's are its own pre-#366 emoji (📖 🧩 📈 👑), still all four emoji as Kunal chose at #366. (TC-HM-057)
 
 ### US-HM-16 I can find a lesson in a long list without scrolling through all of it
 *Added #550 item (77), jobs/bench-97-lesson-list-is-5934px-of-scroll-with-no-filter-and-no-position-marker-2026-10-06 (Kunal, 8 Oct 2026, on counts and a filter for these lists: "Yes, same rule everywhere"; orchestratorRuling_2026_11_07).*
@@ -2785,6 +2785,12 @@ As a player solving puzzles with my phone upright or turned sideways, the Previo
 As a player who opens the menu at the end of a game, with my phone upright or sideways, a tap outside the sheet or Escape closes it, and every setting in it can be brought on screen with my finger.
 - With the game over, a tap outside the sheet closes it, and so does Escape, at 730x375, 844x390, my phone and 320x568. (TC-R356)
 - Every button, link and Game setup pill in the sheet can be brought wholly inside it by finger drags and taken at its centre; where the sheet fits, every one is there at rest. (TC-R356)
+
+### US-R229 A puzzle I finish after Show tells me exactly what it paid, and pays exactly that
+*Added in batch 14 (#553, builder seat B2), jobs/puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03: Kunal's show-no-rank (#547 item (66)) as the orchestrator applied it in a10 (11 Nov 2026) - a revealed finish keeps the streak and the XP and earns no rank, and the line says so. If he answers q10 'neither', this story changes with it.*
+As a player who taps Show and then plays the answer, the closing line tells me in full that the answer was shown, that it earns no rank and that it still counts for XP and my streak, without praising me, and my progress moves exactly that way.
+- The whole line says the answer was shown, earns no rank, and counts for XP and the streak; it never says Solved!, "not counted" or "nicely done", at my phone and 320x568. (TC-R358, TC-R359)
+- My solved count does not move, my streak rises by one, and I get the same XP an unaided solve of that puzzle pays. (TC-R360)
 
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*

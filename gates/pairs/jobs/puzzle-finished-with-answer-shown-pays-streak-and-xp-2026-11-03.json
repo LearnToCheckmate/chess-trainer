@@ -1,0 +1,24 @@
+{
+ "job": "puzzle-finished-with-answer-shown-pays-streak-and-xp-2026-11-03",
+ "about": "Gate 218 (TC-R358..360): training puzzle 1 (Re8+ Rf8 Rxf8#) on a fresh store, solved unaided as the yardstick and then finished after a real tap on Show. The revealed closing line, read whole, says the answer was shown, earns no rank and counts for XP and the streak, with no Solved!, 'not counted' or 'nicely done'; and chesstrainer.progress.v1 agrees: solved map unchanged, streak +1, XP equal to the unaided solve's. This grades a10 (Kunal's show-no-rank: keep streak and XP, say so), not q10's open 'neither'. At kunal761 (375x761, insets 51/31) and 320x568. NOT COVERED: online (Lichess) and drill puzzles, a second reveal of the same puzzle (+2 XP), his look on his phone.",
+ "gate": "gates/regress/218-revealed-finish-says-what-it-pays.js",
+ "env": {},
+ "checks": ["TC-R358 ", "TC-R359 ", "TC-R360 "],
+ "build": "auto",
+ "situations": [
+  {"name": "kunal761", "match": "^375x761: "},
+  {"name": "se 320x568", "match": "^320x568: "}
+ ],
+ "breaks": [
+  {"name": "praise-back", "patch": "breaks/553-revealed-finish-praise-back.diff",
+   "why": "the revealed line ends ' - nicely done.' again, after its 108-character a10 prefix: the case gate 39's R4b could not see because its reader stops at 120 characters",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "not-counted-wording", "patch": "breaks/553-revealed-finish-not-counted-wording.diff",
+   "why": "the line goes back to 'not counted as solved' while the store still pays the streak and XP - the job's own defect",
+   "mustFailIn": ["kunal761", "se 320x568"]},
+  {"name": "pays-no-xp", "patch": "breaks/553-revealed-finish-pays-no-xp.diff",
+   "why": "a revealed finish pays no XP while the line still says it counts for XP, so the words and the store disagree the other way",
+   "mustFailIn": ["kunal761", "se 320x568"]}
+ ],
+ "timeoutSec": 900
+}

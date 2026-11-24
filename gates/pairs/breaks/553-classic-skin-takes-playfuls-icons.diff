@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..a1edcf83 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4268,5 +4268,5 @@ const SKINS=[
+        gets back its own pre-#366 emoji (6cd1449^): 📖 🧩 📈 👑 - still all four emoji, ink-matched through inkScale, as he
+        chose, and no longer Playful's. */
+-    icons:{learn:'📖',puzzle:'🧩',analyze:'📈',play:'👑'} },
++    icons:{learn:'🔭',puzzle:'🧩',analyze:'🔍',play:'♟️'} },
+   { key:'medieval', name:'Medieval', blurb:'Aged stone, parchment & gold', pal:8, pro:true,
+     font:"'Cinzel',serif",

@@ -1,5 +1,6 @@
 // regress/39-pz-streak.js  Z-04 (Kunal, choice "Streak"). THE ONLY GUARD ON THIS CHANGE.
 // CONTROL-RECORD: 75f9025 2026-11-11 total=229 red=2 scope=trial:ae0f65399b7d how=#550 answer a10: the tree before the revealed-finish wording, whose line still reads 'not counted as solved' - R4c red at kunal730 and kunal761, everything else green; the a10 bundle 2f43024ddf91 reads 229 pass, 0 fail
+// CONTROL-RECORD: 4b8fd17 2026-11-24 total=233 red=2 scope=trial:d13f5471d778 how=#553 B2, after closing() stopped cutting the line at 120 characters: ' - nicely done.' put back after the a10 prefix of the revealed line - R4b red at kunal730 and kunal761, everything else green (before the widening R4b stayed green on this control, the 15 Nov checker's finding); the tree's bundle 4f79c24f88a7 reads 233 pass 0 fail
 // CONTROL-RECORD: 24f4294 2026-11-11 total=227 red=13 scope=trial:851f1d7f8d6e how=#550 item (23): the training card's pz-top given marginTop 40 when solved (the board pushed down on the first solve) - TC-PZ-SOLVED39 red at kunal761 and 320x568 with the board-top lines it moves; every other line green
 // CONTROL-RECORD: 04419c4 2026-11-06 total=219 red=4 scope=trial:5f575748b380 how=the HEAD 4637b44 bundle, whose landscape rail held the hint only in puzMsg - TC-R86 'the hint is STILL in the header after the wrong move' and 'and still after a second wrong move' red at 730x375 and 844x390 [#549 item (46)]
 //
@@ -164,7 +165,7 @@ L.run(async()=>{
   // and the Daily 3 puzzle step still credited, and the closing line is not "Solved!" and says the answer was shown.
   const prog=(b)=>b.page.evaluate((k)=>{let p=null,d=null;try{p=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}try{d=JSON.parse(localStorage.getItem('ct_daily3')||'null');}catch(e){}
     return {solved:p&&p.solved?Object.keys(p.solved).length:0,streak:p?p.streak:null,xp:p?p.xp:null,puz:d?d.puz:null};},PZKEY);
-  const closing=(b)=>b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^(\u{1F389}|\u{1F441})/u.test(t)&&t.length>12);return d.length?d[d.length-1].slice(0,120):null;});
+  const closing=(b)=>b.page.evaluate(()=>{const d=[...document.querySelectorAll('div')].map(x=>(x.innerText||'').trim()).filter(t=>/^(\u{1F389}|\u{1F441})/u.test(t)&&t.length>12);return d.length?d[d.length-1]:null;});   /* #553 B2: read WHOLE - the 120-character cap made R4b vacuous once a10's 108-character prefix took most of it (checker, 15 Nov); gate 218 holds the full line against the store */
   for(const geo of ['kunal730','kunal761']){
     for(const shown of [false,true]){
       const tag=geo+(shown?' shown':' unaided');

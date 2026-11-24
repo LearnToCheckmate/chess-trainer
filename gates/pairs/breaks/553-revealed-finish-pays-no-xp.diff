@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..c736c4e9 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9367,5 +9367,5 @@ function AppMain(){
+     const rankBefore=pzRank(map);
+     const nstreak=pzStreakRef.current+1, nbest=Math.max(pzBestRef.current,nstreak);
+-    const nxp=pzXPRef.current+(already?2:Math.max(5,Math.round((p.rating||800)/10)));
++    const nxp=pzXPRef.current+(shown?0:already?2:Math.max(5,Math.round((p.rating||800)/10)));
+     pzStreakAtRef.current=Date.now();setPzSolvedMap(nmap);setPzStreak(nstreak);setPzBest(nbest);setPzXP(nxp);
+     PZSTORE.set(PZKEY,JSON.stringify({solved:nmap,streak:nstreak,streakAt:pzStreakAtRef.current,best:nbest,xp:nxp,online:pzOSolvedRef.current,onlineIds:pzOSolvedIdsRef.current}));
