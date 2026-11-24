@@ -1,9 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index f8bc6e2..26254a1 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -6776,5 +6776,5 @@ function AppMain(){
-     for(const [o,m] of order){if(_revRoom-C(o)>=vw+m){o.rows=C(o);return o;}}
-     const last=order[order.length-1][0];last.rows=C(last);return last;},[revStream,vp.h,vw,_revRoom]);
+@@ -7117,7 +7117,7 @@ function AppMain(){
+        548 - 247 = 301); a phone that falls a pixel or two short of the margin (320x568 in Safari: 321) keeps the 44 row, as before */
+     if(_revRoom-last.rows>=vw-2)return last;
+     const thin=F({bars32:true,lines:1,tight:true,thin:true});thin.rows=C(thin);return thin;},[revStream,vp.h,vw,_revRoom]);
 -  const revHead=revStream&&revFit.head;
 +  const revHead=revStream&&vp.h>=700;
    /* #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right";
       jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29, mockup 550-70-mock-A761.png): SIDEWAYS
+      PLAY puts the two player bars in the rail, so the board takes the whole height (216 -> 344 at 761x375). It is the whole sideways

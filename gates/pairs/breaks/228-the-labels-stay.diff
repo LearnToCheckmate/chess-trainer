@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index f8bc6e20..0c5e3fea 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13900,7 +13900,7 @@ function AppMain(){
+           </div>);
+         /* #550 a21: in the streamlined view the row is the BOTTOM TOOLBAR of his picked mockup - Back, Analyze, Key move, Forward -
+            pinned to the foot of the screen; First, Last and Auto-play move to the more sheet. In analysis it stays the analysis row. */
+-        const _tbLbl=(ic,t)=>(_thin?ic:<span style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2,lineHeight:1}}>{ic}<span style={{fontSize:'clamp(12px,3vw,13px)',fontWeight:700}}>{t}</span></span>);   /* thin: the icon alone, its name in aria-label */
++        const _tbLbl=(ic,t)=>(false?ic:<span style={{display:'inline-flex',flexDirection:'column',alignItems:'center',gap:2,lineHeight:1}}>{ic}<span style={{fontSize:'clamp(12px,3vw,13px)',fontWeight:700}}>{t}</span></span>);   /* thin: the icon alone, its name in aria-label */
+         const _tb=(anaMode?_row1:(<div data-ct="rev-row1" data-tb="1" style={{display:'flex',gap:8,alignItems:'stretch'}}>{/* #550 antagonist A round 3, A3-1: Key move is NOT beside Forward - item (2) was the star 6pt from next; Analyze sits between them */}
+             {/* #550 round-3 suite, gate 26 TC-INV-02a: ONE glyph height across the toolbar - chevrons, star and Analyze all 20px (they were 22, text and 17) */}
+             {cb(<StepArrow size={20} dir="left"/>,()=>{setRevAuto(false);setPly(p=>Math.max(0,p-1));},0,false,'Previous move')}

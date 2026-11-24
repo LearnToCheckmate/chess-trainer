@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index f8bc6e20..771c68c5 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7115,7 +7115,7 @@ function AppMain(){
+     const last=order[order.length-1][0];last.rows=C(last);
+     /* #553 card 74: the thin row only where the tightest rows still leave the board SHORT of the width (320x568 from its Home Screen icon:
+        548 - 247 = 301); a phone that falls a pixel or two short of the margin (320x568 in Safari: 321) keeps the 44 row, as before */
+-    if(_revRoom-last.rows>=vw-2)return last;
++    if(_revRoom-last.rows>=vw+2)return last;
+     const thin=F({bars32:true,lines:1,tight:true,thin:true});thin.rows=C(thin);return thin;},[revStream,vp.h,vw,_revRoom]);
+   const revHead=revStream&&revFit.head;
+   /* #550 answer a23 (Kunal on the Desk, B10-Q23: "Option A: the board on the left, everything else on the right";

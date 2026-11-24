@@ -27,9 +27,10 @@
 //     app the shell is on (window.__ctFullH 812, innerHeight 761); sideways the shell is off
 //  a  upright: at each of the three plies Review's board is the full width (left and right gaps 1.5px or less) AND within 0.5px of
 //     Play's board on the same launch; sideways: within 0.5px of Play's and the full height (gap under 1.5px)
-//  c  320x568-app only: there the rows at their tightest (revFit's last step, 247) and the 20 inset leave 301.03 for the board, so the height
-//     caps it: at least 301.03 and centred (the shipped #552 bundle drew 269.03; full width there would need more rows to give way,
-//     which is a layout call left for Kunal, not made here)
+//  c  320x568-app only: there the rows at their tightest (revFit's last step: 235 since #553, the button row thinned 44 -> 32 on his pick C of
+//     card 74, run-answers orchestrator-B14-Q2-2026-11-24; 247 before) and the 20 inset leave 313.03 (301.03 before) for the board, so the height
+//     caps it: at least 313.03 and centred (the shipped #552 bundle drew 269.03; full width there would need more rows to give way,
+//     which he settled on card 74: pick C, the thin row, not the full width)
 //  b  upright: the rows stack on screen - board, bottom player bar, move strip, the explanation's box, the buttons - the buttons ending
 //     inside the painted height (812 in app, the viewport elsewhere)
 // KNOW ITS LIMIT: headless Chromium with Chromium's own inset override, not iOS Safari; ct_fullh stands in for navigator.standalone; one
@@ -46,7 +47,7 @@ const H=L.HOME_SCREEN_APP;
 const LAUNCHES=[
   ['app',Object.assign({},H,{store:Object.assign({},H.store,{ct_pool:'3'})}),{insets:[51,31],shell:812,ih:761,paint:812}],
   ['812',{geo:{w:375,h:812,safe:'',label:'375x812 real insets, no shell'},screen:{w:375,h:812},realInsets:'51,31',store:{ct_pool:'3'}},{insets:[51,31],shell:0,paint:812}],
-  ['320x568-app',{geo:{w:320,h:548,safe:'',label:'320x568 Home Screen app: 548 layout viewport, the 568 shell, real insets 20/0'},screen:{w:320,h:568},realInsets:'20,0',store:{ct_pool:'3',ct_fullh:'1'}},{insets:[20,0],shell:568,ih:548,paint:568,capped:301.03}],
+  ['320x568-app',{geo:{w:320,h:548,safe:'',label:'320x568 Home Screen app: 548 layout viewport, the 568 shell, real insets 20/0'},screen:{w:320,h:568},realInsets:'20,0',store:{ct_pool:'3',ct_fullh:'1'}},{insets:[20,0],shell:568,ih:548,paint:568,capped:313.03}],   /* RE-PINNED at #553 from 301.03: card 74, his pick C - the row thins 44 -> 32 there (gate 228) */
   ['375x761',{geo:'kunal761',store:{ct_pool:'3'}},{paint:761}],
   ['375x667',{geo:{w:375,h:667,safe:'',label:'375x667'},store:{ct_pool:'3'}},{paint:667}],
   ['320x568',{geo:'se',store:{ct_pool:'3'}},{paint:568}],
@@ -81,7 +82,7 @@ L.run(async()=>{
         L.say(Math.abs(m.board.w-pw)<=0.5&&gh<=1.5&&gh>=-0.5,'TC-R263a '+tag+' '+pn+': sideways Review\'s board is '+m.board.w+' tall-and-wide, Play\'s '+pw+', '+gh+'px short of the height',{board:m.board,play:play.board,vh:m.vh});
         continue;}
       if(want.capped){
-        L.say(m.board.w>=want.capped-0.5&&Math.abs(gl-gr)<=1.5,'TC-R263c '+tag+' '+pn+': the height caps Review\'s board here (the rows at their tightest, 247, and the 20 inset leave '+want.capped+'), so it is at least '+want.capped+' and centred - '+m.board.w+' ('+gl+' left, '+gr+' right) against Play\'s '+pw,{board:m.board,play:play.board});
+        L.say(m.board.w>=want.capped-0.5&&Math.abs(gl-gr)<=1.5,'TC-R263c '+tag+' '+pn+': the height caps Review\'s board here (the rows at their tightest, 235 with the thin button row, and the 20 inset leave '+want.capped+'), so it is at least '+want.capped+' and centred - '+m.board.w+' ('+gl+' left, '+gr+' right) against Play\'s '+pw,{board:m.board,play:play.board});
       }else
       L.say(Math.abs(m.board.w-pw)<=0.5&&Math.abs(gl)<=1.5&&Math.abs(gr)<=1.5,'TC-R263a '+tag+' '+pn+': Review\'s board is the full width, as Play\'s - '+m.board.w+' against Play\'s '+pw+' of '+m.vw+', '+gl+'px from the left and '+gr+'px from the right',{board:m.board,play:play.board});
       const order=!!m.bot&&!!m.strip&&!!m.rc&&!!m.tb&&m.bot.t>=m.board.b-0.5&&m.strip.t>=m.bot.b-0.5&&m.rc.t>=m.strip.b-0.5&&m.tb.t>=m.rc.b-0.5&&m.tb.b<=want.paint+0.5;
