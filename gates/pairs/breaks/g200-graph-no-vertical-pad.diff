@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7fe0e833..d08ac150 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4684,7 +4684,7 @@ function graphMark(m,x,y){const r=m.r,k='rgba(0,0,0,.55)';
+ function EvalGraph({analysis,plies,ply,onJump,width,height,missed,bookN}){
+   const H=height||72,n=analysis.length;if(!n)return null;
+   /* #553, jobs/the-review-graphs-last-ply-marker-is-clipped-to-a-sliver-by-the-svg-edge-2026-11-19: the first and last ply sat ON the svg's left and right edges (x = 0 and x = width), so the svg's own clip cut the 24px hit circle in half and left a 6x16 sliver of the last ply's button at 375x761 (the mate or the Brilliant, usually). The plies now span [GX, width-GX], GX = the hit circle's radius, so every marker lies wholly inside the box; the line, the area, the cursor and the tap-to-ply mapping all use the same x. The vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) inside too. */
+-  const GX=Math.min(12,width/8),pad=Math.min(7,H/4);
++  const GX=Math.min(12,width/8),pad=1;
+   const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
+   const pt=(i)=>{const e=Math.max(-6,Math.min(6,analysis[i].evalAfter));const x=xAt(i);const y=H/2-(e/6)*(H/2-pad);return[x,y];};
+   const pts=analysis.map((_,i)=>pt(i));

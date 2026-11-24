@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 7fe0e833..503a15a0 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4693,7 +4693,7 @@ function EvalGraph({analysis,plies,ply,onJump,width,height,missed,bookN}){
+   const cur=ply>0?Math.min(ply-1,n-1):0;
+   const cx=xAt(cur);
+   return(
+-    <svg width={width} height={H} viewBox={'0 0 '+width+' '+H} preserveAspectRatio="none" style={{display:'block',cursor:'pointer',borderRadius:6,maxWidth:'100%'}} /* #553: the box this svg is laid out in can be NARROWER than the width it was asked for (375x761: the box was 369 wide for a 375 request; 320x568: 290 for 320), and an svg with no viewBox does not shrink its drawing, it clips it - which is what cut the last ply's mark. With a viewBox the drawing shrinks with the box, so every mark stays inside whatever box it gets. */
++    <svg width={width} height={H} style={{display:'block',cursor:'pointer',borderRadius:6,maxWidth:'100%'}} /* #553: the box this svg is laid out in can be NARROWER than the width it was asked for (375x761: the box was 369 wide for a 375 request; 320x568: 290 for 320), and an svg with no viewBox does not shrink its drawing, it clips it - which is what cut the last ply's mark. With a viewBox the drawing shrinks with the box, so every mark stays inside whatever box it gets. */
+       onClick={e=>{const r=e.currentTarget.getBoundingClientRect();const f=Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*width-GX)/((width-2*GX)||1)));onJump(Math.round(f*(n-1))+1);}}>
+       <rect x="0" y="0" width={width} height={H/2} fill="rgba(255,255,255,.06)"/>
+       <rect x="0" y={H/2} width={width} height={H/2} fill="rgba(0,0,0,.30)"/>
