@@ -1,9 +1,9 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -8812,5 +8812,5 @@
+@@ -8995,5 +8995,5 @@
      if(liveReviewWaits(g,liveOwnRef.current))return;   // the rule holds at every growth too (an account marked his after the review opened)
      setLiveStat({at:Date.now()});
 -    if(parsePGN(g.pgn).length>rv.plies.length){liveBusyRef.current=true;try{await importGame(g.pgn,{live:{url:g.url,from:g.from,grow:true}});}finally{liveBusyRef.current=false;}}};
 +    if(false&&parsePGN(g.pgn).length>rv.plies.length){liveBusyRef.current=true;try{await importGame(g.pgn,{live:{url:g.url,from:g.from,grow:true}});}finally{liveBusyRef.current=false;}}};
    liveTickRef.current=liveTick;liveOwnRef.current=liveOwnNames(chessUser,ccAccts,acctMine);
-   const _liveUrl=(liveOn&&mode==='analyze'&&review&&review.meta&&review.meta.live)?review.meta.live.url:null;liveRevRef.current=_liveUrl?review:null;
+   /* batch 14, jobs/review-a-chess-com-game-while-it-is-being-played-kept-private-2026-11-16 ("the games box is squeezed"): THE GAMES IN PROGRESS

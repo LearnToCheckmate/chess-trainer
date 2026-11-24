@@ -22,6 +22,11 @@
 // (kunal761) on the move screen at the last move it follows to 10 with the board where it was. g: POLITE - no two requests about one
 // account within 30 s, none to /games/to-move or to a chess.com page, and (kunal761) none at all for 50 s once the review is closed.
 // h: the list's layout (inside the screen, 44px rows, text 13.5px or more) and zero app errors.
+// i (batch 14, the job's listed limit "the games box squeezed to about 88px"): with the switch on, the box around the finished games keeps the
+// height it has in launch 1 (switch off) and the page does not scroll - the games in progress are the top of that box now.
+// j (batch 14, the job's listed limit "the summary line wraps at 375"): the open review's "In progress ... so far" and "checked h:mm AM" each
+// sit whole on one line, uncut, at 6 moves and at 8, and their block keeps its height. At 375 the old one-line wording ran 352px into 351
+// at 12:29 AM, so whether IT wrapped there depended on the clock (a one-digit hour fits); its pairs breaks are graded at 320x568, where it always does.
 // NOT COVERED: a real chess.com response (the network is closed here); the "This game has ended" line; the review of a game that
 // ends while open; a Chess960 Daily game (left out of the list by its rules field); the Menu switch row's own tap (gate 47 owns the
 // Menu; this gate sets the key the row writes); his phone.
@@ -87,9 +92,25 @@ const until=async(b,fn,ms)=>{const t0=Date.now();for(;;){const r=await read(b);i
 const boardRect=(b)=>b.page.evaluate(()=>{let best=null;document.querySelectorAll('div').forEach(d=>{const g=getComputedStyle(d).gridTemplateColumns;if(g&&g.split(' ').length===8){const r=d.getBoundingClientRect();if(!best||r.width>best.w)best={l:Math.round(r.left*10)/10,t:Math.round(r.top*10)/10,w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10};}});return best;});
 const stripCount=(b)=>b.page.evaluate(()=>{const s=document.querySelector('[data-ct="strip-row"]');return s?(s.innerText||'').replace(/\s+/g,' ').trim():null;});
 
+// batch 14 (the job's two listed limits). THE GAMES BOX: the scroller around the finished games (found from a game card, the nearest ancestor that
+// scrolls, never #root) and what #root would still scroll - the Review list is a fixed page (q45), so with the switch on the box must keep
+// the height it has with the switch off and the page must not scroll. Read the same way in both launches, so the switch is the only difference.
+const boxRead=(b)=>b.page.evaluate(()=>{const row=document.querySelector('[data-ct="game-row"]');let sc=null;for(let e=row&&row.parentElement;e;e=e.parentElement){if(e.id==='root')break;const o=getComputedStyle(e).overflowY;if(o==='auto'||o==='scroll'){sc=e;break;}}
+  const root=document.getElementById('root');return {h:sc?Math.round(sc.clientHeight*10)/10:null,over:root?Math.round((root.scrollHeight-root.clientHeight)*10)/10:null};});
+// THE SUMMARY'S IN-PROGRESS WORDS, found by what they say (no hook): the moves ("In progress ... so far") and the time it was checked
+// ("checked h:mm AM"), each read as a Range - how many lines its glyphs sit on, and whether its right edge passes its block's (cut) - and the
+// height of the smallest element holding both. Base: one string, 352px into 351, so "AM" alone took a second line.
+const liveLine=(b)=>b.page.evaluate(()=>{const sum=document.querySelector('[data-ct="rev-summary"]');if(!sum)return null;const tw=document.createTreeWalker(sum,NodeFilter.SHOW_TEXT);const out={};let n;
+  const rd=(nd,a,z)=>{const r=document.createRange();r.setStart(nd,a);r.setEnd(nd,z);const rs=[...r.getClientRects()].filter(x=>x.width>0);let blk=nd.parentElement;while(blk&&getComputedStyle(blk).display==='inline')blk=blk.parentElement;const br=blk.getBoundingClientRect();
+    return {t:nd.textContent.slice(a,z),lines:new Set(rs.map(x=>Math.round(x.top))).size,right:Math.round(Math.max(...rs.map(x=>x.right))*10)/10,edge:Math.round(br.right*10)/10,cut:rs.some(x=>x.right>br.right+0.5)};};
+  while((n=tw.nextNode())){const t=n.textContent;let m=/In progress[^]*?so far/.exec(t);if(m&&!out.moves){out.moves=rd(n,m.index,m.index+m[0].length);out.mn=n;}
+    m=/checked\s+\d{1,2}:\d\d(\s?[AP]M)?/i.exec(t);if(m&&!out.at){out.at=rd(n,m.index,m.index+m[0].length);out.an=n;}}
+  if(out.mn&&out.an){let e=out.mn.parentElement;while(e&&!e.contains(out.an))e=e.parentElement;out.h=e?Math.round(e.getBoundingClientRect().height*10)/10:null;}delete out.mn;delete out.an;return out;});
+const liveLineOk=(x)=>!!x&&!!x.moves&&!!x.at&&x.moves.lines===1&&x.at.lines===1&&!x.moves.cut&&!x.at.cut;
 L.run(async()=>{
   for(const geo of (process.env.CT_G176_GEO?process.env.CT_G176_GEO.split(','):['kunal761','se'])){   // CT_G176_GEO=se runs one geometry (a rerun while fixing; never the graded run)
     const tag=geo;const full=geo==='kunal761';
+    let offBox=null;
     // ── 1 and 2: the switch off, and a player with the key ──
     for(const [nm,opts,what] of [['a',{store:{...STORE}},'SWITCH OFF (developer tools on, the switch not set)'],['b',{dev:false,store:{...STORE,ct_live_review:'1'}},'A PLAYER WITH THE KEY SET (no developer tools, ct_live_review 1)']]){
       const S={hits:[],plies:6};const b=await L.launch({geo,name:'liverev-'+geo+'-'+nm,...opts});await stub(b,S);await b.open();await b.tile('Review');await b.settle(2500);
@@ -98,6 +119,7 @@ L.run(async()=>{
         await b.settle(3000);const r2=await read(b);
         L.say(!r2.section&&!r2.A&&!r2.B&&!r2.C&&!r2.said&&!/Stranger99|OtherPerson/.test(r2.body),tag+' TC-R247'+nm+' '+what+': nothing of a game in progress shows - no section, no row, no player of one named',{section:r2.section,said:r2.said});
         L.say(inProg(S).length===0&&toMove(S)===0,tag+' TC-R247'+nm+' '+what+': and no request went to chess.com\'s list of games in progress',{inProgress:inProg(S).map(h=>h.u),toMove:toMove(S)});
+        if(nm==='a')offBox=await boxRead(b);   // batch 14: the games box with the switch off, for TC-R247i
       }
       await b.close();
     }
@@ -110,6 +132,9 @@ L.run(async()=>{
       // layout
       const rows=[r0.A,r0.B,r0.C];const bad=[];rows.forEach((x,i)=>{if(x.rect.l<-0.5||x.rect.r>r0.vw+0.5)bad.push('row '+i+' '+x.rect.l+'..'+x.rect.r);if(x.rect.h<44-0.6)bad.push('row '+i+' height '+x.rect.h);x.texts.forEach(t=>{if(t.fs<13.5-0.01)bad.push('row '+i+' "'+t.t.slice(0,24)+'" '+t.fs+'px');if(t.cut&&!t.ell)bad.push('row '+i+' "'+t.t.slice(0,24)+'" cut with no ellipsis');});});
       L.say(rows.every(x=>x.texts.length>=2)&&bad.length===0&&!!r0.section&&r0.section.l>=-0.5&&r0.section.r<=r0.vw+0.5,tag+' TC-R247h the list is inside the '+r0.vw+'px screen, every row 44px or taller ('+rows.map(x=>x.rect.h.toFixed(0)).join(', ')+'), no text under 13.5px and none cut without an ellipsis',bad.slice(0,5));
+      // ── i (batch 14): the games box is not squeezed ──
+      await b.settle(1500);const onBox=await boxRead(b);
+      L.say(!!offBox&&offBox.h!=null&&onBox.h!=null&&Math.abs(onBox.h-offBox.h)<=1&&onBox.over!=null&&onBox.over<=1,tag+' TC-R247i THE GAMES BOX IS NOT SQUEEZED: with the switch on the box around the finished games is '+(onBox.h)+'px, as with it off ('+(offBox&&offBox.h)+'px), and the page itself does not scroll ('+onBox.over+'px over) - the games in progress scroll inside the box',{off:offBox,on:onBox});
       // ── d: his own games are reviewed live (TC-R261) ──
       const WAITS=/review opens when it ends|Your game/i;
       L.say(!WAITS.test(r0.B.text)&&!WAITS.test(r0.C.text)&&!WAITS.test(r0.A.text)&&/Daily/.test(r0.B.text)&&/\b4 moves played\b/.test(r0.B.text)&&/White to move/.test(r0.B.text)&&!r0.B.off&&/Daily/.test(r0.C.text)&&/\b2 moves played\b/.test(r0.C.text)&&/White to move/.test(r0.C.text)&&!r0.C.off,tag+' TC-R247d TC-R261 OWN GAME LIVE: each game one of his accounts plays in reads like any game in progress, with no wait line - the one that came in on the friend\'s list ("'+r0.B.text+'") and the one from his own ("'+r0.C.text+'")',{B:r0.B.text,C:r0.C.text,A:r0.A.text});
@@ -134,9 +159,13 @@ L.run(async()=>{
         L.say(e4>=6,tag+' TC-R247e the recorder sees the engine at work on A: '+e4+' positions of games opened 1.e4 were posted to Stockfish workers',{posted:r1.pos.length});
         const ag=await L.acctGames(b.page);const held=[];Object.keys(ag.map||{}).forEach(id=>(ag.map[id]||[]).forEach(g=>{if(/\[Result\s+"\*"\]/.test(g.pgn||'')||/Stranger99|OtherPerson/i.test(JSON.stringify(g)))held.push(id);}));
         L.say(ag.from!=='none'&&held.length===0&&r1.starInStore.length===0&&gsKeys(r1.gs).every(k=>HELD_KEY.test(k))&&r1.mm===before.mm&&r1.mb===before.mb,tag+' TC-R247e TC-R261 and nothing of it, or of his own games B and C reviewed before it, is kept: no held game is in progress or names its players, no stored key carries them (but the player-country cache, which names a player and no game), and the review tally, the mistakes drill and the brilliant moves are as they were',{heldInProgress:held,keys:r1.starInStore,from:ag.from,gsBefore:gsKeys(before.gs),gsAfter:gsKeys(r1.gs),mmSame:r1.mm===before.mm,mbSame:r1.mb===before.mb,mmLen:[before.mm.length,r1.mm.length],mbLen:[before.mb.length,r1.mb.length]});
+        const ll1=await liveLine(b);
+        L.say(liveLineOk(ll1),tag+' TC-R247j THE SUMMARY\'S IN-PROGRESS WORDS ARE NEVER BROKEN: "'+(ll1&&ll1.moves?ll1.moves.t:'?')+'" sits on one line and "'+(ll1&&ll1.at?ll1.at.t:'?')+'" on one line, neither cut',ll1);
         // ── f: it grows, with no tap ──
         const w2=await until(b,r=>r.plies===8&&/\b8 moves so far/.test(r.sumText),80000);const r2=w2.r;
         L.say(w2.ok&&r2.summary,tag+' TC-R247f THE REVIEW GROWS: with no tap, '+Math.round(w2.ms/1000)+'s after the fixture gained a move by each side the open summary reads 8 moves and the review holds 8 graded plies',{plies:r2.plies,sum:r2.sumText.slice(0,160),waitedMs:w2.ms});
+        if(w2.ok){const ll2=await liveLine(b);
+          L.say(liveLineOk(ll2)&&!!ll1&&ll1.h!=null&&ll2.h===ll1.h,tag+' TC-R247j and as it grows to 8 moves the words stay whole and their block keeps its height ('+(ll1&&ll1.h)+' then '+(ll2&&ll2.h)+'px)',{before:ll1,after:ll2});}
         if(full&&w2.ok){
           let onMoves=false,toEnd=null;try{await R.startReview(b);await R.goPly(b,99);onMoves=await R.inMoves(b);toEnd=(await read(b)).moveLine;}catch(e){L.note('start review: '+String(e).slice(0,160));}
           const bd0=await boardRect(b);const st0=await stripCount(b);
