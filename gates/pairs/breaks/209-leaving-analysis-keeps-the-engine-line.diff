@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6539,7 +6539,7 @@
+   /* #547 item (188): what the engine-line switch read before analysis turned it on, so leaving analysis puts it
+      back. null = not inside an analysis entry. Exiting analysis used to leave the row on for the rest of the session. */
+   const engPreAnaRef=useRef(null);
+-  const _engRestore=()=>{if(engPreAnaRef.current!==null){setEngOn(engPreAnaRef.current);engPreAnaRef.current=null;}};          // #341: engine analysis of the position on screen, on demand
++  const _engRestore=()=>{engPreAnaRef.current=null;};          // #341: engine analysis of the position on screen, on demand
+   const [anaMode,setAnaMode]=useState(false);      // #342: analysis board - play the position out yourself from the review
+   const anaModeRef=useRef(false);anaModeRef.current=anaMode;
+   const [anaHist,setAnaHist]=useState([]);const anaSayRef=useRef(null);
