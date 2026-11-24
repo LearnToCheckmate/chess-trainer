@@ -398,4 +398,20 @@ panel to put it in; on a phone there is not. Copying the pattern onto the board 
 
 Scope is Review only. The lesson screen's note box sits ABOVE its board, not on it, and is untouched.
 
+## 2026-11-10 — THE BOARD'S COORDINATE LETTERS KEEP TODAY'S COLOURS; WCAG AA 4.5:1 IS NOT THEIR TARGET (recorded #553)
+
+**His answer**, on the Desk card questions/B9C-COORD-CONTRAST ("Should the letters and numbers along the edge of the board be
+clearly readable on every board colour?"), mirrored at about 10:02pm EST Tue 10 Nov 2026: **"Keep today's letter colours"**
+(choice `keep`). Recorded in this repo at #553 (batch 14, seat B1) for
+jobs/a-file-label-under-a-highlight-falls-to-1-58-to-1-contrast-2026-10-04, whose 15 Nov checker found the repo held no
+record of it.
+
+**What it settles.** Each coordinate letter is painted in the OTHER square's colour on an opaque chip of its OWN square's
+colour (#548, 8c91a6c, on his earlier default questions/B8-SMALL-DEFAULTS (3): the letters keep their own contrast), so its
+contrast is the theme's light/dark pair - 3.37:1 on the default Ocean board, 2.38:1 (Candy) to 5.55:1 (Dragonstone) across
+the 12 themes, 10 of them under 4.5. **Raising that to AA is NOT the target** for board coordinates, by his answer; what
+IS held is that no highlight, hint, selection or solution square can pull a letter below its own pair (it fell to 1.58:1
+before #548). Gate 207 (TC-R326..327) asserts exactly that, on a puzzle's Show square and on a flipped board. A recolour
+of the letters (black or white ink, a chip independent of the square) is his call and is not to be built without it.
+
 > The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.

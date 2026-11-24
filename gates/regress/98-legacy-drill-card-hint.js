@@ -14,6 +14,9 @@
 // DENOMINATOR per card: the drill opened on that card (its goal names the move played) and the Hint tap produced a hint line.
 // CONTROL-RECORD: 719c41e 2026-11-11 total=7 red=2 scope=trial:3ab724514641 how=#550 item (89): origin/main's bundle - both legacy cards show 'Look for the most forcing or solid option', so TC-R183a and TC-R183b's hint lines are red; the four DENOMINATORS and the font pin green
 // CONTROL-RECORD: 3835b96 2026-11-12 total=7 red=4 scope=trial:9bceb4fee152 how=#550 round 5, Hint re-key: the drills' Hint button does nothing (onClick no-op) - both DENOMINATOR lines and both own-hint lines red; on 764a0b1dc097 7/0
+// CONTROL-RECORD: 70f27e68 2026-11-24 total=7 red=1 scope=trial:727e25898de1 how=#553 B1 pairs break a-legacy-card-falls-back-to-the-generic-hint (item 89's computed hint removed): TC-R183a's own-hint line red (the generic sentence); TC-R183b green, the HEX-T-01 concrete reading still names the mate
+// CONTROL-RECORD: 70f27e68 2026-11-24 total=7 red=2 scope=trial:cb3c25a1cff9 how=#553 pairs break no-hint-is-computed-for-a-legacy-card (item 89 and HEX-T-01 both removed): TC-R183a and TC-R183b own-hint lines red
+// The grading machine on 70f27e68: CHECKED, real 6/6 at kunal761 (bundle d3c55845b03f), both breaks CAUGHT.
 const L=require('../lib');
 const GENERIC=/Look for the most forcing or solid option/;
 const CARDS=[
