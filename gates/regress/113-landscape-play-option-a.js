@@ -29,7 +29,7 @@ L.run(async()=>{
   for(const S of SIZES){const tag=S.w+'x'+S.h;let live=null;
     for(const kind of ['live','over']){
       const b=await L.launch({geo:'kunal761',name:'landA-'+kind+'-'+S.w});await b.open();
-      let ok=true;try{await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});
+      let ok=true;try{await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
         if(kind==='over'){await b.move('f2','f3',450);await b.move('e7','e5',450);await b.move('g2','g4',450);await b.move('d8','h4',900);}else{await b.move('e2','e4',450);await b.move('e7','e5',450);}
         await b.page.setViewportSize({width:S.w,height:S.h});await b.settle(1600);}catch(e){ok=false;L.note(tag+' '+kind+': '+String(e).slice(0,120));}
       const m=ok?await read(b):null;

@@ -10,7 +10,7 @@ const tag=process.argv[2]||'x';
 const dots=(b)=>b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));if(!g)return [];const R=g.getBoundingClientRect(),sq=R.width/8;const out=[];for(const e of g.querySelectorAll('div,span')){const st=getComputedStyle(e);if(!/50%/.test(st.borderRadius))continue;const r=e.getBoundingClientRect();if(r.width<6||r.width>sq)continue;if((e.innerText||'').trim())continue;const c=Math.floor((r.left+r.width/2-R.left)/sq),row=Math.floor((r.top+r.height/2-R.top)/sq);out.push(c+','+row);}return [...new Set(out)];});
 const sqName=(c,row,flip)=>{const f=flip?7-c:c,r=flip?row:7-row;return String.fromCharCode(97+f)+(r+1);};
 L.run(async()=>{
-  const b=await L.launch({geo:'kunal',name:'wrong-'+tag});await b.open();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
+  const b=await L.launch({geo:'kunal',name:'wrong-'+tag});await b.open();await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});
   const bd=await b.board();L.note('board '+JSON.stringify(bd&&{w:bd.w,top:bd.y,flip:bd.flip}));
   // learn the solution squares from Show, then reset
   await b.tapText(/^👁 Show$/,{wait:700});const hl=await b.page.evaluate(()=>{const g=[...document.querySelectorAll('div')].find(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));const R=g.getBoundingClientRect(),sq=R.width/8;const out=[];[...g.children].slice(0,64).forEach((c,i)=>{const st=getComputedStyle(c);const bs=st.boxShadow+'|'+st.outline+'|'+st.backgroundColor;const r=c.getBoundingClientRect();if(/inset|rgb\(2[0-9][0-9]|yellow|gold/i.test(bs)&&/inset/.test(st.boxShadow))out.push(i%8+','+Math.floor(i/8));});return out;});

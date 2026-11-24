@@ -27,7 +27,7 @@ L.run(async()=>{
   for(const [tag,geo] of [['se','se'],['kunal','kunal'],['430','430']]){
     const b=await L.launch({geo,name:'ant-solve-'+tag});await b.open();
     try{
-      await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
+      await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});
       const a0=await sig(b);const m=await solve(b,tag);
       L.say(!!m,tag+': A-10 the first puzzle is solved through the 👁 line',m);
       if(m){const nb=await b.page.evaluate(()=>{const e=document.querySelector('[aria-label="Next puzzle"]');if(!e)return null;const r=e.getBoundingClientRect();return {t:(e.innerText||'').trim(),h:Math.round(r.height),w:Math.round(r.width)};});

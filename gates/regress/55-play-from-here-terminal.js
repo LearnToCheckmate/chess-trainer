@@ -79,7 +79,7 @@ const termNote=(b)=>b.page.evaluate(()=>{
 // data-ct #466 added with these assertions: on the pre-#466 bundle that hook is absent, so a hook-keyed tap clicked NOTHING
 // and A7-A9 ("tapping it starts nothing") PASSED on the one bundle where tapping it started a game. The hook is a FALLBACK
 // only, and the reading says which locator found it (`by`).
-const CONFIRM_RE=/^(\u25b6 Start game|\u25b6 Play this position|That position is already over|Continue \u2192|Tap again to discard your game and start|Tap again to discard your game)$/;
+const CONFIRM_RE=/^(Start game|Play this position|That position is already over|Continue \u2192|Tap again to discard your game and start|Tap again to discard your game)$/;
 const confirmBtn=(b)=>b.page.evaluate((src)=>{const re=new RegExp(src);const s=document.querySelector('[data-ct="setup-sheet"]');if(!s)return null;
   const xs=[...s.querySelectorAll('button')].filter(x=>re.test((x.innerText||'').trim()));let e=xs[xs.length-1],by='text';
   if(!e){e=s.querySelector('[data-ct="setup-start"]');by='hook';}
@@ -193,8 +193,8 @@ async function nonTerminal(b,tag){
   L.say((await termNote(b))===null, tag+': C2 the TERMINAL note is absent at a playable ply');
   const btn=await confirmBtn(b);
   L.say(!!btn&&btn.dis===false, tag+': C3 the confirm button is ENABLED', btn&&JSON.stringify(btn));
-  L.say(!!btn&&/Play this position/.test(btn.txt), tag+': C4 and still reads "▶ Play this position"', btn&&btn.txt);
-  await b.tapText(/^▶ Play this position$/,{wait:1600});
+  L.say(!!btn&&/Play this position/.test(btn.txt), tag+': C4 and still reads "Play this position"', btn&&btn.txt);
+  await b.tapText(/^Play this position$/,{wait:1600});
   L.say(!(await vis(b,'[data-ct="setup-sheet"]')), tag+': C5 the setup sheet closed, so the route COMMITTED');
   const bd=await b.board();  /* b.board() is ASYNC. The first version of this line omitted the await, so the assertion read a Promise - bd.w was undefined, NaN>200 was false, and it reported FAIL with a detail of "null" on a bundle where the board was fine. A false red from my own gate, caught by my own control block. */
   L.say(!!bd&&bd.w>200, tag+': C6 a playable board is on screen', bd&&Math.round(bd.w*100)/100);
@@ -219,7 +219,7 @@ async function preview(b,tag){
   L.say(!!pre&&!!atTap&&pre.filter(Boolean).length>=30&&!same(pre,atTap), tag+': D1 PRECONDITION at the moment of the tap the board shows the PREVIEW, not the ply', JSON.stringify({prePieces:pre&&pre.filter(Boolean).length,atTapPieces:atTap&&atTap.filter(Boolean).length,differ:!!pre&&!!atTap&&!same(pre,atTap)}));
   const offered=(await b.texts()).some(x=>/^Play from here$/.test(x));
   if(offered) await b.tapText(/^Play from here$/,{wait:900});
-  if(await vis(b,'[data-ct="setup-sheet"]')) await b.tapText(/^▶ Play this position$/,{wait:1600});
+  if(await vis(b,'[data-ct="setup-sheet"]')) await b.tapText(/^Play this position$/,{wait:1600});
   const post=await cells(b);
   L.say(offered&&same(pre,post), tag+': D2 the game "Play from here" started is the ply he was ON, not the engine\'s preview board', JSON.stringify({offered,post:!!post,equalsPreview:same(atTap,post)}));
 }

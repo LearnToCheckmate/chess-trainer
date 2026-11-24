@@ -118,7 +118,7 @@ L.run(async()=>{
     const q=btn.getBoundingClientRect();const hit=document.elementFromPoint(q.left+q.width/2,Math.min(innerHeight-1,Math.max(0,q.top+q.height/2)));
     return {top:Math.round(q.top),bottom:Math.round(q.bottom),fold:Math.round(fold),owns:!!hit&&(hit===btn||btn.contains(hit))};},re.source);
   const SURF=[
-    {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
+    {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^Start training$/,name:'"Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
     {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze [Gg]ame$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
     // #550 answer a12 (item 95): REV_PIN IS RETIRED. The paste row now sits above Import (Option A, docs/mockup-q12-paste-2026-11-11), so with
     // stored games "⚡ Analyze Game" is on screen on arrival at every column (measured on trial a6ef99c17548: its row top 123..128 at every
@@ -159,20 +159,20 @@ L.run(async()=>{
     let reached=true;try{await P.states['setup'](b);}catch(e){reached=false;}
     const m=reached?await b.metrics():null;
     const sc=reached?await b.innerScrollers():[];
-    const r=reached?await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim()));
+    const r=reached?await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Start game$/.test((x.innerText||'').trim()));
       if(!btn)return null;const q=btn.getBoundingClientRect();return {top:Math.round(q.top*10)/10,bottom:Math.round(q.bottom*10)/10,vh:innerHeight};}):null;
-    L.say(reached&&!!r,n+': TC-INV-08a the Play setup sheet was reached and carries "▶ Start game" - the denominator, so a missing button reads red and not as on-screen',{reached,button:r});
+    L.say(reached&&!!r,n+': TC-INV-08a the Play setup sheet was reached and carries "Start game" - the denominator, so a missing button reads red and not as on-screen',{reached,button:r});
     if(!r){await b.close();continue;}
     const past=Math.round((r.bottom-r.vh)*10)/10;got[n]=past;
     const hidden=sc.reduce((a,x)=>a+x.hiddenY,0);
     L.note('    '+n+': Start game bottom '+r.bottom+' on a '+r.vh+'px viewport -> '+(past>0?past+'px BELOW the fold':'on screen ('+(-past)+'px above the fold)')+';  over() reads '+(m&&m.over?m.over.over:'?')+';  inner scrollers: '+(sc.map(x=>x.id+' hides '+x.hiddenY+'px').join(', ')||'none'));
     if(FOLD_PIN&&Object.prototype.hasOwnProperty.call(FOLD_PIN,n)){
-      L.say(Math.abs(past-FOLD_PIN[n])<=0.5,n+': TC-INV-08b "▶ Start game" sits '+past+'px past the fold on arrival (0 or less is on screen), as pinned ('+FOLD_PIN[n]+'). Below the fold at six of the seven, a known defect waiting on the options-row build. A move in either direction is red, so that build retires this pin',{past,pin:FOLD_PIN[n],innerHiddenY:hidden,overReads:m&&m.over?m.over.over:null});
+      L.say(Math.abs(past-FOLD_PIN[n])<=0.5,n+': TC-INV-08b "Start game" sits '+past+'px past the fold on arrival (0 or less is on screen), as pinned ('+FOLD_PIN[n]+'). Below the fold at six of the seven, a known defect waiting on the options-row build. A move in either direction is red, so that build retires this pin',{past,pin:FOLD_PIN[n],innerHiddenY:hidden,overReads:m&&m.over?m.over.over:null});
     } else {
       L.note('    TC-INV-08b NOT ASSERTED at '+n+': no FOLD_PIN for it yet.');
     }
     // REACH: scroll the button's own finger-scrollable ancestor and require it fully on screen.
-    const reach=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim()));
+    const reach=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Start game$/.test((x.innerText||'').trim()));
       let sc=null;for(let p=btn.parentElement;p;p=p.parentElement){const st=getComputedStyle(p);if(st.touchAction==='none')return {blocked:true};if(/auto|scroll/.test(st.overflowY)&&p.scrollHeight>p.clientHeight+1){sc=p;break;}}
       const q0=btn.getBoundingClientRect();const need=Math.max(0,q0.bottom-innerHeight+2);if(sc&&need>0)sc.scrollTop+=need;
       const q=btn.getBoundingClientRect();const hit=document.elementFromPoint(q.left+q.width/2,Math.min(innerHeight-1,Math.max(0,q.top+q.height/2)));

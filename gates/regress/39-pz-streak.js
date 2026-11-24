@@ -129,7 +129,7 @@ L.run(async()=>{
     await b2.page.evaluate((k)=>localStorage.setItem(k,JSON.stringify({solved:{},streak:4,best:6,xp:40,online:0,onlineIds:{}})),PZKEY);
     await b2.open();
     await b2.tile('Puzzles');await b2.settle(600);
-    await tapBtn(b2,/^▶ (Start training|Train next puzzle)$/);await b2.settle(900);
+    await tapBtn(b2,/^(Start training|Train next puzzle)$/);await b2.settle(900);
     const pre=await b2.metrics();
     await tapBtn(b2,/^\u{1F4A1} Hint$/u);await b2.settle(700);
     const live=await box(b2);const post=await b2.metrics();
@@ -151,7 +151,7 @@ L.run(async()=>{
     await b3.page.evaluate(([k,st,be])=>localStorage.setItem(k,JSON.stringify({solved:{},streak:st,best:be,xp:40,online:0,onlineIds:{}})),[PZKEY,streak,best]);
     await b3.open();
     await b3.tile('Puzzles');await b3.settle(600);
-    await tapBtn(b3,/^▶ (Start training|Train next puzzle)$/);await b3.settle(900);
+    await tapBtn(b3,/^(Start training|Train next puzzle)$/);await b3.settle(900);
     await tapBtn(b3,/^\u{1F4A1} Hint$/u);await b3.settle(700);
     const v=await box(b3);const t=(v&&v.t)||'';
     if(want)L.say(new RegExp('(^|\\s)'+want).test(t)&&!new RegExp('\\b'+best+' in a row').test(t),'kunal730: a streak of '+streak+' (best '+best+') prints "'+want+'" whole, and not best',t);
@@ -280,7 +280,7 @@ L.run(async()=>{
   for(const [st,want] of [['roadmap',/^Novice puzzles · 0 of 10$/],['roadmap-rank1',/^\S+ puzzles · \d+ of \d+$/]]){
     const b=await L.launch({geo:'kunal730',name:'pz-tier-'+st});await b.open();let ok=true;
     try{await Z.states[st](b);await b.settle(400);}catch(e){ok=false;}
-    const h=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ (Start training|Train next puzzle)$/.test((x.innerText||'').trim()));if(!btn)return null;
+    const h=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^(Start training|Train next puzzle)$/.test((x.innerText||'').trim()));if(!btn)return null;
       const card=btn.parentElement;const bolds=[...card.querySelectorAll('div')].filter(d=>d.children.length===0&&parseInt(getComputedStyle(d).fontWeight)>=800&&(d.innerText||'').trim());return bolds.length?(bolds[0].innerText||'').trim():null;});
     L.say(ok&&!!h,'TC-PZ-TIER '+st+' PRECONDITION the roadmap card is on screen and its heading was read',{h});
     L.say(!!h&&want.test(h)&&!/^(Novice|Apprentice)$/.test(h),'TC-PZ-TIER '+st+': the roadmap heading names the TIER and the progress into it ("'+h+'"), not a bare rank name',{h});
@@ -308,7 +308,7 @@ L.run(async()=>{
   for(const geo of ['kunal761','kunal730','390','se']){
     for(const [st,want] of chipStates){
       const b=await L.launch({geo,name:'pz-chip-'+geo+'-'+st});await b.open();let ok=true;
-      try{if(st==='rank1-train'){await Z.states['roadmap-rank1'](b);await Z.tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);}else await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
+      try{if(st==='rank1-train'){await Z.states['roadmap-rank1'](b);await Z.tapBtn(b,/^(Start training|Train next puzzle)$/,900);}else await Z.states[st](b);await b.settle(500);}catch(e){ok=false;}
       const c=await b.page.evaluate(()=>{const top=document.querySelector('[data-ct="pz-top"]');const r=top&&top.querySelector('div');const k=r&&[...r.children].filter(x=>(x.getAttribute('aria-label')||'')!=='Menu and settings').pop();   /* re-keyed by formatting audit FMT-A-02, Kunal's pick 12 Nov: the row now ends in the 44x44 menu, so the chip is the last child that is not the menu (was lastElementChild) */
         if(!k)return null;const q=k.getBoundingClientRect();
         // the fraction's ink: a Range over the 'n/need' characters of the chip's text node
@@ -420,7 +420,7 @@ L.run(async()=>{
       if(!/mate in 2/.test(goal))throw new Error('expected PZ[9], got '+goal.replace(/\s+/g,' ').slice(0,80));
       await b.move('d5','d8',0);await Z.waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('d1','d8',0);await b.settle(1600);
       m1=await b.metrics();lay=await pzLayer(b);
-      if(lay&&lay.fixed){await Z.tapBtn(b,/^Continue ▶$/,800);}
+      if(lay&&lay.fixed){await Z.tapBtn(b,/^Continue$/,800);}
       await b.settle(600);m2=await b.metrics();gone=await pzLayer(b);vh=await pzVerdictHit(b);
     }catch(e){ok=false;L.note(geo+': TC-PZ-RANKUP drive threw: '+String(e.message).slice(0,120));}
     L.say(ok&&!!m0&&!!m0.board&&!!lay&&lay.fixed&&lay.cover,geo+': TC-PZ-RANKUP PRECONDITION the unsolved PZ[9] card was measured and the 10th solve raised the full-screen RANK UP layer',{board0:m0&&m0.board,lay});

@@ -71,7 +71,7 @@ L.run(async()=>{
        the feature worked. Found by antagonist A on #451; gate 15 has always located the same button with
        `/^\u25b6 Play/`, so this is the two files agreeing rather than a new invention. The ASSERTION is unchanged -
        the button must still exist, because the walk is an ADDITION and not a replacement. */
-    const playAll=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('button')];const x=els.find(e=>/^\u25b6 Play/.test((e.innerText||'').trim()));return x?(x.innerText||'').trim():null;});
+    const playAll=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('button')];const x=els.find(e=>/^Play( all \d+)? \(screen-record this\)$/.test((e.innerText||'').trim()));return x?(x.innerText||'').trim():null;});
     L.say(!!playAll,geo+': the "Play" button still exists - the walk is an ADDITION, not a replacement (gate 15 pins the cards themselves)',playAll);
     L.say(!!walk&&/\d+, about [\d.]+ min/.test(walk.text),geo+': the button says how many screens and roughly how long, because he has to hold the phone for it',walk&&walk.text);
     await b.tapCt('preview-walk',1500);

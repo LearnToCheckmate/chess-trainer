@@ -418,7 +418,7 @@ L.run(async()=>{
     await P.tapBtn(b,/^Pass & Play$/,400);
     await P.selectTime(b,'1 min');                   // #550 q44: the time control is one dropdown
     await P.scrollSheetTop(b);
-    await P.tapBtn(b,/^▶ Start game$/,900);
+    await P.tapBtn(b,/^Start game$/,900);
     // --- TC-PL-019: the clock does not start before the first move (clock.run is false until a move lands).
     const c0={top:await clockOf(b,'pbar-top'),bot:await clockOf(b,'pbar-bottom')};
     L.say(c0.top==='1:00'&&c0.bot==='1:00','a 1 min clock shows 1:00 on both sides at move 0',c0);

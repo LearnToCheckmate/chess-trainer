@@ -9,7 +9,7 @@
 //   (A) is INDISTINGUISHABLE from the sheet with no game at all,
 //   (B) offers no way to resume,
 //   (C) never says a game is in progress,
-//   (D) and its '▶ Start game' REPLACES the running game with plies=0 and no confirmation.
+//   (D) and its 'Start game' REPLACES the running game with plies=0 and no confirmation.
 // The app already has this pattern elsewhere - leaving a review and reselecting Review offers
 // '‹ Back to your analysis' (TC-R24) - so this is a missing application of the app's own rule, not a new
 // design question. That is why (B) is asserted as a REQUIREMENT rather than raised as a Desk question.
@@ -51,7 +51,7 @@
 //        -> E1 goes RED and A/B/C do not change. E1 is this gate's premise - if the game does not survive
 //           the house, every other assertion here is about the wrong screen - and NC3 is what proves E1
 //           can fail rather than being a fact about the harness.
-//  NC4  the candidate fix: resume row + '▶ Start game' arms once over a live game
+//  NC4  the candidate fix: resume row + 'Start game' arms once over a live game
 //        -> A, B, C and D all GREEN. The finish line exists and is reachable.
 //
 // ══ NOT ASSERTED, deliberately, and named rather than left silent ════════════════════════════════════
@@ -141,7 +141,7 @@ L.run(async()=>{
     const fresh=await freshSheet(c);
     L.say(fresh.present===true,g.k+': E3 the control sheet is reached with Pass & Play selected',{h:fresh.h});
     /* #550 re-keyed (formatting audit FMT-B-03, Kunal's pick 12 Nov): the setup sheet's top row carries the standard ☰ top-right */
-    L.say(JSON.stringify(fresh.btns)===JSON.stringify(['‹ Home','☰','📷 Scan with camera','🖼 Upload a photo','Online','Computer','Pass & Play','👥 Friends','📍 Play nearby','🏆 Tournaments','▶ Start game']),
+    L.say(JSON.stringify(fresh.btns)===JSON.stringify(['‹ Home','☰','📷 Scan with camera','🖼 Upload a photo','Online','Computer','Pass & Play','👥 Friends','📍 Play nearby','🏆 Tournaments','Start game']),
       g.k+': E4 the control is the Pass & Play variant and nothing else - the confounder is removed, not merely hoped away',
       {btns:fresh.btns});
 
@@ -169,7 +169,7 @@ L.run(async()=>{
     // ── D. START GAME DOES NOT SILENTLY DESTROY THE RUNNING GAME ───────────────────────────────────
     // Read the sheet BEFORE the tap (measurement rule 3), then tap Start once and look at what happened.
     const btnsBefore=live.btns;
-    await P.tapBtn(b,/^▶ (Start game|Start a new game.*)$/,1100);
+    await P.tapBtn(b,/^(Start game|Start a new game.*)$/,1100);
     const pliesAfter=await P.plies(b);
     const sheetAfter=await sheetSig(b);
     const armed=sheetAfter.present&&sheetAfter.btns.some(t=>/tap again|are you sure|discard|confirm/i.test(t));
@@ -267,7 +267,7 @@ L.run(async()=>{
     // it can still be DESTROYED, and Review is only reachable from the game-over screen one tap replaces
     // (fingerprint 8c887399f3704a18, filed 2026-09-28). So this is the one place the two conditions differ.
     const pliesBeforeTap=await P.plies(b);
-    await P.tapBtn(b,/^▶ Start game$/,1100);
+    await P.tapBtn(b,/^Start game$/,1100);
     const pliesAfterTap=await P.plies(b);
     const armedOver=(await sheetSig(b));
     L.say(pliesAfterTap===pliesBeforeTap||(armedOver.btns||[]).some(t=>/tap again|discard/i.test(t)),

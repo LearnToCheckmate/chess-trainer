@@ -221,7 +221,7 @@ const SET_SLIDER=(b,v)=>b.page.evaluate((v)=>{const i=document.querySelector('[d
   set.call(i,String(v));i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));return true;},v);
 // (d) a drive tap, deliberately programmatic and deliberately NOT locator.click(): reachability is proved by
 // REACH() above, never by the fact that the harness managed to press something.
-const TAP=async(b,t,wait)=>{if(PERSONA.test(t))await toBots(b);else if(!/^\u25b6 /.test(t))await toMain(b);
+const TAP=async(b,t,wait)=>{if(PERSONA.test(t))await toBots(b);else if(!/^(Start game|Play this position)$/.test(t))await toMain(b);   /* #553 (his pick A on card 87): the start button lost its play sign, so it is named by its words */
   const ok=await b.page.evaluate((s)=>{const sh=document.querySelector('[data-ct="setup-sheet"]');
     if(!sh)return false;const el=[...sh.querySelectorAll('button,span')].find(x=>(x.innerText||'').trim().split('\n')[0]===s);
     if(el){el.click();return true;}
@@ -299,7 +299,7 @@ if(blk('A'))for(const geo of GEOS){
   L.say(!!hs&&hs.bad.length===0&&hs.docScrollW<=hs.vw+0.5,
     geo+': TC-PS-005 nothing in the sheet escapes the RIGHT edge and document.scrollWidth stays at '+(hs&&hs.vw)+'. Vertical spill inside a scroller is fine; horizontal spill past the viewport cannot be recovered on a phone (flag sweep372-other-lines-320).',hs);
 
-  const st=await REACH(b,'▶ Start game');
+  const st=await REACH(b,'Start game');
   L.note(geo+': Start game at rest '+st.restTop+'..'+st.restBottom+' in a '+st.vh+'-tall viewport; the overlay can scroll '+sh.maxScroll+'px');
   L.say(st.found&&Math.abs(st.restTop-START_REST[geo])<2,
     geo+': TC-PS-006 Start game sits at y='+START_REST[geo]+' at rest, measured. Since Kunal\'s q44 (#550 helper B) it is on screen at rest at every geometry here, 320x568 included - and 30-p1-fixes.js A-13 does not see this because it only ever selects Pass & Play, the one variant short enough to fit.',{measured:st.restTop,want:START_REST[geo],restOn:st.restOn});
@@ -321,12 +321,12 @@ if(blk('B'))for(const geo of GEOS){
   const b=await L.launch({geo,name:'ps-b-'+geo});await b.open();await openSetup(b);
   await toBots(b);
   const title=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="top-title"]');return t?(t.innerText||'').trim():null;});
-  const before=await REACH(b,'\u25b6 Start game');
+  const before=await REACH(b,'Start game');
   const rowBefore=(await GROUP(b,/^(Pip|Rosa|Milo|Astrid|Viktor)$/)).items.filter(x=>x.h>40);
   const vis0=[];for(const n of ['Pip','Rosa','Milo','Astrid','Viktor'])vis0.push(await REACH(b,n));
   await TAP(b,'Viktor',500);
   const rowAfter=(await GROUP(b,/^(Pip|Rosa|Milo|Astrid|Viktor)$/)).items.filter(x=>x.h>40);
-  const after=await REACH(b,'\u25b6 Start game');
+  const after=await REACH(b,'Start game');
   const vk0=rowBefore.find(x=>x.t==='Viktor'),vk1=rowAfter.find(x=>x.t==='Viktor');
   L.say(title==='Choose your opponent'&&rowBefore.length===5&&vis0.every(x=>x.restOn),
     geo+': TC-PS-008 the Computer tile opens "Choose your opponent" and all five personas are on screen at rest - no sideways swipe to find one ('+vis0.map(x=>x.label+(x.restOn?'':' OFF')).join(', ')+')',{title,rest:vis0.map(x=>[x.label,x.restOn])});
@@ -481,7 +481,7 @@ if(blk('C'))for(const geo of ['se','kunal730','430']){
   L.say((await FOOT(b))==='vs Milo · White · No clock',
     geo+': TC-PS-034 the footer states the three choices in order - opponent, colour, clock. It is the only line on the screen that says what is about to start.',await FOOT(b));
   await TAP(b,'Pass & Play',550);
-  L.say((await FOOT(b))==='Pass & play on one device · No clock'&&(await START_LABEL(b))==='▶ Start game',
+  L.say((await FOOT(b))==='Pass & play on one device · No clock'&&(await START_LABEL(b))==='Start game',
     geo+': TC-PS-035 Pass & Play restates itself as "Pass & play on one device · No clock" and keeps the clock choice across the opponent switch',{foot:await FOOT(b),label:await START_LABEL(b)});
   await TAP(b,'Online',600);
   L.say((await FOOT(b))==='Online · play a friend by invite code'&&(await START_LABEL(b))==='Continue →',
@@ -539,9 +539,9 @@ if(blk('I'))for(const geo of ['se','kunal730']){
   const col=(await GROUP(b,/^(White|Black)$/)).items;
   L.say(col.filter(x=>x.on).length===1&&col.find(x=>x.on).t==='Black'&&(await FOOT(b))==='vs Computer · Black · No clock',
     geo+': TC-PS-039 the colour preselected is the SIDE TO MOVE at that ply (Black after 2.Nf3), not the reviewer\'s own side, and the footer agrees. US-RF28 (claude/stories/REVIEW-SUITE-FULL.md) asks for "my side"; this is what the build does (chess.jsx:8295 setPColor(boardGame.turn)).',{col,foot:await FOOT(b)});
-  const st=await REACH(b,'▶ Play this position');
-  L.say((await START_LABEL(b))==='▶ Play this position'&&st.found&&st.onScreen&&st.hit,
-    geo+': TC-PS-040 the button relabels itself "▶ Play this position", and it is reachable and hit-testable at '+st.top+'..'+st.bottom+' of '+st.vh+' (at rest it sits at '+st.restTop+', below the fold at both geometries)',st);
+  const st=await REACH(b,'Play this position');
+  L.say((await START_LABEL(b))==='Play this position'&&st.found&&st.onScreen&&st.hit,
+    geo+': TC-PS-040 the button relabels itself "Play this position", and it is reachable and hit-testable at '+st.top+'..'+st.bottom+' of '+st.vh+' (at rest it sits at '+st.restTop+', below the fold at both geometries)',st);
   await b.shot('ps-i-'+geo);
   const bad=b.errs.filter(e=>!ERR_ALLOWED.test(e));
   L.say(bad.length===0,geo+': no app error beyond the allowed engine trap',bad.slice(0,2));
@@ -558,7 +558,7 @@ if(blk('I'))for(const geo of ['se','kunal730']){
 if(blk('J'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'ps-j-'+geo});await b.open();await openSetup(b);
   await TAP(b,'Milo',450);await TAP(b,'Black',400);
-  await TAP(b,'▶ Start game',1500);
+  await TAP(b,'Start game',1500);
   const after=await b.page.evaluate(()=>({sheet:!!document.querySelector('[data-ct="setup-sheet"]'),
     home:!!document.querySelector('[data-ct="play-home"]')}));
   const bd=await b.board();
@@ -590,7 +590,7 @@ if(blk('J'))for(const geo of ['se','kunal730']){
 if(blk('J'))for(const geo of ['se','kunal730']){
   const b=await L.launch({geo,name:'ps-j-white-'+geo});await b.open();await openSetup(b);
   const okW=(await TAP(b,'Milo',450))&&(await TAP(b,'White',400));
-  await TAP(b,'▶ Start game',1500);
+  await TAP(b,'Start game',1500);
   const bd=await b.board();
   L.say(okW&&!!bd&&bd.flip===false,
     geo+': TC-PS-042 WHITE POSE the colour chosen is honoured the other way too - White was selected, so the board comes up NOT flipped',{tapped:okW,flip:bd&&bd.flip});
@@ -651,7 +651,7 @@ if(blk('K')){
     const tag=geo+' '+bot;const b=await L.launch({geo,name:'ps-k-'+geo+'-'+bot.toLowerCase()});await b.open();await openSetup(b);
     let ok=(await TAP(b,'Computer',300))&&(await TAP(b,bot,400))&&(await TAP(b,'White',300));
     const r1s=await RD_K(b);
-    ok=ok&&(await TAP(b,'▶ Start game',1500));
+    ok=ok&&(await TAP(b,'Start game',1500));
     const r2=await RD_K(b);
     /* RE-KEYED AT #550 item (58) [jobs/auditor-424-p2-findings-2026-09-27 second pass]: the New Game sheet's choices are PENDING until Start,
        so the tile tap no longer writes ct_elo while the sheet is up - the sheet's own tile and slider carry the pending strength, and ct_elo

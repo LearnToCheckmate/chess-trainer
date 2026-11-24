@@ -69,7 +69,7 @@ async function scrollTo(b,where){await b.page.evaluate((w)=>{const de=document.s
 async function btnRects(b){return b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;}).map(x=>{const r=x.getBoundingClientRect();return {t:(x.innerText||x.getAttribute('aria-label')||x.title||'').replace(/\s+/g,' ').trim().slice(0,40),x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height),dis:x.disabled};}));}
 async function waitMsg(b,re,ms){const t0=Date.now();while(Date.now()-t0<(ms||4000)){const m=await msg(b);if(m&&re.test(m.text))return m;await b.page.waitForTimeout(60);}return msg(b);}
 
-async function startTraining(b){await b.home();await b.tile('Puzzles');await b.settle(400);await tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);}
+async function startTraining(b){await b.home();await b.tile('Puzzles');await b.settle(400);await tapBtn(b,/^(Start training|Train next puzzle)$/,900);}
 
 const S={};
 S['roadmap']=async(b)=>{await fresh(b);await b.tile('Puzzles');await b.settle(500);await scrollTo(b,'top');};
@@ -77,7 +77,7 @@ S['roadmap-bottom']=async(b)=>{await S['roadmap'](b);await scrollTo(b,'end');};
 S['roadmap-rank1']=async(b)=>{await seedSolved(b,FIRST95);await b.tile('Puzzles');await b.settle(500);await scrollTo(b,'top');};
 S['daily3']=async(b)=>{await setStore(b,{[PZKEY]:null,[PZUKEY]:null,ct_daily:null,ct_daily3:{date:today(),lesson:1,puz:0}});await b.home();await b.tapText(/Today [0-3] of 3/,{wait:800});/* #550: the Daily 3 card is the one Today card now */};
 // the Daily 3 card lands on the roadmap (setMode('puzzle')); Start training + a solve should bump ct_daily3.puz to 1
-S['daily3-solved']=async(b)=>{await S['daily3'](b);await tapBtn(b,/^▶ (Start training|Train next puzzle)$/,900);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
+S['daily3-solved']=async(b)=>{await S['daily3'](b);await tapBtn(b,/^(Start training|Train next puzzle)$/,900);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('e8','f8',0);await waitMsg(b,/^🎉/,3000);await b.settle(1400);};
 S['train']=async(b)=>{await fresh(b);await startTraining(b);};
 S['train-show']=async(b)=>{await S['train'](b);await tapBtn(b,/^(👁 Show|Show move)$/,600);};
 S['train-step1']=async(b)=>{await S['train'](b);await b.move('e1','e8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);};   // the reply Rf8 comes 450 ms later
@@ -105,7 +105,7 @@ S['rankup']=async(b)=>{await seedSolved(b,FIRST9);await startTraining(b);
   const goal=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');return t?(t.innerText||''):'';});
   if(!/mate in 2/.test(goal))throw new Error('rankup: expected PZ[9] (White to move — mate in 2), got: '+goal.replace(/\s+/g,' ').slice(0,120));
   await b.move('d5','d8',0);await waitMsg(b,/^✓/,3000);await b.settle(900);await b.move('d1','d8',0);await b.settle(1600);};
-S['rankup-continue']=async(b)=>{await S['rankup'](b);await tapBtn(b,/^Continue ▶$/,700);};
+S['rankup-continue']=async(b)=>{await S['rankup'](b);await tapBtn(b,/^Continue$/,700);};
 S['a06']=async(b)=>{await S['train-hint'](b);await b.settle(1200);};   // #550 jobs/five-gates-enter-their-state-by-tapping-a-dev-gallery-card: was b.card('A-06',7000) - the first puzzle with its hint up, now by the player's route (Puzzles -> Start training -> 💡 Hint), as gate 12 has entered it since #549
 
 module.exports={states:S,fresh,seedSolved,setStore,tapBtn,tapAria,msg,waitMsg,sig,scrollBox,scrollTo,btnRects,startTraining,FIRST95,FIRST9,PZKEY,PZUKEY,
