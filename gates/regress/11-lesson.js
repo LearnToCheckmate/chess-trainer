@@ -5,6 +5,14 @@
 'use strict';
 const L=require('../lib');
 const D=require('../drive/lesson');
+// TC-R339 [#553 B3]: no blank band under the lesson column - the MOVES panel (the lesson's flex absorber) runs down to the fixed
+// lesson footer. See the comment where the sweep calls it.
+async function bandUnder(b,tag){
+  const pf=await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]'),f=document.querySelector('[data-ct="lesson-footer"]');if(!p||!f)return null;
+    const q=p.getBoundingClientRect(),r=f.getBoundingClientRect();return {panelBottom:Math.round(q.bottom*10)/10,panelH:Math.round(q.height*10)/10,footTop:Math.round(r.top*10)/10,fixed:getComputedStyle(f).position==='fixed',band:Math.round((r.top-q.bottom)*10)/10};});
+  L.say(!!pf&&pf.fixed&&pf.panelH>0,tag+': TC-R339 PRECONDITION the MOVES panel and the fixed lesson footer are both laid out',pf);
+  L.say(!!pf&&pf.band>=0&&pf.band<=10.5,tag+': TC-R339 no blank band opens under the lesson column - the MOVES panel runs down to the footer ('+(pf&&pf.band)+'px between them; 9 measured, band 0 to 10.5)',pf);
+}
 L.run(async()=>{
   if(!process.env.CT_LS058_ONLY&&!process.env.CT_LS061_ONLY&&!process.env.CT_LS064_ONLY){
   for(const geo of ['kunal','390']){
@@ -98,6 +106,15 @@ L.run(async()=>{
       // flex:'1 1 auto' and stretches to absorb whatever the board gives up, so the column fills the viewport
       // either way. Recorded rather than quietly relied on - it looks like the assertion that matters and is not.
       L.say(Math.abs(m.bottom-m.vh)<2,tag+': the column fills the viewport (bottom '+m.bottom+' of '+m.vh+'). NOTE: this cannot fail while the MOVES panel flexes, so it explains the shape rather than guarding it.',{bottom:m.bottom,vh:m.vh});
+      /* TC-R339 [#553 B3; jobs/gate-11-asserts-consistency-on-fontsize-while-two-of-the-five-glyphs-are-svg-props-2026-09-30,
+         twoMoreAssertionsWorthNoting]: THE DISCRIMINATING REPLACEMENT for the line above, which is worse than the note admits - with the
+         lesson panel's flex REMOVED (trial 5bcb86c544f4, _pFill's flex kept off for lessons) it still reads 'bottom 568 of 568' at every
+         geometry, because the walk's deepest in-flow box is a wrapper that is always full height. What the line means to say is that no
+         blank band opens under the lesson column: the MOVES panel (moves-panel, the lesson's flex absorber) runs down to the fixed
+         lesson footer. Measured on e97c7bcbe69e: its bottom is 9px above the footer's top at 320x568 and 375x761 in both states (the
+         panel's own 9px clearance); on the no-flex trial the band is 12-20px at 320x568 and 89-107px at 375x761. Asserted as a
+         two-sided band, 0 to 10.5px: under 0 the panel runs under the footer, over 10.5 a blank band opened. */
+      await bandUnder(b,tag);
       // THIS is the assertion that guards the board. Same fix 10-gameover and A-12 needed: a size compared only
       // to itself, or to an invariant that always holds, cannot see the board get smaller. Measured on #382.
       /* #550 re-keyed, formatting audit FMT-A-05 + run-answers a42, Kunal's pick 12 Nov: on a short upright phone the rows under the lesson board fold into the lesson bar, so the board is the screen width at 320x568 and 360x640 (was 270.9 and 342.4) */
@@ -568,6 +585,13 @@ L.run(async()=>{
       L.say(b.errs.length===0,'TC-R152 '+dim+' '+st+': zero app errors',b.errs.slice(0,3));
       await b.close();
     }
+  }
+  // TC-R339 AT HIS PHONE [#553 B3]: the sweep above runs 375x730 (R19 superseded it) and never 375x761, so the band is read there too,
+  // in both states, by the same player route. Only TC-R339 runs here; the sweep's width and top pins are not claimed at 761.
+  for(const st of ['demo-end','practice-m0']){
+    const b=await L.launch({geo:'kunal761',name:'lesson-761-band-'+st,store:{}});await b.open();
+    await D.states[st](b);await b.settle(600);await bandUnder(b,'375x761 '+st);
+    L.say(b.errs.length===0,'375x761 '+st+': TC-R339 zero app errors',b.errs.slice(0,3));await b.close();
   }
   }   // end of !CT_LS058_ONLY
   // TC-LS-058 THE NOTE BOX'S OVERFLOW COUNT, PRINTED AND PINNED OVER EVERY NOTE [#550 item (82); jobs/bench-lesson-the-method-sentence-is-

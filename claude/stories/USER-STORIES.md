@@ -547,6 +547,7 @@ Kunal adopted this rule on 11 Oct 2026, on Decision Desk card empty-space-limit-
 - EVERY CASE IS REPORT-ONLY TODAY. TC-S04 covers nine states across Discover, Puzzles and the Review move screen. TC-S05 covers Discover, and since #549 is asserted at 375x761 with the real insets. TC-S06 covers the Review move screen, and the drill when it is driven. The measurement is gates/regress/77-empty-bands.js.
 - PROMOTION. A state becomes asserted in the same commit as the fix that brings it to 60px or under, or on a re-measure that finds it already there.
 - OWNERS. The Review move screen is owned by jobs/eval-graph-into-the-band. Puzzles right after a solve is owned by jobs/puzzle-screen-celebration-overlaps-and-dead-space-2026-09-24. Discover goes to its own Desk card first and then its own build. The drill is owned by jobs/board-jumps-on-drill-verdict, then jobs/drill-empty-bands-at-375x761-once-the-float-has-landed-2026-10-12. The Puzzles rankup state has no owner.
+- In a lesson on a phone the MOVES panel runs down to the lesson footer, with no blank band between them (0 to 10.5px; 9 measured). (TC-R339; #553)
 
 ### US-INV-07 On arrival, the action a screen exists for is on screen
 As a player arriving at a screen, I can see the button that screen is for without scrolling, because a primary action
