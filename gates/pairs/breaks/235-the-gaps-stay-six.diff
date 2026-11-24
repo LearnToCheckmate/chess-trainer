@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14283,5 +14283,5 @@
+             {_bb('land-newgame',<span style={{fontSize:17,lineHeight:1}}>{'\u265f'}</span>,'New game',()=>{setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);})}
+             {_bb('land-more',<span style={{fontSize:18,lineHeight:1}}>{'\u22ef'}</span>,'More',()=>setMoreOpen(true))}
+-          </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:(_playBest?2:6) /* #553 card 82: seven buttons fit 320 at 44 wide each only with 2px gaps (Amber: flags/amber-553-play-best-button) */,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
++          </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:6 /* #553 card 82: seven buttons fit 320 at 44 wide each only with 2px gaps (Amber: flags/amber-553-play-best-button) */,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
+             {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={playFit.noMoves?playMovesSheet===true:movesOpen} onClick={()=>{if(playFit.noMoves){setPlayMovesSheet(o=>!o);return;}setMovesOpen(o=>!o);}}><RowIcon name="moves"/></RowBtn>
+             <RowBtn ct="play-back" label="Back" dis={playHist.length===0||pvIdx===0} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}><StepArrow dir="left"/></RowBtn>

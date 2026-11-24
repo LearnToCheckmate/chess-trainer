@@ -2929,3 +2929,10 @@ As a player doing puzzles in a computer browser made half the screen wide, I get
 - At 960x1080, 840x1050 and 720x900 (and on my phone) every puzzle control is under the board, on screen, overlapping nothing, and the page does not scroll. (TC-R368)
 - At 1280x800 and 1920x1080 every control is beside the board. (TC-R369)
 - Walking a window across square changes the layout once each way, and a 10px drag either side of square never changes it. (TC-R370)
+
+### US-R242 On the smallest phones a Best button in the game's row opens the best moves
+*Added #553 B3, jobs/short-upright-boards-sized-to-height-2026-11-12, his pick (1) on Desk card 82 (run-answers orchestrator-B14-PREP7B-2026-11-24). Amber: flags/amber-553-play-best-button.*
+As a player in a game from a scanned board on a phone where the move list is a closed sheet, one tap on Best shows me the three best moves, and closing the sheet puts them away, with no bubble and no popup over the board.
+- The bottom row carries a Best moves button (a white star) after Forward, and all seven buttons are 44 by 44 and inside the screen; where the move list is not a sheet the row is as it was. (TC-R402)
+- A tap on Best opens the Moves sheet with the BEST row on screen, the button shows pressed, and the board does not move. (TC-R403)
+- A second tap closes the sheet and the BEST row goes. (TC-R404)

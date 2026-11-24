@@ -7214,7 +7214,7 @@ function AppMain(){
     const order=[F({}),F({thin:true}),F({thin:true,tight:true}),F({thin:true,tight:true,noMoves:true})];
     for(const o of order){if(_revRoom-C(o)>=vw){o.rows=C(o);return o;}}
     const last=order[order.length-1];last.rows=C(last);return last;},[playUp,vw,_revRoom]);
-  const [playMovesSheet,setPlayMovesSheet]=useState(false);   /* the move list's sheet where playFit.noMoves (the Moves button opens it) */
+  const [playMovesSheet,setPlayMovesSheet]=useState(false);   /* the move list's sheet where playFit.noMoves (the Moves button opens it; 'best' when the Best button did, #553 card 82) */
   useEffect(()=>{if(!playFit.noMoves)setPlayMovesSheet(false);},[playFit.noMoves]);
   const evalAbove=evalUnder&&!wide&&((vp.h/Math.max(1,vp.w))>=EVAL_ABOVE_MIN_RATIO||playUp||(vp.w>440&&vp.h-328>=vp.w-22));
   const evalTop=!wide&&(evalAbove||revStream);   /* the horizontal bar above the board: portrait only */
@@ -8105,6 +8105,7 @@ function AppMain(){
   /* the best three moves of the position on the board, asked again after every move. Against the computer they are asked when it is HIS
      move (while the computer thinks the row waits); in Analyze for whoever is to move. */
   const scanLive=!!scanGame&&mode==='play'&&(opponent==='computer'||opponent==='human');
+  const _playBest=scanLive&&playFit.noMoves&&!wide;   /* #553 card 82 (Amber: flags/amber-553-play-best-button): the Best button's phones - a game from a scanned board where the move list is a closed sheet */
   useEffect(()=>{
     if(!scanLive){if(scanBestEngRef.current){scanBestEngRef.current.close();scanBestEngRef.current=null;}setScanBest(null);return;}
     const st=getStatus(game);
@@ -14291,10 +14292,11 @@ function AppMain(){
             {_bb('land-rematch',<span style={{fontSize:18,lineHeight:1}}>{'\u2295'}</span>,'Rematch',()=>{fullReset();})}
             {_bb('land-newgame',<span style={{fontSize:17,lineHeight:1}}>{'\u265f'}</span>,'New game',()=>{setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);})}
             {_bb('land-more',<span style={{fontSize:18,lineHeight:1}}>{'\u22ef'}</span>,'More',()=>setMoreOpen(true))}
-          </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:6,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
-            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={playFit.noMoves?playMovesSheet:movesOpen} onClick={()=>{if(playFit.noMoves){setPlayMovesSheet(o=>!o);return;}setMovesOpen(o=>!o);}}><RowIcon name="moves"/></RowBtn>
+          </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:(_playBest?2:6) /* #553 card 82: seven buttons fit 320 at 44 wide each only with 2px gaps (Amber: flags/amber-553-play-best-button) */,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
+            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={playFit.noMoves?playMovesSheet===true:movesOpen} onClick={()=>{if(playFit.noMoves){setPlayMovesSheet(o=>!o);return;}setMovesOpen(o=>!o);}}><RowIcon name="moves"/></RowBtn>
             <RowBtn ct="play-back" label="Back" dis={playHist.length===0||pvIdx===0} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}><StepArrow dir="left"/></RowBtn>
             <RowBtn ct="play-forward" label="Forward" dis={playHist.length===0||pvIdx==null} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}><StepArrow dir="right"/></RowBtn>
+            {_playBest&&(<RowBtn ct="play-best" label="Best moves" hot={playMovesSheet==='best'} onClick={()=>setPlayMovesSheet(o=>o==='best'?false:'best')}><StarIcon size={22}/></RowBtn>)}{/* #553 card 82, his pick (1) (run-answers orchestrator-B14-PREP7B-2026-11-24; Amber: flags/amber-553-play-best-button): on a phone whose move list is a closed sheet, a game from a scanned board gets a Best button that opens that same sheet, the BEST row on top as batch 13 built it; a second tap (or Moves) closes it. The star is the Review toolbar's Key move star, white, about 20 of ink like the row's other icons. */}
             {/* #371: when the game is over on a phone, Hint and Flip give their two slots to Review and New game -
                 same row, same height, the board does not move.
                 #437: #371's parenthesis read "(Flip is still in More)" AND IT IS NOT TRUE - measured on the
