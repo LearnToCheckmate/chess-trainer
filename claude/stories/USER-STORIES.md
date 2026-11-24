@@ -2197,6 +2197,7 @@ As a player who solved a drill card, a long explanation keeps its box's size but
 - An explanation longer than its box shows a "more" chip inside the box, a thumb's height. (TC-R193a)
 - Tapping it scrolls the explanation. (TC-R193b)
 - Solving the card does not move the board. (TC-R193c)
+- On his phone (375x761) as at 320x568, a long Brilliant explanation folds to whole lines with the chip over none of them, one tap shows every line, and a second tap folds it again. (TC-R338; #553, jobs/brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13)
 
 ### US-R127 The app calls a move Brilliant when chess.com would, and misses none of chess.com's
 *Added #550, item (17), jobs/one-brilliant-rule-with-its-sentence-replaces-twelve-items-2026-11-03; Kunal's answers B9C-BRIL-RULE2 "on" (on now, then trim: miss none, few extras) and B10-SHIP-ON "on"; rule 3 of docs/brilliant-rule-3-design-2026-11-10 at its recommended dial.*

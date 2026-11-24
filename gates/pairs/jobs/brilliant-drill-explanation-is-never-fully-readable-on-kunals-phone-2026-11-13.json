@@ -1,0 +1,49 @@
+{
+ "job": "brilliant-drill-explanation-is-never-fully-readable-on-kunals-phone-2026-11-13",
+ "about": "The Brilliant drill's solved explanation, the long card (the Opera Game's 16.Qb8+ with a ten-line explanation at 375): folded it shows whole lines only and the 'more' chip covers none of them; one tap shows every line inside the message and the screen; a second tap folds it again; the board does not move. Graded by gate 118's TC-R338 lines (#553 B3), which exist because at kunal761 the short Opera explanation FITS its 80px box, so TC-R197g's fold lines are NOT RUN on his phone. NOT COVERED: his phone check; the hint naming piece and square (gate 133, TC-R209d); the 17px overflow of the drill header at 320x568 (another job).",
+ "gate": "gates/regress/118-brilliant-library.js",
+ "checks": [
+  "^TC-R338 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R338 kunal761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^TC-R338 se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-more-chip-sits-over-the-text",
+   "patch": "breaks/118-the-more-chip-sits-over-the-text.diff",
+   "why": "the fold keeps its whole-line window but drops the 80px clear on the right, so the last shown line runs under the 'more' chip (the job's x 301-363 over line 1)",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-fold-shows-half-a-line",
+   "patch": "breaks/118-the-fold-shows-half-a-line.diff",
+   "why": "the folded window is half a line taller than its whole lines, so a cut line shows at the box foot (the job's 6px strip)",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "more-scrolls-the-text-instead-of-opening-it",
+   "patch": "breaks/118-more-scrolls-the-text-instead-of-opening-it.diff",
+   "why": "'more' scrolls the text 20px against a 21.75px pitch, as on t164, instead of opening the whole explanation",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}

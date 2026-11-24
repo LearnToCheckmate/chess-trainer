@@ -75,9 +75,14 @@ L.run(async()=>{
   // at 375) showed one and a half lines, the 'more' chip sat over the end of line 1, and 'more' scrolled 20px against a 21.75 pitch. Asserted:
   // folded, every painted line is WHOLE (a line box is inside the visible text box or wholly outside it) and the chip covers no line; one tap
   // shows every line inside the message and the screen; tapping again folds it; the board never moves.
-  for(const geo of ['kunal761','se']){
-    const OP={fen:'1n2kb1r/p2r1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16',uci:'b3b8',why:"Qb8+ gives up the queen to drag the knight off d7's guard, and Rd8 is mate next move.",label:'Brilliant',ts:1791000000000,last:null,no:20};
-    const b=await L.launch({geo,name:'bril-opera-'+geo,store:{ct_mybrilliancies:[OP],ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();   // batch 13: ct_bril_lib '0' - TC-R197g is about the drill's explanation, so the tile starts the drill at once (the library now opens for a one-kind store, TC-R197f)
+  // TC-R338 [#553 B3, same job]: at kunal761 the Opera explanation above FITS its 80px box, so TC-R197g's fold/open/fold lines are NOT RUN on his
+  // phone and nothing there showed the fold working where he reads it. The LONG card (the same Qb8+ with the explanation run on to about seven lines at 375,
+  // like the fresh checker's 14-line one) MUST overflow at both sizes, so the fold, the chip, one tap and the second tap are asserted at kunal761 too; a long
+  // text that 'fits' is a red (the precondition), never the FITS note.
+  const LONGWHY="Qb8+ gives up the queen to drag the knight off d7's guard, and Rd8 is mate next move. The queen is lost, but the mate comes first, so the sacrifice costs nothing: that is what makes the move Brilliant rather than a blunder. Look for a check that drags a defender off the square your next move needs.";
+  for(const [geo,tag,why,id] of [['kunal761','opera',null,'TC-R197g'],['se','opera',null,'TC-R197g'],['kunal761','long',LONGWHY,'TC-R338'],['se','long',LONGWHY,'TC-R338']]){
+    const OP={fen:'1n2kb1r/p2r1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16',uci:'b3b8',why:why||"Qb8+ gives up the queen to drag the knight off d7's guard, and Rd8 is mate next move.",label:'Brilliant',ts:1791000000000,last:null,no:20};
+    const b=await L.launch({geo,name:'bril-'+tag+'-'+geo,store:{ct_mybrilliancies:[OP],ct_bril_reset_v1:'1',ct_bril_lib:'0',ct_pool:'3'}});await b.open();   // batch 13: ct_bril_lib '0' - TC-R197g is about the drill's explanation, so the tile starts the drill at once (the library now opens for a one-kind store, TC-R197f)
     let ok=true;try{await b.tile('Review');await b.settle(800);await b.page.locator('[data-ct="bril-tile"]').click();await b.settle(1500);}catch(e){ok=false;}
     const bd0=await b.board();if(ok){try{await b.move('b3','b8',0);await b.settle(2500);}catch(e){ok=false;}}
     // the text's own line boxes: the text node inside the message (the inner box where the fix adds one, the message itself before it)
@@ -92,21 +97,22 @@ L.run(async()=>{
         all:L.every(x=>x.t>=er.top-0.5&&x.b<=er.bottom+0.5&&x.b<=innerHeight&&x.r<=innerWidth),chip:mo?(mo.innerText||'').trim():null,
         cover:m?vis.filter(x=>x.l<m.right&&x.r>m.left&&x.t<m.bottom&&x.b>m.top).length:0,box:Math.round(er.height),lines:L.map(x=>Math.round(x.t)+'-'+Math.round(x.b)).join(',')};});
     const f=await rd();
-    L.say(ok&&!!f&&/Rd8 is mate/.test(f.txt)&&f.n>=2&&!!bd0,'TC-R197g '+geo+' PRECONDITION the Opera Game\'s Qb8+ was solved and its explanation runs to '+(f&&f.n)+' lines in a '+(f&&f.box)+'px box',f);
+    L.say(ok&&!!f&&/Rd8 is mate/.test(f.txt)&&f.n>=2&&!!bd0,id+' '+geo+' PRECONDITION the Opera Game\'s Qb8+ was solved and its explanation runs to '+(f&&f.n)+' lines in a '+(f&&f.box)+'px box',f);
     // #550 lead: since the brilliant drill took the goal reserve on phones >=740 tall (2eda297/7d838bb) the message box at kunal761 is 80px and
     // the Qb8+ explanation FITS in 3 whole lines, so there is nothing to fold there. A text that fits whole with no chip is the right screen, not a
     // defect; it is asserted as that, and the fold/open/fold lines below are NOT RUN for it (a note, never a PASS), and still run wherever it overflows.
     const FITS=(!!f&&f.vis===f.n&&f.whole&&f.all&&!f.chip);
-    if(FITS)L.say(true,'TC-R197g '+geo+' the explanation fits its box whole ('+f.vis+' of '+f.n+' lines, no "more" chip needed) - checked: every line whole and inside, no chip',f);
-    else L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),'TC-R197g '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them, and it says there is more ('+JSON.stringify(f)+')',f);
+    if(tag==='long')L.say(!!f&&f.n>f.vis&&!FITS,id+' '+geo+' PRECONDITION the long explanation ('+(f&&f.n)+' lines) does not fit its '+(f&&f.box)+'px box, so the fold below is exercised here',f);
+    if(FITS&&tag!=='long')L.say(true,id+' '+geo+' the explanation fits its box whole ('+f.vis+' of '+f.n+' lines, no "more" chip needed) - checked: every line whole and inside, no chip',f);
+    else L.say(!!f&&f.vis>=1&&f.whole&&f.cover===0&&/more/.test(f.chip||''),id+' '+geo+' folded, the lines that show are whole ('+(f&&f.vis)+' of '+(f&&f.n)+'), the "more" chip covers none of them, and it says there is more ('+JSON.stringify(f)+')',f);
     let o=null;if(!FITS&&f&&f.chip){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);o=await rd();}
-    if(FITS)L.note('TC-R197g '+geo+' open/fold NOT RUN: the explanation fits whole here, so there is no fold to open'); else L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,'TC-R197g '+geo+' one tap on it shows the whole explanation: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
+    if(FITS)L.note(id+' '+geo+' open/fold NOT RUN: the explanation fits whole here, so there is no fold to open'); else L.say(!!o&&o.all&&o.vis===o.n&&o.cover===0,id+' '+geo+' one tap on it shows the whole explanation: every line inside the message and the screen, none under the chip ('+JSON.stringify(o)+')',o);
     const bd1=await b.board();
     if(!FITS&&o){await b.page.locator('[data-ct="pz-msg-more"]').click().catch(()=>{});await b.settle(500);}const c=await rd();
-    if(!FITS)L.say(!!c&&c.whole&&c.vis<c.n&&/more/.test(c.chip||''),'TC-R197g '+geo+' a second tap folds it again to whole lines',c);
+    if(!FITS)L.say(!!c&&c.whole&&c.vis<c.n&&/more/.test(c.chip||''),id+' '+geo+' a second tap folds it again to whole lines',c);
     const bd2=await b.board();
-    L.say(!!bd0&&!!bd1&&!!bd2&&[bd1,bd2].every(x=>Math.abs(x.y-bd0.y)<0.5&&Math.abs(x.w-bd0.w)<0.5),'TC-R197g '+geo+' the board did not move (solve, open, fold)',{bd0,bd1,bd2});
-    L.say(b.errs.length===0,'TC-R197g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
+    L.say(!!bd0&&!!bd1&&!!bd2&&[bd1,bd2].every(x=>Math.abs(x.y-bd0.y)<0.5&&Math.abs(x.w-bd0.w)<0.5),id+' '+geo+' the board did not move (solve, open, fold)',{bd0,bd1,bd2});
+    L.say(b.errs.length===0,id+' '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
 },'118-brilliant-library');
 // SELECTOR-OPENED: bril-kind reading=presence round 4: TC-R197b counts four chips by kind
 // SELECTOR-OPENED: bril-lib-go reading=presence round 4: TC-R197c to d read the button's words
