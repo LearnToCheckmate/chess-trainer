@@ -24,7 +24,7 @@
   {
    "name": "the-you-bar-rides-up-onto-the-board",
    "patch": "breaks/208-the-you-bar-rides-up-onto-the-board.diff",
-   "why": "the bottom player bar is pulled 6px up onto the board - the overlap the job describes",
+   "why": "the bottom player bar is shifted 6px up onto the board (position relative, top -6) - the overlap the job describes",
    "mustFailIn": [
     "short375",
     "se 320x568",
