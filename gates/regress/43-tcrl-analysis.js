@@ -81,8 +81,9 @@ async function startAnalysis(b,pgn){
   await b.settle(150);
   await b.tapText(/^⚡ Analyze [Gg]ame$/);
 }
-const pct=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/(\d+)%\s*·\s*checking|Checking every move\u2026\s*(\d+)%/);return m?+(m[1]||m[2]):null;});
-const progressText=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/Analyzing your game\s+(\d+%\s*·\s*checking every move|Checking every move\u2026\s*\d+%)/);return m?m[0]:null;});
+// #553 (jobs/long-reviews-keep-running-in-the-app-...-2026-11-22, card 75 option 3 'board'): the line now reads "Analyzing move K of N · P%"
+const pct=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/Analyzing move \d+ of \d+ · (\d+)%/);return m?+m[1]:null;});
+const progressText=(b)=>b.page.evaluate(()=>{const m=(document.body.innerText||'').match(/Analyzing move \d+ of \d+ · \d+%/);return m?m[0]:null;});
 const seen=(b,sel)=>b.page.locator(sel).last().isVisible().catch(()=>false);
 const waitSummary=(b,ms)=>b.page.locator('[data-ct="rev-summary"]').last().waitFor({state:'visible',timeout:ms||240000});
 
@@ -96,7 +97,7 @@ L.run(async()=>{
   // TC-RL-001a: the progress line, in the exact words, within 0.8 s of the tap
   await b.settle(800);
   const pt=await progressText(b);
-  L.say(!!pt,'TC-RL-001: within 0.8 s the progress line reads "Analyzing your game <n>% · checking every move", in those words',pt);
+  L.say(!!pt,'TC-RL-001: within 0.8 s the progress line reads "Analyzing move <k> of <n> · <p>%", in those words (#553; was "Checking every move… <p>%")',pt);
   L.say(await seen(b,'[data-ct="ana-engines"]'),'TC-RL-001: the engine readout [data-ct="ana-engines"] is on the progress screen');
 
   // TC-RL-005: no second analysis can be started over a running one
@@ -106,7 +107,9 @@ L.run(async()=>{
     buttons:document.querySelectorAll('button').length}));
   L.say(inflight.textareas===0,'TC-RL-005: the PGN box is gone while the analysis runs (textarea count 0), so a second review cannot be pasted over the first',inflight);
   L.say(inflight.analyze===0,'TC-RL-005: there is no "Analyze Game" button on screen while one is running',inflight);
-  L.say(inflight.buttons===6,'TC-RL-005: exactly six buttons during the analysis - the hamburger and the five tab-bar buttons. Pinned, because "some buttons" is not an assertion',inflight);
+  /* #553 (card 71 / card 75 option 3, and his "cross out of it"): the waiting screen adds today's puzzle (Try it) and Stop - eight, each named */
+  const named=await b.page.evaluate(()=>['ana-suggest-try','ana-stop'].every(k=>document.querySelector('[data-ct="'+k+'"]')));
+  L.say(inflight.buttons===8&&named,'TC-RL-005: exactly eight buttons during the analysis - the hamburger, the five tab-bar buttons, today\'s puzzle (Try it) and Stop. Pinned, because "some buttons" is not an assertion',{...inflight,named});
 
   // TC-RL-011 at the reference geometry: the progress screen does not overflow
   // metrics().over is an OBJECT ({bottom,vh,over,scrollY,docScroll}), not a number. The first run of this
@@ -212,7 +215,7 @@ L.run(async()=>{
   await e7.home(); await e7.settle(600);
   await e7.tile('Review'); await e7.settle(800);
   const back=await e7.page.evaluate(()=>({
-    progress:/Analyzing your game/.test(document.body.innerText||''),
+    progress:/Analyzing move \d+ of \d+/.test(document.body.innerText||'')&&!!document.querySelector('[data-ct="ana-wait"]'),   // #553: the waiting screen's words
     textareas:document.querySelectorAll('textarea').length}));
   L.say(back.progress,'TC-RL-007: going Home and back to Review during an analysis returns to the PROGRESS screen, not to a fresh entry screen',back);
   L.say(back.textareas===0,'TC-RL-007: and the PGN box is still absent, so the run cannot be started over from there',back);

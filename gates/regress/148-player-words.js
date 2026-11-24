@@ -110,7 +110,7 @@ L.run(async()=>{
     ['TXT-29 the hint prompt names the button',['for a hint.)'],['Hint.)']],
     ['TXT-32 Discover names tactics, the card names its screen',['Openings, gambits & endgames'],['Openings, tactics, endgames','Tactics & strategy']],
     ['TXT-35 sentence case',['Analyze Game','New Game','Menu & settings'],['Analyze game','New game','Menu and settings']],
-    ['TXT-37 no engine internals on the analysing screen',['checking every move','engines side by side'],['Checking every move','This takes a few seconds.']]];
+    ['TXT-37 no engine internals on the analysing screen',['checking every move','engines side by side','This takes a few seconds.'],['Analyzing move ','Keep the app open']]];   /* #553 (jobs/long-reviews-keep-running-in-the-app-...-2026-11-22): the waiting screen's words; 'a few seconds' was untrue at Deepest */
   for(const [tag,old,neu] of TXT){const o=old.filter(s=>src.indexOf(s)>=0),n=neu.filter(s=>src.indexOf(s)<0);
     L.say(o.length===0&&n.length===0,'TC-R224l '+tag+' (old left: '+(o.join(' / ')||'none')+'; new missing: '+(n.join(' / ')||'none')+')',{o,n});}
   /* #550 wording check TXT-36 and TXT-40, Kunal's answers run-answers q46 and q47: US spelling everywhere (the lesson names included) and no

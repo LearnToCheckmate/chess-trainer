@@ -2812,6 +2812,16 @@ As a player stepping through a reviewed game with the engine line on, the evalua
 - The row shows its number within a fifth of a second of each step, never an empty row or "not loaded". (TC-R363, TC-R364)
 - The row shows the engine's moves within ten seconds, so a search that never finishes cannot hide. (TC-R365)
 
+### US-R238 While a long review runs, the screen says what is happening, how long is left, and lets me do something else or stop it
+*Added in batch 14 (#553, builder seat B2), jobs/long-reviews-keep-running-in-the-app-and-say-plainly-that-the-app-must-stay-open-with-the-real-time-a-puzzle-while-waiting-and-a-ready-banner-2026-11-22. Kunal, 22 Nov 2026: a Deeper review sat at 38% while he was in another app, and the screen said "This takes a few seconds." His picks: card 71 "build-as-shown" (docs/run-answers orchestrator-B14-PREP3-2026-11-23), card 75 option 3 "board" for its progress (orchestrator-B14-PREP6-2026-11-24), and his "cross out of it" (orchestrator-B14-CANCEL-REVIEW-2026-11-23). Amber: flags/amber-553-review-waiting-screen. The server review (Pro) is a separate job and not part of this clause.*
+As a player waiting for my game's review, I watch the board step through my game as each move is checked, I am told the real time left and that the app must stay open, I am offered today's puzzle, I can stop the review without losing what it has checked, and I am told when it is ready wherever I am in the app.
+- The board steps through the game's positions as they are checked, with a thin strip under it that fills as the review goes. (TC-R386)
+- The words say which move is being checked of how many and the percentage, the review's level and the real time left (the level's usual time until there is a pace to measure), and never "a few seconds". (TC-R387)
+- A box says to keep the app open and why; today's puzzle is offered with a Try it button; everything, Stop included, can be reached above the tab bar, on my phone and at 320x568. (TC-R388)
+- Stop asks once, Stop review or Keep going; Keep going leaves it running; Stop review goes straight back to my games list and no review arrives after it. (TC-R389)
+- The moves already checked are kept, so starting the same review again picks up where it stopped and finishes. (TC-R390)
+- The review keeps running while I use another screen, and a "Your review is ready" banner appears there; its Open takes me to the finished review. (TC-R391)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.
