@@ -2764,6 +2764,13 @@ As a player on a 360x640 phone, switching the engine line on or off leaves the b
 - With the engine line switched on and off at a mid-game ply, the board's top and width do not move, and it is the screen's full width. (TC-R333)
 - After Exit analysis the engine line row is gone. (TC-R334)
 
+### US-R224 In lesson practice with hints on, the hint is read whole without a tap after every move
+*Added in batch 14 (#553, builder seat B1), jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13, the orchestrator's GAP of 15 Nov 2026: at kunal761 the Italian Game hint after c3 needed a third line and was clamped at two ('...the old d4 is...' and 'more'); at 320x568 four of five states were. Amber: flags/amber-553-hint-takes-the-third-line.*
+As a player practising a lesson line with hints on, the words saying what my next move is for are on screen whole after every move I make, and the board does not move.
+- After every own move of the line the hint words are not clamped and every line of them is inside the note box as it shows; where they need the box's third line they take it, and the confirm of the move just made steps behind the 'more' chip. (TC-R346)
+- At move 1 the line saying hints cost the day keeps its place; there the hint is whole, or clamped at two lines with the 'more' chip. (TC-R346)
+- The board's top and width do not change, and after a move the confirm is on screen or one tap away behind 'more'. (TC-R347)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

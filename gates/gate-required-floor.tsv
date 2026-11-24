@@ -134,3 +134,4 @@
 176	175	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 207 (board letters keep their contrast under a highlight) joins the required set	-	439b5a90a42f
 177	176	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 208 (the play board between its bars) joins the required set	-	2b99d6afc202
 178	177	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 209 (the engine line toggle at 360x640) joins the required set	-	262b245d4a75
+179	178	raise	2026-11-24	553	build__1795473826826	batch 14 B1, jobs/lesson-practice-hint-words-sit-below-the-note-box-edge-2026-11-13: Italian practice with hints on at kunal761 and 320x568, after every own move the hint is whole (or two lines and more at move 1), the board still, the confirm on screen or behind more, US-R224 / TC-R346..347	-	76b47cd25bbf
