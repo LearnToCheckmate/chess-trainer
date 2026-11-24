@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7060,5 +7060,5 @@
+      375x761 and 761x375 never enters the band. */
+   const wideMemRef=useRef(null);
+-  let _sideways=vp.w>vp.h;if(wideMemRef.current!==null&&Math.abs(vp.w-vp.h)<=Math.round(Math.min(vp.w,vp.h)*0.04))_sideways=wideMemRef.current;wideMemRef.current=_sideways;
++  let _sideways=vp.w>vp.h*0.75;if(wideMemRef.current!==null&&Math.abs(vp.w-vp.h)<=Math.round(Math.min(vp.w,vp.h)*0.04))_sideways=wideMemRef.current;wideMemRef.current=_sideways;
+   const wide=_sideways&&(vp.w-RAIL-48)>=Math.min(360,Math.round(vp.h*0.75));   // one sidebar + board; board fills the rest
+   /* #550 answer a21 (Kunal on the Desk, B10-Q21: "Option B: the move list under the board"; jobs/a-streamlined-board-view-like-chesscoms-2026-11-11,

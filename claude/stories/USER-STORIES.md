@@ -2881,3 +2881,10 @@ As a player on the default blue theme, the blue buttons (Analyze game, Fetch, an
 As a player who has set a larger text size, the puzzle board is still fully on screen, ends above the tab bar, and does not change size once settled.
 - At 320x568, 375x667 and 375x761, with the text 1.6 and 2.4 times its size, the board's right edge is inside the viewport, its bottom is above the tab bar, and the screen needs no scrolling. (TC-R319)
 - The larger text really moved the screen (text height up, the board pushed down) before any of this is read. (TC-R318)
+
+### US-R233 Puzzles in a half-width computer window use the phone layout
+*Added in batch 14 (#553, builder seat B3), jobs/puzzles-in-a-computer-window-at-half-width-switch-to-the-phone-layout-below-a-set-width-2026-11-18; Kunal's pick on questions/FB-15 (9:22pm EST Tue 17 Nov 2026): "Below a set width, switch to the phone layout". The set width is the window's height: the app's one layout switch (DSK-12) takes the two-sided layout only when the window is wider than tall, with a 4 percent dead band at square.*
+As a player doing puzzles in a computer browser made half the screen wide, I get the board on top and the buttons under it, as on my phone; in a wide window I keep the board beside the panel; and dragging the window's edge does not make the page flicker.
+- At 960x1080, 840x1050 and 720x900 (and on my phone) every puzzle control is under the board, on screen, overlapping nothing, and the page does not scroll. (TC-R368)
+- At 1280x800 and 1920x1080 every control is beside the board. (TC-R369)
+- Walking a window across square changes the layout once each way, and a 10px drag either side of square never changes it. (TC-R370)
