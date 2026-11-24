@@ -1,8 +1,7 @@
-diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -5339,7 +5339,7 @@
-           const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';}}
+@@ -5373,7 +5373,7 @@
+           el.insertBefore(f2,el.firstChild);el.insertBefore(f1,f2);}}
        setWrongFit(fit);
        const br=box.getBoundingClientRect(),er=el.getBoundingClientRect();
 -      const bw=box.clientTop||0;if(er.bottom>br.bottom-bw-pb+0.5||er.top<br.top+bw+pt-0.5){box.scrollTop+=er.top-br.top-bw-pt;wrongScrollRef.current=true;}setWrongUp(box.scrollTop>0);}

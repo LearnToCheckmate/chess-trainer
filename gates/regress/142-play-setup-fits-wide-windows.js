@@ -31,7 +31,7 @@ L.run(async()=>{
     const geo=typeof sz[0]==='string'?sz[0]:{w:sz[0],h:sz[1],safe:'',label:sz[0]+'x'+sz[1]};const tag=geo.label||geo;
     const b=await L.launch({geo,name:'setup142'});await b.open();let ok=true;try{await P.states['setup'](b);}catch(e){ok=false;}await b.settle(700);
     const m=await b.page.evaluate(()=>{const R=(e)=>{const r=e.getBoundingClientRect();return {l:Math.round(r.left),r:Math.round(r.right),t:Math.round(r.top),b:Math.round(r.bottom),w:Math.round(r.width)};};
-      const st=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);
+      const st=[...document.querySelectorAll('button')].find(x=>/^Start game$/.test((x.innerText||'').trim())&&x.getBoundingClientRect().width>0);
       const lab=(re)=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&re.test((d.textContent||'').trim())&&d.getBoundingClientRect().width>0);return e?R(e):null;};
       let sc=st;while(sc&&getComputedStyle(sc).position!=='fixed')sc=sc.parentElement;
       let col=st;while(col&&!(col.style&&col.style.maxWidth))col=col.parentElement;

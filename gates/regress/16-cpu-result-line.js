@@ -153,7 +153,7 @@ L.run(async()=>{
   // auditor measured; it sets eloMsg because 500-50 = 450 != 500, which is the state under test.
   for(const [tag,geo] of [['A','kunal730'],['B','se']]){
     const b=await L.launch({geo,name:'cpu-result-'+geo,store:{ct_pool:'3'}});await b.open();
-    await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^▶ Start game$/,900);
+    await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^Start game$/,900);
     await b.settle(250);
     await resign(b);
     await b.settle(600);                                   // card still up (it fades at ~3s)
@@ -182,7 +182,7 @@ L.run(async()=>{
   // #433 and must stay green on both bundles: it is what proves the defect was the pre-emption and nothing else.
   {
     const b=await L.launch({geo:'kunal730',name:'cpu-result-elofloor',store:{ct_pool:'3',ct_elo:'400'}});await b.open();
-    await P.states['setup'](b);await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(250);
+    await P.states['setup'](b);await P.tapBtn(b,/^Start game$/,900);await b.settle(250);
     const elo=await b.page.evaluate(()=>{try{return localStorage.getItem('ct_elo');}catch(e){return null;}});
     L.say(elo==='400','C0 375x730: the floor is READ BACK, not inferred - ct_elo is 400 going into the termination, so ne = max(400, 400-50) = 400 == cpuElo and chess.jsx:3144 cannot fire. Without this the whole C block explained an empty slot by a state it never checked (antagonist A, F10)',{ct_elo:elo});
     await resign(b);
@@ -478,7 +478,7 @@ L.run(async()=>{
     const vpw=await b.page.evaluate(()=>innerWidth+'x'+innerHeight);
     L.say(vpw==='730x375',tag+'0 730x375: the viewport really is landscape - asserted because `wide` is a computed flag and every other assertion in this block is about the branch it selects',{viewport:vpw});
     if(opp==='pp'){await P.states['pp-m0'](b);}
-    else{await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^▶ Start game$/,900);}
+    else{await P.states['setup'](b);await P.pickBot(b,'Pip');await P.tapBtn(b,/^Start game$/,900);}
     await b.settle(400);
     const liveBd=await b.board(),liveSlot=await slot(b);
     L.say(!!liveSlot,tag+'1 730x375: the status row is rendered while the game is LIVE - the precondition, so a green below cannot come from a row that was never there in either state (#385)',{slot:liveSlot&&liveSlot.t});
@@ -591,7 +591,7 @@ L.run(async()=>{
   // a game against the computer is running, and ct_elo still reads 640 once it has started (nothing re-seated it).
   {
     const b=await L.launch({geo:'kunal730',name:'cpu-bar-elo',store:{ct_pool:'3',ct_bot:'pip',ct_elo:'640'}});await b.open();
-    await P.states['setup'](b);await P.tapBtn(b,/^▶ Start game$/,900);await b.settle(400);
+    await P.states['setup'](b);await P.tapBtn(b,/^Start game$/,900);await b.settle(400);
     const r=await b.page.evaluate(()=>{const els=[...document.querySelectorAll('[data-ct^="pbar-rating-"]')].map(e=>({ct:e.getAttribute('data-ct'),t:(e.innerText||'').trim()}));
       const bars=[...document.querySelectorAll('[data-ct="pbar-top"],[data-ct="pbar-bottom"]')].map(e=>(e.innerText||'').replace(/\s+/g,' ').trim());
       let elo=null;try{elo=localStorage.getItem('ct_elo');}catch(e){}return {els,bars,elo};});
@@ -700,7 +700,7 @@ L.run(async()=>{
   // filter is 'var(--pcfilter) drop-shadow(...) drop-shadow(...)'; --pcfilter defaulted to the keyword 'none', which cannot be combined
   // with filter functions, so the whole list was invalid and computed to 'none' on all 16. Read from the COMPUTED style.
   {const b=await L.launch({geo:'kunal730',name:'piece-shadow'});await b.open();
-   let ok=true;try{await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});await b.settle(600);}catch(e){ok=false;}
+   let ok=true;try{await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});await b.settle(600);}catch(e){ok=false;}
    const r=await b.page.evaluate(()=>{const imgs=[...document.querySelectorAll('img')].filter(i=>/var\(--pcfilter\) drop-shadow/.test(i.getAttribute('style')||''));return {n:imgs.length,computed:imgs.map(i=>getComputedStyle(i).filter)};});
    if(L.say(ok&&r.n===16,'375x730: TC-PL-049 PRECONDITION the start position paints 16 black pieces whose style declares the white separation shadows',{n:r.n}))
      L.say(r.computed.every(f=>(f.match(/drop-shadow\(/g)||[]).length===2),'375x730: TC-PL-049 and every one of them actually COMPUTES both drop-shadows - not "none" from an invalid filter list',{sample:r.computed[0]});

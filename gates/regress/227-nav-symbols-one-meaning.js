@@ -1,5 +1,5 @@
 'use strict';
-// gates/regress/227-nav-symbols-one-meaning.js - ONE SET OF NAVIGATION SYMBOLS, EACH MEANING ONE THING ON EVERY SCREEN. US-R235 / TC-R376..380.
+// gates/regress/227-nav-symbols-one-meaning.js - ONE SET OF NAVIGATION SYMBOLS, EACH MEANING ONE THING ON EVERY SCREEN. US-R235 / TC-R376..380, TC-R411.
 //
 // WHY [#553, jobs/one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23; card 70, his picks of Mon 23 Nov 2026, and
 // docs/run-answers orchestrator-B14-BUTTONS-NOW-2026-11-24, his words at about 7:35am EST Tue 24 Nov]: "the same triangle means 'next
@@ -21,9 +21,11 @@
 //       and every RESET button the curled arrow, not blue
 //   380 THE REVERSE, over every visible button: a hollow triangle only on an ITEM button, a solid triangle only on a MOVE or PLAY button, blue
 //       only on a PLAY button, and no text triangle glyph (▶ ◀ ⏮ ⏭ ⏸ ▸ ◂) on any button except the NAMED start buttons below
-// EXCLUDED, NAMED: worded start buttons that carry a decorative ▶ ('▶ Start game', 'Continue ▶', 'Got it, play ▶', '▶ Play this position',
-// '▶ Start training' / '▶ Train next puzzle', the developer gallery's '▶ Play ... (screen-record this)') -
-// a copy question left to Kunal by the job's report; the Review's best-move chip row (card 76 is back on the Desk: build nothing there).
+// THE WORDED START BUTTONS ARE NO LONGER EXCLUDED [#553; run-answers orchestrator-B14-Q14-2026-11-24, his pick A on card 87]: Start game,
+// Continue, Got it, play, Play this position (and its vs Computer form), Start training / Train next puzzle, the review's why chip and the
+// gallery's Play lost their decorative play sign and kept their words, so the play sign means only playing a line. TC-R380 now refuses a
+// text triangle on EVERY button, and TC-R411 reaches each of those buttons by its WORDS and asserts it carries no play sign, text or drawn.
+// Still excluded: the Review's best-move chip row (card 76 is back on the Desk: build nothing there).
 // CT_G227_ONLY=<comma list of state keys> runs only those states (a subset is never the whole gate).
 // CONTROL-RECORD: e81ee051 2026-11-24 total=129 red=54 scope=trial:3cbe014dc60e how=THE SUBJECT REMOVED: the branch's start (e81ee051, built as base) - batch 13's white chevron for moves and blue triangle for items, the Review's text transport and the lesson's text play: TC-R377 17 red, TC-R378 12, TC-R379 6, TC-R380 19; the fix (trial 06dcd1d30f27) 129 pass 0 fail
 const L=require('../lib');
@@ -41,7 +43,16 @@ const MEAN={
   play:/^(Auto-play|Pause|Play or pause|Play the line|Play this line)$/,
   reset:/^(Reset|Try again|Replay from start|Back to the card's position|Back to the position after your move)$/,
 };
-const START=/^▶ Start game$|Continue ▶$|^Got it, play ▶$|^▶ Play this position$|^▶\s*why$|^▶ (Start training|Train next puzzle)|^▶ Play( all \d+)? \(screen-record this\)$/;   // named exclusions, see the header
+// TC-R411: the worded buttons of his pick A, each reached by its words (never a data-ct this build added), at 375x761
+const NAMED=[
+  ['play-setup',b=>P.states['setup'](b),/^Start game$/],
+  ['puzzle-roadmap',b=>Z.states['roadmap'](b),/^(Start training|Train next puzzle)$/],
+  ['puzzle-rankup',b=>Z.states['rankup'](b),/^Continue$/],
+  ['lesson-intro',b=>D.states['intro'](b),/^Got it, play$/],
+  ['lesson-more',async b=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);await b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^Play this position/.test((x.innerText||'').trim()));if(e)e.scrollIntoView({block:'center'});});},/^Play this position vs Computer$/],   // the sheet scrolls; the button is found by its words
+  ['review-why',b=>R.states['why-open'](b),/^why$/],
+  ['gallery',async b=>{await b.home();await b.settle(500);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-preview"]');if(e)e.scrollIntoView({block:'center'});});await b.settle(300);await b.tapCt('home-preview',900);},/^Play( all \d+)? \(screen-record this\)$/],
+];
 // key -> [enter, meanings the state must show, geometries (default kunal761 and se), extra store]
 const STATES=[
   ['play-live',b=>P.states['cpu-4ply'](b),['move']],
@@ -115,9 +126,18 @@ L.run(async()=>{
         if(x.sym.hollow&&!is('item'))wrong.push(x.n+': hollow triangle (the switch-item symbol)');
         if(x.sym.solid&&!x.sym.circle&&!is('move')&&!is('play'))wrong.push(x.n+': solid triangle (the move symbol)');
         if(x.sym.blue&&!is('play'))wrong.push(x.n+': blue (Play only)');
-        if(x.sym.glyph&&!START.test(x.text))wrong.push(x.n+': text triangle '+JSON.stringify(x.text));
+        if(x.sym.glyph)wrong.push(x.n+': text triangle '+JSON.stringify(x.text));   // #553: no named exclusions any more (his pick A)
       }
       L.say(ok&&bs.length>0&&wrong.length===0,'TC-R380 '+tag+' no button uses a navigation symbol for another meaning ('+(wrong.length?wrong.join('; '):'all '+bs.length+' buttons read')+')',wrong);
       L.say(b.errs.length===0,'TC-R376 '+tag+' zero app errors',b.errs.slice(0,3));
       await b.close();}}
+  for(const [key,enter,re] of NAMED){
+    if(ONLY.length&&!ONLY.includes(key))continue;
+    const tag='375x761 '+key;const b=await L.launch({geo:'kunal761',name:'g227n-'+key});await b.open();let ok=true,err='';
+    try{await enter(b);await b.settle(700);}catch(e){ok=false;err=e.message;}
+    const bs=await b.page.evaluate(READ,MS);const hit=bs.filter(x=>re.test(x.text));
+    const bad=hit.filter(x=>x.sym.glyph||x.sym.solid||x.sym.hollow||x.sym.circle||x.sym.bluePoly);
+    L.say(ok&&hit.length>0&&bad.length===0,'TC-R411 '+tag+' the worded button '+re+' is on screen by its words and carries no play sign, text or drawn ('+(hit.length?hit.map(x=>JSON.stringify(x.text)+(x.shapes?' paints '+x.shapes:'')).join('; '):'NOT FOUND among '+bs.map(x=>JSON.stringify(x.text)).join(', ').slice(0,300))+(err?'; '+err:'')+')',{err,bad});
+    L.say(b.errs.length===0,'TC-R411 '+tag+' zero app errors',b.errs.slice(0,3));
+    await b.close();}
 });

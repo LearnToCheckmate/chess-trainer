@@ -118,7 +118,7 @@ L.run(async()=>{
     const q=btn.getBoundingClientRect();const hit=document.elementFromPoint(q.left+q.width/2,Math.min(innerHeight-1,Math.max(0,q.top+q.height/2)));
     return {top:Math.round(q.top),bottom:Math.round(q.bottom),fold:Math.round(fold),owns:!!hit&&(hit===btn||btn.contains(hit))};},re.source);
   const SURF=[
-    {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^▶ Start training$/,name:'"▶ Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
+    {key:'puzzles',label:'Puzzles roadmap (fresh store)',re:/^Start training$/,name:'"Start training"',go:b=>Z.states['roadmap'](b),pinned:false},
     {key:'review-empty',label:'Review list (no stored games)',re:/^⚡ Analyze [Gg]ame$/,name:'"⚡ Analyze Game"',go:b=>R.states['list-empty'](b),pinned:false},
     // #550 answer a12 (item 95): REV_PIN IS RETIRED. The paste row now sits above Import (Option A, docs/mockup-q12-paste-2026-11-11), so with
     // stored games "⚡ Analyze Game" is on screen on arrival at every column (measured on trial a6ef99c17548: its row top 123..128 at every
@@ -159,20 +159,20 @@ L.run(async()=>{
     let reached=true;try{await P.states['setup'](b);}catch(e){reached=false;}
     const m=reached?await b.metrics():null;
     const sc=reached?await b.innerScrollers():[];
-    const r=reached?await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim()));
+    const r=reached?await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Start game$/.test((x.innerText||'').trim()));
       if(!btn)return null;const q=btn.getBoundingClientRect();return {top:Math.round(q.top*10)/10,bottom:Math.round(q.bottom*10)/10,vh:innerHeight};}):null;
-    L.say(reached&&!!r,n+': TC-INV-08a the Play setup sheet was reached and carries "▶ Start game" - the denominator, so a missing button reads red and not as on-screen',{reached,button:r});
+    L.say(reached&&!!r,n+': TC-INV-08a the Play setup sheet was reached and carries "Start game" - the denominator, so a missing button reads red and not as on-screen',{reached,button:r});
     if(!r){await b.close();continue;}
     const past=Math.round((r.bottom-r.vh)*10)/10;got[n]=past;
     const hidden=sc.reduce((a,x)=>a+x.hiddenY,0);
     L.note('    '+n+': Start game bottom '+r.bottom+' on a '+r.vh+'px viewport -> '+(past>0?past+'px BELOW the fold':'on screen ('+(-past)+'px above the fold)')+';  over() reads '+(m&&m.over?m.over.over:'?')+';  inner scrollers: '+(sc.map(x=>x.id+' hides '+x.hiddenY+'px').join(', ')||'none'));
     if(FOLD_PIN&&Object.prototype.hasOwnProperty.call(FOLD_PIN,n)){
-      L.say(Math.abs(past-FOLD_PIN[n])<=0.5,n+': TC-INV-08b "▶ Start game" sits '+past+'px past the fold on arrival (0 or less is on screen), as pinned ('+FOLD_PIN[n]+'). Below the fold at six of the seven, a known defect waiting on the options-row build. A move in either direction is red, so that build retires this pin',{past,pin:FOLD_PIN[n],innerHiddenY:hidden,overReads:m&&m.over?m.over.over:null});
+      L.say(Math.abs(past-FOLD_PIN[n])<=0.5,n+': TC-INV-08b "Start game" sits '+past+'px past the fold on arrival (0 or less is on screen), as pinned ('+FOLD_PIN[n]+'). Below the fold at six of the seven, a known defect waiting on the options-row build. A move in either direction is red, so that build retires this pin',{past,pin:FOLD_PIN[n],innerHiddenY:hidden,overReads:m&&m.over?m.over.over:null});
     } else {
       L.note('    TC-INV-08b NOT ASSERTED at '+n+': no FOLD_PIN for it yet.');
     }
     // REACH: scroll the button's own finger-scrollable ancestor and require it fully on screen.
-    const reach=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^▶ Start game$/.test((x.innerText||'').trim()));
+    const reach=await b.page.evaluate(()=>{const btn=[...document.querySelectorAll('button')].find(x=>/^Start game$/.test((x.innerText||'').trim()));
       let sc=null;for(let p=btn.parentElement;p;p=p.parentElement){const st=getComputedStyle(p);if(st.touchAction==='none')return {blocked:true};if(/auto|scroll/.test(st.overflowY)&&p.scrollHeight>p.clientHeight+1){sc=p;break;}}
       const q0=btn.getBoundingClientRect();const need=Math.max(0,q0.bottom-innerHeight+2);if(sc&&need>0)sc.scrollTop+=need;
       const q=btn.getBoundingClientRect();const hit=document.elementFromPoint(q.left+q.width/2,Math.min(innerHeight-1,Math.max(0,q.top+q.height/2)));
@@ -298,3 +298,4 @@ L.run(async()=>{
 // CONTROL-RECORD: 6180c2b 2026-11-11 total=224 red=13 scope=trial:8f0c3906c86c how=#550 c_h18, a bundle built for this control: the tree before antagonist A round 2's Tactics hint fix (e856800) with Home's tiles pushed 400px down - TC-INV-08l (hint on every card) red at all five geometries and TC-INV-08n (Home, AUD-H01) red at 375x761 for all four tiles and at 320x568 for all four (two below the fold, two off their 41px pin); every other line green. On t52 (28378590a526) 224 of 224 green
 // CONTROL-RECORD: 6ff1c24 2026-11-11 total=142 red=8 scope=trial:e8bb320d6d6d how=#550 item (133): c133, the Puzzles roadmap's '▶ Start training' pushed 900px down (marginTop 12 -> 900) - TC-INV-08g red at all eight geometries (172..584px below the fold); 08f's denominator and 08j's reach-by-scrolling stay green, which is right; good trial 4fe71d55db29 142/0
 // CONTROL-RECORD: faa82a9 2026-11-13 total=224 red=8 scope=trial:083703d6aace how=#550 job gate-78-assertions-08f-to-08j-are-uncontrolled (whatIsLeft, 08h): the Review paste row pushed 900px down ONLY when ct_accts is empty - TC-INV-08h red at all eight geometries (139..526px below the fold) while 08i (stored games, same button) and 08j's reach-by-scrolling stay green; 08i's own red is the 831e068 record above; on 342f7329901b 224/0
+// CONTROL-RECORD: 84932825 2026-11-24 total=213 red=15 scope=trial:e3ba55b63257 how=#553 his pick A (card 87), THE SUBJECT REMOVED: the tree before ('▶ Start game', '▶ Start training') - TC-INV-08a and TC-INV-08f, the denominators that find each button by its words, red at every geometry they run; on the trial 1dbb02504e31 243/0

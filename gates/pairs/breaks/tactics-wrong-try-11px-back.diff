@@ -1,21 +1,27 @@
-diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -5321,7 +5321,7 @@
+@@ -5348,7 +5348,7 @@
       wrong try sits under the card's name, so its second line was cut at the box's foot (measured at 320x568: 41px of text in a 64px box with the
       name above it). While the line shows, the box is scrolled so the line starts at its top; it goes back when the line goes. */
    useLayoutEffect(()=>{const box=ideaRef.current,el=wrongRef.current;if(!box)return;
--    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';}
-+    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';el.style.fontSize='';el.style.lineHeight='';}
+-    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';el.querySelectorAll('[data-tt-more-room]').forEach(x=>x.remove());}
++    if(el){el.style.maxHeight='';el.style.overflow='';el.style.paddingRight='';el.querySelectorAll('[data-tt-more-room]').forEach(x=>x.remove());el.style.fontSize='';el.style.lineHeight='';}
      setWrongOpen(false);
      if(!wrong||!el){setWrongFit('all');setWrongUp(false);if(wrongScrollRef.current){wrongScrollRef.current=false;box.scrollTop=0;ideaCheck();}return;}
      /* #553, Kunal's Q68 pick ("A more button", 23 Nov 2026; Amber: flags/amber-553-tactics-wrong-more), replacing batch 13's smaller text on short
-@@ -5335,8 +5335,8 @@
+@@ -5362,15 +5362,8 @@
           the puzzle explanation's '\u25be more' chip opens the whole line over the board until it is tapped again, as pz-msg does. */
      {const cs=getComputedStyle(box);const pt=parseFloat(cs.paddingTop)||0,pb=parseFloat(cs.paddingBottom)||0;const room=box.clientHeight-pt-pb;let fit='all';
        if(box.scrollHeight>box.clientHeight+1){fit='line';
--        if(room>0&&el.offsetHeight>room+0.5){fit='cut';el.style.paddingRight=TT_MORE_W+'px';const pitch=parseFloat(getComputedStyle(el).lineHeight)||20.3;
--          const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';}}
+-        if(room>0&&el.offsetHeight>room+0.5){fit='cut';const pitch=parseFloat(getComputedStyle(el).lineHeight)||20.3;
+-          const n=Math.max(1,Math.floor((room+0.5)/pitch));el.style.maxHeight=(n*pitch)+'px';el.style.overflow='hidden';
+-          /* #553, Kunal's pick B on card 80 (docs/run-answers orchestrator-B14-Q7-2026-11-24): the chip's room is kept ONLY UNDER THE LAST LINE
+-             that shows, not down the whole right side, so the lines above it run the box's full width and about three more words show before
+-             'more'. Two floats ahead of the text: an empty one as tall as the lines above the last, then the chip's room on the last line. Built
+-             here with the cut, like maxHeight, and removed at the top of this effect, so React's text node is never touched. */
+-          const f1=document.createElement('span');f1.setAttribute('data-tt-more-room','1');f1.setAttribute('aria-hidden','true');f1.style.cssText='float:right;width:0;height:'+((n-1)*pitch)+'px';
+-          const f2=document.createElement('span');f2.setAttribute('data-tt-more-room','2');f2.setAttribute('aria-hidden','true');f2.style.cssText='float:right;clear:right;width:'+TT_MORE_W+'px;height:'+pitch+'px';
+-          el.insertBefore(f2,el.firstChild);el.insertBefore(f1,f2);}}
 +        if(room>0&&el.offsetHeight>room+0.5){el.style.lineHeight='1.3';let f=parseFloat(getComputedStyle(el).fontSize)||15;
 +          while(el.offsetHeight>room&&f>11.5){f=Math.max(11.5,f-0.5);el.style.fontSize=f+'px';}}}
        setWrongFit(fit);

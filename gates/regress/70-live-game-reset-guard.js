@@ -392,7 +392,7 @@ for(const g of (process.env.CT_B70_ONLY_Y==='1'?[]:(ONLY?GEOS.filter(x=>x.k===ON
     try{ await R.states['moves-ply10'](b);
          await b.tapCt('rev-more',500);                        // gate 55's own route into the ⋯ sheet
          await b.tapText(/^Play from here$/,{wait:900});
-         await b.tapText(/^▶ Play this position$/,{wait:1600});
+         await b.tapText(/^Play this position$/,{wait:1600});
          reached=true; }catch(e){}
     const p0=reached?await P.plies(b):null, n0=reached?await pieces(b):null;
     L.say(reached&&p0===0&&n0>0&&n0<32,G+' J0 ARRIVAL: a position is LOADED on the board at ZERO plies - '+n0+' pieces, so it is not the opening array, and the move list is empty so a ply count sees nothing to lose',{reached,plies:p0,pieces:n0});

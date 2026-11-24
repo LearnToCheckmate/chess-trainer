@@ -243,7 +243,7 @@ L.run(async()=>{
   // --- PASS & PLAY: "Computer only". The More sheet opens here too, so this is the half that is easy to miss.
   const b2=await L.launch({geo,name:'takeback-passplay',store:{ct_pool:'3'}});await b2.open();
   await P.states['setup-passplay'](b2);
-  await b2.tapText(/^▶ Start game$/,{wait:900});
+  await b2.tapText(/^Start game$/,{wait:900});
   await b2.move('e2','e4',500);await b2.move('e7','e5',500);await b2.settle(400);
   await openMore(b2);
   const pp=await rowState(b2);

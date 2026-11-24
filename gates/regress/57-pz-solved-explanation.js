@@ -364,11 +364,11 @@ L.run(async()=>{
           L.say(u0,'TC-R82 '+label+' PRECONDITION the 10th solve raised the RANK UP card',{up:u0});
           if(u0){await b.page.waitForTimeout(10000);const u1=await up();
             L.say(u1,'TC-R82 '+label+' the RANK UP card is STILL UP 10s later with no interaction - it explains, so it does not time out',{upAfter10s:u1});
-            let tapped=true;try{await Z.tapBtn(b,/^Continue ▶$/,800);}catch(e){tapped=false;}
+            let tapped=true;try{await Z.tapBtn(b,/^Continue$/,800);}catch(e){tapped=false;}
             const u2=await up();
             L.say(tapped&&!u2,'TC-R82 '+label+' and its Continue control dismisses it',{tapped,upAfter:u2});}
         }
-        try{await Z.tapBtn(b,/^Continue ▶$/,800);}catch(e){}
+        try{await Z.tapBtn(b,/^Continue$/,800);}catch(e){}
         const r=await b.page.evaluate(()=>{const t=document.querySelector('[data-ct="pz-top"]');if(!t)return null;
           const leaf=[...t.querySelectorAll('div,span')].filter(d=>d.children.length===0&&/^🎉/.test((d.innerText||'').trim())).pop();if(!leaf)return null;
           let box=leaf;while(box&&box!==t&&!/auto|scroll|hidden/.test(getComputedStyle(box).overflowY))box=box.parentElement;if(!box)box=t;

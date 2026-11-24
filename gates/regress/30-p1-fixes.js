@@ -89,7 +89,7 @@ L.run(async()=>{
     L.say(vis1!==vis2&&(vis1==='hidden'||vis2==='hidden'),geo+': A-12 the Moves toggle hides and shows the panel content',{closed:vis1,open:vis2});
     L.say(m2.over.over<=0,geo+': A-12 no scroll after toggling',m2.over);
     // A-10
-    await b.home();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
+    await b.home();await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});
     const s0=await gridSig(b);await b.page.locator('[aria-label="Next puzzle"]').first().click();await b.settle(800);const s1=await gridSig(b);
     L.say(s0&&s1&&s0!==s1,geo+': A-10 Next puzzle shows a different puzzle before the first is solved');
     await b.page.locator('[aria-label="Previous puzzle"]').first().click();await b.settle(800);const s2=await gridSig(b);

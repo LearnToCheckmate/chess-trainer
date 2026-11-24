@@ -108,7 +108,7 @@ L.run(async()=>{
 
   for(const k of kinds){
     const b=await L.launch({geo,name:'gk-'+k.name.replace(/ /g,'-')+'-'+geo});await b.open();
-    await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+    await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
     // Read the LIVE sheet first, at ply 0 where the game is plainly playable. This is the positive control that
     // assertion 10's set difference is taken against; without it the absence check is a search for a word.
     await b.tapText(/^More$/).catch(function(){});await b.settle(700);
@@ -240,7 +240,7 @@ L.run(async()=>{
  for(const [glab,gv] of [['kunal730','kunal730'],['se','se'],['land730',{w:730,h:375,safe:'',label:'730x375'}],['land730i',{w:730,h:375,safe:'51,31',label:'730x375 insets 51,31'}]]){
    const land=typeof gv==='object';
    const b=await L.launch({geo:land?{w:375,h:730,safe:gv.safe,label:'375x730 then rotated to '+gv.label}:gv,name:'gk-E-'+glab});await b.open();
-   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
    await b.move('f2','f3',500);await b.move('e7','e5',500);await b.move('g2','g4',500);await b.move('d8','h4',500);await b.settle(1100);
    if(land){await b.page.setViewportSize({width:gv.w,height:gv.h});await b.settle(1500);}   // the insets ride on the launch (ct_safe), as on a real phone
    /* #547, the full suite: E1 read only [data-ct=result-card], and in LANDSCAPE the result is not a card - the rail's head

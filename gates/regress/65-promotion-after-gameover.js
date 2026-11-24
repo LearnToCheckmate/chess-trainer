@@ -171,7 +171,7 @@ async function ppClock(b){
   await tapBtn(b,/^Pass & Play$/,400);
   await require('../drive/play').selectTime(b,'1 min');   // #550 q44: the time control is one dropdown
   await b.page.evaluate(()=>{for(const el of document.querySelectorAll('div')){const st=getComputedStyle(el);if((st.overflowY==='auto'||st.overflowY==='scroll')&&el.scrollHeight>el.clientHeight+1)el.scrollTop=0;}});
-  await tapBtn(b,/^▶ Start game$/,900);
+  await tapBtn(b,/^Start game$/,900);
   if(!(await b.page.evaluate(()=>{const p=document.querySelector('[data-ct="moves-panel"]');return p?getComputedStyle(p).visibility==='visible':false;})))
     await tapBtn(b,/^Moves$/,400);
 }
@@ -1204,7 +1204,7 @@ async function blockJS(){
 // #549 item (4): K0s and K2s add the HL_SEL selection overlay (the folded case TC-PL-SEL-01, registered as TC-PL-058).
 async function blockK(){
   const b=await L.launch({geo:'kunal730',name:'65K'});await b.open();
-  await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await tapBtn(b,/^▶ Start game$/,900);
+  await b.home();await b.tile('Play');await b.settle(500);await tapBtn(b,/^Pass & Play$/,400);await tapBtn(b,/^Start game$/,900);
   await b.move('e2','e4',400);await b.move('e7','e5',500);
   const dots=async()=>(await selDots(b)).dots;
   await b.tapSq('d2');await b.settle(300);const liveSD=await selDots(b);const live=liveSD.dots;

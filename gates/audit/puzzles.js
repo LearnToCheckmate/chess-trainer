@@ -53,7 +53,7 @@ async function measure(b,geo,st){
   if(isRoad){
     const sb=await Z.scrollBox(b);M(geo,st,'road.docScrollH',sb.doc.sh);M(geo,st,'road.docClientH',sb.doc.ch);M(geo,st,'road.scrollTop',sb.doc.st);M(geo,st,'road.boxes',sb.boxes.map(x=>x.pos+' sh'+x.sh+'/ch'+x.ch+' st'+x.st).join('; ')||'none');
     const menu=by(/^☰$/);if(menu)M(geo,st,'tap.menu',menu.w+'x'+menu.h);
-    const start=by(/^▶ (Start training|Train next puzzle)$/);if(start){M(geo,st,'start.label',start.t);M(geo,st,'start.rect',start.w+'x'+start.h+'@'+start.x+','+start.y);M(geo,st,'start.belowFold',Math.max(0,r1(start.y+start.h-b.geo.h)));}
+    const start=by(/^(Start training|Train next puzzle)$/);if(start){M(geo,st,'start.label',start.t);M(geo,st,'start.rect',start.w+'x'+start.h+'@'+start.x+','+start.y);M(geo,st,'start.belowFold',Math.max(0,r1(start.y+start.h-b.geo.h)));}
     const nodes=btns.filter(x=>x.w>=80&&x.h>=80);M(geo,st,'nodes',nodes.map(x=>x.t+' '+x.w+'x'+x.h+'@'+x.y+(x.dis?' dis':'')).join('; '));
     // where is Free play? (its document y = viewport y + scroll)
     const fp=await b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^🧩 Free play/.test((x.innerText||'').trim()));if(!e)return null;const r=e.getBoundingClientRect();const de=document.scrollingElement||document.documentElement;return {vy:Math.round(r.top),docY:Math.round(r.top+de.scrollTop),w:Math.round(r.width),h:Math.round(r.height),onScreen:r.top>=0&&r.bottom<=innerHeight};});

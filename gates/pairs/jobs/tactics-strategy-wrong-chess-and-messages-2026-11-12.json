@@ -1,11 +1,12 @@
 {
  "job": "tactics-strategy-wrong-chess-and-messages-2026-11-12",
- "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. Batch 14 (the job's remainder, tacWrongLine in gates/engine-extract.js): TC-R246f runs the shipped tacWrongLine in node over every legal wrong move and the no-legal tap of every card (a reply that mates, found by playing every reply, must be named first; every other line a true hangs/drops line or the card's line), and TC-R246g holds the line on screen to that function's output move by move. #553 (his Q68 pick, 23 Nov 2026, 'A more button'): TC-R262 now pins the line at the box's own size on every phone (the 11.5px floor is gone), TC-R298 holds the 'more' chip to appear exactly when the line does not fit the box at full size (measured by a hidden copy, not by the app's own cut), the line itself to cut at whole lines inside the box with no word under the chip, and the chip to open the whole line over the box and close it again; TC-R299 holds that no faded sliver shows while a line is up; graded at 375x667 too. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone.",
+ "about": "Tactics and Strategy say only what their boards show. Graded by gate 175 (TC-R246a..d, and TC-R262 for his q23 answer of 19 Nov 2026: the longer, friendlier wrong-try lines, the box that keeps its place, and smaller text on a short phone only) on a trial bundle at 375x761 with his insets and at 320x568: every legal wrong move of all 13 Tactics cards is played and its line is never the bare fixed line, is true where it names a mate or a piece hung, and is wholly inside its box; a tap that is no legal move says so; each chess claim in a Tactics idea, hint, explanation and wrong-try line, and in each of the 18 Strategy cards' look line and text, is checked against the position with the app's rules and this gate's own attack count; and the screen shows the row's words and board. Batch 14 (the job's remainder, tacWrongLine in gates/engine-extract.js): TC-R246f runs the shipped tacWrongLine in node over every legal wrong move and the no-legal tap of every card (a reply that mates, found by playing every reply, must be named first; every other line a true hangs/drops line or the card's line), and TC-R246g holds the line on screen to that function's output move by move. #553 (his Q68 pick, 23 Nov 2026, 'A more button'): TC-R262 now pins the line at the box's own size on every phone (the 11.5px floor is gone), TC-R298 holds the 'more' chip to appear exactly when the line does not fit the box at full size (measured by a hidden copy, not by the app's own cut), the line itself to cut at whole lines inside the box with no word under the chip, and the chip to open the whole line over the box and close it again; TC-R299 holds that no faded sliver shows while a line is up; graded at 375x667 too. NOT COVERED HERE: the engine questions (the stored moves are best, the open-file invasion works, the bishop pair is a small edge) are gate 129, TC-R205a..e, which runs Stockfish in node and has no screen situation; general advice with no position claim; the sideways and desktop layouts, which draw the same line in another box; his phone. Since #553 (his pick B on card 80, run-answers orchestrator-B14-Q7-2026-11-24) TC-R412 is graded too: at 320x568 the more chip's room is kept only under the last line shown.",
  "gate": "gates/regress/175-tactics-strategy-claims-hold.js",
  "checks": [
   "TC-R246[a-g] ",
   "TC-R262 ",
-  "TC-R29[89] "
+  "TC-R29[89] ",
+  "TC-R412 "
  ],
  "build": "always",
  "situations": [
@@ -109,7 +110,15 @@
     "se 320x568",
     "w375h667"
    ]
+  },
+  {
+   "name": "chip-room-on-every-line",
+   "patch": "breaks/tactics-wrong-try-chip-room-on-every-line.diff",
+   "why": "his pick B undone (card 80): the more chip's 68px is kept clear on the right of every line of a cut wrong-try line again, so the lines above the last break narrower than the box and fewer words show before more",
+   "mustFailIn": [
+    "se 320x568"
+   ]
   }
  ],
- "timeoutSec": 1800
+ "timeoutSec": 2400
 }

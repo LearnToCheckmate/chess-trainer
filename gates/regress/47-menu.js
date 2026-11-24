@@ -602,7 +602,7 @@ if(blk('G')){
   try{
     await b.tile('Play');await b.settle(600);
     await b.tapText(/^Pass & Play$/,{wait:500});
-    await b.tapText(/^▶ Start game$/,{wait:1500});
+    await b.tapText(/^Start game$/,{wait:1500});
     await b.tapCt('play-menu',800);
   }catch(e){navErr=String(e).slice(0,160);}
   L.say(!navErr,'375x730: reached the menu from a live game (navigation, not an assertion about the menu)',navErr);

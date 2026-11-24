@@ -20,7 +20,7 @@ async function solveCurrent(b,tag){
   }
   return false;
 }
-async function start(b){await b.open();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});}
+async function start(b){await b.open();await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});}
 L.run(async()=>{
   for(const [tag,geo,walk] of [['se','se',true],['430','430',false],['kunal','kunal',false]]){
     const b=await L.launch({geo,name:'ant-puz2-'+tag});

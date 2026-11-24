@@ -142,11 +142,11 @@ async function rotate(b,g){await b.page.setViewportSize({width:g.w,height:g.h});
 
 const KINDS=[
   {id:'M',name:'checkmate (the getStatus half of _gameOver)',drive:async(b)=>{
-     await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});
+     await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
      await b.move('f2','f3',450);await b.move('e7','e5',450);await b.move('g2','g4',450);await b.move('d8','h4',900);
      await b.settle(700);}},
   {id:'R',name:'resignation (the playEnd half of _gameOver)',drive:async(b)=>{
-     await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});
+     await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
      await b.move('e2','e4',450);await b.move('e7','e5',450);await b.settle(300);
      await tapTitle(b,'More',600);
      await b.tapText(/^Resign$/).catch(()=>{});await b.settle(400);             // #375: the first tap only ARMS it
@@ -201,7 +201,7 @@ L.run(async()=>{
    {
     const b=await L.launch({geo:PORT,name:'l64-live-'+g.w+k.id});await b.open();
     try{
-      await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^▶ Start game$/,{wait:900});
+      await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
       await b.move('e2','e4',450);await b.move('e7','e5',450);await b.settle(400);
       await rotate(b,g);
       const live=await rowOf(b,ROW);
@@ -334,7 +334,7 @@ L.run(async()=>{
  for(const g of [{w:568,h:320},{w:480,h:320}]){
   const b=await L.launch({geo:{w:g.w,h:g.h,safe:''},name:'l64-320tall-'+g.w});await b.open();const G='land '+g.w+'x'+g.h+' 320-TALL: ';
   try{
-   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^\u25b6 Start game$/,{wait:900});
+   await b.tile('Play');await b.tapText(/^Pass & Play$/);await b.tapText(/^Start game$/,{wait:900});
    const live=await rowOf(b,ROW);
    L.say(live.items.length>=5&&live.bottom!=null&&live.bottom<=g.h+0.5,G+'TC-PL-056 the LIVE control row is on screen ('+live.labels.join(',')+', bottom '+live.bottom+' of '+g.h+')',{labels:live.labels.join(','),bottom:live.bottom});
    await b.move('f2','f3',450);await b.move('e7','e5',450);await b.move('g2','g4',450);await b.move('d8','h4',900);await b.settle(700);

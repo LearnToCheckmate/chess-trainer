@@ -582,7 +582,7 @@ L.run(async()=>{
        CT_* override that truncates or empties SC at launch, in the shape of CT_HM_BLOCKS. That lives in chess.jsx,
        which this run may not touch, so the empty and one-card states still have no POSITIVE coverage - this guard
        only stops the gate from throwing when they arrive. Recorded on that job as a skip, not as done. */
-    const pab=b.page.locator('button',{hasText:/^▶ Play/});
+    const pab=b.page.locator('button',{hasText:/^Play( all \d+)? \(screen-record this\)$/});
     const pabN=await pab.count();
     L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
     if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
@@ -1298,7 +1298,7 @@ L.run(async()=>{
     const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
       askW:[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&/^\s*(\u21bb DRIVES ITSELF|\u261e YOUR TAPS)/m.test(x.innerText||'');}).length,
       states:document.querySelectorAll('button[data-ct="state-card"]').length,
-      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^▶ Play/.test(t)),
+      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^Play( all \d+)? \(screen-record this\)$/.test(t)),
       empty:[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^Nothing needed right now\./.test((d.innerText||'').trim())).map(d=>{const r=d.getBoundingClientRect();return {t:(d.innerText||'').trim().slice(0,60),h:Math.round(r.height),top:Math.round(r.top),vh:innerHeight};})}));
     L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
     L.say(q.asks===wantAsks&&q.askW===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) (by hook '+q.asks+', by their mode badges '+q.askW+')',q);

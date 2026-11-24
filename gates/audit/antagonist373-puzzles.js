@@ -26,7 +26,7 @@ L.run(async()=>{
   for(const [tag,geo] of GEOS){
     const b=await L.launch({geo,name:'ant-puz-'+tag});await b.open();
     try{
-      await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
+      await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});
       const s0=await sig(b);const seen=[s0];let dead=0,wrapAt=-1;
       for(let k=1;k<=60;k++){await b.page.locator('[aria-label="Next puzzle"]').first().click();await b.settle(350);const s=await sig(b);if(s===seen[seen.length-1])dead++;if(s===s0){wrapAt=k;break;}seen.push(s);}
       L.say(wrapAt>1&&dead===0,tag+': A-10 Next walks the tier without a dead press and wraps to the first puzzle (distinct '+seen.length+', wrap after '+wrapAt+' presses, dead '+dead+')');
@@ -41,7 +41,7 @@ L.run(async()=>{
     }catch(e){L.say(false,tag+': tier walk threw',String(e).slice(0,160));}
     // solve one, then Next
     try{
-      await b.open();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});const a0=await sig(b);
+      await b.open();await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});const a0=await sig(b);
       const solved=await solveCurrent(b,tag);const m=await msg(b);
       L.say(solved,tag+': A-10 the first puzzle can be solved through Show move',m&&m.text);
       if(solved){
@@ -58,7 +58,7 @@ L.run(async()=>{
     }catch(e){L.say(false,tag+': solve section threw',String(e).slice(0,160));}
     // X-07: a wrong move
     try{
-      await b.open();await b.tile('Puzzles');await b.tapText(/^▶ (Start training|Train next puzzle)/,{wait:900});
+      await b.open();await b.tile('Puzzles');await b.tapText(/^(Start training|Train next puzzle)/,{wait:900});
       await b.tapText(/Show move/,{wait:400});const rare=await revealSquares(b);const from=rare.find(x=>x.img);const to=rare.find(x=>!x.img)||rare.find(x=>x.img&&x!==from);
       const col=from&&/([wb])[A-Z]/.exec(from.src||'')?/([wb])[A-Z]/.exec(from.src)[1]:null;
       // pick another piece of the side to move and any legal target other than the solution's

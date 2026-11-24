@@ -359,7 +359,7 @@ const QUIET106=[
     let reached=false;
     try{ await R.importPgn(b,pgnOf(fen,mv),180000); await R.startReview(b); await R.goPly(b,0);
       await b.tapCt('rev-more',500); await b.tapText(/^Play from here$/,{wait:900});
-      await b.tapText(/^Pass & Play$/,{wait:600}); await b.tapText(/^▶ Play this position$/,{wait:1600}); reached=true; }
+      await b.tapText(/^Pass & Play$/,{wait:600}); await b.tapText(/^Play this position$/,{wait:1600}); reached=true; }
     catch(e){ L.say(false,'TC-PL-066 (I) '+tag+': the set-up position could not be reached through the FEN route - the assertions below are UNRUN, not green',String(e&&e.message||e).slice(0,160)); }
     if(reached){
       const s0=await b.page.evaluate(S);
