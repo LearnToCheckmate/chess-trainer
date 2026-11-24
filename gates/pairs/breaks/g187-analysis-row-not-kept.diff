@@ -1,7 +1,7 @@
 diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -13743,7 +13743,7 @@
+@@ -13779,7 +13779,7 @@
              {_stripH>0&&_cmpStrip&&(<div data-ct="rev-cmp" style={{height:20,flexShrink:0,display:'flex',alignItems:'baseline',gap:10,fontSize:'clamp(12.5px,2.7vw,14px)',fontFamily:'ui-monospace,Menlo,monospace',whiteSpace:'nowrap',overflow:'hidden'}}>
                {_cmpStrip.map((r,i)=>(<span key={i} style={{display:'inline-flex',gap:5,alignItems:'baseline'}}><b style={{fontWeight:800,color:i===0?'#e8e8ea':'rgba(255,255,255,.6)'}}>{r.san}</b><span style={{color:i===0?'var(--ac2)':'rgba(255,255,255,.55)',fontWeight:700}}>{evPawnsTxt(r.ev)}</span>{i>0&&<span style={{color:'rgba(255,255,255,.35)',fontSize:'.85em'}}>{r.best?'best':'next best'}</span>}</span>))}
              </div>)}

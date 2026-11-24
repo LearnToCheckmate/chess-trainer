@@ -1,7 +1,7 @@
 diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -10066,7 +10066,7 @@
+@@ -10091,7 +10091,7 @@
          txt+=(first?'':' ')+((wt?(num+'. '):(first?(num+'... '):''))+san);if(!wt)num++;first=false;g=makeMove(g,moves[i]);}
        setBestLineSan(txt.trim());}catch(e){setBestLineSan('');}
      /* batch 14, HEX-R-05: the best chip's line in words, in the sentence row while it shows (not for the why pill or a missed brilliant: neither is 'the best move') */

@@ -1,6 +1,6 @@
 'use strict';
-// gates/regress/185-review-best-line-and-analysis-say-what-moves-do.js - THE BEST LINE AND THE ANALYSIS BOARD SAY WHAT THE MOVES DO.
-// US-R189 / TC-R264a..f.
+// gates/regress/187-review-best-line-and-analysis-say-what-moves-do.js - THE BEST LINE AND THE ANALYSIS BOARD SAY WHAT THE MOVES DO.
+// US-R190 / TC-R264a..f.
 //
 // WHY [batch 14, jobs/review-sentences-name-what-the-moves-do-2026-11-12, the remainder docs/hint-audit-2026-11-12 HEX-R-05 and HEX-R-09;
 // Kunal, 12 Nov 2026: "we have a few places we are giving hints explanations. We should check all of those."]: tapping the best chip showed
@@ -16,7 +16,7 @@
 // before and after the line, mate and stalemate from the rules, a mate in one found by trying every reply, the exchange on a square by this
 // gate's own full minimax over every capture (not the app's least-valuable-attacker seeSq). The completeness lines go the other way: where
 // the board proves a mate, a stalemate, a mate in one allowed or a free piece, the sentence must say so.
-// CT_G185_NODE_ONLY=1 runs the node lines alone and SAYS so (controls; gates.sh never sets it).
+// CT_G187_NODE_ONLY=1 runs the node lines alone and SAYS so (controls; gates.sh never sets it).
 const L=require('../lib');
 const E=require('../engine-extract.js');
 const RV=require('../drive/review');
@@ -117,7 +117,7 @@ function checkAna(pre,mv){const errs=[];const s=E.anaSay(pre,mv);const post=E.ma
     if(legal(g4).some(x=>x.tr===r.tr&&x.tc===r.tc))continue;if(V[t.t]-gain<2)continue;if(mateIn1(g4).length)continue;errs.push('leaves the '+PW[t.t]+' on '+E.rc2sq(r.tr,r.tc)+' free to '+sanOf(post,r)+' and does not say so');break;}}
   return {s,errs,kind:mt?'mate':stl?'stalemate':al?'allows':le?'lets':bk?'back':s?'read':'none'};}
 L.run(async()=>{
-  L.note('185: chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5);
+  L.note('187: chess.jsx '+E.SRC_PATH+' md5 '+E.SOURCE_MD5);
   const N='node ';
   // ── TC-R264a the three lines of the audit, word for word (each checked by hand against the board: see the job's old/new file) ──
   const AUD=[['r4rk1/7p/2p1p1pQ/P3B3/1P1P4/2P5/5qPP/2R4K b - - 0 1','Qf1+ Rxf1 Rxf1#','Best was Qf1 with check. The line ends in mate: Rxf1 mate.'],
@@ -143,14 +143,14 @@ L.run(async()=>{
   L.say(['mate','allows','lets','back','read'].every(k=>(kindsA[k]||0)>0),N+'TC-R264c every kind of analysis sentence occurs in the corpus, so none passes over nothing ('+JSON.stringify(kindsA)+')');
   // a stalemate, which no game above reaches
   {const g=E.fromFEN('7k/8/6Q1/8/8/8/8/K7 w - - 0 1');const m=E.findMoveBySAN(g,'Qf7');const r=checkAna(g,m);L.say(r.s==='Qf7 is stalemate: Black has no legal move.'&&!r.errs.length,N+'TC-R264c a stalemate is said as one - "'+r.s+'"');}
-  if(process.env.CT_G185_NODE_ONLY){L.note('CT_G185_NODE_ONLY=1: the screen lines were NOT run');L.done();return;}
+  if(process.env.CT_G187_NODE_ONLY){L.note('CT_G187_NODE_ONLY=1: the screen lines were NOT run');L.done();return;}
   // ── TC-R264d..f ON THE SCREEN: the Opera Game, at his phone and at 320x568 ──
   const rd=(b)=>b.page.evaluate(()=>{const t=document.querySelector('[data-ct="rev-why-txt"]');const bl=document.querySelector('[data-ct="rev-bestline"]');
     let fit=null;if(t){const cs=getComputedStyle(t);fit={sh:t.scrollHeight,ch:t.clientHeight,clamp:+cs.webkitLineClamp||0,lh:parseFloat(cs.lineHeight)||0};}
     return {txt:t?t.textContent:null,say:t?t.getAttribute('data-say'):null,bl:bl?(bl.innerText||'').replace(/\s+/g,' ').trim():null,fit};});
   const fits=(f)=>!!f&&(f.sh<=f.ch+0.5||(!!f.clamp&&f.ch<=Math.ceil(f.clamp*f.lh)+1));
   for(const geo of ['kunal761','se']){const G=geo+' ';
-    const b=await L.launch({geo,store:{ct_pool:'3'},name:'g185-'+geo});await b.open();let ok=true;
+    const b=await L.launch({geo,store:{ct_pool:'3'},name:'g187-'+geo});await b.open();let ok=true;
     try{await RV.importPgn(b,RV.PGN_OPERA,240000);await RV.startReview(b);}catch(e){ok=false;}
     L.say(ok,G+'TC-R264d PRECONDITION the Opera Game is reviewed and its move screen is open');
     if(ok){
@@ -167,13 +167,13 @@ L.run(async()=>{
       if(geo==='kunal761'){let sh=null;try{await b.tapCt('rev-why-txt');await b.settle(500);sh=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-sheet"]');return e?e.innerText:null;});}catch(e){}
         L.say(!!sh&&/small slip/.test(sh),G+'TC-R264d the played move\'s sentence is one tap away: the row opens the sheet with it - "'+String(sh).slice(0,80)+'"');
         if(sh){await b.page.mouse.click(8,8);await b.settle(300);}
-        if(process.env.CT_G185_SHOT)await b.shot(process.env.CT_G185_SHOT+'-best');}
+        if(process.env.CT_G187_SHOT)await b.shot(process.env.CT_G187_SHOT+'-best');}
       // TC-R264e the analysis board: from ply 27 (14.Rd1), Analyze, then 14...Qe6 and 15.Bxd7+, then Undo
       await RV.goPly(b,27);await b.settle(500);const bdA=await b.board();
       let inA=true;try{await b.tapCt('rev-fab');await b.settle(900);}catch(e){inA=false;}
       const a0=await rd(b);
       await b.move('e7','e6');await b.settle(1200);const a1=await rd(b);const bdB=await b.board();
-      if(geo==='kunal761'&&process.env.CT_G185_SHOT)await b.shot(process.env.CT_G185_SHOT+'-analysis');
+      if(geo==='kunal761'&&process.env.CT_G187_SHOT)await b.shot(process.env.CT_G187_SHOT+'-analysis');
       await b.move('b5','d7');await b.settle(1200);const a2=await rd(b);
       let ud=true;try{await b.tapText(/Undo$/);await b.settle(700);}catch(e){ud=false;}const a3=await rd(b);
       L.say(inA&&a0.say==='ana'&&/^\s*$/.test(a0.txt||''),G+'TC-R264e PRECONDITION the analysis board opened, its sentence row is there and empty before a move ("'+a0.txt+'")');

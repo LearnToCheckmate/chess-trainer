@@ -1271,6 +1271,20 @@ function effCls(cls,i,bookN){
   return cls;
 }
 function effLabel(cls,i,bookN){const c=effCls(cls,i,bookN);return c&&c.label;}
+/* #553, jobs/a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19: THE BOOK ENDS AT THE FIRST MOVE THE
+   ENGINE CALLS A MISTAKE, A BLUNDER OR A MISS. The Book prefix is how far a game follows a lesson line or a named opening position, and
+   the lesson library teaches TRAPS: the Scholar's Mate lesson's 3...Nf6 allows 4.Qxf7#, and the Review badged it Book, praised it as "An
+   opening move (Scholar's Mate)", counted it under Book and left Black 'not scored'. A move that loses the game is not theory because a
+   lesson shows it being punished. So the prefix is cut at the first such ply: that ply shows the grade the engine gave it, and every ply
+   after it is graded as an ordinary move (the trap's punishment, 4.Qxf7#, is the engine's Best). A move that allows a forced mate is
+   always one of these three (mateLadder), unless its side was already lost by ten pawns, when it allowed nothing. Inaccuracies stay Book,
+   as on chess.com. No grade, band or threshold changes: this reads the grade classify already gave. Every consumer of the prefix (the
+   summary counts, the jump, the badge, the strip, the eval graphs, the skills panel, the games-list split, the regrade preview) reads the
+   cut number, so they agree by construction as they did before. */
+const BOOK_BREAKS=['Mistake','Blunder','Miss'];
+function bookBreaks(label){return BOOK_BREAKS.indexOf(label)>=0;}
+// The Book prefix with the cut applied: bookN plies of book, labelAt(i) the engine's grade of ply i.
+function bookSound(bookN,labelAt){const n=bookN||0;for(let i=0;i<n;i++){let L=null;try{L=labelAt(i);}catch(e){L=null;}if(bookBreaks(L))return i;}return n;}
 let SFX_ON=true; let _ctxSfx=null;
 function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
 function _sfxTone(ctx,type,f,t0,dur,vol,f2){try{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2!=null)o.frequency.exponentialRampToValueAtTime(Math.max(1,f2),t0+dur);g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+0.008);g.gain.exponentialRampToValueAtTime(0.0006,t0+dur);o.connect(g);g.connect(ctx.destination);o.start(t0);o.stop(t0+dur+0.03);}catch(e){}}
@@ -2675,7 +2689,7 @@ function bestLineSay(states,moves){try{
    the words the engine line's ? sheet uses. '' when none holds, and the row stays empty. Quoted moves carry no + or # (q7). */
 function _anaCap(g,side,min){const out=[];try{for(const m of getLegal({...g,turn:side,ep:null})){const t=g.board[m.tr]&&g.board[m.tr][m.tc];if(!t||t.c===side||t.t==='k')continue;
   const g4=makeMove({...g,turn:side,ep:null},m);if(!g4)continue;const n=(SEEVAL[t.t]||0)-seeSq(g4,m.tr,m.tc,opp(side));if(n>=min)out.push({m,net:n,t:t.t,g4});}}catch(e){}
-  /* the best capture by the exchange count that does not walk into a mate in one (gate 185: Bxa4 was a decoy where Nxa4 won the same knight clean) */
+  /* the best capture by the exchange count that does not walk into a mate in one (gate 187: Bxa4 was a decoy where Nxa4 won the same knight clean) */
   out.sort((a,b)=>b.net-a.net);for(const c of out){let decoy=false;try{for(const r of getLegal(c.g4)){const g5=makeMove(c.g4,r);if(g5&&getStatus(g5)==='checkmate'){decoy=true;break;}}}catch(e){}if(!decoy)return c;}return null;}
 function anaSay(pre,mv){try{
   if(!pre||!mv)return '';const me=pre.turn,them=opp(me);const post=makeMove(pre,mv);if(!post)return '';
@@ -2686,7 +2700,7 @@ function anaSay(pre,mv){try{
   for(const r of getLegal(post)){const g3=makeMove(post,r);if(g3&&getStatus(g3)==='checkmate')return N+(chk?' gives check but':'')+' allows '+sanP(post,r).replace(/[+#]$/,'')+' mate.';}
   const capd=pre.board[mv.tr][mv.tc]||(mv.epCap?{t:'p'}:null);const gain=capd?(SEEVAL[capd.t]||0):0;
   const bc=chk?null:_anaCap(post,them,gain+1);
-  if(bc){{const R=sanP(post,bc.m),rc=/\+$/.test(R);const free=!getLegal(bc.g4).some(x=>x.tr===bc.m.tr&&x.tc===bc.m.tc);/* 'for nothing' only where nothing can take back on the square (gate 185 caught 'dxe5 ... for nothing' where ...dxe5 can, and loses to Nxe5) */
+  if(bc){{const R=sanP(post,bc.m),rc=/\+$/.test(R);const free=!getLegal(bc.g4).some(x=>x.tr===bc.m.tr&&x.tc===bc.m.tc);/* 'for nothing' only where nothing can take back on the square (gate 187 caught 'dxe5 ... for nothing' where ...dxe5 can, and loses to Nxe5) */
       return N+(capd?(' takes the '+PNAME[capd.t]+', but it'):'')+' lets '+R.replace(/[+#]$/,'')+' win material: it takes the '+PNAME[bc.t]+' on '+rc2sq(bc.m.tr,bc.m.tc)+(free?' for nothing':'')+(rc?', with check':'')+'.';}}
   if(capd){const rb=getLegal(post).filter(r=>r.tr===mv.tr&&r.tc===mv.tc).sort((a,b)=>(SEEVAL[post.board[a.fr][a.fc].t]||0)-(SEEVAL[post.board[b.fr][b.fc].t]||0));
     if(rb.length)return N+' takes the '+PNAME[capd.t]+' on '+rc2sq(mv.tr,mv.tc)+(chk?', with check':'')+', and '+sanP(post,rb[0]).replace(/[+#]$/,'')+' can take back.';}
@@ -3644,15 +3658,16 @@ function regradeGame(res,cache,userColor,rule,oldVer){   // oldVer: the stored t
   /* #550 antagonist A round 2 (P2): the Best/Great split is the summary's (effLabel over the game's own book plies), so a book-range ply that a regrade moves
      between Brilliant and Best/Great moves the split only where the summary would have counted it */
   let _bk=0;try{_bk=(res.positions&&res.positions[0]&&toFEN(res.positions[0]).split(' ')[0]===START_PLACEMENT)?(openingBookPlies(res.plies.map(p=>p.san),res.positions)||0):0;}catch(e){_bk=0;}
+  let _bkO=_bk,_bkN=_bk;   // #553: each run's own book, cut at its own first Mistake, Blunder or Miss (bookSound, applied as the plies are graded)
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
     const _h=gradeHist(res,evW,cache.bU,i),_oR=(oldVer||1)%10,_hO={..._h,grades2:(oldVer||1)>=10};   // the stored review's own rule and grades
     const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule,false,_h);   // rule: the app's own (BRIL_RULE) unless a caller names one
     const ol=_oR===1?sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1,false,_hO):sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,_oR,false,_hO);
     rows.push(nw);
-    const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
+    const NL=nw.cls.label,OL=ol.cls.label;if(i<_bkO&&bookBreaks(OL))_bkO=i;if(i<_bkN&&bookBreaks(NL))_bkN=i;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
-    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(effLabel(ol.cls,i,_bk)),b2=_tallySplit(effLabel(nw.cls,i,_bk));if(a2)delta[a2]--;if(b2)delta[b2]++;}
+    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(effLabel(ol.cls,i,_bkO)),b2=_tallySplit(effLabel(nw.cls,i,_bkN));if(a2)delta[a2]--;if(b2)delta[b2]++;}
     else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
     if(OL==='Brilliant'||NL==='Brilliant'){
       const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -3671,7 +3686,7 @@ async function analyzeGameCounts(pgn,userColor){
     const res=loadSANs(sans,_st.game);if(!res||!res.plies.length)return null;
     let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0,best=0,grt=0;
     /* #550 answer a9 (item 73): Best and Great are counted apart, with the summary's book plies (effCls) kept out of Best, so the row's numbers are the summary's */
-    const _bk=_st.game?0:(()=>{try{return openingBookPlies(sans,res.positions)||0;}catch(e){return 0;}})();
+    let _bk=_st.game?0:(()=>{try{return openingBookPlies(sans,res.positions)||0;}catch(e){return 0;}})();
     for(let i=0;i<res.plies.length;i++){
       const mc=res.positions[i].turn;const _opp=!!userColor&&mc!==userColor;   /* #549 item (66): the mover is the position's side to move, not ply parity - a set-up game may start with Black */ // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
       const pos=res.positions[i],scored=rankMoves(pos,2);if(!scored||!scored.length)continue;
@@ -3692,7 +3707,7 @@ async function analyzeGameCounts(pgn,userColor){
       const _nb3=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);
       let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)),undefined,{lossWin:winDrop(bestVal,actualVal,mc),playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i})?{label:'Brilliant'}:classifyMove(winDrop(bestVal,actualVal,mc),!!actual&&actual===scored[0],scored.length);
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
-      const L=_c3.label;
+      const L=_c3.label;if(i<_bk&&bookBreaks(L))_bk=i;   // #553: the book ends at the first Mistake, Blunder or Miss (bookSound), for either side, as the review's does
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       {const E=effLabel(_c3,i,_bk);if(E==='Best')best++;else if(E==='Great')grt++;}
@@ -5744,6 +5759,12 @@ function AppMain(){
   const [sfTry,setSfTry]=useState(0);   // #550 ERR-08: bumped when the network returns and the Play engine had failed, so it is loaded again
   const [sfDown,setSfDown]=useState(false);   // #550 errors check ERR-06: the Play engine could not start (its file blocked or missing), so the built-in engine plays
   const [sfEval,setSfEval]=useState(null);          // {cp,mate,fen} from White's POV, or null
+  /* #553 jobs/puzzles-the-advantage-bar-shows-before-and-after-your-move-2026-11-19 (Kunal's pick 'Before and after', 19 Nov), amber
+     flags/amber-553-drill-bar-before-after: the drill's bar shows where the evaluation WAS and where it IS after his move. sfDone holds
+     the FINISHED depth-12 readings by FEN (White's view), written at the search's own bestmove; sfLastRef is the newest info line of the
+     search in flight (with its depth, so a search stopped short is never recorded as finished); drillAfter is the position his last move
+     on this card made, right or wrong (a wrong move's board goes back, so it is not dispFen). */
+  const [sfDone,setSfDone]=useState({});const sfLastRef=useRef(null);const [drillAfter,setDrillAfter]=useState(null);
   const [hideEval,setHideEval]=useState(()=>{try{return localStorage.getItem('ct_hideEval')==='1';}catch{return false;}});
   /* #369 y1b. Kunal on the eval graph: "Still not sure, draw C properly first." C = the graph INSIDE the player
      bars, the board unchanged. Rather than a drawing, this is the real thing behind a switch that ships OFF:
@@ -7608,16 +7629,19 @@ function AppMain(){
         if(sfEvalingRef.current&&msg.startsWith('info')&&msg.indexOf(' score ')!==-1){
           const fen=sfEvalFenRef.current; const stm=(fen.split(' ')[1]||'w'); const sign=(stm==='w')?1:-1;
           const mm=msg.match(/score mate (-?\d+)/); const cm=msg.match(/score cp (-?\d+)/);
-          if(mm){setSfEval({mate:mateW(parseInt(mm[1],10),sign),cp:null,fen});}
-          else if(cm){setSfEval({mate:null,cp:sign*parseInt(cm[1],10),fen});}
+          const dm=msg.match(/ depth (\d+)/);const _dp=dm?parseInt(dm[1],10):0;
+          if(mm){const _e={mate:mateW(parseInt(mm[1],10),sign),cp:null,fen};sfLastRef.current={..._e,depth:_dp};setSfEval(_e);}
+          else if(cm){const _e={mate:null,cp:sign*parseInt(cm[1],10),fen};sfLastRef.current={..._e,depth:_dp};setSfEval(_e);}
         }
         if(!sfEvalingRef.current&&sfCandRef.current&&msg.startsWith('info')&&msg.indexOf(' multipv ')!==-1&&msg.indexOf(' pv ')!==-1&&msg.indexOf(' score ')!==-1){
           const _pn=msg.match(/ multipv (\d+)/),_pv=msg.match(/ pv (\S+)/),_cm=msg.match(/score cp (-?\d+)/),_mm=msg.match(/score mate (-?\d+)/);
           if(_pv&&_pv[1]){sfCandRef.current[_pn?parseInt(_pn[1],10):1]={uci:_pv[1],cp:_cm?parseInt(_cm[1],10):null,mate:_mm?parseInt(_mm[1],10):null};}
         }
         if(msg.startsWith('bestmove')){
-          if(sfEvalingRef.current)sfEvalingRef.current=false;
           const bm=msg.split(' ')[1];
+          if(sfEvalingRef.current){sfEvalingRef.current=false;
+            /* #553: a finished reading - depth 12 reached, or no move at all (a mate or a stalemate is final at depth 0) */
+            const _l=sfLastRef.current;if(_l&&_l.fen===sfEvalFenRef.current&&(_l.depth>=12||!bm||bm==='(none)')){const _r={cp:_l.cp,mate:_l.mate,fen:_l.fen};setSfDone(d=>{const o=Object.keys(d).length>=40?{}:{...d};o[_r.fen]=_r;return o;});}}
           const cb=sfCbRef.current; sfCbRef.current=null;
           if(cb)cb(bm&&bm!=='(none)'?bm:null);
         }
@@ -8655,7 +8679,7 @@ function AppMain(){
         if(fc.length)setFollowBril(prev=>followBrilMerge(prev,fc));
       }
     }catch(e){}
-    const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
+    const bookN=_st.game?0:bookSound(openingBookPlies(playedSans,res.positions),(i)=>out[i]&&out[i].cls&&out[i].cls.label);   // #549 item (98): the named-position table as well as the lesson lines; #553: cut at the first Mistake, Blunder or Miss (bookSound)
     if(meta&&meta.key&&gameStatsRef.current[meta.key]){   /* #550 answer a9 (item 73): the games list shows Best and Great apart, each the summary's own count for his side (effLabel, book applied) */
       const uc=meta.userColor;let best=0,grt=0;out.forEach((o,i)=>{if(uc&&res.positions[i].turn!==uc)return;const E=effLabel(o.cls,i,bookN);if(E==='Best')best++;else if(E==='Great')grt++;});
       recordGameStats(meta.key,{...gameStatsRef.current[meta.key],best,grt});
@@ -9368,6 +9392,7 @@ function AppMain(){
       if(!p||step>=p.sol.length){UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();return;}
       const nb=applyMove(g.board,mv);const played=toSAN(g,mv,nb);
       const ng=makeMove(g,mv);const isMate=getStatus(ng)==='checkmate';
+      if(p.mine)setDrillAfter({fen:toFEN(ng)});   /* #553: the drill bar's 'after', right or wrong */
       const matchesLine=cleanSAN(played)===cleanSAN(p.sol[step]);
       /* #549 item (97), jobs/drill-accepts-one-move-only: a MISTAKES-drill card grades the move played instead of
          string-matching it (gradeDrillMove, module level). THE SCOPE IS THE LEAK GUARD THE JOB ASKS FOR: p.mine cards
@@ -10121,6 +10146,12 @@ function AppMain(){
      and the newest one holds the last reading until the next arrives. #550's antagonist A measured the first version filling those points
      with the static material count instead: a 1.6-pawn sawtooth on a quiet game, every other point a different instrument. */
   const sfHit=(sfEval&&sfEval.fen===dispFen)?sfEval:null;
+  /* #553 (flags/amber-553-drill-bar-before-after): the drill bar's two positions - the card's own (before) and the one his last move on
+     it made (after) - and which of them the main worker reads next: the card first, while he thinks, then his move's. */
+  const _drBefFen=(mode==='puzzle'&&mistakeMode&&curPuz&&curPuz.mine&&curPuz.pos)?toFEN(curPuz.pos):null;
+  const _drAftFen=(_drBefFen&&drillAfter&&drillAfter.fen)?drillAfter.fen:null;
+  const _drEvFen=!_drBefFen?null:(!sfDone[_drBefFen]?_drBefFen:((_drAftFen&&!sfDone[_drAftFen])?_drAftFen:null));
+  const _drRead=(f)=>f?(sfDone[f]||((sfEval&&sfEval.fen===f)?sfEval:null)):null;   /* finished, else the search in flight */
   /* #549 item (79), jobs/review-mate-label-not-plus9-9; Amber: flags/amber-549-review-mate-holds-over-shallow-cp. The live
      depth-12 probe paints EVERY info line, so on a ply the stored depth-16 analysis calls a forced mate its shallow depths
      arrive first as numbers: measured at Lasker v Thomas ply 28 (14...Kf4) the label went M -> +8.1 -> +9.7 -> M4. While the
@@ -10179,17 +10210,22 @@ function AppMain(){
        term is the defect, not the symptom. */
     /* #547 item (111): the drill asks too, but ONLY once the card is solved or the move is shown - Kunal's spoiler rule
        (jobs/eval-bar-on-the-drill-board-2026-09-23, theOneRuleToDecide): on an unsolved card the bar would say who is winning. */
-    const showEval=inReview?(ply>0):((mode==='puzzle'&&mistakeMode&&(puzSolved||puzReveal))||(mode==='play'&&opponent==='computer'&&!playSetup));
+    /* #553: in a drill the search is NOT the displayed board. It reads the card's own position first, while he thinks - never painted
+       until he moves, so it gives no hint - and then the position his move made, right or wrong (_drEvFen). Nothing else on the drill
+       uses this worker. */
+    const _drillEv=mode==='puzzle'&&mistakeMode&&!inReview;
+    const showEval=inReview?(ply>0):(_drillEv?!!_drEvFen:(mode==='play'&&opponent==='computer'&&!playSetup));
     if(!showEval)return;
+    const _fen=_drillEv?_drEvFen:dispFen;
     const w=sfRef.current; if(!w||!sfReady)return;
     if(!inReview&&mode==='play'&&opponent==='computer'&&game.turn!==pColor)return; // opponent is thinking on the single worker
     const cancel=stopIdle(w,S_MAIN,(idle)=>{
       if(!idle)return;                       // the next ply change will ask again
-      sfEvalFenRef.current=dispFen; sfEvalingRef.current=true;
-      try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+dispFen); w.postMessage('go depth 12'); sfGoRef.current++; }catch(e){}
+      sfEvalFenRef.current=_fen; sfEvalingRef.current=true; sfLastRef.current=null;
+      try{ w.postMessage('setoption name UCI_LimitStrength value false'); w.postMessage('setoption name MultiPV value 1'); w.postMessage('position fen '+_fen); w.postMessage('go depth 12'); sfGoRef.current++; }catch(e){}
     });
     return()=>{cancel();try{w.postMessage('stop');}catch(e){}};
-  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup,mistakeMode,puzSolved,puzReveal]);
+  },[dispFen,inReview,ply,mode,opponent,sfReady,pColor,game.turn,playSetup,mistakeMode,puzSolved,puzReveal,_drEvFen]);
 
   const SHADOW_BTN=boardDepth?'0 4px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.36),inset 0 1.5px 0 rgba(255,255,255,.30),inset 0 -3px 6px rgba(0,0,0,.22)':'0 3px 0 rgba(0,0,0,.40),0 5px 11px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.22)';
   const SHADOW_BOX=boardDepth?'0 3px 0 rgba(0,0,0,.28),0 9px 22px rgba(0,0,0,.34),inset 0 1.5px 0 rgba(255,255,255,.16),inset 0 -4px 10px rgba(0,0,0,.24)':'0 2px 0 rgba(0,0,0,.20),0 6px 15px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.08)';
@@ -10575,7 +10611,7 @@ function AppMain(){
     while(keys.length+1>EVAL_CACHE_MAX)delete all[keys.shift()];
     for(;;){try{localStorage.setItem('ct_evalcache',JSON.stringify(all));return;}catch(e){if(!keys.length)return;const n=Math.max(1,Math.ceil(keys.length/10));for(let i=0;i<n&&keys.length;i++)delete all[keys.shift()];}}
   }catch(e){}};
-  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(DRILL_GRADE&&obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
+  const loadExternal=(obj)=>{if(!obj){setPzOErr('That puzzle could not be read.');return false;}setGame(obj.pos);setLastMv(obj.last||null);setFlip(obj.pos.turn==='b');setPuzStep(0);setPuzMsg('');setPzHintMsg('');pzWrongRef.current=0;setPuzSolved(false);setPuzReveal(false);setDrillAfter(null);{const _k='ext:'+toFEN(obj.pos);pzShownRef.current=!!(pzShownRef.current&&pzKeyRef.current===_k);pzKeyRef.current=_k;}setPuzSide(obj.pos.turn);setCurPuz(obj);UI.current={sel:null,tgts:[],drag:null,dragging:false};setPzView('online');repaint();try{if(drillWarmRef.current)drillWarmRef.current();drillWarmRef.current=(DRILL_GRADE&&obj.mine&&!obj.brill&&drillKindRef.current==='mistake')?drillRankWarm(obj.pos):null;}catch(e){}/* #549 item (97): rank this card's moves while the player looks at it */return true;};
   /* #475 US-R27 clause two: a card the player already solved this session comes back SOLVED instead of
      asking again. Without it a Prev that re-asks satisfies the first half of the clause and still throws
      away the work he went back to look at, which is the thing he actually asked for twice.
@@ -10587,7 +10623,7 @@ function AppMain(){
     try{mv=uciToMove(obj.pos,rec.uci);if(mv)ng=makeMove(obj.pos,mv);}catch(e){mv=null;ng=null;}
     if(!mv||!ng)return false;
     if(!loadExternal(obj))return false;
-    setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);
+    setGame(ng);setLastMv(mv);setPuzStep((obj.sol||[]).length);setPuzSolved(true);setPuzReveal(false);setDrillAfter({fen:toFEN(ng)});   /* #553 */
     setPuzMsg(rec.msg!=null?rec.msg:(obj.explain?('🎉 '+obj.explain):''));repaint();return true;};
   const loadDaily=async()=>{setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/daily');const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('📅 Daily · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr(ctOffline()?"You are offline. Online puzzles need a connection; the puzzles in the app work offline.":"Couldn't reach Lichess. Check your connection and try again.");}setPzOLoading(false);};
   const loadById=async(id)=>{const c=String(id||'').trim().replace(/[^A-Za-z0-9]/g,'');if(!c){setPzOErr('Enter a puzzle ID (the code from lichess.org/training/XXXXX).');return;}setPzOErr('');setPzOInfo('');setPzOLoading(true);try{const r=await fetch('https://lichess.org/api/puzzle/'+c);const j=await r.json();const o=lichessFromApi(j);if(!o)throw 0;setPzPack(null);setPzOInfo('🎲 '+c+' · '+o.motif+(o.rating?(' · rating '+o.rating):''));loadExternal(o);}catch(e){setPzOErr("Couldn't load puzzle '"+c+"'. Check the ID and try again.");}setPzOLoading(false);};
@@ -14294,20 +14330,29 @@ function AppMain(){
               board neither shrinks nor moves for it. It exists only once the card is solved or the move is shown (Kunal's
               spoiler rule), and it reads from the PLAYER'S side - the side to move on the card - fill and number alike, the
               convention the drill's explanations use. While it shows, the counter drops its words to make room. */}
-          {(()=>{const _bar=_drill&&p&&(puzSolved||puzReveal);if(!_bar)return null;const _ps=(p.side==='b')?-1:1;
-            const _v=sfHit?(sfHit.mate!=null?(sfHit.mate*_ps>0?10:-10):_ps*sfHit.cp/100):null;
-            const _t=sfHit?(sfHit.mate!=null?mateLbl(_ps*sfHit.mate):(((_v>0)?'+':'')+Math.max(-9.9,Math.min(9.9,_v)).toFixed(1))):'…';
-            const fr=_v==null?0.5:Math.max(0.03,Math.min(0.97,0.5+_v/12));
-            return(<div data-ct="drill-eval" aria-label={'Evaluation for you: '+_t} style={{flex:1,minWidth:56,height:17,borderRadius:5,overflow:'hidden',position:'relative',background:'#2b2932',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}>
+          {/* #553 jobs/puzzles-the-advantage-bar-shows-before-and-after-your-move-2026-11-19, amber flags/amber-553-drill-bar-before-after
+              (Kunal's pick 'Before and after', 19 Nov): still hidden while he thinks; after ANY move he plays on the card, right or wrong,
+              it reads '<before> \u2192 <after>' from his side - the fill is the value after, and a dark tick marks where it was. Show move
+              with no move played shows the card's single value, as before. Same box, same row, so nothing on the page moves. */}
+          {(()=>{const _bar=_drill&&p&&(puzSolved||puzReveal||!!drillAfter);if(!_bar)return null;const _ps=(p.side==='b')?-1:1;
+            const _val=(e)=>e?(e.mate!=null?(e.mate*_ps>0?10:-10):_ps*e.cp/100):null;
+            const _lbl=(e)=>{if(!e)return '\u2026';if(e.mate!=null){const m=_ps*e.mate;return Math.abs(m)<1?(m>0?'#':'-#'):mateLbl(m);}const v=_val(e);return ((v>0)?'+':'')+Math.max(-9.9,Math.min(9.9,v)).toFixed(1);};
+            const _bE=_drRead(_drBefFen),_aE=drillAfter?_drRead(_drAftFen):null,_two=!!drillAfter;
+            const _cur=_two?_aE:_bE;const _v=_val(_cur),_vb=_val(_bE);
+            const _t=_two?(_lbl(_bE)+' \u2192 '+_lbl(_aE)):_lbl(_bE);
+            const _fr=(v)=>v==null?0.5:Math.max(0.03,Math.min(0.97,0.5+v/12));const fr=_fr(_v);
+            const _lt=(_v==null||_v>=0);
+            return(<div data-ct="drill-eval" aria-label={'Evaluation for you: '+(_two?(_lbl(_bE)+' before your move, '+_lbl(_aE)+' after it'):_t)} style={{flex:1,minWidth:_two?72:56 /* #553: the two values' chip is 66 at most ('-M10\u2192-M10' less so), so the counter beside it yields first */,height:17,borderRadius:5,overflow:'hidden',position:'relative',background:'#2b2932',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.45)'}}>
               <div data-ct="drill-eval-fill" style={{position:'absolute',top:0,bottom:0,left:0,width:(fr*100)+'%',background:'linear-gradient(90deg,#f6f4ee,#dcd9cf)',transition:'width .35s ease'}}/>
               <div style={{position:'absolute',top:0,bottom:0,left:'50%',width:1,background:'rgba(0,0,0,.35)'}}/>
-              <div data-ct="drill-eval-num" style={{position:'absolute',top:0,bottom:0,[(_v==null||_v>=0)?'left':'right']:6,display:'flex',alignItems:'center',fontSize:12,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',color:(_v==null||_v>=0)?'#141414':'#f2f2f2',zIndex:2,pointerEvents:'none'}}>{_t}</div>
+              {_two&&_vb!=null&&(<div data-ct="drill-eval-was" aria-hidden="true" style={{position:'absolute',top:0,bottom:0,left:'calc('+(_fr(_vb)*100)+'% - 1px)',width:2,background:'#e0a33a',zIndex:1}}/>)}
+              <div data-ct="drill-eval-num" style={_two?{position:'absolute',top:1,bottom:1,[_lt?'left':'right']:2 /* on the side the fill leaves clear when he is worse, as the single value does, so the fill still shows */,display:'flex',alignItems:'center',gap:1,whiteSpace:'nowrap',padding:'0 3px',borderRadius:4,background:'rgba(20,20,26,.82)',fontSize:11,letterSpacing:-0.2,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',color:'#f2f2f2',zIndex:2,pointerEvents:'none'}/* the two values sit on their own dark chip, so they read the same whatever the fill reaches under them */:{position:'absolute',top:0,bottom:0,[_lt?'left':'right']:6,display:'flex',alignItems:'center',fontSize:12,fontWeight:800,fontFamily:'ui-monospace,Menlo,monospace',color:_lt?'#141414':'#f2f2f2',zIndex:2,pointerEvents:'none'}}>{_two?(<><span data-ct="drill-eval-before">{_lbl(_bE)}</span><span aria-hidden="true">{'\u2192'}</span><span data-ct="drill-eval-after">{_lbl(_aE)}</span></>):_t}</div>
             </div>);})()}
           {/* #550 item (22), jobs/the-brilliant-moves-drill-jumps-to-a-number-from-its-counter-2026-11-11 (Kunal, 11 Nov: "a way to jump to a
               specific number so we don't have to hit next next next 50 times"): in a drill of two or more cards the counter is a button that
               opens a chooser of the card numbers; choosing one shows that card, and Prev and Next work on from there. Both drills. */}
-          {(_drill&&_dn>1)?(<button data-ct="drill-counter" onClick={()=>setDrillPick(true)} aria-label={'Card '+_di+' of '+_dn+': choose a card'} style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'none',border:'none',padding:0,margin:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left',minWidth:0,minHeight:TOP_SZ,display:'inline-flex',alignItems:'center' /* #550 FMT-A-11: the counter is a 44pt tap target (was 39) */}}>{(drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+((p&&(puzSolved||puzReveal))?' ':' · ')}<span style={{textDecoration:'underline dotted',textUnderlineOffset:3}}>{_di+' of '+_dn}</span> ▾</button>)
-          :(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal))?'🔎':'🔎 Mistakes drill'))+(_dn>1?(((p&&(puzSolved||puzReveal))?' ':' · ')+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>)}
+          {(_drill&&_dn>1)?(<button data-ct="drill-counter" onClick={()=>setDrillPick(true)} aria-label={'Card '+_di+' of '+_dn+': choose a card'} style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'none',border:'none',padding:0,margin:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left',minWidth:0,minHeight:TOP_SZ,display:'inline-flex',alignItems:'center' /* #550 FMT-A-11: the counter is a 44pt tap target (was 39) */}}>{(drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal||!!drillAfter))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal||!!drillAfter))?'🔎':'🔎 Mistakes drill'))+((p&&(puzSolved||puzReveal||!!drillAfter))?' ':' · ')}<span style={{textDecoration:'underline dotted',textUnderlineOffset:3}}>{_di+' of '+_dn}</span> ▾</button>)
+          :(<span style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.5)',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{_drill?((drillKindRef.current==='brilliant'?((p&&(puzSolved||puzReveal||!!drillAfter))?'✨':(p&&p.fol?('✨ '+p.fol)/* batch 13 q4: the followed player's name */:p&&p.who?'✨ Famous games'/* batch 13: a famous-games card is not his move; short, so the counter beside it stays whole at 320 */:'✨ Your brilliant moves')):((p&&(puzSolved||puzReveal||!!drillAfter))?'🔎':'🔎 Mistakes drill'))+(_dn>1?(((p&&(puzSolved||puzReveal||!!drillAfter))?' ':' · ')+_di+' of '+_dn):'')):('🌐 Lichess · ✓ '+pzOSolved+' solved')}</span>)}
           {drillPick&&_drill&&(<div data-ct="drill-pick" onClick={()=>setDrillPick(false)} style={{position:'fixed',inset:0,zIndex:9990,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'flex-end',justifyContent:'center'}}><div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:440,maxHeight:'70vh',overflowY:'auto',background:'#10161d',borderTopLeftRadius:18,borderTopRightRadius:18,border:'1px solid rgba(255,255,255,.12)',borderBottom:'none',padding:'12px 14px calc(16px + env(safe-area-inset-bottom,0px))'}}>
             <div style={{fontSize:15,fontWeight:800,color:'#fff',marginBottom:10}}>Go to card</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(48px,1fr))',gap:6}}>{Array.from({length:_dn},(_,k)=>k+1).map(n=>(<button key={n} data-ct="drill-pick-n" onClick={()=>{setDrillPick(false);drillGo(n-1);}} style={{height:44,borderRadius:10,border:'1px solid '+(n===_di?'rgba(var(--acr),.8)':'rgba(255,255,255,.14)'),background:n===_di?'rgba(var(--acr),.25)':'rgba(255,255,255,.05)',color:'#fff',fontSize:15,fontWeight:700,cursor:'pointer'}}>{n}</button>))}</div>

@@ -1768,9 +1768,10 @@ As a player replaying my own brilliant moves, I see the board as large as the sc
 ### US-R76 Once I have found the move, the drill shows me how good the position is, from my side
 *Added #547, from jobs/eval-bar-on-the-drill-board-2026-09-23 (Kunal, 23 Sep 2026: "The bar that goes up and down, points wise ... you can use that space on top"), and his ruling in that job's theOneRuleToDecide: hidden on an unsolved card, shown once it is solved or the line is shown.*
 As a player working through my drill, I see an evaluation bar once I have solved the card or asked to see the move, so it never gives the answer away, and it costs the board nothing.
-- On an unsolved card there is no bar at all. (TC-R81)
+- Before my first move on a card there is no bar at all. (TC-R81, TC-R267)
 - Once the card is solved, or Show move is tapped, a bar appears in the drill's header row, beside "‹ Review"; the header, and the board's size and position, do not change. (TC-R81)
 - The number and the fill are from my side: a position where I am a queen up reads positive whether I am White or Black. (TC-R81)
+- *Added #553, from jobs/puzzles-the-advantage-bar-shows-before-and-after-your-move-2026-11-19 (Kunal's pick "Before and after", 19 Nov 2026; amber flags/amber-553-drill-bar-before-after).* After any move I play on the card, right or wrong, the bar shows where it was and where it is now ("+0.4 → +3.3"), from my side: the value before my move, an arrow, and the value after it, both whole on the screen at every phone width and text size; after a wrong move it stays up while I try again and my next move updates the after value. A new card hides it again. (TC-R267)
 
 ### US-R77 A box that explains something stays until I have read it
 *Added #547, from jobs/explanation-boxes-must-not-time-out-2026-09-24 (Kunal, 24 Sep 2026: "realistically it's not on long enough for me to fully read it"). The spec reserved US-R35 for this, but #475 had already used that id.*
@@ -2716,7 +2717,14 @@ As a player who just tried the wrong move, the card tells me warmly what to look
 - Each of the 13 Tactics cards' lines is the longer one: it names what the right move does ("one knight jump checks the king and hits the queen at the same time") and is still true of the board, clause by clause. (TC-R262, TC-R246b)
 - While the line shows, the board, the card box and the buttons stay where they were and the page does not scroll, on my phone and on a short one. (TC-R262)
 - On my phone the line is drawn at the card's own text size; only on a short phone, where the box is too short for it, is the line drawn smaller to fit, and never below 11.5px. The whole line is inside the box. (TC-R262, TC-R246a)
-### US-R189 The best line and the analysis board say what the moves do
+
+### US-R189 My review never calls a losing move Book, even when a lesson shows it
+*Added in batch 14 (#553), jobs/a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19, from antagonist B's shipped-surface pass on #551: the Scholar's Mate game reviewed 3...Nf6??, which allows 4.Qxf7# mate in one, as Book ("An opening move (Scholar's Mate)") and left Black not scored, because the lesson library teaches the trap and its lines counted as theory. Amber: flags/amber-553-book-ends-at-a-blunder.*
+As a player reviewing a game, a move that the engine grades a Mistake, a Blunder or a Miss is shown with that grade and its own words, never as Book, even if a lesson line or a named opening reaches it; the opening book ends at that move.
+- The Book prefix (lesson lines and named positions) ends at the first move the review grades Mistake, Blunder or Miss; that move shows its grade and every move after it is graded as an ordinary move. Every move that allows a forced mate is one of these. Inaccuracies inside the book stay Book. No grade or threshold changes. (TC-R270)
+- In the Scholar's Mate game 1.e4 e5 2.Bc4 Nc6 3.Qh5 stay Book, 3...Nf6 is a Blunder and is not called an opening move, 4.Qxf7# is graded as a move, and the summary counts Black's Blunder and scores Black, on my phone and on a 320x568 screen. (TC-R270, TC-R30)
+- A sound book line, such as the Italian to 3...Bc5, stays Book on every move, and so does every lesson line with no such move in it. (TC-R270)
+### US-R190 The best line and the analysis board say what the moves do
 *Added in batch 14, jobs/review-sentences-name-what-the-moves-do-2026-11-12, the remainder docs/hint-audit-2026-11-12 HEX-R-05 and HEX-R-09. Kunal, 12 Nov 2026: "we have a few places we are giving hints explanations. We should check all of those." Amber: flags/amber-553-review-best-and-analysis-sentences.*
 As a player looking at the better move in my review, or trying a move of my own on the analysis board, I read in words what that line or that move does, so that the moves on the board are not left for me to work out.
 - With the best line showing, the sentence row says what the line does: its first move's reading, then how it ends - in mate ("The line ends in mate: Rxf1 mate."), or the queens coming off and the material it wins or gives up, counted over the moves shown - and nothing about material when the line stops mid-exchange. The played move's sentence is one tap away on that row. (TC-R264a, TC-R264b, TC-R264d)

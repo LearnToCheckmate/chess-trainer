@@ -1,0 +1,24 @@
+{
+ "job": "a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19",
+ "about": "BATCH 14 ENTRY 26. The Review's Book prefix ends at the first move the engine grades Mistake, Blunder or Miss (chess.jsx bookSound), so a trap a lesson teaches is not theory. Graded by gate 186: part N (node) re-grades, with the shipped grader, every lesson line and every named-position line holding a case on the engine numbers in gates/fixtures/book-breaks.json (196 book plies, 8 allowing a forced mate) and holds each to its grade, the plies before it to Book and the 94 sound lesson lines to Book throughout; part B (a trial bundle at kunal761, 375x761 with ct_safe 51,31, and 320x568) reviews the Scholar's Mate game (3...Nf6 Blunder, not praised as an opening move, 4.Qxf7# not Book, the summary counts it and scores Black) and the Italian (Book on all six plies). Three ways the fix could come undone are each caught. NOT COVERED: the regrade preview's and the background tally's Best/Great split (regradeGame, analyzeGameCounts; the same cut applied as the plies are graded, no gate drives them here), a game reviewed at another depth than the fixture's 12, iOS Safari, his own look on the phone.",
+ "gate": "gates/regress/186-book-ends-at-a-blunder.js",
+ "checks": ["TC-R270"],
+ "build": "always",
+ "situations": [
+  {"name": "node: every book case the engine found", "match": "^TC-R270 N"},
+  {"name": "375x761 kunal761 (ct_safe 51,31)", "match": "^TC-R270 (B\\w+ )?(PRECONDITION )?kunal761 "},
+  {"name": "320x568", "match": "^TC-R270 (B\\w+ )?(PRECONDITION )?320x568 "}
+ ],
+ "breaks": [
+  {"name": "review-book-not-cut", "patch": "breaks/186-review-book-not-cut.diff",
+   "why": "bookSound is right but the review reads the uncut prefix, as before the fix: 3...Nf6 is Book again on the screen and in the summary (the node part cannot see this; the screen must)",
+   "mustFailIn": ["375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "blunder-does-not-end-the-book", "patch": "breaks/186-blunder-does-not-end-the-book.diff",
+   "why": "BOOK_BREAKS loses Blunder: every mate-allowing trap move (Scholar's Mate, Legal, Fool's Mate...) is Book again while Mistakes still end the book",
+   "mustFailIn": ["node: every book case the engine found", "375x761 kunal761 (ct_safe 51,31)", "320x568"]},
+  {"name": "book-ends-one-ply-late", "patch": "breaks/186-book-ends-one-ply-late.diff",
+   "why": "the cut lands one ply late: the losing move itself stays Book and only the move after it is graded",
+   "mustFailIn": ["node: every book case the engine found", "375x761 kunal761 (ct_safe 51,31)", "320x568"]}
+ ],
+ "timeoutSec": 1800
+}

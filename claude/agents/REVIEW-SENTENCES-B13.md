@@ -160,7 +160,7 @@ jobs/a-review-of-a-book-only-game-says-the-key-moments-below-show-where-it-turne
 
 ## 12. The best line and the analysis board in words (HEX-R-05, HEX-R-09; batch 14, #553)
 
-OLD is the tree this part started from (cce5367e), NEW is this part's, both read through gate 185 (US-R189, TC-R264). The sentence row
+OLD is the tree this part started from (cce5367e), NEW is this part's, both read through gate 187 (US-R190, TC-R264). The sentence row
 under the move line (rev-why-txt) carries both; nothing else on the screen changes and the board does not move (measured at 375x761,
 320x568 and 844x390). Amber: flags/amber-553-review-best-and-analysis-sentences.
 
@@ -176,7 +176,7 @@ under the move line (rev-why-txt) carries both; nothing else on the screen chang
 | analysis board, 14...fxe5 (audit example) | Analysis · 1 move in · White to play | fxe5 takes the pawn on e5, and dxe5 can take back. |
 | analysis board, 1.e4 | Analysis · 1 move in · Black to play | e4 stakes out the center. |
 
-The rules, each read off the positions and checked by gate 185's own count: a best line that ends in mate says so and names the mating
+The rules, each read off the positions and checked by gate 187's own count: a best line that ends in mate says so and names the mating
 move; otherwise, where its last move is not a capture, the queens coming off and the material won or given up, counted piece by piece
 over the moves shown (none is said when the line stops in the middle of an exchange). On the analysis board, in order: mate,
 stalemate, a mate in one allowed, a capture that wins material by the exchange count (never said of a check, nor of a capture that

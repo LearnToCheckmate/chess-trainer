@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 9d9afaad..f1ee8ba8 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14257,5 +14257,5 @@ function AppMain(){
+             const _val=(e)=>e?(e.mate!=null?(e.mate*_ps>0?10:-10):_ps*e.cp/100):null;
+             const _lbl=(e)=>{if(!e)return '\u2026';if(e.mate!=null){const m=_ps*e.mate;return Math.abs(m)<1?(m>0?'#':'-#'):mateLbl(m);}const v=_val(e);return ((v>0)?'+':'')+Math.max(-9.9,Math.min(9.9,v)).toFixed(1);};
+-            const _bE=_drRead(_drBefFen),_aE=drillAfter?_drRead(_drAftFen):null,_two=!!drillAfter;
++            const _bE=_drRead(_drAftFen||_drBefFen),_aE=drillAfter?_drRead(_drAftFen):null,_two=!!drillAfter;
+             const _cur=_two?_aE:_bE;const _v=_val(_cur),_vb=_val(_bE);
+             const _t=_two?(_lbl(_bE)+' \u2192 '+_lbl(_aE)):_lbl(_bE);

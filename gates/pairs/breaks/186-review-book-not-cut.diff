@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index f74246b3..0c9a40ca 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8622,5 +8622,5 @@ function AppMain(){
+       }
+     }catch(e){}
+-    const bookN=_st.game?0:bookSound(openingBookPlies(playedSans,res.positions),(i)=>out[i]&&out[i].cls&&out[i].cls.label);   // #549 item (98): the named-position table as well as the lesson lines; #553: cut at the first Mistake, Blunder or Miss (bookSound)
++    const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines; #553: cut at the first Mistake, Blunder or Miss (bookSound)
+     if(meta&&meta.key&&gameStatsRef.current[meta.key]){   /* #550 answer a9 (item 73): the games list shows Best and Great apart, each the summary's own count for his side (effLabel, book applied) */
+       const uc=meta.userColor;let best=0,grt=0;out.forEach((o,i)=>{if(uc&&res.positions[i].turn!==uc)return;const E=effLabel(o.cls,i,bookN);if(E==='Best')best++;else if(E==='Great')grt++;});

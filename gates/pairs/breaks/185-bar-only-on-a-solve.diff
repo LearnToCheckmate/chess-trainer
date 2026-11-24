@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 9d9afaad..76875b0a 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14254,5 +14254,5 @@ function AppMain(){
+               it reads '<before> \u2192 <after>' from his side - the fill is the value after, and a dark tick marks where it was. Show move
+               with no move played shows the card's single value, as before. Same box, same row, so nothing on the page moves. */}
+-          {(()=>{const _bar=_drill&&p&&(puzSolved||puzReveal||!!drillAfter);if(!_bar)return null;const _ps=(p.side==='b')?-1:1;
++          {(()=>{const _bar=_drill&&p&&(puzSolved||puzReveal);if(!_bar)return null;const _ps=(p.side==='b')?-1:1;
+             const _val=(e)=>e?(e.mate!=null?(e.mate*_ps>0?10:-10):_ps*e.cp/100):null;
+             const _lbl=(e)=>{if(!e)return '\u2026';if(e.mate!=null){const m=_ps*e.mate;return Math.abs(m)<1?(m>0?'#':'-#'):mateLbl(m);}const v=_val(e);return ((v>0)?'+':'')+Math.max(-9.9,Math.min(9.9,v)).toFixed(1);};
