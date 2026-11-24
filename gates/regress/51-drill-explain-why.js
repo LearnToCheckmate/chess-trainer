@@ -56,6 +56,15 @@
 //   that switch: poolWanted() at 3726 accepts 1..6 and only SIZES the pool, so ct_pool=1 is still a
 //   one-worker STOCKFISH review and never the fallback engine. So this gate cannot run a fallback column,
 //   and the gap is recorded here instead of being left as a silent default.
+//   R18 [#553 B3, jobs/chessjsx-claims-gate-51-runs-a-fallback-column-and-it-does-not-2026-10-03]: the paragraph above
+//   was true at #426 and is not now; it is kept as the record of why this gate has no fallback column, not as a
+//   description of the tree. useSF is a cache check or 'await ensureAna(REVIEW_ENGINE_WAIT)' since 95094b0 and
+//   no longer reads sfReadyRef, and a harness route DOES reach the built-in branch: gates/lib.js engineFail 'all'
+//   (ee54165) makes every Stockfish worker throw. Gate 146 (required) reviews the Opera Game that way and asserts
+//   path 'builtin', the path and the no-engine notice only. So what stays true is narrower: THIS gate passes
+//   ct_pool:'3' on every launch and drives no fallback column, and no gate drives the evalBefore / mistakeWhy
+//   sentence or the drill capture through the built-in branch yet. The chess.jsx side says the same (find
+//   "#426 antagonist B, P0-1"). Line numbers in the paragraph above (3799, 3726, 3927, 3965) are #426's.
 // WHAT IS DONE ABOUT IT INSTEAD: the fallback path is INSTRUMENTED rather than driven. chess.jsx:3965
 // writes engine:'sf'|'fallback' into ct_gamestats for the reviewed game, so A0e below READS which branch
 // actually produced this run's capture and fails if it is not the one this header claims. A run on a
@@ -68,6 +77,8 @@
 // P0-1") stated "Gate 51 now runs a fallback column." It never did. That comment now says what is true -
 // the fallback branch is instrumented (A0e) but not driven, and has no gate until the route job lands -
 // and this file's paragraph above was already right, so only the bundle side changed.
+// R18 [#553 B3]: "has no gate" and "already right" are both withdrawn - see the R18 under the paragraph above.
+// Gate 146 runs a review through the built-in branch (path only); no gate drives this gate's sentence there.
 //
 // THE ALT-MATE SOLVE STATE, AND WHY THIS GATE DOES NOT REACH IT (jobs/veto-fixes-land-with-no-assertion-
 // because-the-gate-is-frozen-pre-veto-2026-09-28, fix part 1, third item, which allows "or a written
