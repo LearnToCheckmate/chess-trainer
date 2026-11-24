@@ -2659,7 +2659,7 @@ As the developer, with the "Review games in progress" switch on (Menu, New featu
 - While that review is open it grows by itself: when a new move has been played the summary's count and grades take it in, and on the move screen at the last move the board follows to the new one without moving or changing size; anywhere else I stay on the move I was reading. (TC-R247f)
 - It asks politely: one account at a time, never twice about one account within 45 seconds, only while that review is open and the page is on screen, and not at all once I close it. (TC-R247g)
 - The list fits my phone and a short one: rows 44px or taller, no text under 13.5px, nothing cut without an ellipsis. (TC-R247h)
-- **Turning it on does not squeeze my games** (batch 14, the job's listed limit "the games box is squeezed"): the games in progress are the top of the games box and scroll with my games, so the box keeps the height it has with the switch off and the page itself never scrolls. (TC-R247i)
+- **Turning it on does not squeeze my games** (batch 14, the job's listed limit "the games box is squeezed"): the games in progress are the top of the games box and scroll with my games, so the box starts where it does with the switch off (until US-R202 the box also kept its height and the page did not scroll; since then the page scrolls as one). (TC-R247i)
 - **The review's in-progress words are never split** (batch 14, the job's listed limit "the summary line wraps at 375"): the moves so far sit on one line and the time it was last checked on the next, each whole, and the two lines keep their height as the review grows. (TC-R247j)
 
 ### US-R174 Every screen stays clean at every phone width and every text size
