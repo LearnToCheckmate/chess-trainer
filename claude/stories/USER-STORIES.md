@@ -2745,6 +2745,12 @@ As a player scanning the ten-row grade table, each green row has a dot I can tel
 - The painted Best, Excellent and Good dots differ from each other by at least dE76 15 (measured 18.7, 34.9 and 16.9) and from every other grade's dot by at least 10, on my phone and on a 320x568 screen. (TC-R321, TC-R322)
 - The White and Black headers stay over their digits. (TC-R323, with US-R88's TC-R89)
 
+### US-R217 The board's letters stay readable under a highlight, at the colours I kept
+*Added in batch 14 (#553, builder seat B1), jobs/a-file-label-under-a-highlight-falls-to-1-58-to-1-contrast-2026-10-04: the 'e' under a puzzle's Show square read 1.58:1 (#477); #548 gave each letter an opaque chip of its own square's colour on Kunal's default questions/B8-SMALL-DEFAULTS (3). The letters' own colours stay as they are by his answer "Keep today's letter colours" (questions/B9C-COORD-CONTRAST, 10 Nov 2026; DECISIONS-LOG.md): WCAG AA 4.5:1 is not their target.*
+As a player looking at a highlighted square, its file or rank letter reads exactly as the letters on the other squares do.
+- Every board letter is painted on an opaque chip of its square's colour, in the other square's colour, so highlighted or not it reads the theme's own pair (3.37:1 on the default board) - on a puzzle's Show square and on a flipped board with a piece selected, on my phone and on a 320x568 screen. (TC-R326)
+- On a highlighted square the letter is painted above the highlight. (TC-R327)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

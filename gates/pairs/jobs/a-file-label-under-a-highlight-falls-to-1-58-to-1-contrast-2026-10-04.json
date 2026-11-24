@@ -1,0 +1,49 @@
+{
+ "job": "a-file-label-under-a-highlight-falls-to-1-58-to-1-contrast-2026-10-04",
+ "about": "The no-drop half of the job, on Kunal's 'Keep today's letter colours' (questions/B9C-COORD-CONTRAST, 10 Nov 2026; DECISIONS-LOG.md): every board letter reads its theme's light/dark pair on an opaque chip, highlighted or not, and is painted above the highlight - on a puzzle's Show square (e1) and on a flipped board with g8 selected, at 375x761 with his insets and 320x568. Graded by gate 207 (TC-R326..327), reading each label's own computed ink and chip. NOT COVERED: raising the pair to WCAG AA 4.5:1 (his answer is keep); themes other than the default (their pairs are what the opaque chip paints).",
+ "gate": "gates/regress/207-board-letters-keep-their-contrast.js",
+ "checks": [
+  "TC-R32[67] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-letters-lose-their-chip",
+   "patch": "breaks/207-the-letters-lose-their-chip.diff",
+   "why": "the #548 chip is stripped, so the highlight under a letter is what it is read against again (the 1.58:1 case)",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-letters-sit-under-the-highlight",
+   "patch": "breaks/207-the-letters-sit-under-the-highlight.diff",
+   "why": "the letters drop below the highlight layer, so the overlay paints over them",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  },
+  {
+   "name": "the-file-letters-take-a-faint-ink",
+   "patch": "breaks/207-the-file-letters-take-a-faint-ink.diff",
+   "why": "the file letters take a faint translucent ink instead of the other square's colour, under their own pair",
+   "mustFailIn": [
+    "kunal761",
+    "se 320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1800
+}
