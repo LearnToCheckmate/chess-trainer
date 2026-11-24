@@ -1,0 +1,11 @@
+--- a/gates/regress/15-gallery-playall.js
++++ b/gates/regress/15-gallery-playall.js
+@@ -586,7 +586,7 @@
+     const pabN=await pab.count();
+     L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
+     if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
+-    const recOn=await OVREC(b).catch(()=>false);
++    const recOn=false;
+     await pab.first().click();
+     let ovCompared=0;const ovDisagree=[];
+     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];

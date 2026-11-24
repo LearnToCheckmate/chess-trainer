@@ -1,0 +1,30 @@
+{
+ "job": "gate-15-reddened-on-a-review-entry-frame-2px-over-that-clears-in-ms-2026-11-21",
+ "about": "Gate 15's 'no card leaves the page scrolling', decided since #553 on every painted frame of the Play-all walk by an in-page requestAnimationFrame recorder (ovEpisodes): an overflow episode is a transient only if it clears within 900ms of its onset and the clear holds 250ms; anything else is counted. Graded on the walk alone (CT_G15_ONLY=WALK) at 375x679 (where Review's entry paints two frames over, 20 then 2, and the old 700ms sampler reddened at random), 375x761 (his phone, no transient), 320x568 (one frame over 45) and 375x812 (no transient), with the recorder's own two lines (it ran under every caption; it agrees with b.over() at every steady sample). NOT COVERED: the IPAD card is excused as before (it walks screens that may scroll, jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11); blocks S, F, M and HM are not run here; the app-side cause (Review's fit loop trims after paint, so its first one or two frames are painted over the screen) is not fixed - that is the Review fit, owned by another seat this batch.",
+ "gate": "gates/regress/15-gallery-playall.js",
+ "env": {"CT_G15_ONLY": "WALK", "CT_G15_GEOS": "kunal,kunal761,se,375x812"},
+ "checks": [
+  "^(kunal|kunal761|se|375x812): no card leaves the page scrolling",
+  "^(kunal|kunal761|se|375x812): the frame recorder ran under every caption",
+  "^(kunal|kunal761|se|375x812): the recorder reads the same overflow"
+ ],
+ "build": "auto",
+ "situations": [
+  {"name": "375x679", "match": "^kunal: "},
+  {"name": "kunal761", "match": "^kunal761: "},
+  {"name": "se 320x568", "match": "^se: "},
+  {"name": "375x812", "match": "^375x812: "}
+ ],
+ "breaks": [
+  {"name": "review-fit-never-shrinks", "patch": "breaks/g15-review-fit-never-shrinks.diff",
+   "why": "the overshoot persists: the fit loop no longer trims the compact Review board when it overflows, so Review's entry stays 20px over at 375x679 and 45px over at 320x568 for the whole card - the defect this check exists for",
+   "mustFailIn": ["375x679", "se 320x568"]},
+  {"name": "no-settle-wait", "patch": "breaks/g15-no-settle-wait.diff",
+   "why": "the settle wait removed: every over-episode is counted the moment it is seen, so the gate goes back to reading the first frame and Review's 70ms entry transient reds it",
+   "mustFailIn": ["375x679", "se 320x568"]},
+  {"name": "recorder-not-installed", "patch": "breaks/g15-recorder-not-installed.diff",
+   "why": "the frame recorder is never installed, so the verdict has no frames under it and 'no card leaves the page scrolling' would pass over nothing",
+   "mustFailIn": ["375x679", "kunal761", "se 320x568", "375x812"]}
+ ],
+ "timeoutSec": 2400
+}
